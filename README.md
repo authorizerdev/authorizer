@@ -34,4 +34,6 @@ yauth (aka your-auth) is a complete open source authentication and authorization
 * Attempts to implement the latest guidance published by Open Web Application Security Project
 * Advanced options allow you to define your own routines to handle controlling what accounts are allowed to sign in, for encoding and decoding JSON Web Tokens and to set custom cookie security policies and session properties, so you can control who is able to sign in and how often sessions have to be re-validated.
 
+# License
+[MIT](https://github.com/yauthio/yauth/blob/main/LICENSE)
 
