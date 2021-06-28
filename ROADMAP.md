@@ -23,7 +23,7 @@ This document contains detailed information about the project scope and future r
   - [ ] Allow configuring the Secret
   - [ ] Allow configuring callback urls
   - [ ] Allow configuring redis, should be optional if not used use the memory to store session
-  - [ ] Use [gorilla sessions](https://github.com/gorilla/sessions) for session management
+  - [ ] Use [fiber sessions](https://docs.gofiber.io/api/middleware/session) for session management
 - [ ] Create REST API
    - [ ] Login
    - [ ] Logout
