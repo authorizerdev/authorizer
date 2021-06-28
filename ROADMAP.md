@@ -6,7 +6,7 @@ This document contains detailed information about the project scope and future r
 
 - [ ] Create boilerplate for server
   - [ ] Use golang as server side language
-  - [ ] Use [Prisma.io](https://github.com/prisma/prisma-client-go) as ORM
+  - [ ] Use [gorm](https://github.com/go-gorm/gorm) as ORM
   - [ ] Define base schema for user
   - [ ] Define the auth schemes and variables required for that
      - [ ] Basic Auth (Username & Password based)
