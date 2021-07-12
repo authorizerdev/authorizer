@@ -1,28 +1,79 @@
 # GraphQL schema example
 #
 # https://gqlgen.com/getting-started/
-
-type Todo {
-  id: ID!
-  text: String!
-  done: Boolean!
-  user: User!
-}
+scalar Int64
 
 type User {
   id: ID!
-  name: String!
+  email: String!
+  SignUpMethod: String!
+  firstName: String
+  lastName: String
+  emailVerifiedAt: Int64
+  password: String
+  image: String
+  createdAt: Int64
+  updatedAt: Int64
+}
+
+type VerificationRequest {
+  id: ID!
+  identifier: String
+  token: String
+  email: String
+  expires: Int64
+  createdAt: Int64
+  updatedAt: Int64
+}
+
+type Error {
+  message: String!
+  reason: String!
+}
+
+interface Response {
+  success: Boolean!
+  message: String!
+  errors: [Error!]
+  statusCode: Int!
+}
+
+type BasicAuthLoginResponse implements Response {
+  success: Boolean!
+  message: String!
+  errors: [Error!]
+  statusCode: Int!
+  refreshToken: String
+  user: User
+}
+
+type BasicAuthSignupResponse implements Response {
+  success: Boolean!
+  message: String!
+  errors: [Error!]
+  statusCode: Int!
+  user: User
 }
 
 type Query {
-  todos: [Todo!]!
+  users: [User!]!
 }
 
-input NewTodo {
-  text: String!
-  userId: String!
+input BasicAuthSignupInput {
+  firstName: String
+  lastName: String
+  email: String!
+  password: String!
+  cofirmPassword: String!
+  image: String
+}
+
+input BasicAuthLoginInput {
+  email: String!
+  password: String!
 }
 
 type Mutation {
-  createTodo(input: NewTodo!): Todo!
+  basicAuthSignUp(params: BasicAuthSignupInput!): BasicAuthSignupResponse!
+  basicAuthLogin(params: BasicAuthLoginInput!): BasicAuthLoginResponse!
 }
