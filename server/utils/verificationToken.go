@@ -11,7 +11,7 @@ type UserInfo struct {
 	Email string `json:"email"`
 }
 
-type CustomClaimsExample struct {
+type CustomClaim struct {
 	*jwt.StandardClaims
 	TokenType string `json:"token_type"`
 	UserInfo
@@ -21,7 +21,7 @@ type CustomClaimsExample struct {
 func CreateVerificationToken(email string, tokenType string) (string, error) {
 	t := jwt.New(jwt.GetSigningMethod(constants.JWT_TYPE))
 
-	t.Claims = &CustomClaimsExample{
+	t.Claims = &CustomClaim{
 		&jwt.StandardClaims{
 
 			ExpiresAt: time.Now().Add(time.Minute * 30).Unix(),
@@ -33,17 +33,14 @@ func CreateVerificationToken(email string, tokenType string) (string, error) {
 	return t.SignedString([]byte(constants.JWT_SECRET))
 }
 
-func VerifyVerificationToken(email string, tokenType string) (string, error) {
-	t := jwt.New(jwt.GetSigningMethod(constants.JWT_TYPE))
-
-	t.Claims = &CustomClaimsExample{
-		&jwt.StandardClaims{
-
-			ExpiresAt: time.Now().Add(time.Minute * 30).Unix(),
-		},
-		tokenType,
-		UserInfo{Email: email},
+func VerifyVerificationToken(token string) (*CustomClaim, error) {
+	claims := &CustomClaim{}
+	_, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
+		return []byte(constants.JWT_SECRET), nil
+	})
+	if err != nil {
+		return claims, err
 	}
 
-	return t.SignedString([]byte(constants.JWT_SECRET))
+	return claims, nil
 }

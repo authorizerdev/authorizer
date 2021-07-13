@@ -16,6 +16,52 @@ import (
 	"github.com/yauthdev/yauth/server/utils"
 )
 
+func (r *mutationResolver) VerifySignupToken(ctx context.Context, params model.VerifySignupTokenInput) (*model.Response, error) {
+	// // verify if token is valid
+	var res *model.Response
+	_, err := db.Mgr.GetVerificationByToken(params.Token)
+	if err != nil {
+		res = &model.Response{
+			Success:    false,
+			Message:    `Invalid token`,
+			StatusCode: 400,
+			Errors: []*model.Error{&model.Error{
+				Message: `Invalid token`,
+				Reason:  `invalid token`,
+			}},
+		}
+	} else {
+
+		// verify if token exists in db
+		claim, err := utils.VerifyVerificationToken(params.Token)
+		if err != nil {
+			res = &model.Response{
+				Success:    false,
+				Message:    `Invalid token`,
+				StatusCode: 400,
+				Errors: []*model.Error{&model.Error{
+					Message: `Invalid token`,
+					Reason:  `invalid token`,
+				}},
+			}
+		} else {
+			res = &model.Response{
+				Success:    true,
+				Message:    `Email verified successfully. Login to access the system.`,
+				StatusCode: 200,
+			}
+
+			// update email_verified_at in users table
+			db.Mgr.UpdateVerificationTime(time.Now().Unix(), claim.Email)
+			// delete from verification table
+			db.Mgr.DeleteToken(claim.Email)
+		}
+
+	}
+
+	return res, nil
+}
+
 func (r *mutationResolver) BasicAuthSignUp(ctx context.Context, params model.BasicAuthSignupInput) (*model.BasicAuthSignupResponse, error) {
 	var res *model.BasicAuthSignupResponse
 	if params.CofirmPassword != params.Password {
