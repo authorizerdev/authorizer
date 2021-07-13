@@ -16,7 +16,10 @@ type Manager interface {
 	AddUser(user User) (User, error)
 	GetUsers() ([]User, error)
 	GetUserByEmail(email string) (User, error)
+	UpdateVerificationTime(verifiedAt int64, email string) error
 	AddVerification(verification Verification) (Verification, error)
+	GetVerificationByToken(token string) (Verification, error)
+	DeleteToken(email string) error
 }
 
 type manager struct {
