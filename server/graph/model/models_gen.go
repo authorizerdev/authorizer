@@ -2,10 +2,6 @@
 
 package model
 
-type Response interface {
-	IsResponse()
-}
-
 type BasicAuthLoginInput struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
@@ -19,8 +15,6 @@ type BasicAuthLoginResponse struct {
 	RefreshToken *string  `json:"refreshToken"`
 	User         *User    `json:"user"`
 }
-
-func (BasicAuthLoginResponse) IsResponse() {}
 
 type BasicAuthSignupInput struct {
 	FirstName      *string `json:"firstName"`
@@ -39,11 +33,16 @@ type BasicAuthSignupResponse struct {
 	User       *User    `json:"user"`
 }
 
-func (BasicAuthSignupResponse) IsResponse() {}
-
 type Error struct {
 	Message string `json:"message"`
 	Reason  string `json:"reason"`
+}
+
+type Response struct {
+	Success    bool     `json:"success"`
+	Message    string   `json:"message"`
+	Errors     []*Error `json:"errors"`
+	StatusCode int      `json:"statusCode"`
 }
 
 type User struct {
@@ -67,4 +66,8 @@ type VerificationRequest struct {
 	Expires    *int64  `json:"expires"`
 	CreatedAt  *int64  `json:"createdAt"`
 	UpdatedAt  *int64  `json:"updatedAt"`
+}
+
+type VerifySignupTokenInput struct {
+	Token string `json:"token"`
 }
