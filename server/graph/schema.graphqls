@@ -31,14 +31,14 @@ type Error {
   reason: String!
 }
 
-interface Response {
+type Response {
   success: Boolean!
   message: String!
   errors: [Error!]
   statusCode: Int!
 }
 
-type BasicAuthLoginResponse implements Response {
+type BasicAuthLoginResponse {
   success: Boolean!
   message: String!
   errors: [Error!]
@@ -47,7 +47,7 @@ type BasicAuthLoginResponse implements Response {
   user: User
 }
 
-type BasicAuthSignupResponse implements Response {
+type BasicAuthSignupResponse {
   success: Boolean!
   message: String!
   errors: [Error!]
@@ -73,7 +73,12 @@ input BasicAuthLoginInput {
   password: String!
 }
 
+input VerifySignupTokenInput {
+  token: String!
+}
+
 type Mutation {
+  verifySignupToken(params: VerifySignupTokenInput!): Response!
   basicAuthSignUp(params: BasicAuthSignupInput!): BasicAuthSignupResponse!
   basicAuthLogin(params: BasicAuthLoginInput!): BasicAuthLoginResponse!
 }

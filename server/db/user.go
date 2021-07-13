@@ -60,3 +60,13 @@ func (mgr *manager) GetUserByEmail(email string) (User, error) {
 
 	return user, nil
 }
+
+func (mgr *manager) UpdateVerificationTime(verifiedAt int64, email string) error {
+	result := mgr.db.Model(&User{}).Where("email = ?", email).Update("email_verified_at", verifiedAt)
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	return nil
+}
