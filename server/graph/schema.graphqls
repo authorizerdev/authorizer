@@ -80,5 +80,5 @@ input VerifySignupTokenInput {
 type Mutation {
   verifySignupToken(params: VerifySignupTokenInput!): Response!
   basicAuthSignUp(params: BasicAuthSignupInput!): BasicAuthSignupResponse!
-  basicAuthLogin(params: BasicAuthLoginInput!): BasicAuthLoginResponse!
+  login(params: BasicAuthLoginInput!): BasicAuthLoginResponse!
 }

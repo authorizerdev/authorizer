@@ -18,6 +18,8 @@ var (
 	JWT_TYPE        = ""
 	JWT_SECRET      = ""
 	FRONTEND_URL    = ""
+	PORT            = "8080"
+	REDIS_URL       = ""
 )
 
 func init() {
@@ -33,4 +35,10 @@ func init() {
 	JWT_SECRET = os.Getenv("JWT_SECRET")
 	JWT_TYPE = os.Getenv("JWT_TYPE")
 	FRONTEND_URL = os.Getenv("FRONTEND_URL")
+	PORT = os.Getenv("PORT")
+	REDIS_URL = os.Getenv("REDIS_URL")
+
+	if JWT_TYPE == "" {
+		JWT_TYPE = "HS256"
+	}
 }

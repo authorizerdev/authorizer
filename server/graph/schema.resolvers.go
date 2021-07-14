@@ -156,7 +156,7 @@ func (r *mutationResolver) BasicAuthSignUp(ctx context.Context, params model.Bas
 	return res, nil
 }
 
-func (r *mutationResolver) BasicAuthLogin(ctx context.Context, params model.BasicAuthLoginInput) (*model.BasicAuthLoginResponse, error) {
+func (r *mutationResolver) Login(ctx context.Context, params model.BasicAuthLoginInput) (*model.BasicAuthLoginResponse, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 

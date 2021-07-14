@@ -66,8 +66,8 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		BasicAuthLogin    func(childComplexity int, params model.BasicAuthLoginInput) int
 		BasicAuthSignUp   func(childComplexity int, params model.BasicAuthSignupInput) int
+		Login             func(childComplexity int, params model.BasicAuthLoginInput) int
 		VerifySignupToken func(childComplexity int, params model.VerifySignupTokenInput) int
 	}
 
@@ -109,7 +109,7 @@ type ComplexityRoot struct {
 type MutationResolver interface {
 	VerifySignupToken(ctx context.Context, params model.VerifySignupTokenInput) (*model.Response, error)
 	BasicAuthSignUp(ctx context.Context, params model.BasicAuthSignupInput) (*model.BasicAuthSignupResponse, error)
-	BasicAuthLogin(ctx context.Context, params model.BasicAuthLoginInput) (*model.BasicAuthLoginResponse, error)
+	Login(ctx context.Context, params model.BasicAuthLoginInput) (*model.BasicAuthLoginResponse, error)
 }
 type QueryResolver interface {
 	Users(ctx context.Context) ([]*model.User, error)
@@ -221,18 +221,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Error.Reason(childComplexity), true
 
-	case "Mutation.basicAuthLogin":
-		if e.complexity.Mutation.BasicAuthLogin == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_basicAuthLogin_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.BasicAuthLogin(childComplexity, args["params"].(model.BasicAuthLoginInput)), true
-
 	case "Mutation.basicAuthSignUp":
 		if e.complexity.Mutation.BasicAuthSignUp == nil {
 			break
@@ -244,6 +232,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.BasicAuthSignUp(childComplexity, args["params"].(model.BasicAuthSignupInput)), true
+
+	case "Mutation.login":
+		if e.complexity.Mutation.Login == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_login_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.Login(childComplexity, args["params"].(model.BasicAuthLoginInput)), true
 
 	case "Mutation.verifySignupToken":
 		if e.complexity.Mutation.VerifySignupToken == nil {
@@ -557,7 +557,7 @@ input VerifySignupTokenInput {
 type Mutation {
   verifySignupToken(params: VerifySignupTokenInput!): Response!
   basicAuthSignUp(params: BasicAuthSignupInput!): BasicAuthSignupResponse!
-  basicAuthLogin(params: BasicAuthLoginInput!): BasicAuthLoginResponse!
+  login(params: BasicAuthLoginInput!): BasicAuthLoginResponse!
 }
 `, BuiltIn: false},
 }
@@ -567,13 +567,13 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
 // region    ***************************** args.gotpl *****************************
 
-func (ec *executionContext) field_Mutation_basicAuthLogin_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Mutation_basicAuthSignUp_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 model.BasicAuthLoginInput
+	var arg0 model.BasicAuthSignupInput
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalNBasicAuthLoginInput2githubᚗcomᚋyauthdevᚋyauthᚋserverᚋgraphᚋmodelᚐBasicAuthLoginInput(ctx, tmp)
+		arg0, err = ec.unmarshalNBasicAuthSignupInput2githubᚗcomᚋyauthdevᚋyauthᚋserverᚋgraphᚋmodelᚐBasicAuthSignupInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -582,13 +582,13 @@ func (ec *executionContext) field_Mutation_basicAuthLogin_args(ctx context.Conte
 	return args, nil
 }
 
-func (ec *executionContext) field_Mutation_basicAuthSignUp_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Mutation_login_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 model.BasicAuthSignupInput
+	var arg0 model.BasicAuthLoginInput
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalNBasicAuthSignupInput2githubᚗcomᚋyauthdevᚋyauthᚋserverᚋgraphᚋmodelᚐBasicAuthSignupInput(ctx, tmp)
+		arg0, err = ec.unmarshalNBasicAuthLoginInput2githubᚗcomᚋyauthdevᚋyauthᚋserverᚋgraphᚋmodelᚐBasicAuthLoginInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1189,7 +1189,7 @@ func (ec *executionContext) _Mutation_basicAuthSignUp(ctx context.Context, field
 	return ec.marshalNBasicAuthSignupResponse2ᚖgithubᚗcomᚋyauthdevᚋyauthᚋserverᚋgraphᚋmodelᚐBasicAuthSignupResponse(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Mutation_basicAuthLogin(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Mutation_login(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1206,7 +1206,7 @@ func (ec *executionContext) _Mutation_basicAuthLogin(ctx context.Context, field 
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_basicAuthLogin_args(ctx, rawArgs)
+	args, err := ec.field_Mutation_login_args(ctx, rawArgs)
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
@@ -1214,7 +1214,7 @@ func (ec *executionContext) _Mutation_basicAuthLogin(ctx context.Context, field 
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().BasicAuthLogin(rctx, args["params"].(model.BasicAuthLoginInput))
+		return ec.resolvers.Mutation().Login(rctx, args["params"].(model.BasicAuthLoginInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3374,8 +3374,8 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "basicAuthLogin":
-			out.Values[i] = ec._Mutation_basicAuthLogin(ctx, field)
+		case "login":
+			out.Values[i] = ec._Mutation_login(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
