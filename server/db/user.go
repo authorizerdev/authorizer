@@ -24,7 +24,7 @@ type User struct {
 
 func (user *User) BeforeSave(tx *gorm.DB) error {
 	// Modify current operation through tx.Statement, e.g:
-	if pw, err := bcrypt.GenerateFromPassword([]byte(user.Password), 0); err == nil {
+	if pw, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost); err == nil {
 		tx.Statement.SetColumn("Password", pw)
 	}
 

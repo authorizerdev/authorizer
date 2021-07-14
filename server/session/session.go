@@ -15,7 +15,7 @@ type SessionStore struct {
 
 var SessionStoreObj SessionStore
 
-func setToken(userId, token string) {
+func SetToken(userId, token string) {
 	if SessionStoreObj.redisMemoryStoreObj != nil {
 		SessionStoreObj.redisMemoryStoreObj.AddToken(userId, token)
 	}
@@ -24,7 +24,7 @@ func setToken(userId, token string) {
 	}
 }
 
-func deleteToken(userId string) {
+func DeleteToken(userId string) {
 	if SessionStoreObj.redisMemoryStoreObj != nil {
 		SessionStoreObj.redisMemoryStoreObj.DeleteToken(userId)
 	}
@@ -33,16 +33,18 @@ func deleteToken(userId string) {
 	}
 }
 
-func getToken(userId string) {
+func GetToken(userId string) string {
 	if SessionStoreObj.redisMemoryStoreObj != nil {
-		SessionStoreObj.redisMemoryStoreObj.GetToken(userId)
+		return SessionStoreObj.redisMemoryStoreObj.GetToken(userId)
 	}
 	if SessionStoreObj.inMemoryStoreObj != nil {
-		SessionStoreObj.inMemoryStoreObj.GetToken(userId)
+		return SessionStoreObj.inMemoryStoreObj.GetToken(userId)
 	}
+
+	return ""
 }
 
-func clearStore() {
+func ClearStore() {
 	if SessionStoreObj.redisMemoryStoreObj != nil {
 		SessionStoreObj.redisMemoryStoreObj.ClearStore()
 	}

@@ -32,31 +32,18 @@ type Error {
 }
 
 type Response {
-  success: Boolean!
   message: String!
-  errors: [Error!]
-  statusCode: Int!
 }
 
-type BasicAuthLoginResponse {
-  success: Boolean!
+type LoginResponse {
   message: String!
-  errors: [Error!]
-  statusCode: Int!
-  refreshToken: String
+  accessToken: String
   user: User
 }
 
 type BasicAuthSignupResponse {
-  success: Boolean!
   message: String!
-  errors: [Error!]
-  statusCode: Int!
   user: User
-}
-
-type Query {
-  users: [User!]!
 }
 
 input BasicAuthSignupInput {
@@ -68,7 +55,7 @@ input BasicAuthSignupInput {
   image: String
 }
 
-input BasicAuthLoginInput {
+input LoginInput {
   email: String!
   password: String!
 }
@@ -80,5 +67,10 @@ input VerifySignupTokenInput {
 type Mutation {
   verifySignupToken(params: VerifySignupTokenInput!): Response!
   basicAuthSignUp(params: BasicAuthSignupInput!): BasicAuthSignupResponse!
-  login(params: BasicAuthLoginInput!): BasicAuthLoginResponse!
+  login(params: LoginInput!): LoginResponse!
+}
+
+type Query {
+  users: [User!]!
+  updateToken: LoginResponse
 }
