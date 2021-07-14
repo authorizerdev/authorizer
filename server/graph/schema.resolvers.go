@@ -20,10 +20,14 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (r *mutationResolver) VerifySignupToken(ctx context.Context, params model.VerifySignupTokenInput) (*model.Response, error) {
-	// // verify if token is valid
-	var res *model.Response
-	_, err := db.Mgr.GetVerificationByToken(params.Token)
+func (r *mutationResolver) VerifySignupToken(ctx context.Context, params model.VerifySignupTokenInput) (*model.LoginResponse, error) {
+	gc, err := utils.GinContextFromContext(ctx)
+	var res *model.LoginResponse
+	if err != nil {
+		return res, err
+	}
+
+	_, err = db.Mgr.GetVerificationByToken(params.Token)
 	if err != nil {
 		return res, errors.New(`Invalid token`)
 	}
@@ -33,14 +37,43 @@ func (r *mutationResolver) VerifySignupToken(ctx context.Context, params model.V
 	if err != nil {
 		return res, errors.New(`Invalid token`)
 	}
-	res = &model.Response{
-		Message: `Email verified successfully. Login to access the system.`,
-	}
 
 	// update email_verified_at in users table
 	db.Mgr.UpdateVerificationTime(time.Now().Unix(), claim.Email)
 	// delete from verification table
 	db.Mgr.DeleteToken(claim.Email)
+
+	user, err := db.Mgr.GetUserByEmail(claim.Email)
+	if err != nil {
+		return res, err
+	}
+
+	userIdStr := fmt.Sprintf("%d", user.ID)
+	refreshToken, _ := utils.CreateAuthToken(utils.UserAuthInfo{
+		ID:    userIdStr,
+		Email: user.Email,
+	}, enum.RefreshToken)
+
+	accessToken, _ := utils.CreateAuthToken(utils.UserAuthInfo{
+		ID:    userIdStr,
+		Email: user.Email,
+	}, enum.AccessToken)
+
+	session.SetToken(userIdStr, refreshToken)
+
+	res = &model.LoginResponse{
+		Message:     `Email verified successfully.`,
+		AccessToken: &accessToken,
+		User: &model.User{
+			ID:        userIdStr,
+			Email:     user.Email,
+			Image:     &user.Image,
+			FirstName: &user.FirstName,
+			LastName:  &user.LastName,
+		},
+	}
+
+	utils.SetCookie(gc, accessToken)
 
 	return res, nil
 }
@@ -137,7 +170,6 @@ func (r *mutationResolver) Login(ctx context.Context, params model.LoginInput) (
 		return res, errors.New(`Invalid Password`)
 	}
 	userIdStr := fmt.Sprintf("%d", user.ID)
-	log.Println("session object init -> ", session.GetToken(userIdStr))
 	refreshToken, _ := utils.CreateAuthToken(utils.UserAuthInfo{
 		ID:    userIdStr,
 		Email: user.Email,
@@ -149,7 +181,6 @@ func (r *mutationResolver) Login(ctx context.Context, params model.LoginInput) (
 	}, enum.AccessToken)
 
 	session.SetToken(userIdStr, refreshToken)
-	log.Println("session object -> ", session.GetToken(userIdStr))
 
 	res = &model.LoginResponse{
 		Message:     `Logged in successfully`,
@@ -200,7 +231,5 @@ func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResol
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
-type (
-	mutationResolver struct{ *Resolver }
-	queryResolver    struct{ *Resolver }
-)
+type mutationResolver struct{ *Resolver }
+type queryResolver struct{ *Resolver }
