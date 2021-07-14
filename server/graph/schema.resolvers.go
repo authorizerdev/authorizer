@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/yauthdev/yauth/server/db"
+	"github.com/yauthdev/yauth/server/enum"
 	"github.com/yauthdev/yauth/server/graph/generated"
 	"github.com/yauthdev/yauth/server/graph/model"
 	"github.com/yauthdev/yauth/server/utils"
@@ -121,13 +122,14 @@ func (r *mutationResolver) BasicAuthSignUp(ctx context.Context, params model.Bas
 			user.LastName = *params.LastName
 		}
 
+		user.SignUpMethod = enum.BasicAuth.String()
 		_, err = db.Mgr.AddUser(user)
 		if err != nil {
 			return res, err
 		}
 
 		// insert verification request
-		verificationType := "BASIC_AUTH_SIGNUP"
+		verificationType := enum.BasicAuth.String()
 		token, err := utils.CreateVerificationToken(params.Email, verificationType)
 		if err != nil {
 			log.Println(`Error generating token`, err)
