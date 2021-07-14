@@ -31,10 +31,6 @@ type Error {
   reason: String!
 }
 
-type Response {
-  message: String!
-}
-
 type LoginResponse {
   message: String!
   accessToken: String
@@ -65,7 +61,7 @@ input VerifySignupTokenInput {
 }
 
 type Mutation {
-  verifySignupToken(params: VerifySignupTokenInput!): Response!
+  verifySignupToken(params: VerifySignupTokenInput!): LoginResponse!
   basicAuthSignUp(params: BasicAuthSignupInput!): BasicAuthSignupResponse!
   login(params: LoginInput!): LoginResponse!
 }
