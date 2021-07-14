@@ -45,6 +45,7 @@ autobind:
 models:
   ID:
     model:
+      # - github.com/99designs/gqlgen/graphql.IntID # An go integer
       - github.com/99designs/gqlgen/graphql.ID
       - github.com/99designs/gqlgen/graphql.Int
       - github.com/99designs/gqlgen/graphql.Int64

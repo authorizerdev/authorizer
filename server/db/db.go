@@ -36,13 +36,13 @@ func init() {
 			TablePrefix: "yauth_",
 		},
 	}
-	if constants.DB_TYPE == enum.Postgres {
+	if constants.DB_TYPE == enum.Postgres.String() {
 		db, err = gorm.Open(postgres.Open(constants.DB_URL), ormConfig)
 	}
-	if constants.DB_TYPE == enum.Mysql {
+	if constants.DB_TYPE == enum.Mysql.String() {
 		db, err = gorm.Open(mysql.Open(constants.DB_URL), ormConfig)
 	}
-	if constants.DB_TYPE == enum.Sqlite {
+	if constants.DB_TYPE == enum.Sqlite.String() {
 		db, err = gorm.Open(sqlite.Open(constants.DB_URL), ormConfig)
 	}
 

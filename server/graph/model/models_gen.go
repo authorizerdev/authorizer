@@ -2,20 +2,6 @@
 
 package model
 
-type BasicAuthLoginInput struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
-}
-
-type BasicAuthLoginResponse struct {
-	Success      bool     `json:"success"`
-	Message      string   `json:"message"`
-	Errors       []*Error `json:"errors"`
-	StatusCode   int      `json:"statusCode"`
-	RefreshToken *string  `json:"refreshToken"`
-	User         *User    `json:"user"`
-}
-
 type BasicAuthSignupInput struct {
 	FirstName      *string `json:"firstName"`
 	LastName       *string `json:"lastName"`
@@ -26,11 +12,8 @@ type BasicAuthSignupInput struct {
 }
 
 type BasicAuthSignupResponse struct {
-	Success    bool     `json:"success"`
-	Message    string   `json:"message"`
-	Errors     []*Error `json:"errors"`
-	StatusCode int      `json:"statusCode"`
-	User       *User    `json:"user"`
+	Message string `json:"message"`
+	User    *User  `json:"user"`
 }
 
 type Error struct {
@@ -38,11 +21,19 @@ type Error struct {
 	Reason  string `json:"reason"`
 }
 
+type LoginInput struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type LoginResponse struct {
+	Message     string  `json:"message"`
+	AccessToken *string `json:"accessToken"`
+	User        *User   `json:"user"`
+}
+
 type Response struct {
-	Success    bool     `json:"success"`
-	Message    string   `json:"message"`
-	Errors     []*Error `json:"errors"`
-	StatusCode int      `json:"statusCode"`
+	Message string `json:"message"`
 }
 
 type User struct {
