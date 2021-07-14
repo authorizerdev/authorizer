@@ -3,7 +3,7 @@ package enum
 type SignupMethod int
 
 const (
-	Basic SignupMethod = iota
+	BasicAuth SignupMethod = iota
 	MagicLink
 	Google
 	Github
@@ -12,8 +12,8 @@ const (
 
 func (d SignupMethod) String() string {
 	return [...]string{
-		"basic",
-		"magiclink",
+		"basic_auth",
+		"magic_link",
 		"google",
 		"github",
 		"facebook",

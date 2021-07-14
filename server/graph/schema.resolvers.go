@@ -5,15 +5,19 @@ package graph
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"strings"
 	"time"
 
 	"github.com/yauthdev/yauth/server/db"
+	"github.com/yauthdev/yauth/server/enum"
 	"github.com/yauthdev/yauth/server/graph/generated"
 	"github.com/yauthdev/yauth/server/graph/model"
+	"github.com/yauthdev/yauth/server/session"
 	"github.com/yauthdev/yauth/server/utils"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func (r *mutationResolver) VerifySignupToken(ctx context.Context, params model.VerifySignupTokenInput) (*model.Response, error) {
@@ -21,43 +25,22 @@ func (r *mutationResolver) VerifySignupToken(ctx context.Context, params model.V
 	var res *model.Response
 	_, err := db.Mgr.GetVerificationByToken(params.Token)
 	if err != nil {
-		res = &model.Response{
-			Success:    false,
-			Message:    `Invalid token`,
-			StatusCode: 400,
-			Errors: []*model.Error{&model.Error{
-				Message: `Invalid token`,
-				Reason:  `invalid token`,
-			}},
-		}
-	} else {
-
-		// verify if token exists in db
-		claim, err := utils.VerifyVerificationToken(params.Token)
-		if err != nil {
-			res = &model.Response{
-				Success:    false,
-				Message:    `Invalid token`,
-				StatusCode: 400,
-				Errors: []*model.Error{&model.Error{
-					Message: `Invalid token`,
-					Reason:  `invalid token`,
-				}},
-			}
-		} else {
-			res = &model.Response{
-				Success:    true,
-				Message:    `Email verified successfully. Login to access the system.`,
-				StatusCode: 200,
-			}
-
-			// update email_verified_at in users table
-			db.Mgr.UpdateVerificationTime(time.Now().Unix(), claim.Email)
-			// delete from verification table
-			db.Mgr.DeleteToken(claim.Email)
-		}
-
+		return res, errors.New(`Invalid token`)
 	}
+
+	// verify if token exists in db
+	claim, err := utils.VerifyVerificationToken(params.Token)
+	if err != nil {
+		return res, errors.New(`Invalid token`)
+	}
+	res = &model.Response{
+		Message: `Email verified successfully. Login to access the system.`,
+	}
+
+	// update email_verified_at in users table
+	db.Mgr.UpdateVerificationTime(time.Now().Unix(), claim.Email)
+	// delete from verification table
+	db.Mgr.DeleteToken(claim.Email)
 
 	return res, nil
 }
@@ -65,29 +48,13 @@ func (r *mutationResolver) VerifySignupToken(ctx context.Context, params model.V
 func (r *mutationResolver) BasicAuthSignUp(ctx context.Context, params model.BasicAuthSignupInput) (*model.BasicAuthSignupResponse, error) {
 	var res *model.BasicAuthSignupResponse
 	if params.CofirmPassword != params.Password {
-		res = &model.BasicAuthSignupResponse{
-			Success:    false,
-			Message:    `Passowrd and Confirm Password does not match`,
-			StatusCode: 400,
-			Errors: []*model.Error{&model.Error{
-				Message: `Passowrd and Confirm Password does not match`,
-				Reason:  `password and confirm_password fields should match`,
-			}},
-		}
+		return res, errors.New(`Passowrd and Confirm Password does not match`)
 	}
 
 	params.Email = strings.ToLower(params.Email)
 
 	if !utils.IsValidEmail(params.Email) {
-		res = &model.BasicAuthSignupResponse{
-			Success:    false,
-			Message:    `Invalid email address`,
-			StatusCode: 400,
-			Errors: []*model.Error{&model.Error{
-				Message: `Invalid email address`,
-				Reason:  `invalid email address`,
-			}},
-		}
+		return res, errors.New(`Invalid email address`)
 	}
 
 	// find user with email
@@ -98,64 +65,107 @@ func (r *mutationResolver) BasicAuthSignUp(ctx context.Context, params model.Bas
 
 	if existingUser.EmailVerifiedAt > 0 {
 		// email is verified
-		res = &model.BasicAuthSignupResponse{
-			Success:    false,
-			Message:    `You have already signed up. Please login`,
-			StatusCode: 400,
-			Errors: []*model.Error{&model.Error{
-				Message: `Already signed up`,
-				Reason:  `already signed up`,
-			}},
-		}
-	} else {
-		user := db.User{
-			Email:    params.Email,
-			Password: params.Password,
-		}
+		return res, errors.New(`You have already signed up. Please login`)
+	}
+	user := db.User{
+		Email:    params.Email,
+		Password: params.Password,
+	}
 
-		if params.FirstName != nil {
-			user.FirstName = *params.FirstName
-		}
+	if params.FirstName != nil {
+		user.FirstName = *params.FirstName
+	}
 
-		if params.LastName != nil {
-			user.LastName = *params.LastName
-		}
+	if params.LastName != nil {
+		user.LastName = *params.LastName
+	}
 
-		_, err = db.Mgr.AddUser(user)
-		if err != nil {
-			return res, err
-		}
+	user.SignUpMethod = enum.BasicAuth.String()
+	_, err = db.Mgr.AddUser(user)
+	if err != nil {
+		return res, err
+	}
 
-		// insert verification request
-		verificationType := "BASIC_AUTH_SIGNUP"
-		token, err := utils.CreateVerificationToken(params.Email, verificationType)
-		if err != nil {
-			log.Println(`Error generating token`, err)
-		}
-		db.Mgr.AddVerification(db.Verification{
-			Token:      token,
-			Identifier: verificationType,
-			ExpiresAt:  time.Now().Add(time.Minute * 30).Unix(),
-			Email:      params.Email,
-		})
+	// insert verification request
+	verificationType := enum.BasicAuth.String()
+	token, err := utils.CreateVerificationToken(params.Email, verificationType)
+	if err != nil {
+		log.Println(`Error generating token`, err)
+	}
+	db.Mgr.AddVerification(db.Verification{
+		Token:      token,
+		Identifier: verificationType,
+		ExpiresAt:  time.Now().Add(time.Minute * 30).Unix(),
+		Email:      params.Email,
+	})
 
-		// exec it as go routin so that we can reduce the api latency
-		go func() {
-			utils.SendVerificationMail(params.Email, token)
-		}()
+	// exec it as go routin so that we can reduce the api latency
+	go func() {
+		utils.SendVerificationMail(params.Email, token)
+	}()
 
-		res = &model.BasicAuthSignupResponse{
-			Success:    true,
-			Message:    `Verification email sent successfully. Please check your inbox`,
-			StatusCode: 200,
-		}
+	res = &model.BasicAuthSignupResponse{
+		Message: `Verification email sent successfully. Please check your inbox`,
 	}
 
 	return res, nil
 }
 
-func (r *mutationResolver) BasicAuthLogin(ctx context.Context, params model.BasicAuthLoginInput) (*model.BasicAuthLoginResponse, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *mutationResolver) Login(ctx context.Context, params model.LoginInput) (*model.LoginResponse, error) {
+	gc, err := utils.GinContextFromContext(ctx)
+	var res *model.LoginResponse
+	if err != nil {
+		return res, err
+	}
+
+	params.Email = strings.ToLower(params.Email)
+	user, err := db.Mgr.GetUserByEmail(params.Email)
+	if err != nil {
+		return res, errors.New(`User with this email not found`)
+	}
+
+	if user.SignUpMethod != enum.BasicAuth.String() {
+		return res, errors.New(`User has not signed up email & password`)
+	}
+
+	if user.EmailVerifiedAt <= 0 {
+		return res, errors.New(`Email not verified`)
+	}
+	// match password
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(params.Password))
+	if err != nil {
+		return res, errors.New(`Invalid Password`)
+	}
+	userIdStr := fmt.Sprintf("%d", user.ID)
+	log.Println("session object init -> ", session.GetToken(userIdStr))
+	refreshToken, _ := utils.CreateAuthToken(utils.UserAuthInfo{
+		ID:    userIdStr,
+		Email: user.Email,
+	}, enum.RefreshToken)
+
+	accessToken, _ := utils.CreateAuthToken(utils.UserAuthInfo{
+		ID:    userIdStr,
+		Email: user.Email,
+	}, enum.AccessToken)
+
+	session.SetToken(userIdStr, refreshToken)
+	log.Println("session object -> ", session.GetToken(userIdStr))
+
+	res = &model.LoginResponse{
+		Message:     `Logged in successfully`,
+		AccessToken: &accessToken,
+		User: &model.User{
+			ID:        userIdStr,
+			Email:     user.Email,
+			Image:     &user.Image,
+			FirstName: &user.FirstName,
+			LastName:  &user.LastName,
+		},
+	}
+
+	utils.SetCookie(gc, accessToken)
+
+	return res, nil
 }
 
 func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
@@ -178,6 +188,10 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 	}
 
 	return res, nil
+}
+
+func (r *queryResolver) UpdateToken(ctx context.Context) (*model.LoginResponse, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 // Mutation returns generated.MutationResolver implementation.

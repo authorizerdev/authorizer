@@ -18,11 +18,13 @@ type User struct {
 	EmailVerifiedAt int64
 	CreatedAt       int64 `gorm:"autoCreateTime"`
 	UpdatedAt       int64 `gorm:"autoUpdateTime"`
+	Image           string
+	SignUpMethod    string
 }
 
 func (user *User) BeforeSave(tx *gorm.DB) error {
 	// Modify current operation through tx.Statement, e.g:
-	if pw, err := bcrypt.GenerateFromPassword([]byte(user.Password), 0); err == nil {
+	if pw, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost); err == nil {
 		tx.Statement.SetColumn("Password", pw)
 	}
 
@@ -31,7 +33,7 @@ func (user *User) BeforeSave(tx *gorm.DB) error {
 
 // AddUser function to add user
 func (mgr *manager) AddUser(user User) (User, error) {
-	result := mgr.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&user)
+	result := mgr.db.Clauses(clause.OnConflict{UpdateAll: true, Columns: []clause.Column{{Name: "email"}}}).Create(&user)
 	if result.Error != nil {
 		log.Println(result.Error)
 		return user, result.Error
