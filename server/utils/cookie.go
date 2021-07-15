@@ -15,3 +15,14 @@ func SetCookie(gc *gin.Context, token string) {
 
 	gc.SetCookie(constants.COOKIE_NAME, token, 3600, "/", GetFrontendHost(), secure, httpOnly)
 }
+
+func DeleteCookie(gc *gin.Context) {
+	secure := true
+	httpOnly := true
+
+	if !constants.IS_PROD {
+		secure = false
+	}
+
+	gc.SetCookie(constants.COOKIE_NAME, "", -1, "/", GetFrontendHost(), secure, httpOnly)
+}

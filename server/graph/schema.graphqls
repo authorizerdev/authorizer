@@ -37,12 +37,16 @@ type LoginResponse {
   user: User
 }
 
-type BasicAuthSignupResponse {
+type SignUpResponse {
   message: String!
   user: User
 }
 
-input BasicAuthSignupInput {
+type Response {
+  message: String!
+}
+
+input SignUpInput {
   firstName: String
   lastName: String
   email: String!
@@ -62,11 +66,12 @@ input VerifySignupTokenInput {
 
 type Mutation {
   verifySignupToken(params: VerifySignupTokenInput!): LoginResponse!
-  basicAuthSignUp(params: BasicAuthSignupInput!): BasicAuthSignupResponse!
+  signup(params: SignUpInput!): SignUpResponse!
   login(params: LoginInput!): LoginResponse!
+  logout: Response!
 }
 
 type Query {
   users: [User!]!
-  updateToken: LoginResponse
+  token: LoginResponse
 }
