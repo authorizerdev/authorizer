@@ -34,6 +34,7 @@ type Error {
 type LoginResponse {
   message: String!
   accessToken: String
+  accessTokenExpiresAt: Int64
   user: User
 }
 

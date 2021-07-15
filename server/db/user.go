@@ -24,8 +24,10 @@ type User struct {
 
 func (user *User) BeforeSave(tx *gorm.DB) error {
 	// Modify current operation through tx.Statement, e.g:
-	if pw, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost); err == nil {
-		tx.Statement.SetColumn("Password", pw)
+	if user.Password != "" {
+		if pw, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost); err == nil {
+			tx.Statement.SetColumn("Password", string(pw))
+		}
 	}
 
 	return nil
@@ -63,8 +65,11 @@ func (mgr *manager) GetUserByEmail(email string) (User, error) {
 	return user, nil
 }
 
-func (mgr *manager) UpdateVerificationTime(verifiedAt int64, email string) error {
-	result := mgr.db.Model(&User{}).Where("email = ?", email).Update("email_verified_at", verifiedAt)
+func (mgr *manager) UpdateVerificationTime(verifiedAt int64, id uint) error {
+	user := &User{
+		ID: id,
+	}
+	result := mgr.db.Model(&user).Where("id = ?", id).Update("email_verified_at", verifiedAt)
 
 	if result.Error != nil {
 		return result.Error
