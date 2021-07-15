@@ -23,23 +23,29 @@ type UserAuthClaim struct {
 	UserAuthInfo
 }
 
-func CreateAuthToken(user UserAuthInfo, tokenType enum.TokenType) (string, error) {
+func CreateAuthToken(user UserAuthInfo, tokenType enum.TokenType) (string, int64, error) {
 	t := jwt.New(jwt.GetSigningMethod(constants.JWT_TYPE))
 	expiryBound := time.Hour
 	if tokenType == enum.RefreshToken {
-		// expires in 90 days
-		expiryBound = time.Hour * 2160
+		// expires in 1 year
+		expiryBound = time.Hour * 8760
 	}
+
+	expiresAt := time.Now().Add(expiryBound).Unix()
 
 	t.Claims = &UserAuthClaim{
 		&jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(expiryBound).Unix(),
+			ExpiresAt: expiresAt,
 		},
 		tokenType.String(),
 		user,
 	}
 
-	return t.SignedString([]byte(constants.JWT_SECRET))
+	token, err := t.SignedString([]byte(constants.JWT_SECRET))
+	if err != nil {
+		return "", 0, err
+	}
+	return token, expiresAt, nil
 }
 
 func GetAuthToken(gc *gin.Context) (string, error) {

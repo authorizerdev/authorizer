@@ -13,9 +13,10 @@ type LoginInput struct {
 }
 
 type LoginResponse struct {
-	Message     string  `json:"message"`
-	AccessToken *string `json:"accessToken"`
-	User        *User   `json:"user"`
+	Message              string  `json:"message"`
+	AccessToken          *string `json:"accessToken"`
+	AccessTokenExpiresAt *int64  `json:"accessTokenExpiresAt"`
+	User                 *User   `json:"user"`
 }
 
 type Response struct {

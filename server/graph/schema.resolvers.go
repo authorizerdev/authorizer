@@ -38,23 +38,23 @@ func (r *mutationResolver) VerifySignupToken(ctx context.Context, params model.V
 		return res, errors.New(`Invalid token`)
 	}
 
-	// update email_verified_at in users table
-	db.Mgr.UpdateVerificationTime(time.Now().Unix(), claim.Email)
-	// delete from verification table
-	db.Mgr.DeleteToken(claim.Email)
-
 	user, err := db.Mgr.GetUserByEmail(claim.Email)
 	if err != nil {
 		return res, err
 	}
 
+	// update email_verified_at in users table
+	db.Mgr.UpdateVerificationTime(time.Now().Unix(), user.ID)
+	// delete from verification table
+	db.Mgr.DeleteToken(claim.Email)
+
 	userIdStr := fmt.Sprintf("%d", user.ID)
-	refreshToken, _ := utils.CreateAuthToken(utils.UserAuthInfo{
+	refreshToken, _, _ := utils.CreateAuthToken(utils.UserAuthInfo{
 		ID:    userIdStr,
 		Email: user.Email,
 	}, enum.RefreshToken)
 
-	accessToken, _ := utils.CreateAuthToken(utils.UserAuthInfo{
+	accessToken, expiresAt, _ := utils.CreateAuthToken(utils.UserAuthInfo{
 		ID:    userIdStr,
 		Email: user.Email,
 	}, enum.AccessToken)
@@ -62,8 +62,9 @@ func (r *mutationResolver) VerifySignupToken(ctx context.Context, params model.V
 	session.SetToken(userIdStr, refreshToken)
 
 	res = &model.LoginResponse{
-		Message:     `Email verified successfully.`,
-		AccessToken: &accessToken,
+		Message:              `Email verified successfully.`,
+		AccessToken:          &accessToken,
+		AccessTokenExpiresAt: &expiresAt,
 		User: &model.User{
 			ID:        userIdStr,
 			Email:     user.Email,
@@ -165,18 +166,23 @@ func (r *mutationResolver) Login(ctx context.Context, params model.LoginInput) (
 		return res, errors.New(`Email not verified`)
 	}
 	// match password
+	log.Println("params Pass", params.Password)
+	log.Println("hashed pass", user.Password)
+	cost, err := bcrypt.Cost([]byte(user.Password))
+	log.Println(cost, err)
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(params.Password))
+
 	if err != nil {
 		log.Println("Compare password error:", err)
 		return res, errors.New(`Invalid Password`)
 	}
 	userIdStr := fmt.Sprintf("%d", user.ID)
-	refreshToken, _ := utils.CreateAuthToken(utils.UserAuthInfo{
+	refreshToken, _, _ := utils.CreateAuthToken(utils.UserAuthInfo{
 		ID:    userIdStr,
 		Email: user.Email,
 	}, enum.RefreshToken)
 
-	accessToken, _ := utils.CreateAuthToken(utils.UserAuthInfo{
+	accessToken, expiresAt, _ := utils.CreateAuthToken(utils.UserAuthInfo{
 		ID:    userIdStr,
 		Email: user.Email,
 	}, enum.AccessToken)
@@ -184,8 +190,9 @@ func (r *mutationResolver) Login(ctx context.Context, params model.LoginInput) (
 	session.SetToken(userIdStr, refreshToken)
 
 	res = &model.LoginResponse{
-		Message:     `Logged in successfully`,
-		AccessToken: &accessToken,
+		Message:              `Logged in successfully`,
+		AccessToken:          &accessToken,
+		AccessTokenExpiresAt: &expiresAt,
 		User: &model.User{
 			ID:        userIdStr,
 			Email:     user.Email,
@@ -259,22 +266,40 @@ func (r *queryResolver) Token(ctx context.Context) (*model.LoginResponse, error)
 		return res, err
 	}
 
-	claim, err := utils.VerifyAuthToken(token)
-	if err != nil {
-		// generate new accessToken
-		return res, err
-	}
+	claim, accessTokenErr := utils.VerifyAuthToken(token)
+	expiresAt := claim.ExpiresAt
 
 	user, err := db.Mgr.GetUserByEmail(claim.Email)
 	if err != nil {
 		return res, err
 	}
 
+	userIdStr := fmt.Sprintf("%d", user.ID)
+
+	sessionToken := session.GetToken(userIdStr)
+
+	if sessionToken == "" {
+		return res, errors.New(`Unauthorized`)
+	}
+	// TODO check if session token has expired
+
+	if accessTokenErr != nil {
+		// if access token has expired and refresh/session token is valid
+		// generate new accessToken
+		fmt.Println(`here... getting new accesstoken`)
+		token, expiresAt, _ = utils.CreateAuthToken(utils.UserAuthInfo{
+			ID:    userIdStr,
+			Email: user.Email,
+		}, enum.AccessToken)
+
+	}
+	utils.SetCookie(gc, token)
 	res = &model.LoginResponse{
-		Message:     `Email verified successfully.`,
-		AccessToken: &token,
+		Message:              `Email verified successfully.`,
+		AccessToken:          &token,
+		AccessTokenExpiresAt: &expiresAt,
 		User: &model.User{
-			ID:        fmt.Sprintf("%d", user.ID),
+			ID:        userIdStr,
 			Email:     user.Email,
 			Image:     &user.Image,
 			FirstName: &user.FirstName,

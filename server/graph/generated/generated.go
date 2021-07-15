@@ -39,7 +39,8 @@ type ResolverRoot interface {
 	Query() QueryResolver
 }
 
-type DirectiveRoot struct{}
+type DirectiveRoot struct {
+}
 
 type ComplexityRoot struct {
 	Error struct {
@@ -48,9 +49,10 @@ type ComplexityRoot struct {
 	}
 
 	LoginResponse struct {
-		AccessToken func(childComplexity int) int
-		Message     func(childComplexity int) int
-		User        func(childComplexity int) int
+		AccessToken          func(childComplexity int) int
+		AccessTokenExpiresAt func(childComplexity int) int
+		Message              func(childComplexity int) int
+		User                 func(childComplexity int) int
 	}
 
 	Mutation struct {
@@ -104,7 +106,6 @@ type MutationResolver interface {
 	Login(ctx context.Context, params model.LoginInput) (*model.LoginResponse, error)
 	Logout(ctx context.Context) (*model.Response, error)
 }
-
 type QueryResolver interface {
 	Users(ctx context.Context) ([]*model.User, error)
 	Token(ctx context.Context) (*model.LoginResponse, error)
@@ -145,6 +146,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.LoginResponse.AccessToken(childComplexity), true
+
+	case "LoginResponse.accessTokenExpiresAt":
+		if e.complexity.LoginResponse.AccessTokenExpiresAt == nil {
+			break
+		}
+
+		return e.complexity.LoginResponse.AccessTokenExpiresAt(childComplexity), true
 
 	case "LoginResponse.message":
 		if e.complexity.LoginResponse.Message == nil {
@@ -457,6 +465,7 @@ type Error {
 type LoginResponse {
   message: String!
   accessToken: String
+  accessTokenExpiresAt: Int64
   user: User
 }
 
@@ -739,6 +748,38 @@ func (ec *executionContext) _LoginResponse_accessToken(ctx context.Context, fiel
 	res := resTmp.(*string)
 	fc.Result = res
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _LoginResponse_accessTokenExpiresAt(ctx context.Context, field graphql.CollectedField, obj *model.LoginResponse) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "LoginResponse",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.AccessTokenExpiresAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int64)
+	fc.Result = res
+	return ec.marshalOInt642ᚖint64(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _LoginResponse_user(ctx context.Context, field graphql.CollectedField, obj *model.LoginResponse) (ret graphql.Marshaler) {
@@ -2819,7 +2860,7 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 
 func (ec *executionContext) unmarshalInputLoginInput(ctx context.Context, obj interface{}) (model.LoginInput, error) {
 	var it model.LoginInput
-	asMap := obj.(map[string]interface{})
+	var asMap = obj.(map[string]interface{})
 
 	for k, v := range asMap {
 		switch k {
@@ -2847,7 +2888,7 @@ func (ec *executionContext) unmarshalInputLoginInput(ctx context.Context, obj in
 
 func (ec *executionContext) unmarshalInputSignUpInput(ctx context.Context, obj interface{}) (model.SignUpInput, error) {
 	var it model.SignUpInput
-	asMap := obj.(map[string]interface{})
+	var asMap = obj.(map[string]interface{})
 
 	for k, v := range asMap {
 		switch k {
@@ -2907,7 +2948,7 @@ func (ec *executionContext) unmarshalInputSignUpInput(ctx context.Context, obj i
 
 func (ec *executionContext) unmarshalInputVerifySignupTokenInput(ctx context.Context, obj interface{}) (model.VerifySignupTokenInput, error) {
 	var it model.VerifySignupTokenInput
-	asMap := obj.(map[string]interface{})
+	var asMap = obj.(map[string]interface{})
 
 	for k, v := range asMap {
 		switch k {
@@ -2983,6 +3024,8 @@ func (ec *executionContext) _LoginResponse(ctx context.Context, sel ast.Selectio
 			}
 		case "accessToken":
 			out.Values[i] = ec._LoginResponse_accessToken(ctx, field, obj)
+		case "accessTokenExpiresAt":
+			out.Values[i] = ec._LoginResponse_accessTokenExpiresAt(ctx, field, obj)
 		case "user":
 			out.Values[i] = ec._LoginResponse_user(ctx, field, obj)
 		default:
