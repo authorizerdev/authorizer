@@ -2,20 +2,6 @@
 
 package model
 
-type BasicAuthSignupInput struct {
-	FirstName      *string `json:"firstName"`
-	LastName       *string `json:"lastName"`
-	Email          string  `json:"email"`
-	Password       string  `json:"password"`
-	CofirmPassword string  `json:"cofirmPassword"`
-	Image          *string `json:"image"`
-}
-
-type BasicAuthSignupResponse struct {
-	Message string `json:"message"`
-	User    *User  `json:"user"`
-}
-
 type Error struct {
 	Message string `json:"message"`
 	Reason  string `json:"reason"`
@@ -30,6 +16,24 @@ type LoginResponse struct {
 	Message     string  `json:"message"`
 	AccessToken *string `json:"accessToken"`
 	User        *User   `json:"user"`
+}
+
+type Response struct {
+	Message string `json:"message"`
+}
+
+type SignUpInput struct {
+	FirstName      *string `json:"firstName"`
+	LastName       *string `json:"lastName"`
+	Email          string  `json:"email"`
+	Password       string  `json:"password"`
+	CofirmPassword string  `json:"cofirmPassword"`
+	Image          *string `json:"image"`
+}
+
+type SignUpResponse struct {
+	Message string `json:"message"`
+	User    *User  `json:"user"`
 }
 
 type User struct {

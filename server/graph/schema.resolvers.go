@@ -78,8 +78,8 @@ func (r *mutationResolver) VerifySignupToken(ctx context.Context, params model.V
 	return res, nil
 }
 
-func (r *mutationResolver) BasicAuthSignUp(ctx context.Context, params model.BasicAuthSignupInput) (*model.BasicAuthSignupResponse, error) {
-	var res *model.BasicAuthSignupResponse
+func (r *mutationResolver) Signup(ctx context.Context, params model.SignUpInput) (*model.SignUpResponse, error) {
+	var res *model.SignUpResponse
 	if params.CofirmPassword != params.Password {
 		return res, errors.New(`Passowrd and Confirm Password does not match`)
 	}
@@ -137,7 +137,7 @@ func (r *mutationResolver) BasicAuthSignUp(ctx context.Context, params model.Bas
 		utils.SendVerificationMail(params.Email, token)
 	}()
 
-	res = &model.BasicAuthSignupResponse{
+	res = &model.SignUpResponse{
 		Message: `Verification email sent successfully. Please check your inbox`,
 	}
 
@@ -167,6 +167,7 @@ func (r *mutationResolver) Login(ctx context.Context, params model.LoginInput) (
 	// match password
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(params.Password))
 	if err != nil {
+		log.Println("Compare password error:", err)
 		return res, errors.New(`Invalid Password`)
 	}
 	userIdStr := fmt.Sprintf("%d", user.ID)
@@ -199,6 +200,32 @@ func (r *mutationResolver) Login(ctx context.Context, params model.LoginInput) (
 	return res, nil
 }
 
+func (r *mutationResolver) Logout(ctx context.Context) (*model.Response, error) {
+	gc, err := utils.GinContextFromContext(ctx)
+	var res *model.Response
+	if err != nil {
+		return res, err
+	}
+
+	token, err := utils.GetAuthToken(gc)
+	if err != nil {
+		return res, err
+	}
+
+	claim, err := utils.VerifyAuthToken(token)
+	if err != nil {
+		return res, err
+	}
+
+	session.DeleteToken(claim.ID)
+	res = &model.Response{
+		Message: "Logged out successfully",
+	}
+
+	utils.DeleteCookie(gc)
+	return res, nil
+}
+
 func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 	var res []*model.User
 	users, err := db.Mgr.GetUsers()
@@ -221,8 +248,40 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 	return res, nil
 }
 
-func (r *queryResolver) UpdateToken(ctx context.Context) (*model.LoginResponse, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *queryResolver) Token(ctx context.Context) (*model.LoginResponse, error) {
+	gc, err := utils.GinContextFromContext(ctx)
+	var res *model.LoginResponse
+	if err != nil {
+		return res, err
+	}
+	token, err := utils.GetAuthToken(gc)
+	if err != nil {
+		return res, err
+	}
+
+	claim, err := utils.VerifyAuthToken(token)
+	if err != nil {
+		// generate new accessToken
+		return res, err
+	}
+
+	user, err := db.Mgr.GetUserByEmail(claim.Email)
+	if err != nil {
+		return res, err
+	}
+
+	res = &model.LoginResponse{
+		Message:     `Email verified successfully.`,
+		AccessToken: &token,
+		User: &model.User{
+			ID:        fmt.Sprintf("%d", user.ID),
+			Email:     user.Email,
+			Image:     &user.Image,
+			FirstName: &user.FirstName,
+			LastName:  &user.LastName,
+		},
+	}
+	return res, nil
 }
 
 // Mutation returns generated.MutationResolver implementation.
@@ -231,5 +290,7 @@ func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResol
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
-type mutationResolver struct{ *Resolver }
-type queryResolver struct{ *Resolver }
+type (
+	mutationResolver struct{ *Resolver }
+	queryResolver    struct{ *Resolver }
+)
