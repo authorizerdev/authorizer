@@ -40,7 +40,7 @@ type SignUpResponse struct {
 type User struct {
 	ID              string  `json:"id"`
 	Email           string  `json:"email"`
-	SignUpMethod    string  `json:"SignUpMethod"`
+	SignupMethod    string  `json:"signupMethod"`
 	FirstName       *string `json:"firstName"`
 	LastName        *string `json:"lastName"`
 	EmailVerifiedAt *int64  `json:"emailVerifiedAt"`

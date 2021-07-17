@@ -85,7 +85,7 @@ type ComplexityRoot struct {
 		Image           func(childComplexity int) int
 		LastName        func(childComplexity int) int
 		Password        func(childComplexity int) int
-		SignUpMethod    func(childComplexity int) int
+		SignupMethod    func(childComplexity int) int
 		UpdatedAt       func(childComplexity int) int
 	}
 
@@ -101,8 +101,8 @@ type ComplexityRoot struct {
 }
 
 type MutationResolver interface {
-	VerifySignupToken(ctx context.Context, params model.VerifySignupTokenInput) (*model.LoginResponse, error)
 	Signup(ctx context.Context, params model.SignUpInput) (*model.SignUpResponse, error)
+	VerifySignupToken(ctx context.Context, params model.VerifySignupTokenInput) (*model.LoginResponse, error)
 	Login(ctx context.Context, params model.LoginInput) (*model.LoginResponse, error)
 	Logout(ctx context.Context) (*model.Response, error)
 }
@@ -302,12 +302,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.User.Password(childComplexity), true
 
-	case "User.SignUpMethod":
-		if e.complexity.User.SignUpMethod == nil {
+	case "User.signupMethod":
+		if e.complexity.User.SignupMethod == nil {
 			break
 		}
 
-		return e.complexity.User.SignUpMethod(childComplexity), true
+		return e.complexity.User.SignupMethod(childComplexity), true
 
 	case "User.updatedAt":
 		if e.complexity.User.UpdatedAt == nil {
@@ -437,7 +437,7 @@ scalar Int64
 type User {
   id: ID!
   email: String!
-  SignUpMethod: String!
+  signupMethod: String!
   firstName: String
   lastName: String
   emailVerifiedAt: Int64
@@ -497,8 +497,8 @@ input VerifySignupTokenInput {
 }
 
 type Mutation {
-  verifySignupToken(params: VerifySignupTokenInput!): LoginResponse!
   signup(params: SignUpInput!): SignUpResponse!
+  verifySignupToken(params: VerifySignupTokenInput!): LoginResponse!
   login(params: LoginInput!): LoginResponse!
   logout: Response!
 }
@@ -814,48 +814,6 @@ func (ec *executionContext) _LoginResponse_user(ctx context.Context, field graph
 	return ec.marshalOUser2ᚖgithubᚗcomᚋyauthdevᚋyauthᚋserverᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Mutation_verifySignupToken(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_verifySignupToken_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().VerifySignupToken(rctx, args["params"].(model.VerifySignupTokenInput))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.LoginResponse)
-	fc.Result = res
-	return ec.marshalNLoginResponse2ᚖgithubᚗcomᚋyauthdevᚋyauthᚋserverᚋgraphᚋmodelᚐLoginResponse(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _Mutation_signup(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -896,6 +854,48 @@ func (ec *executionContext) _Mutation_signup(ctx context.Context, field graphql.
 	res := resTmp.(*model.SignUpResponse)
 	fc.Result = res
 	return ec.marshalNSignUpResponse2ᚖgithubᚗcomᚋyauthdevᚋyauthᚋserverᚋgraphᚋmodelᚐSignUpResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_verifySignupToken(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_verifySignupToken_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().VerifySignupToken(rctx, args["params"].(model.VerifySignupTokenInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.LoginResponse)
+	fc.Result = res
+	return ec.marshalNLoginResponse2ᚖgithubᚗcomᚋyauthdevᚋyauthᚋserverᚋgraphᚋmodelᚐLoginResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_login(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1285,7 +1285,7 @@ func (ec *executionContext) _User_email(ctx context.Context, field graphql.Colle
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _User_SignUpMethod(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_signupMethod(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1303,7 +1303,7 @@ func (ec *executionContext) _User_SignUpMethod(ctx context.Context, field graphq
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.SignUpMethod, nil
+		return obj.SignupMethod, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3054,13 +3054,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Mutation")
-		case "verifySignupToken":
-			out.Values[i] = ec._Mutation_verifySignupToken(ctx, field)
+		case "signup":
+			out.Values[i] = ec._Mutation_signup(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "signup":
-			out.Values[i] = ec._Mutation_signup(ctx, field)
+		case "verifySignupToken":
+			out.Values[i] = ec._Mutation_verifySignupToken(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -3217,8 +3217,8 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "SignUpMethod":
-			out.Values[i] = ec._User_SignUpMethod(ctx, field, obj)
+		case "signupMethod":
+			out.Values[i] = ec._User_signupMethod(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}

@@ -13,7 +13,7 @@ import (
 )
 
 type Manager interface {
-	AddUser(user User) (User, error)
+	SaveUser(user User) (User, error)
 	GetUsers() ([]User, error)
 	GetUserByEmail(email string) (User, error)
 	UpdateVerificationTime(verifiedAt int64, id uint) error

@@ -3,32 +3,11 @@ package main
 import (
 	"context"
 
-	"github.com/99designs/gqlgen/graphql/handler"
-	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/gin-gonic/gin"
-	"github.com/yauthdev/yauth/server/graph"
-	"github.com/yauthdev/yauth/server/graph/generated"
+	"github.com/yauthdev/yauth/server/enum"
+	"github.com/yauthdev/yauth/server/handlers"
+	"github.com/yauthdev/yauth/server/oauth"
 )
-
-// Defining the Graphql handler
-func graphqlHandler() gin.HandlerFunc {
-	// NewExecutableSchema and Config are in the generated.go file
-	// Resolver is in the resolver.go file
-	h := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{}}))
-
-	return func(c *gin.Context) {
-		h.ServeHTTP(c.Writer, c.Request)
-	}
-}
-
-// Defining the Playground handler
-func playgroundHandler() gin.HandlerFunc {
-	h := playground.Handler("GraphQL", "/graphql")
-
-	return func(c *gin.Context) {
-		h.ServeHTTP(c.Writer, c.Request)
-	}
-}
 
 func GinContextToContextMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -41,7 +20,11 @@ func GinContextToContextMiddleware() gin.HandlerFunc {
 func main() {
 	r := gin.Default()
 	r.Use(GinContextToContextMiddleware())
-	r.POST("/graphql", graphqlHandler())
-	r.GET("/", playgroundHandler())
+	r.GET("/", handlers.PlaygroundHandler())
+	r.POST("/graphql", handlers.GraphqlHandler())
+	if oauth.OAuthProvider.GoogleConfig != nil {
+		r.GET("/login/google", handlers.HandleOAuthLogin(enum.GoogleProvider))
+		r.GET("/callback/google", handlers.HandleOAuthCallback(enum.GoogleProvider))
+	}
 	r.Run()
 }

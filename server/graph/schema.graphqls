@@ -6,7 +6,7 @@ scalar Int64
 type User {
   id: ID!
   email: String!
-  SignUpMethod: String!
+  signupMethod: String!
   firstName: String
   lastName: String
   emailVerifiedAt: Int64
@@ -66,8 +66,8 @@ input VerifySignupTokenInput {
 }
 
 type Mutation {
-  verifySignupToken(params: VerifySignupTokenInput!): LoginResponse!
   signup(params: SignUpInput!): SignUpResponse!
+  verifySignupToken(params: VerifySignupTokenInput!): LoginResponse!
   login(params: LoginInput!): LoginResponse!
   logout: Response!
 }
