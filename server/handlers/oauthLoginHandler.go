@@ -20,5 +20,10 @@ func HandleOAuthLogin(provider enum.OAuthProvider) gin.HandlerFunc {
 			url := oauth.OAuthProvider.GoogleConfig.AuthCodeURL(oauthStateString)
 			c.Redirect(http.StatusTemporaryRedirect, url)
 		}
+		if provider == enum.GithubProvider {
+			session.SetToken(oauthStateString, enum.Github.String())
+			url := oauth.OAuthProvider.GithubConfig.AuthCodeURL(oauthStateString)
+			c.Redirect(http.StatusTemporaryRedirect, url)
+		}
 	}
 }

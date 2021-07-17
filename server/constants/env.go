@@ -10,27 +10,27 @@ import (
 )
 
 var (
-	ENV                    = ""
-	DB_TYPE                = ""
-	DB_URL                 = ""
-	SMTP_HOST              = ""
-	SMTP_PORT              = ""
-	SENDER_EMAIL           = ""
-	SENDER_PASSWORD        = ""
-	JWT_TYPE               = ""
-	JWT_SECRET             = ""
-	FRONTEND_URL           = ""
-	SERVER_URL             = ""
-	PORT                   = "8080"
-	REDIS_URL              = ""
-	IS_PROD                = false
-	COOKIE_NAME            = ""
-	GOOGLE_CLIENT_ID       = ""
-	GOOGLE_CLIENT_SECRET   = ""
-	GITHUB_CLIENT_ID       = ""
-	GITHUB_CLIENT_SECRET   = ""
-	FACEBOOK_CLIENT_ID     = ""
-	FACEBOOK_CLIENT_SECRET = ""
+	ENV                  = ""
+	DB_TYPE              = ""
+	DB_URL               = ""
+	SMTP_HOST            = ""
+	SMTP_PORT            = ""
+	SENDER_EMAIL         = ""
+	SENDER_PASSWORD      = ""
+	JWT_TYPE             = ""
+	JWT_SECRET           = ""
+	FRONTEND_URL         = ""
+	SERVER_URL           = ""
+	PORT                 = "8080"
+	REDIS_URL            = ""
+	IS_PROD              = false
+	COOKIE_NAME          = ""
+	GOOGLE_CLIENT_ID     = ""
+	GOOGLE_CLIENT_SECRET = ""
+	GITHUB_CLIENT_ID     = ""
+	GITHUB_CLIENT_SECRET = ""
+	// FACEBOOK_CLIENT_ID     = ""
+	// FACEBOOK_CLIENT_SECRET = ""
 )
 
 func init() {
@@ -57,8 +57,8 @@ func init() {
 	GOOGLE_CLIENT_SECRET = os.Getenv("GOOGLE_CLIENT_SECRET")
 	GITHUB_CLIENT_ID = os.Getenv("GITHUB_CLIENT_ID")
 	GITHUB_CLIENT_SECRET = os.Getenv("GITHUB_CLIENT_SECRET")
-	FACEBOOK_CLIENT_ID = os.Getenv("FACEBOOK_CLIENT_ID")
-	FACEBOOK_CLIENT_SECRET = os.Getenv("FACEBOOK_CLIENT_SECRET")
+	// FACEBOOK_CLIENT_ID = os.Getenv("FACEBOOK_CLIENT_ID")
+	// FACEBOOK_CLIENT_SECRET = os.Getenv("FACEBOOK_CLIENT_SECRET")
 
 	if ENV == "" {
 		ENV = "production"
