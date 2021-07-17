@@ -75,4 +75,5 @@ type Mutation {
 type Query {
   users: [User!]!
   token: LoginResponse
+  profile: User!
 }

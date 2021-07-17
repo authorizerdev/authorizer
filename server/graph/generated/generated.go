@@ -63,8 +63,9 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Token func(childComplexity int) int
-		Users func(childComplexity int) int
+		Profile func(childComplexity int) int
+		Token   func(childComplexity int) int
+		Users   func(childComplexity int) int
 	}
 
 	Response struct {
@@ -109,6 +110,7 @@ type MutationResolver interface {
 type QueryResolver interface {
 	Users(ctx context.Context) ([]*model.User, error)
 	Token(ctx context.Context) (*model.LoginResponse, error)
+	Profile(ctx context.Context) (*model.User, error)
 }
 
 type executableSchema struct {
@@ -210,6 +212,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.VerifySignupToken(childComplexity, args["params"].(model.VerifySignupTokenInput)), true
+
+	case "Query.profile":
+		if e.complexity.Query.Profile == nil {
+			break
+		}
+
+		return e.complexity.Query.Profile(childComplexity), true
 
 	case "Query.token":
 		if e.complexity.Query.Token == nil {
@@ -506,6 +515,7 @@ type Mutation {
 type Query {
   users: [User!]!
   token: LoginResponse
+  profile: User!
 }
 `, BuiltIn: false},
 }
@@ -1040,6 +1050,41 @@ func (ec *executionContext) _Query_token(ctx context.Context, field graphql.Coll
 	res := resTmp.(*model.LoginResponse)
 	fc.Result = res
 	return ec.marshalOLoginResponse2ᚖgithubᚗcomᚋyauthdevᚋyauthᚋserverᚋgraphᚋmodelᚐLoginResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_profile(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Profile(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.User)
+	fc.Result = res
+	return ec.marshalNUser2ᚖgithubᚗcomᚋyauthdevᚋyauthᚋserverᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3125,6 +3170,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				res = ec._Query_token(ctx, field)
 				return res
 			})
+		case "profile":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_profile(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "__type":
 			out.Values[i] = ec._Query___type(ctx, field)
 		case "__schema":
@@ -3626,6 +3685,10 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNUser2githubᚗcomᚋyauthdevᚋyauthᚋserverᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v model.User) graphql.Marshaler {
+	return ec._User(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalNUser2ᚕᚖgithubᚗcomᚋyauthdevᚋyauthᚋserverᚋgraphᚋmodelᚐUserᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.User) graphql.Marshaler {
