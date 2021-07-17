@@ -9,47 +9,47 @@ import (
 )
 
 type SessionStore struct {
-	inMemoryStoreObj    *InMemoryStore
-	redisMemoryStoreObj *RedisStore
+	InMemoryStoreObj    *InMemoryStore
+	RedisMemoryStoreObj *RedisStore
 }
 
 var SessionStoreObj SessionStore
 
 func SetToken(userId, token string) {
-	if SessionStoreObj.redisMemoryStoreObj != nil {
-		SessionStoreObj.redisMemoryStoreObj.AddToken(userId, token)
+	if SessionStoreObj.RedisMemoryStoreObj != nil {
+		SessionStoreObj.RedisMemoryStoreObj.AddToken(userId, token)
 	}
-	if SessionStoreObj.inMemoryStoreObj != nil {
-		SessionStoreObj.inMemoryStoreObj.AddToken(userId, token)
+	if SessionStoreObj.InMemoryStoreObj != nil {
+		SessionStoreObj.InMemoryStoreObj.AddToken(userId, token)
 	}
 }
 
 func DeleteToken(userId string) {
-	if SessionStoreObj.redisMemoryStoreObj != nil {
-		SessionStoreObj.redisMemoryStoreObj.DeleteToken(userId)
+	if SessionStoreObj.RedisMemoryStoreObj != nil {
+		SessionStoreObj.RedisMemoryStoreObj.DeleteToken(userId)
 	}
-	if SessionStoreObj.inMemoryStoreObj != nil {
-		SessionStoreObj.inMemoryStoreObj.DeleteToken(userId)
+	if SessionStoreObj.InMemoryStoreObj != nil {
+		SessionStoreObj.InMemoryStoreObj.DeleteToken(userId)
 	}
 }
 
 func GetToken(userId string) string {
-	if SessionStoreObj.redisMemoryStoreObj != nil {
-		return SessionStoreObj.redisMemoryStoreObj.GetToken(userId)
+	if SessionStoreObj.RedisMemoryStoreObj != nil {
+		return SessionStoreObj.RedisMemoryStoreObj.GetToken(userId)
 	}
-	if SessionStoreObj.inMemoryStoreObj != nil {
-		return SessionStoreObj.inMemoryStoreObj.GetToken(userId)
+	if SessionStoreObj.InMemoryStoreObj != nil {
+		return SessionStoreObj.InMemoryStoreObj.GetToken(userId)
 	}
 
 	return ""
 }
 
 func ClearStore() {
-	if SessionStoreObj.redisMemoryStoreObj != nil {
-		SessionStoreObj.redisMemoryStoreObj.ClearStore()
+	if SessionStoreObj.RedisMemoryStoreObj != nil {
+		SessionStoreObj.RedisMemoryStoreObj.ClearStore()
 	}
-	if SessionStoreObj.inMemoryStoreObj != nil {
-		SessionStoreObj.inMemoryStoreObj.ClearStore()
+	if SessionStoreObj.InMemoryStoreObj != nil {
+		SessionStoreObj.InMemoryStoreObj.ClearStore()
 	}
 }
 
@@ -67,14 +67,14 @@ func init() {
 		if err != nil {
 			log.Fatalln("Error connecting to redis server", err)
 		}
-		SessionStoreObj.redisMemoryStoreObj = &RedisStore{
+		SessionStoreObj.RedisMemoryStoreObj = &RedisStore{
 			ctx:   ctx,
 			store: rdb,
 		}
 
 	} else {
 		log.Println("Using in memory store to save sessions")
-		SessionStoreObj.inMemoryStoreObj = &InMemoryStore{
+		SessionStoreObj.InMemoryStoreObj = &InMemoryStore{
 			store: make(map[string]string),
 		}
 	}

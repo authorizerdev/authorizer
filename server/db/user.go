@@ -19,7 +19,6 @@ type User struct {
 	CreatedAt       int64 `gorm:"autoCreateTime"`
 	UpdatedAt       int64 `gorm:"autoUpdateTime"`
 	Image           string
-	SignUpMethod    string
 }
 
 func (user *User) BeforeSave(tx *gorm.DB) error {
@@ -33,13 +32,16 @@ func (user *User) BeforeSave(tx *gorm.DB) error {
 	return nil
 }
 
-// AddUser function to add user
-func (mgr *manager) AddUser(user User) (User, error) {
+// SaveUser function to add user
+func (mgr *manager) SaveUser(user User) (User, error) {
 	result := mgr.db.Clauses(clause.OnConflict{UpdateAll: true, Columns: []clause.Column{{Name: "email"}}}).Create(&user)
+
 	if result.Error != nil {
 		log.Println(result.Error)
 		return user, result.Error
 	}
+	log.Println("===== USER ID =====")
+	log.Println(user.ID)
 	return user, nil
 }
 
