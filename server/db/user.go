@@ -3,8 +3,6 @@ package db
 import (
 	"log"
 
-	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
@@ -21,17 +19,6 @@ type User struct {
 	Image           string
 }
 
-func (user *User) BeforeSave(tx *gorm.DB) error {
-	// Modify current operation through tx.Statement, e.g:
-	if user.Password != "" {
-		if pw, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost); err == nil {
-			tx.Statement.SetColumn("Password", string(pw))
-		}
-	}
-
-	return nil
-}
-
 // SaveUser function to add user
 func (mgr *manager) SaveUser(user User) (User, error) {
 	result := mgr.db.Clauses(clause.OnConflict{UpdateAll: true, Columns: []clause.Column{{Name: "email"}}}).Create(&user)
@@ -40,8 +27,6 @@ func (mgr *manager) SaveUser(user User) (User, error) {
 		log.Println(result.Error)
 		return user, result.Error
 	}
-	log.Println("===== USER ID =====")
-	log.Println(user.ID)
 	return user, nil
 }
 

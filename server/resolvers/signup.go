@@ -36,9 +36,11 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.SignUpRespons
 		return res, errors.New(`You have already signed up. Please login`)
 	}
 	user := db.User{
-		Email:    params.Email,
-		Password: params.Password,
+		Email: params.Email,
 	}
+
+	password, _ := utils.HashPassword(params.Password)
+	user.Password = password
 
 	if params.FirstName != nil {
 		user.FirstName = *params.FirstName
