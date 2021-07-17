@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -73,16 +72,15 @@ func processGoogleUserInfo(state string, code string, c *gin.Context) error {
 			Email:           userRawData["email"],
 			EmailVerifiedAt: time.Now().Unix(),
 			SignupMethod:    signupMethod,
+			Password:        existingUser.Password,
 		}
 
 		user, _ = db.Mgr.SaveUser(user)
 
 	}
 
-	log.Println("====== USER FROM OAUTH HANDLER =====")
-	log.Println(user.ID)
 	userIdStr := fmt.Sprintf("%d", user.ID)
-	log.Println("str id: ", userIdStr)
+
 	refreshToken, _, _ := utils.CreateAuthToken(utils.UserAuthInfo{
 		ID:    userIdStr,
 		Email: user.Email,
@@ -98,7 +96,6 @@ func processGoogleUserInfo(state string, code string, c *gin.Context) error {
 }
 
 func HandleOAuthCallback(provider enum.OAuthProvider) gin.HandlerFunc {
-	log.Println("here...")
 	return func(c *gin.Context) {
 		if provider == enum.GoogleProvider {
 			err := processGoogleUserInfo(c.Request.FormValue("state"), c.Request.FormValue("code"), c)
