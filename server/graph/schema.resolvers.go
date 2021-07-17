@@ -35,11 +35,17 @@ func (r *queryResolver) Token(ctx context.Context) (*model.LoginResponse, error)
 	return resolvers.Token(ctx)
 }
 
+func (r *queryResolver) Profile(ctx context.Context) (*model.User, error) {
+	return resolvers.Profile(ctx)
+}
+
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
-type mutationResolver struct{ *Resolver }
-type queryResolver struct{ *Resolver }
+type (
+	mutationResolver struct{ *Resolver }
+	queryResolver    struct{ *Resolver }
+)
