@@ -2,7 +2,6 @@ package resolvers
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -25,15 +24,15 @@ func Login(ctx context.Context, params model.LoginInput) (*model.LoginResponse, 
 	params.Email = strings.ToLower(params.Email)
 	user, err := db.Mgr.GetUserByEmail(params.Email)
 	if err != nil {
-		return res, errors.New(`User with this email not found`)
+		return res, fmt.Errorf(`user with this email not found`)
 	}
 
 	if !strings.Contains(user.SignupMethod, enum.BasicAuth.String()) {
-		return res, errors.New(`User has not signed up email & password`)
+		return res, fmt.Errorf(`user has not signed up email & password`)
 	}
 
 	if user.EmailVerifiedAt <= 0 {
-		return res, errors.New(`Email not verified`)
+		return res, fmt.Errorf(`email not verified`)
 	}
 	// match password
 	cost, err := bcrypt.Cost([]byte(user.Password))
@@ -42,7 +41,7 @@ func Login(ctx context.Context, params model.LoginInput) (*model.LoginResponse, 
 
 	if err != nil {
 		log.Println("Compare password error:", err)
-		return res, errors.New(`Invalid Password`)
+		return res, fmt.Errorf(`invalid password`)
 	}
 	userIdStr := fmt.Sprintf("%d", user.ID)
 	refreshToken, _, _ := utils.CreateAuthToken(utils.UserAuthInfo{

@@ -11,12 +11,8 @@ import (
 	"github.com/yauthdev/yauth/server/resolvers"
 )
 
-func (r *mutationResolver) Signup(ctx context.Context, params model.SignUpInput) (*model.SignUpResponse, error) {
+func (r *mutationResolver) Signup(ctx context.Context, params model.SignUpInput) (*model.Response, error) {
 	return resolvers.Signup(ctx, params)
-}
-
-func (r *mutationResolver) VerifySignupToken(ctx context.Context, params model.VerifySignupTokenInput) (*model.LoginResponse, error) {
-	return resolvers.VerifySignupToken(ctx, params)
 }
 
 func (r *mutationResolver) Login(ctx context.Context, params model.LoginInput) (*model.LoginResponse, error) {
@@ -25,6 +21,14 @@ func (r *mutationResolver) Login(ctx context.Context, params model.LoginInput) (
 
 func (r *mutationResolver) Logout(ctx context.Context) (*model.Response, error) {
 	return resolvers.Logout(ctx)
+}
+
+func (r *mutationResolver) UpdateProfile(ctx context.Context, params model.UpdateProfileInput) (*model.Response, error) {
+	return resolvers.UpdateProfile(ctx, params)
+}
+
+func (r *mutationResolver) VerifyEmail(ctx context.Context, params model.VerifyEmailInput) (*model.LoginResponse, error) {
+	return resolvers.VerifyEmail(ctx, params)
 }
 
 func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {

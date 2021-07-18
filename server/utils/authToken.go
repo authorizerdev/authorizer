@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"errors"
+	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -56,7 +56,7 @@ func GetAuthToken(gc *gin.Context) (string, error) {
 		log.Println("cookie not found checking headers")
 		auth := gc.Request.Header.Get("Authorization")
 		if auth == "" {
-			return "", errors.New(`Unauthorized`)
+			return "", fmt.Errorf(`Unauthorized`)
 		}
 
 		token = strings.TrimPrefix(auth, "Bearer ")

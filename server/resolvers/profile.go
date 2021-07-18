@@ -6,6 +6,7 @@ import (
 
 	"github.com/yauthdev/yauth/server/db"
 	"github.com/yauthdev/yauth/server/graph/model"
+	"github.com/yauthdev/yauth/server/session"
 	"github.com/yauthdev/yauth/server/utils"
 )
 
@@ -24,6 +25,12 @@ func Profile(ctx context.Context) (*model.User, error) {
 	claim, err := utils.VerifyAuthToken(token)
 	if err != nil {
 		return res, err
+	}
+
+	sessionToken := session.GetToken(claim.ID)
+
+	if sessionToken == "" {
+		return res, fmt.Errorf(`unauthorized`)
 	}
 
 	user, err := db.Mgr.GetUserByEmail(claim.Email)

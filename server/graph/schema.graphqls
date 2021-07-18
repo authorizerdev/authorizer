@@ -38,11 +38,6 @@ type LoginResponse {
   user: User
 }
 
-type SignUpResponse {
-  message: String!
-  user: User
-}
-
 type Response {
   message: String!
 }
@@ -61,15 +56,26 @@ input LoginInput {
   password: String!
 }
 
-input VerifySignupTokenInput {
+input VerifyEmailInput {
   token: String!
 }
 
+input UpdateProfileInput {
+  oldPassword: String
+  newPassword: String
+  confirmNewPassword: String
+  firstName: String
+  lastName: String
+  image: String
+  email: String
+}
+
 type Mutation {
-  signup(params: SignUpInput!): SignUpResponse!
-  verifySignupToken(params: VerifySignupTokenInput!): LoginResponse!
+  signup(params: SignUpInput!): Response!
   login(params: LoginInput!): LoginResponse!
   logout: Response!
+  updateProfile(params: UpdateProfileInput!): Response!
+  verifyEmail(params: VerifyEmailInput!): LoginResponse!
 }
 
 type Query {
