@@ -2,7 +2,7 @@ package resolvers
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -13,16 +13,16 @@ import (
 	"github.com/yauthdev/yauth/server/utils"
 )
 
-func Signup(ctx context.Context, params model.SignUpInput) (*model.SignUpResponse, error) {
-	var res *model.SignUpResponse
+func Signup(ctx context.Context, params model.SignUpInput) (*model.Response, error) {
+	var res *model.Response
 	if params.CofirmPassword != params.Password {
-		return res, errors.New(`Passowrd and Confirm Password does not match`)
+		return res, fmt.Errorf(`passowrd and confirm password does not match`)
 	}
 
 	params.Email = strings.ToLower(params.Email)
 
 	if !utils.IsValidEmail(params.Email) {
-		return res, errors.New(`Invalid email address`)
+		return res, fmt.Errorf(`invalid email address`)
 	}
 
 	// find user with email
@@ -33,7 +33,7 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.SignUpRespons
 
 	if existingUser.EmailVerifiedAt > 0 {
 		// email is verified
-		return res, errors.New(`You have already signed up. Please login`)
+		return res, fmt.Errorf(`you have already signed up. Please login`)
 	}
 	user := db.User{
 		Email: params.Email,
@@ -57,7 +57,7 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.SignUpRespons
 	}
 
 	// insert verification request
-	verificationType := enum.BasicAuth.String()
+	verificationType := enum.BasicAuthSignup.String()
 	token, err := utils.CreateVerificationToken(params.Email, verificationType)
 	if err != nil {
 		log.Println(`Error generating token`, err)
@@ -74,8 +74,8 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.SignUpRespons
 		utils.SendVerificationMail(params.Email, token)
 	}()
 
-	res = &model.SignUpResponse{
-		Message: `Verification email sent successfully. Please check your inbox`,
+	res = &model.Response{
+		Message: `Verification email has been sent. Please check your inbox`,
 	}
 
 	return res, nil

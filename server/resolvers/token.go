@@ -2,7 +2,6 @@ package resolvers
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/yauthdev/yauth/server/db"
@@ -36,19 +35,17 @@ func Token(ctx context.Context) (*model.LoginResponse, error) {
 	sessionToken := session.GetToken(userIdStr)
 
 	if sessionToken == "" {
-		return res, errors.New(`Unauthorized`)
+		return res, fmt.Errorf(`unauthorized`)
 	}
 	// TODO check if session token has expired
 
 	if accessTokenErr != nil {
 		// if access token has expired and refresh/session token is valid
 		// generate new accessToken
-		fmt.Println(`here... getting new accesstoken`)
 		token, expiresAt, _ = utils.CreateAuthToken(utils.UserAuthInfo{
 			ID:    userIdStr,
 			Email: user.Email,
 		}, enum.AccessToken)
-
 	}
 	utils.SetCookie(gc, token)
 	res = &model.LoginResponse{

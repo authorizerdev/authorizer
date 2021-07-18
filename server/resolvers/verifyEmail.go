@@ -2,7 +2,6 @@ package resolvers
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -13,7 +12,7 @@ import (
 	"github.com/yauthdev/yauth/server/utils"
 )
 
-func VerifySignupToken(ctx context.Context, params model.VerifySignupTokenInput) (*model.LoginResponse, error) {
+func VerifyEmail(ctx context.Context, params model.VerifyEmailInput) (*model.LoginResponse, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	var res *model.LoginResponse
 	if err != nil {
@@ -22,13 +21,13 @@ func VerifySignupToken(ctx context.Context, params model.VerifySignupTokenInput)
 
 	_, err = db.Mgr.GetVerificationByToken(params.Token)
 	if err != nil {
-		return res, errors.New(`Invalid token`)
+		return res, fmt.Errorf(`invalid token`)
 	}
 
 	// verify if token exists in db
 	claim, err := utils.VerifyVerificationToken(params.Token)
 	if err != nil {
-		return res, errors.New(`Invalid token`)
+		return res, fmt.Errorf(`invalid token`)
 	}
 
 	user, err := db.Mgr.GetUserByEmail(claim.Email)

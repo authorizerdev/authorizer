@@ -14,6 +14,7 @@ import (
 
 type Manager interface {
 	SaveUser(user User) (User, error)
+	UpdateUser(user User) (User, error)
 	GetUsers() ([]User, error)
 	GetUserByEmail(email string) (User, error)
 	UpdateVerificationTime(verifiedAt int64, id uint) error

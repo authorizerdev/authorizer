@@ -19,9 +19,28 @@ type User struct {
 	Image           string
 }
 
-// SaveUser function to add user
+// SaveUser function to add user even with email conflict
 func (mgr *manager) SaveUser(user User) (User, error) {
-	result := mgr.db.Clauses(clause.OnConflict{UpdateAll: true, Columns: []clause.Column{{Name: "email"}}}).Create(&user)
+	result := mgr.db.Clauses(
+		clause.OnConflict{
+			UpdateAll: true,
+			Columns:   []clause.Column{{Name: "email"}},
+		}).Create(&user)
+
+	if result.Error != nil {
+		log.Println(result.Error)
+		return user, result.Error
+	}
+	return user, nil
+}
+
+// UpdateUser function to update user with ID conflict
+func (mgr *manager) UpdateUser(user User) (User, error) {
+	result := mgr.db.Clauses(
+		clause.OnConflict{
+			UpdateAll: true,
+			Columns:   []clause.Column{{Name: "id"}},
+		}).Create(&user)
 
 	if result.Error != nil {
 		log.Println(result.Error)

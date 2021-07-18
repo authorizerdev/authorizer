@@ -32,9 +32,14 @@ type SignUpInput struct {
 	Image          *string `json:"image"`
 }
 
-type SignUpResponse struct {
-	Message string `json:"message"`
-	User    *User  `json:"user"`
+type UpdateProfileInput struct {
+	OldPassword        *string `json:"oldPassword"`
+	NewPassword        *string `json:"newPassword"`
+	ConfirmNewPassword *string `json:"confirmNewPassword"`
+	FirstName          *string `json:"firstName"`
+	LastName           *string `json:"lastName"`
+	Image              *string `json:"image"`
+	Email              *string `json:"email"`
 }
 
 type User struct {
@@ -60,6 +65,6 @@ type VerificationRequest struct {
 	UpdatedAt  *int64  `json:"updatedAt"`
 }
 
-type VerifySignupTokenInput struct {
+type VerifyEmailInput struct {
 	Token string `json:"token"`
 }
