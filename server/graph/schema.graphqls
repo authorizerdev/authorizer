@@ -60,6 +60,10 @@ input VerifyEmailInput {
   token: String!
 }
 
+input ResendVerifyEmailInput {
+  email: String!
+}
+
 input UpdateProfileInput {
   oldPassword: String
   newPassword: String
@@ -76,6 +80,7 @@ type Mutation {
   logout: Response!
   updateProfile(params: UpdateProfileInput!): Response!
   verifyEmail(params: VerifyEmailInput!): LoginResponse!
+  resendVerifyEmail(params: ResendVerifyEmailInput!): Response!
 }
 
 type Query {
