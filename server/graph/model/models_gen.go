@@ -7,6 +7,16 @@ type Error struct {
 	Reason  string `json:"reason"`
 }
 
+type ForgotPasswordInput struct {
+	Token           string `json:"token"`
+	NewPassword     string `json:"newPassword"`
+	ConfirmPassword string `json:"confirmPassword"`
+}
+
+type ForgotPasswordRequestInput struct {
+	Email string `json:"email"`
+}
+
 type LoginInput struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`

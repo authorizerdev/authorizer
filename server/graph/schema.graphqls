@@ -74,6 +74,16 @@ input UpdateProfileInput {
   email: String
 }
 
+input ForgotPasswordRequestInput {
+  email: String!
+}
+
+input ForgotPasswordInput {
+  token: String!
+  newPassword: String!
+  confirmPassword: String!
+}
+
 type Mutation {
   signup(params: SignUpInput!): Response!
   login(params: LoginInput!): LoginResponse!
@@ -81,6 +91,8 @@ type Mutation {
   updateProfile(params: UpdateProfileInput!): Response!
   verifyEmail(params: VerifyEmailInput!): LoginResponse!
   resendVerifyEmail(params: ResendVerifyEmailInput!): Response!
+  forgotPasswordRequest(params: ForgotPasswordRequestInput!): Response!
+  forgotPassword(params: ForgotPasswordInput!): Response!
 }
 
 type Query {
