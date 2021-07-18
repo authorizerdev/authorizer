@@ -34,9 +34,7 @@ func Login(ctx context.Context, params model.LoginInput) (*model.LoginResponse, 
 	if user.EmailVerifiedAt <= 0 {
 		return res, fmt.Errorf(`email not verified`)
 	}
-	// match password
-	cost, err := bcrypt.Cost([]byte(user.Password))
-	log.Println(cost, err)
+
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(params.Password))
 
 	if err != nil {
@@ -68,6 +66,8 @@ func Login(ctx context.Context, params model.LoginInput) (*model.LoginResponse, 
 			LastName:        &user.LastName,
 			SignupMethod:    user.SignupMethod,
 			EmailVerifiedAt: &user.EmailVerifiedAt,
+			CreatedAt:       &user.CreatedAt,
+			UpdatedAt:       &user.UpdatedAt,
 		},
 	}
 

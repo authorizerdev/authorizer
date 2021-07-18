@@ -6,7 +6,7 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-type Verification struct {
+type VerificationRequest struct {
 	ID         uint   `gorm:"primaryKey"`
 	Token      string `gorm:"index"`
 	Identifier string
@@ -17,7 +17,7 @@ type Verification struct {
 }
 
 // AddVerification function to add verification record
-func (mgr *manager) AddVerification(verification Verification) (Verification, error) {
+func (mgr *manager) AddVerification(verification VerificationRequest) (VerificationRequest, error) {
 	result := mgr.db.Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "email"}},
 		DoUpdates: clause.AssignmentColumns([]string{"token", "identifier", "expires_at"}),
@@ -29,8 +29,8 @@ func (mgr *manager) AddVerification(verification Verification) (Verification, er
 	return verification, nil
 }
 
-func (mgr *manager) GetVerificationByToken(token string) (Verification, error) {
-	var verification Verification
+func (mgr *manager) GetVerificationByToken(token string) (VerificationRequest, error) {
+	var verification VerificationRequest
 	result := mgr.db.Where("token = ?", token).First(&verification)
 
 	if result.Error != nil {
@@ -42,7 +42,7 @@ func (mgr *manager) GetVerificationByToken(token string) (Verification, error) {
 }
 
 func (mgr *manager) DeleteToken(email string) error {
-	var verification Verification
+	var verification VerificationRequest
 	result := mgr.db.Where("email = ?", email).Delete(&verification)
 
 	if result.Error != nil {
@@ -51,4 +51,15 @@ func (mgr *manager) DeleteToken(email string) error {
 	}
 
 	return nil
+}
+
+// GetUsers function to get all users
+func (mgr *manager) GetVerificationRequests() ([]VerificationRequest, error) {
+	var verificationRequests []VerificationRequest
+	result := mgr.db.Find(&verificationRequests)
+	if result.Error != nil {
+		log.Println(result.Error)
+		return verificationRequests, result.Error
+	}
+	return verificationRequests, nil
 }

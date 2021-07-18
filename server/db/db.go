@@ -18,9 +18,10 @@ type Manager interface {
 	GetUsers() ([]User, error)
 	GetUserByEmail(email string) (User, error)
 	UpdateVerificationTime(verifiedAt int64, id uint) error
-	AddVerification(verification Verification) (Verification, error)
-	GetVerificationByToken(token string) (Verification, error)
+	AddVerification(verification VerificationRequest) (VerificationRequest, error)
+	GetVerificationByToken(token string) (VerificationRequest, error)
 	DeleteToken(email string) error
+	GetVerificationRequests() ([]VerificationRequest, error)
 }
 
 type manager struct {
@@ -50,7 +51,7 @@ func init() {
 	if err != nil {
 		log.Fatal("Failed to init db:", err)
 	} else {
-		db.AutoMigrate(&User{}, &Verification{})
+		db.AutoMigrate(&User{}, &VerificationRequest{})
 	}
 
 	Mgr = &manager{db: db}

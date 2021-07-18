@@ -43,6 +43,10 @@ func (r *queryResolver) Profile(ctx context.Context) (*model.User, error) {
 	return resolvers.Profile(ctx)
 }
 
+func (r *queryResolver) VerificationRequests(ctx context.Context) ([]*model.VerificationRequest, error) {
+	return resolvers.VerificationRequests(ctx)
+}
+
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
