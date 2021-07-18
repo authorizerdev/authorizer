@@ -1,0 +1,6 @@
+server/.env
+server/server
+.git
+.gitignore
+README.md
+ROADMAP.md
