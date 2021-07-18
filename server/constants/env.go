@@ -32,6 +32,8 @@ var (
 	GITHUB_CLIENT_SECRET = ""
 	// FACEBOOK_CLIENT_ID     = ""
 	// FACEBOOK_CLIENT_SECRET = ""
+	FORGOT_PASSWORD_URI = ""
+	VERIFY_EMAIL_URI    = ""
 )
 
 func init() {
@@ -60,7 +62,8 @@ func init() {
 	GITHUB_CLIENT_SECRET = os.Getenv("GITHUB_CLIENT_SECRET")
 	// FACEBOOK_CLIENT_ID = os.Getenv("FACEBOOK_CLIENT_ID")
 	// FACEBOOK_CLIENT_SECRET = os.Getenv("FACEBOOK_CLIENT_SECRET")
-
+	FORGOT_PASSWORD_URI = strings.TrimPrefix(os.Getenv("FORGOT_PASSWORD_URI"), "/")
+	VERIFY_EMAIL_URI = strings.TrimPrefix(os.Getenv("VERIFY_EMAIL_URI"), "/")
 	if YAUTH_ADMIN_SECRET == "" {
 		panic("Yauth admin secret is required")
 	}
