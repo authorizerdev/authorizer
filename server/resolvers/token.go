@@ -58,6 +58,8 @@ func Token(ctx context.Context) (*model.LoginResponse, error) {
 			Image:     &user.Image,
 			FirstName: &user.FirstName,
 			LastName:  &user.LastName,
+			CreatedAt: &user.CreatedAt,
+			UpdatedAt: &user.UpdatedAt,
 		},
 	}
 	return res, nil

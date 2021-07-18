@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"log"
 
 	"github.com/gin-gonic/gin"
 	"github.com/yauthdev/yauth/server/enum"
@@ -27,7 +26,6 @@ func main() {
 		r.GET("/login/google", handlers.HandleOAuthLogin(enum.GoogleProvider))
 		r.GET("/callback/google", handlers.HandleOAuthCallback(enum.GoogleProvider))
 	}
-	log.Println(oauth.OAuthProvider.GithubConfig)
 	if oauth.OAuthProvider.GithubConfig != nil {
 		r.GET("/login/github", handlers.HandleOAuthLogin(enum.GithubProvider))
 		r.GET("/callback/github", handlers.HandleOAuthCallback(enum.GithubProvider))

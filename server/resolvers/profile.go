@@ -48,6 +48,8 @@ func Profile(ctx context.Context) (*model.User, error) {
 		LastName:        &user.LastName,
 		SignupMethod:    user.SignupMethod,
 		EmailVerifiedAt: &user.EmailVerifiedAt,
+		CreatedAt:       &user.CreatedAt,
+		UpdatedAt:       &user.UpdatedAt,
 	}
 
 	return res, nil

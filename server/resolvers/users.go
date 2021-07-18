@@ -34,6 +34,8 @@ func Users(ctx context.Context) ([]*model.User, error) {
 			LastName:        &user.LastName,
 			Password:        &user.Password,
 			EmailVerifiedAt: &user.EmailVerifiedAt,
+			CreatedAt:       &user.CreatedAt,
+			UpdatedAt:       &user.UpdatedAt,
 		})
 	}
 

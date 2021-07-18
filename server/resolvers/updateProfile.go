@@ -109,7 +109,7 @@ func UpdateProfile(ctx context.Context, params model.UpdateProfileInput) (*model
 		if err != nil {
 			log.Println(`Error generating token`, err)
 		}
-		db.Mgr.AddVerification(db.Verification{
+		db.Mgr.AddVerification(db.VerificationRequest{
 			Token:      token,
 			Identifier: verificationType,
 			ExpiresAt:  time.Now().Add(time.Minute * 30).Unix(),

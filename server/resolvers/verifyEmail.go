@@ -65,6 +65,8 @@ func VerifyEmail(ctx context.Context, params model.VerifyEmailInput) (*model.Log
 			LastName:        &user.LastName,
 			SignupMethod:    user.SignupMethod,
 			EmailVerifiedAt: &user.EmailVerifiedAt,
+			CreatedAt:       &user.CreatedAt,
+			UpdatedAt:       &user.UpdatedAt,
 		},
 	}
 
