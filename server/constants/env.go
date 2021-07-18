@@ -10,6 +10,7 @@ import (
 )
 
 var (
+	YAUTH_ADMIN_SECRET   = ""
 	ENV                  = ""
 	DB_TYPE              = ""
 	DB_URL               = ""
@@ -38,7 +39,7 @@ func init() {
 	if err != nil {
 		log.Println("Error loading .env file")
 	}
-
+	YAUTH_ADMIN_SECRET = os.Getenv("YAUTH_ADMIN_SECRET")
 	ENV = os.Getenv("ENV")
 	DB_TYPE = os.Getenv("DB_TYPE")
 	DB_URL = os.Getenv("DB_URL")
@@ -59,6 +60,10 @@ func init() {
 	GITHUB_CLIENT_SECRET = os.Getenv("GITHUB_CLIENT_SECRET")
 	// FACEBOOK_CLIENT_ID = os.Getenv("FACEBOOK_CLIENT_ID")
 	// FACEBOOK_CLIENT_SECRET = os.Getenv("FACEBOOK_CLIENT_SECRET")
+
+	if YAUTH_ADMIN_SECRET == "" {
+		panic("Yauth admin secret is required")
+	}
 
 	if ENV == "" {
 		ENV = "production"
