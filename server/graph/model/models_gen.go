@@ -19,6 +19,10 @@ type LoginResponse struct {
 	User                 *User   `json:"user"`
 }
 
+type ResendVerifyEmailInput struct {
+	Email string `json:"email"`
+}
+
 type Response struct {
 	Message string `json:"message"`
 }

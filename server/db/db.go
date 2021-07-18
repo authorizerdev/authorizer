@@ -22,6 +22,7 @@ type Manager interface {
 	GetVerificationByToken(token string) (VerificationRequest, error)
 	DeleteToken(email string) error
 	GetVerificationRequests() ([]VerificationRequest, error)
+	GetVerificationByEmail(email string) (VerificationRequest, error)
 }
 
 type manager struct {

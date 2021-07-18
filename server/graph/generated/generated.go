@@ -56,11 +56,12 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		Login         func(childComplexity int, params model.LoginInput) int
-		Logout        func(childComplexity int) int
-		Signup        func(childComplexity int, params model.SignUpInput) int
-		UpdateProfile func(childComplexity int, params model.UpdateProfileInput) int
-		VerifyEmail   func(childComplexity int, params model.VerifyEmailInput) int
+		Login             func(childComplexity int, params model.LoginInput) int
+		Logout            func(childComplexity int) int
+		ResendVerifyEmail func(childComplexity int, params model.ResendVerifyEmailInput) int
+		Signup            func(childComplexity int, params model.SignUpInput) int
+		UpdateProfile     func(childComplexity int, params model.UpdateProfileInput) int
+		VerifyEmail       func(childComplexity int, params model.VerifyEmailInput) int
 	}
 
 	Query struct {
@@ -104,6 +105,7 @@ type MutationResolver interface {
 	Logout(ctx context.Context) (*model.Response, error)
 	UpdateProfile(ctx context.Context, params model.UpdateProfileInput) (*model.Response, error)
 	VerifyEmail(ctx context.Context, params model.VerifyEmailInput) (*model.LoginResponse, error)
+	ResendVerifyEmail(ctx context.Context, params model.ResendVerifyEmailInput) (*model.Response, error)
 }
 type QueryResolver interface {
 	Users(ctx context.Context) ([]*model.User, error)
@@ -187,6 +189,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.Logout(childComplexity), true
+
+	case "Mutation.resendVerifyEmail":
+		if e.complexity.Mutation.ResendVerifyEmail == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_resendVerifyEmail_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.ResendVerifyEmail(childComplexity, args["params"].(model.ResendVerifyEmailInput)), true
 
 	case "Mutation.signup":
 		if e.complexity.Mutation.Signup == nil {
@@ -504,6 +518,10 @@ input VerifyEmailInput {
   token: String!
 }
 
+input ResendVerifyEmailInput {
+  email: String!
+}
+
 input UpdateProfileInput {
   oldPassword: String
   newPassword: String
@@ -520,6 +538,7 @@ type Mutation {
   logout: Response!
   updateProfile(params: UpdateProfileInput!): Response!
   verifyEmail(params: VerifyEmailInput!): LoginResponse!
+  resendVerifyEmail(params: ResendVerifyEmailInput!): Response!
 }
 
 type Query {
@@ -543,6 +562,21 @@ func (ec *executionContext) field_Mutation_login_args(ctx context.Context, rawAr
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
 		arg0, err = ec.unmarshalNLoginInput2githubᚗcomᚋyauthdevᚋyauthᚋserverᚋgraphᚋmodelᚐLoginInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["params"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_resendVerifyEmail_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.ResendVerifyEmailInput
+	if tmp, ok := rawArgs["params"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+		arg0, err = ec.unmarshalNResendVerifyEmailInput2githubᚗcomᚋyauthdevᚋyauthᚋserverᚋgraphᚋmodelᚐResendVerifyEmailInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1051,6 +1085,48 @@ func (ec *executionContext) _Mutation_verifyEmail(ctx context.Context, field gra
 	res := resTmp.(*model.LoginResponse)
 	fc.Result = res
 	return ec.marshalNLoginResponse2ᚖgithubᚗcomᚋyauthdevᚋyauthᚋserverᚋgraphᚋmodelᚐLoginResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_resendVerifyEmail(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_resendVerifyEmail_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().ResendVerifyEmail(rctx, args["params"].(model.ResendVerifyEmailInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Response)
+	fc.Result = res
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋyauthdevᚋyauthᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_users(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -2967,6 +3043,26 @@ func (ec *executionContext) unmarshalInputLoginInput(ctx context.Context, obj in
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputResendVerifyEmailInput(ctx context.Context, obj interface{}) (model.ResendVerifyEmailInput, error) {
+	var it model.ResendVerifyEmailInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "email":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
+			it.Email, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputSignUpInput(ctx context.Context, obj interface{}) (model.SignUpInput, error) {
 	var it model.SignUpInput
 	var asMap = obj.(map[string]interface{})
@@ -3225,6 +3321,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "verifyEmail":
 			out.Values[i] = ec._Mutation_verifyEmail(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "resendVerifyEmail":
+			out.Values[i] = ec._Mutation_resendVerifyEmail(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -3731,6 +3832,11 @@ func (ec *executionContext) marshalNLoginResponse2ᚖgithubᚗcomᚋyauthdevᚋy
 		return graphql.Null
 	}
 	return ec._LoginResponse(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNResendVerifyEmailInput2githubᚗcomᚋyauthdevᚋyauthᚋserverᚋgraphᚋmodelᚐResendVerifyEmailInput(ctx context.Context, v interface{}) (model.ResendVerifyEmailInput, error) {
+	res, err := ec.unmarshalInputResendVerifyEmailInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalNResponse2githubᚗcomᚋyauthdevᚋyauthᚋserverᚋgraphᚋmodelᚐResponse(ctx context.Context, sel ast.SelectionSet, v model.Response) graphql.Marshaler {

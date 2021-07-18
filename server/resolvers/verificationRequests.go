@@ -27,12 +27,13 @@ func VerificationRequests(ctx context.Context) ([]*model.VerificationRequest, er
 
 	for _, verificationRequest := range verificationRequests {
 		res = append(res, &model.VerificationRequest{
-			ID:        fmt.Sprintf("%d", verificationRequest.ID),
-			Email:     &verificationRequest.Email,
-			Token:     &verificationRequest.Token,
-			Expires:   &verificationRequest.ExpiresAt,
-			CreatedAt: &verificationRequest.CreatedAt,
-			UpdatedAt: &verificationRequest.UpdatedAt,
+			ID:         fmt.Sprintf("%d", verificationRequest.ID),
+			Email:      &verificationRequest.Email,
+			Token:      &verificationRequest.Token,
+			Identifier: &verificationRequest.Identifier,
+			Expires:    &verificationRequest.ExpiresAt,
+			CreatedAt:  &verificationRequest.CreatedAt,
+			UpdatedAt:  &verificationRequest.UpdatedAt,
 		})
 	}
 

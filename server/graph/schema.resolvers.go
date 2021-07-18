@@ -31,6 +31,10 @@ func (r *mutationResolver) VerifyEmail(ctx context.Context, params model.VerifyE
 	return resolvers.VerifyEmail(ctx, params)
 }
 
+func (r *mutationResolver) ResendVerifyEmail(ctx context.Context, params model.ResendVerifyEmailInput) (*model.Response, error) {
+	return resolvers.ResendVerifyEmail(ctx, params)
+}
+
 func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 	return resolvers.Users(ctx)
 }

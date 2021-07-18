@@ -41,6 +41,18 @@ func (mgr *manager) GetVerificationByToken(token string) (VerificationRequest, e
 	return verification, nil
 }
 
+func (mgr *manager) GetVerificationByEmail(email string) (VerificationRequest, error) {
+	var verification VerificationRequest
+	result := mgr.db.Where("email = ?", email).First(&verification)
+
+	if result.Error != nil {
+		log.Println(`Error getting verification token:`, result.Error)
+		return verification, result.Error
+	}
+
+	return verification, nil
+}
+
 func (mgr *manager) DeleteToken(email string) error {
 	var verification VerificationRequest
 	result := mgr.db.Where("email = ?", email).Delete(&verification)
