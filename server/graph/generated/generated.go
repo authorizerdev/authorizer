@@ -533,7 +533,7 @@ input SignUpInput {
   lastName: String
   email: String!
   password: String!
-  cofirmPassword: String!
+  confirmPassword: String!
   image: String
 }
 
@@ -3311,11 +3311,11 @@ func (ec *executionContext) unmarshalInputSignUpInput(ctx context.Context, obj i
 			if err != nil {
 				return it, err
 			}
-		case "cofirmPassword":
+		case "confirmPassword":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("cofirmPassword"))
-			it.CofirmPassword, err = ec.unmarshalNString2string(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("confirmPassword"))
+			it.ConfirmPassword, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}

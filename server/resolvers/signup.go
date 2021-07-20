@@ -15,7 +15,7 @@ import (
 
 func Signup(ctx context.Context, params model.SignUpInput) (*model.Response, error) {
 	var res *model.Response
-	if params.CofirmPassword != params.Password {
+	if params.ConfirmPassword != params.Password {
 		return res, fmt.Errorf(`passowrd and confirm password does not match`)
 	}
 

@@ -38,12 +38,12 @@ type Response struct {
 }
 
 type SignUpInput struct {
-	FirstName      *string `json:"firstName"`
-	LastName       *string `json:"lastName"`
-	Email          string  `json:"email"`
-	Password       string  `json:"password"`
-	CofirmPassword string  `json:"cofirmPassword"`
-	Image          *string `json:"image"`
+	FirstName       *string `json:"firstName"`
+	LastName        *string `json:"lastName"`
+	Email           string  `json:"email"`
+	Password        string  `json:"password"`
+	ConfirmPassword string  `json:"confirmPassword"`
+	Image           *string `json:"image"`
 }
 
 type UpdateProfileInput struct {
