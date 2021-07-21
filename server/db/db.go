@@ -34,6 +34,7 @@ var Mgr Manager
 func init() {
 	var db *gorm.DB
 	var err error
+	log.Println("=> from db:", constants.DB_TYPE, constants.DB_URL)
 	ormConfig := &gorm.Config{
 		NamingStrategy: schema.NamingStrategy{
 			TablePrefix: "yauth_",

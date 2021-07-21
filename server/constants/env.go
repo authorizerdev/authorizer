@@ -1,6 +1,7 @@
 package constants
 
 import (
+	"flag"
 	"log"
 	"os"
 	"strings"
@@ -35,6 +36,19 @@ var (
 	FORGOT_PASSWORD_URI = ""
 	VERIFY_EMAIL_URI    = ""
 )
+
+func ParseArgs() {
+	dbURL := flag.String("db_url", "", "Database connection string")
+	dbType := flag.String("db_type", "", "Database type, possible values are postgres,mysql,sqlit")
+	flag.Parse()
+	if *dbURL != "" {
+		DB_URL = *dbURL
+	}
+
+	if *dbType != "" {
+		DB_TYPE = *dbType
+	}
+}
 
 func init() {
 	err := godotenv.Load()
@@ -77,6 +91,8 @@ func init() {
 	} else {
 		IS_PROD = false
 	}
+
+	ParseArgs()
 
 	if DB_TYPE == "" {
 		DB_TYPE = enum.Postgres.String()
