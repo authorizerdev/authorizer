@@ -10,7 +10,6 @@ type User {
   firstName: String
   lastName: String
   emailVerifiedAt: Int64
-  password: String
   image: String
   createdAt: Int64
   updatedAt: Int64
@@ -74,13 +73,13 @@ input UpdateProfileInput {
   email: String
 }
 
-input ForgotPasswordRequestInput {
+input ForgotPasswordInput {
   email: String!
 }
 
-input ForgotPasswordInput {
+input ResetPassowrdInput {
   token: String!
-  newPassword: String!
+  password: String!
   confirmPassword: String!
 }
 
@@ -91,8 +90,8 @@ type Mutation {
   updateProfile(params: UpdateProfileInput!): Response!
   verifyEmail(params: VerifyEmailInput!): LoginResponse!
   resendVerifyEmail(params: ResendVerifyEmailInput!): Response!
-  forgotPasswordRequest(params: ForgotPasswordRequestInput!): Response!
   forgotPassword(params: ForgotPasswordInput!): Response!
+  resetPassword(params: ResetPassowrdInput!): Response!
 }
 
 type Query {

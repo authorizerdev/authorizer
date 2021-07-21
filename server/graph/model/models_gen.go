@@ -8,12 +8,6 @@ type Error struct {
 }
 
 type ForgotPasswordInput struct {
-	Token           string `json:"token"`
-	NewPassword     string `json:"newPassword"`
-	ConfirmPassword string `json:"confirmPassword"`
-}
-
-type ForgotPasswordRequestInput struct {
 	Email string `json:"email"`
 }
 
@@ -31,6 +25,12 @@ type LoginResponse struct {
 
 type ResendVerifyEmailInput struct {
 	Email string `json:"email"`
+}
+
+type ResetPassowrdInput struct {
+	Token           string `json:"token"`
+	Password        string `json:"password"`
+	ConfirmPassword string `json:"confirmPassword"`
 }
 
 type Response struct {
@@ -63,7 +63,6 @@ type User struct {
 	FirstName       *string `json:"firstName"`
 	LastName        *string `json:"lastName"`
 	EmailVerifiedAt *int64  `json:"emailVerifiedAt"`
-	Password        *string `json:"password"`
 	Image           *string `json:"image"`
 	CreatedAt       *int64  `json:"createdAt"`
 	UpdatedAt       *int64  `json:"updatedAt"`
