@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"log"
 	"net/url"
 
 	"github.com/yauthdev/yauth/server/constants"
@@ -12,5 +13,7 @@ func GetFrontendHost() string {
 		return `localhost`
 	}
 
-	return u.Hostname()
+	log.Println("hostname", "."+u.Hostname())
+
+	return "." + u.Hostname()
 }
