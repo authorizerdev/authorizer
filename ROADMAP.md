@@ -51,5 +51,5 @@ This document contains detailed information about the project scope and future r
   - [ ] Golang sdk which acts as a middleware and can be used to authenticate & authorize users
 - [x] Create docker image
 - [x] Create docker-compose file to quickly start this
-- [ ] Create heroku button
+- [x] Create heroku button
 - [ ] Create a website
