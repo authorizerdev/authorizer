@@ -4,6 +4,11 @@ yauth (aka your-auth) is a complete open source authentication and authorization
 
 This an [Auth0](https://auth0.com) opensource alternative.
 
+Deploy YAuth Server with Postgres DB on Heroku and get a YAuth GraphQL endpoint in under 30 seconds 
+
+[![Deploy to
+Heroku](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/yauthdev/yauth-heroku)
+
 ## Features
 ### Flexible and easy to use
 * Designed to work with any OAuth service, it supports OAuth 1.0, 1.0A and 2.0
