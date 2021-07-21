@@ -56,14 +56,14 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		ForgotPassword        func(childComplexity int, params model.ForgotPasswordInput) int
-		ForgotPasswordRequest func(childComplexity int, params model.ForgotPasswordRequestInput) int
-		Login                 func(childComplexity int, params model.LoginInput) int
-		Logout                func(childComplexity int) int
-		ResendVerifyEmail     func(childComplexity int, params model.ResendVerifyEmailInput) int
-		Signup                func(childComplexity int, params model.SignUpInput) int
-		UpdateProfile         func(childComplexity int, params model.UpdateProfileInput) int
-		VerifyEmail           func(childComplexity int, params model.VerifyEmailInput) int
+		ForgotPassword    func(childComplexity int, params model.ForgotPasswordInput) int
+		Login             func(childComplexity int, params model.LoginInput) int
+		Logout            func(childComplexity int) int
+		ResendVerifyEmail func(childComplexity int, params model.ResendVerifyEmailInput) int
+		ResetPassword     func(childComplexity int, params model.ResetPassowrdInput) int
+		Signup            func(childComplexity int, params model.SignUpInput) int
+		UpdateProfile     func(childComplexity int, params model.UpdateProfileInput) int
+		VerifyEmail       func(childComplexity int, params model.VerifyEmailInput) int
 	}
 
 	Query struct {
@@ -85,7 +85,6 @@ type ComplexityRoot struct {
 		ID              func(childComplexity int) int
 		Image           func(childComplexity int) int
 		LastName        func(childComplexity int) int
-		Password        func(childComplexity int) int
 		SignupMethod    func(childComplexity int) int
 		UpdatedAt       func(childComplexity int) int
 	}
@@ -108,8 +107,8 @@ type MutationResolver interface {
 	UpdateProfile(ctx context.Context, params model.UpdateProfileInput) (*model.Response, error)
 	VerifyEmail(ctx context.Context, params model.VerifyEmailInput) (*model.LoginResponse, error)
 	ResendVerifyEmail(ctx context.Context, params model.ResendVerifyEmailInput) (*model.Response, error)
-	ForgotPasswordRequest(ctx context.Context, params model.ForgotPasswordRequestInput) (*model.Response, error)
 	ForgotPassword(ctx context.Context, params model.ForgotPasswordInput) (*model.Response, error)
+	ResetPassword(ctx context.Context, params model.ResetPassowrdInput) (*model.Response, error)
 }
 type QueryResolver interface {
 	Users(ctx context.Context) ([]*model.User, error)
@@ -187,18 +186,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.ForgotPassword(childComplexity, args["params"].(model.ForgotPasswordInput)), true
 
-	case "Mutation.forgotPasswordRequest":
-		if e.complexity.Mutation.ForgotPasswordRequest == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_forgotPasswordRequest_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.ForgotPasswordRequest(childComplexity, args["params"].(model.ForgotPasswordRequestInput)), true
-
 	case "Mutation.login":
 		if e.complexity.Mutation.Login == nil {
 			break
@@ -229,6 +216,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.ResendVerifyEmail(childComplexity, args["params"].(model.ResendVerifyEmailInput)), true
+
+	case "Mutation.resetPassword":
+		if e.complexity.Mutation.ResetPassword == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_resetPassword_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.ResetPassword(childComplexity, args["params"].(model.ResetPassowrdInput)), true
 
 	case "Mutation.signup":
 		if e.complexity.Mutation.Signup == nil {
@@ -349,13 +348,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.User.LastName(childComplexity), true
-
-	case "User.password":
-		if e.complexity.User.Password == nil {
-			break
-		}
-
-		return e.complexity.User.Password(childComplexity), true
 
 	case "User.signupMethod":
 		if e.complexity.User.SignupMethod == nil {
@@ -496,7 +488,6 @@ type User {
   firstName: String
   lastName: String
   emailVerifiedAt: Int64
-  password: String
   image: String
   createdAt: Int64
   updatedAt: Int64
@@ -560,13 +551,13 @@ input UpdateProfileInput {
   email: String
 }
 
-input ForgotPasswordRequestInput {
+input ForgotPasswordInput {
   email: String!
 }
 
-input ForgotPasswordInput {
+input ResetPassowrdInput {
   token: String!
-  newPassword: String!
+  password: String!
   confirmPassword: String!
 }
 
@@ -577,8 +568,8 @@ type Mutation {
   updateProfile(params: UpdateProfileInput!): Response!
   verifyEmail(params: VerifyEmailInput!): LoginResponse!
   resendVerifyEmail(params: ResendVerifyEmailInput!): Response!
-  forgotPasswordRequest(params: ForgotPasswordRequestInput!): Response!
   forgotPassword(params: ForgotPasswordInput!): Response!
+  resetPassword(params: ResetPassowrdInput!): Response!
 }
 
 type Query {
@@ -594,21 +585,6 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
-
-func (ec *executionContext) field_Mutation_forgotPasswordRequest_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 model.ForgotPasswordRequestInput
-	if tmp, ok := rawArgs["params"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalNForgotPasswordRequestInput2githubᚗcomᚋyauthdevᚋyauthᚋserverᚋgraphᚋmodelᚐForgotPasswordRequestInput(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["params"] = arg0
-	return args, nil
-}
 
 func (ec *executionContext) field_Mutation_forgotPassword_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
@@ -647,6 +623,21 @@ func (ec *executionContext) field_Mutation_resendVerifyEmail_args(ctx context.Co
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
 		arg0, err = ec.unmarshalNResendVerifyEmailInput2githubᚗcomᚋyauthdevᚋyauthᚋserverᚋgraphᚋmodelᚐResendVerifyEmailInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["params"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_resetPassword_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.ResetPassowrdInput
+	if tmp, ok := rawArgs["params"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+		arg0, err = ec.unmarshalNResetPassowrdInput2githubᚗcomᚋyauthdevᚋyauthᚋserverᚋgraphᚋmodelᚐResetPassowrdInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1199,48 +1190,6 @@ func (ec *executionContext) _Mutation_resendVerifyEmail(ctx context.Context, fie
 	return ec.marshalNResponse2ᚖgithubᚗcomᚋyauthdevᚋyauthᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Mutation_forgotPasswordRequest(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_forgotPasswordRequest_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().ForgotPasswordRequest(rctx, args["params"].(model.ForgotPasswordRequestInput))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.Response)
-	fc.Result = res
-	return ec.marshalNResponse2ᚖgithubᚗcomᚋyauthdevᚋyauthᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _Mutation_forgotPassword(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -1267,6 +1216,48 @@ func (ec *executionContext) _Mutation_forgotPassword(ctx context.Context, field 
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Mutation().ForgotPassword(rctx, args["params"].(model.ForgotPasswordInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Response)
+	fc.Result = res
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋyauthdevᚋyauthᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_resetPassword(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_resetPassword_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().ResetPassword(rctx, args["params"].(model.ResetPassowrdInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1725,38 +1716,6 @@ func (ec *executionContext) _User_emailVerifiedAt(ctx context.Context, field gra
 	res := resTmp.(*int64)
 	fc.Result = res
 	return ec.marshalOInt642ᚖint64(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _User_password(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "User",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Password, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*string)
-	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _User_image(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
@@ -3175,42 +3134,6 @@ func (ec *executionContext) unmarshalInputForgotPasswordInput(ctx context.Contex
 
 	for k, v := range asMap {
 		switch k {
-		case "token":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("token"))
-			it.Token, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "newPassword":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("newPassword"))
-			it.NewPassword, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "confirmPassword":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("confirmPassword"))
-			it.ConfirmPassword, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputForgotPasswordRequestInput(ctx context.Context, obj interface{}) (model.ForgotPasswordRequestInput, error) {
-	var it model.ForgotPasswordRequestInput
-	var asMap = obj.(map[string]interface{})
-
-	for k, v := range asMap {
-		switch k {
 		case "email":
 			var err error
 
@@ -3264,6 +3187,42 @@ func (ec *executionContext) unmarshalInputResendVerifyEmailInput(ctx context.Con
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
 			it.Email, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputResetPassowrdInput(ctx context.Context, obj interface{}) (model.ResetPassowrdInput, error) {
+	var it model.ResetPassowrdInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "token":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("token"))
+			it.Token, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "password":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("password"))
+			it.Password, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "confirmPassword":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("confirmPassword"))
+			it.ConfirmPassword, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3539,13 +3498,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "forgotPasswordRequest":
-			out.Values[i] = ec._Mutation_forgotPasswordRequest(ctx, field)
+		case "forgotPassword":
+			out.Values[i] = ec._Mutation_forgotPassword(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "forgotPassword":
-			out.Values[i] = ec._Mutation_forgotPassword(ctx, field)
+		case "resetPassword":
+			out.Values[i] = ec._Mutation_resetPassword(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -3702,8 +3661,6 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			out.Values[i] = ec._User_lastName(ctx, field, obj)
 		case "emailVerifiedAt":
 			out.Values[i] = ec._User_emailVerifiedAt(ctx, field, obj)
-		case "password":
-			out.Values[i] = ec._User_password(ctx, field, obj)
 		case "image":
 			out.Values[i] = ec._User_image(ctx, field, obj)
 		case "createdAt":
@@ -4025,11 +3982,6 @@ func (ec *executionContext) unmarshalNForgotPasswordInput2githubᚗcomᚋyauthde
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNForgotPasswordRequestInput2githubᚗcomᚋyauthdevᚋyauthᚋserverᚋgraphᚋmodelᚐForgotPasswordRequestInput(ctx context.Context, v interface{}) (model.ForgotPasswordRequestInput, error) {
-	res, err := ec.unmarshalInputForgotPasswordRequestInput(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
 func (ec *executionContext) unmarshalNID2string(ctx context.Context, v interface{}) (string, error) {
 	res, err := graphql.UnmarshalID(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -4066,6 +4018,11 @@ func (ec *executionContext) marshalNLoginResponse2ᚖgithubᚗcomᚋyauthdevᚋy
 
 func (ec *executionContext) unmarshalNResendVerifyEmailInput2githubᚗcomᚋyauthdevᚋyauthᚋserverᚋgraphᚋmodelᚐResendVerifyEmailInput(ctx context.Context, v interface{}) (model.ResendVerifyEmailInput, error) {
 	res, err := ec.unmarshalInputResendVerifyEmailInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNResetPassowrdInput2githubᚗcomᚋyauthdevᚋyauthᚋserverᚋgraphᚋmodelᚐResetPassowrdInput(ctx context.Context, v interface{}) (model.ResetPassowrdInput, error) {
+	res, err := ec.unmarshalInputResetPassowrdInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 

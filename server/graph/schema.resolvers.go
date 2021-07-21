@@ -35,12 +35,12 @@ func (r *mutationResolver) ResendVerifyEmail(ctx context.Context, params model.R
 	return resolvers.ResendVerifyEmail(ctx, params)
 }
 
-func (r *mutationResolver) ForgotPasswordRequest(ctx context.Context, params model.ForgotPasswordRequestInput) (*model.Response, error) {
-	return resolvers.ForgotPasswordRequest(ctx, params)
-}
-
 func (r *mutationResolver) ForgotPassword(ctx context.Context, params model.ForgotPasswordInput) (*model.Response, error) {
 	return resolvers.ForgotPassword(ctx, params)
+}
+
+func (r *mutationResolver) ResetPassword(ctx context.Context, params model.ResetPassowrdInput) (*model.Response, error) {
+	return resolvers.ResetPassword(ctx, params)
 }
 
 func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {

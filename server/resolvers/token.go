@@ -3,6 +3,7 @@ package resolvers
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/yauthdev/yauth/server/db"
 	"github.com/yauthdev/yauth/server/enum"
@@ -37,9 +38,11 @@ func Token(ctx context.Context) (*model.LoginResponse, error) {
 	if sessionToken == "" {
 		return res, fmt.Errorf(`unauthorized`)
 	}
-	// TODO check if session token has expired
+	// TODO check if refresh/session token has expired
 
-	if accessTokenErr != nil {
+	expiresTimeObj := time.Unix(expiresAt, 0)
+	currentTimeObj := time.Now()
+	if accessTokenErr != nil || expiresTimeObj.Sub(currentTimeObj).Minutes() <= 5 {
 		// if access token has expired and refresh/session token is valid
 		// generate new accessToken
 		token, expiresAt, _ = utils.CreateAuthToken(utils.UserAuthInfo{
