@@ -7,7 +7,7 @@ import (
 	"github.com/yauthdev/yauth/server/constants"
 )
 
-func GetFrontendHost() string {
+func GetDomainName() string {
 	u, err := url.Parse(constants.FRONTEND_URL)
 	if err != nil {
 		return `localhost`
