@@ -8,13 +8,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/db"
+	"github.com/authorizerdev/authorizer/server/enum"
+	"github.com/authorizerdev/authorizer/server/oauth"
+	"github.com/authorizerdev/authorizer/server/session"
+	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/gin-gonic/gin"
-	"github.com/yauthdev/yauth/server/constants"
-	"github.com/yauthdev/yauth/server/db"
-	"github.com/yauthdev/yauth/server/enum"
-	"github.com/yauthdev/yauth/server/oauth"
-	"github.com/yauthdev/yauth/server/session"
-	"github.com/yauthdev/yauth/server/utils"
 	"golang.org/x/oauth2"
 )
 

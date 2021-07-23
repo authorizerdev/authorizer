@@ -8,7 +8,7 @@ import (
 	"net/smtp"
 	"strings"
 
-	"github.com/yauthdev/yauth/server/constants"
+	"github.com/authorizerdev/authorizer/server/constants"
 )
 
 /**

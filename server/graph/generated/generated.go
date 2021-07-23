@@ -12,9 +12,9 @@ import (
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
+	"github.com/authorizerdev/authorizer/server/graph/model"
 	gqlparser "github.com/vektah/gqlparser/v2"
 	"github.com/vektah/gqlparser/v2/ast"
-	"github.com/yauthdev/yauth/server/graph/model"
 )
 
 // region    ************************** generated!.gotpl **************************
@@ -39,8 +39,7 @@ type ResolverRoot interface {
 	Query() QueryResolver
 }
 
-type DirectiveRoot struct {
-}
+type DirectiveRoot struct{}
 
 type ComplexityRoot struct {
 	Error struct {
@@ -110,6 +109,7 @@ type MutationResolver interface {
 	ForgotPassword(ctx context.Context, params model.ForgotPasswordInput) (*model.Response, error)
 	ResetPassword(ctx context.Context, params model.ResetPassowrdInput) (*model.Response, error)
 }
+
 type QueryResolver interface {
 	Users(ctx context.Context) ([]*model.User, error)
 	Token(ctx context.Context) (*model.LoginResponse, error)
@@ -3130,7 +3130,7 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 
 func (ec *executionContext) unmarshalInputForgotPasswordInput(ctx context.Context, obj interface{}) (model.ForgotPasswordInput, error) {
 	var it model.ForgotPasswordInput
-	var asMap = obj.(map[string]interface{})
+	asMap := obj.(map[string]interface{})
 
 	for k, v := range asMap {
 		switch k {
@@ -3150,7 +3150,7 @@ func (ec *executionContext) unmarshalInputForgotPasswordInput(ctx context.Contex
 
 func (ec *executionContext) unmarshalInputLoginInput(ctx context.Context, obj interface{}) (model.LoginInput, error) {
 	var it model.LoginInput
-	var asMap = obj.(map[string]interface{})
+	asMap := obj.(map[string]interface{})
 
 	for k, v := range asMap {
 		switch k {
@@ -3178,7 +3178,7 @@ func (ec *executionContext) unmarshalInputLoginInput(ctx context.Context, obj in
 
 func (ec *executionContext) unmarshalInputResendVerifyEmailInput(ctx context.Context, obj interface{}) (model.ResendVerifyEmailInput, error) {
 	var it model.ResendVerifyEmailInput
-	var asMap = obj.(map[string]interface{})
+	asMap := obj.(map[string]interface{})
 
 	for k, v := range asMap {
 		switch k {
@@ -3198,7 +3198,7 @@ func (ec *executionContext) unmarshalInputResendVerifyEmailInput(ctx context.Con
 
 func (ec *executionContext) unmarshalInputResetPassowrdInput(ctx context.Context, obj interface{}) (model.ResetPassowrdInput, error) {
 	var it model.ResetPassowrdInput
-	var asMap = obj.(map[string]interface{})
+	asMap := obj.(map[string]interface{})
 
 	for k, v := range asMap {
 		switch k {
@@ -3234,7 +3234,7 @@ func (ec *executionContext) unmarshalInputResetPassowrdInput(ctx context.Context
 
 func (ec *executionContext) unmarshalInputSignUpInput(ctx context.Context, obj interface{}) (model.SignUpInput, error) {
 	var it model.SignUpInput
-	var asMap = obj.(map[string]interface{})
+	asMap := obj.(map[string]interface{})
 
 	for k, v := range asMap {
 		switch k {
@@ -3294,7 +3294,7 @@ func (ec *executionContext) unmarshalInputSignUpInput(ctx context.Context, obj i
 
 func (ec *executionContext) unmarshalInputUpdateProfileInput(ctx context.Context, obj interface{}) (model.UpdateProfileInput, error) {
 	var it model.UpdateProfileInput
-	var asMap = obj.(map[string]interface{})
+	asMap := obj.(map[string]interface{})
 
 	for k, v := range asMap {
 		switch k {
@@ -3362,7 +3362,7 @@ func (ec *executionContext) unmarshalInputUpdateProfileInput(ctx context.Context
 
 func (ec *executionContext) unmarshalInputVerifyEmailInput(ctx context.Context, obj interface{}) (model.VerifyEmailInput, error) {
 	var it model.VerifyEmailInput
-	var asMap = obj.(map[string]interface{})
+	asMap := obj.(map[string]interface{})
 
 	for k, v := range asMap {
 		switch k {

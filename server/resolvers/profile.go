@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/yauthdev/yauth/server/db"
-	"github.com/yauthdev/yauth/server/graph/model"
-	"github.com/yauthdev/yauth/server/session"
-	"github.com/yauthdev/yauth/server/utils"
+	"github.com/authorizerdev/authorizer/server/db"
+	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/session"
+	"github.com/authorizerdev/authorizer/server/utils"
 )
 
 func Profile(ctx context.Context) (*model.User, error) {

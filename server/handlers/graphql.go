@@ -2,9 +2,9 @@ package handlers
 
 import (
 	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/authorizerdev/authorizer/server/graph"
+	"github.com/authorizerdev/authorizer/server/graph/generated"
 	"github.com/gin-gonic/gin"
-	"github.com/yauthdev/yauth/server/graph"
-	"github.com/yauthdev/yauth/server/graph/generated"
 )
 
 // Defining the Graphql handler

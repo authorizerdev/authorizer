@@ -3,9 +3,9 @@ package resolvers
 import (
 	"context"
 
-	"github.com/yauthdev/yauth/server/graph/model"
-	"github.com/yauthdev/yauth/server/session"
-	"github.com/yauthdev/yauth/server/utils"
+	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/session"
+	"github.com/authorizerdev/authorizer/server/utils"
 )
 
 func Logout(ctx context.Context) (*model.Response, error) {

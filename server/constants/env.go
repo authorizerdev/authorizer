@@ -6,12 +6,12 @@ import (
 	"os"
 	"strings"
 
+	"github.com/authorizerdev/authorizer/server/enum"
 	"github.com/joho/godotenv"
-	"github.com/yauthdev/yauth/server/enum"
 )
 
 var (
-	YAUTH_ADMIN_SECRET   = ""
+	ROOT_SECRET          = ""
 	ENV                  = ""
 	DB_TYPE              = ""
 	DB_URL               = ""
@@ -55,7 +55,7 @@ func init() {
 	if err != nil {
 		log.Println("Error loading .env file")
 	}
-	YAUTH_ADMIN_SECRET = os.Getenv("YAUTH_ADMIN_SECRET")
+	ROOT_SECRET = os.Getenv("ROOT_SECRET")
 	ENV = os.Getenv("ENV")
 	DB_TYPE = os.Getenv("DB_TYPE")
 	DB_URL = os.Getenv("DB_URL")
@@ -78,8 +78,8 @@ func init() {
 	// FACEBOOK_CLIENT_SECRET = os.Getenv("FACEBOOK_CLIENT_SECRET")
 	FORGOT_PASSWORD_URI = strings.TrimPrefix(os.Getenv("FORGOT_PASSWORD_URI"), "/")
 	VERIFY_EMAIL_URI = strings.TrimPrefix(os.Getenv("VERIFY_EMAIL_URI"), "/")
-	if YAUTH_ADMIN_SECRET == "" {
-		panic("Yauth admin secret is required")
+	if ROOT_SECRET == "" {
+		panic("Root admin secret is required")
 	}
 
 	if ENV == "" {
@@ -107,7 +107,7 @@ func init() {
 	}
 
 	if COOKIE_NAME == "" {
-		COOKIE_NAME = "yauth"
+		COOKIE_NAME = "authorizer"
 	}
 
 	if SERVER_URL == "" {

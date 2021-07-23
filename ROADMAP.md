@@ -1,4 +1,4 @@
-# Roadmap for yauth.io
+# Roadmap for authorizer 
 
 This document contains detailed information about the project scope and future roadmap
 
@@ -43,9 +43,9 @@ This document contains detailed information about the project scope and future r
    - [ ] Allow user to view users
    - [ ] Allow user to define the JWT token field
 - [x] A component library for react
-    - [x] Create YAuthProvider -> gives token, user, loading, setters
-    - [x] Create YAuth component -> Complete Login/Signup & Forgot password solution
-    - [x] Create YAuthResetPassword component -> Component that can be used to verify forgot password token and reset the password
+    - [x] Create AuthorizerProvider -> gives token, user, loading, setters
+    - [x] Create Authorizer component -> Complete Login/Signup & Forgot password solution
+    - [x] Create AuthorizerResetPassword component -> Component that can be used to verify forgot password token and reset the password
 - [ ] Create a sdks
   - [ ] NodeJS sdk which acts as a middleware and can be used to authenticate & authorize users
   - [ ] Golang sdk which acts as a middleware and can be used to authenticate & authorize users

@@ -3,11 +3,11 @@ package handlers
 import (
 	"net/http"
 
+	"github.com/authorizerdev/authorizer/server/enum"
+	"github.com/authorizerdev/authorizer/server/oauth"
+	"github.com/authorizerdev/authorizer/server/session"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/yauthdev/yauth/server/enum"
-	"github.com/yauthdev/yauth/server/oauth"
-	"github.com/yauthdev/yauth/server/session"
 )
 
 func OAuthLoginHandler(provider enum.OAuthProvider) gin.HandlerFunc {

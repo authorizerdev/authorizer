@@ -3,8 +3,8 @@ package db
 import (
 	"log"
 
-	"github.com/yauthdev/yauth/server/constants"
-	"github.com/yauthdev/yauth/server/enum"
+	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/enum"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
@@ -37,7 +37,7 @@ func init() {
 	log.Println("=> from db:", constants.DB_TYPE, constants.DB_URL)
 	ormConfig := &gorm.Config{
 		NamingStrategy: schema.NamingStrategy{
-			TablePrefix: "yauth_",
+			TablePrefix: "authorizer_",
 		},
 	}
 	if constants.DB_TYPE == enum.Postgres.String() {

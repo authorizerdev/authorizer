@@ -3,8 +3,8 @@ package utils
 import (
 	"time"
 
+	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/golang-jwt/jwt"
-	"github.com/yauthdev/yauth/server/constants"
 )
 
 type UserInfo struct {

@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/yauthdev/yauth/server/db"
-	"github.com/yauthdev/yauth/server/enum"
-	"github.com/yauthdev/yauth/server/graph/model"
-	"github.com/yauthdev/yauth/server/utils"
+	"github.com/authorizerdev/authorizer/server/db"
+	"github.com/authorizerdev/authorizer/server/enum"
+	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/utils"
 )
 
 func ForgotPassword(ctx context.Context, params model.ForgotPasswordInput) (*model.Response, error) {

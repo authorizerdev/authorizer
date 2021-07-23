@@ -1,4 +1,4 @@
-module github.com/yauthdev/yauth/server
+module github.com/authorizerdev/authorizer/server
 
 go 1.16
 
