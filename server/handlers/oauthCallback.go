@@ -163,7 +163,7 @@ func processGithubUserInfo(state string, code string, c *gin.Context) error {
 	return nil
 }
 
-func HandleOAuthCallback(provider enum.OAuthProvider) gin.HandlerFunc {
+func OAuthCallbackHandler(provider enum.OAuthProvider) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var err error
 		if provider == enum.GoogleProvider {

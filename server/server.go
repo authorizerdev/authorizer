@@ -42,14 +42,14 @@ func main() {
 	r.Use(CORSMiddleware())
 	r.GET("/", handlers.PlaygroundHandler())
 	r.POST("/graphql", handlers.GraphqlHandler())
-	r.GET("/verify_email", handlers.VerifyEmail())
+	r.GET("/verify_email", handlers.VerifyEmailHandler())
 	if oauth.OAuthProvider.GoogleConfig != nil {
-		r.GET("/login/google", handlers.HandleOAuthLogin(enum.GoogleProvider))
-		r.GET("/callback/google", handlers.HandleOAuthCallback(enum.GoogleProvider))
+		r.GET("/login/google", handlers.OAuthLoginHandler(enum.GoogleProvider))
+		r.GET("/callback/google", handlers.OAuthCallbackHandler(enum.GoogleProvider))
 	}
 	if oauth.OAuthProvider.GithubConfig != nil {
-		r.GET("/login/github", handlers.HandleOAuthLogin(enum.GithubProvider))
-		r.GET("/callback/github", handlers.HandleOAuthCallback(enum.GithubProvider))
+		r.GET("/login/github", handlers.OAuthLoginHandler(enum.GithubProvider))
+		r.GET("/callback/github", handlers.OAuthCallbackHandler(enum.GithubProvider))
 	}
 	r.Run()
 }

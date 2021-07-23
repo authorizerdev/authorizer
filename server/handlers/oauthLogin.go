@@ -10,7 +10,7 @@ import (
 	"github.com/yauthdev/yauth/server/session"
 )
 
-func HandleOAuthLogin(provider enum.OAuthProvider) gin.HandlerFunc {
+func OAuthLoginHandler(provider enum.OAuthProvider) gin.HandlerFunc {
 	uuid := uuid.New()
 	oauthStateString := uuid.String()
 
