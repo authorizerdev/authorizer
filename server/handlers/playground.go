@@ -5,7 +5,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Defining the Playground handler
 func PlaygroundHandler() gin.HandlerFunc {
 	h := playground.Handler("GraphQL", "/graphql")
 

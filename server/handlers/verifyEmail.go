@@ -13,8 +13,7 @@ import (
 	"github.com/yauthdev/yauth/server/utils"
 )
 
-// Defining the Graphql handler
-func VerifyEmail() gin.HandlerFunc {
+func VerifyEmailHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		errorRes := gin.H{
 			"message": "invalid token",
