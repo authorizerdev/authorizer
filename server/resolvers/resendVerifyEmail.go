@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/yauthdev/yauth/server/db"
-	"github.com/yauthdev/yauth/server/graph/model"
-	"github.com/yauthdev/yauth/server/utils"
+	"github.com/authorizerdev/authorizer/server/db"
+	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/utils"
 )
 
 func ResendVerifyEmail(ctx context.Context, params model.ResendVerifyEmailInput) (*model.Response, error) {

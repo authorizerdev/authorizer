@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/enum"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
-	"github.com/yauthdev/yauth/server/constants"
-	"github.com/yauthdev/yauth/server/enum"
 )
 
 type UserAuthInfo struct {

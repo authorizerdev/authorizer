@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/gin-gonic/gin"
-	"github.com/yauthdev/yauth/server/constants"
 )
 
 func SetCookie(gc *gin.Context, token string) {

@@ -1,7 +1,7 @@
 package oauth
 
 import (
-	"github.com/yauthdev/yauth/server/constants"
+	"github.com/authorizerdev/authorizer/server/constants"
 	"golang.org/x/oauth2"
 	githubOAuth2 "golang.org/x/oauth2/github"
 	googleOAuth2 "golang.org/x/oauth2/google"

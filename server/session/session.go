@@ -4,8 +4,8 @@ import (
 	"context"
 	"log"
 
+	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/go-redis/redis/v8"
-	"github.com/yauthdev/yauth/server/constants"
 )
 
 type SessionStore struct {

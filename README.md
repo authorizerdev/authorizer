@@ -1,13 +1,13 @@
-# yauth
+#authorizer 
 
-yauth (aka your-auth) is a complete open source authentication and authorization solution for your applications.  Bring your database and have complete control over the authentication, authorization and user data. It is a microservice that can be deployed anywhere and connected any sql database.
+authorizer (aka your-auth) is a complete open source authentication and authorization solution for your applications.  Bring your database and have complete control over the authentication, authorization and user data. It is a microservice that can be deployed anywhere and connected any sql database.
 
 This an [Auth0](https://auth0.com) opensource alternative.
 
-Deploy YAuth Server with Postgres DB on Heroku and get a YAuth GraphQL endpoint in under 30 seconds 
+Deploy authorizer Server with Postgres DB on Heroku and get a authorizer GraphQL endpoint in under 30 seconds 
 
 [![Deploy to
-Heroku](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/yauthdev/yauth-heroku)
+Heroku](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/authorizerdev/authorizer-heroku)
 
 ## Features
 ### Flexible and easy to use
@@ -38,5 +38,5 @@ Heroku](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?
 * Advanced options allow you to define your own routines to handle controlling what accounts are allowed to sign in, for encoding and decoding JSON Web Tokens and to set custom cookie security policies and session properties, so you can control who is able to sign in and how often sessions have to be re-validated.
 
 # License
-[MIT](https://github.com/yauthio/yauth/blob/main/LICENSE)
+[MIT](https://github.com/authorizerdev/authorizer/blob/main/LICENSE)
 

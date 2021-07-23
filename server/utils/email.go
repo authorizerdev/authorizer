@@ -3,8 +3,8 @@ package utils
 import (
 	"fmt"
 
-	"github.com/yauthdev/yauth/server/constants"
-	"github.com/yauthdev/yauth/server/email"
+	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/email"
 )
 
 // SendVerificationMail to send verification email

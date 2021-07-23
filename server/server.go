@@ -4,10 +4,10 @@ import (
 	"context"
 	"log"
 
+	"github.com/authorizerdev/authorizer/server/enum"
+	"github.com/authorizerdev/authorizer/server/handlers"
+	"github.com/authorizerdev/authorizer/server/oauth"
 	"github.com/gin-gonic/gin"
-	"github.com/yauthdev/yauth/server/enum"
-	"github.com/yauthdev/yauth/server/handlers"
-	"github.com/yauthdev/yauth/server/oauth"
 )
 
 func GinContextToContextMiddleware() gin.HandlerFunc {

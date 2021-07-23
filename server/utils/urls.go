@@ -4,7 +4,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/yauthdev/yauth/server/constants"
+	"github.com/authorizerdev/authorizer/server/constants"
 )
 
 func GetDomainName() string {

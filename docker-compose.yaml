@@ -10,8 +10,8 @@ services:
    - POSTGRES_PASSWORD=postgres
   ports:
    - 5432:5432
- yauth:
-  image: lakhansamani/yauth:0.1.0-beta.0
+ authorizer:
+  image: lakhansamani/authorizer:0.1.0-beta.0
   ports:
    - 8080:8080
   depends_on:
