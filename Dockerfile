@@ -1,10 +1,11 @@
 FROM golang:1.16-alpine as builder
-
 WORKDIR /app
-
 COPY . .
-
-RUN apk add build-base && cd server && go mod download && go build && chmod 777 server && ls -l
+RUN apk add build-base &&\
+    cd server && \
+    go mod download && \
+    go build && \
+    chmod 777 server
 
 FROM alpine:latest
 RUN apk --no-cache add ca-certificates

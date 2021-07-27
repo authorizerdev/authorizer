@@ -19,6 +19,8 @@ import (
 	// https://stackoverflow.com/questions/19877246/nodemailer-with-gmail-and-nodejs
 **/
 
+// TODO -> try using gomail.v2
+
 type Sender struct {
 	User     string
 	Password string

@@ -24,6 +24,15 @@ func SetCookie(gc *gin.Context, token string) {
 	gc.SetCookie(constants.COOKIE_NAME, token, 3600, "/", u.Hostname(), secure, httpOnly)
 }
 
+func GetCookie(gc *gin.Context) (string, error) {
+	cookie, err := gc.Request.Cookie(constants.COOKIE_NAME)
+	if err != nil {
+		return "", err
+	}
+
+	return cookie.Value, nil
+}
+
 func DeleteCookie(gc *gin.Context) {
 	secure := true
 	httpOnly := true

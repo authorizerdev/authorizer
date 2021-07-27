@@ -49,9 +49,8 @@ func CreateAuthToken(user UserAuthInfo, tokenType enum.TokenType) (string, int64
 }
 
 func GetAuthToken(gc *gin.Context) (string, error) {
-	token := ""
-	cookie, err := gc.Request.Cookie(constants.COOKIE_NAME)
-	if err != nil {
+	token, err := GetCookie(gc)
+	if err != nil || token == "" {
 		// try to check in auth header for cookie
 		log.Println("cookie not found checking headers")
 		auth := gc.Request.Header.Get("Authorization")
@@ -60,10 +59,7 @@ func GetAuthToken(gc *gin.Context) (string, error) {
 		}
 
 		token = strings.TrimPrefix(auth, "Bearer ")
-	} else {
-		token = cookie.Value
 	}
-
 	return token, nil
 }
 
