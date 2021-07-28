@@ -13,21 +13,21 @@ type RedisStore struct {
 }
 
 func (c *RedisStore) AddToken(userId, token string) {
-	err := c.store.Set(c.ctx, "yauth_"+userId, token, 0).Err()
+	err := c.store.Set(c.ctx, "authorizer_"+userId, token, 0).Err()
 	if err != nil {
 		log.Fatalln("Error saving redis token:", err)
 	}
 }
 
 func (c *RedisStore) DeleteToken(userId string) {
-	err := c.store.Del(c.ctx, "yauth_"+userId).Err()
+	err := c.store.Del(c.ctx, "authorizer_"+userId).Err()
 	if err != nil {
 		log.Fatalln("Error deleting redis token:", err)
 	}
 }
 
 func (c *RedisStore) ClearStore() {
-	err := c.store.Del(c.ctx, "yauth_*").Err()
+	err := c.store.Del(c.ctx, "authorizer_*").Err()
 	if err != nil {
 		log.Fatalln("Error clearing redis store:", err)
 	}
@@ -35,7 +35,7 @@ func (c *RedisStore) ClearStore() {
 
 func (c *RedisStore) GetToken(userId string) string {
 	token := ""
-	token, err := c.store.Get(c.ctx, "yauth_"+userId).Result()
+	token, err := c.store.Get(c.ctx, "authorizer_"+userId).Result()
 	if err != nil {
 		log.Println("Error getting token from redis store:", err)
 	}

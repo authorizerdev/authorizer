@@ -6,7 +6,7 @@ import (
 )
 
 func IsSuperAdmin(gc *gin.Context) bool {
-	secret := gc.Request.Header.Get("x-yauth-admin-secret")
+	secret := gc.Request.Header.Get("x-authorizer-root-secret")
 	if secret == "" {
 		return false
 	}
