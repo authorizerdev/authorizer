@@ -17,6 +17,7 @@ var Version string
 func ParseArgs() {
 	dbURL := flag.String("database_url", "", "Database connection string")
 	dbType := flag.String("databse_type", "", "Database type, possible values are postgres,mysql,sqlit")
+	authroizerDomain := flag.String("authorizer_domain", "", "Domain name for authorizer instance, eg: https://xyz.herokuapp.com")
 	flag.Parse()
 	if *dbURL != "" {
 		constants.DATABASE_URL = *dbURL
@@ -24,6 +25,10 @@ func ParseArgs() {
 
 	if *dbType != "" {
 		constants.DATABASE_TYPE = *dbType
+	}
+
+	if *authroizerDomain != "" {
+		constants.AUTHORIZER_DOMAIN = *authroizerDomain
 	}
 }
 
@@ -87,6 +92,12 @@ func InitEnv() {
 	if constants.DATABASE_TYPE == "" {
 		panic("Database type is required")
 	}
+
+	if constants.AUTHORIZER_DOMAIN == "" {
+		panic("Authroizer domain is required")
+	}
+
+	log.Println("=> Authorizer domain=", constants.AUTHORIZER_DOMAIN)
 
 	if constants.JWT_TYPE == "" {
 		constants.JWT_TYPE = "HS256"
