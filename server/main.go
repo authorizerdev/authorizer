@@ -2,11 +2,12 @@ package main
 
 import (
 	"context"
-	"log"
 
+	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/enum"
 	"github.com/authorizerdev/authorizer/server/handlers"
 	"github.com/authorizerdev/authorizer/server/oauth"
+	"github.com/authorizerdev/authorizer/server/session"
 	"github.com/gin-gonic/gin"
 )
 
@@ -21,7 +22,6 @@ func GinContextToContextMiddleware() gin.HandlerFunc {
 func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		origin := c.Request.Header.Get("Origin")
-		log.Println("-> origin", origin)
 		c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
@@ -37,6 +37,10 @@ func CORSMiddleware() gin.HandlerFunc {
 }
 
 func main() {
+	InitEnv()
+	db.InitDB()
+	session.InitSession()
+
 	r := gin.Default()
 	r.Use(GinContextToContextMiddleware())
 	r.Use(CORSMiddleware())

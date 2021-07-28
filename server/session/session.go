@@ -53,7 +53,7 @@ func ClearStore() {
 	}
 }
 
-func init() {
+func InitSession() {
 	if constants.REDIS_URL != "" {
 		log.Println("Using redis store to save sessions")
 		opt, err := redis.ParseURL(constants.REDIS_URL)
