@@ -50,8 +50,10 @@ func InitEnv() {
 	constants.GOOGLE_CLIENT_SECRET = os.Getenv("GOOGLE_CLIENT_SECRET")
 	constants.GITHUB_CLIENT_ID = os.Getenv("GITHUB_CLIENT_ID")
 	constants.GITHUB_CLIENT_SECRET = os.Getenv("GITHUB_CLIENT_SECRET")
-	// FACEBOOK_CLIENT_ID = os.Getenv("FACEBOOK_CLIENT_ID")
-	// FACEBOOK_CLIENT_SECRET = os.Getenv("FACEBOOK_CLIENT_SECRET")
+	constants.FACEBOOK_CLIENT_ID = os.Getenv("FACEBOOK_CLIENT_ID")
+	constants.FACEBOOK_CLIENT_SECRET = os.Getenv("FACEBOOK_CLIENT_SECRET")
+	constants.TWITTER_CLIENT_ID = os.Getenv("TWITTER_CLIENT_ID")
+	constants.TWITTER_CLIENT_SECRET = os.Getenv("TWITTER_CLIENT_SECRET")
 	constants.FORGOT_PASSWORD_URI = strings.TrimPrefix(os.Getenv("FORGOT_PASSWORD_URI"), "/")
 	constants.VERIFY_EMAIL_URI = strings.TrimPrefix(os.Getenv("VERIFY_EMAIL_URI"), "/")
 	if constants.ROOT_SECRET == "" {
