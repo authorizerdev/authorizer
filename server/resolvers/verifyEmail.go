@@ -12,9 +12,9 @@ import (
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
-func VerifyEmail(ctx context.Context, params model.VerifyEmailInput) (*model.LoginResponse, error) {
+func VerifyEmail(ctx context.Context, params model.VerifyEmailInput) (*model.AuthResponse, error) {
 	gc, err := utils.GinContextFromContext(ctx)
-	var res *model.LoginResponse
+	var res *model.AuthResponse
 	if err != nil {
 		return res, err
 	}
@@ -53,7 +53,7 @@ func VerifyEmail(ctx context.Context, params model.VerifyEmailInput) (*model.Log
 
 	session.SetToken(userIdStr, refreshToken)
 
-	res = &model.LoginResponse{
+	res = &model.AuthResponse{
 		Message:              `Email verified successfully.`,
 		AccessToken:          &accessToken,
 		AccessTokenExpiresAt: &expiresAt,

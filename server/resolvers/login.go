@@ -15,9 +15,9 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func Login(ctx context.Context, params model.LoginInput) (*model.LoginResponse, error) {
+func Login(ctx context.Context, params model.LoginInput) (*model.AuthResponse, error) {
 	gc, err := utils.GinContextFromContext(ctx)
-	var res *model.LoginResponse
+	var res *model.AuthResponse
 	if err != nil {
 		return res, err
 	}
@@ -59,7 +59,7 @@ func Login(ctx context.Context, params model.LoginInput) (*model.LoginResponse, 
 
 	session.SetToken(userIdStr, refreshToken)
 
-	res = &model.LoginResponse{
+	res = &model.AuthResponse{
 		Message:              `Logged in successfully`,
 		AccessToken:          &accessToken,
 		AccessTokenExpiresAt: &expiresAt,
