@@ -8,7 +8,7 @@ ENV VERSION="${VERSION}"
 RUN apk add build-base &&\
     cd server && \
     go mod download && \
-    go build && \
+    make clean && make && \
     chmod 777 server
 
 FROM alpine:latest

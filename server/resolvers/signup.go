@@ -64,7 +64,7 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 	if constants.DISABLE_EMAIL_VERICATION == "true" {
 		user.EmailVerifiedAt = time.Now().Unix()
 	}
-	_, err = db.Mgr.SaveUser(user)
+	user, err = db.Mgr.SaveUser(user)
 	if err != nil {
 		return res, err
 	}

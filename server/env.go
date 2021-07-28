@@ -93,12 +93,6 @@ func InitEnv() {
 		panic("Database type is required")
 	}
 
-	if constants.AUTHORIZER_DOMAIN == "" {
-		panic("Authroizer domain is required")
-	}
-
-	log.Println("=> Authorizer domain=", constants.AUTHORIZER_DOMAIN)
-
 	if constants.JWT_TYPE == "" {
 		constants.JWT_TYPE = "HS256"
 	}
