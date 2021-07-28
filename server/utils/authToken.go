@@ -55,7 +55,7 @@ func GetAuthToken(gc *gin.Context) (string, error) {
 		log.Println("cookie not found checking headers")
 		auth := gc.Request.Header.Get("Authorization")
 		if auth == "" {
-			return "", fmt.Errorf(`Unauthorized`)
+			return "", fmt.Errorf(`unauthorized`)
 		}
 
 		token = strings.TrimPrefix(auth, "Bearer ")

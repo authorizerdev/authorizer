@@ -55,6 +55,16 @@ type ComplexityRoot struct {
 		User                 func(childComplexity int) int
 	}
 
+	Meta struct {
+		IsBasicAuthenticationEnabled func(childComplexity int) int
+		IsEmailVerificationEnabled   func(childComplexity int) int
+		IsFacebookLoginEnabled       func(childComplexity int) int
+		IsGithubLoginEnabled         func(childComplexity int) int
+		IsGoogleLoginEnabled         func(childComplexity int) int
+		IsTwitterLoginEnabled        func(childComplexity int) int
+		Version                      func(childComplexity int) int
+	}
+
 	Mutation struct {
 		ForgotPassword    func(childComplexity int, params model.ForgotPasswordInput) int
 		Login             func(childComplexity int, params model.LoginInput) int
@@ -67,6 +77,7 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
+		Meta                 func(childComplexity int) int
 		Profile              func(childComplexity int) int
 		Token                func(childComplexity int) int
 		Users                func(childComplexity int) int
@@ -111,6 +122,7 @@ type MutationResolver interface {
 	ResetPassword(ctx context.Context, params model.ResetPassowrdInput) (*model.Response, error)
 }
 type QueryResolver interface {
+	Meta(ctx context.Context) (*model.Meta, error)
 	Users(ctx context.Context) ([]*model.User, error)
 	Token(ctx context.Context) (*model.LoginResponse, error)
 	Profile(ctx context.Context) (*model.User, error)
@@ -173,6 +185,55 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.LoginResponse.User(childComplexity), true
+
+	case "Meta.isBasicAuthenticationEnabled":
+		if e.complexity.Meta.IsBasicAuthenticationEnabled == nil {
+			break
+		}
+
+		return e.complexity.Meta.IsBasicAuthenticationEnabled(childComplexity), true
+
+	case "Meta.isEmailVerificationEnabled":
+		if e.complexity.Meta.IsEmailVerificationEnabled == nil {
+			break
+		}
+
+		return e.complexity.Meta.IsEmailVerificationEnabled(childComplexity), true
+
+	case "Meta.isFacebookLoginEnabled":
+		if e.complexity.Meta.IsFacebookLoginEnabled == nil {
+			break
+		}
+
+		return e.complexity.Meta.IsFacebookLoginEnabled(childComplexity), true
+
+	case "Meta.isGithubLoginEnabled":
+		if e.complexity.Meta.IsGithubLoginEnabled == nil {
+			break
+		}
+
+		return e.complexity.Meta.IsGithubLoginEnabled(childComplexity), true
+
+	case "Meta.isGoogleLoginEnabled":
+		if e.complexity.Meta.IsGoogleLoginEnabled == nil {
+			break
+		}
+
+		return e.complexity.Meta.IsGoogleLoginEnabled(childComplexity), true
+
+	case "Meta.isTwitterLoginEnabled":
+		if e.complexity.Meta.IsTwitterLoginEnabled == nil {
+			break
+		}
+
+		return e.complexity.Meta.IsTwitterLoginEnabled(childComplexity), true
+
+	case "Meta.version":
+		if e.complexity.Meta.Version == nil {
+			break
+		}
+
+		return e.complexity.Meta.Version(childComplexity), true
 
 	case "Mutation.forgotPassword":
 		if e.complexity.Mutation.ForgotPassword == nil {
@@ -264,6 +325,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.VerifyEmail(childComplexity, args["params"].(model.VerifyEmailInput)), true
+
+	case "Query.meta":
+		if e.complexity.Query.Meta == nil {
+			break
+		}
+
+		return e.complexity.Query.Meta(childComplexity), true
 
 	case "Query.profile":
 		if e.complexity.Query.Profile == nil {
@@ -481,6 +549,16 @@ var sources = []*ast.Source{
 # https://gqlgen.com/getting-started/
 scalar Int64
 
+type Meta {
+  version: String!
+  isGoogleLoginEnabled: Boolean!
+  isFacebookLoginEnabled: Boolean!
+  isTwitterLoginEnabled: Boolean!
+  isGithubLoginEnabled: Boolean!
+  isEmailVerificationEnabled: Boolean!
+  isBasicAuthenticationEnabled: Boolean!
+}
+
 type User {
   id: ID!
   email: String!
@@ -573,6 +651,7 @@ type Mutation {
 }
 
 type Query {
+  meta: Meta!
   users: [User!]!
   token: LoginResponse
   profile: User!
@@ -945,6 +1024,251 @@ func (ec *executionContext) _LoginResponse_user(ctx context.Context, field graph
 	return ec.marshalOUser2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Meta_version(ctx context.Context, field graphql.CollectedField, obj *model.Meta) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Meta",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Version, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Meta_isGoogleLoginEnabled(ctx context.Context, field graphql.CollectedField, obj *model.Meta) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Meta",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsGoogleLoginEnabled, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Meta_isFacebookLoginEnabled(ctx context.Context, field graphql.CollectedField, obj *model.Meta) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Meta",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsFacebookLoginEnabled, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Meta_isTwitterLoginEnabled(ctx context.Context, field graphql.CollectedField, obj *model.Meta) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Meta",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsTwitterLoginEnabled, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Meta_isGithubLoginEnabled(ctx context.Context, field graphql.CollectedField, obj *model.Meta) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Meta",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsGithubLoginEnabled, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Meta_isEmailVerificationEnabled(ctx context.Context, field graphql.CollectedField, obj *model.Meta) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Meta",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsEmailVerificationEnabled, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Meta_isBasicAuthenticationEnabled(ctx context.Context, field graphql.CollectedField, obj *model.Meta) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Meta",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsBasicAuthenticationEnabled, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Mutation_signup(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -1272,6 +1596,41 @@ func (ec *executionContext) _Mutation_resetPassword(ctx context.Context, field g
 	res := resTmp.(*model.Response)
 	fc.Result = res
 	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_meta(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Meta(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Meta)
+	fc.Result = res
+	return ec.marshalNMeta2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐMeta(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_users(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3453,6 +3812,63 @@ func (ec *executionContext) _LoginResponse(ctx context.Context, sel ast.Selectio
 	return out
 }
 
+var metaImplementors = []string{"Meta"}
+
+func (ec *executionContext) _Meta(ctx context.Context, sel ast.SelectionSet, obj *model.Meta) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, metaImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Meta")
+		case "version":
+			out.Values[i] = ec._Meta_version(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "isGoogleLoginEnabled":
+			out.Values[i] = ec._Meta_isGoogleLoginEnabled(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "isFacebookLoginEnabled":
+			out.Values[i] = ec._Meta_isFacebookLoginEnabled(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "isTwitterLoginEnabled":
+			out.Values[i] = ec._Meta_isTwitterLoginEnabled(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "isGithubLoginEnabled":
+			out.Values[i] = ec._Meta_isGithubLoginEnabled(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "isEmailVerificationEnabled":
+			out.Values[i] = ec._Meta_isEmailVerificationEnabled(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "isBasicAuthenticationEnabled":
+			out.Values[i] = ec._Meta_isBasicAuthenticationEnabled(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var mutationImplementors = []string{"Mutation"}
 
 func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
@@ -3534,6 +3950,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Query")
+		case "meta":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_meta(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "users":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -4014,6 +4444,20 @@ func (ec *executionContext) marshalNLoginResponse2ᚖgithubᚗcomᚋauthorizerde
 		return graphql.Null
 	}
 	return ec._LoginResponse(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNMeta2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐMeta(ctx context.Context, sel ast.SelectionSet, v model.Meta) graphql.Marshaler {
+	return ec._Meta(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNMeta2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐMeta(ctx context.Context, sel ast.SelectionSet, v *model.Meta) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Meta(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNResendVerifyEmailInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResendVerifyEmailInput(ctx context.Context, v interface{}) (model.ResendVerifyEmailInput, error) {

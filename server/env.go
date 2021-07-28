@@ -10,6 +10,9 @@ import (
 	"github.com/joho/godotenv"
 )
 
+// build variables
+var Version string
+
 // ParseArgs -> to parse the cli flag and get db url. This is useful with heroku button
 func ParseArgs() {
 	dbURL := flag.String("database_url", "", "Database connection string")
@@ -30,6 +33,8 @@ func InitEnv() {
 	if err != nil {
 		log.Println("Error loading .env file")
 	}
+
+	constants.VERSION = Version
 
 	constants.ROOT_SECRET = os.Getenv("ROOT_SECRET")
 	constants.ENV = os.Getenv("ENV")
@@ -56,8 +61,11 @@ func InitEnv() {
 	constants.TWITTER_CLIENT_SECRET = os.Getenv("TWITTER_CLIENT_SECRET")
 	constants.FORGOT_PASSWORD_URI = strings.TrimPrefix(os.Getenv("FORGOT_PASSWORD_URI"), "/")
 	constants.VERIFY_EMAIL_URI = strings.TrimPrefix(os.Getenv("VERIFY_EMAIL_URI"), "/")
+	constants.DISABLE_BASIC_AUTHENTICATION = os.Getenv("DISABLE_BASIC_AUTHENTICATION")
+	constants.DISABLE_EMAIL_VERICATION = os.Getenv("DISABLE_EMAIL_VERICATION")
+
 	if constants.ROOT_SECRET == "" {
-		panic("Root admin secret is required")
+		panic("root admin secret is required")
 	}
 
 	if constants.ENV == "" {
@@ -90,5 +98,17 @@ func InitEnv() {
 
 	if constants.SERVER_URL == "" {
 		constants.SERVER_URL = "http://localhost:8080"
+	}
+
+	if constants.DISABLE_BASIC_AUTHENTICATION == "" {
+		constants.DISABLE_BASIC_AUTHENTICATION = "false"
+	}
+
+	if constants.DISABLE_EMAIL_VERICATION == "" && constants.DISABLE_BASIC_AUTHENTICATION == "false" {
+		if constants.SMTP_HOST == "" || constants.SENDER_EMAIL == "" || constants.SENDER_PASSWORD == "" {
+			constants.DISABLE_EMAIL_VERICATION = "true"
+		} else {
+			constants.DISABLE_EMAIL_VERICATION = "false"
+		}
 	}
 }
