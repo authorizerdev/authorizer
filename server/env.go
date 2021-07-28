@@ -47,7 +47,7 @@ func InitEnv() {
 	constants.JWT_SECRET = os.Getenv("JWT_SECRET")
 	constants.JWT_TYPE = os.Getenv("JWT_TYPE")
 	constants.FRONTEND_URL = strings.TrimSuffix(os.Getenv("FRONTEND_URL"), "/")
-	constants.SERVER_URL = strings.TrimSuffix(os.Getenv("SERVER_URL"), "/")
+	constants.AUTHORIZER_DOMAIN = strings.TrimSuffix(os.Getenv("AUTHORIZER_DOMAIN"), "/")
 	constants.PORT = os.Getenv("PORT")
 	constants.REDIS_URL = os.Getenv("REDIS_URL")
 	constants.COOKIE_NAME = os.Getenv("COOKIE_NAME")
@@ -96,8 +96,8 @@ func InitEnv() {
 		constants.COOKIE_NAME = "authorizer"
 	}
 
-	if constants.SERVER_URL == "" {
-		constants.SERVER_URL = "http://localhost:8080"
+	if constants.AUTHORIZER_DOMAIN == "" {
+		constants.AUTHORIZER_DOMAIN = "http://localhost:8080"
 	}
 
 	if constants.DISABLE_BASIC_AUTHENTICATION == "" {

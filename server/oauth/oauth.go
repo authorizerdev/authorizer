@@ -1,6 +1,8 @@
 package oauth
 
 import (
+	"log"
+
 	"github.com/authorizerdev/authorizer/server/constants"
 	"golang.org/x/oauth2"
 	githubOAuth2 "golang.org/x/oauth2/github"
@@ -15,21 +17,24 @@ type OAuthProviders struct {
 
 var OAuthProvider OAuthProviders
 
-func init() {
+func InitOAuth() {
+	log.Println("---> initializing auth")
 	if constants.GOOGLE_CLIENT_ID != "" && constants.GOOGLE_CLIENT_SECRET != "" {
+		log.Println("---> initializing google auth")
 		OAuthProvider.GoogleConfig = &oauth2.Config{
 			ClientID:     constants.GOOGLE_CLIENT_ID,
 			ClientSecret: constants.GOOGLE_CLIENT_SECRET,
-			RedirectURL:  constants.SERVER_URL + "/callback/google",
+			RedirectURL:  constants.AUTHORIZER_DOMAIN + "/callback/google",
 			Endpoint:     googleOAuth2.Endpoint,
 			Scopes:       []string{"https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/userinfo.profile"},
 		}
 	}
 	if constants.GITHUB_CLIENT_ID != "" && constants.GITHUB_CLIENT_SECRET != "" {
+		log.Println("---> initializing github auth")
 		OAuthProvider.GithubConfig = &oauth2.Config{
 			ClientID:     constants.GITHUB_CLIENT_ID,
 			ClientSecret: constants.GITHUB_CLIENT_SECRET,
-			RedirectURL:  constants.SERVER_URL + "/callback/github",
+			RedirectURL:  constants.AUTHORIZER_DOMAIN + "/callback/github",
 			Endpoint:     githubOAuth2.Endpoint,
 		}
 	}
@@ -37,7 +42,7 @@ func init() {
 	// 	OAuthProvider.FacebookConfig = &oauth2.Config{
 	// 		ClientID:     constants.FACEBOOK_CLIENT_ID,
 	// 		ClientSecret: constants.FACEBOOK_CLIENT_SECRET,
-	// 		RedirectURL:  constants.SERVER_URL + "/callback/facebook/",
+	// 		RedirectURL: "/callback/facebook/",
 	// 		Endpoint:     facebookOAuth2.Endpoint,
 	// 	}
 	// }

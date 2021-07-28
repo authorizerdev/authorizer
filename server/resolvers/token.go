@@ -3,7 +3,6 @@ package resolvers
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/db"
@@ -14,8 +13,6 @@ import (
 )
 
 func Token(ctx context.Context) (*model.AuthResponse, error) {
-	metaInfo := utils.GetMetaInfo()
-	log.Println("=> meta", metaInfo)
 	var res *model.AuthResponse
 
 	gc, err := utils.GinContextFromContext(ctx)
