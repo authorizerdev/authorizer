@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/enum"
 	"github.com/authorizerdev/authorizer/server/graph/model"
@@ -15,6 +16,10 @@ import (
 
 func ForgotPassword(ctx context.Context, params model.ForgotPasswordInput) (*model.Response, error) {
 	var res *model.Response
+	if constants.DISABLE_BASIC_AUTHENTICATION == "true" {
+		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
+	}
+
 	params.Email = strings.ToLower(params.Email)
 
 	if !utils.IsValidEmail(params.Email) {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/utils"
@@ -11,6 +12,9 @@ import (
 
 func ResetPassword(ctx context.Context, params model.ResetPassowrdInput) (*model.Response, error) {
 	var res *model.Response
+	if constants.DISABLE_BASIC_AUTHENTICATION == "true" {
+		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
+	}
 
 	if params.Password != params.ConfirmPassword {
 		return res, fmt.Errorf(`passwords don't match`)
