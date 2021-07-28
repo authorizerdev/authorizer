@@ -43,6 +43,10 @@ func (r *mutationResolver) ResetPassword(ctx context.Context, params model.Reset
 	return resolvers.ResetPassword(ctx, params)
 }
 
+func (r *queryResolver) Meta(ctx context.Context) (*model.Meta, error) {
+	return resolvers.Meta(ctx)
+}
+
 func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 	return resolvers.Users(ctx)
 }

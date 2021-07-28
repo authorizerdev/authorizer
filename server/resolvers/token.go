@@ -3,6 +3,7 @@ package resolvers
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/db"
@@ -13,8 +14,11 @@ import (
 )
 
 func Token(ctx context.Context) (*model.LoginResponse, error) {
-	gc, err := utils.GinContextFromContext(ctx)
+	metaInfo := utils.GetMetaInfo()
+	log.Println("=> meta", metaInfo)
 	var res *model.LoginResponse
+
+	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
 		return res, err
 	}
@@ -52,7 +56,7 @@ func Token(ctx context.Context) (*model.LoginResponse, error) {
 	}
 	utils.SetCookie(gc, token)
 	res = &model.LoginResponse{
-		Message:              `Email verified successfully.`,
+		Message:              `Token verified`,
 		AccessToken:          &token,
 		AccessTokenExpiresAt: &expiresAt,
 		User: &model.User{

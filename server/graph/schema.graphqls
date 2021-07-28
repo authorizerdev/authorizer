@@ -3,6 +3,16 @@
 # https://gqlgen.com/getting-started/
 scalar Int64
 
+type Meta {
+  version: String!
+  isGoogleLoginEnabled: Boolean!
+  isFacebookLoginEnabled: Boolean!
+  isTwitterLoginEnabled: Boolean!
+  isGithubLoginEnabled: Boolean!
+  isEmailVerificationEnabled: Boolean!
+  isBasicAuthenticationEnabled: Boolean!
+}
+
 type User {
   id: ID!
   email: String!
@@ -95,6 +105,7 @@ type Mutation {
 }
 
 type Query {
+  meta: Meta!
   users: [User!]!
   token: LoginResponse
   profile: User!

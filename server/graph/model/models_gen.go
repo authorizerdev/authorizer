@@ -23,6 +23,16 @@ type LoginResponse struct {
 	User                 *User   `json:"user"`
 }
 
+type Meta struct {
+	Version                      string `json:"version"`
+	IsGoogleLoginEnabled         bool   `json:"isGoogleLoginEnabled"`
+	IsFacebookLoginEnabled       bool   `json:"isFacebookLoginEnabled"`
+	IsTwitterLoginEnabled        bool   `json:"isTwitterLoginEnabled"`
+	IsGithubLoginEnabled         bool   `json:"isGithubLoginEnabled"`
+	IsEmailVerificationEnabled   bool   `json:"isEmailVerificationEnabled"`
+	IsBasicAuthenticationEnabled bool   `json:"isBasicAuthenticationEnabled"`
+}
+
 type ResendVerifyEmailInput struct {
 	Email string `json:"email"`
 }
