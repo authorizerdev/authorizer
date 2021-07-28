@@ -13,10 +13,10 @@ import (
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
-func Token(ctx context.Context) (*model.LoginResponse, error) {
+func Token(ctx context.Context) (*model.AuthResponse, error) {
 	metaInfo := utils.GetMetaInfo()
 	log.Println("=> meta", metaInfo)
-	var res *model.LoginResponse
+	var res *model.AuthResponse
 
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
@@ -55,7 +55,7 @@ func Token(ctx context.Context) (*model.LoginResponse, error) {
 		}, enum.AccessToken)
 	}
 	utils.SetCookie(gc, token)
-	res = &model.LoginResponse{
+	res = &model.AuthResponse{
 		Message:              `Token verified`,
 		AccessToken:          &token,
 		AccessTokenExpiresAt: &expiresAt,

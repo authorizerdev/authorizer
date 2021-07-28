@@ -6,6 +6,7 @@ import (
 	"log"
 	"strings"
 
+	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/enum"
 	"github.com/authorizerdev/authorizer/server/graph/model"
@@ -14,11 +15,15 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func Login(ctx context.Context, params model.LoginInput) (*model.LoginResponse, error) {
+func Login(ctx context.Context, params model.LoginInput) (*model.AuthResponse, error) {
 	gc, err := utils.GinContextFromContext(ctx)
-	var res *model.LoginResponse
+	var res *model.AuthResponse
 	if err != nil {
 		return res, err
+	}
+
+	if constants.DISABLE_BASIC_AUTHENTICATION == "true" {
+		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
 	}
 
 	params.Email = strings.ToLower(params.Email)
@@ -54,7 +59,7 @@ func Login(ctx context.Context, params model.LoginInput) (*model.LoginResponse, 
 
 	session.SetToken(userIdStr, refreshToken)
 
-	res = &model.LoginResponse{
+	res = &model.AuthResponse{
 		Message:              `Logged in successfully`,
 		AccessToken:          &accessToken,
 		AccessTokenExpiresAt: &expiresAt,

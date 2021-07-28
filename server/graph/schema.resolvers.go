@@ -11,11 +11,11 @@ import (
 	"github.com/authorizerdev/authorizer/server/resolvers"
 )
 
-func (r *mutationResolver) Signup(ctx context.Context, params model.SignUpInput) (*model.Response, error) {
+func (r *mutationResolver) Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse, error) {
 	return resolvers.Signup(ctx, params)
 }
 
-func (r *mutationResolver) Login(ctx context.Context, params model.LoginInput) (*model.LoginResponse, error) {
+func (r *mutationResolver) Login(ctx context.Context, params model.LoginInput) (*model.AuthResponse, error) {
 	return resolvers.Login(ctx, params)
 }
 
@@ -27,7 +27,7 @@ func (r *mutationResolver) UpdateProfile(ctx context.Context, params model.Updat
 	return resolvers.UpdateProfile(ctx, params)
 }
 
-func (r *mutationResolver) VerifyEmail(ctx context.Context, params model.VerifyEmailInput) (*model.LoginResponse, error) {
+func (r *mutationResolver) VerifyEmail(ctx context.Context, params model.VerifyEmailInput) (*model.AuthResponse, error) {
 	return resolvers.VerifyEmail(ctx, params)
 }
 
@@ -51,7 +51,7 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 	return resolvers.Users(ctx)
 }
 
-func (r *queryResolver) Token(ctx context.Context) (*model.LoginResponse, error) {
+func (r *queryResolver) Token(ctx context.Context) (*model.AuthResponse, error) {
 	return resolvers.Token(ctx)
 }
 
