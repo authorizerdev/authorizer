@@ -2,6 +2,13 @@
 
 package model
 
+type AuthResponse struct {
+	Message              string  `json:"message"`
+	AccessToken          *string `json:"accessToken"`
+	AccessTokenExpiresAt *int64  `json:"accessTokenExpiresAt"`
+	User                 *User   `json:"user"`
+}
+
 type Error struct {
 	Message string `json:"message"`
 	Reason  string `json:"reason"`
@@ -14,13 +21,6 @@ type ForgotPasswordInput struct {
 type LoginInput struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
-}
-
-type LoginResponse struct {
-	Message              string  `json:"message"`
-	AccessToken          *string `json:"accessToken"`
-	AccessTokenExpiresAt *int64  `json:"accessTokenExpiresAt"`
-	User                 *User   `json:"user"`
 }
 
 type Meta struct {

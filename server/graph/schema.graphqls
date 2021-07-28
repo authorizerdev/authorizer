@@ -40,7 +40,7 @@ type Error {
   reason: String!
 }
 
-type LoginResponse {
+type AuthResponse {
   message: String!
   accessToken: String
   accessTokenExpiresAt: Int64
@@ -94,11 +94,11 @@ input ResetPassowrdInput {
 }
 
 type Mutation {
-  signup(params: SignUpInput!): Response!
-  login(params: LoginInput!): LoginResponse!
+  signup(params: SignUpInput!): AuthResponse!
+  login(params: LoginInput!): AuthResponse!
   logout: Response!
   updateProfile(params: UpdateProfileInput!): Response!
-  verifyEmail(params: VerifyEmailInput!): LoginResponse!
+  verifyEmail(params: VerifyEmailInput!): AuthResponse!
   resendVerifyEmail(params: ResendVerifyEmailInput!): Response!
   forgotPassword(params: ForgotPasswordInput!): Response!
   resetPassword(params: ResetPassowrdInput!): Response!
@@ -107,7 +107,7 @@ type Mutation {
 type Query {
   meta: Meta!
   users: [User!]!
-  token: LoginResponse
+  token: AuthResponse
   profile: User!
   verificationRequests: [VerificationRequest!]!
 }
