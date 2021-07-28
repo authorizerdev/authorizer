@@ -6,6 +6,7 @@ import (
 	"log"
 	"strings"
 
+	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/enum"
 	"github.com/authorizerdev/authorizer/server/graph/model"
@@ -19,6 +20,10 @@ func Login(ctx context.Context, params model.LoginInput) (*model.LoginResponse, 
 	var res *model.LoginResponse
 	if err != nil {
 		return res, err
+	}
+
+	if constants.DISABLE_BASIC_AUTHENTICATION == "true" {
+		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
 	}
 
 	params.Email = strings.ToLower(params.Email)

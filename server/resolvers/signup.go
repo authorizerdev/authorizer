@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/enum"
 	"github.com/authorizerdev/authorizer/server/graph/model"
@@ -15,6 +16,10 @@ import (
 
 func Signup(ctx context.Context, params model.SignUpInput) (*model.Response, error) {
 	var res *model.Response
+
+	if constants.DISABLE_BASIC_AUTHENTICATION == "true" {
+		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
+	}
 	if params.ConfirmPassword != params.Password {
 		return res, fmt.Errorf(`passowrd and confirm password does not match`)
 	}
