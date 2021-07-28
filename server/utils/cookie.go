@@ -1,9 +1,7 @@
 package utils
 
 import (
-	"log"
 	"net/http"
-	"net/url"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/gin-gonic/gin"
@@ -13,12 +11,8 @@ func SetCookie(gc *gin.Context, token string) {
 	secure := true
 	httpOnly := true
 
-	u, err := url.Parse(constants.SERVER_URL)
-	if err != nil {
-		log.Println("error getting server host")
-	}
 	gc.SetSameSite(http.SameSiteNoneMode)
-	gc.SetCookie(constants.COOKIE_NAME, token, 3600, "/", u.Hostname(), secure, httpOnly)
+	gc.SetCookie(constants.COOKIE_NAME, token, 3600, "/", gc.Request.Host, secure, httpOnly)
 }
 
 func GetCookie(gc *gin.Context) (string, error) {
@@ -38,11 +32,7 @@ func DeleteCookie(gc *gin.Context) {
 		secure = false
 	}
 
-	u, err := url.Parse(constants.SERVER_URL)
-	if err != nil {
-		log.Println("error getting server host")
-	}
 	gc.SetSameSite(http.SameSiteNoneMode)
 
-	gc.SetCookie(constants.COOKIE_NAME, "", -1, "/", u.Hostname(), secure, httpOnly)
+	gc.SetCookie(constants.COOKIE_NAME, "", -1, "/", gc.Request.Host, secure, httpOnly)
 }

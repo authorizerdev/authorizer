@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/authorizerdev/authorizer/server/db"
-	"github.com/authorizerdev/authorizer/server/enum"
 	"github.com/authorizerdev/authorizer/server/handlers"
 	"github.com/authorizerdev/authorizer/server/oauth"
 	"github.com/authorizerdev/authorizer/server/session"
@@ -40,6 +39,7 @@ func main() {
 	InitEnv()
 	db.InitDB()
 	session.InitSession()
+	oauth.InitOAuth()
 
 	r := gin.Default()
 	r.Use(GinContextToContextMiddleware())
@@ -47,13 +47,7 @@ func main() {
 	r.GET("/", handlers.PlaygroundHandler())
 	r.POST("/graphql", handlers.GraphqlHandler())
 	r.GET("/verify_email", handlers.VerifyEmailHandler())
-	if oauth.OAuthProvider.GoogleConfig != nil {
-		r.GET("/login/google", handlers.OAuthLoginHandler(enum.GoogleProvider))
-		r.GET("/callback/google", handlers.OAuthCallbackHandler(enum.GoogleProvider))
-	}
-	if oauth.OAuthProvider.GithubConfig != nil {
-		r.GET("/login/github", handlers.OAuthLoginHandler(enum.GithubProvider))
-		r.GET("/callback/github", handlers.OAuthCallbackHandler(enum.GithubProvider))
-	}
+	r.GET("/login/:oauth_provider", handlers.OAuthLoginHandler())
+	r.GET("/callback/:oauth_provider", handlers.OAuthCallbackHandler())
 	r.Run()
 }

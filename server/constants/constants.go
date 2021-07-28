@@ -13,7 +13,7 @@ var (
 	JWT_TYPE                     = ""
 	JWT_SECRET                   = ""
 	FRONTEND_URL                 = ""
-	SERVER_URL                   = ""
+	AUTHORIZER_DOMAIN            = ""
 	PORT                         = "8080"
 	REDIS_URL                    = ""
 	IS_PROD                      = false

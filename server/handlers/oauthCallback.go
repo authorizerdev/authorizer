@@ -163,14 +163,17 @@ func processGithubUserInfo(state string, code string, c *gin.Context) error {
 	return nil
 }
 
-func OAuthCallbackHandler(provider enum.OAuthProvider) gin.HandlerFunc {
+func OAuthCallbackHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		provider := c.Param("oauth_provider")
 		var err error
-		if provider == enum.GoogleProvider {
+		switch provider {
+		case enum.Google.String():
 			err = processGoogleUserInfo(c.Request.FormValue("state"), c.Request.FormValue("code"), c)
-		}
-		if provider == enum.GithubProvider {
+		case enum.Github.String():
 			err = processGithubUserInfo(c.Request.FormValue("state"), c.Request.FormValue("code"), c)
+		default:
+			err = fmt.Errorf(`invalid oauth provider`)
 		}
 
 		if err != nil {
