@@ -41,7 +41,7 @@ func InitEnv() {
 
 	constants.VERSION = Version
 
-	constants.ROOT_SECRET = os.Getenv("ROOT_SECRET")
+	constants.ADMIN_SECRET = os.Getenv("ADMIN_SECRET")
 	constants.ENV = os.Getenv("ENV")
 	constants.DATABASE_TYPE = os.Getenv("DATABASE_TYPE")
 	constants.DATABASE_URL = os.Getenv("DATABASE_URL")
@@ -69,7 +69,7 @@ func InitEnv() {
 	constants.DISABLE_BASIC_AUTHENTICATION = os.Getenv("DISABLE_BASIC_AUTHENTICATION")
 	constants.DISABLE_EMAIL_VERICATION = os.Getenv("DISABLE_EMAIL_VERICATION")
 
-	if constants.ROOT_SECRET == "" {
+	if constants.ADMIN_SECRET == "" {
 		panic("root admin secret is required")
 	}
 

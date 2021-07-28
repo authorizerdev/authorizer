@@ -1,7 +1,7 @@
 package constants
 
 var (
-	ROOT_SECRET                  = ""
+	ADMIN_SECRET                 = ""
 	ENV                          = ""
 	VERSION                      = ""
 	DATABASE_TYPE                = ""
