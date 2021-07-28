@@ -1,8 +1,6 @@
 package oauth
 
 import (
-	"log"
-
 	"github.com/authorizerdev/authorizer/server/constants"
 	"golang.org/x/oauth2"
 	githubOAuth2 "golang.org/x/oauth2/github"
@@ -18,9 +16,7 @@ type OAuthProviders struct {
 var OAuthProvider OAuthProviders
 
 func InitOAuth() {
-	log.Println("---> initializing auth")
 	if constants.GOOGLE_CLIENT_ID != "" && constants.GOOGLE_CLIENT_SECRET != "" {
-		log.Println("---> initializing google auth")
 		OAuthProvider.GoogleConfig = &oauth2.Config{
 			ClientID:     constants.GOOGLE_CLIENT_ID,
 			ClientSecret: constants.GOOGLE_CLIENT_SECRET,
@@ -30,7 +26,6 @@ func InitOAuth() {
 		}
 	}
 	if constants.GITHUB_CLIENT_ID != "" && constants.GITHUB_CLIENT_SECRET != "" {
-		log.Println("---> initializing github auth")
 		OAuthProvider.GithubConfig = &oauth2.Config{
 			ClientID:     constants.GITHUB_CLIENT_ID,
 			ClientSecret: constants.GITHUB_CLIENT_SECRET,
