@@ -31,23 +31,22 @@ type manager struct {
 
 var Mgr Manager
 
-func init() {
+func InitDB() {
 	var db *gorm.DB
 	var err error
-	log.Println("=> from db:", constants.DB_TYPE, constants.DB_URL)
 	ormConfig := &gorm.Config{
 		NamingStrategy: schema.NamingStrategy{
 			TablePrefix: "authorizer_",
 		},
 	}
-	if constants.DB_TYPE == enum.Postgres.String() {
-		db, err = gorm.Open(postgres.Open(constants.DB_URL), ormConfig)
+	if constants.DATABASE_TYPE == enum.Postgres.String() {
+		db, err = gorm.Open(postgres.Open(constants.DATABASE_URL), ormConfig)
 	}
-	if constants.DB_TYPE == enum.Mysql.String() {
-		db, err = gorm.Open(mysql.Open(constants.DB_URL), ormConfig)
+	if constants.DATABASE_TYPE == enum.Mysql.String() {
+		db, err = gorm.Open(mysql.Open(constants.DATABASE_URL), ormConfig)
 	}
-	if constants.DB_TYPE == enum.Sqlite.String() {
-		db, err = gorm.Open(sqlite.Open(constants.DB_URL), ormConfig)
+	if constants.DATABASE_TYPE == enum.Sqlite.String() {
+		db, err = gorm.Open(sqlite.Open(constants.DATABASE_URL), ormConfig)
 	}
 
 	if err != nil {
