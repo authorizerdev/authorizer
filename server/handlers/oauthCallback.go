@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -18,12 +19,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
-func processGoogleUserInfo(state string, code string, c *gin.Context) error {
-	sessionState := session.GetToken(state)
-	if sessionState == "" {
-		return fmt.Errorf("invalid oauth state")
-	}
-	session.DeleteToken(sessionState)
+func processGoogleUserInfo(code string, c *gin.Context) error {
 	token, err := oauth.OAuthProvider.GoogleConfig.Exchange(oauth2.NoContext, code)
 	if err != nil {
 		return fmt.Errorf("invalid google exchange code: %s", err.Error())
@@ -82,12 +78,7 @@ func processGoogleUserInfo(state string, code string, c *gin.Context) error {
 	return nil
 }
 
-func processGithubUserInfo(state string, code string, c *gin.Context) error {
-	sessionState := session.GetToken(state)
-	if sessionState == "" {
-		return fmt.Errorf("invalid oauth state")
-	}
-	session.DeleteToken(sessionState)
+func processGithubUserInfo(code string, c *gin.Context) error {
 	token, err := oauth.OAuthProvider.GithubConfig.Exchange(oauth2.NoContext, code)
 	if err != nil {
 		return fmt.Errorf("invalid google exchange code: %s", err.Error())
@@ -165,21 +156,37 @@ func processGithubUserInfo(state string, code string, c *gin.Context) error {
 
 func OAuthCallbackHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		log.Println("url:", c.Request.URL)
 		provider := c.Param("oauth_provider")
+		state := c.Request.FormValue("state")
+		log.Println("session state", state)
+		sessionState := session.GetToken(state)
+		if sessionState == "" {
+			c.JSON(400, gin.H{"error": "invalid oauth state"})
+		}
+		session.DeleteToken(sessionState)
+		sessionSplit := strings.Split(state, "___")
+		log.Println(sessionSplit)
+		// TODO validate redirect url
+		if len(sessionSplit) != 2 {
+			c.JSON(400, gin.H{"error": "invalid redirect url"})
+			return
+		}
+
 		var err error
 		switch provider {
 		case enum.Google.String():
-			err = processGoogleUserInfo(c.Request.FormValue("state"), c.Request.FormValue("code"), c)
+			err = processGoogleUserInfo(c.Request.FormValue("code"), c)
 		case enum.Github.String():
-			err = processGithubUserInfo(c.Request.FormValue("state"), c.Request.FormValue("code"), c)
+			err = processGithubUserInfo(c.Request.FormValue("code"), c)
 		default:
 			err = fmt.Errorf(`invalid oauth provider`)
 		}
 
 		if err != nil {
-			c.Redirect(http.StatusTemporaryRedirect, constants.FRONTEND_URL+"?error="+err.Error())
+			c.JSON(400, gin.H{"error": err.Error()})
+			return
 		}
-
-		c.Redirect(http.StatusTemporaryRedirect, constants.FRONTEND_URL)
+		c.Redirect(http.StatusTemporaryRedirect, sessionSplit[1])
 	}
 }

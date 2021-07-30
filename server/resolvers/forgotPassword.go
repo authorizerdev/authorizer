@@ -15,23 +15,27 @@ import (
 )
 
 func ForgotPassword(ctx context.Context, params model.ForgotPasswordInput) (*model.Response, error) {
+	gc, err := utils.GinContextFromContext(ctx)
 	var res *model.Response
+	if err != nil {
+		return res, err
+	}
 	if constants.DISABLE_BASIC_AUTHENTICATION == "true" {
 		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
 	}
-
+	host := gc.Request.Host
 	params.Email = strings.ToLower(params.Email)
 
 	if !utils.IsValidEmail(params.Email) {
 		return res, fmt.Errorf("invalid email")
 	}
 
-	_, err := db.Mgr.GetUserByEmail(params.Email)
+	_, err = db.Mgr.GetUserByEmail(params.Email)
 	if err != nil {
 		return res, fmt.Errorf(`user with this email not found`)
 	}
 
-	token, err := utils.CreateVerificationToken(params.Email, enum.ForgotPassword.String())
+	token, err := utils.CreateVerificationToken(params.Email, enum.ForgotPassword.String(), host)
 	if err != nil {
 		log.Println(`Error generating token`, err)
 	}
@@ -44,7 +48,7 @@ func ForgotPassword(ctx context.Context, params model.ForgotPasswordInput) (*mod
 
 	// exec it as go routin so that we can reduce the api latency
 	go func() {
-		utils.SendForgotPasswordMail(params.Email, token)
+		utils.SendForgotPasswordMail(params.Email, token, host)
 	}()
 
 	res = &model.Response{

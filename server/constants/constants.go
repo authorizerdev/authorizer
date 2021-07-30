@@ -12,7 +12,8 @@ var (
 	SENDER_PASSWORD              = ""
 	JWT_TYPE                     = ""
 	JWT_SECRET                   = ""
-	FRONTEND_URL                 = ""
+	ALLOWED_ORIGINS              = []string{}
+	ALLOWED_CALLBACK_URLS        = []string{}
 	AUTHORIZER_DOMAIN            = ""
 	PORT                         = "8080"
 	REDIS_URL                    = ""

@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/enum"
 	"github.com/authorizerdev/authorizer/server/session"
@@ -63,6 +62,6 @@ func VerifyEmailHandler() gin.HandlerFunc {
 
 		session.SetToken(userIdStr, refreshToken)
 		utils.SetCookie(c, accessToken)
-		c.Redirect(http.StatusTemporaryRedirect, constants.FRONTEND_URL)
+		c.Redirect(http.StatusTemporaryRedirect, claim.Host)
 	}
 }

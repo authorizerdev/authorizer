@@ -10,11 +10,22 @@ import (
 	"github.com/google/uuid"
 )
 
-func OAuthLoginHandler() gin.HandlerFunc {
-	uuid := uuid.New()
-	oauthStateString := uuid.String()
+// set host in the oauth state that is useful for redirecting
 
+func OAuthLoginHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// TODO validate redirect URL
+		redirectURL := c.Query("redirect_url")
+
+		if redirectURL == "" {
+			c.JSON(400, gin.H{
+				"error": "invalid redirect url",
+			})
+			return
+		}
+		uuid := uuid.New()
+		oauthStateString := uuid.String() + "___" + redirectURL
+
 		provider := c.Param("oauth_provider")
 
 		switch provider {

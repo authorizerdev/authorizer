@@ -51,7 +51,6 @@ func InitEnv() {
 	constants.SENDER_PASSWORD = os.Getenv("SENDER_PASSWORD")
 	constants.JWT_SECRET = os.Getenv("JWT_SECRET")
 	constants.JWT_TYPE = os.Getenv("JWT_TYPE")
-	constants.FRONTEND_URL = strings.TrimSuffix(os.Getenv("FRONTEND_URL"), "/")
 	constants.AUTHORIZER_DOMAIN = strings.TrimSuffix(os.Getenv("AUTHORIZER_DOMAIN"), "/")
 	constants.PORT = os.Getenv("PORT")
 	constants.REDIS_URL = os.Getenv("REDIS_URL")
@@ -84,6 +83,24 @@ func InitEnv() {
 		constants.IS_PROD = false
 	}
 
+	allowedOrigins := strings.Split(os.Getenv("ALLOWED_ORIGINS"), ",")
+	for i, val := range allowedOrigins {
+		allowedOrigins[i] = strings.TrimSpace(val)
+	}
+	if len(allowedOrigins) == 0 {
+		allowedOrigins = []string{"*"}
+	}
+	constants.ALLOWED_ORIGINS = allowedOrigins
+
+	allowedCallback := strings.Split(os.Getenv("ALLOWED_CALLBACK_URLS"), ",")
+	for i, val := range allowedOrigins {
+		allowedCallback[i] = strings.TrimSpace(val)
+	}
+	if len(allowedCallback) == 0 {
+		allowedCallback = []string{"*"}
+	}
+	constants.ALLOWED_CALLBACK_URLS = allowedCallback
+
 	ParseArgs()
 	if constants.DATABASE_URL == "" {
 		panic("Database url is required")
@@ -99,10 +116,6 @@ func InitEnv() {
 
 	if constants.COOKIE_NAME == "" {
 		constants.COOKIE_NAME = "authorizer"
-	}
-
-	if constants.AUTHORIZER_DOMAIN == "" {
-		constants.AUTHORIZER_DOMAIN = "http://localhost:8080"
 	}
 
 	if constants.DISABLE_BASIC_AUTHENTICATION == "" {
