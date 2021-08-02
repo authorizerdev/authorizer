@@ -20,7 +20,7 @@ export default function App() {
         <BrowserRouter>
           <AuthorizerProvider
             config={{
-              domain: globalState.domain,
+              authorizerURL: globalState.authorizerURL,
               redirectURL: globalState.redirectURL,
             }}
           >
