@@ -50,11 +50,11 @@ func main() {
 	r.GET("/", handlers.PlaygroundHandler())
 	r.POST("/graphql", handlers.GraphqlHandler())
 	r.GET("/verify_email", handlers.VerifyEmailHandler())
-	r.GET("/login/:oauth_provider", handlers.OAuthLoginHandler())
-	r.GET("/callback/:oauth_provider", handlers.OAuthCallbackHandler())
+	r.GET("/oauth_login/:oauth_provider", handlers.OAuthLoginHandler())
+	r.GET("/oauth_callback/:oauth_provider", handlers.OAuthCallbackHandler())
 
 	// login wall app related routes
-	r.Static("/app/build", "../app/build")
+	r.Static("/app/build", "app/build")
 	r.LoadHTMLGlob("templates/*")
 	r.GET("/app", handlers.AppHandler())
 

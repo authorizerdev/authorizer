@@ -26,7 +26,7 @@ func SendVerificationMail(toEmail, token string) error {
 		<a href="%s">Click here to verify</a>
 	</body>
 	</html>
-	`, constants.AUTHORIZER_DOMAIN+"/verify_email"+"?token="+token)
+	`, constants.AUTHORIZER_URL+"/verify_email"+"?token="+token)
 	bodyMessage := sender.WriteHTMLEmail(Receiver, Subject, message)
 
 	return sender.SendMail(Receiver, Subject, bodyMessage)

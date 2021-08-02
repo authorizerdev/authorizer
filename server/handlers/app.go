@@ -22,8 +22,8 @@ func AppHandler() gin.HandlerFunc {
 		}
 		c.HTML(http.StatusOK, "app.tmpl", gin.H{
 			"data": map[string]string{
-				"domain":       c.Request.Host,
-				"redirect_url": "http://localhost:8080/app",
+				"authorizerURL": c.Request.Host,
+				"redirect_url":  "http://localhost:8080/app",
 			},
 		})
 	}
