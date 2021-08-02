@@ -15,7 +15,7 @@ import (
 func OAuthLoginHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// TODO validate redirect URL
-		redirectURL := c.Query("redirect_url")
+		redirectURL := c.Query("redirectURL")
 
 		if redirectURL == "" {
 			c.JSON(400, gin.H{

@@ -12,7 +12,7 @@ func SetCookie(gc *gin.Context, token string) {
 	secure := true
 	httpOnly := true
 
-	host := GetDomainName(gc.Request.Host)
+	host := GetHostName(gc.Request.Host)
 	log.Println("=> host", host)
 	gc.SetSameSite(http.SameSiteNoneMode)
 	gc.SetCookie(constants.COOKIE_NAME, token, 3600, "/", host, secure, httpOnly)
@@ -35,7 +35,7 @@ func DeleteCookie(gc *gin.Context) {
 		secure = false
 	}
 
-	host := GetDomainName(gc.Request.Host)
+	host := GetHostName(gc.Request.Host)
 	gc.SetSameSite(http.SameSiteNoneMode)
 	gc.SetCookie(constants.COOKIE_NAME, "", -1, "/", host, secure, httpOnly)
 }

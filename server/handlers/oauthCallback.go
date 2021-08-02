@@ -174,11 +174,12 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 		}
 
 		var err error
+		code := c.Request.FormValue("code")
 		switch provider {
 		case enum.Google.String():
-			err = processGoogleUserInfo(c.Request.FormValue("code"), c)
+			err = processGoogleUserInfo(code, c)
 		case enum.Github.String():
-			err = processGithubUserInfo(c.Request.FormValue("code"), c)
+			err = processGithubUserInfo(code, c)
 		default:
 			err = fmt.Errorf(`invalid oauth provider`)
 		}
