@@ -13,7 +13,7 @@ func SetCookie(gc *gin.Context, token string) {
 	httpOnly := true
 
 	host := GetHostName(gc.Request.Host)
-	log.Println("=> host", host)
+	log.Println("=> cookie host", host)
 	gc.SetSameSite(http.SameSiteNoneMode)
 	gc.SetCookie(constants.COOKIE_NAME, token, 3600, "/", host, secure, httpOnly)
 }

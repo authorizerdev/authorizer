@@ -1,14 +1,13 @@
 package utils
 
 import (
-	"log"
 	"net/url"
 	"strings"
 )
 
 // function to get hostname
 func GetHostName(auth_url string) string {
-	u, err := url.Parse("//" + auth_url)
+	u, err := url.Parse(auth_url)
 	if err != nil {
 		return `localhost`
 	}
@@ -20,13 +19,12 @@ func GetHostName(auth_url string) string {
 
 // function to get domain name
 func GetDomainName(auth_url string) string {
-	u, err := url.Parse("//" + auth_url)
+	u, err := url.Parse(auth_url)
 	if err != nil {
 		return `localhost`
 	}
 
 	host := u.Hostname()
-	log.Println("=> host", host)
 
 	// code to get root domain in case of sub-domains
 	hostParts := strings.Split(host, ".")
