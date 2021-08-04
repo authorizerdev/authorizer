@@ -35,7 +35,7 @@ func ForgotPassword(ctx context.Context, params model.ForgotPasswordInput) (*mod
 		return res, fmt.Errorf(`user with this email not found`)
 	}
 
-	token, err := utils.CreateVerificationToken(params.Email, enum.ForgotPassword.String(), host)
+	token, err := utils.CreateVerificationToken(params.Email, enum.ForgotPassword.String())
 	if err != nil {
 		log.Println(`Error generating token`, err)
 	}

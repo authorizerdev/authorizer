@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"github.com/99designs/gqlgen/graphql/handler"
-	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/graph"
 	"github.com/authorizerdev/authorizer/server/graph/generated"
 	"github.com/gin-gonic/gin"
@@ -15,9 +14,6 @@ func GraphqlHandler() gin.HandlerFunc {
 	h := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{}}))
 
 	return func(c *gin.Context) {
-		if constants.AUTHORIZER_URL == "" {
-			constants.AUTHORIZER_URL = "https://" + c.Request.Host
-		}
 		h.ServeHTTP(c.Writer, c.Request)
 	}
 }

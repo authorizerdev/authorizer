@@ -105,7 +105,7 @@ func UpdateProfile(ctx context.Context, params model.UpdateProfileInput) (*model
 		hasEmailChanged = true
 		// insert verification request
 		verificationType := enum.UpdateEmail.String()
-		token, err := utils.CreateVerificationToken(newEmail, verificationType, gc.Request.Host)
+		token, err := utils.CreateVerificationToken(newEmail, verificationType)
 		if err != nil {
 			log.Println(`Error generating token`, err)
 		}

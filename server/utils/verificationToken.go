@@ -19,7 +19,7 @@ type CustomClaim struct {
 }
 
 // TODO convert tokenType to enum
-func CreateVerificationToken(email string, tokenType string, host string) (string, error) {
+func CreateVerificationToken(email string, tokenType string) (string, error) {
 	t := jwt.New(jwt.GetSigningMethod(constants.JWT_TYPE))
 
 	t.Claims = &CustomClaim{
@@ -28,7 +28,7 @@ func CreateVerificationToken(email string, tokenType string, host string) (strin
 			ExpiresAt: time.Now().Add(time.Minute * 30).Unix(),
 		},
 		tokenType,
-		UserInfo{Email: email, Host: host},
+		UserInfo{Email: email, Host: constants.AUTHORIZER_URL},
 	}
 
 	return t.SignedString([]byte(constants.JWT_SECRET))

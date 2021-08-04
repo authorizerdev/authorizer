@@ -6,7 +6,7 @@ import Login from './pages/login';
 import ResetPassword from './pages/rest-password';
 
 export default function Root() {
-  const { token, loading } = useAuthorizer();
+  const { token, loading, config } = useAuthorizer();
 
   if (loading) {
     return <h1>Loading...</h1>;
