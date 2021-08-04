@@ -1,6 +1,7 @@
 FROM golang:1.16-alpine as builder
 WORKDIR /app
-COPY . .
+COPY server server
+COPY Makefile .
 
 ARG VERSION=0.1.0-beta.0
 ENV VERSION="${VERSION}"
@@ -12,8 +13,8 @@ RUN apk add build-base &&\
 FROM alpine:latest
 RUN apk --no-cache add ca-certificates
 WORKDIR /root/
-COPY --from=builder /app/build .
-COPY --from=builder /app/app .
-COPY --from=builder /app/templates .
+COPY app app
+COPY templates templates
+COPY --from=builder /app/build build
 EXPOSE 8080
-CMD [ "./server" ]
+CMD [ "./build/server" ]
