@@ -13,19 +13,25 @@ import (
 )
 
 func ResendVerifyEmail(ctx context.Context, params model.ResendVerifyEmailInput) (*model.Response, error) {
+	gc, err := utils.GinContextFromContext(ctx)
 	var res *model.Response
+	if err != nil {
+		return res, err
+	}
 	params.Email = strings.ToLower(params.Email)
 
 	if !utils.IsValidEmail(params.Email) {
 		return res, fmt.Errorf("invalid email")
 	}
 
+	host := gc.Request.Host
+
 	verificationRequest, err := db.Mgr.GetVerificationByEmail(params.Email)
 	if err != nil {
 		return res, fmt.Errorf(`verification request not found`)
 	}
 
-	token, err := utils.CreateVerificationToken(params.Email, verificationRequest.Identifier)
+	token, err := utils.CreateVerificationToken(params.Email, verificationRequest.Identifier, host)
 	if err != nil {
 		log.Println(`Error generating token`, err)
 	}

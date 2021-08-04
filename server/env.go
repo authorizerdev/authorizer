@@ -17,7 +17,7 @@ var Version string
 func ParseArgs() {
 	dbURL := flag.String("database_url", "", "Database connection string")
 	dbType := flag.String("databse_type", "", "Database type, possible values are postgres,mysql,sqlit")
-	authroizerDomain := flag.String("authorizer_domain", "", "Domain name for authorizer instance, eg: https://xyz.herokuapp.com")
+	authorizerURL := flag.String("AUTHORIZER_URL", "", "URL for authorizer instance, eg: https://xyz.herokuapp.com")
 	flag.Parse()
 	if *dbURL != "" {
 		constants.DATABASE_URL = *dbURL
@@ -27,8 +27,8 @@ func ParseArgs() {
 		constants.DATABASE_TYPE = *dbType
 	}
 
-	if *authroizerDomain != "" {
-		constants.AUTHORIZER_DOMAIN = *authroizerDomain
+	if *authorizerURL != "" {
+		constants.AUTHORIZER_URL = *authorizerURL
 	}
 }
 
@@ -51,8 +51,7 @@ func InitEnv() {
 	constants.SENDER_PASSWORD = os.Getenv("SENDER_PASSWORD")
 	constants.JWT_SECRET = os.Getenv("JWT_SECRET")
 	constants.JWT_TYPE = os.Getenv("JWT_TYPE")
-	constants.FRONTEND_URL = strings.TrimSuffix(os.Getenv("FRONTEND_URL"), "/")
-	constants.AUTHORIZER_DOMAIN = strings.TrimSuffix(os.Getenv("AUTHORIZER_DOMAIN"), "/")
+	constants.AUTHORIZER_URL = strings.TrimSuffix(os.Getenv("AUTHORIZER_URL"), "/")
 	constants.PORT = os.Getenv("PORT")
 	constants.REDIS_URL = os.Getenv("REDIS_URL")
 	constants.COOKIE_NAME = os.Getenv("COOKIE_NAME")
@@ -84,6 +83,32 @@ func InitEnv() {
 		constants.IS_PROD = false
 	}
 
+	allowedOriginsSplit := strings.Split(os.Getenv("ALLOWED_ORIGINS"), ",")
+	allowedOrigins := []string{}
+	for _, val := range allowedOriginsSplit {
+		trimVal := strings.TrimSpace(val)
+		if trimVal != "" {
+			allowedOrigins = append(allowedOrigins, trimVal)
+		}
+	}
+	if len(allowedOrigins) == 0 {
+		allowedOrigins = []string{"*"}
+	}
+	constants.ALLOWED_ORIGINS = allowedOrigins
+
+	allowedCallbackSplit := strings.Split(os.Getenv("ALLOWED_CALLBACK_URLS"), ",")
+	allowedCallbacks := []string{}
+	for _, val := range allowedCallbackSplit {
+		trimVal := strings.TrimSpace(val)
+		if trimVal != "" {
+			allowedCallbacks = append(allowedCallbacks, trimVal)
+		}
+	}
+	if len(allowedCallbackSplit) == 0 {
+		allowedCallbackSplit = []string{"*"}
+	}
+	constants.ALLOWED_CALLBACK_URLS = allowedCallbackSplit
+
 	ParseArgs()
 	if constants.DATABASE_URL == "" {
 		panic("Database url is required")
@@ -99,10 +124,6 @@ func InitEnv() {
 
 	if constants.COOKIE_NAME == "" {
 		constants.COOKIE_NAME = "authorizer"
-	}
-
-	if constants.AUTHORIZER_DOMAIN == "" {
-		constants.AUTHORIZER_DOMAIN = "http://localhost:8080"
 	}
 
 	if constants.DISABLE_BASIC_AUTHENTICATION == "" {

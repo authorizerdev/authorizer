@@ -105,7 +105,7 @@ func UpdateProfile(ctx context.Context, params model.UpdateProfileInput) (*model
 		hasEmailChanged = true
 		// insert verification request
 		verificationType := enum.UpdateEmail.String()
-		token, err := utils.CreateVerificationToken(newEmail, verificationType)
+		token, err := utils.CreateVerificationToken(newEmail, verificationType, gc.Request.Host)
 		if err != nil {
 			log.Println(`Error generating token`, err)
 		}
@@ -124,6 +124,10 @@ func UpdateProfile(ctx context.Context, params model.UpdateProfileInput) (*model
 	}
 
 	_, err = db.Mgr.UpdateUser(user)
+	if err != nil {
+		log.Println("Error updating user:", err)
+		return res, err
+	}
 	message := `Profile details updated successfully.`
 	if hasEmailChanged {
 		message += `For the email change we have sent new verification email, please verify and continue`

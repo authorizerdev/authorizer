@@ -84,7 +84,7 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 	if constants.DISABLE_EMAIL_VERICATION != "true" {
 		// insert verification request
 		verificationType := enum.BasicAuthSignup.String()
-		token, err := utils.CreateVerificationToken(params.Email, verificationType)
+		token, err := utils.CreateVerificationToken(params.Email, verificationType, gc.Request.Host)
 		if err != nil {
 			log.Println(`Error generating token`, err)
 		}

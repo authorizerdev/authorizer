@@ -20,7 +20,7 @@ func InitOAuth() {
 		OAuthProvider.GoogleConfig = &oauth2.Config{
 			ClientID:     constants.GOOGLE_CLIENT_ID,
 			ClientSecret: constants.GOOGLE_CLIENT_SECRET,
-			RedirectURL:  constants.AUTHORIZER_DOMAIN + "/callback/google",
+			RedirectURL:  constants.AUTHORIZER_URL + "/oauth_callback/google",
 			Endpoint:     googleOAuth2.Endpoint,
 			Scopes:       []string{"https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/userinfo.profile"},
 		}
@@ -29,7 +29,7 @@ func InitOAuth() {
 		OAuthProvider.GithubConfig = &oauth2.Config{
 			ClientID:     constants.GITHUB_CLIENT_ID,
 			ClientSecret: constants.GITHUB_CLIENT_SECRET,
-			RedirectURL:  constants.AUTHORIZER_DOMAIN + "/callback/github",
+			RedirectURL:  constants.AUTHORIZER_URL + "/oauth_callback/github",
 			Endpoint:     githubOAuth2.Endpoint,
 		}
 	}
@@ -37,7 +37,7 @@ func InitOAuth() {
 	// 	OAuthProvider.FacebookConfig = &oauth2.Config{
 	// 		ClientID:     constants.FACEBOOK_CLIENT_ID,
 	// 		ClientSecret: constants.FACEBOOK_CLIENT_SECRET,
-	// 		RedirectURL: "/callback/facebook/",
+	// 		RedirectURL: "/oauth_callback/facebook/",
 	// 		Endpoint:     facebookOAuth2.Endpoint,
 	// 	}
 	// }
