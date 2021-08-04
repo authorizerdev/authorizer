@@ -3,9 +3,11 @@ package resolvers
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
+	"github.com/authorizerdev/authorizer/server/enum"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
@@ -38,6 +40,12 @@ func ResetPassword(ctx context.Context, params model.ResetPassowrdInput) (*model
 
 	password, _ := utils.HashPassword(params.Password)
 	user.Password = password
+
+	signupMethod := user.SignupMethod
+	if !strings.Contains(signupMethod, enum.BasicAuth.String()) {
+		signupMethod = signupMethod + "," + enum.BasicAuth.String()
+	}
+	user.SignupMethod = signupMethod
 
 	// delete from verification table
 	db.Mgr.DeleteToken(claim.Email)

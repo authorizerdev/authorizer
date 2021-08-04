@@ -34,12 +34,17 @@ func SendVerificationMail(toEmail, token string) error {
 
 // SendForgotPasswordMail to send verification email
 func SendForgotPasswordMail(toEmail, token, host string) error {
+	if constants.RESET_PASSWORD_URL == "" {
+		constants.RESET_PASSWORD_URL = constants.AUTHORIZER_URL + "/app/reset-password"
+	}
+
 	sender := email.NewSender()
 
 	// The receiver needs to be in slice as the receive supports multiple receiver
 	Receiver := []string{toEmail}
 
 	Subject := "Reset Password"
+
 	message := fmt.Sprintf(`
 	<!DOCTYPE HTML PULBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 	<html>
@@ -51,7 +56,7 @@ func SendForgotPasswordMail(toEmail, token, host string) error {
 		<a href="%s">Reset Password</a>
 	</body>
 	</html>
-	`, host+"/"+constants.FORGOT_PASSWORD_URI+"?token="+token)
+	`, constants.RESET_PASSWORD_URL+"?token="+token)
 	bodyMessage := sender.WriteHTMLEmail(Receiver, Subject, message)
 
 	return sender.SendMail(Receiver, Subject, bodyMessage)

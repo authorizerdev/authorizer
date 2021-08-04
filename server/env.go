@@ -63,7 +63,7 @@ func InitEnv() {
 	constants.FACEBOOK_CLIENT_SECRET = os.Getenv("FACEBOOK_CLIENT_SECRET")
 	constants.TWITTER_CLIENT_ID = os.Getenv("TWITTER_CLIENT_ID")
 	constants.TWITTER_CLIENT_SECRET = os.Getenv("TWITTER_CLIENT_SECRET")
-	constants.FORGOT_PASSWORD_URI = strings.TrimPrefix(os.Getenv("FORGOT_PASSWORD_URI"), "/")
+	constants.RESET_PASSWORD_URL = strings.TrimPrefix(os.Getenv("RESET_PASSWORD_URL"), "/")
 	constants.VERIFY_EMAIL_URI = strings.TrimPrefix(os.Getenv("VERIFY_EMAIL_URI"), "/")
 	constants.DISABLE_BASIC_AUTHENTICATION = os.Getenv("DISABLE_BASIC_AUTHENTICATION")
 	constants.DISABLE_EMAIL_VERICATION = os.Getenv("DISABLE_EMAIL_VERICATION")

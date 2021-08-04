@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 
+	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/enum"
 	"github.com/authorizerdev/authorizer/server/oauth"
 	"github.com/authorizerdev/authorizer/server/session"
@@ -31,10 +32,13 @@ func OAuthLoginHandler() gin.HandlerFunc {
 		switch provider {
 		case enum.Google.String():
 			session.SetToken(oauthStateString, enum.Google.String())
+			// during the init of OAuthProvider authorizer url might be empty
+			oauth.OAuthProvider.GoogleConfig.RedirectURL = constants.AUTHORIZER_URL + "/oauth_callback/google"
 			url := oauth.OAuthProvider.GoogleConfig.AuthCodeURL(oauthStateString)
 			c.Redirect(http.StatusTemporaryRedirect, url)
 		case enum.Github.String():
 			session.SetToken(oauthStateString, enum.Github.String())
+			oauth.OAuthProvider.GithubConfig.RedirectURL = constants.AUTHORIZER_URL + "/oauth_callback/github"
 			url := oauth.OAuthProvider.GithubConfig.AuthCodeURL(oauthStateString)
 			c.Redirect(http.StatusTemporaryRedirect, url)
 		default:

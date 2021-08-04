@@ -4,6 +4,7 @@ go 1.16
 
 require (
 	github.com/99designs/gqlgen v0.13.0
+	github.com/gin-contrib/location v0.0.2 // indirect
 	github.com/gin-gonic/gin v1.7.2
 	github.com/go-playground/validator/v10 v10.8.0 // indirect
 	github.com/go-redis/redis/v8 v8.11.0

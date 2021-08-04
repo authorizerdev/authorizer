@@ -2,16 +2,26 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"log"
+	"strings"
 
+	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/handlers"
 	"github.com/authorizerdev/authorizer/server/oauth"
 	"github.com/authorizerdev/authorizer/server/session"
+	"github.com/gin-contrib/location"
 	"github.com/gin-gonic/gin"
 )
 
 func GinContextToContextMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if constants.AUTHORIZER_URL == "" {
+			url := location.Get(c)
+			constants.AUTHORIZER_URL = strings.TrimSuffix(fmt.Sprintf("%s", url), "/")
+			log.Println("=> setting url:", constants.AUTHORIZER_URL)
+		}
 		ctx := context.WithValue(c.Request.Context(), "GinContextKey", c)
 		c.Request = c.Request.WithContext(ctx)
 		c.Next()
@@ -44,6 +54,7 @@ func main() {
 	oauth.InitOAuth()
 
 	r := gin.Default()
+	r.Use(location.Default())
 	r.Use(GinContextToContextMiddleware())
 	r.Use(CORSMiddleware())
 
@@ -54,9 +65,14 @@ func main() {
 	r.GET("/oauth_callback/:oauth_provider", handlers.OAuthCallbackHandler())
 
 	// login wall app related routes
-	r.Static("/app/build", "app/build")
+
 	r.LoadHTMLGlob("templates/*")
-	r.GET("/app", handlers.AppHandler())
+	app := r.Group("/app")
+	{
+		app.Static("/build", "app/build")
+		app.GET("/", handlers.AppHandler())
+		app.GET("/reset-password", handlers.AppHandler())
+	}
 
 	r.Run()
 }

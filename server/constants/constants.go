@@ -19,7 +19,7 @@ var (
 	REDIS_URL                    = ""
 	IS_PROD                      = false
 	COOKIE_NAME                  = ""
-	FORGOT_PASSWORD_URI          = ""
+	RESET_PASSWORD_URL           = ""
 	DISABLE_EMAIL_VERICATION     = "false"
 	DISABLE_BASIC_AUTHENTICATION = "false"
 	VERIFY_EMAIL_URI             = ""
