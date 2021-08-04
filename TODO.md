@@ -1,2 +1,0 @@
-- [] Add env to disalbe email verification -> this can be helpful while onboarding user
-- []

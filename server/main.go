@@ -18,6 +18,8 @@ func GinContextToContextMiddleware() gin.HandlerFunc {
 	}
 }
 
+// TODO use allowed origins for cors origin
+// TODO throw error if url is not allowed
 func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		origin := c.Request.Header.Get("Origin")
@@ -44,10 +46,17 @@ func main() {
 	r := gin.Default()
 	r.Use(GinContextToContextMiddleware())
 	r.Use(CORSMiddleware())
+
 	r.GET("/", handlers.PlaygroundHandler())
 	r.POST("/graphql", handlers.GraphqlHandler())
 	r.GET("/verify_email", handlers.VerifyEmailHandler())
-	r.GET("/login/:oauth_provider", handlers.OAuthLoginHandler())
-	r.GET("/callback/:oauth_provider", handlers.OAuthCallbackHandler())
+	r.GET("/oauth_login/:oauth_provider", handlers.OAuthLoginHandler())
+	r.GET("/oauth_callback/:oauth_provider", handlers.OAuthCallbackHandler())
+
+	// login wall app related routes
+	r.Static("/app/build", "app/build")
+	r.LoadHTMLGlob("templates/*")
+	r.GET("/app", handlers.AppHandler())
+
 	r.Run()
 }

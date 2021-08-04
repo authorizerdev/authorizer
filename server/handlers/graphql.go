@@ -15,8 +15,8 @@ func GraphqlHandler() gin.HandlerFunc {
 	h := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{}}))
 
 	return func(c *gin.Context) {
-		if constants.AUTHORIZER_DOMAIN == "" {
-			constants.AUTHORIZER_DOMAIN = "https://" + c.Request.Host
+		if constants.AUTHORIZER_URL == "" {
+			constants.AUTHORIZER_URL = "https://" + c.Request.Host
 		}
 		h.ServeHTTP(c.Writer, c.Request)
 	}

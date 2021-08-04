@@ -9,6 +9,7 @@ import (
 
 type UserInfo struct {
 	Email string `json:"email"`
+	Host  string `json:"host"`
 }
 
 type CustomClaim struct {
@@ -18,7 +19,7 @@ type CustomClaim struct {
 }
 
 // TODO convert tokenType to enum
-func CreateVerificationToken(email string, tokenType string) (string, error) {
+func CreateVerificationToken(email string, tokenType string, host string) (string, error) {
 	t := jwt.New(jwt.GetSigningMethod(constants.JWT_TYPE))
 
 	t.Claims = &CustomClaim{
@@ -27,7 +28,7 @@ func CreateVerificationToken(email string, tokenType string) (string, error) {
 			ExpiresAt: time.Now().Add(time.Minute * 30).Unix(),
 		},
 		tokenType,
-		UserInfo{Email: email},
+		UserInfo{Email: email, Host: host},
 	}
 
 	return t.SignedString([]byte(constants.JWT_SECRET))

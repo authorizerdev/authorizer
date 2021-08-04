@@ -1,3 +1,6 @@
 server/server
 server/.env
 data
+app/node_modules
+build
+.env
