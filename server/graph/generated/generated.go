@@ -66,6 +66,7 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
+		DeleteUser        func(childComplexity int, params model.DeleteUserInput) int
 		ForgotPassword    func(childComplexity int, params model.ForgotPasswordInput) int
 		Login             func(childComplexity int, params model.LoginInput) int
 		Logout            func(childComplexity int) int
@@ -120,6 +121,7 @@ type MutationResolver interface {
 	ResendVerifyEmail(ctx context.Context, params model.ResendVerifyEmailInput) (*model.Response, error)
 	ForgotPassword(ctx context.Context, params model.ForgotPasswordInput) (*model.Response, error)
 	ResetPassword(ctx context.Context, params model.ResetPassowrdInput) (*model.Response, error)
+	DeleteUser(ctx context.Context, params model.DeleteUserInput) (*model.Response, error)
 }
 type QueryResolver interface {
 	Meta(ctx context.Context) (*model.Meta, error)
@@ -234,6 +236,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Meta.Version(childComplexity), true
+
+	case "Mutation.deleteUser":
+		if e.complexity.Mutation.DeleteUser == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteUser_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteUser(childComplexity, args["params"].(model.DeleteUserInput)), true
 
 	case "Mutation.forgotPassword":
 		if e.complexity.Mutation.ForgotPassword == nil {
@@ -550,112 +564,117 @@ var sources = []*ast.Source{
 scalar Int64
 
 type Meta {
-  version: String!
-  isGoogleLoginEnabled: Boolean!
-  isFacebookLoginEnabled: Boolean!
-  isTwitterLoginEnabled: Boolean!
-  isGithubLoginEnabled: Boolean!
-  isEmailVerificationEnabled: Boolean!
-  isBasicAuthenticationEnabled: Boolean!
+	version: String!
+	isGoogleLoginEnabled: Boolean!
+	isFacebookLoginEnabled: Boolean!
+	isTwitterLoginEnabled: Boolean!
+	isGithubLoginEnabled: Boolean!
+	isEmailVerificationEnabled: Boolean!
+	isBasicAuthenticationEnabled: Boolean!
 }
 
 type User {
-  id: ID!
-  email: String!
-  signupMethod: String!
-  firstName: String
-  lastName: String
-  emailVerifiedAt: Int64
-  image: String
-  createdAt: Int64
-  updatedAt: Int64
+	id: ID!
+	email: String!
+	signupMethod: String!
+	firstName: String
+	lastName: String
+	emailVerifiedAt: Int64
+	image: String
+	createdAt: Int64
+	updatedAt: Int64
 }
 
 type VerificationRequest {
-  id: ID!
-  identifier: String
-  token: String
-  email: String
-  expires: Int64
-  createdAt: Int64
-  updatedAt: Int64
+	id: ID!
+	identifier: String
+	token: String
+	email: String
+	expires: Int64
+	createdAt: Int64
+	updatedAt: Int64
 }
 
 type Error {
-  message: String!
-  reason: String!
+	message: String!
+	reason: String!
 }
 
 type AuthResponse {
-  message: String!
-  accessToken: String
-  accessTokenExpiresAt: Int64
-  user: User
+	message: String!
+	accessToken: String
+	accessTokenExpiresAt: Int64
+	user: User
 }
 
 type Response {
-  message: String!
+	message: String!
 }
 
 input SignUpInput {
-  firstName: String
-  lastName: String
-  email: String!
-  password: String!
-  confirmPassword: String!
-  image: String
+	firstName: String
+	lastName: String
+	email: String!
+	password: String!
+	confirmPassword: String!
+	image: String
 }
 
 input LoginInput {
-  email: String!
-  password: String!
+	email: String!
+	password: String!
 }
 
 input VerifyEmailInput {
-  token: String!
+	token: String!
 }
 
 input ResendVerifyEmailInput {
-  email: String!
+	email: String!
 }
 
 input UpdateProfileInput {
-  oldPassword: String
-  newPassword: String
-  confirmNewPassword: String
-  firstName: String
-  lastName: String
-  image: String
-  email: String
+	oldPassword: String
+	newPassword: String
+	confirmNewPassword: String
+	firstName: String
+	lastName: String
+	image: String
+	email: String
 }
 
 input ForgotPasswordInput {
-  email: String!
+	email: String!
 }
 
 input ResetPassowrdInput {
-  token: String!
-  password: String!
-  confirmPassword: String!
+	token: String!
+	password: String!
+	confirmPassword: String!
+}
+
+input DeleteUserInput {
+	email: String!
 }
 
 type Mutation {
-  signup(params: SignUpInput!): AuthResponse!
-  login(params: LoginInput!): AuthResponse!
-  logout: Response!
-  updateProfile(params: UpdateProfileInput!): Response!
-  verifyEmail(params: VerifyEmailInput!): AuthResponse!
-  resendVerifyEmail(params: ResendVerifyEmailInput!): Response!
-  forgotPassword(params: ForgotPasswordInput!): Response!
-  resetPassword(params: ResetPassowrdInput!): Response!
+	signup(params: SignUpInput!): AuthResponse!
+	login(params: LoginInput!): AuthResponse!
+	logout: Response!
+	updateProfile(params: UpdateProfileInput!): Response!
+	verifyEmail(params: VerifyEmailInput!): AuthResponse!
+	resendVerifyEmail(params: ResendVerifyEmailInput!): Response!
+	forgotPassword(params: ForgotPasswordInput!): Response!
+	resetPassword(params: ResetPassowrdInput!): Response!
+	deleteUser(params: DeleteUserInput!): Response!
 }
 
 type Query {
-  meta: Meta!
-  users: [User!]!
-  token: AuthResponse
-  profile: User!
-  verificationRequests: [VerificationRequest!]!
+	meta: Meta!
+	users: [User!]!
+	token: AuthResponse
+	profile: User!
+	verificationRequests: [VerificationRequest!]!
 }
 `, BuiltIn: false},
 }
@@ -664,6 +683,21 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
+
+func (ec *executionContext) field_Mutation_deleteUser_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.DeleteUserInput
+	if tmp, ok := rawArgs["params"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+		arg0, err = ec.unmarshalNDeleteUserInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐDeleteUserInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["params"] = arg0
+	return args, nil
+}
 
 func (ec *executionContext) field_Mutation_forgotPassword_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
@@ -1582,6 +1616,48 @@ func (ec *executionContext) _Mutation_resetPassword(ctx context.Context, field g
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Mutation().ResetPassword(rctx, args["params"].(model.ResetPassowrdInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Response)
+	fc.Result = res
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_deleteUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_deleteUser_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeleteUser(rctx, args["params"].(model.DeleteUserInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3487,6 +3563,26 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputDeleteUserInput(ctx context.Context, obj interface{}) (model.DeleteUserInput, error) {
+	var it model.DeleteUserInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "email":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
+			it.Email, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputForgotPasswordInput(ctx context.Context, obj interface{}) (model.ForgotPasswordInput, error) {
 	var it model.ForgotPasswordInput
 	var asMap = obj.(map[string]interface{})
@@ -3921,6 +4017,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "resetPassword":
 			out.Values[i] = ec._Mutation_resetPassword(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "deleteUser":
+			out.Values[i] = ec._Mutation_deleteUser(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -4419,6 +4520,11 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNDeleteUserInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐDeleteUserInput(ctx context.Context, v interface{}) (model.DeleteUserInput, error) {
+	res, err := ec.unmarshalInputDeleteUserInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNForgotPasswordInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐForgotPasswordInput(ctx context.Context, v interface{}) (model.ForgotPasswordInput, error) {

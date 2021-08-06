@@ -9,6 +9,10 @@ type AuthResponse struct {
 	User                 *User   `json:"user"`
 }
 
+type DeleteUserInput struct {
+	Email string `json:"email"`
+}
+
 type Error struct {
 	Message string `json:"message"`
 	Reason  string `json:"reason"`

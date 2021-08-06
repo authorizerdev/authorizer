@@ -2,9 +2,7 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
-	"strings"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
@@ -19,7 +17,7 @@ func GinContextToContextMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if constants.AUTHORIZER_URL == "" {
 			url := location.Get(c)
-			constants.AUTHORIZER_URL = strings.TrimSuffix(fmt.Sprintf("%s", url), "/")
+			constants.AUTHORIZER_URL = url.Scheme + "://" + c.Request.Host
 			log.Println("=> setting url:", constants.AUTHORIZER_URL)
 		}
 		ctx := context.WithValue(c.Request.Context(), "GinContextKey", c)
