@@ -20,7 +20,7 @@ var (
 	IS_PROD                      = false
 	COOKIE_NAME                  = ""
 	RESET_PASSWORD_URL           = ""
-	DISABLE_EMAIL_VERICATION     = "false"
+	DISABLE_EMAIL_VERIFICATION   = "false"
 	DISABLE_BASIC_AUTHENTICATION = "false"
 	VERIFY_EMAIL_URI             = ""
 

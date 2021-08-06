@@ -66,7 +66,7 @@ func InitEnv() {
 	constants.RESET_PASSWORD_URL = strings.TrimPrefix(os.Getenv("RESET_PASSWORD_URL"), "/")
 	constants.VERIFY_EMAIL_URI = strings.TrimPrefix(os.Getenv("VERIFY_EMAIL_URI"), "/")
 	constants.DISABLE_BASIC_AUTHENTICATION = os.Getenv("DISABLE_BASIC_AUTHENTICATION")
-	constants.DISABLE_EMAIL_VERICATION = os.Getenv("DISABLE_EMAIL_VERICATION")
+	constants.DISABLE_EMAIL_VERIFICATION = os.Getenv("DISABLE_EMAIL_VERIFICATION")
 
 	if constants.ADMIN_SECRET == "" {
 		panic("root admin secret is required")
@@ -130,11 +130,11 @@ func InitEnv() {
 		constants.DISABLE_BASIC_AUTHENTICATION = "false"
 	}
 
-	if constants.DISABLE_EMAIL_VERICATION == "" && constants.DISABLE_BASIC_AUTHENTICATION == "false" {
+	if constants.DISABLE_EMAIL_VERIFICATION == "" && constants.DISABLE_BASIC_AUTHENTICATION == "false" {
 		if constants.SMTP_HOST == "" || constants.SENDER_EMAIL == "" || constants.SENDER_PASSWORD == "" {
-			constants.DISABLE_EMAIL_VERICATION = "true"
+			constants.DISABLE_EMAIL_VERIFICATION = "true"
 		} else {
-			constants.DISABLE_EMAIL_VERICATION = "false"
+			constants.DISABLE_EMAIL_VERIFICATION = "false"
 		}
 	}
 }

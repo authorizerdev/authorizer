@@ -61,7 +61,7 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 	}
 
 	user.SignupMethod = enum.BasicAuth.String()
-	if constants.DISABLE_EMAIL_VERICATION == "true" {
+	if constants.DISABLE_EMAIL_VERIFICATION == "true" {
 		user.EmailVerifiedAt = time.Now().Unix()
 	}
 	user, err = db.Mgr.SaveUser(user)
@@ -81,7 +81,7 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 		UpdatedAt:       &user.UpdatedAt,
 	}
 
-	if constants.DISABLE_EMAIL_VERICATION != "true" {
+	if constants.DISABLE_EMAIL_VERIFICATION != "true" {
 		// insert verification request
 		verificationType := enum.BasicAuthSignup.String()
 		token, err := utils.CreateVerificationToken(params.Email, verificationType)
