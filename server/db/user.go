@@ -83,3 +83,15 @@ func (mgr *manager) UpdateVerificationTime(verifiedAt int64, id uint) error {
 
 	return nil
 }
+
+func (mgr *manager) DeleteUser(email string) error {
+	var user User
+	result := mgr.db.Where("email = ?", email).Delete(&user)
+
+	if result.Error != nil {
+		log.Println(`Error deleting user:`, result.Error)
+		return result.Error
+	}
+
+	return nil
+}

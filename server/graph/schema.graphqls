@@ -4,110 +4,115 @@
 scalar Int64
 
 type Meta {
-  version: String!
-  isGoogleLoginEnabled: Boolean!
-  isFacebookLoginEnabled: Boolean!
-  isTwitterLoginEnabled: Boolean!
-  isGithubLoginEnabled: Boolean!
-  isEmailVerificationEnabled: Boolean!
-  isBasicAuthenticationEnabled: Boolean!
+	version: String!
+	isGoogleLoginEnabled: Boolean!
+	isFacebookLoginEnabled: Boolean!
+	isTwitterLoginEnabled: Boolean!
+	isGithubLoginEnabled: Boolean!
+	isEmailVerificationEnabled: Boolean!
+	isBasicAuthenticationEnabled: Boolean!
 }
 
 type User {
-  id: ID!
-  email: String!
-  signupMethod: String!
-  firstName: String
-  lastName: String
-  emailVerifiedAt: Int64
-  image: String
-  createdAt: Int64
-  updatedAt: Int64
+	id: ID!
+	email: String!
+	signupMethod: String!
+	firstName: String
+	lastName: String
+	emailVerifiedAt: Int64
+	image: String
+	createdAt: Int64
+	updatedAt: Int64
 }
 
 type VerificationRequest {
-  id: ID!
-  identifier: String
-  token: String
-  email: String
-  expires: Int64
-  createdAt: Int64
-  updatedAt: Int64
+	id: ID!
+	identifier: String
+	token: String
+	email: String
+	expires: Int64
+	createdAt: Int64
+	updatedAt: Int64
 }
 
 type Error {
-  message: String!
-  reason: String!
+	message: String!
+	reason: String!
 }
 
 type AuthResponse {
-  message: String!
-  accessToken: String
-  accessTokenExpiresAt: Int64
-  user: User
+	message: String!
+	accessToken: String
+	accessTokenExpiresAt: Int64
+	user: User
 }
 
 type Response {
-  message: String!
+	message: String!
 }
 
 input SignUpInput {
-  firstName: String
-  lastName: String
-  email: String!
-  password: String!
-  confirmPassword: String!
-  image: String
+	firstName: String
+	lastName: String
+	email: String!
+	password: String!
+	confirmPassword: String!
+	image: String
 }
 
 input LoginInput {
-  email: String!
-  password: String!
+	email: String!
+	password: String!
 }
 
 input VerifyEmailInput {
-  token: String!
+	token: String!
 }
 
 input ResendVerifyEmailInput {
-  email: String!
+	email: String!
 }
 
 input UpdateProfileInput {
-  oldPassword: String
-  newPassword: String
-  confirmNewPassword: String
-  firstName: String
-  lastName: String
-  image: String
-  email: String
+	oldPassword: String
+	newPassword: String
+	confirmNewPassword: String
+	firstName: String
+	lastName: String
+	image: String
+	email: String
 }
 
 input ForgotPasswordInput {
-  email: String!
+	email: String!
 }
 
 input ResetPassowrdInput {
-  token: String!
-  password: String!
-  confirmPassword: String!
+	token: String!
+	password: String!
+	confirmPassword: String!
+}
+
+input DeleteUserInput {
+	email: String!
 }
 
 type Mutation {
-  signup(params: SignUpInput!): AuthResponse!
-  login(params: LoginInput!): AuthResponse!
-  logout: Response!
-  updateProfile(params: UpdateProfileInput!): Response!
-  verifyEmail(params: VerifyEmailInput!): AuthResponse!
-  resendVerifyEmail(params: ResendVerifyEmailInput!): Response!
-  forgotPassword(params: ForgotPasswordInput!): Response!
-  resetPassword(params: ResetPassowrdInput!): Response!
+	signup(params: SignUpInput!): AuthResponse!
+	login(params: LoginInput!): AuthResponse!
+	logout: Response!
+	updateProfile(params: UpdateProfileInput!): Response!
+	verifyEmail(params: VerifyEmailInput!): AuthResponse!
+	resendVerifyEmail(params: ResendVerifyEmailInput!): Response!
+	forgotPassword(params: ForgotPasswordInput!): Response!
+	resetPassword(params: ResetPassowrdInput!): Response!
+	deleteUser(params: DeleteUserInput!): Response!
 }
 
 type Query {
-  meta: Meta!
-  users: [User!]!
-  token: AuthResponse
-  profile: User!
-  verificationRequests: [VerificationRequest!]!
+	meta: Meta!
+	users: [User!]!
+	token: AuthResponse
+	profile: User!
+	verificationRequests: [VerificationRequest!]!
 }
