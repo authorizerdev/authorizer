@@ -68,7 +68,7 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 	if err != nil {
 		return res, err
 	}
-	userIdStr := fmt.Sprintf("%d", user.ID)
+	userIdStr := fmt.Sprintf("%v", user.ID)
 	userToReturn := &model.User{
 		ID:              userIdStr,
 		Email:           user.Email,

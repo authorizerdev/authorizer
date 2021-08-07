@@ -39,7 +39,7 @@ func (r *mutationResolver) ForgotPassword(ctx context.Context, params model.Forg
 	return resolvers.ForgotPassword(ctx, params)
 }
 
-func (r *mutationResolver) ResetPassword(ctx context.Context, params model.ResetPassowrdInput) (*model.Response, error) {
+func (r *mutationResolver) ResetPassword(ctx context.Context, params model.ResetPasswordInput) (*model.Response, error) {
 	return resolvers.ResetPassword(ctx, params)
 }
 

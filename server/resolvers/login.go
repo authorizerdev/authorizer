@@ -46,7 +46,7 @@ func Login(ctx context.Context, params model.LoginInput) (*model.AuthResponse, e
 		log.Println("Compare password error:", err)
 		return res, fmt.Errorf(`invalid password`)
 	}
-	userIdStr := fmt.Sprintf("%d", user.ID)
+	userIdStr := fmt.Sprintf("%v", user.ID)
 	refreshToken, _, _ := utils.CreateAuthToken(utils.UserAuthInfo{
 		ID:    userIdStr,
 		Email: user.Email,

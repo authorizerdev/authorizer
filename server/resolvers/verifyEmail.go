@@ -40,7 +40,7 @@ func VerifyEmail(ctx context.Context, params model.VerifyEmailInput) (*model.Aut
 	// delete from verification table
 	db.Mgr.DeleteToken(claim.Email)
 
-	userIdStr := fmt.Sprintf("%d", user.ID)
+	userIdStr := fmt.Sprintf("%v", user.ID)
 	refreshToken, _, _ := utils.CreateAuthToken(utils.UserAuthInfo{
 		ID:    userIdStr,
 		Email: user.Email,

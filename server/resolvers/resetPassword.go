@@ -12,7 +12,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
-func ResetPassword(ctx context.Context, params model.ResetPassowrdInput) (*model.Response, error) {
+func ResetPassword(ctx context.Context, params model.ResetPasswordInput) (*model.Response, error) {
 	var res *model.Response
 	if constants.DISABLE_BASIC_AUTHENTICATION == "true" {
 		return res, fmt.Errorf(`basic authentication is disabled for this instance`)

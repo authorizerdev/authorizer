@@ -38,7 +38,7 @@ func Profile(ctx context.Context) (*model.User, error) {
 		return res, err
 	}
 
-	userIdStr := fmt.Sprintf("%d", user.ID)
+	userIdStr := fmt.Sprintf("%v", user.ID)
 
 	res = &model.User{
 		ID:              userIdStr,

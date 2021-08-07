@@ -32,7 +32,7 @@ func Token(ctx context.Context) (*model.AuthResponse, error) {
 		return res, err
 	}
 
-	userIdStr := fmt.Sprintf("%d", user.ID)
+	userIdStr := fmt.Sprintf("%v", user.ID)
 
 	sessionToken := session.GetToken(userIdStr)
 

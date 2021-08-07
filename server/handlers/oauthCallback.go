@@ -63,7 +63,7 @@ func processGoogleUserInfo(code string, c *gin.Context) error {
 	}
 
 	user, _ = db.Mgr.SaveUser(user)
-	userIdStr := fmt.Sprintf("%d", user.ID)
+	userIdStr := fmt.Sprintf("%v", user.ID)
 	refreshToken, _, _ := utils.CreateAuthToken(utils.UserAuthInfo{
 		ID:    userIdStr,
 		Email: user.Email,
@@ -139,7 +139,7 @@ func processGithubUserInfo(code string, c *gin.Context) error {
 	}
 
 	user, _ = db.Mgr.SaveUser(user)
-	userIdStr := fmt.Sprintf("%d", user.ID)
+	userIdStr := fmt.Sprintf("%v", user.ID)
 	refreshToken, _, _ := utils.CreateAuthToken(utils.UserAuthInfo{
 		ID:    userIdStr,
 		Email: user.Email,

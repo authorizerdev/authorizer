@@ -97,7 +97,7 @@ func UpdateProfile(ctx context.Context, params model.UpdateProfileInput) (*model
 			return res, fmt.Errorf("user with this email address already exists")
 		}
 
-		session.DeleteToken(fmt.Sprintf("%d", user.ID))
+		session.DeleteToken(fmt.Sprintf("%v", user.ID))
 		utils.DeleteCookie(gc)
 
 		user.Email = newEmail

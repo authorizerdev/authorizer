@@ -71,7 +71,7 @@ type ComplexityRoot struct {
 		Login             func(childComplexity int, params model.LoginInput) int
 		Logout            func(childComplexity int) int
 		ResendVerifyEmail func(childComplexity int, params model.ResendVerifyEmailInput) int
-		ResetPassword     func(childComplexity int, params model.ResetPassowrdInput) int
+		ResetPassword     func(childComplexity int, params model.ResetPasswordInput) int
 		Signup            func(childComplexity int, params model.SignUpInput) int
 		UpdateProfile     func(childComplexity int, params model.UpdateProfileInput) int
 		VerifyEmail       func(childComplexity int, params model.VerifyEmailInput) int
@@ -120,7 +120,7 @@ type MutationResolver interface {
 	VerifyEmail(ctx context.Context, params model.VerifyEmailInput) (*model.AuthResponse, error)
 	ResendVerifyEmail(ctx context.Context, params model.ResendVerifyEmailInput) (*model.Response, error)
 	ForgotPassword(ctx context.Context, params model.ForgotPasswordInput) (*model.Response, error)
-	ResetPassword(ctx context.Context, params model.ResetPassowrdInput) (*model.Response, error)
+	ResetPassword(ctx context.Context, params model.ResetPasswordInput) (*model.Response, error)
 	DeleteUser(ctx context.Context, params model.DeleteUserInput) (*model.Response, error)
 }
 type QueryResolver interface {
@@ -302,7 +302,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.ResetPassword(childComplexity, args["params"].(model.ResetPassowrdInput)), true
+		return e.complexity.Mutation.ResetPassword(childComplexity, args["params"].(model.ResetPasswordInput)), true
 
 	case "Mutation.signup":
 		if e.complexity.Mutation.Signup == nil {
@@ -647,7 +647,7 @@ input ForgotPasswordInput {
 	email: String!
 }
 
-input ResetPassowrdInput {
+input ResetPasswordInput {
 	token: String!
 	password: String!
 	confirmPassword: String!
@@ -665,7 +665,7 @@ type Mutation {
 	verifyEmail(params: VerifyEmailInput!): AuthResponse!
 	resendVerifyEmail(params: ResendVerifyEmailInput!): Response!
 	forgotPassword(params: ForgotPasswordInput!): Response!
-	resetPassword(params: ResetPassowrdInput!): Response!
+	resetPassword(params: ResetPasswordInput!): Response!
 	deleteUser(params: DeleteUserInput!): Response!
 }
 
@@ -747,10 +747,10 @@ func (ec *executionContext) field_Mutation_resendVerifyEmail_args(ctx context.Co
 func (ec *executionContext) field_Mutation_resetPassword_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 model.ResetPassowrdInput
+	var arg0 model.ResetPasswordInput
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalNResetPassowrdInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResetPassowrdInput(ctx, tmp)
+		arg0, err = ec.unmarshalNResetPasswordInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResetPasswordInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1615,7 +1615,7 @@ func (ec *executionContext) _Mutation_resetPassword(ctx context.Context, field g
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().ResetPassword(rctx, args["params"].(model.ResetPassowrdInput))
+		return ec.resolvers.Mutation().ResetPassword(rctx, args["params"].(model.ResetPasswordInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3651,8 +3651,8 @@ func (ec *executionContext) unmarshalInputResendVerifyEmailInput(ctx context.Con
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputResetPassowrdInput(ctx context.Context, obj interface{}) (model.ResetPassowrdInput, error) {
-	var it model.ResetPassowrdInput
+func (ec *executionContext) unmarshalInputResetPasswordInput(ctx context.Context, obj interface{}) (model.ResetPasswordInput, error) {
+	var it model.ResetPasswordInput
 	var asMap = obj.(map[string]interface{})
 
 	for k, v := range asMap {
@@ -4571,8 +4571,8 @@ func (ec *executionContext) unmarshalNResendVerifyEmailInput2githubᚗcomᚋauth
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNResetPassowrdInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResetPassowrdInput(ctx context.Context, v interface{}) (model.ResetPassowrdInput, error) {
-	res, err := ec.unmarshalInputResetPassowrdInput(ctx, v)
+func (ec *executionContext) unmarshalNResetPasswordInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResetPasswordInput(ctx context.Context, v interface{}) (model.ResetPasswordInput, error) {
+	res, err := ec.unmarshalInputResetPasswordInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
