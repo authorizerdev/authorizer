@@ -25,15 +25,15 @@ func VerificationRequests(ctx context.Context) ([]*model.VerificationRequest, er
 		return res, err
 	}
 
-	for _, verificationRequest := range verificationRequests {
+	for i := 0; i < len(verificationRequests); i++ {
 		res = append(res, &model.VerificationRequest{
-			ID:         fmt.Sprintf("%d", verificationRequest.ID),
-			Email:      &verificationRequest.Email,
-			Token:      &verificationRequest.Token,
-			Identifier: &verificationRequest.Identifier,
-			Expires:    &verificationRequest.ExpiresAt,
-			CreatedAt:  &verificationRequest.CreatedAt,
-			UpdatedAt:  &verificationRequest.UpdatedAt,
+			ID:         fmt.Sprintf("%v", verificationRequests[i].ID),
+			Email:      &verificationRequests[i].Email,
+			Token:      &verificationRequests[i].Token,
+			Identifier: &verificationRequests[i].Identifier,
+			Expires:    &verificationRequests[i].ExpiresAt,
+			CreatedAt:  &verificationRequests[i].CreatedAt,
+			UpdatedAt:  &verificationRequests[i].UpdatedAt,
 		})
 	}
 

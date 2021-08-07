@@ -25,16 +25,16 @@ func Users(ctx context.Context) ([]*model.User, error) {
 		return res, err
 	}
 
-	for _, user := range users {
+	for i := 0; i < len(users); i++ {
 		res = append(res, &model.User{
-			ID:              fmt.Sprintf("%d", user.ID),
-			Email:           user.Email,
-			SignupMethod:    user.SignupMethod,
-			FirstName:       &user.FirstName,
-			LastName:        &user.LastName,
-			EmailVerifiedAt: &user.EmailVerifiedAt,
-			CreatedAt:       &user.CreatedAt,
-			UpdatedAt:       &user.UpdatedAt,
+			ID:              fmt.Sprintf("%v", users[i].ID),
+			Email:           users[i].Email,
+			SignupMethod:    users[i].SignupMethod,
+			FirstName:       &users[i].FirstName,
+			LastName:        &users[i].LastName,
+			EmailVerifiedAt: &users[i].EmailVerifiedAt,
+			CreatedAt:       &users[i].CreatedAt,
+			UpdatedAt:       &users[i].UpdatedAt,
 		})
 	}
 

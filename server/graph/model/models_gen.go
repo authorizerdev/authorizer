@@ -41,7 +41,7 @@ type ResendVerifyEmailInput struct {
 	Email string `json:"email"`
 }
 
-type ResetPassowrdInput struct {
+type ResetPasswordInput struct {
 	Token           string `json:"token"`
 	Password        string `json:"password"`
 	ConfirmPassword string `json:"confirmPassword"`

@@ -87,7 +87,7 @@ input ForgotPasswordInput {
 	email: String!
 }
 
-input ResetPassowrdInput {
+input ResetPasswordInput {
 	token: String!
 	password: String!
 	confirmPassword: String!
@@ -105,7 +105,7 @@ type Mutation {
 	verifyEmail(params: VerifyEmailInput!): AuthResponse!
 	resendVerifyEmail(params: ResendVerifyEmailInput!): Response!
 	forgotPassword(params: ForgotPasswordInput!): Response!
-	resetPassword(params: ResetPassowrdInput!): Response!
+	resetPassword(params: ResetPasswordInput!): Response!
 	deleteUser(params: DeleteUserInput!): Response!
 }
 

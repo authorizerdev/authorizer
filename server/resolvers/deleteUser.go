@@ -7,6 +7,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/session"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
@@ -20,6 +21,13 @@ func DeleteUser(ctx context.Context, params model.DeleteUserInput) (*model.Respo
 	if !utils.IsSuperAdmin(gc) {
 		return res, fmt.Errorf("unauthorized")
 	}
+
+	user, err := db.Mgr.GetUserByEmail(params.Email)
+	if err != nil {
+		return res, err
+	}
+
+	session.DeleteToken(fmt.Sprintf("%x", user.ID))
 
 	err = db.Mgr.DeleteUser(params.Email)
 	if err != nil {
