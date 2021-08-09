@@ -45,7 +45,7 @@ Please ask as many questions as you need, either directly in the issue or on [Di
 1. Fork the [authorizer](https://github.com/authorizerdev/authorizer) repository (**Skip this step if you have access to repo**)
 2. `git clone https://github.com/authorizerdev/authorizer.git`
 3. `cd authorizer`
-4. `mv .env.sample .env`. Check all the supported env [here](TODO)
+4. `cp .env.sample .env`. Check all the supported env [here](TODO)
 5. Build the code `make clean && make`
    > Note: if you don't have [`make`](https://www.ibm.com/docs/en/aix/7.2?topic=concepts-make-command), you can `cd` into `server` dir and build using `go build` command
 6. Run binary `./build/server`

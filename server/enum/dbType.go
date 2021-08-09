@@ -11,7 +11,7 @@ const (
 func (d DbType) String() string {
 	return [...]string{
 		"postgres",
-		"sqlit",
+		"sqlite",
 		"mysql",
 	}[d]
 }
