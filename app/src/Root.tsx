@@ -9,8 +9,11 @@ export default function Root() {
 	const { token, loading, config } = useAuthorizer();
 
 	useEffect(() => {
-		if (token && config.redirectURL !== window.location.toString()) {
-			window.location.href = config.redirectURL;
+		if (token) {
+			const url = new URL(config.redirectURL);
+			if (url.origin !== window.location.origin) {
+				window.location.href = config.redirectURL;
+			}
 		}
 		return () => {};
 	}, [token]);
