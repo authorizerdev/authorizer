@@ -18,13 +18,13 @@ func ResetPassword(ctx context.Context, params model.ResetPasswordInput) (*model
 		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
 	}
 
-	if params.Password != params.ConfirmPassword {
-		return res, fmt.Errorf(`passwords don't match`)
-	}
-
 	_, err := db.Mgr.GetVerificationByToken(params.Token)
 	if err != nil {
 		return res, fmt.Errorf(`invalid token`)
+	}
+
+	if params.Password != params.ConfirmPassword {
+		return res, fmt.Errorf(`passwords don't match`)
 	}
 
 	// verify if token exists in db

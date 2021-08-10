@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -63,7 +62,9 @@ func processGoogleUserInfo(code string, c *gin.Context) error {
 	}
 
 	user, _ = db.Mgr.SaveUser(user)
+	user, _ = db.Mgr.GetUserByEmail(user.Email)
 	userIdStr := fmt.Sprintf("%v", user.ID)
+
 	refreshToken, _, _ := utils.CreateAuthToken(utils.UserAuthInfo{
 		ID:    userIdStr,
 		Email: user.Email,
@@ -139,6 +140,7 @@ func processGithubUserInfo(code string, c *gin.Context) error {
 	}
 
 	user, _ = db.Mgr.SaveUser(user)
+	user, _ = db.Mgr.GetUserByEmail(user.Email)
 	userIdStr := fmt.Sprintf("%v", user.ID)
 	refreshToken, _, _ := utils.CreateAuthToken(utils.UserAuthInfo{
 		ID:    userIdStr,
@@ -156,17 +158,16 @@ func processGithubUserInfo(code string, c *gin.Context) error {
 
 func OAuthCallbackHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		log.Println("url:", c.Request.URL)
 		provider := c.Param("oauth_provider")
 		state := c.Request.FormValue("state")
-		log.Println("session state", state)
+
 		sessionState := session.GetToken(state)
 		if sessionState == "" {
 			c.JSON(400, gin.H{"error": "invalid oauth state"})
 		}
 		session.DeleteToken(sessionState)
 		sessionSplit := strings.Split(state, "___")
-		log.Println(sessionSplit)
+
 		// TODO validate redirect url
 		if len(sessionSplit) != 2 {
 			c.JSON(400, gin.H{"error": "invalid redirect url"})
