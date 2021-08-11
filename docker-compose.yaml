@@ -1,20 +1,8 @@
-version: "3.9" 
+version: '3.9'
 services:
- db:
-  image: postgres
-  volumes:
-   - ./data/db:/var/lib/postgresql/data
-  environment:
-   - POSTGRES_DB=postgres
-   - POSTGRES_USER=postgres
-   - POSTGRES_PASSWORD=postgres
-  ports:
-   - 5432:5432
- authorizer:
-  image: lakhansamani/authorizer:0.1.0-beta.0
-  ports:
-   - 8080:8080
-  depends_on:
-   - db
-  env_file:
-   - .env
+  authorizer:
+    build: .
+    ports:
+      - 8080:8080
+    env_file:
+      - .env
