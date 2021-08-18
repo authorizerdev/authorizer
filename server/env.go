@@ -17,7 +17,8 @@ var Version string
 func ParseArgs() {
 	dbURL := flag.String("database_url", "", "Database connection string")
 	dbType := flag.String("databse_type", "", "Database type, possible values are postgres,mysql,sqlit")
-	authorizerURL := flag.String("AUTHORIZER_URL", "", "URL for authorizer instance, eg: https://xyz.herokuapp.com")
+	authorizerURL := flag.String("authorizer_url", "", "URL for authorizer instance, eg: https://xyz.herokuapp.com")
+
 	flag.Parse()
 	if *dbURL != "" {
 		constants.DATABASE_URL = *dbURL
@@ -34,7 +35,13 @@ func ParseArgs() {
 
 // InitEnv -> to initialize env and through error if required env are not present
 func InitEnv() {
-	err := godotenv.Load()
+	envPath := `.env`
+	envFile := flag.String("env_file", "", "Env file path")
+	flag.Parse()
+	if *envFile != "" {
+		envPath = *envFile
+	}
+	err := godotenv.Load(envPath)
 	if err != nil {
 		log.Println("Error loading .env file")
 	}
