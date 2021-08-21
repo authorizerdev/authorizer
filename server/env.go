@@ -16,7 +16,7 @@ var Version string
 // ParseArgs -> to parse the cli flag and get db url. This is useful with heroku button
 func ParseArgs() {
 	dbURL := flag.String("database_url", "", "Database connection string")
-	dbType := flag.String("databse_type", "", "Database type, possible values are postgres,mysql,sqlit")
+	dbType := flag.String("databse_type", "", "Database type, possible values are postgres,mysql,sqlite")
 	authorizerURL := flag.String("authorizer_url", "", "URL for authorizer instance, eg: https://xyz.herokuapp.com")
 
 	flag.Parse()
@@ -71,7 +71,6 @@ func InitEnv() {
 	constants.TWITTER_CLIENT_ID = os.Getenv("TWITTER_CLIENT_ID")
 	constants.TWITTER_CLIENT_SECRET = os.Getenv("TWITTER_CLIENT_SECRET")
 	constants.RESET_PASSWORD_URL = strings.TrimPrefix(os.Getenv("RESET_PASSWORD_URL"), "/")
-	constants.VERIFY_EMAIL_URI = strings.TrimPrefix(os.Getenv("VERIFY_EMAIL_URI"), "/")
 	constants.DISABLE_BASIC_AUTHENTICATION = os.Getenv("DISABLE_BASIC_AUTHENTICATION")
 	constants.DISABLE_EMAIL_VERIFICATION = os.Getenv("DISABLE_EMAIL_VERIFICATION")
 
