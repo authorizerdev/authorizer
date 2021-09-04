@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -82,7 +83,7 @@ func processGoogleUserInfo(code string, c *gin.Context) error {
 func processGithubUserInfo(code string, c *gin.Context) error {
 	token, err := oauth.OAuthProvider.GithubConfig.Exchange(oauth2.NoContext, code)
 	if err != nil {
-		return fmt.Errorf("invalid google exchange code: %s", err.Error())
+		return fmt.Errorf("invalid github exchange code: %s", err.Error())
 	}
 	client := http.Client{}
 	req, err := http.NewRequest("GET", constants.GithubUserInfoURL, nil)
@@ -101,7 +102,7 @@ func processGithubUserInfo(code string, c *gin.Context) error {
 	defer response.Body.Close()
 	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return fmt.Errorf("failed to read google response body: %s", err.Error())
+		return fmt.Errorf("failed to read github response body: %s", err.Error())
 	}
 
 	userRawData := make(map[string]string)
@@ -124,6 +125,77 @@ func processGithubUserInfo(code string, c *gin.Context) error {
 		Email:           userRawData["email"],
 		EmailVerifiedAt: time.Now().Unix(),
 	}
+	if err != nil {
+		// user not registered, register user and generate session token
+		user.SignupMethod = enum.Github.String()
+	} else {
+		// user exists in db, check if method was google
+		// if not append google to existing signup method and save it
+
+		signupMethod := existingUser.SignupMethod
+		if !strings.Contains(signupMethod, enum.Github.String()) {
+			signupMethod = signupMethod + "," + enum.Github.String()
+		}
+		user.SignupMethod = signupMethod
+		user.Password = existingUser.Password
+	}
+
+	user, _ = db.Mgr.SaveUser(user)
+	user, _ = db.Mgr.GetUserByEmail(user.Email)
+	userIdStr := fmt.Sprintf("%v", user.ID)
+	refreshToken, _, _ := utils.CreateAuthToken(utils.UserAuthInfo{
+		ID:    userIdStr,
+		Email: user.Email,
+	}, enum.RefreshToken)
+
+	accessToken, _, _ := utils.CreateAuthToken(utils.UserAuthInfo{
+		ID:    userIdStr,
+		Email: user.Email,
+	}, enum.AccessToken)
+	utils.SetCookie(c, accessToken)
+	session.SetToken(userIdStr, refreshToken)
+	return nil
+}
+
+func processFacebookUserInfo(code string, c *gin.Context) error {
+	token, err := oauth.OAuthProvider.FacebookConfig.Exchange(oauth2.NoContext, code)
+	if err != nil {
+		return fmt.Errorf("invalid facebook exchange code: %s", err.Error())
+	}
+	client := http.Client{}
+	req, err := http.NewRequest("GET", constants.FacebookUserInfoURL+token.AccessToken, nil)
+	if err != nil {
+		return fmt.Errorf("error creating facebook user info request: %s", err.Error())
+	}
+
+	response, err := client.Do(req)
+	if err != nil {
+		log.Println("err:", err)
+		return err
+	}
+
+	defer response.Body.Close()
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read facebook response body: %s", err.Error())
+	}
+
+	userRawData := make(map[string]interface{})
+	json.Unmarshal(body, &userRawData)
+
+	email := fmt.Sprintf("%v", userRawData["email"])
+	existingUser, err := db.Mgr.GetUserByEmail(email)
+
+	picObject := userRawData["picture"].(map[string]interface{})["data"]
+	picDataObject := picObject.(map[string]interface{})
+	user := db.User{
+		FirstName:       fmt.Sprintf("%v", userRawData["first_name"]),
+		LastName:        fmt.Sprintf("%v", userRawData["last_name"]),
+		Image:           fmt.Sprintf("%v", picDataObject["url"]),
+		Email:           email,
+		EmailVerifiedAt: time.Now().Unix(),
+	}
+
 	if err != nil {
 		// user not registered, register user and generate session token
 		user.SignupMethod = enum.Github.String()
@@ -181,6 +253,8 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			err = processGoogleUserInfo(code, c)
 		case enum.Github.String():
 			err = processGithubUserInfo(code, c)
+		case enum.Facebook.String():
+			err = processFacebookUserInfo(code, c)
 		default:
 			err = fmt.Errorf(`invalid oauth provider`)
 		}

@@ -41,6 +41,11 @@ func OAuthLoginHandler() gin.HandlerFunc {
 			oauth.OAuthProvider.GithubConfig.RedirectURL = constants.AUTHORIZER_URL + "/oauth_callback/github"
 			url := oauth.OAuthProvider.GithubConfig.AuthCodeURL(oauthStateString)
 			c.Redirect(http.StatusTemporaryRedirect, url)
+		case enum.Facebook.String():
+			session.SetToken(oauthStateString, enum.Github.String())
+			oauth.OAuthProvider.FacebookConfig.RedirectURL = constants.AUTHORIZER_URL + "/oauth_callback/facebook"
+			url := oauth.OAuthProvider.FacebookConfig.AuthCodeURL(oauthStateString)
+			c.Redirect(http.StatusTemporaryRedirect, url)
 		default:
 			c.JSON(422, gin.H{
 				"message": "Invalid oauth provider",
