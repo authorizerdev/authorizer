@@ -5,3 +5,4 @@ app/node_modules
 build
 .env
 data.db
+.DS_Store
