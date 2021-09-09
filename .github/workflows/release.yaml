@@ -22,4 +22,4 @@ jobs:
           goos: ${{ matrix.goos }}
           goarch: ${{ matrix.goarch }}
           build_command: make clean && make
-          extra_files: app build
+          extra_files: .env.sample app build 
