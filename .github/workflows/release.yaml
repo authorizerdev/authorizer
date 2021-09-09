@@ -4,16 +4,17 @@ on:
 
 jobs:
   releases-matrix:
-    name: Release Go Binary
+    name: Release Authorizer Binary
     runs-on: ubuntu-latest
     strategy:
       matrix:
         # build and publish in parallel: linux/386, linux/amd64, windows/386, windows/amd64, darwin/amd64
         goos: [linux, windows, darwin]
-        goarch: ['386', amd64]
-        exclude:
-          - goarch: '386'
-            goos: darwin
+        goarch: amd64
+        # goarch: ['386', amd64]
+        # exclude:
+        #   - goarch: '386'
+        #     goos: darwin
     steps:
       - uses: actions/checkout@v2
       - uses: wangyoucao577/go-release-action@v1.20
@@ -22,4 +23,4 @@ jobs:
           goos: ${{ matrix.goos }}
           goarch: ${{ matrix.goarch }}
           build_command: make clean && make
-          extra_files: .env.sample app build 
+          extra_files: .env.sample app build
