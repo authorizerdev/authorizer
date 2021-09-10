@@ -9,7 +9,7 @@ jobs:
     strategy:
       matrix:
         # build and publish in parallel: linux/386, linux/amd64, windows/386, windows/amd64, darwin/amd64
-        goos: [linux]
+        goos: [linux, windows, darwin]
         goarch: [amd64]
         # goarch: ['386', amd64]
         # exclude:
@@ -17,10 +17,15 @@ jobs:
         #     goos: darwin
     steps:
       - uses: actions/checkout@v2
+      - name: Set VERSION env
+        run: echo VERSION=$(basename ${GITHUB_REF}) >> ${GITHUB_ENV}
+      - name: Set CGO env
+        run: echo "CGO_ENABLED=1" >> $GITHUB_ENV
       - uses: wangyoucao577/go-release-action@v1.20
         with:
           github_token: ${{ secrets.RELEASE_TOKEN }}
           goos: ${{ matrix.goos }}
           goarch: ${{ matrix.goarch }}
           build_command: make clean && make
-          extra_files: .env.sample app build
+          md5sum: FALSE
+          extra_files: .env.sample app build template
