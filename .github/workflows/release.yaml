@@ -17,6 +17,8 @@ jobs:
         #     goos: darwin
     steps:
       - uses: actions/checkout@v2
+      - name: Install xmllint
+        run: sudo apt-get install gcc-multilib gcc-mingw-w64 libpango1.0
       - name: Set VERSION env
         run: echo VERSION=$(basename ${GITHUB_REF}) >> ${GITHUB_ENV}
       - name: Set CGO env
