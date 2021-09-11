@@ -33,8 +33,6 @@ jobs:
         run: go version
       - name: Set VERSION env
         run: echo VERSION=$(basename ${GITHUB_REF}) >> ${GITHUB_ENV}
-      - name: Create build
-        run: make clean && make
       - name: Package files for windows
         run: |
           make clean && CGO_ENABLED=1 GOOS=windows CC=/usr/bin/x86_64-w64-mingw32-gcc make
