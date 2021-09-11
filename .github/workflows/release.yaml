@@ -22,8 +22,8 @@ jobs:
           export PATH=$PATH:/usr/local/go/bin && \
           wget --no-check-certificate --progress=dot:mega https://github.com/wangyoucao577/assets-uploader/releases/download/v0.3.0/github-assets-uploader-v0.3.0-linux-amd64.tar.gz -O github-assets-uploader.tar.gz && \
           tar -zxf github-assets-uploader.tar.gz && \
-          mv github-assets-uploader /usr/sbin/ && \
-          rm -f github-assets-uploader.tar.gz && \
+          sudo mv github-assets-uploader /usr/sbin/ && \
+          sudo rm -f github-assets-uploader.tar.gz && \
           github-assets-uploader -version
       - name: Print Go Version
         run: go version
