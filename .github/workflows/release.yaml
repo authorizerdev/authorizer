@@ -26,6 +26,8 @@ jobs:
           sudo mv github-assets-uploader /usr/sbin/ && \
           sudo rm -f github-assets-uploader.tar.gz && \
           github-assets-uploader -version
+      - name: Print Go paths
+        run: whereis go
       - name: Print Go Version
         run: go version
       - name: Install windows dependencies
@@ -43,7 +45,7 @@ jobs:
         if: ${{ matrix.goos == 'windows'}}
         run: echo CC=/usr/bin/x86_64-w64-mingw32-gcc >> ${GITHUB_ENV}
       - name: Create build
-        run: make clean && make build
+        run: make clean && make
       - name: Package files
         if: ${{ matrix.goos == 'windows'}}
         run: |
