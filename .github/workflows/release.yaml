@@ -9,7 +9,7 @@ jobs:
     strategy:
       matrix:
         # build and publish in parallel: linux/386, linux/amd64, windows/386, windows/amd64, darwin/amd64
-        goos: [linux, windows]
+        goos: [darwin]
         goarch: [amd64]
         # goarch: ['386', amd64]
         # exclude:
@@ -18,11 +18,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install xmllint
-        run: sudo apt-get install gcc-multilib gcc-mingw-w64 libpango1.0
+        run: sudo apt-get install build-essential
       - name: Set VERSION env
         run: echo VERSION=$(basename ${GITHUB_REF}) >> ${GITHUB_ENV}
-      - name: Set CGO env
-        run: echo "CGO_ENABLED=1" >> $GITHUB_ENV
       - uses: wangyoucao577/go-release-action@v1.20
         with:
           github_token: ${{ secrets.RELEASE_TOKEN }}
