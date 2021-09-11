@@ -6,3 +6,5 @@ build
 .env
 data.db
 .DS_Store
+.env.local
+*.tar.gz
