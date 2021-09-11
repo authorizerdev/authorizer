@@ -16,6 +16,7 @@ jobs:
         run: |
           sudo apt-get install build-essential wget zip && \
           wget https://golang.org/dl/go1.17.1.linux-amd64.tar.gz && \
+          sudo rm -rf /usr/local/go && \
           sudo tar -C /usr/local -xzf go1.17.1.linux-amd64.tar.gz && \
           echo PATH=$PATH:/usr/local/go/bin >> ~/.bashrc && \
           source ~/.bashrc && \
@@ -35,7 +36,7 @@ jobs:
       - name: Echo Version
         run: echo ${VERSION}
       - name: Set CGO_ENABLED env
-        run: echo CGO_ENABLED=1 >> ${GITHUB_ENV} && echo GOOS=${matrix.goos} >> ${GITHUB_ENV}
+        run: echo CGO_ENABLED=1 >> ${GITHUB_ENV} && echo GOOS=${{matrix.goos}} >> ${GITHUB_ENV}
       - name: CAT ENV
         run: cat ${GITHUB_ENV}
       - name: Set Windows C Compiler GO env
@@ -47,8 +48,8 @@ jobs:
         if: ${{ matrix.goos == 'windows'}}
         run: |
           mv .env.sample .env && \
-          zip -vr authorizer-${VERSION}-windows-${matrix.goarch}.zip .env app build template && \
-          github-assets-uploader -f authorizer-${VERSION}-windows-${matrix.goarch}.zip -mediatype application/zip -repo authorizerdev/authorizer -token ${secrets.RELEASE_TOKEN} -tag ${VERSION}
+          zip -vr authorizer-${VERSION}-windows-${{matrix.goarch}}.zip .env app build template && \
+          github-assets-uploader -f authorizer-${VERSION}-windows-${{matrix.goarch}}.zip -mediatype application/zip -repo authorizerdev/authorizer -token ${{secrets.RELEASE_TOKEN}} -tag ${VERSION}
 
       # - uses: wangyoucao577/go-release-action@v1.20
       #   with:
