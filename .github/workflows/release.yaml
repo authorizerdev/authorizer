@@ -35,9 +35,9 @@ jobs:
       - name: Echo Version
         run: echo ${VERSION}
       - name: Set CGO_ENABLED env
-        run: echo CGO_ENABLED=1 >> ${GITHUB_ENV}
-      - name: Set GOOS env
-        env: GOOS=${{matrix.goos}}
+        run: echo CGO_ENABLED=1 >> ${GITHUB_ENV} && echo GOOS=${matrix.goos} >> ${GITHUB_ENV}
+      - name: CAT ENV
+        run: cat ${GITHUB_ENV}
       - name: Set Windows C Compiler GO env
         if: ${{ matrix.goos == 'windows'}}
         run: echo CC=/usr/bin/x86_64-w64-mingw32-gcc >> ${GITHUB_ENV}
