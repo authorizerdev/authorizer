@@ -13,12 +13,11 @@ jobs:
           sudo apt-get install build-essential wget zip gcc-mingw-w64 && \
           sudo apt-get remove --auto-remove golang-go && \
           sudo rm -rf /usr/bin/go &&\
-          sudo rm -rf /usr/local/go && \
           wget --progress=dot:mega https://golang.org/dl/go1.17.1.linux-amd64.tar.gz -O go-linux.tar.gz && \
           sudo tar -zxf go-linux.tar.gz && \
-          sudo mv go /usr/local/ && \
+          sudo mv go /usr/bin/ && \
           sudo mkdir -p /go/bin /go/src /go/pkg && \
-          export GO_HOME=/usr/local/go && \
+          export GO_HOME=/usr/bin/go && \
           export GOPATH=/go && \
           export PATH=${GOPATH}/bin:${GO_HOME}/bin/:$PATH && \
           go version && \
