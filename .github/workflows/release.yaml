@@ -20,6 +20,7 @@ jobs:
           export GO_HOME=/usr/bin/go && \
           export GOPATH=/go && \
           export PATH=${GOPATH}/bin:${GO_HOME}/bin/:$PATH && \
+          echo "/usr/bin/go/bin" >> $GITHUB_PATH
           go version && \
           wget --no-check-certificate --progress=dot:mega https://github.com/wangyoucao577/assets-uploader/releases/download/v0.3.0/github-assets-uploader-v0.3.0-linux-amd64.tar.gz -O github-assets-uploader.tar.gz && \
           tar -zxf github-assets-uploader.tar.gz && \
