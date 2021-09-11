@@ -13,22 +13,48 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install dependencies
-        run: sudo apt-get install build-essential
+        run: |
+          sudo apt-get install build-essential wget zip && \
+          wget https://golang.org/dl/go1.17.1.linux-amd64.tar.gz && \
+          sudo tar -C /usr/local -xzf go1.17.1.linux-amd64.tar.gz && \
+          echo PATH=$PATH:/usr/local/go/bin >> ~/.bashrc && \
+          source ~/.bashrc && \
+          export PATH=$PATH:/usr/local/go/bin && \
+          wget --no-check-certificate --progress=dot:mega https://github.com/wangyoucao577/assets-uploader/releases/download/v0.3.0/github-assets-uploader-v0.3.0-linux-amd64.tar.gz -O github-assets-uploader.tar.gz && \
+          tar -zxf github-assets-uploader.tar.gz && \
+          mv github-assets-uploader /usr/sbin/ && \
+          rm -f github-assets-uploader.tar.gz && \
+          github-assets-uploader -version
+      - name: Print Go Version
+        run: go version
       - name: Install windows dependencies
         if: ${{ matrix.goos == 'windows'}}
         run: sudo apt-get install gcc-mingw-w64
       - name: Set VERSION env
         run: echo VERSION=$(basename ${GITHUB_REF}) >> ${GITHUB_ENV}
-      - name: Set GO_ENABLED env
+      - name: Echo Version
+        run: echo ${VERSION}
+      - name: Set CGO_ENABLED env
         run: echo CGO_ENABLED=1 >> ${GITHUB_ENV}
+      - name: Set GOOS env
+        env: GOOS=${{matrix.goos}}
       - name: Set Windows C Compiler GO env
         if: ${{ matrix.goos == 'windows'}}
         run: echo CC=/usr/bin/x86_64-w64-mingw32-gcc >> ${GITHUB_ENV}
-      - uses: wangyoucao577/go-release-action@v1.20
-        with:
-          github_token: ${{ secrets.RELEASE_TOKEN }}
-          goos: ${{ matrix.goos }}
-          goarch: ${{ matrix.goarch }}
-          build_command: make clean && make
-          md5sum: FALSE
-          extra_files: .env.sample app build template
+      - name: Create build
+        run: make clean && make build
+      - name: Package files
+        if: ${{ matrix.goos == 'windows'}}
+        run: |
+          mv .env.sample .env && \
+          zip -vr authorizer-${VERSION}-windows-${matrix.goarch}.zip .env app build template && \
+          github-assets-uploader -f authorizer-${VERSION}-windows-${matrix.goarch}.zip -mediatype application/zip -repo authorizerdev/authorizer -token ${secrets.RELEASE_TOKEN} -tag ${VERSION}
+
+      # - uses: wangyoucao577/go-release-action@v1.20
+      #   with:
+      #     github_token: ${{ secrets.RELEASE_TOKEN }}
+      #     goos: ${{ matrix.goos }}
+      #     goarch: ${{ matrix.goarch }}
+      #     build_command: make clean && make
+      #     md5sum: FALSE
+      #     extra_files: .env.sample app build template
