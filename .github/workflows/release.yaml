@@ -8,49 +8,16 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        # build and publish in parallel: linux/386, linux/amd64, windows/386, windows/amd64, darwin/amd64
         goos: [windows]
         goarch: [amd64]
-        # goarch: ['386', amd64]
-        # exclude:
-        #   - goarch: '386'
-        #     goos: darwin
     steps:
       - uses: actions/checkout@v2
       - name: Install dependencies
-        run: sudo apt-get install build-essential gcc_mingw64
+        run: sudo apt-get install build-essential mingw-w64
       - name: Set VERSION env
         run: echo VERSION=$(basename ${GITHUB_REF}) >> ${GITHUB_ENV}
       - name: Set GO env
         run: echo CGO_ENABLED=1 >> ${GITHUB_ENV} && echo CC=x86_64-w64-mingw32-gcc >> ${GITHUB_ENV}
-      - uses: wangyoucao577/go-release-action@v1.20
-        with:
-          github_token: ${{ secrets.RELEASE_TOKEN }}
-          goos: ${{ matrix.goos }}
-          goarch: ${{ matrix.goarch }}
-          build_command: make clean && make
-          md5sum: FALSE
-          extra_files: .env.sample app build template
-  releases-darwin:
-    name: Release Authorizer Binary
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        # build and publish in parallel: linux/386, linux/amd64, windows/386, windows/amd64, darwin/amd64
-        goos: [darwin]
-        goarch: [amd64]
-        # goarch: ['386', amd64]
-        # exclude:
-        #   - goarch: '386'
-        #     goos: darwin
-    steps:
-      - uses: actions/checkout@v2
-      - name: Install dependencies
-        run: sudo apt-get install build-essential gcc g++ zlib1g-dev libmpc-dev libmpfr-dev libgmp-dev
-      - name: Set VERSION env
-        run: echo VERSION=$(basename ${GITHUB_REF}) >> ${GITHUB_ENV}
-      - name: Set GO env
-        run: echo CGO_ENABLED=1 >> ${GITHUB_ENV} && echo CC=o64-clang >> ${GITHUB_ENV}
       - uses: wangyoucao577/go-release-action@v1.20
         with:
           github_token: ${{ secrets.RELEASE_TOKEN }}
