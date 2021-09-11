@@ -1,7 +1,7 @@
 VERSION="$1"
-# make clean && CGO_ENABLED=1 make
+make clean && CGO_ENABLED=1 make
 FILE_NAME=authorizer-${VERSION}-darwin-amd64.tar.gz
-# tar cvfz ${FILE_NAME} .env app build templates
+tar cvfz ${FILE_NAME} .env app build templates
 AUTH="Authorization: token $GITHUB_TOKEN"
 RELASE_INFO=$(curl -sH "$AUTH" https://api.github.com/repos/authorizerdev/authorizer/releases/tags/${VERSION})
 echo $RELASE_INFO
