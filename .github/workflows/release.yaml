@@ -3,7 +3,7 @@ on:
     types: [created]
 
 jobs:
-  - releases-windows:
+  releases-windows:
     name: Release Authorizer Binary
     runs-on: ubuntu-latest
     strategy:
@@ -22,9 +22,7 @@ jobs:
       - name: Set VERSION env
         run: echo VERSION=$(basename ${GITHUB_REF}) >> ${GITHUB_ENV}
       - name: Set GO env
-        env:
-          - CGO_ENABLED=1
-          - CC=x86_64-w64-mingw32-gcc
+        run: echo CGO_ENABLED=1 >> ${GITHUB_ENV} && echo CC=x86_64-w64-mingw32-gcc >> ${GITHUB_ENV}
       - uses: wangyoucao577/go-release-action@v1.20
         with:
           github_token: ${{ secrets.RELEASE_TOKEN }}
@@ -33,7 +31,7 @@ jobs:
           build_command: make clean && make
           md5sum: FALSE
           extra_files: .env.sample app build template
-  - releases-darwin:
+  releases-darwin:
     name: Release Authorizer Binary
     runs-on: ubuntu-latest
     strategy:
@@ -52,9 +50,7 @@ jobs:
       - name: Set VERSION env
         run: echo VERSION=$(basename ${GITHUB_REF}) >> ${GITHUB_ENV}
       - name: Set GO env
-        env:
-          - CGO_ENABLED=1
-          - CC=o64-clang
+        run: echo CGO_ENABLED=1 >> ${GITHUB_ENV} && echo CC=o64-clang >> ${GITHUB_ENV}
       - uses: wangyoucao577/go-release-action@v1.20
         with:
           github_token: ${{ secrets.RELEASE_TOKEN }}
