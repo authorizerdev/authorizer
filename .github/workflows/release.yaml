@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        goos: [windows]
+        goos: [linux, windows]
         goarch: [amd64]
     steps:
       - uses: actions/checkout@v2
@@ -16,8 +16,11 @@ jobs:
         run: sudo apt-get install build-essential mingw-w64
       - name: Set VERSION env
         run: echo VERSION=$(basename ${GITHUB_REF}) >> ${GITHUB_ENV}
-      - name: Set GO env
-        run: echo CGO_ENABLED=1 >> ${GITHUB_ENV} && echo CC=x86_64-w64-mingw32-gcc >> ${GITHUB_ENV}
+      - name: Set GO_ENABLED env
+        run: echo CGO_ENABLED=1 >> ${GITHUB_ENV}
+      - name: Set Windows C Compiler GO env
+        if: ${{ matrix.goos == 'windows'}}
+        run: echo CC=x86_64-w64-mingw32-gcc >> ${GITHUB_ENV}
       - uses: wangyoucao577/go-release-action@v1.20
         with:
           github_token: ${{ secrets.RELEASE_TOKEN }}
