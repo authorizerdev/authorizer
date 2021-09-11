@@ -11,14 +11,16 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get install build-essential wget zip gcc-mingw-w64 && \
-          wget https://golang.org/dl/go1.17.1.linux-amd64.tar.gz && \
           sudo apt-get remove --auto-remove golang-go && \
           sudo rm -rf /usr/bin/go &&\
           sudo rm -rf /usr/local/go && \
-          sudo tar -C /usr/local -xzf go1.17.1.linux-amd64.tar.gz && \
-          echo PATH=$PATH:/usr/local/go/bin >> ~/.bashrc && \
-          source ~/.bashrc && \
-          export PATH=$PATH:/usr/local/go/bin && \
+          wget --progress=dot:mega https://golang.org/dl/go1.17.1.linux-amd64.tar.gz -O go-linux.tar.gz && \
+          sudo tar -zxf go-linux.tar.gz && \
+          sudo mv go /usr/local/ && \
+          sudo mkdir -p /go/bin /go/src /go/pkg && \
+          export GO_HOME=/usr/local/go && \
+          export GOPATH=/go && \
+          export PATH=${GOPATH}/bin:${GO_HOME}/bin/:$PATH && \
           wget --no-check-certificate --progress=dot:mega https://github.com/wangyoucao577/assets-uploader/releases/download/v0.3.0/github-assets-uploader-v0.3.0-linux-amd64.tar.gz -O github-assets-uploader.tar.gz && \
           tar -zxf github-assets-uploader.tar.gz && \
           sudo mv github-assets-uploader /usr/sbin/ && \
