@@ -39,6 +39,7 @@ jobs:
       - name: Package files for windows
         run: |
           make clean && CGO_ENABLED=1 GOOS=windows CC=/usr/bin/x86_64-w64-mingw32-gcc make
+          mv build/server build/server.exe
           zip -vr authorizer-${VERSION}-windows-amd64.zip .env app build templates
       - name: Package files for linux
         run: |
