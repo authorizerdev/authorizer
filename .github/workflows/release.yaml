@@ -38,12 +38,14 @@ jobs:
         run: mv .env.sample .env
       - name: Package files for windows
         run: |
-          make clean && CGO_ENABLED=1 GOOS=windows CC=/usr/bin/x86_64-w64-mingw32-gcc make
-          mv build/server build/server.exe
+          make clean && \
+          CGO_ENABLED=1 GOOS=windows CC=/usr/bin/x86_64-w64-mingw32-gcc make && \
+          mv build/server build/server.exe && \
           zip -vr authorizer-${VERSION}-windows-amd64.zip .env app build templates
       - name: Package files for linux
         run: |
-          make clean && CGO_ENABLED=1 make
+          make clean && \
+          CGO_ENABLED=1 make && \
           tar cvfz authorizer-${VERSION}-linux-amd64.tar.gz .env app build templates
       - name: Upload assets
         run: |
