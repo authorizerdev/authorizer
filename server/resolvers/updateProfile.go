@@ -39,7 +39,7 @@ func UpdateProfile(ctx context.Context, params model.UpdateProfileInput) (*model
 	}
 
 	// validate if all params are not empty
-	if params.FirstName == nil && params.LastName == nil && params.Image == nil && params.OldPassword == nil && params.Email == nil {
+	if params.FirstName == nil && params.LastName == nil && params.Image == nil && params.OldPassword == nil && params.Email == nil && params.Roles != nil {
 		return res, fmt.Errorf("please enter atleast one param to update")
 	}
 
@@ -120,7 +120,22 @@ func UpdateProfile(ctx context.Context, params model.UpdateProfileInput) (*model
 		go func() {
 			utils.SendVerificationMail(newEmail, token)
 		}()
+	}
 
+	rolesToSave := ""
+	if params.Roles != nil && len(params.Roles) > 0 {
+		currentRoles := strings.Split(user.Roles, ",")
+		inputRoles := []string{}
+		for _, item := range params.Roles {
+			inputRoles = append(inputRoles, *item)
+		}
+		if !utils.IsStringArrayEqual(inputRoles, currentRoles) && utils.IsValidRolesArray(params.Roles) {
+			rolesToSave = strings.Join(inputRoles, ",")
+		}
+	}
+
+	if rolesToSave != "" {
+		user.Roles = rolesToSave
 	}
 
 	_, err = db.Mgr.UpdateUser(user)

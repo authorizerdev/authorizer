@@ -35,7 +35,7 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 		return res, fmt.Errorf(`invalid email address`)
 	}
 
-	if len(params.Roles) > 0 {
+	if params.Roles != nil && len(params.Roles) > 0 {
 		// check if roles exists
 		if !utils.IsValidRolesArray(params.Roles) {
 			return res, fmt.Errorf(`invalid roles`)

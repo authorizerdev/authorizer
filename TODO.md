@@ -8,6 +8,7 @@ For the first version we will only support setting roles master list via env
   - [x] `ROLES` -> comma separated list of role names
   - [x] `DEFAULT_ROLE` -> default role to assign to users
 - [x] Add roles input for signup
+- [x] Add roles to update profile mutation
 - [ ] Add roles input for login
 - [ ] Return roles to user
 - [ ] Return roles in users list for super admin
