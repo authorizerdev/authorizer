@@ -67,7 +67,86 @@
 
 This guide helps you practice using Authorizer to evaluate it before you use it in a production environment. It includes instructions for installing the Authorizer server in standalone mode.
 
-## Installing a simple instance of Authorizer
+## Trying out locally using the code base
+
+### Prerequisites
+
+- OS: Linux or macOS or windows
+- Go: (Golang)(https://golang.org/dl/) >= v1.15
+
+### Familiarize yourself with Authorizer
+
+1. [Architecture of Authorizer](http://docs.authorizer.dev/)
+2. [GraphQL APIs](https://docs.authorizer.dev/core/graphql-api/)
+
+### Project Setup for Authorizer core
+
+1. Fork the [authorizer](https://github.com/authorizerdev/authorizer) repository (**Skip this step if you have access to repo**)
+2. `git clone https://github.com/authorizerdev/authorizer.git`
+3. `cd authorizer`
+4. `cp .env.sample .env`. Check all the supported env [here](https://docs.authorizer.dev/core/env/)
+5. Build the code `make clean && make`
+   > Note: if you don't have [`make`](https://www.ibm.com/docs/en/aix/7.2?topic=concepts-make-command), you can `cd` into `server` dir and build using the `go build` command
+6. Run binary `./build/server`
+7.
+
+## Trying out locally using binaries
+
+Deploy / Try Authorizer using binaries. With each [Authorizer Release](https://github.com/authorizerdev/authorizer/releases)
+binaries are baked with required deployment files and bundled. You can download a specific version of it for the following operating systems:
+
+- Mac OSX
+- Linux
+- Windows
+
+
+### Step 1: Download and unzip bundle
+
+- Download the Bundle for the specific OS from the [release page](https://github.com/authorizerdev/authorizer/releases)
+
+> Note: For windows, it includes `.zip` file. For Linux & MacOS, it includes `.tar.gz` file.
+
+- Unzip using following command
+
+  - Mac / Linux
+
+  ```sh
+  tar -zxf AUTHORIZER_VERSION -c authorizer
+  ```
+
+  - Windows
+
+  ```sh
+  unzip AUTHORIZER_VERSION
+  ```
+
+- Change directory to `authorizer`
+
+  ```sh
+  cd authorizer
+  ```
+
+### Step 2: Configure environment variables
+
+Required environment variables are pre-configured in `.env` file. But based on the production requirements, please configure more environment variables. You can refer to [environment variables docs](/core/env) for more information.
+
+### Step 3: Start Authorizer
+
+- Run following command to start authorizer
+  - For Mac / Linux users
+
+  ```sh
+  ./build/server
+  ```
+  
+  - For windows
+  ```sh
+  ./build/server.exe
+  ```
+
+> Note: For mac users, you might have to give binary the permission to execute. Here is the command you can use to grant permission `xattr -d com.apple.quarantine build/server`
+
+## Installing a simple instance of Authorizer on Heroku
 
 Deploy Authorizer using [heroku](https://github.com/authorizerdev/authorizer-heroku) and quickly play with it in 30seconds
 <br/><br/>
