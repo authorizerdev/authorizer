@@ -7,10 +7,10 @@
   Authorizer
 </h1>
 
-
 **Authorizer** is an open-source authentication and authorization solution for your applications. Bring your database and have complete control over the user information. You can self-host authorizer instances and connect to any SQL database.
 
 ## Table of contents
+
 - [Introduction](#introduction)
 - [Getting Started](#getting-started)
 - [Contributing](https://github.com/authorizerdev/authorizer/blob/main/.github/CONTRIBUTING.md)
@@ -65,9 +65,13 @@
 
 ## Trying out Authorizer
 
-This guide helps you practice using Authorizer to evaluate it before you use it in a production environment. It includes instructions for installing the Authorizer server in standalone mode.
+This guide helps you practice using Authorizer to evaluate it before you use it in a production environment. It includes instructions for installing the Authorizer server in local or standalone mode.
 
-## Trying out locally using the code base
+- [Install using source code](#install-using-source-code)
+- [Install using binaries](#install-using-binaries)
+- [Install instance on heroku](#install-instance-on-Heroku)
+
+## Install using source code
 
 ### Prerequisites
 
@@ -84,7 +88,7 @@ This guide helps you practice using Authorizer to evaluate it before you use it 
    > Note: if you don't have [`make`](https://www.ibm.com/docs/en/aix/7.2?topic=concepts-make-command), you can `cd` into `server` dir and build using the `go build` command
 6. Run binary `./build/server`
 
-## Trying out locally using binaries
+## Install using binaries
 
 Deploy / Try Authorizer using binaries. With each [Authorizer Release](https://github.com/authorizerdev/authorizer/releases)
 binaries are baked with required deployment files and bundled. You can download a specific version of it for the following operating systems:
@@ -92,7 +96,6 @@ binaries are baked with required deployment files and bundled. You can download 
 - Mac OSX
 - Linux
 - Windows
-
 
 ### Step 1: Download and unzip bundle
 
@@ -127,20 +130,22 @@ Required environment variables are pre-configured in `.env` file. But based on t
 ### Step 3: Start Authorizer
 
 - Run following command to start authorizer
+
   - For Mac / Linux users
 
   ```sh
   ./build/server
   ```
-  
+
   - For windows
+
   ```sh
   ./build/server.exe
   ```
 
 > Note: For mac users, you might have to give binary the permission to execute. Here is the command you can use to grant permission `xattr -d com.apple.quarantine build/server`
 
-## Installing a simple instance of Authorizer on Heroku
+## Install instance on Heroku
 
 Deploy Authorizer using [heroku](https://github.com/authorizerdev/authorizer-heroku) and quickly play with it in 30seconds
 <br/><br/>
@@ -165,30 +170,30 @@ This example demonstrates how you can use [`@authorizerdev/authorizer-js`](/auth
 <script src="https://unpkg.com/@authorizerdev/authorizer-js/lib/authorizer.min.js"></script>
 
 <script type="text/javascript">
-  const authorizerRef = new authorizerdev.Authorizer({
-    authorizerURL: `AUTHORIZER_URL`,
-    redirectURL: window.location.origin,
-  });
+	const authorizerRef = new authorizerdev.Authorizer({
+		authorizerURL: `AUTHORIZER_URL`,
+		redirectURL: window.location.origin,
+	});
 
-  // use the button selector as per your application
-  const logoutBtn = document.getElementById("logout");
-  logoutBtn.addEventListener("click", async function () {
-    await authorizerRef.logout();
-    window.location.href = "/";
-  });
+	// use the button selector as per your application
+	const logoutBtn = document.getElementById('logout');
+	logoutBtn.addEventListener('click', async function () {
+		await authorizerRef.logout();
+		window.location.href = '/';
+	});
 
-  async function onLoad() {
-    const res = await authorizerRef.fingertipLogin();
-    if (res && res.user) {
-      // you can use user information here, eg:
-      /**
+	async function onLoad() {
+		const res = await authorizerRef.fingertipLogin();
+		if (res && res.user) {
+			// you can use user information here, eg:
+			/**
       const userSection = document.getElementById('user');
       const logoutSection = document.getElementById('logout-section');
       logoutSection.classList.toggle('hide');
       userSection.innerHTML = `Welcome, ${res.user.email}`;
       */
-    }
-  }
-  onLoad();
+		}
+	}
+	onLoad();
 </script>
 ```
