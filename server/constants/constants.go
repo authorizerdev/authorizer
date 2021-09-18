@@ -23,6 +23,10 @@ var (
 	DISABLE_EMAIL_VERIFICATION   = "false"
 	DISABLE_BASIC_AUTHENTICATION = "false"
 
+	// ROLES
+	ROLES        = []string{}
+	DEFAULT_ROLE = ""
+
 	// OAuth login
 	GOOGLE_CLIENT_ID       = ""
 	GOOGLE_CLIENT_SECRET   = ""

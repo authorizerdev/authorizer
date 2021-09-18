@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/gin-gonic/gin"
 )
 
 func IsValidEmail(email string) bool {
@@ -28,4 +29,29 @@ func IsValidRedirectURL(url string) bool {
 	}
 
 	return hasValidURL
+}
+
+func IsSuperAdmin(gc *gin.Context) bool {
+	secret := gc.Request.Header.Get("x-authorizer-admin-secret")
+	if secret == "" {
+		return false
+	}
+
+	return secret == constants.ADMIN_SECRET
+}
+
+func IsValidRolesArray(roles []*string) bool {
+	valid := true
+	currentRoleMap := map[string]bool{}
+
+	for _, currentRole := range constants.ROLES {
+		currentRoleMap[currentRole] = true
+	}
+	for _, inputRole := range roles {
+		if !currentRoleMap[*inputRole] {
+			valid = false
+			break
+		}
+	}
+	return valid
 }

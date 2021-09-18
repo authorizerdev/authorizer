@@ -35,6 +35,15 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 		return res, fmt.Errorf(`invalid email address`)
 	}
 
+	if len(params.Roles) > 0 {
+		// check if roles exists
+		if !utils.IsValidRolesArray(params.Roles) {
+			return res, fmt.Errorf(`invalid roles`)
+		}
+	} else {
+		params.Roles = []*string{&constants.DEFAULT_ROLE}
+	}
+
 	// find user with email
 	existingUser, err := db.Mgr.GetUserByEmail(params.Email)
 	if err != nil {
@@ -48,6 +57,13 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 	user := db.User{
 		Email: params.Email,
 	}
+
+	roles := ""
+	for _, roleInput := range params.Roles {
+		roles += *roleInput + ","
+	}
+	roles = strings.TrimSuffix(roles, ",")
+	user.Roles = roles
 
 	password, _ := utils.HashPassword(params.Password)
 	user.Password = password
@@ -79,6 +95,7 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 		EmailVerifiedAt: &user.EmailVerifiedAt,
 		CreatedAt:       &user.CreatedAt,
 		UpdatedAt:       &user.UpdatedAt,
+		Roles:           params.Roles,
 	}
 
 	if constants.DISABLE_EMAIL_VERIFICATION != "true" {

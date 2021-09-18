@@ -97,6 +97,7 @@ type ComplexityRoot struct {
 		ID              func(childComplexity int) int
 		Image           func(childComplexity int) int
 		LastName        func(childComplexity int) int
+		Roles           func(childComplexity int) int
 		SignupMethod    func(childComplexity int) int
 		UpdatedAt       func(childComplexity int) int
 	}
@@ -431,6 +432,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.User.LastName(childComplexity), true
 
+	case "User.roles":
+		if e.complexity.User.Roles == nil {
+			break
+		}
+
+		return e.complexity.User.Roles(childComplexity), true
+
 	case "User.signupMethod":
 		if e.complexity.User.SignupMethod == nil {
 			break
@@ -583,6 +591,7 @@ type User {
 	image: String
 	createdAt: Int64
 	updatedAt: Int64
+	roles: [String]
 }
 
 type VerificationRequest {
@@ -618,11 +627,13 @@ input SignUpInput {
 	password: String!
 	confirmPassword: String!
 	image: String
+	roles: [String]
 }
 
 input LoginInput {
 	email: String!
 	password: String!
+	role: String
 }
 
 input VerifyEmailInput {
@@ -641,6 +652,7 @@ input UpdateProfileInput {
 	lastName: String
 	image: String
 	email: String
+	roles: [String]
 }
 
 input ForgotPasswordInput {
@@ -2249,6 +2261,38 @@ func (ec *executionContext) _User_updatedAt(ctx context.Context, field graphql.C
 	return ec.marshalOInt642ᚖint64(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _User_roles(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Roles, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*string)
+	fc.Result = res
+	return ec.marshalOString2ᚕᚖstring(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _VerificationRequest_id(ctx context.Context, field graphql.CollectedField, obj *model.VerificationRequest) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -3625,6 +3669,14 @@ func (ec *executionContext) unmarshalInputLoginInput(ctx context.Context, obj in
 			if err != nil {
 				return it, err
 			}
+		case "role":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("role"))
+			it.Role, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		}
 	}
 
@@ -3741,6 +3793,14 @@ func (ec *executionContext) unmarshalInputSignUpInput(ctx context.Context, obj i
 			if err != nil {
 				return it, err
 			}
+		case "roles":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("roles"))
+			it.Roles, err = ec.unmarshalOString2ᚕᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		}
 	}
 
@@ -3806,6 +3866,14 @@ func (ec *executionContext) unmarshalInputUpdateProfileInput(ctx context.Context
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
 			it.Email, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "roles":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("roles"))
+			it.Roles, err = ec.unmarshalOString2ᚕᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4198,6 +4266,8 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			out.Values[i] = ec._User_createdAt(ctx, field, obj)
 		case "updatedAt":
 			out.Values[i] = ec._User_updatedAt(ctx, field, obj)
+		case "roles":
+			out.Values[i] = ec._User_roles(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -5000,6 +5070,42 @@ func (ec *executionContext) unmarshalOString2string(ctx context.Context, v inter
 
 func (ec *executionContext) marshalOString2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
 	return graphql.MarshalString(v)
+}
+
+func (ec *executionContext) unmarshalOString2ᚕᚖstring(ctx context.Context, v interface{}) ([]*string, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []interface{}
+	if v != nil {
+		if tmp1, ok := v.([]interface{}); ok {
+			vSlice = tmp1
+		} else {
+			vSlice = []interface{}{v}
+		}
+	}
+	var err error
+	res := make([]*string, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalOString2ᚖstring(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalOString2ᚕᚖstring(ctx context.Context, sel ast.SelectionSet, v []*string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalOString2ᚖstring(ctx, sel, v[i])
+	}
+
+	return ret
 }
 
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v interface{}) (*string, error) {

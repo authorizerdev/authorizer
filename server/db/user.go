@@ -17,6 +17,7 @@ type User struct {
 	CreatedAt       int64 `gorm:"autoCreateTime"`
 	UpdatedAt       int64 `gorm:"autoUpdateTime"`
 	Image           string
+	Roles           string
 }
 
 // SaveUser function to add user even with email conflict

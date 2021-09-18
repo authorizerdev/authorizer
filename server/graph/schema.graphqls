@@ -23,6 +23,7 @@ type User {
 	image: String
 	createdAt: Int64
 	updatedAt: Int64
+	roles: [String]
 }
 
 type VerificationRequest {
@@ -58,11 +59,13 @@ input SignUpInput {
 	password: String!
 	confirmPassword: String!
 	image: String
+	roles: [String]
 }
 
 input LoginInput {
 	email: String!
 	password: String!
+	role: String
 }
 
 input VerifyEmailInput {
@@ -81,6 +84,7 @@ input UpdateProfileInput {
 	lastName: String
 	image: String
 	email: String
+	roles: [String]
 }
 
 input ForgotPasswordInput {
