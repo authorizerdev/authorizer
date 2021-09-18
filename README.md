@@ -74,12 +74,7 @@ This guide helps you practice using Authorizer to evaluate it before you use it 
 - OS: Linux or macOS or windows
 - Go: (Golang)(https://golang.org/dl/) >= v1.15
 
-### Familiarize yourself with Authorizer
-
-1. [Architecture of Authorizer](http://docs.authorizer.dev/)
-2. [GraphQL APIs](https://docs.authorizer.dev/core/graphql-api/)
-
-### Project Setup for Authorizer core
+### Project Setup
 
 1. Fork the [authorizer](https://github.com/authorizerdev/authorizer) repository (**Skip this step if you have access to repo**)
 2. `git clone https://github.com/authorizerdev/authorizer.git`
@@ -88,7 +83,6 @@ This guide helps you practice using Authorizer to evaluate it before you use it 
 5. Build the code `make clean && make`
    > Note: if you don't have [`make`](https://www.ibm.com/docs/en/aix/7.2?topic=concepts-make-command), you can `cd` into `server` dir and build using the `go build` command
 6. Run binary `./build/server`
-7.
 
 ## Trying out locally using binaries
 
