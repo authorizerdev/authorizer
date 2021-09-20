@@ -61,9 +61,7 @@ func processGoogleUserInfo(code string, role string, c *gin.Context) error {
 		}
 		user.SignupMethod = signupMethod
 		user.Password = existingUser.Password
-		log.Println("=> checking roles...", utils.IsValidRole(strings.Split(existingUser.Roles, ","), role))
 		if !utils.IsValidRole(strings.Split(existingUser.Roles, ","), role) {
-			log.Println("=> invalid role from google oauth")
 			return fmt.Errorf("invalid role")
 		}
 

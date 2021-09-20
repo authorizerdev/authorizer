@@ -14,7 +14,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
-func Token(ctx context.Context) (*model.AuthResponse, error) {
+func Token(ctx context.Context, role *string) (*model.AuthResponse, error) {
 	var res *model.AuthResponse
 
 	gc, err := utils.GinContextFromContext(ctx)
@@ -29,10 +29,15 @@ func Token(ctx context.Context) (*model.AuthResponse, error) {
 	claim, accessTokenErr := utils.VerifyAuthToken(token)
 	expiresAt := claim["exp"].(int64)
 	email := fmt.Sprintf("%v", claim["email"])
-	role := fmt.Sprintf("%v", claim[constants.JWT_ROLE_CLAIM])
+
+	claimRole := fmt.Sprintf("%v", claim[constants.JWT_ROLE_CLAIM])
 	user, err := db.Mgr.GetUserByEmail(email)
 	if err != nil {
 		return res, err
+	}
+
+	if role != nil && role != &claimRole {
+		return res, fmt.Errorf(`unauthorized. invalid role for a given token`)
 	}
 
 	userIdStr := fmt.Sprintf("%v", user.ID)
@@ -49,7 +54,7 @@ func Token(ctx context.Context) (*model.AuthResponse, error) {
 	if accessTokenErr != nil || expiresTimeObj.Sub(currentTimeObj).Minutes() <= 5 {
 		// if access token has expired and refresh/session token is valid
 		// generate new accessToken
-		token, expiresAt, _ = utils.CreateAuthToken(user, enum.AccessToken, role)
+		token, expiresAt, _ = utils.CreateAuthToken(user, enum.AccessToken, claimRole)
 	}
 	utils.SetCookie(gc, token)
 	res = &model.AuthResponse{
