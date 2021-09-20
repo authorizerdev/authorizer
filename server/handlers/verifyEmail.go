@@ -50,15 +50,9 @@ func VerifyEmailHandler() gin.HandlerFunc {
 		db.Mgr.DeleteToken(claim.Email)
 
 		userIdStr := fmt.Sprintf("%v", user.ID)
-		refreshToken, _, _ := utils.CreateAuthToken(utils.UserAuthInfo{
-			ID:    userIdStr,
-			Email: user.Email,
-		}, enum.RefreshToken)
+		refreshToken, _, _ := utils.CreateAuthToken(user, enum.RefreshToken, user.Roles)
 
-		accessToken, _, _ := utils.CreateAuthToken(utils.UserAuthInfo{
-			ID:    userIdStr,
-			Email: user.Email,
-		}, enum.AccessToken)
+		accessToken, _, _ := utils.CreateAuthToken(user, enum.AccessToken, user.Roles)
 
 		session.SetToken(userIdStr, refreshToken)
 		utils.SetCookie(c, accessToken)

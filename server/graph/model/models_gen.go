@@ -23,8 +23,9 @@ type ForgotPasswordInput struct {
 }
 
 type LoginInput struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Email    string  `json:"email"`
+	Password string  `json:"password"`
+	Role     *string `json:"role"`
 }
 
 type Meta struct {
@@ -52,12 +53,13 @@ type Response struct {
 }
 
 type SignUpInput struct {
-	FirstName       *string `json:"firstName"`
-	LastName        *string `json:"lastName"`
-	Email           string  `json:"email"`
-	Password        string  `json:"password"`
-	ConfirmPassword string  `json:"confirmPassword"`
-	Image           *string `json:"image"`
+	FirstName       *string   `json:"firstName"`
+	LastName        *string   `json:"lastName"`
+	Email           string    `json:"email"`
+	Password        string    `json:"password"`
+	ConfirmPassword string    `json:"confirmPassword"`
+	Image           *string   `json:"image"`
+	Roles           []*string `json:"roles"`
 }
 
 type UpdateProfileInput struct {
@@ -71,15 +73,16 @@ type UpdateProfileInput struct {
 }
 
 type User struct {
-	ID              string  `json:"id"`
-	Email           string  `json:"email"`
-	SignupMethod    string  `json:"signupMethod"`
-	FirstName       *string `json:"firstName"`
-	LastName        *string `json:"lastName"`
-	EmailVerifiedAt *int64  `json:"emailVerifiedAt"`
-	Image           *string `json:"image"`
-	CreatedAt       *int64  `json:"createdAt"`
-	UpdatedAt       *int64  `json:"updatedAt"`
+	ID              string   `json:"id"`
+	Email           string   `json:"email"`
+	SignupMethod    string   `json:"signupMethod"`
+	FirstName       *string  `json:"firstName"`
+	LastName        *string  `json:"lastName"`
+	EmailVerifiedAt *int64   `json:"emailVerifiedAt"`
+	Image           *string  `json:"image"`
+	CreatedAt       *int64   `json:"createdAt"`
+	UpdatedAt       *int64   `json:"updatedAt"`
+	Roles           []string `json:"roles"`
 }
 
 type VerificationRequest struct {

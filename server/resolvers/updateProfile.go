@@ -32,7 +32,8 @@ func UpdateProfile(ctx context.Context, params model.UpdateProfileInput) (*model
 		return res, err
 	}
 
-	sessionToken := session.GetToken(claim.ID)
+	id := fmt.Sprintf("%v", claim["id"])
+	sessionToken := session.GetToken(id)
 
 	if sessionToken == "" {
 		return res, fmt.Errorf(`unauthorized`)
@@ -43,7 +44,8 @@ func UpdateProfile(ctx context.Context, params model.UpdateProfileInput) (*model
 		return res, fmt.Errorf("please enter atleast one param to update")
 	}
 
-	user, err := db.Mgr.GetUserByEmail(claim.Email)
+	email := fmt.Sprintf("%v", claim["email"])
+	user, err := db.Mgr.GetUserByEmail(email)
 	if err != nil {
 		return res, err
 	}
@@ -120,8 +122,32 @@ func UpdateProfile(ctx context.Context, params model.UpdateProfileInput) (*model
 		go func() {
 			utils.SendVerificationMail(newEmail, token)
 		}()
-
 	}
+
+	// TODO this idea needs to be verified otherwise every user can make themselves super admin
+	// rolesToSave := ""
+	// if params.Roles != nil && len(params.Roles) > 0 {
+	// 	currentRoles := strings.Split(user.Roles, ",")
+	// 	inputRoles := []string{}
+	// 	for _, item := range params.Roles {
+	// 		inputRoles = append(inputRoles, *item)
+	// 	}
+
+	// 	if !utils.IsValidRolesArray(inputRoles) {
+	// 		return res, fmt.Errorf("invalid list of roles")
+	// 	}
+
+	// 	if !utils.IsStringArrayEqual(inputRoles, currentRoles) {
+	// 		rolesToSave = strings.Join(inputRoles, ",")
+	// 	}
+
+	// 	session.DeleteToken(fmt.Sprintf("%v", user.ID))
+	// 	utils.DeleteCookie(gc)
+	// }
+
+	// if rolesToSave != "" {
+	// 	user.Roles = rolesToSave
+	// }
 
 	_, err = db.Mgr.UpdateUser(user)
 	if err != nil {

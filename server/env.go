@@ -73,6 +73,8 @@ func InitEnv() {
 	constants.RESET_PASSWORD_URL = strings.TrimPrefix(os.Getenv("RESET_PASSWORD_URL"), "/")
 	constants.DISABLE_BASIC_AUTHENTICATION = os.Getenv("DISABLE_BASIC_AUTHENTICATION")
 	constants.DISABLE_EMAIL_VERIFICATION = os.Getenv("DISABLE_EMAIL_VERIFICATION")
+	constants.DEFAULT_ROLE = os.Getenv("DEFAULT_ROLE")
+	constants.JWT_ROLE_CLAIM = os.Getenv("JWT_ROLE_CLAIM")
 
 	if constants.ADMIN_SECRET == "" {
 		panic("root admin secret is required")
@@ -142,5 +144,34 @@ func InitEnv() {
 		} else {
 			constants.DISABLE_EMAIL_VERIFICATION = "false"
 		}
+	}
+
+	rolesSplit := strings.Split(os.Getenv("ROLES"), ",")
+	roles := []string{}
+	defaultRole := ""
+
+	for _, val := range rolesSplit {
+		trimVal := strings.TrimSpace(val)
+		if trimVal != "" {
+			roles = append(roles, trimVal)
+		}
+
+		if trimVal == constants.DEFAULT_ROLE {
+			defaultRole = trimVal
+		}
+	}
+	if len(roles) > 0 && defaultRole == "" {
+		panic(`Invalid DEFAULT_ROLE environment variable. It can be one from give ROLES environment variable value`)
+	}
+
+	if len(roles) == 0 {
+		roles = []string{"user", "admin"}
+		constants.DEFAULT_ROLE = "user"
+	}
+
+	constants.ROLES = roles
+
+	if constants.JWT_ROLE_CLAIM == "" {
+		constants.JWT_ROLE_CLAIM = "role"
 	}
 }

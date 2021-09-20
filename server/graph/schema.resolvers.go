@@ -55,8 +55,8 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 	return resolvers.Users(ctx)
 }
 
-func (r *queryResolver) Token(ctx context.Context) (*model.AuthResponse, error) {
-	return resolvers.Token(ctx)
+func (r *queryResolver) Token(ctx context.Context, role *string) (*model.AuthResponse, error) {
+	return resolvers.Token(ctx, role)
 }
 
 func (r *queryResolver) Profile(ctx context.Context) (*model.User, error) {

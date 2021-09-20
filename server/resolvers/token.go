@@ -3,8 +3,10 @@ package resolvers
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
+	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/enum"
 	"github.com/authorizerdev/authorizer/server/graph/model"
@@ -12,7 +14,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
-func Token(ctx context.Context) (*model.AuthResponse, error) {
+func Token(ctx context.Context, role *string) (*model.AuthResponse, error) {
 	var res *model.AuthResponse
 
 	gc, err := utils.GinContextFromContext(ctx)
@@ -25,11 +27,17 @@ func Token(ctx context.Context) (*model.AuthResponse, error) {
 	}
 
 	claim, accessTokenErr := utils.VerifyAuthToken(token)
-	expiresAt := claim.ExpiresAt
+	expiresAt := claim["exp"].(int64)
+	email := fmt.Sprintf("%v", claim["email"])
 
-	user, err := db.Mgr.GetUserByEmail(claim.Email)
+	claimRole := fmt.Sprintf("%v", claim[constants.JWT_ROLE_CLAIM])
+	user, err := db.Mgr.GetUserByEmail(email)
 	if err != nil {
 		return res, err
+	}
+
+	if role != nil && role != &claimRole {
+		return res, fmt.Errorf(`unauthorized. invalid role for a given token`)
 	}
 
 	userIdStr := fmt.Sprintf("%v", user.ID)
@@ -46,10 +54,7 @@ func Token(ctx context.Context) (*model.AuthResponse, error) {
 	if accessTokenErr != nil || expiresTimeObj.Sub(currentTimeObj).Minutes() <= 5 {
 		// if access token has expired and refresh/session token is valid
 		// generate new accessToken
-		token, expiresAt, _ = utils.CreateAuthToken(utils.UserAuthInfo{
-			ID:    userIdStr,
-			Email: user.Email,
-		}, enum.AccessToken)
+		token, expiresAt, _ = utils.CreateAuthToken(user, enum.AccessToken, claimRole)
 	}
 	utils.SetCookie(gc, token)
 	res = &model.AuthResponse{
@@ -62,6 +67,7 @@ func Token(ctx context.Context) (*model.AuthResponse, error) {
 			Image:     &user.Image,
 			FirstName: &user.FirstName,
 			LastName:  &user.LastName,
+			Roles:     strings.Split(user.Roles, ","),
 			CreatedAt: &user.CreatedAt,
 			UpdatedAt: &user.UpdatedAt,
 		},

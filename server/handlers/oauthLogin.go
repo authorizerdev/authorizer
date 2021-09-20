@@ -7,6 +7,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/enum"
 	"github.com/authorizerdev/authorizer/server/oauth"
 	"github.com/authorizerdev/authorizer/server/session"
+	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -17,6 +18,7 @@ func OAuthLoginHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// TODO validate redirect URL
 		redirectURL := c.Query("redirectURL")
+		role := c.Query("role")
 
 		if redirectURL == "" {
 			c.JSON(400, gin.H{
@@ -24,8 +26,21 @@ func OAuthLoginHandler() gin.HandlerFunc {
 			})
 			return
 		}
+
+		if role != "" {
+			// validate role
+			if !utils.IsValidRole(constants.ROLES, role) {
+				c.JSON(400, gin.H{
+					"error": "invalid role",
+				})
+				return
+			}
+		} else {
+			role = constants.DEFAULT_ROLE
+		}
+
 		uuid := uuid.New()
-		oauthStateString := uuid.String() + "___" + redirectURL
+		oauthStateString := uuid.String() + "___" + redirectURL + "___" + role
 
 		provider := c.Param("oauth_provider")
 
