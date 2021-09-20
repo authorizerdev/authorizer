@@ -1,29 +1,32 @@
 package utils
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/enum"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
 )
 
-type UserAuthInfo struct {
-	Email string `json:"email"`
-	ID    string `json:"id"`
-}
+// type UserAuthInfo struct {
+// 	Email string `json:"email"`
+// 	ID    string `json:"id"`
+// }
+
+type JWTCustomClaim map[string]interface{}
 
 type UserAuthClaim struct {
 	*jwt.StandardClaims
-	TokenType string `json:"token_type"`
-	UserAuthInfo
+	*JWTCustomClaim `json:"authorizer"`
 }
 
-func CreateAuthToken(user UserAuthInfo, tokenType enum.TokenType) (string, int64, error) {
+func CreateAuthToken(user db.User, tokenType enum.TokenType, role string) (string, int64, error) {
 	t := jwt.New(jwt.GetSigningMethod(constants.JWT_TYPE))
 	expiryBound := time.Hour
 	if tokenType == enum.RefreshToken {
@@ -33,12 +36,19 @@ func CreateAuthToken(user UserAuthInfo, tokenType enum.TokenType) (string, int64
 
 	expiresAt := time.Now().Add(expiryBound).Unix()
 
+	customClaims := JWTCustomClaim{
+		"token_type":             tokenType.String(),
+		"email":                  user.Email,
+		"id":                     user.ID,
+		"allowed_roles":          strings.Split(user.Roles, ","),
+		constants.JWT_ROLE_CLAIM: role,
+	}
+
 	t.Claims = &UserAuthClaim{
 		&jwt.StandardClaims{
 			ExpiresAt: expiresAt,
 		},
-		tokenType.String(),
-		user,
+		&customClaims,
 	}
 
 	token, err := t.SignedString([]byte(constants.JWT_SECRET))
@@ -63,14 +73,20 @@ func GetAuthToken(gc *gin.Context) (string, error) {
 	return token, nil
 }
 
-func VerifyAuthToken(token string) (*UserAuthClaim, error) {
+func VerifyAuthToken(token string) (map[string]interface{}, error) {
+	var res map[string]interface{}
 	claims := &UserAuthClaim{}
+
 	_, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
 		return []byte(constants.JWT_SECRET), nil
 	})
 	if err != nil {
-		return claims, err
+		return res, err
 	}
 
-	return claims, nil
+	data, _ := json.Marshal(claims.JWTCustomClaim)
+	json.Unmarshal(data, &res)
+	res["exp"] = claims.ExpiresAt
+
+	return res, nil
 }

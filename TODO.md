@@ -9,8 +9,8 @@ For the first version we will only support setting roles master list via env
   - [x] `DEFAULT_ROLE` -> default role to assign to users
 - [x] Add roles input for signup
 - [x] Add roles to update profile mutation
-- [ ] Add roles input for login
-- [ ] Return roles to user
-- [ ] Return roles in users list for super admin
-- [ ] Add roles to the JWT token generation
+- [x] Add roles input for login
+- [x] Return roles to user
+- [x] Return roles in users list for super admin
+- [x] Add roles to the JWT token generation
 - [ ] Validate token should also validate the role, if roles to validate again is present in request

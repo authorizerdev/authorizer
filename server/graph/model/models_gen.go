@@ -63,27 +63,26 @@ type SignUpInput struct {
 }
 
 type UpdateProfileInput struct {
-	OldPassword        *string   `json:"oldPassword"`
-	NewPassword        *string   `json:"newPassword"`
-	ConfirmNewPassword *string   `json:"confirmNewPassword"`
-	FirstName          *string   `json:"firstName"`
-	LastName           *string   `json:"lastName"`
-	Image              *string   `json:"image"`
-	Email              *string   `json:"email"`
-	Roles              []*string `json:"roles"`
+	OldPassword        *string `json:"oldPassword"`
+	NewPassword        *string `json:"newPassword"`
+	ConfirmNewPassword *string `json:"confirmNewPassword"`
+	FirstName          *string `json:"firstName"`
+	LastName           *string `json:"lastName"`
+	Image              *string `json:"image"`
+	Email              *string `json:"email"`
 }
 
 type User struct {
-	ID              string    `json:"id"`
-	Email           string    `json:"email"`
-	SignupMethod    string    `json:"signupMethod"`
-	FirstName       *string   `json:"firstName"`
-	LastName        *string   `json:"lastName"`
-	EmailVerifiedAt *int64    `json:"emailVerifiedAt"`
-	Image           *string   `json:"image"`
-	CreatedAt       *int64    `json:"createdAt"`
-	UpdatedAt       *int64    `json:"updatedAt"`
-	Roles           []*string `json:"roles"`
+	ID              string   `json:"id"`
+	Email           string   `json:"email"`
+	SignupMethod    string   `json:"signupMethod"`
+	FirstName       *string  `json:"firstName"`
+	LastName        *string  `json:"lastName"`
+	EmailVerifiedAt *int64   `json:"emailVerifiedAt"`
+	Image           *string  `json:"image"`
+	CreatedAt       *int64   `json:"createdAt"`
+	UpdatedAt       *int64   `json:"updatedAt"`
+	Roles           []string `json:"roles"`
 }
 
 type VerificationRequest struct {

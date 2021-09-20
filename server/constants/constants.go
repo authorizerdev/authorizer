@@ -24,8 +24,9 @@ var (
 	DISABLE_BASIC_AUTHENTICATION = "false"
 
 	// ROLES
-	ROLES        = []string{}
-	DEFAULT_ROLE = ""
+	ROLES          = []string{}
+	DEFAULT_ROLE   = ""
+	JWT_ROLE_CLAIM = "role"
 
 	// OAuth login
 	GOOGLE_CLIENT_ID       = ""

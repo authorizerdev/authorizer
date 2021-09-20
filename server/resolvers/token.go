@@ -3,8 +3,10 @@ package resolvers
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
+	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/enum"
 	"github.com/authorizerdev/authorizer/server/graph/model"
@@ -25,9 +27,10 @@ func Token(ctx context.Context) (*model.AuthResponse, error) {
 	}
 
 	claim, accessTokenErr := utils.VerifyAuthToken(token)
-	expiresAt := claim.ExpiresAt
-
-	user, err := db.Mgr.GetUserByEmail(claim.Email)
+	expiresAt := claim["exp"].(int64)
+	email := fmt.Sprintf("%v", claim["email"])
+	role := fmt.Sprintf("%v", claim[constants.JWT_ROLE_CLAIM])
+	user, err := db.Mgr.GetUserByEmail(email)
 	if err != nil {
 		return res, err
 	}
@@ -46,10 +49,7 @@ func Token(ctx context.Context) (*model.AuthResponse, error) {
 	if accessTokenErr != nil || expiresTimeObj.Sub(currentTimeObj).Minutes() <= 5 {
 		// if access token has expired and refresh/session token is valid
 		// generate new accessToken
-		token, expiresAt, _ = utils.CreateAuthToken(utils.UserAuthInfo{
-			ID:    userIdStr,
-			Email: user.Email,
-		}, enum.AccessToken)
+		token, expiresAt, _ = utils.CreateAuthToken(user, enum.AccessToken, role)
 	}
 	utils.SetCookie(gc, token)
 	res = &model.AuthResponse{
@@ -62,6 +62,7 @@ func Token(ctx context.Context) (*model.AuthResponse, error) {
 			Image:     &user.Image,
 			FirstName: &user.FirstName,
 			LastName:  &user.LastName,
+			Roles:     strings.Split(user.Roles, ","),
 			CreatedAt: &user.CreatedAt,
 			UpdatedAt: &user.UpdatedAt,
 		},

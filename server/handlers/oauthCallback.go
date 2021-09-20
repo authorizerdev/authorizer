@@ -19,7 +19,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
-func processGoogleUserInfo(code string, c *gin.Context) error {
+func processGoogleUserInfo(code string, role string, c *gin.Context) error {
 	token, err := oauth.OAuthProvider.GoogleConfig.Exchange(oauth2.NoContext, code)
 	if err != nil {
 		return fmt.Errorf("invalid google exchange code: %s", err.Error())
@@ -50,6 +50,7 @@ func processGoogleUserInfo(code string, c *gin.Context) error {
 	if err != nil {
 		// user not registered, register user and generate session token
 		user.SignupMethod = enum.Google.String()
+		user.Roles = role
 	} else {
 		// user exists in db, check if method was google
 		// if not append google to existing signup method and save it
@@ -60,27 +61,28 @@ func processGoogleUserInfo(code string, c *gin.Context) error {
 		}
 		user.SignupMethod = signupMethod
 		user.Password = existingUser.Password
+		log.Println("=> checking roles...", utils.IsValidRole(strings.Split(existingUser.Roles, ","), role))
+		if !utils.IsValidRole(strings.Split(existingUser.Roles, ","), role) {
+			log.Println("=> invalid role from google oauth")
+			return fmt.Errorf("invalid role")
+		}
+
+		user.Roles = existingUser.Roles
 	}
 
 	user, _ = db.Mgr.SaveUser(user)
 	user, _ = db.Mgr.GetUserByEmail(user.Email)
 	userIdStr := fmt.Sprintf("%v", user.ID)
 
-	refreshToken, _, _ := utils.CreateAuthToken(utils.UserAuthInfo{
-		ID:    userIdStr,
-		Email: user.Email,
-	}, enum.RefreshToken)
+	refreshToken, _, _ := utils.CreateAuthToken(user, enum.RefreshToken, role)
 
-	accessToken, _, _ := utils.CreateAuthToken(utils.UserAuthInfo{
-		ID:    userIdStr,
-		Email: user.Email,
-	}, enum.AccessToken)
+	accessToken, _, _ := utils.CreateAuthToken(user, enum.AccessToken, role)
 	utils.SetCookie(c, accessToken)
 	session.SetToken(userIdStr, refreshToken)
 	return nil
 }
 
-func processGithubUserInfo(code string, c *gin.Context) error {
+func processGithubUserInfo(code string, role string, c *gin.Context) error {
 	token, err := oauth.OAuthProvider.GithubConfig.Exchange(oauth2.NoContext, code)
 	if err != nil {
 		return fmt.Errorf("invalid github exchange code: %s", err.Error())
@@ -128,6 +130,7 @@ func processGithubUserInfo(code string, c *gin.Context) error {
 	if err != nil {
 		// user not registered, register user and generate session token
 		user.SignupMethod = enum.Github.String()
+		user.Roles = role
 	} else {
 		// user exists in db, check if method was google
 		// if not append google to existing signup method and save it
@@ -138,26 +141,26 @@ func processGithubUserInfo(code string, c *gin.Context) error {
 		}
 		user.SignupMethod = signupMethod
 		user.Password = existingUser.Password
+
+		if !utils.IsValidRole(strings.Split(existingUser.Roles, ","), role) {
+			return fmt.Errorf("invalid role")
+		}
+
+		user.Roles = existingUser.Roles
 	}
 
 	user, _ = db.Mgr.SaveUser(user)
 	user, _ = db.Mgr.GetUserByEmail(user.Email)
 	userIdStr := fmt.Sprintf("%v", user.ID)
-	refreshToken, _, _ := utils.CreateAuthToken(utils.UserAuthInfo{
-		ID:    userIdStr,
-		Email: user.Email,
-	}, enum.RefreshToken)
+	refreshToken, _, _ := utils.CreateAuthToken(user, enum.RefreshToken, role)
 
-	accessToken, _, _ := utils.CreateAuthToken(utils.UserAuthInfo{
-		ID:    userIdStr,
-		Email: user.Email,
-	}, enum.AccessToken)
+	accessToken, _, _ := utils.CreateAuthToken(user, enum.AccessToken, role)
 	utils.SetCookie(c, accessToken)
 	session.SetToken(userIdStr, refreshToken)
 	return nil
 }
 
-func processFacebookUserInfo(code string, c *gin.Context) error {
+func processFacebookUserInfo(code string, role string, c *gin.Context) error {
 	token, err := oauth.OAuthProvider.FacebookConfig.Exchange(oauth2.NoContext, code)
 	if err != nil {
 		return fmt.Errorf("invalid facebook exchange code: %s", err.Error())
@@ -199,6 +202,7 @@ func processFacebookUserInfo(code string, c *gin.Context) error {
 	if err != nil {
 		// user not registered, register user and generate session token
 		user.SignupMethod = enum.Github.String()
+		user.Roles = role
 	} else {
 		// user exists in db, check if method was google
 		// if not append google to existing signup method and save it
@@ -209,20 +213,20 @@ func processFacebookUserInfo(code string, c *gin.Context) error {
 		}
 		user.SignupMethod = signupMethod
 		user.Password = existingUser.Password
+
+		if !utils.IsValidRole(strings.Split(existingUser.Roles, ","), role) {
+			return fmt.Errorf("invalid role")
+		}
+
+		user.Roles = existingUser.Roles
 	}
 
 	user, _ = db.Mgr.SaveUser(user)
 	user, _ = db.Mgr.GetUserByEmail(user.Email)
 	userIdStr := fmt.Sprintf("%v", user.ID)
-	refreshToken, _, _ := utils.CreateAuthToken(utils.UserAuthInfo{
-		ID:    userIdStr,
-		Email: user.Email,
-	}, enum.RefreshToken)
+	refreshToken, _, _ := utils.CreateAuthToken(user, enum.RefreshToken, role)
 
-	accessToken, _, _ := utils.CreateAuthToken(utils.UserAuthInfo{
-		ID:    userIdStr,
-		Email: user.Email,
-	}, enum.AccessToken)
+	accessToken, _, _ := utils.CreateAuthToken(user, enum.AccessToken, role)
 	utils.SetCookie(c, accessToken)
 	session.SetToken(userIdStr, refreshToken)
 	return nil
@@ -238,23 +242,27 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			c.JSON(400, gin.H{"error": "invalid oauth state"})
 		}
 		session.DeleteToken(sessionState)
+		// contains random token, redirect url, role
 		sessionSplit := strings.Split(state, "___")
 
 		// TODO validate redirect url
-		if len(sessionSplit) != 2 {
+		if len(sessionSplit) < 2 {
 			c.JSON(400, gin.H{"error": "invalid redirect url"})
 			return
 		}
+
+		role := sessionSplit[2]
+		redirectURL := sessionSplit[1]
 
 		var err error
 		code := c.Request.FormValue("code")
 		switch provider {
 		case enum.Google.String():
-			err = processGoogleUserInfo(code, c)
+			err = processGoogleUserInfo(code, role, c)
 		case enum.Github.String():
-			err = processGithubUserInfo(code, c)
+			err = processGithubUserInfo(code, role, c)
 		case enum.Facebook.String():
-			err = processFacebookUserInfo(code, c)
+			err = processFacebookUserInfo(code, role, c)
 		default:
 			err = fmt.Errorf(`invalid oauth provider`)
 		}
@@ -263,6 +271,6 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			c.JSON(400, gin.H{"error": err.Error()})
 			return
 		}
-		c.Redirect(http.StatusTemporaryRedirect, sessionSplit[1])
+		c.Redirect(http.StatusTemporaryRedirect, redirectURL)
 	}
 }

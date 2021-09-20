@@ -25,7 +25,6 @@ func AppHandler() gin.HandlerFunc {
 
 		if state == "" {
 			// cookie, err := utils.GetAuthToken(c)
-			// log.Println(`cookie`, cookie)
 			// if err != nil {
 			// 	c.JSON(400, gin.H{"error": "invalid state"})
 			// 	return
@@ -66,13 +65,6 @@ func AppHandler() gin.HandlerFunc {
 				return
 			}
 		}
-
-		log.Println(gin.H{
-			"data": map[string]string{
-				"authorizerURL": stateObj.AuthorizerURL,
-				"redirectURL":   stateObj.RedirectURL,
-			},
-		})
 
 		// debug the request state
 		if pusher := c.Writer.Pusher(); pusher != nil {

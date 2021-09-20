@@ -46,16 +46,19 @@ func Login(ctx context.Context, params model.LoginInput) (*model.AuthResponse, e
 		log.Println("Compare password error:", err)
 		return res, fmt.Errorf(`invalid password`)
 	}
-	userIdStr := fmt.Sprintf("%v", user.ID)
-	refreshToken, _, _ := utils.CreateAuthToken(utils.UserAuthInfo{
-		ID:    userIdStr,
-		Email: user.Email,
-	}, enum.RefreshToken)
+	role := constants.DEFAULT_ROLE
+	if params.Role != nil {
+		// validate role
+		if !utils.IsValidRole(strings.Split(user.Roles, ","), *params.Role) {
+			return res, fmt.Errorf(`invalid role`)
+		}
 
-	accessToken, expiresAt, _ := utils.CreateAuthToken(utils.UserAuthInfo{
-		ID:    userIdStr,
-		Email: user.Email,
-	}, enum.AccessToken)
+		role = *params.Role
+	}
+	userIdStr := fmt.Sprintf("%v", user.ID)
+	refreshToken, _, _ := utils.CreateAuthToken(user, enum.RefreshToken, role)
+
+	accessToken, expiresAt, _ := utils.CreateAuthToken(user, enum.AccessToken, role)
 
 	session.SetToken(userIdStr, refreshToken)
 
@@ -71,6 +74,7 @@ func Login(ctx context.Context, params model.LoginInput) (*model.AuthResponse, e
 			LastName:        &user.LastName,
 			SignupMethod:    user.SignupMethod,
 			EmailVerifiedAt: &user.EmailVerifiedAt,
+			Roles:           strings.Split(user.Roles, ","),
 			CreatedAt:       &user.CreatedAt,
 			UpdatedAt:       &user.UpdatedAt,
 		},

@@ -2,6 +2,7 @@ package resolvers
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/session"
@@ -25,7 +26,8 @@ func Logout(ctx context.Context) (*model.Response, error) {
 		return res, err
 	}
 
-	session.DeleteToken(claim.ID)
+	userId := fmt.Sprintf("%v", claim["id"])
+	session.DeleteToken(userId)
 	res = &model.Response{
 		Message: "Logged out successfully",
 	}

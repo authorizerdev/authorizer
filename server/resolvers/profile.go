@@ -3,6 +3,7 @@ package resolvers
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/graph/model"
@@ -27,13 +28,15 @@ func Profile(ctx context.Context) (*model.User, error) {
 		return res, err
 	}
 
-	sessionToken := session.GetToken(claim.ID)
+	userID := fmt.Sprintf("%v", claim["id"])
+	email := fmt.Sprintf("%v", claim["email"])
+	sessionToken := session.GetToken(userID)
 
 	if sessionToken == "" {
 		return res, fmt.Errorf(`unauthorized`)
 	}
 
-	user, err := db.Mgr.GetUserByEmail(claim.Email)
+	user, err := db.Mgr.GetUserByEmail(email)
 	if err != nil {
 		return res, err
 	}
@@ -48,6 +51,7 @@ func Profile(ctx context.Context) (*model.User, error) {
 		LastName:        &user.LastName,
 		SignupMethod:    user.SignupMethod,
 		EmailVerifiedAt: &user.EmailVerifiedAt,
+		Roles:           strings.Split(user.Roles, ","),
 		CreatedAt:       &user.CreatedAt,
 		UpdatedAt:       &user.UpdatedAt,
 	}

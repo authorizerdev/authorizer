@@ -3,8 +3,10 @@ package resolvers
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
+	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/enum"
 	"github.com/authorizerdev/authorizer/server/graph/model"
@@ -41,15 +43,9 @@ func VerifyEmail(ctx context.Context, params model.VerifyEmailInput) (*model.Aut
 	db.Mgr.DeleteToken(claim.Email)
 
 	userIdStr := fmt.Sprintf("%v", user.ID)
-	refreshToken, _, _ := utils.CreateAuthToken(utils.UserAuthInfo{
-		ID:    userIdStr,
-		Email: user.Email,
-	}, enum.RefreshToken)
+	refreshToken, _, _ := utils.CreateAuthToken(user, enum.RefreshToken, constants.DEFAULT_ROLE)
 
-	accessToken, expiresAt, _ := utils.CreateAuthToken(utils.UserAuthInfo{
-		ID:    userIdStr,
-		Email: user.Email,
-	}, enum.AccessToken)
+	accessToken, expiresAt, _ := utils.CreateAuthToken(user, enum.AccessToken, constants.DEFAULT_ROLE)
 
 	session.SetToken(userIdStr, refreshToken)
 
@@ -65,6 +61,7 @@ func VerifyEmail(ctx context.Context, params model.VerifyEmailInput) (*model.Aut
 			LastName:        &user.LastName,
 			SignupMethod:    user.SignupMethod,
 			EmailVerifiedAt: &user.EmailVerifiedAt,
+			Roles:           strings.Split(user.Roles, ","),
 			CreatedAt:       &user.CreatedAt,
 			UpdatedAt:       &user.UpdatedAt,
 		},
