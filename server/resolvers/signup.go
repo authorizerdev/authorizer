@@ -35,6 +35,20 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 		return res, fmt.Errorf(`invalid email address`)
 	}
 
+	inputRoles := []string{}
+
+	if params.Roles != nil && len(params.Roles) > 0 {
+		// check if roles exists
+		for _, item := range params.Roles {
+			inputRoles = append(inputRoles, *item)
+		}
+		if !utils.IsValidRolesArray(inputRoles) {
+			return res, fmt.Errorf(`invalid roles`)
+		}
+	} else {
+		inputRoles = []string{constants.DEFAULT_ROLE}
+	}
+
 	// find user with email
 	existingUser, err := db.Mgr.GetUserByEmail(params.Email)
 	if err != nil {
@@ -48,6 +62,8 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 	user := db.User{
 		Email: params.Email,
 	}
+
+	user.Roles = strings.Join(inputRoles, ",")
 
 	password, _ := utils.HashPassword(params.Password)
 	user.Password = password
@@ -77,6 +93,7 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 		LastName:        &user.LastName,
 		SignupMethod:    user.SignupMethod,
 		EmailVerifiedAt: &user.EmailVerifiedAt,
+		Roles:           strings.Split(user.Roles, ","),
 		CreatedAt:       &user.CreatedAt,
 		UpdatedAt:       &user.UpdatedAt,
 	}
@@ -106,15 +123,9 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 		}
 	} else {
 
-		refreshToken, _, _ := utils.CreateAuthToken(utils.UserAuthInfo{
-			ID:    userIdStr,
-			Email: user.Email,
-		}, enum.RefreshToken)
+		refreshToken, _, _ := utils.CreateAuthToken(user, enum.RefreshToken, constants.DEFAULT_ROLE)
 
-		accessToken, expiresAt, _ := utils.CreateAuthToken(utils.UserAuthInfo{
-			ID:    userIdStr,
-			Email: user.Email,
-		}, enum.AccessToken)
+		accessToken, expiresAt, _ := utils.CreateAuthToken(user, enum.AccessToken, constants.DEFAULT_ROLE)
 
 		session.SetToken(userIdStr, refreshToken)
 		res = &model.AuthResponse{

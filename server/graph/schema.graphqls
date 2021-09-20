@@ -2,6 +2,8 @@
 #
 # https://gqlgen.com/getting-started/
 scalar Int64
+scalar Map
+scalar Any
 
 type Meta {
 	version: String!
@@ -23,6 +25,7 @@ type User {
 	image: String
 	createdAt: Int64
 	updatedAt: Int64
+	roles: [String!]!
 }
 
 type VerificationRequest {
@@ -58,11 +61,13 @@ input SignUpInput {
 	password: String!
 	confirmPassword: String!
 	image: String
+	roles: [String]
 }
 
 input LoginInput {
 	email: String!
 	password: String!
+	role: String
 }
 
 input VerifyEmailInput {
@@ -81,6 +86,7 @@ input UpdateProfileInput {
 	lastName: String
 	image: String
 	email: String
+	# roles: [String]
 }
 
 input ForgotPasswordInput {
@@ -112,7 +118,7 @@ type Mutation {
 type Query {
 	meta: Meta!
 	users: [User!]!
-	token: AuthResponse
+	token(role: String): AuthResponse
 	profile: User!
 	verificationRequests: [VerificationRequest!]!
 }

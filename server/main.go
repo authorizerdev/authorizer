@@ -9,6 +9,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/handlers"
 	"github.com/authorizerdev/authorizer/server/oauth"
 	"github.com/authorizerdev/authorizer/server/session"
+	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/gin-contrib/location"
 	"github.com/gin-gonic/gin"
 )
@@ -50,6 +51,7 @@ func main() {
 	db.InitDB()
 	session.InitSession()
 	oauth.InitOAuth()
+	utils.InitServer()
 
 	r := gin.Default()
 	r.Use(location.Default())
