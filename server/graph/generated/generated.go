@@ -66,6 +66,7 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
+		AdminUpdateUser   func(childComplexity int, params model.AdminUpdateUserInput) int
 		DeleteUser        func(childComplexity int, params model.DeleteUserInput) int
 		ForgotPassword    func(childComplexity int, params model.ForgotPasswordInput) int
 		Login             func(childComplexity int, params model.LoginInput) int
@@ -118,6 +119,7 @@ type MutationResolver interface {
 	Login(ctx context.Context, params model.LoginInput) (*model.AuthResponse, error)
 	Logout(ctx context.Context) (*model.Response, error)
 	UpdateProfile(ctx context.Context, params model.UpdateProfileInput) (*model.Response, error)
+	AdminUpdateUser(ctx context.Context, params model.AdminUpdateUserInput) (*model.User, error)
 	VerifyEmail(ctx context.Context, params model.VerifyEmailInput) (*model.AuthResponse, error)
 	ResendVerifyEmail(ctx context.Context, params model.ResendVerifyEmailInput) (*model.Response, error)
 	ForgotPassword(ctx context.Context, params model.ForgotPasswordInput) (*model.Response, error)
@@ -237,6 +239,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Meta.Version(childComplexity), true
+
+	case "Mutation.adminUpdateUser":
+		if e.complexity.Mutation.AdminUpdateUser == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_adminUpdateUser_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AdminUpdateUser(childComplexity, args["params"].(model.AdminUpdateUserInput)), true
 
 	case "Mutation.deleteUser":
 		if e.complexity.Mutation.DeleteUser == nil {
@@ -662,6 +676,15 @@ input UpdateProfileInput {
 	# roles: [String]
 }
 
+input AdminUpdateUserInput {
+  id: ID!
+  email: String
+  firstName: String
+  lastName: String
+  image: String
+  roles: [String]
+}
+
 input ForgotPasswordInput {
 	email: String!
 }
@@ -681,6 +704,7 @@ type Mutation {
 	login(params: LoginInput!): AuthResponse!
 	logout: Response!
 	updateProfile(params: UpdateProfileInput!): Response!
+  adminUpdateUser(params: AdminUpdateUserInput!): User!
 	verifyEmail(params: VerifyEmailInput!): AuthResponse!
 	resendVerifyEmail(params: ResendVerifyEmailInput!): Response!
 	forgotPassword(params: ForgotPasswordInput!): Response!
@@ -702,6 +726,21 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
+
+func (ec *executionContext) field_Mutation_adminUpdateUser_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.AdminUpdateUserInput
+	if tmp, ok := rawArgs["params"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+		arg0, err = ec.unmarshalNAdminUpdateUserInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAdminUpdateUserInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["params"] = arg0
+	return args, nil
+}
 
 func (ec *executionContext) field_Mutation_deleteUser_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
@@ -1496,6 +1535,48 @@ func (ec *executionContext) _Mutation_updateProfile(ctx context.Context, field g
 	res := resTmp.(*model.Response)
 	fc.Result = res
 	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_adminUpdateUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_adminUpdateUser_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().AdminUpdateUser(rctx, args["params"].(model.AdminUpdateUserInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.User)
+	fc.Result = res
+	return ec.marshalNUser2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_verifyEmail(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3639,6 +3720,66 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputAdminUpdateUserInput(ctx context.Context, obj interface{}) (model.AdminUpdateUserInput, error) {
+	var it model.AdminUpdateUserInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "id":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			it.ID, err = ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "email":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
+			it.Email, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "firstName":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("firstName"))
+			it.FirstName, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "lastName":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("lastName"))
+			it.LastName, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "image":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("image"))
+			it.Image, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "roles":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("roles"))
+			it.Roles, err = ec.unmarshalOString2ᚕᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputDeleteUserInput(ctx context.Context, obj interface{}) (model.DeleteUserInput, error) {
 	var it model.DeleteUserInput
 	var asMap = obj.(map[string]interface{})
@@ -4089,6 +4230,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "updateProfile":
 			out.Values[i] = ec._Mutation_updateProfile(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "adminUpdateUser":
+			out.Values[i] = ec._Mutation_adminUpdateUser(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -4589,6 +4735,11 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 // endregion **************************** object.gotpl ****************************
 
 // region    ***************************** type.gotpl *****************************
+
+func (ec *executionContext) unmarshalNAdminUpdateUserInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAdminUpdateUserInput(ctx context.Context, v interface{}) (model.AdminUpdateUserInput, error) {
+	res, err := ec.unmarshalInputAdminUpdateUserInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
 
 func (ec *executionContext) marshalNAuthResponse2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAuthResponse(ctx context.Context, sel ast.SelectionSet, v model.AuthResponse) graphql.Marshaler {
 	return ec._AuthResponse(ctx, sel, &v)

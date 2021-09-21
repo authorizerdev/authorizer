@@ -2,6 +2,15 @@
 
 package model
 
+type AdminUpdateUserInput struct {
+	ID        string    `json:"id"`
+	Email     *string   `json:"email"`
+	FirstName *string   `json:"firstName"`
+	LastName  *string   `json:"lastName"`
+	Image     *string   `json:"image"`
+	Roles     []*string `json:"roles"`
+}
+
 type AuthResponse struct {
 	Message              string  `json:"message"`
 	AccessToken          *string `json:"accessToken"`

@@ -27,6 +27,10 @@ func (r *mutationResolver) UpdateProfile(ctx context.Context, params model.Updat
 	return resolvers.UpdateProfile(ctx, params)
 }
 
+func (r *mutationResolver) AdminUpdateUser(ctx context.Context, params model.AdminUpdateUserInput) (*model.User, error) {
+	return resolvers.AdminUpdateUser(ctx, params)
+}
+
 func (r *mutationResolver) VerifyEmail(ctx context.Context, params model.VerifyEmailInput) (*model.AuthResponse, error) {
 	return resolvers.VerifyEmail(ctx, params)
 }
@@ -73,7 +77,5 @@ func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResol
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
-type (
-	mutationResolver struct{ *Resolver }
-	queryResolver    struct{ *Resolver }
-)
+type mutationResolver struct{ *Resolver }
+type queryResolver struct{ *Resolver }
