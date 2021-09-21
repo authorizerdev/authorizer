@@ -29,7 +29,7 @@
 - ✅ APIs to update profile securely
 - ✅ Forgot password flow using email
 - ✅ Social logins (Google, Github, Facebook, more coming soon)
-- ✅ Role base access management
+- ✅ Role-based access management
 ## Project Status
 
 ⚠️ **Authorizer is still an early beta! missing features and bugs are to be expected!** If you can stomach it, then bring authentication and authorization to your site today!
