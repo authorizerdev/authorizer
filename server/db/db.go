@@ -17,6 +17,7 @@ type Manager interface {
 	UpdateUser(user User) (User, error)
 	GetUsers() ([]User, error)
 	GetUserByEmail(email string) (User, error)
+	GetUserByID(email string) (User, error)
 	UpdateVerificationTime(verifiedAt int64, id uint) error
 	AddVerification(verification VerificationRequest) (VerificationRequest, error)
 	GetVerificationByToken(token string) (VerificationRequest, error)

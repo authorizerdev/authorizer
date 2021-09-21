@@ -2,6 +2,7 @@ package db
 
 import (
 	"log"
+	"time"
 
 	"gorm.io/gorm/clause"
 )
@@ -37,6 +38,7 @@ func (mgr *manager) SaveUser(user User) (User, error) {
 
 // UpdateUser function to update user with ID conflict
 func (mgr *manager) UpdateUser(user User) (User, error) {
+	user.UpdatedAt = time.Now().Unix()
 	result := mgr.db.Clauses(
 		clause.OnConflict{
 			UpdateAll: true,
@@ -64,6 +66,17 @@ func (mgr *manager) GetUsers() ([]User, error) {
 func (mgr *manager) GetUserByEmail(email string) (User, error) {
 	var user User
 	result := mgr.db.Where("email = ?", email).First(&user)
+
+	if result.Error != nil {
+		return user, result.Error
+	}
+
+	return user, nil
+}
+
+func (mgr *manager) GetUserByID(id string) (User, error) {
+	var user User
+	result := mgr.db.Where("id = ?", id).First(&user)
 
 	if result.Error != nil {
 		return user, result.Error

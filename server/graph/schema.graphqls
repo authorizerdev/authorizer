@@ -89,6 +89,15 @@ input UpdateProfileInput {
 	# roles: [String]
 }
 
+input AdminUpdateUserInput {
+  id: ID!
+  email: String
+  firstName: String
+  lastName: String
+  image: String
+  roles: [String]
+}
+
 input ForgotPasswordInput {
 	email: String!
 }
@@ -108,6 +117,7 @@ type Mutation {
 	login(params: LoginInput!): AuthResponse!
 	logout: Response!
 	updateProfile(params: UpdateProfileInput!): Response!
+  adminUpdateUser(params: AdminUpdateUserInput!): User!
 	verifyEmail(params: VerifyEmailInput!): AuthResponse!
 	resendVerifyEmail(params: ResendVerifyEmailInput!): Response!
 	forgotPassword(params: ForgotPasswordInput!): Response!
