@@ -28,8 +28,8 @@
 - ✅ Email verification
 - ✅ APIs to update profile securely
 - ✅ Forgot password flow using email
-- ✅ Social logins (Google, Github, more coming soon)
-
+- ✅ Social logins (Google, Github, Facebook, more coming soon)
+- ✅ Role base access management
 ## Project Status
 
 ⚠️ **Authorizer is still an early beta! missing features and bugs are to be expected!** If you can stomach it, then bring authentication and authorization to your site today!
@@ -37,7 +37,6 @@
 ## Roadmap
 
 - Password-less login with email and magic link
-- Role-based access management system
 - Support more JWT encryption algorithms (Currently supporting HS256)
 - 2 Factor authentication
 - Back office (Admin dashboard to manage user)
