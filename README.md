@@ -30,6 +30,7 @@
 - ✅ Forgot password flow using email
 - ✅ Social logins (Google, Github, Facebook, more coming soon)
 - ✅ Role-based access management
+
 ## Project Status
 
 ⚠️ **Authorizer is still an early beta! missing features and bugs are to be expected!** If you can stomach it, then bring authentication and authorization to your site today!
@@ -182,7 +183,7 @@ This example demonstrates how you can use [`@authorizerdev/authorizer-js`](/auth
 	});
 
 	async function onLoad() {
-		const res = await authorizerRef.fingertipLogin();
+		const res = await authorizerRef.browserLogin();
 		if (res && res.user) {
 			// you can use user information here, eg:
 			/**
