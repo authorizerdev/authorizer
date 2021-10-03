@@ -174,4 +174,12 @@ func InitEnv() {
 	if constants.JWT_ROLE_CLAIM == "" {
 		constants.JWT_ROLE_CLAIM = "role"
 	}
+
+	if os.Getenv("ORGANIZATION_NAME") != "" {
+		constants.ORGANIZATION_NAME = os.Getenv("ORGANIZATION_NAME")
+	}
+
+	if os.Getenv("ORGANIZATION_LOGO") != "" {
+		constants.ORGANIZATION_LOGO = os.Getenv("ORGANIZATION_LOGO")
+	}
 }

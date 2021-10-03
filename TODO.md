@@ -14,3 +14,9 @@ For the first version we will only support setting roles master list via env
 - [x] Return roles in users list for super admin
 - [x] Add roles to the JWT token generation
 - [x] Validate token should also validate the role, if roles to validate again is present in request
+
+# Misc
+
+- [x] Fix email template
+- [x] Add support for organization name in .env
+- [x] Add support for organization logo in .env

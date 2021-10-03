@@ -37,4 +37,8 @@ var (
 	FACEBOOK_CLIENT_SECRET = ""
 	TWITTER_CLIENT_ID      = ""
 	TWITTER_CLIENT_SECRET  = ""
+
+	// Org envs
+	ORGANIZATION_NAME = "Authorizer"
+	ORGANIZATION_LOGO = "https://authorizer.dev/images/logo.png"
 )

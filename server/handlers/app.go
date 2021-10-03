@@ -75,8 +75,10 @@ func AppHandler() gin.HandlerFunc {
 		}
 		c.HTML(http.StatusOK, "app.tmpl", gin.H{
 			"data": map[string]string{
-				"authorizerURL": stateObj.AuthorizerURL,
-				"redirectURL":   stateObj.RedirectURL,
+				"authorizerURL":    stateObj.AuthorizerURL,
+				"redirectURL":      stateObj.RedirectURL,
+				"organizationName": constants.ORGANIZATION_NAME,
+				"organizationLogo": constants.ORGANIZATION_LOGO,
 			},
 		})
 	}
