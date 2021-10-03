@@ -5,6 +5,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/enum"
+	"github.com/google/uuid"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
@@ -18,7 +19,7 @@ type Manager interface {
 	GetUsers() ([]User, error)
 	GetUserByEmail(email string) (User, error)
 	GetUserByID(email string) (User, error)
-	UpdateVerificationTime(verifiedAt int64, id uint) error
+	UpdateVerificationTime(verifiedAt int64, id uuid.UUID) error
 	AddVerification(verification VerificationRequest) (VerificationRequest, error)
 	GetVerificationByToken(token string) (VerificationRequest, error)
 	DeleteToken(email string) error

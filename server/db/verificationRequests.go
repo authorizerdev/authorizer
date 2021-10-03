@@ -3,17 +3,25 @@ package db
 import (
 	"log"
 
+	"github.com/google/uuid"
+	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
 type VerificationRequest struct {
-	ID         uint   `gorm:"primaryKey"`
-	Token      string `gorm:"index"`
+	ID         uuid.UUID `gorm:"type:uuid;"`
+	Token      string    `gorm:"index"`
 	Identifier string
 	ExpiresAt  int64
 	CreatedAt  int64  `gorm:"autoCreateTime"`
 	UpdatedAt  int64  `gorm:"autoUpdateTime"`
 	Email      string `gorm:"unique"`
+}
+
+func (v *VerificationRequest) BeforeCreate(tx *gorm.DB) (err error) {
+	v.ID = uuid.New()
+
+	return
 }
 
 // AddVerification function to add verification record

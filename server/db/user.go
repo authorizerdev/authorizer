@@ -4,11 +4,13 @@ import (
 	"log"
 	"time"
 
+	"github.com/google/uuid"
+	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
 type User struct {
-	ID              uint `gorm:"primaryKey"`
+	ID              uuid.UUID `gorm:"type:uuid;"`
 	FirstName       string
 	LastName        string
 	Email           string `gorm:"unique"`
@@ -19,6 +21,12 @@ type User struct {
 	UpdatedAt       int64 `gorm:"autoUpdateTime"`
 	Image           string
 	Roles           string
+}
+
+func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
+	u.ID = uuid.New()
+
+	return
 }
 
 // SaveUser function to add user even with email conflict
@@ -42,7 +50,7 @@ func (mgr *manager) UpdateUser(user User) (User, error) {
 	result := mgr.db.Clauses(
 		clause.OnConflict{
 			UpdateAll: true,
-			Columns:   []clause.Column{{Name: "id"}},
+			Columns:   []clause.Column{{Name: "email"}},
 		}).Create(&user)
 
 	if result.Error != nil {
@@ -85,7 +93,7 @@ func (mgr *manager) GetUserByID(id string) (User, error) {
 	return user, nil
 }
 
-func (mgr *manager) UpdateVerificationTime(verifiedAt int64, id uint) error {
+func (mgr *manager) UpdateVerificationTime(verifiedAt int64, id uuid.UUID) error {
 	user := &User{
 		ID: id,
 	}
