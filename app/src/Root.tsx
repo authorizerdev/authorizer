@@ -10,9 +10,9 @@ export default function Root() {
 
 	useEffect(() => {
 		if (token) {
-			const url = new URL(config.redirectURL);
+			const url = new URL(config.redirectURL || '/app');
 			if (url.origin !== window.location.origin) {
-				window.location.href = config.redirectURL;
+				window.location.href = config.redirectURL || '/app';
 			}
 		}
 		return () => {};
