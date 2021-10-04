@@ -30,7 +30,6 @@ func AdminUpdateUser(ctx context.Context, params model.AdminUpdateUserInput) (*m
 	}
 
 	user, err := db.Mgr.GetUserByID(params.ID)
-
 	if err != nil {
 		return res, fmt.Errorf(`User not found`)
 	}
@@ -114,9 +113,8 @@ func AdminUpdateUser(ctx context.Context, params model.AdminUpdateUserInput) (*m
 		return res, err
 	}
 
-	userIdStr := fmt.Sprintf("%v", user.ID)
 	res = &model.User{
-		ID:        userIdStr,
+		ID:        params.ID,
 		Email:     user.Email,
 		Image:     &user.Image,
 		FirstName: &user.FirstName,
