@@ -23,8 +23,7 @@ func (r *Role) BeforeCreate(tx *gorm.DB) (err error) {
 func (mgr *manager) SaveRoles(roles []Role) error {
 	res := mgr.db.Clauses(
 		clause.OnConflict{
-			OnConstraint: "authorizer_roles_role_key",
-			DoNothing:    true,
+			DoNothing: true,
 		}).Create(&roles)
 	if res.Error != nil {
 		log.Println(`Error saving roles`)
