@@ -3,13 +3,13 @@ WORKDIR /app
 COPY server server
 COPY Makefile .
 
-ARG VERSION
-ENV VERSION="${VERSION}"
+ARG VERSION="latest"
+ENV VERSION="$VERSION"
 
+RUN echo "$VERSION"
 RUN apk add build-base &&\
     make clean && make && \
-    chmod 777 build/server && \
-    echo "$VERSION"
+    chmod 777 build/server
 
 FROM alpine:latest
 RUN apk --no-cache add ca-certificates
