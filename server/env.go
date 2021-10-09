@@ -11,43 +11,33 @@ import (
 )
 
 // build variables
-var Version string
-
-// ParseArgs -> to parse the cli flag and get db url. This is useful with heroku button
-func ParseArgs() {
-	dbURL := flag.String("database_url", "", "Database connection string")
-	dbType := flag.String("database_type", "", "Database type, possible values are postgres,mysql,sqlite")
-	authorizerURL := flag.String("authorizer_url", "", "URL for authorizer instance, eg: https://xyz.herokuapp.com")
-
-	flag.Parse()
-	if *dbURL != "" {
-		constants.DATABASE_URL = *dbURL
-	}
-
-	if *dbType != "" {
-		constants.DATABASE_TYPE = *dbType
-	}
-
-	if *authorizerURL != "" {
-		constants.AUTHORIZER_URL = *authorizerURL
-	}
-}
+var (
+	Version            string
+	ARG_DB_URL         *string
+	ARG_DB_TYPE        *string
+	ARG_AUTHORIZER_URL *string
+	ARG_ENV_FILE       *string
+)
 
 // InitEnv -> to initialize env and through error if required env are not present
 func InitEnv() {
 	envPath := `.env`
-	envFile := flag.String("env_file", "", "Env file path")
+	ARG_DB_URL = flag.String("database_url", "", "Database connection string")
+	ARG_DB_TYPE = flag.String("database_type", "", "Database type, possible values are postgres,mysql,sqlite")
+	ARG_AUTHORIZER_URL = flag.String("authorizer_url", "", "URL for authorizer instance, eg: https://xyz.herokuapp.com")
+	ARG_ENV_FILE = flag.String("env_file", "", "Env file path")
+
 	flag.Parse()
-	if *envFile != "" {
-		envPath = *envFile
+	if *ARG_ENV_FILE != "" {
+		envPath = *ARG_ENV_FILE
 	}
+
 	err := godotenv.Load(envPath)
 	if err != nil {
 		log.Println("Error loading .env file")
 	}
 
 	constants.VERSION = Version
-
 	constants.ADMIN_SECRET = os.Getenv("ADMIN_SECRET")
 	constants.ENV = os.Getenv("ENV")
 	constants.DATABASE_TYPE = os.Getenv("DATABASE_TYPE")
@@ -104,7 +94,18 @@ func InitEnv() {
 	}
 	constants.ALLOWED_ORIGINS = allowedOrigins
 
-	ParseArgs()
+	if *ARG_AUTHORIZER_URL != "" {
+		constants.AUTHORIZER_URL = *ARG_AUTHORIZER_URL
+	}
+
+	if *ARG_DB_URL != "" {
+		constants.DATABASE_URL = *ARG_DB_URL
+	}
+
+	if *ARG_DB_TYPE != "" {
+		constants.DATABASE_TYPE = *ARG_DB_TYPE
+	}
+
 	if constants.DATABASE_URL == "" {
 		panic("Database url is required")
 	}
