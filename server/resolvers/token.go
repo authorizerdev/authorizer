@@ -36,8 +36,8 @@ func Token(ctx context.Context, role *string) (*model.AuthResponse, error) {
 		return res, err
 	}
 
-	if role != nil && role != &claimRole {
-		return res, fmt.Errorf(`unauthorized. invalid role for a given token`)
+	if role != nil && *role != claimRole {
+		return res, fmt.Errorf(`unauthorized`)
 	}
 
 	userIdStr := fmt.Sprintf("%v", user.ID)
