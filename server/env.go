@@ -16,7 +16,7 @@ var Version string
 // ParseArgs -> to parse the cli flag and get db url. This is useful with heroku button
 func ParseArgs() {
 	dbURL := flag.String("database_url", "", "Database connection string")
-	dbType := flag.String("databse_type", "", "Database type, possible values are postgres,mysql,sqlite")
+	dbType := flag.String("database_type", "", "Database type, possible values are postgres,mysql,sqlite")
 	authorizerURL := flag.String("authorizer_url", "", "URL for authorizer instance, eg: https://xyz.herokuapp.com")
 
 	flag.Parse()
@@ -103,19 +103,6 @@ func InitEnv() {
 		allowedOrigins = []string{"*"}
 	}
 	constants.ALLOWED_ORIGINS = allowedOrigins
-
-	allowedCallbackSplit := strings.Split(os.Getenv("ALLOWED_CALLBACK_URLS"), ",")
-	allowedCallbacks := []string{}
-	for _, val := range allowedCallbackSplit {
-		trimVal := strings.TrimSpace(val)
-		if trimVal != "" {
-			allowedCallbacks = append(allowedCallbacks, trimVal)
-		}
-	}
-	if len(allowedCallbackSplit) == 0 {
-		allowedCallbackSplit = []string{"*"}
-	}
-	constants.ALLOWED_CALLBACK_URLS = allowedCallbackSplit
 
 	ParseArgs()
 	if constants.DATABASE_URL == "" {
