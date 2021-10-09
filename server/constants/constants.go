@@ -13,7 +13,6 @@ var (
 	JWT_TYPE                     = ""
 	JWT_SECRET                   = ""
 	ALLOWED_ORIGINS              = []string{}
-	ALLOWED_CALLBACK_URLS        = []string{}
 	AUTHORIZER_URL               = ""
 	PORT                         = "8080"
 	REDIS_URL                    = ""
