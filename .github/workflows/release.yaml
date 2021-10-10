@@ -71,4 +71,4 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            VERSION=${{ steps.meta.outputs.tags[0] }}
+            VERSION=${{ steps.meta.outputs.labels['org.opencontainers.image.version'] }}
