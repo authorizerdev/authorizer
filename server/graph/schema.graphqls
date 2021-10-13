@@ -61,13 +61,13 @@ input SignUpInput {
 	password: String!
 	confirmPassword: String!
 	image: String
-	roles: [String]
+	roles: [String!]
 }
 
 input LoginInput {
 	email: String!
 	password: String!
-	role: String
+	roles: [String!]
 }
 
 input VerifyEmailInput {
@@ -90,12 +90,12 @@ input UpdateProfileInput {
 }
 
 input AdminUpdateUserInput {
-  id: ID!
-  email: String
-  firstName: String
-  lastName: String
-  image: String
-  roles: [String]
+	id: ID!
+	email: String
+	firstName: String
+	lastName: String
+	image: String
+	roles: [String]
 }
 
 input ForgotPasswordInput {
@@ -117,7 +117,7 @@ type Mutation {
 	login(params: LoginInput!): AuthResponse!
 	logout: Response!
 	updateProfile(params: UpdateProfileInput!): Response!
-  adminUpdateUser(params: AdminUpdateUserInput!): User!
+	adminUpdateUser(params: AdminUpdateUserInput!): User!
 	verifyEmail(params: VerifyEmailInput!): AuthResponse!
 	resendVerifyEmail(params: ResendVerifyEmailInput!): Response!
 	forgotPassword(params: ForgotPasswordInput!): Response!
@@ -128,7 +128,7 @@ type Mutation {
 type Query {
 	meta: Meta!
 	users: [User!]!
-	token(role: String): AuthResponse
+	token(roles: [String!]): AuthResponse
 	profile: User!
 	verificationRequests: [VerificationRequest!]!
 }

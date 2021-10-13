@@ -81,7 +81,7 @@ type ComplexityRoot struct {
 	Query struct {
 		Meta                 func(childComplexity int) int
 		Profile              func(childComplexity int) int
-		Token                func(childComplexity int, role *string) int
+		Token                func(childComplexity int, roles []string) int
 		Users                func(childComplexity int) int
 		VerificationRequests func(childComplexity int) int
 	}
@@ -129,7 +129,7 @@ type MutationResolver interface {
 type QueryResolver interface {
 	Meta(ctx context.Context) (*model.Meta, error)
 	Users(ctx context.Context) ([]*model.User, error)
-	Token(ctx context.Context, role *string) (*model.AuthResponse, error)
+	Token(ctx context.Context, roles []string) (*model.AuthResponse, error)
 	Profile(ctx context.Context) (*model.User, error)
 	VerificationRequests(ctx context.Context) ([]*model.VerificationRequest, error)
 }
@@ -379,7 +379,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.Token(childComplexity, args["role"].(*string)), true
+		return e.complexity.Query.Token(childComplexity, args["roles"].([]string)), true
 
 	case "Query.users":
 		if e.complexity.Query.Users == nil {
@@ -648,13 +648,13 @@ input SignUpInput {
 	password: String!
 	confirmPassword: String!
 	image: String
-	roles: [String]
+	roles: [String!]
 }
 
 input LoginInput {
 	email: String!
 	password: String!
-	role: String
+	roles: [String!]
 }
 
 input VerifyEmailInput {
@@ -677,12 +677,12 @@ input UpdateProfileInput {
 }
 
 input AdminUpdateUserInput {
-  id: ID!
-  email: String
-  firstName: String
-  lastName: String
-  image: String
-  roles: [String]
+	id: ID!
+	email: String
+	firstName: String
+	lastName: String
+	image: String
+	roles: [String]
 }
 
 input ForgotPasswordInput {
@@ -704,7 +704,7 @@ type Mutation {
 	login(params: LoginInput!): AuthResponse!
 	logout: Response!
 	updateProfile(params: UpdateProfileInput!): Response!
-  adminUpdateUser(params: AdminUpdateUserInput!): User!
+	adminUpdateUser(params: AdminUpdateUserInput!): User!
 	verifyEmail(params: VerifyEmailInput!): AuthResponse!
 	resendVerifyEmail(params: ResendVerifyEmailInput!): Response!
 	forgotPassword(params: ForgotPasswordInput!): Response!
@@ -715,7 +715,7 @@ type Mutation {
 type Query {
 	meta: Meta!
 	users: [User!]!
-	token(role: String): AuthResponse
+	token(roles: [String!]): AuthResponse
 	profile: User!
 	verificationRequests: [VerificationRequest!]!
 }
@@ -880,15 +880,15 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 func (ec *executionContext) field_Query_token_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 *string
-	if tmp, ok := rawArgs["role"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("role"))
-		arg0, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+	var arg0 []string
+	if tmp, ok := rawArgs["roles"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("roles"))
+		arg0, err = ec.unmarshalOString2ᚕstringᚄ(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["role"] = arg0
+	args["roles"] = arg0
 	return args, nil
 }
 
@@ -1884,7 +1884,7 @@ func (ec *executionContext) _Query_token(ctx context.Context, field graphql.Coll
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Token(rctx, args["role"].(*string))
+		return ec.resolvers.Query().Token(rctx, args["roles"].([]string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3842,11 +3842,11 @@ func (ec *executionContext) unmarshalInputLoginInput(ctx context.Context, obj in
 			if err != nil {
 				return it, err
 			}
-		case "role":
+		case "roles":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("role"))
-			it.Role, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("roles"))
+			it.Roles, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3970,7 +3970,7 @@ func (ec *executionContext) unmarshalInputSignUpInput(ctx context.Context, obj i
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("roles"))
-			it.Roles, err = ec.unmarshalOString2ᚕᚖstring(ctx, v)
+			it.Roles, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -5278,6 +5278,42 @@ func (ec *executionContext) unmarshalOString2string(ctx context.Context, v inter
 
 func (ec *executionContext) marshalOString2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
 	return graphql.MarshalString(v)
+}
+
+func (ec *executionContext) unmarshalOString2ᚕstringᚄ(ctx context.Context, v interface{}) ([]string, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []interface{}
+	if v != nil {
+		if tmp1, ok := v.([]interface{}); ok {
+			vSlice = tmp1
+		} else {
+			vSlice = []interface{}{v}
+		}
+	}
+	var err error
+	res := make([]string, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNString2string(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalOString2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNString2string(ctx, sel, v[i])
+	}
+
+	return ret
 }
 
 func (ec *executionContext) unmarshalOString2ᚕᚖstring(ctx context.Context, v interface{}) ([]*string, error) {

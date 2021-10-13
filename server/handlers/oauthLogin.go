@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/enum"
@@ -18,7 +19,7 @@ func OAuthLoginHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// TODO validate redirect URL
 		redirectURL := c.Query("redirectURL")
-		role := c.Query("role")
+		roles := c.Query("roles")
 
 		if redirectURL == "" {
 			c.JSON(400, gin.H{
@@ -27,20 +28,24 @@ func OAuthLoginHandler() gin.HandlerFunc {
 			return
 		}
 
-		if role != "" {
+		if roles != "" {
 			// validate role
-			if !utils.IsValidRole(constants.ROLES, role) {
+			rolesSplit := strings.Split(roles, ",")
+
+			// use protected roles verification for admin login only.
+			// though if not associated with user, it will be rejected from oauth_callback
+			if !utils.IsValidRoles(append([]string{}, append(constants.ROLES, constants.PROTECTED_ROLES...)...), rolesSplit) {
 				c.JSON(400, gin.H{
 					"error": "invalid role",
 				})
 				return
 			}
 		} else {
-			role = constants.DEFAULT_ROLE
+			roles = strings.Join(constants.DEFAULT_ROLES, ",")
 		}
 
 		uuid := uuid.New()
-		oauthStateString := uuid.String() + "___" + redirectURL + "___" + role
+		oauthStateString := uuid.String() + "___" + redirectURL + "___" + roles
 
 		provider := c.Param("oauth_provider")
 

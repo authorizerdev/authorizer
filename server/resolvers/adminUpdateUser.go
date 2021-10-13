@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/enum"
 	"github.com/authorizerdev/authorizer/server/graph/model"
@@ -91,7 +92,7 @@ func AdminUpdateUser(ctx context.Context, params model.AdminUpdateUserInput) (*m
 			inputRoles = append(inputRoles, *item)
 		}
 
-		if !utils.IsValidRolesArray(inputRoles) {
+		if !utils.IsValidRoles(append([]string{}, append(constants.ROLES, constants.PROTECTED_ROLES...)...), inputRoles) {
 			return res, fmt.Errorf("invalid list of roles")
 		}
 
