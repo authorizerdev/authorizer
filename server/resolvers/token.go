@@ -14,7 +14,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
-func Token(ctx context.Context, role *string) (*model.AuthResponse, error) {
+func Token(ctx context.Context, roles []string) (*model.AuthResponse, error) {
 	var res *model.AuthResponse
 
 	gc, err := utils.GinContextFromContext(ctx)
@@ -30,14 +30,9 @@ func Token(ctx context.Context, role *string) (*model.AuthResponse, error) {
 	expiresAt := claim["exp"].(int64)
 	email := fmt.Sprintf("%v", claim["email"])
 
-	claimRole := fmt.Sprintf("%v", claim[constants.JWT_ROLE_CLAIM])
 	user, err := db.Mgr.GetUserByEmail(email)
 	if err != nil {
 		return res, err
-	}
-
-	if role != nil && *role != claimRole {
-		return res, fmt.Errorf(`unauthorized`)
 	}
 
 	userIdStr := fmt.Sprintf("%v", user.ID)
@@ -47,15 +42,30 @@ func Token(ctx context.Context, role *string) (*model.AuthResponse, error) {
 	if sessionToken == "" {
 		return res, fmt.Errorf(`unauthorized`)
 	}
-	// TODO check if refresh/session token has expired
 
 	expiresTimeObj := time.Unix(expiresAt, 0)
 	currentTimeObj := time.Now()
+
+	claimRoleInterface := claim[constants.JWT_ROLE_CLAIM].([]interface{})
+	claimRoles := make([]string, len(claimRoleInterface))
+	for i, v := range claimRoleInterface {
+		claimRoles[i] = v.(string)
+	}
+
+	if len(roles) > 0 {
+		for _, v := range roles {
+			if !utils.StringContains(claimRoles, v) {
+				return res, fmt.Errorf(`unauthorized`)
+			}
+		}
+	}
+
 	if accessTokenErr != nil || expiresTimeObj.Sub(currentTimeObj).Minutes() <= 5 {
 		// if access token has expired and refresh/session token is valid
 		// generate new accessToken
-		token, expiresAt, _ = utils.CreateAuthToken(user, enum.AccessToken, claimRole)
+		token, expiresAt, _ = utils.CreateAuthToken(user, enum.AccessToken, claimRoles)
 	}
+
 	utils.SetCookie(gc, token)
 	res = &model.AuthResponse{
 		Message:              `Token verified`,

@@ -40,27 +40,11 @@ func IsSuperAdmin(gc *gin.Context) bool {
 	return secret == constants.ADMIN_SECRET
 }
 
-func IsValidRolesArray(roles []string) bool {
+func IsValidRoles(userRoles []string, roles []string) bool {
 	valid := true
-	currentRoleMap := map[string]bool{}
-
-	for _, currentRole := range constants.ROLES {
-		currentRoleMap[currentRole] = true
-	}
-	for _, inputRole := range roles {
-		if !currentRoleMap[inputRole] {
+	for _, role := range roles {
+		if !StringContains(userRoles, role) {
 			valid = false
-			break
-		}
-	}
-	return valid
-}
-
-func IsValidRole(userRoles []string, role string) bool {
-	valid := false
-	for _, currentRole := range userRoles {
-		if role == currentRole {
-			valid = true
 			break
 		}
 	}

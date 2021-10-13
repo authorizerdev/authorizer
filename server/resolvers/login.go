@@ -46,19 +46,19 @@ func Login(ctx context.Context, params model.LoginInput) (*model.AuthResponse, e
 		log.Println("Compare password error:", err)
 		return res, fmt.Errorf(`invalid password`)
 	}
-	role := constants.DEFAULT_ROLE
-	if params.Role != nil {
-		// validate role
-		if !utils.IsValidRole(strings.Split(user.Roles, ","), *params.Role) {
-			return res, fmt.Errorf(`invalid role`)
+	roles := constants.DEFAULT_ROLES
+	currentRoles := strings.Split(user.Roles, ",")
+	if len(params.Roles) > 0 {
+		if !utils.IsValidRoles(currentRoles, params.Roles) {
+			return res, fmt.Errorf(`invalid roles`)
 		}
 
-		role = *params.Role
+		roles = params.Roles
 	}
 	userIdStr := fmt.Sprintf("%v", user.ID)
-	refreshToken, _, _ := utils.CreateAuthToken(user, enum.RefreshToken, role)
+	refreshToken, _, _ := utils.CreateAuthToken(user, enum.RefreshToken, roles)
 
-	accessToken, expiresAt, _ := utils.CreateAuthToken(user, enum.AccessToken, role)
+	accessToken, expiresAt, _ := utils.CreateAuthToken(user, enum.AccessToken, roles)
 
 	session.SetToken(userIdStr, refreshToken)
 

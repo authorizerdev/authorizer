@@ -124,31 +124,6 @@ func UpdateProfile(ctx context.Context, params model.UpdateProfileInput) (*model
 		}()
 	}
 
-	// TODO this idea needs to be verified otherwise every user can make themselves super admin
-	// rolesToSave := ""
-	// if params.Roles != nil && len(params.Roles) > 0 {
-	// 	currentRoles := strings.Split(user.Roles, ",")
-	// 	inputRoles := []string{}
-	// 	for _, item := range params.Roles {
-	// 		inputRoles = append(inputRoles, *item)
-	// 	}
-
-	// 	if !utils.IsValidRolesArray(inputRoles) {
-	// 		return res, fmt.Errorf("invalid list of roles")
-	// 	}
-
-	// 	if !utils.IsStringArrayEqual(inputRoles, currentRoles) {
-	// 		rolesToSave = strings.Join(inputRoles, ",")
-	// 	}
-
-	// 	session.DeleteToken(fmt.Sprintf("%v", user.ID))
-	// 	utils.DeleteCookie(gc)
-	// }
-
-	// if rolesToSave != "" {
-	// 	user.Roles = rolesToSave
-	// }
-
 	_, err = db.Mgr.UpdateUser(user)
 	if err != nil {
 		log.Println("Error updating user:", err)

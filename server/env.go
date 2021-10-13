@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/joho/godotenv"
 )
 
@@ -63,7 +64,6 @@ func InitEnv() {
 	constants.RESET_PASSWORD_URL = strings.TrimPrefix(os.Getenv("RESET_PASSWORD_URL"), "/")
 	constants.DISABLE_BASIC_AUTHENTICATION = os.Getenv("DISABLE_BASIC_AUTHENTICATION")
 	constants.DISABLE_EMAIL_VERIFICATION = os.Getenv("DISABLE_EMAIL_VERIFICATION")
-	constants.DEFAULT_ROLE = os.Getenv("DEFAULT_ROLE")
 	constants.JWT_ROLE_CLAIM = os.Getenv("JWT_ROLE_CLAIM")
 
 	if constants.ADMIN_SECRET == "" {
@@ -136,7 +136,26 @@ func InitEnv() {
 
 	rolesSplit := strings.Split(os.Getenv("ROLES"), ",")
 	roles := []string{}
-	defaultRole := ""
+	if len(rolesSplit) == 0 {
+		roles = []string{"user"}
+	}
+
+	defaultRoleSplit := strings.Split(os.Getenv("DEFAULT_ROLES"), ",")
+	defaultRoles := []string{}
+
+	if len(defaultRoleSplit) == 0 {
+		defaultRoles = []string{"user"}
+	}
+
+	protectedRolesSplit := strings.Split(os.Getenv("PROTECTED_ROLES"), ",")
+	protectedRoles := []string{}
+
+	if len(protectedRolesSplit) > 0 {
+		for _, val := range protectedRolesSplit {
+			trimVal := strings.TrimSpace(val)
+			protectedRoles = append(protectedRoles, trimVal)
+		}
+	}
 
 	for _, val := range rolesSplit {
 		trimVal := strings.TrimSpace(val)
@@ -144,20 +163,18 @@ func InitEnv() {
 			roles = append(roles, trimVal)
 		}
 
-		if trimVal == constants.DEFAULT_ROLE {
-			defaultRole = trimVal
+		if utils.StringContains(defaultRoleSplit, trimVal) {
+			defaultRoles = append(defaultRoles, trimVal)
 		}
 	}
-	if len(roles) > 0 && defaultRole == "" {
+
+	if len(roles) > 0 && len(defaultRoles) == 0 && len(defaultRoleSplit) > 0 {
 		panic(`Invalid DEFAULT_ROLE environment variable. It can be one from give ROLES environment variable value`)
 	}
 
-	if len(roles) == 0 {
-		roles = []string{"user", "admin"}
-		constants.DEFAULT_ROLE = "user"
-	}
-
 	constants.ROLES = roles
+	constants.DEFAULT_ROLES = defaultRoles
+	constants.PROTECTED_ROLES = protectedRoles
 
 	if constants.JWT_ROLE_CLAIM == "" {
 		constants.JWT_ROLE_CLAIM = "role"
