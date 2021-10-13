@@ -56,11 +56,11 @@ func IsValidRolesArray(roles []string) bool {
 	return valid
 }
 
-func IsValidRole(userRoles []string, role string) bool {
-	valid := false
-	for _, currentRole := range userRoles {
-		if role == currentRole {
-			valid = true
+func IsValidRoles(userRoles []string, roles []string) bool {
+	valid := true
+	for _, role := range roles {
+		if !StringContains(userRoles, role) {
+			valid = false
 			break
 		}
 	}

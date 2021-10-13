@@ -26,7 +26,7 @@ type UserAuthClaim struct {
 	*JWTCustomClaim `json:"authorizer"`
 }
 
-func CreateAuthToken(user db.User, tokenType enum.TokenType, role string) (string, int64, error) {
+func CreateAuthToken(user db.User, tokenType enum.TokenType, roles []string) (string, int64, error) {
 	t := jwt.New(jwt.GetSigningMethod(constants.JWT_TYPE))
 	expiryBound := time.Hour
 	if tokenType == enum.RefreshToken {
@@ -41,7 +41,7 @@ func CreateAuthToken(user db.User, tokenType enum.TokenType, role string) (strin
 		"email":                  user.Email,
 		"id":                     user.ID,
 		"allowed_roles":          strings.Split(user.Roles, ","),
-		constants.JWT_ROLE_CLAIM: role,
+		constants.JWT_ROLE_CLAIM: roles,
 	}
 
 	t.Claims = &UserAuthClaim{

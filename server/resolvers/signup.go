@@ -37,16 +37,15 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 
 	inputRoles := []string{}
 
-	if params.Roles != nil && len(params.Roles) > 0 {
+	if len(params.Roles) > 0 {
 		// check if roles exists
-		for _, item := range params.Roles {
-			inputRoles = append(inputRoles, *item)
-		}
-		if !utils.IsValidRolesArray(inputRoles) {
+		if !utils.IsValidRolesArray(params.Roles) {
 			return res, fmt.Errorf(`invalid roles`)
+		} else {
+			inputRoles = params.Roles
 		}
 	} else {
-		inputRoles = []string{constants.DEFAULT_ROLE}
+		inputRoles = constants.DEFAULT_ROLES
 	}
 
 	// find user with email
@@ -85,6 +84,7 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 		return res, err
 	}
 	userIdStr := fmt.Sprintf("%v", user.ID)
+	roles := strings.Split(user.Roles, ",")
 	userToReturn := &model.User{
 		ID:              userIdStr,
 		Email:           user.Email,
@@ -123,9 +123,9 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 		}
 	} else {
 
-		refreshToken, _, _ := utils.CreateAuthToken(user, enum.RefreshToken, constants.DEFAULT_ROLE)
+		refreshToken, _, _ := utils.CreateAuthToken(user, enum.RefreshToken, roles)
 
-		accessToken, expiresAt, _ := utils.CreateAuthToken(user, enum.AccessToken, constants.DEFAULT_ROLE)
+		accessToken, expiresAt, _ := utils.CreateAuthToken(user, enum.AccessToken, roles)
 
 		session.SetToken(userIdStr, refreshToken)
 		res = &model.AuthResponse{

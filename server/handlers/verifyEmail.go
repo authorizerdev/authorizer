@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/db"
@@ -50,9 +51,10 @@ func VerifyEmailHandler() gin.HandlerFunc {
 		db.Mgr.DeleteToken(claim.Email)
 
 		userIdStr := fmt.Sprintf("%v", user.ID)
-		refreshToken, _, _ := utils.CreateAuthToken(user, enum.RefreshToken, user.Roles)
+		roles := strings.Split(user.Roles, ",")
+		refreshToken, _, _ := utils.CreateAuthToken(user, enum.RefreshToken, roles)
 
-		accessToken, _, _ := utils.CreateAuthToken(user, enum.AccessToken, user.Roles)
+		accessToken, _, _ := utils.CreateAuthToken(user, enum.AccessToken, roles)
 
 		session.SetToken(userIdStr, refreshToken)
 		utils.SetCookie(c, accessToken)

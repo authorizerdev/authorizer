@@ -19,28 +19,29 @@ import (
 	"golang.org/x/oauth2"
 )
 
-func processGoogleUserInfo(code string, role string, c *gin.Context) error {
+func processGoogleUserInfo(code string, roles []string, c *gin.Context) (db.User, error) {
+	user := db.User{}
 	token, err := oauth.OAuthProvider.GoogleConfig.Exchange(oauth2.NoContext, code)
 	if err != nil {
-		return fmt.Errorf("invalid google exchange code: %s", err.Error())
+		return user, fmt.Errorf("invalid google exchange code: %s", err.Error())
 	}
 	client := oauth.OAuthProvider.GoogleConfig.Client(oauth2.NoContext, token)
 	response, err := client.Get(constants.GoogleUserInfoURL)
 	if err != nil {
-		return err
+		return user, err
 	}
 
 	defer response.Body.Close()
 	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return fmt.Errorf("failed to read google response body: %s", err.Error())
+		return user, fmt.Errorf("failed to read google response body: %s", err.Error())
 	}
 
 	userRawData := make(map[string]string)
 	json.Unmarshal(body, &userRawData)
 
 	existingUser, err := db.Mgr.GetUserByEmail(userRawData["email"])
-	user := db.User{
+	user = db.User{
 		FirstName:       userRawData["given_name"],
 		LastName:        userRawData["family_name"],
 		Image:           userRawData["picture"],
@@ -50,7 +51,7 @@ func processGoogleUserInfo(code string, role string, c *gin.Context) error {
 	if err != nil {
 		// user not registered, register user and generate session token
 		user.SignupMethod = enum.Google.String()
-		user.Roles = role
+		user.Roles = strings.Join(roles, ",")
 	} else {
 		// user exists in db, check if method was google
 		// if not append google to existing signup method and save it
@@ -61,34 +62,25 @@ func processGoogleUserInfo(code string, role string, c *gin.Context) error {
 		}
 		user.SignupMethod = signupMethod
 		user.Password = existingUser.Password
-		if !utils.IsValidRole(strings.Split(existingUser.Roles, ","), role) {
-			return fmt.Errorf("invalid role")
+		if !utils.IsValidRoles(strings.Split(existingUser.Roles, ","), roles) {
+			return user, fmt.Errorf("invalid role")
 		}
 
 		user.Roles = existingUser.Roles
 	}
-
-	user, _ = db.Mgr.SaveUser(user)
-	user, _ = db.Mgr.GetUserByEmail(user.Email)
-	userIdStr := fmt.Sprintf("%v", user.ID)
-
-	refreshToken, _, _ := utils.CreateAuthToken(user, enum.RefreshToken, role)
-
-	accessToken, _, _ := utils.CreateAuthToken(user, enum.AccessToken, role)
-	utils.SetCookie(c, accessToken)
-	session.SetToken(userIdStr, refreshToken)
-	return nil
+	return user, nil
 }
 
-func processGithubUserInfo(code string, role string, c *gin.Context) error {
+func processGithubUserInfo(code string, roles []string, c *gin.Context) (db.User, error) {
+	user := db.User{}
 	token, err := oauth.OAuthProvider.GithubConfig.Exchange(oauth2.NoContext, code)
 	if err != nil {
-		return fmt.Errorf("invalid github exchange code: %s", err.Error())
+		return user, fmt.Errorf("invalid github exchange code: %s", err.Error())
 	}
 	client := http.Client{}
 	req, err := http.NewRequest("GET", constants.GithubUserInfoURL, nil)
 	if err != nil {
-		return fmt.Errorf("error creating github user info request: %s", err.Error())
+		return user, fmt.Errorf("error creating github user info request: %s", err.Error())
 	}
 	req.Header = http.Header{
 		"Authorization": []string{fmt.Sprintf("token %s", token.AccessToken)},
@@ -96,13 +88,13 @@ func processGithubUserInfo(code string, role string, c *gin.Context) error {
 
 	response, err := client.Do(req)
 	if err != nil {
-		return err
+		return user, err
 	}
 
 	defer response.Body.Close()
 	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return fmt.Errorf("failed to read github response body: %s", err.Error())
+		return user, fmt.Errorf("failed to read github response body: %s", err.Error())
 	}
 
 	userRawData := make(map[string]string)
@@ -118,7 +110,7 @@ func processGithubUserInfo(code string, role string, c *gin.Context) error {
 	if len(name) > 1 && strings.TrimSpace(name[1]) != "" {
 		lastName = name[0]
 	}
-	user := db.User{
+	user = db.User{
 		FirstName:       firstName,
 		LastName:        lastName,
 		Image:           userRawData["avatar_url"],
@@ -128,7 +120,7 @@ func processGithubUserInfo(code string, role string, c *gin.Context) error {
 	if err != nil {
 		// user not registered, register user and generate session token
 		user.SignupMethod = enum.Github.String()
-		user.Roles = role
+		user.Roles = strings.Join(roles, ",")
 	} else {
 		// user exists in db, check if method was google
 		// if not append google to existing signup method and save it
@@ -140,45 +132,38 @@ func processGithubUserInfo(code string, role string, c *gin.Context) error {
 		user.SignupMethod = signupMethod
 		user.Password = existingUser.Password
 
-		if !utils.IsValidRole(strings.Split(existingUser.Roles, ","), role) {
-			return fmt.Errorf("invalid role")
+		if !utils.IsValidRoles(strings.Split(existingUser.Roles, ","), roles) {
+			return user, fmt.Errorf("invalid role")
 		}
 
 		user.Roles = existingUser.Roles
 	}
 
-	user, _ = db.Mgr.SaveUser(user)
-	user, _ = db.Mgr.GetUserByEmail(user.Email)
-	userIdStr := fmt.Sprintf("%v", user.ID)
-	refreshToken, _, _ := utils.CreateAuthToken(user, enum.RefreshToken, role)
-
-	accessToken, _, _ := utils.CreateAuthToken(user, enum.AccessToken, role)
-	utils.SetCookie(c, accessToken)
-	session.SetToken(userIdStr, refreshToken)
-	return nil
+	return user, nil
 }
 
-func processFacebookUserInfo(code string, role string, c *gin.Context) error {
+func processFacebookUserInfo(code string, roles []string, c *gin.Context) (db.User, error) {
+	user := db.User{}
 	token, err := oauth.OAuthProvider.FacebookConfig.Exchange(oauth2.NoContext, code)
 	if err != nil {
-		return fmt.Errorf("invalid facebook exchange code: %s", err.Error())
+		return user, fmt.Errorf("invalid facebook exchange code: %s", err.Error())
 	}
 	client := http.Client{}
 	req, err := http.NewRequest("GET", constants.FacebookUserInfoURL+token.AccessToken, nil)
 	if err != nil {
-		return fmt.Errorf("error creating facebook user info request: %s", err.Error())
+		return user, fmt.Errorf("error creating facebook user info request: %s", err.Error())
 	}
 
 	response, err := client.Do(req)
 	if err != nil {
 		log.Println("err:", err)
-		return err
+		return user, err
 	}
 
 	defer response.Body.Close()
 	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return fmt.Errorf("failed to read facebook response body: %s", err.Error())
+		return user, fmt.Errorf("failed to read facebook response body: %s", err.Error())
 	}
 
 	userRawData := make(map[string]interface{})
@@ -189,7 +174,7 @@ func processFacebookUserInfo(code string, role string, c *gin.Context) error {
 
 	picObject := userRawData["picture"].(map[string]interface{})["data"]
 	picDataObject := picObject.(map[string]interface{})
-	user := db.User{
+	user = db.User{
 		FirstName:       fmt.Sprintf("%v", userRawData["first_name"]),
 		LastName:        fmt.Sprintf("%v", userRawData["last_name"]),
 		Image:           fmt.Sprintf("%v", picDataObject["url"]),
@@ -200,7 +185,7 @@ func processFacebookUserInfo(code string, role string, c *gin.Context) error {
 	if err != nil {
 		// user not registered, register user and generate session token
 		user.SignupMethod = enum.Github.String()
-		user.Roles = role
+		user.Roles = strings.Join(roles, ",")
 	} else {
 		// user exists in db, check if method was google
 		// if not append google to existing signup method and save it
@@ -212,22 +197,14 @@ func processFacebookUserInfo(code string, role string, c *gin.Context) error {
 		user.SignupMethod = signupMethod
 		user.Password = existingUser.Password
 
-		if !utils.IsValidRole(strings.Split(existingUser.Roles, ","), role) {
-			return fmt.Errorf("invalid role")
+		if !utils.IsValidRoles(strings.Split(existingUser.Roles, ","), roles) {
+			return user, fmt.Errorf("invalid role")
 		}
 
 		user.Roles = existingUser.Roles
 	}
 
-	user, _ = db.Mgr.SaveUser(user)
-	user, _ = db.Mgr.GetUserByEmail(user.Email)
-	userIdStr := fmt.Sprintf("%v", user.ID)
-	refreshToken, _, _ := utils.CreateAuthToken(user, enum.RefreshToken, role)
-
-	accessToken, _, _ := utils.CreateAuthToken(user, enum.AccessToken, role)
-	utils.SetCookie(c, accessToken)
-	session.SetToken(userIdStr, refreshToken)
-	return nil
+	return user, nil
 }
 
 func OAuthCallbackHandler() gin.HandlerFunc {
@@ -249,18 +226,19 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			return
 		}
 
-		role := sessionSplit[2]
+		roles := strings.Split(sessionSplit[2], ",")
 		redirectURL := sessionSplit[1]
 
 		var err error
+		user := db.User{}
 		code := c.Request.FormValue("code")
 		switch provider {
 		case enum.Google.String():
-			err = processGoogleUserInfo(code, role, c)
+			user, err = processGoogleUserInfo(code, roles, c)
 		case enum.Github.String():
-			err = processGithubUserInfo(code, role, c)
+			user, err = processGithubUserInfo(code, roles, c)
 		case enum.Facebook.String():
-			err = processFacebookUserInfo(code, role, c)
+			user, err = processFacebookUserInfo(code, roles, c)
 		default:
 			err = fmt.Errorf(`invalid oauth provider`)
 		}
@@ -269,6 +247,16 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			c.JSON(400, gin.H{"error": err.Error()})
 			return
 		}
+
+		user, _ = db.Mgr.SaveUser(user)
+		user, _ = db.Mgr.GetUserByEmail(user.Email)
+		userIdStr := fmt.Sprintf("%v", user.ID)
+		refreshToken, _, _ := utils.CreateAuthToken(user, enum.RefreshToken, roles)
+
+		accessToken, _, _ := utils.CreateAuthToken(user, enum.AccessToken, roles)
+		utils.SetCookie(c, accessToken)
+		session.SetToken(userIdStr, refreshToken)
+
 		c.Redirect(http.StatusTemporaryRedirect, redirectURL)
 	}
 }

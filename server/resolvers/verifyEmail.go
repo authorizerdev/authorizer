@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/enum"
 	"github.com/authorizerdev/authorizer/server/graph/model"
@@ -43,9 +42,10 @@ func VerifyEmail(ctx context.Context, params model.VerifyEmailInput) (*model.Aut
 	db.Mgr.DeleteToken(claim.Email)
 
 	userIdStr := fmt.Sprintf("%v", user.ID)
-	refreshToken, _, _ := utils.CreateAuthToken(user, enum.RefreshToken, constants.DEFAULT_ROLE)
+	roles := strings.Split(user.Roles, ",")
+	refreshToken, _, _ := utils.CreateAuthToken(user, enum.RefreshToken, roles)
 
-	accessToken, expiresAt, _ := utils.CreateAuthToken(user, enum.AccessToken, constants.DEFAULT_ROLE)
+	accessToken, expiresAt, _ := utils.CreateAuthToken(user, enum.AccessToken, roles)
 
 	session.SetToken(userIdStr, refreshToken)
 
