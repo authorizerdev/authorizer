@@ -163,7 +163,7 @@ func InitEnv() {
 			roles = append(roles, trimVal)
 		}
 
-		if utils.StringContains(defaultRoleSplit, trimVal) {
+		if utils.StringSliceContains(defaultRoleSplit, trimVal) {
 			defaultRoles = append(defaultRoles, trimVal)
 		}
 	}

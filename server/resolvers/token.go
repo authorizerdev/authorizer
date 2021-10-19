@@ -54,7 +54,7 @@ func Token(ctx context.Context, roles []string) (*model.AuthResponse, error) {
 
 	if len(roles) > 0 {
 		for _, v := range roles {
-			if !utils.StringContains(claimRoles, v) {
+			if !utils.StringSliceContains(claimRoles, v) {
 				return res, fmt.Errorf(`unauthorized`)
 			}
 		}
