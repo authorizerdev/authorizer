@@ -43,7 +43,7 @@ func IsSuperAdmin(gc *gin.Context) bool {
 func IsValidRoles(userRoles []string, roles []string) bool {
 	valid := true
 	for _, role := range roles {
-		if !StringContains(userRoles, role) {
+		if !StringSliceContains(userRoles, role) {
 			valid = false
 			break
 		}
