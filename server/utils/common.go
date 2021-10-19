@@ -19,7 +19,7 @@ func WriteToFile(filename string, data string) error {
 	return file.Sync()
 }
 
-func StringContains(s []string, e string) bool {
+func StringSliceContains(s []string, e string) bool {
 	for _, a := range s {
 		if a == e {
 			return true

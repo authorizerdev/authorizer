@@ -18,6 +18,11 @@ func InitServer() {
 			Role: val,
 		})
 	}
+	for _, val := range constants.PROTECTED_ROLES {
+		roles = append(roles, db.Role{
+			Role: val,
+		})
+	}
 	err := db.Mgr.SaveRoles(roles)
 	if err != nil {
 		log.Println(`Error saving roles`, err)
