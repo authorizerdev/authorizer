@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 	"time"
 
@@ -12,19 +13,8 @@ import (
 	"github.com/authorizerdev/authorizer/server/enum"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
+	v8 "rogchap.com/v8go"
 )
-
-// type UserAuthInfo struct {
-// 	Email string `json:"email"`
-// 	ID    string `json:"id"`
-// }
-
-type JWTCustomClaim map[string]interface{}
-
-type UserAuthClaim struct {
-	*jwt.StandardClaims
-	*JWTCustomClaim `json:"authorizer"`
-}
 
 func CreateAuthToken(user db.User, tokenType enum.TokenType, roles []string) (string, int64, error) {
 	t := jwt.New(jwt.GetSigningMethod(constants.JWT_TYPE))
@@ -36,7 +26,9 @@ func CreateAuthToken(user db.User, tokenType enum.TokenType, roles []string) (st
 
 	expiresAt := time.Now().Add(expiryBound).Unix()
 
-	customClaims := JWTCustomClaim{
+	customClaims := jwt.MapClaims{
+		"exp":                    expiresAt,
+		"iat":                    time.Now().Unix(),
 		"token_type":             tokenType.String(),
 		"email":                  user.Email,
 		"id":                     user.ID,
@@ -44,17 +36,56 @@ func CreateAuthToken(user db.User, tokenType enum.TokenType, roles []string) (st
 		constants.JWT_ROLE_CLAIM: roles,
 	}
 
-	t.Claims = &UserAuthClaim{
-		&jwt.StandardClaims{
-			ExpiresAt: expiresAt,
-		},
-		&customClaims,
+	// check for the extra access token script
+
+	accessTokenScript := os.Getenv("CUSTOM_ACCESS_TOKEN_SCRIPT")
+	if accessTokenScript != "" {
+		userInfo := map[string]interface{}{
+			"id":            user.ID,
+			"email":         user.Email,
+			"firstName":     user.FirstName,
+			"lastName":      user.LastName,
+			"image":         user.Image,
+			"roles":         strings.Split(user.Roles, ","),
+			"signUpMethods": strings.Split(user.SignupMethod, ","),
+		}
+
+		ctx, _ := v8.NewContext()
+		userBytes, _ := json.Marshal(userInfo)
+		claimBytes, _ := json.Marshal(customClaims)
+
+		ctx.RunScript(fmt.Sprintf(`
+			const user = %s;
+			const tokenPayload = %s;
+			const customFunction = %s;
+			const functionRes = JSON.stringify(customFunction(user, tokenPayload));
+		`, string(userBytes), string(claimBytes), accessTokenScript), "functionCall.js")
+
+		val, err := ctx.RunScript("functionRes", "functionRes.js")
+
+		if err != nil {
+			log.Println("=> err custom access token script:", err)
+		} else {
+			extraPayload := make(map[string]interface{})
+			err = json.Unmarshal([]byte(fmt.Sprintf("%s", val)), &extraPayload)
+
+			if err != nil {
+				log.Println("Error converting accessTokenScript response to map:", err)
+			} else {
+				for k, v := range extraPayload {
+					customClaims[k] = v
+				}
+			}
+		}
 	}
+
+	t.Claims = customClaims
 
 	token, err := t.SignedString([]byte(constants.JWT_SECRET))
 	if err != nil {
 		return "", 0, err
 	}
+
 	return token, expiresAt, nil
 }
 
@@ -75,7 +106,7 @@ func GetAuthToken(gc *gin.Context) (string, error) {
 
 func VerifyAuthToken(token string) (map[string]interface{}, error) {
 	var res map[string]interface{}
-	claims := &UserAuthClaim{}
+	claims := jwt.MapClaims{}
 
 	_, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
 		return []byte(constants.JWT_SECRET), nil
@@ -84,9 +115,16 @@ func VerifyAuthToken(token string) (map[string]interface{}, error) {
 		return res, err
 	}
 
-	data, _ := json.Marshal(claims.JWTCustomClaim)
+	// claim parses exp & iat into float 64 with e^10,
+	// but we expect it to be int64
+	// hence we need to assert interface and convert to int64
+	intExp := int64(claims["exp"].(float64))
+	intIat := int64(claims["iat"].(float64))
+
+	data, _ := json.Marshal(claims)
 	json.Unmarshal(data, &res)
-	res["exp"] = claims.ExpiresAt
+	res["exp"] = intExp
+	res["iat"] = intIat
 
 	return res, nil
 }
