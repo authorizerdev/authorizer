@@ -37,7 +37,7 @@ func Token(ctx context.Context, roles []string) (*model.AuthResponse, error) {
 
 	userIdStr := fmt.Sprintf("%v", user.ID)
 
-	sessionToken := session.GetToken(userIdStr)
+	sessionToken := session.GetToken(userIdStr, token)
 
 	if sessionToken == "" {
 		return res, fmt.Errorf(`unauthorized`)
@@ -63,7 +63,19 @@ func Token(ctx context.Context, roles []string) (*model.AuthResponse, error) {
 	if accessTokenErr != nil || expiresTimeObj.Sub(currentTimeObj).Minutes() <= 5 {
 		// if access token has expired and refresh/session token is valid
 		// generate new accessToken
+		currentRefreshToken := session.GetToken(userIdStr, token)
+		session.DeleteToken(userIdStr, token)
 		token, expiresAt, _ = utils.CreateAuthToken(user, enum.AccessToken, claimRoles)
+		session.SetToken(userIdStr, token, currentRefreshToken)
+		go func() {
+			sessionData := db.Session{
+				UserID:    user.ID,
+				UserAgent: utils.GetUserAgent(gc.Request),
+				IP:        utils.GetIP(gc.Request),
+			}
+
+			db.Mgr.SaveSession(sessionData)
+		}()
 	}
 
 	utils.SetCookie(gc, token)
