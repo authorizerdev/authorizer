@@ -30,6 +30,7 @@ func (mgr *manager) AddVerification(verification VerificationRequest) (Verificat
 		Columns:   []clause.Column{{Name: "email"}},
 		DoUpdates: clause.AssignmentColumns([]string{"token", "identifier", "expires_at"}),
 	}).Create(&verification)
+
 	if result.Error != nil {
 		log.Println(`Error saving verification record`, result.Error)
 		return verification, result.Error
