@@ -1,5 +1,11 @@
 # Task List
 
+## Feature Multiple sessions
+
+- Multiple sessions for users to login use hMset from redis for this
+  user_id access_token1 long_live_token1
+  user_id access_token2 long_live_token2
+
 # Feature roles
 
 For the first version we will only support setting roles master list via env

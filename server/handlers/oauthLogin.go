@@ -51,18 +51,18 @@ func OAuthLoginHandler() gin.HandlerFunc {
 
 		switch provider {
 		case enum.Google.String():
-			session.SetToken(oauthStateString, enum.Google.String())
+			session.SetSocailLoginState(oauthStateString, enum.Google.String())
 			// during the init of OAuthProvider authorizer url might be empty
 			oauth.OAuthProvider.GoogleConfig.RedirectURL = constants.AUTHORIZER_URL + "/oauth_callback/google"
 			url := oauth.OAuthProvider.GoogleConfig.AuthCodeURL(oauthStateString)
 			c.Redirect(http.StatusTemporaryRedirect, url)
 		case enum.Github.String():
-			session.SetToken(oauthStateString, enum.Github.String())
+			session.SetSocailLoginState(oauthStateString, enum.Github.String())
 			oauth.OAuthProvider.GithubConfig.RedirectURL = constants.AUTHORIZER_URL + "/oauth_callback/github"
 			url := oauth.OAuthProvider.GithubConfig.AuthCodeURL(oauthStateString)
 			c.Redirect(http.StatusTemporaryRedirect, url)
 		case enum.Facebook.String():
-			session.SetToken(oauthStateString, enum.Github.String())
+			session.SetSocailLoginState(oauthStateString, enum.Facebook.String())
 			oauth.OAuthProvider.FacebookConfig.RedirectURL = constants.AUTHORIZER_URL + "/oauth_callback/facebook"
 			url := oauth.OAuthProvider.FacebookConfig.AuthCodeURL(oauthStateString)
 			c.Redirect(http.StatusTemporaryRedirect, url)

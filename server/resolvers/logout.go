@@ -27,7 +27,7 @@ func Logout(ctx context.Context) (*model.Response, error) {
 	}
 
 	userId := fmt.Sprintf("%v", claim["id"])
-	session.DeleteToken(userId)
+	session.DeleteToken(userId, token)
 	res = &model.Response{
 		Message: "Logged out successfully",
 	}
