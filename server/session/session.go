@@ -15,30 +15,42 @@ type SessionStore struct {
 
 var SessionStoreObj SessionStore
 
-func SetToken(userId, token string) {
+func SetToken(userId, accessToken, refreshToken string) {
+	// TODO: Set session information in db for all the sessions that gets generated
+	// it should async go function
+
 	if SessionStoreObj.RedisMemoryStoreObj != nil {
-		SessionStoreObj.RedisMemoryStoreObj.AddToken(userId, token)
+		SessionStoreObj.RedisMemoryStoreObj.AddToken(userId, accessToken, refreshToken)
 	}
 	if SessionStoreObj.InMemoryStoreObj != nil {
-		SessionStoreObj.InMemoryStoreObj.AddToken(userId, token)
+		SessionStoreObj.InMemoryStoreObj.AddToken(userId, accessToken, refreshToken)
 	}
 }
 
-func DeleteToken(userId string) {
+func DeleteToken(userId, accessToken string) {
 	if SessionStoreObj.RedisMemoryStoreObj != nil {
-		SessionStoreObj.RedisMemoryStoreObj.DeleteToken(userId)
+		SessionStoreObj.RedisMemoryStoreObj.DeleteToken(userId, accessToken)
 	}
 	if SessionStoreObj.InMemoryStoreObj != nil {
-		SessionStoreObj.InMemoryStoreObj.DeleteToken(userId)
+		SessionStoreObj.InMemoryStoreObj.DeleteToken(userId, accessToken)
 	}
 }
 
-func GetToken(userId string) string {
+func DeleteUserSession(userId string) {
 	if SessionStoreObj.RedisMemoryStoreObj != nil {
-		return SessionStoreObj.RedisMemoryStoreObj.GetToken(userId)
+		SessionStoreObj.RedisMemoryStoreObj.DeleteUserSession(userId)
 	}
 	if SessionStoreObj.InMemoryStoreObj != nil {
-		return SessionStoreObj.InMemoryStoreObj.GetToken(userId)
+		SessionStoreObj.InMemoryStoreObj.DeleteUserSession(userId)
+	}
+}
+
+func GetToken(userId, accessToken string) string {
+	if SessionStoreObj.RedisMemoryStoreObj != nil {
+		return SessionStoreObj.RedisMemoryStoreObj.GetToken(userId, accessToken)
+	}
+	if SessionStoreObj.InMemoryStoreObj != nil {
+		return SessionStoreObj.InMemoryStoreObj.GetToken(userId, accessToken)
 	}
 
 	return ""
@@ -50,6 +62,35 @@ func ClearStore() {
 	}
 	if SessionStoreObj.InMemoryStoreObj != nil {
 		SessionStoreObj.InMemoryStoreObj.ClearStore()
+	}
+}
+
+func SetSocailLoginState(key, state string) {
+	if SessionStoreObj.RedisMemoryStoreObj != nil {
+		SessionStoreObj.RedisMemoryStoreObj.SetSocialLoginState(key, state)
+	}
+	if SessionStoreObj.InMemoryStoreObj != nil {
+		SessionStoreObj.InMemoryStoreObj.SetSocialLoginState(key, state)
+	}
+}
+
+func GetSocailLoginState(key string) string {
+	if SessionStoreObj.RedisMemoryStoreObj != nil {
+		return SessionStoreObj.RedisMemoryStoreObj.GetSocialLoginState(key)
+	}
+	if SessionStoreObj.InMemoryStoreObj != nil {
+		return SessionStoreObj.InMemoryStoreObj.GetSocialLoginState(key)
+	}
+
+	return ""
+}
+
+func RemoveSocialLoginState(key string) {
+	if SessionStoreObj.RedisMemoryStoreObj != nil {
+		SessionStoreObj.RedisMemoryStoreObj.RemoveSocialLoginState(key)
+	}
+	if SessionStoreObj.InMemoryStoreObj != nil {
+		SessionStoreObj.InMemoryStoreObj.RemoveSocialLoginState(key)
 	}
 }
 
@@ -75,7 +116,8 @@ func InitSession() {
 	} else {
 		log.Println("Using in memory store to save sessions")
 		SessionStoreObj.InMemoryStoreObj = &InMemoryStore{
-			store: make(map[string]string),
+			store:            map[string]map[string]string{},
+			socialLoginState: map[string]string{},
 		}
 	}
 }

@@ -27,6 +27,7 @@ type Manager interface {
 	GetVerificationByEmail(email string) (VerificationRequest, error)
 	DeleteUser(email string) error
 	SaveRoles(roles []Role) error
+	SaveSession(session Session) error
 }
 
 type manager struct {
@@ -56,7 +57,7 @@ func InitDB() {
 	if err != nil {
 		log.Fatal("Failed to init db:", err)
 	} else {
-		db.AutoMigrate(&User{}, &VerificationRequest{}, &Role{})
+		db.AutoMigrate(&User{}, &VerificationRequest{}, &Role{}, &Session{})
 	}
 
 	Mgr = &manager{db: db}

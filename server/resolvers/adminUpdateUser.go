@@ -60,7 +60,7 @@ func AdminUpdateUser(ctx context.Context, params model.AdminUpdateUserInput) (*m
 			return res, fmt.Errorf("user with this email address already exists")
 		}
 
-		session.DeleteToken(fmt.Sprintf("%v", user.ID))
+		session.DeleteUserSession(fmt.Sprintf("%v", user.ID))
 		utils.DeleteCookie(gc)
 
 		user.Email = newEmail
@@ -100,7 +100,7 @@ func AdminUpdateUser(ctx context.Context, params model.AdminUpdateUserInput) (*m
 			rolesToSave = strings.Join(inputRoles, ",")
 		}
 
-		session.DeleteToken(fmt.Sprintf("%v", user.ID))
+		session.DeleteUserSession(fmt.Sprintf("%v", user.ID))
 		utils.DeleteCookie(gc)
 	}
 
