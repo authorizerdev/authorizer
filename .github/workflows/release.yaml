@@ -5,35 +5,34 @@ on:
 jobs:
   releases:
     name: Release Authorizer Binary
-    runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        go-version: [1.16.4]
+        platform: [ubuntu-18.04]
+    runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v2
-      - name: Install dependencies
-        run: |
-          sudo apt-get install build-essential wget zip gcc-mingw-w64 && \
-          sudo apt-get remove --auto-remove golang-go && \
-          sudo rm -rf /usr/bin/go &&\
-          wget --progress=dot:mega https://golang.org/dl/go1.17.1.linux-amd64.tar.gz -O go-linux.tar.gz && \
-          sudo tar -zxf go-linux.tar.gz && \
-          sudo mv go /usr/bin/ && \
-          sudo mkdir -p /go/bin /go/src /go/pkg && \
-          export GO_HOME=/usr/bin/go && \
-          export GOPATH=/go && \
-          export PATH=${GOPATH}/bin:${GO_HOME}/bin/:$PATH && \
-          echo "/usr/bin/go/bin" >> $GITHUB_PATH
-          echo "/usr/bin/x86_64-w64-mingw32-gcc" >> GITHUB_PATH
-          go version && \
-          wget --no-check-certificate --progress=dot:mega https://github.com/wangyoucao577/assets-uploader/releases/download/v0.3.0/github-assets-uploader-v0.3.0-linux-amd64.tar.gz -O github-assets-uploader.tar.gz && \
-          tar -zxf github-assets-uploader.tar.gz && \
-          sudo mv github-assets-uploader /usr/sbin/ && \
-          sudo rm -f github-assets-uploader.tar.gz && \
-          github-assets-uploader -version
+      - name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go-version }}
+      # - name: Install dependencies
+      #   run: |
+      #     sudo apt-get install build-essential wget zip && \
+      #     go version && \
+      #     wget --no-check-certificate --progress=dot:mega https://github.com/wangyoucao577/assets-uploader/releases/download/v0.3.0/github-assets-uploader-v0.3.0-linux-amd64.tar.gz -O github-assets-uploader.tar.gz && \
+      #     tar -zxf github-assets-uploader.tar.gz && \
+      #     sudo mv github-assets-uploader /usr/sbin/ && \
+      #     sudo rm -f github-assets-uploader.tar.gz && \
+      #     github-assets-uploader -version
       - name: Print Go paths
         run: whereis go
       - name: Print Go Version
         run: go version
       - name: Set VERSION env
         run: echo VERSION=$(basename ${GITHUB_REF}) >> ${GITHUB_ENV}
+      - name: Set Github token env
+        run: echo GITHUB_TOKEN=${secrets.RELEASE_TOKEN} >> ${GITHUB_TOKEN}
       - name: Copy .env file
         run: mv .env.sample .env
       # - name: Package files for windows
@@ -47,9 +46,13 @@ jobs:
           make clean && \
           CGO_ENABLED=1 make && \
           tar cvfz authorizer-${VERSION}-linux-amd64.tar.gz .env app/build build templates
-      - name: Upload assets
-        run: |
-          github-assets-uploader -f authorizer-${VERSION}-linux-amd64.tar.gz -mediatype application/gzip -repo authorizerdev/authorizer -token ${{secrets.RELEASE_TOKEN}} -tag ${VERSION}
+      - name: Upload asset
+        uses: softprops/action-gh-release@v1
+        with:
+          files: authorizer-${VERSION}-linux-amd64.tar.gz
+      # - name: Upload assets
+      #   run: |
+      #     github-assets-uploader -f authorizer-${VERSION}-linux-amd64.tar.gz -mediatype application/gzip -repo authorizerdev/authorizer -token ${{secrets.RELEASE_TOKEN}} -tag ${VERSION}
       - name: Log in to Docker Hub
         uses: docker/login-action@v1
         with:
