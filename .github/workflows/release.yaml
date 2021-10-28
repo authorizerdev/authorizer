@@ -31,8 +31,6 @@ jobs:
         run: go version
       - name: Set VERSION env
         run: echo VERSION=$(basename ${GITHUB_REF}) >> ${GITHUB_ENV}
-      - name: Set Github token env
-        run: echo GITHUB_TOKEN=${secrets.RELEASE_TOKEN} >> ${GITHUB_TOKEN}
       - name: Copy .env file
         run: mv .env.sample .env
       # - name: Package files for windows
@@ -50,6 +48,8 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: authorizer-${VERSION}-linux-amd64.tar.gz
+          token: ${{secrets.RELEASE_TOKEN}}
+          tag_name: ${VERSION}
       # - name: Upload assets
       #   run: |
       #     github-assets-uploader -f authorizer-${VERSION}-linux-amd64.tar.gz -mediatype application/gzip -repo authorizerdev/authorizer -token ${{secrets.RELEASE_TOKEN}} -tag ${VERSION}
