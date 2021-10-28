@@ -95,13 +95,12 @@ binaries are baked with required deployment files and bundled. You can download 
 
 - Mac OSX
 - Linux
-- Windows
 
 ### Step 1: Download and unzip bundle
 
 - Download the Bundle for the specific OS from the [release page](https://github.com/authorizerdev/authorizer/releases)
 
-> Note: For windows, it includes `.zip` file. For Linux & MacOS, it includes `.tar.gz` file.
+> Note: For windows, we recommend running using docker image to run authorizer.
 
 - Unzip using following command
 
@@ -109,12 +108,6 @@ binaries are baked with required deployment files and bundled. You can download 
 
   ```sh
   tar -zxf AUTHORIZER_VERSION -c authorizer
-  ```
-
-  - Windows
-
-  ```sh
-  unzip AUTHORIZER_VERSION
   ```
 
 - Change directory to `authorizer`
@@ -135,12 +128,6 @@ Required environment variables are pre-configured in `.env` file. But based on t
 
   ```sh
   ./build/server
-  ```
-
-  - For windows
-
-  ```sh
-  ./build/server.exe
   ```
 
 > Note: For mac users, you might have to give binary the permission to execute. Here is the command you can use to grant permission `xattr -d com.apple.quarantine build/server`
