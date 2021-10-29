@@ -7,7 +7,7 @@ ARG VERSION="latest"
 ENV VERSION="$VERSION"
 
 RUN echo "$VERSION"
-RUN apk add build-base &&\
+RUN apk add build-base nodejs &&\
     make clean && make && \
     chmod 777 build/server
 
