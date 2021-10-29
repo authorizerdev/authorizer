@@ -13,7 +13,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/enum"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
-	v8 "rogchap.com/v8go"
+	"github.com/robertkrimen/otto"
 )
 
 func CreateAuthToken(user db.User, tokenType enum.TokenType, roles []string) (string, int64, error) {
@@ -50,25 +50,25 @@ func CreateAuthToken(user db.User, tokenType enum.TokenType, roles []string) (st
 			"signUpMethods": strings.Split(user.SignupMethod, ","),
 		}
 
-		ctx, _ := v8.NewContext()
+		vm := otto.New()
 		userBytes, _ := json.Marshal(userInfo)
 		claimBytes, _ := json.Marshal(customClaims)
 
-		ctx.RunScript(fmt.Sprintf(`
-			const user = %s;
-			const tokenPayload = %s;
-			const customFunction = %s;
-			const functionRes = JSON.stringify(customFunction(user, tokenPayload));
-		`, string(userBytes), string(claimBytes), accessTokenScript), "functionCall.js")
+		vm.Run(fmt.Sprintf(`
+			var user = %s;
+			var tokenPayload = %s;
+			var customFunction = %s;
+			var functionRes = JSON.stringify(customFunction(user, tokenPayload));
+		`, string(userBytes), string(claimBytes), accessTokenScript))
 
-		val, err := ctx.RunScript("functionRes", "functionRes.js")
+		val, err := vm.Get("functionRes")
 
 		if err != nil {
 			log.Println("=> err custom access token script:", err)
 		} else {
 			extraPayload := make(map[string]interface{})
 			err = json.Unmarshal([]byte(fmt.Sprintf("%s", val)), &extraPayload)
-
+			log.Println("extra:", extraPayload)
 			if err != nil {
 				log.Println("Error converting accessTokenScript response to map:", err)
 			} else {
