@@ -33,12 +33,12 @@ jobs:
         run: echo VERSION=$(basename ${GITHUB_REF}) >> ${GITHUB_ENV}
       - name: Copy .env file
         run: mv .env.sample .env
-      # - name: Package files for windows
-      #   run: |
-      #     make clean && \
-      #     CGO_ENABLED=1 GOOS=windows CC=/usr/bin/x86_64-w64-mingw32-gcc make && \
-      #     mv build/server build/server.exe && \
-      #     zip -vr authorizer-${VERSION}-windows-amd64.zip .env app/build build templates
+      - name: Package files for windows
+        run: |
+          make clean && \
+          CGO_ENABLED=1 GOOS=windows CC=/usr/bin/x86_64-w64-mingw32-gcc make && \
+          mv build/server build/server.exe && \
+          zip -vr authorizer-${VERSION}-windows-amd64.zip .env app/build build templates
       - name: Package files for linux
         run: |
           make clean && \
@@ -50,9 +50,10 @@ jobs:
           files: authorizer-${VERSION}-linux-amd64.tar.gz
           token: ${{secrets.RELEASE_TOKEN}}
           tag_name: ${VERSION}
-      # - name: Upload assets
-      #   run: |
-      #     github-assets-uploader -f authorizer-${VERSION}-linux-amd64.tar.gz -mediatype application/gzip -repo authorizerdev/authorizer -token ${{secrets.RELEASE_TOKEN}} -tag ${VERSION}
+      - name: Upload assets
+        run: |
+          github-assets-uploader -f authorizer-${VERSION}-windows-amd64.zip -mediatype application/zip -repo authorizerdev/authorizer -token ${{secrets.RELEASE_TOKEN}} -tag ${VERSION} && \
+          github-assets-uploader -f authorizer-${VERSION}-linux-amd64.tar.gz -mediatype application/gzip -repo authorizerdev/authorizer -token ${{secrets.RELEASE_TOKEN}} -tag ${VERSION}
       - name: Log in to Docker Hub
         uses: docker/login-action@v1
         with:
