@@ -68,7 +68,6 @@ func CreateAuthToken(user db.User, tokenType enum.TokenType, roles []string) (st
 		} else {
 			extraPayload := make(map[string]interface{})
 			err = json.Unmarshal([]byte(fmt.Sprintf("%s", val)), &extraPayload)
-			log.Println("extra:", extraPayload)
 			if err != nil {
 				log.Println("Error converting accessTokenScript response to map:", err)
 			} else {
