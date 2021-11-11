@@ -64,6 +64,7 @@ func InitEnv() {
 	constants.RESET_PASSWORD_URL = strings.TrimPrefix(os.Getenv("RESET_PASSWORD_URL"), "/")
 	constants.DISABLE_BASIC_AUTHENTICATION = os.Getenv("DISABLE_BASIC_AUTHENTICATION")
 	constants.DISABLE_EMAIL_VERIFICATION = os.Getenv("DISABLE_EMAIL_VERIFICATION")
+	constants.DISABLE_MAGIC_LOGIN = os.Getenv("DISABLE_MAGIC_LOGIN")
 	constants.JWT_ROLE_CLAIM = os.Getenv("JWT_ROLE_CLAIM")
 
 	if constants.ADMIN_SECRET == "" {
@@ -124,6 +125,10 @@ func InitEnv() {
 
 	if constants.DISABLE_BASIC_AUTHENTICATION == "" {
 		constants.DISABLE_BASIC_AUTHENTICATION = "false"
+	}
+
+	if constants.DISABLE_MAGIC_LOGIN == "" {
+		constants.DISABLE_MAGIC_LOGIN = "false"
 	}
 
 	if constants.DISABLE_EMAIL_VERIFICATION == "" && constants.DISABLE_BASIC_AUTHENTICATION == "false" {

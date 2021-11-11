@@ -21,6 +21,7 @@ var (
 	RESET_PASSWORD_URL           = ""
 	DISABLE_EMAIL_VERIFICATION   = "false"
 	DISABLE_BASIC_AUTHENTICATION = "false"
+	DISABLE_MAGIC_LOGIN          = "false"
 
 	// ROLES
 	ROLES           = []string{}

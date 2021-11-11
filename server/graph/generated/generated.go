@@ -61,6 +61,7 @@ type ComplexityRoot struct {
 		IsFacebookLoginEnabled       func(childComplexity int) int
 		IsGithubLoginEnabled         func(childComplexity int) int
 		IsGoogleLoginEnabled         func(childComplexity int) int
+		IsMagicLoginEnabled          func(childComplexity int) int
 		IsTwitterLoginEnabled        func(childComplexity int) int
 		Version                      func(childComplexity int) int
 	}
@@ -71,6 +72,7 @@ type ComplexityRoot struct {
 		ForgotPassword    func(childComplexity int, params model.ForgotPasswordInput) int
 		Login             func(childComplexity int, params model.LoginInput) int
 		Logout            func(childComplexity int) int
+		MagicLogin        func(childComplexity int, params model.MagicLoginInput) int
 		ResendVerifyEmail func(childComplexity int, params model.ResendVerifyEmailInput) int
 		ResetPassword     func(childComplexity int, params model.ResetPasswordInput) int
 		Signup            func(childComplexity int, params model.SignUpInput) int
@@ -117,6 +119,7 @@ type ComplexityRoot struct {
 type MutationResolver interface {
 	Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse, error)
 	Login(ctx context.Context, params model.LoginInput) (*model.AuthResponse, error)
+	MagicLogin(ctx context.Context, params model.MagicLoginInput) (*model.Response, error)
 	Logout(ctx context.Context) (*model.Response, error)
 	UpdateProfile(ctx context.Context, params model.UpdateProfileInput) (*model.Response, error)
 	AdminUpdateUser(ctx context.Context, params model.AdminUpdateUserInput) (*model.User, error)
@@ -226,6 +229,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Meta.IsGoogleLoginEnabled(childComplexity), true
 
+	case "Meta.isMagicLoginEnabled":
+		if e.complexity.Meta.IsMagicLoginEnabled == nil {
+			break
+		}
+
+		return e.complexity.Meta.IsMagicLoginEnabled(childComplexity), true
+
 	case "Meta.isTwitterLoginEnabled":
 		if e.complexity.Meta.IsTwitterLoginEnabled == nil {
 			break
@@ -294,6 +304,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.Logout(childComplexity), true
+
+	case "Mutation.magicLogin":
+		if e.complexity.Mutation.MagicLogin == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_magicLogin_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.MagicLogin(childComplexity, args["params"].(model.MagicLoginInput)), true
 
 	case "Mutation.resendVerifyEmail":
 		if e.complexity.Mutation.ResendVerifyEmail == nil {
@@ -600,6 +622,7 @@ type Meta {
 	isGithubLoginEnabled: Boolean!
 	isEmailVerificationEnabled: Boolean!
 	isBasicAuthenticationEnabled: Boolean!
+	isMagicLoginEnabled: Boolean!
 }
 
 type User {
@@ -699,9 +722,15 @@ input DeleteUserInput {
 	email: String!
 }
 
+input MagicLoginInput {
+	email: String!
+	roles: [String!]
+}
+
 type Mutation {
 	signup(params: SignUpInput!): AuthResponse!
 	login(params: LoginInput!): AuthResponse!
+	magicLogin(params: MagicLoginInput!): Response!
 	logout: Response!
 	updateProfile(params: UpdateProfileInput!): Response!
 	adminUpdateUser(params: AdminUpdateUserInput!): User!
@@ -779,6 +808,21 @@ func (ec *executionContext) field_Mutation_login_args(ctx context.Context, rawAr
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
 		arg0, err = ec.unmarshalNLoginInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐLoginInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["params"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_magicLogin_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.MagicLoginInput
+	if tmp, ok := rawArgs["params"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+		arg0, err = ec.unmarshalNMagicLoginInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐMagicLoginInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1376,6 +1420,41 @@ func (ec *executionContext) _Meta_isBasicAuthenticationEnabled(ctx context.Conte
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Meta_isMagicLoginEnabled(ctx context.Context, field graphql.CollectedField, obj *model.Meta) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Meta",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsMagicLoginEnabled, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Mutation_signup(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -1458,6 +1537,48 @@ func (ec *executionContext) _Mutation_login(ctx context.Context, field graphql.C
 	res := resTmp.(*model.AuthResponse)
 	fc.Result = res
 	return ec.marshalNAuthResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAuthResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_magicLogin(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_magicLogin_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().MagicLogin(rctx, args["params"].(model.MagicLoginInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Response)
+	fc.Result = res
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_logout(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3856,6 +3977,34 @@ func (ec *executionContext) unmarshalInputLoginInput(ctx context.Context, obj in
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputMagicLoginInput(ctx context.Context, obj interface{}) (model.MagicLoginInput, error) {
+	var it model.MagicLoginInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "email":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
+			it.Email, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "roles":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("roles"))
+			it.Roles, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputResendVerifyEmailInput(ctx context.Context, obj interface{}) (model.ResendVerifyEmailInput, error) {
 	var it model.ResendVerifyEmailInput
 	var asMap = obj.(map[string]interface{})
@@ -4187,6 +4336,11 @@ func (ec *executionContext) _Meta(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "isMagicLoginEnabled":
+			out.Values[i] = ec._Meta_isMagicLoginEnabled(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -4220,6 +4374,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "login":
 			out.Values[i] = ec._Mutation_login(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "magicLogin":
+			out.Values[i] = ec._Mutation_magicLogin(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -4797,6 +4956,11 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 
 func (ec *executionContext) unmarshalNLoginInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐLoginInput(ctx context.Context, v interface{}) (model.LoginInput, error) {
 	res, err := ec.unmarshalInputLoginInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNMagicLoginInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐMagicLoginInput(ctx context.Context, v interface{}) (model.MagicLoginInput, error) {
+	res, err := ec.unmarshalInputMagicLoginInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
