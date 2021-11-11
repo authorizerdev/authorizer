@@ -30,6 +30,7 @@
 - ✅ Forgot password flow using email
 - ✅ Social logins (Google, Github, Facebook, more coming soon)
 - ✅ Role-based access management
+- ✅ Password-less login with email and magic link
 
 ## Project Status
 
@@ -37,7 +38,6 @@
 
 ## Roadmap
 
-- Password-less login with email and magic link
 - Support more JWT encryption algorithms (Currently supporting HS256)
 - 2 Factor authentication
 - Back office (Admin dashboard to manage user)

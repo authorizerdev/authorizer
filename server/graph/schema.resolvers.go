@@ -19,6 +19,10 @@ func (r *mutationResolver) Login(ctx context.Context, params model.LoginInput) (
 	return resolvers.Login(ctx, params)
 }
 
+func (r *mutationResolver) MagicLogin(ctx context.Context, params model.MagicLoginInput) (*model.Response, error) {
+	return resolvers.MagicLogin(ctx, params)
+}
+
 func (r *mutationResolver) Logout(ctx context.Context) (*model.Response, error) {
 	return resolvers.Logout(ctx)
 }

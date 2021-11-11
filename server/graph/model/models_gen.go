@@ -37,6 +37,11 @@ type LoginInput struct {
 	Roles    []string `json:"roles"`
 }
 
+type MagicLoginInput struct {
+	Email string   `json:"email"`
+	Roles []string `json:"roles"`
+}
+
 type Meta struct {
 	Version                      string `json:"version"`
 	IsGoogleLoginEnabled         bool   `json:"isGoogleLoginEnabled"`
@@ -45,6 +50,7 @@ type Meta struct {
 	IsGithubLoginEnabled         bool   `json:"isGithubLoginEnabled"`
 	IsEmailVerificationEnabled   bool   `json:"isEmailVerificationEnabled"`
 	IsBasicAuthenticationEnabled bool   `json:"isBasicAuthenticationEnabled"`
+	IsMagicLoginEnabled          bool   `json:"isMagicLoginEnabled"`
 }
 
 type ResendVerifyEmailInput struct {

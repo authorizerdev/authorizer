@@ -208,7 +208,7 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 
 			signupMethod := existingUser.SignupMethod
 			if !strings.Contains(signupMethod, provider) {
-				signupMethod = signupMethod + "," + enum.Github.String()
+				signupMethod = signupMethod + "," + provider
 			}
 			user.SignupMethod = signupMethod
 			user.Password = existingUser.Password

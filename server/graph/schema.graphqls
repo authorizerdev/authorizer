@@ -13,6 +13,7 @@ type Meta {
 	isGithubLoginEnabled: Boolean!
 	isEmailVerificationEnabled: Boolean!
 	isBasicAuthenticationEnabled: Boolean!
+	isMagicLoginEnabled: Boolean!
 }
 
 type User {
@@ -112,9 +113,15 @@ input DeleteUserInput {
 	email: String!
 }
 
+input MagicLoginInput {
+	email: String!
+	roles: [String!]
+}
+
 type Mutation {
 	signup(params: SignUpInput!): AuthResponse!
 	login(params: LoginInput!): AuthResponse!
+	magicLogin(params: MagicLoginInput!): Response!
 	logout: Response!
 	updateProfile(params: UpdateProfileInput!): Response!
 	adminUpdateUser(params: AdminUpdateUserInput!): User!
