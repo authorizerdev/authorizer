@@ -16,5 +16,6 @@ func GetMetaInfo() model.Meta {
 		IsTwitterLoginEnabled:        constants.TWITTER_CLIENT_ID != "" && constants.TWITTER_CLIENT_SECRET != "",
 		IsBasicAuthenticationEnabled: constants.DISABLE_BASIC_AUTHENTICATION != "true",
 		IsEmailVerificationEnabled:   constants.DISABLE_EMAIL_VERIFICATION != "true",
+		IsMagicLoginEnabled:          constants.DISABLE_MAGIC_LOGIN != "true",
 	}
 }
