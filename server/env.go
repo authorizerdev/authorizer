@@ -131,13 +131,13 @@ func InitEnv() {
 		constants.DISABLE_MAGIC_LOGIN = "false"
 	}
 
-	if constants.DISABLE_EMAIL_VERIFICATION == "" && constants.DISABLE_BASIC_AUTHENTICATION == "false" {
-		if constants.SMTP_HOST == "" || constants.SENDER_EMAIL == "" || constants.SENDER_PASSWORD == "" {
-			constants.DISABLE_EMAIL_VERIFICATION = "true"
-		} else {
-			constants.DISABLE_EMAIL_VERIFICATION = "false"
-		}
+	if constants.SMTP_HOST == "" || constants.SENDER_EMAIL == "" || constants.SENDER_PASSWORD == "" {
+		constants.DISABLE_EMAIL_VERIFICATION = "true"
+	} else if constants.DISABLE_EMAIL_VERIFICATION == "" {
+		constants.DISABLE_EMAIL_VERIFICATION = "false"
 	}
+
+	log.Println("=> disable email verification:", constants.DISABLE_EMAIL_VERIFICATION)
 
 	rolesSplit := strings.Split(os.Getenv("ROLES"), ",")
 	roles := []string{}

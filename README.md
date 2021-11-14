@@ -32,10 +32,6 @@
 - ✅ Role-based access management
 - ✅ Password-less login with email and magic link
 
-## Project Status
-
-⚠️ **Authorizer is still an early beta! missing features and bugs are to be expected!** If you can stomach it, then bring authentication and authorization to your site today!
-
 ## Roadmap
 
 - Support more JWT encryption algorithms (Currently supporting HS256)
