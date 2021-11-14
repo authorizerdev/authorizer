@@ -115,7 +115,7 @@ func MagicLogin(ctx context.Context, params model.MagicLoginInput) (*model.Respo
 	}
 
 	res = &model.Response{
-		Message: `Verification request has been sent. Please check your inbox!`,
+		Message: `Magic Link has been sent to your email. Please check your inbox!`,
 	}
 
 	return res, nil
