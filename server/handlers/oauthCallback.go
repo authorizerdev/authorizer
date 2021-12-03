@@ -1,10 +1,10 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -15,45 +15,81 @@ import (
 	"github.com/authorizerdev/authorizer/server/oauth"
 	"github.com/authorizerdev/authorizer/server/session"
 	"github.com/authorizerdev/authorizer/server/utils"
+	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/oauth2"
 )
 
-func processGoogleUserInfo(code string) (db.User, error) {
+func processOpenIDProvider(code string, oauth2Config *oauth2.Config, oidcProvider *oidc.Provider) (db.User, error) {
 	user := db.User{}
-	token, err := oauth.OAuthProvider.GoogleConfig.Exchange(oauth2.NoContext, code)
+	ctx := context.Background()
+	oauth2Token, err := oauth2Config.Exchange(ctx, code)
 	if err != nil {
-		return user, fmt.Errorf("invalid google exchange code: %s", err.Error())
-	}
-	client := oauth.OAuthProvider.GoogleConfig.Client(oauth2.NoContext, token)
-	response, err := client.Get(constants.GoogleUserInfoURL)
-	if err != nil {
-		return user, err
+		return user, fmt.Errorf("invalid exchange code: %s", err.Error())
 	}
 
-	defer response.Body.Close()
-	body, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return user, fmt.Errorf("failed to read google response body: %s", err.Error())
+	// Extract the ID Token from OAuth2 token.
+	rawIDToken, ok := oauth2Token.Extra("id_token").(string)
+	if !ok {
+		return user, fmt.Errorf("error getting id_token")
 	}
 
-	userRawData := make(map[string]string)
-	json.Unmarshal(body, &userRawData)
+	verifier := oidcProvider.Verifier(&oidc.Config{ClientID: oauth2Config.ClientID})
+
+	// Parse and verify ID Token payload.
+	idToken, err := verifier.Verify(ctx, rawIDToken)
+	if err != nil {
+		return user, fmt.Errorf("error verifying OpenId token: %s", err.Error())
+	}
+
+	var claims struct {
+		Email      string `json:"email"`
+		Picture    string `json:"picture"`
+		GivenName  string `json:"given_name"`
+		FamilyName string `json:"family_name"`
+	}
+	if err := idToken.Claims(&claims); err != nil {
+		return user, fmt.Errorf("error parsing OpenId claims: %s", err.Error())
+	}
 
 	user = db.User{
-		FirstName:       userRawData["given_name"],
-		LastName:        userRawData["family_name"],
-		Image:           userRawData["picture"],
-		Email:           userRawData["email"],
+		FirstName:       claims.GivenName,
+		LastName:        claims.FamilyName,
+		Image:           claims.Picture,
+		Email:           claims.Email,
 		EmailVerifiedAt: time.Now().Unix(),
 	}
+
+	// client := oauth2Config.Client(oauth2.NoContext, token)
+	// response, err := client.Get(constants.GoogleUserInfoURL)
+	// if err != nil {
+	// 	return user, err
+	// }
+
+	// defer response.Body.Close()
+	// body, err := ioutil.ReadAll(response.Body)
+	// if err != nil {
+	// 	return user, fmt.Errorf("failed to read google response body: %s", err.Error())
+	// }
+
+	// userRawData := make(map[string]string)
+	// json.Unmarshal(body, &userRawData)
+
+	// user = db.User{
+	// 	FirstName:       userRawData["given_name"],
+	// 	LastName:        userRawData["family_name"],
+	// 	Image:           userRawData["picture"],
+	// 	Email:           userRawData["email"],
+	// 	EmailVerifiedAt: time.Now().Unix(),
+	// }
 
 	return user, nil
 }
 
 func processGithubUserInfo(code string) (db.User, error) {
 	user := db.User{}
-	token, err := oauth.OAuthProvider.GithubConfig.Exchange(oauth2.NoContext, code)
+	ctx := context.Background()
+	token, err := oauth.OAuthProviders.GithubConfig.Exchange(ctx, code)
 	if err != nil {
 		return user, fmt.Errorf("invalid github exchange code: %s", err.Error())
 	}
@@ -102,7 +138,7 @@ func processGithubUserInfo(code string) (db.User, error) {
 
 func processFacebookUserInfo(code string) (db.User, error) {
 	user := db.User{}
-	token, err := oauth.OAuthProvider.FacebookConfig.Exchange(oauth2.NoContext, code)
+	token, err := oauth.OAuthProviders.FacebookConfig.Exchange(oauth2.NoContext, code)
 	if err != nil {
 		return user, fmt.Errorf("invalid facebook exchange code: %s", err.Error())
 	}
@@ -114,7 +150,6 @@ func processFacebookUserInfo(code string) (db.User, error) {
 
 	response, err := client.Do(req)
 	if err != nil {
-		log.Println("err:", err)
 		return user, err
 	}
 
@@ -165,15 +200,22 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 		redirectURL := sessionSplit[1]
 
 		var err error
+		var oidcProvider *oidc.Provider
+		var oauth2Config *oauth2.Config
 		user := db.User{}
 		code := c.Request.FormValue("code")
+
 		switch provider {
 		case enum.Google.String():
-			user, err = processGoogleUserInfo(code)
+			oauth2Config = oauth.OAuthProviders.GoogleConfig
+			oidcProvider = oauth.OIDCProviders.GoogleOIDC
+			user, err = processOpenIDProvider(code, oauth2Config, oidcProvider)
 		case enum.Github.String():
 			user, err = processGithubUserInfo(code)
 		case enum.Facebook.String():
-			user, err = processFacebookUserInfo(code)
+			oauth2Config = oauth.OAuthProviders.FacebookConfig
+			oidcProvider = oauth.OIDCProviders.FacebookOIDC
+			user, err = processOpenIDProvider(code, oauth2Config, oidcProvider)
 		default:
 			err = fmt.Errorf(`invalid oauth provider`)
 		}
