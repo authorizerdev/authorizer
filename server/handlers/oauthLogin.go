@@ -48,46 +48,27 @@ func OAuthLoginHandler() gin.HandlerFunc {
 		oauthStateString := uuid.String() + "___" + redirectURL + "___" + roles
 
 		provider := c.Param("oauth_provider")
-		isProviderConfigured := true
 
 		switch provider {
 		case enum.Google.String():
-			if oauth.OAuthProviders.GoogleConfig == nil {
-				isProviderConfigured = false
-				break
-			}
 			session.SetSocailLoginState(oauthStateString, enum.Google.String())
 			// during the init of OAuthProvider authorizer url might be empty
-			oauth.OAuthProviders.GoogleConfig.RedirectURL = constants.AUTHORIZER_URL + "/oauth_callback/google"
-			url := oauth.OAuthProviders.GoogleConfig.AuthCodeURL(oauthStateString)
+			oauth.OAuthProvider.GoogleConfig.RedirectURL = constants.AUTHORIZER_URL + "/oauth_callback/google"
+			url := oauth.OAuthProvider.GoogleConfig.AuthCodeURL(oauthStateString)
 			c.Redirect(http.StatusTemporaryRedirect, url)
 		case enum.Github.String():
-			if oauth.OAuthProviders.GithubConfig == nil {
-				isProviderConfigured = false
-				break
-			}
 			session.SetSocailLoginState(oauthStateString, enum.Github.String())
-			oauth.OAuthProviders.GithubConfig.RedirectURL = constants.AUTHORIZER_URL + "/oauth_callback/github"
-			url := oauth.OAuthProviders.GithubConfig.AuthCodeURL(oauthStateString)
+			oauth.OAuthProvider.GithubConfig.RedirectURL = constants.AUTHORIZER_URL + "/oauth_callback/github"
+			url := oauth.OAuthProvider.GithubConfig.AuthCodeURL(oauthStateString)
 			c.Redirect(http.StatusTemporaryRedirect, url)
 		case enum.Facebook.String():
-			if oauth.OAuthProviders.FacebookConfig == nil {
-				isProviderConfigured = false
-				break
-			}
 			session.SetSocailLoginState(oauthStateString, enum.Facebook.String())
-			oauth.OAuthProviders.FacebookConfig.RedirectURL = constants.AUTHORIZER_URL + "/oauth_callback/facebook"
-			url := oauth.OAuthProviders.FacebookConfig.AuthCodeURL(oauthStateString)
+			oauth.OAuthProvider.FacebookConfig.RedirectURL = constants.AUTHORIZER_URL + "/oauth_callback/facebook"
+			url := oauth.OAuthProvider.FacebookConfig.AuthCodeURL(oauthStateString)
 			c.Redirect(http.StatusTemporaryRedirect, url)
 		default:
 			c.JSON(422, gin.H{
 				"message": "Invalid oauth provider",
-			})
-		}
-
-		if !isProviderConfigured {
-			c.JSON(422, gin.H{
-				"message": "OAuth provider not configured",
 			})
 		}
 	}
