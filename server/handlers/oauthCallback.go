@@ -20,6 +20,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
+// openID providers has common claims so single helper can work for facebook + google
 func processOpenIDProvider(code string, oauth2Config *oauth2.Config, oidcProvider *oidc.Provider) (db.User, error) {
 	user := db.User{}
 	ctx := context.Background()
@@ -59,29 +60,6 @@ func processOpenIDProvider(code string, oauth2Config *oauth2.Config, oidcProvide
 		Email:           claims.Email,
 		EmailVerifiedAt: time.Now().Unix(),
 	}
-
-	// client := oauth2Config.Client(oauth2.NoContext, token)
-	// response, err := client.Get(constants.GoogleUserInfoURL)
-	// if err != nil {
-	// 	return user, err
-	// }
-
-	// defer response.Body.Close()
-	// body, err := ioutil.ReadAll(response.Body)
-	// if err != nil {
-	// 	return user, fmt.Errorf("failed to read google response body: %s", err.Error())
-	// }
-
-	// userRawData := make(map[string]string)
-	// json.Unmarshal(body, &userRawData)
-
-	// user = db.User{
-	// 	FirstName:       userRawData["given_name"],
-	// 	LastName:        userRawData["family_name"],
-	// 	Image:           userRawData["picture"],
-	// 	Email:           userRawData["email"],
-	// 	EmailVerifiedAt: time.Now().Unix(),
-	// }
 
 	return user, nil
 }
@@ -130,47 +108,6 @@ func processGithubUserInfo(code string) (db.User, error) {
 		LastName:        lastName,
 		Image:           userRawData["avatar_url"],
 		Email:           userRawData["email"],
-		EmailVerifiedAt: time.Now().Unix(),
-	}
-
-	return user, nil
-}
-
-func processFacebookUserInfo(code string) (db.User, error) {
-	user := db.User{}
-	token, err := oauth.OAuthProviders.FacebookConfig.Exchange(oauth2.NoContext, code)
-	if err != nil {
-		return user, fmt.Errorf("invalid facebook exchange code: %s", err.Error())
-	}
-	client := http.Client{}
-	req, err := http.NewRequest("GET", constants.FacebookUserInfoURL+token.AccessToken, nil)
-	if err != nil {
-		return user, fmt.Errorf("error creating facebook user info request: %s", err.Error())
-	}
-
-	response, err := client.Do(req)
-	if err != nil {
-		return user, err
-	}
-
-	defer response.Body.Close()
-	body, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return user, fmt.Errorf("failed to read facebook response body: %s", err.Error())
-	}
-
-	userRawData := make(map[string]interface{})
-	json.Unmarshal(body, &userRawData)
-
-	email := fmt.Sprintf("%v", userRawData["email"])
-
-	picObject := userRawData["picture"].(map[string]interface{})["data"]
-	picDataObject := picObject.(map[string]interface{})
-	user = db.User{
-		FirstName:       fmt.Sprintf("%v", userRawData["first_name"]),
-		LastName:        fmt.Sprintf("%v", userRawData["last_name"]),
-		Image:           fmt.Sprintf("%v", picDataObject["url"]),
-		Email:           email,
 		EmailVerifiedAt: time.Now().Unix(),
 	}
 
