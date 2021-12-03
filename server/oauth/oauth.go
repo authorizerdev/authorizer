@@ -1,33 +1,49 @@
 package oauth
 
 import (
+	"context"
+	"log"
+
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/coreos/go-oidc/v3/oidc"
 	"golang.org/x/oauth2"
 	facebookOAuth2 "golang.org/x/oauth2/facebook"
 	githubOAuth2 "golang.org/x/oauth2/github"
-	googleOAuth2 "golang.org/x/oauth2/google"
 )
 
-type OAuthProviders struct {
+type OAuthProvider struct {
 	GoogleConfig   *oauth2.Config
 	GithubConfig   *oauth2.Config
 	FacebookConfig *oauth2.Config
 }
 
-var OAuthProvider OAuthProviders
+type OIDCProvider struct {
+	GoogleOIDC *oidc.Provider
+}
+
+var (
+	OAuthProviders OAuthProvider
+	OIDCProviders  OIDCProvider
+)
 
 func InitOAuth() {
+	ctx := context.Background()
 	if constants.GOOGLE_CLIENT_ID != "" && constants.GOOGLE_CLIENT_SECRET != "" {
-		OAuthProvider.GoogleConfig = &oauth2.Config{
+		p, err := oidc.NewProvider(ctx, "https://accounts.google.com")
+		if err != nil {
+			log.Fatalln("error creating oidc provider for google:", err)
+		}
+		OIDCProviders.GoogleOIDC = p
+		OAuthProviders.GoogleConfig = &oauth2.Config{
 			ClientID:     constants.GOOGLE_CLIENT_ID,
 			ClientSecret: constants.GOOGLE_CLIENT_SECRET,
 			RedirectURL:  constants.AUTHORIZER_URL + "/oauth_callback/google",
-			Endpoint:     googleOAuth2.Endpoint,
-			Scopes:       []string{"https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/userinfo.profile"},
+			Endpoint:     OIDCProviders.GoogleOIDC.Endpoint(),
+			Scopes:       []string{oidc.ScopeOpenID, "profile", "email"},
 		}
 	}
 	if constants.GITHUB_CLIENT_ID != "" && constants.GITHUB_CLIENT_SECRET != "" {
-		OAuthProvider.GithubConfig = &oauth2.Config{
+		OAuthProviders.GithubConfig = &oauth2.Config{
 			ClientID:     constants.GITHUB_CLIENT_ID,
 			ClientSecret: constants.GITHUB_CLIENT_SECRET,
 			RedirectURL:  constants.AUTHORIZER_URL + "/oauth_callback/github",
@@ -35,7 +51,7 @@ func InitOAuth() {
 		}
 	}
 	if constants.FACEBOOK_CLIENT_ID != "" && constants.FACEBOOK_CLIENT_SECRET != "" {
-		OAuthProvider.FacebookConfig = &oauth2.Config{
+		OAuthProviders.FacebookConfig = &oauth2.Config{
 			ClientID:     constants.FACEBOOK_CLIENT_ID,
 			ClientSecret: constants.FACEBOOK_CLIENT_SECRET,
 			RedirectURL:  constants.AUTHORIZER_URL + "/oauth_callback/facebook",

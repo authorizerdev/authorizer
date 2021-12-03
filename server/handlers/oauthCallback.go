@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -15,36 +16,50 @@ import (
 	"github.com/authorizerdev/authorizer/server/oauth"
 	"github.com/authorizerdev/authorizer/server/session"
 	"github.com/authorizerdev/authorizer/server/utils"
+	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/oauth2"
 )
 
 func processGoogleUserInfo(code string) (db.User, error) {
 	user := db.User{}
-	token, err := oauth.OAuthProvider.GoogleConfig.Exchange(oauth2.NoContext, code)
+	ctx := context.Background()
+	oauth2Token, err := oauth.OAuthProviders.GoogleConfig.Exchange(ctx, code)
 	if err != nil {
 		return user, fmt.Errorf("invalid google exchange code: %s", err.Error())
 	}
-	client := oauth.OAuthProvider.GoogleConfig.Client(oauth2.NoContext, token)
-	response, err := client.Get(constants.GoogleUserInfoURL)
-	if err != nil {
-		return user, err
+
+	verifier := oauth.OIDCProviders.GoogleOIDC.Verifier(&oidc.Config{ClientID: oauth.OAuthProviders.GoogleConfig.ClientID})
+
+	// Extract the ID Token from OAuth2 token.
+	rawIDToken, ok := oauth2Token.Extra("id_token").(string)
+	if !ok {
+		return user, fmt.Errorf("unable to extract id_token")
 	}
 
-	defer response.Body.Close()
-	body, err := ioutil.ReadAll(response.Body)
+	// Parse and verify ID Token payload.
+	idToken, err := verifier.Verify(ctx, rawIDToken)
 	if err != nil {
-		return user, fmt.Errorf("failed to read google response body: %s", err.Error())
+		return user, fmt.Errorf("unable to verify id_token:", err.Error())
 	}
 
-	userRawData := make(map[string]string)
-	json.Unmarshal(body, &userRawData)
+	// Extract custom claims
+	var claims struct {
+		Email      string `json:"email"`
+		Picture    string `json:"picture"`
+		GivenName  string `json:"given_name"`
+		FamilyName string `json:"family_name"`
+		Verified   bool   `json:"email_verified"`
+	}
+	if err := idToken.Claims(&claims); err != nil {
+		return user, fmt.Errorf("unable to extract claims")
+	}
 
 	user = db.User{
-		FirstName:       userRawData["given_name"],
-		LastName:        userRawData["family_name"],
-		Image:           userRawData["picture"],
-		Email:           userRawData["email"],
+		FirstName:       claims.GivenName,
+		LastName:        claims.FamilyName,
+		Image:           claims.Picture,
+		Email:           claims.Email,
 		EmailVerifiedAt: time.Now().Unix(),
 	}
 
@@ -53,7 +68,7 @@ func processGoogleUserInfo(code string) (db.User, error) {
 
 func processGithubUserInfo(code string) (db.User, error) {
 	user := db.User{}
-	token, err := oauth.OAuthProvider.GithubConfig.Exchange(oauth2.NoContext, code)
+	token, err := oauth.OAuthProviders.GithubConfig.Exchange(oauth2.NoContext, code)
 	if err != nil {
 		return user, fmt.Errorf("invalid github exchange code: %s", err.Error())
 	}
@@ -102,7 +117,7 @@ func processGithubUserInfo(code string) (db.User, error) {
 
 func processFacebookUserInfo(code string) (db.User, error) {
 	user := db.User{}
-	token, err := oauth.OAuthProvider.FacebookConfig.Exchange(oauth2.NoContext, code)
+	token, err := oauth.OAuthProviders.FacebookConfig.Exchange(oauth2.NoContext, code)
 	if err != nil {
 		return user, fmt.Errorf("invalid facebook exchange code: %s", err.Error())
 	}
