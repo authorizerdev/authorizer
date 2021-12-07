@@ -69,6 +69,6 @@ func VerifyEmailHandler() gin.HandlerFunc {
 			db.Mgr.SaveSession(sessionData)
 		}()
 		utils.SetCookie(c, accessToken)
-		c.Redirect(http.StatusTemporaryRedirect, claim.Host)
+		c.Redirect(http.StatusTemporaryRedirect, claim.RedirectURL)
 	}
 }
