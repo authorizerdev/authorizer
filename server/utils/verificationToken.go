@@ -8,8 +8,9 @@ import (
 )
 
 type UserInfo struct {
-	Email string `json:"email"`
-	Host  string `json:"host"`
+	Email       string `json:"email"`
+	Host        string `json:"host"`
+	RedirectURL string `json:"redirect_url"`
 }
 
 type CustomClaim struct {
@@ -28,7 +29,7 @@ func CreateVerificationToken(email string, tokenType string) (string, error) {
 			ExpiresAt: time.Now().Add(time.Minute * 30).Unix(),
 		},
 		tokenType,
-		UserInfo{Email: email, Host: constants.AUTHORIZER_URL},
+		UserInfo{Email: email, Host: constants.AUTHORIZER_URL, RedirectURL: constants.APP_URL},
 	}
 
 	return t.SignedString([]byte(constants.JWT_SECRET))

@@ -14,6 +14,7 @@ var (
 	JWT_SECRET                   = ""
 	ALLOWED_ORIGINS              = []string{}
 	AUTHORIZER_URL               = ""
+	APP_URL                      = ""
 	PORT                         = "8080"
 	REDIS_URL                    = ""
 	IS_PROD                      = false

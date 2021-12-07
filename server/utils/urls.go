@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// function to get hostname
+// GetHostName function to get hostname
 func GetHostName(auth_url string) string {
 	u, err := url.Parse(auth_url)
 	if err != nil {
