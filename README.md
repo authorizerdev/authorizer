@@ -15,7 +15,7 @@
 - [Getting Started](#getting-started)
 - [Contributing](https://github.com/authorizerdev/authorizer/blob/main/.github/CONTRIBUTING.md)
 - [Docs](http://docs.authorizer.dev/)
-- [Join Community](https://discord.gg/2fXUQN3E)
+- [Join Community](https://discord.gg/Zv2D5h6kkK)
 
 # Introduction
 
