@@ -179,6 +179,8 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 		inputRoles := strings.Split(sessionSplit[2], ",")
 		redirectURL := sessionSplit[1]
 
+		c.Request.Header.Set("Origin", redirectURL)
+
 		var err error
 		user := db.User{}
 		code := c.Request.FormValue("code")
