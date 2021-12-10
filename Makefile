@@ -5,3 +5,5 @@ cmd:
 	cd server && go build -ldflags "-w -X main.Version=$(VERSION)" -o '../build/server'
 clean:
 	rm -rf build
+test:
+	cd server && go test ./...
