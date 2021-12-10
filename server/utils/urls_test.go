@@ -9,7 +9,7 @@ func TestGetHostName(t *testing.T) {
 	want := "test.herokuapp.com"
 
 	if got != want {
-		t.Errorf("GetHostName Test failed got %q, wanted %q", got, want)
+		t.Errorf("GetHostName Test failed got %s, wanted %s", got, want)
 	}
 }
 
