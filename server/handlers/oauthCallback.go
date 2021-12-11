@@ -40,7 +40,7 @@ func processGoogleUserInfo(code string) (db.User, error) {
 	// Parse and verify ID Token payload.
 	idToken, err := verifier.Verify(ctx, rawIDToken)
 	if err != nil {
-		return user, fmt.Errorf("unable to verify id_token:", err.Error())
+		return user, fmt.Errorf("unable to verify id_token: %s", err.Error())
 	}
 
 	// Extract custom claims
