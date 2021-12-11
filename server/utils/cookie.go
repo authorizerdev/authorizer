@@ -24,7 +24,10 @@ func SetCookie(gc *gin.Context, token string) {
 func GetCookie(gc *gin.Context) (string, error) {
 	cookie, err := gc.Request.Cookie(constants.COOKIE_NAME)
 	if err != nil {
-		return "", err
+		cookie, err = gc.Request.Cookie(constants.COOKIE_NAME + "-client")
+		if err != nil {
+			return "", err
+		}
 	}
 
 	return cookie.Value, nil
