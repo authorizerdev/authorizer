@@ -17,7 +17,7 @@ func GetHostName(auth_url string) string {
 	return host
 }
 
-// function to get domain name
+// GetDomainName function to get domain name
 func GetDomainName(auth_url string) string {
 	u, err := url.Parse(auth_url)
 	if err != nil {
