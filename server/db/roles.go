@@ -9,7 +9,7 @@ import (
 )
 
 type Role struct {
-	ID   uuid.UUID `gorm:"type:uuid;"`
+	ID   uuid.UUID `gorm:"primaryKey;type:char(36)"`
 	Role string    `gorm:"unique"`
 }
 
