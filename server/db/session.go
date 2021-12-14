@@ -9,8 +9,8 @@ import (
 )
 
 type Session struct {
-	ID        uuid.UUID `gorm:"type:uuid;"`
-	UserID    uuid.UUID `gorm:"type:uuid;"`
+	ID        uuid.UUID `gorm:"primaryKey;type:char(36)"`
+	UserID    uuid.UUID `gorm:"type:char(36)"`
 	User      User
 	UserAgent string
 	IP        string

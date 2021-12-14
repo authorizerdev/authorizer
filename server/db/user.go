@@ -10,16 +10,16 @@ import (
 )
 
 type User struct {
-	ID              uuid.UUID `gorm:"type:uuid;"`
+	ID              uuid.UUID `gorm:"primaryKey;type:char(36)"`
 	FirstName       string
 	LastName        string
 	Email           string `gorm:"unique"`
-	Password        string
+	Password        string `gorm:"type:text"`
 	SignupMethod    string
 	EmailVerifiedAt int64
-	CreatedAt       int64 `gorm:"autoCreateTime"`
-	UpdatedAt       int64 `gorm:"autoUpdateTime"`
-	Image           string
+	CreatedAt       int64  `gorm:"autoCreateTime"`
+	UpdatedAt       int64  `gorm:"autoUpdateTime"`
+	Image           string `gorm:"type:text"`
 	Roles           string
 }
 

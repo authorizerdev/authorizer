@@ -9,8 +9,8 @@ import (
 )
 
 type VerificationRequest struct {
-	ID         uuid.UUID `gorm:"type:uuid;"`
-	Token      string    `gorm:"index"`
+	ID         uuid.UUID `gorm:"primaryKey;type:char(36)"`
+	Token      string    `gorm:"type:text"`
 	Identifier string
 	ExpiresAt  int64
 	CreatedAt  int64  `gorm:"autoCreateTime"`
