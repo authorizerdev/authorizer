@@ -6,6 +6,7 @@ const (
 	Postgres DbType = iota
 	Sqlite
 	Mysql
+	SQLServer
 	Arangodb
 )
 
@@ -14,6 +15,7 @@ func (d DbType) String() string {
 		"postgres",
 		"sqlite",
 		"mysql",
+		"sqlserver",
 		"arangodb",
 	}[d]
 }
