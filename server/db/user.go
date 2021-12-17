@@ -159,9 +159,6 @@ func (mgr *manager) GetUserByEmail(email string) (User, error) {
 		}
 		defer cursor.Close()
 
-		log.Println("=> query:", query, bindVars)
-		log.Println("=> cursor:", cursor.Count())
-
 		for {
 			_, err := cursor.ReadDocument(nil, &user)
 			if driver.IsNoMoreDocuments(err) {

@@ -3,7 +3,6 @@ package resolvers
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -22,7 +21,6 @@ func VerifyEmail(ctx context.Context, params model.VerifyEmailInput) (*model.Aut
 	}
 
 	verificationRequest, err := db.Mgr.GetVerificationByToken(params.Token)
-	log.Println("=> vf req:", verificationRequest)
 	if err != nil {
 		return res, fmt.Errorf(`invalid token`)
 	}

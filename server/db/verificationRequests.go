@@ -35,7 +35,7 @@ func (mgr *manager) AddVerification(verification VerificationRequest) (Verificat
 		}).Create(&verification)
 
 		if result.Error != nil {
-			log.Println(`Error saving verification record`, result.Error)
+			log.Println(`error saving verification record`, result.Error)
 			return verification, result.Error
 		}
 	}
@@ -44,7 +44,6 @@ func (mgr *manager) AddVerification(verification VerificationRequest) (Verificat
 		verificationRequestCollection, _ := mgr.arangodb.Collection(nil, Collections.VerificationRequest)
 		meta, err := verificationRequestCollection.CreateDocument(nil, verification)
 		if err != nil {
-			log.Println("=> meta information for verification request:", meta.Key)
 			return verification, err
 		}
 		verification.Key = meta.Key
@@ -60,7 +59,7 @@ func (mgr *manager) GetVerificationRequests() ([]VerificationRequest, error) {
 	if IsSQL {
 		result := mgr.sqlDB.Find(&verificationRequests)
 		if result.Error != nil {
-			log.Println(result.Error)
+			log.Println("error getting verification requests:", result.Error)
 			return verificationRequests, result.Error
 		}
 	}
@@ -102,7 +101,7 @@ func (mgr *manager) GetVerificationByToken(token string) (VerificationRequest, e
 		result := mgr.sqlDB.Where("token = ?", token).First(&verification)
 
 		if result.Error != nil {
-			log.Println(`Error getting verification token:`, result.Error)
+			log.Println(`error getting verification request:`, result.Error)
 			return verification, result.Error
 		}
 	}
@@ -120,9 +119,7 @@ func (mgr *manager) GetVerificationByToken(token string) (VerificationRequest, e
 		defer cursor.Close()
 
 		for {
-			meta, err := cursor.ReadDocument(nil, &verification)
-
-			log.Println("=> arangodb verification by token:", verification, meta)
+			_, err := cursor.ReadDocument(nil, &verification)
 
 			if driver.IsNoMoreDocuments(err) {
 				break
@@ -141,7 +138,7 @@ func (mgr *manager) GetVerificationByEmail(email string) (VerificationRequest, e
 		result := mgr.sqlDB.Where("email = ?", email).First(&verification)
 
 		if result.Error != nil {
-			log.Println(`Error getting verification token:`, result.Error)
+			log.Println(`error getting verification token:`, result.Error)
 			return verification, result.Error
 		}
 	}
@@ -159,9 +156,7 @@ func (mgr *manager) GetVerificationByEmail(email string) (VerificationRequest, e
 		defer cursor.Close()
 
 		for {
-			meta, err := cursor.ReadDocument(nil, &verification)
-
-			log.Println("=> arangodb verification by token:", verification, meta)
+			_, err := cursor.ReadDocument(nil, &verification)
 
 			if driver.IsNoMoreDocuments(err) {
 				break
@@ -186,7 +181,6 @@ func (mgr *manager) DeleteVerificationRequest(verificationRequest VerificationRe
 	}
 
 	if IsArangoDB {
-		log.Println("vkey:", verificationRequest, verificationRequest.Key)
 		collection, _ := mgr.arangodb.Collection(nil, Collections.VerificationRequest)
 		_, err := collection.RemoveDocument(nil, verificationRequest.Key)
 		if err != nil {

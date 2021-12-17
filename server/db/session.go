@@ -43,7 +43,7 @@ func (mgr *manager) AddSession(session Session) error {
 				DoNothing: true,
 			}).Create(&session)
 		if res.Error != nil {
-			log.Println(`Error saving session`, res.Error)
+			log.Println(`error saving session`, res.Error)
 			return res.Error
 		}
 	}
@@ -55,6 +55,7 @@ func (mgr *manager) AddSession(session Session) error {
 		sessionCollection, _ := mgr.arangodb.Collection(nil, Collections.Session)
 		_, err := sessionCollection.CreateDocument(nil, session)
 		if err != nil {
+			log.Println(`error saving session`, err)
 			return err
 		}
 	}

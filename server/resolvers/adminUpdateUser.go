@@ -69,7 +69,7 @@ func AdminUpdateUser(ctx context.Context, params model.AdminUpdateUserInput) (*m
 		verificationType := enum.UpdateEmail.String()
 		token, err := utils.CreateVerificationToken(newEmail, verificationType)
 		if err != nil {
-			log.Println(`Error generating token`, err)
+			log.Println(`error generating token`, err)
 		}
 		db.Mgr.AddVerification(db.VerificationRequest{
 			Token:      token,
@@ -110,7 +110,7 @@ func AdminUpdateUser(ctx context.Context, params model.AdminUpdateUserInput) (*m
 
 	user, err = db.Mgr.UpdateUser(user)
 	if err != nil {
-		log.Println("Error updating user:", err)
+		log.Println("error updating user:", err)
 		return res, err
 	}
 

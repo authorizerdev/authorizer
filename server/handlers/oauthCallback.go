@@ -129,7 +129,7 @@ func processFacebookUserInfo(code string) (db.User, error) {
 
 	response, err := client.Do(req)
 	if err != nil {
-		log.Println("err processing facebook user info:", err)
+		log.Println("error processing facebook user info:", err)
 		return user, err
 	}
 
@@ -222,7 +222,6 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			// user exists in db, check if method was google
 			// if not append google to existing signup method and save it
 
-			log.Println("existing useR:", existingUser)
 			signupMethod := existingUser.SignupMethod
 			if !strings.Contains(signupMethod, provider) {
 				signupMethod = signupMethod + "," + provider

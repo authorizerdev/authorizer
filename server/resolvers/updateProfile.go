@@ -109,7 +109,7 @@ func UpdateProfile(ctx context.Context, params model.UpdateProfileInput) (*model
 		verificationType := enum.UpdateEmail.String()
 		token, err := utils.CreateVerificationToken(newEmail, verificationType)
 		if err != nil {
-			log.Println(`Error generating token`, err)
+			log.Println(`error generating token`, err)
 		}
 		db.Mgr.AddVerification(db.VerificationRequest{
 			Token:      token,
@@ -126,7 +126,7 @@ func UpdateProfile(ctx context.Context, params model.UpdateProfileInput) (*model
 
 	_, err = db.Mgr.UpdateUser(user)
 	if err != nil {
-		log.Println("Error updating user:", err)
+		log.Println("error updating user:", err)
 		return res, err
 	}
 	message := `Profile details updated successfully.`

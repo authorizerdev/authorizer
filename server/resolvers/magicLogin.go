@@ -94,7 +94,7 @@ func MagicLogin(ctx context.Context, params model.MagicLoginInput) (*model.Respo
 		user.SignupMethod = signupMethod
 		user, _ = db.Mgr.UpdateUser(user)
 		if err != nil {
-			log.Println("=> error updating user:", err)
+			log.Println("error updating user:", err)
 		}
 	}
 
@@ -103,7 +103,7 @@ func MagicLogin(ctx context.Context, params model.MagicLoginInput) (*model.Respo
 		verificationType := enum.MagicLink.String()
 		token, err := utils.CreateVerificationToken(params.Email, verificationType)
 		if err != nil {
-			log.Println(`Error generating token`, err)
+			log.Println(`error generating token`, err)
 		}
 		db.Mgr.AddVerification(db.VerificationRequest{
 			Token:      token,

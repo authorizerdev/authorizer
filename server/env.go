@@ -35,7 +35,7 @@ func InitEnv() {
 
 	err := godotenv.Load(envPath)
 	if err != nil {
-		log.Println("Error loading .env file")
+		log.Println("error loading .env file")
 	}
 
 	constants.VERSION = Version

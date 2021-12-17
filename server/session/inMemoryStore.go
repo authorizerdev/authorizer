@@ -1,7 +1,6 @@
 package session
 
 import (
-	"log"
 	"sync"
 )
 
@@ -29,8 +28,6 @@ func (c *InMemoryStore) AddToken(userId, accessToken, refreshToken string) {
 		}
 		c.store[userId] = tempMap
 	}
-
-	log.Println(c.store)
 
 	c.mu.Unlock()
 }

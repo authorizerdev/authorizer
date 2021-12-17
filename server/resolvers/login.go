@@ -43,7 +43,7 @@ func Login(ctx context.Context, params model.LoginInput) (*model.AuthResponse, e
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(params.Password))
 
 	if err != nil {
-		log.Println("Compare password error:", err)
+		log.Println("compare password error:", err)
 		return res, fmt.Errorf(`invalid password`)
 	}
 	roles := constants.DEFAULT_ROLES
