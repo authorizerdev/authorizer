@@ -32,21 +32,19 @@ func initArangodb() (arangoDriver.Database, error) {
 
 	var arangodb driver.Database
 
-	// TODO use dynamic name based on env
-	dbName := "authorizer"
-	arangodb_exists, err := client.DatabaseExists(nil, dbName)
+	arangodb_exists, err := client.DatabaseExists(nil, constants.DATABASE_NAME)
 
 	if arangodb_exists {
-		log.Println(dbName + " db exists already")
+		log.Println(constants.DATABASE_NAME + " db exists already")
 
-		arangodb, err = client.Database(nil, dbName)
+		arangodb, err = client.Database(nil, constants.DATABASE_NAME)
 
 		if err != nil {
 			return nil, err
 		}
 
 	} else {
-		arangodb, err = client.CreateDatabase(nil, dbName, nil)
+		arangodb, err = client.CreateDatabase(nil, constants.DATABASE_NAME, nil)
 
 		if err != nil {
 			return nil, err

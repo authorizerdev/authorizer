@@ -43,6 +43,7 @@ func InitEnv() {
 	constants.ENV = os.Getenv("ENV")
 	constants.DATABASE_TYPE = os.Getenv("DATABASE_TYPE")
 	constants.DATABASE_URL = os.Getenv("DATABASE_URL")
+	constants.DATABASE_NAME = os.Getenv("DATABASE_NAME")
 	constants.SMTP_HOST = os.Getenv("SMTP_HOST")
 	constants.SMTP_PORT = os.Getenv("SMTP_PORT")
 	constants.SENDER_EMAIL = os.Getenv("SENDER_EMAIL")
@@ -113,6 +114,10 @@ func InitEnv() {
 
 	if constants.DATABASE_TYPE == "" {
 		panic("Database type is required")
+	}
+
+	if constants.DATABASE_NAME == "" {
+		constants.DATABASE_NAME = "authorizer"
 	}
 
 	if constants.JWT_TYPE == "" {
