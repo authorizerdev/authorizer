@@ -64,7 +64,7 @@ func Token(ctx context.Context, roles []string) (*model.AuthResponse, error) {
 		// if access token has expired and refresh/session token is valid
 		// generate new accessToken
 		currentRefreshToken := session.GetToken(userIdStr, token)
-		session.DeleteToken(userIdStr, token)
+		session.DeleteVerificationRequest(userIdStr, token)
 		token, expiresAt, _ = utils.CreateAuthToken(user, enum.AccessToken, claimRoles)
 		session.SetToken(userIdStr, token, currentRefreshToken)
 		go func() {
@@ -74,7 +74,7 @@ func Token(ctx context.Context, roles []string) (*model.AuthResponse, error) {
 				IP:        utils.GetIP(gc.Request),
 			}
 
-			db.Mgr.SaveSession(sessionData)
+			db.Mgr.AddSession(sessionData)
 		}()
 	}
 

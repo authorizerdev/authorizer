@@ -68,7 +68,7 @@ func Login(ctx context.Context, params model.LoginInput) (*model.AuthResponse, e
 			IP:        utils.GetIP(gc.Request),
 		}
 
-		db.Mgr.SaveSession(sessionData)
+		db.Mgr.AddSession(sessionData)
 	}()
 
 	res = &model.AuthResponse{

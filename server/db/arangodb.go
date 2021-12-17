@@ -10,7 +10,11 @@ import (
 	"github.com/authorizerdev/authorizer/server/constants"
 )
 
-func initArangodb() (*arangoDriver.Database, error) {
+// for this we need arangodb instance up and running
+// for local testing we can use dockerized version of it
+// docker run -p 8529:8529 -e ARANGO_ROOT_PASSWORD=root arangodb/arangodb:3.8.4
+
+func initArangodb() (arangoDriver.Database, error) {
 	ctx := context.Background()
 	conn, err := http.NewConnection(http.ConnectionConfig{
 		Endpoints: []string{constants.DATABASE_URL},
@@ -19,8 +23,6 @@ func initArangodb() (*arangoDriver.Database, error) {
 		return nil, err
 	}
 
-	// TODO add support for authentication option in clientConfig or check if
-	// basic auth pattern works here in DB_URL
 	client, err := arangoDriver.NewClient(arangoDriver.ClientConfig{
 		Connection: conn,
 	})
@@ -29,11 +31,10 @@ func initArangodb() (*arangoDriver.Database, error) {
 	}
 
 	var arangodb driver.Database
-	var arangodb_exists bool
 
 	// TODO use dynamic name based on env
 	dbName := "authorizer"
-	arangodb_exists, err = client.DatabaseExists(nil, dbName)
+	arangodb_exists, err := client.DatabaseExists(nil, dbName)
 
 	if arangodb_exists {
 		log.Println(dbName + " db exists already")
@@ -61,9 +62,18 @@ func initArangodb() (*arangoDriver.Database, error) {
 			log.Println("error creating collection("+Collections.User+"):", err)
 		}
 	}
+	userCollection, _ := arangodb.Collection(nil, Collections.User)
+	userCollection.EnsureHashIndex(ctx, []string{"id"}, &arangoDriver.EnsureHashIndexOptions{
+		Unique: true,
+		Sparse: true,
+	})
+	userCollection.EnsureHashIndex(ctx, []string{"email"}, &arangoDriver.EnsureHashIndexOptions{
+		Unique: true,
+		Sparse: true,
+	})
 
-	verificationRequestsColumnExists, err := arangodb.CollectionExists(ctx, Collections.VerificationRequest)
-	if verificationRequestsColumnExists {
+	verificationRequestCollectionExists, err := arangodb.CollectionExists(ctx, Collections.VerificationRequest)
+	if verificationRequestCollectionExists {
 		log.Println(Collections.VerificationRequest + " collection exists already")
 	} else {
 		_, err = arangodb.CreateCollection(ctx, Collections.VerificationRequest, nil)
@@ -71,19 +81,22 @@ func initArangodb() (*arangoDriver.Database, error) {
 			log.Println("error creating collection("+Collections.VerificationRequest+"):", err)
 		}
 	}
+	verificationRequestCollection, _ := arangodb.Collection(nil, Collections.VerificationRequest)
+	verificationRequestCollection.EnsureHashIndex(ctx, []string{"id"}, &arangoDriver.EnsureHashIndexOptions{
+		Unique: true,
+		Sparse: true,
+	})
+	verificationRequestCollection.EnsureHashIndex(ctx, []string{"email", "identifier"}, &arangoDriver.EnsureHashIndexOptions{
+		Unique: true,
+		Sparse: true,
+	})
+	verificationRequestCollection.EnsureHashIndex(ctx, []string{"token"}, &arangoDriver.EnsureHashIndexOptions{
+		Unique: true,
+		Sparse: true,
+	})
 
-	rolesExists, err := arangodb.CollectionExists(ctx, Collections.Role)
-	if rolesExists {
-		log.Println(Collections.Role + " collection exists already")
-	} else {
-		_, err = arangodb.CreateCollection(ctx, Collections.Role, nil)
-		if err != nil {
-			log.Println("error creating collection("+Collections.Role+"):", err)
-		}
-	}
-
-	sessionExists, err := arangodb.CollectionExists(ctx, Collections.Session)
-	if sessionExists {
+	sessionCollectionExists, err := arangodb.CollectionExists(ctx, Collections.Session)
+	if sessionCollectionExists {
 		log.Println(Collections.Session + " collection exists already")
 	} else {
 		_, err = arangodb.CreateCollection(ctx, Collections.Session, nil)
@@ -92,5 +105,11 @@ func initArangodb() (*arangoDriver.Database, error) {
 		}
 	}
 
-	return &arangodb, err
+	sessionCollection, _ := arangodb.Collection(nil, Collections.Session)
+	sessionCollection.EnsureHashIndex(ctx, []string{"id"}, &arangoDriver.EnsureHashIndexOptions{
+		Unique: true,
+		Sparse: true,
+	})
+
+	return arangodb, err
 }

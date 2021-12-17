@@ -137,7 +137,7 @@ func InitEnv() {
 		constants.DISABLE_EMAIL_VERIFICATION = "false"
 	}
 
-	log.Println("=> disable email verification:", constants.DISABLE_EMAIL_VERIFICATION)
+	log.Println("email verification disabled:", constants.DISABLE_EMAIL_VERIFICATION)
 
 	rolesSplit := strings.Split(os.Getenv("ROLES"), ",")
 	roles := []string{}

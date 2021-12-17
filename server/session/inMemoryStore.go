@@ -41,7 +41,7 @@ func (c *InMemoryStore) DeleteUserSession(userId string) {
 	c.mu.Unlock()
 }
 
-func (c *InMemoryStore) DeleteToken(userId, accessToken string) {
+func (c *InMemoryStore) DeleteVerificationRequest(userId, accessToken string) {
 	c.mu.Lock()
 	delete(c.store[userId], accessToken)
 	c.mu.Unlock()

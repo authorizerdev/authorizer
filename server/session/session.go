@@ -27,12 +27,12 @@ func SetToken(userId, accessToken, refreshToken string) {
 	}
 }
 
-func DeleteToken(userId, accessToken string) {
+func DeleteVerificationRequest(userId, accessToken string) {
 	if SessionStoreObj.RedisMemoryStoreObj != nil {
-		SessionStoreObj.RedisMemoryStoreObj.DeleteToken(userId, accessToken)
+		SessionStoreObj.RedisMemoryStoreObj.DeleteVerificationRequest(userId, accessToken)
 	}
 	if SessionStoreObj.InMemoryStoreObj != nil {
-		SessionStoreObj.InMemoryStoreObj.DeleteToken(userId, accessToken)
+		SessionStoreObj.InMemoryStoreObj.DeleteVerificationRequest(userId, accessToken)
 	}
 }
 

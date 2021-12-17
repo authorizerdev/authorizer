@@ -6,7 +6,6 @@ import (
 	arangoDriver "github.com/arangodb/go-driver"
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/enum"
-	"github.com/google/uuid"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
@@ -15,53 +14,50 @@ import (
 )
 
 type Manager interface {
-	SaveUser(user User) (User, error)
+	AddUser(user User) (User, error)
 	UpdateUser(user User) (User, error)
+	DeleteUser(user User) error
 	GetUsers() ([]User, error)
 	GetUserByEmail(email string) (User, error)
 	GetUserByID(email string) (User, error)
-	UpdateVerificationTime(verifiedAt int64, id uuid.UUID) error
 	AddVerification(verification VerificationRequest) (VerificationRequest, error)
 	GetVerificationByToken(token string) (VerificationRequest, error)
-	DeleteToken(email string) error
+	DeleteVerificationRequest(verificationRequest VerificationRequest) error
 	GetVerificationRequests() ([]VerificationRequest, error)
 	GetVerificationByEmail(email string) (VerificationRequest, error)
-	DeleteUser(email string) error
-	SaveRoles(roles []Role) error
-	SaveSession(session Session) error
+	AddSession(session Session) error
 }
 
 type manager struct {
 	sqlDB    *gorm.DB
-	arangodb *arangoDriver.Database
+	arangodb arangoDriver.Database
 }
 
 // mainly used by nosql dbs
 type CollectionList struct {
 	User                string
 	VerificationRequest string
-	Role                string
 	Session             string
 }
 
 var (
+	IsSQL       bool
+	IsArangoDB  bool
 	Mgr         Manager
 	Prefix      = "authorizer_"
 	Collections = CollectionList{
 		User:                Prefix + "users",
 		VerificationRequest: Prefix + "verification_requests",
-		Role:                Prefix + "roles",
 		Session:             Prefix + "sessions",
 	}
 )
 
-func isSQL() bool {
-	return constants.DATABASE_TYPE != enum.Arangodb.String()
-}
-
 func InitDB() {
 	var sqlDB *gorm.DB
 	var err error
+
+	IsSQL = constants.DATABASE_TYPE != enum.Arangodb.String()
+	IsArangoDB = constants.DATABASE_TYPE == enum.Arangodb.String()
 
 	// sql db orm config
 	ormConfig := &gorm.Config{
@@ -69,6 +65,8 @@ func InitDB() {
 			TablePrefix: Prefix,
 		},
 	}
+
+	log.Println("db type:", constants.DATABASE_TYPE)
 
 	switch constants.DATABASE_TYPE {
 	case enum.Postgres.String():
@@ -85,22 +83,21 @@ func InitDB() {
 		if err != nil {
 			log.Fatal("error initing arangodb:", err)
 		}
+
 		Mgr = &manager{
 			sqlDB:    nil,
 			arangodb: arangodb,
 		}
 
-		// check if collections exists
-
 		break
 	}
 
 	// common for all sql dbs that are configured via gorm
-	if isSQL() {
+	if IsSQL {
 		if err != nil {
 			log.Fatal("Failed to init sqlDB:", err)
 		} else {
-			sqlDB.AutoMigrate(&User{}, &VerificationRequest{}, &Role{}, &Session{})
+			sqlDB.AutoMigrate(&User{}, &VerificationRequest{}, &Session{})
 		}
 		Mgr = &manager{
 			sqlDB:    sqlDB,

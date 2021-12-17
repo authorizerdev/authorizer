@@ -29,7 +29,7 @@ func (c *RedisStore) DeleteUserSession(userId string) {
 	}
 }
 
-func (c *RedisStore) DeleteToken(userId, accessToken string) {
+func (c *RedisStore) DeleteVerificationRequest(userId, accessToken string) {
 	err := c.store.HDel(c.ctx, "authorizer_"+userId, accessToken).Err()
 	if err != nil {
 		log.Fatalln("Error deleting redis token:", err)

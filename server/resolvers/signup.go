@@ -79,7 +79,7 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 	if constants.DISABLE_EMAIL_VERIFICATION == "true" {
 		user.EmailVerifiedAt = time.Now().Unix()
 	}
-	user, err = db.Mgr.SaveUser(user)
+	user, err = db.Mgr.AddUser(user)
 	if err != nil {
 		return res, err
 	}
@@ -135,7 +135,7 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 				IP:        utils.GetIP(gc.Request),
 			}
 
-			db.Mgr.SaveSession(sessionData)
+			db.Mgr.AddSession(sessionData)
 		}()
 		res = &model.AuthResponse{
 			Message:              `Signed up successfully.`,
