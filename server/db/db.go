@@ -9,6 +9,7 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
+	"gorm.io/driver/sqlserver"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
 )
@@ -77,6 +78,9 @@ func InitDB() {
 		break
 	case enum.Mysql.String():
 		sqlDB, err = gorm.Open(mysql.Open(constants.DATABASE_URL), ormConfig)
+		break
+	case enum.SQLServer.String():
+		sqlDB, err = gorm.Open(sqlserver.Open(constants.DATABASE_URL), ormConfig)
 		break
 	case enum.Arangodb.String():
 		arangodb, err := initArangodb()

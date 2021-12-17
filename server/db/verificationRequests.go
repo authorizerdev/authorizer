@@ -31,6 +31,7 @@ func (mgr *manager) AddVerification(verification VerificationRequest) (Verificat
 		verification.Key = verification.ID
 		verification.ObjectID = verification.ID
 		result := mgr.sqlDB.Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "email"}, {Name: "identifier"}},
 			DoUpdates: clause.AssignmentColumns([]string{"token", "expires_at"}),
 		}).Create(&verification)
 
