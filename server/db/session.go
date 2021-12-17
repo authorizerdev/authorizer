@@ -26,7 +26,7 @@ func (r *Session) BeforeCreate(tx *gorm.DB) (err error) {
 
 // SaveSession function to save user sessiosn
 func (mgr *manager) SaveSession(session Session) error {
-	res := mgr.db.Clauses(
+	res := mgr.sqlDB.Clauses(
 		clause.OnConflict{
 			DoNothing: true,
 		}).Create(&session)

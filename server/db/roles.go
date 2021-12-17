@@ -21,7 +21,7 @@ func (r *Role) BeforeCreate(tx *gorm.DB) (err error) {
 
 // SaveRoles function to save roles
 func (mgr *manager) SaveRoles(roles []Role) error {
-	res := mgr.db.Clauses(
+	res := mgr.sqlDB.Clauses(
 		clause.OnConflict{
 			DoNothing: true,
 		}).Create(&roles)

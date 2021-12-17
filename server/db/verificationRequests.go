@@ -26,7 +26,7 @@ func (v *VerificationRequest) BeforeCreate(tx *gorm.DB) (err error) {
 
 // AddVerification function to add verification record
 func (mgr *manager) AddVerification(verification VerificationRequest) (VerificationRequest, error) {
-	result := mgr.db.Clauses(clause.OnConflict{
+	result := mgr.sqlDB.Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "email"}},
 		DoUpdates: clause.AssignmentColumns([]string{"token", "identifier", "expires_at"}),
 	}).Create(&verification)
@@ -40,7 +40,7 @@ func (mgr *manager) AddVerification(verification VerificationRequest) (Verificat
 
 func (mgr *manager) GetVerificationByToken(token string) (VerificationRequest, error) {
 	var verification VerificationRequest
-	result := mgr.db.Where("token = ?", token).First(&verification)
+	result := mgr.sqlDB.Where("token = ?", token).First(&verification)
 
 	if result.Error != nil {
 		log.Println(`Error getting verification token:`, result.Error)
@@ -52,7 +52,7 @@ func (mgr *manager) GetVerificationByToken(token string) (VerificationRequest, e
 
 func (mgr *manager) GetVerificationByEmail(email string) (VerificationRequest, error) {
 	var verification VerificationRequest
-	result := mgr.db.Where("email = ?", email).First(&verification)
+	result := mgr.sqlDB.Where("email = ?", email).First(&verification)
 
 	if result.Error != nil {
 		log.Println(`Error getting verification token:`, result.Error)
@@ -64,7 +64,7 @@ func (mgr *manager) GetVerificationByEmail(email string) (VerificationRequest, e
 
 func (mgr *manager) DeleteToken(email string) error {
 	var verification VerificationRequest
-	result := mgr.db.Where("email = ?", email).Delete(&verification)
+	result := mgr.sqlDB.Where("email = ?", email).Delete(&verification)
 
 	if result.Error != nil {
 		log.Println(`Error deleting token:`, result.Error)
@@ -77,7 +77,7 @@ func (mgr *manager) DeleteToken(email string) error {
 // GetUsers function to get all users
 func (mgr *manager) GetVerificationRequests() ([]VerificationRequest, error) {
 	var verificationRequests []VerificationRequest
-	result := mgr.db.Find(&verificationRequests)
+	result := mgr.sqlDB.Find(&verificationRequests)
 	if result.Error != nil {
 		log.Println(result.Error)
 		return verificationRequests, result.Error

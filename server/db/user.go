@@ -31,7 +31,7 @@ func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
 
 // SaveUser function to add user even with email conflict
 func (mgr *manager) SaveUser(user User) (User, error) {
-	result := mgr.db.Clauses(
+	result := mgr.sqlDB.Clauses(
 		clause.OnConflict{
 			UpdateAll: true,
 			Columns:   []clause.Column{{Name: "email"}},
@@ -47,7 +47,7 @@ func (mgr *manager) SaveUser(user User) (User, error) {
 // UpdateUser function to update user with ID conflict
 func (mgr *manager) UpdateUser(user User) (User, error) {
 	user.UpdatedAt = time.Now().Unix()
-	result := mgr.db.Clauses(
+	result := mgr.sqlDB.Clauses(
 		clause.OnConflict{
 			UpdateAll: true,
 			Columns:   []clause.Column{{Name: "email"}},
@@ -63,7 +63,7 @@ func (mgr *manager) UpdateUser(user User) (User, error) {
 // GetUsers function to get all users
 func (mgr *manager) GetUsers() ([]User, error) {
 	var users []User
-	result := mgr.db.Find(&users)
+	result := mgr.sqlDB.Find(&users)
 	if result.Error != nil {
 		log.Println(result.Error)
 		return users, result.Error
@@ -73,7 +73,7 @@ func (mgr *manager) GetUsers() ([]User, error) {
 
 func (mgr *manager) GetUserByEmail(email string) (User, error) {
 	var user User
-	result := mgr.db.Where("email = ?", email).First(&user)
+	result := mgr.sqlDB.Where("email = ?", email).First(&user)
 
 	if result.Error != nil {
 		return user, result.Error
@@ -84,7 +84,7 @@ func (mgr *manager) GetUserByEmail(email string) (User, error) {
 
 func (mgr *manager) GetUserByID(id string) (User, error) {
 	var user User
-	result := mgr.db.Where("id = ?", id).First(&user)
+	result := mgr.sqlDB.Where("id = ?", id).First(&user)
 
 	if result.Error != nil {
 		return user, result.Error
@@ -97,7 +97,7 @@ func (mgr *manager) UpdateVerificationTime(verifiedAt int64, id uuid.UUID) error
 	user := &User{
 		ID: id,
 	}
-	result := mgr.db.Model(&user).Where("id = ?", id).Update("email_verified_at", verifiedAt)
+	result := mgr.sqlDB.Model(&user).Where("id = ?", id).Update("email_verified_at", verifiedAt)
 
 	if result.Error != nil {
 		return result.Error
@@ -108,7 +108,7 @@ func (mgr *manager) UpdateVerificationTime(verifiedAt int64, id uuid.UUID) error
 
 func (mgr *manager) DeleteUser(email string) error {
 	var user User
-	result := mgr.db.Where("email = ?", email).Delete(&user)
+	result := mgr.sqlDB.Where("email = ?", email).Delete(&user)
 
 	if result.Error != nil {
 		log.Println(`Error deleting user:`, result.Error)
