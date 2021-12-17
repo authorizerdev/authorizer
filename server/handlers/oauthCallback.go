@@ -129,7 +129,7 @@ func processFacebookUserInfo(code string) (db.User, error) {
 
 	response, err := client.Do(req)
 	if err != nil {
-		log.Println("err:", err)
+		log.Println("error processing facebook user info:", err)
 		return user, err
 	}
 
@@ -217,6 +217,7 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			}
 
 			user.Roles = strings.Join(inputRoles, ",")
+			user, _ = db.Mgr.AddUser(user)
 		} else {
 			// user exists in db, check if method was google
 			// if not append google to existing signup method and save it
@@ -260,9 +261,12 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			} else {
 				user.Roles = existingUser.Roles
 			}
+			user.Key = existingUser.Key
+			user.ObjectID = existingUser.ObjectID
+			user.ID = existingUser.ID
+			user, err = db.Mgr.UpdateUser(user)
 		}
 
-		user, _ = db.Mgr.SaveUser(user)
 		user, _ = db.Mgr.GetUserByEmail(user.Email)
 		userIdStr := fmt.Sprintf("%v", user.ID)
 		refreshToken, _, _ := utils.CreateAuthToken(user, enum.RefreshToken, inputRoles)
@@ -277,7 +281,7 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 				IP:        utils.GetIP(c.Request),
 			}
 
-			db.Mgr.SaveSession(sessionData)
+			db.Mgr.AddSession(sessionData)
 		}()
 
 		c.Redirect(http.StatusTemporaryRedirect, redirectURL)

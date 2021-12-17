@@ -27,12 +27,12 @@ func SetToken(userId, accessToken, refreshToken string) {
 	}
 }
 
-func DeleteToken(userId, accessToken string) {
+func DeleteVerificationRequest(userId, accessToken string) {
 	if SessionStoreObj.RedisMemoryStoreObj != nil {
-		SessionStoreObj.RedisMemoryStoreObj.DeleteToken(userId, accessToken)
+		SessionStoreObj.RedisMemoryStoreObj.DeleteVerificationRequest(userId, accessToken)
 	}
 	if SessionStoreObj.InMemoryStoreObj != nil {
-		SessionStoreObj.InMemoryStoreObj.DeleteToken(userId, accessToken)
+		SessionStoreObj.InMemoryStoreObj.DeleteVerificationRequest(userId, accessToken)
 	}
 }
 
@@ -96,7 +96,7 @@ func RemoveSocialLoginState(key string) {
 
 func InitSession() {
 	if constants.REDIS_URL != "" {
-		log.Println("Using redis store to save sessions")
+		log.Println("using redis store to save sessions")
 		opt, err := redis.ParseURL(constants.REDIS_URL)
 		if err != nil {
 			log.Fatalln("Error parsing redis url:", err)
@@ -114,7 +114,7 @@ func InitSession() {
 		}
 
 	} else {
-		log.Println("Using in memory store to save sessions")
+		log.Println("using in memory store to save sessions")
 		SessionStoreObj.InMemoryStoreObj = &InMemoryStore{
 			store:            map[string]map[string]string{},
 			socialLoginState: map[string]string{},

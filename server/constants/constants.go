@@ -6,6 +6,7 @@ var (
 	VERSION                      = ""
 	DATABASE_TYPE                = ""
 	DATABASE_URL                 = ""
+	DATABASE_NAME                = ""
 	SMTP_HOST                    = ""
 	SMTP_PORT                    = ""
 	SENDER_EMAIL                 = ""

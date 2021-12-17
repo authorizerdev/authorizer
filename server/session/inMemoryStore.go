@@ -1,7 +1,6 @@
 package session
 
 import (
-	"log"
 	"sync"
 )
 
@@ -30,8 +29,6 @@ func (c *InMemoryStore) AddToken(userId, accessToken, refreshToken string) {
 		c.store[userId] = tempMap
 	}
 
-	log.Println(c.store)
-
 	c.mu.Unlock()
 }
 
@@ -41,7 +38,7 @@ func (c *InMemoryStore) DeleteUserSession(userId string) {
 	c.mu.Unlock()
 }
 
-func (c *InMemoryStore) DeleteToken(userId, accessToken string) {
+func (c *InMemoryStore) DeleteVerificationRequest(userId, accessToken string) {
 	c.mu.Lock()
 	delete(c.store[userId], accessToken)
 	c.mu.Unlock()

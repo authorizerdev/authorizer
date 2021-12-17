@@ -51,7 +51,7 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 	// find user with email
 	existingUser, err := db.Mgr.GetUserByEmail(params.Email)
 	if err != nil {
-		log.Println("User with email " + params.Email + " not found")
+		log.Println("user with email " + params.Email + " not found")
 	}
 
 	if existingUser.EmailVerifiedAt > 0 {
@@ -79,7 +79,7 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 	if constants.DISABLE_EMAIL_VERIFICATION == "true" {
 		user.EmailVerifiedAt = time.Now().Unix()
 	}
-	user, err = db.Mgr.SaveUser(user)
+	user, err = db.Mgr.AddUser(user)
 	if err != nil {
 		return res, err
 	}
@@ -103,7 +103,7 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 		verificationType := enum.BasicAuthSignup.String()
 		token, err := utils.CreateVerificationToken(params.Email, verificationType)
 		if err != nil {
-			log.Println(`Error generating token`, err)
+			log.Println(`error generating token`, err)
 		}
 		db.Mgr.AddVerification(db.VerificationRequest{
 			Token:      token,
@@ -135,7 +135,7 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 				IP:        utils.GetIP(gc.Request),
 			}
 
-			db.Mgr.SaveSession(sessionData)
+			db.Mgr.AddSession(sessionData)
 		}()
 		res = &model.AuthResponse{
 			Message:              `Signed up successfully.`,

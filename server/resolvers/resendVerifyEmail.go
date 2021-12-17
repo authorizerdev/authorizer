@@ -27,7 +27,7 @@ func ResendVerifyEmail(ctx context.Context, params model.ResendVerifyEmailInput)
 
 	token, err := utils.CreateVerificationToken(params.Email, verificationRequest.Identifier)
 	if err != nil {
-		log.Println(`Error generating token`, err)
+		log.Println(`error generating token`, err)
 	}
 	db.Mgr.AddVerification(db.VerificationRequest{
 		Token:      token,

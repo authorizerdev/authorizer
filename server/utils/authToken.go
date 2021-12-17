@@ -64,12 +64,12 @@ func CreateAuthToken(user db.User, tokenType enum.TokenType, roles []string) (st
 		val, err := vm.Get("functionRes")
 
 		if err != nil {
-			log.Println("=> err custom access token script:", err)
+			log.Println("error getting custom access token script:", err)
 		} else {
 			extraPayload := make(map[string]interface{})
 			err = json.Unmarshal([]byte(fmt.Sprintf("%s", val)), &extraPayload)
 			if err != nil {
-				log.Println("Error converting accessTokenScript response to map:", err)
+				log.Println("error converting accessTokenScript response to map:", err)
 			} else {
 				for k, v := range extraPayload {
 					customClaims[k] = v

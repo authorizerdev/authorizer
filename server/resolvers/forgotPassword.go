@@ -37,7 +37,7 @@ func ForgotPassword(ctx context.Context, params model.ForgotPasswordInput) (*mod
 
 	token, err := utils.CreateVerificationToken(params.Email, enum.ForgotPassword.String())
 	if err != nil {
-		log.Println(`Error generating token`, err)
+		log.Println(`error generating token`, err)
 	}
 	db.Mgr.AddVerification(db.VerificationRequest{
 		Token:      token,
