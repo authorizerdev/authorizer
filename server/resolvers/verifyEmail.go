@@ -20,7 +20,7 @@ func VerifyEmail(ctx context.Context, params model.VerifyEmailInput) (*model.Aut
 		return res, err
 	}
 
-	_, err = db.Mgr.GetVerificationByToken(params.Token)
+	verificationRequest, err := db.Mgr.GetVerificationByToken(params.Token)
 	if err != nil {
 		return res, fmt.Errorf(`invalid token`)
 	}
@@ -37,9 +37,10 @@ func VerifyEmail(ctx context.Context, params model.VerifyEmailInput) (*model.Aut
 	}
 
 	// update email_verified_at in users table
-	db.Mgr.UpdateVerificationTime(time.Now().Unix(), user.ID)
+	user.EmailVerifiedAt = time.Now().Unix()
+	db.Mgr.UpdateUser(user)
 	// delete from verification table
-	db.Mgr.DeleteToken(claim.Email)
+	db.Mgr.DeleteVerificationRequest(verificationRequest)
 
 	userIdStr := fmt.Sprintf("%v", user.ID)
 	roles := strings.Split(user.Roles, ",")
@@ -55,7 +56,7 @@ func VerifyEmail(ctx context.Context, params model.VerifyEmailInput) (*model.Aut
 			IP:        utils.GetIP(gc.Request),
 		}
 
-		db.Mgr.SaveSession(sessionData)
+		db.Mgr.AddSession(sessionData)
 	}()
 
 	res = &model.AuthResponse{

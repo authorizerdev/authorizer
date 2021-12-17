@@ -35,7 +35,7 @@ func InitEnv() {
 
 	err := godotenv.Load(envPath)
 	if err != nil {
-		log.Println("Error loading .env file")
+		log.Println("error loading .env file")
 	}
 
 	constants.VERSION = Version
@@ -43,6 +43,7 @@ func InitEnv() {
 	constants.ENV = os.Getenv("ENV")
 	constants.DATABASE_TYPE = os.Getenv("DATABASE_TYPE")
 	constants.DATABASE_URL = os.Getenv("DATABASE_URL")
+	constants.DATABASE_NAME = os.Getenv("DATABASE_NAME")
 	constants.SMTP_HOST = os.Getenv("SMTP_HOST")
 	constants.SMTP_PORT = os.Getenv("SMTP_PORT")
 	constants.SENDER_EMAIL = os.Getenv("SENDER_EMAIL")
@@ -115,6 +116,10 @@ func InitEnv() {
 		panic("Database type is required")
 	}
 
+	if constants.DATABASE_NAME == "" {
+		constants.DATABASE_NAME = "authorizer"
+	}
+
 	if constants.JWT_TYPE == "" {
 		constants.JWT_TYPE = "HS256"
 	}
@@ -137,7 +142,7 @@ func InitEnv() {
 		constants.DISABLE_EMAIL_VERIFICATION = "false"
 	}
 
-	log.Println("=> disable email verification:", constants.DISABLE_EMAIL_VERIFICATION)
+	log.Println("email verification disabled:", constants.DISABLE_EMAIL_VERIFICATION)
 
 	rolesSplit := strings.Split(os.Getenv("ROLES"), ",")
 	roles := []string{}

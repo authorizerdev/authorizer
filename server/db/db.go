@@ -3,9 +3,9 @@ package db
 import (
 	"log"
 
+	arangoDriver "github.com/arangodb/go-driver"
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/enum"
-	"github.com/google/uuid"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
@@ -14,51 +14,94 @@ import (
 )
 
 type Manager interface {
-	SaveUser(user User) (User, error)
+	AddUser(user User) (User, error)
 	UpdateUser(user User) (User, error)
+	DeleteUser(user User) error
 	GetUsers() ([]User, error)
 	GetUserByEmail(email string) (User, error)
 	GetUserByID(email string) (User, error)
-	UpdateVerificationTime(verifiedAt int64, id uuid.UUID) error
 	AddVerification(verification VerificationRequest) (VerificationRequest, error)
 	GetVerificationByToken(token string) (VerificationRequest, error)
-	DeleteToken(email string) error
+	DeleteVerificationRequest(verificationRequest VerificationRequest) error
 	GetVerificationRequests() ([]VerificationRequest, error)
 	GetVerificationByEmail(email string) (VerificationRequest, error)
-	DeleteUser(email string) error
-	SaveRoles(roles []Role) error
-	SaveSession(session Session) error
+	AddSession(session Session) error
 }
 
 type manager struct {
-	db *gorm.DB
+	sqlDB    *gorm.DB
+	arangodb arangoDriver.Database
 }
 
-var Mgr Manager
+// mainly used by nosql dbs
+type CollectionList struct {
+	User                string
+	VerificationRequest string
+	Session             string
+}
+
+var (
+	IsSQL       bool
+	IsArangoDB  bool
+	Mgr         Manager
+	Prefix      = "authorizer_"
+	Collections = CollectionList{
+		User:                Prefix + "users",
+		VerificationRequest: Prefix + "verification_requests",
+		Session:             Prefix + "sessions",
+	}
+)
 
 func InitDB() {
-	var db *gorm.DB
+	var sqlDB *gorm.DB
 	var err error
+
+	IsSQL = constants.DATABASE_TYPE != enum.Arangodb.String()
+	IsArangoDB = constants.DATABASE_TYPE == enum.Arangodb.String()
+
+	// sql db orm config
 	ormConfig := &gorm.Config{
 		NamingStrategy: schema.NamingStrategy{
-			TablePrefix: "authorizer_",
+			TablePrefix: Prefix,
 		},
 	}
-	if constants.DATABASE_TYPE == enum.Postgres.String() {
-		db, err = gorm.Open(postgres.Open(constants.DATABASE_URL), ormConfig)
-	}
-	if constants.DATABASE_TYPE == enum.Mysql.String() {
-		db, err = gorm.Open(mysql.Open(constants.DATABASE_URL), ormConfig)
-	}
-	if constants.DATABASE_TYPE == enum.Sqlite.String() {
-		db, err = gorm.Open(sqlite.Open(constants.DATABASE_URL), ormConfig)
+
+	log.Println("db type:", constants.DATABASE_TYPE)
+
+	switch constants.DATABASE_TYPE {
+	case enum.Postgres.String():
+		sqlDB, err = gorm.Open(postgres.Open(constants.DATABASE_URL), ormConfig)
+		break
+	case enum.Sqlite.String():
+		sqlDB, err = gorm.Open(sqlite.Open(constants.DATABASE_URL), ormConfig)
+		break
+	case enum.Mysql.String():
+		sqlDB, err = gorm.Open(mysql.Open(constants.DATABASE_URL), ormConfig)
+		break
+	case enum.Arangodb.String():
+		arangodb, err := initArangodb()
+		if err != nil {
+			log.Fatal("error initing arangodb:", err)
+		}
+
+		Mgr = &manager{
+			sqlDB:    nil,
+			arangodb: arangodb,
+		}
+
+		break
 	}
 
-	if err != nil {
-		log.Fatal("Failed to init db:", err)
-	} else {
-		db.AutoMigrate(&User{}, &VerificationRequest{}, &Role{}, &Session{})
+	// common for all sql dbs that are configured via gorm
+	if IsSQL {
+		if err != nil {
+			log.Fatal("Failed to init sqlDB:", err)
+		} else {
+			sqlDB.AutoMigrate(&User{}, &VerificationRequest{}, &Session{})
+		}
+		Mgr = &manager{
+			sqlDB:    sqlDB,
+			arangodb: nil,
+		}
 	}
-
-	Mgr = &manager{db: db}
 }

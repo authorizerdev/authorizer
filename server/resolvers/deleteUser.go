@@ -29,9 +29,9 @@ func DeleteUser(ctx context.Context, params model.DeleteUserInput) (*model.Respo
 
 	session.DeleteUserSession(fmt.Sprintf("%x", user.ID))
 
-	err = db.Mgr.DeleteUser(params.Email)
+	err = db.Mgr.DeleteUser(user)
 	if err != nil {
-		log.Println("Err:", err)
+		log.Println("error deleting user:", err)
 		return res, err
 	}
 

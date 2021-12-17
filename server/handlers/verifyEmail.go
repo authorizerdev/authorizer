@@ -24,7 +24,7 @@ func VerifyEmailHandler() gin.HandlerFunc {
 			return
 		}
 
-		_, err := db.Mgr.GetVerificationByToken(token)
+		verificationRequest, err := db.Mgr.GetVerificationByToken(token)
 		if err != nil {
 			c.JSON(400, errorRes)
 			return
@@ -47,10 +47,11 @@ func VerifyEmailHandler() gin.HandlerFunc {
 
 		// update email_verified_at in users table
 		if user.EmailVerifiedAt <= 0 {
-			db.Mgr.UpdateVerificationTime(time.Now().Unix(), user.ID)
+			user.EmailVerifiedAt = time.Now().Unix()
+			db.Mgr.UpdateUser(user)
 		}
 		// delete from verification table
-		db.Mgr.DeleteToken(claim.Email)
+		db.Mgr.DeleteVerificationRequest(verificationRequest)
 
 		userIdStr := fmt.Sprintf("%v", user.ID)
 		roles := strings.Split(user.Roles, ",")
@@ -66,7 +67,7 @@ func VerifyEmailHandler() gin.HandlerFunc {
 				IP:        utils.GetIP(c.Request),
 			}
 
-			db.Mgr.SaveSession(sessionData)
+			db.Mgr.AddSession(sessionData)
 		}()
 		utils.SetCookie(c, accessToken)
 		c.Redirect(http.StatusTemporaryRedirect, claim.RedirectURL)

@@ -1,45 +1,68 @@
 package db
 
 import (
+	"context"
+	"errors"
+	"fmt"
 	"log"
 	"time"
 
+	"github.com/arangodb/go-driver"
+	arangoDriver "github.com/arangodb/go-driver"
 	"github.com/google/uuid"
-	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
 type User struct {
-	ID              uuid.UUID `gorm:"primaryKey;type:char(36)"`
-	FirstName       string
-	LastName        string
-	Email           string `gorm:"unique"`
-	Password        string `gorm:"type:text"`
-	SignupMethod    string
-	EmailVerifiedAt int64
-	CreatedAt       int64  `gorm:"autoCreateTime"`
-	UpdatedAt       int64  `gorm:"autoUpdateTime"`
-	Image           string `gorm:"type:text"`
-	Roles           string
+	Key             string `json:"_key,omitempty"` // for arangodb
+	ObjectID        string `json:"_id,omitempty"`  // for arangodb & mongodb
+	ID              string `gorm:"primaryKey;type:char(36)" json:"id"`
+	FirstName       string `json:"first_name"`
+	LastName        string `json:"last_name"`
+	Email           string `gorm:"unique" json:"email"`
+	Password        string `gorm:"type:text" json:"password"`
+	SignupMethod    string `json:"signup_method"`
+	EmailVerifiedAt int64  `json:"email_verified_at"`
+	CreatedAt       int64  `gorm:"autoCreateTime" json:"created_at"`
+	UpdatedAt       int64  `gorm:"autoUpdateTime" json:"updated_at"`
+	Image           string `gorm:"type:text" json:"image"`
+	Roles           string `json:"roles"`
 }
 
-func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
-	u.ID = uuid.New()
+// AddUser function to add user even with email conflict
+func (mgr *manager) AddUser(user User) (User, error) {
+	if user.ID == "" {
+		user.ID = uuid.New().String()
+	}
 
-	return
-}
+	if IsSQL {
+		// copy id as value for fields required for mongodb & arangodb
+		user.Key = user.ID
+		user.ObjectID = user.ID
+		result := mgr.sqlDB.Clauses(
+			clause.OnConflict{
+				UpdateAll: true,
+				Columns:   []clause.Column{{Name: "email"}},
+			}).Create(&user)
 
-// SaveUser function to add user even with email conflict
-func (mgr *manager) SaveUser(user User) (User, error) {
-	result := mgr.db.Clauses(
-		clause.OnConflict{
-			UpdateAll: true,
-			Columns:   []clause.Column{{Name: "email"}},
-		}).Create(&user)
+		if result.Error != nil {
+			log.Println("error adding user:", result.Error)
+			return user, result.Error
+		}
+	}
 
-	if result.Error != nil {
-		log.Println(result.Error)
-		return user, result.Error
+	if IsArangoDB {
+		user.CreatedAt = time.Now().Unix()
+		user.UpdatedAt = time.Now().Unix()
+		ctx := context.Background()
+		userCollection, _ := mgr.arangodb.Collection(nil, Collections.User)
+		meta, err := userCollection.CreateDocument(arangoDriver.WithOverwrite(ctx), user)
+		if err != nil {
+			log.Println("error adding user:", err)
+			return user, err
+		}
+		user.Key = meta.Key
+		user.ObjectID = meta.ID.String()
 	}
 	return user, nil
 }
@@ -47,15 +70,26 @@ func (mgr *manager) SaveUser(user User) (User, error) {
 // UpdateUser function to update user with ID conflict
 func (mgr *manager) UpdateUser(user User) (User, error) {
 	user.UpdatedAt = time.Now().Unix()
-	result := mgr.db.Clauses(
-		clause.OnConflict{
-			UpdateAll: true,
-			Columns:   []clause.Column{{Name: "email"}},
-		}).Create(&user)
 
-	if result.Error != nil {
-		log.Println(result.Error)
-		return user, result.Error
+	if IsSQL {
+		result := mgr.sqlDB.Save(&user)
+
+		if result.Error != nil {
+			log.Println("error updating user:", result.Error)
+			return user, result.Error
+		}
+	}
+
+	if IsArangoDB {
+		collection, _ := mgr.arangodb.Collection(nil, Collections.User)
+		meta, err := collection.UpdateDocument(nil, user.Key, user)
+		if err != nil {
+			log.Println("error updating user:", err)
+			return user, err
+		}
+
+		user.Key = meta.Key
+		user.ObjectID = meta.ID.String()
 	}
 	return user, nil
 }
@@ -63,20 +97,76 @@ func (mgr *manager) UpdateUser(user User) (User, error) {
 // GetUsers function to get all users
 func (mgr *manager) GetUsers() ([]User, error) {
 	var users []User
-	result := mgr.db.Find(&users)
-	if result.Error != nil {
-		log.Println(result.Error)
-		return users, result.Error
+
+	if IsSQL {
+		result := mgr.sqlDB.Find(&users)
+		if result.Error != nil {
+			log.Println("error getting users:", result.Error)
+			return users, result.Error
+		}
+	}
+
+	if IsArangoDB {
+		query := fmt.Sprintf("FOR d in %s RETURN d", Collections.User)
+
+		cursor, err := mgr.arangodb.Query(nil, query, nil)
+		if err != nil {
+			return users, err
+		}
+		defer cursor.Close()
+
+		for {
+			var user User
+			meta, err := cursor.ReadDocument(nil, &user)
+
+			if driver.IsNoMoreDocuments(err) {
+				break
+			} else if err != nil {
+				return users, err
+			}
+
+			if meta.Key != "" {
+				user.Key = meta.Key
+				user.ObjectID = meta.ID.String()
+				users = append(users, user)
+			}
+
+		}
 	}
 	return users, nil
 }
 
 func (mgr *manager) GetUserByEmail(email string) (User, error) {
 	var user User
-	result := mgr.db.Where("email = ?", email).First(&user)
 
-	if result.Error != nil {
-		return user, result.Error
+	if IsSQL {
+		result := mgr.sqlDB.Where("email = ?", email).First(&user)
+
+		if result.Error != nil {
+			return user, result.Error
+		}
+	}
+
+	if IsArangoDB {
+		query := fmt.Sprintf("FOR d in %s FILTER d.email == @email LIMIT 1  RETURN d", Collections.User)
+		bindVars := map[string]interface{}{
+			"email": email,
+		}
+
+		cursor, err := mgr.arangodb.Query(nil, query, bindVars)
+		if err != nil {
+			return user, err
+		}
+		defer cursor.Close()
+
+		for {
+			_, err := cursor.ReadDocument(nil, &user)
+			if driver.IsNoMoreDocuments(err) {
+				break
+			} else if err != nil {
+				return user, err
+			}
+		}
 	}
 
 	return user, nil
@@ -84,35 +174,62 @@ func (mgr *manager) GetUserByEmail(email string) (User, error) {
 
 func (mgr *manager) GetUserByID(id string) (User, error) {
 	var user User
-	result := mgr.db.Where("id = ?", id).First(&user)
 
-	if result.Error != nil {
-		return user, result.Error
+	if IsSQL {
+		result := mgr.sqlDB.Where("id = ?", id).First(&user)
+
+		if result.Error != nil {
+			return user, result.Error
+		}
+	}
+
+	if IsArangoDB {
+		query := fmt.Sprintf("FOR d in %s FILTER d.id == @id LIMIT 1 RETURN d", Collections.User)
+		bindVars := map[string]interface{}{
+			"id": id,
+		}
+
+		cursor, err := mgr.arangodb.Query(nil, query, bindVars)
+		if err != nil {
+			return user, err
+		}
+		defer cursor.Close()
+
+		count := cursor.Count()
+		if count == 0 {
+			return user, errors.New("user not found")
+		}
+
+		for {
+			_, err := cursor.ReadDocument(nil, &user)
+			if driver.IsNoMoreDocuments(err) {
+				break
+			} else if err != nil {
+				return user, err
+			}
+		}
 	}
 
 	return user, nil
 }
 
-func (mgr *manager) UpdateVerificationTime(verifiedAt int64, id uuid.UUID) error {
-	user := &User{
-		ID: id,
+func (mgr *manager) DeleteUser(user User) error {
+	if IsSQL {
+		result := mgr.sqlDB.Delete(&user)
+
+		if result.Error != nil {
+			log.Println(`error deleting user:`, result.Error)
+			return result.Error
+		}
 	}
-	result := mgr.db.Model(&user).Where("id = ?", id).Update("email_verified_at", verifiedAt)
 
-	if result.Error != nil {
-		return result.Error
-	}
-
-	return nil
-}
-
-func (mgr *manager) DeleteUser(email string) error {
-	var user User
-	result := mgr.db.Where("email = ?", email).Delete(&user)
-
-	if result.Error != nil {
-		log.Println(`Error deleting user:`, result.Error)
-		return result.Error
+	if IsArangoDB {
+		collection, _ := mgr.arangodb.Collection(nil, Collections.User)
+		_, err := collection.RemoveDocument(nil, user.Key)
+		if err != nil {
+			log.Println(`error deleting user:`, err)
+			return err
+		}
 	}
 
 	return nil
