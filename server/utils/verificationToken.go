@@ -19,7 +19,6 @@ type CustomClaim struct {
 	UserInfo
 }
 
-// TODO convert tokenType to enum
 func CreateVerificationToken(email string, tokenType string) (string, error) {
 	t := jwt.New(jwt.GetSigningMethod(constants.JWT_TYPE))
 
