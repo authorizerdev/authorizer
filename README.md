@@ -149,6 +149,10 @@ Deploy production ready Authorizer instance using [railway.app](https://github.c
   > Note: One can always disable the email verification to allow open sign up, which is not recommended for production as anyone can use anyone's email address 😅
 - For persisting user sessions, you will need Redis URL (not in case of railway.app). If you do not configure a Redis server, sessions will be persisted until the instance is up or not restarted. For better response time on authorization requests/middleware, we recommend deploying Redis on the same infra/network as your authorizer server.
 
+## Testing
+
+- Integration Test: This tests are written along with [authorizer-js](https://github.com/authorizerdev/authorizer-js/blob/main/__test__/index.test.js) lib.
+
 ## Integrating into your website
 
 This example demonstrates how you can use [`@authorizerdev/authorizer-js`](/authorizer-js/getting-started) CDN version and have login ready for your site in few seconds. You can also use the ES module version of [`@authorizerdev/authorizer-js`](/authorizer-js/getting-started) or framework-specific versions like [`@authorizerdev/authorizer-react`](/authorizer-react/getting-started)
