@@ -7,7 +7,7 @@
   Authorizer
 </h1>
 
-**Authorizer** is an open-source authentication and authorization solution for your applications. Bring your database and have complete control over the user information. You can self-host authorizer instances and connect to any SQL database.
+**Authorizer** is an open-source authentication and authorization solution for your applications. Bring your database and have complete control over the user information. You can self-host authorizer instances and connect to any database.
 
 ## Table of contents
 
