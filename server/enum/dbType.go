@@ -8,6 +8,7 @@ const (
 	Mysql
 	SQLServer
 	Arangodb
+	Mongodb
 )
 
 func (d DbType) String() string {
@@ -17,5 +18,6 @@ func (d DbType) String() string {
 		"mysql",
 		"sqlserver",
 		"arangodb",
+		"mongodb",
 	}[d]
 }

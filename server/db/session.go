@@ -5,19 +5,20 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"gorm.io/gorm/clause"
 )
 
 type Session struct {
-	Key       string `json:"_key,omitempty"` // for arangodb
-	ObjectID  string `json:"_id,omitempty"`  // for arangodb & mongodb
-	ID        string `gorm:"primaryKey;type:char(36)" json:"id"`
-	UserID    string `gorm:"type:char(36)" json:"user_id"`
-	User      User   `json:"-"`
-	UserAgent string `json:"user_agent"`
-	IP        string `json:"ip"`
-	CreatedAt int64  `gorm:"autoCreateTime" json:"created_at"`
-	UpdatedAt int64  `gorm:"autoUpdateTime" json:"updated_at"`
+	Key       string `json:"_key,omitempty" bson:"_key,omitempty"` // for arangodb
+	ObjectID  string `json:"_id,omitempty" bson:"_id"`             // for arangodb & mongodb
+	ID        string `gorm:"primaryKey;type:char(36)" json:"id" bson:"id"`
+	UserID    string `gorm:"type:char(36)" json:"user_id" bson:"user_id"`
+	User      User   `json:"-" bson:"-"`
+	UserAgent string `json:"user_agent" bson:"user_agent"`
+	IP        string `json:"ip" bson:"ip"`
+	CreatedAt int64  `gorm:"autoCreateTime" json:"created_at" bson:"created_at"`
+	UpdatedAt int64  `gorm:"autoUpdateTime" json:"updated_at" bson:"updated_at"`
 }
 
 // AddSession function to save user sessiosn
@@ -26,16 +27,7 @@ func (mgr *manager) AddSession(session Session) error {
 		session.ID = uuid.New().String()
 	}
 
-	if session.CreatedAt == 0 {
-		session.CreatedAt = time.Now().Unix()
-	}
-
-	if session.UpdatedAt == 0 {
-		session.CreatedAt = time.Now().Unix()
-	}
-
-	if IsSQL {
-		// copy id as value for fields required for mongodb & arangodb
+	if IsORMSupported {
 		session.Key = session.ID
 		session.ObjectID = session.ID
 		res := mgr.sqlDB.Clauses(
@@ -49,11 +41,23 @@ func (mgr *manager) AddSession(session Session) error {
 	}
 
 	if IsArangoDB {
-
 		session.CreatedAt = time.Now().Unix()
 		session.UpdatedAt = time.Now().Unix()
 		sessionCollection, _ := mgr.arangodb.Collection(nil, Collections.Session)
 		_, err := sessionCollection.CreateDocument(nil, session)
+		if err != nil {
+			log.Println(`error saving session`, err)
+			return err
+		}
+	}
+
+	if IsMongoDB {
+		session.Key = session.ID
+		session.ObjectID = session.ID
+		session.CreatedAt = time.Now().Unix()
+		session.UpdatedAt = time.Now().Unix()
+		sessionCollection := mgr.mongodb.Collection(Collections.Session, options.Collection())
+		_, err := sessionCollection.InsertOne(nil, session)
 		if err != nil {
 			log.Println(`error saving session`, err)
 			return err
