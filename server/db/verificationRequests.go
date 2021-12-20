@@ -3,22 +3,25 @@ package db
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/arangodb/go-driver"
 	"github.com/google/uuid"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"gorm.io/gorm/clause"
 )
 
 type VerificationRequest struct {
-	Key        string `json:"_key,omitempty"` // for arangodb
-	ObjectID   string `json:"_id,omitempty"`  // for arangodb & mongodb
-	ID         string `gorm:"primaryKey;type:char(36)" json:"id"`
-	Token      string `gorm:"type:text" json:"token"`
-	Identifier string `gorm:"uniqueIndex:idx_email_identifier" json:"identifier"`
-	ExpiresAt  int64  `json:"expires_at"`
-	CreatedAt  int64  `gorm:"autoCreateTime" json:"created_at"`
-	UpdatedAt  int64  `gorm:"autoUpdateTime" json:"updated_at"`
-	Email      string `gorm:"uniqueIndex:idx_email_identifier" json:"email"`
+	Key        string `json:"_key,omitempty" bson:"_key"` // for arangodb
+	ObjectID   string `json:"_id,omitempty" bson:"_id"`   // for arangodb & mongodb
+	ID         string `gorm:"primaryKey;type:char(36)" json:"id" bson:"id"`
+	Token      string `gorm:"type:text" json:"token" bson:"token"`
+	Identifier string `gorm:"uniqueIndex:idx_email_identifier" json:"identifier" bson:"identifier"`
+	ExpiresAt  int64  `json:"expires_at" bson:"expires_at"`
+	CreatedAt  int64  `gorm:"autoCreateTime" json:"created_at" bson:"created_at"`
+	UpdatedAt  int64  `gorm:"autoUpdateTime" json:"updated_at" bson:"updated_at"`
+	Email      string `gorm:"uniqueIndex:idx_email_identifier" json:"email" bson:"email"`
 }
 
 // AddVerification function to add verification record
@@ -42,14 +45,31 @@ func (mgr *manager) AddVerification(verification VerificationRequest) (Verificat
 	}
 
 	if IsArangoDB {
+		verification.CreatedAt = time.Now().Unix()
+		verification.UpdatedAt = time.Now().Unix()
 		verificationRequestCollection, _ := mgr.arangodb.Collection(nil, Collections.VerificationRequest)
 		meta, err := verificationRequestCollection.CreateDocument(nil, verification)
 		if err != nil {
+			log.Println("error saving verification record:", err)
 			return verification, err
 		}
 		verification.Key = meta.Key
 		verification.ObjectID = meta.ID.String()
 	}
+
+	if IsMongoDB {
+		verification.CreatedAt = time.Now().Unix()
+		verification.UpdatedAt = time.Now().Unix()
+		verification.Key = verification.ID
+		verification.ObjectID = verification.ID
+		verificationRequestCollection := mgr.mongodb.Collection(Collections.VerificationRequest, options.Collection())
+		_, err := verificationRequestCollection.InsertOne(nil, verification)
+		if err != nil {
+			log.Println("error saving verification record:", err)
+			return verification, err
+		}
+	}
+
 	return verification, nil
 }
 
@@ -85,13 +105,31 @@ func (mgr *manager) GetVerificationRequests() ([]VerificationRequest, error) {
 			}
 
 			if meta.Key != "" {
-				verificationRequest.Key = meta.Key
-				verificationRequest.ObjectID = meta.ID.String()
 				verificationRequests = append(verificationRequests, verificationRequest)
 			}
 
 		}
 	}
+
+	if IsMongoDB {
+		verificationRequestCollection := mgr.mongodb.Collection(Collections.VerificationRequest, options.Collection())
+		cursor, err := verificationRequestCollection.Find(nil, bson.M{}, options.Find())
+		if err != nil {
+			log.Println("error getting verification requests:", err)
+			return verificationRequests, err
+		}
+		defer cursor.Close(nil)
+
+		for cursor.Next(nil) {
+			var verificationRequest VerificationRequest
+			err := cursor.Decode(&verificationRequest)
+			if err != nil {
+				return verificationRequests, err
+			}
+			verificationRequests = append(verificationRequests, verificationRequest)
+		}
+	}
+
 	return verificationRequests, nil
 }
 
@@ -130,6 +168,14 @@ func (mgr *manager) GetVerificationByToken(token string) (VerificationRequest, e
 			if err != nil {
 				return verification, err
 			}
+		}
+	}
+
+	if IsMongoDB {
+		verificationRequestCollection := mgr.mongodb.Collection(Collections.VerificationRequest, options.Collection())
+		err := verificationRequestCollection.FindOne(nil, bson.M{"token": token}).Decode(&verification)
+		if err != nil {
+			return verification, err
 		}
 	}
 
@@ -173,6 +219,14 @@ func (mgr *manager) GetVerificationByEmail(email string) (VerificationRequest, e
 		}
 	}
 
+	if IsMongoDB {
+		verificationRequestCollection := mgr.mongodb.Collection(Collections.VerificationRequest, options.Collection())
+		err := verificationRequestCollection.FindOne(nil, bson.M{"email": email}).Decode(&verification)
+		if err != nil {
+			return verification, err
+		}
+	}
+
 	return verification, nil
 }
 
@@ -191,6 +245,15 @@ func (mgr *manager) DeleteVerificationRequest(verificationRequest VerificationRe
 		_, err := collection.RemoveDocument(nil, verificationRequest.Key)
 		if err != nil {
 			log.Println(`error deleting verification request:`, err)
+			return err
+		}
+	}
+
+	if IsMongoDB {
+		verificationRequestCollection := mgr.mongodb.Collection(Collections.VerificationRequest, options.Collection())
+		_, err := verificationRequestCollection.DeleteOne(nil, bson.M{"id": verificationRequest.ID}, options.Delete())
+		if err != nil {
+			log.Println("error deleting verification request::", err)
 			return err
 		}
 	}

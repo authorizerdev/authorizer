@@ -89,7 +89,6 @@ func initArangodb() (arangoDriver.Database, error) {
 		Sparse: true,
 	})
 	verificationRequestCollection.EnsureHashIndex(ctx, []string{"token"}, &arangoDriver.EnsureHashIndexOptions{
-		Unique: true,
 		Sparse: true,
 	})
 

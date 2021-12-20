@@ -1,7 +1,6 @@
 package db
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"time"
@@ -9,23 +8,25 @@ import (
 	"github.com/arangodb/go-driver"
 	arangoDriver "github.com/arangodb/go-driver"
 	"github.com/google/uuid"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"gorm.io/gorm/clause"
 )
 
 type User struct {
-	Key             string `json:"_key,omitempty"` // for arangodb
-	ObjectID        string `json:"_id,omitempty"`  // for arangodb & mongodb
-	ID              string `gorm:"primaryKey;type:char(36)" json:"id"`
-	FirstName       string `json:"first_name"`
-	LastName        string `json:"last_name"`
-	Email           string `gorm:"unique" json:"email"`
-	Password        string `gorm:"type:text" json:"password"`
-	SignupMethod    string `json:"signup_method"`
-	EmailVerifiedAt int64  `json:"email_verified_at"`
-	CreatedAt       int64  `gorm:"autoCreateTime" json:"created_at"`
-	UpdatedAt       int64  `gorm:"autoUpdateTime" json:"updated_at"`
-	Image           string `gorm:"type:text" json:"image"`
-	Roles           string `json:"roles"`
+	Key             string `json:"_key,omitempty" bson:"_key"` // for arangodb
+	ObjectID        string `json:"_id,omitempty" bson:"_id"`   // for arangodb & mongodb
+	ID              string `gorm:"primaryKey;type:char(36)" json:"id" bson:"id"`
+	FirstName       string `json:"first_name" bson:"first_name"`
+	LastName        string `json:"last_name" bson:"last_name"`
+	Email           string `gorm:"unique" json:"email" bson:"email"`
+	Password        string `gorm:"type:text" json:"password" bson:"password"`
+	SignupMethod    string `json:"signup_method" bson:"signup_method"`
+	EmailVerifiedAt int64  `json:"email_verified_at" bson:"email_verified_at"`
+	CreatedAt       int64  `gorm:"autoCreateTime" json:"created_at" bson:"created_at"`
+	UpdatedAt       int64  `gorm:"autoUpdateTime" json:"updated_at" bson:"updated_at"`
+	Image           string `gorm:"type:text" json:"image" bson:"image"`
+	Roles           string `json:"roles" bson:"roles"`
 }
 
 // AddUser function to add user even with email conflict
@@ -53,9 +54,8 @@ func (mgr *manager) AddUser(user User) (User, error) {
 	if IsArangoDB {
 		user.CreatedAt = time.Now().Unix()
 		user.UpdatedAt = time.Now().Unix()
-		ctx := context.Background()
 		userCollection, _ := mgr.arangodb.Collection(nil, Collections.User)
-		meta, err := userCollection.CreateDocument(arangoDriver.WithOverwrite(ctx), user)
+		meta, err := userCollection.CreateDocument(arangoDriver.WithOverwrite(nil), user)
 		if err != nil {
 			log.Println("error adding user:", err)
 			return user, err
@@ -63,6 +63,20 @@ func (mgr *manager) AddUser(user User) (User, error) {
 		user.Key = meta.Key
 		user.ObjectID = meta.ID.String()
 	}
+
+	if IsMongoDB {
+		user.CreatedAt = time.Now().Unix()
+		user.UpdatedAt = time.Now().Unix()
+		user.Key = user.ID
+		user.ObjectID = user.ID
+		userCollection := mgr.mongodb.Collection(Collections.User, options.Collection())
+		_, err := userCollection.InsertOne(nil, user)
+		if err != nil {
+			log.Println("error adding user:", err)
+			return user, err
+		}
+	}
+
 	return user, nil
 }
 
@@ -90,6 +104,16 @@ func (mgr *manager) UpdateUser(user User) (User, error) {
 		user.Key = meta.Key
 		user.ObjectID = meta.ID.String()
 	}
+
+	if IsMongoDB {
+		userCollection := mgr.mongodb.Collection(Collections.User, options.Collection())
+		_, err := userCollection.UpdateOne(nil, bson.M{"id": bson.M{"$eq": user.ID}}, bson.M{"$set": user}, options.MergeUpdateOptions())
+		if err != nil {
+			log.Println("error updating user:", err)
+			return user, err
+		}
+	}
+
 	return user, nil
 }
 
@@ -125,13 +149,30 @@ func (mgr *manager) GetUsers() ([]User, error) {
 			}
 
 			if meta.Key != "" {
-				user.Key = meta.Key
-				user.ObjectID = meta.ID.String()
 				users = append(users, user)
 			}
-
 		}
 	}
+
+	if IsMongoDB {
+		userCollection := mgr.mongodb.Collection(Collections.User, options.Collection())
+		cursor, err := userCollection.Find(nil, bson.M{}, options.Find())
+		if err != nil {
+			log.Println("error getting users:", err)
+			return users, err
+		}
+		defer cursor.Close(nil)
+
+		for cursor.Next(nil) {
+			var user User
+			err := cursor.Decode(&user)
+			if err != nil {
+				return users, err
+			}
+			users = append(users, user)
+		}
+	}
+
 	return users, nil
 }
 
@@ -169,6 +210,14 @@ func (mgr *manager) GetUserByEmail(email string) (User, error) {
 			if err != nil {
 				return user, err
 			}
+		}
+	}
+
+	if IsMongoDB {
+		userCollection := mgr.mongodb.Collection(Collections.User, options.Collection())
+		err := userCollection.FindOne(nil, bson.M{"email": email}).Decode(&user)
+		if err != nil {
+			return user, err
 		}
 	}
 
@@ -212,6 +261,14 @@ func (mgr *manager) GetUserByID(id string) (User, error) {
 		}
 	}
 
+	if IsMongoDB {
+		userCollection := mgr.mongodb.Collection(Collections.User, options.Collection())
+		err := userCollection.FindOne(nil, bson.M{"id": id}).Decode(&user)
+		if err != nil {
+			return user, err
+		}
+	}
+
 	return user, nil
 }
 
@@ -230,6 +287,15 @@ func (mgr *manager) DeleteUser(user User) error {
 		_, err := collection.RemoveDocument(nil, user.Key)
 		if err != nil {
 			log.Println(`error deleting user:`, err)
+			return err
+		}
+	}
+
+	if IsMongoDB {
+		userCollection := mgr.mongodb.Collection(Collections.User, options.Collection())
+		_, err := userCollection.DeleteOne(nil, bson.M{"id": user.ID}, options.Delete())
+		if err != nil {
+			log.Println("error deleting user:", err)
 			return err
 		}
 	}

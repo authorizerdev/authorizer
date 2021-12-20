@@ -56,8 +56,11 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 
 	if existingUser.EmailVerifiedAt > 0 {
 		// email is verified
-		return res, fmt.Errorf(`you have already signed up. Please login`)
+		return res, fmt.Errorf(`%s has already signed up`, params.Email)
+	} else if existingUser.ID != "" && existingUser.EmailVerifiedAt <= 0 {
+		return res, fmt.Errorf("%s has already signed up. please complete the email verification process", params.Email)
 	}
+
 	user := db.User{
 		Email: params.Email,
 	}
