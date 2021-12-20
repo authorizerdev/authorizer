@@ -26,7 +26,7 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
 	}
 	if params.ConfirmPassword != params.Password {
-		return res, fmt.Errorf(`passowrd and confirm password does not match`)
+		return res, fmt.Errorf(`password and confirm password does not match`)
 	}
 
 	params.Email = strings.ToLower(params.Email)
@@ -58,7 +58,7 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 		// email is verified
 		return res, fmt.Errorf(`%s has already signed up`, params.Email)
 	} else if existingUser.ID != "" && existingUser.EmailVerifiedAt <= 0 {
-		return res, fmt.Errorf("%s has already signed up. please complete the email verification process", params.Email)
+		return res, fmt.Errorf("%s has already signed up. please complete the email verification process or reset the password", params.Email)
 	}
 
 	user := db.User{
