@@ -17,7 +17,7 @@ import (
 func MagicLogin(ctx context.Context, params model.MagicLoginInput) (*model.Response, error) {
 	var res *model.Response
 
-	if constants.DISABLE_MAGIC_LOGIN == "true" {
+	if constants.DISABLE_MAGIC_LOGIN {
 		return res, fmt.Errorf(`magic link login is disabled for this instance`)
 	}
 
@@ -98,7 +98,7 @@ func MagicLogin(ctx context.Context, params model.MagicLoginInput) (*model.Respo
 		}
 	}
 
-	if constants.DISABLE_EMAIL_VERIFICATION != "true" {
+	if !constants.DISABLE_EMAIL_VERIFICATION {
 		// insert verification request
 		verificationType := enum.MagicLink.String()
 		token, err := utils.CreateVerificationToken(params.Email, verificationType)

@@ -22,7 +22,7 @@ func Login(ctx context.Context, params model.LoginInput) (*model.AuthResponse, e
 		return res, err
 	}
 
-	if constants.DISABLE_BASIC_AUTHENTICATION == "true" {
+	if constants.DISABLE_BASIC_AUTHENTICATION {
 		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
 	}
 

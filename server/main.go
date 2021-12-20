@@ -6,6 +6,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
+	"github.com/authorizerdev/authorizer/server/env"
 	"github.com/authorizerdev/authorizer/server/handlers"
 	"github.com/authorizerdev/authorizer/server/oauth"
 	"github.com/authorizerdev/authorizer/server/session"
@@ -48,7 +49,7 @@ func CORSMiddleware() gin.HandlerFunc {
 }
 
 func main() {
-	InitEnv()
+	env.InitEnv()
 	db.InitDB()
 	session.InitSession()
 	oauth.InitOAuth()
