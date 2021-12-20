@@ -42,11 +42,12 @@ type CollectionList struct {
 }
 
 var (
-	IsSQL       bool
-	IsArangoDB  bool
-	Mgr         Manager
-	Prefix      = "authorizer_"
-	Collections = CollectionList{
+	IsORMSupported bool
+	IsArangoDB     bool
+	IsMongoDB      bool
+	Mgr            Manager
+	Prefix         = "authorizer_"
+	Collections    = CollectionList{
 		User:                Prefix + "users",
 		VerificationRequest: Prefix + "verification_requests",
 		Session:             Prefix + "sessions",
@@ -57,8 +58,9 @@ func InitDB() {
 	var sqlDB *gorm.DB
 	var err error
 
-	IsSQL = constants.DATABASE_TYPE != enum.Arangodb.String()
+	IsORMSupported = constants.DATABASE_TYPE != enum.Arangodb.String() && constants.DATABASE_TYPE != enum.Mongodb.String()
 	IsArangoDB = constants.DATABASE_TYPE == enum.Arangodb.String()
+	IsMongoDB = constants.DATABASE_TYPE == enum.Arangodb.String()
 
 	// sql db orm config
 	ormConfig := &gorm.Config{
@@ -97,7 +99,7 @@ func InitDB() {
 	}
 
 	// common for all sql dbs that are configured via gorm
-	if IsSQL {
+	if IsORMSupported {
 		if err != nil {
 			log.Fatal("Failed to init sqlDB:", err)
 		} else {

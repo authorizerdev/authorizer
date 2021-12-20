@@ -26,7 +26,7 @@ func (mgr *manager) AddVerification(verification VerificationRequest) (Verificat
 	if verification.ID == "" {
 		verification.ID = uuid.New().String()
 	}
-	if IsSQL {
+	if IsORMSupported {
 		// copy id as value for fields required for mongodb & arangodb
 		verification.Key = verification.ID
 		verification.ObjectID = verification.ID
@@ -57,7 +57,7 @@ func (mgr *manager) AddVerification(verification VerificationRequest) (Verificat
 func (mgr *manager) GetVerificationRequests() ([]VerificationRequest, error) {
 	var verificationRequests []VerificationRequest
 
-	if IsSQL {
+	if IsORMSupported {
 		result := mgr.sqlDB.Find(&verificationRequests)
 		if result.Error != nil {
 			log.Println("error getting verification requests:", result.Error)
@@ -98,7 +98,7 @@ func (mgr *manager) GetVerificationRequests() ([]VerificationRequest, error) {
 func (mgr *manager) GetVerificationByToken(token string) (VerificationRequest, error) {
 	var verification VerificationRequest
 
-	if IsSQL {
+	if IsORMSupported {
 		result := mgr.sqlDB.Where("token = ?", token).First(&verification)
 
 		if result.Error != nil {
@@ -138,7 +138,7 @@ func (mgr *manager) GetVerificationByToken(token string) (VerificationRequest, e
 
 func (mgr *manager) GetVerificationByEmail(email string) (VerificationRequest, error) {
 	var verification VerificationRequest
-	if IsSQL {
+	if IsORMSupported {
 		result := mgr.sqlDB.Where("email = ?", email).First(&verification)
 
 		if result.Error != nil {
@@ -177,7 +177,7 @@ func (mgr *manager) GetVerificationByEmail(email string) (VerificationRequest, e
 }
 
 func (mgr *manager) DeleteVerificationRequest(verificationRequest VerificationRequest) error {
-	if IsSQL {
+	if IsORMSupported {
 		result := mgr.sqlDB.Delete(&verificationRequest)
 
 		if result.Error != nil {

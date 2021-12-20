@@ -34,7 +34,7 @@ func (mgr *manager) AddSession(session Session) error {
 		session.CreatedAt = time.Now().Unix()
 	}
 
-	if IsSQL {
+	if IsORMSupported {
 		// copy id as value for fields required for mongodb & arangodb
 		session.Key = session.ID
 		session.ObjectID = session.ID

@@ -34,7 +34,7 @@ func (mgr *manager) AddUser(user User) (User, error) {
 		user.ID = uuid.New().String()
 	}
 
-	if IsSQL {
+	if IsORMSupported {
 		// copy id as value for fields required for mongodb & arangodb
 		user.Key = user.ID
 		user.ObjectID = user.ID
@@ -70,7 +70,7 @@ func (mgr *manager) AddUser(user User) (User, error) {
 func (mgr *manager) UpdateUser(user User) (User, error) {
 	user.UpdatedAt = time.Now().Unix()
 
-	if IsSQL {
+	if IsORMSupported {
 		result := mgr.sqlDB.Save(&user)
 
 		if result.Error != nil {
@@ -97,7 +97,7 @@ func (mgr *manager) UpdateUser(user User) (User, error) {
 func (mgr *manager) GetUsers() ([]User, error) {
 	var users []User
 
-	if IsSQL {
+	if IsORMSupported {
 		result := mgr.sqlDB.Find(&users)
 		if result.Error != nil {
 			log.Println("error getting users:", result.Error)
@@ -138,7 +138,7 @@ func (mgr *manager) GetUsers() ([]User, error) {
 func (mgr *manager) GetUserByEmail(email string) (User, error) {
 	var user User
 
-	if IsSQL {
+	if IsORMSupported {
 		result := mgr.sqlDB.Where("email = ?", email).First(&user)
 
 		if result.Error != nil {
@@ -178,7 +178,7 @@ func (mgr *manager) GetUserByEmail(email string) (User, error) {
 func (mgr *manager) GetUserByID(id string) (User, error) {
 	var user User
 
-	if IsSQL {
+	if IsORMSupported {
 		result := mgr.sqlDB.Where("id = ?", id).First(&user)
 
 		if result.Error != nil {
@@ -216,7 +216,7 @@ func (mgr *manager) GetUserByID(id string) (User, error) {
 }
 
 func (mgr *manager) DeleteUser(user User) error {
-	if IsSQL {
+	if IsORMSupported {
 		result := mgr.sqlDB.Delete(&user)
 
 		if result.Error != nil {
