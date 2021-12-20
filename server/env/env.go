@@ -1,4 +1,4 @@
-package main
+package env
 
 import (
 	"flag"
@@ -13,7 +13,7 @@ import (
 
 // build variables
 var (
-	Version            string
+	VERSION            string
 	ARG_DB_URL         *string
 	ARG_DB_TYPE        *string
 	ARG_AUTHORIZER_URL *string
@@ -22,7 +22,9 @@ var (
 
 // InitEnv -> to initialize env and through error if required env are not present
 func InitEnv() {
-	envPath := `.env`
+	if constants.ENV_PATH == "" {
+		constants.ENV_PATH = `.env`
+	}
 	ARG_DB_URL = flag.String("database_url", "", "Database connection string")
 	ARG_DB_TYPE = flag.String("database_type", "", "Database type, possible values are postgres,mysql,sqlite")
 	ARG_AUTHORIZER_URL = flag.String("authorizer_url", "", "URL for authorizer instance, eg: https://xyz.herokuapp.com")
@@ -30,15 +32,15 @@ func InitEnv() {
 
 	flag.Parse()
 	if *ARG_ENV_FILE != "" {
-		envPath = *ARG_ENV_FILE
+		constants.ENV_PATH = *ARG_ENV_FILE
 	}
 
-	err := godotenv.Load(envPath)
+	err := godotenv.Load(constants.ENV_PATH)
 	if err != nil {
-		log.Println("error loading .env file")
+		log.Printf("error loading %s file", constants.ENV_PATH)
 	}
 
-	constants.VERSION = Version
+	constants.VERSION = VERSION
 	constants.ADMIN_SECRET = os.Getenv("ADMIN_SECRET")
 	constants.ENV = os.Getenv("ENV")
 	constants.DATABASE_TYPE = os.Getenv("DATABASE_TYPE")
@@ -63,9 +65,9 @@ func InitEnv() {
 	constants.TWITTER_CLIENT_ID = os.Getenv("TWITTER_CLIENT_ID")
 	constants.TWITTER_CLIENT_SECRET = os.Getenv("TWITTER_CLIENT_SECRET")
 	constants.RESET_PASSWORD_URL = strings.TrimPrefix(os.Getenv("RESET_PASSWORD_URL"), "/")
-	constants.DISABLE_BASIC_AUTHENTICATION = os.Getenv("DISABLE_BASIC_AUTHENTICATION")
-	constants.DISABLE_EMAIL_VERIFICATION = os.Getenv("DISABLE_EMAIL_VERIFICATION")
-	constants.DISABLE_MAGIC_LOGIN = os.Getenv("DISABLE_MAGIC_LOGIN")
+	constants.DISABLE_BASIC_AUTHENTICATION = os.Getenv("DISABLE_BASIC_AUTHENTICATION") == "true"
+	constants.DISABLE_EMAIL_VERIFICATION = os.Getenv("DISABLE_EMAIL_VERIFICATION") == "true"
+	constants.DISABLE_MAGIC_LOGIN = os.Getenv("DISABLE_MAGIC_LOGIN") == "true"
 	constants.JWT_ROLE_CLAIM = os.Getenv("JWT_ROLE_CLAIM")
 
 	if constants.ADMIN_SECRET == "" {
@@ -128,21 +130,14 @@ func InitEnv() {
 		constants.COOKIE_NAME = "authorizer"
 	}
 
-	if constants.DISABLE_BASIC_AUTHENTICATION == "" {
-		constants.DISABLE_BASIC_AUTHENTICATION = "false"
-	}
-
-	if constants.DISABLE_MAGIC_LOGIN == "" {
-		constants.DISABLE_MAGIC_LOGIN = "false"
-	}
-
 	if constants.SMTP_HOST == "" || constants.SENDER_EMAIL == "" || constants.SENDER_PASSWORD == "" {
-		constants.DISABLE_EMAIL_VERIFICATION = "true"
-	} else if constants.DISABLE_EMAIL_VERIFICATION == "" {
-		constants.DISABLE_EMAIL_VERIFICATION = "false"
+		constants.DISABLE_EMAIL_VERIFICATION = true
+		constants.DISABLE_MAGIC_LOGIN = true
 	}
 
-	log.Println("email verification disabled:", constants.DISABLE_EMAIL_VERIFICATION)
+	if constants.DISABLE_EMAIL_VERIFICATION {
+		constants.DISABLE_MAGIC_LOGIN = true
+	}
 
 	rolesSplit := strings.Split(os.Getenv("ROLES"), ",")
 	roles := []string{}

@@ -22,7 +22,7 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 		return res, err
 	}
 
-	if constants.DISABLE_BASIC_AUTHENTICATION == "true" {
+	if constants.DISABLE_BASIC_AUTHENTICATION {
 		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
 	}
 	if params.ConfirmPassword != params.Password {
@@ -76,7 +76,7 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 	}
 
 	user.SignupMethod = enum.BasicAuth.String()
-	if constants.DISABLE_EMAIL_VERIFICATION == "true" {
+	if constants.DISABLE_EMAIL_VERIFICATION {
 		user.EmailVerifiedAt = time.Now().Unix()
 	}
 	user, err = db.Mgr.AddUser(user)
@@ -98,7 +98,7 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 		UpdatedAt:       &user.UpdatedAt,
 	}
 
-	if constants.DISABLE_EMAIL_VERIFICATION != "true" {
+	if !constants.DISABLE_EMAIL_VERIFICATION {
 		// insert verification request
 		verificationType := enum.BasicAuthSignup.String()
 		token, err := utils.CreateVerificationToken(params.Email, verificationType)

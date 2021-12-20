@@ -1,6 +1,10 @@
 package utils
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
 
 func TestGetHostName(t *testing.T) {
 	authorizer_url := "http://test.herokuapp.com"
@@ -8,9 +12,7 @@ func TestGetHostName(t *testing.T) {
 	got := GetHostName(authorizer_url)
 	want := "test.herokuapp.com"
 
-	if got != want {
-		t.Errorf("GetHostName Test failed got %s, wanted %s", got, want)
-	}
+	assert.Equal(t, got, want, "hostname should be equal")
 }
 
 func TestGetDomainName(t *testing.T) {
@@ -19,7 +21,5 @@ func TestGetDomainName(t *testing.T) {
 	got := GetDomainName(authorizer_url)
 	want := "herokuapp.com"
 
-	if got != want {
-		t.Errorf("GetHostName Test failed got %q, wanted %q", got, want)
-	}
+	assert.Equal(t, got, want, "domain name should be equal")
 }

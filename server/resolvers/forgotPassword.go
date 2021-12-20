@@ -20,7 +20,7 @@ func ForgotPassword(ctx context.Context, params model.ForgotPasswordInput) (*mod
 	if err != nil {
 		return res, err
 	}
-	if constants.DISABLE_BASIC_AUTHENTICATION == "true" {
+	if constants.DISABLE_BASIC_AUTHENTICATION {
 		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
 	}
 	host := gc.Request.Host

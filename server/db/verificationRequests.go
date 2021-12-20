@@ -120,11 +120,14 @@ func (mgr *manager) GetVerificationByToken(token string) (VerificationRequest, e
 		defer cursor.Close()
 
 		for {
-			_, err := cursor.ReadDocument(nil, &verification)
-
-			if driver.IsNoMoreDocuments(err) {
+			if !cursor.HasMore() {
+				if verification.Key == "" {
+					return verification, fmt.Errorf("verification request not found")
+				}
 				break
-			} else if err != nil {
+			}
+			_, err := cursor.ReadDocument(nil, &verification)
+			if err != nil {
 				return verification, err
 			}
 		}
@@ -157,14 +160,16 @@ func (mgr *manager) GetVerificationByEmail(email string) (VerificationRequest, e
 		defer cursor.Close()
 
 		for {
-			_, err := cursor.ReadDocument(nil, &verification)
-
-			if driver.IsNoMoreDocuments(err) {
+			if !cursor.HasMore() {
+				if verification.Key == "" {
+					return verification, fmt.Errorf("verification request not found")
+				}
 				break
-			} else if err != nil {
+			}
+			_, err := cursor.ReadDocument(nil, &verification)
+			if err != nil {
 				return verification, err
 			}
-
 		}
 	}
 

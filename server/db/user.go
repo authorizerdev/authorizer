@@ -148,7 +148,7 @@ func (mgr *manager) GetUserByEmail(email string) (User, error) {
 	}
 
 	if IsArangoDB {
-		query := fmt.Sprintf("FOR d in %s FILTER d.email == @email LIMIT 1  RETURN d", Collections.User)
+		query := fmt.Sprintf("FOR d in %s FILTER d.email == @email RETURN d", Collections.User)
 		bindVars := map[string]interface{}{
 			"email": email,
 		}
@@ -160,10 +160,14 @@ func (mgr *manager) GetUserByEmail(email string) (User, error) {
 		defer cursor.Close()
 
 		for {
-			_, err := cursor.ReadDocument(nil, &user)
-			if driver.IsNoMoreDocuments(err) {
+			if !cursor.HasMore() {
+				if user.Key == "" {
+					return user, fmt.Errorf("user not found")
+				}
 				break
-			} else if err != nil {
+			}
+			_, err := cursor.ReadDocument(nil, &user)
+			if err != nil {
 				return user, err
 			}
 		}
@@ -201,10 +205,14 @@ func (mgr *manager) GetUserByID(id string) (User, error) {
 		}
 
 		for {
-			_, err := cursor.ReadDocument(nil, &user)
-			if driver.IsNoMoreDocuments(err) {
+			if !cursor.HasMore() {
+				if user.Key == "" {
+					return user, fmt.Errorf("user not found")
+				}
 				break
-			} else if err != nil {
+			}
+			_, err := cursor.ReadDocument(nil, &user)
+			if err != nil {
 				return user, err
 			}
 		}
