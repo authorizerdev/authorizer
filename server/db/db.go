@@ -60,7 +60,7 @@ func InitDB() {
 
 	IsORMSupported = constants.DATABASE_TYPE != enum.Arangodb.String() && constants.DATABASE_TYPE != enum.Mongodb.String()
 	IsArangoDB = constants.DATABASE_TYPE == enum.Arangodb.String()
-	IsMongoDB = constants.DATABASE_TYPE == enum.Arangodb.String()
+	IsMongoDB = constants.DATABASE_TYPE == enum.Mongodb.String()
 
 	// sql db orm config
 	ormConfig := &gorm.Config{
