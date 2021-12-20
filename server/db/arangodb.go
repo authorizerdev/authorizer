@@ -23,7 +23,7 @@ func initArangodb() (arangoDriver.Database, error) {
 		return nil, err
 	}
 
-	client, err := arangoDriver.NewClient(arangoDriver.ClientConfig{
+	arangoClient, err := arangoDriver.NewClient(arangoDriver.ClientConfig{
 		Connection: conn,
 	})
 	if err != nil {
@@ -32,19 +32,19 @@ func initArangodb() (arangoDriver.Database, error) {
 
 	var arangodb driver.Database
 
-	arangodb_exists, err := client.DatabaseExists(nil, constants.DATABASE_NAME)
+	arangodb_exists, err := arangoClient.DatabaseExists(nil, constants.DATABASE_NAME)
 
 	if arangodb_exists {
 		log.Println(constants.DATABASE_NAME + " db exists already")
 
-		arangodb, err = client.Database(nil, constants.DATABASE_NAME)
+		arangodb, err = arangoClient.Database(nil, constants.DATABASE_NAME)
 
 		if err != nil {
 			return nil, err
 		}
 
 	} else {
-		arangodb, err = client.CreateDatabase(nil, constants.DATABASE_NAME, nil)
+		arangodb, err = arangoClient.CreateDatabase(nil, constants.DATABASE_NAME, nil)
 
 		if err != nil {
 			return nil, err

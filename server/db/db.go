@@ -6,6 +6,7 @@ import (
 	arangoDriver "github.com/arangodb/go-driver"
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/enum"
+	"go.mongodb.org/mongo-driver/mongo"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
@@ -32,6 +33,7 @@ type Manager interface {
 type manager struct {
 	sqlDB    *gorm.DB
 	arangodb arangoDriver.Database
+	mongodb  *mongo.Database
 }
 
 // mainly used by nosql dbs
@@ -87,18 +89,30 @@ func InitDB() {
 	case enum.Arangodb.String():
 		arangodb, err := initArangodb()
 		if err != nil {
-			log.Fatal("error initing arangodb:", err)
+			log.Fatal("error initializing arangodb:", err)
 		}
 
 		Mgr = &manager{
 			sqlDB:    nil,
+			mongodb:  nil,
 			arangodb: arangodb,
 		}
 
 		break
+	case enum.Mongodb.String():
+		mongodb, err := initMongodb()
+		if err != nil {
+			log.Fatal("error initializing mongodb connection:", err)
+		}
+
+		Mgr = &manager{
+			sqlDB:    nil,
+			arangodb: nil,
+			mongodb:  mongodb,
+		}
 	}
 
-	// common for all sql dbs that are configured via gorm
+	// common for all sql dbs that are configured via go-orm
 	if IsORMSupported {
 		if err != nil {
 			log.Fatal("Failed to init sqlDB:", err)
@@ -108,6 +122,7 @@ func InitDB() {
 		Mgr = &manager{
 			sqlDB:    sqlDB,
 			arangodb: nil,
+			mongodb:  nil,
 		}
 	}
 }
