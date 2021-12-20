@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -198,11 +197,6 @@ func (mgr *manager) GetUserByID(id string) (User, error) {
 			return user, err
 		}
 		defer cursor.Close()
-
-		count := cursor.Count()
-		if count == 0 {
-			return user, errors.New("user not found")
-		}
 
 		for {
 			if !cursor.HasMore() {
