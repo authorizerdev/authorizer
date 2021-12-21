@@ -87,15 +87,30 @@ func InitEnv() {
 
 	allowedOriginsSplit := strings.Split(os.Getenv("ALLOWED_ORIGINS"), ",")
 	allowedOrigins := []string{}
+	hasWildCard := false
+
 	for _, val := range allowedOriginsSplit {
 		trimVal := strings.TrimSpace(val)
 		if trimVal != "" {
-			allowedOrigins = append(allowedOrigins, trimVal)
+			if trimVal != "*" {
+				host, port := utils.GetHostParts(trimVal)
+				allowedOrigins = append(allowedOrigins, host+":"+port)
+			} else {
+				hasWildCard = true
+				allowedOrigins = append(allowedOrigins, trimVal)
+				break
+			}
 		}
 	}
+
+	if len(allowedOrigins) > 1 && hasWildCard {
+		allowedOrigins = []string{"*"}
+	}
+
 	if len(allowedOrigins) == 0 {
 		allowedOrigins = []string{"*"}
 	}
+
 	constants.ALLOWED_ORIGINS = allowedOrigins
 
 	if *ARG_AUTHORIZER_URL != "" {
