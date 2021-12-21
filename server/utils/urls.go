@@ -5,21 +5,32 @@ import (
 	"strings"
 )
 
-// GetHostName function to get hostname
-func GetHostName(auth_url string) string {
-	u, err := url.Parse(auth_url)
+// GetHostName function returns hostname and port
+func GetHostParts(uri string) (string, string) {
+	tempURI := uri
+	if !strings.HasPrefix(tempURI, "http") && strings.HasPrefix(tempURI, "https") {
+		tempURI = "https://" + tempURI
+	}
+
+	u, err := url.Parse(tempURI)
 	if err != nil {
-		return `localhost`
+		return "localhost", "8080"
 	}
 
 	host := u.Hostname()
+	port := u.Port()
 
-	return host
+	return host, port
 }
 
 // GetDomainName function to get domain name
-func GetDomainName(auth_url string) string {
-	u, err := url.Parse(auth_url)
+func GetDomainName(uri string) string {
+	tempURI := uri
+	if !strings.HasPrefix(tempURI, "http") && strings.HasPrefix(tempURI, "https") {
+		tempURI = "https://" + tempURI
+	}
+
+	u, err := url.Parse(tempURI)
 	if err != nil {
 		return `localhost`
 	}

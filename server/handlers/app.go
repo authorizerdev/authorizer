@@ -49,7 +49,7 @@ func AppHandler() gin.HandlerFunc {
 			stateObj.RedirectURL = strings.TrimSuffix(stateObj.RedirectURL, "/")
 
 			// validate redirect url with allowed origins
-			if !utils.IsValidRedirectURL(stateObj.RedirectURL) {
+			if !utils.IsValidOrigin(stateObj.RedirectURL) {
 				c.JSON(400, gin.H{"error": "invalid redirect url"})
 				return
 			}

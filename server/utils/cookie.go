@@ -10,7 +10,7 @@ import (
 func SetCookie(gc *gin.Context, token string) {
 	secure := true
 	httpOnly := true
-	host := GetHostName(constants.AUTHORIZER_URL)
+	host, _ := GetHostParts(constants.AUTHORIZER_URL)
 	domain := GetDomainName(constants.AUTHORIZER_URL)
 	if domain != "localhost" {
 		domain = "." + domain
@@ -37,7 +37,7 @@ func DeleteCookie(gc *gin.Context) {
 	secure := true
 	httpOnly := true
 
-	host := GetDomainName(constants.AUTHORIZER_URL)
+	host, _ := GetHostParts(constants.AUTHORIZER_URL)
 	domain := GetDomainName(constants.AUTHORIZER_URL)
 	if domain != "localhost" {
 		domain = "." + domain

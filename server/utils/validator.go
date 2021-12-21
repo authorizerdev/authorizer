@@ -2,6 +2,7 @@ package utils
 
 import (
 	"net/mail"
+	"regexp"
 	"strings"
 
 	"github.com/authorizerdev/authorizer/server/constants"
@@ -13,16 +14,32 @@ func IsValidEmail(email string) bool {
 	return err == nil
 }
 
-func IsValidRedirectURL(url string) bool {
+func IsValidOrigin(url string) bool {
 	if len(constants.ALLOWED_ORIGINS) == 1 && constants.ALLOWED_ORIGINS[0] == "*" {
 		return true
 	}
 
 	hasValidURL := false
-	urlDomain := GetDomainName(url)
+	hostName, port := GetHostParts(url)
+	currentOrigin := hostName + ":" + port
 
-	for _, val := range constants.ALLOWED_ORIGINS {
-		if strings.Contains(val, urlDomain) {
+	for _, origin := range constants.ALLOWED_ORIGINS {
+		replacedString := origin
+		// if has regex whitelisted domains
+		if strings.Contains(origin, "*") {
+			replacedString = strings.Replace(origin, ".", "\\.", -1)
+			replacedString = strings.Replace(replacedString, "*", ".*", -1)
+
+			if strings.HasPrefix(replacedString, ".*") {
+				replacedString += "\\b"
+			}
+
+			if strings.HasSuffix(replacedString, ".*") {
+				replacedString = "\\b" + replacedString
+			}
+		}
+
+		if matched, _ := regexp.MatchString(replacedString, currentOrigin); matched {
 			hasValidURL = true
 			break
 		}
