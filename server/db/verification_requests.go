@@ -13,9 +13,9 @@ import (
 )
 
 type VerificationRequest struct {
-	Key        string `json:"_key,omitempty" bson:"_key"` // for arangodb
-	ObjectID   string `json:"_id,omitempty" bson:"_id"`   // for arangodb & mongodb
-	ID         string `gorm:"primaryKey;type:char(36)" json:"id" bson:"id"`
+	Key string `json:"_key,omitempty" bson:"_key"` // for arangodb
+	// ObjectID   string `json:"_id,omitempty" bson:"_id"`   // for arangodb & mongodb
+	ID         string `gorm:"primaryKey;type:char(36)" json:"_id" bson:"_id"`
 	Token      string `gorm:"type:text" json:"token" bson:"token"`
 	Identifier string `gorm:"uniqueIndex:idx_email_identifier" json:"identifier" bson:"identifier"`
 	ExpiresAt  int64  `json:"expires_at" bson:"expires_at"`
@@ -32,7 +32,7 @@ func (mgr *manager) AddVerification(verification VerificationRequest) (Verificat
 	if IsORMSupported {
 		// copy id as value for fields required for mongodb & arangodb
 		verification.Key = verification.ID
-		verification.ObjectID = verification.ID
+		// verification.ObjectID = verification.ID
 		result := mgr.sqlDB.Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "email"}, {Name: "identifier"}},
 			DoUpdates: clause.AssignmentColumns([]string{"token", "expires_at"}),
@@ -54,14 +54,14 @@ func (mgr *manager) AddVerification(verification VerificationRequest) (Verificat
 			return verification, err
 		}
 		verification.Key = meta.Key
-		verification.ObjectID = meta.ID.String()
+		// verification.ObjectID = meta.ID.String()
 	}
 
 	if IsMongoDB {
 		verification.CreatedAt = time.Now().Unix()
 		verification.UpdatedAt = time.Now().Unix()
 		verification.Key = verification.ID
-		verification.ObjectID = verification.ID
+		// verification.ObjectID = verification.ID
 		verificationRequestCollection := mgr.mongodb.Collection(Collections.VerificationRequest, options.Collection())
 		_, err := verificationRequestCollection.InsertOne(nil, verification)
 		if err != nil {

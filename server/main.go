@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/env"
 	"github.com/authorizerdev/authorizer/server/handlers"
@@ -40,5 +41,5 @@ func main() {
 		app.GET("/reset-password", handlers.AppHandler())
 	}
 
-	r.Run()
+	r.Run(":" + constants.PORT)
 }

@@ -14,6 +14,8 @@ import (
 )
 
 func TestCors(t *testing.T) {
+	constants.DATABASE_TYPE = "sqlite"
+	constants.DATABASE_URL = "data.db"
 	constants.ENV_PATH = "../../.env.local"
 	env.InitEnv()
 	r := gin.Default()

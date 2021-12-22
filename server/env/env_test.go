@@ -10,6 +10,8 @@ import (
 
 func TestEnvs(t *testing.T) {
 	constants.ENV_PATH = "../../.env.sample"
+	constants.DATABASE_TYPE = "sqlite"
+	constants.DATABASE_URL = "data.db"
 	InitEnv()
 
 	assert.Equal(t, constants.ADMIN_SECRET, "admin")
@@ -17,7 +19,7 @@ func TestEnvs(t *testing.T) {
 	assert.Equal(t, constants.DATABASE_URL, "data.db")
 	assert.Equal(t, constants.DATABASE_TYPE, enum.Sqlite.String())
 	assert.True(t, constants.DISABLE_EMAIL_VERIFICATION)
-	assert.True(t, constants.DISABLE_MAGIC_LOGIN)
+	assert.True(t, constants.DISABLE_MAGIC_LINK_LOGIN)
 	assert.False(t, constants.DISABLE_BASIC_AUTHENTICATION)
 	assert.Equal(t, constants.JWT_TYPE, "HS256")
 	assert.Equal(t, constants.JWT_SECRET, "random_string")

@@ -14,10 +14,10 @@ import (
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
-func MagicLogin(ctx context.Context, params model.MagicLoginInput) (*model.Response, error) {
+func MagicLinkLogin(ctx context.Context, params model.MagicLinkLoginInput) (*model.Response, error) {
 	var res *model.Response
 
-	if constants.DISABLE_MAGIC_LOGIN {
+	if constants.DISABLE_MAGIC_LINK_LOGIN {
 		return res, fmt.Errorf(`magic link login is disabled for this instance`)
 	}
 
@@ -37,7 +37,7 @@ func MagicLogin(ctx context.Context, params model.MagicLoginInput) (*model.Respo
 	existingUser, err := db.Mgr.GetUserByEmail(params.Email)
 
 	if err != nil {
-		user.SignupMethod = enum.MagicLink.String()
+		user.SignupMethods = enum.MagicLink.String()
 		// define roles for new user
 		if len(params.Roles) > 0 {
 			// check if roles exists
@@ -86,12 +86,12 @@ func MagicLogin(ctx context.Context, params model.MagicLoginInput) (*model.Respo
 			user.Roles = existingUser.Roles
 		}
 
-		signupMethod := existingUser.SignupMethod
+		signupMethod := existingUser.SignupMethods
 		if !strings.Contains(signupMethod, enum.MagicLink.String()) {
 			signupMethod = signupMethod + "," + enum.MagicLink.String()
 		}
 
-		user.SignupMethod = signupMethod
+		user.SignupMethods = signupMethod
 		user, _ = db.Mgr.UpdateUser(user)
 		if err != nil {
 			log.Println("error updating user:", err)

@@ -46,6 +46,12 @@ func initMongodb() (*mongo.Database, error) {
 			Options: options.Index().SetUnique(true).SetSparse(true),
 		},
 	}, options.CreateIndexes())
+	userCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		mongo.IndexModel{
+			Keys:    bson.M{"phone_number": 1},
+			Options: options.Index().SetUnique(true).SetSparse(true),
+		},
+	}, options.CreateIndexes())
 
 	mongodb.CreateCollection(ctx, Collections.VerificationRequest, options.CreateCollection())
 	verificationRequestCollection := mongodb.Collection(Collections.VerificationRequest, options.Collection())

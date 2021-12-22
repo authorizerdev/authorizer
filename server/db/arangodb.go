@@ -61,11 +61,11 @@ func initArangodb() (arangoDriver.Database, error) {
 		}
 	}
 	userCollection, _ := arangodb.Collection(nil, Collections.User)
-	userCollection.EnsureHashIndex(ctx, []string{"id"}, &arangoDriver.EnsureHashIndexOptions{
+	userCollection.EnsureHashIndex(ctx, []string{"email"}, &arangoDriver.EnsureHashIndexOptions{
 		Unique: true,
 		Sparse: true,
 	})
-	userCollection.EnsureHashIndex(ctx, []string{"email"}, &arangoDriver.EnsureHashIndexOptions{
+	userCollection.EnsureHashIndex(ctx, []string{"phone_number"}, &arangoDriver.EnsureHashIndexOptions{
 		Unique: true,
 		Sparse: true,
 	})
@@ -79,11 +79,8 @@ func initArangodb() (arangoDriver.Database, error) {
 			log.Println("error creating collection("+Collections.VerificationRequest+"):", err)
 		}
 	}
+
 	verificationRequestCollection, _ := arangodb.Collection(nil, Collections.VerificationRequest)
-	verificationRequestCollection.EnsureHashIndex(ctx, []string{"id"}, &arangoDriver.EnsureHashIndexOptions{
-		Unique: true,
-		Sparse: true,
-	})
 	verificationRequestCollection.EnsureHashIndex(ctx, []string{"email", "identifier"}, &arangoDriver.EnsureHashIndexOptions{
 		Unique: true,
 		Sparse: true,
@@ -101,12 +98,6 @@ func initArangodb() (arangoDriver.Database, error) {
 			log.Println("error creating collection("+Collections.Session+"):", err)
 		}
 	}
-
-	sessionCollection, _ := arangodb.Collection(nil, Collections.Session)
-	sessionCollection.EnsureHashIndex(ctx, []string{"id"}, &arangoDriver.EnsureHashIndexOptions{
-		Unique: true,
-		Sparse: true,
-	})
 
 	return arangodb, err
 }
