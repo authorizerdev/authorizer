@@ -70,15 +70,39 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 	password, _ := utils.HashPassword(params.Password)
 	user.Password = password
 
-	if params.FirstName != nil {
-		user.FirstName = *params.FirstName
+	if params.GivenName != nil {
+		user.GivenName = *params.GivenName
 	}
 
-	if params.LastName != nil {
-		user.LastName = *params.LastName
+	if params.FamilyName != nil {
+		user.FamilyName = *params.FamilyName
 	}
 
-	user.SignupMethod = enum.BasicAuth.String()
+	if params.MiddleName != nil {
+		user.MiddleName = *params.MiddleName
+	}
+
+	if params.Nickname != nil {
+		user.Nickname = *params.Nickname
+	}
+
+	if params.Gender != nil {
+		user.Gender = *params.Gender
+	}
+
+	if params.Birthdate != nil {
+		user.Birthdate = *params.Birthdate
+	}
+
+	if params.PhoneNumber != nil {
+		user.PhoneNumber = *params.PhoneNumber
+	}
+
+	if params.Picture != nil {
+		user.Picture = *params.Picture
+	}
+
+	user.SignupMethods = enum.BasicAuth.String()
 	if constants.DISABLE_EMAIL_VERIFICATION {
 		user.EmailVerifiedAt = time.Now().Unix()
 	}
@@ -88,18 +112,7 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 	}
 	userIdStr := fmt.Sprintf("%v", user.ID)
 	roles := strings.Split(user.Roles, ",")
-	userToReturn := &model.User{
-		ID:              userIdStr,
-		Email:           user.Email,
-		Image:           &user.Image,
-		FirstName:       &user.FirstName,
-		LastName:        &user.LastName,
-		SignupMethod:    user.SignupMethod,
-		EmailVerifiedAt: &user.EmailVerifiedAt,
-		Roles:           strings.Split(user.Roles, ","),
-		CreatedAt:       &user.CreatedAt,
-		UpdatedAt:       &user.UpdatedAt,
-	}
+	userToReturn := utils.GetResUser(user)
 
 	if !constants.DISABLE_EMAIL_VERIFICATION {
 		// insert verification request
@@ -141,10 +154,10 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 			db.Mgr.AddSession(sessionData)
 		}()
 		res = &model.AuthResponse{
-			Message:              `Signed up successfully.`,
-			AccessToken:          &accessToken,
-			AccessTokenExpiresAt: &expiresAt,
-			User:                 userToReturn,
+			Message:     `Signed up successfully.`,
+			AccessToken: &accessToken,
+			ExpiresAt:   &expiresAt,
+			User:        userToReturn,
 		}
 
 		utils.SetCookie(gc, accessToken)

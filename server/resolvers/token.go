@@ -3,7 +3,6 @@ package resolvers
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/constants"
@@ -80,21 +79,10 @@ func Token(ctx context.Context, roles []string) (*model.AuthResponse, error) {
 
 	utils.SetCookie(gc, token)
 	res = &model.AuthResponse{
-		Message:              `Token verified`,
-		AccessToken:          &token,
-		AccessTokenExpiresAt: &expiresAt,
-		User: &model.User{
-			ID:              userIdStr,
-			Email:           user.Email,
-			Image:           &user.Image,
-			FirstName:       &user.FirstName,
-			LastName:        &user.LastName,
-			Roles:           strings.Split(user.Roles, ","),
-			CreatedAt:       &user.CreatedAt,
-			UpdatedAt:       &user.UpdatedAt,
-			SignupMethod:    user.SignupMethod,
-			EmailVerifiedAt: &user.EmailVerifiedAt,
-		},
+		Message:     `Token verified`,
+		AccessToken: &token,
+		ExpiresAt:   &expiresAt,
+		User:        utils.GetResUser(user),
 	}
 	return res, nil
 }

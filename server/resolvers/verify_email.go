@@ -60,21 +60,10 @@ func VerifyEmail(ctx context.Context, params model.VerifyEmailInput) (*model.Aut
 	}()
 
 	res = &model.AuthResponse{
-		Message:              `Email verified successfully.`,
-		AccessToken:          &accessToken,
-		AccessTokenExpiresAt: &expiresAt,
-		User: &model.User{
-			ID:              userIdStr,
-			Email:           user.Email,
-			Image:           &user.Image,
-			FirstName:       &user.FirstName,
-			LastName:        &user.LastName,
-			SignupMethod:    user.SignupMethod,
-			EmailVerifiedAt: &user.EmailVerifiedAt,
-			Roles:           strings.Split(user.Roles, ","),
-			CreatedAt:       &user.CreatedAt,
-			UpdatedAt:       &user.UpdatedAt,
-		},
+		Message:     `Email verified successfully.`,
+		AccessToken: &accessToken,
+		ExpiresAt:   &expiresAt,
+		User:        utils.GetResUser(user),
 	}
 
 	utils.SetCookie(gc, accessToken)

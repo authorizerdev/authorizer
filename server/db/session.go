@@ -10,9 +10,9 @@ import (
 )
 
 type Session struct {
-	Key       string `json:"_key,omitempty" bson:"_key,omitempty"` // for arangodb
-	ObjectID  string `json:"_id,omitempty" bson:"_id"`             // for arangodb & mongodb
-	ID        string `gorm:"primaryKey;type:char(36)" json:"id" bson:"id"`
+	Key string `json:"_key,omitempty" bson:"_key,omitempty"` // for arangodb
+	// ObjectID  string `json:"_id,omitempty" bson:"_id"`             // for arangodb & mongodb
+	ID        string `gorm:"primaryKey;type:char(36)" json:"_id" bson:"_id"`
 	UserID    string `gorm:"type:char(36)" json:"user_id" bson:"user_id"`
 	User      User   `json:"-" bson:"-"`
 	UserAgent string `json:"user_agent" bson:"user_agent"`
@@ -29,7 +29,7 @@ func (mgr *manager) AddSession(session Session) error {
 
 	if IsORMSupported {
 		session.Key = session.ID
-		session.ObjectID = session.ID
+		// session.ObjectID = session.ID
 		res := mgr.sqlDB.Clauses(
 			clause.OnConflict{
 				DoNothing: true,
@@ -53,7 +53,7 @@ func (mgr *manager) AddSession(session Session) error {
 
 	if IsMongoDB {
 		session.Key = session.ID
-		session.ObjectID = session.ID
+		// session.ObjectID = session.ID
 		session.CreatedAt = time.Now().Unix()
 		session.UpdatedAt = time.Now().Unix()
 		sessionCollection := mgr.mongodb.Collection(Collections.Session, options.Collection())

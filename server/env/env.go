@@ -41,48 +41,149 @@ func InitEnv() {
 	}
 
 	constants.VERSION = VERSION
-	constants.ADMIN_SECRET = os.Getenv("ADMIN_SECRET")
-	constants.ENV = os.Getenv("ENV")
-	constants.DATABASE_TYPE = os.Getenv("DATABASE_TYPE")
-	constants.DATABASE_URL = os.Getenv("DATABASE_URL")
-	constants.DATABASE_NAME = os.Getenv("DATABASE_NAME")
-	constants.SMTP_HOST = os.Getenv("SMTP_HOST")
-	constants.SMTP_PORT = os.Getenv("SMTP_PORT")
-	constants.SENDER_EMAIL = os.Getenv("SENDER_EMAIL")
-	constants.SENDER_PASSWORD = os.Getenv("SENDER_PASSWORD")
-	constants.JWT_SECRET = os.Getenv("JWT_SECRET")
-	constants.JWT_TYPE = os.Getenv("JWT_TYPE")
-	constants.AUTHORIZER_URL = strings.TrimSuffix(os.Getenv("AUTHORIZER_URL"), "/")
-	constants.PORT = os.Getenv("PORT")
-	constants.REDIS_URL = os.Getenv("REDIS_URL")
-	constants.COOKIE_NAME = os.Getenv("COOKIE_NAME")
-	constants.GOOGLE_CLIENT_ID = os.Getenv("GOOGLE_CLIENT_ID")
-	constants.GOOGLE_CLIENT_SECRET = os.Getenv("GOOGLE_CLIENT_SECRET")
-	constants.GITHUB_CLIENT_ID = os.Getenv("GITHUB_CLIENT_ID")
-	constants.GITHUB_CLIENT_SECRET = os.Getenv("GITHUB_CLIENT_SECRET")
-	constants.FACEBOOK_CLIENT_ID = os.Getenv("FACEBOOK_CLIENT_ID")
-	constants.FACEBOOK_CLIENT_SECRET = os.Getenv("FACEBOOK_CLIENT_SECRET")
-	constants.TWITTER_CLIENT_ID = os.Getenv("TWITTER_CLIENT_ID")
-	constants.TWITTER_CLIENT_SECRET = os.Getenv("TWITTER_CLIENT_SECRET")
-	constants.RESET_PASSWORD_URL = strings.TrimPrefix(os.Getenv("RESET_PASSWORD_URL"), "/")
-	constants.DISABLE_BASIC_AUTHENTICATION = os.Getenv("DISABLE_BASIC_AUTHENTICATION") == "true"
-	constants.DISABLE_EMAIL_VERIFICATION = os.Getenv("DISABLE_EMAIL_VERIFICATION") == "true"
-	constants.DISABLE_MAGIC_LOGIN = os.Getenv("DISABLE_MAGIC_LOGIN") == "true"
-	constants.JWT_ROLE_CLAIM = os.Getenv("JWT_ROLE_CLAIM")
 
 	if constants.ADMIN_SECRET == "" {
-		panic("root admin secret is required")
+		constants.ADMIN_SECRET = os.Getenv("ADMIN_SECRET")
+		if constants.ADMIN_SECRET == "" {
+			panic("root admin secret is required")
+		}
 	}
 
 	if constants.ENV == "" {
-		constants.ENV = "production"
+		constants.ENV = os.Getenv("ENV")
+		if constants.ENV == "" {
+			constants.ENV = "production"
+		}
+
+		if constants.ENV == "production" {
+			constants.IS_PROD = true
+			os.Setenv("GIN_MODE", "release")
+		} else {
+			constants.IS_PROD = false
+		}
 	}
 
-	if constants.ENV == "production" {
-		constants.IS_PROD = true
-		os.Setenv("GIN_MODE", "release")
-	} else {
-		constants.IS_PROD = false
+	if constants.DATABASE_TYPE == "" {
+		constants.DATABASE_TYPE = os.Getenv("DATABASE_TYPE")
+
+		if *ARG_DB_TYPE != "" {
+			constants.DATABASE_TYPE = *ARG_DB_TYPE
+		}
+
+		if constants.DATABASE_TYPE == "" {
+			panic("DATABASE_TYPE is required")
+		}
+	}
+
+	if constants.DATABASE_URL == "" {
+		constants.DATABASE_URL = os.Getenv("DATABASE_URL")
+
+		if *ARG_DB_URL != "" {
+			constants.DATABASE_URL = *ARG_DB_URL
+		}
+
+		if constants.DATABASE_URL == "" {
+			panic("DATABASE_URL is required")
+		}
+	}
+
+	if constants.DATABASE_NAME == "" {
+		constants.DATABASE_NAME = os.Getenv("DATABASE_NAME")
+		if constants.DATABASE_NAME == "" {
+			constants.DATABASE_NAME = "authorizer"
+		}
+	}
+
+	if constants.SMTP_HOST == "" {
+		constants.SMTP_HOST = os.Getenv("SMTP_HOST")
+	}
+
+	if constants.SMTP_PORT == "" {
+		constants.SMTP_PORT = os.Getenv("SMTP_PORT")
+	}
+
+	if constants.SENDER_EMAIL == "" {
+		constants.SENDER_EMAIL = os.Getenv("SENDER_EMAIL")
+	}
+
+	if constants.SENDER_PASSWORD == "" {
+		constants.SENDER_PASSWORD = os.Getenv("SENDER_PASSWORD")
+	}
+
+	if constants.JWT_SECRET == "" {
+		constants.JWT_SECRET = os.Getenv("JWT_SECRET")
+	}
+
+	if constants.JWT_TYPE == "" {
+		constants.JWT_TYPE = os.Getenv("JWT_TYPE")
+	}
+
+	if constants.JWT_ROLE_CLAIM == "" {
+		constants.JWT_ROLE_CLAIM = os.Getenv("JWT_ROLE_CLAIM")
+
+		if constants.JWT_ROLE_CLAIM == "" {
+			constants.JWT_ROLE_CLAIM = "role"
+		}
+	}
+
+	if constants.AUTHORIZER_URL == "" {
+		constants.AUTHORIZER_URL = strings.TrimSuffix(os.Getenv("AUTHORIZER_URL"), "/")
+
+		if *ARG_AUTHORIZER_URL != "" {
+			constants.AUTHORIZER_URL = *ARG_AUTHORIZER_URL
+		}
+	}
+
+	if constants.PORT == "" {
+		constants.PORT = os.Getenv("PORT")
+		if constants.PORT == "" {
+			constants.PORT = "8080"
+		}
+	}
+
+	if constants.REDIS_URL == "" {
+		constants.REDIS_URL = os.Getenv("REDIS_URL")
+	}
+
+	if constants.COOKIE_NAME == "" {
+		constants.COOKIE_NAME = os.Getenv("COOKIE_NAME")
+	}
+
+	if constants.GOOGLE_CLIENT_ID == "" {
+		constants.GOOGLE_CLIENT_ID = os.Getenv("GOOGLE_CLIENT_ID")
+	}
+
+	if constants.GOOGLE_CLIENT_SECRET == "" {
+		constants.GOOGLE_CLIENT_SECRET = os.Getenv("GOOGLE_CLIENT_SECRET")
+	}
+
+	if constants.GITHUB_CLIENT_ID == "" {
+		constants.GITHUB_CLIENT_ID = os.Getenv("GITHUB_CLIENT_ID")
+	}
+
+	if constants.GITHUB_CLIENT_SECRET == "" {
+		constants.GITHUB_CLIENT_SECRET = os.Getenv("GITHUB_CLIENT_SECRET")
+	}
+
+	if constants.FACEBOOK_CLIENT_ID == "" {
+		constants.FACEBOOK_CLIENT_ID = os.Getenv("FACEBOOK_CLIENT_ID")
+	}
+
+	if constants.FACEBOOK_CLIENT_SECRET == "" {
+		constants.FACEBOOK_CLIENT_SECRET = os.Getenv("FACEBOOK_CLIENT_SECRET")
+	}
+
+	if constants.RESET_PASSWORD_URL == "" {
+		constants.RESET_PASSWORD_URL = strings.TrimPrefix(os.Getenv("RESET_PASSWORD_URL"), "/")
+	}
+
+	constants.DISABLE_BASIC_AUTHENTICATION = os.Getenv("DISABLE_BASIC_AUTHENTICATION") == "true"
+	constants.DISABLE_EMAIL_VERIFICATION = os.Getenv("DISABLE_EMAIL_VERIFICATION") == "true"
+	constants.DISABLE_MAGIC_LINK_LOGIN = os.Getenv("DISABLE_MAGIC_LINK_LOGIN") == "true"
+
+	if constants.SMTP_HOST == "" || constants.SENDER_EMAIL == "" || constants.SENDER_PASSWORD == "" {
+		constants.DISABLE_EMAIL_VERIFICATION = true
+		constants.DISABLE_MAGIC_LINK_LOGIN = true
 	}
 
 	allowedOriginsSplit := strings.Split(os.Getenv("ALLOWED_ORIGINS"), ",")
@@ -113,30 +214,6 @@ func InitEnv() {
 
 	constants.ALLOWED_ORIGINS = allowedOrigins
 
-	if *ARG_AUTHORIZER_URL != "" {
-		constants.AUTHORIZER_URL = *ARG_AUTHORIZER_URL
-	}
-
-	if *ARG_DB_URL != "" {
-		constants.DATABASE_URL = *ARG_DB_URL
-	}
-
-	if *ARG_DB_TYPE != "" {
-		constants.DATABASE_TYPE = *ARG_DB_TYPE
-	}
-
-	if constants.DATABASE_URL == "" {
-		panic("Database url is required")
-	}
-
-	if constants.DATABASE_TYPE == "" {
-		panic("Database type is required")
-	}
-
-	if constants.DATABASE_NAME == "" {
-		constants.DATABASE_NAME = "authorizer"
-	}
-
 	if constants.JWT_TYPE == "" {
 		constants.JWT_TYPE = "HS256"
 	}
@@ -145,13 +222,8 @@ func InitEnv() {
 		constants.COOKIE_NAME = "authorizer"
 	}
 
-	if constants.SMTP_HOST == "" || constants.SENDER_EMAIL == "" || constants.SENDER_PASSWORD == "" {
-		constants.DISABLE_EMAIL_VERIFICATION = true
-		constants.DISABLE_MAGIC_LOGIN = true
-	}
-
 	if constants.DISABLE_EMAIL_VERIFICATION {
-		constants.DISABLE_MAGIC_LOGIN = true
+		constants.DISABLE_MAGIC_LINK_LOGIN = true
 	}
 
 	rolesSplit := strings.Split(os.Getenv("ROLES"), ",")
@@ -195,10 +267,6 @@ func InitEnv() {
 	constants.ROLES = roles
 	constants.DEFAULT_ROLES = defaultRoles
 	constants.PROTECTED_ROLES = protectedRoles
-
-	if constants.JWT_ROLE_CLAIM == "" {
-		constants.JWT_ROLE_CLAIM = "role"
-	}
 
 	if os.Getenv("ORGANIZATION_NAME") != "" {
 		constants.ORGANIZATION_NAME = os.Getenv("ORGANIZATION_NAME")

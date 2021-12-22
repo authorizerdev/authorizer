@@ -1,5 +1,19 @@
 # Task List
 
+## Open ID compatible claims and schema
+
+- [x] Rename `schema.graphqls` and re generate schema
+- [x] Rename to snake case [files + schema]
+- [x] Refactor db models
+- [x] Check extra data in oauth profile and save accordingly
+- [x] Update all the resolver to make them compatible with schema changes
+- [x] Update JWT claims
+- [] Write integration tests for all resolvers
+- [] Update doc
+  - [] Rename all schemas + vars
+- [] Update JS lib
+- [] Update react lib
+
 ## Feature Multiple sessions
 
 - Multiple sessions for users to login use hMset from redis for this

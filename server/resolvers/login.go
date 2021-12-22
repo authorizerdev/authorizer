@@ -32,7 +32,7 @@ func Login(ctx context.Context, params model.LoginInput) (*model.AuthResponse, e
 		return res, fmt.Errorf(`user with this email not found`)
 	}
 
-	if !strings.Contains(user.SignupMethod, enum.BasicAuth.String()) {
+	if !strings.Contains(user.SignupMethods, enum.BasicAuth.String()) {
 		return res, fmt.Errorf(`user has not signed up email & password`)
 	}
 
@@ -55,12 +55,11 @@ func Login(ctx context.Context, params model.LoginInput) (*model.AuthResponse, e
 
 		roles = params.Roles
 	}
-	userIdStr := fmt.Sprintf("%v", user.ID)
 	refreshToken, _, _ := utils.CreateAuthToken(user, enum.RefreshToken, roles)
 
 	accessToken, expiresAt, _ := utils.CreateAuthToken(user, enum.AccessToken, roles)
 
-	session.SetToken(userIdStr, accessToken, refreshToken)
+	session.SetToken(user.ID, accessToken, refreshToken)
 	go func() {
 		sessionData := db.Session{
 			UserID:    user.ID,
@@ -72,21 +71,10 @@ func Login(ctx context.Context, params model.LoginInput) (*model.AuthResponse, e
 	}()
 
 	res = &model.AuthResponse{
-		Message:              `Logged in successfully`,
-		AccessToken:          &accessToken,
-		AccessTokenExpiresAt: &expiresAt,
-		User: &model.User{
-			ID:              userIdStr,
-			Email:           user.Email,
-			Image:           &user.Image,
-			FirstName:       &user.FirstName,
-			LastName:        &user.LastName,
-			SignupMethod:    user.SignupMethod,
-			EmailVerifiedAt: &user.EmailVerifiedAt,
-			Roles:           strings.Split(user.Roles, ","),
-			CreatedAt:       &user.CreatedAt,
-			UpdatedAt:       &user.UpdatedAt,
-		},
+		Message:     `Logged in successfully`,
+		AccessToken: &accessToken,
+		ExpiresAt:   &expiresAt,
+		User:        utils.GetResUser(user),
 	}
 
 	utils.SetCookie(gc, accessToken)

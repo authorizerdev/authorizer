@@ -1,5 +1,6 @@
 package constants
 
+// this constants are configured via env
 var (
 	ADMIN_SECRET                 = ""
 	ENV                          = ""
@@ -17,14 +18,14 @@ var (
 	ALLOWED_ORIGINS              = []string{}
 	AUTHORIZER_URL               = ""
 	APP_URL                      = ""
-	PORT                         = "8080"
+	PORT                         = ""
 	REDIS_URL                    = ""
 	IS_PROD                      = false
 	COOKIE_NAME                  = ""
 	RESET_PASSWORD_URL           = ""
 	DISABLE_EMAIL_VERIFICATION   = false
 	DISABLE_BASIC_AUTHENTICATION = false
-	DISABLE_MAGIC_LOGIN          = false
+	DISABLE_MAGIC_LINK_LOGIN     = false
 
 	// ROLES
 	ROLES           = []string{}

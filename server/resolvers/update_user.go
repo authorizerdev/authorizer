@@ -15,7 +15,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
-func AdminUpdateUser(ctx context.Context, params model.AdminUpdateUserInput) (*model.User, error) {
+func UpdateUser(ctx context.Context, params model.UpdateUserInput) (*model.User, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	var res *model.User
 	if err != nil {
@@ -26,7 +26,7 @@ func AdminUpdateUser(ctx context.Context, params model.AdminUpdateUserInput) (*m
 		return res, fmt.Errorf("unauthorized")
 	}
 
-	if params.FirstName == nil && params.LastName == nil && params.Image == nil && params.Email == nil && params.Roles == nil {
+	if params.GivenName == nil && params.FamilyName == nil && params.Picture == nil && params.MiddleName == nil && params.Nickname == nil && params.Email == nil && params.Birthdate == nil && params.Gender == nil && params.PhoneNumber == nil && params.Roles == nil {
 		return res, fmt.Errorf("please enter atleast one param to update")
 	}
 
@@ -35,16 +35,36 @@ func AdminUpdateUser(ctx context.Context, params model.AdminUpdateUserInput) (*m
 		return res, fmt.Errorf(`User not found`)
 	}
 
-	if params.FirstName != nil && user.FirstName != *params.FirstName {
-		user.FirstName = *params.FirstName
+	if params.GivenName != nil && user.GivenName != *params.GivenName {
+		user.GivenName = *params.GivenName
 	}
 
-	if params.LastName != nil && user.LastName != *params.LastName {
-		user.LastName = *params.LastName
+	if params.FamilyName != nil && user.FamilyName != *params.FamilyName {
+		user.FamilyName = *params.FamilyName
 	}
 
-	if params.Image != nil && user.Image != *params.Image {
-		user.Image = *params.Image
+	if params.MiddleName != nil && user.MiddleName != *params.MiddleName {
+		user.MiddleName = *params.MiddleName
+	}
+
+	if params.Nickname != nil && user.Nickname != *params.Nickname {
+		user.Nickname = *params.Nickname
+	}
+
+	if params.Birthdate != nil && user.Birthdate != *params.Birthdate {
+		user.Birthdate = *params.Birthdate
+	}
+
+	if params.Gender != nil && user.Gender != *params.Gender {
+		user.Gender = *params.Gender
+	}
+
+	if params.PhoneNumber != nil && user.PhoneNumber != *params.PhoneNumber {
+		user.PhoneNumber = *params.PhoneNumber
+	}
+
+	if params.Picture != nil && user.Picture != *params.Picture {
+		user.Picture = *params.Picture
 	}
 
 	if params.Email != nil && user.Email != *params.Email {
@@ -115,14 +135,14 @@ func AdminUpdateUser(ctx context.Context, params model.AdminUpdateUserInput) (*m
 	}
 
 	res = &model.User{
-		ID:        params.ID,
-		Email:     user.Email,
-		Image:     &user.Image,
-		FirstName: &user.FirstName,
-		LastName:  &user.LastName,
-		Roles:     strings.Split(user.Roles, ","),
-		CreatedAt: &user.CreatedAt,
-		UpdatedAt: &user.UpdatedAt,
+		ID:         params.ID,
+		Email:      user.Email,
+		Picture:    &user.Picture,
+		GivenName:  &user.GivenName,
+		FamilyName: &user.FamilyName,
+		Roles:      strings.Split(user.Roles, ","),
+		CreatedAt:  &user.CreatedAt,
+		UpdatedAt:  &user.UpdatedAt,
 	}
 	return res, nil
 }
