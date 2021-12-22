@@ -35,36 +35,36 @@ func UpdateUser(ctx context.Context, params model.UpdateUserInput) (*model.User,
 		return res, fmt.Errorf(`User not found`)
 	}
 
-	if params.GivenName != nil && user.GivenName != *params.GivenName {
-		user.GivenName = *params.GivenName
+	if params.GivenName != nil && user.GivenName != params.GivenName {
+		user.GivenName = params.GivenName
 	}
 
-	if params.FamilyName != nil && user.FamilyName != *params.FamilyName {
-		user.FamilyName = *params.FamilyName
+	if params.FamilyName != nil && user.FamilyName != params.FamilyName {
+		user.FamilyName = params.FamilyName
 	}
 
-	if params.MiddleName != nil && user.MiddleName != *params.MiddleName {
-		user.MiddleName = *params.MiddleName
+	if params.MiddleName != nil && user.MiddleName != params.MiddleName {
+		user.MiddleName = params.MiddleName
 	}
 
-	if params.Nickname != nil && user.Nickname != *params.Nickname {
-		user.Nickname = *params.Nickname
+	if params.Nickname != nil && user.Nickname != params.Nickname {
+		user.Nickname = params.Nickname
 	}
 
-	if params.Birthdate != nil && user.Birthdate != *params.Birthdate {
-		user.Birthdate = *params.Birthdate
+	if params.Birthdate != nil && user.Birthdate != params.Birthdate {
+		user.Birthdate = params.Birthdate
 	}
 
-	if params.Gender != nil && user.Gender != *params.Gender {
-		user.Gender = *params.Gender
+	if params.Gender != nil && user.Gender != params.Gender {
+		user.Gender = params.Gender
 	}
 
-	if params.PhoneNumber != nil && user.PhoneNumber != *params.PhoneNumber {
-		user.PhoneNumber = *params.PhoneNumber
+	if params.PhoneNumber != nil && user.PhoneNumber != params.PhoneNumber {
+		user.PhoneNumber = params.PhoneNumber
 	}
 
-	if params.Picture != nil && user.Picture != *params.Picture {
-		user.Picture = *params.Picture
+	if params.Picture != nil && user.Picture != params.Picture {
+		user.Picture = params.Picture
 	}
 
 	if params.Email != nil && user.Email != *params.Email {
@@ -137,9 +137,9 @@ func UpdateUser(ctx context.Context, params model.UpdateUserInput) (*model.User,
 	res = &model.User{
 		ID:         params.ID,
 		Email:      user.Email,
-		Picture:    &user.Picture,
-		GivenName:  &user.GivenName,
-		FamilyName: &user.FamilyName,
+		Picture:    user.Picture,
+		GivenName:  user.GivenName,
+		FamilyName: user.FamilyName,
 		Roles:      strings.Split(user.Roles, ","),
 		CreatedAt:  &user.CreatedAt,
 		UpdatedAt:  &user.UpdatedAt,

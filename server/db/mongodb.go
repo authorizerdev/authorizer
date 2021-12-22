@@ -36,31 +36,21 @@ func initMongodb() (*mongo.Database, error) {
 	userCollection := mongodb.Collection(Collections.User, options.Collection())
 	userCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		mongo.IndexModel{
-			Keys:    bson.M{"id": 1},
-			Options: options.Index().SetUnique(true).SetSparse(true),
-		},
-	}, options.CreateIndexes())
-	userCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
-		mongo.IndexModel{
 			Keys:    bson.M{"email": 1},
 			Options: options.Index().SetUnique(true).SetSparse(true),
 		},
 	}, options.CreateIndexes())
 	userCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		mongo.IndexModel{
-			Keys:    bson.M{"phone_number": 1},
-			Options: options.Index().SetUnique(true).SetSparse(true),
+			Keys: bson.M{"phone_number": 1},
+			Options: options.Index().SetUnique(true).SetSparse(true).SetPartialFilterExpression(map[string]interface{}{
+				"phone_number": map[string]string{"$type": "string"},
+			}),
 		},
 	}, options.CreateIndexes())
 
 	mongodb.CreateCollection(ctx, Collections.VerificationRequest, options.CreateCollection())
 	verificationRequestCollection := mongodb.Collection(Collections.VerificationRequest, options.Collection())
-	verificationRequestCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
-		mongo.IndexModel{
-			Keys:    bson.M{"id": 1},
-			Options: options.Index().SetUnique(true).SetSparse(true),
-		},
-	}, options.CreateIndexes())
 	verificationRequestCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		mongo.IndexModel{
 			Keys:    bson.M{"email": 1, "identifier": 1},
@@ -75,13 +65,6 @@ func initMongodb() (*mongo.Database, error) {
 	}, options.CreateIndexes())
 
 	mongodb.CreateCollection(ctx, Collections.Session, options.CreateCollection())
-	sessionCollection := mongodb.Collection(Collections.Session, options.Collection())
-	sessionCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
-		mongo.IndexModel{
-			Keys:    bson.M{"id": 1},
-			Options: options.Index().SetUnique(true).SetSparse(true),
-		},
-	}, options.CreateIndexes())
 
 	return mongodb, nil
 }

@@ -1,4 +1,4 @@
-package integration_test
+package test
 
 import (
 	"net/http"
@@ -6,32 +6,31 @@ import (
 	"testing"
 
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/env"
-	"github.com/authorizerdev/authorizer/server/middlewares"
-	"github.com/gin-contrib/location"
-	"github.com/gin-gonic/gin"
+	"github.com/authorizerdev/authorizer/server/router"
+	"github.com/authorizerdev/authorizer/server/session"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCors(t *testing.T) {
-	constants.DATABASE_TYPE = "sqlite"
-	constants.DATABASE_URL = "data.db"
-	constants.ENV_PATH = "../../.env.local"
+	constants.ENV_PATH = "../../.env.sample"
+	constants.DATABASE_URL = "../../data.db"
 	env.InitEnv()
-	r := gin.Default()
-	r.Use(location.Default())
-	r.Use(middlewares.GinContextToContextMiddleware())
-	r.Use(middlewares.CORSMiddleware())
+	db.InitDB()
+	session.InitSession()
+	router := router.InitRouter()
+
 	allowedOrigin := "http://localhost:8080" // The allowed origin that you want to check
 	notAllowedOrigin := "http://myapp.com"
 
-	server := httptest.NewServer(r)
+	server := httptest.NewServer(router)
 	defer server.Close()
 
 	client := &http.Client{}
 	req, _ := http.NewRequest(
 		"GET",
-		"http://"+server.Listener.Addr().String()+"/api",
+		"http://"+server.Listener.Addr().String()+"/graphql",
 		nil,
 	)
 	req.Header.Add("Origin", allowedOrigin)

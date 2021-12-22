@@ -39,7 +39,7 @@ func ResetPassword(ctx context.Context, params model.ResetPasswordInput) (*model
 	}
 
 	password, _ := utils.HashPassword(params.Password)
-	user.Password = password
+	user.Password = &password
 
 	signupMethod := user.SignupMethods
 	if !strings.Contains(signupMethod, enum.BasicAuth.String()) {
