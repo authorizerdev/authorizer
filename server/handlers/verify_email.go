@@ -46,8 +46,9 @@ func VerifyEmailHandler() gin.HandlerFunc {
 		}
 
 		// update email_verified_at in users table
-		if user.EmailVerifiedAt <= 0 {
-			user.EmailVerifiedAt = time.Now().Unix()
+		if user.EmailVerifiedAt == nil {
+			now := time.Now().Unix()
+			user.EmailVerifiedAt = &now
 			db.Mgr.UpdateUser(user)
 		}
 		// delete from verification table

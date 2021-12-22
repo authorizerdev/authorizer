@@ -8,7 +8,7 @@ import (
 )
 
 func GetResUser(user db.User) *model.User {
-	isEmailVerified := user.EmailVerifiedAt > 0
+	isEmailVerified := user.EmailVerifiedAt != nil
 	isPhoneVerified := user.PhoneNumberVerifiedAt != nil
 	return &model.User{
 		ID:                  user.ID,

@@ -84,7 +84,7 @@ func UpdateUser(ctx context.Context, params model.UpdateUserInput) (*model.User,
 		utils.DeleteCookie(gc)
 
 		user.Email = newEmail
-		user.EmailVerifiedAt = 0
+		user.EmailVerifiedAt = nil
 		// insert verification request
 		verificationType := enum.UpdateEmail.String()
 		token, err := utils.CreateVerificationToken(newEmail, verificationType)

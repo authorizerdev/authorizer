@@ -36,7 +36,7 @@ func Login(ctx context.Context, params model.LoginInput) (*model.AuthResponse, e
 		return res, fmt.Errorf(`user has not signed up email & password`)
 	}
 
-	if user.EmailVerifiedAt <= 0 {
+	if user.EmailVerifiedAt == nil {
 		return res, fmt.Errorf(`email not verified`)
 	}
 

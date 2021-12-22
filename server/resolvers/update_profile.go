@@ -123,7 +123,7 @@ func UpdateProfile(ctx context.Context, params model.UpdateProfileInput) (*model
 		utils.DeleteCookie(gc)
 
 		user.Email = newEmail
-		user.EmailVerifiedAt = 0
+		user.EmailVerifiedAt = nil
 		hasEmailChanged = true
 		// insert verification request
 		verificationType := enum.UpdateEmail.String()
