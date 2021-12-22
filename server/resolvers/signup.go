@@ -54,10 +54,10 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 		log.Println("user with email " + params.Email + " not found")
 	}
 
-	if existingUser.EmailVerifiedAt > 0 {
+	if existingUser.EmailVerifiedAt != nil {
 		// email is verified
 		return res, fmt.Errorf(`%s has already signed up`, params.Email)
-	} else if existingUser.ID != "" && existingUser.EmailVerifiedAt <= 0 {
+	} else if existingUser.ID != "" && existingUser.EmailVerifiedAt == nil {
 		return res, fmt.Errorf("%s has already signed up. please complete the email verification process or reset the password", params.Email)
 	}
 
@@ -104,7 +104,8 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 
 	user.SignupMethods = enum.BasicAuth.String()
 	if constants.DISABLE_EMAIL_VERIFICATION {
-		user.EmailVerifiedAt = time.Now().Unix()
+		now := time.Now().Unix()
+		user.EmailVerifiedAt = &now
 	}
 	user, err = db.Mgr.AddUser(user)
 	if err != nil {

@@ -206,7 +206,8 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			}
 
 			user.Roles = strings.Join(inputRoles, ",")
-			user.EmailVerifiedAt = time.Now().Unix()
+			now := time.Now().Unix()
+			user.EmailVerifiedAt = &now
 			user, _ = db.Mgr.AddUser(user)
 		} else {
 			// user exists in db, check if method was google

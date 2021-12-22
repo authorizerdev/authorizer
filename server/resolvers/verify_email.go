@@ -37,7 +37,8 @@ func VerifyEmail(ctx context.Context, params model.VerifyEmailInput) (*model.Aut
 	}
 
 	// update email_verified_at in users table
-	user.EmailVerifiedAt = time.Now().Unix()
+	now := time.Now().Unix()
+	user.EmailVerifiedAt = &now
 	db.Mgr.UpdateUser(user)
 	// delete from verification table
 	db.Mgr.DeleteVerificationRequest(verificationRequest)

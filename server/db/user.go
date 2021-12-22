@@ -18,7 +18,7 @@ type User struct {
 	ID  string `gorm:"primaryKey;type:char(36)" json:"_id" bson:"_id"`
 
 	Email                 string  `gorm:"unique" json:"email" bson:"email"`
-	EmailVerifiedAt       int64   `json:"email_verified_at" bson:"email_verified_at"`
+	EmailVerifiedAt       *int64  `json:"email_verified_at" bson:"email_verified_at"`
 	Password              *string `gorm:"type:text" json:"password" bson:"password"`
 	SignupMethods         string  `json:"signup_methods" bson:"signup_methods"`
 	GivenName             *string `json:"given_name" bson:"given_name"`
