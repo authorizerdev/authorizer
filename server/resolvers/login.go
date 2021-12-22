@@ -40,7 +40,7 @@ func Login(ctx context.Context, params model.LoginInput) (*model.AuthResponse, e
 		return res, fmt.Errorf(`email not verified`)
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(params.Password))
+	err = bcrypt.CompareHashAndPassword([]byte(*user.Password), []byte(params.Password))
 
 	if err != nil {
 		log.Println("compare password error:", err)

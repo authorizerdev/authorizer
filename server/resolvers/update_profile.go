@@ -50,40 +50,40 @@ func UpdateProfile(ctx context.Context, params model.UpdateProfileInput) (*model
 		return res, err
 	}
 
-	if params.GivenName != nil && user.GivenName != *params.GivenName {
-		user.GivenName = *params.GivenName
+	if params.GivenName != nil && user.GivenName != params.GivenName {
+		user.GivenName = params.GivenName
 	}
 
-	if params.FamilyName != nil && user.FamilyName != *params.FamilyName {
-		user.FamilyName = *params.FamilyName
+	if params.FamilyName != nil && user.FamilyName != params.FamilyName {
+		user.FamilyName = params.FamilyName
 	}
 
-	if params.MiddleName != nil && user.MiddleName != *params.MiddleName {
-		user.MiddleName = *params.MiddleName
+	if params.MiddleName != nil && user.MiddleName != params.MiddleName {
+		user.MiddleName = params.MiddleName
 	}
 
-	if params.Nickname != nil && user.Nickname != *params.Nickname {
-		user.Nickname = *params.Nickname
+	if params.Nickname != nil && user.Nickname != params.Nickname {
+		user.Nickname = params.Nickname
 	}
 
-	if params.Birthdate != nil && user.Birthdate != *params.Birthdate {
-		user.Birthdate = *params.Birthdate
+	if params.Birthdate != nil && user.Birthdate != params.Birthdate {
+		user.Birthdate = params.Birthdate
 	}
 
-	if params.Gender != nil && user.Gender != *params.Gender {
-		user.Gender = *params.Gender
+	if params.Gender != nil && user.Gender != params.Gender {
+		user.Gender = params.Gender
 	}
 
-	if params.PhoneNumber != nil && user.PhoneNumber != *params.PhoneNumber {
-		user.PhoneNumber = *params.PhoneNumber
+	if params.PhoneNumber != nil && user.PhoneNumber != params.PhoneNumber {
+		user.PhoneNumber = params.PhoneNumber
 	}
 
-	if params.Picture != nil && user.Picture != *params.Picture {
-		user.Picture = *params.Picture
+	if params.Picture != nil && user.Picture != params.Picture {
+		user.Picture = params.Picture
 	}
 
 	if params.OldPassword != nil {
-		if err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(*params.OldPassword)); err != nil {
+		if err = bcrypt.CompareHashAndPassword([]byte(*user.Password), []byte(*params.OldPassword)); err != nil {
 			return res, fmt.Errorf("incorrect old password")
 		}
 
@@ -101,7 +101,7 @@ func UpdateProfile(ctx context.Context, params model.UpdateProfileInput) (*model
 
 		password, _ := utils.HashPassword(*params.NewPassword)
 
-		user.Password = password
+		user.Password = &password
 	}
 
 	hasEmailChanged := false

@@ -89,10 +89,12 @@ func processGithubUserInfo(code string) (db.User, error) {
 		lastName = name[0]
 	}
 
+	picture := userRawData["avatar_url"]
+
 	user = db.User{
-		GivenName:  firstName,
-		FamilyName: lastName,
-		Picture:    userRawData["avatar_url"],
+		GivenName:  &firstName,
+		FamilyName: &lastName,
+		Picture:    &picture,
 		Email:      userRawData["email"],
 	}
 
@@ -130,10 +132,14 @@ func processFacebookUserInfo(code string) (db.User, error) {
 
 	picObject := userRawData["picture"].(map[string]interface{})["data"]
 	picDataObject := picObject.(map[string]interface{})
+	firstName := fmt.Sprintf("%v", userRawData["first_name"])
+	lastName := fmt.Sprintf("%v", userRawData["last_name"])
+	picture := fmt.Sprintf("%v", picDataObject["url"])
+
 	user = db.User{
-		GivenName:  fmt.Sprintf("%v", userRawData["first_name"]),
-		FamilyName: fmt.Sprintf("%v", userRawData["last_name"]),
-		Picture:    fmt.Sprintf("%v", picDataObject["url"]),
+		GivenName:  &firstName,
+		FamilyName: &lastName,
+		Picture:    &picture,
 		Email:      email,
 	}
 
@@ -246,7 +252,6 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 				user.Roles = existingUser.Roles
 			}
 			user.Key = existingUser.Key
-			// user.ObjectID = existingUser.ObjectID
 			user.ID = existingUser.ID
 			user, err = db.Mgr.UpdateUser(user)
 		}

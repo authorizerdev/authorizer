@@ -36,16 +36,12 @@ func initArangodb() (arangoDriver.Database, error) {
 
 	if arangodb_exists {
 		log.Println(constants.DATABASE_NAME + " db exists already")
-
 		arangodb, err = arangoClient.Database(nil, constants.DATABASE_NAME)
-
 		if err != nil {
 			return nil, err
 		}
-
 	} else {
 		arangodb, err = arangoClient.CreateDatabase(nil, constants.DATABASE_NAME, nil)
-
 		if err != nil {
 			return nil, err
 		}

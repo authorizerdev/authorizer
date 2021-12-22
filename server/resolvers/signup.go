@@ -68,38 +68,38 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 	user.Roles = strings.Join(inputRoles, ",")
 
 	password, _ := utils.HashPassword(params.Password)
-	user.Password = password
+	user.Password = &password
 
 	if params.GivenName != nil {
-		user.GivenName = *params.GivenName
+		user.GivenName = params.GivenName
 	}
 
 	if params.FamilyName != nil {
-		user.FamilyName = *params.FamilyName
+		user.FamilyName = params.FamilyName
 	}
 
 	if params.MiddleName != nil {
-		user.MiddleName = *params.MiddleName
+		user.MiddleName = params.MiddleName
 	}
 
 	if params.Nickname != nil {
-		user.Nickname = *params.Nickname
+		user.Nickname = params.Nickname
 	}
 
 	if params.Gender != nil {
-		user.Gender = *params.Gender
+		user.Gender = params.Gender
 	}
 
 	if params.Birthdate != nil {
-		user.Birthdate = *params.Birthdate
+		user.Birthdate = params.Birthdate
 	}
 
 	if params.PhoneNumber != nil {
-		user.PhoneNumber = *params.PhoneNumber
+		user.PhoneNumber = params.PhoneNumber
 	}
 
 	if params.Picture != nil {
-		user.Picture = *params.Picture
+		user.Picture = params.Picture
 	}
 
 	user.SignupMethods = enum.BasicAuth.String()
