@@ -13,7 +13,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
-func Token(ctx context.Context, roles []string) (*model.AuthResponse, error) {
+func Session(ctx context.Context, roles []string) (*model.AuthResponse, error) {
 	var res *model.AuthResponse
 
 	gc, err := utils.GinContextFromContext(ctx)

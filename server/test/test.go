@@ -19,14 +19,8 @@ import (
 
 // common user data to share across tests
 type TestData struct {
-	Email                  string
-	Password               string
-	SQL                    string
-	MongoDB                string
-	ArangoDB               string
-	ShouldExecuteForSQL    bool
-	ShouldExecuteForArango bool
-	ShouldExecuteForMongo  bool
+	Email    string
+	Password string
 }
 
 type TestSetup struct {
@@ -36,52 +30,6 @@ type TestSetup struct {
 	Server     *httptest.Server
 	Req        *http.Request
 	TestInfo   TestData
-}
-
-func testSetup() TestSetup {
-	testData := TestData{
-		Email:                  "authorizer_tester@yopmail.com",
-		Password:               "test",
-		SQL:                    "../../data.db",
-		ArangoDB:               "http://root:root@localhost:8529",
-		MongoDB:                "mongodb://localhost:27017",
-		ShouldExecuteForSQL:    true,
-		ShouldExecuteForArango: true,
-		ShouldExecuteForMongo:  true,
-	}
-
-	constants.ENV_PATH = "../../.env.sample"
-	constants.DATABASE_URL = testData.SQL
-	env.InitEnv()
-	session.InitSession()
-
-	w := httptest.NewRecorder()
-	c, r := gin.CreateTestContext(w)
-	r.Use(location.Default())
-	r.Use(middlewares.GinContextToContextMiddleware())
-	r.Use(middlewares.CORSMiddleware())
-
-	r.POST("/graphql", handlers.GraphqlHandler())
-
-	server := httptest.NewServer(r)
-
-	req, _ := http.NewRequest(
-		"POST",
-		"http://"+server.Listener.Addr().String()+"/graphql",
-		nil,
-	)
-	req.Header.Add("x-authorizer-admin-secret", constants.ADMIN_SECRET)
-	c.Request = req
-	ctx := context.WithValue(req.Context(), "GinContextKey", c)
-
-	return TestSetup{
-		GinEngine:  r,
-		GinContext: c,
-		Ctx:        ctx,
-		Server:     server,
-		Req:        req,
-		TestInfo:   testData,
-	}
 }
 
 func cleanData(email string) {
@@ -113,5 +61,44 @@ func cleanData(email string) {
 		if err != nil {
 			log.Println("error deleting user session:", err)
 		}
+	}
+}
+
+func testSetup() TestSetup {
+	testData := TestData{
+		Email:    "authorizer_tester@yopmail.com",
+		Password: "test",
+	}
+
+	constants.ENV_PATH = "../../.env.sample"
+	env.InitEnv()
+	session.InitSession()
+
+	w := httptest.NewRecorder()
+	c, r := gin.CreateTestContext(w)
+	r.Use(location.Default())
+	r.Use(middlewares.GinContextToContextMiddleware())
+	r.Use(middlewares.CORSMiddleware())
+
+	r.POST("/graphql", handlers.GraphqlHandler())
+
+	server := httptest.NewServer(r)
+
+	req, _ := http.NewRequest(
+		"POST",
+		"http://"+server.Listener.Addr().String()+"/graphql",
+		nil,
+	)
+	req.Header.Add("x-authorizer-admin-secret", constants.ADMIN_SECRET)
+	c.Request = req
+	ctx := context.WithValue(req.Context(), "GinContextKey", c)
+
+	return TestSetup{
+		GinEngine:  r,
+		GinContext: c,
+		Ctx:        ctx,
+		Server:     server,
+		Req:        req,
+		TestInfo:   testData,
 	}
 }
