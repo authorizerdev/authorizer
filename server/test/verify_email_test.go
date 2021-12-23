@@ -3,7 +3,6 @@ package test
 import (
 	"testing"
 
-	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/enum"
 	"github.com/authorizerdev/authorizer/server/graph/model"
@@ -11,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func commonVerifyEmailTest(s TestSetup, t *testing.T) {
+func verifyEmailTest(s TestSetup, t *testing.T) {
 	email := "verify_email." + s.TestInfo.Email
 	res, err := resolvers.Signup(s.Ctx, model.SignUpInput{
 		Email:           email,
@@ -33,36 +32,4 @@ func commonVerifyEmailTest(s TestSetup, t *testing.T) {
 	assert.NotEqual(t, verifyRes.AccessToken, "", "access token should not be empty")
 
 	cleanData(email)
-}
-
-func TestVerifyEmail(t *testing.T) {
-	s := testSetup()
-	defer s.Server.Close()
-
-	if s.TestInfo.ShouldExecuteForSQL {
-		t.Run("verify email for sql dbs should pass", func(t *testing.T) {
-			constants.DATABASE_URL = s.TestInfo.SQL
-			constants.DATABASE_TYPE = enum.Sqlite.String()
-			db.InitDB()
-			commonVerifyEmailTest(s, t)
-		})
-	}
-
-	if s.TestInfo.ShouldExecuteForArango {
-		t.Run("verify email for arangodb should pass", func(t *testing.T) {
-			constants.DATABASE_URL = s.TestInfo.ArangoDB
-			constants.DATABASE_TYPE = enum.Arangodb.String()
-			db.InitDB()
-			commonVerifyEmailTest(s, t)
-		})
-	}
-
-	if s.TestInfo.ShouldExecuteForMongo {
-		t.Run("verify email for mongodb should pass", func(t *testing.T) {
-			constants.DATABASE_URL = s.TestInfo.MongoDB
-			constants.DATABASE_TYPE = enum.Mongodb.String()
-			db.InitDB()
-			commonVerifyEmailTest(s, t)
-		})
-	}
 }

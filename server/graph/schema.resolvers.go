@@ -60,7 +60,7 @@ func (r *queryResolver) Meta(ctx context.Context) (*model.Meta, error) {
 }
 
 func (r *queryResolver) Session(ctx context.Context, roles []string) (*model.AuthResponse, error) {
-	return resolvers.Token(ctx, roles)
+	return resolvers.Session(ctx, roles)
 }
 
 func (r *queryResolver) Profile(ctx context.Context) (*model.User, error) {

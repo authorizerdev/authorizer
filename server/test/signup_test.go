@@ -3,7 +3,6 @@ package test
 import (
 	"testing"
 
-	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/enum"
 	"github.com/authorizerdev/authorizer/server/graph/model"
@@ -11,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func commonSignupTest(s TestSetup, t *testing.T) {
+func signupTests(s TestSetup, t *testing.T) {
 	email := "signup." + s.TestInfo.Email
 	res, err := resolvers.Signup(s.Ctx, model.SignUpInput{
 		Email:           email,
@@ -42,36 +41,4 @@ func commonSignupTest(s TestSetup, t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, email, verificationRequest.Email)
 	cleanData(email)
-}
-
-func TestSignUp(t *testing.T) {
-	s := testSetup()
-	defer s.Server.Close()
-
-	if s.TestInfo.ShouldExecuteForSQL {
-		t.Run("signup for sql dbs should pass", func(t *testing.T) {
-			constants.DATABASE_URL = s.TestInfo.SQL
-			constants.DATABASE_TYPE = enum.Sqlite.String()
-			db.InitDB()
-			commonSignupTest(s, t)
-		})
-	}
-
-	if s.TestInfo.ShouldExecuteForArango {
-		t.Run("signup for arangodb should pass", func(t *testing.T) {
-			constants.DATABASE_URL = s.TestInfo.ArangoDB
-			constants.DATABASE_TYPE = enum.Arangodb.String()
-			db.InitDB()
-			commonSignupTest(s, t)
-		})
-	}
-
-	if s.TestInfo.ShouldExecuteForMongo {
-		t.Run("signup for mongodb should pass", func(t *testing.T) {
-			constants.DATABASE_URL = s.TestInfo.MongoDB
-			constants.DATABASE_TYPE = enum.Mongodb.String()
-			db.InitDB()
-			commonSignupTest(s, t)
-		})
-	}
 }
