@@ -1,6 +1,8 @@
 package main
 
 import (
+	"flag"
+
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/env"
@@ -12,6 +14,12 @@ import (
 )
 
 func main() {
+	env.ARG_DB_URL = flag.String("database_url", "", "Database connection string")
+	env.ARG_DB_TYPE = flag.String("database_type", "", "Database type, possible values are postgres,mysql,sqlite")
+	env.ARG_AUTHORIZER_URL = flag.String("authorizer_url", "", "URL for authorizer instance, eg: https://xyz.herokuapp.com")
+	env.ARG_ENV_FILE = flag.String("env_file", "", "Env file path")
+	flag.Parse()
+
 	env.InitEnv()
 	db.InitDB()
 	session.InitSession()
@@ -20,7 +28,8 @@ func main() {
 
 	router := router.InitRouter()
 
-	// login wall app related routes
+	// login wall app related routes.
+	// if we put them in router file then tests would fail as templates or build path will be different
 	router.LoadHTMLGlob("templates/*")
 	app := router.Group("/app")
 	{

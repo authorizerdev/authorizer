@@ -4,20 +4,16 @@ import (
 	"testing"
 
 	"github.com/authorizerdev/authorizer/server/constants"
-	"github.com/authorizerdev/authorizer/server/enum"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestEnvs(t *testing.T) {
 	constants.ENV_PATH = "../../.env.sample"
-	// env.InitEnv()
 
 	assert.Equal(t, constants.ADMIN_SECRET, "admin")
 	assert.Equal(t, constants.ENV, "production")
-	assert.Equal(t, constants.DATABASE_URL, "../../data.db")
-	assert.Equal(t, constants.DATABASE_TYPE, enum.Sqlite.String())
-	assert.True(t, constants.DISABLE_EMAIL_VERIFICATION)
-	assert.True(t, constants.DISABLE_MAGIC_LINK_LOGIN)
+	assert.False(t, constants.DISABLE_EMAIL_VERIFICATION)
+	assert.False(t, constants.DISABLE_MAGIC_LINK_LOGIN)
 	assert.False(t, constants.DISABLE_BASIC_AUTHENTICATION)
 	assert.Equal(t, constants.JWT_TYPE, "HS256")
 	assert.Equal(t, constants.JWT_SECRET, "random_string")

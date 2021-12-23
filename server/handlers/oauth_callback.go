@@ -264,15 +264,7 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 		accessToken, _, _ := utils.CreateAuthToken(user, enum.AccessToken, inputRoles)
 		utils.SetCookie(c, accessToken)
 		session.SetToken(userIdStr, accessToken, refreshToken)
-		go func() {
-			sessionData := db.Session{
-				UserID:    user.ID,
-				UserAgent: utils.GetUserAgent(c.Request),
-				IP:        utils.GetIP(c.Request),
-			}
-
-			db.Mgr.AddSession(sessionData)
-		}()
+		utils.CreateSession(user.ID, c)
 
 		c.Redirect(http.StatusTemporaryRedirect, redirectURL)
 	}

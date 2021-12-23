@@ -65,6 +65,13 @@ func initMongodb() (*mongo.Database, error) {
 	}, options.CreateIndexes())
 
 	mongodb.CreateCollection(ctx, Collections.Session, options.CreateCollection())
+	sessionCollection := mongodb.Collection(Collections.Session, options.Collection())
+	sessionCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		mongo.IndexModel{
+			Keys:    bson.M{"user_id": 1},
+			Options: options.Index().SetSparse(true),
+		},
+	}, options.CreateIndexes())
 
 	return mongodb, nil
 }

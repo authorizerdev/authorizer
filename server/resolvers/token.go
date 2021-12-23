@@ -66,15 +66,7 @@ func Token(ctx context.Context, roles []string) (*model.AuthResponse, error) {
 		session.DeleteVerificationRequest(userIdStr, token)
 		token, expiresAt, _ = utils.CreateAuthToken(user, enum.AccessToken, claimRoles)
 		session.SetToken(userIdStr, token, currentRefreshToken)
-		go func() {
-			sessionData := db.Session{
-				UserID:    user.ID,
-				UserAgent: utils.GetUserAgent(gc.Request),
-				IP:        utils.GetIP(gc.Request),
-			}
-
-			db.Mgr.AddSession(sessionData)
-		}()
+		utils.CreateSession(user.ID, gc)
 	}
 
 	utils.SetCookie(gc, token)

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/enum"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/stretchr/testify/assert"
 )
@@ -32,4 +33,11 @@ func TestIsValidOrigin(t *testing.T) {
 	assert.True(t, utils.IsValidOrigin("http://xyx.abc.in"), "it should be valid origin")
 	assert.True(t, utils.IsValidOrigin("http://xyxabc.in"), "it should be valid origin")
 	assert.True(t, utils.IsValidOrigin("http://localhost:8080"), "it should be valid origin")
+}
+
+func TestIsValidIdentifier(t *testing.T) {
+	assert.False(t, utils.IsValidVerificationIdentifier("test"), "it should be invalid identifier")
+	assert.True(t, utils.IsValidVerificationIdentifier(enum.BasicAuthSignup.String()), "it should be valid identifier")
+	assert.True(t, utils.IsValidVerificationIdentifier(enum.UpdateEmail.String()), "it should be valid identifier")
+	assert.True(t, utils.IsValidVerificationIdentifier(enum.ForgotPassword.String()), "it should be valid identifier")
 }
