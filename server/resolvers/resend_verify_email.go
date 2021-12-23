@@ -20,18 +20,28 @@ func ResendVerifyEmail(ctx context.Context, params model.ResendVerifyEmailInput)
 		return res, fmt.Errorf("invalid email")
 	}
 
-	verificationRequest, err := db.Mgr.GetVerificationByEmail(params.Email)
+	if !utils.IsValidVerificationIdentifier(params.Identifier) {
+		return res, fmt.Errorf("invalid identifier")
+	}
+
+	verificationRequest, err := db.Mgr.GetVerificationByEmail(params.Email, params.Identifier)
 	if err != nil {
 		return res, fmt.Errorf(`verification request not found`)
 	}
 
-	token, err := utils.CreateVerificationToken(params.Email, verificationRequest.Identifier)
+	// delete current verification and create new one
+	err = db.Mgr.DeleteVerificationRequest(verificationRequest)
+	if err != nil {
+		log.Println("error deleting verification request:", err)
+	}
+
+	token, err := utils.CreateVerificationToken(params.Email, params.Identifier)
 	if err != nil {
 		log.Println(`error generating token`, err)
 	}
 	db.Mgr.AddVerification(db.VerificationRequest{
 		Token:      token,
-		Identifier: verificationRequest.Identifier,
+		Identifier: params.Identifier,
 		ExpiresAt:  time.Now().Add(time.Minute * 30).Unix(),
 		Email:      params.Email,
 	})

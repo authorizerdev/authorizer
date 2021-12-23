@@ -7,6 +7,7 @@ import (
 
 	"github.com/arangodb/go-driver"
 	arangoDriver "github.com/arangodb/go-driver"
+	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -39,6 +40,10 @@ type User struct {
 func (mgr *manager) AddUser(user User) (User, error) {
 	if user.ID == "" {
 		user.ID = uuid.New().String()
+	}
+
+	if user.Roles == "" {
+		user.Roles = constants.DEFAULT_ROLES[0]
 	}
 
 	if IsORMSupported {
@@ -111,7 +116,7 @@ func (mgr *manager) UpdateUser(user User) (User, error) {
 
 	if IsMongoDB {
 		userCollection := mgr.mongodb.Collection(Collections.User, options.Collection())
-		_, err := userCollection.UpdateOne(nil, bson.M{"id": bson.M{"$eq": user.ID}}, bson.M{"$set": user}, options.MergeUpdateOptions())
+		_, err := userCollection.UpdateOne(nil, bson.M{"_id": bson.M{"$eq": user.ID}}, bson.M{"$set": user}, options.MergeUpdateOptions())
 		if err != nil {
 			log.Println("error updating user:", err)
 			return user, err
@@ -240,7 +245,7 @@ func (mgr *manager) GetUserByID(id string) (User, error) {
 	}
 
 	if IsArangoDB {
-		query := fmt.Sprintf("FOR d in %s FILTER d.id == @id LIMIT 1 RETURN d", Collections.User)
+		query := fmt.Sprintf("FOR d in %s FILTER d._id == @id LIMIT 1 RETURN d", Collections.User)
 		bindVars := map[string]interface{}{
 			"id": id,
 		}
@@ -267,7 +272,7 @@ func (mgr *manager) GetUserByID(id string) (User, error) {
 
 	if IsMongoDB {
 		userCollection := mgr.mongodb.Collection(Collections.User, options.Collection())
-		err := userCollection.FindOne(nil, bson.M{"id": id}).Decode(&user)
+		err := userCollection.FindOne(nil, bson.M{"_id": id}).Decode(&user)
 		if err != nil {
 			return user, err
 		}
@@ -297,7 +302,7 @@ func (mgr *manager) DeleteUser(user User) error {
 
 	if IsMongoDB {
 		userCollection := mgr.mongodb.Collection(Collections.User, options.Collection())
-		_, err := userCollection.DeleteOne(nil, bson.M{"id": user.ID}, options.Delete())
+		_, err := userCollection.DeleteOne(nil, bson.M{"_id": user.ID}, options.Delete())
 		if err != nil {
 			log.Println("error deleting user:", err)
 			return err

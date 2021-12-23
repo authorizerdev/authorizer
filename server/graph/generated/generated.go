@@ -82,7 +82,7 @@ type ComplexityRoot struct {
 	Query struct {
 		Meta                 func(childComplexity int) int
 		Profile              func(childComplexity int) int
-		Token                func(childComplexity int, roles []string) int
+		Session              func(childComplexity int, roles []string) int
 		Users                func(childComplexity int) int
 		VerificationRequests func(childComplexity int) int
 	}
@@ -137,7 +137,7 @@ type MutationResolver interface {
 }
 type QueryResolver interface {
 	Meta(ctx context.Context) (*model.Meta, error)
-	Token(ctx context.Context, roles []string) (*model.AuthResponse, error)
+	Session(ctx context.Context, roles []string) (*model.AuthResponse, error)
 	Profile(ctx context.Context) (*model.User, error)
 	Users(ctx context.Context) ([]*model.User, error)
 	VerificationRequests(ctx context.Context) ([]*model.VerificationRequest, error)
@@ -390,17 +390,17 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Profile(childComplexity), true
 
-	case "Query.token":
-		if e.complexity.Query.Token == nil {
+	case "Query.session":
+		if e.complexity.Query.Session == nil {
 			break
 		}
 
-		args, err := ec.field_Query_token_args(context.TODO(), rawArgs)
+		args, err := ec.field_Query_session_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Query.Token(childComplexity, args["roles"].([]string)), true
+		return e.complexity.Query.Session(childComplexity, args["roles"].([]string)), true
 
 	case "Query._users":
 		if e.complexity.Query.Users == nil {
@@ -746,6 +746,7 @@ input VerifyEmailInput {
 
 input ResendVerifyEmailInput {
 	email: String!
+	identifier: String!
 }
 
 input UpdateProfileInput {
@@ -813,7 +814,7 @@ type Mutation {
 
 type Query {
 	meta: Meta!
-	token(roles: [String!]): AuthResponse
+	session(roles: [String!]): AuthResponse
 	profile: User!
 	# admin only apis
 	_users: [User!]!
@@ -992,7 +993,7 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 	return args, nil
 }
 
-func (ec *executionContext) field_Query_token_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Query_session_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 []string
@@ -1981,7 +1982,7 @@ func (ec *executionContext) _Query_meta(ctx context.Context, field graphql.Colle
 	return ec.marshalNMeta2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐMeta(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Query_token(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Query_session(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1998,7 +1999,7 @@ func (ec *executionContext) _Query_token(ctx context.Context, field graphql.Coll
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Query_token_args(ctx, rawArgs)
+	args, err := ec.field_Query_session_args(ctx, rawArgs)
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
@@ -2006,7 +2007,7 @@ func (ec *executionContext) _Query_token(ctx context.Context, field graphql.Coll
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Token(rctx, args["roles"].([]string))
+		return ec.resolvers.Query().Session(rctx, args["roles"].([]string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4272,6 +4273,14 @@ func (ec *executionContext) unmarshalInputResendVerifyEmailInput(ctx context.Con
 			if err != nil {
 				return it, err
 			}
+		case "identifier":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("identifier"))
+			it.Identifier, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		}
 	}
 
@@ -4905,7 +4914,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				}
 				return res
 			})
-		case "token":
+		case "session":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
 				defer func() {
@@ -4913,7 +4922,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_token(ctx, field)
+				res = ec._Query_session(ctx, field)
 				return res
 			})
 		case "profile":

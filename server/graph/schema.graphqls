@@ -89,6 +89,7 @@ input VerifyEmailInput {
 
 input ResendVerifyEmailInput {
 	email: String!
+	identifier: String!
 }
 
 input UpdateProfileInput {
@@ -156,7 +157,7 @@ type Mutation {
 
 type Query {
 	meta: Meta!
-	token(roles: [String!]): AuthResponse
+	session(roles: [String!]): AuthResponse
 	profile: User!
 	# admin only apis
 	_users: [User!]!

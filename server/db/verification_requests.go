@@ -179,10 +179,10 @@ func (mgr *manager) GetVerificationByToken(token string) (VerificationRequest, e
 	return verification, nil
 }
 
-func (mgr *manager) GetVerificationByEmail(email string) (VerificationRequest, error) {
+func (mgr *manager) GetVerificationByEmail(email string, identifier string) (VerificationRequest, error) {
 	var verification VerificationRequest
 	if IsORMSupported {
-		result := mgr.sqlDB.Where("email = ?", email).First(&verification)
+		result := mgr.sqlDB.Where("email = ? AND identifier = ?", email, identifier).First(&verification)
 
 		if result.Error != nil {
 			log.Println(`error getting verification token:`, result.Error)
@@ -191,9 +191,10 @@ func (mgr *manager) GetVerificationByEmail(email string) (VerificationRequest, e
 	}
 
 	if IsArangoDB {
-		query := fmt.Sprintf("FOR d in %s FILTER d.email == @email LIMIT 1 RETURN d", Collections.VerificationRequest)
+		query := fmt.Sprintf("FOR d in %s FILTER d.email == @email FILTER d.identifier == @identifier LIMIT 1 RETURN d", Collections.VerificationRequest)
 		bindVars := map[string]interface{}{
-			"email": email,
+			"email":      email,
+			"identifier": identifier,
 		}
 
 		cursor, err := mgr.arangodb.Query(nil, query, bindVars)
@@ -218,7 +219,7 @@ func (mgr *manager) GetVerificationByEmail(email string) (VerificationRequest, e
 
 	if IsMongoDB {
 		verificationRequestCollection := mgr.mongodb.Collection(Collections.VerificationRequest, options.Collection())
-		err := verificationRequestCollection.FindOne(nil, bson.M{"email": email}).Decode(&verification)
+		err := verificationRequestCollection.FindOne(nil, bson.M{"email": email, "identifier": identifier}).Decode(&verification)
 		if err != nil {
 			return verification, err
 		}
@@ -248,7 +249,7 @@ func (mgr *manager) DeleteVerificationRequest(verificationRequest VerificationRe
 
 	if IsMongoDB {
 		verificationRequestCollection := mgr.mongodb.Collection(Collections.VerificationRequest, options.Collection())
-		_, err := verificationRequestCollection.DeleteOne(nil, bson.M{"id": verificationRequest.ID}, options.Delete())
+		_, err := verificationRequestCollection.DeleteOne(nil, bson.M{"_id": verificationRequest.ID}, options.Delete())
 		if err != nil {
 			log.Println("error deleting verification request::", err)
 			return err

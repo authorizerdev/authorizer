@@ -95,5 +95,10 @@ func initArangodb() (arangoDriver.Database, error) {
 		}
 	}
 
+	sessionCollection, _ := arangodb.Collection(nil, Collections.Session)
+	sessionCollection.EnsureHashIndex(ctx, []string{"user_id"}, &arangoDriver.EnsureHashIndexOptions{
+		Sparse: true,
+	})
+
 	return arangodb, err
 }

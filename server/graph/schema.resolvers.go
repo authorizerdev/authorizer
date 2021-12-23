@@ -59,7 +59,7 @@ func (r *queryResolver) Meta(ctx context.Context) (*model.Meta, error) {
 	return resolvers.Meta(ctx)
 }
 
-func (r *queryResolver) Token(ctx context.Context, roles []string) (*model.AuthResponse, error) {
+func (r *queryResolver) Session(ctx context.Context, roles []string) (*model.AuthResponse, error) {
 	return resolvers.Token(ctx, roles)
 }
 

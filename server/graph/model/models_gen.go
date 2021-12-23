@@ -44,7 +44,8 @@ type Meta struct {
 }
 
 type ResendVerifyEmailInput struct {
-	Email string `json:"email"`
+	Email      string `json:"email"`
+	Identifier string `json:"identifier"`
 }
 
 type ResetPasswordInput struct {

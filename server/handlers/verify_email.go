@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -54,22 +53,13 @@ func VerifyEmailHandler() gin.HandlerFunc {
 		// delete from verification table
 		db.Mgr.DeleteVerificationRequest(verificationRequest)
 
-		userIdStr := fmt.Sprintf("%v", user.ID)
 		roles := strings.Split(user.Roles, ",")
 		refreshToken, _, _ := utils.CreateAuthToken(user, enum.RefreshToken, roles)
 
 		accessToken, _, _ := utils.CreateAuthToken(user, enum.AccessToken, roles)
 
-		session.SetToken(userIdStr, accessToken, refreshToken)
-		go func() {
-			sessionData := db.Session{
-				UserID:    user.ID,
-				UserAgent: utils.GetUserAgent(c.Request),
-				IP:        utils.GetIP(c.Request),
-			}
-
-			db.Mgr.AddSession(sessionData)
-		}()
+		session.SetToken(user.ID, accessToken, refreshToken)
+		utils.CreateSession(user.ID, c)
 		utils.SetCookie(c, accessToken)
 		c.Redirect(http.StatusTemporaryRedirect, claim.RedirectURL)
 	}

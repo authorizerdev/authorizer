@@ -43,22 +43,13 @@ func VerifyEmail(ctx context.Context, params model.VerifyEmailInput) (*model.Aut
 	// delete from verification table
 	db.Mgr.DeleteVerificationRequest(verificationRequest)
 
-	userIdStr := fmt.Sprintf("%v", user.ID)
 	roles := strings.Split(user.Roles, ",")
 	refreshToken, _, _ := utils.CreateAuthToken(user, enum.RefreshToken, roles)
 
 	accessToken, expiresAt, _ := utils.CreateAuthToken(user, enum.AccessToken, roles)
 
-	session.SetToken(userIdStr, accessToken, refreshToken)
-	go func() {
-		sessionData := db.Session{
-			UserID:    user.ID,
-			UserAgent: utils.GetUserAgent(gc.Request),
-			IP:        utils.GetIP(gc.Request),
-		}
-
-		db.Mgr.AddSession(sessionData)
-	}()
+	session.SetToken(user.ID, accessToken, refreshToken)
+	utils.CreateSession(user.ID, gc)
 
 	res = &model.AuthResponse{
 		Message:     `Email verified successfully.`,

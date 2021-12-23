@@ -1,7 +1,6 @@
 package env
 
 import (
-	"flag"
 	"log"
 	"os"
 	"strings"
@@ -25,13 +24,8 @@ func InitEnv() {
 	if constants.ENV_PATH == "" {
 		constants.ENV_PATH = `.env`
 	}
-	ARG_DB_URL = flag.String("database_url", "", "Database connection string")
-	ARG_DB_TYPE = flag.String("database_type", "", "Database type, possible values are postgres,mysql,sqlite")
-	ARG_AUTHORIZER_URL = flag.String("authorizer_url", "", "URL for authorizer instance, eg: https://xyz.herokuapp.com")
-	ARG_ENV_FILE = flag.String("env_file", "", "Env file path")
 
-	flag.Parse()
-	if *ARG_ENV_FILE != "" {
+	if ARG_ENV_FILE != nil && *ARG_ENV_FILE != "" {
 		constants.ENV_PATH = *ARG_ENV_FILE
 	}
 
@@ -65,8 +59,9 @@ func InitEnv() {
 
 	if constants.DATABASE_TYPE == "" {
 		constants.DATABASE_TYPE = os.Getenv("DATABASE_TYPE")
+		log.Println(constants.DATABASE_TYPE)
 
-		if *ARG_DB_TYPE != "" {
+		if ARG_DB_TYPE != nil && *ARG_DB_TYPE != "" {
 			constants.DATABASE_TYPE = *ARG_DB_TYPE
 		}
 
@@ -78,7 +73,7 @@ func InitEnv() {
 	if constants.DATABASE_URL == "" {
 		constants.DATABASE_URL = os.Getenv("DATABASE_URL")
 
-		if *ARG_DB_URL != "" {
+		if ARG_DB_URL != nil && *ARG_DB_URL != "" {
 			constants.DATABASE_URL = *ARG_DB_URL
 		}
 
@@ -129,7 +124,7 @@ func InitEnv() {
 	if constants.AUTHORIZER_URL == "" {
 		constants.AUTHORIZER_URL = strings.TrimSuffix(os.Getenv("AUTHORIZER_URL"), "/")
 
-		if *ARG_AUTHORIZER_URL != "" {
+		if ARG_AUTHORIZER_URL != nil && *ARG_AUTHORIZER_URL != "" {
 			constants.AUTHORIZER_URL = *ARG_AUTHORIZER_URL
 		}
 	}

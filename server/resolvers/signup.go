@@ -145,15 +145,7 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 		accessToken, expiresAt, _ := utils.CreateAuthToken(user, enum.AccessToken, roles)
 
 		session.SetToken(userIdStr, accessToken, refreshToken)
-		go func() {
-			sessionData := db.Session{
-				UserID:    user.ID,
-				UserAgent: utils.GetUserAgent(gc.Request),
-				IP:        utils.GetIP(gc.Request),
-			}
-
-			db.Mgr.AddSession(sessionData)
-		}()
+		utils.CreateSession(user.ID, gc)
 		res = &model.AuthResponse{
 			Message:     `Signed up successfully.`,
 			AccessToken: &accessToken,

@@ -60,15 +60,7 @@ func Login(ctx context.Context, params model.LoginInput) (*model.AuthResponse, e
 	accessToken, expiresAt, _ := utils.CreateAuthToken(user, enum.AccessToken, roles)
 
 	session.SetToken(user.ID, accessToken, refreshToken)
-	go func() {
-		sessionData := db.Session{
-			UserID:    user.ID,
-			UserAgent: utils.GetUserAgent(gc.Request),
-			IP:        utils.GetIP(gc.Request),
-		}
-
-		db.Mgr.AddSession(sessionData)
-	}()
+	utils.CreateSession(user.ID, gc)
 
 	res = &model.AuthResponse{
 		Message:     `Logged in successfully`,
