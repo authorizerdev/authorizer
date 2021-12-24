@@ -49,3 +49,30 @@ Please ask as many questions as you need, either directly in the issue or on [Di
 5. Build the code `make clean && make`
    > Note: if you don't have [`make`](https://www.ibm.com/docs/en/aix/7.2?topic=concepts-make-command), you can `cd` into `server` dir and build using the `go build` command
 6. Run binary `./build/server`
+
+### Testing
+
+Make sure you test before creating PR.
+
+If you want to test for all the databases that authorizer supports you will have to run `mongodb` & `arangodb` instances locally.
+
+Setup mongodb & arangodb using Docker
+
+```
+docker run --name mongodb -d -p 27017:27017 mongo
+docker run --name arangodb -d -p 8529:8529 -e ARANGO_ROOT_PASSWORD=root arangodb/arangodb:3.8.4
+```
+> Note: If you are not making any changes in db schema / db operations, you can disable those db tests [here](https://github.com/authorizerdev/authorizer/blob/main/server/__test__/resolvers_test.go#L14)
+
+If you are adding new resolver, 
+1. create new resolver test file [here](https://github.com/authorizerdev/authorizer/tree/main/server/__test__)
+Naming convention filename: `resolver_name_test.go` function name: `resolverNameTest(s TestSetup, t *testing.T)`
+2. Add your tests [here](https://github.com/authorizerdev/authorizer/blob/main/server/__test__/resolvers_test.go#L38)
+
+__Command to run tests:__
+
+```sh
+make test
+```
+
+
