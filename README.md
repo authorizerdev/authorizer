@@ -151,7 +151,7 @@ Deploy production ready Authorizer instance using [railway.app](https://github.c
 
 ## Testing
 
-- Integration Test: This tests are written along with [authorizer-js](https://github.com/authorizerdev/authorizer-js/blob/main/__test__/index.test.js) lib.
+- Check the testing instructions [here](https://github.com/authorizerdev/authorizer/blob/main/.github/CONTRIBUTING.md#testing)
 
 ## Integrating into your website
 
