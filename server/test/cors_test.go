@@ -15,8 +15,9 @@ func TestCors(t *testing.T) {
 	defer s.Server.Close()
 	client := &http.Client{}
 
-	s.Req.Header.Add("Origin", allowedOrigin)
-	res, _ := client.Do(s.Req)
+	req, _ := createContext(s)
+	req.Header.Add("Origin", allowedOrigin)
+	res, _ := client.Do(req)
 
 	// You should get your origin (or a * depending on your config) if the
 	// passed origin is allowed.

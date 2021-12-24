@@ -10,19 +10,22 @@ import (
 )
 
 func resendVerifyEmailTests(s TestSetup, t *testing.T) {
-	email := "resend_verify_email." + s.TestInfo.Email
-	_, err := resolvers.Signup(s.Ctx, model.SignUpInput{
-		Email:           email,
-		Password:        s.TestInfo.Password,
-		ConfirmPassword: s.TestInfo.Password,
+	t.Run(`should resend verification email`, func(t *testing.T) {
+		_, ctx := createContext(s)
+		email := "resend_verify_email." + s.TestInfo.Email
+		_, err := resolvers.Signup(ctx, model.SignUpInput{
+			Email:           email,
+			Password:        s.TestInfo.Password,
+			ConfirmPassword: s.TestInfo.Password,
+		})
+
+		_, err = resolvers.ResendVerifyEmail(ctx, model.ResendVerifyEmailInput{
+			Email:      email,
+			Identifier: enum.BasicAuthSignup.String(),
+		})
+
+		assert.Nil(t, err)
+
+		cleanData(email)
 	})
-
-	_, err = resolvers.ResendVerifyEmail(s.Ctx, model.ResendVerifyEmailInput{
-		Email:      email,
-		Identifier: enum.BasicAuthSignup.String(),
-	})
-
-	assert.Nil(t, err)
-
-	cleanData(email)
 }

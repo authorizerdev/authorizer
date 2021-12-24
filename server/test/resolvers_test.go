@@ -1,7 +1,6 @@
 package test
 
 import (
-	"log"
 	"testing"
 
 	"github.com/authorizerdev/authorizer/server/constants"
@@ -16,21 +15,33 @@ func TestResolvers(t *testing.T) {
 		enum.Mongodb.String():  "mongodb://localhost:27017",
 	}
 
-	log.Println("==== Testing resolvers =====")
-
 	for dbType, dbURL := range databases {
 		constants.DATABASE_URL = dbURL
 		constants.DATABASE_TYPE = dbType
 		db.InitDB()
+
 		s := testSetup()
 		defer s.Server.Close()
-		t.Run("running test cases for "+dbType, func(t *testing.T) {
+
+		t.Run("should pass tests for "+dbType, func(t *testing.T) {
 			loginTests(s, t)
 			signupTests(s, t)
 			forgotPasswordTest(s, t)
 			resendVerifyEmailTests(s, t)
 			resetPasswordTest(s, t)
 			verifyEmailTest(s, t)
+			sessionTests(s, t)
+			profileTests(s, t)
+			updateProfileTests(s, t)
+			magicLinkLoginTests(s, t)
+			logoutTests(s, t)
+			metaTests(s, t)
+
+			// admin tests
+			verificationRequestsTest(s, t)
+			usersTest(s, t)
+			deleteUserTest(s, t)
+			updateUserTest(s, t)
 		})
 	}
 }
