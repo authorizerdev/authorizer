@@ -113,7 +113,8 @@ func UpdateProfile(ctx context.Context, params model.UpdateProfileInput) (*model
 		}
 		newEmail := strings.ToLower(*params.Email)
 		// check if user with new email exists
-		_, err = db.Mgr.GetUserByEmail(newEmail)
+		_, err := db.Mgr.GetUserByEmail(newEmail)
+
 		// err = nil means user exists
 		if err == nil {
 			return res, fmt.Errorf("user with this email address already exists")

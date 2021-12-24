@@ -8,11 +8,7 @@
 - [x] Check extra data in oauth profile and save accordingly
 - [x] Update all the resolver to make them compatible with schema changes
 - [x] Update JWT claims
-- [] Write integration tests for all resolvers
-- [] Update doc
-  - [] Rename all schemas + vars
-- [] Update JS lib
-- [] Update react lib
+- [x] Write integration tests for all resolvers
 
 ## Feature Multiple sessions
 

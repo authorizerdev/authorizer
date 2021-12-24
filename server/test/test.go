@@ -2,7 +2,6 @@ package test
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"net/http/httptest"
 
@@ -26,9 +25,7 @@ type TestData struct {
 type TestSetup struct {
 	GinEngine  *gin.Engine
 	GinContext *gin.Context
-	Ctx        context.Context
 	Server     *httptest.Server
-	Req        *http.Request
 	TestInfo   TestData
 }
 
@@ -49,19 +46,22 @@ func cleanData(email string) {
 	}
 
 	dbUser, err := db.Mgr.GetUserByEmail(email)
-	if err != nil {
-		log.Println("error getting user:", err)
-	} else {
-		err = db.Mgr.DeleteUser(dbUser)
-		if err != nil {
-			log.Println("error deleting user:", err)
-		}
-
-		err = db.Mgr.DeleteUserSession(dbUser.ID)
-		if err != nil {
-			log.Println("error deleting user session:", err)
-		}
+	if err == nil {
+		db.Mgr.DeleteUser(dbUser)
+		db.Mgr.DeleteUserSession(dbUser.ID)
 	}
+}
+
+func createContext(s TestSetup) (*http.Request, context.Context) {
+	req, _ := http.NewRequest(
+		"POST",
+		"http://"+s.Server.Listener.Addr().String()+"/graphql",
+		nil,
+	)
+
+	ctx := context.WithValue(req.Context(), "GinContextKey", s.GinContext)
+	s.GinContext.Request = req
+	return req, ctx
 }
 
 func testSetup() TestSetup {
@@ -84,21 +84,10 @@ func testSetup() TestSetup {
 
 	server := httptest.NewServer(r)
 
-	req, _ := http.NewRequest(
-		"POST",
-		"http://"+server.Listener.Addr().String()+"/graphql",
-		nil,
-	)
-	req.Header.Add("x-authorizer-admin-secret", constants.ADMIN_SECRET)
-	c.Request = req
-	ctx := context.WithValue(req.Context(), "GinContextKey", c)
-
 	return TestSetup{
 		GinEngine:  r,
 		GinContext: c,
-		Ctx:        ctx,
 		Server:     server,
-		Req:        req,
 		TestInfo:   testData,
 	}
 }
