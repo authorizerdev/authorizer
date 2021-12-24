@@ -14,8 +14,7 @@ import (
 
 type VerificationRequest struct {
 	Key        string `json:"_key,omitempty" bson:"_key"` // for arangodb
-	ObjectID   string `json:"_id,omitempty" bson:"_id"`   // for arangodb & mongodb
-	ID         string `gorm:"primaryKey;type:char(36)" json:"id" bson:"id"`
+	ID         string `gorm:"primaryKey;type:char(36)" json:"_id" bson:"_id"`
 	Token      string `gorm:"type:text" json:"token" bson:"token"`
 	Identifier string `gorm:"uniqueIndex:idx_email_identifier" json:"identifier" bson:"identifier"`
 	ExpiresAt  int64  `json:"expires_at" bson:"expires_at"`
@@ -32,7 +31,6 @@ func (mgr *manager) AddVerification(verification VerificationRequest) (Verificat
 	if IsORMSupported {
 		// copy id as value for fields required for mongodb & arangodb
 		verification.Key = verification.ID
-		verification.ObjectID = verification.ID
 		result := mgr.sqlDB.Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "email"}, {Name: "identifier"}},
 			DoUpdates: clause.AssignmentColumns([]string{"token", "expires_at"}),
@@ -54,14 +52,13 @@ func (mgr *manager) AddVerification(verification VerificationRequest) (Verificat
 			return verification, err
 		}
 		verification.Key = meta.Key
-		verification.ObjectID = meta.ID.String()
+		verification.ID = meta.ID.String()
 	}
 
 	if IsMongoDB {
 		verification.CreatedAt = time.Now().Unix()
 		verification.UpdatedAt = time.Now().Unix()
 		verification.Key = verification.ID
-		verification.ObjectID = verification.ID
 		verificationRequestCollection := mgr.mongodb.Collection(Collections.VerificationRequest, options.Collection())
 		_, err := verificationRequestCollection.InsertOne(nil, verification)
 		if err != nil {
@@ -182,10 +179,10 @@ func (mgr *manager) GetVerificationByToken(token string) (VerificationRequest, e
 	return verification, nil
 }
 
-func (mgr *manager) GetVerificationByEmail(email string) (VerificationRequest, error) {
+func (mgr *manager) GetVerificationByEmail(email string, identifier string) (VerificationRequest, error) {
 	var verification VerificationRequest
 	if IsORMSupported {
-		result := mgr.sqlDB.Where("email = ?", email).First(&verification)
+		result := mgr.sqlDB.Where("email = ? AND identifier = ?", email, identifier).First(&verification)
 
 		if result.Error != nil {
 			log.Println(`error getting verification token:`, result.Error)
@@ -194,9 +191,10 @@ func (mgr *manager) GetVerificationByEmail(email string) (VerificationRequest, e
 	}
 
 	if IsArangoDB {
-		query := fmt.Sprintf("FOR d in %s FILTER d.email == @email LIMIT 1 RETURN d", Collections.VerificationRequest)
+		query := fmt.Sprintf("FOR d in %s FILTER d.email == @email FILTER d.identifier == @identifier LIMIT 1 RETURN d", Collections.VerificationRequest)
 		bindVars := map[string]interface{}{
-			"email": email,
+			"email":      email,
+			"identifier": identifier,
 		}
 
 		cursor, err := mgr.arangodb.Query(nil, query, bindVars)
@@ -221,7 +219,7 @@ func (mgr *manager) GetVerificationByEmail(email string) (VerificationRequest, e
 
 	if IsMongoDB {
 		verificationRequestCollection := mgr.mongodb.Collection(Collections.VerificationRequest, options.Collection())
-		err := verificationRequestCollection.FindOne(nil, bson.M{"email": email}).Decode(&verification)
+		err := verificationRequestCollection.FindOne(nil, bson.M{"email": email, "identifier": identifier}).Decode(&verification)
 		if err != nil {
 			return verification, err
 		}
@@ -251,7 +249,7 @@ func (mgr *manager) DeleteVerificationRequest(verificationRequest VerificationRe
 
 	if IsMongoDB {
 		verificationRequestCollection := mgr.mongodb.Collection(Collections.VerificationRequest, options.Collection())
-		_, err := verificationRequestCollection.DeleteOne(nil, bson.M{"id": verificationRequest.ID}, options.Delete())
+		_, err := verificationRequestCollection.DeleteOne(nil, bson.M{"_id": verificationRequest.ID}, options.Delete())
 		if err != nil {
 			log.Println("error deleting verification request::", err)
 			return err

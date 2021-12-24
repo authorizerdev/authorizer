@@ -3,7 +3,6 @@ package resolvers
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/constants"
@@ -14,7 +13,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
-func Token(ctx context.Context, roles []string) (*model.AuthResponse, error) {
+func Session(ctx context.Context, roles []string) (*model.AuthResponse, error) {
 	var res *model.AuthResponse
 
 	gc, err := utils.GinContextFromContext(ctx)
@@ -67,34 +66,15 @@ func Token(ctx context.Context, roles []string) (*model.AuthResponse, error) {
 		session.DeleteVerificationRequest(userIdStr, token)
 		token, expiresAt, _ = utils.CreateAuthToken(user, enum.AccessToken, claimRoles)
 		session.SetToken(userIdStr, token, currentRefreshToken)
-		go func() {
-			sessionData := db.Session{
-				UserID:    user.ID,
-				UserAgent: utils.GetUserAgent(gc.Request),
-				IP:        utils.GetIP(gc.Request),
-			}
-
-			db.Mgr.AddSession(sessionData)
-		}()
+		utils.CreateSession(user.ID, gc)
 	}
 
 	utils.SetCookie(gc, token)
 	res = &model.AuthResponse{
-		Message:              `Token verified`,
-		AccessToken:          &token,
-		AccessTokenExpiresAt: &expiresAt,
-		User: &model.User{
-			ID:              userIdStr,
-			Email:           user.Email,
-			Image:           &user.Image,
-			FirstName:       &user.FirstName,
-			LastName:        &user.LastName,
-			Roles:           strings.Split(user.Roles, ","),
-			CreatedAt:       &user.CreatedAt,
-			UpdatedAt:       &user.UpdatedAt,
-			SignupMethod:    user.SignupMethod,
-			EmailVerifiedAt: &user.EmailVerifiedAt,
-		},
+		Message:     `Token verified`,
+		AccessToken: &token,
+		ExpiresAt:   &expiresAt,
+		User:        utils.GetResponseUserData(user),
 	}
 	return res, nil
 }

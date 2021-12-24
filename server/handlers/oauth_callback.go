@@ -43,24 +43,8 @@ func processGoogleUserInfo(code string) (db.User, error) {
 		return user, fmt.Errorf("unable to verify id_token: %s", err.Error())
 	}
 
-	// Extract custom claims
-	var claims struct {
-		Email      string `json:"email"`
-		Picture    string `json:"picture"`
-		GivenName  string `json:"given_name"`
-		FamilyName string `json:"family_name"`
-		Verified   bool   `json:"email_verified"`
-	}
-	if err := idToken.Claims(&claims); err != nil {
+	if err := idToken.Claims(&user); err != nil {
 		return user, fmt.Errorf("unable to extract claims")
-	}
-
-	user = db.User{
-		FirstName:       claims.GivenName,
-		LastName:        claims.FamilyName,
-		Image:           claims.Picture,
-		Email:           claims.Email,
-		EmailVerifiedAt: time.Now().Unix(),
 	}
 
 	return user, nil
@@ -104,12 +88,14 @@ func processGithubUserInfo(code string) (db.User, error) {
 	if len(name) > 1 && strings.TrimSpace(name[1]) != "" {
 		lastName = name[0]
 	}
+
+	picture := userRawData["avatar_url"]
+
 	user = db.User{
-		FirstName:       firstName,
-		LastName:        lastName,
-		Image:           userRawData["avatar_url"],
-		Email:           userRawData["email"],
-		EmailVerifiedAt: time.Now().Unix(),
+		GivenName:  &firstName,
+		FamilyName: &lastName,
+		Picture:    &picture,
+		Email:      userRawData["email"],
 	}
 
 	return user, nil
@@ -146,12 +132,15 @@ func processFacebookUserInfo(code string) (db.User, error) {
 
 	picObject := userRawData["picture"].(map[string]interface{})["data"]
 	picDataObject := picObject.(map[string]interface{})
+	firstName := fmt.Sprintf("%v", userRawData["first_name"])
+	lastName := fmt.Sprintf("%v", userRawData["last_name"])
+	picture := fmt.Sprintf("%v", picDataObject["url"])
+
 	user = db.User{
-		FirstName:       fmt.Sprintf("%v", userRawData["first_name"]),
-		LastName:        fmt.Sprintf("%v", userRawData["last_name"]),
-		Image:           fmt.Sprintf("%v", picDataObject["url"]),
-		Email:           email,
-		EmailVerifiedAt: time.Now().Unix(),
+		GivenName:  &firstName,
+		FamilyName: &lastName,
+		Picture:    &picture,
+		Email:      email,
 	}
 
 	return user, nil
@@ -202,7 +191,7 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 
 		if err != nil {
 			// user not registered, register user and generate session token
-			user.SignupMethod = provider
+			user.SignupMethods = provider
 			// make sure inputRoles don't include protected roles
 			hasProtectedRole := false
 			for _, ir := range inputRoles {
@@ -217,16 +206,18 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			}
 
 			user.Roles = strings.Join(inputRoles, ",")
+			now := time.Now().Unix()
+			user.EmailVerifiedAt = &now
 			user, _ = db.Mgr.AddUser(user)
 		} else {
 			// user exists in db, check if method was google
 			// if not append google to existing signup method and save it
 
-			signupMethod := existingUser.SignupMethod
+			signupMethod := existingUser.SignupMethods
 			if !strings.Contains(signupMethod, provider) {
 				signupMethod = signupMethod + "," + provider
 			}
-			user.SignupMethod = signupMethod
+			user.SignupMethods = signupMethod
 			user.Password = existingUser.Password
 
 			// There multiple scenarios with roles here in social login
@@ -262,7 +253,6 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 				user.Roles = existingUser.Roles
 			}
 			user.Key = existingUser.Key
-			user.ObjectID = existingUser.ObjectID
 			user.ID = existingUser.ID
 			user, err = db.Mgr.UpdateUser(user)
 		}
@@ -274,15 +264,7 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 		accessToken, _, _ := utils.CreateAuthToken(user, enum.AccessToken, inputRoles)
 		utils.SetCookie(c, accessToken)
 		session.SetToken(userIdStr, accessToken, refreshToken)
-		go func() {
-			sessionData := db.Session{
-				UserID:    user.ID,
-				UserAgent: utils.GetUserAgent(c.Request),
-				IP:        utils.GetIP(c.Request),
-			}
-
-			db.Mgr.AddSession(sessionData)
-		}()
+		utils.CreateSession(user.ID, c)
 
 		c.Redirect(http.StatusTemporaryRedirect, redirectURL)
 	}

@@ -3,7 +3,6 @@ package resolvers
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/graph/model"
@@ -41,20 +40,7 @@ func Profile(ctx context.Context) (*model.User, error) {
 		return res, err
 	}
 
-	userIdStr := fmt.Sprintf("%v", user.ID)
-
-	res = &model.User{
-		ID:              userIdStr,
-		Email:           user.Email,
-		Image:           &user.Image,
-		FirstName:       &user.FirstName,
-		LastName:        &user.LastName,
-		SignupMethod:    user.SignupMethod,
-		EmailVerifiedAt: &user.EmailVerifiedAt,
-		Roles:           strings.Split(user.Roles, ","),
-		CreatedAt:       &user.CreatedAt,
-		UpdatedAt:       &user.UpdatedAt,
-	}
+	res = utils.GetResponseUserData(user)
 
 	return res, nil
 }

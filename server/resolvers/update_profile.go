@@ -40,7 +40,7 @@ func UpdateProfile(ctx context.Context, params model.UpdateProfileInput) (*model
 	}
 
 	// validate if all params are not empty
-	if params.FirstName == nil && params.LastName == nil && params.Image == nil && params.OldPassword == nil && params.Email == nil {
+	if params.GivenName == nil && params.FamilyName == nil && params.Picture == nil && params.MiddleName == nil && params.Nickname == nil && params.OldPassword == nil && params.Email == nil && params.Birthdate == nil && params.Gender == nil && params.PhoneNumber == nil {
 		return res, fmt.Errorf("please enter atleast one param to update")
 	}
 
@@ -50,20 +50,40 @@ func UpdateProfile(ctx context.Context, params model.UpdateProfileInput) (*model
 		return res, err
 	}
 
-	if params.FirstName != nil && user.FirstName != *params.FirstName {
-		user.FirstName = *params.FirstName
+	if params.GivenName != nil && user.GivenName != params.GivenName {
+		user.GivenName = params.GivenName
 	}
 
-	if params.LastName != nil && user.LastName != *params.LastName {
-		user.LastName = *params.LastName
+	if params.FamilyName != nil && user.FamilyName != params.FamilyName {
+		user.FamilyName = params.FamilyName
 	}
 
-	if params.Image != nil && user.Image != *params.Image {
-		user.Image = *params.Image
+	if params.MiddleName != nil && user.MiddleName != params.MiddleName {
+		user.MiddleName = params.MiddleName
+	}
+
+	if params.Nickname != nil && user.Nickname != params.Nickname {
+		user.Nickname = params.Nickname
+	}
+
+	if params.Birthdate != nil && user.Birthdate != params.Birthdate {
+		user.Birthdate = params.Birthdate
+	}
+
+	if params.Gender != nil && user.Gender != params.Gender {
+		user.Gender = params.Gender
+	}
+
+	if params.PhoneNumber != nil && user.PhoneNumber != params.PhoneNumber {
+		user.PhoneNumber = params.PhoneNumber
+	}
+
+	if params.Picture != nil && user.Picture != params.Picture {
+		user.Picture = params.Picture
 	}
 
 	if params.OldPassword != nil {
-		if err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(*params.OldPassword)); err != nil {
+		if err = bcrypt.CompareHashAndPassword([]byte(*user.Password), []byte(*params.OldPassword)); err != nil {
 			return res, fmt.Errorf("incorrect old password")
 		}
 
@@ -81,7 +101,7 @@ func UpdateProfile(ctx context.Context, params model.UpdateProfileInput) (*model
 
 		password, _ := utils.HashPassword(*params.NewPassword)
 
-		user.Password = password
+		user.Password = &password
 	}
 
 	hasEmailChanged := false
@@ -93,7 +113,8 @@ func UpdateProfile(ctx context.Context, params model.UpdateProfileInput) (*model
 		}
 		newEmail := strings.ToLower(*params.Email)
 		// check if user with new email exists
-		_, err = db.Mgr.GetUserByEmail(newEmail)
+		_, err := db.Mgr.GetUserByEmail(newEmail)
+
 		// err = nil means user exists
 		if err == nil {
 			return res, fmt.Errorf("user with this email address already exists")
@@ -103,7 +124,7 @@ func UpdateProfile(ctx context.Context, params model.UpdateProfileInput) (*model
 		utils.DeleteCookie(gc)
 
 		user.Email = newEmail
-		user.EmailVerifiedAt = 0
+		user.EmailVerifiedAt = nil
 		hasEmailChanged = true
 		// insert verification request
 		verificationType := enum.UpdateEmail.String()

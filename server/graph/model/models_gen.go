@@ -2,20 +2,11 @@
 
 package model
 
-type AdminUpdateUserInput struct {
-	ID        string    `json:"id"`
-	Email     *string   `json:"email"`
-	FirstName *string   `json:"firstName"`
-	LastName  *string   `json:"lastName"`
-	Image     *string   `json:"image"`
-	Roles     []*string `json:"roles"`
-}
-
 type AuthResponse struct {
-	Message              string  `json:"message"`
-	AccessToken          *string `json:"accessToken"`
-	AccessTokenExpiresAt *int64  `json:"accessTokenExpiresAt"`
-	User                 *User   `json:"user"`
+	Message     string  `json:"message"`
+	AccessToken *string `json:"access_token"`
+	ExpiresAt   *int64  `json:"expires_at"`
+	User        *User   `json:"user"`
 }
 
 type DeleteUserInput struct {
@@ -37,30 +28,30 @@ type LoginInput struct {
 	Roles    []string `json:"roles"`
 }
 
-type MagicLoginInput struct {
+type MagicLinkLoginInput struct {
 	Email string   `json:"email"`
 	Roles []string `json:"roles"`
 }
 
 type Meta struct {
 	Version                      string `json:"version"`
-	IsGoogleLoginEnabled         bool   `json:"isGoogleLoginEnabled"`
-	IsFacebookLoginEnabled       bool   `json:"isFacebookLoginEnabled"`
-	IsTwitterLoginEnabled        bool   `json:"isTwitterLoginEnabled"`
-	IsGithubLoginEnabled         bool   `json:"isGithubLoginEnabled"`
-	IsEmailVerificationEnabled   bool   `json:"isEmailVerificationEnabled"`
-	IsBasicAuthenticationEnabled bool   `json:"isBasicAuthenticationEnabled"`
-	IsMagicLoginEnabled          bool   `json:"isMagicLoginEnabled"`
+	IsGoogleLoginEnabled         bool   `json:"is_google_login_enabled"`
+	IsFacebookLoginEnabled       bool   `json:"is_facebook_login_enabled"`
+	IsGithubLoginEnabled         bool   `json:"is_github_login_enabled"`
+	IsEmailVerificationEnabled   bool   `json:"is_email_verification_enabled"`
+	IsBasicAuthenticationEnabled bool   `json:"is_basic_authentication_enabled"`
+	IsMagicLinkLoginEnabled      bool   `json:"is_magic_link_login_enabled"`
 }
 
 type ResendVerifyEmailInput struct {
-	Email string `json:"email"`
+	Email      string `json:"email"`
+	Identifier string `json:"identifier"`
 }
 
 type ResetPasswordInput struct {
 	Token           string `json:"token"`
 	Password        string `json:"password"`
-	ConfirmPassword string `json:"confirmPassword"`
+	ConfirmPassword string `json:"confirm_password"`
 }
 
 type Response struct {
@@ -68,36 +59,67 @@ type Response struct {
 }
 
 type SignUpInput struct {
-	FirstName       *string  `json:"firstName"`
-	LastName        *string  `json:"lastName"`
 	Email           string   `json:"email"`
+	GivenName       *string  `json:"given_name"`
+	FamilyName      *string  `json:"family_name"`
+	MiddleName      *string  `json:"middle_name"`
+	Nickname        *string  `json:"nickname"`
+	Gender          *string  `json:"gender"`
+	Birthdate       *string  `json:"birthdate"`
+	PhoneNumber     *string  `json:"phone_number"`
+	Picture         *string  `json:"picture"`
 	Password        string   `json:"password"`
-	ConfirmPassword string   `json:"confirmPassword"`
-	Image           *string  `json:"image"`
+	ConfirmPassword string   `json:"confirm_password"`
 	Roles           []string `json:"roles"`
 }
 
 type UpdateProfileInput struct {
-	OldPassword        *string `json:"oldPassword"`
-	NewPassword        *string `json:"newPassword"`
-	ConfirmNewPassword *string `json:"confirmNewPassword"`
-	FirstName          *string `json:"firstName"`
-	LastName           *string `json:"lastName"`
-	Image              *string `json:"image"`
+	OldPassword        *string `json:"old_password"`
+	NewPassword        *string `json:"new_password"`
+	ConfirmNewPassword *string `json:"confirm_new_password"`
 	Email              *string `json:"email"`
+	GivenName          *string `json:"given_name"`
+	FamilyName         *string `json:"family_name"`
+	MiddleName         *string `json:"middle_name"`
+	Nickname           *string `json:"nickname"`
+	Gender             *string `json:"gender"`
+	Birthdate          *string `json:"birthdate"`
+	PhoneNumber        *string `json:"phone_number"`
+	Picture            *string `json:"picture"`
+}
+
+type UpdateUserInput struct {
+	ID          string    `json:"id"`
+	Email       *string   `json:"email"`
+	GivenName   *string   `json:"given_name"`
+	FamilyName  *string   `json:"family_name"`
+	MiddleName  *string   `json:"middle_name"`
+	Nickname    *string   `json:"nickname"`
+	Gender      *string   `json:"gender"`
+	Birthdate   *string   `json:"birthdate"`
+	PhoneNumber *string   `json:"phone_number"`
+	Picture     *string   `json:"picture"`
+	Roles       []*string `json:"roles"`
 }
 
 type User struct {
-	ID              string   `json:"id"`
-	Email           string   `json:"email"`
-	SignupMethod    string   `json:"signupMethod"`
-	FirstName       *string  `json:"firstName"`
-	LastName        *string  `json:"lastName"`
-	EmailVerifiedAt *int64   `json:"emailVerifiedAt"`
-	Image           *string  `json:"image"`
-	CreatedAt       *int64   `json:"createdAt"`
-	UpdatedAt       *int64   `json:"updatedAt"`
-	Roles           []string `json:"roles"`
+	ID                  string   `json:"id"`
+	Email               string   `json:"email"`
+	EmailVerified       bool     `json:"email_verified"`
+	SignupMethods       string   `json:"signup_methods"`
+	GivenName           *string  `json:"given_name"`
+	FamilyName          *string  `json:"family_name"`
+	MiddleName          *string  `json:"middle_name"`
+	Nickname            *string  `json:"nickname"`
+	PreferredUsername   *string  `json:"preferred_username"`
+	Gender              *string  `json:"gender"`
+	Birthdate           *string  `json:"birthdate"`
+	PhoneNumber         *string  `json:"phone_number"`
+	PhoneNumberVerified *bool    `json:"phone_number_verified"`
+	Picture             *string  `json:"picture"`
+	Roles               []string `json:"roles"`
+	CreatedAt           *int64   `json:"created_at"`
+	UpdatedAt           *int64   `json:"updated_at"`
 }
 
 type VerificationRequest struct {
@@ -106,8 +128,8 @@ type VerificationRequest struct {
 	Token      *string `json:"token"`
 	Email      *string `json:"email"`
 	Expires    *int64  `json:"expires"`
-	CreatedAt  *int64  `json:"createdAt"`
-	UpdatedAt  *int64  `json:"updatedAt"`
+	CreatedAt  *int64  `json:"created_at"`
+	UpdatedAt  *int64  `json:"updated_at"`
 }
 
 type VerifyEmailInput struct {

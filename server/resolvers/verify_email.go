@@ -37,44 +37,25 @@ func VerifyEmail(ctx context.Context, params model.VerifyEmailInput) (*model.Aut
 	}
 
 	// update email_verified_at in users table
-	user.EmailVerifiedAt = time.Now().Unix()
+	now := time.Now().Unix()
+	user.EmailVerifiedAt = &now
 	db.Mgr.UpdateUser(user)
 	// delete from verification table
 	db.Mgr.DeleteVerificationRequest(verificationRequest)
 
-	userIdStr := fmt.Sprintf("%v", user.ID)
 	roles := strings.Split(user.Roles, ",")
 	refreshToken, _, _ := utils.CreateAuthToken(user, enum.RefreshToken, roles)
 
 	accessToken, expiresAt, _ := utils.CreateAuthToken(user, enum.AccessToken, roles)
 
-	session.SetToken(userIdStr, accessToken, refreshToken)
-	go func() {
-		sessionData := db.Session{
-			UserID:    user.ID,
-			UserAgent: utils.GetUserAgent(gc.Request),
-			IP:        utils.GetIP(gc.Request),
-		}
-
-		db.Mgr.AddSession(sessionData)
-	}()
+	session.SetToken(user.ID, accessToken, refreshToken)
+	utils.CreateSession(user.ID, gc)
 
 	res = &model.AuthResponse{
-		Message:              `Email verified successfully.`,
-		AccessToken:          &accessToken,
-		AccessTokenExpiresAt: &expiresAt,
-		User: &model.User{
-			ID:              userIdStr,
-			Email:           user.Email,
-			Image:           &user.Image,
-			FirstName:       &user.FirstName,
-			LastName:        &user.LastName,
-			SignupMethod:    user.SignupMethod,
-			EmailVerifiedAt: &user.EmailVerifiedAt,
-			Roles:           strings.Split(user.Roles, ","),
-			CreatedAt:       &user.CreatedAt,
-			UpdatedAt:       &user.UpdatedAt,
-		},
+		Message:     `Email verified successfully.`,
+		AccessToken: &accessToken,
+		ExpiresAt:   &expiresAt,
+		User:        utils.GetResponseUserData(user),
 	}
 
 	utils.SetCookie(gc, accessToken)

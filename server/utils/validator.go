@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/enum"
 	"github.com/gin-gonic/gin"
 )
 
@@ -67,6 +68,13 @@ func IsValidRoles(userRoles []string, roles []string) bool {
 	}
 
 	return valid
+}
+
+func IsValidVerificationIdentifier(identifier string) bool {
+	if identifier != enum.BasicAuthSignup.String() && identifier != enum.ForgotPassword.String() && identifier != enum.UpdateEmail.String() {
+		return false
+	}
+	return true
 }
 
 func IsStringArrayEqual(a, b []string) bool {

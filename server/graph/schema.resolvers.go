@@ -19,8 +19,8 @@ func (r *mutationResolver) Login(ctx context.Context, params model.LoginInput) (
 	return resolvers.Login(ctx, params)
 }
 
-func (r *mutationResolver) MagicLogin(ctx context.Context, params model.MagicLoginInput) (*model.Response, error) {
-	return resolvers.MagicLogin(ctx, params)
+func (r *mutationResolver) MagicLinkLogin(ctx context.Context, params model.MagicLinkLoginInput) (*model.Response, error) {
+	return resolvers.MagicLinkLogin(ctx, params)
 }
 
 func (r *mutationResolver) Logout(ctx context.Context) (*model.Response, error) {
@@ -29,10 +29,6 @@ func (r *mutationResolver) Logout(ctx context.Context) (*model.Response, error) 
 
 func (r *mutationResolver) UpdateProfile(ctx context.Context, params model.UpdateProfileInput) (*model.Response, error) {
 	return resolvers.UpdateProfile(ctx, params)
-}
-
-func (r *mutationResolver) AdminUpdateUser(ctx context.Context, params model.AdminUpdateUserInput) (*model.User, error) {
-	return resolvers.AdminUpdateUser(ctx, params)
 }
 
 func (r *mutationResolver) VerifyEmail(ctx context.Context, params model.VerifyEmailInput) (*model.AuthResponse, error) {
@@ -55,20 +51,24 @@ func (r *mutationResolver) DeleteUser(ctx context.Context, params model.DeleteUs
 	return resolvers.DeleteUser(ctx, params)
 }
 
+func (r *mutationResolver) UpdateUser(ctx context.Context, params model.UpdateUserInput) (*model.User, error) {
+	return resolvers.UpdateUser(ctx, params)
+}
+
 func (r *queryResolver) Meta(ctx context.Context) (*model.Meta, error) {
 	return resolvers.Meta(ctx)
 }
 
-func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
-	return resolvers.Users(ctx)
-}
-
-func (r *queryResolver) Token(ctx context.Context, roles []string) (*model.AuthResponse, error) {
-	return resolvers.Token(ctx, roles)
+func (r *queryResolver) Session(ctx context.Context, roles []string) (*model.AuthResponse, error) {
+	return resolvers.Session(ctx, roles)
 }
 
 func (r *queryResolver) Profile(ctx context.Context) (*model.User, error) {
 	return resolvers.Profile(ctx)
+}
+
+func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
+	return resolvers.Users(ctx)
 }
 
 func (r *queryResolver) VerificationRequests(ctx context.Context) ([]*model.VerificationRequest, error) {
@@ -81,5 +81,7 @@ func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResol
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
-type mutationResolver struct{ *Resolver }
-type queryResolver struct{ *Resolver }
+type (
+	mutationResolver struct{ *Resolver }
+	queryResolver    struct{ *Resolver }
+)

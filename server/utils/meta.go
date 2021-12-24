@@ -13,9 +13,8 @@ func GetMetaInfo() model.Meta {
 		IsGoogleLoginEnabled:         constants.GOOGLE_CLIENT_ID != "" && constants.GOOGLE_CLIENT_SECRET != "",
 		IsGithubLoginEnabled:         constants.GITHUB_CLIENT_ID != "" && constants.GOOGLE_CLIENT_SECRET != "",
 		IsFacebookLoginEnabled:       constants.FACEBOOK_CLIENT_ID != "" && constants.FACEBOOK_CLIENT_SECRET != "",
-		IsTwitterLoginEnabled:        constants.TWITTER_CLIENT_ID != "" && constants.TWITTER_CLIENT_SECRET != "",
 		IsBasicAuthenticationEnabled: !constants.DISABLE_BASIC_AUTHENTICATION,
 		IsEmailVerificationEnabled:   !constants.DISABLE_EMAIL_VERIFICATION,
-		IsMagicLoginEnabled:          !constants.DISABLE_MAGIC_LOGIN,
+		IsMagicLinkLoginEnabled:      !constants.DISABLE_MAGIC_LINK_LOGIN,
 	}
 }
