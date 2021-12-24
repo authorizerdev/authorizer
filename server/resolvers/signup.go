@@ -54,10 +54,10 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 		log.Println("user with email " + params.Email + " not found")
 	}
 
-	if existingUser.EmailVerifiedAt > 0 {
+	if existingUser.EmailVerifiedAt != nil {
 		// email is verified
 		return res, fmt.Errorf(`%s has already signed up`, params.Email)
-	} else if existingUser.ID != "" && existingUser.EmailVerifiedAt <= 0 {
+	} else if existingUser.ID != "" && existingUser.EmailVerifiedAt == nil {
 		return res, fmt.Errorf("%s has already signed up. please complete the email verification process or reset the password", params.Email)
 	}
 
@@ -68,19 +68,44 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 	user.Roles = strings.Join(inputRoles, ",")
 
 	password, _ := utils.HashPassword(params.Password)
-	user.Password = password
+	user.Password = &password
 
-	if params.FirstName != nil {
-		user.FirstName = *params.FirstName
+	if params.GivenName != nil {
+		user.GivenName = params.GivenName
 	}
 
-	if params.LastName != nil {
-		user.LastName = *params.LastName
+	if params.FamilyName != nil {
+		user.FamilyName = params.FamilyName
 	}
 
-	user.SignupMethod = enum.BasicAuth.String()
+	if params.MiddleName != nil {
+		user.MiddleName = params.MiddleName
+	}
+
+	if params.Nickname != nil {
+		user.Nickname = params.Nickname
+	}
+
+	if params.Gender != nil {
+		user.Gender = params.Gender
+	}
+
+	if params.Birthdate != nil {
+		user.Birthdate = params.Birthdate
+	}
+
+	if params.PhoneNumber != nil {
+		user.PhoneNumber = params.PhoneNumber
+	}
+
+	if params.Picture != nil {
+		user.Picture = params.Picture
+	}
+
+	user.SignupMethods = enum.BasicAuth.String()
 	if constants.DISABLE_EMAIL_VERIFICATION {
-		user.EmailVerifiedAt = time.Now().Unix()
+		now := time.Now().Unix()
+		user.EmailVerifiedAt = &now
 	}
 	user, err = db.Mgr.AddUser(user)
 	if err != nil {
@@ -88,18 +113,7 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 	}
 	userIdStr := fmt.Sprintf("%v", user.ID)
 	roles := strings.Split(user.Roles, ",")
-	userToReturn := &model.User{
-		ID:              userIdStr,
-		Email:           user.Email,
-		Image:           &user.Image,
-		FirstName:       &user.FirstName,
-		LastName:        &user.LastName,
-		SignupMethod:    user.SignupMethod,
-		EmailVerifiedAt: &user.EmailVerifiedAt,
-		Roles:           strings.Split(user.Roles, ","),
-		CreatedAt:       &user.CreatedAt,
-		UpdatedAt:       &user.UpdatedAt,
-	}
+	userToReturn := utils.GetResponseUserData(user)
 
 	if !constants.DISABLE_EMAIL_VERIFICATION {
 		// insert verification request
@@ -131,20 +145,12 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 		accessToken, expiresAt, _ := utils.CreateAuthToken(user, enum.AccessToken, roles)
 
 		session.SetToken(userIdStr, accessToken, refreshToken)
-		go func() {
-			sessionData := db.Session{
-				UserID:    user.ID,
-				UserAgent: utils.GetUserAgent(gc.Request),
-				IP:        utils.GetIP(gc.Request),
-			}
-
-			db.Mgr.AddSession(sessionData)
-		}()
+		utils.CreateSession(user.ID, gc)
 		res = &model.AuthResponse{
-			Message:              `Signed up successfully.`,
-			AccessToken:          &accessToken,
-			AccessTokenExpiresAt: &expiresAt,
-			User:                 userToReturn,
+			Message:     `Signed up successfully.`,
+			AccessToken: &accessToken,
+			ExpiresAt:   &expiresAt,
+			User:        userToReturn,
 		}
 
 		utils.SetCookie(gc, accessToken)

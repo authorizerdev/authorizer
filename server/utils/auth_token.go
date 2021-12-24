@@ -26,34 +26,31 @@ func CreateAuthToken(user db.User, tokenType enum.TokenType, roles []string) (st
 
 	expiresAt := time.Now().Add(expiryBound).Unix()
 
+	resUser := GetResponseUserData(user)
+	userBytes, _ := json.Marshal(&resUser)
+	var userMap map[string]interface{}
+	json.Unmarshal(userBytes, &userMap)
+
 	customClaims := jwt.MapClaims{
 		"exp":                    expiresAt,
 		"iat":                    time.Now().Unix(),
 		"token_type":             tokenType.String(),
-		"email":                  user.Email,
-		"id":                     user.ID,
 		"allowed_roles":          strings.Split(user.Roles, ","),
 		constants.JWT_ROLE_CLAIM: roles,
 	}
 
-	// check for the extra access token script
+	for k, v := range userMap {
+		if k != "roles" {
+			customClaims[k] = v
+		}
+	}
 
+	// check for the extra access token script
 	accessTokenScript := os.Getenv("CUSTOM_ACCESS_TOKEN_SCRIPT")
 	if accessTokenScript != "" {
-		userInfo := map[string]interface{}{
-			"id":            user.ID,
-			"email":         user.Email,
-			"firstName":     user.FirstName,
-			"lastName":      user.LastName,
-			"image":         user.Image,
-			"roles":         strings.Split(user.Roles, ","),
-			"signUpMethods": strings.Split(user.SignupMethod, ","),
-		}
-
 		vm := otto.New()
-		userBytes, _ := json.Marshal(userInfo)
-		claimBytes, _ := json.Marshal(customClaims)
 
+		claimBytes, _ := json.Marshal(customClaims)
 		vm.Run(fmt.Sprintf(`
 			var user = %s;
 			var tokenPayload = %s;

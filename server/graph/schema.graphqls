@@ -7,26 +7,33 @@ scalar Any
 
 type Meta {
 	version: String!
-	isGoogleLoginEnabled: Boolean!
-	isFacebookLoginEnabled: Boolean!
-	isTwitterLoginEnabled: Boolean!
-	isGithubLoginEnabled: Boolean!
-	isEmailVerificationEnabled: Boolean!
-	isBasicAuthenticationEnabled: Boolean!
-	isMagicLoginEnabled: Boolean!
+	is_google_login_enabled: Boolean!
+	is_facebook_login_enabled: Boolean!
+	is_github_login_enabled: Boolean!
+	is_email_verification_enabled: Boolean!
+	is_basic_authentication_enabled: Boolean!
+	is_magic_link_login_enabled: Boolean!
 }
 
 type User {
 	id: ID!
 	email: String!
-	signupMethod: String!
-	firstName: String
-	lastName: String
-	emailVerifiedAt: Int64
-	image: String
-	createdAt: Int64
-	updatedAt: Int64
+	email_verified: Boolean!
+	signup_methods: String!
+	given_name: String
+	family_name: String
+	middle_name: String
+	nickname: String
+	# defaults to email
+	preferred_username: String
+	gender: String
+	birthdate: String
+	phone_number: String
+	phone_number_verified: Boolean
+	picture: String
 	roles: [String!]!
+	created_at: Int64
+	updated_at: Int64
 }
 
 type VerificationRequest {
@@ -35,8 +42,8 @@ type VerificationRequest {
 	token: String
 	email: String
 	expires: Int64
-	createdAt: Int64
-	updatedAt: Int64
+	created_at: Int64
+	updated_at: Int64
 }
 
 type Error {
@@ -46,8 +53,8 @@ type Error {
 
 type AuthResponse {
 	message: String!
-	accessToken: String
-	accessTokenExpiresAt: Int64
+	access_token: String
+	expires_at: Int64
 	user: User
 }
 
@@ -56,12 +63,17 @@ type Response {
 }
 
 input SignUpInput {
-	firstName: String
-	lastName: String
 	email: String!
+	given_name: String
+	family_name: String
+	middle_name: String
+	nickname: String
+	gender: String
+	birthdate: String
+	phone_number: String
+	picture: String
 	password: String!
-	confirmPassword: String!
-	image: String
+	confirm_password: String!
 	roles: [String!]
 }
 
@@ -77,25 +89,35 @@ input VerifyEmailInput {
 
 input ResendVerifyEmailInput {
 	email: String!
+	identifier: String!
 }
 
 input UpdateProfileInput {
-	oldPassword: String
-	newPassword: String
-	confirmNewPassword: String
-	firstName: String
-	lastName: String
-	image: String
+	old_password: String
+	new_password: String
+	confirm_new_password: String
 	email: String
-	# roles: [String]
+	given_name: String
+	family_name: String
+	middle_name: String
+	nickname: String
+	gender: String
+	birthdate: String
+	phone_number: String
+	picture: String
 }
 
-input AdminUpdateUserInput {
+input UpdateUserInput {
 	id: ID!
 	email: String
-	firstName: String
-	lastName: String
-	image: String
+	given_name: String
+	family_name: String
+	middle_name: String
+	nickname: String
+	gender: String
+	birthdate: String
+	phone_number: String
+	picture: String
 	roles: [String]
 }
 
@@ -106,14 +128,14 @@ input ForgotPasswordInput {
 input ResetPasswordInput {
 	token: String!
 	password: String!
-	confirmPassword: String!
+	confirm_password: String!
 }
 
 input DeleteUserInput {
 	email: String!
 }
 
-input MagicLoginInput {
+input MagicLinkLoginInput {
 	email: String!
 	roles: [String!]
 }
@@ -121,21 +143,23 @@ input MagicLoginInput {
 type Mutation {
 	signup(params: SignUpInput!): AuthResponse!
 	login(params: LoginInput!): AuthResponse!
-	magicLogin(params: MagicLoginInput!): Response!
+	magic_link_login(params: MagicLinkLoginInput!): Response!
 	logout: Response!
-	updateProfile(params: UpdateProfileInput!): Response!
-	adminUpdateUser(params: AdminUpdateUserInput!): User!
-	verifyEmail(params: VerifyEmailInput!): AuthResponse!
-	resendVerifyEmail(params: ResendVerifyEmailInput!): Response!
-	forgotPassword(params: ForgotPasswordInput!): Response!
-	resetPassword(params: ResetPasswordInput!): Response!
-	deleteUser(params: DeleteUserInput!): Response!
+	update_profile(params: UpdateProfileInput!): Response!
+	verify_email(params: VerifyEmailInput!): AuthResponse!
+	resend_verify_email(params: ResendVerifyEmailInput!): Response!
+	forgot_password(params: ForgotPasswordInput!): Response!
+	reset_password(params: ResetPasswordInput!): Response!
+	# admin only apis
+	_delete_user(params: DeleteUserInput!): Response!
+	_update_user(params: UpdateUserInput!): User!
 }
 
 type Query {
 	meta: Meta!
-	users: [User!]!
-	token(roles: [String!]): AuthResponse
+	session(roles: [String!]): AuthResponse
 	profile: User!
-	verificationRequests: [VerificationRequest!]!
+	# admin only apis
+	_users: [User!]!
+	_verification_requests: [VerificationRequest!]!
 }

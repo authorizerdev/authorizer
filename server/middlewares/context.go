@@ -14,7 +14,7 @@ func GinContextToContextMiddleware() gin.HandlerFunc {
 		if constants.AUTHORIZER_URL == "" {
 			url := location.Get(c)
 			constants.AUTHORIZER_URL = url.Scheme + "://" + c.Request.Host
-			log.Println("=> authorizer url:", constants.AUTHORIZER_URL)
+			log.Println("authorizer url:", constants.AUTHORIZER_URL)
 		}
 		ctx := context.WithValue(c.Request.Context(), "GinContextKey", c)
 		c.Request = c.Request.WithContext(ctx)

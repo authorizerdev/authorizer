@@ -24,7 +24,6 @@ func CreateVerificationToken(email string, tokenType string) (string, error) {
 
 	t.Claims = &CustomClaim{
 		&jwt.StandardClaims{
-
 			ExpiresAt: time.Now().Add(time.Minute * 30).Unix(),
 		},
 		tokenType,

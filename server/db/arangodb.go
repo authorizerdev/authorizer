@@ -36,16 +36,12 @@ func initArangodb() (arangoDriver.Database, error) {
 
 	if arangodb_exists {
 		log.Println(constants.DATABASE_NAME + " db exists already")
-
 		arangodb, err = arangoClient.Database(nil, constants.DATABASE_NAME)
-
 		if err != nil {
 			return nil, err
 		}
-
 	} else {
 		arangodb, err = arangoClient.CreateDatabase(nil, constants.DATABASE_NAME, nil)
-
 		if err != nil {
 			return nil, err
 		}
@@ -61,11 +57,11 @@ func initArangodb() (arangoDriver.Database, error) {
 		}
 	}
 	userCollection, _ := arangodb.Collection(nil, Collections.User)
-	userCollection.EnsureHashIndex(ctx, []string{"id"}, &arangoDriver.EnsureHashIndexOptions{
+	userCollection.EnsureHashIndex(ctx, []string{"email"}, &arangoDriver.EnsureHashIndexOptions{
 		Unique: true,
 		Sparse: true,
 	})
-	userCollection.EnsureHashIndex(ctx, []string{"email"}, &arangoDriver.EnsureHashIndexOptions{
+	userCollection.EnsureHashIndex(ctx, []string{"phone_number"}, &arangoDriver.EnsureHashIndexOptions{
 		Unique: true,
 		Sparse: true,
 	})
@@ -79,11 +75,8 @@ func initArangodb() (arangoDriver.Database, error) {
 			log.Println("error creating collection("+Collections.VerificationRequest+"):", err)
 		}
 	}
+
 	verificationRequestCollection, _ := arangodb.Collection(nil, Collections.VerificationRequest)
-	verificationRequestCollection.EnsureHashIndex(ctx, []string{"id"}, &arangoDriver.EnsureHashIndexOptions{
-		Unique: true,
-		Sparse: true,
-	})
 	verificationRequestCollection.EnsureHashIndex(ctx, []string{"email", "identifier"}, &arangoDriver.EnsureHashIndexOptions{
 		Unique: true,
 		Sparse: true,
@@ -103,8 +96,7 @@ func initArangodb() (arangoDriver.Database, error) {
 	}
 
 	sessionCollection, _ := arangodb.Collection(nil, Collections.Session)
-	sessionCollection.EnsureHashIndex(ctx, []string{"id"}, &arangoDriver.EnsureHashIndexOptions{
-		Unique: true,
+	sessionCollection.EnsureHashIndex(ctx, []string{"user_id"}, &arangoDriver.EnsureHashIndexOptions{
 		Sparse: true,
 	})
 

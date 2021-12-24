@@ -6,4 +6,4 @@ cmd:
 clean:
 	rm -rf build
 test:
-	cd server && go clean --testcache && go test -v ./...
+	cd server && go clean --testcache && go test -v ./__test__

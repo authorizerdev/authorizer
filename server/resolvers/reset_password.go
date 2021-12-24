@@ -39,13 +39,13 @@ func ResetPassword(ctx context.Context, params model.ResetPasswordInput) (*model
 	}
 
 	password, _ := utils.HashPassword(params.Password)
-	user.Password = password
+	user.Password = &password
 
-	signupMethod := user.SignupMethod
+	signupMethod := user.SignupMethods
 	if !strings.Contains(signupMethod, enum.BasicAuth.String()) {
 		signupMethod = signupMethod + "," + enum.BasicAuth.String()
 	}
-	user.SignupMethod = signupMethod
+	user.SignupMethods = signupMethod
 
 	// delete from verification table
 	db.Mgr.DeleteVerificationRequest(verificationRequest)

@@ -26,8 +26,9 @@ type Manager interface {
 	GetVerificationByToken(token string) (VerificationRequest, error)
 	DeleteVerificationRequest(verificationRequest VerificationRequest) error
 	GetVerificationRequests() ([]VerificationRequest, error)
-	GetVerificationByEmail(email string) (VerificationRequest, error)
+	GetVerificationByEmail(email string, identifier string) (VerificationRequest, error)
 	AddSession(session Session) error
+	DeleteUserSession(userId string) error
 }
 
 type manager struct {
@@ -94,8 +95,8 @@ func InitDB() {
 
 		Mgr = &manager{
 			sqlDB:    nil,
-			mongodb:  nil,
 			arangodb: arangodb,
+			mongodb:  nil,
 		}
 
 		break
