@@ -113,7 +113,7 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 	}
 	userIdStr := fmt.Sprintf("%v", user.ID)
 	roles := strings.Split(user.Roles, ",")
-	userToReturn := utils.GetResUser(user)
+	userToReturn := utils.GetResponseUserData(user)
 
 	if !constants.DISABLE_EMAIL_VERIFICATION {
 		// insert verification request

@@ -26,7 +26,7 @@ func CreateAuthToken(user db.User, tokenType enum.TokenType, roles []string) (st
 
 	expiresAt := time.Now().Add(expiryBound).Unix()
 
-	resUser := GetResUser(user)
+	resUser := GetResponseUserData(user)
 	userBytes, _ := json.Marshal(&resUser)
 	var userMap map[string]interface{}
 	json.Unmarshal(userBytes, &userMap)

@@ -7,7 +7,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/graph/model"
 )
 
-func GetResUser(user db.User) *model.User {
+func GetResponseUserData(user db.User) *model.User {
 	isEmailVerified := user.EmailVerifiedAt != nil
 	isPhoneVerified := user.PhoneNumberVerifiedAt != nil
 	return &model.User{
