@@ -37,7 +37,7 @@ func MagicLinkLogin(ctx context.Context, params model.MagicLinkLoginInput) (*mod
 	existingUser, err := db.Mgr.GetUserByEmail(params.Email)
 
 	if err != nil {
-		user.SignupMethods = enum.MagicLink.String()
+		user.SignupMethods = enum.MagicLinkLogin.String()
 		// define roles for new user
 		if len(params.Roles) > 0 {
 			// check if roles exists
@@ -87,8 +87,8 @@ func MagicLinkLogin(ctx context.Context, params model.MagicLinkLoginInput) (*mod
 		}
 
 		signupMethod := existingUser.SignupMethods
-		if !strings.Contains(signupMethod, enum.MagicLink.String()) {
-			signupMethod = signupMethod + "," + enum.MagicLink.String()
+		if !strings.Contains(signupMethod, enum.MagicLinkLogin.String()) {
+			signupMethod = signupMethod + "," + enum.MagicLinkLogin.String()
 		}
 
 		user.SignupMethods = signupMethod
@@ -100,7 +100,7 @@ func MagicLinkLogin(ctx context.Context, params model.MagicLinkLoginInput) (*mod
 
 	if !constants.DISABLE_EMAIL_VERIFICATION {
 		// insert verification request
-		verificationType := enum.MagicLink.String()
+		verificationType := enum.MagicLinkLogin.String()
 		token, err := utils.CreateVerificationToken(params.Email, verificationType)
 		if err != nil {
 			log.Println(`error generating token`, err)

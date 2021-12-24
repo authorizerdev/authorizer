@@ -4,7 +4,7 @@ type SignupMethod int
 
 const (
 	BasicAuth SignupMethod = iota
-	MagicLink
+	MagicLinkLogin
 	Google
 	Github
 	Facebook
@@ -13,7 +13,7 @@ const (
 func (d SignupMethod) String() string {
 	return [...]string{
 		"basic_auth",
-		"magic_link",
+		"magic_link_login",
 		"google",
 		"github",
 		"facebook",
