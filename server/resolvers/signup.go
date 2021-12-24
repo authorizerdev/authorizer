@@ -35,19 +35,6 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 		return res, fmt.Errorf(`invalid email address`)
 	}
 
-	inputRoles := []string{}
-
-	if len(params.Roles) > 0 {
-		// check if roles exists
-		if !utils.IsValidRoles(constants.ROLES, params.Roles) {
-			return res, fmt.Errorf(`invalid roles`)
-		} else {
-			inputRoles = params.Roles
-		}
-	} else {
-		inputRoles = constants.DEFAULT_ROLES
-	}
-
 	// find user with email
 	existingUser, err := db.Mgr.GetUserByEmail(params.Email)
 	if err != nil {
@@ -59,6 +46,19 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 		return res, fmt.Errorf(`%s has already signed up`, params.Email)
 	} else if existingUser.ID != "" && existingUser.EmailVerifiedAt == nil {
 		return res, fmt.Errorf("%s has already signed up. please complete the email verification process or reset the password", params.Email)
+	}
+
+	inputRoles := []string{}
+
+	if len(params.Roles) > 0 {
+		// check if roles exists
+		if !utils.IsValidRoles(constants.ROLES, params.Roles) {
+			return res, fmt.Errorf(`invalid roles`)
+		} else {
+			inputRoles = params.Roles
+		}
+	} else {
+		inputRoles = constants.DEFAULT_ROLES
 	}
 
 	user := db.User{
