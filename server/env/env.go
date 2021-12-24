@@ -12,7 +12,6 @@ import (
 
 // build variables
 var (
-	VERSION            string
 	ARG_DB_URL         *string
 	ARG_DB_TYPE        *string
 	ARG_AUTHORIZER_URL *string
@@ -33,8 +32,6 @@ func InitEnv() {
 	if err != nil {
 		log.Printf("error loading %s file", constants.ENV_PATH)
 	}
-
-	constants.VERSION = VERSION
 
 	if constants.ADMIN_SECRET == "" {
 		constants.ADMIN_SECRET = os.Getenv("ADMIN_SECRET")

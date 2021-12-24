@@ -13,12 +13,16 @@ import (
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
+var VERSION string
+
 func main() {
 	env.ARG_DB_URL = flag.String("database_url", "", "Database connection string")
 	env.ARG_DB_TYPE = flag.String("database_type", "", "Database type, possible values are postgres,mysql,sqlite")
 	env.ARG_AUTHORIZER_URL = flag.String("authorizer_url", "", "URL for authorizer instance, eg: https://xyz.herokuapp.com")
 	env.ARG_ENV_FILE = flag.String("env_file", "", "Env file path")
 	flag.Parse()
+
+	constants.VERSION = VERSION
 
 	env.InitEnv()
 	db.InitDB()
