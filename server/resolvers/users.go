@@ -26,7 +26,7 @@ func Users(ctx context.Context) ([]*model.User, error) {
 	}
 
 	for i := 0; i < len(users); i++ {
-		res = append(res, utils.GetResUser(users[i]))
+		res = append(res, utils.GetResponseUserData(users[i]))
 	}
 
 	return res, nil

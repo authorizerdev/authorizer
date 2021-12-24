@@ -74,7 +74,7 @@ func Session(ctx context.Context, roles []string) (*model.AuthResponse, error) {
 		Message:     `Token verified`,
 		AccessToken: &token,
 		ExpiresAt:   &expiresAt,
-		User:        utils.GetResUser(user),
+		User:        utils.GetResponseUserData(user),
 	}
 	return res, nil
 }

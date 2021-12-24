@@ -66,7 +66,7 @@ func Login(ctx context.Context, params model.LoginInput) (*model.AuthResponse, e
 		Message:     `Logged in successfully`,
 		AccessToken: &accessToken,
 		ExpiresAt:   &expiresAt,
-		User:        utils.GetResUser(user),
+		User:        utils.GetResponseUserData(user),
 	}
 
 	utils.SetCookie(gc, accessToken)

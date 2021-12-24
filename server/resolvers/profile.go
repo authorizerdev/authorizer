@@ -40,7 +40,7 @@ func Profile(ctx context.Context) (*model.User, error) {
 		return res, err
 	}
 
-	res = utils.GetResUser(user)
+	res = utils.GetResponseUserData(user)
 
 	return res, nil
 }
