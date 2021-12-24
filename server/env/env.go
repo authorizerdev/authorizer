@@ -218,23 +218,26 @@ func InitEnv() {
 		constants.DISABLE_MAGIC_LINK_LOGIN = true
 	}
 
-	rolesSplit := strings.Split(os.Getenv("ROLES"), ",")
+	rolesEnv := strings.TrimSpace(os.Getenv("ROLES"))
+	rolesSplit := strings.Split(rolesEnv, ",")
 	roles := []string{}
-	if len(rolesSplit) == 0 {
+	if len(rolesEnv) == 0 {
 		roles = []string{"user"}
 	}
 
-	defaultRoleSplit := strings.Split(os.Getenv("DEFAULT_ROLES"), ",")
+	defaultRolesEnv := strings.TrimSpace(os.Getenv("DEFAULT_ROLES"))
+	defaultRoleSplit := strings.Split(defaultRolesEnv, ",")
 	defaultRoles := []string{}
 
-	if len(defaultRoleSplit) == 0 {
+	if len(defaultRolesEnv) == 0 {
 		defaultRoles = []string{"user"}
 	}
 
-	protectedRolesSplit := strings.Split(os.Getenv("PROTECTED_ROLES"), ",")
+	protectedRolesEnv := strings.TrimSpace(os.Getenv("PROTECTED_ROLES"))
+	protectedRolesSplit := strings.Split(protectedRolesEnv, ",")
 	protectedRoles := []string{}
 
-	if len(protectedRolesSplit) > 0 {
+	if len(protectedRolesEnv) > 0 {
 		for _, val := range protectedRolesSplit {
 			trimVal := strings.TrimSpace(val)
 			protectedRoles = append(protectedRoles, trimVal)
