@@ -75,4 +75,166 @@ __Command to run tests:__
 make test
 ```
 
+__Manual Testing:__
+
+For manually testing using graphql playground, you can paste following queries and mutations in your playground and test it
+
+```gql
+mutation Signup {
+  signup(params: {
+    email: "lakhan@yopmail.com",
+    password: "test",
+    confirm_password: "test",
+    given_name: "lakhan"
+  }) {
+    message
+    user {
+      id
+      family_name
+      given_name
+      email
+      email_verified
+    }
+  }
+}
+
+mutation ResendEamil {
+  resend_verify_email(params: {
+    email: "lakhan@yopmail.com"
+    identifier: "basic_auth_signup"
+  }) {
+    message
+  }
+}
+
+query GetVerifyRequests {
+  _verification_requests {
+    id
+    token
+    expires
+    identifier
+  }
+}
+
+mutation VerifyEmail {
+  verify_email(params: {
+    token: ""
+  }) {
+    access_token
+    expires_at
+    user {
+      id
+      email
+      given_name
+      email_verified
+    }
+  }
+}
+
+mutation Login {
+  login(params: {
+    email: "lakhan@yopmail.com",
+    password: "test"
+  }) {
+    access_token
+    expires_at
+    user {
+      id
+      family_name
+      given_name
+      email
+    }
+  }
+}
+
+query GetSession {
+  session {
+    access_token
+    expires_at
+    user {
+      id
+      given_name
+      family_name
+      email
+      email_verified
+      signup_methods
+      created_at
+      updated_at
+    }
+  }
+}
+
+mutation ForgotPassword {
+  forgot_password(params: {
+    email: "lakhan@yopmail.com"
+  }) {
+    message
+  }
+}
+
+mutation ResetPassword {
+  reset_password(params: {
+    token: ""
+    password: "test"
+    confirm_password: "test"
+  }) {
+    message
+  }
+}
+
+mutation UpdateProfile {
+  update_profile(params: {
+    family_name: "samani"
+  }) {
+    message
+  }
+}
+
+query GetUsers {
+  _users {
+    id
+    email
+    email_verified
+    given_name
+    family_name
+    picture
+    signup_methods
+    phone_number
+  }
+}
+
+mutation MagicLinkLogin {
+  magic_link_login(params: {
+    email: "test@yopmail.com"
+  }) {
+    message
+  }
+}
+
+mutation Logout {
+  logout {
+    message
+  }
+}
+
+mutation UpdateUser{
+  _update_user(params: {
+    id: "dafc9400-d603-4ade-997c-83fcd54bbd67",
+    roles: ["user", "admin"]
+  }) {
+    email
+    roles
+  }
+}
+
+mutation DeleteUser {
+  _delete_user(params: {
+    email: "signup.test134523@yopmail.com"
+  }) {
+    message
+  }
+}
+```
+
+
 
