@@ -4,13 +4,14 @@
 	"description": "",
 	"main": "index.js",
 	"scripts": {
-		"build": "esbuild src/index.tsx --bundle --minify --sourcemap --outfile=build/bundle.js"
+		"build": "rm -rf build && NODE_ENV=production node ./esbuild.config.js",
+		"start": "NODE_ENV=development node ./esbuild.config.js"
 	},
 	"keywords": [],
 	"author": "Lakhan Samani",
 	"license": "ISC",
 	"dependencies": {
-		"@authorizerdev/authorizer-react": "^0.3.0",
+		"@authorizerdev/authorizer-react": "latest",
 		"@types/react": "^17.0.15",
 		"@types/react-dom": "^17.0.9",
 		"esbuild": "^0.12.17",
