@@ -8,3 +8,4 @@ build
 .env
 data.db
 app/node_modules
+app/build
