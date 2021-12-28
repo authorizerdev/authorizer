@@ -1,9 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, lazy, Suspense } from 'react';
 import { Switch, Route } from 'react-router-dom';
 import { useAuthorizer } from '@authorizerdev/authorizer-react';
-import Dashboard from './pages/dashboard';
-import Login from './pages/login';
-import ResetPassword from './pages/rest-password';
+
+const ResetPassword = lazy(() => import('./pages/rest-password'));
+const Login = lazy(() => import('./pages/login'));
+const Dashboard = lazy(() => import('./pages/dashboard'));
 
 export default function Root() {
 	const { token, loading, config } = useAuthorizer();
@@ -24,22 +25,26 @@ export default function Root() {
 
 	if (token) {
 		return (
-			<Switch>
-				<Route path="/app" exact>
-					<Dashboard />
-				</Route>
-			</Switch>
+			<Suspense fallback={<></>}>
+				<Switch>
+					<Route path="/app" exact>
+						<Dashboard />
+					</Route>
+				</Switch>
+			</Suspense>
 		);
 	}
 
 	return (
-		<Switch>
-			<Route path="/app" exact>
-				<Login />
-			</Route>
-			<Route path="/app/reset-password">
-				<ResetPassword />
-			</Route>
-		</Switch>
+		<Suspense fallback={<></>}>
+			<Switch>
+				<Route path="/app" exact>
+					<Login />
+				</Route>
+				<Route path="/app/reset-password">
+					<ResetPassword />
+				</Route>
+			</Switch>
+		</Suspense>
 	);
 }

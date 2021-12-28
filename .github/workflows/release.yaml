@@ -8,26 +8,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '16'
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '^1.17.3'
       - name: Install dependencies
         run: |
           sudo apt-get install build-essential wget zip gcc-mingw-w64 && \
-          sudo apt-get remove --auto-remove golang-go && \
-          sudo rm -rf /usr/bin/go &&\
-          wget --progress=dot:mega https://golang.org/dl/go1.17.1.linux-amd64.tar.gz -O go-linux.tar.gz && \
-          sudo tar -zxf go-linux.tar.gz && \
-          sudo mv go /usr/bin/ && \
-          sudo mkdir -p /go/bin /go/src /go/pkg && \
-          export GO_HOME=/usr/bin/go && \
-          export GOPATH=/go && \
-          export PATH=${GOPATH}/bin:${GO_HOME}/bin/:$PATH && \
-          echo "/usr/bin/go/bin" >> $GITHUB_PATH
-          echo "/usr/bin/x86_64-w64-mingw32-gcc" >> GITHUB_PATH
-          go version && \
+          echo "/usr/bin/x86_64-w64-mingw32-gcc" >> GITHUB_PATH && \
           wget --no-check-certificate --progress=dot:mega https://github.com/wangyoucao577/assets-uploader/releases/download/v0.3.0/github-assets-uploader-v0.3.0-linux-amd64.tar.gz -O github-assets-uploader.tar.gz && \
           tar -zxf github-assets-uploader.tar.gz && \
           sudo mv github-assets-uploader /usr/sbin/ && \
           sudo rm -f github-assets-uploader.tar.gz && \
-          github-assets-uploader -version
+          github-assets-uploader -version && \
+          make build-app
       - name: Print Go paths
         run: whereis go
       - name: Print Go Version

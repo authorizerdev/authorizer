@@ -2,6 +2,7 @@ server/server
 server/.env
 data
 app/node_modules
+app/build
 build
 .env
 data.db
