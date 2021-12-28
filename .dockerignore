@@ -7,3 +7,4 @@ ROADMAP.md
 build
 .env
 data.db
+app/node_modules
