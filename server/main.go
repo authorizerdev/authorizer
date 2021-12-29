@@ -32,14 +32,17 @@ func main() {
 
 	router := router.InitRouter()
 
-	// login wall app related routes.
+	// login page app related routes.
 	// if we put them in router file then tests would fail as templates or build path will be different
-	router.LoadHTMLGlob("templates/*")
-	app := router.Group("/app")
-	{
-		app.Static("/build", "app/build")
-		app.GET("/", handlers.AppHandler())
-		app.GET("/reset-password", handlers.AppHandler())
+	if !constants.DISABLE_LOGIN_PAGE {
+		router.LoadHTMLGlob("templates/*")
+		app := router.Group("/app")
+		{
+			app.Static("/build", "app/build")
+			app.GET("/", handlers.AppHandler())
+			app.GET("/reset-password", handlers.AppHandler())
+		}
 	}
+
 	router.Run(":" + constants.PORT)
 }

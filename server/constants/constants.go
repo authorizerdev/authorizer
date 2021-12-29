@@ -26,6 +26,7 @@ var (
 	DISABLE_EMAIL_VERIFICATION   = false
 	DISABLE_BASIC_AUTHENTICATION = false
 	DISABLE_MAGIC_LINK_LOGIN     = false
+	DISABLE_LOGIN_PAGE           = false
 
 	// ROLES
 	ROLES           = []string{}

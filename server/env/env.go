@@ -172,6 +172,7 @@ func InitEnv() {
 	constants.DISABLE_BASIC_AUTHENTICATION = os.Getenv("DISABLE_BASIC_AUTHENTICATION") == "true"
 	constants.DISABLE_EMAIL_VERIFICATION = os.Getenv("DISABLE_EMAIL_VERIFICATION") == "true"
 	constants.DISABLE_MAGIC_LINK_LOGIN = os.Getenv("DISABLE_MAGIC_LINK_LOGIN") == "true"
+	constants.DISABLE_LOGIN_PAGE = os.Getenv("DISABLE_LOGIN_PAGE") == "true"
 
 	if constants.SMTP_HOST == "" || constants.SENDER_EMAIL == "" || constants.SENDER_PASSWORD == "" {
 		constants.DISABLE_EMAIL_VERIFICATION = true
