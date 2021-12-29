@@ -3,6 +3,8 @@ server/.env
 data
 app/node_modules
 app/build
+dashboard/node_modules
+dashboard/build
 build
 .env
 data.db
