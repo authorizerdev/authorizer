@@ -5,6 +5,7 @@ package graph
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/authorizerdev/authorizer/server/graph/generated"
 	"github.com/authorizerdev/authorizer/server/graph/model"
@@ -55,6 +56,10 @@ func (r *mutationResolver) UpdateUser(ctx context.Context, params model.UpdateUs
 	return resolvers.UpdateUser(ctx, params)
 }
 
+func (r *mutationResolver) AdminLogin(ctx context.Context, params model.AdminLoginInput) (*model.AdminLoginResponse, error) {
+	return resolvers.AdminLoginResolver(ctx, params)
+}
+
 func (r *queryResolver) Meta(ctx context.Context) (*model.Meta, error) {
 	return resolvers.Meta(ctx)
 }
@@ -73,6 +78,10 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 
 func (r *queryResolver) VerificationRequests(ctx context.Context) ([]*model.VerificationRequest, error) {
 	return resolvers.VerificationRequests(ctx)
+}
+
+func (r *queryResolver) AdminSession(ctx context.Context) (*model.AdminLoginResponse, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 // Mutation returns generated.MutationResolver implementation.

@@ -47,3 +47,19 @@ func DeleteCookie(gc *gin.Context) {
 	gc.SetCookie(constants.COOKIE_NAME, "", -1, "/", host, secure, httpOnly)
 	gc.SetCookie(constants.COOKIE_NAME+"-client", "", -1, "/", domain, secure, httpOnly)
 }
+
+func SetAdminCookie(gc *gin.Context, token string) {
+	secure := true
+	httpOnly := true
+	host, _ := GetHostParts(constants.AUTHORIZER_URL)
+
+	gc.SetCookie("authorizer-admin", token, 3600, "/", host, secure, httpOnly)
+}
+
+func DeleteAdminCookie(gc *gin.Context, token string) {
+	secure := true
+	httpOnly := true
+	host, _ := GetHostParts(constants.AUTHORIZER_URL)
+
+	gc.SetCookie("authorizer-admin", "", -1, "/", host, secure, httpOnly)
+}
