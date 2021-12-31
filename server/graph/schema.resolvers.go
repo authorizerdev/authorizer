@@ -5,6 +5,7 @@ package graph
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/authorizerdev/authorizer/server/graph/generated"
 	"github.com/authorizerdev/authorizer/server/graph/model"
@@ -59,6 +60,10 @@ func (r *mutationResolver) AdminLogin(ctx context.Context, params model.AdminLog
 	return resolvers.AdminLoginResolver(ctx, params)
 }
 
+func (r *mutationResolver) UpdateConfig(ctx context.Context, params model.UpdateConfigInput) (*model.Response, error) {
+	return resolvers.UpdateConfigResolver(ctx, params)
+}
+
 func (r *queryResolver) Meta(ctx context.Context) (*model.Meta, error) {
 	return resolvers.Meta(ctx)
 }
@@ -83,13 +88,15 @@ func (r *queryResolver) AdminSession(ctx context.Context) (*model.AdminLoginResp
 	return resolvers.AdminSession(ctx)
 }
 
+func (r *queryResolver) Config(ctx context.Context) (*model.Config, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
-type (
-	mutationResolver struct{ *Resolver }
-	queryResolver    struct{ *Resolver }
-)
+type mutationResolver struct{ *Resolver }
+type queryResolver struct{ *Resolver }

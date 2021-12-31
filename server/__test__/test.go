@@ -71,6 +71,7 @@ func testSetup() TestSetup {
 	}
 
 	constants.EnvData.ENV_PATH = "../../.env.sample"
+
 	env.InitEnv()
 	session.InitSession()
 

@@ -67,6 +67,78 @@ type AdminLoginResponse {
 	access_token: String!
 }
 
+type Config {
+	ADMIN_SECRET: String
+	VERSION: String
+	DATABASE_TYPE: String
+	DATABASE_URL: String
+	DATABASE_NAME: String
+	SMTP_HOST: String
+	SMTP_PORT: String
+	SENDER_EMAIL: String
+	SENDER_PASSWORD: String
+	JWT_TYPE: String
+	JWT_SECRET: String
+	ALLOWED_ORIGINS: [String!]
+	AUTHORIZER_URL: String
+	APP_URL: String
+	REDIS_URL: String
+	COOKIE_NAME: String
+	RESET_PASSWORD_URL: String
+	DISABLE_EMAIL_VERIFICATION: Boolean
+	DISABLE_BASIC_AUTHENTICATION: Boolean
+	DISABLE_MAGIC_LINK_LOGIN: Boolean
+	DISABLE_LOGIN_PAGE: Boolean
+	ROLES: [String!]
+	PROTECTED_ROLES: [String!]
+	DEFAULT_ROLES: [String!]
+	JWT_ROLE_CLAIM: String
+	GOOGLE_CLIENT_ID: String
+	GOOGLE_CLIENT_SECRET: String
+	GITHUB_CLIENT_ID: String
+	GITHUB_CLIENT_SECRET: String
+	FACEBOOK_CLIENT_ID: String
+	FACEBOOK_CLIENT_SECRET: String
+	ORGANIZATION_NAME: String
+	ORGANIZATION_LOGO: String
+}
+
+input UpdateConfigInput {
+	ADMIN_SECRET: String
+	VERSION: String
+	DATABASE_TYPE: String
+	DATABASE_URL: String
+	DATABASE_NAME: String
+	SMTP_HOST: String
+	SMTP_PORT: String
+	SENDER_EMAIL: String
+	SENDER_PASSWORD: String
+	JWT_TYPE: String
+	JWT_SECRET: String
+	ALLOWED_ORIGINS: [String!]
+	AUTHORIZER_URL: String
+	APP_URL: String
+	REDIS_URL: String
+	COOKIE_NAME: String
+	RESET_PASSWORD_URL: String
+	DISABLE_EMAIL_VERIFICATION: Boolean
+	DISABLE_BASIC_AUTHENTICATION: Boolean
+	DISABLE_MAGIC_LINK_LOGIN: Boolean
+	DISABLE_LOGIN_PAGE: Boolean
+	ROLES: [String!]
+	PROTECTED_ROLES: [String!]
+	DEFAULT_ROLES: [String!]
+	JWT_ROLE_CLAIM: String
+	GOOGLE_CLIENT_ID: String
+	GOOGLE_CLIENT_SECRET: String
+	GITHUB_CLIENT_ID: String
+	GITHUB_CLIENT_SECRET: String
+	FACEBOOK_CLIENT_ID: String
+	FACEBOOK_CLIENT_SECRET: String
+	ORGANIZATION_NAME: String
+	ORGANIZATION_LOGO: String
+}
+
 input AdminLoginInput {
 	admin_secret: String!
 }
@@ -162,15 +234,17 @@ type Mutation {
 	# admin only apis
 	_delete_user(params: DeleteUserInput!): Response!
 	_update_user(params: UpdateUserInput!): User!
-	_admin_login(params: AdminLoginInput!): AdminLoginResponse
+	_admin_login(params: AdminLoginInput!): AdminLoginResponse!
+	_update_config(params: UpdateConfigInput!): Response!
 }
 
 type Query {
 	meta: Meta!
-	session(roles: [String!]): AuthResponse
+	session(roles: [String!]): AuthResponse!
 	profile: User!
 	# admin only apis
 	_users: [User!]!
 	_verification_requests: [VerificationRequest!]!
-	_admin_session: AdminLoginResponse
+	_admin_session: AdminLoginResponse!
+	_config: Config!
 }

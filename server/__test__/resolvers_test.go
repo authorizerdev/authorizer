@@ -6,6 +6,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/enum"
+	"github.com/authorizerdev/authorizer/server/env"
 )
 
 func TestResolvers(t *testing.T) {
@@ -19,6 +20,7 @@ func TestResolvers(t *testing.T) {
 		constants.EnvData.DATABASE_URL = dbURL
 		constants.EnvData.DATABASE_TYPE = dbType
 		db.InitDB()
+		env.PersistEnv()
 
 		s := testSetup()
 		defer s.Server.Close()
@@ -42,8 +44,9 @@ func TestResolvers(t *testing.T) {
 			usersTest(s, t)
 			deleteUserTest(s, t)
 			updateUserTest(s, t)
-			aminLoginTests(s, t)
-			aminSessionTests(s, t)
+			adminLoginTests(s, t)
+			adminSessionTests(s, t)
+			updateConfigTests(s, t)
 		})
 	}
 }
