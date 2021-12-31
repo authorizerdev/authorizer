@@ -45,7 +45,7 @@ func Session(ctx context.Context, roles []string) (*model.AuthResponse, error) {
 	expiresTimeObj := time.Unix(expiresAt, 0)
 	currentTimeObj := time.Now()
 
-	claimRoleInterface := claim[constants.JWT_ROLE_CLAIM].([]interface{})
+	claimRoleInterface := claim[constants.EnvData.JWT_ROLE_CLAIM].([]interface{})
 	claimRoles := make([]string, len(claimRoleInterface))
 	for i, v := range claimRoleInterface {
 		claimRoles[i] = v.(string)

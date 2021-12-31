@@ -22,7 +22,7 @@ func usersTest(s TestSetup, t *testing.T) {
 		users, err := resolvers.Users(ctx)
 		assert.NotNil(t, err, "unauthorized")
 
-		req.Header.Add("x-authorizer-admin-secret", constants.ADMIN_SECRET)
+		req.Header.Add("x-authorizer-admin-secret", constants.EnvData.ADMIN_SECRET)
 		users, err = resolvers.Users(ctx)
 		assert.Nil(t, err)
 		rLen := len(users)

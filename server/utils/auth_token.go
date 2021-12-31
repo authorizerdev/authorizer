@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -14,10 +15,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
 	"github.com/robertkrimen/otto"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func CreateAuthToken(user db.User, tokenType enum.TokenType, roles []string) (string, int64, error) {
-	t := jwt.New(jwt.GetSigningMethod(constants.JWT_TYPE))
+	t := jwt.New(jwt.GetSigningMethod(constants.EnvData.JWT_TYPE))
 	expiryBound := time.Hour
 	if tokenType == enum.RefreshToken {
 		// expires in 1 year
@@ -32,11 +34,11 @@ func CreateAuthToken(user db.User, tokenType enum.TokenType, roles []string) (st
 	json.Unmarshal(userBytes, &userMap)
 
 	customClaims := jwt.MapClaims{
-		"exp":                    expiresAt,
-		"iat":                    time.Now().Unix(),
-		"token_type":             tokenType.String(),
-		"allowed_roles":          strings.Split(user.Roles, ","),
-		constants.JWT_ROLE_CLAIM: roles,
+		"exp":                            expiresAt,
+		"iat":                            time.Now().Unix(),
+		"token_type":                     tokenType.String(),
+		"allowed_roles":                  strings.Split(user.Roles, ","),
+		constants.EnvData.JWT_ROLE_CLAIM: roles,
 	}
 
 	for k, v := range userMap {
@@ -77,7 +79,7 @@ func CreateAuthToken(user db.User, tokenType enum.TokenType, roles []string) (st
 
 	t.Claims = customClaims
 
-	token, err := t.SignedString([]byte(constants.JWT_SECRET))
+	token, err := t.SignedString([]byte(constants.EnvData.JWT_SECRET))
 	if err != nil {
 		return "", 0, err
 	}
@@ -89,7 +91,6 @@ func GetAuthToken(gc *gin.Context) (string, error) {
 	token, err := GetCookie(gc)
 	if err != nil || token == "" {
 		// try to check in auth header for cookie
-		log.Println("cookie not found checking headers")
 		auth := gc.Request.Header.Get("Authorization")
 		if auth == "" {
 			return "", fmt.Errorf(`unauthorized`)
@@ -105,7 +106,7 @@ func VerifyAuthToken(token string) (map[string]interface{}, error) {
 	claims := jwt.MapClaims{}
 
 	_, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
-		return []byte(constants.JWT_SECRET), nil
+		return []byte(constants.EnvData.JWT_SECRET), nil
 	})
 	if err != nil {
 		return res, err
@@ -123,4 +124,37 @@ func VerifyAuthToken(token string) (map[string]interface{}, error) {
 	res["iat"] = intIat
 
 	return res, nil
+}
+
+func CreateAdminAuthToken(tokenType enum.TokenType, c *gin.Context) (string, error) {
+	return HashPassword(constants.EnvData.ADMIN_SECRET)
+}
+
+func GetAdminAuthToken(gc *gin.Context) (string, error) {
+	token, err := GetAdminCookie(gc)
+	if err != nil || token == "" {
+		// try to check in auth header for cookie
+		auth := gc.Request.Header.Get("Authorization")
+		if auth == "" {
+			return "", fmt.Errorf(`unauthorized`)
+		}
+
+		token = strings.TrimPrefix(auth, "Bearer ")
+
+	}
+
+	// cookie escapes special characters like $
+	// hence we need to unescape before comparing
+	decodedValue, err := url.QueryUnescape(token)
+	if err != nil {
+		return "", err
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(decodedValue), []byte(constants.EnvData.ADMIN_SECRET))
+	log.Println("error comparing hash:", err)
+	if err != nil {
+		return "", fmt.Errorf(`unauthorized`)
+	}
+
+	return token, nil
 }

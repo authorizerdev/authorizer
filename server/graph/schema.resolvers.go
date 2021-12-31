@@ -55,6 +55,14 @@ func (r *mutationResolver) UpdateUser(ctx context.Context, params model.UpdateUs
 	return resolvers.UpdateUser(ctx, params)
 }
 
+func (r *mutationResolver) AdminLogin(ctx context.Context, params model.AdminLoginInput) (*model.AdminLoginResponse, error) {
+	return resolvers.AdminLoginResolver(ctx, params)
+}
+
+func (r *mutationResolver) UpdateConfig(ctx context.Context, params model.UpdateConfigInput) (*model.Response, error) {
+	return resolvers.UpdateConfigResolver(ctx, params)
+}
+
 func (r *queryResolver) Meta(ctx context.Context) (*model.Meta, error) {
 	return resolvers.Meta(ctx)
 }
@@ -73,6 +81,14 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 
 func (r *queryResolver) VerificationRequests(ctx context.Context) ([]*model.VerificationRequest, error) {
 	return resolvers.VerificationRequests(ctx)
+}
+
+func (r *queryResolver) AdminSession(ctx context.Context) (*model.AdminLoginResponse, error) {
+	return resolvers.AdminSession(ctx)
+}
+
+func (r *queryResolver) Config(ctx context.Context) (*model.Config, error) {
+	return resolvers.ConfigResolver(ctx)
 }
 
 // Mutation returns generated.MutationResolver implementation.

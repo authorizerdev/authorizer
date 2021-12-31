@@ -6,19 +6,21 @@ import (
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/enum"
+	"github.com/authorizerdev/authorizer/server/env"
 )
 
 func TestResolvers(t *testing.T) {
 	databases := map[string]string{
-		enum.Sqlite.String():   "../../data.db",
-		enum.Arangodb.String(): "http://root:root@localhost:8529",
-		enum.Mongodb.String():  "mongodb://localhost:27017",
+		enum.Sqlite.String(): "../../data.db",
+		// enum.Arangodb.String(): "http://root:root@localhost:8529",
+		// enum.Mongodb.String():  "mongodb://localhost:27017",
 	}
 
 	for dbType, dbURL := range databases {
-		constants.DATABASE_URL = dbURL
-		constants.DATABASE_TYPE = dbType
+		constants.EnvData.DATABASE_URL = dbURL
+		constants.EnvData.DATABASE_TYPE = dbType
 		db.InitDB()
+		env.PersistEnv()
 
 		s := testSetup()
 		defer s.Server.Close()
@@ -42,6 +44,10 @@ func TestResolvers(t *testing.T) {
 			usersTest(s, t)
 			deleteUserTest(s, t)
 			updateUserTest(s, t)
+			adminLoginTests(s, t)
+			adminSessionTests(s, t)
+			updateConfigTests(s, t)
+			configTests(s, t)
 		})
 	}
 }

@@ -22,7 +22,7 @@ func Login(ctx context.Context, params model.LoginInput) (*model.AuthResponse, e
 		return res, err
 	}
 
-	if constants.DISABLE_BASIC_AUTHENTICATION {
+	if constants.EnvData.DISABLE_BASIC_AUTHENTICATION {
 		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
 	}
 
@@ -46,7 +46,7 @@ func Login(ctx context.Context, params model.LoginInput) (*model.AuthResponse, e
 		log.Println("compare password error:", err)
 		return res, fmt.Errorf(`invalid password`)
 	}
-	roles := constants.DEFAULT_ROLES
+	roles := constants.EnvData.DEFAULT_ROLES
 	currentRoles := strings.Split(user.Roles, ",")
 	if len(params.Roles) > 0 {
 		if !utils.IsValidRoles(currentRoles, params.Roles) {
