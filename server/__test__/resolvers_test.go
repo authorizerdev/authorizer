@@ -47,6 +47,7 @@ func TestResolvers(t *testing.T) {
 			adminLoginTests(s, t)
 			adminSessionTests(s, t)
 			updateConfigTests(s, t)
+			configTests(s, t)
 		})
 	}
 }

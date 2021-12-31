@@ -88,7 +88,6 @@ type ComplexityRoot struct {
 		SMTPPort                   func(childComplexity int) int
 		SenderEmail                func(childComplexity int) int
 		SenderPassword             func(childComplexity int) int
-		Version                    func(childComplexity int) int
 	}
 
 	Error struct {
@@ -472,13 +471,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Config.SenderPassword(childComplexity), true
-
-	case "Config.VERSION":
-		if e.complexity.Config.Version == nil {
-			break
-		}
-
-		return e.complexity.Config.Version(childComplexity), true
 
 	case "Error.message":
 		if e.complexity.Error.Message == nil {
@@ -1058,7 +1050,6 @@ type AdminLoginResponse {
 
 type Config {
 	ADMIN_SECRET: String
-	VERSION: String
 	DATABASE_TYPE: String
 	DATABASE_URL: String
 	DATABASE_NAME: String
@@ -1094,7 +1085,6 @@ type Config {
 
 input UpdateConfigInput {
 	ADMIN_SECRET: String
-	VERSION: String
 	DATABASE_TYPE: String
 	DATABASE_URL: String
 	DATABASE_NAME: String
@@ -1713,38 +1703,6 @@ func (ec *executionContext) _Config_ADMIN_SECRET(ctx context.Context, field grap
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.AdminSecret, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*string)
-	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Config_VERSION(ctx context.Context, field graphql.CollectedField, obj *model.Config) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Config",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Version, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -6207,14 +6165,6 @@ func (ec *executionContext) unmarshalInputUpdateConfigInput(ctx context.Context,
 			if err != nil {
 				return it, err
 			}
-		case "VERSION":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("VERSION"))
-			it.Version, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
 		case "DATABASE_TYPE":
 			var err error
 
@@ -6792,8 +6742,6 @@ func (ec *executionContext) _Config(ctx context.Context, sel ast.SelectionSet, o
 			out.Values[i] = graphql.MarshalString("Config")
 		case "ADMIN_SECRET":
 			out.Values[i] = ec._Config_ADMIN_SECRET(ctx, field, obj)
-		case "VERSION":
-			out.Values[i] = ec._Config_VERSION(ctx, field, obj)
 		case "DATABASE_TYPE":
 			out.Values[i] = ec._Config_DATABASE_TYPE(ctx, field, obj)
 		case "DATABASE_URL":

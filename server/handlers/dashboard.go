@@ -10,7 +10,8 @@ import (
 func DashboardHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		isOnboardingCompleted := false
-		if constants.EnvData.ADMIN_SECRET != "" && constants.EnvData.DATABASE_TYPE != "" && constants.EnvData.DATABASE_URL != "" {
+
+		if constants.EnvData.ADMIN_SECRET != "" {
 			isOnboardingCompleted = true
 		}
 
