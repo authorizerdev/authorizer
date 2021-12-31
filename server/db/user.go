@@ -43,7 +43,7 @@ func (mgr *manager) AddUser(user User) (User, error) {
 	}
 
 	if user.Roles == "" {
-		user.Roles = constants.DEFAULT_ROLES[0]
+		user.Roles = constants.EnvData.DEFAULT_ROLES[0]
 	}
 
 	if IsORMSupported {

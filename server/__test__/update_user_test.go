@@ -29,7 +29,7 @@ func updateUserTest(s TestSetup, t *testing.T) {
 		})
 		assert.NotNil(t, err, "unauthorized")
 
-		req.Header.Add("x-authorizer-admin-secret", constants.ADMIN_SECRET)
+		req.Header.Add("x-authorizer-admin-secret", constants.EnvData.ADMIN_SECRET)
 		_, err = resolvers.UpdateUser(ctx, model.UpdateUserInput{
 			ID:    user.ID,
 			Roles: newRoles,

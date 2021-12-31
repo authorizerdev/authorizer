@@ -95,9 +95,9 @@ func RemoveSocialLoginState(key string) {
 }
 
 func InitSession() {
-	if constants.REDIS_URL != "" {
+	if constants.EnvData.REDIS_URL != "" {
 		log.Println("using redis store to save sessions")
-		opt, err := redis.ParseURL(constants.REDIS_URL)
+		opt, err := redis.ParseURL(constants.EnvData.REDIS_URL)
 		if err != nil {
 			log.Fatalln("Error parsing redis url:", err)
 		}

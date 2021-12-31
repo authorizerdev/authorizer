@@ -17,7 +17,7 @@ import (
 func MagicLinkLogin(ctx context.Context, params model.MagicLinkLoginInput) (*model.Response, error) {
 	var res *model.Response
 
-	if constants.DISABLE_MAGIC_LINK_LOGIN {
+	if constants.EnvData.DISABLE_MAGIC_LINK_LOGIN {
 		return res, fmt.Errorf(`magic link login is disabled for this instance`)
 	}
 
@@ -41,13 +41,13 @@ func MagicLinkLogin(ctx context.Context, params model.MagicLinkLoginInput) (*mod
 		// define roles for new user
 		if len(params.Roles) > 0 {
 			// check if roles exists
-			if !utils.IsValidRoles(constants.ROLES, params.Roles) {
+			if !utils.IsValidRoles(constants.EnvData.ROLES, params.Roles) {
 				return res, fmt.Errorf(`invalid roles`)
 			} else {
 				inputRoles = params.Roles
 			}
 		} else {
-			inputRoles = constants.DEFAULT_ROLES
+			inputRoles = constants.EnvData.DEFAULT_ROLES
 		}
 
 		user.Roles = strings.Join(inputRoles, ",")
@@ -72,7 +72,7 @@ func MagicLinkLogin(ctx context.Context, params model.MagicLinkLoginInput) (*mod
 			// check if it contains protected unassigned role
 			hasProtectedRole := false
 			for _, ur := range unasignedRoles {
-				if utils.StringSliceContains(constants.PROTECTED_ROLES, ur) {
+				if utils.StringSliceContains(constants.EnvData.PROTECTED_ROLES, ur) {
 					hasProtectedRole = true
 				}
 			}
@@ -98,7 +98,7 @@ func MagicLinkLogin(ctx context.Context, params model.MagicLinkLoginInput) (*mod
 		}
 	}
 
-	if !constants.DISABLE_EMAIL_VERIFICATION {
+	if !constants.EnvData.DISABLE_EMAIL_VERIFICATION {
 		// insert verification request
 		verificationType := enum.MagicLinkLogin.String()
 		token, err := utils.CreateVerificationToken(params.Email, verificationType)

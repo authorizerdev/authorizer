@@ -100,7 +100,7 @@ func SendVerificationMail(toEmail, token string) error {
             <div style="position: absolute; left: -9999px; top: -9999px; margin: 0px;"></div>
         </body>
     </html>
-	`, constants.ORGANIZATION_LOGO, constants.ORGANIZATION_NAME, constants.AUTHORIZER_URL+"/verify_email"+"?token="+token)
+	`, constants.EnvData.ORGANIZATION_LOGO, constants.EnvData.ORGANIZATION_NAME, constants.EnvData.AUTHORIZER_URL+"/verify_email"+"?token="+token)
 	bodyMessage := sender.WriteHTMLEmail(Receiver, Subject, message)
 
 	return sender.SendMail(Receiver, Subject, bodyMessage)
@@ -108,8 +108,8 @@ func SendVerificationMail(toEmail, token string) error {
 
 // SendForgotPasswordMail to send verification email
 func SendForgotPasswordMail(toEmail, token, host string) error {
-	if constants.RESET_PASSWORD_URL == "" {
-		constants.RESET_PASSWORD_URL = constants.AUTHORIZER_URL + "/app/reset-password"
+	if constants.EnvData.RESET_PASSWORD_URL == "" {
+		constants.EnvData.RESET_PASSWORD_URL = constants.EnvData.AUTHORIZER_URL + "/app/reset-password"
 	}
 
 	sender := email.NewSender()
@@ -204,7 +204,7 @@ func SendForgotPasswordMail(toEmail, token, host string) error {
             <div style="position: absolute; left: -9999px; top: -9999px; margin: 0px;"></div>
         </body>
     </html>
-	`, constants.ORGANIZATION_LOGO, toEmail, constants.RESET_PASSWORD_URL+"?token="+token)
+	`, constants.EnvData.ORGANIZATION_LOGO, toEmail, constants.EnvData.RESET_PASSWORD_URL+"?token="+token)
 
 	bodyMessage := sender.WriteHTMLEmail(Receiver, Subject, message)
 

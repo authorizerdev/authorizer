@@ -27,7 +27,7 @@ type Sender struct {
 }
 
 func NewSender() Sender {
-	return Sender{User: constants.SENDER_EMAIL, Password: constants.SENDER_PASSWORD}
+	return Sender{User: constants.EnvData.SENDER_EMAIL, Password: constants.EnvData.SENDER_PASSWORD}
 }
 
 func (sender Sender) SendMail(Dest []string, Subject, bodyMessage string) error {
@@ -35,8 +35,8 @@ func (sender Sender) SendMail(Dest []string, Subject, bodyMessage string) error 
 		"To: " + strings.Join(Dest, ",") + "\n" +
 		"Subject: " + Subject + "\n" + bodyMessage
 
-	err := smtp.SendMail(constants.SMTP_HOST+":"+constants.SMTP_PORT,
-		smtp.PlainAuth("", sender.User, sender.Password, constants.SMTP_HOST),
+	err := smtp.SendMail(constants.EnvData.SMTP_HOST+":"+constants.EnvData.SMTP_PORT,
+		smtp.PlainAuth("", sender.User, sender.Password, constants.EnvData.SMTP_HOST),
 		sender.User, Dest, []byte(msg))
 	if err != nil {
 
