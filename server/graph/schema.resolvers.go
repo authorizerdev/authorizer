@@ -5,7 +5,6 @@ package graph
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/authorizerdev/authorizer/server/graph/generated"
 	"github.com/authorizerdev/authorizer/server/graph/model"
@@ -81,7 +80,7 @@ func (r *queryResolver) VerificationRequests(ctx context.Context) ([]*model.Veri
 }
 
 func (r *queryResolver) AdminSession(ctx context.Context) (*model.AdminLoginResponse, error) {
-	panic(fmt.Errorf("not implemented"))
+	return resolvers.AdminSession(ctx)
 }
 
 // Mutation returns generated.MutationResolver implementation.

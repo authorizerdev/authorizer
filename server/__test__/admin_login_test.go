@@ -3,6 +3,7 @@ package test
 import (
 	"testing"
 
+	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/resolvers"
 	"github.com/stretchr/testify/assert"
@@ -18,7 +19,7 @@ func aminLoginTests(s TestSetup, t *testing.T) {
 		assert.NotNil(t, err)
 
 		res, err := resolvers.AdminLoginResolver(ctx, model.AdminLoginInput{
-			AdminSecret: "admin",
+			AdminSecret: constants.EnvData.ADMIN_SECRET,
 		})
 
 		assert.Nil(t, err)
