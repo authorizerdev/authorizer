@@ -233,6 +233,7 @@ type Mutation {
 	_delete_user(params: DeleteUserInput!): Response!
 	_update_user(params: UpdateUserInput!): User!
 	_admin_login(params: AdminLoginInput!): AdminLoginResponse!
+	_admin_logout: Response!
 	_update_config(params: UpdateConfigInput!): Response!
 }
 
