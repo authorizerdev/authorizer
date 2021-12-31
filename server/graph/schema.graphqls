@@ -65,7 +65,6 @@ type Response {
 type AdminLoginResponse {
 	message: String!
 	access_token: String!
-	expires_at: Int64!
 }
 
 input AdminLoginInput {

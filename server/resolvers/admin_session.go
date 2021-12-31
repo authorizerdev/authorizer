@@ -9,7 +9,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
-func AdminLoginResolver(ctx context.Context, params model.AdminLoginInput) (*model.AdminLoginResponse, error) {
+func AdminSession(ctx context.Context) (*model.AdminLoginResponse, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	var res *model.AdminLoginResponse
 
@@ -17,8 +17,8 @@ func AdminLoginResolver(ctx context.Context, params model.AdminLoginInput) (*mod
 		return res, err
 	}
 
-	if params.AdminSecret != constants.EnvData.ADMIN_SECRET {
-		return res, fmt.Errorf(`invalid admin secret`)
+	if !utils.IsSuperAdmin(gc) {
+		return res, fmt.Errorf("unauthorized")
 	}
 
 	hashedKey, err := utils.HashPassword(constants.EnvData.ADMIN_SECRET)

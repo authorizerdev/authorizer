@@ -43,6 +43,7 @@ func TestResolvers(t *testing.T) {
 			deleteUserTest(s, t)
 			updateUserTest(s, t)
 			aminLoginTests(s, t)
+			aminSessionTests(s, t)
 		})
 	}
 }

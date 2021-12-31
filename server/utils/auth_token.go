@@ -14,6 +14,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
 	"github.com/robertkrimen/otto"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func CreateAuthToken(user db.User, tokenType enum.TokenType, roles []string) (string, int64, error) {
@@ -124,32 +125,8 @@ func VerifyAuthToken(token string) (map[string]interface{}, error) {
 	return res, nil
 }
 
-func CreateAdminAuthToken(tokenType enum.TokenType, c *gin.Context) (string, int64, error) {
-	t := jwt.New(jwt.GetSigningMethod(constants.EnvData.JWT_TYPE))
-	expiryBound := time.Hour
-	if tokenType == enum.RefreshToken {
-		// expires in 1 year
-		expiryBound = time.Hour * 8760
-	}
-
-	expiresAt := time.Now().Add(expiryBound).Unix()
-
-	customClaims := jwt.MapClaims{
-		"exp":        expiresAt,
-		"iat":        time.Now().Unix(),
-		"user_agent": GetUserAgent(c.Request),
-		"ip":         GetIP(c.Request),
-		"role":       "authorizer_admin",
-		"created_at": time.Now().Unix(),
-	}
-
-	t.Claims = customClaims
-
-	token, err := t.SignedString([]byte(constants.EnvData.JWT_SECRET))
-	if err != nil {
-		return "", 0, err
-	}
-	return token, expiresAt, nil
+func CreateAdminAuthToken(tokenType enum.TokenType, c *gin.Context) (string, error) {
+	return HashPassword(constants.EnvData.ADMIN_SECRET)
 }
 
 func GetAdminAuthToken(gc *gin.Context) (string, error) {
@@ -162,6 +139,11 @@ func GetAdminAuthToken(gc *gin.Context) (string, error) {
 		}
 
 		token = strings.TrimPrefix(auth, "Bearer ")
+
+		err = bcrypt.CompareHashAndPassword([]byte(token), []byte(constants.EnvData.ADMIN_SECRET))
+		if err != nil {
+			return "", fmt.Errorf(`unauthorized`)
+		}
 	}
 	return token, nil
 }
