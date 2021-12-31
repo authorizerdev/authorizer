@@ -12,7 +12,7 @@ import (
 )
 
 func initMongodb() (*mongo.Database, error) {
-	mongodbOptions := options.Client().ApplyURI(constants.DATABASE_URL)
+	mongodbOptions := options.Client().ApplyURI(constants.EnvData.DATABASE_URL)
 	maxWait := time.Duration(5 * time.Second)
 	mongodbOptions.ConnectTimeout = &maxWait
 	mongoClient, err := mongo.NewClient(mongodbOptions)
@@ -30,7 +30,7 @@ func initMongodb() (*mongo.Database, error) {
 		return nil, err
 	}
 
-	mongodb := mongoClient.Database(constants.DATABASE_NAME, options.Database())
+	mongodb := mongoClient.Database(constants.EnvData.DATABASE_NAME, options.Database())
 
 	mongodb.CreateCollection(ctx, Collections.User, options.CreateCollection())
 	userCollection := mongodb.Collection(Collections.User, options.Collection())
@@ -72,6 +72,8 @@ func initMongodb() (*mongo.Database, error) {
 			Options: options.Index().SetSparse(true),
 		},
 	}, options.CreateIndexes())
+
+	mongodb.CreateCollection(ctx, Collections.Config, options.CreateCollection())
 
 	return mongodb, nil
 }

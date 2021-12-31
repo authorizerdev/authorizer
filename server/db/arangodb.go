@@ -17,7 +17,7 @@ import (
 func initArangodb() (arangoDriver.Database, error) {
 	ctx := context.Background()
 	conn, err := http.NewConnection(http.ConnectionConfig{
-		Endpoints: []string{constants.DATABASE_URL},
+		Endpoints: []string{constants.EnvData.DATABASE_URL},
 	})
 	if err != nil {
 		return nil, err
@@ -32,16 +32,16 @@ func initArangodb() (arangoDriver.Database, error) {
 
 	var arangodb driver.Database
 
-	arangodb_exists, err := arangoClient.DatabaseExists(nil, constants.DATABASE_NAME)
+	arangodb_exists, err := arangoClient.DatabaseExists(nil, constants.EnvData.DATABASE_NAME)
 
 	if arangodb_exists {
-		log.Println(constants.DATABASE_NAME + " db exists already")
-		arangodb, err = arangoClient.Database(nil, constants.DATABASE_NAME)
+		log.Println(constants.EnvData.DATABASE_NAME + " db exists already")
+		arangodb, err = arangoClient.Database(nil, constants.EnvData.DATABASE_NAME)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		arangodb, err = arangoClient.CreateDatabase(nil, constants.DATABASE_NAME, nil)
+		arangodb, err = arangoClient.CreateDatabase(nil, constants.EnvData.DATABASE_NAME, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -99,6 +99,16 @@ func initArangodb() (arangoDriver.Database, error) {
 	sessionCollection.EnsureHashIndex(ctx, []string{"user_id"}, &arangoDriver.EnsureHashIndexOptions{
 		Sparse: true,
 	})
+
+	configCollectionExists, err := arangodb.CollectionExists(ctx, Collections.Config)
+	if configCollectionExists {
+		log.Println(Collections.Config + " collection exists already")
+	} else {
+		_, err = arangodb.CreateCollection(ctx, Collections.Config, nil)
+		if err != nil {
+			log.Println("error creating collection("+Collections.Config+"):", err)
+		}
+	}
 
 	return arangodb, err
 }

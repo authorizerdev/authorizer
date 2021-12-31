@@ -16,7 +16,7 @@ func IsValidEmail(email string) bool {
 }
 
 func IsValidOrigin(url string) bool {
-	if len(constants.ALLOWED_ORIGINS) == 1 && constants.ALLOWED_ORIGINS[0] == "*" {
+	if len(constants.EnvData.ALLOWED_ORIGINS) == 1 && constants.EnvData.ALLOWED_ORIGINS[0] == "*" {
 		return true
 	}
 
@@ -24,7 +24,7 @@ func IsValidOrigin(url string) bool {
 	hostName, port := GetHostParts(url)
 	currentOrigin := hostName + ":" + port
 
-	for _, origin := range constants.ALLOWED_ORIGINS {
+	for _, origin := range constants.EnvData.ALLOWED_ORIGINS {
 		replacedString := origin
 		// if has regex whitelisted domains
 		if strings.Contains(origin, "*") {
@@ -50,12 +50,17 @@ func IsValidOrigin(url string) bool {
 }
 
 func IsSuperAdmin(gc *gin.Context) bool {
-	secret := gc.Request.Header.Get("x-authorizer-admin-secret")
-	if secret == "" {
-		return false
+	token, err := GetAdminAuthToken(gc)
+	if err != nil {
+		secret := gc.Request.Header.Get("x-authorizer-admin-secret")
+		if secret == "" {
+			return false
+		}
+
+		return secret == constants.EnvData.ADMIN_SECRET
 	}
 
-	return secret == constants.ADMIN_SECRET
+	return token != ""
 }
 
 func IsValidRoles(userRoles []string, roles []string) bool {

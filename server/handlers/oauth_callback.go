@@ -195,7 +195,7 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			// make sure inputRoles don't include protected roles
 			hasProtectedRole := false
 			for _, ir := range inputRoles {
-				if utils.StringSliceContains(constants.PROTECTED_ROLES, ir) {
+				if utils.StringSliceContains(constants.EnvData.PROTECTED_ROLES, ir) {
 					hasProtectedRole = true
 				}
 			}
@@ -238,7 +238,7 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 				// check if it contains protected unassigned role
 				hasProtectedRole := false
 				for _, ur := range unasignedRoles {
-					if utils.StringSliceContains(constants.PROTECTED_ROLES, ur) {
+					if utils.StringSliceContains(constants.EnvData.PROTECTED_ROLES, ur) {
 						hasProtectedRole = true
 					}
 				}

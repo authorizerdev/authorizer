@@ -29,6 +29,9 @@ type Manager interface {
 	GetVerificationByEmail(email string, identifier string) (VerificationRequest, error)
 	AddSession(session Session) error
 	DeleteUserSession(userId string) error
+	AddConfig(config Config) (Config, error)
+	UpdateConfig(config Config) (Config, error)
+	GetConfig() (Config, error)
 }
 
 type manager struct {
@@ -42,6 +45,7 @@ type CollectionList struct {
 	User                string
 	VerificationRequest string
 	Session             string
+	Config              string
 }
 
 var (
@@ -54,6 +58,7 @@ var (
 		User:                Prefix + "users",
 		VerificationRequest: Prefix + "verification_requests",
 		Session:             Prefix + "sessions",
+		Config:              Prefix + "config",
 	}
 )
 
@@ -61,9 +66,9 @@ func InitDB() {
 	var sqlDB *gorm.DB
 	var err error
 
-	IsORMSupported = constants.DATABASE_TYPE != enum.Arangodb.String() && constants.DATABASE_TYPE != enum.Mongodb.String()
-	IsArangoDB = constants.DATABASE_TYPE == enum.Arangodb.String()
-	IsMongoDB = constants.DATABASE_TYPE == enum.Mongodb.String()
+	IsORMSupported = constants.EnvData.DATABASE_TYPE != enum.Arangodb.String() && constants.EnvData.DATABASE_TYPE != enum.Mongodb.String()
+	IsArangoDB = constants.EnvData.DATABASE_TYPE == enum.Arangodb.String()
+	IsMongoDB = constants.EnvData.DATABASE_TYPE == enum.Mongodb.String()
 
 	// sql db orm config
 	ormConfig := &gorm.Config{
@@ -72,20 +77,20 @@ func InitDB() {
 		},
 	}
 
-	log.Println("db type:", constants.DATABASE_TYPE)
+	log.Println("db type:", constants.EnvData.DATABASE_TYPE)
 
-	switch constants.DATABASE_TYPE {
+	switch constants.EnvData.DATABASE_TYPE {
 	case enum.Postgres.String():
-		sqlDB, err = gorm.Open(postgres.Open(constants.DATABASE_URL), ormConfig)
+		sqlDB, err = gorm.Open(postgres.Open(constants.EnvData.DATABASE_URL), ormConfig)
 		break
 	case enum.Sqlite.String():
-		sqlDB, err = gorm.Open(sqlite.Open(constants.DATABASE_URL), ormConfig)
+		sqlDB, err = gorm.Open(sqlite.Open(constants.EnvData.DATABASE_URL), ormConfig)
 		break
 	case enum.Mysql.String():
-		sqlDB, err = gorm.Open(mysql.Open(constants.DATABASE_URL), ormConfig)
+		sqlDB, err = gorm.Open(mysql.Open(constants.EnvData.DATABASE_URL), ormConfig)
 		break
 	case enum.SQLServer.String():
-		sqlDB, err = gorm.Open(sqlserver.Open(constants.DATABASE_URL), ormConfig)
+		sqlDB, err = gorm.Open(sqlserver.Open(constants.EnvData.DATABASE_URL), ormConfig)
 		break
 	case enum.Arangodb.String():
 		arangodb, err := initArangodb()
@@ -118,7 +123,7 @@ func InitDB() {
 		if err != nil {
 			log.Fatal("Failed to init sqlDB:", err)
 		} else {
-			sqlDB.AutoMigrate(&User{}, &VerificationRequest{}, &Session{})
+			sqlDB.AutoMigrate(&User{}, &VerificationRequest{}, &Session{}, &Config{})
 		}
 		Mgr = &manager{
 			sqlDB:    sqlDB,

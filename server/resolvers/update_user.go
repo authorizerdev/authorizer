@@ -112,7 +112,7 @@ func UpdateUser(ctx context.Context, params model.UpdateUserInput) (*model.User,
 			inputRoles = append(inputRoles, *item)
 		}
 
-		if !utils.IsValidRoles(append([]string{}, append(constants.ROLES, constants.PROTECTED_ROLES...)...), inputRoles) {
+		if !utils.IsValidRoles(append([]string{}, append(constants.EnvData.ROLES, constants.EnvData.PROTECTED_ROLES...)...), inputRoles) {
 			return res, fmt.Errorf("invalid list of roles")
 		}
 

@@ -20,23 +20,23 @@ type CustomClaim struct {
 }
 
 func CreateVerificationToken(email string, tokenType string) (string, error) {
-	t := jwt.New(jwt.GetSigningMethod(constants.JWT_TYPE))
+	t := jwt.New(jwt.GetSigningMethod(constants.EnvData.JWT_TYPE))
 
 	t.Claims = &CustomClaim{
 		&jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(time.Minute * 30).Unix(),
 		},
 		tokenType,
-		UserInfo{Email: email, Host: constants.AUTHORIZER_URL, RedirectURL: constants.APP_URL},
+		UserInfo{Email: email, Host: constants.EnvData.AUTHORIZER_URL, RedirectURL: constants.EnvData.APP_URL},
 	}
 
-	return t.SignedString([]byte(constants.JWT_SECRET))
+	return t.SignedString([]byte(constants.EnvData.JWT_SECRET))
 }
 
 func VerifyVerificationToken(token string) (*CustomClaim, error) {
 	claims := &CustomClaim{}
 	_, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
-		return []byte(constants.JWT_SECRET), nil
+		return []byte(constants.EnvData.JWT_SECRET), nil
 	})
 	if err != nil {
 		return claims, err

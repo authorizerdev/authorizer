@@ -9,12 +9,12 @@ import (
 // version,
 func GetMetaInfo() model.Meta {
 	return model.Meta{
-		Version:                      constants.VERSION,
-		IsGoogleLoginEnabled:         constants.GOOGLE_CLIENT_ID != "" && constants.GOOGLE_CLIENT_SECRET != "",
-		IsGithubLoginEnabled:         constants.GITHUB_CLIENT_ID != "" && constants.GOOGLE_CLIENT_SECRET != "",
-		IsFacebookLoginEnabled:       constants.FACEBOOK_CLIENT_ID != "" && constants.FACEBOOK_CLIENT_SECRET != "",
-		IsBasicAuthenticationEnabled: !constants.DISABLE_BASIC_AUTHENTICATION,
-		IsEmailVerificationEnabled:   !constants.DISABLE_EMAIL_VERIFICATION,
-		IsMagicLinkLoginEnabled:      !constants.DISABLE_MAGIC_LINK_LOGIN,
+		Version:                      constants.EnvData.VERSION,
+		IsGoogleLoginEnabled:         constants.EnvData.GOOGLE_CLIENT_ID != "" && constants.EnvData.GOOGLE_CLIENT_SECRET != "",
+		IsGithubLoginEnabled:         constants.EnvData.GITHUB_CLIENT_ID != "" && constants.EnvData.GOOGLE_CLIENT_SECRET != "",
+		IsFacebookLoginEnabled:       constants.EnvData.FACEBOOK_CLIENT_ID != "" && constants.EnvData.FACEBOOK_CLIENT_SECRET != "",
+		IsBasicAuthenticationEnabled: !constants.EnvData.DISABLE_BASIC_AUTHENTICATION,
+		IsEmailVerificationEnabled:   !constants.EnvData.DISABLE_EMAIL_VERIFICATION,
+		IsMagicLinkLoginEnabled:      !constants.EnvData.DISABLE_MAGIC_LINK_LOGIN,
 	}
 }
