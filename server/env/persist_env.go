@@ -59,8 +59,6 @@ func PersistEnv() error {
 			return err
 		}
 
-		log.Println("=> persisted data:", jsonData)
-
 		// if env is changed via env file or OS env
 		// give that higher preference and update db, but we don't recommend it
 
@@ -120,7 +118,6 @@ func PersistEnv() error {
 			}
 		}
 
-		log.Println("has changed:", hasChanged)
 		if hasChanged {
 			jsonBytes, err := json.Marshal(jsonData)
 			if err != nil {
@@ -132,23 +129,23 @@ func PersistEnv() error {
 				return err
 			}
 
+			configData, err := json.Marshal(constants.EnvData)
+			if err != nil {
+				return err
+			}
+			encryptedConfig, err := utils.EncryptAES(configData)
+			if err != nil {
+				return err
+			}
+
+			config.Config = encryptedConfig
+			_, err = db.Mgr.UpdateConfig(config)
+			if err != nil {
+				log.Println("error updating config:", err)
+				return err
+			}
 		}
 
-		configData, err := json.Marshal(constants.EnvData)
-		if err != nil {
-			return err
-		}
-		encryptedConfig, err := utils.EncryptAES(configData)
-		if err != nil {
-			return err
-		}
-
-		config.Config = encryptedConfig
-		_, err = db.Mgr.UpdateConfig(config)
-		if err != nil {
-			log.Println("error updating config:", err)
-			return err
-		}
 	}
 
 	return nil

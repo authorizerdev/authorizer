@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -140,10 +141,20 @@ func GetAdminAuthToken(gc *gin.Context) (string, error) {
 
 		token = strings.TrimPrefix(auth, "Bearer ")
 
-		err = bcrypt.CompareHashAndPassword([]byte(token), []byte(constants.EnvData.ADMIN_SECRET))
-		if err != nil {
-			return "", fmt.Errorf(`unauthorized`)
-		}
 	}
+
+	// cookie escapes special characters like $
+	// hence we need to unescape before comparing
+	decodedValue, err := url.QueryUnescape(token)
+	if err != nil {
+		return "", err
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(decodedValue), []byte(constants.EnvData.ADMIN_SECRET))
+	log.Println("error comparing hash:", err)
+	if err != nil {
+		return "", fmt.Errorf(`unauthorized`)
+	}
+
 	return token, nil
 }

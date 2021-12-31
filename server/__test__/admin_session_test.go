@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func aminSessionTests(s TestSetup, t *testing.T) {
+func adminSessionTests(s TestSetup, t *testing.T) {
 	t.Run(`should get admin session`, func(t *testing.T) {
 		req, ctx := createContext(s)
 		_, err := resolvers.AdminSession(ctx)
