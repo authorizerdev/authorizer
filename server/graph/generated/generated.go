@@ -107,6 +107,7 @@ type ComplexityRoot struct {
 
 	Mutation struct {
 		AdminLogin        func(childComplexity int, params model.AdminLoginInput) int
+		AdminLogout       func(childComplexity int) int
 		DeleteUser        func(childComplexity int, params model.DeleteUserInput) int
 		ForgotPassword    func(childComplexity int, params model.ForgotPasswordInput) int
 		Login             func(childComplexity int, params model.LoginInput) int
@@ -179,6 +180,7 @@ type MutationResolver interface {
 	DeleteUser(ctx context.Context, params model.DeleteUserInput) (*model.Response, error)
 	UpdateUser(ctx context.Context, params model.UpdateUserInput) (*model.User, error)
 	AdminLogin(ctx context.Context, params model.AdminLoginInput) (*model.AdminLoginResponse, error)
+	AdminLogout(ctx context.Context) (*model.Response, error)
 	UpdateConfig(ctx context.Context, params model.UpdateConfigInput) (*model.Response, error)
 }
 type QueryResolver interface {
@@ -546,6 +548,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.AdminLogin(childComplexity, args["params"].(model.AdminLoginInput)), true
+
+	case "Mutation._admin_logout":
+		if e.complexity.Mutation.AdminLogout == nil {
+			break
+		}
+
+		return e.complexity.Mutation.AdminLogout(childComplexity), true
 
 	case "Mutation._delete_user":
 		if e.complexity.Mutation.DeleteUser == nil {
@@ -1214,6 +1223,7 @@ type Mutation {
 	_delete_user(params: DeleteUserInput!): Response!
 	_update_user(params: UpdateUserInput!): User!
 	_admin_login(params: AdminLoginInput!): AdminLoginResponse!
+	_admin_logout: Response!
 	_update_config(params: UpdateConfigInput!): Response!
 }
 
@@ -3518,6 +3528,41 @@ func (ec *executionContext) _Mutation__admin_login(ctx context.Context, field gr
 	res := resTmp.(*model.AdminLoginResponse)
 	fc.Result = res
 	return ec.marshalNAdminLoginResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAdminLoginResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation__admin_logout(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().AdminLogout(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Response)
+	fc.Result = res
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation__update_config(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -6976,6 +7021,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "_admin_login":
 			out.Values[i] = ec._Mutation__admin_login(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "_admin_logout":
+			out.Values[i] = ec._Mutation__admin_logout(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}

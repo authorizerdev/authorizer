@@ -59,6 +59,10 @@ func (r *mutationResolver) AdminLogin(ctx context.Context, params model.AdminLog
 	return resolvers.AdminLoginResolver(ctx, params)
 }
 
+func (r *mutationResolver) AdminLogout(ctx context.Context) (*model.Response, error) {
+	return resolvers.AdminLogout(ctx)
+}
+
 func (r *mutationResolver) UpdateConfig(ctx context.Context, params model.UpdateConfigInput) (*model.Response, error) {
 	return resolvers.UpdateConfigResolver(ctx, params)
 }
