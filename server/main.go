@@ -22,10 +22,12 @@ func main() {
 	env.ARG_ENV_FILE = flag.String("env_file", "", "Env file path")
 	flag.Parse()
 
-	constants.VERSION = VERSION
+	constants.EnvData.VERSION = VERSION
 
 	env.InitEnv()
 	db.InitDB()
+	env.PersistEnv()
+
 	session.InitSession()
 	oauth.InitOAuth()
 	utils.InitServer()
@@ -35,7 +37,7 @@ func main() {
 	router.LoadHTMLGlob("templates/*")
 	// login page app related routes.
 	// if we put them in router file then tests would fail as templates or build path will be different
-	if !constants.DISABLE_LOGIN_PAGE {
+	if !constants.EnvData.DISABLE_LOGIN_PAGE {
 		app := router.Group("/app")
 		{
 			app.Static("/build", "app/build")
@@ -50,5 +52,5 @@ func main() {
 		app.GET("/", handlers.DashboardHandler())
 	}
 
-	router.Run(":" + constants.PORT)
+	router.Run(":" + constants.EnvData.PORT)
 }

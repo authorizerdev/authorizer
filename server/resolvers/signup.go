@@ -22,7 +22,7 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 		return res, err
 	}
 
-	if constants.DISABLE_BASIC_AUTHENTICATION {
+	if constants.EnvData.DISABLE_BASIC_AUTHENTICATION {
 		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
 	}
 	if params.ConfirmPassword != params.Password {
@@ -52,13 +52,13 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 
 	if len(params.Roles) > 0 {
 		// check if roles exists
-		if !utils.IsValidRoles(constants.ROLES, params.Roles) {
+		if !utils.IsValidRoles(constants.EnvData.ROLES, params.Roles) {
 			return res, fmt.Errorf(`invalid roles`)
 		} else {
 			inputRoles = params.Roles
 		}
 	} else {
-		inputRoles = constants.DEFAULT_ROLES
+		inputRoles = constants.EnvData.DEFAULT_ROLES
 	}
 
 	user := db.User{
@@ -103,7 +103,7 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 	}
 
 	user.SignupMethods = enum.BasicAuth.String()
-	if constants.DISABLE_EMAIL_VERIFICATION {
+	if constants.EnvData.DISABLE_EMAIL_VERIFICATION {
 		now := time.Now().Unix()
 		user.EmailVerifiedAt = &now
 	}
@@ -115,7 +115,7 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 	roles := strings.Split(user.Roles, ",")
 	userToReturn := utils.GetResponseUserData(user)
 
-	if !constants.DISABLE_EMAIL_VERIFICATION {
+	if !constants.EnvData.DISABLE_EMAIL_VERIFICATION {
 		// insert verification request
 		verificationType := enum.BasicAuthSignup.String()
 		token, err := utils.CreateVerificationToken(params.Email, verificationType)

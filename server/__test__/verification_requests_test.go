@@ -23,7 +23,7 @@ func verificationRequestsTest(s TestSetup, t *testing.T) {
 		requests, err := resolvers.VerificationRequests(ctx)
 		assert.NotNil(t, err, "unauthorizer")
 
-		req.Header.Add("x-authorizer-admin-secret", constants.ADMIN_SECRET)
+		req.Header.Add("x-authorizer-admin-secret", constants.EnvData.ADMIN_SECRET)
 		requests, err = resolvers.VerificationRequests(ctx)
 
 		assert.Nil(t, err)

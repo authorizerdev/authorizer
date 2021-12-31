@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -30,17 +29,17 @@ func AppHandler() gin.HandlerFunc {
 			// 	return
 			// }
 
-			stateObj.AuthorizerURL = constants.AUTHORIZER_URL
-			stateObj.RedirectURL = constants.AUTHORIZER_URL + "/app"
+			stateObj.AuthorizerURL = constants.EnvData.AUTHORIZER_URL
+			stateObj.RedirectURL = constants.EnvData.AUTHORIZER_URL + "/app"
 
 		} else {
-			decodedState, err := base64.StdEncoding.DecodeString(state)
+			decodedState, err := utils.DecryptB64(state)
 			if err != nil {
 				c.JSON(400, gin.H{"error": "[unable to decode state] invalid state"})
 				return
 			}
 
-			err = json.Unmarshal(decodedState, &stateObj)
+			err = json.Unmarshal([]byte(decodedState), &stateObj)
 			if err != nil {
 				c.JSON(400, gin.H{"error": "[unable to parse state] invalid state"})
 				return
@@ -60,7 +59,7 @@ func AppHandler() gin.HandlerFunc {
 			}
 
 			// validate host and domain of authorizer url
-			if strings.TrimSuffix(stateObj.AuthorizerURL, "/") != constants.AUTHORIZER_URL {
+			if strings.TrimSuffix(stateObj.AuthorizerURL, "/") != constants.EnvData.AUTHORIZER_URL {
 				c.JSON(400, gin.H{"error": "invalid host url"})
 				return
 			}
@@ -77,8 +76,8 @@ func AppHandler() gin.HandlerFunc {
 			"data": map[string]string{
 				"authorizerURL":    stateObj.AuthorizerURL,
 				"redirectURL":      stateObj.RedirectURL,
-				"organizationName": constants.ORGANIZATION_NAME,
-				"organizationLogo": constants.ORGANIZATION_LOGO,
+				"organizationName": constants.EnvData.ORGANIZATION_NAME,
+				"organizationLogo": constants.EnvData.ORGANIZATION_LOGO,
 			},
 		})
 	}

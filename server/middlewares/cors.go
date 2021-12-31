@@ -9,7 +9,7 @@ import (
 func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		origin := c.Request.Header.Get("Origin")
-		constants.APP_URL = origin
+		constants.EnvData.APP_URL = origin
 
 		if utils.IsValidOrigin(origin) {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)

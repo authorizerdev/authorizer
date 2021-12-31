@@ -20,7 +20,7 @@ func AdminLoginResolver(ctx context.Context, params model.AdminLoginInput) (*mod
 		log.Println("=> error:", err)
 		return res, err
 	}
-	if params.AdminSecret != constants.ADMIN_SECRET {
+	if params.AdminSecret != constants.EnvData.ADMIN_SECRET {
 		return nil, fmt.Errorf(`invalid admin secret`)
 	}
 

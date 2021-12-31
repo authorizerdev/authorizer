@@ -16,8 +16,8 @@ func TestResolvers(t *testing.T) {
 	}
 
 	for dbType, dbURL := range databases {
-		constants.DATABASE_URL = dbURL
-		constants.DATABASE_TYPE = dbType
+		constants.EnvData.DATABASE_URL = dbURL
+		constants.EnvData.DATABASE_TYPE = dbType
 		db.InitDB()
 
 		s := testSetup()
