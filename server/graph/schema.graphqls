@@ -69,7 +69,6 @@ type AdminLoginResponse {
 
 type Config {
 	ADMIN_SECRET: String
-	VERSION: String
 	DATABASE_TYPE: String
 	DATABASE_URL: String
 	DATABASE_NAME: String
@@ -105,7 +104,6 @@ type Config {
 
 input UpdateConfigInput {
 	ADMIN_SECRET: String
-	VERSION: String
 	DATABASE_TYPE: String
 	DATABASE_URL: String
 	DATABASE_NAME: String

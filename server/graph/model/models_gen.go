@@ -20,7 +20,6 @@ type AuthResponse struct {
 
 type Config struct {
 	AdminSecret                *string  `json:"ADMIN_SECRET"`
-	Version                    *string  `json:"VERSION"`
 	DatabaseType               *string  `json:"DATABASE_TYPE"`
 	DatabaseURL                *string  `json:"DATABASE_URL"`
 	DatabaseName               *string  `json:"DATABASE_NAME"`
@@ -120,7 +119,6 @@ type SignUpInput struct {
 
 type UpdateConfigInput struct {
 	AdminSecret                *string  `json:"ADMIN_SECRET"`
-	Version                    *string  `json:"VERSION"`
 	DatabaseType               *string  `json:"DATABASE_TYPE"`
 	DatabaseURL                *string  `json:"DATABASE_URL"`
 	DatabaseName               *string  `json:"DATABASE_NAME"`
