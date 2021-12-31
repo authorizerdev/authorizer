@@ -64,7 +64,7 @@ func GetAdminCookie(gc *gin.Context) (string, error) {
 	return cookie.Value, nil
 }
 
-func DeleteAdminCookie(gc *gin.Context, token string) {
+func DeleteAdminCookie(gc *gin.Context) {
 	secure := true
 	httpOnly := true
 	host, _ := GetHostParts(constants.EnvData.AUTHORIZER_URL)

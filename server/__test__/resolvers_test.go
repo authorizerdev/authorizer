@@ -45,6 +45,7 @@ func TestResolvers(t *testing.T) {
 			deleteUserTest(s, t)
 			updateUserTest(s, t)
 			adminLoginTests(s, t)
+			adminLogoutTests(s, t)
 			adminSessionTests(s, t)
 			updateConfigTests(s, t)
 			configTests(s, t)
