@@ -11,9 +11,9 @@ import (
 
 func TestResolvers(t *testing.T) {
 	databases := map[string]string{
-		enum.Sqlite.String(): "../../data.db",
-		// enum.Arangodb.String(): "http://root:root@localhost:8529",
-		// enum.Mongodb.String():  "mongodb://localhost:27017",
+		enum.Sqlite.String():   "../../data.db",
+		enum.Arangodb.String(): "http://root:root@localhost:8529",
+		enum.Mongodb.String():  "mongodb://localhost:27017",
 	}
 
 	for dbType, dbURL := range databases {
