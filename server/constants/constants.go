@@ -11,8 +11,9 @@ var (
 	DATABASE_NAME                = ""
 	SMTP_HOST                    = ""
 	SMTP_PORT                    = ""
+	SMTP_USERNAME                = ""
+	SMTP_PASSWORD                = ""
 	SENDER_EMAIL                 = ""
-	SENDER_PASSWORD              = ""
 	JWT_TYPE                     = ""
 	JWT_SECRET                   = ""
 	ALLOWED_ORIGINS              = []string{}
