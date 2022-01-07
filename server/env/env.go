@@ -94,12 +94,16 @@ func InitEnv() {
 		constants.SMTP_PORT = os.Getenv("SMTP_PORT")
 	}
 
-	if constants.SENDER_EMAIL == "" {
-		constants.SENDER_EMAIL = os.Getenv("SENDER_EMAIL")
+	if constants.SMTP_USERNAME == "" {
+		constants.SMTP_USERNAME = os.Getenv("SMTP_USERNAME")
 	}
 
-	if constants.SENDER_PASSWORD == "" {
-		constants.SENDER_PASSWORD = os.Getenv("SENDER_PASSWORD")
+	if constants.SMTP_PASSWORD == "" {
+		constants.SMTP_PASSWORD = os.Getenv("SMTP_PASSWORD")
+	}
+
+	if constants.SENDER_EMAIL == "" {
+		constants.SENDER_EMAIL = os.Getenv("SENDER_EMAIL")
 	}
 
 	if constants.JWT_SECRET == "" {
@@ -174,7 +178,7 @@ func InitEnv() {
 	constants.DISABLE_MAGIC_LINK_LOGIN = os.Getenv("DISABLE_MAGIC_LINK_LOGIN") == "true"
 	constants.DISABLE_LOGIN_PAGE = os.Getenv("DISABLE_LOGIN_PAGE") == "true"
 
-	if constants.SMTP_HOST == "" || constants.SENDER_EMAIL == "" || constants.SENDER_PASSWORD == "" {
+	if constants.SMTP_HOST == "" || constants.SMTP_USERNAME == "" || constants.SMTP_PASSWORD == "" || constants.SENDER_EMAIL == "" {
 		constants.DISABLE_EMAIL_VERIFICATION = true
 		constants.DISABLE_MAGIC_LINK_LOGIN = true
 	}

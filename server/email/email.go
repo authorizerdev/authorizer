@@ -27,11 +27,11 @@ type Sender struct {
 }
 
 func NewSender() Sender {
-	return Sender{User: constants.SENDER_EMAIL, Password: constants.SENDER_PASSWORD}
+	return Sender{User: constants.SMTP_USERNAME, Password: constants.SMTP_PASSWORD}
 }
 
 func (sender Sender) SendMail(Dest []string, Subject, bodyMessage string) error {
-	msg := "From: " + sender.User + "\n" +
+	msg := "From: " + constants.SENDER_EMAIL + "\n" +
 		"To: " + strings.Join(Dest, ",") + "\n" +
 		"Subject: " + Subject + "\n" + bodyMessage
 
