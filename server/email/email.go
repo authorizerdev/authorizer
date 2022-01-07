@@ -37,9 +37,8 @@ func (sender Sender) SendMail(Dest []string, Subject, bodyMessage string) error 
 
 	err := smtp.SendMail(constants.SMTP_HOST+":"+constants.SMTP_PORT,
 		smtp.PlainAuth("", sender.User, sender.Password, constants.SMTP_HOST),
-		sender.User, Dest, []byte(msg))
+		constants.SENDER_EMAIL, Dest, []byte(msg))
 	if err != nil {
-
 		log.Printf("smtp error: %s", err)
 		return err
 	}
