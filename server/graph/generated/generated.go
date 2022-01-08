@@ -85,9 +85,10 @@ type ComplexityRoot struct {
 		ResetPasswordURL           func(childComplexity int) int
 		Roles                      func(childComplexity int) int
 		SMTPHost                   func(childComplexity int) int
+		SMTPPassword               func(childComplexity int) int
 		SMTPPort                   func(childComplexity int) int
+		SMTPUsername               func(childComplexity int) int
 		SenderEmail                func(childComplexity int) int
-		SenderPassword             func(childComplexity int) int
 	}
 
 	Error struct {
@@ -453,6 +454,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Config.SMTPHost(childComplexity), true
 
+	case "Config.SMTP_PASSWORD":
+		if e.complexity.Config.SMTPPassword == nil {
+			break
+		}
+
+		return e.complexity.Config.SMTPPassword(childComplexity), true
+
 	case "Config.SMTP_PORT":
 		if e.complexity.Config.SMTPPort == nil {
 			break
@@ -460,19 +468,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Config.SMTPPort(childComplexity), true
 
+	case "Config.SMTP_USERNAME":
+		if e.complexity.Config.SMTPUsername == nil {
+			break
+		}
+
+		return e.complexity.Config.SMTPUsername(childComplexity), true
+
 	case "Config.SENDER_EMAIL":
 		if e.complexity.Config.SenderEmail == nil {
 			break
 		}
 
 		return e.complexity.Config.SenderEmail(childComplexity), true
-
-	case "Config.SENDER_PASSWORD":
-		if e.complexity.Config.SenderPassword == nil {
-			break
-		}
-
-		return e.complexity.Config.SenderPassword(childComplexity), true
 
 	case "Error.message":
 		if e.complexity.Error.Message == nil {
@@ -1064,8 +1072,9 @@ type Config {
 	DATABASE_NAME: String
 	SMTP_HOST: String
 	SMTP_PORT: String
+	SMTP_USERNAME: String
+	SMTP_PASSWORD: String
 	SENDER_EMAIL: String
-	SENDER_PASSWORD: String
 	JWT_TYPE: String
 	JWT_SECRET: String
 	ALLOWED_ORIGINS: [String!]
@@ -1886,6 +1895,70 @@ func (ec *executionContext) _Config_SMTP_PORT(ctx context.Context, field graphql
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Config_SMTP_USERNAME(ctx context.Context, field graphql.CollectedField, obj *model.Config) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Config",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.SMTPUsername, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Config_SMTP_PASSWORD(ctx context.Context, field graphql.CollectedField, obj *model.Config) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Config",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.SMTPPassword, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Config_SENDER_EMAIL(ctx context.Context, field graphql.CollectedField, obj *model.Config) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -1905,38 +1978,6 @@ func (ec *executionContext) _Config_SENDER_EMAIL(ctx context.Context, field grap
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.SenderEmail, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*string)
-	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Config_SENDER_PASSWORD(ctx context.Context, field graphql.CollectedField, obj *model.Config) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Config",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.SenderPassword, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -6797,10 +6838,12 @@ func (ec *executionContext) _Config(ctx context.Context, sel ast.SelectionSet, o
 			out.Values[i] = ec._Config_SMTP_HOST(ctx, field, obj)
 		case "SMTP_PORT":
 			out.Values[i] = ec._Config_SMTP_PORT(ctx, field, obj)
+		case "SMTP_USERNAME":
+			out.Values[i] = ec._Config_SMTP_USERNAME(ctx, field, obj)
+		case "SMTP_PASSWORD":
+			out.Values[i] = ec._Config_SMTP_PASSWORD(ctx, field, obj)
 		case "SENDER_EMAIL":
 			out.Values[i] = ec._Config_SENDER_EMAIL(ctx, field, obj)
-		case "SENDER_PASSWORD":
-			out.Values[i] = ec._Config_SENDER_PASSWORD(ctx, field, obj)
 		case "JWT_TYPE":
 			out.Values[i] = ec._Config_JWT_TYPE(ctx, field, obj)
 		case "JWT_SECRET":

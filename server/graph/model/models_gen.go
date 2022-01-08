@@ -25,8 +25,9 @@ type Config struct {
 	DatabaseName               *string  `json:"DATABASE_NAME"`
 	SMTPHost                   *string  `json:"SMTP_HOST"`
 	SMTPPort                   *string  `json:"SMTP_PORT"`
+	SMTPUsername               *string  `json:"SMTP_USERNAME"`
+	SMTPPassword               *string  `json:"SMTP_PASSWORD"`
 	SenderEmail                *string  `json:"SENDER_EMAIL"`
-	SenderPassword             *string  `json:"SENDER_PASSWORD"`
 	JwtType                    *string  `json:"JWT_TYPE"`
 	JwtSecret                  *string  `json:"JWT_SECRET"`
 	AllowedOrigins             []string `json:"ALLOWED_ORIGINS"`

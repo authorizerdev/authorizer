@@ -10,8 +10,9 @@ type EnvConst struct {
 	DATABASE_NAME                string
 	SMTP_HOST                    string
 	SMTP_PORT                    string
+	SMTP_PASSWORD                string
+	SMTP_USERNAME                string
 	SENDER_EMAIL                 string
-	SENDER_PASSWORD              string
 	JWT_TYPE                     string
 	JWT_SECRET                   string
 	ALLOWED_ORIGINS              []string
