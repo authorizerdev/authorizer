@@ -9,16 +9,7 @@ import (
 	gomail "gopkg.in/mail.v2"
 )
 
-type Sender struct {
-	User     string
-	Password string
-}
-
-func NewSender() Sender {
-	return Sender{User: constants.SMTP_USERNAME, Password: constants.SMTP_PASSWORD}
-}
-
-func (sender Sender) SendMail(to []string, Subject, bodyMessage string) error {
+func SendMail(to []string, Subject, bodyMessage string) error {
 	m := gomail.NewMessage()
 	m.SetHeader("From", constants.SENDER_EMAIL)
 	m.SetHeader("To", to...)
