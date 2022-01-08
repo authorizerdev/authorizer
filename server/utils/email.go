@@ -1,7 +1,9 @@
 package utils
 
 import (
-	"fmt"
+	"bytes"
+	"encoding/json"
+	"html/template"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/email"
@@ -15,10 +17,9 @@ func SendVerificationMail(toEmail, token string) error {
 	Receiver := []string{toEmail}
 
 	Subject := "Please verify your email"
-	message := fmt.Sprintf(`
+	message := `
 	<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
     <html xmlns="http://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office">
-
         <head>
             <meta charset="UTF-8">
             <meta content="width=device-width, initial-scale=1" name="viewport">
@@ -41,7 +42,6 @@ func SendVerificationMail(toEmail, token string) error {
         </xml>
         <![endif]-->
         </head>
-
         <body style="font-family: sans-serif;">
             <div class="es-wrapper-color">
                 <!--[if gte mso 9]>
@@ -68,14 +68,15 @@ func SendVerificationMail(toEmail, token string) error {
                                                                                 <table width="100%%" cellspacing="0" cellpadding="0">
                                                                                     <tbody>
                                                                                         <tr>
-                                                                                            <td class="esd-block-image es-m-txt-c es-p5b" style="font-size:0;padding:10px" align="center"><a target="_blank"><img src="%s" alt="icon" style="display: block;" title="icon" width="30"></a></td>
+                                                                                            <td class="esd-block-image es-m-txt-c es-p5b" style="font-size:0;padding:10px" align="center"><a target="_blank" clicktracking="off"><img src="{{.OrgLogo}}" alt="icon" style="display: block;" title="icon" width="30"></a></td>
                                                                                         </tr>
                                                                                         
                                                                                         <tr style="background: rgb(249,250,251);padding: 10px;margin-bottom:10px;border-radius:5px;">
                                                                                             <td class="esd-block-text es-m-txt-c es-p15t" align="center" style="padding:10px;padding-bottom:30px;">
                                                                                                 <p>Hey there 👋</p>
-                                                                                                <p>We received a request to sign-up / login for <b>%s</b>. If this is correct, please confirm your email address by clicking the button below.</p> <br/>
-                                                                                                <a href="%s" class="es-button" target="_blank" style="text-decoration: none;padding:10px 15px;background-color: rgba(59,130,246,1);color: #fff;font-size: 1em;border-radius:5px;">Confirm Email</a>
+                                                                                                <p>We received a request to sign-up / login for <b>{{.OrgName}}</b>. If this is correct, please confirm your email address by clicking the button below.</p> <br/>
+                                                                                                <a 
+                                                                                                clicktracking="off" href="{{.AuthUrl}}" class="es-button" target="_blank" style="text-decoration: none;padding:10px 15px;background-color: rgba(59,130,246,1);color: #fff;font-size: 1em;border-radius:5px;">Confirm Email</a>
                                                                                             </td>
                                                                                         </tr>
                                                                                     </tbody>
@@ -100,10 +101,15 @@ func SendVerificationMail(toEmail, token string) error {
             <div style="position: absolute; left: -9999px; top: -9999px; margin: 0px;"></div>
         </body>
     </html>
-	`, constants.ORGANIZATION_LOGO, constants.ORGANIZATION_NAME, constants.AUTHORIZER_URL+"/verify_email"+"?token="+token)
-	bodyMessage := sender.WriteHTMLEmail(Receiver, Subject, message)
+	`
+	data := make(map[string]interface{}, 3)
+	data["OrgLogo"] = constants.ORGANIZATION_LOGO
+	data["OrgName"] = constants.ORGANIZATION_NAME
+	data["AuthUrl"] = constants.AUTHORIZER_URL + "/verify_email?token=" + token
+	message = AddEmailTemplate(message, data, "verify_email.tmpl")
+	// bodyMessage := sender.WriteHTMLEmail(Receiver, Subject, message)
 
-	return sender.SendMail(Receiver, Subject, bodyMessage)
+	return sender.SendMail(Receiver, Subject, message)
 }
 
 // SendForgotPasswordMail to send verification email
@@ -119,10 +125,9 @@ func SendForgotPasswordMail(toEmail, token, host string) error {
 
 	Subject := "Reset Password"
 
-	message := fmt.Sprintf(`
+	message := `
 	<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
     <html xmlns="http://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office">
-
         <head>
             <meta charset="UTF-8">
             <meta content="width=device-width, initial-scale=1" name="viewport">
@@ -145,7 +150,6 @@ func SendForgotPasswordMail(toEmail, token, host string) error {
         </xml>
         <![endif]-->
         </head>
-
         <body style="font-family: sans-serif;">
             <div class="es-wrapper-color">
                 <!--[if gte mso 9]>
@@ -172,14 +176,14 @@ func SendForgotPasswordMail(toEmail, token, host string) error {
                                                                                 <table width="100%%" cellspacing="0" cellpadding="0">
                                                                                     <tbody>
                                                                                         <tr>
-                                                                                            <td class="esd-block-image es-m-txt-c es-p5b" style="font-size:0;padding:10px" align="center"><a target="_blank"><img src="%s" alt="icon" style="display: block;" title="icon" width="30"></a></td>
+                                                                                            <td class="esd-block-image es-m-txt-c es-p5b" style="font-size:0;padding:10px" align="center"><a target="_blank" clicktracking="off"><img src="{{.OrgLogo}}" alt="icon" style="display: block;" title="icon" width="30"></a></td>
                                                                                         </tr>
                                                                                         
                                                                                         <tr style="background: rgb(249,250,251);padding: 10px;margin-bottom:10px;border-radius:5px;">
                                                                                             <td class="esd-block-text es-m-txt-c es-p15t" align="center" style="padding:10px;padding-bottom:30px;">
                                                                                                 <p>Hey there 👋</p>
-                                                                                                <p>We received a request to reset password for email: <b>%s</b>. If this is correct, please reset the password clicking the button below.</p> <br/>
-                                                                                                <a href="%s" class="es-button" target="_blank" style="text-decoration: none;padding:10px 15px;background-color: rgba(59,130,246,1);color: #fff;font-size: 1em;border-radius:5px;">Reset Password</a>
+                                                                                                <p>We received a request to reset password for email: <b>{{.ToEmail}}</b>. If this is correct, please reset the password clicking the button below.</p> <br/>
+                                                                                                <a clicktracking="off" href="{{.AuthUrl}}" class="es-button" target="_blank" style="text-decoration: none;padding:10px 15px;background-color: rgba(59,130,246,1);color: #fff;font-size: 1em;border-radius:5px;">Reset Password</a>
                                                                                             </td>
                                                                                         </tr>
                                                                                     </tbody>
@@ -204,9 +208,28 @@ func SendForgotPasswordMail(toEmail, token, host string) error {
             <div style="position: absolute; left: -9999px; top: -9999px; margin: 0px;"></div>
         </body>
     </html>
-	`, constants.ORGANIZATION_LOGO, toEmail, constants.RESET_PASSWORD_URL+"?token="+token)
+	`
 
-	bodyMessage := sender.WriteHTMLEmail(Receiver, Subject, message)
+	data := make(map[string]interface{}, 3)
+	data["OrgLogo"] = constants.ORGANIZATION_LOGO
+	data["ToEmail"] = constants.ORGANIZATION_NAME
+	data["AuthUrl"] = constants.RESET_PASSWORD_URL + "?token=" + token
+	message = AddEmailTemplate(message, data, "reset_password_email.tmpl")
 
-	return sender.SendMail(Receiver, Subject, bodyMessage)
+	return sender.SendMail(Receiver, Subject, message)
+}
+
+func AddEmailTemplate(a string, b map[string]interface{}, templateName string) string {
+	tmpl, err := template.New(templateName).Parse(a)
+	if err != nil {
+		output, _ := json.Marshal(b)
+		return string(output)
+	}
+	buf := &bytes.Buffer{}
+	err = tmpl.Execute(buf, b)
+	if err != nil {
+		panic(err)
+	}
+	s := buf.String()
+	return s
 }
