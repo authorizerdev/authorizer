@@ -6,7 +6,9 @@ import { BrowserRouter } from 'react-router-dom';
 export default function Example() {
 	return (
 		<ChakraProvider>
-			<BrowserRouter></BrowserRouter>
+			<BrowserRouter>
+				<h1>Dashboard</h1>
+			</BrowserRouter>
 		</ChakraProvider>
 	);
 }

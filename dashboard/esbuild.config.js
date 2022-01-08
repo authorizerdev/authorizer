@@ -8,4 +8,5 @@ require('esbuild').build({
 	splitting: true,
 	format: 'esm',
 	watch: !__is_prod__,
+	logLevel: 'info',
 });
