@@ -1,89 +1,28 @@
 package email
 
 import (
-	"bytes"
-	"fmt"
+	"crypto/tls"
 	"log"
-	"mime/quotedprintable"
-	"net/smtp"
-	"strings"
+	"strconv"
 
 	"github.com/authorizerdev/authorizer/server/constants"
+	gomail "gopkg.in/mail.v2"
 )
 
-/**
-	Using: https://github.com/tangingw/go_smtp/blob/master/send_mail.go
-	For gmail add instruction to enable less security
-	// https://myaccount.google.com/u/0/lesssecureapps
-	// https://www.google.com/settings/security/lesssecureapps
-	// https://stackoverflow.com/questions/19877246/nodemailer-with-gmail-and-nodejs
-**/
-
-// TODO -> try using gomail.v2
-
-type Sender struct {
-	User     string
-	Password string
-}
-
-func NewSender() Sender {
-	return Sender{User: constants.EnvData.SMTP_USERNAME, Password: constants.EnvData.SMTP_PASSWORD}
-}
-
-func (sender Sender) SendMail(Dest []string, Subject, bodyMessage string) error {
-	msg := "From: " + constants.EnvData.SENDER_EMAIL + "\n" +
-		"To: " + strings.Join(Dest, ",") + "\n" +
-		"Subject: " + Subject + "\n" + bodyMessage
-
-	err := smtp.SendMail(constants.EnvData.SMTP_HOST+":"+constants.EnvData.SMTP_PORT,
-		smtp.PlainAuth("", sender.User, sender.Password, constants.EnvData.SMTP_HOST),
-		constants.EnvData.SENDER_EMAIL, Dest, []byte(msg))
-	if err != nil {
+func SendMail(to []string, Subject, bodyMessage string) error {
+	m := gomail.NewMessage()
+	m.SetHeader("From", constants.EnvData.SENDER_EMAIL)
+	m.SetHeader("To", to...)
+	m.SetHeader("Subject", Subject)
+	m.SetBody("text/html", bodyMessage)
+	port, _ := strconv.Atoi(constants.EnvData.SMTP_PORT)
+	d := gomail.NewDialer(constants.EnvData.SMTP_HOST, port, constants.EnvData.SMTP_USERNAME, constants.EnvData.SMTP_PASSWORD)
+	if constants.ENV == "development" {
+		d.TLSConfig = &tls.Config{InsecureSkipVerify: true}
+	}
+	if err := d.DialAndSend(m); err != nil {
 		log.Printf("smtp error: %s", err)
 		return err
 	}
-
 	return nil
-}
-
-func (sender Sender) WriteEmail(dest []string, contentType, subject, bodyMessage string) string {
-	header := make(map[string]string)
-	header["From"] = sender.User
-
-	receipient := ""
-
-	for _, user := range dest {
-		receipient = receipient + user
-	}
-
-	header["To"] = receipient
-	header["Subject"] = subject
-	header["MIME-Version"] = "1.0"
-	header["Content-Type"] = fmt.Sprintf("%s; charset=\"utf-8\"", contentType)
-	header["Content-Transfer-Encoding"] = "quoted-printable"
-	header["Content-Disposition"] = "inline"
-
-	message := ""
-
-	for key, value := range header {
-		message += fmt.Sprintf("%s: %s\r\n", key, value)
-	}
-
-	var encodedMessage bytes.Buffer
-
-	finalMessage := quotedprintable.NewWriter(&encodedMessage)
-	finalMessage.Write([]byte(bodyMessage))
-	finalMessage.Close()
-
-	message += "\r\n" + encodedMessage.String()
-
-	return message
-}
-
-func (sender *Sender) WriteHTMLEmail(dest []string, subject, bodyMessage string) string {
-	return sender.WriteEmail(dest, "text/html", subject, bodyMessage)
-}
-
-func (sender *Sender) WritePlainEmail(dest []string, subject, bodyMessage string) string {
-	return sender.WriteEmail(dest, "text/plain", subject, bodyMessage)
 }

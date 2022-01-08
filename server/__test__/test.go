@@ -2,8 +2,10 @@ package test
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"time"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
@@ -66,7 +68,7 @@ func createContext(s TestSetup) (*http.Request, context.Context) {
 
 func testSetup() TestSetup {
 	testData := TestData{
-		Email:    "authorizer_tester@yopmail.com",
+		Email:    fmt.Sprintf("%d_authorizer_tester@yopmail.com", time.Now().Unix()),
 		Password: "test",
 	}
 
