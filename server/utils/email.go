@@ -11,8 +11,6 @@ import (
 
 // SendVerificationMail to send verification email
 func SendVerificationMail(toEmail, token string) error {
-	sender := email.NewSender()
-
 	// The receiver needs to be in slice as the receive supports multiple receiver
 	Receiver := []string{toEmail}
 
@@ -74,7 +72,7 @@ func SendVerificationMail(toEmail, token string) error {
                                                                                         <tr style="background: rgb(249,250,251);padding: 10px;margin-bottom:10px;border-radius:5px;">
                                                                                             <td class="esd-block-text es-m-txt-c es-p15t" align="center" style="padding:10px;padding-bottom:30px;">
                                                                                                 <p>Hey there 👋</p>
-                                                                                                <p>We received a request to sign-up / login for <b>{{.OrgName}}</b>. If this is correct, please confirm your email address by clicking the button below.</p> <br/>
+                                                                                                <p>We have received request to verify email for <b>{{.OrgName}}</b>. If this is correct, please confirm your email address by clicking the button below.</p> <br/>
                                                                                                 <a 
                                                                                                 clicktracking="off" href="{{.AuthUrl}}" class="es-button" target="_blank" style="text-decoration: none;padding:10px 15px;background-color: rgba(59,130,246,1);color: #fff;font-size: 1em;border-radius:5px;">Confirm Email</a>
                                                                                             </td>
@@ -109,7 +107,7 @@ func SendVerificationMail(toEmail, token string) error {
 	message = AddEmailTemplate(message, data, "verify_email.tmpl")
 	// bodyMessage := sender.WriteHTMLEmail(Receiver, Subject, message)
 
-	return sender.SendMail(Receiver, Subject, message)
+	return email.SendMail(Receiver, Subject, message)
 }
 
 // SendForgotPasswordMail to send verification email
@@ -117,8 +115,6 @@ func SendForgotPasswordMail(toEmail, token, host string) error {
 	if constants.RESET_PASSWORD_URL == "" {
 		constants.RESET_PASSWORD_URL = constants.AUTHORIZER_URL + "/app/reset-password"
 	}
-
-	sender := email.NewSender()
 
 	// The receiver needs to be in slice as the receive supports multiple receiver
 	Receiver := []string{toEmail}
@@ -182,7 +178,7 @@ func SendForgotPasswordMail(toEmail, token, host string) error {
                                                                                         <tr style="background: rgb(249,250,251);padding: 10px;margin-bottom:10px;border-radius:5px;">
                                                                                             <td class="esd-block-text es-m-txt-c es-p15t" align="center" style="padding:10px;padding-bottom:30px;">
                                                                                                 <p>Hey there 👋</p>
-                                                                                                <p>We received a request to reset password for email: <b>{{.ToEmail}}</b>. If this is correct, please reset the password clicking the button below.</p> <br/>
+                                                                                                <p>We have received a request to reset password for email: <b>{{.ToEmail}}</b>. If this is correct, please reset the password clicking the button below.</p> <br/>
                                                                                                 <a clicktracking="off" href="{{.AuthUrl}}" class="es-button" target="_blank" style="text-decoration: none;padding:10px 15px;background-color: rgba(59,130,246,1);color: #fff;font-size: 1em;border-radius:5px;">Reset Password</a>
                                                                                             </td>
                                                                                         </tr>
@@ -216,7 +212,7 @@ func SendForgotPasswordMail(toEmail, token, host string) error {
 	data["AuthUrl"] = constants.RESET_PASSWORD_URL + "?token=" + token
 	message = AddEmailTemplate(message, data, "reset_password_email.tmpl")
 
-	return sender.SendMail(Receiver, Subject, message)
+	return email.SendMail(Receiver, Subject, message)
 }
 
 func AddEmailTemplate(a string, b map[string]interface{}, templateName string) string {
