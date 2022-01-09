@@ -72,21 +72,7 @@ func UpdateConfigResolver(ctx context.Context, params model.UpdateConfigInput) (
 		return res, err
 	}
 
-	jsonBytes, err := json.Marshal(updatedData)
-	if err != nil {
-		return res, err
-	}
-
-	err = json.Unmarshal(jsonBytes, &constants.EnvData)
-	if err != nil {
-		return res, err
-	}
-
-	configData, err := json.Marshal(constants.EnvData)
-	if err != nil {
-		return res, err
-	}
-	encryptedConfig, err := utils.EncryptAES(configData)
+	encryptedConfig, err := utils.EncryptConfig(updatedData)
 	if err != nil {
 		return res, err
 	}

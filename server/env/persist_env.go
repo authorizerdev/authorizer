@@ -119,21 +119,7 @@ func PersistEnv() error {
 		}
 
 		if hasChanged {
-			jsonBytes, err := json.Marshal(jsonData)
-			if err != nil {
-				return err
-			}
-
-			err = json.Unmarshal(jsonBytes, &constants.EnvData)
-			if err != nil {
-				return err
-			}
-
-			configData, err := json.Marshal(constants.EnvData)
-			if err != nil {
-				return err
-			}
-			encryptedConfig, err := utils.EncryptAES(configData)
+			encryptedConfig, err := utils.EncryptConfig(jsonData)
 			if err != nil {
 				return err
 			}

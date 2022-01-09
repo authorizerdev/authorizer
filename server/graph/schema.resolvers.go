@@ -55,6 +55,10 @@ func (r *mutationResolver) UpdateUser(ctx context.Context, params model.UpdateUs
 	return resolvers.UpdateUser(ctx, params)
 }
 
+func (r *mutationResolver) AdminSignup(ctx context.Context, params model.AdminLoginInput) (*model.AdminLoginResponse, error) {
+	return resolvers.AdminSignupResolver(ctx, params)
+}
+
 func (r *mutationResolver) AdminLogin(ctx context.Context, params model.AdminLoginInput) (*model.AdminLoginResponse, error) {
 	return resolvers.AdminLoginResolver(ctx, params)
 }
@@ -101,5 +105,7 @@ func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResol
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
-type mutationResolver struct{ *Resolver }
-type queryResolver struct{ *Resolver }
+type (
+	mutationResolver struct{ *Resolver }
+	queryResolver    struct{ *Resolver }
+)

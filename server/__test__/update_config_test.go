@@ -1,6 +1,7 @@
 package test
 
 import (
+	"fmt"
 	"log"
 	"testing"
 
@@ -23,7 +24,8 @@ func updateConfigTests(s TestSetup, t *testing.T) {
 		assert.NotNil(t, err)
 
 		h, _ := utils.HashPassword(constants.EnvData.ADMIN_SECRET)
-		req.Header.Add("Authorization", "Bearer "+h)
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.EnvData.ADMIN_COOKIE_NAME, h))
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.EnvData.ADMIN_COOKIE_NAME, h))
 		newURL := "https://test.com"
 		data = model.UpdateConfigInput{
 			AppURL: &newURL,

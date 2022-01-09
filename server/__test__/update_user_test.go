@@ -1,11 +1,13 @@
 package test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/resolvers"
+	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -29,7 +31,9 @@ func updateUserTest(s TestSetup, t *testing.T) {
 		})
 		assert.NotNil(t, err, "unauthorized")
 
-		req.Header.Add("x-authorizer-admin-secret", constants.EnvData.ADMIN_SECRET)
+		h, err := utils.HashPassword(constants.EnvData.ADMIN_SECRET)
+		assert.Nil(t, err)
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.EnvData.ADMIN_COOKIE_NAME, h))
 		_, err = resolvers.UpdateUser(ctx, model.UpdateUserInput{
 			ID:    user.ID,
 			Roles: newRoles,

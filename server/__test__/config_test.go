@@ -1,6 +1,7 @@
 package test
 
 import (
+	"fmt"
 	"log"
 	"testing"
 
@@ -19,7 +20,7 @@ func configTests(s TestSetup, t *testing.T) {
 
 		h, err := utils.HashPassword(constants.EnvData.ADMIN_SECRET)
 		assert.Nil(t, err)
-		req.Header.Add("Authorization", "Bearer "+h)
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.EnvData.ADMIN_COOKIE_NAME, h))
 		res, err := resolvers.ConfigResolver(ctx)
 
 		assert.Nil(t, err)
