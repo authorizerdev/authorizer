@@ -12,9 +12,9 @@ import (
 
 func TestResolvers(t *testing.T) {
 	databases := map[string]string{
-		enum.Sqlite.String():   "../../data.db",
-		enum.Arangodb.String(): "http://root:root@localhost:8529",
-		enum.Mongodb.String():  "mongodb://localhost:27017",
+		enum.Sqlite.String(): "../../data.db",
+		// enum.Arangodb.String(): "http://root:root@localhost:8529",
+		// enum.Mongodb.String():  "mongodb://localhost:27017",
 	}
 
 	for dbType, dbURL := range databases {
@@ -35,6 +35,19 @@ func TestResolvers(t *testing.T) {
 
 		log.Println("EnvData:", constants.EnvData)
 		t.Run("should pass tests for "+dbType, func(t *testing.T) {
+			// admin tests
+			adminSignupTests(s, t)
+			verificationRequestsTest(s, t)
+			usersTest(s, t)
+			deleteUserTest(s, t)
+			updateUserTest(s, t)
+			adminLoginTests(s, t)
+			adminLogoutTests(s, t)
+			adminSessionTests(s, t)
+			updateConfigTests(s, t)
+			configTests(s, t)
+
+			// user tests
 			loginTests(s, t)
 			signupTests(s, t)
 			forgotPasswordTest(s, t)
@@ -47,17 +60,6 @@ func TestResolvers(t *testing.T) {
 			magicLinkLoginTests(s, t)
 			logoutTests(s, t)
 			metaTests(s, t)
-
-			// admin tests
-			verificationRequestsTest(s, t)
-			usersTest(s, t)
-			deleteUserTest(s, t)
-			updateUserTest(s, t)
-			adminLoginTests(s, t)
-			adminLogoutTests(s, t)
-			adminSessionTests(s, t)
-			updateConfigTests(s, t)
-			configTests(s, t)
 		})
 	}
 }

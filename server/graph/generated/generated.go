@@ -109,6 +109,7 @@ type ComplexityRoot struct {
 	Mutation struct {
 		AdminLogin        func(childComplexity int, params model.AdminLoginInput) int
 		AdminLogout       func(childComplexity int) int
+		AdminSignup       func(childComplexity int, params model.AdminLoginInput) int
 		DeleteUser        func(childComplexity int, params model.DeleteUserInput) int
 		ForgotPassword    func(childComplexity int, params model.ForgotPasswordInput) int
 		Login             func(childComplexity int, params model.LoginInput) int
@@ -180,6 +181,7 @@ type MutationResolver interface {
 	ResetPassword(ctx context.Context, params model.ResetPasswordInput) (*model.Response, error)
 	DeleteUser(ctx context.Context, params model.DeleteUserInput) (*model.Response, error)
 	UpdateUser(ctx context.Context, params model.UpdateUserInput) (*model.User, error)
+	AdminSignup(ctx context.Context, params model.AdminLoginInput) (*model.AdminLoginResponse, error)
 	AdminLogin(ctx context.Context, params model.AdminLoginInput) (*model.AdminLoginResponse, error)
 	AdminLogout(ctx context.Context) (*model.Response, error)
 	UpdateConfig(ctx context.Context, params model.UpdateConfigInput) (*model.Response, error)
@@ -563,6 +565,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.AdminLogout(childComplexity), true
+
+	case "Mutation._admin_signup":
+		if e.complexity.Mutation.AdminSignup == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__admin_signup_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AdminSignup(childComplexity, args["params"].(model.AdminLoginInput)), true
 
 	case "Mutation._delete_user":
 		if e.complexity.Mutation.DeleteUser == nil {
@@ -1231,6 +1245,7 @@ type Mutation {
 	# admin only apis
 	_delete_user(params: DeleteUserInput!): Response!
 	_update_user(params: UpdateUserInput!): User!
+	_admin_signup(params: AdminLoginInput!): AdminLoginResponse!
 	_admin_login(params: AdminLoginInput!): AdminLoginResponse!
 	_admin_logout: Response!
 	_update_config(params: UpdateConfigInput!): Response!
@@ -1255,6 +1270,21 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 // region    ***************************** args.gotpl *****************************
 
 func (ec *executionContext) field_Mutation__admin_login_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.AdminLoginInput
+	if tmp, ok := rawArgs["params"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+		arg0, err = ec.unmarshalNAdminLoginInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAdminLoginInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["params"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation__admin_signup_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 model.AdminLoginInput
@@ -3527,6 +3557,48 @@ func (ec *executionContext) _Mutation__update_user(ctx context.Context, field gr
 	res := resTmp.(*model.User)
 	fc.Result = res
 	return ec.marshalNUser2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation__admin_signup(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation__admin_signup_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().AdminSignup(rctx, args["params"].(model.AdminLoginInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.AdminLoginResponse)
+	fc.Result = res
+	return ec.marshalNAdminLoginResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAdminLoginResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation__admin_login(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -7059,6 +7131,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "_update_user":
 			out.Values[i] = ec._Mutation__update_user(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "_admin_signup":
+			out.Values[i] = ec._Mutation__admin_signup(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}

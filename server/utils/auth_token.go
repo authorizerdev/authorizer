@@ -134,13 +134,13 @@ func GetAdminAuthToken(gc *gin.Context) (string, error) {
 	token, err := GetAdminCookie(gc)
 	if err != nil || token == "" {
 		// try to check in auth header for cookie
-		auth := gc.Request.Header.Get("Authorization")
-		if auth == "" {
-			return "", fmt.Errorf(`unauthorized`)
-		}
+		// auth := gc.Request.Header.Get("Authorization")
+		// if auth == "" {
+		// 	return "", fmt.Errorf(`unauthorized`)
+		// }
 
-		token = strings.TrimPrefix(auth, "Bearer ")
-
+		// token = strings.TrimPrefix(auth, "Bearer ")
+		return "", fmt.Errorf("unauthorized")
 	}
 
 	// cookie escapes special characters like $

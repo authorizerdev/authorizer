@@ -1,8 +1,10 @@
 package test
 
 import (
+	"fmt"
 	"testing"
 
+	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/enum"
 	"github.com/authorizerdev/authorizer/server/graph/model"
@@ -26,7 +28,7 @@ func magicLinkLoginTests(s TestSetup, t *testing.T) {
 		})
 
 		token := *verifyRes.AccessToken
-		req.Header.Add("Authorization", "Bearer "+token)
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.EnvData.COOKIE_NAME, token))
 		_, err = resolvers.Profile(ctx)
 		assert.Nil(t, err)
 

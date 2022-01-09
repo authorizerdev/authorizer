@@ -1,6 +1,7 @@
 package test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/authorizerdev/authorizer/server/constants"
@@ -17,7 +18,7 @@ func adminLogoutTests(s TestSetup, t *testing.T) {
 
 		h, err := utils.HashPassword(constants.EnvData.ADMIN_SECRET)
 		assert.Nil(t, err)
-		req.Header.Add("Authorization", "Bearer "+h)
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.EnvData.ADMIN_COOKIE_NAME, h))
 		_, err = resolvers.AdminLogout(ctx)
 
 		assert.Nil(t, err)
