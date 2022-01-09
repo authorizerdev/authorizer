@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
@@ -46,6 +47,12 @@ func ResetPassword(ctx context.Context, params model.ResetPasswordInput) (*model
 		signupMethod = signupMethod + "," + enum.BasicAuth.String()
 	}
 	user.SignupMethods = signupMethod
+
+	// helpful if user has not signed up with basic auth
+	if user.EmailVerifiedAt == nil {
+		now := time.Now().Unix()
+		user.EmailVerifiedAt = &now
+	}
 
 	// delete from verification table
 	db.Mgr.DeleteVerificationRequest(verificationRequest)
