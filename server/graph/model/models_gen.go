@@ -6,8 +6,8 @@ type AdminLoginInput struct {
 	AdminSecret string `json:"admin_secret"`
 }
 
-type AdminLoginResponse struct {
-	Message string `json:"message"`
+type AdminSignupInput struct {
+	AdminSecret string `json:"admin_secret"`
 }
 
 type AuthResponse struct {

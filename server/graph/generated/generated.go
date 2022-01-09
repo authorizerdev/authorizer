@@ -43,10 +43,6 @@ type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
-	AdminLoginResponse struct {
-		Message func(childComplexity int) int
-	}
-
 	AuthResponse struct {
 		AccessToken func(childComplexity int) int
 		ExpiresAt   func(childComplexity int) int
@@ -108,7 +104,7 @@ type ComplexityRoot struct {
 	Mutation struct {
 		AdminLogin        func(childComplexity int, params model.AdminLoginInput) int
 		AdminLogout       func(childComplexity int) int
-		AdminSignup       func(childComplexity int, params model.AdminLoginInput) int
+		AdminSignup       func(childComplexity int, params model.AdminSignupInput) int
 		DeleteUser        func(childComplexity int, params model.DeleteUserInput) int
 		ForgotPassword    func(childComplexity int, params model.ForgotPasswordInput) int
 		Login             func(childComplexity int, params model.LoginInput) int
@@ -180,8 +176,8 @@ type MutationResolver interface {
 	ResetPassword(ctx context.Context, params model.ResetPasswordInput) (*model.Response, error)
 	DeleteUser(ctx context.Context, params model.DeleteUserInput) (*model.Response, error)
 	UpdateUser(ctx context.Context, params model.UpdateUserInput) (*model.User, error)
-	AdminSignup(ctx context.Context, params model.AdminLoginInput) (*model.AdminLoginResponse, error)
-	AdminLogin(ctx context.Context, params model.AdminLoginInput) (*model.AdminLoginResponse, error)
+	AdminSignup(ctx context.Context, params model.AdminSignupInput) (*model.Response, error)
+	AdminLogin(ctx context.Context, params model.AdminLoginInput) (*model.Response, error)
 	AdminLogout(ctx context.Context) (*model.Response, error)
 	UpdateConfig(ctx context.Context, params model.UpdateConfigInput) (*model.Response, error)
 }
@@ -191,7 +187,7 @@ type QueryResolver interface {
 	Profile(ctx context.Context) (*model.User, error)
 	Users(ctx context.Context) ([]*model.User, error)
 	VerificationRequests(ctx context.Context) ([]*model.VerificationRequest, error)
-	AdminSession(ctx context.Context) (*model.AdminLoginResponse, error)
+	AdminSession(ctx context.Context) (*model.Response, error)
 	Config(ctx context.Context) (*model.Config, error)
 }
 
@@ -209,13 +205,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	ec := executionContext{nil, e}
 	_ = ec
 	switch typeName + "." + field {
-
-	case "AdminLoginResponse.message":
-		if e.complexity.AdminLoginResponse.Message == nil {
-			break
-		}
-
-		return e.complexity.AdminLoginResponse.Message(childComplexity), true
 
 	case "AuthResponse.access_token":
 		if e.complexity.AuthResponse.AccessToken == nil {
@@ -568,7 +557,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.AdminSignup(childComplexity, args["params"].(model.AdminLoginInput)), true
+		return e.complexity.Mutation.AdminSignup(childComplexity, args["params"].(model.AdminSignupInput)), true
 
 	case "Mutation._delete_user":
 		if e.complexity.Mutation.DeleteUser == nil {
@@ -1066,10 +1055,6 @@ type Response {
 	message: String!
 }
 
-type AdminLoginResponse {
-	message: String!
-}
-
 type Config {
 	ADMIN_SECRET: String
 	DATABASE_TYPE: String
@@ -1142,6 +1127,10 @@ input UpdateConfigInput {
 }
 
 input AdminLoginInput {
+	admin_secret: String!
+}
+
+input AdminSignupInput {
 	admin_secret: String!
 }
 
@@ -1236,8 +1225,8 @@ type Mutation {
 	# admin only apis
 	_delete_user(params: DeleteUserInput!): Response!
 	_update_user(params: UpdateUserInput!): User!
-	_admin_signup(params: AdminLoginInput!): AdminLoginResponse!
-	_admin_login(params: AdminLoginInput!): AdminLoginResponse!
+	_admin_signup(params: AdminSignupInput!): Response!
+	_admin_login(params: AdminLoginInput!): Response!
 	_admin_logout: Response!
 	_update_config(params: UpdateConfigInput!): Response!
 }
@@ -1249,7 +1238,7 @@ type Query {
 	# admin only apis
 	_users: [User!]!
 	_verification_requests: [VerificationRequest!]!
-	_admin_session: AdminLoginResponse!
+	_admin_session: Response!
 	_config: Config!
 }
 `, BuiltIn: false},
@@ -1278,10 +1267,10 @@ func (ec *executionContext) field_Mutation__admin_login_args(ctx context.Context
 func (ec *executionContext) field_Mutation__admin_signup_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 model.AdminLoginInput
+	var arg0 model.AdminSignupInput
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalNAdminLoginInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAdminLoginInput(ctx, tmp)
+		arg0, err = ec.unmarshalNAdminSignupInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAdminSignupInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1522,41 +1511,6 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 // endregion ************************** directives.gotpl **************************
 
 // region    **************************** field.gotpl *****************************
-
-func (ec *executionContext) _AdminLoginResponse_message(ctx context.Context, field graphql.CollectedField, obj *model.AdminLoginResponse) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "AdminLoginResponse",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Message, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
 
 func (ec *executionContext) _AuthResponse_message(ctx context.Context, field graphql.CollectedField, obj *model.AuthResponse) (ret graphql.Marshaler) {
 	defer func() {
@@ -3540,7 +3494,7 @@ func (ec *executionContext) _Mutation__admin_signup(ctx context.Context, field g
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().AdminSignup(rctx, args["params"].(model.AdminLoginInput))
+		return ec.resolvers.Mutation().AdminSignup(rctx, args["params"].(model.AdminSignupInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3552,9 +3506,9 @@ func (ec *executionContext) _Mutation__admin_signup(ctx context.Context, field g
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.AdminLoginResponse)
+	res := resTmp.(*model.Response)
 	fc.Result = res
-	return ec.marshalNAdminLoginResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAdminLoginResponse(ctx, field.Selections, res)
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation__admin_login(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3594,9 +3548,9 @@ func (ec *executionContext) _Mutation__admin_login(ctx context.Context, field gr
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.AdminLoginResponse)
+	res := resTmp.(*model.Response)
 	fc.Result = res
-	return ec.marshalNAdminLoginResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAdminLoginResponse(ctx, field.Selections, res)
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation__admin_logout(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3888,9 +3842,9 @@ func (ec *executionContext) _Query__admin_session(ctx context.Context, field gra
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.AdminLoginResponse)
+	res := resTmp.(*model.Response)
 	fc.Result = res
-	return ec.marshalNAdminLoginResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAdminLoginResponse(ctx, field.Selections, res)
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query__config(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -5965,6 +5919,29 @@ func (ec *executionContext) unmarshalInputAdminLoginInput(ctx context.Context, o
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputAdminSignupInput(ctx context.Context, obj interface{}) (model.AdminSignupInput, error) {
+	var it model.AdminSignupInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "admin_secret":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("admin_secret"))
+			it.AdminSecret, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputDeleteUserInput(ctx context.Context, obj interface{}) (model.DeleteUserInput, error) {
 	var it model.DeleteUserInput
 	asMap := map[string]interface{}{}
@@ -6777,33 +6754,6 @@ func (ec *executionContext) unmarshalInputVerifyEmailInput(ctx context.Context, 
 // endregion ************************** interface.gotpl ***************************
 
 // region    **************************** object.gotpl ****************************
-
-var adminLoginResponseImplementors = []string{"AdminLoginResponse"}
-
-func (ec *executionContext) _AdminLoginResponse(ctx context.Context, sel ast.SelectionSet, obj *model.AdminLoginResponse) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, adminLoginResponseImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("AdminLoginResponse")
-		case "message":
-			out.Values[i] = ec._AdminLoginResponse_message(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
 
 var authResponseImplementors = []string{"AuthResponse"}
 
@@ -7636,18 +7586,9 @@ func (ec *executionContext) unmarshalNAdminLoginInput2githubᚗcomᚋauthorizerd
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNAdminLoginResponse2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAdminLoginResponse(ctx context.Context, sel ast.SelectionSet, v model.AdminLoginResponse) graphql.Marshaler {
-	return ec._AdminLoginResponse(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNAdminLoginResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAdminLoginResponse(ctx context.Context, sel ast.SelectionSet, v *model.AdminLoginResponse) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	return ec._AdminLoginResponse(ctx, sel, v)
+func (ec *executionContext) unmarshalNAdminSignupInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAdminSignupInput(ctx context.Context, v interface{}) (model.AdminSignupInput, error) {
+	res, err := ec.unmarshalInputAdminSignupInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalNAuthResponse2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAuthResponse(ctx context.Context, sel ast.SelectionSet, v model.AuthResponse) graphql.Marshaler {

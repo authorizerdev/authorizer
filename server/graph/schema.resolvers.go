@@ -55,11 +55,11 @@ func (r *mutationResolver) UpdateUser(ctx context.Context, params model.UpdateUs
 	return resolvers.UpdateUser(ctx, params)
 }
 
-func (r *mutationResolver) AdminSignup(ctx context.Context, params model.AdminLoginInput) (*model.AdminLoginResponse, error) {
+func (r *mutationResolver) AdminSignup(ctx context.Context, params model.AdminSignupInput) (*model.Response, error) {
 	return resolvers.AdminSignupResolver(ctx, params)
 }
 
-func (r *mutationResolver) AdminLogin(ctx context.Context, params model.AdminLoginInput) (*model.AdminLoginResponse, error) {
+func (r *mutationResolver) AdminLogin(ctx context.Context, params model.AdminLoginInput) (*model.Response, error) {
 	return resolvers.AdminLoginResolver(ctx, params)
 }
 
@@ -91,7 +91,7 @@ func (r *queryResolver) VerificationRequests(ctx context.Context) ([]*model.Veri
 	return resolvers.VerificationRequests(ctx)
 }
 
-func (r *queryResolver) AdminSession(ctx context.Context) (*model.AdminLoginResponse, error) {
+func (r *queryResolver) AdminSession(ctx context.Context) (*model.Response, error) {
 	return resolvers.AdminSession(ctx)
 }
 
