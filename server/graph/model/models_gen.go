@@ -7,8 +7,7 @@ type AdminLoginInput struct {
 }
 
 type AdminLoginResponse struct {
-	Message     string `json:"message"`
-	AccessToken string `json:"access_token"`
+	Message string `json:"message"`
 }
 
 type AuthResponse struct {

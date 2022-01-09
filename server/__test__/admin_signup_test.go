@@ -22,11 +22,10 @@ func adminSignupTests(s TestSetup, t *testing.T) {
 		// reset env for test to pass
 		constants.EnvData.ADMIN_SECRET = ""
 
-		res, err := resolvers.AdminSignupResolver(ctx, model.AdminLoginInput{
+		_, err = resolvers.AdminSignupResolver(ctx, model.AdminLoginInput{
 			AdminSecret: uuid.New().String(),
 		})
 
 		assert.Nil(t, err)
-		assert.Greater(t, len(res.AccessToken), 0)
 	})
 }

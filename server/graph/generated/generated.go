@@ -44,8 +44,7 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	AdminLoginResponse struct {
-		AccessToken func(childComplexity int) int
-		Message     func(childComplexity int) int
+		Message func(childComplexity int) int
 	}
 
 	AuthResponse struct {
@@ -210,13 +209,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	ec := executionContext{nil, e}
 	_ = ec
 	switch typeName + "." + field {
-
-	case "AdminLoginResponse.access_token":
-		if e.complexity.AdminLoginResponse.AccessToken == nil {
-			break
-		}
-
-		return e.complexity.AdminLoginResponse.AccessToken(childComplexity), true
 
 	case "AdminLoginResponse.message":
 		if e.complexity.AdminLoginResponse.Message == nil {
@@ -1076,7 +1068,6 @@ type Response {
 
 type AdminLoginResponse {
 	message: String!
-	access_token: String!
 }
 
 type Config {
@@ -1551,41 +1542,6 @@ func (ec *executionContext) _AdminLoginResponse_message(ctx context.Context, fie
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Message, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _AdminLoginResponse_access_token(ctx context.Context, field graphql.CollectedField, obj *model.AdminLoginResponse) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "AdminLoginResponse",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.AccessToken, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -6835,11 +6791,6 @@ func (ec *executionContext) _AdminLoginResponse(ctx context.Context, sel ast.Sel
 			out.Values[i] = graphql.MarshalString("AdminLoginResponse")
 		case "message":
 			out.Values[i] = ec._AdminLoginResponse_message(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "access_token":
-			out.Values[i] = ec._AdminLoginResponse_access_token(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}

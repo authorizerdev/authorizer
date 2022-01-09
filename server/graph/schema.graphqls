@@ -64,7 +64,6 @@ type Response {
 
 type AdminLoginResponse {
 	message: String!
-	access_token: String!
 }
 
 type Config {

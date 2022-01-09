@@ -28,8 +28,7 @@ func AdminSession(ctx context.Context) (*model.AdminLoginResponse, error) {
 	utils.SetAdminCookie(gc, hashedKey)
 
 	res = &model.AdminLoginResponse{
-		AccessToken: hashedKey,
-		Message:     "admin logged in successfully",
+		Message: "admin logged in successfully",
 	}
 	return res, nil
 }
