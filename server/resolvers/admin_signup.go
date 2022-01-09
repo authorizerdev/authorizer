@@ -12,9 +12,9 @@ import (
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
-func AdminSignupResolver(ctx context.Context, params model.AdminLoginInput) (*model.AdminLoginResponse, error) {
+func AdminSignupResolver(ctx context.Context, params model.AdminSignupInput) (*model.Response, error) {
 	gc, err := utils.GinContextFromContext(ctx)
-	var res *model.AdminLoginResponse
+	var res *model.Response
 
 	if err != nil {
 		return res, err
@@ -70,7 +70,7 @@ func AdminSignupResolver(ctx context.Context, params model.AdminLoginInput) (*mo
 	}
 	utils.SetAdminCookie(gc, hashedKey)
 
-	res = &model.AdminLoginResponse{
+	res = &model.Response{
 		Message: "admin signed up successfully",
 	}
 	return res, nil
