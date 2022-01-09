@@ -18,11 +18,10 @@ func adminLoginTests(s TestSetup, t *testing.T) {
 
 		assert.NotNil(t, err)
 
-		res, err := resolvers.AdminLoginResolver(ctx, model.AdminLoginInput{
+		_, err = resolvers.AdminLoginResolver(ctx, model.AdminLoginInput{
 			AdminSecret: constants.EnvData.ADMIN_SECRET,
 		})
 
 		assert.Nil(t, err)
-		assert.Greater(t, len(res.AccessToken), 0)
 	})
 }

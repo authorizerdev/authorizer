@@ -21,9 +21,8 @@ func adminSessionTests(s TestSetup, t *testing.T) {
 		h, err := utils.HashPassword(constants.EnvData.ADMIN_SECRET)
 		assert.Nil(t, err)
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.EnvData.ADMIN_COOKIE_NAME, h))
-		res, err := resolvers.AdminSession(ctx)
+		_, err = resolvers.AdminSession(ctx)
 
 		assert.Nil(t, err)
-		assert.Greater(t, len(res.AccessToken), 0)
 	})
 }

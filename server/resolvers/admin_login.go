@@ -28,8 +28,7 @@ func AdminLoginResolver(ctx context.Context, params model.AdminLoginInput) (*mod
 	utils.SetAdminCookie(gc, hashedKey)
 
 	res = &model.AdminLoginResponse{
-		AccessToken: hashedKey,
-		Message:     "admin logged in successfully",
+		Message: "admin logged in successfully",
 	}
 	return res, nil
 }

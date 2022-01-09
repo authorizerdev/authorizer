@@ -71,8 +71,7 @@ func AdminSignupResolver(ctx context.Context, params model.AdminLoginInput) (*mo
 	utils.SetAdminCookie(gc, hashedKey)
 
 	res = &model.AdminLoginResponse{
-		AccessToken: hashedKey,
-		Message:     "admin signed up successfully",
+		Message: "admin signed up successfully",
 	}
 	return res, nil
 }
