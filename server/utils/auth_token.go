@@ -133,13 +133,6 @@ func CreateAdminAuthToken(tokenType enum.TokenType, c *gin.Context) (string, err
 func GetAdminAuthToken(gc *gin.Context) (string, error) {
 	token, err := GetAdminCookie(gc)
 	if err != nil || token == "" {
-		// try to check in auth header for cookie
-		// auth := gc.Request.Header.Get("Authorization")
-		// if auth == "" {
-		// 	return "", fmt.Errorf(`unauthorized`)
-		// }
-
-		// token = strings.TrimPrefix(auth, "Bearer ")
 		return "", fmt.Errorf("unauthorized")
 	}
 
