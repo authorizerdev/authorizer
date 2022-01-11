@@ -62,7 +62,7 @@ Setup mongodb & arangodb using Docker
 docker run --name mongodb -d -p 27017:27017 mongo
 
 // -e ARANGO_ROOT_PASSWORD=root
-docker run --name arangodb -d -p 8529:8529 arangodb/arangodb:3.8.4
+docker run --name arangodb -d -p 8529:8529 -e ARANGO_NO_AUTH=1 arangodb/arangodb:3.8.4
 ```
 
 > Note: If you are not making any changes in db schema / db operations, you can disable those db tests [here](https://github.com/authorizerdev/authorizer/blob/main/server/__test__/resolvers_test.go#L14)
