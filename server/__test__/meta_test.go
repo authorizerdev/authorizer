@@ -2,7 +2,6 @@ package test
 
 import (
 	"context"
-	"log"
 	"testing"
 
 	"github.com/authorizerdev/authorizer/server/resolvers"
@@ -13,7 +12,6 @@ func metaTests(s TestSetup, t *testing.T) {
 	t.Run(`should get meta information`, func(t *testing.T) {
 		ctx := context.Background()
 		meta, err := resolvers.Meta(ctx)
-		log.Println("=> meta:", meta)
 		assert.Nil(t, err)
 		assert.False(t, meta.IsFacebookLoginEnabled)
 		assert.False(t, meta.IsGoogleLoginEnabled)

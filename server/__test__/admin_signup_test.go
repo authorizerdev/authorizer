@@ -1,7 +1,6 @@
 package test
 
 import (
-	"log"
 	"testing"
 
 	"github.com/authorizerdev/authorizer/server/constants"
@@ -17,7 +16,7 @@ func adminSignupTests(s TestSetup, t *testing.T) {
 		_, err := resolvers.AdminSignupResolver(ctx, model.AdminSignupInput{
 			AdminSecret: "admin",
 		})
-		log.Println("err", err)
+
 		assert.NotNil(t, err)
 		// reset env for test to pass
 		constants.EnvData.ADMIN_SECRET = ""
