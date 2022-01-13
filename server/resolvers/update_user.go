@@ -67,6 +67,15 @@ func UpdateUser(ctx context.Context, params model.UpdateUserInput) (*model.User,
 		user.Picture = params.Picture
 	}
 
+	if params.EmailVerified != nil {
+		if *params.EmailVerified {
+			now := time.Now().Unix()
+			user.EmailVerifiedAt = &now
+		} else {
+			user.EmailVerifiedAt = nil
+		}
+	}
+
 	if params.Email != nil && user.Email != *params.Email {
 		// check if valid email
 		if !utils.IsValidEmail(*params.Email) {

@@ -1182,6 +1182,7 @@ input UpdateProfileInput {
 input UpdateUserInput {
 	id: ID!
 	email: String
+	email_verified: Boolean
 	given_name: String
 	family_name: String
 	middle_name: String
@@ -6643,6 +6644,14 @@ func (ec *executionContext) unmarshalInputUpdateUserInput(ctx context.Context, o
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
 			it.Email, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "email_verified":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email_verified"))
+			it.EmailVerified, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
 			if err != nil {
 				return it, err
 			}
