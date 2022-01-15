@@ -24,6 +24,9 @@ var (
 
 // InitEnv to initialize EnvData and through error if required env are not present
 func InitEnv() {
+	// set authorizer url to empty string so that fresh url is obtained with every server start
+	constants.EnvData.AUTHORIZER_URL = ""
+
 	if constants.EnvData.ENV_PATH == "" {
 		constants.EnvData.ENV_PATH = `.env`
 	}
@@ -35,6 +38,13 @@ func InitEnv() {
 	err := godotenv.Load(constants.EnvData.ENV_PATH)
 	if err != nil {
 		log.Printf("error loading %s file", constants.EnvData.ENV_PATH)
+	}
+
+	if constants.EnvData.PORT == "" {
+		constants.EnvData.PORT = os.Getenv("PORT")
+		if constants.EnvData.PORT == "" {
+			constants.EnvData.PORT = "8080"
+		}
 	}
 
 	if constants.EnvData.ADMIN_SECRET == "" {
@@ -126,14 +136,6 @@ func InitEnv() {
 
 		if constants.EnvData.JWT_ROLE_CLAIM == "" {
 			constants.EnvData.JWT_ROLE_CLAIM = "role"
-		}
-	}
-
-	if constants.EnvData.AUTHORIZER_URL == "" {
-		constants.EnvData.AUTHORIZER_URL = strings.TrimSuffix(os.Getenv("AUTHORIZER_URL"), "/")
-
-		if ARG_AUTHORIZER_URL != nil && *ARG_AUTHORIZER_URL != "" {
-			constants.EnvData.AUTHORIZER_URL = *ARG_AUTHORIZER_URL
 		}
 	}
 
