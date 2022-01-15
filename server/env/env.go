@@ -137,13 +137,6 @@ func InitEnv() {
 		}
 	}
 
-	if constants.EnvData.PORT == "" {
-		constants.EnvData.PORT = os.Getenv("PORT")
-		if constants.EnvData.PORT == "" {
-			constants.EnvData.PORT = "8080"
-		}
-	}
-
 	if constants.EnvData.REDIS_URL == "" {
 		constants.EnvData.REDIS_URL = os.Getenv("REDIS_URL")
 	}
