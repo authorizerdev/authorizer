@@ -16,8 +16,6 @@ var (
 	ARG_DB_URL *string
 	// ARG_DB_TYPE is the cli arg variable for the database type
 	ARG_DB_TYPE *string
-	// ARG_AUTHORIZER_URL is the cli arg variable for the authorizer url
-	ARG_AUTHORIZER_URL *string
 	// ARG_ENV_FILE is the cli arg variable for the env file
 	ARG_ENV_FILE *string
 )
