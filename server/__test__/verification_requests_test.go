@@ -11,25 +11,25 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func verificationRequestsTest(s TestSetup, t *testing.T) {
+func verificationRequestsTest(t *testing.T, s TestSetup) {
 	t.Helper()
 	t.Run(`should get verification requests with admin secret only`, func(t *testing.T) {
 		req, ctx := createContext(s)
 
 		email := "verification_requests." + s.TestInfo.Email
-		resolvers.Signup(ctx, model.SignUpInput{
+		resolvers.SignupResolver(ctx, model.SignUpInput{
 			Email:           email,
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password,
 		})
 
-		requests, err := resolvers.VerificationRequests(ctx)
+		requests, err := resolvers.VerificationRequestsResolver(ctx)
 		assert.NotNil(t, err, "unauthorizer")
 
-		h, err := utils.HashPassword(constants.EnvData.ADMIN_SECRET)
+		h, err := utils.EncryptPassword(constants.EnvData.ADMIN_SECRET)
 		assert.Nil(t, err)
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.EnvData.ADMIN_COOKIE_NAME, h))
-		requests, err = resolvers.VerificationRequests(ctx)
+		requests, err = resolvers.VerificationRequestsResolver(ctx)
 
 		assert.Nil(t, err)
 		rLen := len(requests)

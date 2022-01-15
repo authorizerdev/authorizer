@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func configTests(s TestSetup, t *testing.T) {
+func configTests(t *testing.T, s TestSetup) {
 	t.Helper()
 	t.Run(`should get config`, func(t *testing.T) {
 		req, ctx := createContext(s)
@@ -19,7 +19,7 @@ func configTests(s TestSetup, t *testing.T) {
 		log.Println("error:", err)
 		assert.NotNil(t, err)
 
-		h, err := utils.HashPassword(constants.EnvData.ADMIN_SECRET)
+		h, err := utils.EncryptPassword(constants.EnvData.ADMIN_SECRET)
 		assert.Nil(t, err)
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.EnvData.ADMIN_COOKIE_NAME, h))
 		res, err := resolvers.ConfigResolver(ctx)

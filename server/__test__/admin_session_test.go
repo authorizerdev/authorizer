@@ -11,18 +11,18 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func adminSessionTests(s TestSetup, t *testing.T) {
+func adminSessionTests(t *testing.T, s TestSetup) {
 	t.Helper()
 	t.Run(`should get admin session`, func(t *testing.T) {
 		req, ctx := createContext(s)
-		_, err := resolvers.AdminSession(ctx)
+		_, err := resolvers.AdminSessionResolver(ctx)
 		log.Println("error:", err)
 		assert.NotNil(t, err)
 
-		h, err := utils.HashPassword(constants.EnvData.ADMIN_SECRET)
+		h, err := utils.EncryptPassword(constants.EnvData.ADMIN_SECRET)
 		assert.Nil(t, err)
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.EnvData.ADMIN_COOKIE_NAME, h))
-		_, err = resolvers.AdminSession(ctx)
+		_, err = resolvers.AdminSessionResolver(ctx)
 
 		assert.Nil(t, err)
 	})

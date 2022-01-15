@@ -118,7 +118,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 
 	if !constants.EnvData.DISABLE_EMAIL_VERIFICATION {
 		// insert verification request
-		verificationType := constants.SignupMethodBasicAuth
+		verificationType := constants.VerificationTypeBasicAuthSignup
 		token, err := utils.CreateVerificationToken(params.Email, verificationType)
 		if err != nil {
 			log.Println(`error generating token`, err)

@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func adminSignupTests(s TestSetup, t *testing.T) {
+func adminSignupTests(t *testing.T, s TestSetup) {
 	t.Helper()
 	t.Run(`should complete admin login`, func(t *testing.T) {
 		_, ctx := createContext(s)

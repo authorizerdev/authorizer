@@ -11,24 +11,24 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func usersTest(s TestSetup, t *testing.T) {
+func usersTest(t *testing.T, s TestSetup) {
 	t.Helper()
 	t.Run(`should get users list with admin secret only`, func(t *testing.T) {
 		req, ctx := createContext(s)
 		email := "users." + s.TestInfo.Email
-		resolvers.Signup(ctx, model.SignUpInput{
+		resolvers.SignupResolver(ctx, model.SignUpInput{
 			Email:           email,
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password,
 		})
 
-		users, err := resolvers.Users(ctx)
+		users, err := resolvers.UsersResolver(ctx)
 		assert.NotNil(t, err, "unauthorized")
 
-		h, err := utils.HashPassword(constants.EnvData.ADMIN_SECRET)
+		h, err := utils.EncryptPassword(constants.EnvData.ADMIN_SECRET)
 		assert.Nil(t, err)
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.EnvData.ADMIN_COOKIE_NAME, h))
-		users, err = resolvers.Users(ctx)
+		users, err = resolvers.UsersResolver(ctx)
 		assert.Nil(t, err)
 		rLen := len(users)
 		assert.GreaterOrEqual(t, rLen, 1)

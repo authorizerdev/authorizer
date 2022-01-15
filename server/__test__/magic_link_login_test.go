@@ -6,31 +6,30 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
-	"github.com/authorizerdev/authorizer/server/enum"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/resolvers"
 	"github.com/stretchr/testify/assert"
 )
 
-func magicLinkLoginTests(s TestSetup, t *testing.T) {
+func magicLinkLoginTests(t *testing.T, s TestSetup) {
 	t.Helper()
 	t.Run(`should login with magic link`, func(t *testing.T) {
 		req, ctx := createContext(s)
 		email := "magic_link_login." + s.TestInfo.Email
 
-		_, err := resolvers.MagicLinkLogin(ctx, model.MagicLinkLoginInput{
+		_, err := resolvers.MagicLinkLoginResolver(ctx, model.MagicLinkLoginInput{
 			Email: email,
 		})
 		assert.Nil(t, err)
 
-		verificationRequest, err := db.Mgr.GetVerificationByEmail(email, enum.MagicLinkLogin.String())
-		verifyRes, err := resolvers.VerifyEmail(ctx, model.VerifyEmailInput{
+		verificationRequest, err := db.Mgr.GetVerificationByEmail(email, constants.VerificationTypeMagicLinkLogin)
+		verifyRes, err := resolvers.VerifyEmailResolver(ctx, model.VerifyEmailInput{
 			Token: verificationRequest.Token,
 		})
 
 		token := *verifyRes.AccessToken
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.EnvData.COOKIE_NAME, token))
-		_, err = resolvers.Profile(ctx)
+		_, err = resolvers.ProfileResolver(ctx)
 		assert.Nil(t, err)
 
 		cleanData(email)

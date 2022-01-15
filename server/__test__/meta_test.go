@@ -8,11 +8,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func metaTests(s TestSetup, t *testing.T) {
+func metaTests(t *testing.T, s TestSetup) {
 	t.Helper()
 	t.Run(`should get meta information`, func(t *testing.T) {
 		ctx := context.Background()
-		meta, err := resolvers.Meta(ctx)
+		meta, err := resolvers.MetaResolver(ctx)
 		assert.Nil(t, err)
 		assert.False(t, meta.IsFacebookLoginEnabled)
 		assert.False(t, meta.IsGoogleLoginEnabled)

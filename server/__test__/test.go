@@ -9,7 +9,6 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
-	"github.com/authorizerdev/authorizer/server/enum"
 	"github.com/authorizerdev/authorizer/server/env"
 	"github.com/authorizerdev/authorizer/server/handlers"
 	"github.com/authorizerdev/authorizer/server/middlewares"
@@ -32,17 +31,17 @@ type TestSetup struct {
 }
 
 func cleanData(email string) {
-	verificationRequest, err := db.Mgr.GetVerificationByEmail(email, enum.BasicAuthSignup.String())
+	verificationRequest, err := db.Mgr.GetVerificationByEmail(email, constants.VerificationTypeBasicAuthSignup)
 	if err == nil {
 		err = db.Mgr.DeleteVerificationRequest(verificationRequest)
 	}
 
-	verificationRequest, err = db.Mgr.GetVerificationByEmail(email, enum.ForgotPassword.String())
+	verificationRequest, err = db.Mgr.GetVerificationByEmail(email, constants.VerificationTypeForgotPassword)
 	if err == nil {
 		err = db.Mgr.DeleteVerificationRequest(verificationRequest)
 	}
 
-	verificationRequest, err = db.Mgr.GetVerificationByEmail(email, enum.UpdateEmail.String())
+	verificationRequest, err = db.Mgr.GetVerificationByEmail(email, constants.VerificationTypeUpdateEmail)
 	if err == nil {
 		err = db.Mgr.DeleteVerificationRequest(verificationRequest)
 	}

@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func updateConfigTests(s TestSetup, t *testing.T) {
+func updateConfigTests(t *testing.T, s TestSetup) {
 	t.Helper()
 	t.Run(`should update configs`, func(t *testing.T) {
 		req, ctx := createContext(s)
@@ -24,7 +24,7 @@ func updateConfigTests(s TestSetup, t *testing.T) {
 		log.Println("error:", err)
 		assert.NotNil(t, err)
 
-		h, _ := utils.HashPassword(constants.EnvData.ADMIN_SECRET)
+		h, _ := utils.EncryptPassword(constants.EnvData.ADMIN_SECRET)
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.EnvData.ADMIN_COOKIE_NAME, h))
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.EnvData.ADMIN_COOKIE_NAME, h))
 		newURL := "https://test.com"

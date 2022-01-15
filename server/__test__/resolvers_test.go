@@ -6,15 +6,14 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
-	"github.com/authorizerdev/authorizer/server/enum"
 	"github.com/authorizerdev/authorizer/server/env"
 )
 
 func TestResolvers(t *testing.T) {
 	databases := map[string]string{
-		enum.Sqlite.String(): "../../data.db",
-		// enum.Arangodb.String(): "http://localhost:8529",
-		// enum.Mongodb.String():  "mongodb://localhost:27017",
+		constants.DbTypeSqlite: "../../data.db",
+		// constants.DbTypeArangodb: "http://localhost:8529",
+		// constants.DbTypeMongodb:  "mongodb://localhost:27017",
 	}
 
 	for dbType, dbURL := range databases {
@@ -36,30 +35,30 @@ func TestResolvers(t *testing.T) {
 		log.Println("EnvData:", constants.EnvData)
 		t.Run("should pass tests for "+dbType, func(t *testing.T) {
 			// admin tests
-			adminSignupTests(s, t)
-			verificationRequestsTest(s, t)
-			usersTest(s, t)
-			deleteUserTest(s, t)
-			updateUserTest(s, t)
-			adminLoginTests(s, t)
-			adminLogoutTests(s, t)
-			adminSessionTests(s, t)
-			updateConfigTests(s, t)
-			configTests(s, t)
+			adminSignupTests(t, s)
+			verificationRequestsTest(t, s)
+			usersTest(t, s)
+			deleteUserTest(t, s)
+			updateUserTest(t, s)
+			adminLoginTests(t, s)
+			adminLogoutTests(t, s)
+			adminSessionTests(t, s)
+			updateConfigTests(t, s)
+			configTests(t, s)
 
 			// user tests
-			loginTests(s, t)
-			signupTests(s, t)
-			forgotPasswordTest(s, t)
-			resendVerifyEmailTests(s, t)
-			resetPasswordTest(s, t)
-			verifyEmailTest(s, t)
-			sessionTests(s, t)
-			profileTests(s, t)
-			updateProfileTests(s, t)
-			magicLinkLoginTests(s, t)
-			logoutTests(s, t)
-			metaTests(s, t)
+			loginTests(t, s)
+			signupTests(t, s)
+			forgotPasswordTest(t, s)
+			resendVerifyEmailTests(t, s)
+			resetPasswordTest(t, s)
+			verifyEmailTest(t, s)
+			sessionTests(t, s)
+			profileTests(t, s)
+			updateProfileTests(t, s)
+			magicLinkLoginTests(t, s)
+			logoutTests(t, s)
+			metaTests(t, s)
 		})
 	}
 }

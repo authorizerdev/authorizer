@@ -101,7 +101,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 
 	if !constants.EnvData.DISABLE_EMAIL_VERIFICATION {
 		// insert verification request
-		verificationType := constants.SignupMethodMagicLinkLogin
+		verificationType := constants.VerificationTypeMagicLinkLogin
 		token, err := utils.CreateVerificationToken(params.Email, verificationType)
 		if err != nil {
 			log.Println(`error generating token`, err)
