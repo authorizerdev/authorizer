@@ -13,6 +13,7 @@ import (
 )
 
 func logoutTests(s TestSetup, t *testing.T) {
+	t.Helper()
 	t.Run(`should logout user`, func(t *testing.T) {
 		req, ctx := createContext(s)
 		email := "logout." + s.TestInfo.Email

@@ -8,54 +8,61 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
+// SessionStore is a struct that defines available session stores
+// If redis store is available, higher preference is given to that store.
+// Else in memory store is used.
 type SessionStore struct {
 	InMemoryStoreObj    *InMemoryStore
 	RedisMemoryStoreObj *RedisStore
 }
 
+// SessionStoreObj is a global variable that holds the
+// reference to various session store instances
 var SessionStoreObj SessionStore
 
-func SetToken(userId, accessToken, refreshToken string) {
-	// TODO: Set session information in db for all the sessions that gets generated
-	// it should async go function
-
+// SetUserSession sets the user session in the session store
+func SetUserSession(userId, accessToken, refreshToken string) {
 	if SessionStoreObj.RedisMemoryStoreObj != nil {
-		SessionStoreObj.RedisMemoryStoreObj.AddToken(userId, accessToken, refreshToken)
+		SessionStoreObj.RedisMemoryStoreObj.AddUserSession(userId, accessToken, refreshToken)
 	}
 	if SessionStoreObj.InMemoryStoreObj != nil {
-		SessionStoreObj.InMemoryStoreObj.AddToken(userId, accessToken, refreshToken)
+		SessionStoreObj.InMemoryStoreObj.AddUserSession(userId, accessToken, refreshToken)
 	}
 }
 
-func DeleteVerificationRequest(userId, accessToken string) {
+// DeleteUserSession deletes the particular user session from the session store
+func DeleteUserSession(userId, accessToken string) {
 	if SessionStoreObj.RedisMemoryStoreObj != nil {
-		SessionStoreObj.RedisMemoryStoreObj.DeleteVerificationRequest(userId, accessToken)
+		SessionStoreObj.RedisMemoryStoreObj.DeleteUserSession(userId, accessToken)
 	}
 	if SessionStoreObj.InMemoryStoreObj != nil {
-		SessionStoreObj.InMemoryStoreObj.DeleteVerificationRequest(userId, accessToken)
+		SessionStoreObj.InMemoryStoreObj.DeleteUserSession(userId, accessToken)
 	}
 }
 
-func DeleteUserSession(userId string) {
+// DeleteAllSessions deletes all the sessions from the session store
+func DeleteAllUserSession(userId string) {
 	if SessionStoreObj.RedisMemoryStoreObj != nil {
-		SessionStoreObj.RedisMemoryStoreObj.DeleteUserSession(userId)
+		SessionStoreObj.RedisMemoryStoreObj.DeleteAllUserSession(userId)
 	}
 	if SessionStoreObj.InMemoryStoreObj != nil {
-		SessionStoreObj.InMemoryStoreObj.DeleteUserSession(userId)
+		SessionStoreObj.InMemoryStoreObj.DeleteAllUserSession(userId)
 	}
 }
 
-func GetToken(userId, accessToken string) string {
+// GetUserSession returns the user session from the session store
+func GetUserSession(userId, accessToken string) string {
 	if SessionStoreObj.RedisMemoryStoreObj != nil {
-		return SessionStoreObj.RedisMemoryStoreObj.GetToken(userId, accessToken)
+		return SessionStoreObj.RedisMemoryStoreObj.GetUserSession(userId, accessToken)
 	}
 	if SessionStoreObj.InMemoryStoreObj != nil {
-		return SessionStoreObj.InMemoryStoreObj.GetToken(userId, accessToken)
+		return SessionStoreObj.InMemoryStoreObj.GetUserSession(userId, accessToken)
 	}
 
 	return ""
 }
 
+// ClearStore clears the session store for authorizer tokens
 func ClearStore() {
 	if SessionStoreObj.RedisMemoryStoreObj != nil {
 		SessionStoreObj.RedisMemoryStoreObj.ClearStore()
@@ -65,6 +72,7 @@ func ClearStore() {
 	}
 }
 
+// SetSocialLoginState sets the social login state in the session store
 func SetSocailLoginState(key, state string) {
 	if SessionStoreObj.RedisMemoryStoreObj != nil {
 		SessionStoreObj.RedisMemoryStoreObj.SetSocialLoginState(key, state)
@@ -74,6 +82,7 @@ func SetSocailLoginState(key, state string) {
 	}
 }
 
+// GetSocialLoginState returns the social login state from the session store
 func GetSocailLoginState(key string) string {
 	if SessionStoreObj.RedisMemoryStoreObj != nil {
 		return SessionStoreObj.RedisMemoryStoreObj.GetSocialLoginState(key)
@@ -85,6 +94,7 @@ func GetSocailLoginState(key string) string {
 	return ""
 }
 
+// RemoveSocialLoginState removes the social login state from the session store
 func RemoveSocialLoginState(key string) {
 	if SessionStoreObj.RedisMemoryStoreObj != nil {
 		SessionStoreObj.RedisMemoryStoreObj.RemoveSocialLoginState(key)
@@ -94,6 +104,7 @@ func RemoveSocialLoginState(key string) {
 	}
 }
 
+// InitializeSessionStore initializes the SessionStoreObj based on environment variables
 func InitSession() {
 	if constants.EnvData.REDIS_URL != "" {
 		log.Println("using redis store to save sessions")

@@ -5,8 +5,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/graph/model"
 )
 
-// GetMeta helps in getting the meta data about the deployment
-// version,
+// GetMeta helps in getting the meta data about the deployment from EnvData
 func GetMetaInfo() model.Meta {
 	return model.Meta{
 		Version:                      constants.EnvData.VERSION,

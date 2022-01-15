@@ -13,6 +13,7 @@ import (
 )
 
 func profileTests(s TestSetup, t *testing.T) {
+	t.Helper()
 	t.Run(`should get profile only with token`, func(t *testing.T) {
 		req, ctx := createContext(s)
 		email := "profile." + s.TestInfo.Email

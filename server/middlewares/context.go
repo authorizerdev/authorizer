@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// GinContextToContextMiddleware is a middleware to add gin context in context
 func GinContextToContextMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if constants.EnvData.AUTHORIZER_URL == "" {

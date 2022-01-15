@@ -13,6 +13,7 @@ import (
 )
 
 func magicLinkLoginTests(s TestSetup, t *testing.T) {
+	t.Helper()
 	t.Run(`should login with magic link`, func(t *testing.T) {
 		req, ctx := createContext(s)
 		email := "magic_link_login." + s.TestInfo.Email

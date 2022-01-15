@@ -1,6 +1,6 @@
 package constants
 
-var (
+const (
 	// Ref: https://github.com/qor/auth/blob/master/providers/google/google.go
 	// deprecated and not used. instead we follow open id approach for google login
 	GoogleUserInfoURL = "https://www.googleapis.com/oauth2/v3/userinfo"

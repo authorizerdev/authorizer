@@ -5,15 +5,19 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/json"
 	"io"
 
 	"github.com/authorizerdev/authorizer/server/constants"
+	"golang.org/x/crypto/bcrypt"
 )
 
+// EncryptB64 encrypts data into base64 string
 func EncryptB64(text string) string {
 	return base64.StdEncoding.EncodeToString([]byte(text))
 }
 
+// DecryptB64 decrypts from base64 string to readable string
 func DecryptB64(s string) (string, error) {
 	data, err := base64.StdEncoding.DecodeString(s)
 	if err != nil {
@@ -22,6 +26,7 @@ func DecryptB64(s string) (string, error) {
 	return string(data), nil
 }
 
+// EncryptAES encrypts data using AES algorithm
 func EncryptAES(text []byte) ([]byte, error) {
 	key := []byte(constants.EnvData.ENCRYPTION_KEY)
 	c, err := aes.NewCipher(key)
@@ -55,6 +60,7 @@ func EncryptAES(text []byte) ([]byte, error) {
 	return gcm.Seal(nonce, nonce, text, nil), nil
 }
 
+// DecryptAES decrypts data using AES algorithm
 func DecryptAES(ciphertext []byte) ([]byte, error) {
 	key := []byte(constants.EnvData.ENCRYPTION_KEY)
 	c, err := aes.NewCipher(key)
@@ -80,4 +86,38 @@ func DecryptAES(ciphertext []byte) ([]byte, error) {
 	}
 
 	return plaintext, nil
+}
+
+// EncryptEnvData is used to encrypt the env data
+func EncryptEnvData(data map[string]interface{}) ([]byte, error) {
+	jsonBytes, err := json.Marshal(data)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	err = json.Unmarshal(jsonBytes, &constants.EnvData)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	configData, err := json.Marshal(constants.EnvData)
+	if err != nil {
+		return []byte{}, err
+	}
+	encryptedConfig, err := EncryptAES(configData)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	return encryptedConfig, nil
+}
+
+// EncryptPassword is used for encrypting password
+func EncryptPassword(password string) (string, error) {
+	pw, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+
+	return string(pw), nil
 }

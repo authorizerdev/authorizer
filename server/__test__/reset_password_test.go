@@ -11,6 +11,7 @@ import (
 )
 
 func resetPasswordTest(s TestSetup, t *testing.T) {
+	t.Helper()
 	t.Run(`should reset password`, func(t *testing.T) {
 		email := "reset_password." + s.TestInfo.Email
 		_, ctx := createContext(s)

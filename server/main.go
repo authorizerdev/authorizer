@@ -6,11 +6,9 @@ import (
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/env"
-	"github.com/authorizerdev/authorizer/server/handlers"
 	"github.com/authorizerdev/authorizer/server/oauth"
-	"github.com/authorizerdev/authorizer/server/router"
+	"github.com/authorizerdev/authorizer/server/routes"
 	"github.com/authorizerdev/authorizer/server/session"
-	"github.com/authorizerdev/authorizer/server/utils"
 )
 
 var VERSION string
@@ -30,27 +28,8 @@ func main() {
 
 	session.InitSession()
 	oauth.InitOAuth()
-	utils.InitServer()
 
-	router := router.InitRouter()
-
-	router.LoadHTMLGlob("templates/*")
-	// login page app related routes.
-	// if we put them in router file then tests would fail as templates or build path will be different
-	if !constants.EnvData.DISABLE_LOGIN_PAGE {
-		app := router.Group("/app")
-		{
-			app.Static("/build", "app/build")
-			app.GET("/", handlers.AppHandler())
-			app.GET("/reset-password", handlers.AppHandler())
-		}
-	}
-
-	app := router.Group("/dashboard")
-	{
-		app.Static("/build", "dashboard/build")
-		app.GET("/", handlers.DashboardHandler())
-	}
+	router := routes.InitRouter()
 
 	router.Run(":" + constants.EnvData.PORT)
 }

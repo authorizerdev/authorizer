@@ -12,6 +12,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
+// AdminSignupResolver is a resolver for admin signup mutation
 func AdminSignupResolver(ctx context.Context, params model.AdminSignupInput) (*model.Response, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	var res *model.Response
@@ -54,7 +55,7 @@ func AdminSignupResolver(ctx context.Context, params model.AdminSignupInput) (*m
 		return res, err
 	}
 
-	configData, err := utils.EncryptConfig(jsonData)
+	configData, err := utils.EncryptEnvData(jsonData)
 	if err != nil {
 		return res, err
 	}
@@ -64,7 +65,7 @@ func AdminSignupResolver(ctx context.Context, params model.AdminSignupInput) (*m
 		return res, err
 	}
 
-	hashedKey, err := utils.HashPassword(params.AdminSecret)
+	hashedKey, err := utils.EncryptPassword(params.AdminSecret)
 	if err != nil {
 		return res, err
 	}

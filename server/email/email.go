@@ -1,13 +1,32 @@
 package email
 
 import (
+	"bytes"
 	"crypto/tls"
+	"encoding/json"
 	"log"
 	"strconv"
+	"text/template"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	gomail "gopkg.in/mail.v2"
 )
+
+// AddEmailTemplate is used to add html template in email body
+func addEmailTemplate(a string, b map[string]interface{}, templateName string) string {
+	tmpl, err := template.New(templateName).Parse(a)
+	if err != nil {
+		output, _ := json.Marshal(b)
+		return string(output)
+	}
+	buf := &bytes.Buffer{}
+	err = tmpl.Execute(buf, b)
+	if err != nil {
+		panic(err)
+	}
+	s := buf.String()
+	return s
+}
 
 func SendMail(to []string, Subject, bodyMessage string) error {
 	m := gomail.NewMessage()

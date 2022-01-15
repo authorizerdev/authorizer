@@ -11,6 +11,7 @@ import (
 )
 
 func verifyEmailTest(s TestSetup, t *testing.T) {
+	t.Helper()
 	t.Run(`should verify email`, func(t *testing.T) {
 		_, ctx := createContext(s)
 		email := "verify_email." + s.TestInfo.Email

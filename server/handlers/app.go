@@ -11,11 +11,14 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// State is the struct that holds authorizer url and redirect url
+// They are provided via query string in the request
 type State struct {
 	AuthorizerURL string `json:"authorizerURL"`
 	RedirectURL   string `json:"redirectURL"`
 }
 
+// AppHandler is the handler for the /app route
 func AppHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		state := c.Query("state")

@@ -12,6 +12,7 @@ import (
 )
 
 func usersTest(s TestSetup, t *testing.T) {
+	t.Helper()
 	t.Run(`should get users list with admin secret only`, func(t *testing.T) {
 		req, ctx := createContext(s)
 		email := "users." + s.TestInfo.Email

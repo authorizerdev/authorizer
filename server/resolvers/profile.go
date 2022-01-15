@@ -10,7 +10,8 @@ import (
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
-func Profile(ctx context.Context) (*model.User, error) {
+// ProfileResolver is a resolver for profile query
+func ProfileResolver(ctx context.Context) (*model.User, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	var res *model.User
 	if err != nil {
@@ -29,7 +30,7 @@ func Profile(ctx context.Context) (*model.User, error) {
 
 	userID := fmt.Sprintf("%v", claim["id"])
 	email := fmt.Sprintf("%v", claim["email"])
-	sessionToken := session.GetToken(userID, token)
+	sessionToken := session.GetUserSession(userID, token)
 
 	if sessionToken == "" {
 		return res, fmt.Errorf(`unauthorized`)

@@ -11,6 +11,7 @@ import (
 )
 
 func loginTests(s TestSetup, t *testing.T) {
+	t.Helper()
 	t.Run(`should login`, func(t *testing.T) {
 		_, ctx := createContext(s)
 		email := "login." + s.TestInfo.Email

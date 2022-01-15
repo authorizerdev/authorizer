@@ -7,15 +7,17 @@ import (
 	"strings"
 	"time"
 
+	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
-	"github.com/authorizerdev/authorizer/server/enum"
+	"github.com/authorizerdev/authorizer/server/email"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/session"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"golang.org/x/crypto/bcrypt"
 )
 
-func UpdateProfile(ctx context.Context, params model.UpdateProfileInput) (*model.Response, error) {
+// UpdateProfileResolver is resolver for update profile mutation
+func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput) (*model.Response, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	var res *model.Response
 	if err != nil {
@@ -33,7 +35,7 @@ func UpdateProfile(ctx context.Context, params model.UpdateProfileInput) (*model
 	}
 
 	id := fmt.Sprintf("%v", claim["id"])
-	sessionToken := session.GetToken(id, token)
+	sessionToken := session.GetUserSession(id, token)
 
 	if sessionToken == "" {
 		return res, fmt.Errorf(`unauthorized`)
@@ -44,8 +46,8 @@ func UpdateProfile(ctx context.Context, params model.UpdateProfileInput) (*model
 		return res, fmt.Errorf("please enter atleast one param to update")
 	}
 
-	email := fmt.Sprintf("%v", claim["email"])
-	user, err := db.Mgr.GetUserByEmail(email)
+	userEmail := fmt.Sprintf("%v", claim["email"])
+	user, err := db.Mgr.GetUserByEmail(userEmail)
 	if err != nil {
 		return res, err
 	}
@@ -99,7 +101,7 @@ func UpdateProfile(ctx context.Context, params model.UpdateProfileInput) (*model
 			return res, fmt.Errorf(`password and confirm password does not match`)
 		}
 
-		password, _ := utils.HashPassword(*params.NewPassword)
+		password, _ := utils.EncryptPassword(*params.NewPassword)
 
 		user.Password = &password
 	}
@@ -120,14 +122,14 @@ func UpdateProfile(ctx context.Context, params model.UpdateProfileInput) (*model
 			return res, fmt.Errorf("user with this email address already exists")
 		}
 
-		session.DeleteUserSession(fmt.Sprintf("%v", user.ID))
+		session.DeleteAllUserSession(fmt.Sprintf("%v", user.ID))
 		utils.DeleteCookie(gc)
 
 		user.Email = newEmail
 		user.EmailVerifiedAt = nil
 		hasEmailChanged = true
 		// insert verification request
-		verificationType := enum.UpdateEmail.String()
+		verificationType := constants.VerificationTypeUpdateEmail
 		token, err := utils.CreateVerificationToken(newEmail, verificationType)
 		if err != nil {
 			log.Println(`error generating token`, err)
@@ -141,7 +143,7 @@ func UpdateProfile(ctx context.Context, params model.UpdateProfileInput) (*model
 
 		// exec it as go routin so that we can reduce the api latency
 		go func() {
-			utils.SendVerificationMail(newEmail, token)
+			email.SendVerificationMail(newEmail, token)
 		}()
 	}
 

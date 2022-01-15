@@ -11,6 +11,7 @@ import (
 )
 
 func forgotPasswordTest(s TestSetup, t *testing.T) {
+	t.Helper()
 	t.Run(`should run forgot password`, func(t *testing.T) {
 		_, ctx := createContext(s)
 		email := "forgot_password." + s.TestInfo.Email

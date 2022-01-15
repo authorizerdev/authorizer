@@ -7,18 +7,23 @@ import (
 	"github.com/golang-jwt/jwt"
 )
 
+// TODO see if we can move this to different service
+
+// UserInfo is the user info that is stored in the JWT of verification request
 type UserInfo struct {
 	Email       string `json:"email"`
 	Host        string `json:"host"`
 	RedirectURL string `json:"redirect_url"`
 }
 
+// CustomClaim is the custom claim that is stored in the JWT of verification request
 type CustomClaim struct {
 	*jwt.StandardClaims
 	TokenType string `json:"token_type"`
 	UserInfo
 }
 
+// CreateVerificationToken creates a verification JWT token
 func CreateVerificationToken(email string, tokenType string) (string, error) {
 	t := jwt.New(jwt.GetSigningMethod(constants.EnvData.JWT_TYPE))
 
@@ -33,6 +38,7 @@ func CreateVerificationToken(email string, tokenType string) (string, error) {
 	return t.SignedString([]byte(constants.EnvData.JWT_SECRET))
 }
 
+// VerifyVerificationToken verifies the verification JWT token
 func VerifyVerificationToken(token string) (*CustomClaim, error) {
 	claims := &CustomClaim{}
 	_, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {

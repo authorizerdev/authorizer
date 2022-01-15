@@ -9,13 +9,14 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
-	"github.com/authorizerdev/authorizer/server/enum"
+	"github.com/authorizerdev/authorizer/server/email"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/session"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
-func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse, error) {
+// SignupResolver is a resolver for signup mutation
+func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthResponse, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	var res *model.AuthResponse
 	if err != nil {
@@ -67,7 +68,7 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 
 	user.Roles = strings.Join(inputRoles, ",")
 
-	password, _ := utils.HashPassword(params.Password)
+	password, _ := utils.EncryptPassword(params.Password)
 	user.Password = &password
 
 	if params.GivenName != nil {
@@ -102,7 +103,7 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 		user.Picture = params.Picture
 	}
 
-	user.SignupMethods = enum.BasicAuth.String()
+	user.SignupMethods = constants.SignupMethodBasicAuth
 	if constants.EnvData.DISABLE_EMAIL_VERIFICATION {
 		now := time.Now().Unix()
 		user.EmailVerifiedAt = &now
@@ -117,7 +118,7 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 
 	if !constants.EnvData.DISABLE_EMAIL_VERIFICATION {
 		// insert verification request
-		verificationType := enum.BasicAuthSignup.String()
+		verificationType := constants.SignupMethodBasicAuth
 		token, err := utils.CreateVerificationToken(params.Email, verificationType)
 		if err != nil {
 			log.Println(`error generating token`, err)
@@ -131,7 +132,7 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 
 		// exec it as go routin so that we can reduce the api latency
 		go func() {
-			utils.SendVerificationMail(params.Email, token)
+			email.SendVerificationMail(params.Email, token)
 		}()
 
 		res = &model.AuthResponse{
@@ -140,12 +141,12 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 		}
 	} else {
 
-		refreshToken, _, _ := utils.CreateAuthToken(user, enum.RefreshToken, roles)
+		refreshToken, _, _ := utils.CreateAuthToken(user, constants.TokenTypeRefreshToken, roles)
 
-		accessToken, expiresAt, _ := utils.CreateAuthToken(user, enum.AccessToken, roles)
+		accessToken, expiresAt, _ := utils.CreateAuthToken(user, constants.TokenTypeAccessToken, roles)
 
-		session.SetToken(userIdStr, accessToken, refreshToken)
-		utils.CreateSession(user.ID, gc)
+		session.SetUserSession(userIdStr, accessToken, refreshToken)
+		utils.SaveSessionInDB(user.ID, gc)
 		res = &model.AuthResponse{
 			Message:     `Signed up successfully.`,
 			AccessToken: &accessToken,

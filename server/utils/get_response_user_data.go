@@ -7,6 +7,9 @@ import (
 	"github.com/authorizerdev/authorizer/server/graph/model"
 )
 
+// TODO move this to provider
+// rename it to AsAPIUser
+
 func GetResponseUserData(user db.User) *model.User {
 	isEmailVerified := user.EmailVerifiedAt != nil
 	isPhoneVerified := user.PhoneNumberVerifiedAt != nil

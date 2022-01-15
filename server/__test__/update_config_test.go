@@ -13,6 +13,7 @@ import (
 )
 
 func updateConfigTests(s TestSetup, t *testing.T) {
+	t.Helper()
 	t.Run(`should update configs`, func(t *testing.T) {
 		req, ctx := createContext(s)
 		originalAppURL := constants.EnvData.APP_URL

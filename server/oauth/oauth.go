@@ -11,21 +11,26 @@ import (
 	githubOAuth2 "golang.org/x/oauth2/github"
 )
 
+// OAuthProviders is a struct that contains reference all the OAuth providers
 type OAuthProvider struct {
 	GoogleConfig   *oauth2.Config
 	GithubConfig   *oauth2.Config
 	FacebookConfig *oauth2.Config
 }
 
+// OIDCProviders is a struct that contains reference all the OpenID providers
 type OIDCProvider struct {
 	GoogleOIDC *oidc.Provider
 }
 
 var (
+	// OAuthProviders is a global variable that contains instance for all enabled the OAuth providers
 	OAuthProviders OAuthProvider
-	OIDCProviders  OIDCProvider
+	// OIDCProviders is a global variable that contains instance for all enabled the OpenID providers
+	OIDCProviders OIDCProvider
 )
 
+// InitOAuth initializes the OAuth providers based on EnvData
 func InitOAuth() {
 	ctx := context.Background()
 	if constants.EnvData.GOOGLE_CLIENT_ID != "" && constants.EnvData.GOOGLE_CLIENT_SECRET != "" {

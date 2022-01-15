@@ -8,14 +8,14 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
-	"github.com/authorizerdev/authorizer/server/enum"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/session"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"golang.org/x/crypto/bcrypt"
 )
 
-func Login(ctx context.Context, params model.LoginInput) (*model.AuthResponse, error) {
+// LoginResolver is a resolver for login mutation
+func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthResponse, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	var res *model.AuthResponse
 	if err != nil {
@@ -32,7 +32,7 @@ func Login(ctx context.Context, params model.LoginInput) (*model.AuthResponse, e
 		return res, fmt.Errorf(`user with this email not found`)
 	}
 
-	if !strings.Contains(user.SignupMethods, enum.BasicAuth.String()) {
+	if !strings.Contains(user.SignupMethods, constants.SignupMethodBasicAuth) {
 		return res, fmt.Errorf(`user has not signed up email & password`)
 	}
 
@@ -55,12 +55,12 @@ func Login(ctx context.Context, params model.LoginInput) (*model.AuthResponse, e
 
 		roles = params.Roles
 	}
-	refreshToken, _, _ := utils.CreateAuthToken(user, enum.RefreshToken, roles)
+	refreshToken, _, _ := utils.CreateAuthToken(user, constants.TokenTypeRefreshToken, roles)
 
-	accessToken, expiresAt, _ := utils.CreateAuthToken(user, enum.AccessToken, roles)
+	accessToken, expiresAt, _ := utils.CreateAuthToken(user, constants.TokenTypeAccessToken, roles)
 
-	session.SetToken(user.ID, accessToken, refreshToken)
-	utils.CreateSession(user.ID, gc)
+	session.SetUserSession(user.ID, accessToken, refreshToken)
+	utils.SaveSessionInDB(user.ID, gc)
 
 	res = &model.AuthResponse{
 		Message:     `Logged in successfully`,

@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 )
 
+// PersistEnv persists the environment variables to the database
 func PersistEnv() error {
 	config, err := db.Mgr.GetConfig()
 	// config not found in db
@@ -119,7 +120,7 @@ func PersistEnv() error {
 		}
 
 		if hasChanged {
-			encryptedConfig, err := utils.EncryptConfig(jsonData)
+			encryptedConfig, err := utils.EncryptEnvData(jsonData)
 			if err != nil {
 				return err
 			}

@@ -12,6 +12,7 @@ import (
 )
 
 func deleteUserTest(s TestSetup, t *testing.T) {
+	t.Helper()
 	t.Run(`should delete users with admin secret only`, func(t *testing.T) {
 		req, ctx := createContext(s)
 		email := "delete_user." + s.TestInfo.Email

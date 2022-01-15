@@ -11,6 +11,7 @@ import (
 )
 
 func signupTests(s TestSetup, t *testing.T) {
+	t.Helper()
 	t.Run(`should complete the signup and check duplicates`, func(t *testing.T) {
 		_, ctx := createContext(s)
 		email := "signup." + s.TestInfo.Email

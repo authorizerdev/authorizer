@@ -11,15 +11,18 @@ import (
 	"github.com/joho/godotenv"
 )
 
-// build variables
 var (
-	ARG_DB_URL         *string
-	ARG_DB_TYPE        *string
+	// ARG_DB_URL is the cli arg variable for the database url
+	ARG_DB_URL *string
+	// ARG_DB_TYPE is the cli arg variable for the database type
+	ARG_DB_TYPE *string
+	// ARG_AUTHORIZER_URL is the cli arg variable for the authorizer url
 	ARG_AUTHORIZER_URL *string
-	ARG_ENV_FILE       *string
+	// ARG_ENV_FILE is the cli arg variable for the env file
+	ARG_ENV_FILE *string
 )
 
-// InitEnv -> to initialize env and through error if required env are not present
+// InitEnv to initialize EnvData and through error if required env are not present
 func InitEnv() {
 	if constants.EnvData.ENV_PATH == "" {
 		constants.EnvData.ENV_PATH = `.env`

@@ -13,6 +13,7 @@ import (
 )
 
 func sessionTests(s TestSetup, t *testing.T) {
+	t.Helper()
 	t.Run(`should allow access to profile with session only`, func(t *testing.T) {
 		req, ctx := createContext(s)
 		email := "session." + s.TestInfo.Email

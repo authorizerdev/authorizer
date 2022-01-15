@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// DashboardHandler is the handler for the /dashboard route
 func DashboardHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		isOnboardingCompleted := false

@@ -8,7 +8,8 @@ import (
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
-func AdminLogout(ctx context.Context) (*model.Response, error) {
+// AdminLogoutResolver is a resolver for admin logout mutation
+func AdminLogoutResolver(ctx context.Context) (*model.Response, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	var res *model.Response
 

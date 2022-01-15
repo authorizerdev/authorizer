@@ -12,6 +12,7 @@ import (
 )
 
 func configTests(s TestSetup, t *testing.T) {
+	t.Helper()
 	t.Run(`should get config`, func(t *testing.T) {
 		req, ctx := createContext(s)
 		_, err := resolvers.ConfigResolver(ctx)

@@ -9,7 +9,9 @@ import (
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
-func VerificationRequests(ctx context.Context) ([]*model.VerificationRequest, error) {
+// VerificationRequestsResolver is a resolver for verification requests query
+// This is admin only query
+func VerificationRequestsResolver(ctx context.Context) ([]*model.VerificationRequest, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	var res []*model.VerificationRequest
 	if err != nil {

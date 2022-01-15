@@ -9,6 +9,7 @@ import (
 )
 
 func metaTests(s TestSetup, t *testing.T) {
+	t.Helper()
 	t.Run(`should get meta information`, func(t *testing.T) {
 		ctx := context.Background()
 		meta, err := resolvers.Meta(ctx)

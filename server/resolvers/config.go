@@ -9,6 +9,10 @@ import (
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
+// TODO rename to env_data
+
+// ConfigResolver is a resolver for config query
+// This is admin only query
 func ConfigResolver(ctx context.Context) (*model.Config, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	var res *model.Config

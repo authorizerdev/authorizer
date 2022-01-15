@@ -12,6 +12,7 @@ import (
 )
 
 func updateUserTest(s TestSetup, t *testing.T) {
+	t.Helper()
 	t.Run(`should update the user with admin secret only`, func(t *testing.T) {
 		req, ctx := createContext(s)
 		email := "update_user." + s.TestInfo.Email

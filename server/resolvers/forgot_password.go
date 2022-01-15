@@ -9,12 +9,13 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
-	"github.com/authorizerdev/authorizer/server/enum"
+	"github.com/authorizerdev/authorizer/server/email"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
-func ForgotPassword(ctx context.Context, params model.ForgotPasswordInput) (*model.Response, error) {
+// ForgotPasswordResolver is a resolver for forgot password mutation
+func ForgotPasswordResolver(ctx context.Context, params model.ForgotPasswordInput) (*model.Response, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	var res *model.Response
 	if err != nil {
@@ -35,20 +36,20 @@ func ForgotPassword(ctx context.Context, params model.ForgotPasswordInput) (*mod
 		return res, fmt.Errorf(`user with this email not found`)
 	}
 
-	token, err := utils.CreateVerificationToken(params.Email, enum.ForgotPassword.String())
+	token, err := utils.CreateVerificationToken(params.Email, constants.VerificationTypeForgotPassword)
 	if err != nil {
 		log.Println(`error generating token`, err)
 	}
 	db.Mgr.AddVerification(db.VerificationRequest{
 		Token:      token,
-		Identifier: enum.ForgotPassword.String(),
+		Identifier: constants.VerificationTypeForgotPassword,
 		ExpiresAt:  time.Now().Add(time.Minute * 30).Unix(),
 		Email:      params.Email,
 	})
 
 	// exec it as go routin so that we can reduce the api latency
 	go func() {
-		utils.SendForgotPasswordMail(params.Email, token, host)
+		email.SendForgotPasswordMail(params.Email, token, host)
 	}()
 
 	res = &model.Response{

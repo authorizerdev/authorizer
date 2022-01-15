@@ -12,6 +12,7 @@ import (
 )
 
 func verificationRequestsTest(s TestSetup, t *testing.T) {
+	t.Helper()
 	t.Run(`should get verification requests with admin secret only`, func(t *testing.T) {
 		req, ctx := createContext(s)
 

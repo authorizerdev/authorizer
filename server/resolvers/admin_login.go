@@ -9,6 +9,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
+// AdminLoginResolver is a resolver for admin login mutation
 func AdminLoginResolver(ctx context.Context, params model.AdminLoginInput) (*model.Response, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	var res *model.Response
@@ -21,7 +22,7 @@ func AdminLoginResolver(ctx context.Context, params model.AdminLoginInput) (*mod
 		return res, fmt.Errorf(`invalid admin secret`)
 	}
 
-	hashedKey, err := utils.HashPassword(constants.EnvData.ADMIN_SECRET)
+	hashedKey, err := utils.EncryptPassword(constants.EnvData.ADMIN_SECRET)
 	if err != nil {
 		return res, err
 	}

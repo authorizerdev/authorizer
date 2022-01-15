@@ -8,12 +8,12 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
-	"github.com/authorizerdev/authorizer/server/enum"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
-func ResetPassword(ctx context.Context, params model.ResetPasswordInput) (*model.Response, error) {
+// ResetPasswordResolver is a resolver for reset password mutation
+func ResetPasswordResolver(ctx context.Context, params model.ResetPasswordInput) (*model.Response, error) {
 	var res *model.Response
 	if constants.EnvData.DISABLE_BASIC_AUTHENTICATION {
 		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
@@ -39,12 +39,12 @@ func ResetPassword(ctx context.Context, params model.ResetPasswordInput) (*model
 		return res, err
 	}
 
-	password, _ := utils.HashPassword(params.Password)
+	password, _ := utils.EncryptPassword(params.Password)
 	user.Password = &password
 
 	signupMethod := user.SignupMethods
-	if !strings.Contains(signupMethod, enum.BasicAuth.String()) {
-		signupMethod = signupMethod + "," + enum.BasicAuth.String()
+	if !strings.Contains(signupMethod, constants.SignupMethodBasicAuth) {
+		signupMethod = signupMethod + "," + constants.SignupMethodBasicAuth
 	}
 	user.SignupMethods = signupMethod
 

@@ -11,17 +11,18 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
-	"github.com/authorizerdev/authorizer/server/enum"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
 	"github.com/robertkrimen/otto"
 	"golang.org/x/crypto/bcrypt"
 )
 
-func CreateAuthToken(user db.User, tokenType enum.TokenType, roles []string) (string, int64, error) {
+// CreateAuthToken util to create JWT token, based on
+// user information, roles config and CUSTOM_ACCESS_TOKEN_SCRIPT
+func CreateAuthToken(user db.User, tokenType string, roles []string) (string, int64, error) {
 	t := jwt.New(jwt.GetSigningMethod(constants.EnvData.JWT_TYPE))
 	expiryBound := time.Hour
-	if tokenType == enum.RefreshToken {
+	if tokenType == constants.TokenTypeRefreshToken {
 		// expires in 1 year
 		expiryBound = time.Hour * 8760
 	}
@@ -36,7 +37,7 @@ func CreateAuthToken(user db.User, tokenType enum.TokenType, roles []string) (st
 	customClaims := jwt.MapClaims{
 		"exp":                            expiresAt,
 		"iat":                            time.Now().Unix(),
-		"token_type":                     tokenType.String(),
+		"token_type":                     tokenType,
 		"allowed_roles":                  strings.Split(user.Roles, ","),
 		constants.EnvData.JWT_ROLE_CLAIM: roles,
 	}
@@ -87,6 +88,8 @@ func CreateAuthToken(user db.User, tokenType enum.TokenType, roles []string) (st
 	return token, expiresAt, nil
 }
 
+// GetAuthToken helps in getting the JWT token from the
+// request cookie or authorization header
 func GetAuthToken(gc *gin.Context) (string, error) {
 	token, err := GetCookie(gc)
 	if err != nil || token == "" {
@@ -101,6 +104,7 @@ func GetAuthToken(gc *gin.Context) (string, error) {
 	return token, nil
 }
 
+// VerifyAuthToken helps in verifying the JWT token
 func VerifyAuthToken(token string) (map[string]interface{}, error) {
 	var res map[string]interface{}
 	claims := jwt.MapClaims{}
@@ -126,10 +130,12 @@ func VerifyAuthToken(token string) (map[string]interface{}, error) {
 	return res, nil
 }
 
-func CreateAdminAuthToken(tokenType enum.TokenType, c *gin.Context) (string, error) {
-	return HashPassword(constants.EnvData.ADMIN_SECRET)
+// CreateAdminAuthToken creates the admin token based on secret key
+func CreateAdminAuthToken(tokenType string, c *gin.Context) (string, error) {
+	return EncryptPassword(constants.EnvData.ADMIN_SECRET)
 }
 
+// GetAdminAuthToken helps in getting the admin token from the request cookie
 func GetAdminAuthToken(gc *gin.Context) (string, error) {
 	token, err := GetAdminCookie(gc)
 	if err != nil || token == "" {

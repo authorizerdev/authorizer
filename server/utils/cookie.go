@@ -7,6 +7,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// SetCookie sets the cookie in the response. It sets 2 cookies
+// 1 COOKIE_NAME for the host (abc.com)
+// 2 COOKIE_NAME-client for the domain (sub.abc.com).
+// Note all sites don't allow 2nd type of cookie
 func SetCookie(gc *gin.Context, token string) {
 	secure := true
 	httpOnly := true
@@ -21,6 +25,7 @@ func SetCookie(gc *gin.Context, token string) {
 	gc.SetCookie(constants.EnvData.COOKIE_NAME+"-client", token, 3600, "/", domain, secure, httpOnly)
 }
 
+// GetCookie gets the cookie from the request
 func GetCookie(gc *gin.Context) (string, error) {
 	cookie, err := gc.Request.Cookie(constants.EnvData.COOKIE_NAME)
 	if err != nil {
@@ -33,6 +38,7 @@ func GetCookie(gc *gin.Context) (string, error) {
 	return cookie.Value, nil
 }
 
+// DeleteCookie sets the cookie value as empty to make it expired
 func DeleteCookie(gc *gin.Context) {
 	secure := true
 	httpOnly := true
@@ -48,6 +54,7 @@ func DeleteCookie(gc *gin.Context) {
 	gc.SetCookie(constants.EnvData.COOKIE_NAME+"-client", "", -1, "/", domain, secure, httpOnly)
 }
 
+// SetAdminCookie sets the admin cookie in the response
 func SetAdminCookie(gc *gin.Context, token string) {
 	secure := true
 	httpOnly := true

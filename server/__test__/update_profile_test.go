@@ -13,6 +13,7 @@ import (
 )
 
 func updateProfileTests(s TestSetup, t *testing.T) {
+	t.Helper()
 	t.Run(`should update the profile with access token only`, func(t *testing.T) {
 		req, ctx := createContext(s)
 		email := "update_profile." + s.TestInfo.Email

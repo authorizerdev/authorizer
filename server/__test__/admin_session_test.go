@@ -12,6 +12,7 @@ import (
 )
 
 func adminSessionTests(s TestSetup, t *testing.T) {
+	t.Helper()
 	t.Run(`should get admin session`, func(t *testing.T) {
 		req, ctx := createContext(s)
 		_, err := resolvers.AdminSession(ctx)

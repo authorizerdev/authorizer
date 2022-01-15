@@ -9,13 +9,15 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
-	"github.com/authorizerdev/authorizer/server/enum"
+	"github.com/authorizerdev/authorizer/server/email"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/session"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
-func UpdateUser(ctx context.Context, params model.UpdateUserInput) (*model.User, error) {
+// UpdateUserResolver is a resolver for update user mutation
+// This is admin only mutation
+func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*model.User, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	var res *model.User
 	if err != nil {
@@ -89,13 +91,13 @@ func UpdateUser(ctx context.Context, params model.UpdateUserInput) (*model.User,
 			return res, fmt.Errorf("user with this email address already exists")
 		}
 
-		session.DeleteUserSession(fmt.Sprintf("%v", user.ID))
+		session.DeleteAllUserSession(fmt.Sprintf("%v", user.ID))
 		utils.DeleteCookie(gc)
 
 		user.Email = newEmail
 		user.EmailVerifiedAt = nil
 		// insert verification request
-		verificationType := enum.UpdateEmail.String()
+		verificationType := constants.VerificationTypeUpdateEmail
 		token, err := utils.CreateVerificationToken(newEmail, verificationType)
 		if err != nil {
 			log.Println(`error generating token`, err)
@@ -109,7 +111,7 @@ func UpdateUser(ctx context.Context, params model.UpdateUserInput) (*model.User,
 
 		// exec it as go routin so that we can reduce the api latency
 		go func() {
-			utils.SendVerificationMail(newEmail, token)
+			email.SendVerificationMail(newEmail, token)
 		}()
 	}
 
@@ -129,7 +131,7 @@ func UpdateUser(ctx context.Context, params model.UpdateUserInput) (*model.User,
 			rolesToSave = strings.Join(inputRoles, ",")
 		}
 
-		session.DeleteUserSession(fmt.Sprintf("%v", user.ID))
+		session.DeleteAllUserSession(fmt.Sprintf("%v", user.ID))
 		utils.DeleteCookie(gc)
 	}
 

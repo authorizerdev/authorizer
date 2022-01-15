@@ -7,7 +7,8 @@ import (
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
-func Meta(ctx context.Context) (*model.Meta, error) {
+// MetaResolver is a resolver for meta query
+func MetaResolver(ctx context.Context) (*model.Meta, error) {
 	metaInfo := utils.GetMetaInfo()
 	return &metaInfo, nil
 }

@@ -10,6 +10,7 @@ import (
 )
 
 func adminLoginTests(s TestSetup, t *testing.T) {
+	t.Helper()
 	t.Run(`should complete admin login`, func(t *testing.T) {
 		_, ctx := createContext(s)
 		_, err := resolvers.AdminLoginResolver(ctx, model.AdminLoginInput{

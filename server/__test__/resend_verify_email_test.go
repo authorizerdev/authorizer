@@ -10,6 +10,7 @@ import (
 )
 
 func resendVerifyEmailTests(s TestSetup, t *testing.T) {
+	t.Helper()
 	t.Run(`should resend verification email`, func(t *testing.T) {
 		_, ctx := createContext(s)
 		email := "resend_verify_email." + s.TestInfo.Email

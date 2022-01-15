@@ -9,12 +9,13 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
-	"github.com/authorizerdev/authorizer/server/enum"
+	"github.com/authorizerdev/authorizer/server/email"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
-func MagicLinkLogin(ctx context.Context, params model.MagicLinkLoginInput) (*model.Response, error) {
+// MagicLinkLoginResolver is a resolver for magic link login mutation
+func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInput) (*model.Response, error) {
 	var res *model.Response
 
 	if constants.EnvData.DISABLE_MAGIC_LINK_LOGIN {
@@ -37,7 +38,7 @@ func MagicLinkLogin(ctx context.Context, params model.MagicLinkLoginInput) (*mod
 	existingUser, err := db.Mgr.GetUserByEmail(params.Email)
 
 	if err != nil {
-		user.SignupMethods = enum.MagicLinkLogin.String()
+		user.SignupMethods = constants.SignupMethodMagicLinkLogin
 		// define roles for new user
 		if len(params.Roles) > 0 {
 			// check if roles exists
@@ -87,8 +88,8 @@ func MagicLinkLogin(ctx context.Context, params model.MagicLinkLoginInput) (*mod
 		}
 
 		signupMethod := existingUser.SignupMethods
-		if !strings.Contains(signupMethod, enum.MagicLinkLogin.String()) {
-			signupMethod = signupMethod + "," + enum.MagicLinkLogin.String()
+		if !strings.Contains(signupMethod, constants.SignupMethodMagicLinkLogin) {
+			signupMethod = signupMethod + "," + constants.SignupMethodMagicLinkLogin
 		}
 
 		user.SignupMethods = signupMethod
@@ -100,7 +101,7 @@ func MagicLinkLogin(ctx context.Context, params model.MagicLinkLoginInput) (*mod
 
 	if !constants.EnvData.DISABLE_EMAIL_VERIFICATION {
 		// insert verification request
-		verificationType := enum.MagicLinkLogin.String()
+		verificationType := constants.SignupMethodMagicLinkLogin
 		token, err := utils.CreateVerificationToken(params.Email, verificationType)
 		if err != nil {
 			log.Println(`error generating token`, err)
@@ -114,7 +115,7 @@ func MagicLinkLogin(ctx context.Context, params model.MagicLinkLoginInput) (*mod
 
 		// exec it as go routin so that we can reduce the api latency
 		go func() {
-			utils.SendVerificationMail(params.Email, token)
+			email.SendVerificationMail(params.Email, token)
 		}()
 	}
 
