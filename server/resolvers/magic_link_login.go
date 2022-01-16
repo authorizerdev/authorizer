@@ -10,6 +10,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/email"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
@@ -18,7 +19,7 @@ import (
 func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInput) (*model.Response, error) {
 	var res *model.Response
 
-	if constants.EnvData.DISABLE_MAGIC_LINK_LOGIN {
+	if envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDisableMagicLinkLogin).(bool) {
 		return res, fmt.Errorf(`magic link login is disabled for this instance`)
 	}
 
@@ -42,13 +43,13 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 		// define roles for new user
 		if len(params.Roles) > 0 {
 			// check if roles exists
-			if !utils.IsValidRoles(constants.EnvData.ROLES, params.Roles) {
+			if !utils.IsValidRoles(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyRoles).([]string), params.Roles) {
 				return res, fmt.Errorf(`invalid roles`)
 			} else {
 				inputRoles = params.Roles
 			}
 		} else {
-			inputRoles = constants.EnvData.DEFAULT_ROLES
+			inputRoles = envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDefaultRoles).([]string)
 		}
 
 		user.Roles = strings.Join(inputRoles, ",")
@@ -73,7 +74,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 			// check if it contains protected unassigned role
 			hasProtectedRole := false
 			for _, ur := range unasignedRoles {
-				if utils.StringSliceContains(constants.EnvData.PROTECTED_ROLES, ur) {
+				if utils.StringSliceContains(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyProtectedRoles).([]string), ur) {
 					hasProtectedRole = true
 				}
 			}
@@ -99,7 +100,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 		}
 	}
 
-	if !constants.EnvData.DISABLE_EMAIL_VERIFICATION {
+	if !envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDisableEmailVerification).(bool) {
 		// insert verification request
 		verificationType := constants.VerificationTypeMagicLinkLogin
 		token, err := utils.CreateVerificationToken(params.Email, verificationType)

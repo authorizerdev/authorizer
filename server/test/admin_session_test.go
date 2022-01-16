@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/resolvers"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/stretchr/testify/assert"
@@ -19,9 +20,9 @@ func adminSessionTests(t *testing.T, s TestSetup) {
 		log.Println("error:", err)
 		assert.NotNil(t, err)
 
-		h, err := utils.EncryptPassword(constants.EnvData.ADMIN_SECRET)
+		h, err := utils.EncryptPassword(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAdminSecret).(string))
 		assert.Nil(t, err)
-		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.EnvData.ADMIN_COOKIE_NAME, h))
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAdminCookieName).(string), h))
 		_, err = resolvers.AdminSessionResolver(ctx)
 
 		assert.Nil(t, err)

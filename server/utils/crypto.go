@@ -9,6 +9,7 @@ import (
 	"io"
 
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -28,7 +29,7 @@ func DecryptB64(s string) (string, error) {
 
 // EncryptAES encrypts data using AES algorithm
 func EncryptAES(text []byte) ([]byte, error) {
-	key := []byte(constants.EnvData.ENCRYPTION_KEY)
+	key := []byte(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyEncryptionKey).(string))
 	c, err := aes.NewCipher(key)
 	var res []byte
 	if err != nil {
@@ -62,7 +63,7 @@ func EncryptAES(text []byte) ([]byte, error) {
 
 // DecryptAES decrypts data using AES algorithm
 func DecryptAES(ciphertext []byte) ([]byte, error) {
-	key := []byte(constants.EnvData.ENCRYPTION_KEY)
+	key := []byte(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyEncryptionKey).(string))
 	c, err := aes.NewCipher(key)
 	var res []byte
 	if err != nil {
@@ -95,12 +96,14 @@ func EncryptEnvData(data map[string]interface{}) ([]byte, error) {
 		return []byte{}, err
 	}
 
-	err = json.Unmarshal(jsonBytes, &constants.EnvData)
+	envStoreObj := envstore.EnvInMemoryStoreObj.GetEnvStoreClone()
+
+	err = json.Unmarshal(jsonBytes, &envStoreObj)
 	if err != nil {
 		return []byte{}, err
 	}
 
-	configData, err := json.Marshal(constants.EnvData)
+	configData, err := json.Marshal(envStoreObj)
 	if err != nil {
 		return []byte{}, err
 	}

@@ -10,6 +10,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/email"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/session"
 	"github.com/authorizerdev/authorizer/server/utils"
@@ -123,7 +124,7 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 			inputRoles = append(inputRoles, *item)
 		}
 
-		if !utils.IsValidRoles(append([]string{}, append(constants.EnvData.ROLES, constants.EnvData.PROTECTED_ROLES...)...), inputRoles) {
+		if !utils.IsValidRoles(append([]string{}, append(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyRoles).([]string), envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyProtectedRoles).([]string)...)...), inputRoles) {
 			return res, fmt.Errorf("invalid list of roles")
 		}
 

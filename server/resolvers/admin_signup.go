@@ -8,6 +8,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
@@ -31,17 +32,18 @@ func AdminSignupResolver(ctx context.Context, params model.AdminSignupInput) (*m
 		return res, err
 	}
 
-	if constants.EnvData.ADMIN_SECRET != "" {
+	adminSecret := envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAdminSecret).(string)
+
+	if adminSecret != "" {
 		err = fmt.Errorf("admin sign up already completed")
 		return res, err
 	}
 
-	constants.EnvData.ADMIN_SECRET = params.AdminSecret
-
+	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.EnvKeyAdminSecret, params.AdminSecret)
 	// consvert EnvData to JSON
 	var jsonData map[string]interface{}
 
-	jsonBytes, err := json.Marshal(constants.EnvData)
+	jsonBytes, err := json.Marshal(envstore.EnvInMemoryStoreObj.GetEnvStoreClone())
 	if err != nil {
 		return res, err
 	}

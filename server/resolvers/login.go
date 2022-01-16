@@ -8,6 +8,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/session"
 	"github.com/authorizerdev/authorizer/server/utils"
@@ -22,7 +23,7 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 		return res, err
 	}
 
-	if constants.EnvData.DISABLE_BASIC_AUTHENTICATION {
+	if envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDisableBasicAuthentication).(bool) {
 		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
 	}
 
@@ -46,7 +47,7 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 		log.Println("compare password error:", err)
 		return res, fmt.Errorf(`invalid password`)
 	}
-	roles := constants.EnvData.DEFAULT_ROLES
+	roles := envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDefaultRoles).([]string)
 	currentRoles := strings.Split(user.Roles, ",")
 	if len(params.Roles) > 0 {
 		if !utils.IsValidRoles(currentRoles, params.Roles) {

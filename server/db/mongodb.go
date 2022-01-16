@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -12,7 +13,7 @@ import (
 )
 
 func initMongodb() (*mongo.Database, error) {
-	mongodbOptions := options.Client().ApplyURI(constants.EnvData.DATABASE_URL)
+	mongodbOptions := options.Client().ApplyURI(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDatabaseURL).(string))
 	maxWait := time.Duration(5 * time.Second)
 	mongodbOptions.ConnectTimeout = &maxWait
 	mongoClient, err := mongo.NewClient(mongodbOptions)
@@ -30,7 +31,7 @@ func initMongodb() (*mongo.Database, error) {
 		return nil, err
 	}
 
-	mongodb := mongoClient.Database(constants.EnvData.DATABASE_NAME, options.Database())
+	mongodb := mongoClient.Database(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDatabaseName).(string), options.Database())
 
 	mongodb.CreateCollection(ctx, Collections.User, options.CreateCollection())
 	userCollection := mongodb.Collection(Collections.User, options.Collection())

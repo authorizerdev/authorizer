@@ -6,6 +6,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/env"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/oauth"
 	"github.com/authorizerdev/authorizer/server/routes"
 	"github.com/authorizerdev/authorizer/server/session"
@@ -19,7 +20,7 @@ func main() {
 	env.ARG_ENV_FILE = flag.String("env_file", "", "Env file path")
 	flag.Parse()
 
-	constants.EnvData.VERSION = VERSION
+	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.EnvKeyVersion, VERSION)
 
 	env.InitEnv()
 	db.InitDB()
@@ -30,5 +31,5 @@ func main() {
 
 	router := routes.InitRouter()
 
-	router.Run(":" + constants.EnvData.PORT)
+	router.Run(":" + envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyPort).(string))
 }

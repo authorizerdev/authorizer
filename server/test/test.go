@@ -10,6 +10,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/env"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/handlers"
 	"github.com/authorizerdev/authorizer/server/middlewares"
 	"github.com/authorizerdev/authorizer/server/session"
@@ -71,8 +72,7 @@ func testSetup() TestSetup {
 		Password: "test",
 	}
 
-	constants.EnvData.ENV_PATH = "../../.env.sample"
-
+	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.EnvKeyEnvPath, "../../.env.sample")
 	env.InitEnv()
 	session.InitSession()
 

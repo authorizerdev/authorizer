@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
@@ -22,7 +23,7 @@ func AdminSessionResolver(ctx context.Context) (*model.Response, error) {
 		return res, fmt.Errorf("unauthorized")
 	}
 
-	hashedKey, err := utils.EncryptPassword(constants.EnvData.ADMIN_SECRET)
+	hashedKey, err := utils.EncryptPassword(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAdminSecret).(string))
 	if err != nil {
 		return res, err
 	}

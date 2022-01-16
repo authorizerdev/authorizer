@@ -1,12 +1,12 @@
 package test
 
 import (
-	"log"
 	"testing"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/env"
+	"github.com/authorizerdev/authorizer/server/envstore"
 )
 
 func TestResolvers(t *testing.T) {
@@ -15,10 +15,12 @@ func TestResolvers(t *testing.T) {
 		// constants.DbTypeArangodb: "http://localhost:8529",
 		// constants.DbTypeMongodb:  "mongodb://localhost:27017",
 	}
-
+	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.EnvKeyVersion, "test")
 	for dbType, dbURL := range databases {
-		constants.EnvData.DATABASE_URL = dbURL
-		constants.EnvData.DATABASE_TYPE = dbType
+		envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.EnvKeyDatabaseURL, dbURL)
+		envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.EnvKeyDatabaseType, dbType)
+
+		env.InitEnv()
 		db.InitDB()
 
 		// clean the persisted config for test to use fresh config
@@ -32,7 +34,6 @@ func TestResolvers(t *testing.T) {
 		s := testSetup()
 		defer s.Server.Close()
 
-		log.Println("EnvData:", constants.EnvData)
 		t.Run("should pass tests for "+dbType, func(t *testing.T) {
 			// admin tests
 			adminSignupTests(t, s)

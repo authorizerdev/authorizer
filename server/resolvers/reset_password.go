@@ -8,6 +8,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
@@ -15,7 +16,7 @@ import (
 // ResetPasswordResolver is a resolver for reset password mutation
 func ResetPasswordResolver(ctx context.Context, params model.ResetPasswordInput) (*model.Response, error) {
 	var res *model.Response
-	if constants.EnvData.DISABLE_BASIC_AUTHENTICATION {
+	if envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDisableBasicAuthentication).(bool) {
 		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
 	}
 

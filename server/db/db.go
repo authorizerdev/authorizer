@@ -5,6 +5,7 @@ import (
 
 	arangoDriver "github.com/arangodb/go-driver"
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"go.mongodb.org/mongo-driver/mongo"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
@@ -65,9 +66,9 @@ func InitDB() {
 	var sqlDB *gorm.DB
 	var err error
 
-	IsORMSupported = constants.EnvData.DATABASE_TYPE != constants.DbTypeArangodb && constants.EnvData.DATABASE_TYPE != constants.DbTypeMongodb
-	IsArangoDB = constants.EnvData.DATABASE_TYPE == constants.DbTypeArangodb
-	IsMongoDB = constants.EnvData.DATABASE_TYPE == constants.DbTypeMongodb
+	IsORMSupported = envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDatabaseType).(string) != constants.DbTypeArangodb && envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDatabaseType).(string) != constants.DbTypeMongodb
+	IsArangoDB = envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDatabaseType).(string) == constants.DbTypeArangodb
+	IsMongoDB = envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDatabaseType).(string) == constants.DbTypeMongodb
 
 	// sql db orm config
 	ormConfig := &gorm.Config{
@@ -76,20 +77,20 @@ func InitDB() {
 		},
 	}
 
-	log.Println("db type:", constants.EnvData.DATABASE_TYPE)
+	log.Println("db type:", envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDatabaseType).(string))
 
-	switch constants.EnvData.DATABASE_TYPE {
+	switch envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDatabaseType).(string) {
 	case constants.DbTypePostgres:
-		sqlDB, err = gorm.Open(postgres.Open(constants.EnvData.DATABASE_URL), ormConfig)
+		sqlDB, err = gorm.Open(postgres.Open(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDatabaseURL).(string)), ormConfig)
 		break
 	case constants.DbTypeSqlite:
-		sqlDB, err = gorm.Open(sqlite.Open(constants.EnvData.DATABASE_URL), ormConfig)
+		sqlDB, err = gorm.Open(sqlite.Open(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDatabaseURL).(string)), ormConfig)
 		break
 	case constants.DbTypeMysql:
-		sqlDB, err = gorm.Open(mysql.Open(constants.EnvData.DATABASE_URL), ormConfig)
+		sqlDB, err = gorm.Open(mysql.Open(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDatabaseURL).(string)), ormConfig)
 		break
 	case constants.DbTypeSqlserver:
-		sqlDB, err = gorm.Open(sqlserver.Open(constants.EnvData.DATABASE_URL), ormConfig)
+		sqlDB, err = gorm.Open(sqlserver.Open(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDatabaseURL).(string)), ormConfig)
 		break
 	case constants.DbTypeArangodb:
 		arangodb, err := initArangodb()

@@ -1,11 +1,15 @@
 package email
 
-import "github.com/authorizerdev/authorizer/server/constants"
+import (
+	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/envstore"
+)
 
 // SendForgotPasswordMail to send forgot password email
 func SendForgotPasswordMail(toEmail, token, host string) error {
-	if constants.EnvData.RESET_PASSWORD_URL == "" {
-		constants.EnvData.RESET_PASSWORD_URL = constants.EnvData.AUTHORIZER_URL + "/app/reset-password"
+	resetPasswordUrl := envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyResetPasswordURL).(string)
+	if resetPasswordUrl == "" {
+		envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.EnvKeyResetPasswordURL, envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAuthorizerURL).(string)+"/app/reset-password")
 	}
 
 	// The receiver needs to be in slice as the receive supports multiple receiver
@@ -64,14 +68,14 @@ func SendForgotPasswordMail(toEmail, token, host string) error {
                                                                                 <table width="100%%" cellspacing="0" cellpadding="0">
                                                                                     <tbody>
                                                                                         <tr>
-                                                                                            <td class="esd-block-image es-m-txt-c es-p5b" style="font-size:0;padding:10px" align="center"><a target="_blank" clicktracking="off"><img src="{{.OrgLogo}}" alt="icon" style="display: block;" title="icon" width="30"></a></td>
+                                                                                            <td class="esd-block-image es-m-txt-c es-p5b" style="font-size:0;padding:10px" align="center"><a target="_blank" clicktracking="off"><img src="{{.org_logo}}" alt="icon" style="display: block;" title="icon" width="30"></a></td>
                                                                                         </tr>
                                                                                         
                                                                                         <tr style="background: rgb(249,250,251);padding: 10px;margin-bottom:10px;border-radius:5px;">
                                                                                             <td class="esd-block-text es-m-txt-c es-p15t" align="center" style="padding:10px;padding-bottom:30px;">
                                                                                                 <p>Hey there 👋</p>
-                                                                                                <p>We have received a request to reset password for email: <b>{{.ToEmail}}</b>. If this is correct, please reset the password clicking the button below.</p> <br/>
-                                                                                                <a clicktracking="off" href="{{.AuthUrl}}" class="es-button" target="_blank" style="text-decoration: none;padding:10px 15px;background-color: rgba(59,130,246,1);color: #fff;font-size: 1em;border-radius:5px;">Reset Password</a>
+                                                                                                <p>We have received a request to reset password for email: <b>{{.org_name}}</b>. If this is correct, please reset the password clicking the button below.</p> <br/>
+                                                                                                <a clicktracking="off" href="{{.verification_url}}" class="es-button" target="_blank" style="text-decoration: none;padding:10px 15px;background-color: rgba(59,130,246,1);color: #fff;font-size: 1em;border-radius:5px;">Reset Password</a>
                                                                                             </td>
                                                                                         </tr>
                                                                                     </tbody>
@@ -99,9 +103,9 @@ func SendForgotPasswordMail(toEmail, token, host string) error {
 	`
 
 	data := make(map[string]interface{}, 3)
-	data["OrgLogo"] = constants.EnvData.ORGANIZATION_LOGO
-	data["ToEmail"] = constants.EnvData.ORGANIZATION_NAME
-	data["AuthUrl"] = constants.EnvData.RESET_PASSWORD_URL + "?token=" + token
+	data["org_logo"] = envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyOrganizationLogo).(string)
+	data["org_name"] = envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyOrganizationName).(string)
+	data["verification_url"] = resetPasswordUrl + "?token=" + token
 	message = addEmailTemplate(message, data, "reset_password_email.tmpl")
 
 	return SendMail(Receiver, Subject, message)

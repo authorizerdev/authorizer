@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/resolvers"
 	"github.com/authorizerdev/authorizer/server/utils"
@@ -13,6 +14,7 @@ import (
 
 func verificationRequestsTest(t *testing.T, s TestSetup) {
 	t.Helper()
+
 	t.Run(`should get verification requests with admin secret only`, func(t *testing.T) {
 		req, ctx := createContext(s)
 
@@ -24,11 +26,11 @@ func verificationRequestsTest(t *testing.T, s TestSetup) {
 		})
 
 		requests, err := resolvers.VerificationRequestsResolver(ctx)
-		assert.NotNil(t, err, "unauthorizer")
+		assert.NotNil(t, err, "unauthorized")
 
-		h, err := utils.EncryptPassword(constants.EnvData.ADMIN_SECRET)
+		h, err := utils.EncryptPassword(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAdminSecret).(string))
 		assert.Nil(t, err)
-		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.EnvData.ADMIN_COOKIE_NAME, h))
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAdminCookieName).(string), h))
 		requests, err = resolvers.VerificationRequestsResolver(ctx)
 
 		assert.Nil(t, err)

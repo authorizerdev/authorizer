@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/resolvers"
 	"github.com/authorizerdev/authorizer/server/utils"
@@ -32,9 +33,9 @@ func updateUserTest(t *testing.T, s TestSetup) {
 		})
 		assert.NotNil(t, err, "unauthorized")
 
-		h, err := utils.EncryptPassword(constants.EnvData.ADMIN_SECRET)
+		h, err := utils.EncryptPassword(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAdminSecret).(string))
 		assert.Nil(t, err)
-		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.EnvData.ADMIN_COOKIE_NAME, h))
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAdminCookieName).(string), h))
 		_, err = resolvers.UpdateUserResolver(ctx, model.UpdateUserInput{
 			ID:    user.ID,
 			Roles: newRoles,

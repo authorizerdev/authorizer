@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/gin-gonic/gin"
 )
 
@@ -12,7 +13,7 @@ func DashboardHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		isOnboardingCompleted := false
 
-		if constants.EnvData.ADMIN_SECRET != "" {
+		if envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAdminSecret) != nil && envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAdminSecret).(string) != "" {
 			isOnboardingCompleted = true
 		}
 

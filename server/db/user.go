@@ -3,11 +3,13 @@ package db
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/arangodb/go-driver"
 	arangoDriver "github.com/arangodb/go-driver"
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -43,7 +45,7 @@ func (mgr *manager) AddUser(user User) (User, error) {
 	}
 
 	if user.Roles == "" {
-		user.Roles = constants.EnvData.DEFAULT_ROLES[0]
+		user.Roles = strings.Join(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDefaultRoles).([]string), ",")
 	}
 
 	if IsORMSupported {
@@ -185,6 +187,7 @@ func (mgr *manager) GetUsers() ([]User, error) {
 	return users, nil
 }
 
+// GetUserByEmail function to get user by email
 func (mgr *manager) GetUserByEmail(email string) (User, error) {
 	var user User
 
@@ -233,6 +236,7 @@ func (mgr *manager) GetUserByEmail(email string) (User, error) {
 	return user, nil
 }
 
+// GetUserByID function to get user by ID
 func (mgr *manager) GetUserByID(id string) (User, error) {
 	var user User
 
@@ -281,6 +285,7 @@ func (mgr *manager) GetUserByID(id string) (User, error) {
 	return user, nil
 }
 
+// DeleteUser function to delete user
 func (mgr *manager) DeleteUser(user User) error {
 	if IsORMSupported {
 		result := mgr.sqlDB.Delete(&user)

@@ -10,6 +10,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/email"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
@@ -21,7 +22,7 @@ func ForgotPasswordResolver(ctx context.Context, params model.ForgotPasswordInpu
 	if err != nil {
 		return res, err
 	}
-	if constants.EnvData.DISABLE_BASIC_AUTHENTICATION {
+	if envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDisableBasicAuthentication).(bool) {
 		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
 	}
 	host := gc.Request.Host

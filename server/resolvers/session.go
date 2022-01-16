@@ -7,6 +7,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/session"
 	"github.com/authorizerdev/authorizer/server/utils"
@@ -45,7 +46,7 @@ func SessionResolver(ctx context.Context, roles []string) (*model.AuthResponse, 
 	expiresTimeObj := time.Unix(expiresAt, 0)
 	currentTimeObj := time.Now()
 
-	claimRoleInterface := claim[constants.EnvData.JWT_ROLE_CLAIM].([]interface{})
+	claimRoleInterface := claim[envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyJwtRoleClaim).(string)].([]interface{})
 	claimRoles := make([]string, len(claimRoleInterface))
 	for i, v := range claimRoleInterface {
 		claimRoles[i] = v.(string)

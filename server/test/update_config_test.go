@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/resolvers"
 	"github.com/authorizerdev/authorizer/server/utils"
@@ -16,17 +17,16 @@ func updateConfigTests(t *testing.T, s TestSetup) {
 	t.Helper()
 	t.Run(`should update configs`, func(t *testing.T) {
 		req, ctx := createContext(s)
-		originalAppURL := constants.EnvData.APP_URL
-		log.Println("=> originalAppURL:", constants.EnvData.APP_URL)
+		originalAppURL := envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAppURL).(string)
 
 		data := model.UpdateConfigInput{}
 		_, err := resolvers.UpdateConfigResolver(ctx, data)
 		log.Println("error:", err)
 		assert.NotNil(t, err)
 
-		h, _ := utils.EncryptPassword(constants.EnvData.ADMIN_SECRET)
-		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.EnvData.ADMIN_COOKIE_NAME, h))
-		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.EnvData.ADMIN_COOKIE_NAME, h))
+		h, err := utils.EncryptPassword(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAdminSecret).(string))
+		assert.Nil(t, err)
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAdminCookieName).(string), h))
 		newURL := "https://test.com"
 		data = model.UpdateConfigInput{
 			AppURL: &newURL,
@@ -34,8 +34,7 @@ func updateConfigTests(t *testing.T, s TestSetup) {
 		_, err = resolvers.UpdateConfigResolver(ctx, data)
 		log.Println("error:", err)
 		assert.Nil(t, err)
-		assert.Equal(t, constants.EnvData.APP_URL, newURL)
-		assert.NotEqual(t, constants.EnvData.APP_URL, originalAppURL)
+		assert.Equal(t, envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAppURL).(string), newURL)
 		data = model.UpdateConfigInput{
 			AppURL: &originalAppURL,
 		}

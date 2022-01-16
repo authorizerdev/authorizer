@@ -12,6 +12,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/oauth"
 	"github.com/authorizerdev/authorizer/server/session"
 	"github.com/authorizerdev/authorizer/server/utils"
@@ -70,7 +71,7 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			// make sure inputRoles don't include protected roles
 			hasProtectedRole := false
 			for _, ir := range inputRoles {
-				if utils.StringSliceContains(constants.EnvData.PROTECTED_ROLES, ir) {
+				if utils.StringSliceContains(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyProtectedRoles).([]string), ir) {
 					hasProtectedRole = true
 				}
 			}
@@ -113,7 +114,7 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 				// check if it contains protected unassigned role
 				hasProtectedRole := false
 				for _, ur := range unasignedRoles {
-					if utils.StringSliceContains(constants.EnvData.PROTECTED_ROLES, ur) {
+					if utils.StringSliceContains(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyProtectedRoles).([]string), ur) {
 						hasProtectedRole = true
 					}
 				}

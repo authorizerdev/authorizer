@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/go-redis/redis/v8"
 )
 
@@ -106,9 +107,9 @@ func RemoveSocialLoginState(key string) {
 
 // InitializeSessionStore initializes the SessionStoreObj based on environment variables
 func InitSession() {
-	if constants.EnvData.REDIS_URL != "" {
+	if envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyRedisURL).(string) != "" {
 		log.Println("using redis store to save sessions")
-		opt, err := redis.ParseURL(constants.EnvData.REDIS_URL)
+		opt, err := redis.ParseURL(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyRedisURL).(string))
 		if err != nil {
 			log.Fatalln("Error parsing redis url:", err)
 		}

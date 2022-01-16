@@ -6,6 +6,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/resolvers"
 	"github.com/stretchr/testify/assert"
@@ -32,7 +33,7 @@ func profileTests(t *testing.T, s TestSetup) {
 		})
 
 		token := *verifyRes.AccessToken
-		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.EnvData.COOKIE_NAME, token))
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyCookieName).(string), token))
 		profileRes, err := resolvers.ProfileResolver(ctx)
 		assert.Nil(t, err)
 

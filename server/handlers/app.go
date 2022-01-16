@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/gin-gonic/gin"
 )
@@ -26,14 +27,8 @@ func AppHandler() gin.HandlerFunc {
 		var stateObj State
 
 		if state == "" {
-			// cookie, err := utils.GetAuthToken(c)
-			// if err != nil {
-			// 	c.JSON(400, gin.H{"error": "invalid state"})
-			// 	return
-			// }
-
-			stateObj.AuthorizerURL = constants.EnvData.AUTHORIZER_URL
-			stateObj.RedirectURL = constants.EnvData.AUTHORIZER_URL + "/app"
+			stateObj.AuthorizerURL = envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAuthorizerURL).(string)
+			stateObj.RedirectURL = stateObj.AuthorizerURL + "/app"
 
 		} else {
 			decodedState, err := utils.DecryptB64(state)
@@ -62,7 +57,7 @@ func AppHandler() gin.HandlerFunc {
 			}
 
 			// validate host and domain of authorizer url
-			if strings.TrimSuffix(stateObj.AuthorizerURL, "/") != constants.EnvData.AUTHORIZER_URL {
+			if strings.TrimSuffix(stateObj.AuthorizerURL, "/") != envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAuthorizerURL).(string) {
 				c.JSON(400, gin.H{"error": "invalid host url"})
 				return
 			}
@@ -79,8 +74,8 @@ func AppHandler() gin.HandlerFunc {
 			"data": map[string]string{
 				"authorizerURL":    stateObj.AuthorizerURL,
 				"redirectURL":      stateObj.RedirectURL,
-				"organizationName": constants.EnvData.ORGANIZATION_NAME,
-				"organizationLogo": constants.EnvData.ORGANIZATION_LOGO,
+				"organizationName": envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyOrganizationName).(string),
+				"organizationLogo": envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyOrganizationLogo).(string),
 			},
 		})
 	}

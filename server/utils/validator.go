@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/gin-gonic/gin"
 )
 
@@ -17,7 +18,8 @@ func IsValidEmail(email string) bool {
 
 // IsValidOrigin validates origin based on ALLOWED_ORIGINS
 func IsValidOrigin(url string) bool {
-	if len(constants.EnvData.ALLOWED_ORIGINS) == 1 && constants.EnvData.ALLOWED_ORIGINS[0] == "*" {
+	allowedOrigins := envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAllowedOrigins).([]string)
+	if len(allowedOrigins) == 1 && allowedOrigins[0] == "*" {
 		return true
 	}
 
@@ -25,7 +27,7 @@ func IsValidOrigin(url string) bool {
 	hostName, port := GetHostParts(url)
 	currentOrigin := hostName + ":" + port
 
-	for _, origin := range constants.EnvData.ALLOWED_ORIGINS {
+	for _, origin := range allowedOrigins {
 		replacedString := origin
 		// if has regex whitelisted domains
 		if strings.Contains(origin, "*") {
@@ -59,7 +61,7 @@ func IsSuperAdmin(gc *gin.Context) bool {
 			return false
 		}
 
-		return secret == constants.EnvData.ADMIN_SECRET
+		return secret == envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAdminSecret).(string)
 	}
 
 	return token != ""

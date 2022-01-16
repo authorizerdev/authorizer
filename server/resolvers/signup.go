@@ -10,6 +10,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/email"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/session"
 	"github.com/authorizerdev/authorizer/server/utils"
@@ -17,13 +18,14 @@ import (
 
 // SignupResolver is a resolver for signup mutation
 func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthResponse, error) {
+	log.Println(envstore.EnvInMemoryStoreObj.GetEnvStoreClone())
 	gc, err := utils.GinContextFromContext(ctx)
 	var res *model.AuthResponse
 	if err != nil {
 		return res, err
 	}
 
-	if constants.EnvData.DISABLE_BASIC_AUTHENTICATION {
+	if envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDisableBasicAuthentication).(bool) {
 		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
 	}
 	if params.ConfirmPassword != params.Password {
@@ -53,13 +55,13 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 
 	if len(params.Roles) > 0 {
 		// check if roles exists
-		if !utils.IsValidRoles(constants.EnvData.ROLES, params.Roles) {
+		if !utils.IsValidRoles(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyRoles).([]string), params.Roles) {
 			return res, fmt.Errorf(`invalid roles`)
 		} else {
 			inputRoles = params.Roles
 		}
 	} else {
-		inputRoles = constants.EnvData.DEFAULT_ROLES
+		inputRoles = envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDefaultRoles).([]string)
 	}
 
 	user := db.User{
@@ -104,7 +106,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 	}
 
 	user.SignupMethods = constants.SignupMethodBasicAuth
-	if constants.EnvData.DISABLE_EMAIL_VERIFICATION {
+	if envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDisableEmailVerification).(bool) {
 		now := time.Now().Unix()
 		user.EmailVerifiedAt = &now
 	}
@@ -116,7 +118,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 	roles := strings.Split(user.Roles, ",")
 	userToReturn := utils.GetResponseUserData(user)
 
-	if !constants.EnvData.DISABLE_EMAIL_VERIFICATION {
+	if !envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDisableEmailVerification).(bool) {
 		// insert verification request
 		verificationType := constants.VerificationTypeBasicAuthSignup
 		token, err := utils.CreateVerificationToken(params.Email, verificationType)

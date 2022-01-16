@@ -11,6 +11,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
 	"github.com/robertkrimen/otto"
@@ -20,7 +21,7 @@ import (
 // CreateAuthToken util to create JWT token, based on
 // user information, roles config and CUSTOM_ACCESS_TOKEN_SCRIPT
 func CreateAuthToken(user db.User, tokenType string, roles []string) (string, int64, error) {
-	t := jwt.New(jwt.GetSigningMethod(constants.EnvData.JWT_TYPE))
+	t := jwt.New(jwt.GetSigningMethod(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyJwtType).(string)))
 	expiryBound := time.Hour
 	if tokenType == constants.TokenTypeRefreshToken {
 		// expires in 1 year
@@ -34,12 +35,13 @@ func CreateAuthToken(user db.User, tokenType string, roles []string) (string, in
 	var userMap map[string]interface{}
 	json.Unmarshal(userBytes, &userMap)
 
+	claimKey := envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyJwtRoleClaim).(string)
 	customClaims := jwt.MapClaims{
-		"exp":                            expiresAt,
-		"iat":                            time.Now().Unix(),
-		"token_type":                     tokenType,
-		"allowed_roles":                  strings.Split(user.Roles, ","),
-		constants.EnvData.JWT_ROLE_CLAIM: roles,
+		"exp":           expiresAt,
+		"iat":           time.Now().Unix(),
+		"token_type":    tokenType,
+		"allowed_roles": strings.Split(user.Roles, ","),
+		claimKey:        roles,
 	}
 
 	for k, v := range userMap {
@@ -49,7 +51,7 @@ func CreateAuthToken(user db.User, tokenType string, roles []string) (string, in
 	}
 
 	// check for the extra access token script
-	accessTokenScript := os.Getenv("CUSTOM_ACCESS_TOKEN_SCRIPT")
+	accessTokenScript := os.Getenv(constants.EnvKeyCustomAccessTokenScript)
 	if accessTokenScript != "" {
 		vm := otto.New()
 
@@ -80,7 +82,7 @@ func CreateAuthToken(user db.User, tokenType string, roles []string) (string, in
 
 	t.Claims = customClaims
 
-	token, err := t.SignedString([]byte(constants.EnvData.JWT_SECRET))
+	token, err := t.SignedString([]byte(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyJwtSecret).(string)))
 	if err != nil {
 		return "", 0, err
 	}
@@ -110,7 +112,7 @@ func VerifyAuthToken(token string) (map[string]interface{}, error) {
 	claims := jwt.MapClaims{}
 
 	_, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
-		return []byte(constants.EnvData.JWT_SECRET), nil
+		return []byte(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyJwtSecret).(string)), nil
 	})
 	if err != nil {
 		return res, err
@@ -132,7 +134,7 @@ func VerifyAuthToken(token string) (map[string]interface{}, error) {
 
 // CreateAdminAuthToken creates the admin token based on secret key
 func CreateAdminAuthToken(tokenType string, c *gin.Context) (string, error) {
-	return EncryptPassword(constants.EnvData.ADMIN_SECRET)
+	return EncryptPassword(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAdminSecret).(string))
 }
 
 // GetAdminAuthToken helps in getting the admin token from the request cookie
@@ -149,7 +151,7 @@ func GetAdminAuthToken(gc *gin.Context) (string, error) {
 		return "", err
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(decodedValue), []byte(constants.EnvData.ADMIN_SECRET))
+	err = bcrypt.CompareHashAndPassword([]byte(decodedValue), []byte(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAdminSecret).(string)))
 	log.Println("error comparing hash:", err)
 	if err != nil {
 		return "", fmt.Errorf(`unauthorized`)

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/golang-jwt/jwt"
 )
 
@@ -25,24 +26,24 @@ type CustomClaim struct {
 
 // CreateVerificationToken creates a verification JWT token
 func CreateVerificationToken(email string, tokenType string) (string, error) {
-	t := jwt.New(jwt.GetSigningMethod(constants.EnvData.JWT_TYPE))
+	t := jwt.New(jwt.GetSigningMethod(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyJwtType).(string)))
 
 	t.Claims = &CustomClaim{
 		&jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(time.Minute * 30).Unix(),
 		},
 		tokenType,
-		UserInfo{Email: email, Host: constants.EnvData.AUTHORIZER_URL, RedirectURL: constants.EnvData.APP_URL},
+		UserInfo{Email: email, Host: envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAuthorizerURL).(string), RedirectURL: envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAppURL).(string)},
 	}
 
-	return t.SignedString([]byte(constants.EnvData.JWT_SECRET))
+	return t.SignedString([]byte(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyJwtSecret).(string)))
 }
 
 // VerifyVerificationToken verifies the verification JWT token
 func VerifyVerificationToken(token string) (*CustomClaim, error) {
 	claims := &CustomClaim{}
 	_, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
-		return []byte(constants.EnvData.JWT_SECRET), nil
+		return []byte(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyJwtSecret).(string)), nil
 	})
 	if err != nil {
 		return claims, err
