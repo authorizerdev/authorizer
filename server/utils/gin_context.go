@@ -7,6 +7,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// TODO renamae GinContextKey -> GinContext
+
+// GinContext to get gin context from context
 func GinContextFromContext(ctx context.Context) (*gin.Context, error) {
 	ginContext := ctx.Value("GinContextKey")
 	if ginContext == nil {

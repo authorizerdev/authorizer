@@ -11,7 +11,8 @@ import (
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
-func DeleteUser(ctx context.Context, params model.DeleteUserInput) (*model.Response, error) {
+// DeleteUserResolver is a resolver for delete user mutation
+func DeleteUserResolver(ctx context.Context, params model.DeleteUserInput) (*model.Response, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	var res *model.Response
 	if err != nil {
@@ -27,7 +28,7 @@ func DeleteUser(ctx context.Context, params model.DeleteUserInput) (*model.Respo
 		return res, err
 	}
 
-	session.DeleteUserSession(fmt.Sprintf("%x", user.ID))
+	session.DeleteAllUserSession(fmt.Sprintf("%x", user.ID))
 
 	err = db.Mgr.DeleteUser(user)
 	if err != nil {

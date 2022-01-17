@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/authorizerdev/authorizer/server/constants"
-	"github.com/authorizerdev/authorizer/server/enum"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/oauth"
 	"github.com/authorizerdev/authorizer/server/session"
 	"github.com/authorizerdev/authorizer/server/utils"
@@ -13,8 +13,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// set host in the oauth state that is useful for redirecting
-
+// OAuthLoginHandler set host in the oauth state that is useful for redirecting to oauth_callback
 func OAuthLoginHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// TODO validate redirect URL
@@ -34,14 +33,14 @@ func OAuthLoginHandler() gin.HandlerFunc {
 
 			// use protected roles verification for admin login only.
 			// though if not associated with user, it will be rejected from oauth_callback
-			if !utils.IsValidRoles(append([]string{}, append(constants.EnvData.ROLES, constants.EnvData.PROTECTED_ROLES...)...), rolesSplit) {
+			if !utils.IsValidRoles(append([]string{}, append(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyRoles).([]string), envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyProtectedRoles).([]string)...)...), rolesSplit) {
 				c.JSON(400, gin.H{
 					"error": "invalid role",
 				})
 				return
 			}
 		} else {
-			roles = strings.Join(constants.EnvData.DEFAULT_ROLES, ",")
+			roles = strings.Join(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDefaultRoles).([]string), ",")
 		}
 
 		uuid := uuid.New()
@@ -50,32 +49,32 @@ func OAuthLoginHandler() gin.HandlerFunc {
 		provider := c.Param("oauth_provider")
 		isProviderConfigured := true
 		switch provider {
-		case enum.Google.String():
+		case constants.SignupMethodGoogle:
 			if oauth.OAuthProviders.GoogleConfig == nil {
 				isProviderConfigured = false
 				break
 			}
-			session.SetSocailLoginState(oauthStateString, enum.Google.String())
+			session.SetSocailLoginState(oauthStateString, constants.SignupMethodGoogle)
 			// during the init of OAuthProvider authorizer url might be empty
-			oauth.OAuthProviders.GoogleConfig.RedirectURL = constants.EnvData.AUTHORIZER_URL + "/oauth_callback/google"
+			oauth.OAuthProviders.GoogleConfig.RedirectURL = envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAuthorizerURL).(string) + "/oauth_callback/google"
 			url := oauth.OAuthProviders.GoogleConfig.AuthCodeURL(oauthStateString)
 			c.Redirect(http.StatusTemporaryRedirect, url)
-		case enum.Github.String():
+		case constants.SignupMethodGithub:
 			if oauth.OAuthProviders.GithubConfig == nil {
 				isProviderConfigured = false
 				break
 			}
-			session.SetSocailLoginState(oauthStateString, enum.Github.String())
-			oauth.OAuthProviders.GithubConfig.RedirectURL = constants.EnvData.AUTHORIZER_URL + "/oauth_callback/github"
+			session.SetSocailLoginState(oauthStateString, constants.SignupMethodGithub)
+			oauth.OAuthProviders.GithubConfig.RedirectURL = envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAuthorizerURL).(string) + "/oauth_callback/github"
 			url := oauth.OAuthProviders.GithubConfig.AuthCodeURL(oauthStateString)
 			c.Redirect(http.StatusTemporaryRedirect, url)
-		case enum.Facebook.String():
+		case constants.SignupMethodFacebook:
 			if oauth.OAuthProviders.FacebookConfig == nil {
 				isProviderConfigured = false
 				break
 			}
-			session.SetSocailLoginState(oauthStateString, enum.Facebook.String())
-			oauth.OAuthProviders.FacebookConfig.RedirectURL = constants.EnvData.AUTHORIZER_URL + "/oauth_callback/facebook"
+			session.SetSocailLoginState(oauthStateString, constants.SignupMethodFacebook)
+			oauth.OAuthProviders.FacebookConfig.RedirectURL = envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAuthorizerURL).(string) + "/oauth_callback/facebook"
 			url := oauth.OAuthProviders.FacebookConfig.AuthCodeURL(oauthStateString)
 			c.Redirect(http.StatusTemporaryRedirect, url)
 		default:

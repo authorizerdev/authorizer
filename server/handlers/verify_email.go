@@ -5,13 +5,15 @@ import (
 	"strings"
 	"time"
 
+	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
-	"github.com/authorizerdev/authorizer/server/enum"
 	"github.com/authorizerdev/authorizer/server/session"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/gin-gonic/gin"
 )
 
+// VerifyEmailHandler handles the verify email route.
+// It verifies email based on JWT token in query string
 func VerifyEmailHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		errorRes := gin.H{
@@ -54,12 +56,12 @@ func VerifyEmailHandler() gin.HandlerFunc {
 		db.Mgr.DeleteVerificationRequest(verificationRequest)
 
 		roles := strings.Split(user.Roles, ",")
-		refreshToken, _, _ := utils.CreateAuthToken(user, enum.RefreshToken, roles)
+		refreshToken, _, _ := utils.CreateAuthToken(user, constants.TokenTypeRefreshToken, roles)
 
-		accessToken, _, _ := utils.CreateAuthToken(user, enum.AccessToken, roles)
+		accessToken, _, _ := utils.CreateAuthToken(user, constants.TokenTypeAccessToken, roles)
 
-		session.SetToken(user.ID, accessToken, refreshToken)
-		utils.CreateSession(user.ID, c)
+		session.SetUserSession(user.ID, accessToken, refreshToken)
+		utils.SaveSessionInDB(user.ID, c)
 		utils.SetCookie(c, accessToken)
 		c.Redirect(http.StatusTemporaryRedirect, claim.RedirectURL)
 	}

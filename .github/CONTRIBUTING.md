@@ -70,7 +70,11 @@ docker run --name arangodb -d -p 8529:8529 -e ARANGO_NO_AUTH=1 arangodb/arangodb
 If you are adding new resolver,
 
 1. create new resolver test file [here](https://github.com/authorizerdev/authorizer/tree/main/server/__test__)
+<<<<<<< HEAD
+   Naming convention filename: `resolver_name_test.go` function name: `resolverNameTest(t *testing.T, s TestSetup)`
+=======
    Naming convention filename: `resolver_name_test.go` function name: `resolverNameTest(s TestSetup, t *testing.T)`
+>>>>>>> main
 2. Add your tests [here](https://github.com/authorizerdev/authorizer/blob/main/server/__test__/resolvers_test.go#L38)
 
 **Command to run tests:**

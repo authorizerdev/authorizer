@@ -1,24 +1,11 @@
 package utils
 
 import (
-	"io"
-	"os"
+	"github.com/authorizerdev/authorizer/server/db"
+	"github.com/gin-gonic/gin"
 )
 
-func WriteToFile(filename string, data string) error {
-	file, err := os.Create(filename)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	_, err = io.WriteString(file, data)
-	if err != nil {
-		return err
-	}
-	return file.Sync()
-}
-
+// StringSliceContains checks if a string slice contains a particular string
 func StringSliceContains(s []string, e string) bool {
 	for _, a := range s {
 		if a == e {
@@ -26,4 +13,16 @@ func StringSliceContains(s []string, e string) bool {
 		}
 	}
 	return false
+}
+
+// SaveSessionInDB saves sessions generated for a given user with meta information
+// Not store token here as that could be security breach
+func SaveSessionInDB(userId string, c *gin.Context) {
+	sessionData := db.Session{
+		UserID:    userId,
+		UserAgent: GetUserAgent(c.Request),
+		IP:        GetIP(c.Request),
+	}
+
+	db.Mgr.AddSession(sessionData)
 }

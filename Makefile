@@ -10,4 +10,4 @@ build-dashboard:
 clean:
 	rm -rf build
 test:
-	cd server && go clean --testcache && go test -v ./__test__
+	cd server && go clean --testcache && go test -v ./test

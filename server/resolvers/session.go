@@ -7,13 +7,14 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
-	"github.com/authorizerdev/authorizer/server/enum"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/session"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
-func Session(ctx context.Context, roles []string) (*model.AuthResponse, error) {
+// SessionResolver is a resolver for session query
+func SessionResolver(ctx context.Context, roles []string) (*model.AuthResponse, error) {
 	var res *model.AuthResponse
 
 	gc, err := utils.GinContextFromContext(ctx)
@@ -36,7 +37,7 @@ func Session(ctx context.Context, roles []string) (*model.AuthResponse, error) {
 
 	userIdStr := fmt.Sprintf("%v", user.ID)
 
-	sessionToken := session.GetToken(userIdStr, token)
+	sessionToken := session.GetUserSession(userIdStr, token)
 
 	if sessionToken == "" {
 		return res, fmt.Errorf(`unauthorized`)
@@ -45,7 +46,7 @@ func Session(ctx context.Context, roles []string) (*model.AuthResponse, error) {
 	expiresTimeObj := time.Unix(expiresAt, 0)
 	currentTimeObj := time.Now()
 
-	claimRoleInterface := claim[constants.EnvData.JWT_ROLE_CLAIM].([]interface{})
+	claimRoleInterface := claim[envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyJwtRoleClaim).(string)].([]interface{})
 	claimRoles := make([]string, len(claimRoleInterface))
 	for i, v := range claimRoleInterface {
 		claimRoles[i] = v.(string)
@@ -59,14 +60,15 @@ func Session(ctx context.Context, roles []string) (*model.AuthResponse, error) {
 		}
 	}
 
+	// TODO change this logic to make it more secure
 	if accessTokenErr != nil || expiresTimeObj.Sub(currentTimeObj).Minutes() <= 5 {
 		// if access token has expired and refresh/session token is valid
 		// generate new accessToken
-		currentRefreshToken := session.GetToken(userIdStr, token)
-		session.DeleteVerificationRequest(userIdStr, token)
-		token, expiresAt, _ = utils.CreateAuthToken(user, enum.AccessToken, claimRoles)
-		session.SetToken(userIdStr, token, currentRefreshToken)
-		utils.CreateSession(user.ID, gc)
+		currentRefreshToken := session.GetUserSession(userIdStr, token)
+		session.DeleteUserSession(userIdStr, token)
+		token, expiresAt, _ = utils.CreateAuthToken(user, constants.TokenTypeAccessToken, claimRoles)
+		session.SetUserSession(userIdStr, token, currentRefreshToken)
+		utils.SaveSessionInDB(user.ID, gc)
 	}
 
 	utils.SetCookie(gc, token)

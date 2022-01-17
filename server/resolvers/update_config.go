@@ -9,10 +9,15 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
+// TODO rename to UpdateEnvDataResolver
+
+// UpdateConfigResolver is a resolver for update config mutation
+// This is admin only mutation
 func UpdateConfigResolver(ctx context.Context, params model.UpdateConfigInput) (*model.Response, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	var res *model.Response
@@ -57,13 +62,13 @@ func UpdateConfigResolver(ctx context.Context, params model.UpdateConfigInput) (
 
 	// handle derivative cases like disabling email verification & magic login
 	// in case SMTP is off but env is set to true
-	if updatedData["SMTP_HOST"] == "" || updatedData["SENDER_EMAIL"] == "" || updatedData["SENDER_PASSWORD"] == "" {
-		if !updatedData["DISABLE_EMAIL_VERIFICATION"].(bool) {
-			updatedData["DISABLE_EMAIL_VERIFICATION"] = true
+	if updatedData[constants.EnvKeySmtpHost] == "" || updatedData[constants.EnvKeySenderEmail] == "" || updatedData[constants.EnvKeySmtpPort] == "" || updatedData[constants.EnvKeySmtpUsername] == "" || updatedData[constants.EnvKeySmtpPassword] == "" {
+		if !updatedData[constants.EnvKeyDisableEmailVerification].(bool) {
+			updatedData[constants.EnvKeyDisableEmailVerification] = true
 		}
 
-		if !updatedData["DISABLE_MAGIC_LINK_LOGIN"].(bool) {
-			updatedData["DISABLE_MAGIC_LINK_LOGIN"] = true
+		if !updatedData[constants.EnvKeyDisableMagicLinkLogin].(bool) {
+			updatedData[constants.EnvKeyDisableMagicLinkLogin] = true
 		}
 	}
 
@@ -72,7 +77,9 @@ func UpdateConfigResolver(ctx context.Context, params model.UpdateConfigInput) (
 		return res, err
 	}
 
-	encryptedConfig, err := utils.EncryptConfig(updatedData)
+	envstore.EnvInMemoryStoreObj.UpdateEnvStore(updatedData)
+
+	encryptedConfig, err := utils.EncryptEnvData(updatedData)
 	if err != nil {
 		return res, err
 	}
@@ -84,7 +91,7 @@ func UpdateConfigResolver(ctx context.Context, params model.UpdateConfigInput) (
 
 	// in case of admin secret change update the cookie with new hash
 	if params.AdminSecret != nil {
-		hashedKey, err := utils.HashPassword(constants.EnvData.ADMIN_SECRET)
+		hashedKey, err := utils.EncryptPassword(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAdminSecret).(string))
 		if err != nil {
 			return res, err
 		}

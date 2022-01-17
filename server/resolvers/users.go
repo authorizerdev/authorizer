@@ -9,7 +9,9 @@ import (
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
-func Users(ctx context.Context) ([]*model.User, error) {
+// UsersResolver is a resolver for users query
+// This is admin only query
+func UsersResolver(ctx context.Context) ([]*model.User, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	var res []*model.User
 	if err != nil {

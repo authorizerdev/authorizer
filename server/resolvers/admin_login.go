@@ -5,10 +5,12 @@ import (
 	"fmt"
 
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
+// AdminLoginResolver is a resolver for admin login mutation
 func AdminLoginResolver(ctx context.Context, params model.AdminLoginInput) (*model.Response, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	var res *model.Response
@@ -17,11 +19,12 @@ func AdminLoginResolver(ctx context.Context, params model.AdminLoginInput) (*mod
 		return res, err
 	}
 
-	if params.AdminSecret != constants.EnvData.ADMIN_SECRET {
+	adminSecret := envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAdminSecret).(string)
+	if params.AdminSecret != adminSecret {
 		return res, fmt.Errorf(`invalid admin secret`)
 	}
 
-	hashedKey, err := utils.HashPassword(constants.EnvData.ADMIN_SECRET)
+	hashedKey, err := utils.EncryptPassword(adminSecret)
 	if err != nil {
 		return res, err
 	}

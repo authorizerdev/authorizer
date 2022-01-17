@@ -9,7 +9,8 @@ import (
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
-func Logout(ctx context.Context) (*model.Response, error) {
+// LogoutResolver is a resolver for logout mutation
+func LogoutResolver(ctx context.Context) (*model.Response, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	var res *model.Response
 	if err != nil {
@@ -27,7 +28,7 @@ func Logout(ctx context.Context) (*model.Response, error) {
 	}
 
 	userId := fmt.Sprintf("%v", claim["id"])
-	session.DeleteVerificationRequest(userId, token)
+	session.DeleteUserSession(userId, token)
 	res = &model.Response{
 		Message: "Logged out successfully",
 	}

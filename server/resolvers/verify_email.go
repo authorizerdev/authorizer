@@ -6,14 +6,15 @@ import (
 	"strings"
 	"time"
 
+	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
-	"github.com/authorizerdev/authorizer/server/enum"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/session"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
-func VerifyEmail(ctx context.Context, params model.VerifyEmailInput) (*model.AuthResponse, error) {
+// VerifyEmailResolver is a resolver for verify email mutation
+func VerifyEmailResolver(ctx context.Context, params model.VerifyEmailInput) (*model.AuthResponse, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	var res *model.AuthResponse
 	if err != nil {
@@ -44,12 +45,11 @@ func VerifyEmail(ctx context.Context, params model.VerifyEmailInput) (*model.Aut
 	db.Mgr.DeleteVerificationRequest(verificationRequest)
 
 	roles := strings.Split(user.Roles, ",")
-	refreshToken, _, _ := utils.CreateAuthToken(user, enum.RefreshToken, roles)
+	refreshToken, _, _ := utils.CreateAuthToken(user, constants.TokenTypeRefreshToken, roles)
+	accessToken, expiresAt, _ := utils.CreateAuthToken(user, constants.TokenTypeAccessToken, roles)
 
-	accessToken, expiresAt, _ := utils.CreateAuthToken(user, enum.AccessToken, roles)
-
-	session.SetToken(user.ID, accessToken, refreshToken)
-	utils.CreateSession(user.ID, gc)
+	session.SetUserSession(user.ID, accessToken, refreshToken)
+	utils.SaveSessionInDB(user.ID, gc)
 
 	res = &model.AuthResponse{
 		Message:     `Email verified successfully.`,

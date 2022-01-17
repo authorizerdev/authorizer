@@ -12,7 +12,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
-	"github.com/authorizerdev/authorizer/server/enum"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/oauth"
 	"github.com/authorizerdev/authorizer/server/session"
 	"github.com/authorizerdev/authorizer/server/utils"
@@ -20,6 +20,131 @@ import (
 	"github.com/gin-gonic/gin"
 	"golang.org/x/oauth2"
 )
+
+// OAuthCallbackHandler handles the OAuth callback for various oauth providers
+func OAuthCallbackHandler() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		provider := c.Param("oauth_provider")
+		state := c.Request.FormValue("state")
+
+		sessionState := session.GetSocailLoginState(state)
+		if sessionState == "" {
+			c.JSON(400, gin.H{"error": "invalid oauth state"})
+		}
+		session.RemoveSocialLoginState(state)
+		// contains random token, redirect url, role
+		sessionSplit := strings.Split(state, "___")
+
+		// TODO validate redirect url
+		if len(sessionSplit) < 2 {
+			c.JSON(400, gin.H{"error": "invalid redirect url"})
+			return
+		}
+
+		inputRoles := strings.Split(sessionSplit[2], ",")
+		redirectURL := sessionSplit[1]
+
+		var err error
+		user := db.User{}
+		code := c.Request.FormValue("code")
+		switch provider {
+		case constants.SignupMethodGoogle:
+			user, err = processGoogleUserInfo(code)
+		case constants.SignupMethodGithub:
+			user, err = processGithubUserInfo(code)
+		case constants.SignupMethodFacebook:
+			user, err = processFacebookUserInfo(code)
+		default:
+			err = fmt.Errorf(`invalid oauth provider`)
+		}
+
+		if err != nil {
+			c.JSON(400, gin.H{"error": err.Error()})
+			return
+		}
+
+		existingUser, err := db.Mgr.GetUserByEmail(user.Email)
+
+		if err != nil {
+			// user not registered, register user and generate session token
+			user.SignupMethods = provider
+			// make sure inputRoles don't include protected roles
+			hasProtectedRole := false
+			for _, ir := range inputRoles {
+				if utils.StringSliceContains(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyProtectedRoles).([]string), ir) {
+					hasProtectedRole = true
+				}
+			}
+
+			if hasProtectedRole {
+				c.JSON(400, gin.H{"error": "invalid role"})
+				return
+			}
+
+			user.Roles = strings.Join(inputRoles, ",")
+			now := time.Now().Unix()
+			user.EmailVerifiedAt = &now
+			user, _ = db.Mgr.AddUser(user)
+		} else {
+			// user exists in db, check if method was google
+			// if not append google to existing signup method and save it
+
+			signupMethod := existingUser.SignupMethods
+			if !strings.Contains(signupMethod, provider) {
+				signupMethod = signupMethod + "," + provider
+			}
+			user.SignupMethods = signupMethod
+			user.Password = existingUser.Password
+
+			// There multiple scenarios with roles here in social login
+			// 1. user has access to protected roles + roles and trying to login
+			// 2. user has not signed up for one of the available role but trying to signup.
+			// 		Need to modify roles in this case
+
+			// find the unassigned roles
+			existingRoles := strings.Split(existingUser.Roles, ",")
+			unasignedRoles := []string{}
+			for _, ir := range inputRoles {
+				if !utils.StringSliceContains(existingRoles, ir) {
+					unasignedRoles = append(unasignedRoles, ir)
+				}
+			}
+
+			if len(unasignedRoles) > 0 {
+				// check if it contains protected unassigned role
+				hasProtectedRole := false
+				for _, ur := range unasignedRoles {
+					if utils.StringSliceContains(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyProtectedRoles).([]string), ur) {
+						hasProtectedRole = true
+					}
+				}
+
+				if hasProtectedRole {
+					c.JSON(400, gin.H{"error": "invalid role"})
+					return
+				} else {
+					user.Roles = existingUser.Roles + "," + strings.Join(unasignedRoles, ",")
+				}
+			} else {
+				user.Roles = existingUser.Roles
+			}
+			user.Key = existingUser.Key
+			user.ID = existingUser.ID
+			user, err = db.Mgr.UpdateUser(user)
+		}
+
+		user, _ = db.Mgr.GetUserByEmail(user.Email)
+		userIdStr := fmt.Sprintf("%v", user.ID)
+		refreshToken, _, _ := utils.CreateAuthToken(user, constants.TokenTypeRefreshToken, inputRoles)
+
+		accessToken, _, _ := utils.CreateAuthToken(user, constants.TokenTypeAccessToken, inputRoles)
+		utils.SetCookie(c, accessToken)
+		session.SetUserSession(userIdStr, accessToken, refreshToken)
+		utils.SaveSessionInDB(user.ID, c)
+
+		c.Redirect(http.StatusTemporaryRedirect, redirectURL)
+	}
+}
 
 func processGoogleUserInfo(code string) (db.User, error) {
 	user := db.User{}
@@ -144,128 +269,4 @@ func processFacebookUserInfo(code string) (db.User, error) {
 	}
 
 	return user, nil
-}
-
-func OAuthCallbackHandler() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		provider := c.Param("oauth_provider")
-		state := c.Request.FormValue("state")
-
-		sessionState := session.GetSocailLoginState(state)
-		if sessionState == "" {
-			c.JSON(400, gin.H{"error": "invalid oauth state"})
-		}
-		session.RemoveSocialLoginState(state)
-		// contains random token, redirect url, role
-		sessionSplit := strings.Split(state, "___")
-
-		// TODO validate redirect url
-		if len(sessionSplit) < 2 {
-			c.JSON(400, gin.H{"error": "invalid redirect url"})
-			return
-		}
-
-		inputRoles := strings.Split(sessionSplit[2], ",")
-		redirectURL := sessionSplit[1]
-
-		var err error
-		user := db.User{}
-		code := c.Request.FormValue("code")
-		switch provider {
-		case enum.Google.String():
-			user, err = processGoogleUserInfo(code)
-		case enum.Github.String():
-			user, err = processGithubUserInfo(code)
-		case enum.Facebook.String():
-			user, err = processFacebookUserInfo(code)
-		default:
-			err = fmt.Errorf(`invalid oauth provider`)
-		}
-
-		if err != nil {
-			c.JSON(400, gin.H{"error": err.Error()})
-			return
-		}
-
-		existingUser, err := db.Mgr.GetUserByEmail(user.Email)
-
-		if err != nil {
-			// user not registered, register user and generate session token
-			user.SignupMethods = provider
-			// make sure inputRoles don't include protected roles
-			hasProtectedRole := false
-			for _, ir := range inputRoles {
-				if utils.StringSliceContains(constants.EnvData.PROTECTED_ROLES, ir) {
-					hasProtectedRole = true
-				}
-			}
-
-			if hasProtectedRole {
-				c.JSON(400, gin.H{"error": "invalid role"})
-				return
-			}
-
-			user.Roles = strings.Join(inputRoles, ",")
-			now := time.Now().Unix()
-			user.EmailVerifiedAt = &now
-			user, _ = db.Mgr.AddUser(user)
-		} else {
-			// user exists in db, check if method was google
-			// if not append google to existing signup method and save it
-
-			signupMethod := existingUser.SignupMethods
-			if !strings.Contains(signupMethod, provider) {
-				signupMethod = signupMethod + "," + provider
-			}
-			user.SignupMethods = signupMethod
-			user.Password = existingUser.Password
-
-			// There multiple scenarios with roles here in social login
-			// 1. user has access to protected roles + roles and trying to login
-			// 2. user has not signed up for one of the available role but trying to signup.
-			// 		Need to modify roles in this case
-
-			// find the unassigned roles
-			existingRoles := strings.Split(existingUser.Roles, ",")
-			unasignedRoles := []string{}
-			for _, ir := range inputRoles {
-				if !utils.StringSliceContains(existingRoles, ir) {
-					unasignedRoles = append(unasignedRoles, ir)
-				}
-			}
-
-			if len(unasignedRoles) > 0 {
-				// check if it contains protected unassigned role
-				hasProtectedRole := false
-				for _, ur := range unasignedRoles {
-					if utils.StringSliceContains(constants.EnvData.PROTECTED_ROLES, ur) {
-						hasProtectedRole = true
-					}
-				}
-
-				if hasProtectedRole {
-					c.JSON(400, gin.H{"error": "invalid role"})
-					return
-				} else {
-					user.Roles = existingUser.Roles + "," + strings.Join(unasignedRoles, ",")
-				}
-			} else {
-				user.Roles = existingUser.Roles
-			}
-			user.Key = existingUser.Key
-			user.ID = existingUser.ID
-			user, err = db.Mgr.UpdateUser(user)
-		}
-
-		user, _ = db.Mgr.GetUserByEmail(user.Email)
-		userIdStr := fmt.Sprintf("%v", user.ID)
-		refreshToken, _, _ := utils.CreateAuthToken(user, enum.RefreshToken, inputRoles)
-
-		accessToken, _, _ := utils.CreateAuthToken(user, enum.AccessToken, inputRoles)
-		utils.SetCookie(c, accessToken)
-		session.SetToken(userIdStr, accessToken, refreshToken)
-		utils.CreateSession(user.ID, c)
-
-		c.Redirect(http.StatusTemporaryRedirect, redirectURL)
-	}
 }

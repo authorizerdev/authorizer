@@ -8,11 +8,13 @@ import (
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/db"
+	"github.com/authorizerdev/authorizer/server/email"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
-func ResendVerifyEmail(ctx context.Context, params model.ResendVerifyEmailInput) (*model.Response, error) {
+// ResendVerifyEmailResolver is a resolver for resend verify email mutation
+func ResendVerifyEmailResolver(ctx context.Context, params model.ResendVerifyEmailInput) (*model.Response, error) {
 	var res *model.Response
 	params.Email = strings.ToLower(params.Email)
 
@@ -48,7 +50,7 @@ func ResendVerifyEmail(ctx context.Context, params model.ResendVerifyEmailInput)
 
 	// exec it as go routin so that we can reduce the api latency
 	go func() {
-		utils.SendVerificationMail(params.Email, token)
+		email.SendVerificationMail(params.Email, token)
 	}()
 
 	res = &model.Response{

@@ -6,17 +6,20 @@ import (
 	"strings"
 
 	"github.com/authorizerdev/authorizer/server/constants"
-	"github.com/authorizerdev/authorizer/server/enum"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/gin-gonic/gin"
 )
 
+// IsValidEmail validates email
 func IsValidEmail(email string) bool {
 	_, err := mail.ParseAddress(email)
 	return err == nil
 }
 
+// IsValidOrigin validates origin based on ALLOWED_ORIGINS
 func IsValidOrigin(url string) bool {
-	if len(constants.EnvData.ALLOWED_ORIGINS) == 1 && constants.EnvData.ALLOWED_ORIGINS[0] == "*" {
+	allowedOrigins := envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAllowedOrigins).([]string)
+	if len(allowedOrigins) == 1 && allowedOrigins[0] == "*" {
 		return true
 	}
 
@@ -24,7 +27,7 @@ func IsValidOrigin(url string) bool {
 	hostName, port := GetHostParts(url)
 	currentOrigin := hostName + ":" + port
 
-	for _, origin := range constants.EnvData.ALLOWED_ORIGINS {
+	for _, origin := range allowedOrigins {
 		replacedString := origin
 		// if has regex whitelisted domains
 		if strings.Contains(origin, "*") {
@@ -49,6 +52,7 @@ func IsValidOrigin(url string) bool {
 	return hasValidURL
 }
 
+// IsSuperAdmin checks if user is super admin
 func IsSuperAdmin(gc *gin.Context) bool {
 	token, err := GetAdminAuthToken(gc)
 	if err != nil {
@@ -57,12 +61,13 @@ func IsSuperAdmin(gc *gin.Context) bool {
 			return false
 		}
 
-		return secret == constants.EnvData.ADMIN_SECRET
+		return secret == envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAdminSecret).(string)
 	}
 
 	return token != ""
 }
 
+// IsValidRoles validates roles
 func IsValidRoles(userRoles []string, roles []string) bool {
 	valid := true
 	for _, role := range roles {
@@ -75,13 +80,17 @@ func IsValidRoles(userRoles []string, roles []string) bool {
 	return valid
 }
 
+// IsValidVerificationIdentifier validates verification identifier that is used to identify
+// the type of verification request
 func IsValidVerificationIdentifier(identifier string) bool {
-	if identifier != enum.BasicAuthSignup.String() && identifier != enum.ForgotPassword.String() && identifier != enum.UpdateEmail.String() {
+	if identifier != constants.VerificationTypeBasicAuthSignup && identifier != constants.VerificationTypeForgotPassword && identifier != constants.VerificationTypeUpdateEmail {
 		return false
 	}
 	return true
 }
 
+// IsStringArrayEqual validates if string array are equal.
+// This does check if the order is same
 func IsStringArrayEqual(a, b []string) bool {
 	if len(a) != len(b) {
 		return false

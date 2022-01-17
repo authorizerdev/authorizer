@@ -9,15 +9,17 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
-	"github.com/authorizerdev/authorizer/server/enum"
+	"github.com/authorizerdev/authorizer/server/email"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
-func MagicLinkLogin(ctx context.Context, params model.MagicLinkLoginInput) (*model.Response, error) {
+// MagicLinkLoginResolver is a resolver for magic link login mutation
+func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInput) (*model.Response, error) {
 	var res *model.Response
 
-	if constants.EnvData.DISABLE_MAGIC_LINK_LOGIN {
+	if envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDisableMagicLinkLogin).(bool) {
 		return res, fmt.Errorf(`magic link login is disabled for this instance`)
 	}
 
@@ -37,17 +39,17 @@ func MagicLinkLogin(ctx context.Context, params model.MagicLinkLoginInput) (*mod
 	existingUser, err := db.Mgr.GetUserByEmail(params.Email)
 
 	if err != nil {
-		user.SignupMethods = enum.MagicLinkLogin.String()
+		user.SignupMethods = constants.SignupMethodMagicLinkLogin
 		// define roles for new user
 		if len(params.Roles) > 0 {
 			// check if roles exists
-			if !utils.IsValidRoles(constants.EnvData.ROLES, params.Roles) {
+			if !utils.IsValidRoles(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyRoles).([]string), params.Roles) {
 				return res, fmt.Errorf(`invalid roles`)
 			} else {
 				inputRoles = params.Roles
 			}
 		} else {
-			inputRoles = constants.EnvData.DEFAULT_ROLES
+			inputRoles = envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDefaultRoles).([]string)
 		}
 
 		user.Roles = strings.Join(inputRoles, ",")
@@ -72,7 +74,7 @@ func MagicLinkLogin(ctx context.Context, params model.MagicLinkLoginInput) (*mod
 			// check if it contains protected unassigned role
 			hasProtectedRole := false
 			for _, ur := range unasignedRoles {
-				if utils.StringSliceContains(constants.EnvData.PROTECTED_ROLES, ur) {
+				if utils.StringSliceContains(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyProtectedRoles).([]string), ur) {
 					hasProtectedRole = true
 				}
 			}
@@ -87,8 +89,8 @@ func MagicLinkLogin(ctx context.Context, params model.MagicLinkLoginInput) (*mod
 		}
 
 		signupMethod := existingUser.SignupMethods
-		if !strings.Contains(signupMethod, enum.MagicLinkLogin.String()) {
-			signupMethod = signupMethod + "," + enum.MagicLinkLogin.String()
+		if !strings.Contains(signupMethod, constants.SignupMethodMagicLinkLogin) {
+			signupMethod = signupMethod + "," + constants.SignupMethodMagicLinkLogin
 		}
 
 		user.SignupMethods = signupMethod
@@ -98,9 +100,9 @@ func MagicLinkLogin(ctx context.Context, params model.MagicLinkLoginInput) (*mod
 		}
 	}
 
-	if !constants.EnvData.DISABLE_EMAIL_VERIFICATION {
+	if !envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDisableEmailVerification).(bool) {
 		// insert verification request
-		verificationType := enum.MagicLinkLogin.String()
+		verificationType := constants.VerificationTypeMagicLinkLogin
 		token, err := utils.CreateVerificationToken(params.Email, verificationType)
 		if err != nil {
 			log.Println(`error generating token`, err)
@@ -114,7 +116,7 @@ func MagicLinkLogin(ctx context.Context, params model.MagicLinkLoginInput) (*mod
 
 		// exec it as go routin so that we can reduce the api latency
 		go func() {
-			utils.SendVerificationMail(params.Email, token)
+			email.SendVerificationMail(params.Email, token)
 		}()
 	}
 

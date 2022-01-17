@@ -3,7 +3,7 @@ package utils
 import (
 	"encoding/json"
 
-	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/envstore"
 )
 
 func EncryptConfig(data map[string]interface{}) ([]byte, error) {
@@ -12,12 +12,14 @@ func EncryptConfig(data map[string]interface{}) ([]byte, error) {
 		return []byte{}, err
 	}
 
-	err = json.Unmarshal(jsonBytes, &constants.EnvData)
+	envData := envstore.EnvInMemoryStoreObj.GetEnvStoreClone()
+
+	err = json.Unmarshal(jsonBytes, &envData)
 	if err != nil {
 		return []byte{}, err
 	}
 
-	configData, err := json.Marshal(constants.EnvData)
+	configData, err := json.Marshal(envData)
 	if err != nil {
 		return []byte{}, err
 	}

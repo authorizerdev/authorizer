@@ -168,17 +168,18 @@ type UpdateProfileInput struct {
 }
 
 type UpdateUserInput struct {
-	ID          string    `json:"id"`
-	Email       *string   `json:"email"`
-	GivenName   *string   `json:"given_name"`
-	FamilyName  *string   `json:"family_name"`
-	MiddleName  *string   `json:"middle_name"`
-	Nickname    *string   `json:"nickname"`
-	Gender      *string   `json:"gender"`
-	Birthdate   *string   `json:"birthdate"`
-	PhoneNumber *string   `json:"phone_number"`
-	Picture     *string   `json:"picture"`
-	Roles       []*string `json:"roles"`
+	ID            string    `json:"id"`
+	Email         *string   `json:"email"`
+	EmailVerified *bool     `json:"email_verified"`
+	GivenName     *string   `json:"given_name"`
+	FamilyName    *string   `json:"family_name"`
+	MiddleName    *string   `json:"middle_name"`
+	Nickname      *string   `json:"nickname"`
+	Gender        *string   `json:"gender"`
+	Birthdate     *string   `json:"birthdate"`
+	PhoneNumber   *string   `json:"phone_number"`
+	Picture       *string   `json:"picture"`
+	Roles         []*string `json:"roles"`
 }
 
 type User struct {

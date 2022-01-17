@@ -5,11 +5,13 @@ import (
 	"fmt"
 
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
-func AdminSession(ctx context.Context) (*model.Response, error) {
+// AdminSessionResolver is a resolver for admin session query
+func AdminSessionResolver(ctx context.Context) (*model.Response, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	var res *model.Response
 
@@ -21,7 +23,7 @@ func AdminSession(ctx context.Context) (*model.Response, error) {
 		return res, fmt.Errorf("unauthorized")
 	}
 
-	hashedKey, err := utils.HashPassword(constants.EnvData.ADMIN_SECRET)
+	hashedKey, err := utils.EncryptPassword(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAdminSecret).(string))
 	if err != nil {
 		return res, err
 	}

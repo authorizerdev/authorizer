@@ -8,21 +8,22 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
-	"github.com/authorizerdev/authorizer/server/enum"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/session"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"golang.org/x/crypto/bcrypt"
 )
 
-func Login(ctx context.Context, params model.LoginInput) (*model.AuthResponse, error) {
+// LoginResolver is a resolver for login mutation
+func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthResponse, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	var res *model.AuthResponse
 	if err != nil {
 		return res, err
 	}
 
-	if constants.EnvData.DISABLE_BASIC_AUTHENTICATION {
+	if envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDisableBasicAuthentication).(bool) {
 		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
 	}
 
@@ -32,7 +33,7 @@ func Login(ctx context.Context, params model.LoginInput) (*model.AuthResponse, e
 		return res, fmt.Errorf(`user with this email not found`)
 	}
 
-	if !strings.Contains(user.SignupMethods, enum.BasicAuth.String()) {
+	if !strings.Contains(user.SignupMethods, constants.SignupMethodBasicAuth) {
 		return res, fmt.Errorf(`user has not signed up email & password`)
 	}
 
@@ -46,7 +47,7 @@ func Login(ctx context.Context, params model.LoginInput) (*model.AuthResponse, e
 		log.Println("compare password error:", err)
 		return res, fmt.Errorf(`invalid password`)
 	}
-	roles := constants.EnvData.DEFAULT_ROLES
+	roles := envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDefaultRoles).([]string)
 	currentRoles := strings.Split(user.Roles, ",")
 	if len(params.Roles) > 0 {
 		if !utils.IsValidRoles(currentRoles, params.Roles) {
@@ -55,12 +56,12 @@ func Login(ctx context.Context, params model.LoginInput) (*model.AuthResponse, e
 
 		roles = params.Roles
 	}
-	refreshToken, _, _ := utils.CreateAuthToken(user, enum.RefreshToken, roles)
+	refreshToken, _, _ := utils.CreateAuthToken(user, constants.TokenTypeRefreshToken, roles)
 
-	accessToken, expiresAt, _ := utils.CreateAuthToken(user, enum.AccessToken, roles)
+	accessToken, expiresAt, _ := utils.CreateAuthToken(user, constants.TokenTypeAccessToken, roles)
 
-	session.SetToken(user.ID, accessToken, refreshToken)
-	utils.CreateSession(user.ID, gc)
+	session.SetUserSession(user.ID, accessToken, refreshToken)
+	utils.SaveSessionInDB(user.ID, gc)
 
 	res = &model.AuthResponse{
 		Message:     `Logged in successfully`,

@@ -9,20 +9,22 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/google/uuid"
 )
 
+// PersistEnv persists the environment variables to the database
 func PersistEnv() error {
 	config, err := db.Mgr.GetConfig()
 	// config not found in db
 	if err != nil {
 		// AES encryption needs 32 bit key only, so we chop off last 4 characters from 36 bit uuid
 		hash := uuid.New().String()[:36-4]
-		constants.EnvData.ENCRYPTION_KEY = hash
+		envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.EnvKeyEncryptionKey, hash)
 		encodedHash := utils.EncryptB64(hash)
 
-		configData, err := json.Marshal(constants.EnvData)
+		configData, err := json.Marshal(envstore.EnvInMemoryStoreObj.GetEnvStoreClone())
 		if err != nil {
 			return err
 		}
@@ -45,7 +47,8 @@ func PersistEnv() error {
 		if err != nil {
 			return err
 		}
-		constants.EnvData.ENCRYPTION_KEY = decryptedEncryptionKey
+
+		envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.EnvKeyEncryptionKey, decryptedEncryptionKey)
 		decryptedConfigs, err := utils.DecryptAES(config.Config)
 		if err != nil {
 			return err
@@ -119,7 +122,7 @@ func PersistEnv() error {
 		}
 
 		if hasChanged {
-			encryptedConfig, err := utils.EncryptConfig(jsonData)
+			encryptedConfig, err := utils.EncryptEnvData(jsonData)
 			if err != nil {
 				return err
 			}

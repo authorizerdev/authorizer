@@ -189,6 +189,7 @@ input UpdateProfileInput {
 input UpdateUserInput {
 	id: ID!
 	email: String
+	email_verified: Boolean
 	given_name: String
 	family_name: String
 	middle_name: String

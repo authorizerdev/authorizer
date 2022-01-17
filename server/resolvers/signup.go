@@ -9,20 +9,23 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
-	"github.com/authorizerdev/authorizer/server/enum"
+	"github.com/authorizerdev/authorizer/server/email"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/session"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
-func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse, error) {
+// SignupResolver is a resolver for signup mutation
+func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthResponse, error) {
+	log.Println(envstore.EnvInMemoryStoreObj.GetEnvStoreClone())
 	gc, err := utils.GinContextFromContext(ctx)
 	var res *model.AuthResponse
 	if err != nil {
 		return res, err
 	}
 
-	if constants.EnvData.DISABLE_BASIC_AUTHENTICATION {
+	if envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDisableBasicAuthentication).(bool) {
 		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
 	}
 	if params.ConfirmPassword != params.Password {
@@ -52,13 +55,13 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 
 	if len(params.Roles) > 0 {
 		// check if roles exists
-		if !utils.IsValidRoles(constants.EnvData.ROLES, params.Roles) {
+		if !utils.IsValidRoles(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyRoles).([]string), params.Roles) {
 			return res, fmt.Errorf(`invalid roles`)
 		} else {
 			inputRoles = params.Roles
 		}
 	} else {
-		inputRoles = constants.EnvData.DEFAULT_ROLES
+		inputRoles = envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDefaultRoles).([]string)
 	}
 
 	user := db.User{
@@ -67,7 +70,7 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 
 	user.Roles = strings.Join(inputRoles, ",")
 
-	password, _ := utils.HashPassword(params.Password)
+	password, _ := utils.EncryptPassword(params.Password)
 	user.Password = &password
 
 	if params.GivenName != nil {
@@ -102,8 +105,8 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 		user.Picture = params.Picture
 	}
 
-	user.SignupMethods = enum.BasicAuth.String()
-	if constants.EnvData.DISABLE_EMAIL_VERIFICATION {
+	user.SignupMethods = constants.SignupMethodBasicAuth
+	if envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDisableEmailVerification).(bool) {
 		now := time.Now().Unix()
 		user.EmailVerifiedAt = &now
 	}
@@ -115,9 +118,9 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 	roles := strings.Split(user.Roles, ",")
 	userToReturn := utils.GetResponseUserData(user)
 
-	if !constants.EnvData.DISABLE_EMAIL_VERIFICATION {
+	if !envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDisableEmailVerification).(bool) {
 		// insert verification request
-		verificationType := enum.BasicAuthSignup.String()
+		verificationType := constants.VerificationTypeBasicAuthSignup
 		token, err := utils.CreateVerificationToken(params.Email, verificationType)
 		if err != nil {
 			log.Println(`error generating token`, err)
@@ -131,7 +134,7 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 
 		// exec it as go routin so that we can reduce the api latency
 		go func() {
-			utils.SendVerificationMail(params.Email, token)
+			email.SendVerificationMail(params.Email, token)
 		}()
 
 		res = &model.AuthResponse{
@@ -140,12 +143,12 @@ func Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse,
 		}
 	} else {
 
-		refreshToken, _, _ := utils.CreateAuthToken(user, enum.RefreshToken, roles)
+		refreshToken, _, _ := utils.CreateAuthToken(user, constants.TokenTypeRefreshToken, roles)
 
-		accessToken, expiresAt, _ := utils.CreateAuthToken(user, enum.AccessToken, roles)
+		accessToken, expiresAt, _ := utils.CreateAuthToken(user, constants.TokenTypeAccessToken, roles)
 
-		session.SetToken(userIdStr, accessToken, refreshToken)
-		utils.CreateSession(user.ID, gc)
+		session.SetUserSession(userIdStr, accessToken, refreshToken)
+		utils.SaveSessionInDB(user.ID, gc)
 		res = &model.AuthResponse{
 			Message:     `Signed up successfully.`,
 			AccessToken: &accessToken,

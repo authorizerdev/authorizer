@@ -5,7 +5,7 @@ import (
 
 	arangoDriver "github.com/arangodb/go-driver"
 	"github.com/authorizerdev/authorizer/server/constants"
-	"github.com/authorizerdev/authorizer/server/enum"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"go.mongodb.org/mongo-driver/mongo"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
@@ -66,9 +66,9 @@ func InitDB() {
 	var sqlDB *gorm.DB
 	var err error
 
-	IsORMSupported = constants.EnvData.DATABASE_TYPE != enum.Arangodb.String() && constants.EnvData.DATABASE_TYPE != enum.Mongodb.String()
-	IsArangoDB = constants.EnvData.DATABASE_TYPE == enum.Arangodb.String()
-	IsMongoDB = constants.EnvData.DATABASE_TYPE == enum.Mongodb.String()
+	IsORMSupported = envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDatabaseType).(string) != constants.DbTypeArangodb && envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDatabaseType).(string) != constants.DbTypeMongodb
+	IsArangoDB = envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDatabaseType).(string) == constants.DbTypeArangodb
+	IsMongoDB = envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDatabaseType).(string) == constants.DbTypeMongodb
 
 	// sql db orm config
 	ormConfig := &gorm.Config{
@@ -77,22 +77,22 @@ func InitDB() {
 		},
 	}
 
-	log.Println("db type:", constants.EnvData.DATABASE_TYPE)
+	log.Println("db type:", envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDatabaseType).(string))
 
-	switch constants.EnvData.DATABASE_TYPE {
-	case enum.Postgres.String():
-		sqlDB, err = gorm.Open(postgres.Open(constants.EnvData.DATABASE_URL), ormConfig)
+	switch envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDatabaseType).(string) {
+	case constants.DbTypePostgres:
+		sqlDB, err = gorm.Open(postgres.Open(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDatabaseURL).(string)), ormConfig)
 		break
-	case enum.Sqlite.String():
-		sqlDB, err = gorm.Open(sqlite.Open(constants.EnvData.DATABASE_URL), ormConfig)
+	case constants.DbTypeSqlite:
+		sqlDB, err = gorm.Open(sqlite.Open(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDatabaseURL).(string)), ormConfig)
 		break
-	case enum.Mysql.String():
-		sqlDB, err = gorm.Open(mysql.Open(constants.EnvData.DATABASE_URL), ormConfig)
+	case constants.DbTypeMysql:
+		sqlDB, err = gorm.Open(mysql.Open(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDatabaseURL).(string)), ormConfig)
 		break
-	case enum.SQLServer.String():
-		sqlDB, err = gorm.Open(sqlserver.Open(constants.EnvData.DATABASE_URL), ormConfig)
+	case constants.DbTypeSqlserver:
+		sqlDB, err = gorm.Open(sqlserver.Open(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDatabaseURL).(string)), ormConfig)
 		break
-	case enum.Arangodb.String():
+	case constants.DbTypeArangodb:
 		arangodb, err := initArangodb()
 		if err != nil {
 			log.Fatal("error initializing arangodb:", err)
@@ -105,7 +105,7 @@ func InitDB() {
 		}
 
 		break
-	case enum.Mongodb.String():
+	case constants.DbTypeMongodb:
 		mongodb, err := initMongodb()
 		if err != nil {
 			log.Fatal("error initializing mongodb connection:", err)
