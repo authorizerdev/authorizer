@@ -17,7 +17,11 @@ type AuthResponse struct {
 	User        *User   `json:"user"`
 }
 
-type Config struct {
+type DeleteUserInput struct {
+	Email string `json:"email"`
+}
+
+type Env struct {
 	AdminSecret                *string  `json:"ADMIN_SECRET"`
 	DatabaseType               *string  `json:"DATABASE_TYPE"`
 	DatabaseURL                *string  `json:"DATABASE_URL"`
@@ -51,10 +55,6 @@ type Config struct {
 	FacebookClientSecret       *string  `json:"FACEBOOK_CLIENT_SECRET"`
 	OrganizationName           *string  `json:"ORGANIZATION_NAME"`
 	OrganizationLogo           *string  `json:"ORGANIZATION_LOGO"`
-}
-
-type DeleteUserInput struct {
-	Email string `json:"email"`
 }
 
 type Error struct {
@@ -117,8 +117,9 @@ type SignUpInput struct {
 	Roles           []string `json:"roles"`
 }
 
-type UpdateConfigInput struct {
+type UpdateEnvInput struct {
 	AdminSecret                *string  `json:"ADMIN_SECRET"`
+	ConfirmAdminSecret         *string  `json:"CONFIRM_ADMIN_SECRET"`
 	DatabaseType               *string  `json:"DATABASE_TYPE"`
 	DatabaseURL                *string  `json:"DATABASE_URL"`
 	DatabaseName               *string  `json:"DATABASE_NAME"`

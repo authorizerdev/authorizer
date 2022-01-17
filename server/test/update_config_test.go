@@ -19,8 +19,8 @@ func updateConfigTests(t *testing.T, s TestSetup) {
 		req, ctx := createContext(s)
 		originalAppURL := envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAppURL).(string)
 
-		data := model.UpdateConfigInput{}
-		_, err := resolvers.UpdateConfigResolver(ctx, data)
+		data := model.UpdateEnvInput{}
+		_, err := resolvers.UpdateEnvResolver(ctx, data)
 		log.Println("error:", err)
 		assert.NotNil(t, err)
 
@@ -28,17 +28,17 @@ func updateConfigTests(t *testing.T, s TestSetup) {
 		assert.Nil(t, err)
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAdminCookieName).(string), h))
 		newURL := "https://test.com"
-		data = model.UpdateConfigInput{
+		data = model.UpdateEnvInput{
 			AppURL: &newURL,
 		}
-		_, err = resolvers.UpdateConfigResolver(ctx, data)
+		_, err = resolvers.UpdateEnvResolver(ctx, data)
 		log.Println("error:", err)
 		assert.Nil(t, err)
 		assert.Equal(t, envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAppURL).(string), newURL)
-		data = model.UpdateConfigInput{
+		data = model.UpdateEnvInput{
 			AppURL: &originalAppURL,
 		}
-		_, err = resolvers.UpdateConfigResolver(ctx, data)
+		_, err = resolvers.UpdateEnvResolver(ctx, data)
 		assert.Nil(t, err)
 	})
 }

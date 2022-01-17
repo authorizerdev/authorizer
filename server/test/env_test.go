@@ -1,29 +1,31 @@
 package test
 
 import (
+	"fmt"
+	"log"
 	"testing"
 
 	"github.com/authorizerdev/authorizer/server/constants"
-	"github.com/authorizerdev/authorizer/server/env"
 	"github.com/authorizerdev/authorizer/server/envstore"
+	"github.com/authorizerdev/authorizer/server/resolvers"
+	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestEnvs(t *testing.T) {
-	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.EnvKeyEnvPath, "../../.env.sample")
-	env.InitEnv()
-	store := envstore.EnvInMemoryStoreObj.GetEnvStoreClone()
+func configTests(t *testing.T, s TestSetup) {
+	t.Helper()
+	t.Run(`should get config`, func(t *testing.T) {
+		req, ctx := createContext(s)
+		_, err := resolvers.EnvResolver(ctx)
+		log.Println("error:", err)
+		assert.NotNil(t, err)
 
-	assert.Equal(t, store[constants.EnvKeyAdminSecret].(string), "admin")
-	assert.Equal(t, store[constants.EnvKeyEnv].(string), "production")
-	assert.False(t, store[constants.EnvKeyDisableEmailVerification].(bool))
-	assert.False(t, store[constants.EnvKeyDisableMagicLinkLogin].(bool))
-	assert.False(t, store[constants.EnvKeyDisableBasicAuthentication].(bool))
-	assert.Equal(t, store[constants.EnvKeyJwtType].(string), "HS256")
-	assert.Equal(t, store[constants.EnvKeyJwtSecret].(string), "random_string")
-	assert.Equal(t, store[constants.EnvKeyJwtRoleClaim].(string), "role")
-	assert.EqualValues(t, store[constants.EnvKeyRoles].([]string), []string{"user"})
-	assert.EqualValues(t, store[constants.EnvKeyDefaultRoles].([]string), []string{"user"})
-	assert.EqualValues(t, store[constants.EnvKeyProtectedRoles].([]string), []string{"admin"})
-	assert.EqualValues(t, store[constants.EnvKeyAllowedOrigins].([]string), []string{"*"})
+		h, err := utils.EncryptPassword(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAdminSecret).(string))
+		assert.Nil(t, err)
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAdminCookieName).(string), h))
+		res, err := resolvers.EnvResolver(ctx)
+
+		assert.Nil(t, err)
+		assert.Equal(t, *res.AdminSecret, envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAdminSecret).(string))
+	})
 }

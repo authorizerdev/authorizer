@@ -10,13 +10,11 @@ import (
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
-// TODO rename to env_data
-
-// ConfigResolver is a resolver for config query
+// EnvResolver is a resolver for config query
 // This is admin only query
-func ConfigResolver(ctx context.Context) (*model.Config, error) {
+func EnvResolver(ctx context.Context) (*model.Env, error) {
 	gc, err := utils.GinContextFromContext(ctx)
-	var res *model.Config
+	var res *model.Env
 
 	if err != nil {
 		return res, err
@@ -62,7 +60,7 @@ func ConfigResolver(ctx context.Context) (*model.Config, error) {
 	organizationName := store[constants.EnvKeyOrganizationName].(string)
 	organizationLogo := store[constants.EnvKeyOrganizationLogo].(string)
 
-	res = &model.Config{
+	res = &model.Env{
 		AdminSecret:                &adminSecret,
 		DatabaseType:               &databaseType,
 		DatabaseURL:                &databaseURL,

@@ -14,11 +14,9 @@ import (
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
-// TODO rename to UpdateEnvDataResolver
-
-// UpdateConfigResolver is a resolver for update config mutation
+// UpdateEnvResolver is a resolver for update config mutation
 // This is admin only mutation
-func UpdateConfigResolver(ctx context.Context, params model.UpdateConfigInput) (*model.Response, error) {
+func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model.Response, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	var res *model.Response
 

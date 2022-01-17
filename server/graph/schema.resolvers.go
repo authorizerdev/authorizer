@@ -67,8 +67,8 @@ func (r *mutationResolver) AdminLogout(ctx context.Context) (*model.Response, er
 	return resolvers.AdminLogoutResolver(ctx)
 }
 
-func (r *mutationResolver) UpdateConfig(ctx context.Context, params model.UpdateConfigInput) (*model.Response, error) {
-	return resolvers.UpdateConfigResolver(ctx, params)
+func (r *mutationResolver) UpdateEnv(ctx context.Context, params model.UpdateEnvInput) (*model.Response, error) {
+	return resolvers.UpdateEnvResolver(ctx, params)
 }
 
 func (r *queryResolver) Meta(ctx context.Context) (*model.Meta, error) {
@@ -95,8 +95,8 @@ func (r *queryResolver) AdminSession(ctx context.Context) (*model.Response, erro
 	return resolvers.AdminSessionResolver(ctx)
 }
 
-func (r *queryResolver) Config(ctx context.Context) (*model.Config, error) {
-	return resolvers.ConfigResolver(ctx)
+func (r *queryResolver) Env(ctx context.Context) (*model.Env, error) {
+	return resolvers.EnvResolver(ctx)
 }
 
 // Mutation returns generated.MutationResolver implementation.

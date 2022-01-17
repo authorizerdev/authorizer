@@ -62,7 +62,7 @@ type Response {
 	message: String!
 }
 
-type Config {
+type Env {
 	ADMIN_SECRET: String
 	DATABASE_TYPE: String
 	DATABASE_URL: String
@@ -98,8 +98,9 @@ type Config {
 	ORGANIZATION_LOGO: String
 }
 
-input UpdateConfigInput {
+input UpdateEnvInput {
 	ADMIN_SECRET: String
+	CONFIRM_ADMIN_SECRET: String
 	DATABASE_TYPE: String
 	DATABASE_URL: String
 	DATABASE_NAME: String
@@ -236,7 +237,7 @@ type Mutation {
 	_admin_signup(params: AdminSignupInput!): Response!
 	_admin_login(params: AdminLoginInput!): Response!
 	_admin_logout: Response!
-	_update_config(params: UpdateConfigInput!): Response!
+	_update_env(params: UpdateEnvInput!): Response!
 }
 
 type Query {
@@ -247,5 +248,5 @@ type Query {
 	_users: [User!]!
 	_verification_requests: [VerificationRequest!]!
 	_admin_session: Response!
-	_config: Config!
+	_env: Env!
 }

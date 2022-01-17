@@ -50,7 +50,7 @@ type ComplexityRoot struct {
 		User        func(childComplexity int) int
 	}
 
-	Config struct {
+	Env struct {
 		AdminSecret                func(childComplexity int) int
 		AllowedOrigins             func(childComplexity int) int
 		AppURL                     func(childComplexity int) int
@@ -113,7 +113,7 @@ type ComplexityRoot struct {
 		ResendVerifyEmail func(childComplexity int, params model.ResendVerifyEmailInput) int
 		ResetPassword     func(childComplexity int, params model.ResetPasswordInput) int
 		Signup            func(childComplexity int, params model.SignUpInput) int
-		UpdateConfig      func(childComplexity int, params model.UpdateConfigInput) int
+		UpdateEnv         func(childComplexity int, params model.UpdateEnvInput) int
 		UpdateProfile     func(childComplexity int, params model.UpdateProfileInput) int
 		UpdateUser        func(childComplexity int, params model.UpdateUserInput) int
 		VerifyEmail       func(childComplexity int, params model.VerifyEmailInput) int
@@ -121,7 +121,7 @@ type ComplexityRoot struct {
 
 	Query struct {
 		AdminSession         func(childComplexity int) int
-		Config               func(childComplexity int) int
+		Env                  func(childComplexity int) int
 		Meta                 func(childComplexity int) int
 		Profile              func(childComplexity int) int
 		Session              func(childComplexity int, roles []string) int
@@ -179,7 +179,7 @@ type MutationResolver interface {
 	AdminSignup(ctx context.Context, params model.AdminSignupInput) (*model.Response, error)
 	AdminLogin(ctx context.Context, params model.AdminLoginInput) (*model.Response, error)
 	AdminLogout(ctx context.Context) (*model.Response, error)
-	UpdateConfig(ctx context.Context, params model.UpdateConfigInput) (*model.Response, error)
+	UpdateEnv(ctx context.Context, params model.UpdateEnvInput) (*model.Response, error)
 }
 type QueryResolver interface {
 	Meta(ctx context.Context) (*model.Meta, error)
@@ -188,7 +188,7 @@ type QueryResolver interface {
 	Users(ctx context.Context) ([]*model.User, error)
 	VerificationRequests(ctx context.Context) ([]*model.VerificationRequest, error)
 	AdminSession(ctx context.Context) (*model.Response, error)
-	Config(ctx context.Context) (*model.Config, error)
+	Env(ctx context.Context) (*model.Env, error)
 }
 
 type executableSchema struct {
@@ -234,236 +234,236 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.AuthResponse.User(childComplexity), true
 
-	case "Config.ADMIN_SECRET":
-		if e.complexity.Config.AdminSecret == nil {
+	case "Env.ADMIN_SECRET":
+		if e.complexity.Env.AdminSecret == nil {
 			break
 		}
 
-		return e.complexity.Config.AdminSecret(childComplexity), true
+		return e.complexity.Env.AdminSecret(childComplexity), true
 
-	case "Config.ALLOWED_ORIGINS":
-		if e.complexity.Config.AllowedOrigins == nil {
+	case "Env.ALLOWED_ORIGINS":
+		if e.complexity.Env.AllowedOrigins == nil {
 			break
 		}
 
-		return e.complexity.Config.AllowedOrigins(childComplexity), true
+		return e.complexity.Env.AllowedOrigins(childComplexity), true
 
-	case "Config.APP_URL":
-		if e.complexity.Config.AppURL == nil {
+	case "Env.APP_URL":
+		if e.complexity.Env.AppURL == nil {
 			break
 		}
 
-		return e.complexity.Config.AppURL(childComplexity), true
+		return e.complexity.Env.AppURL(childComplexity), true
 
-	case "Config.AUTHORIZER_URL":
-		if e.complexity.Config.AuthorizerURL == nil {
+	case "Env.AUTHORIZER_URL":
+		if e.complexity.Env.AuthorizerURL == nil {
 			break
 		}
 
-		return e.complexity.Config.AuthorizerURL(childComplexity), true
+		return e.complexity.Env.AuthorizerURL(childComplexity), true
 
-	case "Config.COOKIE_NAME":
-		if e.complexity.Config.CookieName == nil {
+	case "Env.COOKIE_NAME":
+		if e.complexity.Env.CookieName == nil {
 			break
 		}
 
-		return e.complexity.Config.CookieName(childComplexity), true
+		return e.complexity.Env.CookieName(childComplexity), true
 
-	case "Config.DATABASE_NAME":
-		if e.complexity.Config.DatabaseName == nil {
+	case "Env.DATABASE_NAME":
+		if e.complexity.Env.DatabaseName == nil {
 			break
 		}
 
-		return e.complexity.Config.DatabaseName(childComplexity), true
+		return e.complexity.Env.DatabaseName(childComplexity), true
 
-	case "Config.DATABASE_TYPE":
-		if e.complexity.Config.DatabaseType == nil {
+	case "Env.DATABASE_TYPE":
+		if e.complexity.Env.DatabaseType == nil {
 			break
 		}
 
-		return e.complexity.Config.DatabaseType(childComplexity), true
+		return e.complexity.Env.DatabaseType(childComplexity), true
 
-	case "Config.DATABASE_URL":
-		if e.complexity.Config.DatabaseURL == nil {
+	case "Env.DATABASE_URL":
+		if e.complexity.Env.DatabaseURL == nil {
 			break
 		}
 
-		return e.complexity.Config.DatabaseURL(childComplexity), true
+		return e.complexity.Env.DatabaseURL(childComplexity), true
 
-	case "Config.DEFAULT_ROLES":
-		if e.complexity.Config.DefaultRoles == nil {
+	case "Env.DEFAULT_ROLES":
+		if e.complexity.Env.DefaultRoles == nil {
 			break
 		}
 
-		return e.complexity.Config.DefaultRoles(childComplexity), true
+		return e.complexity.Env.DefaultRoles(childComplexity), true
 
-	case "Config.DISABLE_BASIC_AUTHENTICATION":
-		if e.complexity.Config.DisableBasicAuthentication == nil {
+	case "Env.DISABLE_BASIC_AUTHENTICATION":
+		if e.complexity.Env.DisableBasicAuthentication == nil {
 			break
 		}
 
-		return e.complexity.Config.DisableBasicAuthentication(childComplexity), true
+		return e.complexity.Env.DisableBasicAuthentication(childComplexity), true
 
-	case "Config.DISABLE_EMAIL_VERIFICATION":
-		if e.complexity.Config.DisableEmailVerification == nil {
+	case "Env.DISABLE_EMAIL_VERIFICATION":
+		if e.complexity.Env.DisableEmailVerification == nil {
 			break
 		}
 
-		return e.complexity.Config.DisableEmailVerification(childComplexity), true
+		return e.complexity.Env.DisableEmailVerification(childComplexity), true
 
-	case "Config.DISABLE_LOGIN_PAGE":
-		if e.complexity.Config.DisableLoginPage == nil {
+	case "Env.DISABLE_LOGIN_PAGE":
+		if e.complexity.Env.DisableLoginPage == nil {
 			break
 		}
 
-		return e.complexity.Config.DisableLoginPage(childComplexity), true
+		return e.complexity.Env.DisableLoginPage(childComplexity), true
 
-	case "Config.DISABLE_MAGIC_LINK_LOGIN":
-		if e.complexity.Config.DisableMagicLinkLogin == nil {
+	case "Env.DISABLE_MAGIC_LINK_LOGIN":
+		if e.complexity.Env.DisableMagicLinkLogin == nil {
 			break
 		}
 
-		return e.complexity.Config.DisableMagicLinkLogin(childComplexity), true
+		return e.complexity.Env.DisableMagicLinkLogin(childComplexity), true
 
-	case "Config.FACEBOOK_CLIENT_ID":
-		if e.complexity.Config.FacebookClientID == nil {
+	case "Env.FACEBOOK_CLIENT_ID":
+		if e.complexity.Env.FacebookClientID == nil {
 			break
 		}
 
-		return e.complexity.Config.FacebookClientID(childComplexity), true
+		return e.complexity.Env.FacebookClientID(childComplexity), true
 
-	case "Config.FACEBOOK_CLIENT_SECRET":
-		if e.complexity.Config.FacebookClientSecret == nil {
+	case "Env.FACEBOOK_CLIENT_SECRET":
+		if e.complexity.Env.FacebookClientSecret == nil {
 			break
 		}
 
-		return e.complexity.Config.FacebookClientSecret(childComplexity), true
+		return e.complexity.Env.FacebookClientSecret(childComplexity), true
 
-	case "Config.GITHUB_CLIENT_ID":
-		if e.complexity.Config.GithubClientID == nil {
+	case "Env.GITHUB_CLIENT_ID":
+		if e.complexity.Env.GithubClientID == nil {
 			break
 		}
 
-		return e.complexity.Config.GithubClientID(childComplexity), true
+		return e.complexity.Env.GithubClientID(childComplexity), true
 
-	case "Config.GITHUB_CLIENT_SECRET":
-		if e.complexity.Config.GithubClientSecret == nil {
+	case "Env.GITHUB_CLIENT_SECRET":
+		if e.complexity.Env.GithubClientSecret == nil {
 			break
 		}
 
-		return e.complexity.Config.GithubClientSecret(childComplexity), true
+		return e.complexity.Env.GithubClientSecret(childComplexity), true
 
-	case "Config.GOOGLE_CLIENT_ID":
-		if e.complexity.Config.GoogleClientID == nil {
+	case "Env.GOOGLE_CLIENT_ID":
+		if e.complexity.Env.GoogleClientID == nil {
 			break
 		}
 
-		return e.complexity.Config.GoogleClientID(childComplexity), true
+		return e.complexity.Env.GoogleClientID(childComplexity), true
 
-	case "Config.GOOGLE_CLIENT_SECRET":
-		if e.complexity.Config.GoogleClientSecret == nil {
+	case "Env.GOOGLE_CLIENT_SECRET":
+		if e.complexity.Env.GoogleClientSecret == nil {
 			break
 		}
 
-		return e.complexity.Config.GoogleClientSecret(childComplexity), true
+		return e.complexity.Env.GoogleClientSecret(childComplexity), true
 
-	case "Config.JWT_ROLE_CLAIM":
-		if e.complexity.Config.JwtRoleClaim == nil {
+	case "Env.JWT_ROLE_CLAIM":
+		if e.complexity.Env.JwtRoleClaim == nil {
 			break
 		}
 
-		return e.complexity.Config.JwtRoleClaim(childComplexity), true
+		return e.complexity.Env.JwtRoleClaim(childComplexity), true
 
-	case "Config.JWT_SECRET":
-		if e.complexity.Config.JwtSecret == nil {
+	case "Env.JWT_SECRET":
+		if e.complexity.Env.JwtSecret == nil {
 			break
 		}
 
-		return e.complexity.Config.JwtSecret(childComplexity), true
+		return e.complexity.Env.JwtSecret(childComplexity), true
 
-	case "Config.JWT_TYPE":
-		if e.complexity.Config.JwtType == nil {
+	case "Env.JWT_TYPE":
+		if e.complexity.Env.JwtType == nil {
 			break
 		}
 
-		return e.complexity.Config.JwtType(childComplexity), true
+		return e.complexity.Env.JwtType(childComplexity), true
 
-	case "Config.ORGANIZATION_LOGO":
-		if e.complexity.Config.OrganizationLogo == nil {
+	case "Env.ORGANIZATION_LOGO":
+		if e.complexity.Env.OrganizationLogo == nil {
 			break
 		}
 
-		return e.complexity.Config.OrganizationLogo(childComplexity), true
+		return e.complexity.Env.OrganizationLogo(childComplexity), true
 
-	case "Config.ORGANIZATION_NAME":
-		if e.complexity.Config.OrganizationName == nil {
+	case "Env.ORGANIZATION_NAME":
+		if e.complexity.Env.OrganizationName == nil {
 			break
 		}
 
-		return e.complexity.Config.OrganizationName(childComplexity), true
+		return e.complexity.Env.OrganizationName(childComplexity), true
 
-	case "Config.PROTECTED_ROLES":
-		if e.complexity.Config.ProtectedRoles == nil {
+	case "Env.PROTECTED_ROLES":
+		if e.complexity.Env.ProtectedRoles == nil {
 			break
 		}
 
-		return e.complexity.Config.ProtectedRoles(childComplexity), true
+		return e.complexity.Env.ProtectedRoles(childComplexity), true
 
-	case "Config.REDIS_URL":
-		if e.complexity.Config.RedisURL == nil {
+	case "Env.REDIS_URL":
+		if e.complexity.Env.RedisURL == nil {
 			break
 		}
 
-		return e.complexity.Config.RedisURL(childComplexity), true
+		return e.complexity.Env.RedisURL(childComplexity), true
 
-	case "Config.RESET_PASSWORD_URL":
-		if e.complexity.Config.ResetPasswordURL == nil {
+	case "Env.RESET_PASSWORD_URL":
+		if e.complexity.Env.ResetPasswordURL == nil {
 			break
 		}
 
-		return e.complexity.Config.ResetPasswordURL(childComplexity), true
+		return e.complexity.Env.ResetPasswordURL(childComplexity), true
 
-	case "Config.ROLES":
-		if e.complexity.Config.Roles == nil {
+	case "Env.ROLES":
+		if e.complexity.Env.Roles == nil {
 			break
 		}
 
-		return e.complexity.Config.Roles(childComplexity), true
+		return e.complexity.Env.Roles(childComplexity), true
 
-	case "Config.SMTP_HOST":
-		if e.complexity.Config.SMTPHost == nil {
+	case "Env.SMTP_HOST":
+		if e.complexity.Env.SMTPHost == nil {
 			break
 		}
 
-		return e.complexity.Config.SMTPHost(childComplexity), true
+		return e.complexity.Env.SMTPHost(childComplexity), true
 
-	case "Config.SMTP_PASSWORD":
-		if e.complexity.Config.SMTPPassword == nil {
+	case "Env.SMTP_PASSWORD":
+		if e.complexity.Env.SMTPPassword == nil {
 			break
 		}
 
-		return e.complexity.Config.SMTPPassword(childComplexity), true
+		return e.complexity.Env.SMTPPassword(childComplexity), true
 
-	case "Config.SMTP_PORT":
-		if e.complexity.Config.SMTPPort == nil {
+	case "Env.SMTP_PORT":
+		if e.complexity.Env.SMTPPort == nil {
 			break
 		}
 
-		return e.complexity.Config.SMTPPort(childComplexity), true
+		return e.complexity.Env.SMTPPort(childComplexity), true
 
-	case "Config.SMTP_USERNAME":
-		if e.complexity.Config.SMTPUsername == nil {
+	case "Env.SMTP_USERNAME":
+		if e.complexity.Env.SMTPUsername == nil {
 			break
 		}
 
-		return e.complexity.Config.SMTPUsername(childComplexity), true
+		return e.complexity.Env.SMTPUsername(childComplexity), true
 
-	case "Config.SENDER_EMAIL":
-		if e.complexity.Config.SenderEmail == nil {
+	case "Env.SENDER_EMAIL":
+		if e.complexity.Env.SenderEmail == nil {
 			break
 		}
 
-		return e.complexity.Config.SenderEmail(childComplexity), true
+		return e.complexity.Env.SenderEmail(childComplexity), true
 
 	case "Error.message":
 		if e.complexity.Error.Message == nil {
@@ -650,17 +650,17 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.Signup(childComplexity, args["params"].(model.SignUpInput)), true
 
-	case "Mutation._update_config":
-		if e.complexity.Mutation.UpdateConfig == nil {
+	case "Mutation._update_env":
+		if e.complexity.Mutation.UpdateEnv == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation__update_config_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation__update_env_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateConfig(childComplexity, args["params"].(model.UpdateConfigInput)), true
+		return e.complexity.Mutation.UpdateEnv(childComplexity, args["params"].(model.UpdateEnvInput)), true
 
 	case "Mutation.update_profile":
 		if e.complexity.Mutation.UpdateProfile == nil {
@@ -705,12 +705,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.AdminSession(childComplexity), true
 
-	case "Query._config":
-		if e.complexity.Query.Config == nil {
+	case "Query._env":
+		if e.complexity.Query.Env == nil {
 			break
 		}
 
-		return e.complexity.Query.Config(childComplexity), true
+		return e.complexity.Query.Env(childComplexity), true
 
 	case "Query.meta":
 		if e.complexity.Query.Meta == nil {
@@ -1055,7 +1055,7 @@ type Response {
 	message: String!
 }
 
-type Config {
+type Env {
 	ADMIN_SECRET: String
 	DATABASE_TYPE: String
 	DATABASE_URL: String
@@ -1091,8 +1091,9 @@ type Config {
 	ORGANIZATION_LOGO: String
 }
 
-input UpdateConfigInput {
+input UpdateEnvInput {
 	ADMIN_SECRET: String
+	CONFIRM_ADMIN_SECRET: String
 	DATABASE_TYPE: String
 	DATABASE_URL: String
 	DATABASE_NAME: String
@@ -1229,7 +1230,7 @@ type Mutation {
 	_admin_signup(params: AdminSignupInput!): Response!
 	_admin_login(params: AdminLoginInput!): Response!
 	_admin_logout: Response!
-	_update_config(params: UpdateConfigInput!): Response!
+	_update_env(params: UpdateEnvInput!): Response!
 }
 
 type Query {
@@ -1240,7 +1241,7 @@ type Query {
 	_users: [User!]!
 	_verification_requests: [VerificationRequest!]!
 	_admin_session: Response!
-	_config: Config!
+	_env: Env!
 }
 `, BuiltIn: false},
 }
@@ -1295,13 +1296,13 @@ func (ec *executionContext) field_Mutation__delete_user_args(ctx context.Context
 	return args, nil
 }
 
-func (ec *executionContext) field_Mutation__update_config_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Mutation__update_env_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 model.UpdateConfigInput
+	var arg0 model.UpdateEnvInput
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalNUpdateConfigInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUpdateConfigInput(ctx, tmp)
+		arg0, err = ec.unmarshalNUpdateEnvInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUpdateEnvInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1644,7 +1645,7 @@ func (ec *executionContext) _AuthResponse_user(ctx context.Context, field graphq
 	return ec.marshalOUser2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Config_ADMIN_SECRET(ctx context.Context, field graphql.CollectedField, obj *model.Config) (ret graphql.Marshaler) {
+func (ec *executionContext) _Env_ADMIN_SECRET(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1652,7 +1653,7 @@ func (ec *executionContext) _Config_ADMIN_SECRET(ctx context.Context, field grap
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "Config",
+		Object:     "Env",
 		Field:      field,
 		Args:       nil,
 		IsMethod:   false,
@@ -1676,7 +1677,7 @@ func (ec *executionContext) _Config_ADMIN_SECRET(ctx context.Context, field grap
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Config_DATABASE_TYPE(ctx context.Context, field graphql.CollectedField, obj *model.Config) (ret graphql.Marshaler) {
+func (ec *executionContext) _Env_DATABASE_TYPE(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1684,7 +1685,7 @@ func (ec *executionContext) _Config_DATABASE_TYPE(ctx context.Context, field gra
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "Config",
+		Object:     "Env",
 		Field:      field,
 		Args:       nil,
 		IsMethod:   false,
@@ -1708,7 +1709,7 @@ func (ec *executionContext) _Config_DATABASE_TYPE(ctx context.Context, field gra
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Config_DATABASE_URL(ctx context.Context, field graphql.CollectedField, obj *model.Config) (ret graphql.Marshaler) {
+func (ec *executionContext) _Env_DATABASE_URL(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1716,7 +1717,7 @@ func (ec *executionContext) _Config_DATABASE_URL(ctx context.Context, field grap
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "Config",
+		Object:     "Env",
 		Field:      field,
 		Args:       nil,
 		IsMethod:   false,
@@ -1740,7 +1741,7 @@ func (ec *executionContext) _Config_DATABASE_URL(ctx context.Context, field grap
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Config_DATABASE_NAME(ctx context.Context, field graphql.CollectedField, obj *model.Config) (ret graphql.Marshaler) {
+func (ec *executionContext) _Env_DATABASE_NAME(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1748,7 +1749,7 @@ func (ec *executionContext) _Config_DATABASE_NAME(ctx context.Context, field gra
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "Config",
+		Object:     "Env",
 		Field:      field,
 		Args:       nil,
 		IsMethod:   false,
@@ -1772,7 +1773,7 @@ func (ec *executionContext) _Config_DATABASE_NAME(ctx context.Context, field gra
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Config_SMTP_HOST(ctx context.Context, field graphql.CollectedField, obj *model.Config) (ret graphql.Marshaler) {
+func (ec *executionContext) _Env_SMTP_HOST(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1780,7 +1781,7 @@ func (ec *executionContext) _Config_SMTP_HOST(ctx context.Context, field graphql
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "Config",
+		Object:     "Env",
 		Field:      field,
 		Args:       nil,
 		IsMethod:   false,
@@ -1804,7 +1805,7 @@ func (ec *executionContext) _Config_SMTP_HOST(ctx context.Context, field graphql
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Config_SMTP_PORT(ctx context.Context, field graphql.CollectedField, obj *model.Config) (ret graphql.Marshaler) {
+func (ec *executionContext) _Env_SMTP_PORT(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1812,7 +1813,7 @@ func (ec *executionContext) _Config_SMTP_PORT(ctx context.Context, field graphql
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "Config",
+		Object:     "Env",
 		Field:      field,
 		Args:       nil,
 		IsMethod:   false,
@@ -1836,7 +1837,7 @@ func (ec *executionContext) _Config_SMTP_PORT(ctx context.Context, field graphql
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Config_SMTP_USERNAME(ctx context.Context, field graphql.CollectedField, obj *model.Config) (ret graphql.Marshaler) {
+func (ec *executionContext) _Env_SMTP_USERNAME(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1844,7 +1845,7 @@ func (ec *executionContext) _Config_SMTP_USERNAME(ctx context.Context, field gra
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "Config",
+		Object:     "Env",
 		Field:      field,
 		Args:       nil,
 		IsMethod:   false,
@@ -1868,7 +1869,7 @@ func (ec *executionContext) _Config_SMTP_USERNAME(ctx context.Context, field gra
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Config_SMTP_PASSWORD(ctx context.Context, field graphql.CollectedField, obj *model.Config) (ret graphql.Marshaler) {
+func (ec *executionContext) _Env_SMTP_PASSWORD(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1876,7 +1877,7 @@ func (ec *executionContext) _Config_SMTP_PASSWORD(ctx context.Context, field gra
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "Config",
+		Object:     "Env",
 		Field:      field,
 		Args:       nil,
 		IsMethod:   false,
@@ -1900,7 +1901,7 @@ func (ec *executionContext) _Config_SMTP_PASSWORD(ctx context.Context, field gra
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Config_SENDER_EMAIL(ctx context.Context, field graphql.CollectedField, obj *model.Config) (ret graphql.Marshaler) {
+func (ec *executionContext) _Env_SENDER_EMAIL(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1908,7 +1909,7 @@ func (ec *executionContext) _Config_SENDER_EMAIL(ctx context.Context, field grap
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "Config",
+		Object:     "Env",
 		Field:      field,
 		Args:       nil,
 		IsMethod:   false,
@@ -1932,7 +1933,7 @@ func (ec *executionContext) _Config_SENDER_EMAIL(ctx context.Context, field grap
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Config_JWT_TYPE(ctx context.Context, field graphql.CollectedField, obj *model.Config) (ret graphql.Marshaler) {
+func (ec *executionContext) _Env_JWT_TYPE(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1940,7 +1941,7 @@ func (ec *executionContext) _Config_JWT_TYPE(ctx context.Context, field graphql.
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "Config",
+		Object:     "Env",
 		Field:      field,
 		Args:       nil,
 		IsMethod:   false,
@@ -1964,7 +1965,7 @@ func (ec *executionContext) _Config_JWT_TYPE(ctx context.Context, field graphql.
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Config_JWT_SECRET(ctx context.Context, field graphql.CollectedField, obj *model.Config) (ret graphql.Marshaler) {
+func (ec *executionContext) _Env_JWT_SECRET(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1972,7 +1973,7 @@ func (ec *executionContext) _Config_JWT_SECRET(ctx context.Context, field graphq
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "Config",
+		Object:     "Env",
 		Field:      field,
 		Args:       nil,
 		IsMethod:   false,
@@ -1996,7 +1997,7 @@ func (ec *executionContext) _Config_JWT_SECRET(ctx context.Context, field graphq
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Config_ALLOWED_ORIGINS(ctx context.Context, field graphql.CollectedField, obj *model.Config) (ret graphql.Marshaler) {
+func (ec *executionContext) _Env_ALLOWED_ORIGINS(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2004,7 +2005,7 @@ func (ec *executionContext) _Config_ALLOWED_ORIGINS(ctx context.Context, field g
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "Config",
+		Object:     "Env",
 		Field:      field,
 		Args:       nil,
 		IsMethod:   false,
@@ -2028,7 +2029,7 @@ func (ec *executionContext) _Config_ALLOWED_ORIGINS(ctx context.Context, field g
 	return ec.marshalOString2ᚕstringᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Config_AUTHORIZER_URL(ctx context.Context, field graphql.CollectedField, obj *model.Config) (ret graphql.Marshaler) {
+func (ec *executionContext) _Env_AUTHORIZER_URL(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2036,7 +2037,7 @@ func (ec *executionContext) _Config_AUTHORIZER_URL(ctx context.Context, field gr
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "Config",
+		Object:     "Env",
 		Field:      field,
 		Args:       nil,
 		IsMethod:   false,
@@ -2060,7 +2061,7 @@ func (ec *executionContext) _Config_AUTHORIZER_URL(ctx context.Context, field gr
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Config_APP_URL(ctx context.Context, field graphql.CollectedField, obj *model.Config) (ret graphql.Marshaler) {
+func (ec *executionContext) _Env_APP_URL(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2068,7 +2069,7 @@ func (ec *executionContext) _Config_APP_URL(ctx context.Context, field graphql.C
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "Config",
+		Object:     "Env",
 		Field:      field,
 		Args:       nil,
 		IsMethod:   false,
@@ -2092,7 +2093,7 @@ func (ec *executionContext) _Config_APP_URL(ctx context.Context, field graphql.C
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Config_REDIS_URL(ctx context.Context, field graphql.CollectedField, obj *model.Config) (ret graphql.Marshaler) {
+func (ec *executionContext) _Env_REDIS_URL(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2100,7 +2101,7 @@ func (ec *executionContext) _Config_REDIS_URL(ctx context.Context, field graphql
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "Config",
+		Object:     "Env",
 		Field:      field,
 		Args:       nil,
 		IsMethod:   false,
@@ -2124,7 +2125,7 @@ func (ec *executionContext) _Config_REDIS_URL(ctx context.Context, field graphql
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Config_COOKIE_NAME(ctx context.Context, field graphql.CollectedField, obj *model.Config) (ret graphql.Marshaler) {
+func (ec *executionContext) _Env_COOKIE_NAME(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2132,7 +2133,7 @@ func (ec *executionContext) _Config_COOKIE_NAME(ctx context.Context, field graph
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "Config",
+		Object:     "Env",
 		Field:      field,
 		Args:       nil,
 		IsMethod:   false,
@@ -2156,7 +2157,7 @@ func (ec *executionContext) _Config_COOKIE_NAME(ctx context.Context, field graph
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Config_RESET_PASSWORD_URL(ctx context.Context, field graphql.CollectedField, obj *model.Config) (ret graphql.Marshaler) {
+func (ec *executionContext) _Env_RESET_PASSWORD_URL(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2164,7 +2165,7 @@ func (ec *executionContext) _Config_RESET_PASSWORD_URL(ctx context.Context, fiel
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "Config",
+		Object:     "Env",
 		Field:      field,
 		Args:       nil,
 		IsMethod:   false,
@@ -2188,7 +2189,7 @@ func (ec *executionContext) _Config_RESET_PASSWORD_URL(ctx context.Context, fiel
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Config_DISABLE_EMAIL_VERIFICATION(ctx context.Context, field graphql.CollectedField, obj *model.Config) (ret graphql.Marshaler) {
+func (ec *executionContext) _Env_DISABLE_EMAIL_VERIFICATION(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2196,7 +2197,7 @@ func (ec *executionContext) _Config_DISABLE_EMAIL_VERIFICATION(ctx context.Conte
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "Config",
+		Object:     "Env",
 		Field:      field,
 		Args:       nil,
 		IsMethod:   false,
@@ -2220,7 +2221,7 @@ func (ec *executionContext) _Config_DISABLE_EMAIL_VERIFICATION(ctx context.Conte
 	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Config_DISABLE_BASIC_AUTHENTICATION(ctx context.Context, field graphql.CollectedField, obj *model.Config) (ret graphql.Marshaler) {
+func (ec *executionContext) _Env_DISABLE_BASIC_AUTHENTICATION(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2228,7 +2229,7 @@ func (ec *executionContext) _Config_DISABLE_BASIC_AUTHENTICATION(ctx context.Con
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "Config",
+		Object:     "Env",
 		Field:      field,
 		Args:       nil,
 		IsMethod:   false,
@@ -2252,7 +2253,7 @@ func (ec *executionContext) _Config_DISABLE_BASIC_AUTHENTICATION(ctx context.Con
 	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Config_DISABLE_MAGIC_LINK_LOGIN(ctx context.Context, field graphql.CollectedField, obj *model.Config) (ret graphql.Marshaler) {
+func (ec *executionContext) _Env_DISABLE_MAGIC_LINK_LOGIN(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2260,7 +2261,7 @@ func (ec *executionContext) _Config_DISABLE_MAGIC_LINK_LOGIN(ctx context.Context
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "Config",
+		Object:     "Env",
 		Field:      field,
 		Args:       nil,
 		IsMethod:   false,
@@ -2284,7 +2285,7 @@ func (ec *executionContext) _Config_DISABLE_MAGIC_LINK_LOGIN(ctx context.Context
 	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Config_DISABLE_LOGIN_PAGE(ctx context.Context, field graphql.CollectedField, obj *model.Config) (ret graphql.Marshaler) {
+func (ec *executionContext) _Env_DISABLE_LOGIN_PAGE(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2292,7 +2293,7 @@ func (ec *executionContext) _Config_DISABLE_LOGIN_PAGE(ctx context.Context, fiel
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "Config",
+		Object:     "Env",
 		Field:      field,
 		Args:       nil,
 		IsMethod:   false,
@@ -2316,7 +2317,7 @@ func (ec *executionContext) _Config_DISABLE_LOGIN_PAGE(ctx context.Context, fiel
 	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Config_ROLES(ctx context.Context, field graphql.CollectedField, obj *model.Config) (ret graphql.Marshaler) {
+func (ec *executionContext) _Env_ROLES(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2324,7 +2325,7 @@ func (ec *executionContext) _Config_ROLES(ctx context.Context, field graphql.Col
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "Config",
+		Object:     "Env",
 		Field:      field,
 		Args:       nil,
 		IsMethod:   false,
@@ -2348,7 +2349,7 @@ func (ec *executionContext) _Config_ROLES(ctx context.Context, field graphql.Col
 	return ec.marshalOString2ᚕstringᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Config_PROTECTED_ROLES(ctx context.Context, field graphql.CollectedField, obj *model.Config) (ret graphql.Marshaler) {
+func (ec *executionContext) _Env_PROTECTED_ROLES(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2356,7 +2357,7 @@ func (ec *executionContext) _Config_PROTECTED_ROLES(ctx context.Context, field g
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "Config",
+		Object:     "Env",
 		Field:      field,
 		Args:       nil,
 		IsMethod:   false,
@@ -2380,7 +2381,7 @@ func (ec *executionContext) _Config_PROTECTED_ROLES(ctx context.Context, field g
 	return ec.marshalOString2ᚕstringᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Config_DEFAULT_ROLES(ctx context.Context, field graphql.CollectedField, obj *model.Config) (ret graphql.Marshaler) {
+func (ec *executionContext) _Env_DEFAULT_ROLES(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2388,7 +2389,7 @@ func (ec *executionContext) _Config_DEFAULT_ROLES(ctx context.Context, field gra
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "Config",
+		Object:     "Env",
 		Field:      field,
 		Args:       nil,
 		IsMethod:   false,
@@ -2412,7 +2413,7 @@ func (ec *executionContext) _Config_DEFAULT_ROLES(ctx context.Context, field gra
 	return ec.marshalOString2ᚕstringᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Config_JWT_ROLE_CLAIM(ctx context.Context, field graphql.CollectedField, obj *model.Config) (ret graphql.Marshaler) {
+func (ec *executionContext) _Env_JWT_ROLE_CLAIM(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2420,7 +2421,7 @@ func (ec *executionContext) _Config_JWT_ROLE_CLAIM(ctx context.Context, field gr
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "Config",
+		Object:     "Env",
 		Field:      field,
 		Args:       nil,
 		IsMethod:   false,
@@ -2444,7 +2445,7 @@ func (ec *executionContext) _Config_JWT_ROLE_CLAIM(ctx context.Context, field gr
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Config_GOOGLE_CLIENT_ID(ctx context.Context, field graphql.CollectedField, obj *model.Config) (ret graphql.Marshaler) {
+func (ec *executionContext) _Env_GOOGLE_CLIENT_ID(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2452,7 +2453,7 @@ func (ec *executionContext) _Config_GOOGLE_CLIENT_ID(ctx context.Context, field 
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "Config",
+		Object:     "Env",
 		Field:      field,
 		Args:       nil,
 		IsMethod:   false,
@@ -2476,7 +2477,7 @@ func (ec *executionContext) _Config_GOOGLE_CLIENT_ID(ctx context.Context, field 
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Config_GOOGLE_CLIENT_SECRET(ctx context.Context, field graphql.CollectedField, obj *model.Config) (ret graphql.Marshaler) {
+func (ec *executionContext) _Env_GOOGLE_CLIENT_SECRET(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2484,7 +2485,7 @@ func (ec *executionContext) _Config_GOOGLE_CLIENT_SECRET(ctx context.Context, fi
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "Config",
+		Object:     "Env",
 		Field:      field,
 		Args:       nil,
 		IsMethod:   false,
@@ -2508,7 +2509,7 @@ func (ec *executionContext) _Config_GOOGLE_CLIENT_SECRET(ctx context.Context, fi
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Config_GITHUB_CLIENT_ID(ctx context.Context, field graphql.CollectedField, obj *model.Config) (ret graphql.Marshaler) {
+func (ec *executionContext) _Env_GITHUB_CLIENT_ID(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2516,7 +2517,7 @@ func (ec *executionContext) _Config_GITHUB_CLIENT_ID(ctx context.Context, field 
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "Config",
+		Object:     "Env",
 		Field:      field,
 		Args:       nil,
 		IsMethod:   false,
@@ -2540,7 +2541,7 @@ func (ec *executionContext) _Config_GITHUB_CLIENT_ID(ctx context.Context, field 
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Config_GITHUB_CLIENT_SECRET(ctx context.Context, field graphql.CollectedField, obj *model.Config) (ret graphql.Marshaler) {
+func (ec *executionContext) _Env_GITHUB_CLIENT_SECRET(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2548,7 +2549,7 @@ func (ec *executionContext) _Config_GITHUB_CLIENT_SECRET(ctx context.Context, fi
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "Config",
+		Object:     "Env",
 		Field:      field,
 		Args:       nil,
 		IsMethod:   false,
@@ -2572,7 +2573,7 @@ func (ec *executionContext) _Config_GITHUB_CLIENT_SECRET(ctx context.Context, fi
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Config_FACEBOOK_CLIENT_ID(ctx context.Context, field graphql.CollectedField, obj *model.Config) (ret graphql.Marshaler) {
+func (ec *executionContext) _Env_FACEBOOK_CLIENT_ID(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2580,7 +2581,7 @@ func (ec *executionContext) _Config_FACEBOOK_CLIENT_ID(ctx context.Context, fiel
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "Config",
+		Object:     "Env",
 		Field:      field,
 		Args:       nil,
 		IsMethod:   false,
@@ -2604,7 +2605,7 @@ func (ec *executionContext) _Config_FACEBOOK_CLIENT_ID(ctx context.Context, fiel
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Config_FACEBOOK_CLIENT_SECRET(ctx context.Context, field graphql.CollectedField, obj *model.Config) (ret graphql.Marshaler) {
+func (ec *executionContext) _Env_FACEBOOK_CLIENT_SECRET(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2612,7 +2613,7 @@ func (ec *executionContext) _Config_FACEBOOK_CLIENT_SECRET(ctx context.Context, 
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "Config",
+		Object:     "Env",
 		Field:      field,
 		Args:       nil,
 		IsMethod:   false,
@@ -2636,7 +2637,7 @@ func (ec *executionContext) _Config_FACEBOOK_CLIENT_SECRET(ctx context.Context, 
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Config_ORGANIZATION_NAME(ctx context.Context, field graphql.CollectedField, obj *model.Config) (ret graphql.Marshaler) {
+func (ec *executionContext) _Env_ORGANIZATION_NAME(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2644,7 +2645,7 @@ func (ec *executionContext) _Config_ORGANIZATION_NAME(ctx context.Context, field
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "Config",
+		Object:     "Env",
 		Field:      field,
 		Args:       nil,
 		IsMethod:   false,
@@ -2668,7 +2669,7 @@ func (ec *executionContext) _Config_ORGANIZATION_NAME(ctx context.Context, field
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Config_ORGANIZATION_LOGO(ctx context.Context, field graphql.CollectedField, obj *model.Config) (ret graphql.Marshaler) {
+func (ec *executionContext) _Env_ORGANIZATION_LOGO(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2676,7 +2677,7 @@ func (ec *executionContext) _Config_ORGANIZATION_LOGO(ctx context.Context, field
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "Config",
+		Object:     "Env",
 		Field:      field,
 		Args:       nil,
 		IsMethod:   false,
@@ -3589,7 +3590,7 @@ func (ec *executionContext) _Mutation__admin_logout(ctx context.Context, field g
 	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Mutation__update_config(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Mutation__update_env(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -3606,7 +3607,7 @@ func (ec *executionContext) _Mutation__update_config(ctx context.Context, field 
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation__update_config_args(ctx, rawArgs)
+	args, err := ec.field_Mutation__update_env_args(ctx, rawArgs)
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
@@ -3614,7 +3615,7 @@ func (ec *executionContext) _Mutation__update_config(ctx context.Context, field 
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpdateConfig(rctx, args["params"].(model.UpdateConfigInput))
+		return ec.resolvers.Mutation().UpdateEnv(rctx, args["params"].(model.UpdateEnvInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3848,7 +3849,7 @@ func (ec *executionContext) _Query__admin_session(ctx context.Context, field gra
 	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Query__config(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Query__env(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -3866,7 +3867,7 @@ func (ec *executionContext) _Query__config(ctx context.Context, field graphql.Co
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Config(rctx)
+		return ec.resolvers.Query().Env(rctx)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3878,9 +3879,9 @@ func (ec *executionContext) _Query__config(ctx context.Context, field graphql.Co
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.Config)
+	res := resTmp.(*model.Env)
 	fc.Result = res
-	return ec.marshalNConfig2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐConfig(ctx, field.Selections, res)
+	return ec.marshalNEnv2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐEnv(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -6240,8 +6241,8 @@ func (ec *executionContext) unmarshalInputSignUpInput(ctx context.Context, obj i
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputUpdateConfigInput(ctx context.Context, obj interface{}) (model.UpdateConfigInput, error) {
-	var it model.UpdateConfigInput
+func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, obj interface{}) (model.UpdateEnvInput, error) {
+	var it model.UpdateEnvInput
 	asMap := map[string]interface{}{}
 	for k, v := range obj.(map[string]interface{}) {
 		asMap[k] = v
@@ -6254,6 +6255,14 @@ func (ec *executionContext) unmarshalInputUpdateConfigInput(ctx context.Context,
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ADMIN_SECRET"))
 			it.AdminSecret, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "CONFIRM_ADMIN_SECRET":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("CONFIRM_ADMIN_SECRET"))
+			it.ConfirmAdminSecret, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -6797,83 +6806,83 @@ func (ec *executionContext) _AuthResponse(ctx context.Context, sel ast.Selection
 	return out
 }
 
-var configImplementors = []string{"Config"}
+var envImplementors = []string{"Env"}
 
-func (ec *executionContext) _Config(ctx context.Context, sel ast.SelectionSet, obj *model.Config) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, configImplementors)
+func (ec *executionContext) _Env(ctx context.Context, sel ast.SelectionSet, obj *model.Env) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, envImplementors)
 
 	out := graphql.NewFieldSet(fields)
 	var invalids uint32
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
-			out.Values[i] = graphql.MarshalString("Config")
+			out.Values[i] = graphql.MarshalString("Env")
 		case "ADMIN_SECRET":
-			out.Values[i] = ec._Config_ADMIN_SECRET(ctx, field, obj)
+			out.Values[i] = ec._Env_ADMIN_SECRET(ctx, field, obj)
 		case "DATABASE_TYPE":
-			out.Values[i] = ec._Config_DATABASE_TYPE(ctx, field, obj)
+			out.Values[i] = ec._Env_DATABASE_TYPE(ctx, field, obj)
 		case "DATABASE_URL":
-			out.Values[i] = ec._Config_DATABASE_URL(ctx, field, obj)
+			out.Values[i] = ec._Env_DATABASE_URL(ctx, field, obj)
 		case "DATABASE_NAME":
-			out.Values[i] = ec._Config_DATABASE_NAME(ctx, field, obj)
+			out.Values[i] = ec._Env_DATABASE_NAME(ctx, field, obj)
 		case "SMTP_HOST":
-			out.Values[i] = ec._Config_SMTP_HOST(ctx, field, obj)
+			out.Values[i] = ec._Env_SMTP_HOST(ctx, field, obj)
 		case "SMTP_PORT":
-			out.Values[i] = ec._Config_SMTP_PORT(ctx, field, obj)
+			out.Values[i] = ec._Env_SMTP_PORT(ctx, field, obj)
 		case "SMTP_USERNAME":
-			out.Values[i] = ec._Config_SMTP_USERNAME(ctx, field, obj)
+			out.Values[i] = ec._Env_SMTP_USERNAME(ctx, field, obj)
 		case "SMTP_PASSWORD":
-			out.Values[i] = ec._Config_SMTP_PASSWORD(ctx, field, obj)
+			out.Values[i] = ec._Env_SMTP_PASSWORD(ctx, field, obj)
 		case "SENDER_EMAIL":
-			out.Values[i] = ec._Config_SENDER_EMAIL(ctx, field, obj)
+			out.Values[i] = ec._Env_SENDER_EMAIL(ctx, field, obj)
 		case "JWT_TYPE":
-			out.Values[i] = ec._Config_JWT_TYPE(ctx, field, obj)
+			out.Values[i] = ec._Env_JWT_TYPE(ctx, field, obj)
 		case "JWT_SECRET":
-			out.Values[i] = ec._Config_JWT_SECRET(ctx, field, obj)
+			out.Values[i] = ec._Env_JWT_SECRET(ctx, field, obj)
 		case "ALLOWED_ORIGINS":
-			out.Values[i] = ec._Config_ALLOWED_ORIGINS(ctx, field, obj)
+			out.Values[i] = ec._Env_ALLOWED_ORIGINS(ctx, field, obj)
 		case "AUTHORIZER_URL":
-			out.Values[i] = ec._Config_AUTHORIZER_URL(ctx, field, obj)
+			out.Values[i] = ec._Env_AUTHORIZER_URL(ctx, field, obj)
 		case "APP_URL":
-			out.Values[i] = ec._Config_APP_URL(ctx, field, obj)
+			out.Values[i] = ec._Env_APP_URL(ctx, field, obj)
 		case "REDIS_URL":
-			out.Values[i] = ec._Config_REDIS_URL(ctx, field, obj)
+			out.Values[i] = ec._Env_REDIS_URL(ctx, field, obj)
 		case "COOKIE_NAME":
-			out.Values[i] = ec._Config_COOKIE_NAME(ctx, field, obj)
+			out.Values[i] = ec._Env_COOKIE_NAME(ctx, field, obj)
 		case "RESET_PASSWORD_URL":
-			out.Values[i] = ec._Config_RESET_PASSWORD_URL(ctx, field, obj)
+			out.Values[i] = ec._Env_RESET_PASSWORD_URL(ctx, field, obj)
 		case "DISABLE_EMAIL_VERIFICATION":
-			out.Values[i] = ec._Config_DISABLE_EMAIL_VERIFICATION(ctx, field, obj)
+			out.Values[i] = ec._Env_DISABLE_EMAIL_VERIFICATION(ctx, field, obj)
 		case "DISABLE_BASIC_AUTHENTICATION":
-			out.Values[i] = ec._Config_DISABLE_BASIC_AUTHENTICATION(ctx, field, obj)
+			out.Values[i] = ec._Env_DISABLE_BASIC_AUTHENTICATION(ctx, field, obj)
 		case "DISABLE_MAGIC_LINK_LOGIN":
-			out.Values[i] = ec._Config_DISABLE_MAGIC_LINK_LOGIN(ctx, field, obj)
+			out.Values[i] = ec._Env_DISABLE_MAGIC_LINK_LOGIN(ctx, field, obj)
 		case "DISABLE_LOGIN_PAGE":
-			out.Values[i] = ec._Config_DISABLE_LOGIN_PAGE(ctx, field, obj)
+			out.Values[i] = ec._Env_DISABLE_LOGIN_PAGE(ctx, field, obj)
 		case "ROLES":
-			out.Values[i] = ec._Config_ROLES(ctx, field, obj)
+			out.Values[i] = ec._Env_ROLES(ctx, field, obj)
 		case "PROTECTED_ROLES":
-			out.Values[i] = ec._Config_PROTECTED_ROLES(ctx, field, obj)
+			out.Values[i] = ec._Env_PROTECTED_ROLES(ctx, field, obj)
 		case "DEFAULT_ROLES":
-			out.Values[i] = ec._Config_DEFAULT_ROLES(ctx, field, obj)
+			out.Values[i] = ec._Env_DEFAULT_ROLES(ctx, field, obj)
 		case "JWT_ROLE_CLAIM":
-			out.Values[i] = ec._Config_JWT_ROLE_CLAIM(ctx, field, obj)
+			out.Values[i] = ec._Env_JWT_ROLE_CLAIM(ctx, field, obj)
 		case "GOOGLE_CLIENT_ID":
-			out.Values[i] = ec._Config_GOOGLE_CLIENT_ID(ctx, field, obj)
+			out.Values[i] = ec._Env_GOOGLE_CLIENT_ID(ctx, field, obj)
 		case "GOOGLE_CLIENT_SECRET":
-			out.Values[i] = ec._Config_GOOGLE_CLIENT_SECRET(ctx, field, obj)
+			out.Values[i] = ec._Env_GOOGLE_CLIENT_SECRET(ctx, field, obj)
 		case "GITHUB_CLIENT_ID":
-			out.Values[i] = ec._Config_GITHUB_CLIENT_ID(ctx, field, obj)
+			out.Values[i] = ec._Env_GITHUB_CLIENT_ID(ctx, field, obj)
 		case "GITHUB_CLIENT_SECRET":
-			out.Values[i] = ec._Config_GITHUB_CLIENT_SECRET(ctx, field, obj)
+			out.Values[i] = ec._Env_GITHUB_CLIENT_SECRET(ctx, field, obj)
 		case "FACEBOOK_CLIENT_ID":
-			out.Values[i] = ec._Config_FACEBOOK_CLIENT_ID(ctx, field, obj)
+			out.Values[i] = ec._Env_FACEBOOK_CLIENT_ID(ctx, field, obj)
 		case "FACEBOOK_CLIENT_SECRET":
-			out.Values[i] = ec._Config_FACEBOOK_CLIENT_SECRET(ctx, field, obj)
+			out.Values[i] = ec._Env_FACEBOOK_CLIENT_SECRET(ctx, field, obj)
 		case "ORGANIZATION_NAME":
-			out.Values[i] = ec._Config_ORGANIZATION_NAME(ctx, field, obj)
+			out.Values[i] = ec._Env_ORGANIZATION_NAME(ctx, field, obj)
 		case "ORGANIZATION_LOGO":
-			out.Values[i] = ec._Config_ORGANIZATION_LOGO(ctx, field, obj)
+			out.Values[i] = ec._Env_ORGANIZATION_LOGO(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -7059,8 +7068,8 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "_update_config":
-			out.Values[i] = ec._Mutation__update_config(ctx, field)
+		case "_update_env":
+			out.Values[i] = ec._Mutation__update_env(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -7174,7 +7183,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				}
 				return res
 			})
-		case "_config":
+		case "_env":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
 				defer func() {
@@ -7182,7 +7191,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query__config(ctx, field)
+				res = ec._Query__env(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -7629,23 +7638,23 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
-func (ec *executionContext) marshalNConfig2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐConfig(ctx context.Context, sel ast.SelectionSet, v model.Config) graphql.Marshaler {
-	return ec._Config(ctx, sel, &v)
+func (ec *executionContext) unmarshalNDeleteUserInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐDeleteUserInput(ctx context.Context, v interface{}) (model.DeleteUserInput, error) {
+	res, err := ec.unmarshalInputDeleteUserInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNConfig2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐConfig(ctx context.Context, sel ast.SelectionSet, v *model.Config) graphql.Marshaler {
+func (ec *executionContext) marshalNEnv2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐEnv(ctx context.Context, sel ast.SelectionSet, v model.Env) graphql.Marshaler {
+	return ec._Env(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNEnv2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐEnv(ctx context.Context, sel ast.SelectionSet, v *model.Env) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
 		}
 		return graphql.Null
 	}
-	return ec._Config(ctx, sel, v)
-}
-
-func (ec *executionContext) unmarshalNDeleteUserInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐDeleteUserInput(ctx context.Context, v interface{}) (model.DeleteUserInput, error) {
-	res, err := ec.unmarshalInputDeleteUserInput(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
+	return ec._Env(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNForgotPasswordInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐForgotPasswordInput(ctx context.Context, v interface{}) (model.ForgotPasswordInput, error) {
@@ -7772,8 +7781,8 @@ func (ec *executionContext) marshalNString2ᚕstringᚄ(ctx context.Context, sel
 	return ret
 }
 
-func (ec *executionContext) unmarshalNUpdateConfigInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUpdateConfigInput(ctx context.Context, v interface{}) (model.UpdateConfigInput, error) {
-	res, err := ec.unmarshalInputUpdateConfigInput(ctx, v)
+func (ec *executionContext) unmarshalNUpdateEnvInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUpdateEnvInput(ctx context.Context, v interface{}) (model.UpdateEnvInput, error) {
+	res, err := ec.unmarshalInputUpdateEnvInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
