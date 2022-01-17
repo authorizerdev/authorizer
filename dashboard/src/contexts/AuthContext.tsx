@@ -17,7 +17,6 @@ export const AuthContextProvider = ({ children }: { children: any }) => {
 	const { pathname } = useLocation();
 	const navigate = useNavigate();
 
-	const isOnboardingComplete = hasAdminSecret();
 	const [{ fetching, data, error }] = useQuery({
 		query: AdminSessionQuery,
 	});
