@@ -56,8 +56,8 @@ func (c *InMemoryStore) ClearStore() {
 
 // GetUserSession returns the user session token from the in-memory store.
 func (c *InMemoryStore) GetUserSession(userId, accessToken string) string {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
+	// c.mutex.Lock()
+	// defer c.mutex.Unlock()
 
 	token := ""
 	if sessionMap, ok := c.store[userId]; ok {

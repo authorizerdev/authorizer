@@ -42,7 +42,11 @@ export default function App() {
 				<BrowserRouter>
 					<AuthorizerProvider
 						config={{
+<<<<<<< HEAD
 							authorizerURL: window.location.origin,
+=======
+							authorizerURL: globalState.authorizerURL,
+>>>>>>> main
 							redirectURL: globalState.redirectURL,
 						}}
 					>
