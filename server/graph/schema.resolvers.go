@@ -55,6 +55,22 @@ func (r *mutationResolver) UpdateUser(ctx context.Context, params model.UpdateUs
 	return resolvers.UpdateUser(ctx, params)
 }
 
+func (r *mutationResolver) AdminSignup(ctx context.Context, params model.AdminSignupInput) (*model.Response, error) {
+	return resolvers.AdminSignupResolver(ctx, params)
+}
+
+func (r *mutationResolver) AdminLogin(ctx context.Context, params model.AdminLoginInput) (*model.Response, error) {
+	return resolvers.AdminLoginResolver(ctx, params)
+}
+
+func (r *mutationResolver) AdminLogout(ctx context.Context) (*model.Response, error) {
+	return resolvers.AdminLogout(ctx)
+}
+
+func (r *mutationResolver) UpdateConfig(ctx context.Context, params model.UpdateConfigInput) (*model.Response, error) {
+	return resolvers.UpdateConfigResolver(ctx, params)
+}
+
 func (r *queryResolver) Meta(ctx context.Context) (*model.Meta, error) {
 	return resolvers.Meta(ctx)
 }
@@ -75,13 +91,19 @@ func (r *queryResolver) VerificationRequests(ctx context.Context) ([]*model.Veri
 	return resolvers.VerificationRequests(ctx)
 }
 
+func (r *queryResolver) AdminSession(ctx context.Context) (*model.Response, error) {
+	return resolvers.AdminSession(ctx)
+}
+
+func (r *queryResolver) Config(ctx context.Context) (*model.Config, error) {
+	return resolvers.ConfigResolver(ctx)
+}
+
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
-type (
-	mutationResolver struct{ *Resolver }
-	queryResolver    struct{ *Resolver }
-)
+type mutationResolver struct{ *Resolver }
+type queryResolver struct{ *Resolver }

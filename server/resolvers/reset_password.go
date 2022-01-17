@@ -15,7 +15,7 @@ import (
 
 func ResetPassword(ctx context.Context, params model.ResetPasswordInput) (*model.Response, error) {
 	var res *model.Response
-	if constants.DISABLE_BASIC_AUTHENTICATION {
+	if constants.EnvData.DISABLE_BASIC_AUTHENTICATION {
 		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
 	}
 

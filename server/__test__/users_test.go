@@ -1,11 +1,13 @@
 package test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/resolvers"
+	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,7 +24,9 @@ func usersTest(s TestSetup, t *testing.T) {
 		users, err := resolvers.Users(ctx)
 		assert.NotNil(t, err, "unauthorized")
 
-		req.Header.Add("x-authorizer-admin-secret", constants.ADMIN_SECRET)
+		h, err := utils.HashPassword(constants.EnvData.ADMIN_SECRET)
+		assert.Nil(t, err)
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.EnvData.ADMIN_COOKIE_NAME, h))
 		users, err = resolvers.Users(ctx)
 		assert.Nil(t, err)
 		rLen := len(users)

@@ -1,0 +1,1 @@
+export const LOGO_URL = "https://user-images.githubusercontent.com/6964334/147834043-fc384cab-e7ca-40f8-9663-38fc25fd5f3a.png"

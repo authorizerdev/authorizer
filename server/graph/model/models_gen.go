@@ -2,11 +2,55 @@
 
 package model
 
+type AdminLoginInput struct {
+	AdminSecret string `json:"admin_secret"`
+}
+
+type AdminSignupInput struct {
+	AdminSecret string `json:"admin_secret"`
+}
+
 type AuthResponse struct {
 	Message     string  `json:"message"`
 	AccessToken *string `json:"access_token"`
 	ExpiresAt   *int64  `json:"expires_at"`
 	User        *User   `json:"user"`
+}
+
+type Config struct {
+	AdminSecret                *string  `json:"ADMIN_SECRET"`
+	DatabaseType               *string  `json:"DATABASE_TYPE"`
+	DatabaseURL                *string  `json:"DATABASE_URL"`
+	DatabaseName               *string  `json:"DATABASE_NAME"`
+	SMTPHost                   *string  `json:"SMTP_HOST"`
+	SMTPPort                   *string  `json:"SMTP_PORT"`
+	SMTPUsername               *string  `json:"SMTP_USERNAME"`
+	SMTPPassword               *string  `json:"SMTP_PASSWORD"`
+	SenderEmail                *string  `json:"SENDER_EMAIL"`
+	JwtType                    *string  `json:"JWT_TYPE"`
+	JwtSecret                  *string  `json:"JWT_SECRET"`
+	AllowedOrigins             []string `json:"ALLOWED_ORIGINS"`
+	AuthorizerURL              *string  `json:"AUTHORIZER_URL"`
+	AppURL                     *string  `json:"APP_URL"`
+	RedisURL                   *string  `json:"REDIS_URL"`
+	CookieName                 *string  `json:"COOKIE_NAME"`
+	ResetPasswordURL           *string  `json:"RESET_PASSWORD_URL"`
+	DisableEmailVerification   *bool    `json:"DISABLE_EMAIL_VERIFICATION"`
+	DisableBasicAuthentication *bool    `json:"DISABLE_BASIC_AUTHENTICATION"`
+	DisableMagicLinkLogin      *bool    `json:"DISABLE_MAGIC_LINK_LOGIN"`
+	DisableLoginPage           *bool    `json:"DISABLE_LOGIN_PAGE"`
+	Roles                      []string `json:"ROLES"`
+	ProtectedRoles             []string `json:"PROTECTED_ROLES"`
+	DefaultRoles               []string `json:"DEFAULT_ROLES"`
+	JwtRoleClaim               *string  `json:"JWT_ROLE_CLAIM"`
+	GoogleClientID             *string  `json:"GOOGLE_CLIENT_ID"`
+	GoogleClientSecret         *string  `json:"GOOGLE_CLIENT_SECRET"`
+	GithubClientID             *string  `json:"GITHUB_CLIENT_ID"`
+	GithubClientSecret         *string  `json:"GITHUB_CLIENT_SECRET"`
+	FacebookClientID           *string  `json:"FACEBOOK_CLIENT_ID"`
+	FacebookClientSecret       *string  `json:"FACEBOOK_CLIENT_SECRET"`
+	OrganizationName           *string  `json:"ORGANIZATION_NAME"`
+	OrganizationLogo           *string  `json:"ORGANIZATION_LOGO"`
 }
 
 type DeleteUserInput struct {
@@ -71,6 +115,41 @@ type SignUpInput struct {
 	Password        string   `json:"password"`
 	ConfirmPassword string   `json:"confirm_password"`
 	Roles           []string `json:"roles"`
+}
+
+type UpdateConfigInput struct {
+	AdminSecret                *string  `json:"ADMIN_SECRET"`
+	DatabaseType               *string  `json:"DATABASE_TYPE"`
+	DatabaseURL                *string  `json:"DATABASE_URL"`
+	DatabaseName               *string  `json:"DATABASE_NAME"`
+	SMTPHost                   *string  `json:"SMTP_HOST"`
+	SMTPPort                   *string  `json:"SMTP_PORT"`
+	SenderEmail                *string  `json:"SENDER_EMAIL"`
+	SenderPassword             *string  `json:"SENDER_PASSWORD"`
+	JwtType                    *string  `json:"JWT_TYPE"`
+	JwtSecret                  *string  `json:"JWT_SECRET"`
+	AllowedOrigins             []string `json:"ALLOWED_ORIGINS"`
+	AuthorizerURL              *string  `json:"AUTHORIZER_URL"`
+	AppURL                     *string  `json:"APP_URL"`
+	RedisURL                   *string  `json:"REDIS_URL"`
+	CookieName                 *string  `json:"COOKIE_NAME"`
+	ResetPasswordURL           *string  `json:"RESET_PASSWORD_URL"`
+	DisableEmailVerification   *bool    `json:"DISABLE_EMAIL_VERIFICATION"`
+	DisableBasicAuthentication *bool    `json:"DISABLE_BASIC_AUTHENTICATION"`
+	DisableMagicLinkLogin      *bool    `json:"DISABLE_MAGIC_LINK_LOGIN"`
+	DisableLoginPage           *bool    `json:"DISABLE_LOGIN_PAGE"`
+	Roles                      []string `json:"ROLES"`
+	ProtectedRoles             []string `json:"PROTECTED_ROLES"`
+	DefaultRoles               []string `json:"DEFAULT_ROLES"`
+	JwtRoleClaim               *string  `json:"JWT_ROLE_CLAIM"`
+	GoogleClientID             *string  `json:"GOOGLE_CLIENT_ID"`
+	GoogleClientSecret         *string  `json:"GOOGLE_CLIENT_SECRET"`
+	GithubClientID             *string  `json:"GITHUB_CLIENT_ID"`
+	GithubClientSecret         *string  `json:"GITHUB_CLIENT_SECRET"`
+	FacebookClientID           *string  `json:"FACEBOOK_CLIENT_ID"`
+	FacebookClientSecret       *string  `json:"FACEBOOK_CLIENT_SECRET"`
+	OrganizationName           *string  `json:"ORGANIZATION_NAME"`
+	OrganizationLogo           *string  `json:"ORGANIZATION_LOGO"`
 }
 
 type UpdateProfileInput struct {

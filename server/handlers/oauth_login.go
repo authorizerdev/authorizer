@@ -34,14 +34,14 @@ func OAuthLoginHandler() gin.HandlerFunc {
 
 			// use protected roles verification for admin login only.
 			// though if not associated with user, it will be rejected from oauth_callback
-			if !utils.IsValidRoles(append([]string{}, append(constants.ROLES, constants.PROTECTED_ROLES...)...), rolesSplit) {
+			if !utils.IsValidRoles(append([]string{}, append(constants.EnvData.ROLES, constants.EnvData.PROTECTED_ROLES...)...), rolesSplit) {
 				c.JSON(400, gin.H{
 					"error": "invalid role",
 				})
 				return
 			}
 		} else {
-			roles = strings.Join(constants.DEFAULT_ROLES, ",")
+			roles = strings.Join(constants.EnvData.DEFAULT_ROLES, ",")
 		}
 
 		uuid := uuid.New()
@@ -57,7 +57,7 @@ func OAuthLoginHandler() gin.HandlerFunc {
 			}
 			session.SetSocailLoginState(oauthStateString, enum.Google.String())
 			// during the init of OAuthProvider authorizer url might be empty
-			oauth.OAuthProviders.GoogleConfig.RedirectURL = constants.AUTHORIZER_URL + "/oauth_callback/google"
+			oauth.OAuthProviders.GoogleConfig.RedirectURL = constants.EnvData.AUTHORIZER_URL + "/oauth_callback/google"
 			url := oauth.OAuthProviders.GoogleConfig.AuthCodeURL(oauthStateString)
 			c.Redirect(http.StatusTemporaryRedirect, url)
 		case enum.Github.String():
@@ -66,7 +66,7 @@ func OAuthLoginHandler() gin.HandlerFunc {
 				break
 			}
 			session.SetSocailLoginState(oauthStateString, enum.Github.String())
-			oauth.OAuthProviders.GithubConfig.RedirectURL = constants.AUTHORIZER_URL + "/oauth_callback/github"
+			oauth.OAuthProviders.GithubConfig.RedirectURL = constants.EnvData.AUTHORIZER_URL + "/oauth_callback/github"
 			url := oauth.OAuthProviders.GithubConfig.AuthCodeURL(oauthStateString)
 			c.Redirect(http.StatusTemporaryRedirect, url)
 		case enum.Facebook.String():
@@ -75,7 +75,7 @@ func OAuthLoginHandler() gin.HandlerFunc {
 				break
 			}
 			session.SetSocailLoginState(oauthStateString, enum.Facebook.String())
-			oauth.OAuthProviders.FacebookConfig.RedirectURL = constants.AUTHORIZER_URL + "/oauth_callback/facebook"
+			oauth.OAuthProviders.FacebookConfig.RedirectURL = constants.EnvData.AUTHORIZER_URL + "/oauth_callback/facebook"
 			url := oauth.OAuthProviders.FacebookConfig.AuthCodeURL(oauthStateString)
 			c.Redirect(http.StatusTemporaryRedirect, url)
 		default:

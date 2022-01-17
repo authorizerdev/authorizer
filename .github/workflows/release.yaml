@@ -23,7 +23,8 @@ jobs:
           sudo mv github-assets-uploader /usr/sbin/ && \
           sudo rm -f github-assets-uploader.tar.gz && \
           github-assets-uploader -version && \
-          make build-app
+          make build-app && \
+          make build-dashboard
       - name: Print Go paths
         run: whereis go
       - name: Print Go Version
@@ -37,12 +38,12 @@ jobs:
           make clean && \
           CGO_ENABLED=1 GOOS=windows CC=/usr/bin/x86_64-w64-mingw32-gcc make && \
           mv build/server build/server.exe && \
-          zip -vr authorizer-${VERSION}-windows-amd64.zip .env app/build build templates
+          zip -vr authorizer-${VERSION}-windows-amd64.zip .env app/build build templates dashboard/build
       - name: Package files for linux
         run: |
           make clean && \
           CGO_ENABLED=1 make && \
-          tar cvfz authorizer-${VERSION}-linux-amd64.tar.gz .env app/build build templates
+          tar cvfz authorizer-${VERSION}-linux-amd64.tar.gz .env app/build build templates dashboard/build
       - name: Upload assets
         run: |
           github-assets-uploader -f authorizer-${VERSION}-windows-amd64.zip -mediatype application/zip -repo authorizerdev/authorizer -token ${{secrets.RELEASE_TOKEN}} -tag ${VERSION} && \

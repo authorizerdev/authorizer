@@ -22,7 +22,7 @@ func TestIsValidEmail(t *testing.T) {
 func TestIsValidOrigin(t *testing.T) {
 	// don't use portocal(http/https) for ALLOWED_ORIGINS while testing,
 	// as we trim them off while running the main function
-	constants.ALLOWED_ORIGINS = []string{"localhost:8080", "*.google.com", "*.google.in", "*abc.*"}
+	constants.EnvData.ALLOWED_ORIGINS = []string{"localhost:8080", "*.google.com", "*.google.in", "*abc.*"}
 
 	assert.False(t, utils.IsValidOrigin("http://myapp.com"), "it should be invalid origin")
 	assert.False(t, utils.IsValidOrigin("http://appgoogle.com"), "it should be invalid origin")

@@ -101,9 +101,9 @@ func SendVerificationMail(toEmail, token string) error {
     </html>
 	`
 	data := make(map[string]interface{}, 3)
-	data["OrgLogo"] = constants.ORGANIZATION_LOGO
-	data["OrgName"] = constants.ORGANIZATION_NAME
-	data["AuthUrl"] = constants.AUTHORIZER_URL + "/verify_email?token=" + token
+	data["OrgLogo"] = constants.EnvData.ORGANIZATION_LOGO
+	data["OrgName"] = constants.EnvData.ORGANIZATION_NAME
+	data["AuthUrl"] = constants.EnvData.AUTHORIZER_URL + "/verify_email?token=" + token
 	message = AddEmailTemplate(message, data, "verify_email.tmpl")
 	// bodyMessage := sender.WriteHTMLEmail(Receiver, Subject, message)
 
@@ -112,8 +112,8 @@ func SendVerificationMail(toEmail, token string) error {
 
 // SendForgotPasswordMail to send verification email
 func SendForgotPasswordMail(toEmail, token, host string) error {
-	if constants.RESET_PASSWORD_URL == "" {
-		constants.RESET_PASSWORD_URL = constants.AUTHORIZER_URL + "/app/reset-password"
+	if constants.EnvData.RESET_PASSWORD_URL == "" {
+		constants.EnvData.RESET_PASSWORD_URL = constants.EnvData.AUTHORIZER_URL + "/app/reset-password"
 	}
 
 	// The receiver needs to be in slice as the receive supports multiple receiver
@@ -207,9 +207,9 @@ func SendForgotPasswordMail(toEmail, token, host string) error {
 	`
 
 	data := make(map[string]interface{}, 3)
-	data["OrgLogo"] = constants.ORGANIZATION_LOGO
-	data["ToEmail"] = constants.ORGANIZATION_NAME
-	data["AuthUrl"] = constants.RESET_PASSWORD_URL + "?token=" + token
+	data["OrgLogo"] = constants.EnvData.ORGANIZATION_LOGO
+	data["ToEmail"] = constants.EnvData.ORGANIZATION_NAME
+	data["AuthUrl"] = constants.EnvData.RESET_PASSWORD_URL + "?token=" + token
 	message = AddEmailTemplate(message, data, "reset_password_email.tmpl")
 
 	return email.SendMail(Receiver, Subject, message)
