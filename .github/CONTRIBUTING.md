@@ -60,181 +60,170 @@ Setup mongodb & arangodb using Docker
 
 ```
 docker run --name mongodb -d -p 27017:27017 mongo
-docker run --name arangodb -d -p 8529:8529 -e ARANGO_ROOT_PASSWORD=root arangodb/arangodb:3.8.4
+
+// -e ARANGO_ROOT_PASSWORD=root
+docker run --name arangodb -d -p 8529:8529 -e ARANGO_NO_AUTH=1 arangodb/arangodb:3.8.4
 ```
+
 > Note: If you are not making any changes in db schema / db operations, you can disable those db tests [here](https://github.com/authorizerdev/authorizer/blob/main/server/__test__/resolvers_test.go#L14)
 
-If you are adding new resolver, 
+If you are adding new resolver,
+
 1. create new resolver test file [here](https://github.com/authorizerdev/authorizer/tree/main/server/__test__)
-Naming convention filename: `resolver_name_test.go` function name: `resolverNameTest(s TestSetup, t *testing.T)`
+   Naming convention filename: `resolver_name_test.go` function name: `resolverNameTest(s TestSetup, t *testing.T)`
 2. Add your tests [here](https://github.com/authorizerdev/authorizer/blob/main/server/__test__/resolvers_test.go#L38)
 
-__Command to run tests:__
+**Command to run tests:**
 
 ```sh
 make test
 ```
 
-__Manual Testing:__
+**Manual Testing:**
 
 For manually testing using graphql playground, you can paste following queries and mutations in your playground and test it
 
 ```gql
 mutation Signup {
-  signup(params: {
-    email: "lakhan@yopmail.com",
-    password: "test",
-    confirm_password: "test",
-    given_name: "lakhan"
-  }) {
-    message
-    user {
-      id
-      family_name
-      given_name
-      email
-      email_verified
-    }
-  }
+	signup(
+		params: {
+			email: "lakhan@yopmail.com"
+			password: "test"
+			confirm_password: "test"
+			given_name: "lakhan"
+		}
+	) {
+		message
+		user {
+			id
+			family_name
+			given_name
+			email
+			email_verified
+		}
+	}
 }
 
 mutation ResendEamil {
-  resend_verify_email(params: {
-    email: "lakhan@yopmail.com"
-    identifier: "basic_auth_signup"
-  }) {
-    message
-  }
+	resend_verify_email(
+		params: { email: "lakhan@yopmail.com", identifier: "basic_auth_signup" }
+	) {
+		message
+	}
 }
 
 query GetVerifyRequests {
-  _verification_requests {
-    id
-    token
-    expires
-    identifier
-  }
+	_verification_requests {
+		id
+		token
+		expires
+		identifier
+	}
 }
 
 mutation VerifyEmail {
-  verify_email(params: {
-    token: ""
-  }) {
-    access_token
-    expires_at
-    user {
-      id
-      email
-      given_name
-      email_verified
-    }
-  }
+	verify_email(params: { token: "" }) {
+		access_token
+		expires_at
+		user {
+			id
+			email
+			given_name
+			email_verified
+		}
+	}
 }
 
 mutation Login {
-  login(params: {
-    email: "lakhan@yopmail.com",
-    password: "test"
-  }) {
-    access_token
-    expires_at
-    user {
-      id
-      family_name
-      given_name
-      email
-    }
-  }
+	login(params: { email: "lakhan@yopmail.com", password: "test" }) {
+		access_token
+		expires_at
+		user {
+			id
+			family_name
+			given_name
+			email
+		}
+	}
 }
 
 query GetSession {
-  session {
-    access_token
-    expires_at
-    user {
-      id
-      given_name
-      family_name
-      email
-      email_verified
-      signup_methods
-      created_at
-      updated_at
-    }
-  }
+	session {
+		access_token
+		expires_at
+		user {
+			id
+			given_name
+			family_name
+			email
+			email_verified
+			signup_methods
+			created_at
+			updated_at
+		}
+	}
 }
 
 mutation ForgotPassword {
-  forgot_password(params: {
-    email: "lakhan@yopmail.com"
-  }) {
-    message
-  }
+	forgot_password(params: { email: "lakhan@yopmail.com" }) {
+		message
+	}
 }
 
 mutation ResetPassword {
-  reset_password(params: {
-    token: ""
-    password: "test"
-    confirm_password: "test"
-  }) {
-    message
-  }
+	reset_password(
+		params: { token: "", password: "test", confirm_password: "test" }
+	) {
+		message
+	}
 }
 
 mutation UpdateProfile {
-  update_profile(params: {
-    family_name: "samani"
-  }) {
-    message
-  }
+	update_profile(params: { family_name: "samani" }) {
+		message
+	}
 }
 
 query GetUsers {
-  _users {
-    id
-    email
-    email_verified
-    given_name
-    family_name
-    picture
-    signup_methods
-    phone_number
-  }
+	_users {
+		id
+		email
+		email_verified
+		given_name
+		family_name
+		picture
+		signup_methods
+		phone_number
+	}
 }
 
 mutation MagicLinkLogin {
-  magic_link_login(params: {
-    email: "test@yopmail.com"
-  }) {
-    message
-  }
+	magic_link_login(params: { email: "test@yopmail.com" }) {
+		message
+	}
 }
 
 mutation Logout {
-  logout {
-    message
-  }
+	logout {
+		message
+	}
 }
 
-mutation UpdateUser{
-  _update_user(params: {
-    id: "dafc9400-d603-4ade-997c-83fcd54bbd67",
-    roles: ["user", "admin"]
-  }) {
-    email
-    roles
-  }
+mutation UpdateUser {
+	_update_user(
+		params: {
+			id: "dafc9400-d603-4ade-997c-83fcd54bbd67"
+			roles: ["user", "admin"]
+		}
+	) {
+		email
+		roles
+	}
 }
 
 mutation DeleteUser {
-  _delete_user(params: {
-    email: "signup.test134523@yopmail.com"
-  }) {
-    message
-  }
+	_delete_user(params: { email: "signup.test134523@yopmail.com" }) {
+		message
+	}
 }
 ```
-
-
-
