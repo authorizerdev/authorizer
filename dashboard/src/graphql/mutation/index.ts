@@ -12,4 +12,12 @@ mutation adminLogin($secret: String!){
     message
   }
 }
-`
+`;
+
+export const AdminLogout = `
+  mutation adminLogout {
+    _admin_logout {
+      message
+    }
+  }
+`;

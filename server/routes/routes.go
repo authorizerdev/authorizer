@@ -39,6 +39,7 @@ func InitRouter() *gin.Engine {
 	{
 		app.Static("/build", "dashboard/build")
 		app.GET("/", handlers.DashboardHandler())
+		app.GET("/:page", handlers.DashboardHandler())
 	}
 	return router
 }

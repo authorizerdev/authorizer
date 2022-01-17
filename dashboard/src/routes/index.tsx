@@ -1,26 +1,34 @@
-import React from "react";
-import { Outlet, Route, Routes } from "react-router-dom";
-import { DashboardLayout } from "../layouts/DashboardLayout";
-import { Auth } from "../pages/Auth";
+import React from 'react';
+import { Outlet, Route, Routes } from 'react-router-dom';
 
-import { Home } from "../pages/Home";
-import { Users } from "../pages/Users";
+import { useAuthContext } from '../contexts/AuthContext';
+import { DashboardLayout } from '../layouts/DashboardLayout';
+import { Auth } from '../pages/Auth';
+import { Home } from '../pages/Home';
+import { Users } from '../pages/Users';
 
 export const AppRoutes = () => {
-  return (
-    <Routes>
-      <Route path="login" element={<Auth />} />
-      <Route path="setup" element={<Auth />} />
-      <Route
-        element={
-          <DashboardLayout>
-            <Outlet />
-          </DashboardLayout>
-        }
-      >
-        <Route path="/" element={<Home />} />
-        <Route path="users" element={<Users />} />
-      </Route>
-    </Routes>
-  );
+	const { isLoggedIn } = useAuthContext();
+
+	if (isLoggedIn) {
+		return (
+			<Routes>
+				<Route
+					element={
+						<DashboardLayout>
+							<Outlet />
+						</DashboardLayout>
+					}
+				>
+					<Route path="/" element={<Home />} />
+					<Route path="users" element={<Users />} />
+				</Route>
+			</Routes>
+		);
+	}
+	return (
+		<Routes>
+			<Route path="/" element={<Auth />} />
+		</Routes>
+	);
 };
