@@ -119,7 +119,7 @@ type SignUpInput struct {
 
 type UpdateEnvInput struct {
 	AdminSecret                *string  `json:"ADMIN_SECRET"`
-	ConfirmAdminSecret         *string  `json:"CONFIRM_ADMIN_SECRET"`
+	OldAdminSecret             *string  `json:"OLD_ADMIN_SECRET"`
 	DatabaseType               *string  `json:"DATABASE_TYPE"`
 	DatabaseURL                *string  `json:"DATABASE_URL"`
 	DatabaseName               *string  `json:"DATABASE_NAME"`

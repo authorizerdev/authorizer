@@ -1093,7 +1093,7 @@ type Env {
 
 input UpdateEnvInput {
 	ADMIN_SECRET: String
-	CONFIRM_ADMIN_SECRET: String
+	OLD_ADMIN_SECRET: String
 	DATABASE_TYPE: String
 	DATABASE_URL: String
 	DATABASE_NAME: String
@@ -6258,11 +6258,11 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			if err != nil {
 				return it, err
 			}
-		case "CONFIRM_ADMIN_SECRET":
+		case "OLD_ADMIN_SECRET":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("CONFIRM_ADMIN_SECRET"))
-			it.ConfirmAdminSecret, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("OLD_ADMIN_SECRET"))
+			it.OldAdminSecret, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}

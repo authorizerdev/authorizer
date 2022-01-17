@@ -100,7 +100,7 @@ type Env {
 
 input UpdateEnvInput {
 	ADMIN_SECRET: String
-	CONFIRM_ADMIN_SECRET: String
+	OLD_ADMIN_SECRET: String
 	DATABASE_TYPE: String
 	DATABASE_URL: String
 	DATABASE_NAME: String
