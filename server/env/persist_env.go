@@ -28,6 +28,7 @@ func PersistEnv() error {
 		if err != nil {
 			return err
 		}
+
 		encryptedConfig, err := utils.EncryptAES(configData)
 		if err != nil {
 			return err
@@ -121,6 +122,7 @@ func PersistEnv() error {
 			}
 		}
 
+		envstore.EnvInMemoryStoreObj.UpdateEnvStore(jsonData)
 		if hasChanged {
 			encryptedConfig, err := utils.EncryptEnvData(jsonData)
 			if err != nil {

@@ -18,8 +18,8 @@ func IsValidEmail(email string) bool {
 
 // IsValidOrigin validates origin based on ALLOWED_ORIGINS
 func IsValidOrigin(url string) bool {
-	allowedOrigins := envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAllowedOrigins).([]string)
-	if len(allowedOrigins) == 1 && allowedOrigins[0] == "*" {
+	allowedOrigins := envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAllowedOrigins).([]interface{})
+	if len(allowedOrigins) == 1 && allowedOrigins[0].(string) == "*" {
 		return true
 	}
 
@@ -28,10 +28,10 @@ func IsValidOrigin(url string) bool {
 	currentOrigin := hostName + ":" + port
 
 	for _, origin := range allowedOrigins {
-		replacedString := origin
+		replacedString := origin.(string)
 		// if has regex whitelisted domains
-		if strings.Contains(origin, "*") {
-			replacedString = strings.Replace(origin, ".", "\\.", -1)
+		if strings.Contains(origin.(string), "*") {
+			replacedString = strings.Replace(origin.(string), ".", "\\.", -1)
 			replacedString = strings.Replace(replacedString, "*", ".*", -1)
 
 			if strings.HasPrefix(replacedString, ".*") {

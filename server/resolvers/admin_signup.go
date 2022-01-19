@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/authorizerdev/authorizer/server/constants"
@@ -58,6 +59,7 @@ func AdminSignupResolver(ctx context.Context, params model.AdminSignupInput) (*m
 	}
 
 	configData, err := utils.EncryptEnvData(jsonData)
+	log.Println("=> config data from signup:", configData)
 	if err != nil {
 		return res, err
 	}
