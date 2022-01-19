@@ -4,23 +4,28 @@ import { LOGO_URL } from '../constants';
 
 export function AuthLayout({ children }: { children: React.ReactNode }) {
 	return (
-		<Flex flexWrap="wrap" h="100%">
-			<Center h="100%" flex="2" bg="blue.500" flexDirection="column">
-				<Image src={LOGO_URL} alt="" />
-
-				<Text
-					color="white"
-					casing="uppercase"
-					fontSize="3xl"
-					mt="2"
-					letterSpacing="2.25px"
-				>
-					Authorizer
+		<Flex
+			flexWrap="wrap"
+			h="100%"
+			bg="gray.100"
+			alignItems="center"
+			justifyContent="center"
+			flexDirection="column"
+		>
+			<Flex alignItems="center">
+				<Image
+					src="https://authorizer.dev/images/logo.png"
+					alt="logo"
+					height="50"
+				/>
+				<Text fontSize="x-large" ml="3" letterSpacing="3">
+					AUTHORIZER
 				</Text>
-			</Center>
-			<Center h="100%" flex="2">
+			</Flex>
+
+			<Box p="6" m="5" rounded="5" bg="white" w="500px" shadow="xl">
 				{children}
-			</Center>
+			</Box>
 		</Flex>
 	);
 }

@@ -1,16 +1,39 @@
-import { Box, Flex } from '@chakra-ui/react';
-import React from 'react';
-import { Sidebar } from '../components/Sidebar';
+import {
+	Box,
+	Drawer,
+	DrawerContent,
+	useDisclosure,
+	useColorModeValue,
+} from '@chakra-ui/react';
+import React, { ReactNode } from 'react';
+import { Sidebar, MobileNav } from '../components/Menu';
 
-export function DashboardLayout({ children }: { children: React.ReactNode }) {
+export function DashboardLayout({ children }: { children: ReactNode }) {
+	const { isOpen, onOpen, onClose } = useDisclosure();
 	return (
-		<Flex flexWrap="wrap" h="100%">
-			<Box w="72" bg="blue.500" flex="1" position="fixed" h="100vh">
-				<Sidebar />
-			</Box>
-			<Box as="main" flex="2" p="10" marginLeft="72">
+		<Box minH="100vh" bg={useColorModeValue('gray.100', 'gray.900')}>
+			<Sidebar
+				onClose={() => onClose}
+				display={{ base: 'none', md: 'block' }}
+			/>
+			<Drawer
+				autoFocus={false}
+				isOpen={isOpen}
+				placement="left"
+				onClose={onClose}
+				returnFocusOnClose={false}
+				onOverlayClick={onClose}
+				size="full"
+			>
+				<DrawerContent>
+					<Sidebar onClose={onClose} />
+				</DrawerContent>
+			</Drawer>
+			{/* mobilenav */}
+			<MobileNav onOpen={onOpen} />
+			<Box ml={{ base: 0, md: 60 }} p="4" pt="24">
 				{children}
 			</Box>
-		</Flex>
+		</Box>
 	);
 }

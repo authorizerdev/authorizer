@@ -5,6 +5,8 @@ import {
 	Input,
 	useToast,
 	VStack,
+	Text,
+	Divider,
 } from '@chakra-ui/react';
 import React, { useEffect } from 'react';
 import { useMutation } from 'urql';
@@ -15,7 +17,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../contexts/AuthContext';
 import { capitalizeFirstLetter, hasAdminSecret } from '../utils';
 
-export const Auth = () => {
+export default function Auth() {
 	const [loginResult, login] = useMutation(AdminLogin);
 	const [signUpResult, signup] = useMutation(AdminSignup);
 	const { setIsLoggedIn } = useAuthContext();
@@ -40,8 +42,8 @@ export const Auth = () => {
 		(isLogin ? login : signup)({
 			secret: formValues['admin-secret'],
 		}).then((res) => {
-			setIsLoggedIn(true);
 			if (res.data) {
+				setIsLoggedIn(true);
 				navigate('/', { replace: true });
 			}
 		});
@@ -64,12 +66,24 @@ export const Auth = () => {
 
 	return (
 		<AuthLayout>
+			<Text
+				fontSize="large"
+				textAlign="center"
+				color="gray.600"
+				fontWeight="bold"
+				mb="2"
+			>
+				Hi there 👋 <br />
+			</Text>
+			<Text fontSize="large" textAlign="center" color="gray.500" mb="8">
+				Welcome to Authorizer Administrative Dashboard
+			</Text>
 			<form onSubmit={handleSubmit}>
-				<VStack spacing="2.5" justify="space-between">
+				<VStack spacing="5" justify="space-between">
 					<FormControl isRequired>
-						<FormLabel htmlFor="admin-secret">
-							{isLogin ? 'Enter' : 'Setup'} Admin Secret
-						</FormLabel>
+						{/* <FormLabel htmlFor="admin-secret">
+							{isLogin ? 'Enter' : 'Configure'} Admin Secret
+						</FormLabel> */}
 						<Input
 							size="lg"
 							id="admin-secret"
@@ -88,8 +102,23 @@ export const Auth = () => {
 					>
 						{isLogin ? 'Login' : 'Sign up'}
 					</Button>
+					{isLogin ? (
+						<Text color="gray.600" fontSize="sm">
+							<b>Note:</b> In case if you have forgot your admin secret, you can
+							reset it by updating <code>ADMIN_SECRET</code> environment
+							variable. For more information, please refer to the{' '}
+							<a href="https://docs.authorizer.dev/core/env/">documentation</a>.
+						</Text>
+					) : (
+						<Text color="gray.600" fontSize="sm">
+							<b>Note:</b> You can also configure admin secret by setting{' '}
+							<code>ADMIN_SECRET</code> environment variable. For more
+							information, please refer to the{' '}
+							<a href="https://docs.authorizer.dev/core/env/">documentation</a>.
+						</Text>
+					)}
 				</VStack>
 			</form>
 		</AuthLayout>
 	);
-};
+}
