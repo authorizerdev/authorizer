@@ -29,7 +29,7 @@ func DecryptB64(s string) (string, error) {
 
 // EncryptAES encrypts data using AES algorithm
 func EncryptAES(text []byte) ([]byte, error) {
-	key := []byte(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyEncryptionKey).(string))
+	key := []byte(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyEncryptionKey))
 	c, err := aes.NewCipher(key)
 	var res []byte
 	if err != nil {
@@ -63,7 +63,7 @@ func EncryptAES(text []byte) ([]byte, error) {
 
 // DecryptAES decrypts data using AES algorithm
 func DecryptAES(ciphertext []byte) ([]byte, error) {
-	key := []byte(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyEncryptionKey).(string))
+	key := []byte(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyEncryptionKey))
 	c, err := aes.NewCipher(key)
 	var res []byte
 	if err != nil {
@@ -90,7 +90,7 @@ func DecryptAES(ciphertext []byte) ([]byte, error) {
 }
 
 // EncryptEnvData is used to encrypt the env data
-func EncryptEnvData(data map[string]interface{}) ([]byte, error) {
+func EncryptEnvData(data envstore.Store) ([]byte, error) {
 	jsonBytes, err := json.Marshal(data)
 	if err != nil {
 		return []byte{}, err

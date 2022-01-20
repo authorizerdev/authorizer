@@ -13,7 +13,7 @@ func DashboardHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		isOnboardingCompleted := false
 
-		if envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAdminSecret) != nil && envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAdminSecret).(string) != "" {
+		if envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret) != "" {
 			isOnboardingCompleted = true
 		}
 

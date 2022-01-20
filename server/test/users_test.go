@@ -26,9 +26,9 @@ func usersTest(t *testing.T, s TestSetup) {
 		users, err := resolvers.UsersResolver(ctx)
 		assert.NotNil(t, err, "unauthorized")
 
-		h, err := utils.EncryptPassword(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAdminSecret).(string))
+		h, err := utils.EncryptPassword(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret))
 		assert.Nil(t, err)
-		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAdminCookieName).(string), h))
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminCookieName), h))
 		users, err = resolvers.UsersResolver(ctx)
 		assert.Nil(t, err)
 		rLen := len(users)

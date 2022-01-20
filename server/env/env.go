@@ -27,176 +27,175 @@ func InitEnv() {
 	// get clone of current store
 	envData := envstore.EnvInMemoryStoreObj.GetEnvStoreClone()
 
-	if envData[constants.EnvKeyEnv] == nil || envData[constants.EnvKeyEnv] == "" {
-		envData[constants.EnvKeyEnv] = os.Getenv("ENV")
-		if envData[constants.EnvKeyEnv] == "" {
-			envData[constants.EnvKeyEnv] = "production"
+	if envData.StringEnv[constants.EnvKeyEnv] == "" {
+		envData.StringEnv[constants.EnvKeyEnv] = os.Getenv("ENV")
+		if envData.StringEnv[constants.EnvKeyEnv] == "" {
+			envData.StringEnv[constants.EnvKeyEnv] = "production"
 		}
 
-		if envData[constants.EnvKeyEnv] == "production" {
-			envData[constants.EnvKeyIsProd] = true
+		if envData.StringEnv[constants.EnvKeyEnv] == "production" {
+			envData.BoolEnv[constants.EnvKeyIsProd] = true
 			os.Setenv("GIN_MODE", "release")
 		} else {
-			envData[constants.EnvKeyIsProd] = false
+			envData.BoolEnv[constants.EnvKeyIsProd] = false
 		}
 	}
 
 	// set authorizer url to empty string so that fresh url is obtained with every server start
-	envData[constants.EnvKeyAuthorizerURL] = ""
-	if envData[constants.EnvKeyAppURL] == nil || envData[constants.EnvKeyAppURL] == "" {
-		envData[constants.EnvKeyAppURL] = os.Getenv(constants.EnvKeyAppURL)
+	envData.StringEnv[constants.EnvKeyAuthorizerURL] = ""
+	if envData.StringEnv[constants.EnvKeyAppURL] == "" {
+		envData.StringEnv[constants.EnvKeyAppURL] = os.Getenv(constants.EnvKeyAppURL)
 	}
 
-	if envData[constants.EnvKeyEnvPath] == nil || envData[constants.EnvKeyEnvPath].(string) == "" {
-		envData[constants.EnvKeyEnvPath] = `.env`
+	if envData.StringEnv[constants.EnvKeyEnvPath] == "" {
+		envData.StringEnv[constants.EnvKeyEnvPath] = `.env`
 	}
 
 	if ARG_ENV_FILE != nil && *ARG_ENV_FILE != "" {
-		envData[constants.EnvKeyEnvPath] = *ARG_ENV_FILE
+		envData.StringEnv[constants.EnvKeyEnvPath] = *ARG_ENV_FILE
 	}
 
-	err := godotenv.Load(envData[constants.EnvKeyEnvPath].(string))
+	err := godotenv.Load(envData.StringEnv[constants.EnvKeyEnvPath])
 	if err != nil {
-		log.Printf("error loading %s file", envData[constants.EnvKeyEnvPath])
+		log.Printf("error loading %s file", envData.StringEnv[constants.EnvKeyEnvPath])
 	}
 
-	if envData[constants.EnvKeyPort] == nil || envData[constants.EnvKeyPort].(string) == "" {
-		envData[constants.EnvKeyPort] = os.Getenv("PORT")
-		if envData[constants.EnvKeyPort].(string) == "" {
-			envData[constants.EnvKeyPort] = "8080"
+	if envData.StringEnv[constants.EnvKeyPort] == "" {
+		envData.StringEnv[constants.EnvKeyPort] = os.Getenv("PORT")
+		if envData.StringEnv[constants.EnvKeyPort] == "" {
+			envData.StringEnv[constants.EnvKeyPort] = "8080"
 		}
 	}
 
-	if envData[constants.EnvKeyAdminSecret] == nil || envData[constants.EnvKeyAdminSecret].(string) == "" {
-		envData[constants.EnvKeyAdminSecret] = os.Getenv("ADMIN_SECRET")
+	if envData.StringEnv[constants.EnvKeyAdminSecret] == "" {
+		envData.StringEnv[constants.EnvKeyAdminSecret] = os.Getenv("ADMIN_SECRET")
 	}
 
-	if envData[constants.EnvKeyDatabaseType] == nil || envData[constants.EnvKeyDatabaseType].(string) == "" {
-		envData[constants.EnvKeyDatabaseType] = os.Getenv("DATABASE_TYPE")
-		log.Println(envData[constants.EnvKeyDatabaseType].(string))
+	if envData.StringEnv[constants.EnvKeyDatabaseType] == "" {
+		envData.StringEnv[constants.EnvKeyDatabaseType] = os.Getenv("DATABASE_TYPE")
 
 		if ARG_DB_TYPE != nil && *ARG_DB_TYPE != "" {
-			envData[constants.EnvKeyDatabaseType] = *ARG_DB_TYPE
+			envData.StringEnv[constants.EnvKeyDatabaseType] = *ARG_DB_TYPE
 		}
 
-		if envData[constants.EnvKeyDatabaseType].(string) == "" {
+		if envData.StringEnv[constants.EnvKeyDatabaseType] == "" {
 			panic("DATABASE_TYPE is required")
 		}
 	}
 
-	if envData[constants.EnvKeyDatabaseURL] == nil || envData[constants.EnvKeyDatabaseURL].(string) == "" {
-		envData[constants.EnvKeyDatabaseURL] = os.Getenv("DATABASE_URL")
+	if envData.StringEnv[constants.EnvKeyDatabaseURL] == "" {
+		envData.StringEnv[constants.EnvKeyDatabaseURL] = os.Getenv("DATABASE_URL")
 
 		if ARG_DB_URL != nil && *ARG_DB_URL != "" {
-			envData[constants.EnvKeyDatabaseURL] = *ARG_DB_URL
+			envData.StringEnv[constants.EnvKeyDatabaseURL] = *ARG_DB_URL
 		}
 
-		if envData[constants.EnvKeyDatabaseURL] == "" {
+		if envData.StringEnv[constants.EnvKeyDatabaseURL] == "" {
 			panic("DATABASE_URL is required")
 		}
 	}
 
-	if envData[constants.EnvKeyDatabaseName] == nil || envData[constants.EnvKeyDatabaseName].(string) == "" {
-		envData[constants.EnvKeyDatabaseName] = os.Getenv("DATABASE_NAME")
-		if envData[constants.EnvKeyDatabaseName].(string) == "" {
-			envData[constants.EnvKeyDatabaseName] = "authorizer"
+	if envData.StringEnv[constants.EnvKeyDatabaseName] == "" {
+		envData.StringEnv[constants.EnvKeyDatabaseName] = os.Getenv("DATABASE_NAME")
+		if envData.StringEnv[constants.EnvKeyDatabaseName] == "" {
+			envData.StringEnv[constants.EnvKeyDatabaseName] = "authorizer"
 		}
 	}
 
-	if envData[constants.EnvKeySmtpHost] == nil || envData[constants.EnvKeySmtpHost].(string) == "" {
-		envData[constants.EnvKeySmtpHost] = os.Getenv("SMTP_HOST")
+	if envData.StringEnv[constants.EnvKeySmtpHost] == "" {
+		envData.StringEnv[constants.EnvKeySmtpHost] = os.Getenv("SMTP_HOST")
 	}
 
-	if envData[constants.EnvKeySmtpPort] == nil || envData[constants.EnvKeySmtpPort].(string) == "" {
-		envData[constants.EnvKeySmtpPort] = os.Getenv("SMTP_PORT")
+	if envData.StringEnv[constants.EnvKeySmtpPort] == "" {
+		envData.StringEnv[constants.EnvKeySmtpPort] = os.Getenv("SMTP_PORT")
 	}
 
-	if envData[constants.EnvKeySmtpUsername] == nil || envData[constants.EnvKeySmtpUsername].(string) == "" {
-		envData[constants.EnvKeySmtpUsername] = os.Getenv("SMTP_USERNAME")
+	if envData.StringEnv[constants.EnvKeySmtpUsername] == "" {
+		envData.StringEnv[constants.EnvKeySmtpUsername] = os.Getenv("SMTP_USERNAME")
 	}
 
-	if envData[constants.EnvKeySmtpPassword] == nil || envData[constants.EnvKeySmtpPassword].(string) == "" {
-		envData[constants.EnvKeySmtpPassword] = os.Getenv("SMTP_PASSWORD")
+	if envData.StringEnv[constants.EnvKeySmtpPassword] == "" {
+		envData.StringEnv[constants.EnvKeySmtpPassword] = os.Getenv("SMTP_PASSWORD")
 	}
 
-	if envData[constants.EnvKeySenderEmail] == nil || envData[constants.EnvKeySenderEmail].(string) == "" {
-		envData[constants.EnvKeySenderEmail] = os.Getenv("SENDER_EMAIL")
+	if envData.StringEnv[constants.EnvKeySenderEmail] == "" {
+		envData.StringEnv[constants.EnvKeySenderEmail] = os.Getenv("SENDER_EMAIL")
 	}
 
-	if envData[constants.EnvKeyJwtSecret] == nil || envData[constants.EnvKeyJwtSecret].(string) == "" {
-		envData[constants.EnvKeyJwtSecret] = os.Getenv("JWT_SECRET")
-		if envData[constants.EnvKeyJwtSecret].(string) == "" {
-			envData[constants.EnvKeyJwtSecret] = uuid.New().String()
+	if envData.StringEnv[constants.EnvKeyJwtSecret] == "" {
+		envData.StringEnv[constants.EnvKeyJwtSecret] = os.Getenv("JWT_SECRET")
+		if envData.StringEnv[constants.EnvKeyJwtSecret] == "" {
+			envData.StringEnv[constants.EnvKeyJwtSecret] = uuid.New().String()
 		}
 	}
 
-	if envData[constants.EnvKeyJwtType] == nil || envData[constants.EnvKeyJwtType].(string) == "" {
-		envData[constants.EnvKeyJwtType] = os.Getenv("JWT_TYPE")
-		if envData[constants.EnvKeyJwtType].(string) == "" {
-			envData[constants.EnvKeyJwtType] = "HS256"
+	if envData.StringEnv[constants.EnvKeyJwtType] == "" {
+		envData.StringEnv[constants.EnvKeyJwtType] = os.Getenv("JWT_TYPE")
+		if envData.StringEnv[constants.EnvKeyJwtType] == "" {
+			envData.StringEnv[constants.EnvKeyJwtType] = "HS256"
 		}
 	}
 
-	if envData[constants.EnvKeyJwtRoleClaim] == nil || envData[constants.EnvKeyJwtRoleClaim].(string) == "" {
-		envData[constants.EnvKeyJwtRoleClaim] = os.Getenv("JWT_ROLE_CLAIM")
+	if envData.StringEnv[constants.EnvKeyJwtRoleClaim] == "" {
+		envData.StringEnv[constants.EnvKeyJwtRoleClaim] = os.Getenv("JWT_ROLE_CLAIM")
 
-		if envData[constants.EnvKeyJwtRoleClaim].(string) == "" {
-			envData[constants.EnvKeyJwtRoleClaim] = "role"
+		if envData.StringEnv[constants.EnvKeyJwtRoleClaim] == "" {
+			envData.StringEnv[constants.EnvKeyJwtRoleClaim] = "role"
 		}
 	}
 
-	if envData[constants.EnvKeyRedisURL] == nil || envData[constants.EnvKeyRedisURL].(string) == "" {
-		envData[constants.EnvKeyRedisURL] = os.Getenv("REDIS_URL")
+	if envData.StringEnv[constants.EnvKeyRedisURL] == "" {
+		envData.StringEnv[constants.EnvKeyRedisURL] = os.Getenv("REDIS_URL")
 	}
 
-	if envData[constants.EnvKeyCookieName] == nil || envData[constants.EnvKeyCookieName].(string) == "" {
-		envData[constants.EnvKeyCookieName] = os.Getenv("COOKIE_NAME")
-		if envData[constants.EnvKeyCookieName].(string) == "" {
-			envData[constants.EnvKeyCookieName] = "authorizer"
+	if envData.StringEnv[constants.EnvKeyCookieName] == "" {
+		envData.StringEnv[constants.EnvKeyCookieName] = os.Getenv("COOKIE_NAME")
+		if envData.StringEnv[constants.EnvKeyCookieName] == "" {
+			envData.StringEnv[constants.EnvKeyCookieName] = "authorizer"
 		}
 	}
 
-	if envData[constants.EnvKeyGoogleClientID] == nil || envData[constants.EnvKeyGoogleClientID].(string) == "" {
-		envData[constants.EnvKeyGoogleClientID] = os.Getenv("GOOGLE_CLIENT_ID")
+	if envData.StringEnv[constants.EnvKeyGoogleClientID] == "" {
+		envData.StringEnv[constants.EnvKeyGoogleClientID] = os.Getenv("GOOGLE_CLIENT_ID")
 	}
 
-	if envData[constants.EnvKeyGoogleClientSecret] == nil || envData[constants.EnvKeyGoogleClientSecret].(string) == "" {
-		envData[constants.EnvKeyGoogleClientSecret] = os.Getenv("GOOGLE_CLIENT_SECRET")
+	if envData.StringEnv[constants.EnvKeyGoogleClientSecret] == "" {
+		envData.StringEnv[constants.EnvKeyGoogleClientSecret] = os.Getenv("GOOGLE_CLIENT_SECRET")
 	}
 
-	if envData[constants.EnvKeyGithubClientID] == nil || envData[constants.EnvKeyGithubClientID].(string) == "" {
-		envData[constants.EnvKeyGithubClientID] = os.Getenv("GITHUB_CLIENT_ID")
+	if envData.StringEnv[constants.EnvKeyGithubClientID] == "" {
+		envData.StringEnv[constants.EnvKeyGithubClientID] = os.Getenv("GITHUB_CLIENT_ID")
 	}
 
-	if envData[constants.EnvKeyGithubClientSecret] == nil || envData[constants.EnvKeyGithubClientSecret].(string) == "" {
-		envData[constants.EnvKeyGithubClientSecret] = os.Getenv("GITHUB_CLIENT_SECRET")
+	if envData.StringEnv[constants.EnvKeyGithubClientSecret] == "" {
+		envData.StringEnv[constants.EnvKeyGithubClientSecret] = os.Getenv("GITHUB_CLIENT_SECRET")
 	}
 
-	if envData[constants.EnvKeyFacebookClientID] == nil || envData[constants.EnvKeyFacebookClientID].(string) == "" {
-		envData[constants.EnvKeyFacebookClientID] = os.Getenv("FACEBOOK_CLIENT_ID")
+	if envData.StringEnv[constants.EnvKeyFacebookClientID] == "" {
+		envData.StringEnv[constants.EnvKeyFacebookClientID] = os.Getenv("FACEBOOK_CLIENT_ID")
 	}
 
-	if envData[constants.EnvKeyFacebookClientSecret] == nil || envData[constants.EnvKeyFacebookClientSecret].(string) == "" {
-		envData[constants.EnvKeyFacebookClientSecret] = os.Getenv("FACEBOOK_CLIENT_SECRET")
+	if envData.StringEnv[constants.EnvKeyFacebookClientSecret] == "" {
+		envData.StringEnv[constants.EnvKeyFacebookClientSecret] = os.Getenv("FACEBOOK_CLIENT_SECRET")
 	}
 
-	if envData[constants.EnvKeyResetPasswordURL] == nil || envData[constants.EnvKeyResetPasswordURL].(string) == "" {
-		envData[constants.EnvKeyResetPasswordURL] = strings.TrimPrefix(os.Getenv("RESET_PASSWORD_URL"), "/")
+	if envData.StringEnv[constants.EnvKeyResetPasswordURL] == "" {
+		envData.StringEnv[constants.EnvKeyResetPasswordURL] = strings.TrimPrefix(os.Getenv("RESET_PASSWORD_URL"), "/")
 	}
 
-	envData[constants.EnvKeyDisableBasicAuthentication] = os.Getenv("DISABLE_BASIC_AUTHENTICATION") == "true"
-	envData[constants.EnvKeyDisableEmailVerification] = os.Getenv("DISABLE_EMAIL_VERIFICATION") == "true"
-	envData[constants.EnvKeyDisableMagicLinkLogin] = os.Getenv("DISABLE_MAGIC_LINK_LOGIN") == "true"
-	envData[constants.EnvKeyDisableLoginPage] = os.Getenv("DISABLE_LOGIN_PAGE") == "true"
+	envData.BoolEnv[constants.EnvKeyDisableBasicAuthentication] = os.Getenv("DISABLE_BASIC_AUTHENTICATION") == "true"
+	envData.BoolEnv[constants.EnvKeyDisableEmailVerification] = os.Getenv("DISABLE_EMAIL_VERIFICATION") == "true"
+	envData.BoolEnv[constants.EnvKeyDisableMagicLinkLogin] = os.Getenv("DISABLE_MAGIC_LINK_LOGIN") == "true"
+	envData.BoolEnv[constants.EnvKeyDisableLoginPage] = os.Getenv("DISABLE_LOGIN_PAGE") == "true"
 
 	// no need to add nil check as its already done above
-	if envData[constants.EnvKeySmtpHost].(string) == "" || envData[constants.EnvKeySmtpUsername].(string) == "" || envData[constants.EnvKeySmtpPassword].(string) == "" || envData[constants.EnvKeySenderEmail].(string) == "" {
-		envData[constants.EnvKeyDisableEmailVerification] = true
-		envData[constants.EnvKeyDisableMagicLinkLogin] = true
+	if envData.StringEnv[constants.EnvKeySmtpHost] == "" || envData.StringEnv[constants.EnvKeySmtpUsername] == "" || envData.StringEnv[constants.EnvKeySmtpPassword] == "" || envData.StringEnv[constants.EnvKeySenderEmail] == "" && envData.StringEnv[constants.EnvKeySmtpPort] == "" {
+		envData.BoolEnv[constants.EnvKeyDisableEmailVerification] = true
+		envData.BoolEnv[constants.EnvKeyDisableMagicLinkLogin] = true
 	}
 
-	if envData[constants.EnvKeyDisableEmailVerification].(bool) {
-		envData[constants.EnvKeyDisableMagicLinkLogin] = true
+	if envData.BoolEnv[constants.EnvKeyDisableEmailVerification] {
+		envData.BoolEnv[constants.EnvKeyDisableMagicLinkLogin] = true
 	}
 
 	allowedOriginsSplit := strings.Split(os.Getenv("ALLOWED_ORIGINS"), ",")
@@ -225,7 +224,7 @@ func InitEnv() {
 		allowedOrigins = []string{"*"}
 	}
 
-	envData[constants.EnvKeyAllowedOrigins] = allowedOrigins
+	envData.SliceEnv[constants.EnvKeyAllowedOrigins] = allowedOrigins
 
 	rolesEnv := strings.TrimSpace(os.Getenv("ROLES"))
 	rolesSplit := strings.Split(rolesEnv, ",")
@@ -268,16 +267,16 @@ func InitEnv() {
 		panic(`Invalid DEFAULT_ROLE environment variable. It can be one from give ROLES environment variable value`)
 	}
 
-	envData[constants.EnvKeyRoles] = roles
-	envData[constants.EnvKeyDefaultRoles] = defaultRoles
-	envData[constants.EnvKeyProtectedRoles] = protectedRoles
+	envData.SliceEnv[constants.EnvKeyRoles] = roles
+	envData.SliceEnv[constants.EnvKeyDefaultRoles] = defaultRoles
+	envData.SliceEnv[constants.EnvKeyProtectedRoles] = protectedRoles
 
 	if os.Getenv("ORGANIZATION_NAME") != "" {
-		envData[constants.EnvKeyOrganizationName] = os.Getenv("ORGANIZATION_NAME")
+		envData.StringEnv[constants.EnvKeyOrganizationName] = os.Getenv("ORGANIZATION_NAME")
 	}
 
 	if os.Getenv("ORGANIZATION_LOGO") != "" {
-		envData[constants.EnvKeyOrganizationLogo] = os.Getenv("ORGANIZATION_LOGO")
+		envData.StringEnv[constants.EnvKeyOrganizationLogo] = os.Getenv("ORGANIZATION_LOGO")
 	}
 
 	envstore.EnvInMemoryStoreObj.UpdateEnvStore(envData)

@@ -33,7 +33,7 @@ func profileTests(t *testing.T, s TestSetup) {
 		})
 
 		token := *verifyRes.AccessToken
-		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyCookieName).(string), token))
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName), token))
 		profileRes, err := resolvers.ProfileResolver(ctx)
 		assert.Nil(t, err)
 

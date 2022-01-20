@@ -33,14 +33,14 @@ func OAuthLoginHandler() gin.HandlerFunc {
 
 			// use protected roles verification for admin login only.
 			// though if not associated with user, it will be rejected from oauth_callback
-			if !utils.IsValidRoles(append([]string{}, append(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyRoles).([]string), envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyProtectedRoles).([]string)...)...), rolesSplit) {
+			if !utils.IsValidRoles(append([]string{}, append(envstore.EnvInMemoryStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyRoles), envstore.EnvInMemoryStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyProtectedRoles)...)...), rolesSplit) {
 				c.JSON(400, gin.H{
 					"error": "invalid role",
 				})
 				return
 			}
 		} else {
-			roles = strings.Join(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDefaultRoles).([]string), ",")
+			roles = strings.Join(envstore.EnvInMemoryStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles), ",")
 		}
 
 		uuid := uuid.New()
@@ -56,7 +56,7 @@ func OAuthLoginHandler() gin.HandlerFunc {
 			}
 			session.SetSocailLoginState(oauthStateString, constants.SignupMethodGoogle)
 			// during the init of OAuthProvider authorizer url might be empty
-			oauth.OAuthProviders.GoogleConfig.RedirectURL = envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAuthorizerURL).(string) + "/oauth_callback/google"
+			oauth.OAuthProviders.GoogleConfig.RedirectURL = envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAuthorizerURL) + "/oauth_callback/google"
 			url := oauth.OAuthProviders.GoogleConfig.AuthCodeURL(oauthStateString)
 			c.Redirect(http.StatusTemporaryRedirect, url)
 		case constants.SignupMethodGithub:
@@ -65,7 +65,7 @@ func OAuthLoginHandler() gin.HandlerFunc {
 				break
 			}
 			session.SetSocailLoginState(oauthStateString, constants.SignupMethodGithub)
-			oauth.OAuthProviders.GithubConfig.RedirectURL = envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAuthorizerURL).(string) + "/oauth_callback/github"
+			oauth.OAuthProviders.GithubConfig.RedirectURL = envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAuthorizerURL) + "/oauth_callback/github"
 			url := oauth.OAuthProviders.GithubConfig.AuthCodeURL(oauthStateString)
 			c.Redirect(http.StatusTemporaryRedirect, url)
 		case constants.SignupMethodFacebook:
@@ -74,7 +74,7 @@ func OAuthLoginHandler() gin.HandlerFunc {
 				break
 			}
 			session.SetSocailLoginState(oauthStateString, constants.SignupMethodFacebook)
-			oauth.OAuthProviders.FacebookConfig.RedirectURL = envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAuthorizerURL).(string) + "/oauth_callback/facebook"
+			oauth.OAuthProviders.FacebookConfig.RedirectURL = envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAuthorizerURL) + "/oauth_callback/facebook"
 			url := oauth.OAuthProviders.FacebookConfig.AuthCodeURL(oauthStateString)
 			c.Redirect(http.StatusTemporaryRedirect, url)
 		default:

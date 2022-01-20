@@ -15,19 +15,19 @@ func TestResolvers(t *testing.T) {
 		// constants.DbTypeArangodb: "http://localhost:8529",
 		// constants.DbTypeMongodb:  "mongodb://localhost:27017",
 	}
-	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.EnvKeyVersion, "test")
+	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyVersion, "test")
 	for dbType, dbURL := range databases {
-		envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.EnvKeyDatabaseURL, dbURL)
-		envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.EnvKeyDatabaseType, dbType)
+		envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseURL, dbURL)
+		envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseType, dbType)
 
 		env.InitEnv()
 		db.InitDB()
 
 		// clean the persisted config for test to use fresh config
-		config, err := db.Mgr.GetConfig()
+		envData, err := db.Mgr.GetEnv()
 		if err == nil {
-			config.Config = []byte{}
-			db.Mgr.UpdateConfig(config)
+			envData.EnvData = []byte{}
+			db.Mgr.UpdateEnv(envData)
 		}
 		env.PersistEnv()
 
@@ -44,8 +44,8 @@ func TestResolvers(t *testing.T) {
 			adminLoginTests(t, s)
 			adminLogoutTests(t, s)
 			adminSessionTests(t, s)
-			updateConfigTests(t, s)
-			configTests(t, s)
+			updateEnvTests(t, s)
+			envTests(t, s)
 
 			// user tests
 			loginTests(t, s)

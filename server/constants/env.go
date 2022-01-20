@@ -1,6 +1,14 @@
 package constants
 
 const (
+	// Envstore identifier
+	// StringStore string store identifier
+	StringStoreIdentifier = "stringStore"
+	// BoolStore bool store identifier
+	BoolStoreIdentifier = "boolStore"
+	// SliceStore slice store identifier
+	SliceStoreIdentifier = "sliceStore"
+
 	// EnvKeyEnv key for env variable ENV
 	EnvKeyEnv = "ENV"
 	// EnvKeyEnvPath key for cli arg variable ENV_PATH

@@ -22,7 +22,7 @@ func TestIsValidEmail(t *testing.T) {
 func TestIsValidOrigin(t *testing.T) {
 	// don't use portocal(http/https) for ALLOWED_ORIGINS while testing,
 	// as we trim them off while running the main function
-	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.EnvKeyAllowedOrigins, []string{"localhost:8080", "*.google.com", "*.google.in", "*abc.*"})
+	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.SliceStoreIdentifier, constants.EnvKeyAllowedOrigins, []string{"localhost:8080", "*.google.com", "*.google.in", "*abc.*"})
 	assert.False(t, utils.IsValidOrigin("http://myapp.com"), "it should be invalid origin")
 	assert.False(t, utils.IsValidOrigin("http://appgoogle.com"), "it should be invalid origin")
 	assert.True(t, utils.IsValidOrigin("http://app.google.com"), "it should be valid origin")
@@ -32,7 +32,7 @@ func TestIsValidOrigin(t *testing.T) {
 	assert.True(t, utils.IsValidOrigin("http://xyx.abc.in"), "it should be valid origin")
 	assert.True(t, utils.IsValidOrigin("http://xyxabc.in"), "it should be valid origin")
 	assert.True(t, utils.IsValidOrigin("http://localhost:8080"), "it should be valid origin")
-	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.EnvKeyAllowedOrigins, []string{"*"})
+	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.SliceStoreIdentifier, constants.EnvKeyAllowedOrigins, []string{"*"})
 }
 
 func TestIsValidIdentifier(t *testing.T) {

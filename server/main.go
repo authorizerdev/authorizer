@@ -20,7 +20,7 @@ func main() {
 	env.ARG_ENV_FILE = flag.String("env_file", "", "Env file path")
 	flag.Parse()
 
-	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.EnvKeyVersion, VERSION)
+	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyVersion, VERSION)
 
 	env.InitEnv()
 	db.InitDB()
@@ -31,5 +31,5 @@ func main() {
 
 	router := routes.InitRouter()
 
-	router.Run(":" + envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyPort).(string))
+	router.Run(":" + envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyPort))
 }

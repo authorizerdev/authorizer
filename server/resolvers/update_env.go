@@ -41,43 +41,47 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 		return res, fmt.Errorf("error un-marshalling params: %t", err)
 	}
 
-	updatedData := make(map[string]interface{})
+	updatedData := envstore.EnvInMemoryStoreObj.GetEnvStoreClone()
 	for key, value := range data {
 		if value != nil {
 			fieldType := reflect.TypeOf(value).String()
 
-			if fieldType == "string" || fieldType == "bool" {
-				updatedData[key] = value
+			if fieldType == "string" {
+				updatedData.StringEnv[key] = value.(string)
 			}
 
+			if fieldType == "bool" {
+				updatedData.BoolEnv[key] = value.(bool)
+			}
 			if fieldType == "[]interface {}" {
 				stringArr := []string{}
 				for _, v := range value.([]interface{}) {
 					stringArr = append(stringArr, v.(string))
 				}
-				updatedData[key] = stringArr
+				updatedData.SliceEnv[key] = stringArr
 			}
 		}
 	}
 
 	// handle derivative cases like disabling email verification & magic login
 	// in case SMTP is off but env is set to true
-	if updatedData[constants.EnvKeySmtpHost] == "" || updatedData[constants.EnvKeySenderEmail] == "" || updatedData[constants.EnvKeySmtpPort] == "" || updatedData[constants.EnvKeySmtpUsername] == "" || updatedData[constants.EnvKeySmtpPassword] == "" {
-		if !updatedData[constants.EnvKeyDisableEmailVerification].(bool) {
-			updatedData[constants.EnvKeyDisableEmailVerification] = true
+	if updatedData.StringEnv[constants.EnvKeySmtpHost] == "" || updatedData.StringEnv[constants.EnvKeySmtpUsername] == "" || updatedData.StringEnv[constants.EnvKeySmtpPassword] == "" || updatedData.StringEnv[constants.EnvKeySenderEmail] == "" && updatedData.StringEnv[constants.EnvKeySmtpPort] == "" {
+		if !updatedData.BoolEnv[constants.EnvKeyDisableEmailVerification] {
+			updatedData.BoolEnv[constants.EnvKeyDisableEmailVerification] = true
 		}
 
-		if !updatedData[constants.EnvKeyDisableMagicLinkLogin].(bool) {
-			updatedData[constants.EnvKeyDisableMagicLinkLogin] = true
+		if !updatedData.BoolEnv[constants.EnvKeyDisableMagicLinkLogin] {
+			updatedData.BoolEnv[constants.EnvKeyDisableMagicLinkLogin] = true
 		}
 	}
+	// Update local store
+	envstore.EnvInMemoryStoreObj.UpdateEnvStore(updatedData)
 
-	config, err := db.Mgr.GetConfig()
+	// Fetch the current db store and update it
+	env, err := db.Mgr.GetEnv()
 	if err != nil {
 		return res, err
 	}
-
-	envstore.EnvInMemoryStoreObj.UpdateEnvStore(updatedData)
 
 	encryptedConfig, err := utils.EncryptEnvData(updatedData)
 	if err != nil {
@@ -95,20 +99,20 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 			return res, errors.New("admin secret and old admin secret are required for secret change")
 		}
 
-		err := bcrypt.CompareHashAndPassword([]byte(*params.OldAdminSecret), []byte(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAdminSecret).(string)))
+		err := bcrypt.CompareHashAndPassword([]byte(*params.OldAdminSecret), []byte(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret)))
 		if err != nil {
 			return res, errors.New("old admin secret is not correct")
 		}
 
-		hashedKey, err := utils.EncryptPassword(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAdminSecret).(string))
+		hashedKey, err := utils.EncryptPassword(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret))
 		if err != nil {
 			return res, err
 		}
 		utils.SetAdminCookie(gc, hashedKey)
 	}
 
-	config.Config = encryptedConfig
-	_, err = db.Mgr.UpdateConfig(config)
+	env.EnvData = encryptedConfig
+	_, err = db.Mgr.UpdateEnv(env)
 	if err != nil {
 		log.Println("error updating config:", err)
 		return res, err

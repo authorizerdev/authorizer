@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"os"
-	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/authorizerdev/authorizer/server/constants"
@@ -16,12 +16,12 @@ import (
 
 // PersistEnv persists the environment variables to the database
 func PersistEnv() error {
-	config, err := db.Mgr.GetConfig()
+	env, err := db.Mgr.GetEnv()
 	// config not found in db
 	if err != nil {
 		// AES encryption needs 32 bit key only, so we chop off last 4 characters from 36 bit uuid
 		hash := uuid.New().String()[:36-4]
-		envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.EnvKeyEncryptionKey, hash)
+		envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyEncryptionKey, hash)
 		encodedHash := utils.EncryptB64(hash)
 
 		configData, err := json.Marshal(envstore.EnvInMemoryStoreObj.GetEnvStoreClone())
@@ -34,31 +34,31 @@ func PersistEnv() error {
 			return err
 		}
 
-		config = db.Config{
-			Hash:   encodedHash,
-			Config: encryptedConfig,
+		env = db.Env{
+			Hash:    encodedHash,
+			EnvData: encryptedConfig,
 		}
 
-		db.Mgr.AddConfig(config)
+		db.Mgr.AddEnv(env)
 	} else {
 		// decrypt the config data from db
 		// decryption can be done using the hash stored in db
-		encryptionKey := config.Hash
+		encryptionKey := env.Hash
 		decryptedEncryptionKey, err := utils.DecryptB64(encryptionKey)
 		if err != nil {
 			return err
 		}
 
-		envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.EnvKeyEncryptionKey, decryptedEncryptionKey)
-		decryptedConfigs, err := utils.DecryptAES(config.Config)
+		envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyEncryptionKey, decryptedEncryptionKey)
+		decryptedConfigs, err := utils.DecryptAES(env.EnvData)
 		if err != nil {
 			return err
 		}
 
-		// temp json to validate with env
-		var jsonData map[string]interface{}
+		// temp store variable
+		var storeData envstore.Store
 
-		err = json.Unmarshal(decryptedConfigs, &jsonData)
+		err = json.Unmarshal(decryptedConfigs, &storeData)
 		if err != nil {
 			return err
 		}
@@ -68,69 +68,70 @@ func PersistEnv() error {
 
 		hasChanged := false
 
-		for key, value := range jsonData {
-			fieldType := reflect.TypeOf(value).String()
+		for key, value := range storeData.StringEnv {
+			if key != constants.EnvKeyEncryptionKey {
+				// check only for derivative keys
+				// No need to check for ENCRYPTION_KEY which special key we use for encrypting config data
+				// as we have removed it from json
+				envValue := strings.TrimSpace(os.Getenv(key))
 
-			// check only for derivative keys
-			// No need to check for ENCRYPTION_KEY which special key we use for encrypting config data
-			// as we have removed it from json
+				// env is not empty
+				if envValue != "" {
+					if value != envValue {
+						storeData.StringEnv[key] = envValue
+						hasChanged = true
+					}
+				}
+			}
+		}
+
+		for key, value := range storeData.BoolEnv {
 			envValue := strings.TrimSpace(os.Getenv(key))
-
 			// env is not empty
 			if envValue != "" {
-				// check the type
-				// currently we have 3 types of env vars: string, bool, []string{}
-				if fieldType == "string" {
-					if value != envValue {
-						jsonData[key] = envValue
-						hasChanged = true
-					}
+				envValueBool, _ := strconv.ParseBool(envValue)
+				if value != envValueBool {
+					storeData.BoolEnv[key] = envValueBool
+					hasChanged = true
 				}
+			}
+		}
 
-				if fieldType == "bool" {
-					newValue := envValue == "true"
-					if value != newValue {
-						jsonData[key] = newValue
-						hasChanged = true
-					}
-				}
-
-				if fieldType == "[]interface {}" {
-					stringArr := []string{}
-					envStringArr := strings.Split(envValue, ",")
-					for _, v := range value.([]interface{}) {
-						stringArr = append(stringArr, v.(string))
-					}
-					if !utils.IsStringArrayEqual(stringArr, envStringArr) {
-						jsonData[key] = envStringArr
-					}
+		for key, value := range storeData.SliceEnv {
+			envValue := strings.TrimSpace(os.Getenv(key))
+			// env is not empty
+			if envValue != "" {
+				envStringArr := strings.Split(envValue, ",")
+				if !utils.IsStringArrayEqual(value, envStringArr) {
+					storeData.SliceEnv[key] = envStringArr
+					hasChanged = true
 				}
 			}
 		}
 
 		// handle derivative cases like disabling email verification & magic login
 		// in case SMTP is off but env is set to true
-		if jsonData["SMTP_HOST"] == "" || jsonData["SENDER_EMAIL"] == "" || jsonData["SENDER_PASSWORD"] == "" {
-			if !jsonData["DISABLE_EMAIL_VERIFICATION"].(bool) {
-				jsonData["DISABLE_EMAIL_VERIFICATION"] = true
+		if storeData.StringEnv[constants.EnvKeySmtpHost] == "" || storeData.StringEnv[constants.EnvKeySmtpUsername] == "" || storeData.StringEnv[constants.EnvKeySmtpPassword] == "" || storeData.StringEnv[constants.EnvKeySenderEmail] == "" && storeData.StringEnv[constants.EnvKeySmtpPort] == "" {
+			if !storeData.BoolEnv[constants.EnvKeyDisableEmailVerification] {
+				storeData.BoolEnv[constants.EnvKeyDisableEmailVerification] = true
 				hasChanged = true
 			}
 
-			if !jsonData["DISABLE_MAGIC_LINK_LOGIN"].(bool) {
-				jsonData["DISABLE_MAGIC_LINK_LOGIN"] = true
+			if !storeData.BoolEnv[constants.EnvKeyDisableMagicLinkLogin] {
+				storeData.BoolEnv[constants.EnvKeyDisableMagicLinkLogin] = true
 				hasChanged = true
 			}
 		}
 
-		envstore.EnvInMemoryStoreObj.UpdateEnvStore(jsonData)
+		envstore.EnvInMemoryStoreObj.UpdateEnvStore(storeData)
 		if hasChanged {
-			encryptedConfig, err := utils.EncryptEnvData(jsonData)
+			encryptedConfig, err := utils.EncryptEnvData(storeData)
 			if err != nil {
 				return err
 			}
 
-			config.Config = encryptedConfig
-			_, err = db.Mgr.UpdateConfig(config)
+			env.EnvData = encryptedConfig
+			_, err = db.Mgr.UpdateEnv(env)
 			if err != nil {
 				log.Println("error updating config:", err)
 				return err

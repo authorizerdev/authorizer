@@ -29,9 +29,9 @@ type Manager interface {
 	GetVerificationByEmail(email string, identifier string) (VerificationRequest, error)
 	AddSession(session Session) error
 	DeleteUserSession(userId string) error
-	AddConfig(config Config) (Config, error)
-	UpdateConfig(config Config) (Config, error)
-	GetConfig() (Config, error)
+	AddEnv(env Env) (Env, error)
+	UpdateEnv(env Env) (Env, error)
+	GetEnv() (Env, error)
 }
 
 type manager struct {
@@ -45,7 +45,7 @@ type CollectionList struct {
 	User                string
 	VerificationRequest string
 	Session             string
-	Config              string
+	Env                 string
 }
 
 var (
@@ -58,7 +58,7 @@ var (
 		User:                Prefix + "users",
 		VerificationRequest: Prefix + "verification_requests",
 		Session:             Prefix + "sessions",
-		Config:              Prefix + "config",
+		Env:                 Prefix + "env",
 	}
 )
 
@@ -66,9 +66,9 @@ func InitDB() {
 	var sqlDB *gorm.DB
 	var err error
 
-	IsORMSupported = envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDatabaseType).(string) != constants.DbTypeArangodb && envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDatabaseType).(string) != constants.DbTypeMongodb
-	IsArangoDB = envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDatabaseType).(string) == constants.DbTypeArangodb
-	IsMongoDB = envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDatabaseType).(string) == constants.DbTypeMongodb
+	IsORMSupported = envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseType) != constants.DbTypeArangodb && envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseType) != constants.DbTypeMongodb
+	IsArangoDB = envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseType) == constants.DbTypeArangodb
+	IsMongoDB = envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseType) == constants.DbTypeMongodb
 
 	// sql db orm config
 	ormConfig := &gorm.Config{
@@ -77,20 +77,20 @@ func InitDB() {
 		},
 	}
 
-	log.Println("db type:", envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDatabaseType).(string))
+	log.Println("db type:", envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseType))
 
-	switch envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDatabaseType).(string) {
+	switch envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseType) {
 	case constants.DbTypePostgres:
-		sqlDB, err = gorm.Open(postgres.Open(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDatabaseURL).(string)), ormConfig)
+		sqlDB, err = gorm.Open(postgres.Open(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL)), ormConfig)
 		break
 	case constants.DbTypeSqlite:
-		sqlDB, err = gorm.Open(sqlite.Open(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDatabaseURL).(string)), ormConfig)
+		sqlDB, err = gorm.Open(sqlite.Open(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL)), ormConfig)
 		break
 	case constants.DbTypeMysql:
-		sqlDB, err = gorm.Open(mysql.Open(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDatabaseURL).(string)), ormConfig)
+		sqlDB, err = gorm.Open(mysql.Open(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL)), ormConfig)
 		break
 	case constants.DbTypeSqlserver:
-		sqlDB, err = gorm.Open(sqlserver.Open(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDatabaseURL).(string)), ormConfig)
+		sqlDB, err = gorm.Open(sqlserver.Open(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL)), ormConfig)
 		break
 	case constants.DbTypeArangodb:
 		arangodb, err := initArangodb()
@@ -123,7 +123,7 @@ func InitDB() {
 		if err != nil {
 			log.Fatal("Failed to init sqlDB:", err)
 		} else {
-			sqlDB.AutoMigrate(&User{}, &VerificationRequest{}, &Session{}, &Config{})
+			sqlDB.AutoMigrate(&User{}, &VerificationRequest{}, &Session{}, &Env{})
 		}
 		Mgr = &manager{
 			sqlDB:    sqlDB,

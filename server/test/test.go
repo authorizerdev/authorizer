@@ -3,6 +3,7 @@ package test
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"time"
@@ -72,7 +73,8 @@ func testSetup() TestSetup {
 		Password: "test",
 	}
 
-	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.EnvKeyEnvPath, "../../.env.sample")
+	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyEnvPath, "../../.env.sample")
+	log.Println("envstore", envstore.EnvInMemoryStoreObj.GetEnvStoreClone())
 	env.InitEnv()
 	session.InitSession()
 

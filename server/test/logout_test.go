@@ -28,7 +28,7 @@ func logoutTests(t *testing.T, s TestSetup) {
 		})
 
 		token := *verifyRes.AccessToken
-		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyCookieName).(string), token))
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName), token))
 		_, err = resolvers.LogoutResolver(ctx)
 		assert.Nil(t, err)
 		_, err = resolvers.ProfileResolver(ctx)

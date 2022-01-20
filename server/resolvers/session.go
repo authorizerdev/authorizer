@@ -46,7 +46,7 @@ func SessionResolver(ctx context.Context, roles []string) (*model.AuthResponse, 
 	expiresTimeObj := time.Unix(expiresAt, 0)
 	currentTimeObj := time.Now()
 
-	claimRoleInterface := claim[envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyJwtRoleClaim).(string)].([]interface{})
+	claimRoleInterface := claim[envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtRoleClaim)].([]interface{})
 	claimRoles := make([]string, len(claimRoleInterface))
 	for i, v := range claimRoleInterface {
 		claimRoles[i] = v.(string)

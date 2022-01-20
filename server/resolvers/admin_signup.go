@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/authorizerdev/authorizer/server/constants"
@@ -33,39 +32,38 @@ func AdminSignupResolver(ctx context.Context, params model.AdminSignupInput) (*m
 		return res, err
 	}
 
-	adminSecret := envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAdminSecret).(string)
+	adminSecret := envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret)
 
 	if adminSecret != "" {
 		err = fmt.Errorf("admin sign up already completed")
 		return res, err
 	}
 
-	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.EnvKeyAdminSecret, params.AdminSecret)
+	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyAdminSecret, params.AdminSecret)
 	// consvert EnvData to JSON
-	var jsonData map[string]interface{}
+	var storeData envstore.Store
 
 	jsonBytes, err := json.Marshal(envstore.EnvInMemoryStoreObj.GetEnvStoreClone())
 	if err != nil {
 		return res, err
 	}
 
-	if err := json.Unmarshal(jsonBytes, &jsonData); err != nil {
+	if err := json.Unmarshal(jsonBytes, &storeData); err != nil {
 		return res, err
 	}
 
-	config, err := db.Mgr.GetConfig()
+	env, err := db.Mgr.GetEnv()
 	if err != nil {
 		return res, err
 	}
 
-	configData, err := utils.EncryptEnvData(jsonData)
-	log.Println("=> config data from signup:", configData)
+	envData, err := utils.EncryptEnvData(storeData)
 	if err != nil {
 		return res, err
 	}
 
-	config.Config = configData
-	if _, err := db.Mgr.UpdateConfig(config); err != nil {
+	env.EnvData = envData
+	if _, err := db.Mgr.UpdateEnv(env); err != nil {
 		return res, err
 	}
 

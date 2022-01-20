@@ -18,9 +18,9 @@ func adminLogoutTests(t *testing.T, s TestSetup) {
 		_, err := resolvers.AdminLogoutResolver(ctx)
 		assert.NotNil(t, err)
 
-		h, err := utils.EncryptPassword(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAdminSecret).(string))
+		h, err := utils.EncryptPassword(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret))
 		assert.Nil(t, err)
-		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAdminCookieName).(string), h))
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminCookieName), h))
 		_, err = resolvers.AdminLogoutResolver(ctx)
 
 		assert.Nil(t, err)

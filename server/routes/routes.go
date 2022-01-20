@@ -25,7 +25,7 @@ func InitRouter() *gin.Engine {
 
 	router.LoadHTMLGlob("templates/*")
 	// login page app related routes.
-	if !envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDisableLoginPage).(bool) {
+	if !envstore.EnvInMemoryStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableLoginPage) {
 		app := router.Group("/app")
 		{
 			app.Static("/build", "app/build")

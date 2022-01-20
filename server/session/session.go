@@ -107,9 +107,9 @@ func RemoveSocialLoginState(key string) {
 
 // InitializeSessionStore initializes the SessionStoreObj based on environment variables
 func InitSession() {
-	if envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyRedisURL).(string) != "" {
+	if envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyRedisURL) != "" {
 		log.Println("using redis store to save sessions")
-		opt, err := redis.ParseURL(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyRedisURL).(string))
+		opt, err := redis.ParseURL(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyRedisURL))
 		if err != nil {
 			log.Fatalln("Error parsing redis url:", err)
 		}

@@ -45,7 +45,7 @@ func (mgr *manager) AddUser(user User) (User, error) {
 	}
 
 	if user.Roles == "" {
-		user.Roles = strings.Join(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDefaultRoles).([]string), ",")
+		user.Roles = strings.Join(envstore.EnvInMemoryStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles), ",")
 	}
 
 	if IsORMSupported {

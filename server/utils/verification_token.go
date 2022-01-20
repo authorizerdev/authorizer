@@ -26,24 +26,24 @@ type CustomClaim struct {
 
 // CreateVerificationToken creates a verification JWT token
 func CreateVerificationToken(email string, tokenType string) (string, error) {
-	t := jwt.New(jwt.GetSigningMethod(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyJwtType).(string)))
+	t := jwt.New(jwt.GetSigningMethod(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtType)))
 
 	t.Claims = &CustomClaim{
 		&jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(time.Minute * 30).Unix(),
 		},
 		tokenType,
-		UserInfo{Email: email, Host: envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAuthorizerURL).(string), RedirectURL: envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAppURL).(string)},
+		UserInfo{Email: email, Host: envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAuthorizerURL), RedirectURL: envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAppURL)},
 	}
 
-	return t.SignedString([]byte(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyJwtSecret).(string)))
+	return t.SignedString([]byte(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtSecret)))
 }
 
 // VerifyVerificationToken verifies the verification JWT token
 func VerifyVerificationToken(token string) (*CustomClaim, error) {
 	claims := &CustomClaim{}
 	_, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
-		return []byte(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyJwtSecret).(string)), nil
+		return []byte(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtSecret)), nil
 	})
 	if err != nil {
 		return claims, err

@@ -18,7 +18,7 @@ import (
 func initArangodb() (arangoDriver.Database, error) {
 	ctx := context.Background()
 	conn, err := http.NewConnection(http.ConnectionConfig{
-		Endpoints: []string{envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDatabaseURL).(string)},
+		Endpoints: []string{envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL)},
 	})
 	if err != nil {
 		return nil, err
@@ -33,16 +33,16 @@ func initArangodb() (arangoDriver.Database, error) {
 
 	var arangodb driver.Database
 
-	arangodb_exists, err := arangoClient.DatabaseExists(nil, envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDatabaseName).(string))
+	arangodb_exists, err := arangoClient.DatabaseExists(nil, envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseName))
 
 	if arangodb_exists {
-		log.Println(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDatabaseName).(string) + " db exists already")
-		arangodb, err = arangoClient.Database(nil, envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDatabaseName).(string))
+		log.Println(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseName) + " db exists already")
+		arangodb, err = arangoClient.Database(nil, envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseName))
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		arangodb, err = arangoClient.CreateDatabase(nil, envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyDatabaseName).(string), nil)
+		arangodb, err = arangoClient.CreateDatabase(nil, envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseName), nil)
 		if err != nil {
 			return nil, err
 		}
@@ -101,13 +101,13 @@ func initArangodb() (arangoDriver.Database, error) {
 		Sparse: true,
 	})
 
-	configCollectionExists, err := arangodb.CollectionExists(ctx, Collections.Config)
+	configCollectionExists, err := arangodb.CollectionExists(ctx, Collections.Env)
 	if configCollectionExists {
-		log.Println(Collections.Config + " collection exists already")
+		log.Println(Collections.Env + " collection exists already")
 	} else {
-		_, err = arangodb.CreateCollection(ctx, Collections.Config, nil)
+		_, err = arangodb.CreateCollection(ctx, Collections.Env, nil)
 		if err != nil {
-			log.Println("error creating collection("+Collections.Config+"):", err)
+			log.Println("error creating collection("+Collections.Env+"):", err)
 		}
 	}
 

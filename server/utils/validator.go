@@ -18,8 +18,8 @@ func IsValidEmail(email string) bool {
 
 // IsValidOrigin validates origin based on ALLOWED_ORIGINS
 func IsValidOrigin(url string) bool {
-	allowedOrigins := envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAllowedOrigins).([]interface{})
-	if len(allowedOrigins) == 1 && allowedOrigins[0].(string) == "*" {
+	allowedOrigins := envstore.EnvInMemoryStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyAllowedOrigins)
+	if len(allowedOrigins) == 1 && allowedOrigins[0] == "*" {
 		return true
 	}
 
@@ -28,10 +28,10 @@ func IsValidOrigin(url string) bool {
 	currentOrigin := hostName + ":" + port
 
 	for _, origin := range allowedOrigins {
-		replacedString := origin.(string)
+		replacedString := origin
 		// if has regex whitelisted domains
-		if strings.Contains(origin.(string), "*") {
-			replacedString = strings.Replace(origin.(string), ".", "\\.", -1)
+		if strings.Contains(origin, "*") {
+			replacedString = strings.Replace(origin, ".", "\\.", -1)
 			replacedString = strings.Replace(replacedString, "*", ".*", -1)
 
 			if strings.HasPrefix(replacedString, ".*") {
@@ -61,7 +61,7 @@ func IsSuperAdmin(gc *gin.Context) bool {
 			return false
 		}
 
-		return secret == envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAdminSecret).(string)
+		return secret == envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret)
 	}
 
 	return token != ""

@@ -15,22 +15,22 @@ import (
 func SetCookie(gc *gin.Context, token string) {
 	secure := true
 	httpOnly := true
-	host, _ := GetHostParts(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAuthorizerURL).(string))
-	domain := GetDomainName(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAuthorizerURL).(string))
+	host, _ := GetHostParts(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAuthorizerURL))
+	domain := GetDomainName(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAuthorizerURL))
 	if domain != "localhost" {
 		domain = "." + domain
 	}
 
 	gc.SetSameSite(http.SameSiteNoneMode)
-	gc.SetCookie(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyCookieName).(string), token, 3600, "/", host, secure, httpOnly)
-	gc.SetCookie(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyCookieName).(string)+"-client", token, 3600, "/", domain, secure, httpOnly)
+	gc.SetCookie(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName), token, 3600, "/", host, secure, httpOnly)
+	gc.SetCookie(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+"-client", token, 3600, "/", domain, secure, httpOnly)
 }
 
 // GetCookie gets the cookie from the request
 func GetCookie(gc *gin.Context) (string, error) {
-	cookie, err := gc.Request.Cookie(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyCookieName).(string))
+	cookie, err := gc.Request.Cookie(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName))
 	if err != nil {
-		cookie, err = gc.Request.Cookie(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyCookieName).(string) + "-client")
+		cookie, err = gc.Request.Cookie(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName) + "-client")
 		if err != nil {
 			return "", err
 		}
@@ -44,28 +44,28 @@ func DeleteCookie(gc *gin.Context) {
 	secure := true
 	httpOnly := true
 
-	host, _ := GetHostParts(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAuthorizerURL).(string))
-	domain := GetDomainName(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAuthorizerURL).(string))
+	host, _ := GetHostParts(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAuthorizerURL))
+	domain := GetDomainName(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAuthorizerURL))
 	if domain != "localhost" {
 		domain = "." + domain
 	}
 
 	gc.SetSameSite(http.SameSiteNoneMode)
-	gc.SetCookie(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyCookieName).(string), "", -1, "/", host, secure, httpOnly)
-	gc.SetCookie(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyCookieName).(string)+"-client", "", -1, "/", domain, secure, httpOnly)
+	gc.SetCookie(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName), "", -1, "/", host, secure, httpOnly)
+	gc.SetCookie(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+"-client", "", -1, "/", domain, secure, httpOnly)
 }
 
 // SetAdminCookie sets the admin cookie in the response
 func SetAdminCookie(gc *gin.Context, token string) {
 	secure := true
 	httpOnly := true
-	host, _ := GetHostParts(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAuthorizerURL).(string))
+	host, _ := GetHostParts(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAuthorizerURL))
 
-	gc.SetCookie(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAdminCookieName).(string), token, 3600, "/", host, secure, httpOnly)
+	gc.SetCookie(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminCookieName), token, 3600, "/", host, secure, httpOnly)
 }
 
 func GetAdminCookie(gc *gin.Context) (string, error) {
-	cookie, err := gc.Request.Cookie(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAdminCookieName).(string))
+	cookie, err := gc.Request.Cookie(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminCookieName))
 	if err != nil {
 		return "", err
 	}
@@ -75,7 +75,7 @@ func GetAdminCookie(gc *gin.Context) (string, error) {
 func DeleteAdminCookie(gc *gin.Context) {
 	secure := true
 	httpOnly := true
-	host, _ := GetHostParts(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAuthorizerURL).(string))
+	host, _ := GetHostParts(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAuthorizerURL))
 
-	gc.SetCookie(envstore.EnvInMemoryStoreObj.GetEnvVariable(constants.EnvKeyAdminCookieName).(string), "", -1, "/", host, secure, httpOnly)
+	gc.SetCookie(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminCookieName), "", -1, "/", host, secure, httpOnly)
 }
