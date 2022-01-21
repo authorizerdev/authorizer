@@ -9,6 +9,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
+	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/email"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
@@ -33,7 +34,7 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 		return res, fmt.Errorf("please enter atleast one param to update")
 	}
 
-	user, err := db.Mgr.GetUserByID(params.ID)
+	user, err := db.Provider.GetUserByID(params.ID)
 	if err != nil {
 		return res, fmt.Errorf(`User not found`)
 	}
@@ -86,7 +87,7 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 		}
 		newEmail := strings.ToLower(*params.Email)
 		// check if user with new email exists
-		_, err = db.Mgr.GetUserByEmail(newEmail)
+		_, err = db.Provider.GetUserByEmail(newEmail)
 		// err = nil means user exists
 		if err == nil {
 			return res, fmt.Errorf("user with this email address already exists")
@@ -103,7 +104,7 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 		if err != nil {
 			log.Println(`error generating token`, err)
 		}
-		db.Mgr.AddVerification(db.VerificationRequest{
+		db.Provider.AddVerificationRequest(models.VerificationRequest{
 			Token:      token,
 			Identifier: verificationType,
 			ExpiresAt:  time.Now().Add(time.Minute * 30).Unix(),
@@ -140,7 +141,7 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 		user.Roles = rolesToSave
 	}
 
-	user, err = db.Mgr.UpdateUser(user)
+	user, err = db.Provider.UpdateUser(user)
 	if err != nil {
 		log.Println("error updating user:", err)
 		return res, err

@@ -22,7 +22,7 @@ func UsersResolver(ctx context.Context) ([]*model.User, error) {
 		return res, fmt.Errorf("unauthorized")
 	}
 
-	users, err := db.Mgr.GetUsers()
+	users, err := db.Provider.ListUsers()
 	if err != nil {
 		return res, err
 	}

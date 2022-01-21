@@ -12,6 +12,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
+	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/oauth"
 	"github.com/authorizerdev/authorizer/server/session"
@@ -45,7 +46,7 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 		redirectURL := sessionSplit[1]
 
 		var err error
-		user := db.User{}
+		user := models.User{}
 		code := c.Request.FormValue("code")
 		switch provider {
 		case constants.SignupMethodGoogle:
@@ -63,7 +64,7 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			return
 		}
 
-		existingUser, err := db.Mgr.GetUserByEmail(user.Email)
+		existingUser, err := db.Provider.GetUserByEmail(user.Email)
 
 		if err != nil {
 			// user not registered, register user and generate session token
@@ -84,7 +85,7 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			user.Roles = strings.Join(inputRoles, ",")
 			now := time.Now().Unix()
 			user.EmailVerifiedAt = &now
-			user, _ = db.Mgr.AddUser(user)
+			user, _ = db.Provider.AddUser(user)
 		} else {
 			// user exists in db, check if method was google
 			// if not append google to existing signup method and save it
@@ -130,10 +131,10 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			}
 			user.Key = existingUser.Key
 			user.ID = existingUser.ID
-			user, err = db.Mgr.UpdateUser(user)
+			user, err = db.Provider.UpdateUser(user)
 		}
 
-		user, _ = db.Mgr.GetUserByEmail(user.Email)
+		user, _ = db.Provider.GetUserByEmail(user.Email)
 		userIdStr := fmt.Sprintf("%v", user.ID)
 		refreshToken, _, _ := utils.CreateAuthToken(user, constants.TokenTypeRefreshToken, inputRoles)
 
@@ -146,8 +147,8 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 	}
 }
 
-func processGoogleUserInfo(code string) (db.User, error) {
-	user := db.User{}
+func processGoogleUserInfo(code string) (models.User, error) {
+	user := models.User{}
 	ctx := context.Background()
 	oauth2Token, err := oauth.OAuthProviders.GoogleConfig.Exchange(ctx, code)
 	if err != nil {
@@ -175,8 +176,8 @@ func processGoogleUserInfo(code string) (db.User, error) {
 	return user, nil
 }
 
-func processGithubUserInfo(code string) (db.User, error) {
-	user := db.User{}
+func processGithubUserInfo(code string) (models.User, error) {
+	user := models.User{}
 	token, err := oauth.OAuthProviders.GithubConfig.Exchange(oauth2.NoContext, code)
 	if err != nil {
 		return user, fmt.Errorf("invalid github exchange code: %s", err.Error())
@@ -216,7 +217,7 @@ func processGithubUserInfo(code string) (db.User, error) {
 
 	picture := userRawData["avatar_url"]
 
-	user = db.User{
+	user = models.User{
 		GivenName:  &firstName,
 		FamilyName: &lastName,
 		Picture:    &picture,
@@ -226,8 +227,8 @@ func processGithubUserInfo(code string) (db.User, error) {
 	return user, nil
 }
 
-func processFacebookUserInfo(code string) (db.User, error) {
-	user := db.User{}
+func processFacebookUserInfo(code string) (models.User, error) {
+	user := models.User{}
 	token, err := oauth.OAuthProviders.FacebookConfig.Exchange(oauth2.NoContext, code)
 	if err != nil {
 		return user, fmt.Errorf("invalid facebook exchange code: %s", err.Error())
@@ -261,7 +262,7 @@ func processFacebookUserInfo(code string) (db.User, error) {
 	lastName := fmt.Sprintf("%v", userRawData["last_name"])
 	picture := fmt.Sprintf("%v", picDataObject["url"])
 
-	user = db.User{
+	user = models.User{
 		GivenName:  &firstName,
 		FamilyName: &lastName,
 		Picture:    &picture,

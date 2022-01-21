@@ -26,7 +26,7 @@ func resetPasswordTest(t *testing.T, s TestSetup) {
 		})
 		assert.Nil(t, err, "no errors for forgot password")
 
-		verificationRequest, err := db.Mgr.GetVerificationByEmail(email, constants.VerificationTypeForgotPassword)
+		verificationRequest, err := db.Provider.GetVerificationRequestByEmail(email, constants.VerificationTypeForgotPassword)
 		assert.Nil(t, err, "should get forgot password request")
 
 		_, err = resolvers.ResetPasswordResolver(ctx, model.ResetPasswordInput{

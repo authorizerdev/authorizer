@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/constants"
-	"github.com/authorizerdev/authorizer/server/db"
+	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
@@ -20,7 +20,7 @@ import (
 
 // CreateAuthToken util to create JWT token, based on
 // user information, roles config and CUSTOM_ACCESS_TOKEN_SCRIPT
-func CreateAuthToken(user db.User, tokenType string, roles []string) (string, int64, error) {
+func CreateAuthToken(user models.User, tokenType string, roles []string) (string, int64, error) {
 	t := jwt.New(jwt.GetSigningMethod(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtType)))
 	expiryBound := time.Hour
 	if tokenType == constants.TokenTypeRefreshToken {

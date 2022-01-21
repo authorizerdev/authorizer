@@ -9,6 +9,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
+	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/email"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/session"
@@ -47,7 +48,7 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 	}
 
 	userEmail := fmt.Sprintf("%v", claim["email"])
-	user, err := db.Mgr.GetUserByEmail(userEmail)
+	user, err := db.Provider.GetUserByEmail(userEmail)
 	if err != nil {
 		return res, err
 	}
@@ -115,7 +116,7 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 		}
 		newEmail := strings.ToLower(*params.Email)
 		// check if user with new email exists
-		_, err := db.Mgr.GetUserByEmail(newEmail)
+		_, err := db.Provider.GetUserByEmail(newEmail)
 
 		// err = nil means user exists
 		if err == nil {
@@ -134,7 +135,7 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 		if err != nil {
 			log.Println(`error generating token`, err)
 		}
-		db.Mgr.AddVerification(db.VerificationRequest{
+		db.Provider.AddVerificationRequest(models.VerificationRequest{
 			Token:      token,
 			Identifier: verificationType,
 			ExpiresAt:  time.Now().Add(time.Minute * 30).Unix(),
@@ -147,7 +148,7 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 		}()
 	}
 
-	_, err = db.Mgr.UpdateUser(user)
+	_, err = db.Provider.UpdateUser(user)
 	if err != nil {
 		log.Println("error updating user:", err)
 		return res, err

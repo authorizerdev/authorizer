@@ -28,7 +28,7 @@ func loginTests(t *testing.T, s TestSetup) {
 
 		assert.NotNil(t, err, "should fail because email is not verified")
 
-		verificationRequest, err := db.Mgr.GetVerificationByEmail(email, constants.VerificationTypeBasicAuthSignup)
+		verificationRequest, err := db.Provider.GetVerificationRequestByEmail(email, constants.VerificationTypeBasicAuthSignup)
 		resolvers.VerifyEmailResolver(ctx, model.VerifyEmailInput{
 			Token: verificationRequest.Token,
 		})

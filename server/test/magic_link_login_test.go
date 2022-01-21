@@ -23,7 +23,7 @@ func magicLinkLoginTests(t *testing.T, s TestSetup) {
 		})
 		assert.Nil(t, err)
 
-		verificationRequest, err := db.Mgr.GetVerificationByEmail(email, constants.VerificationTypeMagicLinkLogin)
+		verificationRequest, err := db.Provider.GetVerificationRequestByEmail(email, constants.VerificationTypeMagicLinkLogin)
 		verifyRes, err := resolvers.VerifyEmailResolver(ctx, model.VerifyEmailInput{
 			Token: verificationRequest.Token,
 		})

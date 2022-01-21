@@ -30,7 +30,7 @@ func SessionResolver(ctx context.Context, roles []string) (*model.AuthResponse, 
 	expiresAt := claim["exp"].(int64)
 	email := fmt.Sprintf("%v", claim["email"])
 
-	user, err := db.Mgr.GetUserByEmail(email)
+	user, err := db.Provider.GetUserByEmail(email)
 	if err != nil {
 		return res, err
 	}

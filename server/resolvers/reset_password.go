@@ -20,7 +20,7 @@ func ResetPasswordResolver(ctx context.Context, params model.ResetPasswordInput)
 		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
 	}
 
-	verificationRequest, err := db.Mgr.GetVerificationByToken(params.Token)
+	verificationRequest, err := db.Provider.GetVerificationRequestByToken(params.Token)
 	if err != nil {
 		return res, fmt.Errorf(`invalid token`)
 	}
@@ -35,7 +35,7 @@ func ResetPasswordResolver(ctx context.Context, params model.ResetPasswordInput)
 		return res, fmt.Errorf(`invalid token`)
 	}
 
-	user, err := db.Mgr.GetUserByEmail(claim.Email)
+	user, err := db.Provider.GetUserByEmail(claim.Email)
 	if err != nil {
 		return res, err
 	}
@@ -56,8 +56,8 @@ func ResetPasswordResolver(ctx context.Context, params model.ResetPasswordInput)
 	}
 
 	// delete from verification table
-	db.Mgr.DeleteVerificationRequest(verificationRequest)
-	db.Mgr.UpdateUser(user)
+	db.Provider.DeleteVerificationRequest(verificationRequest)
+	db.Provider.UpdateUser(user)
 
 	res = &model.Response{
 		Message: `Password updated successfully.`,

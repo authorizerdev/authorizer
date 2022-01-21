@@ -25,7 +25,7 @@ func VerifyEmailHandler() gin.HandlerFunc {
 			return
 		}
 
-		verificationRequest, err := db.Mgr.GetVerificationByToken(token)
+		verificationRequest, err := db.Provider.GetVerificationRequestByToken(token)
 		if err != nil {
 			c.JSON(400, errorRes)
 			return
@@ -38,7 +38,7 @@ func VerifyEmailHandler() gin.HandlerFunc {
 			return
 		}
 
-		user, err := db.Mgr.GetUserByEmail(claim.Email)
+		user, err := db.Provider.GetUserByEmail(claim.Email)
 		if err != nil {
 			c.JSON(400, gin.H{
 				"message": err.Error(),
@@ -50,10 +50,10 @@ func VerifyEmailHandler() gin.HandlerFunc {
 		if user.EmailVerifiedAt == nil {
 			now := time.Now().Unix()
 			user.EmailVerifiedAt = &now
-			db.Mgr.UpdateUser(user)
+			db.Provider.UpdateUser(user)
 		}
 		// delete from verification table
-		db.Mgr.DeleteVerificationRequest(verificationRequest)
+		db.Provider.DeleteVerificationRequest(verificationRequest)
 
 		roles := strings.Split(user.Roles, ",")
 		refreshToken, _, _ := utils.CreateAuthToken(user, constants.TokenTypeRefreshToken, roles)

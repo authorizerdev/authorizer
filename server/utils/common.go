@@ -27,7 +27,7 @@ func SaveSessionInDB(userId string, c *gin.Context) {
 		IP:        GetIP(c.Request),
 	}
 
-	err := db.Provider.AddSession(&sessionData)
+	err := db.Provider.AddSession(sessionData)
 	if err != nil {
 		log.Println("=> error saving session in db:", err)
 	} else {

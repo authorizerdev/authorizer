@@ -36,7 +36,7 @@ func ProfileResolver(ctx context.Context) (*model.User, error) {
 		return res, fmt.Errorf(`unauthorized`)
 	}
 
-	user, err := db.Mgr.GetUserByEmail(email)
+	user, err := db.Provider.GetUserByEmail(email)
 	if err != nil {
 		return res, err
 	}
