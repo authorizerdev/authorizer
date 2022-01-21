@@ -17,7 +17,7 @@ type Provider interface {
 	GetUserByID(id string) (models.User, error)
 
 	// AddVerification to save verification request in database
-	AddVerificationRequest(verification models.VerificationRequest) (models.VerificationRequest, error)
+	AddVerificationRequest(verificationRequest models.VerificationRequest) (models.VerificationRequest, error)
 	// GetVerificationRequestByToken to get verification request from database using token
 	GetVerificationRequestByToken(token string) (models.VerificationRequest, error)
 	// GetVerificationRequestByEmail to get verification request by email from database
