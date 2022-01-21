@@ -2,7 +2,6 @@ package test
 
 import (
 	"fmt"
-	"log"
 	"testing"
 
 	"github.com/authorizerdev/authorizer/server/constants"
@@ -21,7 +20,7 @@ func updateEnvTests(t *testing.T, s TestSetup) {
 
 		data := model.UpdateEnvInput{}
 		_, err := resolvers.UpdateEnvResolver(ctx, data)
-		log.Println("error:", err)
+
 		assert.NotNil(t, err)
 
 		h, err := utils.EncryptPassword(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret))

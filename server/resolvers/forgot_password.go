@@ -9,6 +9,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
+	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/email"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
@@ -32,7 +33,7 @@ func ForgotPasswordResolver(ctx context.Context, params model.ForgotPasswordInpu
 		return res, fmt.Errorf("invalid email")
 	}
 
-	_, err = db.Mgr.GetUserByEmail(params.Email)
+	_, err = db.Provider.GetUserByEmail(params.Email)
 	if err != nil {
 		return res, fmt.Errorf(`user with this email not found`)
 	}
@@ -41,7 +42,7 @@ func ForgotPasswordResolver(ctx context.Context, params model.ForgotPasswordInpu
 	if err != nil {
 		log.Println(`error generating token`, err)
 	}
-	db.Mgr.AddVerification(db.VerificationRequest{
+	db.Provider.AddVerificationRequest(models.VerificationRequest{
 		Token:      token,
 		Identifier: constants.VerificationTypeForgotPassword,
 		ExpiresAt:  time.Now().Add(time.Minute * 30).Unix(),

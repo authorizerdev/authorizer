@@ -23,14 +23,14 @@ func DeleteUserResolver(ctx context.Context, params model.DeleteUserInput) (*mod
 		return res, fmt.Errorf("unauthorized")
 	}
 
-	user, err := db.Mgr.GetUserByEmail(params.Email)
+	user, err := db.Provider.GetUserByEmail(params.Email)
 	if err != nil {
 		return res, err
 	}
 
 	session.DeleteAllUserSession(fmt.Sprintf("%x", user.ID))
 
-	err = db.Mgr.DeleteUser(user)
+	err = db.Provider.DeleteUser(user)
 	if err != nil {
 		log.Println("error deleting user:", err)
 		return res, err

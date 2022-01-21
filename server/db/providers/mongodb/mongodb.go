@@ -1,10 +1,11 @@
-package db
+package mongodb
 
 import (
 	"context"
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -12,7 +13,12 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
-func initMongodb() (*mongo.Database, error) {
+type provider struct {
+	db *mongo.Database
+}
+
+// NewProvider to initialize mongodb connection
+func NewProvider() (*provider, error) {
 	mongodbOptions := options.Client().ApplyURI(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL))
 	maxWait := time.Duration(5 * time.Second)
 	mongodbOptions.ConnectTimeout = &maxWait
@@ -33,8 +39,8 @@ func initMongodb() (*mongo.Database, error) {
 
 	mongodb := mongoClient.Database(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseName), options.Database())
 
-	mongodb.CreateCollection(ctx, Collections.User, options.CreateCollection())
-	userCollection := mongodb.Collection(Collections.User, options.Collection())
+	mongodb.CreateCollection(ctx, models.Collections.User, options.CreateCollection())
+	userCollection := mongodb.Collection(models.Collections.User, options.Collection())
 	userCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		mongo.IndexModel{
 			Keys:    bson.M{"email": 1},
@@ -50,8 +56,8 @@ func initMongodb() (*mongo.Database, error) {
 		},
 	}, options.CreateIndexes())
 
-	mongodb.CreateCollection(ctx, Collections.VerificationRequest, options.CreateCollection())
-	verificationRequestCollection := mongodb.Collection(Collections.VerificationRequest, options.Collection())
+	mongodb.CreateCollection(ctx, models.Collections.VerificationRequest, options.CreateCollection())
+	verificationRequestCollection := mongodb.Collection(models.Collections.VerificationRequest, options.Collection())
 	verificationRequestCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		mongo.IndexModel{
 			Keys:    bson.M{"email": 1, "identifier": 1},
@@ -65,8 +71,8 @@ func initMongodb() (*mongo.Database, error) {
 		},
 	}, options.CreateIndexes())
 
-	mongodb.CreateCollection(ctx, Collections.Session, options.CreateCollection())
-	sessionCollection := mongodb.Collection(Collections.Session, options.Collection())
+	mongodb.CreateCollection(ctx, models.Collections.Session, options.CreateCollection())
+	sessionCollection := mongodb.Collection(models.Collections.Session, options.Collection())
 	sessionCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		mongo.IndexModel{
 			Keys:    bson.M{"user_id": 1},
@@ -74,7 +80,9 @@ func initMongodb() (*mongo.Database, error) {
 		},
 	}, options.CreateIndexes())
 
-	mongodb.CreateCollection(ctx, Collections.Env, options.CreateCollection())
+	mongodb.CreateCollection(ctx, models.Collections.Env, options.CreateCollection())
 
-	return mongodb, nil
+	return &provider{
+		db: mongodb,
+	}, nil
 }

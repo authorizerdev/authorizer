@@ -28,7 +28,7 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 	}
 
 	params.Email = strings.ToLower(params.Email)
-	user, err := db.Mgr.GetUserByEmail(params.Email)
+	user, err := db.Provider.GetUserByEmail(params.Email)
 	if err != nil {
 		return res, fmt.Errorf(`user with this email not found`)
 	}

@@ -22,7 +22,7 @@ func logoutTests(t *testing.T, s TestSetup) {
 			Email: email,
 		})
 
-		verificationRequest, err := db.Mgr.GetVerificationByEmail(email, constants.VerificationTypeMagicLinkLogin)
+		verificationRequest, err := db.Provider.GetVerificationRequestByEmail(email, constants.VerificationTypeMagicLinkLogin)
 		verifyRes, err := resolvers.VerifyEmailResolver(ctx, model.VerifyEmailInput{
 			Token: verificationRequest.Token,
 		})

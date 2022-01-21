@@ -52,7 +52,7 @@ func AdminSignupResolver(ctx context.Context, params model.AdminSignupInput) (*m
 		return res, err
 	}
 
-	env, err := db.Mgr.GetEnv()
+	env, err := db.Provider.GetEnv()
 	if err != nil {
 		return res, err
 	}
@@ -63,7 +63,7 @@ func AdminSignupResolver(ctx context.Context, params model.AdminSignupInput) (*m
 	}
 
 	env.EnvData = envData
-	if _, err := db.Mgr.UpdateEnv(env); err != nil {
+	if _, err := db.Provider.UpdateEnv(env); err != nil {
 		return res, err
 	}
 

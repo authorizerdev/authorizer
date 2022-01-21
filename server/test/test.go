@@ -3,7 +3,6 @@ package test
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"time"
@@ -33,25 +32,25 @@ type TestSetup struct {
 }
 
 func cleanData(email string) {
-	verificationRequest, err := db.Mgr.GetVerificationByEmail(email, constants.VerificationTypeBasicAuthSignup)
+	verificationRequest, err := db.Provider.GetVerificationRequestByEmail(email, constants.VerificationTypeBasicAuthSignup)
 	if err == nil {
-		err = db.Mgr.DeleteVerificationRequest(verificationRequest)
+		err = db.Provider.DeleteVerificationRequest(verificationRequest)
 	}
 
-	verificationRequest, err = db.Mgr.GetVerificationByEmail(email, constants.VerificationTypeForgotPassword)
+	verificationRequest, err = db.Provider.GetVerificationRequestByEmail(email, constants.VerificationTypeForgotPassword)
 	if err == nil {
-		err = db.Mgr.DeleteVerificationRequest(verificationRequest)
+		err = db.Provider.DeleteVerificationRequest(verificationRequest)
 	}
 
-	verificationRequest, err = db.Mgr.GetVerificationByEmail(email, constants.VerificationTypeUpdateEmail)
+	verificationRequest, err = db.Provider.GetVerificationRequestByEmail(email, constants.VerificationTypeUpdateEmail)
 	if err == nil {
-		err = db.Mgr.DeleteVerificationRequest(verificationRequest)
+		err = db.Provider.DeleteVerificationRequest(verificationRequest)
 	}
 
-	dbUser, err := db.Mgr.GetUserByEmail(email)
+	dbUser, err := db.Provider.GetUserByEmail(email)
 	if err == nil {
-		db.Mgr.DeleteUser(dbUser)
-		db.Mgr.DeleteUserSession(dbUser.ID)
+		db.Provider.DeleteUser(dbUser)
+		db.Provider.DeleteSession(dbUser.ID)
 	}
 }
 
@@ -74,7 +73,7 @@ func testSetup() TestSetup {
 	}
 
 	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyEnvPath, "../../.env.sample")
-	log.Println("envstore", envstore.EnvInMemoryStoreObj.GetEnvStoreClone())
+
 	env.InitEnv()
 	session.InitSession()
 

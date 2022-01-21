@@ -78,7 +78,7 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 	envstore.EnvInMemoryStoreObj.UpdateEnvStore(updatedData)
 
 	// Fetch the current db store and update it
-	env, err := db.Mgr.GetEnv()
+	env, err := db.Provider.GetEnv()
 	if err != nil {
 		return res, err
 	}
@@ -112,7 +112,7 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 	}
 
 	env.EnvData = encryptedConfig
-	_, err = db.Mgr.UpdateEnv(env)
+	_, err = db.Provider.UpdateEnv(env)
 	if err != nil {
 		log.Println("error updating config:", err)
 		return res, err

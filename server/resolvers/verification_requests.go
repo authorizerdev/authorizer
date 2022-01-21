@@ -22,7 +22,7 @@ func VerificationRequestsResolver(ctx context.Context) ([]*model.VerificationReq
 		return res, fmt.Errorf("unauthorized")
 	}
 
-	verificationRequests, err := db.Mgr.GetVerificationRequests()
+	verificationRequests, err := db.Provider.ListVerificationRequests()
 	if err != nil {
 		return res, err
 	}

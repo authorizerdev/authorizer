@@ -21,7 +21,7 @@ func VerifyEmailResolver(ctx context.Context, params model.VerifyEmailInput) (*m
 		return res, err
 	}
 
-	verificationRequest, err := db.Mgr.GetVerificationByToken(params.Token)
+	verificationRequest, err := db.Provider.GetVerificationRequestByToken(params.Token)
 	if err != nil {
 		return res, fmt.Errorf(`invalid token`)
 	}
@@ -32,7 +32,7 @@ func VerifyEmailResolver(ctx context.Context, params model.VerifyEmailInput) (*m
 		return res, fmt.Errorf(`invalid token`)
 	}
 
-	user, err := db.Mgr.GetUserByEmail(claim.Email)
+	user, err := db.Provider.GetUserByEmail(claim.Email)
 	if err != nil {
 		return res, err
 	}
@@ -40,9 +40,9 @@ func VerifyEmailResolver(ctx context.Context, params model.VerifyEmailInput) (*m
 	// update email_verified_at in users table
 	now := time.Now().Unix()
 	user.EmailVerifiedAt = &now
-	db.Mgr.UpdateUser(user)
+	db.Provider.UpdateUser(user)
 	// delete from verification table
-	db.Mgr.DeleteVerificationRequest(verificationRequest)
+	db.Provider.DeleteVerificationRequest(verificationRequest)
 
 	roles := strings.Split(user.Roles, ",")
 	refreshToken, _, _ := utils.CreateAuthToken(user, constants.TokenTypeRefreshToken, roles)

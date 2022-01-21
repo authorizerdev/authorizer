@@ -3,14 +3,14 @@ package utils
 import (
 	"strings"
 
-	"github.com/authorizerdev/authorizer/server/db"
+	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 )
 
 // TODO move this to provider
 // rename it to AsAPIUser
 
-func GetResponseUserData(user db.User) *model.User {
+func GetResponseUserData(user models.User) *model.User {
 	isEmailVerified := user.EmailVerifiedAt != nil
 	isPhoneVerified := user.PhoneNumberVerifiedAt != nil
 	return &model.User{

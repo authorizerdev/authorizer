@@ -9,6 +9,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
+	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/email"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
@@ -38,7 +39,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 	}
 
 	// find user with email
-	existingUser, err := db.Mgr.GetUserByEmail(params.Email)
+	existingUser, err := db.Provider.GetUserByEmail(params.Email)
 	if err != nil {
 		log.Println("user with email " + params.Email + " not found")
 	}
@@ -63,7 +64,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 		inputRoles = envstore.EnvInMemoryStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles)
 	}
 
-	user := db.User{
+	user := models.User{
 		Email: params.Email,
 	}
 
@@ -109,7 +110,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 		now := time.Now().Unix()
 		user.EmailVerifiedAt = &now
 	}
-	user, err = db.Mgr.AddUser(user)
+	user, err = db.Provider.AddUser(user)
 	if err != nil {
 		return res, err
 	}
@@ -124,7 +125,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 		if err != nil {
 			log.Println(`error generating token`, err)
 		}
-		db.Mgr.AddVerification(db.VerificationRequest{
+		db.Provider.AddVerificationRequest(models.VerificationRequest{
 			Token:      token,
 			Identifier: verificationType,
 			ExpiresAt:  time.Now().Add(time.Minute * 30).Unix(),

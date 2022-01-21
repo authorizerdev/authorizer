@@ -9,6 +9,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
+	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/email"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
@@ -31,12 +32,12 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 
 	inputRoles := []string{}
 
-	user := db.User{
+	user := models.User{
 		Email: params.Email,
 	}
 
 	// find user with email
-	existingUser, err := db.Mgr.GetUserByEmail(params.Email)
+	existingUser, err := db.Provider.GetUserByEmail(params.Email)
 
 	if err != nil {
 		user.SignupMethods = constants.SignupMethodMagicLinkLogin
@@ -53,7 +54,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 		}
 
 		user.Roles = strings.Join(inputRoles, ",")
-		user, _ = db.Mgr.AddUser(user)
+		user, _ = db.Provider.AddUser(user)
 	} else {
 		user = existingUser
 		// There multiple scenarios with roles here in magic link login
@@ -94,7 +95,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 		}
 
 		user.SignupMethods = signupMethod
-		user, _ = db.Mgr.UpdateUser(user)
+		user, _ = db.Provider.UpdateUser(user)
 		if err != nil {
 			log.Println("error updating user:", err)
 		}
@@ -107,7 +108,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 		if err != nil {
 			log.Println(`error generating token`, err)
 		}
-		db.Mgr.AddVerification(db.VerificationRequest{
+		db.Provider.AddVerificationRequest(models.VerificationRequest{
 			Token:      token,
 			Identifier: verificationType,
 			ExpiresAt:  time.Now().Add(time.Minute * 30).Unix(),
