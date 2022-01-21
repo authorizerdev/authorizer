@@ -47,11 +47,11 @@ func cleanData(email string) {
 		err = db.Provider.DeleteVerificationRequest(verificationRequest)
 	}
 
-	// dbUser, err := db.Provider.GetUserByEmail(email)
-	// if err == nil {
-	// 	db.Provider.DeleteUser(dbUser)
-	// 	db.Provider.DeleteSession(dbUser.ID)
-	// }
+	dbUser, err := db.Provider.GetUserByEmail(email)
+	if err == nil {
+		db.Provider.DeleteUser(dbUser)
+		db.Provider.DeleteSession(dbUser.ID)
+	}
 }
 
 func createContext(s TestSetup) (*http.Request, context.Context) {
