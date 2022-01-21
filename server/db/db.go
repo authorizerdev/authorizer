@@ -5,6 +5,10 @@ import (
 
 	arangoDriver "github.com/arangodb/go-driver"
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/db/providers"
+	"github.com/authorizerdev/authorizer/server/db/providers/arangodb"
+	"github.com/authorizerdev/authorizer/server/db/providers/mongodb"
+	"github.com/authorizerdev/authorizer/server/db/providers/sql"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"go.mongodb.org/mongo-driver/mongo"
 	"gorm.io/driver/mysql"
@@ -53,6 +57,7 @@ var (
 	IsArangoDB     bool
 	IsMongoDB      bool
 	Mgr            Manager
+	Provider       providers.Provider
 	Prefix         = "authorizer_"
 	Collections    = CollectionList{
 		User:                Prefix + "users",
@@ -75,6 +80,27 @@ func InitDB() {
 		NamingStrategy: schema.NamingStrategy{
 			TablePrefix: Prefix,
 		},
+	}
+
+	if IsORMSupported {
+		Provider, err = sql.NewProvider()
+		if err != nil {
+			log.Println("=> error setting sql provider:", err)
+		}
+	}
+
+	if IsArangoDB {
+		Provider, err = arangodb.NewProvider()
+		if err != nil {
+			log.Println("=> error setting arangodb provider:", err)
+		}
+	}
+
+	if IsMongoDB {
+		Provider, err = mongodb.NewProvider()
+		if err != nil {
+			log.Println("=> error setting arangodb provider:", err)
+		}
 	}
 
 	log.Println("db type:", envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseType))
