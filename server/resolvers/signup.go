@@ -8,12 +8,14 @@ import (
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/email"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
-	"github.com/authorizerdev/authorizer/server/session"
+	"github.com/authorizerdev/authorizer/server/sessionstore"
+	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
@@ -114,19 +116,18 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 	if err != nil {
 		return res, err
 	}
-	userIdStr := fmt.Sprintf("%v", user.ID)
 	roles := strings.Split(user.Roles, ",")
-	userToReturn := utils.GetResponseUserData(user)
+	userToReturn := user.AsAPIUser()
 
 	if !envstore.EnvInMemoryStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification) {
 		// insert verification request
 		verificationType := constants.VerificationTypeBasicAuthSignup
-		token, err := utils.CreateVerificationToken(params.Email, verificationType)
+		verificationToken, err := token.CreateVerificationToken(params.Email, verificationType)
 		if err != nil {
 			log.Println(`error generating token`, err)
 		}
 		db.Provider.AddVerificationRequest(models.VerificationRequest{
-			Token:      token,
+			Token:      verificationToken,
 			Identifier: verificationType,
 			ExpiresAt:  time.Now().Add(time.Minute * 30).Unix(),
 			Email:      params.Email,
@@ -134,7 +135,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 
 		// exec it as go routin so that we can reduce the api latency
 		go func() {
-			email.SendVerificationMail(params.Email, token)
+			email.SendVerificationMail(params.Email, verificationToken)
 		}()
 
 		res = &model.AuthResponse{
@@ -143,20 +144,20 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 		}
 	} else {
 
-		refreshToken, _, _ := utils.CreateAuthToken(user, constants.TokenTypeRefreshToken, roles)
-
-		accessToken, expiresAt, _ := utils.CreateAuthToken(user, constants.TokenTypeAccessToken, roles)
-
-		session.SetUserSession(userIdStr, accessToken, refreshToken)
+		authToken, err := token.CreateAuthToken(user, roles)
+		if err != nil {
+			return res, err
+		}
+		sessionstore.SetUserSession(user.ID, authToken.FingerPrint, authToken.RefreshToken.Token)
+		cookie.SetCookie(gc, authToken.AccessToken.Token, authToken.RefreshToken.Token, authToken.FingerPrintHash)
 		utils.SaveSessionInDB(user.ID, gc)
+
 		res = &model.AuthResponse{
 			Message:     `Signed up successfully.`,
-			AccessToken: &accessToken,
-			ExpiresAt:   &expiresAt,
+			AccessToken: &authToken.AccessToken.Token,
+			ExpiresAt:   &authToken.AccessToken.ExpiresAt,
 			User:        userToReturn,
 		}
-
-		utils.SetCookie(gc, accessToken)
 	}
 
 	return res, nil

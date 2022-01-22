@@ -13,6 +13,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/email"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
@@ -104,12 +105,12 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 	if !envstore.EnvInMemoryStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification) {
 		// insert verification request
 		verificationType := constants.VerificationTypeMagicLinkLogin
-		token, err := utils.CreateVerificationToken(params.Email, verificationType)
+		verificationToken, err := token.CreateVerificationToken(params.Email, verificationType)
 		if err != nil {
 			log.Println(`error generating token`, err)
 		}
 		db.Provider.AddVerificationRequest(models.VerificationRequest{
-			Token:      token,
+			Token:      verificationToken,
 			Identifier: verificationType,
 			ExpiresAt:  time.Now().Add(time.Minute * 30).Unix(),
 			Email:      params.Email,
@@ -117,7 +118,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 
 		// exec it as go routin so that we can reduce the api latency
 		go func() {
-			email.SendVerificationMail(params.Email, token)
+			email.SendVerificationMail(params.Email, verificationToken)
 		}()
 	}
 

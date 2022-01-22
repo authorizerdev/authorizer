@@ -13,6 +13,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/email"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
@@ -38,12 +39,12 @@ func ForgotPasswordResolver(ctx context.Context, params model.ForgotPasswordInpu
 		return res, fmt.Errorf(`user with this email not found`)
 	}
 
-	token, err := utils.CreateVerificationToken(params.Email, constants.VerificationTypeForgotPassword)
+	verificationToken, err := token.CreateVerificationToken(params.Email, constants.VerificationTypeForgotPassword)
 	if err != nil {
 		log.Println(`error generating token`, err)
 	}
 	db.Provider.AddVerificationRequest(models.VerificationRequest{
-		Token:      token,
+		Token:      verificationToken,
 		Identifier: constants.VerificationTypeForgotPassword,
 		ExpiresAt:  time.Now().Add(time.Minute * 30).Unix(),
 		Email:      params.Email,
@@ -51,7 +52,7 @@ func ForgotPasswordResolver(ctx context.Context, params model.ForgotPasswordInpu
 
 	// exec it as go routin so that we can reduce the api latency
 	go func() {
-		email.SendForgotPasswordMail(params.Email, token, host)
+		email.SendForgotPasswordMail(params.Email, verificationToken, host)
 	}()
 
 	res = &model.Response{

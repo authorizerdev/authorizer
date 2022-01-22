@@ -2,10 +2,11 @@ package resolvers
 
 import (
 	"context"
-	"fmt"
 
+	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/graph/model"
-	"github.com/authorizerdev/authorizer/server/session"
+	"github.com/authorizerdev/authorizer/server/sessionstore"
+	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
@@ -17,22 +18,38 @@ func LogoutResolver(ctx context.Context) (*model.Response, error) {
 		return res, err
 	}
 
-	token, err := utils.GetAuthToken(gc)
+	// get refresh token
+	refreshToken, err := token.GetRefreshToken(gc)
 	if err != nil {
 		return res, err
 	}
 
-	claim, err := utils.VerifyAuthToken(token)
+	// get fingerprint hash
+	fingerprintHash, err := token.GetFingerPrint(gc)
 	if err != nil {
 		return res, err
 	}
 
-	userId := fmt.Sprintf("%v", claim["id"])
-	session.DeleteUserSession(userId, token)
+	decryptedFingerPrint, err := utils.DecryptAES([]byte(fingerprintHash))
+	if err != nil {
+		return res, err
+	}
+
+	fingerPrint := string(decryptedFingerPrint)
+
+	// verify refresh token and fingerprint
+	claims, err := token.VerifyJWTToken(refreshToken)
+	if err != nil {
+		return res, err
+	}
+
+	userID := claims["id"].(string)
+	sessionstore.DeleteUserSession(userID, fingerPrint)
+	cookie.DeleteCookie(gc)
+
 	res = &model.Response{
 		Message: "Logged out successfully",
 	}
 
-	utils.DeleteCookie(gc)
 	return res, nil
 }

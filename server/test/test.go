@@ -13,7 +13,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/handlers"
 	"github.com/authorizerdev/authorizer/server/middlewares"
-	"github.com/authorizerdev/authorizer/server/session"
+	"github.com/authorizerdev/authorizer/server/sessionstore"
 	"github.com/gin-contrib/location"
 	"github.com/gin-gonic/gin"
 )
@@ -75,7 +75,7 @@ func testSetup() TestSetup {
 	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyEnvPath, "../../.env.sample")
 
 	env.InitEnv()
-	session.InitSession()
+	sessionstore.InitSession()
 
 	w := httptest.NewRecorder()
 	c, r := gin.CreateTestContext(w)

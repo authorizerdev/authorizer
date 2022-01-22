@@ -1,5 +1,11 @@
 package models
 
+import (
+	"strings"
+
+	"github.com/authorizerdev/authorizer/server/graph/model"
+)
+
 // User model for db
 type User struct {
 	Key string `json:"_key,omitempty" bson:"_key"` // for arangodb
@@ -21,4 +27,28 @@ type User struct {
 	Roles                 string  `json:"roles" bson:"roles"`
 	UpdatedAt             int64   `gorm:"autoUpdateTime" json:"updated_at" bson:"updated_at"`
 	CreatedAt             int64   `gorm:"autoCreateTime" json:"created_at" bson:"created_at"`
+}
+
+func (user *User) AsAPIUser() *model.User {
+	isEmailVerified := user.EmailVerifiedAt != nil
+	isPhoneVerified := user.PhoneNumberVerifiedAt != nil
+	return &model.User{
+		ID:                  user.ID,
+		Email:               user.Email,
+		EmailVerified:       isEmailVerified,
+		SignupMethods:       user.SignupMethods,
+		GivenName:           user.GivenName,
+		FamilyName:          user.FamilyName,
+		MiddleName:          user.MiddleName,
+		Nickname:            user.Nickname,
+		PreferredUsername:   &user.Email,
+		Gender:              user.Gender,
+		Birthdate:           user.Birthdate,
+		PhoneNumber:         user.PhoneNumber,
+		PhoneNumberVerified: &isPhoneVerified,
+		Picture:             user.Picture,
+		Roles:               strings.Split(user.Roles, ","),
+		CreatedAt:           &user.CreatedAt,
+		UpdatedAt:           &user.UpdatedAt,
+	}
 }

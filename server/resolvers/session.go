@@ -3,13 +3,12 @@ package resolvers
 import (
 	"context"
 	"fmt"
-	"time"
 
-	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/db"
-	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
-	"github.com/authorizerdev/authorizer/server/session"
+	"github.com/authorizerdev/authorizer/server/sessionstore"
+	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
@@ -21,35 +20,49 @@ func SessionResolver(ctx context.Context, roles []string) (*model.AuthResponse, 
 	if err != nil {
 		return res, err
 	}
-	token, err := utils.GetAuthToken(gc)
+
+	// get refresh token
+	refreshToken, err := token.GetRefreshToken(gc)
 	if err != nil {
 		return res, err
 	}
 
-	claim, accessTokenErr := utils.VerifyAuthToken(token)
-	expiresAt := claim["exp"].(int64)
-	email := fmt.Sprintf("%v", claim["email"])
-
-	user, err := db.Provider.GetUserByEmail(email)
+	// get fingerprint hash
+	fingerprintHash, err := token.GetFingerPrint(gc)
 	if err != nil {
 		return res, err
 	}
 
-	userIdStr := fmt.Sprintf("%v", user.ID)
+	decryptedFingerPrint, err := utils.DecryptAES([]byte(fingerprintHash))
+	if err != nil {
+		return res, err
+	}
 
-	sessionToken := session.GetUserSession(userIdStr, token)
+	fingerPrint := string(decryptedFingerPrint)
 
-	if sessionToken == "" {
+	// verify refresh token and fingerprint
+	claims, err := token.VerifyJWTToken(refreshToken)
+	if err != nil {
+		return res, err
+	}
+
+	userID := claims["id"].(string)
+
+	persistedRefresh := sessionstore.GetUserSession(userID, fingerPrint)
+	if refreshToken != persistedRefresh {
 		return res, fmt.Errorf(`unauthorized`)
 	}
 
-	expiresTimeObj := time.Unix(expiresAt, 0)
-	currentTimeObj := time.Now()
+	user, err := db.Provider.GetUserByID(userID)
+	if err != nil {
+		return res, err
+	}
 
-	claimRoleInterface := claim[envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtRoleClaim)].([]interface{})
-	claimRoles := make([]string, len(claimRoleInterface))
-	for i, v := range claimRoleInterface {
-		claimRoles[i] = v.(string)
+	// refresh token has "roles" as claim
+	claimRoleInterface := claims["roles"].([]interface{})
+	claimRoles := []string{}
+	for _, v := range claimRoleInterface {
+		claimRoles = append(claimRoles, v.(string))
 	}
 
 	if len(roles) > 0 {
@@ -60,23 +73,22 @@ func SessionResolver(ctx context.Context, roles []string) (*model.AuthResponse, 
 		}
 	}
 
-	// TODO change this logic to make it more secure
-	if accessTokenErr != nil || expiresTimeObj.Sub(currentTimeObj).Minutes() <= 5 {
-		// if access token has expired and refresh/session token is valid
-		// generate new accessToken
-		currentRefreshToken := session.GetUserSession(userIdStr, token)
-		session.DeleteUserSession(userIdStr, token)
-		token, expiresAt, _ = utils.CreateAuthToken(user, constants.TokenTypeAccessToken, claimRoles)
-		session.SetUserSession(userIdStr, token, currentRefreshToken)
-		utils.SaveSessionInDB(user.ID, gc)
+	// delete older session
+	sessionstore.DeleteUserSession(userID, fingerPrint)
+
+	authToken, err := token.CreateAuthToken(user, claimRoles)
+	if err != nil {
+		return res, err
+	}
+	sessionstore.SetUserSession(user.ID, authToken.FingerPrint, authToken.RefreshToken.Token)
+	cookie.SetCookie(gc, authToken.AccessToken.Token, authToken.RefreshToken.Token, authToken.FingerPrintHash)
+
+	res = &model.AuthResponse{
+		Message:     `Session token refreshed`,
+		AccessToken: &authToken.AccessToken.Token,
+		ExpiresAt:   &authToken.AccessToken.ExpiresAt,
+		User:        user.AsAPIUser(),
 	}
 
-	utils.SetCookie(gc, token)
-	res = &model.AuthResponse{
-		Message:     `Token verified`,
-		AccessToken: &token,
-		ExpiresAt:   &expiresAt,
-		User:        utils.GetResponseUserData(user),
-	}
 	return res, nil
 }

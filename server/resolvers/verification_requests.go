@@ -6,6 +6,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
@@ -18,7 +19,7 @@ func VerificationRequestsResolver(ctx context.Context) ([]*model.VerificationReq
 		return res, err
 	}
 
-	if !utils.IsSuperAdmin(gc) {
+	if !token.IsSuperAdmin(gc) {
 		return res, fmt.Errorf("unauthorized")
 	}
 

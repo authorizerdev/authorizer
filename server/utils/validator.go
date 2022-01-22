@@ -7,7 +7,6 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/envstore"
-	"github.com/gin-gonic/gin"
 )
 
 // IsValidEmail validates email
@@ -50,21 +49,6 @@ func IsValidOrigin(url string) bool {
 	}
 
 	return hasValidURL
-}
-
-// IsSuperAdmin checks if user is super admin
-func IsSuperAdmin(gc *gin.Context) bool {
-	token, err := GetAdminAuthToken(gc)
-	if err != nil {
-		secret := gc.Request.Header.Get("x-authorizer-admin-secret")
-		if secret == "" {
-			return false
-		}
-
-		return secret == envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret)
-	}
-
-	return token != ""
 }
 
 // IsValidRoles validates roles

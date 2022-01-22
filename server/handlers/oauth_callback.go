@@ -11,11 +11,13 @@ import (
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/oauth"
-	"github.com/authorizerdev/authorizer/server/session"
+	"github.com/authorizerdev/authorizer/server/sessionstore"
+	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/gin-gonic/gin"
@@ -28,11 +30,11 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 		provider := c.Param("oauth_provider")
 		state := c.Request.FormValue("state")
 
-		sessionState := session.GetSocailLoginState(state)
+		sessionState := sessionstore.GetSocailLoginState(state)
 		if sessionState == "" {
 			c.JSON(400, gin.H{"error": "invalid oauth state"})
 		}
-		session.RemoveSocialLoginState(state)
+		sessionstore.RemoveSocialLoginState(state)
 		// contains random token, redirect url, role
 		sessionSplit := strings.Split(state, "___")
 
@@ -135,12 +137,10 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 		}
 
 		user, _ = db.Provider.GetUserByEmail(user.Email)
-		userIdStr := fmt.Sprintf("%v", user.ID)
-		refreshToken, _, _ := utils.CreateAuthToken(user, constants.TokenTypeRefreshToken, inputRoles)
 
-		accessToken, _, _ := utils.CreateAuthToken(user, constants.TokenTypeAccessToken, inputRoles)
-		utils.SetCookie(c, accessToken)
-		session.SetUserSession(userIdStr, accessToken, refreshToken)
+		authToken, _ := token.CreateAuthToken(user, inputRoles)
+		sessionstore.SetUserSession(user.ID, authToken.FingerPrint, authToken.RefreshToken.Token)
+		cookie.SetCookie(c, authToken.AccessToken.Token, authToken.RefreshToken.Token, authToken.FingerPrintHash)
 		utils.SaveSessionInDB(user.ID, c)
 
 		c.Redirect(http.StatusTemporaryRedirect, redirectURL)

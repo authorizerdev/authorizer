@@ -12,16 +12,6 @@ import (
 	"github.com/joho/godotenv"
 )
 
-// TODO move this to env store
-var (
-	// ARG_DB_URL is the cli arg variable for the database url
-	ARG_DB_URL *string
-	// ARG_DB_TYPE is the cli arg variable for the database type
-	ARG_DB_TYPE *string
-	// ARG_ENV_FILE is the cli arg variable for the env file
-	ARG_ENV_FILE *string
-)
-
 // InitEnv to initialize EnvData and through error if required env are not present
 func InitEnv() {
 	// get clone of current store
@@ -51,8 +41,8 @@ func InitEnv() {
 		envData.StringEnv[constants.EnvKeyEnvPath] = `.env`
 	}
 
-	if ARG_ENV_FILE != nil && *ARG_ENV_FILE != "" {
-		envData.StringEnv[constants.EnvKeyEnvPath] = *ARG_ENV_FILE
+	if envstore.ARG_ENV_FILE != nil && *envstore.ARG_ENV_FILE != "" {
+		envData.StringEnv[constants.EnvKeyEnvPath] = *envstore.ARG_ENV_FILE
 	}
 
 	err := godotenv.Load(envData.StringEnv[constants.EnvKeyEnvPath])
@@ -74,8 +64,8 @@ func InitEnv() {
 	if envData.StringEnv[constants.EnvKeyDatabaseType] == "" {
 		envData.StringEnv[constants.EnvKeyDatabaseType] = os.Getenv("DATABASE_TYPE")
 
-		if ARG_DB_TYPE != nil && *ARG_DB_TYPE != "" {
-			envData.StringEnv[constants.EnvKeyDatabaseType] = *ARG_DB_TYPE
+		if envstore.ARG_DB_TYPE != nil && *envstore.ARG_DB_TYPE != "" {
+			envData.StringEnv[constants.EnvKeyDatabaseType] = *envstore.ARG_DB_TYPE
 		}
 
 		if envData.StringEnv[constants.EnvKeyDatabaseType] == "" {
@@ -86,8 +76,8 @@ func InitEnv() {
 	if envData.StringEnv[constants.EnvKeyDatabaseURL] == "" {
 		envData.StringEnv[constants.EnvKeyDatabaseURL] = os.Getenv("DATABASE_URL")
 
-		if ARG_DB_URL != nil && *ARG_DB_URL != "" {
-			envData.StringEnv[constants.EnvKeyDatabaseURL] = *ARG_DB_URL
+		if envstore.ARG_DB_URL != nil && *envstore.ARG_DB_URL != "" {
+			envData.StringEnv[constants.EnvKeyDatabaseURL] = *envstore.ARG_DB_URL
 		}
 
 		if envData.StringEnv[constants.EnvKeyDatabaseURL] == "" {

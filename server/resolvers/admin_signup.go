@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
@@ -71,7 +72,7 @@ func AdminSignupResolver(ctx context.Context, params model.AdminSignupInput) (*m
 	if err != nil {
 		return res, err
 	}
-	utils.SetAdminCookie(gc, hashedKey)
+	cookie.SetAdminCookie(gc, hashedKey)
 
 	res = &model.Response{
 		Message: "admin signed up successfully",

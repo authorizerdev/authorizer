@@ -7,7 +7,8 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/graph/model"
-	"github.com/authorizerdev/authorizer/server/session"
+	"github.com/authorizerdev/authorizer/server/sessionstore"
+	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
@@ -19,7 +20,7 @@ func DeleteUserResolver(ctx context.Context, params model.DeleteUserInput) (*mod
 		return res, err
 	}
 
-	if !utils.IsSuperAdmin(gc) {
+	if !token.IsSuperAdmin(gc) {
 		return res, fmt.Errorf("unauthorized")
 	}
 
@@ -28,7 +29,7 @@ func DeleteUserResolver(ctx context.Context, params model.DeleteUserInput) (*mod
 		return res, err
 	}
 
-	session.DeleteAllUserSession(fmt.Sprintf("%x", user.ID))
+	sessionstore.DeleteAllUserSession(fmt.Sprintf("%x", user.ID))
 
 	err = db.Provider.DeleteUser(user)
 	if err != nil {

@@ -6,10 +6,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/graph/model"
-	"github.com/authorizerdev/authorizer/server/session"
+	"github.com/authorizerdev/authorizer/server/sessionstore"
+	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
@@ -27,7 +28,7 @@ func VerifyEmailResolver(ctx context.Context, params model.VerifyEmailInput) (*m
 	}
 
 	// verify if token exists in db
-	claim, err := utils.VerifyVerificationToken(params.Token)
+	claim, err := token.VerifyVerificationToken(params.Token)
 	if err != nil {
 		return res, fmt.Errorf(`invalid token`)
 	}
@@ -45,20 +46,20 @@ func VerifyEmailResolver(ctx context.Context, params model.VerifyEmailInput) (*m
 	db.Provider.DeleteVerificationRequest(verificationRequest)
 
 	roles := strings.Split(user.Roles, ",")
-	refreshToken, _, _ := utils.CreateAuthToken(user, constants.TokenTypeRefreshToken, roles)
-	accessToken, expiresAt, _ := utils.CreateAuthToken(user, constants.TokenTypeAccessToken, roles)
-
-	session.SetUserSession(user.ID, accessToken, refreshToken)
+	authToken, err := token.CreateAuthToken(user, roles)
+	if err != nil {
+		return res, err
+	}
+	sessionstore.SetUserSession(user.ID, authToken.FingerPrint, authToken.RefreshToken.Token)
+	cookie.SetCookie(gc, authToken.AccessToken.Token, authToken.RefreshToken.Token, authToken.FingerPrintHash)
 	utils.SaveSessionInDB(user.ID, gc)
 
 	res = &model.AuthResponse{
 		Message:     `Email verified successfully.`,
-		AccessToken: &accessToken,
-		ExpiresAt:   &expiresAt,
-		User:        utils.GetResponseUserData(user),
+		AccessToken: &authToken.AccessToken.Token,
+		ExpiresAt:   &authToken.AccessToken.ExpiresAt,
+		User:        user.AsAPIUser(),
 	}
-
-	utils.SetCookie(gc, accessToken)
 
 	return res, nil
 }

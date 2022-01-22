@@ -10,6 +10,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
@@ -30,7 +31,7 @@ func ResetPasswordResolver(ctx context.Context, params model.ResetPasswordInput)
 	}
 
 	// verify if token exists in db
-	claim, err := utils.VerifyVerificationToken(params.Token)
+	claim, err := token.VerifyVerificationToken(params.Token)
 	if err != nil {
 		return res, fmt.Errorf(`invalid token`)
 	}

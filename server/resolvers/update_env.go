@@ -9,9 +9,11 @@ import (
 	"reflect"
 
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -26,7 +28,7 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 		return res, err
 	}
 
-	if !utils.IsSuperAdmin(gc) {
+	if !token.IsSuperAdmin(gc) {
 		return res, fmt.Errorf("unauthorized")
 	}
 
@@ -124,7 +126,7 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 		if err != nil {
 			return res, err
 		}
-		utils.SetAdminCookie(gc, hashedKey)
+		cookie.SetAdminCookie(gc, hashedKey)
 	}
 
 	env.EnvData = encryptedConfig

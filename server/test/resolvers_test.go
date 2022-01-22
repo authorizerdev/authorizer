@@ -11,9 +11,9 @@ import (
 
 func TestResolvers(t *testing.T) {
 	databases := map[string]string{
-		constants.DbTypeSqlite:   "../../data.db",
-		constants.DbTypeArangodb: "http://localhost:8529",
-		constants.DbTypeMongodb:  "mongodb://localhost:27017",
+		constants.DbTypeSqlite: "../../data.db",
+		// constants.DbTypeArangodb: "http://localhost:8529",
+		// constants.DbTypeMongodb:  "mongodb://localhost:27017",
 	}
 	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyVersion, "test")
 	for dbType, dbURL := range databases {

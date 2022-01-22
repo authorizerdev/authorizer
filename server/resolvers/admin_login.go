@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/utils"
@@ -28,7 +29,7 @@ func AdminLoginResolver(ctx context.Context, params model.AdminLoginInput) (*mod
 	if err != nil {
 		return res, err
 	}
-	utils.SetAdminCookie(gc, hashedKey)
+	cookie.SetAdminCookie(gc, hashedKey)
 
 	res = &model.Response{
 		Message: "admin logged in successfully",

@@ -6,7 +6,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/graph/model"
-	"github.com/authorizerdev/authorizer/server/session"
+	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
@@ -18,30 +18,17 @@ func ProfileResolver(ctx context.Context) (*model.User, error) {
 		return res, err
 	}
 
-	token, err := utils.GetAuthToken(gc)
+	claims, err := token.ValidateAccessToken(gc)
 	if err != nil {
 		return res, err
 	}
 
-	claim, err := utils.VerifyAuthToken(token)
+	userID := fmt.Sprintf("%v", claims["id"])
+
+	user, err := db.Provider.GetUserByID(userID)
 	if err != nil {
 		return res, err
 	}
 
-	userID := fmt.Sprintf("%v", claim["id"])
-	email := fmt.Sprintf("%v", claim["email"])
-	sessionToken := session.GetUserSession(userID, token)
-
-	if sessionToken == "" {
-		return res, fmt.Errorf(`unauthorized`)
-	}
-
-	user, err := db.Provider.GetUserByEmail(email)
-	if err != nil {
-		return res, err
-	}
-
-	res = utils.GetResponseUserData(user)
-
-	return res, nil
+	return user.AsAPIUser(), nil
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
@@ -20,7 +21,7 @@ func EnvResolver(ctx context.Context) (*model.Env, error) {
 		return res, err
 	}
 
-	if !utils.IsSuperAdmin(gc) {
+	if !token.IsSuperAdmin(gc) {
 		return res, fmt.Errorf("unauthorized")
 	}
 

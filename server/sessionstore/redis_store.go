@@ -1,4 +1,4 @@
-package session
+package sessionstore
 
 import (
 	"context"
@@ -58,6 +58,16 @@ func (c *RedisStore) GetUserSession(userId, accessToken string) string {
 		token = fmt.Sprintf("%v", res[0])
 	}
 	return token
+}
+
+// GetUserSessions returns all the user session token from the redis store.
+func (c *RedisStore) GetUserSessions(userID string) map[string]string {
+	res, err := c.store.HGetAll(c.ctx, "authorizer_"+userID).Result()
+	if err != nil {
+		log.Println("error getting token from redis store:", err)
+	}
+
+	return res
 }
 
 // SetSocialLoginState sets the social login state in redis store.
