@@ -56,9 +56,6 @@ type ComplexityRoot struct {
 		AppURL                     func(childComplexity int) int
 		AuthorizerURL              func(childComplexity int) int
 		CookieName                 func(childComplexity int) int
-		DatabaseName               func(childComplexity int) int
-		DatabaseType               func(childComplexity int) int
-		DatabaseURL                func(childComplexity int) int
 		DefaultRoles               func(childComplexity int) int
 		DisableBasicAuthentication func(childComplexity int) int
 		DisableEmailVerification   func(childComplexity int) int
@@ -268,27 +265,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Env.CookieName(childComplexity), true
-
-	case "Env.DATABASE_NAME":
-		if e.complexity.Env.DatabaseName == nil {
-			break
-		}
-
-		return e.complexity.Env.DatabaseName(childComplexity), true
-
-	case "Env.DATABASE_TYPE":
-		if e.complexity.Env.DatabaseType == nil {
-			break
-		}
-
-		return e.complexity.Env.DatabaseType(childComplexity), true
-
-	case "Env.DATABASE_URL":
-		if e.complexity.Env.DatabaseURL == nil {
-			break
-		}
-
-		return e.complexity.Env.DatabaseURL(childComplexity), true
 
 	case "Env.DEFAULT_ROLES":
 		if e.complexity.Env.DefaultRoles == nil {
@@ -1057,9 +1033,6 @@ type Response {
 
 type Env {
 	ADMIN_SECRET: String
-	DATABASE_TYPE: String
-	DATABASE_URL: String
-	DATABASE_NAME: String
 	SMTP_HOST: String
 	SMTP_PORT: String
 	SMTP_USERNAME: String
@@ -1094,9 +1067,6 @@ type Env {
 input UpdateEnvInput {
 	ADMIN_SECRET: String
 	OLD_ADMIN_SECRET: String
-	DATABASE_TYPE: String
-	DATABASE_URL: String
-	DATABASE_NAME: String
 	SMTP_HOST: String
 	SMTP_PORT: String
 	SENDER_EMAIL: String
@@ -1664,102 +1634,6 @@ func (ec *executionContext) _Env_ADMIN_SECRET(ctx context.Context, field graphql
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.AdminSecret, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*string)
-	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Env_DATABASE_TYPE(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Env",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.DatabaseType, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*string)
-	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Env_DATABASE_URL(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Env",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.DatabaseURL, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*string)
-	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Env_DATABASE_NAME(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Env",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.DatabaseName, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -6266,30 +6140,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			if err != nil {
 				return it, err
 			}
-		case "DATABASE_TYPE":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("DATABASE_TYPE"))
-			it.DatabaseType, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "DATABASE_URL":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("DATABASE_URL"))
-			it.DatabaseURL, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "DATABASE_NAME":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("DATABASE_NAME"))
-			it.DatabaseName, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
 		case "SMTP_HOST":
 			var err error
 
@@ -6819,12 +6669,6 @@ func (ec *executionContext) _Env(ctx context.Context, sel ast.SelectionSet, obj 
 			out.Values[i] = graphql.MarshalString("Env")
 		case "ADMIN_SECRET":
 			out.Values[i] = ec._Env_ADMIN_SECRET(ctx, field, obj)
-		case "DATABASE_TYPE":
-			out.Values[i] = ec._Env_DATABASE_TYPE(ctx, field, obj)
-		case "DATABASE_URL":
-			out.Values[i] = ec._Env_DATABASE_URL(ctx, field, obj)
-		case "DATABASE_NAME":
-			out.Values[i] = ec._Env_DATABASE_NAME(ctx, field, obj)
 		case "SMTP_HOST":
 			out.Values[i] = ec._Env_SMTP_HOST(ctx, field, obj)
 		case "SMTP_PORT":

@@ -74,6 +74,27 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 			updatedData.BoolEnv[constants.EnvKeyDisableMagicLinkLogin] = true
 		}
 	}
+
+	// check the roles change
+	if len(params.Roles) > 0 {
+		if len(params.DefaultRoles) > 0 {
+			// should be subset of roles
+			for _, role := range params.DefaultRoles {
+				if !utils.StringSliceContains(params.Roles, role) {
+					return res, fmt.Errorf("default role %s is not in roles", role)
+				}
+			}
+		}
+	}
+
+	if len(params.ProtectedRoles) > 0 {
+		for _, role := range params.ProtectedRoles {
+			if utils.StringSliceContains(params.Roles, role) || utils.StringSliceContains(params.DefaultRoles, role) {
+				return res, fmt.Errorf("protected role %s found roles or default roles", role)
+			}
+		}
+	}
+
 	// Update local store
 	envstore.EnvInMemoryStoreObj.UpdateEnvStore(updatedData)
 
@@ -86,11 +107,6 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 	encryptedConfig, err := utils.EncryptEnvData(updatedData)
 	if err != nil {
 		return res, err
-	}
-
-	// in case of db change re-initialize db
-	if params.DatabaseType != nil || params.DatabaseURL != nil || params.DatabaseName != nil {
-		db.InitDB()
 	}
 
 	// in case of admin secret change update the cookie with new hash

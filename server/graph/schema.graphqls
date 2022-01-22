@@ -64,9 +64,6 @@ type Response {
 
 type Env {
 	ADMIN_SECRET: String
-	DATABASE_TYPE: String
-	DATABASE_URL: String
-	DATABASE_NAME: String
 	SMTP_HOST: String
 	SMTP_PORT: String
 	SMTP_USERNAME: String
@@ -101,9 +98,6 @@ type Env {
 input UpdateEnvInput {
 	ADMIN_SECRET: String
 	OLD_ADMIN_SECRET: String
-	DATABASE_TYPE: String
-	DATABASE_URL: String
-	DATABASE_NAME: String
 	SMTP_HOST: String
 	SMTP_PORT: String
 	SENDER_EMAIL: String
