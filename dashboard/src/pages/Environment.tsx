@@ -6,10 +6,16 @@ import {
 	Stack,
 	Center,
 	Text,
-	Image,
+	Button,
 } from '@chakra-ui/react';
 import { useClient } from 'urql';
-import { FaGoogle, FaGithub, FaFacebookF } from 'react-icons/fa';
+import {
+	FaGoogle,
+	FaGithub,
+	FaFacebookF,
+	FaUndo,
+	FaSave,
+} from 'react-icons/fa';
 import InputField from '../components/InputField';
 import { EnvVariablesQuery } from '../graphql/queries';
 import {
@@ -120,18 +126,20 @@ export default function Environment() {
 
 	return (
 		<Box m="5" p="5" bg="white" rounded="md">
-			<Stack spacing={6}>
-				<Text fontSize="md">Social Media Logins</Text>
+			<Text fontSize="md" paddingTop="2%">
+				Social Media Logins
+			</Text>
+			<Stack spacing={6} padding="3%">
 				<Flex>
 					<Center
 						w="50px"
-						margin="0 1.5% 0 5%"
+						marginLeft="1.5%"
 						border="1px solid #e2e8f0"
 						borderRadius="5px"
 					>
 						<FaGoogle style={{ color: '#8c8c8c' }} />
 					</Center>
-					<Center w="45%" marginRight="1.5%">
+					<Center w="45%" marginLeft="1%">
 						<InputField
 							envVariables={envVariables}
 							setEnvVariables={setEnvVariables}
@@ -147,19 +155,20 @@ export default function Environment() {
 							setFieldVisibility={setFieldVisibility}
 							inputType={HiddenInputType.GOOGLE_CLIENT_SECRET}
 							placeholder="Google Secret"
+							marginLeft="2%"
 						/>
 					</Center>
 				</Flex>
 				<Flex>
 					<Center
 						w="50px"
-						margin="0 1.5% 0 5%"
+						marginLeft="1.5%"
 						border="1px solid #e2e8f0"
 						borderRadius="5px"
 					>
 						<FaGithub style={{ color: '#8c8c8c' }} />
 					</Center>
-					<Center w="45%" marginRight="1.5%">
+					<Center w="45%" marginLeft="1%">
 						<InputField
 							envVariables={envVariables}
 							setEnvVariables={setEnvVariables}
@@ -175,19 +184,20 @@ export default function Environment() {
 							setFieldVisibility={setFieldVisibility}
 							inputType={HiddenInputType.GITHUB_CLIENT_SECRET}
 							placeholder="Github Secret"
+							marginLeft="2%"
 						/>
 					</Center>
 				</Flex>
 				<Flex>
 					<Center
 						w="50px"
-						margin="0 1.5% 0 5%"
+						marginLeft="1.5%"
 						border="1px solid #e2e8f0"
 						borderRadius="5px"
 					>
 						<FaFacebookF style={{ color: '#8c8c8c' }} />
 					</Center>
-					<Center w="45%" marginRight="1.5%">
+					<Center w="45%" marginLeft="1%">
 						<InputField
 							envVariables={envVariables}
 							setEnvVariables={setEnvVariables}
@@ -203,20 +213,18 @@ export default function Environment() {
 							setFieldVisibility={setFieldVisibility}
 							inputType={HiddenInputType.FACEBOOK_CLIENT_SECRET}
 							placeholder="Facebook Secret"
+							marginLeft="2%"
 						/>
 					</Center>
 				</Flex>
-				<Divider paddingTop="2%" />
 			</Stack>
-			<Stack spacing={6} paddingTop="3%">
-				<Text fontSize="md">Roles</Text>
+			<Divider marginTop="2%" marginBottom="2%" />
+			<Text fontSize="md" paddingTop="2%">
+				Roles
+			</Text>
+			<Stack spacing={6} padding="3% 5%">
 				<Flex>
-					<Flex
-						w="30%"
-						marginLeft="5%"
-						justifyContent="start"
-						alignItems="center"
-					>
+					<Flex w="30%" justifyContent="start" alignItems="center">
 						<Text fontSize="sm">Roles:</Text>
 					</Flex>
 					<Center w="70%">
@@ -228,12 +236,7 @@ export default function Environment() {
 					</Center>
 				</Flex>
 				<Flex>
-					<Flex
-						w="30%"
-						marginLeft="5%"
-						justifyContent="start"
-						alignItems="center"
-					>
+					<Flex w="30%" justifyContent="start" alignItems="center">
 						<Text fontSize="sm">Default Roles:</Text>
 					</Flex>
 					<Center w="70%">
@@ -245,12 +248,7 @@ export default function Environment() {
 					</Center>
 				</Flex>
 				<Flex>
-					<Flex
-						w="30%"
-						marginLeft="5%"
-						justifyContent="start"
-						alignItems="center"
-					>
+					<Flex w="30%" justifyContent="start" alignItems="center">
 						<Text fontSize="sm">Protected Roles:</Text>
 					</Flex>
 					<Center w="70%">
@@ -261,17 +259,14 @@ export default function Environment() {
 						/>
 					</Center>
 				</Flex>
-				<Divider paddingTop="2%" />
 			</Stack>
-			<Stack spacing={6} paddingTop="3%">
-				<Text fontSize="md">JWT Configurations</Text>
+			<Divider marginTop="2%" marginBottom="2%" />
+			<Text fontSize="md" paddingTop="2%">
+				JWT Configurations
+			</Text>
+			<Stack spacing={6} padding="3% 5%">
 				<Flex>
-					<Flex
-						w="30%"
-						marginLeft="5%"
-						justifyContent="start"
-						alignItems="center"
-					>
+					<Flex w="30%" justifyContent="start" alignItems="center">
 						<Text fontSize="sm">JWT Type:</Text>
 					</Flex>
 					<Center w="70%">
@@ -294,12 +289,7 @@ export default function Environment() {
 					</Center>
 				</Flex>
 				<Flex>
-					<Flex
-						w="30%"
-						marginLeft="5%"
-						justifyContent="start"
-						alignItems="center"
-					>
+					<Flex w="30%" justifyContent="start" alignItems="center">
 						<Text fontSize="sm">JWT Secret</Text>
 					</Flex>
 					<Center w="70%">
@@ -313,12 +303,7 @@ export default function Environment() {
 					</Center>
 				</Flex>
 				<Flex>
-					<Flex
-						w="30%"
-						marginLeft="5%"
-						justifyContent="start"
-						alignItems="center"
-					>
+					<Flex w="30%" justifyContent="start" alignItems="center">
 						<Text fontSize="sm">JWT Role Claim:</Text>
 					</Flex>
 					<Center w="70%">
@@ -329,17 +314,14 @@ export default function Environment() {
 						/>
 					</Center>
 				</Flex>
-				<Divider paddingTop="2%" />
 			</Stack>
-			<Stack spacing={6} paddingTop="3%">
-				<Text fontSize="md">Session Storage</Text>
+			<Divider marginTop="2%" marginBottom="2%" />
+			<Text fontSize="md" paddingTop="2%">
+				Session Storage
+			</Text>
+			<Stack spacing={6} padding="3% 5%">
 				<Flex>
-					<Flex
-						w="30%"
-						marginLeft="5%"
-						justifyContent="start"
-						alignItems="center"
-					>
+					<Flex w="30%" justifyContent="start" alignItems="center">
 						<Text fontSize="sm">Redis URL:</Text>
 					</Flex>
 					<Center w="70%">
@@ -350,17 +332,14 @@ export default function Environment() {
 						/>
 					</Center>
 				</Flex>
-				<Divider paddingTop="2%" />
 			</Stack>
-			<Stack spacing={6} paddingTop="3%">
-				<Text fontSize="md">Email Configurations</Text>
+			<Divider marginTop="2%" marginBottom="2%" />
+			<Text fontSize="md" paddingTop="2%">
+				Email Configurations
+			</Text>
+			<Stack spacing={6} padding="3% 5%">
 				<Flex>
-					<Flex
-						w="30%"
-						marginLeft="5%"
-						justifyContent="start"
-						alignItems="center"
-					>
+					<Flex w="30%" justifyContent="start" alignItems="center">
 						<Text fontSize="sm">SMTP Host:</Text>
 					</Flex>
 					<Center w="70%">
@@ -372,12 +351,7 @@ export default function Environment() {
 					</Center>
 				</Flex>
 				<Flex>
-					<Flex
-						w="30%"
-						marginLeft="5%"
-						justifyContent="start"
-						alignItems="center"
-					>
+					<Flex w="30%" justifyContent="start" alignItems="center">
 						<Text fontSize="sm">PORT:</Text>
 					</Flex>
 					<Center w="70%">
@@ -389,12 +363,7 @@ export default function Environment() {
 					</Center>
 				</Flex>
 				<Flex>
-					<Flex
-						w="30%"
-						marginLeft="5%"
-						justifyContent="start"
-						alignItems="center"
-					>
+					<Flex w="30%" justifyContent="start" alignItems="center">
 						<Text fontSize="sm">Username:</Text>
 					</Flex>
 					<Center w="70%">
@@ -406,12 +375,7 @@ export default function Environment() {
 					</Center>
 				</Flex>
 				<Flex>
-					<Flex
-						w="30%"
-						marginLeft="5%"
-						justifyContent="start"
-						alignItems="center"
-					>
+					<Flex w="30%" justifyContent="start" alignItems="center">
 						<Text fontSize="sm">Password:</Text>
 					</Flex>
 					<Center w="70%">
@@ -425,12 +389,7 @@ export default function Environment() {
 					</Center>
 				</Flex>
 				<Flex>
-					<Flex
-						w="30%"
-						marginLeft="5%"
-						justifyContent="start"
-						alignItems="center"
-					>
+					<Flex w="30%" justifyContent="start" alignItems="center">
 						<Text fontSize="sm">From Email:</Text>
 					</Flex>
 					<Center w="70%">
@@ -441,17 +400,14 @@ export default function Environment() {
 						/>
 					</Center>
 				</Flex>
-				<Divider paddingTop="2%" />
 			</Stack>
-			<Stack spacing={6} paddingTop="3%">
-				<Text fontSize="md">White Listing</Text>
+			<Divider marginTop="2%" marginBottom="2%" />
+			<Text fontSize="md" paddingTop="2%">
+				White Listing
+			</Text>
+			<Stack spacing={6} padding="3% 5%">
 				<Flex>
-					<Flex
-						w="30%"
-						marginLeft="5%"
-						justifyContent="start"
-						alignItems="center"
-					>
+					<Flex w="30%" justifyContent="start" alignItems="center">
 						<Text fontSize="sm">Allowed Origins:</Text>
 					</Flex>
 					<Center w="70%">
@@ -462,17 +418,14 @@ export default function Environment() {
 						/>
 					</Center>
 				</Flex>
-				<Divider paddingTop="2%" />
 			</Stack>
-			<Stack spacing={6} paddingTop="3%">
-				<Text fontSize="md">Organization Information</Text>
+			<Divider marginTop="2%" marginBottom="2%" />
+			<Text fontSize="md" paddingTop="2%">
+				Organization Information
+			</Text>
+			<Stack spacing={6} padding="3% 5%">
 				<Flex>
-					<Flex
-						w="30%"
-						marginLeft="5%"
-						justifyContent="start"
-						alignItems="center"
-					>
+					<Flex w="30%" justifyContent="start" alignItems="center">
 						<Text fontSize="sm">Organization Name:</Text>
 					</Flex>
 					<Center w="70%">
@@ -484,12 +437,7 @@ export default function Environment() {
 					</Center>
 				</Flex>
 				<Flex>
-					<Flex
-						w="30%"
-						marginLeft="5%"
-						justifyContent="start"
-						alignItems="center"
-					>
+					<Flex w="30%" justifyContent="start" alignItems="center">
 						<Text fontSize="sm">Organization Logo:</Text>
 					</Flex>
 					<Center w="70%">
@@ -500,94 +448,127 @@ export default function Environment() {
 						/>
 					</Center>
 				</Flex>
-				<Divider paddingTop="2%" />
 			</Stack>
-			<Stack spacing={6} paddingTop="3%">
-				<Text fontSize="md">Custom Scripts</Text>
+			<Divider marginTop="2%" marginBottom="2%" />
+			<Text fontSize="md" paddingTop="2%">
+				Custom Scripts
+			</Text>
+			<Stack spacing={6} padding="3% 5%">
 				<Flex>
-					<Center w="100%" marginLeft="5%">
+					<Center w="100%">
 						<InputField
 							envVariables={envVariables}
 							setEnvVariables={setEnvVariables}
 							inputType={TextAreaInputType.CUSTOM_ACCESS_TOKEN_SCRIPT}
-							placeholder="Add scripts here"
+							placeholder="Add script here"
 							minH="25vh"
 						/>
 					</Center>
 				</Flex>
-				<Divider paddingTop="2%" />
 			</Stack>
-			<Stack spacing={6} paddingTop="3%">
-				<Text fontSize="md">Disable Features</Text>
+			<Divider marginTop="2%" marginBottom="2%" />
+			<Text fontSize="md" paddingTop="2%">
+				Disable Features
+			</Text>
+			<Stack spacing={6} padding="3% 5%">
 				<Flex>
-					<Flex
-						w="30%"
-						marginLeft="5%"
-						justifyContent="start"
-						alignItems="center"
-					>
+					<Flex w="30%" justifyContent="start" alignItems="center">
 						<Text fontSize="sm">Login Page:</Text>
 					</Flex>
-					<Center w="70%">
+					<Flex justifyContent="end" w="70%">
 						<InputField
 							envVariables={envVariables}
 							setEnvVariables={setEnvVariables}
 							inputType={SwitchInputType.DISABLE_LOGIN_PAGE}
 						/>
-					</Center>
+					</Flex>
 				</Flex>
 				<Flex>
-					<Flex
-						w="30%"
-						marginLeft="5%"
-						justifyContent="start"
-						alignItems="center"
-					>
+					<Flex w="30%" justifyContent="start" alignItems="center">
 						<Text fontSize="sm">Magic Login Link:</Text>
 					</Flex>
-					<Center w="70%">
+					<Flex justifyContent="end" w="70%">
 						<InputField
 							envVariables={envVariables}
 							setEnvVariables={setEnvVariables}
 							inputType={SwitchInputType.DISABLE_MAGIC_LINK_LOGIN}
 						/>
-					</Center>
+					</Flex>
 				</Flex>
 				<Flex>
-					<Flex
-						w="30%"
-						marginLeft="5%"
-						justifyContent="start"
-						alignItems="center"
-					>
+					<Flex w="30%" justifyContent="start" alignItems="center">
 						<Text fontSize="sm">Email Verification:</Text>
 					</Flex>
-					<Center w="70%">
+					<Flex justifyContent="end" w="70%">
 						<InputField
 							envVariables={envVariables}
 							setEnvVariables={setEnvVariables}
 							inputType={SwitchInputType.DISABLE_EMAIL_VERIFICATION}
 						/>
-					</Center>
+					</Flex>
 				</Flex>
 				<Flex>
-					<Flex
-						w="30%"
-						marginLeft="5%"
-						justifyContent="start"
-						alignItems="center"
-					>
+					<Flex w="30%" justifyContent="start" alignItems="center">
 						<Text fontSize="sm">Basic Authentication:</Text>
 					</Flex>
-					<Center w="70%">
+					<Flex justifyContent="end" w="70%">
 						<InputField
 							envVariables={envVariables}
 							setEnvVariables={setEnvVariables}
 							inputType={SwitchInputType.DISABLE_BASIC_AUTHENTICATION}
 						/>
+					</Flex>
+				</Flex>
+			</Stack>
+			<Divider marginTop="2%" marginBottom="2%" />
+			<Text fontSize="md" paddingTop="2%">
+				Danger
+			</Text>
+			<Stack
+				spacing={6}
+				bgColor="#fff1f0"
+				padding="0 5%"
+				marginTop="3%"
+				border="1px solid #ff7875"
+				borderRadius="5px"
+			>
+				<Flex marginTop="3%">
+					<Flex w="30%" justifyContent="start" alignItems="center">
+						<Text fontSize="sm">Enter Old Admin Secret:</Text>
+					</Flex>
+					<Center w="70%">
+						<InputField
+							envVariables={envVariables}
+							setEnvVariables={setEnvVariables}
+							inputType={TextInputType.ORGANIZATION_LOGO}
+						/>
 					</Center>
 				</Flex>
-				<Divider paddingTop="2%" />
+				<Flex paddingBottom="3%">
+					<Flex w="30%" justifyContent="start" alignItems="center">
+						<Text fontSize="sm">Enter New Admin Secret:</Text>
+					</Flex>
+					<Center w="70%">
+						<InputField
+							envVariables={envVariables}
+							setEnvVariables={setEnvVariables}
+							inputType={TextInputType.ORGANIZATION_LOGO}
+						/>
+					</Center>
+				</Flex>
+			</Stack>
+			<Divider marginTop="5%" marginBottom="2%" />
+			<Stack spacing={6} padding="1% 0">
+				<Flex justifyContent="end" alignItems="center">
+					<Stack direction="row" spacing={4}>
+						<Button leftIcon={<FaUndo />} colorScheme="blue" variant="outline">
+							Reset
+						</Button>
+						<Button leftIcon={<FaSave />} colorScheme="blue" variant="solid">
+							Save
+						</Button>
+					</Stack>
+				</Flex>
 			</Stack>
 		</Box>
 	);

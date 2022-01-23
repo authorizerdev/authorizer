@@ -12,6 +12,7 @@ import {
 	Select,
 	Textarea,
 	Switch,
+	Code,
 } from '@chakra-ui/react';
 import {
 	FaRegClone,
@@ -270,16 +271,20 @@ const InputField = ({
 	}
 	if (Object.values(SwitchInputType).includes(inputType)) {
 		return (
-			<Switch
-				size="md"
-				isChecked={envVariables[inputType]}
-				onChange={() => {
-					setEnvVariables({
-						...envVariables,
-						[inputType]: !envVariables[inputType],
-					});
-				}}
-			/>
+			<Flex w="25%" justifyContent="space-between">
+				<Code h="75%">Off</Code>
+				<Switch
+					size="md"
+					isChecked={!envVariables[inputType]}
+					onChange={() => {
+						setEnvVariables({
+							...envVariables,
+							[inputType]: !envVariables[inputType],
+						});
+					}}
+				/>
+				<Code h="75%">On</Code>
+			</Flex>
 		);
 	}
 	return null;
