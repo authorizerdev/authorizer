@@ -18,6 +18,7 @@ import {
 	HiddenInputType,
 	TextInputType,
 	TextAreaInputType,
+	SwitchInputType,
 } from '../constants';
 
 interface envVarTypes {
@@ -44,6 +45,10 @@ interface envVarTypes {
 	ORGANIZATION_LOGO: string;
 	CUSTOM_ACCESS_TOKEN_SCRIPT: string;
 	ADMIN_SECRET: string;
+	DISABLE_LOGIN_PAGE: boolean;
+	DISABLE_MAGIC_LINK_LOGIN: boolean;
+	DISABLE_EMAIL_VERIFICATION: boolean;
+	DISABLE_BASIC_AUTHENTICATION: boolean;
 }
 
 export default function Environment() {
@@ -72,6 +77,10 @@ export default function Environment() {
 		ORGANIZATION_LOGO: '',
 		CUSTOM_ACCESS_TOKEN_SCRIPT: '',
 		ADMIN_SECRET: '',
+		DISABLE_LOGIN_PAGE: false,
+		DISABLE_MAGIC_LINK_LOGIN: false,
+		DISABLE_EMAIL_VERIFICATION: false,
+		DISABLE_BASIC_AUTHENTICATION: false,
 	});
 	const [fieldVisibility, setFieldVisibility] = React.useState<
 		Record<string, boolean>
@@ -496,11 +505,85 @@ export default function Environment() {
 			<Stack spacing={6} paddingTop="3%">
 				<Text fontSize="md">Custom Scripts</Text>
 				<Flex>
-					<Center w="100%">
+					<Center w="100%" marginLeft="5%">
 						<InputField
 							envVariables={envVariables}
 							setEnvVariables={setEnvVariables}
 							inputType={TextAreaInputType.CUSTOM_ACCESS_TOKEN_SCRIPT}
+							placeholder="Add scripts here"
+							minH="25vh"
+						/>
+					</Center>
+				</Flex>
+				<Divider paddingTop="2%" />
+			</Stack>
+			<Stack spacing={6} paddingTop="3%">
+				<Text fontSize="md">Disable Features</Text>
+				<Flex>
+					<Flex
+						w="30%"
+						marginLeft="5%"
+						justifyContent="start"
+						alignItems="center"
+					>
+						<Text fontSize="sm">Login Page:</Text>
+					</Flex>
+					<Center w="70%">
+						<InputField
+							envVariables={envVariables}
+							setEnvVariables={setEnvVariables}
+							inputType={SwitchInputType.DISABLE_LOGIN_PAGE}
+						/>
+					</Center>
+				</Flex>
+				<Flex>
+					<Flex
+						w="30%"
+						marginLeft="5%"
+						justifyContent="start"
+						alignItems="center"
+					>
+						<Text fontSize="sm">Magic Login Link:</Text>
+					</Flex>
+					<Center w="70%">
+						<InputField
+							envVariables={envVariables}
+							setEnvVariables={setEnvVariables}
+							inputType={SwitchInputType.DISABLE_MAGIC_LINK_LOGIN}
+						/>
+					</Center>
+				</Flex>
+				<Flex>
+					<Flex
+						w="30%"
+						marginLeft="5%"
+						justifyContent="start"
+						alignItems="center"
+					>
+						<Text fontSize="sm">Email Verification:</Text>
+					</Flex>
+					<Center w="70%">
+						<InputField
+							envVariables={envVariables}
+							setEnvVariables={setEnvVariables}
+							inputType={SwitchInputType.DISABLE_EMAIL_VERIFICATION}
+						/>
+					</Center>
+				</Flex>
+				<Flex>
+					<Flex
+						w="30%"
+						marginLeft="5%"
+						justifyContent="start"
+						alignItems="center"
+					>
+						<Text fontSize="sm">Basic Authentication:</Text>
+					</Flex>
+					<Center w="70%">
+						<InputField
+							envVariables={envVariables}
+							setEnvVariables={setEnvVariables}
+							inputType={SwitchInputType.DISABLE_BASIC_AUTHENTICATION}
 						/>
 					</Center>
 				</Flex>

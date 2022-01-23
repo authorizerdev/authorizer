@@ -11,6 +11,7 @@ import {
 	TagRightIcon,
 	Select,
 	Textarea,
+	Switch,
 } from '@chakra-ui/react';
 import {
 	FaRegClone,
@@ -26,6 +27,7 @@ import {
 	HiddenInputType,
 	TextInputType,
 	TextAreaInputType,
+	SwitchInputType,
 } from '../constants';
 import { copyTextToClipboard } from '../utils';
 
@@ -257,12 +259,26 @@ const InputField = ({
 	if (Object.values(TextAreaInputType).includes(inputType)) {
 		return (
 			<Textarea
+				{...props}
 				size="lg"
 				value={inputData[inputType]}
 				onChange={(e: any) => {
 					setInputData({ ...inputData, [inputType]: e.target.value });
 				}}
-				placeholder="Add script here"
+			/>
+		);
+	}
+	if (Object.values(SwitchInputType).includes(inputType)) {
+		return (
+			<Switch
+				size="md"
+				isChecked={envVariables[inputType]}
+				onChange={() => {
+					setEnvVariables({
+						...envVariables,
+						[inputType]: !envVariables[inputType],
+					});
+				}}
 			/>
 		);
 	}
