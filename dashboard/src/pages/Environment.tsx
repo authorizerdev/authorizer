@@ -170,13 +170,13 @@ export default function Environment() {
 				<Flex>
 					<Center
 						w="50px"
-						marginLeft="1.5%"
+						marginRight="1.5%"
 						border="1px solid #e2e8f0"
 						borderRadius="5px"
 					>
 						<FaGoogle style={{ color: '#8c8c8c' }} />
 					</Center>
-					<Center w="45%" marginLeft="1%">
+					<Center w="45%" marginRight="1.5%">
 						<InputField
 							envVariables={envVariables}
 							setEnvVariables={setEnvVariables}
@@ -192,20 +192,19 @@ export default function Environment() {
 							setFieldVisibility={setFieldVisibility}
 							inputType={HiddenInputType.GOOGLE_CLIENT_SECRET}
 							placeholder="Google Secret"
-							marginLeft="2%"
 						/>
 					</Center>
 				</Flex>
 				<Flex>
 					<Center
 						w="50px"
-						marginLeft="1.5%"
+						marginRight="1.5%"
 						border="1px solid #e2e8f0"
 						borderRadius="5px"
 					>
 						<FaGithub style={{ color: '#8c8c8c' }} />
 					</Center>
-					<Center w="45%" marginLeft="1%">
+					<Center w="45%" marginRight="1.5%">
 						<InputField
 							envVariables={envVariables}
 							setEnvVariables={setEnvVariables}
@@ -221,20 +220,19 @@ export default function Environment() {
 							setFieldVisibility={setFieldVisibility}
 							inputType={HiddenInputType.GITHUB_CLIENT_SECRET}
 							placeholder="Github Secret"
-							marginLeft="2%"
 						/>
 					</Center>
 				</Flex>
 				<Flex>
 					<Center
 						w="50px"
-						marginLeft="1.5%"
+						marginRight="1.5%"
 						border="1px solid #e2e8f0"
 						borderRadius="5px"
 					>
 						<FaFacebookF style={{ color: '#8c8c8c' }} />
 					</Center>
-					<Center w="45%" marginLeft="1%">
+					<Center w="45%" marginRight="1.5%">
 						<InputField
 							envVariables={envVariables}
 							setEnvVariables={setEnvVariables}
@@ -250,7 +248,6 @@ export default function Environment() {
 							setFieldVisibility={setFieldVisibility}
 							inputType={HiddenInputType.FACEBOOK_CLIENT_SECRET}
 							placeholder="Facebook Secret"
-							marginLeft="2%"
 						/>
 					</Center>
 				</Flex>
@@ -512,7 +509,7 @@ export default function Environment() {
 					<Flex w="30%" justifyContent="start" alignItems="center">
 						<Text fontSize="sm">Login Page:</Text>
 					</Flex>
-					<Flex justifyContent="center" w="70%">
+					<Flex justifyContent="start" w="70%">
 						<InputField
 							envVariables={envVariables}
 							setEnvVariables={setEnvVariables}
@@ -524,7 +521,7 @@ export default function Environment() {
 					<Flex w="30%" justifyContent="start" alignItems="center">
 						<Text fontSize="sm">Magic Login Link:</Text>
 					</Flex>
-					<Flex justifyContent="center" w="70%">
+					<Flex justifyContent="start" w="70%">
 						<InputField
 							envVariables={envVariables}
 							setEnvVariables={setEnvVariables}
@@ -536,7 +533,7 @@ export default function Environment() {
 					<Flex w="30%" justifyContent="start" alignItems="center">
 						<Text fontSize="sm">Email Verification:</Text>
 					</Flex>
-					<Flex justifyContent="center" w="70%">
+					<Flex justifyContent="start" w="70%">
 						<InputField
 							envVariables={envVariables}
 							setEnvVariables={setEnvVariables}
@@ -548,7 +545,7 @@ export default function Environment() {
 					<Flex w="30%" justifyContent="start" alignItems="center">
 						<Text fontSize="sm">Basic Authentication:</Text>
 					</Flex>
-					<Flex justifyContent="center" w="70%">
+					<Flex justifyContent="start" w="70%">
 						<InputField
 							envVariables={envVariables}
 							setEnvVariables={setEnvVariables}
