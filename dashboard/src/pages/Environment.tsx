@@ -512,7 +512,7 @@ export default function Environment() {
 					<Flex w="30%" justifyContent="start" alignItems="center">
 						<Text fontSize="sm">Login Page:</Text>
 					</Flex>
-					<Flex justifyContent="end" w="70%">
+					<Flex justifyContent="center" w="70%">
 						<InputField
 							envVariables={envVariables}
 							setEnvVariables={setEnvVariables}
@@ -524,7 +524,7 @@ export default function Environment() {
 					<Flex w="30%" justifyContent="start" alignItems="center">
 						<Text fontSize="sm">Magic Login Link:</Text>
 					</Flex>
-					<Flex justifyContent="end" w="70%">
+					<Flex justifyContent="center" w="70%">
 						<InputField
 							envVariables={envVariables}
 							setEnvVariables={setEnvVariables}
@@ -536,7 +536,7 @@ export default function Environment() {
 					<Flex w="30%" justifyContent="start" alignItems="center">
 						<Text fontSize="sm">Email Verification:</Text>
 					</Flex>
-					<Flex justifyContent="end" w="70%">
+					<Flex justifyContent="center" w="70%">
 						<InputField
 							envVariables={envVariables}
 							setEnvVariables={setEnvVariables}
@@ -548,7 +548,7 @@ export default function Environment() {
 					<Flex w="30%" justifyContent="start" alignItems="center">
 						<Text fontSize="sm">Basic Authentication:</Text>
 					</Flex>
-					<Flex justifyContent="end" w="70%">
+					<Flex justifyContent="center" w="70%">
 						<InputField
 							envVariables={envVariables}
 							setEnvVariables={setEnvVariables}
