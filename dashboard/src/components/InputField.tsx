@@ -9,6 +9,8 @@ import {
 	Tag,
 	TagLabel,
 	TagRightIcon,
+	Select,
+	Textarea,
 } from '@chakra-ui/react';
 import {
 	FaRegClone,
@@ -20,8 +22,10 @@ import {
 import {
 	ArrayInputOperations,
 	ArrayInputType,
+	SelectInputType,
 	HiddenInputType,
 	TextInputType,
+	TextAreaInputType,
 } from '../constants';
 import { copyTextToClipboard } from '../utils';
 
@@ -76,7 +80,7 @@ const InputField = ({
 			});
 		}
 	};
-	if (Object.values(TextInputType).includes(inputType))
+	if (Object.values(TextInputType).includes(inputType)) {
 		return (
 			<InputGroup size="sm">
 				<Input
@@ -100,7 +104,8 @@ const InputField = ({
 				/>
 			</InputGroup>
 		);
-	if (Object.values(HiddenInputType).includes(inputType))
+	}
+	if (Object.values(HiddenInputType).includes(inputType)) {
 		return (
 			<InputGroup size="sm">
 				<Input
@@ -164,7 +169,8 @@ const InputField = ({
 				/>
 			</InputGroup>
 		);
-	if (Object.values(ArrayInputType).includes(inputType))
+	}
+	if (Object.values(ArrayInputType).includes(inputType)) {
 		return (
 			<Flex
 				border="1px solid #e2e8f0"
@@ -238,6 +244,28 @@ const InputField = ({
 				)}
 			</Flex>
 		);
+	}
+	if (Object.values(SelectInputType).includes(inputType)) {
+		return (
+			<Select size="sm" {...props}>
+				{[envVariables[inputType]].map((value: string) => (
+					<option value="value">{value}</option>
+				))}
+			</Select>
+		);
+	}
+	if (Object.values(TextAreaInputType).includes(inputType)) {
+		return (
+			<Textarea
+				size="lg"
+				value={inputData[inputType]}
+				onChange={(e: any) => {
+					setInputData({ ...inputData, [inputType]: e.target.value });
+				}}
+				placeholder="Add script here"
+			/>
+		);
+	}
 	return null;
 };
 

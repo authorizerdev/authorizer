@@ -1,10 +1,24 @@
 import React from 'react';
-import { Box, Divider, Flex, Stack, Center, Text } from '@chakra-ui/react';
+import {
+	Box,
+	Divider,
+	Flex,
+	Stack,
+	Center,
+	Text,
+	Image,
+} from '@chakra-ui/react';
 import { useClient } from 'urql';
 import { FaGoogle, FaGithub, FaFacebookF } from 'react-icons/fa';
 import InputField from '../components/InputField';
 import { EnvVariablesQuery } from '../graphql/queries';
-import { ArrayInputType, HiddenInputType, TextInputType } from '../constants';
+import {
+	ArrayInputType,
+	SelectInputType,
+	HiddenInputType,
+	TextInputType,
+	TextAreaInputType,
+} from '../constants';
 
 interface envVarTypes {
 	GOOGLE_CLIENT_ID: string;
@@ -74,6 +88,7 @@ export default function Environment() {
 		const {
 			data: { _env: envData },
 		} = await client.query(EnvVariablesQuery).toPromise();
+		console.log('envData ==>> ', envData);
 		if (envData) {
 			setEnvVariables({
 				...envVariables,
@@ -85,6 +100,7 @@ export default function Environment() {
 				GOOGLE_CLIENT_ID: 'jvhgvxcknbhjvc',
 				GITHUB_CLIENT_ID: 'kxhvghchcxhjx',
 				FACEBOOK_CLIENT_ID: 'gxgjbvxcgfcvghx',
+				REDIS_URL: 'redis://rediscloud:mypassword@redis...',
 			});
 		}
 	};
@@ -233,6 +249,258 @@ export default function Environment() {
 							envVariables={envVariables}
 							setEnvVariables={setEnvVariables}
 							inputType={ArrayInputType.PROTECTED_ROLES}
+						/>
+					</Center>
+				</Flex>
+				<Divider paddingTop="2%" />
+			</Stack>
+			<Stack spacing={6} paddingTop="3%">
+				<Text fontSize="md">JWT Configurations</Text>
+				<Flex>
+					<Flex
+						w="30%"
+						marginLeft="5%"
+						justifyContent="start"
+						alignItems="center"
+					>
+						<Text fontSize="sm">JWT Type:</Text>
+					</Flex>
+					<Center w="70%">
+						<Flex w="100%" justifyContent="space-between">
+							<Flex flex="2">
+								<InputField
+									envVariables={envVariables}
+									setEnvVariables={setEnvVariables}
+									inputType={SelectInputType.JWT_TYPE}
+									isDisabled={true}
+									defaultValue={SelectInputType.JWT_TYPE}
+								/>
+							</Flex>
+							<Flex flex="3" justifyContent="center" alignItems="center">
+								<Text fontSize="sm">
+									More JWT types will be enabled in upcoming releases.
+								</Text>
+							</Flex>
+						</Flex>
+					</Center>
+				</Flex>
+				<Flex>
+					<Flex
+						w="30%"
+						marginLeft="5%"
+						justifyContent="start"
+						alignItems="center"
+					>
+						<Text fontSize="sm">JWT Secret</Text>
+					</Flex>
+					<Center w="70%">
+						<InputField
+							envVariables={envVariables}
+							setEnvVariables={setEnvVariables}
+							fieldVisibility={fieldVisibility}
+							setFieldVisibility={setFieldVisibility}
+							inputType={HiddenInputType.JWT_SECRET}
+						/>
+					</Center>
+				</Flex>
+				<Flex>
+					<Flex
+						w="30%"
+						marginLeft="5%"
+						justifyContent="start"
+						alignItems="center"
+					>
+						<Text fontSize="sm">JWT Role Claim:</Text>
+					</Flex>
+					<Center w="70%">
+						<InputField
+							envVariables={envVariables}
+							setEnvVariables={setEnvVariables}
+							inputType={TextInputType.JWT_ROLE_CLAIM}
+						/>
+					</Center>
+				</Flex>
+				<Divider paddingTop="2%" />
+			</Stack>
+			<Stack spacing={6} paddingTop="3%">
+				<Text fontSize="md">Session Storage</Text>
+				<Flex>
+					<Flex
+						w="30%"
+						marginLeft="5%"
+						justifyContent="start"
+						alignItems="center"
+					>
+						<Text fontSize="sm">Redis URL:</Text>
+					</Flex>
+					<Center w="70%">
+						<InputField
+							envVariables={envVariables}
+							setEnvVariables={setEnvVariables}
+							inputType={TextInputType.REDIS_URL}
+						/>
+					</Center>
+				</Flex>
+				<Divider paddingTop="2%" />
+			</Stack>
+			<Stack spacing={6} paddingTop="3%">
+				<Text fontSize="md">Email Configurations</Text>
+				<Flex>
+					<Flex
+						w="30%"
+						marginLeft="5%"
+						justifyContent="start"
+						alignItems="center"
+					>
+						<Text fontSize="sm">SMTP Host:</Text>
+					</Flex>
+					<Center w="70%">
+						<InputField
+							envVariables={envVariables}
+							setEnvVariables={setEnvVariables}
+							inputType={TextInputType.SMTP_HOST}
+						/>
+					</Center>
+				</Flex>
+				<Flex>
+					<Flex
+						w="30%"
+						marginLeft="5%"
+						justifyContent="start"
+						alignItems="center"
+					>
+						<Text fontSize="sm">PORT:</Text>
+					</Flex>
+					<Center w="70%">
+						<InputField
+							envVariables={envVariables}
+							setEnvVariables={setEnvVariables}
+							inputType={TextInputType.SMTP_PORT}
+						/>
+					</Center>
+				</Flex>
+				<Flex>
+					<Flex
+						w="30%"
+						marginLeft="5%"
+						justifyContent="start"
+						alignItems="center"
+					>
+						<Text fontSize="sm">Username:</Text>
+					</Flex>
+					<Center w="70%">
+						<InputField
+							envVariables={envVariables}
+							setEnvVariables={setEnvVariables}
+							inputType={TextInputType.SMTP_USERNAME}
+						/>
+					</Center>
+				</Flex>
+				<Flex>
+					<Flex
+						w="30%"
+						marginLeft="5%"
+						justifyContent="start"
+						alignItems="center"
+					>
+						<Text fontSize="sm">Password:</Text>
+					</Flex>
+					<Center w="70%">
+						<InputField
+							envVariables={envVariables}
+							setEnvVariables={setEnvVariables}
+							fieldVisibility={fieldVisibility}
+							setFieldVisibility={setFieldVisibility}
+							inputType={HiddenInputType.SMTP_PASSWORD}
+						/>
+					</Center>
+				</Flex>
+				<Flex>
+					<Flex
+						w="30%"
+						marginLeft="5%"
+						justifyContent="start"
+						alignItems="center"
+					>
+						<Text fontSize="sm">From Email:</Text>
+					</Flex>
+					<Center w="70%">
+						<InputField
+							envVariables={envVariables}
+							setEnvVariables={setEnvVariables}
+							inputType={TextInputType.SENDER_EMAIL}
+						/>
+					</Center>
+				</Flex>
+				<Divider paddingTop="2%" />
+			</Stack>
+			<Stack spacing={6} paddingTop="3%">
+				<Text fontSize="md">White Listing</Text>
+				<Flex>
+					<Flex
+						w="30%"
+						marginLeft="5%"
+						justifyContent="start"
+						alignItems="center"
+					>
+						<Text fontSize="sm">Allowed Origins:</Text>
+					</Flex>
+					<Center w="70%">
+						<InputField
+							envVariables={envVariables}
+							setEnvVariables={setEnvVariables}
+							inputType={ArrayInputType.ALLOWED_ORIGINS}
+						/>
+					</Center>
+				</Flex>
+				<Divider paddingTop="2%" />
+			</Stack>
+			<Stack spacing={6} paddingTop="3%">
+				<Text fontSize="md">Organization Information</Text>
+				<Flex>
+					<Flex
+						w="30%"
+						marginLeft="5%"
+						justifyContent="start"
+						alignItems="center"
+					>
+						<Text fontSize="sm">Organization Name:</Text>
+					</Flex>
+					<Center w="70%">
+						<InputField
+							envVariables={envVariables}
+							setEnvVariables={setEnvVariables}
+							inputType={TextInputType.ORGANIZATION_NAME}
+						/>
+					</Center>
+				</Flex>
+				<Flex>
+					<Flex
+						w="30%"
+						marginLeft="5%"
+						justifyContent="start"
+						alignItems="center"
+					>
+						<Text fontSize="sm">Organization Logo:</Text>
+					</Flex>
+					<Center w="70%">
+						<InputField
+							envVariables={envVariables}
+							setEnvVariables={setEnvVariables}
+							inputType={TextInputType.ORGANIZATION_LOGO}
+						/>
+					</Center>
+				</Flex>
+				<Divider paddingTop="2%" />
+			</Stack>
+			<Stack spacing={6} paddingTop="3%">
+				<Text fontSize="md">Custom Scripts</Text>
+				<Flex>
+					<Center w="100%">
+						<InputField
+							envVariables={envVariables}
+							setEnvVariables={setEnvVariables}
+							inputType={TextAreaInputType.CUSTOM_ACCESS_TOKEN_SCRIPT}
 						/>
 					</Center>
 				</Flex>
