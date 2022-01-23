@@ -7,6 +7,7 @@ import {
 	Center,
 	Text,
 	Button,
+	Input,
 } from '@chakra-ui/react';
 import { useClient } from 'urql';
 import {
@@ -59,6 +60,14 @@ interface envVarTypes {
 
 export default function Environment() {
 	const client = useClient();
+	const [adminSecret, setAdminSecret] = React.useState<
+		Record<string, string | boolean>
+	>({
+		oldValue: '',
+		newValue: '',
+		disableInputField: true,
+	});
+	const [loading, setLoading] = React.useState<boolean>(false);
 	const [envVariables, setEnvVariables] = React.useState<envVarTypes>({
 		GOOGLE_CLIENT_ID: '',
 		GOOGLE_CLIENT_SECRET: '',
@@ -99,15 +108,18 @@ export default function Environment() {
 		ADMIN_SECRET: false,
 	});
 
-	const updateEnvVariables = async () => {
+	const updateHandler = async () => {
+		setLoading(true);
 		const {
 			data: { _env: envData },
 		} = await client.query(EnvVariablesQuery).toPromise();
 		console.log('envData ==>> ', envData);
 		if (envData) {
+			setAdminSecret({ ...adminSecret, oldValue: envData.ADMIN_SECRET });
 			setEnvVariables({
 				...envVariables,
 				...envData,
+				ADMIN_SECRET: '',
 				// test data
 				GOOGLE_CLIENT_SECRET: 'xygchxcfcghjsvhccxgvgvxcz',
 				GITHUB_CLIENT_SECRET: 'abvgxdgjbsgcxcjvjxvhcgfcxc',
@@ -118,11 +130,36 @@ export default function Environment() {
 				REDIS_URL: 'redis://rediscloud:mypassword@redis...',
 			});
 		}
+		setLoading(false);
 	};
 
 	React.useEffect(() => {
-		updateEnvVariables();
+		updateHandler();
 	}, []);
+
+	const validateAdminSecretHandler = (event: any) => {
+		if (adminSecret.oldValue === event.target.value) {
+			setAdminSecret({
+				...adminSecret,
+				newValue: event.target.value,
+				disableInputField: false,
+			});
+		} else {
+			setAdminSecret({
+				...adminSecret,
+				newValue: event.target.value,
+				disableInputField: true,
+			});
+		}
+		if (envVariables.ADMIN_SECRET !== '') {
+			setEnvVariables({ ...envVariables, ADMIN_SECRET: '' });
+		}
+	};
+
+	const saveHandler = () => {
+		console.log('updated env vars ==>> ', envVariables);
+		updateHandler();
+	};
 
 	return (
 		<Box m="5" p="5" bg="white" rounded="md">
@@ -534,25 +571,30 @@ export default function Environment() {
 			>
 				<Flex marginTop="3%">
 					<Flex w="30%" justifyContent="start" alignItems="center">
-						<Text fontSize="sm">Enter Old Admin Secret:</Text>
+						<Text fontSize="sm">Old Admin Secret:</Text>
 					</Flex>
 					<Center w="70%">
-						<InputField
-							envVariables={envVariables}
-							setEnvVariables={setEnvVariables}
-							inputType={TextInputType.ORGANIZATION_LOGO}
+						<Input
+							size="sm"
+							placeholder="Enter Old Admin Secret"
+							value={adminSecret.newValue as string}
+							onChange={(event: any) => validateAdminSecretHandler(event)}
 						/>
 					</Center>
 				</Flex>
 				<Flex paddingBottom="3%">
 					<Flex w="30%" justifyContent="start" alignItems="center">
-						<Text fontSize="sm">Enter New Admin Secret:</Text>
+						<Text fontSize="sm">New Admin Secret:</Text>
 					</Flex>
 					<Center w="70%">
 						<InputField
 							envVariables={envVariables}
 							setEnvVariables={setEnvVariables}
-							inputType={TextInputType.ORGANIZATION_LOGO}
+							inputType={HiddenInputType.ADMIN_SECRET}
+							fieldVisibility={fieldVisibility}
+							setFieldVisibility={setFieldVisibility}
+							isDisabled={adminSecret.disableInputField}
+							placeholder="Enter New Admin Secret"
 						/>
 					</Center>
 				</Flex>
@@ -561,10 +603,22 @@ export default function Environment() {
 			<Stack spacing={6} padding="1% 0">
 				<Flex justifyContent="end" alignItems="center">
 					<Stack direction="row" spacing={4}>
-						<Button leftIcon={<FaUndo />} colorScheme="blue" variant="outline">
+						<Button
+							leftIcon={<FaUndo />}
+							colorScheme="blue"
+							variant="outline"
+							onClick={updateHandler}
+							isDisabled={loading}
+						>
 							Reset
 						</Button>
-						<Button leftIcon={<FaSave />} colorScheme="blue" variant="solid">
+						<Button
+							leftIcon={<FaSave />}
+							colorScheme="blue"
+							variant="solid"
+							onClick={saveHandler}
+							isDisabled={loading}
+						>
 							Save
 						</Button>
 					</Stack>

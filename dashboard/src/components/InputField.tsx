@@ -129,7 +129,7 @@ const InputField = ({
 				<InputRightElement
 					right="15px"
 					children={
-						<Flex bgColor="white">
+						<Flex>
 							{fieldVisibility[inputType] ? (
 								<Center
 									w="25px"
