@@ -75,8 +75,12 @@ func (r *queryResolver) Meta(ctx context.Context) (*model.Meta, error) {
 	return resolvers.MetaResolver(ctx)
 }
 
-func (r *queryResolver) Session(ctx context.Context, roles []string) (*model.AuthResponse, error) {
-	return resolvers.SessionResolver(ctx, roles)
+func (r *queryResolver) Session(ctx context.Context, params *model.SessionQueryInput) (*model.AuthResponse, error) {
+	return resolvers.SessionResolver(ctx, params)
+}
+
+func (r *queryResolver) IsValidJwt(ctx context.Context, params *model.IsValidJWTQueryInput) (*model.ValidJWTResponse, error) {
+	return resolvers.IsValidJwtResolver(ctx, params)
 }
 
 func (r *queryResolver) Profile(ctx context.Context) (*model.User, error) {

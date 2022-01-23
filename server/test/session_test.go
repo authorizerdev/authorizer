@@ -27,7 +27,7 @@ func sessionTests(t *testing.T, s TestSetup) {
 			ConfirmPassword: s.TestInfo.Password,
 		})
 
-		_, err := resolvers.SessionResolver(ctx, []string{})
+		_, err := resolvers.SessionResolver(ctx, &model.SessionQueryInput{})
 		assert.NotNil(t, err, "unauthorized")
 
 		verificationRequest, err := db.Provider.GetVerificationRequestByEmail(email, constants.VerificationTypeBasicAuthSignup)
@@ -50,12 +50,8 @@ func sessionTests(t *testing.T, s TestSetup) {
 
 		req.Header.Set("Cookie", cookie)
 
-		_, err = resolvers.SessionResolver(ctx, []string{})
+		_, err = resolvers.SessionResolver(ctx, &model.SessionQueryInput{})
 		assert.Nil(t, err)
-
-		// newToken := *sessionRes.AccessToken
-
-		// assert.NotEqual(t, token, newToken, "tokens should not be equal")
 
 		cleanData(email)
 	})

@@ -60,6 +60,7 @@ func TestResolvers(t *testing.T) {
 			magicLinkLoginTests(t, s)
 			logoutTests(t, s)
 			metaTests(t, s)
+			isValidJWTTests(t, s)
 		})
 	}
 }

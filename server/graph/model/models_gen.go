@@ -63,6 +63,11 @@ type ForgotPasswordInput struct {
 	Email string `json:"email"`
 }
 
+type IsValidJWTQueryInput struct {
+	Jwt   string   `json:"jwt"`
+	Roles []string `json:"roles"`
+}
+
 type LoginInput struct {
 	Email    string   `json:"email"`
 	Password string   `json:"password"`
@@ -97,6 +102,10 @@ type ResetPasswordInput struct {
 
 type Response struct {
 	Message string `json:"message"`
+}
+
+type SessionQueryInput struct {
+	Roles []string `json:"roles"`
 }
 
 type SignUpInput struct {
@@ -195,6 +204,11 @@ type User struct {
 	Roles               []string `json:"roles"`
 	CreatedAt           *int64   `json:"created_at"`
 	UpdatedAt           *int64   `json:"updated_at"`
+}
+
+type ValidJWTResponse struct {
+	Valid   bool   `json:"valid"`
+	Message string `json:"message"`
 }
 
 type VerificationRequest struct {

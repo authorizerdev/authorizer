@@ -13,7 +13,7 @@ import (
 )
 
 // SessionResolver is a resolver for session query
-func SessionResolver(ctx context.Context, roles []string) (*model.AuthResponse, error) {
+func SessionResolver(ctx context.Context, params *model.SessionQueryInput) (*model.AuthResponse, error) {
 	var res *model.AuthResponse
 
 	gc, err := utils.GinContextFromContext(ctx)
@@ -65,8 +65,8 @@ func SessionResolver(ctx context.Context, roles []string) (*model.AuthResponse, 
 		claimRoles = append(claimRoles, v.(string))
 	}
 
-	if len(roles) > 0 {
-		for _, v := range roles {
+	if params != nil && params.Roles != nil && len(params.Roles) > 0 {
+		for _, v := range params.Roles {
 			if !utils.StringSliceContains(claimRoles, v) {
 				return res, fmt.Errorf(`unauthorized`)
 			}
