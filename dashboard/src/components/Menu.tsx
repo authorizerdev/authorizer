@@ -161,6 +161,7 @@ export const MobileNav = ({ onOpen, ...rest }: MobileProps) => {
 			borderBottomWidth="1px"
 			borderBottomColor={useColorModeValue('gray.200', 'gray.700')}
 			justifyContent={{ base: 'space-between', md: 'flex-end' }}
+			zIndex={99}
 			{...rest}
 		>
 			<IconButton
