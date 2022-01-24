@@ -1227,7 +1227,7 @@ input SessionQueryInput {
 }
 
 input IsValidJWTQueryInput {
-	jwt: String!
+	jwt: String
 	roles: [String!]
 }
 
@@ -6052,7 +6052,7 @@ func (ec *executionContext) unmarshalInputIsValidJWTQueryInput(ctx context.Conte
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("jwt"))
-			it.Jwt, err = ec.unmarshalNString2string(ctx, v)
+			it.Jwt, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}

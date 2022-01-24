@@ -2,18 +2,31 @@ package resolvers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/token"
 	tokenHelper "github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
 // IsValidJwtResolver resolver to return if given jwt is valid
 func IsValidJwtResolver(ctx context.Context, params *model.IsValidJWTQueryInput) (*model.ValidJWTResponse, error) {
-	claims, err := tokenHelper.VerifyJWTToken(params.Jwt)
+	gc, err := utils.GinContextFromContext(ctx)
+	token, err := token.GetAccessToken(gc)
+
+	if token == "" || err != nil {
+		if params != nil && *params.Jwt != "" {
+			token = *params.Jwt
+		} else {
+			return nil, errors.New("no jwt provided via cookie / header / params")
+		}
+	}
+
+	claims, err := tokenHelper.VerifyJWTToken(token)
 	if err != nil {
 		return nil, err
 	}

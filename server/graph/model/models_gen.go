@@ -64,7 +64,7 @@ type ForgotPasswordInput struct {
 }
 
 type IsValidJWTQueryInput struct {
-	Jwt   string   `json:"jwt"`
+	Jwt   *string  `json:"jwt"`
 	Roles []string `json:"roles"`
 }
 

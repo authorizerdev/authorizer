@@ -225,7 +225,7 @@ input SessionQueryInput {
 }
 
 input IsValidJWTQueryInput {
-	jwt: String!
+	jwt: String
 	roles: [String!]
 }
 
