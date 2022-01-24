@@ -36,6 +36,9 @@ export const EnvVariablesQuery = `
       DISABLE_EMAIL_VERIFICATION,
       DISABLE_BASIC_AUTHENTICATION,
       CUSTOM_ACCESS_TOKEN_SCRIPT,
+      DATABASE_NAME,
+      DATABASE_TYPE,
+      DATABASE_URL,
     }
   }
 `;

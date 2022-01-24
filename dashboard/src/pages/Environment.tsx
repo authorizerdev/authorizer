@@ -64,6 +64,9 @@ interface envVarTypes {
 	DISABLE_EMAIL_VERIFICATION: boolean;
 	DISABLE_BASIC_AUTHENTICATION: boolean;
 	OLD_ADMIN_SECRET: string;
+	DATABASE_NAME: string;
+	DATABASE_TYPE: string;
+	DATABASE_URL: string;
 }
 
 export default function Environment() {
@@ -104,6 +107,9 @@ export default function Environment() {
 		DISABLE_EMAIL_VERIFICATION: false,
 		DISABLE_BASIC_AUTHENTICATION: false,
 		OLD_ADMIN_SECRET: '',
+		DATABASE_NAME: '',
+		DATABASE_TYPE: '',
+		DATABASE_URL: '',
 	});
 	const [oldEnvVariables, setOldEnvVariables] = React.useState<envVarTypes>({
 		GOOGLE_CLIENT_ID: '',
@@ -134,6 +140,9 @@ export default function Environment() {
 		DISABLE_EMAIL_VERIFICATION: false,
 		DISABLE_BASIC_AUTHENTICATION: false,
 		OLD_ADMIN_SECRET: '',
+		DATABASE_NAME: '',
+		DATABASE_TYPE: '',
+		DATABASE_URL: '',
 	});
 	const [fieldVisibility, setFieldVisibility] = React.useState<
 		Record<string, boolean>
@@ -623,6 +632,47 @@ export default function Environment() {
 				border="1px solid #ff7875"
 				borderRadius="5px"
 			>
+				<Stack spacing={6} padding="3% 0">
+					<Flex>
+						<Flex w="30%" justifyContent="start" alignItems="center">
+							<Text fontSize="sm">DataBase Name:</Text>
+						</Flex>
+						<Center w="70%">
+							<InputField
+								envVariables={envVariables}
+								setEnvVariables={setEnvVariables}
+								inputType={TextInputType.DATABASE_NAME}
+								isDisabled={true}
+							/>
+						</Center>
+					</Flex>
+					<Flex>
+						<Flex w="30%" justifyContent="start" alignItems="center">
+							<Text fontSize="sm">DataBase Type:</Text>
+						</Flex>
+						<Center w="70%">
+							<InputField
+								envVariables={envVariables}
+								setEnvVariables={setEnvVariables}
+								inputType={TextInputType.DATABASE_TYPE}
+								isDisabled={true}
+							/>
+						</Center>
+					</Flex>
+					<Flex>
+						<Flex w="30%" justifyContent="start" alignItems="center">
+							<Text fontSize="sm">DataBase URL:</Text>
+						</Flex>
+						<Center w="70%">
+							<InputField
+								envVariables={envVariables}
+								setEnvVariables={setEnvVariables}
+								inputType={TextInputType.DATABASE_URL}
+								isDisabled={true}
+							/>
+						</Center>
+					</Flex>
+				</Stack>
 				<Flex marginTop="3%">
 					<Flex w="30%" justifyContent="start" alignItems="center">
 						<Text fontSize="sm">Old Admin Secret:</Text>
