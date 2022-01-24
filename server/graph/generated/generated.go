@@ -1144,8 +1144,9 @@ input UpdateEnvInput {
 	OLD_ADMIN_SECRET: String
 	SMTP_HOST: String
 	SMTP_PORT: String
+	SMTP_USERNAME: String
+	SMTP_PASSWORD: String
 	SENDER_EMAIL: String
-	SENDER_PASSWORD: String
 	JWT_TYPE: String
 	JWT_SECRET: String
 	ALLOWED_ORIGINS: [String!]
@@ -6558,19 +6559,27 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			if err != nil {
 				return it, err
 			}
+		case "SMTP_USERNAME":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("SMTP_USERNAME"))
+			it.SMTPUsername, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "SMTP_PASSWORD":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("SMTP_PASSWORD"))
+			it.SMTPPassword, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		case "SENDER_EMAIL":
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("SENDER_EMAIL"))
 			it.SenderEmail, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "SENDER_PASSWORD":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("SENDER_PASSWORD"))
-			it.SenderPassword, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
