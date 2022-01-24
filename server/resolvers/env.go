@@ -28,6 +28,10 @@ func EnvResolver(ctx context.Context) (*model.Env, error) {
 	// get clone of store
 	store := envstore.EnvInMemoryStoreObj.GetEnvStoreClone()
 	adminSecret := store.StringEnv[constants.EnvKeyAdminSecret]
+	databaseURL := store.StringEnv[constants.EnvKeyDatabaseURL]
+	databaseName := store.StringEnv[constants.EnvKeyDatabaseName]
+	databaseType := store.StringEnv[constants.EnvKeyDatabaseType]
+	customAccessTokenScript := store.StringEnv[constants.EnvKeyCustomAccessTokenScript]
 	smtpHost := store.StringEnv[constants.EnvKeySmtpHost]
 	smtpPort := store.StringEnv[constants.EnvKeySmtpPort]
 	smtpUsername := store.StringEnv[constants.EnvKeySmtpUsername]
@@ -60,6 +64,10 @@ func EnvResolver(ctx context.Context) (*model.Env, error) {
 
 	res = &model.Env{
 		AdminSecret:                &adminSecret,
+		DatabaseName:               &databaseName,
+		DatabaseURL:                &databaseURL,
+		DatabaseType:               &databaseType,
+		CustomAccessTokenScript:    &customAccessTokenScript,
 		SMTPHost:                   &smtpHost,
 		SMTPPort:                   &smtpPort,
 		SMTPPassword:               &smtpPassword,

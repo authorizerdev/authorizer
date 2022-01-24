@@ -69,6 +69,10 @@ type ValidJWTResponse {
 
 type Env {
 	ADMIN_SECRET: String
+	DATABASE_NAME: String
+	DATABASE_URL: String
+	DATABASE_TYPE: String
+	CUSTOM_ACCESS_TOKEN_SCRIPT: String
 	SMTP_HOST: String
 	SMTP_PORT: String
 	SMTP_USERNAME: String
@@ -102,6 +106,7 @@ type Env {
 
 input UpdateEnvInput {
 	ADMIN_SECRET: String
+	CUSTOM_ACCESS_TOKEN_SCRIPT: String
 	OLD_ADMIN_SECRET: String
 	SMTP_HOST: String
 	SMTP_PORT: String

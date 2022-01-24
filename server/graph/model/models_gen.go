@@ -23,6 +23,10 @@ type DeleteUserInput struct {
 
 type Env struct {
 	AdminSecret                *string  `json:"ADMIN_SECRET"`
+	DatabaseName               *string  `json:"DATABASE_NAME"`
+	DatabaseURL                *string  `json:"DATABASE_URL"`
+	DatabaseType               *string  `json:"DATABASE_TYPE"`
+	CustomAccessTokenScript    *string  `json:"CUSTOM_ACCESS_TOKEN_SCRIPT"`
 	SMTPHost                   *string  `json:"SMTP_HOST"`
 	SMTPPort                   *string  `json:"SMTP_PORT"`
 	SMTPUsername               *string  `json:"SMTP_USERNAME"`
@@ -125,6 +129,7 @@ type SignUpInput struct {
 
 type UpdateEnvInput struct {
 	AdminSecret                *string  `json:"ADMIN_SECRET"`
+	CustomAccessTokenScript    *string  `json:"CUSTOM_ACCESS_TOKEN_SCRIPT"`
 	OldAdminSecret             *string  `json:"OLD_ADMIN_SECRET"`
 	SMTPHost                   *string  `json:"SMTP_HOST"`
 	SMTPPort                   *string  `json:"SMTP_PORT"`
