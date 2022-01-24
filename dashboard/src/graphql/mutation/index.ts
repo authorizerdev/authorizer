@@ -21,3 +21,13 @@ export const AdminLogout = `
     }
   }
 `;
+
+export const UpdateEnvVariables = `
+  mutation updateEnvVariables(
+    $params: UpdateEnvInput!
+    ) {
+    _update_env(params: $params) {
+      message
+    }
+  }
+`;

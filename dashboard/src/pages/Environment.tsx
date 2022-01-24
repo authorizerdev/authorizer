@@ -8,6 +8,8 @@ import {
 	Text,
 	Button,
 	Input,
+	InputGroup,
+	InputRightElement,
 } from '@chakra-ui/react';
 import { useClient } from 'urql';
 import {
@@ -16,7 +18,10 @@ import {
 	FaFacebookF,
 	FaUndo,
 	FaSave,
+	FaRegEyeSlash,
+	FaRegEye,
 } from 'react-icons/fa';
+import _ from 'lodash';
 import InputField from '../components/InputField';
 import { EnvVariablesQuery } from '../graphql/queries';
 import {
@@ -27,6 +32,8 @@ import {
 	TextAreaInputType,
 	SwitchInputType,
 } from '../constants';
+import { UpdateEnvVariables } from '../graphql/mutation';
+import { getObjectDiff } from '../utils';
 
 interface envVarTypes {
 	GOOGLE_CLIENT_ID: string;
@@ -56,6 +63,7 @@ interface envVarTypes {
 	DISABLE_MAGIC_LINK_LOGIN: boolean;
 	DISABLE_EMAIL_VERIFICATION: boolean;
 	DISABLE_BASIC_AUTHENTICATION: boolean;
+	OLD_ADMIN_SECRET: string;
 }
 
 export default function Environment() {
@@ -63,8 +71,7 @@ export default function Environment() {
 	const [adminSecret, setAdminSecret] = React.useState<
 		Record<string, string | boolean>
 	>({
-		oldValue: '',
-		newValue: '',
+		value: '',
 		disableInputField: true,
 	});
 	const [loading, setLoading] = React.useState<boolean>(false);
@@ -96,6 +103,37 @@ export default function Environment() {
 		DISABLE_MAGIC_LINK_LOGIN: false,
 		DISABLE_EMAIL_VERIFICATION: false,
 		DISABLE_BASIC_AUTHENTICATION: false,
+		OLD_ADMIN_SECRET: '',
+	});
+	const [oldEnvVariables, setOldEnvVariables] = React.useState<envVarTypes>({
+		GOOGLE_CLIENT_ID: '',
+		GOOGLE_CLIENT_SECRET: '',
+		GITHUB_CLIENT_ID: '',
+		GITHUB_CLIENT_SECRET: '',
+		FACEBOOK_CLIENT_ID: '',
+		FACEBOOK_CLIENT_SECRET: '',
+		ROLES: [],
+		DEFAULT_ROLES: [],
+		PROTECTED_ROLES: [],
+		JWT_TYPE: '',
+		JWT_SECRET: '',
+		JWT_ROLE_CLAIM: '',
+		REDIS_URL: '',
+		SMTP_HOST: '',
+		SMTP_PORT: '',
+		SMTP_USERNAME: '',
+		SMTP_PASSWORD: '',
+		SENDER_EMAIL: '',
+		ALLOWED_ORIGINS: [],
+		ORGANIZATION_NAME: '',
+		ORGANIZATION_LOGO: '',
+		CUSTOM_ACCESS_TOKEN_SCRIPT: '',
+		ADMIN_SECRET: '',
+		DISABLE_LOGIN_PAGE: false,
+		DISABLE_MAGIC_LINK_LOGIN: false,
+		DISABLE_EMAIL_VERIFICATION: false,
+		DISABLE_BASIC_AUTHENTICATION: false,
+		OLD_ADMIN_SECRET: '',
 	});
 	const [fieldVisibility, setFieldVisibility] = React.useState<
 		Record<string, boolean>
@@ -106,6 +144,7 @@ export default function Environment() {
 		JWT_SECRET: false,
 		SMTP_PASSWORD: false,
 		ADMIN_SECRET: false,
+		OLD_ADMIN_SECRET: false,
 	});
 
 	const updateHandler = async () => {
@@ -113,23 +152,24 @@ export default function Environment() {
 		const {
 			data: { _env: envData },
 		} = await client.query(EnvVariablesQuery).toPromise();
-		console.log('envData ==>> ', envData);
 		if (envData) {
-			setAdminSecret({ ...adminSecret, oldValue: envData.ADMIN_SECRET });
 			setEnvVariables({
 				...envVariables,
 				...envData,
 				ADMIN_SECRET: '',
-				// test data
-				GOOGLE_CLIENT_SECRET: 'xygchxcfcghjsvhccxgvgvxcz',
-				GITHUB_CLIENT_SECRET: 'abvgxdgjbsgcxcjvjxvhcgfcxc',
-				FACEBOOK_CLIENT_SECRET: 'pvhchbjhxvjhnklnhjvfcxqrh',
-				GOOGLE_CLIENT_ID: 'jvhgvxcknbhjvc',
-				GITHUB_CLIENT_ID: 'kxhvghchcxhjx',
-				FACEBOOK_CLIENT_ID: 'gxgjbvxcgfcvghx',
-				REDIS_URL: 'redis://rediscloud:mypassword@redis...',
+				OLD_ADMIN_SECRET: envData.ADMIN_SECRET,
+			});
+			setOldEnvVariables({
+				...envVariables,
+				...envData,
+				ADMIN_SECRET: '',
+				OLD_ADMIN_SECRET: envData.ADMIN_SECRET,
 			});
 		}
+		setAdminSecret({
+			value: '',
+			disableInputField: true,
+		});
 		setLoading(false);
 	};
 
@@ -138,16 +178,16 @@ export default function Environment() {
 	}, []);
 
 	const validateAdminSecretHandler = (event: any) => {
-		if (adminSecret.oldValue === event.target.value) {
+		if (envVariables.OLD_ADMIN_SECRET === event.target.value) {
 			setAdminSecret({
 				...adminSecret,
-				newValue: event.target.value,
+				value: event.target.value,
 				disableInputField: false,
 			});
 		} else {
 			setAdminSecret({
 				...adminSecret,
-				newValue: event.target.value,
+				value: event.target.value,
 				disableInputField: true,
 			});
 		}
@@ -156,8 +196,26 @@ export default function Environment() {
 		}
 	};
 
-	const saveHandler = () => {
-		console.log('updated env vars ==>> ', envVariables);
+	const saveHandler = async () => {
+		setLoading(true);
+		const diff = getObjectDiff(envVariables, oldEnvVariables);
+		const updatedEnvVariables = diff.reduce(
+			(acc: any, property: string) => ({
+				...acc,
+				// @ts-ignore
+				[property]: envVariables[property],
+			}),
+			{}
+		);
+		if (diff.includes(HiddenInputType.ADMIN_SECRET)) {
+			updatedEnvVariables[HiddenInputType.OLD_ADMIN_SECRET] =
+				// @ts-ignore
+				envVariables[HiddenInputType.OLD_ADMIN_SECRET];
+		}
+		const res = await client
+			.mutation(UpdateEnvVariables, { params: envVariables })
+			.toPromise();
+		console.log('res ==>> ', res);
 		updateHandler();
 	};
 
@@ -560,7 +618,6 @@ export default function Environment() {
 			</Text>
 			<Stack
 				spacing={6}
-				bgColor="#fff1f0"
 				padding="0 5%"
 				marginTop="3%"
 				border="1px solid #ff7875"
@@ -571,12 +628,55 @@ export default function Environment() {
 						<Text fontSize="sm">Old Admin Secret:</Text>
 					</Flex>
 					<Center w="70%">
-						<Input
-							size="sm"
-							placeholder="Enter Old Admin Secret"
-							value={adminSecret.newValue as string}
-							onChange={(event: any) => validateAdminSecretHandler(event)}
-						/>
+						<InputGroup size="sm">
+							<Input
+								size="sm"
+								placeholder="Enter Old Admin Secret"
+								value={adminSecret.value as string}
+								onChange={(event: any) => validateAdminSecretHandler(event)}
+								type={
+									!fieldVisibility[HiddenInputType.OLD_ADMIN_SECRET]
+										? 'password'
+										: 'text'
+								}
+							/>
+							<InputRightElement
+								right="5px"
+								children={
+									<Flex>
+										{fieldVisibility[HiddenInputType.OLD_ADMIN_SECRET] ? (
+											<Center
+												w="25px"
+												margin="0 1.5%"
+												cursor="pointer"
+												onClick={() =>
+													setFieldVisibility({
+														...fieldVisibility,
+														[HiddenInputType.OLD_ADMIN_SECRET]: false,
+													})
+												}
+											>
+												<FaRegEyeSlash color="#bfbfbf" />
+											</Center>
+										) : (
+											<Center
+												w="25px"
+												margin="0 1.5%"
+												cursor="pointer"
+												onClick={() =>
+													setFieldVisibility({
+														...fieldVisibility,
+														[HiddenInputType.OLD_ADMIN_SECRET]: true,
+													})
+												}
+											>
+												<FaRegEye color="#bfbfbf" />
+											</Center>
+										)}
+									</Flex>
+								}
+							/>
+						</InputGroup>
 					</Center>
 				</Flex>
 				<Flex paddingBottom="3%">
@@ -599,26 +699,15 @@ export default function Environment() {
 			<Divider marginTop="5%" marginBottom="2%" />
 			<Stack spacing={6} padding="1% 0">
 				<Flex justifyContent="end" alignItems="center">
-					<Stack direction="row" spacing={4}>
-						<Button
-							leftIcon={<FaUndo />}
-							colorScheme="blue"
-							variant="outline"
-							onClick={updateHandler}
-							isDisabled={loading}
-						>
-							Reset
-						</Button>
-						<Button
-							leftIcon={<FaSave />}
-							colorScheme="blue"
-							variant="solid"
-							onClick={saveHandler}
-							isDisabled={loading}
-						>
-							Save
-						</Button>
-					</Stack>
+					<Button
+						leftIcon={<FaSave />}
+						colorScheme="blue"
+						variant="solid"
+						onClick={saveHandler}
+						isDisabled={loading}
+					>
+						Save
+					</Button>
 				</Flex>
 			</Stack>
 		</Box>

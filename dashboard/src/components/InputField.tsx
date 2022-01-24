@@ -222,6 +222,11 @@ const InputField = ({
 							onBlur={() =>
 								updateInputHandler(inputType, ArrayInputOperations.APPEND)
 							}
+							onKeyPress={(event) => {
+								if (event.key === 'Enter') {
+									updateInputHandler(inputType, ArrayInputOperations.APPEND);
+								}
+							}}
 						/>
 					</Box>
 				) : (
@@ -252,7 +257,9 @@ const InputField = ({
 		return (
 			<Select size="sm" {...props}>
 				{[envVariables[inputType]].map((value: string) => (
-					<option value="value">{value}</option>
+					<option value="value" key={value}>
+						{value}
+					</option>
 				))}
 			</Select>
 		);

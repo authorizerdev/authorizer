@@ -22,6 +22,7 @@ export const HiddenInputType = {
 	JWT_SECRET: 'JWT_SECRET',
 	SMTP_PASSWORD: 'SMTP_PASSWORD',
 	ADMIN_SECRET: 'ADMIN_SECRET',
+	OLD_ADMIN_SECRET: 'OLD_ADMIN_SECRET',
 };
 
 export const ArrayInputType = {
