@@ -110,8 +110,9 @@ input UpdateEnvInput {
 	OLD_ADMIN_SECRET: String
 	SMTP_HOST: String
 	SMTP_PORT: String
+	SMTP_USERNAME: String
+	SMTP_PASSWORD: String
 	SENDER_EMAIL: String
-	SENDER_PASSWORD: String
 	JWT_TYPE: String
 	JWT_SECRET: String
 	ALLOWED_ORIGINS: [String!]
