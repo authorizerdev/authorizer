@@ -35,6 +35,7 @@ export const EnvVariablesQuery = `
       DISABLE_MAGIC_LINK_LOGIN,
       DISABLE_EMAIL_VERIFICATION,
       DISABLE_BASIC_AUTHENTICATION,
+      CUSTOM_ACCESS_TOKEN_SCRIPT,
     }
   }
 `;
