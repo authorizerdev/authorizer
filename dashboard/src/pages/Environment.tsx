@@ -386,7 +386,7 @@ export default function Environment() {
 				</Flex>
 				<Flex>
 					<Flex w="30%" justifyContent="start" alignItems="center">
-						<Text fontSize="sm">PORT:</Text>
+						<Text fontSize="sm">Port:</Text>
 					</Flex>
 					<Center w="70%">
 						<InputField
