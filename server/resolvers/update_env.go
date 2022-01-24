@@ -9,9 +9,11 @@ import (
 	"reflect"
 
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -26,7 +28,7 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 		return res, err
 	}
 
-	if !utils.IsSuperAdmin(gc) {
+	if !token.IsSuperAdmin(gc) {
 		return res, fmt.Errorf("unauthorized")
 	}
 
@@ -74,11 +76,32 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 			updatedData.BoolEnv[constants.EnvKeyDisableMagicLinkLogin] = true
 		}
 	}
+
+	// check the roles change
+	if len(params.Roles) > 0 {
+		if len(params.DefaultRoles) > 0 {
+			// should be subset of roles
+			for _, role := range params.DefaultRoles {
+				if !utils.StringSliceContains(params.Roles, role) {
+					return res, fmt.Errorf("default role %s is not in roles", role)
+				}
+			}
+		}
+	}
+
+	if len(params.ProtectedRoles) > 0 {
+		for _, role := range params.ProtectedRoles {
+			if utils.StringSliceContains(params.Roles, role) || utils.StringSliceContains(params.DefaultRoles, role) {
+				return res, fmt.Errorf("protected role %s found roles or default roles", role)
+			}
+		}
+	}
+
 	// Update local store
 	envstore.EnvInMemoryStoreObj.UpdateEnvStore(updatedData)
 
 	// Fetch the current db store and update it
-	env, err := db.Mgr.GetEnv()
+	env, err := db.Provider.GetEnv()
 	if err != nil {
 		return res, err
 	}
@@ -86,11 +109,6 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 	encryptedConfig, err := utils.EncryptEnvData(updatedData)
 	if err != nil {
 		return res, err
-	}
-
-	// in case of db change re-initialize db
-	if params.DatabaseType != nil || params.DatabaseURL != nil || params.DatabaseName != nil {
-		db.InitDB()
 	}
 
 	// in case of admin secret change update the cookie with new hash
@@ -108,11 +126,11 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 		if err != nil {
 			return res, err
 		}
-		utils.SetAdminCookie(gc, hashedKey)
+		cookie.SetAdminCookie(gc, hashedKey)
 	}
 
 	env.EnvData = encryptedConfig
-	_, err = db.Mgr.UpdateEnv(env)
+	_, err = db.Provider.UpdateEnv(env)
 	if err != nil {
 		log.Println("error updating config:", err)
 		return res, err

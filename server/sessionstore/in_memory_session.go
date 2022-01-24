@@ -1,4 +1,4 @@
-package session
+package sessionstore
 
 import (
 	"sync"
@@ -67,6 +67,19 @@ func (c *InMemoryStore) GetUserSession(userId, accessToken string) string {
 	}
 
 	return token
+}
+
+// GetUserSessions returns all the user session token from the in-memory store.
+func (c *InMemoryStore) GetUserSessions(userId string) map[string]string {
+	// c.mutex.Lock()
+	// defer c.mutex.Unlock()
+
+	sessionMap, ok := c.store[userId]
+	if !ok {
+		return nil
+	}
+
+	return sessionMap
 }
 
 // SetSocialLoginState sets the social login state in the in-memory store.

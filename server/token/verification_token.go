@@ -1,4 +1,4 @@
-package utils
+package token
 
 import (
 	"time"
@@ -8,10 +8,8 @@ import (
 	"github.com/golang-jwt/jwt"
 )
 
-// TODO see if we can move this to different service
-
-// UserInfo is the user info that is stored in the JWT of verification request
-type UserInfo struct {
+// VerificationRequestToken is the user info that is stored in the JWT of verification request
+type VerificationRequestToken struct {
 	Email       string `json:"email"`
 	Host        string `json:"host"`
 	RedirectURL string `json:"redirect_url"`
@@ -21,7 +19,7 @@ type UserInfo struct {
 type CustomClaim struct {
 	*jwt.StandardClaims
 	TokenType string `json:"token_type"`
-	UserInfo
+	VerificationRequestToken
 }
 
 // CreateVerificationToken creates a verification JWT token
@@ -33,7 +31,7 @@ func CreateVerificationToken(email string, tokenType string) (string, error) {
 			ExpiresAt: time.Now().Add(time.Minute * 30).Unix(),
 		},
 		tokenType,
-		UserInfo{Email: email, Host: envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAuthorizerURL), RedirectURL: envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAppURL)},
+		VerificationRequestToken{Email: email, Host: envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAuthorizerURL), RedirectURL: envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAppURL)},
 	}
 
 	return t.SignedString([]byte(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtSecret)))

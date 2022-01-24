@@ -8,7 +8,7 @@ import (
 // GetHostName function returns hostname and port
 func GetHostParts(uri string) (string, string) {
 	tempURI := uri
-	if !strings.HasPrefix(tempURI, "http") && strings.HasPrefix(tempURI, "https") {
+	if !strings.HasPrefix(tempURI, "http://") && !strings.HasPrefix(tempURI, "https://") {
 		tempURI = "https://" + tempURI
 	}
 
@@ -26,7 +26,7 @@ func GetHostParts(uri string) (string, string) {
 // GetDomainName function to get domain name
 func GetDomainName(uri string) string {
 	tempURI := uri
-	if !strings.HasPrefix(tempURI, "http") && strings.HasPrefix(tempURI, "https") {
+	if !strings.HasPrefix(tempURI, "http://") && !strings.HasPrefix(tempURI, "https://") {
 		tempURI = "https://" + tempURI
 	}
 

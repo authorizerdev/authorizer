@@ -9,9 +9,11 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
+	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/email"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
@@ -31,12 +33,12 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 
 	inputRoles := []string{}
 
-	user := db.User{
+	user := models.User{
 		Email: params.Email,
 	}
 
 	// find user with email
-	existingUser, err := db.Mgr.GetUserByEmail(params.Email)
+	existingUser, err := db.Provider.GetUserByEmail(params.Email)
 
 	if err != nil {
 		user.SignupMethods = constants.SignupMethodMagicLinkLogin
@@ -53,7 +55,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 		}
 
 		user.Roles = strings.Join(inputRoles, ",")
-		user, _ = db.Mgr.AddUser(user)
+		user, _ = db.Provider.AddUser(user)
 	} else {
 		user = existingUser
 		// There multiple scenarios with roles here in magic link login
@@ -94,7 +96,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 		}
 
 		user.SignupMethods = signupMethod
-		user, _ = db.Mgr.UpdateUser(user)
+		user, _ = db.Provider.UpdateUser(user)
 		if err != nil {
 			log.Println("error updating user:", err)
 		}
@@ -103,12 +105,12 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 	if !envstore.EnvInMemoryStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification) {
 		// insert verification request
 		verificationType := constants.VerificationTypeMagicLinkLogin
-		token, err := utils.CreateVerificationToken(params.Email, verificationType)
+		verificationToken, err := token.CreateVerificationToken(params.Email, verificationType)
 		if err != nil {
 			log.Println(`error generating token`, err)
 		}
-		db.Mgr.AddVerification(db.VerificationRequest{
-			Token:      token,
+		db.Provider.AddVerificationRequest(models.VerificationRequest{
+			Token:      verificationToken,
 			Identifier: verificationType,
 			ExpiresAt:  time.Now().Add(time.Minute * 30).Unix(),
 			Email:      params.Email,
@@ -116,7 +118,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 
 		// exec it as go routin so that we can reduce the api latency
 		go func() {
-			email.SendVerificationMail(params.Email, token)
+			email.SendVerificationMail(params.Email, verificationToken)
 		}()
 	}
 

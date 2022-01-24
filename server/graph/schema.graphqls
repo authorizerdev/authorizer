@@ -62,11 +62,17 @@ type Response {
 	message: String!
 }
 
+type ValidJWTResponse {
+	valid: Boolean!
+	message: String!
+}
+
 type Env {
 	ADMIN_SECRET: String
-	DATABASE_TYPE: String
-	DATABASE_URL: String
 	DATABASE_NAME: String
+	DATABASE_URL: String
+	DATABASE_TYPE: String
+	CUSTOM_ACCESS_TOKEN_SCRIPT: String
 	SMTP_HOST: String
 	SMTP_PORT: String
 	SMTP_USERNAME: String
@@ -100,10 +106,8 @@ type Env {
 
 input UpdateEnvInput {
 	ADMIN_SECRET: String
+	CUSTOM_ACCESS_TOKEN_SCRIPT: String
 	OLD_ADMIN_SECRET: String
-	DATABASE_TYPE: String
-	DATABASE_URL: String
-	DATABASE_NAME: String
 	SMTP_HOST: String
 	SMTP_PORT: String
 	SENDER_EMAIL: String
@@ -221,6 +225,15 @@ input MagicLinkLoginInput {
 	roles: [String!]
 }
 
+input SessionQueryInput {
+	roles: [String!]
+}
+
+input IsValidJWTQueryInput {
+	jwt: String
+	roles: [String!]
+}
+
 type Mutation {
 	signup(params: SignUpInput!): AuthResponse!
 	login(params: LoginInput!): AuthResponse!
@@ -242,7 +255,8 @@ type Mutation {
 
 type Query {
 	meta: Meta!
-	session(roles: [String!]): AuthResponse!
+	session(params: SessionQueryInput): AuthResponse!
+	is_valid_jwt(params: IsValidJWTQueryInput): ValidJWTResponse!
 	profile: User!
 	# admin only apis
 	_users: [User!]!

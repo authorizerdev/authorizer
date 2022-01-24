@@ -5,8 +5,10 @@ import (
 	"fmt"
 
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
@@ -19,7 +21,7 @@ func AdminSessionResolver(ctx context.Context) (*model.Response, error) {
 		return res, err
 	}
 
-	if !utils.IsSuperAdmin(gc) {
+	if !token.IsSuperAdmin(gc) {
 		return res, fmt.Errorf("unauthorized")
 	}
 
@@ -27,7 +29,7 @@ func AdminSessionResolver(ctx context.Context) (*model.Response, error) {
 	if err != nil {
 		return res, err
 	}
-	utils.SetAdminCookie(gc, hashedKey)
+	cookie.SetAdminCookie(gc, hashedKey)
 
 	res = &model.Response{
 		Message: "admin logged in successfully",

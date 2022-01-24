@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
@@ -17,11 +19,11 @@ func AdminLogoutResolver(ctx context.Context) (*model.Response, error) {
 		return res, err
 	}
 
-	if !utils.IsSuperAdmin(gc) {
+	if !token.IsSuperAdmin(gc) {
 		return res, fmt.Errorf("unauthorized")
 	}
 
-	utils.DeleteAdminCookie(gc)
+	cookie.DeleteAdminCookie(gc)
 
 	res = &model.Response{
 		Message: "admin logged out successfully",

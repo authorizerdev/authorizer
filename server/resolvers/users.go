@@ -6,6 +6,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
@@ -18,17 +19,17 @@ func UsersResolver(ctx context.Context) ([]*model.User, error) {
 		return res, err
 	}
 
-	if !utils.IsSuperAdmin(gc) {
+	if !token.IsSuperAdmin(gc) {
 		return res, fmt.Errorf("unauthorized")
 	}
 
-	users, err := db.Mgr.GetUsers()
+	users, err := db.Provider.ListUsers()
 	if err != nil {
 		return res, err
 	}
 
 	for i := 0; i < len(users); i++ {
-		res = append(res, utils.GetResponseUserData(users[i]))
+		res = append(res, users[i].AsAPIUser())
 	}
 
 	return res, nil

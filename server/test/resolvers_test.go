@@ -24,10 +24,10 @@ func TestResolvers(t *testing.T) {
 		db.InitDB()
 
 		// clean the persisted config for test to use fresh config
-		envData, err := db.Mgr.GetEnv()
+		envData, err := db.Provider.GetEnv()
 		if err == nil {
 			envData.EnvData = []byte{}
-			db.Mgr.UpdateEnv(envData)
+			db.Provider.UpdateEnv(envData)
 		}
 		env.PersistEnv()
 
@@ -60,6 +60,7 @@ func TestResolvers(t *testing.T) {
 			magicLinkLoginTests(t, s)
 			logoutTests(t, s)
 			metaTests(t, s)
+			isValidJWTTests(t, s)
 		})
 	}
 }

@@ -8,8 +8,10 @@ import (
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/db"
+	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/email"
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
@@ -26,23 +28,23 @@ func ResendVerifyEmailResolver(ctx context.Context, params model.ResendVerifyEma
 		return res, fmt.Errorf("invalid identifier")
 	}
 
-	verificationRequest, err := db.Mgr.GetVerificationByEmail(params.Email, params.Identifier)
+	verificationRequest, err := db.Provider.GetVerificationRequestByEmail(params.Email, params.Identifier)
 	if err != nil {
 		return res, fmt.Errorf(`verification request not found`)
 	}
 
 	// delete current verification and create new one
-	err = db.Mgr.DeleteVerificationRequest(verificationRequest)
+	err = db.Provider.DeleteVerificationRequest(verificationRequest)
 	if err != nil {
 		log.Println("error deleting verification request:", err)
 	}
 
-	token, err := utils.CreateVerificationToken(params.Email, params.Identifier)
+	verificationToken, err := token.CreateVerificationToken(params.Email, params.Identifier)
 	if err != nil {
 		log.Println(`error generating token`, err)
 	}
-	db.Mgr.AddVerification(db.VerificationRequest{
-		Token:      token,
+	db.Provider.AddVerificationRequest(models.VerificationRequest{
+		Token:      verificationToken,
 		Identifier: params.Identifier,
 		ExpiresAt:  time.Now().Add(time.Minute * 30).Unix(),
 		Email:      params.Email,
@@ -50,7 +52,7 @@ func ResendVerifyEmailResolver(ctx context.Context, params model.ResendVerifyEma
 
 	// exec it as go routin so that we can reduce the api latency
 	go func() {
-		email.SendVerificationMail(params.Email, token)
+		email.SendVerificationMail(params.Email, verificationToken)
 	}()
 
 	res = &model.Response{

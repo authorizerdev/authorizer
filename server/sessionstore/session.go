@@ -1,4 +1,4 @@
-package session
+package sessionstore
 
 import (
 	"context"
@@ -22,22 +22,22 @@ type SessionStore struct {
 var SessionStoreObj SessionStore
 
 // SetUserSession sets the user session in the session store
-func SetUserSession(userId, accessToken, refreshToken string) {
+func SetUserSession(userId, fingerprint, refreshToken string) {
 	if SessionStoreObj.RedisMemoryStoreObj != nil {
-		SessionStoreObj.RedisMemoryStoreObj.AddUserSession(userId, accessToken, refreshToken)
+		SessionStoreObj.RedisMemoryStoreObj.AddUserSession(userId, fingerprint, refreshToken)
 	}
 	if SessionStoreObj.InMemoryStoreObj != nil {
-		SessionStoreObj.InMemoryStoreObj.AddUserSession(userId, accessToken, refreshToken)
+		SessionStoreObj.InMemoryStoreObj.AddUserSession(userId, fingerprint, refreshToken)
 	}
 }
 
 // DeleteUserSession deletes the particular user session from the session store
-func DeleteUserSession(userId, accessToken string) {
+func DeleteUserSession(userId, fingerprint string) {
 	if SessionStoreObj.RedisMemoryStoreObj != nil {
-		SessionStoreObj.RedisMemoryStoreObj.DeleteUserSession(userId, accessToken)
+		SessionStoreObj.RedisMemoryStoreObj.DeleteUserSession(userId, fingerprint)
 	}
 	if SessionStoreObj.InMemoryStoreObj != nil {
-		SessionStoreObj.InMemoryStoreObj.DeleteUserSession(userId, accessToken)
+		SessionStoreObj.InMemoryStoreObj.DeleteUserSession(userId, fingerprint)
 	}
 }
 
@@ -52,15 +52,27 @@ func DeleteAllUserSession(userId string) {
 }
 
 // GetUserSession returns the user session from the session store
-func GetUserSession(userId, accessToken string) string {
+func GetUserSession(userId, fingerprint string) string {
 	if SessionStoreObj.RedisMemoryStoreObj != nil {
-		return SessionStoreObj.RedisMemoryStoreObj.GetUserSession(userId, accessToken)
+		return SessionStoreObj.RedisMemoryStoreObj.GetUserSession(userId, fingerprint)
 	}
 	if SessionStoreObj.InMemoryStoreObj != nil {
-		return SessionStoreObj.InMemoryStoreObj.GetUserSession(userId, accessToken)
+		return SessionStoreObj.InMemoryStoreObj.GetUserSession(userId, fingerprint)
 	}
 
 	return ""
+}
+
+// GetUserSessions returns all the user sessions from the session store
+func GetUserSessions(userId string) map[string]string {
+	if SessionStoreObj.RedisMemoryStoreObj != nil {
+		return SessionStoreObj.RedisMemoryStoreObj.GetUserSessions(userId)
+	}
+	if SessionStoreObj.InMemoryStoreObj != nil {
+		return SessionStoreObj.InMemoryStoreObj.GetUserSessions(userId)
+	}
+
+	return nil
 }
 
 // ClearStore clears the session store for authorizer tokens

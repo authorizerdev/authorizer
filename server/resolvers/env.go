@@ -7,6 +7,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
@@ -20,16 +21,17 @@ func EnvResolver(ctx context.Context) (*model.Env, error) {
 		return res, err
 	}
 
-	if !utils.IsSuperAdmin(gc) {
+	if !token.IsSuperAdmin(gc) {
 		return res, fmt.Errorf("unauthorized")
 	}
 
 	// get clone of store
 	store := envstore.EnvInMemoryStoreObj.GetEnvStoreClone()
 	adminSecret := store.StringEnv[constants.EnvKeyAdminSecret]
-	databaseType := store.StringEnv[constants.EnvKeyDatabaseType]
 	databaseURL := store.StringEnv[constants.EnvKeyDatabaseURL]
 	databaseName := store.StringEnv[constants.EnvKeyDatabaseName]
+	databaseType := store.StringEnv[constants.EnvKeyDatabaseType]
+	customAccessTokenScript := store.StringEnv[constants.EnvKeyCustomAccessTokenScript]
 	smtpHost := store.StringEnv[constants.EnvKeySmtpHost]
 	smtpPort := store.StringEnv[constants.EnvKeySmtpPort]
 	smtpUsername := store.StringEnv[constants.EnvKeySmtpUsername]
@@ -62,9 +64,10 @@ func EnvResolver(ctx context.Context) (*model.Env, error) {
 
 	res = &model.Env{
 		AdminSecret:                &adminSecret,
-		DatabaseType:               &databaseType,
-		DatabaseURL:                &databaseURL,
 		DatabaseName:               &databaseName,
+		DatabaseURL:                &databaseURL,
+		DatabaseType:               &databaseType,
+		CustomAccessTokenScript:    &customAccessTokenScript,
 		SMTPHost:                   &smtpHost,
 		SMTPPort:                   &smtpPort,
 		SMTPPassword:               &smtpPassword,

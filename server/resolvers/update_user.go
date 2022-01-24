@@ -8,11 +8,14 @@ import (
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/db"
+	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/email"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
-	"github.com/authorizerdev/authorizer/server/session"
+	"github.com/authorizerdev/authorizer/server/sessionstore"
+	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
@@ -25,7 +28,7 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 		return res, err
 	}
 
-	if !utils.IsSuperAdmin(gc) {
+	if !token.IsSuperAdmin(gc) {
 		return res, fmt.Errorf("unauthorized")
 	}
 
@@ -33,7 +36,7 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 		return res, fmt.Errorf("please enter atleast one param to update")
 	}
 
-	user, err := db.Mgr.GetUserByID(params.ID)
+	user, err := db.Provider.GetUserByID(params.ID)
 	if err != nil {
 		return res, fmt.Errorf(`User not found`)
 	}
@@ -86,25 +89,25 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 		}
 		newEmail := strings.ToLower(*params.Email)
 		// check if user with new email exists
-		_, err = db.Mgr.GetUserByEmail(newEmail)
+		_, err = db.Provider.GetUserByEmail(newEmail)
 		// err = nil means user exists
 		if err == nil {
 			return res, fmt.Errorf("user with this email address already exists")
 		}
 
-		session.DeleteAllUserSession(fmt.Sprintf("%v", user.ID))
-		utils.DeleteCookie(gc)
+		sessionstore.DeleteAllUserSession(fmt.Sprintf("%v", user.ID))
+		cookie.DeleteCookie(gc)
 
 		user.Email = newEmail
 		user.EmailVerifiedAt = nil
 		// insert verification request
 		verificationType := constants.VerificationTypeUpdateEmail
-		token, err := utils.CreateVerificationToken(newEmail, verificationType)
+		verificationToken, err := token.CreateVerificationToken(newEmail, verificationType)
 		if err != nil {
 			log.Println(`error generating token`, err)
 		}
-		db.Mgr.AddVerification(db.VerificationRequest{
-			Token:      token,
+		db.Provider.AddVerificationRequest(models.VerificationRequest{
+			Token:      verificationToken,
 			Identifier: verificationType,
 			ExpiresAt:  time.Now().Add(time.Minute * 30).Unix(),
 			Email:      newEmail,
@@ -112,7 +115,7 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 
 		// exec it as go routin so that we can reduce the api latency
 		go func() {
-			email.SendVerificationMail(newEmail, token)
+			email.SendVerificationMail(newEmail, verificationToken)
 		}()
 	}
 
@@ -132,15 +135,15 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 			rolesToSave = strings.Join(inputRoles, ",")
 		}
 
-		session.DeleteAllUserSession(fmt.Sprintf("%v", user.ID))
-		utils.DeleteCookie(gc)
+		sessionstore.DeleteAllUserSession(fmt.Sprintf("%v", user.ID))
+		cookie.DeleteCookie(gc)
 	}
 
 	if rolesToSave != "" {
 		user.Roles = rolesToSave
 	}
 
-	user, err = db.Mgr.UpdateUser(user)
+	user, err = db.Provider.UpdateUser(user)
 	if err != nil {
 		log.Println("error updating user:", err)
 		return res, err

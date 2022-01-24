@@ -5,9 +5,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/db"
-	"github.com/authorizerdev/authorizer/server/session"
+	"github.com/authorizerdev/authorizer/server/sessionstore"
+	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/gin-gonic/gin"
 )
@@ -19,26 +20,26 @@ func VerifyEmailHandler() gin.HandlerFunc {
 		errorRes := gin.H{
 			"message": "invalid token",
 		}
-		token := c.Query("token")
-		if token == "" {
+		tokenInQuery := c.Query("token")
+		if tokenInQuery == "" {
 			c.JSON(400, errorRes)
 			return
 		}
 
-		verificationRequest, err := db.Mgr.GetVerificationByToken(token)
+		verificationRequest, err := db.Provider.GetVerificationRequestByToken(tokenInQuery)
 		if err != nil {
 			c.JSON(400, errorRes)
 			return
 		}
 
 		// verify if token exists in db
-		claim, err := utils.VerifyVerificationToken(token)
+		claim, err := token.VerifyVerificationToken(tokenInQuery)
 		if err != nil {
 			c.JSON(400, errorRes)
 			return
 		}
 
-		user, err := db.Mgr.GetUserByEmail(claim.Email)
+		user, err := db.Provider.GetUserByEmail(claim.Email)
 		if err != nil {
 			c.JSON(400, gin.H{
 				"message": err.Error(),
@@ -50,19 +51,23 @@ func VerifyEmailHandler() gin.HandlerFunc {
 		if user.EmailVerifiedAt == nil {
 			now := time.Now().Unix()
 			user.EmailVerifiedAt = &now
-			db.Mgr.UpdateUser(user)
+			db.Provider.UpdateUser(user)
 		}
 		// delete from verification table
-		db.Mgr.DeleteVerificationRequest(verificationRequest)
+		db.Provider.DeleteVerificationRequest(verificationRequest)
 
 		roles := strings.Split(user.Roles, ",")
-		refreshToken, _, _ := utils.CreateAuthToken(user, constants.TokenTypeRefreshToken, roles)
-
-		accessToken, _, _ := utils.CreateAuthToken(user, constants.TokenTypeAccessToken, roles)
-
-		session.SetUserSession(user.ID, accessToken, refreshToken)
+		authToken, err := token.CreateAuthToken(user, roles)
+		if err != nil {
+			c.JSON(400, gin.H{
+				"message": err.Error(),
+			})
+			return
+		}
+		sessionstore.SetUserSession(user.ID, authToken.FingerPrint, authToken.RefreshToken.Token)
+		cookie.SetCookie(c, authToken.AccessToken.Token, authToken.RefreshToken.Token, authToken.FingerPrintHash)
 		utils.SaveSessionInDB(user.ID, c)
-		utils.SetCookie(c, accessToken)
+
 		c.Redirect(http.StatusTemporaryRedirect, claim.RedirectURL)
 	}
 }

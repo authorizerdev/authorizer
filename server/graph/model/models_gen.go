@@ -23,9 +23,10 @@ type DeleteUserInput struct {
 
 type Env struct {
 	AdminSecret                *string  `json:"ADMIN_SECRET"`
-	DatabaseType               *string  `json:"DATABASE_TYPE"`
-	DatabaseURL                *string  `json:"DATABASE_URL"`
 	DatabaseName               *string  `json:"DATABASE_NAME"`
+	DatabaseURL                *string  `json:"DATABASE_URL"`
+	DatabaseType               *string  `json:"DATABASE_TYPE"`
+	CustomAccessTokenScript    *string  `json:"CUSTOM_ACCESS_TOKEN_SCRIPT"`
 	SMTPHost                   *string  `json:"SMTP_HOST"`
 	SMTPPort                   *string  `json:"SMTP_PORT"`
 	SMTPUsername               *string  `json:"SMTP_USERNAME"`
@@ -66,6 +67,11 @@ type ForgotPasswordInput struct {
 	Email string `json:"email"`
 }
 
+type IsValidJWTQueryInput struct {
+	Jwt   *string  `json:"jwt"`
+	Roles []string `json:"roles"`
+}
+
 type LoginInput struct {
 	Email    string   `json:"email"`
 	Password string   `json:"password"`
@@ -102,6 +108,10 @@ type Response struct {
 	Message string `json:"message"`
 }
 
+type SessionQueryInput struct {
+	Roles []string `json:"roles"`
+}
+
 type SignUpInput struct {
 	Email           string   `json:"email"`
 	GivenName       *string  `json:"given_name"`
@@ -119,10 +129,8 @@ type SignUpInput struct {
 
 type UpdateEnvInput struct {
 	AdminSecret                *string  `json:"ADMIN_SECRET"`
+	CustomAccessTokenScript    *string  `json:"CUSTOM_ACCESS_TOKEN_SCRIPT"`
 	OldAdminSecret             *string  `json:"OLD_ADMIN_SECRET"`
-	DatabaseType               *string  `json:"DATABASE_TYPE"`
-	DatabaseURL                *string  `json:"DATABASE_URL"`
-	DatabaseName               *string  `json:"DATABASE_NAME"`
 	SMTPHost                   *string  `json:"SMTP_HOST"`
 	SMTPPort                   *string  `json:"SMTP_PORT"`
 	SenderEmail                *string  `json:"SENDER_EMAIL"`
@@ -201,6 +209,11 @@ type User struct {
 	Roles               []string `json:"roles"`
 	CreatedAt           *int64   `json:"created_at"`
 	UpdatedAt           *int64   `json:"updated_at"`
+}
+
+type ValidJWTResponse struct {
+	Valid   bool   `json:"valid"`
+	Message string `json:"message"`
 }
 
 type VerificationRequest struct {

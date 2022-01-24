@@ -1,5 +1,16 @@
 # Task List
 
+## Implement better way of handling jwt tokens
+
+Check: https://hasura.io/blog/best-practices-of-using-jwt-with-graphql/#server-side-rendering-ssr
+
+- [x] Set finger print in response cookie (https://github.com/hasura/jwt-guide/blob/60a7a86146d604fc48a799fffdee712be1c52cd0/lib/setFingerprintCookieAndSignJwt.ts#L8)
+- [x] Save refresh token in session store
+- [x] refresh token should be made more secure with the help of secure token rotation. Every time new token is requested new refresh token should be generated
+- [x] Return jwt in response
+- [x] To get session send finger print and refresh token [if they are valid -> a new access token is generated and sent to user]
+- [x] Refresh token should be long living token (refresh token + finger print hash should be verified)
+
 ## Open ID compatible claims and schema
 
 - [x] Rename `schema.graphqls` and re generate schema
