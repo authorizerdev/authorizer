@@ -13,4 +13,6 @@ const (
 	DbTypeArangodb = "arangodb"
 	// DbTypeMongodb is the mongodb database type
 	DbTypeMongodb = "mongodb"
+	// DbTypeFaunadb is the faunadb database type
+	DbTypeFaunadb = "faunadb"
 )

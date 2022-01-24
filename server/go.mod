@@ -6,6 +6,7 @@ require (
 	github.com/99designs/gqlgen v0.14.0
 	github.com/arangodb/go-driver v1.2.1
 	github.com/coreos/go-oidc/v3 v3.1.0
+	github.com/fauna/faunadb-go/v5 v5.0.0-beta // indirect
 	github.com/gin-contrib/location v0.0.2
 	github.com/gin-gonic/gin v1.7.2
 	github.com/go-playground/validator/v10 v10.8.0 // indirect
