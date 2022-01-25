@@ -22,6 +22,11 @@ type State struct {
 // AppHandler is the handler for the /app route
 func AppHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if envstore.EnvInMemoryStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableLoginPage) {
+			c.JSON(400, gin.H{"error": "login page is not enabled"})
+			return
+		}
+
 		state := c.Query("state")
 
 		var stateObj State

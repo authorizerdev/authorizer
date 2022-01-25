@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
 	Box,
 	Divider,
@@ -10,13 +10,13 @@ import {
 	Input,
 	InputGroup,
 	InputRightElement,
+	useToast,
 } from '@chakra-ui/react';
 import { useClient } from 'urql';
 import {
 	FaGoogle,
 	FaGithub,
 	FaFacebookF,
-	FaUndo,
 	FaSave,
 	FaRegEyeSlash,
 	FaRegEye,
@@ -33,7 +33,7 @@ import {
 	SwitchInputType,
 } from '../constants';
 import { UpdateEnvVariables } from '../graphql/mutation';
-import { getObjectDiff } from '../utils';
+import { getObjectDiff, capitalizeFirstLetter } from '../utils';
 
 interface envVarTypes {
 	GOOGLE_CLIENT_ID: string;
@@ -71,13 +71,14 @@ interface envVarTypes {
 
 export default function Environment() {
 	const client = useClient();
+	const toast = useToast();
 	const [adminSecret, setAdminSecret] = React.useState<
 		Record<string, string | boolean>
 	>({
 		value: '',
 		disableInputField: true,
 	});
-	const [loading, setLoading] = React.useState<boolean>(false);
+	const [loading, setLoading] = React.useState<boolean>(true);
 	const [envVariables, setEnvVariables] = React.useState<envVarTypes>({
 		GOOGLE_CLIENT_ID: '',
 		GOOGLE_CLIENT_SECRET: '',
@@ -111,39 +112,7 @@ export default function Environment() {
 		DATABASE_TYPE: '',
 		DATABASE_URL: '',
 	});
-	const [oldEnvVariables, setOldEnvVariables] = React.useState<envVarTypes>({
-		GOOGLE_CLIENT_ID: '',
-		GOOGLE_CLIENT_SECRET: '',
-		GITHUB_CLIENT_ID: '',
-		GITHUB_CLIENT_SECRET: '',
-		FACEBOOK_CLIENT_ID: '',
-		FACEBOOK_CLIENT_SECRET: '',
-		ROLES: [],
-		DEFAULT_ROLES: [],
-		PROTECTED_ROLES: [],
-		JWT_TYPE: '',
-		JWT_SECRET: '',
-		JWT_ROLE_CLAIM: '',
-		REDIS_URL: '',
-		SMTP_HOST: '',
-		SMTP_PORT: '',
-		SMTP_USERNAME: '',
-		SMTP_PASSWORD: '',
-		SENDER_EMAIL: '',
-		ALLOWED_ORIGINS: [],
-		ORGANIZATION_NAME: '',
-		ORGANIZATION_LOGO: '',
-		CUSTOM_ACCESS_TOKEN_SCRIPT: '',
-		ADMIN_SECRET: '',
-		DISABLE_LOGIN_PAGE: false,
-		DISABLE_MAGIC_LINK_LOGIN: false,
-		DISABLE_EMAIL_VERIFICATION: false,
-		DISABLE_BASIC_AUTHENTICATION: false,
-		OLD_ADMIN_SECRET: '',
-		DATABASE_NAME: '',
-		DATABASE_TYPE: '',
-		DATABASE_URL: '',
-	});
+
 	const [fieldVisibility, setFieldVisibility] = React.useState<
 		Record<string, boolean>
 	>({
@@ -156,34 +125,32 @@ export default function Environment() {
 		OLD_ADMIN_SECRET: false,
 	});
 
-	const updateHandler = async () => {
-		setLoading(true);
-		const {
-			data: { _env: envData },
-		} = await client.query(EnvVariablesQuery).toPromise();
-		if (envData) {
-			setEnvVariables({
-				...envVariables,
-				...envData,
-				ADMIN_SECRET: '',
-				OLD_ADMIN_SECRET: envData.ADMIN_SECRET,
-			});
-			setOldEnvVariables({
-				...envVariables,
-				...envData,
-				ADMIN_SECRET: '',
-				OLD_ADMIN_SECRET: envData.ADMIN_SECRET,
-			});
-		}
-		setAdminSecret({
-			value: '',
-			disableInputField: true,
-		});
-		setLoading(false);
-	};
+	useEffect(() => {
+		let isMounted = true;
+		async function getData() {
+			const {
+				data: { _env: envData },
+			} = await client.query(EnvVariablesQuery).toPromise();
 
-	React.useEffect(() => {
-		updateHandler();
+			if (isMounted) {
+				setLoading(false);
+				setEnvVariables({
+					...envData,
+					OLD_ADMIN_SECRET: envData.ADMIN_SECRET,
+					ADMIN_SECRET: '',
+				});
+				setAdminSecret({
+					value: '',
+					disableInputField: true,
+				});
+			}
+		}
+
+		getData();
+
+		return () => {
+			isMounted = false;
+		};
 	}, []);
 
 	const validateAdminSecretHandler = (event: any) => {
@@ -207,7 +174,11 @@ export default function Environment() {
 
 	const saveHandler = async () => {
 		setLoading(true);
-		const diff = getObjectDiff(envVariables, oldEnvVariables);
+		const {
+			data: { _env: envData },
+		} = await client.query(EnvVariablesQuery).toPromise();
+
+		const diff = getObjectDiff(envVariables, envData);
 		const updatedEnvVariables = diff.reduce(
 			(acc: any, property: string) => ({
 				...acc,
@@ -216,24 +187,57 @@ export default function Environment() {
 			}),
 			{}
 		);
-		if (diff.includes(HiddenInputType.ADMIN_SECRET)) {
-			updatedEnvVariables[HiddenInputType.OLD_ADMIN_SECRET] =
-				// @ts-ignore
-				envVariables[HiddenInputType.OLD_ADMIN_SECRET];
+		if (
+			updatedEnvVariables[HiddenInputType.ADMIN_SECRET] === '' ||
+			updatedEnvVariables[HiddenInputType.OLD_ADMIN_SECRET] !==
+				envData.ADMIN_SECRET
+		) {
+			delete updatedEnvVariables.OLD_ADMIN_SECRET;
+			delete updatedEnvVariables.ADMIN_SECRET;
 		}
+
+		delete updatedEnvVariables.DATABASE_URL;
+		delete updatedEnvVariables.DATABASE_TYPE;
+		delete updatedEnvVariables.DATABASE_NAME;
+
 		const res = await client
-			.mutation(UpdateEnvVariables, { params: envVariables })
+			.mutation(UpdateEnvVariables, { params: updatedEnvVariables })
 			.toPromise();
-		console.log('res ==>> ', res);
-		updateHandler();
+
+		setLoading(false);
+
+		if (res.error) {
+			toast({
+				title: capitalizeFirstLetter(res.error.message),
+				isClosable: true,
+				status: 'error',
+				position: 'bottom-right',
+			});
+
+			return;
+		}
+
+		setAdminSecret({
+			value: '',
+			disableInputField: true,
+		});
+
+		toast({
+			title: `Successfully updated ${
+				Object.keys(updatedEnvVariables).length
+			} variables`,
+			isClosable: true,
+			status: 'success',
+			position: 'bottom-right',
+		});
 	};
 
 	return (
-		<Box m="5" p="5" bg="white" rounded="md">
-			<Text fontSize="md" paddingTop="2%">
+		<Box m="5" py="5" px="10" bg="white" rounded="md">
+			<Text fontSize="md" paddingTop="2%" fontWeight="bold">
 				Social Media Logins
 			</Text>
-			<Stack spacing={6} padding="3%">
+			<Stack spacing={6} padding="2% 0%">
 				<Flex>
 					<Center
 						w="50px"
@@ -320,10 +324,10 @@ export default function Environment() {
 				</Flex>
 			</Stack>
 			<Divider marginTop="2%" marginBottom="2%" />
-			<Text fontSize="md" paddingTop="2%">
+			<Text fontSize="md" paddingTop="2%" fontWeight="bold">
 				Roles
 			</Text>
-			<Stack spacing={6} padding="3% 5%">
+			<Stack spacing={6} padding="2% 0%">
 				<Flex>
 					<Flex w="30%" justifyContent="start" alignItems="center">
 						<Text fontSize="sm">Roles:</Text>
@@ -362,10 +366,10 @@ export default function Environment() {
 				</Flex>
 			</Stack>
 			<Divider marginTop="2%" marginBottom="2%" />
-			<Text fontSize="md" paddingTop="2%">
-				JWT Configurations
+			<Text fontSize="md" paddingTop="2%" fontWeight="bold">
+				JWT (JSON Web Tokens) Configurations
 			</Text>
-			<Stack spacing={6} padding="3% 5%">
+			<Stack spacing={6} padding="2% 0%">
 				<Flex>
 					<Flex w="30%" justifyContent="start" alignItems="center">
 						<Text fontSize="sm">JWT Type:</Text>
@@ -417,10 +421,10 @@ export default function Environment() {
 				</Flex>
 			</Stack>
 			<Divider marginTop="2%" marginBottom="2%" />
-			<Text fontSize="md" paddingTop="2%">
+			<Text fontSize="md" paddingTop="2%" fontWeight="bold">
 				Session Storage
 			</Text>
-			<Stack spacing={6} padding="3% 5%">
+			<Stack spacing={6} padding="2% 0%">
 				<Flex>
 					<Flex w="30%" justifyContent="start" alignItems="center">
 						<Text fontSize="sm">Redis URL:</Text>
@@ -435,10 +439,10 @@ export default function Environment() {
 				</Flex>
 			</Stack>
 			<Divider marginTop="2%" marginBottom="2%" />
-			<Text fontSize="md" paddingTop="2%">
+			<Text fontSize="md" paddingTop="2%" fontWeight="bold">
 				Email Configurations
 			</Text>
-			<Stack spacing={6} padding="3% 5%">
+			<Stack spacing={6} padding="2% 0%">
 				<Flex>
 					<Flex w="30%" justifyContent="start" alignItems="center">
 						<Text fontSize="sm">SMTP Host:</Text>
@@ -503,10 +507,10 @@ export default function Environment() {
 				</Flex>
 			</Stack>
 			<Divider marginTop="2%" marginBottom="2%" />
-			<Text fontSize="md" paddingTop="2%">
+			<Text fontSize="md" paddingTop="2%" fontWeight="bold">
 				White Listing
 			</Text>
-			<Stack spacing={6} padding="3% 5%">
+			<Stack spacing={6} padding="2% 0%">
 				<Flex>
 					<Flex w="30%" justifyContent="start" alignItems="center">
 						<Text fontSize="sm">Allowed Origins:</Text>
@@ -521,10 +525,10 @@ export default function Environment() {
 				</Flex>
 			</Stack>
 			<Divider marginTop="2%" marginBottom="2%" />
-			<Text fontSize="md" paddingTop="2%">
+			<Text fontSize="md" paddingTop="2%" fontWeight="bold">
 				Organization Information
 			</Text>
-			<Stack spacing={6} padding="3% 5%">
+			<Stack spacing={6} padding="2% 0%">
 				<Flex>
 					<Flex w="30%" justifyContent="start" alignItems="center">
 						<Text fontSize="sm">Organization Name:</Text>
@@ -551,10 +555,10 @@ export default function Environment() {
 				</Flex>
 			</Stack>
 			<Divider marginTop="2%" marginBottom="2%" />
-			<Text fontSize="md" paddingTop="2%">
+			<Text fontSize="md" paddingTop="2%" fontWeight="bold">
 				Custom Scripts
 			</Text>
-			<Stack spacing={6} padding="3% 5%">
+			<Stack spacing={6} padding="2% 0%">
 				<Flex>
 					<Center w="100%">
 						<InputField
@@ -568,13 +572,13 @@ export default function Environment() {
 				</Flex>
 			</Stack>
 			<Divider marginTop="2%" marginBottom="2%" />
-			<Text fontSize="md" paddingTop="2%">
+			<Text fontSize="md" paddingTop="2%" fontWeight="bold">
 				Disable Features
 			</Text>
-			<Stack spacing={6} padding="3% 5%">
+			<Stack spacing={6} padding="2% 0%">
 				<Flex>
 					<Flex w="30%" justifyContent="start" alignItems="center">
-						<Text fontSize="sm">Login Page:</Text>
+						<Text fontSize="sm">Disable Login Page:</Text>
 					</Flex>
 					<Flex justifyContent="start" w="70%">
 						<InputField
@@ -586,19 +590,7 @@ export default function Environment() {
 				</Flex>
 				<Flex>
 					<Flex w="30%" justifyContent="start" alignItems="center">
-						<Text fontSize="sm">Magic Login Link:</Text>
-					</Flex>
-					<Flex justifyContent="start" w="70%">
-						<InputField
-							envVariables={envVariables}
-							setEnvVariables={setEnvVariables}
-							inputType={SwitchInputType.DISABLE_MAGIC_LINK_LOGIN}
-						/>
-					</Flex>
-				</Flex>
-				<Flex>
-					<Flex w="30%" justifyContent="start" alignItems="center">
-						<Text fontSize="sm">Email Verification:</Text>
+						<Text fontSize="sm">Disable Email Verification:</Text>
 					</Flex>
 					<Flex justifyContent="start" w="70%">
 						<InputField
@@ -610,7 +602,19 @@ export default function Environment() {
 				</Flex>
 				<Flex>
 					<Flex w="30%" justifyContent="start" alignItems="center">
-						<Text fontSize="sm">Basic Authentication:</Text>
+						<Text fontSize="sm">Disable Magic Login Link:</Text>
+					</Flex>
+					<Flex justifyContent="start" w="70%">
+						<InputField
+							envVariables={envVariables}
+							setEnvVariables={setEnvVariables}
+							inputType={SwitchInputType.DISABLE_MAGIC_LINK_LOGIN}
+						/>
+					</Flex>
+				</Flex>
+				<Flex>
+					<Flex w="30%" justifyContent="start" alignItems="center">
+						<Text fontSize="sm">Disable Basic Authentication:</Text>
 					</Flex>
 					<Flex justifyContent="start" w="70%">
 						<InputField
@@ -622,7 +626,7 @@ export default function Environment() {
 				</Flex>
 			</Stack>
 			<Divider marginTop="2%" marginBottom="2%" />
-			<Text fontSize="md" paddingTop="2%">
+			<Text fontSize="md" paddingTop="2%" fontWeight="bold">
 				Danger
 			</Text>
 			<Stack
@@ -633,6 +637,10 @@ export default function Environment() {
 				borderRadius="5px"
 			>
 				<Stack spacing={6} padding="3% 0">
+					<Text fontStyle="italic" fontSize="sm" color="gray.600">
+						Note: Database related environment variables cannot be updated from
+						dashboard :(
+					</Text>
 					<Flex>
 						<Flex w="30%" justifyContent="start" alignItems="center">
 							<Text fontSize="sm">DataBase Name:</Text>

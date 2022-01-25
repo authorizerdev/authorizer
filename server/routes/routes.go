@@ -1,8 +1,6 @@
 package routes
 
 import (
-	"github.com/authorizerdev/authorizer/server/constants"
-	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/handlers"
 	"github.com/authorizerdev/authorizer/server/middlewares"
 	"github.com/gin-contrib/location"
@@ -25,21 +23,19 @@ func InitRouter() *gin.Engine {
 
 	router.LoadHTMLGlob("templates/*")
 	// login page app related routes.
-	if !envstore.EnvInMemoryStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableLoginPage) {
-		app := router.Group("/app")
-		{
-			app.Static("/build", "app/build")
-			app.GET("/", handlers.AppHandler())
-			app.GET("/reset-password", handlers.AppHandler())
-		}
+	app := router.Group("/app")
+	{
+		app.Static("/build", "app/build")
+		app.GET("/", handlers.AppHandler())
+		app.GET("/reset-password", handlers.AppHandler())
 	}
 
 	// dashboard related routes
-	app := router.Group("/dashboard")
+	dashboard := router.Group("/dashboard")
 	{
-		app.Static("/build", "dashboard/build")
-		app.GET("/", handlers.DashboardHandler())
-		app.GET("/:page", handlers.DashboardHandler())
+		dashboard.Static("/build", "dashboard/build")
+		dashboard.GET("/", handlers.DashboardHandler())
+		dashboard.GET("/:page", handlers.DashboardHandler())
 	}
 	return router
 }

@@ -1,7 +1,6 @@
 import React, { ReactNode } from 'react';
 import {
 	IconButton,
-	Avatar,
 	Box,
 	CloseButton,
 	Flex,
@@ -21,9 +20,7 @@ import {
 } from '@chakra-ui/react';
 import {
 	FiHome,
-	FiTrendingUp,
-	FiCompass,
-	FiStar,
+	FiCode,
 	FiSettings,
 	FiMenu,
 	FiUser,
@@ -90,6 +87,17 @@ export const Sidebar = ({ onClose, ...rest }: SidebarProps) => {
 					</NavItem>
 				</NavLink>
 			))}
+
+			<Link
+				href="/playground"
+				target="_blank"
+				style={{
+					textDecoration: 'none',
+				}}
+				_focus={{ _boxShadow: 'none' }}
+			>
+				<NavItem icon={FiCode}>API Playground</NavItem>
+			</Link>
 		</Box>
 	);
 };
@@ -100,37 +108,31 @@ interface NavItemProps extends FlexProps {
 }
 export const NavItem = ({ icon, children, ...rest }: NavItemProps) => {
 	return (
-		<Link
-			href="#"
-			style={{ textDecoration: 'none' }}
-			_focus={{ boxShadow: 'none' }}
+		<Flex
+			align="center"
+			p="3"
+			mx="3"
+			borderRadius="md"
+			role="group"
+			cursor="pointer"
+			_hover={{
+				bg: 'blue.500',
+				color: 'white',
+			}}
+			{...rest}
 		>
-			<Flex
-				align="center"
-				p="3"
-				mx="3"
-				borderRadius="md"
-				role="group"
-				cursor="pointer"
-				_hover={{
-					bg: 'blue.500',
-					color: 'white',
-				}}
-				{...rest}
-			>
-				{icon && (
-					<Icon
-						mr="4"
-						fontSize="16"
-						_groupHover={{
-							color: 'white',
-						}}
-						as={icon}
-					/>
-				)}
-				{children}
-			</Flex>
-		</Link>
+			{icon && (
+				<Icon
+					mr="4"
+					fontSize="16"
+					_groupHover={{
+						color: 'white',
+					}}
+					as={icon}
+				/>
+			)}
+			{children}
+		</Flex>
 	);
 };
 

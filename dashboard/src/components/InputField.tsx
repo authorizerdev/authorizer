@@ -282,7 +282,7 @@ const InputField = ({
 				<Code h="75%">Off</Code>
 				<Switch
 					size="md"
-					isChecked={!envVariables[inputType]}
+					isChecked={envVariables[inputType]}
 					onChange={() => {
 						setEnvVariables({
 							...envVariables,

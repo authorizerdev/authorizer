@@ -15,7 +15,6 @@ import (
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
-	"golang.org/x/crypto/bcrypt"
 )
 
 // UpdateEnvResolver is a resolver for update config mutation
@@ -41,6 +40,23 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 	err = json.Unmarshal(byteData, &data)
 	if err != nil {
 		return res, fmt.Errorf("error un-marshalling params: %t", err)
+	}
+
+	// in case of admin secret change update the cookie with new hash
+	if params.AdminSecret != nil {
+		if params.OldAdminSecret == nil {
+			return res, errors.New("admin secret and old admin secret are required for secret change")
+		}
+
+		if *params.OldAdminSecret != envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret) {
+			return res, errors.New("old admin secret is not correct")
+		}
+
+		if len(*params.AdminSecret) < 6 {
+			err = fmt.Errorf("admin secret must be at least 6 characters")
+			return res, err
+		}
+
 	}
 
 	updatedData := envstore.EnvInMemoryStoreObj.GetEnvStoreClone()
@@ -106,27 +122,17 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 		return res, err
 	}
 
-	encryptedConfig, err := utils.EncryptEnvData(updatedData)
-	if err != nil {
-		return res, err
-	}
-
-	// in case of admin secret change update the cookie with new hash
 	if params.AdminSecret != nil {
-		if params.OldAdminSecret == nil {
-			return res, errors.New("admin secret and old admin secret are required for secret change")
-		}
-
-		err := bcrypt.CompareHashAndPassword([]byte(*params.OldAdminSecret), []byte(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret)))
-		if err != nil {
-			return res, errors.New("old admin secret is not correct")
-		}
-
 		hashedKey, err := utils.EncryptPassword(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret))
 		if err != nil {
 			return res, err
 		}
 		cookie.SetAdminCookie(gc, hashedKey)
+	}
+
+	encryptedConfig, err := utils.EncryptEnvData(updatedData)
+	if err != nil {
+		return res, err
 	}
 
 	env.EnvData = encryptedConfig

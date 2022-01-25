@@ -26,6 +26,7 @@ export const AppRoutes = () => {
 						<Route path="/" element={<Home />} />
 						<Route path="users" element={<Users />} />
 						<Route path="environment" element={<Environment />} />
+						<Route path="*" element={<Home />} />
 					</Route>
 				</Routes>
 			</Suspense>
@@ -35,6 +36,7 @@ export const AppRoutes = () => {
 		<Suspense fallback={<></>}>
 			<Routes>
 				<Route path="/" element={<Auth />} />
+				<Route path="*" element={<Auth />} />
 			</Routes>
 		</Suspense>
 	);

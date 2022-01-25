@@ -12,6 +12,7 @@ const queryClient = createClient({
 			credentials: 'include',
 		};
 	},
+	requestPolicy: 'network-only',
 });
 
 const theme = extendTheme({

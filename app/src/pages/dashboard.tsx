@@ -15,7 +15,7 @@ export default function Dashboard() {
 	return (
 		<div>
 			<h1>Hey 👋,</h1>
-			<p>Thank you for joining authorizer demo app.</p>
+			<p>Thank you for using authorizer.</p>
 			<p>
 				Your email address is{' '}
 				<a href={`mailto:${user?.email}`} style={{ color: '#3B82F6' }}>

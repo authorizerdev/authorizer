@@ -1,9 +1,3 @@
-import {
-	Alert,
-	AlertIcon,
-	AlertTitle,
-	AlertDescription,
-} from '@chakra-ui/react';
 import _ from 'lodash';
 
 export const hasAdminSecret = () => {
