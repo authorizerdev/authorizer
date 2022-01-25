@@ -32,7 +32,7 @@ export const AuthContextProvider = ({ children }: { children: any }) => {
 
 	if (fetching) {
 		return (
-			<Center>
+			<Center h="100%">
 				<Spinner />
 			</Center>
 		);
