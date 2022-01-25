@@ -1,6 +1,9 @@
 package providers
 
-import "github.com/authorizerdev/authorizer/server/db/models"
+import (
+	"github.com/authorizerdev/authorizer/server/db/models"
+	"github.com/authorizerdev/authorizer/server/graph/model"
+)
 
 type Provider interface {
 	// AddUser to save user information in database
@@ -10,7 +13,7 @@ type Provider interface {
 	// DeleteUser to delete user information from database
 	DeleteUser(user models.User) error
 	// ListUsers to get list of users from database
-	ListUsers() ([]models.User, error)
+	ListUsers(pagination model.Pagination) (*model.Users, error)
 	// GetUserByEmail to get user information from database using email address
 	GetUserByEmail(email string) (models.User, error)
 	// GetUserByID to get user information from database using user ID
@@ -23,7 +26,7 @@ type Provider interface {
 	// GetVerificationRequestByEmail to get verification request by email from database
 	GetVerificationRequestByEmail(email string, identifier string) (models.VerificationRequest, error)
 	// ListVerificationRequests to get list of verification requests from database
-	ListVerificationRequests() ([]models.VerificationRequest, error)
+	ListVerificationRequests(pagination model.Pagination) (*model.VerificationRequests, error)
 	// DeleteVerificationRequest to delete verification request from database
 	DeleteVerificationRequest(verificationRequest models.VerificationRequest) error
 

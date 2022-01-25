@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/authorizerdev/authorizer/server/db/models"
+	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/google/uuid"
 	"gorm.io/gorm/clause"
 )
@@ -56,15 +57,33 @@ func (p *provider) GetVerificationRequestByEmail(email string, identifier string
 }
 
 // ListVerificationRequests to get list of verification requests from database
-func (p *provider) ListVerificationRequests() ([]models.VerificationRequest, error) {
+func (p *provider) ListVerificationRequests(pagination model.Pagination) (*model.VerificationRequests, error) {
 	var verificationRequests []models.VerificationRequest
 
-	result := p.db.Find(&verificationRequests)
+	result := p.db.Limit(int(pagination.Limit)).Offset(int(pagination.Offset)).Order("created_at DESC").Find(&verificationRequests)
 	if result.Error != nil {
 		log.Println("error getting verification requests:", result.Error)
-		return verificationRequests, result.Error
+		return nil, result.Error
 	}
-	return verificationRequests, nil
+
+	responseVerificationRequests := []*model.VerificationRequest{}
+	for _, v := range verificationRequests {
+		responseVerificationRequests = append(responseVerificationRequests, v.AsAPIVerificationRequest())
+	}
+
+	var total int64
+	totalRes := p.db.Model(&models.VerificationRequest{}).Count(&total)
+	if totalRes.Error != nil {
+		return nil, totalRes.Error
+	}
+
+	paginationClone := pagination
+	paginationClone.Total = total
+
+	return &model.VerificationRequests{
+		VerificationRequests: responseVerificationRequests,
+		Pagination:           &paginationClone,
+	}, nil
 }
 
 // DeleteVerificationRequest to delete verification request from database

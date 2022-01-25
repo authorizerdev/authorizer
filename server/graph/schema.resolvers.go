@@ -87,12 +87,12 @@ func (r *queryResolver) Profile(ctx context.Context) (*model.User, error) {
 	return resolvers.ProfileResolver(ctx)
 }
 
-func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
-	return resolvers.UsersResolver(ctx)
+func (r *queryResolver) Users(ctx context.Context, params *model.PaginatedInput) (*model.Users, error) {
+	return resolvers.UsersResolver(ctx, params)
 }
 
-func (r *queryResolver) VerificationRequests(ctx context.Context) ([]*model.VerificationRequest, error) {
-	return resolvers.VerificationRequestsResolver(ctx)
+func (r *queryResolver) VerificationRequests(ctx context.Context, params *model.PaginatedInput) (*model.VerificationRequests, error) {
+	return resolvers.VerificationRequestsResolver(ctx, params)
 }
 
 func (r *queryResolver) AdminSession(ctx context.Context) (*model.Response, error) {

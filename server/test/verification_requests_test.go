@@ -25,16 +25,26 @@ func verificationRequestsTest(t *testing.T, s TestSetup) {
 			ConfirmPassword: s.TestInfo.Password,
 		})
 
-		requests, err := resolvers.VerificationRequestsResolver(ctx)
+		limit := int64(10)
+		page := int64(1)
+		pagination := &model.PaginatedInput{
+			Pagination: &model.PaginationInput{
+				Limit: &limit,
+				Page:  &page,
+			},
+		}
+
+		requests, err := resolvers.VerificationRequestsResolver(ctx, pagination)
 		assert.NotNil(t, err, "unauthorized")
 
 		h, err := utils.EncryptPassword(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret))
 		assert.Nil(t, err)
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminCookieName), h))
-		requests, err = resolvers.VerificationRequestsResolver(ctx)
+		requests, err = resolvers.VerificationRequestsResolver(ctx, pagination)
 
 		assert.Nil(t, err)
-		rLen := len(requests)
+
+		rLen := len(requests.VerificationRequests)
 		assert.GreaterOrEqual(t, rLen, 1)
 
 		cleanData(email)

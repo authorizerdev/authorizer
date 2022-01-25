@@ -2,6 +2,7 @@ package test
 
 import (
 	"fmt"
+	"log"
 	"testing"
 
 	"github.com/authorizerdev/authorizer/server/constants"
@@ -23,15 +24,26 @@ func usersTest(t *testing.T, s TestSetup) {
 			ConfirmPassword: s.TestInfo.Password,
 		})
 
-		users, err := resolvers.UsersResolver(ctx)
+		limit := int64(10)
+		page := int64(1)
+		pagination := &model.PaginatedInput{
+			Pagination: &model.PaginationInput{
+				Limit: &limit,
+				Page:  &page,
+			},
+		}
+
+		usersRes, err := resolvers.UsersResolver(ctx, pagination)
 		assert.NotNil(t, err, "unauthorized")
 
 		h, err := utils.EncryptPassword(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret))
 		assert.Nil(t, err)
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminCookieName), h))
-		users, err = resolvers.UsersResolver(ctx)
+
+		usersRes, err = resolvers.UsersResolver(ctx, pagination)
 		assert.Nil(t, err)
-		rLen := len(users)
+		log.Println("=> userRes:", usersRes)
+		rLen := len(usersRes.Users)
 		assert.GreaterOrEqual(t, rLen, 1)
 
 		cleanData(email)

@@ -1,12 +1,14 @@
 package arangodb
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"time"
 
 	"github.com/arangodb/go-driver"
 	"github.com/authorizerdev/authorizer/server/db/models"
+	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/google/uuid"
 )
 
@@ -93,16 +95,19 @@ func (p *provider) GetVerificationRequestByEmail(email string, identifier string
 }
 
 // ListVerificationRequests to get list of verification requests from database
-func (p *provider) ListVerificationRequests() ([]models.VerificationRequest, error) {
-	var verificationRequests []models.VerificationRequest
+func (p *provider) ListVerificationRequests(pagination model.Pagination) (*model.VerificationRequests, error) {
+	var verificationRequests []*model.VerificationRequest
+	ctx := driver.WithQueryFullCount(context.Background())
+	query := fmt.Sprintf("FOR d in %s SORT d.created_at DESC LIMIT %d, %d RETURN d", models.Collections.VerificationRequest, pagination.Offset, pagination.Limit)
 
-	query := fmt.Sprintf("FOR d in %s RETURN d", models.Collections.VerificationRequest)
-
-	cursor, err := p.db.Query(nil, query, nil)
+	cursor, err := p.db.Query(ctx, query, nil)
 	if err != nil {
-		return verificationRequests, err
+		return nil, err
 	}
 	defer cursor.Close()
+
+	paginationClone := pagination
+	paginationClone.Total = cursor.Statistics().FullCount()
 
 	for {
 		var verificationRequest models.VerificationRequest
@@ -111,16 +116,19 @@ func (p *provider) ListVerificationRequests() ([]models.VerificationRequest, err
 		if driver.IsNoMoreDocuments(err) {
 			break
 		} else if err != nil {
-			return verificationRequests, err
+			return nil, err
 		}
 
 		if meta.Key != "" {
-			verificationRequests = append(verificationRequests, verificationRequest)
+			verificationRequests = append(verificationRequests, verificationRequest.AsAPIVerificationRequest())
 		}
 
 	}
 
-	return verificationRequests, nil
+	return &model.VerificationRequests{
+		VerificationRequests: verificationRequests,
+		Pagination:           &paginationClone,
+	}, nil
 }
 
 // DeleteVerificationRequest to delete verification request from database

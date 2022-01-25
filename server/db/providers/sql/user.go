@@ -8,6 +8,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/envstore"
+	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/google/uuid"
 	"gorm.io/gorm/clause"
 )
@@ -64,15 +65,32 @@ func (p *provider) DeleteUser(user models.User) error {
 }
 
 // ListUsers to get list of users from database
-func (p *provider) ListUsers() ([]models.User, error) {
+func (p *provider) ListUsers(pagination model.Pagination) (*model.Users, error) {
 	var users []models.User
-	result := p.db.Find(&users)
+	result := p.db.Limit(int(pagination.Limit)).Offset(int(pagination.Offset)).Order("created_at DESC").Find(&users)
 	if result.Error != nil {
 		log.Println("error getting users:", result.Error)
-		return users, result.Error
+		return nil, result.Error
 	}
 
-	return users, nil
+	responseUsers := []*model.User{}
+	for _, user := range users {
+		responseUsers = append(responseUsers, user.AsAPIUser())
+	}
+
+	var total int64
+	totalRes := p.db.Model(&models.User{}).Count(&total)
+	if totalRes.Error != nil {
+		return nil, totalRes.Error
+	}
+
+	paginationClone := pagination
+	paginationClone.Total = total
+
+	return &model.Users{
+		Pagination: &paginationClone,
+		Users:      responseUsers,
+	}, nil
 }
 
 // GetUserByEmail to get user information from database using email address

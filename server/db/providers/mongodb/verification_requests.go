@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/db/models"
+	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -56,13 +57,24 @@ func (p *provider) GetVerificationRequestByEmail(email string, identifier string
 }
 
 // ListVerificationRequests to get list of verification requests from database
-func (p *provider) ListVerificationRequests() ([]models.VerificationRequest, error) {
-	var verificationRequests []models.VerificationRequest
+func (p *provider) ListVerificationRequests(pagination model.Pagination) (*model.VerificationRequests, error) {
+	var verificationRequests []*model.VerificationRequest
+
+	opts := options.Find()
+	opts.SetLimit(pagination.Limit)
+	opts.SetSkip(pagination.Offset)
+	opts.SetSort(bson.M{"created_at": -1})
+
 	verificationRequestCollection := p.db.Collection(models.Collections.VerificationRequest, options.Collection())
-	cursor, err := verificationRequestCollection.Find(nil, bson.M{}, options.Find())
+
+	verificationRequestCollectionCount, err := verificationRequestCollection.CountDocuments(nil, bson.M{})
+	paginationClone := pagination
+	paginationClone.Total = verificationRequestCollectionCount
+
+	cursor, err := verificationRequestCollection.Find(nil, bson.M{}, opts)
 	if err != nil {
 		log.Println("error getting verification requests:", err)
-		return verificationRequests, err
+		return nil, err
 	}
 	defer cursor.Close(nil)
 
@@ -70,12 +82,15 @@ func (p *provider) ListVerificationRequests() ([]models.VerificationRequest, err
 		var verificationRequest models.VerificationRequest
 		err := cursor.Decode(&verificationRequest)
 		if err != nil {
-			return verificationRequests, err
+			return nil, err
 		}
-		verificationRequests = append(verificationRequests, verificationRequest)
+		verificationRequests = append(verificationRequests, verificationRequest.AsAPIVerificationRequest())
 	}
 
-	return verificationRequests, nil
+	return &model.VerificationRequests{
+		VerificationRequests: verificationRequests,
+		Pagination:           &paginationClone,
+	}, nil
 }
 
 // DeleteVerificationRequest to delete verification request from database
