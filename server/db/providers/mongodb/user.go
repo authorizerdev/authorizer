@@ -8,6 +8,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/envstore"
+	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -60,13 +61,29 @@ func (p *provider) DeleteUser(user models.User) error {
 }
 
 // ListUsers to get list of users from database
-func (p *provider) ListUsers() ([]models.User, error) {
-	var users []models.User
+func (p *provider) ListUsers(pagination model.Pagination) (*model.Users, error) {
+	var users []*model.User
+	opts := options.Find()
+	opts.SetLimit(pagination.Limit)
+	opts.SetSkip(pagination.Offset)
+	opts.SetSort(bson.M{"created_at": -1})
+
+	paginationClone := pagination
+	// TODO add pagination total
+
 	userCollection := p.db.Collection(models.Collections.User, options.Collection())
-	cursor, err := userCollection.Find(nil, bson.M{}, options.Find())
+	count, err := userCollection.CountDocuments(nil, bson.M{}, options.Count())
+	if err != nil {
+		log.Println("error getting total users:", err)
+		return nil, err
+	}
+
+	paginationClone.Total = count
+
+	cursor, err := userCollection.Find(nil, bson.M{}, opts)
 	if err != nil {
 		log.Println("error getting users:", err)
-		return users, err
+		return nil, err
 	}
 	defer cursor.Close(nil)
 
@@ -74,12 +91,15 @@ func (p *provider) ListUsers() ([]models.User, error) {
 		var user models.User
 		err := cursor.Decode(&user)
 		if err != nil {
-			return users, err
+			return nil, err
 		}
-		users = append(users, user)
+		users = append(users, user.AsAPIUser())
 	}
 
-	return users, nil
+	return &model.Users{
+		Pagination: &paginationClone,
+		Users:      users,
+	}, nil
 }
 
 // GetUserByEmail to get user information from database using email address

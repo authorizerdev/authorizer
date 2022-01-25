@@ -1,6 +1,7 @@
 package arangodb
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/envstore"
+	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/google/uuid"
 )
 
@@ -66,32 +68,40 @@ func (p *provider) DeleteUser(user models.User) error {
 }
 
 // ListUsers to get list of users from database
-func (p *provider) ListUsers() ([]models.User, error) {
-	var users []models.User
-	query := fmt.Sprintf("FOR d in %s RETURN d", models.Collections.User)
+func (p *provider) ListUsers(pagination model.Pagination) (*model.Users, error) {
+	var users []*model.User
+	ctx := driver.WithQueryFullCount(context.Background())
 
-	cursor, err := p.db.Query(nil, query, nil)
+	query := fmt.Sprintf("FOR d in %s SORT d.created_at DESC LIMIT %d, %d RETURN d", models.Collections.User, pagination.Offset, pagination.Limit)
+
+	cursor, err := p.db.Query(ctx, query, nil)
 	if err != nil {
-		return users, err
+		return nil, err
 	}
 	defer cursor.Close()
+
+	paginationClone := pagination
+	paginationClone.Total = cursor.Statistics().FullCount()
 
 	for {
 		var user models.User
 		meta, err := cursor.ReadDocument(nil, &user)
 
-		if driver.IsNoMoreDocuments(err) {
+		if arangoDriver.IsNoMoreDocuments(err) {
 			break
 		} else if err != nil {
-			return users, err
+			return nil, err
 		}
 
 		if meta.Key != "" {
-			users = append(users, user)
+			users = append(users, user.AsAPIUser())
 		}
 	}
 
-	return users, nil
+	return &model.Users{
+		Pagination: &paginationClone,
+		Users:      users,
+	}, nil
 }
 
 // GetUserByEmail to get user information from database using email address

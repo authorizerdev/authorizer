@@ -12,24 +12,21 @@ import (
 
 // UsersResolver is a resolver for users query
 // This is admin only query
-func UsersResolver(ctx context.Context) ([]*model.User, error) {
+func UsersResolver(ctx context.Context, params *model.PaginatedInput) (*model.Users, error) {
 	gc, err := utils.GinContextFromContext(ctx)
-	var res []*model.User
 	if err != nil {
-		return res, err
+		return nil, err
 	}
 
 	if !token.IsSuperAdmin(gc) {
-		return res, fmt.Errorf("unauthorized")
+		return nil, fmt.Errorf("unauthorized")
 	}
 
-	users, err := db.Provider.ListUsers()
+	pagination := utils.GetPagination(params)
+
+	res, err := db.Provider.ListUsers(pagination)
 	if err != nil {
-		return res, err
-	}
-
-	for i := 0; i < len(users); i++ {
-		res = append(res, users[i].AsAPIUser())
+		return nil, err
 	}
 
 	return res, nil

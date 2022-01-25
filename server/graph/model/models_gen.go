@@ -93,6 +93,22 @@ type Meta struct {
 	IsMagicLinkLoginEnabled      bool   `json:"is_magic_link_login_enabled"`
 }
 
+type PaginatedInput struct {
+	Pagination *PaginationInput `json:"pagination"`
+}
+
+type Pagination struct {
+	Limit  int64 `json:"limit"`
+	Page   int64 `json:"page"`
+	Offset int64 `json:"offset"`
+	Total  int64 `json:"total"`
+}
+
+type PaginationInput struct {
+	Limit *int64 `json:"limit"`
+	Page  *int64 `json:"page"`
+}
+
 type ResendVerifyEmailInput struct {
 	Email      string `json:"email"`
 	Identifier string `json:"identifier"`
@@ -212,6 +228,11 @@ type User struct {
 	UpdatedAt           *int64   `json:"updated_at"`
 }
 
+type Users struct {
+	Pagination *Pagination `json:"pagination"`
+	Users      []*User     `json:"users"`
+}
+
 type ValidJWTResponse struct {
 	Valid   bool   `json:"valid"`
 	Message string `json:"message"`
@@ -225,6 +246,11 @@ type VerificationRequest struct {
 	Expires    *int64  `json:"expires"`
 	CreatedAt  *int64  `json:"created_at"`
 	UpdatedAt  *int64  `json:"updated_at"`
+}
+
+type VerificationRequests struct {
+	Pagination           *Pagination            `json:"pagination"`
+	VerificationRequests []*VerificationRequest `json:"verification_requests"`
 }
 
 type VerifyEmailInput struct {

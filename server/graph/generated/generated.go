@@ -120,6 +120,13 @@ type ComplexityRoot struct {
 		VerifyEmail       func(childComplexity int, params model.VerifyEmailInput) int
 	}
 
+	Pagination struct {
+		Limit  func(childComplexity int) int
+		Offset func(childComplexity int) int
+		Page   func(childComplexity int) int
+		Total  func(childComplexity int) int
+	}
+
 	Query struct {
 		AdminSession         func(childComplexity int) int
 		Env                  func(childComplexity int) int
@@ -127,8 +134,8 @@ type ComplexityRoot struct {
 		Meta                 func(childComplexity int) int
 		Profile              func(childComplexity int) int
 		Session              func(childComplexity int, params *model.SessionQueryInput) int
-		Users                func(childComplexity int) int
-		VerificationRequests func(childComplexity int) int
+		Users                func(childComplexity int, params *model.PaginatedInput) int
+		VerificationRequests func(childComplexity int, params *model.PaginatedInput) int
 	}
 
 	Response struct {
@@ -155,6 +162,11 @@ type ComplexityRoot struct {
 		UpdatedAt           func(childComplexity int) int
 	}
 
+	Users struct {
+		Pagination func(childComplexity int) int
+		Users      func(childComplexity int) int
+	}
+
 	ValidJWTResponse struct {
 		Message func(childComplexity int) int
 		Valid   func(childComplexity int) int
@@ -168,6 +180,11 @@ type ComplexityRoot struct {
 		Identifier func(childComplexity int) int
 		Token      func(childComplexity int) int
 		UpdatedAt  func(childComplexity int) int
+	}
+
+	VerificationRequests struct {
+		Pagination           func(childComplexity int) int
+		VerificationRequests func(childComplexity int) int
 	}
 }
 
@@ -193,8 +210,8 @@ type QueryResolver interface {
 	Session(ctx context.Context, params *model.SessionQueryInput) (*model.AuthResponse, error)
 	IsValidJwt(ctx context.Context, params *model.IsValidJWTQueryInput) (*model.ValidJWTResponse, error)
 	Profile(ctx context.Context) (*model.User, error)
-	Users(ctx context.Context) ([]*model.User, error)
-	VerificationRequests(ctx context.Context) ([]*model.VerificationRequest, error)
+	Users(ctx context.Context, params *model.PaginatedInput) (*model.Users, error)
+	VerificationRequests(ctx context.Context, params *model.PaginatedInput) (*model.VerificationRequests, error)
 	AdminSession(ctx context.Context) (*model.Response, error)
 	Env(ctx context.Context) (*model.Env, error)
 }
@@ -713,6 +730,34 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.VerifyEmail(childComplexity, args["params"].(model.VerifyEmailInput)), true
 
+	case "Pagination.limit":
+		if e.complexity.Pagination.Limit == nil {
+			break
+		}
+
+		return e.complexity.Pagination.Limit(childComplexity), true
+
+	case "Pagination.offset":
+		if e.complexity.Pagination.Offset == nil {
+			break
+		}
+
+		return e.complexity.Pagination.Offset(childComplexity), true
+
+	case "Pagination.page":
+		if e.complexity.Pagination.Page == nil {
+			break
+		}
+
+		return e.complexity.Pagination.Page(childComplexity), true
+
+	case "Pagination.total":
+		if e.complexity.Pagination.Total == nil {
+			break
+		}
+
+		return e.complexity.Pagination.Total(childComplexity), true
+
 	case "Query._admin_session":
 		if e.complexity.Query.AdminSession == nil {
 			break
@@ -770,14 +815,24 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		return e.complexity.Query.Users(childComplexity), true
+		args, err := ec.field_Query__users_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Users(childComplexity, args["params"].(*model.PaginatedInput)), true
 
 	case "Query._verification_requests":
 		if e.complexity.Query.VerificationRequests == nil {
 			break
 		}
 
-		return e.complexity.Query.VerificationRequests(childComplexity), true
+		args, err := ec.field_Query__verification_requests_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.VerificationRequests(childComplexity, args["params"].(*model.PaginatedInput)), true
 
 	case "Response.message":
 		if e.complexity.Response.Message == nil {
@@ -905,6 +960,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.User.UpdatedAt(childComplexity), true
 
+	case "Users.pagination":
+		if e.complexity.Users.Pagination == nil {
+			break
+		}
+
+		return e.complexity.Users.Pagination(childComplexity), true
+
+	case "Users.users":
+		if e.complexity.Users.Users == nil {
+			break
+		}
+
+		return e.complexity.Users.Users(childComplexity), true
+
 	case "ValidJWTResponse.message":
 		if e.complexity.ValidJWTResponse.Message == nil {
 			break
@@ -967,6 +1036,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.VerificationRequest.UpdatedAt(childComplexity), true
+
+	case "VerificationRequests.pagination":
+		if e.complexity.VerificationRequests.Pagination == nil {
+			break
+		}
+
+		return e.complexity.VerificationRequests.Pagination(childComplexity), true
+
+	case "VerificationRequests.verification_requests":
+		if e.complexity.VerificationRequests.VerificationRequests == nil {
+			break
+		}
+
+		return e.complexity.VerificationRequests.VerificationRequests(childComplexity), true
 
 	}
 	return 0, false
@@ -1039,6 +1122,13 @@ scalar Int64
 scalar Map
 scalar Any
 
+type Pagination {
+	limit: Int64!
+	page: Int64!
+	offset: Int64!
+	total: Int64!
+}
+
 type Meta {
 	version: String!
 	is_google_login_enabled: Boolean!
@@ -1070,6 +1160,11 @@ type User {
 	updated_at: Int64
 }
 
+type Users {
+	pagination: Pagination!
+	users: [User!]!
+}
+
 type VerificationRequest {
 	id: ID!
 	identifier: String
@@ -1078,6 +1173,11 @@ type VerificationRequest {
 	expires: Int64
 	created_at: Int64
 	updated_at: Int64
+}
+
+type VerificationRequests {
+	pagination: Pagination!
+	verification_requests: [VerificationRequest!]!
 }
 
 type Error {
@@ -1269,6 +1369,15 @@ input IsValidJWTQueryInput {
 	roles: [String!]
 }
 
+input PaginationInput {
+	limit: Int64
+	page: Int64
+}
+
+input PaginatedInput {
+	pagination: PaginationInput
+}
+
 type Mutation {
 	signup(params: SignUpInput!): AuthResponse!
 	login(params: LoginInput!): AuthResponse!
@@ -1294,8 +1403,8 @@ type Query {
 	is_valid_jwt(params: IsValidJWTQueryInput): ValidJWTResponse!
 	profile: User!
 	# admin only apis
-	_users: [User!]!
-	_verification_requests: [VerificationRequest!]!
+	_users(params: PaginatedInput): Users!
+	_verification_requests(params: PaginatedInput): VerificationRequests!
 	_admin_session: Response!
 	_env: Env!
 }
@@ -1514,6 +1623,36 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 		}
 	}
 	args["name"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query__users_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model.PaginatedInput
+	if tmp, ok := rawArgs["params"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+		arg0, err = ec.unmarshalOPaginatedInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐPaginatedInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["params"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query__verification_requests_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model.PaginatedInput
+	if tmp, ok := rawArgs["params"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+		arg0, err = ec.unmarshalOPaginatedInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐPaginatedInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["params"] = arg0
 	return args, nil
 }
 
@@ -3735,6 +3874,146 @@ func (ec *executionContext) _Mutation__update_env(ctx context.Context, field gra
 	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Pagination_limit(ctx context.Context, field graphql.CollectedField, obj *model.Pagination) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Pagination",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Limit, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int64)
+	fc.Result = res
+	return ec.marshalNInt642int64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Pagination_page(ctx context.Context, field graphql.CollectedField, obj *model.Pagination) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Pagination",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Page, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int64)
+	fc.Result = res
+	return ec.marshalNInt642int64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Pagination_offset(ctx context.Context, field graphql.CollectedField, obj *model.Pagination) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Pagination",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Offset, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int64)
+	fc.Result = res
+	return ec.marshalNInt642int64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Pagination_total(ctx context.Context, field graphql.CollectedField, obj *model.Pagination) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Pagination",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Total, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int64)
+	fc.Result = res
+	return ec.marshalNInt642int64(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query_meta(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -3905,9 +4184,16 @@ func (ec *executionContext) _Query__users(ctx context.Context, field graphql.Col
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query__users_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Users(rctx)
+		return ec.resolvers.Query().Users(rctx, args["params"].(*model.PaginatedInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3919,9 +4205,9 @@ func (ec *executionContext) _Query__users(ctx context.Context, field graphql.Col
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.User)
+	res := resTmp.(*model.Users)
 	fc.Result = res
-	return ec.marshalNUser2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUserᚄ(ctx, field.Selections, res)
+	return ec.marshalNUsers2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUsers(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query__verification_requests(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3940,9 +4226,16 @@ func (ec *executionContext) _Query__verification_requests(ctx context.Context, f
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query__verification_requests_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().VerificationRequests(rctx)
+		return ec.resolvers.Query().VerificationRequests(rctx, args["params"].(*model.PaginatedInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3954,9 +4247,9 @@ func (ec *executionContext) _Query__verification_requests(ctx context.Context, f
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.VerificationRequest)
+	res := resTmp.(*model.VerificationRequests)
 	fc.Result = res
-	return ec.marshalNVerificationRequest2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐVerificationRequestᚄ(ctx, field.Selections, res)
+	return ec.marshalNVerificationRequests2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐVerificationRequests(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query__admin_session(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -4694,6 +4987,76 @@ func (ec *executionContext) _User_updated_at(ctx context.Context, field graphql.
 	return ec.marshalOInt642ᚖint64(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Users_pagination(ctx context.Context, field graphql.CollectedField, obj *model.Users) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Users",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Pagination, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Pagination)
+	fc.Result = res
+	return ec.marshalNPagination2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐPagination(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Users_users(ctx context.Context, field graphql.CollectedField, obj *model.Users) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Users",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Users, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.User)
+	fc.Result = res
+	return ec.marshalNUser2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUserᚄ(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _ValidJWTResponse_valid(ctx context.Context, field graphql.CollectedField, obj *model.ValidJWTResponse) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -4989,6 +5352,76 @@ func (ec *executionContext) _VerificationRequest_updated_at(ctx context.Context,
 	res := resTmp.(*int64)
 	fc.Result = res
 	return ec.marshalOInt642ᚖint64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _VerificationRequests_pagination(ctx context.Context, field graphql.CollectedField, obj *model.VerificationRequests) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "VerificationRequests",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Pagination, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Pagination)
+	fc.Result = res
+	return ec.marshalNPagination2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐPagination(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _VerificationRequests_verification_requests(ctx context.Context, field graphql.CollectedField, obj *model.VerificationRequests) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "VerificationRequests",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.VerificationRequests, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.VerificationRequest)
+	fc.Result = res
+	return ec.marshalNVerificationRequest2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐVerificationRequestᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
@@ -6306,6 +6739,60 @@ func (ec *executionContext) unmarshalInputMagicLinkLoginInput(ctx context.Contex
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputPaginatedInput(ctx context.Context, obj interface{}) (model.PaginatedInput, error) {
+	var it model.PaginatedInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "pagination":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pagination"))
+			it.Pagination, err = ec.unmarshalOPaginationInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐPaginationInput(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputPaginationInput(ctx context.Context, obj interface{}) (model.PaginationInput, error) {
+	var it model.PaginationInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "limit":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
+			it.Limit, err = ec.unmarshalOInt642ᚖint64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "page":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("page"))
+			it.Page, err = ec.unmarshalOInt642ᚖint64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputResendVerifyEmailInput(ctx context.Context, obj interface{}) (model.ResendVerifyEmailInput, error) {
 	var it model.ResendVerifyEmailInput
 	asMap := map[string]interface{}{}
@@ -7347,6 +7834,48 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 	return out
 }
 
+var paginationImplementors = []string{"Pagination"}
+
+func (ec *executionContext) _Pagination(ctx context.Context, sel ast.SelectionSet, obj *model.Pagination) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, paginationImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Pagination")
+		case "limit":
+			out.Values[i] = ec._Pagination_limit(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "page":
+			out.Values[i] = ec._Pagination_page(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "offset":
+			out.Values[i] = ec._Pagination_offset(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "total":
+			out.Values[i] = ec._Pagination_total(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var queryImplementors = []string{"Query"}
 
 func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
@@ -7587,6 +8116,38 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 	return out
 }
 
+var usersImplementors = []string{"Users"}
+
+func (ec *executionContext) _Users(ctx context.Context, sel ast.SelectionSet, obj *model.Users) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, usersImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Users")
+		case "pagination":
+			out.Values[i] = ec._Users_pagination(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "users":
+			out.Values[i] = ec._Users_users(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var validJWTResponseImplementors = []string{"ValidJWTResponse"}
 
 func (ec *executionContext) _ValidJWTResponse(ctx context.Context, sel ast.SelectionSet, obj *model.ValidJWTResponse) graphql.Marshaler {
@@ -7647,6 +8208,38 @@ func (ec *executionContext) _VerificationRequest(ctx context.Context, sel ast.Se
 			out.Values[i] = ec._VerificationRequest_created_at(ctx, field, obj)
 		case "updated_at":
 			out.Values[i] = ec._VerificationRequest_updated_at(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var verificationRequestsImplementors = []string{"VerificationRequests"}
+
+func (ec *executionContext) _VerificationRequests(ctx context.Context, sel ast.SelectionSet, obj *model.VerificationRequests) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, verificationRequestsImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("VerificationRequests")
+		case "pagination":
+			out.Values[i] = ec._VerificationRequests_pagination(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "verification_requests":
+			out.Values[i] = ec._VerificationRequests_verification_requests(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -7986,6 +8579,21 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 	return res
 }
 
+func (ec *executionContext) unmarshalNInt642int64(ctx context.Context, v interface{}) (int64, error) {
+	res, err := graphql.UnmarshalInt64(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNInt642int64(ctx context.Context, sel ast.SelectionSet, v int64) graphql.Marshaler {
+	res := graphql.MarshalInt64(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+	}
+	return res
+}
+
 func (ec *executionContext) unmarshalNLoginInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐLoginInput(ctx context.Context, v interface{}) (model.LoginInput, error) {
 	res, err := ec.unmarshalInputLoginInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -8008,6 +8616,16 @@ func (ec *executionContext) marshalNMeta2ᚖgithubᚗcomᚋauthorizerdevᚋautho
 		return graphql.Null
 	}
 	return ec._Meta(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNPagination2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐPagination(ctx context.Context, sel ast.SelectionSet, v *model.Pagination) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Pagination(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNResendVerifyEmailInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResendVerifyEmailInput(ctx context.Context, v interface{}) (model.ResendVerifyEmailInput, error) {
@@ -8163,6 +8781,20 @@ func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋauthorizerdevᚋautho
 	return ec._User(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNUsers2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUsers(ctx context.Context, sel ast.SelectionSet, v model.Users) graphql.Marshaler {
+	return ec._Users(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNUsers2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUsers(ctx context.Context, sel ast.SelectionSet, v *model.Users) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Users(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNValidJWTResponse2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐValidJWTResponse(ctx context.Context, sel ast.SelectionSet, v model.ValidJWTResponse) graphql.Marshaler {
 	return ec._ValidJWTResponse(ctx, sel, &v)
 }
@@ -8229,6 +8861,20 @@ func (ec *executionContext) marshalNVerificationRequest2ᚖgithubᚗcomᚋauthor
 		return graphql.Null
 	}
 	return ec._VerificationRequest(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNVerificationRequests2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐVerificationRequests(ctx context.Context, sel ast.SelectionSet, v model.VerificationRequests) graphql.Marshaler {
+	return ec._VerificationRequests(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNVerificationRequests2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐVerificationRequests(ctx context.Context, sel ast.SelectionSet, v *model.VerificationRequests) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._VerificationRequests(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNVerifyEmailInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐVerifyEmailInput(ctx context.Context, v interface{}) (model.VerifyEmailInput, error) {
@@ -8537,6 +9183,22 @@ func (ec *executionContext) unmarshalOIsValidJWTQueryInput2ᚖgithubᚗcomᚋaut
 		return nil, nil
 	}
 	res, err := ec.unmarshalInputIsValidJWTQueryInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOPaginatedInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐPaginatedInput(ctx context.Context, v interface{}) (*model.PaginatedInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputPaginatedInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOPaginationInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐPaginationInput(ctx context.Context, v interface{}) (*model.PaginationInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputPaginationInput(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 

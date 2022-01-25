@@ -12,32 +12,21 @@ import (
 
 // VerificationRequestsResolver is a resolver for verification requests query
 // This is admin only query
-func VerificationRequestsResolver(ctx context.Context) ([]*model.VerificationRequest, error) {
+func VerificationRequestsResolver(ctx context.Context, params *model.PaginatedInput) (*model.VerificationRequests, error) {
 	gc, err := utils.GinContextFromContext(ctx)
-	var res []*model.VerificationRequest
 	if err != nil {
-		return res, err
+		return nil, err
 	}
 
 	if !token.IsSuperAdmin(gc) {
-		return res, fmt.Errorf("unauthorized")
+		return nil, fmt.Errorf("unauthorized")
 	}
 
-	verificationRequests, err := db.Provider.ListVerificationRequests()
+	pagination := utils.GetPagination(params)
+
+	res, err := db.Provider.ListVerificationRequests(pagination)
 	if err != nil {
-		return res, err
-	}
-
-	for i := 0; i < len(verificationRequests); i++ {
-		res = append(res, &model.VerificationRequest{
-			ID:         fmt.Sprintf("%v", verificationRequests[i].ID),
-			Email:      &verificationRequests[i].Email,
-			Token:      &verificationRequests[i].Token,
-			Identifier: &verificationRequests[i].Identifier,
-			Expires:    &verificationRequests[i].ExpiresAt,
-			CreatedAt:  &verificationRequests[i].CreatedAt,
-			UpdatedAt:  &verificationRequests[i].UpdatedAt,
-		})
+		return nil, err
 	}
 
 	return res, nil
