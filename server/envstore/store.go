@@ -35,7 +35,7 @@ var EnvInMemoryStoreObj = &EnvInMemoryStore{
 			constants.EnvKeyAdminCookieName:  "authorizer-admin",
 			constants.EnvKeyJwtRoleClaim:     "role",
 			constants.EnvKeyOrganizationName: "Authorizer",
-			constants.EnvKeyOrganizationLogo: "https://www.authorizer.io/images/logo.png",
+			constants.EnvKeyOrganizationLogo: "https://www.authorizer.dev/images/logo.png",
 		},
 		BoolEnv: map[string]bool{
 			constants.EnvKeyDisableBasicAuthentication: false,
