@@ -42,3 +42,31 @@ export const EnvVariablesQuery = `
     }
   }
 `;
+
+export const UserDetailsQuery = `
+  query($params: PaginatedInput) {
+    _users(params: $params) {
+      pagination {
+        limit
+        page
+        offset
+        total
+      }
+      users {
+        id
+        email
+        email_verified
+        given_name
+        family_name
+        middle_name
+        nickname
+        gender
+        birthdate
+        phone_number
+        picture
+        roles
+        created_at
+      }
+    }
+  }
+`;
