@@ -25,15 +25,19 @@ func PersistEnv() error {
 		envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyEncryptionKey, hash)
 		encodedHash := utils.EncryptB64(hash)
 
-		configData, err := json.Marshal(envstore.EnvInMemoryStoreObj.GetEnvStoreClone())
+		encryptedConfig, err := utils.EncryptEnvData(envstore.EnvInMemoryStoreObj.GetEnvStoreClone())
 		if err != nil {
 			return err
 		}
+		// configData, err := json.Marshal()
+		// if err != nil {
+		// 	return err
+		// }
 
-		encryptedConfig, err := utils.EncryptAES(configData)
-		if err != nil {
-			return err
-		}
+		// encryptedConfig, err := utils.EncryptAES(configData)
+		// if err != nil {
+		// 	return err
+		// }
 
 		env = models.Env{
 			Hash:    encodedHash,
@@ -51,7 +55,12 @@ func PersistEnv() error {
 		}
 
 		envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyEncryptionKey, decryptedEncryptionKey)
-		decryptedConfigs, err := utils.DecryptAES(env.EnvData)
+		b64DecryptedConfig, err := utils.DecryptB64(env.EnvData)
+		if err != nil {
+			return err
+		}
+
+		decryptedConfigs, err := utils.DecryptAES([]byte(b64DecryptedConfig))
 		if err != nil {
 			return err
 		}
