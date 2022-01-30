@@ -90,29 +90,29 @@ func DecryptAES(ciphertext []byte) ([]byte, error) {
 }
 
 // EncryptEnvData is used to encrypt the env data
-func EncryptEnvData(data envstore.Store) ([]byte, error) {
+func EncryptEnvData(data envstore.Store) (string, error) {
 	jsonBytes, err := json.Marshal(data)
 	if err != nil {
-		return []byte{}, err
+		return "", err
 	}
 
 	envStoreObj := envstore.EnvInMemoryStoreObj.GetEnvStoreClone()
 
 	err = json.Unmarshal(jsonBytes, &envStoreObj)
 	if err != nil {
-		return []byte{}, err
+		return "", err
 	}
 
 	configData, err := json.Marshal(envStoreObj)
 	if err != nil {
-		return []byte{}, err
+		return "", err
 	}
 	encryptedConfig, err := EncryptAES(configData)
 	if err != nil {
-		return []byte{}, err
+		return "", err
 	}
 
-	return encryptedConfig, nil
+	return EncryptB64(string(encryptedConfig)), nil
 }
 
 // EncryptPassword is used for encrypting password

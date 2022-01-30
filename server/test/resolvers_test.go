@@ -26,7 +26,7 @@ func TestResolvers(t *testing.T) {
 		// clean the persisted config for test to use fresh config
 		envData, err := db.Provider.GetEnv()
 		if err == nil {
-			envData.EnvData = []byte{}
+			envData.EnvData = ""
 			db.Provider.UpdateEnv(envData)
 		}
 		env.PersistEnv()
