@@ -29,13 +29,14 @@ import {
 	TextInputType,
 	TextAreaInputType,
 	SwitchInputType,
+	DateInputType,
 } from '../constants';
 import { copyTextToClipboard } from '../utils';
 
 const InputField = ({
 	inputType,
-	envVariables,
-	setEnvVariables,
+	variables,
+	setVariables,
 	fieldVisibility,
 	setFieldVisibility,
 	...downshiftProps
@@ -51,12 +52,14 @@ const InputField = ({
 		DEFAULT_ROLES: false,
 		PROTECTED_ROLES: false,
 		ALLOWED_ORIGINS: false,
+		roles: false,
 	});
 	const [inputData, setInputData] = React.useState<Record<string, string>>({
 		ROLES: '',
 		DEFAULT_ROLES: '',
 		PROTECTED_ROLES: '',
 		ALLOWED_ORIGINS: '',
+		roles: '',
 	});
 	const updateInputHandler = (
 		type: string,
@@ -65,20 +68,20 @@ const InputField = ({
 	) => {
 		if (operation === ArrayInputOperations.APPEND) {
 			if (inputData[type] !== '') {
-				setEnvVariables({
-					...envVariables,
-					[type]: [...envVariables[type], inputData[type]],
+				setVariables({
+					...variables,
+					[type]: [...variables[type], inputData[type]],
 				});
 				setInputData({ ...inputData, [type]: '' });
 			}
 			setInputFieldVisibility({ ...inputFieldVisibility, [type]: false });
 		}
 		if (operation === ArrayInputOperations.REMOVE) {
-			let updatedEnvVars = envVariables[type].filter(
+			let updatedEnvVars = variables[type].filter(
 				(item: string) => item !== role
 			);
-			setEnvVariables({
-				...envVariables,
+			setVariables({
+				...variables,
 				[type]: updatedEnvVars,
 			});
 		}
@@ -88,14 +91,14 @@ const InputField = ({
 			<InputGroup size="sm">
 				<Input
 					{...props}
-					value={envVariables[inputType]}
+					value={variables[inputType] ? variables[inputType] : ''}
 					onChange={(
 						event: Event & {
 							target: HTMLInputElement;
 						}
 					) =>
-						setEnvVariables({
-							...envVariables,
+						setVariables({
+							...variables,
 							[inputType]: event.target.value,
 						})
 					}
@@ -103,7 +106,7 @@ const InputField = ({
 				<InputRightElement
 					children={<FaRegClone color="#bfbfbf" />}
 					cursor="pointer"
-					onClick={() => copyTextToClipboard(envVariables[inputType])}
+					onClick={() => copyTextToClipboard(variables[inputType])}
 				/>
 			</InputGroup>
 		);
@@ -113,14 +116,14 @@ const InputField = ({
 			<InputGroup size="sm">
 				<Input
 					{...props}
-					value={envVariables[inputType]}
+					value={variables[inputType]}
 					onChange={(
 						event: Event & {
 							target: HTMLInputElement;
 						}
 					) =>
-						setEnvVariables({
-							...envVariables,
+						setVariables({
+							...variables,
 							[inputType]: event.target.value,
 						})
 					}
@@ -163,7 +166,7 @@ const InputField = ({
 								w="25px"
 								margin="0 1.5%"
 								cursor="pointer"
-								onClick={() => copyTextToClipboard(envVariables[inputType])}
+								onClick={() => copyTextToClipboard(variables[inputType])}
 							>
 								<FaRegClone color="#bfbfbf" />
 							</Center>
@@ -183,7 +186,7 @@ const InputField = ({
 				overflow="scroll"
 				padding="1%"
 			>
-				{envVariables[inputType].map((role: string, index: number) => (
+				{variables[inputType].map((role: string, index: number) => (
 					<Box key={index} margin="1" role="group">
 						<Tag
 							size="sm"
@@ -254,11 +257,30 @@ const InputField = ({
 		);
 	}
 	if (Object.values(SelectInputType).includes(inputType)) {
+		if (inputType === SelectInputType.JWT_TYPE) {
+			return (
+				<Select size="sm" {...props}>
+					{[variables[inputType]].map((value: string) => (
+						<option value="value" key={value}>
+							{value}
+						</option>
+					))}
+				</Select>
+			);
+		}
+		const { options, ...rest } = props;
 		return (
-			<Select size="sm" {...props}>
-				{[envVariables[inputType]].map((value: string) => (
-					<option value="value" key={value}>
-						{value}
+			<Select
+				size="sm"
+				{...rest}
+				value={variables[inputType] ? variables[inputType] : ''}
+				onChange={(e) =>
+					setVariables({ ...variables, [inputType]: e.target.value })
+				}
+			>
+				{Object.entries(options).map(([key, value]: any) => (
+					<option value={value} key={key}>
+						{key}
 					</option>
 				))}
 			</Select>
@@ -282,15 +304,29 @@ const InputField = ({
 				<Code h="75%">Off</Code>
 				<Switch
 					size="md"
-					isChecked={envVariables[inputType]}
+					isChecked={variables[inputType]}
 					onChange={() => {
-						setEnvVariables({
-							...envVariables,
-							[inputType]: !envVariables[inputType],
+						setVariables({
+							...variables,
+							[inputType]: !variables[inputType],
 						});
 					}}
 				/>
 				<Code h="75%">On</Code>
+			</Flex>
+		);
+	}
+	if (Object.values(DateInputType).includes(inputType)) {
+		return (
+			<Flex border="1px solid #e2e8f0" w="100%" h="33px" padding="1%">
+				<input
+					type="date"
+					style={{ width: '100%', paddingLeft: '2.5%' }}
+					value={variables[inputType] ? variables[inputType] : ''}
+					onChange={(e) =>
+						setVariables({ ...variables, [inputType]: e.target.value })
+					}
+				/>
 			</Flex>
 		);
 	}

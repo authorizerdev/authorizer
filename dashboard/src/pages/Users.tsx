@@ -27,6 +27,7 @@ import {
 	MenuButton,
 	MenuList,
 	MenuItem,
+	useToast,
 } from '@chakra-ui/react';
 import {
 	FaAngleLeft,
@@ -38,6 +39,7 @@ import {
 } from 'react-icons/fa';
 import { UserDetailsQuery } from '../graphql/queries';
 import { UpdateUser } from '../graphql/mutation';
+import EditUserModal from '../components/EditUserModal';
 
 interface paginationPropTypes {
 	limit: number;
@@ -85,6 +87,7 @@ const getLimits = (pagination: paginationPropTypes) => {
 
 export default function Users() {
 	const client = useClient();
+	const toast = useToast();
 	const [paginationProps, setPaginationProps] =
 		React.useState<paginationPropTypes>({
 			limit: 5,
@@ -94,7 +97,7 @@ export default function Users() {
 			maxPages: 1,
 		});
 	const [userList, setUserList] = React.useState<userDataTypes[]>([]);
-	const updateData = async () => {
+	const updateUserList = async () => {
 		const { data } = await client
 			.query(UserDetailsQuery, {
 				params: {
@@ -110,15 +113,13 @@ export default function Users() {
 			const maxPages = getMaxPages(pagination);
 			setPaginationProps({ ...paginationProps, ...pagination, maxPages });
 			setUserList(users);
-			console.log('users ==>> ', users);
-			console.log('pagination ==>> ', { ...pagination, maxPages });
 		}
 	};
 	React.useEffect(() => {
-		updateData();
+		updateUserList();
 	}, []);
 	React.useEffect(() => {
-		updateData();
+		updateUserList();
 	}, [paginationProps.page, paginationProps.limit]);
 
 	const paginationHandler = (value: Record<string, number>) => {
@@ -127,7 +128,7 @@ export default function Users() {
 
 	const userVerificationHandler = async (user: userDataTypes) => {
 		const { id, email } = user;
-		await client
+		const res = await client
 			.mutation(UpdateUser, {
 				params: {
 					id,
@@ -136,9 +137,23 @@ export default function Users() {
 				},
 			})
 			.toPromise();
-		updateData();
+		if (res.error) {
+			toast({
+				title: 'User verification failed',
+				isClosable: true,
+				status: 'error',
+				position: 'bottom-right',
+			});
+		} else if (res.data?._update_user?.id) {
+			toast({
+				title: 'User verification successful',
+				isClosable: true,
+				status: 'success',
+				position: 'bottom-right',
+			});
+		}
+		updateUserList();
 	};
-
 	return (
 		<Box m="5" py="5" px="10" bg="white" rounded="md">
 			<Flex margin="2% 0" justifyContent="space-between" alignItems="center">
@@ -157,44 +172,52 @@ export default function Users() {
 						</Tr>
 					</Thead>
 					<Tbody>
-						{userList.map((user: userDataTypes) => (
-							<Tr key={user.id} style={{ fontSize: 14 }}>
-								<Td>{user.email}</Td>
-								<Td>{dayjs(user.created_at).format('MMM DD, YYYY')}</Td>
-								<Td>
-									<Tag
-										size="sm"
-										variant="outline"
-										colorScheme={user.email_verified ? 'green' : 'yellow'}
-									>
-										{user.email_verified.toString()}
-									</Tag>
-								</Td>
-								<Td>
-									<Menu>
-										<MenuButton as={Button} variant="unstyled" size="sm">
-											<Flex justifyContent="space-between" alignItems="center">
-												<Text fontSize="sm" fontWeight="light">
-													Menu
-												</Text>
-												<FaAngleDown style={{ marginLeft: 10 }} />
-											</Flex>
-										</MenuButton>
-										<MenuList>
-											<MenuItem value="update">Update User Details</MenuItem>
-											{!user.email_verified && (
-												<MenuItem
-													value="verify"
-													onClick={() => userVerificationHandler(user)}
+						{userList.map((user: userDataTypes) => {
+							const { email_verified, created_at, ...rest }: any = user;
+							return (
+								<Tr key={user.id} style={{ fontSize: 14 }}>
+									<Td>{user.email}</Td>
+									<Td>{dayjs(user.created_at).format('MMM DD, YYYY')}</Td>
+									<Td>
+										<Tag
+											size="sm"
+											variant="outline"
+											colorScheme={user.email_verified ? 'green' : 'yellow'}
+										>
+											{user.email_verified.toString()}
+										</Tag>
+									</Td>
+									<Td>
+										<Menu>
+											<MenuButton as={Button} variant="unstyled" size="sm">
+												<Flex
+													justifyContent="space-between"
+													alignItems="center"
 												>
-													Verify User
-												</MenuItem>
-											)}
-										</MenuList>
-									</Menu>
-								</Td>
-							</Tr>
-						))}
+													<Text fontSize="sm" fontWeight="light">
+														Menu
+													</Text>
+													<FaAngleDown style={{ marginLeft: 10 }} />
+												</Flex>
+											</MenuButton>
+											<MenuList>
+												<EditUserModal
+													user={rest}
+													updateUserList={updateUserList}
+												/>
+												{!user.email_verified && (
+													<MenuItem
+														onClick={() => userVerificationHandler(user)}
+													>
+														Verify User
+													</MenuItem>
+												)}
+											</MenuList>
+										</Menu>
+									</Td>
+								</Tr>
+							);
+						})}
 					</Tbody>
 					{paginationProps.maxPages > 1 && (
 						<TableCaption>
