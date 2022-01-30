@@ -181,13 +181,14 @@ const InputField = ({
 			<Flex
 				border="1px solid #e2e8f0"
 				w="100%"
-				h="45px"
-				wrap="wrap"
-				overflow="scroll"
-				padding="1%"
+				paddingTop="0.5%"
+				overflowX="scroll"
+				overflowY="hidden"
+				justifyContent="start"
+				alignItems="center"
 			>
 				{variables[inputType].map((role: string, index: number) => (
-					<Box key={index} margin="1" role="group">
+					<Box key={index} margin="0.5%" role="group">
 						<Tag
 							size="sm"
 							variant="outline"
@@ -213,10 +214,11 @@ const InputField = ({
 					</Box>
 				))}
 				{inputFieldVisibility[inputType] ? (
-					<Box ml="1.15%">
+					<Box ml="1%" mb="0.75%">
 						<Input
 							type="text"
 							size="xs"
+							minW="150px"
 							placeholder="add a new value"
 							value={inputData[inputType]}
 							onChange={(e: any) => {
@@ -234,7 +236,7 @@ const InputField = ({
 					</Box>
 				) : (
 					<Box
-						margin="1"
+						marginLeft="0.5%"
 						cursor="pointer"
 						onClick={() =>
 							setInputFieldVisibility({
