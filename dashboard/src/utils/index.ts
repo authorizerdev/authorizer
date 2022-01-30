@@ -48,7 +48,11 @@ export const getObjectDiff = (obj1: any, obj2: any) => {
 	const diff = Object.keys(obj1).reduce((result, key) => {
 		if (!obj2.hasOwnProperty(key)) {
 			result.push(key);
-		} else if (_.isEqual(obj1[key], obj2[key])) {
+		} else if (
+			_.isEqual(obj1[key], obj2[key]) ||
+			(obj1[key] === null && obj2[key] === '') ||
+			(obj1[key] === [] && obj2[key] === null)
+		) {
 			const resultKeyIndex = result.indexOf(key);
 			result.splice(resultKeyIndex, 1);
 		}

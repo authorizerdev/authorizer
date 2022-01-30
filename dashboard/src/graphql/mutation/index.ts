@@ -31,3 +31,13 @@ export const UpdateEnvVariables = `
     }
   }
 `;
+
+export const UpdateUser = `
+  mutation updateUser(
+    $params: UpdateUserInput!
+    ) {
+    _update_user(params: $params) {
+      id
+    }
+  }
+`;

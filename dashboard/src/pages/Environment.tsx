@@ -249,16 +249,16 @@ export default function Environment() {
 					</Center>
 					<Center w="45%" marginRight="1.5%">
 						<InputField
-							envVariables={envVariables}
-							setEnvVariables={setEnvVariables}
+							variables={envVariables}
+							setVariables={setEnvVariables}
 							inputType={TextInputType.GOOGLE_CLIENT_ID}
 							placeholder="Google Client ID"
 						/>
 					</Center>
 					<Center w="45%">
 						<InputField
-							envVariables={envVariables}
-							setEnvVariables={setEnvVariables}
+							variables={envVariables}
+							setVariables={setEnvVariables}
 							fieldVisibility={fieldVisibility}
 							setFieldVisibility={setFieldVisibility}
 							inputType={HiddenInputType.GOOGLE_CLIENT_SECRET}
@@ -277,16 +277,16 @@ export default function Environment() {
 					</Center>
 					<Center w="45%" marginRight="1.5%">
 						<InputField
-							envVariables={envVariables}
-							setEnvVariables={setEnvVariables}
+							variables={envVariables}
+							setVariables={setEnvVariables}
 							inputType={TextInputType.GITHUB_CLIENT_ID}
 							placeholder="Github Client ID"
 						/>
 					</Center>
 					<Center w="45%">
 						<InputField
-							envVariables={envVariables}
-							setEnvVariables={setEnvVariables}
+							variables={envVariables}
+							setVariables={setEnvVariables}
 							fieldVisibility={fieldVisibility}
 							setFieldVisibility={setFieldVisibility}
 							inputType={HiddenInputType.GITHUB_CLIENT_SECRET}
@@ -305,16 +305,16 @@ export default function Environment() {
 					</Center>
 					<Center w="45%" marginRight="1.5%">
 						<InputField
-							envVariables={envVariables}
-							setEnvVariables={setEnvVariables}
+							variables={envVariables}
+							setVariables={setEnvVariables}
 							inputType={TextInputType.FACEBOOK_CLIENT_ID}
 							placeholder="Facebook Client ID"
 						/>
 					</Center>
 					<Center w="45%">
 						<InputField
-							envVariables={envVariables}
-							setEnvVariables={setEnvVariables}
+							variables={envVariables}
+							setVariables={setEnvVariables}
 							fieldVisibility={fieldVisibility}
 							setFieldVisibility={setFieldVisibility}
 							inputType={HiddenInputType.FACEBOOK_CLIENT_SECRET}
@@ -334,8 +334,8 @@ export default function Environment() {
 					</Flex>
 					<Center w="70%">
 						<InputField
-							envVariables={envVariables}
-							setEnvVariables={setEnvVariables}
+							variables={envVariables}
+							setVariables={setEnvVariables}
 							inputType={ArrayInputType.ROLES}
 						/>
 					</Center>
@@ -346,8 +346,8 @@ export default function Environment() {
 					</Flex>
 					<Center w="70%">
 						<InputField
-							envVariables={envVariables}
-							setEnvVariables={setEnvVariables}
+							variables={envVariables}
+							setVariables={setEnvVariables}
 							inputType={ArrayInputType.DEFAULT_ROLES}
 						/>
 					</Center>
@@ -358,8 +358,8 @@ export default function Environment() {
 					</Flex>
 					<Center w="70%">
 						<InputField
-							envVariables={envVariables}
-							setEnvVariables={setEnvVariables}
+							variables={envVariables}
+							setVariables={setEnvVariables}
 							inputType={ArrayInputType.PROTECTED_ROLES}
 						/>
 					</Center>
@@ -378,8 +378,8 @@ export default function Environment() {
 						<Flex w="100%" justifyContent="space-between">
 							<Flex flex="2">
 								<InputField
-									envVariables={envVariables}
-									setEnvVariables={setEnvVariables}
+									variables={envVariables}
+									setVariables={setEnvVariables}
 									inputType={SelectInputType.JWT_TYPE}
 									isDisabled={true}
 									defaultValue={SelectInputType.JWT_TYPE}
@@ -399,8 +399,8 @@ export default function Environment() {
 					</Flex>
 					<Center w="70%">
 						<InputField
-							envVariables={envVariables}
-							setEnvVariables={setEnvVariables}
+							variables={envVariables}
+							setVariables={setEnvVariables}
 							fieldVisibility={fieldVisibility}
 							setFieldVisibility={setFieldVisibility}
 							inputType={HiddenInputType.JWT_SECRET}
@@ -413,8 +413,8 @@ export default function Environment() {
 					</Flex>
 					<Center w="70%">
 						<InputField
-							envVariables={envVariables}
-							setEnvVariables={setEnvVariables}
+							variables={envVariables}
+							setVariables={setEnvVariables}
 							inputType={TextInputType.JWT_ROLE_CLAIM}
 						/>
 					</Center>
@@ -431,8 +431,8 @@ export default function Environment() {
 					</Flex>
 					<Center w="70%">
 						<InputField
-							envVariables={envVariables}
-							setEnvVariables={setEnvVariables}
+							variables={envVariables}
+							setVariables={setEnvVariables}
 							inputType={TextInputType.REDIS_URL}
 						/>
 					</Center>
@@ -449,8 +449,8 @@ export default function Environment() {
 					</Flex>
 					<Center w="70%">
 						<InputField
-							envVariables={envVariables}
-							setEnvVariables={setEnvVariables}
+							variables={envVariables}
+							setVariables={setEnvVariables}
 							inputType={TextInputType.SMTP_HOST}
 						/>
 					</Center>
@@ -461,8 +461,8 @@ export default function Environment() {
 					</Flex>
 					<Center w="70%">
 						<InputField
-							envVariables={envVariables}
-							setEnvVariables={setEnvVariables}
+							variables={envVariables}
+							setVariables={setEnvVariables}
 							inputType={TextInputType.SMTP_PORT}
 						/>
 					</Center>
@@ -473,8 +473,8 @@ export default function Environment() {
 					</Flex>
 					<Center w="70%">
 						<InputField
-							envVariables={envVariables}
-							setEnvVariables={setEnvVariables}
+							variables={envVariables}
+							setVariables={setEnvVariables}
 							inputType={TextInputType.SMTP_USERNAME}
 						/>
 					</Center>
@@ -485,8 +485,8 @@ export default function Environment() {
 					</Flex>
 					<Center w="70%">
 						<InputField
-							envVariables={envVariables}
-							setEnvVariables={setEnvVariables}
+							variables={envVariables}
+							setVariables={setEnvVariables}
 							fieldVisibility={fieldVisibility}
 							setFieldVisibility={setFieldVisibility}
 							inputType={HiddenInputType.SMTP_PASSWORD}
@@ -499,8 +499,8 @@ export default function Environment() {
 					</Flex>
 					<Center w="70%">
 						<InputField
-							envVariables={envVariables}
-							setEnvVariables={setEnvVariables}
+							variables={envVariables}
+							setVariables={setEnvVariables}
 							inputType={TextInputType.SENDER_EMAIL}
 						/>
 					</Center>
@@ -517,8 +517,8 @@ export default function Environment() {
 					</Flex>
 					<Center w="70%">
 						<InputField
-							envVariables={envVariables}
-							setEnvVariables={setEnvVariables}
+							variables={envVariables}
+							setVariables={setEnvVariables}
 							inputType={ArrayInputType.ALLOWED_ORIGINS}
 						/>
 					</Center>
@@ -535,8 +535,8 @@ export default function Environment() {
 					</Flex>
 					<Center w="70%">
 						<InputField
-							envVariables={envVariables}
-							setEnvVariables={setEnvVariables}
+							variables={envVariables}
+							setVariables={setEnvVariables}
 							inputType={TextInputType.ORGANIZATION_NAME}
 						/>
 					</Center>
@@ -547,8 +547,8 @@ export default function Environment() {
 					</Flex>
 					<Center w="70%">
 						<InputField
-							envVariables={envVariables}
-							setEnvVariables={setEnvVariables}
+							variables={envVariables}
+							setVariables={setEnvVariables}
 							inputType={TextInputType.ORGANIZATION_LOGO}
 						/>
 					</Center>
@@ -562,8 +562,8 @@ export default function Environment() {
 				<Flex>
 					<Center w="100%">
 						<InputField
-							envVariables={envVariables}
-							setEnvVariables={setEnvVariables}
+							variables={envVariables}
+							setVariables={setEnvVariables}
 							inputType={TextAreaInputType.CUSTOM_ACCESS_TOKEN_SCRIPT}
 							placeholder="Add script here"
 							minH="25vh"
@@ -582,8 +582,8 @@ export default function Environment() {
 					</Flex>
 					<Flex justifyContent="start" w="70%">
 						<InputField
-							envVariables={envVariables}
-							setEnvVariables={setEnvVariables}
+							variables={envVariables}
+							setVariables={setEnvVariables}
 							inputType={SwitchInputType.DISABLE_LOGIN_PAGE}
 						/>
 					</Flex>
@@ -594,8 +594,8 @@ export default function Environment() {
 					</Flex>
 					<Flex justifyContent="start" w="70%">
 						<InputField
-							envVariables={envVariables}
-							setEnvVariables={setEnvVariables}
+							variables={envVariables}
+							setVariables={setEnvVariables}
 							inputType={SwitchInputType.DISABLE_EMAIL_VERIFICATION}
 						/>
 					</Flex>
@@ -606,8 +606,8 @@ export default function Environment() {
 					</Flex>
 					<Flex justifyContent="start" w="70%">
 						<InputField
-							envVariables={envVariables}
-							setEnvVariables={setEnvVariables}
+							variables={envVariables}
+							setVariables={setEnvVariables}
 							inputType={SwitchInputType.DISABLE_MAGIC_LINK_LOGIN}
 						/>
 					</Flex>
@@ -618,8 +618,8 @@ export default function Environment() {
 					</Flex>
 					<Flex justifyContent="start" w="70%">
 						<InputField
-							envVariables={envVariables}
-							setEnvVariables={setEnvVariables}
+							variables={envVariables}
+							setVariables={setEnvVariables}
 							inputType={SwitchInputType.DISABLE_BASIC_AUTHENTICATION}
 						/>
 					</Flex>
@@ -647,8 +647,8 @@ export default function Environment() {
 						</Flex>
 						<Center w="70%">
 							<InputField
-								envVariables={envVariables}
-								setEnvVariables={setEnvVariables}
+								variables={envVariables}
+								setVariables={setEnvVariables}
 								inputType={TextInputType.DATABASE_NAME}
 								isDisabled={true}
 							/>
@@ -660,8 +660,8 @@ export default function Environment() {
 						</Flex>
 						<Center w="70%">
 							<InputField
-								envVariables={envVariables}
-								setEnvVariables={setEnvVariables}
+								variables={envVariables}
+								setVariables={setEnvVariables}
 								inputType={TextInputType.DATABASE_TYPE}
 								isDisabled={true}
 							/>
@@ -673,8 +673,8 @@ export default function Environment() {
 						</Flex>
 						<Center w="70%">
 							<InputField
-								envVariables={envVariables}
-								setEnvVariables={setEnvVariables}
+								variables={envVariables}
+								setVariables={setEnvVariables}
 								inputType={TextInputType.DATABASE_URL}
 								isDisabled={true}
 							/>
@@ -743,8 +743,8 @@ export default function Environment() {
 					</Flex>
 					<Center w="70%">
 						<InputField
-							envVariables={envVariables}
-							setEnvVariables={setEnvVariables}
+							variables={envVariables}
+							setVariables={setEnvVariables}
 							inputType={HiddenInputType.ADMIN_SECRET}
 							fieldVisibility={fieldVisibility}
 							setFieldVisibility={setFieldVisibility}

@@ -16,6 +16,12 @@ export const TextInputType = {
 	DATABASE_NAME: 'DATABASE_NAME',
 	DATABASE_TYPE: 'DATABASE_TYPE',
 	DATABASE_URL: 'DATABASE_URL',
+	GIVEN_NAME: 'given_name',
+	MIDDLE_NAME: 'middle_name',
+	FAMILY_NAME: 'family_name',
+	NICKNAME: 'nickname',
+	PHONE_NUMBER: 'phone_number',
+	PICTURE: 'picture',
 };
 
 export const HiddenInputType = {
@@ -33,10 +39,12 @@ export const ArrayInputType = {
 	DEFAULT_ROLES: 'DEFAULT_ROLES',
 	PROTECTED_ROLES: 'PROTECTED_ROLES',
 	ALLOWED_ORIGINS: 'ALLOWED_ORIGINS',
+	USER_ROLES: 'roles',
 };
 
 export const SelectInputType = {
 	JWT_TYPE: 'JWT_TYPE',
+	GENDER: 'gender',
 };
 
 export const TextAreaInputType = {
@@ -48,6 +56,10 @@ export const SwitchInputType = {
 	DISABLE_MAGIC_LINK_LOGIN: 'DISABLE_MAGIC_LINK_LOGIN',
 	DISABLE_EMAIL_VERIFICATION: 'DISABLE_EMAIL_VERIFICATION',
 	DISABLE_BASIC_AUTHENTICATION: 'DISABLE_BASIC_AUTHENTICATION',
+};
+
+export const DateInputType = {
+	BIRTHDATE: 'birthdate',
 };
 
 export const ArrayInputOperations = {
