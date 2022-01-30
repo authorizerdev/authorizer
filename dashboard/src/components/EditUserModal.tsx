@@ -85,7 +85,7 @@ const EditUserModal = ({
 			{}
 		);
 		const res = await client
-			.mutation(UpdateUser, { params: updatedUserData })
+			.mutation(UpdateUser, { params: { ...updatedUserData, id: userData.id } })
 			.toPromise();
 		if (res.error) {
 			toast({
