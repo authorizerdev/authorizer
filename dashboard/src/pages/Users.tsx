@@ -116,8 +116,19 @@ export default function Users() {
 		if (data?._users) {
 			const { pagination, users } = data._users;
 			const maxPages = getMaxPages(pagination);
-			setPaginationProps({ ...paginationProps, ...pagination, maxPages });
-			setUserList(users);
+			if (users && users.length > 0) {
+				setPaginationProps({ ...paginationProps, ...pagination, maxPages });
+				setUserList(users);
+			} else {
+				if (paginationProps.page !== 1) {
+					setPaginationProps({
+						...paginationProps,
+						...pagination,
+						maxPages,
+						page: 1,
+					});
+				}
+			}
 		}
 		setLoading(false);
 	};
@@ -230,7 +241,7 @@ export default function Users() {
 								);
 							})}
 						</Tbody>
-						{paginationProps.maxPages > 1 && (
+						{(paginationProps.maxPages > 1 || paginationProps.total >= 5) && (
 							<TableCaption>
 								<Flex
 									justifyContent="space-between"
