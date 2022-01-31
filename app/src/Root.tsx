@@ -9,11 +9,9 @@ const Dashboard = lazy(() => import('./pages/dashboard'));
 export default function Root() {
 	const { token, loading, config } = useAuthorizer();
 
-	console.log(config);
 	useEffect(() => {
 		if (token) {
 			const url = new URL(config.redirectURL || '/app');
-			console.log('=> url', url);
 			if (url.origin !== window.location.origin) {
 				window.location.href = config.redirectURL || '/app';
 			}
