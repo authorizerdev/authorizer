@@ -41,6 +41,7 @@ import {
 import { UserDetailsQuery } from '../graphql/queries';
 import { UpdateUser } from '../graphql/mutation';
 import EditUserModal from '../components/EditUserModal';
+import DeleteUserModal from '../components/DeleteUserModal';
 
 interface paginationPropTypes {
 	limit: number;
@@ -206,10 +207,6 @@ export default function Users() {
 													</Flex>
 												</MenuButton>
 												<MenuList>
-													<EditUserModal
-														user={rest}
-														updateUserList={updateUserList}
-													/>
 													{!user.email_verified && (
 														<MenuItem
 															onClick={() => userVerificationHandler(user)}
@@ -217,6 +214,14 @@ export default function Users() {
 															Verify User
 														</MenuItem>
 													)}
+													<EditUserModal
+														user={rest}
+														updateUserList={updateUserList}
+													/>
+													<DeleteUserModal
+														user={rest}
+														updateUserList={updateUserList}
+													/>
 												</MenuList>
 											</Menu>
 										</Td>
