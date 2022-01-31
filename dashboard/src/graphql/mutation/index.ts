@@ -23,9 +23,7 @@ export const AdminLogout = `
 `;
 
 export const UpdateEnvVariables = `
-  mutation updateEnvVariables(
-    $params: UpdateEnvInput!
-    ) {
+  mutation updateEnvVariables($params: UpdateEnvInput!) {
     _update_env(params: $params) {
       message
     }
@@ -33,11 +31,17 @@ export const UpdateEnvVariables = `
 `;
 
 export const UpdateUser = `
-  mutation updateUser(
-    $params: UpdateUserInput!
-    ) {
+  mutation updateUser($params: UpdateUserInput!) {
     _update_user(params: $params) {
       id
+    }
+  }
+`;
+
+export const DeleteUser = `
+  mutation deleteUser($params: DeleteUserInput!) {
+    _delete_user(params: $params) {
+      message
     }
   }
 `;
