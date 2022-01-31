@@ -98,11 +98,12 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 		sessionstore.DeleteAllUserSession(fmt.Sprintf("%v", user.ID))
 		cookie.DeleteCookie(gc)
 
+		hostname := utils.GetHost(gc)
 		user.Email = newEmail
 		user.EmailVerifiedAt = nil
 		// insert verification request
 		verificationType := constants.VerificationTypeUpdateEmail
-		verificationToken, err := token.CreateVerificationToken(newEmail, verificationType)
+		verificationToken, err := token.CreateVerificationToken(newEmail, verificationType, hostname)
 		if err != nil {
 			log.Println(`error generating token`, err)
 		}
@@ -115,7 +116,7 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 
 		// exec it as go routin so that we can reduce the api latency
 		go func() {
-			email.SendVerificationMail(newEmail, verificationToken)
+			email.SendVerificationMail(newEmail, verificationToken, hostname)
 		}()
 	}
 
@@ -127,7 +128,7 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 			inputRoles = append(inputRoles, *item)
 		}
 
-		if !utils.IsValidRoles(append([]string{}, append(envstore.EnvInMemoryStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyRoles), envstore.EnvInMemoryStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyProtectedRoles)...)...), inputRoles) {
+		if !utils.IsValidRoles(inputRoles, append([]string{}, append(envstore.EnvInMemoryStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyRoles), envstore.EnvInMemoryStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyProtectedRoles)...)...)) {
 			return res, fmt.Errorf("invalid list of roles")
 		}
 

@@ -119,10 +119,11 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 	roles := strings.Split(user.Roles, ",")
 	userToReturn := user.AsAPIUser()
 
+	hostname := utils.GetHost(gc)
 	if !envstore.EnvInMemoryStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification) {
 		// insert verification request
 		verificationType := constants.VerificationTypeBasicAuthSignup
-		verificationToken, err := token.CreateVerificationToken(params.Email, verificationType)
+		verificationToken, err := token.CreateVerificationToken(params.Email, verificationType, hostname)
 		if err != nil {
 			log.Println(`error generating token`, err)
 		}
@@ -135,7 +136,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 
 		// exec it as go routin so that we can reduce the api latency
 		go func() {
-			email.SendVerificationMail(params.Email, verificationToken)
+			email.SendVerificationMail(params.Email, verificationToken, hostname)
 		}()
 
 		res = &model.AuthResponse{

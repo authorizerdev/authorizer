@@ -14,16 +14,13 @@ func TestEnvs(t *testing.T) {
 	env.InitEnv()
 	store := envstore.EnvInMemoryStoreObj.GetEnvStoreClone()
 
-	assert.Equal(t, store.StringEnv[constants.EnvKeyAdminSecret], "admin")
 	assert.Equal(t, store.StringEnv[constants.EnvKeyEnv], "production")
 	assert.False(t, store.BoolEnv[constants.EnvKeyDisableEmailVerification])
 	assert.False(t, store.BoolEnv[constants.EnvKeyDisableMagicLinkLogin])
 	assert.False(t, store.BoolEnv[constants.EnvKeyDisableBasicAuthentication])
 	assert.Equal(t, store.StringEnv[constants.EnvKeyJwtType], "HS256")
-	assert.Equal(t, store.StringEnv[constants.EnvKeyJwtSecret], "random_string")
 	assert.Equal(t, store.StringEnv[constants.EnvKeyJwtRoleClaim], "role")
 	assert.EqualValues(t, store.SliceEnv[constants.EnvKeyRoles], []string{"user"})
 	assert.EqualValues(t, store.SliceEnv[constants.EnvKeyDefaultRoles], []string{"user"})
-	assert.EqualValues(t, store.SliceEnv[constants.EnvKeyProtectedRoles], []string{"admin"})
 	assert.EqualValues(t, store.SliceEnv[constants.EnvKeyAllowedOrigins], []string{"*"})
 }

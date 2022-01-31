@@ -1,6 +1,7 @@
 package test
 
 import (
+	"log"
 	"testing"
 
 	"github.com/authorizerdev/authorizer/server/constants"
@@ -20,19 +21,19 @@ func TestResolvers(t *testing.T) {
 		envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseURL, dbURL)
 		envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseType, dbType)
 
-		env.InitEnv()
+		s := testSetup()
+		defer s.Server.Close()
+
 		db.InitDB()
 
 		// clean the persisted config for test to use fresh config
 		envData, err := db.Provider.GetEnv()
+		log.Println("=> envData:", envstore.EnvInMemoryStoreObj.GetEnvStoreClone())
 		if err == nil {
 			envData.EnvData = ""
 			db.Provider.UpdateEnv(envData)
 		}
 		env.PersistEnv()
-
-		s := testSetup()
-		defer s.Server.Close()
 
 		t.Run("should pass tests for "+dbType, func(t *testing.T) {
 			// admin tests

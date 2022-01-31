@@ -2,6 +2,7 @@ package sql
 
 import (
 	"log"
+	"time"
 
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/graph/model"
@@ -16,6 +17,8 @@ func (p *provider) AddVerificationRequest(verificationRequest models.Verificatio
 	}
 
 	verificationRequest.Key = verificationRequest.ID
+	verificationRequest.CreatedAt = time.Now().Unix()
+	verificationRequest.UpdatedAt = time.Now().Unix()
 	result := p.db.Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "email"}, {Name: "identifier"}},
 		DoUpdates: clause.AssignmentColumns([]string{"token", "expires_at"}),

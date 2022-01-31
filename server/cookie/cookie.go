@@ -19,8 +19,9 @@ import (
 func SetCookie(gc *gin.Context, accessToken, refreshToken, fingerprintHash string) {
 	secure := true
 	httpOnly := true
-	host, _ := utils.GetHostParts(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAuthorizerURL))
-	domain := utils.GetDomainName(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAuthorizerURL))
+	hostname := utils.GetHost(gc)
+	host, _ := utils.GetHostParts(hostname)
+	domain := utils.GetDomainName(hostname)
 	if domain != "localhost" {
 		domain = "." + domain
 	}
@@ -86,9 +87,9 @@ func GetFingerPrintCookie(gc *gin.Context) (string, error) {
 func DeleteCookie(gc *gin.Context) {
 	secure := true
 	httpOnly := true
-
-	host, _ := utils.GetHostParts(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAuthorizerURL))
-	domain := utils.GetDomainName(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAuthorizerURL))
+	hostname := utils.GetHost(gc)
+	host, _ := utils.GetHostParts(hostname)
+	domain := utils.GetDomainName(hostname)
 	if domain != "localhost" {
 		domain = "." + domain
 	}

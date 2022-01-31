@@ -116,12 +116,13 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 		sessionstore.DeleteAllUserSession(fmt.Sprintf("%v", user.ID))
 		cookie.DeleteCookie(gc)
 
+		hostname := utils.GetHost(gc)
 		user.Email = newEmail
 		user.EmailVerifiedAt = nil
 		hasEmailChanged = true
 		// insert verification request
 		verificationType := constants.VerificationTypeUpdateEmail
-		verificationToken, err := token.CreateVerificationToken(newEmail, verificationType)
+		verificationToken, err := token.CreateVerificationToken(newEmail, verificationType, hostname)
 		if err != nil {
 			log.Println(`error generating token`, err)
 		}
@@ -134,7 +135,7 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 
 		// exec it as go routin so that we can reduce the api latency
 		go func() {
-			email.SendVerificationMail(newEmail, verificationToken)
+			email.SendVerificationMail(newEmail, verificationToken, hostname)
 		}()
 	}
 

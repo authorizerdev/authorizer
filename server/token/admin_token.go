@@ -2,7 +2,6 @@ package token
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/cookie"
@@ -25,7 +24,7 @@ func GetAdminAuthToken(gc *gin.Context) (string, error) {
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(token), []byte(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret)))
-	log.Println("error comparing hash:", err)
+
 	if err != nil {
 		return "", fmt.Errorf(`unauthorized`)
 	}

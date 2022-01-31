@@ -27,7 +27,6 @@ func ForgotPasswordResolver(ctx context.Context, params model.ForgotPasswordInpu
 	if envstore.EnvInMemoryStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableBasicAuthentication) {
 		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
 	}
-	host := gc.Request.Host
 	params.Email = strings.ToLower(params.Email)
 
 	if !utils.IsValidEmail(params.Email) {
@@ -39,7 +38,8 @@ func ForgotPasswordResolver(ctx context.Context, params model.ForgotPasswordInpu
 		return res, fmt.Errorf(`user with this email not found`)
 	}
 
-	verificationToken, err := token.CreateVerificationToken(params.Email, constants.VerificationTypeForgotPassword)
+	hostname := utils.GetHost(gc)
+	verificationToken, err := token.CreateVerificationToken(params.Email, constants.VerificationTypeForgotPassword, hostname)
 	if err != nil {
 		log.Println(`error generating token`, err)
 	}
@@ -52,7 +52,7 @@ func ForgotPasswordResolver(ctx context.Context, params model.ForgotPasswordInpu
 
 	// exec it as go routin so that we can reduce the api latency
 	go func() {
-		email.SendForgotPasswordMail(params.Email, verificationToken, host)
+		email.SendForgotPasswordMail(params.Email, verificationToken, hostname)
 	}()
 
 	res = &model.Response{

@@ -24,7 +24,7 @@ func updateUserTest(t *testing.T, s TestSetup) {
 		})
 
 		user := *signupRes.User
-		adminRole := "admin"
+		adminRole := "supplier"
 		userRole := "user"
 		newRoles := []*string{&adminRole, &userRole}
 		_, err := resolvers.UpdateUserResolver(ctx, model.UpdateUserInput{

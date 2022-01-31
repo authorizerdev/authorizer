@@ -25,8 +25,8 @@ type User struct {
 	PhoneNumberVerifiedAt *int64  `json:"phone_number_verified_at" bson:"phone_number_verified_at"`
 	Picture               *string `gorm:"type:text" json:"picture" bson:"picture"`
 	Roles                 string  `json:"roles" bson:"roles"`
-	UpdatedAt             int64   `gorm:"autoUpdateTime" json:"updated_at" bson:"updated_at"`
-	CreatedAt             int64   `gorm:"autoCreateTime" json:"created_at" bson:"created_at"`
+	UpdatedAt             int64   `json:"updated_at" bson:"updated_at"`
+	CreatedAt             int64   `json:"created_at" bson:"created_at"`
 }
 
 func (user *User) AsAPIUser() *model.User {

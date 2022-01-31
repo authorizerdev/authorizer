@@ -13,7 +13,8 @@ import (
 func SetAdminCookie(gc *gin.Context, token string) {
 	secure := true
 	httpOnly := true
-	host, _ := utils.GetHostParts(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAuthorizerURL))
+	hostname := utils.GetHost(gc)
+	host, _ := utils.GetHostParts(hostname)
 
 	gc.SetCookie(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminCookieName), token, 3600, "/", host, secure, httpOnly)
 }
@@ -38,7 +39,8 @@ func GetAdminCookie(gc *gin.Context) (string, error) {
 func DeleteAdminCookie(gc *gin.Context) {
 	secure := true
 	httpOnly := true
-	host, _ := utils.GetHostParts(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAuthorizerURL))
+	hostname := utils.GetHost(gc)
+	host, _ := utils.GetHostParts(hostname)
 
 	gc.SetCookie(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminCookieName), "", -1, "/", host, secure, httpOnly)
 }

@@ -8,6 +8,6 @@ type Session struct {
 	User      User   `json:"-" bson:"-"`
 	UserAgent string `json:"user_agent" bson:"user_agent"`
 	IP        string `json:"ip" bson:"ip"`
-	CreatedAt int64  `gorm:"autoCreateTime" json:"created_at" bson:"created_at"`
-	UpdatedAt int64  `gorm:"autoUpdateTime" json:"updated_at" bson:"updated_at"`
+	CreatedAt int64  `json:"created_at" bson:"created_at"`
+	UpdatedAt int64  `json:"updated_at" bson:"updated_at"`
 }

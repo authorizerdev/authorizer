@@ -2,6 +2,7 @@ package sql
 
 import (
 	"log"
+	"time"
 
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/google/uuid"
@@ -15,6 +16,8 @@ func (p *provider) AddSession(session models.Session) error {
 	}
 
 	session.Key = session.ID
+	session.CreatedAt = time.Now().Unix()
+	session.UpdatedAt = time.Now().Unix()
 	res := p.db.Clauses(
 		clause.OnConflict{
 			DoNothing: true,

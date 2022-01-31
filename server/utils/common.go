@@ -34,3 +34,16 @@ func SaveSessionInDB(userId string, c *gin.Context) {
 		log.Println("=> session saved in db:", sessionData)
 	}
 }
+
+// RemoveDuplicateString removes duplicate strings from a string slice
+func RemoveDuplicateString(strSlice []string) []string {
+	allKeys := make(map[string]bool)
+	list := []string{}
+	for _, item := range strSlice {
+		if _, value := allKeys[item]; !value {
+			allKeys[item] = true
+			list = append(list, item)
+		}
+	}
+	return list
+}

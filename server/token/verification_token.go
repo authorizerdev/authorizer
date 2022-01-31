@@ -23,7 +23,7 @@ type CustomClaim struct {
 }
 
 // CreateVerificationToken creates a verification JWT token
-func CreateVerificationToken(email string, tokenType string) (string, error) {
+func CreateVerificationToken(email, tokenType, hostname string) (string, error) {
 	t := jwt.New(jwt.GetSigningMethod(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtType)))
 
 	t.Claims = &CustomClaim{
@@ -31,7 +31,7 @@ func CreateVerificationToken(email string, tokenType string) (string, error) {
 			ExpiresAt: time.Now().Add(time.Minute * 30).Unix(),
 		},
 		tokenType,
-		VerificationRequestToken{Email: email, Host: envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAuthorizerURL), RedirectURL: envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAppURL)},
+		VerificationRequestToken{Email: email, Host: hostname, RedirectURL: envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAppURL)},
 	}
 
 	return t.SignedString([]byte(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtSecret)))

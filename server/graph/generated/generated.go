@@ -54,7 +54,6 @@ type ComplexityRoot struct {
 		AdminSecret                func(childComplexity int) int
 		AllowedOrigins             func(childComplexity int) int
 		AppURL                     func(childComplexity int) int
-		AuthorizerURL              func(childComplexity int) int
 		CookieName                 func(childComplexity int) int
 		CustomAccessTokenScript    func(childComplexity int) int
 		DatabaseName               func(childComplexity int) int
@@ -279,13 +278,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Env.AppURL(childComplexity), true
-
-	case "Env.AUTHORIZER_URL":
-		if e.complexity.Env.AuthorizerURL == nil {
-			break
-		}
-
-		return e.complexity.Env.AuthorizerURL(childComplexity), true
 
 	case "Env.COOKIE_NAME":
 		if e.complexity.Env.CookieName == nil {
@@ -1215,7 +1207,6 @@ type Env {
 	JWT_TYPE: String
 	JWT_SECRET: String
 	ALLOWED_ORIGINS: [String!]
-	AUTHORIZER_URL: String
 	APP_URL: String
 	REDIS_URL: String
 	COOKIE_NAME: String
@@ -1250,7 +1241,6 @@ input UpdateEnvInput {
 	JWT_TYPE: String
 	JWT_SECRET: String
 	ALLOWED_ORIGINS: [String!]
-	AUTHORIZER_URL: String
 	APP_URL: String
 	REDIS_URL: String
 	COOKIE_NAME: String
@@ -2269,38 +2259,6 @@ func (ec *executionContext) _Env_ALLOWED_ORIGINS(ctx context.Context, field grap
 	res := resTmp.([]string)
 	fc.Result = res
 	return ec.marshalOString2ᚕstringᚄ(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Env_AUTHORIZER_URL(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Env",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.AuthorizerURL, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*string)
-	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Env_APP_URL(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
@@ -7094,14 +7052,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			if err != nil {
 				return it, err
 			}
-		case "AUTHORIZER_URL":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("AUTHORIZER_URL"))
-			it.AuthorizerURL, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
 		case "APP_URL":
 			var err error
 
@@ -7591,8 +7541,6 @@ func (ec *executionContext) _Env(ctx context.Context, sel ast.SelectionSet, obj 
 			out.Values[i] = ec._Env_JWT_SECRET(ctx, field, obj)
 		case "ALLOWED_ORIGINS":
 			out.Values[i] = ec._Env_ALLOWED_ORIGINS(ctx, field, obj)
-		case "AUTHORIZER_URL":
-			out.Values[i] = ec._Env_AUTHORIZER_URL(ctx, field, obj)
 		case "APP_URL":
 			out.Values[i] = ec._Env_APP_URL(ctx, field, obj)
 		case "REDIS_URL":

@@ -35,7 +35,6 @@ type Env struct {
 	JwtType                    *string  `json:"JWT_TYPE"`
 	JwtSecret                  *string  `json:"JWT_SECRET"`
 	AllowedOrigins             []string `json:"ALLOWED_ORIGINS"`
-	AuthorizerURL              *string  `json:"AUTHORIZER_URL"`
 	AppURL                     *string  `json:"APP_URL"`
 	RedisURL                   *string  `json:"REDIS_URL"`
 	CookieName                 *string  `json:"COOKIE_NAME"`
@@ -155,7 +154,6 @@ type UpdateEnvInput struct {
 	JwtType                    *string  `json:"JWT_TYPE"`
 	JwtSecret                  *string  `json:"JWT_SECRET"`
 	AllowedOrigins             []string `json:"ALLOWED_ORIGINS"`
-	AuthorizerURL              *string  `json:"AUTHORIZER_URL"`
 	AppURL                     *string  `json:"APP_URL"`
 	RedisURL                   *string  `json:"REDIS_URL"`
 	CookieName                 *string  `json:"COOKIE_NAME"`

@@ -6,10 +6,10 @@ import (
 )
 
 // SendForgotPasswordMail to send forgot password email
-func SendForgotPasswordMail(toEmail, token, host string) error {
+func SendForgotPasswordMail(toEmail, token, hostname string) error {
 	resetPasswordUrl := envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyResetPasswordURL)
 	if resetPasswordUrl == "" {
-		envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyResetPasswordURL, envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAuthorizerURL)+"/app/reset-password")
+		envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyResetPasswordURL, hostname+"/app/reset-password")
 	}
 
 	// The receiver needs to be in slice as the receive supports multiple receiver

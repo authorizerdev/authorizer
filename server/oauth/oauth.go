@@ -43,7 +43,7 @@ func InitOAuth() {
 		OAuthProviders.GoogleConfig = &oauth2.Config{
 			ClientID:     envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyGoogleClientID),
 			ClientSecret: envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyGoogleClientSecret),
-			RedirectURL:  envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAuthorizerURL) + "/oauth_callback/google",
+			RedirectURL:  "/oauth_callback/google",
 			Endpoint:     OIDCProviders.GoogleOIDC.Endpoint(),
 			Scopes:       []string{oidc.ScopeOpenID, "profile", "email"},
 		}
@@ -52,7 +52,7 @@ func InitOAuth() {
 		OAuthProviders.GithubConfig = &oauth2.Config{
 			ClientID:     envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyGithubClientID),
 			ClientSecret: envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyGithubClientSecret),
-			RedirectURL:  envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAuthorizerURL) + "/oauth_callback/github",
+			RedirectURL:  "/oauth_callback/github",
 			Endpoint:     githubOAuth2.Endpoint,
 		}
 	}
@@ -60,7 +60,7 @@ func InitOAuth() {
 		OAuthProviders.FacebookConfig = &oauth2.Config{
 			ClientID:     envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyFacebookClientID),
 			ClientSecret: envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyFacebookClientSecret),
-			RedirectURL:  envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAuthorizerURL) + "/oauth_callback/facebook",
+			RedirectURL:  "/oauth_callback/facebook",
 			Endpoint:     facebookOAuth2.Endpoint,
 			Scopes:       []string{"public_profile", "email"},
 		}
