@@ -33,10 +33,8 @@ func AppHandler() gin.HandlerFunc {
 		var stateObj State
 
 		if state == "" {
-
 			stateObj.AuthorizerURL = hostname
-			stateObj.RedirectURL = stateObj.AuthorizerURL + "/app"
-
+			stateObj.RedirectURL = hostname + "/app"
 		} else {
 			decodedState, err := utils.DecryptB64(state)
 			if err != nil {

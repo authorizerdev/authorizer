@@ -10,12 +10,13 @@ import (
 
 // GetHost returns hostname from request context
 func GetHost(c *gin.Context) string {
-	scheme := "http"
-	if c.Request.TLS != nil {
-		scheme = "https"
+	scheme := c.Request.Header.Get("X-Forwarded-Proto")
+	if scheme != "https" {
+		scheme = "http"
 	}
-	log.Println("=> url:", scheme+"://"+c.Request.Host)
-	return scheme + "://" + c.Request.Host
+	host := c.Request.Host
+	log.Println("=> host:", scheme+"://"+host)
+	return scheme + "://" + host
 }
 
 // GetHostName function returns hostname and port
