@@ -18,6 +18,10 @@ import (
 // ResendVerifyEmailResolver is a resolver for resend verify email mutation
 func ResendVerifyEmailResolver(ctx context.Context, params model.ResendVerifyEmailInput) (*model.Response, error) {
 	var res *model.Response
+	gc, err := utils.GinContextFromContext(ctx)
+	if err != nil {
+		return res, err
+	}
 	params.Email = strings.ToLower(params.Email)
 
 	if !utils.IsValidEmail(params.Email) {
@@ -39,7 +43,8 @@ func ResendVerifyEmailResolver(ctx context.Context, params model.ResendVerifyEma
 		log.Println("error deleting verification request:", err)
 	}
 
-	verificationToken, err := token.CreateVerificationToken(params.Email, params.Identifier)
+	hostname := utils.GetHost(gc)
+	verificationToken, err := token.CreateVerificationToken(params.Email, params.Identifier, hostname)
 	if err != nil {
 		log.Println(`error generating token`, err)
 	}
@@ -52,7 +57,7 @@ func ResendVerifyEmailResolver(ctx context.Context, params model.ResendVerifyEma
 
 	// exec it as go routin so that we can reduce the api latency
 	go func() {
-		email.SendVerificationMail(params.Email, verificationToken)
+		email.SendVerificationMail(params.Email, verificationToken, hostname)
 	}()
 
 	res = &model.Response{

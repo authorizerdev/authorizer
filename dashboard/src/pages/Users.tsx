@@ -63,6 +63,7 @@ interface userDataTypes {
 	birthdate: string;
 	phone_number: string;
 	picture: string;
+	signup_methods: string;
 	roles: [string];
 	created_at: number;
 }

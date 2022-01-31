@@ -7,13 +7,12 @@ import (
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/resolvers"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
 func adminSignupTests(t *testing.T, s TestSetup) {
 	t.Helper()
-	t.Run(`should complete admin login`, func(t *testing.T) {
+	t.Run(`should complete admin signup`, func(t *testing.T) {
 		_, ctx := createContext(s)
 		_, err := resolvers.AdminSignupResolver(ctx, model.AdminSignupInput{
 			AdminSecret: "admin",
@@ -24,7 +23,7 @@ func adminSignupTests(t *testing.T, s TestSetup) {
 		envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyAdminSecret, "")
 
 		_, err = resolvers.AdminSignupResolver(ctx, model.AdminSignupInput{
-			AdminSecret: uuid.New().String(),
+			AdminSecret: "admin123",
 		})
 
 		assert.Nil(t, err)

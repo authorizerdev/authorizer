@@ -20,6 +20,10 @@ import (
 // MagicLinkLoginResolver is a resolver for magic link login mutation
 func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInput) (*model.Response, error) {
 	var res *model.Response
+	gc, err := utils.GinContextFromContext(ctx)
+	if err != nil {
+		return res, err
+	}
 
 	if envstore.EnvInMemoryStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableMagicLinkLogin) {
 		return res, fmt.Errorf(`magic link login is disabled for this instance`)
@@ -102,10 +106,11 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 		}
 	}
 
+	hostname := utils.GetHost(gc)
 	if !envstore.EnvInMemoryStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification) {
 		// insert verification request
 		verificationType := constants.VerificationTypeMagicLinkLogin
-		verificationToken, err := token.CreateVerificationToken(params.Email, verificationType)
+		verificationToken, err := token.CreateVerificationToken(params.Email, verificationType, hostname)
 		if err != nil {
 			log.Println(`error generating token`, err)
 		}
@@ -118,7 +123,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 
 		// exec it as go routin so that we can reduce the api latency
 		go func() {
-			email.SendVerificationMail(params.Email, verificationToken)
+			email.SendVerificationMail(params.Email, verificationToken, hostname)
 		}()
 	}
 

@@ -23,6 +23,8 @@ func (p *provider) AddUser(user models.User) (models.User, error) {
 		user.Roles = strings.Join(envstore.EnvInMemoryStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles), ",")
 	}
 
+	user.CreatedAt = time.Now().Unix()
+	user.UpdatedAt = time.Now().Unix()
 	user.Key = user.ID
 	result := p.db.Clauses(
 		clause.OnConflict{

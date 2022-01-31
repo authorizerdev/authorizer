@@ -6,7 +6,7 @@ import (
 )
 
 // SendVerificationMail to send verification email
-func SendVerificationMail(toEmail, token string) error {
+func SendVerificationMail(toEmail, token, hostname string) error {
 	// The receiver needs to be in slice as the receive supports multiple receiver
 	Receiver := []string{toEmail}
 
@@ -99,7 +99,7 @@ func SendVerificationMail(toEmail, token string) error {
 	data := make(map[string]interface{}, 3)
 	data["org_logo"] = envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyOrganizationLogo)
 	data["org_name"] = envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyOrganizationName)
-	data["verification_url"] = envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAuthorizerURL) + "/verify_email?token=" + token
+	data["verification_url"] = hostname + "/verify_email?token=" + token
 	message = addEmailTemplate(message, data, "verify_email.tmpl")
 	// bodyMessage := sender.WriteHTMLEmail(Receiver, Subject, message)
 

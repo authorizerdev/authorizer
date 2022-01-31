@@ -31,8 +31,6 @@ func InitEnv() {
 		}
 	}
 
-	// set authorizer url to empty string so that fresh url is obtained with every server start
-	envData.StringEnv[constants.EnvKeyAuthorizerURL] = ""
 	if envData.StringEnv[constants.EnvKeyAppURL] == "" {
 		envData.StringEnv[constants.EnvKeyAppURL] = os.Getenv(constants.EnvKeyAppURL)
 	}
@@ -246,10 +244,9 @@ func InitEnv() {
 		trimVal := strings.TrimSpace(val)
 		if trimVal != "" {
 			roles = append(roles, trimVal)
-		}
-
-		if utils.StringSliceContains(defaultRoleSplit, trimVal) {
-			defaultRoles = append(defaultRoles, trimVal)
+			if utils.StringSliceContains(defaultRoleSplit, trimVal) {
+				defaultRoles = append(defaultRoles, trimVal)
+			}
 		}
 	}
 

@@ -15,8 +15,10 @@ func (p *provider) AddEnv(env models.Env) (models.Env, error) {
 	}
 
 	env.Key = env.ID
-	result := p.db.Create(&env)
+	env.CreatedAt = time.Now().Unix()
+	env.UpdatedAt = time.Now().Unix()
 
+	result := p.db.Create(&env)
 	if result.Error != nil {
 		log.Println("error adding config:", result.Error)
 		return env, result.Error

@@ -99,6 +99,11 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			user.SignupMethods = signupMethod
 			user.Password = existingUser.Password
 
+			if user.EmailVerifiedAt == nil {
+				now := time.Now().Unix()
+				user.EmailVerifiedAt = &now
+			}
+
 			// There multiple scenarios with roles here in social login
 			// 1. user has access to protected roles + roles and trying to login
 			// 2. user has not signed up for one of the available role but trying to signup.

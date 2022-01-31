@@ -16,6 +16,7 @@ const (
 	// EnvKeyVersion key for build arg version
 	EnvKeyVersion = "VERSION"
 	// EnvKeyAuthorizerURL key for env variable AUTHORIZER_URL
+	// TODO: remove support AUTHORIZER_URL env
 	EnvKeyAuthorizerURL = "AUTHORIZER_URL"
 	// EnvKeyPort key for env variable PORT
 	EnvKeyPort = "PORT"

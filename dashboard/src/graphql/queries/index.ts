@@ -64,6 +64,7 @@ export const UserDetailsQuery = `
         birthdate
         phone_number
         picture
+        signup_methods
         roles
         created_at
       }

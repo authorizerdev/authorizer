@@ -22,6 +22,7 @@ type State struct {
 // AppHandler is the handler for the /app route
 func AppHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		hostname := utils.GetHost(c)
 		if envstore.EnvInMemoryStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableLoginPage) {
 			c.JSON(400, gin.H{"error": "login page is not enabled"})
 			return
@@ -32,7 +33,8 @@ func AppHandler() gin.HandlerFunc {
 		var stateObj State
 
 		if state == "" {
-			stateObj.AuthorizerURL = envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAuthorizerURL)
+
+			stateObj.AuthorizerURL = hostname
 			stateObj.RedirectURL = stateObj.AuthorizerURL + "/app"
 
 		} else {
@@ -62,7 +64,7 @@ func AppHandler() gin.HandlerFunc {
 			}
 
 			// validate host and domain of authorizer url
-			if strings.TrimSuffix(stateObj.AuthorizerURL, "/") != envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAuthorizerURL) {
+			if strings.TrimSuffix(stateObj.AuthorizerURL, "/") != hostname {
 				c.JSON(400, gin.H{"error": "invalid host url"})
 				return
 			}

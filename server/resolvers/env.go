@@ -41,7 +41,6 @@ func EnvResolver(ctx context.Context) (*model.Env, error) {
 	jwtSecret := store.StringEnv[constants.EnvKeyJwtSecret]
 	jwtRoleClaim := store.StringEnv[constants.EnvKeyJwtRoleClaim]
 	allowedOrigins := store.SliceEnv[constants.EnvKeyAllowedOrigins]
-	authorizerURL := store.StringEnv[constants.EnvKeyAuthorizerURL]
 	appURL := store.StringEnv[constants.EnvKeyAppURL]
 	redisURL := store.StringEnv[constants.EnvKeyRedisURL]
 	cookieName := store.StringEnv[constants.EnvKeyCookieName]
@@ -77,7 +76,6 @@ func EnvResolver(ctx context.Context) (*model.Env, error) {
 		JwtSecret:                  &jwtSecret,
 		JwtRoleClaim:               &jwtRoleClaim,
 		AllowedOrigins:             allowedOrigins,
-		AuthorizerURL:              &authorizerURL,
 		AppURL:                     &appURL,
 		RedisURL:                   &redisURL,
 		CookieName:                 &cookieName,

@@ -8,9 +8,9 @@ import (
 )
 
 func TestGetHostName(t *testing.T) {
-	authorizer_url := "http://test.herokuapp.com:80"
+	url := "http://test.herokuapp.com:80"
 
-	host, port := utils.GetHostParts(authorizer_url)
+	host, port := utils.GetHostParts(url)
 	expectedHost := "test.herokuapp.com"
 
 	assert.Equal(t, host, expectedHost, "hostname should be equal")
@@ -18,9 +18,9 @@ func TestGetHostName(t *testing.T) {
 }
 
 func TestGetDomainName(t *testing.T) {
-	authorizer_url := "http://test.herokuapp.com"
+	url := "http://test.herokuapp.com"
 
-	got := utils.GetDomainName(authorizer_url)
+	got := utils.GetDomainName(url)
 	want := "herokuapp.com"
 
 	assert.Equal(t, got, want, "domain name should be equal")

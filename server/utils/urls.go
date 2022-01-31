@@ -1,9 +1,22 @@
 package utils
 
 import (
+	"log"
 	"net/url"
 	"strings"
+
+	"github.com/gin-gonic/gin"
 )
+
+// GetHost returns hostname from request context
+func GetHost(c *gin.Context) string {
+	scheme := "http"
+	if c.Request.TLS != nil {
+		scheme = "https"
+	}
+	log.Println("=> url:", scheme+"://"+c.Request.Host)
+	return scheme + "://" + c.Request.Host
+}
 
 // GetHostName function returns hostname and port
 func GetHostParts(uri string) (string, string) {

@@ -16,7 +16,7 @@ import (
 // OAuthLoginHandler set host in the oauth state that is useful for redirecting to oauth_callback
 func OAuthLoginHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// TODO validate redirect URL
+		hostname := utils.GetHost(c)
 		redirectURL := c.Query("redirectURL")
 		roles := c.Query("roles")
 
@@ -56,7 +56,7 @@ func OAuthLoginHandler() gin.HandlerFunc {
 			}
 			sessionstore.SetSocailLoginState(oauthStateString, constants.SignupMethodGoogle)
 			// during the init of OAuthProvider authorizer url might be empty
-			oauth.OAuthProviders.GoogleConfig.RedirectURL = envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAuthorizerURL) + "/oauth_callback/google"
+			oauth.OAuthProviders.GoogleConfig.RedirectURL = hostname + "/oauth_callback/google"
 			url := oauth.OAuthProviders.GoogleConfig.AuthCodeURL(oauthStateString)
 			c.Redirect(http.StatusTemporaryRedirect, url)
 		case constants.SignupMethodGithub:
@@ -65,7 +65,7 @@ func OAuthLoginHandler() gin.HandlerFunc {
 				break
 			}
 			sessionstore.SetSocailLoginState(oauthStateString, constants.SignupMethodGithub)
-			oauth.OAuthProviders.GithubConfig.RedirectURL = envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAuthorizerURL) + "/oauth_callback/github"
+			oauth.OAuthProviders.GithubConfig.RedirectURL = hostname + "/oauth_callback/github"
 			url := oauth.OAuthProviders.GithubConfig.AuthCodeURL(oauthStateString)
 			c.Redirect(http.StatusTemporaryRedirect, url)
 		case constants.SignupMethodFacebook:
@@ -74,7 +74,7 @@ func OAuthLoginHandler() gin.HandlerFunc {
 				break
 			}
 			sessionstore.SetSocailLoginState(oauthStateString, constants.SignupMethodFacebook)
-			oauth.OAuthProviders.FacebookConfig.RedirectURL = envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAuthorizerURL) + "/oauth_callback/facebook"
+			oauth.OAuthProviders.FacebookConfig.RedirectURL = hostname + "/oauth_callback/facebook"
 			url := oauth.OAuthProviders.FacebookConfig.AuthCodeURL(oauthStateString)
 			c.Redirect(http.StatusTemporaryRedirect, url)
 		default:
