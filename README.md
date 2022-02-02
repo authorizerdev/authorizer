@@ -78,9 +78,9 @@ This guide helps you practice using Authorizer to evaluate it before you use it 
 ### Project Setup
 
 1. Fork the [authorizer](https://github.com/authorizerdev/authorizer) repository (**Skip this step if you have access to repo**)
-2. `git clone https://github.com/authorizerdev/authorizer.git`
-3. `cd authorizer`
-5. `cp .env.sample .env`. Check all the supported env [here](https://docs.authorizer.dev/core/env/)
+2. Clone repo: `git clone https://github.com/authorizerdev/authorizer.git` or use the forked url from step 1
+3. Change directory to authorizer: `cd authorizer`
+5. Create Env file `cp .env.sample .env`. Check all the supported env [here](https://docs.authorizer.dev/core/env/)
 6. Build Dashboard `make build-dashboard`
 7. Build App `make build-app`
 8. Build Server `make clean && make`
