@@ -96,8 +96,8 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			if !strings.Contains(signupMethod, provider) {
 				signupMethod = signupMethod + "," + provider
 			}
+			user = existingUser
 			user.SignupMethods = signupMethod
-			user.Password = existingUser.Password
 
 			if user.EmailVerifiedAt == nil {
 				now := time.Now().Unix()
@@ -136,12 +136,13 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			} else {
 				user.Roles = existingUser.Roles
 			}
-			user.Key = existingUser.Key
-			user.ID = existingUser.ID
-			user, err = db.Provider.UpdateUser(user)
-		}
 
-		user, _ = db.Provider.GetUserByEmail(user.Email)
+			user, err = db.Provider.UpdateUser(user)
+			if err != nil {
+				c.JSON(500, gin.H{"error": err.Error()})
+				return
+			}
+		}
 
 		authToken, _ := token.CreateAuthToken(user, inputRoles)
 		sessionstore.SetUserSession(user.ID, authToken.FingerPrint, authToken.RefreshToken.Token)
