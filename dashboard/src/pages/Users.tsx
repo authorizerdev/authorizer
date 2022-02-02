@@ -185,6 +185,8 @@ export default function Users() {
 							<Tr>
 								<Th>Email</Th>
 								<Th>Created At</Th>
+								<Th>Signup Methods</Th>
+								<Th>Roles</Th>
 								<Th>Verified</Th>
 								<Th>Actions</Th>
 							</Tr>
@@ -195,7 +197,11 @@ export default function Users() {
 								return (
 									<Tr key={user.id} style={{ fontSize: 14 }}>
 										<Td>{user.email}</Td>
-										<Td>{dayjs(user.created_at).format('MMM DD, YYYY')}</Td>
+										<Td>
+											{dayjs(user.created_at * 1000).format('MMM DD, YYYY')}
+										</Td>
+										<Td>{user.signup_methods}</Td>
+										<Td>{user.roles.join(', ')}</Td>
 										<Td>
 											<Tag
 												size="sm"
