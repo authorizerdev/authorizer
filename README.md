@@ -80,10 +80,12 @@ This guide helps you practice using Authorizer to evaluate it before you use it 
 1. Fork the [authorizer](https://github.com/authorizerdev/authorizer) repository (**Skip this step if you have access to repo**)
 2. `git clone https://github.com/authorizerdev/authorizer.git`
 3. `cd authorizer`
-4. `cp .env.sample .env`. Check all the supported env [here](https://docs.authorizer.dev/core/env/)
-5. Build the code `make clean && make`
+5. `cp .env.sample .env`. Check all the supported env [here](https://docs.authorizer.dev/core/env/)
+6. Build Dashboard `make build-dashboard`
+7. Build App `make build-app`
+8. Build Server `make clean && make`
    > Note: if you don't have [`make`](https://www.ibm.com/docs/en/aix/7.2?topic=concepts-make-command), you can `cd` into `server` dir and build using the `go build` command
-6. Run binary `./build/server`
+9. Run binary `./build/server`
 
 ## Install using binaries
 
