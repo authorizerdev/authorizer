@@ -73,17 +73,25 @@ export default function Auth() {
 				fontWeight="bold"
 				mb="2"
 			>
-				Hi there 👋 <br />
+				Hello Admin 👋 <br />
 			</Text>
 			<Text fontSize="large" textAlign="center" color="gray.500" mb="8">
-				Welcome to Authorizer Administrative Dashboard
+				Welcome to Admin Dashboard
 			</Text>
 			<form onSubmit={handleSubmit}>
 				<VStack spacing="5" justify="space-between">
 					<FormControl isRequired>
-						{/* <FormLabel htmlFor="admin-secret">
-							{isLogin ? 'Enter' : 'Configure'} Admin Secret
-						</FormLabel> */}
+						<FormLabel htmlFor="admin-username">Username</FormLabel>
+						<Input
+							size="lg"
+							id="admin-username"
+							placeholder="Username"
+							disabled
+							value="admin"
+						/>
+					</FormControl>
+					<FormControl isRequired>
+						<FormLabel htmlFor="admin-secret">Password</FormLabel>
 						<Input
 							size="lg"
 							id="admin-secret"
@@ -111,10 +119,7 @@ export default function Auth() {
 						</Text>
 					) : (
 						<Text color="gray.600" fontSize="sm">
-							<b>Note:</b> You can also configure admin secret by setting{' '}
-							<code>ADMIN_SECRET</code> environment variable. For more
-							information, please refer to the{' '}
-							<a href="https://docs.authorizer.dev/core/env/">documentation</a>.
+							<b>Note:</b> Configure the password to start using your dashboard.
 						</Text>
 					)}
 				</VStack>

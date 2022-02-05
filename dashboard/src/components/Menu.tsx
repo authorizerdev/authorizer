@@ -40,9 +40,9 @@ interface LinkItemProps {
 	route: string;
 }
 const LinkItems: Array<LinkItemProps> = [
-	{ name: 'Home', icon: FiHome, route: '/' },
+	// { name: 'Home', icon: FiHome, route: '/' },
+	{ name: 'Environment Variables', icon: FiSettings, route: '/' },
 	{ name: 'Users', icon: FiUsers, route: '/users' },
-	{ name: 'Environment Variables', icon: FiSettings, route: '/environment' },
 ];
 
 interface SidebarProps extends BoxProps {
