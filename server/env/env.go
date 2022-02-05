@@ -8,6 +8,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/utils"
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 )
@@ -25,7 +26,7 @@ func InitEnv() {
 
 		if envData.StringEnv[constants.EnvKeyEnv] == "production" {
 			envData.BoolEnv[constants.EnvKeyIsProd] = true
-			os.Setenv("GIN_MODE", "release")
+			gin.SetMode(gin.ReleaseMode)
 		} else {
 			envData.BoolEnv[constants.EnvKeyIsProd] = false
 		}
@@ -45,7 +46,7 @@ func InitEnv() {
 
 	err := godotenv.Load(envData.StringEnv[constants.EnvKeyEnvPath])
 	if err != nil {
-		log.Printf("error loading %s file", envData.StringEnv[constants.EnvKeyEnvPath])
+		log.Printf("using OS env instead of %s file", envData.StringEnv[constants.EnvKeyEnvPath])
 	}
 
 	if envData.StringEnv[constants.EnvKeyPort] == "" {

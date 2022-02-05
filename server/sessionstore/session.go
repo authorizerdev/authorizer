@@ -138,7 +138,6 @@ func InitSession() {
 		}
 
 	} else {
-		log.Println("using in memory store to save sessions")
 		SessionStoreObj.InMemoryStoreObj = &InMemoryStore{
 			store:            map[string]map[string]string{},
 			socialLoginState: map[string]string{},
