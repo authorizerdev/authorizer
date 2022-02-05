@@ -14,6 +14,7 @@ func InitRouter() *gin.Engine {
 	router.Use(middlewares.CORSMiddleware())
 
 	router.GET("/", handlers.RootHandler())
+	router.GET("/health", handlers.HealthHandler())
 	router.POST("/graphql", handlers.GraphqlHandler())
 	router.GET("/playground", handlers.PlaygroundHandler())
 	router.GET("/oauth_login/:oauth_provider", handlers.OAuthLoginHandler())
