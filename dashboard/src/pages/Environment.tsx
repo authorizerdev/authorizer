@@ -457,7 +457,7 @@ export default function Environment() {
 				</Flex>
 				<Flex>
 					<Flex w="30%" justifyContent="start" alignItems="center">
-						<Text fontSize="sm">Port:</Text>
+						<Text fontSize="sm">SMTP Port:</Text>
 					</Flex>
 					<Center w="70%">
 						<InputField
@@ -469,7 +469,7 @@ export default function Environment() {
 				</Flex>
 				<Flex>
 					<Flex w="30%" justifyContent="start" alignItems="center">
-						<Text fontSize="sm">Username:</Text>
+						<Text fontSize="sm">SMTP Username:</Text>
 					</Flex>
 					<Center w="70%">
 						<InputField
@@ -481,7 +481,7 @@ export default function Environment() {
 				</Flex>
 				<Flex>
 					<Flex w="30%" justifyContent="start" alignItems="center">
-						<Text fontSize="sm">Password:</Text>
+						<Text fontSize="sm">SMTP Password:</Text>
 					</Flex>
 					<Center w="70%">
 						<InputField
@@ -556,7 +556,7 @@ export default function Environment() {
 			</Stack>
 			<Divider marginTop="2%" marginBottom="2%" />
 			<Text fontSize="md" paddingTop="2%" fontWeight="bold">
-				Custom Scripts
+				Custom Access Token Scripts
 			</Text>
 			<Stack spacing={6} padding="2% 0%">
 				<Flex>
