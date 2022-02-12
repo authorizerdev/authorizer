@@ -11,3 +11,6 @@ clean:
 	rm -rf build
 test:
 	cd server && go clean --testcache && go test -v ./test
+generate:
+	cd server && go get github.com/99designs/gqlgen/cmd@v0.14.0 && go run github.com/99designs/gqlgen generate
+	

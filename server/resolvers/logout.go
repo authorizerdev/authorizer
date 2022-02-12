@@ -38,7 +38,7 @@ func LogoutResolver(ctx context.Context) (*model.Response, error) {
 	fingerPrint := string(decryptedFingerPrint)
 
 	// verify refresh token and fingerprint
-	claims, err := token.VerifyJWTToken(refreshToken)
+	claims, err := token.ParseJWTToken(refreshToken)
 	if err != nil {
 		return res, err
 	}

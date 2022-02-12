@@ -97,6 +97,8 @@ type Env {
 	SENDER_EMAIL: String
 	JWT_TYPE: String
 	JWT_SECRET: String
+	JWT_PRIVATE_KEY: String
+	JWT_PUBLIC_KEY: String
 	ALLOWED_ORIGINS: [String!]
 	APP_URL: String
 	REDIS_URL: String
@@ -131,6 +133,8 @@ input UpdateEnvInput {
 	SENDER_EMAIL: String
 	JWT_TYPE: String
 	JWT_SECRET: String
+	JWT_PRIVATE_KEY: String
+	JWT_PUBLIC_KEY: String
 	ALLOWED_ORIGINS: [String!]
 	APP_URL: String
 	REDIS_URL: String

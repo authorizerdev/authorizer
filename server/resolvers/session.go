@@ -41,7 +41,7 @@ func SessionResolver(ctx context.Context, params *model.SessionQueryInput) (*mod
 	fingerPrint := string(decryptedFingerPrint)
 
 	// verify refresh token and fingerprint
-	claims, err := token.VerifyJWTToken(refreshToken)
+	claims, err := token.ParseJWTToken(refreshToken)
 	if err != nil {
 		return res, err
 	}

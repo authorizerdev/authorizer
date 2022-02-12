@@ -19,7 +19,7 @@ func InitEnv() {
 	envData := envstore.EnvInMemoryStoreObj.GetEnvStoreClone()
 
 	if envData.StringEnv[constants.EnvKeyEnv] == "" {
-		envData.StringEnv[constants.EnvKeyEnv] = os.Getenv("ENV")
+		envData.StringEnv[constants.EnvKeyEnv] = os.Getenv(constants.EnvKeyEnv)
 		if envData.StringEnv[constants.EnvKeyEnv] == "" {
 			envData.StringEnv[constants.EnvKeyEnv] = "production"
 		}
@@ -50,18 +50,18 @@ func InitEnv() {
 	}
 
 	if envData.StringEnv[constants.EnvKeyPort] == "" {
-		envData.StringEnv[constants.EnvKeyPort] = os.Getenv("PORT")
+		envData.StringEnv[constants.EnvKeyPort] = os.Getenv(constants.EnvKeyPort)
 		if envData.StringEnv[constants.EnvKeyPort] == "" {
 			envData.StringEnv[constants.EnvKeyPort] = "8080"
 		}
 	}
 
 	if envData.StringEnv[constants.EnvKeyAdminSecret] == "" {
-		envData.StringEnv[constants.EnvKeyAdminSecret] = os.Getenv("ADMIN_SECRET")
+		envData.StringEnv[constants.EnvKeyAdminSecret] = os.Getenv(constants.EnvKeyAdminSecret)
 	}
 
 	if envData.StringEnv[constants.EnvKeyDatabaseType] == "" {
-		envData.StringEnv[constants.EnvKeyDatabaseType] = os.Getenv("DATABASE_TYPE")
+		envData.StringEnv[constants.EnvKeyDatabaseType] = os.Getenv(constants.EnvKeyDatabaseType)
 
 		if envstore.ARG_DB_TYPE != nil && *envstore.ARG_DB_TYPE != "" {
 			envData.StringEnv[constants.EnvKeyDatabaseType] = *envstore.ARG_DB_TYPE
@@ -73,7 +73,7 @@ func InitEnv() {
 	}
 
 	if envData.StringEnv[constants.EnvKeyDatabaseURL] == "" {
-		envData.StringEnv[constants.EnvKeyDatabaseURL] = os.Getenv("DATABASE_URL")
+		envData.StringEnv[constants.EnvKeyDatabaseURL] = os.Getenv(constants.EnvKeyDatabaseURL)
 
 		if envstore.ARG_DB_URL != nil && *envstore.ARG_DB_URL != "" {
 			envData.StringEnv[constants.EnvKeyDatabaseURL] = *envstore.ARG_DB_URL
@@ -85,48 +85,56 @@ func InitEnv() {
 	}
 
 	if envData.StringEnv[constants.EnvKeyDatabaseName] == "" {
-		envData.StringEnv[constants.EnvKeyDatabaseName] = os.Getenv("DATABASE_NAME")
+		envData.StringEnv[constants.EnvKeyDatabaseName] = os.Getenv(constants.EnvKeyDatabaseName)
 		if envData.StringEnv[constants.EnvKeyDatabaseName] == "" {
 			envData.StringEnv[constants.EnvKeyDatabaseName] = "authorizer"
 		}
 	}
 
 	if envData.StringEnv[constants.EnvKeySmtpHost] == "" {
-		envData.StringEnv[constants.EnvKeySmtpHost] = os.Getenv("SMTP_HOST")
+		envData.StringEnv[constants.EnvKeySmtpHost] = os.Getenv(constants.EnvKeySmtpHost)
 	}
 
 	if envData.StringEnv[constants.EnvKeySmtpPort] == "" {
-		envData.StringEnv[constants.EnvKeySmtpPort] = os.Getenv("SMTP_PORT")
+		envData.StringEnv[constants.EnvKeySmtpPort] = os.Getenv(constants.EnvKeySmtpPort)
 	}
 
 	if envData.StringEnv[constants.EnvKeySmtpUsername] == "" {
-		envData.StringEnv[constants.EnvKeySmtpUsername] = os.Getenv("SMTP_USERNAME")
+		envData.StringEnv[constants.EnvKeySmtpUsername] = os.Getenv(constants.EnvKeySmtpUsername)
 	}
 
 	if envData.StringEnv[constants.EnvKeySmtpPassword] == "" {
-		envData.StringEnv[constants.EnvKeySmtpPassword] = os.Getenv("SMTP_PASSWORD")
+		envData.StringEnv[constants.EnvKeySmtpPassword] = os.Getenv(constants.EnvKeySmtpPassword)
 	}
 
 	if envData.StringEnv[constants.EnvKeySenderEmail] == "" {
-		envData.StringEnv[constants.EnvKeySenderEmail] = os.Getenv("SENDER_EMAIL")
+		envData.StringEnv[constants.EnvKeySenderEmail] = os.Getenv(constants.EnvKeySenderEmail)
 	}
 
 	if envData.StringEnv[constants.EnvKeyJwtSecret] == "" {
-		envData.StringEnv[constants.EnvKeyJwtSecret] = os.Getenv("JWT_SECRET")
+		envData.StringEnv[constants.EnvKeyJwtSecret] = os.Getenv(constants.EnvKeyJwtSecret)
 		if envData.StringEnv[constants.EnvKeyJwtSecret] == "" {
 			envData.StringEnv[constants.EnvKeyJwtSecret] = uuid.New().String()
 		}
 	}
 
+	if envData.StringEnv[constants.EnvKeyJwtPrivateKey] == "" {
+		envData.StringEnv[constants.EnvKeyJwtPrivateKey] = os.Getenv(constants.EnvKeyJwtPrivateKey)
+	}
+
+	if envData.StringEnv[constants.EnvKeyJwtPublicKey] == "" {
+		envData.StringEnv[constants.EnvKeyJwtPublicKey] = os.Getenv(constants.EnvKeyJwtPublicKey)
+	}
+
 	if envData.StringEnv[constants.EnvKeyJwtType] == "" {
-		envData.StringEnv[constants.EnvKeyJwtType] = os.Getenv("JWT_TYPE")
+		envData.StringEnv[constants.EnvKeyJwtType] = os.Getenv(constants.EnvKeyJwtType)
 		if envData.StringEnv[constants.EnvKeyJwtType] == "" {
 			envData.StringEnv[constants.EnvKeyJwtType] = "HS256"
 		}
 	}
 
 	if envData.StringEnv[constants.EnvKeyJwtRoleClaim] == "" {
-		envData.StringEnv[constants.EnvKeyJwtRoleClaim] = os.Getenv("JWT_ROLE_CLAIM")
+		envData.StringEnv[constants.EnvKeyJwtRoleClaim] = os.Getenv(constants.EnvKeyJwtRoleClaim)
 
 		if envData.StringEnv[constants.EnvKeyJwtRoleClaim] == "" {
 			envData.StringEnv[constants.EnvKeyJwtRoleClaim] = "role"
@@ -134,48 +142,48 @@ func InitEnv() {
 	}
 
 	if envData.StringEnv[constants.EnvKeyRedisURL] == "" {
-		envData.StringEnv[constants.EnvKeyRedisURL] = os.Getenv("REDIS_URL")
+		envData.StringEnv[constants.EnvKeyRedisURL] = os.Getenv(constants.EnvKeyRedisURL)
 	}
 
 	if envData.StringEnv[constants.EnvKeyCookieName] == "" {
-		envData.StringEnv[constants.EnvKeyCookieName] = os.Getenv("COOKIE_NAME")
+		envData.StringEnv[constants.EnvKeyCookieName] = os.Getenv(constants.EnvKeyCookieName)
 		if envData.StringEnv[constants.EnvKeyCookieName] == "" {
 			envData.StringEnv[constants.EnvKeyCookieName] = "authorizer"
 		}
 	}
 
 	if envData.StringEnv[constants.EnvKeyGoogleClientID] == "" {
-		envData.StringEnv[constants.EnvKeyGoogleClientID] = os.Getenv("GOOGLE_CLIENT_ID")
+		envData.StringEnv[constants.EnvKeyGoogleClientID] = os.Getenv(constants.EnvKeyGoogleClientID)
 	}
 
 	if envData.StringEnv[constants.EnvKeyGoogleClientSecret] == "" {
-		envData.StringEnv[constants.EnvKeyGoogleClientSecret] = os.Getenv("GOOGLE_CLIENT_SECRET")
+		envData.StringEnv[constants.EnvKeyGoogleClientSecret] = os.Getenv(constants.EnvKeyGoogleClientSecret)
 	}
 
 	if envData.StringEnv[constants.EnvKeyGithubClientID] == "" {
-		envData.StringEnv[constants.EnvKeyGithubClientID] = os.Getenv("GITHUB_CLIENT_ID")
+		envData.StringEnv[constants.EnvKeyGithubClientID] = os.Getenv(constants.EnvKeyGithubClientID)
 	}
 
 	if envData.StringEnv[constants.EnvKeyGithubClientSecret] == "" {
-		envData.StringEnv[constants.EnvKeyGithubClientSecret] = os.Getenv("GITHUB_CLIENT_SECRET")
+		envData.StringEnv[constants.EnvKeyGithubClientSecret] = os.Getenv(constants.EnvKeyGithubClientSecret)
 	}
 
 	if envData.StringEnv[constants.EnvKeyFacebookClientID] == "" {
-		envData.StringEnv[constants.EnvKeyFacebookClientID] = os.Getenv("FACEBOOK_CLIENT_ID")
+		envData.StringEnv[constants.EnvKeyFacebookClientID] = os.Getenv(constants.EnvKeyFacebookClientID)
 	}
 
 	if envData.StringEnv[constants.EnvKeyFacebookClientSecret] == "" {
-		envData.StringEnv[constants.EnvKeyFacebookClientSecret] = os.Getenv("FACEBOOK_CLIENT_SECRET")
+		envData.StringEnv[constants.EnvKeyFacebookClientSecret] = os.Getenv(constants.EnvKeyFacebookClientSecret)
 	}
 
 	if envData.StringEnv[constants.EnvKeyResetPasswordURL] == "" {
-		envData.StringEnv[constants.EnvKeyResetPasswordURL] = strings.TrimPrefix(os.Getenv("RESET_PASSWORD_URL"), "/")
+		envData.StringEnv[constants.EnvKeyResetPasswordURL] = strings.TrimPrefix(os.Getenv(constants.EnvKeyResetPasswordURL), "/")
 	}
 
-	envData.BoolEnv[constants.EnvKeyDisableBasicAuthentication] = os.Getenv("DISABLE_BASIC_AUTHENTICATION") == "true"
-	envData.BoolEnv[constants.EnvKeyDisableEmailVerification] = os.Getenv("DISABLE_EMAIL_VERIFICATION") == "true"
-	envData.BoolEnv[constants.EnvKeyDisableMagicLinkLogin] = os.Getenv("DISABLE_MAGIC_LINK_LOGIN") == "true"
-	envData.BoolEnv[constants.EnvKeyDisableLoginPage] = os.Getenv("DISABLE_LOGIN_PAGE") == "true"
+	envData.BoolEnv[constants.EnvKeyDisableBasicAuthentication] = os.Getenv(constants.EnvKeyDisableBasicAuthentication) == "true"
+	envData.BoolEnv[constants.EnvKeyDisableEmailVerification] = os.Getenv(constants.EnvKeyDisableEmailVerification) == "true"
+	envData.BoolEnv[constants.EnvKeyDisableMagicLinkLogin] = os.Getenv(constants.EnvKeyDisableMagicLinkLogin) == "true"
+	envData.BoolEnv[constants.EnvKeyDisableLoginPage] = os.Getenv(constants.EnvKeyDisableLoginPage) == "true"
 
 	// no need to add nil check as its already done above
 	if envData.StringEnv[constants.EnvKeySmtpHost] == "" || envData.StringEnv[constants.EnvKeySmtpUsername] == "" || envData.StringEnv[constants.EnvKeySmtpPassword] == "" || envData.StringEnv[constants.EnvKeySenderEmail] == "" && envData.StringEnv[constants.EnvKeySmtpPort] == "" {
@@ -187,7 +195,7 @@ func InitEnv() {
 		envData.BoolEnv[constants.EnvKeyDisableMagicLinkLogin] = true
 	}
 
-	allowedOriginsSplit := strings.Split(os.Getenv("ALLOWED_ORIGINS"), ",")
+	allowedOriginsSplit := strings.Split(os.Getenv(constants.EnvKeyAllowedOrigins), ",")
 	allowedOrigins := []string{}
 	hasWildCard := false
 
@@ -215,14 +223,14 @@ func InitEnv() {
 
 	envData.SliceEnv[constants.EnvKeyAllowedOrigins] = allowedOrigins
 
-	rolesEnv := strings.TrimSpace(os.Getenv("ROLES"))
+	rolesEnv := strings.TrimSpace(os.Getenv(constants.EnvKeyRoles))
 	rolesSplit := strings.Split(rolesEnv, ",")
 	roles := []string{}
 	if len(rolesEnv) == 0 {
 		roles = []string{"user"}
 	}
 
-	defaultRolesEnv := strings.TrimSpace(os.Getenv("DEFAULT_ROLES"))
+	defaultRolesEnv := strings.TrimSpace(os.Getenv(constants.EnvKeyDefaultRoles))
 	defaultRoleSplit := strings.Split(defaultRolesEnv, ",")
 	defaultRoles := []string{}
 
@@ -230,7 +238,7 @@ func InitEnv() {
 		defaultRoles = []string{"user"}
 	}
 
-	protectedRolesEnv := strings.TrimSpace(os.Getenv("PROTECTED_ROLES"))
+	protectedRolesEnv := strings.TrimSpace(os.Getenv(constants.EnvKeyProtectedRoles))
 	protectedRolesSplit := strings.Split(protectedRolesEnv, ",")
 	protectedRoles := []string{}
 
@@ -259,12 +267,12 @@ func InitEnv() {
 	envData.SliceEnv[constants.EnvKeyDefaultRoles] = defaultRoles
 	envData.SliceEnv[constants.EnvKeyProtectedRoles] = protectedRoles
 
-	if os.Getenv("ORGANIZATION_NAME") != "" {
-		envData.StringEnv[constants.EnvKeyOrganizationName] = os.Getenv("ORGANIZATION_NAME")
+	if os.Getenv(constants.EnvKeyOrganizationName) != "" {
+		envData.StringEnv[constants.EnvKeyOrganizationName] = os.Getenv(constants.EnvKeyOrganizationName)
 	}
 
-	if os.Getenv("ORGANIZATION_LOGO") != "" {
-		envData.StringEnv[constants.EnvKeyOrganizationLogo] = os.Getenv("ORGANIZATION_LOGO")
+	if os.Getenv(constants.EnvKeyOrganizationLogo) != "" {
+		envData.StringEnv[constants.EnvKeyOrganizationLogo] = os.Getenv(constants.EnvKeyOrganizationLogo)
 	}
 
 	envstore.EnvInMemoryStoreObj.UpdateEnvStore(envData)

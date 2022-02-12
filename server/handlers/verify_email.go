@@ -33,13 +33,13 @@ func VerifyEmailHandler() gin.HandlerFunc {
 		}
 
 		// verify if token exists in db
-		claim, err := token.VerifyVerificationToken(tokenInQuery)
+		claim, err := token.ParseJWTToken(tokenInQuery)
 		if err != nil {
 			c.JSON(400, errorRes)
 			return
 		}
 
-		user, err := db.Provider.GetUserByEmail(claim.Email)
+		user, err := db.Provider.GetUserByEmail(claim["email"].(string))
 		if err != nil {
 			c.JSON(400, gin.H{
 				"message": err.Error(),
@@ -68,6 +68,6 @@ func VerifyEmailHandler() gin.HandlerFunc {
 		cookie.SetCookie(c, authToken.AccessToken.Token, authToken.RefreshToken.Token, authToken.FingerPrintHash)
 		utils.SaveSessionInDB(user.ID, c)
 
-		c.Redirect(http.StatusTemporaryRedirect, claim.RedirectURL)
+		c.Redirect(http.StatusTemporaryRedirect, claim["redirect_url"].(string))
 	}
 }

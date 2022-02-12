@@ -26,7 +26,7 @@ func IsValidJwtResolver(ctx context.Context, params *model.IsValidJWTQueryInput)
 		}
 	}
 
-	claims, err := tokenHelper.VerifyJWTToken(token)
+	claims, err := tokenHelper.ParseJWTToken(token)
 	if err != nil {
 		return nil, err
 	}

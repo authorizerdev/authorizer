@@ -70,6 +70,8 @@ type ComplexityRoot struct {
 		GithubClientSecret         func(childComplexity int) int
 		GoogleClientID             func(childComplexity int) int
 		GoogleClientSecret         func(childComplexity int) int
+		JwtPrivateKey              func(childComplexity int) int
+		JwtPublicKey               func(childComplexity int) int
 		JwtRoleClaim               func(childComplexity int) int
 		JwtSecret                  func(childComplexity int) int
 		JwtType                    func(childComplexity int) int
@@ -390,6 +392,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Env.GoogleClientSecret(childComplexity), true
+
+	case "Env.JWT_PRIVATE_KEY":
+		if e.complexity.Env.JwtPrivateKey == nil {
+			break
+		}
+
+		return e.complexity.Env.JwtPrivateKey(childComplexity), true
+
+	case "Env.JWT_PUBLIC_KEY":
+		if e.complexity.Env.JwtPublicKey == nil {
+			break
+		}
+
+		return e.complexity.Env.JwtPublicKey(childComplexity), true
 
 	case "Env.JWT_ROLE_CLAIM":
 		if e.complexity.Env.JwtRoleClaim == nil {
@@ -1206,6 +1222,8 @@ type Env {
 	SENDER_EMAIL: String
 	JWT_TYPE: String
 	JWT_SECRET: String
+	JWT_PRIVATE_KEY: String
+	JWT_PUBLIC_KEY: String
 	ALLOWED_ORIGINS: [String!]
 	APP_URL: String
 	REDIS_URL: String
@@ -1240,6 +1258,8 @@ input UpdateEnvInput {
 	SENDER_EMAIL: String
 	JWT_TYPE: String
 	JWT_SECRET: String
+	JWT_PRIVATE_KEY: String
+	JWT_PUBLIC_KEY: String
 	ALLOWED_ORIGINS: [String!]
 	APP_URL: String
 	REDIS_URL: String
@@ -2216,6 +2236,70 @@ func (ec *executionContext) _Env_JWT_SECRET(ctx context.Context, field graphql.C
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.JwtSecret, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Env_JWT_PRIVATE_KEY(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Env",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.JwtPrivateKey, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Env_JWT_PUBLIC_KEY(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Env",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.JwtPublicKey, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -7044,6 +7128,22 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			if err != nil {
 				return it, err
 			}
+		case "JWT_PRIVATE_KEY":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("JWT_PRIVATE_KEY"))
+			it.JwtPrivateKey, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "JWT_PUBLIC_KEY":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("JWT_PUBLIC_KEY"))
+			it.JwtPublicKey, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		case "ALLOWED_ORIGINS":
 			var err error
 
@@ -7539,6 +7639,10 @@ func (ec *executionContext) _Env(ctx context.Context, sel ast.SelectionSet, obj 
 			out.Values[i] = ec._Env_JWT_TYPE(ctx, field, obj)
 		case "JWT_SECRET":
 			out.Values[i] = ec._Env_JWT_SECRET(ctx, field, obj)
+		case "JWT_PRIVATE_KEY":
+			out.Values[i] = ec._Env_JWT_PRIVATE_KEY(ctx, field, obj)
+		case "JWT_PUBLIC_KEY":
+			out.Values[i] = ec._Env_JWT_PUBLIC_KEY(ctx, field, obj)
 		case "ALLOWED_ORIGINS":
 			out.Values[i] = ec._Env_ALLOWED_ORIGINS(ctx, field, obj)
 		case "APP_URL":

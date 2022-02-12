@@ -34,6 +34,8 @@ type Env struct {
 	SenderEmail                *string  `json:"SENDER_EMAIL"`
 	JwtType                    *string  `json:"JWT_TYPE"`
 	JwtSecret                  *string  `json:"JWT_SECRET"`
+	JwtPrivateKey              *string  `json:"JWT_PRIVATE_KEY"`
+	JwtPublicKey               *string  `json:"JWT_PUBLIC_KEY"`
 	AllowedOrigins             []string `json:"ALLOWED_ORIGINS"`
 	AppURL                     *string  `json:"APP_URL"`
 	RedisURL                   *string  `json:"REDIS_URL"`
@@ -153,6 +155,8 @@ type UpdateEnvInput struct {
 	SenderEmail                *string  `json:"SENDER_EMAIL"`
 	JwtType                    *string  `json:"JWT_TYPE"`
 	JwtSecret                  *string  `json:"JWT_SECRET"`
+	JwtPrivateKey              *string  `json:"JWT_PRIVATE_KEY"`
+	JwtPublicKey               *string  `json:"JWT_PUBLIC_KEY"`
 	AllowedOrigins             []string `json:"ALLOWED_ORIGINS"`
 	AppURL                     *string  `json:"APP_URL"`
 	RedisURL                   *string  `json:"REDIS_URL"`
