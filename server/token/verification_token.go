@@ -8,44 +8,16 @@ import (
 	"github.com/golang-jwt/jwt"
 )
 
-// VerificationRequestToken is the user info that is stored in the JWT of verification request
-type VerificationRequestToken struct {
-	Email       string `json:"email"`
-	Host        string `json:"host"`
-	RedirectURL string `json:"redirect_url"`
-}
-
-// CustomClaim is the custom claim that is stored in the JWT of verification request
-type CustomClaim struct {
-	*jwt.StandardClaims
-	TokenType string `json:"token_type"`
-	VerificationRequestToken
-}
-
 // CreateVerificationToken creates a verification JWT token
 func CreateVerificationToken(email, tokenType, hostname string) (string, error) {
-	t := jwt.New(jwt.GetSigningMethod(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtType)))
-
-	t.Claims = &CustomClaim{
-		&jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(time.Minute * 30).Unix(),
-		},
-		tokenType,
-		VerificationRequestToken{Email: email, Host: hostname, RedirectURL: envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAppURL)},
+	claims := jwt.MapClaims{
+		"exp":          time.Now().Add(time.Minute * 30).Unix(),
+		"iat":          time.Now().Unix(),
+		"token_type":   tokenType,
+		"email":        email,
+		"host":         hostname,
+		"redirect_url": envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAppURL),
 	}
 
-	return t.SignedString([]byte(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtSecret)))
-}
-
-// VerifyVerificationToken verifies the verification JWT token
-func VerifyVerificationToken(token string) (*CustomClaim, error) {
-	claims := &CustomClaim{}
-	_, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
-		return []byte(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtSecret)), nil
-	})
-	if err != nil {
-		return claims, err
-	}
-
-	return claims, nil
+	return SignJWTToken(claims)
 }

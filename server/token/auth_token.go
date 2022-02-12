@@ -62,7 +62,6 @@ func CreateAuthToken(user models.User, roles []string) (*Token, error) {
 
 // CreateRefreshToken util to create JWT token
 func CreateRefreshToken(user models.User, roles []string) (string, int64, error) {
-	t := jwt.New(jwt.GetSigningMethod(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtType)))
 	// expires in 1 year
 	expiryBound := time.Hour * 8760
 	expiresAt := time.Now().Add(expiryBound).Unix()
@@ -75,8 +74,7 @@ func CreateRefreshToken(user models.User, roles []string) (string, int64, error)
 		"id":         user.ID,
 	}
 
-	t.Claims = customClaims
-	token, err := t.SignedString([]byte(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtSecret)))
+	token, err := SignJWTToken(customClaims)
 	if err != nil {
 		return "", 0, err
 	}
@@ -86,9 +84,7 @@ func CreateRefreshToken(user models.User, roles []string) (string, int64, error)
 // CreateAccessToken util to create JWT token, based on
 // user information, roles config and CUSTOM_ACCESS_TOKEN_SCRIPT
 func CreateAccessToken(user models.User, roles []string) (string, int64, error) {
-	t := jwt.New(jwt.GetSigningMethod(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtType)))
 	expiryBound := time.Minute * 30
-
 	expiresAt := time.Now().Add(expiryBound).Unix()
 
 	resUser := user.AsAPIUser()
@@ -141,9 +137,7 @@ func CreateAccessToken(user models.User, roles []string) (string, int64, error) 
 		}
 	}
 
-	t.Claims = customClaims
-
-	token, err := t.SignedString([]byte(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtSecret)))
+	token, err := SignJWTToken(customClaims)
 	if err != nil {
 		return "", 0, err
 	}
@@ -187,43 +181,13 @@ func GetFingerPrint(gc *gin.Context) (string, error) {
 	return fingerPrint, nil
 }
 
-// VerifyJWTToken helps in verifying the JWT token
-func VerifyJWTToken(token string) (map[string]interface{}, error) {
-	var res map[string]interface{}
-	claims := jwt.MapClaims{}
-
-	t, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
-		return []byte(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtSecret)), nil
-	})
-	if err != nil {
-		return res, err
-	}
-
-	if !t.Valid {
-		return res, fmt.Errorf(`invalid token`)
-	}
-
-	// claim parses exp & iat into float 64 with e^10,
-	// but we expect it to be int64
-	// hence we need to assert interface and convert to int64
-	intExp := int64(claims["exp"].(float64))
-	intIat := int64(claims["iat"].(float64))
-
-	data, _ := json.Marshal(claims)
-	json.Unmarshal(data, &res)
-	res["exp"] = intExp
-	res["iat"] = intIat
-
-	return res, nil
-}
-
 func ValidateAccessToken(gc *gin.Context) (map[string]interface{}, error) {
 	token, err := GetAccessToken(gc)
 	if err != nil {
 		return nil, err
 	}
 
-	claims, err := VerifyJWTToken(token)
+	claims, err := ParseJWTToken(token)
 	if err != nil {
 		return nil, err
 	}

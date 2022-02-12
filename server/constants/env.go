@@ -43,6 +43,10 @@ const (
 	EnvKeyJwtType = "JWT_TYPE"
 	// EnvKeyJwtSecret key for env variable JWT_SECRET
 	EnvKeyJwtSecret = "JWT_SECRET"
+	// EnvKeyJwtPrivateKey key for env variable JWT_PRIVATE_KEY
+	EnvKeyJwtPrivateKey = "JWT_PRIVATE_KEY"
+	// EnvKeyJwtPublicKey key for env variable JWT_PUBLIC_KEY
+	EnvKeyJwtPublicKey = "JWT_PUBLIC_KEY"
 	// EnvKeyAllowedOrigins key for env variable ALLOWED_ORIGINS
 	EnvKeyAllowedOrigins = "ALLOWED_ORIGINS"
 	// EnvKeyAppURL key for env variable APP_URL

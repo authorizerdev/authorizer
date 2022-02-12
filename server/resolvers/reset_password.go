@@ -31,12 +31,12 @@ func ResetPasswordResolver(ctx context.Context, params model.ResetPasswordInput)
 	}
 
 	// verify if token exists in db
-	claim, err := token.VerifyVerificationToken(params.Token)
+	claim, err := token.ParseJWTToken(params.Token)
 	if err != nil {
 		return res, fmt.Errorf(`invalid token`)
 	}
 
-	user, err := db.Provider.GetUserByEmail(claim.Email)
+	user, err := db.Provider.GetUserByEmail(claim["email"].(string))
 	if err != nil {
 		return res, err
 	}
