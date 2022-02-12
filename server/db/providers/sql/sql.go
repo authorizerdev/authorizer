@@ -41,9 +41,8 @@ func NewProvider() (*provider, error) {
 			TablePrefix: models.Prefix,
 		},
 	}
-
 	switch envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseType) {
-	case constants.DbTypePostgres:
+	case constants.DbTypePostgres, constants.DbTypeYugabyte:
 		sqlDB, err = gorm.Open(postgres.Open(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL)), ormConfig)
 		break
 	case constants.DbTypeSqlite:

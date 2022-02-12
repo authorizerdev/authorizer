@@ -13,4 +13,6 @@ const (
 	DbTypeArangodb = "arangodb"
 	// DbTypeMongodb is the mongodb database type
 	DbTypeMongodb = "mongodb"
+	// DbTypeYugabyte is the yugabyte database type
+	DbTypeYugabyte = "yugabyte"
 )
