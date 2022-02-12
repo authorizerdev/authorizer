@@ -40,6 +40,8 @@ func EnvResolver(ctx context.Context) (*model.Env, error) {
 	jwtType := store.StringEnv[constants.EnvKeyJwtType]
 	jwtSecret := store.StringEnv[constants.EnvKeyJwtSecret]
 	jwtRoleClaim := store.StringEnv[constants.EnvKeyJwtRoleClaim]
+	jwtPublicKey := store.StringEnv[constants.EnvKeyJwtPublicKey]
+	jwtPrivateKey := store.StringEnv[constants.EnvKeyJwtPrivateKey]
 	allowedOrigins := store.SliceEnv[constants.EnvKeyAllowedOrigins]
 	appURL := store.StringEnv[constants.EnvKeyAppURL]
 	redisURL := store.StringEnv[constants.EnvKeyRedisURL]
@@ -74,6 +76,8 @@ func EnvResolver(ctx context.Context) (*model.Env, error) {
 		SenderEmail:                &senderEmail,
 		JwtType:                    &jwtType,
 		JwtSecret:                  &jwtSecret,
+		JwtPrivateKey:              &jwtPrivateKey,
+		JwtPublicKey:               &jwtPublicKey,
 		JwtRoleClaim:               &jwtRoleClaim,
 		AllowedOrigins:             allowedOrigins,
 		AppURL:                     &appURL,
