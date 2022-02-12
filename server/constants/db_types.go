@@ -15,4 +15,6 @@ const (
 	DbTypeMongodb = "mongodb"
 	// DbTypeYugabyte is the yugabyte database type
 	DbTypeYugabyte = "yugabyte"
+	// DbTypeMariaDB is the mariadb database type
+	DbTypeMariaDB = "mariadb"
 )

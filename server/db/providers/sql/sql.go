@@ -48,7 +48,7 @@ func NewProvider() (*provider, error) {
 	case constants.DbTypeSqlite:
 		sqlDB, err = gorm.Open(sqlite.Open(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL)), ormConfig)
 		break
-	case constants.DbTypeMysql:
+	case constants.DbTypeMysql, constants.DbTypeMariaDB:
 		sqlDB, err = gorm.Open(mysql.Open(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL)), ormConfig)
 		break
 	case constants.DbTypeSqlserver:
