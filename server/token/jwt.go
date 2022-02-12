@@ -12,7 +12,13 @@ import (
 func SignJWTToken(claims jwt.MapClaims) (string, error) {
 	jwtType := envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtType)
 	signingMethod := jwt.GetSigningMethod(jwtType)
+	if signingMethod == nil {
+		return "", errors.New("unsupported signing method")
+	}
 	t := jwt.New(signingMethod)
+	if t == nil {
+		return "", errors.New("unsupported signing method")
+	}
 	t.Claims = claims
 
 	switch signingMethod {
@@ -45,7 +51,7 @@ func ParseJWTToken(token string) (jwt.MapClaims, error) {
 
 	switch signingMethod {
 	case jwt.SigningMethodHS256, jwt.SigningMethodHS384, jwt.SigningMethodHS512:
-		_, err = jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
+		_, err = jwt.ParseWithClaims(token, &claims, func(token *jwt.Token) (interface{}, error) {
 			return []byte(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtSecret)), nil
 		})
 	case jwt.SigningMethodRS256, jwt.SigningMethodRS384, jwt.SigningMethodRS512:
