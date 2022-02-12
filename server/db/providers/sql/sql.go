@@ -44,16 +44,12 @@ func NewProvider() (*provider, error) {
 	switch envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseType) {
 	case constants.DbTypePostgres, constants.DbTypeYugabyte:
 		sqlDB, err = gorm.Open(postgres.Open(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL)), ormConfig)
-		break
 	case constants.DbTypeSqlite:
 		sqlDB, err = gorm.Open(sqlite.Open(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL)), ormConfig)
-		break
 	case constants.DbTypeMysql, constants.DbTypeMariaDB:
 		sqlDB, err = gorm.Open(mysql.Open(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL)), ormConfig)
-		break
 	case constants.DbTypeSqlserver:
 		sqlDB, err = gorm.Open(sqlserver.Open(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL)), ormConfig)
-		break
 	}
 
 	if err != nil {
