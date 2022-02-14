@@ -259,17 +259,6 @@ const InputField = ({
 		);
 	}
 	if (Object.values(SelectInputType).includes(inputType)) {
-		if (inputType === SelectInputType.JWT_TYPE) {
-			return (
-				<Select size="sm" {...props}>
-					{[variables[inputType]].map((value: string) => (
-						<option value="value" key={value}>
-							{value}
-						</option>
-					))}
-				</Select>
-			);
-		}
 		const { options, ...rest } = props;
 		return (
 			<Select
@@ -293,10 +282,18 @@ const InputField = ({
 			<Textarea
 				{...props}
 				size="lg"
-				value={inputData[inputType]}
-				onChange={(e: any) => {
-					setInputData({ ...inputData, [inputType]: e.target.value });
-				}}
+				fontSize={14}
+				value={variables[inputType] ? variables[inputType] : ''}
+				onChange={(
+					event: Event & {
+						target: HTMLInputElement;
+					}
+				) =>
+					setVariables({
+						...variables,
+						[inputType]: event.target.value,
+					})
+				}
 			/>
 		);
 	}

@@ -49,6 +49,8 @@ export const SelectInputType = {
 
 export const TextAreaInputType = {
 	CUSTOM_ACCESS_TOKEN_SCRIPT: 'CUSTOM_ACCESS_TOKEN_SCRIPT',
+	JWT_PRIVATE_KEY: 'JWT_PRIVATE_KEY',
+	JWT_PUBLIC_KEY: 'JWT_PUBLIC_KEY',
 };
 
 export const SwitchInputType = {
@@ -65,4 +67,22 @@ export const DateInputType = {
 export const ArrayInputOperations = {
 	APPEND: 'APPEND',
 	REMOVE: 'REMOVE',
+};
+
+export const HMACEncryptionType = {
+	HS256: 'HS256',
+	HS384: 'HS384',
+	HS512: 'HS512',
+};
+
+export const RSAEncryptionType = {
+	RS256: 'RS256',
+	RS384: 'RS384',
+	RS512: 'RS512',
+};
+
+export const ECDSAEncryptionType = {
+	ES256: 'ES256',
+	ES384: 'ES384',
+	ES512: 'ES512',
 };

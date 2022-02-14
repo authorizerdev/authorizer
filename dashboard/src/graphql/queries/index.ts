@@ -21,6 +21,8 @@ export const EnvVariablesQuery = `
       JWT_TYPE,
       JWT_SECRET,
       JWT_ROLE_CLAIM,
+      JWT_PRIVATE_KEY,
+      JWT_PUBLIC_KEY,
       REDIS_URL,
       SMTP_HOST,
       SMTP_PORT,
