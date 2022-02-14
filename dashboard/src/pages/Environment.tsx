@@ -31,6 +31,9 @@ import {
 	TextInputType,
 	TextAreaInputType,
 	SwitchInputType,
+	HMACEncryptionType,
+	RSAEncryptionType,
+	ECDSAEncryptionType,
 } from '../constants';
 import { UpdateEnvVariables } from '../graphql/mutation';
 import { getObjectDiff, capitalizeFirstLetter } from '../utils';
@@ -48,6 +51,8 @@ interface envVarTypes {
 	JWT_TYPE: string;
 	JWT_SECRET: string;
 	JWT_ROLE_CLAIM: string;
+	JWT_PRIVATE_KEY: string;
+	JWT_PUBLIC_KEY: string;
 	REDIS_URL: string;
 	SMTP_HOST: string;
 	SMTP_PORT: string;
@@ -92,6 +97,8 @@ export default function Environment() {
 		JWT_TYPE: '',
 		JWT_SECRET: '',
 		JWT_ROLE_CLAIM: '',
+		JWT_PRIVATE_KEY: '',
+		JWT_PUBLIC_KEY: '',
 		REDIS_URL: '',
 		SMTP_HOST: '',
 		SMTP_PORT: '',
@@ -177,7 +184,6 @@ export default function Environment() {
 		const {
 			data: { _env: envData },
 		} = await client.query(EnvVariablesQuery).toPromise();
-
 		const diff = getObjectDiff(envVariables, envData);
 		const updatedEnvVariables = diff.reduce(
 			(acc: any, property: string) => ({
@@ -374,39 +380,67 @@ export default function Environment() {
 					<Flex w="30%" justifyContent="start" alignItems="center">
 						<Text fontSize="sm">JWT Type:</Text>
 					</Flex>
-					<Center w="70%">
-						<Flex w="100%" justifyContent="space-between">
-							<Flex flex="2">
-								<InputField
-									variables={envVariables}
-									setVariables={setEnvVariables}
-									inputType={SelectInputType.JWT_TYPE}
-									isDisabled={true}
-									defaultValue={SelectInputType.JWT_TYPE}
-								/>
-							</Flex>
-							<Flex flex="3" justifyContent="center" alignItems="center">
-								<Text fontSize="sm">
-									More JWT types will be enabled in upcoming releases.
-								</Text>
-							</Flex>
-						</Flex>
-					</Center>
-				</Flex>
-				<Flex>
-					<Flex w="30%" justifyContent="start" alignItems="center">
-						<Text fontSize="sm">JWT Secret</Text>
-					</Flex>
-					<Center w="70%">
+					<Flex w="70%">
 						<InputField
 							variables={envVariables}
 							setVariables={setEnvVariables}
-							fieldVisibility={fieldVisibility}
-							setFieldVisibility={setFieldVisibility}
-							inputType={HiddenInputType.JWT_SECRET}
+							inputType={SelectInputType.JWT_TYPE}
+							value={SelectInputType.JWT_TYPE}
+							options={{
+								...HMACEncryptionType,
+								...RSAEncryptionType,
+								...ECDSAEncryptionType,
+							}}
 						/>
-					</Center>
+					</Flex>
 				</Flex>
+				{Object.values(HMACEncryptionType).includes(envVariables.JWT_TYPE) ? (
+					<Flex>
+						<Flex w="30%" justifyContent="start" alignItems="center">
+							<Text fontSize="sm">JWT Secret</Text>
+						</Flex>
+						<Center w="70%">
+							<InputField
+								variables={envVariables}
+								setVariables={setEnvVariables}
+								fieldVisibility={fieldVisibility}
+								setFieldVisibility={setFieldVisibility}
+								inputType={HiddenInputType.JWT_SECRET}
+							/>
+						</Center>
+					</Flex>
+				) : (
+					<>
+						<Flex>
+							<Flex w="30%" justifyContent="start" alignItems="center">
+								<Text fontSize="sm">Public Key</Text>
+							</Flex>
+							<Center w="70%">
+								<InputField
+									variables={envVariables}
+									setVariables={setEnvVariables}
+									inputType={TextAreaInputType.JWT_PUBLIC_KEY}
+									placeholder="Add public key here"
+									minH="25vh"
+								/>
+							</Center>
+						</Flex>
+						<Flex>
+							<Flex w="30%" justifyContent="start" alignItems="center">
+								<Text fontSize="sm">Private Key</Text>
+							</Flex>
+							<Center w="70%">
+								<InputField
+									variables={envVariables}
+									setVariables={setEnvVariables}
+									inputType={TextAreaInputType.JWT_PRIVATE_KEY}
+									placeholder="Add private key here"
+									minH="25vh"
+								/>
+							</Center>
+						</Flex>
+					</>
+				)}
 				<Flex>
 					<Flex w="30%" justifyContent="start" alignItems="center">
 						<Text fontSize="sm">JWT Role Claim:</Text>
