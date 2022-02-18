@@ -3,6 +3,7 @@ package sessionstore
 import (
 	"context"
 	"log"
+	"strings"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/envstore"
@@ -121,6 +122,23 @@ func RemoveSocialLoginState(key string) {
 func InitSession() {
 	if envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyRedisURL) != "" {
 		log.Println("using redis store to save sessions")
+		if isCluster(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyRedisURL)) {
+			clusterOpt, err := getClusterOptions(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyRedisURL))
+			if err != nil {
+				log.Fatalln("Error parsing redis url:", err)
+			}
+			rdb := redis.NewClusterClient(clusterOpt)
+			ctx := context.Background()
+			_, err = rdb.Ping(ctx).Result()
+			if err != nil {
+				log.Fatalln("Error connecting to redis cluster server", err)
+			}
+			SessionStoreObj.RedisMemoryStoreObj = &RedisStore{
+				ctx:   ctx,
+				store: rdb,
+			}
+			return
+		}
 		opt, err := redis.ParseURL(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyRedisURL))
 		if err != nil {
 			log.Fatalln("Error parsing redis url:", err)
@@ -143,4 +161,20 @@ func InitSession() {
 			socialLoginState: map[string]string{},
 		}
 	}
+}
+
+func isCluster(url string) bool {
+	return len(strings.Split(url, ",")) > 1
+}
+
+func getClusterOptions(url string) (*redis.ClusterOptions, error) {
+	hostPortsList := strings.Split(url, ",")
+	opt, err := redis.ParseURL(hostPortsList[0])
+	if err != nil {
+		return nil, err
+	}
+	urls := []string{opt.Addr}
+	urlList := hostPortsList[1:]
+	urls = append(urls, urlList...)
+	return &redis.ClusterOptions{Addrs: urls}, nil
 }

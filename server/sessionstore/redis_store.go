@@ -4,13 +4,11 @@ import (
 	"context"
 	"fmt"
 	"log"
-
-	"github.com/go-redis/redis/v8"
 )
 
 type RedisStore struct {
 	ctx   context.Context
-	store *redis.Client
+	store RedisSessionClient
 }
 
 // AddUserSession adds the user session to redis
