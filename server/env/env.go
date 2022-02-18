@@ -118,6 +118,10 @@ func InitEnv() {
 		}
 	}
 
+	if envData.StringEnv[constants.EnvKeyCustomAccessTokenScript] == "" {
+		envData.StringEnv[constants.EnvKeyCustomAccessTokenScript] = os.Getenv(constants.EnvKeyCustomAccessTokenScript)
+	}
+
 	if envData.StringEnv[constants.EnvKeyJwtPrivateKey] == "" {
 		envData.StringEnv[constants.EnvKeyJwtPrivateKey] = os.Getenv(constants.EnvKeyJwtPrivateKey)
 	}
