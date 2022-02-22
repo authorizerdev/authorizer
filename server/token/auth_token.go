@@ -67,6 +67,9 @@ func CreateRefreshToken(user models.User, roles []string) (string, int64, error)
 	expiresAt := time.Now().Add(expiryBound).Unix()
 
 	customClaims := jwt.MapClaims{
+		"iss":        "",
+		"aud":        "",
+		"sub":        user.ID,
 		"exp":        expiresAt,
 		"iat":        time.Now().Unix(),
 		"token_type": constants.TokenTypeRefreshToken,
@@ -94,6 +97,10 @@ func CreateAccessToken(user models.User, roles []string) (string, int64, error) 
 
 	claimKey := envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtRoleClaim)
 	customClaims := jwt.MapClaims{
+		"iss":           "",
+		"aud":           "",
+		"nonce":         "",
+		"sub":           user.ID,
 		"exp":           expiresAt,
 		"iat":           time.Now().Unix(),
 		"token_type":    constants.TokenTypeAccessToken,
