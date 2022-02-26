@@ -20,8 +20,6 @@ const (
 	EnvKeyAuthorizerURL = "AUTHORIZER_URL"
 	// EnvKeyPort key for env variable PORT
 	EnvKeyPort = "PORT"
-	// EnvKeyClientID key for env variable CLIENT_ID
-	EnvKeyClientID = "CLIENT_ID"
 
 	// EnvKeyAdminSecret key for env variable ADMIN_SECRET
 	EnvKeyAdminSecret = "ADMIN_SECRET"
@@ -95,8 +93,14 @@ const (
 	EnvKeyOrganizationName = "ORGANIZATION_NAME"
 	// EnvKeyOrganizationLogo key for env variable ORGANIZATION_LOGO
 	EnvKeyOrganizationLogo = "ORGANIZATION_LOGO"
-	// EnvKeyIsProd key for env variable IS_PROD
-	EnvKeyIsProd = "IS_PROD"
 	// EnvKeyCustomAccessTokenScript key for env variable CUSTOM_ACCESS_TOKEN_SCRIPT
 	EnvKeyCustomAccessTokenScript = "CUSTOM_ACCESS_TOKEN_SCRIPT"
+
+	// Not Exposed Keys
+	// EnvKeyClientID key for env variable CLIENT_ID
+	EnvKeyClientID = "CLIENT_ID"
+	// EnvKeyJWK key for env variable JWK
+	EnvKeyJWK = "JWK"
+	// EnvKeyIsProd key for env variable IS_PROD
+	EnvKeyIsProd = "IS_PROD"
 )

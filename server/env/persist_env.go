@@ -178,9 +178,5 @@ func PersistEnv() error {
 		}
 	}
 
-	// ID of env is used to identify the config and declared as client id
-	// this client id can be used in `aud` section of JWT token
-	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyClientID, env.ID)
-
 	return nil
 }

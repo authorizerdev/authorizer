@@ -10,18 +10,24 @@ import (
 )
 
 // NewECDSAKey to generate new ECDSA Key if env is not set
-func NewECDSAKey() (*ecdsa.PrivateKey, string, string, error) {
+// returns key instance, private key string, public key string, jwk string, error
+func NewECDSAKey(algo, keyID string) (*ecdsa.PrivateKey, string, string, string, error) {
 	key, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
 	if err != nil {
-		return nil, "", "", err
+		return nil, "", "", "", err
 	}
 
 	privateKey, publicKey, err := AsECDSAStr(key, &key.PublicKey)
 	if err != nil {
-		return nil, "", "", err
+		return nil, "", "", "", err
 	}
 
-	return key, privateKey, publicKey, err
+	jwkPublicKey, err := GetPubJWK(algo, keyID, &key.PublicKey)
+	if err != nil {
+		return nil, "", "", "", err
+	}
+
+	return key, privateKey, publicKey, string(jwkPublicKey), err
 }
 
 // IsECDSA checks if given string is valid ECDSA algo

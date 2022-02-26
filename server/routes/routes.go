@@ -22,6 +22,7 @@ func InitRouter() *gin.Engine {
 	router.GET("/verify_email", handlers.VerifyEmailHandler())
 	// OPEN ID routes
 	router.GET("/.well-known/openid-configuration", handlers.OpenIDConfigurationHandler())
+	router.GET("/.well-known/jwks.json", handlers.JWKsHandler())
 
 	router.LoadHTMLGlob("templates/*")
 	// login page app related routes.

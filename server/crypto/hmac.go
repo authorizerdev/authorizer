@@ -1,11 +1,18 @@
 package crypto
 
-import "github.com/google/uuid"
+import (
+	"github.com/google/uuid"
+)
 
 // NewHMAC key returns new key that can be used to ecnrypt data using HMAC algo
-func NewHMACKey() string {
+// returns key, string, error
+func NewHMACKey(algo, keyID string) (string, string, error) {
 	key := uuid.New().String()
-	return key
+	jwkPublicKey, err := GetPubJWK(algo, keyID, []byte(key))
+	if err != nil {
+		return "", "", err
+	}
+	return key, string(jwkPublicKey), nil
 }
 
 // IsHMACValid checks if given string is valid HMCA algo

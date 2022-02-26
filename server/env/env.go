@@ -11,6 +11,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 )
 
@@ -77,6 +78,13 @@ func InitAllEnv() error {
 		envData = envstore.EnvInMemoryStoreObj.GetEnvStoreClone()
 	}
 
+	clientID := envData.StringEnv[constants.EnvKeyClientID]
+	// unique client id for each instance
+	if clientID == "" {
+		clientID = uuid.New().String()
+		envData.StringEnv[constants.EnvKeyClientID] = clientID
+	}
+
 	if envData.StringEnv[constants.EnvKeyEnv] == "" {
 		envData.StringEnv[constants.EnvKeyEnv] = os.Getenv(constants.EnvKeyEnv)
 		if envData.StringEnv[constants.EnvKeyEnv] == "" {
@@ -126,8 +134,8 @@ func InitAllEnv() error {
 		envData.StringEnv[constants.EnvKeySenderEmail] = os.Getenv(constants.EnvKeySenderEmail)
 	}
 
-	algo := ""
-	if envData.StringEnv[constants.EnvKeyJwtType] == "" {
+	algo := envData.StringEnv[constants.EnvKeyJwtType]
+	if algo == "" {
 		envData.StringEnv[constants.EnvKeyJwtType] = os.Getenv(constants.EnvKeyJwtType)
 		if envData.StringEnv[constants.EnvKeyJwtType] == "" {
 			envData.StringEnv[constants.EnvKeyJwtType] = "RS256"
@@ -143,12 +151,21 @@ func InitAllEnv() error {
 	if envData.StringEnv[constants.EnvKeyJwtSecret] == "" && crypto.IsHMACA(algo) {
 		envData.StringEnv[constants.EnvKeyJwtSecret] = os.Getenv(constants.EnvKeyJwtSecret)
 		if envData.StringEnv[constants.EnvKeyJwtSecret] == "" {
-			envData.StringEnv[constants.EnvKeyJwtSecret] = crypto.NewHMACKey()
+			envData.StringEnv[constants.EnvKeyJwtSecret], envData.StringEnv[constants.EnvKeyJWK], err = crypto.NewHMACKey(algo, clientID)
+			if err != nil {
+				return err
+			}
+		} else {
+			envData.StringEnv[constants.EnvKeyJWK], err = crypto.GetPubJWK(algo, clientID, []byte(envData.StringEnv[constants.EnvKeyJwtSecret]))
+			if err != nil {
+				return err
+			}
+
 		}
 	}
 
 	if crypto.IsRSA(algo) || crypto.IsECDSA(algo) {
-		privateKey, publicKey := "", ""
+		privateKey, publicKey, jwk := "", "", ""
 
 		if envData.StringEnv[constants.EnvKeyJwtPrivateKey] == "" {
 			privateKey = os.Getenv(constants.EnvKeyJwtPrivateKey)
@@ -162,12 +179,12 @@ func InitAllEnv() error {
 		// if either of them is not present generate new keys
 		if privateKey == "" || publicKey == "" {
 			if crypto.IsRSA(algo) {
-				_, privateKey, publicKey, err = crypto.NewRSAKey()
+				_, privateKey, publicKey, jwk, err = crypto.NewRSAKey(algo, clientID)
 				if err != nil {
 					return err
 				}
 			} else if crypto.IsECDSA(algo) {
-				_, privateKey, publicKey, err = crypto.NewECDSAKey()
+				_, privateKey, publicKey, jwk, err = crypto.NewECDSAKey(algo, clientID)
 				if err != nil {
 					return err
 				}
@@ -180,7 +197,12 @@ func InitAllEnv() error {
 					return err
 				}
 
-				_, err = crypto.ParseRsaPublicKeyFromPemStr(publicKey)
+				publicKeyInstance, err := crypto.ParseRsaPublicKeyFromPemStr(publicKey)
+				if err != nil {
+					return err
+				}
+
+				jwk, err = crypto.GetPubJWK(algo, clientID, publicKeyInstance)
 				if err != nil {
 					return err
 				}
@@ -190,15 +212,22 @@ func InitAllEnv() error {
 					return err
 				}
 
-				_, err = crypto.ParseEcdsaPublicKeyFromPemStr(publicKey)
+				publicKeyInstance, err := crypto.ParseEcdsaPublicKeyFromPemStr(publicKey)
+				if err != nil {
+					return err
+				}
+
+				jwk, err = crypto.GetPubJWK(algo, clientID, publicKeyInstance)
 				if err != nil {
 					return err
 				}
 			}
 		}
 
+		envData.StringEnv[constants.EnvKeyJWK] = jwk
 		envData.StringEnv[constants.EnvKeyJwtPrivateKey] = privateKey
 		envData.StringEnv[constants.EnvKeyJwtPublicKey] = publicKey
+
 	}
 
 	if envData.StringEnv[constants.EnvKeyJwtRoleClaim] == "" {
