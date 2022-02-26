@@ -78,7 +78,7 @@ func testSetup() TestSetup {
 	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeySmtpPassword, "test")
 	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeySenderEmail, "info@yopmail.com")
 	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.SliceStoreIdentifier, constants.EnvKeyProtectedRoles, []string{"admin"})
-	env.InitEnv()
+	env.InitAllEnv()
 	sessionstore.InitSession()
 
 	w := httptest.NewRecorder()

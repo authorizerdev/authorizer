@@ -11,7 +11,7 @@ import (
 
 func TestEnvs(t *testing.T) {
 	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyEnvPath, "../../.env.sample")
-	env.InitEnv()
+	env.InitAllEnv()
 	store := envstore.EnvInMemoryStoreObj.GetEnvStoreClone()
 
 	assert.Equal(t, store.StringEnv[constants.EnvKeyEnv], "production")

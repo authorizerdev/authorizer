@@ -20,6 +20,8 @@ const (
 	EnvKeyAuthorizerURL = "AUTHORIZER_URL"
 	// EnvKeyPort key for env variable PORT
 	EnvKeyPort = "PORT"
+	// EnvKeyClientID key for env variable CLIENT_ID
+	EnvKeyClientID = "CLIENT_ID"
 
 	// EnvKeyAdminSecret key for env variable ADMIN_SECRET
 	EnvKeyAdminSecret = "ADMIN_SECRET"

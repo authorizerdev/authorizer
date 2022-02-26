@@ -15,6 +15,40 @@ import (
 	"github.com/google/uuid"
 )
 
+// GetEnvData returns the env data from database
+func GetEnvData() (envstore.Store, error) {
+	var result envstore.Store
+	env, err := db.Provider.GetEnv()
+	// config not found in db
+	if err != nil {
+		return result, err
+	}
+
+	encryptionKey := env.Hash
+	decryptedEncryptionKey, err := utils.DecryptB64(encryptionKey)
+	if err != nil {
+		return result, err
+	}
+
+	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyEncryptionKey, decryptedEncryptionKey)
+	b64DecryptedConfig, err := utils.DecryptB64(env.EnvData)
+	if err != nil {
+		return result, err
+	}
+
+	decryptedConfigs, err := utils.DecryptAES([]byte(b64DecryptedConfig))
+	if err != nil {
+		return result, err
+	}
+
+	err = json.Unmarshal(decryptedConfigs, &result)
+	if err != nil {
+		return result, err
+	}
+
+	return result, err
+}
+
 // PersistEnv persists the environment variables to the database
 func PersistEnv() error {
 	env, err := db.Provider.GetEnv()
@@ -29,22 +63,16 @@ func PersistEnv() error {
 		if err != nil {
 			return err
 		}
-		// configData, err := json.Marshal()
-		// if err != nil {
-		// 	return err
-		// }
-
-		// encryptedConfig, err := utils.EncryptAES(configData)
-		// if err != nil {
-		// 	return err
-		// }
 
 		env = models.Env{
 			Hash:    encodedHash,
 			EnvData: encryptedConfig,
 		}
 
-		db.Provider.AddEnv(env)
+		env, err = db.Provider.AddEnv(env)
+		if err != nil {
+			return err
+		}
 	} else {
 		// decrypt the config data from db
 		// decryption can be done using the hash stored in db
@@ -134,6 +162,7 @@ func PersistEnv() error {
 		}
 
 		envstore.EnvInMemoryStoreObj.UpdateEnvStore(storeData)
+
 		if hasChanged {
 			encryptedConfig, err := utils.EncryptEnvData(storeData)
 			if err != nil {
@@ -147,8 +176,11 @@ func PersistEnv() error {
 				return err
 			}
 		}
-
 	}
+
+	// ID of env is used to identify the config and declared as client id
+	// this client id can be used in `aud` section of JWT token
+	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyClientID, env.ID)
 
 	return nil
 }

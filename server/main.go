@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"log"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
@@ -22,13 +23,20 @@ func main() {
 
 	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyVersion, VERSION)
 
-	env.InitEnv()
+	// initialize required envs (mainly db env & env file path)
+	env.InitRequiredEnv()
+	// initialize db provider
 	db.InitDB()
-	env.PersistEnv()
+	// initialize all envs
+	env.InitAllEnv()
+	// persist all envs
+	err := env.PersistEnv()
+	if err != nil {
+		log.Println("Error persisting env:", err)
+	}
 
 	sessionstore.InitSession()
 	oauth.InitOAuth()
-
 	router := routes.InitRouter()
 
 	router.Run(":" + envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyPort))
