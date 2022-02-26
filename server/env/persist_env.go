@@ -7,12 +7,14 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/google/uuid"
+
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/utils"
-	"github.com/google/uuid"
 )
 
 // GetEnvData returns the env data from database
@@ -107,7 +109,8 @@ func PersistEnv() error {
 		hasChanged := false
 
 		for key, value := range storeData.StringEnv {
-			if key != constants.EnvKeyEncryptionKey {
+			// don't override unexposed envs
+			if key != constants.EnvKeyEncryptionKey && key != constants.EnvKeyClientID && key != constants.EnvKeyJWK {
 				// check only for derivative keys
 				// No need to check for ENCRYPTION_KEY which special key we use for encrypting config data
 				// as we have removed it from json
@@ -160,8 +163,13 @@ func PersistEnv() error {
 				hasChanged = true
 			}
 		}
-
 		envstore.EnvInMemoryStoreObj.UpdateEnvStore(storeData)
+		jwk, err := crypto.GenerateJWKBasedOnEnv()
+		if err != nil {
+			return err
+		}
+		// updating jwk
+		envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyJWK, jwk)
 
 		if hasChanged {
 			encryptedConfig, err := utils.EncryptEnvData(storeData)

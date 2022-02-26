@@ -10,6 +10,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/cookie"
+	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
@@ -31,6 +32,66 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 
 	if !token.IsSuperAdmin(gc) {
 		return res, fmt.Errorf("unauthorized")
+	}
+
+	updatedData := envstore.EnvInMemoryStoreObj.GetEnvStoreClone()
+
+	isJWTUpdated := false
+	algo := updatedData.StringEnv[constants.EnvKeyJwtType]
+	if params.JwtType != nil {
+		algo = *params.JwtType
+		if !crypto.IsHMACA(algo) && !crypto.IsECDSA(algo) && !crypto.IsRSA(algo) {
+			return res, fmt.Errorf("invalid jwt type")
+		}
+
+		updatedData.StringEnv[constants.EnvKeyJwtType] = algo
+		isJWTUpdated = true
+	}
+
+	if params.JwtSecret != nil || params.JwtPublicKey != nil || params.JwtPrivateKey != nil {
+		isJWTUpdated = true
+	}
+
+	if isJWTUpdated {
+		// check if jwt secret is provided
+		if crypto.IsHMACA(algo) {
+			if params.JwtSecret == nil {
+				return res, fmt.Errorf("jwt secret is required for HMAC algorithm")
+			}
+		}
+
+		if crypto.IsRSA(algo) {
+			if params.JwtPrivateKey == nil || params.JwtPublicKey == nil {
+				return res, fmt.Errorf("jwt private and public key is required for RSA (PKCS1) / ECDSA algorithm")
+			}
+
+			_, err = crypto.ParseRsaPrivateKeyFromPemStr(*params.JwtPrivateKey)
+			if err != nil {
+				return res, err
+			}
+
+			_, err := crypto.ParseRsaPublicKeyFromPemStr(*params.JwtPublicKey)
+			if err != nil {
+				return res, err
+			}
+		}
+
+		if crypto.IsECDSA(algo) {
+			if params.JwtPrivateKey == nil || params.JwtPublicKey == nil {
+				return res, fmt.Errorf("jwt private and public key is required for RSA (PKCS1) / ECDSA algorithm")
+			}
+
+			_, err = crypto.ParseEcdsaPrivateKeyFromPemStr(*params.JwtPrivateKey)
+			if err != nil {
+				return res, err
+			}
+
+			_, err := crypto.ParseEcdsaPublicKeyFromPemStr(*params.JwtPublicKey)
+			if err != nil {
+				return res, err
+			}
+		}
+
 	}
 
 	var data map[string]interface{}
@@ -61,7 +122,6 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 
 	}
 
-	updatedData := envstore.EnvInMemoryStoreObj.GetEnvStoreClone()
 	for key, value := range data {
 		if value != nil {
 			fieldType := reflect.TypeOf(value).String()
@@ -117,8 +177,20 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 
 	// Update local store
 	envstore.EnvInMemoryStoreObj.UpdateEnvStore(updatedData)
-	sessionstore.InitSession()
-	oauth.InitOAuth()
+	jwk, err := crypto.GenerateJWKBasedOnEnv()
+	if err != nil {
+		return res, err
+	}
+	// updating jwk
+	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyJWK, jwk)
+	err = sessionstore.InitSession()
+	if err != nil {
+		return res, err
+	}
+	err = oauth.InitOAuth()
+	if err != nil {
+		return res, err
+	}
 
 	// Fetch the current db store and update it
 	env, err := db.Provider.GetEnv()

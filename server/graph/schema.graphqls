@@ -14,6 +14,7 @@ type Pagination {
 
 type Meta {
 	version: String!
+	client_id: String!
 	is_google_login_enabled: Boolean!
 	is_facebook_login_enabled: Boolean!
 	is_github_login_enabled: Boolean!
@@ -86,9 +87,10 @@ type ValidJWTResponse {
 
 type Env {
 	ADMIN_SECRET: String
-	DATABASE_NAME: String
-	DATABASE_URL: String
-	DATABASE_TYPE: String
+	DATABASE_NAME: String!
+	DATABASE_URL: String!
+	DATABASE_TYPE: String!
+	CLIENT_ID: String!
 	CUSTOM_ACCESS_TOKEN_SCRIPT: String
 	SMTP_HOST: String
 	SMTP_PORT: String

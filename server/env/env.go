@@ -148,24 +148,20 @@ func InitAllEnv() error {
 		}
 	}
 
-	if envData.StringEnv[constants.EnvKeyJwtSecret] == "" && crypto.IsHMACA(algo) {
-		envData.StringEnv[constants.EnvKeyJwtSecret] = os.Getenv(constants.EnvKeyJwtSecret)
+	if crypto.IsHMACA(algo) {
 		if envData.StringEnv[constants.EnvKeyJwtSecret] == "" {
-			envData.StringEnv[constants.EnvKeyJwtSecret], envData.StringEnv[constants.EnvKeyJWK], err = crypto.NewHMACKey(algo, clientID)
-			if err != nil {
-				return err
+			envData.StringEnv[constants.EnvKeyJwtSecret] = os.Getenv(constants.EnvKeyJwtSecret)
+			if envData.StringEnv[constants.EnvKeyJwtSecret] == "" {
+				envData.StringEnv[constants.EnvKeyJwtSecret], _, err = crypto.NewHMACKey(algo, clientID)
+				if err != nil {
+					return err
+				}
 			}
-		} else {
-			envData.StringEnv[constants.EnvKeyJWK], err = crypto.GetPubJWK(algo, clientID, []byte(envData.StringEnv[constants.EnvKeyJwtSecret]))
-			if err != nil {
-				return err
-			}
-
 		}
 	}
 
 	if crypto.IsRSA(algo) || crypto.IsECDSA(algo) {
-		privateKey, publicKey, jwk := "", "", ""
+		privateKey, publicKey := "", ""
 
 		if envData.StringEnv[constants.EnvKeyJwtPrivateKey] == "" {
 			privateKey = os.Getenv(constants.EnvKeyJwtPrivateKey)
@@ -179,12 +175,12 @@ func InitAllEnv() error {
 		// if either of them is not present generate new keys
 		if privateKey == "" || publicKey == "" {
 			if crypto.IsRSA(algo) {
-				_, privateKey, publicKey, jwk, err = crypto.NewRSAKey(algo, clientID)
+				_, privateKey, publicKey, _, err = crypto.NewRSAKey(algo, clientID)
 				if err != nil {
 					return err
 				}
 			} else if crypto.IsECDSA(algo) {
-				_, privateKey, publicKey, jwk, err = crypto.NewECDSAKey(algo, clientID)
+				_, privateKey, publicKey, _, err = crypto.NewECDSAKey(algo, clientID)
 				if err != nil {
 					return err
 				}
@@ -197,34 +193,24 @@ func InitAllEnv() error {
 					return err
 				}
 
-				publicKeyInstance, err := crypto.ParseRsaPublicKeyFromPemStr(publicKey)
+				_, err := crypto.ParseRsaPublicKeyFromPemStr(publicKey)
 				if err != nil {
 					return err
 				}
 
-				jwk, err = crypto.GetPubJWK(algo, clientID, publicKeyInstance)
-				if err != nil {
-					return err
-				}
 			} else if crypto.IsECDSA(algo) {
 				_, err = crypto.ParseEcdsaPrivateKeyFromPemStr(privateKey)
 				if err != nil {
 					return err
 				}
 
-				publicKeyInstance, err := crypto.ParseEcdsaPublicKeyFromPemStr(publicKey)
-				if err != nil {
-					return err
-				}
-
-				jwk, err = crypto.GetPubJWK(algo, clientID, publicKeyInstance)
+				_, err := crypto.ParseEcdsaPublicKeyFromPemStr(publicKey)
 				if err != nil {
 					return err
 				}
 			}
 		}
 
-		envData.StringEnv[constants.EnvKeyJWK] = jwk
 		envData.StringEnv[constants.EnvKeyJwtPrivateKey] = privateKey
 		envData.StringEnv[constants.EnvKeyJwtPublicKey] = publicKey
 

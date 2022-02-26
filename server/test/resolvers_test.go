@@ -33,6 +33,7 @@ func TestResolvers(t *testing.T) {
 			envData.EnvData = ""
 			db.Provider.UpdateEnv(envData)
 		}
+		env.InitAllEnv()
 		env.PersistEnv()
 
 		t.Run("should pass tests for "+dbType, func(t *testing.T) {

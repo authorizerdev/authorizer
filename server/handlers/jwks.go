@@ -9,9 +9,18 @@ import (
 )
 
 func JWKsHandler() gin.HandlerFunc {
-	var data map[string]string
-	json.Unmarshal([]byte(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJWK)), &data)
 	return func(c *gin.Context) {
+		var data map[string]string
+		jwk := envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJWK)
+		err := json.Unmarshal([]byte(jwk), &data)
+		if err != nil {
+			c.JSON(500, gin.H{
+				"error": err.Error(),
+			})
+
+			return
+		}
+
 		c.JSON(200, gin.H{
 			"keys": []map[string]string{
 				data,

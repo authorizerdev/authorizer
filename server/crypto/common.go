@@ -3,6 +3,8 @@ package crypto
 import (
 	"crypto/x509"
 
+	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"gopkg.in/square/go-jose.v2"
 )
 
@@ -26,4 +28,46 @@ func GetPubJWK(algo, keyID string, publicKey interface{}) (string, error) {
 		return "", err
 	}
 	return string(jwkPublicKey), nil
+}
+
+// GenerateJWKBasedOnEnv generates JWK based on env
+func GenerateJWKBasedOnEnv() (string, error) {
+	jwk := ""
+	algo := envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtType)
+	clientID := envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyClientID)
+
+	var err error
+	// check if jwt secret is provided
+	if IsHMACA(algo) {
+		jwk, err = GetPubJWK(algo, clientID, []byte(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtSecret)))
+		if err != nil {
+			return "", err
+		}
+	}
+
+	if IsRSA(algo) {
+		publicKeyInstance, err := ParseRsaPublicKeyFromPemStr(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtPublicKey))
+		if err != nil {
+			return "", err
+		}
+
+		jwk, err = GetPubJWK(algo, clientID, publicKeyInstance)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	if IsECDSA(algo) {
+		publicKeyInstance, err := ParseEcdsaPublicKeyFromPemStr(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtPublicKey))
+		if err != nil {
+			return "", err
+		}
+
+		jwk, err = GetPubJWK(algo, clientID, publicKeyInstance)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	return jwk, nil
 }

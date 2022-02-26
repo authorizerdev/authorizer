@@ -10,6 +10,7 @@ import (
 func GetMetaInfo() model.Meta {
 	return model.Meta{
 		Version:                      envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyVersion),
+		ClientID:                     envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyClientID),
 		IsGoogleLoginEnabled:         envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyGoogleClientID) != "" && envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyGoogleClientSecret) != "",
 		IsGithubLoginEnabled:         envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyGithubClientID) != "" && envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyGithubClientSecret) != "",
 		IsFacebookLoginEnabled:       envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyFacebookClientID) != "" && envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyFacebookClientSecret) != "",

@@ -59,8 +59,6 @@ const (
 	EnvKeyAdminCookieName = "ADMIN_COOKIE_NAME"
 	// EnvKeyResetPasswordURL key for env variable RESET_PASSWORD_URL
 	EnvKeyResetPasswordURL = "RESET_PASSWORD_URL"
-	// EnvKeyEncryptionKey key for env variable ENCRYPTION_KEY
-	EnvKeyEncryptionKey = "ENCRYPTION_KEY"
 	// EnvKeyDisableEmailVerification key for env variable DISABLE_EMAIL_VERIFICATION
 	EnvKeyDisableEmailVerification = "DISABLE_EMAIL_VERIFICATION"
 	// EnvKeyDisableBasicAuthentication key for env variable DISABLE_BASIC_AUTH
@@ -99,6 +97,8 @@ const (
 	// Not Exposed Keys
 	// EnvKeyClientID key for env variable CLIENT_ID
 	EnvKeyClientID = "CLIENT_ID"
+	// EnvKeyEncryptionKey key for env variable ENCRYPTION_KEY
+	EnvKeyEncryptionKey = "ENCRYPTION_KEY"
 	// EnvKeyJWK key for env variable JWK
 	EnvKeyJWK = "JWK"
 	// EnvKeyIsProd key for env variable IS_PROD

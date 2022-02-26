@@ -23,9 +23,10 @@ type DeleteUserInput struct {
 
 type Env struct {
 	AdminSecret                *string  `json:"ADMIN_SECRET"`
-	DatabaseName               *string  `json:"DATABASE_NAME"`
-	DatabaseURL                *string  `json:"DATABASE_URL"`
-	DatabaseType               *string  `json:"DATABASE_TYPE"`
+	DatabaseName               string   `json:"DATABASE_NAME"`
+	DatabaseURL                string   `json:"DATABASE_URL"`
+	DatabaseType               string   `json:"DATABASE_TYPE"`
+	ClientID                   string   `json:"CLIENT_ID"`
 	CustomAccessTokenScript    *string  `json:"CUSTOM_ACCESS_TOKEN_SCRIPT"`
 	SMTPHost                   *string  `json:"SMTP_HOST"`
 	SMTPPort                   *string  `json:"SMTP_PORT"`
@@ -86,6 +87,7 @@ type MagicLinkLoginInput struct {
 
 type Meta struct {
 	Version                      string `json:"version"`
+	ClientID                     string `json:"client_id"`
 	IsGoogleLoginEnabled         bool   `json:"is_google_login_enabled"`
 	IsFacebookLoginEnabled       bool   `json:"is_facebook_login_enabled"`
 	IsGithubLoginEnabled         bool   `json:"is_github_login_enabled"`
