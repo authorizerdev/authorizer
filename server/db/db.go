@@ -1,8 +1,6 @@
 package db
 
 import (
-	"log"
-
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db/providers"
 	"github.com/authorizerdev/authorizer/server/db/providers/arangodb"
@@ -14,7 +12,7 @@ import (
 // Provider returns the current database provider
 var Provider providers.Provider
 
-func InitDB() {
+func InitDB() error {
 	var err error
 
 	isSQL := envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseType) != constants.DbTypeArangodb && envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseType) != constants.DbTypeMongodb
@@ -24,21 +22,23 @@ func InitDB() {
 	if isSQL {
 		Provider, err = sql.NewProvider()
 		if err != nil {
-			log.Fatal("=> error setting sql provider:", err)
+			return err
 		}
 	}
 
 	if isArangoDB {
 		Provider, err = arangodb.NewProvider()
 		if err != nil {
-			log.Fatal("=> error setting arangodb provider:", err)
+			return err
 		}
 	}
 
 	if isMongoDB {
 		Provider, err = mongodb.NewProvider()
 		if err != nil {
-			log.Fatal("=> error setting arangodb provider:", err)
+			return err
 		}
 	}
+
+	return nil
 }

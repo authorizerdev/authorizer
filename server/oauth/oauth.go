@@ -2,7 +2,6 @@ package oauth
 
 import (
 	"context"
-	"log"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/envstore"
@@ -32,12 +31,12 @@ var (
 )
 
 // InitOAuth initializes the OAuth providers based on EnvData
-func InitOAuth() {
+func InitOAuth() error {
 	ctx := context.Background()
 	if envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyGoogleClientID) != "" && envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyGoogleClientSecret) != "" {
 		p, err := oidc.NewProvider(ctx, "https://accounts.google.com")
 		if err != nil {
-			log.Fatalln("error creating oidc provider for google:", err)
+			return err
 		}
 		OIDCProviders.GoogleOIDC = p
 		OAuthProviders.GoogleConfig = &oauth2.Config{
@@ -65,4 +64,6 @@ func InitOAuth() {
 			Scopes:       []string{"public_profile", "email"},
 		}
 	}
+
+	return nil
 }

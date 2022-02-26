@@ -1,7 +1,7 @@
 package env
 
 import (
-	"fmt"
+	"errors"
 	"log"
 	"os"
 	"strings"
@@ -15,7 +15,7 @@ import (
 )
 
 // InitRequiredEnv to initialize EnvData and through error if required env are not present
-func InitRequiredEnv() {
+func InitRequiredEnv() error {
 	envPath := os.Getenv(constants.EnvKeyEnvPath)
 
 	if envPath == "" {
@@ -35,23 +35,23 @@ func InitRequiredEnv() {
 	dbType := os.Getenv(constants.EnvKeyDatabaseType)
 	dbName := os.Getenv(constants.EnvKeyDatabaseName)
 
-	if dbType == "" {
+	if strings.TrimSpace(dbType) == "" {
 		if envstore.ARG_DB_TYPE != nil && *envstore.ARG_DB_TYPE != "" {
-			dbType = *envstore.ARG_DB_TYPE
+			dbType = strings.TrimSpace(*envstore.ARG_DB_TYPE)
 		}
 
 		if dbType == "" {
-			panic("DATABASE_TYPE is required")
+			return errors.New("invalid database type. DATABASE_TYPE is empty")
 		}
 	}
 
-	if dbURL == "" {
+	if strings.TrimSpace(dbURL) == "" {
 		if envstore.ARG_DB_URL != nil && *envstore.ARG_DB_URL != "" {
-			dbURL = *envstore.ARG_DB_URL
+			dbURL = strings.TrimSpace(*envstore.ARG_DB_URL)
 		}
 
 		if dbURL == "" {
-			panic("DATABASE_URL is required")
+			return errors.New("invalid database url. DATABASE_URL is required")
 		}
 	}
 
@@ -65,10 +65,11 @@ func InitRequiredEnv() {
 	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseURL, dbURL)
 	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseType, dbType)
 	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseName, dbName)
+	return nil
 }
 
 // InitEnv to initialize EnvData and through error if required env are not present
-func InitAllEnv() {
+func InitAllEnv() error {
 	envData, err := GetEnvData()
 	if err != nil {
 		log.Println("No env data found in db, using local clone of env data")
@@ -134,7 +135,7 @@ func InitAllEnv() {
 		} else {
 			algo = envData.StringEnv[constants.EnvKeyJwtType]
 			if !crypto.IsHMACA(algo) && !crypto.IsRSA(algo) && !crypto.IsECDSA(algo) {
-				panic("JWT_TYPE is invalid")
+				return errors.New("invalid JWT_TYPE")
 			}
 		}
 	}
@@ -163,12 +164,12 @@ func InitAllEnv() {
 			if crypto.IsRSA(algo) {
 				_, privateKey, publicKey, err = crypto.NewRSAKey()
 				if err != nil {
-					panic(err)
+					return err
 				}
 			} else if crypto.IsECDSA(algo) {
 				_, privateKey, publicKey, err = crypto.NewECDSAKey()
 				if err != nil {
-					panic(err)
+					return err
 				}
 			}
 		} else {
@@ -176,28 +177,26 @@ func InitAllEnv() {
 			if crypto.IsRSA(algo) {
 				_, err = crypto.ParseRsaPrivateKeyFromPemStr(privateKey)
 				if err != nil {
-					panic(err)
+					return err
 				}
 
 				_, err = crypto.ParseRsaPublicKeyFromPemStr(publicKey)
 				if err != nil {
-					panic(err)
+					return err
 				}
 			} else if crypto.IsECDSA(algo) {
 				_, err = crypto.ParseEcdsaPrivateKeyFromPemStr(privateKey)
 				if err != nil {
-					panic(err)
+					return err
 				}
 
 				_, err = crypto.ParseEcdsaPublicKeyFromPemStr(publicKey)
 				if err != nil {
-					panic(err)
+					return err
 				}
 			}
-			fmt.Println("=> keys parsed successfully")
 		}
-		fmt.Println(privateKey)
-		fmt.Println(publicKey)
+
 		envData.StringEnv[constants.EnvKeyJwtPrivateKey] = privateKey
 		envData.StringEnv[constants.EnvKeyJwtPublicKey] = publicKey
 	}
@@ -333,7 +332,7 @@ func InitAllEnv() {
 	}
 
 	if len(roles) > 0 && len(defaultRoles) == 0 && len(defaultRolesEnv) > 0 {
-		panic(`Invalid DEFAULT_ROLE environment variable. It can be one from give ROLES environment variable value`)
+		return errors.New(`invalid DEFAULT_ROLE environment variable. It can be one from give ROLES environment variable value`)
 	}
 
 	envData.SliceEnv[constants.EnvKeyRoles] = roles
@@ -349,4 +348,5 @@ func InitAllEnv() {
 	}
 
 	envstore.EnvInMemoryStoreObj.UpdateEnvStore(envData)
+	return nil
 }
