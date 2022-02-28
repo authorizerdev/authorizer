@@ -37,9 +37,9 @@ func verificationRequestsTest(t *testing.T, s TestSetup) {
 		requests, err := resolvers.VerificationRequestsResolver(ctx, pagination)
 		assert.NotNil(t, err, "unauthorized")
 
-		h, err := utils.EncryptPassword(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret))
+		h, err := utils.EncryptPassword(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret))
 		assert.Nil(t, err)
-		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminCookieName), h))
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminCookieName), h))
 		requests, err = resolvers.VerificationRequestsResolver(ctx, pagination)
 
 		assert.Nil(t, err)

@@ -41,15 +41,15 @@ func NewProvider() (*provider, error) {
 			TablePrefix: models.Prefix,
 		},
 	}
-	switch envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseType) {
+	switch envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseType) {
 	case constants.DbTypePostgres, constants.DbTypeYugabyte:
-		sqlDB, err = gorm.Open(postgres.Open(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL)), ormConfig)
+		sqlDB, err = gorm.Open(postgres.Open(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL)), ormConfig)
 	case constants.DbTypeSqlite:
-		sqlDB, err = gorm.Open(sqlite.Open(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL)), ormConfig)
+		sqlDB, err = gorm.Open(sqlite.Open(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL)), ormConfig)
 	case constants.DbTypeMysql, constants.DbTypeMariaDB:
-		sqlDB, err = gorm.Open(mysql.Open(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL)), ormConfig)
+		sqlDB, err = gorm.Open(mysql.Open(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL)), ormConfig)
 	case constants.DbTypeSqlserver:
-		sqlDB, err = gorm.Open(sqlserver.Open(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL)), ormConfig)
+		sqlDB, err = gorm.Open(sqlserver.Open(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL)), ormConfig)
 	}
 
 	if err != nil {

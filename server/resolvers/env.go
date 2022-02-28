@@ -26,7 +26,7 @@ func EnvResolver(ctx context.Context) (*model.Env, error) {
 	}
 
 	// get clone of store
-	store := envstore.EnvInMemoryStoreObj.GetEnvStoreClone()
+	store := envstore.EnvStoreObj.GetEnvStoreClone()
 	adminSecret := store.StringEnv[constants.EnvKeyAdminSecret]
 	clientID := store.StringEnv[constants.EnvKeyClientID]
 	databaseURL := store.StringEnv[constants.EnvKeyDatabaseURL]

@@ -17,7 +17,7 @@ import (
 // ResetPasswordResolver is a resolver for reset password mutation
 func ResetPasswordResolver(ctx context.Context, params model.ResetPasswordInput) (*model.Response, error) {
 	var res *model.Response
-	if envstore.EnvInMemoryStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableBasicAuthentication) {
+	if envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableBasicAuthentication) {
 		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
 	}
 

@@ -46,7 +46,7 @@ func sessionTests(t *testing.T, s TestSetup) {
 		fingerPrintHash, _ := utils.EncryptAES([]byte(fingerPrint))
 
 		token := *verifyRes.AccessToken
-		cookie := fmt.Sprintf("%s=%s;%s=%s;%s=%s", envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+".fingerprint", url.QueryEscape(string(fingerPrintHash)), envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+".refresh_token", refreshToken, envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+".access_token", token)
+		cookie := fmt.Sprintf("%s=%s;%s=%s;%s=%s", envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+".fingerprint", url.QueryEscape(string(fingerPrintHash)), envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+".refresh_token", refreshToken, envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+".access_token", token)
 
 		req.Header.Set("Cookie", cookie)
 

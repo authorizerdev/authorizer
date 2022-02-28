@@ -25,7 +25,7 @@ func AdminSessionResolver(ctx context.Context) (*model.Response, error) {
 		return res, fmt.Errorf("unauthorized")
 	}
 
-	hashedKey, err := utils.EncryptPassword(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret))
+	hashedKey, err := utils.EncryptPassword(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret))
 	if err != nil {
 		return res, err
 	}

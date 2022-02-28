@@ -36,7 +36,7 @@ func updateProfileTests(t *testing.T, s TestSetup) {
 		})
 
 		token := *verifyRes.AccessToken
-		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+".access_token", token))
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+".access_token", token))
 		_, err = resolvers.UpdateProfileResolver(ctx, model.UpdateProfileInput{
 			FamilyName: &fName,
 		})

@@ -20,7 +20,7 @@ func AdminLoginResolver(ctx context.Context, params model.AdminLoginInput) (*mod
 		return res, err
 	}
 
-	adminSecret := envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret)
+	adminSecret := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret)
 	if params.AdminSecret != adminSecret {
 		return res, fmt.Errorf(`invalid admin secret`)
 	}

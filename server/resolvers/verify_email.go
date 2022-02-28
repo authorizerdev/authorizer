@@ -24,13 +24,13 @@ func VerifyEmailResolver(ctx context.Context, params model.VerifyEmailInput) (*m
 
 	verificationRequest, err := db.Provider.GetVerificationRequestByToken(params.Token)
 	if err != nil {
-		return res, fmt.Errorf(`invalid token`)
+		return res, fmt.Errorf(`invalid token: %s`, err.Error())
 	}
 
 	// verify if token exists in db
 	claim, err := token.ParseJWTToken(params.Token)
 	if err != nil {
-		return res, fmt.Errorf(`invalid token`)
+		return res, fmt.Errorf(`invalid token: %s`, err.Error())
 	}
 
 	user, err := db.Provider.GetUserByEmail(claim["email"].(string))

@@ -95,10 +95,10 @@ func CreateAccessToken(user models.User, roles []string) (string, int64, error) 
 	var userMap map[string]interface{}
 	json.Unmarshal(userBytes, &userMap)
 
-	claimKey := envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtRoleClaim)
+	claimKey := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtRoleClaim)
 	customClaims := jwt.MapClaims{
 		"iss":           "",
-		"aud":           envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyClientID),
+		"aud":           envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyClientID),
 		"nonce":         "",
 		"sub":           user.ID,
 		"exp":           expiresAt,

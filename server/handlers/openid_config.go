@@ -12,7 +12,7 @@ import (
 func OpenIDConfigurationHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		issuer := utils.GetHost(c)
-		jwtType := envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtType)
+		jwtType := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtType)
 
 		c.JSON(200, gin.H{
 			"issuer":                                issuer,

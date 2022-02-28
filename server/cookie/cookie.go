@@ -31,23 +31,23 @@ func SetCookie(gc *gin.Context, accessToken, refreshToken, fingerprintHash strin
 
 	gc.SetSameSite(http.SameSiteNoneMode)
 	// set cookie for host
-	gc.SetCookie(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+".access_token", accessToken, thirtyMin, "/", host, secure, httpOnly)
+	gc.SetCookie(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+".access_token", accessToken, thirtyMin, "/", host, secure, httpOnly)
 
 	// in case of subdomain, set cookie for domain
-	gc.SetCookie(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+".access_token.domain", accessToken, thirtyMin, "/", domain, secure, httpOnly)
+	gc.SetCookie(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+".access_token.domain", accessToken, thirtyMin, "/", domain, secure, httpOnly)
 
 	// set finger print cookie (this should be accessed via cookie only)
-	gc.SetCookie(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+".fingerprint", fingerprintHash, year, "/", host, secure, httpOnly)
+	gc.SetCookie(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+".fingerprint", fingerprintHash, year, "/", host, secure, httpOnly)
 
 	// set refresh token cookie (this should be accessed via cookie only)
-	gc.SetCookie(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+".refresh_token", refreshToken, year, "/", host, secure, httpOnly)
+	gc.SetCookie(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+".refresh_token", refreshToken, year, "/", host, secure, httpOnly)
 }
 
 // GetAccessTokenCookie to get access token cookie from the request
 func GetAccessTokenCookie(gc *gin.Context) (string, error) {
-	cookie, err := gc.Request.Cookie(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName) + ".access_token")
+	cookie, err := gc.Request.Cookie(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName) + ".access_token")
 	if err != nil {
-		cookie, err = gc.Request.Cookie(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName) + ".access_token.domain")
+		cookie, err = gc.Request.Cookie(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName) + ".access_token.domain")
 		if err != nil {
 			return "", err
 		}
@@ -58,7 +58,7 @@ func GetAccessTokenCookie(gc *gin.Context) (string, error) {
 
 // GetRefreshTokenCookie to get refresh token cookie
 func GetRefreshTokenCookie(gc *gin.Context) (string, error) {
-	cookie, err := gc.Request.Cookie(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName) + ".refresh_token")
+	cookie, err := gc.Request.Cookie(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName) + ".refresh_token")
 	if err != nil {
 		return "", err
 	}
@@ -68,7 +68,7 @@ func GetRefreshTokenCookie(gc *gin.Context) (string, error) {
 
 // GetFingerPrintCookie to get fingerprint cookie
 func GetFingerPrintCookie(gc *gin.Context) (string, error) {
-	cookie, err := gc.Request.Cookie(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName) + ".fingerprint")
+	cookie, err := gc.Request.Cookie(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName) + ".fingerprint")
 	if err != nil {
 		return "", err
 	}
@@ -95,8 +95,8 @@ func DeleteCookie(gc *gin.Context) {
 	}
 
 	gc.SetSameSite(http.SameSiteNoneMode)
-	gc.SetCookie(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+".access_token", "", -1, "/", host, secure, httpOnly)
-	gc.SetCookie(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+".access_token.domain", "", -1, "/", domain, secure, httpOnly)
-	gc.SetCookie(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+".fingerprint", "", -1, "/", host, secure, httpOnly)
-	gc.SetCookie(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+".refresh_token", "", -1, "/", host, secure, httpOnly)
+	gc.SetCookie(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+".access_token", "", -1, "/", host, secure, httpOnly)
+	gc.SetCookie(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+".access_token.domain", "", -1, "/", domain, secure, httpOnly)
+	gc.SetCookie(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+".fingerprint", "", -1, "/", host, secure, httpOnly)
+	gc.SetCookie(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+".refresh_token", "", -1, "/", host, secure, httpOnly)
 }

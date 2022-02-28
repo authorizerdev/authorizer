@@ -32,7 +32,7 @@ func GetEnvData() (envstore.Store, error) {
 		return result, err
 	}
 
-	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyEncryptionKey, decryptedEncryptionKey)
+	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyEncryptionKey, decryptedEncryptionKey)
 	b64DecryptedConfig, err := utils.DecryptB64(env.EnvData)
 	if err != nil {
 		return result, err
@@ -58,10 +58,10 @@ func PersistEnv() error {
 	if err != nil {
 		// AES encryption needs 32 bit key only, so we chop off last 4 characters from 36 bit uuid
 		hash := uuid.New().String()[:36-4]
-		envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyEncryptionKey, hash)
+		envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyEncryptionKey, hash)
 		encodedHash := utils.EncryptB64(hash)
 
-		encryptedConfig, err := utils.EncryptEnvData(envstore.EnvInMemoryStoreObj.GetEnvStoreClone())
+		encryptedConfig, err := utils.EncryptEnvData(envstore.EnvStoreObj.GetEnvStoreClone())
 		if err != nil {
 			return err
 		}
@@ -84,7 +84,7 @@ func PersistEnv() error {
 			return err
 		}
 
-		envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyEncryptionKey, decryptedEncryptionKey)
+		envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyEncryptionKey, decryptedEncryptionKey)
 		b64DecryptedConfig, err := utils.DecryptB64(env.EnvData)
 		if err != nil {
 			return err
@@ -163,13 +163,13 @@ func PersistEnv() error {
 				hasChanged = true
 			}
 		}
-		envstore.EnvInMemoryStoreObj.UpdateEnvStore(storeData)
+		envstore.EnvStoreObj.UpdateEnvStore(storeData)
 		jwk, err := crypto.GenerateJWKBasedOnEnv()
 		if err != nil {
 			return err
 		}
 		// updating jwk
-		envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyJWK, jwk)
+		envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyJWK, jwk)
 
 		if hasChanged {
 			encryptedConfig, err := utils.EncryptEnvData(storeData)

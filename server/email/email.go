@@ -32,13 +32,13 @@ func addEmailTemplate(a string, b map[string]interface{}, templateName string) s
 // SendMail function to send mail
 func SendMail(to []string, Subject, bodyMessage string) error {
 	m := gomail.NewMessage()
-	m.SetHeader("From", envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeySenderEmail))
+	m.SetHeader("From", envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeySenderEmail))
 	m.SetHeader("To", to...)
 	m.SetHeader("Subject", Subject)
 	m.SetBody("text/html", bodyMessage)
-	port, _ := strconv.Atoi(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeySmtpPort))
-	d := gomail.NewDialer(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeySmtpHost), port, envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeySmtpUsername), envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeySmtpPassword))
-	if envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyEnv) == "development" {
+	port, _ := strconv.Atoi(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeySmtpPort))
+	d := gomail.NewDialer(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeySmtpHost), port, envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeySmtpUsername), envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeySmtpPassword))
+	if envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyEnv) == "development" {
 		d.TLSConfig = &tls.Config{InsecureSkipVerify: true}
 	}
 	if err := d.DialAndSend(m); err != nil {

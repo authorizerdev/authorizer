@@ -34,7 +34,7 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 		return res, fmt.Errorf("unauthorized")
 	}
 
-	updatedData := envstore.EnvInMemoryStoreObj.GetEnvStoreClone()
+	updatedData := envstore.EnvStoreObj.GetEnvStoreClone()
 
 	isJWTUpdated := false
 	algo := updatedData.StringEnv[constants.EnvKeyJwtType]
@@ -111,7 +111,7 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 			return res, errors.New("admin secret and old admin secret are required for secret change")
 		}
 
-		if *params.OldAdminSecret != envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret) {
+		if *params.OldAdminSecret != envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret) {
 			return res, errors.New("old admin secret is not correct")
 		}
 
@@ -176,13 +176,13 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 	}
 
 	// Update local store
-	envstore.EnvInMemoryStoreObj.UpdateEnvStore(updatedData)
+	envstore.EnvStoreObj.UpdateEnvStore(updatedData)
 	jwk, err := crypto.GenerateJWKBasedOnEnv()
 	if err != nil {
 		return res, err
 	}
 	// updating jwk
-	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyJWK, jwk)
+	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyJWK, jwk)
 	err = sessionstore.InitSession()
 	if err != nil {
 		return res, err
@@ -199,7 +199,7 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 	}
 
 	if params.AdminSecret != nil {
-		hashedKey, err := utils.EncryptPassword(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret))
+		hashedKey, err := utils.EncryptPassword(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret))
 		if err != nil {
 			return res, err
 		}

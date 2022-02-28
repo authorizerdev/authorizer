@@ -13,7 +13,7 @@ import (
 
 // CreateAdminAuthToken creates the admin token based on secret key
 func CreateAdminAuthToken(tokenType string, c *gin.Context) (string, error) {
-	return utils.EncryptPassword(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret))
+	return utils.EncryptPassword(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret))
 }
 
 // GetAdminAuthToken helps in getting the admin token from the request cookie
@@ -23,7 +23,7 @@ func GetAdminAuthToken(gc *gin.Context) (string, error) {
 		return "", fmt.Errorf("unauthorized")
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(token), []byte(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret)))
+	err = bcrypt.CompareHashAndPassword([]byte(token), []byte(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret)))
 
 	if err != nil {
 		return "", fmt.Errorf(`unauthorized`)
@@ -41,7 +41,7 @@ func IsSuperAdmin(gc *gin.Context) bool {
 			return false
 		}
 
-		return secret == envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret)
+		return secret == envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret)
 	}
 
 	return token != ""

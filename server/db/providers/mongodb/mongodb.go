@@ -19,7 +19,7 @@ type provider struct {
 
 // NewProvider to initialize mongodb connection
 func NewProvider() (*provider, error) {
-	mongodbOptions := options.Client().ApplyURI(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL))
+	mongodbOptions := options.Client().ApplyURI(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL))
 	maxWait := time.Duration(5 * time.Second)
 	mongodbOptions.ConnectTimeout = &maxWait
 	mongoClient, err := mongo.NewClient(mongodbOptions)
@@ -37,7 +37,7 @@ func NewProvider() (*provider, error) {
 		return nil, err
 	}
 
-	mongodb := mongoClient.Database(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseName), options.Database())
+	mongodb := mongoClient.Database(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseName), options.Database())
 
 	mongodb.CreateCollection(ctx, models.Collections.User, options.CreateCollection())
 	userCollection := mongodb.Collection(models.Collections.User, options.Collection())

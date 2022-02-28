@@ -20,7 +20,10 @@ func InitRequiredEnv() error {
 	envPath := os.Getenv(constants.EnvKeyEnvPath)
 
 	if envPath == "" {
-		envPath = `.env`
+		envPath = envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyEnvPath)
+		if envPath == "" {
+			envPath = `.env`
+		}
 	}
 
 	if envstore.ARG_ENV_FILE != nil && *envstore.ARG_ENV_FILE != "" {
@@ -46,7 +49,7 @@ func InitRequiredEnv() error {
 		}
 	}
 
-	if strings.TrimSpace(dbURL) == "" {
+	if strings.TrimSpace(dbURL) == "" && envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL) == "" {
 		if envstore.ARG_DB_URL != nil && *envstore.ARG_DB_URL != "" {
 			dbURL = strings.TrimSpace(*envstore.ARG_DB_URL)
 		}
@@ -62,10 +65,10 @@ func InitRequiredEnv() error {
 		}
 	}
 
-	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyEnvPath, envPath)
-	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseURL, dbURL)
-	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseType, dbType)
-	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseName, dbName)
+	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyEnvPath, envPath)
+	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseURL, dbURL)
+	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseType, dbType)
+	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseName, dbName)
 	return nil
 }
 
@@ -75,7 +78,7 @@ func InitAllEnv() error {
 	if err != nil {
 		log.Println("No env data found in db, using local clone of env data")
 		// get clone of current store
-		envData = envstore.EnvInMemoryStoreObj.GetEnvStoreClone()
+		envData = envstore.EnvStoreObj.GetEnvStoreClone()
 	}
 
 	clientID := envData.StringEnv[constants.EnvKeyClientID]
@@ -362,6 +365,6 @@ func InitAllEnv() error {
 		envData.StringEnv[constants.EnvKeyOrganizationLogo] = os.Getenv(constants.EnvKeyOrganizationLogo)
 	}
 
-	envstore.EnvInMemoryStoreObj.UpdateEnvStore(envData)
+	envstore.EnvStoreObj.UpdateEnvStore(envData)
 	return nil
 }

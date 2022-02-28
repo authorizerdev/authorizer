@@ -33,18 +33,18 @@ func AdminSignupResolver(ctx context.Context, params model.AdminSignupInput) (*m
 		return res, err
 	}
 
-	adminSecret := envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret)
+	adminSecret := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret)
 
 	if adminSecret != "" {
 		err = fmt.Errorf("admin sign up already completed")
 		return res, err
 	}
 
-	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyAdminSecret, params.AdminSecret)
+	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyAdminSecret, params.AdminSecret)
 	// consvert EnvData to JSON
 	var storeData envstore.Store
 
-	jsonBytes, err := json.Marshal(envstore.EnvInMemoryStoreObj.GetEnvStoreClone())
+	jsonBytes, err := json.Marshal(envstore.EnvStoreObj.GetEnvStoreClone())
 	if err != nil {
 		return res, err
 	}

@@ -4,13 +4,14 @@ import (
 	"errors"
 
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/golang-jwt/jwt"
 )
 
 // SignJWTToken common util to sing jwt token
 func SignJWTToken(claims jwt.MapClaims) (string, error) {
-	jwtType := envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtType)
+	jwtType := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtType)
 	signingMethod := jwt.GetSigningMethod(jwtType)
 	if signingMethod == nil {
 		return "", errors.New("unsupported signing method")
@@ -23,18 +24,19 @@ func SignJWTToken(claims jwt.MapClaims) (string, error) {
 
 	switch signingMethod {
 	case jwt.SigningMethodHS256, jwt.SigningMethodHS384, jwt.SigningMethodHS512:
-		return t.SignedString([]byte(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtSecret)))
+		return t.SignedString([]byte(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtSecret)))
 	case jwt.SigningMethodRS256, jwt.SigningMethodRS384, jwt.SigningMethodRS512:
-		key, err := jwt.ParseRSAPrivateKeyFromPEM([]byte(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtPrivateKey)))
+		key, err := crypto.ParseRsaPrivateKeyFromPemStr(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtPrivateKey))
 		if err != nil {
 			return "", err
 		}
 		return t.SignedString(key)
 	case jwt.SigningMethodES256, jwt.SigningMethodES384, jwt.SigningMethodES512:
-		key, err := jwt.ParseECPrivateKeyFromPEM([]byte(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtPrivateKey)))
+		key, err := crypto.ParseEcdsaPrivateKeyFromPemStr(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtPrivateKey))
 		if err != nil {
 			return "", err
 		}
+
 		return t.SignedString(key)
 	default:
 		return "", errors.New("unsupported signing method")
@@ -43,7 +45,7 @@ func SignJWTToken(claims jwt.MapClaims) (string, error) {
 
 // ParseJWTToken common util to parse jwt token
 func ParseJWTToken(token string) (jwt.MapClaims, error) {
-	jwtType := envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtType)
+	jwtType := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtType)
 	signingMethod := jwt.GetSigningMethod(jwtType)
 
 	var err error
@@ -52,11 +54,11 @@ func ParseJWTToken(token string) (jwt.MapClaims, error) {
 	switch signingMethod {
 	case jwt.SigningMethodHS256, jwt.SigningMethodHS384, jwt.SigningMethodHS512:
 		_, err = jwt.ParseWithClaims(token, &claims, func(token *jwt.Token) (interface{}, error) {
-			return []byte(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtSecret)), nil
+			return []byte(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtSecret)), nil
 		})
 	case jwt.SigningMethodRS256, jwt.SigningMethodRS384, jwt.SigningMethodRS512:
 		_, err = jwt.ParseWithClaims(token, &claims, func(token *jwt.Token) (interface{}, error) {
-			key, err := jwt.ParseRSAPublicKeyFromPEM([]byte(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtPublicKey)))
+			key, err := crypto.ParseRsaPublicKeyFromPemStr(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtPublicKey))
 			if err != nil {
 				return nil, err
 			}
@@ -64,7 +66,7 @@ func ParseJWTToken(token string) (jwt.MapClaims, error) {
 		})
 	case jwt.SigningMethodES256, jwt.SigningMethodES384, jwt.SigningMethodES512:
 		_, err = jwt.ParseWithClaims(token, &claims, func(token *jwt.Token) (interface{}, error) {
-			key, err := jwt.ParseECPublicKeyFromPEM([]byte(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtPublicKey)))
+			key, err := crypto.ParseEcdsaPublicKeyFromPemStr(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtPublicKey))
 			if err != nil {
 				return nil, err
 			}

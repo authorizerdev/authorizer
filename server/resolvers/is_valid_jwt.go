@@ -31,7 +31,7 @@ func IsValidJwtResolver(ctx context.Context, params *model.IsValidJWTQueryInput)
 		return nil, err
 	}
 
-	claimRoleInterface := claims[envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtRoleClaim)].([]interface{})
+	claimRoleInterface := claims[envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtRoleClaim)].([]interface{})
 	claimRoles := []string{}
 	for _, v := range claimRoleInterface {
 		claimRoles = append(claimRoles, v.(string))

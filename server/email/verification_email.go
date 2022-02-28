@@ -97,8 +97,8 @@ func SendVerificationMail(toEmail, token, hostname string) error {
     </html>
 	`
 	data := make(map[string]interface{}, 3)
-	data["org_logo"] = envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyOrganizationLogo)
-	data["org_name"] = envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyOrganizationName)
+	data["org_logo"] = envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyOrganizationLogo)
+	data["org_name"] = envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyOrganizationName)
 	data["verification_url"] = hostname + "/verify_email?token=" + token
 	message = addEmailTemplate(message, data, "verify_email.tmpl")
 	// bodyMessage := sender.WriteHTMLEmail(Receiver, Subject, message)

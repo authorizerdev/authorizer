@@ -29,7 +29,7 @@ func DecryptB64(s string) (string, error) {
 
 // EncryptAES encrypts data using AES algorithm
 func EncryptAES(text []byte) ([]byte, error) {
-	key := []byte(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyEncryptionKey))
+	key := []byte(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyEncryptionKey))
 	c, err := aes.NewCipher(key)
 	var res []byte
 	if err != nil {
@@ -63,7 +63,7 @@ func EncryptAES(text []byte) ([]byte, error) {
 
 // DecryptAES decrypts data using AES algorithm
 func DecryptAES(ciphertext []byte) ([]byte, error) {
-	key := []byte(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyEncryptionKey))
+	key := []byte(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyEncryptionKey))
 	c, err := aes.NewCipher(key)
 	var res []byte
 	if err != nil {
@@ -96,14 +96,14 @@ func EncryptEnvData(data envstore.Store) (string, error) {
 		return "", err
 	}
 
-	envStoreObj := envstore.EnvInMemoryStoreObj.GetEnvStoreClone()
+	storeData := envstore.EnvStoreObj.GetEnvStoreClone()
 
-	err = json.Unmarshal(jsonBytes, &envStoreObj)
+	err = json.Unmarshal(jsonBytes, &storeData)
 	if err != nil {
 		return "", err
 	}
 
-	configData, err := json.Marshal(envStoreObj)
+	configData, err := json.Marshal(storeData)
 	if err != nil {
 		return "", err
 	}

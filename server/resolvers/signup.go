@@ -27,7 +27,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 		return res, err
 	}
 
-	if envstore.EnvInMemoryStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableBasicAuthentication) {
+	if envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableBasicAuthentication) {
 		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
 	}
 	if params.ConfirmPassword != params.Password {
@@ -57,13 +57,13 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 
 	if len(params.Roles) > 0 {
 		// check if roles exists
-		if !utils.IsValidRoles(envstore.EnvInMemoryStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyRoles), params.Roles) {
+		if !utils.IsValidRoles(envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyRoles), params.Roles) {
 			return res, fmt.Errorf(`invalid roles`)
 		} else {
 			inputRoles = params.Roles
 		}
 	} else {
-		inputRoles = envstore.EnvInMemoryStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles)
+		inputRoles = envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles)
 	}
 
 	user := models.User{
@@ -108,7 +108,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 	}
 
 	user.SignupMethods = constants.SignupMethodBasicAuth
-	if envstore.EnvInMemoryStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification) {
+	if envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification) {
 		now := time.Now().Unix()
 		user.EmailVerifiedAt = &now
 	}
@@ -120,7 +120,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 	userToReturn := user.AsAPIUser()
 
 	hostname := utils.GetHost(gc)
-	if !envstore.EnvInMemoryStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification) {
+	if !envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification) {
 		// insert verification request
 		verificationType := constants.VerificationTypeBasicAuthSignup
 		verificationToken, err := token.CreateVerificationToken(params.Email, verificationType, hostname)

@@ -16,7 +16,7 @@ func CreateVerificationToken(email, tokenType, hostname string) (string, error) 
 		"token_type":   tokenType,
 		"email":        email,
 		"host":         hostname,
-		"redirect_url": envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAppURL),
+		"redirect_url": envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAppURL),
 	}
 
 	return SignJWTToken(claims)

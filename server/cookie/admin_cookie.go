@@ -16,12 +16,12 @@ func SetAdminCookie(gc *gin.Context, token string) {
 	hostname := utils.GetHost(gc)
 	host, _ := utils.GetHostParts(hostname)
 
-	gc.SetCookie(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminCookieName), token, 3600, "/", host, secure, httpOnly)
+	gc.SetCookie(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminCookieName), token, 3600, "/", host, secure, httpOnly)
 }
 
 // GetAdminCookie gets the admin cookie from the request
 func GetAdminCookie(gc *gin.Context) (string, error) {
-	cookie, err := gc.Request.Cookie(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminCookieName))
+	cookie, err := gc.Request.Cookie(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminCookieName))
 	if err != nil {
 		return "", err
 	}
@@ -42,5 +42,5 @@ func DeleteAdminCookie(gc *gin.Context) {
 	hostname := utils.GetHost(gc)
 	host, _ := utils.GetHostParts(hostname)
 
-	gc.SetCookie(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminCookieName), "", -1, "/", host, secure, httpOnly)
+	gc.SetCookie(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminCookieName), "", -1, "/", host, secure, httpOnly)
 }

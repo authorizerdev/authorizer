@@ -23,7 +23,7 @@ type State struct {
 func AppHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		hostname := utils.GetHost(c)
-		if envstore.EnvInMemoryStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableLoginPage) {
+		if envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableLoginPage) {
 			c.JSON(400, gin.H{"error": "login page is not enabled"})
 			return
 		}
@@ -79,8 +79,8 @@ func AppHandler() gin.HandlerFunc {
 			"data": map[string]string{
 				"authorizerURL":    stateObj.AuthorizerURL,
 				"redirectURL":      stateObj.RedirectURL,
-				"organizationName": envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyOrganizationName),
-				"organizationLogo": envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyOrganizationLogo),
+				"organizationName": envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyOrganizationName),
+				"organizationLogo": envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyOrganizationLogo),
 			},
 		})
 	}

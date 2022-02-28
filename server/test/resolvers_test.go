@@ -1,7 +1,6 @@
 package test
 
 import (
-	"log"
 	"testing"
 
 	"github.com/authorizerdev/authorizer/server/constants"
@@ -12,28 +11,30 @@ import (
 
 func TestResolvers(t *testing.T) {
 	databases := map[string]string{
-		constants.DbTypeSqlite:   "../../data.db",
-		constants.DbTypeArangodb: "http://localhost:8529",
-		constants.DbTypeMongodb:  "mongodb://localhost:27017",
+		constants.DbTypeSqlite: "../../data.db",
+		// constants.DbTypeArangodb: "http://localhost:8529",
+		// constants.DbTypeMongodb:  "mongodb://localhost:27017",
 	}
-	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyVersion, "test")
+	envstore.EnvStoreObj.ResetStore()
+	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyVersion, "test")
 	for dbType, dbURL := range databases {
-		envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseURL, dbURL)
-		envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseType, dbType)
+		envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseURL, dbURL)
+		envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseType, dbType)
 
 		s := testSetup()
 		defer s.Server.Close()
-
 		db.InitDB()
 
 		// clean the persisted config for test to use fresh config
 		envData, err := db.Provider.GetEnv()
-		log.Println("=> envData:", envstore.EnvInMemoryStoreObj.GetEnvStoreClone())
 		if err == nil {
 			envData.EnvData = ""
 			db.Provider.UpdateEnv(envData)
 		}
-		env.InitAllEnv()
+		err = env.InitAllEnv()
+		if err != nil {
+			t.Error(err)
+		}
 		env.PersistEnv()
 
 		t.Run("should pass tests for "+dbType, func(t *testing.T) {

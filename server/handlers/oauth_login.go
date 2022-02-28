@@ -33,14 +33,14 @@ func OAuthLoginHandler() gin.HandlerFunc {
 
 			// use protected roles verification for admin login only.
 			// though if not associated with user, it will be rejected from oauth_callback
-			if !utils.IsValidRoles(append([]string{}, append(envstore.EnvInMemoryStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyRoles), envstore.EnvInMemoryStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyProtectedRoles)...)...), rolesSplit) {
+			if !utils.IsValidRoles(append([]string{}, append(envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyRoles), envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyProtectedRoles)...)...), rolesSplit) {
 				c.JSON(400, gin.H{
 					"error": "invalid role",
 				})
 				return
 			}
 		} else {
-			roles = strings.Join(envstore.EnvInMemoryStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles), ",")
+			roles = strings.Join(envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles), ",")
 		}
 
 		uuid := uuid.New()

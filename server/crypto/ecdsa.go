@@ -12,7 +12,18 @@ import (
 // NewECDSAKey to generate new ECDSA Key if env is not set
 // returns key instance, private key string, public key string, jwk string, error
 func NewECDSAKey(algo, keyID string) (*ecdsa.PrivateKey, string, string, string, error) {
-	key, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
+	var curve elliptic.Curve
+	switch algo {
+	case "ES256":
+		curve = elliptic.P256()
+	case "ES384":
+		curve = elliptic.P384()
+	case "ES512":
+		curve = elliptic.P521()
+	default:
+		return nil, "", "", "", errors.New("Invalid algo")
+	}
+	key, err := ecdsa.GenerateKey(curve, rand.Reader)
 	if err != nil {
 		return nil, "", "", "", err
 	}

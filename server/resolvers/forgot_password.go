@@ -24,7 +24,7 @@ func ForgotPasswordResolver(ctx context.Context, params model.ForgotPasswordInpu
 	if err != nil {
 		return res, err
 	}
-	if envstore.EnvInMemoryStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableBasicAuthentication) {
+	if envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableBasicAuthentication) {
 		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
 	}
 	params.Email = strings.ToLower(params.Email)
