@@ -91,6 +91,7 @@ type Env {
 	DATABASE_URL: String!
 	DATABASE_TYPE: String!
 	CLIENT_ID: String!
+	CLIENT_SECRET: String!
 	CUSTOM_ACCESS_TOKEN_SCRIPT: String
 	SMTP_HOST: String
 	SMTP_PORT: String

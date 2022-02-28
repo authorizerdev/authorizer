@@ -55,6 +55,7 @@ type ComplexityRoot struct {
 		AllowedOrigins             func(childComplexity int) int
 		AppURL                     func(childComplexity int) int
 		ClientID                   func(childComplexity int) int
+		ClientSecret               func(childComplexity int) int
 		CookieName                 func(childComplexity int) int
 		CustomAccessTokenScript    func(childComplexity int) int
 		DatabaseName               func(childComplexity int) int
@@ -289,6 +290,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Env.ClientID(childComplexity), true
+
+	case "Env.CLIENT_SECRET":
+		if e.complexity.Env.ClientSecret == nil {
+			break
+		}
+
+		return e.complexity.Env.ClientSecret(childComplexity), true
 
 	case "Env.COOKIE_NAME":
 		if e.complexity.Env.CookieName == nil {
@@ -1232,6 +1240,7 @@ type Env {
 	DATABASE_URL: String!
 	DATABASE_TYPE: String!
 	CLIENT_ID: String!
+	CLIENT_SECRET: String!
 	CUSTOM_ACCESS_TOKEN_SCRIPT: String
 	SMTP_HOST: String
 	SMTP_PORT: String
@@ -2039,6 +2048,41 @@ func (ec *executionContext) _Env_CLIENT_ID(ctx context.Context, field graphql.Co
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.ClientID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Env_CLIENT_SECRET(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Env",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ClientSecret, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -7731,6 +7775,11 @@ func (ec *executionContext) _Env(ctx context.Context, sel ast.SelectionSet, obj 
 			}
 		case "CLIENT_ID":
 			out.Values[i] = ec._Env_CLIENT_ID(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "CLIENT_SECRET":
+			out.Values[i] = ec._Env_CLIENT_SECRET(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}

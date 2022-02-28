@@ -27,6 +27,7 @@ type Env struct {
 	DatabaseURL                string   `json:"DATABASE_URL"`
 	DatabaseType               string   `json:"DATABASE_TYPE"`
 	ClientID                   string   `json:"CLIENT_ID"`
+	ClientSecret               string   `json:"CLIENT_SECRET"`
 	CustomAccessTokenScript    *string  `json:"CUSTOM_ACCESS_TOKEN_SCRIPT"`
 	SMTPHost                   *string  `json:"SMTP_HOST"`
 	SMTPPort                   *string  `json:"SMTP_PORT"`

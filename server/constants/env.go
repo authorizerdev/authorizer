@@ -97,6 +97,8 @@ const (
 	// Not Exposed Keys
 	// EnvKeyClientID key for env variable CLIENT_ID
 	EnvKeyClientID = "CLIENT_ID"
+	// EnvKeyClientSecret key for env variable CLIENT_SECRET
+	EnvKeyClientSecret = "CLIENT_SECRET"
 	// EnvKeyEncryptionKey key for env variable ENCRYPTION_KEY
 	EnvKeyEncryptionKey = "ENCRYPTION_KEY"
 	// EnvKeyJWK key for env variable JWK

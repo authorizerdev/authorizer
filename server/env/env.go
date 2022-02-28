@@ -88,6 +88,13 @@ func InitAllEnv() error {
 		envData.StringEnv[constants.EnvKeyClientID] = clientID
 	}
 
+	clientSecret := envData.StringEnv[constants.EnvKeyClientSecret]
+	// unique client id for each instance
+	if clientID == "" {
+		clientSecret = uuid.New().String()
+		envData.StringEnv[constants.EnvKeyClientSecret] = clientSecret
+	}
+
 	if envData.StringEnv[constants.EnvKeyEnv] == "" {
 		envData.StringEnv[constants.EnvKeyEnv] = os.Getenv(constants.EnvKeyEnv)
 		if envData.StringEnv[constants.EnvKeyEnv] == "" {
