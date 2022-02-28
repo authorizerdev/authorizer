@@ -54,7 +54,7 @@ func OAuthLoginHandler() gin.HandlerFunc {
 				isProviderConfigured = false
 				break
 			}
-			sessionstore.SetSocailLoginState(oauthStateString, constants.SignupMethodGoogle)
+			sessionstore.SetState(oauthStateString, constants.SignupMethodGoogle)
 			// during the init of OAuthProvider authorizer url might be empty
 			oauth.OAuthProviders.GoogleConfig.RedirectURL = hostname + "/oauth_callback/google"
 			url := oauth.OAuthProviders.GoogleConfig.AuthCodeURL(oauthStateString)
@@ -64,7 +64,7 @@ func OAuthLoginHandler() gin.HandlerFunc {
 				isProviderConfigured = false
 				break
 			}
-			sessionstore.SetSocailLoginState(oauthStateString, constants.SignupMethodGithub)
+			sessionstore.SetState(oauthStateString, constants.SignupMethodGithub)
 			oauth.OAuthProviders.GithubConfig.RedirectURL = hostname + "/oauth_callback/github"
 			url := oauth.OAuthProviders.GithubConfig.AuthCodeURL(oauthStateString)
 			c.Redirect(http.StatusTemporaryRedirect, url)
@@ -73,7 +73,7 @@ func OAuthLoginHandler() gin.HandlerFunc {
 				isProviderConfigured = false
 				break
 			}
-			sessionstore.SetSocailLoginState(oauthStateString, constants.SignupMethodFacebook)
+			sessionstore.SetState(oauthStateString, constants.SignupMethodFacebook)
 			oauth.OAuthProviders.FacebookConfig.RedirectURL = hostname + "/oauth_callback/facebook"
 			url := oauth.OAuthProviders.FacebookConfig.AuthCodeURL(oauthStateString)
 			c.Redirect(http.StatusTemporaryRedirect, url)

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/authorizerdev/authorizer/server/cookie"
+	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/sessionstore"
@@ -33,7 +34,7 @@ func SessionResolver(ctx context.Context, params *model.SessionQueryInput) (*mod
 		return res, err
 	}
 
-	decryptedFingerPrint, err := utils.DecryptAES([]byte(fingerprintHash))
+	decryptedFingerPrint, err := crypto.DecryptAES([]byte(fingerprintHash))
 	if err != nil {
 		return res, err
 	}

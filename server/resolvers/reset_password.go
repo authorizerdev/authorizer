@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/token"
-	"github.com/authorizerdev/authorizer/server/utils"
 )
 
 // ResetPasswordResolver is a resolver for reset password mutation
@@ -41,7 +41,7 @@ func ResetPasswordResolver(ctx context.Context, params model.ResetPasswordInput)
 		return res, err
 	}
 
-	password, _ := utils.EncryptPassword(params.Password)
+	password, _ := crypto.EncryptPassword(params.Password)
 	user.Password = &password
 
 	signupMethod := user.SignupMethods

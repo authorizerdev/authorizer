@@ -10,6 +10,30 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// SetSessionCookie sets the session cookie in the response
+func SetSessionCookie(gc *gin.Context, sessionID string) {
+	secure := true
+	httpOnly := true
+	hostname := utils.GetHost(gc)
+	host, _ := utils.GetHostParts(hostname)
+	domain := utils.GetDomainName(hostname)
+	if domain != "localhost" {
+		domain = "." + domain
+	}
+
+	// TODO allow configuring from dashboard
+	year := 60 * 60 * 24 * 365
+
+	gc.SetSameSite(http.SameSiteNoneMode)
+	gc.SetCookie(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+"_session", sessionID, year, "/", host, secure, httpOnly)
+	gc.SetCookie(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+"_session.domain", sessionID, year, "/", domain, secure, httpOnly)
+
+	// Fallback cookie for anomaly getection on browsers that don’t support the sameSite=None attribute.
+	gc.SetSameSite(http.SameSiteDefaultMode)
+	gc.SetCookie(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+"_session_compat", sessionID, year, "/", host, secure, httpOnly)
+	gc.SetCookie(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+"_session.domain_compat", sessionID, year, "/", domain, secure, httpOnly)
+}
+
 // SetCookie sets the cookie in the response. It sets 4 cookies
 // 1 COOKIE_NAME.access_token jwt token for the host (temp.abc.com)
 // 2 COOKIE_NAME.access_token.domain jwt token for the domain (abc.com).

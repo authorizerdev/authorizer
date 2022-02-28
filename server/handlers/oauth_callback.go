@@ -30,11 +30,11 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 		provider := c.Param("oauth_provider")
 		state := c.Request.FormValue("state")
 
-		sessionState := sessionstore.GetSocailLoginState(state)
+		sessionState := sessionstore.GetState(state)
 		if sessionState == "" {
 			c.JSON(400, gin.H{"error": "invalid oauth state"})
 		}
-		sessionstore.RemoveSocialLoginState(state)
+		sessionstore.GetState(state)
 		// contains random token, redirect url, role
 		sessionSplit := strings.Split(state, "___")
 

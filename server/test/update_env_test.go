@@ -5,10 +5,10 @@ import (
 	"testing"
 
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/resolvers"
-	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,7 +23,7 @@ func updateEnvTests(t *testing.T, s TestSetup) {
 
 		assert.NotNil(t, err)
 
-		h, err := utils.EncryptPassword(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret))
+		h, err := crypto.EncryptPassword(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret))
 		assert.Nil(t, err)
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminCookieName), h))
 		newURL := "https://test.com"

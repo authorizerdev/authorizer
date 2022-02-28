@@ -5,15 +5,15 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/cookie"
+	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/envstore"
-	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 )
 
 // CreateAdminAuthToken creates the admin token based on secret key
 func CreateAdminAuthToken(tokenType string, c *gin.Context) (string, error) {
-	return utils.EncryptPassword(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret))
+	return crypto.EncryptPassword(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret))
 }
 
 // GetAdminAuthToken helps in getting the admin token from the request cookie

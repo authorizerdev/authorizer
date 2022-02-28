@@ -86,35 +86,35 @@ func ClearStore() {
 	}
 }
 
-// SetSocialLoginState sets the social login state in the session store
-func SetSocailLoginState(key, state string) {
+// SetState sets the login state (key, value form) in the session store
+func SetState(key, state string) {
 	if SessionStoreObj.RedisMemoryStoreObj != nil {
-		SessionStoreObj.RedisMemoryStoreObj.SetSocialLoginState(key, state)
+		SessionStoreObj.RedisMemoryStoreObj.SetState(key, state)
 	}
 	if SessionStoreObj.InMemoryStoreObj != nil {
-		SessionStoreObj.InMemoryStoreObj.SetSocialLoginState(key, state)
+		SessionStoreObj.InMemoryStoreObj.SetState(key, state)
 	}
 }
 
-// GetSocialLoginState returns the social login state from the session store
-func GetSocailLoginState(key string) string {
+// GetState returns the state from the session store
+func GetState(key string) string {
 	if SessionStoreObj.RedisMemoryStoreObj != nil {
-		return SessionStoreObj.RedisMemoryStoreObj.GetSocialLoginState(key)
+		return SessionStoreObj.RedisMemoryStoreObj.GetState(key)
 	}
 	if SessionStoreObj.InMemoryStoreObj != nil {
-		return SessionStoreObj.InMemoryStoreObj.GetSocialLoginState(key)
+		return SessionStoreObj.InMemoryStoreObj.GetState(key)
 	}
 
 	return ""
 }
 
-// RemoveSocialLoginState removes the social login state from the session store
-func RemoveSocialLoginState(key string) {
+// RemoveState removes the social login state from the session store
+func RemoveState(key string) {
 	if SessionStoreObj.RedisMemoryStoreObj != nil {
-		SessionStoreObj.RedisMemoryStoreObj.RemoveSocialLoginState(key)
+		SessionStoreObj.RedisMemoryStoreObj.RemoveState(key)
 	}
 	if SessionStoreObj.InMemoryStoreObj != nil {
-		SessionStoreObj.InMemoryStoreObj.RemoveSocialLoginState(key)
+		SessionStoreObj.InMemoryStoreObj.RemoveState(key)
 	}
 }
 
@@ -174,8 +174,8 @@ func InitSession() error {
 
 	// if redis url is not set use in memory store
 	SessionStoreObj.InMemoryStoreObj = &InMemoryStore{
-		store:            map[string]map[string]string{},
-		socialLoginState: map[string]string{},
+		sessionStore: map[string]map[string]string{},
+		stateStore:   map[string]string{},
 	}
 
 	return nil

@@ -1,31 +1,14 @@
-package utils
+package crypto
 
 import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"encoding/base64"
-	"encoding/json"
 	"io"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/envstore"
-	"golang.org/x/crypto/bcrypt"
 )
-
-// EncryptB64 encrypts data into base64 string
-func EncryptB64(text string) string {
-	return base64.StdEncoding.EncodeToString([]byte(text))
-}
-
-// DecryptB64 decrypts from base64 string to readable string
-func DecryptB64(s string) (string, error) {
-	data, err := base64.StdEncoding.DecodeString(s)
-	if err != nil {
-		return "", err
-	}
-	return string(data), nil
-}
 
 // EncryptAES encrypts data using AES algorithm
 func EncryptAES(text []byte) ([]byte, error) {
@@ -87,40 +70,4 @@ func DecryptAES(ciphertext []byte) ([]byte, error) {
 	}
 
 	return plaintext, nil
-}
-
-// EncryptEnvData is used to encrypt the env data
-func EncryptEnvData(data envstore.Store) (string, error) {
-	jsonBytes, err := json.Marshal(data)
-	if err != nil {
-		return "", err
-	}
-
-	storeData := envstore.EnvStoreObj.GetEnvStoreClone()
-
-	err = json.Unmarshal(jsonBytes, &storeData)
-	if err != nil {
-		return "", err
-	}
-
-	configData, err := json.Marshal(storeData)
-	if err != nil {
-		return "", err
-	}
-	encryptedConfig, err := EncryptAES(configData)
-	if err != nil {
-		return "", err
-	}
-
-	return EncryptB64(string(encryptedConfig)), nil
-}
-
-// EncryptPassword is used for encrypting password
-func EncryptPassword(password string) (string, error) {
-	pw, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return "", err
-	}
-
-	return string(pw), nil
 }

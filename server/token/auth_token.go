@@ -11,10 +11,10 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/cookie"
+	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/sessionstore"
-	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
@@ -38,7 +38,7 @@ type Token struct {
 // CreateAuthToken creates a new auth token when userlogs in
 func CreateAuthToken(user models.User, roles []string) (*Token, error) {
 	fingerprint := uuid.NewString()
-	fingerPrintHashBytes, err := utils.EncryptAES([]byte(fingerprint))
+	fingerPrintHashBytes, err := crypto.EncryptAES([]byte(fingerprint))
 	if err != nil {
 		return nil, err
 	}

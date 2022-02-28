@@ -27,18 +27,18 @@ func GetEnvData() (envstore.Store, error) {
 	}
 
 	encryptionKey := env.Hash
-	decryptedEncryptionKey, err := utils.DecryptB64(encryptionKey)
+	decryptedEncryptionKey, err := crypto.DecryptB64(encryptionKey)
 	if err != nil {
 		return result, err
 	}
 
 	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyEncryptionKey, decryptedEncryptionKey)
-	b64DecryptedConfig, err := utils.DecryptB64(env.EnvData)
+	b64DecryptedConfig, err := crypto.DecryptB64(env.EnvData)
 	if err != nil {
 		return result, err
 	}
 
-	decryptedConfigs, err := utils.DecryptAES([]byte(b64DecryptedConfig))
+	decryptedConfigs, err := crypto.DecryptAES([]byte(b64DecryptedConfig))
 	if err != nil {
 		return result, err
 	}
@@ -59,9 +59,9 @@ func PersistEnv() error {
 		// AES encryption needs 32 bit key only, so we chop off last 4 characters from 36 bit uuid
 		hash := uuid.New().String()[:36-4]
 		envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyEncryptionKey, hash)
-		encodedHash := utils.EncryptB64(hash)
+		encodedHash := crypto.EncryptB64(hash)
 
-		encryptedConfig, err := utils.EncryptEnvData(envstore.EnvStoreObj.GetEnvStoreClone())
+		encryptedConfig, err := crypto.EncryptEnvData(envstore.EnvStoreObj.GetEnvStoreClone())
 		if err != nil {
 			return err
 		}
@@ -79,18 +79,18 @@ func PersistEnv() error {
 		// decrypt the config data from db
 		// decryption can be done using the hash stored in db
 		encryptionKey := env.Hash
-		decryptedEncryptionKey, err := utils.DecryptB64(encryptionKey)
+		decryptedEncryptionKey, err := crypto.DecryptB64(encryptionKey)
 		if err != nil {
 			return err
 		}
 
 		envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyEncryptionKey, decryptedEncryptionKey)
-		b64DecryptedConfig, err := utils.DecryptB64(env.EnvData)
+		b64DecryptedConfig, err := crypto.DecryptB64(env.EnvData)
 		if err != nil {
 			return err
 		}
 
-		decryptedConfigs, err := utils.DecryptAES([]byte(b64DecryptedConfig))
+		decryptedConfigs, err := crypto.DecryptAES([]byte(b64DecryptedConfig))
 		if err != nil {
 			return err
 		}
@@ -172,7 +172,7 @@ func PersistEnv() error {
 		envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyJWK, jwk)
 
 		if hasChanged {
-			encryptedConfig, err := utils.EncryptEnvData(storeData)
+			encryptedConfig, err := crypto.EncryptEnvData(storeData)
 			if err != nil {
 				return err
 			}

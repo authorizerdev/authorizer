@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/gin-gonic/gin"
@@ -36,7 +37,7 @@ func AppHandler() gin.HandlerFunc {
 			stateObj.AuthorizerURL = hostname
 			stateObj.RedirectURL = hostname + "/app"
 		} else {
-			decodedState, err := utils.DecryptB64(state)
+			decodedState, err := crypto.DecryptB64(state)
 			if err != nil {
 				c.JSON(400, gin.H{"error": "[unable to decode state] invalid state"})
 				return

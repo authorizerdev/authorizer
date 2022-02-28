@@ -199,14 +199,14 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 	}
 
 	if params.AdminSecret != nil {
-		hashedKey, err := utils.EncryptPassword(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret))
+		hashedKey, err := crypto.EncryptPassword(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret))
 		if err != nil {
 			return res, err
 		}
 		cookie.SetAdminCookie(gc, hashedKey)
 	}
 
-	encryptedConfig, err := utils.EncryptEnvData(updatedData)
+	encryptedConfig, err := crypto.EncryptEnvData(updatedData)
 	if err != nil {
 		return res, err
 	}

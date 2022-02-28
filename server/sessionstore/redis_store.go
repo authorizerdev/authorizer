@@ -68,16 +68,16 @@ func (c *RedisStore) GetUserSessions(userID string) map[string]string {
 	return res
 }
 
-// SetSocialLoginState sets the social login state in redis store.
-func (c *RedisStore) SetSocialLoginState(key, state string) {
+// SetState sets the state in redis store.
+func (c *RedisStore) SetState(key, state string) {
 	err := c.store.Set(c.ctx, key, state, 0).Err()
 	if err != nil {
 		log.Fatalln("Error saving redis token:", err)
 	}
 }
 
-// GetSocialLoginState gets the social login state from redis store.
-func (c *RedisStore) GetSocialLoginState(key string) string {
+// GetState gets the state from redis store.
+func (c *RedisStore) GetState(key string) string {
 	state := ""
 	state, err := c.store.Get(c.ctx, key).Result()
 	if err != nil {
@@ -87,8 +87,8 @@ func (c *RedisStore) GetSocialLoginState(key string) string {
 	return state
 }
 
-// RemoveSocialLoginState removes the social login state from redis store.
-func (c *RedisStore) RemoveSocialLoginState(key string) {
+// RemoveState removes the state from redis store.
+func (c *RedisStore) RemoveState(key string) {
 	err := c.store.Del(c.ctx, key).Err()
 	if err != nil {
 		log.Fatalln("Error deleting redis token:", err)

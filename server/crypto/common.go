@@ -2,9 +2,11 @@ package crypto
 
 import (
 	"crypto/x509"
+	"encoding/json"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/envstore"
+	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/square/go-jose.v2"
 )
 
@@ -72,4 +74,40 @@ func GenerateJWKBasedOnEnv() (string, error) {
 	}
 
 	return jwk, nil
+}
+
+// EncryptEnvData is used to encrypt the env data
+func EncryptEnvData(data envstore.Store) (string, error) {
+	jsonBytes, err := json.Marshal(data)
+	if err != nil {
+		return "", err
+	}
+
+	storeData := envstore.EnvStoreObj.GetEnvStoreClone()
+
+	err = json.Unmarshal(jsonBytes, &storeData)
+	if err != nil {
+		return "", err
+	}
+
+	configData, err := json.Marshal(storeData)
+	if err != nil {
+		return "", err
+	}
+	encryptedConfig, err := EncryptAES(configData)
+	if err != nil {
+		return "", err
+	}
+
+	return EncryptB64(string(encryptedConfig)), nil
+}
+
+// EncryptPassword is used for encrypting password
+func EncryptPassword(password string) (string, error) {
+	pw, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+
+	return string(pw), nil
 }

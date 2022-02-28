@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/authorizerdev/authorizer/server/cookie"
+	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/sessionstore"
 	"github.com/authorizerdev/authorizer/server/token"
@@ -30,7 +31,7 @@ func LogoutResolver(ctx context.Context) (*model.Response, error) {
 		return res, err
 	}
 
-	decryptedFingerPrint, err := utils.DecryptAES([]byte(fingerprintHash))
+	decryptedFingerPrint, err := crypto.DecryptAES([]byte(fingerprintHash))
 	if err != nil {
 		return res, err
 	}

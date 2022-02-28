@@ -9,6 +9,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/cookie"
+	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/email"
@@ -72,7 +73,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 
 	user.Roles = strings.Join(inputRoles, ",")
 
-	password, _ := utils.EncryptPassword(params.Password)
+	password, _ := crypto.EncryptPassword(params.Password)
 	user.Password = &password
 
 	if params.GivenName != nil {

@@ -9,6 +9,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/cookie"
+	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/email"
@@ -92,7 +93,7 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 			return res, fmt.Errorf(`password and confirm password does not match`)
 		}
 
-		password, _ := utils.EncryptPassword(*params.NewPassword)
+		password, _ := crypto.EncryptPassword(*params.NewPassword)
 
 		user.Password = &password
 	}
