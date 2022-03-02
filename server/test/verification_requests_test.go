@@ -19,11 +19,14 @@ func verificationRequestsTest(t *testing.T, s TestSetup) {
 		req, ctx := createContext(s)
 
 		email := "verification_requests." + s.TestInfo.Email
-		resolvers.SignupResolver(ctx, model.SignUpInput{
+		res, err := resolvers.SignupResolver(ctx, model.SignUpInput{
 			Email:           email,
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password,
 		})
+
+		assert.NoError(t, err)
+		assert.NotNil(t, res)
 
 		limit := int64(10)
 		page := int64(1)

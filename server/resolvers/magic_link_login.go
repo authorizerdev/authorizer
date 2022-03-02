@@ -109,8 +109,12 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 	hostname := utils.GetHost(gc)
 	if !envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification) {
 		// insert verification request
+		nonce, nonceHash, err := utils.GenerateNonce()
+		if err != nil {
+			return res, err
+		}
 		verificationType := constants.VerificationTypeMagicLinkLogin
-		verificationToken, err := token.CreateVerificationToken(params.Email, verificationType, hostname)
+		verificationToken, err := token.CreateVerificationToken(params.Email, verificationType, hostname, nonceHash)
 		if err != nil {
 			log.Println(`error generating token`, err)
 		}
@@ -119,12 +123,11 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 			Identifier: verificationType,
 			ExpiresAt:  time.Now().Add(time.Minute * 30).Unix(),
 			Email:      params.Email,
+			Nonce:      nonce,
 		})
 
 		// exec it as go routin so that we can reduce the api latency
-		go func() {
-			email.SendVerificationMail(params.Email, verificationToken, hostname)
-		}()
+		go email.SendVerificationMail(params.Email, verificationToken, hostname)
 	}
 
 	res = &model.Response{

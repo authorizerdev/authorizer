@@ -44,7 +44,7 @@ func SignJWTToken(claims jwt.MapClaims) (string, error) {
 }
 
 // ParseJWTToken common util to parse jwt token
-func ParseJWTToken(token string) (jwt.MapClaims, error) {
+func ParseJWTToken(token, hostname, nonce, subject string) (jwt.MapClaims, error) {
 	jwtType := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtType)
 	signingMethod := jwt.GetSigningMethod(jwtType)
 
@@ -86,6 +86,22 @@ func ParseJWTToken(token string) (jwt.MapClaims, error) {
 	intIat := int64(claims["iat"].(float64))
 	claims["exp"] = intExp
 	claims["iat"] = intIat
+
+	if claims["aud"] != envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyClientID) {
+		return claims, errors.New("invalid audience")
+	}
+
+	if claims["nonce"] != nonce {
+		return claims, errors.New("invalid nonce")
+	}
+
+	if claims["iss"] != hostname {
+		return claims, errors.New("invalid issuer")
+	}
+
+	if claims["sub"] != subject {
+		return claims, errors.New("invalid subject")
+	}
 
 	return claims, nil
 }

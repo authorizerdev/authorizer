@@ -31,6 +31,10 @@ func addEmailTemplate(a string, b map[string]interface{}, templateName string) s
 
 // SendMail function to send mail
 func SendMail(to []string, Subject, bodyMessage string) error {
+	// dont trigger email sending in case of test
+	if envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyEnv) == "test" {
+		return nil
+	}
 	m := gomail.NewMessage()
 	m.SetHeader("From", envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeySenderEmail))
 	m.SetHeader("To", to...)

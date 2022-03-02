@@ -5,14 +5,17 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/resolvers"
+	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/stretchr/testify/assert"
 )
 
 func loginTests(t *testing.T, s TestSetup) {
 	t.Helper()
 	t.Run(`should login`, func(t *testing.T) {
+		t.Logf("=> is enabled: %v", envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification))
 		_, ctx := createContext(s)
 		email := "login." + s.TestInfo.Email
 		_, err := resolvers.SignupResolver(ctx, model.SignUpInput{
@@ -21,15 +24,19 @@ func loginTests(t *testing.T, s TestSetup) {
 			ConfirmPassword: s.TestInfo.Password,
 		})
 
-		_, err = resolvers.LoginResolver(ctx, model.LoginInput{
+		res, err := resolvers.LoginResolver(ctx, model.LoginInput{
 			Email:    email,
 			Password: s.TestInfo.Password,
 		})
 
 		assert.NotNil(t, err, "should fail because email is not verified")
-
+		assert.Nil(t, res)
 		verificationRequest, err := db.Provider.GetVerificationRequestByEmail(email, constants.VerificationTypeBasicAuthSignup)
-		res, err := resolvers.VerifyEmailResolver(ctx, model.VerifyEmailInput{
+		n, err := utils.EncryptNonce(verificationRequest.Nonce)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, n)
+		assert.NotNil(t, verificationRequest)
+		res, err = resolvers.VerifyEmailResolver(ctx, model.VerifyEmailInput{
 			Token: verificationRequest.Token,
 		})
 		assert.NoError(t, err)

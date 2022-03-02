@@ -12,11 +12,16 @@ import (
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/token"
+	"github.com/authorizerdev/authorizer/server/utils"
 )
 
 // ResetPasswordResolver is a resolver for reset password mutation
 func ResetPasswordResolver(ctx context.Context, params model.ResetPasswordInput) (*model.Response, error) {
 	var res *model.Response
+	gc, err := utils.GinContextFromContext(ctx)
+	if err != nil {
+		return res, err
+	}
 	if envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableBasicAuthentication) {
 		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
 	}
@@ -31,12 +36,17 @@ func ResetPasswordResolver(ctx context.Context, params model.ResetPasswordInput)
 	}
 
 	// verify if token exists in db
-	claim, err := token.ParseJWTToken(params.Token)
+	hostname := utils.GetHost(gc)
+	encryptedNonce, err := utils.EncryptNonce(verificationRequest.Nonce)
+	if err != nil {
+		return res, err
+	}
+	claim, err := token.ParseJWTToken(params.Token, hostname, encryptedNonce, verificationRequest.Email)
 	if err != nil {
 		return res, fmt.Errorf(`invalid token`)
 	}
 
-	user, err := db.Provider.GetUserByEmail(claim["email"].(string))
+	user, err := db.Provider.GetUserByEmail(claim["sub"].(string))
 	if err != nil {
 		return res, err
 	}

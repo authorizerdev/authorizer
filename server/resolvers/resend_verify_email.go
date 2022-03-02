@@ -44,7 +44,11 @@ func ResendVerifyEmailResolver(ctx context.Context, params model.ResendVerifyEma
 	}
 
 	hostname := utils.GetHost(gc)
-	verificationToken, err := token.CreateVerificationToken(params.Email, params.Identifier, hostname)
+	nonce, nonceHash, err := utils.GenerateNonce()
+	if err != nil {
+		return res, err
+	}
+	verificationToken, err := token.CreateVerificationToken(params.Email, params.Identifier, hostname, nonceHash)
 	if err != nil {
 		log.Println(`error generating token`, err)
 	}
@@ -53,12 +57,11 @@ func ResendVerifyEmailResolver(ctx context.Context, params model.ResendVerifyEma
 		Identifier: params.Identifier,
 		ExpiresAt:  time.Now().Add(time.Minute * 30).Unix(),
 		Email:      params.Email,
+		Nonce:      nonce,
 	})
 
 	// exec it as go routin so that we can reduce the api latency
-	go func() {
-		email.SendVerificationMail(params.Email, verificationToken, hostname)
-	}()
+	go email.SendVerificationMail(params.Email, verificationToken, hostname)
 
 	res = &model.Response{
 		Message: `Verification email has been sent. Please check your inbox`,

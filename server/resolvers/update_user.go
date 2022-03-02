@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/constants"
-	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/email"
@@ -95,15 +94,19 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 			return res, fmt.Errorf("user with this email address already exists")
 		}
 
-		sessionstore.DeleteAllUserSession(fmt.Sprintf("%v", user.ID))
-		cookie.DeleteCookie(gc)
+		// TODO figure out how to do this
+		go sessionstore.DeleteAllUserSession(user.ID)
 
 		hostname := utils.GetHost(gc)
 		user.Email = newEmail
 		user.EmailVerifiedAt = nil
 		// insert verification request
+		nonce, nonceHash, err := utils.GenerateNonce()
+		if err != nil {
+			return res, err
+		}
 		verificationType := constants.VerificationTypeUpdateEmail
-		verificationToken, err := token.CreateVerificationToken(newEmail, verificationType, hostname)
+		verificationToken, err := token.CreateVerificationToken(newEmail, verificationType, hostname, nonceHash)
 		if err != nil {
 			log.Println(`error generating token`, err)
 		}
@@ -112,12 +115,12 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 			Identifier: verificationType,
 			ExpiresAt:  time.Now().Add(time.Minute * 30).Unix(),
 			Email:      newEmail,
+			Nonce:      nonce,
 		})
 
 		// exec it as go routin so that we can reduce the api latency
-		go func() {
-			email.SendVerificationMail(newEmail, verificationToken, hostname)
-		}()
+		go email.SendVerificationMail(newEmail, verificationToken, hostname)
+
 	}
 
 	rolesToSave := ""
@@ -136,8 +139,7 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 			rolesToSave = strings.Join(inputRoles, ",")
 		}
 
-		sessionstore.DeleteAllUserSession(fmt.Sprintf("%v", user.ID))
-		cookie.DeleteCookie(gc)
+		go sessionstore.DeleteAllUserSession(user.ID)
 	}
 
 	if rolesToSave != "" {

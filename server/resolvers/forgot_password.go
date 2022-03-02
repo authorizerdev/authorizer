@@ -39,7 +39,11 @@ func ForgotPasswordResolver(ctx context.Context, params model.ForgotPasswordInpu
 	}
 
 	hostname := utils.GetHost(gc)
-	verificationToken, err := token.CreateVerificationToken(params.Email, constants.VerificationTypeForgotPassword, hostname)
+	nonce, nonceHash, err := utils.GenerateNonce()
+	if err != nil {
+		return res, err
+	}
+	verificationToken, err := token.CreateVerificationToken(params.Email, constants.VerificationTypeForgotPassword, hostname, nonceHash)
 	if err != nil {
 		log.Println(`error generating token`, err)
 	}
@@ -48,12 +52,11 @@ func ForgotPasswordResolver(ctx context.Context, params model.ForgotPasswordInpu
 		Identifier: constants.VerificationTypeForgotPassword,
 		ExpiresAt:  time.Now().Add(time.Minute * 30).Unix(),
 		Email:      params.Email,
+		Nonce:      nonce,
 	})
 
 	// exec it as go routin so that we can reduce the api latency
-	go func() {
-		email.SendForgotPasswordMail(params.Email, verificationToken, hostname)
-	}()
+	go email.SendForgotPasswordMail(params.Email, verificationToken, hostname)
 
 	res = &model.Response{
 		Message: `Please check your inbox! We have sent a password reset link.`,

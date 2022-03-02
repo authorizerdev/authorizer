@@ -123,41 +123,48 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 	hostname := utils.GetHost(gc)
 	if !envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification) {
 		// insert verification request
-		verificationType := constants.VerificationTypeBasicAuthSignup
-		verificationToken, err := token.CreateVerificationToken(params.Email, verificationType, hostname)
+		nonce, nonceHash, err := utils.GenerateNonce()
 		if err != nil {
-			log.Println(`error generating token`, err)
+			return res, err
+		}
+		verificationType := constants.VerificationTypeBasicAuthSignup
+		verificationToken, err := token.CreateVerificationToken(params.Email, verificationType, hostname, nonceHash)
+		if err != nil {
+			return res, err
 		}
 		db.Provider.AddVerificationRequest(models.VerificationRequest{
 			Token:      verificationToken,
 			Identifier: verificationType,
 			ExpiresAt:  time.Now().Add(time.Minute * 30).Unix(),
 			Email:      params.Email,
+			Nonce:      nonce,
 		})
 
 		// exec it as go routin so that we can reduce the api latency
-		go func() {
-			email.SendVerificationMail(params.Email, verificationToken, hostname)
-		}()
+		go email.SendVerificationMail(params.Email, verificationToken, hostname)
 
 		res = &model.AuthResponse{
 			Message: `Verification email has been sent. Please check your inbox`,
 			User:    userToReturn,
 		}
 	} else {
+		scope := []string{"openid", "email", "profile"}
 
-		authToken, err := token.CreateAuthToken(user, roles)
+		authToken, err := token.CreateAuthToken(gc, user, roles, scope)
 		if err != nil {
 			return res, err
 		}
-		sessionstore.SetUserSession(user.ID, authToken.FingerPrint, authToken.RefreshToken.Token)
-		cookie.SetCookie(gc, authToken.AccessToken.Token, authToken.RefreshToken.Token, authToken.FingerPrintHash)
-		utils.SaveSessionInDB(user.ID, gc)
+
+		sessionstore.SetState(authToken.FingerPrintHash, authToken.FingerPrint+"@"+user.ID)
+		cookie.SetSession(gc, authToken.FingerPrintHash)
+		go utils.SaveSessionInDB(gc, user.ID)
+
+		expiresIn := int64(1800)
 
 		res = &model.AuthResponse{
 			Message:     `Signed up successfully.`,
 			AccessToken: &authToken.AccessToken.Token,
-			ExpiresAt:   &authToken.AccessToken.ExpiresAt,
+			ExpiresIn:   &expiresIn,
 			User:        userToReturn,
 		}
 	}

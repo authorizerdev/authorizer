@@ -79,10 +79,6 @@ func (r *queryResolver) Session(ctx context.Context, params *model.SessionQueryI
 	return resolvers.SessionResolver(ctx, params)
 }
 
-func (r *queryResolver) IsValidJwt(ctx context.Context, params *model.IsValidJWTQueryInput) (*model.ValidJWTResponse, error) {
-	return resolvers.IsValidJwtResolver(ctx, params)
-}
-
 func (r *queryResolver) Profile(ctx context.Context) (*model.User, error) {
 	return resolvers.ProfileResolver(ctx)
 }

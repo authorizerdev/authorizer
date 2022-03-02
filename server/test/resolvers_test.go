@@ -15,15 +15,16 @@ func TestResolvers(t *testing.T) {
 		// constants.DbTypeArangodb: "http://localhost:8529",
 		// constants.DbTypeMongodb:  "mongodb://localhost:27017",
 	}
-	envstore.EnvStoreObj.ResetStore()
 	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyVersion, "test")
 	for dbType, dbURL := range databases {
+		s := testSetup()
 		envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseURL, dbURL)
 		envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseType, dbType)
-
-		s := testSetup()
 		defer s.Server.Close()
-		db.InitDB()
+		err := db.InitDB()
+		if err != nil {
+			t.Errorf("Error initializing database: %s", err)
+		}
 
 		// clean the persisted config for test to use fresh config
 		envData, err := db.Provider.GetEnv()
@@ -31,12 +32,10 @@ func TestResolvers(t *testing.T) {
 			envData.EnvData = ""
 			db.Provider.UpdateEnv(envData)
 		}
-		err = env.InitAllEnv()
-		if err != nil {
-			t.Error(err)
-		}
 		env.PersistEnv()
 
+		envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyEnv, "test")
+		envstore.EnvStoreObj.UpdateEnvVariable(constants.BoolStoreIdentifier, constants.EnvKeyIsProd, false)
 		t.Run("should pass tests for "+dbType, func(t *testing.T) {
 			// admin tests
 			adminSignupTests(t, s)
@@ -63,7 +62,6 @@ func TestResolvers(t *testing.T) {
 			magicLinkLoginTests(t, s)
 			logoutTests(t, s)
 			metaTests(t, s)
-			isValidJWTTests(t, s)
 		})
 	}
 }

@@ -56,7 +56,10 @@ func NewProvider() (*provider, error) {
 		return nil, err
 	}
 
-	sqlDB.AutoMigrate(&models.User{}, &models.VerificationRequest{}, &models.Session{}, &models.Env{})
+	err = sqlDB.AutoMigrate(&models.User{}, &models.VerificationRequest{}, &models.Session{}, &models.Env{})
+	if err != nil {
+		return nil, err
+	}
 	return &provider{
 		db: sqlDB,
 	}, nil

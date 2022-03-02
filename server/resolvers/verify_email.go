@@ -28,12 +28,17 @@ func VerifyEmailResolver(ctx context.Context, params model.VerifyEmailInput) (*m
 	}
 
 	// verify if token exists in db
-	claim, err := token.ParseJWTToken(params.Token)
+	hostname := utils.GetHost(gc)
+	encryptedNonce, err := utils.EncryptNonce(verificationRequest.Nonce)
+	if err != nil {
+		return res, err
+	}
+	claim, err := token.ParseJWTToken(params.Token, hostname, encryptedNonce, verificationRequest.Email)
 	if err != nil {
 		return res, fmt.Errorf(`invalid token: %s`, err.Error())
 	}
 
-	user, err := db.Provider.GetUserByEmail(claim["email"].(string))
+	user, err := db.Provider.GetUserByEmail(claim["sub"].(string))
 	if err != nil {
 		return res, err
 	}
@@ -41,25 +46,35 @@ func VerifyEmailResolver(ctx context.Context, params model.VerifyEmailInput) (*m
 	// update email_verified_at in users table
 	now := time.Now().Unix()
 	user.EmailVerifiedAt = &now
-	db.Provider.UpdateUser(user)
-	// delete from verification table
-	db.Provider.DeleteVerificationRequest(verificationRequest)
-
-	roles := strings.Split(user.Roles, ",")
-	authToken, err := token.CreateAuthToken(user, roles)
+	user, err = db.Provider.UpdateUser(user)
 	if err != nil {
 		return res, err
 	}
-	sessionstore.SetUserSession(user.ID, authToken.FingerPrint, authToken.RefreshToken.Token)
-	cookie.SetCookie(gc, authToken.AccessToken.Token, authToken.RefreshToken.Token, authToken.FingerPrintHash)
-	utils.SaveSessionInDB(user.ID, gc)
+	// delete from verification table
+	err = db.Provider.DeleteVerificationRequest(verificationRequest)
+	if err != nil {
+		return res, err
+	}
 
+	roles := strings.Split(user.Roles, ",")
+	scope := []string{"openid", "email", "profile"}
+	authToken, err := token.CreateAuthToken(gc, user, roles, scope)
+	if err != nil {
+		return res, err
+	}
+
+	sessionstore.SetState(authToken.FingerPrintHash, authToken.FingerPrint+"@"+user.ID)
+	sessionstore.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
+	cookie.SetSession(gc, authToken.FingerPrintHash)
+	go utils.SaveSessionInDB(gc, user.ID)
+
+	expiresIn := int64(1800)
 	res = &model.AuthResponse{
 		Message:     `Email verified successfully.`,
 		AccessToken: &authToken.AccessToken.Token,
-		ExpiresAt:   &authToken.AccessToken.ExpiresAt,
+		IDToken:     &authToken.IDToken.Token,
+		ExpiresIn:   &expiresIn,
 		User:        user.AsAPIUser(),
 	}
-
 	return res, nil
 }

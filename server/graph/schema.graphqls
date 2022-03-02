@@ -72,16 +72,13 @@ type Error {
 type AuthResponse {
 	message: String!
 	access_token: String
-	expires_at: Int64
+	id_token: String
+	refresh_token: String
+	expires_in: Int64
 	user: User
 }
 
 type Response {
-	message: String!
-}
-
-type ValidJWTResponse {
-	valid: Boolean!
 	message: String!
 }
 
@@ -188,6 +185,7 @@ input LoginInput {
 	email: String!
 	password: String!
 	roles: [String!]
+	scope: [String!]
 }
 
 input VerifyEmailInput {
@@ -246,15 +244,12 @@ input DeleteUserInput {
 input MagicLinkLoginInput {
 	email: String!
 	roles: [String!]
+	scope: [String!]
 }
 
 input SessionQueryInput {
 	roles: [String!]
-}
-
-input IsValidJWTQueryInput {
-	jwt: String
-	roles: [String!]
+	scope: [String!]
 }
 
 input PaginationInput {
@@ -288,7 +283,6 @@ type Mutation {
 type Query {
 	meta: Meta!
 	session(params: SessionQueryInput): AuthResponse!
-	is_valid_jwt(params: IsValidJWTQueryInput): ValidJWTResponse!
 	profile: User!
 	# admin only apis
 	_users(params: PaginatedInput): Users!

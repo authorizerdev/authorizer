@@ -22,26 +22,6 @@ type SessionStore struct {
 // reference to various session store instances
 var SessionStoreObj SessionStore
 
-// SetUserSession sets the user session in the session store
-func SetUserSession(userId, fingerprint, refreshToken string) {
-	if SessionStoreObj.RedisMemoryStoreObj != nil {
-		SessionStoreObj.RedisMemoryStoreObj.AddUserSession(userId, fingerprint, refreshToken)
-	}
-	if SessionStoreObj.InMemoryStoreObj != nil {
-		SessionStoreObj.InMemoryStoreObj.AddUserSession(userId, fingerprint, refreshToken)
-	}
-}
-
-// DeleteUserSession deletes the particular user session from the session store
-func DeleteUserSession(userId, fingerprint string) {
-	if SessionStoreObj.RedisMemoryStoreObj != nil {
-		SessionStoreObj.RedisMemoryStoreObj.DeleteUserSession(userId, fingerprint)
-	}
-	if SessionStoreObj.InMemoryStoreObj != nil {
-		SessionStoreObj.InMemoryStoreObj.DeleteUserSession(userId, fingerprint)
-	}
-}
-
 // DeleteAllSessions deletes all the sessions from the session store
 func DeleteAllUserSession(userId string) {
 	if SessionStoreObj.RedisMemoryStoreObj != nil {
@@ -50,18 +30,6 @@ func DeleteAllUserSession(userId string) {
 	if SessionStoreObj.InMemoryStoreObj != nil {
 		SessionStoreObj.InMemoryStoreObj.DeleteAllUserSession(userId)
 	}
-}
-
-// GetUserSession returns the user session from the session store
-func GetUserSession(userId, fingerprint string) string {
-	if SessionStoreObj.RedisMemoryStoreObj != nil {
-		return SessionStoreObj.RedisMemoryStoreObj.GetUserSession(userId, fingerprint)
-	}
-	if SessionStoreObj.InMemoryStoreObj != nil {
-		return SessionStoreObj.InMemoryStoreObj.GetUserSession(userId, fingerprint)
-	}
-
-	return ""
 }
 
 // GetUserSessions returns all the user sessions from the session store

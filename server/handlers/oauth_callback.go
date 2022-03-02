@@ -144,11 +144,13 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			}
 		}
 
-		authToken, _ := token.CreateAuthToken(user, inputRoles)
-		sessionstore.SetUserSession(user.ID, authToken.FingerPrint, authToken.RefreshToken.Token)
-		cookie.SetCookie(c, authToken.AccessToken.Token, authToken.RefreshToken.Token, authToken.FingerPrintHash)
-		utils.SaveSessionInDB(user.ID, c)
+		// TODO use query param
+		scope := []string{"openid", "email", "profile"}
+		authToken, _ := token.CreateAuthToken(c, user, inputRoles, scope)
 
+		sessionstore.SetState(authToken.FingerPrint, user.ID)
+		cookie.SetSession(c, authToken.FingerPrintHash)
+		go utils.SaveSessionInDB(c, user.ID)
 		c.Redirect(http.StatusTemporaryRedirect, redirectURL)
 	}
 }
@@ -227,7 +229,7 @@ func processGithubUserInfo(code string) (models.User, error) {
 		GivenName:  &firstName,
 		FamilyName: &lastName,
 		Picture:    &picture,
-		Email:      userRawData["email"],
+		Email:      userRawData["sub"],
 	}
 
 	return user, nil
@@ -260,7 +262,7 @@ func processFacebookUserInfo(code string) (models.User, error) {
 	userRawData := make(map[string]interface{})
 	json.Unmarshal(body, &userRawData)
 
-	email := fmt.Sprintf("%v", userRawData["email"])
+	email := fmt.Sprintf("%v", userRawData["sub"])
 
 	picObject := userRawData["picture"].(map[string]interface{})["data"]
 	picDataObject := picObject.(map[string]interface{})

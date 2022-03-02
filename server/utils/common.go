@@ -20,7 +20,7 @@ func StringSliceContains(s []string, e string) bool {
 
 // SaveSessionInDB saves sessions generated for a given user with meta information
 // Do not store token here as that could be security breach
-func SaveSessionInDB(userId string, c *gin.Context) {
+func SaveSessionInDB(c *gin.Context, userId string) {
 	sessionData := models.Session{
 		UserID:    userId,
 		UserAgent: GetUserAgent(c.Request),

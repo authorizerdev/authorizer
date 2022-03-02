@@ -1,12 +1,11 @@
 package test
 
 import (
-	"fmt"
+	"context"
 	"testing"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
-	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/resolvers"
 	"github.com/stretchr/testify/assert"
@@ -34,18 +33,16 @@ func updateProfileTests(t *testing.T, s TestSetup) {
 		verifyRes, err := resolvers.VerifyEmailResolver(ctx, model.VerifyEmailInput{
 			Token: verificationRequest.Token,
 		})
+		assert.NoError(t, err)
 
-		token := *verifyRes.AccessToken
-		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+".access_token", token))
-		_, err = resolvers.UpdateProfileResolver(ctx, model.UpdateProfileInput{
-			FamilyName: &fName,
-		})
-		assert.Nil(t, err)
+		s.GinContext.Request.Header.Set("Authorization", "Bearer "+*verifyRes.AccessToken)
+		ctx = context.WithValue(req.Context(), "GinContextKey", s.GinContext)
 
 		newEmail := "new_" + email
 		_, err = resolvers.UpdateProfileResolver(ctx, model.UpdateProfileInput{
 			Email: &newEmail,
 		})
+		s.GinContext.Request.Header.Set("Authorization", "")
 		assert.Nil(t, err)
 		_, err = resolvers.ProfileResolver(ctx)
 		assert.NotNil(t, err, "unauthorized")

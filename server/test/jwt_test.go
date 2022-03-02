@@ -9,6 +9,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/golang-jwt/jwt"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,12 +19,17 @@ func TestJwt(t *testing.T) {
 	publicKey := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtPublicKey)
 	privateKey := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtPrivateKey)
 	clientID := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyClientID)
+	nonce := uuid.New().String()
+	hostname := "localhost"
+	subject := "test"
 	claims := jwt.MapClaims{
 		"exp":   time.Now().Add(time.Minute * 30).Unix(),
 		"iat":   time.Now().Unix(),
 		"email": "test@yopmail.com",
-		"sub":   "test",
+		"sub":   subject,
 		"aud":   clientID,
+		"nonce": nonce,
+		"iss":   hostname,
 	}
 
 	t.Run("invalid jwt type", func(t *testing.T) {
@@ -42,7 +48,7 @@ func TestJwt(t *testing.T) {
 		}
 		jwtToken, err := token.SignJWTToken(expiredClaims)
 		assert.NoError(t, err)
-		_, err = token.ParseJWTToken(jwtToken)
+		_, err = token.ParseJWTToken(jwtToken, hostname, nonce, subject)
 		assert.Error(t, err, err.Error(), "Token is expired")
 	})
 	t.Run("HMAC algorithms", func(t *testing.T) {
@@ -52,7 +58,7 @@ func TestJwt(t *testing.T) {
 			jwtToken, err := token.SignJWTToken(claims)
 			assert.NoError(t, err)
 			assert.NotEmpty(t, jwtToken)
-			c, err := token.ParseJWTToken(jwtToken)
+			c, err := token.ParseJWTToken(jwtToken, hostname, nonce, subject)
 			assert.NoError(t, err)
 			assert.Equal(t, c["email"].(string), claims["email"])
 		})
@@ -61,7 +67,7 @@ func TestJwt(t *testing.T) {
 			jwtToken, err := token.SignJWTToken(claims)
 			assert.NoError(t, err)
 			assert.NotEmpty(t, jwtToken)
-			c, err := token.ParseJWTToken(jwtToken)
+			c, err := token.ParseJWTToken(jwtToken, hostname, nonce, subject)
 			assert.NoError(t, err)
 			assert.Equal(t, c["email"].(string), claims["email"])
 		})
@@ -70,7 +76,7 @@ func TestJwt(t *testing.T) {
 			jwtToken, err := token.SignJWTToken(claims)
 			assert.NoError(t, err)
 			assert.NotEmpty(t, jwtToken)
-			c, err := token.ParseJWTToken(jwtToken)
+			c, err := token.ParseJWTToken(jwtToken, hostname, nonce, subject)
 			assert.NoError(t, err)
 			assert.Equal(t, c["email"].(string), claims["email"])
 		})
@@ -86,7 +92,7 @@ func TestJwt(t *testing.T) {
 			jwtToken, err := token.SignJWTToken(claims)
 			assert.NoError(t, err)
 			assert.NotEmpty(t, jwtToken)
-			c, err := token.ParseJWTToken(jwtToken)
+			c, err := token.ParseJWTToken(jwtToken, hostname, nonce, subject)
 			assert.NoError(t, err)
 			assert.Equal(t, c["email"].(string), claims["email"])
 		})
@@ -99,7 +105,7 @@ func TestJwt(t *testing.T) {
 			jwtToken, err := token.SignJWTToken(claims)
 			assert.NoError(t, err)
 			assert.NotEmpty(t, jwtToken)
-			c, err := token.ParseJWTToken(jwtToken)
+			c, err := token.ParseJWTToken(jwtToken, hostname, nonce, subject)
 			assert.NoError(t, err)
 			assert.Equal(t, c["email"].(string), claims["email"])
 		})
@@ -112,7 +118,7 @@ func TestJwt(t *testing.T) {
 			jwtToken, err := token.SignJWTToken(claims)
 			assert.NoError(t, err)
 			assert.NotEmpty(t, jwtToken)
-			c, err := token.ParseJWTToken(jwtToken)
+			c, err := token.ParseJWTToken(jwtToken, hostname, nonce, subject)
 			assert.NoError(t, err)
 			assert.Equal(t, c["email"].(string), claims["email"])
 		})
@@ -128,7 +134,7 @@ func TestJwt(t *testing.T) {
 			jwtToken, err := token.SignJWTToken(claims)
 			assert.NoError(t, err)
 			assert.NotEmpty(t, jwtToken)
-			c, err := token.ParseJWTToken(jwtToken)
+			c, err := token.ParseJWTToken(jwtToken, hostname, nonce, subject)
 			assert.NoError(t, err)
 			assert.Equal(t, c["email"].(string), claims["email"])
 		})
@@ -141,7 +147,7 @@ func TestJwt(t *testing.T) {
 			jwtToken, err := token.SignJWTToken(claims)
 			assert.NoError(t, err)
 			assert.NotEmpty(t, jwtToken)
-			c, err := token.ParseJWTToken(jwtToken)
+			c, err := token.ParseJWTToken(jwtToken, hostname, nonce, subject)
 			assert.NoError(t, err)
 			assert.Equal(t, c["email"].(string), claims["email"])
 		})
@@ -154,7 +160,7 @@ func TestJwt(t *testing.T) {
 			jwtToken, err := token.SignJWTToken(claims)
 			assert.NoError(t, err)
 			assert.NotEmpty(t, jwtToken)
-			c, err := token.ParseJWTToken(jwtToken)
+			c, err := token.ParseJWTToken(jwtToken, hostname, nonce, subject)
 			assert.NoError(t, err)
 			assert.Equal(t, c["email"].(string), claims["email"])
 		})

@@ -11,10 +11,12 @@ type AdminSignupInput struct {
 }
 
 type AuthResponse struct {
-	Message     string  `json:"message"`
-	AccessToken *string `json:"access_token"`
-	ExpiresAt   *int64  `json:"expires_at"`
-	User        *User   `json:"user"`
+	Message      string  `json:"message"`
+	AccessToken  *string `json:"access_token"`
+	IDToken      *string `json:"id_token"`
+	RefreshToken *string `json:"refresh_token"`
+	ExpiresIn    *int64  `json:"expires_in"`
+	User         *User   `json:"user"`
 }
 
 type DeleteUserInput struct {
@@ -70,20 +72,17 @@ type ForgotPasswordInput struct {
 	Email string `json:"email"`
 }
 
-type IsValidJWTQueryInput struct {
-	Jwt   *string  `json:"jwt"`
-	Roles []string `json:"roles"`
-}
-
 type LoginInput struct {
 	Email    string   `json:"email"`
 	Password string   `json:"password"`
 	Roles    []string `json:"roles"`
+	Scope    []string `json:"scope"`
 }
 
 type MagicLinkLoginInput struct {
 	Email string   `json:"email"`
 	Roles []string `json:"roles"`
+	Scope []string `json:"scope"`
 }
 
 type Meta struct {
@@ -130,6 +129,7 @@ type Response struct {
 
 type SessionQueryInput struct {
 	Roles []string `json:"roles"`
+	Scope []string `json:"scope"`
 }
 
 type SignUpInput struct {
@@ -236,11 +236,6 @@ type User struct {
 type Users struct {
 	Pagination *Pagination `json:"pagination"`
 	Users      []*User     `json:"users"`
-}
-
-type ValidJWTResponse struct {
-	Valid   bool   `json:"valid"`
-	Message string `json:"message"`
 }
 
 type VerificationRequest struct {

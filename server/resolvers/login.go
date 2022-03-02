@@ -59,20 +59,36 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 		roles = params.Roles
 	}
 
-	authToken, err := token.CreateAuthToken(user, roles)
+	scope := []string{"openid", "email", "profile"}
+	if params.Scope != nil && len(scope) > 0 {
+		scope = params.Scope
+	}
+
+	authToken, err := token.CreateAuthToken(gc, user, roles, scope)
 	if err != nil {
 		return res, err
 	}
-	sessionstore.SetUserSession(user.ID, authToken.FingerPrint, authToken.RefreshToken.Token)
-	cookie.SetCookie(gc, authToken.AccessToken.Token, authToken.RefreshToken.Token, authToken.FingerPrintHash)
-	utils.SaveSessionInDB(user.ID, gc)
 
+	cookie.SetSession(gc, authToken.FingerPrintHash)
+
+	expiresIn := int64(1800)
 	res = &model.AuthResponse{
 		Message:     `Logged in successfully`,
 		AccessToken: &authToken.AccessToken.Token,
-		ExpiresAt:   &authToken.AccessToken.ExpiresAt,
+		IDToken:     &authToken.IDToken.Token,
+		ExpiresIn:   &expiresIn,
 		User:        user.AsAPIUser(),
 	}
+
+	sessionstore.SetState(authToken.FingerPrintHash, authToken.FingerPrint+"@"+user.ID)
+	sessionstore.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
+
+	if authToken.RefreshToken != nil {
+		res.RefreshToken = &authToken.RefreshToken.Token
+		sessionstore.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
+	}
+
+	go utils.SaveSessionInDB(gc, user.ID)
 
 	return res, nil
 }

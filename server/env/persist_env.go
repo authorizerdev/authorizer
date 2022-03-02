@@ -33,17 +33,13 @@ func GetEnvData() (envstore.Store, error) {
 	}
 
 	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyEncryptionKey, decryptedEncryptionKey)
-	b64DecryptedConfig, err := crypto.DecryptB64(env.EnvData)
+
+	decryptedConfigs, err := crypto.DecryptAES(env.EnvData)
 	if err != nil {
 		return result, err
 	}
 
-	decryptedConfigs, err := crypto.DecryptAES([]byte(b64DecryptedConfig))
-	if err != nil {
-		return result, err
-	}
-
-	err = json.Unmarshal(decryptedConfigs, &result)
+	err = json.Unmarshal([]byte(decryptedConfigs), &result)
 	if err != nil {
 		return result, err
 	}
@@ -85,12 +81,8 @@ func PersistEnv() error {
 		}
 
 		envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyEncryptionKey, decryptedEncryptionKey)
-		b64DecryptedConfig, err := crypto.DecryptB64(env.EnvData)
-		if err != nil {
-			return err
-		}
 
-		decryptedConfigs, err := crypto.DecryptAES([]byte(b64DecryptedConfig))
+		decryptedConfigs, err := crypto.DecryptAES(env.EnvData)
 		if err != nil {
 			return err
 		}
@@ -98,7 +90,7 @@ func PersistEnv() error {
 		// temp store variable
 		var storeData envstore.Store
 
-		err = json.Unmarshal(decryptedConfigs, &storeData)
+		err = json.Unmarshal([]byte(decryptedConfigs), &storeData)
 		if err != nil {
 			return err
 		}

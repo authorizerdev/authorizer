@@ -11,6 +11,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 // VerifyEmailHandler handles the verify email route.
@@ -18,7 +19,7 @@ import (
 func VerifyEmailHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		errorRes := gin.H{
-			"message": "invalid token",
+			"error": "invalid token",
 		}
 		tokenInQuery := c.Query("token")
 		if tokenInQuery == "" {
@@ -33,13 +34,21 @@ func VerifyEmailHandler() gin.HandlerFunc {
 		}
 
 		// verify if token exists in db
-		claim, err := token.ParseJWTToken(tokenInQuery)
+		hostname := utils.GetHost(c)
+		encryptedNonce, err := utils.EncryptNonce(verificationRequest.Nonce)
+		if err != nil {
+			c.JSON(400, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+		claim, err := token.ParseJWTToken(tokenInQuery, hostname, encryptedNonce, verificationRequest.Email)
 		if err != nil {
 			c.JSON(400, errorRes)
 			return
 		}
 
-		user, err := db.Provider.GetUserByEmail(claim["email"].(string))
+		user, err := db.Provider.GetUserByEmail(claim["sub"].(string))
 		if err != nil {
 			c.JSON(400, gin.H{
 				"message": err.Error(),
@@ -57,16 +66,19 @@ func VerifyEmailHandler() gin.HandlerFunc {
 		db.Provider.DeleteVerificationRequest(verificationRequest)
 
 		roles := strings.Split(user.Roles, ",")
-		authToken, err := token.CreateAuthToken(user, roles)
+		scope := []string{"openid", "email", "profile"}
+		nonce := uuid.New().String()
+		_, authToken, err := token.CreateSessionToken(user, nonce, roles, scope)
 		if err != nil {
 			c.JSON(400, gin.H{
 				"message": err.Error(),
 			})
 			return
 		}
-		sessionstore.SetUserSession(user.ID, authToken.FingerPrint, authToken.RefreshToken.Token)
-		cookie.SetCookie(c, authToken.AccessToken.Token, authToken.RefreshToken.Token, authToken.FingerPrintHash)
-		utils.SaveSessionInDB(user.ID, c)
+		sessionstore.SetState(authToken, nonce+"@"+user.ID)
+		cookie.SetSession(c, authToken)
+
+		go utils.SaveSessionInDB(c, user.ID)
 
 		c.Redirect(http.StatusTemporaryRedirect, claim["redirect_url"].(string))
 	}

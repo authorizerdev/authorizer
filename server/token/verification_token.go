@@ -9,13 +9,15 @@ import (
 )
 
 // CreateVerificationToken creates a verification JWT token
-func CreateVerificationToken(email, tokenType, hostname string) (string, error) {
+func CreateVerificationToken(email, tokenType, hostname, nonceHash string) (string, error) {
 	claims := jwt.MapClaims{
+		"iss":          hostname,
+		"aud":          envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyClientID),
+		"sub":          email,
 		"exp":          time.Now().Add(time.Minute * 30).Unix(),
 		"iat":          time.Now().Unix(),
 		"token_type":   tokenType,
-		"email":        email,
-		"host":         hostname,
+		"nonce":        nonceHash,
 		"redirect_url": envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAppURL),
 	}
 
