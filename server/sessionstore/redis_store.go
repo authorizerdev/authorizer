@@ -52,7 +52,7 @@ func (c *RedisStore) DeleteAllUserSession(userId string) {
 
 // SetState sets the state in redis store.
 func (c *RedisStore) SetState(key, value string) {
-	err := c.store.Set(c.ctx, key, value, 0).Err()
+	err := c.store.Set(c.ctx, "authorizer_"+key, value, 0).Err()
 	if err != nil {
 		log.Fatalln("Error saving redis token:", err)
 	}
@@ -61,7 +61,7 @@ func (c *RedisStore) SetState(key, value string) {
 // GetState gets the state from redis store.
 func (c *RedisStore) GetState(key string) string {
 	state := ""
-	state, err := c.store.Get(c.ctx, key).Result()
+	state, err := c.store.Get(c.ctx, "authorizer_"+key).Result()
 	if err != nil {
 		log.Println("error getting token from redis store:", err)
 	}
@@ -71,7 +71,7 @@ func (c *RedisStore) GetState(key string) string {
 
 // RemoveState removes the state from redis store.
 func (c *RedisStore) RemoveState(key string) {
-	err := c.store.Del(c.ctx, key).Err()
+	err := c.store.Del(c.ctx, "authorizer_"+key).Err()
 	if err != nil {
 		log.Fatalln("Error deleting redis token:", err)
 	}

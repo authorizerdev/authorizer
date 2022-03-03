@@ -23,6 +23,9 @@ func InitRouter() *gin.Engine {
 	// OPEN ID routes
 	router.GET("/.well-known/openid-configuration", handlers.OpenIDConfigurationHandler())
 	router.GET("/.well-known/jwks.json", handlers.JWKsHandler())
+	router.GET("/authorize", handlers.AuthorizeHandler())
+	router.GET("/userinfo", handlers.UserInfoHandler())
+	router.GET("/logout", handlers.LogoutHandler())
 
 	router.LoadHTMLGlob("templates/*")
 	// login page app related routes.

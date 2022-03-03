@@ -99,7 +99,7 @@ func EncryptEnvData(data envstore.Store) (string, error) {
 		return "", err
 	}
 
-	return EncryptB64(string(encryptedConfig)), nil
+	return string(encryptedConfig), nil
 }
 
 // EncryptPassword is used for encrypting password
