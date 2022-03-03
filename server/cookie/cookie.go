@@ -26,11 +26,6 @@ func SetSession(gc *gin.Context, sessionID string) {
 	gc.SetSameSite(http.SameSiteNoneMode)
 	gc.SetCookie(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+"_session", sessionID, year, "/", host, secure, httpOnly)
 	gc.SetCookie(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+"_session_domain", sessionID, year, "/", domain, secure, httpOnly)
-
-	// Fallback cookie for anomaly getection on browsers that don’t support the sameSite=None attribute.
-	gc.SetSameSite(http.SameSiteDefaultMode)
-	gc.SetCookie(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+"_session_compat", sessionID, year, "/", host, secure, httpOnly)
-	gc.SetCookie(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+"_session_domain_compat", sessionID, year, "/", domain, secure, httpOnly)
 }
 
 // DeleteSession sets session cookies to expire
@@ -47,10 +42,6 @@ func DeleteSession(gc *gin.Context) {
 	gc.SetSameSite(http.SameSiteNoneMode)
 	gc.SetCookie(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+"_session", "", -1, "/", host, secure, httpOnly)
 	gc.SetCookie(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+"_session_domain", "", -1, "/", domain, secure, httpOnly)
-
-	gc.SetSameSite(http.SameSiteDefaultMode)
-	gc.SetCookie(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+"_session_compat", "", -1, "/", host, secure, httpOnly)
-	gc.SetCookie(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+"_session.domain_compat", "", -1, "/", domain, secure, httpOnly)
 }
 
 // GetSession gets the session cookie from context
@@ -61,14 +52,7 @@ func GetSession(gc *gin.Context) (string, error) {
 	if err != nil {
 		cookie, err = gc.Request.Cookie(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName) + "_session_domain")
 		if err != nil {
-			cookie, err = gc.Request.Cookie(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName) + "_session_compat")
-			if err != nil {
-				cookie, err = gc.Request.Cookie(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName) + "_session_domain_compat")
-			}
-
-			if err != nil {
-				return "", err
-			}
+			return "", err
 		}
 	}
 
