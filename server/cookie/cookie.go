@@ -2,6 +2,7 @@ package cookie
 
 import (
 	"net/http"
+	"net/url"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/envstore"
@@ -56,5 +57,9 @@ func GetSession(gc *gin.Context) (string, error) {
 		}
 	}
 
-	return cookie.Value, nil
+	decodedValue, err := url.PathUnescape(cookie.Value)
+	if err != nil {
+		return "", err
+	}
+	return decodedValue, nil
 }

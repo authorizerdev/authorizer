@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -27,6 +26,8 @@ func AuthorizeHandler() gin.HandlerFunc {
 		responseType := strings.TrimSpace(gc.Query("response_type"))
 		state := strings.TrimSpace(gc.Query("state"))
 		codeChallenge := strings.TrimSpace(gc.Query("code_challenge"))
+		scopeString := strings.TrimSpace(gc.Query("scope"))
+		scope := []string{}
 		template := "authorize.tmpl"
 
 		if redirectURI == "" {
@@ -57,6 +58,10 @@ func AuthorizeHandler() gin.HandlerFunc {
 
 		if responseType == "" {
 			responseType = "token"
+		}
+
+		if scopeString == "" {
+			scope = []string{"openid", "profile", "email"}
 		}
 
 		isResponseTypeCode := responseType == "code"
@@ -142,7 +147,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 			// rollover the session for security
 			sessionstore.RemoveState(sessionToken)
 			nonce := uuid.New().String()
-			newSessionTokenData, newSessionToken, err := token.CreateSessionToken(user, nonce, claims.Roles, claims.Scope)
+			newSessionTokenData, newSessionToken, err := token.CreateSessionToken(user, nonce, claims.Roles, scope)
 			if err != nil {
 				gc.HTML(http.StatusOK, template, gin.H{
 					"target_origin": nil,
@@ -160,7 +165,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 			sessionstore.SetState(newSessionToken, newSessionTokenData.Nonce+"@"+user.ID)
 			cookie.SetSession(gc, newSessionToken)
 			code := uuid.New().String()
-			sessionstore.SetState("code_challenge_"+codeChallenge, code)
+			sessionstore.SetState(codeChallenge, code+"@"+newSessionToken)
 			gc.HTML(http.StatusOK, template, gin.H{
 				"target_origin": redirectURI,
 				"authorization_response": map[string]string{
@@ -173,7 +178,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 
 		if isResponseTypeToken {
 			// rollover the session for security
-			authToken, err := token.CreateAuthToken(gc, user, claims.Roles, claims.Scope)
+			authToken, err := token.CreateAuthToken(gc, user, claims.Roles, scope)
 			if err != nil {
 				gc.HTML(http.StatusOK, template, gin.H{
 					"target_origin": nil,
@@ -191,20 +196,28 @@ func AuthorizeHandler() gin.HandlerFunc {
 			sessionstore.SetState(authToken.FingerPrintHash, authToken.FingerPrint+"@"+user.ID)
 			sessionstore.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
 			cookie.SetSession(gc, authToken.FingerPrintHash)
+
 			expiresIn := int64(1800)
+			res := map[string]interface{}{
+				"access_token": authToken.AccessToken.Token,
+				"id_token":     authToken.IDToken.Token,
+				"state":        state,
+				"scope":        scope,
+				"token_type":   "Bearer",
+				"expires_in":   expiresIn,
+			}
+
+			if authToken.RefreshToken != nil {
+				res["refresh_token"] = authToken.RefreshToken.Token
+				sessionstore.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
+			}
+
 			gc.HTML(http.StatusOK, template, gin.H{
-				"target_origin": redirectURI,
-				"authorization_response": map[string]interface{}{
-					"access_token": authToken.AccessToken.Token,
-					"id_token":     authToken.IDToken.Token,
-					"state":        state,
-					"scope":        claims.Scope,
-					"expires_in":   expiresIn,
-				},
+				"target_origin":          redirectURI,
+				"authorization_response": res,
 			})
 			return
 		}
-		fmt.Println("=> returning from here...")
 
 		// by default return with error
 		gc.HTML(http.StatusOK, template, gin.H{
