@@ -54,7 +54,9 @@ func TokenHandler() gin.HandlerFunc {
 
 		hash := sha256.New()
 		hash.Write([]byte(codeVerifier))
-		encryptedCode := strings.TrimSuffix(base64.URLEncoding.EncodeToString(hash.Sum(nil)), "=")
+		encryptedCode := strings.ReplaceAll(base64.URLEncoding.EncodeToString(hash.Sum(nil)), "+", "-")
+		encryptedCode = strings.ReplaceAll(encryptedCode, "/", "_")
+		encryptedCode = strings.ReplaceAll(encryptedCode, "=", "")
 		sessionData := sessionstore.GetState(encryptedCode)
 		if sessionData == "" {
 			gc.JSON(http.StatusBadRequest, gin.H{
