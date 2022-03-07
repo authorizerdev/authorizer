@@ -9,6 +9,8 @@ export const AdminSessionQuery = `
 export const EnvVariablesQuery = `
   query {
     _env{
+      CLIENT_ID,
+      CLIENT_SECRET,
 	    GOOGLE_CLIENT_ID,
       GOOGLE_CLIENT_SECRET,
       GITHUB_CLIENT_ID,

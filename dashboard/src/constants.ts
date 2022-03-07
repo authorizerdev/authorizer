@@ -2,6 +2,7 @@ export const LOGO_URL =
 	'https://user-images.githubusercontent.com/6964334/147834043-fc384cab-e7ca-40f8-9663-38fc25fd5f3a.png';
 
 export const TextInputType = {
+	CLIENT_ID: 'CLIENT_ID',
 	GOOGLE_CLIENT_ID: 'GOOGLE_CLIENT_ID',
 	GITHUB_CLIENT_ID: 'GITHUB_CLIENT_ID',
 	FACEBOOK_CLIENT_ID: 'FACEBOOK_CLIENT_ID',
@@ -25,6 +26,7 @@ export const TextInputType = {
 };
 
 export const HiddenInputType = {
+	CLIENT_SECRET: 'CLIENT_SECRET',
 	GOOGLE_CLIENT_SECRET: 'GOOGLE_CLIENT_SECRET',
 	GITHUB_CLIENT_SECRET: 'GITHUB_CLIENT_SECRET',
 	FACEBOOK_CLIENT_SECRET: 'FACEBOOK_CLIENT_SECRET',

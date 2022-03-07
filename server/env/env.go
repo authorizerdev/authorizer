@@ -90,7 +90,7 @@ func InitAllEnv() error {
 
 	clientSecret := envData.StringEnv[constants.EnvKeyClientSecret]
 	// unique client id for each instance
-	if clientID == "" {
+	if clientSecret == "" {
 		clientSecret = uuid.New().String()
 		envData.StringEnv[constants.EnvKeyClientSecret] = clientSecret
 	}

@@ -241,6 +241,42 @@ export default function Environment() {
 	return (
 		<Box m="5" py="5" px="10" bg="white" rounded="md">
 			<Text fontSize="md" paddingTop="2%" fontWeight="bold">
+				Your instance information
+			</Text>
+			<Stack spacing={6} padding="2% 0%">
+				<Flex>
+					<Flex w="30%" justifyContent="start" alignItems="center">
+						<Text fontSize="sm">Client ID</Text>
+					</Flex>
+					<Center w="70%">
+						<InputField
+							variables={envVariables}
+							setVariables={() => {}}
+							inputType={TextInputType.CLIENT_ID}
+							placeholder="Client ID"
+							isDisabled={true}
+						/>
+					</Center>
+				</Flex>
+				<Flex>
+					<Flex w="30%" justifyContent="start" alignItems="center">
+						<Text fontSize="sm">Client Secret</Text>
+					</Flex>
+					<Center w="70%">
+						<InputField
+							variables={envVariables}
+							setVariables={setEnvVariables}
+							fieldVisibility={fieldVisibility}
+							setFieldVisibility={setFieldVisibility}
+							inputType={HiddenInputType.CLIENT_SECRET}
+							placeholder="Client Secret"
+							isDisabled={true}
+						/>
+					</Center>
+				</Flex>
+			</Stack>
+			<Divider marginTop="2%" marginBottom="2%" />
+			<Text fontSize="md" paddingTop="2%" fontWeight="bold">
 				Social Media Logins
 			</Text>
 			<Stack spacing={6} padding="2% 0%">
