@@ -2,6 +2,7 @@ package env
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -80,9 +81,16 @@ func PersistEnv() error {
 			return err
 		}
 
+		fmt.Println("decryptedEncryptionKey:", decryptedEncryptionKey)
+
 		envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyEncryptionKey, decryptedEncryptionKey)
 
-		decryptedConfigs, err := crypto.DecryptAESEnv([]byte(env.EnvData))
+		b64DecryptedConfig, err := crypto.DecryptB64(env.EnvData)
+		if err != nil {
+			return err
+		}
+
+		decryptedConfigs, err := crypto.DecryptAESEnv([]byte(b64DecryptedConfig))
 		if err != nil {
 			return err
 		}
