@@ -21,6 +21,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"golang.org/x/oauth2"
 )
 
@@ -146,10 +147,14 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 
 		// TODO use query param
 		scope := []string{"openid", "email", "profile"}
-		authToken, _ := token.CreateAuthToken(c, user, inputRoles, scope)
+		nonce := uuid.New().String()
+		_, newSessionToken, err := token.CreateSessionToken(user, nonce, inputRoles, scope)
+		if err != nil {
+			c.JSON(500, gin.H{"error": err.Error()})
+		}
 
-		sessionstore.SetState(authToken.FingerPrint, user.ID)
-		cookie.SetSession(c, authToken.FingerPrintHash)
+		sessionstore.SetState(newSessionToken, nonce+"@"+user.ID)
+		cookie.SetSession(c, newSessionToken)
 		go utils.SaveSessionInDB(c, user.ID)
 		c.Redirect(http.StatusTemporaryRedirect, redirectURL)
 	}

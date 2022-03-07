@@ -26,7 +26,7 @@ func InitRouter() *gin.Engine {
 	router.GET("/authorize", handlers.AuthorizeHandler())
 	router.GET("/userinfo", handlers.UserInfoHandler())
 	router.GET("/logout", handlers.LogoutHandler())
-	router.POST("/token", handlers.TokenHandler())
+	router.POST("/oauth/token", handlers.TokenHandler())
 
 	router.LoadHTMLGlob("templates/*")
 	// login page app related routes.

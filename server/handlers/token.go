@@ -6,8 +6,10 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/db"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/sessionstore"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/gin-gonic/gin"
@@ -26,7 +28,23 @@ func TokenHandler() gin.HandlerFunc {
 
 		codeVerifier := strings.TrimSpace(reqBody["code_verifier"])
 		code := strings.TrimSpace(reqBody["code"])
-		redirectURI := strings.TrimSpace(reqBody["redirect_uri"])
+		clientID := strings.TrimSpace(reqBody["client_id"])
+
+		if clientID == "" {
+			gc.JSON(http.StatusBadRequest, gin.H{
+				"error":             "client_id_required",
+				"error_description": "The client id is required",
+			})
+			return
+		}
+
+		if clientID != envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyClientID) {
+			gc.JSON(http.StatusBadRequest, gin.H{
+				"error":             "invalid_client_id",
+				"error_description": "The client id is invalid",
+			})
+			return
+		}
 
 		if codeVerifier == "" {
 			gc.JSON(http.StatusBadRequest, gin.H{
@@ -40,14 +58,6 @@ func TokenHandler() gin.HandlerFunc {
 			gc.JSON(http.StatusBadRequest, gin.H{
 				"error":             "invalid_code",
 				"error_description": "The code is required",
-			})
-			return
-		}
-
-		if redirectURI == "" {
-			gc.JSON(http.StatusBadRequest, gin.H{
-				"error":             "invalid_redirect_uri",
-				"error_description": "The redirect URI is required",
 			})
 			return
 		}

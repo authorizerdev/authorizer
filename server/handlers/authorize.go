@@ -4,8 +4,10 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/db"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/sessionstore"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/gin-gonic/gin"
@@ -27,12 +29,38 @@ func AuthorizeHandler() gin.HandlerFunc {
 		state := strings.TrimSpace(gc.Query("state"))
 		codeChallenge := strings.TrimSpace(gc.Query("code_challenge"))
 		scopeString := strings.TrimSpace(gc.Query("scope"))
-		scope := []string{}
+		clientID := strings.TrimSpace(gc.Query("client_id"))
 		template := "authorize.tmpl"
+
+		if clientID == "" {
+			gc.HTML(http.StatusOK, template, gin.H{
+				"target_origin": redirectURI,
+				"authorization_response": map[string]interface{}{
+					"type": "authorization_response",
+					"response": map[string]string{
+						"error": "client_id is required",
+					},
+				},
+			})
+			return
+		}
+
+		if clientID != envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyClientID) {
+			gc.HTML(http.StatusOK, template, gin.H{
+				"target_origin": redirectURI,
+				"authorization_response": map[string]interface{}{
+					"type": "authorization_response",
+					"response": map[string]string{
+						"error": "invalid_client_id",
+					},
+				},
+			})
+			return
+		}
 
 		if redirectURI == "" {
 			gc.HTML(http.StatusOK, template, gin.H{
-				"target_origin": nil,
+				"target_origin": redirectURI,
 				"authorization_response": map[string]interface{}{
 					"type": "authorization_response",
 					"response": map[string]string{
@@ -45,7 +73,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 
 		if state == "" {
 			gc.HTML(http.StatusOK, template, gin.H{
-				"target_origin": nil,
+				"target_origin": redirectURI,
 				"authorization_response": map[string]interface{}{
 					"type": "authorization_response",
 					"response": map[string]string{
@@ -60,8 +88,11 @@ func AuthorizeHandler() gin.HandlerFunc {
 			responseType = "token"
 		}
 
+		var scope []string
 		if scopeString == "" {
 			scope = []string{"openid", "profile", "email"}
+		} else {
+			scope = strings.Split(scopeString, " ")
 		}
 
 		isResponseTypeCode := responseType == "code"
@@ -69,7 +100,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 
 		if !isResponseTypeCode && !isResponseTypeToken {
 			gc.HTML(http.StatusOK, template, gin.H{
-				"target_origin": nil,
+				"target_origin": redirectURI,
 				"authorization_response": map[string]interface{}{
 					"type": "authorization_response",
 					"response": map[string]string{
@@ -83,7 +114,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 		if isResponseTypeCode {
 			if codeChallenge == "" {
 				gc.HTML(http.StatusBadRequest, template, gin.H{
-					"target_origin": nil,
+					"target_origin": redirectURI,
 					"authorization_response": map[string]interface{}{
 						"type": "authorization_response",
 						"response": map[string]string{
@@ -98,7 +129,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 		sessionToken, err := cookie.GetSession(gc)
 		if err != nil {
 			gc.HTML(http.StatusOK, template, gin.H{
-				"target_origin": nil,
+				"target_origin": redirectURI,
 				"authorization_response": map[string]interface{}{
 					"type": "authorization_response",
 					"response": map[string]string{
@@ -114,7 +145,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 		claims, err := token.ValidateBrowserSession(gc, sessionToken)
 		if err != nil {
 			gc.HTML(http.StatusOK, template, gin.H{
-				"target_origin": nil,
+				"target_origin": redirectURI,
 				"authorization_response": map[string]interface{}{
 					"type": "authorization_response",
 					"response": map[string]string{
@@ -129,7 +160,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 		user, err := db.Provider.GetUserByID(userID)
 		if err != nil {
 			gc.HTML(http.StatusOK, template, gin.H{
-				"target_origin": nil,
+				"target_origin": redirectURI,
 				"authorization_response": map[string]interface{}{
 					"type": "authorization_response",
 					"response": map[string]string{
@@ -150,7 +181,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 			newSessionTokenData, newSessionToken, err := token.CreateSessionToken(user, nonce, claims.Roles, scope)
 			if err != nil {
 				gc.HTML(http.StatusOK, template, gin.H{
-					"target_origin": nil,
+					"target_origin": redirectURI,
 					"authorization_response": map[string]interface{}{
 						"type": "authorization_response",
 						"response": map[string]string{
@@ -168,9 +199,12 @@ func AuthorizeHandler() gin.HandlerFunc {
 			sessionstore.SetState(codeChallenge, code+"@"+newSessionToken)
 			gc.HTML(http.StatusOK, template, gin.H{
 				"target_origin": redirectURI,
-				"authorization_response": map[string]string{
-					"code":  code,
-					"state": state,
+				"authorization_response": map[string]interface{}{
+					"type": "authorization_response",
+					"response": map[string]string{
+						"code":  code,
+						"state": state,
+					},
 				},
 			})
 			return
@@ -181,7 +215,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 			authToken, err := token.CreateAuthToken(gc, user, claims.Roles, scope)
 			if err != nil {
 				gc.HTML(http.StatusOK, template, gin.H{
-					"target_origin": nil,
+					"target_origin": redirectURI,
 					"authorization_response": map[string]interface{}{
 						"type": "authorization_response",
 						"response": map[string]string{
@@ -213,15 +247,18 @@ func AuthorizeHandler() gin.HandlerFunc {
 			}
 
 			gc.HTML(http.StatusOK, template, gin.H{
-				"target_origin":          redirectURI,
-				"authorization_response": res,
+				"target_origin": redirectURI,
+				"authorization_response": map[string]interface{}{
+					"type":     "authorization_response",
+					"response": res,
+				},
 			})
 			return
 		}
 
 		// by default return with error
 		gc.HTML(http.StatusOK, template, gin.H{
-			"target_origin": nil,
+			"target_origin": redirectURI,
 			"authorization_response": map[string]interface{}{
 				"type": "authorization_response",
 				"response": map[string]string{
