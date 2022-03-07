@@ -94,7 +94,7 @@ func EncryptEnvData(data envstore.Store) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	encryptedConfig, err := EncryptAES(string(configData))
+	encryptedConfig, err := EncryptAESEnv(configData)
 	if err != nil {
 		return "", err
 	}
