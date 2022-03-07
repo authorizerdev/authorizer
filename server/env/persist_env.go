@@ -112,7 +112,7 @@ func PersistEnv() error {
 
 		for key, value := range storeData.StringEnv {
 			// don't override unexposed envs
-			if key != constants.EnvKeyEncryptionKey && key != constants.EnvKeyClientID && key != constants.EnvKeyClientSecret && key != constants.EnvKeyJWK {
+			if key != constants.EnvKeyEncryptionKey {
 				// check only for derivative keys
 				// No need to check for ENCRYPTION_KEY which special key we use for encrypting config data
 				// as we have removed it from json

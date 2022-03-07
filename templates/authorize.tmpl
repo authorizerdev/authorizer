@@ -8,7 +8,6 @@
 			(function (window, document) {
 				var targetOrigin = {{.target_origin}};
 				var authorizationResponse = {{.authorization_response}};
-				console.log({targetOrigin})
 				window.parent.postMessage(authorizationResponse, targetOrigin);
 			})(this, this.document);
 		</script>
