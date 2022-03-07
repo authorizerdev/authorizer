@@ -18,6 +18,7 @@ import (
 type State struct {
 	AuthorizerURL string `json:"authorizerURL"`
 	RedirectURL   string `json:"redirectURL"`
+	State         string `json:"state"`
 }
 
 // AppHandler is the handler for the /app route
@@ -80,6 +81,7 @@ func AppHandler() gin.HandlerFunc {
 			"data": map[string]string{
 				"authorizerURL":    stateObj.AuthorizerURL,
 				"redirectURL":      stateObj.RedirectURL,
+				"state":            stateObj.State,
 				"organizationName": envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyOrganizationName),
 				"organizationLogo": envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyOrganizationLogo),
 			},

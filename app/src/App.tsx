@@ -6,6 +6,9 @@ import Root from './Root';
 export default function App() {
 	// @ts-ignore
 	const globalState: Record<string, string> = window['__authorizer__'];
+	if (globalState.state) {
+		sessionStorage.setItem('authorizer_state', globalState.state);
+	}
 	return (
 		<div
 			style={{

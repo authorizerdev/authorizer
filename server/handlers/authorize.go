@@ -51,7 +51,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 		isQuery := responseMode == "query"
 
 		hostname := utils.GetHost(gc)
-		loginRedirectState := crypto.EncryptB64(`{"authorizerURL":"` + hostname + `","redirectURL":"` + redirectURI + `"}`)
+		loginRedirectState := crypto.EncryptB64(`{"authorizerURL":"` + hostname + `","redirectURL":"` + redirectURI + `", "state":"` + state + `"}`)
 		loginURL := "/app?state=" + loginRedirectState
 
 		if clientID == "" {
