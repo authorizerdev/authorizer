@@ -37,7 +37,7 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 		}
 		sessionstore.GetState(state)
 		// contains random token, redirect url, role
-		sessionSplit := strings.Split(state, "@")
+		sessionSplit := strings.Split(state, "___")
 
 		if len(sessionSplit) < 3 {
 			c.JSON(400, gin.H{"error": "invalid redirect url"})

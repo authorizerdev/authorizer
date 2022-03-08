@@ -58,7 +58,7 @@ func OAuthLoginHandler() gin.HandlerFunc {
 			roles = strings.Join(envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles), ",")
 		}
 
-		oauthStateString := state + "@" + redirectURI + "@" + roles + "@" + strings.Join(scope, ",")
+		oauthStateString := state + "___" + redirectURI + "___" + roles + "___" + strings.Join(scope, ",")
 
 		provider := c.Param("oauth_provider")
 		isProviderConfigured := true
