@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/crypto"
@@ -12,6 +13,7 @@ import (
 // Handler to logout user
 func LogoutHandler() gin.HandlerFunc {
 	return func(gc *gin.Context) {
+		redirectURL := strings.TrimSpace(gc.Query("redirect_url"))
 		// get fingerprint hash
 		fingerprintHash, err := cookie.GetSession(gc)
 		if err != nil {
@@ -34,8 +36,12 @@ func LogoutHandler() gin.HandlerFunc {
 		sessionstore.RemoveState(fingerPrint)
 		cookie.DeleteSession(gc)
 
-		gc.JSON(http.StatusOK, gin.H{
-			"message": "Logged out successfully",
-		})
+		if redirectURL != "" {
+			gc.Redirect(http.StatusPermanentRedirect, redirectURL)
+		} else {
+			gc.JSON(http.StatusOK, gin.H{
+				"message": "Logged out successfully",
+			})
+		}
 	}
 }
