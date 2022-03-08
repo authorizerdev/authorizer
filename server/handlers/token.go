@@ -141,8 +141,14 @@ func TokenHandler() gin.HandlerFunc {
 				})
 			}
 			userID = claims["sub"].(string)
-			roles = claims["roles"].([]string)
-			scope = claims["scope"].([]string)
+			rolesInterface := claims["roles"].([]interface{})
+			scopeInterface := claims["scope"].([]interface{})
+			for _, v := range rolesInterface {
+				roles = append(roles, v.(string))
+			}
+			for _, v := range scopeInterface {
+				scope = append(scope, v.(string))
+			}
 			// remove older refresh token and rotate it for security
 			sessionstore.RemoveState(refreshToken)
 		}
@@ -179,7 +185,7 @@ func TokenHandler() gin.HandlerFunc {
 
 		if authToken.RefreshToken != nil {
 			res["refresh_token"] = authToken.RefreshToken.Token
-			sessionstore.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
+			sessionstore.SetState(authToken.RefreshToken.Token, authToken.FingerPrint+"@"+user.ID)
 		}
 
 		gc.JSON(http.StatusOK, res)

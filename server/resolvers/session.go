@@ -80,7 +80,7 @@ func SessionResolver(ctx context.Context, params *model.SessionQueryInput) (*mod
 
 	if authToken.RefreshToken != nil {
 		res.RefreshToken = &authToken.RefreshToken.Token
-		sessionstore.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
+		sessionstore.SetState(authToken.RefreshToken.Token, authToken.FingerPrint+"@"+user.ID)
 	}
 
 	return res, nil

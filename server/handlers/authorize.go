@@ -293,7 +293,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 			if authToken.RefreshToken != nil {
 				res["refresh_token"] = authToken.RefreshToken.Token
 				params += "&refresh_token=" + authToken.RefreshToken.Token
-				sessionstore.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
+				sessionstore.SetState(authToken.RefreshToken.Token, authToken.FingerPrint+"@"+user.ID)
 			}
 
 			if isQuery {

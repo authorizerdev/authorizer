@@ -91,7 +91,7 @@ func VerifyEmailHandler() gin.HandlerFunc {
 
 		if authToken.RefreshToken != nil {
 			params = params + `&refresh_token=${refresh_token}`
-			sessionstore.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
+			sessionstore.SetState(authToken.RefreshToken.Token, authToken.FingerPrint+"@"+user.ID)
 		}
 
 		if redirectURL == "" {

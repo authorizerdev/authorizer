@@ -159,7 +159,7 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 
 		if authToken.RefreshToken != nil {
 			params = params + `&refresh_token=` + authToken.RefreshToken.Token
-			sessionstore.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
+			sessionstore.SetState(authToken.RefreshToken.Token, authToken.FingerPrint+"@"+user.ID)
 		}
 
 		go utils.SaveSessionInDB(c, user.ID)
