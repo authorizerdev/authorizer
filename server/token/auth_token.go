@@ -91,7 +91,7 @@ func CreateAuthToken(gc *gin.Context, user models.User, roles, scope []string) (
 	}
 
 	if utils.StringSliceContains(scope, "offline_access") {
-		refreshToken, refreshTokenExpiresAt, err := CreateRefreshToken(user, roles, hostname, nonce)
+		refreshToken, refreshTokenExpiresAt, err := CreateRefreshToken(user, roles, scope, hostname, nonce)
 		if err != nil {
 			return nil, err
 		}
@@ -103,7 +103,7 @@ func CreateAuthToken(gc *gin.Context, user models.User, roles, scope []string) (
 }
 
 // CreateRefreshToken util to create JWT token
-func CreateRefreshToken(user models.User, roles []string, hostname, nonce string) (string, int64, error) {
+func CreateRefreshToken(user models.User, roles, scopes []string, hostname, nonce string) (string, int64, error) {
 	// expires in 1 year
 	expiryBound := time.Hour * 8760
 	expiresAt := time.Now().Add(expiryBound).Unix()
@@ -115,6 +115,7 @@ func CreateRefreshToken(user models.User, roles []string, hostname, nonce string
 		"iat":        time.Now().Unix(),
 		"token_type": constants.TokenTypeRefreshToken,
 		"roles":      roles,
+		"scope":      scopes,
 		"nonce":      nonce,
 	}
 
@@ -192,6 +193,36 @@ func ValidateAccessToken(gc *gin.Context, accessToken string) (map[string]interf
 	}
 
 	if res["token_type"] != constants.TokenTypeAccessToken {
+		return res, fmt.Errorf(`unauthorized: invalid token type`)
+	}
+
+	return res, nil
+}
+
+// Function to validate refreshToken
+func ValidateRefreshToken(gc *gin.Context, refreshToken string) (map[string]interface{}, error) {
+	var res map[string]interface{}
+
+	if refreshToken == "" {
+		return res, fmt.Errorf(`unauthorized`)
+	}
+
+	savedSession := sessionstore.GetState(refreshToken)
+	if savedSession == "" {
+		return res, fmt.Errorf(`unauthorized`)
+	}
+
+	savedSessionSplit := strings.Split(savedSession, "@")
+	nonce := savedSessionSplit[0]
+	userID := savedSessionSplit[1]
+
+	hostname := utils.GetHost(gc)
+	res, err := ParseJWTToken(refreshToken, hostname, nonce, userID)
+	if err != nil {
+		return res, err
+	}
+
+	if res["token_type"] != constants.TokenTypeRefreshToken {
 		return res, fmt.Errorf(`unauthorized: invalid token type`)
 	}
 
