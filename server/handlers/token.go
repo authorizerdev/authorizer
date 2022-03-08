@@ -15,6 +15,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// TokenHandler to handle /oauth/token requests
 // grant type required
 func TokenHandler() gin.HandlerFunc {
 	return func(gc *gin.Context) {

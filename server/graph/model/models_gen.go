@@ -100,6 +100,10 @@ type Meta struct {
 	IsMagicLinkLoginEnabled      bool   `json:"is_magic_link_login_enabled"`
 }
 
+type OAuthRevokeInput struct {
+	RefreshToken string `json:"refresh_token"`
+}
+
 type PaginatedInput struct {
 	Pagination *PaginationInput `json:"pagination"`
 }

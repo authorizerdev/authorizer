@@ -267,6 +267,10 @@ input PaginatedInput {
 	pagination: PaginationInput
 }
 
+input OAuthRevokeInput {
+	refresh_token: String!
+}
+
 type Mutation {
 	signup(params: SignUpInput!): AuthResponse!
 	login(params: LoginInput!): AuthResponse!
@@ -277,6 +281,7 @@ type Mutation {
 	resend_verify_email(params: ResendVerifyEmailInput!): Response!
 	forgot_password(params: ForgotPasswordInput!): Response!
 	reset_password(params: ResetPasswordInput!): Response!
+	revoke(params: OAuthRevokeInput!): Response!
 	# admin only apis
 	_delete_user(params: DeleteUserInput!): Response!
 	_update_user(params: UpdateUserInput!): User!

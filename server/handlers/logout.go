@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// Handler to logout user
 func LogoutHandler() gin.HandlerFunc {
 	return func(gc *gin.Context) {
 		// get fingerprint hash
