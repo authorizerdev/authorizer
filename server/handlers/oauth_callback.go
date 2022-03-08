@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -21,7 +22,6 @@ import (
 	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"golang.org/x/oauth2"
 )
 
@@ -37,16 +37,17 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 		}
 		sessionstore.GetState(state)
 		// contains random token, redirect url, role
-		sessionSplit := strings.Split(state, "___")
+		sessionSplit := strings.Split(state, "@")
 
-		// TODO validate redirect url
-		if len(sessionSplit) < 2 {
+		if len(sessionSplit) < 3 {
 			c.JSON(400, gin.H{"error": "invalid redirect url"})
 			return
 		}
 
-		inputRoles := strings.Split(sessionSplit[2], ",")
+		stateValue := sessionSplit[0]
 		redirectURL := sessionSplit[1]
+		inputRoles := strings.Split(sessionSplit[2], ",")
+		scopes := strings.Split(sessionSplit[3], ",")
 
 		var err error
 		user := models.User{}
@@ -145,17 +146,29 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			}
 		}
 
-		// TODO use query param
-		scope := []string{"openid", "email", "profile"}
-		nonce := uuid.New().String()
-		_, newSessionToken, err := token.CreateSessionToken(user, nonce, inputRoles, scope)
+		authToken, err := token.CreateAuthToken(c, user, inputRoles, scopes)
 		if err != nil {
 			c.JSON(500, gin.H{"error": err.Error()})
 		}
+		expiresIn := int64(1800)
+		params := "access_token=" + authToken.AccessToken.Token + "&token_type=bearer&expires_in=" + strconv.FormatInt(expiresIn, 10) + "&state=" + stateValue + "&id_token=" + authToken.IDToken.Token
 
-		sessionstore.SetState(newSessionToken, nonce+"@"+user.ID)
-		cookie.SetSession(c, newSessionToken)
+		cookie.SetSession(c, authToken.FingerPrintHash)
+		sessionstore.SetState(authToken.FingerPrintHash, authToken.FingerPrint+"@"+user.ID)
+		sessionstore.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
+
+		if authToken.RefreshToken != nil {
+			params = params + `&refresh_token=${refresh_token}`
+			sessionstore.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
+		}
+
 		go utils.SaveSessionInDB(c, user.ID)
+		if strings.Contains(redirectURL, "?") {
+			redirectURL = redirectURL + "&" + params
+		} else {
+			redirectURL = redirectURL + "?" + params
+		}
+
 		c.Redirect(http.StatusTemporaryRedirect, redirectURL)
 	}
 }

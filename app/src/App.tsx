@@ -6,9 +6,6 @@ import Root from './Root';
 export default function App() {
 	// @ts-ignore
 	const globalState: Record<string, string> = window['__authorizer__'];
-	if (globalState.state) {
-		sessionStorage.setItem('authorizer_state', globalState.state);
-	}
 	return (
 		<div
 			style={{
@@ -33,15 +30,7 @@ export default function App() {
 				/>
 				<h1>{globalState.organizationName}</h1>
 			</div>
-			<div
-				style={{
-					width: 400,
-					margin: `10px auto`,
-					border: `1px solid #D1D5DB`,
-					padding: `25px 20px`,
-					borderRadius: 5,
-				}}
-			>
+			<div className="container">
 				<BrowserRouter>
 					<AuthorizerProvider
 						config={{

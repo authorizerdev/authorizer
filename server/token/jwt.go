@@ -2,6 +2,7 @@ package token
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/crypto"
@@ -91,6 +92,7 @@ func ParseJWTToken(token, hostname, nonce, subject string) (jwt.MapClaims, error
 		return claims, errors.New("invalid audience")
 	}
 
+	fmt.Println("claims:", claims, claims["nonce"], nonce)
 	if claims["nonce"] != nonce {
 		return claims, errors.New("invalid nonce")
 	}

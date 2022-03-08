@@ -129,21 +129,23 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 			user.EmailVerifiedAt = nil
 			hasEmailChanged = true
 			// insert verification request
-			nonce, nonceHash, err := utils.GenerateNonce()
+			_, nonceHash, err := utils.GenerateNonce()
 			if err != nil {
 				return res, err
 			}
 			verificationType := constants.VerificationTypeUpdateEmail
-			verificationToken, err := token.CreateVerificationToken(newEmail, verificationType, hostname, nonceHash)
+			redirectURL := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAppURL)
+			verificationToken, err := token.CreateVerificationToken(newEmail, verificationType, hostname, nonceHash, redirectURL)
 			if err != nil {
 				log.Println(`error generating token`, err)
 			}
 			db.Provider.AddVerificationRequest(models.VerificationRequest{
-				Token:      verificationToken,
-				Identifier: verificationType,
-				ExpiresAt:  time.Now().Add(time.Minute * 30).Unix(),
-				Email:      newEmail,
-				Nonce:      nonce,
+				Token:       verificationToken,
+				Identifier:  verificationType,
+				ExpiresAt:   time.Now().Add(time.Minute * 30).Unix(),
+				Email:       newEmail,
+				Nonce:       nonceHash,
+				RedirectURI: redirectURL,
 			})
 
 			// exec it as go routin so that we can reduce the api latency

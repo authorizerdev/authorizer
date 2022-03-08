@@ -123,21 +123,23 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 	hostname := utils.GetHost(gc)
 	if !envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification) {
 		// insert verification request
-		nonce, nonceHash, err := utils.GenerateNonce()
+		_, nonceHash, err := utils.GenerateNonce()
 		if err != nil {
 			return res, err
 		}
 		verificationType := constants.VerificationTypeBasicAuthSignup
-		verificationToken, err := token.CreateVerificationToken(params.Email, verificationType, hostname, nonceHash)
+		redirectURL := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAppURL)
+		verificationToken, err := token.CreateVerificationToken(params.Email, verificationType, hostname, nonceHash, redirectURL)
 		if err != nil {
 			return res, err
 		}
 		db.Provider.AddVerificationRequest(models.VerificationRequest{
-			Token:      verificationToken,
-			Identifier: verificationType,
-			ExpiresAt:  time.Now().Add(time.Minute * 30).Unix(),
-			Email:      params.Email,
-			Nonce:      nonce,
+			Token:       verificationToken,
+			Identifier:  verificationType,
+			ExpiresAt:   time.Now().Add(time.Minute * 30).Unix(),
+			Email:       params.Email,
+			Nonce:       nonceHash,
+			RedirectURI: redirectURL,
 		})
 
 		// exec it as go routin so that we can reduce the api latency

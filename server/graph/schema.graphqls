@@ -57,6 +57,8 @@ type VerificationRequest {
 	expires: Int64
 	created_at: Int64
 	updated_at: Int64
+	nonce: String
+	redirect_uri: String
 }
 
 type VerificationRequests {
@@ -229,6 +231,8 @@ input UpdateUserInput {
 
 input ForgotPasswordInput {
 	email: String!
+	state: String
+	redirect_uri: String
 }
 
 input ResetPasswordInput {
@@ -245,6 +249,8 @@ input MagicLinkLoginInput {
 	email: String!
 	roles: [String!]
 	scope: [String!]
+	state: String
+	redirect_uri: String
 }
 
 input SessionQueryInput {

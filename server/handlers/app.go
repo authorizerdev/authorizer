@@ -1,13 +1,11 @@
 package handlers
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
 	"strings"
 
 	"github.com/authorizerdev/authorizer/server/constants"
-	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/gin-gonic/gin"
@@ -18,7 +16,6 @@ import (
 type State struct {
 	AuthorizerURL string `json:"authorizerURL"`
 	RedirectURL   string `json:"redirectURL"`
-	State         string `json:"state"`
 }
 
 // AppHandler is the handler for the /app route
@@ -30,42 +27,23 @@ func AppHandler() gin.HandlerFunc {
 			return
 		}
 
-		state := c.Query("state")
+		redirect_uri := strings.TrimSpace(c.Query("redirect_uri"))
+		state := strings.TrimSpace(c.Query("state"))
+		scopeString := strings.TrimSpace(c.Query("scope"))
 
-		var stateObj State
-
-		if state == "" {
-			stateObj.AuthorizerURL = hostname
-			stateObj.RedirectURL = hostname + "/app"
+		var scope []string
+		if scopeString == "" {
+			scope = []string{"openid", "profile", "email"}
 		} else {
-			decodedState, err := crypto.DecryptB64(state)
-			if err != nil {
-				c.JSON(400, gin.H{"error": "[unable to decode state] invalid state"})
-				return
-			}
+			scope = strings.Split(scopeString, " ")
+		}
 
-			err = json.Unmarshal([]byte(decodedState), &stateObj)
-			if err != nil {
-				c.JSON(400, gin.H{"error": "[unable to parse state] invalid state"})
-				return
-			}
-			stateObj.AuthorizerURL = strings.TrimSuffix(stateObj.AuthorizerURL, "/")
-			stateObj.RedirectURL = strings.TrimSuffix(stateObj.RedirectURL, "/")
-
+		if redirect_uri == "" {
+			redirect_uri = hostname + "/app"
+		} else {
 			// validate redirect url with allowed origins
-			if !utils.IsValidOrigin(stateObj.RedirectURL) {
+			if !utils.IsValidOrigin(redirect_uri) {
 				c.JSON(400, gin.H{"error": "invalid redirect url"})
-				return
-			}
-
-			if stateObj.AuthorizerURL == "" {
-				c.JSON(400, gin.H{"error": "invalid authorizer url"})
-				return
-			}
-
-			// validate host and domain of authorizer url
-			if strings.TrimSuffix(stateObj.AuthorizerURL, "/") != hostname {
-				c.JSON(400, gin.H{"error": "invalid host url"})
 				return
 			}
 		}
@@ -78,10 +56,11 @@ func AppHandler() gin.HandlerFunc {
 			}
 		}
 		c.HTML(http.StatusOK, "app.tmpl", gin.H{
-			"data": map[string]string{
-				"authorizerURL":    stateObj.AuthorizerURL,
-				"redirectURL":      stateObj.RedirectURL,
-				"state":            stateObj.State,
+			"data": map[string]interface{}{
+				"authorizerURL":    hostname,
+				"redirectURL":      redirect_uri,
+				"scope":            scope,
+				"state":            state,
 				"organizationName": envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyOrganizationName),
 				"organizationLogo": envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyOrganizationLogo),
 			},

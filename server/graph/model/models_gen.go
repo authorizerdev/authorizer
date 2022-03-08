@@ -69,7 +69,9 @@ type Error struct {
 }
 
 type ForgotPasswordInput struct {
-	Email string `json:"email"`
+	Email       string  `json:"email"`
+	State       *string `json:"state"`
+	RedirectURI *string `json:"redirect_uri"`
 }
 
 type LoginInput struct {
@@ -80,9 +82,11 @@ type LoginInput struct {
 }
 
 type MagicLinkLoginInput struct {
-	Email string   `json:"email"`
-	Roles []string `json:"roles"`
-	Scope []string `json:"scope"`
+	Email       string   `json:"email"`
+	Roles       []string `json:"roles"`
+	Scope       []string `json:"scope"`
+	State       *string  `json:"state"`
+	RedirectURI *string  `json:"redirect_uri"`
 }
 
 type Meta struct {
@@ -239,13 +243,15 @@ type Users struct {
 }
 
 type VerificationRequest struct {
-	ID         string  `json:"id"`
-	Identifier *string `json:"identifier"`
-	Token      *string `json:"token"`
-	Email      *string `json:"email"`
-	Expires    *int64  `json:"expires"`
-	CreatedAt  *int64  `json:"created_at"`
-	UpdatedAt  *int64  `json:"updated_at"`
+	ID          string  `json:"id"`
+	Identifier  *string `json:"identifier"`
+	Token       *string `json:"token"`
+	Email       *string `json:"email"`
+	Expires     *int64  `json:"expires"`
+	CreatedAt   *int64  `json:"created_at"`
+	UpdatedAt   *int64  `json:"updated_at"`
+	Nonce       *string `json:"nonce"`
+	RedirectURI *string `json:"redirect_uri"`
 }
 
 type VerificationRequests struct {

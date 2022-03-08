@@ -68,6 +68,9 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 		// 		Need to modify roles in this case
 
 		// find the unassigned roles
+		if len(params.Roles) <= 0 {
+			inputRoles = envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles)
+		}
 		existingRoles := strings.Split(existingUser.Roles, ",")
 		unasignedRoles := []string{}
 		for _, ir := range inputRoles {
@@ -109,21 +112,40 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 	hostname := utils.GetHost(gc)
 	if !envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification) {
 		// insert verification request
-		nonce, nonceHash, err := utils.GenerateNonce()
+		_, nonceHash, err := utils.GenerateNonce()
 		if err != nil {
 			return res, err
 		}
+		redirectURLParams := "&roles=" + strings.Join(inputRoles, ",")
+		if params.State != nil {
+			redirectURLParams = redirectURLParams + "&state=" + *params.State
+		}
+		if params.Scope != nil && len(params.Scope) > 0 {
+			redirectURLParams = redirectURLParams + "&scope=" + strings.Join(params.Scope, " ")
+		}
+		redirectURL := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAppURL)
+		if params.RedirectURI != nil {
+			redirectURL = *params.RedirectURI
+		}
+
+		if strings.Contains(redirectURL, "?") {
+			redirectURL = redirectURL + "&" + redirectURLParams
+		} else {
+			redirectURL = redirectURL + "?" + redirectURLParams
+		}
+
 		verificationType := constants.VerificationTypeMagicLinkLogin
-		verificationToken, err := token.CreateVerificationToken(params.Email, verificationType, hostname, nonceHash)
+		verificationToken, err := token.CreateVerificationToken(params.Email, verificationType, hostname, nonceHash, redirectURL)
 		if err != nil {
 			log.Println(`error generating token`, err)
 		}
 		db.Provider.AddVerificationRequest(models.VerificationRequest{
-			Token:      verificationToken,
-			Identifier: verificationType,
-			ExpiresAt:  time.Now().Add(time.Minute * 30).Unix(),
-			Email:      params.Email,
-			Nonce:      nonce,
+			Token:       verificationToken,
+			Identifier:  verificationType,
+			ExpiresAt:   time.Now().Add(time.Minute * 30).Unix(),
+			Email:       params.Email,
+			Nonce:       nonceHash,
+			RedirectURI: redirectURL,
 		})
 
 		// exec it as go routin so that we can reduce the api latency

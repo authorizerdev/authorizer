@@ -39,20 +39,26 @@ func ForgotPasswordResolver(ctx context.Context, params model.ForgotPasswordInpu
 	}
 
 	hostname := utils.GetHost(gc)
-	nonce, nonceHash, err := utils.GenerateNonce()
+	_, nonceHash, err := utils.GenerateNonce()
 	if err != nil {
 		return res, err
 	}
-	verificationToken, err := token.CreateVerificationToken(params.Email, constants.VerificationTypeForgotPassword, hostname, nonceHash)
+	redirectURL := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAppURL)
+	if params.RedirectURI != nil {
+		redirectURL = *params.RedirectURI
+	}
+
+	verificationToken, err := token.CreateVerificationToken(params.Email, constants.VerificationTypeForgotPassword, hostname, nonceHash, redirectURL)
 	if err != nil {
 		log.Println(`error generating token`, err)
 	}
 	db.Provider.AddVerificationRequest(models.VerificationRequest{
-		Token:      verificationToken,
-		Identifier: constants.VerificationTypeForgotPassword,
-		ExpiresAt:  time.Now().Add(time.Minute * 30).Unix(),
-		Email:      params.Email,
-		Nonce:      nonce,
+		Token:       verificationToken,
+		Identifier:  constants.VerificationTypeForgotPassword,
+		ExpiresAt:   time.Now().Add(time.Minute * 30).Unix(),
+		Email:       params.Email,
+		Nonce:       nonceHash,
+		RedirectURI: redirectURL,
 	})
 
 	// exec it as go routin so that we can reduce the api latency

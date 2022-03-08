@@ -10,21 +10,36 @@ import (
 	"github.com/authorizerdev/authorizer/server/sessionstore"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 // OAuthLoginHandler set host in the oauth state that is useful for redirecting to oauth_callback
 func OAuthLoginHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		hostname := utils.GetHost(c)
-		redirectURL := c.Query("redirectURL")
-		roles := c.Query("roles")
+		redirectURI := strings.TrimSpace(c.Query("redirectURL"))
+		roles := strings.TrimSpace(c.Query("roles"))
+		state := strings.TrimSpace(c.Query("state"))
+		scopeString := strings.TrimSpace(c.Query("scope"))
 
-		if redirectURL == "" {
+		if redirectURI == "" {
 			c.JSON(400, gin.H{
-				"error": "invalid redirect url",
+				"error": "invalid redirect uri",
 			})
 			return
+		}
+
+		if state == "" {
+			c.JSON(400, gin.H{
+				"error": "invalid state",
+			})
+			return
+		}
+
+		var scope []string
+		if scopeString == "" {
+			scope = []string{"openid", "profile", "email"}
+		} else {
+			scope = strings.Split(scopeString, " ")
 		}
 
 		if roles != "" {
@@ -43,8 +58,7 @@ func OAuthLoginHandler() gin.HandlerFunc {
 			roles = strings.Join(envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles), ",")
 		}
 
-		uuid := uuid.New()
-		oauthStateString := uuid.String() + "___" + redirectURL + "___" + roles
+		oauthStateString := state + "@" + redirectURI + "@" + roles + "@" + strings.Join(scope, ",")
 
 		provider := c.Param("oauth_provider")
 		isProviderConfigured := true

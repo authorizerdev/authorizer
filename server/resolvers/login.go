@@ -69,8 +69,6 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 		return res, err
 	}
 
-	cookie.SetSession(gc, authToken.FingerPrintHash)
-
 	expiresIn := int64(1800)
 	res = &model.AuthResponse{
 		Message:     `Logged in successfully`,
@@ -80,6 +78,7 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 		User:        user.AsAPIUser(),
 	}
 
+	cookie.SetSession(gc, authToken.FingerPrintHash)
 	sessionstore.SetState(authToken.FingerPrintHash, authToken.FingerPrint+"@"+user.ID)
 	sessionstore.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
 

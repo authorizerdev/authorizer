@@ -173,13 +173,15 @@ type ComplexityRoot struct {
 	}
 
 	VerificationRequest struct {
-		CreatedAt  func(childComplexity int) int
-		Email      func(childComplexity int) int
-		Expires    func(childComplexity int) int
-		ID         func(childComplexity int) int
-		Identifier func(childComplexity int) int
-		Token      func(childComplexity int) int
-		UpdatedAt  func(childComplexity int) int
+		CreatedAt   func(childComplexity int) int
+		Email       func(childComplexity int) int
+		Expires     func(childComplexity int) int
+		ID          func(childComplexity int) int
+		Identifier  func(childComplexity int) int
+		Nonce       func(childComplexity int) int
+		RedirectURI func(childComplexity int) int
+		Token       func(childComplexity int) int
+		UpdatedAt   func(childComplexity int) int
 	}
 
 	VerificationRequests struct {
@@ -1038,6 +1040,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.VerificationRequest.Identifier(childComplexity), true
 
+	case "VerificationRequest.nonce":
+		if e.complexity.VerificationRequest.Nonce == nil {
+			break
+		}
+
+		return e.complexity.VerificationRequest.Nonce(childComplexity), true
+
+	case "VerificationRequest.redirect_uri":
+		if e.complexity.VerificationRequest.RedirectURI == nil {
+			break
+		}
+
+		return e.complexity.VerificationRequest.RedirectURI(childComplexity), true
+
 	case "VerificationRequest.token":
 		if e.complexity.VerificationRequest.Token == nil {
 			break
@@ -1189,6 +1205,8 @@ type VerificationRequest {
 	expires: Int64
 	created_at: Int64
 	updated_at: Int64
+	nonce: String
+	redirect_uri: String
 }
 
 type VerificationRequests {
@@ -1361,6 +1379,8 @@ input UpdateUserInput {
 
 input ForgotPasswordInput {
 	email: String!
+	state: String
+	redirect_uri: String
 }
 
 input ResetPasswordInput {
@@ -1377,6 +1397,8 @@ input MagicLinkLoginInput {
 	email: String!
 	roles: [String!]
 	scope: [String!]
+	state: String
+	redirect_uri: String
 }
 
 input SessionQueryInput {
@@ -5451,6 +5473,70 @@ func (ec *executionContext) _VerificationRequest_updated_at(ctx context.Context,
 	return ec.marshalOInt642ᚖint64(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _VerificationRequest_nonce(ctx context.Context, field graphql.CollectedField, obj *model.VerificationRequest) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "VerificationRequest",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Nonce, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _VerificationRequest_redirect_uri(ctx context.Context, field graphql.CollectedField, obj *model.VerificationRequest) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "VerificationRequest",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.RedirectURI, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _VerificationRequests_pagination(ctx context.Context, field graphql.CollectedField, obj *model.VerificationRequests) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -6729,6 +6815,22 @@ func (ec *executionContext) unmarshalInputForgotPasswordInput(ctx context.Contex
 			if err != nil {
 				return it, err
 			}
+		case "state":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
+			it.State, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "redirect_uri":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("redirect_uri"))
+			it.RedirectURI, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		}
 	}
 
@@ -6812,6 +6914,22 @@ func (ec *executionContext) unmarshalInputMagicLinkLoginInput(ctx context.Contex
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("scope"))
 			it.Scope, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "state":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
+			it.State, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "redirect_uri":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("redirect_uri"))
+			it.RedirectURI, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -8290,6 +8408,10 @@ func (ec *executionContext) _VerificationRequest(ctx context.Context, sel ast.Se
 			out.Values[i] = ec._VerificationRequest_created_at(ctx, field, obj)
 		case "updated_at":
 			out.Values[i] = ec._VerificationRequest_updated_at(ctx, field, obj)
+		case "nonce":
+			out.Values[i] = ec._VerificationRequest_nonce(ctx, field, obj)
+		case "redirect_uri":
+			out.Values[i] = ec._VerificationRequest_redirect_uri(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

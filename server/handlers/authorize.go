@@ -2,16 +2,15 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/cookie"
-	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/sessionstore"
 	"github.com/authorizerdev/authorizer/server/token"
-	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -36,6 +35,13 @@ func AuthorizeHandler() gin.HandlerFunc {
 		template := "authorize.tmpl"
 		responseMode := strings.TrimSpace(gc.Query("response_mode"))
 
+		var scope []string
+		if scopeString == "" {
+			scope = []string{"openid", "profile", "email"}
+		} else {
+			scope = strings.Split(scopeString, " ")
+		}
+
 		if responseMode == "" {
 			responseMode = "query"
 		}
@@ -50,9 +56,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 
 		isQuery := responseMode == "query"
 
-		hostname := utils.GetHost(gc)
-		loginRedirectState := crypto.EncryptB64(`{"authorizerURL":"` + hostname + `","redirectURL":"` + redirectURI + `", "state":"` + state + `"}`)
-		loginURL := "/app?state=" + loginRedirectState
+		loginURL := "/app?state=" + state + "&scope=" + strings.Join(scope, " ") + "&redirect_uri=" + redirectURI
 
 		if clientID == "" {
 			if isQuery {
@@ -107,13 +111,6 @@ func AuthorizeHandler() gin.HandlerFunc {
 
 		if responseType == "" {
 			responseType = "token"
-		}
-
-		var scope []string
-		if scopeString == "" {
-			scope = []string{"openid", "profile", "email"}
-		} else {
-			scope = strings.Split(scopeString, " ")
 		}
 
 		isResponseTypeCode := responseType == "code"
@@ -279,8 +276,11 @@ func AuthorizeHandler() gin.HandlerFunc {
 			sessionstore.SetState(authToken.FingerPrintHash, authToken.FingerPrint+"@"+user.ID)
 			sessionstore.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
 			cookie.SetSession(gc, authToken.FingerPrintHash)
-
 			expiresIn := int64(1800)
+
+			// used of query mode
+			params := "access_token=" + authToken.AccessToken.Token + "&token_type=bearer&expires_in=" + strconv.FormatInt(expiresIn, 10) + "&state=" + state + "&id_token=" + authToken.IDToken.Token
+
 			res := map[string]interface{}{
 				"access_token": authToken.AccessToken.Token,
 				"id_token":     authToken.IDToken.Token,
@@ -292,16 +292,25 @@ func AuthorizeHandler() gin.HandlerFunc {
 
 			if authToken.RefreshToken != nil {
 				res["refresh_token"] = authToken.RefreshToken.Token
+				params += "&refresh_token=" + authToken.RefreshToken.Token
 				sessionstore.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
 			}
 
-			gc.HTML(http.StatusOK, template, gin.H{
-				"target_origin": redirectURI,
-				"authorization_response": map[string]interface{}{
-					"type":     "authorization_response",
-					"response": res,
-				},
-			})
+			if isQuery {
+				if strings.Contains(redirectURI, "?") {
+					gc.Redirect(http.StatusFound, redirectURI+"&"+params)
+				} else {
+					gc.Redirect(http.StatusFound, redirectURI+"?"+params)
+				}
+			} else {
+				gc.HTML(http.StatusOK, template, gin.H{
+					"target_origin": redirectURI,
+					"authorization_response": map[string]interface{}{
+						"type":     "authorization_response",
+						"response": res,
+					},
+				})
+			}
 			return
 		}
 

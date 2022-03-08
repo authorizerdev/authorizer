@@ -11,14 +11,19 @@ export default function Root() {
 
 	useEffect(() => {
 		if (token) {
-			const state = sessionStorage.getItem('authorizer_state')?.trim();
-			const url = new URL(config.redirectURL || '/app');
+			console.log({ token });
+			let redirectURL = config.redirectURL || '/app';
+			const params = `access_token=${token.access_token}&id_token=${token.id_token}&expires_in=${token.expires_in}&refresh_token=${token.refresh_token}`;
+			const url = new URL(redirectURL);
+			if (redirectURL.includes('?')) {
+				redirectURL = `${redirectURL}&${params}`;
+			} else {
+				redirectURL = `${redirectURL}?${params}`;
+			}
+
 			if (url.origin !== window.location.origin) {
-				console.log({ x: `${config.redirectURL || '/app'}?state=${state}` });
 				sessionStorage.removeItem('authorizer_state');
-				window.location.replace(
-					`${config.redirectURL || '/app'}?state=${state}`
-				);
+				window.location.replace(redirectURL);
 			}
 		}
 		return () => {};
