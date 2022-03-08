@@ -95,7 +95,7 @@ func VerifyEmailHandler() gin.HandlerFunc {
 		}
 
 		if redirectURL == "" {
-			redirectURL = claim["redirect_url"].(string)
+			redirectURL = claim["redirect_uri"].(string)
 		}
 
 		if strings.Contains(redirectURL, "?") {
