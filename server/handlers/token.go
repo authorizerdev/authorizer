@@ -143,6 +143,8 @@ func TokenHandler() gin.HandlerFunc {
 			userID = claims["sub"].(string)
 			roles = claims["roles"].([]string)
 			scope = claims["scope"].([]string)
+			// remove older refresh token and rotate it for security
+			sessionstore.RemoveState(refreshToken)
 		}
 
 		user, err := db.Provider.GetUserByID(userID)
