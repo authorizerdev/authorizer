@@ -275,7 +275,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 			sessionstore.RemoveState(sessionToken)
 			sessionstore.SetState(authToken.FingerPrintHash, authToken.FingerPrint+"@"+user.ID)
 			sessionstore.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
-
+			cookie.SetSession(gc, authToken.FingerPrintHash)
 			expiresIn := int64(1800)
 
 			// used of query mode
@@ -294,9 +294,6 @@ func AuthorizeHandler() gin.HandlerFunc {
 				res["refresh_token"] = authToken.RefreshToken.Token
 				params += "&refresh_token=" + authToken.RefreshToken.Token
 				sessionstore.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
-			} else {
-				// set session if not offline access
-				cookie.SetSession(gc, authToken.FingerPrintHash)
 			}
 
 			if isQuery {

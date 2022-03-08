@@ -158,7 +158,7 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 		sessionstore.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
 
 		if authToken.RefreshToken != nil {
-			params = params + `&refresh_token=${refresh_token}`
+			params = params + `&refresh_token=` + authToken.RefreshToken.Token
 			sessionstore.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
 		}
 
