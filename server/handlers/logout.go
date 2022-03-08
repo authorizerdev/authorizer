@@ -13,7 +13,7 @@ import (
 // Handler to logout user
 func LogoutHandler() gin.HandlerFunc {
 	return func(gc *gin.Context) {
-		redirectURL := strings.TrimSpace(gc.Query("redirect_url"))
+		redirectURL := strings.TrimSpace(gc.Query("redirect_uri"))
 		// get fingerprint hash
 		fingerprintHash, err := cookie.GetSession(gc)
 		if err != nil {
@@ -37,7 +37,7 @@ func LogoutHandler() gin.HandlerFunc {
 		cookie.DeleteSession(gc)
 
 		if redirectURL != "" {
-			gc.Redirect(http.StatusPermanentRedirect, redirectURL)
+			gc.Redirect(http.StatusFound, redirectURL)
 		} else {
 			gc.JSON(http.StatusOK, gin.H{
 				"message": "Logged out successfully",

@@ -18,7 +18,7 @@ func CreateVerificationToken(email, tokenType, hostname, nonceHash, redirectURL 
 		"iat":          time.Now().Unix(),
 		"token_type":   tokenType,
 		"nonce":        nonceHash,
-		"redirect_url": redirectURL,
+		"redirect_uri": redirectURL,
 	}
 
 	return SignJWTToken(claims)
