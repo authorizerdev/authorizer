@@ -92,7 +92,7 @@ func ParseJWTToken(token, hostname, nonce, subject string) (jwt.MapClaims, error
 		return claims, errors.New("invalid audience")
 	}
 
-	fmt.Println("claims:", claims, claims["nonce"], nonce)
+	fmt.Println("claims:", claims["nonce"], nonce, claims["nonce"] == nonce)
 	if claims["nonce"] != nonce {
 		return claims, errors.New("invalid nonce")
 	}

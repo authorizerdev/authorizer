@@ -21,7 +21,7 @@ func (p *provider) AddVerificationRequest(verificationRequest models.Verificatio
 	verificationRequest.UpdatedAt = time.Now().Unix()
 	result := p.db.Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "email"}, {Name: "identifier"}},
-		DoUpdates: clause.AssignmentColumns([]string{"token", "expires_at"}),
+		DoUpdates: clause.AssignmentColumns([]string{"token", "expires_at", "nonce", "redirect_uri"}),
 	}).Create(&verificationRequest)
 
 	if result.Error != nil {
