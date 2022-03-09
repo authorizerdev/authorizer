@@ -1,3 +1,12 @@
+export const MetaQuery = `
+  query MetaQuery {
+    meta {
+      version
+      client_id
+    }
+  }
+`;
+
 export const AdminSessionQuery = `
   query {
     _admin_session{

@@ -181,6 +181,7 @@ input SignUpInput {
 	password: String!
 	confirm_password: String!
 	roles: [String!]
+	scope: [String!]
 }
 
 input LoginInput {

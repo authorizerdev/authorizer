@@ -29,10 +29,11 @@ import {
 } from 'react-icons/fi';
 import { IconType } from 'react-icons';
 import { ReactText } from 'react';
-import { useMutation } from 'urql';
+import { useMutation, useQuery } from 'urql';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthContext } from '../contexts/AuthContext';
 import { AdminLogout } from '../graphql/mutation';
+import { MetaQuery } from '../graphql/queries';
 
 interface LinkItemProps {
 	name: string;
@@ -51,6 +52,7 @@ interface SidebarProps extends BoxProps {
 
 export const Sidebar = ({ onClose, ...rest }: SidebarProps) => {
 	const { pathname } = useLocation();
+	const [{ fetching, data }] = useQuery({ query: MetaQuery });
 	return (
 		<Box
 			transition="3s ease"
@@ -98,6 +100,19 @@ export const Sidebar = ({ onClose, ...rest }: SidebarProps) => {
 			>
 				<NavItem icon={FiCode}>API Playground</NavItem>
 			</Link>
+
+			{data?.meta?.version && (
+				<Text
+					color="gray.600"
+					fontSize="sm"
+					textAlign="center"
+					position="absolute"
+					bottom="5"
+					left="7"
+				>
+					Current Version: {data.meta.version}
+				</Text>
+			)}
 		</Box>
 	);
 };

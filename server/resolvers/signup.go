@@ -151,6 +151,9 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 		}
 	} else {
 		scope := []string{"openid", "email", "profile"}
+		if params.Scope != nil && len(scope) > 0 {
+			scope = params.Scope
+		}
 
 		authToken, err := token.CreateAuthToken(gc, user, roles, scope)
 		if err != nil {

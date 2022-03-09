@@ -6,7 +6,6 @@ import {
 	useToast,
 	VStack,
 	Text,
-	Divider,
 } from '@chakra-ui/react';
 import React, { useEffect } from 'react';
 import { useMutation } from 'urql';

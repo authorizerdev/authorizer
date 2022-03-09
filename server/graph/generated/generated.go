@@ -1343,6 +1343,7 @@ input SignUpInput {
 	password: String!
 	confirm_password: String!
 	roles: [String!]
+	scope: [String!]
 }
 
 input LoginInput {
@@ -7295,6 +7296,14 @@ func (ec *executionContext) unmarshalInputSignUpInput(ctx context.Context, obj i
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("roles"))
 			it.Roles, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "scope":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("scope"))
+			it.Scope, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
