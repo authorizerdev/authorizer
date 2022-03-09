@@ -21,7 +21,8 @@ func main() {
 	envstore.ARG_ENV_FILE = flag.String("env_file", "", "Env file path")
 	flag.Parse()
 
-	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyVersion, VERSION)
+	log.Println("=> version:", VERSION)
+	constants.VERSION = VERSION
 
 	// initialize required envs (mainly db & env file path)
 	err := env.InitRequiredEnv()

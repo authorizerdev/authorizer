@@ -15,7 +15,7 @@ func TestResolvers(t *testing.T) {
 		// constants.DbTypeArangodb: "http://localhost:8529",
 		// constants.DbTypeMongodb:  "mongodb://localhost:27017",
 	}
-	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyVersion, "test")
+
 	for dbType, dbURL := range databases {
 		s := testSetup()
 		envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseURL, dbURL)

@@ -1,5 +1,7 @@
 package constants
 
+var VERSION = "0.0.1"
+
 const (
 	// Envstore identifier
 	// StringStore string store identifier
@@ -13,8 +15,6 @@ const (
 	EnvKeyEnv = "ENV"
 	// EnvKeyEnvPath key for cli arg variable ENV_PATH
 	EnvKeyEnvPath = "ENV_PATH"
-	// EnvKeyVersion key for build arg version
-	EnvKeyVersion = "VERSION"
 	// EnvKeyAuthorizerURL key for env variable AUTHORIZER_URL
 	// TODO: remove support AUTHORIZER_URL env
 	EnvKeyAuthorizerURL = "AUTHORIZER_URL"
