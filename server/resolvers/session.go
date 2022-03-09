@@ -13,6 +13,7 @@ import (
 )
 
 // SessionResolver is a resolver for session query
+// TODO allow validating with code and code verifier instead of cookie (PKCE flow)
 func SessionResolver(ctx context.Context, params *model.SessionQueryInput) (*model.AuthResponse, error) {
 	var res *model.AuthResponse
 
@@ -21,48 +22,27 @@ func SessionResolver(ctx context.Context, params *model.SessionQueryInput) (*mod
 		return res, err
 	}
 
-	// get refresh token
-	refreshToken, err := token.GetRefreshToken(gc)
+	sessionToken, err := cookie.GetSession(gc)
 	if err != nil {
 		return res, err
 	}
 
-	// get fingerprint hash
-	fingerprintHash, err := token.GetFingerPrint(gc)
+	// get session from cookie
+	claims, err := token.ValidateBrowserSession(gc, sessionToken)
 	if err != nil {
 		return res, err
 	}
-
-	decryptedFingerPrint, err := utils.DecryptAES([]byte(fingerprintHash))
-	if err != nil {
-		return res, err
-	}
-
-	fingerPrint := string(decryptedFingerPrint)
-
-	// verify refresh token and fingerprint
-	claims, err := token.ParseJWTToken(refreshToken)
-	if err != nil {
-		return res, err
-	}
-
-	userID := claims["id"].(string)
-
-	persistedRefresh := sessionstore.GetUserSession(userID, fingerPrint)
-	if refreshToken != persistedRefresh {
-		return res, fmt.Errorf(`unauthorized`)
-	}
-
+	userID := claims.Subject
 	user, err := db.Provider.GetUserByID(userID)
 	if err != nil {
 		return res, err
 	}
 
 	// refresh token has "roles" as claim
-	claimRoleInterface := claims["roles"].([]interface{})
+	claimRoleInterface := claims.Roles
 	claimRoles := []string{}
 	for _, v := range claimRoleInterface {
-		claimRoles = append(claimRoles, v.(string))
+		claimRoles = append(claimRoles, v)
 	}
 
 	if params != nil && params.Roles != nil && len(params.Roles) > 0 {
@@ -73,21 +53,34 @@ func SessionResolver(ctx context.Context, params *model.SessionQueryInput) (*mod
 		}
 	}
 
-	// delete older session
-	sessionstore.DeleteUserSession(userID, fingerPrint)
+	scope := []string{"openid", "email", "profile"}
+	if params != nil && params.Scope != nil && len(scope) > 0 {
+		scope = params.Scope
+	}
 
-	authToken, err := token.CreateAuthToken(user, claimRoles)
+	authToken, err := token.CreateAuthToken(gc, user, claimRoles, scope)
 	if err != nil {
 		return res, err
 	}
-	sessionstore.SetUserSession(user.ID, authToken.FingerPrint, authToken.RefreshToken.Token)
-	cookie.SetCookie(gc, authToken.AccessToken.Token, authToken.RefreshToken.Token, authToken.FingerPrintHash)
 
+	// rollover the session for security
+	sessionstore.RemoveState(sessionToken)
+	sessionstore.SetState(authToken.FingerPrintHash, authToken.FingerPrint+"@"+user.ID)
+	sessionstore.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
+	cookie.SetSession(gc, authToken.FingerPrintHash)
+
+	expiresIn := int64(1800)
 	res = &model.AuthResponse{
 		Message:     `Session token refreshed`,
 		AccessToken: &authToken.AccessToken.Token,
-		ExpiresAt:   &authToken.AccessToken.ExpiresAt,
+		ExpiresIn:   &expiresIn,
+		IDToken:     &authToken.IDToken.Token,
 		User:        user.AsAPIUser(),
+	}
+
+	if authToken.RefreshToken != nil {
+		res.RefreshToken = &authToken.RefreshToken.Token
+		sessionstore.SetState(authToken.RefreshToken.Token, authToken.FingerPrint+"@"+user.ID)
 	}
 
 	return res, nil

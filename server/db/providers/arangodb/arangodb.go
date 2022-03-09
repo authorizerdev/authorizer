@@ -24,7 +24,7 @@ type provider struct {
 func NewProvider() (*provider, error) {
 	ctx := context.Background()
 	conn, err := http.NewConnection(http.ConnectionConfig{
-		Endpoints: []string{envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL)},
+		Endpoints: []string{envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL)},
 	})
 	if err != nil {
 		return nil, err
@@ -39,16 +39,16 @@ func NewProvider() (*provider, error) {
 
 	var arangodb driver.Database
 
-	arangodb_exists, err := arangoClient.DatabaseExists(nil, envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseName))
+	arangodb_exists, err := arangoClient.DatabaseExists(nil, envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseName))
 
 	if arangodb_exists {
-		log.Println(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseName) + " db exists already")
-		arangodb, err = arangoClient.Database(nil, envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseName))
+		log.Println(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseName) + " db exists already")
+		arangodb, err = arangoClient.Database(nil, envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseName))
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		arangodb, err = arangoClient.CreateDatabase(nil, envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseName), nil)
+		arangodb, err = arangoClient.CreateDatabase(nil, envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseName), nil)
 		if err != nil {
 			return nil, err
 		}

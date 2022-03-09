@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"log"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
@@ -20,16 +21,45 @@ func main() {
 	envstore.ARG_ENV_FILE = flag.String("env_file", "", "Env file path")
 	flag.Parse()
 
-	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyVersion, VERSION)
+	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyVersion, VERSION)
 
-	env.InitEnv()
-	db.InitDB()
-	env.PersistEnv()
+	// initialize required envs (mainly db & env file path)
+	err := env.InitRequiredEnv()
+	if err != nil {
+		log.Fatal("Error while initializing required envs:", err)
+	}
 
-	sessionstore.InitSession()
-	oauth.InitOAuth()
+	// initialize db provider
+	err = db.InitDB()
+	if err != nil {
+		log.Fatalln("Error while initializing db:", err)
+	}
+
+	// initialize all envs
+	// (get if present from db else construct from os env + defaults)
+	err = env.InitAllEnv()
+	if err != nil {
+		log.Fatalln("Error while initializing env: ", err)
+	}
+
+	// persist all envs
+	err = env.PersistEnv()
+	if err != nil {
+		log.Fatalln("Error while persisting env:", err)
+	}
+
+	// initialize session store (redis or in-memory based on env)
+	err = sessionstore.InitSession()
+	if err != nil {
+		log.Fatalln("Error while initializing session store:", err)
+	}
+
+	// initialize oauth providers based on env
+	err = oauth.InitOAuth()
+	if err != nil {
+		log.Fatalln("Error while initializing oauth:", err)
+	}
 
 	router := routes.InitRouter()
-
-	router.Run(":" + envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyPort))
+	router.Run(":" + envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyPort))
 }

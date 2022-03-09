@@ -7,13 +7,50 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/google/uuid"
+
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/utils"
-	"github.com/google/uuid"
 )
+
+// GetEnvData returns the env data from database
+func GetEnvData() (envstore.Store, error) {
+	var result envstore.Store
+	env, err := db.Provider.GetEnv()
+	// config not found in db
+	if err != nil {
+		return result, err
+	}
+
+	encryptionKey := env.Hash
+	decryptedEncryptionKey, err := crypto.DecryptB64(encryptionKey)
+	if err != nil {
+		return result, err
+	}
+
+	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyEncryptionKey, decryptedEncryptionKey)
+
+	b64DecryptedConfig, err := crypto.DecryptB64(env.EnvData)
+	if err != nil {
+		return result, err
+	}
+
+	decryptedConfigs, err := crypto.DecryptAESEnv([]byte(b64DecryptedConfig))
+	if err != nil {
+		return result, err
+	}
+
+	err = json.Unmarshal(decryptedConfigs, &result)
+	if err != nil {
+		return result, err
+	}
+
+	return result, err
+}
 
 // PersistEnv persists the environment variables to the database
 func PersistEnv() error {
@@ -22,45 +59,40 @@ func PersistEnv() error {
 	if err != nil {
 		// AES encryption needs 32 bit key only, so we chop off last 4 characters from 36 bit uuid
 		hash := uuid.New().String()[:36-4]
-		envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyEncryptionKey, hash)
-		encodedHash := utils.EncryptB64(hash)
+		envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyEncryptionKey, hash)
+		encodedHash := crypto.EncryptB64(hash)
 
-		encryptedConfig, err := utils.EncryptEnvData(envstore.EnvInMemoryStoreObj.GetEnvStoreClone())
+		encryptedConfig, err := crypto.EncryptEnvData(envstore.EnvStoreObj.GetEnvStoreClone())
 		if err != nil {
 			return err
 		}
-		// configData, err := json.Marshal()
-		// if err != nil {
-		// 	return err
-		// }
-
-		// encryptedConfig, err := utils.EncryptAES(configData)
-		// if err != nil {
-		// 	return err
-		// }
 
 		env = models.Env{
 			Hash:    encodedHash,
 			EnvData: encryptedConfig,
 		}
 
-		db.Provider.AddEnv(env)
+		env, err = db.Provider.AddEnv(env)
+		if err != nil {
+			return err
+		}
 	} else {
 		// decrypt the config data from db
 		// decryption can be done using the hash stored in db
 		encryptionKey := env.Hash
-		decryptedEncryptionKey, err := utils.DecryptB64(encryptionKey)
+		decryptedEncryptionKey, err := crypto.DecryptB64(encryptionKey)
 		if err != nil {
 			return err
 		}
 
-		envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyEncryptionKey, decryptedEncryptionKey)
-		b64DecryptedConfig, err := utils.DecryptB64(env.EnvData)
+		envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyEncryptionKey, decryptedEncryptionKey)
+
+		b64DecryptedConfig, err := crypto.DecryptB64(env.EnvData)
 		if err != nil {
 			return err
 		}
 
-		decryptedConfigs, err := utils.DecryptAES([]byte(b64DecryptedConfig))
+		decryptedConfigs, err := crypto.DecryptAESEnv([]byte(b64DecryptedConfig))
 		if err != nil {
 			return err
 		}
@@ -79,6 +111,7 @@ func PersistEnv() error {
 		hasChanged := false
 
 		for key, value := range storeData.StringEnv {
+			// don't override unexposed envs
 			if key != constants.EnvKeyEncryptionKey {
 				// check only for derivative keys
 				// No need to check for ENCRYPTION_KEY which special key we use for encrypting config data
@@ -132,10 +165,16 @@ func PersistEnv() error {
 				hasChanged = true
 			}
 		}
+		envstore.EnvStoreObj.UpdateEnvStore(storeData)
+		jwk, err := crypto.GenerateJWKBasedOnEnv()
+		if err != nil {
+			return err
+		}
+		// updating jwk
+		envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyJWK, jwk)
 
-		envstore.EnvInMemoryStoreObj.UpdateEnvStore(storeData)
 		if hasChanged {
-			encryptedConfig, err := utils.EncryptEnvData(storeData)
+			encryptedConfig, err := crypto.EncryptEnvData(storeData)
 			if err != nil {
 				return err
 			}
@@ -147,7 +186,6 @@ func PersistEnv() error {
 				return err
 			}
 		}
-
 	}
 
 	return nil

@@ -22,26 +22,6 @@ type SessionStore struct {
 // reference to various session store instances
 var SessionStoreObj SessionStore
 
-// SetUserSession sets the user session in the session store
-func SetUserSession(userId, fingerprint, refreshToken string) {
-	if SessionStoreObj.RedisMemoryStoreObj != nil {
-		SessionStoreObj.RedisMemoryStoreObj.AddUserSession(userId, fingerprint, refreshToken)
-	}
-	if SessionStoreObj.InMemoryStoreObj != nil {
-		SessionStoreObj.InMemoryStoreObj.AddUserSession(userId, fingerprint, refreshToken)
-	}
-}
-
-// DeleteUserSession deletes the particular user session from the session store
-func DeleteUserSession(userId, fingerprint string) {
-	if SessionStoreObj.RedisMemoryStoreObj != nil {
-		SessionStoreObj.RedisMemoryStoreObj.DeleteUserSession(userId, fingerprint)
-	}
-	if SessionStoreObj.InMemoryStoreObj != nil {
-		SessionStoreObj.InMemoryStoreObj.DeleteUserSession(userId, fingerprint)
-	}
-}
-
 // DeleteAllSessions deletes all the sessions from the session store
 func DeleteAllUserSession(userId string) {
 	if SessionStoreObj.RedisMemoryStoreObj != nil {
@@ -50,18 +30,6 @@ func DeleteAllUserSession(userId string) {
 	if SessionStoreObj.InMemoryStoreObj != nil {
 		SessionStoreObj.InMemoryStoreObj.DeleteAllUserSession(userId)
 	}
-}
-
-// GetUserSession returns the user session from the session store
-func GetUserSession(userId, fingerprint string) string {
-	if SessionStoreObj.RedisMemoryStoreObj != nil {
-		return SessionStoreObj.RedisMemoryStoreObj.GetUserSession(userId, fingerprint)
-	}
-	if SessionStoreObj.InMemoryStoreObj != nil {
-		return SessionStoreObj.InMemoryStoreObj.GetUserSession(userId, fingerprint)
-	}
-
-	return ""
 }
 
 // GetUserSessions returns all the user sessions from the session store
@@ -86,95 +54,97 @@ func ClearStore() {
 	}
 }
 
-// SetSocialLoginState sets the social login state in the session store
-func SetSocailLoginState(key, state string) {
+// SetState sets the login state (key, value form) in the session store
+func SetState(key, state string) {
 	if SessionStoreObj.RedisMemoryStoreObj != nil {
-		SessionStoreObj.RedisMemoryStoreObj.SetSocialLoginState(key, state)
+		SessionStoreObj.RedisMemoryStoreObj.SetState(key, state)
 	}
 	if SessionStoreObj.InMemoryStoreObj != nil {
-		SessionStoreObj.InMemoryStoreObj.SetSocialLoginState(key, state)
+		SessionStoreObj.InMemoryStoreObj.SetState(key, state)
 	}
 }
 
-// GetSocialLoginState returns the social login state from the session store
-func GetSocailLoginState(key string) string {
+// GetState returns the state from the session store
+func GetState(key string) string {
 	if SessionStoreObj.RedisMemoryStoreObj != nil {
-		return SessionStoreObj.RedisMemoryStoreObj.GetSocialLoginState(key)
+		return SessionStoreObj.RedisMemoryStoreObj.GetState(key)
 	}
 	if SessionStoreObj.InMemoryStoreObj != nil {
-		return SessionStoreObj.InMemoryStoreObj.GetSocialLoginState(key)
+		return SessionStoreObj.InMemoryStoreObj.GetState(key)
 	}
 
 	return ""
 }
 
-// RemoveSocialLoginState removes the social login state from the session store
-func RemoveSocialLoginState(key string) {
+// RemoveState removes the social login state from the session store
+func RemoveState(key string) {
 	if SessionStoreObj.RedisMemoryStoreObj != nil {
-		SessionStoreObj.RedisMemoryStoreObj.RemoveSocialLoginState(key)
+		SessionStoreObj.RedisMemoryStoreObj.RemoveState(key)
 	}
 	if SessionStoreObj.InMemoryStoreObj != nil {
-		SessionStoreObj.InMemoryStoreObj.RemoveSocialLoginState(key)
+		SessionStoreObj.InMemoryStoreObj.RemoveState(key)
 	}
 }
 
 // InitializeSessionStore initializes the SessionStoreObj based on environment variables
-func InitSession() {
-	if envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyRedisURL) != "" {
+func InitSession() error {
+	if envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyRedisURL) != "" {
 		log.Println("using redis store to save sessions")
-		if isCluster(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyRedisURL)) {
-			clusterOpt, err := getClusterOptions(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyRedisURL))
+
+		redisURL := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyRedisURL)
+		redisURLHostPortsList := strings.Split(redisURL, ",")
+
+		if len(redisURLHostPortsList) > 1 {
+			opt, err := redis.ParseURL(redisURLHostPortsList[0])
 			if err != nil {
-				log.Fatalln("Error parsing redis url:", err)
+				return err
 			}
+			urls := []string{opt.Addr}
+			urlList := redisURLHostPortsList[1:]
+			urls = append(urls, urlList...)
+			clusterOpt := &redis.ClusterOptions{Addrs: urls}
+
 			rdb := redis.NewClusterClient(clusterOpt)
 			ctx := context.Background()
 			_, err = rdb.Ping(ctx).Result()
 			if err != nil {
-				log.Fatalln("Error connecting to redis cluster server", err)
+				return err
 			}
 			SessionStoreObj.RedisMemoryStoreObj = &RedisStore{
 				ctx:   ctx,
 				store: rdb,
 			}
-			return
+
+			// return on successful initialization
+			return nil
 		}
-		opt, err := redis.ParseURL(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyRedisURL))
+
+		opt, err := redis.ParseURL(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyRedisURL))
 		if err != nil {
-			log.Fatalln("Error parsing redis url:", err)
+			return err
 		}
+
 		rdb := redis.NewClient(opt)
 		ctx := context.Background()
 		_, err = rdb.Ping(ctx).Result()
-
 		if err != nil {
-			log.Fatalln("Error connecting to redis server", err)
+			return err
 		}
+
 		SessionStoreObj.RedisMemoryStoreObj = &RedisStore{
 			ctx:   ctx,
 			store: rdb,
 		}
 
-	} else {
-		SessionStoreObj.InMemoryStoreObj = &InMemoryStore{
-			store:            map[string]map[string]string{},
-			socialLoginState: map[string]string{},
-		}
+		// return on successful initialization
+		return nil
 	}
-}
 
-func isCluster(url string) bool {
-	return len(strings.Split(url, ",")) > 1
-}
-
-func getClusterOptions(url string) (*redis.ClusterOptions, error) {
-	hostPortsList := strings.Split(url, ",")
-	opt, err := redis.ParseURL(hostPortsList[0])
-	if err != nil {
-		return nil, err
+	// if redis url is not set use in memory store
+	SessionStoreObj.InMemoryStoreObj = &InMemoryStore{
+		sessionStore: map[string]map[string]string{},
+		stateStore:   map[string]string{},
 	}
-	urls := []string{opt.Addr}
-	urlList := hostPortsList[1:]
-	urls = append(urls, urlList...)
-	return &redis.ClusterOptions{Addrs: urls}, nil
+
+	return nil
 }

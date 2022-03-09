@@ -14,6 +14,7 @@ type Pagination {
 
 type Meta {
 	version: String!
+	client_id: String!
 	is_google_login_enabled: Boolean!
 	is_facebook_login_enabled: Boolean!
 	is_github_login_enabled: Boolean!
@@ -56,6 +57,8 @@ type VerificationRequest {
 	expires: Int64
 	created_at: Int64
 	updated_at: Int64
+	nonce: String
+	redirect_uri: String
 }
 
 type VerificationRequests {
@@ -71,7 +74,9 @@ type Error {
 type AuthResponse {
 	message: String!
 	access_token: String
-	expires_at: Int64
+	id_token: String
+	refresh_token: String
+	expires_in: Int64
 	user: User
 }
 
@@ -79,16 +84,13 @@ type Response {
 	message: String!
 }
 
-type ValidJWTResponse {
-	valid: Boolean!
-	message: String!
-}
-
 type Env {
 	ADMIN_SECRET: String
-	DATABASE_NAME: String
-	DATABASE_URL: String
-	DATABASE_TYPE: String
+	DATABASE_NAME: String!
+	DATABASE_URL: String!
+	DATABASE_TYPE: String!
+	CLIENT_ID: String!
+	CLIENT_SECRET: String!
 	CUSTOM_ACCESS_TOKEN_SCRIPT: String
 	SMTP_HOST: String
 	SMTP_PORT: String
@@ -179,12 +181,14 @@ input SignUpInput {
 	password: String!
 	confirm_password: String!
 	roles: [String!]
+	scope: [String!]
 }
 
 input LoginInput {
 	email: String!
 	password: String!
 	roles: [String!]
+	scope: [String!]
 }
 
 input VerifyEmailInput {
@@ -228,6 +232,8 @@ input UpdateUserInput {
 
 input ForgotPasswordInput {
 	email: String!
+	state: String
+	redirect_uri: String
 }
 
 input ResetPasswordInput {
@@ -243,15 +249,14 @@ input DeleteUserInput {
 input MagicLinkLoginInput {
 	email: String!
 	roles: [String!]
+	scope: [String!]
+	state: String
+	redirect_uri: String
 }
 
 input SessionQueryInput {
 	roles: [String!]
-}
-
-input IsValidJWTQueryInput {
-	jwt: String
-	roles: [String!]
+	scope: [String!]
 }
 
 input PaginationInput {
@@ -261,6 +266,10 @@ input PaginationInput {
 
 input PaginatedInput {
 	pagination: PaginationInput
+}
+
+input OAuthRevokeInput {
+	refresh_token: String!
 }
 
 type Mutation {
@@ -273,6 +282,7 @@ type Mutation {
 	resend_verify_email(params: ResendVerifyEmailInput!): Response!
 	forgot_password(params: ForgotPasswordInput!): Response!
 	reset_password(params: ResetPasswordInput!): Response!
+	revoke(params: OAuthRevokeInput!): Response!
 	# admin only apis
 	_delete_user(params: DeleteUserInput!): Response!
 	_update_user(params: UpdateUserInput!): User!
@@ -285,7 +295,6 @@ type Mutation {
 type Query {
 	meta: Meta!
 	session(params: SessionQueryInput): AuthResponse!
-	is_valid_jwt(params: IsValidJWTQueryInput): ValidJWTResponse!
 	profile: User!
 	# admin only apis
 	_users(params: PaginatedInput): Users!

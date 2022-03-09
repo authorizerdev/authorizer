@@ -4,9 +4,9 @@ import (
 	"context"
 
 	"github.com/authorizerdev/authorizer/server/cookie"
+	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/sessionstore"
-	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
@@ -18,34 +18,21 @@ func LogoutResolver(ctx context.Context) (*model.Response, error) {
 		return res, err
 	}
 
-	// get refresh token
-	refreshToken, err := token.GetRefreshToken(gc)
-	if err != nil {
-		return res, err
-	}
-
 	// get fingerprint hash
-	fingerprintHash, err := token.GetFingerPrint(gc)
+	fingerprintHash, err := cookie.GetSession(gc)
 	if err != nil {
 		return res, err
 	}
 
-	decryptedFingerPrint, err := utils.DecryptAES([]byte(fingerprintHash))
+	decryptedFingerPrint, err := crypto.DecryptAES(fingerprintHash)
 	if err != nil {
 		return res, err
 	}
 
 	fingerPrint := string(decryptedFingerPrint)
 
-	// verify refresh token and fingerprint
-	claims, err := token.ParseJWTToken(refreshToken)
-	if err != nil {
-		return res, err
-	}
-
-	userID := claims["id"].(string)
-	sessionstore.DeleteUserSession(userID, fingerPrint)
-	cookie.DeleteCookie(gc)
+	sessionstore.RemoveState(fingerPrint)
+	cookie.DeleteSession(gc)
 
 	res = &model.Response{
 		Message: "Logged out successfully",

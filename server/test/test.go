@@ -71,14 +71,16 @@ func testSetup() TestSetup {
 		Password: "test",
 	}
 
-	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyEnvPath, "../../.env.sample")
-	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeySmtpHost, "smtp.yopmail.com")
-	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeySmtpPort, "2525")
-	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeySmtpUsername, "lakhan@yopmail.com")
-	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeySmtpPassword, "test")
-	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeySenderEmail, "info@yopmail.com")
-	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.SliceStoreIdentifier, constants.EnvKeyProtectedRoles, []string{"admin"})
-	env.InitEnv()
+	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyEnvPath, "../../.env.sample")
+	env.InitRequiredEnv()
+	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeySmtpHost, "smtp.yopmail.com")
+	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeySmtpPort, "2525")
+	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeySmtpUsername, "lakhan@yopmail.com")
+	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeySmtpPassword, "test")
+	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeySenderEmail, "info@yopmail.com")
+	envstore.EnvStoreObj.UpdateEnvVariable(constants.SliceStoreIdentifier, constants.EnvKeyProtectedRoles, []string{"admin"})
+	db.InitDB()
+	env.InitAllEnv()
 	sessionstore.InitSession()
 
 	w := httptest.NewRecorder()

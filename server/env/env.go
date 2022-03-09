@@ -1,11 +1,13 @@
 package env
 
 import (
+	"errors"
 	"log"
 	"os"
 	"strings"
 
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/gin-gonic/gin"
@@ -13,10 +15,85 @@ import (
 	"github.com/joho/godotenv"
 )
 
+// InitRequiredEnv to initialize EnvData and through error if required env are not present
+func InitRequiredEnv() error {
+	envPath := os.Getenv(constants.EnvKeyEnvPath)
+
+	if envPath == "" {
+		envPath = envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyEnvPath)
+		if envPath == "" {
+			envPath = `.env`
+		}
+	}
+
+	if envstore.ARG_ENV_FILE != nil && *envstore.ARG_ENV_FILE != "" {
+		envPath = *envstore.ARG_ENV_FILE
+	}
+
+	err := godotenv.Load(envPath)
+	if err != nil {
+		log.Printf("using OS env instead of %s file", envPath)
+	}
+
+	dbURL := os.Getenv(constants.EnvKeyDatabaseURL)
+	dbType := os.Getenv(constants.EnvKeyDatabaseType)
+	dbName := os.Getenv(constants.EnvKeyDatabaseName)
+
+	if strings.TrimSpace(dbType) == "" {
+		if envstore.ARG_DB_TYPE != nil && *envstore.ARG_DB_TYPE != "" {
+			dbType = strings.TrimSpace(*envstore.ARG_DB_TYPE)
+		}
+
+		if dbType == "" {
+			return errors.New("invalid database type. DATABASE_TYPE is empty")
+		}
+	}
+
+	if strings.TrimSpace(dbURL) == "" && envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL) == "" {
+		if envstore.ARG_DB_URL != nil && *envstore.ARG_DB_URL != "" {
+			dbURL = strings.TrimSpace(*envstore.ARG_DB_URL)
+		}
+
+		if dbURL == "" {
+			return errors.New("invalid database url. DATABASE_URL is required")
+		}
+	}
+
+	if dbName == "" {
+		if dbName == "" {
+			dbName = "authorizer"
+		}
+	}
+
+	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyEnvPath, envPath)
+	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseURL, dbURL)
+	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseType, dbType)
+	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseName, dbName)
+	return nil
+}
+
 // InitEnv to initialize EnvData and through error if required env are not present
-func InitEnv() {
-	// get clone of current store
-	envData := envstore.EnvInMemoryStoreObj.GetEnvStoreClone()
+func InitAllEnv() error {
+	envData, err := GetEnvData()
+	if err != nil {
+		log.Println("No env data found in db, using local clone of env data")
+		// get clone of current store
+		envData = envstore.EnvStoreObj.GetEnvStoreClone()
+	}
+
+	clientID := envData.StringEnv[constants.EnvKeyClientID]
+	// unique client id for each instance
+	if clientID == "" {
+		clientID = uuid.New().String()
+		envData.StringEnv[constants.EnvKeyClientID] = clientID
+	}
+
+	clientSecret := envData.StringEnv[constants.EnvKeyClientSecret]
+	// unique client id for each instance
+	if clientSecret == "" {
+		clientSecret = uuid.New().String()
+		envData.StringEnv[constants.EnvKeyClientSecret] = clientSecret
+	}
 
 	if envData.StringEnv[constants.EnvKeyEnv] == "" {
 		envData.StringEnv[constants.EnvKeyEnv] = os.Getenv(constants.EnvKeyEnv)
@@ -36,19 +113,6 @@ func InitEnv() {
 		envData.StringEnv[constants.EnvKeyAppURL] = os.Getenv(constants.EnvKeyAppURL)
 	}
 
-	if envData.StringEnv[constants.EnvKeyEnvPath] == "" {
-		envData.StringEnv[constants.EnvKeyEnvPath] = `.env`
-	}
-
-	if envstore.ARG_ENV_FILE != nil && *envstore.ARG_ENV_FILE != "" {
-		envData.StringEnv[constants.EnvKeyEnvPath] = *envstore.ARG_ENV_FILE
-	}
-
-	err := godotenv.Load(envData.StringEnv[constants.EnvKeyEnvPath])
-	if err != nil {
-		log.Printf("using OS env instead of %s file", envData.StringEnv[constants.EnvKeyEnvPath])
-	}
-
 	if envData.StringEnv[constants.EnvKeyPort] == "" {
 		envData.StringEnv[constants.EnvKeyPort] = os.Getenv(constants.EnvKeyPort)
 		if envData.StringEnv[constants.EnvKeyPort] == "" {
@@ -58,37 +122,6 @@ func InitEnv() {
 
 	if envData.StringEnv[constants.EnvKeyAdminSecret] == "" {
 		envData.StringEnv[constants.EnvKeyAdminSecret] = os.Getenv(constants.EnvKeyAdminSecret)
-	}
-
-	if envData.StringEnv[constants.EnvKeyDatabaseType] == "" {
-		envData.StringEnv[constants.EnvKeyDatabaseType] = os.Getenv(constants.EnvKeyDatabaseType)
-
-		if envstore.ARG_DB_TYPE != nil && *envstore.ARG_DB_TYPE != "" {
-			envData.StringEnv[constants.EnvKeyDatabaseType] = *envstore.ARG_DB_TYPE
-		}
-
-		if envData.StringEnv[constants.EnvKeyDatabaseType] == "" {
-			panic("DATABASE_TYPE is required")
-		}
-	}
-
-	if envData.StringEnv[constants.EnvKeyDatabaseURL] == "" {
-		envData.StringEnv[constants.EnvKeyDatabaseURL] = os.Getenv(constants.EnvKeyDatabaseURL)
-
-		if envstore.ARG_DB_URL != nil && *envstore.ARG_DB_URL != "" {
-			envData.StringEnv[constants.EnvKeyDatabaseURL] = *envstore.ARG_DB_URL
-		}
-
-		if envData.StringEnv[constants.EnvKeyDatabaseURL] == "" {
-			panic("DATABASE_URL is required")
-		}
-	}
-
-	if envData.StringEnv[constants.EnvKeyDatabaseName] == "" {
-		envData.StringEnv[constants.EnvKeyDatabaseName] = os.Getenv(constants.EnvKeyDatabaseName)
-		if envData.StringEnv[constants.EnvKeyDatabaseName] == "" {
-			envData.StringEnv[constants.EnvKeyDatabaseName] = "authorizer"
-		}
 	}
 
 	if envData.StringEnv[constants.EnvKeySmtpHost] == "" {
@@ -111,30 +144,86 @@ func InitEnv() {
 		envData.StringEnv[constants.EnvKeySenderEmail] = os.Getenv(constants.EnvKeySenderEmail)
 	}
 
-	if envData.StringEnv[constants.EnvKeyJwtSecret] == "" {
-		envData.StringEnv[constants.EnvKeyJwtSecret] = os.Getenv(constants.EnvKeyJwtSecret)
-		if envData.StringEnv[constants.EnvKeyJwtSecret] == "" {
-			envData.StringEnv[constants.EnvKeyJwtSecret] = uuid.New().String()
-		}
-	}
-
-	if envData.StringEnv[constants.EnvKeyCustomAccessTokenScript] == "" {
-		envData.StringEnv[constants.EnvKeyCustomAccessTokenScript] = os.Getenv(constants.EnvKeyCustomAccessTokenScript)
-	}
-
-	if envData.StringEnv[constants.EnvKeyJwtPrivateKey] == "" {
-		envData.StringEnv[constants.EnvKeyJwtPrivateKey] = os.Getenv(constants.EnvKeyJwtPrivateKey)
-	}
-
-	if envData.StringEnv[constants.EnvKeyJwtPublicKey] == "" {
-		envData.StringEnv[constants.EnvKeyJwtPublicKey] = os.Getenv(constants.EnvKeyJwtPublicKey)
-	}
-
-	if envData.StringEnv[constants.EnvKeyJwtType] == "" {
+	algo := envData.StringEnv[constants.EnvKeyJwtType]
+	if algo == "" {
 		envData.StringEnv[constants.EnvKeyJwtType] = os.Getenv(constants.EnvKeyJwtType)
 		if envData.StringEnv[constants.EnvKeyJwtType] == "" {
-			envData.StringEnv[constants.EnvKeyJwtType] = "HS256"
+			envData.StringEnv[constants.EnvKeyJwtType] = "RS256"
+			algo = envData.StringEnv[constants.EnvKeyJwtType]
+		} else {
+			algo = envData.StringEnv[constants.EnvKeyJwtType]
+			if !crypto.IsHMACA(algo) && !crypto.IsRSA(algo) && !crypto.IsECDSA(algo) {
+				return errors.New("invalid JWT_TYPE")
+			}
 		}
+	}
+
+	if crypto.IsHMACA(algo) {
+		if envData.StringEnv[constants.EnvKeyJwtSecret] == "" {
+			envData.StringEnv[constants.EnvKeyJwtSecret] = os.Getenv(constants.EnvKeyJwtSecret)
+			if envData.StringEnv[constants.EnvKeyJwtSecret] == "" {
+				envData.StringEnv[constants.EnvKeyJwtSecret], _, err = crypto.NewHMACKey(algo, clientID)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	if crypto.IsRSA(algo) || crypto.IsECDSA(algo) {
+		privateKey, publicKey := "", ""
+
+		if envData.StringEnv[constants.EnvKeyJwtPrivateKey] == "" {
+			privateKey = os.Getenv(constants.EnvKeyJwtPrivateKey)
+		}
+
+		if envData.StringEnv[constants.EnvKeyJwtPublicKey] == "" {
+			publicKey = os.Getenv(constants.EnvKeyJwtPublicKey)
+		}
+
+		// if algo is RSA / ECDSA, then we need to have both private and public key
+		// if either of them is not present generate new keys
+		if privateKey == "" || publicKey == "" {
+			if crypto.IsRSA(algo) {
+				_, privateKey, publicKey, _, err = crypto.NewRSAKey(algo, clientID)
+				if err != nil {
+					return err
+				}
+			} else if crypto.IsECDSA(algo) {
+				_, privateKey, publicKey, _, err = crypto.NewECDSAKey(algo, clientID)
+				if err != nil {
+					return err
+				}
+			}
+		} else {
+			// parse keys to make sure they are valid
+			if crypto.IsRSA(algo) {
+				_, err = crypto.ParseRsaPrivateKeyFromPemStr(privateKey)
+				if err != nil {
+					return err
+				}
+
+				_, err := crypto.ParseRsaPublicKeyFromPemStr(publicKey)
+				if err != nil {
+					return err
+				}
+
+			} else if crypto.IsECDSA(algo) {
+				_, err = crypto.ParseEcdsaPrivateKeyFromPemStr(privateKey)
+				if err != nil {
+					return err
+				}
+
+				_, err := crypto.ParseEcdsaPublicKeyFromPemStr(publicKey)
+				if err != nil {
+					return err
+				}
+			}
+		}
+
+		envData.StringEnv[constants.EnvKeyJwtPrivateKey] = privateKey
+		envData.StringEnv[constants.EnvKeyJwtPublicKey] = publicKey
+
 	}
 
 	if envData.StringEnv[constants.EnvKeyJwtRoleClaim] == "" {
@@ -143,6 +232,10 @@ func InitEnv() {
 		if envData.StringEnv[constants.EnvKeyJwtRoleClaim] == "" {
 			envData.StringEnv[constants.EnvKeyJwtRoleClaim] = "role"
 		}
+	}
+
+	if envData.StringEnv[constants.EnvKeyCustomAccessTokenScript] == "" {
+		envData.StringEnv[constants.EnvKeyCustomAccessTokenScript] = os.Getenv(constants.EnvKeyCustomAccessTokenScript)
 	}
 
 	if envData.StringEnv[constants.EnvKeyRedisURL] == "" {
@@ -264,7 +357,7 @@ func InitEnv() {
 	}
 
 	if len(roles) > 0 && len(defaultRoles) == 0 && len(defaultRolesEnv) > 0 {
-		panic(`Invalid DEFAULT_ROLE environment variable. It can be one from give ROLES environment variable value`)
+		return errors.New(`invalid DEFAULT_ROLE environment variable. It can be one from give ROLES environment variable value`)
 	}
 
 	envData.SliceEnv[constants.EnvKeyRoles] = roles
@@ -279,5 +372,6 @@ func InitEnv() {
 		envData.StringEnv[constants.EnvKeyOrganizationLogo] = os.Getenv(constants.EnvKeyOrganizationLogo)
 	}
 
-	envstore.EnvInMemoryStoreObj.UpdateEnvStore(envData)
+	envstore.EnvStoreObj.UpdateEnvStore(envData)
+	return nil
 }

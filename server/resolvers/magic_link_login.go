@@ -25,7 +25,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 		return res, err
 	}
 
-	if envstore.EnvInMemoryStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableMagicLinkLogin) {
+	if envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableMagicLinkLogin) {
 		return res, fmt.Errorf(`magic link login is disabled for this instance`)
 	}
 
@@ -49,13 +49,13 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 		// define roles for new user
 		if len(params.Roles) > 0 {
 			// check if roles exists
-			if !utils.IsValidRoles(envstore.EnvInMemoryStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyRoles), params.Roles) {
+			if !utils.IsValidRoles(envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyRoles), params.Roles) {
 				return res, fmt.Errorf(`invalid roles`)
 			} else {
 				inputRoles = params.Roles
 			}
 		} else {
-			inputRoles = envstore.EnvInMemoryStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles)
+			inputRoles = envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles)
 		}
 
 		user.Roles = strings.Join(inputRoles, ",")
@@ -68,6 +68,9 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 		// 		Need to modify roles in this case
 
 		// find the unassigned roles
+		if len(params.Roles) <= 0 {
+			inputRoles = envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles)
+		}
 		existingRoles := strings.Split(existingUser.Roles, ",")
 		unasignedRoles := []string{}
 		for _, ir := range inputRoles {
@@ -80,7 +83,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 			// check if it contains protected unassigned role
 			hasProtectedRole := false
 			for _, ur := range unasignedRoles {
-				if utils.StringSliceContains(envstore.EnvInMemoryStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyProtectedRoles), ur) {
+				if utils.StringSliceContains(envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyProtectedRoles), ur) {
 					hasProtectedRole = true
 				}
 			}
@@ -107,24 +110,49 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 	}
 
 	hostname := utils.GetHost(gc)
-	if !envstore.EnvInMemoryStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification) {
+	if !envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification) {
 		// insert verification request
+		_, nonceHash, err := utils.GenerateNonce()
+		if err != nil {
+			return res, err
+		}
+		redirectURLParams := "&roles=" + strings.Join(inputRoles, ",")
+		if params.State != nil {
+			redirectURLParams = redirectURLParams + "&state=" + *params.State
+		}
+		if params.Scope != nil && len(params.Scope) > 0 {
+			redirectURLParams = redirectURLParams + "&scope=" + strings.Join(params.Scope, " ")
+		}
+		redirectURL := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAppURL)
+		if params.RedirectURI != nil {
+			redirectURL = *params.RedirectURI
+		}
+
+		if strings.Contains(redirectURL, "?") {
+			redirectURL = redirectURL + "&" + redirectURLParams
+		} else {
+			redirectURL = redirectURL + "?" + redirectURLParams
+		}
+
 		verificationType := constants.VerificationTypeMagicLinkLogin
-		verificationToken, err := token.CreateVerificationToken(params.Email, verificationType, hostname)
+		verificationToken, err := token.CreateVerificationToken(params.Email, verificationType, hostname, nonceHash, redirectURL)
 		if err != nil {
 			log.Println(`error generating token`, err)
 		}
-		db.Provider.AddVerificationRequest(models.VerificationRequest{
-			Token:      verificationToken,
-			Identifier: verificationType,
-			ExpiresAt:  time.Now().Add(time.Minute * 30).Unix(),
-			Email:      params.Email,
+		_, err = db.Provider.AddVerificationRequest(models.VerificationRequest{
+			Token:       verificationToken,
+			Identifier:  verificationType,
+			ExpiresAt:   time.Now().Add(time.Minute * 30).Unix(),
+			Email:       params.Email,
+			Nonce:       nonceHash,
+			RedirectURI: redirectURL,
 		})
+		if err != nil {
+			return res, err
+		}
 
-		// exec it as go routin so that we can reduce the api latency
-		go func() {
-			email.SendVerificationMail(params.Email, verificationToken, hostname)
-		}()
+		// exec it as go routing so that we can reduce the api latency
+		go email.SendVerificationMail(params.Email, verificationToken, hostname)
 	}
 
 	res = &model.Response{

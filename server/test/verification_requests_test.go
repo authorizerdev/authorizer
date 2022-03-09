@@ -5,10 +5,10 @@ import (
 	"testing"
 
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/resolvers"
-	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,11 +19,14 @@ func verificationRequestsTest(t *testing.T, s TestSetup) {
 		req, ctx := createContext(s)
 
 		email := "verification_requests." + s.TestInfo.Email
-		resolvers.SignupResolver(ctx, model.SignUpInput{
+		res, err := resolvers.SignupResolver(ctx, model.SignUpInput{
 			Email:           email,
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password,
 		})
+
+		assert.NoError(t, err)
+		assert.NotNil(t, res)
 
 		limit := int64(10)
 		page := int64(1)
@@ -37,9 +40,9 @@ func verificationRequestsTest(t *testing.T, s TestSetup) {
 		requests, err := resolvers.VerificationRequestsResolver(ctx, pagination)
 		assert.NotNil(t, err, "unauthorized")
 
-		h, err := utils.EncryptPassword(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret))
+		h, err := crypto.EncryptPassword(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret))
 		assert.Nil(t, err)
-		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminCookieName), h))
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminCookieName), h))
 		requests, err = resolvers.VerificationRequestsResolver(ctx, pagination)
 
 		assert.Nil(t, err)

@@ -1,35 +1,52 @@
-package utils
+package crypto
 
 import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"encoding/base64"
-	"encoding/json"
 	"io"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/envstore"
-	"golang.org/x/crypto/bcrypt"
 )
 
-// EncryptB64 encrypts data into base64 string
-func EncryptB64(text string) string {
-	return base64.StdEncoding.EncodeToString([]byte(text))
-}
+var bytes = []byte{35, 46, 57, 24, 85, 35, 24, 74, 87, 35, 88, 98, 66, 32, 14, 0o5}
 
-// DecryptB64 decrypts from base64 string to readable string
-func DecryptB64(s string) (string, error) {
-	data, err := base64.StdEncoding.DecodeString(s)
+// EncryptAES method is to encrypt or hide any classified text
+func EncryptAES(text string) (string, error) {
+	key := []byte(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyEncryptionKey))
+	block, err := aes.NewCipher(key)
 	if err != nil {
 		return "", err
 	}
-	return string(data), nil
+	plainText := []byte(text)
+	cfb := cipher.NewCFBEncrypter(block, bytes)
+	cipherText := make([]byte, len(plainText))
+	cfb.XORKeyStream(cipherText, plainText)
+	return EncryptB64(string(cipherText)), nil
 }
 
-// EncryptAES encrypts data using AES algorithm
-func EncryptAES(text []byte) ([]byte, error) {
-	key := []byte(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyEncryptionKey))
+// DecryptAES method is to extract back the encrypted text
+func DecryptAES(text string) (string, error) {
+	key := []byte(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyEncryptionKey))
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return "", err
+	}
+	cipherText, err := DecryptB64(text)
+	if err != nil {
+		return "", err
+	}
+	cfb := cipher.NewCFBDecrypter(block, bytes)
+	plainText := make([]byte, len(cipherText))
+	cfb.XORKeyStream(plainText, []byte(cipherText))
+	return string(plainText), nil
+}
+
+// EncryptAESEnv encrypts data using AES algorithm
+// kept for the backward compatibility of env data encryption
+func EncryptAESEnv(text []byte) ([]byte, error) {
+	key := []byte(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyEncryptionKey))
 	c, err := aes.NewCipher(key)
 	var res []byte
 	if err != nil {
@@ -62,8 +79,9 @@ func EncryptAES(text []byte) ([]byte, error) {
 }
 
 // DecryptAES decrypts data using AES algorithm
-func DecryptAES(ciphertext []byte) ([]byte, error) {
-	key := []byte(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyEncryptionKey))
+// Kept for the backward compatibility of env data decryption
+func DecryptAESEnv(ciphertext []byte) ([]byte, error) {
+	key := []byte(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyEncryptionKey))
 	c, err := aes.NewCipher(key)
 	var res []byte
 	if err != nil {
@@ -87,40 +105,4 @@ func DecryptAES(ciphertext []byte) ([]byte, error) {
 	}
 
 	return plaintext, nil
-}
-
-// EncryptEnvData is used to encrypt the env data
-func EncryptEnvData(data envstore.Store) (string, error) {
-	jsonBytes, err := json.Marshal(data)
-	if err != nil {
-		return "", err
-	}
-
-	envStoreObj := envstore.EnvInMemoryStoreObj.GetEnvStoreClone()
-
-	err = json.Unmarshal(jsonBytes, &envStoreObj)
-	if err != nil {
-		return "", err
-	}
-
-	configData, err := json.Marshal(envStoreObj)
-	if err != nil {
-		return "", err
-	}
-	encryptedConfig, err := EncryptAES(configData)
-	if err != nil {
-		return "", err
-	}
-
-	return EncryptB64(string(encryptedConfig)), nil
-}
-
-// EncryptPassword is used for encrypting password
-func EncryptPassword(password string) (string, error) {
-	pw, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return "", err
-	}
-
-	return string(pw), nil
 }

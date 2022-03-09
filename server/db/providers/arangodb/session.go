@@ -34,7 +34,6 @@ func (p *provider) DeleteSession(userId string) error {
 	}
 	cursor, err := p.db.Query(nil, query, bindVars)
 	if err != nil {
-		log.Println("=> error deleting arangodb session:", err)
 		return err
 	}
 	defer cursor.Close()

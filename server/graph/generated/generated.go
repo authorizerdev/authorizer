@@ -44,16 +44,20 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	AuthResponse struct {
-		AccessToken func(childComplexity int) int
-		ExpiresAt   func(childComplexity int) int
-		Message     func(childComplexity int) int
-		User        func(childComplexity int) int
+		AccessToken  func(childComplexity int) int
+		ExpiresIn    func(childComplexity int) int
+		IDToken      func(childComplexity int) int
+		Message      func(childComplexity int) int
+		RefreshToken func(childComplexity int) int
+		User         func(childComplexity int) int
 	}
 
 	Env struct {
 		AdminSecret                func(childComplexity int) int
 		AllowedOrigins             func(childComplexity int) int
 		AppURL                     func(childComplexity int) int
+		ClientID                   func(childComplexity int) int
+		ClientSecret               func(childComplexity int) int
 		CookieName                 func(childComplexity int) int
 		CustomAccessTokenScript    func(childComplexity int) int
 		DatabaseName               func(childComplexity int) int
@@ -94,6 +98,7 @@ type ComplexityRoot struct {
 	}
 
 	Meta struct {
+		ClientID                     func(childComplexity int) int
 		IsBasicAuthenticationEnabled func(childComplexity int) int
 		IsEmailVerificationEnabled   func(childComplexity int) int
 		IsFacebookLoginEnabled       func(childComplexity int) int
@@ -114,6 +119,7 @@ type ComplexityRoot struct {
 		MagicLinkLogin    func(childComplexity int, params model.MagicLinkLoginInput) int
 		ResendVerifyEmail func(childComplexity int, params model.ResendVerifyEmailInput) int
 		ResetPassword     func(childComplexity int, params model.ResetPasswordInput) int
+		Revoke            func(childComplexity int, params model.OAuthRevokeInput) int
 		Signup            func(childComplexity int, params model.SignUpInput) int
 		UpdateEnv         func(childComplexity int, params model.UpdateEnvInput) int
 		UpdateProfile     func(childComplexity int, params model.UpdateProfileInput) int
@@ -131,7 +137,6 @@ type ComplexityRoot struct {
 	Query struct {
 		AdminSession         func(childComplexity int) int
 		Env                  func(childComplexity int) int
-		IsValidJwt           func(childComplexity int, params *model.IsValidJWTQueryInput) int
 		Meta                 func(childComplexity int) int
 		Profile              func(childComplexity int) int
 		Session              func(childComplexity int, params *model.SessionQueryInput) int
@@ -168,19 +173,16 @@ type ComplexityRoot struct {
 		Users      func(childComplexity int) int
 	}
 
-	ValidJWTResponse struct {
-		Message func(childComplexity int) int
-		Valid   func(childComplexity int) int
-	}
-
 	VerificationRequest struct {
-		CreatedAt  func(childComplexity int) int
-		Email      func(childComplexity int) int
-		Expires    func(childComplexity int) int
-		ID         func(childComplexity int) int
-		Identifier func(childComplexity int) int
-		Token      func(childComplexity int) int
-		UpdatedAt  func(childComplexity int) int
+		CreatedAt   func(childComplexity int) int
+		Email       func(childComplexity int) int
+		Expires     func(childComplexity int) int
+		ID          func(childComplexity int) int
+		Identifier  func(childComplexity int) int
+		Nonce       func(childComplexity int) int
+		RedirectURI func(childComplexity int) int
+		Token       func(childComplexity int) int
+		UpdatedAt   func(childComplexity int) int
 	}
 
 	VerificationRequests struct {
@@ -199,6 +201,7 @@ type MutationResolver interface {
 	ResendVerifyEmail(ctx context.Context, params model.ResendVerifyEmailInput) (*model.Response, error)
 	ForgotPassword(ctx context.Context, params model.ForgotPasswordInput) (*model.Response, error)
 	ResetPassword(ctx context.Context, params model.ResetPasswordInput) (*model.Response, error)
+	Revoke(ctx context.Context, params model.OAuthRevokeInput) (*model.Response, error)
 	DeleteUser(ctx context.Context, params model.DeleteUserInput) (*model.Response, error)
 	UpdateUser(ctx context.Context, params model.UpdateUserInput) (*model.User, error)
 	AdminSignup(ctx context.Context, params model.AdminSignupInput) (*model.Response, error)
@@ -209,7 +212,6 @@ type MutationResolver interface {
 type QueryResolver interface {
 	Meta(ctx context.Context) (*model.Meta, error)
 	Session(ctx context.Context, params *model.SessionQueryInput) (*model.AuthResponse, error)
-	IsValidJwt(ctx context.Context, params *model.IsValidJWTQueryInput) (*model.ValidJWTResponse, error)
 	Profile(ctx context.Context) (*model.User, error)
 	Users(ctx context.Context, params *model.PaginatedInput) (*model.Users, error)
 	VerificationRequests(ctx context.Context, params *model.PaginatedInput) (*model.VerificationRequests, error)
@@ -239,12 +241,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.AuthResponse.AccessToken(childComplexity), true
 
-	case "AuthResponse.expires_at":
-		if e.complexity.AuthResponse.ExpiresAt == nil {
+	case "AuthResponse.expires_in":
+		if e.complexity.AuthResponse.ExpiresIn == nil {
 			break
 		}
 
-		return e.complexity.AuthResponse.ExpiresAt(childComplexity), true
+		return e.complexity.AuthResponse.ExpiresIn(childComplexity), true
+
+	case "AuthResponse.id_token":
+		if e.complexity.AuthResponse.IDToken == nil {
+			break
+		}
+
+		return e.complexity.AuthResponse.IDToken(childComplexity), true
 
 	case "AuthResponse.message":
 		if e.complexity.AuthResponse.Message == nil {
@@ -252,6 +261,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.AuthResponse.Message(childComplexity), true
+
+	case "AuthResponse.refresh_token":
+		if e.complexity.AuthResponse.RefreshToken == nil {
+			break
+		}
+
+		return e.complexity.AuthResponse.RefreshToken(childComplexity), true
 
 	case "AuthResponse.user":
 		if e.complexity.AuthResponse.User == nil {
@@ -280,6 +296,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Env.AppURL(childComplexity), true
+
+	case "Env.CLIENT_ID":
+		if e.complexity.Env.ClientID == nil {
+			break
+		}
+
+		return e.complexity.Env.ClientID(childComplexity), true
+
+	case "Env.CLIENT_SECRET":
+		if e.complexity.Env.ClientSecret == nil {
+			break
+		}
+
+		return e.complexity.Env.ClientSecret(childComplexity), true
 
 	case "Env.COOKIE_NAME":
 		if e.complexity.Env.CookieName == nil {
@@ -519,6 +549,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Error.Reason(childComplexity), true
 
+	case "Meta.client_id":
+		if e.complexity.Meta.ClientID == nil {
+			break
+		}
+
+		return e.complexity.Meta.ClientID(childComplexity), true
+
 	case "Meta.is_basic_authentication_enabled":
 		if e.complexity.Meta.IsBasicAuthenticationEnabled == nil {
 			break
@@ -678,6 +715,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.ResetPassword(childComplexity, args["params"].(model.ResetPasswordInput)), true
 
+	case "Mutation.revoke":
+		if e.complexity.Mutation.Revoke == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_revoke_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.Revoke(childComplexity, args["params"].(model.OAuthRevokeInput)), true
+
 	case "Mutation.signup":
 		if e.complexity.Mutation.Signup == nil {
 			break
@@ -779,18 +828,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.Env(childComplexity), true
-
-	case "Query.is_valid_jwt":
-		if e.complexity.Query.IsValidJwt == nil {
-			break
-		}
-
-		args, err := ec.field_Query_is_valid_jwt_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.IsValidJwt(childComplexity, args["params"].(*model.IsValidJWTQueryInput)), true
 
 	case "Query.meta":
 		if e.complexity.Query.Meta == nil {
@@ -982,20 +1019,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Users.Users(childComplexity), true
 
-	case "ValidJWTResponse.message":
-		if e.complexity.ValidJWTResponse.Message == nil {
-			break
-		}
-
-		return e.complexity.ValidJWTResponse.Message(childComplexity), true
-
-	case "ValidJWTResponse.valid":
-		if e.complexity.ValidJWTResponse.Valid == nil {
-			break
-		}
-
-		return e.complexity.ValidJWTResponse.Valid(childComplexity), true
-
 	case "VerificationRequest.created_at":
 		if e.complexity.VerificationRequest.CreatedAt == nil {
 			break
@@ -1030,6 +1053,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.VerificationRequest.Identifier(childComplexity), true
+
+	case "VerificationRequest.nonce":
+		if e.complexity.VerificationRequest.Nonce == nil {
+			break
+		}
+
+		return e.complexity.VerificationRequest.Nonce(childComplexity), true
+
+	case "VerificationRequest.redirect_uri":
+		if e.complexity.VerificationRequest.RedirectURI == nil {
+			break
+		}
+
+		return e.complexity.VerificationRequest.RedirectURI(childComplexity), true
 
 	case "VerificationRequest.token":
 		if e.complexity.VerificationRequest.Token == nil {
@@ -1139,6 +1176,7 @@ type Pagination {
 
 type Meta {
 	version: String!
+	client_id: String!
 	is_google_login_enabled: Boolean!
 	is_facebook_login_enabled: Boolean!
 	is_github_login_enabled: Boolean!
@@ -1181,6 +1219,8 @@ type VerificationRequest {
 	expires: Int64
 	created_at: Int64
 	updated_at: Int64
+	nonce: String
+	redirect_uri: String
 }
 
 type VerificationRequests {
@@ -1196,7 +1236,9 @@ type Error {
 type AuthResponse {
 	message: String!
 	access_token: String
-	expires_at: Int64
+	id_token: String
+	refresh_token: String
+	expires_in: Int64
 	user: User
 }
 
@@ -1204,16 +1246,13 @@ type Response {
 	message: String!
 }
 
-type ValidJWTResponse {
-	valid: Boolean!
-	message: String!
-}
-
 type Env {
 	ADMIN_SECRET: String
-	DATABASE_NAME: String
-	DATABASE_URL: String
-	DATABASE_TYPE: String
+	DATABASE_NAME: String!
+	DATABASE_URL: String!
+	DATABASE_TYPE: String!
+	CLIENT_ID: String!
+	CLIENT_SECRET: String!
 	CUSTOM_ACCESS_TOKEN_SCRIPT: String
 	SMTP_HOST: String
 	SMTP_PORT: String
@@ -1304,12 +1343,14 @@ input SignUpInput {
 	password: String!
 	confirm_password: String!
 	roles: [String!]
+	scope: [String!]
 }
 
 input LoginInput {
 	email: String!
 	password: String!
 	roles: [String!]
+	scope: [String!]
 }
 
 input VerifyEmailInput {
@@ -1353,6 +1394,8 @@ input UpdateUserInput {
 
 input ForgotPasswordInput {
 	email: String!
+	state: String
+	redirect_uri: String
 }
 
 input ResetPasswordInput {
@@ -1368,15 +1411,14 @@ input DeleteUserInput {
 input MagicLinkLoginInput {
 	email: String!
 	roles: [String!]
+	scope: [String!]
+	state: String
+	redirect_uri: String
 }
 
 input SessionQueryInput {
 	roles: [String!]
-}
-
-input IsValidJWTQueryInput {
-	jwt: String
-	roles: [String!]
+	scope: [String!]
 }
 
 input PaginationInput {
@@ -1386,6 +1428,10 @@ input PaginationInput {
 
 input PaginatedInput {
 	pagination: PaginationInput
+}
+
+input OAuthRevokeInput {
+	refresh_token: String!
 }
 
 type Mutation {
@@ -1398,6 +1444,7 @@ type Mutation {
 	resend_verify_email(params: ResendVerifyEmailInput!): Response!
 	forgot_password(params: ForgotPasswordInput!): Response!
 	reset_password(params: ResetPasswordInput!): Response!
+	revoke(params: OAuthRevokeInput!): Response!
 	# admin only apis
 	_delete_user(params: DeleteUserInput!): Response!
 	_update_user(params: UpdateUserInput!): User!
@@ -1410,7 +1457,6 @@ type Mutation {
 type Query {
 	meta: Meta!
 	session(params: SessionQueryInput): AuthResponse!
-	is_valid_jwt(params: IsValidJWTQueryInput): ValidJWTResponse!
 	profile: User!
 	# admin only apis
 	_users(params: PaginatedInput): Users!
@@ -1576,6 +1622,21 @@ func (ec *executionContext) field_Mutation_reset_password_args(ctx context.Conte
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_revoke_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.OAuthRevokeInput
+	if tmp, ok := rawArgs["params"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+		arg0, err = ec.unmarshalNOAuthRevokeInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐOAuthRevokeInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["params"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_signup_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -1658,21 +1719,6 @@ func (ec *executionContext) field_Query__verification_requests_args(ctx context.
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
 		arg0, err = ec.unmarshalOPaginatedInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐPaginatedInput(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["params"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Query_is_valid_jwt_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 *model.IsValidJWTQueryInput
-	if tmp, ok := rawArgs["params"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalOIsValidJWTQueryInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐIsValidJWTQueryInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1801,7 +1847,7 @@ func (ec *executionContext) _AuthResponse_access_token(ctx context.Context, fiel
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _AuthResponse_expires_at(ctx context.Context, field graphql.CollectedField, obj *model.AuthResponse) (ret graphql.Marshaler) {
+func (ec *executionContext) _AuthResponse_id_token(ctx context.Context, field graphql.CollectedField, obj *model.AuthResponse) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1819,7 +1865,71 @@ func (ec *executionContext) _AuthResponse_expires_at(ctx context.Context, field 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.ExpiresAt, nil
+		return obj.IDToken, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _AuthResponse_refresh_token(ctx context.Context, field graphql.CollectedField, obj *model.AuthResponse) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "AuthResponse",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.RefreshToken, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _AuthResponse_expires_in(ctx context.Context, field graphql.CollectedField, obj *model.AuthResponse) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "AuthResponse",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ExpiresIn, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1922,11 +2032,14 @@ func (ec *executionContext) _Env_DATABASE_NAME(ctx context.Context, field graphq
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Env_DATABASE_URL(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
@@ -1954,11 +2067,14 @@ func (ec *executionContext) _Env_DATABASE_URL(ctx context.Context, field graphql
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Env_DATABASE_TYPE(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
@@ -1986,11 +2102,84 @@ func (ec *executionContext) _Env_DATABASE_TYPE(ctx context.Context, field graphq
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Env_CLIENT_ID(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Env",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ClientID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Env_CLIENT_SECRET(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Env",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ClientSecret, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Env_CUSTOM_ACCESS_TOKEN_SCRIPT(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
@@ -3090,6 +3279,41 @@ func (ec *executionContext) _Meta_version(ctx context.Context, field graphql.Col
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Meta_client_id(ctx context.Context, field graphql.CollectedField, obj *model.Meta) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Meta",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ClientID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Meta_is_google_login_enabled(ctx context.Context, field graphql.CollectedField, obj *model.Meta) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -3671,6 +3895,48 @@ func (ec *executionContext) _Mutation_reset_password(ctx context.Context, field 
 	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Mutation_revoke(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_revoke_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().Revoke(rctx, args["params"].(model.OAuthRevokeInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Response)
+	fc.Result = res
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Mutation__delete_user(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -4131,48 +4397,6 @@ func (ec *executionContext) _Query_session(ctx context.Context, field graphql.Co
 	res := resTmp.(*model.AuthResponse)
 	fc.Result = res
 	return ec.marshalNAuthResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAuthResponse(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Query_is_valid_jwt(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Query",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Query_is_valid_jwt_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().IsValidJwt(rctx, args["params"].(*model.IsValidJWTQueryInput))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.ValidJWTResponse)
-	fc.Result = res
-	return ec.marshalNValidJWTResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐValidJWTResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_profile(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -5099,76 +5323,6 @@ func (ec *executionContext) _Users_users(ctx context.Context, field graphql.Coll
 	return ec.marshalNUser2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUserᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _ValidJWTResponse_valid(ctx context.Context, field graphql.CollectedField, obj *model.ValidJWTResponse) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "ValidJWTResponse",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Valid, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(bool)
-	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _ValidJWTResponse_message(ctx context.Context, field graphql.CollectedField, obj *model.ValidJWTResponse) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "ValidJWTResponse",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Message, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _VerificationRequest_id(ctx context.Context, field graphql.CollectedField, obj *model.VerificationRequest) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -5394,6 +5548,70 @@ func (ec *executionContext) _VerificationRequest_updated_at(ctx context.Context,
 	res := resTmp.(*int64)
 	fc.Result = res
 	return ec.marshalOInt642ᚖint64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _VerificationRequest_nonce(ctx context.Context, field graphql.CollectedField, obj *model.VerificationRequest) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "VerificationRequest",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Nonce, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _VerificationRequest_redirect_uri(ctx context.Context, field graphql.CollectedField, obj *model.VerificationRequest) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "VerificationRequest",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.RedirectURI, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _VerificationRequests_pagination(ctx context.Context, field graphql.CollectedField, obj *model.VerificationRequests) (ret graphql.Marshaler) {
@@ -6674,34 +6892,19 @@ func (ec *executionContext) unmarshalInputForgotPasswordInput(ctx context.Contex
 			if err != nil {
 				return it, err
 			}
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputIsValidJWTQueryInput(ctx context.Context, obj interface{}) (model.IsValidJWTQueryInput, error) {
-	var it model.IsValidJWTQueryInput
-	asMap := map[string]interface{}{}
-	for k, v := range obj.(map[string]interface{}) {
-		asMap[k] = v
-	}
-
-	for k, v := range asMap {
-		switch k {
-		case "jwt":
+		case "state":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("jwt"))
-			it.Jwt, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
+			it.State, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
-		case "roles":
+		case "redirect_uri":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("roles"))
-			it.Roles, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("redirect_uri"))
+			it.RedirectURI, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -6744,6 +6947,14 @@ func (ec *executionContext) unmarshalInputLoginInput(ctx context.Context, obj in
 			if err != nil {
 				return it, err
 			}
+		case "scope":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("scope"))
+			it.Scope, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		}
 	}
 
@@ -6772,6 +6983,53 @@ func (ec *executionContext) unmarshalInputMagicLinkLoginInput(ctx context.Contex
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("roles"))
 			it.Roles, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "scope":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("scope"))
+			it.Scope, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "state":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
+			it.State, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "redirect_uri":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("redirect_uri"))
+			it.RedirectURI, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputOAuthRevokeInput(ctx context.Context, obj interface{}) (model.OAuthRevokeInput, error) {
+	var it model.OAuthRevokeInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "refresh_token":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("refresh_token"))
+			it.RefreshToken, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -6922,6 +7180,14 @@ func (ec *executionContext) unmarshalInputSessionQueryInput(ctx context.Context,
 			if err != nil {
 				return it, err
 			}
+		case "scope":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("scope"))
+			it.Scope, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		}
 	}
 
@@ -7030,6 +7296,14 @@ func (ec *executionContext) unmarshalInputSignUpInput(ctx context.Context, obj i
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("roles"))
 			it.Roles, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "scope":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("scope"))
+			it.Scope, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -7589,8 +7863,12 @@ func (ec *executionContext) _AuthResponse(ctx context.Context, sel ast.Selection
 			}
 		case "access_token":
 			out.Values[i] = ec._AuthResponse_access_token(ctx, field, obj)
-		case "expires_at":
-			out.Values[i] = ec._AuthResponse_expires_at(ctx, field, obj)
+		case "id_token":
+			out.Values[i] = ec._AuthResponse_id_token(ctx, field, obj)
+		case "refresh_token":
+			out.Values[i] = ec._AuthResponse_refresh_token(ctx, field, obj)
+		case "expires_in":
+			out.Values[i] = ec._AuthResponse_expires_in(ctx, field, obj)
 		case "user":
 			out.Values[i] = ec._AuthResponse_user(ctx, field, obj)
 		default:
@@ -7619,10 +7897,29 @@ func (ec *executionContext) _Env(ctx context.Context, sel ast.SelectionSet, obj 
 			out.Values[i] = ec._Env_ADMIN_SECRET(ctx, field, obj)
 		case "DATABASE_NAME":
 			out.Values[i] = ec._Env_DATABASE_NAME(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "DATABASE_URL":
 			out.Values[i] = ec._Env_DATABASE_URL(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "DATABASE_TYPE":
 			out.Values[i] = ec._Env_DATABASE_TYPE(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "CLIENT_ID":
+			out.Values[i] = ec._Env_CLIENT_ID(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "CLIENT_SECRET":
+			out.Values[i] = ec._Env_CLIENT_SECRET(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "CUSTOM_ACCESS_TOKEN_SCRIPT":
 			out.Values[i] = ec._Env_CUSTOM_ACCESS_TOKEN_SCRIPT(ctx, field, obj)
 		case "SMTP_HOST":
@@ -7744,6 +8041,11 @@ func (ec *executionContext) _Meta(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "client_id":
+			out.Values[i] = ec._Meta_client_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "is_google_login_enabled":
 			out.Values[i] = ec._Meta_is_google_login_enabled(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -7842,6 +8144,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "reset_password":
 			out.Values[i] = ec._Mutation_reset_password(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "revoke":
+			out.Values[i] = ec._Mutation_revoke(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -7966,20 +8273,6 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_session(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
-		case "is_valid_jwt":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_is_valid_jwt(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -8200,38 +8493,6 @@ func (ec *executionContext) _Users(ctx context.Context, sel ast.SelectionSet, ob
 	return out
 }
 
-var validJWTResponseImplementors = []string{"ValidJWTResponse"}
-
-func (ec *executionContext) _ValidJWTResponse(ctx context.Context, sel ast.SelectionSet, obj *model.ValidJWTResponse) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, validJWTResponseImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("ValidJWTResponse")
-		case "valid":
-			out.Values[i] = ec._ValidJWTResponse_valid(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "message":
-			out.Values[i] = ec._ValidJWTResponse_message(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
-
 var verificationRequestImplementors = []string{"VerificationRequest"}
 
 func (ec *executionContext) _VerificationRequest(ctx context.Context, sel ast.SelectionSet, obj *model.VerificationRequest) graphql.Marshaler {
@@ -8260,6 +8521,10 @@ func (ec *executionContext) _VerificationRequest(ctx context.Context, sel ast.Se
 			out.Values[i] = ec._VerificationRequest_created_at(ctx, field, obj)
 		case "updated_at":
 			out.Values[i] = ec._VerificationRequest_updated_at(ctx, field, obj)
+		case "nonce":
+			out.Values[i] = ec._VerificationRequest_nonce(ctx, field, obj)
+		case "redirect_uri":
+			out.Values[i] = ec._VerificationRequest_redirect_uri(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -8670,6 +8935,11 @@ func (ec *executionContext) marshalNMeta2ᚖgithubᚗcomᚋauthorizerdevᚋautho
 	return ec._Meta(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNOAuthRevokeInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐOAuthRevokeInput(ctx context.Context, v interface{}) (model.OAuthRevokeInput, error) {
+	res, err := ec.unmarshalInputOAuthRevokeInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalNPagination2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐPagination(ctx context.Context, sel ast.SelectionSet, v *model.Pagination) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -8845,20 +9115,6 @@ func (ec *executionContext) marshalNUsers2ᚖgithubᚗcomᚋauthorizerdevᚋauth
 		return graphql.Null
 	}
 	return ec._Users(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNValidJWTResponse2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐValidJWTResponse(ctx context.Context, sel ast.SelectionSet, v model.ValidJWTResponse) graphql.Marshaler {
-	return ec._ValidJWTResponse(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNValidJWTResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐValidJWTResponse(ctx context.Context, sel ast.SelectionSet, v *model.ValidJWTResponse) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	return ec._ValidJWTResponse(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNVerificationRequest2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐVerificationRequestᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.VerificationRequest) graphql.Marshaler {
@@ -9228,14 +9484,6 @@ func (ec *executionContext) marshalOInt642ᚖint64(ctx context.Context, sel ast.
 		return graphql.Null
 	}
 	return graphql.MarshalInt64(*v)
-}
-
-func (ec *executionContext) unmarshalOIsValidJWTQueryInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐIsValidJWTQueryInput(ctx context.Context, v interface{}) (*model.IsValidJWTQueryInput, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := ec.unmarshalInputIsValidJWTQueryInput(ctx, v)
-	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalOPaginatedInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐPaginatedInput(ctx context.Context, v interface{}) (*model.PaginatedInput, error) {

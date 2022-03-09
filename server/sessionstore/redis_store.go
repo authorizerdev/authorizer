@@ -2,39 +2,13 @@ package sessionstore
 
 import (
 	"context"
-	"fmt"
 	"log"
+	"strings"
 )
 
 type RedisStore struct {
 	ctx   context.Context
 	store RedisSessionClient
-}
-
-// AddUserSession adds the user session to redis
-func (c *RedisStore) AddUserSession(userId, accessToken, refreshToken string) {
-	err := c.store.HMSet(c.ctx, "authorizer_"+userId, map[string]string{
-		accessToken: refreshToken,
-	}).Err()
-	if err != nil {
-		log.Fatalln("Error saving redis token:", err)
-	}
-}
-
-// DeleteAllUserSession deletes all the user session from redis
-func (c *RedisStore) DeleteAllUserSession(userId string) {
-	err := c.store.Del(c.ctx, "authorizer_"+userId).Err()
-	if err != nil {
-		log.Fatalln("Error deleting redis token:", err)
-	}
-}
-
-// DeleteUserSession deletes the particular user session from redis
-func (c *RedisStore) DeleteUserSession(userId, accessToken string) {
-	err := c.store.HDel(c.ctx, "authorizer_"+userId, accessToken).Err()
-	if err != nil {
-		log.Fatalln("Error deleting redis token:", err)
-	}
 }
 
 // ClearStore clears the redis store for authorizer related tokens
@@ -45,41 +19,49 @@ func (c *RedisStore) ClearStore() {
 	}
 }
 
-// GetUserSession returns the user session token from the redis store.
-func (c *RedisStore) GetUserSession(userId, accessToken string) string {
-	token := ""
-	res, err := c.store.HMGet(c.ctx, "authorizer_"+userId, accessToken).Result()
-	if err != nil {
-		log.Println("error getting token from redis store:", err)
-	}
-	if len(res) > 0 && res[0] != nil {
-		token = fmt.Sprintf("%v", res[0])
-	}
-	return token
-}
-
 // GetUserSessions returns all the user session token from the redis store.
 func (c *RedisStore) GetUserSessions(userID string) map[string]string {
-	res, err := c.store.HGetAll(c.ctx, "authorizer_"+userID).Result()
+	data, err := c.store.HGetAll(c.ctx, "*").Result()
 	if err != nil {
 		log.Println("error getting token from redis store:", err)
+	}
+
+	res := map[string]string{}
+	for k, v := range data {
+		split := strings.Split(v, "@")
+		if split[1] == userID {
+			res[k] = split[0]
+		}
 	}
 
 	return res
 }
 
-// SetSocialLoginState sets the social login state in redis store.
-func (c *RedisStore) SetSocialLoginState(key, state string) {
-	err := c.store.Set(c.ctx, key, state, 0).Err()
+// DeleteAllUserSession deletes all the user session from redis
+func (c *RedisStore) DeleteAllUserSession(userId string) {
+	sessions := GetUserSessions(userId)
+	for k, v := range sessions {
+		if k == "token" {
+			err := c.store.Del(c.ctx, v)
+			if err != nil {
+				log.Println("Error deleting redis token:", err)
+			}
+		}
+	}
+}
+
+// SetState sets the state in redis store.
+func (c *RedisStore) SetState(key, value string) {
+	err := c.store.Set(c.ctx, "authorizer_"+key, value, 0).Err()
 	if err != nil {
 		log.Fatalln("Error saving redis token:", err)
 	}
 }
 
-// GetSocialLoginState gets the social login state from redis store.
-func (c *RedisStore) GetSocialLoginState(key string) string {
+// GetState gets the state from redis store.
+func (c *RedisStore) GetState(key string) string {
 	state := ""
-	state, err := c.store.Get(c.ctx, key).Result()
+	state, err := c.store.Get(c.ctx, "authorizer_"+key).Result()
 	if err != nil {
 		log.Println("error getting token from redis store:", err)
 	}
@@ -87,9 +69,9 @@ func (c *RedisStore) GetSocialLoginState(key string) string {
 	return state
 }
 
-// RemoveSocialLoginState removes the social login state from redis store.
-func (c *RedisStore) RemoveSocialLoginState(key string) {
-	err := c.store.Del(c.ctx, key).Err()
+// RemoveState removes the state from redis store.
+func (c *RedisStore) RemoveState(key string) {
+	err := c.store.Del(c.ctx, "authorizer_"+key).Err()
 	if err != nil {
 		log.Fatalln("Error deleting redis token:", err)
 	}

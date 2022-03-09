@@ -11,10 +11,12 @@ type AdminSignupInput struct {
 }
 
 type AuthResponse struct {
-	Message     string  `json:"message"`
-	AccessToken *string `json:"access_token"`
-	ExpiresAt   *int64  `json:"expires_at"`
-	User        *User   `json:"user"`
+	Message      string  `json:"message"`
+	AccessToken  *string `json:"access_token"`
+	IDToken      *string `json:"id_token"`
+	RefreshToken *string `json:"refresh_token"`
+	ExpiresIn    *int64  `json:"expires_in"`
+	User         *User   `json:"user"`
 }
 
 type DeleteUserInput struct {
@@ -23,9 +25,11 @@ type DeleteUserInput struct {
 
 type Env struct {
 	AdminSecret                *string  `json:"ADMIN_SECRET"`
-	DatabaseName               *string  `json:"DATABASE_NAME"`
-	DatabaseURL                *string  `json:"DATABASE_URL"`
-	DatabaseType               *string  `json:"DATABASE_TYPE"`
+	DatabaseName               string   `json:"DATABASE_NAME"`
+	DatabaseURL                string   `json:"DATABASE_URL"`
+	DatabaseType               string   `json:"DATABASE_TYPE"`
+	ClientID                   string   `json:"CLIENT_ID"`
+	ClientSecret               string   `json:"CLIENT_SECRET"`
 	CustomAccessTokenScript    *string  `json:"CUSTOM_ACCESS_TOKEN_SCRIPT"`
 	SMTPHost                   *string  `json:"SMTP_HOST"`
 	SMTPPort                   *string  `json:"SMTP_PORT"`
@@ -65,33 +69,39 @@ type Error struct {
 }
 
 type ForgotPasswordInput struct {
-	Email string `json:"email"`
-}
-
-type IsValidJWTQueryInput struct {
-	Jwt   *string  `json:"jwt"`
-	Roles []string `json:"roles"`
+	Email       string  `json:"email"`
+	State       *string `json:"state"`
+	RedirectURI *string `json:"redirect_uri"`
 }
 
 type LoginInput struct {
 	Email    string   `json:"email"`
 	Password string   `json:"password"`
 	Roles    []string `json:"roles"`
+	Scope    []string `json:"scope"`
 }
 
 type MagicLinkLoginInput struct {
-	Email string   `json:"email"`
-	Roles []string `json:"roles"`
+	Email       string   `json:"email"`
+	Roles       []string `json:"roles"`
+	Scope       []string `json:"scope"`
+	State       *string  `json:"state"`
+	RedirectURI *string  `json:"redirect_uri"`
 }
 
 type Meta struct {
 	Version                      string `json:"version"`
+	ClientID                     string `json:"client_id"`
 	IsGoogleLoginEnabled         bool   `json:"is_google_login_enabled"`
 	IsFacebookLoginEnabled       bool   `json:"is_facebook_login_enabled"`
 	IsGithubLoginEnabled         bool   `json:"is_github_login_enabled"`
 	IsEmailVerificationEnabled   bool   `json:"is_email_verification_enabled"`
 	IsBasicAuthenticationEnabled bool   `json:"is_basic_authentication_enabled"`
 	IsMagicLinkLoginEnabled      bool   `json:"is_magic_link_login_enabled"`
+}
+
+type OAuthRevokeInput struct {
+	RefreshToken string `json:"refresh_token"`
 }
 
 type PaginatedInput struct {
@@ -127,6 +137,7 @@ type Response struct {
 
 type SessionQueryInput struct {
 	Roles []string `json:"roles"`
+	Scope []string `json:"scope"`
 }
 
 type SignUpInput struct {
@@ -142,6 +153,7 @@ type SignUpInput struct {
 	Password        string   `json:"password"`
 	ConfirmPassword string   `json:"confirm_password"`
 	Roles           []string `json:"roles"`
+	Scope           []string `json:"scope"`
 }
 
 type UpdateEnvInput struct {
@@ -235,19 +247,16 @@ type Users struct {
 	Users      []*User     `json:"users"`
 }
 
-type ValidJWTResponse struct {
-	Valid   bool   `json:"valid"`
-	Message string `json:"message"`
-}
-
 type VerificationRequest struct {
-	ID         string  `json:"id"`
-	Identifier *string `json:"identifier"`
-	Token      *string `json:"token"`
-	Email      *string `json:"email"`
-	Expires    *int64  `json:"expires"`
-	CreatedAt  *int64  `json:"created_at"`
-	UpdatedAt  *int64  `json:"updated_at"`
+	ID          string  `json:"id"`
+	Identifier  *string `json:"identifier"`
+	Token       *string `json:"token"`
+	Email       *string `json:"email"`
+	Expires     *int64  `json:"expires"`
+	CreatedAt   *int64  `json:"created_at"`
+	UpdatedAt   *int64  `json:"updated_at"`
+	Nonce       *string `json:"nonce"`
+	RedirectURI *string `json:"redirect_uri"`
 }
 
 type VerificationRequests struct {

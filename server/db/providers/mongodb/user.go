@@ -21,7 +21,7 @@ func (p *provider) AddUser(user models.User) (models.User, error) {
 	}
 
 	if user.Roles == "" {
-		user.Roles = strings.Join(envstore.EnvInMemoryStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles), ",")
+		user.Roles = strings.Join(envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles), ",")
 	}
 	user.CreatedAt = time.Now().Unix()
 	user.UpdatedAt = time.Now().Unix()

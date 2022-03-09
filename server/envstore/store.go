@@ -22,14 +22,13 @@ type Store struct {
 	SliceEnv  map[string][]string `json:"slice_env"`
 }
 
-// EnvInMemoryStore struct
-type EnvInMemoryStore struct {
+// EnvStore struct
+type EnvStore struct {
 	mutex sync.Mutex
 	store *Store
 }
 
-// EnvInMemoryStoreObj global variable for EnvInMemoryStore
-var EnvInMemoryStoreObj = &EnvInMemoryStore{
+var defaultStore = &EnvStore{
 	store: &Store{
 		StringEnv: map[string]string{
 			constants.EnvKeyAdminCookieName:  "authorizer-admin",
@@ -47,8 +46,11 @@ var EnvInMemoryStoreObj = &EnvInMemoryStore{
 	},
 }
 
+// EnvStoreObj.GetBoolStoreEnvVariable global variable for EnvStore
+var EnvStoreObj = defaultStore
+
 // UpdateEnvStore to update the whole env store object
-func (e *EnvInMemoryStore) UpdateEnvStore(store Store) {
+func (e *EnvStore) UpdateEnvStore(store Store) {
 	e.mutex.Lock()
 	defer e.mutex.Unlock()
 	// just override the keys + new keys
@@ -67,7 +69,7 @@ func (e *EnvInMemoryStore) UpdateEnvStore(store Store) {
 }
 
 // UpdateEnvVariable to update the particular env variable
-func (e *EnvInMemoryStore) UpdateEnvVariable(storeIdentifier, key string, value interface{}) {
+func (e *EnvStore) UpdateEnvVariable(storeIdentifier, key string, value interface{}) {
 	e.mutex.Lock()
 	defer e.mutex.Unlock()
 	switch storeIdentifier {
@@ -81,31 +83,37 @@ func (e *EnvInMemoryStore) UpdateEnvVariable(storeIdentifier, key string, value 
 }
 
 // GetStringStoreEnvVariable to get the env variable from string store object
-func (e *EnvInMemoryStore) GetStringStoreEnvVariable(key string) string {
+func (e *EnvStore) GetStringStoreEnvVariable(key string) string {
 	// e.mutex.Lock()
 	// defer e.mutex.Unlock()
 	return e.store.StringEnv[key]
 }
 
 // GetBoolStoreEnvVariable to get the env variable from bool store object
-func (e *EnvInMemoryStore) GetBoolStoreEnvVariable(key string) bool {
+func (e *EnvStore) GetBoolStoreEnvVariable(key string) bool {
 	// e.mutex.Lock()
 	// defer e.mutex.Unlock()
 	return e.store.BoolEnv[key]
 }
 
 // GetSliceStoreEnvVariable to get the env variable from slice store object
-func (e *EnvInMemoryStore) GetSliceStoreEnvVariable(key string) []string {
+func (e *EnvStore) GetSliceStoreEnvVariable(key string) []string {
 	// e.mutex.Lock()
 	// defer e.mutex.Unlock()
 	return e.store.SliceEnv[key]
 }
 
 // GetEnvStoreClone to get clone of current env store object
-func (e *EnvInMemoryStore) GetEnvStoreClone() Store {
+func (e *EnvStore) GetEnvStoreClone() Store {
 	e.mutex.Lock()
 	defer e.mutex.Unlock()
 
 	result := *e.store
 	return result
+}
+
+func (e *EnvStore) ResetStore() {
+	e.mutex.Lock()
+	defer e.mutex.Unlock()
+	e.store = defaultStore.store
 }

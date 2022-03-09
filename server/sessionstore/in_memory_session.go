@@ -1,112 +1,74 @@
 package sessionstore
 
 import (
+	"strings"
 	"sync"
 )
 
 // InMemoryStore is a simple in-memory store for sessions.
 type InMemoryStore struct {
-	mutex            sync.Mutex
-	store            map[string]map[string]string
-	socialLoginState map[string]string
-}
-
-// AddUserSession adds a user session to the in-memory store.
-func (c *InMemoryStore) AddUserSession(userId, accessToken, refreshToken string) {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	// delete sessions > 500 // not recommended for production
-	if len(c.store) >= 500 {
-		c.store = map[string]map[string]string{}
-	}
-	// check if entry exists in map
-	_, exists := c.store[userId]
-	if exists {
-		tempMap := c.store[userId]
-		tempMap[accessToken] = refreshToken
-		c.store[userId] = tempMap
-	} else {
-		tempMap := map[string]string{
-			accessToken: refreshToken,
-		}
-		c.store[userId] = tempMap
-	}
-}
-
-// DeleteAllUserSession deletes all the user sessions from in-memory store.
-func (c *InMemoryStore) DeleteAllUserSession(userId string) {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	delete(c.store, userId)
-}
-
-// DeleteUserSession deletes the particular user session from in-memory store.
-func (c *InMemoryStore) DeleteUserSession(userId, accessToken string) {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	delete(c.store[userId], accessToken)
+	mutex        sync.Mutex
+	sessionStore map[string]map[string]string
+	stateStore   map[string]string
 }
 
 // ClearStore clears the in-memory store.
 func (c *InMemoryStore) ClearStore() {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	c.store = map[string]map[string]string{}
-}
-
-// GetUserSession returns the user session token from the in-memory store.
-func (c *InMemoryStore) GetUserSession(userId, accessToken string) string {
-	// c.mutex.Lock()
-	// defer c.mutex.Unlock()
-
-	token := ""
-	if sessionMap, ok := c.store[userId]; ok {
-		if val, ok := sessionMap[accessToken]; ok {
-			token = val
-		}
-	}
-
-	return token
+	c.sessionStore = map[string]map[string]string{}
 }
 
 // GetUserSessions returns all the user session token from the in-memory store.
 func (c *InMemoryStore) GetUserSessions(userId string) map[string]string {
 	// c.mutex.Lock()
 	// defer c.mutex.Unlock()
-
-	sessionMap, ok := c.store[userId]
-	if !ok {
-		return nil
+	res := map[string]string{}
+	for k, v := range c.stateStore {
+		split := strings.Split(v, "@")
+		if split[1] == userId {
+			res[k] = split[0]
+		}
 	}
 
-	return sessionMap
+	return res
 }
 
-// SetSocialLoginState sets the social login state in the in-memory store.
-func (c *InMemoryStore) SetSocialLoginState(key, state string) {
+// DeleteAllUserSession deletes all the user sessions from in-memory store.
+func (c *InMemoryStore) DeleteAllUserSession(userId string) {
+	// c.mutex.Lock()
+	// defer c.mutex.Unlock()
+	sessions := GetUserSessions(userId)
+	for k := range sessions {
+		RemoveState(k)
+	}
+}
+
+// SetState sets the state in the in-memory store.
+func (c *InMemoryStore) SetState(key, state string) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
-	c.socialLoginState[key] = state
+	c.stateStore[key] = state
 }
 
-// GetSocialLoginState gets the social login state from the in-memory store.
-func (c *InMemoryStore) GetSocialLoginState(key string) string {
+// GetState gets the state from the in-memory store.
+func (c *InMemoryStore) GetState(key string) string {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
 	state := ""
-	if stateVal, ok := c.socialLoginState[key]; ok {
+	if stateVal, ok := c.stateStore[key]; ok {
 		state = stateVal
 	}
 
 	return state
 }
 
-// RemoveSocialLoginState removes the social login state from the in-memory store.
-func (c *InMemoryStore) RemoveSocialLoginState(key string) {
+// RemoveState removes the state from the in-memory store.
+func (c *InMemoryStore) RemoveState(key string) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
-	delete(c.socialLoginState, key)
+	delete(c.stateStore, key)
 }

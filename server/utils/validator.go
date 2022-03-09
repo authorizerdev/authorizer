@@ -17,7 +17,7 @@ func IsValidEmail(email string) bool {
 
 // IsValidOrigin validates origin based on ALLOWED_ORIGINS
 func IsValidOrigin(url string) bool {
-	allowedOrigins := envstore.EnvInMemoryStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyAllowedOrigins)
+	allowedOrigins := envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyAllowedOrigins)
 	if len(allowedOrigins) == 1 && allowedOrigins[0] == "*" {
 		return true
 	}

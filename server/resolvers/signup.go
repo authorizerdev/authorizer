@@ -9,6 +9,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/cookie"
+	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/email"
@@ -27,7 +28,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 		return res, err
 	}
 
-	if envstore.EnvInMemoryStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableBasicAuthentication) {
+	if envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableBasicAuthentication) {
 		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
 	}
 	if params.ConfirmPassword != params.Password {
@@ -57,13 +58,13 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 
 	if len(params.Roles) > 0 {
 		// check if roles exists
-		if !utils.IsValidRoles(envstore.EnvInMemoryStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyRoles), params.Roles) {
+		if !utils.IsValidRoles(envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyRoles), params.Roles) {
 			return res, fmt.Errorf(`invalid roles`)
 		} else {
 			inputRoles = params.Roles
 		}
 	} else {
-		inputRoles = envstore.EnvInMemoryStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles)
+		inputRoles = envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles)
 	}
 
 	user := models.User{
@@ -72,7 +73,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 
 	user.Roles = strings.Join(inputRoles, ",")
 
-	password, _ := utils.EncryptPassword(params.Password)
+	password, _ := crypto.EncryptPassword(params.Password)
 	user.Password = &password
 
 	if params.GivenName != nil {
@@ -108,7 +109,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 	}
 
 	user.SignupMethods = constants.SignupMethodBasicAuth
-	if envstore.EnvInMemoryStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification) {
+	if envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification) {
 		now := time.Now().Unix()
 		user.EmailVerifiedAt = &now
 	}
@@ -120,43 +121,55 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 	userToReturn := user.AsAPIUser()
 
 	hostname := utils.GetHost(gc)
-	if !envstore.EnvInMemoryStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification) {
+	if !envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification) {
 		// insert verification request
-		verificationType := constants.VerificationTypeBasicAuthSignup
-		verificationToken, err := token.CreateVerificationToken(params.Email, verificationType, hostname)
+		_, nonceHash, err := utils.GenerateNonce()
 		if err != nil {
-			log.Println(`error generating token`, err)
+			return res, err
+		}
+		verificationType := constants.VerificationTypeBasicAuthSignup
+		redirectURL := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAppURL)
+		verificationToken, err := token.CreateVerificationToken(params.Email, verificationType, hostname, nonceHash, redirectURL)
+		if err != nil {
+			return res, err
 		}
 		db.Provider.AddVerificationRequest(models.VerificationRequest{
-			Token:      verificationToken,
-			Identifier: verificationType,
-			ExpiresAt:  time.Now().Add(time.Minute * 30).Unix(),
-			Email:      params.Email,
+			Token:       verificationToken,
+			Identifier:  verificationType,
+			ExpiresAt:   time.Now().Add(time.Minute * 30).Unix(),
+			Email:       params.Email,
+			Nonce:       nonceHash,
+			RedirectURI: redirectURL,
 		})
 
 		// exec it as go routin so that we can reduce the api latency
-		go func() {
-			email.SendVerificationMail(params.Email, verificationToken, hostname)
-		}()
+		go email.SendVerificationMail(params.Email, verificationToken, hostname)
 
 		res = &model.AuthResponse{
 			Message: `Verification email has been sent. Please check your inbox`,
 			User:    userToReturn,
 		}
 	} else {
+		scope := []string{"openid", "email", "profile"}
+		if params.Scope != nil && len(scope) > 0 {
+			scope = params.Scope
+		}
 
-		authToken, err := token.CreateAuthToken(user, roles)
+		authToken, err := token.CreateAuthToken(gc, user, roles, scope)
 		if err != nil {
 			return res, err
 		}
-		sessionstore.SetUserSession(user.ID, authToken.FingerPrint, authToken.RefreshToken.Token)
-		cookie.SetCookie(gc, authToken.AccessToken.Token, authToken.RefreshToken.Token, authToken.FingerPrintHash)
-		utils.SaveSessionInDB(user.ID, gc)
+
+		sessionstore.SetState(authToken.FingerPrintHash, authToken.FingerPrint+"@"+user.ID)
+		cookie.SetSession(gc, authToken.FingerPrintHash)
+		go utils.SaveSessionInDB(gc, user.ID)
+
+		expiresIn := int64(1800)
 
 		res = &model.AuthResponse{
 			Message:     `Signed up successfully.`,
 			AccessToken: &authToken.AccessToken.Token,
-			ExpiresAt:   &authToken.AccessToken.ExpiresAt,
+			ExpiresIn:   &expiresIn,
 			User:        userToReturn,
 		}
 	}

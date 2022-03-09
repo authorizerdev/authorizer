@@ -9,9 +9,11 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/cookie"
+	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/email"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/sessionstore"
 	"github.com/authorizerdev/authorizer/server/token"
@@ -27,7 +29,11 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 		return res, err
 	}
 
-	claims, err := token.ValidateAccessToken(gc)
+	accessToken, err := token.GetAccessToken(gc)
+	if err != nil {
+		return res, err
+	}
+	claims, err := token.ValidateAccessToken(gc, accessToken)
 	if err != nil {
 		return res, err
 	}
@@ -37,8 +43,8 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 		return res, fmt.Errorf("please enter at least one param to update")
 	}
 
-	userEmail := fmt.Sprintf("%v", claims["email"])
-	user, err := db.Provider.GetUserByEmail(userEmail)
+	userID := claims["sub"].(string)
+	user, err := db.Provider.GetUserByID(userID)
 	if err != nil {
 		return res, err
 	}
@@ -92,7 +98,7 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 			return res, fmt.Errorf(`password and confirm password does not match`)
 		}
 
-		password, _ := utils.EncryptPassword(*params.NewPassword)
+		password, _ := crypto.EncryptPassword(*params.NewPassword)
 
 		user.Password = &password
 	}
@@ -107,38 +113,46 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 		newEmail := strings.ToLower(*params.Email)
 		// check if user with new email exists
 		_, err := db.Provider.GetUserByEmail(newEmail)
-
 		// err = nil means user exists
 		if err == nil {
 			return res, fmt.Errorf("user with this email address already exists")
 		}
 
-		sessionstore.DeleteAllUserSession(fmt.Sprintf("%v", user.ID))
-		cookie.DeleteCookie(gc)
+		// TODO figure out how to delete all user sessions
+		go sessionstore.DeleteAllUserSession(user.ID)
 
-		hostname := utils.GetHost(gc)
+		cookie.DeleteSession(gc)
 		user.Email = newEmail
-		user.EmailVerifiedAt = nil
-		hasEmailChanged = true
-		// insert verification request
-		verificationType := constants.VerificationTypeUpdateEmail
-		verificationToken, err := token.CreateVerificationToken(newEmail, verificationType, hostname)
-		if err != nil {
-			log.Println(`error generating token`, err)
+
+		if !envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification) {
+			hostname := utils.GetHost(gc)
+			user.EmailVerifiedAt = nil
+			hasEmailChanged = true
+			// insert verification request
+			_, nonceHash, err := utils.GenerateNonce()
+			if err != nil {
+				return res, err
+			}
+			verificationType := constants.VerificationTypeUpdateEmail
+			redirectURL := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAppURL)
+			verificationToken, err := token.CreateVerificationToken(newEmail, verificationType, hostname, nonceHash, redirectURL)
+			if err != nil {
+				log.Println(`error generating token`, err)
+			}
+			db.Provider.AddVerificationRequest(models.VerificationRequest{
+				Token:       verificationToken,
+				Identifier:  verificationType,
+				ExpiresAt:   time.Now().Add(time.Minute * 30).Unix(),
+				Email:       newEmail,
+				Nonce:       nonceHash,
+				RedirectURI: redirectURL,
+			})
+
+			// exec it as go routin so that we can reduce the api latency
+			go email.SendVerificationMail(newEmail, verificationToken, hostname)
+
 		}
-		db.Provider.AddVerificationRequest(models.VerificationRequest{
-			Token:      verificationToken,
-			Identifier: verificationType,
-			ExpiresAt:  time.Now().Add(time.Minute * 30).Unix(),
-			Email:      newEmail,
-		})
-
-		// exec it as go routin so that we can reduce the api latency
-		go func() {
-			email.SendVerificationMail(newEmail, verificationToken, hostname)
-		}()
 	}
-
 	_, err = db.Provider.UpdateUser(user)
 	if err != nil {
 		log.Println("error updating user:", err)

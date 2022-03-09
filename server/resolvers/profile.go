@@ -2,7 +2,6 @@ package resolvers
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/graph/model"
@@ -18,13 +17,17 @@ func ProfileResolver(ctx context.Context) (*model.User, error) {
 		return res, err
 	}
 
-	claims, err := token.ValidateAccessToken(gc)
+	accessToken, err := token.GetAccessToken(gc)
 	if err != nil {
 		return res, err
 	}
 
-	userID := fmt.Sprintf("%v", claims["id"])
+	claims, err := token.ValidateAccessToken(gc, accessToken)
+	if err != nil {
+		return res, err
+	}
 
+	userID := claims["sub"].(string)
 	user, err := db.Provider.GetUserByID(userID)
 	if err != nil {
 		return res, err

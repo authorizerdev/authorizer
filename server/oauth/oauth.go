@@ -2,7 +2,6 @@ package oauth
 
 import (
 	"context"
-	"log"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/envstore"
@@ -32,37 +31,39 @@ var (
 )
 
 // InitOAuth initializes the OAuth providers based on EnvData
-func InitOAuth() {
+func InitOAuth() error {
 	ctx := context.Background()
-	if envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyGoogleClientID) != "" && envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyGoogleClientSecret) != "" {
+	if envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyGoogleClientID) != "" && envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyGoogleClientSecret) != "" {
 		p, err := oidc.NewProvider(ctx, "https://accounts.google.com")
 		if err != nil {
-			log.Fatalln("error creating oidc provider for google:", err)
+			return err
 		}
 		OIDCProviders.GoogleOIDC = p
 		OAuthProviders.GoogleConfig = &oauth2.Config{
-			ClientID:     envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyGoogleClientID),
-			ClientSecret: envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyGoogleClientSecret),
+			ClientID:     envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyGoogleClientID),
+			ClientSecret: envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyGoogleClientSecret),
 			RedirectURL:  "/oauth_callback/google",
 			Endpoint:     OIDCProviders.GoogleOIDC.Endpoint(),
 			Scopes:       []string{oidc.ScopeOpenID, "profile", "email"},
 		}
 	}
-	if envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyGithubClientID) != "" && envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyGithubClientSecret) != "" {
+	if envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyGithubClientID) != "" && envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyGithubClientSecret) != "" {
 		OAuthProviders.GithubConfig = &oauth2.Config{
-			ClientID:     envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyGithubClientID),
-			ClientSecret: envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyGithubClientSecret),
+			ClientID:     envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyGithubClientID),
+			ClientSecret: envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyGithubClientSecret),
 			RedirectURL:  "/oauth_callback/github",
 			Endpoint:     githubOAuth2.Endpoint,
 		}
 	}
-	if envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyFacebookClientID) != "" && envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyGoogleClientID) != "" {
+	if envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyFacebookClientID) != "" && envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyGoogleClientID) != "" {
 		OAuthProviders.FacebookConfig = &oauth2.Config{
-			ClientID:     envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyFacebookClientID),
-			ClientSecret: envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyFacebookClientSecret),
+			ClientID:     envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyFacebookClientID),
+			ClientSecret: envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyFacebookClientSecret),
 			RedirectURL:  "/oauth_callback/facebook",
 			Endpoint:     facebookOAuth2.Endpoint,
 			Scopes:       []string{"public_profile", "email"},
 		}
 	}
+
+	return nil
 }

@@ -6,14 +6,30 @@ const ResetPassword = lazy(() => import('./pages/rest-password'));
 const Login = lazy(() => import('./pages/login'));
 const Dashboard = lazy(() => import('./pages/dashboard'));
 
-export default function Root() {
+export default function Root({
+	globalState,
+}: {
+	globalState: Record<string, string>;
+}) {
 	const { token, loading, config } = useAuthorizer();
 
 	useEffect(() => {
 		if (token) {
-			const url = new URL(config.redirectURL || '/app');
+			let redirectURL = config.redirectURL || '/app';
+			let params = `access_token=${token.access_token}&id_token=${token.id_token}&expires_in=${token.expires_in}&state=${globalState.state}`;
+			if (token.refresh_token) {
+				params += `&refresh_token=${token.refresh_token}`;
+			}
+			const url = new URL(redirectURL);
+			if (redirectURL.includes('?')) {
+				redirectURL = `${redirectURL}&${params}`;
+			} else {
+				redirectURL = `${redirectURL}?${params}`;
+			}
+
 			if (url.origin !== window.location.origin) {
-				window.location.href = config.redirectURL || '/app';
+				sessionStorage.removeItem('authorizer_state');
+				window.location.replace(redirectURL);
 			}
 		}
 		return () => {};

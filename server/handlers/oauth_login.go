@@ -10,21 +10,36 @@ import (
 	"github.com/authorizerdev/authorizer/server/sessionstore"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 // OAuthLoginHandler set host in the oauth state that is useful for redirecting to oauth_callback
 func OAuthLoginHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		hostname := utils.GetHost(c)
-		redirectURL := c.Query("redirectURL")
-		roles := c.Query("roles")
+		redirectURI := strings.TrimSpace(c.Query("redirectURL"))
+		roles := strings.TrimSpace(c.Query("roles"))
+		state := strings.TrimSpace(c.Query("state"))
+		scopeString := strings.TrimSpace(c.Query("scope"))
 
-		if redirectURL == "" {
+		if redirectURI == "" {
 			c.JSON(400, gin.H{
-				"error": "invalid redirect url",
+				"error": "invalid redirect uri",
 			})
 			return
+		}
+
+		if state == "" {
+			c.JSON(400, gin.H{
+				"error": "invalid state",
+			})
+			return
+		}
+
+		var scope []string
+		if scopeString == "" {
+			scope = []string{"openid", "profile", "email"}
+		} else {
+			scope = strings.Split(scopeString, " ")
 		}
 
 		if roles != "" {
@@ -33,18 +48,17 @@ func OAuthLoginHandler() gin.HandlerFunc {
 
 			// use protected roles verification for admin login only.
 			// though if not associated with user, it will be rejected from oauth_callback
-			if !utils.IsValidRoles(append([]string{}, append(envstore.EnvInMemoryStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyRoles), envstore.EnvInMemoryStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyProtectedRoles)...)...), rolesSplit) {
+			if !utils.IsValidRoles(append([]string{}, append(envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyRoles), envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyProtectedRoles)...)...), rolesSplit) {
 				c.JSON(400, gin.H{
 					"error": "invalid role",
 				})
 				return
 			}
 		} else {
-			roles = strings.Join(envstore.EnvInMemoryStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles), ",")
+			roles = strings.Join(envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles), ",")
 		}
 
-		uuid := uuid.New()
-		oauthStateString := uuid.String() + "___" + redirectURL + "___" + roles
+		oauthStateString := state + "___" + redirectURI + "___" + roles + "___" + strings.Join(scope, ",")
 
 		provider := c.Param("oauth_provider")
 		isProviderConfigured := true
@@ -54,7 +68,7 @@ func OAuthLoginHandler() gin.HandlerFunc {
 				isProviderConfigured = false
 				break
 			}
-			sessionstore.SetSocailLoginState(oauthStateString, constants.SignupMethodGoogle)
+			sessionstore.SetState(oauthStateString, constants.SignupMethodGoogle)
 			// during the init of OAuthProvider authorizer url might be empty
 			oauth.OAuthProviders.GoogleConfig.RedirectURL = hostname + "/oauth_callback/google"
 			url := oauth.OAuthProviders.GoogleConfig.AuthCodeURL(oauthStateString)
@@ -64,7 +78,7 @@ func OAuthLoginHandler() gin.HandlerFunc {
 				isProviderConfigured = false
 				break
 			}
-			sessionstore.SetSocailLoginState(oauthStateString, constants.SignupMethodGithub)
+			sessionstore.SetState(oauthStateString, constants.SignupMethodGithub)
 			oauth.OAuthProviders.GithubConfig.RedirectURL = hostname + "/oauth_callback/github"
 			url := oauth.OAuthProviders.GithubConfig.AuthCodeURL(oauthStateString)
 			c.Redirect(http.StatusTemporaryRedirect, url)
@@ -73,7 +87,7 @@ func OAuthLoginHandler() gin.HandlerFunc {
 				isProviderConfigured = false
 				break
 			}
-			sessionstore.SetSocailLoginState(oauthStateString, constants.SignupMethodFacebook)
+			sessionstore.SetState(oauthStateString, constants.SignupMethodFacebook)
 			oauth.OAuthProviders.FacebookConfig.RedirectURL = hostname + "/oauth_callback/facebook"
 			url := oauth.OAuthProviders.FacebookConfig.AuthCodeURL(oauthStateString)
 			c.Redirect(http.StatusTemporaryRedirect, url)

@@ -7,9 +7,9 @@ import (
 
 // SendForgotPasswordMail to send forgot password email
 func SendForgotPasswordMail(toEmail, token, hostname string) error {
-	resetPasswordUrl := envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyResetPasswordURL)
+	resetPasswordUrl := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyResetPasswordURL)
 	if resetPasswordUrl == "" {
-		envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyResetPasswordURL, hostname+"/app/reset-password")
+		envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyResetPasswordURL, hostname+"/app/reset-password")
 	}
 
 	// The receiver needs to be in slice as the receive supports multiple receiver
@@ -103,8 +103,8 @@ func SendForgotPasswordMail(toEmail, token, hostname string) error {
 	`
 
 	data := make(map[string]interface{}, 3)
-	data["org_logo"] = envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyOrganizationLogo)
-	data["org_name"] = envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyOrganizationName)
+	data["org_logo"] = envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyOrganizationLogo)
+	data["org_name"] = envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyOrganizationName)
 	data["verification_url"] = resetPasswordUrl + "?token=" + token
 	message = addEmailTemplate(message, data, "reset_password_email.tmpl")
 

@@ -21,7 +21,7 @@ func adminLoginTests(t *testing.T, s TestSetup) {
 		assert.NotNil(t, err)
 
 		_, err = resolvers.AdminLoginResolver(ctx, model.AdminLoginInput{
-			AdminSecret: envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret),
+			AdminSecret: envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret),
 		})
 
 		assert.Nil(t, err)

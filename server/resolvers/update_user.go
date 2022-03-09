@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/constants"
-	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/email"
@@ -95,29 +94,35 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 			return res, fmt.Errorf("user with this email address already exists")
 		}
 
-		sessionstore.DeleteAllUserSession(fmt.Sprintf("%v", user.ID))
-		cookie.DeleteCookie(gc)
+		// TODO figure out how to do this
+		go sessionstore.DeleteAllUserSession(user.ID)
 
 		hostname := utils.GetHost(gc)
 		user.Email = newEmail
 		user.EmailVerifiedAt = nil
 		// insert verification request
+		_, nonceHash, err := utils.GenerateNonce()
+		if err != nil {
+			return res, err
+		}
 		verificationType := constants.VerificationTypeUpdateEmail
-		verificationToken, err := token.CreateVerificationToken(newEmail, verificationType, hostname)
+		redirectURL := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAppURL)
+		verificationToken, err := token.CreateVerificationToken(newEmail, verificationType, hostname, nonceHash, redirectURL)
 		if err != nil {
 			log.Println(`error generating token`, err)
 		}
 		db.Provider.AddVerificationRequest(models.VerificationRequest{
-			Token:      verificationToken,
-			Identifier: verificationType,
-			ExpiresAt:  time.Now().Add(time.Minute * 30).Unix(),
-			Email:      newEmail,
+			Token:       verificationToken,
+			Identifier:  verificationType,
+			ExpiresAt:   time.Now().Add(time.Minute * 30).Unix(),
+			Email:       newEmail,
+			Nonce:       nonceHash,
+			RedirectURI: redirectURL,
 		})
 
 		// exec it as go routin so that we can reduce the api latency
-		go func() {
-			email.SendVerificationMail(newEmail, verificationToken, hostname)
-		}()
+		go email.SendVerificationMail(newEmail, verificationToken, hostname)
+
 	}
 
 	rolesToSave := ""
@@ -128,7 +133,7 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 			inputRoles = append(inputRoles, *item)
 		}
 
-		if !utils.IsValidRoles(inputRoles, append([]string{}, append(envstore.EnvInMemoryStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyRoles), envstore.EnvInMemoryStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyProtectedRoles)...)...)) {
+		if !utils.IsValidRoles(inputRoles, append([]string{}, append(envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyRoles), envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyProtectedRoles)...)...)) {
 			return res, fmt.Errorf("invalid list of roles")
 		}
 
@@ -136,8 +141,7 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 			rolesToSave = strings.Join(inputRoles, ",")
 		}
 
-		sessionstore.DeleteAllUserSession(fmt.Sprintf("%v", user.ID))
-		cookie.DeleteCookie(gc)
+		go sessionstore.DeleteAllUserSession(user.ID)
 	}
 
 	if rolesToSave != "" {

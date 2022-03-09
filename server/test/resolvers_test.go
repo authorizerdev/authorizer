@@ -1,7 +1,6 @@
 package test
 
 import (
-	"log"
 	"testing"
 
 	"github.com/authorizerdev/authorizer/server/constants"
@@ -12,29 +11,31 @@ import (
 
 func TestResolvers(t *testing.T) {
 	databases := map[string]string{
-		constants.DbTypeSqlite:   "../../data.db",
-		constants.DbTypeArangodb: "http://localhost:8529",
-		constants.DbTypeMongodb:  "mongodb://localhost:27017",
+		constants.DbTypeSqlite: "../../data.db",
+		// constants.DbTypeArangodb: "http://localhost:8529",
+		// constants.DbTypeMongodb:  "mongodb://localhost:27017",
 	}
-	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyVersion, "test")
+	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyVersion, "test")
 	for dbType, dbURL := range databases {
-		envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseURL, dbURL)
-		envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseType, dbType)
-
 		s := testSetup()
+		envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseURL, dbURL)
+		envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseType, dbType)
 		defer s.Server.Close()
-
-		db.InitDB()
+		err := db.InitDB()
+		if err != nil {
+			t.Errorf("Error initializing database: %s", err)
+		}
 
 		// clean the persisted config for test to use fresh config
 		envData, err := db.Provider.GetEnv()
-		log.Println("=> envData:", envstore.EnvInMemoryStoreObj.GetEnvStoreClone())
 		if err == nil {
 			envData.EnvData = ""
 			db.Provider.UpdateEnv(envData)
 		}
 		env.PersistEnv()
 
+		envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyEnv, "test")
+		envstore.EnvStoreObj.UpdateEnvVariable(constants.BoolStoreIdentifier, constants.EnvKeyIsProd, false)
 		t.Run("should pass tests for "+dbType, func(t *testing.T) {
 			// admin tests
 			adminSignupTests(t, s)
@@ -61,7 +62,6 @@ func TestResolvers(t *testing.T) {
 			magicLinkLoginTests(t, s)
 			logoutTests(t, s)
 			metaTests(t, s)
-			isValidJWTTests(t, s)
 		})
 	}
 }

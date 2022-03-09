@@ -47,6 +47,10 @@ func (r *mutationResolver) ResetPassword(ctx context.Context, params model.Reset
 	return resolvers.ResetPasswordResolver(ctx, params)
 }
 
+func (r *mutationResolver) Revoke(ctx context.Context, params model.OAuthRevokeInput) (*model.Response, error) {
+	return resolvers.RevokeResolver(ctx, params)
+}
+
 func (r *mutationResolver) DeleteUser(ctx context.Context, params model.DeleteUserInput) (*model.Response, error) {
 	return resolvers.DeleteUserResolver(ctx, params)
 }
@@ -77,10 +81,6 @@ func (r *queryResolver) Meta(ctx context.Context) (*model.Meta, error) {
 
 func (r *queryResolver) Session(ctx context.Context, params *model.SessionQueryInput) (*model.AuthResponse, error) {
 	return resolvers.SessionResolver(ctx, params)
-}
-
-func (r *queryResolver) IsValidJwt(ctx context.Context, params *model.IsValidJWTQueryInput) (*model.ValidJWTResponse, error) {
-	return resolvers.IsValidJwtResolver(ctx, params)
 }
 
 func (r *queryResolver) Profile(ctx context.Context) (*model.User, error) {

@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"log"
 	"net/url"
 	"strings"
 
@@ -15,7 +14,6 @@ func GetHost(c *gin.Context) string {
 		scheme = "http"
 	}
 	host := c.Request.Host
-	log.Println("=> host:", scheme+"://"+host)
 	return scheme + "://" + host
 }
 

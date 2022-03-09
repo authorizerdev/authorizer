@@ -10,6 +10,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/cookie"
+	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
@@ -33,6 +34,66 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 		return res, fmt.Errorf("unauthorized")
 	}
 
+	updatedData := envstore.EnvStoreObj.GetEnvStoreClone()
+
+	isJWTUpdated := false
+	algo := updatedData.StringEnv[constants.EnvKeyJwtType]
+	if params.JwtType != nil {
+		algo = *params.JwtType
+		if !crypto.IsHMACA(algo) && !crypto.IsECDSA(algo) && !crypto.IsRSA(algo) {
+			return res, fmt.Errorf("invalid jwt type")
+		}
+
+		updatedData.StringEnv[constants.EnvKeyJwtType] = algo
+		isJWTUpdated = true
+	}
+
+	if params.JwtSecret != nil || params.JwtPublicKey != nil || params.JwtPrivateKey != nil {
+		isJWTUpdated = true
+	}
+
+	if isJWTUpdated {
+		// check if jwt secret is provided
+		if crypto.IsHMACA(algo) {
+			if params.JwtSecret == nil {
+				return res, fmt.Errorf("jwt secret is required for HMAC algorithm")
+			}
+		}
+
+		if crypto.IsRSA(algo) {
+			if params.JwtPrivateKey == nil || params.JwtPublicKey == nil {
+				return res, fmt.Errorf("jwt private and public key is required for RSA (PKCS1) / ECDSA algorithm")
+			}
+
+			_, err = crypto.ParseRsaPrivateKeyFromPemStr(*params.JwtPrivateKey)
+			if err != nil {
+				return res, err
+			}
+
+			_, err := crypto.ParseRsaPublicKeyFromPemStr(*params.JwtPublicKey)
+			if err != nil {
+				return res, err
+			}
+		}
+
+		if crypto.IsECDSA(algo) {
+			if params.JwtPrivateKey == nil || params.JwtPublicKey == nil {
+				return res, fmt.Errorf("jwt private and public key is required for RSA (PKCS1) / ECDSA algorithm")
+			}
+
+			_, err = crypto.ParseEcdsaPrivateKeyFromPemStr(*params.JwtPrivateKey)
+			if err != nil {
+				return res, err
+			}
+
+			_, err := crypto.ParseEcdsaPublicKeyFromPemStr(*params.JwtPublicKey)
+			if err != nil {
+				return res, err
+			}
+		}
+
+	}
+
 	var data map[string]interface{}
 	byteData, err := json.Marshal(params)
 	if err != nil {
@@ -50,7 +111,7 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 			return res, errors.New("admin secret and old admin secret are required for secret change")
 		}
 
-		if *params.OldAdminSecret != envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret) {
+		if *params.OldAdminSecret != envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret) {
 			return res, errors.New("old admin secret is not correct")
 		}
 
@@ -61,7 +122,6 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 
 	}
 
-	updatedData := envstore.EnvInMemoryStoreObj.GetEnvStoreClone()
 	for key, value := range data {
 		if value != nil {
 			fieldType := reflect.TypeOf(value).String()
@@ -116,9 +176,21 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 	}
 
 	// Update local store
-	envstore.EnvInMemoryStoreObj.UpdateEnvStore(updatedData)
-	sessionstore.InitSession()
-	oauth.InitOAuth()
+	envstore.EnvStoreObj.UpdateEnvStore(updatedData)
+	jwk, err := crypto.GenerateJWKBasedOnEnv()
+	if err != nil {
+		return res, err
+	}
+	// updating jwk
+	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyJWK, jwk)
+	err = sessionstore.InitSession()
+	if err != nil {
+		return res, err
+	}
+	err = oauth.InitOAuth()
+	if err != nil {
+		return res, err
+	}
 
 	// Fetch the current db store and update it
 	env, err := db.Provider.GetEnv()
@@ -127,14 +199,14 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 	}
 
 	if params.AdminSecret != nil {
-		hashedKey, err := utils.EncryptPassword(envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret))
+		hashedKey, err := crypto.EncryptPassword(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret))
 		if err != nil {
 			return res, err
 		}
 		cookie.SetAdminCookie(gc, hashedKey)
 	}
 
-	encryptedConfig, err := utils.EncryptEnvData(updatedData)
+	encryptedConfig, err := crypto.EncryptEnvData(updatedData)
 	if err != nil {
 		return res, err
 	}

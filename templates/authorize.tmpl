@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Authorization Response</title>
+	</head>
+	<body>
+		<script type="text/javascript">
+			(function (window, document) {
+				var targetOrigin = {{.target_origin}};
+				var authorizationResponse = {{.authorization_response}};
+				window.parent.postMessage(authorizationResponse, targetOrigin);
+			})(this, this.document);
+		</script>
+	</body>
+</html>

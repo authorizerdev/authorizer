@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -30,22 +31,23 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 		provider := c.Param("oauth_provider")
 		state := c.Request.FormValue("state")
 
-		sessionState := sessionstore.GetSocailLoginState(state)
+		sessionState := sessionstore.GetState(state)
 		if sessionState == "" {
 			c.JSON(400, gin.H{"error": "invalid oauth state"})
 		}
-		sessionstore.RemoveSocialLoginState(state)
+		sessionstore.GetState(state)
 		// contains random token, redirect url, role
 		sessionSplit := strings.Split(state, "___")
 
-		// TODO validate redirect url
-		if len(sessionSplit) < 2 {
+		if len(sessionSplit) < 3 {
 			c.JSON(400, gin.H{"error": "invalid redirect url"})
 			return
 		}
 
-		inputRoles := strings.Split(sessionSplit[2], ",")
+		stateValue := sessionSplit[0]
 		redirectURL := sessionSplit[1]
+		inputRoles := strings.Split(sessionSplit[2], ",")
+		scopes := strings.Split(sessionSplit[3], ",")
 
 		var err error
 		user := models.User{}
@@ -74,7 +76,7 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			// make sure inputRoles don't include protected roles
 			hasProtectedRole := false
 			for _, ir := range inputRoles {
-				if utils.StringSliceContains(envstore.EnvInMemoryStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyProtectedRoles), ir) {
+				if utils.StringSliceContains(envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyProtectedRoles), ir) {
 					hasProtectedRole = true
 				}
 			}
@@ -122,7 +124,7 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 				// check if it contains protected unassigned role
 				hasProtectedRole := false
 				for _, ur := range unasignedRoles {
-					if utils.StringSliceContains(envstore.EnvInMemoryStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyProtectedRoles), ur) {
+					if utils.StringSliceContains(envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyProtectedRoles), ur) {
 						hasProtectedRole = true
 					}
 				}
@@ -144,10 +146,28 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			}
 		}
 
-		authToken, _ := token.CreateAuthToken(user, inputRoles)
-		sessionstore.SetUserSession(user.ID, authToken.FingerPrint, authToken.RefreshToken.Token)
-		cookie.SetCookie(c, authToken.AccessToken.Token, authToken.RefreshToken.Token, authToken.FingerPrintHash)
-		utils.SaveSessionInDB(user.ID, c)
+		authToken, err := token.CreateAuthToken(c, user, inputRoles, scopes)
+		if err != nil {
+			c.JSON(500, gin.H{"error": err.Error()})
+		}
+		expiresIn := int64(1800)
+		params := "access_token=" + authToken.AccessToken.Token + "&token_type=bearer&expires_in=" + strconv.FormatInt(expiresIn, 10) + "&state=" + stateValue + "&id_token=" + authToken.IDToken.Token
+
+		cookie.SetSession(c, authToken.FingerPrintHash)
+		sessionstore.SetState(authToken.FingerPrintHash, authToken.FingerPrint+"@"+user.ID)
+		sessionstore.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
+
+		if authToken.RefreshToken != nil {
+			params = params + `&refresh_token=` + authToken.RefreshToken.Token
+			sessionstore.SetState(authToken.RefreshToken.Token, authToken.FingerPrint+"@"+user.ID)
+		}
+
+		go utils.SaveSessionInDB(c, user.ID)
+		if strings.Contains(redirectURL, "?") {
+			redirectURL = redirectURL + "&" + params
+		} else {
+			redirectURL = redirectURL + "?" + params
+		}
 
 		c.Redirect(http.StatusTemporaryRedirect, redirectURL)
 	}
@@ -227,7 +247,7 @@ func processGithubUserInfo(code string) (models.User, error) {
 		GivenName:  &firstName,
 		FamilyName: &lastName,
 		Picture:    &picture,
-		Email:      userRawData["email"],
+		Email:      userRawData["sub"],
 	}
 
 	return user, nil
@@ -260,7 +280,7 @@ func processFacebookUserInfo(code string) (models.User, error) {
 	userRawData := make(map[string]interface{})
 	json.Unmarshal(body, &userRawData)
 
-	email := fmt.Sprintf("%v", userRawData["email"])
+	email := fmt.Sprintf("%v", userRawData["sub"])
 
 	picObject := userRawData["picture"].(map[string]interface{})["data"]
 	picDataObject := picObject.(map[string]interface{})

@@ -1,12 +1,11 @@
 package test
 
 import (
-	"fmt"
+	"context"
 	"testing"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
-	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/resolvers"
 	"github.com/stretchr/testify/assert"
@@ -27,12 +26,13 @@ func magicLinkLoginTests(t *testing.T, s TestSetup) {
 		verifyRes, err := resolvers.VerifyEmailResolver(ctx, model.VerifyEmailInput{
 			Token: verificationRequest.Token,
 		})
-
-		token := *verifyRes.AccessToken
-		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+".access_token", token))
+		assert.NoError(t, err)
+		assert.NotNil(t, verifyRes.AccessToken)
+		s.GinContext.Request.Header.Set("Authorization", "Bearer "+*verifyRes.AccessToken)
+		ctx = context.WithValue(req.Context(), "GinContextKey", s.GinContext)
 		_, err = resolvers.ProfileResolver(ctx)
 		assert.Nil(t, err)
-
+		s.GinContext.Request.Header.Set("Authorization", "")
 		cleanData(email)
 	})
 }

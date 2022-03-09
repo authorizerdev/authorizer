@@ -8,6 +8,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/cookie"
+	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
@@ -33,18 +34,18 @@ func AdminSignupResolver(ctx context.Context, params model.AdminSignupInput) (*m
 		return res, err
 	}
 
-	adminSecret := envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret)
+	adminSecret := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret)
 
 	if adminSecret != "" {
 		err = fmt.Errorf("admin sign up already completed")
 		return res, err
 	}
 
-	envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyAdminSecret, params.AdminSecret)
+	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyAdminSecret, params.AdminSecret)
 	// consvert EnvData to JSON
 	var storeData envstore.Store
 
-	jsonBytes, err := json.Marshal(envstore.EnvInMemoryStoreObj.GetEnvStoreClone())
+	jsonBytes, err := json.Marshal(envstore.EnvStoreObj.GetEnvStoreClone())
 	if err != nil {
 		return res, err
 	}
@@ -58,7 +59,7 @@ func AdminSignupResolver(ctx context.Context, params model.AdminSignupInput) (*m
 		return res, err
 	}
 
-	envData, err := utils.EncryptEnvData(storeData)
+	envData, err := crypto.EncryptEnvData(storeData)
 	if err != nil {
 		return res, err
 	}
@@ -68,7 +69,7 @@ func AdminSignupResolver(ctx context.Context, params model.AdminSignupInput) (*m
 		return res, err
 	}
 
-	hashedKey, err := utils.EncryptPassword(params.AdminSecret)
+	hashedKey, err := crypto.EncryptPassword(params.AdminSecret)
 	if err != nil {
 		return res, err
 	}

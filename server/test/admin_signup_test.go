@@ -20,7 +20,7 @@ func adminSignupTests(t *testing.T, s TestSetup) {
 
 		assert.NotNil(t, err)
 		// reset env for test to pass
-		envstore.EnvInMemoryStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyAdminSecret, "")
+		envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyAdminSecret, "")
 
 		_, err = resolvers.AdminSignupResolver(ctx, model.AdminSignupInput{
 			AdminSecret: "admin123",

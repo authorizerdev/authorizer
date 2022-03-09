@@ -24,7 +24,7 @@ func ForgotPasswordResolver(ctx context.Context, params model.ForgotPasswordInpu
 	if err != nil {
 		return res, err
 	}
-	if envstore.EnvInMemoryStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableBasicAuthentication) {
+	if envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableBasicAuthentication) {
 		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
 	}
 	params.Email = strings.ToLower(params.Email)
@@ -39,21 +39,30 @@ func ForgotPasswordResolver(ctx context.Context, params model.ForgotPasswordInpu
 	}
 
 	hostname := utils.GetHost(gc)
-	verificationToken, err := token.CreateVerificationToken(params.Email, constants.VerificationTypeForgotPassword, hostname)
+	_, nonceHash, err := utils.GenerateNonce()
+	if err != nil {
+		return res, err
+	}
+	redirectURL := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAppURL)
+	if params.RedirectURI != nil {
+		redirectURL = *params.RedirectURI
+	}
+
+	verificationToken, err := token.CreateVerificationToken(params.Email, constants.VerificationTypeForgotPassword, hostname, nonceHash, redirectURL)
 	if err != nil {
 		log.Println(`error generating token`, err)
 	}
 	db.Provider.AddVerificationRequest(models.VerificationRequest{
-		Token:      verificationToken,
-		Identifier: constants.VerificationTypeForgotPassword,
-		ExpiresAt:  time.Now().Add(time.Minute * 30).Unix(),
-		Email:      params.Email,
+		Token:       verificationToken,
+		Identifier:  constants.VerificationTypeForgotPassword,
+		ExpiresAt:   time.Now().Add(time.Minute * 30).Unix(),
+		Email:       params.Email,
+		Nonce:       nonceHash,
+		RedirectURI: redirectURL,
 	})
 
 	// exec it as go routin so that we can reduce the api latency
-	go func() {
-		email.SendForgotPasswordMail(params.Email, verificationToken, hostname)
-	}()
+	go email.SendForgotPasswordMail(params.Email, verificationToken, hostname)
 
 	res = &model.Response{
 		Message: `Please check your inbox! We have sent a password reset link.`,

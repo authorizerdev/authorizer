@@ -2,7 +2,7 @@ package test
 
 import (
 	"fmt"
-	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/authorizerdev/authorizer/server/constants"
@@ -11,7 +11,6 @@ import (
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/resolvers"
 	"github.com/authorizerdev/authorizer/server/sessionstore"
-	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -36,17 +35,15 @@ func sessionTests(t *testing.T, s TestSetup) {
 		})
 
 		sessions := sessionstore.GetUserSessions(verifyRes.User.ID)
-		fingerPrint := ""
-		refreshToken := ""
-		for key, val := range sessions {
-			fingerPrint = key
-			refreshToken = val
-		}
-
-		fingerPrintHash, _ := utils.EncryptAES([]byte(fingerPrint))
-
+		cookie := ""
 		token := *verifyRes.AccessToken
-		cookie := fmt.Sprintf("%s=%s;%s=%s;%s=%s", envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+".fingerprint", url.QueryEscape(string(fingerPrintHash)), envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+".refresh_token", refreshToken, envstore.EnvInMemoryStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+".access_token", token)
+		// set all they keys in cookie one of them should be session cookie
+		for key := range sessions {
+			if key != token {
+				cookie += fmt.Sprintf("%s=%s;", envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+"_session", key)
+			}
+		}
+		cookie = strings.TrimSuffix(cookie, ";")
 
 		req.Header.Set("Cookie", cookie)
 

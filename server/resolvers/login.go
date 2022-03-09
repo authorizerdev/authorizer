@@ -25,7 +25,7 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 		return res, err
 	}
 
-	if envstore.EnvInMemoryStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableBasicAuthentication) {
+	if envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableBasicAuthentication) {
 		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
 	}
 
@@ -49,7 +49,7 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 		log.Println("compare password error:", err)
 		return res, fmt.Errorf(`invalid password`)
 	}
-	roles := envstore.EnvInMemoryStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles)
+	roles := envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles)
 	currentRoles := strings.Split(user.Roles, ",")
 	if len(params.Roles) > 0 {
 		if !utils.IsValidRoles(currentRoles, params.Roles) {
@@ -59,20 +59,35 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 		roles = params.Roles
 	}
 
-	authToken, err := token.CreateAuthToken(user, roles)
+	scope := []string{"openid", "email", "profile"}
+	if params.Scope != nil && len(scope) > 0 {
+		scope = params.Scope
+	}
+
+	authToken, err := token.CreateAuthToken(gc, user, roles, scope)
 	if err != nil {
 		return res, err
 	}
-	sessionstore.SetUserSession(user.ID, authToken.FingerPrint, authToken.RefreshToken.Token)
-	cookie.SetCookie(gc, authToken.AccessToken.Token, authToken.RefreshToken.Token, authToken.FingerPrintHash)
-	utils.SaveSessionInDB(user.ID, gc)
 
+	expiresIn := int64(1800)
 	res = &model.AuthResponse{
 		Message:     `Logged in successfully`,
 		AccessToken: &authToken.AccessToken.Token,
-		ExpiresAt:   &authToken.AccessToken.ExpiresAt,
+		IDToken:     &authToken.IDToken.Token,
+		ExpiresIn:   &expiresIn,
 		User:        user.AsAPIUser(),
 	}
+
+	cookie.SetSession(gc, authToken.FingerPrintHash)
+	sessionstore.SetState(authToken.FingerPrintHash, authToken.FingerPrint+"@"+user.ID)
+	sessionstore.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
+
+	if authToken.RefreshToken != nil {
+		res.RefreshToken = &authToken.RefreshToken.Token
+		sessionstore.SetState(authToken.RefreshToken.Token, authToken.FingerPrint+"@"+user.ID)
+	}
+
+	go utils.SaveSessionInDB(gc, user.ID)
 
 	return res, nil
 }
