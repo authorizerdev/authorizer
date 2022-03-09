@@ -139,7 +139,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 		if err != nil {
 			log.Println(`error generating token`, err)
 		}
-		db.Provider.AddVerificationRequest(models.VerificationRequest{
+		_, err = db.Provider.AddVerificationRequest(models.VerificationRequest{
 			Token:       verificationToken,
 			Identifier:  verificationType,
 			ExpiresAt:   time.Now().Add(time.Minute * 30).Unix(),
@@ -147,8 +147,11 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 			Nonce:       nonceHash,
 			RedirectURI: redirectURL,
 		})
+		if err != nil {
+			return res, err
+		}
 
-		// exec it as go routin so that we can reduce the api latency
+		// exec it as go routing so that we can reduce the api latency
 		go email.SendVerificationMail(params.Email, verificationToken, hostname)
 	}
 

@@ -12,7 +12,7 @@ type VerificationRequest struct {
 	CreatedAt   int64  `json:"created_at" bson:"created_at"`
 	UpdatedAt   int64  `json:"updated_at" bson:"updated_at"`
 	Email       string `gorm:"uniqueIndex:idx_email_identifier" json:"email" bson:"email"`
-	Nonce       string `gorm:"type:char(36)" json:"nonce" bson:"nonce"`
+	Nonce       string `gorm:"type:text" json:"nonce" bson:"nonce"`
 	RedirectURI string `gorm:"type:text" json:"redirect_uri" bson:"redirect_uri"`
 }
 

@@ -1,6 +1,8 @@
 package email
 
 import (
+	"fmt"
+
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/envstore"
 )
@@ -103,5 +105,9 @@ func SendVerificationMail(toEmail, token, hostname string) error {
 	message = addEmailTemplate(message, data, "verify_email.tmpl")
 	// bodyMessage := sender.WriteHTMLEmail(Receiver, Subject, message)
 
-	return SendMail(Receiver, Subject, message)
+	err := SendMail(Receiver, Subject, message)
+	if err != nil {
+		fmt.Println("=> error sending email:", err)
+	}
+	return err
 }
