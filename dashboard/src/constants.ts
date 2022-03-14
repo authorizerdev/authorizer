@@ -88,3 +88,10 @@ export const ECDSAEncryptionType = {
 	ES384: 'ES384',
 	ES512: 'ES512',
 };
+
+export const csvDemoData = `email
+lakhan.demo@contentment.org
+john@gmail.com
+anik@contentment.org
+harry@potter.com
+anikgh89@gmail.com`;

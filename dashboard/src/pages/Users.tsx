@@ -42,6 +42,7 @@ import { UserDetailsQuery } from '../graphql/queries';
 import { UpdateUser } from '../graphql/mutation';
 import EditUserModal from '../components/EditUserModal';
 import DeleteUserModal from '../components/DeleteUserModal';
+import InviteEmailModal from '../components/InviteEmailModal';
 
 interface paginationPropTypes {
 	limit: number;
@@ -177,6 +178,7 @@ export default function Users() {
 				<Text fontSize="md" fontWeight="bold">
 					Users
 				</Text>
+				<InviteEmailModal />
 			</Flex>
 			{!loading ? (
 				userList.length > 0 ? (
