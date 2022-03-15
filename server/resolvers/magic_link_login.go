@@ -123,7 +123,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 		if params.Scope != nil && len(params.Scope) > 0 {
 			redirectURLParams = redirectURLParams + "&scope=" + strings.Join(params.Scope, " ")
 		}
-		redirectURL := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAppURL)
+		redirectURL := utils.GetAppURL(gc)
 		if params.RedirectURI != nil {
 			redirectURL = *params.RedirectURI
 		}

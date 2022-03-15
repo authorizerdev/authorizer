@@ -74,6 +74,11 @@ type ForgotPasswordInput struct {
 	RedirectURI *string `json:"redirect_uri"`
 }
 
+type InviteMemberInput struct {
+	Emails      []string `json:"emails"`
+	RedirectURI *string  `json:"redirect_uri"`
+}
+
 type LoginInput struct {
 	Email    string   `json:"email"`
 	Password string   `json:"password"`

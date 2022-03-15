@@ -75,6 +75,10 @@ func (r *mutationResolver) UpdateEnv(ctx context.Context, params model.UpdateEnv
 	return resolvers.UpdateEnvResolver(ctx, params)
 }
 
+func (r *mutationResolver) InviteMembers(ctx context.Context, params model.InviteMemberInput) (*model.Response, error) {
+	return resolvers.InviteMembersResolver(ctx, params)
+}
+
 func (r *queryResolver) Meta(ctx context.Context) (*model.Meta, error) {
 	return resolvers.MetaResolver(ctx)
 }
