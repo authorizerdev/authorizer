@@ -3,6 +3,7 @@ package resolvers
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -20,22 +21,21 @@ import (
 // InviteMembersResolver resolver to invite members
 func InviteMembersResolver(ctx context.Context, params model.InviteMemberInput) (*model.Response, error) {
 	gc, err := utils.GinContextFromContext(ctx)
-	var res *model.Response
 	if err != nil {
-		return res, err
+		return nil, err
 	}
 
 	if !token.IsSuperAdmin(gc) {
-		return res, errors.New("unauthorized")
+		return nil, errors.New("unauthorized")
 	}
 
 	// this feature is only allowed if email server is configured
 	if envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification) {
-		return res, errors.New("email sending is disabled")
+		return nil, errors.New("email sending is disabled")
 	}
 
 	if envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableBasicAuthentication) && envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableMagicLinkLogin) {
-		return res, errors.New("either basic authentication or magic link login is required")
+		return nil, errors.New("either basic authentication or magic link login is required")
 	}
 
 	// filter valid emails
@@ -47,8 +47,7 @@ func InviteMembersResolver(ctx context.Context, params model.InviteMemberInput) 
 	}
 
 	if len(emails) == 0 {
-		res.Message = "No valid emails found"
-		return res, errors.New("no valid emails found")
+		return nil, errors.New("no valid emails found")
 	}
 
 	// TODO: optimise to use like query instead of looping through emails and getting user individually
@@ -65,8 +64,7 @@ func InviteMembersResolver(ctx context.Context, params model.InviteMemberInput) 
 	}
 
 	if len(newEmails) == 0 {
-		res.Message = "All emails already exist"
-		return res, errors.New("all emails already exist")
+		return nil, errors.New("all emails already exist")
 	}
 
 	// invite new emails
@@ -76,17 +74,21 @@ func InviteMembersResolver(ctx context.Context, params model.InviteMemberInput) 
 			Email: email,
 			Roles: strings.Join(envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles), ","),
 		}
-		redirectURL := utils.GetAppURL(gc) + "/verify_email"
+		hostname := utils.GetHost(gc)
+		verifyEmailURL := hostname + "/verify_email"
+		appURL := utils.GetAppURL(gc)
+
+		redirectURL := appURL
 		if params.RedirectURI != nil {
 			redirectURL = *params.RedirectURI
 		}
 
 		_, nonceHash, err := utils.GenerateNonce()
 		if err != nil {
-			return res, err
+			return nil, err
 		}
 
-		verificationToken, err := token.CreateVerificationToken(email, constants.VerificationTypeForgotPassword, redirectURL, nonceHash, redirectURL)
+		verificationToken, err := token.CreateVerificationToken(email, constants.VerificationTypeForgotPassword, hostname, nonceHash, redirectURL)
 		if err != nil {
 			log.Println(`error generating token`, err)
 		}
@@ -108,27 +110,26 @@ func InviteMembersResolver(ctx context.Context, params model.InviteMemberInput) 
 			user.SignupMethods = constants.SignupMethodBasicAuth
 			verificationRequest.Identifier = constants.VerificationTypeForgotPassword
 
-			redirectURL = utils.GetAppURL(gc) + "/setup-password"
-			if params.RedirectURI != nil {
-				redirectURL = *params.RedirectURI
-			}
+			verifyEmailURL = appURL + "/setup-password"
 
 		}
 
 		user, err = db.Provider.AddUser(user)
 		if err != nil {
 			log.Printf("error inviting user: %s, err: %v", email, err)
-			return res, err
+			return nil, err
 		}
 
 		_, err = db.Provider.AddVerificationRequest(verificationRequest)
 		if err != nil {
 			log.Printf("error inviting user: %s, err: %v", email, err)
-			return res, err
+			return nil, err
 		}
 
-		go emailservice.InviteEmail(email, verificationToken, redirectURL)
+		go emailservice.InviteEmail(email, verificationToken, verifyEmailURL)
 	}
 
-	return res, nil
+	return &model.Response{
+		Message: fmt.Sprintf("%d user(s) invited successfully.", len(newEmails)),
+	}, nil
 }

@@ -102,7 +102,7 @@ func InviteEmail(toEmail, token, url string) error {
 	data["org_logo"] = envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyOrganizationLogo)
 	data["org_name"] = envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyOrganizationName)
 	data["verification_url"] = url + "?token=" + token
-	message = addEmailTemplate(message, data, "verify_email.tmpl")
+	message = addEmailTemplate(message, data, "invite_email.tmpl")
 	// bodyMessage := sender.WriteHTMLEmail(Receiver, Subject, message)
 
 	err := SendMail(Receiver, Subject, message)

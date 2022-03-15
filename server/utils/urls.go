@@ -78,7 +78,7 @@ func GetDomainName(uri string) string {
 func GetAppURL(gc *gin.Context) string {
 	envAppURL := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAppURL)
 	if envAppURL == "" {
-		envAppURL = GetHost(gc) + "/app/"
+		envAppURL = GetHost(gc) + "/app"
 	}
 	return envAppURL
 }
