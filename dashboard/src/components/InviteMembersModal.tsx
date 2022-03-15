@@ -37,7 +37,7 @@ interface stateDataTypes {
 	isInvalid: boolean;
 }
 
-const InviteEmailModal = () => {
+const InviteMembersModal = () => {
 	const client = useClient();
 	const toast = useToast();
 	const { isOpen, onOpen, onClose } = useDisclosure();
@@ -123,13 +123,13 @@ const InviteEmailModal = () => {
 				size="sm"
 			>
 				<Center h="100%" pt="5%">
-					Invite Email
+					Invite Members
 				</Center>
 			</Button>
 			<Modal isOpen={isOpen} onClose={onClose} size="xl">
 				<ModalOverlay />
 				<ModalContent>
-					<ModalHeader>Invite Email</ModalHeader>
+					<ModalHeader>Invite Members</ModalHeader>
 					<ModalCloseButton />
 					<ModalBody>
 						<Tabs
@@ -304,4 +304,4 @@ const InviteEmailModal = () => {
 	);
 };
 
-export default InviteEmailModal;
+export default InviteMembersModal;
