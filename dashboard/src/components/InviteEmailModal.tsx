@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
 	Button,
 	Center,
@@ -30,6 +30,7 @@ import { escape } from 'lodash';
 import { validateEmail, validateURI } from '../utils';
 import { UpdateUser } from '../graphql/mutation';
 import { ArrayInputOperations, csvDemoData } from '../constants';
+import parseCSV from '../utils/parseCSV';
 
 interface stateDataTypes {
 	value: string;
@@ -51,6 +52,16 @@ const InviteEmailModal = () => {
 			isInvalid: false,
 		},
 	]);
+	const [disableSendButton, setDisableSendButton] = useState<boolean>(false);
+	useEffect(() => {
+		if (redirectURI.isInvalid) {
+			setDisableSendButton(true);
+		} else if (emails.some((emailData) => emailData.isInvalid)) {
+			setDisableSendButton(true);
+		} else {
+			setDisableSendButton(false);
+		}
+	}, [redirectURI, emails]);
 	const sendInviteHandler = async () => {
 		onClose();
 	};
@@ -80,8 +91,10 @@ const InviteEmailModal = () => {
 		updatedEmailList[index].isInvalid = !validateEmail(value);
 		setEmails(updatedEmailList);
 	};
-	const onDrop = useCallback((acceptedFiles) => {
-		console.log(acceptedFiles);
+	const onDrop = useCallback(async (acceptedFiles) => {
+		const result = await parseCSV(acceptedFiles[0], ',');
+		setEmails(result);
+		setTabIndex(0);
 	}, []);
 	const handleTabsChange = (index: number) => {
 		setTabIndex(index);
@@ -95,7 +108,10 @@ const InviteEmailModal = () => {
 		updatedRedirectURI.isInvalid = !validateURI(value);
 		setRedirectURI(updatedRedirectURI);
 	};
-	const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
+	const { getRootProps, getInputProps, isDragActive } = useDropzone({
+		onDrop,
+		accept: 'text/csv',
+	});
 	return (
 		<>
 			<Button
@@ -275,7 +291,7 @@ const InviteEmailModal = () => {
 							colorScheme="blue"
 							variant="solid"
 							onClick={sendInviteHandler}
-							isDisabled={false}
+							isDisabled={disableSendButton}
 						>
 							<Center h="100%" pt="5%">
 								Send
