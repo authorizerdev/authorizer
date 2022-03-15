@@ -75,3 +75,14 @@ export const validateEmail = (email: string) => {
 		? true
 		: false;
 };
+
+export const validateURI = (uri: string) => {
+	if (!uri || uri === '') return true;
+	return uri
+		.toLowerCase()
+		.match(
+			/(?:^|\s)((https?:\/\/)?(?:localhost|[\w-]+(?:\.[\w-]+)+)(:\d+)?(\/\S*)?)/
+		)
+		? true
+		: false;
+};

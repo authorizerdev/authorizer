@@ -27,11 +27,11 @@ import { useClient } from 'urql';
 import { FaUserPlus, FaMinusCircle, FaPlus, FaUpload } from 'react-icons/fa';
 import { useDropzone } from 'react-dropzone';
 import { escape } from 'lodash';
-import { validateEmail } from '../utils';
+import { validateEmail, validateURI } from '../utils';
 import { UpdateUser } from '../graphql/mutation';
 import { ArrayInputOperations, csvDemoData } from '../constants';
 
-interface emailDataTypes {
+interface stateDataTypes {
 	value: string;
 	isInvalid: boolean;
 }
@@ -40,19 +40,12 @@ const InviteEmailModal = () => {
 	const client = useClient();
 	const toast = useToast();
 	const { isOpen, onOpen, onClose } = useDisclosure();
-	const [emails, setEmails] = useState<emailDataTypes[]>([
-		{
-			value: '',
-			isInvalid: false,
-		},
-		{
-			value: '',
-			isInvalid: false,
-		},
-		{
-			value: '',
-			isInvalid: false,
-		},
+	const [tabIndex, setTabIndex] = useState<number>(0);
+	const [redirectURI, setRedirectURI] = useState<stateDataTypes>({
+		value: '',
+		isInvalid: false,
+	});
+	const [emails, setEmails] = useState<stateDataTypes[]>([
 		{
 			value: '',
 			isInvalid: false,
@@ -90,6 +83,18 @@ const InviteEmailModal = () => {
 	const onDrop = useCallback((acceptedFiles) => {
 		console.log(acceptedFiles);
 	}, []);
+	const handleTabsChange = (index: number) => {
+		setTabIndex(index);
+	};
+	const setRedirectURIHandler = (value: string) => {
+		const updatedRedirectURI: stateDataTypes = {
+			value: '',
+			isInvalid: false,
+		};
+		updatedRedirectURI.value = value;
+		updatedRedirectURI.isInvalid = !validateURI(value);
+		setRedirectURI(updatedRedirectURI);
+	};
 	const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
 	return (
 		<>
@@ -111,7 +116,12 @@ const InviteEmailModal = () => {
 					<ModalHeader>Invite Email</ModalHeader>
 					<ModalCloseButton />
 					<ModalBody>
-						<Tabs isFitted variant="enclosed">
+						<Tabs
+							isFitted
+							variant="enclosed"
+							index={tabIndex}
+							onChange={handleTabsChange}
+						>
 							<TabList>
 								<Tab>Enter emails</Tab>
 								<Tab>Upload CSV</Tab>
@@ -124,6 +134,33 @@ const InviteEmailModal = () => {
 							>
 								<TabPanel>
 									<Flex flexDirection="column">
+										<Flex
+											width="100%"
+											justifyContent="start"
+											alignItems="center"
+											marginBottom="2%"
+										>
+											<Flex marginLeft="2.5%">Redirect URI</Flex>
+										</Flex>
+										<Flex
+											width="100%"
+											justifyContent="space-between"
+											alignItems="center"
+											marginBottom="2%"
+										>
+											<InputGroup size="md" marginBottom="2.5%">
+												<Input
+													pr="4.5rem"
+													type="text"
+													placeholder="https://domain.com/sign-up"
+													value={redirectURI.value}
+													isInvalid={redirectURI.isInvalid}
+													onChange={(e) =>
+														setRedirectURIHandler(e.currentTarget.value)
+													}
+												/>
+											</InputGroup>
+										</Flex>
 										<Flex
 											width="100%"
 											justifyContent="space-between"
