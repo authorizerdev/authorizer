@@ -38,10 +38,11 @@ import {
 	FaExclamationCircle,
 	FaAngleDown,
 } from 'react-icons/fa';
-import { UserDetailsQuery } from '../graphql/queries';
+import { EmailVerificationQuery, UserDetailsQuery } from '../graphql/queries';
 import { UpdateUser } from '../graphql/mutation';
 import EditUserModal from '../components/EditUserModal';
 import DeleteUserModal from '../components/DeleteUserModal';
+import InviteMembersModal from '../components/InviteMembersModal';
 
 interface paginationPropTypes {
 	limit: number;
@@ -101,6 +102,8 @@ export default function Users() {
 		});
 	const [userList, setUserList] = React.useState<userDataTypes[]>([]);
 	const [loading, setLoading] = React.useState<boolean>(false);
+	const [disableInviteMembers, setDisableInviteMembers] =
+		React.useState<boolean>(true);
 	const updateUserList = async () => {
 		setLoading(true);
 		const { data } = await client
@@ -132,8 +135,18 @@ export default function Users() {
 		}
 		setLoading(false);
 	};
+	const checkEmailVerification = async () => {
+		setLoading(true);
+		const { data } = await client.query(EmailVerificationQuery).toPromise();
+		if (data?._env) {
+			const { DISABLE_EMAIL_VERIFICATION } = data._env;
+			setDisableInviteMembers(DISABLE_EMAIL_VERIFICATION);
+		}
+		setLoading(false);
+	};
 	React.useEffect(() => {
 		updateUserList();
+		checkEmailVerification();
 	}, []);
 	React.useEffect(() => {
 		updateUserList();
@@ -177,6 +190,10 @@ export default function Users() {
 				<Text fontSize="md" fontWeight="bold">
 					Users
 				</Text>
+				<InviteMembersModal
+					disabled={disableInviteMembers}
+					updateUserList={updateUserList}
+				/>
 			</Flex>
 			{!loading ? (
 				userList.length > 0 ? (

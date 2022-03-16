@@ -84,3 +84,11 @@ export const UserDetailsQuery = `
     }
   }
 `;
+
+export const EmailVerificationQuery = `
+  query {
+    _env{
+      DISABLE_EMAIL_VERIFICATION
+    }
+  }
+`;

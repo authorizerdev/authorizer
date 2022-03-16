@@ -64,3 +64,25 @@ export const getObjectDiff = (obj1: any, obj2: any) => {
 
 	return diff;
 };
+
+export const validateEmail = (email: string) => {
+	if (!email || email === '') return true;
+	return email
+		.toLowerCase()
+		.match(
+			/^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+		)
+		? true
+		: false;
+};
+
+export const validateURI = (uri: string) => {
+	if (!uri || uri === '') return true;
+	return uri
+		.toLowerCase()
+		.match(
+			/(?:^|\s)((https?:\/\/)?(?:localhost|[\w-]+(?:\.[\w-]+)+)(:\d+)?(\/\S*)?)/
+		)
+		? true
+		: false;
+};
