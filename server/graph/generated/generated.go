@@ -68,6 +68,7 @@ type ComplexityRoot struct {
 		DisableEmailVerification   func(childComplexity int) int
 		DisableLoginPage           func(childComplexity int) int
 		DisableMagicLinkLogin      func(childComplexity int) int
+		DisableSignUp              func(childComplexity int) int
 		FacebookClientID           func(childComplexity int) int
 		FacebookClientSecret       func(childComplexity int) int
 		GithubClientID             func(childComplexity int) int
@@ -105,6 +106,7 @@ type ComplexityRoot struct {
 		IsGithubLoginEnabled         func(childComplexity int) int
 		IsGoogleLoginEnabled         func(childComplexity int) int
 		IsMagicLinkLoginEnabled      func(childComplexity int) int
+		IsSignUpEnabled              func(childComplexity int) int
 		Version                      func(childComplexity int) int
 	}
 
@@ -383,6 +385,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Env.DisableMagicLinkLogin(childComplexity), true
 
+	case "Env.DISABLE_SIGN_UP":
+		if e.complexity.Env.DisableSignUp == nil {
+			break
+		}
+
+		return e.complexity.Env.DisableSignUp(childComplexity), true
+
 	case "Env.FACEBOOK_CLIENT_ID":
 		if e.complexity.Env.FacebookClientID == nil {
 			break
@@ -599,6 +608,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Meta.IsMagicLinkLoginEnabled(childComplexity), true
+
+	case "Meta.is_sign_up_enabled":
+		if e.complexity.Meta.IsSignUpEnabled == nil {
+			break
+		}
+
+		return e.complexity.Meta.IsSignUpEnabled(childComplexity), true
 
 	case "Meta.version":
 		if e.complexity.Meta.Version == nil {
@@ -1197,6 +1213,7 @@ type Meta {
 	is_email_verification_enabled: Boolean!
 	is_basic_authentication_enabled: Boolean!
 	is_magic_link_login_enabled: Boolean!
+	is_sign_up_enabled: Boolean!
 }
 
 type User {
@@ -1286,6 +1303,7 @@ type Env {
 	DISABLE_BASIC_AUTHENTICATION: Boolean
 	DISABLE_MAGIC_LINK_LOGIN: Boolean
 	DISABLE_LOGIN_PAGE: Boolean
+	DISABLE_SIGN_UP: Boolean
 	ROLES: [String!]
 	PROTECTED_ROLES: [String!]
 	DEFAULT_ROLES: [String!]
@@ -1322,6 +1340,7 @@ input UpdateEnvInput {
 	DISABLE_BASIC_AUTHENTICATION: Boolean
 	DISABLE_MAGIC_LINK_LOGIN: Boolean
 	DISABLE_LOGIN_PAGE: Boolean
+	DISABLE_SIGN_UP: Boolean
 	ROLES: [String!]
 	PROTECTED_ROLES: [String!]
 	DEFAULT_ROLES: [String!]
@@ -2826,6 +2845,38 @@ func (ec *executionContext) _Env_DISABLE_LOGIN_PAGE(ctx context.Context, field g
 	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Env_DISABLE_SIGN_UP(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Env",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DisableSignUp, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*bool)
+	fc.Result = res
+	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Env_ROLES(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -3544,6 +3595,41 @@ func (ec *executionContext) _Meta_is_magic_link_login_enabled(ctx context.Contex
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.IsMagicLinkLoginEnabled, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Meta_is_sign_up_enabled(ctx context.Context, field graphql.CollectedField, obj *model.Meta) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Meta",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsSignUpEnabled, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -7607,6 +7693,14 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			if err != nil {
 				return it, err
 			}
+		case "DISABLE_SIGN_UP":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("DISABLE_SIGN_UP"))
+			it.DisableSignUp, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		case "ROLES":
 			var err error
 
@@ -8075,6 +8169,8 @@ func (ec *executionContext) _Env(ctx context.Context, sel ast.SelectionSet, obj 
 			out.Values[i] = ec._Env_DISABLE_MAGIC_LINK_LOGIN(ctx, field, obj)
 		case "DISABLE_LOGIN_PAGE":
 			out.Values[i] = ec._Env_DISABLE_LOGIN_PAGE(ctx, field, obj)
+		case "DISABLE_SIGN_UP":
+			out.Values[i] = ec._Env_DISABLE_SIGN_UP(ctx, field, obj)
 		case "ROLES":
 			out.Values[i] = ec._Env_ROLES(ctx, field, obj)
 		case "PROTECTED_ROLES":
@@ -8190,6 +8286,11 @@ func (ec *executionContext) _Meta(ctx context.Context, sel ast.SelectionSet, obj
 			}
 		case "is_magic_link_login_enabled":
 			out.Values[i] = ec._Meta_is_magic_link_login_enabled(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "is_sign_up_enabled":
+			out.Values[i] = ec._Meta_is_sign_up_enabled(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}

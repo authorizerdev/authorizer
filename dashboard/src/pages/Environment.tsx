@@ -68,6 +68,7 @@ interface envVarTypes {
 	DISABLE_MAGIC_LINK_LOGIN: boolean;
 	DISABLE_EMAIL_VERIFICATION: boolean;
 	DISABLE_BASIC_AUTHENTICATION: boolean;
+	DISABLE_SIGN_UP: boolean;
 	OLD_ADMIN_SECRET: string;
 	DATABASE_NAME: string;
 	DATABASE_TYPE: string;
@@ -114,6 +115,7 @@ export default function Environment() {
 		DISABLE_MAGIC_LINK_LOGIN: false,
 		DISABLE_EMAIL_VERIFICATION: false,
 		DISABLE_BASIC_AUTHENTICATION: false,
+		DISABLE_SIGN_UP: false,
 		OLD_ADMIN_SECRET: '',
 		DATABASE_NAME: '',
 		DATABASE_TYPE: '',
@@ -691,6 +693,18 @@ export default function Environment() {
 							variables={envVariables}
 							setVariables={setEnvVariables}
 							inputType={SwitchInputType.DISABLE_BASIC_AUTHENTICATION}
+						/>
+					</Flex>
+				</Flex>
+				<Flex>
+					<Flex w="30%" justifyContent="start" alignItems="center">
+						<Text fontSize="sm">Disable Sign Up:</Text>
+					</Flex>
+					<Flex justifyContent="start" w="70%">
+						<InputField
+							variables={envVariables}
+							setVariables={setEnvVariables}
+							inputType={SwitchInputType.DISABLE_SIGN_UP}
 						/>
 					</Flex>
 				</Flex>

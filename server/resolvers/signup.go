@@ -28,9 +28,14 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 		return res, err
 	}
 
+	if envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableSignUp) {
+		return res, fmt.Errorf(`signup is disabled for this instance`)
+	}
+
 	if envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableBasicAuthentication) {
 		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
 	}
+
 	if params.ConfirmPassword != params.Password {
 		return res, fmt.Errorf(`password and confirm password does not match`)
 	}

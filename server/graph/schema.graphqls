@@ -21,6 +21,7 @@ type Meta {
 	is_email_verification_enabled: Boolean!
 	is_basic_authentication_enabled: Boolean!
 	is_magic_link_login_enabled: Boolean!
+	is_sign_up_enabled: Boolean!
 }
 
 type User {
@@ -110,6 +111,7 @@ type Env {
 	DISABLE_BASIC_AUTHENTICATION: Boolean
 	DISABLE_MAGIC_LINK_LOGIN: Boolean
 	DISABLE_LOGIN_PAGE: Boolean
+	DISABLE_SIGN_UP: Boolean
 	ROLES: [String!]
 	PROTECTED_ROLES: [String!]
 	DEFAULT_ROLES: [String!]
@@ -146,6 +148,7 @@ input UpdateEnvInput {
 	DISABLE_BASIC_AUTHENTICATION: Boolean
 	DISABLE_MAGIC_LINK_LOGIN: Boolean
 	DISABLE_LOGIN_PAGE: Boolean
+	DISABLE_SIGN_UP: Boolean
 	ROLES: [String!]
 	PROTECTED_ROLES: [String!]
 	DEFAULT_ROLES: [String!]

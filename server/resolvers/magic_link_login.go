@@ -43,8 +43,11 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 
 	// find user with email
 	existingUser, err := db.Provider.GetUserByEmail(params.Email)
-
 	if err != nil {
+		if envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableSignUp) {
+			return res, fmt.Errorf(`signup is disabled for this instance`)
+		}
+
 		user.SignupMethods = constants.SignupMethodMagicLinkLogin
 		// define roles for new user
 		if len(params.Roles) > 0 {
