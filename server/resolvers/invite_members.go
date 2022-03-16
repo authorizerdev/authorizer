@@ -126,7 +126,7 @@ func InviteMembersResolver(ctx context.Context, params model.InviteMemberInput) 
 			return nil, err
 		}
 
-		go emailservice.InviteEmail(email, verificationToken, verifyEmailURL)
+		go emailservice.InviteEmail(email, verificationToken, verifyEmailURL, redirectURL)
 	}
 
 	return &model.Response{

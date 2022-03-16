@@ -8,7 +8,7 @@ import (
 )
 
 // InviteEmail to send invite email
-func InviteEmail(toEmail, token, url string) error {
+func InviteEmail(toEmail, token, verificationURL, redirectURI string) error {
 	// The receiver needs to be in slice as the receive supports multiple receiver
 	Receiver := []string{toEmail}
 
@@ -101,7 +101,7 @@ func InviteEmail(toEmail, token, url string) error {
 	data := make(map[string]interface{}, 3)
 	data["org_logo"] = envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyOrganizationLogo)
 	data["org_name"] = envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyOrganizationName)
-	data["verification_url"] = url + "?token=" + token
+	data["verification_url"] = verificationURL + "?token=" + token + "&redirect_uri=" + redirectURI
 	message = addEmailTemplate(message, data, "invite_email.tmpl")
 	// bodyMessage := sender.WriteHTMLEmail(Receiver, Subject, message)
 
