@@ -128,7 +128,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 			return res, err
 		}
 		verificationType := constants.VerificationTypeBasicAuthSignup
-		redirectURL := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAppURL)
+		redirectURL := utils.GetAppURL(gc)
 		verificationToken, err := token.CreateVerificationToken(params.Email, verificationType, hostname, nonceHash, redirectURL)
 		if err != nil {
 			return res, err

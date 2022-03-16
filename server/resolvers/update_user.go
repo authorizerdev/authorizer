@@ -106,7 +106,7 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 			return res, err
 		}
 		verificationType := constants.VerificationTypeUpdateEmail
-		redirectURL := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAppURL)
+		redirectURL := utils.GetAppURL(gc)
 		verificationToken, err := token.CreateVerificationToken(newEmail, verificationType, hostname, nonceHash, redirectURL)
 		if err != nil {
 			log.Println(`error generating token`, err)

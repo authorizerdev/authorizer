@@ -4,6 +4,8 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/gin-gonic/gin"
 )
 
@@ -70,4 +72,13 @@ func GetDomainName(uri string) string {
 	}
 
 	return host
+}
+
+// GetAppURL to get /app/ url if not configured by user
+func GetAppURL(gc *gin.Context) string {
+	envAppURL := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAppURL)
+	if envAppURL == "" {
+		envAppURL = GetHost(gc) + "/app"
+	}
+	return envAppURL
 }

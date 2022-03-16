@@ -114,6 +114,7 @@ type ComplexityRoot struct {
 		AdminSignup       func(childComplexity int, params model.AdminSignupInput) int
 		DeleteUser        func(childComplexity int, params model.DeleteUserInput) int
 		ForgotPassword    func(childComplexity int, params model.ForgotPasswordInput) int
+		InviteMembers     func(childComplexity int, params model.InviteMemberInput) int
 		Login             func(childComplexity int, params model.LoginInput) int
 		Logout            func(childComplexity int) int
 		MagicLinkLogin    func(childComplexity int, params model.MagicLinkLoginInput) int
@@ -208,6 +209,7 @@ type MutationResolver interface {
 	AdminLogin(ctx context.Context, params model.AdminLoginInput) (*model.Response, error)
 	AdminLogout(ctx context.Context) (*model.Response, error)
 	UpdateEnv(ctx context.Context, params model.UpdateEnvInput) (*model.Response, error)
+	InviteMembers(ctx context.Context, params model.InviteMemberInput) (*model.Response, error)
 }
 type QueryResolver interface {
 	Meta(ctx context.Context) (*model.Meta, error)
@@ -659,6 +661,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.ForgotPassword(childComplexity, args["params"].(model.ForgotPasswordInput)), true
+
+	case "Mutation._invite_members":
+		if e.complexity.Mutation.InviteMembers == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__invite_members_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.InviteMembers(childComplexity, args["params"].(model.InviteMemberInput)), true
 
 	case "Mutation.login":
 		if e.complexity.Mutation.Login == nil {
@@ -1434,6 +1448,11 @@ input OAuthRevokeInput {
 	refresh_token: String!
 }
 
+input InviteMemberInput {
+	emails: [String!]!
+	redirect_uri: String
+}
+
 type Mutation {
 	signup(params: SignUpInput!): AuthResponse!
 	login(params: LoginInput!): AuthResponse!
@@ -1452,6 +1471,7 @@ type Mutation {
 	_admin_login(params: AdminLoginInput!): Response!
 	_admin_logout: Response!
 	_update_env(params: UpdateEnvInput!): Response!
+	_invite_members(params: InviteMemberInput!): Response!
 }
 
 type Query {
@@ -1509,6 +1529,21 @@ func (ec *executionContext) field_Mutation__delete_user_args(ctx context.Context
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
 		arg0, err = ec.unmarshalNDeleteUserInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐDeleteUserInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["params"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation__invite_members_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.InviteMemberInput
+	if tmp, ok := rawArgs["params"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+		arg0, err = ec.unmarshalNInviteMemberInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐInviteMemberInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -4166,6 +4201,48 @@ func (ec *executionContext) _Mutation__update_env(ctx context.Context, field gra
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Mutation().UpdateEnv(rctx, args["params"].(model.UpdateEnvInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Response)
+	fc.Result = res
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation__invite_members(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation__invite_members_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().InviteMembers(rctx, args["params"].(model.InviteMemberInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -6914,6 +6991,37 @@ func (ec *executionContext) unmarshalInputForgotPasswordInput(ctx context.Contex
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputInviteMemberInput(ctx context.Context, obj interface{}) (model.InviteMemberInput, error) {
+	var it model.InviteMemberInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "emails":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("emails"))
+			it.Emails, err = ec.unmarshalNString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "redirect_uri":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("redirect_uri"))
+			it.RedirectURI, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputLoginInput(ctx context.Context, obj interface{}) (model.LoginInput, error) {
 	var it model.LoginInput
 	asMap := map[string]interface{}{}
@@ -8182,6 +8290,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "_invite_members":
+			out.Values[i] = ec._Mutation__invite_members(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -8909,6 +9022,11 @@ func (ec *executionContext) marshalNInt642int64(ctx context.Context, sel ast.Sel
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNInviteMemberInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐInviteMemberInput(ctx context.Context, v interface{}) (model.InviteMemberInput, error) {
+	res, err := ec.unmarshalInputInviteMemberInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNLoginInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐLoginInput(ctx context.Context, v interface{}) (model.LoginInput, error) {

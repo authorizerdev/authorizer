@@ -21,7 +21,7 @@ export default function App() {
 	if (redirectURL) {
 		urlProps.redirectURL = redirectURL;
 	} else {
-		urlProps.redirectURL = window.location.origin;
+		urlProps.redirectURL = window.location.origin + '/app';
 	}
 	const globalState: Record<string, string> = {
 		// @ts-ignore

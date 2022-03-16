@@ -272,6 +272,11 @@ input OAuthRevokeInput {
 	refresh_token: String!
 }
 
+input InviteMemberInput {
+	emails: [String!]!
+	redirect_uri: String
+}
+
 type Mutation {
 	signup(params: SignUpInput!): AuthResponse!
 	login(params: LoginInput!): AuthResponse!
@@ -290,6 +295,7 @@ type Mutation {
 	_admin_login(params: AdminLoginInput!): Response!
 	_admin_logout: Response!
 	_update_env(params: UpdateEnvInput!): Response!
+	_invite_members(params: InviteMemberInput!): Response!
 }
 
 type Query {

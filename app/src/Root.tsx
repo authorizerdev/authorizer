@@ -1,6 +1,7 @@
 import React, { useEffect, lazy, Suspense } from 'react';
 import { Switch, Route } from 'react-router-dom';
 import { useAuthorizer } from '@authorizerdev/authorizer-react';
+import SetupPassword from './pages/setup-password';
 
 const ResetPassword = lazy(() => import('./pages/rest-password'));
 const Login = lazy(() => import('./pages/login'));
@@ -59,6 +60,9 @@ export default function Root({
 				</Route>
 				<Route path="/app/reset-password">
 					<ResetPassword />
+				</Route>
+				<Route path="/app/setup-password">
+					<SetupPassword />
 				</Route>
 			</Switch>
 		</Suspense>

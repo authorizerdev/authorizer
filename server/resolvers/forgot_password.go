@@ -43,7 +43,7 @@ func ForgotPasswordResolver(ctx context.Context, params model.ForgotPasswordInpu
 	if err != nil {
 		return res, err
 	}
-	redirectURL := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAppURL)
+	redirectURL := utils.GetAppURL(gc) + "/reset-password"
 	if params.RedirectURI != nil {
 		redirectURL = *params.RedirectURI
 	}
