@@ -29,7 +29,7 @@ import { useDropzone } from 'react-dropzone';
 import { escape } from 'lodash';
 import { validateEmail, validateURI } from '../utils';
 import { InviteMembers } from '../graphql/mutation';
-import { ArrayInputOperations, csvDemoData } from '../constants';
+import { ArrayInputOperations } from '../constants';
 import parseCSV from '../utils/parseCSV';
 
 interface stateDataTypes {
@@ -332,9 +332,7 @@ const InviteMembersModal = ({
 												<Text size="xs">
 													Download{' '}
 													<Link
-														href={`data:text/csv;charset=utf-8,${escape(
-															csvDemoData
-														)}`}
+														href={`/dashboard/public/sample.csv`}
 														download="sample.csv"
 														color="blue.600"
 														onClick={(e) => e.stopPropagation()}
