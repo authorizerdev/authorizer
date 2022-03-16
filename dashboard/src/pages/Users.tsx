@@ -190,7 +190,10 @@ export default function Users() {
 				<Text fontSize="md" fontWeight="bold">
 					Users
 				</Text>
-				<InviteMembersModal disabled={disableInviteMembers} />
+				<InviteMembersModal
+					disabled={disableInviteMembers}
+					updateUserList={updateUserList}
+				/>
 			</Flex>
 			{!loading ? (
 				userList.length > 0 ? (

@@ -28,7 +28,7 @@ import { FaUserPlus, FaMinusCircle, FaPlus, FaUpload } from 'react-icons/fa';
 import { useDropzone } from 'react-dropzone';
 import { escape } from 'lodash';
 import { validateEmail, validateURI } from '../utils';
-import { UpdateUser } from '../graphql/mutation';
+import { InviteMembers } from '../graphql/mutation';
 import { ArrayInputOperations, csvDemoData } from '../constants';
 import parseCSV from '../utils/parseCSV';
 
@@ -37,22 +37,33 @@ interface stateDataTypes {
 	isInvalid: boolean;
 }
 
-const InviteMembersModal = ({ disabled = true }: { disabled: boolean }) => {
+interface requestParamTypes {
+	emails: string[];
+	redirect_uri?: string;
+}
+
+const initData: stateDataTypes = {
+	value: '',
+	isInvalid: false,
+};
+
+const InviteMembersModal = ({
+	updateUserList,
+	disabled = true,
+}: {
+	updateUserList: Function;
+	disabled: boolean;
+}) => {
 	const client = useClient();
 	const toast = useToast();
 	const { isOpen, onOpen, onClose } = useDisclosure();
 	const [tabIndex, setTabIndex] = useState<number>(0);
 	const [redirectURI, setRedirectURI] = useState<stateDataTypes>({
-		value: '',
-		isInvalid: false,
+		...initData,
 	});
-	const [emails, setEmails] = useState<stateDataTypes[]>([
-		{
-			value: '',
-			isInvalid: false,
-		},
-	]);
+	const [emails, setEmails] = useState<stateDataTypes[]>([{ ...initData }]);
 	const [disableSendButton, setDisableSendButton] = useState<boolean>(false);
+	const [loading, setLoading] = React.useState<boolean>(false);
 	useEffect(() => {
 		if (redirectURI.isInvalid) {
 			setDisableSendButton(true);
@@ -64,31 +75,58 @@ const InviteMembersModal = ({ disabled = true }: { disabled: boolean }) => {
 	}, [redirectURI, emails]);
 	useEffect(() => {
 		return () => {
-			setRedirectURI({
-				value: '',
-				isInvalid: false,
-			});
-			setEmails([
-				{
-					value: '',
-					isInvalid: false,
-				},
-			]);
+			setRedirectURI({ ...initData });
+			setEmails([{ ...initData }]);
 		};
 	}, []);
 	const sendInviteHandler = async () => {
+		setLoading(true);
+		try {
+			const emailList = emails
+				.filter((emailData) => !emailData.isInvalid)
+				.map((emailData) => emailData.value);
+			const params: requestParamTypes = {
+				emails: emailList,
+			};
+			if (redirectURI.value !== '' && !redirectURI.isInvalid) {
+				params.redirect_uri = redirectURI.value;
+			}
+			if (emailList.length > 1) {
+				const res = await client
+					.mutation(InviteMembers, {
+						params,
+					})
+					.toPromise();
+				if (res.error) {
+					throw new Error('Internal server error');
+					return;
+				}
+				toast({
+					title: 'Invites sent successfully!',
+					isClosable: true,
+					status: 'success',
+					position: 'bottom-right',
+				});
+				setLoading(false);
+				updateUserList();
+			} else {
+				throw new Error('Please add emails');
+			}
+		} catch (error: any) {
+			toast({
+				title: error?.message || 'Error occurred, try again!',
+				isClosable: true,
+				status: 'error',
+				position: 'bottom-right',
+			});
+			setLoading(false);
+		}
 		closeModalHandler();
 	};
 	const updateEmailListHandler = (operation: string, index: number = 0) => {
 		switch (operation) {
 			case ArrayInputOperations.APPEND:
-				setEmails([
-					...emails,
-					{
-						value: '',
-						isInvalid: false,
-					},
-				]);
+				setEmails([...emails, { ...initData }]);
 				break;
 			case ArrayInputOperations.REMOVE:
 				const updatedEmailList = [...emails];
@@ -318,7 +356,7 @@ const InviteMembersModal = ({ disabled = true }: { disabled: boolean }) => {
 							colorScheme="blue"
 							variant="solid"
 							onClick={sendInviteHandler}
-							isDisabled={disableSendButton}
+							isDisabled={disableSendButton || loading}
 						>
 							<Center h="100%" pt="5%">
 								Send
