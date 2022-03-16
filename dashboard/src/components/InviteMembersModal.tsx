@@ -224,42 +224,44 @@ const InviteMembersModal = ({ disabled = true }: { disabled: boolean }) => {
 												</Button>
 											</Flex>
 										</Flex>
-										{emails.map((emailData, index) => (
-											<Flex
-												key={`email-data-${index}`}
-												justifyContent="center"
-												alignItems="center"
-											>
-												<InputGroup size="md" marginBottom="2.5%">
-													<Input
-														pr="4.5rem"
-														type="text"
-														placeholder="name@domain.com"
-														value={emailData.value}
-														isInvalid={emailData.isInvalid}
-														onChange={(e) =>
-															inputChangeHandler(e.currentTarget.value, index)
-														}
-													/>
-													<InputRightElement width="3rem">
-														<Button
-															h="1.75rem"
-															size="sm"
-															colorScheme="blackAlpha"
-															variant="ghost"
-															onClick={() =>
-																updateEmailListHandler(
-																	ArrayInputOperations.REMOVE,
-																	index
-																)
+										<Flex flexDirection="column" maxH={250} overflowY="scroll">
+											{emails.map((emailData, index) => (
+												<Flex
+													key={`email-data-${index}`}
+													justifyContent="center"
+													alignItems="center"
+												>
+													<InputGroup size="md" marginBottom="2.5%">
+														<Input
+															pr="4.5rem"
+															type="text"
+															placeholder="name@domain.com"
+															value={emailData.value}
+															isInvalid={emailData.isInvalid}
+															onChange={(e) =>
+																inputChangeHandler(e.currentTarget.value, index)
 															}
-														>
-															<FaMinusCircle />
-														</Button>
-													</InputRightElement>
-												</InputGroup>
-											</Flex>
-										))}
+														/>
+														<InputRightElement width="3rem">
+															<Button
+																h="1.75rem"
+																size="sm"
+																colorScheme="blackAlpha"
+																variant="ghost"
+																onClick={() =>
+																	updateEmailListHandler(
+																		ArrayInputOperations.REMOVE,
+																		index
+																	)
+																}
+															>
+																<FaMinusCircle />
+															</Button>
+														</InputRightElement>
+													</InputGroup>
+												</Flex>
+											))}
+										</Flex>
 									</Flex>
 								</TabPanel>
 								<TabPanel>
@@ -268,7 +270,7 @@ const InviteMembersModal = ({ disabled = true }: { disabled: boolean }) => {
 										align="center"
 										textAlign="center"
 										bg="#f0f0f0"
-										h={231}
+										h={230}
 										p={50}
 										m={2}
 										borderRadius={5}
