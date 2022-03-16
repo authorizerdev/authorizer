@@ -62,8 +62,22 @@ const InviteMembersModal = ({ disabled = true }: { disabled: boolean }) => {
 			setDisableSendButton(false);
 		}
 	}, [redirectURI, emails]);
+	useEffect(() => {
+		return () => {
+			setRedirectURI({
+				value: '',
+				isInvalid: false,
+			});
+			setEmails([
+				{
+					value: '',
+					isInvalid: false,
+				},
+			]);
+		};
+	}, []);
 	const sendInviteHandler = async () => {
-		onClose();
+		closeModalHandler();
 	};
 	const updateEmailListHandler = (operation: string, index: number = 0) => {
 		switch (operation) {
@@ -112,6 +126,19 @@ const InviteMembersModal = ({ disabled = true }: { disabled: boolean }) => {
 		onDrop,
 		accept: 'text/csv',
 	});
+	const closeModalHandler = () => {
+		setRedirectURI({
+			value: '',
+			isInvalid: false,
+		});
+		setEmails([
+			{
+				value: '',
+				isInvalid: false,
+			},
+		]);
+		onClose();
+	};
 	return (
 		<>
 			<Button
@@ -122,11 +149,9 @@ const InviteMembersModal = ({ disabled = true }: { disabled: boolean }) => {
 				isDisabled={disabled}
 				size="sm"
 			>
-				<Center h="100%" pt="5%">
-					Invite Members
-				</Center>
+				<Center h="100%">Invite Members</Center>
 			</Button>
-			<Modal isOpen={isOpen} onClose={onClose} size="xl">
+			<Modal isOpen={isOpen} onClose={closeModalHandler} size="xl">
 				<ModalOverlay />
 				<ModalContent>
 					<ModalHeader>Invite Members</ModalHeader>
