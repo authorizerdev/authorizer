@@ -91,7 +91,7 @@ const InviteMembersModal = ({
 			if (redirectURI.value !== '' && !redirectURI.isInvalid) {
 				params.redirect_uri = redirectURI.value;
 			}
-			if (emailList.length > 1) {
+			if (emailList.length > 0) {
 				const res = await client
 					.mutation(InviteMembers, {
 						params,
