@@ -37,7 +37,7 @@ interface stateDataTypes {
 	isInvalid: boolean;
 }
 
-const InviteMembersModal = () => {
+const InviteMembersModal = ({ disabled = true }: { disabled: boolean }) => {
 	const client = useClient();
 	const toast = useToast();
 	const { isOpen, onOpen, onClose } = useDisclosure();
@@ -91,14 +91,14 @@ const InviteMembersModal = () => {
 		updatedEmailList[index].isInvalid = !validateEmail(value);
 		setEmails(updatedEmailList);
 	};
+	const changeTabsHandler = (index: number) => {
+		setTabIndex(index);
+	};
 	const onDrop = useCallback(async (acceptedFiles) => {
 		const result = await parseCSV(acceptedFiles[0], ',');
 		setEmails(result);
-		setTabIndex(0);
+		changeTabsHandler(0);
 	}, []);
-	const handleTabsChange = (index: number) => {
-		setTabIndex(index);
-	};
 	const setRedirectURIHandler = (value: string) => {
 		const updatedRedirectURI: stateDataTypes = {
 			value: '',
@@ -119,7 +119,7 @@ const InviteMembersModal = () => {
 				colorScheme="blue"
 				variant="solid"
 				onClick={onOpen}
-				isDisabled={false}
+				isDisabled={disabled}
 				size="sm"
 			>
 				<Center h="100%" pt="5%">
@@ -136,7 +136,7 @@ const InviteMembersModal = () => {
 							isFitted
 							variant="enclosed"
 							index={tabIndex}
-							onChange={handleTabsChange}
+							onChange={changeTabsHandler}
 						>
 							<TabList>
 								<Tab>Enter emails</Tab>

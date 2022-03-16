@@ -178,7 +178,7 @@ export default function Users() {
 				<Text fontSize="md" fontWeight="bold">
 					Users
 				</Text>
-				<InviteMembersModal />
+				<InviteMembersModal disabled={true} />
 			</Flex>
 			{!loading ? (
 				userList.length > 0 ? (
