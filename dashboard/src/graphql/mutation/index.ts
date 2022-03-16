@@ -45,3 +45,11 @@ export const DeleteUser = `
     }
   }
 `;
+
+export const InviteMembers = `
+  mutation inviteMembers($params: InviteMemberInput!) {
+    _invite_members(params: $params) {
+      message
+    }
+  }
+`;
