@@ -184,6 +184,7 @@ export default function Users() {
 		}
 		updateUserList();
 	};
+	console.log('userList ==>> ', userList);
 	return (
 		<Box m="5" py="5" px="10" bg="white" rounded="md">
 			<Flex margin="2% 0" justifyContent="space-between" alignItems="center">

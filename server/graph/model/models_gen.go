@@ -49,6 +49,7 @@ type Env struct {
 	DisableBasicAuthentication *bool    `json:"DISABLE_BASIC_AUTHENTICATION"`
 	DisableMagicLinkLogin      *bool    `json:"DISABLE_MAGIC_LINK_LOGIN"`
 	DisableLoginPage           *bool    `json:"DISABLE_LOGIN_PAGE"`
+	DisableSignUp              *bool    `json:"DISABLE_SIGN_UP"`
 	Roles                      []string `json:"ROLES"`
 	ProtectedRoles             []string `json:"PROTECTED_ROLES"`
 	DefaultRoles               []string `json:"DEFAULT_ROLES"`
@@ -103,6 +104,7 @@ type Meta struct {
 	IsEmailVerificationEnabled   bool   `json:"is_email_verification_enabled"`
 	IsBasicAuthenticationEnabled bool   `json:"is_basic_authentication_enabled"`
 	IsMagicLinkLoginEnabled      bool   `json:"is_magic_link_login_enabled"`
+	IsSignUpEnabled              bool   `json:"is_sign_up_enabled"`
 }
 
 type OAuthRevokeInput struct {
@@ -184,6 +186,7 @@ type UpdateEnvInput struct {
 	DisableBasicAuthentication *bool    `json:"DISABLE_BASIC_AUTHENTICATION"`
 	DisableMagicLinkLogin      *bool    `json:"DISABLE_MAGIC_LINK_LOGIN"`
 	DisableLoginPage           *bool    `json:"DISABLE_LOGIN_PAGE"`
+	DisableSignUp              *bool    `json:"DISABLE_SIGN_UP"`
 	Roles                      []string `json:"ROLES"`
 	ProtectedRoles             []string `json:"PROTECTED_ROLES"`
 	DefaultRoles               []string `json:"DEFAULT_ROLES"`
