@@ -110,8 +110,6 @@ func TokenHandler() gin.HandlerFunc {
 				return
 			}
 
-			// rollover the session for security
-			sessionstore.RemoveState(sessionDataSplit[1])
 			// validate session
 			claims, err := token.ValidateBrowserSession(gc, sessionDataSplit[1])
 			if err != nil {
@@ -121,6 +119,8 @@ func TokenHandler() gin.HandlerFunc {
 				})
 				return
 			}
+			// rollover the session for security
+			sessionstore.RemoveState(sessionDataSplit[1])
 			userID = claims.Subject
 			roles = claims.Roles
 			scope = claims.Scope

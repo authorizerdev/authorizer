@@ -12,3 +12,5 @@ data.db
 .env.local
 *.tar.gz
 .vscode/
+.yalc
+yalc.lock

@@ -1358,6 +1358,7 @@ input SignUpInput {
 	confirm_password: String!
 	roles: [String!]
 	scope: [String!]
+	redirect_uri: String
 }
 
 input LoginInput {
@@ -7412,6 +7413,14 @@ func (ec *executionContext) unmarshalInputSignUpInput(ctx context.Context, obj i
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("scope"))
 			it.Scope, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "redirect_uri":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("redirect_uri"))
+			it.RedirectURI, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}

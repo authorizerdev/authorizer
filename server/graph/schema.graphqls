@@ -182,6 +182,7 @@ input SignUpInput {
 	confirm_password: String!
 	roles: [String!]
 	scope: [String!]
+	redirect_uri: String
 }
 
 input LoginInput {

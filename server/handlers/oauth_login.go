@@ -16,7 +16,11 @@ import (
 func OAuthLoginHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		hostname := utils.GetHost(c)
+		// deprecating redirectURL instead use redirect_uri
 		redirectURI := strings.TrimSpace(c.Query("redirectURL"))
+		if redirectURI == "" {
+			redirectURI = strings.TrimSpace(c.Query("redirect_uri"))
+		}
 		roles := strings.TrimSpace(c.Query("roles"))
 		state := strings.TrimSpace(c.Query("state"))
 		scopeString := strings.TrimSpace(c.Query("scope"))

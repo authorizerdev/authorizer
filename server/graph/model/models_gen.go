@@ -159,6 +159,7 @@ type SignUpInput struct {
 	ConfirmPassword string   `json:"confirm_password"`
 	Roles           []string `json:"roles"`
 	Scope           []string `json:"scope"`
+	RedirectURI     *string  `json:"redirect_uri"`
 }
 
 type UpdateEnvInput struct {
