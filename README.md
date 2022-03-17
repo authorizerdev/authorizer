@@ -166,7 +166,7 @@ This example demonstrates how you can use [`@authorizerdev/authorizer-js`](/auth
 
 <script type="text/javascript">
 	const authorizerRef = new authorizerdev.Authorizer({
-		authorizerURL: `https://authorizer-demo.herokuapp.com`,
+		authorizerURL: `YOUR_AUTHORIZER_INSTANCE_URL`,
 		redirectURL: window.location.origin,
 		clientID: 'YOUR_CLIENT_ID', // obtain your client id from authorizer dashboard
 	});
