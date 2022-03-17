@@ -43,6 +43,14 @@ func resetPasswordTest(t *testing.T, s TestSetup) {
 			ConfirmPassword: "test1",
 		})
 
+		assert.NotNil(t, err, "invalid password")
+
+		_, err = resolvers.ResetPasswordResolver(ctx, model.ResetPasswordInput{
+			Token:           verificationRequest.Token,
+			Password:        "Test@1234",
+			ConfirmPassword: "Test@1234",
+		})
+
 		assert.Nil(t, err, "password changed successfully")
 
 		cleanData(email)

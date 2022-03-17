@@ -35,6 +35,10 @@ func ResetPasswordResolver(ctx context.Context, params model.ResetPasswordInput)
 		return res, fmt.Errorf(`passwords don't match`)
 	}
 
+	if !utils.IsValidPassword(params.Password) {
+		return res, fmt.Errorf(`password is not valid. It needs to be at least 6 characters long and contain at least one number, one uppercase letter, one lowercase letter and one special character`)
+	}
+
 	// verify if token exists in db
 	hostname := utils.GetHost(gc)
 	claim, err := token.ParseJWTToken(params.Token, hostname, verificationRequest.Nonce, verificationRequest.Email)

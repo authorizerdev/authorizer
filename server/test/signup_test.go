@@ -5,6 +5,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
+	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/resolvers"
 	"github.com/stretchr/testify/assert"
@@ -20,14 +21,30 @@ func signupTests(t *testing.T, s TestSetup) {
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password + "s",
 		})
-		assert.NotNil(t, err, "invalid password errors")
+		assert.NotNil(t, err, "invalid password")
 
+		res, err = resolvers.SignupResolver(ctx, model.SignUpInput{
+			Email:           email,
+			Password:        "test",
+			ConfirmPassword: "test",
+		})
+		assert.NotNil(t, err, "invalid password")
+
+		envstore.EnvStoreObj.UpdateEnvVariable(constants.BoolStoreIdentifier, constants.EnvKeyDisableSignUp, true)
 		res, err = resolvers.SignupResolver(ctx, model.SignUpInput{
 			Email:           email,
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password,
 		})
+		assert.NotNil(t, err, "singup disabled")
 
+		envstore.EnvStoreObj.UpdateEnvVariable(constants.BoolStoreIdentifier, constants.EnvKeyDisableSignUp, false)
+		res, err = resolvers.SignupResolver(ctx, model.SignUpInput{
+			Email:           email,
+			Password:        s.TestInfo.Password,
+			ConfirmPassword: s.TestInfo.Password,
+		})
+		assert.Nil(t, err, "signup should be successful")
 		user := *res.User
 		assert.Equal(t, email, user.Email)
 		assert.Nil(t, res.AccessToken, "access token should be nil")
