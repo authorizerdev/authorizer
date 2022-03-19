@@ -68,7 +68,7 @@ func createContext(s TestSetup) (*http.Request, context.Context) {
 func testSetup() TestSetup {
 	testData := TestData{
 		Email:    fmt.Sprintf("%d_authorizer_tester@yopmail.com", time.Now().Unix()),
-		Password: "test",
+		Password: "Test@123",
 	}
 
 	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyEnvPath, "../../.env.sample")
