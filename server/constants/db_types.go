@@ -17,4 +17,6 @@ const (
 	DbTypeYugabyte = "yugabyte"
 	// DbTypeMariaDB is the mariadb database type
 	DbTypeMariaDB = "mariadb"
+	// DbTypeCassandra is the cassandra database type
+	DbTypeCassandra = "cassandra"
 )
