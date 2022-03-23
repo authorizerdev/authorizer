@@ -164,6 +164,10 @@ type SignUpInput struct {
 	RedirectURI     *string  `json:"redirect_uri"`
 }
 
+type UpdateAccessInput struct {
+	UserID string `json:"user_id"`
+}
+
 type UpdateEnvInput struct {
 	AdminSecret                *string  `json:"ADMIN_SECRET"`
 	CustomAccessTokenScript    *string  `json:"CUSTOM_ACCESS_TOKEN_SCRIPT"`
@@ -249,6 +253,7 @@ type User struct {
 	Roles               []string `json:"roles"`
 	CreatedAt           *int64   `json:"created_at"`
 	UpdatedAt           *int64   `json:"updated_at"`
+	RevokedTimestamp    *int64   `json:"revoked_timestamp"`
 }
 
 type Users struct {

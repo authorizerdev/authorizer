@@ -43,6 +43,7 @@ type User {
 	roles: [String!]!
 	created_at: Int64
 	updated_at: Int64
+	revoked_timestamp: Int64
 }
 
 type Users {
@@ -281,6 +282,10 @@ input InviteMemberInput {
 	redirect_uri: String
 }
 
+input UpdateAccessInput {
+	user_id: String!
+}
+
 type Mutation {
 	signup(params: SignUpInput!): AuthResponse!
 	login(params: LoginInput!): AuthResponse!
@@ -300,6 +305,8 @@ type Mutation {
 	_admin_logout: Response!
 	_update_env(params: UpdateEnvInput!): Response!
 	_invite_members(params: InviteMemberInput!): Response!
+	_revoke_access(param: UpdateAccessInput!): Response!
+	_enable_access(param: UpdateAccessInput!): Response!
 }
 
 type Query {

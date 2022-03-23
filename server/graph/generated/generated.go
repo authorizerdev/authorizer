@@ -115,6 +115,7 @@ type ComplexityRoot struct {
 		AdminLogout       func(childComplexity int) int
 		AdminSignup       func(childComplexity int, params model.AdminSignupInput) int
 		DeleteUser        func(childComplexity int, params model.DeleteUserInput) int
+		EnableAccess      func(childComplexity int, param model.UpdateAccessInput) int
 		ForgotPassword    func(childComplexity int, params model.ForgotPasswordInput) int
 		InviteMembers     func(childComplexity int, params model.InviteMemberInput) int
 		Login             func(childComplexity int, params model.LoginInput) int
@@ -123,6 +124,7 @@ type ComplexityRoot struct {
 		ResendVerifyEmail func(childComplexity int, params model.ResendVerifyEmailInput) int
 		ResetPassword     func(childComplexity int, params model.ResetPasswordInput) int
 		Revoke            func(childComplexity int, params model.OAuthRevokeInput) int
+		RevokeAccess      func(childComplexity int, param model.UpdateAccessInput) int
 		Signup            func(childComplexity int, params model.SignUpInput) int
 		UpdateEnv         func(childComplexity int, params model.UpdateEnvInput) int
 		UpdateProfile     func(childComplexity int, params model.UpdateProfileInput) int
@@ -166,6 +168,7 @@ type ComplexityRoot struct {
 		PhoneNumberVerified func(childComplexity int) int
 		Picture             func(childComplexity int) int
 		PreferredUsername   func(childComplexity int) int
+		RevokedTimestamp    func(childComplexity int) int
 		Roles               func(childComplexity int) int
 		SignupMethods       func(childComplexity int) int
 		UpdatedAt           func(childComplexity int) int
@@ -212,6 +215,8 @@ type MutationResolver interface {
 	AdminLogout(ctx context.Context) (*model.Response, error)
 	UpdateEnv(ctx context.Context, params model.UpdateEnvInput) (*model.Response, error)
 	InviteMembers(ctx context.Context, params model.InviteMemberInput) (*model.Response, error)
+	RevokeAccess(ctx context.Context, param model.UpdateAccessInput) (*model.Response, error)
+	EnableAccess(ctx context.Context, param model.UpdateAccessInput) (*model.Response, error)
 }
 type QueryResolver interface {
 	Meta(ctx context.Context) (*model.Meta, error)
@@ -666,6 +671,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.DeleteUser(childComplexity, args["params"].(model.DeleteUserInput)), true
 
+	case "Mutation._enable_access":
+		if e.complexity.Mutation.EnableAccess == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__enable_access_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.EnableAccess(childComplexity, args["param"].(model.UpdateAccessInput)), true
+
 	case "Mutation.forgot_password":
 		if e.complexity.Mutation.ForgotPassword == nil {
 			break
@@ -756,6 +773,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.Revoke(childComplexity, args["params"].(model.OAuthRevokeInput)), true
+
+	case "Mutation._revoke_access":
+		if e.complexity.Mutation.RevokeAccess == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__revoke_access_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RevokeAccess(childComplexity, args["param"].(model.UpdateAccessInput)), true
 
 	case "Mutation.signup":
 		if e.complexity.Mutation.Signup == nil {
@@ -1014,6 +1043,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.User.PreferredUsername(childComplexity), true
 
+	case "User.revoked_timestamp":
+		if e.complexity.User.RevokedTimestamp == nil {
+			break
+		}
+
+		return e.complexity.User.RevokedTimestamp(childComplexity), true
+
 	case "User.roles":
 		if e.complexity.User.Roles == nil {
 			break
@@ -1235,6 +1271,7 @@ type User {
 	roles: [String!]!
 	created_at: Int64
 	updated_at: Int64
+	revoked_timestamp: Int64
 }
 
 type Users {
@@ -1473,6 +1510,10 @@ input InviteMemberInput {
 	redirect_uri: String
 }
 
+input UpdateAccessInput {
+	user_id: String!
+}
+
 type Mutation {
 	signup(params: SignUpInput!): AuthResponse!
 	login(params: LoginInput!): AuthResponse!
@@ -1492,6 +1533,8 @@ type Mutation {
 	_admin_logout: Response!
 	_update_env(params: UpdateEnvInput!): Response!
 	_invite_members(params: InviteMemberInput!): Response!
+	_revoke_access(param: UpdateAccessInput!): Response!
+	_enable_access(param: UpdateAccessInput!): Response!
 }
 
 type Query {
@@ -1557,6 +1600,21 @@ func (ec *executionContext) field_Mutation__delete_user_args(ctx context.Context
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation__enable_access_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.UpdateAccessInput
+	if tmp, ok := rawArgs["param"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("param"))
+		arg0, err = ec.unmarshalNUpdateAccessInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUpdateAccessInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["param"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation__invite_members_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -1569,6 +1627,21 @@ func (ec *executionContext) field_Mutation__invite_members_args(ctx context.Cont
 		}
 	}
 	args["params"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation__revoke_access_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.UpdateAccessInput
+	if tmp, ok := rawArgs["param"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("param"))
+		arg0, err = ec.unmarshalNUpdateAccessInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUpdateAccessInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["param"] = arg0
 	return args, nil
 }
 
@@ -4346,6 +4419,90 @@ func (ec *executionContext) _Mutation__invite_members(ctx context.Context, field
 	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Mutation__revoke_access(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation__revoke_access_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().RevokeAccess(rctx, args["param"].(model.UpdateAccessInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Response)
+	fc.Result = res
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation__enable_access(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation__enable_access_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().EnableAccess(rctx, args["param"].(model.UpdateAccessInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Response)
+	fc.Result = res
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Pagination_limit(ctx context.Context, field graphql.CollectedField, obj *model.Pagination) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -5404,6 +5561,38 @@ func (ec *executionContext) _User_updated_at(ctx context.Context, field graphql.
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.UpdatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int64)
+	fc.Result = res
+	return ec.marshalOInt642ᚖint64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _User_revoked_timestamp(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.RevokedTimestamp, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -7516,6 +7705,29 @@ func (ec *executionContext) unmarshalInputSignUpInput(ctx context.Context, obj i
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputUpdateAccessInput(ctx context.Context, obj interface{}) (model.UpdateAccessInput, error) {
+	var it model.UpdateAccessInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "user_id":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("user_id"))
+			it.UserID, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, obj interface{}) (model.UpdateEnvInput, error) {
 	var it model.UpdateEnvInput
 	asMap := map[string]interface{}{}
@@ -8405,6 +8617,16 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "_revoke_access":
+			out.Values[i] = ec._Mutation__revoke_access(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "_enable_access":
+			out.Values[i] = ec._Mutation__enable_access(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -8673,6 +8895,8 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			out.Values[i] = ec._User_created_at(ctx, field, obj)
 		case "updated_at":
 			out.Values[i] = ec._User_updated_at(ctx, field, obj)
+		case "revoked_timestamp":
+			out.Values[i] = ec._User_revoked_timestamp(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -9256,6 +9480,11 @@ func (ec *executionContext) marshalNString2ᚕstringᚄ(ctx context.Context, sel
 	}
 
 	return ret
+}
+
+func (ec *executionContext) unmarshalNUpdateAccessInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUpdateAccessInput(ctx context.Context, v interface{}) (model.UpdateAccessInput, error) {
+	res, err := ec.unmarshalInputUpdateAccessInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNUpdateEnvInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUpdateEnvInput(ctx context.Context, v interface{}) (model.UpdateEnvInput, error) {

@@ -70,6 +70,10 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 		// 2. user has not signed up for one of the available role but trying to signup.
 		// 		Need to modify roles in this case
 
+		if user.RevokedTimestamp != 0 {
+			return res, fmt.Errorf(`user access has been revoked`)
+		}
+
 		// find the unassigned roles
 		if len(params.Roles) <= 0 {
 			inputRoles = envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles)

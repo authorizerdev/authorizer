@@ -39,7 +39,7 @@ import {
 	FaAngleDown,
 } from 'react-icons/fa';
 import { EmailVerificationQuery, UserDetailsQuery } from '../graphql/queries';
-import { UpdateUser } from '../graphql/mutation';
+import { EnableAccess, RevokeAccess, UpdateUser } from '../graphql/mutation';
 import EditUserModal from '../components/EditUserModal';
 import DeleteUserModal from '../components/DeleteUserModal';
 import InviteMembersModal from '../components/InviteMembersModal';
@@ -67,6 +67,12 @@ interface userDataTypes {
 	signup_methods: string;
 	roles: [string];
 	created_at: number;
+	revoked_timestamp: number;
+}
+
+const enum updateAccessActions {
+	REVOKE = 'REVOKE',
+	ENABLE = 'ENABLE',
 }
 
 const getMaxPages = (pagination: paginationPropTypes) => {
@@ -185,6 +191,66 @@ export default function Users() {
 		updateUserList();
 	};
 
+	const updateAccessHandler = async (
+		id: string,
+		action: updateAccessActions
+	) => {
+		switch (action) {
+			case updateAccessActions.ENABLE:
+				const enableAccessRes = await client
+					.mutation(EnableAccess, {
+						param: {
+							user_id: id,
+						},
+					})
+					.toPromise();
+				if (enableAccessRes.error) {
+					toast({
+						title: 'Access enable failed',
+						isClosable: true,
+						status: 'error',
+						position: 'bottom-right',
+					});
+				} else {
+					toast({
+						title: 'Access enable successful',
+						isClosable: true,
+						status: 'success',
+						position: 'bottom-right',
+					});
+				}
+				updateUserList();
+				break;
+			case updateAccessActions.REVOKE:
+				const revokeAccessRes = await client
+					.mutation(RevokeAccess, {
+						param: {
+							user_id: id,
+						},
+					})
+					.toPromise();
+				if (revokeAccessRes.error) {
+					toast({
+						title: 'Access revoke failed',
+						isClosable: true,
+						status: 'error',
+						position: 'bottom-right',
+					});
+				} else {
+					toast({
+						title: 'Access revoke successful',
+						isClosable: true,
+						status: 'success',
+						position: 'bottom-right',
+					});
+				}
+				updateUserList();
+				break;
+			default:
+				break;
+		}
+	};
+
 	return (
 		<Box m="5" py="5" px="10" bg="white" rounded="md">
 			<Flex margin="2% 0" justifyContent="space-between" alignItems="center">
@@ -206,6 +272,7 @@ export default function Users() {
 								<Th>Signup Methods</Th>
 								<Th>Roles</Th>
 								<Th>Verified</Th>
+								<Th>Access</Th>
 								<Th>Actions</Th>
 							</Tr>
 						</Thead>
@@ -227,6 +294,15 @@ export default function Users() {
 												colorScheme={user.email_verified ? 'green' : 'yellow'}
 											>
 												{user.email_verified.toString()}
+											</Tag>
+										</Td>
+										<Td>
+											<Tag
+												size="sm"
+												variant="outline"
+												colorScheme={user.revoked_timestamp ? 'red' : 'green'}
+											>
+												{user.revoked_timestamp ? 'Revoked' : 'Enabled'}
 											</Tag>
 										</Td>
 										<Td>
@@ -258,6 +334,29 @@ export default function Users() {
 														user={rest}
 														updateUserList={updateUserList}
 													/>
+													{user.revoked_timestamp ? (
+														<MenuItem
+															onClick={() =>
+																updateAccessHandler(
+																	user.id,
+																	updateAccessActions.ENABLE
+																)
+															}
+														>
+															Enable Access
+														</MenuItem>
+													) : (
+														<MenuItem
+															onClick={() =>
+																updateAccessHandler(
+																	user.id,
+																	updateAccessActions.REVOKE
+																)
+															}
+														>
+															Revoke Access
+														</MenuItem>
+													)}
 												</MenuList>
 											</Menu>
 										</Td>

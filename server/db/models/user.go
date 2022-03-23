@@ -27,6 +27,7 @@ type User struct {
 	Roles                 string  `json:"roles" bson:"roles"`
 	UpdatedAt             int64   `json:"updated_at" bson:"updated_at"`
 	CreatedAt             int64   `json:"created_at" bson:"created_at"`
+	RevokedTimestamp      int64   `json:"revoked_timestamp" bson:"revoked_timestamp"`
 }
 
 func (user *User) AsAPIUser() *model.User {
@@ -35,6 +36,7 @@ func (user *User) AsAPIUser() *model.User {
 	email := user.Email
 	createdAt := user.CreatedAt
 	updatedAt := user.UpdatedAt
+	revokedTimestamp := user.RevokedTimestamp
 	return &model.User{
 		ID:                  user.ID,
 		Email:               user.Email,
@@ -53,5 +55,6 @@ func (user *User) AsAPIUser() *model.User {
 		Roles:               strings.Split(user.Roles, ","),
 		CreatedAt:           &createdAt,
 		UpdatedAt:           &updatedAt,
+		RevokedTimestamp:    &revokedTimestamp,
 	}
 }

@@ -79,6 +79,14 @@ func (r *mutationResolver) InviteMembers(ctx context.Context, params model.Invit
 	return resolvers.InviteMembersResolver(ctx, params)
 }
 
+func (r *mutationResolver) RevokeAccess(ctx context.Context, param model.UpdateAccessInput) (*model.Response, error) {
+	return resolvers.RevokeAccessResolver(ctx, param)
+}
+
+func (r *mutationResolver) EnableAccess(ctx context.Context, param model.UpdateAccessInput) (*model.Response, error) {
+	return resolvers.EnableAccessResolver(ctx, param)
+}
+
 func (r *queryResolver) Meta(ctx context.Context) (*model.Meta, error) {
 	return resolvers.MetaResolver(ctx)
 }
