@@ -34,46 +34,11 @@ import {
 	HMACEncryptionType,
 	RSAEncryptionType,
 	ECDSAEncryptionType,
+	envVarTypes,
 } from '../constants';
 import { UpdateEnvVariables } from '../graphql/mutation';
 import { getObjectDiff, capitalizeFirstLetter } from '../utils';
-
-interface envVarTypes {
-	GOOGLE_CLIENT_ID: string;
-	GOOGLE_CLIENT_SECRET: string;
-	GITHUB_CLIENT_ID: string;
-	GITHUB_CLIENT_SECRET: string;
-	FACEBOOK_CLIENT_ID: string;
-	FACEBOOK_CLIENT_SECRET: string;
-	ROLES: [string] | [];
-	DEFAULT_ROLES: [string] | [];
-	PROTECTED_ROLES: [string] | [];
-	JWT_TYPE: string;
-	JWT_SECRET: string;
-	JWT_ROLE_CLAIM: string;
-	JWT_PRIVATE_KEY: string;
-	JWT_PUBLIC_KEY: string;
-	REDIS_URL: string;
-	SMTP_HOST: string;
-	SMTP_PORT: string;
-	SMTP_USERNAME: string;
-	SMTP_PASSWORD: string;
-	SENDER_EMAIL: string;
-	ALLOWED_ORIGINS: [string] | [];
-	ORGANIZATION_NAME: string;
-	ORGANIZATION_LOGO: string;
-	CUSTOM_ACCESS_TOKEN_SCRIPT: string;
-	ADMIN_SECRET: string;
-	DISABLE_LOGIN_PAGE: boolean;
-	DISABLE_MAGIC_LINK_LOGIN: boolean;
-	DISABLE_EMAIL_VERIFICATION: boolean;
-	DISABLE_BASIC_AUTHENTICATION: boolean;
-	DISABLE_SIGN_UP: boolean;
-	OLD_ADMIN_SECRET: string;
-	DATABASE_NAME: string;
-	DATABASE_TYPE: string;
-	DATABASE_URL: string;
-}
+import GenerateKeysModal from '../components/GenerateKeysModal';
 
 export default function Environment() {
 	const client = useClient();
@@ -410,9 +375,23 @@ export default function Environment() {
 				</Flex>
 			</Stack>
 			<Divider marginTop="2%" marginBottom="2%" />
-			<Text fontSize="md" paddingTop="2%" fontWeight="bold">
-				JWT (JSON Web Tokens) Configurations
-			</Text>
+			<Flex
+				width="100%"
+				justifyContent="space-between"
+				alignItems="center"
+				paddingTop="2%"
+			>
+				<Text fontSize="md" fontWeight="bold">
+					JWT (JSON Web Tokens) Configurations
+				</Text>
+				<Flex>
+					<GenerateKeysModal
+						variables={envVariables}
+						setVariables={setEnvVariables}
+						saveEnvHandler={saveHandler}
+					/>
+				</Flex>
+			</Flex>
 			<Stack spacing={6} padding="2% 0%">
 				<Flex>
 					<Flex w="30%" justifyContent="start" alignItems="center">
