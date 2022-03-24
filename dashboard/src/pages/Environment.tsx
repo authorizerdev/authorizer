@@ -215,7 +215,7 @@ export default function Environment() {
 							setVariables={() => {}}
 							inputType={TextInputType.CLIENT_ID}
 							placeholder="Client ID"
-							isDisabled={true}
+							readOnly={true}
 						/>
 					</Center>
 				</Flex>
@@ -231,7 +231,7 @@ export default function Environment() {
 							setFieldVisibility={setFieldVisibility}
 							inputType={HiddenInputType.CLIENT_SECRET}
 							placeholder="Client Secret"
-							isDisabled={true}
+							readOnly={true}
 						/>
 					</Center>
 				</Flex>
