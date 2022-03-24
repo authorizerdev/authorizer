@@ -36,6 +36,7 @@ func (user *User) AsAPIUser() *model.User {
 	email := user.Email
 	createdAt := user.CreatedAt
 	updatedAt := user.UpdatedAt
+	revokedTimestamp := user.RevokedTimestamp
 	return &model.User{
 		ID:                  user.ID,
 		Email:               user.Email,
@@ -54,6 +55,6 @@ func (user *User) AsAPIUser() *model.User {
 		Roles:               strings.Split(user.Roles, ","),
 		CreatedAt:           &createdAt,
 		UpdatedAt:           &updatedAt,
-		RevokedTimestamp:    user.RevokedTimestamp,
+		RevokedTimestamp:    revokedTimestamp,
 	}
 }
