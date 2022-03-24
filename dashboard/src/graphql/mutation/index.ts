@@ -69,3 +69,13 @@ export const EnableAccess = `
     }
   }
 `;
+
+export const GenerateKeys = `
+  mutation generateKeys($params: GenerateJWTKeysInput!) {
+    _generate_jwt_keys(params: $params) {
+      secret
+      public_key
+      private_key
+    }
+  }
+`;

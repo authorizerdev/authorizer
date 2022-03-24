@@ -19,18 +19,17 @@ import { useClient } from 'urql';
 import { FaSave } from 'react-icons/fa';
 import {
 	ECDSAEncryptionType,
-	envVarTypes,
 	HMACEncryptionType,
 	RSAEncryptionType,
 	SelectInputType,
 	TextAreaInputType,
 } from '../constants';
 import InputField from './InputField';
+import { GenerateKeys, UpdateEnvVariables } from '../graphql/mutation';
 
 interface propTypes {
-	saveEnvHandler: Function;
-	variables: envVarTypes;
-	setVariables: Function;
+	jwtType: string;
+	getData: Function;
 }
 
 interface stateVarTypes {
@@ -47,11 +46,7 @@ const initState: stateVarTypes = {
 	JWT_PUBLIC_KEY: '',
 };
 
-const GenerateKeysModal = ({
-	saveEnvHandler,
-	variables,
-	setVariables,
-}: propTypes) => {
+const GenerateKeysModal = ({ jwtType, getData }: propTypes) => {
 	const client = useClient();
 	const toast = useToast();
 	const { isOpen, onOpen, onClose } = useDisclosure();
@@ -60,17 +55,26 @@ const GenerateKeysModal = ({
 	});
 	React.useEffect(() => {
 		if (isOpen) {
-			setStateVariables({ ...initState, JWT_TYPE: variables.JWT_TYPE });
+			setStateVariables({ ...initState, JWT_TYPE: jwtType });
 		}
 	}, [isOpen]);
-	const setKeys = () => {
-		// fetch keys from api
-		console.log('calling setKeys ==>> ', stateVariables.JWT_TYPE);
-		if (true) {
-			if (Object.values(HMACEncryptionType).includes(stateVariables.JWT_TYPE)) {
+	const fetchKeys = async () => {
+		const res = await client
+			.mutation(GenerateKeys, { params: { type: stateVariables.JWT_TYPE } })
+			.toPromise();
+		if (res?.error) {
+			toast({
+				title: 'Error occurred generating jwt keys',
+				isClosable: true,
+				status: 'error',
+				position: 'bottom-right',
+			});
+			closeHandler();
+		} else {
+			if (res?.data?._generate_jwt_keys?.secret) {
 				setStateVariables({
 					...stateVariables,
-					JWT_SECRET: 'hello_world',
+					JWT_SECRET: res.data._generate_jwt_keys.secret,
 					JWT_PRIVATE_KEY: '',
 					JWT_PUBLIC_KEY: '',
 				});
@@ -78,39 +82,45 @@ const GenerateKeysModal = ({
 				setStateVariables({
 					...stateVariables,
 					JWT_SECRET: '',
-					JWT_PRIVATE_KEY: 'test private key',
-					JWT_PUBLIC_KEY: 'test public key',
+					JWT_PRIVATE_KEY: res.data._generate_jwt_keys.private_key,
+					JWT_PUBLIC_KEY: res.data._generate_jwt_keys.public_key,
 				});
 			}
+		}
+	};
+	React.useEffect(() => {
+		if (isOpen && stateVariables.JWT_TYPE) {
+			fetchKeys();
+		}
+	}, [stateVariables.JWT_TYPE]);
+	const saveHandler = async () => {
+		const res = await client
+			.mutation(UpdateEnvVariables, { params: { ...stateVariables } })
+			.toPromise();
+
+		if (res.error) {
 			toast({
-				title: 'New keys generated',
-				isClosable: true,
-				status: 'success',
-				position: 'bottom-right',
-			});
-		} else {
-			toast({
-				title: 'Error occurred generating keys',
+				title: 'Error occurred setting jwt keys',
 				isClosable: true,
 				status: 'error',
 				position: 'bottom-right',
 			});
-			closeHandler();
+
+			return;
 		}
-	};
-	React.useEffect(() => {
-		if (isOpen) {
-			setKeys();
-		}
-	}, [stateVariables.JWT_TYPE]);
-	const saveHandler = async () => {
-		setVariables({ ...variables, ...stateVariables });
-		saveEnvHandler();
+		toast({
+			title: 'JWT keys updated successfully',
+			isClosable: true,
+			status: 'success',
+			position: 'bottom-right',
+		});
 		closeHandler();
 	};
-	const closeHandler = async () => {
+
+	const closeHandler = () => {
 		setStateVariables({ ...initState });
 		onClose();
+		getData();
 	};
 	return (
 		<>
@@ -149,10 +159,10 @@ const GenerateKeysModal = ({
 							stateVariables.JWT_TYPE
 						) ? (
 							<Flex marginTop="8">
-								<Flex w="30%" justifyContent="start" alignItems="center">
+								<Flex w="23%" justifyContent="start" alignItems="center">
 									<Text fontSize="sm">JWT Secret</Text>
 								</Flex>
-								<Center w="70%">
+								<Center w="77%">
 									<Input
 										size="sm"
 										value={stateVariables.JWT_SECRET}
@@ -168,10 +178,10 @@ const GenerateKeysModal = ({
 						) : (
 							<>
 								<Flex marginTop="8">
-									<Flex w="30%" justifyContent="start" alignItems="center">
+									<Flex w="23%" justifyContent="start" alignItems="center">
 										<Text fontSize="sm">Public Key</Text>
 									</Flex>
-									<Center w="70%">
+									<Center w="77%">
 										<InputField
 											variables={stateVariables}
 											setVariables={setStateVariables}
@@ -182,10 +192,10 @@ const GenerateKeysModal = ({
 									</Center>
 								</Flex>
 								<Flex marginTop="8">
-									<Flex w="30%" justifyContent="start" alignItems="center">
+									<Flex w="23%" justifyContent="start" alignItems="center">
 										<Text fontSize="sm">Private Key</Text>
 									</Flex>
-									<Center w="70%">
+									<Center w="77%">
 										<InputField
 											variables={stateVariables}
 											setVariables={setStateVariables}
@@ -202,7 +212,7 @@ const GenerateKeysModal = ({
 					<ModalFooter>
 						<Button
 							leftIcon={<FaSave />}
-							colorScheme="red"
+							colorScheme="blue"
 							variant="solid"
 							onClick={saveHandler}
 							isDisabled={false}

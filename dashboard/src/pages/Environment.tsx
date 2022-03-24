@@ -99,32 +99,24 @@ export default function Environment() {
 		OLD_ADMIN_SECRET: false,
 	});
 
+	async function getData() {
+		const {
+			data: { _env: envData },
+		} = await client.query(EnvVariablesQuery).toPromise();
+		setLoading(false);
+		setEnvVariables({
+			...envData,
+			OLD_ADMIN_SECRET: envData.ADMIN_SECRET,
+			ADMIN_SECRET: '',
+		});
+		setAdminSecret({
+			value: '',
+			disableInputField: true,
+		});
+	}
+
 	useEffect(() => {
-		let isMounted = true;
-		async function getData() {
-			const {
-				data: { _env: envData },
-			} = await client.query(EnvVariablesQuery).toPromise();
-
-			if (isMounted) {
-				setLoading(false);
-				setEnvVariables({
-					...envData,
-					OLD_ADMIN_SECRET: envData.ADMIN_SECRET,
-					ADMIN_SECRET: '',
-				});
-				setAdminSecret({
-					value: '',
-					disableInputField: true,
-				});
-			}
-		}
-
 		getData();
-
-		return () => {
-			isMounted = false;
-		};
 	}, []);
 
 	const validateAdminSecretHandler = (event: any) => {
@@ -386,9 +378,8 @@ export default function Environment() {
 				</Text>
 				<Flex>
 					<GenerateKeysModal
-						variables={envVariables}
-						setVariables={setEnvVariables}
-						saveEnvHandler={saveHandler}
+						jwtType={envVariables.JWT_TYPE}
+						getData={getData}
 					/>
 				</Flex>
 			</Flex>
