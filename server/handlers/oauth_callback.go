@@ -95,7 +95,7 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			user.EmailVerifiedAt = &now
 			user, _ = db.Provider.AddUser(user)
 		} else {
-			if user.RevokedTimestamp != 0 {
+			if user.RevokedTimestamp != nil {
 				c.JSON(400, gin.H{"error": "user access has been revoked"})
 			}
 

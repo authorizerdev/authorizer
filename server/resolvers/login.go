@@ -35,7 +35,7 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 		return res, fmt.Errorf(`user with this email not found`)
 	}
 
-	if user.RevokedTimestamp != 0 {
+	if user.RevokedTimestamp != nil {
 		return res, fmt.Errorf(`user access has been revoked`)
 	}
 

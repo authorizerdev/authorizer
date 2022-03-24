@@ -11,7 +11,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
-// AllowAccessResolver is a resolver for delete user mutation
+// EnableAccessResolver is a resolver for enabling user access
 func EnableAccessResolver(ctx context.Context, params model.UpdateAccessInput) (*model.Response, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	var res *model.Response
@@ -28,7 +28,7 @@ func EnableAccessResolver(ctx context.Context, params model.UpdateAccessInput) (
 		return res, err
 	}
 
-	user.RevokedTimestamp = 0
+	user.RevokedTimestamp = nil
 
 	user, err = db.Provider.UpdateUser(user)
 	if err != nil {
@@ -37,7 +37,7 @@ func EnableAccessResolver(ctx context.Context, params model.UpdateAccessInput) (
 	}
 
 	res = &model.Response{
-		Message: `access allowed successfully`,
+		Message: `user access enabled successfully`,
 	}
 
 	return res, nil

@@ -13,7 +13,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
-// RevokeAccessResolver is a resolver for delete user mutation
+// RevokeAccessResolver is a resolver for revoking user access
 func RevokeAccessResolver(ctx context.Context, params model.UpdateAccessInput) (*model.Response, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	var res *model.Response
@@ -30,7 +30,8 @@ func RevokeAccessResolver(ctx context.Context, params model.UpdateAccessInput) (
 		return res, err
 	}
 
-	user.RevokedTimestamp = time.Now().Unix()
+	now := time.Now().Unix()
+	user.RevokedTimestamp = &now
 
 	user, err = db.Provider.UpdateUser(user)
 	if err != nil {
@@ -41,7 +42,7 @@ func RevokeAccessResolver(ctx context.Context, params model.UpdateAccessInput) (
 	go sessionstore.DeleteAllUserSession(fmt.Sprintf("%x", user.ID))
 
 	res = &model.Response{
-		Message: `access revoked successfully`,
+		Message: `user access revoked successfully`,
 	}
 
 	return res, nil
