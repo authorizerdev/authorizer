@@ -161,7 +161,12 @@ func GetAccessToken(gc *gin.Context) (string, error) {
 		return "", fmt.Errorf(`unauthorized`)
 	}
 
-	if !strings.HasPrefix(auth, "Bearer ") {
+	authSplit := strings.Split(auth, " ")
+	if len(authSplit) != 2 {
+		return "", fmt.Errorf(`unauthorized`)
+	}
+
+	if strings.ToLower(authSplit[0]) != "bearer" {
 		return "", fmt.Errorf(`not a bearer token`)
 	}
 
@@ -350,7 +355,12 @@ func GetIDToken(gc *gin.Context) (string, error) {
 		return "", fmt.Errorf(`unauthorized`)
 	}
 
-	if !strings.HasPrefix(auth, "Bearer ") {
+	authSplit := strings.Split(auth, " ")
+	if len(authSplit) != 2 {
+		return "", fmt.Errorf(`unauthorized`)
+	}
+
+	if strings.ToLower(authSplit[0]) != "bearer" {
 		return "", fmt.Errorf(`not a bearer token`)
 	}
 

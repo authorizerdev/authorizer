@@ -91,6 +91,10 @@ func (r *queryResolver) Profile(ctx context.Context) (*model.User, error) {
 	return resolvers.ProfileResolver(ctx)
 }
 
+func (r *queryResolver) ValidateJwtToken(ctx context.Context, params model.ValidateJWTTokenInput) (*model.ValidateJWTTokenResponse, error) {
+	return resolvers.ValidateJwtTokenResolver(ctx, params)
+}
+
 func (r *queryResolver) Users(ctx context.Context, params *model.PaginatedInput) (*model.Users, error) {
 	return resolvers.UsersResolver(ctx, params)
 }
@@ -113,5 +117,7 @@ func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResol
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
-type mutationResolver struct{ *Resolver }
-type queryResolver struct{ *Resolver }
+type (
+	mutationResolver struct{ *Resolver }
+	queryResolver    struct{ *Resolver }
+)
