@@ -206,14 +206,14 @@ export default function Users() {
 					.toPromise();
 				if (enableAccessRes.error) {
 					toast({
-						title: 'Access enable failed',
+						title: 'User access enable failed',
 						isClosable: true,
 						status: 'error',
 						position: 'bottom-right',
 					});
 				} else {
 					toast({
-						title: 'Access enable successful',
+						title: 'User access enabled successfully',
 						isClosable: true,
 						status: 'success',
 						position: 'bottom-right',
@@ -231,14 +231,14 @@ export default function Users() {
 					.toPromise();
 				if (revokeAccessRes.error) {
 					toast({
-						title: 'Access revoke failed',
+						title: 'User access revoke failed',
 						isClosable: true,
 						status: 'error',
 						position: 'bottom-right',
 					});
 				} else {
 					toast({
-						title: 'Access revoke successful',
+						title: 'User access revoked successfully',
 						isClosable: true,
 						status: 'success',
 						position: 'bottom-right',
