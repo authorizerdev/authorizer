@@ -53,11 +53,19 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 	}
 
 	if isJWTUpdated {
+		// use to reset when type is changed from rsa, edsa -> hmac or vice a versa
+		defaultSecret := ""
+		defaultPublicKey := ""
+		defaultPrivateKey := ""
 		// check if jwt secret is provided
 		if crypto.IsHMACA(algo) {
 			if params.JwtSecret == nil {
 				return res, fmt.Errorf("jwt secret is required for HMAC algorithm")
 			}
+
+			// reset public key and private key
+			params.JwtPrivateKey = &defaultPrivateKey
+			params.JwtPublicKey = &defaultPublicKey
 		}
 
 		if crypto.IsRSA(algo) {
@@ -65,6 +73,8 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 				return res, fmt.Errorf("jwt private and public key is required for RSA (PKCS1) / ECDSA algorithm")
 			}
 
+			// reset the jwt secret
+			params.JwtSecret = &defaultSecret
 			_, err = crypto.ParseRsaPrivateKeyFromPemStr(*params.JwtPrivateKey)
 			if err != nil {
 				return res, err
@@ -81,6 +91,8 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 				return res, fmt.Errorf("jwt private and public key is required for RSA (PKCS1) / ECDSA algorithm")
 			}
 
+			// reset the jwt secret
+			params.JwtSecret = &defaultSecret
 			_, err = crypto.ParseEcdsaPrivateKeyFromPemStr(*params.JwtPrivateKey)
 			if err != nil {
 				return res, err
