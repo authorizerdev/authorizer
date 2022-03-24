@@ -281,7 +281,7 @@ export default function Users() {
 								const { email_verified, created_at, ...rest }: any = user;
 								return (
 									<Tr key={user.id} style={{ fontSize: 14 }}>
-										<Td>{user.email}</Td>
+										<Td maxW="300">{user.email}</Td>
 										<Td>
 											{dayjs(user.created_at * 1000).format('MMM DD, YYYY')}
 										</Td>
