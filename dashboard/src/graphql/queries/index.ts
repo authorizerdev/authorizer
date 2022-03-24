@@ -81,6 +81,7 @@ export const UserDetailsQuery = `
         signup_methods
         roles
         created_at
+        revoked_timestamp
       }
     }
   }
