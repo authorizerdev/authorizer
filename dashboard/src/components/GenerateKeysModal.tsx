@@ -71,21 +71,12 @@ const GenerateKeysModal = ({ jwtType, getData }: propTypes) => {
 			});
 			closeHandler();
 		} else {
-			if (res?.data?._generate_jwt_keys?.secret) {
-				setStateVariables({
-					...stateVariables,
-					JWT_SECRET: res.data._generate_jwt_keys.secret,
-					JWT_PRIVATE_KEY: '',
-					JWT_PUBLIC_KEY: '',
-				});
-			} else {
-				setStateVariables({
-					...stateVariables,
-					JWT_SECRET: '',
-					JWT_PRIVATE_KEY: res.data._generate_jwt_keys.private_key,
-					JWT_PUBLIC_KEY: res.data._generate_jwt_keys.public_key,
-				});
-			}
+			setStateVariables({
+				...stateVariables,
+				JWT_SECRET: res?.data?._generate_jwt_keys?.secret || '',
+				JWT_PRIVATE_KEY: res?.data?._generate_jwt_keys?.private_key || '',
+				JWT_PUBLIC_KEY: res?.data?._generate_jwt_keys?.public_key || '',
+			});
 		}
 	};
 	React.useEffect(() => {
