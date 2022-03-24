@@ -48,6 +48,7 @@ func TestResolvers(t *testing.T) {
 			adminSessionTests(t, s)
 			updateEnvTests(t, s)
 			envTests(t, s)
+			generateJWTkeyTest(t, s)
 
 			// user tests
 			loginTests(t, s)
