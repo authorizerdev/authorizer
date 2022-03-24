@@ -187,6 +187,8 @@ export default function Environment() {
 			disableInputField: true,
 		});
 
+		getData();
+
 		toast({
 			title: `Successfully updated ${
 				Object.keys(updatedEnvVariables).length
