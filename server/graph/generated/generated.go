@@ -146,6 +146,7 @@ type ComplexityRoot struct {
 		Profile              func(childComplexity int) int
 		Session              func(childComplexity int, params *model.SessionQueryInput) int
 		Users                func(childComplexity int, params *model.PaginatedInput) int
+		ValidateJwtToken     func(childComplexity int, params model.ValidateJWTTokenInput) int
 		VerificationRequests func(childComplexity int, params *model.PaginatedInput) int
 	}
 
@@ -177,6 +178,10 @@ type ComplexityRoot struct {
 	Users struct {
 		Pagination func(childComplexity int) int
 		Users      func(childComplexity int) int
+	}
+
+	ValidateJWTTokenResponse struct {
+		IsValid func(childComplexity int) int
 	}
 
 	VerificationRequest struct {
@@ -222,6 +227,7 @@ type QueryResolver interface {
 	Meta(ctx context.Context) (*model.Meta, error)
 	Session(ctx context.Context, params *model.SessionQueryInput) (*model.AuthResponse, error)
 	Profile(ctx context.Context) (*model.User, error)
+	ValidateJwtToken(ctx context.Context, params model.ValidateJWTTokenInput) (*model.ValidateJWTTokenResponse, error)
 	Users(ctx context.Context, params *model.PaginatedInput) (*model.Users, error)
 	VerificationRequests(ctx context.Context, params *model.PaginatedInput) (*model.VerificationRequests, error)
 	AdminSession(ctx context.Context) (*model.Response, error)
@@ -926,6 +932,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Users(childComplexity, args["params"].(*model.PaginatedInput)), true
 
+	case "Query.validate_jwt_token":
+		if e.complexity.Query.ValidateJwtToken == nil {
+			break
+		}
+
+		args, err := ec.field_Query_validate_jwt_token_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.ValidateJwtToken(childComplexity, args["params"].(model.ValidateJWTTokenInput)), true
+
 	case "Query._verification_requests":
 		if e.complexity.Query.VerificationRequests == nil {
 			break
@@ -1084,6 +1102,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Users.Users(childComplexity), true
+
+	case "ValidateJWTTokenResponse.is_valid":
+		if e.complexity.ValidateJWTTokenResponse.IsValid == nil {
+			break
+		}
+
+		return e.complexity.ValidateJWTTokenResponse.IsValid(childComplexity), true
 
 	case "VerificationRequest.created_at":
 		if e.complexity.VerificationRequest.CreatedAt == nil {
@@ -1355,6 +1380,10 @@ type Env {
 	ORGANIZATION_LOGO: String
 }
 
+type ValidateJWTTokenResponse {
+	is_valid: Boolean!
+}
+
 input UpdateEnvInput {
 	ADMIN_SECRET: String
 	CUSTOM_ACCESS_TOKEN_SCRIPT: String
@@ -1514,6 +1543,12 @@ input UpdateAccessInput {
 	user_id: String!
 }
 
+input ValidateJWTTokenInput {
+	token_type: String!
+	token: String!
+	roles: [String!]
+}
+
 type Mutation {
 	signup(params: SignUpInput!): AuthResponse!
 	login(params: LoginInput!): AuthResponse!
@@ -1541,6 +1576,7 @@ type Query {
 	meta: Meta!
 	session(params: SessionQueryInput): AuthResponse!
 	profile: User!
+	validate_jwt_token(params: ValidateJWTTokenInput!): ValidateJWTTokenResponse!
 	# admin only apis
 	_users(params: PaginatedInput): Users!
 	_verification_requests(params: PaginatedInput): VerificationRequests!
@@ -1862,6 +1898,21 @@ func (ec *executionContext) field_Query_session_args(ctx context.Context, rawArg
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
 		arg0, err = ec.unmarshalOSessionQueryInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐSessionQueryInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["params"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_validate_jwt_token_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.ValidateJWTTokenInput
+	if tmp, ok := rawArgs["params"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+		arg0, err = ec.unmarshalNValidateJWTTokenInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐValidateJWTTokenInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -4755,6 +4806,48 @@ func (ec *executionContext) _Query_profile(ctx context.Context, field graphql.Co
 	return ec.marshalNUser2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Query_validate_jwt_token(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_validate_jwt_token_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().ValidateJwtToken(rctx, args["params"].(model.ValidateJWTTokenInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.ValidateJWTTokenResponse)
+	fc.Result = res
+	return ec.marshalNValidateJWTTokenResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐValidateJWTTokenResponse(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query__users(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -5674,6 +5767,41 @@ func (ec *executionContext) _Users_users(ctx context.Context, field graphql.Coll
 	res := resTmp.([]*model.User)
 	fc.Result = res
 	return ec.marshalNUser2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUserᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ValidateJWTTokenResponse_is_valid(ctx context.Context, field graphql.CollectedField, obj *model.ValidateJWTTokenResponse) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "ValidateJWTTokenResponse",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsValid, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _VerificationRequest_id(ctx context.Context, field graphql.CollectedField, obj *model.VerificationRequest) (ret graphql.Marshaler) {
@@ -8237,6 +8365,45 @@ func (ec *executionContext) unmarshalInputUpdateUserInput(ctx context.Context, o
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputValidateJWTTokenInput(ctx context.Context, obj interface{}) (model.ValidateJWTTokenInput, error) {
+	var it model.ValidateJWTTokenInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "token_type":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("token_type"))
+			it.TokenType, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "token":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("token"))
+			it.Token, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "roles":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("roles"))
+			it.Roles, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputVerifyEmailInput(ctx context.Context, obj interface{}) (model.VerifyEmailInput, error) {
 	var it model.VerifyEmailInput
 	asMap := map[string]interface{}{}
@@ -8737,6 +8904,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				}
 				return res
 			})
+		case "validate_jwt_token":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_validate_jwt_token(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "_users":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -8926,6 +9107,33 @@ func (ec *executionContext) _Users(ctx context.Context, sel ast.SelectionSet, ob
 			}
 		case "users":
 			out.Values[i] = ec._Users_users(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var validateJWTTokenResponseImplementors = []string{"ValidateJWTTokenResponse"}
+
+func (ec *executionContext) _ValidateJWTTokenResponse(ctx context.Context, sel ast.SelectionSet, obj *model.ValidateJWTTokenResponse) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, validateJWTTokenResponseImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ValidateJWTTokenResponse")
+		case "is_valid":
+			out.Values[i] = ec._ValidateJWTTokenResponse_is_valid(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -9572,6 +9780,25 @@ func (ec *executionContext) marshalNUsers2ᚖgithubᚗcomᚋauthorizerdevᚋauth
 		return graphql.Null
 	}
 	return ec._Users(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNValidateJWTTokenInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐValidateJWTTokenInput(ctx context.Context, v interface{}) (model.ValidateJWTTokenInput, error) {
+	res, err := ec.unmarshalInputValidateJWTTokenInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNValidateJWTTokenResponse2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐValidateJWTTokenResponse(ctx context.Context, sel ast.SelectionSet, v model.ValidateJWTTokenResponse) graphql.Marshaler {
+	return ec._ValidateJWTTokenResponse(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNValidateJWTTokenResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐValidateJWTTokenResponse(ctx context.Context, sel ast.SelectionSet, v *model.ValidateJWTTokenResponse) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._ValidateJWTTokenResponse(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNVerificationRequest2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐVerificationRequestᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.VerificationRequest) graphql.Marshaler {

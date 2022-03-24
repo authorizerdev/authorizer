@@ -63,6 +63,7 @@ func TestResolvers(t *testing.T) {
 			logoutTests(t, s)
 			metaTests(t, s)
 			inviteUserTest(t, s)
+			validateJwtTokenTest(t, s)
 		})
 	}
 }

@@ -99,6 +99,10 @@ func (r *queryResolver) Profile(ctx context.Context) (*model.User, error) {
 	return resolvers.ProfileResolver(ctx)
 }
 
+func (r *queryResolver) ValidateJwtToken(ctx context.Context, params model.ValidateJWTTokenInput) (*model.ValidateJWTTokenResponse, error) {
+	return resolvers.ValidateJwtTokenResolver(ctx, params)
+}
+
 func (r *queryResolver) Users(ctx context.Context, params *model.PaginatedInput) (*model.Users, error) {
 	return resolvers.UsersResolver(ctx, params)
 }

@@ -127,6 +127,10 @@ type Env {
 	ORGANIZATION_LOGO: String
 }
 
+type ValidateJWTTokenResponse {
+	is_valid: Boolean!
+}
+
 input UpdateEnvInput {
 	ADMIN_SECRET: String
 	CUSTOM_ACCESS_TOKEN_SCRIPT: String
@@ -286,6 +290,12 @@ input UpdateAccessInput {
 	user_id: String!
 }
 
+input ValidateJWTTokenInput {
+	token_type: String!
+	token: String!
+	roles: [String!]
+}
+
 type Mutation {
 	signup(params: SignUpInput!): AuthResponse!
 	login(params: LoginInput!): AuthResponse!
@@ -313,6 +323,7 @@ type Query {
 	meta: Meta!
 	session(params: SessionQueryInput): AuthResponse!
 	profile: User!
+	validate_jwt_token(params: ValidateJWTTokenInput!): ValidateJWTTokenResponse!
 	# admin only apis
 	_users(params: PaginatedInput): Users!
 	_verification_requests(params: PaginatedInput): VerificationRequests!

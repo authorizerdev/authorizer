@@ -261,6 +261,16 @@ type Users struct {
 	Users      []*User     `json:"users"`
 }
 
+type ValidateJWTTokenInput struct {
+	TokenType string   `json:"token_type"`
+	Token     string   `json:"token"`
+	Roles     []string `json:"roles"`
+}
+
+type ValidateJWTTokenResponse struct {
+	IsValid bool `json:"is_valid"`
+}
+
 type VerificationRequest struct {
 	ID          string  `json:"id"`
 	Identifier  *string `json:"identifier"`
