@@ -98,6 +98,12 @@ type ComplexityRoot struct {
 		Reason  func(childComplexity int) int
 	}
 
+	GenerateJWTKeysResponse struct {
+		PrivateKey func(childComplexity int) int
+		PublicKey  func(childComplexity int) int
+		Secret     func(childComplexity int) int
+	}
+
 	Meta struct {
 		ClientID                     func(childComplexity int) int
 		IsBasicAuthenticationEnabled func(childComplexity int) int
@@ -117,6 +123,7 @@ type ComplexityRoot struct {
 		DeleteUser        func(childComplexity int, params model.DeleteUserInput) int
 		EnableAccess      func(childComplexity int, param model.UpdateAccessInput) int
 		ForgotPassword    func(childComplexity int, params model.ForgotPasswordInput) int
+		GenerateJwtKeys   func(childComplexity int, params model.GenerateJWTKeysInput) int
 		InviteMembers     func(childComplexity int, params model.InviteMemberInput) int
 		Login             func(childComplexity int, params model.LoginInput) int
 		Logout            func(childComplexity int) int
@@ -222,6 +229,7 @@ type MutationResolver interface {
 	InviteMembers(ctx context.Context, params model.InviteMemberInput) (*model.Response, error)
 	RevokeAccess(ctx context.Context, param model.UpdateAccessInput) (*model.Response, error)
 	EnableAccess(ctx context.Context, param model.UpdateAccessInput) (*model.Response, error)
+	GenerateJwtKeys(ctx context.Context, params model.GenerateJWTKeysInput) (*model.GenerateJWTKeysResponse, error)
 }
 type QueryResolver interface {
 	Meta(ctx context.Context) (*model.Meta, error)
@@ -571,6 +579,27 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Error.Reason(childComplexity), true
 
+	case "GenerateJWTKeysResponse.private_key":
+		if e.complexity.GenerateJWTKeysResponse.PrivateKey == nil {
+			break
+		}
+
+		return e.complexity.GenerateJWTKeysResponse.PrivateKey(childComplexity), true
+
+	case "GenerateJWTKeysResponse.public_key":
+		if e.complexity.GenerateJWTKeysResponse.PublicKey == nil {
+			break
+		}
+
+		return e.complexity.GenerateJWTKeysResponse.PublicKey(childComplexity), true
+
+	case "GenerateJWTKeysResponse.secret":
+		if e.complexity.GenerateJWTKeysResponse.Secret == nil {
+			break
+		}
+
+		return e.complexity.GenerateJWTKeysResponse.Secret(childComplexity), true
+
 	case "Meta.client_id":
 		if e.complexity.Meta.ClientID == nil {
 			break
@@ -700,6 +729,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.ForgotPassword(childComplexity, args["params"].(model.ForgotPasswordInput)), true
+
+	case "Mutation._generate_jwt_keys":
+		if e.complexity.Mutation.GenerateJwtKeys == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__generate_jwt_keys_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.GenerateJwtKeys(childComplexity, args["params"].(model.GenerateJWTKeysInput)), true
 
 	case "Mutation._invite_members":
 		if e.complexity.Mutation.InviteMembers == nil {
@@ -1384,6 +1425,12 @@ type ValidateJWTTokenResponse {
 	is_valid: Boolean!
 }
 
+type GenerateJWTKeysResponse {
+	secret: String
+	public_key: String
+	private_key: String
+}
+
 input UpdateEnvInput {
 	ADMIN_SECRET: String
 	CUSTOM_ACCESS_TOKEN_SCRIPT: String
@@ -1549,6 +1596,10 @@ input ValidateJWTTokenInput {
 	roles: [String!]
 }
 
+input GenerateJWTKeysInput {
+	type: String!
+}
+
 type Mutation {
 	signup(params: SignUpInput!): AuthResponse!
 	login(params: LoginInput!): AuthResponse!
@@ -1570,6 +1621,7 @@ type Mutation {
 	_invite_members(params: InviteMemberInput!): Response!
 	_revoke_access(param: UpdateAccessInput!): Response!
 	_enable_access(param: UpdateAccessInput!): Response!
+	_generate_jwt_keys(params: GenerateJWTKeysInput!): GenerateJWTKeysResponse!
 }
 
 type Query {
@@ -1648,6 +1700,21 @@ func (ec *executionContext) field_Mutation__enable_access_args(ctx context.Conte
 		}
 	}
 	args["param"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation__generate_jwt_keys_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.GenerateJWTKeysInput
+	if tmp, ok := rawArgs["params"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+		arg0, err = ec.unmarshalNGenerateJWTKeysInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐGenerateJWTKeysInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["params"] = arg0
 	return args, nil
 }
 
@@ -3455,6 +3522,102 @@ func (ec *executionContext) _Error_reason(ctx context.Context, field graphql.Col
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _GenerateJWTKeysResponse_secret(ctx context.Context, field graphql.CollectedField, obj *model.GenerateJWTKeysResponse) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "GenerateJWTKeysResponse",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Secret, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _GenerateJWTKeysResponse_public_key(ctx context.Context, field graphql.CollectedField, obj *model.GenerateJWTKeysResponse) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "GenerateJWTKeysResponse",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.PublicKey, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _GenerateJWTKeysResponse_private_key(ctx context.Context, field graphql.CollectedField, obj *model.GenerateJWTKeysResponse) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "GenerateJWTKeysResponse",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.PrivateKey, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Meta_version(ctx context.Context, field graphql.CollectedField, obj *model.Meta) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -4552,6 +4715,48 @@ func (ec *executionContext) _Mutation__enable_access(ctx context.Context, field 
 	res := resTmp.(*model.Response)
 	fc.Result = res
 	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation__generate_jwt_keys(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation__generate_jwt_keys_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().GenerateJwtKeys(rctx, args["params"].(model.GenerateJWTKeysInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.GenerateJWTKeysResponse)
+	fc.Result = res
+	return ec.marshalNGenerateJWTKeysResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐGenerateJWTKeysResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Pagination_limit(ctx context.Context, field graphql.CollectedField, obj *model.Pagination) (ret graphql.Marshaler) {
@@ -7395,6 +7600,29 @@ func (ec *executionContext) unmarshalInputForgotPasswordInput(ctx context.Contex
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputGenerateJWTKeysInput(ctx context.Context, obj interface{}) (model.GenerateJWTKeysInput, error) {
+	var it model.GenerateJWTKeysInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "type":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("type"))
+			it.Type, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputInviteMemberInput(ctx context.Context, obj interface{}) (model.InviteMemberInput, error) {
 	var it model.InviteMemberInput
 	asMap := map[string]interface{}{}
@@ -8617,6 +8845,34 @@ func (ec *executionContext) _Error(ctx context.Context, sel ast.SelectionSet, ob
 	return out
 }
 
+var generateJWTKeysResponseImplementors = []string{"GenerateJWTKeysResponse"}
+
+func (ec *executionContext) _GenerateJWTKeysResponse(ctx context.Context, sel ast.SelectionSet, obj *model.GenerateJWTKeysResponse) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, generateJWTKeysResponseImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("GenerateJWTKeysResponse")
+		case "secret":
+			out.Values[i] = ec._GenerateJWTKeysResponse_secret(ctx, field, obj)
+		case "public_key":
+			out.Values[i] = ec._GenerateJWTKeysResponse_public_key(ctx, field, obj)
+		case "private_key":
+			out.Values[i] = ec._GenerateJWTKeysResponse_private_key(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var metaImplementors = []string{"Meta"}
 
 func (ec *executionContext) _Meta(ctx context.Context, sel ast.SelectionSet, obj *model.Meta) graphql.Marshaler {
@@ -8791,6 +9047,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "_enable_access":
 			out.Values[i] = ec._Mutation__enable_access(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "_generate_jwt_keys":
+			out.Values[i] = ec._Mutation__generate_jwt_keys(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -9534,6 +9795,25 @@ func (ec *executionContext) marshalNEnv2ᚖgithubᚗcomᚋauthorizerdevᚋauthor
 func (ec *executionContext) unmarshalNForgotPasswordInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐForgotPasswordInput(ctx context.Context, v interface{}) (model.ForgotPasswordInput, error) {
 	res, err := ec.unmarshalInputForgotPasswordInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNGenerateJWTKeysInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐGenerateJWTKeysInput(ctx context.Context, v interface{}) (model.GenerateJWTKeysInput, error) {
+	res, err := ec.unmarshalInputGenerateJWTKeysInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNGenerateJWTKeysResponse2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐGenerateJWTKeysResponse(ctx context.Context, sel ast.SelectionSet, v model.GenerateJWTKeysResponse) graphql.Marshaler {
+	return ec._GenerateJWTKeysResponse(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNGenerateJWTKeysResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐGenerateJWTKeysResponse(ctx context.Context, sel ast.SelectionSet, v *model.GenerateJWTKeysResponse) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._GenerateJWTKeysResponse(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNID2string(ctx context.Context, v interface{}) (string, error) {

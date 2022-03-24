@@ -75,6 +75,16 @@ type ForgotPasswordInput struct {
 	RedirectURI *string `json:"redirect_uri"`
 }
 
+type GenerateJWTKeysInput struct {
+	Type string `json:"type"`
+}
+
+type GenerateJWTKeysResponse struct {
+	Secret     *string `json:"secret"`
+	PublicKey  *string `json:"public_key"`
+	PrivateKey *string `json:"private_key"`
+}
+
 type InviteMemberInput struct {
 	Emails      []string `json:"emails"`
 	RedirectURI *string  `json:"redirect_uri"`

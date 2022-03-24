@@ -87,6 +87,10 @@ func (r *mutationResolver) EnableAccess(ctx context.Context, param model.UpdateA
 	return resolvers.EnableAccessResolver(ctx, param)
 }
 
+func (r *mutationResolver) GenerateJwtKeys(ctx context.Context, params model.GenerateJWTKeysInput) (*model.GenerateJWTKeysResponse, error) {
+	return resolvers.GenerateJWTKeysResolver(ctx, params)
+}
+
 func (r *queryResolver) Meta(ctx context.Context) (*model.Meta, error) {
 	return resolvers.MetaResolver(ctx)
 }
