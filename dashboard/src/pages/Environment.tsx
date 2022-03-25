@@ -618,11 +618,12 @@ export default function Environment() {
 					</Flex>
 				</Flex>
 				<Flex>
-					<Flex w="30%" justifyContent="start" alignItems="center">
-						<Text fontSize="sm">Custom Access Token Scripts:</Text>
+					<Flex w="30%" justifyContent="start" direction="column">
+						<Text fontSize="sm">Custom Scripts:</Text>
+						<Text fontSize="sm">Used to add custom fields in ID token</Text>
 					</Flex>
 					<Flex w="70%">
-					<InputField
+						<InputField
 							variables={envVariables}
 							setVariables={setEnvVariables}
 							inputType={TextAreaInputType.CUSTOM_ACCESS_TOKEN_SCRIPT}

@@ -132,7 +132,7 @@ func CreateRefreshToken(user models.User, roles, scopes []string, hostname, nonc
 func CreateAccessToken(user models.User, roles, scopes []string, hostName, nonce string) (string, int64, error) {
 	expiryBound, err := utils.ParseDurationInSeconds(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAccessTokenExpiryTime))
 	if err != nil {
-		expiryBound = time.Minute * 15
+		expiryBound = time.Minute * 30
 	}
 
 	expiresAt := time.Now().Add(expiryBound).Unix()
@@ -288,7 +288,7 @@ func ValidateBrowserSession(gc *gin.Context, encryptedSession string) (*SessionD
 func CreateIDToken(user models.User, roles []string, hostname, nonce string) (string, int64, error) {
 	expiryBound, err := utils.ParseDurationInSeconds(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAccessTokenExpiryTime))
 	if err != nil {
-		expiryBound = time.Minute * 15
+		expiryBound = time.Minute * 30
 	}
 
 	expiresAt := time.Now().Add(expiryBound).Unix()

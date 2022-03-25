@@ -67,6 +67,10 @@ func EnvResolver(ctx context.Context) (*model.Env, error) {
 	organizationName := store.StringEnv[constants.EnvKeyOrganizationName]
 	organizationLogo := store.StringEnv[constants.EnvKeyOrganizationLogo]
 
+	if accessTokenExpiryTime == "" {
+		accessTokenExpiryTime = "30m"
+	}
+
 	res = &model.Env{
 		AccessTokenExpiryTime:      &accessTokenExpiryTime,
 		AdminSecret:                &adminSecret,

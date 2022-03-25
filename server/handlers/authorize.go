@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -52,8 +51,6 @@ func AuthorizeHandler() gin.HandlerFunc {
 			gc.JSON(400, gin.H{"error": "invalid response mode"})
 		}
 
-		fmt.Println("=> redirect URI:", redirectURI)
-		fmt.Println("=> state:", state)
 		if redirectURI == "" {
 			redirectURI = "/app"
 		}
