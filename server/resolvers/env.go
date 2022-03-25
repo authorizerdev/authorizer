@@ -27,6 +27,7 @@ func EnvResolver(ctx context.Context) (*model.Env, error) {
 
 	// get clone of store
 	store := envstore.EnvStoreObj.GetEnvStoreClone()
+	accessTokenExpiryTime := store.StringEnv[constants.EnvKeyAccessTokenExpiryTime]
 	adminSecret := store.StringEnv[constants.EnvKeyAdminSecret]
 	clientID := store.StringEnv[constants.EnvKeyClientID]
 	clientSecret := store.StringEnv[constants.EnvKeyClientSecret]
@@ -67,6 +68,7 @@ func EnvResolver(ctx context.Context) (*model.Env, error) {
 	organizationLogo := store.StringEnv[constants.EnvKeyOrganizationLogo]
 
 	res = &model.Env{
+		AccessTokenExpiryTime:      &accessTokenExpiryTime,
 		AdminSecret:                &adminSecret,
 		DatabaseName:               databaseName,
 		DatabaseURL:                databaseURL,

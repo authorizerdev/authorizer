@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/cookie"
@@ -279,7 +280,11 @@ func AuthorizeHandler() gin.HandlerFunc {
 			sessionstore.SetState(authToken.FingerPrintHash, authToken.FingerPrint+"@"+user.ID)
 			sessionstore.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
 			cookie.SetSession(gc, authToken.FingerPrintHash)
-			expiresIn := int64(1800)
+
+			expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
+			if expiresIn <= 0 {
+				expiresIn = 1
+			}
 
 			// used of query mode
 			params := "access_token=" + authToken.AccessToken.Token + "&token_type=bearer&expires_in=" + strconv.FormatInt(expiresIn, 10) + "&state=" + state + "&id_token=" + authToken.IDToken.Token

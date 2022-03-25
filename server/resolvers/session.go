@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/db"
@@ -73,7 +74,11 @@ func SessionResolver(ctx context.Context, params *model.SessionQueryInput) (*mod
 	sessionstore.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
 	cookie.SetSession(gc, authToken.FingerPrintHash)
 
-	expiresIn := int64(1800)
+	expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
+	if expiresIn <= 0 {
+		expiresIn = 1
+	}
+
 	res = &model.AuthResponse{
 		Message:     `Session token refreshed`,
 		AccessToken: &authToken.AccessToken.Token,

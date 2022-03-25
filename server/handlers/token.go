@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/cookie"
@@ -174,7 +175,11 @@ func TokenHandler() gin.HandlerFunc {
 		sessionstore.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
 		cookie.SetSession(gc, authToken.FingerPrintHash)
 
-		expiresIn := int64(1800)
+		expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
+		if expiresIn <= 0 {
+			expiresIn = 1
+		}
+
 		res := map[string]interface{}{
 			"access_token": authToken.AccessToken.Token,
 			"id_token":     authToken.IDToken.Token,

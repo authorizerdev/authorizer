@@ -24,6 +24,7 @@ type DeleteUserInput struct {
 }
 
 type Env struct {
+	AccessTokenExpiryTime      *string  `json:"ACCESS_TOKEN_EXPIRY_TIME"`
 	AdminSecret                *string  `json:"ADMIN_SECRET"`
 	DatabaseName               string   `json:"DATABASE_NAME"`
 	DatabaseURL                string   `json:"DATABASE_URL"`
@@ -179,6 +180,7 @@ type UpdateAccessInput struct {
 }
 
 type UpdateEnvInput struct {
+	AccessTokenExpiryTime      *string  `json:"ACCESS_TOKEN_EXPIRY_TIME"`
 	AdminSecret                *string  `json:"ADMIN_SECRET"`
 	CustomAccessTokenScript    *string  `json:"CUSTOM_ACCESS_TOKEN_SCRIPT"`
 	OldAdminSecret             *string  `json:"OLD_ADMIN_SECRET"`

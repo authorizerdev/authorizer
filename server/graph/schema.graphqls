@@ -87,6 +87,7 @@ type Response {
 }
 
 type Env {
+	ACCESS_TOKEN_EXPIRY_TIME: String
 	ADMIN_SECRET: String
 	DATABASE_NAME: String!
 	DATABASE_URL: String!
@@ -138,6 +139,7 @@ type GenerateJWTKeysResponse {
 }
 
 input UpdateEnvInput {
+	ACCESS_TOKEN_EXPIRY_TIME: String
 	ADMIN_SECRET: String
 	CUSTOM_ACCESS_TOKEN_SCRIPT: String
 	OLD_ADMIN_SECRET: String
