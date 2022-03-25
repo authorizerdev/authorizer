@@ -2,7 +2,9 @@ package resolvers
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/cookie"
@@ -25,13 +27,15 @@ func SessionResolver(ctx context.Context, params *model.SessionQueryInput) (*mod
 
 	sessionToken, err := cookie.GetSession(gc)
 	if err != nil {
-		return res, err
+		log.Println("error getting session token:", err)
+		return res, errors.New("unauthorized")
 	}
 
 	// get session from cookie
 	claims, err := token.ValidateBrowserSession(gc, sessionToken)
 	if err != nil {
-		return res, err
+		log.Println("session validation failed:", err)
+		return res, errors.New("unauthorized")
 	}
 	userID := claims.Subject
 	user, err := db.Provider.GetUserByID(userID)

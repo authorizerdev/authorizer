@@ -38,10 +38,11 @@ import {
 	FaExclamationCircle,
 	FaAngleDown,
 } from 'react-icons/fa';
-import { UserDetailsQuery } from '../graphql/queries';
-import { UpdateUser } from '../graphql/mutation';
+import { EmailVerificationQuery, UserDetailsQuery } from '../graphql/queries';
+import { EnableAccess, RevokeAccess, UpdateUser } from '../graphql/mutation';
 import EditUserModal from '../components/EditUserModal';
 import DeleteUserModal from '../components/DeleteUserModal';
+import InviteMembersModal from '../components/InviteMembersModal';
 
 interface paginationPropTypes {
 	limit: number;
@@ -66,6 +67,12 @@ interface userDataTypes {
 	signup_methods: string;
 	roles: [string];
 	created_at: number;
+	revoked_timestamp: number;
+}
+
+const enum updateAccessActions {
+	REVOKE = 'REVOKE',
+	ENABLE = 'ENABLE',
 }
 
 const getMaxPages = (pagination: paginationPropTypes) => {
@@ -101,6 +108,8 @@ export default function Users() {
 		});
 	const [userList, setUserList] = React.useState<userDataTypes[]>([]);
 	const [loading, setLoading] = React.useState<boolean>(false);
+	const [disableInviteMembers, setDisableInviteMembers] =
+		React.useState<boolean>(true);
 	const updateUserList = async () => {
 		setLoading(true);
 		const { data } = await client
@@ -132,8 +141,18 @@ export default function Users() {
 		}
 		setLoading(false);
 	};
+	const checkEmailVerification = async () => {
+		setLoading(true);
+		const { data } = await client.query(EmailVerificationQuery).toPromise();
+		if (data?._env) {
+			const { DISABLE_EMAIL_VERIFICATION } = data._env;
+			setDisableInviteMembers(DISABLE_EMAIL_VERIFICATION);
+		}
+		setLoading(false);
+	};
 	React.useEffect(() => {
 		updateUserList();
+		checkEmailVerification();
 	}, []);
 	React.useEffect(() => {
 		updateUserList();
@@ -171,12 +190,77 @@ export default function Users() {
 		}
 		updateUserList();
 	};
+
+	const updateAccessHandler = async (
+		id: string,
+		action: updateAccessActions
+	) => {
+		switch (action) {
+			case updateAccessActions.ENABLE:
+				const enableAccessRes = await client
+					.mutation(EnableAccess, {
+						param: {
+							user_id: id,
+						},
+					})
+					.toPromise();
+				if (enableAccessRes.error) {
+					toast({
+						title: 'User access enable failed',
+						isClosable: true,
+						status: 'error',
+						position: 'bottom-right',
+					});
+				} else {
+					toast({
+						title: 'User access enabled successfully',
+						isClosable: true,
+						status: 'success',
+						position: 'bottom-right',
+					});
+				}
+				updateUserList();
+				break;
+			case updateAccessActions.REVOKE:
+				const revokeAccessRes = await client
+					.mutation(RevokeAccess, {
+						param: {
+							user_id: id,
+						},
+					})
+					.toPromise();
+				if (revokeAccessRes.error) {
+					toast({
+						title: 'User access revoke failed',
+						isClosable: true,
+						status: 'error',
+						position: 'bottom-right',
+					});
+				} else {
+					toast({
+						title: 'User access revoked successfully',
+						isClosable: true,
+						status: 'success',
+						position: 'bottom-right',
+					});
+				}
+				updateUserList();
+				break;
+			default:
+				break;
+		}
+	};
+
 	return (
 		<Box m="5" py="5" px="10" bg="white" rounded="md">
 			<Flex margin="2% 0" justifyContent="space-between" alignItems="center">
 				<Text fontSize="md" fontWeight="bold">
 					Users
 				</Text>
+				<InviteMembersModal
+					disabled={disableInviteMembers}
+					updateUserList={updateUserList}
+				/>
 			</Flex>
 			{!loading ? (
 				userList.length > 0 ? (
@@ -188,6 +272,7 @@ export default function Users() {
 								<Th>Signup Methods</Th>
 								<Th>Roles</Th>
 								<Th>Verified</Th>
+								<Th>Access</Th>
 								<Th>Actions</Th>
 							</Tr>
 						</Thead>
@@ -196,7 +281,7 @@ export default function Users() {
 								const { email_verified, created_at, ...rest }: any = user;
 								return (
 									<Tr key={user.id} style={{ fontSize: 14 }}>
-										<Td>{user.email}</Td>
+										<Td maxW="300">{user.email}</Td>
 										<Td>
 											{dayjs(user.created_at * 1000).format('MMM DD, YYYY')}
 										</Td>
@@ -209,6 +294,15 @@ export default function Users() {
 												colorScheme={user.email_verified ? 'green' : 'yellow'}
 											>
 												{user.email_verified.toString()}
+											</Tag>
+										</Td>
+										<Td>
+											<Tag
+												size="sm"
+												variant="outline"
+												colorScheme={user.revoked_timestamp ? 'red' : 'green'}
+											>
+												{user.revoked_timestamp ? 'Revoked' : 'Enabled'}
 											</Tag>
 										</Td>
 										<Td>
@@ -240,6 +334,29 @@ export default function Users() {
 														user={rest}
 														updateUserList={updateUserList}
 													/>
+													{user.revoked_timestamp ? (
+														<MenuItem
+															onClick={() =>
+																updateAccessHandler(
+																	user.id,
+																	updateAccessActions.ENABLE
+																)
+															}
+														>
+															Enable Access
+														</MenuItem>
+													) : (
+														<MenuItem
+															onClick={() =>
+																updateAccessHandler(
+																	user.id,
+																	updateAccessActions.REVOKE
+																)
+															}
+														>
+															Revoke Access
+														</MenuItem>
+													)}
 												</MenuList>
 											</Menu>
 										</Td>

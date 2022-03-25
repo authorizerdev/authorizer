@@ -44,6 +44,7 @@ func InitRouter() *gin.Engine {
 	{
 		dashboard.Static("/favicon_io", "dashboard/favicon_io")
 		dashboard.Static("/build", "dashboard/build")
+		dashboard.Static("/public", "dashboard/public")
 		dashboard.GET("/", handlers.DashboardHandler())
 		dashboard.GET("/:page", handlers.DashboardHandler())
 	}

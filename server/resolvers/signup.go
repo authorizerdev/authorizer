@@ -28,11 +28,20 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 		return res, err
 	}
 
+	if envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableSignUp) {
+		return res, fmt.Errorf(`signup is disabled for this instance`)
+	}
+
 	if envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableBasicAuthentication) {
 		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
 	}
+
 	if params.ConfirmPassword != params.Password {
 		return res, fmt.Errorf(`password and confirm password does not match`)
+	}
+
+	if !utils.IsValidPassword(params.Password) {
+		return res, fmt.Errorf(`password is not valid. It needs to be at least 6 characters long and contain at least one number, one uppercase letter, one lowercase letter and one special character`)
 	}
 
 	params.Email = strings.ToLower(params.Email)
@@ -128,7 +137,10 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 			return res, err
 		}
 		verificationType := constants.VerificationTypeBasicAuthSignup
-		redirectURL := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAppURL)
+		redirectURL := utils.GetAppURL(gc)
+		if params.RedirectURI != nil {
+			redirectURL = *params.RedirectURI
+		}
 		verificationToken, err := token.CreateVerificationToken(params.Email, verificationType, hostname, nonceHash, redirectURL)
 		if err != nil {
 			return res, err

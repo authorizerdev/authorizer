@@ -41,3 +41,11 @@ func TestIsValidIdentifier(t *testing.T) {
 	assert.True(t, utils.IsValidVerificationIdentifier(constants.VerificationTypeUpdateEmail), "it should be valid identifier")
 	assert.True(t, utils.IsValidVerificationIdentifier(constants.VerificationTypeForgotPassword), "it should be valid identifier")
 }
+
+func TestIsValidPassword(t *testing.T) {
+	assert.False(t, utils.IsValidPassword("test"), "it should be invalid password")
+	assert.False(t, utils.IsValidPassword("Te@1"), "it should be invalid password")
+	assert.False(t, utils.IsValidPassword("n*rp7GGTd29V{xx%{pDb@7n{](SD.!+.Mp#*$EHDGk&$pAMf7e#432Sg,Gr](j3n]jV/3F8BJJT+9u9{q=8zK:8u!rpQBaXJp%A+7r!jQj)M(vC$UX,h;;WKm$U6i#7dBnC&2ryKzKd+(y&=Ud)hErT/j;v3t..CM).8nS)9qLtV7pmP;@2QuzDyGfL7KB()k:BpjAGL@bxD%r5gcBfh7$&wutk!wzMfPFY#nkjjqyZbEHku,{jc;gvbYq2)3w=KExnYz9Vbv:;*;?f##faxkULdMpmm&yEfePixzx+[{[38zGN;3TzF;6M#Xy_tMtx:yK*n$bc(bPyGz%EYkC&]ttUF@#aZ%$QZ:u!icF@+"), "it should be invalid password")
+	assert.False(t, utils.IsValidPassword("test@123"), "it should be invalid password")
+	assert.True(t, utils.IsValidPassword("Test@123"), "it should be valid password")
+}

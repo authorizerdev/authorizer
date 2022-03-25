@@ -17,5 +17,6 @@ func GetMetaInfo() model.Meta {
 		IsBasicAuthenticationEnabled: !envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableBasicAuthentication),
 		IsEmailVerificationEnabled:   !envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification),
 		IsMagicLinkLoginEnabled:      !envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableMagicLinkLogin),
+		IsSignUpEnabled:              !envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableSignUp),
 	}
 }

@@ -48,6 +48,7 @@ export const EnvVariablesQuery = `
       DISABLE_MAGIC_LINK_LOGIN,
       DISABLE_EMAIL_VERIFICATION,
       DISABLE_BASIC_AUTHENTICATION,
+      DISABLE_SIGN_UP,
       CUSTOM_ACCESS_TOKEN_SCRIPT,
       DATABASE_NAME,
       DATABASE_TYPE,
@@ -81,7 +82,16 @@ export const UserDetailsQuery = `
         signup_methods
         roles
         created_at
+        revoked_timestamp
       }
+    }
+  }
+`;
+
+export const EmailVerificationQuery = `
+  query {
+    _env{
+      DISABLE_EMAIL_VERIFICATION
     }
   }
 `;

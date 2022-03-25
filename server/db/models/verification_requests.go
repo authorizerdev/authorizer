@@ -17,15 +17,23 @@ type VerificationRequest struct {
 }
 
 func (v *VerificationRequest) AsAPIVerificationRequest() *model.VerificationRequest {
+	token := v.Token
+	createdAt := v.CreatedAt
+	updatedAt := v.UpdatedAt
+	email := v.Email
+	nonce := v.Nonce
+	redirectURI := v.RedirectURI
+	expires := v.ExpiresAt
+	identifier := v.Identifier
 	return &model.VerificationRequest{
 		ID:          v.ID,
-		Token:       &v.Token,
-		Identifier:  &v.Identifier,
-		Expires:     &v.ExpiresAt,
-		CreatedAt:   &v.CreatedAt,
-		UpdatedAt:   &v.UpdatedAt,
-		Email:       &v.Email,
-		Nonce:       &v.Nonce,
-		RedirectURI: &v.RedirectURI,
+		Token:       &token,
+		Identifier:  &identifier,
+		Expires:     &expires,
+		CreatedAt:   &createdAt,
+		UpdatedAt:   &updatedAt,
+		Email:       &email,
+		Nonce:       &nonce,
+		RedirectURI: &redirectURI,
 	}
 }

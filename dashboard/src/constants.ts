@@ -61,6 +61,7 @@ export const SwitchInputType = {
 	DISABLE_MAGIC_LINK_LOGIN: 'DISABLE_MAGIC_LINK_LOGIN',
 	DISABLE_EMAIL_VERIFICATION: 'DISABLE_EMAIL_VERIFICATION',
 	DISABLE_BASIC_AUTHENTICATION: 'DISABLE_BASIC_AUTHENTICATION',
+	DISABLE_SIGN_UP: 'DISABLE_SIGN_UP',
 };
 
 export const DateInputType = {
@@ -89,3 +90,41 @@ export const ECDSAEncryptionType = {
 	ES384: 'ES384',
 	ES512: 'ES512',
 };
+
+export interface envVarTypes {
+	GOOGLE_CLIENT_ID: string;
+	GOOGLE_CLIENT_SECRET: string;
+	GITHUB_CLIENT_ID: string;
+	GITHUB_CLIENT_SECRET: string;
+	FACEBOOK_CLIENT_ID: string;
+	FACEBOOK_CLIENT_SECRET: string;
+	ROLES: [string] | [];
+	DEFAULT_ROLES: [string] | [];
+	PROTECTED_ROLES: [string] | [];
+	JWT_TYPE: string;
+	JWT_SECRET: string;
+	JWT_ROLE_CLAIM: string;
+	JWT_PRIVATE_KEY: string;
+	JWT_PUBLIC_KEY: string;
+	REDIS_URL: string;
+	SMTP_HOST: string;
+	SMTP_PORT: string;
+	SMTP_USERNAME: string;
+	SMTP_PASSWORD: string;
+	SENDER_EMAIL: string;
+	ALLOWED_ORIGINS: [string] | [];
+	ORGANIZATION_NAME: string;
+	ORGANIZATION_LOGO: string;
+	CUSTOM_ACCESS_TOKEN_SCRIPT: string;
+	ADMIN_SECRET: string;
+	DISABLE_LOGIN_PAGE: boolean;
+	DISABLE_MAGIC_LINK_LOGIN: boolean;
+	DISABLE_EMAIL_VERIFICATION: boolean;
+	DISABLE_BASIC_AUTHENTICATION: boolean;
+	DISABLE_SIGN_UP: boolean;
+	OLD_ADMIN_SECRET: string;
+	DATABASE_NAME: string;
+	DATABASE_TYPE: string;
+	DATABASE_URL: string;
+	ACCESS_TOKEN_EXPIRY_TIME: string;
+}

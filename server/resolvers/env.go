@@ -54,6 +54,7 @@ func EnvResolver(ctx context.Context) (*model.Env, error) {
 	disableBasicAuthentication := store.BoolEnv[constants.EnvKeyDisableBasicAuthentication]
 	disableMagicLinkLogin := store.BoolEnv[constants.EnvKeyDisableMagicLinkLogin]
 	disableLoginPage := store.BoolEnv[constants.EnvKeyDisableLoginPage]
+	disableSignUp := store.BoolEnv[constants.EnvKeyDisableSignUp]
 	roles := store.SliceEnv[constants.EnvKeyRoles]
 	defaultRoles := store.SliceEnv[constants.EnvKeyDefaultRoles]
 	protectedRoles := store.SliceEnv[constants.EnvKeyProtectedRoles]
@@ -94,6 +95,7 @@ func EnvResolver(ctx context.Context) (*model.Env, error) {
 		DisableBasicAuthentication: &disableBasicAuthentication,
 		DisableMagicLinkLogin:      &disableMagicLinkLogin,
 		DisableLoginPage:           &disableLoginPage,
+		DisableSignUp:              &disableSignUp,
 		Roles:                      roles,
 		ProtectedRoles:             protectedRoles,
 		DefaultRoles:               defaultRoles,

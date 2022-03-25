@@ -45,3 +45,37 @@ export const DeleteUser = `
     }
   }
 `;
+
+export const InviteMembers = `
+  mutation inviteMembers($params: InviteMemberInput!) {
+    _invite_members(params: $params) {
+      message
+    }
+  }
+`;
+
+export const RevokeAccess = `
+  mutation revokeAccess($param: UpdateAccessInput!) {
+    _revoke_access(param: $param) {
+      message
+    }
+  }
+`;
+
+export const EnableAccess = `
+  mutation revokeAccess($param: UpdateAccessInput!) {
+    _enable_access(param: $param) {
+      message
+    }
+  }
+`;
+
+export const GenerateKeys = `
+  mutation generateKeys($params: GenerateJWTKeysInput!) {
+    _generate_jwt_keys(params: $params) {
+      secret
+      public_key
+      private_key
+    }
+  }
+`;

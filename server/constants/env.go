@@ -69,6 +69,8 @@ const (
 	EnvKeyDisableMagicLinkLogin = "DISABLE_MAGIC_LINK_LOGIN"
 	// EnvKeyDisableLoginPage key for env variable DISABLE_LOGIN_PAGE
 	EnvKeyDisableLoginPage = "DISABLE_LOGIN_PAGE"
+	// EnvKeyDisableSignUp key for env variable DISABLE_SIGN_UP
+	EnvKeyDisableSignUp = "DISABLE_SIGN_UP"
 	// EnvKeyRoles key for env variable ROLES
 	EnvKeyRoles = "ROLES"
 	// EnvKeyProtectedRoles key for env variable PROTECTED_ROLES

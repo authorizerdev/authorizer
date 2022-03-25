@@ -106,7 +106,7 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 			return res, err
 		}
 		verificationType := constants.VerificationTypeUpdateEmail
-		redirectURL := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAppURL)
+		redirectURL := utils.GetAppURL(gc)
 		verificationToken, err := token.CreateVerificationToken(newEmail, verificationType, hostname, nonceHash, redirectURL)
 		if err != nil {
 			log.Println(`error generating token`, err)
@@ -154,6 +154,8 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 		return res, err
 	}
 
+	createdAt := user.CreatedAt
+	updatedAt := user.UpdatedAt
 	res = &model.User{
 		ID:         params.ID,
 		Email:      user.Email,
@@ -161,8 +163,8 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 		GivenName:  user.GivenName,
 		FamilyName: user.FamilyName,
 		Roles:      strings.Split(user.Roles, ","),
-		CreatedAt:  &user.CreatedAt,
-		UpdatedAt:  &user.UpdatedAt,
+		CreatedAt:  &createdAt,
+		UpdatedAt:  &updatedAt,
 	}
 	return res, nil
 }

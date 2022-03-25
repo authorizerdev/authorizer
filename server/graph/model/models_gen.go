@@ -50,6 +50,7 @@ type Env struct {
 	DisableBasicAuthentication *bool    `json:"DISABLE_BASIC_AUTHENTICATION"`
 	DisableMagicLinkLogin      *bool    `json:"DISABLE_MAGIC_LINK_LOGIN"`
 	DisableLoginPage           *bool    `json:"DISABLE_LOGIN_PAGE"`
+	DisableSignUp              *bool    `json:"DISABLE_SIGN_UP"`
 	Roles                      []string `json:"ROLES"`
 	ProtectedRoles             []string `json:"PROTECTED_ROLES"`
 	DefaultRoles               []string `json:"DEFAULT_ROLES"`
@@ -73,6 +74,21 @@ type ForgotPasswordInput struct {
 	Email       string  `json:"email"`
 	State       *string `json:"state"`
 	RedirectURI *string `json:"redirect_uri"`
+}
+
+type GenerateJWTKeysInput struct {
+	Type string `json:"type"`
+}
+
+type GenerateJWTKeysResponse struct {
+	Secret     *string `json:"secret"`
+	PublicKey  *string `json:"public_key"`
+	PrivateKey *string `json:"private_key"`
+}
+
+type InviteMemberInput struct {
+	Emails      []string `json:"emails"`
+	RedirectURI *string  `json:"redirect_uri"`
 }
 
 type LoginInput struct {
@@ -99,6 +115,7 @@ type Meta struct {
 	IsEmailVerificationEnabled   bool   `json:"is_email_verification_enabled"`
 	IsBasicAuthenticationEnabled bool   `json:"is_basic_authentication_enabled"`
 	IsMagicLinkLoginEnabled      bool   `json:"is_magic_link_login_enabled"`
+	IsSignUpEnabled              bool   `json:"is_sign_up_enabled"`
 }
 
 type OAuthRevokeInput struct {
@@ -155,6 +172,11 @@ type SignUpInput struct {
 	ConfirmPassword string   `json:"confirm_password"`
 	Roles           []string `json:"roles"`
 	Scope           []string `json:"scope"`
+	RedirectURI     *string  `json:"redirect_uri"`
+}
+
+type UpdateAccessInput struct {
+	UserID string `json:"user_id"`
 }
 
 type UpdateEnvInput struct {
@@ -180,6 +202,7 @@ type UpdateEnvInput struct {
 	DisableBasicAuthentication *bool    `json:"DISABLE_BASIC_AUTHENTICATION"`
 	DisableMagicLinkLogin      *bool    `json:"DISABLE_MAGIC_LINK_LOGIN"`
 	DisableLoginPage           *bool    `json:"DISABLE_LOGIN_PAGE"`
+	DisableSignUp              *bool    `json:"DISABLE_SIGN_UP"`
 	Roles                      []string `json:"ROLES"`
 	ProtectedRoles             []string `json:"PROTECTED_ROLES"`
 	DefaultRoles               []string `json:"DEFAULT_ROLES"`
@@ -242,11 +265,22 @@ type User struct {
 	Roles               []string `json:"roles"`
 	CreatedAt           *int64   `json:"created_at"`
 	UpdatedAt           *int64   `json:"updated_at"`
+	RevokedTimestamp    *int64   `json:"revoked_timestamp"`
 }
 
 type Users struct {
 	Pagination *Pagination `json:"pagination"`
 	Users      []*User     `json:"users"`
+}
+
+type ValidateJWTTokenInput struct {
+	TokenType string   `json:"token_type"`
+	Token     string   `json:"token"`
+	Roles     []string `json:"roles"`
+}
+
+type ValidateJWTTokenResponse struct {
+	IsValid bool `json:"is_valid"`
 }
 
 type VerificationRequest struct {

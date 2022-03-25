@@ -43,8 +43,11 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 
 	// find user with email
 	existingUser, err := db.Provider.GetUserByEmail(params.Email)
-
 	if err != nil {
+		if envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableSignUp) {
+			return res, fmt.Errorf(`signup is disabled for this instance`)
+		}
+
 		user.SignupMethods = constants.SignupMethodMagicLinkLogin
 		// define roles for new user
 		if len(params.Roles) > 0 {
@@ -66,6 +69,10 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 		// 1. user has access to protected roles + roles and trying to login
 		// 2. user has not signed up for one of the available role but trying to signup.
 		// 		Need to modify roles in this case
+
+		if user.RevokedTimestamp != nil {
+			return res, fmt.Errorf(`user access has been revoked`)
+		}
 
 		// find the unassigned roles
 		if len(params.Roles) <= 0 {
@@ -123,7 +130,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 		if params.Scope != nil && len(params.Scope) > 0 {
 			redirectURLParams = redirectURLParams + "&scope=" + strings.Join(params.Scope, " ")
 		}
-		redirectURL := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAppURL)
+		redirectURL := utils.GetAppURL(gc)
 		if params.RedirectURI != nil {
 			redirectURL = *params.RedirectURI
 		}

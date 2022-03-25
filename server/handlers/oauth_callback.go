@@ -71,6 +71,10 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 		existingUser, err := db.Provider.GetUserByEmail(user.Email)
 
 		if err != nil {
+			if envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableSignUp) {
+				c.JSON(400, gin.H{"error": "signup is disabled for this instance"})
+				return
+			}
 			// user not registered, register user and generate session token
 			user.SignupMethods = provider
 			// make sure inputRoles don't include protected roles
@@ -91,9 +95,12 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			user.EmailVerifiedAt = &now
 			user, _ = db.Provider.AddUser(user)
 		} else {
+			if user.RevokedTimestamp != nil {
+				c.JSON(400, gin.H{"error": "user access has been revoked"})
+			}
+
 			// user exists in db, check if method was google
 			// if not append google to existing signup method and save it
-
 			signupMethod := existingUser.SignupMethods
 			if !strings.Contains(signupMethod, provider) {
 				signupMethod = signupMethod + "," + provider

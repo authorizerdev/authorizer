@@ -21,6 +21,7 @@ type Meta {
 	is_email_verification_enabled: Boolean!
 	is_basic_authentication_enabled: Boolean!
 	is_magic_link_login_enabled: Boolean!
+	is_sign_up_enabled: Boolean!
 }
 
 type User {
@@ -42,6 +43,7 @@ type User {
 	roles: [String!]!
 	created_at: Int64
 	updated_at: Int64
+	revoked_timestamp: Int64
 }
 
 type Users {
@@ -111,6 +113,7 @@ type Env {
 	DISABLE_BASIC_AUTHENTICATION: Boolean
 	DISABLE_MAGIC_LINK_LOGIN: Boolean
 	DISABLE_LOGIN_PAGE: Boolean
+	DISABLE_SIGN_UP: Boolean
 	ROLES: [String!]
 	PROTECTED_ROLES: [String!]
 	DEFAULT_ROLES: [String!]
@@ -123,6 +126,16 @@ type Env {
 	FACEBOOK_CLIENT_SECRET: String
 	ORGANIZATION_NAME: String
 	ORGANIZATION_LOGO: String
+}
+
+type ValidateJWTTokenResponse {
+	is_valid: Boolean!
+}
+
+type GenerateJWTKeysResponse {
+	secret: String
+	public_key: String
+	private_key: String
 }
 
 input UpdateEnvInput {
@@ -148,6 +161,7 @@ input UpdateEnvInput {
 	DISABLE_BASIC_AUTHENTICATION: Boolean
 	DISABLE_MAGIC_LINK_LOGIN: Boolean
 	DISABLE_LOGIN_PAGE: Boolean
+	DISABLE_SIGN_UP: Boolean
 	ROLES: [String!]
 	PROTECTED_ROLES: [String!]
 	DEFAULT_ROLES: [String!]
@@ -184,6 +198,7 @@ input SignUpInput {
 	confirm_password: String!
 	roles: [String!]
 	scope: [String!]
+	redirect_uri: String
 }
 
 input LoginInput {
@@ -274,6 +289,25 @@ input OAuthRevokeInput {
 	refresh_token: String!
 }
 
+input InviteMemberInput {
+	emails: [String!]!
+	redirect_uri: String
+}
+
+input UpdateAccessInput {
+	user_id: String!
+}
+
+input ValidateJWTTokenInput {
+	token_type: String!
+	token: String!
+	roles: [String!]
+}
+
+input GenerateJWTKeysInput {
+	type: String!
+}
+
 type Mutation {
 	signup(params: SignUpInput!): AuthResponse!
 	login(params: LoginInput!): AuthResponse!
@@ -292,12 +326,17 @@ type Mutation {
 	_admin_login(params: AdminLoginInput!): Response!
 	_admin_logout: Response!
 	_update_env(params: UpdateEnvInput!): Response!
+	_invite_members(params: InviteMemberInput!): Response!
+	_revoke_access(param: UpdateAccessInput!): Response!
+	_enable_access(param: UpdateAccessInput!): Response!
+	_generate_jwt_keys(params: GenerateJWTKeysInput!): GenerateJWTKeysResponse!
 }
 
 type Query {
 	meta: Meta!
 	session(params: SessionQueryInput): AuthResponse!
 	profile: User!
+	validate_jwt_token(params: ValidateJWTTokenInput!): ValidateJWTTokenResponse!
 	# admin only apis
 	_users(params: PaginatedInput): Users!
 	_verification_requests(params: PaginatedInput): VerificationRequests!
