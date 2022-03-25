@@ -53,6 +53,7 @@ type ComplexityRoot struct {
 	}
 
 	Env struct {
+		AccessTokenExpiryTime      func(childComplexity int) int
 		AdminSecret                func(childComplexity int) int
 		AllowedOrigins             func(childComplexity int) int
 		AppURL                     func(childComplexity int) int
@@ -275,6 +276,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.AuthResponse.User(childComplexity), true
+
+	case "Env.ACCESS_TOKEN_EXPIRY_TIME":
+		if e.complexity.Env.AccessTokenExpiryTime == nil {
+			break
+		}
+
+		return e.complexity.Env.AccessTokenExpiryTime(childComplexity), true
 
 	case "Env.ADMIN_SECRET":
 		if e.complexity.Env.AdminSecret == nil {
@@ -1247,6 +1255,7 @@ type Response {
 }
 
 type Env {
+	ACCESS_TOKEN_EXPIRY_TIME: String
 	ADMIN_SECRET: String
 	DATABASE_NAME: String!
 	DATABASE_URL: String!
@@ -1287,6 +1296,7 @@ type Env {
 }
 
 input UpdateEnvInput {
+	ACCESS_TOKEN_EXPIRY_TIME: String
 	ADMIN_SECRET: String
 	CUSTOM_ACCESS_TOKEN_SCRIPT: String
 	OLD_ADMIN_SECRET: String
@@ -1973,6 +1983,38 @@ func (ec *executionContext) _AuthResponse_user(ctx context.Context, field graphq
 	res := resTmp.(*model.User)
 	fc.Result = res
 	return ec.marshalOUser2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Env_ACCESS_TOKEN_EXPIRY_TIME(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Env",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.AccessTokenExpiryTime, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Env_ADMIN_SECRET(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
@@ -7322,6 +7364,14 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 
 	for k, v := range asMap {
 		switch k {
+		case "ACCESS_TOKEN_EXPIRY_TIME":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ACCESS_TOKEN_EXPIRY_TIME"))
+			it.AccessTokenExpiryTime, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		case "ADMIN_SECRET":
 			var err error
 
@@ -7893,6 +7943,8 @@ func (ec *executionContext) _Env(ctx context.Context, sel ast.SelectionSet, obj 
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Env")
+		case "ACCESS_TOKEN_EXPIRY_TIME":
+			out.Values[i] = ec._Env_ACCESS_TOKEN_EXPIRY_TIME(ctx, field, obj)
 		case "ADMIN_SECRET":
 			out.Values[i] = ec._Env_ADMIN_SECRET(ctx, field, obj)
 		case "DATABASE_NAME":

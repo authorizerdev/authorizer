@@ -150,7 +150,12 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 		if err != nil {
 			c.JSON(500, gin.H{"error": err.Error()})
 		}
-		expiresIn := int64(1800)
+
+		expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
+		if expiresIn <= 0 {
+			expiresIn = 1
+		}
+
 		params := "access_token=" + authToken.AccessToken.Token + "&token_type=bearer&expires_in=" + strconv.FormatInt(expiresIn, 10) + "&state=" + stateValue + "&id_token=" + authToken.IDToken.Token
 
 		cookie.SetSession(c, authToken.FingerPrintHash)

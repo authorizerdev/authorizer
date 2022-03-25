@@ -21,6 +21,8 @@ const (
 	// EnvKeyPort key for env variable PORT
 	EnvKeyPort = "PORT"
 
+	// EnvKeyAccessTokenExpiryTime key for env variable ACCESS_TOKEN_EXPIRY_TIME
+	EnvKeyAccessTokenExpiryTime = "ACCESS_TOKEN_EXPIRY_TIME"
 	// EnvKeyAdminSecret key for env variable ADMIN_SECRET
 	EnvKeyAdminSecret = "ADMIN_SECRET"
 	// EnvKeyDatabaseType key for env variable DATABASE_TYPE

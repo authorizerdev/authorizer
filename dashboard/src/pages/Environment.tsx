@@ -72,6 +72,7 @@ interface envVarTypes {
 	DATABASE_NAME: string;
 	DATABASE_TYPE: string;
 	DATABASE_URL: string;
+	ACCESS_TOKEN_EXPIRY_TIME: string;
 }
 
 export default function Environment() {
@@ -118,6 +119,7 @@ export default function Environment() {
 		DATABASE_NAME: '',
 		DATABASE_TYPE: '',
 		DATABASE_URL: '',
+		ACCESS_TOKEN_EXPIRY_TIME: '',
 	});
 
 	const [fieldVisibility, setFieldVisibility] = React.useState<
@@ -626,19 +628,35 @@ export default function Environment() {
 			</Stack>
 			<Divider marginTop="2%" marginBottom="2%" />
 			<Text fontSize="md" paddingTop="2%" fontWeight="bold">
-				Custom Access Token Scripts
+				Access Token
 			</Text>
 			<Stack spacing={6} padding="2% 0%">
 				<Flex>
-					<Center w="100%">
+					<Flex w="30%" justifyContent="start" alignItems="center">
+						<Text fontSize="sm">Access Token Expiry Time:</Text>
+					</Flex>
+					<Flex w="70%">
 						<InputField
+							variables={envVariables}
+							setVariables={setEnvVariables}
+							inputType={TextInputType.ACCESS_TOKEN_EXPIRY_TIME}
+							placeholder="0h15m0s"
+						/>
+					</Flex>
+				</Flex>
+				<Flex>
+					<Flex w="30%" justifyContent="start" alignItems="center">
+						<Text fontSize="sm">Custom Access Token Scripts:</Text>
+					</Flex>
+					<Flex w="70%">
+					<InputField
 							variables={envVariables}
 							setVariables={setEnvVariables}
 							inputType={TextAreaInputType.CUSTOM_ACCESS_TOKEN_SCRIPT}
 							placeholder="Add script here"
 							minH="25vh"
 						/>
-					</Center>
+					</Flex>
 				</Flex>
 			</Stack>
 			<Divider marginTop="2%" marginBottom="2%" />

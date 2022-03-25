@@ -120,6 +120,10 @@ func InitAllEnv() error {
 		}
 	}
 
+	if envData.StringEnv[constants.EnvKeyAccessTokenExpiryTime] == "" {
+		envData.StringEnv[constants.EnvKeyAccessTokenExpiryTime] = os.Getenv(constants.EnvKeyAccessTokenExpiryTime)
+	}
+
 	if envData.StringEnv[constants.EnvKeyAdminSecret] == "" {
 		envData.StringEnv[constants.EnvKeyAdminSecret] = os.Getenv(constants.EnvKeyAdminSecret)
 	}

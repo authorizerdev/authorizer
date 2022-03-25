@@ -2,6 +2,7 @@ export const LOGO_URL =
 	'https://user-images.githubusercontent.com/6964334/147834043-fc384cab-e7ca-40f8-9663-38fc25fd5f3a.png';
 
 export const TextInputType = {
+	ACCESS_TOKEN_EXPIRY_TIME: 'ACCESS_TOKEN_EXPIRY_TIME',
 	CLIENT_ID: 'CLIENT_ID',
 	GOOGLE_CLIENT_ID: 'GOOGLE_CLIENT_ID',
 	GITHUB_CLIENT_ID: 'GITHUB_CLIENT_ID',

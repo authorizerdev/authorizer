@@ -82,7 +82,12 @@ func VerifyEmailHandler() gin.HandlerFunc {
 			c.JSON(500, errorRes)
 			return
 		}
-		expiresIn := int64(1800)
+
+		expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
+		if expiresIn <= 0 {
+			expiresIn = 1
+		}
+
 		params := "access_token=" + authToken.AccessToken.Token + "&token_type=bearer&expires_in=" + strconv.FormatInt(expiresIn, 10) + "&state=" + state + "&id_token=" + authToken.IDToken.Token
 
 		cookie.SetSession(c, authToken.FingerPrintHash)
