@@ -26,18 +26,16 @@
 - ✅ Sign-in / Sign-up with email ID and password
 - ✅ Secure session management
 - ✅ Email verification
+- ✅ OAuth2 and OpenID compatible APIs
 - ✅ APIs to update profile securely
 - ✅ Forgot password flow using email
 - ✅ Social logins (Google, Github, Facebook, more coming soon)
 - ✅ Role-based access management
-- ✅ Password-less login with email and magic link
+- ✅ Password-less login with magic link login
 
 ## Roadmap
 
-- Support more JWT encryption algorithms (Currently supporting HS256)
 - 2 Factor authentication
-- Back office (Admin dashboard to manage user)
-- Support more database
 - VueJS SDK
 - Svelte SDK
 - React Native SDK
