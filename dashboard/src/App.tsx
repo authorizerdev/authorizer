@@ -10,6 +10,9 @@ const queryClient = createClient({
 	fetchOptions: () => {
 		return {
 			credentials: 'include',
+			headers: {
+				'x-authorizer-url': window.location.origin,
+			},
 		};
 	},
 	requestPolicy: 'network-only',

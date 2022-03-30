@@ -10,7 +10,20 @@ import (
 )
 
 // GetHost returns hostname from request context
+// if X-Authorizer-URL header is set it is given highest priority
+// if EnvKeyAuthorizerURL is set it is given second highest priority.
+// if above 2 are not set the requesting host name is used
 func GetHost(c *gin.Context) string {
+	authorizerURL := c.Request.Header.Get("X-Authorizer-URL")
+	if authorizerURL != "" {
+		return authorizerURL
+	}
+
+	authorizerURL = envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAuthorizerURL)
+	if authorizerURL != "" {
+		return authorizerURL
+	}
+
 	scheme := c.Request.Header.Get("X-Forwarded-Proto")
 	if scheme != "https" {
 		scheme = "http"
