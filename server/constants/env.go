@@ -16,7 +16,6 @@ const (
 	// EnvKeyEnvPath key for cli arg variable ENV_PATH
 	EnvKeyEnvPath = "ENV_PATH"
 	// EnvKeyAuthorizerURL key for env variable AUTHORIZER_URL
-	// TODO: remove support AUTHORIZER_URL env
 	EnvKeyAuthorizerURL = "AUTHORIZER_URL"
 	// EnvKeyPort key for env variable PORT
 	EnvKeyPort = "PORT"
