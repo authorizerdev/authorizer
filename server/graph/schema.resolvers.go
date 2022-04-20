@@ -79,6 +79,18 @@ func (r *mutationResolver) InviteMembers(ctx context.Context, params model.Invit
 	return resolvers.InviteMembersResolver(ctx, params)
 }
 
+func (r *mutationResolver) RevokeAccess(ctx context.Context, param model.UpdateAccessInput) (*model.Response, error) {
+	return resolvers.RevokeAccessResolver(ctx, param)
+}
+
+func (r *mutationResolver) EnableAccess(ctx context.Context, param model.UpdateAccessInput) (*model.Response, error) {
+	return resolvers.EnableAccessResolver(ctx, param)
+}
+
+func (r *mutationResolver) GenerateJwtKeys(ctx context.Context, params model.GenerateJWTKeysInput) (*model.GenerateJWTKeysResponse, error) {
+	return resolvers.GenerateJWTKeysResolver(ctx, params)
+}
+
 func (r *queryResolver) Meta(ctx context.Context) (*model.Meta, error) {
 	return resolvers.MetaResolver(ctx)
 }
@@ -89,6 +101,10 @@ func (r *queryResolver) Session(ctx context.Context, params *model.SessionQueryI
 
 func (r *queryResolver) Profile(ctx context.Context) (*model.User, error) {
 	return resolvers.ProfileResolver(ctx)
+}
+
+func (r *queryResolver) ValidateJwtToken(ctx context.Context, params model.ValidateJWTTokenInput) (*model.ValidateJWTTokenResponse, error) {
+	return resolvers.ValidateJwtTokenResolver(ctx, params)
 }
 
 func (r *queryResolver) Users(ctx context.Context, params *model.PaginatedInput) (*model.Users, error) {

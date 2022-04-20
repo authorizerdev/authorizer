@@ -53,6 +53,7 @@ export const EnvVariablesQuery = `
       DATABASE_NAME,
       DATABASE_TYPE,
       DATABASE_URL,
+      ACCESS_TOKEN_EXPIRY_TIME,
     }
   }
 `;
@@ -81,6 +82,7 @@ export const UserDetailsQuery = `
         signup_methods
         roles
         created_at
+        revoked_timestamp
       }
     }
   }

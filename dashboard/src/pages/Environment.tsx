@@ -34,46 +34,11 @@ import {
 	HMACEncryptionType,
 	RSAEncryptionType,
 	ECDSAEncryptionType,
+	envVarTypes,
 } from '../constants';
 import { UpdateEnvVariables } from '../graphql/mutation';
 import { getObjectDiff, capitalizeFirstLetter } from '../utils';
-
-interface envVarTypes {
-	GOOGLE_CLIENT_ID: string;
-	GOOGLE_CLIENT_SECRET: string;
-	GITHUB_CLIENT_ID: string;
-	GITHUB_CLIENT_SECRET: string;
-	FACEBOOK_CLIENT_ID: string;
-	FACEBOOK_CLIENT_SECRET: string;
-	ROLES: [string] | [];
-	DEFAULT_ROLES: [string] | [];
-	PROTECTED_ROLES: [string] | [];
-	JWT_TYPE: string;
-	JWT_SECRET: string;
-	JWT_ROLE_CLAIM: string;
-	JWT_PRIVATE_KEY: string;
-	JWT_PUBLIC_KEY: string;
-	REDIS_URL: string;
-	SMTP_HOST: string;
-	SMTP_PORT: string;
-	SMTP_USERNAME: string;
-	SMTP_PASSWORD: string;
-	SENDER_EMAIL: string;
-	ALLOWED_ORIGINS: [string] | [];
-	ORGANIZATION_NAME: string;
-	ORGANIZATION_LOGO: string;
-	CUSTOM_ACCESS_TOKEN_SCRIPT: string;
-	ADMIN_SECRET: string;
-	DISABLE_LOGIN_PAGE: boolean;
-	DISABLE_MAGIC_LINK_LOGIN: boolean;
-	DISABLE_EMAIL_VERIFICATION: boolean;
-	DISABLE_BASIC_AUTHENTICATION: boolean;
-	DISABLE_SIGN_UP: boolean;
-	OLD_ADMIN_SECRET: string;
-	DATABASE_NAME: string;
-	DATABASE_TYPE: string;
-	DATABASE_URL: string;
-}
+import GenerateKeysModal from '../components/GenerateKeysModal';
 
 export default function Environment() {
 	const client = useClient();
@@ -120,6 +85,7 @@ export default function Environment() {
 		DATABASE_NAME: '',
 		DATABASE_TYPE: '',
 		DATABASE_URL: '',
+		ACCESS_TOKEN_EXPIRY_TIME: '',
 	});
 
 	const [fieldVisibility, setFieldVisibility] = React.useState<
@@ -134,32 +100,24 @@ export default function Environment() {
 		OLD_ADMIN_SECRET: false,
 	});
 
+	async function getData() {
+		const {
+			data: { _env: envData },
+		} = await client.query(EnvVariablesQuery).toPromise();
+		setLoading(false);
+		setEnvVariables({
+			...envData,
+			OLD_ADMIN_SECRET: envData.ADMIN_SECRET,
+			ADMIN_SECRET: '',
+		});
+		setAdminSecret({
+			value: '',
+			disableInputField: true,
+		});
+	}
+
 	useEffect(() => {
-		let isMounted = true;
-		async function getData() {
-			const {
-				data: { _env: envData },
-			} = await client.query(EnvVariablesQuery).toPromise();
-
-			if (isMounted) {
-				setLoading(false);
-				setEnvVariables({
-					...envData,
-					OLD_ADMIN_SECRET: envData.ADMIN_SECRET,
-					ADMIN_SECRET: '',
-				});
-				setAdminSecret({
-					value: '',
-					disableInputField: true,
-				});
-			}
-		}
-
 		getData();
-
-		return () => {
-			isMounted = false;
-		};
 	}, []);
 
 	const validateAdminSecretHandler = (event: any) => {
@@ -230,6 +188,8 @@ export default function Environment() {
 			disableInputField: true,
 		});
 
+		getData();
+
 		toast({
 			title: `Successfully updated ${
 				Object.keys(updatedEnvVariables).length
@@ -256,7 +216,7 @@ export default function Environment() {
 							setVariables={() => {}}
 							inputType={TextInputType.CLIENT_ID}
 							placeholder="Client ID"
-							isDisabled={true}
+							readOnly={true}
 						/>
 					</Center>
 				</Flex>
@@ -272,7 +232,7 @@ export default function Environment() {
 							setFieldVisibility={setFieldVisibility}
 							inputType={HiddenInputType.CLIENT_SECRET}
 							placeholder="Client Secret"
-							isDisabled={true}
+							readOnly={true}
 						/>
 					</Center>
 				</Flex>
@@ -410,9 +370,22 @@ export default function Environment() {
 				</Flex>
 			</Stack>
 			<Divider marginTop="2%" marginBottom="2%" />
-			<Text fontSize="md" paddingTop="2%" fontWeight="bold">
-				JWT (JSON Web Tokens) Configurations
-			</Text>
+			<Flex
+				width="100%"
+				justifyContent="space-between"
+				alignItems="center"
+				paddingTop="2%"
+			>
+				<Text fontSize="md" fontWeight="bold">
+					JWT (JSON Web Tokens) Configurations
+				</Text>
+				<Flex>
+					<GenerateKeysModal
+						jwtType={envVariables.JWT_TYPE}
+						getData={getData}
+					/>
+				</Flex>
+			</Flex>
 			<Stack spacing={6} padding="2% 0%">
 				<Flex>
 					<Flex w="30%" justifyContent="start" alignItems="center">
@@ -628,11 +601,28 @@ export default function Environment() {
 			</Stack>
 			<Divider marginTop="2%" marginBottom="2%" />
 			<Text fontSize="md" paddingTop="2%" fontWeight="bold">
-				Custom Access Token Scripts
+				Access Token
 			</Text>
 			<Stack spacing={6} padding="2% 0%">
 				<Flex>
-					<Center w="100%">
+					<Flex w="30%" justifyContent="start" alignItems="center">
+						<Text fontSize="sm">Access Token Expiry Time:</Text>
+					</Flex>
+					<Flex w="70%">
+						<InputField
+							variables={envVariables}
+							setVariables={setEnvVariables}
+							inputType={TextInputType.ACCESS_TOKEN_EXPIRY_TIME}
+							placeholder="0h15m0s"
+						/>
+					</Flex>
+				</Flex>
+				<Flex>
+					<Flex w="30%" justifyContent="start" direction="column">
+						<Text fontSize="sm">Custom Scripts:</Text>
+						<Text fontSize="sm">Used to add custom fields in ID token</Text>
+					</Flex>
+					<Flex w="70%">
 						<InputField
 							variables={envVariables}
 							setVariables={setEnvVariables}
@@ -640,7 +630,7 @@ export default function Environment() {
 							placeholder="Add script here"
 							minH="25vh"
 						/>
-					</Center>
+					</Flex>
 				</Flex>
 			</Stack>
 			<Divider marginTop="2%" marginBottom="2%" />

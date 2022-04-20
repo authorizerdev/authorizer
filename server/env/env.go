@@ -113,10 +113,21 @@ func InitAllEnv() error {
 		envData.StringEnv[constants.EnvKeyAppURL] = os.Getenv(constants.EnvKeyAppURL)
 	}
 
+	if envData.StringEnv[constants.EnvKeyAuthorizerURL] == "" {
+		envData.StringEnv[constants.EnvKeyAuthorizerURL] = os.Getenv(constants.EnvKeyAuthorizerURL)
+	}
+
 	if envData.StringEnv[constants.EnvKeyPort] == "" {
 		envData.StringEnv[constants.EnvKeyPort] = os.Getenv(constants.EnvKeyPort)
 		if envData.StringEnv[constants.EnvKeyPort] == "" {
 			envData.StringEnv[constants.EnvKeyPort] = "8080"
+		}
+	}
+
+	if envData.StringEnv[constants.EnvKeyAccessTokenExpiryTime] == "" {
+		envData.StringEnv[constants.EnvKeyAccessTokenExpiryTime] = os.Getenv(constants.EnvKeyAccessTokenExpiryTime)
+		if envData.StringEnv[constants.EnvKeyAccessTokenExpiryTime] == "" {
+			envData.StringEnv[constants.EnvKeyAccessTokenExpiryTime] = "30m"
 		}
 	}
 

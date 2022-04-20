@@ -95,9 +95,12 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			user.EmailVerifiedAt = &now
 			user, _ = db.Provider.AddUser(user)
 		} else {
+			if user.RevokedTimestamp != nil {
+				c.JSON(400, gin.H{"error": "user access has been revoked"})
+			}
+
 			// user exists in db, check if method was google
 			// if not append google to existing signup method and save it
-
 			signupMethod := existingUser.SignupMethods
 			if !strings.Contains(signupMethod, provider) {
 				signupMethod = signupMethod + "," + provider
@@ -154,7 +157,12 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 		if err != nil {
 			c.JSON(500, gin.H{"error": err.Error()})
 		}
-		expiresIn := int64(1800)
+
+		expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
+		if expiresIn <= 0 {
+			expiresIn = 1
+		}
+
 		params := "access_token=" + authToken.AccessToken.Token + "&token_type=bearer&expires_in=" + strconv.FormatInt(expiresIn, 10) + "&state=" + stateValue + "&id_token=" + authToken.IDToken.Token
 
 		cookie.SetSession(c, authToken.FingerPrintHash)

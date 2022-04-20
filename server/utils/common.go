@@ -2,6 +2,7 @@ package utils
 
 import (
 	"log"
+	"reflect"
 
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
@@ -46,4 +47,25 @@ func RemoveDuplicateString(strSlice []string) []string {
 		}
 	}
 	return list
+}
+
+// ConvertInterfaceToSlice to convert interface to slice interface
+func ConvertInterfaceToSlice(slice interface{}) []interface{} {
+	s := reflect.ValueOf(slice)
+	if s.Kind() != reflect.Slice {
+		return nil
+	}
+
+	// Keep the distinction between nil and empty slice input
+	if s.IsNil() {
+		return nil
+	}
+
+	ret := make([]interface{}, s.Len())
+
+	for i := 0; i < s.Len(); i++ {
+		ret[i] = s.Index(i).Interface()
+	}
+
+	return ret
 }

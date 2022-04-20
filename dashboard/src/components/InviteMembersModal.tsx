@@ -26,7 +26,6 @@ import {
 import { useClient } from 'urql';
 import { FaUserPlus, FaMinusCircle, FaPlus, FaUpload } from 'react-icons/fa';
 import { useDropzone } from 'react-dropzone';
-import { escape } from 'lodash';
 import { validateEmail, validateURI } from '../utils';
 import { InviteMembers } from '../graphql/mutation';
 import { ArrayInputOperations } from '../constants';

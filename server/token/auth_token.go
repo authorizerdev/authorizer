@@ -130,7 +130,11 @@ func CreateRefreshToken(user models.User, roles, scopes []string, hostname, nonc
 // CreateAccessToken util to create JWT token, based on
 // user information, roles config and CUSTOM_ACCESS_TOKEN_SCRIPT
 func CreateAccessToken(user models.User, roles, scopes []string, hostName, nonce string) (string, int64, error) {
-	expiryBound := time.Minute * 30
+	expiryBound, err := utils.ParseDurationInSeconds(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAccessTokenExpiryTime))
+	if err != nil {
+		expiryBound = time.Minute * 30
+	}
+
 	expiresAt := time.Now().Add(expiryBound).Unix()
 
 	customClaims := jwt.MapClaims{
@@ -161,7 +165,12 @@ func GetAccessToken(gc *gin.Context) (string, error) {
 		return "", fmt.Errorf(`unauthorized`)
 	}
 
-	if !strings.HasPrefix(auth, "Bearer ") {
+	authSplit := strings.Split(auth, " ")
+	if len(authSplit) != 2 {
+		return "", fmt.Errorf(`unauthorized`)
+	}
+
+	if strings.ToLower(authSplit[0]) != "bearer" {
 		return "", fmt.Errorf(`not a bearer token`)
 	}
 
@@ -277,7 +286,11 @@ func ValidateBrowserSession(gc *gin.Context, encryptedSession string) (*SessionD
 // CreateIDToken util to create JWT token, based on
 // user information, roles config and CUSTOM_ACCESS_TOKEN_SCRIPT
 func CreateIDToken(user models.User, roles []string, hostname, nonce string) (string, int64, error) {
-	expiryBound := time.Minute * 30
+	expiryBound, err := utils.ParseDurationInSeconds(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAccessTokenExpiryTime))
+	if err != nil {
+		expiryBound = time.Minute * 30
+	}
+
 	expiresAt := time.Now().Add(expiryBound).Unix()
 
 	resUser := user.AsAPIUser()
@@ -350,7 +363,12 @@ func GetIDToken(gc *gin.Context) (string, error) {
 		return "", fmt.Errorf(`unauthorized`)
 	}
 
-	if !strings.HasPrefix(auth, "Bearer ") {
+	authSplit := strings.Split(auth, " ")
+	if len(authSplit) != 2 {
+		return "", fmt.Errorf(`unauthorized`)
+	}
+
+	if strings.ToLower(authSplit[0]) != "bearer" {
 		return "", fmt.Errorf(`not a bearer token`)
 	}
 

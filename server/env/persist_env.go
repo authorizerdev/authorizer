@@ -165,6 +165,7 @@ func PersistEnv() error {
 				hasChanged = true
 			}
 		}
+
 		envstore.EnvStoreObj.UpdateEnvStore(storeData)
 		jwk, err := crypto.GenerateJWKBasedOnEnv()
 		if err != nil {

@@ -64,7 +64,11 @@ func VerifyEmailResolver(ctx context.Context, params model.VerifyEmailInput) (*m
 	cookie.SetSession(gc, authToken.FingerPrintHash)
 	go utils.SaveSessionInDB(gc, user.ID)
 
-	expiresIn := int64(1800)
+	expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
+	if expiresIn <= 0 {
+		expiresIn = 1
+	}
+
 	res = &model.AuthResponse{
 		Message:     `Email verified successfully.`,
 		AccessToken: &authToken.AccessToken.Token,

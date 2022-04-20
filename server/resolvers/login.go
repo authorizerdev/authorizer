@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/cookie"
@@ -33,6 +34,10 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 	user, err := db.Provider.GetUserByEmail(params.Email)
 	if err != nil {
 		return res, fmt.Errorf(`user with this email not found`)
+	}
+
+	if user.RevokedTimestamp != nil {
+		return res, fmt.Errorf(`user access has been revoked`)
 	}
 
 	if !strings.Contains(user.SignupMethods, constants.SignupMethodBasicAuth) {
@@ -69,7 +74,11 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 		return res, err
 	}
 
-	expiresIn := int64(1800)
+	expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
+	if expiresIn <= 0 {
+		expiresIn = 1
+	}
+
 	res = &model.AuthResponse{
 		Message:     `Logged in successfully`,
 		AccessToken: &authToken.AccessToken.Token,

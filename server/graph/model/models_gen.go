@@ -24,6 +24,7 @@ type DeleteUserInput struct {
 }
 
 type Env struct {
+	AccessTokenExpiryTime      *string  `json:"ACCESS_TOKEN_EXPIRY_TIME"`
 	AdminSecret                *string  `json:"ADMIN_SECRET"`
 	DatabaseName               string   `json:"DATABASE_NAME"`
 	DatabaseURL                string   `json:"DATABASE_URL"`
@@ -73,6 +74,16 @@ type ForgotPasswordInput struct {
 	Email       string  `json:"email"`
 	State       *string `json:"state"`
 	RedirectURI *string `json:"redirect_uri"`
+}
+
+type GenerateJWTKeysInput struct {
+	Type string `json:"type"`
+}
+
+type GenerateJWTKeysResponse struct {
+	Secret     *string `json:"secret"`
+	PublicKey  *string `json:"public_key"`
+	PrivateKey *string `json:"private_key"`
 }
 
 type InviteMemberInput struct {
@@ -164,7 +175,12 @@ type SignUpInput struct {
 	RedirectURI     *string  `json:"redirect_uri"`
 }
 
+type UpdateAccessInput struct {
+	UserID string `json:"user_id"`
+}
+
 type UpdateEnvInput struct {
+	AccessTokenExpiryTime      *string  `json:"ACCESS_TOKEN_EXPIRY_TIME"`
 	AdminSecret                *string  `json:"ADMIN_SECRET"`
 	CustomAccessTokenScript    *string  `json:"CUSTOM_ACCESS_TOKEN_SCRIPT"`
 	OldAdminSecret             *string  `json:"OLD_ADMIN_SECRET"`
@@ -249,11 +265,22 @@ type User struct {
 	Roles               []string `json:"roles"`
 	CreatedAt           *int64   `json:"created_at"`
 	UpdatedAt           *int64   `json:"updated_at"`
+	RevokedTimestamp    *int64   `json:"revoked_timestamp"`
 }
 
 type Users struct {
 	Pagination *Pagination `json:"pagination"`
 	Users      []*User     `json:"users"`
+}
+
+type ValidateJWTTokenInput struct {
+	TokenType string   `json:"token_type"`
+	Token     string   `json:"token"`
+	Roles     []string `json:"roles"`
+}
+
+type ValidateJWTTokenResponse struct {
+	IsValid bool `json:"is_valid"`
 }
 
 type VerificationRequest struct {

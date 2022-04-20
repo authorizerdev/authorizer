@@ -48,6 +48,9 @@ func TestResolvers(t *testing.T) {
 			adminSessionTests(t, s)
 			updateEnvTests(t, s)
 			envTests(t, s)
+			revokeAccessTest(t, s)
+			enableAccessTest(t, s)
+			generateJWTkeyTest(t, s)
 
 			// user tests
 			loginTests(t, s)
@@ -63,6 +66,7 @@ func TestResolvers(t *testing.T) {
 			logoutTests(t, s)
 			metaTests(t, s)
 			inviteUserTest(t, s)
+			validateJwtTokenTest(t, s)
 		})
 	}
 }
