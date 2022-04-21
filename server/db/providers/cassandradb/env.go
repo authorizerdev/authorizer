@@ -2,7 +2,6 @@ package cassandradb
 
 import (
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/db/models"
@@ -46,7 +45,6 @@ func (p *provider) GetEnv() (models.Env, error) {
 	query := fmt.Sprintf("SELECT id, env, hash, created_at, updated_at FROM %s LIMIT 1", KeySpace+"."+models.Collections.Env)
 	err := p.db.Query(query).Consistency(gocql.One).Scan(&env.ID, &env.EnvData, &env.Hash, &env.CreatedAt, &env.UpdatedAt)
 	if err != nil {
-		log.Println("=> error getting env", err)
 		return env, err
 	}
 
