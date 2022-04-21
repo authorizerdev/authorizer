@@ -14,12 +14,15 @@ type provider struct {
 	db *cansandraDriver.Session
 }
 
+// KeySpace for the cassandra database
+var KeySpace string
+
 // NewProvider to initialize arangodb connection
 func NewProvider() (*provider, error) {
 	dbURL := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL)
-	keySpace := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseName)
+	KeySpace = envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseName)
 	cassandraClient := cansandraDriver.NewCluster(dbURL)
-	// cassandraClient.Keyspace = keySpace
+
 	cassandraClient.RetryPolicy = &cansandraDriver.SimpleRetryPolicy{
 		NumRetries: 3,
 	}
@@ -32,7 +35,7 @@ func NewProvider() (*provider, error) {
 	}
 
 	keyspaceQuery := fmt.Sprintf("CREATE KEYSPACE IF NOT EXISTS %s WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor':1}",
-		keySpace)
+		KeySpace)
 	err = session.Query(keyspaceQuery).Exec()
 	if err != nil {
 		log.Println("Unable to create keyspace:", err)
@@ -41,21 +44,21 @@ func NewProvider() (*provider, error) {
 
 	// make sure collections are present
 	envCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, env text, hash text, updated_at bigint, created_at bigint, PRIMARY KEY (id))",
-		keySpace, models.Collections.Env)
+		KeySpace, models.Collections.Env)
 	err = session.Query(envCollectionQuery).Exec()
 	if err != nil {
 		log.Println("Unable to create env collection:", err)
 		return nil, err
 	}
 
-	sessionCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, user_id text, user_agent text, ip text, updated_at bigint, created_at bigint, PRIMARY KEY (id))", keySpace, models.Collections.Session)
+	sessionCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, user_id text, user_agent text, ip text, updated_at bigint, created_at bigint, PRIMARY KEY (id))", KeySpace, models.Collections.Session)
 	err = session.Query(sessionCollectionQuery).Exec()
 	if err != nil {
 		log.Println("Unable to create session collection:", err)
 		return nil, err
 	}
 
-	userCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, email text, email_verified_at bigint, password text, signup_methods text, given_name text, family_name text, middle_name text, nick_name text, gender text, birthdate text, phone_number text, phone_number_verified_at bigint, picture text, roles text, updated_at bigint, created_at bigint, revoked_timestamp bigint, PRIMARY KEY (id, email))", keySpace, models.Collections.User)
+	userCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, email text, email_verified_at bigint, password text, signup_methods text, given_name text, family_name text, middle_name text, nick_name text, gender text, birthdate text, phone_number text, phone_number_verified_at bigint, picture text, roles text, updated_at bigint, created_at bigint, revoked_timestamp bigint, PRIMARY KEY (id, email))", KeySpace, models.Collections.User)
 	err = session.Query(userCollectionQuery).Exec()
 	if err != nil {
 		log.Println("Unable to create user collection:", err)
@@ -63,7 +66,7 @@ func NewProvider() (*provider, error) {
 	}
 
 	// token is reserved keyword in cassandra, hence we need to use jwt_token
-	verificationRequestCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, jwt_token text, identifier text, expires_at bigint, email text, nonce text, redirect_uri text, created_at bigint, updated_at bigint, PRIMARY KEY (id, identifier, email))", keySpace, models.Collections.VerificationRequest)
+	verificationRequestCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, jwt_token text, identifier text, expires_at bigint, email text, nonce text, redirect_uri text, created_at bigint, updated_at bigint, PRIMARY KEY (id, identifier, email))", KeySpace, models.Collections.VerificationRequest)
 	err = session.Query(verificationRequestCollectionQuery).Exec()
 	if err != nil {
 		log.Println("Unable to create verification request collection:", err)
