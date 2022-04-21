@@ -1,5 +1,7 @@
 package models
 
+// Note: any change here should be reflected in providers/casandra/provider.go as it does not have model support in collection creation
+
 // Env model for db
 type Env struct {
 	Key       string `json:"_key,omitempty" bson:"_key,omitempty" cql:"_key,omitempty"` // for arangodb

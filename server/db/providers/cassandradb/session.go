@@ -1,4 +1,4 @@
-package cassandra
+package cassandradb
 
 import (
 	"time"

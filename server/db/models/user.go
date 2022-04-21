@@ -6,6 +6,8 @@ import (
 	"github.com/authorizerdev/authorizer/server/graph/model"
 )
 
+// Note: any change here should be reflected in providers/casandra/provider.go as it does not have model support in collection creation
+
 // User model for db
 type User struct {
 	Key string `json:"_key,omitempty" bson:"_key,omitempty" cql:"_key,omitempty"` // for arangodb
@@ -25,9 +27,9 @@ type User struct {
 	PhoneNumberVerifiedAt *int64  `json:"phone_number_verified_at" bson:"phone_number_verified_at" cql:"phone_number_verified_at"`
 	Picture               *string `gorm:"type:text" json:"picture" bson:"picture" cql:"picture"`
 	Roles                 string  `json:"roles" bson:"roles" cql:"roles"`
+	RevokedTimestamp      *int64  `json:"revoked_timestamp" bson:"revoked_timestamp" cql:"revoked_timestamp"`
 	UpdatedAt             int64   `json:"updated_at" bson:"updated_at" cql:"updated_at"`
 	CreatedAt             int64   `json:"created_at" bson:"created_at" cql:"created_at"`
-	RevokedTimestamp      *int64  `json:"revoked_timestamp" bson:"revoked_timestamp" cql:"revoked_timestamp"`
 }
 
 func (user *User) AsAPIUser() *model.User {
@@ -53,8 +55,8 @@ func (user *User) AsAPIUser() *model.User {
 		PhoneNumberVerified: &isPhoneVerified,
 		Picture:             user.Picture,
 		Roles:               strings.Split(user.Roles, ","),
+		RevokedTimestamp:    revokedTimestamp,
 		CreatedAt:           &createdAt,
 		UpdatedAt:           &updatedAt,
-		RevokedTimestamp:    revokedTimestamp,
 	}
 }
