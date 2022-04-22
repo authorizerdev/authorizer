@@ -14,6 +14,7 @@ func TestResolvers(t *testing.T) {
 		constants.DbTypeSqlite: "../../data.db",
 		// constants.DbTypeArangodb: "http://localhost:8529",
 		// constants.DbTypeMongodb:  "mongodb://localhost:27017",
+		// constants.DbTypeCassandraDB: "127.0.0.1:9042",
 	}
 
 	for dbType, dbURL := range databases {

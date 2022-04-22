@@ -15,9 +15,9 @@ import (
 
 func enableAccessTest(t *testing.T, s TestSetup) {
 	t.Helper()
-	t.Run(`should revoke access`, func(t *testing.T) {
+	t.Run(`should enable access`, func(t *testing.T) {
 		req, ctx := createContext(s)
-		email := "revoke_access." + s.TestInfo.Email
+		email := "enable_access." + s.TestInfo.Email
 		_, err := resolvers.MagicLinkLoginResolver(ctx, model.MagicLinkLoginInput{
 			Email: email,
 		})
@@ -45,7 +45,7 @@ func enableAccessTest(t *testing.T, s TestSetup) {
 		assert.NoError(t, err)
 		assert.NotEmpty(t, res.Message)
 
-		// it should allow login with revoked access
+		// it should allow login with enabled access
 		res, err = resolvers.MagicLinkLoginResolver(ctx, model.MagicLinkLoginInput{
 			Email: email,
 		})

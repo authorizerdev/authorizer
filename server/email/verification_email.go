@@ -107,7 +107,7 @@ func SendVerificationMail(toEmail, token, hostname string) error {
 
 	err := SendMail(Receiver, Subject, message)
 	if err != nil {
-		log.Println("=> error sending email:", err)
+		log.Println("error sending email:", err)
 	}
 	return err
 }

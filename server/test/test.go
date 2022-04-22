@@ -46,6 +46,11 @@ func cleanData(email string) {
 		err = db.Provider.DeleteVerificationRequest(verificationRequest)
 	}
 
+	verificationRequest, err = db.Provider.GetVerificationRequestByEmail(email, constants.VerificationTypeMagicLinkLogin)
+	if err == nil {
+		err = db.Provider.DeleteVerificationRequest(verificationRequest)
+	}
+
 	dbUser, err := db.Provider.GetUserByEmail(email)
 	if err == nil {
 		db.Provider.DeleteUser(dbUser)
