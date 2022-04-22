@@ -30,6 +30,14 @@ const (
 	EnvKeyDatabaseURL = "DATABASE_URL"
 	// EnvKeyDatabaseName key for env variable DATABASE_NAME
 	EnvKeyDatabaseName = "DATABASE_NAME"
+	// EnvKeyDatabaseUsername key for env variable DATABASE_USERNAME
+	EnvKeyDatabaseUsername = "DATABASE_USERNAME"
+	// EnvKeyDatabasePassword key for env variable DATABASE_PASSWORD
+	EnvKeyDatabasePassword = "DATABASE_PASSWORD"
+	// EnvKeyDatabasePort key for env variable DATABASE_PORT
+	EnvKeyDatabasePort = "DATABASE_PORT"
+	// EnvKeyDatabaseHost key for env variable DATABASE_HOST
+	EnvKeyDatabaseHost = "DATABASE_HOST"
 	// EnvKeySmtpHost key for env variable SMTP_HOST
 	EnvKeySmtpHost = "SMTP_HOST"
 	// EnvKeySmtpPort key for env variable SMTP_PORT

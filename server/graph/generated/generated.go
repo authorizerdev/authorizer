@@ -61,9 +61,13 @@ type ComplexityRoot struct {
 		ClientSecret               func(childComplexity int) int
 		CookieName                 func(childComplexity int) int
 		CustomAccessTokenScript    func(childComplexity int) int
+		DatabaseHost               func(childComplexity int) int
 		DatabaseName               func(childComplexity int) int
+		DatabasePassword           func(childComplexity int) int
+		DatabasePort               func(childComplexity int) int
 		DatabaseType               func(childComplexity int) int
 		DatabaseURL                func(childComplexity int) int
+		DatabaseUsername           func(childComplexity int) int
 		DefaultRoles               func(childComplexity int) int
 		DisableBasicAuthentication func(childComplexity int) int
 		DisableEmailVerification   func(childComplexity int) int
@@ -356,12 +360,33 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Env.CustomAccessTokenScript(childComplexity), true
 
+	case "Env.DATABASE_HOST":
+		if e.complexity.Env.DatabaseHost == nil {
+			break
+		}
+
+		return e.complexity.Env.DatabaseHost(childComplexity), true
+
 	case "Env.DATABASE_NAME":
 		if e.complexity.Env.DatabaseName == nil {
 			break
 		}
 
 		return e.complexity.Env.DatabaseName(childComplexity), true
+
+	case "Env.DATABASE_PASSWORD":
+		if e.complexity.Env.DatabasePassword == nil {
+			break
+		}
+
+		return e.complexity.Env.DatabasePassword(childComplexity), true
+
+	case "Env.DATABASE_PORT":
+		if e.complexity.Env.DatabasePort == nil {
+			break
+		}
+
+		return e.complexity.Env.DatabasePort(childComplexity), true
 
 	case "Env.DATABASE_TYPE":
 		if e.complexity.Env.DatabaseType == nil {
@@ -376,6 +401,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Env.DatabaseURL(childComplexity), true
+
+	case "Env.DATABASE_USERNAME":
+		if e.complexity.Env.DatabaseUsername == nil {
+			break
+		}
+
+		return e.complexity.Env.DatabaseUsername(childComplexity), true
 
 	case "Env.DEFAULT_ROLES":
 		if e.complexity.Env.DefaultRoles == nil {
@@ -1394,6 +1426,10 @@ type Env {
 	DATABASE_NAME: String!
 	DATABASE_URL: String!
 	DATABASE_TYPE: String!
+	DATABASE_USERNAME: String!
+	DATABASE_PASSWORD: String!
+	DATABASE_HOST: String!
+	DATABASE_PORT: String!
 	CLIENT_ID: String!
 	CLIENT_SECRET: String!
 	CUSTOM_ACCESS_TOKEN_SCRIPT: String
@@ -2384,6 +2420,146 @@ func (ec *executionContext) _Env_DATABASE_TYPE(ctx context.Context, field graphq
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.DatabaseType, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Env_DATABASE_USERNAME(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Env",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DatabaseUsername, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Env_DATABASE_PASSWORD(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Env",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DatabasePassword, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Env_DATABASE_HOST(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Env",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DatabaseHost, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Env_DATABASE_PORT(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Env",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DatabasePort, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -8777,6 +8953,26 @@ func (ec *executionContext) _Env(ctx context.Context, sel ast.SelectionSet, obj 
 			}
 		case "DATABASE_TYPE":
 			out.Values[i] = ec._Env_DATABASE_TYPE(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "DATABASE_USERNAME":
+			out.Values[i] = ec._Env_DATABASE_USERNAME(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "DATABASE_PASSWORD":
+			out.Values[i] = ec._Env_DATABASE_PASSWORD(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "DATABASE_HOST":
+			out.Values[i] = ec._Env_DATABASE_HOST(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "DATABASE_PORT":
+			out.Values[i] = ec._Env_DATABASE_PORT(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}

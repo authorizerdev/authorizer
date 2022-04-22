@@ -4,6 +4,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db/providers"
 	"github.com/authorizerdev/authorizer/server/db/providers/arangodb"
+	"github.com/authorizerdev/authorizer/server/db/providers/cassandradb"
 	"github.com/authorizerdev/authorizer/server/db/providers/mongodb"
 	"github.com/authorizerdev/authorizer/server/db/providers/sql"
 	"github.com/authorizerdev/authorizer/server/envstore"
@@ -15,9 +16,10 @@ var Provider providers.Provider
 func InitDB() error {
 	var err error
 
-	isSQL := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseType) != constants.DbTypeArangodb && envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseType) != constants.DbTypeMongodb
+	isSQL := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseType) != constants.DbTypeArangodb && envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseType) != constants.DbTypeMongodb && envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseType) != constants.DbTypeCassandraDB
 	isArangoDB := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseType) == constants.DbTypeArangodb
 	isMongoDB := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseType) == constants.DbTypeMongodb
+	isCassandra := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseType) == constants.DbTypeCassandraDB
 
 	if isSQL {
 		Provider, err = sql.NewProvider()
@@ -35,6 +37,13 @@ func InitDB() error {
 
 	if isMongoDB {
 		Provider, err = mongodb.NewProvider()
+		if err != nil {
+			return err
+		}
+	}
+
+	if isCassandra {
+		Provider, err = cassandradb.NewProvider()
 		if err != nil {
 			return err
 		}

@@ -38,6 +38,10 @@ func InitRequiredEnv() error {
 	dbURL := os.Getenv(constants.EnvKeyDatabaseURL)
 	dbType := os.Getenv(constants.EnvKeyDatabaseType)
 	dbName := os.Getenv(constants.EnvKeyDatabaseName)
+	dbPort := os.Getenv(constants.EnvKeyDatabasePort)
+	dbHost := os.Getenv(constants.EnvKeyDatabaseHost)
+	dbUsername := os.Getenv(constants.EnvKeyDatabaseUsername)
+	dbPassword := os.Getenv(constants.EnvKeyDatabasePassword)
 
 	if strings.TrimSpace(dbType) == "" {
 		if envstore.ARG_DB_TYPE != nil && *envstore.ARG_DB_TYPE != "" {
@@ -54,7 +58,7 @@ func InitRequiredEnv() error {
 			dbURL = strings.TrimSpace(*envstore.ARG_DB_URL)
 		}
 
-		if dbURL == "" {
+		if dbURL == "" && dbPort == "" && dbHost == "" && dbUsername == "" && dbPassword == "" {
 			return errors.New("invalid database url. DATABASE_URL is required")
 		}
 	}
@@ -69,6 +73,10 @@ func InitRequiredEnv() error {
 	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseURL, dbURL)
 	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseType, dbType)
 	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseName, dbName)
+	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseHost, dbHost)
+	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabasePort, dbPort)
+	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseUsername, dbUsername)
+	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabasePassword, dbPassword)
 	return nil
 }
 

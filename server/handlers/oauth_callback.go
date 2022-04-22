@@ -259,7 +259,7 @@ func processGithubUserInfo(code string) (models.User, error) {
 		GivenName:  &firstName,
 		FamilyName: &lastName,
 		Picture:    &picture,
-		Email:      userRawData["sub"],
+		Email:      userRawData["email"],
 	}
 
 	return user, nil
