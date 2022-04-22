@@ -3,6 +3,7 @@ package cassandradb
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db/models"
@@ -21,7 +22,19 @@ var KeySpace string
 func NewProvider() (*provider, error) {
 	dbURL := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL)
 	KeySpace = envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseName)
-	cassandraClient := cansandraDriver.NewCluster(dbURL)
+	clusterURL := []string{}
+	if strings.Contains(dbURL, ",") {
+		clusterURL = strings.Split(dbURL, ",")
+	} else {
+		clusterURL = append(clusterURL, dbURL)
+	}
+	cassandraClient := cansandraDriver.NewCluster(clusterURL...)
+	if envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseUsername) != "" && envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabasePassword) != "" {
+		cassandraClient.Authenticator = &cansandraDriver.PasswordAuthenticator{
+			Username: envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseUsername),
+			Password: envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabasePassword),
+		}
+	}
 
 	cassandraClient.RetryPolicy = &cansandraDriver.SimpleRetryPolicy{
 		NumRetries: 3,

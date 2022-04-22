@@ -34,6 +34,10 @@ func EnvResolver(ctx context.Context) (*model.Env, error) {
 	databaseURL := store.StringEnv[constants.EnvKeyDatabaseURL]
 	databaseName := store.StringEnv[constants.EnvKeyDatabaseName]
 	databaseType := store.StringEnv[constants.EnvKeyDatabaseType]
+	databaseUsername := store.StringEnv[constants.EnvKeyDatabaseUsername]
+	databasePassword := store.StringEnv[constants.EnvKeyDatabasePassword]
+	databaseHost := store.StringEnv[constants.EnvKeyDatabaseHost]
+	databasePort := store.StringEnv[constants.EnvKeyDatabasePort]
 	customAccessTokenScript := store.StringEnv[constants.EnvKeyCustomAccessTokenScript]
 	smtpHost := store.StringEnv[constants.EnvKeySmtpHost]
 	smtpPort := store.StringEnv[constants.EnvKeySmtpPort]
@@ -77,6 +81,10 @@ func EnvResolver(ctx context.Context) (*model.Env, error) {
 		DatabaseName:               databaseName,
 		DatabaseURL:                databaseURL,
 		DatabaseType:               databaseType,
+		DatabaseUsername:           databaseUsername,
+		DatabasePassword:           databasePassword,
+		DatabaseHost:               databaseHost,
+		DatabasePort:               databasePort,
 		ClientID:                   clientID,
 		ClientSecret:               clientSecret,
 		CustomAccessTokenScript:    &customAccessTokenScript,
