@@ -39,7 +39,9 @@ import SocialMediaLogin from "../components/EnvComponents/SocialMediaLogin/Socia
 import Roles from "../components/EnvComponents/Roles/Roles";
 import JWTConfigurations from "../components/EnvComponents/JWTConfigurations/JSTConfigurations";
 import SessionStorage from "../components/EnvComponents/SessionStorage/SessionStorage";
-
+import EmailConfigurations from "../components/EnvComponents/EmailConfigurations/EmailConfigurations";
+import WhiteListing from "../components/EnvComponents/WhiteListing/WhiteListing";
+import OrganizationInfo from "../components/EnvComponents/OrganizationInfo/OrganizationInfo";
 export default function Environment() {
   const client = useClient();
   const toast = useToast();
@@ -233,144 +235,28 @@ export default function Environment() {
         getData={getData}
       />
       <Divider marginTop="2%" marginBottom="2%" />
-      {/* <Text fontSize="md" paddingTop="2%" fontWeight="bold">
-        Session Storage
-      </Text>
-      <Stack spacing={6} padding="2% 0%">
-        <Flex>
-          <Flex w="30%" justifyContent="start" alignItems="center">
-            <Text fontSize="sm">Redis URL:</Text>
-          </Flex>
-          <Center w="70%">
-            <InputField
-              variables={envVariables}
-              setVariables={setEnvVariables}
-              inputType={TextInputType.REDIS_URL}
-            />
-          </Center>
-        </Flex>
-      </Stack> */}
       <SessionStorage
         variables={envVariables}
         setVariables={setEnvVariables}
         RedisURL={TextInputType.REDIS_URL}
       />
       <Divider marginTop="2%" marginBottom="2%" />
-      <Text fontSize="md" paddingTop="2%" fontWeight="bold">
-        Email Configurations
-      </Text>
-      <Stack spacing={6} padding="2% 0%">
-        <Flex>
-          <Flex w="30%" justifyContent="start" alignItems="center">
-            <Text fontSize="sm">SMTP Host:</Text>
-          </Flex>
-          <Center w="70%">
-            <InputField
-              variables={envVariables}
-              setVariables={setEnvVariables}
-              inputType={TextInputType.SMTP_HOST}
-            />
-          </Center>
-        </Flex>
-        <Flex>
-          <Flex w="30%" justifyContent="start" alignItems="center">
-            <Text fontSize="sm">SMTP Port:</Text>
-          </Flex>
-          <Center w="70%">
-            <InputField
-              variables={envVariables}
-              setVariables={setEnvVariables}
-              inputType={TextInputType.SMTP_PORT}
-            />
-          </Center>
-        </Flex>
-        <Flex>
-          <Flex w="30%" justifyContent="start" alignItems="center">
-            <Text fontSize="sm">SMTP Username:</Text>
-          </Flex>
-          <Center w="70%">
-            <InputField
-              variables={envVariables}
-              setVariables={setEnvVariables}
-              inputType={TextInputType.SMTP_USERNAME}
-            />
-          </Center>
-        </Flex>
-        <Flex>
-          <Flex w="30%" justifyContent="start" alignItems="center">
-            <Text fontSize="sm">SMTP Password:</Text>
-          </Flex>
-          <Center w="70%">
-            <InputField
-              variables={envVariables}
-              setVariables={setEnvVariables}
-              fieldVisibility={fieldVisibility}
-              setFieldVisibility={setFieldVisibility}
-              inputType={HiddenInputType.SMTP_PASSWORD}
-            />
-          </Center>
-        </Flex>
-        <Flex>
-          <Flex w="30%" justifyContent="start" alignItems="center">
-            <Text fontSize="sm">From Email:</Text>
-          </Flex>
-          <Center w="70%">
-            <InputField
-              variables={envVariables}
-              setVariables={setEnvVariables}
-              inputType={TextInputType.SENDER_EMAIL}
-            />
-          </Center>
-        </Flex>
-      </Stack>
+
+      <EmailConfigurations
+        variables={envVariables}
+        setVariables={setEnvVariables}
+        fieldVisibility={fieldVisibility}
+        setFieldVisibility={setFieldVisibility}
+      />
       <Divider marginTop="2%" marginBottom="2%" />
-      <Text fontSize="md" paddingTop="2%" fontWeight="bold">
-        White Listing
-      </Text>
-      <Stack spacing={6} padding="2% 0%">
-        <Flex>
-          <Flex w="30%" justifyContent="start" alignItems="center">
-            <Text fontSize="sm">Allowed Origins:</Text>
-          </Flex>
-          <Center w="70%">
-            <InputField
-              variables={envVariables}
-              setVariables={setEnvVariables}
-              inputType={ArrayInputType.ALLOWED_ORIGINS}
-            />
-          </Center>
-        </Flex>
-      </Stack>
+
+      <WhiteListing variables={envVariables} setVariables={setEnvVariables} />
       <Divider marginTop="2%" marginBottom="2%" />
-      <Text fontSize="md" paddingTop="2%" fontWeight="bold">
-        Organization Information
-      </Text>
-      <Stack spacing={6} padding="2% 0%">
-        <Flex>
-          <Flex w="30%" justifyContent="start" alignItems="center">
-            <Text fontSize="sm">Organization Name:</Text>
-          </Flex>
-          <Center w="70%">
-            <InputField
-              variables={envVariables}
-              setVariables={setEnvVariables}
-              inputType={TextInputType.ORGANIZATION_NAME}
-            />
-          </Center>
-        </Flex>
-        <Flex>
-          <Flex w="30%" justifyContent="start" alignItems="center">
-            <Text fontSize="sm">Organization Logo:</Text>
-          </Flex>
-          <Center w="70%">
-            <InputField
-              variables={envVariables}
-              setVariables={setEnvVariables}
-              inputType={TextInputType.ORGANIZATION_LOGO}
-            />
-          </Center>
-        </Flex>
-      </Stack>
+
+      <OrganizationInfo
+        variables={envVariables}
+        setVariables={setEnvVariables}
+      />
       <Divider marginTop="2%" marginBottom="2%" />
       <Text fontSize="md" paddingTop="2%" fontWeight="bold">
         Access Token
