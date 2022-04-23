@@ -13,7 +13,7 @@ import {
   useToast,
 } from "@chakra-ui/react";
 import { useClient } from "urql";
-import { FaSave, FaRegEyeSlash, FaRegEye } from "react-icons/fa";
+import { FaSave } from "react-icons/fa";
 import _ from "lodash";
 import { EnvVariablesQuery } from "../graphql/queries";
 import {
@@ -42,6 +42,10 @@ import SessionStorage from "../components/EnvComponents/SessionStorage/SessionSt
 import EmailConfigurations from "../components/EnvComponents/EmailConfigurations/EmailConfigurations";
 import WhiteListing from "../components/EnvComponents/WhiteListing/WhiteListing";
 import OrganizationInfo from "../components/EnvComponents/OrganizationInfo/OrganizationInfo";
+import AccessToken from "../components/EnvComponents/AccessToken/AccessToken";
+import DisableFeature from "../components/EnvComponents/DisableFeature/DisableFeature";
+import DangerArea from "../components/EnvComponents/DangerArea/DangerArea";
+
 export default function Environment() {
   const client = useClient();
   const toast = useToast();
@@ -258,234 +262,21 @@ export default function Environment() {
         setVariables={setEnvVariables}
       />
       <Divider marginTop="2%" marginBottom="2%" />
-      <Text fontSize="md" paddingTop="2%" fontWeight="bold">
-        Access Token
-      </Text>
-      <Stack spacing={6} padding="2% 0%">
-        <Flex>
-          <Flex w="30%" justifyContent="start" alignItems="center">
-            <Text fontSize="sm">Access Token Expiry Time:</Text>
-          </Flex>
-          <Flex w="70%">
-            <InputField
-              variables={envVariables}
-              setVariables={setEnvVariables}
-              inputType={TextInputType.ACCESS_TOKEN_EXPIRY_TIME}
-              placeholder="0h15m0s"
-            />
-          </Flex>
-        </Flex>
-        <Flex>
-          <Flex w="30%" justifyContent="start" direction="column">
-            <Text fontSize="sm">Custom Scripts:</Text>
-            <Text fontSize="sm">Used to add custom fields in ID token</Text>
-          </Flex>
-          <Flex w="70%">
-            <InputField
-              variables={envVariables}
-              setVariables={setEnvVariables}
-              inputType={TextAreaInputType.CUSTOM_ACCESS_TOKEN_SCRIPT}
-              placeholder="Add script here"
-              minH="25vh"
-            />
-          </Flex>
-        </Flex>
-      </Stack>
+
+      <AccessToken variables={envVariables} setVariables={setEnvVariables} />
       <Divider marginTop="2%" marginBottom="2%" />
-      <Text fontSize="md" paddingTop="2%" fontWeight="bold">
-        Disable Features
-      </Text>
-      <Stack spacing={6} padding="2% 0%">
-        <Flex>
-          <Flex w="30%" justifyContent="start" alignItems="center">
-            <Text fontSize="sm">Disable Login Page:</Text>
-          </Flex>
-          <Flex justifyContent="start" w="70%">
-            <InputField
-              variables={envVariables}
-              setVariables={setEnvVariables}
-              inputType={SwitchInputType.DISABLE_LOGIN_PAGE}
-            />
-          </Flex>
-        </Flex>
-        <Flex>
-          <Flex w="30%" justifyContent="start" alignItems="center">
-            <Text fontSize="sm">Disable Email Verification:</Text>
-          </Flex>
-          <Flex justifyContent="start" w="70%">
-            <InputField
-              variables={envVariables}
-              setVariables={setEnvVariables}
-              inputType={SwitchInputType.DISABLE_EMAIL_VERIFICATION}
-            />
-          </Flex>
-        </Flex>
-        <Flex>
-          <Flex w="30%" justifyContent="start" alignItems="center">
-            <Text fontSize="sm">Disable Magic Login Link:</Text>
-          </Flex>
-          <Flex justifyContent="start" w="70%">
-            <InputField
-              variables={envVariables}
-              setVariables={setEnvVariables}
-              inputType={SwitchInputType.DISABLE_MAGIC_LINK_LOGIN}
-            />
-          </Flex>
-        </Flex>
-        <Flex>
-          <Flex w="30%" justifyContent="start" alignItems="center">
-            <Text fontSize="sm">Disable Basic Authentication:</Text>
-          </Flex>
-          <Flex justifyContent="start" w="70%">
-            <InputField
-              variables={envVariables}
-              setVariables={setEnvVariables}
-              inputType={SwitchInputType.DISABLE_BASIC_AUTHENTICATION}
-            />
-          </Flex>
-        </Flex>
-        <Flex>
-          <Flex w="30%" justifyContent="start" alignItems="center">
-            <Text fontSize="sm">Disable Sign Up:</Text>
-          </Flex>
-          <Flex justifyContent="start" w="70%">
-            <InputField
-              variables={envVariables}
-              setVariables={setEnvVariables}
-              inputType={SwitchInputType.DISABLE_SIGN_UP}
-            />
-          </Flex>
-        </Flex>
-      </Stack>
+
+      <DisableFeature variables={envVariables} setVariables={setEnvVariables} />
       <Divider marginTop="2%" marginBottom="2%" />
-      <Text fontSize="md" paddingTop="2%" fontWeight="bold">
-        Danger
-      </Text>
-      <Stack
-        spacing={6}
-        padding="0 5%"
-        marginTop="3%"
-        border="1px solid #ff7875"
-        borderRadius="5px"
-      >
-        <Stack spacing={6} padding="3% 0">
-          <Text fontStyle="italic" fontSize="sm" color="gray.600">
-            Note: Database related environment variables cannot be updated from
-            dashboard :(
-          </Text>
-          <Flex>
-            <Flex w="30%" justifyContent="start" alignItems="center">
-              <Text fontSize="sm">DataBase Name:</Text>
-            </Flex>
-            <Center w="70%">
-              <InputField
-                variables={envVariables}
-                setVariables={setEnvVariables}
-                inputType={TextInputType.DATABASE_NAME}
-                isDisabled={true}
-              />
-            </Center>
-          </Flex>
-          <Flex>
-            <Flex w="30%" justifyContent="start" alignItems="center">
-              <Text fontSize="sm">DataBase Type:</Text>
-            </Flex>
-            <Center w="70%">
-              <InputField
-                variables={envVariables}
-                setVariables={setEnvVariables}
-                inputType={TextInputType.DATABASE_TYPE}
-                isDisabled={true}
-              />
-            </Center>
-          </Flex>
-          <Flex>
-            <Flex w="30%" justifyContent="start" alignItems="center">
-              <Text fontSize="sm">DataBase URL:</Text>
-            </Flex>
-            <Center w="70%">
-              <InputField
-                variables={envVariables}
-                setVariables={setEnvVariables}
-                inputType={TextInputType.DATABASE_URL}
-                isDisabled={true}
-              />
-            </Center>
-          </Flex>
-        </Stack>
-        <Flex marginTop="3%">
-          <Flex w="30%" justifyContent="start" alignItems="center">
-            <Text fontSize="sm">Old Admin Secret:</Text>
-          </Flex>
-          <Center w="70%">
-            <InputGroup size="sm">
-              <Input
-                size="sm"
-                placeholder="Enter Old Admin Secret"
-                value={adminSecret.value as string}
-                onChange={(event: any) => validateAdminSecretHandler(event)}
-                type={
-                  !fieldVisibility[HiddenInputType.OLD_ADMIN_SECRET]
-                    ? "password"
-                    : "text"
-                }
-              />
-              <InputRightElement
-                right="5px"
-                children={
-                  <Flex>
-                    {fieldVisibility[HiddenInputType.OLD_ADMIN_SECRET] ? (
-                      <Center
-                        w="25px"
-                        margin="0 1.5%"
-                        cursor="pointer"
-                        onClick={() =>
-                          setFieldVisibility({
-                            ...fieldVisibility,
-                            [HiddenInputType.OLD_ADMIN_SECRET]: false,
-                          })
-                        }
-                      >
-                        <FaRegEyeSlash color="#bfbfbf" />
-                      </Center>
-                    ) : (
-                      <Center
-                        w="25px"
-                        margin="0 1.5%"
-                        cursor="pointer"
-                        onClick={() =>
-                          setFieldVisibility({
-                            ...fieldVisibility,
-                            [HiddenInputType.OLD_ADMIN_SECRET]: true,
-                          })
-                        }
-                      >
-                        <FaRegEye color="#bfbfbf" />
-                      </Center>
-                    )}
-                  </Flex>
-                }
-              />
-            </InputGroup>
-          </Center>
-        </Flex>
-        <Flex paddingBottom="3%">
-          <Flex w="30%" justifyContent="start" alignItems="center">
-            <Text fontSize="sm">New Admin Secret:</Text>
-          </Flex>
-          <Center w="70%">
-            <InputField
-              variables={envVariables}
-              setVariables={setEnvVariables}
-              inputType={HiddenInputType.ADMIN_SECRET}
-              fieldVisibility={fieldVisibility}
-              setFieldVisibility={setFieldVisibility}
-              isDisabled={adminSecret.disableInputField}
-              placeholder="Enter New Admin Secret"
-            />
-          </Center>
-        </Flex>
-      </Stack>
+
+      <DangerArea
+        variables={envVariables}
+        setVariables={setEnvVariables}
+        fieldVisibility={fieldVisibility}
+        setFieldVisibility={setFieldVisibility}
+        validateAdminSecretHandler={validateAdminSecretHandler}
+        adminSecret={adminSecret}
+      />
       <Divider marginTop="5%" marginBottom="2%" />
       <Stack spacing={6} padding="1% 0">
         <Flex justifyContent="end" alignItems="center">
