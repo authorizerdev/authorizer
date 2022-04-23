@@ -1,12 +1,5 @@
 import React from "react";
-import {
-  FaGoogle,
-  FaGithub,
-  FaFacebookF,
-  FaSave,
-  FaRegEyeSlash,
-  FaRegEye,
-} from "react-icons/fa";
+import { FaGoogle, FaGithub, FaFacebookF } from "react-icons/fa";
 import {
   Box,
   Divider,
