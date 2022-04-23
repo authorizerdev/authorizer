@@ -10,6 +10,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/db"
+	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/sessionstore"
@@ -96,7 +97,11 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 		sessionstore.SetState(authToken.RefreshToken.Token, authToken.FingerPrint+"@"+user.ID)
 	}
 
-	go utils.SaveSessionInDB(gc, user.ID)
+	go db.Provider.AddSession(models.Session{
+		UserID:    user.ID,
+		UserAgent: utils.GetUserAgent(gc.Request),
+		IP:        utils.GetIP(gc.Request),
+	})
 
 	return res, nil
 }

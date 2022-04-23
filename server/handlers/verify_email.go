@@ -8,6 +8,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/db"
+	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/sessionstore"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
@@ -109,7 +110,11 @@ func VerifyEmailHandler() gin.HandlerFunc {
 			redirectURL = redirectURL + "?" + params
 		}
 
-		go utils.SaveSessionInDB(c, user.ID)
+		go db.Provider.AddSession(models.Session{
+			UserID:    user.ID,
+			UserAgent: utils.GetUserAgent(c.Request),
+			IP:        utils.GetIP(c.Request),
+		})
 
 		c.Redirect(http.StatusTemporaryRedirect, redirectURL)
 	}

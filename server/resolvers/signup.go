@@ -174,7 +174,11 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 
 		sessionstore.SetState(authToken.FingerPrintHash, authToken.FingerPrint+"@"+user.ID)
 		cookie.SetSession(gc, authToken.FingerPrintHash)
-		go utils.SaveSessionInDB(gc, user.ID)
+		go db.Provider.AddSession(models.Session{
+			UserID:    user.ID,
+			UserAgent: utils.GetUserAgent(gc.Request),
+			IP:        utils.GetIP(gc.Request),
+		})
 
 		expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
 		if expiresIn <= 0 {

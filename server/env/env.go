@@ -42,6 +42,9 @@ func InitRequiredEnv() error {
 	dbHost := os.Getenv(constants.EnvKeyDatabaseHost)
 	dbUsername := os.Getenv(constants.EnvKeyDatabaseUsername)
 	dbPassword := os.Getenv(constants.EnvKeyDatabasePassword)
+	dbCert := os.Getenv(constants.EnvKeyDatabaseCert)
+	dbCertKey := os.Getenv(constants.EnvKeyDatabaseCertKey)
+	dbCACert := os.Getenv(constants.EnvKeyDatabaseCACert)
 
 	if strings.TrimSpace(dbType) == "" {
 		if envstore.ARG_DB_TYPE != nil && *envstore.ARG_DB_TYPE != "" {
@@ -77,6 +80,10 @@ func InitRequiredEnv() error {
 	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabasePort, dbPort)
 	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseUsername, dbUsername)
 	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabasePassword, dbPassword)
+	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseCert, dbCert)
+	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseCertKey, dbCertKey)
+	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseCACert, dbCACert)
+
 	return nil
 }
 

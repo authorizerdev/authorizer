@@ -8,6 +8,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/db"
+	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/sessionstore"
 	"github.com/authorizerdev/authorizer/server/token"
@@ -62,7 +63,11 @@ func VerifyEmailResolver(ctx context.Context, params model.VerifyEmailInput) (*m
 	sessionstore.SetState(authToken.FingerPrintHash, authToken.FingerPrint+"@"+user.ID)
 	sessionstore.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
 	cookie.SetSession(gc, authToken.FingerPrintHash)
-	go utils.SaveSessionInDB(gc, user.ID)
+	go db.Provider.AddSession(models.Session{
+		UserID:    user.ID,
+		UserAgent: utils.GetUserAgent(gc.Request),
+		IP:        utils.GetIP(gc.Request),
+	})
 
 	expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
 	if expiresIn <= 0 {

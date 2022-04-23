@@ -1,13 +1,17 @@
 package cassandradb
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"log"
 	"strings"
 
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/envstore"
+	"github.com/gocql/gocql"
 	cansandraDriver "github.com/gocql/gocql"
 )
 
@@ -21,6 +25,13 @@ var KeySpace string
 // NewProvider to initialize arangodb connection
 func NewProvider() (*provider, error) {
 	dbURL := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL)
+	if dbURL == "" {
+		dbURL = envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseHost)
+		if envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabasePort) != "" {
+			dbURL = fmt.Sprintf("%s:%s", dbURL, envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabasePort))
+		}
+	}
+
 	KeySpace = envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseName)
 	clusterURL := []string{}
 	if strings.Contains(dbURL, ",") {
@@ -36,10 +47,44 @@ func NewProvider() (*provider, error) {
 		}
 	}
 
+	if envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseCert) != "" && envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseCACert) != "" && envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseCertKey) != "" {
+		certString, err := crypto.DecryptB64(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseCert))
+		if err != nil {
+			return nil, err
+		}
+
+		keyString, err := crypto.DecryptB64(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseCertKey))
+		if err != nil {
+			return nil, err
+		}
+
+		caString, err := crypto.DecryptB64(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseCACert))
+		if err != nil {
+			return nil, err
+		}
+
+		cert, err := tls.X509KeyPair([]byte(certString), []byte(keyString))
+		if err != nil {
+			return nil, err
+		}
+
+		caCertPool := x509.NewCertPool()
+		caCertPool.AppendCertsFromPEM([]byte(caString))
+
+		cassandraClient.SslOpts = &cansandraDriver.SslOptions{
+			Config: &tls.Config{
+				Certificates:       []tls.Certificate{cert},
+				RootCAs:            caCertPool,
+				InsecureSkipVerify: true,
+			},
+			EnableHostVerification: false,
+		}
+	}
+
 	cassandraClient.RetryPolicy = &cansandraDriver.SimpleRetryPolicy{
 		NumRetries: 3,
 	}
-	cassandraClient.Consistency = cansandraDriver.Quorum
+	cassandraClient.Consistency = gocql.LocalQuorum
 
 	session, err := cassandraClient.CreateSession()
 	if err != nil {
@@ -47,12 +92,31 @@ func NewProvider() (*provider, error) {
 		return nil, err
 	}
 
-	keyspaceQuery := fmt.Sprintf("CREATE KEYSPACE IF NOT EXISTS %s WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor':1}",
-		KeySpace)
-	err = session.Query(keyspaceQuery).Exec()
-	if err != nil {
-		log.Println("Unable to create keyspace:", err)
-		return nil, err
+	// Note for astra keyspaces can only be created from there console
+	// https://docs.datastax.com/en/astra/docs/datastax-astra-faq.html#_i_am_trying_to_create_a_keyspace_in_the_cql_shell_and_i_am_running_into_an_error_how_do_i_fix_this
+	getKeyspaceQuery := fmt.Sprintf("SELECT keyspace_name FROM system_schema.keyspaces;")
+	scanner := session.Query(getKeyspaceQuery).Iter().Scanner()
+	hasAuthorizerKeySpace := false
+	for scanner.Next() {
+		var keySpace string
+		err := scanner.Scan(&keySpace)
+		if err != nil {
+			log.Println("Error while getting keyspace information", err)
+			return nil, err
+		}
+		if keySpace == KeySpace {
+			hasAuthorizerKeySpace = true
+			break
+		}
+	}
+
+	if !hasAuthorizerKeySpace {
+		createKeySpaceQuery := fmt.Sprintf("CREATE KEYSPACE %s WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor': 1};", KeySpace)
+		err = session.Query(createKeySpaceQuery).Exec()
+		if err != nil {
+			log.Println("Error while creating keyspace", err)
+			return nil, err
+		}
 	}
 
 	// make sure collections are present

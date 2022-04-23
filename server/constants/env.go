@@ -38,6 +38,12 @@ const (
 	EnvKeyDatabasePort = "DATABASE_PORT"
 	// EnvKeyDatabaseHost key for env variable DATABASE_HOST
 	EnvKeyDatabaseHost = "DATABASE_HOST"
+	// EnvKeyDatabaseCert key for env variable DATABASE_CERT
+	EnvKeyDatabaseCert = "DATABASE_CERT"
+	// EnvKeyDatabaseCertKey key for env variable DATABASE_KEY
+	EnvKeyDatabaseCertKey = "DATABASE_CERT_KEY"
+	// EnvKeyDatabaseCACert key for env variable DATABASE_CA_CERT
+	EnvKeyDatabaseCACert = "DATABASE_CA_CERT"
 	// EnvKeySmtpHost key for env variable SMTP_HOST
 	EnvKeySmtpHost = "SMTP_HOST"
 	// EnvKeySmtpPort key for env variable SMTP_PORT

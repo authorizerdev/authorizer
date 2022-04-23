@@ -174,7 +174,11 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			sessionstore.SetState(authToken.RefreshToken.Token, authToken.FingerPrint+"@"+user.ID)
 		}
 
-		go utils.SaveSessionInDB(c, user.ID)
+		go db.Provider.AddSession(models.Session{
+			UserID:    user.ID,
+			UserAgent: utils.GetUserAgent(c.Request),
+			IP:        utils.GetIP(c.Request),
+		})
 		if strings.Contains(redirectURL, "?") {
 			redirectURL = redirectURL + "&" + params
 		} else {
