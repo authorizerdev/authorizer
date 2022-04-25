@@ -93,14 +93,14 @@ const Environment = () => {
   });
 
   const { sec } = useParams();
-  useEffect(() => {
-    getCorrectScreen(sec);
-  }, [sec]);
+
   async function getData() {
     const {
       data: { _env: envData },
     } = await client.query(EnvVariablesQuery).toPromise();
+    console.log("Sec data", envData);
     setLoading(false);
+
     setEnvVariables({
       ...envData,
       OLD_ADMIN_SECRET: envData.ADMIN_SECRET,
@@ -114,7 +114,7 @@ const Environment = () => {
 
   useEffect(() => {
     getData();
-  }, []);
+  }, [sec]);
 
   const validateAdminSecretHandler = (event: any) => {
     if (envVariables.OLD_ADMIN_SECRET === event.target.value) {
@@ -303,74 +303,6 @@ const Environment = () => {
   return (
     <Box m="5" py="5" px="10" bg="white" rounded="md">
       {getCorrectScreen(sec)}
-      {/* <InstanceInformation
-        envVariables={envVariables}
-        setVariables={setEnvVariables}
-        fieldVisibility={fieldVisibility}
-        setFieldVisibility={setFieldVisibility}
-      />
-      <Divider marginTop="2%" marginBottom="2%" />
-      <SocialMediaLogin
-        variables={envVariables}
-        setVariables={setEnvVariables}
-        fieldVisibility={fieldVisibility}
-        setFieldVisibility={setFieldVisibility}
-      />
-      <Divider marginTop="2%" marginBottom="2%" />
-      <Roles variables={envVariables} setVariables={setEnvVariables} />
-      <Divider marginTop="2%" marginBottom="2%" />
-      <JWTConfigurations
-        variables={envVariables}
-        setVariables={setEnvVariables}
-        fieldVisibility={fieldVisibility}
-        setFieldVisibility={setFieldVisibility}
-        SelectInputType={SelectInputType.JWT_TYPE}
-        // value={SelectInputType.JWT_TYPE}
-        HMACEncryptionType={HMACEncryptionType}
-        RSAEncryptionType={RSAEncryptionType}
-        ECDSAEncryptionType={ECDSAEncryptionType}
-        getData={getData}
-      />
-      <Divider marginTop="2%" marginBottom="2%" />
-      <SessionStorage
-        variables={envVariables}
-        setVariables={setEnvVariables}
-        RedisURL={TextInputType.REDIS_URL}
-      />
-      <Divider marginTop="2%" marginBottom="2%" />
-
-      <EmailConfigurations
-        variables={envVariables}
-        setVariables={setEnvVariables}
-        fieldVisibility={fieldVisibility}
-        setFieldVisibility={setFieldVisibility}
-      />
-      <Divider marginTop="2%" marginBottom="2%" />
-
-      <WhiteListing variables={envVariables} setVariables={setEnvVariables} />
-      <Divider marginTop="2%" marginBottom="2%" />
-
-      <OrganizationInfo
-        variables={envVariables}
-        setVariables={setEnvVariables}
-      />
-      <Divider marginTop="2%" marginBottom="2%" />
-
-      <AccessToken variables={envVariables} setVariables={setEnvVariables} />
-      <Divider marginTop="2%" marginBottom="2%" />
-
-      <DisableFeature variables={envVariables} setVariables={setEnvVariables} />
-      <Divider marginTop="2%" marginBottom="2%" />
-
-      <DangerArea
-        variables={envVariables}
-        setVariables={setEnvVariables}
-        fieldVisibility={fieldVisibility}
-        setFieldVisibility={setFieldVisibility}
-        validateAdminSecretHandler={validateAdminSecretHandler}
-        adminSecret={adminSecret}
-      /> */}
-      <Divider marginTop="5%" marginBottom="2%" />
       <Stack spacing={6} padding="1% 0">
         <Flex justifyContent="end" alignItems="center">
           <Button

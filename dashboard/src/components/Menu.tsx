@@ -17,16 +17,29 @@ import {
   MenuButton,
   MenuItem,
   MenuList,
+  Accordion,
+  AccordionButton,
+  AccordionPanel,
+  AccordionItem,
+  AccordionIcon,
 } from "@chakra-ui/react";
 import {
   FiHome,
+  FiUser,
+  FiGlobe,
   FiCode,
   FiSettings,
   FiMenu,
-  FiUser,
   FiUsers,
   FiChevronDown,
+  FiShieldOff,
 } from "react-icons/fi";
+import { AiOutlineKey } from "react-icons/ai";
+import { SiOpenaccess, SiJsonwebtokens } from "react-icons/si";
+import { RiSkullLine } from "react-icons/ri";
+import { GrStorage } from "react-icons/gr";
+import { BsCheck2Circle } from "react-icons/bs";
+import { HiOutlineMail, HiOutlineOfficeBuilding } from "react-icons/hi";
 import { IconType } from "react-icons";
 import { ReactText } from "react";
 import { useMutation, useQuery } from "urql";
@@ -49,33 +62,49 @@ interface LinkItemProps {
 }
 const LinkItems: Array<LinkItemProps> = [
   {
-    name: "Environment Variables",
+    name: "Environment ",
     icon: FiSettings,
     route: "/",
     subRoutes: [
       {
         name: "Instance Information",
-        icon: FiUsers,
+        icon: AiOutlineKey,
         route: "/instance-info",
       },
       {
         name: "Social Media Login",
-        icon: FiUsers,
+        icon: FiGlobe,
         route: "/social-media-login",
       },
-      { name: "Roles", icon: FiUsers, route: "/roles" },
-      { name: "JWTConfigurations", icon: FiUsers, route: "/jwt-config" },
-      { name: "SessionStorage", icon: FiUsers, route: "/session-storage" },
-      { name: "EmailConfigurations", icon: FiUsers, route: "/email-config" },
+      { name: "Roles", icon: FiUser, route: "/roles" },
+      {
+        name: "JWTConfigurations",
+        icon: SiJsonwebtokens,
+        route: "/jwt-config",
+      },
+      { name: "SessionStorage", icon: GrStorage, route: "/session-storage" },
+      {
+        name: "EmailConfigurations",
+        icon: HiOutlineMail,
+        route: "/email-config",
+      },
       {
         name: "WhiteListing",
-        icon: FiUsers,
+        icon: BsCheck2Circle,
         route: "/whitelist-variables",
       },
-      { name: "OrganizationInfo", icon: FiUsers, route: "/organization-info" },
-      { name: "AccessToken", icon: FiUsers, route: "/access-token" },
-      { name: "DisableFeature", icon: FiUsers, route: "/disable-feature" },
-      { name: "DangerArea", icon: FiUsers, route: "/danger-area" },
+      {
+        name: "OrganizationInfo",
+        icon: HiOutlineOfficeBuilding,
+        route: "/organization-info",
+      },
+      { name: "AccessToken", icon: SiOpenaccess, route: "/access-token" },
+      {
+        name: "DisableFeature",
+        icon: FiShieldOff,
+        route: "/disable-feature",
+      },
+      { name: "DangerArea", icon: RiSkullLine, route: "/danger-area" },
     ],
   },
   { name: "Users", icon: FiUsers, route: "/users" },
@@ -114,7 +143,7 @@ export const Sidebar = ({ onClose, ...rest }: SidebarProps) => {
         </NavLink>
         <CloseButton display={{ base: "flex", md: "none" }} onClick={onClose} />
       </Flex>
-      {LinkItems.map((link) => (
+      {/* {LinkItems.map((link) => (
         <NavLink key={link.name} to={link.route}>
           <NavItem
             icon={link.icon}
@@ -136,18 +165,73 @@ export const Sidebar = ({ onClose, ...rest }: SidebarProps) => {
             </NavLink>
           ))}
         </NavLink>
-      ))}
-
-      <Link
-        href="/playground"
-        target="_blank"
-        style={{
-          textDecoration: "none",
-        }}
-        _focus={{ _boxShadow: "none" }}
-      >
-        <NavItem icon={FiCode}>API Playground</NavItem>
-      </Link>
+      ))} */}
+      {/* <AccordionButton>
+        <Box flex="1" textAlign="left">
+          Section 1 title
+        </Box>
+        <AccordionIcon />
+      </AccordionButton> */}
+      <Accordion defaultIndex={[0]} allowMultiple w="100%">
+        <AccordionItem textAlign="center">
+          {LinkItems.map((link) =>
+            link?.subRoutes ? (
+              <NavLink key={link.name} to={link.route}>
+                <AccordionButton w="113%">
+                  <Text fontSize="md" w="100%" ml={-4}>
+                    <NavItem
+                      icon={link.icon}
+                      color={pathname === link.route ? "blue.500" : ""}
+                    >
+                      {link.name}
+                      <Box display={{ base: "none", md: "flex" }} ml={12}>
+                        <FiChevronDown />
+                      </Box>
+                    </NavItem>
+                  </Text>
+                </AccordionButton>
+                <AccordionPanel>
+                  {link.subRoutes?.map((sublink) => (
+                    <NavLink key={sublink.name} to={sublink.route}>
+                      {" "}
+                      <Text fontSize="xs" ml={4} mt={-1}>
+                        <NavItem
+                          icon={sublink.icon}
+                          color={pathname === sublink.route ? "blue.500" : ""}
+                        >
+                          {sublink.name}
+                        </NavItem>{" "}
+                      </Text>
+                    </NavLink>
+                  ))}
+                </AccordionPanel>
+              </NavLink>
+            ) : (
+              <NavLink key={link.name} to={link.route}>
+                {" "}
+                <Text fontSize="md" w="100%" mt={-2}>
+                  <NavItem
+                    icon={link.icon}
+                    color={pathname === link.route ? "blue.500" : ""}
+                  >
+                    {link.name}
+                  </NavItem>{" "}
+                </Text>
+              </NavLink>
+            )
+          )}
+          <Link
+            href="/playground"
+            target="_blank"
+            style={{
+              textDecoration: "none",
+            }}
+            _focus={{ _boxShadow: "none" }}
+          >
+            <NavItem icon={FiCode}>API Playground</NavItem>
+          </Link>
+        </AccordionItem>
+      </Accordion>
 
       {data?.meta?.version && (
         <Text
@@ -157,6 +241,7 @@ export const Sidebar = ({ onClose, ...rest }: SidebarProps) => {
           position="absolute"
           bottom="5"
           left="7"
+          mt={6}
         >
           Current Version: {data.meta.version}
         </Text>
