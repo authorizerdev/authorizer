@@ -198,7 +198,7 @@ const Environment = () => {
 
   const getCorrectScreen = (tab: any) => {
     switch (tab) {
-      case "InstanceInformation":
+      case "instance-info":
         return (
           <InstanceInformation
             envVariables={envVariables}
@@ -207,7 +207,7 @@ const Environment = () => {
             setFieldVisibility={setFieldVisibility}
           />
         );
-      case "SocialMediaLogin":
+      case "social-media-login":
         return (
           <SocialMediaLogin
             variables={envVariables}
@@ -216,11 +216,11 @@ const Environment = () => {
             setFieldVisibility={setFieldVisibility}
           />
         );
-      case "Roles":
+      case "roles":
         return (
           <Roles variables={envVariables} setVariables={setEnvVariables} />
         );
-      case "JWTConfigurations":
+      case "jwt-config":
         return (
           <JWTConfigurations
             variables={envVariables}
@@ -235,7 +235,7 @@ const Environment = () => {
             getData={getData}
           />
         );
-      case "SessionStorage":
+      case "session-storage":
         return (
           <SessionStorage
             variables={envVariables}
@@ -243,7 +243,7 @@ const Environment = () => {
             RedisURL={TextInputType.REDIS_URL}
           />
         );
-      case "EmailConfig":
+      case "email-config":
         return (
           <EmailConfigurations
             variables={envVariables}
@@ -252,35 +252,35 @@ const Environment = () => {
             setFieldVisibility={setFieldVisibility}
           />
         );
-      case "WhitelistVar":
+      case "whitelist-variables":
         return (
           <WhiteListing
             variables={envVariables}
             setVariables={setEnvVariables}
           />
         );
-      case "OrganizationInfo":
+      case "organization-info":
         return (
           <OrganizationInfo
             variables={envVariables}
             setVariables={setEnvVariables}
           />
         );
-      case "AccessToken":
+      case "access-token":
         return (
           <AccessToken
             variables={envVariables}
             setVariables={setEnvVariables}
           />
         );
-      case "DisableFeature":
+      case "disable-feature":
         return (
           <DisableFeature
             variables={envVariables}
             setVariables={setEnvVariables}
           />
         );
-      case "DangerArea":
+      case "danger-area":
         <DangerArea
           variables={envVariables}
           setVariables={setEnvVariables}

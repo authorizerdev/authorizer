@@ -48,7 +48,6 @@ interface LinkItemProps {
   subRoutes?: SubRoutes[];
 }
 const LinkItems: Array<LinkItemProps> = [
-  // { name: "Home", icon: FiHome, route: "/" },
   {
     name: "Environment Variables",
     icon: FiSettings,
@@ -57,14 +56,26 @@ const LinkItems: Array<LinkItemProps> = [
       {
         name: "Instance Information",
         icon: FiUsers,
-        route: "/InstanceInformation",
+        route: "/instance-info",
       },
       {
         name: "Social Media Login",
         icon: FiUsers,
-        route: "/SocialMediaLogin",
+        route: "/social-media-login",
       },
-      { name: "Roles", icon: FiUsers, route: "/Roles" },
+      { name: "Roles", icon: FiUsers, route: "/roles" },
+      { name: "JWTConfigurations", icon: FiUsers, route: "/jwt-config" },
+      { name: "SessionStorage", icon: FiUsers, route: "/session-storage" },
+      { name: "EmailConfigurations", icon: FiUsers, route: "/email-config" },
+      {
+        name: "WhiteListing",
+        icon: FiUsers,
+        route: "/whitelist-variables",
+      },
+      { name: "OrganizationInfo", icon: FiUsers, route: "/organization-info" },
+      { name: "AccessToken", icon: FiUsers, route: "/access-token" },
+      { name: "DisableFeature", icon: FiUsers, route: "/disable-feature" },
+      { name: "DangerArea", icon: FiUsers, route: "/danger-area" },
     ],
   },
   { name: "Users", icon: FiUsers, route: "/users" },
@@ -114,12 +125,14 @@ export const Sidebar = ({ onClose, ...rest }: SidebarProps) => {
           {link.subRoutes?.map((sublink) => (
             <NavLink key={sublink.name} to={sublink.route}>
               {" "}
-              <NavItem
-                icon={sublink.icon}
-                color={pathname === sublink.route ? "blue.500" : ""}
-              >
-                {sublink.name}
-              </NavItem>{" "}
+              <Text fontSize="xs" ml={8} mt={-2}>
+                <NavItem
+                  icon={sublink.icon}
+                  color={pathname === sublink.route ? "blue.500" : ""}
+                >
+                  {sublink.name}
+                </NavItem>{" "}
+              </Text>
             </NavLink>
           ))}
         </NavLink>
