@@ -108,6 +108,7 @@ const LinkItems: Array<LinkItemProps> = [
     ],
   },
   { name: "Users", icon: FiUsers, route: "/users" },
+  // { name: "AUsers", icon: FiUsers, route: "/usersa" },
 ];
 
 interface SidebarProps extends BoxProps {
@@ -173,7 +174,7 @@ export const Sidebar = ({ onClose, ...rest }: SidebarProps) => {
         <AccordionIcon />
       </AccordionButton> */}
       <Accordion defaultIndex={[0]} allowMultiple w="100%">
-        <AccordionItem textAlign="center">
+        <AccordionItem textAlign="center" border="none">
           {LinkItems.map((link) =>
             link?.subRoutes ? (
               <NavLink key={link.name} to={link.route}>
@@ -241,7 +242,6 @@ export const Sidebar = ({ onClose, ...rest }: SidebarProps) => {
           position="absolute"
           bottom="5"
           left="7"
-          mt={6}
         >
           Current Version: {data.meta.version}
         </Text>
