@@ -1,17 +1,5 @@
 import React from "react";
-import {
-  Box,
-  Divider,
-  Flex,
-  Stack,
-  Center,
-  Text,
-  Button,
-  Input,
-  InputGroup,
-  InputRightElement,
-  useToast,
-} from "@chakra-ui/react";
+import { Flex, Stack, Text } from "@chakra-ui/react";
 import InputField from "../../InputField";
 import { TextInputType, TextAreaInputType } from "../../../constants";
 

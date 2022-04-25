@@ -1,18 +1,6 @@
 import React from "react";
 import InputField from "../../InputField";
-import {
-  Box,
-  Divider,
-  Flex,
-  Stack,
-  Center,
-  Text,
-  Button,
-  Input,
-  InputGroup,
-  InputRightElement,
-  useToast,
-} from "@chakra-ui/react";
+import { Flex, Stack, Center, Text, Box } from "@chakra-ui/react";
 import {
   envVarTypes,
   TextInputType,
@@ -26,7 +14,7 @@ const InstantInformation = ({
   setFieldVisibility,
 }: any) => {
   return (
-    <div>
+    <Box>
       {" "}
       <Text fontSize="md" paddingTop="2%" fontWeight="bold">
         Your instance information
@@ -42,7 +30,7 @@ const InstantInformation = ({
               setVariables={() => {}}
               inputType={TextInputType.CLIENT_ID}
               placeholder="Client ID"
-              readOnly={true}
+              readOnly
             />
           </Center>
         </Flex>
@@ -58,12 +46,12 @@ const InstantInformation = ({
               setFieldVisibility={setFieldVisibility}
               inputType={HiddenInputType.CLIENT_SECRET}
               placeholder="Client Secret"
-              readOnly={true}
+              readOnly
             />
           </Center>
         </Flex>
       </Stack>
-    </div>
+    </Box>
   );
 };
 

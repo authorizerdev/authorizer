@@ -35,14 +35,38 @@ import { useAuthContext } from "../contexts/AuthContext";
 import { AdminLogout } from "../graphql/mutation";
 import { MetaQuery } from "../graphql/queries";
 
-interface LinkItemProps {
+interface SubRoutes {
   name: string;
   icon: IconType;
   route: string;
 }
+
+interface LinkItemProps {
+  name: string;
+  icon: IconType;
+  route: string;
+  subRoutes?: SubRoutes[];
+}
 const LinkItems: Array<LinkItemProps> = [
-  // { name: 'Home', icon: FiHome, route: '/' },
-  { name: "Environment Variables", icon: FiSettings, route: "/" },
+  // { name: "Home", icon: FiHome, route: "/" },
+  {
+    name: "Environment Variables",
+    icon: FiSettings,
+    route: "/",
+    subRoutes: [
+      {
+        name: "Instance Information",
+        icon: FiUsers,
+        route: "/InstanceInformation",
+      },
+      {
+        name: "Social Media Login",
+        icon: FiUsers,
+        route: "/SocialMediaLogin",
+      },
+      { name: "Roles", icon: FiUsers, route: "/Roles" },
+    ],
+  },
   { name: "Users", icon: FiUsers, route: "/users" },
 ];
 
@@ -64,7 +88,7 @@ export const Sidebar = ({ onClose, ...rest }: SidebarProps) => {
       h="full"
       {...rest}
     >
-      <Flex h="20" alignItems="center" mx="8" justifyContent="space-between">
+      <Flex h="20" alignItems="center" mx="18" justifyContent="space-between">
         <NavLink to="/">
           <Flex alignItems="center">
             <Image
@@ -87,6 +111,17 @@ export const Sidebar = ({ onClose, ...rest }: SidebarProps) => {
           >
             {link.name}
           </NavItem>
+          {link.subRoutes?.map((sublink) => (
+            <NavLink key={sublink.name} to={sublink.route}>
+              {" "}
+              <NavItem
+                icon={sublink.icon}
+                color={pathname === sublink.route ? "blue.500" : ""}
+              >
+                {sublink.name}
+              </NavItem>{" "}
+            </NavLink>
+          ))}
         </NavLink>
       ))}
 
