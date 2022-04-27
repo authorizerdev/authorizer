@@ -1,14 +1,6 @@
 import React from "react";
 import { FaGoogle, FaGithub, FaFacebookF } from "react-icons/fa";
-import {
-  Box,
-  Divider,
-  Flex,
-  Stack,
-  Center,
-  Text,
-  useMediaQuery,
-} from "@chakra-ui/react";
+import { Flex, Stack, Center, Text, useMediaQuery } from "@chakra-ui/react";
 import { TextInputType, HiddenInputType } from "../../../constants";
 import InputField from "../../InputField";
 const SocialMediaLogin = ({
@@ -41,7 +33,7 @@ const SocialMediaLogin = ({
             marginRight="1.5%"
           >
             <InputField
-              borderRadius={7}
+              borderRadius={5}
               variables={variables}
               setVariables={setVariables}
               inputType={TextInputType.GOOGLE_CLIENT_ID}
@@ -53,7 +45,7 @@ const SocialMediaLogin = ({
             mt={isNotSmallerScreen ? "0" : "3"}
           >
             <InputField
-              borderRadius={7}
+              borderRadius={5}
               variables={variables}
               setVariables={setVariables}
               fieldVisibility={fieldVisibility}
@@ -79,7 +71,7 @@ const SocialMediaLogin = ({
             marginRight="1.5%"
           >
             <InputField
-              borderRadius={7}
+              borderRadius={5}
               variables={variables}
               setVariables={setVariables}
               inputType={TextInputType.GITHUB_CLIENT_ID}
@@ -91,7 +83,7 @@ const SocialMediaLogin = ({
             mt={isNotSmallerScreen ? "0" : "3"}
           >
             <InputField
-              borderRadius={7}
+              borderRadius={5}
               variables={variables}
               setVariables={setVariables}
               fieldVisibility={fieldVisibility}
@@ -117,7 +109,7 @@ const SocialMediaLogin = ({
             marginRight="1.5%"
           >
             <InputField
-              borderRadius={7}
+              borderRadius={5}
               variables={variables}
               setVariables={setVariables}
               inputType={TextInputType.FACEBOOK_CLIENT_ID}
@@ -129,7 +121,7 @@ const SocialMediaLogin = ({
             mt={isNotSmallerScreen ? "0" : "3"}
           >
             <InputField
-              borderRadius={7}
+              borderRadius={5}
               variables={variables}
               setVariables={setVariables}
               fieldVisibility={fieldVisibility}

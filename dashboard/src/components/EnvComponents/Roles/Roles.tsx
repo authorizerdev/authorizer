@@ -6,40 +6,45 @@ import {
   Stack,
   Center,
   Text,
-  Button,
-  Input,
-  InputGroup,
-  InputRightElement,
-  useToast,
+  useMediaQuery,
 } from "@chakra-ui/react";
 import { ArrayInputType } from "../../../constants";
 import InputField from "../../InputField";
 
 const Roles = ({ variables, setVariables }: any) => {
+  const [isNotSmallerScreen] = useMediaQuery("(min-width:600px)");
   return (
     <div>
       {" "}
-      <Text fontSize="md" paddingTop="2%" fontWeight="bold">
+      <Text fontSize="md" paddingTop="2%" fontWeight="bold" mb={5}>
         Roles
       </Text>
       <Stack spacing={6} padding="2% 0%">
-        <Flex>
+        <Flex direction={isNotSmallerScreen ? "row" : "column"}>
           <Flex w="30%" justifyContent="start" alignItems="center">
             <Text fontSize="sm">Roles:</Text>
           </Flex>
-          <Center w="70%">
+          <Center
+            w={isNotSmallerScreen ? "70%" : "100%"}
+            mt={isNotSmallerScreen ? "0" : "2"}
+            overflow="hidden"
+          >
             <InputField
+              borderRadius={7}
               variables={variables}
               setVariables={setVariables}
               inputType={ArrayInputType.ROLES}
             />
           </Center>
         </Flex>
-        <Flex>
+        <Flex direction={isNotSmallerScreen ? "row" : "column"}>
           <Flex w="30%" justifyContent="start" alignItems="center">
             <Text fontSize="sm">Default Roles:</Text>
           </Flex>
-          <Center w="70%">
+          <Center
+            w={isNotSmallerScreen ? "70%" : "100%"}
+            mt={isNotSmallerScreen ? "0" : "2"}
+          >
             <InputField
               variables={variables}
               setVariables={setVariables}
@@ -47,11 +52,14 @@ const Roles = ({ variables, setVariables }: any) => {
             />
           </Center>
         </Flex>
-        <Flex>
+        <Flex direction={isNotSmallerScreen ? "row" : "column"}>
           <Flex w="30%" justifyContent="start" alignItems="center">
             <Text fontSize="sm">Protected Roles:</Text>
           </Flex>
-          <Center w="70%">
+          <Center
+            w={isNotSmallerScreen ? "70%" : "100%"}
+            mt={isNotSmallerScreen ? "0" : "2"}
+          >
             <InputField
               variables={variables}
               setVariables={setVariables}

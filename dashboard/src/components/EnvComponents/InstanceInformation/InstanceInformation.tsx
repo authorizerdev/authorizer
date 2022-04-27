@@ -34,6 +34,7 @@ const InstantInformation = ({
               mt={isNotSmallerScreen ? "0" : "3"}
             >
               <InputField
+                borderRadius={5}
                 variables={envVariables}
                 setVariables={() => {}}
                 inputType={TextInputType.CLIENT_ID}
@@ -51,6 +52,7 @@ const InstantInformation = ({
               mt={isNotSmallerScreen ? "0" : "3"}
             >
               <InputField
+                borderRadius={5}
                 variables={envVariables}
                 setVariables={setVariables}
                 fieldVisibility={fieldVisibility}

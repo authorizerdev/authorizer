@@ -181,8 +181,9 @@ const InputField = ({
       <Flex
         border="1px solid #e2e8f0"
         w="100%"
+        borderRadius={5}
         paddingTop="0.5%"
-        overflowX="scroll"
+        overflowX={variables[inputType].length > 3 ? "scroll" : "hidden"}
         overflowY="hidden"
         justifyContent="start"
         alignItems="center"
