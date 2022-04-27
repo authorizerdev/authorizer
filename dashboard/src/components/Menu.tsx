@@ -222,7 +222,7 @@ export const Sidebar = ({ onClose, ...rest }: SidebarProps) => {
       {data?.meta?.version && (
         <Flex zIndex={99}>
           <Text
-            color="gray.600"
+            color="gray.400"
             fontSize="sm"
             textAlign="center"
             position="absolute"
@@ -324,7 +324,7 @@ export const MobileNav = ({ onOpen, ...rest }: MobileProps) => {
               transition="all 0.3s"
               _focus={{ boxShadow: "none" }}
             >
-              <HStack>
+              <HStack mr={5}>
                 <FiUser />
                 <VStack
                   display={{ base: "none", md: "flex" }}
