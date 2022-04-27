@@ -1,13 +1,5 @@
 import React from "react";
-import {
-  Box,
-  Divider,
-  Flex,
-  Stack,
-  Center,
-  Text,
-  useMediaQuery,
-} from "@chakra-ui/react";
+import { Flex, Stack, Center, Text, useMediaQuery } from "@chakra-ui/react";
 import { ArrayInputType } from "../../../constants";
 import InputField from "../../InputField";
 

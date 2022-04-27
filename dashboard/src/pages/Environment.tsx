@@ -278,14 +278,16 @@ const Environment = () => {
           />
         );
       case "danger-area":
-        <DangerArea
-          variables={envVariables}
-          setVariables={setEnvVariables}
-          fieldVisibility={fieldVisibility}
-          setFieldVisibility={setFieldVisibility}
-          validateAdminSecretHandler={validateAdminSecretHandler}
-          adminSecret={adminSecret}
-        />;
+        return (
+          <DangerArea
+            variables={envVariables}
+            setVariables={setEnvVariables}
+            fieldVisibility={fieldVisibility}
+            setFieldVisibility={setFieldVisibility}
+            validateAdminSecretHandler={validateAdminSecretHandler}
+            adminSecret={adminSecret}
+          />
+        );
       default:
         return (
           <InstanceInformation
