@@ -131,9 +131,9 @@ const GenerateKeysModal = ({ jwtType, getData }: propTypes) => {
     <>
       <Button
         colorScheme="blue"
-        h="1.75rem"
+        h="2rem"
         size="sm"
-        variant="ghost"
+        variant="outline"
         onClick={onOpen}
       >
         Generate new keys

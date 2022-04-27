@@ -1,17 +1,5 @@
 import React from "react";
-import {
-  Box,
-  Divider,
-  Flex,
-  Stack,
-  Center,
-  Text,
-  Button,
-  Input,
-  InputGroup,
-  InputRightElement,
-  useToast,
-} from "@chakra-ui/react";
+import { Flex, Stack, Center, Text, useMediaQuery } from "@chakra-ui/react";
 import {
   HiddenInputType,
   TextInputType,
@@ -31,29 +19,40 @@ const JSTConfigurations = ({
   RSAEncryptionType,
   ECDSAEncryptionType,
 }: any) => {
+  const [isNotSmallerScreen] = useMediaQuery("(min-width:600px)");
+
   return (
     <div>
       {" "}
       <Flex
+        borderRadius={5}
         width="100%"
         justifyContent="space-between"
         alignItems="center"
         paddingTop="2%"
       >
-        <Text fontSize="md" fontWeight="bold">
+        <Text
+          fontSize={isNotSmallerScreen ? "md" : "sm"}
+          fontWeight="bold"
+          mb={5}
+        >
           JWT (JSON Web Tokens) Configurations
         </Text>
-        <Flex>
+        <Flex mb={7}>
           <GenerateKeysModal jwtType={variables.JWT_TYPE} getData={getData} />
         </Flex>
       </Flex>
       <Stack spacing={6} padding="2% 0%">
-        <Flex>
+        <Flex direction={isNotSmallerScreen ? "row" : "column"}>
           <Flex w="30%" justifyContent="start" alignItems="center">
             <Text fontSize="sm">JWT Type:</Text>
           </Flex>
-          <Flex w="70%">
+          <Flex
+            w={isNotSmallerScreen ? "70%" : "100%"}
+            mt={isNotSmallerScreen ? "0" : "2"}
+          >
             <InputField
+              borderRadius={5}
               variables={variables}
               setVariables={setVariables}
               inputType={SelectInputType}
@@ -67,12 +66,16 @@ const JSTConfigurations = ({
           </Flex>
         </Flex>
         {Object.values(HMACEncryptionType).includes(variables.JWT_TYPE) ? (
-          <Flex>
+          <Flex direction={isNotSmallerScreen ? "row" : "column"}>
             <Flex w="30%" justifyContent="start" alignItems="center">
               <Text fontSize="sm">JWT Secret</Text>
             </Flex>
-            <Center w="70%">
+            <Center
+              w={isNotSmallerScreen ? "70%" : "100%"}
+              mt={isNotSmallerScreen ? "0" : "2"}
+            >
               <InputField
+                borderRadius={5}
                 variables={variables}
                 setVariables={setVariables}
                 fieldVisibility={fieldVisibility}
@@ -83,12 +86,16 @@ const JSTConfigurations = ({
           </Flex>
         ) : (
           <>
-            <Flex>
+            <Flex direction={isNotSmallerScreen ? "row" : "column"}>
               <Flex w="30%" justifyContent="start" alignItems="center">
                 <Text fontSize="sm">Public Key</Text>
               </Flex>
-              <Center w="70%">
+              <Center
+                w={isNotSmallerScreen ? "70%" : "100%"}
+                mt={isNotSmallerScreen ? "0" : "2"}
+              >
                 <InputField
+                  borderRadius={5}
                   variables={variables}
                   setVariables={setVariables}
                   inputType={TextAreaInputType.JWT_PUBLIC_KEY}
@@ -97,12 +104,16 @@ const JSTConfigurations = ({
                 />
               </Center>
             </Flex>
-            <Flex>
+            <Flex direction={isNotSmallerScreen ? "row" : "column"}>
               <Flex w="30%" justifyContent="start" alignItems="center">
                 <Text fontSize="sm">Private Key</Text>
               </Flex>
-              <Center w="70%">
+              <Center
+                w={isNotSmallerScreen ? "70%" : "100%"}
+                mt={isNotSmallerScreen ? "0" : "2"}
+              >
                 <InputField
+                  borderRadius={5}
                   variables={variables}
                   setVariables={setVariables}
                   inputType={TextAreaInputType.JWT_PRIVATE_KEY}
@@ -113,12 +124,22 @@ const JSTConfigurations = ({
             </Flex>
           </>
         )}
-        <Flex>
-          <Flex w="30%" justifyContent="start" alignItems="center">
-            <Text fontSize="sm">JWT Role Claim:</Text>
+        <Flex direction={isNotSmallerScreen ? "row" : "column"}>
+          <Flex
+            w={isNotSmallerScreen ? "30%" : "40%"}
+            justifyContent="start"
+            alignItems="center"
+          >
+            <Text fontSize="sm" orientation="vertical">
+              JWT Role Claim:
+            </Text>
           </Flex>
-          <Center w="70%">
+          <Center
+            w={isNotSmallerScreen ? "70%" : "100%"}
+            mt={isNotSmallerScreen ? "0" : "2"}
+          >
             <InputField
+              borderRadius={5}
               variables={variables}
               setVariables={setVariables}
               inputType={TextInputType.JWT_ROLE_CLAIM}
