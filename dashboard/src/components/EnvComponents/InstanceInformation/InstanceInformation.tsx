@@ -16,7 +16,7 @@ const InstantInformation = ({
   fieldVisibility,
   setFieldVisibility,
 }: any) => {
-  const [isNotSmallerScreen] = useMediaQuery("(min-width:600px)");
+  const [isNotSmallerScreen] = useMediaQuery("(min-width:667px)");
   return (
     <div>
       <Box>

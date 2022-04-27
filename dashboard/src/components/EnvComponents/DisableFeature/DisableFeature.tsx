@@ -1,33 +1,22 @@
 import React from "react";
-import {
-  Box,
-  Divider,
-  Flex,
-  Stack,
-  Center,
-  Text,
-  Button,
-  Input,
-  InputGroup,
-  InputRightElement,
-  useToast,
-} from "@chakra-ui/react";
+import { Flex, Stack, Text, useMediaQuery } from "@chakra-ui/react";
 import InputField from "../../InputField";
 import { SwitchInputType } from "../../../constants";
 
 const DisableFeature = ({ variables, setVariables }: any) => {
+  const [isNotSmallerScreen] = useMediaQuery("(min-width:600px)");
   return (
     <div>
       {" "}
-      <Text fontSize="md" paddingTop="2%" fontWeight="bold">
+      <Text fontSize="md" paddingTop="2%" fontWeight="bold" mb={5}>
         Disable Features
       </Text>
       <Stack spacing={6} padding="2% 0%">
         <Flex>
-          <Flex w="30%" justifyContent="start" alignItems="center">
+          <Flex w="100%" justifyContent="start" alignItems="center">
             <Text fontSize="sm">Disable Login Page:</Text>
           </Flex>
-          <Flex justifyContent="start" w="70%">
+          <Flex justifyContent="start">
             <InputField
               variables={variables}
               setVariables={setVariables}
@@ -36,10 +25,10 @@ const DisableFeature = ({ variables, setVariables }: any) => {
           </Flex>
         </Flex>
         <Flex>
-          <Flex w="30%" justifyContent="start" alignItems="center">
+          <Flex w="100%" justifyContent="start" alignItems="center">
             <Text fontSize="sm">Disable Email Verification:</Text>
           </Flex>
-          <Flex justifyContent="start" w="70%">
+          <Flex justifyContent="start">
             <InputField
               variables={variables}
               setVariables={setVariables}
@@ -48,10 +37,10 @@ const DisableFeature = ({ variables, setVariables }: any) => {
           </Flex>
         </Flex>
         <Flex>
-          <Flex w="30%" justifyContent="start" alignItems="center">
+          <Flex w="100%" justifyContent="start" alignItems="center">
             <Text fontSize="sm">Disable Magic Login Link:</Text>
           </Flex>
-          <Flex justifyContent="start" w="70%">
+          <Flex justifyContent="start">
             <InputField
               variables={variables}
               setVariables={setVariables}
@@ -60,10 +49,10 @@ const DisableFeature = ({ variables, setVariables }: any) => {
           </Flex>
         </Flex>
         <Flex>
-          <Flex w="30%" justifyContent="start" alignItems="center">
+          <Flex w="100%" justifyContent="start" alignItems="center">
             <Text fontSize="sm">Disable Basic Authentication:</Text>
           </Flex>
-          <Flex justifyContent="start" w="70%">
+          <Flex justifyContent="start">
             <InputField
               variables={variables}
               setVariables={setVariables}
@@ -72,10 +61,10 @@ const DisableFeature = ({ variables, setVariables }: any) => {
           </Flex>
         </Flex>
         <Flex>
-          <Flex w="30%" justifyContent="start" alignItems="center">
+          <Flex w="100%" justifyContent="start" alignItems="center">
             <Text fontSize="sm">Disable Sign Up:</Text>
           </Flex>
-          <Flex justifyContent="start" w="70%">
+          <Flex justifyContent="start" mb={3}>
             <InputField
               variables={variables}
               setVariables={setVariables}

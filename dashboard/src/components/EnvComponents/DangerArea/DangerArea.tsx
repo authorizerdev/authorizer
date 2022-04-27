@@ -1,16 +1,14 @@
 import React from "react";
 import {
-  Box,
-  Divider,
   Flex,
   Stack,
   Center,
   Text,
-  Button,
   Input,
   InputGroup,
   InputRightElement,
-  useToast,
+  useMediaQuery,
+  Divider,
 } from "@chakra-ui/react";
 import { FaRegEyeSlash, FaRegEye } from "react-icons/fa";
 import InputField from "../../InputField";
@@ -23,6 +21,7 @@ const DangerArea = ({
   validateAdminSecretHandler,
   adminSecret,
 }: any) => {
+  const [isNotSmallerScreen] = useMediaQuery("(min-width:600px)");
   return (
     <div>
       {" "}
@@ -37,16 +36,24 @@ const DangerArea = ({
         borderRadius="5px"
       >
         <Stack spacing={6} padding="3% 0">
-          <Text fontStyle="italic" fontSize="sm" color="gray.600">
+          <Text fontStyle="italic" fontSize="sm" color="blackAlpha.500" mt={3}>
             Note: Database related environment variables cannot be updated from
             dashboard :(
           </Text>
-          <Flex>
-            <Flex w="30%" justifyContent="start" alignItems="center">
+          <Flex direction={isNotSmallerScreen ? "row" : "column"}>
+            <Flex
+              w={isNotSmallerScreen ? "30%" : "40%"}
+              justifyContent="start"
+              alignItems="center"
+            >
               <Text fontSize="sm">DataBase Name:</Text>
             </Flex>
-            <Center w="70%">
+            <Center
+              w={isNotSmallerScreen ? "70%" : "100%"}
+              mt={isNotSmallerScreen ? "0" : "3"}
+            >
               <InputField
+                borderRadius={5}
                 variables={variables}
                 setVariables={setVariables}
                 inputType={TextInputType.DATABASE_NAME}
@@ -54,12 +61,20 @@ const DangerArea = ({
               />
             </Center>
           </Flex>
-          <Flex>
-            <Flex w="30%" justifyContent="start" alignItems="center">
+          <Flex direction={isNotSmallerScreen ? "row" : "column"}>
+            <Flex
+              w={isNotSmallerScreen ? "30%" : "40%"}
+              justifyContent="start"
+              alignItems="center"
+            >
               <Text fontSize="sm">DataBase Type:</Text>
             </Flex>
-            <Center w="70%">
+            <Center
+              w={isNotSmallerScreen ? "70%" : "100%"}
+              mt={isNotSmallerScreen ? "0" : "3"}
+            >
               <InputField
+                borderRadius={5}
                 variables={variables}
                 setVariables={setVariables}
                 inputType={TextInputType.DATABASE_TYPE}
@@ -67,12 +82,20 @@ const DangerArea = ({
               />
             </Center>
           </Flex>
-          <Flex>
-            <Flex w="30%" justifyContent="start" alignItems="center">
+          <Flex direction={isNotSmallerScreen ? "row" : "column"}>
+            <Flex
+              w={isNotSmallerScreen ? "30%" : "40%"}
+              justifyContent="start"
+              alignItems="center"
+            >
               <Text fontSize="sm">DataBase URL:</Text>
             </Flex>
-            <Center w="70%">
+            <Center
+              w={isNotSmallerScreen ? "70%" : "100%"}
+              mt={isNotSmallerScreen ? "0" : "3"}
+            >
               <InputField
+                borderRadius={5}
                 variables={variables}
                 setVariables={setVariables}
                 inputType={TextInputType.DATABASE_URL}
@@ -81,13 +104,26 @@ const DangerArea = ({
             </Center>
           </Flex>
         </Stack>
-        <Flex marginTop="3%">
-          <Flex w="30%" justifyContent="start" alignItems="center">
+
+        <Flex
+          marginTop={isNotSmallerScreen ? "3%" : "5%"}
+          direction={isNotSmallerScreen ? "row" : "column"}
+        >
+          <Flex
+            mt={3}
+            w={isNotSmallerScreen ? "30%" : "40%"}
+            justifyContent="start"
+            alignItems="center"
+          >
             <Text fontSize="sm">Old Admin Secret:</Text>
           </Flex>
-          <Center w="70%">
+          <Center
+            w={isNotSmallerScreen ? "70%" : "100%"}
+            mt={isNotSmallerScreen ? "0" : "3"}
+          >
             <InputGroup size="sm">
               <Input
+                borderRadius={5}
                 size="sm"
                 placeholder="Enter Old Admin Secret"
                 value={adminSecret.value as string}
@@ -137,12 +173,24 @@ const DangerArea = ({
             </InputGroup>
           </Center>
         </Flex>
-        <Flex paddingBottom="3%">
-          <Flex w="30%" justifyContent="start" alignItems="center">
+        <Flex
+          paddingBottom="3%"
+          direction={isNotSmallerScreen ? "row" : "column"}
+        >
+          <Flex
+            w={isNotSmallerScreen ? "30%" : "50%"}
+            justifyContent="start"
+            alignItems="center"
+          >
             <Text fontSize="sm">New Admin Secret:</Text>
           </Flex>
-          <Center w="70%">
+          <Center
+            w={isNotSmallerScreen ? "70%" : "100%"}
+            mt={isNotSmallerScreen ? "0" : "3"}
+          >
             <InputField
+              borderRadius={5}
+              mb={3}
               variables={variables}
               setVariables={setVariables}
               inputType={HiddenInputType.ADMIN_SECRET}
