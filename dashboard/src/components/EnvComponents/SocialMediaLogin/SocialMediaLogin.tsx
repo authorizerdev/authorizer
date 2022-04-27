@@ -21,29 +21,39 @@ const SocialMediaLogin = ({
   return (
     <div>
       {" "}
-      <Text fontSize="md" paddingTop="2%" fontWeight="bold">
+      <Text fontSize="md" paddingTop="2%" fontWeight="bold" mb={4}>
         Social Media Logins
       </Text>
       <Stack spacing={6} padding="2% 0%">
-        <Flex>
+        <Flex direction={isNotSmallerScreen ? "row" : "column"}>
           <Center
-            w="50px"
+            w={isNotSmallerScreen ? "55px" : "35px"}
+            h="35px"
             marginRight="1.5%"
-            border="1px solid #e2e8f0"
+            border="1px solid #ff3e30"
             borderRadius="5px"
           >
-            <FaGoogle style={{ color: "#8c8c8c" }} />
+            <FaGoogle style={{ color: "#ff3e30" }} />
           </Center>
-          <Center w="45%" marginRight="1.5%">
+          <Center
+            w={isNotSmallerScreen ? "70%" : "100%"}
+            mt={isNotSmallerScreen ? "0" : "3"}
+            marginRight="1.5%"
+          >
             <InputField
+              borderRadius={7}
               variables={variables}
               setVariables={setVariables}
               inputType={TextInputType.GOOGLE_CLIENT_ID}
               placeholder="Google Client ID"
             />
           </Center>
-          <Center w="45%">
+          <Center
+            w={isNotSmallerScreen ? "70%" : "100%"}
+            mt={isNotSmallerScreen ? "0" : "3"}
+          >
             <InputField
+              borderRadius={7}
               variables={variables}
               setVariables={setVariables}
               fieldVisibility={fieldVisibility}
@@ -53,25 +63,35 @@ const SocialMediaLogin = ({
             />
           </Center>
         </Flex>
-        <Flex>
+        <Flex direction={isNotSmallerScreen ? "row" : "column"}>
           <Center
-            w="50px"
+            w={isNotSmallerScreen ? "55px" : "35px"}
+            h="35px"
             marginRight="1.5%"
-            border="1px solid #e2e8f0"
+            border="1px solid #171515"
             borderRadius="5px"
           >
-            <FaGithub style={{ color: "#8c8c8c" }} />
+            <FaGithub style={{ color: "#171515" }} />
           </Center>
-          <Center w="45%" marginRight="1.5%">
+          <Center
+            w={isNotSmallerScreen ? "70%" : "100%"}
+            mt={isNotSmallerScreen ? "0" : "3"}
+            marginRight="1.5%"
+          >
             <InputField
+              borderRadius={7}
               variables={variables}
               setVariables={setVariables}
               inputType={TextInputType.GITHUB_CLIENT_ID}
               placeholder="Github Client ID"
             />
           </Center>
-          <Center w="45%">
+          <Center
+            w={isNotSmallerScreen ? "70%" : "100%"}
+            mt={isNotSmallerScreen ? "0" : "3"}
+          >
             <InputField
+              borderRadius={7}
               variables={variables}
               setVariables={setVariables}
               fieldVisibility={fieldVisibility}
@@ -81,25 +101,35 @@ const SocialMediaLogin = ({
             />
           </Center>
         </Flex>
-        <Flex>
+        <Flex direction={isNotSmallerScreen ? "row" : "column"}>
           <Center
-            w="50px"
+            w={isNotSmallerScreen ? "55px" : "35px"}
+            h="35px"
             marginRight="1.5%"
-            border="1px solid #e2e8f0"
+            border="1px solid #3b5998"
             borderRadius="5px"
           >
-            <FaFacebookF style={{ color: "#8c8c8c" }} />
+            <FaFacebookF style={{ color: "#3b5998" }} />
           </Center>
-          <Center w="45%" marginRight="1.5%">
+          <Center
+            w={isNotSmallerScreen ? "70%" : "100%"}
+            mt={isNotSmallerScreen ? "0" : "3"}
+            marginRight="1.5%"
+          >
             <InputField
+              borderRadius={7}
               variables={variables}
               setVariables={setVariables}
               inputType={TextInputType.FACEBOOK_CLIENT_ID}
               placeholder="Facebook Client ID"
             />
           </Center>
-          <Center w="45%">
+          <Center
+            w={isNotSmallerScreen ? "70%" : "100%"}
+            mt={isNotSmallerScreen ? "0" : "3"}
+          >
             <InputField
+              borderRadius={7}
               variables={variables}
               setVariables={setVariables}
               fieldVisibility={fieldVisibility}
