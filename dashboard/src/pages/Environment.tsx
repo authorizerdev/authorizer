@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { Box, Divider, Flex, Stack, Button, useToast } from "@chakra-ui/react";
+import { Box, Flex, Stack, Button, useToast } from "@chakra-ui/react";
 import { useClient } from "urql";
 import { FaSave } from "react-icons/fa";
 import _ from "lodash";
@@ -16,10 +16,7 @@ import {
 } from "../constants";
 import { UpdateEnvVariables } from "../graphql/mutation";
 import { getObjectDiff, capitalizeFirstLetter } from "../utils";
-// import GenerateKeysModal from "../components/GenerateKeysModal";
-
 // Component inputs
-// import InputField from "../components/InputField";
 import InstanceInformation from "../components/EnvComponents/InstanceInformation/InstanceInformation";
 import SocialMediaLogin from "../components/EnvComponents/SocialMediaLogin/SocialMediaLogin";
 import Roles from "../components/EnvComponents/Roles/Roles";
@@ -303,7 +300,7 @@ const Environment = () => {
   return (
     <Box m="5" py="5" px="10" bg="white" rounded="md">
       {getCorrectScreen(sec)}
-      <Stack spacing={6} padding="1% 0">
+      <Stack spacing={6} padding="1% 0" mt={4}>
         <Flex justifyContent="end" alignItems="center">
           <Button
             leftIcon={<FaSave />}

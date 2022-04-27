@@ -7,11 +7,7 @@ import {
   Stack,
   Center,
   Text,
-  Button,
-  Input,
-  InputGroup,
-  InputRightElement,
-  useToast,
+  useMediaQuery,
 } from "@chakra-ui/react";
 import { TextInputType, HiddenInputType } from "../../../constants";
 import InputField from "../../InputField";
@@ -21,6 +17,7 @@ const SocialMediaLogin = ({
   fieldVisibility,
   setFieldVisibility,
 }: any) => {
+  const [isNotSmallerScreen] = useMediaQuery("(min-width:600px)");
   return (
     <div>
       {" "}

@@ -22,6 +22,7 @@ import {
   AccordionPanel,
   AccordionItem,
   AccordionIcon,
+  useMediaQuery,
 } from "@chakra-ui/react";
 import {
   FiHome,
@@ -37,7 +38,7 @@ import {
 import { AiOutlineKey } from "react-icons/ai";
 import { SiOpenaccess, SiJsonwebtokens } from "react-icons/si";
 import { RiSkullLine } from "react-icons/ri";
-import { GrStorage } from "react-icons/gr";
+import { RiDatabase2Line } from "react-icons/ri";
 import { BsCheck2Circle } from "react-icons/bs";
 import { HiOutlineMail, HiOutlineOfficeBuilding } from "react-icons/hi";
 import { IconType } from "react-icons";
@@ -82,7 +83,11 @@ const LinkItems: Array<LinkItemProps> = [
         icon: SiJsonwebtokens,
         route: "/jwt-config",
       },
-      { name: "SessionStorage", icon: GrStorage, route: "/session-storage" },
+      {
+        name: "SessionStorage",
+        icon: RiDatabase2Line,
+        route: "/session-storage",
+      },
       {
         name: "EmailConfigurations",
         icon: HiOutlineMail,
@@ -118,6 +123,7 @@ interface SidebarProps extends BoxProps {
 export const Sidebar = ({ onClose, ...rest }: SidebarProps) => {
   const { pathname } = useLocation();
   const [{ fetching, data }] = useQuery({ query: MetaQuery });
+  const [isNotSmallerScreen] = useMediaQuery("(min-width:600px)");
   return (
     <Box
       transition="3s ease"
@@ -144,45 +150,19 @@ export const Sidebar = ({ onClose, ...rest }: SidebarProps) => {
         </NavLink>
         <CloseButton display={{ base: "flex", md: "none" }} onClick={onClose} />
       </Flex>
-      {/* {LinkItems.map((link) => (
-        <NavLink key={link.name} to={link.route}>
-          <NavItem
-            icon={link.icon}
-            color={pathname === link.route ? "blue.500" : ""}
-          >
-            {link.name}
-          </NavItem>
-          {link.subRoutes?.map((sublink) => (
-            <NavLink key={sublink.name} to={sublink.route}>
-              {" "}
-              <Text fontSize="xs" ml={8} mt={-2}>
-                <NavItem
-                  icon={sublink.icon}
-                  color={pathname === sublink.route ? "blue.500" : ""}
-                >
-                  {sublink.name}
-                </NavItem>{" "}
-              </Text>
-            </NavLink>
-          ))}
-        </NavLink>
-      ))} */}
-      {/* <AccordionButton>
-        <Box flex="1" textAlign="left">
-          Section 1 title
-        </Box>
-        <AccordionIcon />
-      </AccordionButton> */}
-      <Accordion defaultIndex={[0]} allowMultiple w="100%">
-        <AccordionItem textAlign="center" border="none">
+
+      <Accordion defaultIndex={[0]} allowMultiple>
+        <AccordionItem textAlign="center" border="none" w="100%">
           {LinkItems.map((link) =>
             link?.subRoutes ? (
               <NavLink key={link.name} to={link.route}>
-                <AccordionButton w="113%">
-                  <Text fontSize="md" w="100%" ml={-4}>
+                <AccordionButton>
+                  <Text fontSize="md">
                     <NavItem
                       icon={link.icon}
                       color={pathname === link.route ? "blue.500" : ""}
+                      ml={-1}
+                      w={isNotSmallerScreen ? "100%" : "310%"}
                     >
                       {link.name}
                       <Box display={{ base: "none", md: "flex" }} ml={12}>
@@ -193,12 +173,17 @@ export const Sidebar = ({ onClose, ...rest }: SidebarProps) => {
                 </AccordionButton>
                 <AccordionPanel>
                   {link.subRoutes?.map((sublink) => (
-                    <NavLink key={sublink.name} to={sublink.route}>
+                    <NavLink
+                      key={sublink.name}
+                      to={sublink.route}
+                      onClick={onClose}
+                    >
                       {" "}
                       <Text fontSize="xs" ml={4} mt={-1}>
                         <NavItem
                           icon={sublink.icon}
                           color={pathname === sublink.route ? "blue.500" : ""}
+                          height={10}
                         >
                           {sublink.name}
                         </NavItem>{" "}
@@ -235,16 +220,18 @@ export const Sidebar = ({ onClose, ...rest }: SidebarProps) => {
       </Accordion>
 
       {data?.meta?.version && (
-        <Text
-          color="gray.600"
-          fontSize="sm"
-          textAlign="center"
-          position="absolute"
-          bottom="5"
-          left="7"
-        >
-          Current Version: {data.meta.version}
-        </Text>
+        <Flex zIndex={99}>
+          <Text
+            color="gray.600"
+            fontSize="sm"
+            textAlign="center"
+            position="absolute"
+            bottom="5"
+            left="7"
+          >
+            Current Version: {data.meta.version}
+          </Text>
+        </Flex>
       )}
     </Box>
   );

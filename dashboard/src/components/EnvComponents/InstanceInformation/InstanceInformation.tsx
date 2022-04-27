@@ -1,11 +1,14 @@
 import React from "react";
 import InputField from "../../InputField";
-import { Flex, Stack, Center, Text, Box } from "@chakra-ui/react";
 import {
-  envVarTypes,
-  TextInputType,
-  HiddenInputType,
-} from "../../../constants";
+  Flex,
+  Stack,
+  Center,
+  Text,
+  Box,
+  useMediaQuery,
+} from "@chakra-ui/react";
+import { TextInputType, HiddenInputType } from "../../../constants";
 
 const InstantInformation = ({
   envVariables,
@@ -13,20 +16,23 @@ const InstantInformation = ({
   fieldVisibility,
   setFieldVisibility,
 }: any) => {
+  const [isNotSmallerScreen] = useMediaQuery("(min-width:600px)");
   return (
     <div>
-      {" "}
       <Box>
         {" "}
-        <Text fontSize="md" paddingTop="2%" fontWeight="bold">
+        <Text fontSize="md" paddingTop="2%" fontWeight="bold" mb={6}>
           Your instance information
         </Text>
         <Stack spacing={6} padding="2% 0%">
-          <Flex>
+          <Flex direction={isNotSmallerScreen ? "row" : "column"}>
             <Flex w="30%" justifyContent="start" alignItems="center">
               <Text fontSize="sm">Client ID</Text>
             </Flex>
-            <Center w="70%">
+            <Center
+              w={isNotSmallerScreen ? "70%" : "100%"}
+              mt={isNotSmallerScreen ? "0" : "3"}
+            >
               <InputField
                 variables={envVariables}
                 setVariables={() => {}}
@@ -36,11 +42,14 @@ const InstantInformation = ({
               />
             </Center>
           </Flex>
-          <Flex>
+          <Flex direction={isNotSmallerScreen ? "row" : "column"}>
             <Flex w="30%" justifyContent="start" alignItems="center">
               <Text fontSize="sm">Client Secret</Text>
             </Flex>
-            <Center w="70%">
+            <Center
+              w={isNotSmallerScreen ? "70%" : "100%"}
+              mt={isNotSmallerScreen ? "0" : "3"}
+            >
               <InputField
                 variables={envVariables}
                 setVariables={setVariables}
