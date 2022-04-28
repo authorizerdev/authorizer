@@ -171,7 +171,7 @@ export const Sidebar = ({ onClose, ...rest }: SidebarProps) => {
                       color={pathname === link.route ? "blue.500" : ""}
                       height={12}
                       ml={-1}
-                      mb={2}
+                      mb={isNotSmallerScreen ? -1 : -4}
                       w={isNotSmallerScreen ? "100%" : "310%"}
                     >
                       {link.name}
@@ -205,7 +205,7 @@ export const Sidebar = ({ onClose, ...rest }: SidebarProps) => {
             ) : (
               <NavLink key={link.name} to={link.route}>
                 {" "}
-                <Text fontSize="md" w="100%" mt={-4}>
+                <Text fontSize="md" w="100%" mt={-2}>
                   <NavItem
                     icon={link.icon}
                     color={pathname === link.route ? "blue.500" : ""}
@@ -231,21 +231,18 @@ export const Sidebar = ({ onClose, ...rest }: SidebarProps) => {
       </Accordion>
 
       {data?.meta?.version && (
-        <Flex>
+        <Flex alignContent="center">
           {" "}
-          <Box boxShadow="2xl" p="6" rounded="md" bg="white">
-            {" "}
-            <Text
-              color="gray.400"
-              fontSize="sm"
-              textAlign="center"
-              position="absolute"
-              bottom="5"
-              left="7"
-            >
-              Current Version: {data.meta.version}
-            </Text>
-          </Box>
+          <Text
+            color="gray.400"
+            fontSize="sm"
+            textAlign="center"
+            position="absolute"
+            bottom="5"
+            left="7"
+          >
+            Current Version: {data.meta.version}
+          </Text>
         </Flex>
       )}
     </Box>
