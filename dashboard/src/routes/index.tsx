@@ -10,14 +10,6 @@ const Environment = lazy(() => import("../pages/Environment"));
 const Home = lazy(() => import("../pages/Home"));
 const Users = lazy(() => import("../pages/Users"));
 
-// @Component ENV COMPONENTS
-const InstanceInformation = lazy(
-  () =>
-    import(
-      "../components/EnvComponents/InstanceInformation/InstanceInformation"
-    )
-);
-
 export const AppRoutes = () => {
   const { isLoggedIn } = useAuthContext();
 

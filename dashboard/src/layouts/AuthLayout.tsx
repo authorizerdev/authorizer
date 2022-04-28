@@ -1,10 +1,18 @@
-import { Box, Flex, Image, Text, Spinner } from "@chakra-ui/react";
+import {
+  Box,
+  Flex,
+  Image,
+  Text,
+  Spinner,
+  useMediaQuery,
+} from "@chakra-ui/react";
 import React from "react";
 import { useQuery } from "urql";
 import { MetaQuery } from "../graphql/queries";
 
 export function AuthLayout({ children }: { children: React.ReactNode }) {
   const [{ fetching, data }] = useQuery({ query: MetaQuery });
+  const [isNotSmallerScreen] = useMediaQuery("(min-width:600px)");
   return (
     <Flex
       flexWrap="wrap"
@@ -20,7 +28,11 @@ export function AuthLayout({ children }: { children: React.ReactNode }) {
           alt="logo"
           height="50"
         />
-        <Text fontSize="x-large" ml="3" letterSpacing="3">
+        <Text
+          fontSize={isNotSmallerScreen ? "x-large" : "large"}
+          ml="3"
+          letterSpacing="3"
+        >
           AUTHORIZER
         </Text>
       </Flex>
@@ -29,7 +41,14 @@ export function AuthLayout({ children }: { children: React.ReactNode }) {
         <Spinner />
       ) : (
         <>
-          <Box p="6" m="5" rounded="5" bg="white" w="500px" shadow="xl">
+          <Box
+            p="6"
+            m="5"
+            rounded="5"
+            bg="white"
+            w={isNotSmallerScreen ? "450px" : "400px"}
+            shadow="xl"
+          >
             {children}
           </Box>
           <Text color="gray.600" fontSize="sm">
