@@ -3,7 +3,7 @@ import { Flex, Stack, Text, useMediaQuery } from "@chakra-ui/react";
 import InputField from "../../InputField";
 import { SwitchInputType } from "../../../constants";
 
-const DisableFeature = ({ variables, setVariables }: any) => {
+const UICustomization = ({ variables, setVariables }: any) => {
   const [isNotSmallerScreen] = useMediaQuery("(min-width:600px)");
   return (
     <div>
@@ -77,4 +77,4 @@ const DisableFeature = ({ variables, setVariables }: any) => {
   );
 };
 
-export default DisableFeature;
+export default UICustomization;

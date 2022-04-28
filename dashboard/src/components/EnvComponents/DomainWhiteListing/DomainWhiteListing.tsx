@@ -2,13 +2,14 @@ import React from "react";
 import { Flex, Stack, Center, Text, useMediaQuery } from "@chakra-ui/react";
 import InputField from "../../InputField";
 import { ArrayInputType } from "../../../constants";
-const WhiteListing = ({ variables, setVariables }: any) => {
+
+const DomainWhiteListing = ({ variables, setVariables }: any) => {
   const [isNotSmallerScreen] = useMediaQuery("(min-width:600px)");
   return (
     <div>
       {" "}
       <Text fontSize="md" paddingTop="2%" fontWeight="bold" mb={5}>
-        White Listing
+        Domain White Listing
       </Text>
       <Stack spacing={6} padding="2% 0%">
         <Flex direction={isNotSmallerScreen ? "row" : "column"}>
@@ -31,4 +32,4 @@ const WhiteListing = ({ variables, setVariables }: any) => {
   );
 };
 
-export default WhiteListing;
+export default DomainWhiteListing;

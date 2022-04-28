@@ -8,12 +8,11 @@ import {
   InputGroup,
   InputRightElement,
   useMediaQuery,
-  Divider,
 } from "@chakra-ui/react";
 import { FaRegEyeSlash, FaRegEye } from "react-icons/fa";
 import InputField from "../../InputField";
 import { TextInputType, HiddenInputType } from "../../../constants";
-const DangerArea = ({
+const SecurityAdminSecret = ({
   variables,
   setVariables,
   fieldVisibility,
@@ -26,7 +25,7 @@ const DangerArea = ({
     <div>
       {" "}
       <Text fontSize="md" paddingTop="2%" fontWeight="bold">
-        Danger
+        Security (Admin Secret)
       </Text>
       <Stack
         spacing={6}
@@ -35,76 +34,6 @@ const DangerArea = ({
         border="1px solid #ff7875"
         borderRadius="5px"
       >
-        <Stack spacing={6} padding="3% 0">
-          <Text fontStyle="italic" fontSize="sm" color="blackAlpha.500" mt={3}>
-            Note: Database related environment variables cannot be updated from
-            dashboard :(
-          </Text>
-          <Flex direction={isNotSmallerScreen ? "row" : "column"}>
-            <Flex
-              w={isNotSmallerScreen ? "30%" : "40%"}
-              justifyContent="start"
-              alignItems="center"
-            >
-              <Text fontSize="sm">DataBase Name:</Text>
-            </Flex>
-            <Center
-              w={isNotSmallerScreen ? "70%" : "100%"}
-              mt={isNotSmallerScreen ? "0" : "3"}
-            >
-              <InputField
-                borderRadius={5}
-                variables={variables}
-                setVariables={setVariables}
-                inputType={TextInputType.DATABASE_NAME}
-                isDisabled={true}
-              />
-            </Center>
-          </Flex>
-          <Flex direction={isNotSmallerScreen ? "row" : "column"}>
-            <Flex
-              w={isNotSmallerScreen ? "30%" : "40%"}
-              justifyContent="start"
-              alignItems="center"
-            >
-              <Text fontSize="sm">DataBase Type:</Text>
-            </Flex>
-            <Center
-              w={isNotSmallerScreen ? "70%" : "100%"}
-              mt={isNotSmallerScreen ? "0" : "3"}
-            >
-              <InputField
-                borderRadius={5}
-                variables={variables}
-                setVariables={setVariables}
-                inputType={TextInputType.DATABASE_TYPE}
-                isDisabled={true}
-              />
-            </Center>
-          </Flex>
-          <Flex direction={isNotSmallerScreen ? "row" : "column"}>
-            <Flex
-              w={isNotSmallerScreen ? "30%" : "40%"}
-              justifyContent="start"
-              alignItems="center"
-            >
-              <Text fontSize="sm">DataBase URL:</Text>
-            </Flex>
-            <Center
-              w={isNotSmallerScreen ? "70%" : "100%"}
-              mt={isNotSmallerScreen ? "0" : "3"}
-            >
-              <InputField
-                borderRadius={5}
-                variables={variables}
-                setVariables={setVariables}
-                inputType={TextInputType.DATABASE_URL}
-                isDisabled={true}
-              />
-            </Center>
-          </Flex>
-        </Stack>
-
         <Flex
           marginTop={isNotSmallerScreen ? "3%" : "5%"}
           direction={isNotSmallerScreen ? "row" : "column"}
@@ -206,4 +135,4 @@ const DangerArea = ({
   );
 };
 
-export default DangerArea;
+export default SecurityAdminSecret;

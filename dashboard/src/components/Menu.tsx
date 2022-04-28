@@ -35,8 +35,11 @@ import {
   FiChevronDown,
   FiShieldOff,
 } from "react-icons/fi";
+import { BiCustomize } from "react-icons/bi";
+import { FcDatabase } from "react-icons/fc";
 import { AiOutlineKey } from "react-icons/ai";
 import { SiOpenaccess, SiJsonwebtokens } from "react-icons/si";
+import { MdSecurity } from "react-icons/md";
 import { RiSkullLine } from "react-icons/ri";
 import { RiDatabase2Line } from "react-icons/ri";
 import { BsCheck2Circle } from "react-icons/bs";
@@ -68,9 +71,9 @@ const LinkItems: Array<LinkItemProps> = [
     route: "/",
     subRoutes: [
       {
-        name: "Instance Information",
+        name: "OAuth Setting",
         icon: AiOutlineKey,
-        route: "/instance-info",
+        route: "/oauth-setting",
       },
       {
         name: "Social Media Login",
@@ -79,37 +82,42 @@ const LinkItems: Array<LinkItemProps> = [
       },
       { name: "Roles", icon: FiUser, route: "/roles" },
       {
-        name: "JWTConfigurations",
+        name: "JWT Secrets",
         icon: SiJsonwebtokens,
         route: "/jwt-config",
       },
       {
-        name: "SessionStorage",
+        name: "Session Storage",
         icon: RiDatabase2Line,
         route: "/session-storage",
       },
       {
-        name: "EmailConfigurations",
+        name: "Email Configurations",
         icon: HiOutlineMail,
         route: "/email-config",
       },
       {
-        name: "WhiteListing",
+        name: "Domain White Listing",
         icon: BsCheck2Circle,
         route: "/whitelist-variables",
       },
       {
-        name: "OrganizationInfo",
+        name: "Organization Info",
         icon: HiOutlineOfficeBuilding,
         route: "/organization-info",
       },
-      { name: "AccessToken", icon: SiOpenaccess, route: "/access-token" },
+      { name: "Access Token", icon: SiOpenaccess, route: "/access-token" },
       {
-        name: "DisableFeature",
-        icon: FiShieldOff,
-        route: "/disable-feature",
+        name: "UI Customization",
+        icon: BiCustomize,
+        route: "/ui-customization",
       },
-      { name: "DangerArea", icon: RiSkullLine, route: "/danger-area" },
+      { name: "Database", icon: RiDatabase2Line, route: "/db-cred" },
+      {
+        name: " Security",
+        icon: MdSecurity,
+        route: "/admin-secret",
+      },
     ],
   },
   { name: "Users", icon: FiUsers, route: "/users" },
@@ -161,7 +169,9 @@ export const Sidebar = ({ onClose, ...rest }: SidebarProps) => {
                     <NavItem
                       icon={link.icon}
                       color={pathname === link.route ? "blue.500" : ""}
+                      height={12}
                       ml={-1}
+                      mb={2}
                       w={isNotSmallerScreen ? "100%" : "310%"}
                     >
                       {link.name}
@@ -179,11 +189,11 @@ export const Sidebar = ({ onClose, ...rest }: SidebarProps) => {
                       onClick={onClose}
                     >
                       {" "}
-                      <Text fontSize="xs" ml={4} mt={-1}>
+                      <Text fontSize="xs" ml={3}>
                         <NavItem
                           icon={sublink.icon}
                           color={pathname === sublink.route ? "blue.500" : ""}
-                          height={10}
+                          height={8}
                         >
                           {sublink.name}
                         </NavItem>{" "}
@@ -195,10 +205,11 @@ export const Sidebar = ({ onClose, ...rest }: SidebarProps) => {
             ) : (
               <NavLink key={link.name} to={link.route}>
                 {" "}
-                <Text fontSize="md" w="100%" mt={-2}>
+                <Text fontSize="md" w="100%" mt={-4}>
                   <NavItem
                     icon={link.icon}
                     color={pathname === link.route ? "blue.500" : ""}
+                    height={12}
                   >
                     {link.name}
                   </NavItem>{" "}
@@ -220,17 +231,21 @@ export const Sidebar = ({ onClose, ...rest }: SidebarProps) => {
       </Accordion>
 
       {data?.meta?.version && (
-        <Flex zIndex={99}>
-          <Text
-            color="gray.400"
-            fontSize="sm"
-            textAlign="center"
-            position="absolute"
-            bottom="5"
-            left="7"
-          >
-            Current Version: {data.meta.version}
-          </Text>
+        <Flex>
+          {" "}
+          <Box boxShadow="2xl" p="6" rounded="md" bg="white">
+            {" "}
+            <Text
+              color="gray.400"
+              fontSize="sm"
+              textAlign="center"
+              position="absolute"
+              bottom="5"
+              left="7"
+            >
+              Current Version: {data.meta.version}
+            </Text>
+          </Box>
         </Flex>
       )}
     </Box>

@@ -23,11 +23,12 @@ import Roles from "../components/EnvComponents/Roles/Roles";
 import JWTConfigurations from "../components/EnvComponents/JWTConfigurations/JSTConfigurations";
 import SessionStorage from "../components/EnvComponents/SessionStorage/SessionStorage";
 import EmailConfigurations from "../components/EnvComponents/EmailConfigurations/EmailConfigurations";
-import WhiteListing from "../components/EnvComponents/WhiteListing/WhiteListing";
+import DomainWhiteListing from "../components/EnvComponents/DomainWhiteListing/DomainWhiteListing";
 import OrganizationInfo from "../components/EnvComponents/OrganizationInfo/OrganizationInfo";
 import AccessToken from "../components/EnvComponents/AccessToken/AccessToken";
-import DisableFeature from "../components/EnvComponents/DisableFeature/DisableFeature";
-import DangerArea from "../components/EnvComponents/DangerArea/DangerArea";
+import UICustomization from "../components/EnvComponents/UICustomization/UICustomization";
+import SecurityAdminSecret from "../components/EnvComponents/SecurityAdminSecret/SecurityAdminSecret";
+import DatabaseCredentials from "../components/EnvComponents/DatabaseCredentials/DatabaseCredenrials";
 
 const Environment = () => {
   const client = useClient();
@@ -251,7 +252,7 @@ const Environment = () => {
         );
       case "whitelist-variables":
         return (
-          <WhiteListing
+          <DomainWhiteListing
             variables={envVariables}
             setVariables={setEnvVariables}
           />
@@ -270,22 +271,33 @@ const Environment = () => {
             setVariables={setEnvVariables}
           />
         );
-      case "disable-feature":
+      case "ui-customization":
         return (
-          <DisableFeature
+          <UICustomization
             variables={envVariables}
             setVariables={setEnvVariables}
           />
         );
-      case "danger-area":
+      case "admin-secret":
         return (
-          <DangerArea
+          <SecurityAdminSecret
             variables={envVariables}
             setVariables={setEnvVariables}
             fieldVisibility={fieldVisibility}
             setFieldVisibility={setFieldVisibility}
             validateAdminSecretHandler={validateAdminSecretHandler}
             adminSecret={adminSecret}
+          />
+        );
+      case "db-cred":
+        return (
+          <DatabaseCredentials
+            variables={envVariables}
+            setVariables={setEnvVariables}
+            // fieldVisibility={fieldVisibility}
+            // setFieldVisibility={setFieldVisibility}
+            // validateAdminSecretHandler={validateAdminSecretHandler}
+            // adminSecret={adminSecret}
           />
         );
       default:
