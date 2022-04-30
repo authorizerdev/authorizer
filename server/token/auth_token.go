@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 	"strings"
 	"time"
 
@@ -318,7 +317,7 @@ func CreateIDToken(user models.User, roles []string, hostname, nonce string) (st
 	}
 
 	// check for the extra access token script
-	accessTokenScript := os.Getenv(constants.EnvKeyCustomAccessTokenScript)
+	accessTokenScript := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCustomAccessTokenScript)
 	if accessTokenScript != "" {
 		vm := otto.New()
 
