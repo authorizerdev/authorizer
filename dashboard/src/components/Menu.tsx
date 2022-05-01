@@ -71,15 +71,11 @@ const LinkItems: Array<LinkItemProps> = [
     route: "/",
     subRoutes: [
       {
-        name: "OAuth Setting",
+        name: "OAuth Config",
         icon: AiOutlineKey,
         route: "/oauth-setting",
       },
-      {
-        name: "Social Media Login",
-        icon: FiGlobe,
-        route: "/social-media-login",
-      },
+
       { name: "Roles", icon: FiUser, route: "/roles" },
       {
         name: "JWT Secrets",

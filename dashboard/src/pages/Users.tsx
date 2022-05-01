@@ -144,6 +144,7 @@ export default function Users() {
   const checkEmailVerification = async () => {
     setLoading(true);
     const { data } = await client.query(EmailVerificationQuery).toPromise();
+    console.log("email verification query", data);
     if (data?._env) {
       const { DISABLE_EMAIL_VERIFICATION } = data._env;
       setDisableInviteMembers(DISABLE_EMAIL_VERIFICATION);

@@ -17,7 +17,7 @@ import {
 import { UpdateEnvVariables } from "../graphql/mutation";
 import { getObjectDiff, capitalizeFirstLetter } from "../utils";
 // Component inputs
-import InstanceInformation from "../components/EnvComponents/InstanceInformation/InstanceInformation";
+import OAuthConfig from "../components/EnvComponents/OAuthConfig/OAuthConfig";
 import SocialMediaLogin from "../components/EnvComponents/SocialMediaLogin/SocialMediaLogin";
 import Roles from "../components/EnvComponents/Roles/Roles";
 import JWTConfigurations from "../components/EnvComponents/JWTConfigurations/JSTConfigurations";
@@ -198,22 +198,14 @@ const Environment = () => {
     switch (tab) {
       case "instance-info":
         return (
-          <InstanceInformation
+          <OAuthConfig
             envVariables={envVariables}
             setVariables={setEnvVariables}
             fieldVisibility={fieldVisibility}
             setFieldVisibility={setFieldVisibility}
           />
         );
-      case "social-media-login":
-        return (
-          <SocialMediaLogin
-            variables={envVariables}
-            setVariables={setEnvVariables}
-            fieldVisibility={fieldVisibility}
-            setFieldVisibility={setFieldVisibility}
-          />
-        );
+
       case "roles":
         return (
           <Roles variables={envVariables} setVariables={setEnvVariables} />
@@ -302,7 +294,7 @@ const Environment = () => {
         );
       default:
         return (
-          <InstanceInformation
+          <OAuthConfig
             envVariables={envVariables}
             setVariables={setEnvVariables}
             fieldVisibility={fieldVisibility}

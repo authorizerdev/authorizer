@@ -4,6 +4,7 @@ import {
   Center,
   Flex,
   Modal,
+  Tooltip,
   ModalBody,
   ModalCloseButton,
   ModalContent,
@@ -186,8 +187,12 @@ const InviteMembersModal = ({
         isDisabled={disabled}
         size="sm"
       >
-        <Center h="100%">Invite Members</Center>
+        {" "}
+        <Center h="100%">
+          <Tooltip>Invite Members </Tooltip>
+        </Center>{" "}
       </Button>
+
       <Modal isOpen={isOpen} onClose={closeModalHandler} size="xl">
         <ModalOverlay />
         <ModalContent>
