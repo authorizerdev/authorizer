@@ -206,6 +206,7 @@ export const Sidebar = ({ onClose, ...rest }: SidebarProps) => {
                     icon={link.icon}
                     color={pathname === link.route ? "blue.500" : ""}
                     height={12}
+                    onClick={onClose}
                   >
                     {link.name}
                   </NavItem>{" "}

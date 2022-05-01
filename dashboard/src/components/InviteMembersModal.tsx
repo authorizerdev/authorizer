@@ -194,7 +194,6 @@ const InviteMembersModal = ({
               mr={8}
               mt={1}
               hasArrow
-              isOpen
               bg="gray.300"
               color="black"
               label="Email verification is disabled, refer to 'UI Customization' tab within 'Environment' to enable it.
