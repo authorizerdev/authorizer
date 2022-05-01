@@ -185,7 +185,7 @@ export const Sidebar = ({ onClose, ...rest }: SidebarProps) => {
                       onClick={onClose}
                     >
                       {" "}
-                      <Text fontSize="xs" ml={3}>
+                      <Text fontSize="xs" ml={2}>
                         <NavItem
                           icon={sublink.icon}
                           color={pathname === sublink.route ? "blue.500" : ""}
