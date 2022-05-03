@@ -23,10 +23,12 @@ export const AppRoutes = () => {
 							</DashboardLayout>
 						}
 					>
-						<Route path="/" element={<Environment />} />
-						<Route path="users" element={<Users />} />
-						<Route path="environment" element={<Environment />} />
-						<Route path="*" element={<Home />} />
+						<Route path="/" element={<Outlet />}>
+              <Route index element={<Environment />} />
+              <Route path="/:sec" element={<Environment />} />
+            </Route>
+            <Route path="users" element={<Users />} />
+            <Route path="*" element={<Home />} />
 					</Route>
 				</Routes>
 			</Suspense>
