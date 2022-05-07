@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Fragment } from "react"
+import { Global, css } from '@emotion/core'
 import { ChakraProvider, extendTheme } from '@chakra-ui/react';
 import { BrowserRouter } from 'react-router-dom';
 import { createClient, Provider } from 'urql';
@@ -19,12 +20,15 @@ const queryClient = createClient({
 	requestPolicy: 'network-only',
 });
 
+
+
 const theme = extendTheme({
 	styles: {
 		global: {
 			'html, body, #root': {
 				fontFamily: 'Avenir, Helvetica, Arial, sans-serif',
 				height: '100%',
+				outline: "none"
 			},
 		},
 	},
@@ -38,10 +42,10 @@ const theme = extendTheme({
 export default function App() {
 	return (
 		<Fragment>
-		<ChakraProvider theme={theme}>
-			<Provider value={queryClient}>
+		   <ChakraProvider theme={theme}>
+			  <Provider value={queryClient}>
 				<BrowserRouter basename="/dashboard">
-					<AuthContextProvider>
+					<AuthContextProvider>	
 						<AppRoutes />
 					</AuthContextProvider>
 				</BrowserRouter>

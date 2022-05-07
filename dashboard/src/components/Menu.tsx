@@ -140,7 +140,7 @@ export const Sidebar = ({ onClose, ...rest }: SidebarProps) => {
       {...rest}
     >
       <Flex h="20" alignItems="center" mx="18" justifyContent="space-between">
-        <Link to="/">
+        <NavLink to="/">
           <Flex alignItems="center">
             <Image
               src="https://authorizer.dev/images/logo.png"
@@ -151,7 +151,7 @@ export const Sidebar = ({ onClose, ...rest }: SidebarProps) => {
               AUTHORIZER
             </Text>
           </Flex>
-        </Link>
+        </NavLink>
         <CloseButton display={{ base: "flex", md: "none" }} onClick={onClose} />
       </Flex>
 
@@ -159,12 +159,13 @@ export const Sidebar = ({ onClose, ...rest }: SidebarProps) => {
         <AccordionItem textAlign="center" border="none" w="100%">
           {LinkItems.map((link) =>
             link?.subRoutes ? (
-              <Link key={link.name} to={link.route}>
+              <NavLink key={link.name} to={link.route}>
                 <AccordionButton>
                   <Text fontSize="md">
                     <NavItem
                       icon={link.icon}
                       color={pathname === link.route ? "blue.500" : ""}
+                      style={{outline: "unset"}}
                       height={12}
                       ml={-1}
                       mb={isNotSmallerScreen ? -1 : -4}
@@ -197,9 +198,9 @@ export const Sidebar = ({ onClose, ...rest }: SidebarProps) => {
                     </NavLink>
                   ))}
                 </AccordionPanel>
-              </Link>
+              </NavLink>
             ) : (
-              <Link key={link.name} to={link.route}>
+              <NavLink key={link.name} to={link.route}>
                 {" "}
                 <Text fontSize="md" w="100%" mt={-2}>
                   <NavItem
@@ -211,7 +212,7 @@ export const Sidebar = ({ onClose, ...rest }: SidebarProps) => {
                     {link.name}
                   </NavItem>{" "}
                 </Text>
-              </Link>
+              </NavLink>
             )
           )}
           <Link
