@@ -116,7 +116,7 @@ const InputField = ({
 			<InputGroup size="sm">
 				<Input
 					{...props}
-					value={variables[inputType]}
+					value={variables[inputType] ?? ''}
 					onChange={(
 						event: Event & {
 							target: HTMLInputElement;
@@ -179,13 +179,14 @@ const InputField = ({
 	if (Object.values(ArrayInputType).includes(inputType)) {
 		return (
 			<Flex
-				border="1px solid #e2e8f0"
-				w="100%"
-				paddingTop="0.5%"
-				overflowX="scroll"
-				overflowY="hidden"
-				justifyContent="start"
-				alignItems="center"
+			  border="1px solid #e2e8f0"
+              w="100%"
+        	  borderRadius={5}
+              paddingTop="0.5%"
+              overflowX={variables[inputType].length > 3 ? "scroll" : "hidden"}
+              overflowY="hidden"
+              justifyContent="start"
+              alignItems="center"
 			>
 				{variables[inputType].map((role: string, index: number) => (
 					<Box key={index} margin="0.5%" role="group">
@@ -220,7 +221,7 @@ const InputField = ({
 							size="xs"
 							minW="150px"
 							placeholder="add a new value"
-							value={inputData[inputType]}
+							value={inputData[inputType] ?? ''}
 							onChange={(e: any) => {
 								setInputData({ ...inputData, [inputType]: e.target.value });
 							}}

@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { Fragment } from "react"
 import { ChakraProvider, extendTheme } from '@chakra-ui/react';
 import { BrowserRouter } from 'react-router-dom';
 import { createClient, Provider } from 'urql';
@@ -36,6 +37,7 @@ const theme = extendTheme({
 
 export default function App() {
 	return (
+		<Fragment>
 		<ChakraProvider theme={theme}>
 			<Provider value={queryClient}>
 				<BrowserRouter basename="/dashboard">
@@ -45,5 +47,6 @@ export default function App() {
 				</BrowserRouter>
 			</Provider>
 		</ChakraProvider>
+		</Fragment>
 	);
 }

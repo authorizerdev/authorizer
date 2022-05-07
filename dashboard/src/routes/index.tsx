@@ -14,6 +14,7 @@ export const AppRoutes = () => {
 
 	if (isLoggedIn) {
 		return (
+		<div>
 			<Suspense fallback={<></>}>
 				<Routes>
 					<Route
@@ -32,6 +33,7 @@ export const AppRoutes = () => {
 					</Route>
 				</Routes>
 			</Suspense>
+		</div>
 		);
 	}
 	return (
