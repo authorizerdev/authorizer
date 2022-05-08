@@ -216,7 +216,6 @@ const Environment = () => {
             fieldVisibility={fieldVisibility}
             setFieldVisibility={setFieldVisibility}
             SelectInputType={SelectInputType.JWT_TYPE}
-            // value={SelectInputType.JWT_TYPE}
             HMACEncryptionType={HMACEncryptionType}
             RSAEncryptionType={RSAEncryptionType}
             ECDSAEncryptionType={ECDSAEncryptionType}
@@ -284,10 +283,6 @@ const Environment = () => {
           <DatabaseCredentials
             variables={envVariables}
             setVariables={setEnvVariables}
-            // fieldVisibility={fieldVisibility}
-            // setFieldVisibility={setFieldVisibility}
-            // validateAdminSecretHandler={validateAdminSecretHandler}
-            // adminSecret={adminSecret}
           />
         );
       default:

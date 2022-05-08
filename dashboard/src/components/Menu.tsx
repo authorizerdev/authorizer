@@ -36,11 +36,9 @@ import {
   FiShieldOff,
 } from "react-icons/fi";
 import { BiCustomize } from "react-icons/bi";
-import { FcDatabase } from "react-icons/fc";
 import { AiOutlineKey } from "react-icons/ai";
 import { SiOpenaccess, SiJsonwebtokens } from "react-icons/si";
 import { MdSecurity } from "react-icons/md";
-import { RiSkullLine } from "react-icons/ri";
 import { RiDatabase2Line } from "react-icons/ri";
 import { BsCheck2Circle } from "react-icons/bs";
 import { HiOutlineMail, HiOutlineOfficeBuilding } from "react-icons/hi";
@@ -117,7 +115,6 @@ const LinkItems: Array<LinkItemProps> = [
     ],
   },
   { name: "Users", icon: FiUsers, route: "/users" },
-  // { name: "AUsers", icon: FiUsers, route: "/usersa" },
 ];
 
 interface SidebarProps extends BoxProps {

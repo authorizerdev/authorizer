@@ -1,10 +1,9 @@
 import React from "react";
-import { Flex, Stack, Text, useMediaQuery } from "@chakra-ui/react";
+import { Flex, Stack, Text } from "@chakra-ui/react";
 import InputField from "../InputField";
 import { SwitchInputType } from "../../constants";
 
 const UICustomization = ({ variables, setVariables }: any) => {
-  const [isNotSmallerScreen] = useMediaQuery("(min-width:600px)");
   return (
     <div>
       {" "}

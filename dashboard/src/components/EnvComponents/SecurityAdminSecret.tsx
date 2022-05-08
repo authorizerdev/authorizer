@@ -11,7 +11,7 @@ import {
 } from "@chakra-ui/react";
 import { FaRegEyeSlash, FaRegEye } from "react-icons/fa";
 import InputField from "../InputField";
-import { TextInputType, HiddenInputType } from "../../constants";
+import { HiddenInputType } from "../../constants";
 const SecurityAdminSecret = ({
   variables,
   setVariables,
