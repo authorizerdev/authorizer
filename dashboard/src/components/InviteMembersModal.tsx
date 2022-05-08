@@ -22,6 +22,7 @@ import {
 	InputRightElement,
 	Text,
 	Link,
+	Tooltip
 } from '@chakra-ui/react';
 import { useClient } from 'urql';
 import { FaUserPlus, FaMinusCircle, FaPlus, FaUpload } from 'react-icons/fa';
@@ -186,7 +187,22 @@ const InviteMembersModal = ({
 				isDisabled={disabled}
 				size="sm"
 			>
-				<Center h="100%">Invite Members</Center>
+				 <Center h="100%">
+                   {disabled ? (
+                      <Tooltip
+                        mr={8}
+                        mt={1}
+                        hasArrow
+                        bg="gray.300"
+                        color="black"
+                        label="Email verification is disabled, refer to 'UI Customization' tab within 'Environment' to enable it."
+                      >
+                      Invite Members
+                      </Tooltip>
+                    ) : (
+                    "Invite Members"
+                    )}
+                  </Center>{" "}
 			</Button>
 			<Modal isOpen={isOpen} onClose={closeModalHandler} size="xl">
 				<ModalOverlay />

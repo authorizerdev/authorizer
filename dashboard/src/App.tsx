@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { Fragment } from "react"
-import { Global, css } from '@emotion/core'
 import { ChakraProvider, extendTheme } from '@chakra-ui/react';
 import { BrowserRouter } from 'react-router-dom';
 import { createClient, Provider } from 'urql';
