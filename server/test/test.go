@@ -31,31 +31,31 @@ type TestSetup struct {
 }
 
 func cleanData(email string) {
-	// verificationRequest, err := db.Provider.GetVerificationRequestByEmail(email, constants.VerificationTypeBasicAuthSignup)
-	// if err == nil {
-	// 	err = db.Provider.DeleteVerificationRequest(verificationRequest)
-	// }
+	verificationRequest, err := db.Provider.GetVerificationRequestByEmail(email, constants.VerificationTypeBasicAuthSignup)
+	if err == nil {
+		err = db.Provider.DeleteVerificationRequest(verificationRequest)
+	}
 
-	// verificationRequest, err = db.Provider.GetVerificationRequestByEmail(email, constants.VerificationTypeForgotPassword)
-	// if err == nil {
-	// 	err = db.Provider.DeleteVerificationRequest(verificationRequest)
-	// }
+	verificationRequest, err = db.Provider.GetVerificationRequestByEmail(email, constants.VerificationTypeForgotPassword)
+	if err == nil {
+		err = db.Provider.DeleteVerificationRequest(verificationRequest)
+	}
 
-	// verificationRequest, err = db.Provider.GetVerificationRequestByEmail(email, constants.VerificationTypeUpdateEmail)
-	// if err == nil {
-	// 	err = db.Provider.DeleteVerificationRequest(verificationRequest)
-	// }
+	verificationRequest, err = db.Provider.GetVerificationRequestByEmail(email, constants.VerificationTypeUpdateEmail)
+	if err == nil {
+		err = db.Provider.DeleteVerificationRequest(verificationRequest)
+	}
 
-	// verificationRequest, err = db.Provider.GetVerificationRequestByEmail(email, constants.VerificationTypeMagicLinkLogin)
-	// if err == nil {
-	// 	err = db.Provider.DeleteVerificationRequest(verificationRequest)
-	// }
+	verificationRequest, err = db.Provider.GetVerificationRequestByEmail(email, constants.VerificationTypeMagicLinkLogin)
+	if err == nil {
+		err = db.Provider.DeleteVerificationRequest(verificationRequest)
+	}
 
-	// dbUser, err := db.Provider.GetUserByEmail(email)
-	// if err == nil {
-	// 	db.Provider.DeleteUser(dbUser)
-	// 	db.Provider.DeleteSession(dbUser.ID)
-	// }
+	dbUser, err := db.Provider.GetUserByEmail(email)
+	if err == nil {
+		db.Provider.DeleteUser(dbUser)
+		db.Provider.DeleteSession(dbUser.ID)
+	}
 }
 
 func createContext(s TestSetup) (*http.Request, context.Context) {
