@@ -26,7 +26,6 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 	if err != nil {
 		return res, err
 	}
-	fmt.Println(token.IsSuperAdmin(gc))
 
 	if !token.IsSuperAdmin(gc) {
 		return res, fmt.Errorf("unauthorized")
@@ -134,8 +133,6 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 			inputRoles = append(inputRoles, *item)
 		}
 
-		fmt.Println(envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyRoles))
-		fmt.Println(envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyProtectedRoles))
 		if !utils.IsValidRoles(inputRoles, append([]string{}, append(envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyRoles), envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyProtectedRoles)...)...)) {
 			return res, fmt.Errorf("invalid list of roles")
 		}
