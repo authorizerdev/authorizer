@@ -2,7 +2,8 @@ package main
 
 import (
 	"flag"
-	"log"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
@@ -21,7 +22,9 @@ func main() {
 	envstore.ARG_ENV_FILE = flag.String("env_file", "", "Env file path")
 	flag.Parse()
 
-	log.Println("=> version:", VERSION)
+	log.SetFormatter(&log.JSONFormatter{})
+	log.SetReportCaller(true)
+
 	constants.VERSION = VERSION
 
 	// initialize required envs (mainly db & env file path)
@@ -62,5 +65,6 @@ func main() {
 	}
 
 	router := routes.InitRouter()
+	log.Info("Starting Authorizer: ", VERSION)
 	router.Run(":" + envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyPort))
 }

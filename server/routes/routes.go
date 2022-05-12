@@ -1,15 +1,17 @@
 package routes
 
 import (
+	"github.com/gin-gonic/gin"
+
 	"github.com/authorizerdev/authorizer/server/handlers"
 	"github.com/authorizerdev/authorizer/server/middlewares"
-	"github.com/gin-gonic/gin"
 )
 
 // InitRouter initializes gin router
 func InitRouter() *gin.Engine {
 	router := gin.Default()
-	// router.Use(location.Default())
+	gin.DefaultWriter = middlewares.NewGinLogrusWrite()
+	router.Use(middlewares.JSONLogMiddleware())
 	router.Use(middlewares.GinContextToContextMiddleware())
 	router.Use(middlewares.CORSMiddleware())
 

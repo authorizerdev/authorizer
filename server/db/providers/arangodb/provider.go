@@ -2,7 +2,6 @@ package arangodb
 
 import (
 	"context"
-	"log"
 
 	"github.com/arangodb/go-driver"
 	arangoDriver "github.com/arangodb/go-driver"
@@ -42,7 +41,6 @@ func NewProvider() (*provider, error) {
 	arangodb_exists, err := arangoClient.DatabaseExists(nil, envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseName))
 
 	if arangodb_exists {
-		log.Println(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseName) + " db exists already")
 		arangodb, err = arangoClient.Database(nil, envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseName))
 		if err != nil {
 			return nil, err
@@ -55,12 +53,10 @@ func NewProvider() (*provider, error) {
 	}
 
 	userCollectionExists, err := arangodb.CollectionExists(ctx, models.Collections.User)
-	if userCollectionExists {
-		log.Println(models.Collections.User + " collection exists already")
-	} else {
+	if !userCollectionExists {
 		_, err = arangodb.CreateCollection(ctx, models.Collections.User, nil)
 		if err != nil {
-			log.Println("error creating collection("+models.Collections.User+"):", err)
+			return nil, err
 		}
 	}
 	userCollection, _ := arangodb.Collection(nil, models.Collections.User)
@@ -74,12 +70,10 @@ func NewProvider() (*provider, error) {
 	})
 
 	verificationRequestCollectionExists, err := arangodb.CollectionExists(ctx, models.Collections.VerificationRequest)
-	if verificationRequestCollectionExists {
-		log.Println(models.Collections.VerificationRequest + " collection exists already")
-	} else {
+	if !verificationRequestCollectionExists {
 		_, err = arangodb.CreateCollection(ctx, models.Collections.VerificationRequest, nil)
 		if err != nil {
-			log.Println("error creating collection("+models.Collections.VerificationRequest+"):", err)
+			return nil, err
 		}
 	}
 
@@ -93,12 +87,10 @@ func NewProvider() (*provider, error) {
 	})
 
 	sessionCollectionExists, err := arangodb.CollectionExists(ctx, models.Collections.Session)
-	if sessionCollectionExists {
-		log.Println(models.Collections.Session + " collection exists already")
-	} else {
+	if !sessionCollectionExists {
 		_, err = arangodb.CreateCollection(ctx, models.Collections.Session, nil)
 		if err != nil {
-			log.Println("error creating collection("+models.Collections.Session+"):", err)
+			return nil, err
 		}
 	}
 
@@ -108,12 +100,10 @@ func NewProvider() (*provider, error) {
 	})
 
 	configCollectionExists, err := arangodb.CollectionExists(ctx, models.Collections.Env)
-	if configCollectionExists {
-		log.Println(models.Collections.Env + " collection exists already")
-	} else {
+	if !configCollectionExists {
 		_, err = arangodb.CreateCollection(ctx, models.Collections.Env, nil)
 		if err != nil {
-			log.Println("error creating collection("+models.Collections.Env+"):", err)
+			return nil, err
 		}
 	}
 

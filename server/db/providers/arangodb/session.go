@@ -2,7 +2,6 @@ package arangodb
 
 import (
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/db/models"
@@ -20,7 +19,6 @@ func (p *provider) AddSession(session models.Session) error {
 	sessionCollection, _ := p.db.Collection(nil, models.Collections.Session)
 	_, err := sessionCollection.CreateDocument(nil, session)
 	if err != nil {
-		log.Println(`error saving session`, err)
 		return err
 	}
 	return nil

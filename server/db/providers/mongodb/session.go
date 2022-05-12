@@ -1,7 +1,6 @@
 package mongodb
 
 import (
-	"log"
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/db/models"
@@ -22,7 +21,6 @@ func (p *provider) AddSession(session models.Session) error {
 	sessionCollection := p.db.Collection(models.Collections.Session, options.Collection())
 	_, err := sessionCollection.InsertOne(nil, session)
 	if err != nil {
-		log.Println(`error saving session`, err)
 		return err
 	}
 	return nil
@@ -33,7 +31,6 @@ func (p *provider) DeleteSession(userId string) error {
 	sessionCollection := p.db.Collection(models.Collections.Session, options.Collection())
 	_, err := sessionCollection.DeleteMany(nil, bson.M{"user_id": userId}, options.Delete())
 	if err != nil {
-		log.Println("error deleting session:", err)
 		return err
 	}
 	return nil

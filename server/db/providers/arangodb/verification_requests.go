@@ -3,7 +3,6 @@ package arangodb
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/arangodb/go-driver"
@@ -23,7 +22,6 @@ func (p *provider) AddVerificationRequest(verificationRequest models.Verificatio
 	verificationRequestRequestCollection, _ := p.db.Collection(nil, models.Collections.VerificationRequest)
 	meta, err := verificationRequestRequestCollection.CreateDocument(nil, verificationRequest)
 	if err != nil {
-		log.Println("error saving verificationRequest record:", err)
 		return verificationRequest, err
 	}
 	verificationRequest.Key = meta.Key
@@ -136,7 +134,6 @@ func (p *provider) DeleteVerificationRequest(verificationRequest models.Verifica
 	collection, _ := p.db.Collection(nil, models.Collections.VerificationRequest)
 	_, err := collection.RemoveDocument(nil, verificationRequest.Key)
 	if err != nil {
-		log.Println(`error deleting verification request:`, err)
 		return err
 	}
 	return nil

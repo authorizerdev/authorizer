@@ -2,7 +2,6 @@ package arangodb
 
 import (
 	"fmt"
-	"log"
 	"time"
 
 	arangoDriver "github.com/arangodb/go-driver"
@@ -22,7 +21,6 @@ func (p *provider) AddEnv(env models.Env) (models.Env, error) {
 	configCollection, _ := p.db.Collection(nil, models.Collections.Env)
 	meta, err := configCollection.CreateDocument(arangoDriver.WithOverwrite(nil), env)
 	if err != nil {
-		log.Println("error adding config:", err)
 		return env, err
 	}
 	env.Key = meta.Key
@@ -36,7 +34,6 @@ func (p *provider) UpdateEnv(env models.Env) (models.Env, error) {
 	collection, _ := p.db.Collection(nil, models.Collections.Env)
 	meta, err := collection.UpdateDocument(nil, env.Key, env)
 	if err != nil {
-		log.Println("error updating config:", err)
 		return env, err
 	}
 

@@ -1,7 +1,6 @@
 package sql
 
 import (
-	"log"
 	"strings"
 	"time"
 
@@ -33,7 +32,6 @@ func (p *provider) AddUser(user models.User) (models.User, error) {
 		}).Create(&user)
 
 	if result.Error != nil {
-		log.Println("error adding user:", result.Error)
 		return user, result.Error
 	}
 
@@ -47,7 +45,6 @@ func (p *provider) UpdateUser(user models.User) (models.User, error) {
 	result := p.db.Save(&user)
 
 	if result.Error != nil {
-		log.Println("error updating user:", result.Error)
 		return user, result.Error
 	}
 
@@ -59,7 +56,6 @@ func (p *provider) DeleteUser(user models.User) error {
 	result := p.db.Delete(&user)
 
 	if result.Error != nil {
-		log.Println(`error deleting user:`, result.Error)
 		return result.Error
 	}
 
@@ -71,7 +67,6 @@ func (p *provider) ListUsers(pagination model.Pagination) (*model.Users, error) 
 	var users []models.User
 	result := p.db.Limit(int(pagination.Limit)).Offset(int(pagination.Offset)).Order("created_at DESC").Find(&users)
 	if result.Error != nil {
-		log.Println("error getting users:", result.Error)
 		return nil, result.Error
 	}
 

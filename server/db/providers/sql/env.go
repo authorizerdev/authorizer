@@ -1,7 +1,6 @@
 package sql
 
 import (
-	"log"
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/db/models"
@@ -20,7 +19,6 @@ func (p *provider) AddEnv(env models.Env) (models.Env, error) {
 
 	result := p.db.Create(&env)
 	if result.Error != nil {
-		log.Println("error adding config:", result.Error)
 		return env, result.Error
 	}
 	return env, nil
@@ -32,7 +30,6 @@ func (p *provider) UpdateEnv(env models.Env) (models.Env, error) {
 	result := p.db.Save(&env)
 
 	if result.Error != nil {
-		log.Println("error updating config:", result.Error)
 		return env, result.Error
 	}
 	return env, nil
