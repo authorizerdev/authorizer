@@ -24,6 +24,12 @@ func updateUserTest(t *testing.T, s TestSetup) {
 		})
 
 		user := *signupRes.User
+		//! - Found out by testing 
+		//! that the 'supplier' role was being accepted by the server
+		//! even though that it doesn't exist in the database.
+		//! (checked it by doing fmt.Println() on role envs)
+		//! But I'm not removing it as there is maybe a reason for it to be be here...
+		//! - Appart from that, by removing it test returns 'unauthorized' successfully
 		adminRole := "supplier"
 		userRole := "user"
 		newRoles := []*string{&adminRole, &userRole}
