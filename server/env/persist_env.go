@@ -2,12 +2,12 @@ package env
 
 import (
 	"encoding/json"
-	"log"
 	"os"
 	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/crypto"
@@ -183,7 +183,7 @@ func PersistEnv() error {
 			env.EnvData = encryptedConfig
 			_, err = db.Provider.UpdateEnv(env)
 			if err != nil {
-				log.Println("error updating config:", err)
+				log.Debug("error updating config in db:", err)
 				return err
 			}
 		}

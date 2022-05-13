@@ -2,17 +2,18 @@ package env
 
 import (
 	"errors"
-	"log"
 	"os"
 	"strings"
+
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"github.com/joho/godotenv"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/utils"
-	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
-	"github.com/joho/godotenv"
 )
 
 // InitRequiredEnv to initialize EnvData and through error if required env are not present
@@ -91,7 +92,7 @@ func InitRequiredEnv() error {
 func InitAllEnv() error {
 	envData, err := GetEnvData()
 	if err != nil {
-		log.Println("No env data found in db, using local clone of env data")
+		log.Info("No env data found in db, using local clone of env data")
 		// get clone of current store
 		envData = envstore.EnvStoreObj.GetEnvStoreClone()
 	}
