@@ -21,10 +21,16 @@ import {
 	AccordionButton,
 	AccordionPanel,
 	AccordionItem,
-	AccordionIcon,
 	useMediaQuery,
 } from '@chakra-ui/react';
-import { FiUser, FiCode, FiSettings, FiMenu, FiUsers, FiChevronDown } from 'react-icons/fi';
+import {
+	FiUser,
+	FiCode,
+	FiSettings,
+	FiMenu,
+	FiUsers,
+	FiChevronDown,
+} from 'react-icons/fi';
 import { BiCustomize } from 'react-icons/bi';
 import { AiOutlineKey } from 'react-icons/ai';
 import { SiOpenaccess, SiJsonwebtokens } from 'react-icons/si';
@@ -117,20 +123,30 @@ export const Sidebar = ({ onClose, ...rest }: SidebarProps) => {
 	const [isNotSmallerScreen] = useMediaQuery('(min-width:600px)');
 	return (
 		<Box
-			transition='3s ease'
+			transition="3s ease"
 			bg={useColorModeValue('white', 'gray.900')}
-			borderRight='1px'
+			borderRight="1px"
 			borderRightColor={useColorModeValue('gray.200', 'gray.700')}
 			w={{ base: 'full', md: 60 }}
-			pos='fixed'
-			h='full'
+			pos="fixed"
+			h="full"
 			{...rest}
 		>
-			<Flex h='20' alignItems='center' mx='18' justifyContent='space-between' flexDirection='column'>
-				<NavLink to='/'>
-					<Flex alignItems='center' mt='6'>
-						<Image src='https://authorizer.dev/images/logo.png' alt='logo' height='36px' />
-						<Text fontSize='large' ml='2' letterSpacing='3'>
+			<Flex
+				h="20"
+				alignItems="center"
+				mx="18"
+				justifyContent="space-between"
+				flexDirection="column"
+			>
+				<NavLink to="/">
+					<Flex alignItems="center" mt="6">
+						<Image
+							src="https://authorizer.dev/images/logo.png"
+							alt="logo"
+							height="36px"
+						/>
+						<Text fontSize="large" ml="2" letterSpacing="3">
 							AUTHORIZER
 						</Text>
 					</Flex>
@@ -139,12 +155,12 @@ export const Sidebar = ({ onClose, ...rest }: SidebarProps) => {
 			</Flex>
 
 			<Accordion defaultIndex={[0]} allowMultiple>
-				<AccordionItem textAlign='center' border='none' w='100%'>
+				<AccordionItem textAlign="center" border="none" w="100%">
 					{LinkItems.map((link) =>
 						link?.subRoutes ? (
 							<div key={link.name}>
-								<AccordionButton>
-									<Text as='div' fontSize='md'>
+								<AccordionButton _focus={{ boxShadow: 'none' }}>
+									<Text as="div" fontSize="md">
 										<NavItem
 											icon={link.icon}
 											color={pathname === link.route ? 'blue.500' : ''}
@@ -165,10 +181,18 @@ export const Sidebar = ({ onClose, ...rest }: SidebarProps) => {
 								</AccordionButton>
 								<AccordionPanel>
 									{link.subRoutes?.map((sublink) => (
-										<NavLink key={sublink.name} to={sublink.route} onClick={onClose}>
+										<NavLink
+											key={sublink.name}
+											to={sublink.route}
+											onClick={onClose}
+										>
 											{' '}
-											<Text as='div' fontSize='xs' ml={2}>
-												<NavItem icon={sublink.icon} color={pathname === sublink.route ? 'blue.500' : ''} height={8}>
+											<Text as="div" fontSize="xs" ml={2}>
+												<NavItem
+													icon={sublink.icon}
+													color={pathname === sublink.route ? 'blue.500' : ''}
+													height={8}
+												>
 													{sublink.name}
 												</NavItem>{' '}
 											</Text>
@@ -179,7 +203,7 @@ export const Sidebar = ({ onClose, ...rest }: SidebarProps) => {
 						) : (
 							<NavLink key={link.name} to={link.route}>
 								{' '}
-								<Text as='div' fontSize='md' w='100%' mt={-2}>
+								<Text as="div" fontSize="md" w="100%" mt={-2}>
 									<NavItem
 										icon={link.icon}
 										color={pathname === link.route ? 'blue.500' : ''}
@@ -193,8 +217,8 @@ export const Sidebar = ({ onClose, ...rest }: SidebarProps) => {
 						)
 					)}
 					<Link
-						href='/playground'
-						target='_blank'
+						href="/playground"
+						target="_blank"
 						style={{
 							textDecoration: 'none',
 						}}
@@ -206,9 +230,16 @@ export const Sidebar = ({ onClose, ...rest }: SidebarProps) => {
 			</Accordion>
 
 			{data?.meta?.version && (
-				<Flex alignContent='center'>
+				<Flex alignContent="center">
 					{' '}
-					<Text color='gray.400' fontSize='sm' textAlign='center' position='absolute' bottom='5' left='7'>
+					<Text
+						color="gray.400"
+						fontSize="sm"
+						textAlign="center"
+						position="absolute"
+						bottom="5"
+						left="7"
+					>
 						Current Version: {data.meta.version}
 					</Text>
 				</Flex>
@@ -224,12 +255,12 @@ interface NavItemProps extends FlexProps {
 export const NavItem = ({ icon, children, ...rest }: NavItemProps) => {
 	return (
 		<Flex
-			align='center'
-			p='3'
-			mx='3'
-			borderRadius='md'
-			role='group'
-			cursor='pointer'
+			align="center"
+			p="3"
+			mx="3"
+			borderRadius="md"
+			role="group"
+			cursor="pointer"
 			_hover={{
 				bg: 'blue.500',
 				color: 'white',
@@ -238,8 +269,8 @@ export const NavItem = ({ icon, children, ...rest }: NavItemProps) => {
 		>
 			{icon && (
 				<Icon
-					mr='4'
-					fontSize='16'
+					mr="4"
+					fontSize="16"
 					_groupHover={{
 						color: 'white',
 					}}
@@ -269,13 +300,13 @@ export const MobileNav = ({ onOpen, ...rest }: MobileProps) => {
 		<Flex
 			ml={{ base: 0, md: 60 }}
 			px={{ base: 4, md: 4 }}
-			height='20'
-			position='fixed'
-			right='0'
-			left='0'
-			alignItems='center'
+			height="20"
+			position="fixed"
+			right="0"
+			left="0"
+			alignItems="center"
 			bg={useColorModeValue('white', 'gray.900')}
-			borderBottomWidth='1px'
+			borderBottomWidth="1px"
 			borderBottomColor={useColorModeValue('gray.200', 'gray.700')}
 			justifyContent={{ base: 'space-between', md: 'flex-end' }}
 			zIndex={99}
@@ -284,26 +315,35 @@ export const MobileNav = ({ onOpen, ...rest }: MobileProps) => {
 			<IconButton
 				display={{ base: 'flex', md: 'none' }}
 				onClick={onOpen}
-				variant='outline'
-				aria-label='open menu'
+				variant="outline"
+				aria-label="open menu"
 				icon={<FiMenu />}
 			/>
 
 			<Image
-				src='https://authorizer.dev/images/logo.png'
-				alt='logo'
-				height='36px'
+				src="https://authorizer.dev/images/logo.png"
+				alt="logo"
+				height="36px"
 				display={{ base: 'flex', md: 'none' }}
 			/>
 
 			<HStack spacing={{ base: '0', md: '6' }}>
 				<Flex alignItems={'center'}>
 					<Menu>
-						<MenuButton py={2} transition='all 0.3s' _focus={{ boxShadow: 'none' }}>
+						<MenuButton
+							py={2}
+							transition="all 0.3s"
+							_focus={{ boxShadow: 'none' }}
+						>
 							<HStack mr={5}>
 								<FiUser />
-								<VStack display={{ base: 'none', md: 'flex' }} alignItems='flex-start' spacing='1px' ml='2'>
-									<Text fontSize='sm'>Admin</Text>
+								<VStack
+									display={{ base: 'none', md: 'flex' }}
+									alignItems="flex-start"
+									spacing="1px"
+									ml="2"
+								>
+									<Text fontSize="sm">Admin</Text>
 								</VStack>
 								<Box display={{ base: 'none', md: 'flex' }}>
 									<FiChevronDown />
