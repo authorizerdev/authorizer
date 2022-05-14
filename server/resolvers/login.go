@@ -58,7 +58,7 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 	roles := envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles)
 	currentRoles := strings.Split(user.Roles, ",")
 	if len(params.Roles) > 0 {
-		if !utils.IsValidRoles(currentRoles, params.Roles) {
+		if !utils.IsValidRoles(params.Roles, currentRoles) {
 			return res, fmt.Errorf(`invalid roles`)
 		}
 
