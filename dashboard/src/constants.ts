@@ -128,3 +128,17 @@ export interface envVarTypes {
 	DATABASE_URL: string;
 	ACCESS_TOKEN_EXPIRY_TIME: string;
 }
+
+export const envSubViews = {
+	INSTANCE_INFO: 'instance-info',
+	ROLES: 'roles',
+	JWT_CONFIG: 'jwt-config',
+	SESSION_STORAGE: 'session-storage',
+	EMAIL_CONFIG: 'email-config',
+	WHITELIST_VARIABLES: 'whitelist-variables',
+	ORGANIZATION_INFO: 'organization-info',
+	ACCESS_TOKEN: 'access-token',
+	UI_CUSTOMIZATION: 'ui-customization',
+	ADMIN_SECRET: 'admin-secret',
+	DB_CRED: 'db-cred',
+};
