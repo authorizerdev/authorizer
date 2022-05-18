@@ -1,11 +1,28 @@
 import React, { useEffect, lazy, Suspense } from 'react';
 import { Switch, Route } from 'react-router-dom';
 import { useAuthorizer } from '@authorizerdev/authorizer-react';
+import styled, { ThemeProvider } from 'styled-components';
 import SetupPassword from './pages/setup-password';
+import { hasWindow, createRandomString } from './utils/common';
+import { theme } from './theme';
 
 const ResetPassword = lazy(() => import('./pages/rest-password'));
 const Login = lazy(() => import('./pages/login'));
 const Dashboard = lazy(() => import('./pages/dashboard'));
+const SignUp = lazy(() => import('./pages/signup'));
+
+const Wrapper = styled.div`
+	font-family: ${(props) => props.theme.fonts.fontStack};
+	color: ${(props) => props.theme.colors.textColor};
+	font-size: ${(props) => props.theme.fonts.mediumText};
+	box-sizing: border-box;
+
+	*,
+	*:before,
+	*:after {
+		box-sizing: inherit;
+	}
+`;
 
 export default function Root({
 	globalState,
@@ -13,6 +30,29 @@ export default function Root({
 	globalState: Record<string, string>;
 }) {
 	const { token, loading, config } = useAuthorizer();
+
+	const searchParams = new URLSearchParams(
+		hasWindow() ? window.location.search : ``
+	);
+	const state = searchParams.get('state') || createRandomString();
+	const scope = searchParams.get('scope')
+		? searchParams.get('scope')?.toString().split(' ')
+		: ['openid', 'profile', 'email'];
+
+	const urlProps: Record<string, any> = {
+		state,
+		scope,
+	};
+
+	const redirectURL =
+		searchParams.get('redirect_uri') || searchParams.get('redirectURL');
+	if (redirectURL) {
+		urlProps.redirectURL = redirectURL;
+	} else {
+		urlProps.redirectURL = hasWindow() ? window.location.origin : redirectURL;
+	}
+
+	urlProps.redirect_uri = urlProps.redirectURL;
 
 	useEffect(() => {
 		if (token) {
@@ -54,17 +94,24 @@ export default function Root({
 
 	return (
 		<Suspense fallback={<></>}>
-			<Switch>
-				<Route path="/app" exact>
-					<Login />
-				</Route>
-				<Route path="/app/reset-password">
-					<ResetPassword />
-				</Route>
-				<Route path="/app/setup-password">
-					<SetupPassword />
-				</Route>
-			</Switch>
+			<ThemeProvider theme={theme}>
+				<Wrapper>
+					<Switch>
+						<Route path="/app" exact>
+							<Login urlProps={urlProps} />
+						</Route>
+						<Route path="/app/signup" exact>
+							<SignUp urlProps={urlProps} />
+						</Route>
+						<Route path="/app/reset-password">
+							<ResetPassword />
+						</Route>
+						<Route path="/app/setup-password">
+							<SetupPassword />
+						</Route>
+					</Switch>
+				</Wrapper>
+			</ThemeProvider>
 		</Suspense>
 	);
 }

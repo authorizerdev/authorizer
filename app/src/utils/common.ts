@@ -20,3 +20,5 @@ export const createQueryParams = (params: any) => {
 		.map((k) => encodeURIComponent(k) + '=' + encodeURIComponent(params[k]))
 		.join('&');
 };
+
+export const hasWindow = (): boolean => typeof window !== 'undefined';
