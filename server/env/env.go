@@ -33,7 +33,7 @@ func InitRequiredEnv() error {
 
 	err := godotenv.Load(envPath)
 	if err != nil {
-		log.Printf("using OS env instead of %s file", envPath)
+		log.Info("using OS env instead of %s file", envPath)
 	}
 
 	dbURL := os.Getenv(constants.EnvKeyDatabaseURL)

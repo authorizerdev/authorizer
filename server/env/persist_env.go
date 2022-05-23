@@ -183,7 +183,7 @@ func PersistEnv() error {
 			env.EnvData = encryptedConfig
 			_, err = db.Provider.UpdateEnv(env)
 			if err != nil {
-				log.Debug("error updating config in db:", err)
+				log.Debug("Failed to Update Config:", err)
 				return err
 			}
 		}

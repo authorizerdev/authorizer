@@ -7,13 +7,15 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/sessionstore"
 	"github.com/authorizerdev/authorizer/server/token"
-	"github.com/gin-gonic/gin"
 )
 
 // TokenHandler to handle /oauth/token requests
@@ -22,6 +24,7 @@ func TokenHandler() gin.HandlerFunc {
 	return func(gc *gin.Context) {
 		var reqBody map[string]string
 		if err := gc.BindJSON(&reqBody); err != nil {
+			log.Debug("Error binding JSON: ", err)
 			gc.JSON(http.StatusBadRequest, gin.H{
 				"error":             "error_binding_json",
 				"error_description": err.Error(),
@@ -43,6 +46,7 @@ func TokenHandler() gin.HandlerFunc {
 		isAuthorizationCodeGrant := grantType == "authorization_code"
 
 		if !isRefreshTokenGrant && !isAuthorizationCodeGrant {
+			log.Debug("Invalid grant type")
 			gc.JSON(http.StatusBadRequest, gin.H{
 				"error":             "invalid_grant_type",
 				"error_description": "grant_type is invalid",
@@ -50,6 +54,7 @@ func TokenHandler() gin.HandlerFunc {
 		}
 
 		if clientID == "" {
+			log.Debug("Client ID is empty")
 			gc.JSON(http.StatusBadRequest, gin.H{
 				"error":             "client_id_required",
 				"error_description": "The client id is required",
@@ -58,6 +63,7 @@ func TokenHandler() gin.HandlerFunc {
 		}
 
 		if clientID != envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyClientID) {
+			log.Debug("Client ID is invalid")
 			gc.JSON(http.StatusBadRequest, gin.H{
 				"error":             "invalid_client_id",
 				"error_description": "The client id is invalid",
@@ -70,6 +76,7 @@ func TokenHandler() gin.HandlerFunc {
 		if isAuthorizationCodeGrant {
 
 			if codeVerifier == "" {
+				log.Debug("Code verifier is empty")
 				gc.JSON(http.StatusBadRequest, gin.H{
 					"error":             "invalid_code_verifier",
 					"error_description": "The code verifier is required",
@@ -78,6 +85,7 @@ func TokenHandler() gin.HandlerFunc {
 			}
 
 			if code == "" {
+				log.Debug("Code is empty")
 				gc.JSON(http.StatusBadRequest, gin.H{
 					"error":             "invalid_code",
 					"error_description": "The code is required",
@@ -92,6 +100,7 @@ func TokenHandler() gin.HandlerFunc {
 			encryptedCode = strings.ReplaceAll(encryptedCode, "=", "")
 			sessionData := sessionstore.GetState(encryptedCode)
 			if sessionData == "" {
+				log.Debug("Invalid code verifier")
 				gc.JSON(http.StatusBadRequest, gin.H{
 					"error":             "invalid_code_verifier",
 					"error_description": "The code verifier is invalid",
@@ -104,6 +113,7 @@ func TokenHandler() gin.HandlerFunc {
 			sessionDataSplit := strings.Split(sessionData, "@")
 
 			if sessionDataSplit[0] != code {
+				log.Debug("Invalid code verifier.Unable to split session data")
 				gc.JSON(http.StatusBadRequest, gin.H{
 					"error":             "invalid_code_verifier",
 					"error_description": "The code verifier is invalid",
@@ -114,6 +124,7 @@ func TokenHandler() gin.HandlerFunc {
 			// validate session
 			claims, err := token.ValidateBrowserSession(gc, sessionDataSplit[1])
 			if err != nil {
+				log.Debug("Error validating session: ", err)
 				gc.JSON(http.StatusUnauthorized, gin.H{
 					"error":             "unauthorized",
 					"error_description": "Invalid session data",
@@ -128,6 +139,7 @@ func TokenHandler() gin.HandlerFunc {
 		} else {
 			// validate refresh token
 			if refreshToken == "" {
+				log.Debug("Refresh token is empty")
 				gc.JSON(http.StatusBadRequest, gin.H{
 					"error":             "invalid_refresh_token",
 					"error_description": "The refresh token is invalid",
@@ -136,6 +148,7 @@ func TokenHandler() gin.HandlerFunc {
 
 			claims, err := token.ValidateRefreshToken(gc, refreshToken)
 			if err != nil {
+				log.Debug("Error validating refresh token: ", err)
 				gc.JSON(http.StatusUnauthorized, gin.H{
 					"error":             "unauthorized",
 					"error_description": err.Error(),
@@ -156,6 +169,7 @@ func TokenHandler() gin.HandlerFunc {
 
 		user, err := db.Provider.GetUserByID(userID)
 		if err != nil {
+			log.Debug("Error getting user: ", err)
 			gc.JSON(http.StatusUnauthorized, gin.H{
 				"error":             "unauthorized",
 				"error_description": "User not found",
@@ -165,6 +179,7 @@ func TokenHandler() gin.HandlerFunc {
 
 		authToken, err := token.CreateAuthToken(gc, user, roles, scope)
 		if err != nil {
+			log.Debug("Error creating auth token: ", err)
 			gc.JSON(http.StatusUnauthorized, gin.H{
 				"error":             "unauthorized",
 				"error_description": "User not found",

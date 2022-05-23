@@ -3,7 +3,8 @@ package resolvers
 import (
 	"context"
 	"fmt"
-	"log"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/graph/model"
@@ -33,7 +34,7 @@ func DeleteUserResolver(ctx context.Context, params model.DeleteUserInput) (*mod
 
 	err = db.Provider.DeleteUser(user)
 	if err != nil {
-		log.Println("error deleting user:", err)
+		log.Debug("Failed Deleting User:", err)
 		return res, err
 	}
 

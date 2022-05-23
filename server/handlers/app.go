@@ -1,14 +1,15 @@
 package handlers
 
 import (
-	"log"
 	"net/http"
 	"strings"
+
+	"github.com/gin-gonic/gin"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/utils"
-	"github.com/gin-gonic/gin"
 )
 
 // State is the struct that holds authorizer url and redirect url
@@ -23,6 +24,7 @@ func AppHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		hostname := utils.GetHost(c)
 		if envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableLoginPage) {
+			log.Debug("Login page is disabled")
 			c.JSON(400, gin.H{"error": "login page is not enabled"})
 			return
 		}
@@ -43,6 +45,7 @@ func AppHandler() gin.HandlerFunc {
 		} else {
 			// validate redirect url with allowed origins
 			if !utils.IsValidOrigin(redirect_uri) {
+				log.Debug("Invalid redirect_uri")
 				c.JSON(400, gin.H{"error": "invalid redirect url"})
 				return
 			}
@@ -52,7 +55,7 @@ func AppHandler() gin.HandlerFunc {
 		if pusher := c.Writer.Pusher(); pusher != nil {
 			// use pusher.Push() to do server push
 			if err := pusher.Push("/app/build/bundle.js", nil); err != nil {
-				log.Printf("Failed to push: %v", err)
+				log.Debug("Failed to push file path", err)
 			}
 		}
 		c.HTML(http.StatusOK, "app.tmpl", gin.H{

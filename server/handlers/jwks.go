@@ -3,9 +3,11 @@ package handlers
 import (
 	"encoding/json"
 
+	"github.com/gin-gonic/gin"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/envstore"
-	"github.com/gin-gonic/gin"
 )
 
 func JWKsHandler() gin.HandlerFunc {
@@ -14,6 +16,7 @@ func JWKsHandler() gin.HandlerFunc {
 		jwk := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJWK)
 		err := json.Unmarshal([]byte(jwk), &data)
 		if err != nil {
+			log.Debug("Failed to parse JWK", err)
 			c.JSON(500, gin.H{
 				"error": err.Error(),
 			})
