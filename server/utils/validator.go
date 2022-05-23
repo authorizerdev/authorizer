@@ -54,8 +54,8 @@ func IsValidOrigin(url string) bool {
 // IsValidRoles validates roles
 func IsValidRoles(userRoles []string, roles []string) bool {
 	valid := true
-	for _, role := range roles {
-		if !StringSliceContains(userRoles, role) {
+	for _, userRole := range userRoles {
+		if !StringSliceContains(roles, userRole) {
 			valid = false
 			break
 		}

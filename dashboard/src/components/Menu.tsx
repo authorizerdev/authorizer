@@ -1,4 +1,4 @@
-import React, { ReactNode } from 'react';
+import React, { Fragment, ReactNode } from 'react';
 import {
 	IconButton,
 	Box,
@@ -17,16 +17,27 @@ import {
 	MenuButton,
 	MenuItem,
 	MenuList,
+	Accordion,
+	AccordionButton,
+	AccordionPanel,
+	AccordionItem,
+	useMediaQuery,
 } from '@chakra-ui/react';
 import {
-	FiHome,
+	FiUser,
 	FiCode,
 	FiSettings,
 	FiMenu,
-	FiUser,
 	FiUsers,
 	FiChevronDown,
 } from 'react-icons/fi';
+import { BiCustomize } from 'react-icons/bi';
+import { AiOutlineKey } from 'react-icons/ai';
+import { SiOpenaccess, SiJsonwebtokens } from 'react-icons/si';
+import { MdSecurity } from 'react-icons/md';
+import { RiDatabase2Line } from 'react-icons/ri';
+import { BsCheck2Circle } from 'react-icons/bs';
+import { HiOutlineMail, HiOutlineOfficeBuilding } from 'react-icons/hi';
 import { IconType } from 'react-icons';
 import { ReactText } from 'react';
 import { useMutation, useQuery } from 'urql';
@@ -35,14 +46,70 @@ import { useAuthContext } from '../contexts/AuthContext';
 import { AdminLogout } from '../graphql/mutation';
 import { MetaQuery } from '../graphql/queries';
 
-interface LinkItemProps {
+interface SubRoutes {
 	name: string;
 	icon: IconType;
 	route: string;
 }
+
+interface LinkItemProps {
+	name: string;
+	icon: IconType;
+	route: string;
+	subRoutes?: SubRoutes[];
+}
 const LinkItems: Array<LinkItemProps> = [
-	// { name: 'Home', icon: FiHome, route: '/' },
-	{ name: 'Environment Variables', icon: FiSettings, route: '/' },
+	{
+		name: 'Environment ',
+		icon: FiSettings,
+		route: '/',
+		subRoutes: [
+			{
+				name: 'OAuth Config',
+				icon: AiOutlineKey,
+				route: '/oauth-setting',
+			},
+
+			{ name: 'Roles', icon: FiUser, route: '/roles' },
+			{
+				name: 'JWT Secrets',
+				icon: SiJsonwebtokens,
+				route: '/jwt-config',
+			},
+			{
+				name: 'Session Storage',
+				icon: RiDatabase2Line,
+				route: '/session-storage',
+			},
+			{
+				name: 'Email Configurations',
+				icon: HiOutlineMail,
+				route: '/email-config',
+			},
+			{
+				name: 'Domain White Listing',
+				icon: BsCheck2Circle,
+				route: '/whitelist-variables',
+			},
+			{
+				name: 'Organization Info',
+				icon: HiOutlineOfficeBuilding,
+				route: '/organization-info',
+			},
+			{ name: 'Access Token', icon: SiOpenaccess, route: '/access-token' },
+			{
+				name: 'UI Customization',
+				icon: BiCustomize,
+				route: '/ui-customization',
+			},
+			{ name: 'Database', icon: RiDatabase2Line, route: '/db-cred' },
+			{
+				name: ' Security',
+				icon: MdSecurity,
+				route: '/admin-secret',
+			},
+		],
+	},
 	{ name: 'Users', icon: FiUsers, route: '/users' },
 ];
 
@@ -53,6 +120,7 @@ interface SidebarProps extends BoxProps {
 export const Sidebar = ({ onClose, ...rest }: SidebarProps) => {
 	const { pathname } = useLocation();
 	const [{ fetching, data }] = useQuery({ query: MetaQuery });
+	const [isNotSmallerScreen] = useMediaQuery('(min-width:600px)');
 	return (
 		<Box
 			transition="3s ease"
@@ -64,9 +132,15 @@ export const Sidebar = ({ onClose, ...rest }: SidebarProps) => {
 			h="full"
 			{...rest}
 		>
-			<Flex h="20" alignItems="center" mx="8" justifyContent="space-between">
+			<Flex
+				h="20"
+				alignItems="center"
+				mx="18"
+				justifyContent="space-between"
+				flexDirection="column"
+			>
 				<NavLink to="/">
-					<Flex alignItems="center">
+					<Flex alignItems="center" mt="6">
 						<Image
 							src="https://authorizer.dev/images/logo.png"
 							alt="logo"
@@ -79,39 +153,96 @@ export const Sidebar = ({ onClose, ...rest }: SidebarProps) => {
 				</NavLink>
 				<CloseButton display={{ base: 'flex', md: 'none' }} onClick={onClose} />
 			</Flex>
-			{LinkItems.map((link) => (
-				<NavLink key={link.name} to={link.route}>
-					<NavItem
-						icon={link.icon}
-						color={pathname === link.route ? 'blue.500' : ''}
-					>
-						{link.name}
-					</NavItem>
-				</NavLink>
-			))}
 
-			<Link
-				href="/playground"
-				target="_blank"
-				style={{
-					textDecoration: 'none',
-				}}
-				_focus={{ _boxShadow: 'none' }}
-			>
-				<NavItem icon={FiCode}>API Playground</NavItem>
-			</Link>
+			<Accordion defaultIndex={[0]} allowMultiple>
+				<AccordionItem textAlign="center" border="none" w="100%">
+					{LinkItems.map((link) =>
+						link?.subRoutes ? (
+							<div key={link.name}>
+								<AccordionButton _focus={{ boxShadow: 'none' }}>
+									<Text as="div" fontSize="md">
+										<NavItem
+											icon={link.icon}
+											color={pathname === link.route ? 'blue.500' : ''}
+											style={{ outline: 'unset' }}
+											height={12}
+											ml={-1}
+											mb={isNotSmallerScreen ? -1 : -4}
+											w={isNotSmallerScreen ? '100%' : '310%'}
+										>
+											<Fragment>
+												{link.name}
+												<Box display={{ base: 'none', md: 'flex' }} ml={12}>
+													<FiChevronDown />
+												</Box>
+											</Fragment>
+										</NavItem>
+									</Text>
+								</AccordionButton>
+								<AccordionPanel>
+									{link.subRoutes?.map((sublink) => (
+										<NavLink
+											key={sublink.name}
+											to={sublink.route}
+											onClick={onClose}
+										>
+											{' '}
+											<Text as="div" fontSize="xs" ml={2}>
+												<NavItem
+													icon={sublink.icon}
+													color={pathname === sublink.route ? 'blue.500' : ''}
+													height={8}
+												>
+													{sublink.name}
+												</NavItem>{' '}
+											</Text>
+										</NavLink>
+									))}
+								</AccordionPanel>
+							</div>
+						) : (
+							<NavLink key={link.name} to={link.route}>
+								{' '}
+								<Text as="div" fontSize="md" w="100%" mt={-2}>
+									<NavItem
+										icon={link.icon}
+										color={pathname === link.route ? 'blue.500' : ''}
+										height={12}
+										onClick={onClose}
+									>
+										{link.name}
+									</NavItem>{' '}
+								</Text>
+							</NavLink>
+						)
+					)}
+					<Link
+						href="/playground"
+						target="_blank"
+						style={{
+							textDecoration: 'none',
+						}}
+						_focus={{ _boxShadow: 'none' }}
+					>
+						<NavItem icon={FiCode}>API Playground</NavItem>
+					</Link>
+				</AccordionItem>
+			</Accordion>
 
 			{data?.meta?.version && (
-				<Text
-					color="gray.600"
-					fontSize="sm"
-					textAlign="center"
-					position="absolute"
-					bottom="5"
-					left="7"
-				>
-					Current Version: {data.meta.version}
-				</Text>
+				<Flex alignContent="center">
+					{' '}
+					<Text
+						color="gray.400"
+						fontSize="sm"
+						textAlign="center"
+						position="absolute"
+						bottom="5"
+						left="7"
+					>
+						Current Version: {data.meta.version}
+					</Text>
+				</Flex>
 			)}
 		</Box>
 	);
@@ -119,7 +250,7 @@ export const Sidebar = ({ onClose, ...rest }: SidebarProps) => {
 
 interface NavItemProps extends FlexProps {
 	icon: IconType;
-	children: ReactText;
+	children: ReactText | JSX.Element | JSX.Element[];
 }
 export const NavItem = ({ icon, children, ...rest }: NavItemProps) => {
 	return (
@@ -204,7 +335,7 @@ export const MobileNav = ({ onOpen, ...rest }: MobileProps) => {
 							transition="all 0.3s"
 							_focus={{ boxShadow: 'none' }}
 						>
-							<HStack>
+							<HStack mr={5}>
 								<FiUser />
 								<VStack
 									display={{ base: 'none', md: 'flex' }}
