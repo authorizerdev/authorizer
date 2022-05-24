@@ -2,8 +2,9 @@ package sessionstore
 
 import (
 	"context"
-	"log"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type RedisStore struct {
@@ -15,7 +16,7 @@ type RedisStore struct {
 func (c *RedisStore) ClearStore() {
 	err := c.store.Del(c.ctx, "authorizer_*").Err()
 	if err != nil {
-		log.Fatalln("Error clearing redis store:", err)
+		log.Debug("Error clearing redis store:", err)
 	}
 }
 
@@ -23,7 +24,7 @@ func (c *RedisStore) ClearStore() {
 func (c *RedisStore) GetUserSessions(userID string) map[string]string {
 	data, err := c.store.HGetAll(c.ctx, "*").Result()
 	if err != nil {
-		log.Println("error getting token from redis store:", err)
+		log.Debug("error getting token from redis store:", err)
 	}
 
 	res := map[string]string{}
@@ -44,7 +45,7 @@ func (c *RedisStore) DeleteAllUserSession(userId string) {
 		if k == "token" {
 			err := c.store.Del(c.ctx, v)
 			if err != nil {
-				log.Println("Error deleting redis token:", err)
+				log.Debug("Error deleting redis token:", err)
 			}
 		}
 	}
@@ -54,7 +55,7 @@ func (c *RedisStore) DeleteAllUserSession(userId string) {
 func (c *RedisStore) SetState(key, value string) {
 	err := c.store.Set(c.ctx, "authorizer_"+key, value, 0).Err()
 	if err != nil {
-		log.Fatalln("Error saving redis token:", err)
+		log.Debug("Error saving redis token:", err)
 	}
 }
 
@@ -63,7 +64,7 @@ func (c *RedisStore) GetState(key string) string {
 	state := ""
 	state, err := c.store.Get(c.ctx, "authorizer_"+key).Result()
 	if err != nil {
-		log.Println("error getting token from redis store:", err)
+		log.Debug("error getting token from redis store:", err)
 	}
 
 	return state

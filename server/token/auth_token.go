@@ -3,9 +3,10 @@ package token
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
@@ -330,14 +331,13 @@ func CreateIDToken(user models.User, roles []string, hostname, nonce string) (st
 		`, string(userBytes), string(claimBytes), accessTokenScript))
 
 		val, err := vm.Get("functionRes")
-
 		if err != nil {
-			log.Println("error getting custom access token script:", err)
+			log.Debug("error getting custom access token script:", err)
 		} else {
 			extraPayload := make(map[string]interface{})
 			err = json.Unmarshal([]byte(fmt.Sprintf("%s", val)), &extraPayload)
 			if err != nil {
-				log.Println("error converting accessTokenScript response to map:", err)
+				log.Debug("error converting accessTokenScript response to map:", err)
 			} else {
 				for k, v := range extraPayload {
 					customClaims[k] = v

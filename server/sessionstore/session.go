@@ -2,8 +2,9 @@ package sessionstore
 
 import (
 	"context"
-	"log"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/envstore"
@@ -89,7 +90,7 @@ func RemoveState(key string) {
 // InitializeSessionStore initializes the SessionStoreObj based on environment variables
 func InitSession() error {
 	if envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyRedisURL) != "" {
-		log.Println("using redis store to save sessions")
+		log.Info("using redis store to save sessions")
 
 		redisURL := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyRedisURL)
 		redisURLHostPortsList := strings.Split(redisURL, ",")

@@ -59,9 +59,10 @@ func ForgotPasswordResolver(ctx context.Context, params model.ForgotPasswordInpu
 
 	verificationToken, err := token.CreateVerificationToken(params.Email, constants.VerificationTypeForgotPassword, hostname, nonceHash, redirectURL)
 	if err != nil {
-		log.Println(`error generating token`, err)
+		log.Debug("Failed to create verification token", err)
+		return res, err
 	}
-	db.Provider.AddVerificationRequest(models.VerificationRequest{
+	_, err = db.Provider.AddVerificationRequest(models.VerificationRequest{
 		Token:       verificationToken,
 		Identifier:  constants.VerificationTypeForgotPassword,
 		ExpiresAt:   time.Now().Add(time.Minute * 30).Unix(),
@@ -69,6 +70,10 @@ func ForgotPasswordResolver(ctx context.Context, params model.ForgotPasswordInpu
 		Nonce:       nonceHash,
 		RedirectURI: redirectURL,
 	})
+	if err != nil {
+		log.Debug("Failed to add verification request", err)
+		return res, err
+	}
 
 	// exec it as go routin so that we can reduce the api latency
 	go email.SendForgotPasswordMail(params.Email, verificationToken, hostname)
