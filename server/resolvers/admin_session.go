@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/crypto"
@@ -15,19 +17,22 @@ import (
 
 // AdminSessionResolver is a resolver for admin session query
 func AdminSessionResolver(ctx context.Context) (*model.Response, error) {
-	gc, err := utils.GinContextFromContext(ctx)
 	var res *model.Response
 
+	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
+		log.Debug("Failed to get GinContext", err)
 		return res, err
 	}
 
 	if !token.IsSuperAdmin(gc) {
+		log.Debug("Not logged in as super admin.")
 		return res, fmt.Errorf("unauthorized")
 	}
 
 	hashedKey, err := crypto.EncryptPassword(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret))
 	if err != nil {
+		log.Debug("Failed to encrypt key:", err)
 		return res, err
 	}
 	cookie.SetAdminCookie(gc, hashedKey)

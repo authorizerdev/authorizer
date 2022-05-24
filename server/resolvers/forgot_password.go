@@ -3,9 +3,10 @@ package resolvers
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
@@ -19,20 +20,28 @@ import (
 
 // ForgotPasswordResolver is a resolver for forgot password mutation
 func ForgotPasswordResolver(ctx context.Context, params model.ForgotPasswordInput) (*model.Response, error) {
-	gc, err := utils.GinContextFromContext(ctx)
 	var res *model.Response
+
+	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
+		log.Debug("Failed to get GinContext", err)
 		return res, err
 	}
+
 	if envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableBasicAuthentication) {
+		log.Debug("Basic authentication is disabled.")
 		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
 	}
 	params.Email = strings.ToLower(params.Email)
 
 	if !utils.IsValidEmail(params.Email) {
+		log.Debug("Invalid email address.")
 		return res, fmt.Errorf("invalid email")
 	}
 
+	log := log.WithFields(log.Fields{
+		"email": params.Email,
+	})
 	_, err = db.Provider.GetUserByEmail(params.Email)
 	if err != nil {
 		return res, fmt.Errorf(`user with this email not found`)

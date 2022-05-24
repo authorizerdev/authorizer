@@ -3,7 +3,8 @@ package resolvers
 import (
 	"context"
 	"fmt"
-	"log"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/graph/model"
@@ -13,18 +14,26 @@ import (
 
 // EnableAccessResolver is a resolver for enabling user access
 func EnableAccessResolver(ctx context.Context, params model.UpdateAccessInput) (*model.Response, error) {
-	gc, err := utils.GinContextFromContext(ctx)
 	var res *model.Response
+
+	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
+		log.Debug("Failed to get GinContext", err)
 		return res, err
 	}
 
 	if !token.IsSuperAdmin(gc) {
+		log.Debug("Not logged in as super admin.")
 		return res, fmt.Errorf("unauthorized")
 	}
 
+	log := log.WithFields(log.Fields{
+		"user_id": params.UserID,
+	})
+
 	user, err := db.Provider.GetUserByID(params.UserID)
 	if err != nil {
+		log.Debug("Failed to get user from DB:", err)
 		return res, err
 	}
 
@@ -32,7 +41,7 @@ func EnableAccessResolver(ctx context.Context, params model.UpdateAccessInput) (
 
 	user, err = db.Provider.UpdateUser(user)
 	if err != nil {
-		log.Println("error updating user:", err)
+		log.Debug("Failed to update user:", err)
 		return res, err
 	}
 

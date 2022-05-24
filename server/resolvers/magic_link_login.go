@@ -3,9 +3,10 @@ package resolvers
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
@@ -20,20 +21,28 @@ import (
 // MagicLinkLoginResolver is a resolver for magic link login mutation
 func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInput) (*model.Response, error) {
 	var res *model.Response
+
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
+		log.Debug("Failed to get GinContext", err)
 		return res, err
 	}
 
 	if envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableMagicLinkLogin) {
+		log.Debug("Magic link login is disabled.")
 		return res, fmt.Errorf(`magic link login is disabled for this instance`)
 	}
 
 	params.Email = strings.ToLower(params.Email)
 
 	if !utils.IsValidEmail(params.Email) {
+		log.Debug("Invalid email")
 		return res, fmt.Errorf(`invalid email address`)
 	}
+
+	log := log.WithFields(log.Fields{
+		"email": params.Email,
+	})
 
 	inputRoles := []string{}
 
@@ -45,6 +54,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 	existingUser, err := db.Provider.GetUserByEmail(params.Email)
 	if err != nil {
 		if envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableSignUp) {
+			log.Debug("Signup is disabled.")
 			return res, fmt.Errorf(`signup is disabled for this instance`)
 		}
 
@@ -53,6 +63,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 		if len(params.Roles) > 0 {
 			// check if roles exists
 			if !utils.IsValidRoles(params.Roles, envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyRoles)) {
+				log.Debug("Invalid roles")
 				return res, fmt.Errorf(`invalid roles`)
 			} else {
 				inputRoles = params.Roles
@@ -71,6 +82,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 		// 		Need to modify roles in this case
 
 		if user.RevokedTimestamp != nil {
+			log.Debug("User access is revoked")
 			return res, fmt.Errorf(`user access has been revoked`)
 		}
 
@@ -96,6 +108,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 			}
 
 			if hasProtectedRole {
+				log.Debug("User is not assigned one of the protected roles", unasignedRoles)
 				return res, fmt.Errorf(`invalid roles`)
 			} else {
 				user.Roles = existingUser.Roles + "," + strings.Join(unasignedRoles, ",")
@@ -112,7 +125,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 		user.SignupMethods = signupMethod
 		user, _ = db.Provider.UpdateUser(user)
 		if err != nil {
-			log.Println("error updating user:", err)
+			log.Debug("Failed to update user", err)
 		}
 	}
 
@@ -121,6 +134,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 		// insert verification request
 		_, nonceHash, err := utils.GenerateNonce()
 		if err != nil {
+			log.Debug("Failed to generate nonce", err)
 			return res, err
 		}
 		redirectURLParams := "&roles=" + strings.Join(inputRoles, ",")
@@ -144,7 +158,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 		verificationType := constants.VerificationTypeMagicLinkLogin
 		verificationToken, err := token.CreateVerificationToken(params.Email, verificationType, hostname, nonceHash, redirectURL)
 		if err != nil {
-			log.Println(`error generating token`, err)
+			log.Debug("Failed to create verification token", err)
 		}
 		_, err = db.Provider.AddVerificationRequest(models.VerificationRequest{
 			Token:       verificationToken,
@@ -155,6 +169,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 			RedirectURI: redirectURL,
 		})
 		if err != nil {
+			log.Debug("Failed to add verification request in db:", err)
 			return res, err
 		}
 

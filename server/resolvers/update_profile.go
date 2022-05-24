@@ -3,9 +3,10 @@ package resolvers
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/cookie"
@@ -23,18 +24,22 @@ import (
 
 // UpdateProfileResolver is resolver for update profile mutation
 func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput) (*model.Response, error) {
-	gc, err := utils.GinContextFromContext(ctx)
 	var res *model.Response
+
+	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
+		log.Debug("Failed to get GinContext", err)
 		return res, err
 	}
 
 	accessToken, err := token.GetAccessToken(gc)
 	if err != nil {
+		log.Debug("Failed to get access token", err)
 		return res, err
 	}
 	claims, err := token.ValidateAccessToken(gc, accessToken)
 	if err != nil {
+		log.Debug("Failed to validate access token", err)
 		return res, err
 	}
 
@@ -44,8 +49,13 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 	}
 
 	userID := claims["sub"].(string)
+	log := log.WithFields(log.Fields{
+		"user_id": userID,
+	})
+
 	user, err := db.Provider.GetUserByID(userID)
 	if err != nil {
+		log.Debug("Failed to get user by id", err)
 		return res, err
 	}
 
@@ -83,18 +93,22 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 
 	if params.OldPassword != nil {
 		if err = bcrypt.CompareHashAndPassword([]byte(*user.Password), []byte(*params.OldPassword)); err != nil {
+			log.Debug("Failed to compare hash and old password", err)
 			return res, fmt.Errorf("incorrect old password")
 		}
 
 		if params.NewPassword == nil {
+			log.Debug("Failed to get new password")
 			return res, fmt.Errorf("new password is required")
 		}
 
 		if params.ConfirmNewPassword == nil {
+			log.Debug("Failed to get confirm new password")
 			return res, fmt.Errorf("confirm password is required")
 		}
 
 		if *params.ConfirmNewPassword != *params.NewPassword {
+			log.Debug("Failed to compare new password and confirm new password")
 			return res, fmt.Errorf(`password and confirm password does not match`)
 		}
 
@@ -108,6 +122,7 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 	if params.Email != nil && user.Email != *params.Email {
 		// check if valid email
 		if !utils.IsValidEmail(*params.Email) {
+			log.Debug("Failed to validate email", *params.Email)
 			return res, fmt.Errorf("invalid email address")
 		}
 		newEmail := strings.ToLower(*params.Email)
@@ -115,15 +130,14 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 		_, err := db.Provider.GetUserByEmail(newEmail)
 		// err = nil means user exists
 		if err == nil {
+			log.Debug("Failed to get user by email", newEmail)
 			return res, fmt.Errorf("user with this email address already exists")
 		}
 
-		// TODO figure out how to delete all user sessions
 		go sessionstore.DeleteAllUserSession(user.ID)
+		go cookie.DeleteSession(gc)
 
-		cookie.DeleteSession(gc)
 		user.Email = newEmail
-
 		if !envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification) {
 			hostname := utils.GetHost(gc)
 			user.EmailVerifiedAt = nil
@@ -131,15 +145,17 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 			// insert verification request
 			_, nonceHash, err := utils.GenerateNonce()
 			if err != nil {
+				log.Debug("Failed to generate nonce", err)
 				return res, err
 			}
 			verificationType := constants.VerificationTypeUpdateEmail
 			redirectURL := utils.GetAppURL(gc)
 			verificationToken, err := token.CreateVerificationToken(newEmail, verificationType, hostname, nonceHash, redirectURL)
 			if err != nil {
-				log.Println(`error generating token`, err)
+				log.Debug("Failed to create verification token", err)
+				return res, err
 			}
-			db.Provider.AddVerificationRequest(models.VerificationRequest{
+			_, err = db.Provider.AddVerificationRequest(models.VerificationRequest{
 				Token:       verificationToken,
 				Identifier:  verificationType,
 				ExpiresAt:   time.Now().Add(time.Minute * 30).Unix(),
@@ -147,6 +163,10 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 				Nonce:       nonceHash,
 				RedirectURI: redirectURL,
 			})
+			if err != nil {
+				log.Debug("Failed to add verification request", err)
+				return res, err
+			}
 
 			// exec it as go routin so that we can reduce the api latency
 			go email.SendVerificationMail(newEmail, verificationToken, hostname)
@@ -155,7 +175,7 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 	}
 	_, err = db.Provider.UpdateUser(user)
 	if err != nil {
-		log.Println("error updating user:", err)
+		log.Debug("Failed to update user", err)
 		return res, err
 	}
 	message := `Profile details updated successfully.`

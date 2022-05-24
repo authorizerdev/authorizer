@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
@@ -17,14 +19,17 @@ import (
 
 // VerifyEmailResolver is a resolver for verify email mutation
 func VerifyEmailResolver(ctx context.Context, params model.VerifyEmailInput) (*model.AuthResponse, error) {
-	gc, err := utils.GinContextFromContext(ctx)
 	var res *model.AuthResponse
+
+	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
+		log.Debug("Failed to get GinContext", err)
 		return res, err
 	}
 
 	verificationRequest, err := db.Provider.GetVerificationRequestByToken(params.Token)
 	if err != nil {
+		log.Debug("Failed to get verification request by token", err)
 		return res, fmt.Errorf(`invalid token: %s`, err.Error())
 	}
 
@@ -32,11 +37,17 @@ func VerifyEmailResolver(ctx context.Context, params model.VerifyEmailInput) (*m
 	hostname := utils.GetHost(gc)
 	claim, err := token.ParseJWTToken(params.Token, hostname, verificationRequest.Nonce, verificationRequest.Email)
 	if err != nil {
+		log.Debug("Failed to parse token", err)
 		return res, fmt.Errorf(`invalid token: %s`, err.Error())
 	}
 
-	user, err := db.Provider.GetUserByEmail(claim["sub"].(string))
+	email := claim["sub"].(string)
+	log := log.WithFields(log.Fields{
+		"email": email,
+	})
+	user, err := db.Provider.GetUserByEmail(email)
 	if err != nil {
+		log.Debug("Failed to get user by email", err)
 		return res, err
 	}
 
@@ -45,11 +56,13 @@ func VerifyEmailResolver(ctx context.Context, params model.VerifyEmailInput) (*m
 	user.EmailVerifiedAt = &now
 	user, err = db.Provider.UpdateUser(user)
 	if err != nil {
+		log.Debug("Failed to update user", err)
 		return res, err
 	}
 	// delete from verification table
 	err = db.Provider.DeleteVerificationRequest(verificationRequest)
 	if err != nil {
+		log.Debug("Failed to delete verification request", err)
 		return res, err
 	}
 
@@ -57,6 +70,7 @@ func VerifyEmailResolver(ctx context.Context, params model.VerifyEmailInput) (*m
 	scope := []string{"openid", "email", "profile"}
 	authToken, err := token.CreateAuthToken(gc, user, roles, scope)
 	if err != nil {
+		log.Debug("Failed to create auth token", err)
 		return res, err
 	}
 

@@ -15,18 +15,26 @@ import (
 
 // DeleteUserResolver is a resolver for delete user mutation
 func DeleteUserResolver(ctx context.Context, params model.DeleteUserInput) (*model.Response, error) {
-	gc, err := utils.GinContextFromContext(ctx)
 	var res *model.Response
+
+	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
+		log.Debug("Failed to get GinContext", err)
 		return res, err
 	}
 
 	if !token.IsSuperAdmin(gc) {
+		log.Debug("Not logged in as super admin.")
 		return res, fmt.Errorf("unauthorized")
 	}
 
+	log := log.WithFields(log.Fields{
+		"email": params.Email,
+	})
+
 	user, err := db.Provider.GetUserByEmail(params.Email)
 	if err != nil {
+		log.Debug("Failed to get user from DB:", err)
 		return res, err
 	}
 
@@ -34,7 +42,7 @@ func DeleteUserResolver(ctx context.Context, params model.DeleteUserInput) (*mod
 
 	err = db.Provider.DeleteUser(user)
 	if err != nil {
-		log.Debug("Failed Deleting User:", err)
+		log.Debug("Failed to delete user:", err)
 		return res, err
 	}
 

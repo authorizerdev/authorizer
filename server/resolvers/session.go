@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/db"
@@ -22,22 +23,28 @@ func SessionResolver(ctx context.Context, params *model.SessionQueryInput) (*mod
 
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
+		log.Debug("Failed to get GinContext", err)
 		return res, err
 	}
 
 	sessionToken, err := cookie.GetSession(gc)
 	if err != nil {
-		log.Println("error getting session token:", err)
+		log.Debug("Failed to get session token", err)
 		return res, errors.New("unauthorized")
 	}
 
 	// get session from cookie
 	claims, err := token.ValidateBrowserSession(gc, sessionToken)
 	if err != nil {
-		log.Println("session validation failed:", err)
+		log.Debug("Failed to validate session token", err)
 		return res, errors.New("unauthorized")
 	}
 	userID := claims.Subject
+
+	log := log.WithFields(log.Fields{
+		"user_id": userID,
+	})
+
 	user, err := db.Provider.GetUserByID(userID)
 	if err != nil {
 		return res, err
@@ -46,13 +53,12 @@ func SessionResolver(ctx context.Context, params *model.SessionQueryInput) (*mod
 	// refresh token has "roles" as claim
 	claimRoleInterface := claims.Roles
 	claimRoles := []string{}
-	for _, v := range claimRoleInterface {
-		claimRoles = append(claimRoles, v)
-	}
+	claimRoles = append(claimRoles, claimRoleInterface...)
 
 	if params != nil && params.Roles != nil && len(params.Roles) > 0 {
 		for _, v := range params.Roles {
 			if !utils.StringSliceContains(claimRoles, v) {
+				log.Debug("User does not have required role:", claimRoles, v)
 				return res, fmt.Errorf(`unauthorized`)
 			}
 		}
@@ -65,6 +71,7 @@ func SessionResolver(ctx context.Context, params *model.SessionQueryInput) (*mod
 
 	authToken, err := token.CreateAuthToken(gc, user, claimRoles, scope)
 	if err != nil {
+		log.Debug("Failed to create auth token", err)
 		return res, err
 	}
 
