@@ -119,7 +119,7 @@ interface SidebarProps extends BoxProps {
 
 export const Sidebar = ({ onClose, ...rest }: SidebarProps) => {
 	const { pathname } = useLocation();
-	const [{ fetching, data }] = useQuery({ query: MetaQuery });
+	const [{ data }] = useQuery({ query: MetaQuery });
 	const [isNotSmallerScreen] = useMediaQuery('(min-width:600px)');
 	return (
 		<Box
@@ -127,7 +127,7 @@ export const Sidebar = ({ onClose, ...rest }: SidebarProps) => {
 			bg={useColorModeValue('white', 'gray.900')}
 			borderRight="1px"
 			borderRightColor={useColorModeValue('gray.200', 'gray.700')}
-			w={{ base: 'full', md: 60 }}
+			w={{ base: 'full', md: '64' }}
 			pos="fixed"
 			h="full"
 			{...rest}
@@ -137,7 +137,7 @@ export const Sidebar = ({ onClose, ...rest }: SidebarProps) => {
 				alignItems="center"
 				mx="18"
 				justifyContent="space-between"
-				flexDirection="column"
+				flexDirection="row"
 			>
 				<NavLink to="/">
 					<Flex alignItems="center" mt="6">
@@ -298,7 +298,7 @@ export const MobileNav = ({ onOpen, ...rest }: MobileProps) => {
 
 	return (
 		<Flex
-			ml={{ base: 0, md: 60 }}
+			ml={{ base: 0, md: 64 }}
 			px={{ base: 4, md: 4 }}
 			height="20"
 			position="fixed"

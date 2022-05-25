@@ -23,7 +23,7 @@ const OAuthConfig = ({
 		<div>
 			<Box>
 				<Text fontSize="md" paddingTop="2%" fontWeight="bold" mb={6}>
-					Your instance information
+					Authorizer Config
 				</Text>
 				<Stack spacing={6} padding="2% 0%">
 					<Flex direction={isNotSmallerScreen ? 'row' : 'column'}>

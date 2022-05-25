@@ -101,10 +101,10 @@ export default function Auth() {
 					</FormControl>
 					<Button
 						isLoading={signUpResult.fetching || loginResult.fetching}
+						loadingText="Submitting"
 						colorScheme="blue"
 						size="lg"
 						w="100%"
-						d="block"
 						type="submit"
 					>
 						{isLogin ? 'Login' : 'Sign up'}

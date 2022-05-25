@@ -20,6 +20,7 @@ export function AuthLayout({ children }: { children: React.ReactNode }) {
 			alignItems="center"
 			justifyContent="center"
 			direction={['column', 'column']}
+			padding={['2%', '2%', '2%', '2%']}
 		>
 			<Flex alignItems="center" maxW="100%">
 				<Image

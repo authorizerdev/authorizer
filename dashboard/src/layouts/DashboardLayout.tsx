@@ -31,7 +31,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
 			</Drawer>
 			{/* mobilenav */}
 			<MobileNav onOpen={onOpen} />
-			<Box ml={{ base: 0, md: 60 }} p="4" pt="24">
+			<Box ml={{ base: 0, md: '64' }} p="4" pt="24">
 				{children}
 			</Box>
 		</Box>

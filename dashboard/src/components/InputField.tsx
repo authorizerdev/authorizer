@@ -13,6 +13,7 @@ import {
 	Textarea,
 	Switch,
 	Code,
+	Text,
 } from '@chakra-ui/react';
 import {
 	FaRegClone,
@@ -179,14 +180,14 @@ const InputField = ({
 	if (Object.values(ArrayInputType).includes(inputType)) {
 		return (
 			<Flex
-			  border="1px solid #e2e8f0"
-              w="100%"
-        	  borderRadius={5}
-              paddingTop="0.5%"
-              overflowX={variables[inputType].length > 3 ? "scroll" : "hidden"}
-              overflowY="hidden"
-              justifyContent="start"
-              alignItems="center"
+				border="1px solid #e2e8f0"
+				w="100%"
+				borderRadius={5}
+				paddingTop="0.5%"
+				overflowX={variables[inputType].length > 3 ? 'scroll' : 'hidden'}
+				overflowY="hidden"
+				justifyContent="start"
+				alignItems="center"
 			>
 				{variables[inputType].map((role: string, index: number) => (
 					<Box key={index} margin="0.5%" role="group">
@@ -301,7 +302,9 @@ const InputField = ({
 	if (Object.values(SwitchInputType).includes(inputType)) {
 		return (
 			<Flex w="25%" justifyContent="space-between">
-				<Code h="75%">Off</Code>
+				<Text h="75%" fontWeight="bold" marginRight="2">
+					Off
+				</Text>
 				<Switch
 					size="md"
 					isChecked={variables[inputType]}
@@ -312,7 +315,9 @@ const InputField = ({
 						});
 					}}
 				/>
-				<Code h="75%">On</Code>
+				<Text h="75%" fontWeight="bold" marginLeft="2">
+					On
+				</Text>
 			</Flex>
 		);
 	}
