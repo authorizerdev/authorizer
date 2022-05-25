@@ -24,7 +24,7 @@ func InitDB() error {
 	isCassandra := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseType) == constants.DbTypeCassandraDB
 
 	if isSQL {
-		log.Info("Initializing SQL Driver")
+		log.Info("Initializing SQL Driver for: ", envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseType))
 		Provider, err = sql.NewProvider()
 		if err != nil {
 			log.Fatal("Failed to initialize SQL driver: ", err)

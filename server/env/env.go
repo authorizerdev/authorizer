@@ -5,7 +5,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	log "github.com/sirupsen/logrus"
@@ -30,6 +29,7 @@ func InitRequiredEnv() error {
 	if envstore.ARG_ENV_FILE != nil && *envstore.ARG_ENV_FILE != "" {
 		envPath = *envstore.ARG_ENV_FILE
 	}
+	log.Info("env path: ", envPath)
 
 	err := godotenv.Load(envPath)
 	if err != nil {
@@ -121,7 +121,6 @@ func InitAllEnv() error {
 
 		if envData.StringEnv[constants.EnvKeyEnv] == "production" {
 			envData.BoolEnv[constants.EnvKeyIsProd] = true
-			gin.SetMode(gin.ReleaseMode)
 		} else {
 			envData.BoolEnv[constants.EnvKeyIsProd] = false
 		}

@@ -2,59 +2,77 @@ package middlewares
 
 import (
 	"fmt"
-	"io"
+	"math"
+	"net/http"
+	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	log "github.com/sirupsen/logrus"
-
-	"github.com/authorizerdev/authorizer/server/constants"
-	"github.com/authorizerdev/authorizer/server/utils"
+	"github.com/sirupsen/logrus"
 )
 
-// GinLogWriteFunc convert func to io.Writer.
-type GinLogWriteFunc func([]byte) (int, error)
+var timeFormat = "02/Jan/2006:15:04:05 -0700"
 
-// GinLog Write function
-func (fn GinLogWriteFunc) Write(data []byte) (int, error) {
-	return fn(data)
-}
+// Logger is the logrus logger handler
+func Logger(logger logrus.FieldLogger, notLogged ...string) gin.HandlerFunc {
+	hostname, err := os.Hostname()
+	if err != nil {
+		hostname = "unknown"
+	}
 
-// NewGinLogrusWrite logrus writer for gin
-func NewGinLogrusWrite() io.Writer {
-	return GinLogWriteFunc(func(data []byte) (int, error) {
-		log.Info("%v", data)
-		return 0, nil
-	})
-}
+	var skip map[string]struct{}
 
-// JSONLogMiddleware logs a gin HTTP request in JSON format, with some additional custom key/values
-func JSONLogMiddleware() gin.HandlerFunc {
+	if length := len(notLogged); length > 0 {
+		skip = make(map[string]struct{}, length)
+
+		for _, p := range notLogged {
+			skip[p] = struct{}{}
+		}
+	}
+
 	return func(c *gin.Context) {
-		// Start timer
+		// other handler can change c.Path so:
+		path := c.Request.URL.Path
 		start := time.Now()
-
-		// Process Request
 		c.Next()
+		stop := time.Since(start)
+		latency := int(math.Ceil(float64(stop.Nanoseconds()) / 1000000.0))
+		statusCode := c.Writer.Status()
+		clientIP := c.ClientIP()
+		clientUserAgent := c.Request.UserAgent()
+		referer := c.Request.Referer()
+		dataLength := c.Writer.Size()
+		if dataLength < 0 {
+			dataLength = 0
+		}
 
-		// Stop timer
-		duration := utils.GetDurationInMillseconds(start)
+		if _, ok := skip[path]; ok {
+			return
+		}
 
-		entry := log.WithFields(log.Fields{
-			"client_ip":          utils.GetIP(c.Request),
-			"duration":           fmt.Sprintf("%.2f", duration),
-			"method":             c.Request.Method,
-			"path":               c.Request.RequestURI,
-			"status":             c.Writer.Status(),
-			"referrer":           c.Request.Referer(),
-			"request_id":         c.Writer.Header().Get("Request-Id"),
-			"authorizer_version": constants.VERSION,
+		entry := logger.WithFields(logrus.Fields{
+			"hostname":   hostname,
+			"statusCode": statusCode,
+			"latency":    latency, // time to process
+			"clientIP":   clientIP,
+			"method":     c.Request.Method,
+			"path":       path,
+			"referer":    referer,
+			"dataLength": dataLength,
+			"userAgent":  clientUserAgent,
 		})
 
-		if c.Writer.Status() >= 500 {
-			entry.Error(c.Errors.String())
+		if len(c.Errors) > 0 {
+			entry.Error(c.Errors.ByType(gin.ErrorTypePrivate).String())
 		} else {
-			entry.Info("")
+			msg := fmt.Sprintf("%s - %s [%s] \"%s %s\" %d %d \"%s\" \"%s\" (%dms)", clientIP, hostname, time.Now().Format(timeFormat), c.Request.Method, path, statusCode, dataLength, referer, clientUserAgent, latency)
+			if statusCode >= http.StatusInternalServerError {
+				entry.Error(msg)
+			} else if statusCode >= http.StatusBadRequest {
+				entry.Warn(msg)
+			} else {
+				entry.Info(msg)
+			}
 		}
 	}
 }

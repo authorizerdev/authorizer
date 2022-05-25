@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 
+	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/constants"
@@ -16,11 +17,11 @@ import (
 
 var VERSION string
 
-type UTCFormatter struct {
+type LogUTCFormatter struct {
 	log.Formatter
 }
 
-func (u UTCFormatter) Format(e *log.Entry) ([]byte, error) {
+func (u LogUTCFormatter) Format(e *log.Entry) ([]byte, error) {
 	e.Time = e.Time.UTC()
 	return u.Formatter.Format(e)
 }
@@ -29,28 +30,37 @@ func main() {
 	envstore.ARG_DB_URL = flag.String("database_url", "", "Database connection string")
 	envstore.ARG_DB_TYPE = flag.String("database_type", "", "Database type, possible values are postgres,mysql,sqlite")
 	envstore.ARG_ENV_FILE = flag.String("env_file", "", "Env file path")
-	// envstore.ARG_LOG_LEVEL = flag.String("log_level", "", "Log level, possible values are debug,info,warn,error,fatal,panic")
+	envstore.ARG_LOG_LEVEL = flag.String("log_level", "info", "Log level, possible values are debug,info,warn,error,fatal,panic")
+	flag.Parse()
 
-	log.SetFormatter(UTCFormatter{&log.JSONFormatter{}})
+	// global log level
+	logrus.SetFormatter(LogUTCFormatter{&logrus.JSONFormatter{}})
+	logrus.SetReportCaller(true)
+
+	// log instance for gin server
+	log := logrus.New()
+	log.SetFormatter(LogUTCFormatter{&logrus.JSONFormatter{}})
 	log.SetReportCaller(true)
-	log.SetLevel(log.DebugLevel)
 
-	// switch *envstore.ARG_LOG_LEVEL {
-	// case "debug":
-	// 	log.SetLevel(log.DebugLevel)
-	// case "info":
-	// 	log.SetLevel(log.InfoLevel)
-	// case "warn":
-	// 	log.SetLevel(log.WarnLevel)
-	// case "error":
-	// 	log.SetLevel(log.ErrorLevel)
-	// case "fatal":
-	// 	log.SetLevel(log.FatalLevel)
-	// case "panic":
-	// 	log.SetLevel(log.PanicLevel)
-	// default:
-	// 	log.SetLevel(log.InfoLevel)
-	// }
+	var logLevel logrus.Level
+	switch *envstore.ARG_LOG_LEVEL {
+	case "debug":
+		logLevel = logrus.DebugLevel
+	case "info":
+		logLevel = logrus.InfoLevel
+	case "warn":
+		logLevel = logrus.WarnLevel
+	case "error":
+		logLevel = logrus.ErrorLevel
+	case "fatal":
+		logLevel = logrus.FatalLevel
+	case "panic":
+		logLevel = logrus.PanicLevel
+	default:
+		logLevel = logrus.InfoLevel
+	}
+	logrus.SetLevel(logLevel)
+	log.SetLevel(logLevel)
 
 	constants.VERSION = VERSION
 
@@ -91,7 +101,7 @@ func main() {
 		log.Fatalln("Error while initializing oauth: ", err)
 	}
 
-	router := routes.InitRouter()
+	router := routes.InitRouter(log)
 	log.Info("Starting Authorizer: ", VERSION)
 	router.Run(":" + envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyPort))
 }

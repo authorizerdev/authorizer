@@ -145,6 +145,7 @@ func InitSession() error {
 		return nil
 	}
 
+	log.Info("using in memory store to save sessions")
 	// if redis url is not set use in memory store
 	SessionStoreObj.InMemoryStoreObj = &InMemoryStore{
 		sessionStore: map[string]map[string]string{},
