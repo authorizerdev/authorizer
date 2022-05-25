@@ -23,7 +23,7 @@ func SessionResolver(ctx context.Context, params *model.SessionQueryInput) (*mod
 
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
-		log.Debug("Failed to get GinContext", err)
+		log.Debug("Failed to get GinContext: ", err)
 		return res, err
 	}
 
@@ -58,7 +58,7 @@ func SessionResolver(ctx context.Context, params *model.SessionQueryInput) (*mod
 	if params != nil && params.Roles != nil && len(params.Roles) > 0 {
 		for _, v := range params.Roles {
 			if !utils.StringSliceContains(claimRoles, v) {
-				log.Debug("User does not have required role:", claimRoles, v)
+				log.Debug("User does not have required role: ", claimRoles, v)
 				return res, fmt.Errorf(`unauthorized`)
 			}
 		}
@@ -71,7 +71,7 @@ func SessionResolver(ctx context.Context, params *model.SessionQueryInput) (*mod
 
 	authToken, err := token.CreateAuthToken(gc, user, claimRoles, scope)
 	if err != nil {
-		log.Debug("Failed to create auth token", err)
+		log.Debug("Failed to create auth token: ", err)
 		return res, err
 	}
 

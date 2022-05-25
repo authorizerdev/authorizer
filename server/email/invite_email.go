@@ -107,7 +107,7 @@ func InviteEmail(toEmail, token, verificationURL, redirectURI string) error {
 
 	err := SendMail(Receiver, Subject, message)
 	if err != nil {
-		log.Warn("error sending email:", err)
+		log.Warn("error sending email: ", err)
 	}
 	return err
 }

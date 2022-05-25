@@ -16,27 +16,54 @@ import (
 
 var VERSION string
 
+type UTCFormatter struct {
+	log.Formatter
+}
+
+func (u UTCFormatter) Format(e *log.Entry) ([]byte, error) {
+	e.Time = e.Time.UTC()
+	return u.Formatter.Format(e)
+}
+
 func main() {
 	envstore.ARG_DB_URL = flag.String("database_url", "", "Database connection string")
 	envstore.ARG_DB_TYPE = flag.String("database_type", "", "Database type, possible values are postgres,mysql,sqlite")
 	envstore.ARG_ENV_FILE = flag.String("env_file", "", "Env file path")
-	flag.Parse()
+	// envstore.ARG_LOG_LEVEL = flag.String("log_level", "", "Log level, possible values are debug,info,warn,error,fatal,panic")
 
-	log.SetFormatter(&log.JSONFormatter{})
+	log.SetFormatter(UTCFormatter{&log.JSONFormatter{}})
 	log.SetReportCaller(true)
+	log.SetLevel(log.DebugLevel)
+
+	// switch *envstore.ARG_LOG_LEVEL {
+	// case "debug":
+	// 	log.SetLevel(log.DebugLevel)
+	// case "info":
+	// 	log.SetLevel(log.InfoLevel)
+	// case "warn":
+	// 	log.SetLevel(log.WarnLevel)
+	// case "error":
+	// 	log.SetLevel(log.ErrorLevel)
+	// case "fatal":
+	// 	log.SetLevel(log.FatalLevel)
+	// case "panic":
+	// 	log.SetLevel(log.PanicLevel)
+	// default:
+	// 	log.SetLevel(log.InfoLevel)
+	// }
 
 	constants.VERSION = VERSION
 
 	// initialize required envs (mainly db & env file path)
 	err := env.InitRequiredEnv()
 	if err != nil {
-		log.Fatal("Error while initializing required envs:", err)
+		log.Fatal("Error while initializing required envs: ", err)
 	}
 
 	// initialize db provider
 	err = db.InitDB()
 	if err != nil {
-		log.Fatalln("Error while initializing db:", err)
+		log.Fatalln("Error while initializing db: ", err)
 	}
 
 	// initialize all envs
@@ -49,19 +76,19 @@ func main() {
 	// persist all envs
 	err = env.PersistEnv()
 	if err != nil {
-		log.Fatalln("Error while persisting env:", err)
+		log.Fatalln("Error while persisting env: ", err)
 	}
 
 	// initialize session store (redis or in-memory based on env)
 	err = sessionstore.InitSession()
 	if err != nil {
-		log.Fatalln("Error while initializing session store:", err)
+		log.Fatalln("Error while initializing session store: ", err)
 	}
 
 	// initialize oauth providers based on env
 	err = oauth.InitOAuth()
 	if err != nil {
-		log.Fatalln("Error while initializing oauth:", err)
+		log.Fatalln("Error while initializing oauth: ", err)
 	}
 
 	router := routes.InitRouter()

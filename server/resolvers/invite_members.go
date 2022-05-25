@@ -23,7 +23,7 @@ import (
 func InviteMembersResolver(ctx context.Context, params model.InviteMemberInput) (*model.Response, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
-		log.Debug("Failed to get GinContext", err)
+		log.Debug("Failed to get GinContext: ", err)
 		return nil, err
 	}
 
@@ -34,7 +34,7 @@ func InviteMembersResolver(ctx context.Context, params model.InviteMemberInput) 
 
 	// this feature is only allowed if email server is configured
 	if envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification) {
-		log.Debug("Email server is not configured.")
+		log.Debug("Email server is not configured")
 		return nil, errors.New("email sending is disabled")
 	}
 
@@ -52,7 +52,7 @@ func InviteMembersResolver(ctx context.Context, params model.InviteMemberInput) 
 	}
 
 	if len(emails) == 0 {
-		log.Debug("No valid email addresses.")
+		log.Debug("No valid email addresses")
 		return nil, errors.New("no valid emails found")
 	}
 
@@ -62,10 +62,10 @@ func InviteMembersResolver(ctx context.Context, params model.InviteMemberInput) 
 	for _, email := range emails {
 		_, err := db.Provider.GetUserByEmail(email)
 		if err != nil {
-			log.Info("User with this email not found, so inviting...")
+			log.Debugf("User with %s email not found, so inviting user", email)
 			newEmails = append(newEmails, email)
 		} else {
-			log.Info("User with this email already exists, so not inviting...")
+			log.Debugf("User with %s email already exists, so not inviting user", email)
 		}
 	}
 
@@ -97,7 +97,7 @@ func InviteMembersResolver(ctx context.Context, params model.InviteMemberInput) 
 
 		verificationToken, err := token.CreateVerificationToken(email, constants.VerificationTypeForgotPassword, hostname, nonceHash, redirectURL)
 		if err != nil {
-			log.Debug("Failed to create verification token.", err)
+			log.Debug("Failed to create verification token: ", err)
 		}
 
 		verificationRequest := models.VerificationRequest{
@@ -123,13 +123,13 @@ func InviteMembersResolver(ctx context.Context, params model.InviteMemberInput) 
 
 		user, err = db.Provider.AddUser(user)
 		if err != nil {
-			log.Debug("Error adding user: %s, err: %v", email, err)
+			log.Debugf("Error adding user: %s, err: %v", email, err)
 			return nil, err
 		}
 
 		_, err = db.Provider.AddVerificationRequest(verificationRequest)
 		if err != nil {
-			log.Debug("Error adding verification request: %s, err: %v", email, err)
+			log.Debugf("Error adding verification request: %s, err: %v", email, err)
 			return nil, err
 		}
 

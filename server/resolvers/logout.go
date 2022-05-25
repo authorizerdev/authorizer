@@ -18,20 +18,20 @@ func LogoutResolver(ctx context.Context) (*model.Response, error) {
 
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
-		log.Debug("Failed to get GinContext", err)
+		log.Debug("Failed to get GinContext: ", err)
 		return res, err
 	}
 
 	// get fingerprint hash
 	fingerprintHash, err := cookie.GetSession(gc)
 	if err != nil {
-		log.Debug("Failed to get fingerprint hash:", err)
+		log.Debug("Failed to get fingerprint hash: ", err)
 		return res, err
 	}
 
 	decryptedFingerPrint, err := crypto.DecryptAES(fingerprintHash)
 	if err != nil {
-		log.Debug("Failed to decrypt fingerprint hash:", err)
+		log.Debug("Failed to decrypt fingerprint hash: ", err)
 		return res, err
 	}
 

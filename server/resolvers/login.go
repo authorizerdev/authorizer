@@ -26,7 +26,7 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
-		log.Debug("Failed to get GinContext", err)
+		log.Debug("Failed to get GinContext: ", err)
 		return res, err
 	}
 
@@ -41,7 +41,7 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 	params.Email = strings.ToLower(params.Email)
 	user, err := db.Provider.GetUserByEmail(params.Email)
 	if err != nil {
-		log.Debug("Failed to get user by email", err)
+		log.Debug("Failed to get user by email: ", err)
 		return res, fmt.Errorf(`user with this email not found`)
 	}
 
@@ -63,14 +63,14 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 	err = bcrypt.CompareHashAndPassword([]byte(*user.Password), []byte(params.Password))
 
 	if err != nil {
-		log.Debug("Failed to compare password", err)
+		log.Debug("Failed to compare password: ", err)
 		return res, fmt.Errorf(`invalid password`)
 	}
 	roles := envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles)
 	currentRoles := strings.Split(user.Roles, ",")
 	if len(params.Roles) > 0 {
 		if !utils.IsValidRoles(params.Roles, currentRoles) {
-			log.Debug("Invalid roles")
+			log.Debug("Invalid roles: ", params.Roles)
 			return res, fmt.Errorf(`invalid roles`)
 		}
 

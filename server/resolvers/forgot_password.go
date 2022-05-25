@@ -24,18 +24,18 @@ func ForgotPasswordResolver(ctx context.Context, params model.ForgotPasswordInpu
 
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
-		log.Debug("Failed to get GinContext", err)
+		log.Debug("Failed to get GinContext: ", err)
 		return res, err
 	}
 
 	if envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableBasicAuthentication) {
-		log.Debug("Basic authentication is disabled.")
+		log.Debug("Basic authentication is disabled")
 		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
 	}
 	params.Email = strings.ToLower(params.Email)
 
 	if !utils.IsValidEmail(params.Email) {
-		log.Debug("Invalid email address.")
+		log.Debug("Invalid email address: ", params.Email)
 		return res, fmt.Errorf("invalid email")
 	}
 
@@ -44,12 +44,14 @@ func ForgotPasswordResolver(ctx context.Context, params model.ForgotPasswordInpu
 	})
 	_, err = db.Provider.GetUserByEmail(params.Email)
 	if err != nil {
+		log.Debug("User not found: ", err)
 		return res, fmt.Errorf(`user with this email not found`)
 	}
 
 	hostname := utils.GetHost(gc)
 	_, nonceHash, err := utils.GenerateNonce()
 	if err != nil {
+		log.Debug("Failed to generate nonce: ", err)
 		return res, err
 	}
 	redirectURL := utils.GetAppURL(gc) + "/reset-password"

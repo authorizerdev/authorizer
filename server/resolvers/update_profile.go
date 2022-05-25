@@ -28,23 +28,24 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
-		log.Debug("Failed to get GinContext", err)
+		log.Debug("Failed to get GinContext: ", err)
 		return res, err
 	}
 
 	accessToken, err := token.GetAccessToken(gc)
 	if err != nil {
-		log.Debug("Failed to get access token", err)
+		log.Debug("Failed to get access token: ", err)
 		return res, err
 	}
 	claims, err := token.ValidateAccessToken(gc, accessToken)
 	if err != nil {
-		log.Debug("Failed to validate access token", err)
+		log.Debug("Failed to validate access token: ", err)
 		return res, err
 	}
 
 	// validate if all params are not empty
 	if params.GivenName == nil && params.FamilyName == nil && params.Picture == nil && params.MiddleName == nil && params.Nickname == nil && params.OldPassword == nil && params.Email == nil && params.Birthdate == nil && params.Gender == nil && params.PhoneNumber == nil {
+		log.Debug("All params are empty")
 		return res, fmt.Errorf("please enter at least one param to update")
 	}
 
@@ -55,7 +56,7 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 
 	user, err := db.Provider.GetUserByID(userID)
 	if err != nil {
-		log.Debug("Failed to get user by id", err)
+		log.Debug("Failed to get user by id: ", err)
 		return res, err
 	}
 
@@ -93,17 +94,17 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 
 	if params.OldPassword != nil {
 		if err = bcrypt.CompareHashAndPassword([]byte(*user.Password), []byte(*params.OldPassword)); err != nil {
-			log.Debug("Failed to compare hash and old password", err)
+			log.Debug("Failed to compare hash and old password: ", err)
 			return res, fmt.Errorf("incorrect old password")
 		}
 
 		if params.NewPassword == nil {
-			log.Debug("Failed to get new password")
+			log.Debug("Failed to get new password: ")
 			return res, fmt.Errorf("new password is required")
 		}
 
 		if params.ConfirmNewPassword == nil {
-			log.Debug("Failed to get confirm new password")
+			log.Debug("Failed to get confirm new password: ")
 			return res, fmt.Errorf("confirm password is required")
 		}
 
@@ -122,15 +123,21 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 	if params.Email != nil && user.Email != *params.Email {
 		// check if valid email
 		if !utils.IsValidEmail(*params.Email) {
-			log.Debug("Failed to validate email", *params.Email)
+			log.Debug("Failed to validate email: ", *params.Email)
 			return res, fmt.Errorf("invalid email address")
 		}
 		newEmail := strings.ToLower(*params.Email)
+
+		// check if valid email
+		if !utils.IsValidEmail(newEmail) {
+			log.Debug("Failed to validate new email: ", newEmail)
+			return res, fmt.Errorf("invalid new email address")
+		}
 		// check if user with new email exists
 		_, err := db.Provider.GetUserByEmail(newEmail)
 		// err = nil means user exists
 		if err == nil {
-			log.Debug("Failed to get user by email", newEmail)
+			log.Debug("Failed to get user by email: ", newEmail)
 			return res, fmt.Errorf("user with this email address already exists")
 		}
 
@@ -145,14 +152,14 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 			// insert verification request
 			_, nonceHash, err := utils.GenerateNonce()
 			if err != nil {
-				log.Debug("Failed to generate nonce", err)
+				log.Debug("Failed to generate nonce: ", err)
 				return res, err
 			}
 			verificationType := constants.VerificationTypeUpdateEmail
 			redirectURL := utils.GetAppURL(gc)
 			verificationToken, err := token.CreateVerificationToken(newEmail, verificationType, hostname, nonceHash, redirectURL)
 			if err != nil {
-				log.Debug("Failed to create verification token", err)
+				log.Debug("Failed to create verification token: ", err)
 				return res, err
 			}
 			_, err = db.Provider.AddVerificationRequest(models.VerificationRequest{
@@ -164,7 +171,7 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 				RedirectURI: redirectURL,
 			})
 			if err != nil {
-				log.Debug("Failed to add verification request", err)
+				log.Debug("Failed to add verification request: ", err)
 				return res, err
 			}
 
@@ -175,7 +182,7 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 	}
 	_, err = db.Provider.UpdateUser(user)
 	if err != nil {
-		log.Debug("Failed to update user", err)
+		log.Debug("Failed to update user: ", err)
 		return res, err
 	}
 	message := `Profile details updated successfully.`

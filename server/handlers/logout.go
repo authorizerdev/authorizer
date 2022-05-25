@@ -19,7 +19,7 @@ func LogoutHandler() gin.HandlerFunc {
 		// get fingerprint hash
 		fingerprintHash, err := cookie.GetSession(gc)
 		if err != nil {
-			log.Debug("Failed to get session", err)
+			log.Debug("Failed to get session: ", err)
 			gc.JSON(http.StatusUnauthorized, gin.H{
 				"error": err.Error(),
 			})
@@ -28,7 +28,7 @@ func LogoutHandler() gin.HandlerFunc {
 
 		decryptedFingerPrint, err := crypto.DecryptAES(fingerprintHash)
 		if err != nil {
-			log.Debug("Failed to decrypt fingerprint", err)
+			log.Debug("Failed to decrypt fingerprint: ", err)
 			gc.JSON(http.StatusUnauthorized, gin.H{
 				"error": err.Error(),
 			})

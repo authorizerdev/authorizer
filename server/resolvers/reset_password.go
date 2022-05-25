@@ -23,7 +23,7 @@ func ResetPasswordResolver(ctx context.Context, params model.ResetPasswordInput)
 
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
-		log.Debug("Failed to get GinContext", err)
+		log.Debug("Failed to get GinContext: ", err)
 		return res, err
 	}
 	if envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableBasicAuthentication) {
@@ -33,7 +33,7 @@ func ResetPasswordResolver(ctx context.Context, params model.ResetPasswordInput)
 
 	verificationRequest, err := db.Provider.GetVerificationRequestByToken(params.Token)
 	if err != nil {
-		log.Debug("Failed to get verification request", err)
+		log.Debug("Failed to get verification request: ", err)
 		return res, fmt.Errorf(`invalid token`)
 	}
 
@@ -51,7 +51,7 @@ func ResetPasswordResolver(ctx context.Context, params model.ResetPasswordInput)
 	hostname := utils.GetHost(gc)
 	claim, err := token.ParseJWTToken(params.Token, hostname, verificationRequest.Nonce, verificationRequest.Email)
 	if err != nil {
-		log.Debug("Failed to parse token", err)
+		log.Debug("Failed to parse token: ", err)
 		return res, fmt.Errorf(`invalid token`)
 	}
 
@@ -61,7 +61,7 @@ func ResetPasswordResolver(ctx context.Context, params model.ResetPasswordInput)
 	})
 	user, err := db.Provider.GetUserByEmail(email)
 	if err != nil {
-		log.Debug("Failed to get user", err)
+		log.Debug("Failed to get user: ", err)
 		return res, err
 	}
 
@@ -83,13 +83,13 @@ func ResetPasswordResolver(ctx context.Context, params model.ResetPasswordInput)
 	// delete from verification table
 	err = db.Provider.DeleteVerificationRequest(verificationRequest)
 	if err != nil {
-		log.Debug("Failed to delete verification request", err)
+		log.Debug("Failed to delete verification request: ", err)
 		return res, err
 	}
 
 	_, err = db.Provider.UpdateUser(user)
 	if err != nil {
-		log.Debug("Failed to update user", err)
+		log.Debug("Failed to update user: ", err)
 		return res, err
 	}
 

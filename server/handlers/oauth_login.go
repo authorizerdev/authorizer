@@ -57,6 +57,7 @@ func OAuthLoginHandler() gin.HandlerFunc {
 			// use protected roles verification for admin login only.
 			// though if not associated with user, it will be rejected from oauth_callback
 			if !utils.IsValidRoles(rolesSplit, append([]string{}, append(envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyRoles), envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyProtectedRoles)...)...)) {
+				log.Debug("Invalid roles: ", roles)
 				c.JSON(400, gin.H{
 					"error": "invalid role",
 				})

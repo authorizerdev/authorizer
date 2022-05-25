@@ -24,7 +24,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
-		log.Debug("Failed to get GinContext", err)
+		log.Debug("Failed to get GinContext: ", err)
 		return res, err
 	}
 
@@ -63,7 +63,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 		if len(params.Roles) > 0 {
 			// check if roles exists
 			if !utils.IsValidRoles(params.Roles, envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyRoles)) {
-				log.Debug("Invalid roles")
+				log.Debug("Invalid roles: ", params.Roles)
 				return res, fmt.Errorf(`invalid roles`)
 			} else {
 				inputRoles = params.Roles
@@ -82,7 +82,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 		// 		Need to modify roles in this case
 
 		if user.RevokedTimestamp != nil {
-			log.Debug("User access is revoked")
+			log.Debug("User access is revoked at: ", user.RevokedTimestamp)
 			return res, fmt.Errorf(`user access has been revoked`)
 		}
 
@@ -125,7 +125,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 		user.SignupMethods = signupMethod
 		user, _ = db.Provider.UpdateUser(user)
 		if err != nil {
-			log.Debug("Failed to update user", err)
+			log.Debug("Failed to update user: ", err)
 		}
 	}
 
@@ -134,7 +134,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 		// insert verification request
 		_, nonceHash, err := utils.GenerateNonce()
 		if err != nil {
-			log.Debug("Failed to generate nonce", err)
+			log.Debug("Failed to generate nonce: ", err)
 			return res, err
 		}
 		redirectURLParams := "&roles=" + strings.Join(inputRoles, ",")
@@ -158,7 +158,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 		verificationType := constants.VerificationTypeMagicLinkLogin
 		verificationToken, err := token.CreateVerificationToken(params.Email, verificationType, hostname, nonceHash, redirectURL)
 		if err != nil {
-			log.Debug("Failed to create verification token", err)
+			log.Debug("Failed to create verification token: ", err)
 		}
 		_, err = db.Provider.AddVerificationRequest(models.VerificationRequest{
 			Token:       verificationToken,
@@ -169,7 +169,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 			RedirectURI: redirectURL,
 		})
 		if err != nil {
-			log.Debug("Failed to add verification request in db:", err)
+			log.Debug("Failed to add verification request in db: ", err)
 			return res, err
 		}
 

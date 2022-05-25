@@ -27,22 +27,22 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
-		log.Debug("Failed to get GinContext", err)
+		log.Debug("Failed to get GinContext: ", err)
 		return res, err
 	}
 
 	if envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableSignUp) {
-		log.Debug("Signup is disabled.")
+		log.Debug("Signup is disabled")
 		return res, fmt.Errorf(`signup is disabled for this instance`)
 	}
 
 	if envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableBasicAuthentication) {
-		log.Debug("Basic authentication is disabled.")
+		log.Debug("Basic authentication is disabled")
 		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
 	}
 
 	if params.ConfirmPassword != params.Password {
-		log.Debug("Passwords do not match.")
+		log.Debug("Passwords do not match")
 		return res, fmt.Errorf(`password and confirm password does not match`)
 	}
 
@@ -54,7 +54,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 	params.Email = strings.ToLower(params.Email)
 
 	if !utils.IsValidEmail(params.Email) {
-		log.Debug("Invalid email:", params.Email)
+		log.Debug("Invalid email: ", params.Email)
 		return res, fmt.Errorf(`invalid email address`)
 	}
 
@@ -64,7 +64,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 	// find user with email
 	existingUser, err := db.Provider.GetUserByEmail(params.Email)
 	if err != nil {
-		log.Debug("Failed to get user by email:", err)
+		log.Debug("Failed to get user by email: ", err)
 	}
 
 	if existingUser.EmailVerifiedAt != nil {
@@ -81,7 +81,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 	if len(params.Roles) > 0 {
 		// check if roles exists
 		if !utils.IsValidRoles(envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyRoles), params.Roles) {
-			log.Debug("Invalid roles", params.Roles)
+			log.Debug("Invalid roles: ", params.Roles)
 			return res, fmt.Errorf(`invalid roles`)
 		} else {
 			inputRoles = params.Roles
@@ -138,7 +138,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 	}
 	user, err = db.Provider.AddUser(user)
 	if err != nil {
-		log.Debug("Failed to add user:", err)
+		log.Debug("Failed to add user: ", err)
 		return res, err
 	}
 	roles := strings.Split(user.Roles, ",")
@@ -149,7 +149,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 		// insert verification request
 		_, nonceHash, err := utils.GenerateNonce()
 		if err != nil {
-			log.Debug("Failed to generate nonce:", err)
+			log.Debug("Failed to generate nonce: ", err)
 			return res, err
 		}
 		verificationType := constants.VerificationTypeBasicAuthSignup
@@ -159,7 +159,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 		}
 		verificationToken, err := token.CreateVerificationToken(params.Email, verificationType, hostname, nonceHash, redirectURL)
 		if err != nil {
-			log.Debug("Failed to create verification token:", err)
+			log.Debug("Failed to create verification token: ", err)
 			return res, err
 		}
 		_, err = db.Provider.AddVerificationRequest(models.VerificationRequest{
@@ -171,7 +171,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 			RedirectURI: redirectURL,
 		})
 		if err != nil {
-			log.Debug("Failed to add verification request:", err)
+			log.Debug("Failed to add verification request: ", err)
 			return res, err
 		}
 
@@ -190,7 +190,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 
 		authToken, err := token.CreateAuthToken(gc, user, roles, scope)
 		if err != nil {
-			log.Debug("Failed to create auth token:", err)
+			log.Debug("Failed to create auth token: ", err)
 			return res, err
 		}
 

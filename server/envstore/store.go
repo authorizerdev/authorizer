@@ -13,6 +13,8 @@ var (
 	ARG_DB_TYPE *string
 	// ARG_ENV_FILE is the cli arg variable for the env file
 	ARG_ENV_FILE *string
+	// ARG_LOG_LEVEL is the cli arg variable for the log level
+	ARG_LOG_LEVEL *string
 )
 
 // Store data structure

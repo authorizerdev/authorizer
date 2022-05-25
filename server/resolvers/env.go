@@ -20,7 +20,7 @@ func EnvResolver(ctx context.Context) (*model.Env, error) {
 
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
-		log.Debug("Failed to get GinContext", err)
+		log.Debug("Failed to get GinContext: ", err)
 		return res, err
 	}
 

@@ -19,12 +19,12 @@ func DeleteUserResolver(ctx context.Context, params model.DeleteUserInput) (*mod
 
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
-		log.Debug("Failed to get GinContext", err)
+		log.Debug("Failed to get GinContext: ", err)
 		return res, err
 	}
 
 	if !token.IsSuperAdmin(gc) {
-		log.Debug("Not logged in as super admin.")
+		log.Debug("Not logged in as super admin")
 		return res, fmt.Errorf("unauthorized")
 	}
 
@@ -34,7 +34,7 @@ func DeleteUserResolver(ctx context.Context, params model.DeleteUserInput) (*mod
 
 	user, err := db.Provider.GetUserByEmail(params.Email)
 	if err != nil {
-		log.Debug("Failed to get user from DB:", err)
+		log.Debug("Failed to get user from DB: ", err)
 		return res, err
 	}
 
@@ -42,7 +42,7 @@ func DeleteUserResolver(ctx context.Context, params model.DeleteUserInput) (*mod
 
 	err = db.Provider.DeleteUser(user)
 	if err != nil {
-		log.Debug("Failed to delete user:", err)
+		log.Debug("Failed to delete user: ", err)
 		return res, err
 	}
 

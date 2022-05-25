@@ -46,7 +46,7 @@ func TokenHandler() gin.HandlerFunc {
 		isAuthorizationCodeGrant := grantType == "authorization_code"
 
 		if !isRefreshTokenGrant && !isAuthorizationCodeGrant {
-			log.Debug("Invalid grant type")
+			log.Debug("Invalid grant type: ", grantType)
 			gc.JSON(http.StatusBadRequest, gin.H{
 				"error":             "invalid_grant_type",
 				"error_description": "grant_type is invalid",
@@ -63,7 +63,7 @@ func TokenHandler() gin.HandlerFunc {
 		}
 
 		if clientID != envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyClientID) {
-			log.Debug("Client ID is invalid")
+			log.Debug("Client ID is invalid: ", clientID)
 			gc.JSON(http.StatusBadRequest, gin.H{
 				"error":             "invalid_client_id",
 				"error_description": "The client id is invalid",
@@ -100,7 +100,7 @@ func TokenHandler() gin.HandlerFunc {
 			encryptedCode = strings.ReplaceAll(encryptedCode, "=", "")
 			sessionData := sessionstore.GetState(encryptedCode)
 			if sessionData == "" {
-				log.Debug("Invalid code verifier")
+				log.Debug("Session data is empty")
 				gc.JSON(http.StatusBadRequest, gin.H{
 					"error":             "invalid_code_verifier",
 					"error_description": "The code verifier is invalid",
@@ -113,7 +113,7 @@ func TokenHandler() gin.HandlerFunc {
 			sessionDataSplit := strings.Split(sessionData, "@")
 
 			if sessionDataSplit[0] != code {
-				log.Debug("Invalid code verifier.Unable to split session data")
+				log.Debug("Invalid code verifier. Unable to split session data")
 				gc.JSON(http.StatusBadRequest, gin.H{
 					"error":             "invalid_code_verifier",
 					"error_description": "The code verifier is invalid",

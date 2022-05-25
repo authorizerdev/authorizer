@@ -18,7 +18,7 @@ func EnableAccessResolver(ctx context.Context, params model.UpdateAccessInput) (
 
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
-		log.Debug("Failed to get GinContext", err)
+		log.Debug("Failed to get GinContext: ", err)
 		return res, err
 	}
 
@@ -33,7 +33,7 @@ func EnableAccessResolver(ctx context.Context, params model.UpdateAccessInput) (
 
 	user, err := db.Provider.GetUserByID(params.UserID)
 	if err != nil {
-		log.Debug("Failed to get user from DB:", err)
+		log.Debug("Failed to get user from DB: ", err)
 		return res, err
 	}
 
@@ -41,7 +41,7 @@ func EnableAccessResolver(ctx context.Context, params model.UpdateAccessInput) (
 
 	user, err = db.Provider.UpdateUser(user)
 	if err != nil {
-		log.Debug("Failed to update user:", err)
+		log.Debug("Failed to update user: ", err)
 		return res, err
 	}
 

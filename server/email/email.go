@@ -47,7 +47,7 @@ func SendMail(to []string, Subject, bodyMessage string) error {
 		d.TLSConfig = &tls.Config{InsecureSkipVerify: true}
 	}
 	if err := d.DialAndSend(m); err != nil {
-		log.Debug("SMTP Failed:", err)
+		log.Debug("SMTP Failed: ", err)
 		return err
 	}
 	return nil

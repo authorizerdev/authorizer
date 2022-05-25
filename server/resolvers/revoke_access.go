@@ -20,12 +20,12 @@ func RevokeAccessResolver(ctx context.Context, params model.UpdateAccessInput) (
 
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
-		log.Debug("Failed to get GinContext", err)
+		log.Debug("Failed to get GinContext: ", err)
 		return res, err
 	}
 
 	if !token.IsSuperAdmin(gc) {
-		log.Debug("Not logged in as super admin.")
+		log.Debug("Not logged in as super admin")
 		return res, fmt.Errorf("unauthorized")
 	}
 
@@ -34,7 +34,7 @@ func RevokeAccessResolver(ctx context.Context, params model.UpdateAccessInput) (
 	})
 	user, err := db.Provider.GetUserByID(params.UserID)
 	if err != nil {
-		log.Debug("Failed to get user by ID", err)
+		log.Debug("Failed to get user by ID: ", err)
 		return res, err
 	}
 
@@ -43,7 +43,7 @@ func RevokeAccessResolver(ctx context.Context, params model.UpdateAccessInput) (
 
 	user, err = db.Provider.UpdateUser(user)
 	if err != nil {
-		log.Debug("Failed to update user", err)
+		log.Debug("Failed to update user: ", err)
 		return res, err
 	}
 

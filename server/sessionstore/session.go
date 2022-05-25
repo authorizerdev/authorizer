@@ -98,6 +98,7 @@ func InitSession() error {
 		if len(redisURLHostPortsList) > 1 {
 			opt, err := redis.ParseURL(redisURLHostPortsList[0])
 			if err != nil {
+				log.Debug("error parsing redis url: ", err)
 				return err
 			}
 			urls := []string{opt.Addr}
@@ -109,6 +110,7 @@ func InitSession() error {
 			ctx := context.Background()
 			_, err = rdb.Ping(ctx).Result()
 			if err != nil {
+				log.Debug("error connecting to redis: ", err)
 				return err
 			}
 			SessionStoreObj.RedisMemoryStoreObj = &RedisStore{
@@ -122,6 +124,7 @@ func InitSession() error {
 
 		opt, err := redis.ParseURL(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyRedisURL))
 		if err != nil {
+			log.Debug("error parsing redis url: ", err)
 			return err
 		}
 
@@ -129,6 +132,7 @@ func InitSession() error {
 		ctx := context.Background()
 		_, err = rdb.Ping(ctx).Result()
 		if err != nil {
+			log.Debug("error connecting to redis: ", err)
 			return err
 		}
 

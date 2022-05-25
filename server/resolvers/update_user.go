@@ -26,17 +26,17 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
-		log.Debug("Failed to get GinContext", err)
+		log.Debug("Failed to get GinContext: ", err)
 		return res, err
 	}
 
 	if !token.IsSuperAdmin(gc) {
-		log.Debug("Not logged in as super admin.")
+		log.Debug("Not logged in as super admin")
 		return res, fmt.Errorf("unauthorized")
 	}
 
 	if params.ID == "" {
-		log.Debug("Invalid user id")
+		log.Debug("UserID is empty")
 		return res, fmt.Errorf("User ID is required")
 	}
 
@@ -51,7 +51,7 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 
 	user, err := db.Provider.GetUserByID(params.ID)
 	if err != nil {
-		log.Debug("Failed to get user by id", err)
+		log.Debug("Failed to get user by id: ", err)
 		return res, fmt.Errorf(`User not found`)
 	}
 
@@ -99,7 +99,7 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 	if params.Email != nil && user.Email != *params.Email {
 		// check if valid email
 		if !utils.IsValidEmail(*params.Email) {
-			log.Debug("Invalid email", *params.Email)
+			log.Debug("Invalid email: ", *params.Email)
 			return res, fmt.Errorf("invalid email address")
 		}
 		newEmail := strings.ToLower(*params.Email)
@@ -107,7 +107,7 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 		_, err = db.Provider.GetUserByEmail(newEmail)
 		// err = nil means user exists
 		if err == nil {
-			log.Debug("User with email already exists", newEmail)
+			log.Debug("User with email already exists: ", newEmail)
 			return res, fmt.Errorf("user with this email address already exists")
 		}
 
@@ -120,14 +120,14 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 		// insert verification request
 		_, nonceHash, err := utils.GenerateNonce()
 		if err != nil {
-			log.Debug("Failed to generate nonce", err)
+			log.Debug("Failed to generate nonce: ", err)
 			return res, err
 		}
 		verificationType := constants.VerificationTypeUpdateEmail
 		redirectURL := utils.GetAppURL(gc)
 		verificationToken, err := token.CreateVerificationToken(newEmail, verificationType, hostname, nonceHash, redirectURL)
 		if err != nil {
-			log.Debug("Failed to create verification token", err)
+			log.Debug("Failed to create verification token: ", err)
 		}
 		_, err = db.Provider.AddVerificationRequest(models.VerificationRequest{
 			Token:       verificationToken,
@@ -138,7 +138,7 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 			RedirectURI: redirectURL,
 		})
 		if err != nil {
-			log.Debug("Failed to add verification request", err)
+			log.Debug("Failed to add verification request: ", err)
 			return res, err
 		}
 
@@ -156,7 +156,7 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 		}
 
 		if !utils.IsValidRoles(inputRoles, append([]string{}, append(envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyRoles), envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyProtectedRoles)...)...)) {
-			log.Debug("Invalid roles", params.Roles)
+			log.Debug("Invalid roles: ", params.Roles)
 			return res, fmt.Errorf("invalid list of roles")
 		}
 
@@ -173,7 +173,7 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 
 	user, err = db.Provider.UpdateUser(user)
 	if err != nil {
-		log.Debug("Failed to update user", err)
+		log.Debug("Failed to update user: ", err)
 		return res, err
 	}
 

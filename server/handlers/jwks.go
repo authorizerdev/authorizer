@@ -16,7 +16,7 @@ func JWKsHandler() gin.HandlerFunc {
 		jwk := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJWK)
 		err := json.Unmarshal([]byte(jwk), &data)
 		if err != nil {
-			log.Debug("Failed to parse JWK", err)
+			log.Debug("Failed to parse JWK: ", err)
 			c.JSON(500, gin.H{
 				"error": err.Error(),
 			})

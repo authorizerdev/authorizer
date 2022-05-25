@@ -23,7 +23,7 @@ func AdminSignupResolver(ctx context.Context, params model.AdminSignupInput) (*m
 
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
-		log.Debug("Failed to get GinContext:", err)
+		log.Debug("Failed to get GinContext: ", err)
 		return res, err
 	}
 
@@ -53,36 +53,36 @@ func AdminSignupResolver(ctx context.Context, params model.AdminSignupInput) (*m
 
 	jsonBytes, err := json.Marshal(envstore.EnvStoreObj.GetEnvStoreClone())
 	if err != nil {
-		log.Debug("Failed to marshal envstore:", err)
+		log.Debug("Failed to marshal envstore: ", err)
 		return res, err
 	}
 
 	if err := json.Unmarshal(jsonBytes, &storeData); err != nil {
-		log.Debug("Failed to unmarshal envstore:", err)
+		log.Debug("Failed to unmarshal envstore: ", err)
 		return res, err
 	}
 
 	env, err := db.Provider.GetEnv()
 	if err != nil {
-		log.Debug("Failed to get env:", err)
+		log.Debug("Failed to get env: ", err)
 		return res, err
 	}
 
 	envData, err := crypto.EncryptEnvData(storeData)
 	if err != nil {
-		log.Debug("Failed to encrypt envstore:", err)
+		log.Debug("Failed to encrypt envstore: ", err)
 		return res, err
 	}
 
 	env.EnvData = envData
 	if _, err := db.Provider.UpdateEnv(env); err != nil {
-		log.Debug("Failed to update env:", err)
+		log.Debug("Failed to update env: ", err)
 		return res, err
 	}
 
 	hashedKey, err := crypto.EncryptPassword(params.AdminSecret)
 	if err != nil {
-		log.Debug("Failed to encrypt admin session key:", err)
+		log.Debug("Failed to encrypt admin session key: ", err)
 		return res, err
 	}
 	cookie.SetAdminCookie(gc, hashedKey)

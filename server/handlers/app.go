@@ -55,7 +55,7 @@ func AppHandler() gin.HandlerFunc {
 		if pusher := c.Writer.Pusher(); pusher != nil {
 			// use pusher.Push() to do server push
 			if err := pusher.Push("/app/build/bundle.js", nil); err != nil {
-				log.Debug("Failed to push file path", err)
+				log.Debug("Failed to push file path: ", err)
 			}
 		}
 		c.HTML(http.StatusOK, "app.tmpl", gin.H{

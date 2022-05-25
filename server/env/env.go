@@ -53,6 +53,7 @@ func InitRequiredEnv() error {
 		}
 
 		if dbType == "" {
+			log.Debug("DATABASE_TYPE is not set")
 			return errors.New("invalid database type. DATABASE_TYPE is empty")
 		}
 	}
@@ -63,6 +64,7 @@ func InitRequiredEnv() error {
 		}
 
 		if dbURL == "" && dbPort == "" && dbHost == "" && dbUsername == "" && dbPassword == "" {
+			log.Debug("DATABASE_URL is not set")
 			return errors.New("invalid database url. DATABASE_URL is required")
 		}
 	}
@@ -180,6 +182,7 @@ func InitAllEnv() error {
 		} else {
 			algo = envData.StringEnv[constants.EnvKeyJwtType]
 			if !crypto.IsHMACA(algo) && !crypto.IsRSA(algo) && !crypto.IsECDSA(algo) {
+				log.Debug("Invalid JWT Algorithm")
 				return errors.New("invalid JWT_TYPE")
 			}
 		}
@@ -385,6 +388,7 @@ func InitAllEnv() error {
 	}
 
 	if len(roles) > 0 && len(defaultRoles) == 0 && len(defaultRolesEnv) > 0 {
+		log.Debug("Default roles not found in roles list. It can be one from ROLES only")
 		return errors.New(`invalid DEFAULT_ROLE environment variable. It can be one from give ROLES environment variable value`)
 	}
 

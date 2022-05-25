@@ -17,12 +17,12 @@ import (
 func GenerateJWTKeysResolver(ctx context.Context, params model.GenerateJWTKeysInput) (*model.GenerateJWTKeysResponse, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
-		log.Debug("Failed to get GinContext", err)
+		log.Debug("Failed to get GinContext: ", err)
 		return nil, err
 	}
 
 	if !token.IsSuperAdmin(gc) {
-		log.Debug("Not logged in as super admin.")
+		log.Debug("Not logged in as super admin")
 		return nil, fmt.Errorf("unauthorized")
 	}
 
@@ -30,7 +30,7 @@ func GenerateJWTKeysResolver(ctx context.Context, params model.GenerateJWTKeysIn
 	if crypto.IsHMACA(params.Type) {
 		secret, _, err := crypto.NewHMACKey(params.Type, clientID)
 		if err != nil {
-			log.Debug("Failed to generate new HMAC key:", err)
+			log.Debug("Failed to generate new HMAC key: ", err)
 			return nil, err
 		}
 		return &model.GenerateJWTKeysResponse{
@@ -41,7 +41,7 @@ func GenerateJWTKeysResolver(ctx context.Context, params model.GenerateJWTKeysIn
 	if crypto.IsRSA(params.Type) {
 		_, privateKey, publicKey, _, err := crypto.NewRSAKey(params.Type, clientID)
 		if err != nil {
-			log.Debug("Failed to generate new RSA key:", err)
+			log.Debug("Failed to generate new RSA key: ", err)
 			return nil, err
 		}
 		return &model.GenerateJWTKeysResponse{
@@ -53,7 +53,7 @@ func GenerateJWTKeysResolver(ctx context.Context, params model.GenerateJWTKeysIn
 	if crypto.IsECDSA(params.Type) {
 		_, privateKey, publicKey, _, err := crypto.NewECDSAKey(params.Type, clientID)
 		if err != nil {
-			log.Debug("Failed to generate new ECDSA key:", err)
+			log.Debug("Failed to generate new ECDSA key: ", err)
 			return nil, err
 		}
 		return &model.GenerateJWTKeysResponse{
@@ -62,6 +62,6 @@ func GenerateJWTKeysResolver(ctx context.Context, params model.GenerateJWTKeysIn
 		}, nil
 	}
 
-	log.Debug("Invalid algorithm:", params.Type)
+	log.Debug("Invalid algorithm: ", params.Type)
 	return nil, fmt.Errorf("invalid algorithm")
 }

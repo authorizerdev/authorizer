@@ -17,7 +17,7 @@ import (
 func UsersResolver(ctx context.Context, params *model.PaginatedInput) (*model.Users, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
-		log.Debug("Failed to get GinContext", err)
+		log.Debug("Failed to get GinContext: ", err)
 		return nil, err
 	}
 
@@ -30,7 +30,7 @@ func UsersResolver(ctx context.Context, params *model.PaginatedInput) (*model.Us
 
 	res, err := db.Provider.ListUsers(pagination)
 	if err != nil {
-		log.Debug("Failed to get users", err)
+		log.Debug("Failed to get users: ", err)
 		return nil, err
 	}
 

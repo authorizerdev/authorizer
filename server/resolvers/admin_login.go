@@ -20,7 +20,7 @@ func AdminLoginResolver(ctx context.Context, params model.AdminLoginInput) (*mod
 
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
-		log.Debug("Failed to get GinContext", err)
+		log.Debug("Failed to get GinContext: ", err)
 		return res, err
 	}
 

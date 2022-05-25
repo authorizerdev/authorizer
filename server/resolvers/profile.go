@@ -17,19 +17,19 @@ func ProfileResolver(ctx context.Context) (*model.User, error) {
 
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
-		log.Debug("Failed to get GinContext", err)
+		log.Debug("Failed to get GinContext: ", err)
 		return res, err
 	}
 
 	accessToken, err := token.GetAccessToken(gc)
 	if err != nil {
-		log.Debug("Failed to get access token:", err)
+		log.Debug("Failed to get access token: ", err)
 		return res, err
 	}
 
 	claims, err := token.ValidateAccessToken(gc, accessToken)
 	if err != nil {
-		log.Debug("Failed to validate access token:", err)
+		log.Debug("Failed to validate access token: ", err)
 		return res, err
 	}
 
@@ -40,7 +40,7 @@ func ProfileResolver(ctx context.Context) (*model.User, error) {
 	})
 	user, err := db.Provider.GetUserByID(userID)
 	if err != nil {
-		log.Debug("Failed to get user:", err)
+		log.Debug("Failed to get user: ", err)
 		return res, err
 	}
 

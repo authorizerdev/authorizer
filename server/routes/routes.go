@@ -9,9 +9,8 @@ import (
 
 // InitRouter initializes gin router
 func InitRouter() *gin.Engine {
-	router := gin.Default()
-	gin.DefaultWriter = middlewares.NewGinLogrusWrite()
-	router.Use(middlewares.JSONLogMiddleware())
+	router := gin.New()
+	router.Use(gin.Recovery())
 	router.Use(middlewares.GinContextToContextMiddleware())
 	router.Use(middlewares.CORSMiddleware())
 

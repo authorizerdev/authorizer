@@ -23,7 +23,7 @@ func (fn GinLogWriteFunc) Write(data []byte) (int, error) {
 // NewGinLogrusWrite logrus writer for gin
 func NewGinLogrusWrite() io.Writer {
 	return GinLogWriteFunc(func(data []byte) (int, error) {
-		log.Info("%s", data)
+		log.Info("%v", data)
 		return 0, nil
 	})
 }

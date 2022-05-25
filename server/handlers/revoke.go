@@ -38,7 +38,7 @@ func RevokeHandler() gin.HandlerFunc {
 		}
 
 		if clientID != envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyClientID) {
-			log.Debug("Client ID is invalid")
+			log.Debug("Client ID is invalid: ", clientID)
 			gc.JSON(http.StatusBadRequest, gin.H{
 				"error":             "invalid_client_id",
 				"error_description": "The client id is invalid",
