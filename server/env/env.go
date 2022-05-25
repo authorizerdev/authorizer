@@ -2,17 +2,17 @@ package env
 
 import (
 	"errors"
-	"log"
 	"os"
 	"strings"
+
+	"github.com/google/uuid"
+	"github.com/joho/godotenv"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/utils"
-	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
-	"github.com/joho/godotenv"
 )
 
 // InitRequiredEnv to initialize EnvData and through error if required env are not present
@@ -29,10 +29,11 @@ func InitRequiredEnv() error {
 	if envstore.ARG_ENV_FILE != nil && *envstore.ARG_ENV_FILE != "" {
 		envPath = *envstore.ARG_ENV_FILE
 	}
+	log.Info("env path: ", envPath)
 
 	err := godotenv.Load(envPath)
 	if err != nil {
-		log.Printf("using OS env instead of %s file", envPath)
+		log.Info("using OS env instead of %s file", envPath)
 	}
 
 	dbURL := os.Getenv(constants.EnvKeyDatabaseURL)
@@ -52,6 +53,7 @@ func InitRequiredEnv() error {
 		}
 
 		if dbType == "" {
+			log.Debug("DATABASE_TYPE is not set")
 			return errors.New("invalid database type. DATABASE_TYPE is empty")
 		}
 	}
@@ -62,6 +64,7 @@ func InitRequiredEnv() error {
 		}
 
 		if dbURL == "" && dbPort == "" && dbHost == "" && dbUsername == "" && dbPassword == "" {
+			log.Debug("DATABASE_URL is not set")
 			return errors.New("invalid database url. DATABASE_URL is required")
 		}
 	}
@@ -91,7 +94,7 @@ func InitRequiredEnv() error {
 func InitAllEnv() error {
 	envData, err := GetEnvData()
 	if err != nil {
-		log.Println("No env data found in db, using local clone of env data")
+		log.Info("No env data found in db, using local clone of env data")
 		// get clone of current store
 		envData = envstore.EnvStoreObj.GetEnvStoreClone()
 	}
@@ -118,7 +121,6 @@ func InitAllEnv() error {
 
 		if envData.StringEnv[constants.EnvKeyEnv] == "production" {
 			envData.BoolEnv[constants.EnvKeyIsProd] = true
-			gin.SetMode(gin.ReleaseMode)
 		} else {
 			envData.BoolEnv[constants.EnvKeyIsProd] = false
 		}
@@ -179,6 +181,7 @@ func InitAllEnv() error {
 		} else {
 			algo = envData.StringEnv[constants.EnvKeyJwtType]
 			if !crypto.IsHMACA(algo) && !crypto.IsRSA(algo) && !crypto.IsECDSA(algo) {
+				log.Debug("Invalid JWT Algorithm")
 				return errors.New("invalid JWT_TYPE")
 			}
 		}
@@ -384,6 +387,7 @@ func InitAllEnv() error {
 	}
 
 	if len(roles) > 0 && len(defaultRoles) == 0 && len(defaultRolesEnv) > 0 {
+		log.Debug("Default roles not found in roles list. It can be one from ROLES only")
 		return errors.New(`invalid DEFAULT_ROLE environment variable. It can be one from give ROLES environment variable value`)
 	}
 

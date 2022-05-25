@@ -1,7 +1,6 @@
 package mongodb
 
 import (
-	"log"
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/db/models"
@@ -22,7 +21,6 @@ func (p *provider) AddVerificationRequest(verificationRequest models.Verificatio
 		verificationRequestCollection := p.db.Collection(models.Collections.VerificationRequest, options.Collection())
 		_, err := verificationRequestCollection.InsertOne(nil, verificationRequest)
 		if err != nil {
-			log.Println("error saving verification record:", err)
 			return verificationRequest, err
 		}
 	}
@@ -73,7 +71,6 @@ func (p *provider) ListVerificationRequests(pagination model.Pagination) (*model
 
 	cursor, err := verificationRequestCollection.Find(nil, bson.M{}, opts)
 	if err != nil {
-		log.Println("error getting verification requests:", err)
 		return nil, err
 	}
 	defer cursor.Close(nil)
@@ -98,7 +95,6 @@ func (p *provider) DeleteVerificationRequest(verificationRequest models.Verifica
 	verificationRequestCollection := p.db.Collection(models.Collections.VerificationRequest, options.Collection())
 	_, err := verificationRequestCollection.DeleteOne(nil, bson.M{"_id": verificationRequest.ID}, options.Delete())
 	if err != nil {
-		log.Println("error deleting verification request::", err)
 		return err
 	}
 

@@ -3,7 +3,6 @@ package arangodb
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -31,7 +30,6 @@ func (p *provider) AddUser(user models.User) (models.User, error) {
 	userCollection, _ := p.db.Collection(nil, models.Collections.User)
 	meta, err := userCollection.CreateDocument(arangoDriver.WithOverwrite(nil), user)
 	if err != nil {
-		log.Println("error adding user:", err)
 		return user, err
 	}
 	user.Key = meta.Key
@@ -46,7 +44,6 @@ func (p *provider) UpdateUser(user models.User) (models.User, error) {
 	collection, _ := p.db.Collection(nil, models.Collections.User)
 	meta, err := collection.UpdateDocument(nil, user.Key, user)
 	if err != nil {
-		log.Println("error updating user:", err)
 		return user, err
 	}
 
@@ -60,7 +57,6 @@ func (p *provider) DeleteUser(user models.User) error {
 	collection, _ := p.db.Collection(nil, models.Collections.User)
 	_, err := collection.RemoveDocument(nil, user.Key)
 	if err != nil {
-		log.Println(`error deleting user:`, err)
 		return err
 	}
 

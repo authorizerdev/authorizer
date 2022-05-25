@@ -1,15 +1,19 @@
 package routes
 
 import (
+	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
+
 	"github.com/authorizerdev/authorizer/server/handlers"
 	"github.com/authorizerdev/authorizer/server/middlewares"
-	"github.com/gin-gonic/gin"
 )
 
 // InitRouter initializes gin router
-func InitRouter() *gin.Engine {
-	router := gin.Default()
-	// router.Use(location.Default())
+func InitRouter(log *logrus.Logger) *gin.Engine {
+	gin.SetMode(gin.ReleaseMode)
+	router := gin.New()
+
+	router.Use(middlewares.Logger(log), gin.Recovery())
 	router.Use(middlewares.GinContextToContextMiddleware())
 	router.Use(middlewares.CORSMiddleware())
 

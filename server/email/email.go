@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
-	"log"
 	"strconv"
 	"text/template"
 
+	log "github.com/sirupsen/logrus"
+	gomail "gopkg.in/mail.v2"
+
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/envstore"
-	gomail "gopkg.in/mail.v2"
 )
 
 // addEmailTemplate is used to add html template in email body
@@ -46,7 +47,7 @@ func SendMail(to []string, Subject, bodyMessage string) error {
 		d.TLSConfig = &tls.Config{InsecureSkipVerify: true}
 	}
 	if err := d.DialAndSend(m); err != nil {
-		log.Printf("smtp error: %s", err)
+		log.Debug("SMTP Failed: ", err)
 		return err
 	}
 	return nil

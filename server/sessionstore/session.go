@@ -2,8 +2,9 @@ package sessionstore
 
 import (
 	"context"
-	"log"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/envstore"
@@ -89,7 +90,7 @@ func RemoveState(key string) {
 // InitializeSessionStore initializes the SessionStoreObj based on environment variables
 func InitSession() error {
 	if envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyRedisURL) != "" {
-		log.Println("using redis store to save sessions")
+		log.Info("using redis store to save sessions")
 
 		redisURL := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyRedisURL)
 		redisURLHostPortsList := strings.Split(redisURL, ",")
@@ -97,6 +98,7 @@ func InitSession() error {
 		if len(redisURLHostPortsList) > 1 {
 			opt, err := redis.ParseURL(redisURLHostPortsList[0])
 			if err != nil {
+				log.Debug("error parsing redis url: ", err)
 				return err
 			}
 			urls := []string{opt.Addr}
@@ -108,6 +110,7 @@ func InitSession() error {
 			ctx := context.Background()
 			_, err = rdb.Ping(ctx).Result()
 			if err != nil {
+				log.Debug("error connecting to redis: ", err)
 				return err
 			}
 			SessionStoreObj.RedisMemoryStoreObj = &RedisStore{
@@ -121,6 +124,7 @@ func InitSession() error {
 
 		opt, err := redis.ParseURL(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyRedisURL))
 		if err != nil {
+			log.Debug("error parsing redis url: ", err)
 			return err
 		}
 
@@ -128,6 +132,7 @@ func InitSession() error {
 		ctx := context.Background()
 		_, err = rdb.Ping(ctx).Result()
 		if err != nil {
+			log.Debug("error connecting to redis: ", err)
 			return err
 		}
 
@@ -140,6 +145,7 @@ func InitSession() error {
 		return nil
 	}
 
+	log.Info("using in memory store to save sessions")
 	// if redis url is not set use in memory store
 	SessionStoreObj.InMemoryStoreObj = &InMemoryStore{
 		sessionStore: map[string]map[string]string{},

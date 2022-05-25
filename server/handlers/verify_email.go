@@ -6,13 +6,15 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/sessionstore"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
-	"github.com/gin-gonic/gin"
 )
 
 // VerifyEmailHandler handles the verify email route.
@@ -24,12 +26,14 @@ func VerifyEmailHandler() gin.HandlerFunc {
 		}
 		tokenInQuery := c.Query("token")
 		if tokenInQuery == "" {
+			log.Debug("Token is empty")
 			c.JSON(400, errorRes)
 			return
 		}
 
 		verificationRequest, err := db.Provider.GetVerificationRequestByToken(tokenInQuery)
 		if err != nil {
+			log.Debug("Error getting verification request: ", err)
 			errorRes["error_description"] = err.Error()
 			c.JSON(400, errorRes)
 			return
@@ -39,6 +43,7 @@ func VerifyEmailHandler() gin.HandlerFunc {
 		hostname := utils.GetHost(c)
 		claim, err := token.ParseJWTToken(tokenInQuery, hostname, verificationRequest.Nonce, verificationRequest.Email)
 		if err != nil {
+			log.Debug("Error parsing token: ", err)
 			errorRes["error_description"] = err.Error()
 			c.JSON(400, errorRes)
 			return
@@ -46,6 +51,7 @@ func VerifyEmailHandler() gin.HandlerFunc {
 
 		user, err := db.Provider.GetUserByEmail(claim["sub"].(string))
 		if err != nil {
+			log.Debug("Error getting user: ", err)
 			errorRes["error_description"] = err.Error()
 			c.JSON(400, errorRes)
 			return
@@ -79,6 +85,7 @@ func VerifyEmailHandler() gin.HandlerFunc {
 		}
 		authToken, err := token.CreateAuthToken(c, user, roles, scope)
 		if err != nil {
+			log.Debug("Error creating auth token: ", err)
 			errorRes["error_description"] = err.Error()
 			c.JSON(500, errorRes)
 			return

@@ -2,12 +2,12 @@ package env
 
 import (
 	"encoding/json"
-	"log"
 	"os"
 	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/crypto"
@@ -23,12 +23,14 @@ func GetEnvData() (envstore.Store, error) {
 	env, err := db.Provider.GetEnv()
 	// config not found in db
 	if err != nil {
+		log.Debug("Error while getting env data from db: ", err)
 		return result, err
 	}
 
 	encryptionKey := env.Hash
 	decryptedEncryptionKey, err := crypto.DecryptB64(encryptionKey)
 	if err != nil {
+		log.Debug("Error while decrypting encryption key: ", err)
 		return result, err
 	}
 
@@ -36,16 +38,19 @@ func GetEnvData() (envstore.Store, error) {
 
 	b64DecryptedConfig, err := crypto.DecryptB64(env.EnvData)
 	if err != nil {
+		log.Debug("Error while decrypting env data from B64: ", err)
 		return result, err
 	}
 
 	decryptedConfigs, err := crypto.DecryptAESEnv([]byte(b64DecryptedConfig))
 	if err != nil {
+		log.Debug("Error while decrypting env data from AES: ", err)
 		return result, err
 	}
 
 	err = json.Unmarshal(decryptedConfigs, &result)
 	if err != nil {
+		log.Debug("Error while unmarshalling env data: ", err)
 		return result, err
 	}
 
@@ -64,6 +69,7 @@ func PersistEnv() error {
 
 		encryptedConfig, err := crypto.EncryptEnvData(envstore.EnvStoreObj.GetEnvStoreClone())
 		if err != nil {
+			log.Debug("Error while encrypting env data: ", err)
 			return err
 		}
 
@@ -74,6 +80,7 @@ func PersistEnv() error {
 
 		env, err = db.Provider.AddEnv(env)
 		if err != nil {
+			log.Debug("Error while persisting env data to db: ", err)
 			return err
 		}
 	} else {
@@ -82,6 +89,7 @@ func PersistEnv() error {
 		encryptionKey := env.Hash
 		decryptedEncryptionKey, err := crypto.DecryptB64(encryptionKey)
 		if err != nil {
+			log.Debug("Error while decrypting encryption key: ", err)
 			return err
 		}
 
@@ -89,11 +97,13 @@ func PersistEnv() error {
 
 		b64DecryptedConfig, err := crypto.DecryptB64(env.EnvData)
 		if err != nil {
+			log.Debug("Error while decrypting env data from B64: ", err)
 			return err
 		}
 
 		decryptedConfigs, err := crypto.DecryptAESEnv([]byte(b64DecryptedConfig))
 		if err != nil {
+			log.Debug("Error while decrypting env data from AES: ", err)
 			return err
 		}
 
@@ -102,6 +112,7 @@ func PersistEnv() error {
 
 		err = json.Unmarshal(decryptedConfigs, &storeData)
 		if err != nil {
+			log.Debug("Error while unmarshalling env data: ", err)
 			return err
 		}
 
@@ -169,6 +180,7 @@ func PersistEnv() error {
 		envstore.EnvStoreObj.UpdateEnvStore(storeData)
 		jwk, err := crypto.GenerateJWKBasedOnEnv()
 		if err != nil {
+			log.Debug("Error while generating JWK: ", err)
 			return err
 		}
 		// updating jwk
@@ -177,13 +189,14 @@ func PersistEnv() error {
 		if hasChanged {
 			encryptedConfig, err := crypto.EncryptEnvData(storeData)
 			if err != nil {
+				log.Debug("Error while encrypting env data: ", err)
 				return err
 			}
 
 			env.EnvData = encryptedConfig
 			_, err = db.Provider.UpdateEnv(env)
 			if err != nil {
-				log.Println("error updating config:", err)
+				log.Debug("Failed to Update Config: ", err)
 				return err
 			}
 		}

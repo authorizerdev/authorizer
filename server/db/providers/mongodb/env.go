@@ -2,7 +2,6 @@ package mongodb
 
 import (
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/db/models"
@@ -23,7 +22,6 @@ func (p *provider) AddEnv(env models.Env) (models.Env, error) {
 	configCollection := p.db.Collection(models.Collections.Env, options.Collection())
 	_, err := configCollection.InsertOne(nil, env)
 	if err != nil {
-		log.Println("error adding config:", err)
 		return env, err
 	}
 	return env, nil
@@ -35,7 +33,6 @@ func (p *provider) UpdateEnv(env models.Env) (models.Env, error) {
 	configCollection := p.db.Collection(models.Collections.Env, options.Collection())
 	_, err := configCollection.UpdateOne(nil, bson.M{"_id": bson.M{"$eq": env.ID}}, bson.M{"$set": env}, options.MergeUpdateOptions())
 	if err != nil {
-		log.Println("error updating config:", err)
 		return env, err
 	}
 	return env, nil

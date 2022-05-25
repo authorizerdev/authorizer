@@ -5,11 +5,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/coreos/go-oidc/v3/oidc"
+	"github.com/gin-gonic/gin"
+	log "github.com/sirupsen/logrus"
+	"golang.org/x/oauth2"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/cookie"
@@ -20,9 +24,6 @@ import (
 	"github.com/authorizerdev/authorizer/server/sessionstore"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
-	"github.com/coreos/go-oidc/v3/oidc"
-	"github.com/gin-gonic/gin"
-	"golang.org/x/oauth2"
 )
 
 // OAuthCallbackHandler handles the OAuth callback for various oauth providers
@@ -33,6 +34,7 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 
 		sessionState := sessionstore.GetState(state)
 		if sessionState == "" {
+			log.Debug("Invalid oauth state: ", state)
 			c.JSON(400, gin.H{"error": "invalid oauth state"})
 		}
 		sessionstore.GetState(state)
@@ -40,6 +42,7 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 		sessionSplit := strings.Split(state, "___")
 
 		if len(sessionSplit) < 3 {
+			log.Debug("Unable to get redirect url from state: ", state)
 			c.JSON(400, gin.H{"error": "invalid redirect url"})
 			return
 		}
@@ -60,18 +63,22 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 		case constants.SignupMethodFacebook:
 			user, err = processFacebookUserInfo(code)
 		default:
+			log.Info("Invalid oauth provider")
 			err = fmt.Errorf(`invalid oauth provider`)
 		}
 
 		if err != nil {
+			log.Debug("Failed to process user info: ", err)
 			c.JSON(400, gin.H{"error": err.Error()})
 			return
 		}
 
 		existingUser, err := db.Provider.GetUserByEmail(user.Email)
+		log := log.WithField("user", user.Email)
 
 		if err != nil {
 			if envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableSignUp) {
+				log.Debug("Failed to signup as disabled")
 				c.JSON(400, gin.H{"error": "signup is disabled for this instance"})
 				return
 			}
@@ -86,6 +93,7 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			}
 
 			if hasProtectedRole {
+				log.Debug("Signup is not allowed with protected roles:", inputRoles)
 				c.JSON(400, gin.H{"error": "invalid role"})
 				return
 			}
@@ -96,6 +104,7 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			user, _ = db.Provider.AddUser(user)
 		} else {
 			if user.RevokedTimestamp != nil {
+				log.Debug("User access revoked at: ", user.RevokedTimestamp)
 				c.JSON(400, gin.H{"error": "user access has been revoked"})
 			}
 
@@ -137,6 +146,7 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 				}
 
 				if hasProtectedRole {
+					log.Debug("Invalid role. User is using protected unassigned role")
 					c.JSON(400, gin.H{"error": "invalid role"})
 					return
 				} else {
@@ -148,6 +158,7 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 
 			user, err = db.Provider.UpdateUser(user)
 			if err != nil {
+				log.Debug("Failed to update user: ", err)
 				c.JSON(500, gin.H{"error": err.Error()})
 				return
 			}
@@ -155,6 +166,7 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 
 		authToken, err := token.CreateAuthToken(c, user, inputRoles, scopes)
 		if err != nil {
+			log.Debug("Failed to create auth token: ", err)
 			c.JSON(500, gin.H{"error": err.Error()})
 		}
 
@@ -194,6 +206,7 @@ func processGoogleUserInfo(code string) (models.User, error) {
 	ctx := context.Background()
 	oauth2Token, err := oauth.OAuthProviders.GoogleConfig.Exchange(ctx, code)
 	if err != nil {
+		log.Debug("Failed to exchange code for token: ", err)
 		return user, fmt.Errorf("invalid google exchange code: %s", err.Error())
 	}
 
@@ -202,16 +215,19 @@ func processGoogleUserInfo(code string) (models.User, error) {
 	// Extract the ID Token from OAuth2 token.
 	rawIDToken, ok := oauth2Token.Extra("id_token").(string)
 	if !ok {
+		log.Debug("Failed to extract ID Token from OAuth2 token")
 		return user, fmt.Errorf("unable to extract id_token")
 	}
 
 	// Parse and verify ID Token payload.
 	idToken, err := verifier.Verify(ctx, rawIDToken)
 	if err != nil {
+		log.Debug("Failed to verify ID Token: ", err)
 		return user, fmt.Errorf("unable to verify id_token: %s", err.Error())
 	}
 
 	if err := idToken.Claims(&user); err != nil {
+		log.Debug("Failed to parse ID Token claims: ", err)
 		return user, fmt.Errorf("unable to extract claims")
 	}
 
@@ -222,11 +238,13 @@ func processGithubUserInfo(code string) (models.User, error) {
 	user := models.User{}
 	token, err := oauth.OAuthProviders.GithubConfig.Exchange(oauth2.NoContext, code)
 	if err != nil {
+		log.Debug("Failed to exchange code for token: ", err)
 		return user, fmt.Errorf("invalid github exchange code: %s", err.Error())
 	}
 	client := http.Client{}
 	req, err := http.NewRequest("GET", constants.GithubUserInfoURL, nil)
 	if err != nil {
+		log.Debug("Failed to create github user info request: ", err)
 		return user, fmt.Errorf("error creating github user info request: %s", err.Error())
 	}
 	req.Header = http.Header{
@@ -235,12 +253,14 @@ func processGithubUserInfo(code string) (models.User, error) {
 
 	response, err := client.Do(req)
 	if err != nil {
+		log.Debug("Failed to request github user info: ", err)
 		return user, err
 	}
 
 	defer response.Body.Close()
 	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
+		log.Debug("Failed to read github user info response body: ", err)
 		return user, fmt.Errorf("failed to read github response body: %s", err.Error())
 	}
 
@@ -273,23 +293,26 @@ func processFacebookUserInfo(code string) (models.User, error) {
 	user := models.User{}
 	token, err := oauth.OAuthProviders.FacebookConfig.Exchange(oauth2.NoContext, code)
 	if err != nil {
+		log.Debug("Invalid facebook exchange code: ", err)
 		return user, fmt.Errorf("invalid facebook exchange code: %s", err.Error())
 	}
 	client := http.Client{}
 	req, err := http.NewRequest("GET", constants.FacebookUserInfoURL+token.AccessToken, nil)
 	if err != nil {
+		log.Debug("Error creating facebook user info request: ", err)
 		return user, fmt.Errorf("error creating facebook user info request: %s", err.Error())
 	}
 
 	response, err := client.Do(req)
 	if err != nil {
-		log.Println("error processing facebook user info:", err)
+		log.Debug("Failed to process facebook user: ", err)
 		return user, err
 	}
 
 	defer response.Body.Close()
 	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
+		log.Debug("Failed to read facebook response: ", err)
 		return user, fmt.Errorf("failed to read facebook response body: %s", err.Error())
 	}
 

@@ -5,8 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"reflect"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/cookie"
@@ -23,14 +24,16 @@ import (
 // UpdateEnvResolver is a resolver for update config mutation
 // This is admin only mutation
 func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model.Response, error) {
-	gc, err := utils.GinContextFromContext(ctx)
 	var res *model.Response
 
+	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
+		log.Debug("Failed to get GinContext: ", err)
 		return res, err
 	}
 
 	if !token.IsSuperAdmin(gc) {
+		log.Debug("Not logged in as super admin")
 		return res, fmt.Errorf("unauthorized")
 	}
 
@@ -41,6 +44,7 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 	if params.JwtType != nil {
 		algo = *params.JwtType
 		if !crypto.IsHMACA(algo) && !crypto.IsECDSA(algo) && !crypto.IsRSA(algo) {
+			log.Debug("Invalid JWT type: ", algo)
 			return res, fmt.Errorf("invalid jwt type")
 		}
 
@@ -60,6 +64,7 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 		// check if jwt secret is provided
 		if crypto.IsHMACA(algo) {
 			if params.JwtSecret == nil {
+				log.Debug("JWT secret is required for HMAC")
 				return res, fmt.Errorf("jwt secret is required for HMAC algorithm")
 			}
 
@@ -70,6 +75,7 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 
 		if crypto.IsRSA(algo) {
 			if params.JwtPrivateKey == nil || params.JwtPublicKey == nil {
+				log.Debug("JWT private key and public key are required for RSA: ", *params.JwtPrivateKey, *params.JwtPublicKey)
 				return res, fmt.Errorf("jwt private and public key is required for RSA (PKCS1) / ECDSA algorithm")
 			}
 
@@ -77,17 +83,20 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 			params.JwtSecret = &defaultSecret
 			_, err = crypto.ParseRsaPrivateKeyFromPemStr(*params.JwtPrivateKey)
 			if err != nil {
+				log.Debug("Invalid JWT private key: ", err)
 				return res, err
 			}
 
 			_, err := crypto.ParseRsaPublicKeyFromPemStr(*params.JwtPublicKey)
 			if err != nil {
+				log.Debug("Invalid JWT public key: ", err)
 				return res, err
 			}
 		}
 
 		if crypto.IsECDSA(algo) {
 			if params.JwtPrivateKey == nil || params.JwtPublicKey == nil {
+				log.Debug("JWT private key and public key are required for ECDSA: ", *params.JwtPrivateKey, *params.JwtPublicKey)
 				return res, fmt.Errorf("jwt private and public key is required for RSA (PKCS1) / ECDSA algorithm")
 			}
 
@@ -95,11 +104,13 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 			params.JwtSecret = &defaultSecret
 			_, err = crypto.ParseEcdsaPrivateKeyFromPemStr(*params.JwtPrivateKey)
 			if err != nil {
+				log.Debug("Invalid JWT private key: ", err)
 				return res, err
 			}
 
 			_, err := crypto.ParseEcdsaPublicKeyFromPemStr(*params.JwtPublicKey)
 			if err != nil {
+				log.Debug("Invalid JWT public key: ", err)
 				return res, err
 			}
 		}
@@ -109,25 +120,30 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 	var data map[string]interface{}
 	byteData, err := json.Marshal(params)
 	if err != nil {
+		log.Debug("Failed to marshal update env input: ", err)
 		return res, fmt.Errorf("error marshalling params: %t", err)
 	}
 
 	err = json.Unmarshal(byteData, &data)
 	if err != nil {
+		log.Debug("Failed to unmarshal update env input: ", err)
 		return res, fmt.Errorf("error un-marshalling params: %t", err)
 	}
 
 	// in case of admin secret change update the cookie with new hash
 	if params.AdminSecret != nil {
 		if params.OldAdminSecret == nil {
+			log.Debug("Old admin secret is required for admin secret update")
 			return res, errors.New("admin secret and old admin secret are required for secret change")
 		}
 
 		if *params.OldAdminSecret != envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret) {
+			log.Debug("Old admin secret is invalid")
 			return res, errors.New("old admin secret is not correct")
 		}
 
 		if len(*params.AdminSecret) < 6 {
+			log.Debug("Admin secret is too short")
 			err = fmt.Errorf("admin secret must be at least 6 characters")
 			return res, err
 		}
@@ -173,6 +189,7 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 			// should be subset of roles
 			for _, role := range params.DefaultRoles {
 				if !utils.StringSliceContains(params.Roles, role) {
+					log.Debug("Default roles should be subset of roles")
 					return res, fmt.Errorf("default role %s is not in roles", role)
 				}
 			}
@@ -182,6 +199,7 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 	if len(params.ProtectedRoles) > 0 {
 		for _, role := range params.ProtectedRoles {
 			if utils.StringSliceContains(params.Roles, role) || utils.StringSliceContains(params.DefaultRoles, role) {
+				log.Debug("Protected roles should not be in roles or default roles")
 				return res, fmt.Errorf("protected role %s found roles or default roles", role)
 			}
 		}
@@ -191,12 +209,14 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 	envstore.EnvStoreObj.UpdateEnvStore(updatedData)
 	jwk, err := crypto.GenerateJWKBasedOnEnv()
 	if err != nil {
+		log.Debug("Failed to generate JWK: ", err)
 		return res, err
 	}
 	// updating jwk
 	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyJWK, jwk)
 	err = sessionstore.InitSession()
 	if err != nil {
+		log.Debug("Failed to init session store: ", err)
 		return res, err
 	}
 	err = oauth.InitOAuth()
@@ -207,12 +227,14 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 	// Fetch the current db store and update it
 	env, err := db.Provider.GetEnv()
 	if err != nil {
+		log.Debug("Failed to get env: ", err)
 		return res, err
 	}
 
 	if params.AdminSecret != nil {
 		hashedKey, err := crypto.EncryptPassword(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret))
 		if err != nil {
+			log.Debug("Failed to encrypt admin secret: ", err)
 			return res, err
 		}
 		cookie.SetAdminCookie(gc, hashedKey)
@@ -220,13 +242,14 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 
 	encryptedConfig, err := crypto.EncryptEnvData(updatedData)
 	if err != nil {
+		log.Debug("Failed to encrypt env data: ", err)
 		return res, err
 	}
 
 	env.EnvData = encryptedConfig
 	_, err = db.Provider.UpdateEnv(env)
 	if err != nil {
-		log.Println("error updating config:", err)
+		log.Debug("Failed to update env: ", err)
 		return res, err
 	}
 

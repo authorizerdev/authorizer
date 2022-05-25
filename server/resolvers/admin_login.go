@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/crypto"
@@ -14,15 +16,17 @@ import (
 
 // AdminLoginResolver is a resolver for admin login mutation
 func AdminLoginResolver(ctx context.Context, params model.AdminLoginInput) (*model.Response, error) {
-	gc, err := utils.GinContextFromContext(ctx)
 	var res *model.Response
 
+	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
+		log.Debug("Failed to get GinContext: ", err)
 		return res, err
 	}
 
 	adminSecret := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret)
 	if params.AdminSecret != adminSecret {
+		log.Debug("Admin secret is not correct")
 		return res, fmt.Errorf(`invalid admin secret`)
 	}
 

@@ -2,7 +2,6 @@ package cassandradb
 
 import (
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/db/models"
@@ -61,7 +60,6 @@ func (p *provider) ListVerificationRequests(pagination model.Pagination) (*model
 	totalCountQuery := fmt.Sprintf(`SELECT COUNT(*) FROM %s`, KeySpace+"."+models.Collections.VerificationRequest)
 	err := p.db.Query(totalCountQuery).Consistency(gocql.One).Scan(&paginationClone.Total)
 	if err != nil {
-		log.Println("Error while quering verification request", err)
 		return nil, err
 	}
 
@@ -77,7 +75,6 @@ func (p *provider) ListVerificationRequests(pagination model.Pagination) (*model
 			var verificationRequest models.VerificationRequest
 			err := scanner.Scan(&verificationRequest.ID, &verificationRequest.Token, &verificationRequest.Identifier, &verificationRequest.ExpiresAt, &verificationRequest.Email, &verificationRequest.Nonce, &verificationRequest.RedirectURI, &verificationRequest.CreatedAt, &verificationRequest.UpdatedAt)
 			if err != nil {
-				log.Println("Error while parsing verification request", err)
 				return nil, err
 			}
 			verificationRequests = append(verificationRequests, verificationRequest.AsAPIVerificationRequest())

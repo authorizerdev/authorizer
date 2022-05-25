@@ -6,14 +6,16 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/sessionstore"
 	"github.com/authorizerdev/authorizer/server/token"
-	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 // AuthorizeHandler is the handler for the /authorize route
@@ -48,6 +50,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 		}
 
 		if responseMode != "query" && responseMode != "web_message" {
+			log.Debug("Invalid response_mode: ", responseMode)
 			gc.JSON(400, gin.H{"error": "invalid response mode"})
 		}
 
@@ -63,6 +66,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 			if isQuery {
 				gc.Redirect(http.StatusFound, loginURL)
 			} else {
+				log.Debug("Failed to get client_id: ", clientID)
 				gc.HTML(http.StatusOK, template, gin.H{
 					"target_origin": redirectURI,
 					"authorization_response": map[string]interface{}{
@@ -80,6 +84,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 			if isQuery {
 				gc.Redirect(http.StatusFound, loginURL)
 			} else {
+				log.Debug("Invalid client_id: ", clientID)
 				gc.HTML(http.StatusOK, template, gin.H{
 					"target_origin": redirectURI,
 					"authorization_response": map[string]interface{}{
@@ -97,6 +102,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 			if isQuery {
 				gc.Redirect(http.StatusFound, loginURL)
 			} else {
+				log.Debug("Failed to get state: ", state)
 				gc.HTML(http.StatusOK, template, gin.H{
 					"target_origin": redirectURI,
 					"authorization_response": map[string]interface{}{
@@ -121,6 +127,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 			if isQuery {
 				gc.Redirect(http.StatusFound, loginURL)
 			} else {
+				log.Debug("Invalid response_type: ", responseType)
 				gc.HTML(http.StatusOK, template, gin.H{
 					"target_origin": redirectURI,
 					"authorization_response": map[string]interface{}{
@@ -139,6 +146,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 				if isQuery {
 					gc.Redirect(http.StatusFound, loginURL)
 				} else {
+					log.Debug("Failed to get code_challenge: ", codeChallenge)
 					gc.HTML(http.StatusBadRequest, template, gin.H{
 						"target_origin": redirectURI,
 						"authorization_response": map[string]interface{}{

@@ -4,10 +4,12 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/gin-gonic/gin"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/sessionstore"
-	"github.com/gin-gonic/gin"
 )
 
 // Handler to logout user
@@ -17,6 +19,7 @@ func LogoutHandler() gin.HandlerFunc {
 		// get fingerprint hash
 		fingerprintHash, err := cookie.GetSession(gc)
 		if err != nil {
+			log.Debug("Failed to get session: ", err)
 			gc.JSON(http.StatusUnauthorized, gin.H{
 				"error": err.Error(),
 			})
@@ -25,6 +28,7 @@ func LogoutHandler() gin.HandlerFunc {
 
 		decryptedFingerPrint, err := crypto.DecryptAES(fingerprintHash)
 		if err != nil {
+			log.Debug("Failed to decrypt fingerprint: ", err)
 			gc.JSON(http.StatusUnauthorized, gin.H{
 				"error": err.Error(),
 			})

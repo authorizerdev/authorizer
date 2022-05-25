@@ -1,7 +1,6 @@
 package sql
 
 import (
-	"log"
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/db/models"
@@ -25,7 +24,6 @@ func (p *provider) AddVerificationRequest(verificationRequest models.Verificatio
 	}).Create(&verificationRequest)
 
 	if result.Error != nil {
-		log.Println(`error saving verification request record`, result.Error)
 		return verificationRequest, result.Error
 	}
 
@@ -38,7 +36,6 @@ func (p *provider) GetVerificationRequestByToken(token string) (models.Verificat
 	result := p.db.Where("token = ?", token).First(&verificationRequest)
 
 	if result.Error != nil {
-		log.Println(`error getting verification request:`, result.Error)
 		return verificationRequest, result.Error
 	}
 
@@ -52,7 +49,6 @@ func (p *provider) GetVerificationRequestByEmail(email string, identifier string
 	result := p.db.Where("email = ? AND identifier = ?", email, identifier).First(&verificationRequest)
 
 	if result.Error != nil {
-		log.Println(`error getting verification token:`, result.Error)
 		return verificationRequest, result.Error
 	}
 
@@ -65,7 +61,6 @@ func (p *provider) ListVerificationRequests(pagination model.Pagination) (*model
 
 	result := p.db.Limit(int(pagination.Limit)).Offset(int(pagination.Offset)).Order("created_at DESC").Find(&verificationRequests)
 	if result.Error != nil {
-		log.Println("error getting verification requests:", result.Error)
 		return nil, result.Error
 	}
 
@@ -94,7 +89,6 @@ func (p *provider) DeleteVerificationRequest(verificationRequest models.Verifica
 	result := p.db.Delete(&verificationRequest)
 
 	if result.Error != nil {
-		log.Println(`error deleting verification request:`, result.Error)
 		return result.Error
 	}
 

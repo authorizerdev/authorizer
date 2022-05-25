@@ -1,7 +1,6 @@
 package sql
 
 import (
-	"log"
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/db/models"
@@ -23,7 +22,6 @@ func (p *provider) AddSession(session models.Session) error {
 			DoNothing: true,
 		}).Create(&session)
 	if res.Error != nil {
-		log.Println(`error saving session`, res.Error)
 		return res.Error
 	}
 	return nil
@@ -34,7 +32,6 @@ func (p *provider) DeleteSession(userId string) error {
 	result := p.db.Where("user_id = ?", userId).Delete(&models.Session{})
 
 	if result.Error != nil {
-		log.Println(`error deleting session:`, result.Error)
 		return result.Error
 	}
 	return nil

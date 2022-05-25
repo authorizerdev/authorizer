@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/token"
@@ -15,10 +17,12 @@ import (
 func VerificationRequestsResolver(ctx context.Context, params *model.PaginatedInput) (*model.VerificationRequests, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
+		log.Debug("Failed to get GinContext: ", err)
 		return nil, err
 	}
 
 	if !token.IsSuperAdmin(gc) {
+		log.Debug("Not logged in as super admin")
 		return nil, fmt.Errorf("unauthorized")
 	}
 
@@ -26,6 +30,7 @@ func VerificationRequestsResolver(ctx context.Context, params *model.PaginatedIn
 
 	res, err := db.Provider.ListVerificationRequests(pagination)
 	if err != nil {
+		log.Debug("Failed to get verification requests: ", err)
 		return nil, err
 	}
 

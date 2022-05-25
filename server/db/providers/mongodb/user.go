@@ -1,7 +1,6 @@
 package mongodb
 
 import (
-	"log"
 	"strings"
 	"time"
 
@@ -29,7 +28,6 @@ func (p *provider) AddUser(user models.User) (models.User, error) {
 	userCollection := p.db.Collection(models.Collections.User, options.Collection())
 	_, err := userCollection.InsertOne(nil, user)
 	if err != nil {
-		log.Println("error adding user:", err)
 		return user, err
 	}
 
@@ -42,7 +40,6 @@ func (p *provider) UpdateUser(user models.User) (models.User, error) {
 	userCollection := p.db.Collection(models.Collections.User, options.Collection())
 	_, err := userCollection.UpdateOne(nil, bson.M{"_id": bson.M{"$eq": user.ID}}, bson.M{"$set": user}, options.MergeUpdateOptions())
 	if err != nil {
-		log.Println("error updating user:", err)
 		return user, err
 	}
 	return user, nil
@@ -53,7 +50,6 @@ func (p *provider) DeleteUser(user models.User) error {
 	userCollection := p.db.Collection(models.Collections.User, options.Collection())
 	_, err := userCollection.DeleteOne(nil, bson.M{"_id": user.ID}, options.Delete())
 	if err != nil {
-		log.Println("error deleting user:", err)
 		return err
 	}
 
@@ -74,7 +70,6 @@ func (p *provider) ListUsers(pagination model.Pagination) (*model.Users, error) 
 	userCollection := p.db.Collection(models.Collections.User, options.Collection())
 	count, err := userCollection.CountDocuments(nil, bson.M{}, options.Count())
 	if err != nil {
-		log.Println("error getting total users:", err)
 		return nil, err
 	}
 
@@ -82,7 +77,6 @@ func (p *provider) ListUsers(pagination model.Pagination) (*model.Users, error) 
 
 	cursor, err := userCollection.Find(nil, bson.M{}, opts)
 	if err != nil {
-		log.Println("error getting users:", err)
 		return nil, err
 	}
 	defer cursor.Close(nil)

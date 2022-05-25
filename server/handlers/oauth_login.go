@@ -4,12 +4,14 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/gin-gonic/gin"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/oauth"
 	"github.com/authorizerdev/authorizer/server/sessionstore"
 	"github.com/authorizerdev/authorizer/server/utils"
-	"github.com/gin-gonic/gin"
 )
 
 // OAuthLoginHandler set host in the oauth state that is useful for redirecting to oauth_callback
@@ -26,6 +28,7 @@ func OAuthLoginHandler() gin.HandlerFunc {
 		scopeString := strings.TrimSpace(c.Query("scope"))
 
 		if redirectURI == "" {
+			log.Debug("redirect_uri is empty")
 			c.JSON(400, gin.H{
 				"error": "invalid redirect uri",
 			})
@@ -33,6 +36,7 @@ func OAuthLoginHandler() gin.HandlerFunc {
 		}
 
 		if state == "" {
+			log.Debug("state is empty")
 			c.JSON(400, gin.H{
 				"error": "invalid state",
 			})
@@ -53,6 +57,7 @@ func OAuthLoginHandler() gin.HandlerFunc {
 			// use protected roles verification for admin login only.
 			// though if not associated with user, it will be rejected from oauth_callback
 			if !utils.IsValidRoles(rolesSplit, append([]string{}, append(envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyRoles), envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyProtectedRoles)...)...)) {
+				log.Debug("Invalid roles: ", roles)
 				c.JSON(400, gin.H{
 					"error": "invalid role",
 				})
@@ -69,6 +74,7 @@ func OAuthLoginHandler() gin.HandlerFunc {
 		switch provider {
 		case constants.SignupMethodGoogle:
 			if oauth.OAuthProviders.GoogleConfig == nil {
+				log.Debug("Google OAuth provider is not configured")
 				isProviderConfigured = false
 				break
 			}
@@ -79,6 +85,7 @@ func OAuthLoginHandler() gin.HandlerFunc {
 			c.Redirect(http.StatusTemporaryRedirect, url)
 		case constants.SignupMethodGithub:
 			if oauth.OAuthProviders.GithubConfig == nil {
+				log.Debug("Github OAuth provider is not configured")
 				isProviderConfigured = false
 				break
 			}
@@ -88,6 +95,7 @@ func OAuthLoginHandler() gin.HandlerFunc {
 			c.Redirect(http.StatusTemporaryRedirect, url)
 		case constants.SignupMethodFacebook:
 			if oauth.OAuthProviders.FacebookConfig == nil {
+				log.Debug("Facebook OAuth provider is not configured")
 				isProviderConfigured = false
 				break
 			}
@@ -96,6 +104,7 @@ func OAuthLoginHandler() gin.HandlerFunc {
 			url := oauth.OAuthProviders.FacebookConfig.AuthCodeURL(oauthStateString)
 			c.Redirect(http.StatusTemporaryRedirect, url)
 		default:
+			log.Debug("Invalid oauth provider: ", provider)
 			c.JSON(422, gin.H{
 				"message": "Invalid oauth provider",
 			})
