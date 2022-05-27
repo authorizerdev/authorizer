@@ -1,27 +1,24 @@
-package sessionstore
+package redis
 
 import (
-	"context"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
 )
 
-type RedisStore struct {
-	ctx   context.Context
-	store RedisSessionClient
-}
-
 // ClearStore clears the redis store for authorizer related tokens
-func (c *RedisStore) ClearStore() {
+func (c *provider) ClearStore() error {
 	err := c.store.Del(c.ctx, "authorizer_*").Err()
 	if err != nil {
 		log.Debug("Error clearing redis store: ", err)
+		return err
 	}
+
+	return nil
 }
 
 // GetUserSessions returns all the user session token from the redis store.
-func (c *RedisStore) GetUserSessions(userID string) map[string]string {
+func (c *provider) GetUserSessions(userID string) map[string]string {
 	data, err := c.store.HGetAll(c.ctx, "*").Result()
 	if err != nil {
 		log.Debug("error getting token from redis store: ", err)
@@ -39,28 +36,34 @@ func (c *RedisStore) GetUserSessions(userID string) map[string]string {
 }
 
 // DeleteAllUserSession deletes all the user session from redis
-func (c *RedisStore) DeleteAllUserSession(userId string) {
-	sessions := GetUserSessions(userId)
+func (c *provider) DeleteAllUserSession(userId string) error {
+	sessions := c.GetUserSessions(userId)
 	for k, v := range sessions {
 		if k == "token" {
-			err := c.store.Del(c.ctx, v)
+			err := c.store.Del(c.ctx, v).Err()
 			if err != nil {
 				log.Debug("Error deleting redis token: ", err)
+				return err
 			}
 		}
 	}
+
+	return nil
 }
 
 // SetState sets the state in redis store.
-func (c *RedisStore) SetState(key, value string) {
+func (c *provider) SetState(key, value string) error {
 	err := c.store.Set(c.ctx, "authorizer_"+key, value, 0).Err()
 	if err != nil {
 		log.Debug("Error saving redis token: ", err)
+		return err
 	}
+
+	return nil
 }
 
 // GetState gets the state from redis store.
-func (c *RedisStore) GetState(key string) string {
+func (c *provider) GetState(key string) string {
 	state := ""
 	state, err := c.store.Get(c.ctx, "authorizer_"+key).Result()
 	if err != nil {
@@ -71,9 +74,12 @@ func (c *RedisStore) GetState(key string) string {
 }
 
 // RemoveState removes the state from redis store.
-func (c *RedisStore) RemoveState(key string) {
+func (c *provider) RemoveState(key string) error {
 	err := c.store.Del(c.ctx, "authorizer_"+key).Err()
 	if err != nil {
 		log.Fatalln("Error deleting redis token: ", err)
+		return err
 	}
+
+	return nil
 }

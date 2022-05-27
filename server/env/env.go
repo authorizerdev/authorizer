@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/joho/godotenv"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/constants"
@@ -14,81 +13,6 @@ import (
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
-
-// InitRequiredEnv to initialize EnvData and through error if required env are not present
-func InitRequiredEnv() error {
-	envPath := os.Getenv(constants.EnvKeyEnvPath)
-
-	if envPath == "" {
-		envPath = envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyEnvPath)
-		if envPath == "" {
-			envPath = `.env`
-		}
-	}
-
-	if envstore.ARG_ENV_FILE != nil && *envstore.ARG_ENV_FILE != "" {
-		envPath = *envstore.ARG_ENV_FILE
-	}
-	log.Info("env path: ", envPath)
-
-	err := godotenv.Load(envPath)
-	if err != nil {
-		log.Info("using OS env instead of %s file", envPath)
-	}
-
-	dbURL := os.Getenv(constants.EnvKeyDatabaseURL)
-	dbType := os.Getenv(constants.EnvKeyDatabaseType)
-	dbName := os.Getenv(constants.EnvKeyDatabaseName)
-	dbPort := os.Getenv(constants.EnvKeyDatabasePort)
-	dbHost := os.Getenv(constants.EnvKeyDatabaseHost)
-	dbUsername := os.Getenv(constants.EnvKeyDatabaseUsername)
-	dbPassword := os.Getenv(constants.EnvKeyDatabasePassword)
-	dbCert := os.Getenv(constants.EnvKeyDatabaseCert)
-	dbCertKey := os.Getenv(constants.EnvKeyDatabaseCertKey)
-	dbCACert := os.Getenv(constants.EnvKeyDatabaseCACert)
-
-	if strings.TrimSpace(dbType) == "" {
-		if envstore.ARG_DB_TYPE != nil && *envstore.ARG_DB_TYPE != "" {
-			dbType = strings.TrimSpace(*envstore.ARG_DB_TYPE)
-		}
-
-		if dbType == "" {
-			log.Debug("DATABASE_TYPE is not set")
-			return errors.New("invalid database type. DATABASE_TYPE is empty")
-		}
-	}
-
-	if strings.TrimSpace(dbURL) == "" && envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL) == "" {
-		if envstore.ARG_DB_URL != nil && *envstore.ARG_DB_URL != "" {
-			dbURL = strings.TrimSpace(*envstore.ARG_DB_URL)
-		}
-
-		if dbURL == "" && dbPort == "" && dbHost == "" && dbUsername == "" && dbPassword == "" {
-			log.Debug("DATABASE_URL is not set")
-			return errors.New("invalid database url. DATABASE_URL is required")
-		}
-	}
-
-	if dbName == "" {
-		if dbName == "" {
-			dbName = "authorizer"
-		}
-	}
-
-	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyEnvPath, envPath)
-	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseURL, dbURL)
-	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseType, dbType)
-	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseName, dbName)
-	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseHost, dbHost)
-	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabasePort, dbPort)
-	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseUsername, dbUsername)
-	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabasePassword, dbPassword)
-	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseCert, dbCert)
-	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseCertKey, dbCertKey)
-	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseCACert, dbCACert)
-
-	return nil
-}
 
 // InitEnv to initialize EnvData and through error if required env are not present
 func InitAllEnv() error {

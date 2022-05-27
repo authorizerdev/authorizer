@@ -9,8 +9,8 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/envstore"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/oauth"
-	"github.com/authorizerdev/authorizer/server/sessionstore"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
@@ -78,7 +78,7 @@ func OAuthLoginHandler() gin.HandlerFunc {
 				isProviderConfigured = false
 				break
 			}
-			sessionstore.SetState(oauthStateString, constants.SignupMethodGoogle)
+			memorystore.Provider.SetState(oauthStateString, constants.SignupMethodGoogle)
 			// during the init of OAuthProvider authorizer url might be empty
 			oauth.OAuthProviders.GoogleConfig.RedirectURL = hostname + "/oauth_callback/google"
 			url := oauth.OAuthProviders.GoogleConfig.AuthCodeURL(oauthStateString)
@@ -89,7 +89,7 @@ func OAuthLoginHandler() gin.HandlerFunc {
 				isProviderConfigured = false
 				break
 			}
-			sessionstore.SetState(oauthStateString, constants.SignupMethodGithub)
+			memorystore.Provider.SetState(oauthStateString, constants.SignupMethodGithub)
 			oauth.OAuthProviders.GithubConfig.RedirectURL = hostname + "/oauth_callback/github"
 			url := oauth.OAuthProviders.GithubConfig.AuthCodeURL(oauthStateString)
 			c.Redirect(http.StatusTemporaryRedirect, url)
@@ -99,7 +99,7 @@ func OAuthLoginHandler() gin.HandlerFunc {
 				isProviderConfigured = false
 				break
 			}
-			sessionstore.SetState(oauthStateString, constants.SignupMethodFacebook)
+			memorystore.Provider.SetState(oauthStateString, constants.SignupMethodFacebook)
 			oauth.OAuthProviders.FacebookConfig.RedirectURL = hostname + "/oauth_callback/facebook"
 			url := oauth.OAuthProviders.FacebookConfig.AuthCodeURL(oauthStateString)
 			c.Redirect(http.StatusTemporaryRedirect, url)

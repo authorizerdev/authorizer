@@ -9,8 +9,8 @@ import (
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/resolvers"
-	"github.com/authorizerdev/authorizer/server/sessionstore"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -34,7 +34,7 @@ func sessionTests(t *testing.T, s TestSetup) {
 			Token: verificationRequest.Token,
 		})
 
-		sessions := sessionstore.GetUserSessions(verifyRes.User.ID)
+		sessions := memorystore.Provider.GetUserSessions(verifyRes.User.ID)
 		cookie := ""
 		token := *verifyRes.AccessToken
 		// set all they keys in cookie one of them should be session cookie

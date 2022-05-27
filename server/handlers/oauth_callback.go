@@ -20,8 +20,8 @@ import (
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/envstore"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/oauth"
-	"github.com/authorizerdev/authorizer/server/sessionstore"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
@@ -32,12 +32,12 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 		provider := c.Param("oauth_provider")
 		state := c.Request.FormValue("state")
 
-		sessionState := sessionstore.GetState(state)
+		sessionState := memorystore.Provider.GetState(state)
 		if sessionState == "" {
 			log.Debug("Invalid oauth state: ", state)
 			c.JSON(400, gin.H{"error": "invalid oauth state"})
 		}
-		sessionstore.GetState(state)
+		memorystore.Provider.GetState(state)
 		// contains random token, redirect url, role
 		sessionSplit := strings.Split(state, "___")
 
@@ -178,12 +178,12 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 		params := "access_token=" + authToken.AccessToken.Token + "&token_type=bearer&expires_in=" + strconv.FormatInt(expiresIn, 10) + "&state=" + stateValue + "&id_token=" + authToken.IDToken.Token
 
 		cookie.SetSession(c, authToken.FingerPrintHash)
-		sessionstore.SetState(authToken.FingerPrintHash, authToken.FingerPrint+"@"+user.ID)
-		sessionstore.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
+		memorystore.Provider.SetState(authToken.FingerPrintHash, authToken.FingerPrint+"@"+user.ID)
+		memorystore.Provider.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
 
 		if authToken.RefreshToken != nil {
 			params = params + `&refresh_token=` + authToken.RefreshToken.Token
-			sessionstore.SetState(authToken.RefreshToken.Token, authToken.FingerPrint+"@"+user.ID)
+			memorystore.Provider.SetState(authToken.RefreshToken.Token, authToken.FingerPrint+"@"+user.ID)
 		}
 
 		go db.Provider.AddSession(models.Session{

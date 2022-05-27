@@ -16,7 +16,6 @@ import (
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/oauth"
-	"github.com/authorizerdev/authorizer/server/sessionstore"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
@@ -214,11 +213,13 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 	}
 	// updating jwk
 	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyJWK, jwk)
-	err = sessionstore.InitSession()
-	if err != nil {
-		log.Debug("Failed to init session store: ", err)
-		return res, err
-	}
+
+	// TODO check how to update session store based on env change.
+	// err = sessionstore.InitSession()
+	// if err != nil {
+	// 	log.Debug("Failed to init session store: ", err)
+	// 	return res, err
+	// }
 	err = oauth.InitOAuth()
 	if err != nil {
 		return res, err

@@ -16,7 +16,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/email"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
-	"github.com/authorizerdev/authorizer/server/sessionstore"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"golang.org/x/crypto/bcrypt"
@@ -141,7 +141,7 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 			return res, fmt.Errorf("user with this email address already exists")
 		}
 
-		go sessionstore.DeleteAllUserSession(user.ID)
+		go memorystore.Provider.DeleteAllUserSession(user.ID)
 		go cookie.DeleteSession(gc)
 
 		user.Email = newEmail

@@ -11,7 +11,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/graph/model"
-	"github.com/authorizerdev/authorizer/server/sessionstore"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
@@ -76,9 +76,9 @@ func SessionResolver(ctx context.Context, params *model.SessionQueryInput) (*mod
 	}
 
 	// rollover the session for security
-	sessionstore.RemoveState(sessionToken)
-	sessionstore.SetState(authToken.FingerPrintHash, authToken.FingerPrint+"@"+user.ID)
-	sessionstore.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
+	memorystore.Provider.RemoveState(sessionToken)
+	memorystore.Provider.SetState(authToken.FingerPrintHash, authToken.FingerPrint+"@"+user.ID)
+	memorystore.Provider.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
 	cookie.SetSession(gc, authToken.FingerPrintHash)
 
 	expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
@@ -96,7 +96,7 @@ func SessionResolver(ctx context.Context, params *model.SessionQueryInput) (*mod
 
 	if authToken.RefreshToken != nil {
 		res.RefreshToken = &authToken.RefreshToken.Token
-		sessionstore.SetState(authToken.RefreshToken.Token, authToken.FingerPrint+"@"+user.ID)
+		memorystore.Provider.SetState(authToken.RefreshToken.Token, authToken.FingerPrint+"@"+user.ID)
 	}
 
 	return res, nil

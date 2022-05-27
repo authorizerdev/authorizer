@@ -12,8 +12,8 @@ import (
 	"github.com/authorizerdev/authorizer/server/env"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/handlers"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/middlewares"
-	"github.com/authorizerdev/authorizer/server/sessionstore"
 	"github.com/gin-gonic/gin"
 )
 
@@ -77,16 +77,16 @@ func testSetup() TestSetup {
 	}
 
 	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyEnvPath, "../../.env.sample")
-	env.InitRequiredEnv()
+	memorystore.InitMemStore()
 	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeySmtpHost, "smtp.yopmail.com")
 	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeySmtpPort, "2525")
 	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeySmtpUsername, "lakhan@yopmail.com")
 	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeySmtpPassword, "test")
 	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeySenderEmail, "info@yopmail.com")
 	envstore.EnvStoreObj.UpdateEnvVariable(constants.SliceStoreIdentifier, constants.EnvKeyProtectedRoles, []string{"admin"})
+	memorystore.InitMemStore()
 	db.InitDB()
 	env.InitAllEnv()
-	sessionstore.InitSession()
 
 	w := httptest.NewRecorder()
 	c, r := gin.CreateTestContext(w)

@@ -10,7 +10,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/graph/model"
-	"github.com/authorizerdev/authorizer/server/sessionstore"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
@@ -38,7 +38,7 @@ func ValidateJwtTokenResolver(ctx context.Context, params model.ValidateJWTToken
 	nonce := ""
 	// access_token and refresh_token should be validated from session store as well
 	if tokenType == "access_token" || tokenType == "refresh_token" {
-		savedSession := sessionstore.GetState(params.Token)
+		savedSession := memorystore.Provider.GetState(params.Token)
 		if savedSession == "" {
 			return &model.ValidateJWTTokenResponse{
 				IsValid: false,

@@ -14,7 +14,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/envstore"
-	"github.com/authorizerdev/authorizer/server/sessionstore"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/token"
 )
 
@@ -98,7 +98,7 @@ func TokenHandler() gin.HandlerFunc {
 			encryptedCode := strings.ReplaceAll(base64.URLEncoding.EncodeToString(hash.Sum(nil)), "+", "-")
 			encryptedCode = strings.ReplaceAll(encryptedCode, "/", "_")
 			encryptedCode = strings.ReplaceAll(encryptedCode, "=", "")
-			sessionData := sessionstore.GetState(encryptedCode)
+			sessionData := memorystore.Provider.GetState(encryptedCode)
 			if sessionData == "" {
 				log.Debug("Session data is empty")
 				gc.JSON(http.StatusBadRequest, gin.H{
@@ -132,7 +132,7 @@ func TokenHandler() gin.HandlerFunc {
 				return
 			}
 			// rollover the session for security
-			sessionstore.RemoveState(sessionDataSplit[1])
+			memorystore.Provider.RemoveState(sessionDataSplit[1])
 			userID = claims.Subject
 			roles = claims.Roles
 			scope = claims.Scope
@@ -164,7 +164,7 @@ func TokenHandler() gin.HandlerFunc {
 				scope = append(scope, v.(string))
 			}
 			// remove older refresh token and rotate it for security
-			sessionstore.RemoveState(refreshToken)
+			memorystore.Provider.RemoveState(refreshToken)
 		}
 
 		user, err := db.Provider.GetUserByID(userID)
@@ -186,8 +186,8 @@ func TokenHandler() gin.HandlerFunc {
 			})
 			return
 		}
-		sessionstore.SetState(authToken.FingerPrintHash, authToken.FingerPrint+"@"+user.ID)
-		sessionstore.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
+		memorystore.Provider.SetState(authToken.FingerPrintHash, authToken.FingerPrint+"@"+user.ID)
+		memorystore.Provider.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
 		cookie.SetSession(gc, authToken.FingerPrintHash)
 
 		expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
@@ -205,7 +205,7 @@ func TokenHandler() gin.HandlerFunc {
 
 		if authToken.RefreshToken != nil {
 			res["refresh_token"] = authToken.RefreshToken.Token
-			sessionstore.SetState(authToken.RefreshToken.Token, authToken.FingerPrint+"@"+user.ID)
+			memorystore.Provider.SetState(authToken.RefreshToken.Token, authToken.FingerPrint+"@"+user.ID)
 		}
 
 		gc.JSON(http.StatusOK, res)

@@ -9,7 +9,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/crypto"
-	"github.com/authorizerdev/authorizer/server/sessionstore"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 )
 
 // Handler to logout user
@@ -37,7 +37,10 @@ func LogoutHandler() gin.HandlerFunc {
 
 		fingerPrint := string(decryptedFingerPrint)
 
-		sessionstore.RemoveState(fingerPrint)
+		err = memorystore.Provider.RemoveState(fingerPrint)
+		if err != nil {
+			log.Debug("Failed to remove state: ", err)
+		}
 		cookie.DeleteSession(gc)
 
 		if redirectURL != "" {

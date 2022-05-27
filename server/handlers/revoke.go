@@ -9,7 +9,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/envstore"
-	"github.com/authorizerdev/authorizer/server/sessionstore"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 )
 
 // Revoke handler to revoke refresh token
@@ -46,7 +46,7 @@ func RevokeHandler() gin.HandlerFunc {
 			return
 		}
 
-		sessionstore.RemoveState(refreshToken)
+		memorystore.Provider.RemoveState(refreshToken)
 
 		gc.JSON(http.StatusOK, gin.H{
 			"message": "Token revoked successfully",

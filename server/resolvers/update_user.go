@@ -14,7 +14,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/email"
 	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
-	"github.com/authorizerdev/authorizer/server/sessionstore"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
@@ -112,7 +112,7 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 		}
 
 		// TODO figure out how to do this
-		go sessionstore.DeleteAllUserSession(user.ID)
+		go memorystore.Provider.DeleteAllUserSession(user.ID)
 
 		hostname := utils.GetHost(gc)
 		user.Email = newEmail
@@ -164,7 +164,7 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 			rolesToSave = strings.Join(inputRoles, ",")
 		}
 
-		go sessionstore.DeleteAllUserSession(user.ID)
+		go memorystore.Provider.DeleteAllUserSession(user.ID)
 	}
 
 	if rolesToSave != "" {

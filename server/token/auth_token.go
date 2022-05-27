@@ -17,7 +17,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/envstore"
-	"github.com/authorizerdev/authorizer/server/sessionstore"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
@@ -186,7 +186,7 @@ func ValidateAccessToken(gc *gin.Context, accessToken string) (map[string]interf
 		return res, fmt.Errorf(`unauthorized`)
 	}
 
-	savedSession := sessionstore.GetState(accessToken)
+	savedSession := memorystore.Provider.GetState(accessToken)
 	if savedSession == "" {
 		return res, fmt.Errorf(`unauthorized`)
 	}
@@ -216,7 +216,7 @@ func ValidateRefreshToken(gc *gin.Context, refreshToken string) (map[string]inte
 		return res, fmt.Errorf(`unauthorized`)
 	}
 
-	savedSession := sessionstore.GetState(refreshToken)
+	savedSession := memorystore.Provider.GetState(refreshToken)
 	if savedSession == "" {
 		return res, fmt.Errorf(`unauthorized`)
 	}
@@ -243,7 +243,7 @@ func ValidateBrowserSession(gc *gin.Context, encryptedSession string) (*SessionD
 		return nil, fmt.Errorf(`unauthorized`)
 	}
 
-	savedSession := sessionstore.GetState(encryptedSession)
+	savedSession := memorystore.Provider.GetState(encryptedSession)
 	if savedSession == "" {
 		return nil, fmt.Errorf(`unauthorized`)
 	}
