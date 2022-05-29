@@ -10,7 +10,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/crypto"
-	"github.com/authorizerdev/authorizer/server/envstore"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
@@ -20,90 +20,94 @@ func InitAllEnv() error {
 	if err != nil {
 		log.Info("No env data found in db, using local clone of env data")
 		// get clone of current store
-		envData = envstore.EnvStoreObj.GetEnvStoreClone()
+		envData, err = memorystore.Provider.GetEnvStore()
+		if err != nil {
+			log.Debug("Error while getting env data from memorystore: ", err)
+			return err
+		}
 	}
 
-	clientID := envData.StringEnv[constants.EnvKeyClientID]
+	clientID := envData[constants.EnvKeyClientID].(string)
 	// unique client id for each instance
 	if clientID == "" {
 		clientID = uuid.New().String()
-		envData.StringEnv[constants.EnvKeyClientID] = clientID
+		envData[constants.EnvKeyClientID] = clientID
 	}
 
-	clientSecret := envData.StringEnv[constants.EnvKeyClientSecret]
+	clientSecret := envData[constants.EnvKeyClientSecret]
 	// unique client id for each instance
 	if clientSecret == "" {
 		clientSecret = uuid.New().String()
-		envData.StringEnv[constants.EnvKeyClientSecret] = clientSecret
+		envData[constants.EnvKeyClientSecret] = clientSecret
 	}
 
-	if envData.StringEnv[constants.EnvKeyEnv] == "" {
-		envData.StringEnv[constants.EnvKeyEnv] = os.Getenv(constants.EnvKeyEnv)
-		if envData.StringEnv[constants.EnvKeyEnv] == "" {
-			envData.StringEnv[constants.EnvKeyEnv] = "production"
+	if envData[constants.EnvKeyEnv] == "" {
+		envData[constants.EnvKeyEnv] = os.Getenv(constants.EnvKeyEnv)
+		if envData[constants.EnvKeyEnv] == "" {
+			envData[constants.EnvKeyEnv] = "production"
 		}
 
-		if envData.StringEnv[constants.EnvKeyEnv] == "production" {
-			envData.BoolEnv[constants.EnvKeyIsProd] = true
+		if envData[constants.EnvKeyEnv] == "production" {
+			envData[constants.EnvKeyIsProd] = true
 		} else {
-			envData.BoolEnv[constants.EnvKeyIsProd] = false
+			envData[constants.EnvKeyIsProd] = false
 		}
 	}
 
-	if envData.StringEnv[constants.EnvKeyAppURL] == "" {
-		envData.StringEnv[constants.EnvKeyAppURL] = os.Getenv(constants.EnvKeyAppURL)
+	if envData[constants.EnvKeyAppURL] == "" {
+		envData[constants.EnvKeyAppURL] = os.Getenv(constants.EnvKeyAppURL)
 	}
 
-	if envData.StringEnv[constants.EnvKeyAuthorizerURL] == "" {
-		envData.StringEnv[constants.EnvKeyAuthorizerURL] = os.Getenv(constants.EnvKeyAuthorizerURL)
+	if envData[constants.EnvKeyAuthorizerURL] == "" {
+		envData[constants.EnvKeyAuthorizerURL] = os.Getenv(constants.EnvKeyAuthorizerURL)
 	}
 
-	if envData.StringEnv[constants.EnvKeyPort] == "" {
-		envData.StringEnv[constants.EnvKeyPort] = os.Getenv(constants.EnvKeyPort)
-		if envData.StringEnv[constants.EnvKeyPort] == "" {
-			envData.StringEnv[constants.EnvKeyPort] = "8080"
+	if envData[constants.EnvKeyPort] == "" {
+		envData[constants.EnvKeyPort] = os.Getenv(constants.EnvKeyPort)
+		if envData[constants.EnvKeyPort] == "" {
+			envData[constants.EnvKeyPort] = "8080"
 		}
 	}
 
-	if envData.StringEnv[constants.EnvKeyAccessTokenExpiryTime] == "" {
-		envData.StringEnv[constants.EnvKeyAccessTokenExpiryTime] = os.Getenv(constants.EnvKeyAccessTokenExpiryTime)
-		if envData.StringEnv[constants.EnvKeyAccessTokenExpiryTime] == "" {
-			envData.StringEnv[constants.EnvKeyAccessTokenExpiryTime] = "30m"
+	if envData[constants.EnvKeyAccessTokenExpiryTime] == "" {
+		envData[constants.EnvKeyAccessTokenExpiryTime] = os.Getenv(constants.EnvKeyAccessTokenExpiryTime)
+		if envData[constants.EnvKeyAccessTokenExpiryTime] == "" {
+			envData[constants.EnvKeyAccessTokenExpiryTime] = "30m"
 		}
 	}
 
-	if envData.StringEnv[constants.EnvKeyAdminSecret] == "" {
-		envData.StringEnv[constants.EnvKeyAdminSecret] = os.Getenv(constants.EnvKeyAdminSecret)
+	if envData[constants.EnvKeyAdminSecret] == "" {
+		envData[constants.EnvKeyAdminSecret] = os.Getenv(constants.EnvKeyAdminSecret)
 	}
 
-	if envData.StringEnv[constants.EnvKeySmtpHost] == "" {
-		envData.StringEnv[constants.EnvKeySmtpHost] = os.Getenv(constants.EnvKeySmtpHost)
+	if envData[constants.EnvKeySmtpHost] == "" {
+		envData[constants.EnvKeySmtpHost] = os.Getenv(constants.EnvKeySmtpHost)
 	}
 
-	if envData.StringEnv[constants.EnvKeySmtpPort] == "" {
-		envData.StringEnv[constants.EnvKeySmtpPort] = os.Getenv(constants.EnvKeySmtpPort)
+	if envData[constants.EnvKeySmtpPort] == "" {
+		envData[constants.EnvKeySmtpPort] = os.Getenv(constants.EnvKeySmtpPort)
 	}
 
-	if envData.StringEnv[constants.EnvKeySmtpUsername] == "" {
-		envData.StringEnv[constants.EnvKeySmtpUsername] = os.Getenv(constants.EnvKeySmtpUsername)
+	if envData[constants.EnvKeySmtpUsername] == "" {
+		envData[constants.EnvKeySmtpUsername] = os.Getenv(constants.EnvKeySmtpUsername)
 	}
 
-	if envData.StringEnv[constants.EnvKeySmtpPassword] == "" {
-		envData.StringEnv[constants.EnvKeySmtpPassword] = os.Getenv(constants.EnvKeySmtpPassword)
+	if envData[constants.EnvKeySmtpPassword] == "" {
+		envData[constants.EnvKeySmtpPassword] = os.Getenv(constants.EnvKeySmtpPassword)
 	}
 
-	if envData.StringEnv[constants.EnvKeySenderEmail] == "" {
-		envData.StringEnv[constants.EnvKeySenderEmail] = os.Getenv(constants.EnvKeySenderEmail)
+	if envData[constants.EnvKeySenderEmail] == "" {
+		envData[constants.EnvKeySenderEmail] = os.Getenv(constants.EnvKeySenderEmail)
 	}
 
-	algo := envData.StringEnv[constants.EnvKeyJwtType]
+	algo := envData[constants.EnvKeyJwtType].(string)
 	if algo == "" {
-		envData.StringEnv[constants.EnvKeyJwtType] = os.Getenv(constants.EnvKeyJwtType)
-		if envData.StringEnv[constants.EnvKeyJwtType] == "" {
-			envData.StringEnv[constants.EnvKeyJwtType] = "RS256"
-			algo = envData.StringEnv[constants.EnvKeyJwtType]
+		envData[constants.EnvKeyJwtType] = os.Getenv(constants.EnvKeyJwtType)
+		if envData[constants.EnvKeyJwtType] == "" {
+			envData[constants.EnvKeyJwtType] = "RS256"
+			algo = envData[constants.EnvKeyJwtType].(string)
 		} else {
-			algo = envData.StringEnv[constants.EnvKeyJwtType]
+			algo = envData[constants.EnvKeyJwtType].(string)
 			if !crypto.IsHMACA(algo) && !crypto.IsRSA(algo) && !crypto.IsECDSA(algo) {
 				log.Debug("Invalid JWT Algorithm")
 				return errors.New("invalid JWT_TYPE")
@@ -112,10 +116,10 @@ func InitAllEnv() error {
 	}
 
 	if crypto.IsHMACA(algo) {
-		if envData.StringEnv[constants.EnvKeyJwtSecret] == "" {
-			envData.StringEnv[constants.EnvKeyJwtSecret] = os.Getenv(constants.EnvKeyJwtSecret)
-			if envData.StringEnv[constants.EnvKeyJwtSecret] == "" {
-				envData.StringEnv[constants.EnvKeyJwtSecret], _, err = crypto.NewHMACKey(algo, clientID)
+		if envData[constants.EnvKeyJwtSecret] == "" {
+			envData[constants.EnvKeyJwtSecret] = os.Getenv(constants.EnvKeyJwtSecret)
+			if envData[constants.EnvKeyJwtSecret] == "" {
+				envData[constants.EnvKeyJwtSecret], _, err = crypto.NewHMACKey(algo, clientID)
 				if err != nil {
 					return err
 				}
@@ -126,11 +130,11 @@ func InitAllEnv() error {
 	if crypto.IsRSA(algo) || crypto.IsECDSA(algo) {
 		privateKey, publicKey := "", ""
 
-		if envData.StringEnv[constants.EnvKeyJwtPrivateKey] == "" {
+		if envData[constants.EnvKeyJwtPrivateKey] == "" {
 			privateKey = os.Getenv(constants.EnvKeyJwtPrivateKey)
 		}
 
-		if envData.StringEnv[constants.EnvKeyJwtPublicKey] == "" {
+		if envData[constants.EnvKeyJwtPublicKey] == "" {
 			publicKey = os.Getenv(constants.EnvKeyJwtPublicKey)
 		}
 
@@ -174,76 +178,69 @@ func InitAllEnv() error {
 			}
 		}
 
-		envData.StringEnv[constants.EnvKeyJwtPrivateKey] = privateKey
-		envData.StringEnv[constants.EnvKeyJwtPublicKey] = publicKey
+		envData[constants.EnvKeyJwtPrivateKey] = privateKey
+		envData[constants.EnvKeyJwtPublicKey] = publicKey
 
 	}
 
-	if envData.StringEnv[constants.EnvKeyJwtRoleClaim] == "" {
-		envData.StringEnv[constants.EnvKeyJwtRoleClaim] = os.Getenv(constants.EnvKeyJwtRoleClaim)
+	if envData[constants.EnvKeyJwtRoleClaim] == "" {
+		envData[constants.EnvKeyJwtRoleClaim] = os.Getenv(constants.EnvKeyJwtRoleClaim)
 
-		if envData.StringEnv[constants.EnvKeyJwtRoleClaim] == "" {
-			envData.StringEnv[constants.EnvKeyJwtRoleClaim] = "role"
+		if envData[constants.EnvKeyJwtRoleClaim] == "" {
+			envData[constants.EnvKeyJwtRoleClaim] = "role"
 		}
 	}
 
-	if envData.StringEnv[constants.EnvKeyCustomAccessTokenScript] == "" {
-		envData.StringEnv[constants.EnvKeyCustomAccessTokenScript] = os.Getenv(constants.EnvKeyCustomAccessTokenScript)
+	if envData[constants.EnvKeyCustomAccessTokenScript] == "" {
+		envData[constants.EnvKeyCustomAccessTokenScript] = os.Getenv(constants.EnvKeyCustomAccessTokenScript)
 	}
 
-	if envData.StringEnv[constants.EnvKeyRedisURL] == "" {
-		envData.StringEnv[constants.EnvKeyRedisURL] = os.Getenv(constants.EnvKeyRedisURL)
+	if envData[constants.EnvKeyRedisURL] == "" {
+		envData[constants.EnvKeyRedisURL] = os.Getenv(constants.EnvKeyRedisURL)
 	}
 
-	if envData.StringEnv[constants.EnvKeyCookieName] == "" {
-		envData.StringEnv[constants.EnvKeyCookieName] = os.Getenv(constants.EnvKeyCookieName)
-		if envData.StringEnv[constants.EnvKeyCookieName] == "" {
-			envData.StringEnv[constants.EnvKeyCookieName] = "authorizer"
-		}
+	if envData[constants.EnvKeyGoogleClientID] == "" {
+		envData[constants.EnvKeyGoogleClientID] = os.Getenv(constants.EnvKeyGoogleClientID)
 	}
 
-	if envData.StringEnv[constants.EnvKeyGoogleClientID] == "" {
-		envData.StringEnv[constants.EnvKeyGoogleClientID] = os.Getenv(constants.EnvKeyGoogleClientID)
+	if envData[constants.EnvKeyGoogleClientSecret] == "" {
+		envData[constants.EnvKeyGoogleClientSecret] = os.Getenv(constants.EnvKeyGoogleClientSecret)
 	}
 
-	if envData.StringEnv[constants.EnvKeyGoogleClientSecret] == "" {
-		envData.StringEnv[constants.EnvKeyGoogleClientSecret] = os.Getenv(constants.EnvKeyGoogleClientSecret)
+	if envData[constants.EnvKeyGithubClientID] == "" {
+		envData[constants.EnvKeyGithubClientID] = os.Getenv(constants.EnvKeyGithubClientID)
 	}
 
-	if envData.StringEnv[constants.EnvKeyGithubClientID] == "" {
-		envData.StringEnv[constants.EnvKeyGithubClientID] = os.Getenv(constants.EnvKeyGithubClientID)
+	if envData[constants.EnvKeyGithubClientSecret] == "" {
+		envData[constants.EnvKeyGithubClientSecret] = os.Getenv(constants.EnvKeyGithubClientSecret)
 	}
 
-	if envData.StringEnv[constants.EnvKeyGithubClientSecret] == "" {
-		envData.StringEnv[constants.EnvKeyGithubClientSecret] = os.Getenv(constants.EnvKeyGithubClientSecret)
+	if envData[constants.EnvKeyFacebookClientID] == "" {
+		envData[constants.EnvKeyFacebookClientID] = os.Getenv(constants.EnvKeyFacebookClientID)
 	}
 
-	if envData.StringEnv[constants.EnvKeyFacebookClientID] == "" {
-		envData.StringEnv[constants.EnvKeyFacebookClientID] = os.Getenv(constants.EnvKeyFacebookClientID)
+	if envData[constants.EnvKeyFacebookClientSecret] == "" {
+		envData[constants.EnvKeyFacebookClientSecret] = os.Getenv(constants.EnvKeyFacebookClientSecret)
 	}
 
-	if envData.StringEnv[constants.EnvKeyFacebookClientSecret] == "" {
-		envData.StringEnv[constants.EnvKeyFacebookClientSecret] = os.Getenv(constants.EnvKeyFacebookClientSecret)
+	if envData[constants.EnvKeyResetPasswordURL] == "" {
+		envData[constants.EnvKeyResetPasswordURL] = strings.TrimPrefix(os.Getenv(constants.EnvKeyResetPasswordURL), "/")
 	}
 
-	if envData.StringEnv[constants.EnvKeyResetPasswordURL] == "" {
-		envData.StringEnv[constants.EnvKeyResetPasswordURL] = strings.TrimPrefix(os.Getenv(constants.EnvKeyResetPasswordURL), "/")
-	}
-
-	envData.BoolEnv[constants.EnvKeyDisableBasicAuthentication] = os.Getenv(constants.EnvKeyDisableBasicAuthentication) == "true"
-	envData.BoolEnv[constants.EnvKeyDisableEmailVerification] = os.Getenv(constants.EnvKeyDisableEmailVerification) == "true"
-	envData.BoolEnv[constants.EnvKeyDisableMagicLinkLogin] = os.Getenv(constants.EnvKeyDisableMagicLinkLogin) == "true"
-	envData.BoolEnv[constants.EnvKeyDisableLoginPage] = os.Getenv(constants.EnvKeyDisableLoginPage) == "true"
-	envData.BoolEnv[constants.EnvKeyDisableSignUp] = os.Getenv(constants.EnvKeyDisableSignUp) == "true"
+	envData[constants.EnvKeyDisableBasicAuthentication] = os.Getenv(constants.EnvKeyDisableBasicAuthentication) == "true"
+	envData[constants.EnvKeyDisableEmailVerification] = os.Getenv(constants.EnvKeyDisableEmailVerification) == "true"
+	envData[constants.EnvKeyDisableMagicLinkLogin] = os.Getenv(constants.EnvKeyDisableMagicLinkLogin) == "true"
+	envData[constants.EnvKeyDisableLoginPage] = os.Getenv(constants.EnvKeyDisableLoginPage) == "true"
+	envData[constants.EnvKeyDisableSignUp] = os.Getenv(constants.EnvKeyDisableSignUp) == "true"
 
 	// no need to add nil check as its already done above
-	if envData.StringEnv[constants.EnvKeySmtpHost] == "" || envData.StringEnv[constants.EnvKeySmtpUsername] == "" || envData.StringEnv[constants.EnvKeySmtpPassword] == "" || envData.StringEnv[constants.EnvKeySenderEmail] == "" && envData.StringEnv[constants.EnvKeySmtpPort] == "" {
-		envData.BoolEnv[constants.EnvKeyDisableEmailVerification] = true
-		envData.BoolEnv[constants.EnvKeyDisableMagicLinkLogin] = true
+	if envData[constants.EnvKeySmtpHost] == "" || envData[constants.EnvKeySmtpUsername] == "" || envData[constants.EnvKeySmtpPassword] == "" || envData[constants.EnvKeySenderEmail] == "" && envData[constants.EnvKeySmtpPort] == "" {
+		envData[constants.EnvKeyDisableEmailVerification] = true
+		envData[constants.EnvKeyDisableMagicLinkLogin] = true
 	}
 
-	if envData.BoolEnv[constants.EnvKeyDisableEmailVerification] {
-		envData.BoolEnv[constants.EnvKeyDisableMagicLinkLogin] = true
+	if envData[constants.EnvKeyDisableEmailVerification].(bool) {
+		envData[constants.EnvKeyDisableMagicLinkLogin] = true
 	}
 
 	allowedOriginsSplit := strings.Split(os.Getenv(constants.EnvKeyAllowedOrigins), ",")
@@ -272,7 +269,7 @@ func InitAllEnv() error {
 		allowedOrigins = []string{"*"}
 	}
 
-	envData.SliceEnv[constants.EnvKeyAllowedOrigins] = allowedOrigins
+	envData[constants.EnvKeyAllowedOrigins] = allowedOrigins
 
 	rolesEnv := strings.TrimSpace(os.Getenv(constants.EnvKeyRoles))
 	rolesSplit := strings.Split(rolesEnv, ",")
@@ -315,18 +312,18 @@ func InitAllEnv() error {
 		return errors.New(`invalid DEFAULT_ROLE environment variable. It can be one from give ROLES environment variable value`)
 	}
 
-	envData.SliceEnv[constants.EnvKeyRoles] = roles
-	envData.SliceEnv[constants.EnvKeyDefaultRoles] = defaultRoles
-	envData.SliceEnv[constants.EnvKeyProtectedRoles] = protectedRoles
+	envData[constants.EnvKeyRoles] = roles
+	envData[constants.EnvKeyDefaultRoles] = defaultRoles
+	envData[constants.EnvKeyProtectedRoles] = protectedRoles
 
 	if os.Getenv(constants.EnvKeyOrganizationName) != "" {
-		envData.StringEnv[constants.EnvKeyOrganizationName] = os.Getenv(constants.EnvKeyOrganizationName)
+		envData[constants.EnvKeyOrganizationName] = os.Getenv(constants.EnvKeyOrganizationName)
 	}
 
 	if os.Getenv(constants.EnvKeyOrganizationLogo) != "" {
-		envData.StringEnv[constants.EnvKeyOrganizationLogo] = os.Getenv(constants.EnvKeyOrganizationLogo)
+		envData[constants.EnvKeyOrganizationLogo] = os.Getenv(constants.EnvKeyOrganizationLogo)
 	}
 
-	envstore.EnvStoreObj.UpdateEnvStore(envData)
+	memorystore.Provider.UpdateEnvStore(envData)
 	return nil
 }

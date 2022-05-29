@@ -6,8 +6,8 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db/models"
-	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -20,7 +20,11 @@ func (p *provider) AddUser(user models.User) (models.User, error) {
 	}
 
 	if user.Roles == "" {
-		user.Roles = strings.Join(envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles), ",")
+		defaultRoles, err := memorystore.Provider.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles)
+		if err != nil {
+			return user, err
+		}
+		user.Roles = strings.Join(defaultRoles, ",")
 	}
 	user.CreatedAt = time.Now().Unix()
 	user.UpdatedAt = time.Now().Unix()

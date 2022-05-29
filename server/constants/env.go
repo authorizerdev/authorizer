@@ -5,11 +5,11 @@ var VERSION = "0.0.1"
 const (
 	// Envstore identifier
 	// StringStore string store identifier
-	StringStoreIdentifier = "stringStore"
-	// BoolStore bool store identifier
-	BoolStoreIdentifier = "boolStore"
-	// SliceStore slice store identifier
-	SliceStoreIdentifier = "sliceStore"
+	// StringStoreIdentifier = "stringStore"
+	// // BoolStore bool store identifier
+	// BoolStoreIdentifier = "boolStore"
+	// // SliceStore slice store identifier
+	// SliceStoreIdentifier = "sliceStore"
 
 	// EnvKeyEnv key for env variable ENV
 	EnvKeyEnv = "ENV"
@@ -68,10 +68,6 @@ const (
 	EnvKeyAppURL = "APP_URL"
 	// EnvKeyRedisURL key for env variable REDIS_URL
 	EnvKeyRedisURL = "REDIS_URL"
-	// EnvKeyCookieName key for env variable COOKIE_NAME
-	EnvKeyCookieName = "COOKIE_NAME"
-	// EnvKeyAdminCookieName key for env variable ADMIN_COOKIE_NAME
-	EnvKeyAdminCookieName = "ADMIN_COOKIE_NAME"
 	// EnvKeyResetPasswordURL key for env variable RESET_PASSWORD_URL
 	EnvKeyResetPasswordURL = "RESET_PASSWORD_URL"
 	// EnvKeyDisableEmailVerification key for env variable DISABLE_EMAIL_VERIFICATION

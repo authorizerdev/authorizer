@@ -8,7 +8,6 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/constants"
-	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/oauth"
 	"github.com/authorizerdev/authorizer/server/utils"
@@ -56,7 +55,16 @@ func OAuthLoginHandler() gin.HandlerFunc {
 
 			// use protected roles verification for admin login only.
 			// though if not associated with user, it will be rejected from oauth_callback
-			if !utils.IsValidRoles(rolesSplit, append([]string{}, append(envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyRoles), envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyProtectedRoles)...)...)) {
+			roles, err := memorystore.Provider.GetSliceStoreEnvVariable(constants.EnvKeyRoles)
+			if err != nil {
+				log.Debug("Error getting roles: ", err)
+			}
+			protectedRoles, err := memorystore.Provider.GetSliceStoreEnvVariable(constants.EnvKeyProtectedRoles)
+			if err != nil {
+				log.Debug("Error getting protected roles: ", err)
+			}
+
+			if !utils.IsValidRoles(rolesSplit, append([]string{}, append(roles, protectedRoles...)...)) {
 				log.Debug("Invalid roles: ", roles)
 				c.JSON(400, gin.H{
 					"error": "invalid role",
@@ -64,7 +72,16 @@ func OAuthLoginHandler() gin.HandlerFunc {
 				return
 			}
 		} else {
-			roles = strings.Join(envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles), ",")
+			defaultRoles, err := memorystore.Provider.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles)
+			if err != nil {
+				log.Debug("Error getting default roles: ", err)
+				c.JSON(400, gin.H{
+					"error": "invalid role",
+				})
+				return
+			}
+			roles = strings.Join(defaultRoles, ",")
+
 		}
 
 		oauthStateString := state + "___" + redirectURI + "___" + roles + "___" + strings.Join(scope, ",")
@@ -78,7 +95,14 @@ func OAuthLoginHandler() gin.HandlerFunc {
 				isProviderConfigured = false
 				break
 			}
-			memorystore.Provider.SetState(oauthStateString, constants.SignupMethodGoogle)
+			err := memorystore.Provider.SetState(oauthStateString, constants.SignupMethodGoogle)
+			if err != nil {
+				log.Debug("Error setting state: ", err)
+				c.JSON(500, gin.H{
+					"error": "internal server error",
+				})
+				return
+			}
 			// during the init of OAuthProvider authorizer url might be empty
 			oauth.OAuthProviders.GoogleConfig.RedirectURL = hostname + "/oauth_callback/google"
 			url := oauth.OAuthProviders.GoogleConfig.AuthCodeURL(oauthStateString)
@@ -89,7 +113,14 @@ func OAuthLoginHandler() gin.HandlerFunc {
 				isProviderConfigured = false
 				break
 			}
-			memorystore.Provider.SetState(oauthStateString, constants.SignupMethodGithub)
+			err := memorystore.Provider.SetState(oauthStateString, constants.SignupMethodGithub)
+			if err != nil {
+				log.Debug("Error setting state: ", err)
+				c.JSON(500, gin.H{
+					"error": "internal server error",
+				})
+				return
+			}
 			oauth.OAuthProviders.GithubConfig.RedirectURL = hostname + "/oauth_callback/github"
 			url := oauth.OAuthProviders.GithubConfig.AuthCodeURL(oauthStateString)
 			c.Redirect(http.StatusTemporaryRedirect, url)
@@ -99,7 +130,14 @@ func OAuthLoginHandler() gin.HandlerFunc {
 				isProviderConfigured = false
 				break
 			}
-			memorystore.Provider.SetState(oauthStateString, constants.SignupMethodFacebook)
+			err := memorystore.Provider.SetState(oauthStateString, constants.SignupMethodFacebook)
+			if err != nil {
+				log.Debug("Error setting state: ", err)
+				c.JSON(500, gin.H{
+					"error": "internal server error",
+				})
+				return
+			}
 			oauth.OAuthProviders.FacebookConfig.RedirectURL = hostname + "/oauth_callback/facebook"
 			url := oauth.OAuthProviders.FacebookConfig.AuthCodeURL(oauthStateString)
 			c.Redirect(http.StatusTemporaryRedirect, url)

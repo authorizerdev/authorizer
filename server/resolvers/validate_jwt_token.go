@@ -38,8 +38,8 @@ func ValidateJwtTokenResolver(ctx context.Context, params model.ValidateJWTToken
 	nonce := ""
 	// access_token and refresh_token should be validated from session store as well
 	if tokenType == "access_token" || tokenType == "refresh_token" {
-		savedSession := memorystore.Provider.GetState(params.Token)
-		if savedSession == "" {
+		savedSession, err := memorystore.Provider.GetState(params.Token)
+		if savedSession == "" || err != nil {
 			return &model.ValidateJWTTokenResponse{
 				IsValid: false,
 			}, nil

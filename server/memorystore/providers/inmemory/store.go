@@ -1,6 +1,10 @@
 package inmemory
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/authorizerdev/authorizer/server/utils"
+)
 
 // ClearStore clears the in-memory store.
 func (c *provider) ClearStore() error {
@@ -42,14 +46,13 @@ func (c *provider) DeleteAllUserSession(userId string) error {
 func (c *provider) SetState(key, state string) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-
 	c.stateStore[key] = state
 
 	return nil
 }
 
 // GetState gets the state from the in-memory store.
-func (c *provider) GetState(key string) string {
+func (c *provider) GetState(key string) (string, error) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
@@ -58,15 +61,50 @@ func (c *provider) GetState(key string) string {
 		state = stateVal
 	}
 
-	return state
+	return state, nil
 }
 
 // RemoveState removes the state from the in-memory store.
 func (c *provider) RemoveState(key string) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-
 	delete(c.stateStore, key)
 
 	return nil
+}
+
+// UpdateEnvStore to update the whole env store object
+func (c *provider) UpdateEnvStore(store map[string]interface{}) error {
+	c.envStore.UpdateStore(store)
+	return nil
+}
+
+// GetEnvStore returns the env store object
+func (c *provider) GetEnvStore() (map[string]interface{}, error) {
+	return c.envStore.GetStore(), nil
+}
+
+// UpdateEnvVariable to update the particular env variable
+func (c *provider) UpdateEnvVariable(key string, value interface{}) error {
+	c.envStore.Set(key, value)
+	return nil
+}
+
+// GetStringStoreEnvVariable to get the env variable from string store object
+func (c *provider) GetStringStoreEnvVariable(key string) (string, error) {
+	res := c.envStore.Get(key)
+	return res.(string), nil
+}
+
+// GetBoolStoreEnvVariable to get the env variable from bool store object
+func (c *provider) GetBoolStoreEnvVariable(key string) (bool, error) {
+	res := c.envStore.Get(key)
+	return res.(bool), nil
+}
+
+// GetSliceStoreEnvVariable to get the env variable from slice store object
+func (c *provider) GetSliceStoreEnvVariable(key string) ([]string, error) {
+	res := c.envStore.Get(key)
+	resSlice := utils.ConvertInterfaceToStringSlice(res)
+	return resSlice, nil
 }

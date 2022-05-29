@@ -10,7 +10,6 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/constants"
-	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
@@ -96,7 +95,7 @@ func InitRequiredEnv() error {
 		}
 	}
 
-	if strings.TrimSpace(dbURL) == "" && envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL) == "" {
+	if strings.TrimSpace(dbURL) == "" {
 		if utils.ARG_DB_URL != nil && *utils.ARG_DB_URL != "" {
 			dbURL = strings.TrimSpace(*utils.ARG_DB_URL)
 		}

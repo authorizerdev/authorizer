@@ -7,7 +7,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db/models"
-	"github.com/authorizerdev/authorizer/server/envstore"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
@@ -41,15 +41,26 @@ func NewProvider() (*provider, error) {
 			TablePrefix: models.Prefix,
 		},
 	}
-	switch envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseType) {
+
+	dbType, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDatabaseType)
+	if err != nil {
+		return nil, err
+	}
+
+	dbURL, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL)
+	if err != nil {
+		return nil, err
+	}
+
+	switch dbType {
 	case constants.DbTypePostgres, constants.DbTypeYugabyte:
-		sqlDB, err = gorm.Open(postgres.Open(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL)), ormConfig)
+		sqlDB, err = gorm.Open(postgres.Open(dbURL), ormConfig)
 	case constants.DbTypeSqlite:
-		sqlDB, err = gorm.Open(sqlite.Open(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL)), ormConfig)
+		sqlDB, err = gorm.Open(sqlite.Open(dbURL), ormConfig)
 	case constants.DbTypeMysql, constants.DbTypeMariaDB:
-		sqlDB, err = gorm.Open(mysql.Open(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL)), ormConfig)
+		sqlDB, err = gorm.Open(mysql.Open(dbURL), ormConfig)
 	case constants.DbTypeSqlserver:
-		sqlDB, err = gorm.Open(sqlserver.Open(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL)), ormConfig)
+		sqlDB, err = gorm.Open(sqlserver.Open(dbURL), ormConfig)
 	}
 
 	if err != nil {

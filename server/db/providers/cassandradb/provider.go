@@ -9,7 +9,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/db/models"
-	"github.com/authorizerdev/authorizer/server/envstore"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/gocql/gocql"
 	cansandraDriver "github.com/gocql/gocql"
 )
@@ -23,15 +23,25 @@ var KeySpace string
 
 // NewProvider to initialize arangodb connection
 func NewProvider() (*provider, error) {
-	dbURL := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL)
+	dbURL, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL)
+	if err != nil {
+		return nil, err
+	}
 	if dbURL == "" {
-		dbURL = envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseHost)
-		if envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabasePort) != "" {
-			dbURL = fmt.Sprintf("%s:%s", dbURL, envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabasePort))
+		dbURL, err = memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDatabaseHost)
+		dbPort, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDatabasePort)
+		if err != nil {
+			return nil, err
+		}
+		if dbPort != "" {
+			dbURL = fmt.Sprintf("%s:%s", dbURL, dbPort)
 		}
 	}
 
-	KeySpace = envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseName)
+	KeySpace, err = memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDatabaseName)
+	if err != nil || KeySpace == "" {
+		KeySpace = constants.EnvKeyDatabaseName
+	}
 	clusterURL := []string{}
 	if strings.Contains(dbURL, ",") {
 		clusterURL = strings.Split(dbURL, ",")
@@ -39,25 +49,48 @@ func NewProvider() (*provider, error) {
 		clusterURL = append(clusterURL, dbURL)
 	}
 	cassandraClient := cansandraDriver.NewCluster(clusterURL...)
-	if envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseUsername) != "" && envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabasePassword) != "" {
+	dbUsername, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDatabaseUsername)
+	if err != nil {
+		return nil, err
+	}
+	dbPassword, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDatabasePassword)
+	if err != nil {
+		return nil, err
+	}
+
+	if dbUsername != "" && dbPassword != "" {
 		cassandraClient.Authenticator = &cansandraDriver.PasswordAuthenticator{
-			Username: envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseUsername),
-			Password: envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabasePassword),
+			Username: dbUsername,
+			Password: dbPassword,
 		}
 	}
 
-	if envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseCert) != "" && envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseCACert) != "" && envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseCertKey) != "" {
-		certString, err := crypto.DecryptB64(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseCert))
+	dbCert, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDatabaseCert)
+	if err != nil {
+		return nil, err
+	}
+
+	dbCACert, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDatabaseCACert)
+	if err != nil {
+		return nil, err
+	}
+
+	dbCertKey, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDatabaseCertKey)
+	if err != nil {
+		return nil, err
+	}
+	if dbCert != "" && dbCACert != "" && dbCertKey != "" {
+		certString, err := crypto.DecryptB64(dbCert)
 		if err != nil {
 			return nil, err
 		}
 
-		keyString, err := crypto.DecryptB64(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseCertKey))
+		keyString, err := crypto.DecryptB64(dbCertKey)
 		if err != nil {
 			return nil, err
 		}
 
-		caString, err := crypto.DecryptB64(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseCACert))
+		caString, err := crypto.DecryptB64(dbCACert)
 		if err != nil {
 			return nil, err
 		}

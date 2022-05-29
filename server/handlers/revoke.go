@@ -8,7 +8,6 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/constants"
-	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 )
 
@@ -37,7 +36,7 @@ func RevokeHandler() gin.HandlerFunc {
 			return
 		}
 
-		if clientID != envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyClientID) {
+		if client, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyClientID); client != clientID || err != nil {
 			log.Debug("Client ID is invalid: ", clientID)
 			gc.JSON(http.StatusBadRequest, gin.H{
 				"error":             "invalid_client_id",

@@ -186,8 +186,8 @@ func ValidateAccessToken(gc *gin.Context, accessToken string) (map[string]interf
 		return res, fmt.Errorf(`unauthorized`)
 	}
 
-	savedSession := memorystore.Provider.GetState(accessToken)
-	if savedSession == "" {
+	savedSession, err := memorystore.Provider.GetState(accessToken)
+	if savedSession == "" || err != nil {
 		return res, fmt.Errorf(`unauthorized`)
 	}
 
@@ -196,7 +196,7 @@ func ValidateAccessToken(gc *gin.Context, accessToken string) (map[string]interf
 	userID := savedSessionSplit[1]
 
 	hostname := utils.GetHost(gc)
-	res, err := ParseJWTToken(accessToken, hostname, nonce, userID)
+	res, err = ParseJWTToken(accessToken, hostname, nonce, userID)
 	if err != nil {
 		return res, err
 	}
@@ -216,8 +216,8 @@ func ValidateRefreshToken(gc *gin.Context, refreshToken string) (map[string]inte
 		return res, fmt.Errorf(`unauthorized`)
 	}
 
-	savedSession := memorystore.Provider.GetState(refreshToken)
-	if savedSession == "" {
+	savedSession, err := memorystore.Provider.GetState(refreshToken)
+	if savedSession == "" || err != nil {
 		return res, fmt.Errorf(`unauthorized`)
 	}
 
@@ -226,7 +226,7 @@ func ValidateRefreshToken(gc *gin.Context, refreshToken string) (map[string]inte
 	userID := savedSessionSplit[1]
 
 	hostname := utils.GetHost(gc)
-	res, err := ParseJWTToken(refreshToken, hostname, nonce, userID)
+	res, err = ParseJWTToken(refreshToken, hostname, nonce, userID)
 	if err != nil {
 		return res, err
 	}
@@ -243,8 +243,8 @@ func ValidateBrowserSession(gc *gin.Context, encryptedSession string) (*SessionD
 		return nil, fmt.Errorf(`unauthorized`)
 	}
 
-	savedSession := memorystore.Provider.GetState(encryptedSession)
-	if savedSession == "" {
+	savedSession, err := memorystore.Provider.GetState(encryptedSession)
+	if savedSession == "" || err != nil {
 		return nil, fmt.Errorf(`unauthorized`)
 	}
 

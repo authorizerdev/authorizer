@@ -3,6 +3,7 @@ package memorystore
 import (
 	log "github.com/sirupsen/logrus"
 
+	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/memorystore/providers"
 	"github.com/authorizerdev/authorizer/server/memorystore/providers/inmemory"
 	"github.com/authorizerdev/authorizer/server/memorystore/providers/redis"
@@ -15,6 +16,20 @@ var Provider providers.Provider
 func InitMemStore() error {
 	var err error
 
+	defaultEnvs := map[string]interface{}{
+		// string envs
+		constants.EnvKeyJwtRoleClaim:     "role",
+		constants.EnvKeyOrganizationName: "Authorizer",
+		constants.EnvKeyOrganizationLogo: "https://www.authorizer.dev/images/logo.png",
+
+		// boolean envs
+		constants.EnvKeyDisableBasicAuthentication: false,
+		constants.EnvKeyDisableMagicLinkLogin:      false,
+		constants.EnvKeyDisableEmailVerification:   false,
+		constants.EnvKeyDisableLoginPage:           false,
+		constants.EnvKeyDisableSignUp:              false,
+	}
+
 	redisURL := RequiredEnvStoreObj.GetRequiredEnv().RedisURL
 	if redisURL != "" {
 		log.Info("Initializing Redis memory store")
@@ -22,6 +37,9 @@ func InitMemStore() error {
 		if err != nil {
 			return err
 		}
+
+		// set default envs in redis
+		Provider.UpdateEnvStore(defaultEnvs)
 
 		return nil
 	}
@@ -32,5 +50,7 @@ func InitMemStore() error {
 	if err != nil {
 		return err
 	}
+	// set default envs in local env
+	Provider.UpdateEnvStore(defaultEnvs)
 	return nil
 }

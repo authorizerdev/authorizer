@@ -13,7 +13,6 @@ import (
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/db"
-	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/token"
 )
@@ -80,7 +79,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 			return
 		}
 
-		if clientID != envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyClientID) {
+		if client, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyClientID); client != clientID || err != nil {
 			if isQuery {
 				gc.Redirect(http.StatusFound, loginURL)
 			} else {

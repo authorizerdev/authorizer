@@ -6,7 +6,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db/models"
-	"github.com/authorizerdev/authorizer/server/envstore"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -19,7 +19,11 @@ type provider struct {
 
 // NewProvider to initialize mongodb connection
 func NewProvider() (*provider, error) {
-	mongodbOptions := options.Client().ApplyURI(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL))
+	dbURL, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL)
+	if err != nil {
+		return nil, err
+	}
+	mongodbOptions := options.Client().ApplyURI(dbURL)
 	maxWait := time.Duration(5 * time.Second)
 	mongodbOptions.ConnectTimeout = &maxWait
 	mongoClient, err := mongo.NewClient(mongodbOptions)
@@ -37,18 +41,22 @@ func NewProvider() (*provider, error) {
 		return nil, err
 	}
 
-	mongodb := mongoClient.Database(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseName), options.Database())
+	dbName, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDatabaseName)
+	if err != nil {
+		return nil, err
+	}
+	mongodb := mongoClient.Database(dbName, options.Database())
 
 	mongodb.CreateCollection(ctx, models.Collections.User, options.CreateCollection())
 	userCollection := mongodb.Collection(models.Collections.User, options.Collection())
 	userCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
-		mongo.IndexModel{
+		{
 			Keys:    bson.M{"email": 1},
 			Options: options.Index().SetUnique(true).SetSparse(true),
 		},
 	}, options.CreateIndexes())
 	userCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
-		mongo.IndexModel{
+		{
 			Keys: bson.M{"phone_number": 1},
 			Options: options.Index().SetUnique(true).SetSparse(true).SetPartialFilterExpression(map[string]interface{}{
 				"phone_number": map[string]string{"$type": "string"},
@@ -59,13 +67,13 @@ func NewProvider() (*provider, error) {
 	mongodb.CreateCollection(ctx, models.Collections.VerificationRequest, options.CreateCollection())
 	verificationRequestCollection := mongodb.Collection(models.Collections.VerificationRequest, options.Collection())
 	verificationRequestCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
-		mongo.IndexModel{
+		{
 			Keys:    bson.M{"email": 1, "identifier": 1},
 			Options: options.Index().SetUnique(true).SetSparse(true),
 		},
 	}, options.CreateIndexes())
 	verificationRequestCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
-		mongo.IndexModel{
+		{
 			Keys:    bson.M{"token": 1},
 			Options: options.Index().SetSparse(true),
 		},
@@ -74,7 +82,7 @@ func NewProvider() (*provider, error) {
 	mongodb.CreateCollection(ctx, models.Collections.Session, options.CreateCollection())
 	sessionCollection := mongodb.Collection(models.Collections.Session, options.Collection())
 	sessionCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
-		mongo.IndexModel{
+		{
 			Keys:    bson.M{"user_id": 1},
 			Options: options.Index().SetSparse(true),
 		},

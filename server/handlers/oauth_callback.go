@@ -19,7 +19,6 @@ import (
 	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
-	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/oauth"
 	"github.com/authorizerdev/authorizer/server/token"
@@ -32,8 +31,8 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 		provider := c.Param("oauth_provider")
 		state := c.Request.FormValue("state")
 
-		sessionState := memorystore.Provider.GetState(state)
-		if sessionState == "" {
+		sessionState, err := memorystore.Provider.GetState(state)
+		if sessionState == "" || err != nil {
 			log.Debug("Invalid oauth state: ", state)
 			c.JSON(400, gin.H{"error": "invalid oauth state"})
 		}
@@ -52,7 +51,6 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 		inputRoles := strings.Split(sessionSplit[2], ",")
 		scopes := strings.Split(sessionSplit[3], ",")
 
-		var err error
 		user := models.User{}
 		code := c.Request.FormValue("code")
 		switch provider {
@@ -77,7 +75,13 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 		log := log.WithField("user", user.Email)
 
 		if err != nil {
-			if envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableSignUp) {
+			isSignupDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableSignUp)
+			if err != nil {
+				log.Debug("Failed to get signup disabled env variable: ", err)
+				c.JSON(400, gin.H{"error": err.Error()})
+				return
+			}
+			if isSignupDisabled {
 				log.Debug("Failed to signup as disabled")
 				c.JSON(400, gin.H{"error": "signup is disabled for this instance"})
 				return
@@ -87,7 +91,12 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			// make sure inputRoles don't include protected roles
 			hasProtectedRole := false
 			for _, ir := range inputRoles {
-				if utils.StringSliceContains(envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyProtectedRoles), ir) {
+				protectedRoles, err := memorystore.Provider.GetSliceStoreEnvVariable(constants.EnvKeyProtectedRoles)
+				if err != nil {
+					log.Debug("Failed to get protected roles: ", err)
+					protectedRoles = []string{}
+				}
+				if utils.StringSliceContains(protectedRoles, ir) {
 					hasProtectedRole = true
 				}
 			}
@@ -140,7 +149,12 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 				// check if it contains protected unassigned role
 				hasProtectedRole := false
 				for _, ur := range unasignedRoles {
-					if utils.StringSliceContains(envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyProtectedRoles), ur) {
+					protectedRoles, err := memorystore.Provider.GetSliceStoreEnvVariable(constants.EnvKeyProtectedRoles)
+					if err != nil {
+						log.Debug("Failed to get protected roles: ", err)
+						protectedRoles = []string{}
+					}
+					if utils.StringSliceContains(protectedRoles, ur) {
 						hasProtectedRole = true
 					}
 				}

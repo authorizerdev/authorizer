@@ -13,7 +13,6 @@ import (
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/db"
-	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/token"
 )
@@ -62,7 +61,7 @@ func TokenHandler() gin.HandlerFunc {
 			return
 		}
 
-		if clientID != envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyClientID) {
+		if client, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyClientID); clientID != client || err != nil {
 			log.Debug("Client ID is invalid: ", clientID)
 			gc.JSON(http.StatusBadRequest, gin.H{
 				"error":             "invalid_client_id",
@@ -98,8 +97,8 @@ func TokenHandler() gin.HandlerFunc {
 			encryptedCode := strings.ReplaceAll(base64.URLEncoding.EncodeToString(hash.Sum(nil)), "+", "-")
 			encryptedCode = strings.ReplaceAll(encryptedCode, "/", "_")
 			encryptedCode = strings.ReplaceAll(encryptedCode, "=", "")
-			sessionData := memorystore.Provider.GetState(encryptedCode)
-			if sessionData == "" {
+			sessionData, err := memorystore.Provider.GetState(encryptedCode)
+			if sessionData == "" || err != nil {
 				log.Debug("Session data is empty")
 				gc.JSON(http.StatusBadRequest, gin.H{
 					"error":             "invalid_code_verifier",
