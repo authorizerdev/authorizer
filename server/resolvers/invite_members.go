@@ -13,8 +13,8 @@ import (
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	emailservice "github.com/authorizerdev/authorizer/server/email"
-	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
@@ -33,12 +33,20 @@ func InviteMembersResolver(ctx context.Context, params model.InviteMemberInput) 
 	}
 
 	// this feature is only allowed if email server is configured
-	if envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification) {
+	isEmailVerificationDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification)
+	if err != nil {
+		log.Debug("Error getting email verification disabled: ", err)
+		isEmailVerificationDisabled = true
+	}
+
+	if isEmailVerificationDisabled {
 		log.Debug("Email server is not configured")
 		return nil, errors.New("email sending is disabled")
 	}
 
-	if envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableBasicAuthentication) && envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableMagicLinkLogin) {
+	isBasicAuthDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableBasicAuthentication)
+	isMagicLinkLoginDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableMagicLinkLogin)
+	if isBasicAuthDisabled && isMagicLinkLoginDisabled {
 		log.Debug("Basic authentication and Magic link login is disabled.")
 		return nil, errors.New("either basic authentication or magic link login is required")
 	}
@@ -77,9 +85,13 @@ func InviteMembersResolver(ctx context.Context, params model.InviteMemberInput) 
 	// invite new emails
 	for _, email := range newEmails {
 
+		defaultRoles, err := memorystore.Provider.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles)
+		if err != nil {
+			log.Debug("Error getting default roles: ", err)
+		}
 		user := models.User{
 			Email: email,
-			Roles: strings.Join(envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles), ","),
+			Roles: strings.Join(defaultRoles, ","),
 		}
 		hostname := utils.GetHost(gc)
 		verifyEmailURL := hostname + "/verify_email"
@@ -109,7 +121,7 @@ func InviteMembersResolver(ctx context.Context, params model.InviteMemberInput) 
 		}
 
 		// use magic link login if that option is on
-		if !envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableMagicLinkLogin) {
+		if !isMagicLinkLoginDisabled {
 			user.SignupMethods = constants.SignupMethodMagicLinkLogin
 			verificationRequest.Identifier = constants.VerificationTypeMagicLinkLogin
 		} else {

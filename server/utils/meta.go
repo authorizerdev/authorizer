@@ -2,21 +2,21 @@ package utils
 
 import (
 	"github.com/authorizerdev/authorizer/server/constants"
-	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 )
 
 // GetMeta helps in getting the meta data about the deployment from EnvData
 func GetMetaInfo() model.Meta {
 	return model.Meta{
 		Version:                      constants.VERSION,
-		ClientID:                     envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyClientID),
-		IsGoogleLoginEnabled:         envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyGoogleClientID) != "" && envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyGoogleClientSecret) != "",
-		IsGithubLoginEnabled:         envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyGithubClientID) != "" && envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyGithubClientSecret) != "",
-		IsFacebookLoginEnabled:       envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyFacebookClientID) != "" && envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyFacebookClientSecret) != "",
-		IsBasicAuthenticationEnabled: !envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableBasicAuthentication),
-		IsEmailVerificationEnabled:   !envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification),
-		IsMagicLinkLoginEnabled:      !envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableMagicLinkLogin),
-		IsSignUpEnabled:              !envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableSignUp),
+		ClientID:                     memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyClientID),
+		IsGoogleLoginEnabled:         memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyGoogleClientID) != "" && memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyGoogleClientSecret) != "",
+		IsGithubLoginEnabled:         memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyGithubClientID) != "" && memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyGithubClientSecret) != "",
+		IsFacebookLoginEnabled:       memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyFacebookClientID) != "" && memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyFacebookClientSecret) != "",
+		IsBasicAuthenticationEnabled: !memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableBasicAuthentication),
+		IsEmailVerificationEnabled:   !memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification),
+		IsMagicLinkLoginEnabled:      !memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableMagicLinkLogin),
+		IsSignUpEnabled:              !memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableSignUp),
 	}
 }

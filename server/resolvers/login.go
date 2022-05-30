@@ -13,7 +13,6 @@ import (
 	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
-	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/token"
@@ -30,7 +29,13 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 		return res, err
 	}
 
-	if envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableBasicAuthentication) {
+	isBasiAuthDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableBasicAuthentication)
+	if err != nil {
+		log.Debug("Error getting basic auth disabled: ", err)
+		isBasiAuthDisabled = true
+	}
+
+	if isBasiAuthDisabled {
 		log.Debug("Basic authentication is disabled.")
 		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
 	}
@@ -66,7 +71,11 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 		log.Debug("Failed to compare password: ", err)
 		return res, fmt.Errorf(`invalid password`)
 	}
-	roles := envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles)
+
+	roles, err := memorystore.Provider.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles)
+	if err != nil {
+		log.Debug("Error getting default roles: ", err)
+	}
 	currentRoles := strings.Split(user.Roles, ",")
 	if len(params.Roles) > 0 {
 		if !utils.IsValidRoles(params.Roles, currentRoles) {

@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/authorizerdev/authorizer/server/constants"
-	"github.com/authorizerdev/authorizer/server/envstore"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 )
 
 // IsValidEmail validates email
@@ -17,7 +17,7 @@ func IsValidEmail(email string) bool {
 
 // IsValidOrigin validates origin based on ALLOWED_ORIGINS
 func IsValidOrigin(url string) bool {
-	allowedOrigins := envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyAllowedOrigins)
+	allowedOrigins := memorystore.Provider.GetSliceStoreEnvVariable(constants.EnvKeyAllowedOrigins)
 	if len(allowedOrigins) == 1 && allowedOrigins[0] == "*" {
 		return true
 	}

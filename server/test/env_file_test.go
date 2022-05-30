@@ -5,14 +5,14 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/env"
-	"github.com/authorizerdev/authorizer/server/envstore"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestEnvs(t *testing.T) {
-	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyEnvPath, "../../.env.sample")
+	memorystore.Provider.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyEnvPath, "../../.env.sample")
 	env.InitAllEnv()
-	store := envstore.EnvStoreObj.GetEnvStoreClone()
+	store := memorystore.Provider.GetEnvStoreClone()
 
 	assert.Equal(t, store.StringEnv[constants.EnvKeyEnv], "production")
 	assert.False(t, store.BoolEnv[constants.EnvKeyDisableEmailVerification])

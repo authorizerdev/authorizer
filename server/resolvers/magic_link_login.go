@@ -12,8 +12,8 @@ import (
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/email"
-	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
@@ -28,7 +28,13 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 		return res, err
 	}
 
-	if envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableMagicLinkLogin) {
+	isMagicLinkLoginDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableMagicLinkLogin)
+	if err != nil {
+		log.Debug("Error getting magic link login disabled: ", err)
+		isMagicLinkLoginDisabled = true
+	}
+
+	if isMagicLinkLoginDisabled {
 		log.Debug("Magic link login is disabled.")
 		return res, fmt.Errorf(`magic link login is disabled for this instance`)
 	}
@@ -53,7 +59,11 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 	// find user with email
 	existingUser, err := db.Provider.GetUserByEmail(params.Email)
 	if err != nil {
-		if envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableSignUp) {
+		isSignupDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableSignUp)
+		if err != nil {
+			log.Debug("Error getting signup disabled: ", err)
+		}
+		if isSignupDisabled {
 			log.Debug("Signup is disabled.")
 			return res, fmt.Errorf(`signup is disabled for this instance`)
 		}
@@ -62,14 +72,24 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 		// define roles for new user
 		if len(params.Roles) > 0 {
 			// check if roles exists
-			if !utils.IsValidRoles(params.Roles, envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyRoles)) {
+			roles, err := memorystore.Provider.GetSliceStoreEnvVariable(constants.EnvKeyRoles)
+			if err != nil {
+				log.Debug("Error getting roles: ", err)
+				return res, err
+			}
+			if !utils.IsValidRoles(params.Roles, roles) {
 				log.Debug("Invalid roles: ", params.Roles)
 				return res, fmt.Errorf(`invalid roles`)
 			} else {
 				inputRoles = params.Roles
 			}
 		} else {
-			inputRoles = envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles)
+			inputRoles, err = memorystore.Provider.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles)
+			if err != nil {
+				log.Debug("Error getting default roles: ", err)
+				return res, fmt.Errorf(`invalid roles`)
+			}
+
 		}
 
 		user.Roles = strings.Join(inputRoles, ",")
@@ -88,7 +108,11 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 
 		// find the unassigned roles
 		if len(params.Roles) <= 0 {
-			inputRoles = envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles)
+			inputRoles, err = memorystore.Provider.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles)
+			if err != nil {
+				log.Debug("Error getting default roles: ", err)
+				return res, fmt.Errorf(`invalid default roles`)
+			}
 		}
 		existingRoles := strings.Split(existingUser.Roles, ",")
 		unasignedRoles := []string{}
@@ -101,8 +125,13 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 		if len(unasignedRoles) > 0 {
 			// check if it contains protected unassigned role
 			hasProtectedRole := false
+			protectedRoles, err := memorystore.Provider.GetSliceStoreEnvVariable(constants.EnvKeyProtectedRoles)
+			if err != nil {
+				log.Debug("Error getting protected roles: ", err)
+				return res, err
+			}
 			for _, ur := range unasignedRoles {
-				if utils.StringSliceContains(envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyProtectedRoles), ur) {
+				if utils.StringSliceContains(protectedRoles, ur) {
 					hasProtectedRole = true
 				}
 			}
@@ -130,7 +159,12 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 	}
 
 	hostname := utils.GetHost(gc)
-	if !envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification) {
+	isEmailVerificationDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification)
+	if err != nil {
+		log.Debug("Error getting email verification disabled: ", err)
+		isEmailVerificationDisabled = true
+	}
+	if !isEmailVerificationDisabled {
 		// insert verification request
 		_, nonceHash, err := utils.GenerateNonce()
 		if err != nil {

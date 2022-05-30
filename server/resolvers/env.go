@@ -7,8 +7,8 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/constants"
-	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
@@ -30,50 +30,57 @@ func EnvResolver(ctx context.Context) (*model.Env, error) {
 	}
 
 	// get clone of store
-	store := envstore.EnvStoreObj.GetEnvStoreClone()
-	accessTokenExpiryTime := store.StringEnv[constants.EnvKeyAccessTokenExpiryTime]
-	adminSecret := store.StringEnv[constants.EnvKeyAdminSecret]
-	clientID := store.StringEnv[constants.EnvKeyClientID]
-	clientSecret := store.StringEnv[constants.EnvKeyClientSecret]
-	databaseURL := store.StringEnv[constants.EnvKeyDatabaseURL]
-	databaseName := store.StringEnv[constants.EnvKeyDatabaseName]
-	databaseType := store.StringEnv[constants.EnvKeyDatabaseType]
-	databaseUsername := store.StringEnv[constants.EnvKeyDatabaseUsername]
-	databasePassword := store.StringEnv[constants.EnvKeyDatabasePassword]
-	databaseHost := store.StringEnv[constants.EnvKeyDatabaseHost]
-	databasePort := store.StringEnv[constants.EnvKeyDatabasePort]
-	customAccessTokenScript := store.StringEnv[constants.EnvKeyCustomAccessTokenScript]
-	smtpHost := store.StringEnv[constants.EnvKeySmtpHost]
-	smtpPort := store.StringEnv[constants.EnvKeySmtpPort]
-	smtpUsername := store.StringEnv[constants.EnvKeySmtpUsername]
-	smtpPassword := store.StringEnv[constants.EnvKeySmtpPassword]
-	senderEmail := store.StringEnv[constants.EnvKeySenderEmail]
-	jwtType := store.StringEnv[constants.EnvKeyJwtType]
-	jwtSecret := store.StringEnv[constants.EnvKeyJwtSecret]
-	jwtRoleClaim := store.StringEnv[constants.EnvKeyJwtRoleClaim]
-	jwtPublicKey := store.StringEnv[constants.EnvKeyJwtPublicKey]
-	jwtPrivateKey := store.StringEnv[constants.EnvKeyJwtPrivateKey]
-	allowedOrigins := store.SliceEnv[constants.EnvKeyAllowedOrigins]
-	appURL := store.StringEnv[constants.EnvKeyAppURL]
-	redisURL := store.StringEnv[constants.EnvKeyRedisURL]
-	cookieName := store.StringEnv[constants.EnvKeyCookieName]
-	resetPasswordURL := store.StringEnv[constants.EnvKeyResetPasswordURL]
-	disableEmailVerification := store.BoolEnv[constants.EnvKeyDisableEmailVerification]
-	disableBasicAuthentication := store.BoolEnv[constants.EnvKeyDisableBasicAuthentication]
-	disableMagicLinkLogin := store.BoolEnv[constants.EnvKeyDisableMagicLinkLogin]
-	disableLoginPage := store.BoolEnv[constants.EnvKeyDisableLoginPage]
-	disableSignUp := store.BoolEnv[constants.EnvKeyDisableSignUp]
-	roles := store.SliceEnv[constants.EnvKeyRoles]
-	defaultRoles := store.SliceEnv[constants.EnvKeyDefaultRoles]
-	protectedRoles := store.SliceEnv[constants.EnvKeyProtectedRoles]
-	googleClientID := store.StringEnv[constants.EnvKeyGoogleClientID]
-	googleClientSecret := store.StringEnv[constants.EnvKeyGoogleClientSecret]
-	facebookClientID := store.StringEnv[constants.EnvKeyFacebookClientID]
-	facebookClientSecret := store.StringEnv[constants.EnvKeyFacebookClientSecret]
-	githubClientID := store.StringEnv[constants.EnvKeyGithubClientID]
-	githubClientSecret := store.StringEnv[constants.EnvKeyGithubClientSecret]
-	organizationName := store.StringEnv[constants.EnvKeyOrganizationName]
-	organizationLogo := store.StringEnv[constants.EnvKeyOrganizationLogo]
+	store, err := memorystore.Provider.GetEnvStore()
+	if err != nil {
+		log.Debug("Failed to get env store: ", err)
+		return res, err
+	}
+	accessTokenExpiryTime := store[constants.EnvKeyAccessTokenExpiryTime].(string)
+	adminSecret := store[constants.EnvKeyAdminSecret].(string)
+	clientID := store[constants.EnvKeyClientID].(string)
+	clientSecret := store[constants.EnvKeyClientSecret].(string)
+	databaseURL := store[constants.EnvKeyDatabaseURL].(string)
+	databaseName := store[constants.EnvKeyDatabaseName].(string)
+	databaseType := store[constants.EnvKeyDatabaseType].(string)
+	databaseUsername := store[constants.EnvKeyDatabaseUsername].(string)
+	databasePassword := store[constants.EnvKeyDatabasePassword].(string)
+	databaseHost := store[constants.EnvKeyDatabaseHost].(string)
+	databasePort := store[constants.EnvKeyDatabasePort].(string)
+	customAccessTokenScript := store[constants.EnvKeyCustomAccessTokenScript].(string)
+	smtpHost := store[constants.EnvKeySmtpHost].(string)
+	smtpPort := store[constants.EnvKeySmtpPort].(string)
+	smtpUsername := store[constants.EnvKeySmtpUsername].(string)
+	smtpPassword := store[constants.EnvKeySmtpPassword].(string)
+	senderEmail := store[constants.EnvKeySenderEmail].(string)
+	jwtType := store[constants.EnvKeyJwtType].(string)
+	jwtSecret := store[constants.EnvKeyJwtSecret].(string)
+	jwtRoleClaim := store[constants.EnvKeyJwtRoleClaim].(string)
+	jwtPublicKey := store[constants.EnvKeyJwtPublicKey].(string)
+	jwtPrivateKey := store[constants.EnvKeyJwtPrivateKey].(string)
+	appURL := store[constants.EnvKeyAppURL].(string)
+	redisURL := store[constants.EnvKeyRedisURL].(string)
+	resetPasswordURL := store[constants.EnvKeyResetPasswordURL].(string)
+	googleClientID := store[constants.EnvKeyGoogleClientID].(string)
+	googleClientSecret := store[constants.EnvKeyGoogleClientSecret].(string)
+	facebookClientID := store[constants.EnvKeyFacebookClientID].(string)
+	facebookClientSecret := store[constants.EnvKeyFacebookClientSecret].(string)
+	githubClientID := store[constants.EnvKeyGithubClientID].(string)
+	githubClientSecret := store[constants.EnvKeyGithubClientSecret].(string)
+	organizationName := store[constants.EnvKeyOrganizationName].(string)
+	organizationLogo := store[constants.EnvKeyOrganizationLogo].(string)
+
+	// string slice vars
+	allowedOrigins := utils.ConvertInterfaceToStringSlice(store[constants.EnvKeyAllowedOrigins])
+	roles := utils.ConvertInterfaceToStringSlice(store[constants.EnvKeyRoles])
+	defaultRoles := utils.ConvertInterfaceToStringSlice(store[constants.EnvKeyDefaultRoles])
+	protectedRoles := utils.ConvertInterfaceToStringSlice(store[constants.EnvKeyProtectedRoles])
+
+	// bool vars
+	disableEmailVerification := store[constants.EnvKeyDisableEmailVerification].(bool)
+	disableBasicAuthentication := store[constants.EnvKeyDisableBasicAuthentication].(bool)
+	disableMagicLinkLogin := store[constants.EnvKeyDisableMagicLinkLogin].(bool)
+	disableLoginPage := store[constants.EnvKeyDisableLoginPage].(bool)
+	disableSignUp := store[constants.EnvKeyDisableSignUp].(bool)
 
 	if accessTokenExpiryTime == "" {
 		accessTokenExpiryTime = "30m"
@@ -105,7 +112,6 @@ func EnvResolver(ctx context.Context) (*model.Env, error) {
 		AllowedOrigins:             allowedOrigins,
 		AppURL:                     &appURL,
 		RedisURL:                   &redisURL,
-		CookieName:                 &cookieName,
 		ResetPasswordURL:           &resetPasswordURL,
 		DisableEmailVerification:   &disableEmailVerification,
 		DisableBasicAuthentication: &disableBasicAuthentication,

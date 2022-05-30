@@ -12,7 +12,6 @@ import (
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/email"
-	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/token"
@@ -155,7 +154,16 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 			inputRoles = append(inputRoles, *item)
 		}
 
-		if !utils.IsValidRoles(inputRoles, append([]string{}, append(envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyRoles), envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyProtectedRoles)...)...)) {
+		roles, err := memorystore.Provider.GetSliceStoreEnvVariable(constants.EnvKeyRoles)
+		if err != nil {
+			log.Debug("Error getting roles: ", err)
+		}
+		protectedRoles, err := memorystore.Provider.GetSliceStoreEnvVariable(constants.EnvKeyProtectedRoles)
+		if err != nil {
+			log.Debug("Error getting protected roles: ", err)
+		}
+
+		if !utils.IsValidRoles(inputRoles, append([]string{}, append(roles, protectedRoles...)...)) {
 			log.Debug("Invalid roles: ", params.Roles)
 			return res, fmt.Errorf("invalid list of roles")
 		}

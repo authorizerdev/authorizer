@@ -16,7 +16,6 @@ import (
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/db/models"
-	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
@@ -109,7 +108,7 @@ func CreateRefreshToken(user models.User, roles, scopes []string, hostname, nonc
 	expiresAt := time.Now().Add(expiryBound).Unix()
 	customClaims := jwt.MapClaims{
 		"iss":        hostname,
-		"aud":        envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyClientID),
+		"aud":        memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyClientID),
 		"sub":        user.ID,
 		"exp":        expiresAt,
 		"iat":        time.Now().Unix(),
@@ -130,7 +129,7 @@ func CreateRefreshToken(user models.User, roles, scopes []string, hostname, nonc
 // CreateAccessToken util to create JWT token, based on
 // user information, roles config and CUSTOM_ACCESS_TOKEN_SCRIPT
 func CreateAccessToken(user models.User, roles, scopes []string, hostName, nonce string) (string, int64, error) {
-	expiryBound, err := utils.ParseDurationInSeconds(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAccessTokenExpiryTime))
+	expiryBound, err := utils.ParseDurationInSeconds(memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAccessTokenExpiryTime))
 	if err != nil {
 		expiryBound = time.Minute * 30
 	}
@@ -139,7 +138,7 @@ func CreateAccessToken(user models.User, roles, scopes []string, hostName, nonce
 
 	customClaims := jwt.MapClaims{
 		"iss":        hostName,
-		"aud":        envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyClientID),
+		"aud":        memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyClientID),
 		"nonce":      nonce,
 		"sub":        user.ID,
 		"exp":        expiresAt,
@@ -286,7 +285,7 @@ func ValidateBrowserSession(gc *gin.Context, encryptedSession string) (*SessionD
 // CreateIDToken util to create JWT token, based on
 // user information, roles config and CUSTOM_ACCESS_TOKEN_SCRIPT
 func CreateIDToken(user models.User, roles []string, hostname, nonce string) (string, int64, error) {
-	expiryBound, err := utils.ParseDurationInSeconds(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAccessTokenExpiryTime))
+	expiryBound, err := utils.ParseDurationInSeconds(memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAccessTokenExpiryTime))
 	if err != nil {
 		expiryBound = time.Minute * 30
 	}
@@ -298,10 +297,10 @@ func CreateIDToken(user models.User, roles []string, hostname, nonce string) (st
 	var userMap map[string]interface{}
 	json.Unmarshal(userBytes, &userMap)
 
-	claimKey := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtRoleClaim)
+	claimKey := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyJwtRoleClaim)
 	customClaims := jwt.MapClaims{
 		"iss":           hostname,
-		"aud":           envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyClientID),
+		"aud":           memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyClientID),
 		"nonce":         nonce,
 		"sub":           user.ID,
 		"exp":           expiresAt,
@@ -318,7 +317,7 @@ func CreateIDToken(user models.User, roles []string, hostname, nonce string) (st
 	}
 
 	// check for the extra access token script
-	accessTokenScript := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCustomAccessTokenScript)
+	accessTokenScript := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyCustomAccessTokenScript)
 	if accessTokenScript != "" {
 		vm := otto.New()
 

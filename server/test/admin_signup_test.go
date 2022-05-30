@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/authorizerdev/authorizer/server/constants"
-	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/resolvers"
 	"github.com/stretchr/testify/assert"
 )
@@ -20,7 +20,7 @@ func adminSignupTests(t *testing.T, s TestSetup) {
 
 		assert.NotNil(t, err)
 		// reset env for test to pass
-		envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyAdminSecret, "")
+		memorystore.Provider.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyAdminSecret, "")
 
 		_, err = resolvers.AdminSignupResolver(ctx, model.AdminSignupInput{
 			AdminSecret: "admin123",

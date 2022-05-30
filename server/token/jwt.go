@@ -5,13 +5,13 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/crypto"
-	"github.com/authorizerdev/authorizer/server/envstore"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/golang-jwt/jwt"
 )
 
 // SignJWTToken common util to sing jwt token
 func SignJWTToken(claims jwt.MapClaims) (string, error) {
-	jwtType := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtType)
+	jwtType := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyJwtType)
 	signingMethod := jwt.GetSigningMethod(jwtType)
 	if signingMethod == nil {
 		return "", errors.New("unsupported signing method")
@@ -24,15 +24,15 @@ func SignJWTToken(claims jwt.MapClaims) (string, error) {
 
 	switch signingMethod {
 	case jwt.SigningMethodHS256, jwt.SigningMethodHS384, jwt.SigningMethodHS512:
-		return t.SignedString([]byte(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtSecret)))
+		return t.SignedString([]byte(memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyJwtSecret)))
 	case jwt.SigningMethodRS256, jwt.SigningMethodRS384, jwt.SigningMethodRS512:
-		key, err := crypto.ParseRsaPrivateKeyFromPemStr(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtPrivateKey))
+		key, err := crypto.ParseRsaPrivateKeyFromPemStr(memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyJwtPrivateKey))
 		if err != nil {
 			return "", err
 		}
 		return t.SignedString(key)
 	case jwt.SigningMethodES256, jwt.SigningMethodES384, jwt.SigningMethodES512:
-		key, err := crypto.ParseEcdsaPrivateKeyFromPemStr(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtPrivateKey))
+		key, err := crypto.ParseEcdsaPrivateKeyFromPemStr(memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyJwtPrivateKey))
 		if err != nil {
 			return "", err
 		}
@@ -45,7 +45,7 @@ func SignJWTToken(claims jwt.MapClaims) (string, error) {
 
 // ParseJWTToken common util to parse jwt token
 func ParseJWTToken(token, hostname, nonce, subject string) (jwt.MapClaims, error) {
-	jwtType := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtType)
+	jwtType := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyJwtType)
 	signingMethod := jwt.GetSigningMethod(jwtType)
 
 	var err error
@@ -54,11 +54,11 @@ func ParseJWTToken(token, hostname, nonce, subject string) (jwt.MapClaims, error
 	switch signingMethod {
 	case jwt.SigningMethodHS256, jwt.SigningMethodHS384, jwt.SigningMethodHS512:
 		_, err = jwt.ParseWithClaims(token, &claims, func(token *jwt.Token) (interface{}, error) {
-			return []byte(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtSecret)), nil
+			return []byte(memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyJwtSecret)), nil
 		})
 	case jwt.SigningMethodRS256, jwt.SigningMethodRS384, jwt.SigningMethodRS512:
 		_, err = jwt.ParseWithClaims(token, &claims, func(token *jwt.Token) (interface{}, error) {
-			key, err := crypto.ParseRsaPublicKeyFromPemStr(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtPublicKey))
+			key, err := crypto.ParseRsaPublicKeyFromPemStr(memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyJwtPublicKey))
 			if err != nil {
 				return nil, err
 			}
@@ -66,7 +66,7 @@ func ParseJWTToken(token, hostname, nonce, subject string) (jwt.MapClaims, error
 		})
 	case jwt.SigningMethodES256, jwt.SigningMethodES384, jwt.SigningMethodES512:
 		_, err = jwt.ParseWithClaims(token, &claims, func(token *jwt.Token) (interface{}, error) {
-			key, err := crypto.ParseEcdsaPublicKeyFromPemStr(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtPublicKey))
+			key, err := crypto.ParseEcdsaPublicKeyFromPemStr(memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyJwtPublicKey))
 			if err != nil {
 				return nil, err
 			}
@@ -87,7 +87,7 @@ func ParseJWTToken(token, hostname, nonce, subject string) (jwt.MapClaims, error
 	claims["exp"] = intExp
 	claims["iat"] = intIat
 
-	if claims["aud"] != envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyClientID) {
+	if claims["aud"] != memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyClientID) {
 		return claims, errors.New("invalid audience")
 	}
 
@@ -109,7 +109,7 @@ func ParseJWTToken(token, hostname, nonce, subject string) (jwt.MapClaims, error
 // ParseJWTTokenWithoutNonce common util to parse jwt token without nonce
 // used to validate ID token as it is not persisted in store
 func ParseJWTTokenWithoutNonce(token, hostname string) (jwt.MapClaims, error) {
-	jwtType := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtType)
+	jwtType := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyJwtType)
 	signingMethod := jwt.GetSigningMethod(jwtType)
 
 	var err error
@@ -118,11 +118,11 @@ func ParseJWTTokenWithoutNonce(token, hostname string) (jwt.MapClaims, error) {
 	switch signingMethod {
 	case jwt.SigningMethodHS256, jwt.SigningMethodHS384, jwt.SigningMethodHS512:
 		_, err = jwt.ParseWithClaims(token, &claims, func(token *jwt.Token) (interface{}, error) {
-			return []byte(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtSecret)), nil
+			return []byte(memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyJwtSecret)), nil
 		})
 	case jwt.SigningMethodRS256, jwt.SigningMethodRS384, jwt.SigningMethodRS512:
 		_, err = jwt.ParseWithClaims(token, &claims, func(token *jwt.Token) (interface{}, error) {
-			key, err := crypto.ParseRsaPublicKeyFromPemStr(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtPublicKey))
+			key, err := crypto.ParseRsaPublicKeyFromPemStr(memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyJwtPublicKey))
 			if err != nil {
 				return nil, err
 			}
@@ -130,7 +130,7 @@ func ParseJWTTokenWithoutNonce(token, hostname string) (jwt.MapClaims, error) {
 		})
 	case jwt.SigningMethodES256, jwt.SigningMethodES384, jwt.SigningMethodES512:
 		_, err = jwt.ParseWithClaims(token, &claims, func(token *jwt.Token) (interface{}, error) {
-			key, err := crypto.ParseEcdsaPublicKeyFromPemStr(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtPublicKey))
+			key, err := crypto.ParseEcdsaPublicKeyFromPemStr(memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyJwtPublicKey))
 			if err != nil {
 				return nil, err
 			}
@@ -151,7 +151,7 @@ func ParseJWTTokenWithoutNonce(token, hostname string) (jwt.MapClaims, error) {
 	claims["exp"] = intExp
 	claims["iat"] = intIat
 
-	if claims["aud"] != envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyClientID) {
+	if claims["aud"] != memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyClientID) {
 		return claims, errors.New("invalid audience")
 	}
 

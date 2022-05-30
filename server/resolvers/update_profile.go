@@ -14,7 +14,6 @@ import (
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/email"
-	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/token"
@@ -145,7 +144,12 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 		go cookie.DeleteSession(gc)
 
 		user.Email = newEmail
-		if !envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification) {
+		isEmailVerificationDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification)
+		if err != nil {
+			log.Debug("Failed to get disable email verification env variable: ", err)
+			return res, err
+		}
+		if !isEmailVerificationDisabled {
 			hostname := utils.GetHost(gc)
 			user.EmailVerifiedAt = nil
 			hasEmailChanged = true

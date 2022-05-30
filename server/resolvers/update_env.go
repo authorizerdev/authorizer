@@ -13,8 +13,8 @@ import (
 	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/db"
-	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/oauth"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
@@ -36,10 +36,14 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 		return res, fmt.Errorf("unauthorized")
 	}
 
-	updatedData := envstore.EnvStoreObj.GetEnvStoreClone()
+	updatedData, err := memorystore.Provider.GetEnvStore()
+	if err != nil {
+		log.Debug("Failed to get env store: ", err)
+		return res, err
+	}
 
 	isJWTUpdated := false
-	algo := updatedData.StringEnv[constants.EnvKeyJwtType]
+	algo := updatedData[constants.EnvKeyJwtType].(string)
 	if params.JwtType != nil {
 		algo = *params.JwtType
 		if !crypto.IsHMACA(algo) && !crypto.IsECDSA(algo) && !crypto.IsRSA(algo) {
@@ -47,7 +51,7 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 			return res, fmt.Errorf("invalid jwt type")
 		}
 
-		updatedData.StringEnv[constants.EnvKeyJwtType] = algo
+		updatedData[constants.EnvKeyJwtType] = algo
 		isJWTUpdated = true
 	}
 
@@ -135,8 +139,12 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 			log.Debug("Old admin secret is required for admin secret update")
 			return res, errors.New("admin secret and old admin secret are required for secret change")
 		}
-
-		if *params.OldAdminSecret != envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret) {
+		oldAdminSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret)
+		if err != nil {
+			log.Debug("Failed to get old admin secret: ", err)
+			return res, err
+		}
+		if *params.OldAdminSecret != oldAdminSecret {
 			log.Debug("Old admin secret is invalid")
 			return res, errors.New("old admin secret is not correct")
 		}
@@ -154,31 +162,31 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 			fieldType := reflect.TypeOf(value).String()
 
 			if fieldType == "string" {
-				updatedData.StringEnv[key] = value.(string)
+				updatedData[key] = value.(string)
 			}
 
 			if fieldType == "bool" {
-				updatedData.BoolEnv[key] = value.(bool)
+				updatedData[key] = value.(bool)
 			}
 			if fieldType == "[]interface {}" {
 				stringArr := []string{}
 				for _, v := range value.([]interface{}) {
 					stringArr = append(stringArr, v.(string))
 				}
-				updatedData.SliceEnv[key] = stringArr
+				updatedData[key] = stringArr
 			}
 		}
 	}
 
 	// handle derivative cases like disabling email verification & magic login
 	// in case SMTP is off but env is set to true
-	if updatedData.StringEnv[constants.EnvKeySmtpHost] == "" || updatedData.StringEnv[constants.EnvKeySmtpUsername] == "" || updatedData.StringEnv[constants.EnvKeySmtpPassword] == "" || updatedData.StringEnv[constants.EnvKeySenderEmail] == "" && updatedData.StringEnv[constants.EnvKeySmtpPort] == "" {
-		if !updatedData.BoolEnv[constants.EnvKeyDisableEmailVerification] {
-			updatedData.BoolEnv[constants.EnvKeyDisableEmailVerification] = true
+	if updatedData[constants.EnvKeySmtpHost] == "" || updatedData[constants.EnvKeySmtpUsername] == "" || updatedData[constants.EnvKeySmtpPassword] == "" || updatedData[constants.EnvKeySenderEmail] == "" && updatedData[constants.EnvKeySmtpPort] == "" {
+		if !updatedData[constants.EnvKeyDisableEmailVerification].(bool) {
+			updatedData[constants.EnvKeyDisableEmailVerification] = true
 		}
 
-		if !updatedData.BoolEnv[constants.EnvKeyDisableMagicLinkLogin] {
-			updatedData.BoolEnv[constants.EnvKeyDisableMagicLinkLogin] = true
+		if !updatedData[constants.EnvKeyDisableMagicLinkLogin].(bool) {
+			updatedData[constants.EnvKeyDisableMagicLinkLogin] = true
 		}
 	}
 
@@ -205,14 +213,18 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 	}
 
 	// Update local store
-	envstore.EnvStoreObj.UpdateEnvStore(updatedData)
+	memorystore.Provider.UpdateEnvStore(updatedData)
 	jwk, err := crypto.GenerateJWKBasedOnEnv()
 	if err != nil {
 		log.Debug("Failed to generate JWK: ", err)
 		return res, err
 	}
 	// updating jwk
-	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyJWK, jwk)
+	err = memorystore.Provider.UpdateEnvVariable(constants.EnvKeyJWK, jwk)
+	if err != nil {
+		log.Debug("Failed to update JWK: ", err)
+		return res, err
+	}
 
 	// TODO check how to update session store based on env change.
 	// err = sessionstore.InitSession()
@@ -233,7 +245,12 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 	}
 
 	if params.AdminSecret != nil {
-		hashedKey, err := crypto.EncryptPassword(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret))
+		adminSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret)
+		if err != nil {
+			log.Debug("Failed to get admin secret: ", err)
+			return res, err
+		}
+		hashedKey, err := crypto.EncryptPassword(adminSecret)
 		if err != nil {
 			log.Debug("Failed to encrypt admin secret: ", err)
 			return res, err

@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/constants"
-	"github.com/authorizerdev/authorizer/server/envstore"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/golang-jwt/jwt"
 )
 
@@ -12,7 +12,7 @@ import (
 func CreateVerificationToken(email, tokenType, hostname, nonceHash, redirectURL string) (string, error) {
 	claims := jwt.MapClaims{
 		"iss":          hostname,
-		"aud":          envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyClientID),
+		"aud":          memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyClientID),
 		"sub":          email,
 		"exp":          time.Now().Add(time.Minute * 30).Unix(),
 		"iat":          time.Now().Unix(),

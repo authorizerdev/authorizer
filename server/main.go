@@ -9,7 +9,6 @@ import (
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/env"
-	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/oauth"
 	"github.com/authorizerdev/authorizer/server/routes"
@@ -108,5 +107,5 @@ func main() {
 
 	router := routes.InitRouter(log)
 	log.Info("Starting Authorizer: ", VERSION)
-	router.Run(":" + envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyPort))
+	router.Run(":" + memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyPort))
 }

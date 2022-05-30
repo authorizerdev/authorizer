@@ -7,8 +7,8 @@ import (
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/db"
-	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/resolvers"
 	"github.com/stretchr/testify/assert"
 )
@@ -29,9 +29,9 @@ func enableAccessTest(t *testing.T, s TestSetup) {
 		assert.NoError(t, err)
 		assert.NotNil(t, verifyRes.AccessToken)
 
-		h, err := crypto.EncryptPassword(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret))
+		h, err := crypto.EncryptPassword(memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret))
 		assert.Nil(t, err)
-		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminCookieName), h))
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAdminCookieName), h))
 
 		res, err := resolvers.RevokeAccessResolver(ctx, model.UpdateAccessInput{
 			UserID: verifyRes.User.ID,
