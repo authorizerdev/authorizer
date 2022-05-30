@@ -15,8 +15,10 @@ import (
 	emailservice "github.com/authorizerdev/authorizer/server/email"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
+	"github.com/authorizerdev/authorizer/server/parsers"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
+	"github.com/authorizerdev/authorizer/server/validators"
 )
 
 // InviteMembersResolver resolver to invite members
@@ -54,7 +56,7 @@ func InviteMembersResolver(ctx context.Context, params model.InviteMemberInput) 
 	// filter valid emails
 	emails := []string{}
 	for _, email := range params.Emails {
-		if utils.IsValidEmail(email) {
+		if validators.IsValidEmail(email) {
 			emails = append(emails, email)
 		}
 	}
@@ -93,9 +95,9 @@ func InviteMembersResolver(ctx context.Context, params model.InviteMemberInput) 
 			Email: email,
 			Roles: strings.Join(defaultRoles, ","),
 		}
-		hostname := utils.GetHost(gc)
+		hostname := parsers.GetHost(gc)
 		verifyEmailURL := hostname + "/verify_email"
-		appURL := utils.GetAppURL(gc)
+		appURL := parsers.GetAppURL(gc)
 
 		redirectURL := appURL
 		if params.RedirectURI != nil {

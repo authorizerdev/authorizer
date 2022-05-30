@@ -6,13 +6,13 @@ import (
 	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/authorizerdev/authorizer/server/cli"
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/env"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/oauth"
 	"github.com/authorizerdev/authorizer/server/routes"
-	"github.com/authorizerdev/authorizer/server/utils"
 )
 
 var VERSION string
@@ -27,10 +27,10 @@ func (u LogUTCFormatter) Format(e *log.Entry) ([]byte, error) {
 }
 
 func main() {
-	utils.ARG_DB_URL = flag.String("database_url", "", "Database connection string")
-	utils.ARG_DB_TYPE = flag.String("database_type", "", "Database type, possible values are postgres,mysql,sqlite")
-	utils.ARG_ENV_FILE = flag.String("env_file", "", "Env file path")
-	utils.ARG_LOG_LEVEL = flag.String("log_level", "info", "Log level, possible values are debug,info,warn,error,fatal,panic")
+	cli.ARG_DB_URL = flag.String("database_url", "", "Database connection string")
+	cli.ARG_DB_TYPE = flag.String("database_type", "", "Database type, possible values are postgres,mysql,sqlite")
+	cli.ARG_ENV_FILE = flag.String("env_file", "", "Env file path")
+	cli.ARG_LOG_LEVEL = flag.String("log_level", "info", "Log level, possible values are debug,info,warn,error,fatal,panic")
 	flag.Parse()
 
 	// global log level
@@ -41,7 +41,7 @@ func main() {
 	log.SetFormatter(LogUTCFormatter{&logrus.JSONFormatter{}})
 
 	var logLevel logrus.Level
-	switch *utils.ARG_LOG_LEVEL {
+	switch *cli.ARG_LOG_LEVEL {
 	case "debug":
 		logLevel = logrus.DebugLevel
 	case "info":
@@ -107,5 +107,11 @@ func main() {
 
 	router := routes.InitRouter(log)
 	log.Info("Starting Authorizer: ", VERSION)
-	router.Run(":" + memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyPort))
+	port, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyPort)
+	if err != nil {
+		log.Info("Error while getting port from env using default port 8080: ", err)
+		port = "8080"
+	}
+
+	router.Run(":" + port)
 }

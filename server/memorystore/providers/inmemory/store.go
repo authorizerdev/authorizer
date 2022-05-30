@@ -2,8 +2,6 @@ package inmemory
 
 import (
 	"strings"
-
-	"github.com/authorizerdev/authorizer/server/utils"
 )
 
 // ClearStore clears the in-memory store.
@@ -105,6 +103,12 @@ func (c *provider) GetBoolStoreEnvVariable(key string) (bool, error) {
 // GetSliceStoreEnvVariable to get the env variable from slice store object
 func (c *provider) GetSliceStoreEnvVariable(key string) ([]string, error) {
 	res := c.envStore.Get(key)
-	resSlice := utils.ConvertInterfaceToStringSlice(res)
+	data := res.([]interface{})
+	var resSlice []string
+
+	for _, v := range data {
+		resSlice = append(resSlice, v.(string))
+	}
+
 	return resSlice, nil
 }

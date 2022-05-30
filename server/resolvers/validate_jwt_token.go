@@ -11,6 +11,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
+	"github.com/authorizerdev/authorizer/server/parsers"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
@@ -49,7 +50,7 @@ func ValidateJwtTokenResolver(ctx context.Context, params model.ValidateJWTToken
 		userID = savedSessionSplit[1]
 	}
 
-	hostname := utils.GetHost(gc)
+	hostname := parsers.GetHost(gc)
 	var claimRoles []string
 	var claims jwt.MapClaims
 

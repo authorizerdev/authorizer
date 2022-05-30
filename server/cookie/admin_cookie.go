@@ -4,7 +4,7 @@ import (
 	"net/url"
 
 	"github.com/authorizerdev/authorizer/server/constants"
-	"github.com/authorizerdev/authorizer/server/utils"
+	"github.com/authorizerdev/authorizer/server/parsers"
 	"github.com/gin-gonic/gin"
 )
 
@@ -12,8 +12,8 @@ import (
 func SetAdminCookie(gc *gin.Context, token string) {
 	secure := true
 	httpOnly := true
-	hostname := utils.GetHost(gc)
-	host, _ := utils.GetHostParts(hostname)
+	hostname := parsers.GetHost(gc)
+	host, _ := parsers.GetHostParts(hostname)
 	gc.SetCookie(constants.AdminCookieName, token, 3600, "/", host, secure, httpOnly)
 }
 
@@ -37,7 +37,7 @@ func GetAdminCookie(gc *gin.Context) (string, error) {
 func DeleteAdminCookie(gc *gin.Context) {
 	secure := true
 	httpOnly := true
-	hostname := utils.GetHost(gc)
-	host, _ := utils.GetHostParts(hostname)
+	hostname := parsers.GetHost(gc)
+	host, _ := parsers.GetHostParts(hostname)
 	gc.SetCookie(constants.AdminCookieName, "", -1, "/", host, secure, httpOnly)
 }

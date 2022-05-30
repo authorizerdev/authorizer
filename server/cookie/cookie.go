@@ -5,7 +5,7 @@ import (
 	"net/url"
 
 	"github.com/authorizerdev/authorizer/server/constants"
-	"github.com/authorizerdev/authorizer/server/utils"
+	"github.com/authorizerdev/authorizer/server/parsers"
 	"github.com/gin-gonic/gin"
 )
 
@@ -13,9 +13,9 @@ import (
 func SetSession(gc *gin.Context, sessionID string) {
 	secure := true
 	httpOnly := true
-	hostname := utils.GetHost(gc)
-	host, _ := utils.GetHostParts(hostname)
-	domain := utils.GetDomainName(hostname)
+	hostname := parsers.GetHost(gc)
+	host, _ := parsers.GetHostParts(hostname)
+	domain := parsers.GetDomainName(hostname)
 	if domain != "localhost" {
 		domain = "." + domain
 	}
@@ -32,9 +32,9 @@ func SetSession(gc *gin.Context, sessionID string) {
 func DeleteSession(gc *gin.Context) {
 	secure := true
 	httpOnly := true
-	hostname := utils.GetHost(gc)
-	host, _ := utils.GetHostParts(hostname)
-	domain := utils.GetDomainName(hostname)
+	hostname := parsers.GetHost(gc)
+	host, _ := parsers.GetHostParts(hostname)
+	domain := parsers.GetDomainName(hostname)
 	if domain != "localhost" {
 		domain = "." + domain
 	}

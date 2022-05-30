@@ -9,7 +9,8 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/memorystore"
-	"github.com/authorizerdev/authorizer/server/utils"
+	"github.com/authorizerdev/authorizer/server/parsers"
+	"github.com/authorizerdev/authorizer/server/validators"
 )
 
 // State is the struct that holds authorizer url and redirect url
@@ -22,7 +23,7 @@ type State struct {
 // AppHandler is the handler for the /app route
 func AppHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		hostname := utils.GetHost(c)
+		hostname := parsers.GetHost(c)
 		if isLoginPageDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableLoginPage); err != nil || isLoginPageDisabled {
 			log.Debug("Login page is disabled")
 			c.JSON(400, gin.H{"error": "login page is not enabled"})
@@ -44,7 +45,7 @@ func AppHandler() gin.HandlerFunc {
 			redirect_uri = hostname + "/app"
 		} else {
 			// validate redirect url with allowed origins
-			if !utils.IsValidOrigin(redirect_uri) {
+			if !validators.IsValidOrigin(redirect_uri) {
 				log.Debug("Invalid redirect_uri")
 				c.JSON(400, gin.H{"error": "invalid redirect url"})
 				return

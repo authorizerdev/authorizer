@@ -9,8 +9,8 @@ import (
 	"github.com/joho/godotenv"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/authorizerdev/authorizer/server/cli"
 	"github.com/authorizerdev/authorizer/server/constants"
-	"github.com/authorizerdev/authorizer/server/utils"
 )
 
 // RequiredEnv holds information about required envs
@@ -62,8 +62,8 @@ func InitRequiredEnv() error {
 		}
 	}
 
-	if utils.ARG_ENV_FILE != nil && *utils.ARG_ENV_FILE != "" {
-		envPath = *utils.ARG_ENV_FILE
+	if cli.ARG_ENV_FILE != nil && *cli.ARG_ENV_FILE != "" {
+		envPath = *cli.ARG_ENV_FILE
 	}
 	log.Info("env path: ", envPath)
 
@@ -85,8 +85,8 @@ func InitRequiredEnv() error {
 	redisURL := os.Getenv(constants.EnvKeyRedisURL)
 
 	if strings.TrimSpace(dbType) == "" {
-		if utils.ARG_DB_TYPE != nil && *utils.ARG_DB_TYPE != "" {
-			dbType = strings.TrimSpace(*utils.ARG_DB_TYPE)
+		if cli.ARG_DB_TYPE != nil && *cli.ARG_DB_TYPE != "" {
+			dbType = strings.TrimSpace(*cli.ARG_DB_TYPE)
 		}
 
 		if dbType == "" {
@@ -96,8 +96,8 @@ func InitRequiredEnv() error {
 	}
 
 	if strings.TrimSpace(dbURL) == "" {
-		if utils.ARG_DB_URL != nil && *utils.ARG_DB_URL != "" {
-			dbURL = strings.TrimSpace(*utils.ARG_DB_URL)
+		if cli.ARG_DB_URL != nil && *cli.ARG_DB_URL != "" {
+			dbURL = strings.TrimSpace(*cli.ARG_DB_URL)
 		}
 
 		if dbURL == "" && dbPort == "" && dbHost == "" && dbUsername == "" && dbPassword == "" {

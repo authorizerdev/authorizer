@@ -13,6 +13,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
+	"github.com/authorizerdev/authorizer/server/parsers"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
@@ -34,7 +35,7 @@ func VerifyEmailResolver(ctx context.Context, params model.VerifyEmailInput) (*m
 	}
 
 	// verify if token exists in db
-	hostname := utils.GetHost(gc)
+	hostname := parsers.GetHost(gc)
 	claim, err := token.ParseJWTToken(params.Token, hostname, verificationRequest.Nonce, verificationRequest.Email)
 	if err != nil {
 		log.Debug("Failed to parse token: ", err)

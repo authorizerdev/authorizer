@@ -17,6 +17,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
+	"github.com/authorizerdev/authorizer/server/validators"
 )
 
 // LoginResolver is a resolver for login mutation
@@ -78,7 +79,7 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 	}
 	currentRoles := strings.Split(user.Roles, ",")
 	if len(params.Roles) > 0 {
-		if !utils.IsValidRoles(params.Roles, currentRoles) {
+		if !validators.IsValidRoles(params.Roles, currentRoles) {
 			log.Debug("Invalid roles: ", params.Roles)
 			return res, fmt.Errorf(`invalid roles`)
 		}

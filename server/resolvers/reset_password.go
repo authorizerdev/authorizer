@@ -13,8 +13,10 @@ import (
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
+	"github.com/authorizerdev/authorizer/server/parsers"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
+	"github.com/authorizerdev/authorizer/server/validators"
 )
 
 // ResetPasswordResolver is a resolver for reset password mutation
@@ -48,13 +50,13 @@ func ResetPasswordResolver(ctx context.Context, params model.ResetPasswordInput)
 		return res, fmt.Errorf(`passwords don't match`)
 	}
 
-	if !utils.IsValidPassword(params.Password) {
+	if !validators.IsValidPassword(params.Password) {
 		log.Debug("Invalid password")
 		return res, fmt.Errorf(`password is not valid. It needs to be at least 6 characters long and contain at least one number, one uppercase letter, one lowercase letter and one special character`)
 	}
 
 	// verify if token exists in db
-	hostname := utils.GetHost(gc)
+	hostname := parsers.GetHost(gc)
 	claim, err := token.ParseJWTToken(params.Token, hostname, verificationRequest.Nonce, verificationRequest.Email)
 	if err != nil {
 		log.Debug("Failed to parse token: ", err)

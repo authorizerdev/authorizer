@@ -11,6 +11,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/memorystore"
+	"github.com/authorizerdev/authorizer/server/parsers"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
@@ -251,7 +252,7 @@ func InitAllEnv() error {
 		trimVal := strings.TrimSpace(val)
 		if trimVal != "" {
 			if trimVal != "*" {
-				host, port := utils.GetHostParts(trimVal)
+				host, port := parsers.GetHostParts(trimVal)
 				allowedOrigins = append(allowedOrigins, host+":"+port)
 			} else {
 				hasWildCard = true

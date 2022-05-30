@@ -3,6 +3,7 @@ package test
 import (
 	"testing"
 
+	"github.com/authorizerdev/authorizer/server/parsers"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/stretchr/testify/assert"
 )
@@ -10,7 +11,7 @@ import (
 func TestGetHostName(t *testing.T) {
 	url := "http://test.herokuapp.com:80"
 
-	host, port := utils.GetHostParts(url)
+	host, port := parsers.GetHostParts(url)
 	expectedHost := "test.herokuapp.com"
 
 	assert.Equal(t, host, expectedHost, "hostname should be equal")

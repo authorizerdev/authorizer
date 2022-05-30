@@ -10,13 +10,14 @@ import (
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/oauth"
-	"github.com/authorizerdev/authorizer/server/utils"
+	"github.com/authorizerdev/authorizer/server/parsers"
+	"github.com/authorizerdev/authorizer/server/validators"
 )
 
 // OAuthLoginHandler set host in the oauth state that is useful for redirecting to oauth_callback
 func OAuthLoginHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		hostname := utils.GetHost(c)
+		hostname := parsers.GetHost(c)
 		// deprecating redirectURL instead use redirect_uri
 		redirectURI := strings.TrimSpace(c.Query("redirectURL"))
 		if redirectURI == "" {
@@ -64,7 +65,7 @@ func OAuthLoginHandler() gin.HandlerFunc {
 				log.Debug("Error getting protected roles: ", err)
 			}
 
-			if !utils.IsValidRoles(rolesSplit, append([]string{}, append(roles, protectedRoles...)...)) {
+			if !validators.IsValidRoles(rolesSplit, append([]string{}, append(roles, protectedRoles...)...)) {
 				log.Debug("Invalid roles: ", roles)
 				c.JSON(400, gin.H{
 					"error": "invalid role",

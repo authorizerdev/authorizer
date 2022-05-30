@@ -15,6 +15,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/utils"
+	"github.com/authorizerdev/authorizer/server/validators"
 )
 
 // GetEnvData returns the env data from database
@@ -138,7 +139,7 @@ func PersistEnv() error {
 					case constants.EnvKeyRoles, constants.EnvKeyDefaultRoles, constants.EnvKeyProtectedRoles:
 						envStringArr := strings.Split(envValue, ",")
 						originalValue := utils.ConvertInterfaceToStringSlice(value)
-						if !utils.IsStringArrayEqual(originalValue, envStringArr) {
+						if !validators.IsStringArrayEqual(originalValue, envStringArr) {
 							storeData[key] = envStringArr
 							hasChanged = true
 						}

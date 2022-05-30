@@ -14,8 +14,10 @@ import (
 	"github.com/authorizerdev/authorizer/server/email"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
+	"github.com/authorizerdev/authorizer/server/parsers"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
+	"github.com/authorizerdev/authorizer/server/validators"
 )
 
 // MagicLinkLoginResolver is a resolver for magic link login mutation
@@ -41,7 +43,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 
 	params.Email = strings.ToLower(params.Email)
 
-	if !utils.IsValidEmail(params.Email) {
+	if !validators.IsValidEmail(params.Email) {
 		log.Debug("Invalid email")
 		return res, fmt.Errorf(`invalid email address`)
 	}
@@ -77,7 +79,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 				log.Debug("Error getting roles: ", err)
 				return res, err
 			}
-			if !utils.IsValidRoles(params.Roles, roles) {
+			if !validators.IsValidRoles(params.Roles, roles) {
 				log.Debug("Invalid roles: ", params.Roles)
 				return res, fmt.Errorf(`invalid roles`)
 			} else {
@@ -158,7 +160,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 		}
 	}
 
-	hostname := utils.GetHost(gc)
+	hostname := parsers.GetHost(gc)
 	isEmailVerificationDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification)
 	if err != nil {
 		log.Debug("Error getting email verification disabled: ", err)
@@ -178,7 +180,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 		if params.Scope != nil && len(params.Scope) > 0 {
 			redirectURLParams = redirectURLParams + "&scope=" + strings.Join(params.Scope, " ")
 		}
-		redirectURL := utils.GetAppURL(gc)
+		redirectURL := parsers.GetAppURL(gc)
 		if params.RedirectURI != nil {
 			redirectURL = *params.RedirectURI
 		}

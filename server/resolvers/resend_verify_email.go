@@ -12,8 +12,10 @@ import (
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/email"
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/parsers"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
+	"github.com/authorizerdev/authorizer/server/validators"
 )
 
 // ResendVerifyEmailResolver is a resolver for resend verify email mutation
@@ -27,12 +29,12 @@ func ResendVerifyEmailResolver(ctx context.Context, params model.ResendVerifyEma
 	}
 	params.Email = strings.ToLower(params.Email)
 
-	if !utils.IsValidEmail(params.Email) {
+	if !validators.IsValidEmail(params.Email) {
 		log.Debug("Invalid email: ", params.Email)
 		return res, fmt.Errorf("invalid email")
 	}
 
-	if !utils.IsValidVerificationIdentifier(params.Identifier) {
+	if !validators.IsValidVerificationIdentifier(params.Identifier) {
 		log.Debug("Invalid verification identifier: ", params.Identifier)
 		return res, fmt.Errorf("invalid identifier")
 	}
@@ -49,7 +51,7 @@ func ResendVerifyEmailResolver(ctx context.Context, params model.ResendVerifyEma
 		log.Debug("Failed to delete verification request: ", err)
 	}
 
-	hostname := utils.GetHost(gc)
+	hostname := parsers.GetHost(gc)
 	_, nonceHash, err := utils.GenerateNonce()
 	if err != nil {
 		log.Debug("Failed to generate nonce: ", err)

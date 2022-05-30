@@ -17,6 +17,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/memorystore"
+	"github.com/authorizerdev/authorizer/server/parsers"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
@@ -66,7 +67,7 @@ func CreateSessionToken(user models.User, nonce string, roles, scope []string) (
 
 // CreateAuthToken creates a new auth token when userlogs in
 func CreateAuthToken(gc *gin.Context, user models.User, roles, scope []string) (*Token, error) {
-	hostname := utils.GetHost(gc)
+	hostname := parsers.GetHost(gc)
 	nonce := uuid.New().String()
 	_, fingerPrintHash, err := CreateSessionToken(user, nonce, roles, scope)
 	if err != nil {
@@ -206,7 +207,7 @@ func ValidateAccessToken(gc *gin.Context, accessToken string) (map[string]interf
 	nonce := savedSessionSplit[0]
 	userID := savedSessionSplit[1]
 
-	hostname := utils.GetHost(gc)
+	hostname := parsers.GetHost(gc)
 	res, err = ParseJWTToken(accessToken, hostname, nonce, userID)
 	if err != nil {
 		return res, err
@@ -236,7 +237,7 @@ func ValidateRefreshToken(gc *gin.Context, refreshToken string) (map[string]inte
 	nonce := savedSessionSplit[0]
 	userID := savedSessionSplit[1]
 
-	hostname := utils.GetHost(gc)
+	hostname := parsers.GetHost(gc)
 	res, err = ParseJWTToken(refreshToken, hostname, nonce, userID)
 	if err != nil {
 		return res, err

@@ -1,4 +1,4 @@
-package utils
+package cli
 
 var (
 	// ARG_DB_URL is the cli arg variable for the database url

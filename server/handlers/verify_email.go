@@ -13,6 +13,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/memorystore"
+	"github.com/authorizerdev/authorizer/server/parsers"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
@@ -40,7 +41,7 @@ func VerifyEmailHandler() gin.HandlerFunc {
 		}
 
 		// verify if token exists in db
-		hostname := utils.GetHost(c)
+		hostname := parsers.GetHost(c)
 		claim, err := token.ParseJWTToken(tokenInQuery, hostname, verificationRequest.Nonce, verificationRequest.Email)
 		if err != nil {
 			log.Debug("Error parsing token: ", err)

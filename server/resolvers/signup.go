@@ -16,8 +16,10 @@ import (
 	"github.com/authorizerdev/authorizer/server/email"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
+	"github.com/authorizerdev/authorizer/server/parsers"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
+	"github.com/authorizerdev/authorizer/server/validators"
 )
 
 // SignupResolver is a resolver for signup mutation
@@ -56,14 +58,14 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 		return res, fmt.Errorf(`password and confirm password does not match`)
 	}
 
-	if !utils.IsValidPassword(params.Password) {
+	if !validators.IsValidPassword(params.Password) {
 		log.Debug("Invalid password")
 		return res, fmt.Errorf(`password is not valid. It needs to be at least 6 characters long and contain at least one number, one uppercase letter, one lowercase letter and one special character`)
 	}
 
 	params.Email = strings.ToLower(params.Email)
 
-	if !utils.IsValidEmail(params.Email) {
+	if !validators.IsValidEmail(params.Email) {
 		log.Debug("Invalid email: ", params.Email)
 		return res, fmt.Errorf(`invalid email address`)
 	}
@@ -95,7 +97,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 			log.Debug("Error getting roles: ", err)
 			return res, err
 		}
-		if !utils.IsValidRoles(roles, params.Roles) {
+		if !validators.IsValidRoles(roles, params.Roles) {
 			log.Debug("Invalid roles: ", params.Roles)
 			return res, fmt.Errorf(`invalid roles`)
 		} else {
@@ -168,7 +170,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 	roles := strings.Split(user.Roles, ",")
 	userToReturn := user.AsAPIUser()
 
-	hostname := utils.GetHost(gc)
+	hostname := parsers.GetHost(gc)
 	if !isEmailVerificationDisabled {
 		// insert verification request
 		_, nonceHash, err := utils.GenerateNonce()
@@ -177,7 +179,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 			return res, err
 		}
 		verificationType := constants.VerificationTypeBasicAuthSignup
-		redirectURL := utils.GetAppURL(gc)
+		redirectURL := parsers.GetAppURL(gc)
 		if params.RedirectURI != nil {
 			redirectURL = *params.RedirectURI
 		}
