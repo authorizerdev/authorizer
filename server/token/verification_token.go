@@ -10,9 +10,13 @@ import (
 
 // CreateVerificationToken creates a verification JWT token
 func CreateVerificationToken(email, tokenType, hostname, nonceHash, redirectURL string) (string, error) {
+	clientID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyClientID)
+	if err != nil {
+		return "", err
+	}
 	claims := jwt.MapClaims{
 		"iss":          hostname,
-		"aud":          memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyClientID),
+		"aud":          clientID,
 		"sub":          email,
 		"exp":          time.Now().Add(time.Minute * 30).Unix(),
 		"iat":          time.Now().Unix(),
