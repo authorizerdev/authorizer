@@ -16,16 +16,19 @@ func updateEnvTests(t *testing.T, s TestSetup) {
 	t.Helper()
 	t.Run(`should update envs`, func(t *testing.T) {
 		req, ctx := createContext(s)
-		originalAppURL := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAppURL)
+		originalAppURL, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAppURL)
+		assert.Nil(t, err)
 
 		data := model.UpdateEnvInput{}
-		_, err := resolvers.UpdateEnvResolver(ctx, data)
+		_, err = resolvers.UpdateEnvResolver(ctx, data)
 
 		assert.NotNil(t, err)
 
-		h, err := crypto.EncryptPassword(memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret))
+		adminSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret)
 		assert.Nil(t, err)
-		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAdminCookieName), h))
+		h, err := crypto.EncryptPassword(adminSecret)
+		assert.Nil(t, err)
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
 		newURL := "https://test.com"
 		disableLoginPage := true
 		allowedOrigins := []string{"http://localhost:8080"}
@@ -35,11 +38,19 @@ func updateEnvTests(t *testing.T, s TestSetup) {
 			AllowedOrigins:   allowedOrigins,
 		}
 		_, err = resolvers.UpdateEnvResolver(ctx, data)
-
 		assert.Nil(t, err)
-		assert.Equal(t, memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAppURL), newURL)
-		assert.True(t, memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableLoginPage))
-		assert.Equal(t, memorystore.Provider.GetSliceStoreEnvVariable(constants.EnvKeyAllowedOrigins), allowedOrigins)
+
+		appURL, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAppURL)
+		assert.Nil(t, err)
+		assert.Equal(t, appURL, newURL)
+
+		isLoginPageDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableLoginPage)
+		assert.Nil(t, err)
+		assert.True(t, isLoginPageDisabled)
+
+		storedOrigins, err := memorystore.Provider.GetSliceStoreEnvVariable(constants.EnvKeyAllowedOrigins)
+		assert.Nil(t, err)
+		assert.Equal(t, storedOrigins, allowedOrigins)
 
 		disableLoginPage = false
 		data = model.UpdateEnvInput{

@@ -26,9 +26,12 @@ func inviteUserTest(t *testing.T, s TestSetup) {
 		assert.Error(t, err)
 		assert.Nil(t, res)
 
-		h, err := crypto.EncryptPassword(memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret))
+		adminSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret)
 		assert.Nil(t, err)
-		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAdminCookieName), h))
+
+		h, err := crypto.EncryptPassword(adminSecret)
+		assert.Nil(t, err)
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
 
 		// invalid emails test
 		invalidEmailsTest := []string{

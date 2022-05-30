@@ -17,13 +17,13 @@ func magicLinkLoginTests(t *testing.T, s TestSetup) {
 	t.Run(`should login with magic link`, func(t *testing.T) {
 		req, ctx := createContext(s)
 		email := "magic_link_login." + s.TestInfo.Email
-		memorystore.Provider.UpdateEnvVariable(constants.BoolStoreIdentifier, constants.EnvKeyDisableSignUp, true)
+		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDisableSignUp, true)
 		_, err := resolvers.MagicLinkLoginResolver(ctx, model.MagicLinkLoginInput{
 			Email: email,
 		})
 		assert.NotNil(t, err, "signup disabled")
 
-		memorystore.Provider.UpdateEnvVariable(constants.BoolStoreIdentifier, constants.EnvKeyDisableSignUp, false)
+		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDisableSignUp, false)
 		_, err = resolvers.MagicLinkLoginResolver(ctx, model.MagicLinkLoginInput{
 			Email: email,
 		})

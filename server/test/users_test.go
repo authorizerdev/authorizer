@@ -35,9 +35,11 @@ func usersTest(t *testing.T, s TestSetup) {
 		usersRes, err := resolvers.UsersResolver(ctx, pagination)
 		assert.NotNil(t, err, "unauthorized")
 
-		h, err := crypto.EncryptPassword(memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret))
+		adminSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret)
 		assert.Nil(t, err)
-		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAdminCookieName), h))
+		h, err := crypto.EncryptPassword(adminSecret)
+		assert.Nil(t, err)
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
 
 		usersRes, err = resolvers.UsersResolver(ctx, pagination)
 		assert.Nil(t, err)

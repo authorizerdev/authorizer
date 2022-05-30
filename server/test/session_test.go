@@ -39,7 +39,7 @@ func sessionTests(t *testing.T, s TestSetup) {
 		// set all they keys in cookie one of them should be session cookie
 		for key := range sessions {
 			if key != token {
-				cookie += fmt.Sprintf("%s=%s;", memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+"_session", key)
+				cookie += fmt.Sprintf("%s=%s;", constants.AppCookieName+"_session", key)
 			}
 		}
 		cookie = strings.TrimSuffix(cookie, ";")

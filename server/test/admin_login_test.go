@@ -20,8 +20,10 @@ func adminLoginTests(t *testing.T, s TestSetup) {
 
 		assert.NotNil(t, err)
 
+		adminSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret)
+		assert.Nil(t, err)
 		_, err = resolvers.AdminLoginResolver(ctx, model.AdminLoginInput{
-			AdminSecret: memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret),
+			AdminSecret: adminSecret,
 		})
 
 		assert.Nil(t, err)

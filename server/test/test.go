@@ -75,14 +75,14 @@ func testSetup() TestSetup {
 		Password: "Test@123",
 	}
 
-	memorystore.Provider.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyEnvPath, "../../.env.sample")
+	memorystore.Provider.UpdateEnvVariable(constants.EnvKeyEnvPath, "../../.env.sample")
 	memorystore.InitMemStore()
-	memorystore.Provider.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeySmtpHost, "smtp.yopmail.com")
-	memorystore.Provider.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeySmtpPort, "2525")
-	memorystore.Provider.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeySmtpUsername, "lakhan@yopmail.com")
-	memorystore.Provider.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeySmtpPassword, "test")
-	memorystore.Provider.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeySenderEmail, "info@yopmail.com")
-	memorystore.Provider.UpdateEnvVariable(constants.SliceStoreIdentifier, constants.EnvKeyProtectedRoles, []string{"admin"})
+	memorystore.Provider.UpdateEnvVariable(constants.EnvKeySmtpHost, "smtp.yopmail.com")
+	memorystore.Provider.UpdateEnvVariable(constants.EnvKeySmtpPort, "2525")
+	memorystore.Provider.UpdateEnvVariable(constants.EnvKeySmtpUsername, "lakhan@yopmail.com")
+	memorystore.Provider.UpdateEnvVariable(constants.EnvKeySmtpPassword, "test")
+	memorystore.Provider.UpdateEnvVariable(constants.EnvKeySenderEmail, "info@yopmail.com")
+	memorystore.Provider.UpdateEnvVariable(constants.EnvKeyProtectedRoles, []string{"admin"})
 	memorystore.InitMemStore()
 	db.InitDB()
 	env.InitAllEnv()

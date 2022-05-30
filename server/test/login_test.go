@@ -6,7 +6,6 @@ import (
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/graph/model"
-	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/resolvers"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/stretchr/testify/assert"
@@ -15,7 +14,6 @@ import (
 func loginTests(t *testing.T, s TestSetup) {
 	t.Helper()
 	t.Run(`should login`, func(t *testing.T) {
-		t.Logf("=> is enabled: %v", memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification))
 		_, ctx := createContext(s)
 		email := "login." + s.TestInfo.Email
 		_, err := resolvers.SignupResolver(ctx, model.SignUpInput{

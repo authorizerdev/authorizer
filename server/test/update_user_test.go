@@ -33,10 +33,11 @@ func updateUserTest(t *testing.T, s TestSetup) {
 			Roles: newRoles,
 		})
 		assert.NotNil(t, err, "unauthorized")
-
-		h, err := crypto.EncryptPassword(memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret))
+		adminSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret)
 		assert.Nil(t, err)
-		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAdminCookieName), h))
+		h, err := crypto.EncryptPassword(adminSecret)
+		assert.Nil(t, err)
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
 		_, err = resolvers.UpdateUserResolver(ctx, model.UpdateUserInput{
 			ID:    user.ID,
 			Roles: newRoles,
@@ -44,7 +45,7 @@ func updateUserTest(t *testing.T, s TestSetup) {
 		// supplier is not part of envs
 		assert.Error(t, err)
 		adminRole = "admin"
-		memorystore.Provider.UpdateEnvVariable(constants.SliceStoreIdentifier, constants.EnvKeyProtectedRoles, []string{adminRole})
+		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyProtectedRoles, []string{adminRole})
 		newRoles = []*string{&adminRole, &userRole}
 		_, err = resolvers.UpdateUserResolver(ctx, model.UpdateUserInput{
 			ID:    user.ID,

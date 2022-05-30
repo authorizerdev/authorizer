@@ -30,7 +30,7 @@ func signupTests(t *testing.T, s TestSetup) {
 		})
 		assert.NotNil(t, err, "invalid password")
 
-		memorystore.Provider.UpdateEnvVariable(constants.BoolStoreIdentifier, constants.EnvKeyDisableSignUp, true)
+		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDisableSignUp, true)
 		res, err = resolvers.SignupResolver(ctx, model.SignUpInput{
 			Email:           email,
 			Password:        s.TestInfo.Password,
@@ -38,7 +38,7 @@ func signupTests(t *testing.T, s TestSetup) {
 		})
 		assert.NotNil(t, err, "singup disabled")
 
-		memorystore.Provider.UpdateEnvVariable(constants.BoolStoreIdentifier, constants.EnvKeyDisableSignUp, false)
+		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDisableSignUp, false)
 		res, err = resolvers.SignupResolver(ctx, model.SignUpInput{
 			Email:           email,
 			Password:        s.TestInfo.Password,

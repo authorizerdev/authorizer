@@ -19,8 +19,8 @@ func TestResolvers(t *testing.T) {
 
 	for dbType, dbURL := range databases {
 		s := testSetup()
-		memorystore.Provider.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseURL, dbURL)
-		memorystore.Provider.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyDatabaseType, dbType)
+		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDatabaseURL, dbURL)
+		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDatabaseType, dbType)
 		defer s.Server.Close()
 		err := db.InitDB()
 		if err != nil {
@@ -35,8 +35,8 @@ func TestResolvers(t *testing.T) {
 		}
 		env.PersistEnv()
 
-		memorystore.Provider.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyEnv, "test")
-		memorystore.Provider.UpdateEnvVariable(constants.BoolStoreIdentifier, constants.EnvKeyIsProd, false)
+		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyEnv, "test")
+		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyIsProd, false)
 		t.Run("should pass tests for "+dbType, func(t *testing.T) {
 			// admin tests
 			adminSignupTests(t, s)

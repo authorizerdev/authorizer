@@ -18,12 +18,15 @@ func envTests(t *testing.T, s TestSetup) {
 		_, err := resolvers.EnvResolver(ctx)
 		assert.NotNil(t, err)
 
-		h, err := crypto.EncryptPassword(memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret))
+		adminSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret)
 		assert.Nil(t, err)
-		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAdminCookieName), h))
+
+		h, err := crypto.EncryptPassword(adminSecret)
+		assert.Nil(t, err)
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
 		res, err := resolvers.EnvResolver(ctx)
 
 		assert.Nil(t, err)
-		assert.Equal(t, *res.AdminSecret, memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret))
+		assert.Equal(t, *res.AdminSecret, adminSecret)
 	})
 }
