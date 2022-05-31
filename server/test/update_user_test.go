@@ -45,7 +45,7 @@ func updateUserTest(t *testing.T, s TestSetup) {
 		// supplier is not part of envs
 		assert.Error(t, err)
 		adminRole = "admin"
-		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyProtectedRoles, []string{adminRole})
+		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyProtectedRoles, adminRole)
 		newRoles = []*string{&adminRole, &userRole}
 		_, err = resolvers.UpdateUserResolver(ctx, model.UpdateUserInput{
 			ID:    user.ID,

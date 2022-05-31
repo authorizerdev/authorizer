@@ -3,6 +3,7 @@ package resolvers
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 
@@ -16,7 +17,7 @@ import (
 // EnvResolver is a resolver for config query
 // This is admin only query
 func EnvResolver(ctx context.Context) (*model.Env, error) {
-	var res *model.Env
+	res := &model.Env{}
 
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
@@ -35,100 +36,119 @@ func EnvResolver(ctx context.Context) (*model.Env, error) {
 		log.Debug("Failed to get env store: ", err)
 		return res, err
 	}
-	accessTokenExpiryTime := store[constants.EnvKeyAccessTokenExpiryTime].(string)
-	adminSecret := store[constants.EnvKeyAdminSecret].(string)
-	clientID := store[constants.EnvKeyClientID].(string)
-	clientSecret := store[constants.EnvKeyClientSecret].(string)
-	databaseURL := store[constants.EnvKeyDatabaseURL].(string)
-	databaseName := store[constants.EnvKeyDatabaseName].(string)
-	databaseType := store[constants.EnvKeyDatabaseType].(string)
-	databaseUsername := store[constants.EnvKeyDatabaseUsername].(string)
-	databasePassword := store[constants.EnvKeyDatabasePassword].(string)
-	databaseHost := store[constants.EnvKeyDatabaseHost].(string)
-	databasePort := store[constants.EnvKeyDatabasePort].(string)
-	customAccessTokenScript := store[constants.EnvKeyCustomAccessTokenScript].(string)
-	smtpHost := store[constants.EnvKeySmtpHost].(string)
-	smtpPort := store[constants.EnvKeySmtpPort].(string)
-	smtpUsername := store[constants.EnvKeySmtpUsername].(string)
-	smtpPassword := store[constants.EnvKeySmtpPassword].(string)
-	senderEmail := store[constants.EnvKeySenderEmail].(string)
-	jwtType := store[constants.EnvKeyJwtType].(string)
-	jwtSecret := store[constants.EnvKeyJwtSecret].(string)
-	jwtRoleClaim := store[constants.EnvKeyJwtRoleClaim].(string)
-	jwtPublicKey := store[constants.EnvKeyJwtPublicKey].(string)
-	jwtPrivateKey := store[constants.EnvKeyJwtPrivateKey].(string)
-	appURL := store[constants.EnvKeyAppURL].(string)
-	redisURL := store[constants.EnvKeyRedisURL].(string)
-	resetPasswordURL := store[constants.EnvKeyResetPasswordURL].(string)
-	googleClientID := store[constants.EnvKeyGoogleClientID].(string)
-	googleClientSecret := store[constants.EnvKeyGoogleClientSecret].(string)
-	facebookClientID := store[constants.EnvKeyFacebookClientID].(string)
-	facebookClientSecret := store[constants.EnvKeyFacebookClientSecret].(string)
-	githubClientID := store[constants.EnvKeyGithubClientID].(string)
-	githubClientSecret := store[constants.EnvKeyGithubClientSecret].(string)
-	organizationName := store[constants.EnvKeyOrganizationName].(string)
-	organizationLogo := store[constants.EnvKeyOrganizationLogo].(string)
+
+	if val, ok := store[constants.EnvKeyAccessTokenExpiryTime]; ok {
+		res.AccessTokenExpiryTime = utils.NewStringRef(val.(string))
+	}
+	if val, ok := store[constants.EnvKeyAdminSecret]; ok {
+		res.AdminSecret = utils.NewStringRef(val.(string))
+	}
+	if val, ok := store[constants.EnvKeyClientID]; ok {
+		res.ClientID = val.(string)
+	}
+	if val, ok := store[constants.EnvKeyClientSecret]; ok {
+		res.ClientSecret = val.(string)
+	}
+	if val, ok := store[constants.EnvKeyDatabaseURL]; ok {
+		res.DatabaseURL = utils.NewStringRef(val.(string))
+	}
+	if val, ok := store[constants.EnvKeyDatabaseName]; ok {
+		res.DatabaseName = utils.NewStringRef(val.(string))
+	}
+	if val, ok := store[constants.EnvKeyDatabaseType]; ok {
+		res.DatabaseType = utils.NewStringRef(val.(string))
+	}
+	if val, ok := store[constants.EnvKeyDatabaseUsername]; ok {
+		res.DatabaseUsername = utils.NewStringRef(val.(string))
+	}
+	if val, ok := store[constants.EnvKeyDatabasePassword]; ok {
+		res.DatabasePassword = utils.NewStringRef(val.(string))
+	}
+	if val, ok := store[constants.EnvKeyDatabaseHost]; ok {
+		res.DatabaseHost = utils.NewStringRef(val.(string))
+	}
+	if val, ok := store[constants.EnvKeyDatabasePort]; ok {
+		res.DatabasePort = utils.NewStringRef(val.(string))
+	}
+	if val, ok := store[constants.EnvKeyCustomAccessTokenScript]; ok {
+		res.CustomAccessTokenScript = utils.NewStringRef(val.(string))
+	}
+	if val, ok := store[constants.EnvKeySmtpHost]; ok {
+		res.SMTPHost = utils.NewStringRef(val.(string))
+	}
+	if val, ok := store[constants.EnvKeySmtpPort]; ok {
+		res.SMTPPort = utils.NewStringRef(val.(string))
+	}
+	if val, ok := store[constants.EnvKeySmtpUsername]; ok {
+		res.SMTPUsername = utils.NewStringRef(val.(string))
+	}
+	if val, ok := store[constants.EnvKeySmtpPassword]; ok {
+		res.SMTPPassword = utils.NewStringRef(val.(string))
+	}
+	if val, ok := store[constants.EnvKeySenderEmail]; ok {
+		res.SenderEmail = utils.NewStringRef(val.(string))
+	}
+	if val, ok := store[constants.EnvKeyJwtType]; ok {
+		res.JwtType = utils.NewStringRef(val.(string))
+	}
+	if val, ok := store[constants.EnvKeyJwtSecret]; ok {
+		res.JwtSecret = utils.NewStringRef(val.(string))
+	}
+	if val, ok := store[constants.EnvKeyJwtRoleClaim]; ok {
+		res.JwtRoleClaim = utils.NewStringRef(val.(string))
+	}
+	if val, ok := store[constants.EnvKeyJwtPublicKey]; ok {
+		res.JwtPublicKey = utils.NewStringRef(val.(string))
+	}
+	if val, ok := store[constants.EnvKeyJwtPrivateKey]; ok {
+		res.JwtPrivateKey = utils.NewStringRef(val.(string))
+	}
+	if val, ok := store[constants.EnvKeyAppURL]; ok {
+		res.AppURL = utils.NewStringRef(val.(string))
+	}
+	if val, ok := store[constants.EnvKeyRedisURL]; ok {
+		res.RedisURL = utils.NewStringRef(val.(string))
+	}
+	if val, ok := store[constants.EnvKeyResetPasswordURL]; ok {
+		res.ResetPasswordURL = utils.NewStringRef(val.(string))
+	}
+	if val, ok := store[constants.EnvKeyGoogleClientID]; ok {
+		res.GoogleClientID = utils.NewStringRef(val.(string))
+	}
+	if val, ok := store[constants.EnvKeyGoogleClientSecret]; ok {
+		res.GoogleClientSecret = utils.NewStringRef(val.(string))
+	}
+	if val, ok := store[constants.EnvKeyFacebookClientID]; ok {
+		res.FacebookClientID = utils.NewStringRef(val.(string))
+	}
+	if val, ok := store[constants.EnvKeyFacebookClientSecret]; ok {
+		res.FacebookClientSecret = utils.NewStringRef(val.(string))
+	}
+	if val, ok := store[constants.EnvKeyGithubClientID]; ok {
+		res.GithubClientID = utils.NewStringRef(val.(string))
+	}
+	if val, ok := store[constants.EnvKeyGithubClientSecret]; ok {
+		res.GithubClientSecret = utils.NewStringRef(val.(string))
+	}
+	if val, ok := store[constants.EnvKeyOrganizationName]; ok {
+		res.OrganizationName = utils.NewStringRef(val.(string))
+	}
+	if val, ok := store[constants.EnvKeyOrganizationLogo]; ok {
+		res.OrganizationLogo = utils.NewStringRef(val.(string))
+	}
 
 	// string slice vars
-	allowedOrigins := utils.ConvertInterfaceToStringSlice(store[constants.EnvKeyAllowedOrigins])
-	roles := utils.ConvertInterfaceToStringSlice(store[constants.EnvKeyRoles])
-	defaultRoles := utils.ConvertInterfaceToStringSlice(store[constants.EnvKeyDefaultRoles])
-	protectedRoles := utils.ConvertInterfaceToStringSlice(store[constants.EnvKeyProtectedRoles])
+	res.AllowedOrigins = strings.Split(store[constants.EnvKeyAllowedOrigins].(string), ",")
+	res.Roles = strings.Split(store[constants.EnvKeyRoles].(string), ",")
+	res.DefaultRoles = strings.Split(store[constants.EnvKeyDefaultRoles].(string), ",")
+	res.ProtectedRoles = strings.Split(store[constants.EnvKeyProtectedRoles].(string), ",")
 
 	// bool vars
-	disableEmailVerification := store[constants.EnvKeyDisableEmailVerification].(bool)
-	disableBasicAuthentication := store[constants.EnvKeyDisableBasicAuthentication].(bool)
-	disableMagicLinkLogin := store[constants.EnvKeyDisableMagicLinkLogin].(bool)
-	disableLoginPage := store[constants.EnvKeyDisableLoginPage].(bool)
-	disableSignUp := store[constants.EnvKeyDisableSignUp].(bool)
+	res.DisableEmailVerification = store[constants.EnvKeyDisableEmailVerification].(bool)
+	res.DisableBasicAuthentication = store[constants.EnvKeyDisableBasicAuthentication].(bool)
+	res.DisableMagicLinkLogin = store[constants.EnvKeyDisableMagicLinkLogin].(bool)
+	res.DisableLoginPage = store[constants.EnvKeyDisableLoginPage].(bool)
+	res.DisableSignUp = store[constants.EnvKeyDisableSignUp].(bool)
 
-	if accessTokenExpiryTime == "" {
-		accessTokenExpiryTime = "30m"
-	}
-
-	res = &model.Env{
-		AccessTokenExpiryTime:      &accessTokenExpiryTime,
-		AdminSecret:                &adminSecret,
-		DatabaseName:               databaseName,
-		DatabaseURL:                databaseURL,
-		DatabaseType:               databaseType,
-		DatabaseUsername:           databaseUsername,
-		DatabasePassword:           databasePassword,
-		DatabaseHost:               databaseHost,
-		DatabasePort:               databasePort,
-		ClientID:                   clientID,
-		ClientSecret:               clientSecret,
-		CustomAccessTokenScript:    &customAccessTokenScript,
-		SMTPHost:                   &smtpHost,
-		SMTPPort:                   &smtpPort,
-		SMTPPassword:               &smtpPassword,
-		SMTPUsername:               &smtpUsername,
-		SenderEmail:                &senderEmail,
-		JwtType:                    &jwtType,
-		JwtSecret:                  &jwtSecret,
-		JwtPrivateKey:              &jwtPrivateKey,
-		JwtPublicKey:               &jwtPublicKey,
-		JwtRoleClaim:               &jwtRoleClaim,
-		AllowedOrigins:             allowedOrigins,
-		AppURL:                     &appURL,
-		RedisURL:                   &redisURL,
-		ResetPasswordURL:           &resetPasswordURL,
-		DisableEmailVerification:   &disableEmailVerification,
-		DisableBasicAuthentication: &disableBasicAuthentication,
-		DisableMagicLinkLogin:      &disableMagicLinkLogin,
-		DisableLoginPage:           &disableLoginPage,
-		DisableSignUp:              &disableSignUp,
-		Roles:                      roles,
-		ProtectedRoles:             protectedRoles,
-		DefaultRoles:               defaultRoles,
-		GoogleClientID:             &googleClientID,
-		GoogleClientSecret:         &googleClientSecret,
-		GithubClientID:             &githubClientID,
-		GithubClientSecret:         &githubClientSecret,
-		FacebookClientID:           &facebookClientID,
-		FacebookClientSecret:       &facebookClientSecret,
-		OrganizationName:           &organizationName,
-		OrganizationLogo:           &organizationLogo,
-	}
 	return res, nil
 }

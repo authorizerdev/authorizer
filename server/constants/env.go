@@ -111,6 +111,8 @@ const (
 	EnvKeyDisableLoginPage = "DISABLE_LOGIN_PAGE"
 	// EnvKeyDisableSignUp key for env variable DISABLE_SIGN_UP
 	EnvKeyDisableSignUp = "DISABLE_SIGN_UP"
+	// EnvKeyDisableRedisForEnv key for env variable DISABLE_REDIS_FOR_ENV
+	EnvKeyDisableRedisForEnv = "DISABLE_REDIS_FOR_ENV"
 
 	// Slice variables
 	// EnvKeyRoles key for env variable ROLES

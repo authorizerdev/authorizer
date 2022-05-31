@@ -3,6 +3,7 @@ package env
 import (
 	"encoding/json"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -14,7 +15,45 @@ import (
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/memorystore"
+	"github.com/authorizerdev/authorizer/server/utils"
 )
+
+func fixBackwardCompatibility(data map[string]interface{}) (bool, map[string]interface{}) {
+	result := data
+	// check if env data is stored in older format
+	hasOlderFormat := false
+	if _, ok := result["bool_env"]; ok {
+		for key, value := range result["bool_env"].(map[string]interface{}) {
+			result[key] = value
+		}
+		hasOlderFormat = true
+		delete(result, "bool_env")
+	}
+
+	if _, ok := result["string_env"]; ok {
+		for key, value := range result["string_env"].(map[string]interface{}) {
+			result[key] = value
+		}
+		hasOlderFormat = true
+		delete(result, "string_env")
+	}
+
+	if _, ok := result["slice_env"]; ok {
+		for key, value := range result["slice_env"].(map[string]interface{}) {
+			typeOfValue := reflect.TypeOf(value)
+			if strings.Contains(typeOfValue.String(), "[]string") {
+				result[key] = strings.Join(value.([]string), ",")
+			}
+			if strings.Contains(typeOfValue.String(), "[]interface") {
+				result[key] = strings.Join(utils.ConvertInterfaceToStringSlice(value), ",")
+			}
+		}
+		hasOlderFormat = true
+		delete(result, "slice_env")
+	}
+
+	return hasOlderFormat, result
+}
 
 // GetEnvData returns the env data from database
 func GetEnvData() (map[string]interface{}, error) {
@@ -53,41 +92,16 @@ func GetEnvData() (map[string]interface{}, error) {
 		return result, err
 	}
 
-	///////// start backward compatibility ///////////
-	// check if env data is stored in older format
-	hasOlderFormat := false
-	if _, ok := result["bool_env"]; ok {
-		for key, value := range result["bool_env"].(map[string]interface{}) {
-			result[key] = value
-		}
-		hasOlderFormat = true
-		delete(result, "bool_env")
-	}
-
-	if _, ok := result["string_env"]; ok {
-		for key, value := range result["string_env"].(map[string]interface{}) {
-			result[key] = value
-		}
-		hasOlderFormat = true
-		delete(result, "string_env")
-	}
-
-	if _, ok := result["slice_env"]; ok {
-		for key, value := range result["slice_env"].(map[string]interface{}) {
-			result[key] = strings.Join(value.([]string), ",")
-		}
-		hasOlderFormat = true
-		delete(result, "slice_env")
-	}
+	hasOlderFormat, result := fixBackwardCompatibility(result)
 
 	if hasOlderFormat {
-		err := memorystore.Provider.UpdateEnvStore(result)
+		err = memorystore.Provider.UpdateEnvStore(result)
 		if err != nil {
-			log.Fatal("Error while updating env store: ", err)
+			log.Debug("Error while updating env store: ", err)
 			return result, err
 		}
+
 	}
-	///////// end backward compatibility ///////////
 
 	return result, err
 }
@@ -99,7 +113,11 @@ func PersistEnv() error {
 	if err != nil {
 		// AES encryption needs 32 bit key only, so we chop off last 4 characters from 36 bit uuid
 		hash := uuid.New().String()[:36-4]
-		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyEncryptionKey, hash)
+		err := memorystore.Provider.UpdateEnvVariable(constants.EnvKeyEncryptionKey, hash)
+		if err != nil {
+			log.Debug("Error while updating encryption env variable: ", err)
+			return err
+		}
 		encodedHash := crypto.EncryptB64(hash)
 
 		res, err := memorystore.Provider.GetEnvStore()
@@ -155,6 +173,16 @@ func PersistEnv() error {
 		if err != nil {
 			log.Debug("Error while unmarshalling env data: ", err)
 			return err
+		}
+
+		hasOlderFormat, result := fixBackwardCompatibility(storeData)
+		if hasOlderFormat {
+			err = memorystore.Provider.UpdateEnvStore(result)
+			if err != nil {
+				log.Debug("Error while updating env store: ", err)
+				return err
+			}
+
 		}
 
 		// if env is changed via env file or OS env

@@ -98,9 +98,9 @@ const LinkItems: Array<LinkItemProps> = [
 			},
 			{ name: 'Access Token', icon: SiOpenaccess, route: '/access-token' },
 			{
-				name: 'UI Customization',
+				name: 'Features',
 				icon: BiCustomize,
-				route: '/ui-customization',
+				route: '/features',
 			},
 			{ name: 'Database', icon: RiDatabase2Line, route: '/db-cred' },
 			{

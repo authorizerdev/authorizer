@@ -3,7 +3,7 @@ import { Flex, Stack, Text } from '@chakra-ui/react';
 import InputField from '../InputField';
 import { SwitchInputType } from '../../constants';
 
-const UICustomization = ({ variables, setVariables }: any) => {
+const Features = ({ variables, setVariables }: any) => {
 	return (
 		<div>
 			{' '}
@@ -71,9 +71,23 @@ const UICustomization = ({ variables, setVariables }: any) => {
 						/>
 					</Flex>
 				</Flex>
+				<Flex>
+					<Flex w="100%" justifyContent="start" alignItems="center">
+						<Text fontSize="sm">
+							Disable Redis for storing environment variables:
+						</Text>
+					</Flex>
+					<Flex justifyContent="start" mb={3}>
+						<InputField
+							variables={variables}
+							setVariables={setVariables}
+							inputType={SwitchInputType.DISABLE_REDIS_FOR_ENV}
+						/>
+					</Flex>
+				</Flex>
 			</Stack>
 		</div>
 	);
 };
 
-export default UICustomization;
+export default Features;

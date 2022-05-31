@@ -192,7 +192,7 @@ func GetAccessToken(gc *gin.Context) (string, error) {
 
 // Function to validate access token for authorizer apis (profile, update_profile)
 func ValidateAccessToken(gc *gin.Context, accessToken string) (map[string]interface{}, error) {
-	var res map[string]interface{}
+	res := make(map[string]interface{})
 
 	if accessToken == "" {
 		return res, fmt.Errorf(`unauthorized`)
@@ -222,7 +222,7 @@ func ValidateAccessToken(gc *gin.Context, accessToken string) (map[string]interf
 
 // Function to validate refreshToken
 func ValidateRefreshToken(gc *gin.Context, refreshToken string) (map[string]interface{}, error) {
-	var res map[string]interface{}
+	res := make(map[string]interface{})
 
 	if refreshToken == "" {
 		return res, fmt.Errorf(`unauthorized`)

@@ -1,6 +1,8 @@
 package memorystore
 
 import (
+	"encoding/json"
+
 	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/constants"
@@ -30,8 +32,26 @@ func InitMemStore() error {
 		constants.EnvKeyDisableSignUp:              false,
 	}
 
-	redisURL := RequiredEnvStoreObj.GetRequiredEnv().RedisURL
-	if redisURL != "" {
+	requiredEnvs := RequiredEnvStoreObj.GetRequiredEnv()
+	requiredEnvMap := make(map[string]interface{})
+	requiredEnvBytes, err := json.Marshal(requiredEnvs)
+	if err != nil {
+		log.Debug("Error while marshalling required envs: ", err)
+		return err
+	}
+	err = json.Unmarshal(requiredEnvBytes, &requiredEnvMap)
+	if err != nil {
+		log.Debug("Error while unmarshalling required envs: ", err)
+		return err
+	}
+
+	// merge default envs with required envs
+	for key, val := range requiredEnvMap {
+		defaultEnvs[key] = val
+	}
+
+	redisURL := requiredEnvs.RedisURL
+	if redisURL != "" && !requiredEnvs.disableRedisForEnv {
 		log.Info("Initializing Redis memory store")
 		Provider, err = redis.NewRedisProvider(redisURL)
 		if err != nil {

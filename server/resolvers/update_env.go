@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 
@@ -169,11 +170,8 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 				updatedData[key] = value.(bool)
 			}
 			if fieldType == "[]interface {}" {
-				stringArr := []string{}
-				for _, v := range value.([]interface{}) {
-					stringArr = append(stringArr, v.(string))
-				}
-				updatedData[key] = stringArr
+				stringArr := utils.ConvertInterfaceToStringSlice(value)
+				updatedData[key] = strings.Join(stringArr, ",")
 			}
 		}
 	}

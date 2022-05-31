@@ -15,18 +15,19 @@ import (
 
 // RequiredEnv holds information about required envs
 type RequiredEnv struct {
-	EnvPath          string
-	DatabaseURL      string
-	DatabaseType     string
-	DatabaseName     string
-	DatabaseHost     string
-	DatabasePort     string
-	DatabaseUsername string
-	DatabasePassword string
-	DatabaseCert     string
-	DatabaseCertKey  string
-	DatabaseCACert   string
-	RedisURL         string
+	EnvPath            string `json:"ENV_PATH"`
+	DatabaseURL        string `json:"DATABASE_URL"`
+	DatabaseType       string `json:"DATABASE_TYPE"`
+	DatabaseName       string `json:"DATABASE_NAME"`
+	DatabaseHost       string `json:"DATABASE_HOST"`
+	DatabasePort       string `json:"DATABASE_PORT"`
+	DatabaseUsername   string `json:"DATABASE_USERNAME"`
+	DatabasePassword   string `json:"DATABASE_PASSWORD"`
+	DatabaseCert       string `json:"DATABASE_CERT"`
+	DatabaseCertKey    string `json:"DATABASE_CERT_KEY"`
+	DatabaseCACert     string `json:"DATABASE_CA_CERT"`
+	RedisURL           string `json:"REDIS_URL"`
+	disableRedisForEnv bool   `json:"DISABLE_REDIS_FOR_ENV"`
 }
 
 // RequiredEnvObj is a simple in-memory store for sessions.
@@ -83,11 +84,17 @@ func InitRequiredEnv() error {
 	dbCertKey := os.Getenv(constants.EnvKeyDatabaseCertKey)
 	dbCACert := os.Getenv(constants.EnvKeyDatabaseCACert)
 	redisURL := os.Getenv(constants.EnvKeyRedisURL)
+	disableRedisForEnv := os.Getenv(constants.EnvKeyDisableRedisForEnv) == "true"
 
 	if strings.TrimSpace(redisURL) == "" {
 		if cli.ARG_REDIS_URL != nil && *cli.ARG_REDIS_URL != "" {
 			redisURL = *cli.ARG_REDIS_URL
 		}
+	}
+
+	// set default db name for non sql dbs
+	if dbName == "" {
+		dbName = "authorizer"
 	}
 
 	if strings.TrimSpace(dbType) == "" {
@@ -119,18 +126,19 @@ func InitRequiredEnv() error {
 	}
 
 	requiredEnv := RequiredEnv{
-		EnvPath:          envPath,
-		DatabaseURL:      dbURL,
-		DatabaseType:     dbType,
-		DatabaseName:     dbName,
-		DatabaseHost:     dbHost,
-		DatabasePort:     dbPort,
-		DatabaseUsername: dbUsername,
-		DatabasePassword: dbPassword,
-		DatabaseCert:     dbCert,
-		DatabaseCertKey:  dbCertKey,
-		DatabaseCACert:   dbCACert,
-		RedisURL:         redisURL,
+		EnvPath:            envPath,
+		DatabaseURL:        dbURL,
+		DatabaseType:       dbType,
+		DatabaseName:       dbName,
+		DatabaseHost:       dbHost,
+		DatabasePort:       dbPort,
+		DatabaseUsername:   dbUsername,
+		DatabasePassword:   dbPassword,
+		DatabaseCert:       dbCert,
+		DatabaseCertKey:    dbCertKey,
+		DatabaseCACert:     dbCACert,
+		RedisURL:           redisURL,
+		disableRedisForEnv: disableRedisForEnv,
 	}
 
 	RequiredEnvStoreObj = &RequiredEnvStore{

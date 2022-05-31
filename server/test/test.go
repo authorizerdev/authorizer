@@ -93,7 +93,7 @@ func testSetup() TestSetup {
 	memorystore.Provider.UpdateEnvVariable(constants.EnvKeySmtpUsername, "lakhan@yopmail.com")
 	memorystore.Provider.UpdateEnvVariable(constants.EnvKeySmtpPassword, "test")
 	memorystore.Provider.UpdateEnvVariable(constants.EnvKeySenderEmail, "info@yopmail.com")
-	memorystore.Provider.UpdateEnvVariable(constants.EnvKeyProtectedRoles, []string{"admin"})
+	memorystore.Provider.UpdateEnvVariable(constants.EnvKeyProtectedRoles, "admin")
 	memorystore.InitMemStore()
 	db.InitDB()
 	env.InitAllEnv()

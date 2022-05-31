@@ -25,7 +25,6 @@ func envTests(t *testing.T, s TestSetup) {
 		assert.Nil(t, err)
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
 		res, err := resolvers.EnvResolver(ctx)
-
 		assert.Nil(t, err)
 		assert.Equal(t, *res.AdminSecret, adminSecret)
 	})

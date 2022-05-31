@@ -78,6 +78,7 @@ func InitAllEnv() error {
 	osDisableMagicLinkLogin := os.Getenv(constants.EnvKeyDisableMagicLinkLogin)
 	osDisableLoginPage := os.Getenv(constants.EnvKeyDisableLoginPage)
 	osDisableSignUp := os.Getenv(constants.EnvKeyDisableSignUp)
+	osDisableRedisForEnv := os.Getenv(constants.EnvKeyDisableRedisForEnv)
 
 	// os slice vars
 	osAllowedOrigins := os.Getenv(constants.EnvKeyAllowedOrigins)
@@ -430,6 +431,19 @@ func InitAllEnv() error {
 		}
 	}
 
+	if _, ok := envData[constants.EnvKeyDisableRedisForEnv]; !ok {
+		envData[constants.EnvKeyDisableRedisForEnv] = osDisableRedisForEnv == "true"
+	}
+	if osDisableRedisForEnv != "" {
+		boolValue, err := strconv.ParseBool(osDisableRedisForEnv)
+		if err != nil {
+			return err
+		}
+		if boolValue != envData[constants.EnvKeyDisableRedisForEnv].(bool) {
+			envData[constants.EnvKeyDisableRedisForEnv] = boolValue
+		}
+	}
+
 	// no need to add nil check as its already done above
 	if envData[constants.EnvKeySmtpHost] == "" || envData[constants.EnvKeySmtpUsername] == "" || envData[constants.EnvKeySmtpPassword] == "" || envData[constants.EnvKeySenderEmail] == "" && envData[constants.EnvKeySmtpPort] == "" {
 		envData[constants.EnvKeyDisableEmailVerification] = true
@@ -450,7 +464,6 @@ func InitAllEnv() error {
 		envData[constants.EnvKeyAllowedOrigins] = osAllowedOrigins
 	}
 
-	////// Roles /////
 	if val, ok := envData[constants.EnvKeyRoles]; !ok || val == "" {
 		envData[constants.EnvKeyRoles] = osRoles
 		if envData[constants.EnvKeyRoles] == "" {
@@ -461,9 +474,7 @@ func InitAllEnv() error {
 		envData[constants.EnvKeyRoles] = osRoles
 	}
 	roles := strings.Split(envData[constants.EnvKeyRoles].(string), ",")
-	////// Roles /////
 
-	////// Default Role /////
 	if val, ok := envData[constants.EnvKeyDefaultRoles]; !ok || val == "" {
 		envData[constants.EnvKeyDefaultRoles] = osDefaultRoles
 		if envData[constants.EnvKeyDefaultRoles] == "" {
@@ -483,19 +494,13 @@ func InitAllEnv() error {
 			return fmt.Errorf("Default role %s is not defined in roles", role)
 		}
 	}
-	////// Default Role /////
 
-	////// Roles /////
 	if val, ok := envData[constants.EnvKeyProtectedRoles]; !ok || val == "" {
 		envData[constants.EnvKeyProtectedRoles] = osProtectedRoles
-		if envData[constants.EnvKeyProtectedRoles] == "" {
-			envData[constants.EnvKeyProtectedRoles] = "user"
-		}
 	}
 	if osProtectedRoles != "" && envData[constants.EnvKeyProtectedRoles] != osProtectedRoles {
 		envData[constants.EnvKeyProtectedRoles] = osProtectedRoles
 	}
-	////// Roles /////
 
 	err = memorystore.Provider.UpdateEnvStore(envData)
 	if err != nil {

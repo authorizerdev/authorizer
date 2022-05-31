@@ -62,6 +62,7 @@ export const SwitchInputType = {
 	DISABLE_EMAIL_VERIFICATION: 'DISABLE_EMAIL_VERIFICATION',
 	DISABLE_BASIC_AUTHENTICATION: 'DISABLE_BASIC_AUTHENTICATION',
 	DISABLE_SIGN_UP: 'DISABLE_SIGN_UP',
+	DISABLE_REDIS_FOR_ENV: 'DISABLE_REDIS_FOR_ENV',
 };
 
 export const DateInputType = {
@@ -138,7 +139,7 @@ export const envSubViews = {
 	WHITELIST_VARIABLES: 'whitelist-variables',
 	ORGANIZATION_INFO: 'organization-info',
 	ACCESS_TOKEN: 'access-token',
-	UI_CUSTOMIZATION: 'ui-customization',
+	FEATURES: 'features',
 	ADMIN_SECRET: 'admin-secret',
 	DB_CRED: 'db-cred',
 };

@@ -165,7 +165,6 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 			roles = strings.Split(rolesString, ",")
 		}
 		protectedRolesString, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyProtectedRoles)
-		fmt.Println(protectedRolesString)
 		protectedRoles := []string{}
 		if err != nil {
 			log.Debug("Error getting protected roles: ", err)
