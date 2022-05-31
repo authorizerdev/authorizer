@@ -15,7 +15,8 @@ const DatabaseCredentials = ({ variables, setVariables }: any) => {
 			<Stack spacing={6} padding="3% 0">
 				<Text fontStyle="italic" fontSize="sm" color="blackAlpha.500" mt={3}>
 					Note: Database related environment variables cannot be updated from
-					dashboard
+					dashboard. Please use .env file or OS environment variables to update
+					it.
 				</Text>
 				<Flex direction={isNotSmallerScreen ? 'row' : 'column'}>
 					<Flex

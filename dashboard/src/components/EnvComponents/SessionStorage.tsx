@@ -11,8 +11,9 @@ const SessionStorage = ({ variables, setVariables, RedisURL }: any) => {
 				Session Storage
 			</Text>
 			<Text fontStyle="italic" fontSize="sm" color="blackAlpha.500" mt={3}>
-				Note: Database related environment variables cannot be updated from
-				dashboard
+				Note: Redis related environment variables cannot be updated from
+				dashboard. Please use .env file or OS environment variables to update
+				it.
 			</Text>
 			<Stack spacing={6} padding="2% 0%">
 				<Flex direction={isNotSmallerScreen ? 'row' : 'column'}>
