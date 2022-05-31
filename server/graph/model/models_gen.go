@@ -54,6 +54,7 @@ type Env struct {
 	DisableMagicLinkLogin      bool     `json:"DISABLE_MAGIC_LINK_LOGIN"`
 	DisableLoginPage           bool     `json:"DISABLE_LOGIN_PAGE"`
 	DisableSignUp              bool     `json:"DISABLE_SIGN_UP"`
+	DisableRedisForEnv         bool     `json:"DISABLE_REDIS_FOR_ENV"`
 	Roles                      []string `json:"ROLES"`
 	ProtectedRoles             []string `json:"PROTECTED_ROLES"`
 	DefaultRoles               []string `json:"DEFAULT_ROLES"`
@@ -204,6 +205,7 @@ type UpdateEnvInput struct {
 	DisableMagicLinkLogin      *bool    `json:"DISABLE_MAGIC_LINK_LOGIN"`
 	DisableLoginPage           *bool    `json:"DISABLE_LOGIN_PAGE"`
 	DisableSignUp              *bool    `json:"DISABLE_SIGN_UP"`
+	DisableRedisForEnv         *bool    `json:"DISABLE_REDIS_FOR_ENV"`
 	Roles                      []string `json:"ROLES"`
 	ProtectedRoles             []string `json:"PROTECTED_ROLES"`
 	DefaultRoles               []string `json:"DEFAULT_ROLES"`

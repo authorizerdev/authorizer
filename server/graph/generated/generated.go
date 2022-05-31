@@ -72,6 +72,7 @@ type ComplexityRoot struct {
 		DisableEmailVerification   func(childComplexity int) int
 		DisableLoginPage           func(childComplexity int) int
 		DisableMagicLinkLogin      func(childComplexity int) int
+		DisableRedisForEnv         func(childComplexity int) int
 		DisableSignUp              func(childComplexity int) int
 		FacebookClientID           func(childComplexity int) int
 		FacebookClientSecret       func(childComplexity int) int
@@ -435,6 +436,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Env.DisableMagicLinkLogin(childComplexity), true
+
+	case "Env.DISABLE_REDIS_FOR_ENV":
+		if e.complexity.Env.DisableRedisForEnv == nil {
+			break
+		}
+
+		return e.complexity.Env.DisableRedisForEnv(childComplexity), true
 
 	case "Env.DISABLE_SIGN_UP":
 		if e.complexity.Env.DisableSignUp == nil {
@@ -1443,6 +1451,7 @@ type Env {
 	DISABLE_MAGIC_LINK_LOGIN: Boolean!
 	DISABLE_LOGIN_PAGE: Boolean!
 	DISABLE_SIGN_UP: Boolean!
+	DISABLE_REDIS_FOR_ENV: Boolean!
 	ROLES: [String!]
 	PROTECTED_ROLES: [String!]
 	DEFAULT_ROLES: [String!]
@@ -1489,6 +1498,7 @@ input UpdateEnvInput {
 	DISABLE_MAGIC_LINK_LOGIN: Boolean
 	DISABLE_LOGIN_PAGE: Boolean
 	DISABLE_SIGN_UP: Boolean
+	DISABLE_REDIS_FOR_ENV: Boolean
 	ROLES: [String!]
 	PROTECTED_ROLES: [String!]
 	DEFAULT_ROLES: [String!]
@@ -3221,6 +3231,41 @@ func (ec *executionContext) _Env_DISABLE_SIGN_UP(ctx context.Context, field grap
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.DisableSignUp, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Env_DISABLE_REDIS_FOR_ENV(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Env",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DisableRedisForEnv, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -8430,6 +8475,14 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			if err != nil {
 				return it, err
 			}
+		case "DISABLE_REDIS_FOR_ENV":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("DISABLE_REDIS_FOR_ENV"))
+			it.DisableRedisForEnv, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		case "ROLES":
 			var err error
 
@@ -8950,6 +9003,11 @@ func (ec *executionContext) _Env(ctx context.Context, sel ast.SelectionSet, obj 
 			}
 		case "DISABLE_SIGN_UP":
 			out.Values[i] = ec._Env_DISABLE_SIGN_UP(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "DISABLE_REDIS_FOR_ENV":
+			out.Values[i] = ec._Env_DISABLE_REDIS_FOR_ENV(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
