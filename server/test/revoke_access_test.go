@@ -36,6 +36,7 @@ func revokeAccessTest(t *testing.T, s TestSetup) {
 
 		adminSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret)
 		assert.Nil(t, err)
+
 		h, err := crypto.EncryptPassword(adminSecret)
 		assert.Nil(t, err)
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))

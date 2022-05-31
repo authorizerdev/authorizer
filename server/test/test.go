@@ -87,16 +87,26 @@ func testSetup() TestSetup {
 		log.Fatal("Error loading required env: ", err)
 	}
 
-	memorystore.InitMemStore()
+	err = memorystore.InitMemStore()
+	if err != nil {
+		log.Fatal("Error loading memory store: ", err)
+	}
 	memorystore.Provider.UpdateEnvVariable(constants.EnvKeySmtpHost, "smtp.yopmail.com")
 	memorystore.Provider.UpdateEnvVariable(constants.EnvKeySmtpPort, "2525")
 	memorystore.Provider.UpdateEnvVariable(constants.EnvKeySmtpUsername, "lakhan@yopmail.com")
 	memorystore.Provider.UpdateEnvVariable(constants.EnvKeySmtpPassword, "test")
 	memorystore.Provider.UpdateEnvVariable(constants.EnvKeySenderEmail, "info@yopmail.com")
 	memorystore.Provider.UpdateEnvVariable(constants.EnvKeyProtectedRoles, "admin")
-	memorystore.InitMemStore()
-	db.InitDB()
-	env.InitAllEnv()
+
+	err = db.InitDB()
+	if err != nil {
+		log.Fatal("Error loading db: ", err)
+	}
+
+	err = env.InitAllEnv()
+	if err != nil {
+		log.Fatal("Error loading env: ", err)
+	}
 
 	w := httptest.NewRecorder()
 	c, r := gin.CreateTestContext(w)

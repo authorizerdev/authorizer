@@ -19,9 +19,10 @@ func TestResolvers(t *testing.T) {
 
 	for dbType, dbURL := range databases {
 		s := testSetup()
+		defer s.Server.Close()
+
 		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDatabaseURL, dbURL)
 		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDatabaseType, dbType)
-		defer s.Server.Close()
 		err := db.InitDB()
 		if err != nil {
 			t.Errorf("Error initializing database: %s", err)

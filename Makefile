@@ -10,7 +10,7 @@ build-dashboard:
 clean:
 	rm -rf build
 test:
-	rm -rf server/test/test.db && rm -rf test.db && cd server && go clean --testcache && go test -v ./test
+	rm -rf server/test/test.db && rm -rf test.db && cd server && go clean --testcache && go test -p 1 -v ./test
 generate:
 	cd server && go get github.com/99designs/gqlgen/cmd@v0.14.0 && go run github.com/99designs/gqlgen generate
 	

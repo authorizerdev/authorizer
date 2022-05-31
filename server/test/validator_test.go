@@ -22,7 +22,7 @@ func TestIsValidEmail(t *testing.T) {
 func TestIsValidOrigin(t *testing.T) {
 	// don't use portocal(http/https) for ALLOWED_ORIGINS while testing,
 	// as we trim them off while running the main function
-	memorystore.Provider.UpdateEnvVariable(constants.EnvKeyAllowedOrigins, []string{"localhost:8080", "*.google.com", "*.google.in", "*abc.*"})
+	memorystore.Provider.UpdateEnvVariable(constants.EnvKeyAllowedOrigins, "localhost:8080,*.google.com,*.google.in,*abc.*")
 	assert.False(t, validators.IsValidOrigin("http://myapp.com"), "it should be invalid origin")
 	assert.False(t, validators.IsValidOrigin("http://appgoogle.com"), "it should be invalid origin")
 	assert.True(t, validators.IsValidOrigin("http://app.google.com"), "it should be valid origin")
@@ -32,7 +32,7 @@ func TestIsValidOrigin(t *testing.T) {
 	assert.True(t, validators.IsValidOrigin("http://xyx.abc.in"), "it should be valid origin")
 	assert.True(t, validators.IsValidOrigin("http://xyxabc.in"), "it should be valid origin")
 	assert.True(t, validators.IsValidOrigin("http://localhost:8080"), "it should be valid origin")
-	memorystore.Provider.UpdateEnvVariable(constants.EnvKeyAllowedOrigins, []string{"*"})
+	memorystore.Provider.UpdateEnvVariable(constants.EnvKeyAllowedOrigins, "*")
 }
 
 func TestIsValidIdentifier(t *testing.T) {
