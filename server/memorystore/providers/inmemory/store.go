@@ -1,6 +1,7 @@
 package inmemory
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -15,8 +16,8 @@ func (c *provider) ClearStore() error {
 
 // GetUserSessions returns all the user session token from the in-memory store.
 func (c *provider) GetUserSessions(userId string) map[string]string {
-	// c.mutex.Lock()
-	// defer c.mutex.Unlock()
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 	res := map[string]string{}
 	for k, v := range c.stateStore {
 		split := strings.Split(v, "@")
@@ -30,8 +31,8 @@ func (c *provider) GetUserSessions(userId string) map[string]string {
 
 // DeleteAllUserSession deletes all the user sessions from in-memory store.
 func (c *provider) DeleteAllUserSession(userId string) error {
-	// c.mutex.Lock()
-	// defer c.mutex.Unlock()
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 	sessions := c.GetUserSessions(userId)
 	for k := range sessions {
 		c.RemoveState(k)
@@ -91,24 +92,17 @@ func (c *provider) UpdateEnvVariable(key string, value interface{}) error {
 // GetStringStoreEnvVariable to get the env variable from string store object
 func (c *provider) GetStringStoreEnvVariable(key string) (string, error) {
 	res := c.envStore.Get(key)
-	return res.(string), nil
+	if res == nil {
+		return "", nil
+	}
+	return fmt.Sprintf("%v", res), nil
 }
 
 // GetBoolStoreEnvVariable to get the env variable from bool store object
 func (c *provider) GetBoolStoreEnvVariable(key string) (bool, error) {
 	res := c.envStore.Get(key)
-	return res.(bool), nil
-}
-
-// GetSliceStoreEnvVariable to get the env variable from slice store object
-func (c *provider) GetSliceStoreEnvVariable(key string) ([]string, error) {
-	res := c.envStore.Get(key)
-	data := res.([]interface{})
-	var resSlice []string
-
-	for _, v := range data {
-		resSlice = append(resSlice, v.(string))
+	if res == nil {
+		return false, nil
 	}
-
-	return resSlice, nil
+	return res.(bool), nil
 }

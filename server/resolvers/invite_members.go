@@ -87,10 +87,15 @@ func InviteMembersResolver(ctx context.Context, params model.InviteMemberInput) 
 	// invite new emails
 	for _, email := range newEmails {
 
-		defaultRoles, err := memorystore.Provider.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles)
+		defaultRolesString, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDefaultRoles)
+		defaultRoles := []string{}
 		if err != nil {
 			log.Debug("Error getting default roles: ", err)
+			defaultRolesString = ""
+		} else {
+			defaultRoles = strings.Split(defaultRolesString, ",")
 		}
+
 		user := models.User{
 			Email: email,
 			Roles: strings.Join(defaultRoles, ","),

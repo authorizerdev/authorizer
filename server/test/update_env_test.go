@@ -2,6 +2,7 @@ package test
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/authorizerdev/authorizer/server/constants"
@@ -48,8 +49,9 @@ func updateEnvTests(t *testing.T, s TestSetup) {
 		assert.Nil(t, err)
 		assert.True(t, isLoginPageDisabled)
 
-		storedOrigins, err := memorystore.Provider.GetSliceStoreEnvVariable(constants.EnvKeyAllowedOrigins)
+		storedOriginsStrings, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAllowedOrigins)
 		assert.Nil(t, err)
+		storedOrigins := strings.Split(storedOriginsStrings, ",")
 		assert.Equal(t, storedOrigins, allowedOrigins)
 
 		disableLoginPage = false

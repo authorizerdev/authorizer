@@ -27,6 +27,4 @@ type Provider interface {
 	GetStringStoreEnvVariable(key string) (string, error)
 	// GetBoolStoreEnvVariable to get the bool env variable from env store
 	GetBoolStoreEnvVariable(key string) (bool, error)
-	// GetSliceStoreEnvVariable to get the string slice env variable from env store
-	GetSliceStoreEnvVariable(key string) ([]string, error)
 }

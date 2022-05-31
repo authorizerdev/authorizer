@@ -92,10 +92,13 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 
 	if len(params.Roles) > 0 {
 		// check if roles exists
-		roles, err := memorystore.Provider.GetSliceStoreEnvVariable(constants.EnvKeyRoles)
+		rolesString, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyRoles)
+		roles := []string{}
 		if err != nil {
 			log.Debug("Error getting roles: ", err)
 			return res, err
+		} else {
+			roles = strings.Split(rolesString, ",")
 		}
 		if !validators.IsValidRoles(roles, params.Roles) {
 			log.Debug("Invalid roles: ", params.Roles)
@@ -104,10 +107,12 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 			inputRoles = params.Roles
 		}
 	} else {
-		inputRoles, err = memorystore.Provider.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles)
+		inputRolesString, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDefaultRoles)
 		if err != nil {
 			log.Debug("Error getting default roles: ", err)
 			return res, err
+		} else {
+			inputRoles = strings.Split(inputRolesString, ",")
 		}
 	}
 

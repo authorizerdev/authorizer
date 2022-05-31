@@ -11,9 +11,12 @@ import (
 
 // IsValidOrigin validates origin based on ALLOWED_ORIGINS
 func IsValidOrigin(url string) bool {
-	allowedOrigins, err := memorystore.Provider.GetSliceStoreEnvVariable(constants.EnvKeyAllowedOrigins)
+	allowedOriginsString, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAllowedOrigins)
+	allowedOrigins := []string{}
 	if err != nil {
 		allowedOrigins = []string{"*"}
+	} else {
+		allowedOrigins = strings.Split(allowedOriginsString, ",")
 	}
 	if len(allowedOrigins) == 1 && allowedOrigins[0] == "*" {
 		return true

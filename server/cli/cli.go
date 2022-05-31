@@ -9,4 +9,6 @@ var (
 	ARG_ENV_FILE *string
 	// ARG_LOG_LEVEL is the cli arg variable for the log level
 	ARG_LOG_LEVEL *string
+	// ARG_REDIS_URL is the cli arg variable for the redis url
+	ARG_REDIS_URL *string
 )

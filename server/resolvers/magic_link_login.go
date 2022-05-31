@@ -74,10 +74,13 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 		// define roles for new user
 		if len(params.Roles) > 0 {
 			// check if roles exists
-			roles, err := memorystore.Provider.GetSliceStoreEnvVariable(constants.EnvKeyRoles)
+			rolesString, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyRoles)
+			roles := []string{}
 			if err != nil {
 				log.Debug("Error getting roles: ", err)
 				return res, err
+			} else {
+				roles = strings.Split(rolesString, ",")
 			}
 			if !validators.IsValidRoles(params.Roles, roles) {
 				log.Debug("Invalid roles: ", params.Roles)
@@ -86,12 +89,13 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 				inputRoles = params.Roles
 			}
 		} else {
-			inputRoles, err = memorystore.Provider.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles)
+			inputRolesString, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDefaultRoles)
 			if err != nil {
 				log.Debug("Error getting default roles: ", err)
 				return res, fmt.Errorf(`invalid roles`)
+			} else {
+				inputRoles = strings.Split(inputRolesString, ",")
 			}
-
 		}
 
 		user.Roles = strings.Join(inputRoles, ",")
@@ -110,10 +114,12 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 
 		// find the unassigned roles
 		if len(params.Roles) <= 0 {
-			inputRoles, err = memorystore.Provider.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles)
+			inputRolesString, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDefaultRoles)
 			if err != nil {
 				log.Debug("Error getting default roles: ", err)
 				return res, fmt.Errorf(`invalid default roles`)
+			} else {
+				inputRoles = strings.Split(inputRolesString, ",")
 			}
 		}
 		existingRoles := strings.Split(existingUser.Roles, ",")
@@ -127,10 +133,13 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 		if len(unasignedRoles) > 0 {
 			// check if it contains protected unassigned role
 			hasProtectedRole := false
-			protectedRoles, err := memorystore.Provider.GetSliceStoreEnvVariable(constants.EnvKeyProtectedRoles)
+			protectedRolesString, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyProtectedRoles)
+			protectedRoles := []string{}
 			if err != nil {
 				log.Debug("Error getting protected roles: ", err)
 				return res, err
+			} else {
+				protectedRoles = strings.Split(protectedRolesString, ",")
 			}
 			for _, ur := range unasignedRoles {
 				if utils.StringSliceContains(protectedRoles, ur) {

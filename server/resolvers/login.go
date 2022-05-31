@@ -73,10 +73,15 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 		return res, fmt.Errorf(`invalid password`)
 	}
 
-	roles, err := memorystore.Provider.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles)
+	defaultRolesString, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDefaultRoles)
+	roles := []string{}
 	if err != nil {
 		log.Debug("Error getting default roles: ", err)
+		defaultRolesString = ""
+	} else {
+		roles = strings.Split(defaultRolesString, ",")
 	}
+
 	currentRoles := strings.Split(user.Roles, ",")
 	if len(params.Roles) > 0 {
 		if !validators.IsValidRoles(params.Roles, currentRoles) {

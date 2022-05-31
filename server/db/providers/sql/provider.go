@@ -42,15 +42,8 @@ func NewProvider() (*provider, error) {
 		},
 	}
 
-	dbType, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDatabaseType)
-	if err != nil {
-		return nil, err
-	}
-
-	dbURL, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL)
-	if err != nil {
-		return nil, err
-	}
+	dbType := memorystore.RequiredEnvStoreObj.GetRequiredEnv().DatabaseType
+	dbURL := memorystore.RequiredEnvStoreObj.GetRequiredEnv().DatabaseURL
 
 	switch dbType {
 	case constants.DbTypePostgres, constants.DbTypeYugabyte:

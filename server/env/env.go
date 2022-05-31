@@ -2,7 +2,9 @@ package env
 
 import (
 	"errors"
+	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
@@ -11,7 +13,6 @@ import (
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/memorystore"
-	"github.com/authorizerdev/authorizer/server/parsers"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
@@ -28,22 +29,65 @@ func InitAllEnv() error {
 		}
 	}
 
-	clientID := envData[constants.EnvKeyClientID].(string)
 	// unique client id for each instance
-	if clientID == "" {
+	cid, ok := envData[constants.EnvKeyClientID]
+	clientID := ""
+	if !ok || cid == "" {
 		clientID = uuid.New().String()
 		envData[constants.EnvKeyClientID] = clientID
+	} else {
+		clientID = cid.(string)
 	}
 
-	clientSecret := envData[constants.EnvKeyClientSecret]
-	// unique client id for each instance
-	if clientSecret == "" {
-		clientSecret = uuid.New().String()
-		envData[constants.EnvKeyClientSecret] = clientSecret
+	// unique client secret for each instance
+	if val, ok := envData[constants.EnvKeyClientSecret]; !ok || val != "" {
+		envData[constants.EnvKeyClientSecret] = uuid.New().String()
 	}
 
-	if envData[constants.EnvKeyEnv] == "" {
-		envData[constants.EnvKeyEnv] = os.Getenv(constants.EnvKeyEnv)
+	// os string envs
+	osEnv := os.Getenv(constants.EnvKeyEnv)
+	osAppURL := os.Getenv(constants.EnvKeyAppURL)
+	osAuthorizerURL := os.Getenv(constants.EnvKeyAuthorizerURL)
+	osPort := os.Getenv(constants.EnvKeyPort)
+	osAccessTokenExpiryTime := os.Getenv(constants.EnvKeyAccessTokenExpiryTime)
+	osAdminSecret := os.Getenv(constants.EnvKeyAdminSecret)
+	osSmtpHost := os.Getenv(constants.EnvKeySmtpHost)
+	osSmtpPort := os.Getenv(constants.EnvKeySmtpPort)
+	osSmtpUsername := os.Getenv(constants.EnvKeySmtpUsername)
+	osSmtpPassword := os.Getenv(constants.EnvKeySmtpPassword)
+	osSenderEmail := os.Getenv(constants.EnvKeySenderEmail)
+	osJwtType := os.Getenv(constants.EnvKeyJwtType)
+	osJwtSecret := os.Getenv(constants.EnvKeyJwtSecret)
+	osJwtPrivateKey := os.Getenv(constants.EnvKeyJwtPrivateKey)
+	osJwtPublicKey := os.Getenv(constants.EnvKeyJwtPublicKey)
+	osJwtRoleClaim := os.Getenv(constants.EnvKeyJwtRoleClaim)
+	osCustomAccessTokenScript := os.Getenv(constants.EnvKeyCustomAccessTokenScript)
+	osGoogleClientID := os.Getenv(constants.EnvKeyGoogleClientID)
+	osGoogleClientSecret := os.Getenv(constants.EnvKeyGoogleClientSecret)
+	osGithubClientID := os.Getenv(constants.EnvKeyGithubClientID)
+	osGithubClientSecret := os.Getenv(constants.EnvKeyGithubClientSecret)
+	osFacebookClientID := os.Getenv(constants.EnvKeyFacebookClientID)
+	osFacebookClientSecret := os.Getenv(constants.EnvKeyFacebookClientSecret)
+	osResetPasswordURL := os.Getenv(constants.EnvKeyResetPasswordURL)
+	osOrganizationName := os.Getenv(constants.EnvKeyOrganizationName)
+	osOrganizationLogo := os.Getenv(constants.EnvKeyOrganizationLogo)
+
+	// os bool vars
+	osDisableBasicAuthentication := os.Getenv(constants.EnvKeyDisableBasicAuthentication)
+	osDisableEmailVerification := os.Getenv(constants.EnvKeyDisableEmailVerification)
+	osDisableMagicLinkLogin := os.Getenv(constants.EnvKeyDisableMagicLinkLogin)
+	osDisableLoginPage := os.Getenv(constants.EnvKeyDisableLoginPage)
+	osDisableSignUp := os.Getenv(constants.EnvKeyDisableSignUp)
+
+	// os slice vars
+	osAllowedOrigins := os.Getenv(constants.EnvKeyAllowedOrigins)
+	osRoles := os.Getenv(constants.EnvKeyRoles)
+	osDefaultRoles := os.Getenv(constants.EnvKeyDefaultRoles)
+	osProtectedRoles := os.Getenv(constants.EnvKeyProtectedRoles)
+
+	ienv, ok := envData[constants.EnvKeyEnv]
+	if !ok || ienv == "" {
+		envData[constants.EnvKeyEnv] = osEnv
 		if envData[constants.EnvKeyEnv] == "" {
 			envData[constants.EnvKeyEnv] = "production"
 		}
@@ -54,71 +98,118 @@ func InitAllEnv() error {
 			envData[constants.EnvKeyIsProd] = false
 		}
 	}
-
-	if envData[constants.EnvKeyAppURL] == "" {
-		envData[constants.EnvKeyAppURL] = os.Getenv(constants.EnvKeyAppURL)
+	if osEnv != "" && osEnv != envData[constants.EnvKeyEnv] {
+		envData[constants.EnvKeyEnv] = osEnv
+		if envData[constants.EnvKeyEnv] == "production" {
+			envData[constants.EnvKeyIsProd] = true
+		} else {
+			envData[constants.EnvKeyIsProd] = false
+		}
 	}
 
-	if envData[constants.EnvKeyAuthorizerURL] == "" {
-		envData[constants.EnvKeyAuthorizerURL] = os.Getenv(constants.EnvKeyAuthorizerURL)
+	if val, ok := envData[constants.EnvKeyAppURL]; !ok || val == "" {
+		envData[constants.EnvKeyAppURL] = osAppURL
+	}
+	if osAppURL != "" && envData[constants.EnvKeyAppURL] != osAppURL {
+		envData[constants.EnvKeyAppURL] = osAppURL
 	}
 
-	if envData[constants.EnvKeyPort] == "" {
-		envData[constants.EnvKeyPort] = os.Getenv(constants.EnvKeyPort)
+	if val, ok := envData[constants.EnvKeyAuthorizerURL]; !ok || val == "" {
+		envData[constants.EnvKeyAuthorizerURL] = osAuthorizerURL
+	}
+	if osAuthorizerURL != "" && envData[constants.EnvKeyAuthorizerURL] != osAuthorizerURL {
+		envData[constants.EnvKeyAuthorizerURL] = osAuthorizerURL
+	}
+
+	if val, ok := envData[constants.EnvKeyPort]; !ok || val == "" {
+		envData[constants.EnvKeyPort] = osPort
 		if envData[constants.EnvKeyPort] == "" {
 			envData[constants.EnvKeyPort] = "8080"
 		}
 	}
+	if osPort != "" && envData[constants.EnvKeyPort] != osPort {
+		envData[constants.EnvKeyPort] = osPort
+	}
 
-	if envData[constants.EnvKeyAccessTokenExpiryTime] == "" {
-		envData[constants.EnvKeyAccessTokenExpiryTime] = os.Getenv(constants.EnvKeyAccessTokenExpiryTime)
+	if val, ok := envData[constants.EnvKeyAccessTokenExpiryTime]; !ok || val == "" {
+		envData[constants.EnvKeyAccessTokenExpiryTime] = osAccessTokenExpiryTime
 		if envData[constants.EnvKeyAccessTokenExpiryTime] == "" {
 			envData[constants.EnvKeyAccessTokenExpiryTime] = "30m"
 		}
 	}
-
-	if envData[constants.EnvKeyAdminSecret] == "" {
-		envData[constants.EnvKeyAdminSecret] = os.Getenv(constants.EnvKeyAdminSecret)
+	if osAccessTokenExpiryTime != "" && envData[constants.EnvKeyAccessTokenExpiryTime] != osAccessTokenExpiryTime {
+		envData[constants.EnvKeyAccessTokenExpiryTime] = osAccessTokenExpiryTime
 	}
 
-	if envData[constants.EnvKeySmtpHost] == "" {
-		envData[constants.EnvKeySmtpHost] = os.Getenv(constants.EnvKeySmtpHost)
+	if val, ok := envData[constants.EnvKeyAdminSecret]; !ok || val == "" {
+		envData[constants.EnvKeyAdminSecret] = osAdminSecret
+	}
+	if osAdminSecret != "" && envData[constants.EnvKeyAdminSecret] != osAdminSecret {
+		envData[constants.EnvKeyAdminSecret] = osAdminSecret
 	}
 
-	if envData[constants.EnvKeySmtpPort] == "" {
-		envData[constants.EnvKeySmtpPort] = os.Getenv(constants.EnvKeySmtpPort)
+	if val, ok := envData[constants.EnvKeySmtpHost]; !ok || val == "" {
+		envData[constants.EnvKeySmtpHost] = osSmtpHost
+	}
+	if osSmtpHost != "" && envData[constants.EnvKeySmtpHost] != osSmtpHost {
+		envData[constants.EnvKeySmtpHost] = osSmtpHost
 	}
 
-	if envData[constants.EnvKeySmtpUsername] == "" {
-		envData[constants.EnvKeySmtpUsername] = os.Getenv(constants.EnvKeySmtpUsername)
+	if val, ok := envData[constants.EnvKeySmtpPort]; !ok || val == "" {
+		envData[constants.EnvKeySmtpPort] = osSmtpPort
+	}
+	if osSmtpPort != "" && envData[constants.EnvKeySmtpPort] != osSmtpPort {
+		envData[constants.EnvKeySmtpPort] = osSmtpPort
 	}
 
-	if envData[constants.EnvKeySmtpPassword] == "" {
-		envData[constants.EnvKeySmtpPassword] = os.Getenv(constants.EnvKeySmtpPassword)
+	if val, ok := envData[constants.EnvKeySmtpUsername]; !ok || val == "" {
+		envData[constants.EnvKeySmtpUsername] = osSmtpUsername
+	}
+	if osSmtpUsername != "" && envData[constants.EnvKeySmtpUsername] != osSmtpUsername {
+		envData[constants.EnvKeySmtpUsername] = osSmtpUsername
 	}
 
-	if envData[constants.EnvKeySenderEmail] == "" {
-		envData[constants.EnvKeySenderEmail] = os.Getenv(constants.EnvKeySenderEmail)
+	if val, ok := envData[constants.EnvKeySmtpPassword]; !ok || val == "" {
+		envData[constants.EnvKeySmtpPassword] = osSmtpPassword
+	}
+	if osSmtpPassword != "" && envData[constants.EnvKeySmtpPassword] != osSmtpPassword {
+		envData[constants.EnvKeySmtpPassword] = osSmtpPassword
 	}
 
-	algo := envData[constants.EnvKeyJwtType].(string)
-	if algo == "" {
-		envData[constants.EnvKeyJwtType] = os.Getenv(constants.EnvKeyJwtType)
+	if val, ok := envData[constants.EnvKeySenderEmail]; !ok || val == "" {
+		envData[constants.EnvKeySenderEmail] = osSenderEmail
+	}
+	if osSenderEmail != "" && envData[constants.EnvKeySenderEmail] != osSenderEmail {
+		envData[constants.EnvKeySenderEmail] = osSenderEmail
+	}
+
+	algoVal, ok := envData[constants.EnvKeyJwtType]
+	algo := ""
+	if !ok || algoVal == "" {
+		envData[constants.EnvKeyJwtType] = osJwtType
 		if envData[constants.EnvKeyJwtType] == "" {
 			envData[constants.EnvKeyJwtType] = "RS256"
 			algo = envData[constants.EnvKeyJwtType].(string)
-		} else {
-			algo = envData[constants.EnvKeyJwtType].(string)
-			if !crypto.IsHMACA(algo) && !crypto.IsRSA(algo) && !crypto.IsECDSA(algo) {
-				log.Debug("Invalid JWT Algorithm")
-				return errors.New("invalid JWT_TYPE")
-			}
 		}
+	} else {
+		algo = algoVal.(string)
+		if !crypto.IsHMACA(algo) && !crypto.IsRSA(algo) && !crypto.IsECDSA(algo) {
+			log.Debug("Invalid JWT Algorithm")
+			return errors.New("invalid JWT_TYPE")
+		}
+	}
+	if osJwtType != "" && osJwtType != algo {
+		if !crypto.IsHMACA(osJwtType) && !crypto.IsRSA(osJwtType) && !crypto.IsECDSA(osJwtType) {
+			log.Debug("Invalid JWT Algorithm")
+			return errors.New("invalid JWT_TYPE")
+		}
+		algo = osJwtType
+		envData[constants.EnvKeyJwtType] = osJwtType
 	}
 
 	if crypto.IsHMACA(algo) {
-		if envData[constants.EnvKeyJwtSecret] == "" {
-			envData[constants.EnvKeyJwtSecret] = os.Getenv(constants.EnvKeyJwtSecret)
+		if val, ok := envData[constants.EnvKeyJwtSecret]; !ok || val == "" {
+			envData[constants.EnvKeyJwtSecret] = osJwtSecret
 			if envData[constants.EnvKeyJwtSecret] == "" {
 				envData[constants.EnvKeyJwtSecret], _, err = crypto.NewHMACKey(algo, clientID)
 				if err != nil {
@@ -126,17 +217,26 @@ func InitAllEnv() error {
 				}
 			}
 		}
+		if osJwtSecret != "" && envData[constants.EnvKeyJwtSecret] != osJwtSecret {
+			envData[constants.EnvKeyJwtSecret] = osJwtSecret
+		}
 	}
 
 	if crypto.IsRSA(algo) || crypto.IsECDSA(algo) {
 		privateKey, publicKey := "", ""
 
-		if envData[constants.EnvKeyJwtPrivateKey] == "" {
-			privateKey = os.Getenv(constants.EnvKeyJwtPrivateKey)
+		if val, ok := envData[constants.EnvKeyJwtPrivateKey]; !ok || val == "" {
+			privateKey = osJwtPrivateKey
+		}
+		if osJwtPrivateKey != "" && privateKey != osJwtPrivateKey {
+			privateKey = osJwtPrivateKey
 		}
 
-		if envData[constants.EnvKeyJwtPublicKey] == "" {
-			publicKey = os.Getenv(constants.EnvKeyJwtPublicKey)
+		if val, ok := envData[constants.EnvKeyJwtPublicKey]; !ok || val == "" {
+			publicKey = osJwtPublicKey
+		}
+		if osJwtPublicKey != "" && publicKey != osJwtPublicKey {
+			publicKey = osJwtPublicKey
 		}
 
 		// if algo is RSA / ECDSA, then we need to have both private and public key
@@ -184,55 +284,151 @@ func InitAllEnv() error {
 
 	}
 
-	if envData[constants.EnvKeyJwtRoleClaim] == "" {
-		envData[constants.EnvKeyJwtRoleClaim] = os.Getenv(constants.EnvKeyJwtRoleClaim)
+	if val, ok := envData[constants.EnvKeyJwtRoleClaim]; !ok || val == "" {
+		envData[constants.EnvKeyJwtRoleClaim] = osJwtRoleClaim
 
 		if envData[constants.EnvKeyJwtRoleClaim] == "" {
 			envData[constants.EnvKeyJwtRoleClaim] = "role"
 		}
 	}
-
-	if envData[constants.EnvKeyCustomAccessTokenScript] == "" {
-		envData[constants.EnvKeyCustomAccessTokenScript] = os.Getenv(constants.EnvKeyCustomAccessTokenScript)
+	if osJwtRoleClaim != "" && envData[constants.EnvKeyJwtRoleClaim] != osJwtRoleClaim {
+		envData[constants.EnvKeyJwtRoleClaim] = osJwtRoleClaim
 	}
 
-	if envData[constants.EnvKeyRedisURL] == "" {
-		envData[constants.EnvKeyRedisURL] = os.Getenv(constants.EnvKeyRedisURL)
+	if val, ok := envData[constants.EnvKeyCustomAccessTokenScript]; !ok || val == "" {
+		envData[constants.EnvKeyCustomAccessTokenScript] = osCustomAccessTokenScript
+	}
+	if osCustomAccessTokenScript != "" && envData[constants.EnvKeyCustomAccessTokenScript] != osCustomAccessTokenScript {
+		envData[constants.EnvKeyCustomAccessTokenScript] = osCustomAccessTokenScript
 	}
 
-	if envData[constants.EnvKeyGoogleClientID] == "" {
-		envData[constants.EnvKeyGoogleClientID] = os.Getenv(constants.EnvKeyGoogleClientID)
+	if val, ok := envData[constants.EnvKeyGoogleClientID]; !ok || val == "" {
+		envData[constants.EnvKeyGoogleClientID] = osGoogleClientID
+	}
+	if osGoogleClientID != "" && envData[constants.EnvKeyGoogleClientID] != osGoogleClientID {
+		envData[constants.EnvKeyGoogleClientID] = osGoogleClientID
 	}
 
-	if envData[constants.EnvKeyGoogleClientSecret] == "" {
-		envData[constants.EnvKeyGoogleClientSecret] = os.Getenv(constants.EnvKeyGoogleClientSecret)
+	if val, ok := envData[constants.EnvKeyGoogleClientSecret]; !ok || val == "" {
+		envData[constants.EnvKeyGoogleClientSecret] = osGoogleClientSecret
+	}
+	if osGoogleClientSecret != "" && envData[constants.EnvKeyGoogleClientSecret] != osGoogleClientSecret {
+		envData[constants.EnvKeyGoogleClientSecret] = osGoogleClientSecret
 	}
 
-	if envData[constants.EnvKeyGithubClientID] == "" {
-		envData[constants.EnvKeyGithubClientID] = os.Getenv(constants.EnvKeyGithubClientID)
+	if val, ok := envData[constants.EnvKeyGithubClientID]; !ok || val == "" {
+		envData[constants.EnvKeyGithubClientID] = osGithubClientID
+	}
+	if osGithubClientID != "" && envData[constants.EnvKeyGithubClientID] != osGithubClientID {
+		envData[constants.EnvKeyGithubClientID] = osGithubClientID
 	}
 
-	if envData[constants.EnvKeyGithubClientSecret] == "" {
-		envData[constants.EnvKeyGithubClientSecret] = os.Getenv(constants.EnvKeyGithubClientSecret)
+	if val, ok := envData[constants.EnvKeyGithubClientSecret]; !ok || val == "" {
+		envData[constants.EnvKeyGithubClientSecret] = osGithubClientSecret
+	}
+	if osGithubClientSecret != "" && envData[constants.EnvKeyGithubClientSecret] != osGithubClientSecret {
+		envData[constants.EnvKeyGithubClientSecret] = osGithubClientSecret
 	}
 
-	if envData[constants.EnvKeyFacebookClientID] == "" {
-		envData[constants.EnvKeyFacebookClientID] = os.Getenv(constants.EnvKeyFacebookClientID)
+	if val, ok := envData[constants.EnvKeyFacebookClientID]; !ok || val == "" {
+		envData[constants.EnvKeyFacebookClientID] = osFacebookClientID
+	}
+	if osFacebookClientID != "" && envData[constants.EnvKeyFacebookClientID] != osFacebookClientID {
+		envData[constants.EnvKeyFacebookClientID] = osFacebookClientID
 	}
 
-	if envData[constants.EnvKeyFacebookClientSecret] == "" {
-		envData[constants.EnvKeyFacebookClientSecret] = os.Getenv(constants.EnvKeyFacebookClientSecret)
+	if val, ok := envData[constants.EnvKeyFacebookClientSecret]; !ok || val == "" {
+		envData[constants.EnvKeyFacebookClientSecret] = osFacebookClientSecret
+	}
+	if osFacebookClientSecret != "" && envData[constants.EnvKeyFacebookClientSecret] != osFacebookClientSecret {
+		envData[constants.EnvKeyFacebookClientSecret] = osFacebookClientSecret
 	}
 
-	if envData[constants.EnvKeyResetPasswordURL] == "" {
-		envData[constants.EnvKeyResetPasswordURL] = strings.TrimPrefix(os.Getenv(constants.EnvKeyResetPasswordURL), "/")
+	if val, ok := envData[constants.EnvKeyResetPasswordURL]; !ok || val == "" {
+		envData[constants.EnvKeyResetPasswordURL] = strings.TrimPrefix(osResetPasswordURL, "/")
+	}
+	if osResetPasswordURL != "" && envData[constants.EnvKeyResetPasswordURL] != osResetPasswordURL {
+		envData[constants.EnvKeyResetPasswordURL] = osResetPasswordURL
 	}
 
-	envData[constants.EnvKeyDisableBasicAuthentication] = os.Getenv(constants.EnvKeyDisableBasicAuthentication) == "true"
-	envData[constants.EnvKeyDisableEmailVerification] = os.Getenv(constants.EnvKeyDisableEmailVerification) == "true"
-	envData[constants.EnvKeyDisableMagicLinkLogin] = os.Getenv(constants.EnvKeyDisableMagicLinkLogin) == "true"
-	envData[constants.EnvKeyDisableLoginPage] = os.Getenv(constants.EnvKeyDisableLoginPage) == "true"
-	envData[constants.EnvKeyDisableSignUp] = os.Getenv(constants.EnvKeyDisableSignUp) == "true"
+	if val, ok := envData[constants.EnvKeyOrganizationName]; !ok || val == "" {
+		envData[constants.EnvKeyOrganizationName] = osOrganizationName
+	}
+	if osOrganizationName != "" && envData[constants.EnvKeyOrganizationName] != osOrganizationName {
+		envData[constants.EnvKeyOrganizationName] = osOrganizationName
+	}
+
+	if val, ok := envData[constants.EnvKeyOrganizationLogo]; !ok || val == "" {
+		envData[constants.EnvKeyOrganizationLogo] = osOrganizationLogo
+	}
+	if osOrganizationLogo != "" && envData[constants.EnvKeyOrganizationLogo] != osOrganizationLogo {
+		envData[constants.EnvKeyOrganizationLogo] = osOrganizationLogo
+	}
+
+	if _, ok := envData[constants.EnvKeyDisableBasicAuthentication]; !ok {
+		envData[constants.EnvKeyDisableBasicAuthentication] = osDisableBasicAuthentication == "true"
+	}
+	if osDisableBasicAuthentication != "" {
+		boolValue, err := strconv.ParseBool(osDisableBasicAuthentication)
+		if err != nil {
+			return err
+		}
+		if boolValue != envData[constants.EnvKeyDisableBasicAuthentication].(bool) {
+			envData[constants.EnvKeyDisableBasicAuthentication] = boolValue
+		}
+	}
+
+	if _, ok := envData[constants.EnvKeyDisableEmailVerification]; !ok {
+		envData[constants.EnvKeyDisableEmailVerification] = osDisableEmailVerification == "true"
+	}
+	if osDisableEmailVerification != "" {
+		boolValue, err := strconv.ParseBool(osDisableEmailVerification)
+		if err != nil {
+			return err
+		}
+		if boolValue != envData[constants.EnvKeyDisableEmailVerification].(bool) {
+			envData[constants.EnvKeyDisableEmailVerification] = boolValue
+		}
+	}
+
+	if _, ok := envData[constants.EnvKeyDisableMagicLinkLogin]; !ok {
+		envData[constants.EnvKeyDisableMagicLinkLogin] = osDisableMagicLinkLogin == "true"
+	}
+	if osDisableMagicLinkLogin != "" {
+		boolValue, err := strconv.ParseBool(osDisableMagicLinkLogin)
+		if err != nil {
+			return err
+		}
+		if boolValue != envData[constants.EnvKeyDisableMagicLinkLogin].(bool) {
+			envData[constants.EnvKeyDisableMagicLinkLogin] = boolValue
+		}
+	}
+
+	if _, ok := envData[constants.EnvKeyDisableLoginPage]; !ok {
+		envData[constants.EnvKeyDisableLoginPage] = osDisableLoginPage == "true"
+	}
+	if osDisableLoginPage != "" {
+		boolValue, err := strconv.ParseBool(osDisableLoginPage)
+		if err != nil {
+			return err
+		}
+		if boolValue != envData[constants.EnvKeyDisableLoginPage].(bool) {
+			envData[constants.EnvKeyDisableLoginPage] = boolValue
+		}
+	}
+
+	if _, ok := envData[constants.EnvKeyDisableSignUp]; !ok {
+		envData[constants.EnvKeyDisableSignUp] = osDisableSignUp == "true"
+	}
+	if osDisableSignUp != "" {
+		boolValue, err := strconv.ParseBool(osDisableSignUp)
+		if err != nil {
+			return err
+		}
+		if boolValue != envData[constants.EnvKeyDisableSignUp].(bool) {
+			envData[constants.EnvKeyDisableSignUp] = boolValue
+		}
+	}
 
 	// no need to add nil check as its already done above
 	if envData[constants.EnvKeySmtpHost] == "" || envData[constants.EnvKeySmtpUsername] == "" || envData[constants.EnvKeySmtpPassword] == "" || envData[constants.EnvKeySenderEmail] == "" && envData[constants.EnvKeySmtpPort] == "" {
@@ -244,87 +440,67 @@ func InitAllEnv() error {
 		envData[constants.EnvKeyDisableMagicLinkLogin] = true
 	}
 
-	allowedOriginsSplit := strings.Split(os.Getenv(constants.EnvKeyAllowedOrigins), ",")
-	allowedOrigins := []string{}
-	hasWildCard := false
-
-	for _, val := range allowedOriginsSplit {
-		trimVal := strings.TrimSpace(val)
-		if trimVal != "" {
-			if trimVal != "*" {
-				host, port := parsers.GetHostParts(trimVal)
-				allowedOrigins = append(allowedOrigins, host+":"+port)
-			} else {
-				hasWildCard = true
-				allowedOrigins = append(allowedOrigins, trimVal)
-				break
-			}
+	if val, ok := envData[constants.EnvKeyAllowedOrigins]; !ok || val == "" {
+		envData[constants.EnvKeyAllowedOrigins] = osAllowedOrigins
+		if envData[constants.EnvKeyAllowedOrigins] == "" {
+			envData[constants.EnvKeyAllowedOrigins] = "*"
 		}
 	}
-
-	if len(allowedOrigins) > 1 && hasWildCard {
-		allowedOrigins = []string{"*"}
+	if osAllowedOrigins != "" && envData[constants.EnvKeyAllowedOrigins] != osAllowedOrigins {
+		envData[constants.EnvKeyAllowedOrigins] = osAllowedOrigins
 	}
 
-	if len(allowedOrigins) == 0 {
-		allowedOrigins = []string{"*"}
-	}
-
-	envData[constants.EnvKeyAllowedOrigins] = allowedOrigins
-
-	rolesEnv := strings.TrimSpace(os.Getenv(constants.EnvKeyRoles))
-	rolesSplit := strings.Split(rolesEnv, ",")
-	roles := []string{}
-	if len(rolesEnv) == 0 {
-		roles = []string{"user"}
-	}
-
-	defaultRolesEnv := strings.TrimSpace(os.Getenv(constants.EnvKeyDefaultRoles))
-	defaultRoleSplit := strings.Split(defaultRolesEnv, ",")
-	defaultRoles := []string{}
-
-	if len(defaultRolesEnv) == 0 {
-		defaultRoles = []string{"user"}
-	}
-
-	protectedRolesEnv := strings.TrimSpace(os.Getenv(constants.EnvKeyProtectedRoles))
-	protectedRolesSplit := strings.Split(protectedRolesEnv, ",")
-	protectedRoles := []string{}
-
-	if len(protectedRolesEnv) > 0 {
-		for _, val := range protectedRolesSplit {
-			trimVal := strings.TrimSpace(val)
-			protectedRoles = append(protectedRoles, trimVal)
+	////// Roles /////
+	if val, ok := envData[constants.EnvKeyRoles]; !ok || val == "" {
+		envData[constants.EnvKeyRoles] = osRoles
+		if envData[constants.EnvKeyRoles] == "" {
+			envData[constants.EnvKeyRoles] = "user"
 		}
 	}
+	if osRoles != "" && envData[constants.EnvKeyRoles] != osRoles {
+		envData[constants.EnvKeyRoles] = osRoles
+	}
+	roles := strings.Split(envData[constants.EnvKeyRoles].(string), ",")
+	////// Roles /////
 
-	for _, val := range rolesSplit {
-		trimVal := strings.TrimSpace(val)
-		if trimVal != "" {
-			roles = append(roles, trimVal)
-			if utils.StringSliceContains(defaultRoleSplit, trimVal) {
-				defaultRoles = append(defaultRoles, trimVal)
-			}
+	////// Default Role /////
+	if val, ok := envData[constants.EnvKeyDefaultRoles]; !ok || val == "" {
+		envData[constants.EnvKeyDefaultRoles] = osDefaultRoles
+		if envData[constants.EnvKeyDefaultRoles] == "" {
+			envData[constants.EnvKeyDefaultRoles] = "user"
 		}
 	}
-
-	if len(roles) > 0 && len(defaultRoles) == 0 && len(defaultRolesEnv) > 0 {
-		log.Debug("Default roles not found in roles list. It can be one from ROLES only")
-		return errors.New(`invalid DEFAULT_ROLE environment variable. It can be one from give ROLES environment variable value`)
+	if osDefaultRoles != "" && envData[constants.EnvKeyDefaultRoles] != osDefaultRoles {
+		envData[constants.EnvKeyDefaultRoles] = osDefaultRoles
+	}
+	defaultRoles := strings.Split(envData[constants.EnvKeyDefaultRoles].(string), ",")
+	if len(defaultRoles) == 0 {
+		defaultRoles = []string{roles[0]}
 	}
 
-	envData[constants.EnvKeyRoles] = roles
-	envData[constants.EnvKeyDefaultRoles] = defaultRoles
-	envData[constants.EnvKeyProtectedRoles] = protectedRoles
-
-	if os.Getenv(constants.EnvKeyOrganizationName) != "" {
-		envData[constants.EnvKeyOrganizationName] = os.Getenv(constants.EnvKeyOrganizationName)
+	for _, role := range defaultRoles {
+		if !utils.StringSliceContains(roles, role) {
+			return fmt.Errorf("Default role %s is not defined in roles", role)
+		}
 	}
+	////// Default Role /////
 
-	if os.Getenv(constants.EnvKeyOrganizationLogo) != "" {
-		envData[constants.EnvKeyOrganizationLogo] = os.Getenv(constants.EnvKeyOrganizationLogo)
+	////// Roles /////
+	if val, ok := envData[constants.EnvKeyProtectedRoles]; !ok || val == "" {
+		envData[constants.EnvKeyProtectedRoles] = osProtectedRoles
+		if envData[constants.EnvKeyProtectedRoles] == "" {
+			envData[constants.EnvKeyProtectedRoles] = "user"
+		}
 	}
+	if osProtectedRoles != "" && envData[constants.EnvKeyProtectedRoles] != osProtectedRoles {
+		envData[constants.EnvKeyProtectedRoles] = osProtectedRoles
+	}
+	////// Roles /////
 
-	memorystore.Provider.UpdateEnvStore(envData)
+	err = memorystore.Provider.UpdateEnvStore(envData)
+	if err != nil {
+		log.Debug("Error while updating env store: ", err)
+		return err
+	}
 	return nil
 }

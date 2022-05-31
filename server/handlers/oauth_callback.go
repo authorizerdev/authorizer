@@ -91,10 +91,13 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			// make sure inputRoles don't include protected roles
 			hasProtectedRole := false
 			for _, ir := range inputRoles {
-				protectedRoles, err := memorystore.Provider.GetSliceStoreEnvVariable(constants.EnvKeyProtectedRoles)
+				protectedRolesString, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyProtectedRoles)
+				protectedRoles := []string{}
 				if err != nil {
 					log.Debug("Failed to get protected roles: ", err)
-					protectedRoles = []string{}
+					protectedRolesString = ""
+				} else {
+					protectedRoles = strings.Split(protectedRolesString, ",")
 				}
 				if utils.StringSliceContains(protectedRoles, ir) {
 					hasProtectedRole = true
@@ -149,10 +152,13 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 				// check if it contains protected unassigned role
 				hasProtectedRole := false
 				for _, ur := range unasignedRoles {
-					protectedRoles, err := memorystore.Provider.GetSliceStoreEnvVariable(constants.EnvKeyProtectedRoles)
+					protectedRolesString, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyProtectedRoles)
+					protectedRoles := []string{}
 					if err != nil {
 						log.Debug("Failed to get protected roles: ", err)
-						protectedRoles = []string{}
+						protectedRolesString = ""
+					} else {
+						protectedRoles = strings.Split(protectedRolesString, ",")
 					}
 					if utils.StringSliceContains(protectedRoles, ur) {
 						hasProtectedRole = true

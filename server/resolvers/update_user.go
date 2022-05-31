@@ -156,13 +156,22 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 			inputRoles = append(inputRoles, *item)
 		}
 
-		roles, err := memorystore.Provider.GetSliceStoreEnvVariable(constants.EnvKeyRoles)
+		rolesString, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyRoles)
+		roles := []string{}
 		if err != nil {
 			log.Debug("Error getting roles: ", err)
+			rolesString = ""
+		} else {
+			roles = strings.Split(rolesString, ",")
 		}
-		protectedRoles, err := memorystore.Provider.GetSliceStoreEnvVariable(constants.EnvKeyProtectedRoles)
+		protectedRolesString, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyProtectedRoles)
+		fmt.Println(protectedRolesString)
+		protectedRoles := []string{}
 		if err != nil {
 			log.Debug("Error getting protected roles: ", err)
+			protectedRolesString = ""
+		} else {
+			protectedRoles = strings.Split(protectedRolesString, ",")
 		}
 
 		if !validators.IsValidRoles(inputRoles, append([]string{}, append(roles, protectedRoles...)...)) {

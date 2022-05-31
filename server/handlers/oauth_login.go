@@ -56,13 +56,22 @@ func OAuthLoginHandler() gin.HandlerFunc {
 
 			// use protected roles verification for admin login only.
 			// though if not associated with user, it will be rejected from oauth_callback
-			roles, err := memorystore.Provider.GetSliceStoreEnvVariable(constants.EnvKeyRoles)
+			rolesString, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyRoles)
+			roles := []string{}
 			if err != nil {
 				log.Debug("Error getting roles: ", err)
+				rolesString = ""
+			} else {
+				roles = strings.Split(rolesString, ",")
 			}
-			protectedRoles, err := memorystore.Provider.GetSliceStoreEnvVariable(constants.EnvKeyProtectedRoles)
+
+			protectedRolesString, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyProtectedRoles)
+			protectedRoles := []string{}
 			if err != nil {
 				log.Debug("Error getting protected roles: ", err)
+				protectedRolesString = ""
+			} else {
+				protectedRoles = strings.Split(protectedRolesString, ",")
 			}
 
 			if !validators.IsValidRoles(rolesSplit, append([]string{}, append(roles, protectedRoles...)...)) {
@@ -73,7 +82,7 @@ func OAuthLoginHandler() gin.HandlerFunc {
 				return
 			}
 		} else {
-			defaultRoles, err := memorystore.Provider.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles)
+			defaultRoles, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDefaultRoles)
 			if err != nil {
 				log.Debug("Error getting default roles: ", err)
 				c.JSON(400, gin.H{
@@ -81,7 +90,7 @@ func OAuthLoginHandler() gin.HandlerFunc {
 				})
 				return
 			}
-			roles = strings.Join(defaultRoles, ",")
+			roles = defaultRoles
 
 		}
 

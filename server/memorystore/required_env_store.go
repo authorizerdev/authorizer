@@ -69,7 +69,7 @@ func InitRequiredEnv() error {
 
 	err := godotenv.Load(envPath)
 	if err != nil {
-		log.Info("using OS env instead of %s file", envPath)
+		log.Infof("using OS env instead of %s file", envPath)
 	}
 
 	dbURL := os.Getenv(constants.EnvKeyDatabaseURL)
@@ -83,6 +83,12 @@ func InitRequiredEnv() error {
 	dbCertKey := os.Getenv(constants.EnvKeyDatabaseCertKey)
 	dbCACert := os.Getenv(constants.EnvKeyDatabaseCACert)
 	redisURL := os.Getenv(constants.EnvKeyRedisURL)
+
+	if strings.TrimSpace(redisURL) == "" {
+		if cli.ARG_REDIS_URL != nil && *cli.ARG_REDIS_URL != "" {
+			redisURL = *cli.ARG_REDIS_URL
+		}
+	}
 
 	if strings.TrimSpace(dbType) == "" {
 		if cli.ARG_DB_TYPE != nil && *cli.ARG_DB_TYPE != "" {

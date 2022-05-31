@@ -23,23 +23,17 @@ var KeySpace string
 
 // NewProvider to initialize arangodb connection
 func NewProvider() (*provider, error) {
-	dbURL, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL)
-	if err != nil {
-		return nil, err
-	}
+	dbURL := memorystore.RequiredEnvStoreObj.GetRequiredEnv().DatabaseURL
 	if dbURL == "" {
-		dbURL, err = memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDatabaseHost)
-		dbPort, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDatabasePort)
-		if err != nil {
-			return nil, err
-		}
-		if dbPort != "" {
-			dbURL = fmt.Sprintf("%s:%s", dbURL, dbPort)
+		dbHost := memorystore.RequiredEnvStoreObj.GetRequiredEnv().DatabaseHost
+		dbPort := memorystore.RequiredEnvStoreObj.GetRequiredEnv().DatabasePort
+		if dbPort != "" && dbHost != "" {
+			dbURL = fmt.Sprintf("%s:%s", dbHost, dbPort)
 		}
 	}
 
-	KeySpace, err = memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDatabaseName)
-	if err != nil || KeySpace == "" {
+	KeySpace = memorystore.RequiredEnvStoreObj.GetRequiredEnv().DatabaseName
+	if KeySpace == "" {
 		KeySpace = constants.EnvKeyDatabaseName
 	}
 	clusterURL := []string{}
@@ -49,14 +43,8 @@ func NewProvider() (*provider, error) {
 		clusterURL = append(clusterURL, dbURL)
 	}
 	cassandraClient := cansandraDriver.NewCluster(clusterURL...)
-	dbUsername, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDatabaseUsername)
-	if err != nil {
-		return nil, err
-	}
-	dbPassword, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDatabasePassword)
-	if err != nil {
-		return nil, err
-	}
+	dbUsername := memorystore.RequiredEnvStoreObj.GetRequiredEnv().DatabaseUsername
+	dbPassword := memorystore.RequiredEnvStoreObj.GetRequiredEnv().DatabasePassword
 
 	if dbUsername != "" && dbPassword != "" {
 		cassandraClient.Authenticator = &cansandraDriver.PasswordAuthenticator{
@@ -65,20 +53,9 @@ func NewProvider() (*provider, error) {
 		}
 	}
 
-	dbCert, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDatabaseCert)
-	if err != nil {
-		return nil, err
-	}
-
-	dbCACert, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDatabaseCACert)
-	if err != nil {
-		return nil, err
-	}
-
-	dbCertKey, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDatabaseCertKey)
-	if err != nil {
-		return nil, err
-	}
+	dbCert := memorystore.RequiredEnvStoreObj.GetRequiredEnv().DatabaseCert
+	dbCACert := memorystore.RequiredEnvStoreObj.GetRequiredEnv().DatabaseCACert
+	dbCertKey := memorystore.RequiredEnvStoreObj.GetRequiredEnv().DatabaseCertKey
 	if dbCert != "" && dbCACert != "" && dbCertKey != "" {
 		certString, err := crypto.DecryptB64(dbCert)
 		if err != nil {

@@ -6,7 +6,6 @@ import (
 	"github.com/arangodb/go-driver"
 	arangoDriver "github.com/arangodb/go-driver"
 	"github.com/arangodb/go-driver/http"
-	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 )
@@ -22,10 +21,7 @@ type provider struct {
 // NewProvider to initialize arangodb connection
 func NewProvider() (*provider, error) {
 	ctx := context.Background()
-	dbURL, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL)
-	if err != nil {
-		return nil, err
-	}
+	dbURL := memorystore.RequiredEnvStoreObj.GetRequiredEnv().DatabaseURL
 	conn, err := http.NewConnection(http.ConnectionConfig{
 		Endpoints: []string{dbURL},
 	})
@@ -41,10 +37,7 @@ func NewProvider() (*provider, error) {
 	}
 
 	var arangodb driver.Database
-	dbName, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDatabaseName)
-	if err != nil {
-		return nil, err
-	}
+	dbName := memorystore.RequiredEnvStoreObj.GetRequiredEnv().DatabaseName
 	arangodb_exists, err := arangoClient.DatabaseExists(nil, dbName)
 
 	if arangodb_exists {

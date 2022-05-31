@@ -1,6 +1,8 @@
 package inmemory
 
-import "sync"
+import (
+	"sync"
+)
 
 // EnvStore struct to store the env variables
 type EnvStore struct {
@@ -23,6 +25,7 @@ func (e *EnvStore) UpdateStore(store map[string]interface{}) {
 func (e *EnvStore) GetStore() map[string]interface{} {
 	e.mutex.Lock()
 	defer e.mutex.Unlock()
+
 	return e.store
 }
 

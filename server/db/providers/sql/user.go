@@ -1,7 +1,6 @@
 package sql
 
 import (
-	"strings"
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/constants"
@@ -19,11 +18,11 @@ func (p *provider) AddUser(user models.User) (models.User, error) {
 	}
 
 	if user.Roles == "" {
-		defaultRoles, err := memorystore.Provider.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles)
+		defaultRoles, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDefaultRoles)
 		if err != nil {
 			return user, err
 		}
-		user.Roles = strings.Join(defaultRoles, ",")
+		user.Roles = defaultRoles
 	}
 
 	user.CreatedAt = time.Now().Unix()

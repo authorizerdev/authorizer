@@ -148,15 +148,3 @@ func (c *provider) GetBoolStoreEnvVariable(key string) (bool, error) {
 
 	return res, nil
 }
-
-// GetSliceStoreEnvVariable to get the string slice env variable from env store
-func (c *provider) GetSliceStoreEnvVariable(key string) ([]string, error) {
-	var res []string
-	err := c.store.Get(c.ctx, envStorePrefix+key).Scan(&res)
-	if err != nil {
-		log.Debug("error getting token from redis store: ", err)
-		return nil, err
-	}
-
-	return res, nil
-}

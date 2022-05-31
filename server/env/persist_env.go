@@ -14,8 +14,6 @@ import (
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/memorystore"
-	"github.com/authorizerdev/authorizer/server/utils"
-	"github.com/authorizerdev/authorizer/server/validators"
 )
 
 // GetEnvData returns the env data from database
@@ -54,6 +52,42 @@ func GetEnvData() (map[string]interface{}, error) {
 		log.Debug("Error while unmarshalling env data: ", err)
 		return result, err
 	}
+
+	///////// start backward compatibility ///////////
+	// check if env data is stored in older format
+	hasOlderFormat := false
+	if _, ok := result["bool_env"]; ok {
+		for key, value := range result["bool_env"].(map[string]interface{}) {
+			result[key] = value
+		}
+		hasOlderFormat = true
+		delete(result, "bool_env")
+	}
+
+	if _, ok := result["string_env"]; ok {
+		for key, value := range result["string_env"].(map[string]interface{}) {
+			result[key] = value
+		}
+		hasOlderFormat = true
+		delete(result, "string_env")
+	}
+
+	if _, ok := result["slice_env"]; ok {
+		for key, value := range result["slice_env"].(map[string]interface{}) {
+			result[key] = strings.Join(value.([]string), ",")
+		}
+		hasOlderFormat = true
+		delete(result, "slice_env")
+	}
+
+	if hasOlderFormat {
+		err := memorystore.Provider.UpdateEnvStore(result)
+		if err != nil {
+			log.Fatal("Error while updating env store: ", err)
+			return result, err
+		}
+	}
+	///////// end backward compatibility ///////////
 
 	return result, err
 }
@@ -136,15 +170,6 @@ func PersistEnv() error {
 				envValue := strings.TrimSpace(os.Getenv(key))
 				if envValue != "" {
 					switch key {
-					case constants.EnvKeyRoles, constants.EnvKeyDefaultRoles, constants.EnvKeyProtectedRoles:
-						envStringArr := strings.Split(envValue, ",")
-						originalValue := utils.ConvertInterfaceToStringSlice(value)
-						if !validators.IsStringArrayEqual(originalValue, envStringArr) {
-							storeData[key] = envStringArr
-							hasChanged = true
-						}
-
-						break
 					case constants.EnvKeyIsProd, constants.EnvKeyDisableBasicAuthentication, constants.EnvKeyDisableEmailVerification, constants.EnvKeyDisableLoginPage, constants.EnvKeyDisableMagicLinkLogin, constants.EnvKeyDisableSignUp:
 						if envValueBool, err := strconv.ParseBool(envValue); err == nil {
 							if value.(bool) != envValueBool {
@@ -152,15 +177,11 @@ func PersistEnv() error {
 								hasChanged = true
 							}
 						}
-
-						break
 					default:
-						if value.(string) != envValue {
+						if value != nil && value.(string) != envValue {
 							storeData[key] = envValue
 							hasChanged = true
 						}
-
-						break
 					}
 				}
 			}

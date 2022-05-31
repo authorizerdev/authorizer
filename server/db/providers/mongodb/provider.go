@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"go.mongodb.org/mongo-driver/bson"
@@ -19,10 +18,7 @@ type provider struct {
 
 // NewProvider to initialize mongodb connection
 func NewProvider() (*provider, error) {
-	dbURL, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL)
-	if err != nil {
-		return nil, err
-	}
+	dbURL := memorystore.RequiredEnvStoreObj.GetRequiredEnv().DatabaseURL
 	mongodbOptions := options.Client().ApplyURI(dbURL)
 	maxWait := time.Duration(5 * time.Second)
 	mongodbOptions.ConnectTimeout = &maxWait
@@ -41,10 +37,7 @@ func NewProvider() (*provider, error) {
 		return nil, err
 	}
 
-	dbName, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDatabaseName)
-	if err != nil {
-		return nil, err
-	}
+	dbName := memorystore.RequiredEnvStoreObj.GetRequiredEnv().DatabaseName
 	mongodb := mongoClient.Database(dbName, options.Database())
 
 	mongodb.CreateCollection(ctx, models.Collections.User, options.CreateCollection())

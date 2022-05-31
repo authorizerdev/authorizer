@@ -31,6 +31,7 @@ func main() {
 	cli.ARG_DB_TYPE = flag.String("database_type", "", "Database type, possible values are postgres,mysql,sqlite")
 	cli.ARG_ENV_FILE = flag.String("env_file", "", "Env file path")
 	cli.ARG_LOG_LEVEL = flag.String("log_level", "info", "Log level, possible values are debug,info,warn,error,fatal,panic")
+	cli.ARG_REDIS_URL = flag.String("redis_url", "", "Redis connection string")
 	flag.Parse()
 
 	// global log level

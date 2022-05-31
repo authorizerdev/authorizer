@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
@@ -75,7 +78,15 @@ func testSetup() TestSetup {
 		Password: "Test@123",
 	}
 
-	memorystore.Provider.UpdateEnvVariable(constants.EnvKeyEnvPath, "../../.env.sample")
+	err := os.Setenv(constants.EnvKeyEnvPath, "../../.env.test")
+	if err != nil {
+		log.Fatal("Error loading .env.sample file")
+	}
+	err = memorystore.InitRequiredEnv()
+	if err != nil {
+		log.Fatal("Error loading required env: ", err)
+	}
+
 	memorystore.InitMemStore()
 	memorystore.Provider.UpdateEnvVariable(constants.EnvKeySmtpHost, "smtp.yopmail.com")
 	memorystore.Provider.UpdateEnvVariable(constants.EnvKeySmtpPort, "2525")
