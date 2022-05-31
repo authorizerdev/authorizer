@@ -71,28 +71,6 @@ const Features = ({ variables, setVariables }: any) => {
 						/>
 					</Flex>
 				</Flex>
-				<Flex>
-					<Flex
-						w="100%"
-						justifyContent="center"
-						alignItems="start"
-						flexDirection="column"
-					>
-						<Text fontSize="sm">
-							Disable Redis for storing environment variables:
-						</Text>
-						<Text fontSize="sm" fontStyle="italic" color="blackAlpha.500">
-							Note: this needs server restart
-						</Text>
-					</Flex>
-					<Flex justifyContent="start" mb={3}>
-						<InputField
-							variables={variables}
-							setVariables={setVariables}
-							inputType={SwitchInputType.DISABLE_REDIS_FOR_ENV}
-						/>
-					</Flex>
-				</Flex>
 			</Stack>
 		</div>
 	);
