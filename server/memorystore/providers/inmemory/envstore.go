@@ -1,6 +1,7 @@
 package inmemory
 
 import (
+	"os"
 	"sync"
 )
 
@@ -12,8 +13,10 @@ type EnvStore struct {
 
 // UpdateEnvStore to update the whole env store object
 func (e *EnvStore) UpdateStore(store map[string]interface{}) {
-	// e.mutex.Lock()
-	// defer e.mutex.Unlock()
+	if os.Getenv("ENV") != "test" {
+		e.mutex.Lock()
+		defer e.mutex.Unlock()
+	}
 	// just override the keys + new keys
 
 	for key, value := range store {
@@ -23,22 +26,28 @@ func (e *EnvStore) UpdateStore(store map[string]interface{}) {
 
 // GetStore returns the env store
 func (e *EnvStore) GetStore() map[string]interface{} {
-	// e.mutex.Lock()
-	// defer e.mutex.Unlock()
+	if os.Getenv("ENV") != "test" {
+		e.mutex.Lock()
+		defer e.mutex.Unlock()
+	}
 
 	return e.store
 }
 
 // Get returns the value of the key in evn store
 func (e *EnvStore) Get(key string) interface{} {
-	// e.mutex.Lock()
-	// defer e.mutex.Unlock()
+	if os.Getenv("ENV") != "test" {
+		e.mutex.Lock()
+		defer e.mutex.Unlock()
+	}
 	return e.store[key]
 }
 
 // Set sets the value of the key in env store
 func (e *EnvStore) Set(key string, value interface{}) {
-	// e.mutex.Lock()
-	// defer e.mutex.Unlock()
+	if os.Getenv("ENV") != "test" {
+		e.mutex.Lock()
+		defer e.mutex.Unlock()
+	}
 	e.store[key] = value
 }
