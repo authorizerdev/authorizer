@@ -1,7 +1,7 @@
 package middlewares
 
 import (
-	"github.com/authorizerdev/authorizer/server/utils"
+	"github.com/authorizerdev/authorizer/server/validators"
 	"github.com/gin-gonic/gin"
 )
 
@@ -10,7 +10,7 @@ func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		origin := c.Request.Header.Get("Origin")
 
-		if utils.IsValidOrigin(origin) {
+		if validators.IsValidOrigin(origin) {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
 		}
 

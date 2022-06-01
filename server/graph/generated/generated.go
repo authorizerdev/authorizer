@@ -59,7 +59,6 @@ type ComplexityRoot struct {
 		AppURL                     func(childComplexity int) int
 		ClientID                   func(childComplexity int) int
 		ClientSecret               func(childComplexity int) int
-		CookieName                 func(childComplexity int) int
 		CustomAccessTokenScript    func(childComplexity int) int
 		DatabaseHost               func(childComplexity int) int
 		DatabaseName               func(childComplexity int) int
@@ -73,6 +72,7 @@ type ComplexityRoot struct {
 		DisableEmailVerification   func(childComplexity int) int
 		DisableLoginPage           func(childComplexity int) int
 		DisableMagicLinkLogin      func(childComplexity int) int
+		DisableRedisForEnv         func(childComplexity int) int
 		DisableSignUp              func(childComplexity int) int
 		FacebookClientID           func(childComplexity int) int
 		FacebookClientSecret       func(childComplexity int) int
@@ -346,13 +346,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Env.ClientSecret(childComplexity), true
 
-	case "Env.COOKIE_NAME":
-		if e.complexity.Env.CookieName == nil {
-			break
-		}
-
-		return e.complexity.Env.CookieName(childComplexity), true
-
 	case "Env.CUSTOM_ACCESS_TOKEN_SCRIPT":
 		if e.complexity.Env.CustomAccessTokenScript == nil {
 			break
@@ -443,6 +436,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Env.DisableMagicLinkLogin(childComplexity), true
+
+	case "Env.DISABLE_REDIS_FOR_ENV":
+		if e.complexity.Env.DisableRedisForEnv == nil {
+			break
+		}
+
+		return e.complexity.Env.DisableRedisForEnv(childComplexity), true
 
 	case "Env.DISABLE_SIGN_UP":
 		if e.complexity.Env.DisableSignUp == nil {
@@ -1423,13 +1423,13 @@ type Response {
 type Env {
 	ACCESS_TOKEN_EXPIRY_TIME: String
 	ADMIN_SECRET: String
-	DATABASE_NAME: String!
-	DATABASE_URL: String!
-	DATABASE_TYPE: String!
-	DATABASE_USERNAME: String!
-	DATABASE_PASSWORD: String!
-	DATABASE_HOST: String!
-	DATABASE_PORT: String!
+	DATABASE_NAME: String
+	DATABASE_URL: String
+	DATABASE_TYPE: String
+	DATABASE_USERNAME: String
+	DATABASE_PASSWORD: String
+	DATABASE_HOST: String
+	DATABASE_PORT: String
 	CLIENT_ID: String!
 	CLIENT_SECRET: String!
 	CUSTOM_ACCESS_TOKEN_SCRIPT: String
@@ -1445,13 +1445,13 @@ type Env {
 	ALLOWED_ORIGINS: [String!]
 	APP_URL: String
 	REDIS_URL: String
-	COOKIE_NAME: String
 	RESET_PASSWORD_URL: String
-	DISABLE_EMAIL_VERIFICATION: Boolean
-	DISABLE_BASIC_AUTHENTICATION: Boolean
-	DISABLE_MAGIC_LINK_LOGIN: Boolean
-	DISABLE_LOGIN_PAGE: Boolean
-	DISABLE_SIGN_UP: Boolean
+	DISABLE_EMAIL_VERIFICATION: Boolean!
+	DISABLE_BASIC_AUTHENTICATION: Boolean!
+	DISABLE_MAGIC_LINK_LOGIN: Boolean!
+	DISABLE_LOGIN_PAGE: Boolean!
+	DISABLE_SIGN_UP: Boolean!
+	DISABLE_REDIS_FOR_ENV: Boolean!
 	ROLES: [String!]
 	PROTECTED_ROLES: [String!]
 	DEFAULT_ROLES: [String!]
@@ -1492,14 +1492,13 @@ input UpdateEnvInput {
 	JWT_PUBLIC_KEY: String
 	ALLOWED_ORIGINS: [String!]
 	APP_URL: String
-	REDIS_URL: String
-	COOKIE_NAME: String
 	RESET_PASSWORD_URL: String
 	DISABLE_EMAIL_VERIFICATION: Boolean
 	DISABLE_BASIC_AUTHENTICATION: Boolean
 	DISABLE_MAGIC_LINK_LOGIN: Boolean
 	DISABLE_LOGIN_PAGE: Boolean
 	DISABLE_SIGN_UP: Boolean
+	DISABLE_REDIS_FOR_ENV: Boolean
 	ROLES: [String!]
 	PROTECTED_ROLES: [String!]
 	DEFAULT_ROLES: [String!]
@@ -2356,14 +2355,11 @@ func (ec *executionContext) _Env_DATABASE_NAME(ctx context.Context, field graphq
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(*string)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Env_DATABASE_URL(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
@@ -2391,14 +2387,11 @@ func (ec *executionContext) _Env_DATABASE_URL(ctx context.Context, field graphql
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(*string)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Env_DATABASE_TYPE(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
@@ -2426,14 +2419,11 @@ func (ec *executionContext) _Env_DATABASE_TYPE(ctx context.Context, field graphq
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(*string)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Env_DATABASE_USERNAME(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
@@ -2461,14 +2451,11 @@ func (ec *executionContext) _Env_DATABASE_USERNAME(ctx context.Context, field gr
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(*string)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Env_DATABASE_PASSWORD(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
@@ -2496,14 +2483,11 @@ func (ec *executionContext) _Env_DATABASE_PASSWORD(ctx context.Context, field gr
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(*string)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Env_DATABASE_HOST(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
@@ -2531,14 +2515,11 @@ func (ec *executionContext) _Env_DATABASE_HOST(ctx context.Context, field graphq
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(*string)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Env_DATABASE_PORT(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
@@ -2566,14 +2547,11 @@ func (ec *executionContext) _Env_DATABASE_PORT(ctx context.Context, field graphq
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(*string)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Env_CLIENT_ID(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
@@ -3062,38 +3040,6 @@ func (ec *executionContext) _Env_REDIS_URL(ctx context.Context, field graphql.Co
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Env_COOKIE_NAME(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Env",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.CookieName, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*string)
-	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _Env_RESET_PASSWORD_URL(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -3151,11 +3097,14 @@ func (ec *executionContext) _Env_DISABLE_EMAIL_VERIFICATION(ctx context.Context,
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*bool)
+	res := resTmp.(bool)
 	fc.Result = res
-	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Env_DISABLE_BASIC_AUTHENTICATION(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
@@ -3183,11 +3132,14 @@ func (ec *executionContext) _Env_DISABLE_BASIC_AUTHENTICATION(ctx context.Contex
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*bool)
+	res := resTmp.(bool)
 	fc.Result = res
-	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Env_DISABLE_MAGIC_LINK_LOGIN(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
@@ -3215,11 +3167,14 @@ func (ec *executionContext) _Env_DISABLE_MAGIC_LINK_LOGIN(ctx context.Context, f
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*bool)
+	res := resTmp.(bool)
 	fc.Result = res
-	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Env_DISABLE_LOGIN_PAGE(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
@@ -3247,11 +3202,14 @@ func (ec *executionContext) _Env_DISABLE_LOGIN_PAGE(ctx context.Context, field g
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*bool)
+	res := resTmp.(bool)
 	fc.Result = res
-	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Env_DISABLE_SIGN_UP(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
@@ -3279,11 +3237,49 @@ func (ec *executionContext) _Env_DISABLE_SIGN_UP(ctx context.Context, field grap
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*bool)
+	res := resTmp.(bool)
 	fc.Result = res
-	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Env_DISABLE_REDIS_FOR_ENV(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Env",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DisableRedisForEnv, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Env_ROLES(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
@@ -8431,22 +8427,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			if err != nil {
 				return it, err
 			}
-		case "REDIS_URL":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("REDIS_URL"))
-			it.RedisURL, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "COOKIE_NAME":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("COOKIE_NAME"))
-			it.CookieName, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
 		case "RESET_PASSWORD_URL":
 			var err error
 
@@ -8492,6 +8472,14 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("DISABLE_SIGN_UP"))
 			it.DisableSignUp, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "DISABLE_REDIS_FOR_ENV":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("DISABLE_REDIS_FOR_ENV"))
+			it.DisableRedisForEnv, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -8943,39 +8931,18 @@ func (ec *executionContext) _Env(ctx context.Context, sel ast.SelectionSet, obj 
 			out.Values[i] = ec._Env_ADMIN_SECRET(ctx, field, obj)
 		case "DATABASE_NAME":
 			out.Values[i] = ec._Env_DATABASE_NAME(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "DATABASE_URL":
 			out.Values[i] = ec._Env_DATABASE_URL(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "DATABASE_TYPE":
 			out.Values[i] = ec._Env_DATABASE_TYPE(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "DATABASE_USERNAME":
 			out.Values[i] = ec._Env_DATABASE_USERNAME(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "DATABASE_PASSWORD":
 			out.Values[i] = ec._Env_DATABASE_PASSWORD(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "DATABASE_HOST":
 			out.Values[i] = ec._Env_DATABASE_HOST(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "DATABASE_PORT":
 			out.Values[i] = ec._Env_DATABASE_PORT(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "CLIENT_ID":
 			out.Values[i] = ec._Env_CLIENT_ID(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -9012,20 +8979,38 @@ func (ec *executionContext) _Env(ctx context.Context, sel ast.SelectionSet, obj 
 			out.Values[i] = ec._Env_APP_URL(ctx, field, obj)
 		case "REDIS_URL":
 			out.Values[i] = ec._Env_REDIS_URL(ctx, field, obj)
-		case "COOKIE_NAME":
-			out.Values[i] = ec._Env_COOKIE_NAME(ctx, field, obj)
 		case "RESET_PASSWORD_URL":
 			out.Values[i] = ec._Env_RESET_PASSWORD_URL(ctx, field, obj)
 		case "DISABLE_EMAIL_VERIFICATION":
 			out.Values[i] = ec._Env_DISABLE_EMAIL_VERIFICATION(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "DISABLE_BASIC_AUTHENTICATION":
 			out.Values[i] = ec._Env_DISABLE_BASIC_AUTHENTICATION(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "DISABLE_MAGIC_LINK_LOGIN":
 			out.Values[i] = ec._Env_DISABLE_MAGIC_LINK_LOGIN(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "DISABLE_LOGIN_PAGE":
 			out.Values[i] = ec._Env_DISABLE_LOGIN_PAGE(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "DISABLE_SIGN_UP":
 			out.Values[i] = ec._Env_DISABLE_SIGN_UP(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "DISABLE_REDIS_FOR_ENV":
+			out.Values[i] = ec._Env_DISABLE_REDIS_FOR_ENV(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "ROLES":
 			out.Values[i] = ec._Env_ROLES(ctx, field, obj)
 		case "PROTECTED_ROLES":

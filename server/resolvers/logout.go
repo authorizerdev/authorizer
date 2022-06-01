@@ -8,7 +8,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/graph/model"
-	"github.com/authorizerdev/authorizer/server/sessionstore"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
@@ -37,7 +37,7 @@ func LogoutResolver(ctx context.Context) (*model.Response, error) {
 
 	fingerPrint := string(decryptedFingerPrint)
 
-	sessionstore.RemoveState(fingerPrint)
+	memorystore.Provider.RemoveState(fingerPrint)
 	cookie.DeleteSession(gc)
 
 	res = &model.Response{

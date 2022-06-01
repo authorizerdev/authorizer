@@ -7,14 +7,21 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/constants"
-	"github.com/authorizerdev/authorizer/server/envstore"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 )
 
 func JWKsHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var data map[string]string
-		jwk := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJWK)
-		err := json.Unmarshal([]byte(jwk), &data)
+		jwk, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyJWK)
+		if err != nil {
+			log.Debug("Error getting JWK from memorystore: ", err)
+			c.JSON(500, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+		err = json.Unmarshal([]byte(jwk), &data)
 		if err != nil {
 			log.Debug("Failed to parse JWK: ", err)
 			c.JSON(500, gin.H{

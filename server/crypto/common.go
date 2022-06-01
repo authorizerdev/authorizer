@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 
 	"github.com/authorizerdev/authorizer/server/constants"
-	"github.com/authorizerdev/authorizer/server/envstore"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/square/go-jose.v2"
 )
@@ -37,20 +37,35 @@ func GetPubJWK(algo, keyID string, publicKey interface{}) (string, error) {
 // this is called while initializing app / when env is updated
 func GenerateJWKBasedOnEnv() (string, error) {
 	jwk := ""
-	algo := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtType)
-	clientID := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyClientID)
+	algo, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyJwtType)
+	if err != nil {
+		return jwk, err
+	}
+	clientID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyClientID)
+	if err != nil {
+		return jwk, err
+	}
 
-	var err error
+	jwtSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyJwtSecret)
+	if err != nil {
+		return jwk, err
+	}
+
 	// check if jwt secret is provided
 	if IsHMACA(algo) {
-		jwk, err = GetPubJWK(algo, clientID, []byte(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtSecret)))
+		jwk, err = GetPubJWK(algo, clientID, []byte(jwtSecret))
 		if err != nil {
 			return "", err
 		}
 	}
 
+	jwtPublicKey, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyJwtPublicKey)
+	if err != nil {
+		return jwk, err
+	}
+
 	if IsRSA(algo) {
-		publicKeyInstance, err := ParseRsaPublicKeyFromPemStr(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtPublicKey))
+		publicKeyInstance, err := ParseRsaPublicKeyFromPemStr(jwtPublicKey)
 		if err != nil {
 			return "", err
 		}
@@ -62,7 +77,11 @@ func GenerateJWKBasedOnEnv() (string, error) {
 	}
 
 	if IsECDSA(algo) {
-		publicKeyInstance, err := ParseEcdsaPublicKeyFromPemStr(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtPublicKey))
+		jwtPublicKey, err = memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyJwtPublicKey)
+		if err != nil {
+			return jwk, err
+		}
+		publicKeyInstance, err := ParseEcdsaPublicKeyFromPemStr(jwtPublicKey)
 		if err != nil {
 			return "", err
 		}
@@ -77,13 +96,16 @@ func GenerateJWKBasedOnEnv() (string, error) {
 }
 
 // EncryptEnvData is used to encrypt the env data
-func EncryptEnvData(data envstore.Store) (string, error) {
+func EncryptEnvData(data map[string]interface{}) (string, error) {
 	jsonBytes, err := json.Marshal(data)
 	if err != nil {
 		return "", err
 	}
 
-	storeData := envstore.EnvStoreObj.GetEnvStoreClone()
+	storeData, err := memorystore.Provider.GetEnvStore()
+	if err != nil {
+		return "", err
+	}
 
 	err = json.Unmarshal(jsonBytes, &storeData)
 	if err != nil {

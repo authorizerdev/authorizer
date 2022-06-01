@@ -1,11 +1,11 @@
-package utils
+package parsers
 
 import (
 	"net/url"
 	"strings"
 
 	"github.com/authorizerdev/authorizer/server/constants"
-	"github.com/authorizerdev/authorizer/server/envstore"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/gin-gonic/gin"
 )
 
@@ -19,7 +19,10 @@ func GetHost(c *gin.Context) string {
 		return authorizerURL
 	}
 
-	authorizerURL = envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAuthorizerURL)
+	authorizerURL, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAuthorizerURL)
+	if err == nil {
+		authorizerURL = ""
+	}
 	if authorizerURL != "" {
 		return authorizerURL
 	}
@@ -89,8 +92,8 @@ func GetDomainName(uri string) string {
 
 // GetAppURL to get /app/ url if not configured by user
 func GetAppURL(gc *gin.Context) string {
-	envAppURL := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAppURL)
-	if envAppURL == "" {
+	envAppURL, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAppURL)
+	if envAppURL == "" || err != nil {
 		envAppURL = GetHost(gc) + "/app"
 	}
 	return envAppURL

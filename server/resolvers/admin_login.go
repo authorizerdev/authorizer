@@ -9,8 +9,8 @@ import (
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/crypto"
-	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
@@ -24,7 +24,11 @@ func AdminLoginResolver(ctx context.Context, params model.AdminLoginInput) (*mod
 		return res, err
 	}
 
-	adminSecret := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret)
+	adminSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret)
+	if err != nil {
+		log.Debug("Error getting admin secret: ", err)
+		return res, err
+	}
 	if params.AdminSecret != adminSecret {
 		log.Debug("Admin secret is not correct")
 		return res, fmt.Errorf(`invalid admin secret`)

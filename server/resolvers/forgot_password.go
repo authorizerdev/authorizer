@@ -12,10 +12,12 @@ import (
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/email"
-	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/memorystore"
+	"github.com/authorizerdev/authorizer/server/parsers"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
+	"github.com/authorizerdev/authorizer/server/validators"
 )
 
 // ForgotPasswordResolver is a resolver for forgot password mutation
@@ -28,13 +30,18 @@ func ForgotPasswordResolver(ctx context.Context, params model.ForgotPasswordInpu
 		return res, err
 	}
 
-	if envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableBasicAuthentication) {
+	isBasicAuthDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableBasicAuthentication)
+	if err != nil {
+		log.Debug("Error getting basic auth disabled: ", err)
+		isBasicAuthDisabled = true
+	}
+	if isBasicAuthDisabled {
 		log.Debug("Basic authentication is disabled")
 		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
 	}
 	params.Email = strings.ToLower(params.Email)
 
-	if !utils.IsValidEmail(params.Email) {
+	if !validators.IsValidEmail(params.Email) {
 		log.Debug("Invalid email address: ", params.Email)
 		return res, fmt.Errorf("invalid email")
 	}
@@ -48,13 +55,13 @@ func ForgotPasswordResolver(ctx context.Context, params model.ForgotPasswordInpu
 		return res, fmt.Errorf(`user with this email not found`)
 	}
 
-	hostname := utils.GetHost(gc)
+	hostname := parsers.GetHost(gc)
 	_, nonceHash, err := utils.GenerateNonce()
 	if err != nil {
 		log.Debug("Failed to generate nonce: ", err)
 		return res, err
 	}
-	redirectURL := utils.GetAppURL(gc) + "/reset-password"
+	redirectURL := parsers.GetAppURL(gc) + "/reset-password"
 	if params.RedirectURI != nil {
 		redirectURL = *params.RedirectURI
 	}

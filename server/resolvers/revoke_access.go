@@ -9,7 +9,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/graph/model"
-	"github.com/authorizerdev/authorizer/server/sessionstore"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
@@ -47,7 +47,7 @@ func RevokeAccessResolver(ctx context.Context, params model.UpdateAccessInput) (
 		return res, err
 	}
 
-	go sessionstore.DeleteAllUserSession(fmt.Sprintf("%x", user.ID))
+	go memorystore.Provider.DeleteAllUserSession(fmt.Sprintf("%x", user.ID))
 
 	res = &model.Response{
 		Message: `user access revoked successfully`,

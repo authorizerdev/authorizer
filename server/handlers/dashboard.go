@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/authorizerdev/authorizer/server/constants"
-	"github.com/authorizerdev/authorizer/server/envstore"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/gin-gonic/gin"
 )
 
@@ -12,8 +12,8 @@ import (
 func DashboardHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		isOnboardingCompleted := false
-
-		if envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret) != "" {
+		adminSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret)
+		if err != nil || adminSecret != "" {
 			isOnboardingCompleted = true
 		}
 

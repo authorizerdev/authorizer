@@ -4,7 +4,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/constants"
-	"github.com/authorizerdev/authorizer/server/envstore"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 )
 
 // InviteEmail to send invite email
@@ -99,13 +99,20 @@ func InviteEmail(toEmail, token, verificationURL, redirectURI string) error {
     </html>
 	`
 	data := make(map[string]interface{}, 3)
-	data["org_logo"] = envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyOrganizationLogo)
-	data["org_name"] = envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyOrganizationName)
+	var err error
+	data["org_logo"], err = memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyOrganizationLogo)
+	if err != nil {
+		return err
+	}
+	data["org_name"], err = memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyOrganizationName)
+	if err != nil {
+		return err
+	}
 	data["verification_url"] = verificationURL + "?token=" + token + "&redirect_uri=" + redirectURI
 	message = addEmailTemplate(message, data, "invite_email.tmpl")
 	// bodyMessage := sender.WriteHTMLEmail(Receiver, Subject, message)
 
-	err := SendMail(Receiver, Subject, message)
+	err = SendMail(Receiver, Subject, message)
 	if err != nil {
 		log.Warn("error sending email: ", err)
 	}

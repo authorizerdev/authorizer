@@ -9,8 +9,8 @@ import (
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/crypto"
-	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
@@ -30,7 +30,12 @@ func AdminSessionResolver(ctx context.Context) (*model.Response, error) {
 		return res, fmt.Errorf("unauthorized")
 	}
 
-	hashedKey, err := crypto.EncryptPassword(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret))
+	adminSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret)
+	if err != nil {
+		log.Debug("Error getting admin secret: ", err)
+		return res, fmt.Errorf("unauthorized")
+	}
+	hashedKey, err := crypto.EncryptPassword(adminSecret)
 	if err != nil {
 		log.Debug("Failed to encrypt key: ", err)
 		return res, err

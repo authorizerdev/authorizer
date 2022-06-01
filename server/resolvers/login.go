@@ -13,11 +13,11 @@ import (
 	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
-	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
-	"github.com/authorizerdev/authorizer/server/sessionstore"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
+	"github.com/authorizerdev/authorizer/server/validators"
 )
 
 // LoginResolver is a resolver for login mutation
@@ -30,7 +30,13 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 		return res, err
 	}
 
-	if envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableBasicAuthentication) {
+	isBasiAuthDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableBasicAuthentication)
+	if err != nil {
+		log.Debug("Error getting basic auth disabled: ", err)
+		isBasiAuthDisabled = true
+	}
+
+	if isBasiAuthDisabled {
 		log.Debug("Basic authentication is disabled.")
 		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
 	}
@@ -66,10 +72,19 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 		log.Debug("Failed to compare password: ", err)
 		return res, fmt.Errorf(`invalid password`)
 	}
-	roles := envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles)
+
+	defaultRolesString, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDefaultRoles)
+	roles := []string{}
+	if err != nil {
+		log.Debug("Error getting default roles: ", err)
+		defaultRolesString = ""
+	} else {
+		roles = strings.Split(defaultRolesString, ",")
+	}
+
 	currentRoles := strings.Split(user.Roles, ",")
 	if len(params.Roles) > 0 {
-		if !utils.IsValidRoles(params.Roles, currentRoles) {
+		if !validators.IsValidRoles(params.Roles, currentRoles) {
 			log.Debug("Invalid roles: ", params.Roles)
 			return res, fmt.Errorf(`invalid roles`)
 		}
@@ -102,12 +117,12 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 	}
 
 	cookie.SetSession(gc, authToken.FingerPrintHash)
-	sessionstore.SetState(authToken.FingerPrintHash, authToken.FingerPrint+"@"+user.ID)
-	sessionstore.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
+	memorystore.Provider.SetState(authToken.FingerPrintHash, authToken.FingerPrint+"@"+user.ID)
+	memorystore.Provider.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
 
 	if authToken.RefreshToken != nil {
 		res.RefreshToken = &authToken.RefreshToken.Token
-		sessionstore.SetState(authToken.RefreshToken.Token, authToken.FingerPrint+"@"+user.ID)
+		memorystore.Provider.SetState(authToken.RefreshToken.Token, authToken.FingerPrint+"@"+user.ID)
 	}
 
 	go db.Provider.AddSession(models.Session{

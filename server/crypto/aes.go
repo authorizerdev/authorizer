@@ -7,14 +7,18 @@ import (
 	"io"
 
 	"github.com/authorizerdev/authorizer/server/constants"
-	"github.com/authorizerdev/authorizer/server/envstore"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 )
 
 var bytes = []byte{35, 46, 57, 24, 85, 35, 24, 74, 87, 35, 88, 98, 66, 32, 14, 0o5}
 
 // EncryptAES method is to encrypt or hide any classified text
 func EncryptAES(text string) (string, error) {
-	key := []byte(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyEncryptionKey))
+	k, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyEncryptionKey)
+	if err != nil {
+		return "", err
+	}
+	key := []byte(k)
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return "", err
@@ -28,7 +32,11 @@ func EncryptAES(text string) (string, error) {
 
 // DecryptAES method is to extract back the encrypted text
 func DecryptAES(text string) (string, error) {
-	key := []byte(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyEncryptionKey))
+	k, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyEncryptionKey)
+	if err != nil {
+		return "", err
+	}
+	key := []byte(k)
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return "", err
@@ -46,9 +54,13 @@ func DecryptAES(text string) (string, error) {
 // EncryptAESEnv encrypts data using AES algorithm
 // kept for the backward compatibility of env data encryption
 func EncryptAESEnv(text []byte) ([]byte, error) {
-	key := []byte(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyEncryptionKey))
-	c, err := aes.NewCipher(key)
 	var res []byte
+	k, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyEncryptionKey)
+	if err != nil {
+		return res, err
+	}
+	key := []byte(k)
+	c, err := aes.NewCipher(key)
 	if err != nil {
 		return res, err
 	}
@@ -81,9 +93,13 @@ func EncryptAESEnv(text []byte) ([]byte, error) {
 // DecryptAES decrypts data using AES algorithm
 // Kept for the backward compatibility of env data decryption
 func DecryptAESEnv(ciphertext []byte) ([]byte, error) {
-	key := []byte(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyEncryptionKey))
-	c, err := aes.NewCipher(key)
 	var res []byte
+	k, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyEncryptionKey)
+	if err != nil {
+		return res, err
+	}
+	key := []byte(k)
+	c, err := aes.NewCipher(key)
 	if err != nil {
 		return res, err
 	}

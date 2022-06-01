@@ -3,14 +3,14 @@ package test
 import (
 	"testing"
 
-	"github.com/authorizerdev/authorizer/server/utils"
+	"github.com/authorizerdev/authorizer/server/parsers"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGetHostName(t *testing.T) {
 	url := "http://test.herokuapp.com:80"
 
-	host, port := utils.GetHostParts(url)
+	host, port := parsers.GetHostParts(url)
 	expectedHost := "test.herokuapp.com"
 
 	assert.Equal(t, host, expectedHost, "hostname should be equal")
@@ -20,7 +20,7 @@ func TestGetHostName(t *testing.T) {
 func TestGetDomainName(t *testing.T) {
 	url := "http://test.herokuapp.com"
 
-	got := utils.GetDomainName(url)
+	got := parsers.GetDomainName(url)
 	want := "herokuapp.com"
 
 	assert.Equal(t, got, want, "domain name should be equal")

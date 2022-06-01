@@ -8,8 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/constants"
-	"github.com/authorizerdev/authorizer/server/envstore"
-	"github.com/authorizerdev/authorizer/server/sessionstore"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 )
 
 // Revoke handler to revoke refresh token
@@ -37,7 +36,7 @@ func RevokeHandler() gin.HandlerFunc {
 			return
 		}
 
-		if clientID != envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyClientID) {
+		if client, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyClientID); client != clientID || err != nil {
 			log.Debug("Client ID is invalid: ", clientID)
 			gc.JSON(http.StatusBadRequest, gin.H{
 				"error":             "invalid_client_id",
@@ -46,7 +45,7 @@ func RevokeHandler() gin.HandlerFunc {
 			return
 		}
 
-		sessionstore.RemoveState(refreshToken)
+		memorystore.Provider.RemoveState(refreshToken)
 
 		gc.JSON(http.StatusOK, gin.H{
 			"message": "Token revoked successfully",

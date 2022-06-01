@@ -6,9 +6,8 @@ import (
 	"github.com/arangodb/go-driver"
 	arangoDriver "github.com/arangodb/go-driver"
 	"github.com/arangodb/go-driver/http"
-	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db/models"
-	"github.com/authorizerdev/authorizer/server/envstore"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 )
 
 type provider struct {
@@ -22,8 +21,9 @@ type provider struct {
 // NewProvider to initialize arangodb connection
 func NewProvider() (*provider, error) {
 	ctx := context.Background()
+	dbURL := memorystore.RequiredEnvStoreObj.GetRequiredEnv().DatabaseURL
 	conn, err := http.NewConnection(http.ConnectionConfig{
-		Endpoints: []string{envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL)},
+		Endpoints: []string{dbURL},
 	})
 	if err != nil {
 		return nil, err
@@ -37,16 +37,16 @@ func NewProvider() (*provider, error) {
 	}
 
 	var arangodb driver.Database
-
-	arangodb_exists, err := arangoClient.DatabaseExists(nil, envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseName))
+	dbName := memorystore.RequiredEnvStoreObj.GetRequiredEnv().DatabaseName
+	arangodb_exists, err := arangoClient.DatabaseExists(nil, dbName)
 
 	if arangodb_exists {
-		arangodb, err = arangoClient.Database(nil, envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseName))
+		arangodb, err = arangoClient.Database(nil, dbName)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		arangodb, err = arangoClient.CreateDatabase(nil, envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseName), nil)
+		arangodb, err = arangoClient.CreateDatabase(nil, dbName, nil)
 		if err != nil {
 			return nil, err
 		}

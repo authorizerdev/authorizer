@@ -4,15 +4,15 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/authorizerdev/authorizer/server/constants"
-	"github.com/authorizerdev/authorizer/server/envstore"
-	"github.com/authorizerdev/authorizer/server/utils"
+	"github.com/authorizerdev/authorizer/server/memorystore"
+	"github.com/authorizerdev/authorizer/server/parsers"
 )
 
 // OpenIDConfigurationHandler handler for open-id configurations
 func OpenIDConfigurationHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		issuer := utils.GetHost(c)
-		jwtType := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyJwtType)
+		issuer := parsers.GetHost(c)
+		jwtType, _ := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyJwtType)
 
 		c.JSON(200, gin.H{
 			"issuer":                                issuer,

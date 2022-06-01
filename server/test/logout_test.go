@@ -6,10 +6,9 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
-	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/resolvers"
-	"github.com/authorizerdev/authorizer/server/sessionstore"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -29,12 +28,12 @@ func logoutTests(t *testing.T, s TestSetup) {
 		})
 
 		token := *verifyRes.AccessToken
-		sessions := sessionstore.GetUserSessions(verifyRes.User.ID)
+		sessions := memorystore.Provider.GetUserSessions(verifyRes.User.ID)
 		cookie := ""
 		// set all they keys in cookie one of them should be session cookie
 		for key := range sessions {
 			if key != token {
-				cookie += fmt.Sprintf("%s=%s;", envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyCookieName)+"_session", key)
+				cookie += fmt.Sprintf("%s=%s;", constants.AppCookieName+"_session", key)
 			}
 		}
 

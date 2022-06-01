@@ -12,11 +12,12 @@ import (
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/email"
-	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
-	"github.com/authorizerdev/authorizer/server/sessionstore"
+	"github.com/authorizerdev/authorizer/server/memorystore"
+	"github.com/authorizerdev/authorizer/server/parsers"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
+	"github.com/authorizerdev/authorizer/server/validators"
 )
 
 // UpdateUserResolver is a resolver for update user mutation
@@ -98,7 +99,7 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 
 	if params.Email != nil && user.Email != *params.Email {
 		// check if valid email
-		if !utils.IsValidEmail(*params.Email) {
+		if !validators.IsValidEmail(*params.Email) {
 			log.Debug("Invalid email: ", *params.Email)
 			return res, fmt.Errorf("invalid email address")
 		}
@@ -112,9 +113,9 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 		}
 
 		// TODO figure out how to do this
-		go sessionstore.DeleteAllUserSession(user.ID)
+		go memorystore.Provider.DeleteAllUserSession(user.ID)
 
-		hostname := utils.GetHost(gc)
+		hostname := parsers.GetHost(gc)
 		user.Email = newEmail
 		user.EmailVerifiedAt = nil
 		// insert verification request
@@ -124,7 +125,7 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 			return res, err
 		}
 		verificationType := constants.VerificationTypeUpdateEmail
-		redirectURL := utils.GetAppURL(gc)
+		redirectURL := parsers.GetAppURL(gc)
 		verificationToken, err := token.CreateVerificationToken(newEmail, verificationType, hostname, nonceHash, redirectURL)
 		if err != nil {
 			log.Debug("Failed to create verification token: ", err)
@@ -155,16 +156,33 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 			inputRoles = append(inputRoles, *item)
 		}
 
-		if !utils.IsValidRoles(inputRoles, append([]string{}, append(envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyRoles), envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyProtectedRoles)...)...)) {
+		rolesString, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyRoles)
+		roles := []string{}
+		if err != nil {
+			log.Debug("Error getting roles: ", err)
+			rolesString = ""
+		} else {
+			roles = strings.Split(rolesString, ",")
+		}
+		protectedRolesString, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyProtectedRoles)
+		protectedRoles := []string{}
+		if err != nil {
+			log.Debug("Error getting protected roles: ", err)
+			protectedRolesString = ""
+		} else {
+			protectedRoles = strings.Split(protectedRolesString, ",")
+		}
+
+		if !validators.IsValidRoles(inputRoles, append([]string{}, append(roles, protectedRoles...)...)) {
 			log.Debug("Invalid roles: ", params.Roles)
 			return res, fmt.Errorf("invalid list of roles")
 		}
 
-		if !utils.IsStringArrayEqual(inputRoles, currentRoles) {
+		if !validators.IsStringArrayEqual(inputRoles, currentRoles) {
 			rolesToSave = strings.Join(inputRoles, ",")
 		}
 
-		go sessionstore.DeleteAllUserSession(user.ID)
+		go memorystore.Provider.DeleteAllUserSession(user.ID)
 	}
 
 	if rolesToSave != "" {

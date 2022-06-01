@@ -2,14 +2,19 @@ package email
 
 import (
 	"github.com/authorizerdev/authorizer/server/constants"
-	"github.com/authorizerdev/authorizer/server/envstore"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 )
 
 // SendForgotPasswordMail to send forgot password email
 func SendForgotPasswordMail(toEmail, token, hostname string) error {
-	resetPasswordUrl := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyResetPasswordURL)
+	resetPasswordUrl, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyResetPasswordURL)
+	if err != nil {
+		return err
+	}
 	if resetPasswordUrl == "" {
-		envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyResetPasswordURL, hostname+"/app/reset-password")
+		if err := memorystore.Provider.UpdateEnvVariable(constants.EnvKeyResetPasswordURL, hostname+"/app/reset-password"); err != nil {
+			return err
+		}
 	}
 
 	// The receiver needs to be in slice as the receive supports multiple receiver
@@ -103,8 +108,14 @@ func SendForgotPasswordMail(toEmail, token, hostname string) error {
 	`
 
 	data := make(map[string]interface{}, 3)
-	data["org_logo"] = envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyOrganizationLogo)
-	data["org_name"] = envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyOrganizationName)
+	data["org_logo"], err = memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyOrganizationLogo)
+	if err != nil {
+		return err
+	}
+	data["org_name"], err = memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyOrganizationName)
+	if err != nil {
+		return err
+	}
 	data["verification_url"] = resetPasswordUrl + "?token=" + token
 	message = addEmailTemplate(message, data, "reset_password_email.tmpl")
 

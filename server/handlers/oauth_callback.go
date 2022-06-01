@@ -19,9 +19,8 @@ import (
 	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
-	"github.com/authorizerdev/authorizer/server/envstore"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/oauth"
-	"github.com/authorizerdev/authorizer/server/sessionstore"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
@@ -32,12 +31,12 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 		provider := c.Param("oauth_provider")
 		state := c.Request.FormValue("state")
 
-		sessionState := sessionstore.GetState(state)
-		if sessionState == "" {
+		sessionState, err := memorystore.Provider.GetState(state)
+		if sessionState == "" || err != nil {
 			log.Debug("Invalid oauth state: ", state)
 			c.JSON(400, gin.H{"error": "invalid oauth state"})
 		}
-		sessionstore.GetState(state)
+		memorystore.Provider.GetState(state)
 		// contains random token, redirect url, role
 		sessionSplit := strings.Split(state, "___")
 
@@ -52,7 +51,6 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 		inputRoles := strings.Split(sessionSplit[2], ",")
 		scopes := strings.Split(sessionSplit[3], ",")
 
-		var err error
 		user := models.User{}
 		code := c.Request.FormValue("code")
 		switch provider {
@@ -77,7 +75,13 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 		log := log.WithField("user", user.Email)
 
 		if err != nil {
-			if envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableSignUp) {
+			isSignupDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableSignUp)
+			if err != nil {
+				log.Debug("Failed to get signup disabled env variable: ", err)
+				c.JSON(400, gin.H{"error": err.Error()})
+				return
+			}
+			if isSignupDisabled {
 				log.Debug("Failed to signup as disabled")
 				c.JSON(400, gin.H{"error": "signup is disabled for this instance"})
 				return
@@ -87,7 +91,15 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			// make sure inputRoles don't include protected roles
 			hasProtectedRole := false
 			for _, ir := range inputRoles {
-				if utils.StringSliceContains(envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyProtectedRoles), ir) {
+				protectedRolesString, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyProtectedRoles)
+				protectedRoles := []string{}
+				if err != nil {
+					log.Debug("Failed to get protected roles: ", err)
+					protectedRolesString = ""
+				} else {
+					protectedRoles = strings.Split(protectedRolesString, ",")
+				}
+				if utils.StringSliceContains(protectedRoles, ir) {
 					hasProtectedRole = true
 				}
 			}
@@ -140,7 +152,15 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 				// check if it contains protected unassigned role
 				hasProtectedRole := false
 				for _, ur := range unasignedRoles {
-					if utils.StringSliceContains(envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyProtectedRoles), ur) {
+					protectedRolesString, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyProtectedRoles)
+					protectedRoles := []string{}
+					if err != nil {
+						log.Debug("Failed to get protected roles: ", err)
+						protectedRolesString = ""
+					} else {
+						protectedRoles = strings.Split(protectedRolesString, ",")
+					}
+					if utils.StringSliceContains(protectedRoles, ur) {
 						hasProtectedRole = true
 					}
 				}
@@ -178,12 +198,12 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 		params := "access_token=" + authToken.AccessToken.Token + "&token_type=bearer&expires_in=" + strconv.FormatInt(expiresIn, 10) + "&state=" + stateValue + "&id_token=" + authToken.IDToken.Token
 
 		cookie.SetSession(c, authToken.FingerPrintHash)
-		sessionstore.SetState(authToken.FingerPrintHash, authToken.FingerPrint+"@"+user.ID)
-		sessionstore.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
+		memorystore.Provider.SetState(authToken.FingerPrintHash, authToken.FingerPrint+"@"+user.ID)
+		memorystore.Provider.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
 
 		if authToken.RefreshToken != nil {
 			params = params + `&refresh_token=` + authToken.RefreshToken.Token
-			sessionstore.SetState(authToken.RefreshToken.Token, authToken.FingerPrint+"@"+user.ID)
+			memorystore.Provider.SetState(authToken.RefreshToken.Token, authToken.FingerPrint+"@"+user.ID)
 		}
 
 		go db.Provider.AddSession(models.Session{

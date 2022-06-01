@@ -2,7 +2,6 @@ package resolvers
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -12,8 +11,8 @@ import (
 	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/db"
-	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
@@ -39,7 +38,11 @@ func AdminSignupResolver(ctx context.Context, params model.AdminSignupInput) (*m
 		return res, err
 	}
 
-	adminSecret := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret)
+	adminSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret)
+	if err != nil {
+		log.Debug("Error getting admin secret: ", err)
+		adminSecret = ""
+	}
 
 	if adminSecret != "" {
 		log.Debug("Admin secret is already set")
@@ -47,18 +50,11 @@ func AdminSignupResolver(ctx context.Context, params model.AdminSignupInput) (*m
 		return res, err
 	}
 
-	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyAdminSecret, params.AdminSecret)
+	memorystore.Provider.UpdateEnvVariable(constants.EnvKeyAdminSecret, params.AdminSecret)
 	// consvert EnvData to JSON
-	var storeData envstore.Store
-
-	jsonBytes, err := json.Marshal(envstore.EnvStoreObj.GetEnvStoreClone())
+	storeData, err := memorystore.Provider.GetEnvStore()
 	if err != nil {
-		log.Debug("Failed to marshal envstore: ", err)
-		return res, err
-	}
-
-	if err := json.Unmarshal(jsonBytes, &storeData); err != nil {
-		log.Debug("Failed to unmarshal envstore: ", err)
+		log.Debug("Error getting env store: ", err)
 		return res, err
 	}
 

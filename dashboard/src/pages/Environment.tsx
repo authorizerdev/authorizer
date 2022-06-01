@@ -25,7 +25,7 @@ import EmailConfigurations from '../components/EnvComponents/EmailConfiguration'
 import DomainWhiteListing from '../components/EnvComponents/DomainWhitelisting';
 import OrganizationInfo from '../components/EnvComponents/OrganizationInfo';
 import AccessToken from '../components/EnvComponents/AccessToken';
-import UICustomization from '../components/EnvComponents/UICustomization';
+import Features from '../components/EnvComponents/Features';
 import SecurityAdminSecret from '../components/EnvComponents/SecurityAdminSecret';
 import DatabaseCredentials from '../components/EnvComponents/DatabaseCredentials';
 
@@ -259,12 +259,9 @@ const Environment = () => {
 						setVariables={setEnvVariables}
 					/>
 				);
-			case envSubViews.UI_CUSTOMIZATION:
+			case envSubViews.FEATURES:
 				return (
-					<UICustomization
-						variables={envVariables}
-						setVariables={setEnvVariables}
-					/>
+					<Features variables={envVariables} setVariables={setEnvVariables} />
 				);
 			case envSubViews.ADMIN_SECRET:
 				return (

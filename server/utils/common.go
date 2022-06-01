@@ -47,3 +47,14 @@ func ConvertInterfaceToSlice(slice interface{}) []interface{} {
 
 	return ret
 }
+
+// ConvertInterfaceToStringSlice to convert interface to string slice
+func ConvertInterfaceToStringSlice(slice interface{}) []string {
+	data := slice.([]interface{})
+	var resSlice []string
+
+	for _, v := range data {
+		resSlice = append(resSlice, v.(string))
+	}
+	return resSlice
+}

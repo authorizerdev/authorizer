@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/authorizerdev/authorizer/server/constants"
-	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/resolvers"
 	"github.com/stretchr/testify/assert"
 )
@@ -20,8 +20,10 @@ func adminLoginTests(t *testing.T, s TestSetup) {
 
 		assert.NotNil(t, err)
 
+		adminSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret)
+		assert.Nil(t, err)
 		_, err = resolvers.AdminLoginResolver(ctx, model.AdminLoginInput{
-			AdminSecret: envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret),
+			AdminSecret: adminSecret,
 		})
 
 		assert.Nil(t, err)

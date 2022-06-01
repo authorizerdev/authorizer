@@ -6,13 +6,13 @@ import (
 	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/authorizerdev/authorizer/server/cli"
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/env"
-	"github.com/authorizerdev/authorizer/server/envstore"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/oauth"
 	"github.com/authorizerdev/authorizer/server/routes"
-	"github.com/authorizerdev/authorizer/server/sessionstore"
 )
 
 var VERSION string
@@ -27,23 +27,22 @@ func (u LogUTCFormatter) Format(e *log.Entry) ([]byte, error) {
 }
 
 func main() {
-	envstore.ARG_DB_URL = flag.String("database_url", "", "Database connection string")
-	envstore.ARG_DB_TYPE = flag.String("database_type", "", "Database type, possible values are postgres,mysql,sqlite")
-	envstore.ARG_ENV_FILE = flag.String("env_file", "", "Env file path")
-	envstore.ARG_LOG_LEVEL = flag.String("log_level", "info", "Log level, possible values are debug,info,warn,error,fatal,panic")
+	cli.ARG_DB_URL = flag.String("database_url", "", "Database connection string")
+	cli.ARG_DB_TYPE = flag.String("database_type", "", "Database type, possible values are postgres,mysql,sqlite")
+	cli.ARG_ENV_FILE = flag.String("env_file", "", "Env file path")
+	cli.ARG_LOG_LEVEL = flag.String("log_level", "info", "Log level, possible values are debug,info,warn,error,fatal,panic")
+	cli.ARG_REDIS_URL = flag.String("redis_url", "", "Redis connection string")
 	flag.Parse()
 
 	// global log level
 	logrus.SetFormatter(LogUTCFormatter{&logrus.JSONFormatter{}})
-	logrus.SetReportCaller(true)
 
 	// log instance for gin server
 	log := logrus.New()
 	log.SetFormatter(LogUTCFormatter{&logrus.JSONFormatter{}})
-	log.SetReportCaller(true)
 
 	var logLevel logrus.Level
-	switch *envstore.ARG_LOG_LEVEL {
+	switch *cli.ARG_LOG_LEVEL {
 	case "debug":
 		logLevel = logrus.DebugLevel
 	case "info":
@@ -62,12 +61,24 @@ func main() {
 	logrus.SetLevel(logLevel)
 	log.SetLevel(logLevel)
 
+	// show file path in log for debug or other log levels.
+	if logLevel != logrus.InfoLevel {
+		logrus.SetReportCaller(true)
+		log.SetReportCaller(true)
+	}
+
 	constants.VERSION = VERSION
 
-	// initialize required envs (mainly db & env file path)
-	err := env.InitRequiredEnv()
+	// initialize required envs (mainly db, env file path and redis)
+	err := memorystore.InitRequiredEnv()
 	if err != nil {
 		log.Fatal("Error while initializing required envs: ", err)
+	}
+
+	// initialize memory store
+	err = memorystore.InitMemStore()
+	if err != nil {
+		log.Fatal("Error while initializing memory store: ", err)
 	}
 
 	// initialize db provider
@@ -89,12 +100,6 @@ func main() {
 		log.Fatalln("Error while persisting env: ", err)
 	}
 
-	// initialize session store (redis or in-memory based on env)
-	err = sessionstore.InitSession()
-	if err != nil {
-		log.Fatalln("Error while initializing session store: ", err)
-	}
-
 	// initialize oauth providers based on env
 	err = oauth.InitOAuth()
 	if err != nil {
@@ -103,5 +108,11 @@ func main() {
 
 	router := routes.InitRouter(log)
 	log.Info("Starting Authorizer: ", VERSION)
-	router.Run(":" + envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyPort))
+	port, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyPort)
+	if err != nil {
+		log.Info("Error while getting port from env using default port 8080: ", err)
+		port = "8080"
+	}
+
+	router.Run(":" + port)
 }

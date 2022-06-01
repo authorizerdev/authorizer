@@ -6,8 +6,8 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/crypto"
-	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 	log "github.com/sirupsen/logrus"
@@ -26,7 +26,11 @@ func GenerateJWTKeysResolver(ctx context.Context, params model.GenerateJWTKeysIn
 		return nil, fmt.Errorf("unauthorized")
 	}
 
-	clientID := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyClientID)
+	clientID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyClientID)
+	if err != nil {
+		log.Debug("Error getting client id: ", err)
+		return nil, err
+	}
 	if crypto.IsHMACA(params.Type) {
 		secret, _, err := crypto.NewHMACKey(params.Type, clientID)
 		if err != nil {

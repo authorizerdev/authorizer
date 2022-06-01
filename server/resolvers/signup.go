@@ -14,11 +14,12 @@ import (
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/email"
-	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
-	"github.com/authorizerdev/authorizer/server/sessionstore"
+	"github.com/authorizerdev/authorizer/server/memorystore"
+	"github.com/authorizerdev/authorizer/server/parsers"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
+	"github.com/authorizerdev/authorizer/server/validators"
 )
 
 // SignupResolver is a resolver for signup mutation
@@ -31,12 +32,23 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 		return res, err
 	}
 
-	if envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableSignUp) {
+	isSignupDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableSignUp)
+	if err != nil {
+		log.Debug("Error getting signup disabled: ", err)
+		isSignupDisabled = true
+	}
+	if isSignupDisabled {
 		log.Debug("Signup is disabled")
 		return res, fmt.Errorf(`signup is disabled for this instance`)
 	}
 
-	if envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableBasicAuthentication) {
+	isBasicAuthDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableBasicAuthentication)
+	if err != nil {
+		log.Debug("Error getting basic auth disabled: ", err)
+		isBasicAuthDisabled = true
+	}
+
+	if isBasicAuthDisabled {
 		log.Debug("Basic authentication is disabled")
 		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
 	}
@@ -46,14 +58,14 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 		return res, fmt.Errorf(`password and confirm password does not match`)
 	}
 
-	if !utils.IsValidPassword(params.Password) {
+	if !validators.IsValidPassword(params.Password) {
 		log.Debug("Invalid password")
 		return res, fmt.Errorf(`password is not valid. It needs to be at least 6 characters long and contain at least one number, one uppercase letter, one lowercase letter and one special character`)
 	}
 
 	params.Email = strings.ToLower(params.Email)
 
-	if !utils.IsValidEmail(params.Email) {
+	if !validators.IsValidEmail(params.Email) {
 		log.Debug("Invalid email: ", params.Email)
 		return res, fmt.Errorf(`invalid email address`)
 	}
@@ -80,14 +92,28 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 
 	if len(params.Roles) > 0 {
 		// check if roles exists
-		if !utils.IsValidRoles(envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyRoles), params.Roles) {
+		rolesString, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyRoles)
+		roles := []string{}
+		if err != nil {
+			log.Debug("Error getting roles: ", err)
+			return res, err
+		} else {
+			roles = strings.Split(rolesString, ",")
+		}
+		if !validators.IsValidRoles(roles, params.Roles) {
 			log.Debug("Invalid roles: ", params.Roles)
 			return res, fmt.Errorf(`invalid roles`)
 		} else {
 			inputRoles = params.Roles
 		}
 	} else {
-		inputRoles = envstore.EnvStoreObj.GetSliceStoreEnvVariable(constants.EnvKeyDefaultRoles)
+		inputRolesString, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDefaultRoles)
+		if err != nil {
+			log.Debug("Error getting default roles: ", err)
+			return res, err
+		} else {
+			inputRoles = strings.Split(inputRolesString, ",")
+		}
 	}
 
 	user := models.User{
@@ -132,7 +158,12 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 	}
 
 	user.SignupMethods = constants.SignupMethodBasicAuth
-	if envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification) {
+	isEmailVerificationDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification)
+	if err != nil {
+		log.Debug("Error getting email verification disabled: ", err)
+		isEmailVerificationDisabled = true
+	}
+	if isEmailVerificationDisabled {
 		now := time.Now().Unix()
 		user.EmailVerifiedAt = &now
 	}
@@ -144,8 +175,8 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 	roles := strings.Split(user.Roles, ",")
 	userToReturn := user.AsAPIUser()
 
-	hostname := utils.GetHost(gc)
-	if !envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification) {
+	hostname := parsers.GetHost(gc)
+	if !isEmailVerificationDisabled {
 		// insert verification request
 		_, nonceHash, err := utils.GenerateNonce()
 		if err != nil {
@@ -153,7 +184,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 			return res, err
 		}
 		verificationType := constants.VerificationTypeBasicAuthSignup
-		redirectURL := utils.GetAppURL(gc)
+		redirectURL := parsers.GetAppURL(gc)
 		if params.RedirectURI != nil {
 			redirectURL = *params.RedirectURI
 		}
@@ -194,7 +225,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 			return res, err
 		}
 
-		sessionstore.SetState(authToken.FingerPrintHash, authToken.FingerPrint+"@"+user.ID)
+		memorystore.Provider.SetState(authToken.FingerPrintHash, authToken.FingerPrint+"@"+user.ID)
 		cookie.SetSession(gc, authToken.FingerPrintHash)
 		go db.Provider.AddSession(models.Session{
 			UserID:    user.ID,

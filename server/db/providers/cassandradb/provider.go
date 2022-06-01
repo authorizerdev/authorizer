@@ -9,7 +9,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/db/models"
-	"github.com/authorizerdev/authorizer/server/envstore"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/gocql/gocql"
 	cansandraDriver "github.com/gocql/gocql"
 )
@@ -23,15 +23,19 @@ var KeySpace string
 
 // NewProvider to initialize arangodb connection
 func NewProvider() (*provider, error) {
-	dbURL := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseURL)
+	dbURL := memorystore.RequiredEnvStoreObj.GetRequiredEnv().DatabaseURL
 	if dbURL == "" {
-		dbURL = envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseHost)
-		if envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabasePort) != "" {
-			dbURL = fmt.Sprintf("%s:%s", dbURL, envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabasePort))
+		dbHost := memorystore.RequiredEnvStoreObj.GetRequiredEnv().DatabaseHost
+		dbPort := memorystore.RequiredEnvStoreObj.GetRequiredEnv().DatabasePort
+		if dbPort != "" && dbHost != "" {
+			dbURL = fmt.Sprintf("%s:%s", dbHost, dbPort)
 		}
 	}
 
-	KeySpace = envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseName)
+	KeySpace = memorystore.RequiredEnvStoreObj.GetRequiredEnv().DatabaseName
+	if KeySpace == "" {
+		KeySpace = constants.EnvKeyDatabaseName
+	}
 	clusterURL := []string{}
 	if strings.Contains(dbURL, ",") {
 		clusterURL = strings.Split(dbURL, ",")
@@ -39,25 +43,31 @@ func NewProvider() (*provider, error) {
 		clusterURL = append(clusterURL, dbURL)
 	}
 	cassandraClient := cansandraDriver.NewCluster(clusterURL...)
-	if envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseUsername) != "" && envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabasePassword) != "" {
+	dbUsername := memorystore.RequiredEnvStoreObj.GetRequiredEnv().DatabaseUsername
+	dbPassword := memorystore.RequiredEnvStoreObj.GetRequiredEnv().DatabasePassword
+
+	if dbUsername != "" && dbPassword != "" {
 		cassandraClient.Authenticator = &cansandraDriver.PasswordAuthenticator{
-			Username: envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseUsername),
-			Password: envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabasePassword),
+			Username: dbUsername,
+			Password: dbPassword,
 		}
 	}
 
-	if envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseCert) != "" && envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseCACert) != "" && envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseCertKey) != "" {
-		certString, err := crypto.DecryptB64(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseCert))
+	dbCert := memorystore.RequiredEnvStoreObj.GetRequiredEnv().DatabaseCert
+	dbCACert := memorystore.RequiredEnvStoreObj.GetRequiredEnv().DatabaseCACert
+	dbCertKey := memorystore.RequiredEnvStoreObj.GetRequiredEnv().DatabaseCertKey
+	if dbCert != "" && dbCACert != "" && dbCertKey != "" {
+		certString, err := crypto.DecryptB64(dbCert)
 		if err != nil {
 			return nil, err
 		}
 
-		keyString, err := crypto.DecryptB64(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseCertKey))
+		keyString, err := crypto.DecryptB64(dbCertKey)
 		if err != nil {
 			return nil, err
 		}
 
-		caString, err := crypto.DecryptB64(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseCACert))
+		caString, err := crypto.DecryptB64(dbCACert)
 		if err != nil {
 			return nil, err
 		}

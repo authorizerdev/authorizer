@@ -5,15 +5,17 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/env"
-	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/handlers"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/middlewares"
-	"github.com/authorizerdev/authorizer/server/sessionstore"
 	"github.com/gin-gonic/gin"
 )
 
@@ -76,17 +78,35 @@ func testSetup() TestSetup {
 		Password: "Test@123",
 	}
 
-	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeyEnvPath, "../../.env.sample")
-	env.InitRequiredEnv()
-	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeySmtpHost, "smtp.yopmail.com")
-	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeySmtpPort, "2525")
-	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeySmtpUsername, "lakhan@yopmail.com")
-	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeySmtpPassword, "test")
-	envstore.EnvStoreObj.UpdateEnvVariable(constants.StringStoreIdentifier, constants.EnvKeySenderEmail, "info@yopmail.com")
-	envstore.EnvStoreObj.UpdateEnvVariable(constants.SliceStoreIdentifier, constants.EnvKeyProtectedRoles, []string{"admin"})
-	db.InitDB()
-	env.InitAllEnv()
-	sessionstore.InitSession()
+	err := os.Setenv(constants.EnvKeyEnvPath, "../../.env.test")
+	if err != nil {
+		log.Fatal("Error loading .env.sample file")
+	}
+	err = memorystore.InitRequiredEnv()
+	if err != nil {
+		log.Fatal("Error loading required env: ", err)
+	}
+
+	err = memorystore.InitMemStore()
+	if err != nil {
+		log.Fatal("Error loading memory store: ", err)
+	}
+	memorystore.Provider.UpdateEnvVariable(constants.EnvKeySmtpHost, "smtp.yopmail.com")
+	memorystore.Provider.UpdateEnvVariable(constants.EnvKeySmtpPort, "2525")
+	memorystore.Provider.UpdateEnvVariable(constants.EnvKeySmtpUsername, "lakhan@yopmail.com")
+	memorystore.Provider.UpdateEnvVariable(constants.EnvKeySmtpPassword, "test")
+	memorystore.Provider.UpdateEnvVariable(constants.EnvKeySenderEmail, "info@yopmail.com")
+	memorystore.Provider.UpdateEnvVariable(constants.EnvKeyProtectedRoles, "admin")
+
+	err = db.InitDB()
+	if err != nil {
+		log.Fatal("Error loading db: ", err)
+	}
+
+	err = env.InitAllEnv()
+	if err != nil {
+		log.Fatal("Error loading env: ", err)
+	}
 
 	w := httptest.NewRecorder()
 	c, r := gin.CreateTestContext(w)

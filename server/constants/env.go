@@ -5,11 +5,11 @@ var VERSION = "0.0.1"
 const (
 	// Envstore identifier
 	// StringStore string store identifier
-	StringStoreIdentifier = "stringStore"
-	// BoolStore bool store identifier
-	BoolStoreIdentifier = "boolStore"
-	// SliceStore slice store identifier
-	SliceStoreIdentifier = "sliceStore"
+	// StringStoreIdentifier = "stringStore"
+	// // BoolStore bool store identifier
+	// BoolStoreIdentifier = "boolStore"
+	// // SliceStore slice store identifier
+	// SliceStoreIdentifier = "sliceStore"
 
 	// EnvKeyEnv key for env variable ENV
 	EnvKeyEnv = "ENV"
@@ -19,7 +19,6 @@ const (
 	EnvKeyAuthorizerURL = "AUTHORIZER_URL"
 	// EnvKeyPort key for env variable PORT
 	EnvKeyPort = "PORT"
-
 	// EnvKeyAccessTokenExpiryTime key for env variable ACCESS_TOKEN_EXPIRY_TIME
 	EnvKeyAccessTokenExpiryTime = "ACCESS_TOKEN_EXPIRY_TIME"
 	// EnvKeyAdminSecret key for env variable ADMIN_SECRET
@@ -62,34 +61,12 @@ const (
 	EnvKeyJwtPrivateKey = "JWT_PRIVATE_KEY"
 	// EnvKeyJwtPublicKey key for env variable JWT_PUBLIC_KEY
 	EnvKeyJwtPublicKey = "JWT_PUBLIC_KEY"
-	// EnvKeyAllowedOrigins key for env variable ALLOWED_ORIGINS
-	EnvKeyAllowedOrigins = "ALLOWED_ORIGINS"
 	// EnvKeyAppURL key for env variable APP_URL
 	EnvKeyAppURL = "APP_URL"
 	// EnvKeyRedisURL key for env variable REDIS_URL
 	EnvKeyRedisURL = "REDIS_URL"
-	// EnvKeyCookieName key for env variable COOKIE_NAME
-	EnvKeyCookieName = "COOKIE_NAME"
-	// EnvKeyAdminCookieName key for env variable ADMIN_COOKIE_NAME
-	EnvKeyAdminCookieName = "ADMIN_COOKIE_NAME"
 	// EnvKeyResetPasswordURL key for env variable RESET_PASSWORD_URL
 	EnvKeyResetPasswordURL = "RESET_PASSWORD_URL"
-	// EnvKeyDisableEmailVerification key for env variable DISABLE_EMAIL_VERIFICATION
-	EnvKeyDisableEmailVerification = "DISABLE_EMAIL_VERIFICATION"
-	// EnvKeyDisableBasicAuthentication key for env variable DISABLE_BASIC_AUTH
-	EnvKeyDisableBasicAuthentication = "DISABLE_BASIC_AUTHENTICATION"
-	// EnvKeyDisableMagicLinkLogin key for env variable DISABLE_MAGIC_LINK_LOGIN
-	EnvKeyDisableMagicLinkLogin = "DISABLE_MAGIC_LINK_LOGIN"
-	// EnvKeyDisableLoginPage key for env variable DISABLE_LOGIN_PAGE
-	EnvKeyDisableLoginPage = "DISABLE_LOGIN_PAGE"
-	// EnvKeyDisableSignUp key for env variable DISABLE_SIGN_UP
-	EnvKeyDisableSignUp = "DISABLE_SIGN_UP"
-	// EnvKeyRoles key for env variable ROLES
-	EnvKeyRoles = "ROLES"
-	// EnvKeyProtectedRoles key for env variable PROTECTED_ROLES
-	EnvKeyProtectedRoles = "PROTECTED_ROLES"
-	// EnvKeyDefaultRoles key for env variable DEFAULT_ROLES
-	EnvKeyDefaultRoles = "DEFAULT_ROLES"
 	// EnvKeyJwtRoleClaim key for env variable JWT_ROLE_CLAIM
 	EnvKeyJwtRoleClaim = "JWT_ROLE_CLAIM"
 	// EnvKeyGoogleClientID key for env variable GOOGLE_CLIENT_ID
@@ -120,6 +97,30 @@ const (
 	EnvKeyEncryptionKey = "ENCRYPTION_KEY"
 	// EnvKeyJWK key for env variable JWK
 	EnvKeyJWK = "JWK"
+
+	// Boolean variables
 	// EnvKeyIsProd key for env variable IS_PROD
 	EnvKeyIsProd = "IS_PROD"
+	// EnvKeyDisableEmailVerification key for env variable DISABLE_EMAIL_VERIFICATION
+	EnvKeyDisableEmailVerification = "DISABLE_EMAIL_VERIFICATION"
+	// EnvKeyDisableBasicAuthentication key for env variable DISABLE_BASIC_AUTH
+	EnvKeyDisableBasicAuthentication = "DISABLE_BASIC_AUTHENTICATION"
+	// EnvKeyDisableMagicLinkLogin key for env variable DISABLE_MAGIC_LINK_LOGIN
+	EnvKeyDisableMagicLinkLogin = "DISABLE_MAGIC_LINK_LOGIN"
+	// EnvKeyDisableLoginPage key for env variable DISABLE_LOGIN_PAGE
+	EnvKeyDisableLoginPage = "DISABLE_LOGIN_PAGE"
+	// EnvKeyDisableSignUp key for env variable DISABLE_SIGN_UP
+	EnvKeyDisableSignUp = "DISABLE_SIGN_UP"
+	// EnvKeyDisableRedisForEnv key for env variable DISABLE_REDIS_FOR_ENV
+	EnvKeyDisableRedisForEnv = "DISABLE_REDIS_FOR_ENV"
+
+	// Slice variables
+	// EnvKeyRoles key for env variable ROLES
+	EnvKeyRoles = "ROLES"
+	// EnvKeyProtectedRoles key for env variable PROTECTED_ROLES
+	EnvKeyProtectedRoles = "PROTECTED_ROLES"
+	// EnvKeyDefaultRoles key for env variable DEFAULT_ROLES
+	EnvKeyDefaultRoles = "DEFAULT_ROLES"
+	// EnvKeyAllowedOrigins key for env variable ALLOWED_ORIGINS
+	EnvKeyAllowedOrigins = "ALLOWED_ORIGINS"
 )

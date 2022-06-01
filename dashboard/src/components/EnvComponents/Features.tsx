@@ -3,7 +3,7 @@ import { Flex, Stack, Text } from '@chakra-ui/react';
 import InputField from '../InputField';
 import { SwitchInputType } from '../../constants';
 
-const UICustomization = ({ variables, setVariables }: any) => {
+const Features = ({ variables, setVariables }: any) => {
 	return (
 		<div>
 			{' '}
@@ -76,4 +76,4 @@ const UICustomization = ({ variables, setVariables }: any) => {
 	);
 };
 
-export default UICustomization;
+export default Features;

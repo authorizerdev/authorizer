@@ -12,7 +12,8 @@ import (
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/graph/model"
-	"github.com/authorizerdev/authorizer/server/sessionstore"
+	"github.com/authorizerdev/authorizer/server/memorystore"
+	"github.com/authorizerdev/authorizer/server/parsers"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
@@ -34,7 +35,7 @@ func VerifyEmailResolver(ctx context.Context, params model.VerifyEmailInput) (*m
 	}
 
 	// verify if token exists in db
-	hostname := utils.GetHost(gc)
+	hostname := parsers.GetHost(gc)
 	claim, err := token.ParseJWTToken(params.Token, hostname, verificationRequest.Nonce, verificationRequest.Email)
 	if err != nil {
 		log.Debug("Failed to parse token: ", err)
@@ -74,8 +75,8 @@ func VerifyEmailResolver(ctx context.Context, params model.VerifyEmailInput) (*m
 		return res, err
 	}
 
-	sessionstore.SetState(authToken.FingerPrintHash, authToken.FingerPrint+"@"+user.ID)
-	sessionstore.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
+	memorystore.Provider.SetState(authToken.FingerPrintHash, authToken.FingerPrint+"@"+user.ID)
+	memorystore.Provider.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
 	cookie.SetSession(gc, authToken.FingerPrintHash)
 	go db.Provider.AddSession(models.Session{
 		UserID:    user.ID,

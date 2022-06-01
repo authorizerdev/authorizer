@@ -9,7 +9,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/db/providers/cassandradb"
 	"github.com/authorizerdev/authorizer/server/db/providers/mongodb"
 	"github.com/authorizerdev/authorizer/server/db/providers/sql"
-	"github.com/authorizerdev/authorizer/server/envstore"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 )
 
 // Provider returns the current database provider
@@ -18,13 +18,15 @@ var Provider providers.Provider
 func InitDB() error {
 	var err error
 
-	isSQL := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseType) != constants.DbTypeArangodb && envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseType) != constants.DbTypeMongodb && envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseType) != constants.DbTypeCassandraDB
-	isArangoDB := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseType) == constants.DbTypeArangodb
-	isMongoDB := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseType) == constants.DbTypeMongodb
-	isCassandra := envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseType) == constants.DbTypeCassandraDB
+	envs := memorystore.RequiredEnvStoreObj.GetRequiredEnv()
+
+	isSQL := envs.DatabaseType != constants.DbTypeArangodb && envs.DatabaseType != constants.DbTypeMongodb && envs.DatabaseType != constants.DbTypeCassandraDB
+	isArangoDB := envs.DatabaseType == constants.DbTypeArangodb
+	isMongoDB := envs.DatabaseType == constants.DbTypeMongodb
+	isCassandra := envs.DatabaseType == constants.DbTypeCassandraDB
 
 	if isSQL {
-		log.Info("Initializing SQL Driver for: ", envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyDatabaseType))
+		log.Info("Initializing SQL Driver for: ", envs.DatabaseType)
 		Provider, err = sql.NewProvider()
 		if err != nil {
 			log.Fatal("Failed to initialize SQL driver: ", err)

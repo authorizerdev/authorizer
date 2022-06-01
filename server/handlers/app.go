@@ -8,8 +8,9 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/constants"
-	"github.com/authorizerdev/authorizer/server/envstore"
-	"github.com/authorizerdev/authorizer/server/utils"
+	"github.com/authorizerdev/authorizer/server/memorystore"
+	"github.com/authorizerdev/authorizer/server/parsers"
+	"github.com/authorizerdev/authorizer/server/validators"
 )
 
 // State is the struct that holds authorizer url and redirect url
@@ -22,8 +23,8 @@ type State struct {
 // AppHandler is the handler for the /app route
 func AppHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		hostname := utils.GetHost(c)
-		if envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableLoginPage) {
+		hostname := parsers.GetHost(c)
+		if isLoginPageDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableLoginPage); err != nil || isLoginPageDisabled {
 			log.Debug("Login page is disabled")
 			c.JSON(400, gin.H{"error": "login page is not enabled"})
 			return
@@ -44,7 +45,7 @@ func AppHandler() gin.HandlerFunc {
 			redirect_uri = hostname + "/app"
 		} else {
 			// validate redirect url with allowed origins
-			if !utils.IsValidOrigin(redirect_uri) {
+			if !validators.IsValidOrigin(redirect_uri) {
 				log.Debug("Invalid redirect_uri")
 				c.JSON(400, gin.H{"error": "invalid redirect url"})
 				return
@@ -58,14 +59,27 @@ func AppHandler() gin.HandlerFunc {
 				log.Debug("Failed to push file path: ", err)
 			}
 		}
+
+		orgName, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyOrganizationName)
+		if err != nil {
+			log.Debug("Failed to get organization name")
+			c.JSON(400, gin.H{"error": "failed to get organization name"})
+			return
+		}
+		orgLogo, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyOrganizationLogo)
+		if err != nil {
+			log.Debug("Failed to get organization logo")
+			c.JSON(400, gin.H{"error": "failed to get organization logo"})
+			return
+		}
 		c.HTML(http.StatusOK, "app.tmpl", gin.H{
 			"data": map[string]interface{}{
 				"authorizerURL":    hostname,
 				"redirectURL":      redirect_uri,
 				"scope":            scope,
 				"state":            state,
-				"organizationName": envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyOrganizationName),
-				"organizationLogo": envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyOrganizationLogo),
+				"organizationName": orgName,
+				"organizationLogo": orgLogo,
 			},
 		})
 	}

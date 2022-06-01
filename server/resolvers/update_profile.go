@@ -14,11 +14,12 @@ import (
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/email"
-	"github.com/authorizerdev/authorizer/server/envstore"
 	"github.com/authorizerdev/authorizer/server/graph/model"
-	"github.com/authorizerdev/authorizer/server/sessionstore"
+	"github.com/authorizerdev/authorizer/server/memorystore"
+	"github.com/authorizerdev/authorizer/server/parsers"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
+	"github.com/authorizerdev/authorizer/server/validators"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -122,14 +123,14 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 
 	if params.Email != nil && user.Email != *params.Email {
 		// check if valid email
-		if !utils.IsValidEmail(*params.Email) {
+		if !validators.IsValidEmail(*params.Email) {
 			log.Debug("Failed to validate email: ", *params.Email)
 			return res, fmt.Errorf("invalid email address")
 		}
 		newEmail := strings.ToLower(*params.Email)
 
 		// check if valid email
-		if !utils.IsValidEmail(newEmail) {
+		if !validators.IsValidEmail(newEmail) {
 			log.Debug("Failed to validate new email: ", newEmail)
 			return res, fmt.Errorf("invalid new email address")
 		}
@@ -141,12 +142,17 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 			return res, fmt.Errorf("user with this email address already exists")
 		}
 
-		go sessionstore.DeleteAllUserSession(user.ID)
+		go memorystore.Provider.DeleteAllUserSession(user.ID)
 		go cookie.DeleteSession(gc)
 
 		user.Email = newEmail
-		if !envstore.EnvStoreObj.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification) {
-			hostname := utils.GetHost(gc)
+		isEmailVerificationDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification)
+		if err != nil {
+			log.Debug("Failed to get disable email verification env variable: ", err)
+			return res, err
+		}
+		if !isEmailVerificationDisabled {
+			hostname := parsers.GetHost(gc)
 			user.EmailVerifiedAt = nil
 			hasEmailChanged = true
 			// insert verification request
@@ -156,7 +162,7 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 				return res, err
 			}
 			verificationType := constants.VerificationTypeUpdateEmail
-			redirectURL := utils.GetAppURL(gc)
+			redirectURL := parsers.GetAppURL(gc)
 			verificationToken, err := token.CreateVerificationToken(newEmail, verificationType, hostname, nonceHash, redirectURL)
 			if err != nil {
 				log.Debug("Failed to create verification token: ", err)

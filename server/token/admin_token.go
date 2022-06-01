@@ -6,14 +6,18 @@ import (
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/crypto"
-	"github.com/authorizerdev/authorizer/server/envstore"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 )
 
 // CreateAdminAuthToken creates the admin token based on secret key
 func CreateAdminAuthToken(tokenType string, c *gin.Context) (string, error) {
-	return crypto.EncryptPassword(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret))
+	adminSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret)
+	if err != nil {
+		return "", err
+	}
+	return crypto.EncryptPassword(adminSecret)
 }
 
 // GetAdminAuthToken helps in getting the admin token from the request cookie
@@ -23,7 +27,11 @@ func GetAdminAuthToken(gc *gin.Context) (string, error) {
 		return "", fmt.Errorf("unauthorized")
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(token), []byte(envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret)))
+	adminSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret)
+	if err != nil {
+		return "", err
+	}
+	err = bcrypt.CompareHashAndPassword([]byte(token), []byte(adminSecret))
 
 	if err != nil {
 		return "", fmt.Errorf(`unauthorized`)
@@ -40,8 +48,11 @@ func IsSuperAdmin(gc *gin.Context) bool {
 		if secret == "" {
 			return false
 		}
-
-		return secret == envstore.EnvStoreObj.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret)
+		adminSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret)
+		if err != nil {
+			return false
+		}
+		return secret == adminSecret
 	}
 
 	return token != ""

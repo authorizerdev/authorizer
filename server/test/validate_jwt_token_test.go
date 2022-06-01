@@ -6,8 +6,8 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/resolvers"
-	"github.com/authorizerdev/authorizer/server/sessionstore"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/google/uuid"
@@ -48,8 +48,8 @@ func validateJwtTokenTest(t *testing.T, s TestSetup) {
 	gc, err := utils.GinContextFromContext(ctx)
 	assert.NoError(t, err)
 	authToken, err := token.CreateAuthToken(gc, user, roles, scope)
-	sessionstore.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
-	sessionstore.SetState(authToken.RefreshToken.Token, authToken.FingerPrint+"@"+user.ID)
+	memorystore.Provider.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
+	memorystore.Provider.SetState(authToken.RefreshToken.Token, authToken.FingerPrint+"@"+user.ID)
 
 	t.Run(`should validate the access token`, func(t *testing.T) {
 		res, err := resolvers.ValidateJwtTokenResolver(ctx, model.ValidateJWTTokenInput{
