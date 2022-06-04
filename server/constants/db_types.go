@@ -19,4 +19,6 @@ const (
 	DbTypeMariaDB = "mariadb"
 	// DbTypeCassandra is the cassandra database type
 	DbTypeCassandraDB = "cassandradb"
+	// DbTypeScyllaDB is the scylla database type
+	DbTypeScyllaDB = "scylladb"
 )

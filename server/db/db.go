@@ -20,10 +20,10 @@ func InitDB() error {
 
 	envs := memorystore.RequiredEnvStoreObj.GetRequiredEnv()
 
-	isSQL := envs.DatabaseType != constants.DbTypeArangodb && envs.DatabaseType != constants.DbTypeMongodb && envs.DatabaseType != constants.DbTypeCassandraDB
+	isSQL := envs.DatabaseType != constants.DbTypeArangodb && envs.DatabaseType != constants.DbTypeMongodb && envs.DatabaseType != constants.DbTypeCassandraDB && envs.DatabaseType != constants.DbTypeScyllaDB
 	isArangoDB := envs.DatabaseType == constants.DbTypeArangodb
 	isMongoDB := envs.DatabaseType == constants.DbTypeMongodb
-	isCassandra := envs.DatabaseType == constants.DbTypeCassandraDB
+	isCassandra := envs.DatabaseType == constants.DbTypeCassandraDB || envs.DatabaseType == constants.DbTypeScyllaDB
 
 	if isSQL {
 		log.Info("Initializing SQL Driver for: ", envs.DatabaseType)
