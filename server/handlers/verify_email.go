@@ -42,6 +42,7 @@ func VerifyEmailHandler() gin.HandlerFunc {
 
 		// verify if token exists in db
 		hostname := parsers.GetHost(c)
+		log.Debug("hostname used for jwt verification: ", hostname)
 		claim, err := token.ParseJWTToken(tokenInQuery, hostname, verificationRequest.Nonce, verificationRequest.Email)
 		if err != nil {
 			log.Debug("Error parsing token: ", err)

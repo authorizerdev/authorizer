@@ -72,11 +72,13 @@ export default function Login({ urlProps }: { urlProps: Record<string, any> }) {
 					</Footer>
 				</Fragment>
 			)}
-			{config.is_sign_up_enabled && (
-				<FooterContent>
-					Don't have an account? <Link to="/app/signup"> Sign Up</Link>
-				</FooterContent>
-			)}
+			{config.is_basic_authentication_enabled &&
+				!config.is_magic_link_login_enabled &&
+				config.is_sign_up_enabled && (
+					<FooterContent>
+						Don't have an account? <Link to="/app/signup"> Sign Up</Link>
+					</FooterContent>
+				)}
 		</Fragment>
 	);
 }
