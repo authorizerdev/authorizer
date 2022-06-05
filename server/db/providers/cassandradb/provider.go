@@ -29,6 +29,8 @@ func NewProvider() (*provider, error) {
 		dbPort := memorystore.RequiredEnvStoreObj.GetRequiredEnv().DatabasePort
 		if dbPort != "" && dbHost != "" {
 			dbURL = fmt.Sprintf("%s:%s", dbHost, dbPort)
+		} else if dbHost != "" {
+			dbURL = dbHost
 		}
 	}
 
