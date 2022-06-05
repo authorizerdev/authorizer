@@ -197,7 +197,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 		if strings.Contains(redirectURL, "?") {
 			redirectURL = redirectURL + "&" + redirectURLParams
 		} else {
-			redirectURL = redirectURL + "?" + redirectURLParams
+			redirectURL = redirectURL + "?" + strings.TrimPrefix(redirectURLParams, "&")
 		}
 
 		verificationType := constants.VerificationTypeMagicLinkLogin

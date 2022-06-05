@@ -214,7 +214,7 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 		if strings.Contains(redirectURL, "?") {
 			redirectURL = redirectURL + "&" + params
 		} else {
-			redirectURL = redirectURL + "?" + params
+			redirectURL = redirectURL + "?" + strings.TrimPrefix(params, "&")
 		}
 
 		c.Redirect(http.StatusTemporaryRedirect, redirectURL)

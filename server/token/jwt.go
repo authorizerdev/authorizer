@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/golang-jwt/jwt"
-	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/crypto"
@@ -117,7 +116,6 @@ func ParseJWTToken(token, hostname, nonce, subject string) (jwt.MapClaims, error
 	intIat := int64(claims["iat"].(float64))
 	claims["exp"] = intExp
 	claims["iat"] = intIat
-	log.Debug("claims: ", claims)
 	clientID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyClientID)
 	if err != nil {
 		return claims, err
@@ -199,7 +197,6 @@ func ParseJWTTokenWithoutNonce(token, hostname string) (jwt.MapClaims, error) {
 	intIat := int64(claims["iat"].(float64))
 	claims["exp"] = intExp
 	claims["iat"] = intIat
-	log.Debug("claims: ", claims)
 	clientID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyClientID)
 	if err != nil {
 		return claims, err
