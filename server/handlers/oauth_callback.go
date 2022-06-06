@@ -60,6 +60,8 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			user, err = processGithubUserInfo(code)
 		case constants.SignupMethodFacebook:
 			user, err = processFacebookUserInfo(code)
+		case constants.SignupMethodLinkedIn:
+			user, err = processLinkedInUserInfo(code)
 		default:
 			log.Info("Invalid oauth provider")
 			err = fmt.Errorf(`invalid oauth provider`)
@@ -283,6 +285,10 @@ func processGithubUserInfo(code string) (models.User, error) {
 		log.Debug("Failed to read github user info response body: ", err)
 		return user, fmt.Errorf("failed to read github response body: %s", err.Error())
 	}
+	if response.StatusCode >= 400 {
+		log.Debug("Failed to request linkedin user info: ", string(body))
+		return user, fmt.Errorf("failed to request linkedin user info: %s", string(body))
+	}
 
 	userRawData := make(map[string]string)
 	json.Unmarshal(body, &userRawData)
@@ -335,7 +341,10 @@ func processFacebookUserInfo(code string) (models.User, error) {
 		log.Debug("Failed to read facebook response: ", err)
 		return user, fmt.Errorf("failed to read facebook response body: %s", err.Error())
 	}
-
+	if response.StatusCode >= 400 {
+		log.Debug("Failed to request linkedin user info: ", string(body))
+		return user, fmt.Errorf("failed to request linkedin user info: %s", string(body))
+	}
 	userRawData := make(map[string]interface{})
 	json.Unmarshal(body, &userRawData)
 
@@ -352,6 +361,88 @@ func processFacebookUserInfo(code string) (models.User, error) {
 		FamilyName: &lastName,
 		Picture:    &picture,
 		Email:      email,
+	}
+
+	return user, nil
+}
+
+func processLinkedInUserInfo(code string) (models.User, error) {
+	user := models.User{}
+	token, err := oauth.OAuthProviders.LinkedInConfig.Exchange(oauth2.NoContext, code)
+	if err != nil {
+		log.Debug("Failed to exchange code for token: ", err)
+		return user, fmt.Errorf("invalid linkedin exchange code: %s", err.Error())
+	}
+
+	client := http.Client{}
+	req, err := http.NewRequest("GET", constants.LinkedInUserInfoURL, nil)
+	if err != nil {
+		log.Debug("Failed to create linkedin user info request: ", err)
+		return user, fmt.Errorf("error creating linkedin user info request: %s", err.Error())
+	}
+	req.Header = http.Header{
+		"Authorization": []string{fmt.Sprintf("Bearer %s", token.AccessToken)},
+	}
+
+	response, err := client.Do(req)
+	if err != nil {
+		log.Debug("Failed to request linkedin user info: ", err)
+		return user, err
+	}
+
+	defer response.Body.Close()
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		log.Debug("Failed to read linkedin user info response body: ", err)
+		return user, fmt.Errorf("failed to read linkedin response body: %s", err.Error())
+	}
+
+	if response.StatusCode >= 400 {
+		log.Debug("Failed to request linkedin user info: ", string(body))
+		return user, fmt.Errorf("failed to request linkedin user info: %s", string(body))
+	}
+
+	userRawData := make(map[string]interface{})
+	json.Unmarshal(body, &userRawData)
+
+	req, err = http.NewRequest("GET", constants.LinkedInEmailURL, nil)
+	if err != nil {
+		log.Debug("Failed to create linkedin email info request: ", err)
+		return user, fmt.Errorf("error creating linkedin user info request: %s", err.Error())
+	}
+	req.Header = http.Header{
+		"Authorization": []string{fmt.Sprintf("Bearer %s", token.AccessToken)},
+	}
+
+	response, err = client.Do(req)
+	if err != nil {
+		log.Debug("Failed to request linkedin email info: ", err)
+		return user, err
+	}
+
+	defer response.Body.Close()
+	body, err = ioutil.ReadAll(response.Body)
+	if err != nil {
+		log.Debug("Failed to read linkedin email info response body: ", err)
+		return user, fmt.Errorf("failed to read linkedin email response body: %s", err.Error())
+	}
+	if response.StatusCode >= 400 {
+		log.Debug("Failed to request linkedin user info: ", string(body))
+		return user, fmt.Errorf("failed to request linkedin user info: %s", string(body))
+	}
+	emailRawData := make(map[string]interface{})
+	json.Unmarshal(body, &emailRawData)
+
+	firstName := userRawData["localizedFirstName"].(string)
+	lastName := userRawData["localizedLastName"].(string)
+	profilePicture := userRawData["profilePicture"].(map[string]interface{})["displayImage~"].(map[string]interface{})["elements"].([]interface{})[0].(map[string]interface{})["identifiers"].([]interface{})[0].(map[string]interface{})["identifier"].(string)
+	emailAddress := emailRawData["elements"].([]interface{})[0].(map[string]interface{})["handle~"].(map[string]interface{})["emailAddress"].(string)
+
+	user = models.User{
+		GivenName:  &firstName,
+		FamilyName: &lastName,
+		Picture:    &profilePicture,
+		Email:      emailAddress,
 	}
 
 	return user, nil

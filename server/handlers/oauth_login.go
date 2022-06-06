@@ -151,6 +151,23 @@ func OAuthLoginHandler() gin.HandlerFunc {
 			oauth.OAuthProviders.FacebookConfig.RedirectURL = hostname + "/oauth_callback/facebook"
 			url := oauth.OAuthProviders.FacebookConfig.AuthCodeURL(oauthStateString)
 			c.Redirect(http.StatusTemporaryRedirect, url)
+		case constants.SignupMethodLinkedIn:
+			if oauth.OAuthProviders.LinkedInConfig == nil {
+				log.Debug("Linkedin OAuth provider is not configured")
+				isProviderConfigured = false
+				break
+			}
+			err := memorystore.Provider.SetState(oauthStateString, constants.SignupMethodLinkedIn)
+			if err != nil {
+				log.Debug("Error setting state: ", err)
+				c.JSON(500, gin.H{
+					"error": "internal server error",
+				})
+				return
+			}
+			oauth.OAuthProviders.LinkedInConfig.RedirectURL = hostname + "/oauth_callback/linkedin"
+			url := oauth.OAuthProviders.LinkedInConfig.AuthCodeURL(oauthStateString)
+			c.Redirect(http.StatusTemporaryRedirect, url)
 		default:
 			log.Debug("Invalid oauth provider: ", provider)
 			c.JSON(422, gin.H{

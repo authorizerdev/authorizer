@@ -7,6 +7,7 @@ import (
 	"golang.org/x/oauth2"
 	facebookOAuth2 "golang.org/x/oauth2/facebook"
 	githubOAuth2 "golang.org/x/oauth2/github"
+	linkedInOAuth2 "golang.org/x/oauth2/linkedin"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/memorystore"
@@ -17,6 +18,7 @@ type OAuthProvider struct {
 	GoogleConfig   *oauth2.Config
 	GithubConfig   *oauth2.Config
 	FacebookConfig *oauth2.Config
+	LinkedInConfig *oauth2.Config
 }
 
 // OIDCProviders is a struct that contains reference all the OpenID providers
@@ -89,6 +91,24 @@ func InitOAuth() error {
 			RedirectURL:  "/oauth_callback/facebook",
 			Endpoint:     facebookOAuth2.Endpoint,
 			Scopes:       []string{"public_profile", "email"},
+		}
+	}
+
+	linkedInClientID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyLinkedInClientID)
+	if err != nil {
+		linkedInClientID = ""
+	}
+	linkedInClientSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyLinkedInClientSecret)
+	if err != nil {
+		linkedInClientSecret = ""
+	}
+	if linkedInClientID != "" && linkedInClientSecret != "" {
+		OAuthProviders.LinkedInConfig = &oauth2.Config{
+			ClientID:     linkedInClientID,
+			ClientSecret: linkedInClientSecret,
+			RedirectURL:  "/oauth_callback/linkedin",
+			Endpoint:     linkedInOAuth2.Endpoint,
+			Scopes:       []string{"r_liteprofile", "r_emailaddress"},
 		}
 	}
 

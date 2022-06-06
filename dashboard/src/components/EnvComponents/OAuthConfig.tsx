@@ -9,7 +9,7 @@ import {
 	Divider,
 	useMediaQuery,
 } from '@chakra-ui/react';
-import { FaGoogle, FaGithub, FaFacebookF } from 'react-icons/fa';
+import { FaGoogle, FaGithub, FaFacebookF, FaLinkedin } from 'react-icons/fa';
 import { TextInputType, HiddenInputType } from '../../constants';
 
 const OAuthConfig = ({
@@ -179,6 +179,44 @@ const OAuthConfig = ({
 								setFieldVisibility={setFieldVisibility}
 								inputType={HiddenInputType.FACEBOOK_CLIENT_SECRET}
 								placeholder="Facebook Secret"
+							/>
+						</Center>
+					</Flex>
+					<Flex direction={isNotSmallerScreen ? 'row' : 'column'}>
+						<Center
+							w={isNotSmallerScreen ? '55px' : '35px'}
+							h="35px"
+							marginRight="1.5%"
+							border="1px solid #3b5998"
+							borderRadius="5px"
+						>
+							<FaLinkedin style={{ color: '#3b5998' }} />
+						</Center>
+						<Center
+							w={isNotSmallerScreen ? '70%' : '100%'}
+							mt={isNotSmallerScreen ? '0' : '3'}
+							marginRight="1.5%"
+						>
+							<InputField
+								borderRadius={5}
+								variables={envVariables}
+								setVariables={setVariables}
+								inputType={TextInputType.LINKEDIN_CLIENT_ID}
+								placeholder="LinkedIn Client ID"
+							/>
+						</Center>
+						<Center
+							w={isNotSmallerScreen ? '70%' : '100%'}
+							mt={isNotSmallerScreen ? '0' : '3'}
+						>
+							<InputField
+								borderRadius={5}
+								variables={envVariables}
+								setVariables={setVariables}
+								fieldVisibility={fieldVisibility}
+								setFieldVisibility={setFieldVisibility}
+								inputType={HiddenInputType.LINKEDIN_CLIENT_SECRET}
+								placeholder="LinkedIn Secret"
 							/>
 						</Center>
 					</Flex>
