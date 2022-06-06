@@ -11,4 +11,6 @@ const (
 	SignupMethodGithub = "github"
 	// SignupMethodFacebook is the facebook signup method
 	SignupMethodFacebook = "facebook"
+	// SignupMethodLinkedin is the linkedin signup method
+	SignupMethodLinkedIn = "linkedin"
 )

@@ -85,6 +85,8 @@ type ComplexityRoot struct {
 		JwtRoleClaim               func(childComplexity int) int
 		JwtSecret                  func(childComplexity int) int
 		JwtType                    func(childComplexity int) int
+		LinkedinClientID           func(childComplexity int) int
+		LinkedinClientSecret       func(childComplexity int) int
 		OrganizationLogo           func(childComplexity int) int
 		OrganizationName           func(childComplexity int) int
 		ProtectedRoles             func(childComplexity int) int
@@ -116,6 +118,7 @@ type ComplexityRoot struct {
 		IsFacebookLoginEnabled       func(childComplexity int) int
 		IsGithubLoginEnabled         func(childComplexity int) int
 		IsGoogleLoginEnabled         func(childComplexity int) int
+		IsLinkedinLoginEnabled       func(childComplexity int) int
 		IsMagicLinkLoginEnabled      func(childComplexity int) int
 		IsSignUpEnabled              func(childComplexity int) int
 		Version                      func(childComplexity int) int
@@ -528,6 +531,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Env.JwtType(childComplexity), true
 
+	case "Env.LINKEDIN_CLIENT_ID":
+		if e.complexity.Env.LinkedinClientID == nil {
+			break
+		}
+
+		return e.complexity.Env.LinkedinClientID(childComplexity), true
+
+	case "Env.LINKEDIN_CLIENT_SECRET":
+		if e.complexity.Env.LinkedinClientSecret == nil {
+			break
+		}
+
+		return e.complexity.Env.LinkedinClientSecret(childComplexity), true
+
 	case "Env.ORGANIZATION_LOGO":
 		if e.complexity.Env.OrganizationLogo == nil {
 			break
@@ -681,6 +698,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Meta.IsGoogleLoginEnabled(childComplexity), true
+
+	case "Meta.is_linkedin_login_enabled":
+		if e.complexity.Meta.IsLinkedinLoginEnabled == nil {
+			break
+		}
+
+		return e.complexity.Meta.IsLinkedinLoginEnabled(childComplexity), true
 
 	case "Meta.is_magic_link_login_enabled":
 		if e.complexity.Meta.IsMagicLinkLoginEnabled == nil {
@@ -1352,6 +1376,7 @@ type Meta {
 	is_google_login_enabled: Boolean!
 	is_facebook_login_enabled: Boolean!
 	is_github_login_enabled: Boolean!
+	is_linkedin_login_enabled: Boolean!
 	is_email_verification_enabled: Boolean!
 	is_basic_authentication_enabled: Boolean!
 	is_magic_link_login_enabled: Boolean!
@@ -1462,6 +1487,8 @@ type Env {
 	GITHUB_CLIENT_SECRET: String
 	FACEBOOK_CLIENT_ID: String
 	FACEBOOK_CLIENT_SECRET: String
+	LINKEDIN_CLIENT_ID: String
+	LINKEDIN_CLIENT_SECRET: String
 	ORGANIZATION_NAME: String
 	ORGANIZATION_LOGO: String
 }
@@ -1509,6 +1536,8 @@ input UpdateEnvInput {
 	GITHUB_CLIENT_SECRET: String
 	FACEBOOK_CLIENT_ID: String
 	FACEBOOK_CLIENT_SECRET: String
+	LINKEDIN_CLIENT_ID: String
+	LINKEDIN_CLIENT_SECRET: String
 	ORGANIZATION_NAME: String
 	ORGANIZATION_LOGO: String
 }
@@ -3602,6 +3631,70 @@ func (ec *executionContext) _Env_FACEBOOK_CLIENT_SECRET(ctx context.Context, fie
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Env_LINKEDIN_CLIENT_ID(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Env",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.LinkedinClientID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Env_LINKEDIN_CLIENT_SECRET(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Env",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.LinkedinClientSecret, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Env_ORGANIZATION_NAME(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -3991,6 +4084,41 @@ func (ec *executionContext) _Meta_is_github_login_enabled(ctx context.Context, f
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.IsGithubLoginEnabled, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Meta_is_linkedin_login_enabled(ctx context.Context, field graphql.CollectedField, obj *model.Meta) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Meta",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsLinkedinLoginEnabled, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -8563,6 +8691,22 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			if err != nil {
 				return it, err
 			}
+		case "LINKEDIN_CLIENT_ID":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("LINKEDIN_CLIENT_ID"))
+			it.LinkedinClientID, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "LINKEDIN_CLIENT_SECRET":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("LINKEDIN_CLIENT_SECRET"))
+			it.LinkedinClientSecret, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		case "ORGANIZATION_NAME":
 			var err error
 
@@ -9031,6 +9175,10 @@ func (ec *executionContext) _Env(ctx context.Context, sel ast.SelectionSet, obj 
 			out.Values[i] = ec._Env_FACEBOOK_CLIENT_ID(ctx, field, obj)
 		case "FACEBOOK_CLIENT_SECRET":
 			out.Values[i] = ec._Env_FACEBOOK_CLIENT_SECRET(ctx, field, obj)
+		case "LINKEDIN_CLIENT_ID":
+			out.Values[i] = ec._Env_LINKEDIN_CLIENT_ID(ctx, field, obj)
+		case "LINKEDIN_CLIENT_SECRET":
+			out.Values[i] = ec._Env_LINKEDIN_CLIENT_SECRET(ctx, field, obj)
 		case "ORGANIZATION_NAME":
 			out.Values[i] = ec._Env_ORGANIZATION_NAME(ctx, field, obj)
 		case "ORGANIZATION_LOGO":
@@ -9139,6 +9287,11 @@ func (ec *executionContext) _Meta(ctx context.Context, sel ast.SelectionSet, obj
 			}
 		case "is_github_login_enabled":
 			out.Values[i] = ec._Meta_is_github_login_enabled(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "is_linkedin_login_enabled":
+			out.Values[i] = ec._Meta_is_linkedin_login_enabled(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}

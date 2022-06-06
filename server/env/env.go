@@ -68,6 +68,8 @@ func InitAllEnv() error {
 	osGithubClientSecret := os.Getenv(constants.EnvKeyGithubClientSecret)
 	osFacebookClientID := os.Getenv(constants.EnvKeyFacebookClientID)
 	osFacebookClientSecret := os.Getenv(constants.EnvKeyFacebookClientSecret)
+	osLinkedInClientID := os.Getenv(constants.EnvKeyLinkedInClientID)
+	osLinkedInClientSecret := os.Getenv(constants.EnvKeyLinkedInClientSecret)
 	osResetPasswordURL := os.Getenv(constants.EnvKeyResetPasswordURL)
 	osOrganizationName := os.Getenv(constants.EnvKeyOrganizationName)
 	osOrganizationLogo := os.Getenv(constants.EnvKeyOrganizationLogo)
@@ -343,6 +345,20 @@ func InitAllEnv() error {
 	}
 	if osFacebookClientSecret != "" && envData[constants.EnvKeyFacebookClientSecret] != osFacebookClientSecret {
 		envData[constants.EnvKeyFacebookClientSecret] = osFacebookClientSecret
+	}
+
+	if val, ok := envData[constants.EnvKeyLinkedInClientID]; !ok || val == "" {
+		envData[constants.EnvKeyLinkedInClientID] = osLinkedInClientID
+	}
+	if osFacebookClientID != "" && envData[constants.EnvKeyLinkedInClientID] != osFacebookClientID {
+		envData[constants.EnvKeyLinkedInClientID] = osLinkedInClientID
+	}
+
+	if val, ok := envData[constants.EnvKeyLinkedInClientSecret]; !ok || val == "" {
+		envData[constants.EnvKeyLinkedInClientSecret] = osLinkedInClientSecret
+	}
+	if osFacebookClientSecret != "" && envData[constants.EnvKeyLinkedInClientSecret] != osFacebookClientSecret {
+		envData[constants.EnvKeyLinkedInClientSecret] = osLinkedInClientSecret
 	}
 
 	if val, ok := envData[constants.EnvKeyResetPasswordURL]; !ok || val == "" {

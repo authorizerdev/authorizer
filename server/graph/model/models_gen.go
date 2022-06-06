@@ -65,6 +65,8 @@ type Env struct {
 	GithubClientSecret         *string  `json:"GITHUB_CLIENT_SECRET"`
 	FacebookClientID           *string  `json:"FACEBOOK_CLIENT_ID"`
 	FacebookClientSecret       *string  `json:"FACEBOOK_CLIENT_SECRET"`
+	LinkedinClientID           *string  `json:"LINKEDIN_CLIENT_ID"`
+	LinkedinClientSecret       *string  `json:"LINKEDIN_CLIENT_SECRET"`
 	OrganizationName           *string  `json:"ORGANIZATION_NAME"`
 	OrganizationLogo           *string  `json:"ORGANIZATION_LOGO"`
 }
@@ -116,6 +118,7 @@ type Meta struct {
 	IsGoogleLoginEnabled         bool   `json:"is_google_login_enabled"`
 	IsFacebookLoginEnabled       bool   `json:"is_facebook_login_enabled"`
 	IsGithubLoginEnabled         bool   `json:"is_github_login_enabled"`
+	IsLinkedinLoginEnabled       bool   `json:"is_linkedin_login_enabled"`
 	IsEmailVerificationEnabled   bool   `json:"is_email_verification_enabled"`
 	IsBasicAuthenticationEnabled bool   `json:"is_basic_authentication_enabled"`
 	IsMagicLinkLoginEnabled      bool   `json:"is_magic_link_login_enabled"`
@@ -216,6 +219,8 @@ type UpdateEnvInput struct {
 	GithubClientSecret         *string  `json:"GITHUB_CLIENT_SECRET"`
 	FacebookClientID           *string  `json:"FACEBOOK_CLIENT_ID"`
 	FacebookClientSecret       *string  `json:"FACEBOOK_CLIENT_SECRET"`
+	LinkedinClientID           *string  `json:"LINKEDIN_CLIENT_ID"`
+	LinkedinClientSecret       *string  `json:"LINKEDIN_CLIENT_SECRET"`
 	OrganizationName           *string  `json:"ORGANIZATION_NAME"`
 	OrganizationLogo           *string  `json:"ORGANIZATION_LOGO"`
 }

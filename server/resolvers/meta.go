@@ -41,6 +41,18 @@ func MetaResolver(ctx context.Context) (*model.Meta, error) {
 		facebookClientSecret = ""
 	}
 
+	linkedClientID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyLinkedInClientID)
+	if err != nil {
+		log.Debug("Failed to get Facebook Client ID from environment variable", err)
+		linkedClientID = ""
+	}
+
+	linkedInClientSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyLinkedInClientSecret)
+	if err != nil {
+		log.Debug("Failed to get Facebook Client Secret from environment variable", err)
+		linkedInClientSecret = ""
+	}
+
 	githubClientID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyGithubClientID)
 	if err != nil {
 		log.Debug("Failed to get Github Client ID from environment variable", err)
@@ -83,6 +95,7 @@ func MetaResolver(ctx context.Context) (*model.Meta, error) {
 		IsGoogleLoginEnabled:         googleClientID != "" && googleClientSecret != "",
 		IsGithubLoginEnabled:         githubClientID != "" && githubClientSecret != "",
 		IsFacebookLoginEnabled:       facebookClientID != "" && facebookClientSecret != "",
+		IsLinkedinLoginEnabled:       linkedClientID != "" && linkedInClientSecret != "",
 		IsBasicAuthenticationEnabled: !isBasicAuthDisabled,
 		IsEmailVerificationEnabled:   !isEmailVerificationDisabled,
 		IsMagicLinkLoginEnabled:      !isMagicLinkLoginDisabled,

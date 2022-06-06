@@ -73,6 +73,10 @@ const (
 	EnvKeyFacebookClientID = "FACEBOOK_CLIENT_ID"
 	// EnvKeyFacebookClientSecret key for env variable FACEBOOK_CLIENT_SECRET
 	EnvKeyFacebookClientSecret = "FACEBOOK_CLIENT_SECRET"
+	// EnvKeyLinkedinClientID key for env variable LINKEDIN_CLIENT_ID
+	EnvKeyLinkedInClientID = "LINKEDIN_CLIENT_ID"
+	// EnvKeyLinkedinClientSecret key for env variable LINKEDIN_CLIENT_SECRET
+	EnvKeyLinkedInClientSecret = "LINKEDIN_CLIENT_SECRET"
 	// EnvKeyOrganizationName key for env variable ORGANIZATION_NAME
 	EnvKeyOrganizationName = "ORGANIZATION_NAME"
 	// EnvKeyOrganizationLogo key for env variable ORGANIZATION_LOGO
