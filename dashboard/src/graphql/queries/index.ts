@@ -30,6 +30,7 @@ export const EnvVariablesQuery = `
       LINKEDIN_CLIENT_SECRET,
       DEFAULT_ROLES,
       PROTECTED_ROLES,
+      ROLES,
       JWT_TYPE,
       JWT_SECRET,
       JWT_ROLE_CLAIM,

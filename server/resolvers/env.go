@@ -147,7 +147,14 @@ func EnvResolver(ctx context.Context) (*model.Env, error) {
 	res.AllowedOrigins = strings.Split(store[constants.EnvKeyAllowedOrigins].(string), ",")
 	res.Roles = strings.Split(store[constants.EnvKeyRoles].(string), ",")
 	res.DefaultRoles = strings.Split(store[constants.EnvKeyDefaultRoles].(string), ",")
-	res.ProtectedRoles = strings.Split(store[constants.EnvKeyProtectedRoles].(string), ",")
+	// since protected role is optional default split gives array with empty string
+	protectedRoles := strings.Split(store[constants.EnvKeyProtectedRoles].(string), ",")
+	res.ProtectedRoles = []string{}
+	for _, role := range protectedRoles {
+		if strings.Trim(role, " ") != "" {
+			res.ProtectedRoles = append(res.ProtectedRoles, strings.Trim(role, " "))
+		}
+	}
 
 	// bool vars
 	res.DisableEmailVerification = store[constants.EnvKeyDisableEmailVerification].(bool)
