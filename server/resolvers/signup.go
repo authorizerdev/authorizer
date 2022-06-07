@@ -100,7 +100,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 		} else {
 			roles = strings.Split(rolesString, ",")
 		}
-		if !validators.IsValidRoles(roles, params.Roles) {
+		if !validators.IsValidRoles(params.Roles, roles) {
 			log.Debug("Invalid roles: ", params.Roles)
 			return res, fmt.Errorf(`invalid roles`)
 		} else {
