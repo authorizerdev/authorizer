@@ -19,10 +19,6 @@ func (c *provider) ClearStore() error {
 
 // GetUserSessions returns all the user session token from the in-memory store.
 func (c *provider) GetUserSessions(userId string) map[string]string {
-	if os.Getenv("ENV") != "test" {
-		c.mutex.Lock()
-		defer c.mutex.Unlock()
-	}
 	res := map[string]string{}
 	for k, v := range c.stateStore {
 		split := strings.Split(v, "@")
@@ -61,11 +57,6 @@ func (c *provider) SetState(key, state string) error {
 
 // GetState gets the state from the in-memory store.
 func (c *provider) GetState(key string) (string, error) {
-	if os.Getenv("ENV") != "test" {
-		c.mutex.Lock()
-		defer c.mutex.Unlock()
-	}
-
 	state := ""
 	if stateVal, ok := c.stateStore[key]; ok {
 		state = stateVal
