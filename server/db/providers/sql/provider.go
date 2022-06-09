@@ -46,7 +46,7 @@ func NewProvider() (*provider, error) {
 	dbURL := memorystore.RequiredEnvStoreObj.GetRequiredEnv().DatabaseURL
 
 	switch dbType {
-	case constants.DbTypePostgres, constants.DbTypeYugabyte:
+	case constants.DbTypePostgres, constants.DbTypeYugabyte, constants.DbTypeCockroachDB:
 		sqlDB, err = gorm.Open(postgres.Open(dbURL), ormConfig)
 	case constants.DbTypeSqlite:
 		sqlDB, err = gorm.Open(sqlite.Open(dbURL), ormConfig)

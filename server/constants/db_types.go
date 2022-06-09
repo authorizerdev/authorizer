@@ -21,4 +21,6 @@ const (
 	DbTypeCassandraDB = "cassandradb"
 	// DbTypeScyllaDB is the scylla database type
 	DbTypeScyllaDB = "scylladb"
+	// DbTypeCockroachDB is the cockroach database type
+	DbTypeCockroachDB = "cockroachdb"
 )
