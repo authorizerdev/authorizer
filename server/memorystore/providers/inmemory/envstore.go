@@ -3,6 +3,8 @@ package inmemory
 import (
 	"os"
 	"sync"
+
+	"github.com/authorizerdev/authorizer/server/constants"
 )
 
 // EnvStore struct to store the env variables
@@ -13,7 +15,7 @@ type EnvStore struct {
 
 // UpdateEnvStore to update the whole env store object
 func (e *EnvStore) UpdateStore(store map[string]interface{}) {
-	if os.Getenv("ENV") != "test" {
+	if os.Getenv("ENV") != constants.TestEnv {
 		e.mutex.Lock()
 		defer e.mutex.Unlock()
 	}
@@ -36,7 +38,7 @@ func (e *EnvStore) Get(key string) interface{} {
 
 // Set sets the value of the key in env store
 func (e *EnvStore) Set(key string, value interface{}) {
-	if os.Getenv("ENV") != "test" {
+	if os.Getenv("ENV") != constants.TestEnv {
 		e.mutex.Lock()
 		defer e.mutex.Unlock()
 	}
