@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/authorizerdev/authorizer/server/constants"
 )
 
 // ClearStore clears the in-memory store.
 func (c *provider) ClearStore() error {
-	if os.Getenv("ENV") != "test" {
+	if os.Getenv("ENV") != constants.TestEnv {
 		c.mutex.Lock()
 		defer c.mutex.Unlock()
 	}
@@ -19,10 +21,6 @@ func (c *provider) ClearStore() error {
 
 // GetUserSessions returns all the user session token from the in-memory store.
 func (c *provider) GetUserSessions(userId string) map[string]string {
-	if os.Getenv("ENV") != "test" {
-		c.mutex.Lock()
-		defer c.mutex.Unlock()
-	}
 	res := map[string]string{}
 	for k, v := range c.stateStore {
 		split := strings.Split(v, "@")
@@ -36,7 +34,7 @@ func (c *provider) GetUserSessions(userId string) map[string]string {
 
 // DeleteAllUserSession deletes all the user sessions from in-memory store.
 func (c *provider) DeleteAllUserSession(userId string) error {
-	if os.Getenv("ENV") != "test" {
+	if os.Getenv("ENV") != constants.TestEnv {
 		c.mutex.Lock()
 		defer c.mutex.Unlock()
 	}
@@ -50,7 +48,7 @@ func (c *provider) DeleteAllUserSession(userId string) error {
 
 // SetState sets the state in the in-memory store.
 func (c *provider) SetState(key, state string) error {
-	if os.Getenv("ENV") != "test" {
+	if os.Getenv("ENV") != constants.TestEnv {
 		c.mutex.Lock()
 		defer c.mutex.Unlock()
 	}
@@ -61,11 +59,6 @@ func (c *provider) SetState(key, state string) error {
 
 // GetState gets the state from the in-memory store.
 func (c *provider) GetState(key string) (string, error) {
-	if os.Getenv("ENV") != "test" {
-		c.mutex.Lock()
-		defer c.mutex.Unlock()
-	}
-
 	state := ""
 	if stateVal, ok := c.stateStore[key]; ok {
 		state = stateVal
@@ -76,7 +69,7 @@ func (c *provider) GetState(key string) (string, error) {
 
 // RemoveState removes the state from the in-memory store.
 func (c *provider) RemoveState(key string) error {
-	if os.Getenv("ENV") != "test" {
+	if os.Getenv("ENV") != constants.TestEnv {
 		c.mutex.Lock()
 		defer c.mutex.Unlock()
 	}
