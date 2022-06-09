@@ -37,7 +37,7 @@ func SendMail(to []string, Subject, bodyMessage string) error {
 	if err != nil {
 		return err
 	}
-	if envKey == "test" {
+	if envKey == constants.TestEnv {
 		return nil
 	}
 	m := gomail.NewMessage()

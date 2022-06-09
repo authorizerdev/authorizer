@@ -3,6 +3,8 @@ package constants
 var VERSION = "0.0.1"
 
 const (
+	// TestEnv is used for testing
+	TestEnv = "test"
 	// EnvKeyEnv key for env variable ENV
 	EnvKeyEnv = "ENV"
 	// EnvKeyEnvPath key for cli arg variable ENV_PATH
