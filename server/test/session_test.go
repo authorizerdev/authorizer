@@ -34,14 +34,19 @@ func sessionTests(t *testing.T, s TestSetup) {
 		})
 
 		token := *verifyRes.AccessToken
-		session, err := memorystore.Provider.GetUserSession(verifyRes.User.ID, token)
+		sessions, err := memorystore.Provider.GetAllUserSessions(verifyRes.User.ID)
 		assert.NoError(t, err)
-		assert.NotEmpty(t, session)
-		cookie := fmt.Sprintf("%s=%s;", constants.AppCookieName+"_session", session)
+		assert.NotEmpty(t, sessions)
+		cookie := ""
+		// set all they keys in cookie one of them should be session cookie
+		for key := range sessions {
+			if key != token {
+				cookie += fmt.Sprintf("%s=%s;", constants.AppCookieName+"_session", key)
+			}
+		}
 		cookie = strings.TrimSuffix(cookie, ";")
 
 		req.Header.Set("Cookie", cookie)
-
 		_, err = resolvers.SessionResolver(ctx, &model.SessionQueryInput{})
 		assert.Nil(t, err)
 
