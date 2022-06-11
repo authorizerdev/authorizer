@@ -97,7 +97,6 @@ func (p *provider) ListUsers(pagination model.Pagination) (*model.Users, error) 
 func (p *provider) GetUserByEmail(email string) (models.User, error) {
 	var user models.User
 	result := p.db.Where("email = ?", email).First(&user)
-
 	if result.Error != nil {
 		return user, result.Error
 	}
@@ -110,7 +109,6 @@ func (p *provider) GetUserByID(id string) (models.User, error) {
 	var user models.User
 
 	result := p.db.Where("id = ?", id).First(&user)
-
 	if result.Error != nil {
 		return user, result.Error
 	}

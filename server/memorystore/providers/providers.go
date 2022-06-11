@@ -7,9 +7,9 @@ type Provider interface {
 	// GetAllUserSessions returns all the user sessions from the session store
 	GetAllUserSessions(userId string) (map[string]string, error)
 	// GetUserSession returns the session token for given token
-	GetUserSession(userId, token string) (string, error)
+	GetUserSession(userId, key string) (string, error)
 	// DeleteUserSession deletes the user session
-	DeleteUserSession(userId, token string) error
+	DeleteUserSession(userId, key string) error
 	// DeleteAllSessions deletes all the sessions from the session store
 	DeleteAllUserSessions(userId string) error
 

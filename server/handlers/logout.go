@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
 	"strings"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/memorystore"
+	"github.com/authorizerdev/authorizer/server/token"
 )
 
 // Handler to logout user
@@ -35,12 +37,17 @@ func LogoutHandler() gin.HandlerFunc {
 			return
 		}
 
-		fingerPrint := string(decryptedFingerPrint)
-
-		err = memorystore.Provider.RemoveState(fingerPrint)
+		var sessionData token.SessionData
+		err = json.Unmarshal([]byte(decryptedFingerPrint), &sessionData)
 		if err != nil {
-			log.Debug("Failed to remove state: ", err)
+			log.Debug("Failed to decrypt fingerprint: ", err)
+			gc.JSON(http.StatusUnauthorized, gin.H{
+				"error": err.Error(),
+			})
+			return
 		}
+
+		memorystore.Provider.DeleteUserSession(sessionData.Subject, sessionData.Nonce)
 		cookie.DeleteSession(gc)
 
 		if redirectURL != "" {

@@ -8,6 +8,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
@@ -80,15 +81,6 @@ func VerifyEmailResolver(ctx context.Context, params model.VerifyEmailInput) (*m
 		return res, err
 	}
 
-	memorystore.Provider.SetUserSession(user.ID, authToken.FingerPrintHash, authToken.FingerPrint)
-	memorystore.Provider.SetUserSession(user.ID, authToken.AccessToken.Token, authToken.FingerPrint)
-
-	if authToken.RefreshToken != nil {
-		res.RefreshToken = &authToken.RefreshToken.Token
-		memorystore.Provider.SetUserSession(user.ID, authToken.RefreshToken.Token, authToken.FingerPrint)
-	}
-
-	cookie.SetSession(gc, authToken.FingerPrintHash)
 	go db.Provider.AddSession(models.Session{
 		UserID:    user.ID,
 		UserAgent: utils.GetUserAgent(gc.Request),
@@ -106,6 +98,15 @@ func VerifyEmailResolver(ctx context.Context, params model.VerifyEmailInput) (*m
 		IDToken:     &authToken.IDToken.Token,
 		ExpiresIn:   &expiresIn,
 		User:        user.AsAPIUser(),
+	}
+
+	cookie.SetSession(gc, authToken.FingerPrintHash)
+	memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash)
+	memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token)
+
+	if authToken.RefreshToken != nil {
+		res.RefreshToken = &authToken.RefreshToken.Token
+		memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token)
 	}
 	return res, nil
 }

@@ -204,8 +204,13 @@ func ValidateAccessToken(gc *gin.Context, accessToken string) (map[string]interf
 	}
 
 	userID := res["sub"].(string)
-	nonce, err := memorystore.Provider.GetUserSession(userID, accessToken)
+	nonce := res["nonce"].(string)
+	token, err := memorystore.Provider.GetUserSession(userID, constants.TokenTypeAccessToken+"_"+nonce)
 	if nonce == "" || err != nil {
+		return res, fmt.Errorf(`unauthorized`)
+	}
+
+	if token != accessToken {
 		return res, fmt.Errorf(`unauthorized`)
 	}
 
@@ -235,8 +240,13 @@ func ValidateRefreshToken(gc *gin.Context, refreshToken string) (map[string]inte
 	}
 
 	userID := res["sub"].(string)
-	nonce, err := memorystore.Provider.GetUserSession(userID, refreshToken)
+	nonce := res["nonce"].(string)
+	token, err := memorystore.Provider.GetUserSession(userID, constants.TokenTypeRefreshToken+"_"+nonce)
 	if nonce == "" || err != nil {
+		return res, fmt.Errorf(`unauthorized`)
+	}
+
+	if token != refreshToken {
 		return res, fmt.Errorf(`unauthorized`)
 	}
 
@@ -268,13 +278,13 @@ func ValidateBrowserSession(gc *gin.Context, encryptedSession string) (*SessionD
 		return nil, err
 	}
 
-	nonce, err := memorystore.Provider.GetUserSession(res.Subject, encryptedSession)
-	if nonce == "" || err != nil {
+	token, err := memorystore.Provider.GetUserSession(res.Subject, constants.TokenTypeSessionToken+"_"+res.Nonce)
+	if token == "" || err != nil {
 		log.Debug("invalid browser session:", err)
 		return nil, fmt.Errorf(`unauthorized`)
 	}
 
-	if res.Nonce != nonce {
+	if encryptedSession != token {
 		return nil, fmt.Errorf(`unauthorized: invalid nonce`)
 	}
 

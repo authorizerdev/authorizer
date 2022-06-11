@@ -145,8 +145,8 @@ func ValidateJWTClaims(claims jwt.MapClaims, hostname, nonce, subject string) (b
 	return true, nil
 }
 
-// ValidateJWTClaimsWithoutNonce common util to validate claims without nonce
-func ValidateJWTTokenWithoutNonce(claims jwt.MapClaims, hostname string) (bool, error) {
+// ValidateJWTTokenWithoutNonce common util to validate claims without nonce
+func ValidateJWTTokenWithoutNonce(claims jwt.MapClaims, hostname, subject string) (bool, error) {
 	clientID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyClientID)
 	if err != nil {
 		return false, err
@@ -159,5 +159,8 @@ func ValidateJWTTokenWithoutNonce(claims jwt.MapClaims, hostname string) (bool, 
 		return false, errors.New("invalid issuer")
 	}
 
+	if claims["sub"] != subject {
+		return false, errors.New("invalid subject")
+	}
 	return true, nil
 }

@@ -37,18 +37,24 @@ func (c *provider) GetAllUserSessions(userID string) (map[string]string, error) 
 
 // GetUserSession returns the user session from redis store.
 func (c *provider) GetUserSession(userId, key string) (string, error) {
-	var res string
-	err := c.store.HGet(c.ctx, userId, key).Scan(&res)
+	data, err := c.store.HGet(c.ctx, userId, key).Result()
 	if err != nil {
 		return "", err
 	}
-	return res, nil
+	return data, nil
 }
 
 // DeleteUserSession deletes the user session from redis store.
 func (c *provider) DeleteUserSession(userId, key string) error {
-	err := c.store.HDel(c.ctx, userId, key).Err()
-	if err != nil {
+	if err := c.store.HDel(c.ctx, userId, constants.TokenTypeSessionToken+"_"+key).Err(); err != nil {
+		log.Debug("Error deleting user session from redis: ", err)
+		return err
+	}
+	if err := c.store.HDel(c.ctx, userId, constants.TokenTypeAccessToken+"_"+key).Err(); err != nil {
+		log.Debug("Error deleting user session from redis: ", err)
+		return err
+	}
+	if err := c.store.HDel(c.ctx, userId, constants.TokenTypeRefreshToken+"_"+key).Err(); err != nil {
 		log.Debug("Error deleting user session from redis: ", err)
 		return err
 	}
@@ -57,7 +63,7 @@ func (c *provider) DeleteUserSession(userId, key string) error {
 
 // DeleteAllUserSessions deletes all the user session from redis
 func (c *provider) DeleteAllUserSessions(userID string) error {
-	err := c.store.HDel(c.ctx, userID).Err()
+	err := c.store.Del(c.ctx, userID).Err()
 	if err != nil {
 		log.Debug("Error deleting all user sessions from redis: ", err)
 		return err
@@ -78,13 +84,13 @@ func (c *provider) SetState(key, value string) error {
 
 // GetState gets the state from redis store.
 func (c *provider) GetState(key string) (string, error) {
-	var res string
-	err := c.store.Get(c.ctx, stateStorePrefix+key).Scan(&res)
+	data, err := c.store.Get(c.ctx, stateStorePrefix+key).Result()
 	if err != nil {
 		log.Debug("error getting token from redis store: ", err)
+		return "", err
 	}
 
-	return res, err
+	return data, err
 }
 
 // RemoveState removes the state from redis store.
@@ -142,22 +148,20 @@ func (c *provider) UpdateEnvVariable(key string, value interface{}) error {
 
 // GetStringStoreEnvVariable to get the string env variable from env store
 func (c *provider) GetStringStoreEnvVariable(key string) (string, error) {
-	var res string
-	err := c.store.HGet(c.ctx, envStorePrefix, key).Scan(&res)
+	data, err := c.store.HGet(c.ctx, envStorePrefix, key).Result()
 	if err != nil {
 		return "", nil
 	}
 
-	return res, nil
+	return data, nil
 }
 
 // GetBoolStoreEnvVariable to get the bool env variable from env store
 func (c *provider) GetBoolStoreEnvVariable(key string) (bool, error) {
-	var res bool
-	err := c.store.HGet(c.ctx, envStorePrefix, key).Scan(res)
+	data, err := c.store.HGet(c.ctx, envStorePrefix, key).Result()
 	if err != nil {
 		return false, nil
 	}
 
-	return res, nil
+	return data == "1", nil
 }

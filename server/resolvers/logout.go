@@ -41,7 +41,7 @@ func LogoutResolver(ctx context.Context) (*model.Response, error) {
 		return nil, err
 	}
 
-	memorystore.Provider.DeleteUserSession(sessionData.Subject, fingerprintHash)
+	memorystore.Provider.DeleteUserSession(sessionData.Subject, sessionData.Nonce)
 	cookie.DeleteSession(gc)
 
 	res := &model.Response{

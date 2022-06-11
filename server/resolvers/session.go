@@ -8,6 +8,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/graph/model"
@@ -29,7 +30,7 @@ func SessionResolver(ctx context.Context, params *model.SessionQueryInput) (*mod
 
 	sessionToken, err := cookie.GetSession(gc)
 	if err != nil {
-		log.Debug("Failed to get session token", err)
+		log.Debug("Failed to get session token: ", err)
 		return res, errors.New("unauthorized")
 	}
 
@@ -76,10 +77,7 @@ func SessionResolver(ctx context.Context, params *model.SessionQueryInput) (*mod
 	}
 
 	// rollover the session for security
-	memorystore.Provider.RemoveState(sessionToken)
-	memorystore.Provider.SetUserSession(user.ID, authToken.FingerPrintHash, authToken.FingerPrint)
-	memorystore.Provider.SetUserSession(user.ID, authToken.AccessToken.Token, authToken.FingerPrint)
-	cookie.SetSession(gc, authToken.FingerPrintHash)
+	go memorystore.Provider.DeleteUserSession(userID, claims.Nonce)
 
 	expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
 	if expiresIn <= 0 {
@@ -94,10 +92,13 @@ func SessionResolver(ctx context.Context, params *model.SessionQueryInput) (*mod
 		User:        user.AsAPIUser(),
 	}
 
+	cookie.SetSession(gc, authToken.FingerPrintHash)
+	memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash)
+	memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token)
+
 	if authToken.RefreshToken != nil {
 		res.RefreshToken = &authToken.RefreshToken.Token
-		memorystore.Provider.SetUserSession(user.ID, authToken.RefreshToken.Token, authToken.FingerPrint)
+		memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token)
 	}
-
 	return res, nil
 }

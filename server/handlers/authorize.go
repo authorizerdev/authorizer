@@ -222,10 +222,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 		// based on the response type, generate the response
 		if isResponseTypeCode {
 			// rollover the session for security
-			err = memorystore.Provider.RemoveState(sessionToken)
-			if err != nil {
-				log.Debug("Failed to remove state: ", err)
-			}
+			go memorystore.Provider.DeleteUserSession(user.ID, claims.Nonce)
 			nonce := uuid.New().String()
 			newSessionTokenData, newSessionToken, err := token.CreateSessionToken(user, nonce, claims.Roles, scope)
 			if err != nil {
@@ -246,7 +243,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 				return
 			}
 
-			memorystore.Provider.SetUserSession(user.ID, newSessionToken, newSessionTokenData.Nonce)
+			memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeSessionToken+"_"+newSessionTokenData.Nonce, newSessionToken)
 			cookie.SetSession(gc, newSessionToken)
 			code := uuid.New().String()
 			memorystore.Provider.SetState(codeChallenge, code+"@"+newSessionToken)
@@ -283,9 +280,9 @@ func AuthorizeHandler() gin.HandlerFunc {
 				}
 				return
 			}
-			memorystore.Provider.RemoveState(sessionToken)
-			memorystore.Provider.SetUserSession(user.ID, authToken.FingerPrintHash, authToken.FingerPrint)
-			memorystore.Provider.SetUserSession(user.ID, authToken.AccessToken.Token, authToken.FingerPrint)
+			go memorystore.Provider.DeleteUserSession(user.ID, claims.Nonce)
+			memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash)
+			memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token)
 			cookie.SetSession(gc, authToken.FingerPrintHash)
 
 			expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
@@ -308,7 +305,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 			if authToken.RefreshToken != nil {
 				res["refresh_token"] = authToken.RefreshToken.Token
 				params += "&refresh_token=" + authToken.RefreshToken.Token
-				memorystore.Provider.SetUserSession(user.ID, authToken.RefreshToken.Token, authToken.FingerPrint)
+				memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token)
 			}
 
 			if isQuery {

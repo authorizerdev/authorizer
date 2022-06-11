@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
@@ -50,9 +51,12 @@ func validateJwtTokenTest(t *testing.T, s TestSetup) {
 	gc, err := utils.GinContextFromContext(ctx)
 	assert.NoError(t, err)
 	authToken, err := token.CreateAuthToken(gc, user, roles, scope)
-	memorystore.Provider.SetUserSession(user.ID, authToken.FingerPrintHash, authToken.FingerPrint)
-	memorystore.Provider.SetUserSession(user.ID, authToken.AccessToken.Token, authToken.FingerPrint)
-	memorystore.Provider.SetUserSession(user.ID, authToken.RefreshToken.Token, authToken.FingerPrint)
+	memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash)
+	memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token)
+
+	if authToken.RefreshToken != nil {
+		memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token)
+	}
 
 	t.Run(`should validate the access token`, func(t *testing.T) {
 		res, err := resolvers.ValidateJwtTokenResolver(ctx, model.ValidateJWTTokenInput{
