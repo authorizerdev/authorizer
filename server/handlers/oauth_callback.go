@@ -200,12 +200,12 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 		params := "access_token=" + authToken.AccessToken.Token + "&token_type=bearer&expires_in=" + strconv.FormatInt(expiresIn, 10) + "&state=" + stateValue + "&id_token=" + authToken.IDToken.Token
 
 		cookie.SetSession(c, authToken.FingerPrintHash)
-		memorystore.Provider.SetState(authToken.FingerPrintHash, authToken.FingerPrint+"@"+user.ID)
-		memorystore.Provider.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
+		memorystore.Provider.SetUserSession(user.ID, authToken.FingerPrintHash, authToken.FingerPrint)
+		memorystore.Provider.SetUserSession(user.ID, authToken.AccessToken.Token, authToken.FingerPrint)
 
 		if authToken.RefreshToken != nil {
 			params = params + `&refresh_token=` + authToken.RefreshToken.Token
-			memorystore.Provider.SetState(authToken.RefreshToken.Token, authToken.FingerPrint+"@"+user.ID)
+			memorystore.Provider.SetUserSession(user.ID, authToken.RefreshToken.Token, authToken.FingerPrint)
 		}
 
 		go db.Provider.AddSession(models.Session{

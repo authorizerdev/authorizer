@@ -42,7 +42,7 @@ func VerifyEmailHandler() gin.HandlerFunc {
 
 		// verify if token exists in db
 		hostname := parsers.GetHost(c)
-		claim, err := token.ParseJWTToken(tokenInQuery, hostname, verificationRequest.Nonce, verificationRequest.Email)
+		claim, err := token.ParseJWTToken(tokenInQuery)
 		if err != nil {
 			log.Debug("Error parsing token: ", err)
 			errorRes["error_description"] = err.Error()
@@ -50,7 +50,14 @@ func VerifyEmailHandler() gin.HandlerFunc {
 			return
 		}
 
-		user, err := db.Provider.GetUserByEmail(claim["sub"].(string))
+		if ok, err := token.ValidateJWTClaims(claim, hostname, verificationRequest.Nonce, verificationRequest.Email); !ok || err != nil {
+			log.Debug("Error validating jwt claims: ", err)
+			errorRes["error_description"] = err.Error()
+			c.JSON(400, errorRes)
+			return
+		}
+
+		user, err := db.Provider.GetUserByEmail(verificationRequest.Email)
 		if err != nil {
 			log.Debug("Error getting user: ", err)
 			errorRes["error_description"] = err.Error()
@@ -100,12 +107,12 @@ func VerifyEmailHandler() gin.HandlerFunc {
 		params := "access_token=" + authToken.AccessToken.Token + "&token_type=bearer&expires_in=" + strconv.FormatInt(expiresIn, 10) + "&state=" + state + "&id_token=" + authToken.IDToken.Token
 
 		cookie.SetSession(c, authToken.FingerPrintHash)
-		memorystore.Provider.SetState(authToken.FingerPrintHash, authToken.FingerPrint+"@"+user.ID)
-		memorystore.Provider.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
+		memorystore.Provider.SetUserSession(user.ID, authToken.FingerPrintHash, authToken.FingerPrint)
+		memorystore.Provider.SetUserSession(user.ID, authToken.AccessToken.Token, authToken.FingerPrint)
 
 		if authToken.RefreshToken != nil {
 			params = params + `&refresh_token=${refresh_token}`
-			memorystore.Provider.SetState(authToken.RefreshToken.Token, authToken.FingerPrint+"@"+user.ID)
+			memorystore.Provider.SetUserSession(user.ID, authToken.RefreshToken.Token, authToken.FingerPrint)
 		}
 
 		if redirectURL == "" {

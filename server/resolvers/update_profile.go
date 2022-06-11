@@ -142,7 +142,7 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 			return res, fmt.Errorf("user with this email address already exists")
 		}
 
-		go memorystore.Provider.DeleteAllUserSession(user.ID)
+		go memorystore.Provider.DeleteAllUserSessions(user.ID)
 		go cookie.DeleteSession(gc)
 
 		user.Email = newEmail

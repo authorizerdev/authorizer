@@ -57,9 +57,14 @@ func ResetPasswordResolver(ctx context.Context, params model.ResetPasswordInput)
 
 	// verify if token exists in db
 	hostname := parsers.GetHost(gc)
-	claim, err := token.ParseJWTToken(params.Token, hostname, verificationRequest.Nonce, verificationRequest.Email)
+	claim, err := token.ParseJWTToken(params.Token)
 	if err != nil {
 		log.Debug("Failed to parse token: ", err)
+		return res, fmt.Errorf(`invalid token`)
+	}
+
+	if ok, err := token.ValidateJWTClaims(claim, hostname, verificationRequest.Nonce, verificationRequest.Email); !ok || err != nil {
+		log.Debug("Failed to validate jwt claims: ", err)
 		return res, fmt.Errorf(`invalid token`)
 	}
 

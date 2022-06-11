@@ -2,24 +2,23 @@ package inmemory
 
 import (
 	"sync"
+
+	"github.com/authorizerdev/authorizer/server/memorystore/providers/inmemory/stores"
 )
 
 type provider struct {
 	mutex        sync.Mutex
-	sessionStore map[string]map[string]string
-	stateStore   map[string]string
-	envStore     *EnvStore
+	sessionStore *stores.SessionStore
+	stateStore   *stores.StateStore
+	envStore     *stores.EnvStore
 }
 
 // NewInMemoryStore returns a new in-memory store.
 func NewInMemoryProvider() (*provider, error) {
 	return &provider{
 		mutex:        sync.Mutex{},
-		sessionStore: map[string]map[string]string{},
-		stateStore:   map[string]string{},
-		envStore: &EnvStore{
-			mutex: sync.Mutex{},
-			store: map[string]interface{}{},
-		},
+		envStore:     stores.NewEnvStore(),
+		sessionStore: stores.NewSessionStore(),
+		stateStore:   stores.NewStateStore(),
 	}, nil
 }

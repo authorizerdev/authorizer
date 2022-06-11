@@ -2,6 +2,7 @@ package test
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/authorizerdev/authorizer/server/constants"
@@ -28,14 +29,11 @@ func logoutTests(t *testing.T, s TestSetup) {
 		})
 
 		token := *verifyRes.AccessToken
-		sessions := memorystore.Provider.GetUserSessions(verifyRes.User.ID)
-		cookie := ""
-		// set all they keys in cookie one of them should be session cookie
-		for key := range sessions {
-			if key != token {
-				cookie += fmt.Sprintf("%s=%s;", constants.AppCookieName+"_session", key)
-			}
-		}
+		session, err := memorystore.Provider.GetUserSession(verifyRes.User.ID, token)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, session)
+		cookie := fmt.Sprintf("%s=%s;", constants.AppCookieName+"_session", session)
+		cookie = strings.TrimSuffix(cookie, ";")
 
 		req.Header.Set("Cookie", cookie)
 		_, err = resolvers.LogoutResolver(ctx)

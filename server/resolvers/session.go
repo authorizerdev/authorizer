@@ -77,8 +77,8 @@ func SessionResolver(ctx context.Context, params *model.SessionQueryInput) (*mod
 
 	// rollover the session for security
 	memorystore.Provider.RemoveState(sessionToken)
-	memorystore.Provider.SetState(authToken.FingerPrintHash, authToken.FingerPrint+"@"+user.ID)
-	memorystore.Provider.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
+	memorystore.Provider.SetUserSession(user.ID, authToken.FingerPrintHash, authToken.FingerPrint)
+	memorystore.Provider.SetUserSession(user.ID, authToken.AccessToken.Token, authToken.FingerPrint)
 	cookie.SetSession(gc, authToken.FingerPrintHash)
 
 	expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
@@ -96,7 +96,7 @@ func SessionResolver(ctx context.Context, params *model.SessionQueryInput) (*mod
 
 	if authToken.RefreshToken != nil {
 		res.RefreshToken = &authToken.RefreshToken.Token
-		memorystore.Provider.SetState(authToken.RefreshToken.Token, authToken.FingerPrint+"@"+user.ID)
+		memorystore.Provider.SetUserSession(user.ID, authToken.RefreshToken.Token, authToken.FingerPrint)
 	}
 
 	return res, nil

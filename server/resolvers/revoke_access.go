@@ -47,7 +47,7 @@ func RevokeAccessResolver(ctx context.Context, params model.UpdateAccessInput) (
 		return res, err
 	}
 
-	go memorystore.Provider.DeleteAllUserSession(fmt.Sprintf("%x", user.ID))
+	go memorystore.Provider.DeleteAllUserSessions(user.ID)
 
 	res = &model.Response{
 		Message: `user access revoked successfully`,

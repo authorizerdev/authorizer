@@ -1,4 +1,4 @@
-package inmemory
+package stores
 
 import (
 	"os"
@@ -11,6 +11,14 @@ import (
 type EnvStore struct {
 	mutex sync.Mutex
 	store map[string]interface{}
+}
+
+// NewEnvStore create a new env store
+func NewEnvStore() *EnvStore {
+	return &EnvStore{
+		mutex: sync.Mutex{},
+		store: make(map[string]interface{}),
+	}
 }
 
 // UpdateEnvStore to update the whole env store object

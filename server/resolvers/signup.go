@@ -225,7 +225,14 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 			return res, err
 		}
 
-		memorystore.Provider.SetState(authToken.FingerPrintHash, authToken.FingerPrint+"@"+user.ID)
+		memorystore.Provider.SetUserSession(user.ID, authToken.FingerPrintHash, authToken.FingerPrint)
+		memorystore.Provider.SetUserSession(user.ID, authToken.AccessToken.Token, authToken.FingerPrint)
+
+		if authToken.RefreshToken != nil {
+			res.RefreshToken = &authToken.RefreshToken.Token
+			memorystore.Provider.SetUserSession(user.ID, authToken.RefreshToken.Token, authToken.FingerPrint)
+		}
+
 		cookie.SetSession(gc, authToken.FingerPrintHash)
 		go db.Provider.AddSession(models.Session{
 			UserID:    user.ID,

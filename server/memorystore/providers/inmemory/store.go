@@ -3,46 +3,44 @@ package inmemory
 import (
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 )
 
-// ClearStore clears the in-memory store.
-func (c *provider) ClearStore() error {
-	if os.Getenv("ENV") != constants.TestEnv {
-		c.mutex.Lock()
-		defer c.mutex.Unlock()
-	}
-	c.sessionStore = map[string]map[string]string{}
-
+// SetUserSession sets the user session
+func (c *provider) SetUserSession(userId, key, token string) error {
+	c.sessionStore.Set(userId, key, token)
 	return nil
 }
 
-// GetUserSessions returns all the user session token from the in-memory store.
-func (c *provider) GetUserSessions(userId string) map[string]string {
-	res := map[string]string{}
-	for k, v := range c.stateStore {
-		split := strings.Split(v, "@")
-		if split[1] == userId {
-			res[k] = split[0]
-		}
-	}
-
-	return res
+// GetAllUserSessions returns all the user sessions token from the in-memory store.
+func (c *provider) GetAllUserSessions(userId string) (map[string]string, error) {
+	data := c.sessionStore.GetAll(userId)
+	return data, nil
 }
 
-// DeleteAllUserSession deletes all the user sessions from in-memory store.
-func (c *provider) DeleteAllUserSession(userId string) error {
+// GetUserSession returns value for given session token
+func (c *provider) GetUserSession(userId, sessionToken string) (string, error) {
+	return c.sessionStore.Get(userId, sessionToken), nil
+}
+
+// DeleteAllUserSessions deletes all the user sessions from in-memory store.
+func (c *provider) DeleteAllUserSessions(userId string) error {
 	if os.Getenv("ENV") != constants.TestEnv {
 		c.mutex.Lock()
 		defer c.mutex.Unlock()
 	}
-	sessions := c.GetUserSessions(userId)
-	for k := range sessions {
-		c.RemoveState(k)
-	}
+	c.sessionStore.RemoveAll(userId)
+	return nil
+}
 
+// DeleteUserSession deletes the user session from the in-memory store.
+func (c *provider) DeleteUserSession(userId, sessionToken string) error {
+	if os.Getenv("ENV") != constants.TestEnv {
+		c.mutex.Lock()
+		defer c.mutex.Unlock()
+	}
+	c.sessionStore.Remove(userId, sessionToken)
 	return nil
 }
 
@@ -52,29 +50,19 @@ func (c *provider) SetState(key, state string) error {
 		c.mutex.Lock()
 		defer c.mutex.Unlock()
 	}
-	c.stateStore[key] = state
+	c.stateStore.Set(key, state)
 
 	return nil
 }
 
 // GetState gets the state from the in-memory store.
 func (c *provider) GetState(key string) (string, error) {
-	state := ""
-	if stateVal, ok := c.stateStore[key]; ok {
-		state = stateVal
-	}
-
-	return state, nil
+	return c.stateStore.Get(key), nil
 }
 
 // RemoveState removes the state from the in-memory store.
 func (c *provider) RemoveState(key string) error {
-	if os.Getenv("ENV") != constants.TestEnv {
-		c.mutex.Lock()
-		defer c.mutex.Unlock()
-	}
-	delete(c.stateStore, key)
-
+	c.stateStore.Remove(key)
 	return nil
 }
 

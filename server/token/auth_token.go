@@ -198,18 +198,19 @@ func ValidateAccessToken(gc *gin.Context, accessToken string) (map[string]interf
 		return res, fmt.Errorf(`unauthorized`)
 	}
 
-	savedSession, err := memorystore.Provider.GetState(accessToken)
-	if savedSession == "" || err != nil {
+	res, err := ParseJWTToken(accessToken)
+	if err != nil {
+		return res, err
+	}
+
+	userID := res["sub"].(string)
+	nonce, err := memorystore.Provider.GetUserSession(userID, accessToken)
+	if nonce == "" || err != nil {
 		return res, fmt.Errorf(`unauthorized`)
 	}
 
-	savedSessionSplit := strings.Split(savedSession, "@")
-	nonce := savedSessionSplit[0]
-	userID := savedSessionSplit[1]
-
 	hostname := parsers.GetHost(gc)
-	res, err = ParseJWTToken(accessToken, hostname, nonce, userID)
-	if err != nil {
+	if ok, err := ValidateJWTClaims(res, hostname, nonce, userID); !ok || err != nil {
 		return res, err
 	}
 
@@ -228,18 +229,19 @@ func ValidateRefreshToken(gc *gin.Context, refreshToken string) (map[string]inte
 		return res, fmt.Errorf(`unauthorized`)
 	}
 
-	savedSession, err := memorystore.Provider.GetState(refreshToken)
-	if savedSession == "" || err != nil {
+	res, err := ParseJWTToken(refreshToken)
+	if err != nil {
+		return res, err
+	}
+
+	userID := res["sub"].(string)
+	nonce, err := memorystore.Provider.GetUserSession(userID, refreshToken)
+	if nonce == "" || err != nil {
 		return res, fmt.Errorf(`unauthorized`)
 	}
 
-	savedSessionSplit := strings.Split(savedSession, "@")
-	nonce := savedSessionSplit[0]
-	userID := savedSessionSplit[1]
-
 	hostname := parsers.GetHost(gc)
-	res, err = ParseJWTToken(refreshToken, hostname, nonce, userID)
-	if err != nil {
+	if ok, err := ValidateJWTClaims(res, hostname, nonce, userID); !ok || err != nil {
 		return res, err
 	}
 
@@ -255,15 +257,6 @@ func ValidateBrowserSession(gc *gin.Context, encryptedSession string) (*SessionD
 		return nil, fmt.Errorf(`unauthorized`)
 	}
 
-	savedSession, err := memorystore.Provider.GetState(encryptedSession)
-	if savedSession == "" || err != nil {
-		return nil, fmt.Errorf(`unauthorized`)
-	}
-
-	savedSessionSplit := strings.Split(savedSession, "@")
-	nonce := savedSessionSplit[0]
-	userID := savedSessionSplit[1]
-
 	decryptedFingerPrint, err := crypto.DecryptAES(encryptedSession)
 	if err != nil {
 		return nil, err
@@ -275,22 +268,19 @@ func ValidateBrowserSession(gc *gin.Context, encryptedSession string) (*SessionD
 		return nil, err
 	}
 
-	if res.Nonce != nonce {
-		return nil, fmt.Errorf(`unauthorized: invalid nonce`)
+	nonce, err := memorystore.Provider.GetUserSession(res.Subject, encryptedSession)
+	if nonce == "" || err != nil {
+		log.Debug("invalid browser session:", err)
+		return nil, fmt.Errorf(`unauthorized`)
 	}
 
-	if res.Subject != userID {
-		return nil, fmt.Errorf(`unauthorized: invalid user id`)
+	if res.Nonce != nonce {
+		return nil, fmt.Errorf(`unauthorized: invalid nonce`)
 	}
 
 	if res.ExpiresAt < time.Now().Unix() {
 		return nil, fmt.Errorf(`unauthorized: token expired`)
 	}
-
-	// TODO validate scope
-	// if !reflect.DeepEqual(res.Roles, roles) {
-	// 	return res, "", fmt.Errorf(`unauthorized`)
-	// }
 
 	return &res, nil
 }

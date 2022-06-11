@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/golang-jwt/jwt"
 	log "github.com/sirupsen/logrus"
@@ -35,43 +34,46 @@ func ValidateJwtTokenResolver(ctx context.Context, params model.ValidateJWTToken
 		return nil, errors.New("invalid token type")
 	}
 
+	var claimRoles []string
+	var claims jwt.MapClaims
 	userID := ""
 	nonce := ""
 	// access_token and refresh_token should be validated from session store as well
 	if tokenType == "access_token" || tokenType == "refresh_token" {
-		savedSession, err := memorystore.Provider.GetState(params.Token)
-		if savedSession == "" || err != nil {
-			return &model.ValidateJWTTokenResponse{
-				IsValid: false,
-			}, nil
+		claims, err = token.ParseJWTToken(params.Token)
+		if err != nil {
+			log.Debug("Failed to parse JWT token: ", err)
+			return nil, err
 		}
-		savedSessionSplit := strings.Split(savedSession, "@")
-		nonce = savedSessionSplit[0]
-		userID = savedSessionSplit[1]
+		userID = claims["sub"].(string)
+		nonce, err = memorystore.Provider.GetUserSession(userID, params.Token)
+		if err != nil || nonce == "" {
+			log.Debug("Failed to get user session: ", err)
+			return nil, errors.New("invalid token")
+		}
+	} else {
+		// for ID token just parse jwt
+		claims, err = token.ParseJWTToken(params.Token)
+		if err != nil {
+			log.Debug("Failed to parse JWT token: ", err)
+			return nil, err
+		}
+		userID = claims["sub"].(string)
 	}
 
 	hostname := parsers.GetHost(gc)
-	var claimRoles []string
-	var claims jwt.MapClaims
 
 	// we cannot validate sub and nonce in case of id_token as that token is not persisted in session store
 	if userID != "" && nonce != "" {
-		claims, err = token.ParseJWTToken(params.Token, hostname, nonce, userID)
-		if err != nil {
+		if ok, err := token.ValidateJWTClaims(claims, hostname, nonce, userID); !ok || err != nil {
 			log.Debug("Failed to parse jwt token: ", err)
-			return &model.ValidateJWTTokenResponse{
-				IsValid: false,
-			}, nil
+			return nil, errors.New("invalid claims")
 		}
 	} else {
-		claims, err = token.ParseJWTTokenWithoutNonce(params.Token, hostname)
-		if err != nil {
+		if ok, err := token.ValidateJWTTokenWithoutNonce(claims, hostname); !ok || err != nil {
 			log.Debug("Failed to parse jwt token without nonce: ", err)
-			return &model.ValidateJWTTokenResponse{
-				IsValid: false,
-			}, nil
+			return nil, errors.New("invalid claims")
 		}
-
 	}
 
 	claimRolesInterface := claims["roles"]
