@@ -107,6 +107,7 @@ func TokenHandler() gin.HandlerFunc {
 				return
 			}
 
+			go memorystore.Provider.RemoveState(encryptedCode)
 			// split session data
 			// it contains code@sessiontoken
 			sessionDataSplit := strings.Split(sessionData, "@")
@@ -130,11 +131,11 @@ func TokenHandler() gin.HandlerFunc {
 				})
 				return
 			}
-			// rollover the session for security
-			memorystore.Provider.RemoveState(sessionDataSplit[1])
 			userID = claims.Subject
 			roles = claims.Roles
 			scope = claims.Scope
+			// rollover the session for security
+			go memorystore.Provider.DeleteUserSession(userID, claims.Nonce)
 		} else {
 			// validate refresh token
 			if refreshToken == "" {
@@ -163,7 +164,7 @@ func TokenHandler() gin.HandlerFunc {
 				scope = append(scope, v.(string))
 			}
 			// remove older refresh token and rotate it for security
-			memorystore.Provider.RemoveState(refreshToken)
+			go memorystore.Provider.DeleteUserSession(userID, claims["nonce"].(string))
 		}
 
 		user, err := db.Provider.GetUserByID(userID)
@@ -185,8 +186,8 @@ func TokenHandler() gin.HandlerFunc {
 			})
 			return
 		}
-		memorystore.Provider.SetState(authToken.FingerPrintHash, authToken.FingerPrint+"@"+user.ID)
-		memorystore.Provider.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
+		memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash)
+		memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token)
 		cookie.SetSession(gc, authToken.FingerPrintHash)
 
 		expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
@@ -204,7 +205,7 @@ func TokenHandler() gin.HandlerFunc {
 
 		if authToken.RefreshToken != nil {
 			res["refresh_token"] = authToken.RefreshToken.Token
-			memorystore.Provider.SetState(authToken.RefreshToken.Token, authToken.FingerPrint+"@"+user.ID)
+			memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token)
 		}
 
 		gc.JSON(http.StatusOK, res)

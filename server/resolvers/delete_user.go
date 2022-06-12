@@ -38,7 +38,7 @@ func DeleteUserResolver(ctx context.Context, params model.DeleteUserInput) (*mod
 		return res, err
 	}
 
-	go memorystore.Provider.DeleteAllUserSession(fmt.Sprintf("%x", user.ID))
+	go memorystore.Provider.DeleteAllUserSessions(user.ID)
 
 	err = db.Provider.DeleteUser(user)
 	if err != nil {

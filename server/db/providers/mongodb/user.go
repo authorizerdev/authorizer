@@ -68,7 +68,6 @@ func (p *provider) ListUsers(pagination model.Pagination) (*model.Users, error) 
 	opts.SetSort(bson.M{"created_at": -1})
 
 	paginationClone := pagination
-	// TODO add pagination total
 
 	userCollection := p.db.Collection(models.Collections.User, options.Collection())
 	count, err := userCollection.CountDocuments(nil, bson.M{}, options.Count())

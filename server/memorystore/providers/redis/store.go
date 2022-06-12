@@ -2,67 +2,78 @@ package redis
 
 import (
 	"strconv"
-	"strings"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	log "github.com/sirupsen/logrus"
 )
 
 var (
-	// session store prefix
-	sessionStorePrefix = "authorizer_session:"
+	// state store prefix
+	stateStorePrefix = "authorizer_state:"
 	// env store prefix
 	envStorePrefix = "authorizer_env"
 )
 
-// ClearStore clears the redis store for authorizer related tokens
-func (c *provider) ClearStore() error {
-	err := c.store.Del(c.ctx, sessionStorePrefix+"*").Err()
+// SetUserSession sets the user session in redis store.
+func (c *provider) SetUserSession(userId, key, token string) error {
+	err := c.store.HSet(c.ctx, userId, key, token).Err()
 	if err != nil {
-		log.Debug("Error clearing redis store: ", err)
+		log.Debug("Error saving to redis: ", err)
 		return err
 	}
-
 	return nil
 }
 
-// GetUserSessions returns all the user session token from the redis store.
-func (c *provider) GetUserSessions(userID string) map[string]string {
-	data, err := c.store.HGetAll(c.ctx, "*").Result()
+// GetAllUserSessions returns all the user session token from the redis store.
+func (c *provider) GetAllUserSessions(userID string) (map[string]string, error) {
+	data, err := c.store.HGetAll(c.ctx, userID).Result()
 	if err != nil {
-		log.Debug("error getting token from redis store: ", err)
+		log.Debug("error getting all user sessions from redis store: ", err)
+		return nil, err
 	}
 
-	res := map[string]string{}
-	for k, v := range data {
-		split := strings.Split(v, "@")
-		if split[1] == userID {
-			res[k] = split[0]
-		}
-	}
-
-	return res
+	return data, nil
 }
 
-// DeleteAllUserSession deletes all the user session from redis
-func (c *provider) DeleteAllUserSession(userId string) error {
-	sessions := c.GetUserSessions(userId)
-	for k, v := range sessions {
-		if k == "token" {
-			err := c.store.Del(c.ctx, v).Err()
-			if err != nil {
-				log.Debug("Error deleting redis token: ", err)
-				return err
-			}
-		}
+// GetUserSession returns the user session from redis store.
+func (c *provider) GetUserSession(userId, key string) (string, error) {
+	data, err := c.store.HGet(c.ctx, userId, key).Result()
+	if err != nil {
+		return "", err
 	}
+	return data, nil
+}
 
+// DeleteUserSession deletes the user session from redis store.
+func (c *provider) DeleteUserSession(userId, key string) error {
+	if err := c.store.HDel(c.ctx, userId, constants.TokenTypeSessionToken+"_"+key).Err(); err != nil {
+		log.Debug("Error deleting user session from redis: ", err)
+		return err
+	}
+	if err := c.store.HDel(c.ctx, userId, constants.TokenTypeAccessToken+"_"+key).Err(); err != nil {
+		log.Debug("Error deleting user session from redis: ", err)
+		return err
+	}
+	if err := c.store.HDel(c.ctx, userId, constants.TokenTypeRefreshToken+"_"+key).Err(); err != nil {
+		log.Debug("Error deleting user session from redis: ", err)
+		return err
+	}
+	return nil
+}
+
+// DeleteAllUserSessions deletes all the user session from redis
+func (c *provider) DeleteAllUserSessions(userID string) error {
+	err := c.store.Del(c.ctx, userID).Err()
+	if err != nil {
+		log.Debug("Error deleting all user sessions from redis: ", err)
+		return err
+	}
 	return nil
 }
 
 // SetState sets the state in redis store.
 func (c *provider) SetState(key, value string) error {
-	err := c.store.Set(c.ctx, sessionStorePrefix+key, value, 0).Err()
+	err := c.store.Set(c.ctx, stateStorePrefix+key, value, 0).Err()
 	if err != nil {
 		log.Debug("Error saving redis token: ", err)
 		return err
@@ -73,18 +84,18 @@ func (c *provider) SetState(key, value string) error {
 
 // GetState gets the state from redis store.
 func (c *provider) GetState(key string) (string, error) {
-	var res string
-	err := c.store.Get(c.ctx, sessionStorePrefix+key).Scan(&res)
+	data, err := c.store.Get(c.ctx, stateStorePrefix+key).Result()
 	if err != nil {
 		log.Debug("error getting token from redis store: ", err)
+		return "", err
 	}
 
-	return res, err
+	return data, err
 }
 
 // RemoveState removes the state from redis store.
 func (c *provider) RemoveState(key string) error {
-	err := c.store.Del(c.ctx, sessionStorePrefix+key).Err()
+	err := c.store.Del(c.ctx, stateStorePrefix+key).Err()
 	if err != nil {
 		log.Fatalln("Error deleting redis token: ", err)
 		return err
@@ -137,22 +148,20 @@ func (c *provider) UpdateEnvVariable(key string, value interface{}) error {
 
 // GetStringStoreEnvVariable to get the string env variable from env store
 func (c *provider) GetStringStoreEnvVariable(key string) (string, error) {
-	var res string
-	err := c.store.HGet(c.ctx, envStorePrefix, key).Scan(&res)
+	data, err := c.store.HGet(c.ctx, envStorePrefix, key).Result()
 	if err != nil {
 		return "", nil
 	}
 
-	return res, nil
+	return data, nil
 }
 
 // GetBoolStoreEnvVariable to get the bool env variable from env store
 func (c *provider) GetBoolStoreEnvVariable(key string) (bool, error) {
-	var res bool
-	err := c.store.HGet(c.ctx, envStorePrefix, key).Scan(res)
+	data, err := c.store.HGet(c.ctx, envStorePrefix, key).Result()
 	if err != nil {
 		return false, nil
 	}
 
-	return res, nil
+	return data == "1", nil
 }

@@ -113,7 +113,7 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 		}
 
 		// TODO figure out how to do this
-		go memorystore.Provider.DeleteAllUserSession(user.ID)
+		go memorystore.Provider.DeleteAllUserSessions(user.ID)
 
 		hostname := parsers.GetHost(gc)
 		user.Email = newEmail
@@ -182,7 +182,7 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 			rolesToSave = strings.Join(inputRoles, ",")
 		}
 
-		go memorystore.Provider.DeleteAllUserSession(user.ID)
+		go memorystore.Provider.DeleteAllUserSessions(user.ID)
 	}
 
 	if rolesToSave != "" {

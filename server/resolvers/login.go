@@ -117,12 +117,12 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 	}
 
 	cookie.SetSession(gc, authToken.FingerPrintHash)
-	memorystore.Provider.SetState(authToken.FingerPrintHash, authToken.FingerPrint+"@"+user.ID)
-	memorystore.Provider.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
+	memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash)
+	memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token)
 
 	if authToken.RefreshToken != nil {
 		res.RefreshToken = &authToken.RefreshToken.Token
-		memorystore.Provider.SetState(authToken.RefreshToken.Token, authToken.FingerPrint+"@"+user.ID)
+		memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token)
 	}
 
 	go db.Provider.AddSession(models.Session{

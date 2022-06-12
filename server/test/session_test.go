@@ -10,6 +10,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/resolvers"
+	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -33,19 +34,21 @@ func sessionTests(t *testing.T, s TestSetup) {
 			Token: verificationRequest.Token,
 		})
 
-		sessions := memorystore.Provider.GetUserSessions(verifyRes.User.ID)
-		cookie := ""
-		token := *verifyRes.AccessToken
-		// set all they keys in cookie one of them should be session cookie
-		for key := range sessions {
-			if key != token {
-				cookie += fmt.Sprintf("%s=%s;", constants.AppCookieName+"_session", key)
-			}
-		}
+		accessToken := *verifyRes.AccessToken
+		assert.NotEmpty(t, accessToken)
+
+		claims, err := token.ParseJWTToken(accessToken)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, claims)
+
+		sessionToken, err := memorystore.Provider.GetUserSession(verifyRes.User.ID, constants.TokenTypeSessionToken+"_"+claims["nonce"].(string))
+		assert.NoError(t, err)
+		assert.NotEmpty(t, sessionToken)
+
+		cookie := fmt.Sprintf("%s=%s;", constants.AppCookieName+"_session", sessionToken)
 		cookie = strings.TrimSuffix(cookie, ";")
 
 		req.Header.Set("Cookie", cookie)
-
 		_, err = resolvers.SessionResolver(ctx, &model.SessionQueryInput{})
 		assert.Nil(t, err)
 

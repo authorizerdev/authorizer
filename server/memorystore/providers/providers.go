@@ -2,12 +2,17 @@ package providers
 
 // Provider defines current memory store provider
 type Provider interface {
+	// SetUserSession sets the user session
+	SetUserSession(userId, key, token string) error
+	// GetAllUserSessions returns all the user sessions from the session store
+	GetAllUserSessions(userId string) (map[string]string, error)
+	// GetUserSession returns the session token for given token
+	GetUserSession(userId, key string) (string, error)
+	// DeleteUserSession deletes the user session
+	DeleteUserSession(userId, key string) error
 	// DeleteAllSessions deletes all the sessions from the session store
-	DeleteAllUserSession(userId string) error
-	// GetUserSessions returns all the user sessions from the session store
-	GetUserSessions(userId string) map[string]string
-	// ClearStore clears the session store for authorizer tokens
-	ClearStore() error
+	DeleteAllUserSessions(userId string) error
+
 	// SetState sets the login state (key, value form) in the session store
 	SetState(key, state string) error
 	// GetState returns the state from the session store

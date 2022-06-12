@@ -8,6 +8,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
@@ -36,9 +37,14 @@ func VerifyEmailResolver(ctx context.Context, params model.VerifyEmailInput) (*m
 
 	// verify if token exists in db
 	hostname := parsers.GetHost(gc)
-	claim, err := token.ParseJWTToken(params.Token, hostname, verificationRequest.Nonce, verificationRequest.Email)
+	claim, err := token.ParseJWTToken(params.Token)
 	if err != nil {
 		log.Debug("Failed to parse token: ", err)
+		return res, fmt.Errorf(`invalid token: %s`, err.Error())
+	}
+
+	if ok, err := token.ValidateJWTClaims(claim, hostname, verificationRequest.Nonce, verificationRequest.Email); !ok || err != nil {
+		log.Debug("Failed to validate jwt claims: ", err)
 		return res, fmt.Errorf(`invalid token: %s`, err.Error())
 	}
 
@@ -75,9 +81,6 @@ func VerifyEmailResolver(ctx context.Context, params model.VerifyEmailInput) (*m
 		return res, err
 	}
 
-	memorystore.Provider.SetState(authToken.FingerPrintHash, authToken.FingerPrint+"@"+user.ID)
-	memorystore.Provider.SetState(authToken.AccessToken.Token, authToken.FingerPrint+"@"+user.ID)
-	cookie.SetSession(gc, authToken.FingerPrintHash)
 	go db.Provider.AddSession(models.Session{
 		UserID:    user.ID,
 		UserAgent: utils.GetUserAgent(gc.Request),
@@ -95,6 +98,15 @@ func VerifyEmailResolver(ctx context.Context, params model.VerifyEmailInput) (*m
 		IDToken:     &authToken.IDToken.Token,
 		ExpiresIn:   &expiresIn,
 		User:        user.AsAPIUser(),
+	}
+
+	cookie.SetSession(gc, authToken.FingerPrintHash)
+	memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash)
+	memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token)
+
+	if authToken.RefreshToken != nil {
+		res.RefreshToken = &authToken.RefreshToken.Token
+		memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token)
 	}
 	return res, nil
 }
