@@ -28,6 +28,8 @@ export const EnvVariablesQuery = `
       FACEBOOK_CLIENT_SECRET,
       LINKEDIN_CLIENT_ID,
       LINKEDIN_CLIENT_SECRET,
+      APPLE_CLIENT_ID,
+      APPLE_CLIENT_SECRET,
       DEFAULT_ROLES,
       PROTECTED_ROLES,
       ROLES,

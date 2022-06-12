@@ -67,6 +67,8 @@ type Env struct {
 	FacebookClientSecret       *string  `json:"FACEBOOK_CLIENT_SECRET"`
 	LinkedinClientID           *string  `json:"LINKEDIN_CLIENT_ID"`
 	LinkedinClientSecret       *string  `json:"LINKEDIN_CLIENT_SECRET"`
+	AppleClientID              *string  `json:"APPLE_CLIENT_ID"`
+	AppleClientSecret          *string  `json:"APPLE_CLIENT_SECRET"`
 	OrganizationName           *string  `json:"ORGANIZATION_NAME"`
 	OrganizationLogo           *string  `json:"ORGANIZATION_LOGO"`
 }
@@ -119,6 +121,7 @@ type Meta struct {
 	IsFacebookLoginEnabled       bool   `json:"is_facebook_login_enabled"`
 	IsGithubLoginEnabled         bool   `json:"is_github_login_enabled"`
 	IsLinkedinLoginEnabled       bool   `json:"is_linkedin_login_enabled"`
+	IsAppleLoginEnabled          bool   `json:"is_apple_login_enabled"`
 	IsEmailVerificationEnabled   bool   `json:"is_email_verification_enabled"`
 	IsBasicAuthenticationEnabled bool   `json:"is_basic_authentication_enabled"`
 	IsMagicLinkLoginEnabled      bool   `json:"is_magic_link_login_enabled"`
@@ -221,6 +224,8 @@ type UpdateEnvInput struct {
 	FacebookClientSecret       *string  `json:"FACEBOOK_CLIENT_SECRET"`
 	LinkedinClientID           *string  `json:"LINKEDIN_CLIENT_ID"`
 	LinkedinClientSecret       *string  `json:"LINKEDIN_CLIENT_SECRET"`
+	AppleClientID              *string  `json:"APPLE_CLIENT_ID"`
+	AppleClientSecret          *string  `json:"APPLE_CLIENT_SECRET"`
 	OrganizationName           *string  `json:"ORGANIZATION_NAME"`
 	OrganizationLogo           *string  `json:"ORGANIZATION_LOGO"`
 }

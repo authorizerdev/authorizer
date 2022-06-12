@@ -57,6 +57,8 @@ type ComplexityRoot struct {
 		AdminSecret                func(childComplexity int) int
 		AllowedOrigins             func(childComplexity int) int
 		AppURL                     func(childComplexity int) int
+		AppleClientID              func(childComplexity int) int
+		AppleClientSecret          func(childComplexity int) int
 		ClientID                   func(childComplexity int) int
 		ClientSecret               func(childComplexity int) int
 		CustomAccessTokenScript    func(childComplexity int) int
@@ -113,6 +115,7 @@ type ComplexityRoot struct {
 
 	Meta struct {
 		ClientID                     func(childComplexity int) int
+		IsAppleLoginEnabled          func(childComplexity int) int
 		IsBasicAuthenticationEnabled func(childComplexity int) int
 		IsEmailVerificationEnabled   func(childComplexity int) int
 		IsFacebookLoginEnabled       func(childComplexity int) int
@@ -334,6 +337,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Env.AppURL(childComplexity), true
+
+	case "Env.APPLE_CLIENT_ID":
+		if e.complexity.Env.AppleClientID == nil {
+			break
+		}
+
+		return e.complexity.Env.AppleClientID(childComplexity), true
+
+	case "Env.APPLE_CLIENT_SECRET":
+		if e.complexity.Env.AppleClientSecret == nil {
+			break
+		}
+
+		return e.complexity.Env.AppleClientSecret(childComplexity), true
 
 	case "Env.CLIENT_ID":
 		if e.complexity.Env.ClientID == nil {
@@ -663,6 +680,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Meta.ClientID(childComplexity), true
+
+	case "Meta.is_apple_login_enabled":
+		if e.complexity.Meta.IsAppleLoginEnabled == nil {
+			break
+		}
+
+		return e.complexity.Meta.IsAppleLoginEnabled(childComplexity), true
 
 	case "Meta.is_basic_authentication_enabled":
 		if e.complexity.Meta.IsBasicAuthenticationEnabled == nil {
@@ -1377,6 +1401,7 @@ type Meta {
 	is_facebook_login_enabled: Boolean!
 	is_github_login_enabled: Boolean!
 	is_linkedin_login_enabled: Boolean!
+	is_apple_login_enabled: Boolean!
 	is_email_verification_enabled: Boolean!
 	is_basic_authentication_enabled: Boolean!
 	is_magic_link_login_enabled: Boolean!
@@ -1489,6 +1514,8 @@ type Env {
 	FACEBOOK_CLIENT_SECRET: String
 	LINKEDIN_CLIENT_ID: String
 	LINKEDIN_CLIENT_SECRET: String
+	APPLE_CLIENT_ID: String
+	APPLE_CLIENT_SECRET: String
 	ORGANIZATION_NAME: String
 	ORGANIZATION_LOGO: String
 }
@@ -1538,6 +1565,8 @@ input UpdateEnvInput {
 	FACEBOOK_CLIENT_SECRET: String
 	LINKEDIN_CLIENT_ID: String
 	LINKEDIN_CLIENT_SECRET: String
+	APPLE_CLIENT_ID: String
+	APPLE_CLIENT_SECRET: String
 	ORGANIZATION_NAME: String
 	ORGANIZATION_LOGO: String
 }
@@ -3695,6 +3724,70 @@ func (ec *executionContext) _Env_LINKEDIN_CLIENT_SECRET(ctx context.Context, fie
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Env_APPLE_CLIENT_ID(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Env",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.AppleClientID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Env_APPLE_CLIENT_SECRET(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Env",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.AppleClientSecret, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Env_ORGANIZATION_NAME(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -4119,6 +4212,41 @@ func (ec *executionContext) _Meta_is_linkedin_login_enabled(ctx context.Context,
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.IsLinkedinLoginEnabled, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Meta_is_apple_login_enabled(ctx context.Context, field graphql.CollectedField, obj *model.Meta) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Meta",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsAppleLoginEnabled, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -8707,6 +8835,22 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			if err != nil {
 				return it, err
 			}
+		case "APPLE_CLIENT_ID":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("APPLE_CLIENT_ID"))
+			it.AppleClientID, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "APPLE_CLIENT_SECRET":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("APPLE_CLIENT_SECRET"))
+			it.AppleClientSecret, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		case "ORGANIZATION_NAME":
 			var err error
 
@@ -9179,6 +9323,10 @@ func (ec *executionContext) _Env(ctx context.Context, sel ast.SelectionSet, obj 
 			out.Values[i] = ec._Env_LINKEDIN_CLIENT_ID(ctx, field, obj)
 		case "LINKEDIN_CLIENT_SECRET":
 			out.Values[i] = ec._Env_LINKEDIN_CLIENT_SECRET(ctx, field, obj)
+		case "APPLE_CLIENT_ID":
+			out.Values[i] = ec._Env_APPLE_CLIENT_ID(ctx, field, obj)
+		case "APPLE_CLIENT_SECRET":
+			out.Values[i] = ec._Env_APPLE_CLIENT_SECRET(ctx, field, obj)
 		case "ORGANIZATION_NAME":
 			out.Values[i] = ec._Env_ORGANIZATION_NAME(ctx, field, obj)
 		case "ORGANIZATION_LOGO":
@@ -9292,6 +9440,11 @@ func (ec *executionContext) _Meta(ctx context.Context, sel ast.SelectionSet, obj
 			}
 		case "is_linkedin_login_enabled":
 			out.Values[i] = ec._Meta_is_linkedin_login_enabled(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "is_apple_login_enabled":
+			out.Values[i] = ec._Meta_is_apple_login_enabled(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}

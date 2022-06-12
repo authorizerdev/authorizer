@@ -19,6 +19,7 @@ type Meta {
 	is_facebook_login_enabled: Boolean!
 	is_github_login_enabled: Boolean!
 	is_linkedin_login_enabled: Boolean!
+	is_apple_login_enabled: Boolean!
 	is_email_verification_enabled: Boolean!
 	is_basic_authentication_enabled: Boolean!
 	is_magic_link_login_enabled: Boolean!
@@ -131,6 +132,8 @@ type Env {
 	FACEBOOK_CLIENT_SECRET: String
 	LINKEDIN_CLIENT_ID: String
 	LINKEDIN_CLIENT_SECRET: String
+	APPLE_CLIENT_ID: String
+	APPLE_CLIENT_SECRET: String
 	ORGANIZATION_NAME: String
 	ORGANIZATION_LOGO: String
 }
@@ -180,6 +183,8 @@ input UpdateEnvInput {
 	FACEBOOK_CLIENT_SECRET: String
 	LINKEDIN_CLIENT_ID: String
 	LINKEDIN_CLIENT_SECRET: String
+	APPLE_CLIENT_ID: String
+	APPLE_CLIENT_SECRET: String
 	ORGANIZATION_NAME: String
 	ORGANIZATION_LOGO: String
 }

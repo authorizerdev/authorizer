@@ -79,6 +79,10 @@ const (
 	EnvKeyLinkedInClientID = "LINKEDIN_CLIENT_ID"
 	// EnvKeyLinkedinClientSecret key for env variable LINKEDIN_CLIENT_SECRET
 	EnvKeyLinkedInClientSecret = "LINKEDIN_CLIENT_SECRET"
+	// EnvKeyAppleClientID key for env variable APPLE_CLIENT_ID
+	EnvKeyAppleClientID = "APPLE_CLIENT_ID"
+	// EnvKeyAppleClientSecret key for env variable APPLE_CLIENT_SECRET
+	EnvKeyAppleClientSecret = "APPLE_CLIENT_SECRET"
 	// EnvKeyOrganizationName key for env variable ORGANIZATION_NAME
 	EnvKeyOrganizationName = "ORGANIZATION_NAME"
 	// EnvKeyOrganizationLogo key for env variable ORGANIZATION_LOGO
