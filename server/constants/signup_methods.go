@@ -13,4 +13,6 @@ const (
 	SignupMethodFacebook = "facebook"
 	// SignupMethodLinkedin is the linkedin signup method
 	SignupMethodLinkedIn = "linkedin"
+	// SignupMethodApple is the apple signup method
+	SignupMethodApple = "apple"
 )
