@@ -130,7 +130,7 @@ func InitOAuth() error {
 				AuthURL:  "https://appleid.apple.com/auth/authorize",
 				TokenURL: "https://appleid.apple.com/auth/token",
 			},
-			Scopes: []string{"email"},
+			Scopes: []string{},
 		}
 	}
 
