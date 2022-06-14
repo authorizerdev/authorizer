@@ -23,6 +23,7 @@ func InitRouter(log *logrus.Logger) *gin.Engine {
 	router.GET("/playground", handlers.PlaygroundHandler())
 	router.GET("/oauth_login/:oauth_provider", handlers.OAuthLoginHandler())
 	router.GET("/oauth_callback/:oauth_provider", handlers.OAuthCallbackHandler())
+	router.POST("/oauth_callback/:oauth_provider", handlers.OAuthCallbackHandler())
 	router.GET("/verify_email", handlers.VerifyEmailHandler())
 	// OPEN ID routes
 	router.GET("/.well-known/openid-configuration", handlers.OpenIDConfigurationHandler())
