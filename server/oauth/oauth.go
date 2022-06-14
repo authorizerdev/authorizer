@@ -124,7 +124,7 @@ func InitOAuth() error {
 	if appleClientID != "" && appleClientSecret != "" {
 		OAuthProviders.AppleConfig = &oauth2.Config{
 			ClientID:     appleClientID,
-			ClientSecret: appleClientID,
+			ClientSecret: appleClientSecret,
 			RedirectURL:  "/oauth_callback/apple",
 			Endpoint: oauth2.Endpoint{
 				AuthURL:  "https://appleid.apple.com/auth/authorize",
