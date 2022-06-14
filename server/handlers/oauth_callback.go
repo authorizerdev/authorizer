@@ -482,15 +482,26 @@ func processAppleUserInfo(code string) (models.User, error) {
 	}
 	fmt.Println("=> decoded claims data", decodedClaimsData)
 
-	claims := map[string]string{}
+	claims := make(map[string]interface{})
 	err = json.Unmarshal([]byte(decodedClaimsData), &claims)
 	if err != nil {
 		log.Debug("Failed to unmarshal claims data: ", err)
 		return user, fmt.Errorf("failed to unmarshal claims data: %s", err.Error())
 	}
-	fmt.Println("=> claims map:", claims)
-	email := claims["email"]
-	user.Email = email
+
+	fmt.Println("=> claims", claims)
+
+	if val, ok := claims["email"]; !ok {
+		log.Debug("Failed to extract email from claims")
+		return user, fmt.Errorf("unable to extract email")
+	} else {
+		user.Email = val.(string)
+	}
+
+	if val, ok := claims["name"]; ok {
+		givenName := val.(string)
+		user.GivenName = &givenName
+	}
 
 	return user, err
 }
