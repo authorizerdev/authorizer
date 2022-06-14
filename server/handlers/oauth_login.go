@@ -184,7 +184,8 @@ func OAuthLoginHandler() gin.HandlerFunc {
 				return
 			}
 			oauth.OAuthProviders.AppleConfig.RedirectURL = hostname + "/oauth_callback/" + constants.SignupMethodApple
-			url := oauth.OAuthProviders.AppleConfig.AuthCodeURL(oauthStateString, oauth2.SetAuthURLParam("response_mode", "form_post"))
+			// Scope from the root config was not passed for apple login
+			url := oauth.OAuthProviders.AppleConfig.AuthCodeURL(oauthStateString, oauth2.SetAuthURLParam("response_mode", "form_post"), oauth2.SetAuthURLParam("scope", "name email"))
 			c.Redirect(http.StatusTemporaryRedirect, url)
 		default:
 			log.Debug("Invalid oauth provider: ", provider)

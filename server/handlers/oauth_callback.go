@@ -492,8 +492,8 @@ func processAppleUserInfo(code string) (models.User, error) {
 	fmt.Println("=> claims", claims)
 
 	if val, ok := claims["email"]; !ok {
-		log.Debug("Failed to extract email from claims")
-		return user, fmt.Errorf("unable to extract email")
+		log.Debug("Failed to extract email from claims.")
+		return user, fmt.Errorf("unable to extract email, please check the scopes enabled for your app. It needs `email`, `name` scopes")
 	} else {
 		user.Email = val.(string)
 	}
