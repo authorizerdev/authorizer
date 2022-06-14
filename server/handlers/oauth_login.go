@@ -184,8 +184,9 @@ func OAuthLoginHandler() gin.HandlerFunc {
 				return
 			}
 			oauth.OAuthProviders.AppleConfig.RedirectURL = hostname + "/oauth_callback/" + constants.SignupMethodApple
-			// Scope from the root config was not passed for apple login
-			url := oauth.OAuthProviders.AppleConfig.AuthCodeURL(oauthStateString, oauth2.SetAuthURLParam("response_mode", "form_post")) + "&scope=openid name email"
+			// there is scope encoding issue with oauth2 and how apple expects, hence added scope manually
+			// check: https://github.com/golang/oauth2/issues/449
+			url := oauth.OAuthProviders.AppleConfig.AuthCodeURL(oauthStateString, oauth2.SetAuthURLParam("response_mode", "form_post")) + "&scope=name email"
 			c.Redirect(http.StatusTemporaryRedirect, url)
 		default:
 			log.Debug("Invalid oauth provider: ", provider)
