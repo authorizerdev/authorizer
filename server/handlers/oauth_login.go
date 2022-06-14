@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/oauth2"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/memorystore"
@@ -170,7 +171,7 @@ func OAuthLoginHandler() gin.HandlerFunc {
 			c.Redirect(http.StatusTemporaryRedirect, url)
 		case constants.SignupMethodApple:
 			if oauth.OAuthProviders.AppleConfig == nil {
-				log.Debug("Linkedin OAuth provider is not configured")
+				log.Debug("Apple OAuth provider is not configured")
 				isProviderConfigured = false
 				break
 			}
@@ -183,7 +184,7 @@ func OAuthLoginHandler() gin.HandlerFunc {
 				return
 			}
 			oauth.OAuthProviders.AppleConfig.RedirectURL = hostname + "/oauth_callback/" + constants.SignupMethodApple
-			url := oauth.OAuthProviders.AppleConfig.AuthCodeURL(oauthStateString)
+			url := oauth.OAuthProviders.AppleConfig.AuthCodeURL(oauthStateString, oauth2.SetAuthURLParam("response_mode", "form_post"))
 			c.Redirect(http.StatusTemporaryRedirect, url)
 		default:
 			log.Debug("Invalid oauth provider: ", provider)
