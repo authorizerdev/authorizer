@@ -462,16 +462,12 @@ func processAppleUserInfo(code string) (models.User, error) {
 		return user, fmt.Errorf("invalid apple exchange code: %s", err.Error())
 	}
 
-	fmt.Println("=> token", oauth2Token.AccessToken)
-
 	// Extract the ID Token from OAuth2 token.
 	rawIDToken, ok := oauth2Token.Extra("id_token").(string)
 	if !ok {
 		log.Debug("Failed to extract ID Token from OAuth2 token")
 		return user, fmt.Errorf("unable to extract id_token")
 	}
-
-	fmt.Println("=> rawIDToken", rawIDToken)
 
 	tokenSplit := strings.Split(rawIDToken, ".")
 	claimsData := tokenSplit[1]
@@ -480,7 +476,6 @@ func processAppleUserInfo(code string) (models.User, error) {
 		log.Debug("Failed to decrypt claims data: ", err)
 		return user, fmt.Errorf("failed to decrypt claims data: %s", err.Error())
 	}
-	fmt.Println("=> decoded claims data", decodedClaimsData)
 
 	claims := make(map[string]interface{})
 	err = json.Unmarshal([]byte(decodedClaimsData), &claims)
@@ -488,8 +483,6 @@ func processAppleUserInfo(code string) (models.User, error) {
 		log.Debug("Failed to unmarshal claims data: ", err)
 		return user, fmt.Errorf("failed to unmarshal claims data: %s", err.Error())
 	}
-
-	fmt.Println("=> claims", claims)
 
 	if val, ok := claims["email"]; !ok {
 		log.Debug("Failed to extract email from claims.")
@@ -500,10 +493,15 @@ func processAppleUserInfo(code string) (models.User, error) {
 
 	if val, ok := claims["name"]; ok {
 		nameData := val.(map[string]interface{})
-		givenName := nameData["firstName"].(string)
-		familyName := nameData["lastName"].(string)
-		user.GivenName = &givenName
-		user.FamilyName = &familyName
+		if nameVal, ok := nameData["firstName"]; ok {
+			givenName := nameVal.(string)
+			user.GivenName = &givenName
+		}
+
+		if nameVal, ok := nameData["lastName"]; ok {
+			familyName := nameVal.(string)
+			user.FamilyName = &familyName
+		}
 	}
 
 	return user, err
