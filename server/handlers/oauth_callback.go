@@ -499,8 +499,11 @@ func processAppleUserInfo(code string) (models.User, error) {
 	}
 
 	if val, ok := claims["name"]; ok {
-		givenName := val.(string)
+		nameData := val.(map[string]interface{})
+		givenName := nameData["firstName"].(string)
+		familyName := nameData["lastName"].(string)
 		user.GivenName = &givenName
+		user.FamilyName = &familyName
 	}
 
 	return user, err
