@@ -225,7 +225,7 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			redirectURL = redirectURL + "?" + strings.TrimPrefix(params, "&")
 		}
 
-		c.Redirect(http.StatusTemporaryRedirect, redirectURL)
+		c.Redirect(http.StatusFound, redirectURL)
 	}
 }
 
