@@ -17,6 +17,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/cookie"
+	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/memorystore"
@@ -472,14 +473,23 @@ func processAppleUserInfo(code string) (models.User, error) {
 
 	fmt.Println("=> rawIDToken", rawIDToken)
 
-	// Parse and verify ID Token payload.
-	claims, err := token.ParseJWTToken(rawIDToken)
+	tokenSplit := strings.Split(rawIDToken, ".")
+	claimsData := tokenSplit[1]
+	decodedClaimsData, err := crypto.DecryptB64(claimsData)
 	if err != nil {
-		log.Debug("Failed to parse apple id token: ", err)
-		return user, err
+		log.Debug("Failed to decrypt claims data: ", err)
+		return user, fmt.Errorf("failed to decrypt claims data: %s", err.Error())
 	}
-	fmt.Println("claims:", claims)
-	email := claims["email"].(string)
+	fmt.Println("=> decoded claims data", decodedClaimsData)
+
+	claims := map[string]string{}
+	err = json.Unmarshal([]byte(decodedClaimsData), &claims)
+	if err != nil {
+		log.Debug("Failed to unmarshal claims data: ", err)
+		return user, fmt.Errorf("failed to unmarshal claims data: %s", err.Error())
+	}
+	fmt.Println("=> claims map:", claims)
+	email := claims["email"]
 	user.Email = email
 
 	return user, err
