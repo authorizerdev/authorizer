@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -17,7 +18,6 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/cookie"
-	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/memorystore"
@@ -456,11 +456,14 @@ func processLinkedInUserInfo(code string) (models.User, error) {
 
 func processAppleUserInfo(code string) (models.User, error) {
 	user := models.User{}
+	fmt.Println("=> code:", code)
 	oauth2Token, err := oauth.OAuthProviders.AppleConfig.Exchange(oauth2.NoContext, code)
 	if err != nil {
 		log.Debug("Failed to exchange code for token: ", err)
 		return user, fmt.Errorf("invalid apple exchange code: %s", err.Error())
 	}
+
+	fmt.Println("=> oauth2Token:", oauth2Token)
 
 	// Extract the ID Token from OAuth2 token.
 	rawIDToken, ok := oauth2Token.Extra("id_token").(string)
@@ -471,18 +474,22 @@ func processAppleUserInfo(code string) (models.User, error) {
 
 	tokenSplit := strings.Split(rawIDToken, ".")
 	claimsData := tokenSplit[1]
-	decodedClaimsData, err := crypto.DecryptB64(claimsData)
+	decodedClaimsData, err := base64.RawURLEncoding.DecodeString(claimsData)
 	if err != nil {
-		log.Debug("Failed to decrypt claims data: ", err)
+		log.Debugf("Failed to decrypt claims %s: %s", claimsData, err.Error())
 		return user, fmt.Errorf("failed to decrypt claims data: %s", err.Error())
 	}
 
+	fmt.Println("=> decodedClaimsData:", string(decodedClaimsData))
+
 	claims := make(map[string]interface{})
-	err = json.Unmarshal([]byte(decodedClaimsData), &claims)
+	err = json.Unmarshal(decodedClaimsData, &claims)
 	if err != nil {
 		log.Debug("Failed to unmarshal claims data: ", err)
 		return user, fmt.Errorf("failed to unmarshal claims data: %s", err.Error())
 	}
+
+	fmt.Println("=> claims:", claims)
 
 	if val, ok := claims["email"]; !ok {
 		log.Debug("Failed to extract email from claims.")
