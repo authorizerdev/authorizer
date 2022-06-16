@@ -456,14 +456,11 @@ func processLinkedInUserInfo(code string) (models.User, error) {
 
 func processAppleUserInfo(code string) (models.User, error) {
 	user := models.User{}
-	fmt.Println("=> code:", code)
 	oauth2Token, err := oauth.OAuthProviders.AppleConfig.Exchange(oauth2.NoContext, code)
 	if err != nil {
 		log.Debug("Failed to exchange code for token: ", err)
 		return user, fmt.Errorf("invalid apple exchange code: %s", err.Error())
 	}
-
-	fmt.Println("=> oauth2Token:", oauth2Token)
 
 	// Extract the ID Token from OAuth2 token.
 	rawIDToken, ok := oauth2Token.Extra("id_token").(string)
@@ -480,16 +477,12 @@ func processAppleUserInfo(code string) (models.User, error) {
 		return user, fmt.Errorf("failed to decrypt claims data: %s", err.Error())
 	}
 
-	fmt.Println("=> decodedClaimsData:", string(decodedClaimsData))
-
 	claims := make(map[string]interface{})
 	err = json.Unmarshal(decodedClaimsData, &claims)
 	if err != nil {
 		log.Debug("Failed to unmarshal claims data: ", err)
 		return user, fmt.Errorf("failed to unmarshal claims data: %s", err.Error())
 	}
-
-	fmt.Println("=> claims:", claims)
 
 	if val, ok := claims["email"]; !ok {
 		log.Debug("Failed to extract email from claims.")
