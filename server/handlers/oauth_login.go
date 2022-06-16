@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/oauth2"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/memorystore"
@@ -114,7 +115,7 @@ func OAuthLoginHandler() gin.HandlerFunc {
 				return
 			}
 			// during the init of OAuthProvider authorizer url might be empty
-			oauth.OAuthProviders.GoogleConfig.RedirectURL = hostname + "/oauth_callback/google"
+			oauth.OAuthProviders.GoogleConfig.RedirectURL = hostname + "/oauth_callback/" + constants.SignupMethodGoogle
 			url := oauth.OAuthProviders.GoogleConfig.AuthCodeURL(oauthStateString)
 			c.Redirect(http.StatusTemporaryRedirect, url)
 		case constants.SignupMethodGithub:
@@ -131,7 +132,7 @@ func OAuthLoginHandler() gin.HandlerFunc {
 				})
 				return
 			}
-			oauth.OAuthProviders.GithubConfig.RedirectURL = hostname + "/oauth_callback/github"
+			oauth.OAuthProviders.GithubConfig.RedirectURL = hostname + "/oauth_callback/" + constants.SignupMethodGithub
 			url := oauth.OAuthProviders.GithubConfig.AuthCodeURL(oauthStateString)
 			c.Redirect(http.StatusTemporaryRedirect, url)
 		case constants.SignupMethodFacebook:
@@ -148,7 +149,7 @@ func OAuthLoginHandler() gin.HandlerFunc {
 				})
 				return
 			}
-			oauth.OAuthProviders.FacebookConfig.RedirectURL = hostname + "/oauth_callback/facebook"
+			oauth.OAuthProviders.FacebookConfig.RedirectURL = hostname + "/oauth_callback/" + constants.SignupMethodFacebook
 			url := oauth.OAuthProviders.FacebookConfig.AuthCodeURL(oauthStateString)
 			c.Redirect(http.StatusTemporaryRedirect, url)
 		case constants.SignupMethodLinkedIn:
@@ -165,8 +166,27 @@ func OAuthLoginHandler() gin.HandlerFunc {
 				})
 				return
 			}
-			oauth.OAuthProviders.LinkedInConfig.RedirectURL = hostname + "/oauth_callback/linkedin"
+			oauth.OAuthProviders.LinkedInConfig.RedirectURL = hostname + "/oauth_callback/" + constants.SignupMethodLinkedIn
 			url := oauth.OAuthProviders.LinkedInConfig.AuthCodeURL(oauthStateString)
+			c.Redirect(http.StatusTemporaryRedirect, url)
+		case constants.SignupMethodApple:
+			if oauth.OAuthProviders.AppleConfig == nil {
+				log.Debug("Apple OAuth provider is not configured")
+				isProviderConfigured = false
+				break
+			}
+			err := memorystore.Provider.SetState(oauthStateString, constants.SignupMethodApple)
+			if err != nil {
+				log.Debug("Error setting state: ", err)
+				c.JSON(500, gin.H{
+					"error": "internal server error",
+				})
+				return
+			}
+			oauth.OAuthProviders.AppleConfig.RedirectURL = hostname + "/oauth_callback/" + constants.SignupMethodApple
+			// there is scope encoding issue with oauth2 and how apple expects, hence added scope manually
+			// check: https://github.com/golang/oauth2/issues/449
+			url := oauth.OAuthProviders.AppleConfig.AuthCodeURL(oauthStateString, oauth2.SetAuthURLParam("response_mode", "form_post")) + "&scope=name email"
 			c.Redirect(http.StatusTemporaryRedirect, url)
 		default:
 			log.Debug("Invalid oauth provider: ", provider)

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -64,6 +65,8 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			user, err = processFacebookUserInfo(code)
 		case constants.SignupMethodLinkedIn:
 			user, err = processLinkedInUserInfo(code)
+		case constants.SignupMethodApple:
+			user, err = processAppleUserInfo(code)
 		default:
 			log.Info("Invalid oauth provider")
 			err = fmt.Errorf(`invalid oauth provider`)
@@ -222,7 +225,7 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			redirectURL = redirectURL + "?" + strings.TrimPrefix(params, "&")
 		}
 
-		c.Redirect(http.StatusTemporaryRedirect, redirectURL)
+		c.Redirect(http.StatusFound, redirectURL)
 	}
 }
 
@@ -261,7 +264,7 @@ func processGoogleUserInfo(code string) (models.User, error) {
 
 func processGithubUserInfo(code string) (models.User, error) {
 	user := models.User{}
-	token, err := oauth.OAuthProviders.GithubConfig.Exchange(oauth2.NoContext, code)
+	oauth2Token, err := oauth.OAuthProviders.GithubConfig.Exchange(oauth2.NoContext, code)
 	if err != nil {
 		log.Debug("Failed to exchange code for token: ", err)
 		return user, fmt.Errorf("invalid github exchange code: %s", err.Error())
@@ -273,7 +276,7 @@ func processGithubUserInfo(code string) (models.User, error) {
 		return user, fmt.Errorf("error creating github user info request: %s", err.Error())
 	}
 	req.Header = http.Header{
-		"Authorization": []string{fmt.Sprintf("token %s", token.AccessToken)},
+		"Authorization": []string{fmt.Sprintf("token %s", oauth2Token.AccessToken)},
 	}
 
 	response, err := client.Do(req)
@@ -289,8 +292,8 @@ func processGithubUserInfo(code string) (models.User, error) {
 		return user, fmt.Errorf("failed to read github response body: %s", err.Error())
 	}
 	if response.StatusCode >= 400 {
-		log.Debug("Failed to request linkedin user info: ", string(body))
-		return user, fmt.Errorf("failed to request linkedin user info: %s", string(body))
+		log.Debug("Failed to request github user info: ", string(body))
+		return user, fmt.Errorf("failed to request github user info: %s", string(body))
 	}
 
 	userRawData := make(map[string]string)
@@ -320,13 +323,13 @@ func processGithubUserInfo(code string) (models.User, error) {
 
 func processFacebookUserInfo(code string) (models.User, error) {
 	user := models.User{}
-	token, err := oauth.OAuthProviders.FacebookConfig.Exchange(oauth2.NoContext, code)
+	oauth2Token, err := oauth.OAuthProviders.FacebookConfig.Exchange(oauth2.NoContext, code)
 	if err != nil {
 		log.Debug("Invalid facebook exchange code: ", err)
 		return user, fmt.Errorf("invalid facebook exchange code: %s", err.Error())
 	}
 	client := http.Client{}
-	req, err := http.NewRequest("GET", constants.FacebookUserInfoURL+token.AccessToken, nil)
+	req, err := http.NewRequest("GET", constants.FacebookUserInfoURL+oauth2Token.AccessToken, nil)
 	if err != nil {
 		log.Debug("Error creating facebook user info request: ", err)
 		return user, fmt.Errorf("error creating facebook user info request: %s", err.Error())
@@ -345,8 +348,8 @@ func processFacebookUserInfo(code string) (models.User, error) {
 		return user, fmt.Errorf("failed to read facebook response body: %s", err.Error())
 	}
 	if response.StatusCode >= 400 {
-		log.Debug("Failed to request linkedin user info: ", string(body))
-		return user, fmt.Errorf("failed to request linkedin user info: %s", string(body))
+		log.Debug("Failed to request facebook user info: ", string(body))
+		return user, fmt.Errorf("failed to request facebook user info: %s", string(body))
 	}
 	userRawData := make(map[string]interface{})
 	json.Unmarshal(body, &userRawData)
@@ -371,7 +374,7 @@ func processFacebookUserInfo(code string) (models.User, error) {
 
 func processLinkedInUserInfo(code string) (models.User, error) {
 	user := models.User{}
-	token, err := oauth.OAuthProviders.LinkedInConfig.Exchange(oauth2.NoContext, code)
+	oauth2Token, err := oauth.OAuthProviders.LinkedInConfig.Exchange(oauth2.NoContext, code)
 	if err != nil {
 		log.Debug("Failed to exchange code for token: ", err)
 		return user, fmt.Errorf("invalid linkedin exchange code: %s", err.Error())
@@ -384,7 +387,7 @@ func processLinkedInUserInfo(code string) (models.User, error) {
 		return user, fmt.Errorf("error creating linkedin user info request: %s", err.Error())
 	}
 	req.Header = http.Header{
-		"Authorization": []string{fmt.Sprintf("Bearer %s", token.AccessToken)},
+		"Authorization": []string{fmt.Sprintf("Bearer %s", oauth2Token.AccessToken)},
 	}
 
 	response, err := client.Do(req)
@@ -414,7 +417,7 @@ func processLinkedInUserInfo(code string) (models.User, error) {
 		return user, fmt.Errorf("error creating linkedin user info request: %s", err.Error())
 	}
 	req.Header = http.Header{
-		"Authorization": []string{fmt.Sprintf("Bearer %s", token.AccessToken)},
+		"Authorization": []string{fmt.Sprintf("Bearer %s", oauth2Token.AccessToken)},
 	}
 
 	response, err = client.Do(req)
@@ -449,4 +452,57 @@ func processLinkedInUserInfo(code string) (models.User, error) {
 	}
 
 	return user, nil
+}
+
+func processAppleUserInfo(code string) (models.User, error) {
+	user := models.User{}
+	oauth2Token, err := oauth.OAuthProviders.AppleConfig.Exchange(oauth2.NoContext, code)
+	if err != nil {
+		log.Debug("Failed to exchange code for token: ", err)
+		return user, fmt.Errorf("invalid apple exchange code: %s", err.Error())
+	}
+
+	// Extract the ID Token from OAuth2 token.
+	rawIDToken, ok := oauth2Token.Extra("id_token").(string)
+	if !ok {
+		log.Debug("Failed to extract ID Token from OAuth2 token")
+		return user, fmt.Errorf("unable to extract id_token")
+	}
+
+	tokenSplit := strings.Split(rawIDToken, ".")
+	claimsData := tokenSplit[1]
+	decodedClaimsData, err := base64.RawURLEncoding.DecodeString(claimsData)
+	if err != nil {
+		log.Debugf("Failed to decrypt claims %s: %s", claimsData, err.Error())
+		return user, fmt.Errorf("failed to decrypt claims data: %s", err.Error())
+	}
+
+	claims := make(map[string]interface{})
+	err = json.Unmarshal(decodedClaimsData, &claims)
+	if err != nil {
+		log.Debug("Failed to unmarshal claims data: ", err)
+		return user, fmt.Errorf("failed to unmarshal claims data: %s", err.Error())
+	}
+
+	if val, ok := claims["email"]; !ok {
+		log.Debug("Failed to extract email from claims.")
+		return user, fmt.Errorf("unable to extract email, please check the scopes enabled for your app. It needs `email`, `name` scopes")
+	} else {
+		user.Email = val.(string)
+	}
+
+	if val, ok := claims["name"]; ok {
+		nameData := val.(map[string]interface{})
+		if nameVal, ok := nameData["firstName"]; ok {
+			givenName := nameVal.(string)
+			user.GivenName = &givenName
+		}
+
+		if nameVal, ok := nameData["lastName"]; ok {
+			familyName := nameVal.(string)
+			user.FamilyName = &familyName
+		}
+	}
+
+	return user, err
 }

@@ -19,6 +19,7 @@ type OAuthProvider struct {
 	GithubConfig   *oauth2.Config
 	FacebookConfig *oauth2.Config
 	LinkedInConfig *oauth2.Config
+	AppleConfig    *oauth2.Config
 }
 
 // OIDCProviders is a struct that contains reference all the OpenID providers
@@ -109,6 +110,26 @@ func InitOAuth() error {
 			RedirectURL:  "/oauth_callback/linkedin",
 			Endpoint:     linkedInOAuth2.Endpoint,
 			Scopes:       []string{"r_liteprofile", "r_emailaddress"},
+		}
+	}
+
+	appleClientID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAppleClientID)
+	if err != nil {
+		appleClientID = ""
+	}
+	appleClientSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAppleClientSecret)
+	if err != nil {
+		appleClientSecret = ""
+	}
+	if appleClientID != "" && appleClientSecret != "" {
+		OAuthProviders.AppleConfig = &oauth2.Config{
+			ClientID:     appleClientID,
+			ClientSecret: appleClientSecret,
+			RedirectURL:  "/oauth_callback/apple",
+			Endpoint: oauth2.Endpoint{
+				AuthURL:  "https://appleid.apple.com/auth/authorize",
+				TokenURL: "https://appleid.apple.com/auth/token",
+			},
 		}
 	}
 

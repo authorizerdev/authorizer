@@ -43,14 +43,26 @@ func MetaResolver(ctx context.Context) (*model.Meta, error) {
 
 	linkedClientID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyLinkedInClientID)
 	if err != nil {
-		log.Debug("Failed to get Facebook Client ID from environment variable", err)
+		log.Debug("Failed to get LinkedIn Client ID from environment variable", err)
 		linkedClientID = ""
 	}
 
 	linkedInClientSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyLinkedInClientSecret)
 	if err != nil {
-		log.Debug("Failed to get Facebook Client Secret from environment variable", err)
+		log.Debug("Failed to get LinkedIn Client Secret from environment variable", err)
 		linkedInClientSecret = ""
+	}
+
+	appleClientID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAppleClientID)
+	if err != nil {
+		log.Debug("Failed to get Apple Client ID from environment variable", err)
+		appleClientID = ""
+	}
+
+	appleClientSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAppleClientSecret)
+	if err != nil {
+		log.Debug("Failed to get Apple Client Secret from environment variable", err)
+		appleClientSecret = ""
 	}
 
 	githubClientID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyGithubClientID)
@@ -96,6 +108,7 @@ func MetaResolver(ctx context.Context) (*model.Meta, error) {
 		IsGithubLoginEnabled:         githubClientID != "" && githubClientSecret != "",
 		IsFacebookLoginEnabled:       facebookClientID != "" && facebookClientSecret != "",
 		IsLinkedinLoginEnabled:       linkedClientID != "" && linkedInClientSecret != "",
+		IsAppleLoginEnabled:          appleClientID != "" && appleClientSecret != "",
 		IsBasicAuthenticationEnabled: !isBasicAuthDisabled,
 		IsEmailVerificationEnabled:   !isEmailVerificationDisabled,
 		IsMagicLinkLoginEnabled:      !isMagicLinkLoginDisabled,
