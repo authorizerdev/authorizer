@@ -101,6 +101,12 @@ func MetaResolver(ctx context.Context) (*model.Meta, error) {
 		isSignUpDisabled = true
 	}
 
+	isStrongPasswordDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableStrongPassword)
+	if err != nil {
+		log.Debug("Failed to get Disable Signup from environment variable", err)
+		isSignUpDisabled = true
+	}
+
 	metaInfo := model.Meta{
 		Version:                      constants.VERSION,
 		ClientID:                     clientID,
@@ -113,6 +119,7 @@ func MetaResolver(ctx context.Context) (*model.Meta, error) {
 		IsEmailVerificationEnabled:   !isEmailVerificationDisabled,
 		IsMagicLinkLoginEnabled:      !isMagicLinkLoginDisabled,
 		IsSignUpEnabled:              !isSignUpDisabled,
+		IsStrongPasswordEnabled:      !isStrongPasswordDisabled,
 	}
 	return &metaInfo, nil
 }

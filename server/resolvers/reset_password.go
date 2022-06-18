@@ -50,9 +50,9 @@ func ResetPasswordResolver(ctx context.Context, params model.ResetPasswordInput)
 		return res, fmt.Errorf(`passwords don't match`)
 	}
 
-	if !validators.IsValidPassword(params.Password) {
+	if err := validators.IsValidPassword(params.Password); err != nil {
 		log.Debug("Invalid password")
-		return res, fmt.Errorf(`password is not valid. It needs to be at least 6 characters long and contain at least one number, one uppercase letter, one lowercase letter and one special character`)
+		return res, err
 	}
 
 	// verify if token exists in db

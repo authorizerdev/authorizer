@@ -58,9 +58,9 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 		return res, fmt.Errorf(`password and confirm password does not match`)
 	}
 
-	if !validators.IsValidPassword(params.Password) {
+	if err := validators.IsValidPassword(params.Password); err != nil {
 		log.Debug("Invalid password")
-		return res, fmt.Errorf(`password is not valid. It needs to be at least 6 characters long and contain at least one number, one uppercase letter, one lowercase letter and one special character`)
+		return res, err
 	}
 
 	params.Email = strings.ToLower(params.Email)

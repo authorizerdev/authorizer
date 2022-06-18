@@ -71,6 +71,18 @@ const Features = ({ variables, setVariables }: any) => {
 						/>
 					</Flex>
 				</Flex>
+				<Flex>
+					<Flex w="100%" justifyContent="start" alignItems="center">
+						<Text fontSize="sm">Disable Strong Password:</Text>
+					</Flex>
+					<Flex justifyContent="start" mb={3}>
+						<InputField
+							variables={variables}
+							setVariables={setVariables}
+							inputType={SwitchInputType.DISABLE_STRONG_PASSWORD}
+						/>
+					</Flex>
+				</Flex>
 			</Stack>
 		</div>
 	);

@@ -83,6 +83,7 @@ func InitAllEnv() error {
 	osDisableLoginPage := os.Getenv(constants.EnvKeyDisableLoginPage)
 	osDisableSignUp := os.Getenv(constants.EnvKeyDisableSignUp)
 	osDisableRedisForEnv := os.Getenv(constants.EnvKeyDisableRedisForEnv)
+	osDisableStrongPassword := os.Getenv(constants.EnvKeyDisableStrongPassword)
 
 	// os slice vars
 	osAllowedOrigins := os.Getenv(constants.EnvKeyAllowedOrigins)
@@ -473,6 +474,19 @@ func InitAllEnv() error {
 		}
 		if boolValue != envData[constants.EnvKeyDisableRedisForEnv].(bool) {
 			envData[constants.EnvKeyDisableRedisForEnv] = boolValue
+		}
+	}
+
+	if _, ok := envData[constants.EnvKeyDisableStrongPassword]; !ok {
+		envData[constants.EnvKeyDisableStrongPassword] = osDisableStrongPassword == "true"
+	}
+	if osDisableStrongPassword != "" {
+		boolValue, err := strconv.ParseBool(osDisableStrongPassword)
+		if err != nil {
+			return err
+		}
+		if boolValue != envData[constants.EnvKeyDisableStrongPassword].(bool) {
+			envData[constants.EnvKeyDisableStrongPassword] = boolValue
 		}
 	}
 

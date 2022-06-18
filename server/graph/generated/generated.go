@@ -76,6 +76,7 @@ type ComplexityRoot struct {
 		DisableMagicLinkLogin      func(childComplexity int) int
 		DisableRedisForEnv         func(childComplexity int) int
 		DisableSignUp              func(childComplexity int) int
+		DisableStrongPassword      func(childComplexity int) int
 		FacebookClientID           func(childComplexity int) int
 		FacebookClientSecret       func(childComplexity int) int
 		GithubClientID             func(childComplexity int) int
@@ -124,6 +125,7 @@ type ComplexityRoot struct {
 		IsLinkedinLoginEnabled       func(childComplexity int) int
 		IsMagicLinkLoginEnabled      func(childComplexity int) int
 		IsSignUpEnabled              func(childComplexity int) int
+		IsStrongPasswordEnabled      func(childComplexity int) int
 		Version                      func(childComplexity int) int
 	}
 
@@ -471,6 +473,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Env.DisableSignUp(childComplexity), true
 
+	case "Env.DISABLE_STRONG_PASSWORD":
+		if e.complexity.Env.DisableStrongPassword == nil {
+			break
+		}
+
+		return e.complexity.Env.DisableStrongPassword(childComplexity), true
+
 	case "Env.FACEBOOK_CLIENT_ID":
 		if e.complexity.Env.FacebookClientID == nil {
 			break
@@ -743,6 +752,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Meta.IsSignUpEnabled(childComplexity), true
+
+	case "Meta.is_strong_password_enabled":
+		if e.complexity.Meta.IsStrongPasswordEnabled == nil {
+			break
+		}
+
+		return e.complexity.Meta.IsStrongPasswordEnabled(childComplexity), true
 
 	case "Meta.version":
 		if e.complexity.Meta.Version == nil {
@@ -1406,6 +1422,7 @@ type Meta {
 	is_basic_authentication_enabled: Boolean!
 	is_magic_link_login_enabled: Boolean!
 	is_sign_up_enabled: Boolean!
+	is_strong_password_enabled: Boolean!
 }
 
 type User {
@@ -1502,6 +1519,7 @@ type Env {
 	DISABLE_LOGIN_PAGE: Boolean!
 	DISABLE_SIGN_UP: Boolean!
 	DISABLE_REDIS_FOR_ENV: Boolean!
+	DISABLE_STRONG_PASSWORD: Boolean!
 	ROLES: [String!]
 	PROTECTED_ROLES: [String!]
 	DEFAULT_ROLES: [String!]
@@ -1553,6 +1571,7 @@ input UpdateEnvInput {
 	DISABLE_LOGIN_PAGE: Boolean
 	DISABLE_SIGN_UP: Boolean
 	DISABLE_REDIS_FOR_ENV: Boolean
+	DISABLE_STRONG_PASSWORD: Boolean
 	ROLES: [String!]
 	PROTECTED_ROLES: [String!]
 	DEFAULT_ROLES: [String!]
@@ -3340,6 +3359,41 @@ func (ec *executionContext) _Env_DISABLE_REDIS_FOR_ENV(ctx context.Context, fiel
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Env_DISABLE_STRONG_PASSWORD(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Env",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DisableStrongPassword, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Env_ROLES(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -4387,6 +4441,41 @@ func (ec *executionContext) _Meta_is_sign_up_enabled(ctx context.Context, field 
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.IsSignUpEnabled, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Meta_is_strong_password_enabled(ctx context.Context, field graphql.CollectedField, obj *model.Meta) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Meta",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsStrongPasswordEnabled, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -8739,6 +8828,14 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			if err != nil {
 				return it, err
 			}
+		case "DISABLE_STRONG_PASSWORD":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("DISABLE_STRONG_PASSWORD"))
+			it.DisableStrongPassword, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		case "ROLES":
 			var err error
 
@@ -9299,6 +9396,11 @@ func (ec *executionContext) _Env(ctx context.Context, sel ast.SelectionSet, obj 
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "DISABLE_STRONG_PASSWORD":
+			out.Values[i] = ec._Env_DISABLE_STRONG_PASSWORD(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "ROLES":
 			out.Values[i] = ec._Env_ROLES(ctx, field, obj)
 		case "PROTECTED_ROLES":
@@ -9465,6 +9567,11 @@ func (ec *executionContext) _Meta(ctx context.Context, sel ast.SelectionSet, obj
 			}
 		case "is_sign_up_enabled":
 			out.Values[i] = ec._Meta_is_sign_up_enabled(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "is_strong_password_enabled":
+			out.Values[i] = ec._Meta_is_strong_password_enabled(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
