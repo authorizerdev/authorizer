@@ -57,15 +57,15 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 		user := models.User{}
 		code := c.Request.FormValue("code")
 		switch provider {
-		case constants.SignupMethodGoogle:
+		case constants.AuthRecipeMethodGoogle:
 			user, err = processGoogleUserInfo(code)
-		case constants.SignupMethodGithub:
+		case constants.AuthRecipeMethodGithub:
 			user, err = processGithubUserInfo(code)
-		case constants.SignupMethodFacebook:
+		case constants.AuthRecipeMethodFacebook:
 			user, err = processFacebookUserInfo(code)
-		case constants.SignupMethodLinkedIn:
+		case constants.AuthRecipeMethodLinkedIn:
 			user, err = processLinkedInUserInfo(code)
-		case constants.SignupMethodApple:
+		case constants.AuthRecipeMethodApple:
 			user, err = processAppleUserInfo(code)
 		default:
 			log.Info("Invalid oauth provider")
@@ -192,7 +192,7 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			}
 		}
 
-		authToken, err := token.CreateAuthToken(c, user, inputRoles, scopes)
+		authToken, err := token.CreateAuthToken(c, user, inputRoles, scopes, provider)
 		if err != nil {
 			log.Debug("Failed to create auth token: ", err)
 			c.JSON(500, gin.H{"error": err.Error()})
@@ -205,13 +205,14 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 
 		params := "access_token=" + authToken.AccessToken.Token + "&token_type=bearer&expires_in=" + strconv.FormatInt(expiresIn, 10) + "&state=" + stateValue + "&id_token=" + authToken.IDToken.Token
 
+		sessionKey := provider + ":" + user.ID
 		cookie.SetSession(c, authToken.FingerPrintHash)
-		memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash)
-		memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token)
+		memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash)
+		memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token)
 
 		if authToken.RefreshToken != nil {
 			params = params + `&refresh_token=` + authToken.RefreshToken.Token
-			memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token)
+			memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token)
 		}
 
 		go db.Provider.AddSession(models.Session{

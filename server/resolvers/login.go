@@ -56,7 +56,7 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 		return res, fmt.Errorf(`user access has been revoked`)
 	}
 
-	if !strings.Contains(user.SignupMethods, constants.SignupMethodBasicAuth) {
+	if !strings.Contains(user.SignupMethods, constants.AuthRecipeMethodBasicAuth) {
 		log.Debug("User signup method is not basic auth")
 		return res, fmt.Errorf(`user has not signed up email & password`)
 	}
@@ -97,7 +97,7 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 		scope = params.Scope
 	}
 
-	authToken, err := token.CreateAuthToken(gc, user, roles, scope)
+	authToken, err := token.CreateAuthToken(gc, user, roles, scope, constants.AuthRecipeMethodBasicAuth)
 	if err != nil {
 		log.Debug("Failed to create auth token", err)
 		return res, err
@@ -117,12 +117,13 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 	}
 
 	cookie.SetSession(gc, authToken.FingerPrintHash)
-	memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash)
-	memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token)
+	sessionStoreKey := constants.AuthRecipeMethodBasicAuth + ":" + user.ID
+	memorystore.Provider.SetUserSession(sessionStoreKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash)
+	memorystore.Provider.SetUserSession(sessionStoreKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token)
 
 	if authToken.RefreshToken != nil {
 		res.RefreshToken = &authToken.RefreshToken.Token
-		memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token)
+		memorystore.Provider.SetUserSession(sessionStoreKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token)
 	}
 
 	go db.Provider.AddSession(models.Session{

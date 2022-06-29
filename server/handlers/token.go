@@ -72,6 +72,9 @@ func TokenHandler() gin.HandlerFunc {
 
 		var userID string
 		var roles, scope []string
+		loginMethod := ""
+		sessionKey := ""
+
 		if isAuthorizationCodeGrant {
 
 			if codeVerifier == "" {
@@ -134,8 +137,13 @@ func TokenHandler() gin.HandlerFunc {
 			userID = claims.Subject
 			roles = claims.Roles
 			scope = claims.Scope
+			loginMethod = claims.LoginMethod
 			// rollover the session for security
-			go memorystore.Provider.DeleteUserSession(userID, claims.Nonce)
+			sessionKey = userID
+			if loginMethod != "" {
+				sessionKey = loginMethod + ":" + userID
+			}
+			go memorystore.Provider.DeleteUserSession(sessionKey, claims.Nonce)
 		} else {
 			// validate refresh token
 			if refreshToken == "" {
@@ -155,6 +163,7 @@ func TokenHandler() gin.HandlerFunc {
 				})
 			}
 			userID = claims["sub"].(string)
+			loginMethod := claims["login_method"]
 			rolesInterface := claims["roles"].([]interface{})
 			scopeInterface := claims["scope"].([]interface{})
 			for _, v := range rolesInterface {
@@ -163,8 +172,22 @@ func TokenHandler() gin.HandlerFunc {
 			for _, v := range scopeInterface {
 				scope = append(scope, v.(string))
 			}
+
+			sessionKey = userID
+			if loginMethod != nil && loginMethod != "" {
+				sessionKey = loginMethod.(string) + ":" + sessionKey
+			}
 			// remove older refresh token and rotate it for security
-			go memorystore.Provider.DeleteUserSession(userID, claims["nonce"].(string))
+			go memorystore.Provider.DeleteUserSession(sessionKey, claims["nonce"].(string))
+		}
+
+		if sessionKey == "" {
+			log.Debug("Error getting sessionKey: ", sessionKey, loginMethod)
+			gc.JSON(http.StatusUnauthorized, gin.H{
+				"error":             "unauthorized",
+				"error_description": "User not found",
+			})
+			return
 		}
 
 		user, err := db.Provider.GetUserByID(userID)
@@ -177,7 +200,7 @@ func TokenHandler() gin.HandlerFunc {
 			return
 		}
 
-		authToken, err := token.CreateAuthToken(gc, user, roles, scope)
+		authToken, err := token.CreateAuthToken(gc, user, roles, scope, loginMethod)
 		if err != nil {
 			log.Debug("Error creating auth token: ", err)
 			gc.JSON(http.StatusUnauthorized, gin.H{
@@ -186,8 +209,8 @@ func TokenHandler() gin.HandlerFunc {
 			})
 			return
 		}
-		memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash)
-		memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token)
+		memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash)
+		memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token)
 		cookie.SetSession(gc, authToken.FingerPrintHash)
 
 		expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
@@ -205,7 +228,7 @@ func TokenHandler() gin.HandlerFunc {
 
 		if authToken.RefreshToken != nil {
 			res["refresh_token"] = authToken.RefreshToken.Token
-			memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token)
+			memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token)
 		}
 
 		gc.JSON(http.StatusOK, res)

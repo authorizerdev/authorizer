@@ -73,9 +73,14 @@ func VerifyEmailResolver(ctx context.Context, params model.VerifyEmailInput) (*m
 		return res, err
 	}
 
+	loginMethod := constants.AuthRecipeMethodBasicAuth
+	if loginMethod == constants.VerificationTypeMagicLinkLogin {
+		loginMethod = constants.AuthRecipeMethodMagicLinkLogin
+	}
+
 	roles := strings.Split(user.Roles, ",")
 	scope := []string{"openid", "email", "profile"}
-	authToken, err := token.CreateAuthToken(gc, user, roles, scope)
+	authToken, err := token.CreateAuthToken(gc, user, roles, scope, loginMethod)
 	if err != nil {
 		log.Debug("Failed to create auth token: ", err)
 		return res, err
@@ -100,13 +105,14 @@ func VerifyEmailResolver(ctx context.Context, params model.VerifyEmailInput) (*m
 		User:        user.AsAPIUser(),
 	}
 
+	sessionKey := loginMethod + ":" + user.ID
 	cookie.SetSession(gc, authToken.FingerPrintHash)
-	memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash)
-	memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token)
+	memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash)
+	memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token)
 
 	if authToken.RefreshToken != nil {
 		res.RefreshToken = &authToken.RefreshToken.Token
-		memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token)
+		memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token)
 	}
 	return res, nil
 }

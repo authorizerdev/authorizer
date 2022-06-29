@@ -41,7 +41,8 @@ func sessionTests(t *testing.T, s TestSetup) {
 		assert.NoError(t, err)
 		assert.NotEmpty(t, claims)
 
-		sessionToken, err := memorystore.Provider.GetUserSession(verifyRes.User.ID, constants.TokenTypeSessionToken+"_"+claims["nonce"].(string))
+		sessionKey := constants.AuthRecipeMethodBasicAuth + ":" + verifyRes.User.ID
+		sessionToken, err := memorystore.Provider.GetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+claims["nonce"].(string))
 		assert.NoError(t, err)
 		assert.NotEmpty(t, sessionToken)
 

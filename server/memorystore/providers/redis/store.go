@@ -63,10 +63,21 @@ func (c *provider) DeleteUserSession(userId, key string) error {
 
 // DeleteAllUserSessions deletes all the user session from redis
 func (c *provider) DeleteAllUserSessions(userID string) error {
-	err := c.store.Del(c.ctx, userID).Err()
-	if err != nil {
-		log.Debug("Error deleting all user sessions from redis: ", err)
-		return err
+	namespaces := []string{
+		constants.AuthRecipeMethodBasicAuth,
+		constants.AuthRecipeMethodMagicLinkLogin,
+		constants.AuthRecipeMethodApple,
+		constants.AuthRecipeMethodFacebook,
+		constants.AuthRecipeMethodGithub,
+		constants.AuthRecipeMethodGoogle,
+		constants.AuthRecipeMethodLinkedIn,
+	}
+	for _, namespace := range namespaces {
+		err := c.store.Del(c.ctx, namespace+":"+userID).Err()
+		if err != nil {
+			log.Debug("Error deleting all user sessions from redis: ", err)
+			return err
+		}
 	}
 	return nil
 }

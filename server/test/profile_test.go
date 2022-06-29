@@ -2,6 +2,7 @@ package test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/authorizerdev/authorizer/server/constants"
@@ -36,10 +37,12 @@ func profileTests(t *testing.T, s TestSetup) {
 		s.GinContext.Request.Header.Set("Authorization", "Bearer "+*verifyRes.AccessToken)
 		ctx = context.WithValue(req.Context(), "GinContextKey", s.GinContext)
 		profileRes, err := resolvers.ProfileResolver(ctx)
+		fmt.Println("=> err:", err)
 		assert.Nil(t, err)
+		assert.NotNil(t, profileRes)
 		s.GinContext.Request.Header.Set("Authorization", "")
-
-		newEmail := *&profileRes.Email
+		fmt.Println("=> res:", profileRes.Email, email)
+		newEmail := profileRes.Email
 		assert.Equal(t, email, newEmail, "emails should be equal")
 
 		cleanData(email)

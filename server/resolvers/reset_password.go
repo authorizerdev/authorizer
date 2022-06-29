@@ -82,8 +82,8 @@ func ResetPasswordResolver(ctx context.Context, params model.ResetPasswordInput)
 	user.Password = &password
 
 	signupMethod := user.SignupMethods
-	if !strings.Contains(signupMethod, constants.SignupMethodBasicAuth) {
-		signupMethod = signupMethod + "," + constants.SignupMethodBasicAuth
+	if !strings.Contains(signupMethod, constants.AuthRecipeMethodBasicAuth) {
+		signupMethod = signupMethod + "," + constants.AuthRecipeMethodBasicAuth
 	}
 	user.SignupMethods = signupMethod
 

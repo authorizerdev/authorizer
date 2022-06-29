@@ -129,11 +129,11 @@ func InviteMembersResolver(ctx context.Context, params model.InviteMemberInput) 
 
 		// use magic link login if that option is on
 		if !isMagicLinkLoginDisabled {
-			user.SignupMethods = constants.SignupMethodMagicLinkLogin
+			user.SignupMethods = constants.AuthRecipeMethodMagicLinkLogin
 			verificationRequest.Identifier = constants.VerificationTypeMagicLinkLogin
 		} else {
 			// use basic authentication if that option is on
-			user.SignupMethods = constants.SignupMethodBasicAuth
+			user.SignupMethods = constants.AuthRecipeMethodBasicAuth
 			verificationRequest.Identifier = constants.VerificationTypeForgotPassword
 
 			verifyEmailURL = appURL + "/setup-password"

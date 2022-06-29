@@ -26,11 +26,22 @@ func (c *provider) GetUserSession(userId, sessionToken string) (string, error) {
 
 // DeleteAllUserSessions deletes all the user sessions from in-memory store.
 func (c *provider) DeleteAllUserSessions(userId string) error {
+	namespaces := []string{
+		constants.AuthRecipeMethodBasicAuth,
+		constants.AuthRecipeMethodMagicLinkLogin,
+		constants.AuthRecipeMethodApple,
+		constants.AuthRecipeMethodFacebook,
+		constants.AuthRecipeMethodGithub,
+		constants.AuthRecipeMethodGoogle,
+		constants.AuthRecipeMethodLinkedIn,
+	}
 	if os.Getenv("ENV") != constants.TestEnv {
 		c.mutex.Lock()
 		defer c.mutex.Unlock()
 	}
-	c.sessionStore.RemoveAll(userId)
+	for _, namespace := range namespaces {
+		c.sessionStore.RemoveAll(namespace + ":" + userId)
+	}
 	return nil
 }
 

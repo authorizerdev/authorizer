@@ -157,7 +157,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 		user.Picture = params.Picture
 	}
 
-	user.SignupMethods = constants.SignupMethodBasicAuth
+	user.SignupMethods = constants.AuthRecipeMethodBasicAuth
 	isEmailVerificationDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification)
 	if err != nil {
 		log.Debug("Error getting email verification disabled: ", err)
@@ -219,7 +219,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 			scope = params.Scope
 		}
 
-		authToken, err := token.CreateAuthToken(gc, user, roles, scope)
+		authToken, err := token.CreateAuthToken(gc, user, roles, scope, constants.AuthRecipeMethodBasicAuth)
 		if err != nil {
 			log.Debug("Failed to create auth token: ", err)
 			return res, err
@@ -243,13 +243,14 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 			User:        userToReturn,
 		}
 
+		sessionKey := constants.AuthRecipeMethodBasicAuth + ":" + user.ID
 		cookie.SetSession(gc, authToken.FingerPrintHash)
-		memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash)
-		memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token)
+		memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash)
+		memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token)
 
 		if authToken.RefreshToken != nil {
 			res.RefreshToken = &authToken.RefreshToken.Token
-			memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token)
+			memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token)
 		}
 	}
 

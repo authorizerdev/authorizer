@@ -36,7 +36,13 @@ func logoutTests(t *testing.T, s TestSetup) {
 		assert.NoError(t, err)
 		assert.NotEmpty(t, claims)
 
-		sessionToken, err := memorystore.Provider.GetUserSession(verifyRes.User.ID, constants.TokenTypeSessionToken+"_"+claims["nonce"].(string))
+		loginMethod := claims["login_method"]
+		sessionKey := verifyRes.User.ID
+		if loginMethod != nil && loginMethod != "" {
+			sessionKey = loginMethod.(string) + ":" + verifyRes.User.ID
+		}
+
+		sessionToken, err := memorystore.Provider.GetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+claims["nonce"].(string))
 		assert.NoError(t, err)
 		assert.NotEmpty(t, sessionToken)
 
