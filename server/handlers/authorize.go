@@ -219,7 +219,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 		}
 
 		// if user is logged in
-		// based on the response type, generate the response
+		// based on the response type code, generate the response
 		if isResponseTypeCode {
 			// rollover the session for security
 			go memorystore.Provider.DeleteUserSession(user.ID, claims.Nonce)
