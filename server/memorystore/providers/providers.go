@@ -12,6 +12,8 @@ type Provider interface {
 	DeleteUserSession(userId, key string) error
 	// DeleteAllSessions deletes all the sessions from the session store
 	DeleteAllUserSessions(userId string) error
+	// DeleteSessionForNamespace deletes the session for a given namespace
+	DeleteSessionForNamespace(namespace string) error
 
 	// SetState sets the login state (key, value form) in the session store
 	SetState(key, state string) error

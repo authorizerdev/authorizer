@@ -2,6 +2,7 @@ package stores
 
 import (
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/authorizerdev/authorizer/server/constants"
@@ -64,4 +65,19 @@ func (s *SessionStore) GetAll(key string) map[string]string {
 		s.store[key] = make(map[string]string)
 	}
 	return s.store[key]
+}
+
+// RemoveByNamespace to delete session for a given namespace example google,github
+func (s *SessionStore) RemoveByNamespace(namespace string) error {
+	if os.Getenv("ENV") != constants.TestEnv {
+		s.mutex.Lock()
+		defer s.mutex.Unlock()
+	}
+
+	for key := range s.store {
+		if strings.Contains(key, namespace+":") {
+			delete(s.store, key)
+		}
+	}
+	return nil
 }

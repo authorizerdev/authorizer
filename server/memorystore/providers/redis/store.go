@@ -82,6 +82,32 @@ func (c *provider) DeleteAllUserSessions(userID string) error {
 	return nil
 }
 
+// DeleteSessionForNamespace to delete session for a given namespace example google,github
+func (c *provider) DeleteSessionForNamespace(namespace string) error {
+	var cursor uint64
+	for {
+		keys := []string{}
+		keys, cursor, err := c.store.Scan(c.ctx, cursor, namespace+":*", 0).Result()
+		if err != nil {
+			log.Debugf("Error scanning keys for %s namespace: %s", namespace, err.Error())
+			return err
+		}
+
+		for _, key := range keys {
+			err := c.store.Del(c.ctx, key).Err()
+			if err != nil {
+				log.Debugf("Error deleting sessions for %s namespace: %s", namespace, err.Error())
+				return err
+			}
+		}
+		if cursor == 0 { // no more keys
+			break
+		}
+	}
+
+	return nil
+}
+
 // SetState sets the state in redis store.
 func (c *provider) SetState(key, value string) error {
 	err := c.store.Set(c.ctx, stateStorePrefix+key, value, 0).Err()
