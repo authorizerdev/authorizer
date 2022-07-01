@@ -56,7 +56,14 @@ func RevokeHandler() gin.HandlerFunc {
 			return
 		}
 
-		memorystore.Provider.DeleteUserSession(claims["sub"].(string), claims["nonce"].(string))
+		userID := claims["sub"].(string)
+		loginMethod := claims["login_method"]
+		sessionToken := userID
+		if loginMethod != nil && loginMethod != "" {
+			sessionToken = loginMethod.(string) + ":" + userID
+		}
+
+		memorystore.Provider.DeleteUserSession(sessionToken, claims["nonce"].(string))
 
 		gc.JSON(http.StatusOK, gin.H{
 			"message": "Token revoked successfully",

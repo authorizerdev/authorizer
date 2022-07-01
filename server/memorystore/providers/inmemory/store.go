@@ -26,21 +26,31 @@ func (c *provider) GetUserSession(userId, sessionToken string) (string, error) {
 
 // DeleteAllUserSessions deletes all the user sessions from in-memory store.
 func (c *provider) DeleteAllUserSessions(userId string) error {
-	if os.Getenv("ENV") != constants.TestEnv {
-		c.mutex.Lock()
-		defer c.mutex.Unlock()
+	namespaces := []string{
+		constants.AuthRecipeMethodBasicAuth,
+		constants.AuthRecipeMethodMagicLinkLogin,
+		constants.AuthRecipeMethodApple,
+		constants.AuthRecipeMethodFacebook,
+		constants.AuthRecipeMethodGithub,
+		constants.AuthRecipeMethodGoogle,
+		constants.AuthRecipeMethodLinkedIn,
 	}
-	c.sessionStore.RemoveAll(userId)
+
+	for _, namespace := range namespaces {
+		c.sessionStore.RemoveAll(namespace + ":" + userId)
+	}
 	return nil
 }
 
 // DeleteUserSession deletes the user session from the in-memory store.
 func (c *provider) DeleteUserSession(userId, sessionToken string) error {
-	if os.Getenv("ENV") != constants.TestEnv {
-		c.mutex.Lock()
-		defer c.mutex.Unlock()
-	}
 	c.sessionStore.Remove(userId, sessionToken)
+	return nil
+}
+
+// DeleteSessionForNamespace to delete session for a given namespace example google,github
+func (c *provider) DeleteSessionForNamespace(namespace string) error {
+	c.sessionStore.RemoveByNamespace(namespace)
 	return nil
 }
 

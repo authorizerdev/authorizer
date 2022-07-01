@@ -218,13 +218,18 @@ func AuthorizeHandler() gin.HandlerFunc {
 			return
 		}
 
+		sessionKey := user.ID
+		if claims.LoginMethod != "" {
+			sessionKey = claims.LoginMethod + ":" + user.ID
+		}
+
 		// if user is logged in
-		// based on the response type, generate the response
+		// based on the response type code, generate the response
 		if isResponseTypeCode {
 			// rollover the session for security
-			go memorystore.Provider.DeleteUserSession(user.ID, claims.Nonce)
+			go memorystore.Provider.DeleteUserSession(sessionKey, claims.Nonce)
 			nonce := uuid.New().String()
-			newSessionTokenData, newSessionToken, err := token.CreateSessionToken(user, nonce, claims.Roles, scope)
+			newSessionTokenData, newSessionToken, err := token.CreateSessionToken(user, nonce, claims.Roles, scope, claims.LoginMethod)
 			if err != nil {
 				if isQuery {
 					gc.Redirect(http.StatusFound, loginURL)
@@ -262,7 +267,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 
 		if isResponseTypeToken {
 			// rollover the session for security
-			authToken, err := token.CreateAuthToken(gc, user, claims.Roles, scope)
+			authToken, err := token.CreateAuthToken(gc, user, claims.Roles, scope, claims.LoginMethod)
 			if err != nil {
 				if isQuery {
 					gc.Redirect(http.StatusFound, loginURL)
@@ -280,9 +285,10 @@ func AuthorizeHandler() gin.HandlerFunc {
 				}
 				return
 			}
-			go memorystore.Provider.DeleteUserSession(user.ID, claims.Nonce)
-			memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash)
-			memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token)
+
+			go memorystore.Provider.DeleteUserSession(sessionKey, claims.Nonce)
+			memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash)
+			memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token)
 			cookie.SetSession(gc, authToken.FingerPrintHash)
 
 			expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
@@ -305,7 +311,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 			if authToken.RefreshToken != nil {
 				res["refresh_token"] = authToken.RefreshToken.Token
 				params += "&refresh_token=" + authToken.RefreshToken.Token
-				memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token)
+				memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token)
 			}
 
 			if isQuery {

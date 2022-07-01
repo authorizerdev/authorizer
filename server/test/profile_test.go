@@ -37,9 +37,9 @@ func profileTests(t *testing.T, s TestSetup) {
 		ctx = context.WithValue(req.Context(), "GinContextKey", s.GinContext)
 		profileRes, err := resolvers.ProfileResolver(ctx)
 		assert.Nil(t, err)
+		assert.NotNil(t, profileRes)
 		s.GinContext.Request.Header.Set("Authorization", "")
-
-		newEmail := *&profileRes.Email
+		newEmail := profileRes.Email
 		assert.Equal(t, email, newEmail, "emails should be equal")
 
 		cleanData(email)

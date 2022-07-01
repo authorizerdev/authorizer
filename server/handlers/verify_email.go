@@ -92,7 +92,11 @@ func VerifyEmailHandler() gin.HandlerFunc {
 		} else {
 			scope = strings.Split(scopeString, " ")
 		}
-		authToken, err := token.CreateAuthToken(c, user, roles, scope)
+		loginMethod := constants.AuthRecipeMethodBasicAuth
+		if verificationRequest.Identifier == constants.VerificationTypeMagicLinkLogin {
+			loginMethod = constants.AuthRecipeMethodMagicLinkLogin
+		}
+		authToken, err := token.CreateAuthToken(c, user, roles, scope, loginMethod)
 		if err != nil {
 			log.Debug("Error creating auth token: ", err)
 			errorRes["error_description"] = err.Error()
@@ -107,13 +111,14 @@ func VerifyEmailHandler() gin.HandlerFunc {
 
 		params := "access_token=" + authToken.AccessToken.Token + "&token_type=bearer&expires_in=" + strconv.FormatInt(expiresIn, 10) + "&state=" + state + "&id_token=" + authToken.IDToken.Token
 
+		sessionKey := loginMethod + ":" + user.ID
 		cookie.SetSession(c, authToken.FingerPrintHash)
-		memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash)
-		memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token)
+		memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash)
+		memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token)
 
 		if authToken.RefreshToken != nil {
 			params = params + `&refresh_token=` + authToken.RefreshToken.Token
-			memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token)
+			memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token)
 		}
 
 		if redirectURL == "" {

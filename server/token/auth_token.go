@@ -38,23 +38,25 @@ type Token struct {
 
 // SessionData
 type SessionData struct {
-	Subject   string   `json:"sub"`
-	Roles     []string `json:"roles"`
-	Scope     []string `json:"scope"`
-	Nonce     string   `json:"nonce"`
-	IssuedAt  int64    `json:"iat"`
-	ExpiresAt int64    `json:"exp"`
+	Subject     string   `json:"sub"`
+	Roles       []string `json:"roles"`
+	Scope       []string `json:"scope"`
+	Nonce       string   `json:"nonce"`
+	IssuedAt    int64    `json:"iat"`
+	ExpiresAt   int64    `json:"exp"`
+	LoginMethod string   `json:"login_method"`
 }
 
 // CreateSessionToken creates a new session token
-func CreateSessionToken(user models.User, nonce string, roles, scope []string) (*SessionData, string, error) {
+func CreateSessionToken(user models.User, nonce string, roles, scope []string, loginMethod string) (*SessionData, string, error) {
 	fingerPrintMap := &SessionData{
-		Nonce:     nonce,
-		Roles:     roles,
-		Subject:   user.ID,
-		Scope:     scope,
-		IssuedAt:  time.Now().Unix(),
-		ExpiresAt: time.Now().AddDate(1, 0, 0).Unix(),
+		Nonce:       nonce,
+		Roles:       roles,
+		Subject:     user.ID,
+		Scope:       scope,
+		LoginMethod: loginMethod,
+		IssuedAt:    time.Now().Unix(),
+		ExpiresAt:   time.Now().AddDate(1, 0, 0).Unix(),
 	}
 	fingerPrintBytes, _ := json.Marshal(fingerPrintMap)
 	fingerPrintHash, err := crypto.EncryptAES(string(fingerPrintBytes))
@@ -66,19 +68,19 @@ func CreateSessionToken(user models.User, nonce string, roles, scope []string) (
 }
 
 // CreateAuthToken creates a new auth token when userlogs in
-func CreateAuthToken(gc *gin.Context, user models.User, roles, scope []string) (*Token, error) {
+func CreateAuthToken(gc *gin.Context, user models.User, roles, scope []string, loginMethod string) (*Token, error) {
 	hostname := parsers.GetHost(gc)
 	nonce := uuid.New().String()
-	_, fingerPrintHash, err := CreateSessionToken(user, nonce, roles, scope)
+	_, fingerPrintHash, err := CreateSessionToken(user, nonce, roles, scope, loginMethod)
 	if err != nil {
 		return nil, err
 	}
-	accessToken, accessTokenExpiresAt, err := CreateAccessToken(user, roles, scope, hostname, nonce)
+	accessToken, accessTokenExpiresAt, err := CreateAccessToken(user, roles, scope, hostname, nonce, loginMethod)
 	if err != nil {
 		return nil, err
 	}
 
-	idToken, idTokenExpiresAt, err := CreateIDToken(user, roles, hostname, nonce)
+	idToken, idTokenExpiresAt, err := CreateIDToken(user, roles, hostname, nonce, loginMethod)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +93,7 @@ func CreateAuthToken(gc *gin.Context, user models.User, roles, scope []string) (
 	}
 
 	if utils.StringSliceContains(scope, "offline_access") {
-		refreshToken, refreshTokenExpiresAt, err := CreateRefreshToken(user, roles, scope, hostname, nonce)
+		refreshToken, refreshTokenExpiresAt, err := CreateRefreshToken(user, roles, scope, hostname, nonce, loginMethod)
 		if err != nil {
 			return nil, err
 		}
@@ -103,7 +105,7 @@ func CreateAuthToken(gc *gin.Context, user models.User, roles, scope []string) (
 }
 
 // CreateRefreshToken util to create JWT token
-func CreateRefreshToken(user models.User, roles, scopes []string, hostname, nonce string) (string, int64, error) {
+func CreateRefreshToken(user models.User, roles, scopes []string, hostname, nonce, loginMethod string) (string, int64, error) {
 	// expires in 1 year
 	expiryBound := time.Hour * 8760
 	expiresAt := time.Now().Add(expiryBound).Unix()
@@ -112,15 +114,16 @@ func CreateRefreshToken(user models.User, roles, scopes []string, hostname, nonc
 		return "", 0, err
 	}
 	customClaims := jwt.MapClaims{
-		"iss":        hostname,
-		"aud":        clientID,
-		"sub":        user.ID,
-		"exp":        expiresAt,
-		"iat":        time.Now().Unix(),
-		"token_type": constants.TokenTypeRefreshToken,
-		"roles":      roles,
-		"scope":      scopes,
-		"nonce":      nonce,
+		"iss":          hostname,
+		"aud":          clientID,
+		"sub":          user.ID,
+		"exp":          expiresAt,
+		"iat":          time.Now().Unix(),
+		"token_type":   constants.TokenTypeRefreshToken,
+		"roles":        roles,
+		"scope":        scopes,
+		"nonce":        nonce,
+		"login_method": loginMethod,
 	}
 
 	token, err := SignJWTToken(customClaims)
@@ -133,7 +136,7 @@ func CreateRefreshToken(user models.User, roles, scopes []string, hostname, nonc
 
 // CreateAccessToken util to create JWT token, based on
 // user information, roles config and CUSTOM_ACCESS_TOKEN_SCRIPT
-func CreateAccessToken(user models.User, roles, scopes []string, hostName, nonce string) (string, int64, error) {
+func CreateAccessToken(user models.User, roles, scopes []string, hostName, nonce, loginMethod string) (string, int64, error) {
 	expireTime, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAccessTokenExpiryTime)
 	if err != nil {
 		return "", 0, err
@@ -150,15 +153,16 @@ func CreateAccessToken(user models.User, roles, scopes []string, hostName, nonce
 		return "", 0, err
 	}
 	customClaims := jwt.MapClaims{
-		"iss":        hostName,
-		"aud":        clientID,
-		"nonce":      nonce,
-		"sub":        user.ID,
-		"exp":        expiresAt,
-		"iat":        time.Now().Unix(),
-		"token_type": constants.TokenTypeAccessToken,
-		"scope":      scopes,
-		"roles":      roles,
+		"iss":          hostName,
+		"aud":          clientID,
+		"nonce":        nonce,
+		"sub":          user.ID,
+		"exp":          expiresAt,
+		"iat":          time.Now().Unix(),
+		"token_type":   constants.TokenTypeAccessToken,
+		"scope":        scopes,
+		"roles":        roles,
+		"login_method": loginMethod,
 	}
 
 	token, err := SignJWTToken(customClaims)
@@ -205,7 +209,13 @@ func ValidateAccessToken(gc *gin.Context, accessToken string) (map[string]interf
 
 	userID := res["sub"].(string)
 	nonce := res["nonce"].(string)
-	token, err := memorystore.Provider.GetUserSession(userID, constants.TokenTypeAccessToken+"_"+nonce)
+	loginMethod := res["login_method"]
+	sessionKey := userID
+	if loginMethod != nil && loginMethod != "" {
+		sessionKey = loginMethod.(string) + ":" + userID
+	}
+
+	token, err := memorystore.Provider.GetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+nonce)
 	if nonce == "" || err != nil {
 		return res, fmt.Errorf(`unauthorized`)
 	}
@@ -241,7 +251,13 @@ func ValidateRefreshToken(gc *gin.Context, refreshToken string) (map[string]inte
 
 	userID := res["sub"].(string)
 	nonce := res["nonce"].(string)
-	token, err := memorystore.Provider.GetUserSession(userID, constants.TokenTypeRefreshToken+"_"+nonce)
+	loginMethod := res["login_method"]
+	sessionKey := userID
+	if loginMethod != nil && loginMethod != "" {
+		sessionKey = loginMethod.(string) + ":" + userID
+	}
+
+	token, err := memorystore.Provider.GetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+nonce)
 	if nonce == "" || err != nil {
 		return res, fmt.Errorf(`unauthorized`)
 	}
@@ -278,7 +294,12 @@ func ValidateBrowserSession(gc *gin.Context, encryptedSession string) (*SessionD
 		return nil, err
 	}
 
-	token, err := memorystore.Provider.GetUserSession(res.Subject, constants.TokenTypeSessionToken+"_"+res.Nonce)
+	sessionStoreKey := res.Subject
+	if res.LoginMethod != "" {
+		sessionStoreKey = res.LoginMethod + ":" + res.Subject
+	}
+
+	token, err := memorystore.Provider.GetUserSession(sessionStoreKey, constants.TokenTypeSessionToken+"_"+res.Nonce)
 	if token == "" || err != nil {
 		log.Debug("invalid browser session:", err)
 		return nil, fmt.Errorf(`unauthorized`)
@@ -297,7 +318,7 @@ func ValidateBrowserSession(gc *gin.Context, encryptedSession string) (*SessionD
 
 // CreateIDToken util to create JWT token, based on
 // user information, roles config and CUSTOM_ACCESS_TOKEN_SCRIPT
-func CreateIDToken(user models.User, roles []string, hostname, nonce string) (string, int64, error) {
+func CreateIDToken(user models.User, roles []string, hostname, nonce, loginMethod string) (string, int64, error) {
 	expireTime, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAccessTokenExpiryTime)
 	if err != nil {
 		return "", 0, err
@@ -332,6 +353,7 @@ func CreateIDToken(user models.User, roles []string, hostname, nonce string) (st
 		"iat":           time.Now().Unix(),
 		"token_type":    constants.TokenTypeIdentityToken,
 		"allowed_roles": strings.Split(user.Roles, ","),
+		"login_method":  loginMethod,
 		claimKey:        roles,
 	}
 

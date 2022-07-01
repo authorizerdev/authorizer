@@ -50,7 +50,12 @@ func ValidateJwtTokenResolver(ctx context.Context, params model.ValidateJWTToken
 	// access_token and refresh_token should be validated from session store as well
 	if tokenType == constants.TokenTypeAccessToken || tokenType == constants.TokenTypeRefreshToken {
 		nonce = claims["nonce"].(string)
-		token, err := memorystore.Provider.GetUserSession(userID, tokenType+"_"+claims["nonce"].(string))
+		loginMethod := claims["login_method"]
+		sessionKey := userID
+		if loginMethod != nil && loginMethod != "" {
+			sessionKey = loginMethod.(string) + ":" + userID
+		}
+		token, err := memorystore.Provider.GetUserSession(sessionKey, tokenType+"_"+claims["nonce"].(string))
 		if err != nil || token == "" {
 			log.Debug("Failed to get user session: ", err)
 			return nil, errors.New("invalid token")

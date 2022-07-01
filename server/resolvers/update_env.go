@@ -21,6 +21,54 @@ import (
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
+// check if login methods have been disabled
+// remove the session tokens for those methods
+func clearSessionIfRequired(currentData, updatedData map[string]interface{}) {
+	isCurrentBasicAuthEnabled := !currentData[constants.EnvKeyDisableBasicAuthentication].(bool)
+	isCurrentMagicLinkLoginEnabled := !currentData[constants.EnvKeyDisableMagicLinkLogin].(bool)
+	isCurrentAppleLoginEnabled := currentData[constants.EnvKeyAppleClientID] != nil && currentData[constants.EnvKeyAppleClientSecret] != nil && currentData[constants.EnvKeyAppleClientID].(string) != "" && currentData[constants.EnvKeyAppleClientSecret].(string) != ""
+	isCurrentFacebookLoginEnabled := currentData[constants.EnvKeyFacebookClientID] != nil && currentData[constants.EnvKeyFacebookClientSecret] != nil && currentData[constants.EnvKeyFacebookClientID].(string) != "" && currentData[constants.EnvKeyFacebookClientSecret].(string) != ""
+	isCurrentGoogleLoginEnabled := currentData[constants.EnvKeyGoogleClientID] != nil && currentData[constants.EnvKeyGoogleClientSecret] != nil && currentData[constants.EnvKeyGoogleClientID].(string) != "" && currentData[constants.EnvKeyGoogleClientSecret].(string) != ""
+	isCurrentGithubLoginEnabled := currentData[constants.EnvKeyGithubClientID] != nil && currentData[constants.EnvKeyGithubClientSecret] != nil && currentData[constants.EnvKeyGithubClientID].(string) != "" && currentData[constants.EnvKeyGithubClientSecret].(string) != ""
+	isCurrentLinkedInLoginEnabled := currentData[constants.EnvKeyLinkedInClientID] != nil && currentData[constants.EnvKeyLinkedInClientSecret] != nil && currentData[constants.EnvKeyLinkedInClientID].(string) != "" && currentData[constants.EnvKeyLinkedInClientSecret].(string) != ""
+
+	isUpdatedBasicAuthEnabled := !updatedData[constants.EnvKeyDisableBasicAuthentication].(bool)
+	isUpdatedMagicLinkLoginEnabled := !updatedData[constants.EnvKeyDisableMagicLinkLogin].(bool)
+	isUpdatedAppleLoginEnabled := updatedData[constants.EnvKeyAppleClientID] != nil && updatedData[constants.EnvKeyAppleClientSecret] != nil && updatedData[constants.EnvKeyAppleClientID].(string) != "" && updatedData[constants.EnvKeyAppleClientSecret].(string) != ""
+	isUpdatedFacebookLoginEnabled := updatedData[constants.EnvKeyFacebookClientID] != nil && updatedData[constants.EnvKeyFacebookClientSecret] != nil && updatedData[constants.EnvKeyFacebookClientID].(string) != "" && updatedData[constants.EnvKeyFacebookClientSecret].(string) != ""
+	isUpdatedGoogleLoginEnabled := updatedData[constants.EnvKeyGoogleClientID] != nil && updatedData[constants.EnvKeyGoogleClientSecret] != nil && updatedData[constants.EnvKeyGoogleClientID].(string) != "" && updatedData[constants.EnvKeyGoogleClientSecret].(string) != ""
+	isUpdatedGithubLoginEnabled := updatedData[constants.EnvKeyGithubClientID] != nil && updatedData[constants.EnvKeyGithubClientSecret] != nil && updatedData[constants.EnvKeyGithubClientID].(string) != "" && updatedData[constants.EnvKeyGithubClientSecret].(string) != ""
+	isUpdatedLinkedInLoginEnabled := updatedData[constants.EnvKeyLinkedInClientID] != nil && updatedData[constants.EnvKeyLinkedInClientSecret] != nil && updatedData[constants.EnvKeyLinkedInClientID].(string) != "" && updatedData[constants.EnvKeyLinkedInClientSecret].(string) != ""
+
+	if isCurrentBasicAuthEnabled && !isUpdatedBasicAuthEnabled {
+		memorystore.Provider.DeleteSessionForNamespace(constants.AuthRecipeMethodBasicAuth)
+	}
+
+	if isCurrentMagicLinkLoginEnabled && !isUpdatedMagicLinkLoginEnabled {
+		memorystore.Provider.DeleteSessionForNamespace(constants.AuthRecipeMethodMagicLinkLogin)
+	}
+
+	if isCurrentAppleLoginEnabled && !isUpdatedAppleLoginEnabled {
+		memorystore.Provider.DeleteSessionForNamespace(constants.AuthRecipeMethodApple)
+	}
+
+	if isCurrentFacebookLoginEnabled && !isUpdatedFacebookLoginEnabled {
+		memorystore.Provider.DeleteSessionForNamespace(constants.AuthRecipeMethodFacebook)
+	}
+
+	if isCurrentGoogleLoginEnabled && !isUpdatedGoogleLoginEnabled {
+		memorystore.Provider.DeleteSessionForNamespace(constants.AuthRecipeMethodGoogle)
+	}
+
+	if isCurrentGithubLoginEnabled && !isUpdatedGithubLoginEnabled {
+		memorystore.Provider.DeleteSessionForNamespace(constants.AuthRecipeMethodGithub)
+	}
+
+	if isCurrentLinkedInLoginEnabled && !isUpdatedLinkedInLoginEnabled {
+		memorystore.Provider.DeleteSessionForNamespace(constants.AuthRecipeMethodLinkedIn)
+	}
+}
+
 // UpdateEnvResolver is a resolver for update config mutation
 // This is admin only mutation
 func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model.Response, error) {
@@ -37,10 +85,17 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 		return res, fmt.Errorf("unauthorized")
 	}
 
-	updatedData, err := memorystore.Provider.GetEnvStore()
+	currentData, err := memorystore.Provider.GetEnvStore()
 	if err != nil {
 		log.Debug("Failed to get env store: ", err)
 		return res, err
+	}
+
+	// clone currentData in new var
+	// that will be updated based on the req
+	updatedData := make(map[string]interface{})
+	for key, val := range currentData {
+		updatedData[key] = val
 	}
 
 	isJWTUpdated := false
@@ -210,6 +265,8 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 		}
 	}
 
+	go clearSessionIfRequired(currentData, updatedData)
+
 	// Update local store
 	memorystore.Provider.UpdateEnvStore(updatedData)
 	jwk, err := crypto.GenerateJWKBasedOnEnv()
@@ -224,12 +281,6 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 		return res, err
 	}
 
-	// TODO check how to update session store based on env change.
-	// err = sessionstore.InitSession()
-	// if err != nil {
-	// 	log.Debug("Failed to init session store: ", err)
-	// 	return res, err
-	// }
 	err = oauth.InitOAuth()
 	if err != nil {
 		return res, err

@@ -70,14 +70,18 @@ func SessionResolver(ctx context.Context, params *model.SessionQueryInput) (*mod
 		scope = params.Scope
 	}
 
-	authToken, err := token.CreateAuthToken(gc, user, claimRoles, scope)
+	authToken, err := token.CreateAuthToken(gc, user, claimRoles, scope, claims.LoginMethod)
 	if err != nil {
 		log.Debug("Failed to create auth token: ", err)
 		return res, err
 	}
 
 	// rollover the session for security
-	go memorystore.Provider.DeleteUserSession(userID, claims.Nonce)
+	sessionKey := userID
+	if claims.LoginMethod != "" {
+		sessionKey = claims.LoginMethod + ":" + userID
+	}
+	go memorystore.Provider.DeleteUserSession(sessionKey, claims.Nonce)
 
 	expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
 	if expiresIn <= 0 {
@@ -93,12 +97,12 @@ func SessionResolver(ctx context.Context, params *model.SessionQueryInput) (*mod
 	}
 
 	cookie.SetSession(gc, authToken.FingerPrintHash)
-	memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash)
-	memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token)
+	memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash)
+	memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token)
 
 	if authToken.RefreshToken != nil {
 		res.RefreshToken = &authToken.RefreshToken.Token
-		memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token)
+		memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token)
 	}
 	return res, nil
 }

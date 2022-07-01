@@ -70,7 +70,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 			return res, fmt.Errorf(`signup is disabled for this instance`)
 		}
 
-		user.SignupMethods = constants.SignupMethodMagicLinkLogin
+		user.SignupMethods = constants.AuthRecipeMethodMagicLinkLogin
 		// define roles for new user
 		if len(params.Roles) > 0 {
 			// check if roles exists
@@ -158,8 +158,8 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 		}
 
 		signupMethod := existingUser.SignupMethods
-		if !strings.Contains(signupMethod, constants.SignupMethodMagicLinkLogin) {
-			signupMethod = signupMethod + "," + constants.SignupMethodMagicLinkLogin
+		if !strings.Contains(signupMethod, constants.AuthRecipeMethodMagicLinkLogin) {
+			signupMethod = signupMethod + "," + constants.AuthRecipeMethodMagicLinkLogin
 		}
 
 		user.SignupMethods = signupMethod
