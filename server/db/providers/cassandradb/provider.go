@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/crypto"
@@ -96,6 +97,8 @@ func NewProvider() (*provider, error) {
 		NumRetries: 3,
 	}
 	cassandraClient.Consistency = gocql.LocalQuorum
+	cassandraClient.ConnectTimeout = 10 * time.Second
+	cassandraClient.ProtoVersion = 4
 
 	session, err := cassandraClient.CreateSession()
 	if err != nil {
