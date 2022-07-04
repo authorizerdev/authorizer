@@ -1,0 +1,15 @@
+package models
+
+// Note: any change here should be reflected in providers/casandra/provider.go as it does not have model support in collection creation
+
+// WebhookLog model for db
+type WebhookLog struct {
+	Key        string `json:"_key,omitempty" bson:"_key,omitempty" cql:"_key,omitempty"` // for arangodb
+	ID         string `gorm:"primaryKey;type:char(36)" json:"_id" bson:"_id" cql:"id"`
+	HttpStatus int32  `json:"http_status" bson:"http_status" cql:"http_status"`
+	Response   string `json:"response" bson:"response" cql:"response"`
+	Request    string `json:"request" bson:"request" cql:"request"`
+	WebhookID  string `gorm:"type:char(36),index:" json:"webhook_id" bson:"webhook_id" cql:"webhook_id"`
+	CreatedAt  int64  `json:"created_at" bson:"created_at" cql:"created_at"`
+	UpdatedAt  int64  `json:"updated_at" bson:"updated_at" cql:"updated_at"`
+}
