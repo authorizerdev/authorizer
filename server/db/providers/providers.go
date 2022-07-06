@@ -41,4 +41,22 @@ type Provider interface {
 	UpdateEnv(env models.Env) (models.Env, error)
 	// GetEnv to get environment information from database
 	GetEnv() (models.Env, error)
+
+	// AddWebhook to add webhook
+	AddWebhook(webhook models.Webhook) (models.Webhook, error)
+	// UpdateWebhook to update webhook
+	UpdateWebhook(webhook models.Webhook) (models.Webhook, error)
+	// ListWebhooks to list webhook
+	ListWebhook(pagination model.Pagination) (*model.Webhooks, error)
+	// GetWebhookByID to get webhook by id
+	GetWebhookByID(webhookID string) (models.Webhook, error)
+	// GetWebhookByEvent to get webhook by event_name
+	GetWebhookByEvent(eventName string) (models.Webhook, error)
+	// DeleteWebhook to delete webhook
+	DeleteWebhook(webhookID string) error
+
+	// AddWebhookLog to add webhook log
+	AddWebhookLog(webhookLog models.WebhookLog) (models.WebhookLog, error)
+	// ListWebhookLogs to list webhook logs
+	ListWebhookLogs(req model.ListWebhookLogRequest) (*model.WebhookLogs, error)
 }

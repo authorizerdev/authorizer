@@ -100,6 +100,11 @@ type InviteMemberInput struct {
 	RedirectURI *string  `json:"redirect_uri"`
 }
 
+type ListWebhookLogRequest struct {
+	Pagination *PaginatedInput `json:"pagination"`
+	WebhookID  *string         `json:"webhook_id"`
+}
+
 type LoginInput struct {
 	Email    string   `json:"email"`
 	Password string   `json:"password"`
@@ -318,4 +323,33 @@ type VerificationRequests struct {
 
 type VerifyEmailInput struct {
 	Token string `json:"token"`
+}
+
+type Webhook struct {
+	ID        string  `json:"id"`
+	EventName *string `json:"event_name"`
+	Endpoint  *string `json:"endpoint"`
+	Enabled   *bool   `json:"enabled"`
+	CreatedAt *int64  `json:"created_at"`
+	UpdatedAt *int64  `json:"updated_at"`
+}
+
+type WebhookLog struct {
+	ID         string  `json:"id"`
+	HTTPStatus *string `json:"http_status"`
+	Response   *string `json:"response"`
+	Request    *string `json:"request"`
+	WebhookID  *string `json:"webhook_id"`
+	CreatedAt  *int64  `json:"created_at"`
+	UpdatedAt  *int64  `json:"updated_at"`
+}
+
+type WebhookLogs struct {
+	Pagination  *Pagination   `json:"pagination"`
+	WebhookLogs []*WebhookLog `json:"webhook_logs"`
+}
+
+type Webhooks struct {
+	Pagination *Pagination `json:"pagination"`
+	Webhooks   []*Webhook  `json:"webhooks"`
 }

@@ -5,6 +5,7 @@ package graph
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/authorizerdev/authorizer/server/graph/generated"
 	"github.com/authorizerdev/authorizer/server/graph/model"
@@ -121,6 +122,14 @@ func (r *queryResolver) AdminSession(ctx context.Context) (*model.Response, erro
 
 func (r *queryResolver) Env(ctx context.Context) (*model.Env, error) {
 	return resolvers.EnvResolver(ctx)
+}
+
+func (r *queryResolver) Webhooks(ctx context.Context, params *model.PaginatedInput) (*model.Webhooks, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *queryResolver) WebhookLogs(ctx context.Context, params *model.ListWebhookLogRequest) (*model.WebhookLogs, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 // Mutation returns generated.MutationResolver implementation.
