@@ -107,6 +107,33 @@ func NewProvider() (*provider, error) {
 		}
 	}
 
+	webhookCollectionExists, err := arangodb.CollectionExists(ctx, models.Collections.Webhook)
+	if !webhookCollectionExists {
+		_, err = arangodb.CreateCollection(ctx, models.Collections.Webhook, nil)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	webhookCollection, _ := arangodb.Collection(nil, models.Collections.Webhook)
+	webhookCollection.EnsureHashIndex(ctx, []string{"event_name"}, &arangoDriver.EnsureHashIndexOptions{
+		Unique: true,
+		Sparse: true,
+	})
+
+	webhookLogCollectionExists, err := arangodb.CollectionExists(ctx, models.Collections.WebhookLog)
+	if !webhookLogCollectionExists {
+		_, err = arangodb.CreateCollection(ctx, models.Collections.WebhookLog, nil)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	webhookLogCollection, _ := arangodb.Collection(nil, models.Collections.WebhookLog)
+	webhookLogCollection.EnsureHashIndex(ctx, []string{"webhook_id"}, &arangoDriver.EnsureHashIndexOptions{
+		Unique: true,
+	})
+
 	return &provider{
 		db: arangodb,
 	}, err

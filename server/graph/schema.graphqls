@@ -2,7 +2,6 @@
 #
 # https://gqlgen.com/getting-started/
 scalar Int64
-scalar Int32
 scalar Map
 scalar Any
 
@@ -341,7 +340,7 @@ type Webhooks {
 
 type WebhookLog {
 	id: ID!
-	http_status: Int32
+	http_status: Int64
 	response: String
 	request: String
 	webhook_id: ID

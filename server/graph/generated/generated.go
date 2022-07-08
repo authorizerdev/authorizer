@@ -1576,7 +1576,6 @@ var sources = []*ast.Source{
 #
 # https://gqlgen.com/getting-started/
 scalar Int64
-scalar Int32
 scalar Map
 scalar Any
 
@@ -1915,7 +1914,7 @@ type Webhooks {
 
 type WebhookLog {
 	id: ID!
-	http_status: Int32
+	http_status: Int64
 	response: String
 	request: String
 	webhook_id: ID
@@ -7513,9 +7512,9 @@ func (ec *executionContext) _WebhookLog_http_status(ctx context.Context, field g
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(*int64)
 	fc.Result = res
-	return ec.marshalOInt322ᚖstring(ctx, field.Selections, res)
+	return ec.marshalOInt642ᚖint64(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _WebhookLog_response(ctx context.Context, field graphql.CollectedField, obj *model.WebhookLog) (ret graphql.Marshaler) {
@@ -12323,21 +12322,6 @@ func (ec *executionContext) marshalOID2ᚖstring(ctx context.Context, sel ast.Se
 		return graphql.Null
 	}
 	return graphql.MarshalID(*v)
-}
-
-func (ec *executionContext) unmarshalOInt322ᚖstring(ctx context.Context, v interface{}) (*string, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := graphql.UnmarshalString(v)
-	return &res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalOInt322ᚖstring(ctx context.Context, sel ast.SelectionSet, v *string) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return graphql.MarshalString(*v)
 }
 
 func (ec *executionContext) unmarshalOInt642ᚖint64(ctx context.Context, v interface{}) (*int64, error) {

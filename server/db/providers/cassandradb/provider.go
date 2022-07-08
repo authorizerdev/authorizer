@@ -177,6 +177,28 @@ func NewProvider() (*provider, error) {
 		return nil, err
 	}
 
+	webhookCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, event_name text, endpoint text, enabled boolean, updated_at bigint, created_at bigint, PRIMARY KEY (id))", KeySpace, models.Collections.Webhook)
+	err = session.Query(webhookCollectionQuery).Exec()
+	if err != nil {
+		return nil, err
+	}
+	webhookIndexQuery := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_webhook_event_name ON %s.%s (event_name)", KeySpace, models.Collections.Webhook)
+	err = session.Query(webhookIndexQuery).Exec()
+	if err != nil {
+		return nil, err
+	}
+
+	webhookLogCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, http_status bigint, response text, request text, webhook_id text,updated_at bigint, created_at bigint, PRIMARY KEY (id))", KeySpace, models.Collections.WebhookLog)
+	err = session.Query(webhookLogCollectionQuery).Exec()
+	if err != nil {
+		return nil, err
+	}
+	webhookLogIndexQuery := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_webhook_log_webhook_id ON %s.%s (webhook_id)", KeySpace, models.Collections.WebhookLog)
+	err = session.Query(webhookLogIndexQuery).Exec()
+	if err != nil {
+		return nil, err
+	}
+
 	return &provider{
 		db: session,
 	}, err

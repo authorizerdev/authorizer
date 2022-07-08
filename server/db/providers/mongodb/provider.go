@@ -83,6 +83,24 @@ func NewProvider() (*provider, error) {
 
 	mongodb.CreateCollection(ctx, models.Collections.Env, options.CreateCollection())
 
+	mongodb.CreateCollection(ctx, models.Collections.Webhook, options.CreateCollection())
+	webhookCollection := mongodb.Collection(models.Collections.Webhook, options.Collection())
+	webhookCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{
+			Keys:    bson.M{"event_name": 1},
+			Options: options.Index().SetUnique(true).SetSparse(true),
+		},
+	}, options.CreateIndexes())
+
+	mongodb.CreateCollection(ctx, models.Collections.WebhookLog, options.CreateCollection())
+	webhookLogCollection := mongodb.Collection(models.Collections.WebhookLog, options.Collection())
+	webhookLogCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{
+			Keys:    bson.M{"webhook_id": 1},
+			Options: options.Index().SetSparse(true),
+		},
+	}, options.CreateIndexes())
+
 	return &provider{
 		db: mongodb,
 	}, nil

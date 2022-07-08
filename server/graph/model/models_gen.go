@@ -336,7 +336,7 @@ type Webhook struct {
 
 type WebhookLog struct {
 	ID         string  `json:"id"`
-	HTTPStatus *string `json:"http_status"`
+	HTTPStatus *int64  `json:"http_status"`
 	Response   *string `json:"response"`
 	Request    *string `json:"request"`
 	WebhookID  *string `json:"webhook_id"`

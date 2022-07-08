@@ -58,5 +58,5 @@ type Provider interface {
 	// AddWebhookLog to add webhook log
 	AddWebhookLog(webhookLog models.WebhookLog) (models.WebhookLog, error)
 	// ListWebhookLogs to list webhook logs
-	ListWebhookLogs(req model.ListWebhookLogRequest) (*model.WebhookLogs, error)
+	ListWebhookLogs(pagination model.Pagination, webhookID string) (*model.WebhookLogs, error)
 }
