@@ -131,7 +131,7 @@ func NewProvider() (*provider, error) {
 
 	webhookLogCollection, _ := arangodb.Collection(nil, models.Collections.WebhookLog)
 	webhookLogCollection.EnsureHashIndex(ctx, []string{"webhook_id"}, &arangoDriver.EnsureHashIndexOptions{
-		Unique: true,
+		Sparse: true,
 	})
 
 	return &provider{
