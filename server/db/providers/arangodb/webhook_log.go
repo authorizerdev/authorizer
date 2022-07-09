@@ -39,7 +39,7 @@ func (p *provider) ListWebhookLogs(pagination model.Pagination, webhookID string
 	if webhookID != "" {
 		query = fmt.Sprintf("FOR d in %s FILTER d.webhook_id == @webhookID SORT d.created_at DESC LIMIT %d, %d RETURN d", models.Collections.WebhookLog, pagination.Offset, pagination.Limit)
 		bindVariables = map[string]interface{}{
-			webhookID: webhookID,
+			"webhook_id": webhookID,
 		}
 	}
 	ctx := driver.WithQueryFullCount(context.Background())

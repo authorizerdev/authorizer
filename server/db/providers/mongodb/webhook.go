@@ -42,6 +42,6 @@ func (p *provider) GetWebhookByEventName(eventName string) (models.Webhook, erro
 }
 
 // DeleteWebhook to delete webhook
-func (p *provider) DeleteWebhook(webhookID string) error {
+func (p *provider) DeleteWebhook(webhook models.Webhook) error {
 	return nil
 }

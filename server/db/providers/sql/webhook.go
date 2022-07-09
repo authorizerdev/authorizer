@@ -87,8 +87,8 @@ func (p *provider) GetWebhookByEventName(eventName string) (models.Webhook, erro
 }
 
 // DeleteWebhook to delete webhook
-func (p *provider) DeleteWebhook(webhookID string) error {
-	result := p.db.Delete(&models.Webhook{}, webhookID)
+func (p *provider) DeleteWebhook(webhook models.Webhook) error {
+	result := p.db.Delete(&webhook)
 	if result.Error != nil {
 		return result.Error
 	}

@@ -53,7 +53,7 @@ type Provider interface {
 	// GetWebhookByEventName to get webhook by event_name
 	GetWebhookByEventName(eventName string) (models.Webhook, error)
 	// DeleteWebhook to delete webhook
-	DeleteWebhook(webhookID string) error
+	DeleteWebhook(webhook models.Webhook) error
 
 	// AddWebhookLog to add webhook log
 	AddWebhookLog(webhookLog models.WebhookLog) (models.WebhookLog, error)
