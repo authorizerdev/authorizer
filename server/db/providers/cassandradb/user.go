@@ -97,9 +97,6 @@ func (p *provider) UpdateUser(user models.User) (models.User, error) {
 
 	updateFields := ""
 	for key, value := range userMap {
-		if value != nil && key != "_id" {
-		}
-
 		if key == "_id" {
 			continue
 		}
