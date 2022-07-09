@@ -50,8 +50,8 @@ type Provider interface {
 	ListWebhook(pagination model.Pagination) (*model.Webhooks, error)
 	// GetWebhookByID to get webhook by id
 	GetWebhookByID(webhookID string) (models.Webhook, error)
-	// GetWebhookByEvent to get webhook by event_name
-	GetWebhookByEvent(eventName string) (models.Webhook, error)
+	// GetWebhookByEventName to get webhook by event_name
+	GetWebhookByEventName(eventName string) (models.Webhook, error)
 	// DeleteWebhook to delete webhook
 	DeleteWebhook(webhookID string) error
 

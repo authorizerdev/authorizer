@@ -1,5 +1,7 @@
 package models
 
+import "github.com/authorizerdev/authorizer/server/graph/model"
+
 // Note: any change here should be reflected in providers/casandra/provider.go as it does not have model support in collection creation
 
 // Webhook model for db
@@ -11,4 +13,15 @@ type Webhook struct {
 	Enabled   bool   `json:"enabled" bson:"enabled" cql:"enabled"`
 	CreatedAt int64  `json:"created_at" bson:"created_at" cql:"created_at"`
 	UpdatedAt int64  `json:"updated_at" bson:"updated_at" cql:"updated_at"`
+}
+
+func (w *Webhook) AsAPIWebhook() *model.Webhook {
+	return &model.Webhook{
+		ID:        w.ID,
+		EventName: &w.EventName,
+		Endpoint:  &w.EndPoint,
+		Enabled:   &w.Enabled,
+		CreatedAt: &w.CreatedAt,
+		UpdatedAt: &w.UpdatedAt,
+	}
 }

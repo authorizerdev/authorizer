@@ -36,8 +36,8 @@ func (p *provider) GetWebhookByID(webhookID string) (models.Webhook, error) {
 	return models.Webhook{}, nil
 }
 
-// GetWebhookByEvent to get webhook by event_name
-func (p *provider) GetWebhookByEvent(eventName string) (models.Webhook, error) {
+// GetWebhookByEventName to get webhook by event_name
+func (p *provider) GetWebhookByEventName(eventName string) (models.Webhook, error) {
 	return models.Webhook{}, nil
 }
 

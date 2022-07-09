@@ -17,15 +17,13 @@ type WebhookLog struct {
 }
 
 func (w *WebhookLog) AsAPIWebhookLog() *model.WebhookLog {
-	createdAt := w.CreatedAt
-	updatedAt := w.UpdatedAt
 	return &model.WebhookLog{
 		ID:         w.ID,
 		HTTPStatus: &w.HttpStatus,
 		Response:   &w.Response,
 		Request:    &w.Request,
 		WebhookID:  &w.WebhookID,
-		CreatedAt:  &createdAt,
-		UpdatedAt:  &updatedAt,
+		CreatedAt:  &w.CreatedAt,
+		UpdatedAt:  &w.UpdatedAt,
 	}
 }
