@@ -329,6 +329,7 @@ type Webhook {
 	event_name: String
 	endpoint: String
 	enabled: Boolean
+	headers: Map
 	created_at: Int64
 	updated_at: Int64
 }
@@ -348,9 +349,39 @@ type WebhookLog {
 	updated_at: Int64
 }
 
+type TestEndpointResponse {
+	http_status: Int64
+	response: Map
+}
+
 input ListWebhookLogRequest {
 	pagination: PaginatedInput!
 	webhook_id: String
+}
+
+input AddWebhookRequest {
+	event_name: String!
+	endpoint: String!
+	enabled: Boolean!
+	headers: Map
+}
+
+input UpdateWebhookRequest {
+	id: ID!
+	event_name: String
+	endpoint: String
+	enabled: Boolean
+	headers: Map
+}
+
+input WebhookRequest {
+	id: ID!
+}
+
+input TestEndpointRequest {
+	endpoint: String!
+	event_name: String!
+	headers: Map
 }
 
 type WebhookLogs {
@@ -380,6 +411,10 @@ type Mutation {
 	_revoke_access(param: UpdateAccessInput!): Response!
 	_enable_access(param: UpdateAccessInput!): Response!
 	_generate_jwt_keys(params: GenerateJWTKeysInput!): GenerateJWTKeysResponse!
+	_add_webhook(params: AddWebhookRequest!): Response!
+	_update_webhook(params: UpdateWebhookRequest!): Response!
+	_delete_webhook(params: WebhookRequest!): Response!
+	_test_endpoint(params: TestEndpointRequest!): TestEndpointResponse!
 }
 
 type Query {
@@ -392,6 +427,7 @@ type Query {
 	_verification_requests(params: PaginatedInput): VerificationRequests!
 	_admin_session: Response!
 	_env: Env!
+	_webhook(params: WebhookRequest!): Webhook!
 	_webhooks(params: PaginatedInput): Webhooks!
-	_webhook_logs(params: ListWebhookLogRequest): WebhookLogs!
+	_webhook_logs(params: ListWebhookLogRequest!): WebhookLogs!
 }

@@ -1,6 +1,7 @@
 package cassandradb
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -14,7 +15,7 @@ import (
 )
 
 // AddWebhook to add webhook
-func (p *provider) AddWebhook(webhook models.Webhook) (models.Webhook, error) {
+func (p *provider) AddWebhook(ctx context.Context, webhook models.Webhook) (*model.Webhook, error) {
 	if webhook.ID == "" {
 		webhook.ID = uuid.New().String()
 	}
@@ -23,22 +24,22 @@ func (p *provider) AddWebhook(webhook models.Webhook) (models.Webhook, error) {
 	webhook.CreatedAt = time.Now().Unix()
 	webhook.UpdatedAt = time.Now().Unix()
 
-	insertQuery := fmt.Sprintf("INSERT INTO %s (id, event_name, endpoint, enabled,  created_at, updated_at) VALUES ('%s', '%s', '%s', %t, %d, %d)", KeySpace+"."+models.Collections.Webhook, webhook.ID, webhook.EventName, webhook.EndPoint, webhook.Enabled, webhook.CreatedAt, webhook.UpdatedAt)
+	insertQuery := fmt.Sprintf("INSERT INTO %s (id, event_name, endpoint, headers, enabled,  created_at, updated_at) VALUES ('%s', '%s', '%s', '%s', %t, %d, %d)", KeySpace+"."+models.Collections.Webhook, webhook.ID, webhook.EventName, webhook.EndPoint, webhook.Headers, webhook.Enabled, webhook.CreatedAt, webhook.UpdatedAt)
 	err := p.db.Query(insertQuery).Exec()
 	if err != nil {
-		return webhook, err
+		return nil, err
 	}
 
-	return webhook, nil
+	return webhook.AsAPIWebhook(), nil
 }
 
 // UpdateWebhook to update webhook
-func (p *provider) UpdateWebhook(webhook models.Webhook) (models.Webhook, error) {
+func (p *provider) UpdateWebhook(ctx context.Context, webhook models.Webhook) (*model.Webhook, error) {
 	webhook.UpdatedAt = time.Now().Unix()
 
 	bytes, err := json.Marshal(webhook)
 	if err != nil {
-		return webhook, err
+		return nil, err
 	}
 	// use decoder instead of json.Unmarshall, because it converts int64 -> float64 after unmarshalling
 	decoder := json.NewDecoder(strings.NewReader(string(bytes)))
@@ -46,7 +47,7 @@ func (p *provider) UpdateWebhook(webhook models.Webhook) (models.Webhook, error)
 	webhookMap := map[string]interface{}{}
 	err = decoder.Decode(&webhookMap)
 	if err != nil {
-		return webhook, err
+		return nil, err
 	}
 
 	updateFields := ""
@@ -74,13 +75,13 @@ func (p *provider) UpdateWebhook(webhook models.Webhook) (models.Webhook, error)
 
 	err = p.db.Query(query).Exec()
 	if err != nil {
-		return webhook, err
+		return nil, err
 	}
-	return webhook, nil
+	return webhook.AsAPIWebhook(), nil
 }
 
 // ListWebhooks to list webhook
-func (p *provider) ListWebhook(pagination model.Pagination) (*model.Webhooks, error) {
+func (p *provider) ListWebhook(ctx context.Context, pagination model.Pagination) (*model.Webhooks, error) {
 	webhooks := []*model.Webhook{}
 	paginationClone := pagination
 
@@ -93,14 +94,14 @@ func (p *provider) ListWebhook(pagination model.Pagination) (*model.Webhooks, er
 	// there is no offset in cassandra
 	// so we fetch till limit + offset
 	// and return the results from offset to limit
-	query := fmt.Sprintf("SELECT id, event_name, endpoint, enabled, created_at, updated_at FROM %s LIMIT %d", KeySpace+"."+models.Collections.Webhook, pagination.Limit+pagination.Offset)
+	query := fmt.Sprintf("SELECT id, event_name, endpoint, headers, enabled, created_at, updated_at FROM %s LIMIT %d", KeySpace+"."+models.Collections.Webhook, pagination.Limit+pagination.Offset)
 
 	scanner := p.db.Query(query).Iter().Scanner()
 	counter := int64(0)
 	for scanner.Next() {
 		if counter >= pagination.Offset {
 			var webhook models.Webhook
-			err := scanner.Scan(&webhook.ID, &webhook.EventName, &webhook.EndPoint, &webhook.Enabled, &webhook.CreatedAt, &webhook.UpdatedAt)
+			err := scanner.Scan(&webhook.ID, &webhook.EventName, &webhook.EndPoint, &webhook.Headers, &webhook.Enabled, &webhook.CreatedAt, &webhook.UpdatedAt)
 			if err != nil {
 				return nil, err
 			}
@@ -116,29 +117,29 @@ func (p *provider) ListWebhook(pagination model.Pagination) (*model.Webhooks, er
 }
 
 // GetWebhookByID to get webhook by id
-func (p *provider) GetWebhookByID(webhookID string) (models.Webhook, error) {
+func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*model.Webhook, error) {
 	var webhook models.Webhook
-	query := fmt.Sprintf(`SELECT id, event_name, endpoint, enabled, created_at, updated_at FROM %s WHERE id = '%s' LIMIT 1`, KeySpace+"."+models.Collections.Webhook, webhookID)
-	err := p.db.Query(query).Consistency(gocql.One).Scan(&webhook.ID, &webhook.EventName, &webhook.EndPoint, &webhook.Enabled, &webhook.CreatedAt, &webhook.UpdatedAt)
+	query := fmt.Sprintf(`SELECT id, event_name, endpoint, headers, enabled, created_at, updated_at FROM %s WHERE id = '%s' LIMIT 1`, KeySpace+"."+models.Collections.Webhook, webhookID)
+	err := p.db.Query(query).Consistency(gocql.One).Scan(&webhook.ID, &webhook.EventName, &webhook.EndPoint, &webhook.Headers, &webhook.Enabled, &webhook.CreatedAt, &webhook.UpdatedAt)
 	if err != nil {
-		return webhook, err
+		return nil, err
 	}
-	return webhook, nil
+	return webhook.AsAPIWebhook(), nil
 }
 
 // GetWebhookByEventName to get webhook by event_name
-func (p *provider) GetWebhookByEventName(eventName string) (models.Webhook, error) {
+func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) (*model.Webhook, error) {
 	var webhook models.Webhook
-	query := fmt.Sprintf(`SELECT id, event_name, endpoint, enabled, created_at, updated_at FROM %s WHERE event_name = '%s' LIMIT 1`, KeySpace+"."+models.Collections.Webhook, eventName)
-	err := p.db.Query(query).Consistency(gocql.One).Scan(&webhook.ID, &webhook.EventName, &webhook.EndPoint, &webhook.Enabled, &webhook.CreatedAt, &webhook.UpdatedAt)
+	query := fmt.Sprintf(`SELECT id, event_name, endpoint, headers, enabled, created_at, updated_at FROM %s WHERE event_name = '%s' LIMIT 1`, KeySpace+"."+models.Collections.Webhook, eventName)
+	err := p.db.Query(query).Consistency(gocql.One).Scan(&webhook.ID, &webhook.EventName, &webhook.EndPoint, &webhook.Headers, &webhook.Enabled, &webhook.CreatedAt, &webhook.UpdatedAt)
 	if err != nil {
-		return webhook, err
+		return nil, err
 	}
-	return webhook, nil
+	return webhook.AsAPIWebhook(), nil
 }
 
 // DeleteWebhook to delete webhook
-func (p *provider) DeleteWebhook(webhook models.Webhook) error {
+func (p *provider) DeleteWebhook(ctx context.Context, webhook *model.Webhook) error {
 	query := fmt.Sprintf("DELETE FROM %s WHERE id = '%s'", KeySpace+"."+models.Collections.Webhook, webhook.ID)
 	err := p.db.Query(query).Exec()
 	return err

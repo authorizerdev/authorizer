@@ -1,6 +1,7 @@
 package sql
 
 import (
+	"context"
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/db/models"
@@ -9,7 +10,7 @@ import (
 )
 
 // AddWebhook to add webhook
-func (p *provider) AddWebhook(webhook models.Webhook) (models.Webhook, error) {
+func (p *provider) AddWebhook(ctx context.Context, webhook models.Webhook) (*model.Webhook, error) {
 	if webhook.ID == "" {
 		webhook.ID = uuid.New().String()
 	}
@@ -19,25 +20,25 @@ func (p *provider) AddWebhook(webhook models.Webhook) (models.Webhook, error) {
 	webhook.UpdatedAt = time.Now().Unix()
 	res := p.db.Create(&webhook)
 	if res.Error != nil {
-		return webhook, res.Error
+		return nil, res.Error
 	}
-	return webhook, nil
+	return webhook.AsAPIWebhook(), nil
 }
 
 // UpdateWebhook to update webhook
-func (p *provider) UpdateWebhook(webhook models.Webhook) (models.Webhook, error) {
+func (p *provider) UpdateWebhook(ctx context.Context, webhook models.Webhook) (*model.Webhook, error) {
 	webhook.UpdatedAt = time.Now().Unix()
 
 	result := p.db.Save(&webhook)
 	if result.Error != nil {
-		return webhook, result.Error
+		return nil, result.Error
 	}
 
-	return webhook, nil
+	return webhook.AsAPIWebhook(), nil
 }
 
 // ListWebhooks to list webhook
-func (p *provider) ListWebhook(pagination model.Pagination) (*model.Webhooks, error) {
+func (p *provider) ListWebhook(ctx context.Context, pagination model.Pagination) (*model.Webhooks, error) {
 	var webhooks []models.Webhook
 
 	result := p.db.Limit(int(pagination.Limit)).Offset(int(pagination.Offset)).Order("created_at DESC").Find(&webhooks)
@@ -65,30 +66,30 @@ func (p *provider) ListWebhook(pagination model.Pagination) (*model.Webhooks, er
 }
 
 // GetWebhookByID to get webhook by id
-func (p *provider) GetWebhookByID(webhookID string) (models.Webhook, error) {
+func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*model.Webhook, error) {
 	var webhook models.Webhook
 
 	result := p.db.Where("id = ?", webhookID).First(webhook)
 	if result.Error != nil {
-		return webhook, result.Error
+		return nil, result.Error
 	}
-	return webhook, nil
+	return webhook.AsAPIWebhook(), nil
 }
 
 // GetWebhookByEventName to get webhook by event_name
-func (p *provider) GetWebhookByEventName(eventName string) (models.Webhook, error) {
+func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) (*model.Webhook, error) {
 	var webhook models.Webhook
 
 	result := p.db.Where("event_name = ?", eventName).First(webhook)
 	if result.Error != nil {
-		return webhook, result.Error
+		return nil, result.Error
 	}
-	return models.Webhook{}, nil
+	return webhook.AsAPIWebhook(), nil
 }
 
 // DeleteWebhook to delete webhook
-func (p *provider) DeleteWebhook(webhook models.Webhook) error {
-	result := p.db.Delete(&webhook)
+func (p *provider) DeleteWebhook(ctx context.Context, webhook *model.Webhook) error {
+	result := p.db.Delete(&models.Webhook{}, webhook.ID)
 	if result.Error != nil {
 		return result.Error
 	}

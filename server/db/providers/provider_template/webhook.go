@@ -1,6 +1,7 @@
 package provider_template
 
 import (
+	"context"
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/db/models"
@@ -9,7 +10,7 @@ import (
 )
 
 // AddWebhook to add webhook
-func (p *provider) AddWebhook(webhook models.Webhook) (models.Webhook, error) {
+func (p *provider) AddWebhook(ctx context.Context, webhook models.Webhook) (*model.Webhook, error) {
 	if webhook.ID == "" {
 		webhook.ID = uuid.New().String()
 	}
@@ -17,31 +18,31 @@ func (p *provider) AddWebhook(webhook models.Webhook) (models.Webhook, error) {
 	webhook.Key = webhook.ID
 	webhook.CreatedAt = time.Now().Unix()
 	webhook.UpdatedAt = time.Now().Unix()
-	return webhook, nil
+	return webhook.AsAPIWebhook(), nil
 }
 
 // UpdateWebhook to update webhook
-func (p *provider) UpdateWebhook(webhook models.Webhook) (models.Webhook, error) {
+func (p *provider) UpdateWebhook(ctx context.Context, webhook models.Webhook) (*model.Webhook, error) {
 	webhook.UpdatedAt = time.Now().Unix()
-	return webhook, nil
+	return webhook.AsAPIWebhook(), nil
 }
 
 // ListWebhooks to list webhook
-func (p *provider) ListWebhook(pagination model.Pagination) (*model.Webhooks, error) {
+func (p *provider) ListWebhook(ctx context.Context, pagination model.Pagination) (*model.Webhooks, error) {
 	return nil, nil
 }
 
 // GetWebhookByID to get webhook by id
-func (p *provider) GetWebhookByID(webhookID string) (models.Webhook, error) {
-	return models.Webhook{}, nil
+func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*model.Webhook, error) {
+	return nil, nil
 }
 
 // GetWebhookByEventName to get webhook by event_name
-func (p *provider) GetWebhookByEventName(eventName string) (models.Webhook, error) {
-	return models.Webhook{}, nil
+func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) (*model.Webhook, error) {
+	return nil, nil
 }
 
 // DeleteWebhook to delete webhook
-func (p *provider) DeleteWebhook(webhook models.Webhook) error {
+func (p *provider) DeleteWebhook(ctx context.Context, webhook *model.Webhook) error {
 	return nil
 }

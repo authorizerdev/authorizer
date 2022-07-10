@@ -39,7 +39,7 @@ func ResetPasswordResolver(ctx context.Context, params model.ResetPasswordInput)
 		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
 	}
 
-	verificationRequest, err := db.Provider.GetVerificationRequestByToken(params.Token)
+	verificationRequest, err := db.Provider.GetVerificationRequestByToken(ctx, params.Token)
 	if err != nil {
 		log.Debug("Failed to get verification request: ", err)
 		return res, fmt.Errorf(`invalid token`)
@@ -72,7 +72,7 @@ func ResetPasswordResolver(ctx context.Context, params model.ResetPasswordInput)
 	log := log.WithFields(log.Fields{
 		"email": email,
 	})
-	user, err := db.Provider.GetUserByEmail(email)
+	user, err := db.Provider.GetUserByEmail(ctx, email)
 	if err != nil {
 		log.Debug("Failed to get user: ", err)
 		return res, err
@@ -94,13 +94,13 @@ func ResetPasswordResolver(ctx context.Context, params model.ResetPasswordInput)
 	}
 
 	// delete from verification table
-	err = db.Provider.DeleteVerificationRequest(verificationRequest)
+	err = db.Provider.DeleteVerificationRequest(ctx, verificationRequest)
 	if err != nil {
 		log.Debug("Failed to delete verification request: ", err)
 		return res, err
 	}
 
-	_, err = db.Provider.UpdateUser(user)
+	_, err = db.Provider.UpdateUser(ctx, user)
 	if err != nil {
 		log.Debug("Failed to update user: ", err)
 		return res, err

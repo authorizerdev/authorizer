@@ -33,30 +33,31 @@ type TestSetup struct {
 }
 
 func cleanData(email string) {
-	verificationRequest, err := db.Provider.GetVerificationRequestByEmail(email, constants.VerificationTypeBasicAuthSignup)
+	ctx := context.Background()
+	verificationRequest, err := db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeBasicAuthSignup)
 	if err == nil {
-		err = db.Provider.DeleteVerificationRequest(verificationRequest)
+		err = db.Provider.DeleteVerificationRequest(ctx, verificationRequest)
 	}
 
-	verificationRequest, err = db.Provider.GetVerificationRequestByEmail(email, constants.VerificationTypeForgotPassword)
+	verificationRequest, err = db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeForgotPassword)
 	if err == nil {
-		err = db.Provider.DeleteVerificationRequest(verificationRequest)
+		err = db.Provider.DeleteVerificationRequest(ctx, verificationRequest)
 	}
 
-	verificationRequest, err = db.Provider.GetVerificationRequestByEmail(email, constants.VerificationTypeUpdateEmail)
+	verificationRequest, err = db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeUpdateEmail)
 	if err == nil {
-		err = db.Provider.DeleteVerificationRequest(verificationRequest)
+		err = db.Provider.DeleteVerificationRequest(ctx, verificationRequest)
 	}
 
-	verificationRequest, err = db.Provider.GetVerificationRequestByEmail(email, constants.VerificationTypeMagicLinkLogin)
+	verificationRequest, err = db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeMagicLinkLogin)
 	if err == nil {
-		err = db.Provider.DeleteVerificationRequest(verificationRequest)
+		err = db.Provider.DeleteVerificationRequest(ctx, verificationRequest)
 	}
 
-	dbUser, err := db.Provider.GetUserByEmail(email)
+	dbUser, err := db.Provider.GetUserByEmail(ctx, email)
 	if err == nil {
-		db.Provider.DeleteUser(dbUser)
-		db.Provider.DeleteSession(dbUser.ID)
+		db.Provider.DeleteUser(ctx, dbUser)
+		db.Provider.DeleteSession(ctx, dbUser.ID)
 	}
 }
 

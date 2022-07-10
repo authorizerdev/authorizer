@@ -4,17 +4,15 @@ import (
 	"context"
 	"fmt"
 
-	log "github.com/sirupsen/logrus"
-
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
+	log "github.com/sirupsen/logrus"
 )
 
-// UsersResolver is a resolver for users query
-// This is admin only query
-func UsersResolver(ctx context.Context, params *model.PaginatedInput) (*model.Users, error) {
+// WebhookResolver resolver for getting webhook by identifier
+func WebhookResolver(ctx context.Context, params model.WebhookRequest) (*model.Webhook, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
 		log.Debug("Failed to get GinContext: ", err)
@@ -22,17 +20,14 @@ func UsersResolver(ctx context.Context, params *model.PaginatedInput) (*model.Us
 	}
 
 	if !token.IsSuperAdmin(gc) {
-		log.Debug("Not logged in as super admin.")
+		log.Debug("Not logged in as super admin")
 		return nil, fmt.Errorf("unauthorized")
 	}
 
-	pagination := utils.GetPagination(params)
-
-	res, err := db.Provider.ListUsers(ctx, pagination)
+	webhook, err := db.Provider.GetWebhookByID(ctx, params.ID)
 	if err != nil {
-		log.Debug("Failed to get users: ", err)
+		log.Debug("error getting webhook: ", err)
 		return nil, err
 	}
-
-	return res, nil
+	return webhook, nil
 }

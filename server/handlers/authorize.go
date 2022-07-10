@@ -199,7 +199,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 			return
 		}
 		userID := claims.Subject
-		user, err := db.Provider.GetUserByID(userID)
+		user, err := db.Provider.GetUserByID(gc, userID)
 		if err != nil {
 			if isQuery {
 				gc.Redirect(http.StatusFound, loginURL)

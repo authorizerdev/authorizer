@@ -29,7 +29,7 @@ func VerifyEmailResolver(ctx context.Context, params model.VerifyEmailInput) (*m
 		return res, err
 	}
 
-	verificationRequest, err := db.Provider.GetVerificationRequestByToken(params.Token)
+	verificationRequest, err := db.Provider.GetVerificationRequestByToken(ctx, params.Token)
 	if err != nil {
 		log.Debug("Failed to get verification request by token: ", err)
 		return res, fmt.Errorf(`invalid token: %s`, err.Error())
@@ -52,7 +52,7 @@ func VerifyEmailResolver(ctx context.Context, params model.VerifyEmailInput) (*m
 	log := log.WithFields(log.Fields{
 		"email": email,
 	})
-	user, err := db.Provider.GetUserByEmail(email)
+	user, err := db.Provider.GetUserByEmail(ctx, email)
 	if err != nil {
 		log.Debug("Failed to get user by email: ", err)
 		return res, err
@@ -61,13 +61,13 @@ func VerifyEmailResolver(ctx context.Context, params model.VerifyEmailInput) (*m
 	// update email_verified_at in users table
 	now := time.Now().Unix()
 	user.EmailVerifiedAt = &now
-	user, err = db.Provider.UpdateUser(user)
+	user, err = db.Provider.UpdateUser(ctx, user)
 	if err != nil {
 		log.Debug("Failed to update user: ", err)
 		return res, err
 	}
 	// delete from verification table
-	err = db.Provider.DeleteVerificationRequest(verificationRequest)
+	err = db.Provider.DeleteVerificationRequest(gc, verificationRequest)
 	if err != nil {
 		log.Debug("Failed to delete verification request: ", err)
 		return res, err
@@ -86,7 +86,7 @@ func VerifyEmailResolver(ctx context.Context, params model.VerifyEmailInput) (*m
 		return res, err
 	}
 
-	go db.Provider.AddSession(models.Session{
+	go db.Provider.AddSession(ctx, models.Session{
 		UserID:    user.ID,
 		UserAgent: utils.GetUserAgent(gc.Request),
 		IP:        utils.GetIP(gc.Request),

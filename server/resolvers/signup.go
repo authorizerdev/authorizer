@@ -74,7 +74,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 		"email": params.Email,
 	})
 	// find user with email
-	existingUser, err := db.Provider.GetUserByEmail(params.Email)
+	existingUser, err := db.Provider.GetUserByEmail(ctx, params.Email)
 	if err != nil {
 		log.Debug("Failed to get user by email: ", err)
 	}
@@ -167,7 +167,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 		now := time.Now().Unix()
 		user.EmailVerifiedAt = &now
 	}
-	user, err = db.Provider.AddUser(user)
+	user, err = db.Provider.AddUser(ctx, user)
 	if err != nil {
 		log.Debug("Failed to add user: ", err)
 		return res, err
@@ -193,7 +193,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 			log.Debug("Failed to create verification token: ", err)
 			return res, err
 		}
-		_, err = db.Provider.AddVerificationRequest(models.VerificationRequest{
+		_, err = db.Provider.AddVerificationRequest(ctx, models.VerificationRequest{
 			Token:       verificationToken,
 			Identifier:  verificationType,
 			ExpiresAt:   time.Now().Add(time.Minute * 30).Unix(),
@@ -225,7 +225,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 			return res, err
 		}
 
-		go db.Provider.AddSession(models.Session{
+		go db.Provider.AddSession(ctx, models.Session{
 			UserID:    user.ID,
 			UserAgent: utils.GetUserAgent(gc.Request),
 			IP:        utils.GetIP(gc.Request),

@@ -190,7 +190,7 @@ func TokenHandler() gin.HandlerFunc {
 			return
 		}
 
-		user, err := db.Provider.GetUserByID(userID)
+		user, err := db.Provider.GetUserByID(gc, userID)
 		if err != nil {
 			log.Debug("Error getting user: ", err)
 			gc.JSON(http.StatusUnauthorized, gin.H{

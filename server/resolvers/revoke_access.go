@@ -32,7 +32,7 @@ func RevokeAccessResolver(ctx context.Context, params model.UpdateAccessInput) (
 	log := log.WithFields(log.Fields{
 		"user_id": params.UserID,
 	})
-	user, err := db.Provider.GetUserByID(params.UserID)
+	user, err := db.Provider.GetUserByID(ctx, params.UserID)
 	if err != nil {
 		log.Debug("Failed to get user by ID: ", err)
 		return res, err
@@ -41,7 +41,7 @@ func RevokeAccessResolver(ctx context.Context, params model.UpdateAccessInput) (
 	now := time.Now().Unix()
 	user.RevokedTimestamp = &now
 
-	user, err = db.Provider.UpdateUser(user)
+	user, err = db.Provider.UpdateUser(ctx, user)
 	if err != nil {
 		log.Debug("Failed to update user: ", err)
 		return res, err

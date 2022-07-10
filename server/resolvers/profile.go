@@ -38,7 +38,7 @@ func ProfileResolver(ctx context.Context) (*model.User, error) {
 	log := log.WithFields(log.Fields{
 		"user_id": userID,
 	})
-	user, err := db.Provider.GetUserByID(userID)
+	user, err := db.Provider.GetUserByID(ctx, userID)
 	if err != nil {
 		log.Debug("Failed to get user: ", err)
 		return res, err

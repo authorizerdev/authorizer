@@ -1,6 +1,7 @@
 package mongodb
 
 import (
+	"context"
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/db/models"
@@ -11,7 +12,7 @@ import (
 )
 
 // AddWebhookLog to add webhook log
-func (p *provider) AddWebhookLog(webhookLog models.WebhookLog) (models.WebhookLog, error) {
+func (p *provider) AddWebhookLog(ctx context.Context, webhookLog models.WebhookLog) (*model.WebhookLog, error) {
 	if webhookLog.ID == "" {
 		webhookLog.ID = uuid.New().String()
 	}
@@ -21,15 +22,15 @@ func (p *provider) AddWebhookLog(webhookLog models.WebhookLog) (models.WebhookLo
 	webhookLog.UpdatedAt = time.Now().Unix()
 
 	webhookLogCollection := p.db.Collection(models.Collections.WebhookLog, options.Collection())
-	_, err := webhookLogCollection.InsertOne(nil, webhookLog)
+	_, err := webhookLogCollection.InsertOne(ctx, webhookLog)
 	if err != nil {
-		return webhookLog, err
+		return nil, err
 	}
-	return webhookLog, nil
+	return webhookLog.AsAPIWebhookLog(), nil
 }
 
 // ListWebhookLogs to list webhook logs
-func (p *provider) ListWebhookLogs(pagination model.Pagination, webhookID string) (*model.WebhookLogs, error) {
+func (p *provider) ListWebhookLogs(ctx context.Context, pagination model.Pagination, webhookID string) (*model.WebhookLogs, error) {
 	webhookLogs := []*model.WebhookLog{}
 	opts := options.Find()
 	opts.SetLimit(pagination.Limit)
@@ -44,19 +45,20 @@ func (p *provider) ListWebhookLogs(pagination model.Pagination, webhookID string
 	}
 
 	webhookLogCollection := p.db.Collection(models.Collections.WebhookLog, options.Collection())
-	count, err := webhookLogCollection.CountDocuments(nil, query, options.Count())
+	count, err := webhookLogCollection.CountDocuments(ctx, query, options.Count())
 	if err != nil {
 		return nil, err
 	}
 
 	paginationClone.Total = count
 
-	cursor, err := webhookLogCollection.Find(nil, query, opts)
+	cursor, err := webhookLogCollection.Find(ctx, query, opts)
 	if err != nil {
 		return nil, err
 	}
+	defer cursor.Close(ctx)
 
-	for cursor.Next(nil) {
+	for cursor.Next(ctx) {
 		var webhookLog models.WebhookLog
 		err := cursor.Decode(&webhookLog)
 		if err != nil {

@@ -1,6 +1,7 @@
 package sql
 
 import (
+	"context"
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/db/models"
@@ -8,7 +9,7 @@ import (
 )
 
 // AddEnv to save environment information in database
-func (p *provider) AddEnv(env models.Env) (models.Env, error) {
+func (p *provider) AddEnv(ctx context.Context, env models.Env) (models.Env, error) {
 	if env.ID == "" {
 		env.ID = uuid.New().String()
 	}
@@ -25,7 +26,7 @@ func (p *provider) AddEnv(env models.Env) (models.Env, error) {
 }
 
 // UpdateEnv to update environment information in database
-func (p *provider) UpdateEnv(env models.Env) (models.Env, error) {
+func (p *provider) UpdateEnv(ctx context.Context, env models.Env) (models.Env, error) {
 	env.UpdatedAt = time.Now().Unix()
 	result := p.db.Save(&env)
 
@@ -36,7 +37,7 @@ func (p *provider) UpdateEnv(env models.Env) (models.Env, error) {
 }
 
 // GetEnv to get environment information from database
-func (p *provider) GetEnv() (models.Env, error) {
+func (p *provider) GetEnv(ctx context.Context) (models.Env, error) {
 	var env models.Env
 	result := p.db.First(&env)
 

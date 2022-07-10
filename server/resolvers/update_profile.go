@@ -55,7 +55,7 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 		"user_id": userID,
 	})
 
-	user, err := db.Provider.GetUserByID(userID)
+	user, err := db.Provider.GetUserByID(ctx, userID)
 	if err != nil {
 		log.Debug("Failed to get user by id: ", err)
 		return res, err
@@ -135,7 +135,7 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 			return res, fmt.Errorf("invalid new email address")
 		}
 		// check if user with new email exists
-		_, err := db.Provider.GetUserByEmail(newEmail)
+		_, err := db.Provider.GetUserByEmail(ctx, newEmail)
 		// err = nil means user exists
 		if err == nil {
 			log.Debug("Failed to get user by email: ", newEmail)
@@ -168,7 +168,7 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 				log.Debug("Failed to create verification token: ", err)
 				return res, err
 			}
-			_, err = db.Provider.AddVerificationRequest(models.VerificationRequest{
+			_, err = db.Provider.AddVerificationRequest(ctx, models.VerificationRequest{
 				Token:       verificationToken,
 				Identifier:  verificationType,
 				ExpiresAt:   time.Now().Add(time.Minute * 30).Unix(),
@@ -186,7 +186,7 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 
 		}
 	}
-	_, err = db.Provider.UpdateUser(user)
+	_, err = db.Provider.UpdateUser(ctx, user)
 	if err != nil {
 		log.Debug("Failed to update user: ", err)
 		return res, err

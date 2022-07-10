@@ -1,6 +1,7 @@
 package test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/authorizerdev/authorizer/server/constants"
@@ -20,6 +21,7 @@ func TestResolvers(t *testing.T) {
 	for dbType, dbURL := range databases {
 		s := testSetup()
 		defer s.Server.Close()
+		ctx := context.Background()
 
 		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDatabaseURL, dbURL)
 		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDatabaseType, dbType)
@@ -29,10 +31,10 @@ func TestResolvers(t *testing.T) {
 		}
 
 		// clean the persisted config for test to use fresh config
-		envData, err := db.Provider.GetEnv()
+		envData, err := db.Provider.GetEnv(ctx)
 		if err == nil {
 			envData.EnvData = ""
-			db.Provider.UpdateEnv(envData)
+			db.Provider.UpdateEnv(ctx, envData)
 		}
 		env.PersistEnv()
 

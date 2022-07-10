@@ -1,6 +1,7 @@
 package mongodb
 
 import (
+	"context"
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/db/models"
@@ -11,7 +12,7 @@ import (
 )
 
 // AddWebhook to add webhook
-func (p *provider) AddWebhook(webhook models.Webhook) (models.Webhook, error) {
+func (p *provider) AddWebhook(ctx context.Context, webhook models.Webhook) (*model.Webhook, error) {
 	if webhook.ID == "" {
 		webhook.ID = uuid.New().String()
 	}
@@ -21,27 +22,27 @@ func (p *provider) AddWebhook(webhook models.Webhook) (models.Webhook, error) {
 	webhook.UpdatedAt = time.Now().Unix()
 
 	webhookCollection := p.db.Collection(models.Collections.Webhook, options.Collection())
-	_, err := webhookCollection.InsertOne(nil, webhook)
+	_, err := webhookCollection.InsertOne(ctx, webhook)
 	if err != nil {
-		return webhook, err
+		return nil, err
 	}
-	return webhook, nil
+	return webhook.AsAPIWebhook(), nil
 }
 
 // UpdateWebhook to update webhook
-func (p *provider) UpdateWebhook(webhook models.Webhook) (models.Webhook, error) {
+func (p *provider) UpdateWebhook(ctx context.Context, webhook models.Webhook) (*model.Webhook, error) {
 	webhook.UpdatedAt = time.Now().Unix()
 	webhookCollection := p.db.Collection(models.Collections.Webhook, options.Collection())
-	_, err := webhookCollection.UpdateOne(nil, bson.M{"_id": bson.M{"$eq": webhook.ID}}, bson.M{"$set": webhook}, options.MergeUpdateOptions())
+	_, err := webhookCollection.UpdateOne(ctx, bson.M{"_id": bson.M{"$eq": webhook.ID}}, bson.M{"$set": webhook}, options.MergeUpdateOptions())
 	if err != nil {
-		return webhook, err
+		return nil, err
 	}
 
-	return webhook, nil
+	return webhook.AsAPIWebhook(), nil
 }
 
 // ListWebhooks to list webhook
-func (p *provider) ListWebhook(pagination model.Pagination) (*model.Webhooks, error) {
+func (p *provider) ListWebhook(ctx context.Context, pagination model.Pagination) (*model.Webhooks, error) {
 	var webhooks []*model.Webhook
 	opts := options.Find()
 	opts.SetLimit(pagination.Limit)
@@ -51,20 +52,20 @@ func (p *provider) ListWebhook(pagination model.Pagination) (*model.Webhooks, er
 	paginationClone := pagination
 
 	webhookCollection := p.db.Collection(models.Collections.Webhook, options.Collection())
-	count, err := webhookCollection.CountDocuments(nil, bson.M{}, options.Count())
+	count, err := webhookCollection.CountDocuments(ctx, bson.M{}, options.Count())
 	if err != nil {
 		return nil, err
 	}
 
 	paginationClone.Total = count
 
-	cursor, err := webhookCollection.Find(nil, bson.M{}, opts)
+	cursor, err := webhookCollection.Find(ctx, bson.M{}, opts)
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close(nil)
+	defer cursor.Close(ctx)
 
-	for cursor.Next(nil) {
+	for cursor.Next(ctx) {
 		var webhook models.Webhook
 		err := cursor.Decode(&webhook)
 		if err != nil {
@@ -80,29 +81,29 @@ func (p *provider) ListWebhook(pagination model.Pagination) (*model.Webhooks, er
 }
 
 // GetWebhookByID to get webhook by id
-func (p *provider) GetWebhookByID(webhookID string) (models.Webhook, error) {
+func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*model.Webhook, error) {
 	var webhook models.Webhook
 	webhookCollection := p.db.Collection(models.Collections.Webhook, options.Collection())
-	err := webhookCollection.FindOne(nil, bson.M{"_id": webhookID}).Decode(&webhook)
+	err := webhookCollection.FindOne(ctx, bson.M{"_id": webhookID}).Decode(&webhook)
 	if err != nil {
-		return webhook, err
+		return nil, err
 	}
-	return webhook, nil
+	return webhook.AsAPIWebhook(), nil
 }
 
 // GetWebhookByEventName to get webhook by event_name
-func (p *provider) GetWebhookByEventName(eventName string) (models.Webhook, error) {
+func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) (*model.Webhook, error) {
 	var webhook models.Webhook
 	webhookCollection := p.db.Collection(models.Collections.Webhook, options.Collection())
-	err := webhookCollection.FindOne(nil, bson.M{"event_name": eventName}).Decode(&webhook)
+	err := webhookCollection.FindOne(ctx, bson.M{"event_name": eventName}).Decode(&webhook)
 	if err != nil {
-		return webhook, err
+		return nil, err
 	}
-	return webhook, nil
+	return webhook.AsAPIWebhook(), nil
 }
 
 // DeleteWebhook to delete webhook
-func (p *provider) DeleteWebhook(webhook models.Webhook) error {
+func (p *provider) DeleteWebhook(ctx context.Context, webhook *model.Webhook) error {
 	webhookCollection := p.db.Collection(models.Collections.Webhook, options.Collection())
 	_, err := webhookCollection.DeleteOne(nil, bson.M{"_id": webhook.ID}, options.Delete())
 	if err != nil {

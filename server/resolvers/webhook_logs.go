@@ -4,17 +4,15 @@ import (
 	"context"
 	"fmt"
 
-	log "github.com/sirupsen/logrus"
-
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
+	log "github.com/sirupsen/logrus"
 )
 
-// VerificationRequestsResolver is a resolver for verification requests query
-// This is admin only query
-func VerificationRequestsResolver(ctx context.Context, params *model.PaginatedInput) (*model.VerificationRequests, error) {
+// WebhookLogsResolver resolver for getting the list of webhook_logs based on pagination & webhook identifier
+func WebhookLogsResolver(ctx context.Context, params model.ListWebhookLogRequest) (*model.WebhookLogs, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
 		log.Debug("Failed to get GinContext: ", err)
@@ -26,13 +24,12 @@ func VerificationRequestsResolver(ctx context.Context, params *model.PaginatedIn
 		return nil, fmt.Errorf("unauthorized")
 	}
 
-	pagination := utils.GetPagination(params)
+	pagination := utils.GetPagination(params.Pagination)
 
-	res, err := db.Provider.ListVerificationRequests(ctx, pagination)
+	webhookLogs, err := db.Provider.ListWebhookLogs(ctx, pagination, utils.StringValue(params.WebhookID))
 	if err != nil {
-		log.Debug("Failed to get verification requests: ", err)
+		log.Debug("failed to get webhook logs: ", err)
 		return nil, err
 	}
-
-	return res, nil
+	return webhookLogs, nil
 }

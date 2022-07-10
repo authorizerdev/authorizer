@@ -13,7 +13,7 @@ import (
 )
 
 // AddWebhookLog to add webhook log
-func (p *provider) AddWebhookLog(webhookLog models.WebhookLog) (models.WebhookLog, error) {
+func (p *provider) AddWebhookLog(ctx context.Context, webhookLog models.WebhookLog) (*model.WebhookLog, error) {
 	if webhookLog.ID == "" {
 		webhookLog.ID = uuid.New().String()
 	}
@@ -21,16 +21,16 @@ func (p *provider) AddWebhookLog(webhookLog models.WebhookLog) (models.WebhookLo
 	webhookLog.Key = webhookLog.ID
 	webhookLog.CreatedAt = time.Now().Unix()
 	webhookLog.UpdatedAt = time.Now().Unix()
-	webhookLogCollection, _ := p.db.Collection(nil, models.Collections.WebhookLog)
-	_, err := webhookLogCollection.CreateDocument(nil, webhookLog)
+	webhookLogCollection, _ := p.db.Collection(ctx, models.Collections.WebhookLog)
+	_, err := webhookLogCollection.CreateDocument(ctx, webhookLog)
 	if err != nil {
-		return webhookLog, err
+		return nil, err
 	}
-	return webhookLog, nil
+	return webhookLog.AsAPIWebhookLog(), nil
 }
 
 // ListWebhookLogs to list webhook logs
-func (p *provider) ListWebhookLogs(pagination model.Pagination, webhookID string) (*model.WebhookLogs, error) {
+func (p *provider) ListWebhookLogs(ctx context.Context, pagination model.Pagination, webhookID string) (*model.WebhookLogs, error) {
 	webhookLogs := []*model.WebhookLog{}
 	bindVariables := map[string]interface{}{}
 
@@ -42,8 +42,8 @@ func (p *provider) ListWebhookLogs(pagination model.Pagination, webhookID string
 			"webhook_id": webhookID,
 		}
 	}
-	ctx := driver.WithQueryFullCount(context.Background())
-	cursor, err := p.db.Query(ctx, query, bindVariables)
+	sctx := driver.WithQueryFullCount(ctx)
+	cursor, err := p.db.Query(sctx, query, bindVariables)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +54,7 @@ func (p *provider) ListWebhookLogs(pagination model.Pagination, webhookID string
 
 	for {
 		var webhookLog models.WebhookLog
-		meta, err := cursor.ReadDocument(nil, &webhookLog)
+		meta, err := cursor.ReadDocument(ctx, &webhookLog)
 
 		if arangoDriver.IsNoMoreDocuments(err) {
 			break

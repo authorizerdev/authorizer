@@ -32,7 +32,7 @@ func DeleteUserResolver(ctx context.Context, params model.DeleteUserInput) (*mod
 		"email": params.Email,
 	})
 
-	user, err := db.Provider.GetUserByEmail(params.Email)
+	user, err := db.Provider.GetUserByEmail(ctx, params.Email)
 	if err != nil {
 		log.Debug("Failed to get user from DB: ", err)
 		return res, err
@@ -40,7 +40,7 @@ func DeleteUserResolver(ctx context.Context, params model.DeleteUserInput) (*mod
 
 	go memorystore.Provider.DeleteAllUserSessions(user.ID)
 
-	err = db.Provider.DeleteUser(user)
+	err = db.Provider.DeleteUser(ctx, user)
 	if err != nil {
 		log.Debug("Failed to delete user: ", err)
 		return res, err
