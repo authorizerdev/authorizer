@@ -39,8 +39,6 @@ func DeleteUserResolver(ctx context.Context, params model.DeleteUserInput) (*mod
 		return res, err
 	}
 
-	go memorystore.Provider.DeleteAllUserSessions(user.ID)
-
 	err = db.Provider.DeleteUser(ctx, user)
 	if err != nil {
 		log.Debug("Failed to delete user: ", err)
@@ -51,7 +49,10 @@ func DeleteUserResolver(ctx context.Context, params model.DeleteUserInput) (*mod
 		Message: `user deleted successfully`,
 	}
 
-	go utils.RegisterEvent(ctx, constants.UserDeletedWebhookEvent, "", user)
+	go func() {
+		memorystore.Provider.DeleteAllUserSessions(user.ID)
+		utils.RegisterEvent(ctx, constants.UserDeletedWebhookEvent, "", user)
+	}()
 
 	return res, nil
 }
