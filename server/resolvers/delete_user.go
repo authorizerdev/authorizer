@@ -6,6 +6,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
@@ -49,6 +50,8 @@ func DeleteUserResolver(ctx context.Context, params model.DeleteUserInput) (*mod
 	res = &model.Response{
 		Message: `user deleted successfully`,
 	}
+
+	go utils.RegisterEvent(ctx, constants.UserDeletedWebhookEvent, "", user)
 
 	return res, nil
 }

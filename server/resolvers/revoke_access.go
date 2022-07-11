@@ -7,6 +7,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
@@ -47,7 +48,10 @@ func RevokeAccessResolver(ctx context.Context, params model.UpdateAccessInput) (
 		return res, err
 	}
 
-	go memorystore.Provider.DeleteAllUserSessions(user.ID)
+	go func() {
+		memorystore.Provider.DeleteAllUserSessions(user.ID)
+		utils.RegisterEvent(ctx, constants.UserAccessRevokedWebhookEvent, "", user)
+	}()
 
 	res = &model.Response{
 		Message: `user access revoked successfully`,

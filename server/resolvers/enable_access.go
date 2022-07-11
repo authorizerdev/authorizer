@@ -6,6 +6,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/token"
@@ -48,6 +49,8 @@ func EnableAccessResolver(ctx context.Context, params model.UpdateAccessInput) (
 	res = &model.Response{
 		Message: `user access enabled successfully`,
 	}
+
+	go utils.RegisterEvent(ctx, constants.UserAccessEnabledWebhookEvent, "", user)
 
 	return res, nil
 }
