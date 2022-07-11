@@ -66,10 +66,12 @@ func VerifyEmailHandler() gin.HandlerFunc {
 			return
 		}
 
+		isSignUp := false
 		// update email_verified_at in users table
 		if user.EmailVerifiedAt == nil {
 			now := time.Now().Unix()
 			user.EmailVerifiedAt = &now
+			isSignUp = true
 			db.Provider.UpdateUser(c, user)
 		}
 		// delete from verification table
@@ -131,11 +133,19 @@ func VerifyEmailHandler() gin.HandlerFunc {
 			redirectURL = redirectURL + "?" + strings.TrimPrefix(params, "&")
 		}
 
-		go db.Provider.AddSession(c, models.Session{
-			UserID:    user.ID,
-			UserAgent: utils.GetUserAgent(c.Request),
-			IP:        utils.GetIP(c.Request),
-		})
+		go func() {
+			if isSignUp {
+				utils.RegisterEvent(c, constants.UserSignUpWebhookEvent, loginMethod, user)
+			} else {
+				utils.RegisterEvent(c, constants.UserLoginWebhookEvent, loginMethod, user)
+			}
+
+			db.Provider.AddSession(c, models.Session{
+				UserID:    user.ID,
+				UserAgent: utils.GetUserAgent(c.Request),
+				IP:        utils.GetIP(c.Request),
+			})
+		}()
 
 		c.Redirect(http.StatusTemporaryRedirect, redirectURL)
 	}

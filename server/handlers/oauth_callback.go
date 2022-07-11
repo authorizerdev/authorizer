@@ -80,6 +80,7 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 
 		existingUser, err := db.Provider.GetUserByEmail(ctx, user.Email)
 		log := log.WithField("user", user.Email)
+		isSignUp := false
 
 		if err != nil {
 			isSignupDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableSignUp)
@@ -121,6 +122,7 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			now := time.Now().Unix()
 			user.EmailVerifiedAt = &now
 			user, _ = db.Provider.AddUser(ctx, user)
+			isSignUp = true
 		} else {
 			user = existingUser
 			if user.RevokedTimestamp != nil {
@@ -215,11 +217,18 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token)
 		}
 
-		go db.Provider.AddSession(ctx, models.Session{
-			UserID:    user.ID,
-			UserAgent: utils.GetUserAgent(ctx.Request),
-			IP:        utils.GetIP(ctx.Request),
-		})
+		go func() {
+			if isSignUp {
+				utils.RegisterEvent(ctx, constants.EnvKeyDisableSignUp, provider, user)
+			} else {
+				utils.RegisterEvent(ctx, constants.UserLoginWebhookEvent, provider, user)
+			}
+			db.Provider.AddSession(ctx, models.Session{
+				UserID:    user.ID,
+				UserAgent: utils.GetUserAgent(ctx.Request),
+				IP:        utils.GetIP(ctx.Request),
+			})
+		}()
 		if strings.Contains(redirectURL, "?") {
 			redirectURL = redirectURL + "&" + params
 		} else {

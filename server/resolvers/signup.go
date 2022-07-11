@@ -207,7 +207,10 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 		}
 
 		// exec it as go routin so that we can reduce the api latency
-		go email.SendVerificationMail(params.Email, verificationToken, hostname)
+		go func() {
+			email.SendVerificationMail(params.Email, verificationToken, hostname)
+			utils.RegisterEvent(ctx, constants.UserCreatedWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
+		}()
 
 		res = &model.AuthResponse{
 			Message: `Verification email has been sent. Please check your inbox`,
@@ -224,12 +227,6 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 			log.Debug("Failed to create auth token: ", err)
 			return res, err
 		}
-
-		go db.Provider.AddSession(ctx, models.Session{
-			UserID:    user.ID,
-			UserAgent: utils.GetUserAgent(gc.Request),
-			IP:        utils.GetIP(gc.Request),
-		})
 
 		expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
 		if expiresIn <= 0 {
@@ -252,6 +249,15 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 			res.RefreshToken = &authToken.RefreshToken.Token
 			memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token)
 		}
+
+		go func() {
+			utils.RegisterEvent(ctx, constants.UserSignUpWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
+			db.Provider.AddSession(ctx, models.Session{
+				UserID:    user.ID,
+				UserAgent: utils.GetUserAgent(gc.Request),
+				IP:        utils.GetIP(gc.Request),
+			})
+		}()
 	}
 
 	return res, nil

@@ -58,13 +58,17 @@ func VerifyEmailResolver(ctx context.Context, params model.VerifyEmailInput) (*m
 		return res, err
 	}
 
-	// update email_verified_at in users table
-	now := time.Now().Unix()
-	user.EmailVerifiedAt = &now
-	user, err = db.Provider.UpdateUser(ctx, user)
-	if err != nil {
-		log.Debug("Failed to update user: ", err)
-		return res, err
+	isSignUp := false
+	if user.EmailVerifiedAt == nil {
+		isSignUp = true
+		// update email_verified_at in users table
+		now := time.Now().Unix()
+		user.EmailVerifiedAt = &now
+		user, err = db.Provider.UpdateUser(ctx, user)
+		if err != nil {
+			log.Debug("Failed to update user: ", err)
+			return res, err
+		}
 	}
 	// delete from verification table
 	err = db.Provider.DeleteVerificationRequest(gc, verificationRequest)
@@ -86,12 +90,19 @@ func VerifyEmailResolver(ctx context.Context, params model.VerifyEmailInput) (*m
 		return res, err
 	}
 
-	go db.Provider.AddSession(ctx, models.Session{
-		UserID:    user.ID,
-		UserAgent: utils.GetUserAgent(gc.Request),
-		IP:        utils.GetIP(gc.Request),
-	})
+	go func() {
+		if isSignUp {
+			utils.RegisterEvent(ctx, constants.UserSignUpWebhookEvent, loginMethod, user)
+		} else {
+			utils.RegisterEvent(ctx, constants.UserLoginWebhookEvent, loginMethod, user)
+		}
 
+		db.Provider.AddSession(ctx, models.Session{
+			UserID:    user.ID,
+			UserAgent: utils.GetUserAgent(gc.Request),
+			IP:        utils.GetIP(gc.Request),
+		})
+	}()
 	expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
 	if expiresIn <= 0 {
 		expiresIn = 1

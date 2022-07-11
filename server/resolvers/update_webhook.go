@@ -49,7 +49,9 @@ func UpdateWebhookResolver(ctx context.Context, params model.UpdateWebhookReques
 		EndPoint:  utils.StringValue(webhook.Endpoint),
 		Enabled:   utils.BoolValue(webhook.Enabled),
 		Headers:   headersString,
+		CreatedAt: *webhook.CreatedAt,
 	}
+
 	if webhookDetails.EventName != utils.StringValue(params.EventName) {
 		if isValid := validators.IsValidWebhookEventName(utils.StringValue(params.EventName)); !isValid {
 			log.Debug("invalid event name: ", utils.StringValue(params.EventName))

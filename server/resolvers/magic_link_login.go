@@ -100,6 +100,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 
 		user.Roles = strings.Join(inputRoles, ",")
 		user, _ = db.Provider.AddUser(ctx, user)
+		go utils.RegisterEvent(ctx, constants.UserCreatedWebhookEvent, constants.AuthRecipeMethodMagicLinkLogin, user)
 	} else {
 		user = existingUser
 		// There multiple scenarios with roles here in magic link login

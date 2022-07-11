@@ -126,11 +126,14 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 		memorystore.Provider.SetUserSession(sessionStoreKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token)
 	}
 
-	go db.Provider.AddSession(ctx, models.Session{
-		UserID:    user.ID,
-		UserAgent: utils.GetUserAgent(gc.Request),
-		IP:        utils.GetIP(gc.Request),
-	})
+	go func() {
+		utils.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
+		db.Provider.AddSession(ctx, models.Session{
+			UserID:    user.ID,
+			UserAgent: utils.GetUserAgent(gc.Request),
+			IP:        utils.GetIP(gc.Request),
+		})
+	}()
 
 	return res, nil
 }
