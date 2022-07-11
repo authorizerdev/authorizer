@@ -108,8 +108,8 @@ type InviteMemberInput struct {
 }
 
 type ListWebhookLogRequest struct {
-	Pagination *PaginatedInput `json:"pagination"`
-	WebhookID  *string         `json:"webhook_id"`
+	Pagination *PaginationInput `json:"pagination"`
+	WebhookID  *string          `json:"webhook_id"`
 }
 
 type LoginInput struct {

@@ -44,5 +44,6 @@ func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) 
 
 // DeleteWebhook to delete webhook
 func (p *provider) DeleteWebhook(ctx context.Context, webhook *model.Webhook) error {
+	// Also delete webhook logs for given webhook id
 	return nil
 }

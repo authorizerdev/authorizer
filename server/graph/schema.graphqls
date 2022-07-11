@@ -355,7 +355,7 @@ type TestEndpointResponse {
 }
 
 input ListWebhookLogRequest {
-	pagination: PaginatedInput!
+	pagination: PaginationInput!
 	webhook_id: String
 }
 

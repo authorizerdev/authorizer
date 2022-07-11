@@ -23,7 +23,7 @@ func NewBoolRef(v bool) *bool {
 
 // BoolValue returns the value of the given bool ref
 func BoolValue(r *bool) bool {
-	if r != nil {
+	if r == nil {
 		return false
 	}
 	return *r

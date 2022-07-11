@@ -219,7 +219,7 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 
 		go func() {
 			if isSignUp {
-				utils.RegisterEvent(ctx, constants.EnvKeyDisableSignUp, provider, user)
+				utils.RegisterEvent(ctx, constants.UserSignUpWebhookEvent, provider, user)
 			} else {
 				utils.RegisterEvent(ctx, constants.UserLoginWebhookEvent, provider, user)
 			}

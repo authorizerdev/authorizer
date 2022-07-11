@@ -52,7 +52,7 @@ func UpdateWebhookResolver(ctx context.Context, params model.UpdateWebhookReques
 		CreatedAt: *webhook.CreatedAt,
 	}
 
-	if webhookDetails.EventName != utils.StringValue(params.EventName) {
+	if params.EventName != nil && webhookDetails.EventName != utils.StringValue(params.EventName) {
 		if isValid := validators.IsValidWebhookEventName(utils.StringValue(params.EventName)); !isValid {
 			log.Debug("invalid event name: ", utils.StringValue(params.EventName))
 			return nil, fmt.Errorf("invalid event name %s", utils.StringValue(params.EventName))
@@ -60,11 +60,11 @@ func UpdateWebhookResolver(ctx context.Context, params model.UpdateWebhookReques
 		webhookDetails.EventName = utils.StringValue(params.EventName)
 	}
 
-	if webhookDetails.EndPoint != utils.StringValue(params.Endpoint) {
+	if params.Endpoint != nil && webhookDetails.EndPoint != utils.StringValue(params.Endpoint) {
 		webhookDetails.EventName = utils.StringValue(params.EventName)
 	}
 
-	if webhookDetails.Enabled != utils.BoolValue(params.Enabled) {
+	if params.Enabled != nil && webhookDetails.Enabled != utils.BoolValue(params.Enabled) {
 		webhookDetails.Enabled = utils.BoolValue(params.Enabled)
 	}
 

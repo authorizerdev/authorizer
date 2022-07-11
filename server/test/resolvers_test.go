@@ -3,6 +3,7 @@ package test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
@@ -13,8 +14,8 @@ import (
 func TestResolvers(t *testing.T) {
 	databases := map[string]string{
 		constants.DbTypeSqlite: "../../data.db",
-		// constants.DbTypeArangodb: "http://localhost:8529",
-		// constants.DbTypeMongodb:  "mongodb://localhost:27017",
+		// constants.DbTypeArangodb:    "http://localhost:8529",
+		// constants.DbTypeMongodb:     "mongodb://localhost:27017",
 		// constants.DbTypeCassandraDB: "127.0.0.1:9042",
 	}
 
@@ -41,9 +42,14 @@ func TestResolvers(t *testing.T) {
 		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyEnv, "test")
 		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyIsProd, false)
 		t.Run("should pass tests for "+dbType, func(t *testing.T) {
-			// admin tests
+			// admin resolvers tests
 			adminSignupTests(t, s)
+			addWebhookTest(t, s) // add webhooks for all the system events
+			testEndpointTest(t, s)
 			verificationRequestsTest(t, s)
+			updateWebhookTest(t, s)
+			webhookTest(t, s)
+			webhooksTest(t, s)
 			usersTest(t, s)
 			deleteUserTest(t, s)
 			updateUserTest(t, s)
@@ -56,7 +62,7 @@ func TestResolvers(t *testing.T) {
 			enableAccessTest(t, s)
 			generateJWTkeyTest(t, s)
 
-			// user tests
+			// user resolvers tests
 			loginTests(t, s)
 			signupTests(t, s)
 			forgotPasswordTest(t, s)
@@ -71,6 +77,10 @@ func TestResolvers(t *testing.T) {
 			metaTests(t, s)
 			inviteUserTest(t, s)
 			validateJwtTokenTest(t, s)
+
+			time.Sleep(5 * time.Second) // add sleep for webhooklogs to get generated as they are async
+			webhookLogsTest(t, s)       // get logs after above resolver tests are done
+			deleteWebhookTest(t, s)     // delete webhooks (admin resolver)
 		})
 	}
 }

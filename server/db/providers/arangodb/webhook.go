@@ -145,5 +145,17 @@ func (p *provider) DeleteWebhook(ctx context.Context, webhook *model.Webhook) er
 	if err != nil {
 		return err
 	}
+
+	query := fmt.Sprintf("FOR d in %s FILTER d.event_id == @event_id REMOVE { _key: d._key }", models.Collections.WebhookLog)
+	bindVars := map[string]interface{}{
+		"event_id": webhook.ID,
+	}
+
+	cursor, err := p.db.Query(ctx, query, bindVars)
+	if err != nil {
+		return err
+	}
+	defer cursor.Close()
+
 	return nil
 }

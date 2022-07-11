@@ -69,7 +69,7 @@ func (p *provider) ListWebhook(ctx context.Context, pagination model.Pagination)
 func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*model.Webhook, error) {
 	var webhook models.Webhook
 
-	result := p.db.Where("id = ?", webhookID).First(webhook)
+	result := p.db.Where("id = ?", webhookID).First(&webhook)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -80,7 +80,7 @@ func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*model
 func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) (*model.Webhook, error) {
 	var webhook models.Webhook
 
-	result := p.db.Where("event_name = ?", eventName).First(webhook)
+	result := p.db.Where("event_name = ?", eventName).First(&webhook)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -89,7 +89,14 @@ func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) 
 
 // DeleteWebhook to delete webhook
 func (p *provider) DeleteWebhook(ctx context.Context, webhook *model.Webhook) error {
-	result := p.db.Delete(&models.Webhook{}, webhook.ID)
+	result := p.db.Delete(&models.Webhook{
+		ID: webhook.ID,
+	})
+	if result.Error != nil {
+		return result.Error
+	}
+
+	result = p.db.Where("webhook_id = ?", webhook.ID).Delete(&models.WebhookLog{})
 	if result.Error != nil {
 		return result.Error
 	}

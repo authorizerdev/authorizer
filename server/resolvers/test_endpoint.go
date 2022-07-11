@@ -63,7 +63,7 @@ func TestEndpointResolver(ctx context.Context, params model.TestEndpointRequest)
 	}
 
 	if params.EventName == constants.UserLoginWebhookEvent {
-		reqBody["login_method"] = constants.AuthRecipeMethodMagicLinkLogin
+		reqBody["auth_recipe"] = constants.AuthRecipeMethodMagicLinkLogin
 	}
 
 	requestBody, err := json.Marshal(reqBody)

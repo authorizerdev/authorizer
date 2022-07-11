@@ -43,5 +43,7 @@ func DeleteWebhookResolver(ctx context.Context, params model.WebhookRequest) (*m
 		return nil, err
 	}
 
-	panic(fmt.Errorf("not implemented"))
+	return &model.Response{
+		Message: "Webhook deleted successfully",
+	}, nil
 }

@@ -10,12 +10,13 @@ import (
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/resolvers"
+	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/stretchr/testify/assert"
 )
 
-func deleteWebhookTest(t *testing.T, s TestSetup) {
+func webhookTest(t *testing.T, s TestSetup) {
 	t.Helper()
-	t.Run("should delete webhook", func(t *testing.T) {
+	t.Run("should get webhook", func(t *testing.T) {
 		req, ctx := createContext(s)
 		adminSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret)
 		assert.NoError(t, err)
@@ -23,28 +24,19 @@ func deleteWebhookTest(t *testing.T, s TestSetup) {
 		assert.NoError(t, err)
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
 
-		// get all webhooks
-		webhooks, err := db.Provider.ListWebhook(ctx, model.Pagination{})
+		// get webhook by event name
+		webhook, err := db.Provider.GetWebhookByEventName(ctx, constants.UserCreatedWebhookEvent)
 		assert.NoError(t, err)
+		assert.NotNil(t, webhook)
 
-		for _, w := range webhooks.Webhooks {
-			res, err := resolvers.DeleteWebhookResolver(ctx, model.WebhookRequest{
-				ID: w.ID,
-			})
-
-			assert.NoError(t, err)
-			assert.NotNil(t, res)
-			assert.NotEmpty(t, res.Message)
-		}
-
-		webhooks, err = db.Provider.ListWebhook(ctx, model.Pagination{})
+		res, err := resolvers.WebhookResolver(ctx, model.WebhookRequest{
+			ID: webhook.ID,
+		})
 		assert.NoError(t, err)
-		assert.Len(t, webhooks.Webhooks, 0)
-
-		webhookLogs, err := db.Provider.ListWebhookLogs(ctx, model.Pagination{
-			Limit: 10,
-		}, "")
-		assert.NoError(t, err)
-		assert.Len(t, webhookLogs.WebhookLogs, 0)
+		assert.Equal(t, res.ID, webhook.ID)
+		assert.Equal(t, utils.StringValue(res.Endpoint), utils.StringValue(webhook.Endpoint))
+		assert.Equal(t, utils.StringValue(res.EventName), utils.StringValue(webhook.EventName))
+		assert.Equal(t, utils.BoolValue(res.Enabled), utils.BoolValue(webhook.Enabled))
+		assert.Len(t, res.Headers, len(webhook.Headers))
 	})
 }

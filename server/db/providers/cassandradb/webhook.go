@@ -142,5 +142,11 @@ func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) 
 func (p *provider) DeleteWebhook(ctx context.Context, webhook *model.Webhook) error {
 	query := fmt.Sprintf("DELETE FROM %s WHERE id = '%s'", KeySpace+"."+models.Collections.Webhook, webhook.ID)
 	err := p.db.Query(query).Exec()
+	if err != nil {
+		return err
+	}
+
+	query = fmt.Sprintf("DELETE FROM %s WHERE webhook_id = '%s'", KeySpace+"."+models.Collections.WebhookLog, webhook.ID)
+	err = p.db.Query(query).Exec()
 	return err
 }

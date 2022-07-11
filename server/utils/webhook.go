@@ -20,7 +20,11 @@ func RegisterEvent(ctx context.Context, eventName string, authRecipe string, use
 		return err
 	}
 
-	userBytes, err := json.Marshal(user)
+	if !BoolValue(webhook.Enabled) {
+		return nil
+	}
+
+	userBytes, err := json.Marshal(user.AsAPIUser())
 	if err != nil {
 		log.Debug("error marshalling user obj: ", err)
 		return err
@@ -78,7 +82,7 @@ func RegisterEvent(ctx context.Context, eventName string, authRecipe string, use
 	statusCode := int64(resp.StatusCode)
 	_, err = db.Provider.AddWebhookLog(ctx, models.WebhookLog{
 		HttpStatus: statusCode,
-		Request:    string(requestBytesBuffer.Bytes()),
+		Request:    string(requestBody),
 		Response:   string(responseBytes),
 		WebhookID:  webhook.ID,
 	})
