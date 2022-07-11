@@ -6,6 +6,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
@@ -32,15 +33,13 @@ func DeleteUserResolver(ctx context.Context, params model.DeleteUserInput) (*mod
 		"email": params.Email,
 	})
 
-	user, err := db.Provider.GetUserByEmail(params.Email)
+	user, err := db.Provider.GetUserByEmail(ctx, params.Email)
 	if err != nil {
 		log.Debug("Failed to get user from DB: ", err)
 		return res, err
 	}
 
-	go memorystore.Provider.DeleteAllUserSessions(user.ID)
-
-	err = db.Provider.DeleteUser(user)
+	err = db.Provider.DeleteUser(ctx, user)
 	if err != nil {
 		log.Debug("Failed to delete user: ", err)
 		return res, err
@@ -49,6 +48,11 @@ func DeleteUserResolver(ctx context.Context, params model.DeleteUserInput) (*mod
 	res = &model.Response{
 		Message: `user deleted successfully`,
 	}
+
+	go func() {
+		memorystore.Provider.DeleteAllUserSessions(user.ID)
+		utils.RegisterEvent(ctx, constants.UserDeletedWebhookEvent, "", user)
+	}()
 
 	return res, nil
 }

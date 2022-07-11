@@ -50,7 +50,7 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 		return res, fmt.Errorf("please enter atleast one param to update")
 	}
 
-	user, err := db.Provider.GetUserByID(params.ID)
+	user, err := db.Provider.GetUserByID(ctx, params.ID)
 	if err != nil {
 		log.Debug("Failed to get user by id: ", err)
 		return res, fmt.Errorf(`User not found`)
@@ -105,7 +105,7 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 		}
 		newEmail := strings.ToLower(*params.Email)
 		// check if user with new email exists
-		_, err = db.Provider.GetUserByEmail(newEmail)
+		_, err = db.Provider.GetUserByEmail(ctx, newEmail)
 		// err = nil means user exists
 		if err == nil {
 			log.Debug("User with email already exists: ", newEmail)
@@ -130,7 +130,7 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 		if err != nil {
 			log.Debug("Failed to create verification token: ", err)
 		}
-		_, err = db.Provider.AddVerificationRequest(models.VerificationRequest{
+		_, err = db.Provider.AddVerificationRequest(ctx, models.VerificationRequest{
 			Token:       verificationToken,
 			Identifier:  verificationType,
 			ExpiresAt:   time.Now().Add(time.Minute * 30).Unix(),
@@ -189,7 +189,7 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 		user.Roles = rolesToSave
 	}
 
-	user, err = db.Provider.UpdateUser(user)
+	user, err = db.Provider.UpdateUser(ctx, user)
 	if err != nil {
 		log.Debug("Failed to update user: ", err)
 		return res, err

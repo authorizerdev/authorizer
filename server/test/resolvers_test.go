@@ -1,7 +1,9 @@
 package test
 
 import (
+	"context"
 	"testing"
+	"time"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
@@ -12,14 +14,15 @@ import (
 func TestResolvers(t *testing.T) {
 	databases := map[string]string{
 		constants.DbTypeSqlite: "../../data.db",
-		// constants.DbTypeArangodb: "http://localhost:8529",
-		// constants.DbTypeMongodb:  "mongodb://localhost:27017",
+		// constants.DbTypeArangodb:    "http://localhost:8529",
+		// constants.DbTypeMongodb:     "mongodb://localhost:27017",
 		// constants.DbTypeCassandraDB: "127.0.0.1:9042",
 	}
 
 	for dbType, dbURL := range databases {
 		s := testSetup()
 		defer s.Server.Close()
+		ctx := context.Background()
 
 		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDatabaseURL, dbURL)
 		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDatabaseType, dbType)
@@ -29,19 +32,24 @@ func TestResolvers(t *testing.T) {
 		}
 
 		// clean the persisted config for test to use fresh config
-		envData, err := db.Provider.GetEnv()
+		envData, err := db.Provider.GetEnv(ctx)
 		if err == nil {
 			envData.EnvData = ""
-			db.Provider.UpdateEnv(envData)
+			db.Provider.UpdateEnv(ctx, envData)
 		}
 		env.PersistEnv()
 
 		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyEnv, "test")
 		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyIsProd, false)
 		t.Run("should pass tests for "+dbType, func(t *testing.T) {
-			// admin tests
+			// admin resolvers tests
 			adminSignupTests(t, s)
+			addWebhookTest(t, s) // add webhooks for all the system events
+			testEndpointTest(t, s)
 			verificationRequestsTest(t, s)
+			updateWebhookTest(t, s)
+			webhookTest(t, s)
+			webhooksTest(t, s)
 			usersTest(t, s)
 			deleteUserTest(t, s)
 			updateUserTest(t, s)
@@ -54,7 +62,7 @@ func TestResolvers(t *testing.T) {
 			enableAccessTest(t, s)
 			generateJWTkeyTest(t, s)
 
-			// user tests
+			// user resolvers tests
 			loginTests(t, s)
 			signupTests(t, s)
 			forgotPasswordTest(t, s)
@@ -69,6 +77,10 @@ func TestResolvers(t *testing.T) {
 			metaTests(t, s)
 			inviteUserTest(t, s)
 			validateJwtTokenTest(t, s)
+
+			time.Sleep(5 * time.Second) // add sleep for webhooklogs to get generated as they are async
+			webhookLogsTest(t, s)       // get logs after above resolver tests are done
+			deleteWebhookTest(t, s)     // delete webhooks (admin resolver)
 		})
 	}
 }

@@ -33,7 +33,7 @@ func VerifyEmailHandler() gin.HandlerFunc {
 			return
 		}
 
-		verificationRequest, err := db.Provider.GetVerificationRequestByToken(tokenInQuery)
+		verificationRequest, err := db.Provider.GetVerificationRequestByToken(c, tokenInQuery)
 		if err != nil {
 			log.Debug("Error getting verification request: ", err)
 			errorRes["error_description"] = err.Error()
@@ -58,7 +58,7 @@ func VerifyEmailHandler() gin.HandlerFunc {
 			return
 		}
 
-		user, err := db.Provider.GetUserByEmail(verificationRequest.Email)
+		user, err := db.Provider.GetUserByEmail(c, verificationRequest.Email)
 		if err != nil {
 			log.Debug("Error getting user: ", err)
 			errorRes["error_description"] = err.Error()
@@ -66,14 +66,16 @@ func VerifyEmailHandler() gin.HandlerFunc {
 			return
 		}
 
+		isSignUp := false
 		// update email_verified_at in users table
 		if user.EmailVerifiedAt == nil {
 			now := time.Now().Unix()
 			user.EmailVerifiedAt = &now
-			db.Provider.UpdateUser(user)
+			isSignUp = true
+			db.Provider.UpdateUser(c, user)
 		}
 		// delete from verification table
-		db.Provider.DeleteVerificationRequest(verificationRequest)
+		db.Provider.DeleteVerificationRequest(c, verificationRequest)
 
 		state := strings.TrimSpace(c.Query("state"))
 		redirectURL := strings.TrimSpace(c.Query("redirect_uri"))
@@ -131,11 +133,19 @@ func VerifyEmailHandler() gin.HandlerFunc {
 			redirectURL = redirectURL + "?" + strings.TrimPrefix(params, "&")
 		}
 
-		go db.Provider.AddSession(models.Session{
-			UserID:    user.ID,
-			UserAgent: utils.GetUserAgent(c.Request),
-			IP:        utils.GetIP(c.Request),
-		})
+		go func() {
+			if isSignUp {
+				utils.RegisterEvent(c, constants.UserSignUpWebhookEvent, loginMethod, user)
+			} else {
+				utils.RegisterEvent(c, constants.UserLoginWebhookEvent, loginMethod, user)
+			}
+
+			db.Provider.AddSession(c, models.Session{
+				UserID:    user.ID,
+				UserAgent: utils.GetUserAgent(c.Request),
+				IP:        utils.GetIP(c.Request),
+			})
+		}()
 
 		c.Redirect(http.StatusTemporaryRedirect, redirectURL)
 	}

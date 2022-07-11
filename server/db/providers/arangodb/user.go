@@ -15,7 +15,7 @@ import (
 )
 
 // AddUser to save user information in database
-func (p *provider) AddUser(user models.User) (models.User, error) {
+func (p *provider) AddUser(ctx context.Context, user models.User) (models.User, error) {
 	if user.ID == "" {
 		user.ID = uuid.New().String()
 	}
@@ -30,8 +30,8 @@ func (p *provider) AddUser(user models.User) (models.User, error) {
 
 	user.CreatedAt = time.Now().Unix()
 	user.UpdatedAt = time.Now().Unix()
-	userCollection, _ := p.db.Collection(nil, models.Collections.User)
-	meta, err := userCollection.CreateDocument(arangoDriver.WithOverwrite(nil), user)
+	userCollection, _ := p.db.Collection(ctx, models.Collections.User)
+	meta, err := userCollection.CreateDocument(arangoDriver.WithOverwrite(ctx), user)
 	if err != nil {
 		return user, err
 	}
@@ -42,10 +42,10 @@ func (p *provider) AddUser(user models.User) (models.User, error) {
 }
 
 // UpdateUser to update user information in database
-func (p *provider) UpdateUser(user models.User) (models.User, error) {
+func (p *provider) UpdateUser(ctx context.Context, user models.User) (models.User, error) {
 	user.UpdatedAt = time.Now().Unix()
-	collection, _ := p.db.Collection(nil, models.Collections.User)
-	meta, err := collection.UpdateDocument(nil, user.Key, user)
+	collection, _ := p.db.Collection(ctx, models.Collections.User)
+	meta, err := collection.UpdateDocument(ctx, user.Key, user)
 	if err != nil {
 		return user, err
 	}
@@ -56,9 +56,9 @@ func (p *provider) UpdateUser(user models.User) (models.User, error) {
 }
 
 // DeleteUser to delete user information from database
-func (p *provider) DeleteUser(user models.User) error {
-	collection, _ := p.db.Collection(nil, models.Collections.User)
-	_, err := collection.RemoveDocument(nil, user.Key)
+func (p *provider) DeleteUser(ctx context.Context, user models.User) error {
+	collection, _ := p.db.Collection(ctx, models.Collections.User)
+	_, err := collection.RemoveDocument(ctx, user.Key)
 	if err != nil {
 		return err
 	}
@@ -67,13 +67,13 @@ func (p *provider) DeleteUser(user models.User) error {
 }
 
 // ListUsers to get list of users from database
-func (p *provider) ListUsers(pagination model.Pagination) (*model.Users, error) {
+func (p *provider) ListUsers(ctx context.Context, pagination model.Pagination) (*model.Users, error) {
 	var users []*model.User
-	ctx := driver.WithQueryFullCount(context.Background())
+	sctx := driver.WithQueryFullCount(ctx)
 
 	query := fmt.Sprintf("FOR d in %s SORT d.created_at DESC LIMIT %d, %d RETURN d", models.Collections.User, pagination.Offset, pagination.Limit)
 
-	cursor, err := p.db.Query(ctx, query, nil)
+	cursor, err := p.db.Query(sctx, query, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +84,7 @@ func (p *provider) ListUsers(pagination model.Pagination) (*model.Users, error) 
 
 	for {
 		var user models.User
-		meta, err := cursor.ReadDocument(nil, &user)
+		meta, err := cursor.ReadDocument(ctx, &user)
 
 		if arangoDriver.IsNoMoreDocuments(err) {
 			break
@@ -104,7 +104,7 @@ func (p *provider) ListUsers(pagination model.Pagination) (*model.Users, error) 
 }
 
 // GetUserByEmail to get user information from database using email address
-func (p *provider) GetUserByEmail(email string) (models.User, error) {
+func (p *provider) GetUserByEmail(ctx context.Context, email string) (models.User, error) {
 	var user models.User
 
 	query := fmt.Sprintf("FOR d in %s FILTER d.email == @email RETURN d", models.Collections.User)
@@ -112,7 +112,7 @@ func (p *provider) GetUserByEmail(email string) (models.User, error) {
 		"email": email,
 	}
 
-	cursor, err := p.db.Query(nil, query, bindVars)
+	cursor, err := p.db.Query(ctx, query, bindVars)
 	if err != nil {
 		return user, err
 	}
@@ -125,7 +125,7 @@ func (p *provider) GetUserByEmail(email string) (models.User, error) {
 			}
 			break
 		}
-		_, err := cursor.ReadDocument(nil, &user)
+		_, err := cursor.ReadDocument(ctx, &user)
 		if err != nil {
 			return user, err
 		}
@@ -135,7 +135,7 @@ func (p *provider) GetUserByEmail(email string) (models.User, error) {
 }
 
 // GetUserByID to get user information from database using user ID
-func (p *provider) GetUserByID(id string) (models.User, error) {
+func (p *provider) GetUserByID(ctx context.Context, id string) (models.User, error) {
 	var user models.User
 
 	query := fmt.Sprintf("FOR d in %s FILTER d._id == @id LIMIT 1 RETURN d", models.Collections.User)
@@ -143,7 +143,7 @@ func (p *provider) GetUserByID(id string) (models.User, error) {
 		"id": id,
 	}
 
-	cursor, err := p.db.Query(nil, query, bindVars)
+	cursor, err := p.db.Query(ctx, query, bindVars)
 	if err != nil {
 		return user, err
 	}
@@ -156,7 +156,7 @@ func (p *provider) GetUserByID(id string) (models.User, error) {
 			}
 			break
 		}
-		_, err := cursor.ReadDocument(nil, &user)
+		_, err := cursor.ReadDocument(ctx, &user)
 		if err != nil {
 			return user, err
 		}

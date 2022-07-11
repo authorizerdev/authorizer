@@ -45,7 +45,7 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 		"email": params.Email,
 	})
 	params.Email = strings.ToLower(params.Email)
-	user, err := db.Provider.GetUserByEmail(params.Email)
+	user, err := db.Provider.GetUserByEmail(ctx, params.Email)
 	if err != nil {
 		log.Debug("Failed to get user by email: ", err)
 		return res, fmt.Errorf(`user with this email not found`)
@@ -126,11 +126,14 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 		memorystore.Provider.SetUserSession(sessionStoreKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token)
 	}
 
-	go db.Provider.AddSession(models.Session{
-		UserID:    user.ID,
-		UserAgent: utils.GetUserAgent(gc.Request),
-		IP:        utils.GetIP(gc.Request),
-	})
+	go func() {
+		utils.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
+		db.Provider.AddSession(ctx, models.Session{
+			UserID:    user.ID,
+			UserAgent: utils.GetUserAgent(gc.Request),
+			IP:        utils.GetIP(gc.Request),
+		})
+	}()
 
 	return res, nil
 }

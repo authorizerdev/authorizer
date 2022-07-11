@@ -1,6 +1,7 @@
 package env
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"reflect"
@@ -58,7 +59,8 @@ func fixBackwardCompatibility(data map[string]interface{}) (bool, map[string]int
 // GetEnvData returns the env data from database
 func GetEnvData() (map[string]interface{}, error) {
 	var result map[string]interface{}
-	env, err := db.Provider.GetEnv()
+	ctx := context.Background()
+	env, err := db.Provider.GetEnv(ctx)
 	// config not found in db
 	if err != nil {
 		log.Debug("Error while getting env data from db: ", err)
@@ -108,7 +110,8 @@ func GetEnvData() (map[string]interface{}, error) {
 
 // PersistEnv persists the environment variables to the database
 func PersistEnv() error {
-	env, err := db.Provider.GetEnv()
+	ctx := context.Background()
+	env, err := db.Provider.GetEnv(ctx)
 	// config not found in db
 	if err != nil {
 		// AES encryption needs 32 bit key only, so we chop off last 4 characters from 36 bit uuid
@@ -137,7 +140,7 @@ func PersistEnv() error {
 			EnvData: encryptedConfig,
 		}
 
-		env, err = db.Provider.AddEnv(env)
+		env, err = db.Provider.AddEnv(ctx, env)
 		if err != nil {
 			log.Debug("Error while persisting env data to db: ", err)
 			return err
@@ -251,7 +254,7 @@ func PersistEnv() error {
 			}
 
 			env.EnvData = encryptedConfig
-			_, err = db.Provider.UpdateEnv(env)
+			_, err = db.Provider.UpdateEnv(ctx, env)
 			if err != nil {
 				log.Debug("Failed to Update Config: ", err)
 				return err

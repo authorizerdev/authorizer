@@ -2,6 +2,13 @@
 
 package model
 
+type AddWebhookRequest struct {
+	EventName string                 `json:"event_name"`
+	Endpoint  string                 `json:"endpoint"`
+	Enabled   bool                   `json:"enabled"`
+	Headers   map[string]interface{} `json:"headers"`
+}
+
 type AdminLoginInput struct {
 	AdminSecret string `json:"admin_secret"`
 }
@@ -100,6 +107,11 @@ type InviteMemberInput struct {
 	RedirectURI *string  `json:"redirect_uri"`
 }
 
+type ListWebhookLogRequest struct {
+	Pagination *PaginationInput `json:"pagination"`
+	WebhookID  *string          `json:"webhook_id"`
+}
+
 type LoginInput struct {
 	Email    string   `json:"email"`
 	Password string   `json:"password"`
@@ -187,6 +199,17 @@ type SignUpInput struct {
 	RedirectURI     *string  `json:"redirect_uri"`
 }
 
+type TestEndpointRequest struct {
+	Endpoint  string                 `json:"endpoint"`
+	EventName string                 `json:"event_name"`
+	Headers   map[string]interface{} `json:"headers"`
+}
+
+type TestEndpointResponse struct {
+	HTTPStatus *int64                 `json:"http_status"`
+	Response   map[string]interface{} `json:"response"`
+}
+
 type UpdateAccessInput struct {
 	UserID string `json:"user_id"`
 }
@@ -263,6 +286,14 @@ type UpdateUserInput struct {
 	Roles         []*string `json:"roles"`
 }
 
+type UpdateWebhookRequest struct {
+	ID        string                 `json:"id"`
+	EventName *string                `json:"event_name"`
+	Endpoint  *string                `json:"endpoint"`
+	Enabled   *bool                  `json:"enabled"`
+	Headers   map[string]interface{} `json:"headers"`
+}
+
 type User struct {
 	ID                  string   `json:"id"`
 	Email               string   `json:"email"`
@@ -318,4 +349,38 @@ type VerificationRequests struct {
 
 type VerifyEmailInput struct {
 	Token string `json:"token"`
+}
+
+type Webhook struct {
+	ID        string                 `json:"id"`
+	EventName *string                `json:"event_name"`
+	Endpoint  *string                `json:"endpoint"`
+	Enabled   *bool                  `json:"enabled"`
+	Headers   map[string]interface{} `json:"headers"`
+	CreatedAt *int64                 `json:"created_at"`
+	UpdatedAt *int64                 `json:"updated_at"`
+}
+
+type WebhookLog struct {
+	ID         string  `json:"id"`
+	HTTPStatus *int64  `json:"http_status"`
+	Response   *string `json:"response"`
+	Request    *string `json:"request"`
+	WebhookID  *string `json:"webhook_id"`
+	CreatedAt  *int64  `json:"created_at"`
+	UpdatedAt  *int64  `json:"updated_at"`
+}
+
+type WebhookLogs struct {
+	Pagination  *Pagination   `json:"pagination"`
+	WebhookLogs []*WebhookLog `json:"webhook_logs"`
+}
+
+type WebhookRequest struct {
+	ID string `json:"id"`
+}
+
+type Webhooks struct {
+	Pagination *Pagination `json:"pagination"`
+	Webhooks   []*Webhook  `json:"webhooks"`
 }

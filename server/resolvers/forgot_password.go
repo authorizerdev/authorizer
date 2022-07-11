@@ -49,7 +49,7 @@ func ForgotPasswordResolver(ctx context.Context, params model.ForgotPasswordInpu
 	log := log.WithFields(log.Fields{
 		"email": params.Email,
 	})
-	_, err = db.Provider.GetUserByEmail(params.Email)
+	_, err = db.Provider.GetUserByEmail(ctx, params.Email)
 	if err != nil {
 		log.Debug("User not found: ", err)
 		return res, fmt.Errorf(`user with this email not found`)
@@ -71,7 +71,7 @@ func ForgotPasswordResolver(ctx context.Context, params model.ForgotPasswordInpu
 		log.Debug("Failed to create verification token", err)
 		return res, err
 	}
-	_, err = db.Provider.AddVerificationRequest(models.VerificationRequest{
+	_, err = db.Provider.AddVerificationRequest(ctx, models.VerificationRequest{
 		Token:       verificationToken,
 		Identifier:  constants.VerificationTypeForgotPassword,
 		ExpiresAt:   time.Now().Add(time.Minute * 30).Unix(),

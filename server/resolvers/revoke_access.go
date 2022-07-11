@@ -7,6 +7,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
@@ -32,7 +33,7 @@ func RevokeAccessResolver(ctx context.Context, params model.UpdateAccessInput) (
 	log := log.WithFields(log.Fields{
 		"user_id": params.UserID,
 	})
-	user, err := db.Provider.GetUserByID(params.UserID)
+	user, err := db.Provider.GetUserByID(ctx, params.UserID)
 	if err != nil {
 		log.Debug("Failed to get user by ID: ", err)
 		return res, err
@@ -41,13 +42,16 @@ func RevokeAccessResolver(ctx context.Context, params model.UpdateAccessInput) (
 	now := time.Now().Unix()
 	user.RevokedTimestamp = &now
 
-	user, err = db.Provider.UpdateUser(user)
+	user, err = db.Provider.UpdateUser(ctx, user)
 	if err != nil {
 		log.Debug("Failed to update user: ", err)
 		return res, err
 	}
 
-	go memorystore.Provider.DeleteAllUserSessions(user.ID)
+	go func() {
+		memorystore.Provider.DeleteAllUserSessions(user.ID)
+		utils.RegisterEvent(ctx, constants.UserAccessRevokedWebhookEvent, "", user)
+	}()
 
 	res = &model.Response{
 		Message: `user access revoked successfully`,

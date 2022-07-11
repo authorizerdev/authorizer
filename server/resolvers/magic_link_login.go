@@ -59,7 +59,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 	}
 
 	// find user with email
-	existingUser, err := db.Provider.GetUserByEmail(params.Email)
+	existingUser, err := db.Provider.GetUserByEmail(ctx, params.Email)
 	if err != nil {
 		isSignupDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableSignUp)
 		if err != nil {
@@ -99,7 +99,8 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 		}
 
 		user.Roles = strings.Join(inputRoles, ",")
-		user, _ = db.Provider.AddUser(user)
+		user, _ = db.Provider.AddUser(ctx, user)
+		go utils.RegisterEvent(ctx, constants.UserCreatedWebhookEvent, constants.AuthRecipeMethodMagicLinkLogin, user)
 	} else {
 		user = existingUser
 		// There multiple scenarios with roles here in magic link login
@@ -163,7 +164,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 		}
 
 		user.SignupMethods = signupMethod
-		user, _ = db.Provider.UpdateUser(user)
+		user, _ = db.Provider.UpdateUser(ctx, user)
 		if err != nil {
 			log.Debug("Failed to update user: ", err)
 		}
@@ -205,7 +206,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 		if err != nil {
 			log.Debug("Failed to create verification token: ", err)
 		}
-		_, err = db.Provider.AddVerificationRequest(models.VerificationRequest{
+		_, err = db.Provider.AddVerificationRequest(ctx, models.VerificationRequest{
 			Token:       verificationToken,
 			Identifier:  verificationType,
 			ExpiresAt:   time.Now().Add(time.Minute * 30).Unix(),

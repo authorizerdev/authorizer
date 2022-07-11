@@ -26,7 +26,7 @@ func forgotPasswordTest(t *testing.T, s TestSetup) {
 		})
 		assert.Nil(t, err, "no errors for forgot password")
 
-		verificationRequest, err := db.Provider.GetVerificationRequestByEmail(email, constants.VerificationTypeForgotPassword)
+		verificationRequest, err := db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeForgotPassword)
 		assert.Nil(t, err)
 
 		assert.Equal(t, verificationRequest.Identifier, constants.VerificationTypeForgotPassword)

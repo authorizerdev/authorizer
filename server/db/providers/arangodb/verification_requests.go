@@ -12,15 +12,15 @@ import (
 )
 
 // AddVerification to save verification request in database
-func (p *provider) AddVerificationRequest(verificationRequest models.VerificationRequest) (models.VerificationRequest, error) {
+func (p *provider) AddVerificationRequest(ctx context.Context, verificationRequest models.VerificationRequest) (models.VerificationRequest, error) {
 	if verificationRequest.ID == "" {
 		verificationRequest.ID = uuid.New().String()
 	}
 
 	verificationRequest.CreatedAt = time.Now().Unix()
 	verificationRequest.UpdatedAt = time.Now().Unix()
-	verificationRequestRequestCollection, _ := p.db.Collection(nil, models.Collections.VerificationRequest)
-	meta, err := verificationRequestRequestCollection.CreateDocument(nil, verificationRequest)
+	verificationRequestRequestCollection, _ := p.db.Collection(ctx, models.Collections.VerificationRequest)
+	meta, err := verificationRequestRequestCollection.CreateDocument(ctx, verificationRequest)
 	if err != nil {
 		return verificationRequest, err
 	}
@@ -31,14 +31,14 @@ func (p *provider) AddVerificationRequest(verificationRequest models.Verificatio
 }
 
 // GetVerificationRequestByToken to get verification request from database using token
-func (p *provider) GetVerificationRequestByToken(token string) (models.VerificationRequest, error) {
+func (p *provider) GetVerificationRequestByToken(ctx context.Context, token string) (models.VerificationRequest, error) {
 	var verificationRequest models.VerificationRequest
 	query := fmt.Sprintf("FOR d in %s FILTER d.token == @token LIMIT 1 RETURN d", models.Collections.VerificationRequest)
 	bindVars := map[string]interface{}{
 		"token": token,
 	}
 
-	cursor, err := p.db.Query(nil, query, bindVars)
+	cursor, err := p.db.Query(ctx, query, bindVars)
 	if err != nil {
 		return verificationRequest, err
 	}
@@ -51,7 +51,7 @@ func (p *provider) GetVerificationRequestByToken(token string) (models.Verificat
 			}
 			break
 		}
-		_, err := cursor.ReadDocument(nil, &verificationRequest)
+		_, err := cursor.ReadDocument(ctx, &verificationRequest)
 		if err != nil {
 			return verificationRequest, err
 		}
@@ -61,7 +61,7 @@ func (p *provider) GetVerificationRequestByToken(token string) (models.Verificat
 }
 
 // GetVerificationRequestByEmail to get verification request by email from database
-func (p *provider) GetVerificationRequestByEmail(email string, identifier string) (models.VerificationRequest, error) {
+func (p *provider) GetVerificationRequestByEmail(ctx context.Context, email string, identifier string) (models.VerificationRequest, error) {
 	var verificationRequest models.VerificationRequest
 
 	query := fmt.Sprintf("FOR d in %s FILTER d.email == @email FILTER d.identifier == @identifier LIMIT 1 RETURN d", models.Collections.VerificationRequest)
@@ -70,7 +70,7 @@ func (p *provider) GetVerificationRequestByEmail(email string, identifier string
 		"identifier": identifier,
 	}
 
-	cursor, err := p.db.Query(nil, query, bindVars)
+	cursor, err := p.db.Query(ctx, query, bindVars)
 	if err != nil {
 		return verificationRequest, err
 	}
@@ -83,7 +83,7 @@ func (p *provider) GetVerificationRequestByEmail(email string, identifier string
 			}
 			break
 		}
-		_, err := cursor.ReadDocument(nil, &verificationRequest)
+		_, err := cursor.ReadDocument(ctx, &verificationRequest)
 		if err != nil {
 			return verificationRequest, err
 		}
@@ -93,12 +93,12 @@ func (p *provider) GetVerificationRequestByEmail(email string, identifier string
 }
 
 // ListVerificationRequests to get list of verification requests from database
-func (p *provider) ListVerificationRequests(pagination model.Pagination) (*model.VerificationRequests, error) {
+func (p *provider) ListVerificationRequests(ctx context.Context, pagination model.Pagination) (*model.VerificationRequests, error) {
 	var verificationRequests []*model.VerificationRequest
-	ctx := driver.WithQueryFullCount(context.Background())
+	sctx := driver.WithQueryFullCount(ctx)
 	query := fmt.Sprintf("FOR d in %s SORT d.created_at DESC LIMIT %d, %d RETURN d", models.Collections.VerificationRequest, pagination.Offset, pagination.Limit)
 
-	cursor, err := p.db.Query(ctx, query, nil)
+	cursor, err := p.db.Query(sctx, query, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +109,7 @@ func (p *provider) ListVerificationRequests(pagination model.Pagination) (*model
 
 	for {
 		var verificationRequest models.VerificationRequest
-		meta, err := cursor.ReadDocument(nil, &verificationRequest)
+		meta, err := cursor.ReadDocument(ctx, &verificationRequest)
 
 		if driver.IsNoMoreDocuments(err) {
 			break
@@ -130,7 +130,7 @@ func (p *provider) ListVerificationRequests(pagination model.Pagination) (*model
 }
 
 // DeleteVerificationRequest to delete verification request from database
-func (p *provider) DeleteVerificationRequest(verificationRequest models.VerificationRequest) error {
+func (p *provider) DeleteVerificationRequest(ctx context.Context, verificationRequest models.VerificationRequest) error {
 	collection, _ := p.db.Collection(nil, models.Collections.VerificationRequest)
 	_, err := collection.RemoveDocument(nil, verificationRequest.Key)
 	if err != nil {

@@ -1,6 +1,7 @@
 package sql
 
 import (
+	"context"
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/db/models"
@@ -10,7 +11,7 @@ import (
 )
 
 // AddVerification to save verification request in database
-func (p *provider) AddVerificationRequest(verificationRequest models.VerificationRequest) (models.VerificationRequest, error) {
+func (p *provider) AddVerificationRequest(ctx context.Context, verificationRequest models.VerificationRequest) (models.VerificationRequest, error) {
 	if verificationRequest.ID == "" {
 		verificationRequest.ID = uuid.New().String()
 	}
@@ -31,7 +32,7 @@ func (p *provider) AddVerificationRequest(verificationRequest models.Verificatio
 }
 
 // GetVerificationRequestByToken to get verification request from database using token
-func (p *provider) GetVerificationRequestByToken(token string) (models.VerificationRequest, error) {
+func (p *provider) GetVerificationRequestByToken(ctx context.Context, token string) (models.VerificationRequest, error) {
 	var verificationRequest models.VerificationRequest
 	result := p.db.Where("token = ?", token).First(&verificationRequest)
 
@@ -43,7 +44,7 @@ func (p *provider) GetVerificationRequestByToken(token string) (models.Verificat
 }
 
 // GetVerificationRequestByEmail to get verification request by email from database
-func (p *provider) GetVerificationRequestByEmail(email string, identifier string) (models.VerificationRequest, error) {
+func (p *provider) GetVerificationRequestByEmail(ctx context.Context, email string, identifier string) (models.VerificationRequest, error) {
 	var verificationRequest models.VerificationRequest
 
 	result := p.db.Where("email = ? AND identifier = ?", email, identifier).First(&verificationRequest)
@@ -56,7 +57,7 @@ func (p *provider) GetVerificationRequestByEmail(email string, identifier string
 }
 
 // ListVerificationRequests to get list of verification requests from database
-func (p *provider) ListVerificationRequests(pagination model.Pagination) (*model.VerificationRequests, error) {
+func (p *provider) ListVerificationRequests(ctx context.Context, pagination model.Pagination) (*model.VerificationRequests, error) {
 	var verificationRequests []models.VerificationRequest
 
 	result := p.db.Limit(int(pagination.Limit)).Offset(int(pagination.Offset)).Order("created_at DESC").Find(&verificationRequests)
@@ -85,7 +86,7 @@ func (p *provider) ListVerificationRequests(pagination model.Pagination) (*model
 }
 
 // DeleteVerificationRequest to delete verification request from database
-func (p *provider) DeleteVerificationRequest(verificationRequest models.VerificationRequest) error {
+func (p *provider) DeleteVerificationRequest(ctx context.Context, verificationRequest models.VerificationRequest) error {
 	result := p.db.Delete(&verificationRequest)
 
 	if result.Error != nil {

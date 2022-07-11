@@ -57,7 +57,7 @@ func signupTests(t *testing.T, s TestSetup) {
 
 		assert.NotNil(t, err, "should throw duplicate email error")
 
-		verificationRequest, err := db.Provider.GetVerificationRequestByEmail(email, constants.VerificationTypeBasicAuthSignup)
+		verificationRequest, err := db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeBasicAuthSignup)
 		assert.Nil(t, err)
 		assert.Equal(t, email, verificationRequest.Email)
 		cleanData(email)

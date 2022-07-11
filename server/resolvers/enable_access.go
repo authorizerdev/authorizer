@@ -6,6 +6,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/token"
@@ -31,7 +32,7 @@ func EnableAccessResolver(ctx context.Context, params model.UpdateAccessInput) (
 		"user_id": params.UserID,
 	})
 
-	user, err := db.Provider.GetUserByID(params.UserID)
+	user, err := db.Provider.GetUserByID(ctx, params.UserID)
 	if err != nil {
 		log.Debug("Failed to get user from DB: ", err)
 		return res, err
@@ -39,7 +40,7 @@ func EnableAccessResolver(ctx context.Context, params model.UpdateAccessInput) (
 
 	user.RevokedTimestamp = nil
 
-	user, err = db.Provider.UpdateUser(user)
+	user, err = db.Provider.UpdateUser(ctx, user)
 	if err != nil {
 		log.Debug("Failed to update user: ", err)
 		return res, err
@@ -48,6 +49,8 @@ func EnableAccessResolver(ctx context.Context, params model.UpdateAccessInput) (
 	res = &model.Response{
 		Message: `user access enabled successfully`,
 	}
+
+	go utils.RegisterEvent(ctx, constants.UserAccessEnabledWebhookEvent, "", user)
 
 	return res, nil
 }

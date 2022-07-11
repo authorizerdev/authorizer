@@ -46,7 +46,7 @@ func SessionResolver(ctx context.Context, params *model.SessionQueryInput) (*mod
 		"user_id": userID,
 	})
 
-	user, err := db.Provider.GetUserByID(userID)
+	user, err := db.Provider.GetUserByID(ctx, userID)
 	if err != nil {
 		return res, err
 	}

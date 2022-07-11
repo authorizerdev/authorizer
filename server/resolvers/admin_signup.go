@@ -58,7 +58,7 @@ func AdminSignupResolver(ctx context.Context, params model.AdminSignupInput) (*m
 		return res, err
 	}
 
-	env, err := db.Provider.GetEnv()
+	env, err := db.Provider.GetEnv(ctx)
 	if err != nil {
 		log.Debug("Failed to get env: ", err)
 		return res, err
@@ -71,7 +71,7 @@ func AdminSignupResolver(ctx context.Context, params model.AdminSignupInput) (*m
 	}
 
 	env.EnvData = envData
-	if _, err := db.Provider.UpdateEnv(env); err != nil {
+	if _, err := db.Provider.UpdateEnv(ctx, env); err != nil {
 		log.Debug("Failed to update env: ", err)
 		return res, err
 	}

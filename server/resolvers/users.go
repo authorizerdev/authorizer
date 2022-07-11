@@ -28,7 +28,7 @@ func UsersResolver(ctx context.Context, params *model.PaginatedInput) (*model.Us
 
 	pagination := utils.GetPagination(params)
 
-	res, err := db.Provider.ListUsers(pagination)
+	res, err := db.Provider.ListUsers(ctx, pagination)
 	if err != nil {
 		log.Debug("Failed to get users: ", err)
 		return nil, err

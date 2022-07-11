@@ -39,14 +39,14 @@ func ResendVerifyEmailResolver(ctx context.Context, params model.ResendVerifyEma
 		return res, fmt.Errorf("invalid identifier")
 	}
 
-	verificationRequest, err := db.Provider.GetVerificationRequestByEmail(params.Email, params.Identifier)
+	verificationRequest, err := db.Provider.GetVerificationRequestByEmail(ctx, params.Email, params.Identifier)
 	if err != nil {
 		log.Debug("Failed to get verification request: ", err)
 		return res, fmt.Errorf(`verification request not found`)
 	}
 
 	// delete current verification and create new one
-	err = db.Provider.DeleteVerificationRequest(verificationRequest)
+	err = db.Provider.DeleteVerificationRequest(ctx, verificationRequest)
 	if err != nil {
 		log.Debug("Failed to delete verification request: ", err)
 	}
@@ -62,7 +62,7 @@ func ResendVerifyEmailResolver(ctx context.Context, params model.ResendVerifyEma
 	if err != nil {
 		log.Debug("Failed to create verification token: ", err)
 	}
-	_, err = db.Provider.AddVerificationRequest(models.VerificationRequest{
+	_, err = db.Provider.AddVerificationRequest(ctx, models.VerificationRequest{
 		Token:       verificationToken,
 		Identifier:  params.Identifier,
 		ExpiresAt:   time.Now().Add(time.Minute * 30).Unix(),

@@ -21,8 +21,10 @@ import (
 
 // common user data to share across tests
 type TestData struct {
-	Email    string
-	Password string
+	Email           string
+	Password        string
+	WebhookEndpoint string
+	TestEventTypes  []string
 }
 
 type TestSetup struct {
@@ -33,30 +35,31 @@ type TestSetup struct {
 }
 
 func cleanData(email string) {
-	verificationRequest, err := db.Provider.GetVerificationRequestByEmail(email, constants.VerificationTypeBasicAuthSignup)
+	ctx := context.Background()
+	verificationRequest, err := db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeBasicAuthSignup)
 	if err == nil {
-		err = db.Provider.DeleteVerificationRequest(verificationRequest)
+		err = db.Provider.DeleteVerificationRequest(ctx, verificationRequest)
 	}
 
-	verificationRequest, err = db.Provider.GetVerificationRequestByEmail(email, constants.VerificationTypeForgotPassword)
+	verificationRequest, err = db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeForgotPassword)
 	if err == nil {
-		err = db.Provider.DeleteVerificationRequest(verificationRequest)
+		err = db.Provider.DeleteVerificationRequest(ctx, verificationRequest)
 	}
 
-	verificationRequest, err = db.Provider.GetVerificationRequestByEmail(email, constants.VerificationTypeUpdateEmail)
+	verificationRequest, err = db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeUpdateEmail)
 	if err == nil {
-		err = db.Provider.DeleteVerificationRequest(verificationRequest)
+		err = db.Provider.DeleteVerificationRequest(ctx, verificationRequest)
 	}
 
-	verificationRequest, err = db.Provider.GetVerificationRequestByEmail(email, constants.VerificationTypeMagicLinkLogin)
+	verificationRequest, err = db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeMagicLinkLogin)
 	if err == nil {
-		err = db.Provider.DeleteVerificationRequest(verificationRequest)
+		err = db.Provider.DeleteVerificationRequest(ctx, verificationRequest)
 	}
 
-	dbUser, err := db.Provider.GetUserByEmail(email)
+	dbUser, err := db.Provider.GetUserByEmail(ctx, email)
 	if err == nil {
-		db.Provider.DeleteUser(dbUser)
-		db.Provider.DeleteSession(dbUser.ID)
+		db.Provider.DeleteUser(ctx, dbUser)
+		db.Provider.DeleteSession(ctx, dbUser.ID)
 	}
 }
 
@@ -74,8 +77,10 @@ func createContext(s TestSetup) (*http.Request, context.Context) {
 
 func testSetup() TestSetup {
 	testData := TestData{
-		Email:    fmt.Sprintf("%d_authorizer_tester@yopmail.com", time.Now().Unix()),
-		Password: "Test@123",
+		Email:           fmt.Sprintf("%d_authorizer_tester@yopmail.com", time.Now().Unix()),
+		Password:        "Test@123",
+		WebhookEndpoint: "https://62cbc6738042b16aa7c22df2.mockapi.io/api/v1/webhook",
+		TestEventTypes:  []string{constants.UserAccessEnabledWebhookEvent, constants.UserAccessRevokedWebhookEvent, constants.UserCreatedWebhookEvent, constants.UserDeletedWebhookEvent, constants.UserLoginWebhookEvent, constants.UserSignUpWebhookEvent},
 	}
 
 	err := os.Setenv(constants.EnvKeyEnvPath, "../../.env.test")
