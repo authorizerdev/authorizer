@@ -355,7 +355,7 @@ type TestEndpointResponse {
 }
 
 input ListWebhookLogRequest {
-	pagination: PaginationInput!
+	pagination: PaginationInput
 	webhook_id: String
 }
 
@@ -429,5 +429,5 @@ type Query {
 	_env: Env!
 	_webhook(params: WebhookRequest!): Webhook!
 	_webhooks(params: PaginatedInput): Webhooks!
-	_webhook_logs(params: ListWebhookLogRequest!): WebhookLogs!
+	_webhook_logs(params: ListWebhookLogRequest): WebhookLogs!
 }

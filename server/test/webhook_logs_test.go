@@ -27,12 +27,12 @@ func webhookLogsTest(t *testing.T, s TestSetup) {
 		assert.NoError(t, err)
 		assert.NotEmpty(t, webhooks)
 
-		webhookLogs, err := resolvers.WebhookLogsResolver(ctx, model.ListWebhookLogRequest{})
+		webhookLogs, err := resolvers.WebhookLogsResolver(ctx, nil)
 		assert.NoError(t, err)
 		assert.Greater(t, len(webhookLogs.WebhookLogs), 1)
 
 		for _, w := range webhooks.Webhooks {
-			webhookLogs, err := resolvers.WebhookLogsResolver(ctx, model.ListWebhookLogRequest{
+			webhookLogs, err := resolvers.WebhookLogsResolver(ctx, &model.ListWebhookLogRequest{
 				WebhookID: &w.ID,
 			})
 			assert.NoError(t, err)

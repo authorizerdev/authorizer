@@ -147,7 +147,7 @@ func (r *queryResolver) Webhooks(ctx context.Context, params *model.PaginatedInp
 	return resolvers.WebhooksResolver(ctx, params)
 }
 
-func (r *queryResolver) WebhookLogs(ctx context.Context, params model.ListWebhookLogRequest) (*model.WebhookLogs, error) {
+func (r *queryResolver) WebhookLogs(ctx context.Context, params *model.ListWebhookLogRequest) (*model.WebhookLogs, error) {
 	return resolvers.WebhookLogsResolver(ctx, params)
 }
 

@@ -173,7 +173,7 @@ type ComplexityRoot struct {
 		ValidateJwtToken     func(childComplexity int, params model.ValidateJWTTokenInput) int
 		VerificationRequests func(childComplexity int, params *model.PaginatedInput) int
 		Webhook              func(childComplexity int, params model.WebhookRequest) int
-		WebhookLogs          func(childComplexity int, params model.ListWebhookLogRequest) int
+		WebhookLogs          func(childComplexity int, params *model.ListWebhookLogRequest) int
 		Webhooks             func(childComplexity int, params *model.PaginatedInput) int
 	}
 
@@ -301,7 +301,7 @@ type QueryResolver interface {
 	Env(ctx context.Context) (*model.Env, error)
 	Webhook(ctx context.Context, params model.WebhookRequest) (*model.Webhook, error)
 	Webhooks(ctx context.Context, params *model.PaginatedInput) (*model.Webhooks, error)
-	WebhookLogs(ctx context.Context, params model.ListWebhookLogRequest) (*model.WebhookLogs, error)
+	WebhookLogs(ctx context.Context, params *model.ListWebhookLogRequest) (*model.WebhookLogs, error)
 }
 
 type executableSchema struct {
@@ -1220,7 +1220,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.WebhookLogs(childComplexity, args["params"].(model.ListWebhookLogRequest)), true
+		return e.complexity.Query.WebhookLogs(childComplexity, args["params"].(*model.ListWebhookLogRequest)), true
 
 	case "Query._webhooks":
 		if e.complexity.Query.Webhooks == nil {
@@ -2026,7 +2026,7 @@ type TestEndpointResponse {
 }
 
 input ListWebhookLogRequest {
-	pagination: PaginationInput!
+	pagination: PaginationInput
 	webhook_id: String
 }
 
@@ -2100,7 +2100,7 @@ type Query {
 	_env: Env!
 	_webhook(params: WebhookRequest!): Webhook!
 	_webhooks(params: PaginatedInput): Webhooks!
-	_webhook_logs(params: ListWebhookLogRequest!): WebhookLogs!
+	_webhook_logs(params: ListWebhookLogRequest): WebhookLogs!
 }
 `, BuiltIn: false},
 }
@@ -2503,10 +2503,10 @@ func (ec *executionContext) field_Query__webhook_args(ctx context.Context, rawAr
 func (ec *executionContext) field_Query__webhook_logs_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 model.ListWebhookLogRequest
+	var arg0 *model.ListWebhookLogRequest
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalNListWebhookLogRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐListWebhookLogRequest(ctx, tmp)
+		arg0, err = ec.unmarshalOListWebhookLogRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐListWebhookLogRequest(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -6493,7 +6493,7 @@ func (ec *executionContext) _Query__webhook_logs(ctx context.Context, field grap
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().WebhookLogs(rctx, args["params"].(model.ListWebhookLogRequest))
+		return ec.resolvers.Query().WebhookLogs(rctx, args["params"].(*model.ListWebhookLogRequest))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -9675,7 +9675,7 @@ func (ec *executionContext) unmarshalInputListWebhookLogRequest(ctx context.Cont
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pagination"))
-			it.Pagination, err = ec.unmarshalNPaginationInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐPaginationInput(ctx, v)
+			it.Pagination, err = ec.unmarshalOPaginationInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐPaginationInput(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -12329,11 +12329,6 @@ func (ec *executionContext) unmarshalNInviteMemberInput2githubᚗcomᚋauthorize
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNListWebhookLogRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐListWebhookLogRequest(ctx context.Context, v interface{}) (model.ListWebhookLogRequest, error) {
-	res, err := ec.unmarshalInputListWebhookLogRequest(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
 func (ec *executionContext) unmarshalNLoginInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐLoginInput(ctx context.Context, v interface{}) (model.LoginInput, error) {
 	res, err := ec.unmarshalInputLoginInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -12371,11 +12366,6 @@ func (ec *executionContext) marshalNPagination2ᚖgithubᚗcomᚋauthorizerdev�
 		return graphql.Null
 	}
 	return ec._Pagination(ctx, sel, v)
-}
-
-func (ec *executionContext) unmarshalNPaginationInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐPaginationInput(ctx context.Context, v interface{}) (*model.PaginationInput, error) {
-	res, err := ec.unmarshalInputPaginationInput(ctx, v)
-	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNResendVerifyEmailInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResendVerifyEmailInput(ctx context.Context, v interface{}) (model.ResendVerifyEmailInput, error) {
@@ -13120,6 +13110,14 @@ func (ec *executionContext) marshalOInt642ᚖint64(ctx context.Context, sel ast.
 		return graphql.Null
 	}
 	return graphql.MarshalInt64(*v)
+}
+
+func (ec *executionContext) unmarshalOListWebhookLogRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐListWebhookLogRequest(ctx context.Context, v interface{}) (*model.ListWebhookLogRequest, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputListWebhookLogRequest(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalOMap2map(ctx context.Context, v interface{}) (map[string]interface{}, error) {
