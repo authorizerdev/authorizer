@@ -12,8 +12,8 @@ import (
 	"github.com/authorizerdev/authorizer/server/token"
 )
 
-// Revoke handler to revoke refresh token
-func RevokeHandler() gin.HandlerFunc {
+// RevokeRefreshTokenHandler handler to revoke refresh token
+func RevokeRefreshTokenHandler() gin.HandlerFunc {
 	return func(gc *gin.Context) {
 		var reqBody map[string]string
 		if err := gc.BindJSON(&reqBody); err != nil {
