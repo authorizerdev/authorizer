@@ -23,4 +23,6 @@ const (
 	DbTypeScyllaDB = "scylladb"
 	// DbTypeCockroachDB is the cockroach database type
 	DbTypeCockroachDB = "cockroachdb"
+	// DbTypePlanetScaleDB is the planetscale database type
+	DbTypePlanetScaleDB = "planetscale"
 )

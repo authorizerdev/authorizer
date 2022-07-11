@@ -50,7 +50,7 @@ func NewProvider() (*provider, error) {
 		sqlDB, err = gorm.Open(postgres.Open(dbURL), ormConfig)
 	case constants.DbTypeSqlite:
 		sqlDB, err = gorm.Open(sqlite.Open(dbURL), ormConfig)
-	case constants.DbTypeMysql, constants.DbTypeMariaDB:
+	case constants.DbTypeMysql, constants.DbTypeMariaDB, constants.DbTypePlanetScaleDB:
 		sqlDB, err = gorm.Open(mysql.Open(dbURL), ormConfig)
 	case constants.DbTypeSqlserver:
 		sqlDB, err = gorm.Open(sqlserver.Open(dbURL), ormConfig)

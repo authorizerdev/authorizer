@@ -45,6 +45,11 @@ func DeleteUserResolver(ctx context.Context, params model.DeleteUserInput) (*mod
 		return res, err
 	}
 
+	err = db.Provider.DeleteSession(ctx, user.ID)
+	if err != nil {
+		return res, err
+	}
+
 	res = &model.Response{
 		Message: `user deleted successfully`,
 	}
