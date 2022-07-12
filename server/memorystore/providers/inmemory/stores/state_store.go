@@ -1,10 +1,7 @@
 package stores
 
 import (
-	"os"
 	"sync"
-
-	"github.com/authorizerdev/authorizer/server/constants"
 )
 
 // StateStore struct to store the env variables
@@ -28,19 +25,16 @@ func (s *StateStore) Get(key string) string {
 
 // Set sets the value of the key in state store
 func (s *StateStore) Set(key string, value string) {
-	if os.Getenv("ENV") != constants.TestEnv {
-		s.mutex.Lock()
-		defer s.mutex.Unlock()
-	}
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
 	s.store[key] = value
 }
 
 // Remove removes the key from state store
 func (s *StateStore) Remove(key string) {
-	if os.Getenv("ENV") != constants.TestEnv {
-		s.mutex.Lock()
-		defer s.mutex.Unlock()
-	}
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
 
 	delete(s.store, key)
 }

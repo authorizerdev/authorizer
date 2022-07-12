@@ -1,6 +1,10 @@
 package models
 
-import "github.com/authorizerdev/authorizer/server/graph/model"
+import (
+	"strings"
+
+	"github.com/authorizerdev/authorizer/server/graph/model"
+)
 
 // Note: any change here should be reflected in providers/casandra/provider.go as it does not have model support in collection creation
 
@@ -27,8 +31,13 @@ func (v *VerificationRequest) AsAPIVerificationRequest() *model.VerificationRequ
 	redirectURI := v.RedirectURI
 	expires := v.ExpiresAt
 	identifier := v.Identifier
+
+	id := v.ID
+	if strings.Contains(id, Collections.WebhookLog+"/") {
+		id = strings.TrimPrefix(id, Collections.WebhookLog+"/")
+	}
 	return &model.VerificationRequest{
-		ID:          v.ID,
+		ID:          id,
 		Token:       &token,
 		Identifier:  &identifier,
 		Expires:     &expires,

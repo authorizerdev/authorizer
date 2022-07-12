@@ -111,7 +111,7 @@ func (p *provider) DeleteWebhook(ctx context.Context, webhook *model.Webhook) er
 	}
 
 	webhookLogCollection := p.db.Collection(models.Collections.WebhookLog, options.Collection())
-	_, err = webhookLogCollection.DeleteOne(nil, bson.M{"webhook_id": webhook.ID}, options.Delete())
+	_, err = webhookLogCollection.DeleteMany(nil, bson.M{"webhook_id": webhook.ID}, options.Delete())
 	if err != nil {
 		return err
 	}

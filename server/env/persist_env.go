@@ -113,7 +113,7 @@ func PersistEnv() error {
 	ctx := context.Background()
 	env, err := db.Provider.GetEnv(ctx)
 	// config not found in db
-	if err != nil {
+	if err != nil || env.EnvData == "" {
 		// AES encryption needs 32 bit key only, so we chop off last 4 characters from 36 bit uuid
 		hash := uuid.New().String()[:36-4]
 		err := memorystore.Provider.UpdateEnvVariable(constants.EnvKeyEncryptionKey, hash)
@@ -174,7 +174,7 @@ func PersistEnv() error {
 
 		err = json.Unmarshal(decryptedConfigs, &storeData)
 		if err != nil {
-			log.Debug("Error while unmarshalling env data: ", err)
+			log.Debug("Error while un-marshalling env data: ", err)
 			return err
 		}
 

@@ -1,6 +1,10 @@
 package models
 
-import "github.com/authorizerdev/authorizer/server/graph/model"
+import (
+	"strings"
+
+	"github.com/authorizerdev/authorizer/server/graph/model"
+)
 
 // Note: any change here should be reflected in providers/casandra/provider.go as it does not have model support in collection creation
 
@@ -17,8 +21,12 @@ type WebhookLog struct {
 }
 
 func (w *WebhookLog) AsAPIWebhookLog() *model.WebhookLog {
+	id := w.ID
+	if strings.Contains(id, Collections.WebhookLog+"/") {
+		id = strings.TrimPrefix(id, Collections.WebhookLog+"/")
+	}
 	return &model.WebhookLog{
-		ID:         w.ID,
+		ID:         id,
 		HTTPStatus: &w.HttpStatus,
 		Response:   &w.Response,
 		Request:    &w.Request,

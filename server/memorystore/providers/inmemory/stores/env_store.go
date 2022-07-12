@@ -1,10 +1,7 @@
 package stores
 
 import (
-	"os"
 	"sync"
-
-	"github.com/authorizerdev/authorizer/server/constants"
 )
 
 // EnvStore struct to store the env variables
@@ -23,12 +20,10 @@ func NewEnvStore() *EnvStore {
 
 // UpdateEnvStore to update the whole env store object
 func (e *EnvStore) UpdateStore(store map[string]interface{}) {
-	if os.Getenv("ENV") != constants.TestEnv {
-		e.mutex.Lock()
-		defer e.mutex.Unlock()
-	}
-	// just override the keys + new keys
+	e.mutex.Lock()
+	defer e.mutex.Unlock()
 
+	// just override the keys + new keys
 	for key, value := range store {
 		e.store[key] = value
 	}
@@ -46,9 +41,8 @@ func (e *EnvStore) Get(key string) interface{} {
 
 // Set sets the value of the key in env store
 func (e *EnvStore) Set(key string, value interface{}) {
-	if os.Getenv("ENV") != constants.TestEnv {
-		e.mutex.Lock()
-		defer e.mutex.Unlock()
-	}
+	e.mutex.Lock()
+	defer e.mutex.Unlock()
+
 	e.store[key] = value
 }

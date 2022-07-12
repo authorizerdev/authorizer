@@ -38,8 +38,13 @@ func (user *User) AsAPIUser() *model.User {
 	email := user.Email
 	createdAt := user.CreatedAt
 	updatedAt := user.UpdatedAt
+
+	id := user.ID
+	if strings.Contains(id, Collections.WebhookLog+"/") {
+		id = strings.TrimPrefix(id, Collections.WebhookLog+"/")
+	}
 	return &model.User{
-		ID:                  user.ID,
+		ID:                  id,
 		Email:               user.Email,
 		EmailVerified:       isEmailVerified,
 		SignupMethods:       user.SignupMethods,

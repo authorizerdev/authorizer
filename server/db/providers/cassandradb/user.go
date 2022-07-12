@@ -102,6 +102,10 @@ func (p *provider) UpdateUser(ctx context.Context, user models.User) (models.Use
 			continue
 		}
 
+		if key == "_key" {
+			continue
+		}
+
 		if value == nil {
 			updateFields += fmt.Sprintf("%s = null,", key)
 			continue
@@ -135,7 +139,19 @@ func (p *provider) DeleteUser(ctx context.Context, user models.User) error {
 		return err
 	}
 
-	deleteSessionQuery := fmt.Sprintf("DELETE FROM %s WHERE user_id = '%s'", KeySpace+"."+models.Collections.Session, user.ID)
+	getSessionsQuery := fmt.Sprintf("SELECT id FROM %s WHERE user_id = '%s' ALLOW FILTERING", KeySpace+"."+models.Collections.Session, user.ID)
+	scanner := p.db.Query(getSessionsQuery).Iter().Scanner()
+	sessionIDs := ""
+	for scanner.Next() {
+		var wlID string
+		err = scanner.Scan(&wlID)
+		if err != nil {
+			return err
+		}
+		sessionIDs += fmt.Sprintf("'%s',", wlID)
+	}
+	sessionIDs = strings.TrimSuffix(sessionIDs, ",")
+	deleteSessionQuery := fmt.Sprintf("DELETE FROM %s WHERE id IN (%s)", KeySpace+"."+models.Collections.Session, sessionIDs)
 	err = p.db.Query(deleteSessionQuery).Exec()
 	if err != nil {
 		return err
@@ -181,7 +197,7 @@ func (p *provider) ListUsers(ctx context.Context, pagination model.Pagination) (
 // GetUserByEmail to get user information from database using email address
 func (p *provider) GetUserByEmail(ctx context.Context, email string) (models.User, error) {
 	var user models.User
-	query := fmt.Sprintf("SELECT id, email, email_verified_at, password, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, roles, revoked_timestamp, created_at, updated_at FROM %s WHERE email = '%s' LIMIT 1", KeySpace+"."+models.Collections.User, email)
+	query := fmt.Sprintf("SELECT id, email, email_verified_at, password, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, roles, revoked_timestamp, created_at, updated_at FROM %s WHERE email = '%s' LIMIT 1 ALLOW FILTERING", KeySpace+"."+models.Collections.User, email)
 	err := p.db.Query(query).Consistency(gocql.One).Scan(&user.ID, &user.Email, &user.EmailVerifiedAt, &user.Password, &user.SignupMethods, &user.GivenName, &user.FamilyName, &user.MiddleName, &user.Nickname, &user.Birthdate, &user.PhoneNumber, &user.PhoneNumberVerifiedAt, &user.Picture, &user.Roles, &user.RevokedTimestamp, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		return user, err

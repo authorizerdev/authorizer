@@ -37,11 +37,12 @@ func (p *provider) ListWebhookLogs(ctx context.Context, pagination model.Paginat
 	query := fmt.Sprintf("FOR d in %s SORT d.created_at DESC LIMIT %d, %d RETURN d", models.Collections.WebhookLog, pagination.Offset, pagination.Limit)
 
 	if webhookID != "" {
-		query = fmt.Sprintf("FOR d in %s FILTER d.webhook_id == @webhookID SORT d.created_at DESC LIMIT %d, %d RETURN d", models.Collections.WebhookLog, pagination.Offset, pagination.Limit)
+		query = fmt.Sprintf("FOR d in %s FILTER d.webhook_id == @webhook_id SORT d.created_at DESC LIMIT %d, %d RETURN d", models.Collections.WebhookLog, pagination.Offset, pagination.Limit)
 		bindVariables = map[string]interface{}{
 			"webhook_id": webhookID,
 		}
 	}
+
 	sctx := driver.WithQueryFullCount(ctx)
 	cursor, err := p.db.Query(sctx, query, bindVariables)
 	if err != nil {

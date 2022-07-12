@@ -83,7 +83,7 @@ func (p *provider) ListWebhook(ctx context.Context, pagination model.Pagination)
 // GetWebhookByID to get webhook by id
 func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*model.Webhook, error) {
 	var webhook models.Webhook
-	query := fmt.Sprintf("FOR d in %s FILTER d._id == @webhook_id RETURN d", models.Collections.Webhook)
+	query := fmt.Sprintf("FOR d in %s FILTER d._key == @webhook_id RETURN d", models.Collections.Webhook)
 	bindVars := map[string]interface{}{
 		"webhook_id": webhookID,
 	}
@@ -146,9 +146,9 @@ func (p *provider) DeleteWebhook(ctx context.Context, webhook *model.Webhook) er
 		return err
 	}
 
-	query := fmt.Sprintf("FOR d in %s FILTER d.event_id == @event_id REMOVE { _key: d._key }", models.Collections.WebhookLog)
+	query := fmt.Sprintf("FOR d IN %s FILTER d.webhook_id == @webhook_id REMOVE { _key: d._key } IN %s", models.Collections.WebhookLog, models.Collections.WebhookLog)
 	bindVars := map[string]interface{}{
-		"event_id": webhook.ID,
+		"webhook_id": webhook.ID,
 	}
 
 	cursor, err := p.db.Query(ctx, query, bindVars)

@@ -24,7 +24,11 @@ func deleteWebhookTest(t *testing.T, s TestSetup) {
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
 
 		// get all webhooks
-		webhooks, err := db.Provider.ListWebhook(ctx, model.Pagination{})
+		webhooks, err := db.Provider.ListWebhook(ctx, model.Pagination{
+			Limit:  10,
+			Page:   1,
+			Offset: 0,
+		})
 		assert.NoError(t, err)
 
 		for _, w := range webhooks.Webhooks {
@@ -37,12 +41,17 @@ func deleteWebhookTest(t *testing.T, s TestSetup) {
 			assert.NotEmpty(t, res.Message)
 		}
 
-		webhooks, err = db.Provider.ListWebhook(ctx, model.Pagination{})
+		webhooks, err = db.Provider.ListWebhook(ctx, model.Pagination{
+			Limit:  10,
+			Page:   1,
+			Offset: 0,
+		})
 		assert.NoError(t, err)
 		assert.Len(t, webhooks.Webhooks, 0)
-
 		webhookLogs, err := db.Provider.ListWebhookLogs(ctx, model.Pagination{
-			Limit: 10,
+			Limit:  100,
+			Page:   1,
+			Offset: 0,
 		}, "")
 		assert.NoError(t, err)
 		assert.Len(t, webhookLogs.WebhookLogs, 0)

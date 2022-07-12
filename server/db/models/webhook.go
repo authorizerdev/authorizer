@@ -2,6 +2,7 @@ package models
 
 import (
 	"encoding/json"
+	"strings"
 
 	"github.com/authorizerdev/authorizer/server/graph/model"
 )
@@ -23,8 +24,13 @@ type Webhook struct {
 func (w *Webhook) AsAPIWebhook() *model.Webhook {
 	headersMap := make(map[string]interface{})
 	json.Unmarshal([]byte(w.Headers), &headersMap)
+
+	id := w.ID
+	if strings.Contains(id, Collections.Webhook+"/") {
+		id = strings.TrimPrefix(id, Collections.Webhook+"/")
+	}
 	return &model.Webhook{
-		ID:        w.ID,
+		ID:        id,
 		EventName: &w.EventName,
 		Endpoint:  &w.EndPoint,
 		Headers:   headersMap,

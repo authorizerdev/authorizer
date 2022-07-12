@@ -2,8 +2,8 @@ package test
 
 import (
 	"context"
+	"os"
 	"testing"
-	"time"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
@@ -13,31 +13,45 @@ import (
 
 func TestResolvers(t *testing.T) {
 	databases := map[string]string{
-		constants.DbTypeSqlite: "../../data.db",
-		// constants.DbTypeArangodb:    "http://localhost:8529",
-		// constants.DbTypeMongodb:     "mongodb://localhost:27017",
-		// constants.DbTypeCassandraDB: "127.0.0.1:9042",
+		// constants.DbTypeSqlite:   "../../data.db",
+		// constants.DbTypeArangodb: "http://localhost:8529",
+		// constants.DbTypeMongodb: "mongodb://localhost:27017",
+		constants.DbTypeScyllaDB: "127.0.0.1:9042",
 	}
 
+	testDb := "authorizer_test"
+	s := testSetup()
+	defer s.Server.Close()
+
 	for dbType, dbURL := range databases {
-		s := testSetup()
-		defer s.Server.Close()
 		ctx := context.Background()
 
 		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDatabaseURL, dbURL)
 		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDatabaseType, dbType)
+		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDatabaseName, testDb)
+		os.Setenv(constants.EnvKeyDatabaseURL, dbURL)
+		os.Setenv(constants.EnvKeyDatabaseType, dbType)
+		os.Setenv(constants.EnvKeyDatabaseName, testDb)
+		memorystore.InitRequiredEnv()
+
 		err := db.InitDB()
 		if err != nil {
-			t.Errorf("Error initializing database: %s", err)
+			t.Errorf("Error initializing database: %s", err.Error())
 		}
 
 		// clean the persisted config for test to use fresh config
 		envData, err := db.Provider.GetEnv(ctx)
 		if err == nil {
 			envData.EnvData = ""
-			db.Provider.UpdateEnv(ctx, envData)
+			_, err = db.Provider.UpdateEnv(ctx, envData)
+			if err != nil {
+				t.Errorf("Error updating env: %s", err.Error())
+			}
 		}
-		env.PersistEnv()
+		err = env.PersistEnv()
+		if err != nil {
+			t.Errorf("Error persisting env: %s", err.Error())
+		}
 
 		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyEnv, "test")
 		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyIsProd, false)
@@ -78,9 +92,8 @@ func TestResolvers(t *testing.T) {
 			inviteUserTest(t, s)
 			validateJwtTokenTest(t, s)
 
-			time.Sleep(5 * time.Second) // add sleep for webhooklogs to get generated as they are async
-			webhookLogsTest(t, s)       // get logs after above resolver tests are done
-			deleteWebhookTest(t, s)     // delete webhooks (admin resolver)
+			webhookLogsTest(t, s)   // get logs after above resolver tests are done
+			deleteWebhookTest(t, s) // delete webhooks (admin resolver)
 		})
 	}
 }

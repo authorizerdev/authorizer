@@ -1,11 +1,8 @@
 package stores
 
 import (
-	"os"
 	"strings"
 	"sync"
-
-	"github.com/authorizerdev/authorizer/server/constants"
 )
 
 // SessionStore struct to store the env variables
@@ -29,10 +26,9 @@ func (s *SessionStore) Get(key, subKey string) string {
 
 // Set sets the value of the key in state store
 func (s *SessionStore) Set(key string, subKey, value string) {
-	if os.Getenv("ENV") != constants.TestEnv {
-		s.mutex.Lock()
-		defer s.mutex.Unlock()
-	}
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
 	if _, ok := s.store[key]; !ok {
 		s.store[key] = make(map[string]string)
 	}
@@ -41,19 +37,15 @@ func (s *SessionStore) Set(key string, subKey, value string) {
 
 // RemoveAll all values for given key
 func (s *SessionStore) RemoveAll(key string) {
-	if os.Getenv("ENV") != constants.TestEnv {
-		s.mutex.Lock()
-		defer s.mutex.Unlock()
-	}
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
 	delete(s.store, key)
 }
 
 // Remove value for given key and subkey
 func (s *SessionStore) Remove(key, subKey string) {
-	if os.Getenv("ENV") != constants.TestEnv {
-		s.mutex.Lock()
-		defer s.mutex.Unlock()
-	}
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
 	if _, ok := s.store[key]; ok {
 		delete(s.store[key], subKey)
 	}
@@ -69,11 +61,8 @@ func (s *SessionStore) GetAll(key string) map[string]string {
 
 // RemoveByNamespace to delete session for a given namespace example google,github
 func (s *SessionStore) RemoveByNamespace(namespace string) error {
-	if os.Getenv("ENV") != constants.TestEnv {
-		s.mutex.Lock()
-		defer s.mutex.Unlock()
-	}
-
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
 	for key := range s.store {
 		if strings.Contains(key, namespace+":") {
 			delete(s.store, key)

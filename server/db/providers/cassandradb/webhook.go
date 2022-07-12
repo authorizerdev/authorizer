@@ -24,6 +24,11 @@ func (p *provider) AddWebhook(ctx context.Context, webhook models.Webhook) (*mod
 	webhook.CreatedAt = time.Now().Unix()
 	webhook.UpdatedAt = time.Now().Unix()
 
+	existingHook, _ := p.GetWebhookByEventName(ctx, webhook.EventName)
+	if existingHook != nil {
+		return nil, fmt.Errorf("Webhook with %s event_name already exists", webhook.EventName)
+	}
+
 	insertQuery := fmt.Sprintf("INSERT INTO %s (id, event_name, endpoint, headers, enabled,  created_at, updated_at) VALUES ('%s', '%s', '%s', '%s', %t, %d, %d)", KeySpace+"."+models.Collections.Webhook, webhook.ID, webhook.EventName, webhook.EndPoint, webhook.Headers, webhook.Enabled, webhook.CreatedAt, webhook.UpdatedAt)
 	err := p.db.Query(insertQuery).Exec()
 	if err != nil {
@@ -56,6 +61,10 @@ func (p *provider) UpdateWebhook(ctx context.Context, webhook models.Webhook) (*
 			continue
 		}
 
+		if key == "_key" {
+			continue
+		}
+
 		if value == nil {
 			updateFields += fmt.Sprintf("%s = null,", key)
 			continue
@@ -72,7 +81,6 @@ func (p *provider) UpdateWebhook(ctx context.Context, webhook models.Webhook) (*
 	updateFields = strings.TrimSuffix(updateFields, ",")
 
 	query := fmt.Sprintf("UPDATE %s SET %s WHERE id = '%s'", KeySpace+"."+models.Collections.Webhook, updateFields, webhook.ID)
-
 	err = p.db.Query(query).Exec()
 	if err != nil {
 		return nil, err
@@ -130,7 +138,7 @@ func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*model
 // GetWebhookByEventName to get webhook by event_name
 func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) (*model.Webhook, error) {
 	var webhook models.Webhook
-	query := fmt.Sprintf(`SELECT id, event_name, endpoint, headers, enabled, created_at, updated_at FROM %s WHERE event_name = '%s' LIMIT 1`, KeySpace+"."+models.Collections.Webhook, eventName)
+	query := fmt.Sprintf(`SELECT id, event_name, endpoint, headers, enabled, created_at, updated_at FROM %s WHERE event_name = '%s' LIMIT 1 ALLOW FILTERING`, KeySpace+"."+models.Collections.Webhook, eventName)
 	err := p.db.Query(query).Consistency(gocql.One).Scan(&webhook.ID, &webhook.EventName, &webhook.EndPoint, &webhook.Headers, &webhook.Enabled, &webhook.CreatedAt, &webhook.UpdatedAt)
 	if err != nil {
 		return nil, err
@@ -146,7 +154,19 @@ func (p *provider) DeleteWebhook(ctx context.Context, webhook *model.Webhook) er
 		return err
 	}
 
-	query = fmt.Sprintf("DELETE FROM %s WHERE webhook_id = '%s'", KeySpace+"."+models.Collections.WebhookLog, webhook.ID)
+	getWebhookLogQuery := fmt.Sprintf("SELECT id FROM %s WHERE webhook_id = '%s' ALLOW FILTERING", KeySpace+"."+models.Collections.WebhookLog, webhook.ID)
+	scanner := p.db.Query(getWebhookLogQuery).Iter().Scanner()
+	webhookLogIDs := ""
+	for scanner.Next() {
+		var wlID string
+		err = scanner.Scan(&wlID)
+		if err != nil {
+			return err
+		}
+		webhookLogIDs += fmt.Sprintf("'%s',", wlID)
+	}
+	webhookLogIDs = strings.TrimSuffix(webhookLogIDs, ",")
+	query = fmt.Sprintf("DELETE FROM %s WHERE id IN (%s)", KeySpace+"."+models.Collections.WebhookLog, webhookLogIDs)
 	err = p.db.Query(query).Exec()
 	return err
 }
