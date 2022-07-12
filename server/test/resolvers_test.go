@@ -13,10 +13,10 @@ import (
 
 func TestResolvers(t *testing.T) {
 	databases := map[string]string{
-		// constants.DbTypeSqlite:   "../../data.db",
+		constants.DbTypeSqlite: "../../data.db",
 		// constants.DbTypeArangodb: "http://localhost:8529",
-		// constants.DbTypeMongodb: "mongodb://localhost:27017",
-		constants.DbTypeScyllaDB: "127.0.0.1:9042",
+		// constants.DbTypeMongodb:  "mongodb://localhost:27017",
+		// constants.DbTypeScyllaDB: "127.0.0.1:9042",
 	}
 
 	testDb := "authorizer_test"
