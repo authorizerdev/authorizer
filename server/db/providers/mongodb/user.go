@@ -57,6 +57,12 @@ func (p *provider) DeleteUser(ctx context.Context, user models.User) error {
 		return err
 	}
 
+	sessionCollection := p.db.Collection(models.Collections.Session, options.Collection())
+	_, err = sessionCollection.DeleteMany(ctx, bson.M{"user_id": user.ID}, options.Delete())
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

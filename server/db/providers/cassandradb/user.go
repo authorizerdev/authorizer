@@ -131,7 +131,17 @@ func (p *provider) UpdateUser(ctx context.Context, user models.User) (models.Use
 func (p *provider) DeleteUser(ctx context.Context, user models.User) error {
 	query := fmt.Sprintf("DELETE FROM %s WHERE id = '%s'", KeySpace+"."+models.Collections.User, user.ID)
 	err := p.db.Query(query).Exec()
-	return err
+	if err != nil {
+		return err
+	}
+
+	deleteSessionQuery := fmt.Sprintf("DELETE FROM %s WHERE user_id = '%s'", KeySpace+"."+models.Collections.Session, user.ID)
+	err = p.db.Query(deleteSessionQuery).Exec()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // ListUsers to get list of users from database

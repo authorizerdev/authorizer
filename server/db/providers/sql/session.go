@@ -27,13 +27,3 @@ func (p *provider) AddSession(ctx context.Context, session models.Session) error
 	}
 	return nil
 }
-
-// DeleteSession to delete session information from database
-func (p *provider) DeleteSession(ctx context.Context, userId string) error {
-	result := p.db.Where("user_id = ?", userId).Delete(&models.Session{})
-
-	if result.Error != nil {
-		return result.Error
-	}
-	return nil
-}

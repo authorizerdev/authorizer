@@ -2,7 +2,6 @@ package arangodb
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/db/models"
@@ -22,19 +21,5 @@ func (p *provider) AddSession(ctx context.Context, session models.Session) error
 	if err != nil {
 		return err
 	}
-	return nil
-}
-
-// DeleteSession to delete session information from database
-func (p *provider) DeleteSession(ctx context.Context, userId string) error {
-	query := fmt.Sprintf(`FOR d IN %s FILTER d.user_id == @userId REMOVE { _key: d._key } IN %s`, models.Collections.Session, models.Collections.Session)
-	bindVars := map[string]interface{}{
-		"userId": userId,
-	}
-	cursor, err := p.db.Query(ctx, query, bindVars)
-	if err != nil {
-		return err
-	}
-	defer cursor.Close()
 	return nil
 }

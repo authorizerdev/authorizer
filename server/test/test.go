@@ -59,7 +59,6 @@ func cleanData(email string) {
 	dbUser, err := db.Provider.GetUserByEmail(ctx, email)
 	if err == nil {
 		db.Provider.DeleteUser(ctx, dbUser)
-		db.Provider.DeleteSession(ctx, dbUser.ID)
 	}
 }
 

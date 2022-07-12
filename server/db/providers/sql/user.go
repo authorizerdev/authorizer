@@ -63,6 +63,11 @@ func (p *provider) DeleteUser(ctx context.Context, user models.User) error {
 		return result.Error
 	}
 
+	result = p.db.Where("user_id = ?", user.ID).Delete(&models.Session{})
+	if result.Error != nil {
+		return result.Error
+	}
+
 	return nil
 }
 

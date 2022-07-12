@@ -63,6 +63,16 @@ func (p *provider) DeleteUser(ctx context.Context, user models.User) error {
 		return err
 	}
 
+	query := fmt.Sprintf(`FOR d IN %s FILTER d.user_id == @userId REMOVE { _key: d._key } IN %s`, models.Collections.Session, models.Collections.Session)
+	bindVars := map[string]interface{}{
+		"userId": user.ID,
+	}
+	cursor, err := p.db.Query(ctx, query, bindVars)
+	if err != nil {
+		return err
+	}
+	defer cursor.Close()
+
 	return nil
 }
 

@@ -6,7 +6,6 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/google/uuid"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -21,16 +20,6 @@ func (p *provider) AddSession(ctx context.Context, session models.Session) error
 	session.UpdatedAt = time.Now().Unix()
 	sessionCollection := p.db.Collection(models.Collections.Session, options.Collection())
 	_, err := sessionCollection.InsertOne(ctx, session)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-// DeleteSession to delete session information from database
-func (p *provider) DeleteSession(ctx context.Context, userId string) error {
-	sessionCollection := p.db.Collection(models.Collections.Session, options.Collection())
-	_, err := sessionCollection.DeleteMany(ctx, bson.M{"user_id": userId}, options.Delete())
 	if err != nil {
 		return err
 	}
