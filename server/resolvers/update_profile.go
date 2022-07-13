@@ -45,7 +45,7 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 	}
 
 	// validate if all params are not empty
-	if params.GivenName == nil && params.FamilyName == nil && params.Picture == nil && params.MiddleName == nil && params.Nickname == nil && params.OldPassword == nil && params.Email == nil && params.Birthdate == nil && params.Gender == nil && params.PhoneNumber == nil {
+	if params.GivenName == nil && params.FamilyName == nil && params.Picture == nil && params.MiddleName == nil && params.Nickname == nil && params.OldPassword == nil && params.Email == nil && params.Birthdate == nil && params.Gender == nil && params.PhoneNumber == nil && params.NewPassword == nil && params.ConfirmNewPassword == nil {
 		log.Debug("All params are empty")
 		return res, fmt.Errorf("please enter at least one param to update")
 	}
@@ -61,70 +61,108 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 		return res, err
 	}
 
-	if params.GivenName != nil && user.GivenName != params.GivenName {
+	if params.GivenName != nil && utils.StringValue(user.GivenName) != utils.StringValue(params.GivenName) {
 		user.GivenName = params.GivenName
 	}
 
-	if params.FamilyName != nil && user.FamilyName != params.FamilyName {
+	if params.FamilyName != nil && utils.StringValue(user.FamilyName) != utils.StringValue(params.FamilyName) {
 		user.FamilyName = params.FamilyName
 	}
 
-	if params.MiddleName != nil && user.MiddleName != params.MiddleName {
+	if params.MiddleName != nil && utils.StringValue(user.MiddleName) != utils.StringValue(params.MiddleName) {
 		user.MiddleName = params.MiddleName
 	}
 
-	if params.Nickname != nil && user.Nickname != params.Nickname {
+	if params.Nickname != nil && utils.StringValue(user.Nickname) != utils.StringValue(params.Nickname) {
 		user.Nickname = params.Nickname
 	}
 
-	if params.Birthdate != nil && user.Birthdate != params.Birthdate {
+	if params.Birthdate != nil && utils.StringValue(user.Birthdate) != utils.StringValue(params.Birthdate) {
 		user.Birthdate = params.Birthdate
 	}
 
-	if params.Gender != nil && user.Gender != params.Gender {
+	if params.Gender != nil && utils.StringValue(user.Gender) != utils.StringValue(params.Gender) {
 		user.Gender = params.Gender
 	}
 
-	if params.PhoneNumber != nil && user.PhoneNumber != params.PhoneNumber {
+	if params.PhoneNumber != nil && utils.StringValue(user.PhoneNumber) != utils.StringValue(params.PhoneNumber) {
 		user.PhoneNumber = params.PhoneNumber
 	}
 
-	if params.Picture != nil && user.Picture != params.Picture {
+	if params.Picture != nil && utils.StringValue(user.Picture) != utils.StringValue(params.Picture) {
 		user.Picture = params.Picture
 	}
 
-	if params.OldPassword != nil {
-		if err = bcrypt.CompareHashAndPassword([]byte(*user.Password), []byte(*params.OldPassword)); err != nil {
+	isPasswordChanging := false
+	if params.NewPassword != nil && params.ConfirmNewPassword == nil {
+		isPasswordChanging = true
+		log.Debug("confirm password is empty")
+		return res, fmt.Errorf("confirm password is required")
+	}
+
+	if params.ConfirmNewPassword != nil && params.NewPassword == nil {
+		isPasswordChanging = true
+		log.Debug("new password is empty")
+		return res, fmt.Errorf("new password is required")
+	}
+
+	if params.NewPassword != nil && params.ConfirmNewPassword != nil {
+		isPasswordChanging = true
+	}
+
+	if isPasswordChanging && user.Password != nil && params.OldPassword == nil {
+		log.Debug("old password is empty")
+		return res, fmt.Errorf("old password is required")
+	}
+
+	if isPasswordChanging && user.Password != nil && params.OldPassword != nil {
+		if err = bcrypt.CompareHashAndPassword([]byte(utils.StringValue(user.Password)), []byte(utils.StringValue(params.OldPassword))); err != nil {
 			log.Debug("Failed to compare hash and old password: ", err)
 			return res, fmt.Errorf("incorrect old password")
 		}
+	}
 
-		if params.NewPassword == nil {
-			log.Debug("Failed to get new password: ")
-			return res, fmt.Errorf("new password is required")
+	shouldAddBasicSignUpMethod := false
+	isBasicAuthDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableBasicAuthentication)
+	if err != nil {
+		log.Debug("Error getting basic auth disabled: ", err)
+		isBasicAuthDisabled = true
+	}
+
+	if params.NewPassword != nil && params.ConfirmNewPassword != nil {
+		if isBasicAuthDisabled {
+			log.Debug("Cannot update password as basic authentication is disabled")
+			return res, fmt.Errorf(`basic authentication is disabled for this instance`)
 		}
 
-		if params.ConfirmNewPassword == nil {
-			log.Debug("Failed to get confirm new password: ")
-			return res, fmt.Errorf("confirm password is required")
-		}
-
-		if *params.ConfirmNewPassword != *params.NewPassword {
+		if utils.StringValue(params.ConfirmNewPassword) != utils.StringValue(params.NewPassword) {
 			log.Debug("Failed to compare new password and confirm new password")
 			return res, fmt.Errorf(`password and confirm password does not match`)
 		}
 
-		password, _ := crypto.EncryptPassword(*params.NewPassword)
+		if user.Password == nil || utils.StringValue(user.Password) == "" {
+			shouldAddBasicSignUpMethod = true
+		}
 
+		if err := validators.IsValidPassword(utils.StringValue(params.NewPassword)); err != nil {
+			log.Debug("Invalid password")
+			return res, err
+		}
+
+		password, _ := crypto.EncryptPassword(utils.StringValue(params.NewPassword))
 		user.Password = &password
+
+		if shouldAddBasicSignUpMethod {
+			user.SignupMethods = user.SignupMethods + "," + constants.AuthRecipeMethodBasicAuth
+		}
 	}
 
 	hasEmailChanged := false
 
-	if params.Email != nil && user.Email != *params.Email {
+	if params.Email != nil && user.Email != utils.StringValue(params.Email) {
 		// check if valid email
 		if !validators.IsValidEmail(*params.Email) {
-			log.Debug("Failed to validate email: ", *params.Email)
+			log.Debug("Failed to validate email: ", utils.StringValue(params.Email))
 			return res, fmt.Errorf("invalid email address")
 		}
 		newEmail := strings.ToLower(*params.Email)
