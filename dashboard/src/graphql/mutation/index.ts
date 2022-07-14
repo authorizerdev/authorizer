@@ -79,3 +79,11 @@ export const GenerateKeys = `
     }
   }
 `;
+
+export const AddWebhook = `
+  mutation addWebhook($params: AddWebhookRequest!) {
+    _add_webhook(params: $params) {
+      message
+    }
+  }
+`;
