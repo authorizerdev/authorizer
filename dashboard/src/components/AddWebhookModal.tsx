@@ -204,6 +204,7 @@ const AddWebhookModal = () => {
 	};
 	const saveData = async () => {
 		if (!validateData()) return;
+		setLoading(true);
 		let params: any = {
 			[INPUT_FIELDS.EVENT_NAME]: webhook[INPUT_FIELDS.EVENT_NAME],
 			[INPUT_FIELDS.ENDPOINT]: webhook[INPUT_FIELDS.ENDPOINT],
@@ -223,6 +224,7 @@ const AddWebhookModal = () => {
 				status: 'error',
 				position: 'bottom-right',
 			});
+			setLoading(false);
 			return;
 		} else if (res.data?._add_webhook) {
 			toast({
@@ -234,6 +236,7 @@ const AddWebhookModal = () => {
 			setWebhook({ ...initWebhookData });
 			onClose();
 		}
+		setLoading(false);
 	};
 	return (
 		<>
