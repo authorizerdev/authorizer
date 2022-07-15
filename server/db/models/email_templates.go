@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/refs"
 )
 
 // EmailTemplate model for database
@@ -26,7 +27,7 @@ func (e *EmailTemplate) AsAPIEmailTemplate() *model.EmailTemplate {
 		ID:        id,
 		EventName: e.EventName,
 		Template:  e.Template,
-		CreatedAt: &e.CreatedAt,
-		UpdatedAt: &e.UpdatedAt,
+		CreatedAt: refs.NewInt64Ref(e.CreatedAt),
+		UpdatedAt: refs.NewInt64Ref(e.UpdatedAt),
 	}
 }

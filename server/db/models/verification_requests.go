@@ -32,7 +32,7 @@ func (v *VerificationRequest) AsAPIVerificationRequest() *model.VerificationRequ
 	return &model.VerificationRequest{
 		ID:          id,
 		Token:       refs.NewStringRef(v.Token),
-		Identifier:   refs.NewStringRef(v.Identifier),
+		Identifier:  refs.NewStringRef(v.Identifier),
 		Expires:     refs.NewInt64Ref(v.ExpiresAt),
 		Email:       refs.NewStringRef(v.Email),
 		Nonce:       refs.NewStringRef(v.Nonce),
