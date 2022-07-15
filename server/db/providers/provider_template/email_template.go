@@ -33,7 +33,7 @@ func (p *provider) ListEmailTemplate(ctx context.Context, pagination model.Pagin
 }
 
 // GetEmailTemplateByID to get EmailTemplate by id
-func (p *provider) GetEmailTemplateByID(ctx context.Context, EmailTemplateID string) (*model.EmailTemplate, error) {
+func (p *provider) GetEmailTemplateByID(ctx context.Context, emailTemplateID string) (*model.EmailTemplate, error) {
 	return nil, nil
 }
 
@@ -43,6 +43,6 @@ func (p *provider) GetEmailTemplateByEventName(ctx context.Context, eventName st
 }
 
 // DeleteEmailTemplate to delete EmailTemplate
-func (p *provider) DeleteEmailTemplate(ctx context.Context, EmailTemplate *model.EmailTemplate) error {
+func (p *provider) DeleteEmailTemplate(ctx context.Context, emailTemplate *model.EmailTemplate) error {
 	return nil
 }
