@@ -21,7 +21,12 @@ import {
 import { FaMinusCircle, FaPlus } from 'react-icons/fa';
 import { useClient } from 'urql';
 import { ArrayInputOperations } from '../constants';
-import { validateEventName, validateURI } from '../utils';
+import {
+	capitalizeFirstLetter,
+	validateEventName,
+	validateURI,
+} from '../utils';
+import { AddWebhook } from '../graphql/mutation';
 
 enum INPUT_FIELDS {
 	EVENT_NAME = 'event_name',
@@ -144,7 +149,7 @@ const AddWebhookModal = () => {
 				break;
 		}
 	};
-	const updateHeadersHandler = (operation: string, index: number = 0) => {
+	const updateHeaders = (operation: string, index: number = 0) => {
 		switch (operation) {
 			case ArrayInputOperations.APPEND:
 				setWebhook({
@@ -182,6 +187,52 @@ const AddWebhookModal = () => {
 				break;
 			default:
 				break;
+		}
+	};
+	const validateData = () => {
+		return (
+			!loading &&
+			webhook[INPUT_FIELDS.EVENT_NAME].length > 0 &&
+			webhook[INPUT_FIELDS.ENDPOINT].length > 0 &&
+			validator[INPUT_FIELDS.EVENT_NAME] &&
+			validator[INPUT_FIELDS.ENDPOINT] &&
+			!validator[INPUT_FIELDS.HEADERS].some(
+				(headerData: headersValidatorDataType) =>
+					!headerData.key || !headerData.value
+			)
+		);
+	};
+	const saveData = async () => {
+		if (!validateData()) return;
+		let params: any = {
+			[INPUT_FIELDS.EVENT_NAME]: webhook[INPUT_FIELDS.EVENT_NAME],
+			[INPUT_FIELDS.ENDPOINT]: webhook[INPUT_FIELDS.ENDPOINT],
+			[INPUT_FIELDS.ENABLED]: webhook[INPUT_FIELDS.ENABLED],
+		};
+		if (webhook[INPUT_FIELDS.HEADERS].length > 0) {
+			const headers = webhook[INPUT_FIELDS.HEADERS].reduce((acc, data) => {
+				return { ...acc, [data.key]: data.value };
+			}, {});
+			params[INPUT_FIELDS.HEADERS] = headers;
+		}
+		const res = await client.mutation(AddWebhook, { params }).toPromise();
+		if (res.error) {
+			toast({
+				title: capitalizeFirstLetter(res.error.message),
+				isClosable: true,
+				status: 'error',
+				position: 'bottom-right',
+			});
+			return;
+		} else if (res.data?._add_webhook) {
+			toast({
+				title: capitalizeFirstLetter(res.data?._add_webhook.message),
+				isClosable: true,
+				status: 'success',
+				position: 'bottom-right',
+			});
+			setWebhook({ ...initWebhookData });
+			onClose();
 		}
 	};
 	return (
@@ -300,9 +351,7 @@ const AddWebhookModal = () => {
 										size="sm"
 										variant="ghost"
 										paddingRight="0"
-										onClick={() =>
-											updateHeadersHandler(ArrayInputOperations.APPEND)
-										}
+										onClick={() => updateHeaders(ArrayInputOperations.APPEND)}
 									>
 										Add more Headers
 									</Button>
@@ -365,10 +414,7 @@ const AddWebhookModal = () => {
 													variant="ghost"
 													padding="0"
 													onClick={() =>
-														updateHeadersHandler(
-															ArrayInputOperations.REMOVE,
-															index
-														)
+														updateHeaders(ArrayInputOperations.REMOVE, index)
 													}
 												>
 													<FaMinusCircle />
@@ -384,8 +430,8 @@ const AddWebhookModal = () => {
 						<Button
 							colorScheme="blue"
 							variant="solid"
-							onClick={() => {}}
-							isDisabled={loading}
+							onClick={saveData}
+							isDisabled={!validateData()}
 						>
 							<Center h="100%" pt="5%">
 								Save
