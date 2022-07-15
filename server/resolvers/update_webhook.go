@@ -8,6 +8,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/authorizerdev/authorizer/server/validators"
@@ -45,27 +46,27 @@ func UpdateWebhookResolver(ctx context.Context, params model.UpdateWebhookReques
 	webhookDetails := models.Webhook{
 		ID:        webhook.ID,
 		Key:       webhook.ID,
-		EventName: utils.StringValue(webhook.EventName),
-		EndPoint:  utils.StringValue(webhook.Endpoint),
-		Enabled:   utils.BoolValue(webhook.Enabled),
+		EventName: refs.StringValue(webhook.EventName),
+		EndPoint:  refs.StringValue(webhook.Endpoint),
+		Enabled:   refs.BoolValue(webhook.Enabled),
 		Headers:   headersString,
 		CreatedAt: *webhook.CreatedAt,
 	}
 
-	if params.EventName != nil && webhookDetails.EventName != utils.StringValue(params.EventName) {
-		if isValid := validators.IsValidWebhookEventName(utils.StringValue(params.EventName)); !isValid {
-			log.Debug("invalid event name: ", utils.StringValue(params.EventName))
-			return nil, fmt.Errorf("invalid event name %s", utils.StringValue(params.EventName))
+	if params.EventName != nil && webhookDetails.EventName != refs.StringValue(params.EventName) {
+		if isValid := validators.IsValidWebhookEventName(refs.StringValue(params.EventName)); !isValid {
+			log.Debug("invalid event name: ", refs.StringValue(params.EventName))
+			return nil, fmt.Errorf("invalid event name %s", refs.StringValue(params.EventName))
 		}
-		webhookDetails.EventName = utils.StringValue(params.EventName)
+		webhookDetails.EventName = refs.StringValue(params.EventName)
 	}
 
-	if params.Endpoint != nil && webhookDetails.EndPoint != utils.StringValue(params.Endpoint) {
-		webhookDetails.EventName = utils.StringValue(params.EventName)
+	if params.Endpoint != nil && webhookDetails.EndPoint != refs.StringValue(params.Endpoint) {
+		webhookDetails.EventName = refs.StringValue(params.EventName)
 	}
 
-	if params.Enabled != nil && webhookDetails.Enabled != utils.BoolValue(params.Enabled) {
-		webhookDetails.Enabled = utils.BoolValue(params.Enabled)
+	if params.Enabled != nil && webhookDetails.Enabled != refs.BoolValue(params.Enabled) {
+		webhookDetails.Enabled = refs.BoolValue(params.Enabled)
 	}
 
 	if params.Headers != nil {

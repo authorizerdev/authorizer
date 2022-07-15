@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/refs"
 )
 
 // Note: any change here should be reflected in providers/casandra/provider.go as it does not have model support in collection creation
@@ -29,13 +30,14 @@ func (w *Webhook) AsAPIWebhook() *model.Webhook {
 	if strings.Contains(id, Collections.Webhook+"/") {
 		id = strings.TrimPrefix(id, Collections.Webhook+"/")
 	}
+
 	return &model.Webhook{
 		ID:        id,
-		EventName: &w.EventName,
-		Endpoint:  &w.EndPoint,
+		EventName: refs.NewStringRef(w.EventName),
+		Endpoint:  refs.NewStringRef(w.EndPoint),
 		Headers:   headersMap,
-		Enabled:   &w.Enabled,
-		CreatedAt: &w.CreatedAt,
-		UpdatedAt: &w.UpdatedAt,
+		Enabled:   refs.NewBoolRef(w.Enabled),
+		CreatedAt: refs.NewInt64Ref(w.CreatedAt),
+		UpdatedAt: refs.NewInt64Ref(w.UpdatedAt),
 	}
 }

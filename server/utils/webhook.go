@@ -11,6 +11,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
+	"github.com/authorizerdev/authorizer/server/refs"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -20,7 +21,7 @@ func RegisterEvent(ctx context.Context, eventName string, authRecipe string, use
 		return err
 	}
 
-	if !BoolValue(webhook.Enabled) {
+	if !refs.BoolValue(webhook.Enabled) {
 		return nil
 	}
 
@@ -52,7 +53,7 @@ func RegisterEvent(ctx context.Context, eventName string, authRecipe string, use
 	}
 
 	requestBytesBuffer := bytes.NewBuffer(requestBody)
-	req, err := http.NewRequest("POST", StringValue(webhook.Endpoint), requestBytesBuffer)
+	req, err := http.NewRequest("POST", refs.StringValue(webhook.Endpoint), requestBytesBuffer)
 	if err != nil {
 		log.Debug("error creating webhook post request: ", err)
 		return err

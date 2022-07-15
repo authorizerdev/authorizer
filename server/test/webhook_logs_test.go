@@ -9,8 +9,8 @@ import (
 	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
+	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/authorizerdev/authorizer/server/resolvers"
-	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -41,7 +41,7 @@ func webhookLogsTest(t *testing.T, s TestSetup) {
 				assert.NoError(t, err)
 				assert.GreaterOrEqual(t, len(webhookLogs.WebhookLogs), 1)
 				for _, wl := range webhookLogs.WebhookLogs {
-					assert.Equal(t, utils.StringValue(wl.WebhookID), w.ID)
+					assert.Equal(t, refs.StringValue(wl.WebhookID), w.ID)
 				}
 			})
 		}

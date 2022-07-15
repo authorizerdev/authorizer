@@ -9,8 +9,8 @@ import (
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
+	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/authorizerdev/authorizer/server/resolvers"
-	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -32,7 +32,7 @@ func updateWebhookTest(t *testing.T, s TestSetup) {
 		res, err := resolvers.UpdateWebhookResolver(ctx, model.UpdateWebhookRequest{
 			ID:      webhook.ID,
 			Headers: webhook.Headers,
-			Enabled: utils.NewBoolRef(false),
+			Enabled: refs.NewBoolRef(false),
 		})
 
 		assert.NoError(t, err)
@@ -43,15 +43,15 @@ func updateWebhookTest(t *testing.T, s TestSetup) {
 		assert.NoError(t, err)
 		assert.NotNil(t, updatedWebhook)
 		assert.Equal(t, webhook.ID, updatedWebhook.ID)
-		assert.Equal(t, utils.StringValue(webhook.EventName), utils.StringValue(updatedWebhook.EventName))
-		assert.Equal(t, utils.StringValue(webhook.Endpoint), utils.StringValue(updatedWebhook.Endpoint))
+		assert.Equal(t, refs.StringValue(webhook.EventName), refs.StringValue(updatedWebhook.EventName))
+		assert.Equal(t, refs.StringValue(webhook.Endpoint), refs.StringValue(updatedWebhook.Endpoint))
 		assert.Len(t, updatedWebhook.Headers, 2)
-		assert.False(t, utils.BoolValue(updatedWebhook.Enabled))
+		assert.False(t, refs.BoolValue(updatedWebhook.Enabled))
 
 		res, err = resolvers.UpdateWebhookResolver(ctx, model.UpdateWebhookRequest{
 			ID:      webhook.ID,
 			Headers: webhook.Headers,
-			Enabled: utils.NewBoolRef(true),
+			Enabled: refs.NewBoolRef(true),
 		})
 		assert.NoError(t, err)
 		assert.NotEmpty(t, res)
