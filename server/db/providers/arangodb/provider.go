@@ -134,6 +134,20 @@ func NewProvider() (*provider, error) {
 		Sparse: true,
 	})
 
+	emailTemplateCollectionExists, err := arangodb.CollectionExists(ctx, models.Collections.EmailTemplate)
+	if !emailTemplateCollectionExists {
+		_, err = arangodb.CreateCollection(ctx, models.Collections.EmailTemplate, nil)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	emailTemplateCollection, _ := arangodb.Collection(nil, models.Collections.EmailTemplate)
+	emailTemplateCollection.EnsureHashIndex(ctx, []string{"event_name"}, &arangoDriver.EnsureHashIndexOptions{
+		Unique: true,
+		Sparse: true,
+	})
+
 	return &provider{
 		db: arangodb,
 	}, err
