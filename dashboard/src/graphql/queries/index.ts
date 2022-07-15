@@ -101,3 +101,23 @@ export const EmailVerificationQuery = `
     }
   }
 `;
+
+export const WebhooksDataQuery = `
+  query getWebhooksData {
+    _webhooks{
+      webhooks{
+        id
+        event_name
+        endpoint
+        enabled
+        headers
+      }
+      pagination{
+        limit
+        page
+        offset
+        total
+      }
+    }
+  }
+`;

@@ -20,7 +20,11 @@ import {
 } from '@chakra-ui/react';
 import { FaMinusCircle, FaPlus } from 'react-icons/fa';
 import { useClient } from 'urql';
-import { ArrayInputOperations } from '../constants';
+import {
+	ArrayInputOperations,
+	WebhookInputDataFields,
+	WebhookInputHeaderFields,
+} from '../constants';
 import {
 	capitalizeFirstLetter,
 	validateEventName,
@@ -28,62 +32,50 @@ import {
 } from '../utils';
 import { AddWebhook } from '../graphql/mutation';
 
-enum INPUT_FIELDS {
-	EVENT_NAME = 'event_name',
-	ENDPOINT = 'endpoint',
-	ENABLED = 'enabled',
-	HEADERS = 'headers',
-}
-
-enum HEADER_FIELDS {
-	KEY = 'key',
-	VALUE = 'value',
-}
-
 interface headersDataType {
-	[HEADER_FIELDS.KEY]: string;
-	[HEADER_FIELDS.VALUE]: string;
+	[WebhookInputHeaderFields.KEY]: string;
+	[WebhookInputHeaderFields.VALUE]: string;
 }
 
 interface headersValidatorDataType {
-	[HEADER_FIELDS.KEY]: boolean;
-	[HEADER_FIELDS.VALUE]: boolean;
+	[WebhookInputHeaderFields.KEY]: boolean;
+	[WebhookInputHeaderFields.VALUE]: boolean;
 }
 
 const initHeadersData: headersDataType = {
-	[HEADER_FIELDS.KEY]: '',
-	[HEADER_FIELDS.VALUE]: '',
+	[WebhookInputHeaderFields.KEY]: '',
+	[WebhookInputHeaderFields.VALUE]: '',
 };
 
 const initHeadersValidatorData: headersValidatorDataType = {
-	[HEADER_FIELDS.KEY]: true,
-	[HEADER_FIELDS.VALUE]: true,
+	[WebhookInputHeaderFields.KEY]: true,
+	[WebhookInputHeaderFields.VALUE]: true,
 };
 
 interface webhookDataType {
-	[INPUT_FIELDS.EVENT_NAME]: string;
-	[INPUT_FIELDS.ENDPOINT]: string;
-	[INPUT_FIELDS.ENABLED]: boolean;
-	[INPUT_FIELDS.HEADERS]: headersDataType[];
+	[WebhookInputDataFields.EVENT_NAME]: string;
+	[WebhookInputDataFields.ENDPOINT]: string;
+	[WebhookInputDataFields.ENABLED]: boolean;
+	[WebhookInputDataFields.HEADERS]: headersDataType[];
 }
 
 interface validatorDataType {
-	[INPUT_FIELDS.EVENT_NAME]: boolean;
-	[INPUT_FIELDS.ENDPOINT]: boolean;
-	[INPUT_FIELDS.HEADERS]: headersValidatorDataType[];
+	[WebhookInputDataFields.EVENT_NAME]: boolean;
+	[WebhookInputDataFields.ENDPOINT]: boolean;
+	[WebhookInputDataFields.HEADERS]: headersValidatorDataType[];
 }
 
 const initWebhookData: webhookDataType = {
-	[INPUT_FIELDS.EVENT_NAME]: '',
-	[INPUT_FIELDS.ENDPOINT]: '',
-	[INPUT_FIELDS.ENABLED]: false,
-	[INPUT_FIELDS.HEADERS]: [{ ...initHeadersData }],
+	[WebhookInputDataFields.EVENT_NAME]: '',
+	[WebhookInputDataFields.ENDPOINT]: '',
+	[WebhookInputDataFields.ENABLED]: false,
+	[WebhookInputDataFields.HEADERS]: [{ ...initHeadersData }],
 };
 
 const initWebhookValidatorData: validatorDataType = {
-	[INPUT_FIELDS.EVENT_NAME]: true,
-	[INPUT_FIELDS.ENDPOINT]: true,
-	[INPUT_FIELDS.HEADERS]: [{ ...initHeadersValidatorData }],
+	[WebhookInputDataFields.EVENT_NAME]: true,
+	[WebhookInputDataFields.ENDPOINT]: true,
+	[WebhookInputDataFields.HEADERS]: [{ ...initHeadersValidatorData }],
 };
 
 const AddWebhookModal = () => {
@@ -100,36 +92,38 @@ const AddWebhookModal = () => {
 	const inputChangehandler = (
 		inputType: string,
 		value: any,
-		headerInputType: string = HEADER_FIELDS.KEY,
+		headerInputType: string = WebhookInputHeaderFields.KEY,
 		headerIndex: number = 0
 	) => {
 		switch (inputType) {
-			case INPUT_FIELDS.EVENT_NAME:
+			case WebhookInputDataFields.EVENT_NAME:
 				setWebhook({ ...webhook, [inputType]: value });
 				setValidator({
 					...validator,
-					[INPUT_FIELDS.EVENT_NAME]: validateEventName(value),
+					[WebhookInputDataFields.EVENT_NAME]: validateEventName(value),
 				});
 				break;
-			case INPUT_FIELDS.ENDPOINT:
+			case WebhookInputDataFields.ENDPOINT:
 				setWebhook({ ...webhook, [inputType]: value });
 				setValidator({
 					...validator,
-					[INPUT_FIELDS.ENDPOINT]: validateURI(value),
+					[WebhookInputDataFields.ENDPOINT]: validateURI(value),
 				});
 				break;
-			case INPUT_FIELDS.ENABLED:
+			case WebhookInputDataFields.ENABLED:
 				setWebhook({ ...webhook, [inputType]: value });
 				break;
-			case INPUT_FIELDS.HEADERS:
-				const updatedHeaders: any = [...webhook[INPUT_FIELDS.HEADERS]];
+			case WebhookInputDataFields.HEADERS:
+				const updatedHeaders: any = [
+					...webhook[WebhookInputDataFields.HEADERS],
+				];
 				const updatedHeadersValidatorData: any = [
-					...validator[INPUT_FIELDS.HEADERS],
+					...validator[WebhookInputDataFields.HEADERS],
 				];
 				const otherHeaderInputType =
-					headerInputType === HEADER_FIELDS.KEY
-						? HEADER_FIELDS.VALUE
-						: HEADER_FIELDS.KEY;
+					headerInputType === WebhookInputHeaderFields.KEY
+						? WebhookInputHeaderFields.VALUE
+						: WebhookInputHeaderFields.KEY;
 				updatedHeaders[headerIndex][headerInputType] = value;
 				updatedHeadersValidatorData[headerIndex][headerInputType] =
 					value.length > 0
@@ -154,34 +148,36 @@ const AddWebhookModal = () => {
 			case ArrayInputOperations.APPEND:
 				setWebhook({
 					...webhook,
-					[INPUT_FIELDS.HEADERS]: [
-						...(webhook?.[INPUT_FIELDS.HEADERS] || []),
+					[WebhookInputDataFields.HEADERS]: [
+						...(webhook?.[WebhookInputDataFields.HEADERS] || []),
 						{ ...initHeadersData },
 					],
 				});
 				setValidator({
 					...validator,
-					[INPUT_FIELDS.HEADERS]: [
-						...(validator?.[INPUT_FIELDS.HEADERS] || []),
+					[WebhookInputDataFields.HEADERS]: [
+						...(validator?.[WebhookInputDataFields.HEADERS] || []),
 						{ ...initHeadersValidatorData },
 					],
 				});
 				break;
 			case ArrayInputOperations.REMOVE:
-				if (webhook?.[INPUT_FIELDS.HEADERS]?.length) {
-					const updatedHeaders = [...webhook[INPUT_FIELDS.HEADERS]];
+				if (webhook?.[WebhookInputDataFields.HEADERS]?.length) {
+					const updatedHeaders = [...webhook[WebhookInputDataFields.HEADERS]];
 					updatedHeaders.splice(index, 1);
 					setWebhook({
 						...webhook,
-						[INPUT_FIELDS.HEADERS]: updatedHeaders,
+						[WebhookInputDataFields.HEADERS]: updatedHeaders,
 					});
 				}
-				if (validator?.[INPUT_FIELDS.HEADERS]?.length) {
-					const updatedHeadersData = [...validator[INPUT_FIELDS.HEADERS]];
+				if (validator?.[WebhookInputDataFields.HEADERS]?.length) {
+					const updatedHeadersData = [
+						...validator[WebhookInputDataFields.HEADERS],
+					];
 					updatedHeadersData.splice(index, 1);
 					setValidator({
 						...validator,
-						[INPUT_FIELDS.HEADERS]: updatedHeadersData,
+						[WebhookInputDataFields.HEADERS]: updatedHeadersData,
 					});
 				}
 				break;
@@ -192,11 +188,11 @@ const AddWebhookModal = () => {
 	const validateData = () => {
 		return (
 			!loading &&
-			webhook[INPUT_FIELDS.EVENT_NAME].length > 0 &&
-			webhook[INPUT_FIELDS.ENDPOINT].length > 0 &&
-			validator[INPUT_FIELDS.EVENT_NAME] &&
-			validator[INPUT_FIELDS.ENDPOINT] &&
-			!validator[INPUT_FIELDS.HEADERS].some(
+			webhook[WebhookInputDataFields.EVENT_NAME].length > 0 &&
+			webhook[WebhookInputDataFields.ENDPOINT].length > 0 &&
+			validator[WebhookInputDataFields.EVENT_NAME] &&
+			validator[WebhookInputDataFields.ENDPOINT] &&
+			!validator[WebhookInputDataFields.HEADERS].some(
 				(headerData: headersValidatorDataType) =>
 					!headerData.key || !headerData.value
 			)
@@ -205,15 +201,17 @@ const AddWebhookModal = () => {
 	const saveData = async () => {
 		if (!validateData()) return;
 		setLoading(true);
-		let { [INPUT_FIELDS.HEADERS]: _, ...params }: any = webhook;
-		if (
-			webhook[INPUT_FIELDS.HEADERS].length > 0 &&
-			webhook[INPUT_FIELDS.HEADERS][0][HEADER_FIELDS.KEY]
-		) {
-			const headers = webhook[INPUT_FIELDS.HEADERS].reduce((acc, data) => {
-				return { ...acc, [data.key]: data.value };
-			}, {});
-			params[INPUT_FIELDS.HEADERS] = headers;
+		let { [WebhookInputDataFields.HEADERS]: _, ...params }: any = webhook;
+		if (webhook[WebhookInputDataFields.HEADERS].length) {
+			const headers = webhook[WebhookInputDataFields.HEADERS].reduce(
+				(acc, data) => {
+					return data.key ? { ...acc, [data.key]: data.value } : acc;
+				},
+				{}
+			);
+			if (Object.keys(headers).length) {
+				params[WebhookInputDataFields.HEADERS] = headers;
+			}
 		}
 		const res = await client.mutation(AddWebhook, { params }).toPromise();
 		if (res.error) {
@@ -234,7 +232,7 @@ const AddWebhookModal = () => {
 			});
 			setWebhook({
 				...initWebhookData,
-				[INPUT_FIELDS.HEADERS]: [{ ...initHeadersData }],
+				[WebhookInputDataFields.HEADERS]: [{ ...initHeadersData }],
 			});
 			setValidator({ ...initWebhookValidatorData });
 			onClose();
@@ -279,11 +277,11 @@ const AddWebhookModal = () => {
 											pr="4.5rem"
 											type="text"
 											placeholder="user.login"
-											value={webhook[INPUT_FIELDS.EVENT_NAME]}
-											isInvalid={!validator[INPUT_FIELDS.EVENT_NAME]}
+											value={webhook[WebhookInputDataFields.EVENT_NAME]}
+											isInvalid={!validator[WebhookInputDataFields.EVENT_NAME]}
 											onChange={(e) =>
 												inputChangehandler(
-													INPUT_FIELDS.EVENT_NAME,
+													WebhookInputDataFields.EVENT_NAME,
 													e.currentTarget.value
 												)
 											}
@@ -304,11 +302,11 @@ const AddWebhookModal = () => {
 											pr="4.5rem"
 											type="text"
 											placeholder="https://domain.com/webhook"
-											value={webhook[INPUT_FIELDS.ENDPOINT]}
-											isInvalid={!validator[INPUT_FIELDS.ENDPOINT]}
+											value={webhook[WebhookInputDataFields.ENDPOINT]}
+											isInvalid={!validator[WebhookInputDataFields.ENDPOINT]}
 											onChange={(e) =>
 												inputChangehandler(
-													INPUT_FIELDS.ENDPOINT,
+													WebhookInputDataFields.ENDPOINT,
 													e.currentTarget.value
 												)
 											}
@@ -329,11 +327,11 @@ const AddWebhookModal = () => {
 									</Text>
 									<Switch
 										size="md"
-										isChecked={webhook[INPUT_FIELDS.ENABLED]}
+										isChecked={webhook[WebhookInputDataFields.ENABLED]}
 										onChange={() =>
 											inputChangehandler(
-												INPUT_FIELDS.ENABLED,
-												!webhook[INPUT_FIELDS.ENABLED]
+												WebhookInputDataFields.ENABLED,
+												!webhook[WebhookInputDataFields.ENABLED]
 											)
 										}
 									/>
@@ -364,71 +362,73 @@ const AddWebhookModal = () => {
 								</Flex>
 							</Flex>
 							<Flex flexDirection="column" maxH={220} overflowY="scroll">
-								{webhook[INPUT_FIELDS.HEADERS]?.map((headerData, index) => (
-									<Flex
-										key={`header-data-${index}`}
-										justifyContent="center"
-										alignItems="center"
-									>
-										<InputGroup size="md" marginBottom="2.5%">
-											<Input
-												type="text"
-												placeholder="key"
-												value={headerData[HEADER_FIELDS.KEY]}
-												isInvalid={
-													!validator[INPUT_FIELDS.HEADERS][index]?.[
-														HEADER_FIELDS.KEY
-													]
-												}
-												onChange={(e) =>
-													inputChangehandler(
-														INPUT_FIELDS.HEADERS,
-														e.target.value,
-														HEADER_FIELDS.KEY,
-														index
-													)
-												}
-												width="30%"
-												marginRight="2%"
-											/>
-											<Center marginRight="2%">
-												<Text fontWeight="bold">:</Text>
-											</Center>
-											<Input
-												type="text"
-												placeholder="value"
-												value={headerData[HEADER_FIELDS.VALUE]}
-												isInvalid={
-													!validator[INPUT_FIELDS.HEADERS][index]?.[
-														HEADER_FIELDS.VALUE
-													]
-												}
-												onChange={(e) =>
-													inputChangehandler(
-														INPUT_FIELDS.HEADERS,
-														e.target.value,
-														HEADER_FIELDS.VALUE,
-														index
-													)
-												}
-												width="65%"
-											/>
-											<InputRightElement width="3rem">
-												<Button
-													width="6rem"
-													colorScheme="blackAlpha"
-													variant="ghost"
-													padding="0"
-													onClick={() =>
-														updateHeaders(ArrayInputOperations.REMOVE, index)
+								{webhook[WebhookInputDataFields.HEADERS]?.map(
+									(headerData, index) => (
+										<Flex
+											key={`header-data-${index}`}
+											justifyContent="center"
+											alignItems="center"
+										>
+											<InputGroup size="md" marginBottom="2.5%">
+												<Input
+													type="text"
+													placeholder="key"
+													value={headerData[WebhookInputHeaderFields.KEY]}
+													isInvalid={
+														!validator[WebhookInputDataFields.HEADERS][index]?.[
+															WebhookInputHeaderFields.KEY
+														]
 													}
-												>
-													<FaMinusCircle />
-												</Button>
-											</InputRightElement>
-										</InputGroup>
-									</Flex>
-								))}
+													onChange={(e) =>
+														inputChangehandler(
+															WebhookInputDataFields.HEADERS,
+															e.target.value,
+															WebhookInputHeaderFields.KEY,
+															index
+														)
+													}
+													width="30%"
+													marginRight="2%"
+												/>
+												<Center marginRight="2%">
+													<Text fontWeight="bold">:</Text>
+												</Center>
+												<Input
+													type="text"
+													placeholder="value"
+													value={headerData[WebhookInputHeaderFields.VALUE]}
+													isInvalid={
+														!validator[WebhookInputDataFields.HEADERS][index]?.[
+															WebhookInputHeaderFields.VALUE
+														]
+													}
+													onChange={(e) =>
+														inputChangehandler(
+															WebhookInputDataFields.HEADERS,
+															e.target.value,
+															WebhookInputHeaderFields.VALUE,
+															index
+														)
+													}
+													width="65%"
+												/>
+												<InputRightElement width="3rem">
+													<Button
+														width="6rem"
+														colorScheme="blackAlpha"
+														variant="ghost"
+														padding="0"
+														onClick={() =>
+															updateHeaders(ArrayInputOperations.REMOVE, index)
+														}
+													>
+														<FaMinusCircle />
+													</Button>
+												</InputRightElement>
+											</InputGroup>
+										</Flex>
+									)
+								)}
 							</Flex>
 						</Flex>
 					</ModalBody>

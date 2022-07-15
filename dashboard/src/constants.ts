@@ -153,3 +153,18 @@ export const envSubViews = {
 	ADMIN_SECRET: 'admin-secret',
 	DB_CRED: 'db-cred',
 };
+
+export enum WebhookInputDataFields {
+	ID = 'id',
+	EVENT_NAME = 'event_name',
+	ENDPOINT = 'endpoint',
+	ENABLED = 'enabled',
+	HEADERS = 'headers',
+}
+
+export enum WebhookInputHeaderFields {
+	KEY = 'key',
+	VALUE = 'value',
+}
+
+export const pageLimits: number[] = [5, 10, 15];
