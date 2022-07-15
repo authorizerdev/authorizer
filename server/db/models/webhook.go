@@ -21,6 +21,7 @@ type Webhook struct {
 	UpdatedAt int64  `json:"updated_at" bson:"updated_at" cql:"updated_at"`
 }
 
+// AsAPIWebhook to return webhook as graphql response object
 func (w *Webhook) AsAPIWebhook() *model.Webhook {
 	headersMap := make(map[string]interface{})
 	json.Unmarshal([]byte(w.Headers), &headersMap)

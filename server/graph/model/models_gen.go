@@ -30,6 +30,19 @@ type DeleteUserInput struct {
 	Email string `json:"email"`
 }
 
+type EmailTemplate struct {
+	ID        string `json:"id"`
+	EventName string `json:"event_name"`
+	Template  string `json:"template"`
+	CreatedAt *int64 `json:"created_at"`
+	UpdatedAt *int64 `json:"updated_at"`
+}
+
+type EmailTemplates struct {
+	Pagination     *Pagination      `json:"pagination"`
+	EmailTemplates []*EmailTemplate `json:"EmailTemplates"`
+}
+
 type Env struct {
 	AccessTokenExpiryTime      *string  `json:"ACCESS_TOKEN_EXPIRY_TIME"`
 	AdminSecret                *string  `json:"ADMIN_SECRET"`

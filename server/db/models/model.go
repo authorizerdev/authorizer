@@ -8,6 +8,7 @@ type CollectionList struct {
 	Env                 string
 	Webhook             string
 	WebhookLog          string
+	EmailTemplate       string
 }
 
 var (
@@ -21,5 +22,6 @@ var (
 		Env:                 Prefix + "env",
 		Webhook:             Prefix + "webhook",
 		WebhookLog:          Prefix + "webhook_log",
+		EmailTemplate:       Prefix + "email_template",
 	}
 )

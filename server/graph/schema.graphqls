@@ -354,6 +354,19 @@ type TestEndpointResponse {
 	response: Map
 }
 
+type EmailTemplate {
+	id: ID!
+	event_name: String!
+	template: String!
+	created_at: Int64
+	updated_at: Int64
+}
+
+type EmailTemplates {
+	pagination: Pagination!
+	EmailTemplates: [EmailTemplate!]!
+}
+
 input ListWebhookLogRequest {
 	pagination: PaginationInput
 	webhook_id: String

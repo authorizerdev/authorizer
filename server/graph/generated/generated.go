@@ -52,6 +52,19 @@ type ComplexityRoot struct {
 		User         func(childComplexity int) int
 	}
 
+	EmailTemplate struct {
+		CreatedAt func(childComplexity int) int
+		EventName func(childComplexity int) int
+		ID        func(childComplexity int) int
+		Template  func(childComplexity int) int
+		UpdatedAt func(childComplexity int) int
+	}
+
+	EmailTemplates struct {
+		EmailTemplates func(childComplexity int) int
+		Pagination     func(childComplexity int) int
+	}
+
 	Env struct {
 		AccessTokenExpiryTime      func(childComplexity int) int
 		AdminSecret                func(childComplexity int) int
@@ -360,6 +373,55 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.AuthResponse.User(childComplexity), true
+
+	case "EmailTemplate.created_at":
+		if e.complexity.EmailTemplate.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.EmailTemplate.CreatedAt(childComplexity), true
+
+	case "EmailTemplate.event_name":
+		if e.complexity.EmailTemplate.EventName == nil {
+			break
+		}
+
+		return e.complexity.EmailTemplate.EventName(childComplexity), true
+
+	case "EmailTemplate.id":
+		if e.complexity.EmailTemplate.ID == nil {
+			break
+		}
+
+		return e.complexity.EmailTemplate.ID(childComplexity), true
+
+	case "EmailTemplate.template":
+		if e.complexity.EmailTemplate.Template == nil {
+			break
+		}
+
+		return e.complexity.EmailTemplate.Template(childComplexity), true
+
+	case "EmailTemplate.updated_at":
+		if e.complexity.EmailTemplate.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.EmailTemplate.UpdatedAt(childComplexity), true
+
+	case "EmailTemplates.EmailTemplates":
+		if e.complexity.EmailTemplates.EmailTemplates == nil {
+			break
+		}
+
+		return e.complexity.EmailTemplates.EmailTemplates(childComplexity), true
+
+	case "EmailTemplates.pagination":
+		if e.complexity.EmailTemplates.Pagination == nil {
+			break
+		}
+
+		return e.complexity.EmailTemplates.Pagination(childComplexity), true
 
 	case "Env.ACCESS_TOKEN_EXPIRY_TIME":
 		if e.complexity.Env.AccessTokenExpiryTime == nil {
@@ -2025,6 +2087,19 @@ type TestEndpointResponse {
 	response: Map
 }
 
+type EmailTemplate {
+	id: ID!
+	event_name: String!
+	template: String!
+	created_at: Int64
+	updated_at: Int64
+}
+
+type EmailTemplates {
+	pagination: Pagination!
+	EmailTemplates: [EmailTemplate!]!
+}
+
 input ListWebhookLogRequest {
 	pagination: PaginationInput
 	webhook_id: String
@@ -2791,6 +2866,245 @@ func (ec *executionContext) _AuthResponse_user(ctx context.Context, field graphq
 	res := resTmp.(*model.User)
 	fc.Result = res
 	return ec.marshalOUser2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _EmailTemplate_id(ctx context.Context, field graphql.CollectedField, obj *model.EmailTemplate) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "EmailTemplate",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _EmailTemplate_event_name(ctx context.Context, field graphql.CollectedField, obj *model.EmailTemplate) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "EmailTemplate",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.EventName, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _EmailTemplate_template(ctx context.Context, field graphql.CollectedField, obj *model.EmailTemplate) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "EmailTemplate",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Template, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _EmailTemplate_created_at(ctx context.Context, field graphql.CollectedField, obj *model.EmailTemplate) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "EmailTemplate",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CreatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int64)
+	fc.Result = res
+	return ec.marshalOInt642ᚖint64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _EmailTemplate_updated_at(ctx context.Context, field graphql.CollectedField, obj *model.EmailTemplate) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "EmailTemplate",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.UpdatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int64)
+	fc.Result = res
+	return ec.marshalOInt642ᚖint64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _EmailTemplates_pagination(ctx context.Context, field graphql.CollectedField, obj *model.EmailTemplates) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "EmailTemplates",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Pagination, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Pagination)
+	fc.Result = res
+	return ec.marshalNPagination2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐPagination(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _EmailTemplates_EmailTemplates(ctx context.Context, field graphql.CollectedField, obj *model.EmailTemplates) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "EmailTemplates",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.EmailTemplates, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.EmailTemplate)
+	fc.Result = res
+	return ec.marshalNEmailTemplate2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐEmailTemplateᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Env_ACCESS_TOKEN_EXPIRY_TIME(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
@@ -10896,6 +11210,79 @@ func (ec *executionContext) _AuthResponse(ctx context.Context, sel ast.Selection
 	return out
 }
 
+var emailTemplateImplementors = []string{"EmailTemplate"}
+
+func (ec *executionContext) _EmailTemplate(ctx context.Context, sel ast.SelectionSet, obj *model.EmailTemplate) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, emailTemplateImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("EmailTemplate")
+		case "id":
+			out.Values[i] = ec._EmailTemplate_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "event_name":
+			out.Values[i] = ec._EmailTemplate_event_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "template":
+			out.Values[i] = ec._EmailTemplate_template(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "created_at":
+			out.Values[i] = ec._EmailTemplate_created_at(ctx, field, obj)
+		case "updated_at":
+			out.Values[i] = ec._EmailTemplate_updated_at(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var emailTemplatesImplementors = []string{"EmailTemplates"}
+
+func (ec *executionContext) _EmailTemplates(ctx context.Context, sel ast.SelectionSet, obj *model.EmailTemplates) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, emailTemplatesImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("EmailTemplates")
+		case "pagination":
+			out.Values[i] = ec._EmailTemplates_pagination(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "EmailTemplates":
+			out.Values[i] = ec._EmailTemplates_EmailTemplates(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var envImplementors = []string{"Env"}
 
 func (ec *executionContext) _Env(ctx context.Context, sel ast.SelectionSet, obj *model.Env) graphql.Marshaler {
@@ -12254,6 +12641,60 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 func (ec *executionContext) unmarshalNDeleteUserInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐDeleteUserInput(ctx context.Context, v interface{}) (model.DeleteUserInput, error) {
 	res, err := ec.unmarshalInputDeleteUserInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNEmailTemplate2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐEmailTemplateᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.EmailTemplate) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNEmailTemplate2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐEmailTemplate(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNEmailTemplate2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐEmailTemplate(ctx context.Context, sel ast.SelectionSet, v *model.EmailTemplate) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._EmailTemplate(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNEnv2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐEnv(ctx context.Context, sel ast.SelectionSet, v model.Env) graphql.Marshaler {
