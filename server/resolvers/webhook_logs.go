@@ -6,6 +6,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 	log "github.com/sirupsen/logrus"
@@ -31,7 +32,7 @@ func WebhookLogsResolver(ctx context.Context, params *model.ListWebhookLogReques
 		pagination = utils.GetPagination(&model.PaginatedInput{
 			Pagination: params.Pagination,
 		})
-		webhookID = utils.StringValue(params.WebhookID)
+		webhookID = refs.StringValue(params.WebhookID)
 	} else {
 		pagination = utils.GetPagination(nil)
 		webhookID = ""

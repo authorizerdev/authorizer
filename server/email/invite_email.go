@@ -70,7 +70,7 @@ func InviteEmail(toEmail, token, verificationURL, redirectURI string) error {
                                                                                         <tr style="background: rgb(249,250,251);padding: 10px;margin-bottom:10px;border-radius:5px;">
                                                                                             <td class="esd-block-text es-m-txt-c es-p15t" align="center" style="padding:10px;padding-bottom:30px;">
                                                                                                 <p>Hi there 👋</p>
-                                                                                                <p>Join us! You are invited to sign-up for <b>{{.org_name}}</b>. Please accept the invitation by clicking the clicking the button below.</p> <br/>
+                                                                                                <p>Join us! You are invited to sign-up for <b>{{.org_name}}</b>. Please accept the invitation by clicking the button below.</p> <br/>
                                                                                                 <a 
                                                                                                 clicktracking="off" href="{{.verification_url}}" class="es-button" target="_blank" style="text-decoration: none;padding:10px 15px;background-color: rgba(59,130,246,1);color: #fff;font-size: 1em;border-radius:5px;">Get Started</a>
                                                                                             </td>
