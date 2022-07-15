@@ -205,11 +205,7 @@ const AddWebhookModal = () => {
 	const saveData = async () => {
 		if (!validateData()) return;
 		setLoading(true);
-		let params: any = {
-			[INPUT_FIELDS.EVENT_NAME]: webhook[INPUT_FIELDS.EVENT_NAME],
-			[INPUT_FIELDS.ENDPOINT]: webhook[INPUT_FIELDS.ENDPOINT],
-			[INPUT_FIELDS.ENABLED]: webhook[INPUT_FIELDS.ENABLED],
-		};
+		let { [INPUT_FIELDS.HEADERS]: _, ...params }: any = webhook;
 		if (webhook[INPUT_FIELDS.HEADERS].length > 0) {
 			const headers = webhook[INPUT_FIELDS.HEADERS].reduce((acc, data) => {
 				return { ...acc, [data.key]: data.value };
@@ -233,7 +229,11 @@ const AddWebhookModal = () => {
 				status: 'success',
 				position: 'bottom-right',
 			});
-			setWebhook({ ...initWebhookData });
+			setWebhook({
+				...initWebhookData,
+				[INPUT_FIELDS.HEADERS]: [{ ...initHeadersData }],
+			});
+			setValidator({ ...initWebhookValidatorData });
 			onClose();
 		}
 		setLoading(false);
@@ -373,7 +373,7 @@ const AddWebhookModal = () => {
 												placeholder="key"
 												value={headerData[HEADER_FIELDS.KEY]}
 												isInvalid={
-													!validator[INPUT_FIELDS.HEADERS][index][
+													!validator[INPUT_FIELDS.HEADERS][index]?.[
 														HEADER_FIELDS.KEY
 													]
 												}
@@ -396,7 +396,7 @@ const AddWebhookModal = () => {
 												placeholder="value"
 												value={headerData[HEADER_FIELDS.VALUE]}
 												isInvalid={
-													!validator[INPUT_FIELDS.HEADERS][index][
+													!validator[INPUT_FIELDS.HEADERS][index]?.[
 														HEADER_FIELDS.VALUE
 													]
 												}
