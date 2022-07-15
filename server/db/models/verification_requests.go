@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/refs"
 )
 
 // Note: any change here should be reflected in providers/casandra/provider.go as it does not have model support in collection creation
@@ -23,28 +24,20 @@ type VerificationRequest struct {
 }
 
 func (v *VerificationRequest) AsAPIVerificationRequest() *model.VerificationRequest {
-	token := v.Token
-	createdAt := v.CreatedAt
-	updatedAt := v.UpdatedAt
-	email := v.Email
-	nonce := v.Nonce
-	redirectURI := v.RedirectURI
-	expires := v.ExpiresAt
-	identifier := v.Identifier
-
 	id := v.ID
 	if strings.Contains(id, Collections.WebhookLog+"/") {
 		id = strings.TrimPrefix(id, Collections.WebhookLog+"/")
 	}
+
 	return &model.VerificationRequest{
 		ID:          id,
-		Token:       &token,
-		Identifier:  &identifier,
-		Expires:     &expires,
-		Email:       &email,
-		Nonce:       &nonce,
-		RedirectURI: &redirectURI,
-		CreatedAt:   &createdAt,
-		UpdatedAt:   &updatedAt,
+		Token:       refs.NewStringRef(v.Token),
+		Identifier:   refs.NewStringRef(v.Identifier),
+		Expires:     refs.NewInt64Ref(v.ExpiresAt),
+		Email:       refs.NewStringRef(v.Email),
+		Nonce:       refs.NewStringRef(v.Nonce),
+		RedirectURI: refs.NewStringRef(v.RedirectURI),
+		CreatedAt:   refs.NewInt64Ref(v.CreatedAt),
+		UpdatedAt:   refs.NewInt64Ref(v.UpdatedAt),
 	}
 }

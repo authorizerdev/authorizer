@@ -17,6 +17,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/parsers"
+	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/authorizerdev/authorizer/server/validators"
@@ -61,35 +62,35 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 		return res, err
 	}
 
-	if params.GivenName != nil && utils.StringValue(user.GivenName) != utils.StringValue(params.GivenName) {
+	if params.GivenName != nil && refs.StringValue(user.GivenName) != refs.StringValue(params.GivenName) {
 		user.GivenName = params.GivenName
 	}
 
-	if params.FamilyName != nil && utils.StringValue(user.FamilyName) != utils.StringValue(params.FamilyName) {
+	if params.FamilyName != nil && refs.StringValue(user.FamilyName) != refs.StringValue(params.FamilyName) {
 		user.FamilyName = params.FamilyName
 	}
 
-	if params.MiddleName != nil && utils.StringValue(user.MiddleName) != utils.StringValue(params.MiddleName) {
+	if params.MiddleName != nil && refs.StringValue(user.MiddleName) != refs.StringValue(params.MiddleName) {
 		user.MiddleName = params.MiddleName
 	}
 
-	if params.Nickname != nil && utils.StringValue(user.Nickname) != utils.StringValue(params.Nickname) {
+	if params.Nickname != nil && refs.StringValue(user.Nickname) != refs.StringValue(params.Nickname) {
 		user.Nickname = params.Nickname
 	}
 
-	if params.Birthdate != nil && utils.StringValue(user.Birthdate) != utils.StringValue(params.Birthdate) {
+	if params.Birthdate != nil && refs.StringValue(user.Birthdate) != refs.StringValue(params.Birthdate) {
 		user.Birthdate = params.Birthdate
 	}
 
-	if params.Gender != nil && utils.StringValue(user.Gender) != utils.StringValue(params.Gender) {
+	if params.Gender != nil && refs.StringValue(user.Gender) != refs.StringValue(params.Gender) {
 		user.Gender = params.Gender
 	}
 
-	if params.PhoneNumber != nil && utils.StringValue(user.PhoneNumber) != utils.StringValue(params.PhoneNumber) {
+	if params.PhoneNumber != nil && refs.StringValue(user.PhoneNumber) != refs.StringValue(params.PhoneNumber) {
 		user.PhoneNumber = params.PhoneNumber
 	}
 
-	if params.Picture != nil && utils.StringValue(user.Picture) != utils.StringValue(params.Picture) {
+	if params.Picture != nil && refs.StringValue(user.Picture) != refs.StringValue(params.Picture) {
 		user.Picture = params.Picture
 	}
 
@@ -116,7 +117,7 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 	}
 
 	if isPasswordChanging && user.Password != nil && params.OldPassword != nil {
-		if err = bcrypt.CompareHashAndPassword([]byte(utils.StringValue(user.Password)), []byte(utils.StringValue(params.OldPassword))); err != nil {
+		if err = bcrypt.CompareHashAndPassword([]byte(refs.StringValue(user.Password)), []byte(refs.StringValue(params.OldPassword))); err != nil {
 			log.Debug("Failed to compare hash and old password: ", err)
 			return res, fmt.Errorf("incorrect old password")
 		}
@@ -135,21 +136,21 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 			return res, fmt.Errorf(`basic authentication is disabled for this instance`)
 		}
 
-		if utils.StringValue(params.ConfirmNewPassword) != utils.StringValue(params.NewPassword) {
+		if refs.StringValue(params.ConfirmNewPassword) != refs.StringValue(params.NewPassword) {
 			log.Debug("Failed to compare new password and confirm new password")
 			return res, fmt.Errorf(`password and confirm password does not match`)
 		}
 
-		if user.Password == nil || utils.StringValue(user.Password) == "" {
+		if user.Password == nil || refs.StringValue(user.Password) == "" {
 			shouldAddBasicSignUpMethod = true
 		}
 
-		if err := validators.IsValidPassword(utils.StringValue(params.NewPassword)); err != nil {
+		if err := validators.IsValidPassword(refs.StringValue(params.NewPassword)); err != nil {
 			log.Debug("Invalid password")
 			return res, err
 		}
 
-		password, _ := crypto.EncryptPassword(utils.StringValue(params.NewPassword))
+		password, _ := crypto.EncryptPassword(refs.StringValue(params.NewPassword))
 		user.Password = &password
 
 		if shouldAddBasicSignUpMethod {
@@ -159,10 +160,10 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 
 	hasEmailChanged := false
 
-	if params.Email != nil && user.Email != utils.StringValue(params.Email) {
+	if params.Email != nil && user.Email != refs.StringValue(params.Email) {
 		// check if valid email
 		if !validators.IsValidEmail(*params.Email) {
-			log.Debug("Failed to validate email: ", utils.StringValue(params.Email))
+			log.Debug("Failed to validate email: ", refs.StringValue(params.Email))
 			return res, fmt.Errorf("invalid email address")
 		}
 		newEmail := strings.ToLower(*params.Email)

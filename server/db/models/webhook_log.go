@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/refs"
 )
 
 // Note: any change here should be reflected in providers/casandra/provider.go as it does not have model support in collection creation
@@ -28,11 +29,11 @@ func (w *WebhookLog) AsAPIWebhookLog() *model.WebhookLog {
 	}
 	return &model.WebhookLog{
 		ID:         id,
-		HTTPStatus: &w.HttpStatus,
-		Response:   &w.Response,
-		Request:    &w.Request,
-		WebhookID:  &w.WebhookID,
-		CreatedAt:  &w.CreatedAt,
-		UpdatedAt:  &w.UpdatedAt,
+		HTTPStatus: refs.NewInt64Ref(w.HttpStatus),
+		Response:   refs.NewStringRef(w.Response),
+		Request:    refs.NewStringRef(w.Request),
+		WebhookID:  refs.NewStringRef(w.WebhookID),
+		CreatedAt:  refs.NewInt64Ref(w.CreatedAt),
+		UpdatedAt:  refs.NewInt64Ref(w.UpdatedAt),
 	}
 }

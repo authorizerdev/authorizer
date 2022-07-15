@@ -10,6 +10,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
+	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
@@ -38,10 +39,10 @@ func EnvResolver(ctx context.Context) (*model.Env, error) {
 	}
 
 	if val, ok := store[constants.EnvKeyAccessTokenExpiryTime]; ok {
-		res.AccessTokenExpiryTime = utils.NewStringRef(val.(string))
+		res.AccessTokenExpiryTime = refs.NewStringRef(val.(string))
 	}
 	if val, ok := store[constants.EnvKeyAdminSecret]; ok {
-		res.AdminSecret = utils.NewStringRef(val.(string))
+		res.AdminSecret = refs.NewStringRef(val.(string))
 	}
 	if val, ok := store[constants.EnvKeyClientID]; ok {
 		res.ClientID = val.(string)
@@ -50,103 +51,103 @@ func EnvResolver(ctx context.Context) (*model.Env, error) {
 		res.ClientSecret = val.(string)
 	}
 	if val, ok := store[constants.EnvKeyDatabaseURL]; ok {
-		res.DatabaseURL = utils.NewStringRef(val.(string))
+		res.DatabaseURL = refs.NewStringRef(val.(string))
 	}
 	if val, ok := store[constants.EnvKeyDatabaseName]; ok {
-		res.DatabaseName = utils.NewStringRef(val.(string))
+		res.DatabaseName = refs.NewStringRef(val.(string))
 	}
 	if val, ok := store[constants.EnvKeyDatabaseType]; ok {
-		res.DatabaseType = utils.NewStringRef(val.(string))
+		res.DatabaseType = refs.NewStringRef(val.(string))
 	}
 	if val, ok := store[constants.EnvKeyDatabaseUsername]; ok {
-		res.DatabaseUsername = utils.NewStringRef(val.(string))
+		res.DatabaseUsername = refs.NewStringRef(val.(string))
 	}
 	if val, ok := store[constants.EnvKeyDatabasePassword]; ok {
-		res.DatabasePassword = utils.NewStringRef(val.(string))
+		res.DatabasePassword = refs.NewStringRef(val.(string))
 	}
 	if val, ok := store[constants.EnvKeyDatabaseHost]; ok {
-		res.DatabaseHost = utils.NewStringRef(val.(string))
+		res.DatabaseHost = refs.NewStringRef(val.(string))
 	}
 	if val, ok := store[constants.EnvKeyDatabasePort]; ok {
-		res.DatabasePort = utils.NewStringRef(val.(string))
+		res.DatabasePort = refs.NewStringRef(val.(string))
 	}
 	if val, ok := store[constants.EnvKeyCustomAccessTokenScript]; ok {
-		res.CustomAccessTokenScript = utils.NewStringRef(val.(string))
+		res.CustomAccessTokenScript = refs.NewStringRef(val.(string))
 	}
 	if val, ok := store[constants.EnvKeySmtpHost]; ok {
-		res.SMTPHost = utils.NewStringRef(val.(string))
+		res.SMTPHost = refs.NewStringRef(val.(string))
 	}
 	if val, ok := store[constants.EnvKeySmtpPort]; ok {
-		res.SMTPPort = utils.NewStringRef(val.(string))
+		res.SMTPPort = refs.NewStringRef(val.(string))
 	}
 	if val, ok := store[constants.EnvKeySmtpUsername]; ok {
-		res.SMTPUsername = utils.NewStringRef(val.(string))
+		res.SMTPUsername = refs.NewStringRef(val.(string))
 	}
 	if val, ok := store[constants.EnvKeySmtpPassword]; ok {
-		res.SMTPPassword = utils.NewStringRef(val.(string))
+		res.SMTPPassword = refs.NewStringRef(val.(string))
 	}
 	if val, ok := store[constants.EnvKeySenderEmail]; ok {
-		res.SenderEmail = utils.NewStringRef(val.(string))
+		res.SenderEmail = refs.NewStringRef(val.(string))
 	}
 	if val, ok := store[constants.EnvKeyJwtType]; ok {
-		res.JwtType = utils.NewStringRef(val.(string))
+		res.JwtType = refs.NewStringRef(val.(string))
 	}
 	if val, ok := store[constants.EnvKeyJwtSecret]; ok {
-		res.JwtSecret = utils.NewStringRef(val.(string))
+		res.JwtSecret = refs.NewStringRef(val.(string))
 	}
 	if val, ok := store[constants.EnvKeyJwtRoleClaim]; ok {
-		res.JwtRoleClaim = utils.NewStringRef(val.(string))
+		res.JwtRoleClaim = refs.NewStringRef(val.(string))
 	}
 	if val, ok := store[constants.EnvKeyJwtPublicKey]; ok {
-		res.JwtPublicKey = utils.NewStringRef(val.(string))
+		res.JwtPublicKey = refs.NewStringRef(val.(string))
 	}
 	if val, ok := store[constants.EnvKeyJwtPrivateKey]; ok {
-		res.JwtPrivateKey = utils.NewStringRef(val.(string))
+		res.JwtPrivateKey = refs.NewStringRef(val.(string))
 	}
 	if val, ok := store[constants.EnvKeyAppURL]; ok {
-		res.AppURL = utils.NewStringRef(val.(string))
+		res.AppURL = refs.NewStringRef(val.(string))
 	}
 	if val, ok := store[constants.EnvKeyRedisURL]; ok {
-		res.RedisURL = utils.NewStringRef(val.(string))
+		res.RedisURL = refs.NewStringRef(val.(string))
 	}
 	if val, ok := store[constants.EnvKeyResetPasswordURL]; ok {
-		res.ResetPasswordURL = utils.NewStringRef(val.(string))
+		res.ResetPasswordURL = refs.NewStringRef(val.(string))
 	}
 	if val, ok := store[constants.EnvKeyGoogleClientID]; ok {
-		res.GoogleClientID = utils.NewStringRef(val.(string))
+		res.GoogleClientID = refs.NewStringRef(val.(string))
 	}
 	if val, ok := store[constants.EnvKeyGoogleClientSecret]; ok {
-		res.GoogleClientSecret = utils.NewStringRef(val.(string))
+		res.GoogleClientSecret = refs.NewStringRef(val.(string))
 	}
 	if val, ok := store[constants.EnvKeyFacebookClientID]; ok {
-		res.FacebookClientID = utils.NewStringRef(val.(string))
+		res.FacebookClientID = refs.NewStringRef(val.(string))
 	}
 	if val, ok := store[constants.EnvKeyFacebookClientSecret]; ok {
-		res.FacebookClientSecret = utils.NewStringRef(val.(string))
+		res.FacebookClientSecret = refs.NewStringRef(val.(string))
 	}
 	if val, ok := store[constants.EnvKeyGithubClientID]; ok {
-		res.GithubClientID = utils.NewStringRef(val.(string))
+		res.GithubClientID = refs.NewStringRef(val.(string))
 	}
 	if val, ok := store[constants.EnvKeyGithubClientSecret]; ok {
-		res.GithubClientSecret = utils.NewStringRef(val.(string))
+		res.GithubClientSecret = refs.NewStringRef(val.(string))
 	}
 	if val, ok := store[constants.EnvKeyLinkedInClientID]; ok {
-		res.LinkedinClientID = utils.NewStringRef(val.(string))
+		res.LinkedinClientID = refs.NewStringRef(val.(string))
 	}
 	if val, ok := store[constants.EnvKeyLinkedInClientSecret]; ok {
-		res.LinkedinClientSecret = utils.NewStringRef(val.(string))
+		res.LinkedinClientSecret = refs.NewStringRef(val.(string))
 	}
 	if val, ok := store[constants.EnvKeyAppleClientID]; ok {
-		res.AppleClientID = utils.NewStringRef(val.(string))
+		res.AppleClientID = refs.NewStringRef(val.(string))
 	}
 	if val, ok := store[constants.EnvKeyAppleClientSecret]; ok {
-		res.AppleClientSecret = utils.NewStringRef(val.(string))
+		res.AppleClientSecret = refs.NewStringRef(val.(string))
 	}
 	if val, ok := store[constants.EnvKeyOrganizationName]; ok {
-		res.OrganizationName = utils.NewStringRef(val.(string))
+		res.OrganizationName = refs.NewStringRef(val.(string))
 	}
 	if val, ok := store[constants.EnvKeyOrganizationLogo]; ok {
-		res.OrganizationLogo = utils.NewStringRef(val.(string))
+		res.OrganizationLogo = refs.NewStringRef(val.(string))
 	}
 
 	// string slice vars

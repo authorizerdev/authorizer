@@ -9,8 +9,8 @@ import (
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
+	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/authorizerdev/authorizer/server/resolvers"
-	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -34,9 +34,9 @@ func webhookTest(t *testing.T, s TestSetup) {
 		})
 		assert.NoError(t, err)
 		assert.Equal(t, res.ID, webhook.ID)
-		assert.Equal(t, utils.StringValue(res.Endpoint), utils.StringValue(webhook.Endpoint))
-		assert.Equal(t, utils.StringValue(res.EventName), utils.StringValue(webhook.EventName))
-		assert.Equal(t, utils.BoolValue(res.Enabled), utils.BoolValue(webhook.Enabled))
+		assert.Equal(t, refs.StringValue(res.Endpoint), refs.StringValue(webhook.Endpoint))
+		assert.Equal(t, refs.StringValue(res.EventName), refs.StringValue(webhook.EventName))
+		assert.Equal(t, refs.BoolValue(res.Enabled), refs.BoolValue(webhook.Enabled))
 		assert.Len(t, res.Headers, len(webhook.Headers))
 	})
 }

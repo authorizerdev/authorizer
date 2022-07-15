@@ -11,6 +11,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/authorizerdev/authorizer/server/validators"
@@ -41,8 +42,8 @@ func TestEndpointResolver(ctx context.Context, params model.TestEndpointRequest)
 		Email:         "test_endpoint@foo.com",
 		EmailVerified: true,
 		SignupMethods: constants.AuthRecipeMethodMagicLinkLogin,
-		GivenName:     utils.NewStringRef("Foo"),
-		FamilyName:    utils.NewStringRef("Bar"),
+		GivenName:     refs.NewStringRef("Foo"),
+		FamilyName:    refs.NewStringRef("Bar"),
 	}
 
 	userBytes, err := json.Marshal(user)
