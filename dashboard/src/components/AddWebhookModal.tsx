@@ -206,7 +206,10 @@ const AddWebhookModal = () => {
 		if (!validateData()) return;
 		setLoading(true);
 		let { [INPUT_FIELDS.HEADERS]: _, ...params }: any = webhook;
-		if (webhook[INPUT_FIELDS.HEADERS].length > 0) {
+		if (
+			webhook[INPUT_FIELDS.HEADERS].length > 0 &&
+			webhook[INPUT_FIELDS.HEADERS][0][HEADER_FIELDS.KEY]
+		) {
 			const headers = webhook[INPUT_FIELDS.HEADERS].reduce((acc, data) => {
 				return { ...acc, [data.key]: data.value };
 			}, {});
