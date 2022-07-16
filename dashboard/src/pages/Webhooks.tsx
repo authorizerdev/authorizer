@@ -148,10 +148,26 @@ const Webhooks = () => {
 										</Tag>
 									</Td>
 									<Td>
-										{
-											Object.keys(webhook[WebhookInputDataFields.HEADERS] || {})
-												?.length
-										}
+										<Tooltip
+											bg="gray.300"
+											color="black"
+											label={JSON.stringify(
+												webhook[WebhookInputDataFields.HEADERS]
+											)}
+										>
+											<Center
+												border="1px"
+												borderColor="gray.300"
+												width="30px"
+												borderRadius="md"
+											>
+												<Text fontSize="sm">
+													{Object.keys(
+														webhook[WebhookInputDataFields.HEADERS] || {}
+													)?.length.toString()}
+												</Text>
+											</Center>
+										</Tooltip>
 									</Td>
 									<Td>
 										<Menu>
