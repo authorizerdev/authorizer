@@ -36,8 +36,12 @@ import {
 	FaAngleRight,
 	FaExclamationCircle,
 } from 'react-icons/fa';
-import AddWebhookModal from '../components/AddWebhookModal';
-import { pageLimits, WebhookInputDataFields } from '../constants';
+import UpdateWebhookModal from '../components/UpdateWebhookModal';
+import {
+	pageLimits,
+	WebhookInputDataFields,
+	UpdateWebhookModalViews,
+} from '../constants';
 import { WebhooksDataQuery } from '../graphql/queries';
 
 interface paginationPropTypes {
@@ -115,14 +119,16 @@ const Webhooks = () => {
 	React.useEffect(() => {
 		fetchWebookData();
 	}, [paginationProps.page, paginationProps.limit]);
-	console.log('webhookData ==>> ', webhookData);
 	return (
 		<Box m="5" py="5" px="10" bg="white" rounded="md">
 			<Flex margin="2% 0" justifyContent="space-between" alignItems="center">
 				<Text fontSize="md" fontWeight="bold">
 					Webhooks
 				</Text>
-				<AddWebhookModal />
+				<UpdateWebhookModal
+					view={UpdateWebhookModalViews.ADD}
+					fetchWebookData={fetchWebookData}
+				/>
 			</Flex>
 			{!loading ? (
 				webhookData.length ? (
@@ -161,10 +167,13 @@ const Webhooks = () => {
 									</Td>
 									<Td>
 										<Tooltip
+											as="span"
 											bg="gray.300"
 											color="black"
 											label={JSON.stringify(
-												webhook[WebhookInputDataFields.HEADERS]
+												webhook[WebhookInputDataFields.HEADERS],
+												null,
+												' '
 											)}
 										>
 											<Center
@@ -195,7 +204,11 @@ const Webhooks = () => {
 												</Flex>
 											</MenuButton>
 											<MenuList>
-												<MenuItem onClick={() => {}}>Edit</MenuItem>
+												<UpdateWebhookModal
+													view={UpdateWebhookModalViews.Edit}
+													selectedWebhook={webhook}
+													fetchWebookData={fetchWebookData}
+												/>
 												<MenuItem onClick={() => {}}>Delete</MenuItem>
 												<MenuItem onClick={() => {}}>View Logs</MenuItem>
 											</MenuList>

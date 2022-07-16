@@ -87,3 +87,11 @@ export const AddWebhook = `
     }
   }
 `;
+
+export const EditWebhook = `
+  mutation editWebhook($params: UpdateWebhookRequest!) {
+    _update_webhook(params: $params) {
+      message
+    }
+  }
+`;

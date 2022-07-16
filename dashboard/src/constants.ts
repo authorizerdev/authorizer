@@ -167,4 +167,9 @@ export enum WebhookInputHeaderFields {
 	VALUE = 'value',
 }
 
+export enum UpdateWebhookModalViews {
+	ADD = 'add',
+	Edit = 'edit',
+}
+
 export const pageLimits: number[] = [5, 10, 15];

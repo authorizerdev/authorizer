@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
 	Button,
 	Center,
@@ -6,6 +6,7 @@ import {
 	Input,
 	InputGroup,
 	InputRightElement,
+	MenuItem,
 	Modal,
 	ModalBody,
 	ModalCloseButton,
@@ -24,13 +25,14 @@ import {
 	ArrayInputOperations,
 	WebhookInputDataFields,
 	WebhookInputHeaderFields,
+	UpdateWebhookModalViews,
 } from '../constants';
 import {
 	capitalizeFirstLetter,
 	validateEventName,
 	validateURI,
 } from '../utils';
-import { AddWebhook } from '../graphql/mutation';
+import { AddWebhook, EditWebhook } from '../graphql/mutation';
 
 interface headersDataType {
 	[WebhookInputHeaderFields.KEY]: string;
@@ -40,6 +42,20 @@ interface headersDataType {
 interface headersValidatorDataType {
 	[WebhookInputHeaderFields.KEY]: boolean;
 	[WebhookInputHeaderFields.VALUE]: boolean;
+}
+
+interface selecetdWebhookDataTypes {
+	[WebhookInputDataFields.ID]: string;
+	[WebhookInputDataFields.EVENT_NAME]: string;
+	[WebhookInputDataFields.ENDPOINT]: string;
+	[WebhookInputDataFields.ENABLED]: boolean;
+	[WebhookInputDataFields.HEADERS]?: Record<string, string>;
+}
+
+interface UpdateWebhookModalInputPropTypes {
+	view: UpdateWebhookModalViews;
+	selectedWebhook?: selecetdWebhookDataTypes;
+	fetchWebookData: Function;
 }
 
 const initHeadersData: headersDataType = {
@@ -78,7 +94,11 @@ const initWebhookValidatorData: validatorDataType = {
 	[WebhookInputDataFields.HEADERS]: [{ ...initHeadersValidatorData }],
 };
 
-const AddWebhookModal = () => {
+const UpdateWebhookModal = ({
+	view,
+	selectedWebhook,
+	fetchWebookData,
+}: UpdateWebhookModalInputPropTypes) => {
 	const client = useClient();
 	const toast = useToast();
 	const { isOpen, onOpen, onClose } = useDisclosure();
@@ -201,7 +221,13 @@ const AddWebhookModal = () => {
 	const saveData = async () => {
 		if (!validateData()) return;
 		setLoading(true);
-		let { [WebhookInputDataFields.HEADERS]: _, ...params }: any = webhook;
+		let params: any = {
+			[WebhookInputDataFields.EVENT_NAME]:
+				webhook[WebhookInputDataFields.EVENT_NAME],
+			[WebhookInputDataFields.ENDPOINT]:
+				webhook[WebhookInputDataFields.ENDPOINT],
+			[WebhookInputDataFields.ENABLED]: webhook[WebhookInputDataFields.ENABLED],
+		};
 		if (webhook[WebhookInputDataFields.HEADERS].length) {
 			const headers = webhook[WebhookInputDataFields.HEADERS].reduce(
 				(acc, data) => {
@@ -213,7 +239,22 @@ const AddWebhookModal = () => {
 				params[WebhookInputDataFields.HEADERS] = headers;
 			}
 		}
-		const res = await client.mutation(AddWebhook, { params }).toPromise();
+		let res: any = {};
+		if (
+			view === UpdateWebhookModalViews.Edit &&
+			selectedWebhook?.[WebhookInputDataFields.ID]
+		) {
+			res = await client
+				.mutation(EditWebhook, {
+					params: {
+						...params,
+						id: selectedWebhook[WebhookInputDataFields.ID],
+					},
+				})
+				.toPromise();
+		} else {
+			res = await client.mutation(AddWebhook, { params }).toPromise();
+		}
 		if (res.error) {
 			toast({
 				title: capitalizeFirstLetter(res.error.message),
@@ -223,9 +264,11 @@ const AddWebhookModal = () => {
 			});
 			setLoading(false);
 			return;
-		} else if (res.data?._add_webhook) {
+		} else if (res.data?._add_webhook || res.data?._update_webhook) {
 			toast({
-				title: capitalizeFirstLetter(res.data?._add_webhook.message),
+				title: capitalizeFirstLetter(
+					res.data?._add_webhook?.message || res.data?._update_webhook?.message
+				),
 				isClosable: true,
 				status: 'success',
 				position: 'bottom-right',
@@ -236,25 +279,66 @@ const AddWebhookModal = () => {
 			});
 			setValidator({ ...initWebhookValidatorData });
 			onClose();
+			fetchWebookData();
 		}
 		setLoading(false);
 	};
+	useEffect(() => {
+		if (
+			view === UpdateWebhookModalViews.Edit &&
+			selectedWebhook &&
+			Object.keys(selectedWebhook || {}).length
+		) {
+			const { headers, ...rest } = selectedWebhook;
+			const headerItems = Object.entries(headers || {});
+			if (headerItems.length) {
+				let formattedHeadersData = headerItems.map((headerData) => {
+					return {
+						[WebhookInputHeaderFields.KEY]: headerData[0],
+						[WebhookInputHeaderFields.VALUE]: headerData[1],
+					};
+				});
+				setWebhook({
+					...rest,
+					[WebhookInputDataFields.HEADERS]: formattedHeadersData,
+				});
+				setValidator({
+					...validator,
+					[WebhookInputDataFields.HEADERS]: new Array(
+						formattedHeadersData.length
+					)
+						.fill({})
+						.map(() => ({ ...initHeadersValidatorData })),
+				});
+			} else {
+				setWebhook({ ...rest, [WebhookInputDataFields.HEADERS]: [] });
+			}
+		}
+	}, [view]);
 	return (
 		<>
-			<Button
-				leftIcon={<FaPlus />}
-				colorScheme="blue"
-				variant="solid"
-				onClick={onOpen}
-				isDisabled={false}
-				size="sm"
-			>
-				<Center h="100%">Add Webhook</Center>{' '}
-			</Button>
+			{view === UpdateWebhookModalViews.ADD ? (
+				<Button
+					leftIcon={<FaPlus />}
+					colorScheme="blue"
+					variant="solid"
+					onClick={onOpen}
+					isDisabled={false}
+					size="sm"
+				>
+					<Center h="100%">Add Webhook</Center>{' '}
+				</Button>
+			) : (
+				<MenuItem onClick={onOpen}>Edit</MenuItem>
+			)}
 			<Modal isOpen={isOpen} onClose={onClose} size="3xl">
 				<ModalOverlay />
 				<ModalContent>
-					<ModalHeader>Add New Webhook</ModalHeader>
+					<ModalHeader>
+						{view === UpdateWebhookModalViews.ADD
+							? 'Add New Webhook'
+							: 'Edit Webhook'}
+					</ModalHeader>
 					<ModalCloseButton />
 					<ModalBody>
 						<Flex
@@ -450,4 +534,4 @@ const AddWebhookModal = () => {
 	);
 };
 
-export default AddWebhookModal;
+export default UpdateWebhookModal;
