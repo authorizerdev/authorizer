@@ -77,7 +77,16 @@ const Webhooks = () => {
 	};
 	const fetchWebookData = async () => {
 		setLoading(true);
-		const res = await client.query(WebhooksDataQuery).toPromise();
+		const res = await client
+			.query(WebhooksDataQuery, {
+				params: {
+					pagination: {
+						limit: paginationProps.limit,
+						page: paginationProps.page,
+					},
+				},
+			})
+			.toPromise();
 		if (res.data?._webhooks) {
 			const { pagination, webhooks } = res.data?._webhooks;
 			const maxPages = getMaxPages(pagination);
@@ -97,12 +106,15 @@ const Webhooks = () => {
 		}
 		setLoading(false);
 	};
-	useEffect(() => {
-		fetchWebookData();
-	}, []);
 	const paginationHandler = (value: Record<string, number>) => {
 		setPaginationProps({ ...paginationProps, ...value });
 	};
+	useEffect(() => {
+		fetchWebookData();
+	}, []);
+	React.useEffect(() => {
+		fetchWebookData();
+	}, [paginationProps.page, paginationProps.limit]);
 	console.log('webhookData ==>> ', webhookData);
 	return (
 		<Box m="5" py="5" px="10" bg="white" rounded="md">

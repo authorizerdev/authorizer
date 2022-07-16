@@ -103,8 +103,8 @@ export const EmailVerificationQuery = `
 `;
 
 export const WebhooksDataQuery = `
-  query getWebhooksData {
-    _webhooks{
+  query getWebhooksData($params: PaginatedInput!) {
+    _webhooks(params: $params){
       webhooks{
         id
         event_name
