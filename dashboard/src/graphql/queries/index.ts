@@ -121,3 +121,23 @@ export const WebhooksDataQuery = `
     }
   }
 `;
+
+export const WebhookLogsQuery = `
+  query getWebhookLogs($params: ListWebhookLogRequest!) {
+    _webhook_logs(params: $params) {
+      webhook_logs {
+        id
+        http_status
+        request
+        response
+        created_at
+      }
+      pagination {
+        limit
+        page
+        offset
+        total
+      }
+    }
+  }
+`;

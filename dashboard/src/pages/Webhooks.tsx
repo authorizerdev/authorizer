@@ -44,6 +44,7 @@ import {
 } from '../constants';
 import { WebhooksDataQuery } from '../graphql/queries';
 import DeleteWebhookModal from '../components/DeleteWebhookModal';
+import ViewWebhookLogsModal from '../components/ViewWebhookLogsModal';
 
 interface paginationPropTypes {
 	limit: number;
@@ -117,7 +118,7 @@ const Webhooks = () => {
 	useEffect(() => {
 		fetchWebookData();
 	}, []);
-	React.useEffect(() => {
+	useEffect(() => {
 		fetchWebookData();
 	}, [paginationProps.page, paginationProps.limit]);
 	return (
@@ -144,7 +145,7 @@ const Webhooks = () => {
 							</Tr>
 						</Thead>
 						<Tbody>
-							{webhookData.map((webhook: webhookDataTypes, index: number) => (
+							{webhookData.map((webhook: webhookDataTypes) => (
 								<Tr
 									key={webhook[WebhookInputDataFields.ID]}
 									style={{ fontSize: 14 }}
@@ -168,7 +169,6 @@ const Webhooks = () => {
 									</Td>
 									<Td>
 										<Tooltip
-											as="span"
 											bg="gray.300"
 											color="black"
 											label={JSON.stringify(
@@ -177,18 +177,11 @@ const Webhooks = () => {
 												' '
 											)}
 										>
-											<Center
-												border="1px"
-												borderColor="gray.300"
-												width="30px"
-												borderRadius="md"
-											>
-												<Text fontSize="sm">
-													{Object.keys(
-														webhook[WebhookInputDataFields.HEADERS] || {}
-													)?.length.toString()}
-												</Text>
-											</Center>
+											<Tag size="sm" variant="outline" colorScheme="gray">
+												{Object.keys(
+													webhook[WebhookInputDataFields.HEADERS] || {}
+												)?.length.toString()}
+											</Tag>
 										</Tooltip>
 									</Td>
 									<Td>
@@ -215,7 +208,10 @@ const Webhooks = () => {
 													eventName={webhook[WebhookInputDataFields.EVENT_NAME]}
 													fetchWebookData={fetchWebookData}
 												/>
-												<MenuItem onClick={() => {}}>View Logs</MenuItem>
+												<ViewWebhookLogsModal
+													webhookId={webhook[WebhookInputDataFields.ID]}
+													eventName={webhook[WebhookInputDataFields.EVENT_NAME]}
+												/>
 											</MenuList>
 										</Menu>
 									</Td>
