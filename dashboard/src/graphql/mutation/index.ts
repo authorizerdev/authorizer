@@ -95,3 +95,11 @@ export const EditWebhook = `
     }
   }
 `;
+
+export const DeleteWebhook = `
+  mutation deleteWebhook($params: WebhookRequest!) {
+    _delete_webhook(params: $params) {
+      message
+    }
+  }
+`;

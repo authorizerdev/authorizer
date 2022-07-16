@@ -43,6 +43,7 @@ import {
 	UpdateWebhookModalViews,
 } from '../constants';
 import { WebhooksDataQuery } from '../graphql/queries';
+import DeleteWebhookModal from '../components/DeleteWebhookModal';
 
 interface paginationPropTypes {
 	limit: number;
@@ -209,7 +210,11 @@ const Webhooks = () => {
 													selectedWebhook={webhook}
 													fetchWebookData={fetchWebookData}
 												/>
-												<MenuItem onClick={() => {}}>Delete</MenuItem>
+												<DeleteWebhookModal
+													webhookId={webhook[WebhookInputDataFields.ID]}
+													eventName={webhook[WebhookInputDataFields.EVENT_NAME]}
+													fetchWebookData={fetchWebookData}
+												/>
 												<MenuItem onClick={() => {}}>View Logs</MenuItem>
 											</MenuList>
 										</Menu>
