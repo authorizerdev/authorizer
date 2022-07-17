@@ -84,7 +84,7 @@ interface validatorDataType {
 const initWebhookData: webhookDataType = {
 	[WebhookInputDataFields.EVENT_NAME]: webhookEventNames.USER_LOGIN,
 	[WebhookInputDataFields.ENDPOINT]: '',
-	[WebhookInputDataFields.ENABLED]: false,
+	[WebhookInputDataFields.ENABLED]: true,
 	[WebhookInputDataFields.HEADERS]: [{ ...initHeadersData }],
 };
 
@@ -335,7 +335,10 @@ const UpdateWebhookModal = ({
 		setVerifyingEndpoint(true);
 		const { [WebhookInputDataFields.ENABLED]: _, ...params } = getParams();
 		const res = await client.mutation(TestEndpoint, { params }).toPromise();
-		if (res.data?._test_endpoint?.response?.success) {
+		if (
+			res.data?._test_endpoint?.http_status >= 200 &&
+			res.data?._test_endpoint?.http_status < 400
+		) {
 			setVerifiedStatus(webhookVerifiedStatus.VERIFIED);
 		} else {
 			setVerifiedStatus(webhookVerifiedStatus.NOT_VERIFIED);
