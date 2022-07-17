@@ -24,6 +24,6 @@ func webhooksTest(t *testing.T, s TestSetup) {
 		webhooks, err := resolvers.WebhooksResolver(ctx, nil)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, webhooks)
-		assert.Len(t, webhooks.Webhooks, len(s.TestInfo.TestEventTypes))
+		assert.Len(t, webhooks.Webhooks, len(s.TestInfo.TestWebhookEventTypes))
 	})
 }

@@ -3,6 +3,7 @@ package resolvers
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
@@ -13,6 +14,8 @@ import (
 	"github.com/authorizerdev/authorizer/server/validators"
 	log "github.com/sirupsen/logrus"
 )
+
+// TODO add template validator
 
 // UpdateEmailTemplateResolver resolver for update email template mutation
 func UpdateEmailTemplateResolver(ctx context.Context, params model.UpdateEmailTemplateRequest) (*model.Response, error) {
@@ -49,6 +52,10 @@ func UpdateEmailTemplateResolver(ctx context.Context, params model.UpdateEmailTe
 	}
 
 	if params.Template != nil && emailTemplateDetails.Template != refs.StringValue(params.Template) {
+		if strings.TrimSpace(refs.StringValue(params.Template)) == "" {
+			log.Debug("empty template not allowed")
+			return nil, fmt.Errorf("empty template not allowed")
+		}
 		emailTemplateDetails.Template = refs.StringValue(params.Template)
 	}
 

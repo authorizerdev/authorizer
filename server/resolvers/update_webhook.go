@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
@@ -62,6 +63,10 @@ func UpdateWebhookResolver(ctx context.Context, params model.UpdateWebhookReques
 	}
 
 	if params.Endpoint != nil && webhookDetails.EndPoint != refs.StringValue(params.Endpoint) {
+		if strings.TrimSpace(refs.StringValue(params.Endpoint)) == "" {
+			log.Debug("empty endpoint not allowed")
+			return nil, fmt.Errorf("empty endpoint not allowed")
+		}
 		webhookDetails.EndPoint = refs.StringValue(params.Endpoint)
 	}
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
@@ -30,6 +31,11 @@ func AddWebhookResolver(ctx context.Context, params model.AddWebhookRequest) (*m
 	if !validators.IsValidWebhookEventName(params.EventName) {
 		log.Debug("Invalid Event Name: ", params.EventName)
 		return nil, fmt.Errorf("invalid event name %s", params.EventName)
+	}
+
+	if strings.TrimSpace(params.Endpoint) == "" {
+		log.Debug("empty endpoint not allowed")
+		return nil, fmt.Errorf("empty endpoint not allowed")
 	}
 
 	headerBytes, err := json.Marshal(params.Headers)
