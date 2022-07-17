@@ -97,9 +97,11 @@ func TestEndpointResolver(ctx context.Context, params model.TestEndpointRequest)
 	}
 
 	response := map[string]interface{}{}
-	if err := json.Unmarshal(body, &response); err != nil {
-		log.Debug("error un-marshalling response: ", err)
-		return nil, err
+	if string(body) != "" {
+		if err := json.Unmarshal(body, &response); err != nil {
+			log.Debug("error un-marshalling response: ", err)
+			return nil, err
+		}
 	}
 
 	statusCode := int64(resp.StatusCode)
