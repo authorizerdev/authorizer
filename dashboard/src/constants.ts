@@ -173,3 +173,12 @@ export enum UpdateWebhookModalViews {
 }
 
 export const pageLimits: number[] = [5, 10, 15];
+
+export const webhookEventNames = {
+	USER_SIGNUP: 'user.signup',
+	USER_CREATED: 'user.created',
+	USER_LOGIN: 'user.login',
+	USER_DELETED: 'user.deleted',
+	USER_ACCESS_ENABLED: 'user.access_enabled',
+	USER_ACCESS_REVOKED: 'user.access_revoked',
+};

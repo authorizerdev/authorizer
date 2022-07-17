@@ -14,6 +14,7 @@ import {
 	ModalFooter,
 	ModalHeader,
 	ModalOverlay,
+	Select,
 	Switch,
 	Text,
 	useDisclosure,
@@ -22,6 +23,7 @@ import {
 import { FaMinusCircle, FaPlus } from 'react-icons/fa';
 import { useClient } from 'urql';
 import {
+	webhookEventNames,
 	ArrayInputOperations,
 	WebhookInputDataFields,
 	WebhookInputHeaderFields,
@@ -33,6 +35,7 @@ import {
 	validateURI,
 } from '../utils';
 import { AddWebhook, EditWebhook } from '../graphql/mutation';
+import { rest } from 'lodash';
 
 interface headersDataType {
 	[WebhookInputHeaderFields.KEY]: string;
@@ -76,20 +79,18 @@ interface webhookDataType {
 }
 
 interface validatorDataType {
-	[WebhookInputDataFields.EVENT_NAME]: boolean;
 	[WebhookInputDataFields.ENDPOINT]: boolean;
 	[WebhookInputDataFields.HEADERS]: headersValidatorDataType[];
 }
 
 const initWebhookData: webhookDataType = {
-	[WebhookInputDataFields.EVENT_NAME]: '',
+	[WebhookInputDataFields.EVENT_NAME]: webhookEventNames.USER_LOGIN,
 	[WebhookInputDataFields.ENDPOINT]: '',
 	[WebhookInputDataFields.ENABLED]: false,
 	[WebhookInputDataFields.HEADERS]: [{ ...initHeadersData }],
 };
 
 const initWebhookValidatorData: validatorDataType = {
-	[WebhookInputDataFields.EVENT_NAME]: true,
 	[WebhookInputDataFields.ENDPOINT]: true,
 	[WebhookInputDataFields.HEADERS]: [{ ...initHeadersValidatorData }],
 };
@@ -118,10 +119,6 @@ const UpdateWebhookModal = ({
 		switch (inputType) {
 			case WebhookInputDataFields.EVENT_NAME:
 				setWebhook({ ...webhook, [inputType]: value });
-				setValidator({
-					...validator,
-					[WebhookInputDataFields.EVENT_NAME]: validateEventName(value),
-				});
 				break;
 			case WebhookInputDataFields.ENDPOINT:
 				setWebhook({ ...webhook, [inputType]: value });
@@ -210,7 +207,6 @@ const UpdateWebhookModal = ({
 			!loading &&
 			webhook[WebhookInputDataFields.EVENT_NAME].length > 0 &&
 			webhook[WebhookInputDataFields.ENDPOINT].length > 0 &&
-			validator[WebhookInputDataFields.EVENT_NAME] &&
 			validator[WebhookInputDataFields.ENDPOINT] &&
 			!validator[WebhookInputDataFields.HEADERS].some(
 				(headerData: headersValidatorDataType) =>
@@ -256,6 +252,7 @@ const UpdateWebhookModal = ({
 		} else {
 			res = await client.mutation(AddWebhook, { params }).toPromise();
 		}
+		setLoading(false);
 		if (res.error) {
 			toast({
 				title: capitalizeFirstLetter(res.error.message),
@@ -263,8 +260,6 @@ const UpdateWebhookModal = ({
 				status: 'error',
 				position: 'bottom-right',
 			});
-			setLoading(false);
-			return;
 		} else if (res.data?._add_webhook || res.data?._update_webhook) {
 			toast({
 				title: capitalizeFirstLetter(
@@ -280,9 +275,8 @@ const UpdateWebhookModal = ({
 			});
 			setValidator({ ...initWebhookValidatorData });
 			fetchWebookData();
-			return;
 		}
-		setLoading(false);
+		view === UpdateWebhookModalViews.ADD && onClose();
 	};
 	useEffect(() => {
 		if (
@@ -361,21 +355,24 @@ const UpdateWebhookModal = ({
 							>
 								<Flex flex="1">Event Name</Flex>
 								<Flex flex="3">
-									<InputGroup size="md">
-										<Input
-											pr="4.5rem"
-											type="text"
-											placeholder="user.login"
-											value={webhook[WebhookInputDataFields.EVENT_NAME]}
-											isInvalid={!validator[WebhookInputDataFields.EVENT_NAME]}
-											onChange={(e) =>
-												inputChangehandler(
-													WebhookInputDataFields.EVENT_NAME,
-													e.currentTarget.value
-												)
-											}
-										/>
-									</InputGroup>
+									<Select
+										size="md"
+										value={webhook[WebhookInputDataFields.EVENT_NAME]}
+										onChange={(e) =>
+											inputChangehandler(
+												WebhookInputDataFields.EVENT_NAME,
+												e.currentTarget.value
+											)
+										}
+									>
+										{Object.entries(webhookEventNames).map(
+											([key, value]: any) => (
+												<option value={value} key={key}>
+													{key}
+												</option>
+											)
+										)}
+									</Select>
 								</Flex>
 							</Flex>
 							<Flex
