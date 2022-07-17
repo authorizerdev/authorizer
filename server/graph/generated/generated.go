@@ -143,30 +143,33 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		AddWebhook        func(childComplexity int, params model.AddWebhookRequest) int
-		AdminLogin        func(childComplexity int, params model.AdminLoginInput) int
-		AdminLogout       func(childComplexity int) int
-		AdminSignup       func(childComplexity int, params model.AdminSignupInput) int
-		DeleteUser        func(childComplexity int, params model.DeleteUserInput) int
-		DeleteWebhook     func(childComplexity int, params model.WebhookRequest) int
-		EnableAccess      func(childComplexity int, param model.UpdateAccessInput) int
-		ForgotPassword    func(childComplexity int, params model.ForgotPasswordInput) int
-		GenerateJwtKeys   func(childComplexity int, params model.GenerateJWTKeysInput) int
-		InviteMembers     func(childComplexity int, params model.InviteMemberInput) int
-		Login             func(childComplexity int, params model.LoginInput) int
-		Logout            func(childComplexity int) int
-		MagicLinkLogin    func(childComplexity int, params model.MagicLinkLoginInput) int
-		ResendVerifyEmail func(childComplexity int, params model.ResendVerifyEmailInput) int
-		ResetPassword     func(childComplexity int, params model.ResetPasswordInput) int
-		Revoke            func(childComplexity int, params model.OAuthRevokeInput) int
-		RevokeAccess      func(childComplexity int, param model.UpdateAccessInput) int
-		Signup            func(childComplexity int, params model.SignUpInput) int
-		TestEndpoint      func(childComplexity int, params model.TestEndpointRequest) int
-		UpdateEnv         func(childComplexity int, params model.UpdateEnvInput) int
-		UpdateProfile     func(childComplexity int, params model.UpdateProfileInput) int
-		UpdateUser        func(childComplexity int, params model.UpdateUserInput) int
-		UpdateWebhook     func(childComplexity int, params model.UpdateWebhookRequest) int
-		VerifyEmail       func(childComplexity int, params model.VerifyEmailInput) int
+		AddEmailTemplate    func(childComplexity int, params model.AddEmailTemplateRequest) int
+		AddWebhook          func(childComplexity int, params model.AddWebhookRequest) int
+		AdminLogin          func(childComplexity int, params model.AdminLoginInput) int
+		AdminLogout         func(childComplexity int) int
+		AdminSignup         func(childComplexity int, params model.AdminSignupInput) int
+		DeleteEmailTemplate func(childComplexity int, params model.DeleteEmailTemplateRequest) int
+		DeleteUser          func(childComplexity int, params model.DeleteUserInput) int
+		DeleteWebhook       func(childComplexity int, params model.WebhookRequest) int
+		EnableAccess        func(childComplexity int, param model.UpdateAccessInput) int
+		ForgotPassword      func(childComplexity int, params model.ForgotPasswordInput) int
+		GenerateJwtKeys     func(childComplexity int, params model.GenerateJWTKeysInput) int
+		InviteMembers       func(childComplexity int, params model.InviteMemberInput) int
+		Login               func(childComplexity int, params model.LoginInput) int
+		Logout              func(childComplexity int) int
+		MagicLinkLogin      func(childComplexity int, params model.MagicLinkLoginInput) int
+		ResendVerifyEmail   func(childComplexity int, params model.ResendVerifyEmailInput) int
+		ResetPassword       func(childComplexity int, params model.ResetPasswordInput) int
+		Revoke              func(childComplexity int, params model.OAuthRevokeInput) int
+		RevokeAccess        func(childComplexity int, param model.UpdateAccessInput) int
+		Signup              func(childComplexity int, params model.SignUpInput) int
+		TestEndpoint        func(childComplexity int, params model.TestEndpointRequest) int
+		UpdateEmailTemplate func(childComplexity int, params model.UpdateEmailTemplateRequest) int
+		UpdateEnv           func(childComplexity int, params model.UpdateEnvInput) int
+		UpdateProfile       func(childComplexity int, params model.UpdateProfileInput) int
+		UpdateUser          func(childComplexity int, params model.UpdateUserInput) int
+		UpdateWebhook       func(childComplexity int, params model.UpdateWebhookRequest) int
+		VerifyEmail         func(childComplexity int, params model.VerifyEmailInput) int
 	}
 
 	Pagination struct {
@@ -178,6 +181,7 @@ type ComplexityRoot struct {
 
 	Query struct {
 		AdminSession         func(childComplexity int) int
+		EmailTemplates       func(childComplexity int, params *model.PaginatedInput) int
 		Env                  func(childComplexity int) int
 		Meta                 func(childComplexity int) int
 		Profile              func(childComplexity int) int
@@ -302,6 +306,9 @@ type MutationResolver interface {
 	UpdateWebhook(ctx context.Context, params model.UpdateWebhookRequest) (*model.Response, error)
 	DeleteWebhook(ctx context.Context, params model.WebhookRequest) (*model.Response, error)
 	TestEndpoint(ctx context.Context, params model.TestEndpointRequest) (*model.TestEndpointResponse, error)
+	AddEmailTemplate(ctx context.Context, params model.AddEmailTemplateRequest) (*model.Response, error)
+	UpdateEmailTemplate(ctx context.Context, params model.UpdateEmailTemplateRequest) (*model.Response, error)
+	DeleteEmailTemplate(ctx context.Context, params model.DeleteEmailTemplateRequest) (*model.Response, error)
 }
 type QueryResolver interface {
 	Meta(ctx context.Context) (*model.Meta, error)
@@ -315,6 +322,7 @@ type QueryResolver interface {
 	Webhook(ctx context.Context, params model.WebhookRequest) (*model.Webhook, error)
 	Webhooks(ctx context.Context, params *model.PaginatedInput) (*model.Webhooks, error)
 	WebhookLogs(ctx context.Context, params *model.ListWebhookLogRequest) (*model.WebhookLogs, error)
+	EmailTemplates(ctx context.Context, params *model.PaginatedInput) (*model.EmailTemplates, error)
 }
 
 type executableSchema struct {
@@ -878,6 +886,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Meta.Version(childComplexity), true
 
+	case "Mutation._add_email_template":
+		if e.complexity.Mutation.AddEmailTemplate == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__add_email_template_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AddEmailTemplate(childComplexity, args["params"].(model.AddEmailTemplateRequest)), true
+
 	case "Mutation._add_webhook":
 		if e.complexity.Mutation.AddWebhook == nil {
 			break
@@ -920,6 +940,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.AdminSignup(childComplexity, args["params"].(model.AdminSignupInput)), true
+
+	case "Mutation._delete_email_template":
+		if e.complexity.Mutation.DeleteEmailTemplate == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__delete_email_template_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteEmailTemplate(childComplexity, args["params"].(model.DeleteEmailTemplateRequest)), true
 
 	case "Mutation._delete_user":
 		if e.complexity.Mutation.DeleteUser == nil {
@@ -1096,6 +1128,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.TestEndpoint(childComplexity, args["params"].(model.TestEndpointRequest)), true
 
+	case "Mutation._update_email_template":
+		if e.complexity.Mutation.UpdateEmailTemplate == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__update_email_template_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateEmailTemplate(childComplexity, args["params"].(model.UpdateEmailTemplateRequest)), true
+
 	case "Mutation._update_env":
 		if e.complexity.Mutation.UpdateEnv == nil {
 			break
@@ -1190,6 +1234,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.AdminSession(childComplexity), true
+
+	case "Query._email_templates":
+		if e.complexity.Query.EmailTemplates == nil {
+			break
+		}
+
+		args, err := ec.field_Query__email_templates_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.EmailTemplates(childComplexity, args["params"].(*model.PaginatedInput)), true
 
 	case "Query._env":
 		if e.complexity.Query.Env == nil {
@@ -1883,6 +1939,54 @@ type GenerateJWTKeysResponse {
 	private_key: String
 }
 
+type Webhook {
+	id: ID!
+	event_name: String
+	endpoint: String
+	enabled: Boolean
+	headers: Map
+	created_at: Int64
+	updated_at: Int64
+}
+
+type Webhooks {
+	pagination: Pagination!
+	webhooks: [Webhook!]!
+}
+
+type WebhookLog {
+	id: ID!
+	http_status: Int64
+	response: String
+	request: String
+	webhook_id: ID
+	created_at: Int64
+	updated_at: Int64
+}
+
+type TestEndpointResponse {
+	http_status: Int64
+	response: Map
+}
+
+type WebhookLogs {
+	pagination: Pagination!
+	webhook_logs: [WebhookLog!]!
+}
+
+type EmailTemplate {
+	id: ID!
+	event_name: String!
+	template: String!
+	created_at: Int64
+	updated_at: Int64
+}
+
+type EmailTemplates {
+	pagination: Pagination!
+	EmailTemplates: [EmailTemplate!]!
+}
+
 input UpdateEnvInput {
 	ACCESS_TOKEN_EXPIRY_TIME: String
 	ADMIN_SECRET: String
@@ -2057,49 +2161,6 @@ input GenerateJWTKeysInput {
 	type: String!
 }
 
-type Webhook {
-	id: ID!
-	event_name: String
-	endpoint: String
-	enabled: Boolean
-	headers: Map
-	created_at: Int64
-	updated_at: Int64
-}
-
-type Webhooks {
-	pagination: Pagination!
-	webhooks: [Webhook!]!
-}
-
-type WebhookLog {
-	id: ID!
-	http_status: Int64
-	response: String
-	request: String
-	webhook_id: ID
-	created_at: Int64
-	updated_at: Int64
-}
-
-type TestEndpointResponse {
-	http_status: Int64
-	response: Map
-}
-
-type EmailTemplate {
-	id: ID!
-	event_name: String!
-	template: String!
-	created_at: Int64
-	updated_at: Int64
-}
-
-type EmailTemplates {
-	pagination: Pagination!
-	EmailTemplates: [EmailTemplate!]!
-}
-
 input ListWebhookLogRequest {
 	pagination: PaginationInput
 	webhook_id: String
@@ -2130,9 +2191,19 @@ input TestEndpointRequest {
 	headers: Map
 }
 
-type WebhookLogs {
-	pagination: Pagination!
-	webhook_logs: [WebhookLog!]!
+input AddEmailTemplateRequest {
+	event_name: String!
+	template: String!
+}
+
+input UpdateEmailTemplateRequest {
+	id: ID!
+	event_name: String
+	template: String
+}
+
+input DeleteEmailTemplateRequest {
+	id: ID!
 }
 
 type Mutation {
@@ -2161,6 +2232,9 @@ type Mutation {
 	_update_webhook(params: UpdateWebhookRequest!): Response!
 	_delete_webhook(params: WebhookRequest!): Response!
 	_test_endpoint(params: TestEndpointRequest!): TestEndpointResponse!
+	_add_email_template(params: AddEmailTemplateRequest!): Response!
+	_update_email_template(params: UpdateEmailTemplateRequest!): Response!
+	_delete_email_template(params: DeleteEmailTemplateRequest!): Response!
 }
 
 type Query {
@@ -2176,6 +2250,7 @@ type Query {
 	_webhook(params: WebhookRequest!): Webhook!
 	_webhooks(params: PaginatedInput): Webhooks!
 	_webhook_logs(params: ListWebhookLogRequest): WebhookLogs!
+	_email_templates(params: PaginatedInput): EmailTemplates!
 }
 `, BuiltIn: false},
 }
@@ -2184,6 +2259,21 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
+
+func (ec *executionContext) field_Mutation__add_email_template_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.AddEmailTemplateRequest
+	if tmp, ok := rawArgs["params"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+		arg0, err = ec.unmarshalNAddEmailTemplateRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAddEmailTemplateRequest(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["params"] = arg0
+	return args, nil
+}
 
 func (ec *executionContext) field_Mutation__add_webhook_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
@@ -2222,6 +2312,21 @@ func (ec *executionContext) field_Mutation__admin_signup_args(ctx context.Contex
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
 		arg0, err = ec.unmarshalNAdminSignupInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAdminSignupInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["params"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation__delete_email_template_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.DeleteEmailTemplateRequest
+	if tmp, ok := rawArgs["params"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+		arg0, err = ec.unmarshalNDeleteEmailTemplateRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐDeleteEmailTemplateRequest(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -2327,6 +2432,21 @@ func (ec *executionContext) field_Mutation__test_endpoint_args(ctx context.Conte
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
 		arg0, err = ec.unmarshalNTestEndpointRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐTestEndpointRequest(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["params"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation__update_email_template_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.UpdateEmailTemplateRequest
+	if tmp, ok := rawArgs["params"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+		arg0, err = ec.unmarshalNUpdateEmailTemplateRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUpdateEmailTemplateRequest(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -2527,6 +2647,21 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 		}
 	}
 	args["name"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query__email_templates_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model.PaginatedInput
+	if tmp, ok := rawArgs["params"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+		arg0, err = ec.unmarshalOPaginatedInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐPaginatedInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["params"] = arg0
 	return args, nil
 }
 
@@ -6250,6 +6385,132 @@ func (ec *executionContext) _Mutation__test_endpoint(ctx context.Context, field 
 	return ec.marshalNTestEndpointResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐTestEndpointResponse(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Mutation__add_email_template(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation__add_email_template_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().AddEmailTemplate(rctx, args["params"].(model.AddEmailTemplateRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Response)
+	fc.Result = res
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation__update_email_template(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation__update_email_template_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UpdateEmailTemplate(rctx, args["params"].(model.UpdateEmailTemplateRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Response)
+	fc.Result = res
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation__delete_email_template(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation__delete_email_template_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeleteEmailTemplate(rctx, args["params"].(model.DeleteEmailTemplateRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Response)
+	fc.Result = res
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Pagination_limit(ctx context.Context, field graphql.CollectedField, obj *model.Pagination) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -6822,6 +7083,48 @@ func (ec *executionContext) _Query__webhook_logs(ctx context.Context, field grap
 	res := resTmp.(*model.WebhookLogs)
 	fc.Result = res
 	return ec.marshalNWebhookLogs2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐWebhookLogs(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query__email_templates(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query__email_templates_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().EmailTemplates(rctx, args["params"].(*model.PaginatedInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.EmailTemplates)
+	fc.Result = res
+	return ec.marshalNEmailTemplates2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐEmailTemplates(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -9767,6 +10070,37 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputAddEmailTemplateRequest(ctx context.Context, obj interface{}) (model.AddEmailTemplateRequest, error) {
+	var it model.AddEmailTemplateRequest
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "event_name":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("event_name"))
+			it.EventName, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "template":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("template"))
+			it.Template, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputAddWebhookRequest(ctx context.Context, obj interface{}) (model.AddWebhookRequest, error) {
 	var it model.AddWebhookRequest
 	asMap := map[string]interface{}{}
@@ -9851,6 +10185,29 @@ func (ec *executionContext) unmarshalInputAdminSignupInput(ctx context.Context, 
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("admin_secret"))
 			it.AdminSecret, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputDeleteEmailTemplateRequest(ctx context.Context, obj interface{}) (model.DeleteEmailTemplateRequest, error) {
+	var it model.DeleteEmailTemplateRequest
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "id":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			it.ID, err = ec.unmarshalNID2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -10467,6 +10824,45 @@ func (ec *executionContext) unmarshalInputUpdateAccessInput(ctx context.Context,
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("user_id"))
 			it.UserID, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputUpdateEmailTemplateRequest(ctx context.Context, obj interface{}) (model.UpdateEmailTemplateRequest, error) {
+	var it model.UpdateEmailTemplateRequest
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "id":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			it.ID, err = ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "event_name":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("event_name"))
+			it.EventName, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "template":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("template"))
+			it.Template, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -11705,6 +12101,21 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "_add_email_template":
+			out.Values[i] = ec._Mutation__add_email_template(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "_update_email_template":
+			out.Values[i] = ec._Mutation__update_email_template(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "_delete_email_template":
+			out.Values[i] = ec._Mutation__delete_email_template(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -11922,6 +12333,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query__webhook_logs(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "_email_templates":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query__email_templates(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -12594,6 +13019,11 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 
 // region    ***************************** type.gotpl *****************************
 
+func (ec *executionContext) unmarshalNAddEmailTemplateRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAddEmailTemplateRequest(ctx context.Context, v interface{}) (model.AddEmailTemplateRequest, error) {
+	res, err := ec.unmarshalInputAddEmailTemplateRequest(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNAddWebhookRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAddWebhookRequest(ctx context.Context, v interface{}) (model.AddWebhookRequest, error) {
 	res, err := ec.unmarshalInputAddWebhookRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -12636,6 +13066,11 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNDeleteEmailTemplateRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐDeleteEmailTemplateRequest(ctx context.Context, v interface{}) (model.DeleteEmailTemplateRequest, error) {
+	res, err := ec.unmarshalInputDeleteEmailTemplateRequest(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNDeleteUserInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐDeleteUserInput(ctx context.Context, v interface{}) (model.DeleteUserInput, error) {
@@ -12695,6 +13130,20 @@ func (ec *executionContext) marshalNEmailTemplate2ᚖgithubᚗcomᚋauthorizerde
 		return graphql.Null
 	}
 	return ec._EmailTemplate(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNEmailTemplates2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐEmailTemplates(ctx context.Context, sel ast.SelectionSet, v model.EmailTemplates) graphql.Marshaler {
+	return ec._EmailTemplates(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNEmailTemplates2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐEmailTemplates(ctx context.Context, sel ast.SelectionSet, v *model.EmailTemplates) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._EmailTemplates(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNEnv2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐEnv(ctx context.Context, sel ast.SelectionSet, v model.Env) graphql.Marshaler {
@@ -12910,6 +13359,11 @@ func (ec *executionContext) marshalNTestEndpointResponse2ᚖgithubᚗcomᚋautho
 
 func (ec *executionContext) unmarshalNUpdateAccessInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUpdateAccessInput(ctx context.Context, v interface{}) (model.UpdateAccessInput, error) {
 	res, err := ec.unmarshalInputUpdateAccessInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNUpdateEmailTemplateRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUpdateEmailTemplateRequest(ctx context.Context, v interface{}) (model.UpdateEmailTemplateRequest, error) {
+	res, err := ec.unmarshalInputUpdateEmailTemplateRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 

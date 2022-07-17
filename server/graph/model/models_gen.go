@@ -2,6 +2,11 @@
 
 package model
 
+type AddEmailTemplateRequest struct {
+	EventName string `json:"event_name"`
+	Template  string `json:"template"`
+}
+
 type AddWebhookRequest struct {
 	EventName string                 `json:"event_name"`
 	Endpoint  string                 `json:"endpoint"`
@@ -24,6 +29,10 @@ type AuthResponse struct {
 	RefreshToken *string `json:"refresh_token"`
 	ExpiresIn    *int64  `json:"expires_in"`
 	User         *User   `json:"user"`
+}
+
+type DeleteEmailTemplateRequest struct {
+	ID string `json:"id"`
 }
 
 type DeleteUserInput struct {
@@ -225,6 +234,12 @@ type TestEndpointResponse struct {
 
 type UpdateAccessInput struct {
 	UserID string `json:"user_id"`
+}
+
+type UpdateEmailTemplateRequest struct {
+	ID        string  `json:"id"`
+	EventName *string `json:"event_name"`
+	Template  *string `json:"template"`
 }
 
 type UpdateEnvInput struct {

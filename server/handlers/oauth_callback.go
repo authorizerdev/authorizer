@@ -320,12 +320,60 @@ func processGithubUserInfo(code string) (models.User, error) {
 	}
 
 	picture := userRawData["avatar_url"]
+	email := userRawData["email"]
+
+	if email == "" {
+		type GithubUserEmails struct {
+			Email   string `json:"email"`
+			Primary bool   `json:"primary"`
+		}
+
+		// fetch using /users/email endpoint
+		req, err := http.NewRequest("GET", constants.GithubUserEmails, nil)
+		if err != nil {
+			log.Debug("Failed to create github emails request: ", err)
+			return user, fmt.Errorf("error creating github user info request: %s", err.Error())
+		}
+		req.Header = http.Header{
+			"Authorization": []string{fmt.Sprintf("token %s", oauth2Token.AccessToken)},
+		}
+
+		response, err := client.Do(req)
+		if err != nil {
+			log.Debug("Failed to request github user email: ", err)
+			return user, err
+		}
+
+		defer response.Body.Close()
+		body, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			log.Debug("Failed to read github user email response body: ", err)
+			return user, fmt.Errorf("failed to read github response body: %s", err.Error())
+		}
+		if response.StatusCode >= 400 {
+			log.Debug("Failed to request github user email: ", string(body))
+			return user, fmt.Errorf("failed to request github user info: %s", string(body))
+		}
+
+		emailData := []GithubUserEmails{}
+		err = json.Unmarshal(body, &emailData)
+		if err != nil {
+			log.Debug("Failed to parse github user email: ", err)
+		}
+
+		for _, userEmail := range emailData {
+			email = userEmail.Email
+			if userEmail.Primary {
+				break
+			}
+		}
+	}
 
 	user = models.User{
 		GivenName:  &firstName,
 		FamilyName: &lastName,
 		Picture:    &picture,
-		Email:      userRawData["email"],
+		Email:      email,
 	}
 
 	return user, nil

@@ -5,6 +5,7 @@ package graph
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/authorizerdev/authorizer/server/graph/generated"
 	"github.com/authorizerdev/authorizer/server/graph/model"
@@ -107,6 +108,18 @@ func (r *mutationResolver) TestEndpoint(ctx context.Context, params model.TestEn
 	return resolvers.TestEndpointResolver(ctx, params)
 }
 
+func (r *mutationResolver) AddEmailTemplate(ctx context.Context, params model.AddEmailTemplateRequest) (*model.Response, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) UpdateEmailTemplate(ctx context.Context, params model.UpdateEmailTemplateRequest) (*model.Response, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) DeleteEmailTemplate(ctx context.Context, params model.DeleteEmailTemplateRequest) (*model.Response, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *queryResolver) Meta(ctx context.Context) (*model.Meta, error) {
 	return resolvers.MetaResolver(ctx)
 }
@@ -149,6 +162,10 @@ func (r *queryResolver) Webhooks(ctx context.Context, params *model.PaginatedInp
 
 func (r *queryResolver) WebhookLogs(ctx context.Context, params *model.ListWebhookLogRequest) (*model.WebhookLogs, error) {
 	return resolvers.WebhookLogsResolver(ctx, params)
+}
+
+func (r *queryResolver) EmailTemplates(ctx context.Context, params *model.PaginatedInput) (*model.EmailTemplates, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 // Mutation returns generated.MutationResolver implementation.
