@@ -227,6 +227,7 @@ const UpdateWebhookModal = ({
 			[WebhookInputDataFields.ENDPOINT]:
 				webhook[WebhookInputDataFields.ENDPOINT],
 			[WebhookInputDataFields.ENABLED]: webhook[WebhookInputDataFields.ENABLED],
+			[WebhookInputDataFields.HEADERS]: {},
 		};
 		if (webhook[WebhookInputDataFields.HEADERS].length) {
 			const headers = webhook[WebhookInputDataFields.HEADERS].reduce(
@@ -311,7 +312,10 @@ const UpdateWebhookModal = ({
 						.map(() => ({ ...initHeadersValidatorData })),
 				});
 			} else {
-				setWebhook({ ...rest, [WebhookInputDataFields.HEADERS]: [] });
+				setWebhook({
+					...rest,
+					[WebhookInputDataFields.HEADERS]: [{ ...initHeadersData }],
+				});
 			}
 		}
 	}, [view]);
