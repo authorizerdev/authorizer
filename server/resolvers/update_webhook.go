@@ -50,7 +50,7 @@ func UpdateWebhookResolver(ctx context.Context, params model.UpdateWebhookReques
 		EndPoint:  refs.StringValue(webhook.Endpoint),
 		Enabled:   refs.BoolValue(webhook.Enabled),
 		Headers:   headersString,
-		CreatedAt: *webhook.CreatedAt,
+		CreatedAt: refs.Int64Value(webhook.CreatedAt),
 	}
 
 	if params.EventName != nil && webhookDetails.EventName != refs.StringValue(params.EventName) {
@@ -62,7 +62,7 @@ func UpdateWebhookResolver(ctx context.Context, params model.UpdateWebhookReques
 	}
 
 	if params.Endpoint != nil && webhookDetails.EndPoint != refs.StringValue(params.Endpoint) {
-		webhookDetails.EventName = refs.StringValue(params.EventName)
+		webhookDetails.EndPoint = refs.StringValue(params.Endpoint)
 	}
 
 	if params.Enabled != nil && webhookDetails.Enabled != refs.BoolValue(params.Enabled) {

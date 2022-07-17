@@ -28,7 +28,7 @@ func WebhooksResolver(ctx context.Context, params *model.PaginatedInput) (*model
 
 	webhooks, err := db.Provider.ListWebhook(ctx, pagination)
 	if err != nil {
-		log.Debug("failed to get webhook logs: ", err)
+		log.Debug("failed to get webhooks: ", err)
 		return nil, err
 	}
 	return webhooks, nil

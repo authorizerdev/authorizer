@@ -8,7 +8,7 @@ const (
 	FacebookUserInfoURL = "https://graph.facebook.com/me?fields=id,first_name,last_name,name,email,picture&access_token="
 	// Ref: https://docs.github.com/en/developers/apps/building-github-apps/identifying-and-authorizing-users-for-github-apps#3-your-github-app-accesses-the-api-with-the-users-access-token
 	GithubUserInfoURL = "https://api.github.com/user"
-	// Get github user emails Ref: https://stackoverflow.com/a/35387123
+	// Get github user emails when user info email is empty Ref: https://stackoverflow.com/a/35387123
 	GithubUserEmails = "https://api/github.com/user/emails"
 
 	// Ref: https://docs.microsoft.com/en-us/linkedin/shared/integrations/people/profile-api
