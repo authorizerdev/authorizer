@@ -29,11 +29,7 @@ import {
 	WebhookInputHeaderFields,
 	UpdateWebhookModalViews,
 } from '../constants';
-import {
-	capitalizeFirstLetter,
-	validateEventName,
-	validateURI,
-} from '../utils';
+import { capitalizeFirstLetter, validateURI } from '../utils';
 import { AddWebhook, EditWebhook } from '../graphql/mutation';
 import { rest } from 'lodash';
 

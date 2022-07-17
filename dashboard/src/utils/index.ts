@@ -86,8 +86,3 @@ export const validateURI = (uri: string) => {
 		? true
 		: false;
 };
-
-export const validateEventName = (name: string) => {
-	if (!name || name === '') return true;
-	return name.toLowerCase().match(/^.{4,}[.].{5,}$/) ? true : false;
-};
