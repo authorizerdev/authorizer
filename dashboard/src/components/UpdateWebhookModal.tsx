@@ -28,10 +28,12 @@ import {
 	WebhookInputDataFields,
 	WebhookInputHeaderFields,
 	UpdateWebhookModalViews,
+	webhookVerifiedStatus,
 } from '../constants';
 import { capitalizeFirstLetter, validateURI } from '../utils';
 import { AddWebhook, EditWebhook } from '../graphql/mutation';
 import { rest } from 'lodash';
+import { BiCheckCircle, BiError, BiErrorCircle } from 'react-icons/bi';
 
 interface headersDataType {
 	[WebhookInputHeaderFields.KEY]: string;
@@ -100,12 +102,16 @@ const UpdateWebhookModal = ({
 	const toast = useToast();
 	const { isOpen, onOpen, onClose } = useDisclosure();
 	const [loading, setLoading] = useState<boolean>(false);
+	const [verifyingEndpoint, setVerifyingEndpoint] = useState<boolean>(false);
 	const [webhook, setWebhook] = useState<webhookDataType>({
 		...initWebhookData,
 	});
 	const [validator, setValidator] = useState<validatorDataType>({
 		...initWebhookValidatorData,
 	});
+	const [verifiedStatus, setVerifiedStatus] = useState<webhookVerifiedStatus>(
+		webhookVerifiedStatus.PENDING
+	);
 	const inputChangehandler = (
 		inputType: string,
 		value: any,
@@ -201,6 +207,7 @@ const UpdateWebhookModal = ({
 	const validateData = () => {
 		return (
 			!loading &&
+			!verifyingEndpoint &&
 			webhook[WebhookInputDataFields.EVENT_NAME].length > 0 &&
 			webhook[WebhookInputDataFields.ENDPOINT].length > 0 &&
 			validator[WebhookInputDataFields.ENDPOINT] &&
@@ -515,6 +522,31 @@ const UpdateWebhookModal = ({
 						</Flex>
 					</ModalBody>
 					<ModalFooter>
+						<Button
+							colorScheme={
+								verifiedStatus === webhookVerifiedStatus.VERIFIED
+									? 'green'
+									: verifiedStatus === webhookVerifiedStatus.PENDING
+									? 'yellow'
+									: 'red'
+							}
+							variant="outline"
+							onClick={saveData}
+							isLoading={verifyingEndpoint}
+							isDisabled={!validateData()}
+							marginRight="5"
+							leftIcon={
+								verifiedStatus === webhookVerifiedStatus.VERIFIED ? (
+									<BiCheckCircle />
+								) : verifiedStatus === webhookVerifiedStatus.PENDING ? (
+									<BiErrorCircle />
+								) : (
+									<BiError />
+								)
+							}
+						>
+							Test Endpoint
+						</Button>
 						<Button
 							colorScheme="blue"
 							variant="solid"

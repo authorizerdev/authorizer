@@ -182,3 +182,9 @@ export const webhookEventNames = {
 	USER_ACCESS_ENABLED: 'user.access_enabled',
 	USER_ACCESS_REVOKED: 'user.access_revoked',
 };
+
+export enum webhookVerifiedStatus {
+	VERIFIED = 'verified',
+	NOT_VERIFIED = 'not_verified',
+	PENDING = 'verification_pending',
+}
