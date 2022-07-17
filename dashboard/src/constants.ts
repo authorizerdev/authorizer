@@ -153,3 +153,38 @@ export const envSubViews = {
 	ADMIN_SECRET: 'admin-secret',
 	DB_CRED: 'db-cred',
 };
+
+export enum WebhookInputDataFields {
+	ID = 'id',
+	EVENT_NAME = 'event_name',
+	ENDPOINT = 'endpoint',
+	ENABLED = 'enabled',
+	HEADERS = 'headers',
+}
+
+export enum WebhookInputHeaderFields {
+	KEY = 'key',
+	VALUE = 'value',
+}
+
+export enum UpdateWebhookModalViews {
+	ADD = 'add',
+	Edit = 'edit',
+}
+
+export const pageLimits: number[] = [5, 10, 15];
+
+export const webhookEventNames = {
+	USER_SIGNUP: 'user.signup',
+	USER_CREATED: 'user.created',
+	USER_LOGIN: 'user.login',
+	USER_DELETED: 'user.deleted',
+	USER_ACCESS_ENABLED: 'user.access_enabled',
+	USER_ACCESS_REVOKED: 'user.access_revoked',
+};
+
+export enum webhookVerifiedStatus {
+	VERIFIED = 'verified',
+	NOT_VERIFIED = 'not_verified',
+	PENDING = 'verification_pending',
+}
