@@ -70,11 +70,7 @@ func UpdateWebhookResolver(ctx context.Context, params model.UpdateWebhookReques
 	}
 
 	if params.Headers != nil {
-		for key, val := range params.Headers {
-			webhook.Headers[key] = val
-		}
-
-		headerBytes, err := json.Marshal(webhook.Headers)
+		headerBytes, err := json.Marshal(params.Headers)
 		if err != nil {
 			log.Debug("failed to marshall headers: ", err)
 			return nil, err
