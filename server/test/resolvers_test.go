@@ -3,20 +3,39 @@ package test
 import (
 	"context"
 	"os"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/env"
 	"github.com/authorizerdev/authorizer/server/memorystore"
+	"github.com/authorizerdev/authorizer/server/utils"
 )
 
 func TestResolvers(t *testing.T) {
 	databases := map[string]string{
-		constants.DbTypeSqlite: "../../test.db",
-		// constants.DbTypeArangodb: "http://localhost:8529",
-		// constants.DbTypeMongodb:  "mongodb://localhost:27017",
-		// constants.DbTypeScyllaDB: "127.0.0.1:9042",
+		constants.DbTypeSqlite:   "../../test.db",
+		constants.DbTypeArangodb: "http://localhost:8529",
+		constants.DbTypeMongodb:  "mongodb://localhost:27017",
+		constants.DbTypeScyllaDB: "127.0.0.1:9042",
+	}
+
+	testDBs := strings.Split(os.Getenv("TEST_DBS"), ",")
+	t.Log("Running tests for following dbs: ", testDBs)
+	for dbType := range databases {
+		if !utils.StringSliceContains(testDBs, dbType) {
+			delete(databases, dbType)
+		}
+	}
+
+	if utils.StringSliceContains(testDBs, constants.DbTypeSqlite) && len(testDBs) == 1 {
+		// do nothing
+	} else {
+		t.Log("waiting for docker containers to spun up")
+		// wait for docker containers to spun up
+		time.Sleep(30 * time.Second)
 	}
 
 	testDb := "authorizer_test"
@@ -75,6 +94,10 @@ func TestResolvers(t *testing.T) {
 			revokeAccessTest(t, s)
 			enableAccessTest(t, s)
 			generateJWTkeyTest(t, s)
+			addEmailTemplateTest(t, s)
+			updateEmailTemplateTest(t, s)
+			emailTemplatesTest(t, s)
+			deleteEmailTemplateTest(t, s)
 
 			// user resolvers tests
 			loginTests(t, s)

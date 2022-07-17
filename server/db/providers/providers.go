@@ -59,4 +59,17 @@ type Provider interface {
 	AddWebhookLog(ctx context.Context, webhookLog models.WebhookLog) (*model.WebhookLog, error)
 	// ListWebhookLogs to list webhook logs
 	ListWebhookLogs(ctx context.Context, pagination model.Pagination, webhookID string) (*model.WebhookLogs, error)
+
+	// AddEmailTemplate to add EmailTemplate
+	AddEmailTemplate(ctx context.Context, emailTemplate models.EmailTemplate) (*model.EmailTemplate, error)
+	// UpdateEmailTemplate to update EmailTemplate
+	UpdateEmailTemplate(ctx context.Context, emailTemplate models.EmailTemplate) (*model.EmailTemplate, error)
+	// ListEmailTemplates to list EmailTemplate
+	ListEmailTemplate(ctx context.Context, pagination model.Pagination) (*model.EmailTemplates, error)
+	// GetEmailTemplateByID to get EmailTemplate by id
+	GetEmailTemplateByID(ctx context.Context, emailTemplateID string) (*model.EmailTemplate, error)
+	// GetEmailTemplateByEventName to get EmailTemplate by event_name
+	GetEmailTemplateByEventName(ctx context.Context, eventName string) (*model.EmailTemplate, error)
+	// DeleteEmailTemplate to delete EmailTemplate
+	DeleteEmailTemplate(ctx context.Context, emailTemplate *model.EmailTemplate) error
 }

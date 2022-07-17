@@ -21,10 +21,11 @@ import (
 
 // common user data to share across tests
 type TestData struct {
-	Email           string
-	Password        string
-	WebhookEndpoint string
-	TestEventTypes  []string
+	Email                       string
+	Password                    string
+	WebhookEndpoint             string
+	TestWebhookEventTypes       []string
+	TestEmailTemplateEventTypes []string
 }
 
 type TestSetup struct {
@@ -76,10 +77,11 @@ func createContext(s TestSetup) (*http.Request, context.Context) {
 
 func testSetup() TestSetup {
 	testData := TestData{
-		Email:           fmt.Sprintf("%d_authorizer_tester@yopmail.com", time.Now().Unix()),
-		Password:        "Test@123",
-		WebhookEndpoint: "https://62cbc6738042b16aa7c22df2.mockapi.io/api/v1/webhook",
-		TestEventTypes:  []string{constants.UserAccessEnabledWebhookEvent, constants.UserAccessRevokedWebhookEvent, constants.UserCreatedWebhookEvent, constants.UserDeletedWebhookEvent, constants.UserLoginWebhookEvent, constants.UserSignUpWebhookEvent},
+		Email:                       fmt.Sprintf("%d_authorizer_tester@yopmail.com", time.Now().Unix()),
+		Password:                    "Test@123",
+		WebhookEndpoint:             "https://62cbc6738042b16aa7c22df2.mockapi.io/api/v1/webhook",
+		TestWebhookEventTypes:       []string{constants.UserAccessEnabledWebhookEvent, constants.UserAccessRevokedWebhookEvent, constants.UserCreatedWebhookEvent, constants.UserDeletedWebhookEvent, constants.UserLoginWebhookEvent, constants.UserSignUpWebhookEvent},
+		TestEmailTemplateEventTypes: []string{constants.VerificationTypeBasicAuthSignup, constants.VerificationTypeForgotPassword, constants.VerificationTypeMagicLinkLogin, constants.VerificationTypeUpdateEmail},
 	}
 
 	err := os.Setenv(constants.EnvKeyEnvPath, "../../.env.test")

@@ -33,9 +33,10 @@ func updateWebhookTest(t *testing.T, s TestSetup) {
 		}
 
 		res, err := resolvers.UpdateWebhookResolver(ctx, model.UpdateWebhookRequest{
-			ID:      webhook.ID,
-			Headers: webhook.Headers,
-			Enabled: refs.NewBoolRef(false),
+			ID:       webhook.ID,
+			Headers:  webhook.Headers,
+			Enabled:  refs.NewBoolRef(false),
+			Endpoint: refs.NewStringRef("https://sometest.com"),
 		})
 
 		assert.NoError(t, err)
@@ -47,17 +48,18 @@ func updateWebhookTest(t *testing.T, s TestSetup) {
 		assert.NotNil(t, updatedWebhook)
 		assert.Equal(t, webhook.ID, updatedWebhook.ID)
 		assert.Equal(t, refs.StringValue(webhook.EventName), refs.StringValue(updatedWebhook.EventName))
-		assert.Equal(t, refs.StringValue(webhook.Endpoint), refs.StringValue(updatedWebhook.Endpoint))
 		assert.Len(t, updatedWebhook.Headers, 1)
 		assert.False(t, refs.BoolValue(updatedWebhook.Enabled))
 		for key, val := range updatedWebhook.Headers {
 			assert.Equal(t, val, webhook.Headers[key])
 		}
+		assert.Equal(t, refs.StringValue(updatedWebhook.Endpoint), "https://sometest.com")
 
 		res, err = resolvers.UpdateWebhookResolver(ctx, model.UpdateWebhookRequest{
-			ID:      webhook.ID,
-			Headers: webhook.Headers,
-			Enabled: refs.NewBoolRef(true),
+			ID:       webhook.ID,
+			Headers:  webhook.Headers,
+			Enabled:  refs.NewBoolRef(true),
+			Endpoint: refs.NewStringRef(s.TestInfo.WebhookEndpoint),
 		})
 		assert.NoError(t, err)
 		assert.NotEmpty(t, res)
