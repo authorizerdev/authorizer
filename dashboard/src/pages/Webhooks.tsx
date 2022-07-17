@@ -117,9 +117,6 @@ const Webhooks = () => {
 	};
 	useEffect(() => {
 		fetchWebookData();
-	}, []);
-	useEffect(() => {
-		fetchWebookData();
 	}, [paginationProps.page, paginationProps.limit]);
 	return (
 		<Box m="5" py="5" px="10" bg="white" rounded="md">

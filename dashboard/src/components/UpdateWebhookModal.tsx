@@ -279,13 +279,14 @@ const UpdateWebhookModal = ({
 				[WebhookInputDataFields.HEADERS]: [{ ...initHeadersData }],
 			});
 			setValidator({ ...initWebhookValidatorData });
-			onClose();
 			fetchWebookData();
+			return;
 		}
 		setLoading(false);
 	};
 	useEffect(() => {
 		if (
+			isOpen &&
 			view === UpdateWebhookModalViews.Edit &&
 			selectedWebhook &&
 			Object.keys(selectedWebhook || {}).length
@@ -318,7 +319,7 @@ const UpdateWebhookModal = ({
 				});
 			}
 		}
-	}, [view]);
+	}, [isOpen]);
 	return (
 		<>
 			{view === UpdateWebhookModalViews.ADD ? (
