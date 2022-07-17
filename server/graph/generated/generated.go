@@ -1966,7 +1966,7 @@ type WebhookLog {
 
 type TestEndpointResponse {
 	http_status: Int64
-	response: Map
+	response: String
 }
 
 type WebhookLogs {
@@ -7292,9 +7292,9 @@ func (ec *executionContext) _TestEndpointResponse_response(ctx context.Context, 
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(map[string]interface{})
+	res := resTmp.(*string)
 	fc.Result = res
-	return ec.marshalOMap2map(ctx, field.Selections, res)
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _User_id(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {

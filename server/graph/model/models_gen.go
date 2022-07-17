@@ -228,8 +228,8 @@ type TestEndpointRequest struct {
 }
 
 type TestEndpointResponse struct {
-	HTTPStatus *int64                 `json:"http_status"`
-	Response   map[string]interface{} `json:"response"`
+	HTTPStatus *int64  `json:"http_status"`
+	Response   *string `json:"response"`
 }
 
 type UpdateAccessInput struct {

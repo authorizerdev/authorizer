@@ -177,7 +177,7 @@ type WebhookLog {
 
 type TestEndpointResponse {
 	http_status: Int64
-	response: Map
+	response: String
 }
 
 type WebhookLogs {
