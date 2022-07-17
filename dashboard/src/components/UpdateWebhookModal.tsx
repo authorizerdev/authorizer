@@ -31,7 +31,7 @@ import {
 	webhookVerifiedStatus,
 } from '../constants';
 import { capitalizeFirstLetter, validateURI } from '../utils';
-import { AddWebhook, EditWebhook } from '../graphql/mutation';
+import { AddWebhook, EditWebhook, TestEndpoint } from '../graphql/mutation';
 import { rest } from 'lodash';
 import { BiCheckCircle, BiError, BiErrorCircle } from 'react-icons/bi';
 
@@ -118,6 +118,12 @@ const UpdateWebhookModal = ({
 		headerInputType: string = WebhookInputHeaderFields.KEY,
 		headerIndex: number = 0
 	) => {
+		if (
+			verifiedStatus !== webhookVerifiedStatus.PENDING &&
+			inputType !== WebhookInputDataFields.ENABLED
+		) {
+			setVerifiedStatus(webhookVerifiedStatus.PENDING);
+		}
 		switch (inputType) {
 			case WebhookInputDataFields.EVENT_NAME:
 				setWebhook({ ...webhook, [inputType]: value });
@@ -163,6 +169,9 @@ const UpdateWebhookModal = ({
 		}
 	};
 	const updateHeaders = (operation: string, index: number = 0) => {
+		if (verifiedStatus !== webhookVerifiedStatus.PENDING) {
+			setVerifiedStatus(webhookVerifiedStatus.PENDING);
+		}
 		switch (operation) {
 			case ArrayInputOperations.APPEND:
 				setWebhook({
@@ -217,9 +226,7 @@ const UpdateWebhookModal = ({
 			)
 		);
 	};
-	const saveData = async () => {
-		if (!validateData()) return;
-		setLoading(true);
+	const getParams = () => {
 		let params: any = {
 			[WebhookInputDataFields.EVENT_NAME]:
 				webhook[WebhookInputDataFields.EVENT_NAME],
@@ -239,6 +246,12 @@ const UpdateWebhookModal = ({
 				params[WebhookInputDataFields.HEADERS] = headers;
 			}
 		}
+		return params;
+	};
+	const saveData = async () => {
+		if (!validateData()) return;
+		setLoading(true);
+		const params = getParams();
 		let res: any = {};
 		if (
 			view === UpdateWebhookModalViews.Edit &&
@@ -317,6 +330,18 @@ const UpdateWebhookModal = ({
 			}
 		}
 	}, [isOpen]);
+	const verifyEndpoint = async () => {
+		if (!validateData()) return;
+		setVerifyingEndpoint(true);
+		const { [WebhookInputDataFields.ENABLED]: _, ...params } = getParams();
+		const res = await client.mutation(TestEndpoint, { params }).toPromise();
+		if (res.data?._test_endpoint?.response?.success) {
+			setVerifiedStatus(webhookVerifiedStatus.VERIFIED);
+		} else {
+			setVerifiedStatus(webhookVerifiedStatus.NOT_VERIFIED);
+		}
+		setVerifyingEndpoint(false);
+	};
 	return (
 		<>
 			{view === UpdateWebhookModalViews.ADD ? (
@@ -531,7 +556,7 @@ const UpdateWebhookModal = ({
 									: 'red'
 							}
 							variant="outline"
-							onClick={saveData}
+							onClick={verifyEndpoint}
 							isLoading={verifyingEndpoint}
 							isDisabled={!validateData()}
 							marginRight="5"
@@ -545,7 +570,11 @@ const UpdateWebhookModal = ({
 								)
 							}
 						>
-							Test Endpoint
+							{verifiedStatus === webhookVerifiedStatus.VERIFIED
+								? 'Endpoint Verified'
+								: verifiedStatus === webhookVerifiedStatus.PENDING
+								? 'Test Endpoint'
+								: 'Endpoint Not Verified'}
 						</Button>
 						<Button
 							colorScheme="blue"

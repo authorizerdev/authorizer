@@ -103,3 +103,12 @@ export const DeleteWebhook = `
     }
   }
 `;
+
+export const TestEndpoint = `
+  mutation testEndpoint($params: TestEndpointRequest!) {
+    _test_endpoint(params: $params) {
+      http_status
+      response
+    }
+  }
+`;
