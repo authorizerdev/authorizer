@@ -81,7 +81,6 @@ func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate models
 	updateFields = strings.TrimSuffix(updateFields, ",")
 
 	query := fmt.Sprintf("UPDATE %s SET %s WHERE id = '%s'", KeySpace+"."+models.Collections.EmailTemplate, updateFields, emailTemplate.ID)
-	fmt.Println("=> query:", query)
 	err = p.db.Query(query).Exec()
 	if err != nil {
 		return nil, err
