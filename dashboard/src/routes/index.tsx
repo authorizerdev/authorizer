@@ -8,32 +8,34 @@ const Auth = lazy(() => import('../pages/Auth'));
 const Environment = lazy(() => import('../pages/Environment'));
 const Home = lazy(() => import('../pages/Home'));
 const Users = lazy(() => import('../pages/Users'));
+const Webhooks = lazy(() => import('../pages/Webhooks'));
 
 export const AppRoutes = () => {
 	const { isLoggedIn } = useAuthContext();
 
 	if (isLoggedIn) {
 		return (
-		<div>
-			<Suspense fallback={<></>}>
-				<Routes>
-					<Route
-						element={
-							<DashboardLayout>
-								<Outlet />
-							</DashboardLayout>
-						}
-					>
-						 <Route path="/" element={<Outlet />}>
-              				<Route index element={<Environment />} />
-              				<Route path="/:sec" element={<Environment />} />
-           				 </Route>
-           				 <Route path="users" element={<Users />} />
-         				   <Route path="*" element={<Home />} />
-					</Route>
-				</Routes>
-			</Suspense>
-		</div>
+			<div>
+				<Suspense fallback={<></>}>
+					<Routes>
+						<Route
+							element={
+								<DashboardLayout>
+									<Outlet />
+								</DashboardLayout>
+							}
+						>
+							<Route path="/" element={<Outlet />}>
+								<Route index element={<Environment />} />
+								<Route path="/:sec" element={<Environment />} />
+							</Route>
+							<Route path="users" element={<Users />} />
+							<Route path="webhooks" element={<Webhooks />} />
+							<Route path="*" element={<Home />} />
+						</Route>
+					</Routes>
+				</Suspense>
+			</div>
 		);
 	}
 	return (

@@ -79,3 +79,36 @@ export const GenerateKeys = `
     }
   }
 `;
+
+export const AddWebhook = `
+  mutation addWebhook($params: AddWebhookRequest!) {
+    _add_webhook(params: $params) {
+      message
+    }
+  }
+`;
+
+export const EditWebhook = `
+  mutation editWebhook($params: UpdateWebhookRequest!) {
+    _update_webhook(params: $params) {
+      message
+    }
+  }
+`;
+
+export const DeleteWebhook = `
+  mutation deleteWebhook($params: WebhookRequest!) {
+    _delete_webhook(params: $params) {
+      message
+    }
+  }
+`;
+
+export const TestEndpoint = `
+  mutation testEndpoint($params: TestEndpointRequest!) {
+    _test_endpoint(params: $params) {
+      http_status
+      response
+    }
+  }
+`;
