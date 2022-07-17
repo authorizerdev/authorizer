@@ -27,7 +27,10 @@ func updateWebhookTest(t *testing.T, s TestSetup) {
 		webhook, err := db.Provider.GetWebhookByEventName(ctx, constants.UserDeletedWebhookEvent)
 		assert.NoError(t, err)
 		assert.NotNil(t, webhook)
-		webhook.Headers["x-new-test"] = "new-test"
+		// it should completely replace headers
+		webhook.Headers = map[string]interface{}{
+			"x-new-test": "test",
+		}
 
 		res, err := resolvers.UpdateWebhookResolver(ctx, model.UpdateWebhookRequest{
 			ID:      webhook.ID,
@@ -45,8 +48,11 @@ func updateWebhookTest(t *testing.T, s TestSetup) {
 		assert.Equal(t, webhook.ID, updatedWebhook.ID)
 		assert.Equal(t, refs.StringValue(webhook.EventName), refs.StringValue(updatedWebhook.EventName))
 		assert.Equal(t, refs.StringValue(webhook.Endpoint), refs.StringValue(updatedWebhook.Endpoint))
-		assert.Len(t, updatedWebhook.Headers, 2)
+		assert.Len(t, updatedWebhook.Headers, 1)
 		assert.False(t, refs.BoolValue(updatedWebhook.Enabled))
+		for key, val := range updatedWebhook.Headers {
+			assert.Equal(t, val, webhook.Headers[key])
+		}
 
 		res, err = resolvers.UpdateWebhookResolver(ctx, model.UpdateWebhookRequest{
 			ID:      webhook.ID,
