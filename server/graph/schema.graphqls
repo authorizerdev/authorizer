@@ -150,6 +150,54 @@ type GenerateJWTKeysResponse {
 	private_key: String
 }
 
+type Webhook {
+	id: ID!
+	event_name: String
+	endpoint: String
+	enabled: Boolean
+	headers: Map
+	created_at: Int64
+	updated_at: Int64
+}
+
+type Webhooks {
+	pagination: Pagination!
+	webhooks: [Webhook!]!
+}
+
+type WebhookLog {
+	id: ID!
+	http_status: Int64
+	response: String
+	request: String
+	webhook_id: ID
+	created_at: Int64
+	updated_at: Int64
+}
+
+type TestEndpointResponse {
+	http_status: Int64
+	response: Map
+}
+
+type WebhookLogs {
+	pagination: Pagination!
+	webhook_logs: [WebhookLog!]!
+}
+
+type EmailTemplate {
+	id: ID!
+	event_name: String!
+	template: String!
+	created_at: Int64
+	updated_at: Int64
+}
+
+type EmailTemplates {
+	pagination: Pagination!
+	EmailTemplates: [EmailTemplate!]!
+}
+
 input UpdateEnvInput {
 	ACCESS_TOKEN_EXPIRY_TIME: String
 	ADMIN_SECRET: String
@@ -324,36 +372,6 @@ input GenerateJWTKeysInput {
 	type: String!
 }
 
-type Webhook {
-	id: ID!
-	event_name: String
-	endpoint: String
-	enabled: Boolean
-	headers: Map
-	created_at: Int64
-	updated_at: Int64
-}
-
-type Webhooks {
-	pagination: Pagination!
-	webhooks: [Webhook!]!
-}
-
-type WebhookLog {
-	id: ID!
-	http_status: Int64
-	response: String
-	request: String
-	webhook_id: ID
-	created_at: Int64
-	updated_at: Int64
-}
-
-type TestEndpointResponse {
-	http_status: Int64
-	response: Map
-}
-
 input ListWebhookLogRequest {
 	pagination: PaginationInput
 	webhook_id: String
@@ -384,9 +402,19 @@ input TestEndpointRequest {
 	headers: Map
 }
 
-type WebhookLogs {
-	pagination: Pagination!
-	webhook_logs: [WebhookLog!]!
+input AddEmailTemplateRequest {
+	event_name: String!
+	template: String!
+}
+
+input UpdateEmailTemplateRequest {
+	id: ID!
+	event_name: String
+	template: String
+}
+
+input DeleteEmailTemplateRequest {
+	id: ID!
 }
 
 type Mutation {
@@ -415,6 +443,9 @@ type Mutation {
 	_update_webhook(params: UpdateWebhookRequest!): Response!
 	_delete_webhook(params: WebhookRequest!): Response!
 	_test_endpoint(params: TestEndpointRequest!): TestEndpointResponse!
+	_add_email_template(params: AddEmailTemplateRequest!): Response!
+	_update_email_template(params: UpdateEmailTemplateRequest!): Response!
+	_delete_email_template(params: DeleteEmailTemplateRequest!): Response!
 }
 
 type Query {
@@ -430,4 +461,5 @@ type Query {
 	_webhook(params: WebhookRequest!): Webhook!
 	_webhooks(params: PaginatedInput): Webhooks!
 	_webhook_logs(params: ListWebhookLogRequest): WebhookLogs!
+	_email_templates(params: PaginatedInput): EmailTemplates!
 }

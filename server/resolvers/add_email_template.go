@@ -2,7 +2,6 @@ package resolvers
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -15,8 +14,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// AddWebhookResolver resolver for add webhook mutation
-func AddWebhookResolver(ctx context.Context, params model.AddWebhookRequest) (*model.Response, error) {
+// TODO add template validator
+
+// AddEmailTemplateResolver resolver for add email template mutation
+func AddEmailTemplateResolver(ctx context.Context, params model.AddEmailTemplateRequest) (*model.Response, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
 		log.Debug("Failed to get GinContext: ", err)
@@ -28,33 +29,25 @@ func AddWebhookResolver(ctx context.Context, params model.AddWebhookRequest) (*m
 		return nil, fmt.Errorf("unauthorized")
 	}
 
-	if !validators.IsValidWebhookEventName(params.EventName) {
+	if !validators.IsValidEmailTemplateEventName(params.EventName) {
 		log.Debug("Invalid Event Name: ", params.EventName)
 		return nil, fmt.Errorf("invalid event name %s", params.EventName)
 	}
 
-	if strings.TrimSpace(params.Endpoint) == "" {
-		log.Debug("empty endpoint not allowed")
-		return nil, fmt.Errorf("empty endpoint not allowed")
+	if strings.TrimSpace(params.Template) == "" {
+		return nil, fmt.Errorf("empty template not allowed")
 	}
 
-	headerBytes, err := json.Marshal(params.Headers)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = db.Provider.AddWebhook(ctx, models.Webhook{
+	_, err = db.Provider.AddEmailTemplate(ctx, models.EmailTemplate{
 		EventName: params.EventName,
-		EndPoint:  params.Endpoint,
-		Enabled:   params.Enabled,
-		Headers:   string(headerBytes),
+		Template:  params.Template,
 	})
 	if err != nil {
-		log.Debug("Failed to add webhook: ", err)
+		log.Debug("Failed to add email template: ", err)
 		return nil, err
 	}
 
 	return &model.Response{
-		Message: `Webhook added successfully`,
+		Message: `Email template added successfully`,
 	}, nil
 }

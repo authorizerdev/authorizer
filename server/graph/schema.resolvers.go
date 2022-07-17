@@ -107,6 +107,18 @@ func (r *mutationResolver) TestEndpoint(ctx context.Context, params model.TestEn
 	return resolvers.TestEndpointResolver(ctx, params)
 }
 
+func (r *mutationResolver) AddEmailTemplate(ctx context.Context, params model.AddEmailTemplateRequest) (*model.Response, error) {
+	return resolvers.AddEmailTemplateResolver(ctx, params)
+}
+
+func (r *mutationResolver) UpdateEmailTemplate(ctx context.Context, params model.UpdateEmailTemplateRequest) (*model.Response, error) {
+	return resolvers.UpdateEmailTemplateResolver(ctx, params)
+}
+
+func (r *mutationResolver) DeleteEmailTemplate(ctx context.Context, params model.DeleteEmailTemplateRequest) (*model.Response, error) {
+	return resolvers.DeleteEmailTemplateResolver(ctx, params)
+}
+
 func (r *queryResolver) Meta(ctx context.Context) (*model.Meta, error) {
 	return resolvers.MetaResolver(ctx)
 }
@@ -151,11 +163,17 @@ func (r *queryResolver) WebhookLogs(ctx context.Context, params *model.ListWebho
 	return resolvers.WebhookLogsResolver(ctx, params)
 }
 
+func (r *queryResolver) EmailTemplates(ctx context.Context, params *model.PaginatedInput) (*model.EmailTemplates, error) {
+	return resolvers.EmailTemplatesResolver(ctx, params)
+}
+
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
-type mutationResolver struct{ *Resolver }
-type queryResolver struct{ *Resolver }
+type (
+	mutationResolver struct{ *Resolver }
+	queryResolver    struct{ *Resolver }
+)

@@ -21,6 +21,7 @@ type WebhookLog struct {
 	UpdatedAt  int64  `json:"updated_at" bson:"updated_at" cql:"updated_at"`
 }
 
+// AsAPIWebhookLog to return webhook log as graphql response object
 func (w *WebhookLog) AsAPIWebhookLog() *model.WebhookLog {
 	id := w.ID
 	if strings.Contains(id, Collections.WebhookLog+"/") {

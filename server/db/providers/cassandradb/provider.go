@@ -204,6 +204,17 @@ func NewProvider() (*provider, error) {
 		return nil, err
 	}
 
+	emailTemplateCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, event_name text, template text, updated_at bigint, created_at bigint, PRIMARY KEY (id))", KeySpace, models.Collections.EmailTemplate)
+	err = session.Query(emailTemplateCollectionQuery).Exec()
+	if err != nil {
+		return nil, err
+	}
+	emailTemplateIndexQuery := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_email_template_event_name ON %s.%s (event_name)", KeySpace, models.Collections.EmailTemplate)
+	err = session.Query(emailTemplateIndexQuery).Exec()
+	if err != nil {
+		return nil, err
+	}
+
 	return &provider{
 		db: session,
 	}, err

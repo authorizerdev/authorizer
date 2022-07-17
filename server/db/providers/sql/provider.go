@@ -60,7 +60,7 @@ func NewProvider() (*provider, error) {
 		return nil, err
 	}
 
-	err = sqlDB.AutoMigrate(&models.User{}, &models.VerificationRequest{}, &models.Session{}, &models.Env{}, &models.Webhook{}, models.WebhookLog{})
+	err = sqlDB.AutoMigrate(&models.User{}, &models.VerificationRequest{}, &models.Session{}, &models.Env{}, &models.Webhook{}, models.WebhookLog{}, models.EmailTemplate{})
 	if err != nil {
 		return nil, err
 	}

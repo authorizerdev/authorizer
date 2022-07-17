@@ -2,6 +2,11 @@
 
 package model
 
+type AddEmailTemplateRequest struct {
+	EventName string `json:"event_name"`
+	Template  string `json:"template"`
+}
+
 type AddWebhookRequest struct {
 	EventName string                 `json:"event_name"`
 	Endpoint  string                 `json:"endpoint"`
@@ -26,8 +31,25 @@ type AuthResponse struct {
 	User         *User   `json:"user"`
 }
 
+type DeleteEmailTemplateRequest struct {
+	ID string `json:"id"`
+}
+
 type DeleteUserInput struct {
 	Email string `json:"email"`
+}
+
+type EmailTemplate struct {
+	ID        string `json:"id"`
+	EventName string `json:"event_name"`
+	Template  string `json:"template"`
+	CreatedAt *int64 `json:"created_at"`
+	UpdatedAt *int64 `json:"updated_at"`
+}
+
+type EmailTemplates struct {
+	Pagination     *Pagination      `json:"pagination"`
+	EmailTemplates []*EmailTemplate `json:"EmailTemplates"`
 }
 
 type Env struct {
@@ -212,6 +234,12 @@ type TestEndpointResponse struct {
 
 type UpdateAccessInput struct {
 	UserID string `json:"user_id"`
+}
+
+type UpdateEmailTemplateRequest struct {
+	ID        string  `json:"id"`
+	EventName *string `json:"event_name"`
+	Template  *string `json:"template"`
 }
 
 type UpdateEnvInput struct {

@@ -101,6 +101,15 @@ func NewProvider() (*provider, error) {
 		},
 	}, options.CreateIndexes())
 
+	mongodb.CreateCollection(ctx, models.Collections.EmailTemplate, options.CreateCollection())
+	emailTemplateCollection := mongodb.Collection(models.Collections.EmailTemplate, options.Collection())
+	emailTemplateCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{
+			Keys:    bson.M{"event_name": 1},
+			Options: options.Index().SetUnique(true).SetSparse(true),
+		},
+	}, options.CreateIndexes())
+
 	return &provider{
 		db: mongodb,
 	}, nil
