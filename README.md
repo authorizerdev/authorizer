@@ -89,7 +89,7 @@ This guide helps you practice using Authorizer to evaluate it before you use it 
 5. Build Dashboard `make build-dashboard`
 6. Build App `make build-app`
 7. Build Server `make clean && make`
-   > Note: if you don't have [`make`](https://www.ibm.com/docs/en/aix/7.2?topic=concepts-make-command), you can `cd` into `server` dir and build using the `go build` command
+   > Note: if you don't have [`make`](https://www.ibm.com/docs/en/aix/7.2?topic=concepts-make-command), you can `cd` into `server` dir and build using the `go build` command. In that case you will have to build `dashboard` & `app` manually using `npm run build` on both dirs.
 8. Run binary `./build/server`
 
 ### Deploy Authorizer using binaries
