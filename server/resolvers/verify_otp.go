@@ -87,10 +87,6 @@ func VerifyOtpResolver(ctx context.Context, params model.VerifyOTPRequest) (*mod
 		authTokenExpiresIn = 1
 	}
 
-	if authTokenExpiresIn <= 0 {
-		authTokenExpiresIn = 1
-	}
-
 	res = &model.AuthResponse{
 		Message:     `OTP verified successfully.`,
 		AccessToken: &authToken.AccessToken.Token,
