@@ -73,10 +73,8 @@ type Provider interface {
 	// DeleteEmailTemplate to delete EmailTemplate
 	DeleteEmailTemplate(ctx context.Context, emailTemplate *model.EmailTemplate) error
 
-	// AddOTP to add otp
-	AddOTP(ctx context.Context, otp *models.OTP) (*models.OTP, error)
-	// UpdateOTP to update otp for a given email address
-	UpdateOTP(ctx context.Context, otp *models.OTP) (*models.OTP, error)
+	// UpsertOTP to add or update otp
+	UpsertOTP(ctx context.Context, otp *models.OTP) (*models.OTP, error)
 	// GetOTPByEmail to get otp for a given email address
 	GetOTPByEmail(ctx context.Context, emailAddress string) (*models.OTP, error)
 	// DeleteOTP to delete otp

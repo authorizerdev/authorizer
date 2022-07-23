@@ -6,10 +6,11 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/google/uuid"
+	"gorm.io/gorm/clause"
 )
 
-// AddOTP to add otp
-func (p *provider) AddOTP(ctx context.Context, otp *models.OTP) (*models.OTP, error) {
+// UpsertOTP to add or update otp
+func (p *provider) UpsertOTP(ctx context.Context, otp *models.OTP) (*models.OTP, error) {
 	if otp.ID == "" {
 		otp.ID = uuid.New().String()
 	}
@@ -18,22 +19,14 @@ func (p *provider) AddOTP(ctx context.Context, otp *models.OTP) (*models.OTP, er
 	otp.CreatedAt = time.Now().Unix()
 	otp.UpdatedAt = time.Now().Unix()
 
-	res := p.db.Create(&otp)
+	res := p.db.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "email"}},
+		DoUpdates: clause.AssignmentColumns([]string{"otp", "expires_at", "updated_at"}),
+	}).Create(&otp)
 	if res.Error != nil {
 		return nil, res.Error
 	}
 
-	return otp, nil
-}
-
-// UpdateOTP to update otp for a given email address
-func (p *provider) UpdateOTP(ctx context.Context, otp *models.OTP) (*models.OTP, error) {
-	otp.UpdatedAt = time.Now().Unix()
-
-	res := p.db.Save(&otp)
-	if res.Error != nil {
-		return nil, res.Error
-	}
 	return otp, nil
 }
 

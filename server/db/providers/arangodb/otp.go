@@ -9,37 +9,37 @@ import (
 	"github.com/google/uuid"
 )
 
-// AddOTP to add otp
-func (p *provider) AddOTP(ctx context.Context, otp *models.OTP) (*models.OTP, error) {
-	if otp.ID == "" {
+// UpsertOTP to add or update otp
+func (p *provider) UpsertOTP(ctx context.Context, otpParam *models.OTP) (*models.OTP, error) {
+	otp, _ := p.GetOTPByEmail(ctx, otpParam.Email)
+	shouldCreate := false
+	if otp == nil {
+		shouldCreate = true
 		otp.ID = uuid.New().String()
+		otp.Key = otp.ID
+		otp.CreatedAt = time.Now().Unix()
+	} else {
+		otp = otpParam
 	}
 
-	otp.Key = otp.ID
-	otp.CreatedAt = time.Now().Unix()
 	otp.UpdatedAt = time.Now().Unix()
-
 	otpCollection, _ := p.db.Collection(ctx, models.Collections.OTP)
-	_, err := otpCollection.CreateDocument(ctx, otp)
-	if err != nil {
-		return nil, err
+
+	if shouldCreate {
+		_, err := otpCollection.CreateDocument(ctx, otp)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		meta, err := otpCollection.UpdateDocument(ctx, otp.Key, otp)
+		if err != nil {
+			return nil, err
+		}
+
+		otp.Key = meta.Key
+		otp.ID = meta.ID.String()
 	}
 
-	return otp, nil
-}
-
-// UpdateOTP to update otp for a given email address
-func (p *provider) UpdateOTP(ctx context.Context, otp *models.OTP) (*models.OTP, error) {
-	otp.UpdatedAt = time.Now().Unix()
-
-	otpCollection, _ := p.db.Collection(ctx, models.Collections.OTP)
-	meta, err := otpCollection.UpdateDocument(ctx, otp.Key, otp)
-	if err != nil {
-		return nil, err
-	}
-
-	otp.Key = meta.Key
-	otp.ID = meta.ID.String()
 	return otp, nil
 }
 

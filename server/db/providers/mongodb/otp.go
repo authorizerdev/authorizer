@@ -10,31 +10,20 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// AddOTP to add otp
-func (p *provider) AddOTP(ctx context.Context, otp *models.OTP) (*models.OTP, error) {
+// UpsertOTP to add or update otp
+func (p *provider) UpsertOTP(ctx context.Context, otp *models.OTP) (*models.OTP, error) {
 	if otp.ID == "" {
 		otp.ID = uuid.New().String()
 	}
 
 	otp.Key = otp.ID
-	otp.CreatedAt = time.Now().Unix()
-	otp.UpdatedAt = time.Now().Unix()
-
-	otpCollection := p.db.Collection(models.Collections.OTP, options.Collection())
-	_, err := otpCollection.InsertOne(ctx, otp)
-	if err != nil {
-		return nil, err
+	if otp.CreatedAt <= 0 {
+		otp.CreatedAt = time.Now().Unix()
 	}
-
-	return otp, nil
-}
-
-// UpdateOTP to update otp for a given email address
-func (p *provider) UpdateOTP(ctx context.Context, otp *models.OTP) (*models.OTP, error) {
 	otp.UpdatedAt = time.Now().Unix()
 
 	otpCollection := p.db.Collection(models.Collections.OTP, options.Collection())
-	_, err := otpCollection.UpdateOne(ctx, bson.M{"_id": bson.M{"$eq": otp.ID}}, bson.M{"$set": otp}, options.MergeUpdateOptions())
+	_, err := otpCollection.UpdateOne(ctx, bson.M{"_id": bson.M{"$eq": otp.ID}}, bson.M{"$set": otp}, options.MergeUpdateOptions().SetUpsert(true))
 	if err != nil {
 		return nil, err
 	}

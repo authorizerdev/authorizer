@@ -221,6 +221,17 @@ func NewProvider() (*provider, error) {
 		return nil, err
 	}
 
+	otpCollection := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, email text, otp text, expires_at bigint, updated_at bigint, created_at bigint, PRIMARY KEY (id))", KeySpace, models.Collections.OTP)
+	err = session.Query(otpCollection).Exec()
+	if err != nil {
+		return nil, err
+	}
+	otpIndexQuery := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_otp_email ON %s.%s (email)", KeySpace, models.Collections.OTP)
+	err = session.Query(otpIndexQuery).Exec()
+	if err != nil {
+		return nil, err
+	}
+
 	return &provider{
 		db: session,
 	}, err
