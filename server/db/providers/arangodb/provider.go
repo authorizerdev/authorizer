@@ -148,6 +148,20 @@ func NewProvider() (*provider, error) {
 		Sparse: true,
 	})
 
+	otpCollectionExists, err := arangodb.CollectionExists(ctx, models.Collections.OTP)
+	if !otpCollectionExists {
+		_, err = arangodb.CreateCollection(ctx, models.Collections.OTP, nil)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	otpCollection, _ := arangodb.Collection(nil, models.Collections.OTP)
+	otpCollection.EnsureHashIndex(ctx, []string{"email"}, &arangoDriver.EnsureHashIndexOptions{
+		Unique: true,
+		Sparse: true,
+	})
+
 	return &provider{
 		db: arangodb,
 	}, err
