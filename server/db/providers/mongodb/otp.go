@@ -33,15 +33,15 @@ func (p *provider) UpsertOTP(ctx context.Context, otp *models.OTP) (*models.OTP,
 
 // GetOTPByEmail to get otp for a given email address
 func (p *provider) GetOTPByEmail(ctx context.Context, emailAddress string) (*models.OTP, error) {
-	var otp *models.OTP
+	var otp models.OTP
 
 	otpCollection := p.db.Collection(models.Collections.OTP, options.Collection())
-	err := otpCollection.FindOne(ctx, bson.M{"email": emailAddress}).Decode(otp)
+	err := otpCollection.FindOne(ctx, bson.M{"email": emailAddress}).Decode(&otp)
 	if err != nil {
 		return nil, err
 	}
 
-	return otp, nil
+	return &otp, nil
 }
 
 // DeleteOTP to delete otp
