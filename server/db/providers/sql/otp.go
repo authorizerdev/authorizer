@@ -39,13 +39,13 @@ func (p *provider) UpdateOTP(ctx context.Context, otp *models.OTP) (*models.OTP,
 
 // GetOTPByEmail to get otp for a given email address
 func (p *provider) GetOTPByEmail(ctx context.Context, emailAddress string) (*models.OTP, error) {
-	var otp models.OTP
+	var otp *models.OTP
 
-	result := p.db.Where("email = ?", emailAddress).First(&otp)
+	result := p.db.Where("email = ?", emailAddress).First(otp)
 	if result.Error != nil {
 		return nil, result.Error
 	}
-	return &otp, nil
+	return otp, nil
 }
 
 // DeleteOTP to delete otp
