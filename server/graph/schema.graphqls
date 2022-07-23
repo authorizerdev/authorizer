@@ -421,6 +421,11 @@ input DeleteEmailTemplateRequest {
 	id: ID!
 }
 
+input VerifyOTPRequest {
+	email: String!
+	otp: String!
+}
+
 type Mutation {
 	signup(params: SignUpInput!): AuthResponse!
 	login(params: LoginInput!): AuthResponse!
@@ -432,6 +437,7 @@ type Mutation {
 	forgot_password(params: ForgotPasswordInput!): Response!
 	reset_password(params: ResetPasswordInput!): Response!
 	revoke(params: OAuthRevokeInput!): Response!
+	verify_otp(params: VerifyOTPRequest!): AuthResponse!
 	# admin only apis
 	_delete_user(params: DeleteUserInput!): Response!
 	_update_user(params: UpdateUserInput!): User!

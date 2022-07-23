@@ -383,6 +383,11 @@ type VerifyEmailInput struct {
 	Token string `json:"token"`
 }
 
+type VerifyOTPRequest struct {
+	Email string `json:"email"`
+	Otp   string `json:"otp"`
+}
+
 type Webhook struct {
 	ID        string                 `json:"id"`
 	EventName *string                `json:"event_name"`

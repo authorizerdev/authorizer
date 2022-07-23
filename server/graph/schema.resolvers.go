@@ -51,6 +51,10 @@ func (r *mutationResolver) Revoke(ctx context.Context, params model.OAuthRevokeI
 	return resolvers.RevokeResolver(ctx, params)
 }
 
+func (r *mutationResolver) VerifyOtp(ctx context.Context, params model.VerifyOTPRequest) (*model.AuthResponse, error) {
+	return resolvers.VerifyOtpResolver(ctx, params)
+}
+
 func (r *mutationResolver) DeleteUser(ctx context.Context, params model.DeleteUserInput) (*model.Response, error) {
 	return resolvers.DeleteUserResolver(ctx, params)
 }
@@ -173,5 +177,7 @@ func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResol
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
-type mutationResolver struct{ *Resolver }
-type queryResolver struct{ *Resolver }
+type (
+	mutationResolver struct{ *Resolver }
+	queryResolver    struct{ *Resolver }
+)
