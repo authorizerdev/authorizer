@@ -94,6 +94,10 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 		user.Picture = params.Picture
 	}
 
+	if params.IsMultiFactorAuthEnabled != nil && refs.BoolValue(user.IsMultiFactorAuthEnabled) != refs.BoolValue(params.IsMultiFactorAuthEnabled) {
+		user.IsMultiFactorAuthEnabled = params.IsMultiFactorAuthEnabled
+	}
+
 	isPasswordChanging := false
 	if params.NewPassword != nil && params.ConfirmNewPassword == nil {
 		isPasswordChanging = true

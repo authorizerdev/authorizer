@@ -159,6 +159,12 @@ func NewProvider() (*provider, error) {
 	if err != nil {
 		return nil, err
 	}
+	// add is_multi_factor_auth_enabled on users table
+	userTableAlterQuery := fmt.Sprintf(`ALTER TABLE %s.%s ADD is_multi_factor_auth_enabled boolean;`, KeySpace, models.Collections.User)
+	err = session.Query(userTableAlterQuery).Exec()
+	if err != nil {
+		return nil, err
+	}
 
 	// token is reserved keyword in cassandra, hence we need to use jwt_token
 	verificationRequestCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, jwt_token text, identifier text, expires_at bigint, email text, nonce text, redirect_uri text, created_at bigint, updated_at bigint, PRIMARY KEY (id))", KeySpace, models.Collections.VerificationRequest)

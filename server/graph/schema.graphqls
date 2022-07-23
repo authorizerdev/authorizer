@@ -47,6 +47,7 @@ type User {
 	created_at: Int64
 	updated_at: Int64
 	revoked_timestamp: Int64
+	is_multi_factor_auth_enabled: Boolean
 }
 
 type Users {
@@ -263,6 +264,7 @@ input SignUpInput {
 	roles: [String!]
 	scope: [String!]
 	redirect_uri: String
+	is_multi_factor_auth_enabled: Boolean
 }
 
 input LoginInput {
@@ -294,6 +296,7 @@ input UpdateProfileInput {
 	birthdate: String
 	phone_number: String
 	picture: String
+	is_multi_factor_auth_enabled: Boolean
 }
 
 input UpdateUserInput {
@@ -309,6 +312,7 @@ input UpdateUserInput {
 	phone_number: String
 	picture: String
 	roles: [String]
+	is_multi_factor_auth_enabled: Boolean
 }
 
 input ForgotPasswordInput {

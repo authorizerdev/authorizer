@@ -157,6 +157,10 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 		user.Picture = params.Picture
 	}
 
+	if params.IsMultiFactorAuthEnabled != nil {
+		user.IsMultiFactorAuthEnabled = params.IsMultiFactorAuthEnabled
+	}
+
 	user.SignupMethods = constants.AuthRecipeMethodBasicAuth
 	isEmailVerificationDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification)
 	if err != nil {

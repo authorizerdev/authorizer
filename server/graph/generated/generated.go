@@ -204,24 +204,25 @@ type ComplexityRoot struct {
 	}
 
 	User struct {
-		Birthdate           func(childComplexity int) int
-		CreatedAt           func(childComplexity int) int
-		Email               func(childComplexity int) int
-		EmailVerified       func(childComplexity int) int
-		FamilyName          func(childComplexity int) int
-		Gender              func(childComplexity int) int
-		GivenName           func(childComplexity int) int
-		ID                  func(childComplexity int) int
-		MiddleName          func(childComplexity int) int
-		Nickname            func(childComplexity int) int
-		PhoneNumber         func(childComplexity int) int
-		PhoneNumberVerified func(childComplexity int) int
-		Picture             func(childComplexity int) int
-		PreferredUsername   func(childComplexity int) int
-		RevokedTimestamp    func(childComplexity int) int
-		Roles               func(childComplexity int) int
-		SignupMethods       func(childComplexity int) int
-		UpdatedAt           func(childComplexity int) int
+		Birthdate                func(childComplexity int) int
+		CreatedAt                func(childComplexity int) int
+		Email                    func(childComplexity int) int
+		EmailVerified            func(childComplexity int) int
+		FamilyName               func(childComplexity int) int
+		Gender                   func(childComplexity int) int
+		GivenName                func(childComplexity int) int
+		ID                       func(childComplexity int) int
+		IsMultiFactorAuthEnabled func(childComplexity int) int
+		MiddleName               func(childComplexity int) int
+		Nickname                 func(childComplexity int) int
+		PhoneNumber              func(childComplexity int) int
+		PhoneNumberVerified      func(childComplexity int) int
+		Picture                  func(childComplexity int) int
+		PreferredUsername        func(childComplexity int) int
+		RevokedTimestamp         func(childComplexity int) int
+		Roles                    func(childComplexity int) int
+		SignupMethods            func(childComplexity int) int
+		UpdatedAt                func(childComplexity int) int
 	}
 
 	Users struct {
@@ -1429,6 +1430,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.User.ID(childComplexity), true
 
+	case "User.is_multi_factor_auth_enabled":
+		if e.complexity.User.IsMultiFactorAuthEnabled == nil {
+			break
+		}
+
+		return e.complexity.User.IsMultiFactorAuthEnabled(childComplexity), true
+
 	case "User.middle_name":
 		if e.complexity.User.MiddleName == nil {
 			break
@@ -1836,6 +1844,7 @@ type User {
 	created_at: Int64
 	updated_at: Int64
 	revoked_timestamp: Int64
+	is_multi_factor_auth_enabled: Boolean
 }
 
 type Users {
@@ -2052,6 +2061,7 @@ input SignUpInput {
 	roles: [String!]
 	scope: [String!]
 	redirect_uri: String
+	is_multi_factor_auth_enabled: Boolean
 }
 
 input LoginInput {
@@ -2083,6 +2093,7 @@ input UpdateProfileInput {
 	birthdate: String
 	phone_number: String
 	picture: String
+	is_multi_factor_auth_enabled: Boolean
 }
 
 input UpdateUserInput {
@@ -2098,6 +2109,7 @@ input UpdateUserInput {
 	phone_number: String
 	picture: String
 	roles: [String]
+	is_multi_factor_auth_enabled: Boolean
 }
 
 input ForgotPasswordInput {
@@ -7888,6 +7900,38 @@ func (ec *executionContext) _User_revoked_timestamp(ctx context.Context, field g
 	return ec.marshalOInt642ᚖint64(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _User_is_multi_factor_auth_enabled(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsMultiFactorAuthEnabled, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*bool)
+	fc.Result = res
+	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Users_pagination(ctx context.Context, field graphql.CollectedField, obj *model.Users) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -10765,6 +10809,14 @@ func (ec *executionContext) unmarshalInputSignUpInput(ctx context.Context, obj i
 			if err != nil {
 				return it, err
 			}
+		case "is_multi_factor_auth_enabled":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("is_multi_factor_auth_enabled"))
+			it.IsMultiFactorAuthEnabled, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		}
 	}
 
@@ -11304,6 +11356,14 @@ func (ec *executionContext) unmarshalInputUpdateProfileInput(ctx context.Context
 			if err != nil {
 				return it, err
 			}
+		case "is_multi_factor_auth_enabled":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("is_multi_factor_auth_enabled"))
+			it.IsMultiFactorAuthEnabled, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		}
 	}
 
@@ -11412,6 +11472,14 @@ func (ec *executionContext) unmarshalInputUpdateUserInput(ctx context.Context, o
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("roles"))
 			it.Roles, err = ec.unmarshalOString2ᚕᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "is_multi_factor_auth_enabled":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("is_multi_factor_auth_enabled"))
+			it.IsMultiFactorAuthEnabled, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -12482,6 +12550,8 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			out.Values[i] = ec._User_updated_at(ctx, field, obj)
 		case "revoked_timestamp":
 			out.Values[i] = ec._User_revoked_timestamp(ctx, field, obj)
+		case "is_multi_factor_auth_enabled":
+			out.Values[i] = ec._User_is_multi_factor_auth_enabled(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
