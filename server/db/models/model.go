@@ -21,9 +21,9 @@ var (
 		VerificationRequest: Prefix + "verification_requests",
 		Session:             Prefix + "sessions",
 		Env:                 Prefix + "env",
-		Webhook:             Prefix + "webhook",
-		WebhookLog:          Prefix + "webhook_log",
-		EmailTemplate:       Prefix + "email_template",
+		Webhook:             Prefix + "webhooks",
+		WebhookLog:          Prefix + "webhook_logs",
+		EmailTemplate:       Prefix + "email_templates",
 		OTP:                 Prefix + "otps",
 	}
 )

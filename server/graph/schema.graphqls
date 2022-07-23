@@ -79,6 +79,8 @@ type Error {
 
 type AuthResponse {
 	message: String!
+	has_multi_factor_auth_enabled: Boolean
+	is_otp_sent: Boolean
 	access_token: String
 	id_token: String
 	refresh_token: String
