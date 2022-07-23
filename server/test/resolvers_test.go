@@ -114,7 +114,7 @@ func TestResolvers(t *testing.T) {
 			metaTests(t, s)
 			inviteUserTest(t, s)
 			validateJwtTokenTest(t, s)
-
+			verifyOTPTest(t, s)
 			webhookLogsTest(t, s)   // get logs after above resolver tests are done
 			deleteWebhookTest(t, s) // delete webhooks (admin resolver)
 		})
