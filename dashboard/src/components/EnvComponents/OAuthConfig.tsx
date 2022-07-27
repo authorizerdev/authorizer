@@ -108,7 +108,7 @@ const OAuthConfig = ({
 								fieldVisibility={fieldVisibility}
 								setFieldVisibility={setFieldVisibility}
 								inputType={HiddenInputType.GOOGLE_CLIENT_SECRET}
-								placeholder="Google Secret"
+								placeholder="Google Client Secret"
 							/>
 						</Center>
 					</Flex>
@@ -146,7 +146,7 @@ const OAuthConfig = ({
 								fieldVisibility={fieldVisibility}
 								setFieldVisibility={setFieldVisibility}
 								inputType={HiddenInputType.GITHUB_CLIENT_SECRET}
-								placeholder="Github Secret"
+								placeholder="Github Client Secret"
 							/>
 						</Center>
 					</Flex>
@@ -184,7 +184,7 @@ const OAuthConfig = ({
 								fieldVisibility={fieldVisibility}
 								setFieldVisibility={setFieldVisibility}
 								inputType={HiddenInputType.FACEBOOK_CLIENT_SECRET}
-								placeholder="Facebook Secret"
+								placeholder="Facebook Client Secret"
 							/>
 						</Center>
 					</Flex>
@@ -260,7 +260,7 @@ const OAuthConfig = ({
 								fieldVisibility={fieldVisibility}
 								setFieldVisibility={setFieldVisibility}
 								inputType={HiddenInputType.APPLE_CLIENT_SECRET}
-								placeholder="Apple CLient Secret"
+								placeholder="Apple Client Secret"
 							/>
 						</Center>
 					</Flex>

@@ -68,6 +68,7 @@ interface userDataTypes {
 	roles: [string];
 	created_at: number;
 	revoked_timestamp: number;
+	is_multi_factor_auth_enabled?: boolean;
 }
 
 const enum updateAccessActions {
@@ -250,6 +251,34 @@ export default function Users() {
 				break;
 		}
 	};
+	const multiFactorAuthUpdateHandler = async (user: userDataTypes) => {
+		const res = await client
+			.mutation(UpdateUser, {
+				params: {
+					id: user.id,
+					is_multi_factor_auth_enabled: !user.is_multi_factor_auth_enabled,
+				},
+			})
+			.toPromise();
+		if (res.data?._update_user?.id) {
+			toast({
+				title: `Multi factor authentication ${
+					user.is_multi_factor_auth_enabled ? 'disabled' : 'enabled'
+				} for user`,
+				isClosable: true,
+				status: 'success',
+				position: 'bottom-right',
+			});
+			updateUserList();
+			return;
+		}
+		toast({
+			title: 'Multi factor authentication update failed for user',
+			isClosable: true,
+			status: 'error',
+			position: 'bottom-right',
+		});
+	};
 
 	return (
 		<Box m="5" py="5" px="10" bg="white" rounded="md">
@@ -273,6 +302,7 @@ export default function Users() {
 								<Th>Roles</Th>
 								<Th>Verified</Th>
 								<Th>Access</Th>
+								<Th>MFA</Th>
 								<Th>Actions</Th>
 							</Tr>
 						</Thead>
@@ -303,6 +333,19 @@ export default function Users() {
 												colorScheme={user.revoked_timestamp ? 'red' : 'green'}
 											>
 												{user.revoked_timestamp ? 'Revoked' : 'Enabled'}
+											</Tag>
+										</Td>
+										<Td>
+											<Tag
+												size="sm"
+												variant="outline"
+												colorScheme={
+													user.is_multi_factor_auth_enabled ? 'green' : 'red'
+												}
+											>
+												{user.is_multi_factor_auth_enabled
+													? 'Enabled'
+													: 'Disabled'}
 											</Tag>
 										</Td>
 										<Td>
@@ -355,6 +398,19 @@ export default function Users() {
 															}
 														>
 															Revoke Access
+														</MenuItem>
+													)}
+													{user.is_multi_factor_auth_enabled ? (
+														<MenuItem
+															onClick={() => multiFactorAuthUpdateHandler(user)}
+														>
+															Disable MFA
+														</MenuItem>
+													) : (
+														<MenuItem
+															onClick={() => multiFactorAuthUpdateHandler(user)}
+														>
+															Enable MFA
 														</MenuItem>
 													)}
 												</MenuList>
