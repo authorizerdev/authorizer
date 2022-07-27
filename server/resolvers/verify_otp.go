@@ -21,14 +21,12 @@ import (
 func VerifyOtpResolver(ctx context.Context, params model.VerifyOTPRequest) (*model.AuthResponse, error) {
 	var res *model.AuthResponse
 	gc, err := utils.GinContextFromContext(ctx)
-
 	if err != nil {
 		log.Debug("Failed to get GinContext: ", err)
 		return res, err
 	}
 
 	otp, err := db.Provider.GetOTPByEmail(ctx, params.Email)
-
 	if err != nil {
 		log.Debug("Failed to get otp request by email: ", err)
 		return res, fmt.Errorf(`invalid email: %s`, err.Error())
@@ -42,7 +40,6 @@ func VerifyOtpResolver(ctx context.Context, params model.VerifyOTPRequest) (*mod
 	}
 
 	user, err := db.Provider.GetUserByEmail(ctx, params.Email)
-
 	if err != nil {
 		log.Debug("Failed to get user by email: ", err)
 		return res, err
@@ -57,7 +54,6 @@ func VerifyOtpResolver(ctx context.Context, params model.VerifyOTPRequest) (*mod
 	roles := strings.Split(user.Roles, ",")
 	scope := []string{"openid", "email", "profile"}
 	authToken, err := token.CreateAuthToken(gc, user, roles, scope, loginMethod)
-
 	if err != nil {
 		log.Debug("Failed to create auth token: ", err)
 		return res, err
