@@ -44,12 +44,13 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	AuthResponse struct {
-		AccessToken  func(childComplexity int) int
-		ExpiresIn    func(childComplexity int) int
-		IDToken      func(childComplexity int) int
-		Message      func(childComplexity int) int
-		RefreshToken func(childComplexity int) int
-		User         func(childComplexity int) int
+		AccessToken         func(childComplexity int) int
+		ExpiresIn           func(childComplexity int) int
+		IDToken             func(childComplexity int) int
+		Message             func(childComplexity int) int
+		RefreshToken        func(childComplexity int) int
+		ShouldShowOtpScreen func(childComplexity int) int
+		User                func(childComplexity int) int
 	}
 
 	EmailTemplate struct {
@@ -377,6 +378,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.AuthResponse.RefreshToken(childComplexity), true
+
+	case "AuthResponse.should_show_otp_screen":
+		if e.complexity.AuthResponse.ShouldShowOtpScreen == nil {
+			break
+		}
+
+		return e.complexity.AuthResponse.ShouldShowOtpScreen(childComplexity), true
 
 	case "AuthResponse.user":
 		if e.complexity.AuthResponse.User == nil {
@@ -1890,6 +1898,7 @@ type Error {
 
 type AuthResponse {
 	message: String!
+	should_show_otp_screen: Boolean
 	access_token: String
 	id_token: String
 	refresh_token: String
@@ -2888,6 +2897,38 @@ func (ec *executionContext) _AuthResponse_message(ctx context.Context, field gra
 	res := resTmp.(string)
 	fc.Result = res
 	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _AuthResponse_should_show_otp_screen(ctx context.Context, field graphql.CollectedField, obj *model.AuthResponse) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "AuthResponse",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ShouldShowOtpScreen, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*bool)
+	fc.Result = res
+	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _AuthResponse_access_token(ctx context.Context, field graphql.CollectedField, obj *model.AuthResponse) (ret graphql.Marshaler) {
@@ -11761,6 +11802,8 @@ func (ec *executionContext) _AuthResponse(ctx context.Context, sel ast.Selection
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "should_show_otp_screen":
+			out.Values[i] = ec._AuthResponse_should_show_otp_screen(ctx, field, obj)
 		case "access_token":
 			out.Values[i] = ec._AuthResponse_access_token(ctx, field, obj)
 		case "id_token":

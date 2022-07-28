@@ -15,6 +15,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
+	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/authorizerdev/authorizer/server/validators"
@@ -95,6 +96,13 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 	scope := []string{"openid", "email", "profile"}
 	if params.Scope != nil && len(scope) > 0 {
 		scope = params.Scope
+	}
+
+	if refs.BoolValue(user.IsMultiFactorAuthEnabled) {
+		return &model.AuthResponse{
+			Message:             "Please check the OTP in your inbox",
+			ShouldShowOtpScreen: refs.NewBoolRef(true),
+		}, nil
 	}
 
 	authToken, err := token.CreateAuthToken(gc, user, roles, scope, constants.AuthRecipeMethodBasicAuth)
