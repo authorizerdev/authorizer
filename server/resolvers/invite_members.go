@@ -35,13 +35,13 @@ func InviteMembersResolver(ctx context.Context, params model.InviteMemberInput) 
 	}
 
 	// this feature is only allowed if email server is configured
-	isEmailVerificationDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification)
+	EnvKeyIsEmailServiceEnabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyIsEmailServiceEnabled)
 	if err != nil {
 		log.Debug("Error getting email verification disabled: ", err)
-		isEmailVerificationDisabled = true
+		EnvKeyIsEmailServiceEnabled = false
 	}
 
-	if isEmailVerificationDisabled {
+	if !EnvKeyIsEmailServiceEnabled {
 		log.Debug("Email server is not configured")
 		return nil, errors.New("email sending is disabled")
 	}

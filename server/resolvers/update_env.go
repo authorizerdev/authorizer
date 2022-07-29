@@ -234,6 +234,7 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 	// handle derivative cases like disabling email verification & magic login
 	// in case SMTP is off but env is set to true
 	if updatedData[constants.EnvKeySmtpHost] == "" || updatedData[constants.EnvKeySmtpUsername] == "" || updatedData[constants.EnvKeySmtpPassword] == "" || updatedData[constants.EnvKeySenderEmail] == "" && updatedData[constants.EnvKeySmtpPort] == "" {
+		updatedData[constants.EnvKeyIsEmailServiceEnabled] = false
 		if !updatedData[constants.EnvKeyDisableEmailVerification].(bool) {
 			updatedData[constants.EnvKeyDisableEmailVerification] = true
 		}
@@ -241,6 +242,10 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 		if !updatedData[constants.EnvKeyDisableMagicLinkLogin].(bool) {
 			updatedData[constants.EnvKeyDisableMagicLinkLogin] = true
 		}
+	}
+
+	if updatedData[constants.EnvKeySmtpHost] != "" || updatedData[constants.EnvKeySmtpUsername] != "" || updatedData[constants.EnvKeySmtpPassword] != "" || updatedData[constants.EnvKeySenderEmail] != "" && updatedData[constants.EnvKeySmtpPort] != "" {
+		updatedData[constants.EnvKeyIsEmailServiceEnabled] = true
 	}
 
 	// check the roles change

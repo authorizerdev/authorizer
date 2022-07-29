@@ -2,6 +2,7 @@ package resolvers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
+	"github.com/authorizerdev/authorizer/server/email"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/refs"
@@ -99,12 +101,29 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 	}
 
 	if refs.BoolValue(user.IsMultiFactorAuthEnabled) {
-		//TODO - send email based on email config
-		db.Provider.UpsertOTP(ctx, &models.OTP{
+		isEnvServiceEnabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyIsEmailServiceEnabled)
+		if err != nil || !isEnvServiceEnabled {
+			log.Debug("Email service not enabled:")
+			return nil, errors.New("email service not enabled")
+		}
+		otp := utils.GenerateOTP()
+		otpData, err := db.Provider.UpsertOTP(ctx, &models.OTP{
 			Email:     user.Email,
-			Otp:       utils.GenerateOTP(),
+			Otp:       otp,
 			ExpiresAt: time.Now().Add(1 * time.Minute).Unix(),
 		})
+		if err != nil {
+			log.Debug("Failed to add otp: ", err)
+			return nil, err
+		}
+
+		go func() {
+			err := email.SendOtpMail(user.Email, otpData.Otp)
+			if err != nil {
+				log.Debug("Failed to send otp email: ", err)
+			}
+		}()
+
 		return &model.AuthResponse{
 			Message:             "Please check the OTP in your inbox",
 			ShouldShowOtpScreen: refs.NewBoolRef(true),

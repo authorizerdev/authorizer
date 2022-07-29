@@ -31,6 +31,7 @@ func InitMemStore() error {
 		constants.EnvKeyDisableLoginPage:           false,
 		constants.EnvKeyDisableSignUp:              false,
 		constants.EnvKeyDisableStrongPassword:      false,
+		constants.EnvKeyIsEmailServiceEnabled:      false,
 	}
 
 	requiredEnvs := RequiredEnvStoreObj.GetRequiredEnv()

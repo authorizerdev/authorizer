@@ -221,9 +221,10 @@ func PersistEnv() error {
 		// handle derivative cases like disabling email verification & magic login
 		// in case SMTP is off but env is set to true
 		if storeData[constants.EnvKeySmtpHost] == "" || storeData[constants.EnvKeySmtpUsername] == "" || storeData[constants.EnvKeySmtpPassword] == "" || storeData[constants.EnvKeySenderEmail] == "" && storeData[constants.EnvKeySmtpPort] == "" {
+			storeData[constants.EnvKeyIsEmailServiceEnabled] = false
+
 			if !storeData[constants.EnvKeyDisableEmailVerification].(bool) {
 				storeData[constants.EnvKeyDisableEmailVerification] = true
-				storeData[constants.EnvKeyIsEmailServiceEnabled] = false
 				hasChanged = true
 			}
 

@@ -52,8 +52,7 @@ func VerifyOtpResolver(ctx context.Context, params model.VerifyOTPRequest) (*mod
 
 	isSignUp := user.EmailVerifiedAt == nil
 
-	// TODO - Add Login method in DB
-
+	// TODO - Add Login method in DB when we introduce OTP for social media login
 	loginMethod := constants.AuthRecipeMethodBasicAuth
 
 	roles := strings.Split(user.Roles, ",")
@@ -65,11 +64,7 @@ func VerifyOtpResolver(ctx context.Context, params model.VerifyOTPRequest) (*mod
 	}
 
 	go func() {
-		err = db.Provider.DeleteOTP(gc, otp)
-
-		if err != nil {
-			log.Debug("Failed to delete otp: ", err)
-		}
+		db.Provider.DeleteOTP(gc, otp)
 		if isSignUp {
 			utils.RegisterEvent(ctx, constants.UserSignUpWebhookEvent, loginMethod, user)
 		} else {
