@@ -99,6 +99,12 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 	}
 
 	if refs.BoolValue(user.IsMultiFactorAuthEnabled) {
+		//TODO - send email based on email config
+		db.Provider.UpsertOTP(ctx, &models.OTP{
+			Email:     user.Email,
+			Otp:       utils.GenerateOTP(),
+			ExpiresAt: time.Now().Add(1 * time.Minute).Unix(),
+		})
 		return &model.AuthResponse{
 			Message:             "Please check the OTP in your inbox",
 			ShouldShowOtpScreen: refs.NewBoolRef(true),

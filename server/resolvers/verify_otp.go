@@ -32,11 +32,16 @@ func VerifyOtpResolver(ctx context.Context, params model.VerifyOTPRequest) (*mod
 		return res, fmt.Errorf(`invalid email: %s`, err.Error())
 	}
 
+	if params.Otp != otp.Otp {
+		log.Debug("Failed to verify otp request: Incorrect value")
+		return res, fmt.Errorf(`invalid otp`)
+	}
+
 	expiresIn := otp.ExpiresAt - time.Now().Unix()
 
-	if params.Otp != otp.Otp || expiresIn < 0 {
-		log.Debug("Failed to verify otp request: ", err)
-		return res, fmt.Errorf(`invalid otp: %s`, err.Error())
+	if expiresIn < 0 {
+		log.Debug("Failed to verify otp request: Timeout")
+		return res, fmt.Errorf("otp expired")
 	}
 
 	user, err := db.Provider.GetUserByEmail(ctx, params.Email)

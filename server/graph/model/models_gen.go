@@ -185,6 +185,10 @@ type PaginationInput struct {
 	Page  *int64 `json:"page"`
 }
 
+type ResendOTPRequest struct {
+	Email string `json:"email"`
+}
+
 type ResendVerifyEmailInput struct {
 	Email      string `json:"email"`
 	Identifier string `json:"identifier"`

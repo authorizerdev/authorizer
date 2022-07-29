@@ -427,6 +427,10 @@ input VerifyOTPRequest {
 	otp: String!
 }
 
+input ResendOTPRequest {
+	email: String!
+}
+
 type Mutation {
 	signup(params: SignUpInput!): AuthResponse!
 	login(params: LoginInput!): AuthResponse!
@@ -439,6 +443,7 @@ type Mutation {
 	reset_password(params: ResetPasswordInput!): Response!
 	revoke(params: OAuthRevokeInput!): Response!
 	verify_otp(params: VerifyOTPRequest!): AuthResponse!
+	resend_otp(params: ResendOTPRequest!): Response!
 	# admin only apis
 	_delete_user(params: DeleteUserInput!): Response!
 	_update_user(params: UpdateUserInput!): User!
