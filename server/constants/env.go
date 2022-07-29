@@ -47,6 +47,8 @@ const (
 	EnvKeySmtpPassword = "SMTP_PASSWORD"
 	// EnvKeySenderEmail key for env variable SENDER_EMAIL
 	EnvKeySenderEmail = "SENDER_EMAIL"
+	// EnvKeyIsEmailServiceEnabled key for env variable IS_EMAIL_SERVICE_ENABLED
+	EnvKeyIsEmailServiceEnabled = "IS_EMAIL_SERVICE_ENABLED"
 	// EnvKeyJwtType key for env variable JWT_TYPE
 	EnvKeyJwtType = "JWT_TYPE"
 	// EnvKeyJwtSecret key for env variable JWT_SECRET

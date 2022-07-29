@@ -494,6 +494,11 @@ func InitAllEnv() error {
 	if envData[constants.EnvKeySmtpHost] == "" || envData[constants.EnvKeySmtpUsername] == "" || envData[constants.EnvKeySmtpPassword] == "" || envData[constants.EnvKeySenderEmail] == "" && envData[constants.EnvKeySmtpPort] == "" {
 		envData[constants.EnvKeyDisableEmailVerification] = true
 		envData[constants.EnvKeyDisableMagicLinkLogin] = true
+		envData[constants.EnvKeyIsEmailServiceEnabled] = false
+	}
+
+	if envData[constants.EnvKeySmtpHost] != "" || envData[constants.EnvKeySmtpUsername] != "" || envData[constants.EnvKeySmtpPassword] != "" || envData[constants.EnvKeySenderEmail] != "" && envData[constants.EnvKeySmtpPort] != "" {
+		envData[constants.EnvKeyIsEmailServiceEnabled] = true
 	}
 
 	if envData[constants.EnvKeyDisableEmailVerification].(bool) {
