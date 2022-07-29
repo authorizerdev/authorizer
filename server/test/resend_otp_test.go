@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func verifyOTPTest(t *testing.T, s TestSetup) {
+func resendOTPTest(t *testing.T, s TestSetup) {
 	t.Helper()
 	t.Run(`should verify otp`, func(t *testing.T) {
 		req, ctx := createContext(s)
@@ -48,6 +48,13 @@ func verifyOTPTest(t *testing.T, s TestSetup) {
 			IsMultiFactorAuthEnabled: refs.NewBoolRef(true),
 		})
 
+		// Resend otp should return error as no initial opt is being sent
+		resendOtpRes, err := resolvers.ResendOTPResolver(ctx, model.ResendOTPRequest{
+			Email: email,
+		})
+		assert.Error(t, err)
+		assert.Nil(t, resendOtpRes)
+
 		// Login should not return error but access token should be empty as otp should have been sent
 		loginRes, err = resolvers.LoginResolver(ctx, model.LoginInput{
 			Email:    email,
@@ -62,11 +69,30 @@ func verifyOTPTest(t *testing.T, s TestSetup) {
 		assert.NoError(t, err)
 		assert.NotEmpty(t, otp.Otp)
 
+		// resend otp
+		resendOtpRes, err = resolvers.ResendOTPResolver(ctx, model.ResendOTPRequest{
+			Email: email,
+		})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, resendOtpRes.Message)
+
+		newOtp, err := db.Provider.GetOTPByEmail(ctx, email)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, newOtp.Otp)
+		assert.NotEqual(t, otp.Otp, newOtp)
+
+		// Should return error for older otp
 		verifyOtpRes, err := resolvers.VerifyOtpResolver(ctx, model.VerifyOTPRequest{
 			Email: email,
 			Otp:   otp.Otp,
 		})
-		assert.Nil(t, err)
+		assert.Error(t, err)
+
+		verifyOtpRes, err = resolvers.VerifyOtpResolver(ctx, model.VerifyOTPRequest{
+			Email: email,
+			Otp:   newOtp.Otp,
+		})
+		assert.NoError(t, err)
 		assert.NotEqual(t, verifyOtpRes.AccessToken, "", "access token should not be empty")
 		cleanData(email)
 	})
