@@ -29,7 +29,7 @@ func (p *provider) AddEmailTemplate(ctx context.Context, emailTemplate models.Em
 		return nil, fmt.Errorf("Email template with %s event_name already exists", emailTemplate.EventName)
 	}
 
-	insertQuery := fmt.Sprintf("INSERT INTO %s (id, event_name, template,  created_at, updated_at) VALUES ('%s', '%s', '%s', %d, %d)", KeySpace+"."+models.Collections.EmailTemplate, emailTemplate.ID, emailTemplate.EventName, emailTemplate.Template, emailTemplate.CreatedAt, emailTemplate.UpdatedAt)
+	insertQuery := fmt.Sprintf("INSERT INTO %s (id, event_name, subject, template,  created_at, updated_at) VALUES ('%s', '%s', '%s','%s', %d, %d)", KeySpace+"."+models.Collections.EmailTemplate, emailTemplate.ID, emailTemplate.EventName, emailTemplate.Subject, emailTemplate.Template, emailTemplate.CreatedAt, emailTemplate.UpdatedAt)
 	err := p.db.Query(insertQuery).Exec()
 	if err != nil {
 		return nil, err
@@ -103,14 +103,14 @@ func (p *provider) ListEmailTemplate(ctx context.Context, pagination model.Pagin
 	// there is no offset in cassandra
 	// so we fetch till limit + offset
 	// and return the results from offset to limit
-	query := fmt.Sprintf("SELECT id, event_name, template, created_at, updated_at FROM %s LIMIT %d", KeySpace+"."+models.Collections.EmailTemplate, pagination.Limit+pagination.Offset)
+	query := fmt.Sprintf("SELECT id, event_name, subject, template, created_at, updated_at FROM %s LIMIT %d", KeySpace+"."+models.Collections.EmailTemplate, pagination.Limit+pagination.Offset)
 
 	scanner := p.db.Query(query).Iter().Scanner()
 	counter := int64(0)
 	for scanner.Next() {
 		if counter >= pagination.Offset {
 			var emailTemplate models.EmailTemplate
-			err := scanner.Scan(&emailTemplate.ID, &emailTemplate.EventName, &emailTemplate.Template, &emailTemplate.CreatedAt, &emailTemplate.UpdatedAt)
+			err := scanner.Scan(&emailTemplate.ID, &emailTemplate.EventName, &emailTemplate.Subject, &emailTemplate.Template, &emailTemplate.CreatedAt, &emailTemplate.UpdatedAt)
 			if err != nil {
 				return nil, err
 			}
@@ -128,8 +128,8 @@ func (p *provider) ListEmailTemplate(ctx context.Context, pagination model.Pagin
 // GetEmailTemplateByID to get EmailTemplate by id
 func (p *provider) GetEmailTemplateByID(ctx context.Context, emailTemplateID string) (*model.EmailTemplate, error) {
 	var emailTemplate models.EmailTemplate
-	query := fmt.Sprintf(`SELECT id, event_name, template, created_at, updated_at FROM %s WHERE id = '%s' LIMIT 1`, KeySpace+"."+models.Collections.EmailTemplate, emailTemplateID)
-	err := p.db.Query(query).Consistency(gocql.One).Scan(&emailTemplate.ID, &emailTemplate.EventName, &emailTemplate.Template, &emailTemplate.CreatedAt, &emailTemplate.UpdatedAt)
+	query := fmt.Sprintf(`SELECT id, event_name, subject, template, created_at, updated_at FROM %s WHERE id = '%s' LIMIT 1`, KeySpace+"."+models.Collections.EmailTemplate, emailTemplateID)
+	err := p.db.Query(query).Consistency(gocql.One).Scan(&emailTemplate.ID, &emailTemplate.EventName, &emailTemplate.Subject, &emailTemplate.Template, &emailTemplate.CreatedAt, &emailTemplate.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -139,8 +139,8 @@ func (p *provider) GetEmailTemplateByID(ctx context.Context, emailTemplateID str
 // GetEmailTemplateByEventName to get EmailTemplate by event_name
 func (p *provider) GetEmailTemplateByEventName(ctx context.Context, eventName string) (*model.EmailTemplate, error) {
 	var emailTemplate models.EmailTemplate
-	query := fmt.Sprintf(`SELECT id, event_name, template, created_at, updated_at FROM %s WHERE event_name = '%s' LIMIT 1 ALLOW FILTERING`, KeySpace+"."+models.Collections.EmailTemplate, eventName)
-	err := p.db.Query(query).Consistency(gocql.One).Scan(&emailTemplate.ID, &emailTemplate.EventName, &emailTemplate.Template, &emailTemplate.CreatedAt, &emailTemplate.UpdatedAt)
+	query := fmt.Sprintf(`SELECT id, event_name, subject, template, created_at, updated_at FROM %s WHERE event_name = '%s' LIMIT 1 ALLOW FILTERING`, KeySpace+"."+models.Collections.EmailTemplate, eventName)
+	err := p.db.Query(query).Consistency(gocql.One).Scan(&emailTemplate.ID, &emailTemplate.EventName, &emailTemplate.Subject, &emailTemplate.Template, &emailTemplate.CreatedAt, &emailTemplate.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}

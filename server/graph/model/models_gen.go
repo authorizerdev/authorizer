@@ -4,6 +4,7 @@ package model
 
 type AddEmailTemplateRequest struct {
 	EventName string `json:"event_name"`
+	Subject   string `json:"subject"`
 	Template  string `json:"template"`
 }
 
@@ -43,6 +44,7 @@ type EmailTemplate struct {
 	ID        string `json:"id"`
 	EventName string `json:"event_name"`
 	Template  string `json:"template"`
+	Subject   string `json:"subject"`
 	CreatedAt *int64 `json:"created_at"`
 	UpdatedAt *int64 `json:"updated_at"`
 }
@@ -240,6 +242,7 @@ type UpdateEmailTemplateRequest struct {
 	ID        string  `json:"id"`
 	EventName *string `json:"event_name"`
 	Template  *string `json:"template"`
+	Subject   *string `json:"subject"`
 }
 
 type UpdateEnvInput struct {
