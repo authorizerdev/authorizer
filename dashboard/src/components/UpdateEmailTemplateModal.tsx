@@ -19,6 +19,10 @@ import {
 } from '@chakra-ui/react';
 import { FaPlus } from 'react-icons/fa';
 import { useClient } from 'urql';
+import { Editor } from 'react-draft-wysiwyg';
+import { EditorState, convertToRaw } from 'draft-js';
+import draftToHtml from 'draftjs-to-html';
+import { stateFromHTML } from 'draft-js-import-html';
 import {
 	UpdateModalViews,
 	EmailTemplateInputDataFields,
@@ -44,24 +48,20 @@ interface UpdateEmailTemplateInputPropTypes {
 interface emailTemplateDataType {
 	[EmailTemplateInputDataFields.EVENT_NAME]: string;
 	[EmailTemplateInputDataFields.SUBJECT]: string;
-	[EmailTemplateInputDataFields.TEMPLATE]: string;
 }
 
 interface validatorDataType {
 	[EmailTemplateInputDataFields.SUBJECT]: boolean;
-	[EmailTemplateInputDataFields.TEMPLATE]: boolean;
 }
 
 const initTemplateData: emailTemplateDataType = {
 	[EmailTemplateInputDataFields.EVENT_NAME]:
 		emailTemplateEventNames.BASIC_AUTH_SIGNUP,
 	[EmailTemplateInputDataFields.SUBJECT]: '',
-	[EmailTemplateInputDataFields.TEMPLATE]: '',
 };
 
 const initTemplateValidatorData: validatorDataType = {
 	[EmailTemplateInputDataFields.SUBJECT]: true,
-	[EmailTemplateInputDataFields.TEMPLATE]: true,
 };
 
 const UpdateEmailTemplate = ({
@@ -73,12 +73,18 @@ const UpdateEmailTemplate = ({
 	const toast = useToast();
 	const { isOpen, onOpen, onClose } = useDisclosure();
 	const [loading, setLoading] = useState<boolean>(false);
+	const [editorState, setEditorState] = React.useState<EditorState>(
+		EditorState.createEmpty()
+	);
 	const [templateData, setTemplateData] = useState<emailTemplateDataType>({
 		...initTemplateData,
 	});
 	const [validator, setValidator] = useState<validatorDataType>({
 		...initTemplateValidatorData,
 	});
+	const onEditorStateChange = (editorState: EditorState) => {
+		setEditorState(editorState);
+	};
 	const inputChangehandler = (inputType: string, value: any) => {
 		if (inputType !== EmailTemplateInputDataFields.EVENT_NAME) {
 			setValidator({
@@ -92,10 +98,10 @@ const UpdateEmailTemplate = ({
 	const validateData = () => {
 		return (
 			!loading &&
+			draftToHtml(convertToRaw(editorState.getCurrentContent())).trim() !==
+				'<p></p>' &&
 			templateData[EmailTemplateInputDataFields.EVENT_NAME].length > 0 &&
-			templateData[EmailTemplateInputDataFields.TEMPLATE].length > 0 &&
 			templateData[EmailTemplateInputDataFields.SUBJECT].length > 0 &&
-			validator[EmailTemplateInputDataFields.TEMPLATE] &&
 			validator[EmailTemplateInputDataFields.SUBJECT]
 		);
 	};
@@ -108,8 +114,9 @@ const UpdateEmailTemplate = ({
 				templateData[EmailTemplateInputDataFields.EVENT_NAME],
 			[EmailTemplateInputDataFields.SUBJECT]:
 				templateData[EmailTemplateInputDataFields.SUBJECT],
-			[EmailTemplateInputDataFields.TEMPLATE]:
-				templateData[EmailTemplateInputDataFields.TEMPLATE],
+			[EmailTemplateInputDataFields.TEMPLATE]: draftToHtml(
+				convertToRaw(editorState.getCurrentContent())
+			).trim(),
 		};
 		let res: any = {};
 		if (
@@ -159,8 +166,12 @@ const UpdateEmailTemplate = ({
 	const resetData = () => {
 		if (selectedTemplate) {
 			setTemplateData(selectedTemplate);
+			setEditorState(
+				EditorState.createWithContent(stateFromHTML(selectedTemplate.template))
+			);
 		} else {
 			setTemplateData({ ...initTemplateData });
+			setEditorState(EditorState.createEmpty());
 		}
 	};
 	useEffect(() => {
@@ -170,8 +181,9 @@ const UpdateEmailTemplate = ({
 			selectedTemplate &&
 			Object.keys(selectedTemplate || {}).length
 		) {
-			const { id, created_at, ...rest } = selectedTemplate;
+			const { id, created_at, template, ...rest } = selectedTemplate;
 			setTemplateData(rest);
+			setEditorState(EditorState.createWithContent(stateFromHTML(template)));
 		}
 	}, [isOpen]);
 	return (
@@ -272,29 +284,16 @@ const UpdateEmailTemplate = ({
 							>
 								<Flex>Template Body</Flex>
 							</Flex>
-							<Flex flexDirection="column" maxH={220} overflowY="scroll">
-								<Flex>
-									<InputGroup size="md">
-										<Input
-											pr="4.5rem"
-											type="text"
-											placeholder="Subject Line"
-											value={
-												templateData[EmailTemplateInputDataFields.TEMPLATE]
-											}
-											isInvalid={
-												!validator[EmailTemplateInputDataFields.TEMPLATE]
-											}
-											onChange={(e) =>
-												inputChangehandler(
-													EmailTemplateInputDataFields.TEMPLATE,
-													e.currentTarget.value
-												)
-											}
-										/>
-									</InputGroup>
-								</Flex>
-							</Flex>
+							<Editor
+								editorState={editorState}
+								onEditorStateChange={onEditorStateChange}
+								editorStyle={{
+									border: '1px solid #d9d9d9',
+									borderRadius: '5px',
+									marginTop: '2%',
+									height: '35vh',
+								}}
+							/>
 						</Flex>
 					</ModalBody>
 					<ModalFooter>
