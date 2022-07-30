@@ -42,6 +42,7 @@ import {
 } from '../constants';
 import { EmailTemplatesQuery, WebhooksDataQuery } from '../graphql/queries';
 import dayjs from 'dayjs';
+import DeleteEmailTemplateModal from '../components/DeleteEmailTemplateModal';
 
 interface paginationPropTypes {
 	limit: number;
@@ -172,6 +173,17 @@ const EmailTemplates = () => {
 												<UpdateEmailTemplateModal
 													view={UpdateModalViews.Edit}
 													selectedTemplate={templateData}
+													fetchEmailTemplatesData={fetchEmailTemplatesData}
+												/>
+												<DeleteEmailTemplateModal
+													emailTemplateId={
+														templateData[EmailTemplateInputDataFields.ID]
+													}
+													eventName={
+														templateData[
+															EmailTemplateInputDataFields.EVENT_NAME
+														]
+													}
 													fetchEmailTemplatesData={fetchEmailTemplatesData}
 												/>
 											</MenuList>
