@@ -204,3 +204,9 @@ export enum webhookVerifiedStatus {
 	NOT_VERIFIED = 'not_verified',
 	PENDING = 'verification_pending',
 }
+
+export const emailTemplateVariables = {
+	user_name: '{{user.name}}',
+	user_email: '{{user.email}}',
+	organization_name: '{{org.name}}',
+};

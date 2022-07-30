@@ -14,13 +14,14 @@ import {
 	ModalHeader,
 	ModalOverlay,
 	Select,
+	Text,
 	useDisclosure,
 	useToast,
 } from '@chakra-ui/react';
 import { FaPlus } from 'react-icons/fa';
 import { useClient } from 'urql';
 import { Editor } from 'react-draft-wysiwyg';
-import { EditorState, convertToRaw } from 'draft-js';
+import { EditorState, convertToRaw, Modifier } from 'draft-js';
 import draftToHtml from 'draftjs-to-html';
 import { stateFromHTML } from 'draft-js-import-html';
 import {
@@ -278,11 +279,17 @@ const UpdateEmailTemplate = ({
 							</Flex>
 							<Flex
 								width="100%"
-								justifyContent="flex-start"
+								justifyContent="space-between"
 								alignItems="center"
 								marginBottom="2%"
 							>
 								<Flex>Template Body</Flex>
+								<Text
+									style={{
+										fontSize: 14,
+									}}
+									color="gray.400"
+								>{`To select dynamic variables open curly braces "{"`}</Text>
 							</Flex>
 							<Editor
 								editorState={editorState}
@@ -292,6 +299,24 @@ const UpdateEmailTemplate = ({
 									borderRadius: '5px',
 									marginTop: '2%',
 									height: '35vh',
+								}}
+								mention={{
+									separator: ' ',
+									trigger: '{',
+									suggestions: [
+										{
+											text: 'user_name',
+											value: '{user.name}}',
+										},
+										{
+											text: 'user_email',
+											value: '{user.email}}',
+										},
+										{
+											text: 'org_name',
+											value: '{org.name}}',
+										},
+									],
 								}}
 							/>
 						</Flex>
