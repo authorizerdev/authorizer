@@ -97,10 +97,14 @@ const UpdateEmailTemplate = ({
 	};
 
 	const validateData = () => {
+		const rawData: string = draftToHtml(
+			convertToRaw(editorState.getCurrentContent())
+		).trim();
 		return (
 			!loading &&
-			draftToHtml(convertToRaw(editorState.getCurrentContent())).trim() !==
-				'<p></p>' &&
+			rawData &&
+			rawData !== '<p></p>' &&
+			rawData !== '<h1></h1>' &&
 			templateData[EmailTemplateInputDataFields.EVENT_NAME].length > 0 &&
 			templateData[EmailTemplateInputDataFields.SUBJECT].length > 0 &&
 			validator[EmailTemplateInputDataFields.SUBJECT]
