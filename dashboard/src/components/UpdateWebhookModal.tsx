@@ -27,12 +27,11 @@ import {
 	ArrayInputOperations,
 	WebhookInputDataFields,
 	WebhookInputHeaderFields,
-	UpdateWebhookModalViews,
+	UpdateModalViews,
 	webhookVerifiedStatus,
 } from '../constants';
 import { capitalizeFirstLetter, validateURI } from '../utils';
 import { AddWebhook, EditWebhook, TestEndpoint } from '../graphql/mutation';
-import { rest } from 'lodash';
 import { BiCheckCircle, BiError, BiErrorCircle } from 'react-icons/bi';
 
 interface headersDataType {
@@ -54,7 +53,7 @@ interface selecetdWebhookDataTypes {
 }
 
 interface UpdateWebhookModalInputPropTypes {
-	view: UpdateWebhookModalViews;
+	view: UpdateModalViews;
 	selectedWebhook?: selecetdWebhookDataTypes;
 	fetchWebookData: Function;
 }
@@ -254,7 +253,7 @@ const UpdateWebhookModal = ({
 		const params = getParams();
 		let res: any = {};
 		if (
-			view === UpdateWebhookModalViews.Edit &&
+			view === UpdateModalViews.Edit &&
 			selectedWebhook?.[WebhookInputDataFields.ID]
 		) {
 			res = await client
@@ -292,12 +291,12 @@ const UpdateWebhookModal = ({
 			setValidator({ ...initWebhookValidatorData });
 			fetchWebookData();
 		}
-		view === UpdateWebhookModalViews.ADD && onClose();
+		view === UpdateModalViews.ADD && onClose();
 	};
 	useEffect(() => {
 		if (
 			isOpen &&
-			view === UpdateWebhookModalViews.Edit &&
+			view === UpdateModalViews.Edit &&
 			selectedWebhook &&
 			Object.keys(selectedWebhook || {}).length
 		) {
@@ -347,7 +346,7 @@ const UpdateWebhookModal = ({
 	};
 	return (
 		<>
-			{view === UpdateWebhookModalViews.ADD ? (
+			{view === UpdateModalViews.ADD ? (
 				<Button
 					leftIcon={<FaPlus />}
 					colorScheme="blue"
@@ -365,9 +364,7 @@ const UpdateWebhookModal = ({
 				<ModalOverlay />
 				<ModalContent>
 					<ModalHeader>
-						{view === UpdateWebhookModalViews.ADD
-							? 'Add New Webhook'
-							: 'Edit Webhook'}
+						{view === UpdateModalViews.ADD ? 'Add New Webhook' : 'Edit Webhook'}
 					</ModalHeader>
 					<ModalCloseButton />
 					<ModalBody>

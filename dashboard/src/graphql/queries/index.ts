@@ -122,6 +122,26 @@ export const WebhooksDataQuery = `
   }
 `;
 
+export const EmailTemplatesQuery = `
+  query getEmailTemplates($params: PaginatedInput!) {
+    _email_templates(params: $params) {
+      EmailTemplates {
+        id
+        event_name
+        subject
+        created_at
+        template
+      }
+      pagination {
+        limit
+        page
+        offset
+        total
+      }
+    }
+  }
+`;
+
 export const WebhookLogsQuery = `
   query getWebhookLogs($params: ListWebhookLogRequest!) {
     _webhook_logs(params: $params) {

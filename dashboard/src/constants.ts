@@ -162,12 +162,20 @@ export enum WebhookInputDataFields {
 	HEADERS = 'headers',
 }
 
+export enum EmailTemplateInputDataFields {
+	ID = 'id',
+	EVENT_NAME = 'event_name',
+	SUBJECT = 'subject',
+	CREATED_AT = 'created_at',
+	TEMPLATE = 'template',
+}
+
 export enum WebhookInputHeaderFields {
 	KEY = 'key',
 	VALUE = 'value',
 }
 
-export enum UpdateWebhookModalViews {
+export enum UpdateModalViews {
 	ADD = 'add',
 	Edit = 'edit',
 }
@@ -181,6 +189,14 @@ export const webhookEventNames = {
 	USER_DELETED: 'user.deleted',
 	USER_ACCESS_ENABLED: 'user.access_enabled',
 	USER_ACCESS_REVOKED: 'user.access_revoked',
+};
+
+export const emailTemplateEventNames = {
+	BASIC_AUTH_SIGNUP: 'basic_auth_signup',
+	MAGIC_LINK_LOGIN: 'magic_link_login',
+	UPDATE_EMAIL: 'update_email',
+	FORGOT_PASSWORD: 'forgot_password',
+	VERIFY_OTP: 'verify_otp',
 };
 
 export enum webhookVerifiedStatus {
