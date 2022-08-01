@@ -28,6 +28,7 @@ import {
 	UpdateModalViews,
 	EmailTemplateInputDataFields,
 	emailTemplateEventNames,
+	emailTemplateVariables,
 } from '../constants';
 import { capitalizeFirstLetter } from '../utils';
 import { AddEmailTemplate, EditEmailTemplate } from '../graphql/mutation';
@@ -44,6 +45,11 @@ interface UpdateEmailTemplateInputPropTypes {
 	view: UpdateModalViews;
 	selectedTemplate?: selectedEmailTemplateDataTypes;
 	fetchEmailTemplatesData: Function;
+}
+
+interface templateVariableDataTypes {
+	text: string;
+	value: string;
 }
 
 interface emailTemplateDataType {
@@ -77,6 +83,9 @@ const UpdateEmailTemplate = ({
 	const [editorState, setEditorState] = React.useState<EditorState>(
 		EditorState.createEmpty()
 	);
+	const [templateVariables, setTemplateVariables] = useState<
+		templateVariableDataTypes[]
+	>([]);
 	const [templateData, setTemplateData] = useState<emailTemplateDataType>({
 		...initTemplateData,
 	});
@@ -191,6 +200,30 @@ const UpdateEmailTemplate = ({
 			setEditorState(EditorState.createWithContent(stateFromHTML(template)));
 		}
 	}, [isOpen]);
+	useEffect(() => {
+		const updatedTemplateVariables = Object.entries(
+			emailTemplateVariables
+		).reduce((acc, varData): any => {
+			if (
+				(templateData[EmailTemplateInputDataFields.EVENT_NAME] !==
+					emailTemplateEventNames.VERIFY_OTP &&
+					varData[1] === emailTemplateVariables.otp) ||
+				(templateData[EmailTemplateInputDataFields.EVENT_NAME] ===
+					emailTemplateEventNames.VERIFY_OTP &&
+					varData[1] === emailTemplateVariables.verification_url)
+			) {
+				return acc;
+			}
+			return [
+				...acc,
+				{
+					text: varData[0],
+					value: varData[1],
+				},
+			];
+		}, []);
+		setTemplateVariables(updatedTemplateVariables);
+	}, [templateData[EmailTemplateInputDataFields.EVENT_NAME]]);
 	return (
 		<>
 			{view === UpdateModalViews.ADD ? (
@@ -307,20 +340,7 @@ const UpdateEmailTemplate = ({
 								mention={{
 									separator: ' ',
 									trigger: '{',
-									suggestions: [
-										{
-											text: 'user_name',
-											value: '{user.name}}',
-										},
-										{
-											text: 'user_email',
-											value: '{user.email}}',
-										},
-										{
-											text: 'org_name',
-											value: '{org.name}}',
-										},
-									],
+									suggestions: templateVariables,
 								}}
 							/>
 						</Flex>

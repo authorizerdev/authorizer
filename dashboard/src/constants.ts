@@ -206,7 +206,25 @@ export enum webhookVerifiedStatus {
 }
 
 export const emailTemplateVariables = {
-	user_name: '{{user.name}}',
-	user_email: '{{user.email}}',
-	organization_name: '{{org.name}}',
+	'user.id': '{user.id}}',
+	'user.email': '{user.email}}',
+	'user.given_name': '{user.given_name}}',
+	'user.family_name': '{user.family_name}}',
+	'user.signup_methods': '{user.signup_methods}}',
+	'user.email_verified': '{user.email_verified}}',
+	'user.picture': '{user.picture}}',
+	'user.roles': '{user.roles}}',
+	'user.middle_name': '{user.middle_name}}',
+	'user.nickname': '{user.nickname}}',
+	'user.preferred_username': '{user.preferred_username}}',
+	'user.gender': '{user.gender}}',
+	'user.birthdate': '{user.birthdate}}',
+	'user.phone_number': '{user.phone_number}}',
+	'user.phone_number_verified': '{user.phone_number_verified}}',
+	'user.created_at': '{user.created_at}}',
+	'user.updated_at': '{user.updated_at}}',
+	'organization.name': '{organization.name}}',
+	'organization.logo': '{organization.logo}}',
+	verification_url: '{verification_url}}',
+	otp: '{otp}}',
 };
