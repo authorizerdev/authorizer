@@ -228,3 +228,30 @@ export const emailTemplateVariables = {
 	verification_url: '{verification_url}}',
 	otp: '{otp}}',
 };
+
+export const webhookPayloadExample: string = `{
+	"event_name":"user.login",
+	"user":{
+	   "birthdate":null,
+	   "created_at":1657524721,
+	   "email":"lakhan.m.samani@gmail.com",
+	   "email_verified":true,
+	   "family_name":"Samani",
+	   "gender":null,
+	   "given_name":"Lakhan",
+	   "id":"466d0b31-1b87-420e-bea5-09d05d79c586",
+	   "middle_name":null,
+	   "nickname":null,
+	   "phone_number":null,
+	   "phone_number_verified":false,
+	   "picture":"https://lh3.googleusercontent.com/a-/AFdZucppvU6a2zIDkX0wvhhapVjT0ZMKDlYCkQDi3NxcUg=s96-c",
+	   "preferred_username":"lakhan.m.samani@gmail.com",
+	   "revoked_timestamp":null,
+	   "roles":[
+		  "user"
+	   ],
+	   "signup_methods":"google",
+	   "updated_at":1657526492
+	},
+	"auth_recipe":"google"
+ }`;

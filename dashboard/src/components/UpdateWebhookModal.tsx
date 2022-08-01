@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import {
 	Button,
 	Center,
+	Code,
+	Collapse,
 	Flex,
 	Input,
 	InputGroup,
@@ -20,7 +22,13 @@ import {
 	useDisclosure,
 	useToast,
 } from '@chakra-ui/react';
-import { FaMinusCircle, FaPlus } from 'react-icons/fa';
+import {
+	FaAngleDown,
+	FaAngleUp,
+	FaMinusCircle,
+	FaPlus,
+	FaRegClone,
+} from 'react-icons/fa';
 import { useClient } from 'urql';
 import {
 	webhookEventNames,
@@ -29,8 +37,13 @@ import {
 	WebhookInputHeaderFields,
 	UpdateModalViews,
 	webhookVerifiedStatus,
+	webhookPayloadExample,
 } from '../constants';
-import { capitalizeFirstLetter, validateURI } from '../utils';
+import {
+	capitalizeFirstLetter,
+	copyTextToClipboard,
+	validateURI,
+} from '../utils';
 import { AddWebhook, EditWebhook, TestEndpoint } from '../graphql/mutation';
 import { BiCheckCircle, BiError, BiErrorCircle } from 'react-icons/bi';
 
@@ -102,6 +115,7 @@ const UpdateWebhookModal = ({
 	const { isOpen, onOpen, onClose } = useDisclosure();
 	const [loading, setLoading] = useState<boolean>(false);
 	const [verifyingEndpoint, setVerifyingEndpoint] = useState<boolean>(false);
+	const [isShowingPayload, setIsShowingPayload] = useState<boolean>(false);
 	const [webhook, setWebhook] = useState<webhookDataType>({
 		...initWebhookData,
 	});
@@ -453,6 +467,63 @@ const UpdateWebhookModal = ({
 										On
 									</Text>
 								</Flex>
+							</Flex>
+							<Flex
+								width="100%"
+								justifyContent="center"
+								alignItems="center"
+								marginBottom="5%"
+								flexDirection="column"
+							>
+								<Flex
+									width="100%"
+									justifyContent="space-between"
+									alignItems="center"
+								>
+									<Flex>
+										Payload
+										<Text color="gray.500" ml={1}>
+											(example)
+										</Text>
+									</Flex>
+									<Button
+										onClick={() => setIsShowingPayload(!isShowingPayload)}
+										variant="ghost"
+									>
+										{isShowingPayload ? <FaAngleUp /> : <FaAngleDown />}
+									</Button>
+								</Flex>
+								<Collapse
+									style={{
+										marginTop: 10,
+										width: '100%',
+									}}
+									in={isShowingPayload}
+								>
+									<Code
+										width="inherit"
+										borderRadius={5}
+										padding={2}
+										position="relative"
+									>
+										<pre style={{ overflow: 'auto' }}>
+											{webhookPayloadExample}
+										</pre>
+										{isShowingPayload && (
+											<Flex
+												position="absolute"
+												top={4}
+												right={4}
+												cursor="pointer"
+												onClick={() =>
+													copyTextToClipboard(webhookPayloadExample)
+												}
+											>
+												<FaRegClone color="#bfbfbf" />
+											</Flex>
+										)}
+									</Code>
+								</Collapse>
 							</Flex>
 							<Flex
 								width="100%"
