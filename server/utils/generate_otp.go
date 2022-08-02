@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// GenerateOTP to generate random 6 digit otp
 func GenerateOTP() string {
 	code := ""
 	codeLength := 6
