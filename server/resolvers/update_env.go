@@ -270,8 +270,6 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 		}
 	}
 
-	go clearSessionIfRequired(currentData, updatedData)
-
 	// Update local store
 	memorystore.Provider.UpdateEnvStore(updatedData)
 	jwk, err := crypto.GenerateJWKBasedOnEnv()
@@ -324,6 +322,8 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 		log.Debug("Failed to update env: ", err)
 		return res, err
 	}
+
+	go clearSessionIfRequired(currentData, updatedData)
 
 	res = &model.Response{
 		Message: "configurations updated successfully",

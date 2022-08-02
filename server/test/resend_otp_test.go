@@ -14,9 +14,9 @@ import (
 
 func resendOTPTest(t *testing.T, s TestSetup) {
 	t.Helper()
-	t.Run(`should verify otp`, func(t *testing.T) {
+	t.Run(`should resend otp`, func(t *testing.T) {
 		req, ctx := createContext(s)
-		email := "verify_otp." + s.TestInfo.Email
+		email := "resend_otp." + s.TestInfo.Email
 		res, err := resolvers.SignupResolver(ctx, model.SignUpInput{
 			Email:           email,
 			Password:        s.TestInfo.Password,

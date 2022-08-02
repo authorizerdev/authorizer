@@ -9,10 +9,12 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/email"
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
@@ -42,6 +44,12 @@ func ResendOTPResolver(ctx context.Context, params model.ResendOTPRequest) (*mod
 	if !refs.BoolValue(user.IsMultiFactorAuthEnabled) {
 		log.Debug("User multi factor authentication is not enabled")
 		return nil, fmt.Errorf(`multi factor authentication not enabled`)
+	}
+
+	isEmailServiceEnabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyIsEmailServiceEnabled)
+	if err != nil || !isEmailServiceEnabled {
+		log.Debug("Email service not enabled: ", err)
+		return nil, errors.New("email service not enabled")
 	}
 
 	// get otp by email

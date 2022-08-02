@@ -96,7 +96,6 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 	}
 
 	if params.IsMultiFactorAuthEnabled != nil && refs.BoolValue(user.IsMultiFactorAuthEnabled) != refs.BoolValue(params.IsMultiFactorAuthEnabled) {
-		user.IsMultiFactorAuthEnabled = params.IsMultiFactorAuthEnabled
 		if refs.BoolValue(params.IsMultiFactorAuthEnabled) {
 			isEnvServiceEnabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyIsEmailServiceEnabled)
 			if err != nil || !isEnvServiceEnabled {
@@ -104,6 +103,8 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 				return nil, errors.New("email service not enabled, so cannot enable multi factor authentication")
 			}
 		}
+
+		user.IsMultiFactorAuthEnabled = params.IsMultiFactorAuthEnabled
 	}
 
 	isPasswordChanging := false

@@ -84,6 +84,7 @@ func InitAllEnv() error {
 	osDisableSignUp := os.Getenv(constants.EnvKeyDisableSignUp)
 	osDisableRedisForEnv := os.Getenv(constants.EnvKeyDisableRedisForEnv)
 	osDisableStrongPassword := os.Getenv(constants.EnvKeyDisableStrongPassword)
+	osEnforceMultiFactorAuthentication := os.Getenv(constants.EnvKeyEnforceMultiFactorAuthentication)
 
 	// os slice vars
 	osAllowedOrigins := os.Getenv(constants.EnvKeyAllowedOrigins)
@@ -490,6 +491,19 @@ func InitAllEnv() error {
 		}
 	}
 
+	if _, ok := envData[constants.EnvKeyEnforceMultiFactorAuthentication]; !ok {
+		envData[constants.EnvKeyEnforceMultiFactorAuthentication] = osEnforceMultiFactorAuthentication == "true"
+	}
+	if osEnforceMultiFactorAuthentication != "" {
+		boolValue, err := strconv.ParseBool(osEnforceMultiFactorAuthentication)
+		if err != nil {
+			return err
+		}
+		if boolValue != envData[constants.EnvKeyEnforceMultiFactorAuthentication].(bool) {
+			envData[constants.EnvKeyEnforceMultiFactorAuthentication] = boolValue
+		}
+	}
+
 	// no need to add nil check as its already done above
 	if envData[constants.EnvKeySmtpHost] == "" || envData[constants.EnvKeySmtpUsername] == "" || envData[constants.EnvKeySmtpPassword] == "" || envData[constants.EnvKeySenderEmail] == "" && envData[constants.EnvKeySmtpPort] == "" {
 		envData[constants.EnvKeyDisableEmailVerification] = true
@@ -499,6 +513,10 @@ func InitAllEnv() error {
 
 	if envData[constants.EnvKeySmtpHost] != "" || envData[constants.EnvKeySmtpUsername] != "" || envData[constants.EnvKeySmtpPassword] != "" || envData[constants.EnvKeySenderEmail] != "" && envData[constants.EnvKeySmtpPort] != "" {
 		envData[constants.EnvKeyIsEmailServiceEnabled] = true
+	}
+
+	if envData[constants.EnvKeyEnforceMultiFactorAuthentication].(bool) && !envData[constants.EnvKeyIsEmailServiceEnabled].(bool) {
+		return errors.New("to enable multi factor authentication, please enable email service")
 	}
 
 	if envData[constants.EnvKeyDisableEmailVerification].(bool) {

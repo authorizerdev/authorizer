@@ -40,6 +40,7 @@ func NewProvider() (*provider, error) {
 		NamingStrategy: schema.NamingStrategy{
 			TablePrefix: models.Prefix,
 		},
+		AllowGlobalUpdate: true,
 	}
 
 	dbType := memorystore.RequiredEnvStoreObj.GetRequiredEnv().DatabaseType

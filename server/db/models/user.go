@@ -38,12 +38,12 @@ func (user *User) AsAPIUser() *model.User {
 	isEmailVerified := user.EmailVerifiedAt != nil
 	isPhoneVerified := user.PhoneNumberVerifiedAt != nil
 
-	id := user.ID
-	if strings.Contains(id, Collections.WebhookLog+"/") {
-		id = strings.TrimPrefix(id, Collections.WebhookLog+"/")
-	}
+	// id := user.ID
+	// if strings.Contains(id, Collections.User+"/") {
+	// 	id = strings.TrimPrefix(id, Collections.User+"/")
+	// }
 	return &model.User{
-		ID:                       id,
+		ID:                       user.ID,
 		Email:                    user.Email,
 		EmailVerified:            isEmailVerified,
 		SignupMethods:            user.SignupMethods,

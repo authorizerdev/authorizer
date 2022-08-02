@@ -12,6 +12,7 @@ import (
 func (p *provider) AddSession(ctx context.Context, session models.Session) error {
 	if session.ID == "" {
 		session.ID = uuid.New().String()
+		session.Key = session.ID
 	}
 
 	session.CreatedAt = time.Now().Unix()

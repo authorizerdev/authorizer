@@ -119,6 +119,8 @@ const (
 	EnvKeyDisableRedisForEnv = "DISABLE_REDIS_FOR_ENV"
 	// EnvKeyDisableStrongPassword key for env variable DISABLE_STRONG_PASSWORD
 	EnvKeyDisableStrongPassword = "DISABLE_STRONG_PASSWORD"
+	// EnvKeyEnforceMultiFactorAuthentication is key for env variable ENFORCE_MULTI_FACTOR_AUTHENTICATION
+	EnvKeyEnforceMultiFactorAuthentication = "ENFORCE_MULTI_FACTOR_AUTHENTICATION"
 
 	// Slice variables
 	// EnvKeyRoles key for env variable ROLES

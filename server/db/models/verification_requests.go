@@ -25,8 +25,8 @@ type VerificationRequest struct {
 
 func (v *VerificationRequest) AsAPIVerificationRequest() *model.VerificationRequest {
 	id := v.ID
-	if strings.Contains(id, Collections.WebhookLog+"/") {
-		id = strings.TrimPrefix(id, Collections.WebhookLog+"/")
+	if strings.Contains(id, Collections.VerificationRequest+"/") {
+		id = strings.TrimPrefix(id, Collections.VerificationRequest+"/")
 	}
 
 	return &model.VerificationRequest{

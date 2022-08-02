@@ -13,6 +13,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/gocql/gocql"
 	cansandraDriver "github.com/gocql/gocql"
+	log "github.com/sirupsen/logrus"
 )
 
 type provider struct {
@@ -99,6 +100,7 @@ func NewProvider() (*provider, error) {
 	cassandraClient.Consistency = gocql.LocalQuorum
 	cassandraClient.ConnectTimeout = 10 * time.Second
 	cassandraClient.ProtoVersion = 4
+	cassandraClient.Timeout = 30 * time.Minute // for large data
 
 	session, err := cassandraClient.CreateSession()
 	if err != nil {
@@ -160,10 +162,11 @@ func NewProvider() (*provider, error) {
 		return nil, err
 	}
 	// add is_multi_factor_auth_enabled on users table
-	userTableAlterQuery := fmt.Sprintf(`ALTER TABLE %s.%s ADD is_multi_factor_auth_enabled boolean;`, KeySpace, models.Collections.User)
+	userTableAlterQuery := fmt.Sprintf(`ALTER TABLE %s.%s ADD is_multi_factor_auth_enabled boolean`, KeySpace, models.Collections.User)
 	err = session.Query(userTableAlterQuery).Exec()
 	if err != nil {
-		return nil, err
+		log.Debug("Failed to alter table as column exists: ", err)
+		// return nil, err
 	}
 
 	// token is reserved keyword in cassandra, hence we need to use jwt_token

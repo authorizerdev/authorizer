@@ -16,6 +16,7 @@ import (
 func (p *provider) AddWebhookLog(ctx context.Context, webhookLog models.WebhookLog) (*model.WebhookLog, error) {
 	if webhookLog.ID == "" {
 		webhookLog.ID = uuid.New().String()
+		webhookLog.Key = webhookLog.ID
 	}
 
 	webhookLog.Key = webhookLog.ID

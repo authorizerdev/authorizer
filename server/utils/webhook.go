@@ -11,6 +11,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/refs"
 	log "github.com/sirupsen/logrus"
 )
@@ -50,6 +51,22 @@ func RegisterEvent(ctx context.Context, eventName string, authRecipe string, use
 	if err != nil {
 		log.Debug("error marshalling requestBody obj: ", err)
 		return err
+	}
+
+	// dont trigger webhook call in case of test
+	envKey, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyEnv)
+	if err != nil {
+		return err
+	}
+	if envKey == constants.TestEnv {
+		db.Provider.AddWebhookLog(ctx, models.WebhookLog{
+			HttpStatus: 200,
+			Request:    string(requestBody),
+			Response:   string(`{"message": "test"}`),
+			WebhookID:  webhook.ID,
+		})
+
+		return nil
 	}
 
 	requestBytesBuffer := bytes.NewBuffer(requestBody)

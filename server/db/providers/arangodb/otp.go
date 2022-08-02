@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/arangodb/go-driver"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/google/uuid"
 )
@@ -14,32 +15,38 @@ func (p *provider) UpsertOTP(ctx context.Context, otpParam *models.OTP) (*models
 	otp, _ := p.GetOTPByEmail(ctx, otpParam.Email)
 	shouldCreate := false
 	if otp == nil {
+		id := uuid.NewString()
+		otp = &models.OTP{
+			ID:        id,
+			Key:       id,
+			Otp:       otpParam.Otp,
+			Email:     otpParam.Email,
+			ExpiresAt: otpParam.ExpiresAt,
+			CreatedAt: time.Now().Unix(),
+		}
 		shouldCreate = true
-		otp.ID = uuid.New().String()
-		otp.Key = otp.ID
-		otp.CreatedAt = time.Now().Unix()
 	} else {
-		otp = otpParam
+		otp.Otp = otpParam.Otp
+		otp.ExpiresAt = otpParam.ExpiresAt
 	}
 
 	otp.UpdatedAt = time.Now().Unix()
 	otpCollection, _ := p.db.Collection(ctx, models.Collections.OTP)
 
+	var meta driver.DocumentMeta
+	var err error
 	if shouldCreate {
-		_, err := otpCollection.CreateDocument(ctx, otp)
-		if err != nil {
-			return nil, err
-		}
+		meta, err = otpCollection.CreateDocument(ctx, otp)
 	} else {
-		meta, err := otpCollection.UpdateDocument(ctx, otp.Key, otp)
-		if err != nil {
-			return nil, err
-		}
-
-		otp.Key = meta.Key
-		otp.ID = meta.ID.String()
+		meta, err = otpCollection.UpdateDocument(ctx, otp.Key, otp)
 	}
 
+	if err != nil {
+		return nil, err
+	}
+
+	otp.Key = meta.Key
+	otp.ID = meta.ID.String()
 	return otp, nil
 }
 

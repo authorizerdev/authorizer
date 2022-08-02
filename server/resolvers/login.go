@@ -2,7 +2,6 @@ package resolvers
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -100,12 +99,13 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 		scope = params.Scope
 	}
 
-	if refs.BoolValue(user.IsMultiFactorAuthEnabled) {
-		isEnvServiceEnabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyIsEmailServiceEnabled)
-		if err != nil || !isEnvServiceEnabled {
-			log.Debug("Email service not enabled:")
-			return nil, errors.New("email service not enabled")
-		}
+	isEmailServiceEnabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyIsEmailServiceEnabled)
+	if err != nil || !isEmailServiceEnabled {
+		log.Debug("Email service not enabled: ", err)
+	}
+
+	// If email service is not enabled continue the process in any way
+	if refs.BoolValue(user.IsMultiFactorAuthEnabled) && isEmailServiceEnabled {
 		otp := utils.GenerateOTP()
 		otpData, err := db.Provider.UpsertOTP(ctx, &models.OTP{
 			Email:     user.Email,

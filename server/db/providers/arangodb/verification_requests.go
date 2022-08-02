@@ -15,6 +15,7 @@ import (
 func (p *provider) AddVerificationRequest(ctx context.Context, verificationRequest models.VerificationRequest) (models.VerificationRequest, error) {
 	if verificationRequest.ID == "" {
 		verificationRequest.ID = uuid.New().String()
+		verificationRequest.Key = verificationRequest.ID
 	}
 
 	verificationRequest.CreatedAt = time.Now().Unix()

@@ -201,7 +201,7 @@ func PersistEnv() error {
 				envValue := strings.TrimSpace(os.Getenv(key))
 				if envValue != "" {
 					switch key {
-					case constants.EnvKeyIsProd, constants.EnvKeyDisableBasicAuthentication, constants.EnvKeyDisableEmailVerification, constants.EnvKeyDisableLoginPage, constants.EnvKeyDisableMagicLinkLogin, constants.EnvKeyDisableSignUp, constants.EnvKeyDisableRedisForEnv, constants.EnvKeyDisableStrongPassword, constants.EnvKeyIsEmailServiceEnabled:
+					case constants.EnvKeyIsProd, constants.EnvKeyDisableBasicAuthentication, constants.EnvKeyDisableEmailVerification, constants.EnvKeyDisableLoginPage, constants.EnvKeyDisableMagicLinkLogin, constants.EnvKeyDisableSignUp, constants.EnvKeyDisableRedisForEnv, constants.EnvKeyDisableStrongPassword, constants.EnvKeyIsEmailServiceEnabled, constants.EnvKeyEnforceMultiFactorAuthentication:
 						if envValueBool, err := strconv.ParseBool(envValue); err == nil {
 							if value.(bool) != envValueBool {
 								storeData[key] = envValueBool

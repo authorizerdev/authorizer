@@ -44,9 +44,11 @@ func verifyOTPTest(t *testing.T, s TestSetup) {
 		// Using access token update profile
 		s.GinContext.Request.Header.Set("Authorization", "Bearer "+refs.StringValue(verifyRes.AccessToken))
 		ctx = context.WithValue(req.Context(), "GinContextKey", s.GinContext)
-		_, err = resolvers.UpdateProfileResolver(ctx, model.UpdateProfileInput{
+		updateProfileRes, err := resolvers.UpdateProfileResolver(ctx, model.UpdateProfileInput{
 			IsMultiFactorAuthEnabled: refs.NewBoolRef(true),
 		})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, updateProfileRes.Message)
 
 		// Login should not return error but access token should be empty as otp should have been sent
 		loginRes, err = resolvers.LoginResolver(ctx, model.LoginInput{

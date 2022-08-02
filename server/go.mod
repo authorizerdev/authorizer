@@ -5,11 +5,12 @@ go 1.16
 require (
 	github.com/99designs/gqlgen v0.14.0
 	github.com/arangodb/go-driver v1.2.1
+	github.com/coreos/etcd v3.3.27+incompatible
 	github.com/coreos/go-oidc/v3 v3.1.0
 	github.com/gin-gonic/gin v1.7.2
 	github.com/go-playground/validator/v10 v10.8.0 // indirect
 	github.com/go-redis/redis/v8 v8.11.0
-	github.com/gocql/gocql v1.0.0
+	github.com/gocql/gocql v1.2.0
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/uuid v1.3.0

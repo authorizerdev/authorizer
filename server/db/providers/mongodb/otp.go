@@ -11,19 +11,33 @@ import (
 )
 
 // UpsertOTP to add or update otp
-func (p *provider) UpsertOTP(ctx context.Context, otp *models.OTP) (*models.OTP, error) {
-	if otp.ID == "" {
-		otp.ID = uuid.New().String()
-	}
-
-	otp.Key = otp.ID
-	if otp.CreatedAt <= 0 {
-		otp.CreatedAt = time.Now().Unix()
+func (p *provider) UpsertOTP(ctx context.Context, otpParam *models.OTP) (*models.OTP, error) {
+	otp, _ := p.GetOTPByEmail(ctx, otpParam.Email)
+	shouldCreate := false
+	if otp == nil {
+		id := uuid.NewString()
+		otp = &models.OTP{
+			ID:        id,
+			Key:       id,
+			Otp:       otpParam.Otp,
+			Email:     otpParam.Email,
+			ExpiresAt: otpParam.ExpiresAt,
+			CreatedAt: time.Now().Unix(),
+		}
+		shouldCreate = true
+	} else {
+		otp.Otp = otpParam.Otp
+		otp.ExpiresAt = otpParam.ExpiresAt
 	}
 	otp.UpdatedAt = time.Now().Unix()
-
 	otpCollection := p.db.Collection(models.Collections.OTP, options.Collection())
-	_, err := otpCollection.UpdateOne(ctx, bson.M{"_id": bson.M{"$eq": otp.ID}}, bson.M{"$set": otp}, options.MergeUpdateOptions().SetUpsert(true))
+
+	var err error
+	if shouldCreate {
+		_, err = otpCollection.InsertOne(ctx, otp)
+	} else {
+		_, err = otpCollection.UpdateOne(ctx, bson.M{"_id": bson.M{"$eq": otp.ID}}, bson.M{"$set": otp}, options.MergeUpdateOptions())
+	}
 	if err != nil {
 		return nil, err
 	}

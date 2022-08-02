@@ -20,6 +20,9 @@ type Provider interface {
 	GetUserByEmail(ctx context.Context, email string) (models.User, error)
 	// GetUserByID to get user information from database using user ID
 	GetUserByID(ctx context.Context, id string) (models.User, error)
+	// UpdateUsers to update multiple users, with parameters of user IDs slice
+	// If ids set to nil / empty all the users will be updated
+	UpdateUsers(ctx context.Context, data map[string]interface{}, ids []string) error
 
 	// AddVerification to save verification request in database
 	AddVerificationRequest(ctx context.Context, verificationRequest models.VerificationRequest) (models.VerificationRequest, error)

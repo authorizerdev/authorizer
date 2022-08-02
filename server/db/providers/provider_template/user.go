@@ -60,3 +60,12 @@ func (p *provider) GetUserByID(ctx context.Context, id string) (models.User, err
 
 	return user, nil
 }
+
+// UpdateUsers to update multiple users, with parameters of user IDs slice
+// If ids set to nil / empty all the users will be updated
+func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{}, ids []string) error {
+	// set updated_at time for all users
+	data["updated_at"] = time.Now().Unix()
+
+	return nil
+}
