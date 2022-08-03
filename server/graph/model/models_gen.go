@@ -86,6 +86,7 @@ type Env struct {
 	DisableSignUp                    bool     `json:"DISABLE_SIGN_UP"`
 	DisableRedisForEnv               bool     `json:"DISABLE_REDIS_FOR_ENV"`
 	DisableStrongPassword            bool     `json:"DISABLE_STRONG_PASSWORD"`
+	DisableMultiFactorAuthentication bool     `json:"DISABLE_MULTI_FACTOR_AUTHENTICATION"`
 	EnforceMultiFactorAuthentication bool     `json:"ENFORCE_MULTI_FACTOR_AUTHENTICATION"`
 	Roles                            []string `json:"ROLES"`
 	ProtectedRoles                   []string `json:"PROTECTED_ROLES"`
@@ -164,6 +165,7 @@ type Meta struct {
 	IsMagicLinkLoginEnabled      bool   `json:"is_magic_link_login_enabled"`
 	IsSignUpEnabled              bool   `json:"is_sign_up_enabled"`
 	IsStrongPasswordEnabled      bool   `json:"is_strong_password_enabled"`
+	IsMultiFactorAuthEnabled     bool   `json:"is_multi_factor_auth_enabled"`
 }
 
 type OAuthRevokeInput struct {
@@ -273,6 +275,7 @@ type UpdateEnvInput struct {
 	DisableSignUp                    *bool    `json:"DISABLE_SIGN_UP"`
 	DisableRedisForEnv               *bool    `json:"DISABLE_REDIS_FOR_ENV"`
 	DisableStrongPassword            *bool    `json:"DISABLE_STRONG_PASSWORD"`
+	DisableMultiFactorAuthentication *bool    `json:"DISABLE_MULTI_FACTOR_AUTHENTICATION"`
 	EnforceMultiFactorAuthentication *bool    `json:"ENFORCE_MULTI_FACTOR_AUTHENTICATION"`
 	Roles                            []string `json:"ROLES"`
 	ProtectedRoles                   []string `json:"PROTECTED_ROLES"`

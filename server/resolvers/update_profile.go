@@ -104,6 +104,17 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 			}
 		}
 
+		isMFAEnforced, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyEnforceMultiFactorAuthentication)
+		if err != nil {
+			log.Debug("MFA service not enabled: ", err)
+			isMFAEnforced = false
+		}
+
+		if isMFAEnforced && !refs.BoolValue(params.IsMultiFactorAuthEnabled) {
+			log.Debug("Cannot disable mfa service as it is enforced:")
+			return nil, errors.New("cannot disable multi factor authentication as it is enforced by organization")
+		}
+
 		user.IsMultiFactorAuthEnabled = params.IsMultiFactorAuthEnabled
 	}
 

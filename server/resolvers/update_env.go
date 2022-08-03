@@ -235,6 +235,7 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 	// in case SMTP is off but env is set to true
 	if updatedData[constants.EnvKeySmtpHost] == "" || updatedData[constants.EnvKeySmtpUsername] == "" || updatedData[constants.EnvKeySmtpPassword] == "" || updatedData[constants.EnvKeySenderEmail] == "" && updatedData[constants.EnvKeySmtpPort] == "" {
 		updatedData[constants.EnvKeyIsEmailServiceEnabled] = false
+		updatedData[constants.EnvKeyDisableMultiFactorAuthentication] = true
 		if !updatedData[constants.EnvKeyDisableEmailVerification].(bool) {
 			updatedData[constants.EnvKeyDisableEmailVerification] = true
 		}
@@ -246,6 +247,12 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 
 	if updatedData[constants.EnvKeySmtpHost] != "" || updatedData[constants.EnvKeySmtpUsername] != "" || updatedData[constants.EnvKeySmtpPassword] != "" || updatedData[constants.EnvKeySenderEmail] != "" && updatedData[constants.EnvKeySmtpPort] != "" {
 		updatedData[constants.EnvKeyIsEmailServiceEnabled] = true
+	}
+
+	if !currentData[constants.EnvKeyEnforceMultiFactorAuthentication].(bool) && updatedData[constants.EnvKeyEnforceMultiFactorAuthentication].(bool) && !updatedData[constants.EnvKeyDisableMultiFactorAuthentication].(bool) {
+		go db.Provider.UpdateUsers(ctx, map[string]interface{}{
+			"is_multi_factor_auth_enabled": true,
+		}, nil)
 	}
 
 	// check the roles change

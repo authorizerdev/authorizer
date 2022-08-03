@@ -16,6 +16,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/parsers"
+	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/authorizerdev/authorizer/server/validators"
@@ -136,6 +137,15 @@ func InviteMembersResolver(ctx context.Context, params model.InviteMemberInput) 
 			user.SignupMethods = constants.AuthRecipeMethodBasicAuth
 			verificationRequest.Identifier = constants.VerificationTypeForgotPassword
 
+			isMFAEnforced, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyEnforceMultiFactorAuthentication)
+			if err != nil {
+				log.Debug("MFA service not enabled: ", err)
+				isMFAEnforced = false
+			}
+
+			if isMFAEnforced {
+				user.IsMultiFactorAuthEnabled = refs.NewBoolRef(true)
+			}
 			verifyEmailURL = appURL + "/setup-password"
 
 		}

@@ -25,6 +25,7 @@ type Meta {
 	is_magic_link_login_enabled: Boolean!
 	is_sign_up_enabled: Boolean!
 	is_strong_password_enabled: Boolean!
+	is_multi_factor_auth_enabled: Boolean!
 }
 
 type User {
@@ -124,6 +125,7 @@ type Env {
 	DISABLE_SIGN_UP: Boolean!
 	DISABLE_REDIS_FOR_ENV: Boolean!
 	DISABLE_STRONG_PASSWORD: Boolean!
+	DISABLE_MULTI_FACTOR_AUTHENTICATION: Boolean!
 	ENFORCE_MULTI_FACTOR_AUTHENTICATION: Boolean!
 	ROLES: [String!]
 	PROTECTED_ROLES: [String!]
@@ -225,6 +227,7 @@ input UpdateEnvInput {
 	DISABLE_SIGN_UP: Boolean
 	DISABLE_REDIS_FOR_ENV: Boolean
 	DISABLE_STRONG_PASSWORD: Boolean
+	DISABLE_MULTI_FACTOR_AUTHENTICATION: Boolean
 	ENFORCE_MULTI_FACTOR_AUTHENTICATION: Boolean
 	ROLES: [String!]
 	PROTECTED_ROLES: [String!]

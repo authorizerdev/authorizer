@@ -52,6 +52,12 @@ func ResendOTPResolver(ctx context.Context, params model.ResendOTPRequest) (*mod
 		return nil, errors.New("email service not enabled")
 	}
 
+	isMFADisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableMultiFactorAuthentication)
+	if err != nil || isMFADisabled {
+		log.Debug("MFA service not enabled: ", err)
+		return nil, errors.New("multi factor authentication is disabled for this instance")
+	}
+
 	// get otp by email
 	otpData, err := db.Provider.GetOTPByEmail(ctx, params.Email)
 	if err != nil {

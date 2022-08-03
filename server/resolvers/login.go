@@ -104,8 +104,13 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 		log.Debug("Email service not enabled: ", err)
 	}
 
+	isMFADisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableMultiFactorAuthentication)
+	if err != nil || !isEmailServiceEnabled {
+		log.Debug("MFA service not enabled: ", err)
+	}
+
 	// If email service is not enabled continue the process in any way
-	if refs.BoolValue(user.IsMultiFactorAuthEnabled) && isEmailServiceEnabled {
+	if refs.BoolValue(user.IsMultiFactorAuthEnabled) && isEmailServiceEnabled && !isMFADisabled {
 		otp := utils.GenerateOTP()
 		otpData, err := db.Provider.UpsertOTP(ctx, &models.OTP{
 			Email:     user.Email,

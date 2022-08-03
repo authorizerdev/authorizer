@@ -88,6 +88,7 @@ type ComplexityRoot struct {
 		DisableEmailVerification         func(childComplexity int) int
 		DisableLoginPage                 func(childComplexity int) int
 		DisableMagicLinkLogin            func(childComplexity int) int
+		DisableMultiFactorAuthentication func(childComplexity int) int
 		DisableRedisForEnv               func(childComplexity int) int
 		DisableSignUp                    func(childComplexity int) int
 		DisableStrongPassword            func(childComplexity int) int
@@ -139,6 +140,7 @@ type ComplexityRoot struct {
 		IsGoogleLoginEnabled         func(childComplexity int) int
 		IsLinkedinLoginEnabled       func(childComplexity int) int
 		IsMagicLinkLoginEnabled      func(childComplexity int) int
+		IsMultiFactorAuthEnabled     func(childComplexity int) int
 		IsSignUpEnabled              func(childComplexity int) int
 		IsStrongPasswordEnabled      func(childComplexity int) int
 		Version                      func(childComplexity int) int
@@ -592,6 +594,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Env.DisableMagicLinkLogin(childComplexity), true
 
+	case "Env.DISABLE_MULTI_FACTOR_AUTHENTICATION":
+		if e.complexity.Env.DisableMultiFactorAuthentication == nil {
+			break
+		}
+
+		return e.complexity.Env.DisableMultiFactorAuthentication(childComplexity), true
+
 	case "Env.DISABLE_REDIS_FOR_ENV":
 		if e.complexity.Env.DisableRedisForEnv == nil {
 			break
@@ -885,6 +894,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Meta.IsMagicLinkLoginEnabled(childComplexity), true
+
+	case "Meta.is_multi_factor_auth_enabled":
+		if e.complexity.Meta.IsMultiFactorAuthEnabled == nil {
+			break
+		}
+
+		return e.complexity.Meta.IsMultiFactorAuthEnabled(childComplexity), true
 
 	case "Meta.is_sign_up_enabled":
 		if e.complexity.Meta.IsSignUpEnabled == nil {
@@ -1866,6 +1882,7 @@ type Meta {
 	is_magic_link_login_enabled: Boolean!
 	is_sign_up_enabled: Boolean!
 	is_strong_password_enabled: Boolean!
+	is_multi_factor_auth_enabled: Boolean!
 }
 
 type User {
@@ -1965,6 +1982,7 @@ type Env {
 	DISABLE_SIGN_UP: Boolean!
 	DISABLE_REDIS_FOR_ENV: Boolean!
 	DISABLE_STRONG_PASSWORD: Boolean!
+	DISABLE_MULTI_FACTOR_AUTHENTICATION: Boolean!
 	ENFORCE_MULTI_FACTOR_AUTHENTICATION: Boolean!
 	ROLES: [String!]
 	PROTECTED_ROLES: [String!]
@@ -2066,6 +2084,7 @@ input UpdateEnvInput {
 	DISABLE_SIGN_UP: Boolean
 	DISABLE_REDIS_FOR_ENV: Boolean
 	DISABLE_STRONG_PASSWORD: Boolean
+	DISABLE_MULTI_FACTOR_AUTHENTICATION: Boolean
 	ENFORCE_MULTI_FACTOR_AUTHENTICATION: Boolean
 	ROLES: [String!]
 	PROTECTED_ROLES: [String!]
@@ -4425,6 +4444,41 @@ func (ec *executionContext) _Env_DISABLE_STRONG_PASSWORD(ctx context.Context, fi
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Env_DISABLE_MULTI_FACTOR_AUTHENTICATION(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Env",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DisableMultiFactorAuthentication, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Env_ENFORCE_MULTI_FACTOR_AUTHENTICATION(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -5542,6 +5596,41 @@ func (ec *executionContext) _Meta_is_strong_password_enabled(ctx context.Context
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.IsStrongPasswordEnabled, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Meta_is_multi_factor_auth_enabled(ctx context.Context, field graphql.CollectedField, obj *model.Meta) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Meta",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsMultiFactorAuthEnabled, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -11379,6 +11468,14 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			if err != nil {
 				return it, err
 			}
+		case "DISABLE_MULTI_FACTOR_AUTHENTICATION":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("DISABLE_MULTI_FACTOR_AUTHENTICATION"))
+			it.DisableMultiFactorAuthentication, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		case "ENFORCE_MULTI_FACTOR_AUTHENTICATION":
 			var err error
 
@@ -12152,6 +12249,11 @@ func (ec *executionContext) _Env(ctx context.Context, sel ast.SelectionSet, obj 
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "DISABLE_MULTI_FACTOR_AUTHENTICATION":
+			out.Values[i] = ec._Env_DISABLE_MULTI_FACTOR_AUTHENTICATION(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "ENFORCE_MULTI_FACTOR_AUTHENTICATION":
 			out.Values[i] = ec._Env_ENFORCE_MULTI_FACTOR_AUTHENTICATION(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -12328,6 +12430,11 @@ func (ec *executionContext) _Meta(ctx context.Context, sel ast.SelectionSet, obj
 			}
 		case "is_strong_password_enabled":
 			out.Values[i] = ec._Meta_is_strong_password_enabled(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "is_multi_factor_auth_enabled":
+			out.Values[i] = ec._Meta_is_multi_factor_auth_enabled(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}

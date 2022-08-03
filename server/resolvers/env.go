@@ -171,6 +171,7 @@ func EnvResolver(ctx context.Context) (*model.Env, error) {
 	res.DisableSignUp = store[constants.EnvKeyDisableSignUp].(bool)
 	res.DisableStrongPassword = store[constants.EnvKeyDisableStrongPassword].(bool)
 	res.EnforceMultiFactorAuthentication = store[constants.EnvKeyEnforceMultiFactorAuthentication].(bool)
+	res.DisableMultiFactorAuthentication = store[constants.EnvKeyDisableMultiFactorAuthentication].(bool)
 
 	return res, nil
 }
