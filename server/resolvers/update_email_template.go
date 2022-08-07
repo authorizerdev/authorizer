@@ -51,6 +51,14 @@ func UpdateEmailTemplateResolver(ctx context.Context, params model.UpdateEmailTe
 		emailTemplateDetails.EventName = refs.StringValue(params.EventName)
 	}
 
+	if params.Subject != nil && emailTemplateDetails.Subject != refs.StringValue(params.Subject) {
+		if strings.TrimSpace(refs.StringValue(params.Subject)) == "" {
+			log.Debug("empty subject not allowed")
+			return nil, fmt.Errorf("empty subject not allowed")
+		}
+		emailTemplateDetails.Subject = refs.StringValue(params.Subject)
+	}
+
 	if params.Template != nil && emailTemplateDetails.Template != refs.StringValue(params.Template) {
 		if strings.TrimSpace(refs.StringValue(params.Template)) == "" {
 			log.Debug("empty template not allowed")

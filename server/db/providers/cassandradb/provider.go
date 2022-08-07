@@ -214,6 +214,12 @@ func NewProvider() (*provider, error) {
 	if err != nil {
 		return nil, err
 	}
+	// add subject on email_templates table
+	emailTemplateAlterQuery := fmt.Sprintf(`ALTER TABLE %s.%s ADD subject text;`, KeySpace, models.Collections.EmailTemplate)
+	err = session.Query(emailTemplateAlterQuery).Exec()
+	if err != nil {
+		return nil, err
+	}
 
 	return &provider{
 		db: session,

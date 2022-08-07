@@ -56,6 +56,7 @@ type ComplexityRoot struct {
 		CreatedAt func(childComplexity int) int
 		EventName func(childComplexity int) int
 		ID        func(childComplexity int) int
+		Subject   func(childComplexity int) int
 		Template  func(childComplexity int) int
 		UpdatedAt func(childComplexity int) int
 	}
@@ -402,6 +403,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.EmailTemplate.ID(childComplexity), true
+
+	case "EmailTemplate.subject":
+		if e.complexity.EmailTemplate.Subject == nil {
+			break
+		}
+
+		return e.complexity.EmailTemplate.Subject(childComplexity), true
 
 	case "EmailTemplate.template":
 		if e.complexity.EmailTemplate.Template == nil {
@@ -1978,6 +1986,7 @@ type EmailTemplate {
 	id: ID!
 	event_name: String!
 	template: String!
+	subject: String!
 	created_at: Int64
 	updated_at: Int64
 }
@@ -2193,6 +2202,7 @@ input TestEndpointRequest {
 
 input AddEmailTemplateRequest {
 	event_name: String!
+	subject: String!
 	template: String!
 }
 
@@ -2200,6 +2210,7 @@ input UpdateEmailTemplateRequest {
 	id: ID!
 	event_name: String
 	template: String
+	subject: String
 }
 
 input DeleteEmailTemplateRequest {
@@ -3092,6 +3103,41 @@ func (ec *executionContext) _EmailTemplate_template(ctx context.Context, field g
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Template, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _EmailTemplate_subject(ctx context.Context, field graphql.CollectedField, obj *model.EmailTemplate) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "EmailTemplate",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Subject, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -10087,6 +10133,14 @@ func (ec *executionContext) unmarshalInputAddEmailTemplateRequest(ctx context.Co
 			if err != nil {
 				return it, err
 			}
+		case "subject":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("subject"))
+			it.Subject, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		case "template":
 			var err error
 
@@ -10866,6 +10920,14 @@ func (ec *executionContext) unmarshalInputUpdateEmailTemplateRequest(ctx context
 			if err != nil {
 				return it, err
 			}
+		case "subject":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("subject"))
+			it.Subject, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		}
 	}
 
@@ -11629,6 +11691,11 @@ func (ec *executionContext) _EmailTemplate(ctx context.Context, sel ast.Selectio
 			}
 		case "template":
 			out.Values[i] = ec._EmailTemplate_template(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "subject":
+			out.Values[i] = ec._EmailTemplate_subject(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}

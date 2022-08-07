@@ -162,12 +162,20 @@ export enum WebhookInputDataFields {
 	HEADERS = 'headers',
 }
 
+export enum EmailTemplateInputDataFields {
+	ID = 'id',
+	EVENT_NAME = 'event_name',
+	SUBJECT = 'subject',
+	CREATED_AT = 'created_at',
+	TEMPLATE = 'template',
+}
+
 export enum WebhookInputHeaderFields {
 	KEY = 'key',
 	VALUE = 'value',
 }
 
-export enum UpdateWebhookModalViews {
+export enum UpdateModalViews {
 	ADD = 'add',
 	Edit = 'edit',
 }
@@ -183,8 +191,67 @@ export const webhookEventNames = {
 	USER_ACCESS_REVOKED: 'user.access_revoked',
 };
 
+export const emailTemplateEventNames = {
+	BASIC_AUTH_SIGNUP: 'basic_auth_signup',
+	MAGIC_LINK_LOGIN: 'magic_link_login',
+	UPDATE_EMAIL: 'update_email',
+	FORGOT_PASSWORD: 'forgot_password',
+	VERIFY_OTP: 'verify_otp',
+};
+
 export enum webhookVerifiedStatus {
 	VERIFIED = 'verified',
 	NOT_VERIFIED = 'not_verified',
 	PENDING = 'verification_pending',
 }
+
+export const emailTemplateVariables = {
+	'user.id': '{user.id}}',
+	'user.email': '{user.email}}',
+	'user.given_name': '{user.given_name}}',
+	'user.family_name': '{user.family_name}}',
+	'user.signup_methods': '{user.signup_methods}}',
+	'user.email_verified': '{user.email_verified}}',
+	'user.picture': '{user.picture}}',
+	'user.roles': '{user.roles}}',
+	'user.middle_name': '{user.middle_name}}',
+	'user.nickname': '{user.nickname}}',
+	'user.preferred_username': '{user.preferred_username}}',
+	'user.gender': '{user.gender}}',
+	'user.birthdate': '{user.birthdate}}',
+	'user.phone_number': '{user.phone_number}}',
+	'user.phone_number_verified': '{user.phone_number_verified}}',
+	'user.created_at': '{user.created_at}}',
+	'user.updated_at': '{user.updated_at}}',
+	'organization.name': '{organization.name}}',
+	'organization.logo': '{organization.logo}}',
+	verification_url: '{verification_url}}',
+	otp: '{otp}}',
+};
+
+export const webhookPayloadExample: string = `{
+	"event_name":"user.login",
+	"user":{
+	   "birthdate":null,
+	   "created_at":1657524721,
+	   "email":"lakhan.m.samani@gmail.com",
+	   "email_verified":true,
+	   "family_name":"Samani",
+	   "gender":null,
+	   "given_name":"Lakhan",
+	   "id":"466d0b31-1b87-420e-bea5-09d05d79c586",
+	   "middle_name":null,
+	   "nickname":null,
+	   "phone_number":null,
+	   "phone_number_verified":false,
+	   "picture":"https://lh3.googleusercontent.com/a-/AFdZucppvU6a2zIDkX0wvhhapVjT0ZMKDlYCkQDi3NxcUg=s96-c",
+	   "preferred_username":"lakhan.m.samani@gmail.com",
+	   "revoked_timestamp":null,
+	   "roles":[
+		  "user"
+	   ],
+	   "signup_methods":"google",
+	   "updated_at":1657526492
+	},
+	"auth_recipe":"google"
+ }`;

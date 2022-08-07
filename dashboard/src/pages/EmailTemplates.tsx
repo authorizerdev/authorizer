@@ -18,7 +18,6 @@ import {
 	Spinner,
 	Table,
 	TableCaption,
-	Tag,
 	Tbody,
 	Td,
 	Text,
@@ -35,15 +34,15 @@ import {
 	FaAngleRight,
 	FaExclamationCircle,
 } from 'react-icons/fa';
-import UpdateWebhookModal from '../components/UpdateWebhookModal';
+import UpdateEmailTemplateModal from '../components/UpdateEmailTemplateModal';
 import {
 	pageLimits,
-	WebhookInputDataFields,
 	UpdateModalViews,
+	EmailTemplateInputDataFields,
 } from '../constants';
-import { WebhooksDataQuery } from '../graphql/queries';
-import DeleteWebhookModal from '../components/DeleteWebhookModal';
-import ViewWebhookLogsModal from '../components/ViewWebhookLogsModal';
+import { EmailTemplatesQuery, WebhooksDataQuery } from '../graphql/queries';
+import dayjs from 'dayjs';
+import DeleteEmailTemplateModal from '../components/DeleteEmailTemplateModal';
 
 interface paginationPropTypes {
 	limit: number;
@@ -53,18 +52,20 @@ interface paginationPropTypes {
 	maxPages: number;
 }
 
-interface webhookDataTypes {
-	[WebhookInputDataFields.ID]: string;
-	[WebhookInputDataFields.EVENT_NAME]: string;
-	[WebhookInputDataFields.ENDPOINT]: string;
-	[WebhookInputDataFields.ENABLED]: boolean;
-	[WebhookInputDataFields.HEADERS]?: Record<string, string>;
+interface EmailTemplateDataType {
+	[EmailTemplateInputDataFields.ID]: string;
+	[EmailTemplateInputDataFields.EVENT_NAME]: string;
+	[EmailTemplateInputDataFields.SUBJECT]: string;
+	[EmailTemplateInputDataFields.CREATED_AT]: number;
+	[EmailTemplateInputDataFields.TEMPLATE]: string;
 }
 
-const Webhooks = () => {
+const EmailTemplates = () => {
 	const client = useClient();
 	const [loading, setLoading] = useState<boolean>(false);
-	const [webhookData, setWebhookData] = useState<webhookDataTypes[]>([]);
+	const [emailTemplatesData, setEmailTemplatesData] = useState<
+		EmailTemplateDataType[]
+	>([]);
 	const [paginationProps, setPaginationProps] = useState<paginationPropTypes>({
 		limit: 5,
 		page: 1,
@@ -80,10 +81,10 @@ const Webhooks = () => {
 				: parseInt(`${total / limit}`) + 1;
 		} else return 1;
 	};
-	const fetchWebookData = async () => {
+	const fetchEmailTemplatesData = async () => {
 		setLoading(true);
 		const res = await client
-			.query(WebhooksDataQuery, {
+			.query(EmailTemplatesQuery, {
 				params: {
 					pagination: {
 						limit: paginationProps.limit,
@@ -92,11 +93,12 @@ const Webhooks = () => {
 				},
 			})
 			.toPromise();
-		if (res.data?._webhooks) {
-			const { pagination, webhooks } = res.data?._webhooks;
+		if (res.data?._email_templates) {
+			const { pagination, EmailTemplates: emailTemplates } =
+				res.data?._email_templates;
 			const maxPages = getMaxPages(pagination);
-			if (webhooks?.length) {
-				setWebhookData(webhooks);
+			if (emailTemplates?.length) {
+				setEmailTemplatesData(emailTemplates);
 				setPaginationProps({ ...paginationProps, ...pagination, maxPages });
 			} else {
 				if (paginationProps.page !== 1) {
@@ -115,70 +117,44 @@ const Webhooks = () => {
 		setPaginationProps({ ...paginationProps, ...value });
 	};
 	useEffect(() => {
-		fetchWebookData();
+		fetchEmailTemplatesData();
 	}, [paginationProps.page, paginationProps.limit]);
 	return (
 		<Box m="5" py="5" px="10" bg="white" rounded="md">
 			<Flex margin="2% 0" justifyContent="space-between" alignItems="center">
 				<Text fontSize="md" fontWeight="bold">
-					Webhooks
+					Email Templates
 				</Text>
-				<UpdateWebhookModal
+				<UpdateEmailTemplateModal
 					view={UpdateModalViews.ADD}
-					fetchWebookData={fetchWebookData}
+					fetchEmailTemplatesData={fetchEmailTemplatesData}
 				/>
 			</Flex>
 			{!loading ? (
-				webhookData.length ? (
+				emailTemplatesData.length ? (
 					<Table variant="simple">
 						<Thead>
 							<Tr>
 								<Th>Event Name</Th>
-								<Th>Endpoint</Th>
-								<Th>Enabled</Th>
-								<Th>Headers</Th>
+								<Th>Subject</Th>
+								<Th>Created At</Th>
 								<Th>Actions</Th>
 							</Tr>
 						</Thead>
 						<Tbody>
-							{webhookData.map((webhook: webhookDataTypes) => (
+							{emailTemplatesData.map((templateData: EmailTemplateDataType) => (
 								<Tr
-									key={webhook[WebhookInputDataFields.ID]}
+									key={templateData[EmailTemplateInputDataFields.ID]}
 									style={{ fontSize: 14 }}
 								>
 									<Td maxW="300">
-										{webhook[WebhookInputDataFields.EVENT_NAME]}
+										{templateData[EmailTemplateInputDataFields.EVENT_NAME]}
 									</Td>
-									<Td>{webhook[WebhookInputDataFields.ENDPOINT]}</Td>
+									<Td>{templateData[EmailTemplateInputDataFields.SUBJECT]}</Td>
 									<Td>
-										<Tag
-											size="sm"
-											variant="outline"
-											colorScheme={
-												webhook[WebhookInputDataFields.ENABLED]
-													? 'green'
-													: 'yellow'
-											}
-										>
-											{webhook[WebhookInputDataFields.ENABLED].toString()}
-										</Tag>
-									</Td>
-									<Td>
-										<Tooltip
-											bg="gray.300"
-											color="black"
-											label={JSON.stringify(
-												webhook[WebhookInputDataFields.HEADERS],
-												null,
-												' '
-											)}
-										>
-											<Tag size="sm" variant="outline" colorScheme="gray">
-												{Object.keys(
-													webhook[WebhookInputDataFields.HEADERS] || {}
-												)?.length.toString()}
-											</Tag>
-										</Tooltip>
+										{dayjs(templateData.created_at * 1000).format(
+											'MMM DD, YYYY'
+										)}
 									</Td>
 									<Td>
 										<Menu>
@@ -194,19 +170,21 @@ const Webhooks = () => {
 												</Flex>
 											</MenuButton>
 											<MenuList>
-												<UpdateWebhookModal
+												<UpdateEmailTemplateModal
 													view={UpdateModalViews.Edit}
-													selectedWebhook={webhook}
-													fetchWebookData={fetchWebookData}
+													selectedTemplate={templateData}
+													fetchEmailTemplatesData={fetchEmailTemplatesData}
 												/>
-												<DeleteWebhookModal
-													webhookId={webhook[WebhookInputDataFields.ID]}
-													eventName={webhook[WebhookInputDataFields.EVENT_NAME]}
-													fetchWebookData={fetchWebookData}
-												/>
-												<ViewWebhookLogsModal
-													webhookId={webhook[WebhookInputDataFields.ID]}
-													eventName={webhook[WebhookInputDataFields.EVENT_NAME]}
+												<DeleteEmailTemplateModal
+													emailTemplateId={
+														templateData[EmailTemplateInputDataFields.ID]
+													}
+													eventName={
+														templateData[
+															EmailTemplateInputDataFields.EVENT_NAME
+														]
+													}
+													fetchEmailTemplatesData={fetchEmailTemplatesData}
 												/>
 											</MenuList>
 										</Menu>
@@ -366,4 +344,4 @@ const Webhooks = () => {
 	);
 };
 
-export default Webhooks;
+export default EmailTemplates;

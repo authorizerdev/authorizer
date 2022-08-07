@@ -12,7 +12,6 @@ import {
 	Select,
 	Textarea,
 	Switch,
-	Code,
 	Text,
 } from '@chakra-ui/react';
 import {

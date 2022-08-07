@@ -112,3 +112,27 @@ export const TestEndpoint = `
     }
   }
 `;
+
+export const AddEmailTemplate = `
+  mutation addEmailTemplate($params: AddEmailTemplateRequest!) {
+    _add_email_template(params: $params) {
+      message
+    }
+  }
+`;
+
+export const EditEmailTemplate = `
+  mutation editEmailTemplate($params: UpdateEmailTemplateRequest!) {
+    _update_email_template(params: $params) {
+      message
+    }
+  }
+`;
+
+export const DeleteEmailTemplate = `
+  mutation deleteEmailTemplate($params: DeleteEmailTemplateRequest!) {
+    _delete_email_template(params: $params) {
+      message
+    }
+  }
+`;

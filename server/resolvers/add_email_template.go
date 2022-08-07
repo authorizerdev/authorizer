@@ -34,6 +34,10 @@ func AddEmailTemplateResolver(ctx context.Context, params model.AddEmailTemplate
 		return nil, fmt.Errorf("invalid event name %s", params.EventName)
 	}
 
+	if strings.TrimSpace(params.Subject) == "" {
+		return nil, fmt.Errorf("empty subject not allowed")
+	}
+
 	if strings.TrimSpace(params.Template) == "" {
 		return nil, fmt.Errorf("empty template not allowed")
 	}
@@ -41,6 +45,7 @@ func AddEmailTemplateResolver(ctx context.Context, params model.AddEmailTemplate
 	_, err = db.Provider.AddEmailTemplate(ctx, models.EmailTemplate{
 		EventName: params.EventName,
 		Template:  params.Template,
+		Subject:   params.Subject,
 	})
 	if err != nil {
 		log.Debug("Failed to add email template: ", err)
