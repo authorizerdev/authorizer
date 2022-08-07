@@ -57,6 +57,11 @@ func cleanData(email string) {
 		err = db.Provider.DeleteVerificationRequest(ctx, verificationRequest)
 	}
 
+	otp, err := db.Provider.GetOTPByEmail(ctx, email)
+	if err == nil {
+		err = db.Provider.DeleteOTP(ctx, otp)
+	}
+
 	dbUser, err := db.Provider.GetUserByEmail(ctx, email)
 	if err == nil {
 		db.Provider.DeleteUser(ctx, dbUser)

@@ -16,6 +16,7 @@ import (
 func (p *provider) AddEmailTemplate(ctx context.Context, emailTemplate models.EmailTemplate) (*model.EmailTemplate, error) {
 	if emailTemplate.ID == "" {
 		emailTemplate.ID = uuid.New().String()
+		emailTemplate.Key = emailTemplate.ID
 	}
 
 	emailTemplate.Key = emailTemplate.ID

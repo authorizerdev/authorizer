@@ -44,12 +44,13 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	AuthResponse struct {
-		AccessToken  func(childComplexity int) int
-		ExpiresIn    func(childComplexity int) int
-		IDToken      func(childComplexity int) int
-		Message      func(childComplexity int) int
-		RefreshToken func(childComplexity int) int
-		User         func(childComplexity int) int
+		AccessToken         func(childComplexity int) int
+		ExpiresIn           func(childComplexity int) int
+		IDToken             func(childComplexity int) int
+		Message             func(childComplexity int) int
+		RefreshToken        func(childComplexity int) int
+		ShouldShowOtpScreen func(childComplexity int) int
+		User                func(childComplexity int) int
 	}
 
 	EmailTemplate struct {
@@ -67,54 +68,56 @@ type ComplexityRoot struct {
 	}
 
 	Env struct {
-		AccessTokenExpiryTime      func(childComplexity int) int
-		AdminSecret                func(childComplexity int) int
-		AllowedOrigins             func(childComplexity int) int
-		AppURL                     func(childComplexity int) int
-		AppleClientID              func(childComplexity int) int
-		AppleClientSecret          func(childComplexity int) int
-		ClientID                   func(childComplexity int) int
-		ClientSecret               func(childComplexity int) int
-		CustomAccessTokenScript    func(childComplexity int) int
-		DatabaseHost               func(childComplexity int) int
-		DatabaseName               func(childComplexity int) int
-		DatabasePassword           func(childComplexity int) int
-		DatabasePort               func(childComplexity int) int
-		DatabaseType               func(childComplexity int) int
-		DatabaseURL                func(childComplexity int) int
-		DatabaseUsername           func(childComplexity int) int
-		DefaultRoles               func(childComplexity int) int
-		DisableBasicAuthentication func(childComplexity int) int
-		DisableEmailVerification   func(childComplexity int) int
-		DisableLoginPage           func(childComplexity int) int
-		DisableMagicLinkLogin      func(childComplexity int) int
-		DisableRedisForEnv         func(childComplexity int) int
-		DisableSignUp              func(childComplexity int) int
-		DisableStrongPassword      func(childComplexity int) int
-		FacebookClientID           func(childComplexity int) int
-		FacebookClientSecret       func(childComplexity int) int
-		GithubClientID             func(childComplexity int) int
-		GithubClientSecret         func(childComplexity int) int
-		GoogleClientID             func(childComplexity int) int
-		GoogleClientSecret         func(childComplexity int) int
-		JwtPrivateKey              func(childComplexity int) int
-		JwtPublicKey               func(childComplexity int) int
-		JwtRoleClaim               func(childComplexity int) int
-		JwtSecret                  func(childComplexity int) int
-		JwtType                    func(childComplexity int) int
-		LinkedinClientID           func(childComplexity int) int
-		LinkedinClientSecret       func(childComplexity int) int
-		OrganizationLogo           func(childComplexity int) int
-		OrganizationName           func(childComplexity int) int
-		ProtectedRoles             func(childComplexity int) int
-		RedisURL                   func(childComplexity int) int
-		ResetPasswordURL           func(childComplexity int) int
-		Roles                      func(childComplexity int) int
-		SMTPHost                   func(childComplexity int) int
-		SMTPPassword               func(childComplexity int) int
-		SMTPPort                   func(childComplexity int) int
-		SMTPUsername               func(childComplexity int) int
-		SenderEmail                func(childComplexity int) int
+		AccessTokenExpiryTime            func(childComplexity int) int
+		AdminSecret                      func(childComplexity int) int
+		AllowedOrigins                   func(childComplexity int) int
+		AppURL                           func(childComplexity int) int
+		AppleClientID                    func(childComplexity int) int
+		AppleClientSecret                func(childComplexity int) int
+		ClientID                         func(childComplexity int) int
+		ClientSecret                     func(childComplexity int) int
+		CustomAccessTokenScript          func(childComplexity int) int
+		DatabaseHost                     func(childComplexity int) int
+		DatabaseName                     func(childComplexity int) int
+		DatabasePassword                 func(childComplexity int) int
+		DatabasePort                     func(childComplexity int) int
+		DatabaseType                     func(childComplexity int) int
+		DatabaseURL                      func(childComplexity int) int
+		DatabaseUsername                 func(childComplexity int) int
+		DefaultRoles                     func(childComplexity int) int
+		DisableBasicAuthentication       func(childComplexity int) int
+		DisableEmailVerification         func(childComplexity int) int
+		DisableLoginPage                 func(childComplexity int) int
+		DisableMagicLinkLogin            func(childComplexity int) int
+		DisableMultiFactorAuthentication func(childComplexity int) int
+		DisableRedisForEnv               func(childComplexity int) int
+		DisableSignUp                    func(childComplexity int) int
+		DisableStrongPassword            func(childComplexity int) int
+		EnforceMultiFactorAuthentication func(childComplexity int) int
+		FacebookClientID                 func(childComplexity int) int
+		FacebookClientSecret             func(childComplexity int) int
+		GithubClientID                   func(childComplexity int) int
+		GithubClientSecret               func(childComplexity int) int
+		GoogleClientID                   func(childComplexity int) int
+		GoogleClientSecret               func(childComplexity int) int
+		JwtPrivateKey                    func(childComplexity int) int
+		JwtPublicKey                     func(childComplexity int) int
+		JwtRoleClaim                     func(childComplexity int) int
+		JwtSecret                        func(childComplexity int) int
+		JwtType                          func(childComplexity int) int
+		LinkedinClientID                 func(childComplexity int) int
+		LinkedinClientSecret             func(childComplexity int) int
+		OrganizationLogo                 func(childComplexity int) int
+		OrganizationName                 func(childComplexity int) int
+		ProtectedRoles                   func(childComplexity int) int
+		RedisURL                         func(childComplexity int) int
+		ResetPasswordURL                 func(childComplexity int) int
+		Roles                            func(childComplexity int) int
+		SMTPHost                         func(childComplexity int) int
+		SMTPPassword                     func(childComplexity int) int
+		SMTPPort                         func(childComplexity int) int
+		SMTPUsername                     func(childComplexity int) int
+		SenderEmail                      func(childComplexity int) int
 	}
 
 	Error struct {
@@ -138,6 +141,7 @@ type ComplexityRoot struct {
 		IsGoogleLoginEnabled         func(childComplexity int) int
 		IsLinkedinLoginEnabled       func(childComplexity int) int
 		IsMagicLinkLoginEnabled      func(childComplexity int) int
+		IsMultiFactorAuthEnabled     func(childComplexity int) int
 		IsSignUpEnabled              func(childComplexity int) int
 		IsStrongPasswordEnabled      func(childComplexity int) int
 		Version                      func(childComplexity int) int
@@ -159,6 +163,7 @@ type ComplexityRoot struct {
 		Login               func(childComplexity int, params model.LoginInput) int
 		Logout              func(childComplexity int) int
 		MagicLinkLogin      func(childComplexity int, params model.MagicLinkLoginInput) int
+		ResendOtp           func(childComplexity int, params model.ResendOTPRequest) int
 		ResendVerifyEmail   func(childComplexity int, params model.ResendVerifyEmailInput) int
 		ResetPassword       func(childComplexity int, params model.ResetPasswordInput) int
 		Revoke              func(childComplexity int, params model.OAuthRevokeInput) int
@@ -171,6 +176,7 @@ type ComplexityRoot struct {
 		UpdateUser          func(childComplexity int, params model.UpdateUserInput) int
 		UpdateWebhook       func(childComplexity int, params model.UpdateWebhookRequest) int
 		VerifyEmail         func(childComplexity int, params model.VerifyEmailInput) int
+		VerifyOtp           func(childComplexity int, params model.VerifyOTPRequest) int
 	}
 
 	Pagination struct {
@@ -205,24 +211,25 @@ type ComplexityRoot struct {
 	}
 
 	User struct {
-		Birthdate           func(childComplexity int) int
-		CreatedAt           func(childComplexity int) int
-		Email               func(childComplexity int) int
-		EmailVerified       func(childComplexity int) int
-		FamilyName          func(childComplexity int) int
-		Gender              func(childComplexity int) int
-		GivenName           func(childComplexity int) int
-		ID                  func(childComplexity int) int
-		MiddleName          func(childComplexity int) int
-		Nickname            func(childComplexity int) int
-		PhoneNumber         func(childComplexity int) int
-		PhoneNumberVerified func(childComplexity int) int
-		Picture             func(childComplexity int) int
-		PreferredUsername   func(childComplexity int) int
-		RevokedTimestamp    func(childComplexity int) int
-		Roles               func(childComplexity int) int
-		SignupMethods       func(childComplexity int) int
-		UpdatedAt           func(childComplexity int) int
+		Birthdate                func(childComplexity int) int
+		CreatedAt                func(childComplexity int) int
+		Email                    func(childComplexity int) int
+		EmailVerified            func(childComplexity int) int
+		FamilyName               func(childComplexity int) int
+		Gender                   func(childComplexity int) int
+		GivenName                func(childComplexity int) int
+		ID                       func(childComplexity int) int
+		IsMultiFactorAuthEnabled func(childComplexity int) int
+		MiddleName               func(childComplexity int) int
+		Nickname                 func(childComplexity int) int
+		PhoneNumber              func(childComplexity int) int
+		PhoneNumberVerified      func(childComplexity int) int
+		Picture                  func(childComplexity int) int
+		PreferredUsername        func(childComplexity int) int
+		RevokedTimestamp         func(childComplexity int) int
+		Roles                    func(childComplexity int) int
+		SignupMethods            func(childComplexity int) int
+		UpdatedAt                func(childComplexity int) int
 	}
 
 	Users struct {
@@ -293,6 +300,8 @@ type MutationResolver interface {
 	ForgotPassword(ctx context.Context, params model.ForgotPasswordInput) (*model.Response, error)
 	ResetPassword(ctx context.Context, params model.ResetPasswordInput) (*model.Response, error)
 	Revoke(ctx context.Context, params model.OAuthRevokeInput) (*model.Response, error)
+	VerifyOtp(ctx context.Context, params model.VerifyOTPRequest) (*model.AuthResponse, error)
+	ResendOtp(ctx context.Context, params model.ResendOTPRequest) (*model.Response, error)
 	DeleteUser(ctx context.Context, params model.DeleteUserInput) (*model.Response, error)
 	UpdateUser(ctx context.Context, params model.UpdateUserInput) (*model.User, error)
 	AdminSignup(ctx context.Context, params model.AdminSignupInput) (*model.Response, error)
@@ -375,6 +384,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.AuthResponse.RefreshToken(childComplexity), true
+
+	case "AuthResponse.should_show_otp_screen":
+		if e.complexity.AuthResponse.ShouldShowOtpScreen == nil {
+			break
+		}
+
+		return e.complexity.AuthResponse.ShouldShowOtpScreen(childComplexity), true
 
 	case "AuthResponse.user":
 		if e.complexity.AuthResponse.User == nil {
@@ -586,6 +602,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Env.DisableMagicLinkLogin(childComplexity), true
 
+	case "Env.DISABLE_MULTI_FACTOR_AUTHENTICATION":
+		if e.complexity.Env.DisableMultiFactorAuthentication == nil {
+			break
+		}
+
+		return e.complexity.Env.DisableMultiFactorAuthentication(childComplexity), true
+
 	case "Env.DISABLE_REDIS_FOR_ENV":
 		if e.complexity.Env.DisableRedisForEnv == nil {
 			break
@@ -606,6 +629,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Env.DisableStrongPassword(childComplexity), true
+
+	case "Env.ENFORCE_MULTI_FACTOR_AUTHENTICATION":
+		if e.complexity.Env.EnforceMultiFactorAuthentication == nil {
+			break
+		}
+
+		return e.complexity.Env.EnforceMultiFactorAuthentication(childComplexity), true
 
 	case "Env.FACEBOOK_CLIENT_ID":
 		if e.complexity.Env.FacebookClientID == nil {
@@ -873,6 +903,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Meta.IsMagicLinkLoginEnabled(childComplexity), true
 
+	case "Meta.is_multi_factor_auth_enabled":
+		if e.complexity.Meta.IsMultiFactorAuthEnabled == nil {
+			break
+		}
+
+		return e.complexity.Meta.IsMultiFactorAuthEnabled(childComplexity), true
+
 	case "Meta.is_sign_up_enabled":
 		if e.complexity.Meta.IsSignUpEnabled == nil {
 			break
@@ -1064,6 +1101,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.MagicLinkLogin(childComplexity, args["params"].(model.MagicLinkLoginInput)), true
 
+	case "Mutation.resend_otp":
+		if e.complexity.Mutation.ResendOtp == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_resend_otp_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.ResendOtp(childComplexity, args["params"].(model.ResendOTPRequest)), true
+
 	case "Mutation.resend_verify_email":
 		if e.complexity.Mutation.ResendVerifyEmail == nil {
 			break
@@ -1207,6 +1256,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.VerifyEmail(childComplexity, args["params"].(model.VerifyEmailInput)), true
+
+	case "Mutation.verify_otp":
+		if e.complexity.Mutation.VerifyOtp == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_verify_otp_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.VerifyOtp(childComplexity, args["params"].(model.VerifyOTPRequest)), true
 
 	case "Pagination.limit":
 		if e.complexity.Pagination.Limit == nil {
@@ -1436,6 +1497,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.User.ID(childComplexity), true
+
+	case "User.is_multi_factor_auth_enabled":
+		if e.complexity.User.IsMultiFactorAuthEnabled == nil {
+			break
+		}
+
+		return e.complexity.User.IsMultiFactorAuthEnabled(childComplexity), true
 
 	case "User.middle_name":
 		if e.complexity.User.MiddleName == nil {
@@ -1822,6 +1890,7 @@ type Meta {
 	is_magic_link_login_enabled: Boolean!
 	is_sign_up_enabled: Boolean!
 	is_strong_password_enabled: Boolean!
+	is_multi_factor_auth_enabled: Boolean!
 }
 
 type User {
@@ -1844,6 +1913,7 @@ type User {
 	created_at: Int64
 	updated_at: Int64
 	revoked_timestamp: Int64
+	is_multi_factor_auth_enabled: Boolean
 }
 
 type Users {
@@ -1875,6 +1945,7 @@ type Error {
 
 type AuthResponse {
 	message: String!
+	should_show_otp_screen: Boolean
 	access_token: String
 	id_token: String
 	refresh_token: String
@@ -1919,6 +1990,8 @@ type Env {
 	DISABLE_SIGN_UP: Boolean!
 	DISABLE_REDIS_FOR_ENV: Boolean!
 	DISABLE_STRONG_PASSWORD: Boolean!
+	DISABLE_MULTI_FACTOR_AUTHENTICATION: Boolean!
+	ENFORCE_MULTI_FACTOR_AUTHENTICATION: Boolean!
 	ROLES: [String!]
 	PROTECTED_ROLES: [String!]
 	DEFAULT_ROLES: [String!]
@@ -2020,6 +2093,8 @@ input UpdateEnvInput {
 	DISABLE_SIGN_UP: Boolean
 	DISABLE_REDIS_FOR_ENV: Boolean
 	DISABLE_STRONG_PASSWORD: Boolean
+	DISABLE_MULTI_FACTOR_AUTHENTICATION: Boolean
+	ENFORCE_MULTI_FACTOR_AUTHENTICATION: Boolean
 	ROLES: [String!]
 	PROTECTED_ROLES: [String!]
 	DEFAULT_ROLES: [String!]
@@ -2061,6 +2136,7 @@ input SignUpInput {
 	roles: [String!]
 	scope: [String!]
 	redirect_uri: String
+	is_multi_factor_auth_enabled: Boolean
 }
 
 input LoginInput {
@@ -2092,6 +2168,7 @@ input UpdateProfileInput {
 	birthdate: String
 	phone_number: String
 	picture: String
+	is_multi_factor_auth_enabled: Boolean
 }
 
 input UpdateUserInput {
@@ -2107,6 +2184,7 @@ input UpdateUserInput {
 	phone_number: String
 	picture: String
 	roles: [String]
+	is_multi_factor_auth_enabled: Boolean
 }
 
 input ForgotPasswordInput {
@@ -2217,6 +2295,15 @@ input DeleteEmailTemplateRequest {
 	id: ID!
 }
 
+input VerifyOTPRequest {
+	email: String!
+	otp: String!
+}
+
+input ResendOTPRequest {
+	email: String!
+}
+
 type Mutation {
 	signup(params: SignUpInput!): AuthResponse!
 	login(params: LoginInput!): AuthResponse!
@@ -2228,6 +2315,8 @@ type Mutation {
 	forgot_password(params: ForgotPasswordInput!): Response!
 	reset_password(params: ResetPasswordInput!): Response!
 	revoke(params: OAuthRevokeInput!): Response!
+	verify_otp(params: VerifyOTPRequest!): AuthResponse!
+	resend_otp(params: ResendOTPRequest!): Response!
 	# admin only apis
 	_delete_user(params: DeleteUserInput!): Response!
 	_update_user(params: UpdateUserInput!): User!
@@ -2556,6 +2645,21 @@ func (ec *executionContext) field_Mutation_magic_link_login_args(ctx context.Con
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_resend_otp_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.ResendOTPRequest
+	if tmp, ok := rawArgs["params"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+		arg0, err = ec.unmarshalNResendOTPRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResendOTPRequest(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["params"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_resend_verify_email_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -2638,6 +2742,21 @@ func (ec *executionContext) field_Mutation_verify_email_args(ctx context.Context
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
 		arg0, err = ec.unmarshalNVerifyEmailInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐVerifyEmailInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["params"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_verify_otp_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.VerifyOTPRequest
+	if tmp, ok := rawArgs["params"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+		arg0, err = ec.unmarshalNVerifyOTPRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐVerifyOTPRequest(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -2852,6 +2971,38 @@ func (ec *executionContext) _AuthResponse_message(ctx context.Context, field gra
 	res := resTmp.(string)
 	fc.Result = res
 	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _AuthResponse_should_show_otp_screen(ctx context.Context, field graphql.CollectedField, obj *model.AuthResponse) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "AuthResponse",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ShouldShowOtpScreen, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*bool)
+	fc.Result = res
+	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _AuthResponse_access_token(ctx context.Context, field graphql.CollectedField, obj *model.AuthResponse) (ret graphql.Marshaler) {
@@ -4339,6 +4490,76 @@ func (ec *executionContext) _Env_DISABLE_STRONG_PASSWORD(ctx context.Context, fi
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Env_DISABLE_MULTI_FACTOR_AUTHENTICATION(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Env",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DisableMultiFactorAuthentication, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Env_ENFORCE_MULTI_FACTOR_AUTHENTICATION(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Env",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.EnforceMultiFactorAuthentication, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Env_ROLES(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -5437,6 +5658,41 @@ func (ec *executionContext) _Meta_is_strong_password_enabled(ctx context.Context
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Meta_is_multi_factor_auth_enabled(ctx context.Context, field graphql.CollectedField, obj *model.Meta) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Meta",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsMultiFactorAuthEnabled, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Mutation_signup(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -5834,6 +6090,90 @@ func (ec *executionContext) _Mutation_revoke(ctx context.Context, field graphql.
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Mutation().Revoke(rctx, args["params"].(model.OAuthRevokeInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Response)
+	fc.Result = res
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_verify_otp(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_verify_otp_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().VerifyOtp(rctx, args["params"].(model.VerifyOTPRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.AuthResponse)
+	fc.Result = res
+	return ec.marshalNAuthResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAuthResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_resend_otp(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_resend_otp_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().ResendOtp(rctx, args["params"].(model.ResendOTPRequest))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -7932,6 +8272,38 @@ func (ec *executionContext) _User_revoked_timestamp(ctx context.Context, field g
 	res := resTmp.(*int64)
 	fc.Result = res
 	return ec.marshalOInt642ᚖint64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _User_is_multi_factor_auth_enabled(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsMultiFactorAuthEnabled, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*bool)
+	fc.Result = res
+	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Users_pagination(ctx context.Context, field graphql.CollectedField, obj *model.Users) (ret graphql.Marshaler) {
@@ -10597,6 +10969,29 @@ func (ec *executionContext) unmarshalInputPaginationInput(ctx context.Context, o
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputResendOTPRequest(ctx context.Context, obj interface{}) (model.ResendOTPRequest, error) {
+	var it model.ResendOTPRequest
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "email":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
+			it.Email, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputResendVerifyEmailInput(ctx context.Context, obj interface{}) (model.ResendVerifyEmailInput, error) {
 	var it model.ResendVerifyEmailInput
 	asMap := map[string]interface{}{}
@@ -10816,6 +11211,14 @@ func (ec *executionContext) unmarshalInputSignUpInput(ctx context.Context, obj i
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("redirect_uri"))
 			it.RedirectURI, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "is_multi_factor_auth_enabled":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("is_multi_factor_auth_enabled"))
+			it.IsMultiFactorAuthEnabled, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -11127,6 +11530,22 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			if err != nil {
 				return it, err
 			}
+		case "DISABLE_MULTI_FACTOR_AUTHENTICATION":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("DISABLE_MULTI_FACTOR_AUTHENTICATION"))
+			it.DisableMultiFactorAuthentication, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "ENFORCE_MULTI_FACTOR_AUTHENTICATION":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ENFORCE_MULTI_FACTOR_AUTHENTICATION"))
+			it.EnforceMultiFactorAuthentication, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		case "ROLES":
 			var err error
 
@@ -11366,6 +11785,14 @@ func (ec *executionContext) unmarshalInputUpdateProfileInput(ctx context.Context
 			if err != nil {
 				return it, err
 			}
+		case "is_multi_factor_auth_enabled":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("is_multi_factor_auth_enabled"))
+			it.IsMultiFactorAuthEnabled, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		}
 	}
 
@@ -11474,6 +11901,14 @@ func (ec *executionContext) unmarshalInputUpdateUserInput(ctx context.Context, o
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("roles"))
 			it.Roles, err = ec.unmarshalOString2ᚕᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "is_multi_factor_auth_enabled":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("is_multi_factor_auth_enabled"))
+			it.IsMultiFactorAuthEnabled, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -11600,6 +12035,37 @@ func (ec *executionContext) unmarshalInputVerifyEmailInput(ctx context.Context, 
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputVerifyOTPRequest(ctx context.Context, obj interface{}) (model.VerifyOTPRequest, error) {
+	var it model.VerifyOTPRequest
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "email":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
+			it.Email, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "otp":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("otp"))
+			it.Otp, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputWebhookRequest(ctx context.Context, obj interface{}) (model.WebhookRequest, error) {
 	var it model.WebhookRequest
 	asMap := map[string]interface{}{}
@@ -11647,6 +12113,8 @@ func (ec *executionContext) _AuthResponse(ctx context.Context, sel ast.Selection
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "should_show_otp_screen":
+			out.Values[i] = ec._AuthResponse_should_show_otp_screen(ctx, field, obj)
 		case "access_token":
 			out.Values[i] = ec._AuthResponse_access_token(ctx, field, obj)
 		case "id_token":
@@ -11848,6 +12316,16 @@ func (ec *executionContext) _Env(ctx context.Context, sel ast.SelectionSet, obj 
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "DISABLE_MULTI_FACTOR_AUTHENTICATION":
+			out.Values[i] = ec._Env_DISABLE_MULTI_FACTOR_AUTHENTICATION(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "ENFORCE_MULTI_FACTOR_AUTHENTICATION":
+			out.Values[i] = ec._Env_ENFORCE_MULTI_FACTOR_AUTHENTICATION(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "ROLES":
 			out.Values[i] = ec._Env_ROLES(ctx, field, obj)
 		case "PROTECTED_ROLES":
@@ -12022,6 +12500,11 @@ func (ec *executionContext) _Meta(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "is_multi_factor_auth_enabled":
+			out.Values[i] = ec._Meta_is_multi_factor_auth_enabled(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -12095,6 +12578,16 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "revoke":
 			out.Values[i] = ec._Mutation_revoke(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "verify_otp":
+			out.Values[i] = ec._Mutation_verify_otp(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "resend_otp":
+			out.Values[i] = ec._Mutation_resend_otp(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -12549,6 +13042,8 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			out.Values[i] = ec._User_updated_at(ctx, field, obj)
 		case "revoked_timestamp":
 			out.Values[i] = ec._User_revoked_timestamp(ctx, field, obj)
+		case "is_multi_factor_auth_enabled":
+			out.Values[i] = ec._User_is_multi_factor_auth_enabled(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -13325,6 +13820,11 @@ func (ec *executionContext) marshalNPagination2ᚖgithubᚗcomᚋauthorizerdev�
 	return ec._Pagination(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNResendOTPRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResendOTPRequest(ctx context.Context, v interface{}) (model.ResendOTPRequest, error) {
+	res, err := ec.unmarshalInputResendOTPRequest(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNResendVerifyEmailInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResendVerifyEmailInput(ctx context.Context, v interface{}) (model.ResendVerifyEmailInput, error) {
 	res, err := ec.unmarshalInputResendVerifyEmailInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -13615,6 +14115,11 @@ func (ec *executionContext) marshalNVerificationRequests2ᚖgithubᚗcomᚋautho
 
 func (ec *executionContext) unmarshalNVerifyEmailInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐVerifyEmailInput(ctx context.Context, v interface{}) (model.VerifyEmailInput, error) {
 	res, err := ec.unmarshalInputVerifyEmailInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNVerifyOTPRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐVerifyOTPRequest(ctx context.Context, v interface{}) (model.VerifyOTPRequest, error) {
+	res, err := ec.unmarshalInputVerifyOTPRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 

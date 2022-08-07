@@ -33,7 +33,7 @@ func TestResolvers(t *testing.T) {
 	if utils.StringSliceContains(testDBs, constants.DbTypeSqlite) && len(testDBs) == 1 {
 		// do nothing
 	} else {
-		t.Log("waiting for docker containers to spun up")
+		t.Log("waiting for docker containers to start...")
 		// wait for docker containers to spun up
 		time.Sleep(30 * time.Second)
 	}
@@ -114,7 +114,10 @@ func TestResolvers(t *testing.T) {
 			metaTests(t, s)
 			inviteUserTest(t, s)
 			validateJwtTokenTest(t, s)
+			verifyOTPTest(t, s)
+			resendOTPTest(t, s)
 
+			updateAllUsersTest(t, s)
 			webhookLogsTest(t, s)   // get logs after above resolver tests are done
 			deleteWebhookTest(t, s) // delete webhooks (admin resolver)
 		})

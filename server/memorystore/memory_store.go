@@ -25,12 +25,15 @@ func InitMemStore() error {
 		constants.EnvKeyOrganizationLogo: "https://www.authorizer.dev/images/logo.png",
 
 		// boolean envs
-		constants.EnvKeyDisableBasicAuthentication: false,
-		constants.EnvKeyDisableMagicLinkLogin:      false,
-		constants.EnvKeyDisableEmailVerification:   false,
-		constants.EnvKeyDisableLoginPage:           false,
-		constants.EnvKeyDisableSignUp:              false,
-		constants.EnvKeyDisableStrongPassword:      false,
+		constants.EnvKeyDisableBasicAuthentication:       false,
+		constants.EnvKeyDisableMagicLinkLogin:            false,
+		constants.EnvKeyDisableEmailVerification:         false,
+		constants.EnvKeyDisableLoginPage:                 false,
+		constants.EnvKeyDisableSignUp:                    false,
+		constants.EnvKeyDisableStrongPassword:            false,
+		constants.EnvKeyIsEmailServiceEnabled:            false,
+		constants.EnvKeyEnforceMultiFactorAuthentication: false,
+		constants.EnvKeyDisableMultiFactorAuthentication: false,
 	}
 
 	requiredEnvs := RequiredEnvStoreObj.GetRequiredEnv()

@@ -110,6 +110,15 @@ func NewProvider() (*provider, error) {
 		},
 	}, options.CreateIndexes())
 
+	mongodb.CreateCollection(ctx, models.Collections.OTP, options.CreateCollection())
+	otpCollection := mongodb.Collection(models.Collections.OTP, options.Collection())
+	otpCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{
+			Keys:    bson.M{"email": 1},
+			Options: options.Index().SetUnique(true).SetSparse(true),
+		},
+	}, options.CreateIndexes())
+
 	return &provider{
 		db: mongodb,
 	}, nil

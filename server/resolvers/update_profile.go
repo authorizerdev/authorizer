@@ -2,6 +2,7 @@ package resolvers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -46,7 +47,7 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 	}
 
 	// validate if all params are not empty
-	if params.GivenName == nil && params.FamilyName == nil && params.Picture == nil && params.MiddleName == nil && params.Nickname == nil && params.OldPassword == nil && params.Email == nil && params.Birthdate == nil && params.Gender == nil && params.PhoneNumber == nil && params.NewPassword == nil && params.ConfirmNewPassword == nil {
+	if params.GivenName == nil && params.FamilyName == nil && params.Picture == nil && params.MiddleName == nil && params.Nickname == nil && params.OldPassword == nil && params.Email == nil && params.Birthdate == nil && params.Gender == nil && params.PhoneNumber == nil && params.NewPassword == nil && params.ConfirmNewPassword == nil && params.IsMultiFactorAuthEnabled == nil {
 		log.Debug("All params are empty")
 		return res, fmt.Errorf("please enter at least one param to update")
 	}
@@ -92,6 +93,29 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 
 	if params.Picture != nil && refs.StringValue(user.Picture) != refs.StringValue(params.Picture) {
 		user.Picture = params.Picture
+	}
+
+	if params.IsMultiFactorAuthEnabled != nil && refs.BoolValue(user.IsMultiFactorAuthEnabled) != refs.BoolValue(params.IsMultiFactorAuthEnabled) {
+		if refs.BoolValue(params.IsMultiFactorAuthEnabled) {
+			isEnvServiceEnabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyIsEmailServiceEnabled)
+			if err != nil || !isEnvServiceEnabled {
+				log.Debug("Email service not enabled:")
+				return nil, errors.New("email service not enabled, so cannot enable multi factor authentication")
+			}
+		}
+
+		isMFAEnforced, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyEnforceMultiFactorAuthentication)
+		if err != nil {
+			log.Debug("MFA service not enabled: ", err)
+			isMFAEnforced = false
+		}
+
+		if isMFAEnforced && !refs.BoolValue(params.IsMultiFactorAuthEnabled) {
+			log.Debug("Cannot disable mfa service as it is enforced:")
+			return nil, errors.New("cannot disable multi factor authentication as it is enforced by organization")
+		}
+
+		user.IsMultiFactorAuthEnabled = params.IsMultiFactorAuthEnabled
 	}
 
 	isPasswordChanging := false

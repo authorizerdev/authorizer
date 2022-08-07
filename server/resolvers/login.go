@@ -13,8 +13,10 @@ import (
 	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
+	"github.com/authorizerdev/authorizer/server/email"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
+	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/authorizerdev/authorizer/server/validators"
@@ -95,6 +97,42 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 	scope := []string{"openid", "email", "profile"}
 	if params.Scope != nil && len(scope) > 0 {
 		scope = params.Scope
+	}
+
+	isEmailServiceEnabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyIsEmailServiceEnabled)
+	if err != nil || !isEmailServiceEnabled {
+		log.Debug("Email service not enabled: ", err)
+	}
+
+	isMFADisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableMultiFactorAuthentication)
+	if err != nil || !isEmailServiceEnabled {
+		log.Debug("MFA service not enabled: ", err)
+	}
+
+	// If email service is not enabled continue the process in any way
+	if refs.BoolValue(user.IsMultiFactorAuthEnabled) && isEmailServiceEnabled && !isMFADisabled {
+		otp := utils.GenerateOTP()
+		otpData, err := db.Provider.UpsertOTP(ctx, &models.OTP{
+			Email:     user.Email,
+			Otp:       otp,
+			ExpiresAt: time.Now().Add(1 * time.Minute).Unix(),
+		})
+		if err != nil {
+			log.Debug("Failed to add otp: ", err)
+			return nil, err
+		}
+
+		go func() {
+			err := email.SendOtpMail(user.Email, otpData.Otp)
+			if err != nil {
+				log.Debug("Failed to send otp email: ", err)
+			}
+		}()
+
+		return &model.AuthResponse{
+			Message:             "Please check the OTP in your inbox",
+			ShouldShowOtpScreen: refs.NewBoolRef(true),
+		}, nil
 	}
 
 	authToken, err := token.CreateAuthToken(gc, user, roles, scope, constants.AuthRecipeMethodBasicAuth)

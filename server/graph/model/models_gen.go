@@ -24,12 +24,13 @@ type AdminSignupInput struct {
 }
 
 type AuthResponse struct {
-	Message      string  `json:"message"`
-	AccessToken  *string `json:"access_token"`
-	IDToken      *string `json:"id_token"`
-	RefreshToken *string `json:"refresh_token"`
-	ExpiresIn    *int64  `json:"expires_in"`
-	User         *User   `json:"user"`
+	Message             string  `json:"message"`
+	ShouldShowOtpScreen *bool   `json:"should_show_otp_screen"`
+	AccessToken         *string `json:"access_token"`
+	IDToken             *string `json:"id_token"`
+	RefreshToken        *string `json:"refresh_token"`
+	ExpiresIn           *int64  `json:"expires_in"`
+	User                *User   `json:"user"`
 }
 
 type DeleteEmailTemplateRequest struct {
@@ -55,54 +56,56 @@ type EmailTemplates struct {
 }
 
 type Env struct {
-	AccessTokenExpiryTime      *string  `json:"ACCESS_TOKEN_EXPIRY_TIME"`
-	AdminSecret                *string  `json:"ADMIN_SECRET"`
-	DatabaseName               *string  `json:"DATABASE_NAME"`
-	DatabaseURL                *string  `json:"DATABASE_URL"`
-	DatabaseType               *string  `json:"DATABASE_TYPE"`
-	DatabaseUsername           *string  `json:"DATABASE_USERNAME"`
-	DatabasePassword           *string  `json:"DATABASE_PASSWORD"`
-	DatabaseHost               *string  `json:"DATABASE_HOST"`
-	DatabasePort               *string  `json:"DATABASE_PORT"`
-	ClientID                   string   `json:"CLIENT_ID"`
-	ClientSecret               string   `json:"CLIENT_SECRET"`
-	CustomAccessTokenScript    *string  `json:"CUSTOM_ACCESS_TOKEN_SCRIPT"`
-	SMTPHost                   *string  `json:"SMTP_HOST"`
-	SMTPPort                   *string  `json:"SMTP_PORT"`
-	SMTPUsername               *string  `json:"SMTP_USERNAME"`
-	SMTPPassword               *string  `json:"SMTP_PASSWORD"`
-	SenderEmail                *string  `json:"SENDER_EMAIL"`
-	JwtType                    *string  `json:"JWT_TYPE"`
-	JwtSecret                  *string  `json:"JWT_SECRET"`
-	JwtPrivateKey              *string  `json:"JWT_PRIVATE_KEY"`
-	JwtPublicKey               *string  `json:"JWT_PUBLIC_KEY"`
-	AllowedOrigins             []string `json:"ALLOWED_ORIGINS"`
-	AppURL                     *string  `json:"APP_URL"`
-	RedisURL                   *string  `json:"REDIS_URL"`
-	ResetPasswordURL           *string  `json:"RESET_PASSWORD_URL"`
-	DisableEmailVerification   bool     `json:"DISABLE_EMAIL_VERIFICATION"`
-	DisableBasicAuthentication bool     `json:"DISABLE_BASIC_AUTHENTICATION"`
-	DisableMagicLinkLogin      bool     `json:"DISABLE_MAGIC_LINK_LOGIN"`
-	DisableLoginPage           bool     `json:"DISABLE_LOGIN_PAGE"`
-	DisableSignUp              bool     `json:"DISABLE_SIGN_UP"`
-	DisableRedisForEnv         bool     `json:"DISABLE_REDIS_FOR_ENV"`
-	DisableStrongPassword      bool     `json:"DISABLE_STRONG_PASSWORD"`
-	Roles                      []string `json:"ROLES"`
-	ProtectedRoles             []string `json:"PROTECTED_ROLES"`
-	DefaultRoles               []string `json:"DEFAULT_ROLES"`
-	JwtRoleClaim               *string  `json:"JWT_ROLE_CLAIM"`
-	GoogleClientID             *string  `json:"GOOGLE_CLIENT_ID"`
-	GoogleClientSecret         *string  `json:"GOOGLE_CLIENT_SECRET"`
-	GithubClientID             *string  `json:"GITHUB_CLIENT_ID"`
-	GithubClientSecret         *string  `json:"GITHUB_CLIENT_SECRET"`
-	FacebookClientID           *string  `json:"FACEBOOK_CLIENT_ID"`
-	FacebookClientSecret       *string  `json:"FACEBOOK_CLIENT_SECRET"`
-	LinkedinClientID           *string  `json:"LINKEDIN_CLIENT_ID"`
-	LinkedinClientSecret       *string  `json:"LINKEDIN_CLIENT_SECRET"`
-	AppleClientID              *string  `json:"APPLE_CLIENT_ID"`
-	AppleClientSecret          *string  `json:"APPLE_CLIENT_SECRET"`
-	OrganizationName           *string  `json:"ORGANIZATION_NAME"`
-	OrganizationLogo           *string  `json:"ORGANIZATION_LOGO"`
+	AccessTokenExpiryTime            *string  `json:"ACCESS_TOKEN_EXPIRY_TIME"`
+	AdminSecret                      *string  `json:"ADMIN_SECRET"`
+	DatabaseName                     *string  `json:"DATABASE_NAME"`
+	DatabaseURL                      *string  `json:"DATABASE_URL"`
+	DatabaseType                     *string  `json:"DATABASE_TYPE"`
+	DatabaseUsername                 *string  `json:"DATABASE_USERNAME"`
+	DatabasePassword                 *string  `json:"DATABASE_PASSWORD"`
+	DatabaseHost                     *string  `json:"DATABASE_HOST"`
+	DatabasePort                     *string  `json:"DATABASE_PORT"`
+	ClientID                         string   `json:"CLIENT_ID"`
+	ClientSecret                     string   `json:"CLIENT_SECRET"`
+	CustomAccessTokenScript          *string  `json:"CUSTOM_ACCESS_TOKEN_SCRIPT"`
+	SMTPHost                         *string  `json:"SMTP_HOST"`
+	SMTPPort                         *string  `json:"SMTP_PORT"`
+	SMTPUsername                     *string  `json:"SMTP_USERNAME"`
+	SMTPPassword                     *string  `json:"SMTP_PASSWORD"`
+	SenderEmail                      *string  `json:"SENDER_EMAIL"`
+	JwtType                          *string  `json:"JWT_TYPE"`
+	JwtSecret                        *string  `json:"JWT_SECRET"`
+	JwtPrivateKey                    *string  `json:"JWT_PRIVATE_KEY"`
+	JwtPublicKey                     *string  `json:"JWT_PUBLIC_KEY"`
+	AllowedOrigins                   []string `json:"ALLOWED_ORIGINS"`
+	AppURL                           *string  `json:"APP_URL"`
+	RedisURL                         *string  `json:"REDIS_URL"`
+	ResetPasswordURL                 *string  `json:"RESET_PASSWORD_URL"`
+	DisableEmailVerification         bool     `json:"DISABLE_EMAIL_VERIFICATION"`
+	DisableBasicAuthentication       bool     `json:"DISABLE_BASIC_AUTHENTICATION"`
+	DisableMagicLinkLogin            bool     `json:"DISABLE_MAGIC_LINK_LOGIN"`
+	DisableLoginPage                 bool     `json:"DISABLE_LOGIN_PAGE"`
+	DisableSignUp                    bool     `json:"DISABLE_SIGN_UP"`
+	DisableRedisForEnv               bool     `json:"DISABLE_REDIS_FOR_ENV"`
+	DisableStrongPassword            bool     `json:"DISABLE_STRONG_PASSWORD"`
+	DisableMultiFactorAuthentication bool     `json:"DISABLE_MULTI_FACTOR_AUTHENTICATION"`
+	EnforceMultiFactorAuthentication bool     `json:"ENFORCE_MULTI_FACTOR_AUTHENTICATION"`
+	Roles                            []string `json:"ROLES"`
+	ProtectedRoles                   []string `json:"PROTECTED_ROLES"`
+	DefaultRoles                     []string `json:"DEFAULT_ROLES"`
+	JwtRoleClaim                     *string  `json:"JWT_ROLE_CLAIM"`
+	GoogleClientID                   *string  `json:"GOOGLE_CLIENT_ID"`
+	GoogleClientSecret               *string  `json:"GOOGLE_CLIENT_SECRET"`
+	GithubClientID                   *string  `json:"GITHUB_CLIENT_ID"`
+	GithubClientSecret               *string  `json:"GITHUB_CLIENT_SECRET"`
+	FacebookClientID                 *string  `json:"FACEBOOK_CLIENT_ID"`
+	FacebookClientSecret             *string  `json:"FACEBOOK_CLIENT_SECRET"`
+	LinkedinClientID                 *string  `json:"LINKEDIN_CLIENT_ID"`
+	LinkedinClientSecret             *string  `json:"LINKEDIN_CLIENT_SECRET"`
+	AppleClientID                    *string  `json:"APPLE_CLIENT_ID"`
+	AppleClientSecret                *string  `json:"APPLE_CLIENT_SECRET"`
+	OrganizationName                 *string  `json:"ORGANIZATION_NAME"`
+	OrganizationLogo                 *string  `json:"ORGANIZATION_LOGO"`
 }
 
 type Error struct {
@@ -164,6 +167,7 @@ type Meta struct {
 	IsMagicLinkLoginEnabled      bool   `json:"is_magic_link_login_enabled"`
 	IsSignUpEnabled              bool   `json:"is_sign_up_enabled"`
 	IsStrongPasswordEnabled      bool   `json:"is_strong_password_enabled"`
+	IsMultiFactorAuthEnabled     bool   `json:"is_multi_factor_auth_enabled"`
 }
 
 type OAuthRevokeInput struct {
@@ -184,6 +188,10 @@ type Pagination struct {
 type PaginationInput struct {
 	Limit *int64 `json:"limit"`
 	Page  *int64 `json:"page"`
+}
+
+type ResendOTPRequest struct {
+	Email string `json:"email"`
 }
 
 type ResendVerifyEmailInput struct {
@@ -207,20 +215,21 @@ type SessionQueryInput struct {
 }
 
 type SignUpInput struct {
-	Email           string   `json:"email"`
-	GivenName       *string  `json:"given_name"`
-	FamilyName      *string  `json:"family_name"`
-	MiddleName      *string  `json:"middle_name"`
-	Nickname        *string  `json:"nickname"`
-	Gender          *string  `json:"gender"`
-	Birthdate       *string  `json:"birthdate"`
-	PhoneNumber     *string  `json:"phone_number"`
-	Picture         *string  `json:"picture"`
-	Password        string   `json:"password"`
-	ConfirmPassword string   `json:"confirm_password"`
-	Roles           []string `json:"roles"`
-	Scope           []string `json:"scope"`
-	RedirectURI     *string  `json:"redirect_uri"`
+	Email                    string   `json:"email"`
+	GivenName                *string  `json:"given_name"`
+	FamilyName               *string  `json:"family_name"`
+	MiddleName               *string  `json:"middle_name"`
+	Nickname                 *string  `json:"nickname"`
+	Gender                   *string  `json:"gender"`
+	Birthdate                *string  `json:"birthdate"`
+	PhoneNumber              *string  `json:"phone_number"`
+	Picture                  *string  `json:"picture"`
+	Password                 string   `json:"password"`
+	ConfirmPassword          string   `json:"confirm_password"`
+	Roles                    []string `json:"roles"`
+	Scope                    []string `json:"scope"`
+	RedirectURI              *string  `json:"redirect_uri"`
+	IsMultiFactorAuthEnabled *bool    `json:"is_multi_factor_auth_enabled"`
 }
 
 type TestEndpointRequest struct {
@@ -246,75 +255,79 @@ type UpdateEmailTemplateRequest struct {
 }
 
 type UpdateEnvInput struct {
-	AccessTokenExpiryTime      *string  `json:"ACCESS_TOKEN_EXPIRY_TIME"`
-	AdminSecret                *string  `json:"ADMIN_SECRET"`
-	CustomAccessTokenScript    *string  `json:"CUSTOM_ACCESS_TOKEN_SCRIPT"`
-	OldAdminSecret             *string  `json:"OLD_ADMIN_SECRET"`
-	SMTPHost                   *string  `json:"SMTP_HOST"`
-	SMTPPort                   *string  `json:"SMTP_PORT"`
-	SMTPUsername               *string  `json:"SMTP_USERNAME"`
-	SMTPPassword               *string  `json:"SMTP_PASSWORD"`
-	SenderEmail                *string  `json:"SENDER_EMAIL"`
-	JwtType                    *string  `json:"JWT_TYPE"`
-	JwtSecret                  *string  `json:"JWT_SECRET"`
-	JwtPrivateKey              *string  `json:"JWT_PRIVATE_KEY"`
-	JwtPublicKey               *string  `json:"JWT_PUBLIC_KEY"`
-	AllowedOrigins             []string `json:"ALLOWED_ORIGINS"`
-	AppURL                     *string  `json:"APP_URL"`
-	ResetPasswordURL           *string  `json:"RESET_PASSWORD_URL"`
-	DisableEmailVerification   *bool    `json:"DISABLE_EMAIL_VERIFICATION"`
-	DisableBasicAuthentication *bool    `json:"DISABLE_BASIC_AUTHENTICATION"`
-	DisableMagicLinkLogin      *bool    `json:"DISABLE_MAGIC_LINK_LOGIN"`
-	DisableLoginPage           *bool    `json:"DISABLE_LOGIN_PAGE"`
-	DisableSignUp              *bool    `json:"DISABLE_SIGN_UP"`
-	DisableRedisForEnv         *bool    `json:"DISABLE_REDIS_FOR_ENV"`
-	DisableStrongPassword      *bool    `json:"DISABLE_STRONG_PASSWORD"`
-	Roles                      []string `json:"ROLES"`
-	ProtectedRoles             []string `json:"PROTECTED_ROLES"`
-	DefaultRoles               []string `json:"DEFAULT_ROLES"`
-	JwtRoleClaim               *string  `json:"JWT_ROLE_CLAIM"`
-	GoogleClientID             *string  `json:"GOOGLE_CLIENT_ID"`
-	GoogleClientSecret         *string  `json:"GOOGLE_CLIENT_SECRET"`
-	GithubClientID             *string  `json:"GITHUB_CLIENT_ID"`
-	GithubClientSecret         *string  `json:"GITHUB_CLIENT_SECRET"`
-	FacebookClientID           *string  `json:"FACEBOOK_CLIENT_ID"`
-	FacebookClientSecret       *string  `json:"FACEBOOK_CLIENT_SECRET"`
-	LinkedinClientID           *string  `json:"LINKEDIN_CLIENT_ID"`
-	LinkedinClientSecret       *string  `json:"LINKEDIN_CLIENT_SECRET"`
-	AppleClientID              *string  `json:"APPLE_CLIENT_ID"`
-	AppleClientSecret          *string  `json:"APPLE_CLIENT_SECRET"`
-	OrganizationName           *string  `json:"ORGANIZATION_NAME"`
-	OrganizationLogo           *string  `json:"ORGANIZATION_LOGO"`
+	AccessTokenExpiryTime            *string  `json:"ACCESS_TOKEN_EXPIRY_TIME"`
+	AdminSecret                      *string  `json:"ADMIN_SECRET"`
+	CustomAccessTokenScript          *string  `json:"CUSTOM_ACCESS_TOKEN_SCRIPT"`
+	OldAdminSecret                   *string  `json:"OLD_ADMIN_SECRET"`
+	SMTPHost                         *string  `json:"SMTP_HOST"`
+	SMTPPort                         *string  `json:"SMTP_PORT"`
+	SMTPUsername                     *string  `json:"SMTP_USERNAME"`
+	SMTPPassword                     *string  `json:"SMTP_PASSWORD"`
+	SenderEmail                      *string  `json:"SENDER_EMAIL"`
+	JwtType                          *string  `json:"JWT_TYPE"`
+	JwtSecret                        *string  `json:"JWT_SECRET"`
+	JwtPrivateKey                    *string  `json:"JWT_PRIVATE_KEY"`
+	JwtPublicKey                     *string  `json:"JWT_PUBLIC_KEY"`
+	AllowedOrigins                   []string `json:"ALLOWED_ORIGINS"`
+	AppURL                           *string  `json:"APP_URL"`
+	ResetPasswordURL                 *string  `json:"RESET_PASSWORD_URL"`
+	DisableEmailVerification         *bool    `json:"DISABLE_EMAIL_VERIFICATION"`
+	DisableBasicAuthentication       *bool    `json:"DISABLE_BASIC_AUTHENTICATION"`
+	DisableMagicLinkLogin            *bool    `json:"DISABLE_MAGIC_LINK_LOGIN"`
+	DisableLoginPage                 *bool    `json:"DISABLE_LOGIN_PAGE"`
+	DisableSignUp                    *bool    `json:"DISABLE_SIGN_UP"`
+	DisableRedisForEnv               *bool    `json:"DISABLE_REDIS_FOR_ENV"`
+	DisableStrongPassword            *bool    `json:"DISABLE_STRONG_PASSWORD"`
+	DisableMultiFactorAuthentication *bool    `json:"DISABLE_MULTI_FACTOR_AUTHENTICATION"`
+	EnforceMultiFactorAuthentication *bool    `json:"ENFORCE_MULTI_FACTOR_AUTHENTICATION"`
+	Roles                            []string `json:"ROLES"`
+	ProtectedRoles                   []string `json:"PROTECTED_ROLES"`
+	DefaultRoles                     []string `json:"DEFAULT_ROLES"`
+	JwtRoleClaim                     *string  `json:"JWT_ROLE_CLAIM"`
+	GoogleClientID                   *string  `json:"GOOGLE_CLIENT_ID"`
+	GoogleClientSecret               *string  `json:"GOOGLE_CLIENT_SECRET"`
+	GithubClientID                   *string  `json:"GITHUB_CLIENT_ID"`
+	GithubClientSecret               *string  `json:"GITHUB_CLIENT_SECRET"`
+	FacebookClientID                 *string  `json:"FACEBOOK_CLIENT_ID"`
+	FacebookClientSecret             *string  `json:"FACEBOOK_CLIENT_SECRET"`
+	LinkedinClientID                 *string  `json:"LINKEDIN_CLIENT_ID"`
+	LinkedinClientSecret             *string  `json:"LINKEDIN_CLIENT_SECRET"`
+	AppleClientID                    *string  `json:"APPLE_CLIENT_ID"`
+	AppleClientSecret                *string  `json:"APPLE_CLIENT_SECRET"`
+	OrganizationName                 *string  `json:"ORGANIZATION_NAME"`
+	OrganizationLogo                 *string  `json:"ORGANIZATION_LOGO"`
 }
 
 type UpdateProfileInput struct {
-	OldPassword        *string `json:"old_password"`
-	NewPassword        *string `json:"new_password"`
-	ConfirmNewPassword *string `json:"confirm_new_password"`
-	Email              *string `json:"email"`
-	GivenName          *string `json:"given_name"`
-	FamilyName         *string `json:"family_name"`
-	MiddleName         *string `json:"middle_name"`
-	Nickname           *string `json:"nickname"`
-	Gender             *string `json:"gender"`
-	Birthdate          *string `json:"birthdate"`
-	PhoneNumber        *string `json:"phone_number"`
-	Picture            *string `json:"picture"`
+	OldPassword              *string `json:"old_password"`
+	NewPassword              *string `json:"new_password"`
+	ConfirmNewPassword       *string `json:"confirm_new_password"`
+	Email                    *string `json:"email"`
+	GivenName                *string `json:"given_name"`
+	FamilyName               *string `json:"family_name"`
+	MiddleName               *string `json:"middle_name"`
+	Nickname                 *string `json:"nickname"`
+	Gender                   *string `json:"gender"`
+	Birthdate                *string `json:"birthdate"`
+	PhoneNumber              *string `json:"phone_number"`
+	Picture                  *string `json:"picture"`
+	IsMultiFactorAuthEnabled *bool   `json:"is_multi_factor_auth_enabled"`
 }
 
 type UpdateUserInput struct {
-	ID            string    `json:"id"`
-	Email         *string   `json:"email"`
-	EmailVerified *bool     `json:"email_verified"`
-	GivenName     *string   `json:"given_name"`
-	FamilyName    *string   `json:"family_name"`
-	MiddleName    *string   `json:"middle_name"`
-	Nickname      *string   `json:"nickname"`
-	Gender        *string   `json:"gender"`
-	Birthdate     *string   `json:"birthdate"`
-	PhoneNumber   *string   `json:"phone_number"`
-	Picture       *string   `json:"picture"`
-	Roles         []*string `json:"roles"`
+	ID                       string    `json:"id"`
+	Email                    *string   `json:"email"`
+	EmailVerified            *bool     `json:"email_verified"`
+	GivenName                *string   `json:"given_name"`
+	FamilyName               *string   `json:"family_name"`
+	MiddleName               *string   `json:"middle_name"`
+	Nickname                 *string   `json:"nickname"`
+	Gender                   *string   `json:"gender"`
+	Birthdate                *string   `json:"birthdate"`
+	PhoneNumber              *string   `json:"phone_number"`
+	Picture                  *string   `json:"picture"`
+	Roles                    []*string `json:"roles"`
+	IsMultiFactorAuthEnabled *bool     `json:"is_multi_factor_auth_enabled"`
 }
 
 type UpdateWebhookRequest struct {
@@ -326,24 +339,25 @@ type UpdateWebhookRequest struct {
 }
 
 type User struct {
-	ID                  string   `json:"id"`
-	Email               string   `json:"email"`
-	EmailVerified       bool     `json:"email_verified"`
-	SignupMethods       string   `json:"signup_methods"`
-	GivenName           *string  `json:"given_name"`
-	FamilyName          *string  `json:"family_name"`
-	MiddleName          *string  `json:"middle_name"`
-	Nickname            *string  `json:"nickname"`
-	PreferredUsername   *string  `json:"preferred_username"`
-	Gender              *string  `json:"gender"`
-	Birthdate           *string  `json:"birthdate"`
-	PhoneNumber         *string  `json:"phone_number"`
-	PhoneNumberVerified *bool    `json:"phone_number_verified"`
-	Picture             *string  `json:"picture"`
-	Roles               []string `json:"roles"`
-	CreatedAt           *int64   `json:"created_at"`
-	UpdatedAt           *int64   `json:"updated_at"`
-	RevokedTimestamp    *int64   `json:"revoked_timestamp"`
+	ID                       string   `json:"id"`
+	Email                    string   `json:"email"`
+	EmailVerified            bool     `json:"email_verified"`
+	SignupMethods            string   `json:"signup_methods"`
+	GivenName                *string  `json:"given_name"`
+	FamilyName               *string  `json:"family_name"`
+	MiddleName               *string  `json:"middle_name"`
+	Nickname                 *string  `json:"nickname"`
+	PreferredUsername        *string  `json:"preferred_username"`
+	Gender                   *string  `json:"gender"`
+	Birthdate                *string  `json:"birthdate"`
+	PhoneNumber              *string  `json:"phone_number"`
+	PhoneNumberVerified      *bool    `json:"phone_number_verified"`
+	Picture                  *string  `json:"picture"`
+	Roles                    []string `json:"roles"`
+	CreatedAt                *int64   `json:"created_at"`
+	UpdatedAt                *int64   `json:"updated_at"`
+	RevokedTimestamp         *int64   `json:"revoked_timestamp"`
+	IsMultiFactorAuthEnabled *bool    `json:"is_multi_factor_auth_enabled"`
 }
 
 type Users struct {
@@ -380,6 +394,11 @@ type VerificationRequests struct {
 
 type VerifyEmailInput struct {
 	Token string `json:"token"`
+}
+
+type VerifyOTPRequest struct {
+	Email string `json:"email"`
+	Otp   string `json:"otp"`
 }
 
 type Webhook struct {

@@ -25,6 +25,7 @@ type Meta {
 	is_magic_link_login_enabled: Boolean!
 	is_sign_up_enabled: Boolean!
 	is_strong_password_enabled: Boolean!
+	is_multi_factor_auth_enabled: Boolean!
 }
 
 type User {
@@ -47,6 +48,7 @@ type User {
 	created_at: Int64
 	updated_at: Int64
 	revoked_timestamp: Int64
+	is_multi_factor_auth_enabled: Boolean
 }
 
 type Users {
@@ -78,6 +80,7 @@ type Error {
 
 type AuthResponse {
 	message: String!
+	should_show_otp_screen: Boolean
 	access_token: String
 	id_token: String
 	refresh_token: String
@@ -122,6 +125,8 @@ type Env {
 	DISABLE_SIGN_UP: Boolean!
 	DISABLE_REDIS_FOR_ENV: Boolean!
 	DISABLE_STRONG_PASSWORD: Boolean!
+	DISABLE_MULTI_FACTOR_AUTHENTICATION: Boolean!
+	ENFORCE_MULTI_FACTOR_AUTHENTICATION: Boolean!
 	ROLES: [String!]
 	PROTECTED_ROLES: [String!]
 	DEFAULT_ROLES: [String!]
@@ -223,6 +228,8 @@ input UpdateEnvInput {
 	DISABLE_SIGN_UP: Boolean
 	DISABLE_REDIS_FOR_ENV: Boolean
 	DISABLE_STRONG_PASSWORD: Boolean
+	DISABLE_MULTI_FACTOR_AUTHENTICATION: Boolean
+	ENFORCE_MULTI_FACTOR_AUTHENTICATION: Boolean
 	ROLES: [String!]
 	PROTECTED_ROLES: [String!]
 	DEFAULT_ROLES: [String!]
@@ -264,6 +271,7 @@ input SignUpInput {
 	roles: [String!]
 	scope: [String!]
 	redirect_uri: String
+	is_multi_factor_auth_enabled: Boolean
 }
 
 input LoginInput {
@@ -295,6 +303,7 @@ input UpdateProfileInput {
 	birthdate: String
 	phone_number: String
 	picture: String
+	is_multi_factor_auth_enabled: Boolean
 }
 
 input UpdateUserInput {
@@ -310,6 +319,7 @@ input UpdateUserInput {
 	phone_number: String
 	picture: String
 	roles: [String]
+	is_multi_factor_auth_enabled: Boolean
 }
 
 input ForgotPasswordInput {
@@ -420,6 +430,15 @@ input DeleteEmailTemplateRequest {
 	id: ID!
 }
 
+input VerifyOTPRequest {
+	email: String!
+	otp: String!
+}
+
+input ResendOTPRequest {
+	email: String!
+}
+
 type Mutation {
 	signup(params: SignUpInput!): AuthResponse!
 	login(params: LoginInput!): AuthResponse!
@@ -431,6 +450,8 @@ type Mutation {
 	forgot_password(params: ForgotPasswordInput!): Response!
 	reset_password(params: ResetPasswordInput!): Response!
 	revoke(params: OAuthRevokeInput!): Response!
+	verify_otp(params: VerifyOTPRequest!): AuthResponse!
+	resend_otp(params: ResendOTPRequest!): Response!
 	# admin only apis
 	_delete_user(params: DeleteUserInput!): Response!
 	_update_user(params: UpdateUserInput!): User!

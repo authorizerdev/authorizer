@@ -39,6 +39,7 @@ func (s *SessionStore) Set(key string, subKey, value string) {
 func (s *SessionStore) RemoveAll(key string) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
+
 	delete(s.store, key)
 }
 
@@ -53,6 +54,9 @@ func (s *SessionStore) Remove(key, subKey string) {
 
 // Get all the values for given key
 func (s *SessionStore) GetAll(key string) map[string]string {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
 	if _, ok := s.store[key]; !ok {
 		s.store[key] = make(map[string]string)
 	}
@@ -63,6 +67,7 @@ func (s *SessionStore) GetAll(key string) map[string]string {
 func (s *SessionStore) RemoveByNamespace(namespace string) error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
+
 	for key := range s.store {
 		if strings.Contains(key, namespace+":") {
 			delete(s.store, key)

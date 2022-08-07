@@ -2,6 +2,7 @@ package resolvers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -15,6 +16,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/parsers"
+	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/authorizerdev/authorizer/server/validators"
@@ -45,7 +47,7 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 		"user_id": params.ID,
 	})
 
-	if params.GivenName == nil && params.FamilyName == nil && params.Picture == nil && params.MiddleName == nil && params.Nickname == nil && params.Email == nil && params.Birthdate == nil && params.Gender == nil && params.PhoneNumber == nil && params.Roles == nil {
+	if params.GivenName == nil && params.FamilyName == nil && params.Picture == nil && params.MiddleName == nil && params.Nickname == nil && params.Email == nil && params.Birthdate == nil && params.Gender == nil && params.PhoneNumber == nil && params.Roles == nil && params.IsMultiFactorAuthEnabled == nil {
 		log.Debug("No params to update")
 		return res, fmt.Errorf("please enter atleast one param to update")
 	}
@@ -56,36 +58,47 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 		return res, fmt.Errorf(`User not found`)
 	}
 
-	if params.GivenName != nil && user.GivenName != params.GivenName {
+	if params.GivenName != nil && refs.StringValue(user.GivenName) != refs.StringValue(params.GivenName) {
 		user.GivenName = params.GivenName
 	}
 
-	if params.FamilyName != nil && user.FamilyName != params.FamilyName {
+	if params.FamilyName != nil && refs.StringValue(user.FamilyName) != refs.StringValue(params.FamilyName) {
 		user.FamilyName = params.FamilyName
 	}
 
-	if params.MiddleName != nil && user.MiddleName != params.MiddleName {
+	if params.MiddleName != nil && refs.StringValue(user.MiddleName) != refs.StringValue(params.MiddleName) {
 		user.MiddleName = params.MiddleName
 	}
 
-	if params.Nickname != nil && user.Nickname != params.Nickname {
+	if params.Nickname != nil && refs.StringValue(user.Nickname) != refs.StringValue(params.Nickname) {
 		user.Nickname = params.Nickname
 	}
 
-	if params.Birthdate != nil && user.Birthdate != params.Birthdate {
+	if params.Birthdate != nil && refs.StringValue(user.Birthdate) != refs.StringValue(params.Birthdate) {
 		user.Birthdate = params.Birthdate
 	}
 
-	if params.Gender != nil && user.Gender != params.Gender {
+	if params.Gender != nil && refs.StringValue(user.Gender) != refs.StringValue(params.Gender) {
 		user.Gender = params.Gender
 	}
 
-	if params.PhoneNumber != nil && user.PhoneNumber != params.PhoneNumber {
+	if params.PhoneNumber != nil && refs.StringValue(user.PhoneNumber) != refs.StringValue(params.PhoneNumber) {
 		user.PhoneNumber = params.PhoneNumber
 	}
 
-	if params.Picture != nil && user.Picture != params.Picture {
+	if params.Picture != nil && refs.StringValue(user.Picture) != refs.StringValue(params.Picture) {
 		user.Picture = params.Picture
+	}
+
+	if params.IsMultiFactorAuthEnabled != nil && refs.BoolValue(user.IsMultiFactorAuthEnabled) != refs.BoolValue(params.IsMultiFactorAuthEnabled) {
+		user.IsMultiFactorAuthEnabled = params.IsMultiFactorAuthEnabled
+		if refs.BoolValue(params.IsMultiFactorAuthEnabled) {
+			isEnvServiceEnabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyIsEmailServiceEnabled)
+			if err != nil || !isEnvServiceEnabled {
+				log.Debug("Email service not enabled:")
+				return nil, errors.New("email service not enabled, so cannot enable multi factor authentication")
+			}
+		}
 	}
 
 	if params.EmailVerified != nil {

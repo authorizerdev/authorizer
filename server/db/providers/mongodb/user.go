@@ -9,7 +9,9 @@ import (
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/google/uuid"
+	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -128,4 +130,28 @@ func (p *provider) GetUserByID(ctx context.Context, id string) (models.User, err
 	}
 
 	return user, nil
+}
+
+// UpdateUsers to update multiple users, with parameters of user IDs slice
+// If ids set to nil / empty all the users will be updated
+func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{}, ids []string) error {
+	// set updated_at time for all users
+	data["updated_at"] = time.Now().Unix()
+
+	userCollection := p.db.Collection(models.Collections.User, options.Collection())
+
+	var res *mongo.UpdateResult
+	var err error
+	if ids != nil && len(ids) > 0 {
+		res, err = userCollection.UpdateMany(ctx, bson.M{"_id": bson.M{"$in": ids}}, bson.M{"$set": data})
+	} else {
+		res, err = userCollection.UpdateMany(ctx, bson.M{}, bson.M{"$set": data})
+	}
+
+	if err != nil {
+		return err
+	} else {
+		log.Info("Updated users: ", res.ModifiedCount)
+	}
+	return nil
 }

@@ -2,22 +2,26 @@ package arangodb
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/arangodb/go-driver"
 	arangoDriver "github.com/arangodb/go-driver"
+	"github.com/google/uuid"
+
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
-	"github.com/google/uuid"
 )
 
 // AddUser to save user information in database
 func (p *provider) AddUser(ctx context.Context, user models.User) (models.User, error) {
 	if user.ID == "" {
 		user.ID = uuid.New().String()
+		user.Key = user.ID
 	}
 
 	if user.Roles == "" {
@@ -65,7 +69,7 @@ func (p *provider) DeleteUser(ctx context.Context, user models.User) error {
 
 	query := fmt.Sprintf(`FOR d IN %s FILTER d.user_id == @user_id REMOVE { _key: d._key } IN %s`, models.Collections.Session, models.Collections.Session)
 	bindVars := map[string]interface{}{
-		"user_id": user.ID,
+		"user_id": user.Key,
 	}
 	cursor, err := p.db.Query(ctx, query, bindVars)
 	if err != nil {
@@ -173,4 +177,37 @@ func (p *provider) GetUserByID(ctx context.Context, id string) (models.User, err
 	}
 
 	return user, nil
+}
+
+// UpdateUsers to update multiple users, with parameters of user IDs slice
+// If ids set to nil / empty all the users will be updated
+func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{}, ids []string) error {
+	// set updated_at time for all users
+	data["updated_at"] = time.Now().Unix()
+
+	userInfoBytes, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	query := ""
+	if ids != nil && len(ids) > 0 {
+		keysArray := ""
+		for _, id := range ids {
+			keysArray += fmt.Sprintf("'%s', ", id)
+		}
+		keysArray = strings.Trim(keysArray, " ")
+		keysArray = strings.TrimSuffix(keysArray, ",")
+		query = fmt.Sprintf("FOR u IN %s FILTER u._id IN [%s] UPDATE u._key with %s IN %s", models.Collections.User, keysArray, string(userInfoBytes), models.Collections.User)
+	} else {
+		query = fmt.Sprintf("FOR u IN %s UPDATE u._key with %s IN %s", models.Collections.User, string(userInfoBytes), models.Collections.User)
+	}
+
+	_, err = p.db.Query(ctx, query, nil)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

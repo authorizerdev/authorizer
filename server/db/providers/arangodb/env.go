@@ -15,6 +15,7 @@ import (
 func (p *provider) AddEnv(ctx context.Context, env models.Env) (models.Env, error) {
 	if env.ID == "" {
 		env.ID = uuid.New().String()
+		env.Key = env.ID
 	}
 
 	env.CreatedAt = time.Now().Unix()
