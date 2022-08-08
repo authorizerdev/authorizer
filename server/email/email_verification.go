@@ -1,19 +1,8 @@
 package email
 
-import (
-	log "github.com/sirupsen/logrus"
-
-	"github.com/authorizerdev/authorizer/server/constants"
-	"github.com/authorizerdev/authorizer/server/memorystore"
-)
-
-// SendVerificationMail to send verification email
-func SendVerificationMail(toEmail, token, hostname string) error {
-	// The receiver needs to be in slice as the receive supports multiple receiver
-	Receiver := []string{toEmail}
-
-	Subject := "Please verify your email"
-	message := `
+const (
+	emailVerificationSubject  = "Please verify your email"
+	emailVerificationTemplate = `
 	<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
     <html xmlns="http://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office">
         <head>
@@ -98,23 +87,4 @@ func SendVerificationMail(toEmail, token, hostname string) error {
         </body>
     </html>
 	`
-	data := make(map[string]interface{}, 3)
-	var err error
-	data["org_logo"], err = memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyOrganizationLogo)
-	if err != nil {
-		return err
-	}
-	data["org_name"], err = memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyOrganizationName)
-	if err != nil {
-		return err
-	}
-	data["verification_url"] = hostname + "/verify_email?token=" + token
-	message = addEmailTemplate(message, data, "verify_email.tmpl")
-	// bodyMessage := sender.WriteHTMLEmail(Receiver, Subject, message)
-
-	err = SendMail(Receiver, Subject, message)
-	if err != nil {
-		log.Warn("error sending email: ", err)
-	}
-	return err
-}
+)

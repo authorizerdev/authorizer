@@ -84,7 +84,12 @@ func ResendOTPResolver(ctx context.Context, params model.ResendOTPRequest) (*mod
 	}
 
 	go func() {
-		err := email.SendOtpMail(params.Email, otp)
+		// exec it as go routine so that we can reduce the api latency
+		go email.SendEmail([]string{params.Email}, constants.VerificationTypeOTP, map[string]interface{}{
+			"user":         user.ToMap(),
+			"organization": utils.GetOrganization(),
+			"otp":          otp,
+		})
 		if err != nil {
 			log.Debug("Error sending otp email: ", otp)
 		}

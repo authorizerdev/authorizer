@@ -244,8 +244,12 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 				return res, err
 			}
 
-			// exec it as go routin so that we can reduce the api latency
-			go email.SendVerificationMail(newEmail, verificationToken, hostname)
+			// exec it as go routine so that we can reduce the api latency
+			go email.SendEmail([]string{user.Email}, constants.VerificationTypeBasicAuthSignup, map[string]interface{}{
+				"user":             user.ToMap(),
+				"organization":     utils.GetOrganization(),
+				"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname),
+			})
 
 		}
 	}

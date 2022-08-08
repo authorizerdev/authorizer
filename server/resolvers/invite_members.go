@@ -115,7 +115,7 @@ func InviteMembersResolver(ctx context.Context, params model.InviteMemberInput) 
 			return nil, err
 		}
 
-		verificationToken, err := token.CreateVerificationToken(email, constants.VerificationTypeForgotPassword, hostname, nonceHash, redirectURL)
+		verificationToken, err := token.CreateVerificationToken(email, constants.VerificationTypeInviteMember, hostname, nonceHash, redirectURL)
 		if err != nil {
 			log.Debug("Failed to create verification token: ", err)
 		}
@@ -135,7 +135,7 @@ func InviteMembersResolver(ctx context.Context, params model.InviteMemberInput) 
 		} else {
 			// use basic authentication if that option is on
 			user.SignupMethods = constants.AuthRecipeMethodBasicAuth
-			verificationRequest.Identifier = constants.VerificationTypeForgotPassword
+			verificationRequest.Identifier = constants.VerificationTypeInviteMember
 
 			isMFAEnforced, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyEnforceMultiFactorAuthentication)
 			if err != nil {
@@ -162,7 +162,12 @@ func InviteMembersResolver(ctx context.Context, params model.InviteMemberInput) 
 			return nil, err
 		}
 
-		go emailservice.InviteEmail(email, verificationToken, verifyEmailURL, redirectURL)
+		// exec it as go routine so that we can reduce the api latency
+		go emailservice.SendEmail([]string{user.Email}, constants.VerificationTypeInviteMember, map[string]interface{}{
+			"user":             user.ToMap(),
+			"organization":     utils.GetOrganization(),
+			"verification_url": utils.GetInviteVerificationURL(verifyEmailURL, verificationToken, hostname),
+		})
 	}
 
 	return &model.Response{

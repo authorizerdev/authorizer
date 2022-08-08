@@ -39,6 +39,11 @@ func ResendVerifyEmailResolver(ctx context.Context, params model.ResendVerifyEma
 		return res, fmt.Errorf("invalid identifier")
 	}
 
+	user, err := db.Provider.GetUserByEmail(ctx, params.Email)
+	if err != nil {
+		return res, fmt.Errorf("invalid user")
+	}
+
 	verificationRequest, err := db.Provider.GetVerificationRequestByEmail(ctx, params.Email, params.Identifier)
 	if err != nil {
 		log.Debug("Failed to get verification request: ", err)
@@ -74,8 +79,12 @@ func ResendVerifyEmailResolver(ctx context.Context, params model.ResendVerifyEma
 		log.Debug("Failed to add verification request: ", err)
 	}
 
-	// exec it as go routin so that we can reduce the api latency
-	go email.SendVerificationMail(params.Email, verificationToken, hostname)
+	// exec it as go routine so that we can reduce the api latency
+	go email.SendEmail([]string{params.Email}, params.Identifier, map[string]interface{}{
+		"user":             user.ToMap(),
+		"organization":     utils.GetOrganization(),
+		"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname),
+	})
 
 	res = &model.Response{
 		Message: `Verification email has been sent. Please check your inbox`,

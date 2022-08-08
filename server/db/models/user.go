@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"strings"
 
 	"github.com/authorizerdev/authorizer/server/graph/model"
@@ -63,4 +64,11 @@ func (user *User) AsAPIUser() *model.User {
 		CreatedAt:                refs.NewInt64Ref(user.CreatedAt),
 		UpdatedAt:                refs.NewInt64Ref(user.UpdatedAt),
 	}
+}
+
+func (user *User) ToMap() map[string]interface{} {
+	res := map[string]interface{}{}
+	data, _ := json.Marshal(user) // Convert to a json string
+	json.Unmarshal(data, &res)    // Convert to a map
+	return res
 }
