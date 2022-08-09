@@ -21,6 +21,9 @@ import {
 	Text,
 	useDisclosure,
 	useToast,
+	Alert,
+	AlertIcon,
+	Divider,
 } from '@chakra-ui/react';
 import {
 	FaAngleDown,
@@ -468,68 +471,12 @@ const UpdateWebhookModal = ({
 									</Text>
 								</Flex>
 							</Flex>
-							<Flex
-								width="100%"
-								justifyContent="center"
-								alignItems="center"
-								marginBottom="5%"
-								flexDirection="column"
-							>
-								<Flex
-									width="100%"
-									justifyContent="space-between"
-									alignItems="center"
-								>
-									<Flex>
-										Payload
-										<Text color="gray.500" ml={1}>
-											(example)
-										</Text>
-									</Flex>
-									<Button
-										onClick={() => setIsShowingPayload(!isShowingPayload)}
-										variant="ghost"
-									>
-										{isShowingPayload ? <FaAngleUp /> : <FaAngleDown />}
-									</Button>
-								</Flex>
-								<Collapse
-									style={{
-										marginTop: 10,
-										width: '100%',
-									}}
-									in={isShowingPayload}
-								>
-									<Code
-										width="inherit"
-										borderRadius={5}
-										padding={2}
-										position="relative"
-									>
-										<pre style={{ overflow: 'auto' }}>
-											{webhookPayloadExample}
-										</pre>
-										{isShowingPayload && (
-											<Flex
-												position="absolute"
-												top={4}
-												right={4}
-												cursor="pointer"
-												onClick={() =>
-													copyTextToClipboard(webhookPayloadExample)
-												}
-											>
-												<FaRegClone color="#bfbfbf" />
-											</Flex>
-										)}
-									</Code>
-								</Collapse>
-							</Flex>
+
 							<Flex
 								width="100%"
 								justifyContent="space-between"
 								alignItems="center"
-								marginBottom="2%"
+								marginBottom="5%"
 							>
 								<Flex>Headers</Flex>
 								<Flex>
@@ -546,7 +493,8 @@ const UpdateWebhookModal = ({
 									</Button>
 								</Flex>
 							</Flex>
-							<Flex flexDirection="column" maxH={220} overflowY="scroll">
+
+							<Flex flexDirection="column" maxH={220} overflowY="auto">
 								{webhook[WebhookInputDataFields.HEADERS]?.map(
 									(headerData, index) => (
 										<Flex
@@ -615,6 +563,52 @@ const UpdateWebhookModal = ({
 									)
 								)}
 							</Flex>
+							<Divider marginY={5} />
+
+							<Alert
+								status="info"
+								onClick={() => setIsShowingPayload(!isShowingPayload)}
+								borderRadius="5"
+							>
+								<AlertIcon />
+								<Flex
+									width="100%"
+									justifyContent="space-between"
+									alignItems="center"
+								>
+									Checkout the example payload
+									{isShowingPayload ? <FaAngleUp /> : <FaAngleDown />}
+								</Flex>
+							</Alert>
+							<Collapse
+								style={{
+									marginTop: 10,
+									width: '100%',
+								}}
+								in={isShowingPayload}
+							>
+								<Code
+									width="inherit"
+									borderRadius={5}
+									padding={2}
+									position="relative"
+								>
+									<pre style={{ overflow: 'auto' }}>
+										{webhookPayloadExample}
+									</pre>
+									{isShowingPayload && (
+										<Flex
+											position="absolute"
+											top={4}
+											right={4}
+											cursor="pointer"
+											onClick={() => copyTextToClipboard(webhookPayloadExample)}
+										>
+											<FaRegClone color="#bfbfbf" />
+										</Flex>
+									)}
+								</Code>
+							</Collapse>
 						</Flex>
 					</ModalBody>
 					<ModalFooter>
