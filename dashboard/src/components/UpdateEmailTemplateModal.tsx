@@ -257,7 +257,14 @@ const UpdateEmailTemplate = ({
 			) : (
 				<MenuItem onClick={onOpen}>Edit</MenuItem>
 			)}
-			<Modal isOpen={isOpen} onClose={onClose} size="3xl">
+			<Modal
+				isOpen={isOpen}
+				onClose={() => {
+					resetData();
+					onClose();
+				}}
+				size="3xl"
+			>
 				<ModalOverlay />
 				<ModalContent>
 					<ModalHeader>
