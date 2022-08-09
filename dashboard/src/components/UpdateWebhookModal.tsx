@@ -94,7 +94,7 @@ interface validatorDataType {
 }
 
 const initWebhookData: webhookDataType = {
-	[WebhookInputDataFields.EVENT_NAME]: webhookEventNames.USER_LOGIN,
+	[WebhookInputDataFields.EVENT_NAME]: webhookEventNames['User login'],
 	[WebhookInputDataFields.ENDPOINT]: '',
 	[WebhookInputDataFields.ENABLED]: true,
 	[WebhookInputDataFields.HEADERS]: [{ ...initHeadersData }],

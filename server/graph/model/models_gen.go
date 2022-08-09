@@ -52,7 +52,7 @@ type EmailTemplate struct {
 
 type EmailTemplates struct {
 	Pagination     *Pagination      `json:"pagination"`
-	EmailTemplates []*EmailTemplate `json:"EmailTemplates"`
+	EmailTemplates []*EmailTemplate `json:"email_templates"`
 }
 
 type Env struct {

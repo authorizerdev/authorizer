@@ -183,20 +183,21 @@ export enum UpdateModalViews {
 export const pageLimits: number[] = [5, 10, 15];
 
 export const webhookEventNames = {
-	USER_SIGNUP: 'user.signup',
-	USER_CREATED: 'user.created',
-	USER_LOGIN: 'user.login',
-	USER_DELETED: 'user.deleted',
-	USER_ACCESS_ENABLED: 'user.access_enabled',
-	USER_ACCESS_REVOKED: 'user.access_revoked',
+	'User signup': 'user.signup',
+	'User created': 'user.created',
+	'User login': 'user.login',
+	'User deleted': 'user.deleted',
+	'User access enabled': 'user.access_enabled',
+	'User access revoked': 'user.access_revoked',
 };
 
 export const emailTemplateEventNames = {
-	BASIC_AUTH_SIGNUP: 'basic_auth_signup',
-	MAGIC_LINK_LOGIN: 'magic_link_login',
-	UPDATE_EMAIL: 'update_email',
-	FORGOT_PASSWORD: 'forgot_password',
-	VERIFY_OTP: 'verify_otp',
+	Signup: 'basic_auth_signup',
+	'Magic Link Login': 'magic_link_login',
+	'Update Email': 'update_email',
+	'Forgot Password': 'forgot_password',
+	'Verify Otp': 'verify_otp',
+	'Invite member': 'invite_member',
 };
 
 export enum webhookVerifiedStatus {

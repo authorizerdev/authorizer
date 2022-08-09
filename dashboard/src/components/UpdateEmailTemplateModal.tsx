@@ -62,8 +62,7 @@ interface validatorDataType {
 }
 
 const initTemplateData: emailTemplateDataType = {
-	[EmailTemplateInputDataFields.EVENT_NAME]:
-		emailTemplateEventNames.BASIC_AUTH_SIGNUP,
+	[EmailTemplateInputDataFields.EVENT_NAME]: emailTemplateEventNames.Signup,
 	[EmailTemplateInputDataFields.SUBJECT]: '',
 };
 
@@ -206,10 +205,10 @@ const UpdateEmailTemplate = ({
 		).reduce((acc, varData): any => {
 			if (
 				(templateData[EmailTemplateInputDataFields.EVENT_NAME] !==
-					emailTemplateEventNames.VERIFY_OTP &&
+					emailTemplateEventNames['Verify Otp'] &&
 					varData[1] === emailTemplateVariables.otp) ||
 				(templateData[EmailTemplateInputDataFields.EVENT_NAME] ===
-					emailTemplateEventNames.VERIFY_OTP &&
+					emailTemplateEventNames['Verify Otp'] &&
 					varData[1] === emailTemplateVariables.verification_url)
 			) {
 				return acc;

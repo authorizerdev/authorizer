@@ -40,7 +40,7 @@ import {
 	UpdateModalViews,
 	EmailTemplateInputDataFields,
 } from '../constants';
-import { EmailTemplatesQuery, WebhooksDataQuery } from '../graphql/queries';
+import { EmailTemplatesQuery } from '../graphql/queries';
 import dayjs from 'dayjs';
 import DeleteEmailTemplateModal from '../components/DeleteEmailTemplateModal';
 
@@ -94,7 +94,7 @@ const EmailTemplates = () => {
 			})
 			.toPromise();
 		if (res.data?._email_templates) {
-			const { pagination, EmailTemplates: emailTemplates } =
+			const { pagination, email_templates: emailTemplates } =
 				res.data?._email_templates;
 			const maxPages = getMaxPages(pagination);
 			if (emailTemplates?.length) {

@@ -201,7 +201,7 @@ type EmailTemplate {
 
 type EmailTemplates {
 	pagination: Pagination!
-	EmailTemplates: [EmailTemplate!]!
+	email_templates: [EmailTemplate!]!
 }
 
 input UpdateEnvInput {

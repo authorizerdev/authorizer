@@ -166,7 +166,7 @@ func InviteMembersResolver(ctx context.Context, params model.InviteMemberInput) 
 		go emailservice.SendEmail([]string{user.Email}, constants.VerificationTypeInviteMember, map[string]interface{}{
 			"user":             user.ToMap(),
 			"organization":     utils.GetOrganization(),
-			"verification_url": utils.GetInviteVerificationURL(verifyEmailURL, verificationToken, hostname),
+			"verification_url": utils.GetInviteVerificationURL(verifyEmailURL, verificationToken, redirectURL),
 		})
 	}
 

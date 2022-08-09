@@ -126,7 +126,7 @@ export const WebhooksDataQuery = `
 export const EmailTemplatesQuery = `
   query getEmailTemplates($params: PaginatedInput!) {
     _email_templates(params: $params) {
-      EmailTemplates {
+      email_templates {
         id
         event_name
         subject
