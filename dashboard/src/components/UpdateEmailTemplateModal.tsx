@@ -427,6 +427,7 @@ const UpdateEmailTemplate = ({
 									borderRadius: '5px',
 									marginTop: '2%',
 									height: '30vh',
+									padding: 10,
 								}}
 								mention={{
 									separator: ' ',
