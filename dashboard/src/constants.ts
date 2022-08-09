@@ -207,27 +207,90 @@ export enum webhookVerifiedStatus {
 }
 
 export const emailTemplateVariables = {
-	'user.id': '{.user.id}}',
-	'user.email': '{.user.email}}',
-	'user.given_name': '{.user.given_name}}',
-	'user.family_name': '{.user.family_name}}',
-	'user.signup_methods': '{.user.signup_methods}}',
-	'user.email_verified': '{.user.email_verified}}',
-	'user.picture': '{.user.picture}}',
-	'user.roles': '{.user.roles}}',
-	'user.middle_name': '{.user.middle_name}}',
-	'user.nickname': '{.user.nickname}}',
-	'user.preferred_username': '{.user.preferred_username}}',
-	'user.gender': '{.user.gender}}',
-	'user.birthdate': '{.user.birthdate}}',
-	'user.phone_number': '{.user.phone_number}}',
-	'user.phone_number_verified': '{.user.phone_number_verified}}',
-	'user.created_at': '{.user.created_at}}',
-	'user.updated_at': '{.user.updated_at}}',
-	'organization.name': '{.organization.name}}',
-	'organization.logo': '{.organization.logo}}',
-	verification_url: '{.verification_url}}',
-	otp: '{.otp}}',
+	'user.id': {
+		description: `User identifier`,
+		value: '{.user.id}}',
+	},
+	'user.email': {
+		description: 'User email address',
+		value: '{.user.email}}',
+	},
+	'user.given_name': {
+		description: `User first name`,
+		value: '{.user.given_name}}',
+	},
+	'user.family_name': {
+		description: `User last name`,
+		value: '{.user.family_name}}',
+	},
+	'user.middle_name': {
+		description: `Middle name of user`,
+		value: '{.user.middle_name}}',
+	},
+	'user.nickname': {
+		description: `Nick name of user`,
+		value: '{.user.nickname}}',
+	},
+	'user.preferred_username': {
+		description: `Username, by default it is email`,
+		value: '{.user.preferred_username}}',
+	},
+	'user.signup_methods': {
+		description: `Comma separated list of methods using which user has signed up`,
+		value: '{.user.signup_methods}}',
+	},
+	'user.email_verified': {
+		description: `Whether email is verified or not`,
+		value: '{.user.email_verified}}',
+	},
+	'user.picture': {
+		description: `URL of the user profile picture`,
+		value: '{.user.picture}}',
+	},
+	'user.roles': {
+		description: `Comma separated list of roles assigned to user`,
+		value: '{.user.roles}}',
+	},
+	'user.gender': {
+		description: `Gender of user`,
+		value: '{.user.gender}}',
+	},
+	'user.birthdate': {
+		description: `BirthDate of user`,
+		value: '{.user.birthdate}}',
+	},
+	'user.phone_number': {
+		description: `Phone number of user`,
+		value: '{.user.phone_number}}',
+	},
+	'user.phone_number_verified': {
+		description: `Whether phone number is verified or not`,
+		value: '{.user.phone_number_verified}}',
+	},
+	'user.created_at': {
+		description: `User created at time`,
+		value: '{.user.created_at}}',
+	},
+	'user.updated_at': {
+		description: `Last updated time at user`,
+		value: '{.user.updated_at}}',
+	},
+	'organization.name': {
+		description: `Organization name`,
+		value: '{.organization.name}}',
+	},
+	'organization.logo': {
+		description: `Organization logo`,
+		value: '{.organization.logo}}',
+	},
+	verification_url: {
+		description: `Verification URL in case of events other than verify otp`,
+		value: '{.verification_url}}',
+	},
+	otp: {
+		description: `OTP sent during login with Multi factor authentication`,
+		value: '{.otp}}',
+	},
 };
 
 export const webhookPayloadExample: string = `{

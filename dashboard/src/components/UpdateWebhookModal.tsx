@@ -569,6 +569,8 @@ const UpdateWebhookModal = ({
 								status="info"
 								onClick={() => setIsShowingPayload(!isShowingPayload)}
 								borderRadius="5"
+								cursor="pointer"
+								fontSize="sm"
 							>
 								<AlertIcon />
 								<Flex

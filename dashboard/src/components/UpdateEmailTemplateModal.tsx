@@ -17,8 +17,20 @@ import {
 	Text,
 	useDisclosure,
 	useToast,
+	Alert,
+	AlertIcon,
+	Collapse,
+	Box,
+	TableContainer,
+	Table,
+	Thead,
+	Tr,
+	Th,
+	Tbody,
+	Td,
+	Code,
 } from '@chakra-ui/react';
-import { FaPlus } from 'react-icons/fa';
+import { FaPlus, FaAngleDown, FaAngleUp } from 'react-icons/fa';
 import { useClient } from 'urql';
 import { Editor } from 'react-draft-wysiwyg';
 import { EditorState, convertToRaw, Modifier } from 'draft-js';
@@ -50,6 +62,7 @@ interface UpdateEmailTemplateInputPropTypes {
 interface templateVariableDataTypes {
 	text: string;
 	value: string;
+	description: string;
 }
 
 interface emailTemplateDataType {
@@ -94,6 +107,9 @@ const UpdateEmailTemplate = ({
 	const onEditorStateChange = (editorState: EditorState) => {
 		setEditorState(editorState);
 	};
+	const [isDynamicVariableInfoOpen, setIsDynamicVariableInfoOpen] =
+		useState<boolean>(false);
+
 	const inputChangehandler = (inputType: string, value: any) => {
 		if (inputType !== EmailTemplateInputDataFields.EVENT_NAME) {
 			setValidator({
@@ -202,27 +218,29 @@ const UpdateEmailTemplate = ({
 	useEffect(() => {
 		const updatedTemplateVariables = Object.entries(
 			emailTemplateVariables
-		).reduce((acc, varData): any => {
+		).reduce((acc, [key, val]): any => {
 			if (
 				(templateData[EmailTemplateInputDataFields.EVENT_NAME] !==
 					emailTemplateEventNames['Verify Otp'] &&
-					varData[1] === emailTemplateVariables.otp) ||
+					val === emailTemplateVariables.otp) ||
 				(templateData[EmailTemplateInputDataFields.EVENT_NAME] ===
 					emailTemplateEventNames['Verify Otp'] &&
-					varData[1] === emailTemplateVariables.verification_url)
+					val === emailTemplateVariables.verification_url)
 			) {
 				return acc;
 			}
 			return [
 				...acc,
 				{
-					text: varData[0],
-					value: varData[1],
+					text: key,
+					value: val.value,
+					description: val.description,
 				},
 			];
 		}, []);
 		setTemplateVariables(updatedTemplateVariables);
 	}, [templateData[EmailTemplateInputDataFields.EVENT_NAME]]);
+
 	return (
 		<>
 			{view === UpdateModalViews.ADD ? (
@@ -256,6 +274,73 @@ const UpdateEmailTemplate = ({
 							borderColor="gray.200"
 							p="5"
 						>
+							<Alert
+								status="info"
+								onClick={() =>
+									setIsDynamicVariableInfoOpen(!isDynamicVariableInfoOpen)
+								}
+								borderRadius="5"
+								marginY={5}
+								cursor="pointer"
+								fontSize="sm"
+							>
+								<AlertIcon />
+								<Flex
+									width="100%"
+									justifyContent="space-between"
+									alignItems="center"
+								>
+									<Box width="85%">
+										<b>Note:</b> You can add set of dynamic variables to subject
+										and email body. Click here to see the set of dynamic
+										variables.
+									</Box>
+									{isDynamicVariableInfoOpen ? <FaAngleUp /> : <FaAngleDown />}
+								</Flex>
+							</Alert>
+							<Collapse
+								style={{
+									width: '100%',
+								}}
+								in={isDynamicVariableInfoOpen}
+							>
+								<TableContainer
+									background="gray.100"
+									borderRadius={5}
+									height={200}
+									width="100%"
+									overflowY="auto"
+									overflowWrap="break-word"
+								>
+									<Table variant="simple">
+										<Thead>
+											<Tr>
+												<Th>Variable</Th>
+												<Th>Description</Th>
+											</Tr>
+										</Thead>
+										<Tbody>
+											{templateVariables.map((i) => (
+												<Tr key={i.text}>
+													<Td>
+														<Code fontSize="sm">{`{{${i.text}}}`}</Code>
+													</Td>
+													<Td>
+														<Text
+															size="sm"
+															fontSize="sm"
+															overflowWrap="break-word"
+															width="100%"
+														>
+															{i.description}
+														</Text>
+													</Td>
+												</Tr>
+											))}
+										</Tbody>
+									</Table>
+								</TableContainer>
+							</Collapse>
 							<Flex
 								width="100%"
 								justifyContent="space-between"
@@ -334,7 +419,7 @@ const UpdateEmailTemplate = ({
 									border: '1px solid #d9d9d9',
 									borderRadius: '5px',
 									marginTop: '2%',
-									height: '35vh',
+									height: '30vh',
 								}}
 								mention={{
 									separator: ' ',
@@ -342,6 +427,13 @@ const UpdateEmailTemplate = ({
 									suggestions: templateVariables,
 								}}
 							/>
+							<Alert status="info" marginY={5} borderRadius={5}>
+								<AlertIcon />
+								<Box fontSize="sm">
+									<b>Note:</b> In order to use dynamic variables with link and
+									images you can put them as part of URL in editor section.
+								</Box>
+							</Alert>
 						</Flex>
 					</ModalBody>
 					<ModalFooter>
