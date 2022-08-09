@@ -15,8 +15,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// TODO add template validator
-
 // UpdateEmailTemplateResolver resolver for update email template mutation
 func UpdateEmailTemplateResolver(ctx context.Context, params model.UpdateEmailTemplateRequest) (*model.Response, error) {
 	gc, err := utils.GinContextFromContext(ctx)

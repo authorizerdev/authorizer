@@ -123,7 +123,12 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 		}
 
 		go func() {
-			err := email.SendOtpMail(user.Email, otpData.Otp)
+			// exec it as go routine so that we can reduce the api latency
+			go email.SendEmail([]string{params.Email}, constants.VerificationTypeOTP, map[string]interface{}{
+				"user":         user.ToMap(),
+				"organization": utils.GetOrganization(),
+				"otp":          otpData.Otp,
+			})
 			if err != nil {
 				log.Debug("Failed to send otp email: ", err)
 			}

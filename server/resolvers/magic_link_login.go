@@ -219,8 +219,12 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 			return res, err
 		}
 
-		// exec it as go routing so that we can reduce the api latency
-		go email.SendVerificationMail(params.Email, verificationToken, hostname)
+		// exec it as go routine so that we can reduce the api latency
+		go email.SendEmail([]string{params.Email}, constants.VerificationTypeMagicLinkLogin, map[string]interface{}{
+			"user":             user.ToMap(),
+			"organization":     utils.GetOrganization(),
+			"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname),
+		})
 	}
 
 	res = &model.Response{

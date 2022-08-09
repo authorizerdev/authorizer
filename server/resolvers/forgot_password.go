@@ -49,7 +49,7 @@ func ForgotPasswordResolver(ctx context.Context, params model.ForgotPasswordInpu
 	log := log.WithFields(log.Fields{
 		"email": params.Email,
 	})
-	_, err = db.Provider.GetUserByEmail(ctx, params.Email)
+	user, err := db.Provider.GetUserByEmail(ctx, params.Email)
 	if err != nil {
 		log.Debug("User not found: ", err)
 		return res, fmt.Errorf(`user with this email not found`)
@@ -84,8 +84,12 @@ func ForgotPasswordResolver(ctx context.Context, params model.ForgotPasswordInpu
 		return res, err
 	}
 
-	// exec it as go routin so that we can reduce the api latency
-	go email.SendForgotPasswordMail(params.Email, verificationToken, hostname)
+	// exec it as go routine so that we can reduce the api latency
+	go email.SendEmail([]string{params.Email}, constants.VerificationTypeForgotPassword, map[string]interface{}{
+		"user":             user.ToMap(),
+		"organization":     utils.GetOrganization(),
+		"verification_url": utils.GetForgotPasswordURL(verificationToken, hostname),
+	})
 
 	res = &model.Response{
 		Message: `Please check your inbox! We have sent a password reset link.`,

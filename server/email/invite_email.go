@@ -1,19 +1,8 @@
 package email
 
-import (
-	log "github.com/sirupsen/logrus"
-
-	"github.com/authorizerdev/authorizer/server/constants"
-	"github.com/authorizerdev/authorizer/server/memorystore"
-)
-
-// InviteEmail to send invite email
-func InviteEmail(toEmail, token, verificationURL, redirectURI string) error {
-	// The receiver needs to be in slice as the receive supports multiple receiver
-	Receiver := []string{toEmail}
-
-	Subject := "Please accept the invitation"
-	message := `
+const (
+	inviteEmailSubject  = "Please accept the invitation"
+	inviteEmailTemplate = `
 	<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
     <html xmlns="http://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office">
         <head>
@@ -64,13 +53,13 @@ func InviteEmail(toEmail, token, verificationURL, redirectURI string) error {
                                                                                 <table width="100%%" cellspacing="0" cellpadding="0">
                                                                                     <tbody>
                                                                                         <tr>
-                                                                                            <td class="esd-block-image es-m-txt-c es-p5b" style="font-size:0;padding:10px" align="center"><a target="_blank" clicktracking="off"><img src="{{.org_logo}}" alt="icon" style="display: block;" title="icon" width="30"></a></td>
+                                                                                            <td class="esd-block-image es-m-txt-c es-p5b" style="font-size:0;padding:10px" align="center"><a target="_blank" clicktracking="off"><img src="{{.organization.logo}}" alt="icon" style="display: block;" title="icon" width="30"></a></td>
                                                                                         </tr>
                                                                                         
                                                                                         <tr style="background: rgb(249,250,251);padding: 10px;margin-bottom:10px;border-radius:5px;">
                                                                                             <td class="esd-block-text es-m-txt-c es-p15t" align="center" style="padding:10px;padding-bottom:30px;">
                                                                                                 <p>Hi there 👋</p>
-                                                                                                <p>Join us! You are invited to sign-up for <b>{{.org_name}}</b>. Please accept the invitation by clicking the button below.</p> <br/>
+                                                                                                <p>Join us! You are invited to sign-up for <b>{{.organization.name}}</b>. Please accept the invitation by clicking the button below.</p> <br/>
                                                                                                 <a 
                                                                                                 clicktracking="off" href="{{.verification_url}}" class="es-button" target="_blank" style="text-decoration: none;padding:10px 15px;background-color: rgba(59,130,246,1);color: #fff;font-size: 1em;border-radius:5px;">Get Started</a>
                                                                                             </td>
@@ -98,23 +87,4 @@ func InviteEmail(toEmail, token, verificationURL, redirectURI string) error {
         </body>
     </html>
 	`
-	data := make(map[string]interface{}, 3)
-	var err error
-	data["org_logo"], err = memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyOrganizationLogo)
-	if err != nil {
-		return err
-	}
-	data["org_name"], err = memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyOrganizationName)
-	if err != nil {
-		return err
-	}
-	data["verification_url"] = verificationURL + "?token=" + token + "&redirect_uri=" + redirectURI
-	message = addEmailTemplate(message, data, "invite_email.tmpl")
-	// bodyMessage := sender.WriteHTMLEmail(Receiver, Subject, message)
-
-	err = SendMail(Receiver, Subject, message)
-	if err != nil {
-		log.Warn("error sending email: ", err)
-	}
-	return err
-}
+)

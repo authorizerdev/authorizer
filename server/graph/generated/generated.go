@@ -441,7 +441,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.EmailTemplate.UpdatedAt(childComplexity), true
 
-	case "EmailTemplates.EmailTemplates":
+	case "EmailTemplates.email_templates":
 		if e.complexity.EmailTemplates.EmailTemplates == nil {
 			break
 		}
@@ -2066,7 +2066,7 @@ type EmailTemplate {
 
 type EmailTemplates {
 	pagination: Pagination!
-	EmailTemplates: [EmailTemplate!]!
+	email_templates: [EmailTemplate!]!
 }
 
 input UpdateEnvInput {
@@ -3404,7 +3404,7 @@ func (ec *executionContext) _EmailTemplates_pagination(ctx context.Context, fiel
 	return ec.marshalNPagination2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐPagination(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _EmailTemplates_EmailTemplates(ctx context.Context, field graphql.CollectedField, obj *model.EmailTemplates) (ret graphql.Marshaler) {
+func (ec *executionContext) _EmailTemplates_email_templates(ctx context.Context, field graphql.CollectedField, obj *model.EmailTemplates) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -12198,8 +12198,8 @@ func (ec *executionContext) _EmailTemplates(ctx context.Context, sel ast.Selecti
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "EmailTemplates":
-			out.Values[i] = ec._EmailTemplates_EmailTemplates(ctx, field, obj)
+		case "email_templates":
+			out.Values[i] = ec._EmailTemplates_email_templates(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
