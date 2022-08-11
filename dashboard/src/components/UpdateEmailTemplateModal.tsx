@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
 	Button,
 	Center,
@@ -32,10 +32,7 @@ import {
 } from '@chakra-ui/react';
 import { FaPlus, FaAngleDown, FaAngleUp } from 'react-icons/fa';
 import { useClient } from 'urql';
-import { Editor } from 'react-draft-wysiwyg';
-import { EditorState, convertToRaw, Modifier } from 'draft-js';
-import draftToHtml from 'draftjs-to-html';
-import { stateFromHTML } from 'draft-js-import-html';
+import EmailEditor from 'react-email-editor';
 import {
 	UpdateModalViews,
 	EmailTemplateInputDataFields,
@@ -90,11 +87,9 @@ const UpdateEmailTemplate = ({
 }: UpdateEmailTemplateInputPropTypes) => {
 	const client = useClient();
 	const toast = useToast();
+	const emailEditorRef = useRef(null);
 	const { isOpen, onOpen, onClose } = useDisclosure();
 	const [loading, setLoading] = useState<boolean>(false);
-	const [editorState, setEditorState] = React.useState<EditorState>(
-		EditorState.createEmpty()
-	);
 	const [templateVariables, setTemplateVariables] = useState<
 		templateVariableDataTypes[]
 	>([]);
@@ -104,11 +99,25 @@ const UpdateEmailTemplate = ({
 	const [validator, setValidator] = useState<validatorDataType>({
 		...initTemplateValidatorData,
 	});
-	const onEditorStateChange = (editorState: EditorState) => {
-		setEditorState(editorState);
-	};
 	const [isDynamicVariableInfoOpen, setIsDynamicVariableInfoOpen] =
 		useState<boolean>(false);
+
+	const onLoad = () => {
+		// editor instance is created
+		// you can load your template here;
+		// const templateJson = {};
+		// emailEditorRef.current.editor.loadDesign(templateJson);
+		console.log('onLoad');
+	};
+
+	const onReady = () => {
+		// editor is ready
+		console.log('onReady');
+		if (selectedTemplate) {
+			const { template } = selectedTemplate;
+			console.log('incoming template ==>> ', template);
+		}
+	};
 
 	const inputChangehandler = (inputType: string, value: any) => {
 		if (inputType !== EmailTemplateInputDataFields.EVENT_NAME) {
@@ -121,14 +130,9 @@ const UpdateEmailTemplate = ({
 	};
 
 	const validateData = () => {
-		const rawData: string = draftToHtml(
-			convertToRaw(editorState.getCurrentContent())
-		).trim();
 		return (
 			!loading &&
-			rawData &&
-			rawData !== '<p></p>' &&
-			rawData !== '<h1></h1>' &&
+			emailEditorRef?.current &&
 			templateData[EmailTemplateInputDataFields.EVENT_NAME].length > 0 &&
 			templateData[EmailTemplateInputDataFields.SUBJECT].length > 0 &&
 			validator[EmailTemplateInputDataFields.SUBJECT]
@@ -138,69 +142,72 @@ const UpdateEmailTemplate = ({
 	const saveData = async () => {
 		if (!validateData()) return;
 		setLoading(true);
-		const params = {
-			[EmailTemplateInputDataFields.EVENT_NAME]:
-				templateData[EmailTemplateInputDataFields.EVENT_NAME],
-			[EmailTemplateInputDataFields.SUBJECT]:
-				templateData[EmailTemplateInputDataFields.SUBJECT],
-			[EmailTemplateInputDataFields.TEMPLATE]: draftToHtml(
-				convertToRaw(editorState.getCurrentContent())
-			).trim(),
-		};
-		let res: any = {};
-		if (
-			view === UpdateModalViews.Edit &&
-			selectedTemplate?.[EmailTemplateInputDataFields.ID]
-		) {
-			res = await client
-				.mutation(EditEmailTemplate, {
-					params: {
-						...params,
-						id: selectedTemplate[EmailTemplateInputDataFields.ID],
-					},
-				})
-				.toPromise();
-		} else {
-			res = await client.mutation(AddEmailTemplate, { params }).toPromise();
-		}
-		setLoading(false);
-		if (res.error) {
-			toast({
-				title: capitalizeFirstLetter(res.error.message),
-				isClosable: true,
-				status: 'error',
-				position: 'bottom-right',
-			});
-		} else if (
-			res.data?._add_email_template ||
-			res.data?._update_email_template
-		) {
-			toast({
-				title: capitalizeFirstLetter(
-					res.data?._add_email_template?.message ||
-						res.data?._update_email_template?.message
-				),
-				isClosable: true,
-				status: 'success',
-				position: 'bottom-right',
-			});
-			setTemplateData({
-				...initTemplateData,
-			});
-			setValidator({ ...initTemplateValidatorData });
-			fetchEmailTemplatesData();
-		}
-		view === UpdateModalViews.ADD && onClose();
+		// @ts-ignore
+		return await emailEditorRef.current.editor.exportHtml(async (data) => {
+			const { design, html } = data;
+			console.log('design ==>> ', design);
+			if (!html || !design) {
+				setLoading(false);
+				return;
+			}
+			const params = {
+				[EmailTemplateInputDataFields.EVENT_NAME]:
+					templateData[EmailTemplateInputDataFields.EVENT_NAME],
+				[EmailTemplateInputDataFields.SUBJECT]:
+					templateData[EmailTemplateInputDataFields.SUBJECT],
+				[EmailTemplateInputDataFields.TEMPLATE]: html.trim(),
+			};
+			let res: any = {};
+			if (
+				view === UpdateModalViews.Edit &&
+				selectedTemplate?.[EmailTemplateInputDataFields.ID]
+			) {
+				res = await client
+					.mutation(EditEmailTemplate, {
+						params: {
+							...params,
+							id: selectedTemplate[EmailTemplateInputDataFields.ID],
+						},
+					})
+					.toPromise();
+			} else {
+				res = await client.mutation(AddEmailTemplate, { params }).toPromise();
+			}
+			setLoading(false);
+			if (res.error) {
+				toast({
+					title: capitalizeFirstLetter(res.error.message),
+					isClosable: true,
+					status: 'error',
+					position: 'bottom-right',
+				});
+			} else if (
+				res.data?._add_email_template ||
+				res.data?._update_email_template
+			) {
+				toast({
+					title: capitalizeFirstLetter(
+						res.data?._add_email_template?.message ||
+							res.data?._update_email_template?.message
+					),
+					isClosable: true,
+					status: 'success',
+					position: 'bottom-right',
+				});
+				setTemplateData({
+					...initTemplateData,
+				});
+				setValidator({ ...initTemplateValidatorData });
+				fetchEmailTemplatesData();
+			}
+			view === UpdateModalViews.ADD && onClose();
+		});
 	};
 	const resetData = () => {
 		if (selectedTemplate) {
 			setTemplateData(selectedTemplate);
-			setEditorState(
-				EditorState.createWithContent(stateFromHTML(selectedTemplate.template))
-			);
 		} else {
 			setTemplateData({ ...initTemplateData });
-			setEditorState(EditorState.createEmpty());
 		}
 	};
 	useEffect(() => {
@@ -212,7 +219,6 @@ const UpdateEmailTemplate = ({
 		) {
 			const { id, created_at, template, ...rest } = selectedTemplate;
 			setTemplateData(rest);
-			setEditorState(EditorState.createWithContent(stateFromHTML(template)));
 		}
 	}, [isOpen]);
 	useEffect(() => {
@@ -263,7 +269,7 @@ const UpdateEmailTemplate = ({
 					resetData();
 					onClose();
 				}}
-				size="3xl"
+				size="6xl"
 			>
 				<ModalOverlay />
 				<ModalContent>
@@ -407,41 +413,17 @@ const UpdateEmailTemplate = ({
 							</Flex>
 							<Flex
 								width="100%"
-								justifyContent="space-between"
+								justifyContent="flex-start"
 								alignItems="center"
 								marginBottom="2%"
 							>
-								<Flex>Template Body</Flex>
-								<Text
-									style={{
-										fontSize: 14,
-									}}
-									color="gray.400"
-								>{`To select dynamic variables open curly braces "{"`}</Text>
+								Template Body
 							</Flex>
-							<Editor
-								editorState={editorState}
-								onEditorStateChange={onEditorStateChange}
-								editorStyle={{
-									border: '1px solid #d9d9d9',
-									borderRadius: '5px',
-									marginTop: '2%',
-									height: '30vh',
-									padding: 10,
-								}}
-								mention={{
-									separator: ' ',
-									trigger: '{',
-									suggestions: templateVariables,
-								}}
+							<EmailEditor
+								ref={emailEditorRef}
+								onLoad={onLoad}
+								onReady={onReady}
 							/>
-							<Alert status="info" marginY={5} borderRadius={5}>
-								<AlertIcon />
-								<Box fontSize="sm">
-									<b>Note:</b> In order to use dynamic variables with link and
-									images you can put them as part of URL in editor section.
-								</Box>
-							</Alert>
 						</Flex>
 					</ModalBody>
 					<ModalFooter>
