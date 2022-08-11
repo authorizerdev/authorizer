@@ -290,7 +290,7 @@ const UpdateEmailTemplate = ({
 									setIsDynamicVariableInfoOpen(!isDynamicVariableInfoOpen)
 								}
 								borderRadius="5"
-								marginY={5}
+								marginBottom={5}
 								cursor="pointer"
 								fontSize="sm"
 							>
@@ -385,7 +385,7 @@ const UpdateEmailTemplate = ({
 								width="100%"
 								justifyContent="start"
 								alignItems="center"
-								marginBottom="5%"
+								marginBottom="2%"
 							>
 								<Flex flex="1">Subject</Flex>
 								<Flex flex="3">
@@ -416,7 +416,15 @@ const UpdateEmailTemplate = ({
 							>
 								Template Body
 							</Flex>
-							<EmailEditor ref={emailEditorRef} onReady={onReady} />
+							<Flex
+								width="100%"
+								justifyContent="flex-start"
+								alignItems="center"
+								border="1px solid"
+								borderColor="gray.200"
+							>
+								<EmailEditor ref={emailEditorRef} onReady={onReady} />
+							</Flex>
 						</Flex>
 					</ModalBody>
 					<ModalFooter>
