@@ -83,6 +83,35 @@ const Features = ({ variables, setVariables }: any) => {
 						/>
 					</Flex>
 				</Flex>
+				<Flex>
+					<Flex w="100%" justifyContent="start" alignItems="center">
+						<Text fontSize="sm">Disable Multi Factor Authentication:</Text>
+					</Flex>
+					<Flex justifyContent="start" mb={3}>
+						<InputField
+							variables={variables}
+							setVariables={setVariables}
+							inputType={SwitchInputType.DISABLE_MULTI_FACTOR_AUTHENTICATION}
+						/>
+					</Flex>
+				</Flex>
+			</Stack>
+			<Text fontSize="md" paddingTop="2%" fontWeight="bold" mb={5}>
+				Enable Features
+			</Text>
+			<Stack spacing={6} padding="2% 0%">
+				<Flex>
+					<Flex w="100%" justifyContent="start" alignItems="center">
+						<Text fontSize="sm">Enforce Multi Factor Authentication:</Text>
+					</Flex>
+					<Flex justifyContent="start" mb={3}>
+						<InputField
+							variables={variables}
+							setVariables={setVariables}
+							inputType={SwitchInputType.ENFORCE_MULTI_FACTOR_AUTHENTICATION}
+						/>
+					</Flex>
+				</Flex>
 			</Stack>
 		</div>
 	);

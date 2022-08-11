@@ -80,6 +80,8 @@ const Environment = () => {
 		DATABASE_TYPE: '',
 		DATABASE_URL: '',
 		ACCESS_TOKEN_EXPIRY_TIME: '',
+		DISABLE_MULTI_FACTOR_AUTHENTICATION: false,
+		ENFORCE_MULTI_FACTOR_AUTHENTICATION: false,
 	});
 
 	const [fieldVisibility, setFieldVisibility] = React.useState<
