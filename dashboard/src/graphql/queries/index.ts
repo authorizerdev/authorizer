@@ -132,6 +132,7 @@ export const EmailTemplatesQuery = `
         subject
         created_at
         template
+        design
       }
       pagination {
         limit

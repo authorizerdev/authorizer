@@ -58,6 +58,7 @@ interface EmailTemplateDataType {
 	[EmailTemplateInputDataFields.SUBJECT]: string;
 	[EmailTemplateInputDataFields.CREATED_AT]: number;
 	[EmailTemplateInputDataFields.TEMPLATE]: string;
+	[EmailTemplateInputDataFields.DESIGN]: string;
 }
 
 const EmailTemplates = () => {

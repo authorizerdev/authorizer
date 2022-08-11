@@ -48,6 +48,7 @@ interface selectedEmailTemplateDataTypes {
 	[EmailTemplateInputDataFields.SUBJECT]: string;
 	[EmailTemplateInputDataFields.CREATED_AT]: number;
 	[EmailTemplateInputDataFields.TEMPLATE]: string;
+	[EmailTemplateInputDataFields.DESIGN]: string;
 }
 
 interface UpdateEmailTemplateInputPropTypes {
@@ -102,20 +103,17 @@ const UpdateEmailTemplate = ({
 	const [isDynamicVariableInfoOpen, setIsDynamicVariableInfoOpen] =
 		useState<boolean>(false);
 
-	const onLoad = () => {
-		// editor instance is created
-		// you can load your template here;
-		// const templateJson = {};
-		// emailEditorRef.current.editor.loadDesign(templateJson);
-		console.log('onLoad');
-	};
-
 	const onReady = () => {
-		// editor is ready
-		console.log('onReady');
 		if (selectedTemplate) {
-			const { template } = selectedTemplate;
-			console.log('incoming template ==>> ', template);
+			const { design } = selectedTemplate;
+			try {
+				const designData = JSON.parse(design);
+				// @ts-ignore
+				emailEditorRef.current.editor.loadDesign(designData);
+			} catch (error) {
+				console.error(error);
+				onClose();
+			}
 		}
 	};
 
@@ -132,7 +130,6 @@ const UpdateEmailTemplate = ({
 	const validateData = () => {
 		return (
 			!loading &&
-			emailEditorRef?.current &&
 			templateData[EmailTemplateInputDataFields.EVENT_NAME].length > 0 &&
 			templateData[EmailTemplateInputDataFields.SUBJECT].length > 0 &&
 			validator[EmailTemplateInputDataFields.SUBJECT]
@@ -145,7 +142,6 @@ const UpdateEmailTemplate = ({
 		// @ts-ignore
 		return await emailEditorRef.current.editor.exportHtml(async (data) => {
 			const { design, html } = data;
-			console.log('design ==>> ', design);
 			if (!html || !design) {
 				setLoading(false);
 				return;
@@ -156,6 +152,7 @@ const UpdateEmailTemplate = ({
 				[EmailTemplateInputDataFields.SUBJECT]:
 					templateData[EmailTemplateInputDataFields.SUBJECT],
 				[EmailTemplateInputDataFields.TEMPLATE]: html.trim(),
+				[EmailTemplateInputDataFields.DESIGN]: JSON.stringify(design),
 			};
 			let res: any = {};
 			if (
@@ -217,7 +214,7 @@ const UpdateEmailTemplate = ({
 			selectedTemplate &&
 			Object.keys(selectedTemplate || {}).length
 		) {
-			const { id, created_at, template, ...rest } = selectedTemplate;
+			const { id, created_at, template, design, ...rest } = selectedTemplate;
 			setTemplateData(rest);
 		}
 	}, [isOpen]);
@@ -419,11 +416,7 @@ const UpdateEmailTemplate = ({
 							>
 								Template Body
 							</Flex>
-							<EmailEditor
-								ref={emailEditorRef}
-								onLoad={onLoad}
-								onReady={onReady}
-							/>
+							<EmailEditor ref={emailEditorRef} onReady={onReady} />
 						</Flex>
 					</ModalBody>
 					<ModalFooter>

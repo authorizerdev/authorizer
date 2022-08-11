@@ -6,6 +6,7 @@ type AddEmailTemplateRequest struct {
 	EventName string `json:"event_name"`
 	Subject   string `json:"subject"`
 	Template  string `json:"template"`
+	Design    string `json:"design"`
 }
 
 type AddWebhookRequest struct {
@@ -45,6 +46,7 @@ type EmailTemplate struct {
 	ID        string `json:"id"`
 	EventName string `json:"event_name"`
 	Template  string `json:"template"`
+	Design    string `json:"design"`
 	Subject   string `json:"subject"`
 	CreatedAt *int64 `json:"created_at"`
 	UpdatedAt *int64 `json:"updated_at"`
@@ -252,6 +254,7 @@ type UpdateEmailTemplateRequest struct {
 	EventName *string `json:"event_name"`
 	Template  *string `json:"template"`
 	Subject   *string `json:"subject"`
+	Design    *string `json:"design"`
 }
 
 type UpdateEnvInput struct {

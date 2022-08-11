@@ -14,6 +14,7 @@ type EmailTemplate struct {
 	EventName string `gorm:"unique" json:"event_name" bson:"event_name" cql:"event_name"`
 	Subject   string `gorm:"type:text" json:"subject" bson:"subject" cql:"subject"`
 	Template  string `gorm:"type:text" json:"template" bson:"template" cql:"template"`
+	Design    string `gorm:"type:text" json:"design" bson:"design" cql:"design"`
 	CreatedAt int64  `json:"created_at" bson:"created_at" cql:"created_at"`
 	UpdatedAt int64  `json:"updated_at" bson:"updated_at" cql:"updated_at"`
 }
@@ -29,6 +30,7 @@ func (e *EmailTemplate) AsAPIEmailTemplate() *model.EmailTemplate {
 		EventName: e.EventName,
 		Subject:   e.Subject,
 		Template:  e.Template,
+		Design:    e.Design,
 		CreatedAt: refs.NewInt64Ref(e.CreatedAt),
 		UpdatedAt: refs.NewInt64Ref(e.UpdatedAt),
 	}

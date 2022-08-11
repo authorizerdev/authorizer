@@ -168,6 +168,7 @@ export enum EmailTemplateInputDataFields {
 	SUBJECT = 'subject',
 	CREATED_AT = 'created_at',
 	TEMPLATE = 'template',
+	DESIGN = 'design',
 }
 
 export enum WebhookInputHeaderFields {
