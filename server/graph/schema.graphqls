@@ -194,6 +194,7 @@ type EmailTemplate {
 	id: ID!
 	event_name: String!
 	template: String!
+	design: String!
 	subject: String!
 	created_at: Int64
 	updated_at: Int64
@@ -417,6 +418,7 @@ input AddEmailTemplateRequest {
 	event_name: String!
 	subject: String!
 	template: String!
+	design: String!
 }
 
 input UpdateEmailTemplateRequest {
@@ -424,6 +426,7 @@ input UpdateEmailTemplateRequest {
 	event_name: String
 	template: String
 	subject: String
+	design: String
 }
 
 input DeleteEmailTemplateRequest {

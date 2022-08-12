@@ -65,6 +65,14 @@ func UpdateEmailTemplateResolver(ctx context.Context, params model.UpdateEmailTe
 		emailTemplateDetails.Template = refs.StringValue(params.Template)
 	}
 
+	if params.Design != nil && emailTemplateDetails.Design != refs.StringValue(params.Design) {
+		if strings.TrimSpace(refs.StringValue(params.Design)) == "" {
+			log.Debug("empty design not allowed")
+			return nil, fmt.Errorf("empty design not allowed")
+		}
+		emailTemplateDetails.Design = refs.StringValue(params.Design)
+	}
+
 	_, err = db.Provider.UpdateEmailTemplate(ctx, emailTemplateDetails)
 	if err != nil {
 		return nil, err

@@ -60,6 +60,8 @@ export const EnvVariablesQuery = `
       DATABASE_TYPE,
       DATABASE_URL,
       ACCESS_TOKEN_EXPIRY_TIME,
+      DISABLE_MULTI_FACTOR_AUTHENTICATION,
+	    ENFORCE_MULTI_FACTOR_AUTHENTICATION,
     }
   }
 `;
@@ -132,6 +134,7 @@ export const EmailTemplatesQuery = `
         subject
         created_at
         template
+        design
       }
       pagination {
         limit
