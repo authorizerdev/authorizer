@@ -20,6 +20,7 @@ type OAuthProvider struct {
 	FacebookConfig *oauth2.Config
 	LinkedInConfig *oauth2.Config
 	AppleConfig    *oauth2.Config
+	TwitterConfig  *oauth2.Config
 }
 
 // OIDCProviders is a struct that contains reference all the OpenID providers
@@ -132,6 +133,8 @@ func InitOAuth() error {
 			},
 		}
 	}
+
+	// TODO add support for twitter provider and update OAuthProviders.TwitterConfig
 
 	return nil
 }

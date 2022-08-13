@@ -31,6 +31,7 @@ func clearSessionIfRequired(currentData, updatedData map[string]interface{}) {
 	isCurrentGoogleLoginEnabled := currentData[constants.EnvKeyGoogleClientID] != nil && currentData[constants.EnvKeyGoogleClientSecret] != nil && currentData[constants.EnvKeyGoogleClientID].(string) != "" && currentData[constants.EnvKeyGoogleClientSecret].(string) != ""
 	isCurrentGithubLoginEnabled := currentData[constants.EnvKeyGithubClientID] != nil && currentData[constants.EnvKeyGithubClientSecret] != nil && currentData[constants.EnvKeyGithubClientID].(string) != "" && currentData[constants.EnvKeyGithubClientSecret].(string) != ""
 	isCurrentLinkedInLoginEnabled := currentData[constants.EnvKeyLinkedInClientID] != nil && currentData[constants.EnvKeyLinkedInClientSecret] != nil && currentData[constants.EnvKeyLinkedInClientID].(string) != "" && currentData[constants.EnvKeyLinkedInClientSecret].(string) != ""
+	isCurrentTwitterLoginEnabled := currentData[constants.EnvKeyTwitterClientID] != nil && currentData[constants.EnvKeyTwitterClientSecret] != nil && currentData[constants.EnvKeyTwitterClientID].(string) != "" && currentData[constants.EnvKeyTwitterClientSecret].(string) != ""
 
 	isUpdatedBasicAuthEnabled := !updatedData[constants.EnvKeyDisableBasicAuthentication].(bool)
 	isUpdatedMagicLinkLoginEnabled := !updatedData[constants.EnvKeyDisableMagicLinkLogin].(bool)
@@ -39,6 +40,7 @@ func clearSessionIfRequired(currentData, updatedData map[string]interface{}) {
 	isUpdatedGoogleLoginEnabled := updatedData[constants.EnvKeyGoogleClientID] != nil && updatedData[constants.EnvKeyGoogleClientSecret] != nil && updatedData[constants.EnvKeyGoogleClientID].(string) != "" && updatedData[constants.EnvKeyGoogleClientSecret].(string) != ""
 	isUpdatedGithubLoginEnabled := updatedData[constants.EnvKeyGithubClientID] != nil && updatedData[constants.EnvKeyGithubClientSecret] != nil && updatedData[constants.EnvKeyGithubClientID].(string) != "" && updatedData[constants.EnvKeyGithubClientSecret].(string) != ""
 	isUpdatedLinkedInLoginEnabled := updatedData[constants.EnvKeyLinkedInClientID] != nil && updatedData[constants.EnvKeyLinkedInClientSecret] != nil && updatedData[constants.EnvKeyLinkedInClientID].(string) != "" && updatedData[constants.EnvKeyLinkedInClientSecret].(string) != ""
+	isUpdatedTwitterLoginEnabled := updatedData[constants.EnvKeyTwitterClientID] != nil && updatedData[constants.EnvKeyTwitterClientSecret] != nil && updatedData[constants.EnvKeyTwitterClientID].(string) != "" && updatedData[constants.EnvKeyTwitterClientSecret].(string) != ""
 
 	if isCurrentBasicAuthEnabled && !isUpdatedBasicAuthEnabled {
 		memorystore.Provider.DeleteSessionForNamespace(constants.AuthRecipeMethodBasicAuth)
@@ -66,6 +68,10 @@ func clearSessionIfRequired(currentData, updatedData map[string]interface{}) {
 
 	if isCurrentLinkedInLoginEnabled && !isUpdatedLinkedInLoginEnabled {
 		memorystore.Provider.DeleteSessionForNamespace(constants.AuthRecipeMethodLinkedIn)
+	}
+
+	if isCurrentTwitterLoginEnabled && !isUpdatedTwitterLoginEnabled {
+		memorystore.Provider.DeleteSessionForNamespace(constants.AuthRecipeMethodTwitter)
 	}
 }
 

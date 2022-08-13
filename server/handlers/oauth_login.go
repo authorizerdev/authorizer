@@ -169,6 +169,23 @@ func OAuthLoginHandler() gin.HandlerFunc {
 			oauth.OAuthProviders.LinkedInConfig.RedirectURL = hostname + "/oauth_callback/" + constants.AuthRecipeMethodLinkedIn
 			url := oauth.OAuthProviders.LinkedInConfig.AuthCodeURL(oauthStateString)
 			c.Redirect(http.StatusTemporaryRedirect, url)
+		case constants.AuthRecipeMethodTwitter:
+			if oauth.OAuthProviders.TwitterConfig == nil {
+				log.Debug("Twitter OAuth provider is not configured")
+				isProviderConfigured = false
+				break
+			}
+			err := memorystore.Provider.SetState(oauthStateString, constants.AuthRecipeMethodTwitter)
+			if err != nil {
+				log.Debug("Error setting state: ", err)
+				c.JSON(500, gin.H{
+					"error": "internal server error",
+				})
+				return
+			}
+			oauth.OAuthProviders.TwitterConfig.RedirectURL = hostname + "/oauth_callback/" + constants.AuthRecipeMethodTwitter
+			url := oauth.OAuthProviders.TwitterConfig.AuthCodeURL(oauthStateString)
+			c.Redirect(http.StatusTemporaryRedirect, url)
 		case constants.AuthRecipeMethodApple:
 			if oauth.OAuthProviders.AppleConfig == nil {
 				log.Debug("Apple OAuth provider is not configured")

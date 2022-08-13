@@ -15,6 +15,7 @@ import {
 	FaFacebookF,
 	FaLinkedin,
 	FaApple,
+	FaTwitter,
 } from 'react-icons/fa';
 import { TextInputType, HiddenInputType } from '../../constants';
 
@@ -261,6 +262,44 @@ const OAuthConfig = ({
 								setFieldVisibility={setFieldVisibility}
 								inputType={HiddenInputType.APPLE_CLIENT_SECRET}
 								placeholder="Apple Client Secret"
+							/>
+						</Center>
+					</Flex>
+					<Flex direction={isNotSmallerScreen ? 'row' : 'column'}>
+						<Center
+							w={isNotSmallerScreen ? '55px' : '35px'}
+							h="35px"
+							marginRight="1.5%"
+							border="1px solid #3b5998"
+							borderRadius="5px"
+						>
+							<FaTwitter />
+						</Center>
+						<Center
+							w={isNotSmallerScreen ? '70%' : '100%'}
+							mt={isNotSmallerScreen ? '0' : '3'}
+							marginRight="1.5%"
+						>
+							<InputField
+								borderRadius={5}
+								variables={envVariables}
+								setVariables={setVariables}
+								inputType={TextInputType.TWITTER_CLIENT_ID}
+								placeholder="Twitter Client ID"
+							/>
+						</Center>
+						<Center
+							w={isNotSmallerScreen ? '70%' : '100%'}
+							mt={isNotSmallerScreen ? '0' : '3'}
+						>
+							<InputField
+								borderRadius={5}
+								variables={envVariables}
+								setVariables={setVariables}
+								fieldVisibility={fieldVisibility}
+								setFieldVisibility={setFieldVisibility}
+								inputType={HiddenInputType.TWITTER_CLIENT_SECRET}
+								placeholder="Twitter Client Secret"
 							/>
 						</Center>
 					</Flex>
