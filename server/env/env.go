@@ -355,28 +355,28 @@ func InitAllEnv() error {
 	if val, ok := envData[constants.EnvKeyLinkedInClientID]; !ok || val == "" {
 		envData[constants.EnvKeyLinkedInClientID] = osLinkedInClientID
 	}
-	if osFacebookClientID != "" && envData[constants.EnvKeyLinkedInClientID] != osFacebookClientID {
+	if osLinkedInClientID != "" && envData[constants.EnvKeyLinkedInClientID] != osLinkedInClientID {
 		envData[constants.EnvKeyLinkedInClientID] = osLinkedInClientID
 	}
 
 	if val, ok := envData[constants.EnvKeyLinkedInClientSecret]; !ok || val == "" {
 		envData[constants.EnvKeyLinkedInClientSecret] = osLinkedInClientSecret
 	}
-	if osFacebookClientSecret != "" && envData[constants.EnvKeyLinkedInClientSecret] != osFacebookClientSecret {
+	if osLinkedInClientSecret != "" && envData[constants.EnvKeyLinkedInClientSecret] != osLinkedInClientSecret {
 		envData[constants.EnvKeyLinkedInClientSecret] = osLinkedInClientSecret
 	}
 
 	if val, ok := envData[constants.EnvKeyAppleClientID]; !ok || val == "" {
 		envData[constants.EnvKeyAppleClientID] = osAppleClientID
 	}
-	if osFacebookClientID != "" && envData[constants.EnvKeyAppleClientID] != osFacebookClientID {
+	if osAppleClientID != "" && envData[constants.EnvKeyAppleClientID] != osAppleClientID {
 		envData[constants.EnvKeyAppleClientID] = osAppleClientID
 	}
 
 	if val, ok := envData[constants.EnvKeyAppleClientSecret]; !ok || val == "" {
 		envData[constants.EnvKeyAppleClientSecret] = osAppleClientSecret
 	}
-	if osFacebookClientSecret != "" && envData[constants.EnvKeyAppleClientSecret] != osFacebookClientSecret {
+	if osAppleClientSecret != "" && envData[constants.EnvKeyAppleClientSecret] != osAppleClientSecret {
 		envData[constants.EnvKeyAppleClientSecret] = osAppleClientSecret
 	}
 
