@@ -224,10 +224,11 @@ func NewProvider() (*provider, error) {
 		return nil, err
 	}
 	// add subject on email_templates table
-	emailTemplateAlterQuery := fmt.Sprintf(`ALTER TABLE %s.%s ADD subject text;`, KeySpace, models.Collections.EmailTemplate)
+	emailTemplateAlterQuery := fmt.Sprintf(`ALTER TABLE %s.%s ADD (subject text, design text);`, KeySpace, models.Collections.EmailTemplate)
 	err = session.Query(emailTemplateAlterQuery).Exec()
 	if err != nil {
-		return nil, err
+		log.Debug("Failed to alter table as column exists: ", err)
+		// continue
 	}
 
 	otpCollection := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, email text, otp text, expires_at bigint, updated_at bigint, created_at bigint, PRIMARY KEY (id))", KeySpace, models.Collections.OTP)

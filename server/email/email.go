@@ -18,7 +18,7 @@ import (
 
 func getDefaultTemplate(event string) *model.EmailTemplate {
 	switch event {
-	case constants.VerificationTypeBasicAuthSignup, constants.VerificationTypeMagicLinkLogin:
+	case constants.VerificationTypeBasicAuthSignup, constants.VerificationTypeMagicLinkLogin, constants.VerificationTypeUpdateEmail:
 		return &model.EmailTemplate{
 			Subject:  emailVerificationSubject,
 			Template: emailVerificationTemplate,

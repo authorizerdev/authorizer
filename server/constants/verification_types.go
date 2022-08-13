@@ -12,5 +12,5 @@ const (
 	// VerificationTypeInviteMember is the invite_member verification type
 	VerificationTypeInviteMember = "invite_member"
 	// VerificationTypeOTP is the otp verification type
-	VerificationTypeOTP = "otp"
+	VerificationTypeOTP = "verify_otp"
 )

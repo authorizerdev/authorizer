@@ -333,7 +333,7 @@ const UpdateEmailTemplate = ({
 											{templateVariables.map((i) => (
 												<Tr key={i.text}>
 													<Td>
-														<Code fontSize="sm">{`{{${i.text}}}`}</Code>
+														<Code fontSize="sm">{`{{.${i.text}}}`}</Code>
 													</Td>
 													<Td>
 														<Text
