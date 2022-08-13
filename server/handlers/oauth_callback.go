@@ -67,6 +67,8 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			user, err = processLinkedInUserInfo(code)
 		case constants.AuthRecipeMethodApple:
 			user, err = processAppleUserInfo(code)
+		case constants.AuthRecipeMethodTwitter:
+			user, err = processTwitterUserInfo(code)
 		default:
 			log.Info("Invalid oauth provider")
 			err = fmt.Errorf(`invalid oauth provider`)
@@ -563,4 +565,10 @@ func processAppleUserInfo(code string) (models.User, error) {
 	}
 
 	return user, err
+}
+
+func processTwitterUserInfo(code string) (models.User, error) {
+	user := models.User{}
+	// TODO exchange code and get user information
+	return user, nil
 }

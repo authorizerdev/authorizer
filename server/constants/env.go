@@ -85,6 +85,10 @@ const (
 	EnvKeyAppleClientID = "APPLE_CLIENT_ID"
 	// EnvKeyAppleClientSecret key for env variable APPLE_CLIENT_SECRET
 	EnvKeyAppleClientSecret = "APPLE_CLIENT_SECRET"
+	// EnvKeyTwitterClientID key for env variable TWITTER_CLIENT_ID
+	EnvKeyTwitterClientID = "TWITTER_CLIENT_ID"
+	// EnvKeyTwitterClientSecret key for env variable TWITTER_CLIENT_SECRET
+	EnvKeyTwitterClientSecret = "TWITTER_CLIENT_SECRET"
 	// EnvKeyOrganizationName key for env variable ORGANIZATION_NAME
 	EnvKeyOrganizationName = "ORGANIZATION_NAME"
 	// EnvKeyOrganizationLogo key for env variable ORGANIZATION_LOGO
