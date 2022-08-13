@@ -20,7 +20,7 @@ export const EnvVariablesQuery = `
     _env{
       CLIENT_ID
       CLIENT_SECRET
-	    GOOGLE_CLIENT_ID
+      GOOGLE_CLIENT_ID
       GOOGLE_CLIENT_SECRET
       GITHUB_CLIENT_ID
       GITHUB_CLIENT_SECRET
