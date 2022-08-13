@@ -302,7 +302,11 @@ export default function Users() {
 								<Th>Roles</Th>
 								<Th>Verified</Th>
 								<Th>Access</Th>
-								<Th>MFA</Th>
+								<Th>
+									<Tooltip label="MultiFactor Authentication Enabled / Disabled">
+										MFA
+									</Tooltip>
+								</Th>
 								<Th>Actions</Th>
 							</Tr>
 						</Thead>
@@ -404,13 +408,13 @@ export default function Users() {
 														<MenuItem
 															onClick={() => multiFactorAuthUpdateHandler(user)}
 														>
-															Disable MFA
+															Disable MultiFactor Authentication
 														</MenuItem>
 													) : (
 														<MenuItem
 															onClick={() => multiFactorAuthUpdateHandler(user)}
 														>
-															Enable MFA
+															Enable MultiFactor Authentication
 														</MenuItem>
 													)}
 												</MenuList>

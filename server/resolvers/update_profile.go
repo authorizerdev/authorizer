@@ -245,7 +245,7 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 			}
 
 			// exec it as go routine so that we can reduce the api latency
-			go email.SendEmail([]string{user.Email}, constants.VerificationTypeBasicAuthSignup, map[string]interface{}{
+			go email.SendEmail([]string{user.Email}, verificationType, map[string]interface{}{
 				"user":             user.ToMap(),
 				"organization":     utils.GetOrganization(),
 				"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname),

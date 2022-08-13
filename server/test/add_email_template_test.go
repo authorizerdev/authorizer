@@ -31,7 +31,7 @@ func addEmailTemplateTest(t *testing.T, s TestSetup) {
 			assert.Nil(t, emailTemplate)
 		})
 
-		t.Run("should not add email template for empty template", func(t *testing.T) {
+		t.Run("should not add email template for empty subject", func(t *testing.T) {
 			emailTemplate, err := resolvers.AddEmailTemplateResolver(ctx, model.AddEmailTemplateRequest{
 				EventName: s.TestInfo.TestEmailTemplateEventTypes[0],
 				Template:  " test ",
@@ -50,12 +50,25 @@ func addEmailTemplateTest(t *testing.T, s TestSetup) {
 			assert.Error(t, err)
 			assert.Nil(t, emailTemplate)
 		})
+
+		t.Run("should not add email template with empty design", func(t *testing.T) {
+			emailTemplate, err := resolvers.AddEmailTemplateResolver(ctx, model.AddEmailTemplateRequest{
+				EventName: s.TestInfo.TestEmailTemplateEventTypes[0],
+				Template:  "test",
+				Subject:   "test",
+				Design:    "   ",
+			})
+			assert.Error(t, err)
+			assert.Nil(t, emailTemplate)
+		})
+
 		for _, eventType := range s.TestInfo.TestEmailTemplateEventTypes {
 			t.Run("should add email template for "+eventType, func(t *testing.T) {
 				emailTemplate, err := resolvers.AddEmailTemplateResolver(ctx, model.AddEmailTemplateRequest{
 					EventName: eventType,
 					Template:  "Test email",
 					Subject:   "Test email",
+					Design:    "Test design",
 				})
 				assert.NoError(t, err)
 				assert.NotNil(t, emailTemplate)
@@ -65,6 +78,7 @@ func addEmailTemplateTest(t *testing.T, s TestSetup) {
 				assert.NoError(t, err)
 				assert.Equal(t, et.EventName, eventType)
 				assert.Equal(t, "Test email", et.Subject)
+				assert.Equal(t, "Test design", et.Design)
 			})
 		}
 	})

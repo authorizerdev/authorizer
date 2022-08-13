@@ -15,6 +15,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/parsers"
+	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/authorizerdev/authorizer/server/validators"
@@ -61,9 +62,9 @@ func ForgotPasswordResolver(ctx context.Context, params model.ForgotPasswordInpu
 		log.Debug("Failed to generate nonce: ", err)
 		return res, err
 	}
-	redirectURL := parsers.GetAppURL(gc) + "/reset-password"
-	if params.RedirectURI != nil {
-		redirectURL = *params.RedirectURI
+	redirectURL := parsers.GetAppURL(gc)
+	if strings.TrimSpace(refs.StringValue(params.RedirectURI)) != "" {
+		redirectURL = refs.StringValue(params.RedirectURI)
 	}
 
 	verificationToken, err := token.CreateVerificationToken(params.Email, constants.VerificationTypeForgotPassword, hostname, nonceHash, redirectURL)
