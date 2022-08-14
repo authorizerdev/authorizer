@@ -14,4 +14,6 @@ const (
 	// Ref: https://docs.microsoft.com/en-us/linkedin/shared/integrations/people/profile-api
 	LinkedInUserInfoURL = "https://api.linkedin.com/v2/me?projection=(id,localizedFirstName,localizedLastName,emailAddress,profilePicture(displayImage~:playableStreams))"
 	LinkedInEmailURL    = "https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements*(handle~))"
+
+	TwitterUserInfoURL = "https://api.twitter.com/2/users/me?user.fields=id,name,profile_image_url,username"
 )

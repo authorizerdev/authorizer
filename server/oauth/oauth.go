@@ -134,7 +134,28 @@ func InitOAuth() error {
 		}
 	}
 
-	// TODO add support for twitter provider and update OAuthProviders.TwitterConfig
+	twitterClientID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyTwitterClientID)
+	if err != nil {
+		twitterClientID = ""
+	}
+	twitterClientSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyTwitterClientSecret)
+	if err != nil {
+		twitterClientSecret = ""
+	}
+	if twitterClientID != "" && twitterClientSecret != "" {
+		OAuthProviders.TwitterConfig = &oauth2.Config{
+			ClientID:     twitterClientID,
+			ClientSecret: twitterClientSecret,
+			RedirectURL:  "/oauth_callback/twitter",
+			Endpoint: oauth2.Endpoint{
+				// Endpoint is currently not yet part of oauth2-package. See https://go-review.googlesource.com/c/oauth2/+/350889 for status
+				AuthURL:   "https://twitter.com/i/oauth2/authorize",
+				TokenURL:  "https://api.twitter.com/2/oauth2/token",
+				AuthStyle: oauth2.AuthStyleInHeader,
+			},
+			Scopes: []string{"tweet.read", "users.read"},
+		}
+	}
 
 	return nil
 }

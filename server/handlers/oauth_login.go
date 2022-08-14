@@ -12,6 +12,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/oauth"
 	"github.com/authorizerdev/authorizer/server/parsers"
+	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/authorizerdev/authorizer/server/validators"
 )
 
@@ -175,7 +176,10 @@ func OAuthLoginHandler() gin.HandlerFunc {
 				isProviderConfigured = false
 				break
 			}
-			err := memorystore.Provider.SetState(oauthStateString, constants.AuthRecipeMethodTwitter)
+
+			verifier, challenge := utils.GenerateCodeChallenge()
+
+			err := memorystore.Provider.SetState(oauthStateString, verifier)
 			if err != nil {
 				log.Debug("Error setting state: ", err)
 				c.JSON(500, gin.H{
@@ -184,7 +188,7 @@ func OAuthLoginHandler() gin.HandlerFunc {
 				return
 			}
 			oauth.OAuthProviders.TwitterConfig.RedirectURL = hostname + "/oauth_callback/" + constants.AuthRecipeMethodTwitter
-			url := oauth.OAuthProviders.TwitterConfig.AuthCodeURL(oauthStateString)
+			url := oauth.OAuthProviders.TwitterConfig.AuthCodeURL(oauthStateString, oauth2.SetAuthURLParam("code_challenge", challenge), oauth2.SetAuthURLParam("code_challenge_method", "S256"))
 			c.Redirect(http.StatusTemporaryRedirect, url)
 		case constants.AuthRecipeMethodApple:
 			if oauth.OAuthProviders.AppleConfig == nil {
