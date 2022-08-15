@@ -29,7 +29,7 @@
 - ✅ OAuth2 and OpenID compatible APIs
 - ✅ APIs to update profile securely
 - ✅ Forgot password flow using email
-- ✅ Social logins (Google, Github, Facebook, more coming soon)
+- ✅ Social logins (Google, Github, Facebook, LinkedIn, Apple more coming soon)
 - ✅ Role-based access management
 - ✅ Password-less login with magic link login
 - ✅ Multi factor authentication
