@@ -32,10 +32,12 @@
 - ✅ Social logins (Google, Github, Facebook, more coming soon)
 - ✅ Role-based access management
 - ✅ Password-less login with magic link login
+- ✅ Multi factor authentication
+- ✅ Email templating
+- ✅ Webhooks
 
 ## Roadmap
 
-- 2 Factor authentication
 - VueJS SDK
 - Svelte SDK
 - React Native SDK
