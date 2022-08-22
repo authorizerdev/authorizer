@@ -95,7 +95,7 @@ func OAuthLoginHandler() gin.HandlerFunc {
 
 		}
 
-		oauthStateString := state + "___" + redirectURI + "___" + roles + "___" + strings.Join(scope, ",")
+		oauthStateString := state + "___" + redirectURI + "___" + roles + "___" + strings.Join(scope, " ")
 
 		provider := c.Param("oauth_provider")
 		isProviderConfigured := true
