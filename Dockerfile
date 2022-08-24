@@ -21,13 +21,15 @@ RUN apk add build-base &&\
     make build-dashboard
 
 FROM alpine:latest
-WORKDIR /root/
+RUN adduser -D -h /authorizer -u 1000 -k /dev/null authorizer
+WORKDIR /authorizer
 RUN mkdir app dashboard
-COPY --from=node-builder /authorizer/app/build app/build
-COPY --from=node-builder /authorizer/app/favicon_io app/favicon_io
-COPY --from=node-builder /authorizer/dashboard/build dashboard/build
-COPY --from=node-builder /authorizer/dashboard/favicon_io dashboard/favicon_io
-COPY --from=go-builder /authorizer/build build
+COPY --from=node-builder --chown=nobody:nobody /authorizer/app/build app/build
+COPY --from=node-builder --chown=nobody:nobody /authorizer/app/favicon_io app/favicon_io
+COPY --from=node-builder --chown=nobody:nobody /authorizer/dashboard/build dashboard/build
+COPY --from=node-builder --chown=nobody:nobody /authorizer/dashboard/favicon_io dashboard/favicon_io
+COPY --from=go-builder --chown=nobody:nobody /authorizer/build build
 COPY templates templates
 EXPOSE 8080
+USER authorizer
 CMD [ "./build/server" ]
