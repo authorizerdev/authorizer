@@ -15,4 +15,6 @@ const (
 	AuthRecipeMethodLinkedIn = "linkedin"
 	// AuthRecipeMethodApple is the apple auth method
 	AuthRecipeMethodApple = "apple"
+	// AuthRecipeMethodTwitter is the twitter auth method
+	AuthRecipeMethodTwitter = "twitter"
 )

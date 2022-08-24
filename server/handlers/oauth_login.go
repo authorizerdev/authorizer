@@ -12,6 +12,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/oauth"
 	"github.com/authorizerdev/authorizer/server/parsers"
+	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/authorizerdev/authorizer/server/validators"
 )
 
@@ -95,7 +96,7 @@ func OAuthLoginHandler() gin.HandlerFunc {
 
 		}
 
-		oauthStateString := state + "___" + redirectURI + "___" + roles + "___" + strings.Join(scope, ",")
+		oauthStateString := state + "___" + redirectURI + "___" + roles + "___" + strings.Join(scope, " ")
 
 		provider := c.Param("oauth_provider")
 		isProviderConfigured := true
@@ -168,6 +169,26 @@ func OAuthLoginHandler() gin.HandlerFunc {
 			}
 			oauth.OAuthProviders.LinkedInConfig.RedirectURL = hostname + "/oauth_callback/" + constants.AuthRecipeMethodLinkedIn
 			url := oauth.OAuthProviders.LinkedInConfig.AuthCodeURL(oauthStateString)
+			c.Redirect(http.StatusTemporaryRedirect, url)
+		case constants.AuthRecipeMethodTwitter:
+			if oauth.OAuthProviders.TwitterConfig == nil {
+				log.Debug("Twitter OAuth provider is not configured")
+				isProviderConfigured = false
+				break
+			}
+
+			verifier, challenge := utils.GenerateCodeChallenge()
+
+			err := memorystore.Provider.SetState(oauthStateString, verifier)
+			if err != nil {
+				log.Debug("Error setting state: ", err)
+				c.JSON(500, gin.H{
+					"error": "internal server error",
+				})
+				return
+			}
+			oauth.OAuthProviders.TwitterConfig.RedirectURL = hostname + "/oauth_callback/" + constants.AuthRecipeMethodTwitter
+			url := oauth.OAuthProviders.TwitterConfig.AuthCodeURL(oauthStateString, oauth2.SetAuthURLParam("code_challenge", challenge), oauth2.SetAuthURLParam("code_challenge_method", "S256"))
 			c.Redirect(http.StatusTemporaryRedirect, url)
 		case constants.AuthRecipeMethodApple:
 			if oauth.OAuthProviders.AppleConfig == nil {

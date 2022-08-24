@@ -67,6 +67,8 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			user, err = processLinkedInUserInfo(code)
 		case constants.AuthRecipeMethodApple:
 			user, err = processAppleUserInfo(code)
+		case constants.AuthRecipeMethodTwitter:
+			user, err = processTwitterUserInfo(code, sessionState)
 		default:
 			log.Info("Invalid oauth provider")
 			err = fmt.Errorf(`invalid oauth provider`)
@@ -563,4 +565,71 @@ func processAppleUserInfo(code string) (models.User, error) {
 	}
 
 	return user, err
+}
+
+func processTwitterUserInfo(code, verifier string) (models.User, error) {
+	user := models.User{}
+	oauth2Token, err := oauth.OAuthProviders.TwitterConfig.Exchange(oauth2.NoContext, code, oauth2.SetAuthURLParam("code_verifier", verifier))
+	if err != nil {
+		log.Debug("Failed to exchange code for token: ", err)
+		return user, fmt.Errorf("invalid twitter exchange code: %s", err.Error())
+	}
+
+	client := http.Client{}
+	req, err := http.NewRequest("GET", constants.TwitterUserInfoURL, nil)
+	if err != nil {
+		log.Debug("Failed to create Twitter user info request: ", err)
+		return user, fmt.Errorf("error creating Twitter user info request: %s", err.Error())
+	}
+	req.Header = http.Header{
+		"Authorization": []string{fmt.Sprintf("Bearer %s", oauth2Token.AccessToken)},
+	}
+
+	response, err := client.Do(req)
+	if err != nil {
+		log.Debug("Failed to request Twitter user info: ", err)
+		return user, err
+	}
+
+	defer response.Body.Close()
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		log.Debug("Failed to read Twitter user info response body: ", err)
+		return user, fmt.Errorf("failed to read Twitter response body: %s", err.Error())
+	}
+
+	if response.StatusCode >= 400 {
+		log.Debug("Failed to request Twitter user info: ", string(body))
+		return user, fmt.Errorf("failed to request Twitter user info: %s", string(body))
+	}
+
+	responseRawData := make(map[string]interface{})
+	json.Unmarshal(body, &responseRawData)
+
+	userRawData := responseRawData["data"].(map[string]interface{})
+
+	log.Info(userRawData)
+	// Twitter API does not return E-Mail adresses by default. For that case special privileges have
+	// to be granted on a per-App basis. See https://developer.twitter.com/en/docs/twitter-api/v1/accounts-and-users/manage-account-settings/api-reference/get-account-verify_credentials
+
+	// Currently Twitter API only provides the full name of a user. To fill givenName and familyName
+	// the full name will be split at the first whitespace. This approach will not be valid for all name combinations
+	nameArr := strings.SplitAfterN(userRawData["name"].(string), " ", 2)
+
+	firstName := nameArr[0]
+	lastName := ""
+	if len(nameArr) == 2 {
+		lastName = nameArr[1]
+	}
+	nickname := userRawData["username"].(string)
+	profilePicture := userRawData["profile_image_url"].(string)
+
+	user = models.User{
+		GivenName:  &firstName,
+		FamilyName: &lastName,
+		Picture:    &profilePicture,
+		Nickname:   &nickname,
+	}
+
+	return user, nil
 }
