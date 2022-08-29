@@ -72,6 +72,8 @@ func InitAllEnv() error {
 	osLinkedInClientSecret := os.Getenv(constants.EnvKeyLinkedInClientSecret)
 	osAppleClientID := os.Getenv(constants.EnvKeyAppleClientID)
 	osAppleClientSecret := os.Getenv(constants.EnvKeyAppleClientSecret)
+	osTwitterClientID := os.Getenv(constants.EnvKeyTwitterClientID)
+	osTwitterClientSecret := os.Getenv(constants.EnvKeyTwitterClientSecret)
 	osResetPasswordURL := os.Getenv(constants.EnvKeyResetPasswordURL)
 	osOrganizationName := os.Getenv(constants.EnvKeyOrganizationName)
 	osOrganizationLogo := os.Getenv(constants.EnvKeyOrganizationLogo)
@@ -378,6 +380,20 @@ func InitAllEnv() error {
 	}
 	if osAppleClientSecret != "" && envData[constants.EnvKeyAppleClientSecret] != osAppleClientSecret {
 		envData[constants.EnvKeyAppleClientSecret] = osAppleClientSecret
+	}
+
+	if val, ok := envData[constants.EnvKeyTwitterClientID]; !ok || val == "" {
+		envData[constants.EnvKeyTwitterClientID] = osTwitterClientID
+	}
+	if osTwitterClientID != "" && envData[constants.EnvKeyTwitterClientID] != osTwitterClientID {
+		envData[constants.EnvKeyTwitterClientID] = osTwitterClientID
+	}
+
+	if val, ok := envData[constants.EnvKeyTwitterClientSecret]; !ok || val == "" {
+		envData[constants.EnvKeyTwitterClientSecret] = osTwitterClientSecret
+	}
+	if osTwitterClientSecret != "" && envData[constants.EnvKeyTwitterClientSecret] != osTwitterClientSecret {
+		envData[constants.EnvKeyTwitterClientSecret] = osTwitterClientSecret
 	}
 
 	if val, ok := envData[constants.EnvKeyResetPasswordURL]; !ok || val == "" {
