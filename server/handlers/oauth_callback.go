@@ -608,7 +608,7 @@ func processTwitterUserInfo(code, verifier string) (models.User, error) {
 
 	userRawData := responseRawData["data"].(map[string]interface{})
 
-	log.Info(userRawData)
+	// log.Info(userRawData)
 	// Twitter API does not return E-Mail adresses by default. For that case special privileges have
 	// to be granted on a per-App basis. See https://developer.twitter.com/en/docs/twitter-api/v1/accounts-and-users/manage-account-settings/api-reference/get-account-verify_credentials
 
