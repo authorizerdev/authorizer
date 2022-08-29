@@ -76,7 +76,6 @@ func TokenHandler() gin.HandlerFunc {
 		sessionKey := ""
 
 		if isAuthorizationCodeGrant {
-
 			if codeVerifier == "" {
 				log.Debug("Code verifier is empty")
 				gc.JSON(http.StatusBadRequest, gin.H{
@@ -134,15 +133,18 @@ func TokenHandler() gin.HandlerFunc {
 				})
 				return
 			}
+
 			userID = claims.Subject
 			roles = claims.Roles
 			scope = claims.Scope
 			loginMethod = claims.LoginMethod
+
 			// rollover the session for security
 			sessionKey = userID
 			if loginMethod != "" {
 				sessionKey = loginMethod + ":" + userID
 			}
+
 			go memorystore.Provider.DeleteUserSession(sessionKey, claims.Nonce)
 		} else {
 			// validate refresh token

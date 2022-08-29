@@ -2,7 +2,7 @@ package providers
 
 // Provider defines current memory store provider
 type Provider interface {
-	// SetUserSession sets the user session
+	// SetUserSession sets the user session for given user identifier in form recipe:user_id
 	SetUserSession(userId, key, token string) error
 	// GetAllUserSessions returns all the user sessions from the session store
 	GetAllUserSessions(userId string) (map[string]string, error)

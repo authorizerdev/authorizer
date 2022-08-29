@@ -14,7 +14,7 @@ var (
 	envStorePrefix = "authorizer_env"
 )
 
-// SetUserSession sets the user session in redis store.
+// SetUserSession sets the user session for given user identifier in form recipe:user_id
 func (c *provider) SetUserSession(userId, key, token string) error {
 	err := c.store.HSet(c.ctx, userId, key, token).Err()
 	if err != nil {

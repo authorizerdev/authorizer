@@ -248,7 +248,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 				return
 			}
 
-			memorystore.Provider.SetUserSession(user.ID, constants.TokenTypeSessionToken+"_"+newSessionTokenData.Nonce, newSessionToken)
+			memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+newSessionTokenData.Nonce, newSessionToken)
 			cookie.SetSession(gc, newSessionToken)
 			code := uuid.New().String()
 			memorystore.Provider.SetState(codeChallenge, code+"@"+newSessionToken)

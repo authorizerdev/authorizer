@@ -298,7 +298,6 @@ func ValidateBrowserSession(gc *gin.Context, encryptedSession string) (*SessionD
 	if res.LoginMethod != "" {
 		sessionStoreKey = res.LoginMethod + ":" + res.Subject
 	}
-
 	token, err := memorystore.Provider.GetUserSession(sessionStoreKey, constants.TokenTypeSessionToken+"_"+res.Nonce)
 	if token == "" || err != nil {
 		log.Debug("invalid browser session:", err)
