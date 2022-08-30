@@ -109,6 +109,7 @@ func main() {
 	router := routes.InitRouter(log)
 	log.Info("Starting Authorizer: ", VERSION)
 	port, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyPort)
+	log.Info("Authorizer running at PORT: ", port)
 	if err != nil {
 		log.Info("Error while getting port from env using default port 8080: ", err)
 		port = "8080"
