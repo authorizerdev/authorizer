@@ -30,8 +30,8 @@ func IsValidOrigin(url string) bool {
 		replacedString := origin
 		// if has regex whitelisted domains
 		if strings.Contains(origin, "*") {
-			replacedString = strings.Replace(origin, ".", "\\.", -1)
-			replacedString = strings.Replace(replacedString, "*", ".*", -1)
+			replacedString = strings.ReplaceAll(origin, ".", "\\.")
+			replacedString = strings.ReplaceAll(replacedString, "*", ".*")
 
 			if strings.HasPrefix(replacedString, ".*") {
 				replacedString += "\\b"
