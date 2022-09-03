@@ -50,7 +50,7 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 	user, err := db.Provider.GetUserByEmail(ctx, params.Email)
 	if err != nil {
 		log.Debug("Failed to get user by email: ", err)
-		return res, fmt.Errorf(`user with this email not found`)
+		return res, fmt.Errorf(`bad user credentials`)
 	}
 
 	if user.RevokedTimestamp != nil {
@@ -72,7 +72,7 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 
 	if err != nil {
 		log.Debug("Failed to compare password: ", err)
-		return res, fmt.Errorf(`invalid password`)
+		return res, fmt.Errorf(`bad user credentials`)
 	}
 
 	defaultRolesString, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDefaultRoles)
