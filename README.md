@@ -19,7 +19,7 @@
 
 # Introduction
 
-<img src="https://github.com/authorizerdev/authorizer/blob/main/assets/authorizer-architecture.png" style="height:20em"/>
+<img src="https://docs.authorizer.dev/images/authorizer-arch.png" style="height:20em"/>
 
 #### We offer the following functionality
 
