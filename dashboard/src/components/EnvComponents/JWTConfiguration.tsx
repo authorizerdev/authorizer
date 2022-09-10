@@ -32,7 +32,6 @@ const JSTConfigurations = ({
 	const toast = useToast();
 
 	const copyJSON = async () => {
-		console.log(variables);
 		try {
 			await copyTextToClipboard(
 				JSON.stringify({
