@@ -4,6 +4,12 @@ import { AuthorizerProvider } from '@authorizerdev/authorizer-react';
 import Root from './Root';
 import { createRandomString } from './utils/common';
 
+declare global {
+  interface Window {
+    __authorizer__: any;
+  }
+}
+
 export default function App() {
 	const searchParams = new URLSearchParams(window.location.search);
 	const state = searchParams.get('state') || createRandomString();
@@ -24,7 +30,6 @@ export default function App() {
 		urlProps.redirectURL = window.location.origin + '/app';
 	}
 	const globalState: Record<string, string> = {
-		// @ts-ignore
 		...window['__authorizer__'],
 		...urlProps,
 	};
