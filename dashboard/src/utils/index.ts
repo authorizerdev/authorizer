@@ -29,19 +29,16 @@ const fallbackCopyTextToClipboard = (text: string) => {
 	document.body.removeChild(textArea);
 };
 
-export const copyTextToClipboard = (text: string) => {
+export const copyTextToClipboard = async (text: string) => {
 	if (!navigator.clipboard) {
 		fallbackCopyTextToClipboard(text);
 		return;
 	}
-	navigator.clipboard.writeText(text).then(
-		() => {
-			console.log('Async: Copying to clipboard was successful!');
-		},
-		(err) => {
-			console.error('Async: Could not copy text: ', err);
-		}
-	);
+	try {
+		navigator.clipboard.writeText(text);
+	} catch (err) {
+		throw err;
+	}
 };
 
 export const getObjectDiff = (obj1: any, obj2: any) => {
