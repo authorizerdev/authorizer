@@ -79,6 +79,8 @@ func InitAllEnv() error {
 	osOrganizationLogo := os.Getenv(constants.EnvKeyOrganizationLogo)
 
 	// os bool vars
+	osAppCookieSecure := os.Getenv(constants.EnvKeyAppCookieSecure)
+	osAdminCookieSecure := os.Getenv(constants.EnvKeyAdminCookieSecure)
 	osDisableBasicAuthentication := os.Getenv(constants.EnvKeyDisableBasicAuthentication)
 	osDisableEmailVerification := os.Getenv(constants.EnvKeyDisableEmailVerification)
 	osDisableMagicLinkLogin := os.Getenv(constants.EnvKeyDisableMagicLinkLogin)
@@ -415,6 +417,32 @@ func InitAllEnv() error {
 	}
 	if osOrganizationLogo != "" && envData[constants.EnvKeyOrganizationLogo] != osOrganizationLogo {
 		envData[constants.EnvKeyOrganizationLogo] = osOrganizationLogo
+	}
+
+	if _, ok := envData[constants.EnvKeyAppCookieSecure]; !ok {
+		envData[constants.EnvKeyAppCookieSecure] = osAppCookieSecure == "true"
+	}
+	if osAppCookieSecure != "" {
+		boolValue, err := strconv.ParseBool(osAppCookieSecure)
+		if err != nil {
+			return err
+		}
+		if boolValue != envData[constants.EnvKeyAppCookieSecure].(bool) {
+			envData[constants.EnvKeyAppCookieSecure] = boolValue
+		}
+	}
+
+	if _, ok := envData[constants.EnvKeyAdminCookieSecure]; !ok {
+		envData[constants.EnvKeyAdminCookieSecure] = osAdminCookieSecure == "true"
+	}
+	if osAdminCookieSecure != "" {
+		boolValue, err := strconv.ParseBool(osAdminCookieSecure)
+		if err != nil {
+			return err
+		}
+		if boolValue != envData[constants.EnvKeyAdminCookieSecure].(bool) {
+			envData[constants.EnvKeyAdminCookieSecure] = boolValue
+		}
 	}
 
 	if _, ok := envData[constants.EnvKeyDisableBasicAuthentication]; !ok {

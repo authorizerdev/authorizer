@@ -3,15 +3,24 @@ package cookie
 import (
 	"net/url"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/parsers"
 	"github.com/gin-gonic/gin"
 )
 
 // SetAdminCookie sets the admin cookie in the response
 func SetAdminCookie(gc *gin.Context, token string) {
-	secure := true
-	httpOnly := true
+	adminCookieSecure, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyAdminCookieSecure)
+	if err != nil {
+		log.Debug("Error while getting admin cookie secure from env variable: %v", err)
+		adminCookieSecure = true
+	}
+
+	secure := adminCookieSecure
+	httpOnly := adminCookieSecure
 	hostname := parsers.GetHost(gc)
 	host, _ := parsers.GetHostParts(hostname)
 	gc.SetCookie(constants.AdminCookieName, token, 3600, "/", host, secure, httpOnly)
@@ -35,8 +44,14 @@ func GetAdminCookie(gc *gin.Context) (string, error) {
 
 // DeleteAdminCookie sets the response cookie to empty
 func DeleteAdminCookie(gc *gin.Context) {
-	secure := true
-	httpOnly := true
+	adminCookieSecure, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyAdminCookieSecure)
+	if err != nil {
+		log.Debug("Error while getting admin cookie secure from env variable: %v", err)
+		adminCookieSecure = true
+	}
+
+	secure := adminCookieSecure
+	httpOnly := adminCookieSecure
 	hostname := parsers.GetHost(gc)
 	host, _ := parsers.GetHostParts(hostname)
 	gc.SetCookie(constants.AdminCookieName, "", -1, "/", host, secure, httpOnly)
