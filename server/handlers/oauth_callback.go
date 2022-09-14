@@ -287,9 +287,9 @@ func processGithubUserInfo(code string) (models.User, error) {
 		log.Debug("Failed to create github user info request: ", err)
 		return user, fmt.Errorf("error creating github user info request: %s", err.Error())
 	}
-	req.Header = http.Header{
-		"Authorization": []string{fmt.Sprintf("token %s", oauth2Token.AccessToken)},
-	}
+	req.Header.Set(
+		"Authorization", fmt.Sprintf("token %s", oauth2Token.AccessToken),
+	)
 
 	response, err := client.Do(req)
 	if err != nil {
@@ -331,14 +331,14 @@ func processGithubUserInfo(code string) (models.User, error) {
 		}
 
 		// fetch using /users/email endpoint
-		req, err := http.NewRequest("GET", constants.GithubUserEmails, nil)
+		req, err := http.NewRequest(http.MethodGet, constants.GithubUserEmails, nil)
 		if err != nil {
 			log.Debug("Failed to create github emails request: ", err)
 			return user, fmt.Errorf("error creating github user info request: %s", err.Error())
 		}
-		req.Header = http.Header{
-			"Authorization": []string{fmt.Sprintf("token %s", oauth2Token.AccessToken)},
-		}
+		req.Header.Set(
+			"Authorization", fmt.Sprintf("token %s", oauth2Token.AccessToken),
+		)
 
 		response, err := client.Do(req)
 		if err != nil {

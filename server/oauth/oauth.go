@@ -75,6 +75,7 @@ func InitOAuth() error {
 			ClientSecret: githubClientSecret,
 			RedirectURL:  "/oauth_callback/github",
 			Endpoint:     githubOAuth2.Endpoint,
+			Scopes:       []string{"read:user", "user:email"},
 		}
 	}
 
