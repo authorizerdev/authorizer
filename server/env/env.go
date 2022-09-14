@@ -421,7 +421,7 @@ func InitAllEnv() error {
 
 	if _, ok := envData[constants.EnvKeyAppCookieSecure]; !ok {
 		if osAppCookieSecure == "" {
-			envData[constants.EnvKeyAppCookieSecure] = "true"
+			envData[constants.EnvKeyAppCookieSecure] = true
 		} else {
 			envData[constants.EnvKeyAppCookieSecure] = osAppCookieSecure == "true"
 		}
@@ -438,7 +438,7 @@ func InitAllEnv() error {
 
 	if _, ok := envData[constants.EnvKeyAdminCookieSecure]; !ok {
 		if osAdminCookieSecure == "" {
-			envData[constants.EnvKeyAdminCookieSecure] = "true"
+			envData[constants.EnvKeyAdminCookieSecure] = true
 		} else {
 			envData[constants.EnvKeyAdminCookieSecure] = osAdminCookieSecure == "true"
 		}
