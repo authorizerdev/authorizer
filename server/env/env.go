@@ -420,7 +420,11 @@ func InitAllEnv() error {
 	}
 
 	if _, ok := envData[constants.EnvKeyAppCookieSecure]; !ok {
-		envData[constants.EnvKeyAppCookieSecure] = osAppCookieSecure == "true"
+		if osAppCookieSecure == "" {
+			envData[constants.EnvKeyAppCookieSecure] = "true"
+		} else {
+			envData[constants.EnvKeyAppCookieSecure] = osAppCookieSecure == "true"
+		}
 	}
 	if osAppCookieSecure != "" {
 		boolValue, err := strconv.ParseBool(osAppCookieSecure)
@@ -433,7 +437,11 @@ func InitAllEnv() error {
 	}
 
 	if _, ok := envData[constants.EnvKeyAdminCookieSecure]; !ok {
-		envData[constants.EnvKeyAdminCookieSecure] = osAdminCookieSecure == "true"
+		if osAdminCookieSecure == "" {
+			envData[constants.EnvKeyAdminCookieSecure] = "true"
+		} else {
+			envData[constants.EnvKeyAdminCookieSecure] = osAdminCookieSecure == "true"
+		}
 	}
 	if osAdminCookieSecure != "" {
 		boolValue, err := strconv.ParseBool(osAdminCookieSecure)
