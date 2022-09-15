@@ -4,15 +4,24 @@ import (
 	"net/http"
 	"net/url"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/parsers"
 	"github.com/gin-gonic/gin"
 )
 
 // SetSession sets the session cookie in the response
 func SetSession(gc *gin.Context, sessionID string) {
-	secure := true
-	httpOnly := true
+	appCookieSecure, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyAppCookieSecure)
+	if err != nil {
+		log.Debug("Error while getting app cookie secure from env variable: %v", err)
+		appCookieSecure = true
+	}
+
+	secure := appCookieSecure
+	httpOnly := appCookieSecure
 	hostname := parsers.GetHost(gc)
 	host, _ := parsers.GetHostParts(hostname)
 	domain := parsers.GetDomainName(hostname)
@@ -30,8 +39,14 @@ func SetSession(gc *gin.Context, sessionID string) {
 
 // DeleteSession sets session cookies to expire
 func DeleteSession(gc *gin.Context) {
-	secure := true
-	httpOnly := true
+	appCookieSecure, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyAppCookieSecure)
+	if err != nil {
+		log.Debug("Error while getting app cookie secure from env variable: %v", err)
+		appCookieSecure = true
+	}
+
+	secure := appCookieSecure
+	httpOnly := appCookieSecure
 	hostname := parsers.GetHost(gc)
 	host, _ := parsers.GetHostParts(hostname)
 	domain := parsers.GetDomainName(hostname)
