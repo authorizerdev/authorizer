@@ -9,13 +9,11 @@
 
 **Authorizer** is an open-source authentication and authorization solution for your applications. Bring your database and have complete control over the user information. You can self-host authorizer instances and connect to any database (Currently supports 11+ databases including [Postgres](https://www.postgresql.org/), [MySQL](https://www.mysql.com/), [SQLite](https://www.sqlite.org/index.html), [SQLServer](https://www.microsoft.com/en-us/sql-server/), [YugaByte](https://www.yugabyte.com/),  [MariaDB](https://mariadb.org/), [PlanetScale](https://planetscale.com/), [CassandraDB](https://cassandra.apache.org/_/index.html), [ScyllaDB](https://www.scylladb.com/), [MongoDB](https://mongodb.com/), [ArangoDB](https://www.arangodb.com/)).
 
-## Table of contents
+For more information check:
 
-- [Introduction](#introduction)
-- [Getting Started](#getting-started)
-- [Contributing](https://github.com/authorizerdev/authorizer/blob/main/.github/CONTRIBUTING.md)
 - [Docs](http://docs.authorizer.dev/)
-- [Join Community](https://discord.gg/Zv2D5h6kkK)
+- [Discord Community](https://discord.gg/Zv2D5h6kkK)
+- [Contributing Guide](https://github.com/authorizerdev/authorizer/blob/main/.github/CONTRIBUTING.md)
 
 # Introduction
 
@@ -38,13 +36,13 @@
 
 ## Roadmap
 
-- VueJS SDK
-- Svelte SDK
+- [VueJS SDK](https://github.com/authorizerdev/authorizer-vue)
+- [Svelte SDK](https://github.com/authorizerdev/authorizer-svelte)
+- [Golang SDK](https://github.com/authorizerdev/authorizer-go)
 - React Native SDK
 - Flutter SDK
 - Android Native SDK
 - iOS native SDK
-- Golang SDK
 - Python SDK
 - PHP SDK
 - WordPress plugin
