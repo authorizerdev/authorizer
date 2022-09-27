@@ -53,7 +53,7 @@ func DeleteUserResolver(ctx context.Context, params model.DeleteUserInput) (*mod
 		// delete otp for given email
 		otp, err := db.Provider.GetOTPByEmail(ctx, user.Email)
 		if err != nil {
-			log.Debugf("Failed to get otp for given email (%s): %v", user.Email, err)
+			log.Infof("No OTP found for email (%s): %v", user.Email, err)
 			// continue
 		} else {
 			err := db.Provider.DeleteOTP(ctx, otp)
@@ -67,12 +67,12 @@ func DeleteUserResolver(ctx context.Context, params model.DeleteUserInput) (*mod
 		for _, vt := range constants.VerificationTypes {
 			verificationRequest, err := db.Provider.GetVerificationRequestByEmail(ctx, user.Email, vt)
 			if err != nil {
-				log.Debug("Failed to get verification request for email: %s, verification_request_type: %s. %v", user.Email, vt, err)
+				log.Infof("No verification verification request found for email: %s, verification_request_type: %s. %v", user.Email, vt, err)
 				// continue
 			} else {
 				err := db.Provider.DeleteVerificationRequest(ctx, verificationRequest)
 				if err != nil {
-					log.Debug("Failed to DeleteVerificationRequest for email: %s, verification_request_type: %s. %v", user.Email, vt, err)
+					log.Debugf("Failed to DeleteVerificationRequest for email: %s, verification_request_type: %s. %v", user.Email, vt, err)
 					// continue
 				}
 			}
