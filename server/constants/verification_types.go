@@ -14,3 +14,14 @@ const (
 	// VerificationTypeOTP is the otp verification type
 	VerificationTypeOTP = "verify_otp"
 )
+
+var (
+	// VerificationTypes is slice of all verification types
+	VerificationTypes = []string{
+		VerificationTypeBasicAuthSignup,
+		VerificationTypeMagicLinkLogin,
+		VerificationTypeUpdateEmail,
+		VerificationTypeForgotPassword,
+		VerificationTypeInviteMember,
+	}
+)
