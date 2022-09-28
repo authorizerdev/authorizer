@@ -11,8 +11,8 @@ import (
 )
 
 // GetHost returns hostname from request context
-// if X-Authorizer-URL header is set it is given highest priority
-// if EnvKeyAuthorizerURL is set it is given second highest priority.
+// if EnvKeyAuthorizerURL is set it is given highest priority.
+// if X-Authorizer-URL header is set it is given second highest priority
 // if above 2 are not set the requesting host name is used
 func GetHost(c *gin.Context) string {
 	authorizerURL, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAuthorizerURL)
