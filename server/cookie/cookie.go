@@ -38,6 +38,8 @@ func SetSession(gc *gin.Context, sessionID string) {
 	// TODO add ability to sameSite = none / strict from dashboard
 	if !appCookieSecure {
 		gc.SetSameSite(http.SameSiteLaxMode)
+	} else {
+		gc.SetSameSite(http.SameSiteNoneMode)
 	}
 	// TODO allow configuring from dashboard
 	year := 60 * 60 * 24 * 365
