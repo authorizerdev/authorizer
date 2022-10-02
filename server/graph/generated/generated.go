@@ -71,8 +71,10 @@ type ComplexityRoot struct {
 
 	Env struct {
 		AccessTokenExpiryTime            func(childComplexity int) int
+		AdminCookieSecure                func(childComplexity int) int
 		AdminSecret                      func(childComplexity int) int
 		AllowedOrigins                   func(childComplexity int) int
+		AppCookieSecure                  func(childComplexity int) int
 		AppURL                           func(childComplexity int) int
 		AppleClientID                    func(childComplexity int) int
 		AppleClientSecret                func(childComplexity int) int
@@ -474,6 +476,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Env.AccessTokenExpiryTime(childComplexity), true
 
+	case "Env.ADMIN_COOKIE_SECURE":
+		if e.complexity.Env.AdminCookieSecure == nil {
+			break
+		}
+
+		return e.complexity.Env.AdminCookieSecure(childComplexity), true
+
 	case "Env.ADMIN_SECRET":
 		if e.complexity.Env.AdminSecret == nil {
 			break
@@ -487,6 +496,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Env.AllowedOrigins(childComplexity), true
+
+	case "Env.APP_COOKIE_SECURE":
+		if e.complexity.Env.AppCookieSecure == nil {
+			break
+		}
+
+		return e.complexity.Env.AppCookieSecure(childComplexity), true
 
 	case "Env.APP_URL":
 		if e.complexity.Env.AppURL == nil {
@@ -2079,6 +2095,8 @@ type Env {
   TWITTER_CLIENT_SECRET: String
   ORGANIZATION_NAME: String
   ORGANIZATION_LOGO: String
+  APP_COOKIE_SECURE: Boolean!
+  ADMIN_COOKIE_SECURE: Boolean!
 }
 
 type ValidateJWTTokenResponse {
@@ -2158,8 +2176,8 @@ input UpdateEnvInput {
   ALLOWED_ORIGINS: [String!]
   APP_URL: String
   RESET_PASSWORD_URL: String
-  DISABLE_APP_COOKIE_SECURE: Boolean!
-  DISABLE_ADMIN_COOKIE_SECURE: Boolean!
+  APP_COOKIE_SECURE: Boolean
+  ADMIN_COOKIE_SECURE: Boolean
   DISABLE_EMAIL_VERIFICATION: Boolean
   DISABLE_BASIC_AUTHENTICATION: Boolean
   DISABLE_MAGIC_LINK_LOGIN: Boolean
@@ -5927,6 +5945,94 @@ func (ec *executionContext) fieldContext_Env_ORGANIZATION_LOGO(ctx context.Conte
 	return fc, nil
 }
 
+func (ec *executionContext) _Env_APP_COOKIE_SECURE(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Env_APP_COOKIE_SECURE(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.AppCookieSecure, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Env_APP_COOKIE_SECURE(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Env",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Env_ADMIN_COOKIE_SECURE(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Env_ADMIN_COOKIE_SECURE(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.AdminCookieSecure, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Env_ADMIN_COOKIE_SECURE(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Env",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Error_message(ctx context.Context, field graphql.CollectedField, obj *model.Error) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Error_message(ctx, field)
 	if err != nil {
@@ -9310,6 +9416,10 @@ func (ec *executionContext) fieldContext_Query__env(ctx context.Context, field g
 				return ec.fieldContext_Env_ORGANIZATION_NAME(ctx, field)
 			case "ORGANIZATION_LOGO":
 				return ec.fieldContext_Env_ORGANIZATION_LOGO(ctx, field)
+			case "APP_COOKIE_SECURE":
+				return ec.fieldContext_Env_APP_COOKIE_SECURE(ctx, field)
+			case "ADMIN_COOKIE_SECURE":
+				return ec.fieldContext_Env_ADMIN_COOKIE_SECURE(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Env", field.Name)
 		},
@@ -14860,7 +14970,7 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"ACCESS_TOKEN_EXPIRY_TIME", "ADMIN_SECRET", "CUSTOM_ACCESS_TOKEN_SCRIPT", "OLD_ADMIN_SECRET", "SMTP_HOST", "SMTP_PORT", "SMTP_USERNAME", "SMTP_PASSWORD", "SENDER_EMAIL", "JWT_TYPE", "JWT_SECRET", "JWT_PRIVATE_KEY", "JWT_PUBLIC_KEY", "ALLOWED_ORIGINS", "APP_URL", "RESET_PASSWORD_URL", "DISABLE_APP_COOKIE_SECURE", "DISABLE_ADMIN_COOKIE_SECURE", "DISABLE_EMAIL_VERIFICATION", "DISABLE_BASIC_AUTHENTICATION", "DISABLE_MAGIC_LINK_LOGIN", "DISABLE_LOGIN_PAGE", "DISABLE_SIGN_UP", "DISABLE_REDIS_FOR_ENV", "DISABLE_STRONG_PASSWORD", "DISABLE_MULTI_FACTOR_AUTHENTICATION", "ENFORCE_MULTI_FACTOR_AUTHENTICATION", "ROLES", "PROTECTED_ROLES", "DEFAULT_ROLES", "JWT_ROLE_CLAIM", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET", "FACEBOOK_CLIENT_ID", "FACEBOOK_CLIENT_SECRET", "LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET", "APPLE_CLIENT_ID", "APPLE_CLIENT_SECRET", "TWITTER_CLIENT_ID", "TWITTER_CLIENT_SECRET", "ORGANIZATION_NAME", "ORGANIZATION_LOGO"}
+	fieldsInOrder := [...]string{"ACCESS_TOKEN_EXPIRY_TIME", "ADMIN_SECRET", "CUSTOM_ACCESS_TOKEN_SCRIPT", "OLD_ADMIN_SECRET", "SMTP_HOST", "SMTP_PORT", "SMTP_USERNAME", "SMTP_PASSWORD", "SENDER_EMAIL", "JWT_TYPE", "JWT_SECRET", "JWT_PRIVATE_KEY", "JWT_PUBLIC_KEY", "ALLOWED_ORIGINS", "APP_URL", "RESET_PASSWORD_URL", "APP_COOKIE_SECURE", "ADMIN_COOKIE_SECURE", "DISABLE_EMAIL_VERIFICATION", "DISABLE_BASIC_AUTHENTICATION", "DISABLE_MAGIC_LINK_LOGIN", "DISABLE_LOGIN_PAGE", "DISABLE_SIGN_UP", "DISABLE_REDIS_FOR_ENV", "DISABLE_STRONG_PASSWORD", "DISABLE_MULTI_FACTOR_AUTHENTICATION", "ENFORCE_MULTI_FACTOR_AUTHENTICATION", "ROLES", "PROTECTED_ROLES", "DEFAULT_ROLES", "JWT_ROLE_CLAIM", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET", "FACEBOOK_CLIENT_ID", "FACEBOOK_CLIENT_SECRET", "LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET", "APPLE_CLIENT_ID", "APPLE_CLIENT_SECRET", "TWITTER_CLIENT_ID", "TWITTER_CLIENT_SECRET", "ORGANIZATION_NAME", "ORGANIZATION_LOGO"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -14995,19 +15105,19 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			if err != nil {
 				return it, err
 			}
-		case "DISABLE_APP_COOKIE_SECURE":
+		case "APP_COOKIE_SECURE":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("DISABLE_APP_COOKIE_SECURE"))
-			it.DisableAppCookieSecure, err = ec.unmarshalNBoolean2bool(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("APP_COOKIE_SECURE"))
+			it.AppCookieSecure, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
 			if err != nil {
 				return it, err
 			}
-		case "DISABLE_ADMIN_COOKIE_SECURE":
+		case "ADMIN_COOKIE_SECURE":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("DISABLE_ADMIN_COOKIE_SECURE"))
-			it.DisableAdminCookieSecure, err = ec.unmarshalNBoolean2bool(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ADMIN_COOKIE_SECURE"))
+			it.AdminCookieSecure, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -16087,6 +16197,20 @@ func (ec *executionContext) _Env(ctx context.Context, sel ast.SelectionSet, obj 
 
 			out.Values[i] = ec._Env_ORGANIZATION_LOGO(ctx, field, obj)
 
+		case "APP_COOKIE_SECURE":
+
+			out.Values[i] = ec._Env_APP_COOKIE_SECURE(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "ADMIN_COOKIE_SECURE":
+
+			out.Values[i] = ec._Env_ADMIN_COOKIE_SECURE(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
