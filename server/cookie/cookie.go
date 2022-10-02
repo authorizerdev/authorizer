@@ -29,8 +29,7 @@ func SetSession(gc *gin.Context, sessionID string) {
 		domain = "." + domain
 	}
 
-	// Use sameSite = lax by default
-	// Since app cookie can come from cross site it becomes important to set this in lax mode.
+	// Since app cookie can come from cross site it becomes important to set this in lax mode when insecure.
 	// Example person using custom UI on their app domain and making request to authorizer domain.
 	// For more information check:
 	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie/SameSite

@@ -58,7 +58,10 @@ func main() {
 	default:
 		logLevel = logrus.InfoLevel
 	}
+	// set log level globally
 	logrus.SetLevel(logLevel)
+
+	// set log level for go-gin middleware
 	log.SetLevel(logLevel)
 
 	// show file path in log for debug or other log levels.
