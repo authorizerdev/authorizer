@@ -167,7 +167,7 @@ const GenerateKeysModal = ({ jwtType, getData }: propTypes) => {
 						) : (
 							<>
 								{Object.values(HMACEncryptionType).includes(
-									stateVariables.JWT_TYPE
+									stateVariables.JWT_TYPE,
 								) ? (
 									<Flex marginTop="8">
 										<Flex w="23%" justifyContent="start" alignItems="center">

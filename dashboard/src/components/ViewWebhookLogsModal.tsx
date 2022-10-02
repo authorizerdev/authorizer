@@ -161,15 +161,15 @@ const ViewWebhookLogsModal = ({
 													<Td>
 														<Text fontSize="sm">{`${logData.id.substring(
 															0,
-															5
+															5,
 														)}***${logData.id.substring(
 															logData.id.length - 5,
-															logData.id.length
+															logData.id.length,
 														)}`}</Text>
 													</Td>
 													<Td>
 														{dayjs(logData.created_at * 1000).format(
-															'MMM DD, YYYY'
+															'MMM DD, YYYY',
 														)}
 													</Td>
 													<Td>

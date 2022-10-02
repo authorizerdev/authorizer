@@ -304,7 +304,7 @@ const InviteMembersModal = ({
 																onClick={() =>
 																	updateEmailListHandler(
 																		ArrayInputOperations.REMOVE,
-																		index
+																		index,
 																	)
 																}
 															>

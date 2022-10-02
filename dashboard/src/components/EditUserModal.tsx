@@ -82,7 +82,7 @@ const EditUserModal = ({
 				// @ts-ignore
 				[property]: userData[property],
 			}),
-			{}
+			{},
 		);
 		const res = await client
 			.mutation(UpdateUser, { params: { ...updatedUserData, id: userData.id } })

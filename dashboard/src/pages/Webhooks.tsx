@@ -170,12 +170,12 @@ const Webhooks = () => {
 											label={JSON.stringify(
 												webhook[WebhookInputDataFields.HEADERS],
 												null,
-												' '
+												' ',
 											)}
 										>
 											<Tag size="sm" variant="outline" colorScheme="gray">
 												{Object.keys(
-													webhook[WebhookInputDataFields.HEADERS] || {}
+													webhook[WebhookInputDataFields.HEADERS] || {},
 												)?.length.toString()}
 											</Tag>
 										</Tooltip>
