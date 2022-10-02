@@ -185,7 +185,7 @@ const UpdateEmailTemplate = ({
 				toast({
 					title: capitalizeFirstLetter(
 						res.data?._add_email_template?.message ||
-							res.data?._update_email_template?.message
+							res.data?._update_email_template?.message,
 					),
 					isClosable: true,
 					status: 'success',
@@ -220,7 +220,7 @@ const UpdateEmailTemplate = ({
 	}, [isOpen]);
 	useEffect(() => {
 		const updatedTemplateVariables = Object.entries(
-			emailTemplateVariables
+			emailTemplateVariables,
 		).reduce((acc, [key, val]): any => {
 			if (
 				(templateData[EmailTemplateInputDataFields.EVENT_NAME] !==
@@ -367,7 +367,7 @@ const UpdateEmailTemplate = ({
 										onChange={(e) =>
 											inputChangehandler(
 												EmailTemplateInputDataFields.EVENT_NAME,
-												e.currentTarget.value
+												e.currentTarget.value,
 											)
 										}
 									>
@@ -376,7 +376,7 @@ const UpdateEmailTemplate = ({
 												<option value={value} key={key}>
 													{key}
 												</option>
-											)
+											),
 										)}
 									</Select>
 								</Flex>
@@ -401,7 +401,7 @@ const UpdateEmailTemplate = ({
 											onChange={(e) =>
 												inputChangehandler(
 													EmailTemplateInputDataFields.SUBJECT,
-													e.currentTarget.value
+													e.currentTarget.value,
 												)
 											}
 										/>

@@ -157,7 +157,7 @@ const Environment = () => {
 				// @ts-ignore
 				[property]: envVariables[property],
 			}),
-			{}
+			{},
 		);
 		if (
 			updatedEnvVariables[HiddenInputType.ADMIN_SECRET] === '' ||

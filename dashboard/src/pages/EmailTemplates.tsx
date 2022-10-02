@@ -154,7 +154,7 @@ const EmailTemplates = () => {
 									<Td>{templateData[EmailTemplateInputDataFields.SUBJECT]}</Td>
 									<Td>
 										{dayjs(templateData.created_at * 1000).format(
-											'MMM DD, YYYY'
+											'MMM DD, YYYY',
 										)}
 									</Td>
 									<Td>

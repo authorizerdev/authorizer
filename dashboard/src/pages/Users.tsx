@@ -29,7 +29,7 @@ import {
 	MenuItem,
 	useToast,
 	Spinner,
-	TableContainer
+	TableContainer,
 } from '@chakra-ui/react';
 import {
 	FaAngleLeft,
@@ -195,7 +195,7 @@ export default function Users() {
 
 	const updateAccessHandler = async (
 		id: string,
-		action: updateAccessActions
+		action: updateAccessActions,
 	) => {
 		switch (action) {
 			case updateAccessActions.ENABLE:
@@ -263,8 +263,9 @@ export default function Users() {
 			.toPromise();
 		if (res.data?._update_user?.id) {
 			toast({
-				title: `Multi factor authentication ${user.is_multi_factor_auth_enabled ? 'disabled' : 'enabled'
-					} for user`,
+				title: `Multi factor authentication ${
+					user.is_multi_factor_auth_enabled ? 'disabled' : 'enabled'
+				} for user`,
 				isClosable: true,
 				status: 'success',
 				position: 'bottom-right',
@@ -387,7 +388,7 @@ export default function Users() {
 																onClick={() =>
 																	updateAccessHandler(
 																		user.id,
-																		updateAccessActions.ENABLE
+																		updateAccessActions.ENABLE,
 																	)
 																}
 															>
@@ -398,7 +399,7 @@ export default function Users() {
 																onClick={() =>
 																	updateAccessHandler(
 																		user.id,
-																		updateAccessActions.REVOKE
+																		updateAccessActions.REVOKE,
 																	)
 																}
 															>
@@ -407,13 +408,17 @@ export default function Users() {
 														)}
 														{user.is_multi_factor_auth_enabled ? (
 															<MenuItem
-																onClick={() => multiFactorAuthUpdateHandler(user)}
+																onClick={() =>
+																	multiFactorAuthUpdateHandler(user)
+																}
 															>
 																Disable MultiFactor Authentication
 															</MenuItem>
 														) : (
 															<MenuItem
-																onClick={() => multiFactorAuthUpdateHandler(user)}
+																onClick={() =>
+																	multiFactorAuthUpdateHandler(user)
+																}
 															>
 																Enable MultiFactor Authentication
 															</MenuItem>

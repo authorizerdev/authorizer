@@ -27,7 +27,7 @@ const parseCSV = (file: File, delimiter: string): Promise<dataTypes[]> => {
 						value: email.trim(),
 						isInvalid: !validateEmail(email.trim()),
 					};
-				})
+				}),
 			);
 		};
 

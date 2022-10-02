@@ -5,7 +5,8 @@
 	"main": "index.js",
 	"scripts": {
 		"build": "rm -rf build && NODE_ENV=production node ./esbuild.config.js",
-		"start": "NODE_ENV=development node ./esbuild.config.js"
+		"start": "NODE_ENV=development node ./esbuild.config.js",
+		"format": "prettier --write --use-tabs 'src/**/*.(ts|tsx|js|jsx)'"
 	},
 	"keywords": [],
 	"author": "Lakhan Samani",
@@ -35,6 +36,7 @@
 		"urql": "^2.0.6"
 	},
 	"devDependencies": {
-		"@types/react-email-editor": "^1.1.7"
+		"@types/react-email-editor": "^1.1.7",
+		"prettier": "2.7.1"
 	}
 }

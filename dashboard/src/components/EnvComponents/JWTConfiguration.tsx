@@ -37,7 +37,7 @@ const JSTConfigurations = ({
 				JSON.stringify({
 					type: variables.JWT_TYPE,
 					key: variables.JWT_PUBLIC_KEY || variables.JWT_SECRET,
-				})
+				}),
 			);
 			toast({
 				title: `JWT config copied successfully`,
