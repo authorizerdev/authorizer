@@ -11,14 +11,14 @@ import (
 
 // WebhookLog model for db
 type WebhookLog struct {
-	Key        string `json:"_key,omitempty" bson:"_key,omitempty" cql:"_key,omitempty"` // for arangodb
-	ID         string `gorm:"primaryKey;type:char(36)" json:"_id" bson:"_id" cql:"id"`
-	HttpStatus int64  `json:"http_status" bson:"http_status" cql:"http_status"`
-	Response   string `gorm:"type:text" json:"response" bson:"response" cql:"response"`
-	Request    string `gorm:"type:text" json:"request" bson:"request" cql:"request"`
-	WebhookID  string `gorm:"type:char(36)" json:"webhook_id" bson:"webhook_id" cql:"webhook_id"`
-	CreatedAt  int64  `json:"created_at" bson:"created_at" cql:"created_at"`
-	UpdatedAt  int64  `json:"updated_at" bson:"updated_at" cql:"updated_at"`
+	Key        string `json:"_key,omitempty" bson:"_key,omitempty" cql:"_key,omitempty" dynamo:"key,omitempty"` // for arangodb
+	ID         string `gorm:"primaryKey;type:char(36)" json:"_id" bson:"_id" cql:"id" dynamo:"id,hash"`
+	HttpStatus int64  `json:"http_status" bson:"http_status" cql:"http_status" dynamo:"http_status"`
+	Response   string `gorm:"type:text" json:"response" bson:"response" cql:"response" dynamo:"response"`
+	Request    string `gorm:"type:text" json:"request" bson:"request" cql:"request" dynamo:"request"`
+	WebhookID  string `gorm:"type:char(36)" json:"webhook_id" bson:"webhook_id" cql:"webhook_id" dynamo:"webhook_id"`
+	CreatedAt  int64  `json:"created_at" bson:"created_at" cql:"created_at" dynamo:"created_at"`
+	UpdatedAt  int64  `json:"updated_at" bson:"updated_at" cql:"updated_at" dynamo:"updated_at"`
 }
 
 // AsAPIWebhookLog to return webhook log as graphql response object
