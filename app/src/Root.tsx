@@ -32,7 +32,7 @@ export default function Root({
 	const { token, loading, config } = useAuthorizer();
 
 	const searchParams = new URLSearchParams(
-		hasWindow() ? window.location.search : ``
+		hasWindow() ? window.location.search : ``,
 	);
 	const state = searchParams.get('state') || createRandomString();
 	const scope = searchParams.get('scope')
