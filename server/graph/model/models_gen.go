@@ -277,6 +277,8 @@ type UpdateEnvInput struct {
 	AllowedOrigins                   []string `json:"ALLOWED_ORIGINS"`
 	AppURL                           *string  `json:"APP_URL"`
 	ResetPasswordURL                 *string  `json:"RESET_PASSWORD_URL"`
+	DisableAppCookieSecure           bool     `json:"DISABLE_APP_COOKIE_SECURE"`
+	DisableAdminCookieSecure         bool     `json:"DISABLE_ADMIN_COOKIE_SECURE"`
 	DisableEmailVerification         *bool    `json:"DISABLE_EMAIL_VERIFICATION"`
 	DisableBasicAuthentication       *bool    `json:"DISABLE_BASIC_AUTHENTICATION"`
 	DisableMagicLinkLogin            *bool    `json:"DISABLE_MAGIC_LINK_LOGIN"`
