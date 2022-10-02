@@ -5,9 +5,9 @@ import Root from './Root';
 import { createRandomString } from './utils/common';
 
 declare global {
-  interface Window {
-    __authorizer__: any;
-  }
+	interface Window {
+		__authorizer__: any;
+	}
 }
 
 export default function App() {
