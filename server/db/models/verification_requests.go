@@ -13,7 +13,7 @@ import (
 type VerificationRequest struct {
 	Key         string `json:"_key,omitempty" bson:"_key" cql:"_key,omitempty" dynamo:"key,omitempty"` // for arangodb
 	ID          string `gorm:"primaryKey;type:char(36)" json:"_id" bson:"_id" cql:"id" dynamo:"id,hash"`
-	Token       string `gorm:"type:text" json:"token" bson:"token" cql:"jwt_token" dynamo:"token"` // token is reserved keyword in cassandra
+	Token       string `gorm:"type:text" json:"token" bson:"token" cql:"jwt_token" dynamo:"token" index:"token,hash"`
 	Identifier  string `gorm:"uniqueIndex:idx_email_identifier;type:varchar(64)" json:"identifier" bson:"identifier" cql:"identifier" dynamo:"identifier"`
 	ExpiresAt   int64  `json:"expires_at" bson:"expires_at" cql:"expires_at" dynamo:"expires_at"`
 	Email       string `gorm:"uniqueIndex:idx_email_identifier;type:varchar(256)" json:"email" bson:"email" cql:"email" dynamo:"email"`

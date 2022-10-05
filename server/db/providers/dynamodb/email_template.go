@@ -95,7 +95,7 @@ func (p *provider) GetEmailTemplateByEventName(ctx context.Context, eventName st
 	var emailTemplates []models.EmailTemplate
 	var emailTemplate models.EmailTemplate
 
-	err := collection.Scan().Filter("'event_name' = ?", eventName).Limit(1).AllWithContext(ctx, &emailTemplates)
+	err := collection.Scan().Index("event_name").Filter("'event_name' = ?", eventName).Limit(1).AllWithContext(ctx, &emailTemplates)
 	if err != nil {
 		return nil, err
 	}

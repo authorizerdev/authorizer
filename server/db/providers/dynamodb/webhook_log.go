@@ -44,7 +44,7 @@ func (p *provider) ListWebhookLogs(ctx context.Context, pagination model.Paginat
 	scanner := collection.Scan()
 
 	if webhookID != "" {
-		iter = scanner.Filter("'webhook_id' = ?", webhookID).Iter()
+		iter = scanner.Index("webhook_id").Filter("'webhook_id' = ?", webhookID).Iter()
 		for iter.NextWithContext(ctx, &webhookLog) {
 			webhookLogs = append(webhookLogs, webhookLog.AsAPIWebhookLog())
 		}

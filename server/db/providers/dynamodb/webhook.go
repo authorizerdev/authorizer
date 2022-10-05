@@ -22,6 +22,7 @@ func (p *provider) AddWebhook(ctx context.Context, webhook models.Webhook) (*mod
 	webhook.Key = webhook.ID
 	webhook.CreatedAt = time.Now().Unix()
 	webhook.UpdatedAt = time.Now().Unix()
+
 	err := collection.Put(webhook).RunWithContext(ctx)
 
 	if err != nil {
@@ -106,7 +107,7 @@ func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) 
 	var webhook models.Webhook
 	collection := p.db.Table(models.Collections.Webhook)
 
-	iter := collection.Scan().Filter("'event_name' = ?", eventName).Iter()
+	iter := collection.Scan().Index("event_name").Filter("'event_name' = ?", eventName).Iter()
 
 	for iter.NextWithContext(ctx, &webhook) {
 		return webhook.AsAPIWebhook(), nil

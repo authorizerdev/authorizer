@@ -15,7 +15,7 @@ type User struct {
 	Key string `json:"_key,omitempty" bson:"_key,omitempty" cql:"_key,omitempty" dynamo:"key,omitempty"` // for arangodb
 	ID  string `gorm:"primaryKey;type:char(36)" json:"_id" bson:"_id" cql:"id" dynamo:"id,hash"`
 
-	Email                    string  `gorm:"unique" json:"email" bson:"email" cql:"email" dynamo:"email"`
+	Email                    string  `gorm:"unique" json:"email" bson:"email" cql:"email" dynamo:"email" index:"email,hash"`
 	EmailVerifiedAt          *int64  `json:"email_verified_at" bson:"email_verified_at" cql:"email_verified_at" dynamo:"email_verified_at"`
 	Password                 *string `gorm:"type:text" json:"password" bson:"password" cql:"password" dynamo:"password"`
 	SignupMethods            string  `json:"signup_methods" bson:"signup_methods" cql:"signup_methods" dynamo:"signup_methods"`

@@ -14,7 +14,7 @@ import (
 type Webhook struct {
 	Key       string `json:"_key,omitempty" bson:"_key,omitempty" cql:"_key,omitempty" dynamo:"key,omitempty"` // for arangodb
 	ID        string `gorm:"primaryKey;type:char(36)" json:"_id" bson:"_id" cql:"id" dynamo:"id,hash"`
-	EventName string `gorm:"unique" json:"event_name" bson:"event_name" cql:"event_name" dynamo:"event_name"`
+	EventName string `gorm:"unique" json:"event_name" bson:"event_name" cql:"event_name" dynamo:"event_name" index:"event_name,hash"`
 	EndPoint  string `gorm:"type:text" json:"endpoint" bson:"endpoint" cql:"endpoint" dynamo:"endpoint"`
 	Headers   string `gorm:"type:text" json:"headers" bson:"headers" cql:"headers" dynamo:"headers"`
 	Enabled   bool   `json:"enabled" bson:"enabled" cql:"enabled" dynamo:"enabled"`

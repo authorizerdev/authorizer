@@ -52,7 +52,7 @@ func (p *provider) GetOTPByEmail(ctx context.Context, emailAddress string) (*mod
 
 	collection := p.db.Table(models.Collections.OTP)
 
-	err := collection.Scan().Filter("'email' = ?", emailAddress).Limit(1).AllWithContext(ctx, &otps)
+	err := collection.Scan().Index("email").Filter("'email' = ?", emailAddress).Limit(1).AllWithContext(ctx, &otps)
 
 	if err != nil {
 		return nil, err

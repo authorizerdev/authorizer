@@ -16,6 +16,9 @@ import (
 // RequiredEnv holds information about required envs
 type RequiredEnv struct {
 	EnvPath            string `json:"ENV_PATH"`
+	REGION             string `json:"REGION"`
+	AWS_ACCESS_KEY     string `json:"AWS_ACCESS_KEY"`
+	AWS_SECRET_KEY     string `json:"AWS_SECRET_KEY"`
 	DatabaseURL        string `json:"DATABASE_URL"`
 	DatabaseType       string `json:"DATABASE_TYPE"`
 	DatabaseName       string `json:"DATABASE_NAME"`
@@ -73,6 +76,9 @@ func InitRequiredEnv() error {
 		log.Infof("using OS env instead of %s file", envPath)
 	}
 
+	region := os.Getenv(constants.EnvAwsRegion)
+	awsAccessKey := os.Getenv(constants.EnvAwsAccessKey)
+	awsSecretKey := os.Getenv(constants.EnvAwsSecretKey)
 	dbURL := os.Getenv(constants.EnvKeyDatabaseURL)
 	dbType := os.Getenv(constants.EnvKeyDatabaseType)
 	dbName := os.Getenv(constants.EnvKeyDatabaseName)
@@ -127,6 +133,9 @@ func InitRequiredEnv() error {
 
 	requiredEnv := RequiredEnv{
 		EnvPath:            envPath,
+		REGION:             region,
+		AWS_ACCESS_KEY:     awsAccessKey,
+		AWS_SECRET_KEY:     awsSecretKey,
 		DatabaseURL:        dbURL,
 		DatabaseType:       dbType,
 		DatabaseName:       dbName,

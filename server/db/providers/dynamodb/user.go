@@ -131,7 +131,7 @@ func (p *provider) GetUserByEmail(ctx context.Context, email string) (models.Use
 	var user models.User
 
 	collection := p.db.Table(models.Collections.User)
-	err := collection.Scan().Filter("'email' = ?", email).AllWithContext(ctx, &users)
+	err := collection.Scan().Index("email").Filter("'email' = ?", email).AllWithContext(ctx, &users)
 
 	if err != nil {
 		return user, nil
