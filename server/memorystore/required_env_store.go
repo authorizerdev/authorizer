@@ -119,7 +119,8 @@ func InitRequiredEnv() error {
 			dbURL = strings.TrimSpace(*cli.ARG_DB_URL)
 		}
 
-		if dbURL == "" && dbPort == "" && dbHost == "" && dbUsername == "" && dbPassword == "" {
+		// In dynamoDB these field are not always mandatory
+		if dbType != constants.DbTypeDynamoDB && dbURL == "" && dbPort == "" && dbHost == "" && dbUsername == "" && dbPassword == "" {
 			log.Debug("DATABASE_URL is not set")
 			return errors.New("invalid database url. DATABASE_URL is required")
 		}
