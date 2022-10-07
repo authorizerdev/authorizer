@@ -15,8 +15,8 @@ type Webhook struct {
 	Key       string `json:"_key,omitempty" bson:"_key,omitempty" cql:"_key,omitempty"` // for arangodb
 	ID        string `gorm:"primaryKey;type:char(36)" json:"_id" bson:"_id" cql:"id"`
 	EventName string `gorm:"unique" json:"event_name" bson:"event_name" cql:"event_name"`
-	EndPoint  string `gorm:"type:text" json:"endpoint" bson:"endpoint" cql:"endpoint"`
-	Headers   string `gorm:"type:text" json:"headers" bson:"headers" cql:"headers"`
+	EndPoint  string `json:"endpoint" bson:"endpoint" cql:"endpoint"`
+	Headers   string `json:"headers" bson:"headers" cql:"headers"`
 	Enabled   bool   `json:"enabled" bson:"enabled" cql:"enabled"`
 	CreatedAt int64  `json:"created_at" bson:"created_at" cql:"created_at"`
 	UpdatedAt int64  `json:"updated_at" bson:"updated_at" cql:"updated_at"`
