@@ -34,6 +34,8 @@ func InitMemStore() error {
 		constants.EnvKeyIsEmailServiceEnabled:            false,
 		constants.EnvKeyEnforceMultiFactorAuthentication: false,
 		constants.EnvKeyDisableMultiFactorAuthentication: false,
+		constants.EnvKeyAppCookieSecure:                  true,
+		constants.EnvKeyAdminCookieSecure:                true,
 	}
 
 	requiredEnvs := RequiredEnvStoreObj.GetRequiredEnv()

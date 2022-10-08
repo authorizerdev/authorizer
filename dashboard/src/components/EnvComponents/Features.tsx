@@ -126,6 +126,40 @@ const Features = ({ variables, setVariables }: any) => {
 					</Flex>
 				</Flex>
 			</Stack>
+			<Divider paddingY={5} />
+			<Text fontSize="md" paddingTop={5} fontWeight="bold" mb={5}>
+				Cookie Security Features
+			</Text>
+			<Stack spacing={6}>
+				<Flex>
+					<Flex w="100%" alignItems="baseline" flexDir="column">
+						<Text fontSize="sm">Use Secure App Cookie:</Text>
+						<Text fontSize="x-small">
+							Note: If you set this to insecure, it will set{' '}
+							<code>sameSite</code> property of cookie to <code>lax</code> mode
+						</Text>
+					</Flex>
+					<Flex justifyContent="start">
+						<InputField
+							variables={variables}
+							setVariables={setVariables}
+							inputType={SwitchInputType.APP_COOKIE_SECURE}
+						/>
+					</Flex>
+				</Flex>
+				<Flex>
+					<Flex w="100%" alignItems="baseline" flexDir="column">
+						<Text fontSize="sm">Use Secure Admin Cookie:</Text>
+					</Flex>
+					<Flex justifyContent="start">
+						<InputField
+							variables={variables}
+							setVariables={setVariables}
+							inputType={SwitchInputType.ADMIN_COOKIE_SECURE}
+						/>
+					</Flex>
+				</Flex>
+			</Stack>
 		</div>
 	);
 };

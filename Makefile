@@ -39,5 +39,4 @@ test-all-db:
 	docker rm -vf authorizer_arangodb
 	docker rm -vf dynamodb-local-test
 generate:
-	cd server && go get github.com/99designs/gqlgen/cmd@v0.14.0 && go run github.com/99designs/gqlgen generate
-	
+	cd server && go run github.com/99designs/gqlgen generate && go mod tidy

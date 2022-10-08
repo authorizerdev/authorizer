@@ -126,13 +126,13 @@ const UpdateWebhookModal = ({
 		...initWebhookValidatorData,
 	});
 	const [verifiedStatus, setVerifiedStatus] = useState<webhookVerifiedStatus>(
-		webhookVerifiedStatus.PENDING
+		webhookVerifiedStatus.PENDING,
 	);
 	const inputChangehandler = (
 		inputType: string,
 		value: any,
 		headerInputType: string = WebhookInputHeaderFields.KEY,
-		headerIndex: number = 0
+		headerIndex: number = 0,
 	) => {
 		if (
 			verifiedStatus !== webhookVerifiedStatus.PENDING &&
@@ -238,7 +238,7 @@ const UpdateWebhookModal = ({
 			validator[WebhookInputDataFields.ENDPOINT] &&
 			!validator[WebhookInputDataFields.HEADERS].some(
 				(headerData: headersValidatorDataType) =>
-					!headerData.key || !headerData.value
+					!headerData.key || !headerData.value,
 			)
 		);
 	};
@@ -256,7 +256,7 @@ const UpdateWebhookModal = ({
 				(acc, data) => {
 					return data.key ? { ...acc, [data.key]: data.value } : acc;
 				},
-				{}
+				{},
 			);
 			if (Object.keys(headers).length) {
 				params[WebhookInputDataFields.HEADERS] = headers;
@@ -295,7 +295,7 @@ const UpdateWebhookModal = ({
 		} else if (res.data?._add_webhook || res.data?._update_webhook) {
 			toast({
 				title: capitalizeFirstLetter(
-					res.data?._add_webhook?.message || res.data?._update_webhook?.message
+					res.data?._add_webhook?.message || res.data?._update_webhook?.message,
 				),
 				isClosable: true,
 				status: 'success',
@@ -333,7 +333,7 @@ const UpdateWebhookModal = ({
 				setValidator({
 					...validator,
 					[WebhookInputDataFields.HEADERS]: new Array(
-						formattedHeadersData.length
+						formattedHeadersData.length,
 					)
 						.fill({})
 						.map(() => ({ ...initHeadersValidatorData })),
@@ -406,7 +406,7 @@ const UpdateWebhookModal = ({
 										onChange={(e) =>
 											inputChangehandler(
 												WebhookInputDataFields.EVENT_NAME,
-												e.currentTarget.value
+												e.currentTarget.value,
 											)
 										}
 									>
@@ -415,7 +415,7 @@ const UpdateWebhookModal = ({
 												<option value={value} key={key}>
 													{key}
 												</option>
-											)
+											),
 										)}
 									</Select>
 								</Flex>
@@ -438,7 +438,7 @@ const UpdateWebhookModal = ({
 											onChange={(e) =>
 												inputChangehandler(
 													WebhookInputDataFields.ENDPOINT,
-													e.currentTarget.value
+													e.currentTarget.value,
 												)
 											}
 										/>
@@ -462,7 +462,7 @@ const UpdateWebhookModal = ({
 										onChange={() =>
 											inputChangehandler(
 												WebhookInputDataFields.ENABLED,
-												!webhook[WebhookInputDataFields.ENABLED]
+												!webhook[WebhookInputDataFields.ENABLED],
 											)
 										}
 									/>
@@ -517,7 +517,7 @@ const UpdateWebhookModal = ({
 															WebhookInputDataFields.HEADERS,
 															e.target.value,
 															WebhookInputHeaderFields.KEY,
-															index
+															index,
 														)
 													}
 													width="30%"
@@ -540,7 +540,7 @@ const UpdateWebhookModal = ({
 															WebhookInputDataFields.HEADERS,
 															e.target.value,
 															WebhookInputHeaderFields.VALUE,
-															index
+															index,
 														)
 													}
 													width="65%"
@@ -560,7 +560,7 @@ const UpdateWebhookModal = ({
 												</InputRightElement>
 											</InputGroup>
 										</Flex>
-									)
+									),
 								)}
 							</Flex>
 							<Divider marginY={5} />

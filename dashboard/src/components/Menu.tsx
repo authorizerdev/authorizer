@@ -218,7 +218,7 @@ export const Sidebar = ({ onClose, ...rest }: SidebarProps) => {
 									</NavItem>{' '}
 								</Text>
 							</NavLink>
-						)
+						),
 					)}
 					<Link
 						href="/playground"

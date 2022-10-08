@@ -64,7 +64,7 @@ const InputField = ({
 	const updateInputHandler = (
 		type: string,
 		operation: any,
-		role: string = ''
+		role: string = '',
 	) => {
 		if (operation === ArrayInputOperations.APPEND) {
 			if (inputData[type] !== '') {
@@ -78,7 +78,7 @@ const InputField = ({
 		}
 		if (operation === ArrayInputOperations.REMOVE) {
 			let updatedEnvVars = variables[type].filter(
-				(item: string) => item !== role
+				(item: string) => item !== role,
 			);
 			setVariables({
 				...variables,
@@ -95,7 +95,7 @@ const InputField = ({
 					onChange={(
 						event: Event & {
 							target: HTMLInputElement;
-						}
+						},
 					) =>
 						setVariables({
 							...variables,
@@ -120,7 +120,7 @@ const InputField = ({
 					onChange={(
 						event: Event & {
 							target: HTMLInputElement;
-						}
+						},
 					) =>
 						setVariables({
 							...variables,
@@ -207,7 +207,7 @@ const InputField = ({
 									updateInputHandler(
 										inputType,
 										ArrayInputOperations.REMOVE,
-										role
+										role,
 									)
 								}
 							/>
@@ -288,7 +288,7 @@ const InputField = ({
 				onChange={(
 					event: Event & {
 						target: HTMLInputElement;
-					}
+					},
 				) =>
 					setVariables({
 						...variables,
