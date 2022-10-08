@@ -1,12 +1,16 @@
 package dynamodb
 
 import (
+	"os"
+
+	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/guregu/dynamo"
+	log "github.com/sirupsen/logrus"
 )
 
 type provider struct {
@@ -15,13 +19,18 @@ type provider struct {
 
 // NewProvider returns a new Dynamo provider
 func NewProvider() (*provider, error) {
-	region := memorystore.RequiredEnvStoreObj.GetRequiredEnv().REGION
 	dbURL := memorystore.RequiredEnvStoreObj.GetRequiredEnv().DatabaseURL
-	accessKey := memorystore.RequiredEnvStoreObj.GetRequiredEnv().AWS_ACCESS_KEY
-	secretKey := memorystore.RequiredEnvStoreObj.GetRequiredEnv().AWS_SECRET_KEY
+	awsRegion := os.Getenv(constants.EnvAwsRegion)
+	accessKey := os.Getenv(constants.EnvAwsAccessKey)
+	secretKey := os.Getenv(constants.EnvAwsSecretKey)
+
 	config := aws.Config{
-		Region:     aws.String(region),
-		MaxRetries: aws.Int(3),
+		MaxRetries:                    aws.Int(3),
+		CredentialsChainVerboseErrors: aws.Bool(true), // for full error logs
+	}
+
+	if awsRegion != "" {
+		config.Region = aws.String(awsRegion)
 	}
 
 	// custom accessKey, secretkey took first priority, if not then fetch config from aws credentials
@@ -31,6 +40,8 @@ func NewProvider() (*provider, error) {
 		// static config in case of testing or local-setup
 		config.Credentials = credentials.NewStaticCredentials("key", "key", "")
 		config.Endpoint = aws.String(dbURL)
+	} else {
+		log.Info("REGION, AWS_ACCESS_KEY and AWS_SECRET_KEY not found in .env, trying to load default profile from aws credentials")
 	}
 
 	session := session.Must(session.NewSession(&config))
