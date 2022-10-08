@@ -12,9 +12,9 @@ type EmailTemplate struct {
 	Key       string `json:"_key,omitempty" bson:"_key,omitempty" cql:"_key,omitempty"` // for arangodb
 	ID        string `gorm:"primaryKey;type:char(36)" json:"_id" bson:"_id" cql:"id"`
 	EventName string `gorm:"unique" json:"event_name" bson:"event_name" cql:"event_name"`
-	Subject   string `gorm:"type:text" json:"subject" bson:"subject" cql:"subject"`
-	Template  string `gorm:"type:text" json:"template" bson:"template" cql:"template"`
-	Design    string `gorm:"type:text" json:"design" bson:"design" cql:"design"`
+	Subject   string `json:"subject" bson:"subject" cql:"subject"`
+	Template  string `json:"template" bson:"template" cql:"template"`
+	Design    string `json:"design" bson:"design" cql:"design"`
 	CreatedAt int64  `json:"created_at" bson:"created_at" cql:"created_at"`
 	UpdatedAt int64  `json:"updated_at" bson:"updated_at" cql:"updated_at"`
 }

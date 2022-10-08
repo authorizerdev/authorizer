@@ -17,7 +17,7 @@ type User struct {
 
 	Email                    string  `gorm:"unique" json:"email" bson:"email" cql:"email"`
 	EmailVerifiedAt          *int64  `json:"email_verified_at" bson:"email_verified_at" cql:"email_verified_at"`
-	Password                 *string `gorm:"type:text" json:"password" bson:"password" cql:"password"`
+	Password                 *string `json:"password" bson:"password" cql:"password"`
 	SignupMethods            string  `json:"signup_methods" bson:"signup_methods" cql:"signup_methods"`
 	GivenName                *string `json:"given_name" bson:"given_name" cql:"given_name"`
 	FamilyName               *string `json:"family_name" bson:"family_name" cql:"family_name"`
@@ -27,7 +27,7 @@ type User struct {
 	Birthdate                *string `json:"birthdate" bson:"birthdate" cql:"birthdate"`
 	PhoneNumber              *string `gorm:"unique" json:"phone_number" bson:"phone_number" cql:"phone_number"`
 	PhoneNumberVerifiedAt    *int64  `json:"phone_number_verified_at" bson:"phone_number_verified_at" cql:"phone_number_verified_at"`
-	Picture                  *string `gorm:"type:text" json:"picture" bson:"picture" cql:"picture"`
+	Picture                  *string `json:"picture" bson:"picture" cql:"picture"`
 	Roles                    string  `json:"roles" bson:"roles" cql:"roles"`
 	RevokedTimestamp         *int64  `json:"revoked_timestamp" bson:"revoked_timestamp" cql:"revoked_timestamp"`
 	IsMultiFactorAuthEnabled *bool   `json:"is_multi_factor_auth_enabled" bson:"is_multi_factor_auth_enabled" cql:"is_multi_factor_auth_enabled"`
