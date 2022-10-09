@@ -27,6 +27,10 @@ const (
 	EnvAwsAccessKey = "AWS_ACCESS_KEY"
 	// EnvAwsAccessKey key for env variable AWS_SECRET_KEY
 	EnvAwsSecretKey = "AWS_SECRET_KEY"
+	// EnvAwsAccessKey key for env variable AWS_SECRET_KEY
+	EnvCouchbaseScope = "COUCHBASE_SCOPE"
+	// EnvAwsAccessKey key for env variable AWS_SECRET_KEY
+	EnvCouchbaseBucket = "COUCHBASE_BUCKET"
 	// EnvKeyDatabaseName key for env variable DATABASE_NAME
 	EnvKeyDatabaseName = "DATABASE_NAME"
 	// EnvKeyDatabaseUsername key for env variable DATABASE_USERNAME

@@ -27,4 +27,6 @@ const (
 	DbTypePlanetScaleDB = "planetscale"
 	// DbTypeDynamoDB is the Dynamo database type
 	DbTypeDynamoDB = "dynamodb"
+	// DbTypeDynamoDB is the Dynamo database type
+	DbTypeCouchbaseDB = "couchbase"
 )
