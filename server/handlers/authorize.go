@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -45,182 +46,54 @@ func AuthorizeHandler() gin.HandlerFunc {
 		}
 
 		if responseMode == "" {
-			responseMode = "query"
-		}
-
-		if responseMode != "query" && responseMode != "web_message" {
-			log.Debug("Invalid response_mode: ", responseMode)
-			gc.JSON(400, gin.H{"error": "invalid response mode"})
+			responseMode = constants.ResponseModeQuery
 		}
 
 		if redirectURI == "" {
 			redirectURI = "/app"
 		}
 
-		isQuery := responseMode == "query"
-
-		loginURL := "/app?state=" + state + "&scope=" + strings.Join(scope, " ") + "&redirect_uri=" + redirectURI
-
-		if clientID == "" {
-			if isQuery {
-				gc.Redirect(http.StatusFound, loginURL)
-			} else {
-				log.Debug("Failed to get client_id: ", clientID)
-				gc.HTML(http.StatusOK, template, gin.H{
-					"target_origin": redirectURI,
-					"authorization_response": map[string]interface{}{
-						"type": "authorization_response",
-						"response": map[string]string{
-							"error": "client_id is required",
-						},
-					},
-				})
-			}
-			return
-		}
-
-		if client, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyClientID); client != clientID || err != nil {
-			if isQuery {
-				gc.Redirect(http.StatusFound, loginURL)
-			} else {
-				log.Debug("Invalid client_id: ", clientID)
-				gc.HTML(http.StatusOK, template, gin.H{
-					"target_origin": redirectURI,
-					"authorization_response": map[string]interface{}{
-						"type": "authorization_response",
-						"response": map[string]string{
-							"error": "invalid_client_id",
-						},
-					},
-				})
-			}
-			return
-		}
-
-		if state == "" {
-			if isQuery {
-				gc.Redirect(http.StatusFound, loginURL)
-			} else {
-				log.Debug("Failed to get state: ", state)
-				gc.HTML(http.StatusOK, template, gin.H{
-					"target_origin": redirectURI,
-					"authorization_response": map[string]interface{}{
-						"type": "authorization_response",
-						"response": map[string]string{
-							"error": "state is required",
-						},
-					},
-				})
-			}
-			return
-		}
-
 		if responseType == "" {
 			responseType = "token"
 		}
 
-		isResponseTypeCode := responseType == "code"
-		isResponseTypeToken := responseType == "token"
-
-		if !isResponseTypeCode && !isResponseTypeToken {
-			if isQuery {
-				gc.Redirect(http.StatusFound, loginURL)
-			} else {
-				log.Debug("Invalid response_type: ", responseType)
-				gc.HTML(http.StatusOK, template, gin.H{
-					"target_origin": redirectURI,
-					"authorization_response": map[string]interface{}{
-						"type": "authorization_response",
-						"response": map[string]string{
-							"error": "response_type is invalid",
-						},
-					},
-				})
-			}
+		if err := validateAuthorizeRequest(responseType, responseMode, clientID, state, codeChallenge); err != nil {
+			log.Debug("invalid authorization request: ", err)
+			gc.JSON(http.StatusBadRequest, gin.H{"error": err})
 			return
-		}
-
-		if isResponseTypeCode {
-			if codeChallenge == "" {
-				if isQuery {
-					gc.Redirect(http.StatusFound, loginURL)
-				} else {
-					log.Debug("Failed to get code_challenge: ", codeChallenge)
-					gc.HTML(http.StatusBadRequest, template, gin.H{
-						"target_origin": redirectURI,
-						"authorization_response": map[string]interface{}{
-							"type": "authorization_response",
-							"response": map[string]string{
-								"error": "code_challenge is required",
-							},
-						},
-					})
-				}
-				return
-			}
 		}
 
 		sessionToken, err := cookie.GetSession(gc)
 		if err != nil {
-			if isQuery {
-				gc.Redirect(http.StatusFound, loginURL)
-			} else {
-				gc.HTML(http.StatusOK, template, gin.H{
-					"target_origin": redirectURI,
-					"authorization_response": map[string]interface{}{
-						"type": "authorization_response",
-						"response": map[string]string{
-							"error":             "login_required",
-							"error_description": "Login is required",
-						},
-					},
-				})
-			}
+			log.Debug("GetSession failed: ", err)
+			gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("login required. %v", err)})
 			return
 		}
 
 		// get session from cookie
 		claims, err := token.ValidateBrowserSession(gc, sessionToken)
 		if err != nil {
-			if isQuery {
-				gc.Redirect(http.StatusFound, loginURL)
-			} else {
-				gc.HTML(http.StatusOK, template, gin.H{
-					"target_origin": redirectURI,
-					"authorization_response": map[string]interface{}{
-						"type": "authorization_response",
-						"response": map[string]string{
-							"error":             "login_required",
-							"error_description": "Login is required",
-						},
-					},
-				})
-			}
+			log.Debug("ValidateBrowserSession failed: ", err)
+			gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("login required. %v", err)})
 			return
 		}
 		userID := claims.Subject
 		user, err := db.Provider.GetUserByID(gc, userID)
 		if err != nil {
-			if isQuery {
-				gc.Redirect(http.StatusFound, loginURL)
-			} else {
-				gc.HTML(http.StatusOK, template, gin.H{
-					"target_origin": redirectURI,
-					"authorization_response": map[string]interface{}{
-						"type": "authorization_response",
-						"response": map[string]string{
-							"error":             "signup_required",
-							"error_description": "Sign up required",
-						},
-					},
-				})
-			}
+			log.Debug("GetUserByID failed: ", err)
+			gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("sign up required. %v", err)})
 			return
 		}
 
 		sessionKey := user.ID
 		if claims.LoginMethod != "" {
 			sessionKey = claims.LoginMethod + ":" + user.ID
+		}
+
+		loginState := "state=" + state + "&scope=" + strings.Join(scope, " ") + "&redirect_uri=" + redirectURI
+		loginURL := "/app?" + loginState
+		if responseMode == constants.ResponseModeFragment {
+			loginURL = "/app#" + loginState
 		}
 
 		// if user is logged in
@@ -348,4 +221,28 @@ func AuthorizeHandler() gin.HandlerFunc {
 			})
 		}
 	}
+}
+
+func validateAuthorizeRequest(responseType, responseMode, clientID, state, codeChallenge string) error {
+	if responseType != constants.ResponseTypeCode && responseType != constants.ResponseTypeToken {
+		return fmt.Errorf("invalid response type %s. 'code' & 'token' are valid response_type", responseMode)
+	}
+
+	if responseMode != constants.ResponseModeQuery && responseMode != constants.ResponseModeWebMessage && responseMode != constants.ResponseModeFragment && responseMode != constants.ResponseModeFormPost {
+		return fmt.Errorf("invalid response mode %s. 'query', 'fragment', 'form_post' and 'web_message' are valid response_mode")
+	}
+
+	if responseType == constants.ResponseTypeCode && strings.TrimSpace(codeChallenge) == "" {
+		return fmt.Errorf("code_challenge is required for %s '%s'", responseType, constants.ResponseTypeCode)
+	}
+
+	if client, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyClientID); client != clientID || err != nil {
+		return fmt.Errorf("invalid client_id %s", clientID)
+	}
+
+	if strings.TrimSpace(state) == "" {
+		return fmt.Errorf("state is required")
+	}
+
+	return nil
 }

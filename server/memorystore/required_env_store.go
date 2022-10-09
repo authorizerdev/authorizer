@@ -27,7 +27,7 @@ type RequiredEnv struct {
 	DatabaseCertKey    string `json:"DATABASE_CERT_KEY"`
 	DatabaseCACert     string `json:"DATABASE_CA_CERT"`
 	RedisURL           string `json:"REDIS_URL"`
-	disableRedisForEnv bool   `json:"DISABLE_REDIS_FOR_ENV"`
+	DisableRedisForEnv bool   `json:"DISABLE_REDIS_FOR_ENV"`
 }
 
 // RequiredEnvObj is a simple in-memory store for sessions.
@@ -138,7 +138,7 @@ func InitRequiredEnv() error {
 		DatabaseCertKey:    dbCertKey,
 		DatabaseCACert:     dbCACert,
 		RedisURL:           redisURL,
-		disableRedisForEnv: disableRedisForEnv,
+		DisableRedisForEnv: disableRedisForEnv,
 	}
 
 	RequiredEnvStoreObj = &RequiredEnvStore{
