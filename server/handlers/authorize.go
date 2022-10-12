@@ -90,17 +90,19 @@ func AuthorizeHandler() gin.HandlerFunc {
 			sessionKey = claims.LoginMethod + ":" + user.ID
 		}
 
+		// used for response mode query or fragment
 		loginState := "state=" + state + "&scope=" + strings.Join(scope, " ") + "&redirect_uri=" + redirectURI
 		loginURL := "/app?" + loginState
 		if responseMode == constants.ResponseModeFragment {
 			loginURL = "/app#" + loginState
 		}
 
+		// rollover the session for security
+		go memorystore.Provider.DeleteUserSession(sessionKey, claims.Nonce)
+
 		// if user is logged in
 		// based on the response type code, generate the response
 		if isResponseTypeCode {
-			// rollover the session for security
-			go memorystore.Provider.DeleteUserSession(sessionKey, claims.Nonce)
 			nonce := uuid.New().String()
 			newSessionTokenData, newSessionToken, err := token.CreateSessionToken(user, nonce, claims.Roles, scope, claims.LoginMethod)
 			if err != nil {
@@ -159,7 +161,6 @@ func AuthorizeHandler() gin.HandlerFunc {
 				return
 			}
 
-			go memorystore.Provider.DeleteUserSession(sessionKey, claims.Nonce)
 			memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash)
 			memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token)
 			cookie.SetSession(gc, authToken.FingerPrintHash)
