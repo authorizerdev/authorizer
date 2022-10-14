@@ -20,6 +20,7 @@ func TestResolvers(t *testing.T) {
 		constants.DbTypeArangodb: "http://localhost:8529",
 		constants.DbTypeMongodb:  "mongodb://localhost:27017",
 		constants.DbTypeScyllaDB: "127.0.0.1:9042",
+		constants.DbTypeDynamoDB: "http://127.0.0.1:8000",
 	}
 
 	testDBs := strings.Split(os.Getenv("TEST_DBS"), ",")
