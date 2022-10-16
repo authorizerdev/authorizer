@@ -137,20 +137,34 @@ func AuthorizeHandler() gin.HandlerFunc {
 
 			// in case, response type is code and user is already logged in send the code and state
 			// and cookie session will already be rolled over and set
-			gc.HTML(http.StatusOK, authorizeWebMessageTemplate, gin.H{
-				"target_origin": redirectURI,
-				"authorization_response": map[string]interface{}{
-					"type": "authorization_response",
-					"response": map[string]string{
-						"code":  code,
-						"state": state,
+			if responseMode == constants.ResponseModeFormPost {
+				gc.HTML(http.StatusOK, authorizeFormPostTemplate, gin.H{
+					"target_origin": redirectURI,
+					"authorization_response": map[string]interface{}{
+						"type": "authorization_response",
+						"response": map[string]string{
+							"code":  code,
+							"state": state,
+						},
 					},
-				},
-			})
+				})
+			} else {
+				gc.HTML(http.StatusOK, authorizeWebMessageTemplate, gin.H{
+					"target_origin": redirectURI,
+					"authorization_response": map[string]interface{}{
+						"type": "authorization_response",
+						"response": map[string]string{
+							"code":  code,
+							"state": state,
+						},
+					},
+				})
+			}
+
 			return
 		}
 
-		if responseType == constants.ResponseTypeToken {
+		if responseType == constants.ResponseTypeToken || responseType == constants.ResponseTypeIDToken {
 			// rollover the session for security
 			authToken, err := token.CreateAuthToken(gc, user, claims.Roles, scope, claims.LoginMethod)
 			if err != nil {
@@ -222,7 +236,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 }
 
 func validateAuthorizeRequest(responseType, responseMode, clientID, state, codeChallenge string) error {
-	if responseType != constants.ResponseTypeCode && responseType != constants.ResponseTypeToken {
+	if responseType != constants.ResponseTypeCode && responseType != constants.ResponseTypeToken && responseType != constants.ResponseTypeIDToken {
 		return fmt.Errorf("invalid response type %s. 'code' & 'token' are valid response_type", responseMode)
 	}
 

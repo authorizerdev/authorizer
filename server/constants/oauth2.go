@@ -14,4 +14,6 @@ const (
 	ResponseTypeCode = "code"
 	// For the Implicit grant, use response_type=token to include an access token.
 	ResponseTypeToken = "token"
+	// For the Implicit grant of id_token, use response_type=id_token to include an identifier token.
+	ResponseTypeIDToken = "id_token"
 )
