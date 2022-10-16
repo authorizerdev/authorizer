@@ -27,6 +27,12 @@ import (
 // code_challenge_method = to prevent CSRF attack [only sh256 is supported]
 
 // check the flow for generating and verifying codes: https://developer.okta.com/blog/2019/08/22/okta-authjs-pkce#:~:text=PKCE%20works%20by%20having%20the,is%20called%20the%20Code%20Challenge.
+
+const (
+	authorizeWebMessageTemplate = "authorize_web_message.tmpl"
+	authorizeFormPostTemplate   = "authorize_form_post.tmpl"
+)
+
 func AuthorizeHandler() gin.HandlerFunc {
 	return func(gc *gin.Context) {
 		redirectURI := strings.TrimSpace(gc.Query("redirect_uri"))
@@ -35,7 +41,6 @@ func AuthorizeHandler() gin.HandlerFunc {
 		codeChallenge := strings.TrimSpace(gc.Query("code_challenge"))
 		scopeString := strings.TrimSpace(gc.Query("scope"))
 		clientID := strings.TrimSpace(gc.Query("client_id"))
-		template := "authorize.tmpl"
 		responseMode := strings.TrimSpace(gc.Query("response_mode"))
 
 		var scope []string
@@ -63,10 +68,22 @@ func AuthorizeHandler() gin.HandlerFunc {
 			return
 		}
 
+		// used for response mode query or fragment
+		loginState := "state=" + state + "&scope=" + strings.Join(scope, " ") + "&redirect_uri=" + redirectURI
+		loginURL := "/app?" + loginState
+		if responseMode == constants.ResponseModeFragment {
+			loginURL = "/app#" + loginState
+		}
+
+		loginError := map[string]interface{}{
+			"error":             "login_required",
+			"error_description": "Login is required",
+		}
+
 		sessionToken, err := cookie.GetSession(gc)
 		if err != nil {
 			log.Debug("GetSession failed: ", err)
-			gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("login required. %v", err)})
+			handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
 			return
 		}
 
@@ -74,14 +91,17 @@ func AuthorizeHandler() gin.HandlerFunc {
 		claims, err := token.ValidateBrowserSession(gc, sessionToken)
 		if err != nil {
 			log.Debug("ValidateBrowserSession failed: ", err)
-			gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("login required. %v", err)})
+			handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
 			return
 		}
 		userID := claims.Subject
 		user, err := db.Provider.GetUserByID(gc, userID)
 		if err != nil {
 			log.Debug("GetUserByID failed: ", err)
-			gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("sign up required. %v", err)})
+			handleResponse(gc, responseMode, loginURL, redirectURI, map[string]interface{}{
+				"error":             "signup_required",
+				"error_description": "Sign up required",
+			}, http.StatusOK)
 			return
 		}
 
@@ -90,44 +110,34 @@ func AuthorizeHandler() gin.HandlerFunc {
 			sessionKey = claims.LoginMethod + ":" + user.ID
 		}
 
-		// used for response mode query or fragment
-		loginState := "state=" + state + "&scope=" + strings.Join(scope, " ") + "&redirect_uri=" + redirectURI
-		loginURL := "/app?" + loginState
-		if responseMode == constants.ResponseModeFragment {
-			loginURL = "/app#" + loginState
-		}
-
 		// rollover the session for security
 		go memorystore.Provider.DeleteUserSession(sessionKey, claims.Nonce)
-
-		// if user is logged in
-		// based on the response type code, generate the response
-		if isResponseTypeCode {
+		if responseType == constants.ResponseTypeCode {
 			nonce := uuid.New().String()
 			newSessionTokenData, newSessionToken, err := token.CreateSessionToken(user, nonce, claims.Roles, scope, claims.LoginMethod)
 			if err != nil {
-				if isQuery {
-					gc.Redirect(http.StatusFound, loginURL)
-				} else {
-					gc.HTML(http.StatusOK, template, gin.H{
-						"target_origin": redirectURI,
-						"authorization_response": map[string]interface{}{
-							"type": "authorization_response",
-							"response": map[string]string{
-								"error":             "login_required",
-								"error_description": "Login is required",
-							},
-						},
-					})
-				}
+				log.Debug("CreateSessionToken failed: ", err)
+				handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
 				return
 			}
 
-			memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+newSessionTokenData.Nonce, newSessionToken)
+			if err := memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+newSessionTokenData.Nonce, newSessionToken); err != nil {
+				log.Debug("SetUserSession failed: ", err)
+				handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
+				return
+			}
+
 			cookie.SetSession(gc, newSessionToken)
 			code := uuid.New().String()
-			memorystore.Provider.SetState(codeChallenge, code+"@"+newSessionToken)
-			gc.HTML(http.StatusOK, template, gin.H{
+			if err := memorystore.Provider.SetState(codeChallenge, code+"@"+newSessionToken); err != nil {
+				log.Debug("SetState failed: ", err)
+				handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
+				return
+			}
+
+			// in case, response type is code and user is already logged in send the code and state
+			// and cookie session will already be rolled over and set
+			gc.HTML(http.StatusOK, authorizeWebMessageTemplate, gin.H{
 				"target_origin": redirectURI,
 				"authorization_response": map[string]interface{}{
 					"type": "authorization_response",
@@ -140,29 +150,27 @@ func AuthorizeHandler() gin.HandlerFunc {
 			return
 		}
 
-		if isResponseTypeToken {
+		if responseType == constants.ResponseTypeToken {
 			// rollover the session for security
 			authToken, err := token.CreateAuthToken(gc, user, claims.Roles, scope, claims.LoginMethod)
 			if err != nil {
-				if isQuery {
-					gc.Redirect(http.StatusFound, loginURL)
-				} else {
-					gc.HTML(http.StatusOK, template, gin.H{
-						"target_origin": redirectURI,
-						"authorization_response": map[string]interface{}{
-							"type": "authorization_response",
-							"response": map[string]string{
-								"error":             "login_required",
-								"error_description": "Login is required",
-							},
-						},
-					})
-				}
+				log.Debug("CreateAuthToken failed: ", err)
+				handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
 				return
 			}
 
-			memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash)
-			memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token)
+			if err := memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash); err != nil {
+				log.Debug("SetUserSession failed: ", err)
+				handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
+				return
+			}
+
+			if err := memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token); err != nil {
+				log.Debug("SetUserSession failed: ", err)
+				handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
+				return
+			}
+
 			cookie.SetSession(gc, authToken.FingerPrintHash)
 
 			expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
@@ -188,39 +196,28 @@ func AuthorizeHandler() gin.HandlerFunc {
 				memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token)
 			}
 
-			if isQuery {
+			if responseMode == constants.ResponseModeQuery {
 				if strings.Contains(redirectURI, "?") {
-					gc.Redirect(http.StatusFound, redirectURI+"&"+params)
+					redirectURI = redirectURI + "&" + params
 				} else {
-					gc.Redirect(http.StatusFound, redirectURI+"?"+params)
+					redirectURI = redirectURI + "?" + params
 				}
-			} else {
-				gc.HTML(http.StatusOK, template, gin.H{
-					"target_origin": redirectURI,
-					"authorization_response": map[string]interface{}{
-						"type":     "authorization_response",
-						"response": res,
-					},
-				})
+			} else if responseMode == constants.ResponseModeFragment {
+				if strings.Contains(redirectURI, "#") {
+					redirectURI = redirectURI + "&" + params
+				} else {
+					redirectURI = redirectURI + "#" + params
+				}
 			}
+
+			handleResponse(gc, responseMode, loginURL, redirectURI, map[string]interface{}{
+				"type":     "authorization_response",
+				"response": res,
+			}, http.StatusOK)
 			return
 		}
 
-		if isQuery {
-			gc.Redirect(http.StatusFound, loginURL)
-		} else {
-			// by default return with error
-			gc.HTML(http.StatusOK, template, gin.H{
-				"target_origin": redirectURI,
-				"authorization_response": map[string]interface{}{
-					"type": "authorization_response",
-					"response": map[string]string{
-						"error":             "login_required",
-						"error_description": "Login is required",
-					},
-				},
-			})
-		}
+		handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
 	}
 }
 
@@ -230,7 +227,7 @@ func validateAuthorizeRequest(responseType, responseMode, clientID, state, codeC
 	}
 
 	if responseMode != constants.ResponseModeQuery && responseMode != constants.ResponseModeWebMessage && responseMode != constants.ResponseModeFragment && responseMode != constants.ResponseModeFormPost {
-		return fmt.Errorf("invalid response mode %s. 'query', 'fragment', 'form_post' and 'web_message' are valid response_mode")
+		return fmt.Errorf("invalid response mode %s. 'query', 'fragment', 'form_post' and 'web_message' are valid response_mode", responseMode)
 	}
 
 	if responseType == constants.ResponseTypeCode && strings.TrimSpace(codeChallenge) == "" {
@@ -246,4 +243,35 @@ func validateAuthorizeRequest(responseType, responseMode, clientID, state, codeC
 	}
 
 	return nil
+}
+
+func handleResponse(gc *gin.Context, responseMode, loginURI, redirectURI string, data map[string]interface{}, httpStatusCode int) {
+	isAuthenticationRequired := false
+	if val, ok := data["error"]; ok {
+		if val == "login_required" || val == "signup_required" {
+			isAuthenticationRequired = true
+		}
+	}
+
+	switch responseMode {
+	case constants.ResponseModeQuery, constants.ResponseModeFragment:
+		if isAuthenticationRequired {
+			gc.Redirect(http.StatusFound, loginURI)
+		} else {
+			gc.Redirect(http.StatusFound, redirectURI)
+		}
+		return
+	case constants.ResponseModeWebMessage:
+		gc.HTML(httpStatusCode, authorizeWebMessageTemplate, gin.H{
+			"target_origin":          redirectURI,
+			"authorization_response": data,
+		})
+		return
+	case constants.ResponseModeFormPost:
+		gc.HTML(httpStatusCode, authorizeFormPostTemplate, gin.H{
+			"target_origin":          redirectURI,
+			"authorization_response": data,
+		})
+		return
+	}
 }
