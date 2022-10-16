@@ -20,7 +20,7 @@ func OpenIDConfigurationHandler() gin.HandlerFunc {
 			"token_endpoint":                        issuer + "/token",
 			"userinfo_endpoint":                     issuer + "/userinfo",
 			"jwks_uri":                              issuer + "/.well-known/jwks.json",
-			"response_types_supported":              []string{"code", "token", "id_token", "code token", "code id_token", "token id_token", "code token id_token"},
+			"response_types_supported":              []string{"code", "token", "id_token"},
 			"scopes_supported":                      []string{"openid", "email", "profile", "email_verified", "given_name", "family_name", "nick_name", "picture"},
 			"response_modes_supported":              []string{"query", "fragment", "form_post", "web_message"},
 			"id_token_signing_alg_values_supported": []string{jwtType},

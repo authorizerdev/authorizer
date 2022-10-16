@@ -137,29 +137,50 @@ func AuthorizeHandler() gin.HandlerFunc {
 
 			// in case, response type is code and user is already logged in send the code and state
 			// and cookie session will already be rolled over and set
-			if responseMode == constants.ResponseModeFormPost {
-				gc.HTML(http.StatusOK, authorizeFormPostTemplate, gin.H{
-					"target_origin": redirectURI,
-					"authorization_response": map[string]interface{}{
-						"type": "authorization_response",
-						"response": map[string]string{
-							"code":  code,
-							"state": state,
-						},
-					},
-				})
-			} else {
-				gc.HTML(http.StatusOK, authorizeWebMessageTemplate, gin.H{
-					"target_origin": redirectURI,
-					"authorization_response": map[string]interface{}{
-						"type": "authorization_response",
-						"response": map[string]string{
-							"code":  code,
-							"state": state,
-						},
-					},
-				})
+			// if responseMode == constants.ResponseModeFormPost {
+			// 	gc.HTML(http.StatusOK, authorizeFormPostTemplate, gin.H{
+			// 		"target_origin": redirectURI,
+			// 		"authorization_response": map[string]interface{}{
+			// 			"type": "authorization_response",
+			// 			"response": map[string]string{
+			// 				"code":  code,
+			// 				"state": state,
+			// 			},
+			// 		},
+			// 	})
+			// } else {
+			// 	gc.HTML(http.StatusOK, authorizeWebMessageTemplate, gin.H{
+			// 		"target_origin": redirectURI,
+			// 		"authorization_response": map[string]interface{}{
+			// 			"type": "authorization_response",
+			// 			"response": map[string]string{
+			// 				"code":  code,
+			// 				"state": state,
+			// 			},
+			// 		},
+			// 	})
+			// }
+
+			params := "code=" + code + "&state=" + state
+
+			if responseMode == constants.ResponseModeQuery {
+				if strings.Contains(redirectURI, "?") {
+					redirectURI = redirectURI + "&" + params
+				} else {
+					redirectURI = redirectURI + "?" + params
+				}
+			} else if responseMode == constants.ResponseModeFragment {
+				if strings.Contains(redirectURI, "#") {
+					redirectURI = redirectURI + "&" + params
+				} else {
+					redirectURI = redirectURI + "#" + params
+				}
 			}
+
+			handleResponse(gc, responseMode, loginURL, redirectURI, map[string]interface{}{
+				"code":  code,
+				"state": state,
+			}, http.StatusOK)
 
 			return
 		}
