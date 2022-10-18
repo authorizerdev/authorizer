@@ -106,6 +106,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 			handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
 			return
 		}
+
 		userID := claims.Subject
 		user, err := db.Provider.GetUserByID(gc, userID)
 		if err != nil {
@@ -286,7 +287,7 @@ func validateAuthorizeRequest(responseType, responseMode, clientID, state, codeC
 
 func handleResponse(gc *gin.Context, responseMode, loginURI, redirectURI string, data map[string]interface{}, httpStatusCode int) {
 	isAuthenticationRequired := false
-	if _, ok := data["error"]; ok {
+	if _, ok := data["response"].(map[string]string)["error"]; ok {
 		isAuthenticationRequired = true
 	}
 
