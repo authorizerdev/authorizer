@@ -86,7 +86,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 
 		loginError := map[string]interface{}{
 			"type": "authorization_response",
-			"response": map[string]string{
+			"response": map[string]interface{}{
 				"error":             "login_required",
 				"error_description": "Login is required",
 			},
@@ -113,7 +113,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 			log.Debug("GetUserByID failed: ", err)
 			handleResponse(gc, responseMode, loginURL, redirectURI, map[string]interface{}{
 				"type": "authorization_response",
-				"response": map[string]string{
+				"response": map[string]interface{}{
 					"error":             "signup_required",
 					"error_description": "Sign up required",
 				},
@@ -181,7 +181,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 
 			handleResponse(gc, responseMode, loginURL, redirectURI, map[string]interface{}{
 				"type": "authorization_response",
-				"response": map[string]string{
+				"response": map[string]interface{}{
 					"code":  code,
 					"state": state,
 				},
@@ -287,7 +287,7 @@ func validateAuthorizeRequest(responseType, responseMode, clientID, state, codeC
 
 func handleResponse(gc *gin.Context, responseMode, loginURI, redirectURI string, data map[string]interface{}, httpStatusCode int) {
 	isAuthenticationRequired := false
-	if _, ok := data["response"].(map[string]string)["error"]; ok {
+	if _, ok := data["response"].(map[string]interface{})["error"]; ok {
 		isAuthenticationRequired = true
 	}
 
@@ -308,7 +308,7 @@ func handleResponse(gc *gin.Context, responseMode, loginURI, redirectURI string,
 	case constants.ResponseModeFormPost:
 		gc.HTML(httpStatusCode, authorizeFormPostTemplate, gin.H{
 			"target_origin":          redirectURI,
-			"authorization_response": data,
+			"authorization_response": data["response"],
 		})
 		return
 	}
