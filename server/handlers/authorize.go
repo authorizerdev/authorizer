@@ -180,8 +180,11 @@ func AuthorizeHandler() gin.HandlerFunc {
 			// }
 
 			handleResponse(gc, responseMode, loginURL, redirectURI, map[string]interface{}{
-				"code":  code,
-				"state": state,
+				"type": "authorization_response",
+				"response": map[string]string{
+					"code":  code,
+					"state": state,
+				},
 			}, http.StatusOK)
 
 			return
