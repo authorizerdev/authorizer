@@ -163,21 +163,20 @@ func AuthorizeHandler() gin.HandlerFunc {
 			// 	},
 			// })
 
-			// params := "code=" + code + "&state=" + state
-
-			// if responseMode == constants.ResponseModeQuery {
-			// 	if strings.Contains(redirectURI, "?") {
-			// 		redirectURI = redirectURI + "&" + params
-			// 	} else {
-			// 		redirectURI = redirectURI + "?" + params
-			// 	}
-			// } else if responseMode == constants.ResponseModeFragment {
-			// 	if strings.Contains(redirectURI, "#") {
-			// 		redirectURI = redirectURI + "&" + params
-			// 	} else {
-			// 		redirectURI = redirectURI + "#" + params
-			// 	}
-			// }
+			params := "code=" + code + "&state=" + state
+			if responseMode == constants.ResponseModeQuery {
+				if strings.Contains(redirectURI, "?") {
+					redirectURI = redirectURI + "&" + params
+				} else {
+					redirectURI = redirectURI + "?" + params
+				}
+			} else if responseMode == constants.ResponseModeFragment {
+				if strings.Contains(redirectURI, "#") {
+					redirectURI = redirectURI + "&" + params
+				} else {
+					redirectURI = redirectURI + "#" + params
+				}
+			}
 
 			handleResponse(gc, responseMode, loginURL, redirectURI, map[string]interface{}{
 				"type": "authorization_response",
