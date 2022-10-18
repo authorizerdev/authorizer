@@ -64,7 +64,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 
 		if err := validateAuthorizeRequest(responseType, responseMode, clientID, state, codeChallenge); err != nil {
 			log.Debug("invalid authorization request: ", err)
-			gc.JSON(http.StatusBadRequest, gin.H{"error": err})
+			gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
@@ -268,10 +268,6 @@ func validateAuthorizeRequest(responseType, responseMode, clientID, state, codeC
 
 	if responseMode != constants.ResponseModeQuery && responseMode != constants.ResponseModeWebMessage && responseMode != constants.ResponseModeFragment && responseMode != constants.ResponseModeFormPost {
 		return fmt.Errorf("invalid response mode %s. 'query', 'fragment', 'form_post' and 'web_message' are valid response_mode", responseMode)
-	}
-
-	if responseType == constants.ResponseTypeCode && strings.TrimSpace(codeChallenge) == "" {
-		return fmt.Errorf("code_challenge is required for %s '%s'", responseType, constants.ResponseTypeCode)
 	}
 
 	if client, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyClientID); client != clientID || err != nil {
