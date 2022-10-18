@@ -152,16 +152,16 @@ func AuthorizeHandler() gin.HandlerFunc {
 
 			// in case, response type is code and user is already logged in send the code and state
 			// and cookie session will already be rolled over and set
-			gc.HTML(http.StatusOK, authorizeWebMessageTemplate, gin.H{
-				"target_origin": redirectURI,
-				"authorization_response": map[string]interface{}{
-					"type": "authorization_response",
-					"response": map[string]string{
-						"code":  code,
-						"state": state,
-					},
-				},
-			})
+			// gc.HTML(http.StatusOK, authorizeWebMessageTemplate, gin.H{
+			// 	"target_origin": redirectURI,
+			// 	"authorization_response": map[string]interface{}{
+			// 		"type": "authorization_response",
+			// 		"response": map[string]string{
+			// 			"code":  code,
+			// 			"state": state,
+			// 		},
+			// 	},
+			// })
 
 			// params := "code=" + code + "&state=" + state
 
@@ -179,10 +179,10 @@ func AuthorizeHandler() gin.HandlerFunc {
 			// 	}
 			// }
 
-			// handleResponse(gc, responseMode, loginURL, redirectURI, map[string]interface{}{
-			// 	"code":  code,
-			// 	"state": state,
-			// }, http.StatusOK)
+			handleResponse(gc, responseMode, loginURL, redirectURI, map[string]interface{}{
+				"code":  code,
+				"state": state,
+			}, http.StatusOK)
 
 			return
 		}
