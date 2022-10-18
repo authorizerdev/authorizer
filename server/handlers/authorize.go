@@ -80,8 +80,30 @@ func AuthorizeHandler() gin.HandlerFunc {
 		// used for response mode query or fragment
 		loginState := "state=" + state + "&scope=" + strings.Join(scope, " ") + "&redirect_uri=" + redirectURI
 		loginURL := "/app?" + loginState
+
 		if responseMode == constants.ResponseModeFragment {
 			loginURL = "/app#" + loginState
+		}
+
+		if state == "" {
+			handleResponse(gc, responseMode, loginURL, redirectURI, map[string]interface{}{
+				"type": "authorization_response",
+				"response": map[string]interface{}{
+					"error":             "state_required",
+					"error_description": "state is required",
+				},
+			}, http.StatusOK)
+			return
+		}
+
+		if responseType == constants.ResponseTypeCode && codeChallenge == "" {
+			handleResponse(gc, responseMode, loginURL, redirectURI, map[string]interface{}{
+				"type": "authorization_response",
+				"response": map[string]interface{}{
+					"error":             "code_challenge_required",
+					"error_description": "code challenge is required",
+				},
+			}, http.StatusOK)
 		}
 
 		loginError := map[string]interface{}{
@@ -91,7 +113,6 @@ func AuthorizeHandler() gin.HandlerFunc {
 				"error_description": "Login is required",
 			},
 		}
-
 		sessionToken, err := cookie.GetSession(gc)
 		if err != nil {
 			log.Debug("GetSession failed: ", err)
@@ -272,10 +293,6 @@ func validateAuthorizeRequest(responseType, responseMode, clientID, state, codeC
 
 	if client, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyClientID); client != clientID || err != nil {
 		return fmt.Errorf("invalid client_id %s", clientID)
-	}
-
-	if strings.TrimSpace(state) == "" {
-		return fmt.Errorf("state is required")
 	}
 
 	return nil
