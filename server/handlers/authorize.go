@@ -68,6 +68,15 @@ func AuthorizeHandler() gin.HandlerFunc {
 			return
 		}
 
+		log := log.WithFields(log.Fields{
+			"response_mode":  responseMode,
+			"response_type":  responseType,
+			"state":          state,
+			"code_challenge": codeChallenge,
+			"scope":          scope,
+			"redirect_uri":   redirectURI,
+		})
+
 		// used for response mode query or fragment
 		loginState := "state=" + state + "&scope=" + strings.Join(scope, " ") + "&redirect_uri=" + redirectURI
 		loginURL := "/app?" + loginState
@@ -76,8 +85,11 @@ func AuthorizeHandler() gin.HandlerFunc {
 		}
 
 		loginError := map[string]interface{}{
-			"error":             "login_required",
-			"error_description": "Login is required",
+			"type": "authorization_response",
+			"response": map[string]string{
+				"error":             "login_required",
+				"error_description": "Login is required",
+			},
 		}
 
 		sessionToken, err := cookie.GetSession(gc)
@@ -99,8 +111,11 @@ func AuthorizeHandler() gin.HandlerFunc {
 		if err != nil {
 			log.Debug("GetUserByID failed: ", err)
 			handleResponse(gc, responseMode, loginURL, redirectURI, map[string]interface{}{
-				"error":             "signup_required",
-				"error_description": "Sign up required",
+				"type": "authorization_response",
+				"response": map[string]string{
+					"error":             "signup_required",
+					"error_description": "Sign up required",
+				},
 			}, http.StatusOK)
 			return
 		}
@@ -137,50 +152,37 @@ func AuthorizeHandler() gin.HandlerFunc {
 
 			// in case, response type is code and user is already logged in send the code and state
 			// and cookie session will already be rolled over and set
-			// if responseMode == constants.ResponseModeFormPost {
-			// 	gc.HTML(http.StatusOK, authorizeFormPostTemplate, gin.H{
-			// 		"target_origin": redirectURI,
-			// 		"authorization_response": map[string]interface{}{
-			// 			"type": "authorization_response",
-			// 			"response": map[string]string{
-			// 				"code":  code,
-			// 				"state": state,
-			// 			},
-			// 		},
-			// 	})
-			// } else {
-			// 	gc.HTML(http.StatusOK, authorizeWebMessageTemplate, gin.H{
-			// 		"target_origin": redirectURI,
-			// 		"authorization_response": map[string]interface{}{
-			// 			"type": "authorization_response",
-			// 			"response": map[string]string{
-			// 				"code":  code,
-			// 				"state": state,
-			// 			},
-			// 		},
-			// 	})
+			gc.HTML(http.StatusOK, authorizeWebMessageTemplate, gin.H{
+				"target_origin": redirectURI,
+				"authorization_response": map[string]interface{}{
+					"type": "authorization_response",
+					"response": map[string]string{
+						"code":  code,
+						"state": state,
+					},
+				},
+			})
+
+			// params := "code=" + code + "&state=" + state
+
+			// if responseMode == constants.ResponseModeQuery {
+			// 	if strings.Contains(redirectURI, "?") {
+			// 		redirectURI = redirectURI + "&" + params
+			// 	} else {
+			// 		redirectURI = redirectURI + "?" + params
+			// 	}
+			// } else if responseMode == constants.ResponseModeFragment {
+			// 	if strings.Contains(redirectURI, "#") {
+			// 		redirectURI = redirectURI + "&" + params
+			// 	} else {
+			// 		redirectURI = redirectURI + "#" + params
+			// 	}
 			// }
 
-			params := "code=" + code + "&state=" + state
-
-			if responseMode == constants.ResponseModeQuery {
-				if strings.Contains(redirectURI, "?") {
-					redirectURI = redirectURI + "&" + params
-				} else {
-					redirectURI = redirectURI + "?" + params
-				}
-			} else if responseMode == constants.ResponseModeFragment {
-				if strings.Contains(redirectURI, "#") {
-					redirectURI = redirectURI + "&" + params
-				} else {
-					redirectURI = redirectURI + "#" + params
-				}
-			}
-
-			handleResponse(gc, responseMode, loginURL, redirectURI, map[string]interface{}{
-				"code":  code,
-				"state": state,
-			}, http.StatusOK)
+			// handleResponse(gc, responseMode, loginURL, redirectURI, map[string]interface{}{
+			// 	"code":  code,
+			// 	"state": state,
+			// }, http.StatusOK)
 
 			return
 		}
@@ -282,10 +284,8 @@ func validateAuthorizeRequest(responseType, responseMode, clientID, state, codeC
 
 func handleResponse(gc *gin.Context, responseMode, loginURI, redirectURI string, data map[string]interface{}, httpStatusCode int) {
 	isAuthenticationRequired := false
-	if val, ok := data["error"]; ok {
-		if val == "login_required" || val == "signup_required" {
-			isAuthenticationRequired = true
-		}
+	if _, ok := data["error"]; ok {
+		isAuthenticationRequired = true
 	}
 
 	switch responseMode {
