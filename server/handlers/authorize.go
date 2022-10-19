@@ -77,8 +77,11 @@ func AuthorizeHandler() gin.HandlerFunc {
 			"redirect_uri":   redirectURI,
 		})
 
+		code := uuid.New().String()
+		memorystore.Provider.SetState(codeChallenge, code)
+
 		// used for response mode query or fragment
-		loginState := "state=" + state + "&scope=" + strings.Join(scope, " ") + "&redirect_uri=" + redirectURI
+		loginState := "state=" + state + "&scope=" + strings.Join(scope, " ") + "&redirect_uri=" + redirectURI + "&code=" + code
 		loginURL := "/app?" + loginState
 
 		if responseMode == constants.ResponseModeFragment {
@@ -155,7 +158,6 @@ func AuthorizeHandler() gin.HandlerFunc {
 			return
 		}
 
-		code := uuid.New().String()
 		if err := memorystore.Provider.SetState(codeChallenge, code+"@"+newSessionToken); err != nil {
 			log.Debug("SetState failed: ", err)
 			handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
