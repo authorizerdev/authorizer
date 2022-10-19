@@ -22,7 +22,7 @@ import (
 func TokenHandler() gin.HandlerFunc {
 	return func(gc *gin.Context) {
 		var reqBody map[string]string
-		if err := gc.BindJSON(&reqBody); err != nil {
+		if err := gc.Bind(&reqBody); err != nil {
 			log.Debug("Error binding JSON: ", err)
 			gc.JSON(http.StatusBadRequest, gin.H{
 				"error":             "error_binding_json",
