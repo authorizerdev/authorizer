@@ -241,7 +241,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 			}
 
 			// used of query mode
-			params := "access_token=" + authToken.AccessToken.Token + "&token_type=bearer&expires_in=" + strconv.FormatInt(expiresIn, 10) + "&state=" + state + "&id_token=" + authToken.IDToken.Token
+			params := "access_token=" + authToken.AccessToken.Token + "&token_type=bearer&expires_in=" + strconv.FormatInt(expiresIn, 10) + "&state=" + state + "&id_token=" + authToken.IDToken.Token + "&code=" + code
 
 			res := map[string]interface{}{
 				"access_token": authToken.AccessToken.Token,
