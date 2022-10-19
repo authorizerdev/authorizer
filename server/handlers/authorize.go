@@ -147,17 +147,24 @@ func AuthorizeHandler() gin.HandlerFunc {
 			sessionKey = claims.LoginMethod + ":" + user.ID
 		}
 
+		nonce := uuid.New().String()
+		newSessionTokenData, newSessionToken, err := token.CreateSessionToken(user, nonce, claims.Roles, scope, claims.LoginMethod)
+		if err != nil {
+			log.Debug("CreateSessionToken failed: ", err)
+			handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
+			return
+		}
+
+		code := uuid.New().String()
+		if err := memorystore.Provider.SetState(codeChallenge, code+"@"+newSessionToken); err != nil {
+			log.Debug("SetState failed: ", err)
+			handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
+			return
+		}
+
 		// rollover the session for security
 		go memorystore.Provider.DeleteUserSession(sessionKey, claims.Nonce)
 		if responseType == constants.ResponseTypeCode {
-			nonce := uuid.New().String()
-			newSessionTokenData, newSessionToken, err := token.CreateSessionToken(user, nonce, claims.Roles, scope, claims.LoginMethod)
-			if err != nil {
-				log.Debug("CreateSessionToken failed: ", err)
-				handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
-				return
-			}
-
 			if err := memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+newSessionTokenData.Nonce, newSessionToken); err != nil {
 				log.Debug("SetUserSession failed: ", err)
 				handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
@@ -165,12 +172,6 @@ func AuthorizeHandler() gin.HandlerFunc {
 			}
 
 			cookie.SetSession(gc, newSessionToken)
-			code := uuid.New().String()
-			if err := memorystore.Provider.SetState(codeChallenge, code+"@"+newSessionToken); err != nil {
-				log.Debug("SetState failed: ", err)
-				handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
-				return
-			}
 
 			// in case, response type is code and user is already logged in send the code and state
 			// and cookie session will already be rolled over and set
@@ -249,6 +250,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 				"scope":        scope,
 				"token_type":   "Bearer",
 				"expires_in":   expiresIn,
+				"code":         code,
 			}
 
 			if authToken.RefreshToken != nil {
