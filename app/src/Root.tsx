@@ -39,6 +39,7 @@ export default function Root({
 		? searchParams.get('scope')?.toString().split(' ')
 		: ['openid', 'profile', 'email'];
 	const code = searchParams.get('code') || ''
+	const nonce = searchParams.get('nonce') || ''
 
 	const urlProps: Record<string, any> = {
 		state,
@@ -62,6 +63,10 @@ export default function Root({
 
 			if (code !== '') {
 				params += `&code=${code}`
+			}
+
+			if (nonce !== '') {
+				params += `&nonce=${nonce}`
 			}
 
 			if (token.refresh_token) {

@@ -85,7 +85,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 		memorystore.Provider.SetState(codeChallenge, code)
 
 		// used for response mode query or fragment
-		loginState := "state=" + state + "&scope=" + strings.Join(scope, " ") + "&redirect_uri=" + redirectURI + "&code=" + code
+		loginState := "state=" + state + "&scope=" + strings.Join(scope, " ") + "&redirect_uri=" + redirectURI + "&code=" + code + "&nonce=" + nonce
 		loginURL := "/app?" + loginState
 
 		if responseMode == constants.ResponseModeFragment {
@@ -191,7 +191,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 			// 	},
 			// })
 
-			params := "code=" + code + "&state=" + state
+			params := "code=" + code + "&state=" + state + "&nonce=" + nonce
 			if responseMode == constants.ResponseModeQuery {
 				if strings.Contains(redirectURI, "?") {
 					redirectURI = redirectURI + "&" + params
@@ -246,7 +246,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 			}
 
 			// used of query mode
-			params := "access_token=" + authToken.AccessToken.Token + "&token_type=bearer&expires_in=" + strconv.FormatInt(expiresIn, 10) + "&state=" + state + "&id_token=" + authToken.IDToken.Token + "&code=" + code
+			params := "access_token=" + authToken.AccessToken.Token + "&token_type=bearer&expires_in=" + strconv.FormatInt(expiresIn, 10) + "&state=" + state + "&id_token=" + authToken.IDToken.Token + "&code=" + code + "&nonce=" + nonce
 
 			res := map[string]interface{}{
 				"access_token": authToken.AccessToken.Token,
@@ -256,6 +256,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 				"token_type":   "Bearer",
 				"expires_in":   expiresIn,
 				"code":         code,
+				"nonce":        nonce,
 			}
 
 			if authToken.RefreshToken != nil {
