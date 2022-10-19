@@ -42,6 +42,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 		scopeString := strings.TrimSpace(gc.Query("scope"))
 		clientID := strings.TrimSpace(gc.Query("client_id"))
 		responseMode := strings.TrimSpace(gc.Query("response_mode"))
+		nonce := strings.TrimSpace(gc.Query("nonce"))
 
 		var scope []string
 		if scopeString == "" {
@@ -78,11 +79,13 @@ func AuthorizeHandler() gin.HandlerFunc {
 		})
 
 		code := uuid.New().String()
-		nonce := uuid.New().String()
+		if nonce == "" {
+			nonce = uuid.New().String()
+		}
 		memorystore.Provider.SetState(codeChallenge, code)
 
 		// used for response mode query or fragment
-		loginState := "state=" + state + "&scope=" + strings.Join(scope, " ") + "&redirect_uri=" + redirectURI + "&code=" + code + "&nonce=" + nonce
+		loginState := "state=" + state + "&scope=" + strings.Join(scope, " ") + "&redirect_uri=" + redirectURI + "&code=" + code
 		loginURL := "/app?" + loginState
 
 		if responseMode == constants.ResponseModeFragment {
