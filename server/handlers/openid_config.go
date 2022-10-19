@@ -17,7 +17,7 @@ func OpenIDConfigurationHandler() gin.HandlerFunc {
 		c.JSON(200, gin.H{
 			"issuer":                                issuer,
 			"authorization_endpoint":                issuer + "/authorize",
-			"token_endpoint":                        issuer + "/token",
+			"token_endpoint":                        issuer + "/oauth/token",
 			"userinfo_endpoint":                     issuer + "/userinfo",
 			"jwks_uri":                              issuer + "/.well-known/jwks.json",
 			"response_types_supported":              []string{"code", "token", "id_token"},
