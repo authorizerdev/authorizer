@@ -38,6 +38,7 @@ export default function Root({
 	const scope = searchParams.get('scope')
 		? searchParams.get('scope')?.toString().split(' ')
 		: ['openid', 'profile', 'email'];
+	const code = searchParams.get('code')
 
 	const urlProps: Record<string, any> = {
 		state,
@@ -58,6 +59,10 @@ export default function Root({
 		if (token) {
 			let redirectURL = config.redirectURL || '/app';
 			let params = `access_token=${token.access_token}&id_token=${token.id_token}&expires_in=${token.expires_in}&state=${globalState.state}`;
+
+			if (code) {
+				params += `&code=${code}`
+			}
 			if (token.refresh_token) {
 				params += `&refresh_token=${token.refresh_token}`;
 			}

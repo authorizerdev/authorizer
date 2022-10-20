@@ -58,8 +58,9 @@ func AuthorizeHandler() gin.HandlerFunc {
 		}
 
 		isQuery := responseMode == "query"
+		code := uuid.New().String()
 
-		loginURL := "/app?state=" + state + "&scope=" + strings.Join(scope, " ") + "&redirect_uri=" + redirectURI
+		loginURL := "/app?state=" + state + "&scope=" + strings.Join(scope, " ") + "&redirect_uri=" + redirectURI + "&code=" + code
 
 		if clientID == "" {
 			if isQuery {
@@ -250,7 +251,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 
 			memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+newSessionTokenData.Nonce, newSessionToken)
 			cookie.SetSession(gc, newSessionToken)
-			code := uuid.New().String()
+
 			memorystore.Provider.SetState(codeChallenge, code+"@"+newSessionToken)
 			gc.HTML(http.StatusOK, template, gin.H{
 				"target_origin": redirectURI,
@@ -297,7 +298,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 			}
 
 			// used of query mode
-			params := "access_token=" + authToken.AccessToken.Token + "&token_type=bearer&expires_in=" + strconv.FormatInt(expiresIn, 10) + "&state=" + state + "&id_token=" + authToken.IDToken.Token
+			params := "access_token=" + authToken.AccessToken.Token + "&token_type=bearer&expires_in=" + strconv.FormatInt(expiresIn, 10) + "&state=" + state + "&id_token=" + authToken.IDToken.Token + "&code=" + code
 
 			res := map[string]interface{}{
 				"access_token": authToken.AccessToken.Token,
@@ -306,6 +307,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 				"scope":        scope,
 				"token_type":   "Bearer",
 				"expires_in":   expiresIn,
+				"code":         code,
 			}
 
 			if authToken.RefreshToken != nil {
