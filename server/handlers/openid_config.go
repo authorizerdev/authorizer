@@ -24,7 +24,7 @@ func OpenIDConfigurationHandler() gin.HandlerFunc {
 			"scopes_supported":                      []string{"openid", "email", "profile", "email_verified", "given_name", "family_name", "nick_name", "picture"},
 			"response_modes_supported":              []string{"query", "fragment", "form_post", "web_message"},
 			"id_token_signing_alg_values_supported": []string{jwtType},
-			"claims_supported":                      []string{"aud", "exp", "iss", "iat", "sub", "given_name", "family_name", "middle_name", "nickname", "preferred_username", "picture", "email", "email_verified", "roles", "gender", "birthdate", "phone_number", "phone_number_verified", "nonce"},
+			"claims_supported":                      []string{"aud", "exp", "iss", "iat", "sub", "given_name", "family_name", "middle_name", "nickname", "preferred_username", "picture", "email", "email_verified", "roles", "role", "gender", "birthdate", "phone_number", "phone_number_verified", "nonce", "updated_at", "created_at", "revoked_timestamp", "login_method", "signup_methods", "token_type"},
 		})
 	}
 }
