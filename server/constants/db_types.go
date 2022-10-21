@@ -25,4 +25,6 @@ const (
 	DbTypeCockroachDB = "cockroachdb"
 	// DbTypePlanetScaleDB is the planetscale database type
 	DbTypePlanetScaleDB = "planetscale"
+	// DbTypeDynamoDB is the Dynamo database type
+	DbTypeDynamoDB = "dynamodb"
 )

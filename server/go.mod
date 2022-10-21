@@ -5,6 +5,7 @@ go 1.16
 require (
 	github.com/99designs/gqlgen v0.17.20
 	github.com/arangodb/go-driver v1.2.1
+	github.com/aws/aws-sdk-go v1.44.109
 	github.com/coreos/go-oidc/v3 v3.1.0
 	github.com/gin-gonic/gin v1.8.1
 	github.com/go-playground/validator/v10 v10.11.1 // indirect
@@ -14,6 +15,7 @@ require (
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/uuid v1.3.0
+	github.com/guregu/dynamo v1.16.0
 	github.com/joho/godotenv v1.3.0
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/pelletier/go-toml/v2 v2.0.5 // indirect

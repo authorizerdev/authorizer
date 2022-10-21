@@ -77,6 +77,9 @@ func InitAllEnv() error {
 	osResetPasswordURL := os.Getenv(constants.EnvKeyResetPasswordURL)
 	osOrganizationName := os.Getenv(constants.EnvKeyOrganizationName)
 	osOrganizationLogo := os.Getenv(constants.EnvKeyOrganizationLogo)
+	osAwsRegion := os.Getenv(constants.EnvAwsRegion)
+	osAwsAccessKey := os.Getenv(constants.EnvAwsAccessKeyID)
+	osAwsSecretKey := os.Getenv(constants.EnvAwsSecretAccessKey)
 
 	// os bool vars
 	osAppCookieSecure := os.Getenv(constants.EnvKeyAppCookieSecure)
@@ -117,6 +120,27 @@ func InitAllEnv() error {
 		} else {
 			envData[constants.EnvKeyIsProd] = false
 		}
+	}
+
+	if val, ok := envData[constants.EnvAwsRegion]; !ok || val == "" {
+		envData[constants.EnvAwsRegion] = osAwsRegion
+	}
+	if osAwsRegion != "" && envData[constants.EnvAwsRegion] != osAwsRegion {
+		envData[constants.EnvAwsRegion] = osAwsRegion
+	}
+
+	if val, ok := envData[constants.EnvAwsAccessKeyID]; !ok || val == "" {
+		envData[constants.EnvAwsAccessKeyID] = osAwsAccessKey
+	}
+	if osAwsAccessKey != "" && envData[constants.EnvAwsAccessKeyID] != osAwsRegion {
+		envData[constants.EnvAwsAccessKeyID] = osAwsAccessKey
+	}
+
+	if val, ok := envData[constants.EnvAwsSecretAccessKey]; !ok || val == "" {
+		envData[constants.EnvAwsSecretAccessKey] = osAwsSecretKey
+	}
+	if osAwsSecretKey != "" && envData[constants.EnvAwsSecretAccessKey] != osAwsRegion {
+		envData[constants.EnvAwsSecretAccessKey] = osAwsSecretKey
 	}
 
 	if val, ok := envData[constants.EnvKeyAppURL]; !ok || val == "" {
