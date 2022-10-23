@@ -169,3 +169,12 @@ export const WebhookLogsQuery = `
     }
   }
 `;
+
+export const GetAvailableRolesQuery = `
+  query {
+    _env {
+      ROLES
+      PROTECTED_ROLES
+    }
+  }
+`;
