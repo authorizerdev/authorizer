@@ -28,6 +28,10 @@ type RequiredEnv struct {
 	DatabaseCACert     string `json:"DATABASE_CA_CERT"`
 	RedisURL           string `json:"REDIS_URL"`
 	DisableRedisForEnv bool   `json:"DISABLE_REDIS_FOR_ENV"`
+	// AWS Related Envs
+	AwsRegion          string `json:"AWS_REGION"`
+	AwsAccessKeyID     string `json:"AWS_ACCESS_KEY_ID"`
+	AwsSecretAccessKey string `json:"AWS_SECRET_ACCESS_KEY"`
 }
 
 // RequiredEnvObj is a simple in-memory store for sessions.
@@ -53,7 +57,8 @@ func (r *RequiredEnvStore) SetRequiredEnv(requiredEnv RequiredEnv) {
 
 var RequiredEnvStoreObj *RequiredEnvStore
 
-// InitRequiredEnv to initialize EnvData and through error if required env are not present
+// InitRequiredEnv to initialize EnvData and throw error if required env are not present
+// This includes env that only configurable via env vars and not the ui
 func InitRequiredEnv() error {
 	envPath := os.Getenv(constants.EnvKeyEnvPath)
 
@@ -85,6 +90,9 @@ func InitRequiredEnv() error {
 	dbCACert := os.Getenv(constants.EnvKeyDatabaseCACert)
 	redisURL := os.Getenv(constants.EnvKeyRedisURL)
 	disableRedisForEnv := os.Getenv(constants.EnvKeyDisableRedisForEnv) == "true"
+	awsRegion := os.Getenv(constants.EnvAwsRegion)
+	awsAccessKeyID := os.Getenv(constants.EnvAwsAccessKeyID)
+	awsSecretAccessKey := os.Getenv(constants.EnvAwsSecretAccessKey)
 
 	if strings.TrimSpace(redisURL) == "" {
 		if cli.ARG_REDIS_URL != nil && *cli.ARG_REDIS_URL != "" {
@@ -113,7 +121,8 @@ func InitRequiredEnv() error {
 			dbURL = strings.TrimSpace(*cli.ARG_DB_URL)
 		}
 
-		if dbURL == "" && dbPort == "" && dbHost == "" && dbUsername == "" && dbPassword == "" {
+		// In dynamoDB these field are not always mandatory
+		if dbType != constants.DbTypeDynamoDB && dbURL == "" && dbPort == "" && dbHost == "" && dbUsername == "" && dbPassword == "" {
 			log.Debug("DATABASE_URL is not set")
 			return errors.New("invalid database url. DATABASE_URL is required")
 		}
@@ -139,6 +148,9 @@ func InitRequiredEnv() error {
 		DatabaseCACert:     dbCACert,
 		RedisURL:           redisURL,
 		DisableRedisForEnv: disableRedisForEnv,
+		AwsRegion:          awsRegion,
+		AwsAccessKeyID:     awsAccessKeyID,
+		AwsSecretAccessKey: awsSecretAccessKey,
 	}
 
 	RequiredEnvStoreObj = &RequiredEnvStore{

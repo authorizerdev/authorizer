@@ -2,6 +2,7 @@ package test
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -20,6 +21,7 @@ func TestResolvers(t *testing.T) {
 		constants.DbTypeArangodb: "http://localhost:8529",
 		constants.DbTypeMongodb:  "mongodb://localhost:27017",
 		constants.DbTypeScyllaDB: "127.0.0.1:9042",
+		constants.DbTypeDynamoDB: "http://0.0.0.0:8000",
 	}
 
 	testDBs := strings.Split(os.Getenv("TEST_DBS"), ",")
@@ -51,6 +53,12 @@ func TestResolvers(t *testing.T) {
 		os.Setenv(constants.EnvKeyDatabaseURL, dbURL)
 		os.Setenv(constants.EnvKeyDatabaseType, dbType)
 		os.Setenv(constants.EnvKeyDatabaseName, testDb)
+
+		if dbType == constants.DbTypeDynamoDB {
+			memorystore.Provider.UpdateEnvVariable(constants.EnvAwsRegion, "ap-south-1")
+			os.Setenv(constants.EnvAwsRegion, "ap-south-1")
+		}
+
 		memorystore.InitRequiredEnv()
 
 		err := db.InitDB()
@@ -60,12 +68,15 @@ func TestResolvers(t *testing.T) {
 
 		// clean the persisted config for test to use fresh config
 		envData, err := db.Provider.GetEnv(ctx)
-		if err == nil {
+		fmt.Println("envData", envData.ID, envData.EnvData)
+		if err == nil && envData.ID != "" {
 			envData.EnvData = ""
 			_, err = db.Provider.UpdateEnv(ctx, envData)
 			if err != nil {
 				t.Errorf("Error updating env: %s", err.Error())
 			}
+		} else if err != nil {
+			t.Errorf("Error getting env: %s", err.Error())
 		}
 		err = env.PersistEnv()
 		if err != nil {

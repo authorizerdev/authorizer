@@ -15,12 +15,15 @@ import (
 	"github.com/authorizerdev/authorizer/server/routes"
 )
 
+// VERSION is used to define the version of authorizer from build tags
 var VERSION string
 
+// LogUTCFormatter hels in setting UTC time format for the logs
 type LogUTCFormatter struct {
 	log.Formatter
 }
 
+// Format helps fomratting time to UTC
 func (u LogUTCFormatter) Format(e *log.Entry) ([]byte, error) {
 	e.Time = e.Time.UTC()
 	return u.Formatter.Format(e)

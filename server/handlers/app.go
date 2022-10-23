@@ -30,7 +30,7 @@ func AppHandler() gin.HandlerFunc {
 			return
 		}
 
-		redirect_uri := strings.TrimSpace(c.Query("redirect_uri"))
+		redirectURI := strings.TrimSpace(c.Query("redirect_uri"))
 		state := strings.TrimSpace(c.Query("state"))
 		scopeString := strings.TrimSpace(c.Query("scope"))
 
@@ -41,11 +41,11 @@ func AppHandler() gin.HandlerFunc {
 			scope = strings.Split(scopeString, " ")
 		}
 
-		if redirect_uri == "" {
-			redirect_uri = hostname + "/app"
+		if redirectURI == "" {
+			redirectURI = hostname + "/app"
 		} else {
 			// validate redirect url with allowed origins
-			if !validators.IsValidOrigin(redirect_uri) {
+			if !validators.IsValidOrigin(redirectURI) {
 				log.Debug("Invalid redirect_uri")
 				c.JSON(400, gin.H{"error": "invalid redirect url"})
 				return
@@ -75,7 +75,7 @@ func AppHandler() gin.HandlerFunc {
 		c.HTML(http.StatusOK, "app.tmpl", gin.H{
 			"data": map[string]interface{}{
 				"authorizerURL":    hostname,
-				"redirectURL":      redirect_uri,
+				"redirectURL":      redirectURI,
 				"scope":            scope,
 				"state":            state,
 				"organizationName": orgName,

@@ -21,6 +21,12 @@ const (
 	EnvKeyDatabaseType = "DATABASE_TYPE"
 	// EnvKeyDatabaseURL key for env variable DATABASE_URL
 	EnvKeyDatabaseURL = "DATABASE_URL"
+	// EnvAwsRegion key for env variable AWS REGION
+	EnvAwsRegion = "AWS_REGION"
+	// EnvAwsAccessKeyID key for env variable AWS_ACCESS_KEY_ID
+	EnvAwsAccessKeyID = "AWS_ACCESS_KEY_ID"
+	// EnvAwsAccessKey key for env variable AWS_SECRET_ACCESS_KEY
+	EnvAwsSecretAccessKey = "AWS_SECRET_ACCESS_KEY"
 	// EnvKeyDatabaseName key for env variable DATABASE_NAME
 	EnvKeyDatabaseName = "DATABASE_NAME"
 	// EnvKeyDatabaseUsername key for env variable DATABASE_USERNAME
