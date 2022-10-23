@@ -13,6 +13,7 @@ import (
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 
@@ -196,7 +197,8 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			}
 		}
 
-		authToken, err := token.CreateAuthToken(ctx, user, inputRoles, scopes, provider)
+		nonce := uuid.New().String()
+		authToken, err := token.CreateAuthToken(ctx, user, inputRoles, scopes, provider, nonce)
 		if err != nil {
 			log.Debug("Failed to create auth token: ", err)
 			ctx.JSON(500, gin.H{"error": err.Error()})

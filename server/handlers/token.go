@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/constants"
@@ -202,7 +203,8 @@ func TokenHandler() gin.HandlerFunc {
 			return
 		}
 
-		authToken, err := token.CreateAuthToken(gc, user, roles, scope, loginMethod)
+		nonce := uuid.New().String()
+		authToken, err := token.CreateAuthToken(gc, user, roles, scope, loginMethod, nonce)
 		if err != nil {
 			log.Debug("Error creating auth token: ", err)
 			gc.JSON(http.StatusUnauthorized, gin.H{

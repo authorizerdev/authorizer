@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/constants"
@@ -70,7 +71,8 @@ func SessionResolver(ctx context.Context, params *model.SessionQueryInput) (*mod
 		scope = params.Scope
 	}
 
-	authToken, err := token.CreateAuthToken(gc, user, claimRoles, scope, claims.LoginMethod)
+	nonce := uuid.New().String()
+	authToken, err := token.CreateAuthToken(gc, user, claimRoles, scope, claims.LoginMethod, nonce)
 	if err != nil {
 		log.Debug("Failed to create auth token: ", err)
 		return res, err

@@ -10,7 +10,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
-	"github.com/google/uuid"
 	"github.com/robertkrimen/otto"
 
 	"github.com/authorizerdev/authorizer/server/constants"
@@ -68,9 +67,8 @@ func CreateSessionToken(user models.User, nonce string, roles, scope []string, l
 }
 
 // CreateAuthToken creates a new auth token when userlogs in
-func CreateAuthToken(gc *gin.Context, user models.User, roles, scope []string, loginMethod string) (*Token, error) {
+func CreateAuthToken(gc *gin.Context, user models.User, roles, scope []string, loginMethod, nonce string) (*Token, error) {
 	hostname := parsers.GetHost(gc)
-	nonce := uuid.New().String()
 	_, fingerPrintHash, err := CreateSessionToken(user, nonce, roles, scope, loginMethod)
 	if err != nil {
 		return nil, err
@@ -317,6 +315,8 @@ func ValidateBrowserSession(gc *gin.Context, encryptedSession string) (*SessionD
 
 // CreateIDToken util to create JWT token, based on
 // user information, roles config and CUSTOM_ACCESS_TOKEN_SCRIPT
+// For response_type (code) / authorization_code grant nonce should be empty
+// for implicit flow it should be present to verify with actual state
 func CreateIDToken(user models.User, roles []string, hostname, nonce, loginMethod string) (string, int64, error) {
 	expireTime, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAccessTokenExpiryTime)
 	if err != nil {
@@ -344,9 +344,9 @@ func CreateIDToken(user models.User, roles []string, hostname, nonce, loginMetho
 		return "", 0, err
 	}
 	customClaims := jwt.MapClaims{
-		"iss":           hostname,
-		"aud":           clientID,
-		"nonce":         nonce,
+		"iss": hostname,
+		"aud": clientID,
+		// "nonce":         nonce,
 		"sub":           user.ID,
 		"exp":           expiresAt,
 		"iat":           time.Now().Unix(),

@@ -14,6 +14,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -57,7 +58,8 @@ func VerifyOtpResolver(ctx context.Context, params model.VerifyOTPRequest) (*mod
 
 	roles := strings.Split(user.Roles, ",")
 	scope := []string{"openid", "email", "profile"}
-	authToken, err := token.CreateAuthToken(gc, user, roles, scope, loginMethod)
+	nonce := uuid.New().String()
+	authToken, err := token.CreateAuthToken(gc, user, roles, scope, loginMethod, nonce)
 	if err != nil {
 		log.Debug("Failed to create auth token: ", err)
 		return res, err

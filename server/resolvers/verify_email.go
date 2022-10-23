@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/constants"
@@ -84,7 +85,8 @@ func VerifyEmailResolver(ctx context.Context, params model.VerifyEmailInput) (*m
 
 	roles := strings.Split(user.Roles, ",")
 	scope := []string{"openid", "email", "profile"}
-	authToken, err := token.CreateAuthToken(gc, user, roles, scope, loginMethod)
+	nonce := uuid.New().String()
+	authToken, err := token.CreateAuthToken(gc, user, roles, scope, loginMethod, nonce)
 	if err != nil {
 		log.Debug("Failed to create auth token: ", err)
 		return res, err

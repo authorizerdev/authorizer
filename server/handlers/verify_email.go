@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/constants"
@@ -98,7 +99,9 @@ func VerifyEmailHandler() gin.HandlerFunc {
 		if verificationRequest.Identifier == constants.VerificationTypeMagicLinkLogin {
 			loginMethod = constants.AuthRecipeMethodMagicLinkLogin
 		}
-		authToken, err := token.CreateAuthToken(c, user, roles, scope, loginMethod)
+
+		nonce := uuid.New().String()
+		authToken, err := token.CreateAuthToken(c, user, roles, scope, loginMethod, nonce)
 		if err != nil {
 			log.Debug("Error creating auth token: ", err)
 			errorRes["error_description"] = err.Error()

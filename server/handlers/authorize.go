@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -224,65 +223,39 @@ func AuthorizeHandler() gin.HandlerFunc {
 
 		if responseType == constants.ResponseTypeToken || responseType == constants.ResponseTypeIDToken {
 			hostname := parsers.GetHost(gc)
-			nonce := uuid.New().String()
-			_, fingerPrintHash, err := token.CreateSessionToken(user, nonce, claims.Roles, scope, claims.LoginMethod)
-			if err != nil {
-				log.Debug("CreateSessionToken failed: ", err)
-				handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
-				return
-			}
-			accessToken, accessTokenExpiresAt, err := token.CreateAccessToken(user, claims.Roles, scope, hostname, nonce, claims.LoginMethod)
-			if err != nil {
-				log.Debug("CreateAccessToken failed: ", err)
-				handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
-				return
-			}
-
-			idToken, _, err := token.CreateIDToken(user, claims.Roles, hostname, nonce, claims.LoginMethod)
-			if err != nil {
-				log.Debug("CreateIDToken failed: ", err)
-				handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
-				return
-			}
 			// rollover the session for security
-			// authToken, err := token.CreateAuthToken(gc, user, claims.Roles, scope, claims.LoginMethod)
-			// if err != nil {
-			// 	log.Debug("CreateAuthToken failed: ", err)
-			// 	handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
-			// 	return
-			// }
+			authToken, err := token.CreateAuthToken(gc, user, claims.Roles, scope, claims.LoginMethod, nonce)
+			if err != nil {
+				log.Debug("CreateAuthToken failed: ", err)
+				handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
+				return
+			}
 
-			if err := memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+nonce, fingerPrintHash); err != nil {
+			if err := memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+nonce, authToken.FingerPrintHash); err != nil {
 				log.Debug("SetUserSession failed: ", err)
 				handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
 				return
 			}
 
-			if err := memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+nonce, accessToken); err != nil {
+			if err := memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+nonce, authToken.FingerPrintHash); err != nil {
 				log.Debug("SetUserSession failed: ", err)
 				handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
 				return
 			}
 
-			cookie.SetSession(gc, fingerPrintHash)
-
-			expiresIn := accessTokenExpiresAt - time.Now().Unix()
-			if expiresIn <= 0 {
-				expiresIn = 1
-			}
+			cookie.SetSession(gc, authToken.FingerPrintHash)
 
 			// used of query mode
-			params := "access_token=" + accessToken + "&token_type=bearer&expires_in=" + strconv.FormatInt(expiresIn, 10) + "&state=" + state + "&id_token=" + idToken + "&code=" + code + "&nonce=" + nonce
+			params := "access_token=" + authToken.AccessToken.Token + "&token_type=bearer&expires_in=" + strconv.FormatInt(authToken.IDToken.ExpiresAt, 10) + "&state=" + state + "&id_token=" + authToken.IDToken.Token + "&code=" + code
 
 			res := map[string]interface{}{
-				"access_token": accessToken,
-				"id_token":     idToken,
+				"access_token": authToken.AccessToken.Token,
+				"id_token":     authToken.IDToken.Token,
 				"state":        state,
 				"scope":        scope,
 				"token_type":   "Bearer",
-				"expires_in":   expiresIn,
+				"expires_in":   authToken.AccessToken.ExpiresAt,
 				"code":         code,
-				"nonce":        nonce,
 			}
 
 			if utils.StringSliceContains(scope, "offline_access") {

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 
@@ -140,7 +141,8 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 		}, nil
 	}
 
-	authToken, err := token.CreateAuthToken(gc, user, roles, scope, constants.AuthRecipeMethodBasicAuth)
+	nonce := uuid.New().String()
+	authToken, err := token.CreateAuthToken(gc, user, roles, scope, constants.AuthRecipeMethodBasicAuth, nonce)
 	if err != nil {
 		log.Debug("Failed to create auth token", err)
 		return res, err
