@@ -62,10 +62,24 @@ func ForgotPasswordResolver(ctx context.Context, params model.ForgotPasswordInpu
 		log.Debug("Failed to generate nonce: ", err)
 		return res, err
 	}
-	redirectURI := parsers.GetAppURL(gc)
+
+	redirectURI := ""
+	// give higher preference to params redirect uri
 	if strings.TrimSpace(refs.StringValue(params.RedirectURI)) != "" {
+		fmt.Println("=> redirect uri from here1", redirectURI)
 		redirectURI = refs.StringValue(params.RedirectURI)
+	} else {
+		redirectURI, err = memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyResetPasswordURL)
+		fmt.Println("=> redirect uri from here2", redirectURI)
+		if err != nil {
+			log.Debug("ResetPasswordURL not found using default app url: ", err)
+			redirectURI = hostname + "/app/reset-password"
+			fmt.Println("=> redirect uri from here3", redirectURI)
+			memorystore.Provider.UpdateEnvVariable(constants.EnvKeyResetPasswordURL, redirectURI)
+		}
 	}
+
+	fmt.Println("=> redirect uri", redirectURI)
 
 	verificationToken, err := token.CreateVerificationToken(params.Email, constants.VerificationTypeForgotPassword, hostname, nonceHash, redirectURI)
 	if err != nil {
@@ -89,7 +103,7 @@ func ForgotPasswordResolver(ctx context.Context, params model.ForgotPasswordInpu
 	go email.SendEmail([]string{params.Email}, constants.VerificationTypeForgotPassword, map[string]interface{}{
 		"user":             user.ToMap(),
 		"organization":     utils.GetOrganization(),
-		"verification_url": utils.GetForgotPasswordURL(verificationToken, hostname, redirectURI),
+		"verification_url": utils.GetForgotPasswordURL(verificationToken, redirectURI),
 	})
 
 	res = &model.Response{
