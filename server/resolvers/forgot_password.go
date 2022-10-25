@@ -62,12 +62,21 @@ func ForgotPasswordResolver(ctx context.Context, params model.ForgotPasswordInpu
 		log.Debug("Failed to generate nonce: ", err)
 		return res, err
 	}
-	redirectURL := parsers.GetAppURL(gc)
+
+	redirectURI := ""
+	// give higher preference to params redirect uri
 	if strings.TrimSpace(refs.StringValue(params.RedirectURI)) != "" {
-		redirectURL = refs.StringValue(params.RedirectURI)
+		redirectURI = refs.StringValue(params.RedirectURI)
+	} else {
+		redirectURI, err = memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyResetPasswordURL)
+		if err != nil {
+			log.Debug("ResetPasswordURL not found using default app url: ", err)
+			redirectURI = hostname + "/app/reset-password"
+			memorystore.Provider.UpdateEnvVariable(constants.EnvKeyResetPasswordURL, redirectURI)
+		}
 	}
 
-	verificationToken, err := token.CreateVerificationToken(params.Email, constants.VerificationTypeForgotPassword, hostname, nonceHash, redirectURL)
+	verificationToken, err := token.CreateVerificationToken(params.Email, constants.VerificationTypeForgotPassword, hostname, nonceHash, redirectURI)
 	if err != nil {
 		log.Debug("Failed to create verification token", err)
 		return res, err
@@ -78,7 +87,7 @@ func ForgotPasswordResolver(ctx context.Context, params model.ForgotPasswordInpu
 		ExpiresAt:   time.Now().Add(time.Minute * 30).Unix(),
 		Email:       params.Email,
 		Nonce:       nonceHash,
-		RedirectURI: redirectURL,
+		RedirectURI: redirectURI,
 	})
 	if err != nil {
 		log.Debug("Failed to add verification request", err)
@@ -89,7 +98,7 @@ func ForgotPasswordResolver(ctx context.Context, params model.ForgotPasswordInpu
 	go email.SendEmail([]string{params.Email}, constants.VerificationTypeForgotPassword, map[string]interface{}{
 		"user":             user.ToMap(),
 		"organization":     utils.GetOrganization(),
-		"verification_url": utils.GetForgotPasswordURL(verificationToken, hostname),
+		"verification_url": utils.GetForgotPasswordURL(verificationToken, redirectURI),
 	})
 
 	res = &model.Response{

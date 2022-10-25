@@ -65,6 +65,7 @@ const Environment = () => {
 		SMTP_PORT: '',
 		SMTP_USERNAME: '',
 		SMTP_PASSWORD: '',
+		SMTP_LOCAL_NAME: '',
 		SENDER_EMAIL: '',
 		ALLOWED_ORIGINS: [],
 		ORGANIZATION_NAME: '',

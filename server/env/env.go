@@ -55,6 +55,7 @@ func InitAllEnv() error {
 	osSmtpPort := os.Getenv(constants.EnvKeySmtpPort)
 	osSmtpUsername := os.Getenv(constants.EnvKeySmtpUsername)
 	osSmtpPassword := os.Getenv(constants.EnvKeySmtpPassword)
+	osSmtpLocalName := os.Getenv(constants.EnvKeySmtpLocalName)
 	osSenderEmail := os.Getenv(constants.EnvKeySenderEmail)
 	osJwtType := os.Getenv(constants.EnvKeyJwtType)
 	osJwtSecret := os.Getenv(constants.EnvKeyJwtSecret)
@@ -203,6 +204,13 @@ func InitAllEnv() error {
 	}
 	if osSmtpUsername != "" && envData[constants.EnvKeySmtpUsername] != osSmtpUsername {
 		envData[constants.EnvKeySmtpUsername] = osSmtpUsername
+	}
+
+	if val, ok := envData[constants.EnvKeySmtpLocalName]; !ok || val == "" {
+		envData[constants.EnvKeySmtpLocalName] = osSmtpLocalName
+	}
+	if osSmtpLocalName != "" && envData[constants.EnvKeySmtpLocalName] != osSmtpLocalName {
+		envData[constants.EnvKeySmtpLocalName] = osSmtpLocalName
 	}
 
 	if val, ok := envData[constants.EnvKeySmtpPassword]; !ok || val == "" {

@@ -2,7 +2,6 @@ package test
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -68,7 +67,6 @@ func TestResolvers(t *testing.T) {
 
 		// clean the persisted config for test to use fresh config
 		envData, err := db.Provider.GetEnv(ctx)
-		fmt.Println("envData", envData.ID, envData.EnvData)
 		if err == nil && envData.ID != "" {
 			envData.EnvData = ""
 			_, err = db.Provider.UpdateEnv(ctx, envData)
