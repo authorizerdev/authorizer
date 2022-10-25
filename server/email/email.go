@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"strconv"
+	"strings"
 	"text/template"
 
 	log "github.com/sirupsen/logrus"
@@ -126,6 +127,12 @@ func SendEmail(to []string, event string, data map[string]interface{}) error {
 		return err
 	}
 
+	smtpLocalName, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeySmtpLocalName)
+	if err != nil {
+		log.Debugf("Error while getting smtp localname from env variable: %v", err)
+		smtpLocalName = ""
+	}
+
 	isProd, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyIsProd)
 	if err != nil {
 		log.Errorf("Error while getting env variable: %v", err)
@@ -141,6 +148,11 @@ func SendEmail(to []string, event string, data map[string]interface{}) error {
 	if !isProd {
 		d.TLSConfig = &tls.Config{InsecureSkipVerify: true}
 	}
+
+	if strings.TrimSpace(smtpLocalName) != "" {
+		d.LocalName = smtpLocalName
+	}
+
 	if err := d.DialAndSend(m); err != nil {
 		log.Debug("SMTP Failed: ", err)
 		return err

@@ -54,6 +54,26 @@ const EmailConfigurations = ({
 						justifyContent="start"
 						alignItems="center"
 					>
+						<Text fontSize="sm">SMTP Local Name:</Text>
+					</Flex>
+					<Center
+						w={isNotSmallerScreen ? '70%' : '100%'}
+						mt={isNotSmallerScreen ? '0' : '3'}
+					>
+						<InputField
+							borderRadius={5}
+							variables={variables}
+							setVariables={setVariables}
+							inputType={TextInputType.SMTP_LOCAL_NAME}
+						/>
+					</Center>
+				</Flex>
+				<Flex direction={isNotSmallerScreen ? 'row' : 'column'}>
+					<Flex
+						w={isNotSmallerScreen ? '30%' : '40%'}
+						justifyContent="start"
+						alignItems="center"
+					>
 						<Text fontSize="sm">SMTP Username:</Text>
 					</Flex>
 					<Center
