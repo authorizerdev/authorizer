@@ -386,7 +386,8 @@ type ValidateJWTTokenInput struct {
 }
 
 type ValidateJWTTokenResponse struct {
-	IsValid bool `json:"is_valid"`
+	IsValid bool                   `json:"is_valid"`
+	Claims  map[string]interface{} `json:"claims"`
 }
 
 type VerificationRequest struct {

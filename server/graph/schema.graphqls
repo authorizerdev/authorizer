@@ -153,6 +153,7 @@ type Env {
 
 type ValidateJWTTokenResponse {
   is_valid: Boolean!
+  claims: Map
 }
 
 type GenerateJWTKeysResponse {
