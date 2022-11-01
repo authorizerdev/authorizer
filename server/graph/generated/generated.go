@@ -246,6 +246,7 @@ type ComplexityRoot struct {
 	}
 
 	ValidateJWTTokenResponse struct {
+		Claims  func(childComplexity int) int
 		IsValid func(childComplexity int) int
 	}
 
@@ -1646,6 +1647,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Users.Users(childComplexity), true
 
+	case "ValidateJWTTokenResponse.claims":
+		if e.complexity.ValidateJWTTokenResponse.Claims == nil {
+			break
+		}
+
+		return e.complexity.ValidateJWTTokenResponse.Claims(childComplexity), true
+
 	case "ValidateJWTTokenResponse.is_valid":
 		if e.complexity.ValidateJWTTokenResponse.IsValid == nil {
 			break
@@ -2110,6 +2118,7 @@ type Env {
 
 type ValidateJWTTokenResponse {
   is_valid: Boolean!
+  claims: Map
 }
 
 type GenerateJWTKeysResponse {
@@ -9136,6 +9145,8 @@ func (ec *executionContext) fieldContext_Query_validate_jwt_token(ctx context.Co
 			switch field.Name {
 			case "is_valid":
 				return ec.fieldContext_ValidateJWTTokenResponse_is_valid(ctx, field)
+			case "claims":
+				return ec.fieldContext_ValidateJWTTokenResponse_claims(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ValidateJWTTokenResponse", field.Name)
 		},
@@ -10960,6 +10971,47 @@ func (ec *executionContext) fieldContext_ValidateJWTTokenResponse_is_valid(ctx c
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ValidateJWTTokenResponse_claims(ctx context.Context, field graphql.CollectedField, obj *model.ValidateJWTTokenResponse) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ValidateJWTTokenResponse_claims(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Claims, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(map[string]interface{})
+	fc.Result = res
+	return ec.marshalOMap2map(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ValidateJWTTokenResponse_claims(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ValidateJWTTokenResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Map does not have child fields")
 		},
 	}
 	return fc, nil
@@ -17353,6 +17405,10 @@ func (ec *executionContext) _ValidateJWTTokenResponse(ctx context.Context, sel a
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "claims":
+
+			out.Values[i] = ec._ValidateJWTTokenResponse_claims(ctx, field, obj)
+
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
