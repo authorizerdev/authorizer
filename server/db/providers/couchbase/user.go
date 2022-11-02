@@ -184,14 +184,14 @@ func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{},
 
 	if ids != nil && len(ids) > 0 {
 		for _, v := range ids {
-			userQuery := fmt.Sprintf("UPDATE * FROM auth._default.%s SET %s WHERE id = '%s'", models.Collections.User, updateFields, v)
+			userQuery := fmt.Sprintf("UPDATE auth._default.%s SET %s WHERE id = '%s'", models.Collections.User, updateFields, v)
 			_, err := inventoryScope.Query(userQuery, &gocb.QueryOptions{})
 			if err != nil {
 				return err
 			}
 		}
 	} else {
-		userQuery := fmt.Sprintf("UPDATE * FROM auth._default.%s SET %s WHERE id IS NOT NULL", models.Collections.User, updateFields)
+		userQuery := fmt.Sprintf("UPDATE auth._default.%s SET %s WHERE id IS NOT NULL", models.Collections.User, updateFields)
 		_, err := inventoryScope.Query(userQuery, &gocb.QueryOptions{})
 		if err != nil {
 			return err
