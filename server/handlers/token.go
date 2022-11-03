@@ -154,6 +154,7 @@ func TokenHandler() gin.HandlerFunc {
 					"error":             "invalid_refresh_token",
 					"error_description": "The refresh token is invalid",
 				})
+				return
 			}
 
 			claims, err := token.ValidateRefreshToken(gc, refreshToken)
@@ -163,6 +164,7 @@ func TokenHandler() gin.HandlerFunc {
 					"error":             "unauthorized",
 					"error_description": err.Error(),
 				})
+				return
 			}
 			userID = claims["sub"].(string)
 			loginMethod := claims["login_method"]
