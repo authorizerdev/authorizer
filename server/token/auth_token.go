@@ -256,7 +256,6 @@ func ValidateRefreshToken(gc *gin.Context, refreshToken string) (map[string]inte
 	if loginMethod != nil && loginMethod != "" {
 		sessionKey = loginMethod.(string) + ":" + userID
 	}
-
 	token, err := memorystore.Provider.GetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+nonce)
 	if nonce == "" || err != nil {
 		return res, fmt.Errorf(`unauthorized`)

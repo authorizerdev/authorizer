@@ -167,7 +167,7 @@ func TokenHandler() gin.HandlerFunc {
 				return
 			}
 			userID = claims["sub"].(string)
-			loginMethod := claims["login_method"]
+			claimLoginMethod := claims["login_method"]
 			rolesInterface := claims["roles"].([]interface{})
 			scopeInterface := claims["scope"].([]interface{})
 			for _, v := range rolesInterface {
@@ -178,9 +178,11 @@ func TokenHandler() gin.HandlerFunc {
 			}
 
 			sessionKey = userID
-			if loginMethod != nil && loginMethod != "" {
-				sessionKey = loginMethod.(string) + ":" + sessionKey
+			if claimLoginMethod != nil && claimLoginMethod != "" {
+				sessionKey = claimLoginMethod.(string) + ":" + sessionKey
+				loginMethod = claimLoginMethod.(string)
 			}
+
 			// remove older refresh token and rotate it for security
 			go memorystore.Provider.DeleteUserSession(sessionKey, claims["nonce"].(string))
 		}
@@ -213,6 +215,7 @@ func TokenHandler() gin.HandlerFunc {
 			})
 			return
 		}
+
 		memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash)
 		memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token)
 		cookie.SetSession(gc, authToken.FingerPrintHash)
