@@ -2,8 +2,11 @@ package couchbase
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
+	"reflect"
+	"strings"
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/db/models"
@@ -35,6 +38,53 @@ func (p *provider) AddWebhook(ctx context.Context, webhook models.Webhook) (*mod
 // UpdateWebhook to update webhook
 func (p *provider) UpdateWebhook(ctx context.Context, webhook models.Webhook) (*model.Webhook, error) {
 	webhook.UpdatedAt = time.Now().Unix()
+	scope := p.db.Scope("_default")
+
+	bytes, err := json.Marshal(webhook)
+	if err != nil {
+		return nil, err
+	}
+	// use decoder instead of json.Unmarshall, because it converts int64 -> float64 after unmarshalling
+	decoder := json.NewDecoder(strings.NewReader(string(bytes)))
+	decoder.UseNumber()
+	webhookMap := map[string]interface{}{}
+	err = decoder.Decode(&webhookMap)
+	if err != nil {
+		return nil, err
+	}
+
+	updateFields := ""
+	for key, value := range webhookMap {
+		if key == "_id" {
+			continue
+		}
+
+		if key == "_key" {
+			continue
+		}
+
+		if value == nil {
+			updateFields += fmt.Sprintf("%s = null,", key)
+			continue
+		}
+
+		valueType := reflect.TypeOf(value)
+		if valueType.Name() == "string" {
+			updateFields += fmt.Sprintf("%s = '%s', ", key, value.(string))
+		} else {
+			updateFields += fmt.Sprintf("%s = %v, ", key, value)
+		}
+	}
+	updateFields = strings.Trim(updateFields, " ")
+	updateFields = strings.TrimSuffix(updateFields, ",")
+
+	query := fmt.Sprintf("UPDATE auth._default.%s SET %s WHERE _id = '%s'", models.Collections.Webhook, updateFields, webhook.ID)
+	_, err = scope.Query(query, &gocb.QueryOptions{})
+
+	if err != nil {
+		return nil, err
+	}
+
 	return webhook.AsAPIWebhook(), nil
 }
 
