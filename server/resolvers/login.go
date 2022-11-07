@@ -86,12 +86,16 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 
 	currentRoles := strings.Split(user.Roles, ",")
 	if len(params.Roles) > 0 {
-		if !validators.IsValidRoles(params.Roles, currentRoles) {
-			log.Debug("Invalid roles: ", params.Roles)
-			return res, fmt.Errorf(`invalid roles`)
-		}
+		if params.Roles[0] = "all_allowed_roles" {
+			roles = currentRoles
+		} else {
+			if !validators.IsValidRoles(params.Roles, currentRoles) {
+				log.Debug("Invalid roles: ", params.Roles)
+				return res, fmt.Errorf(`invalid roles`)
+			}
 
-		roles = params.Roles
+			roles = params.Roles
+		}
 	}
 
 	scope := []string{"openid", "email", "profile"}
