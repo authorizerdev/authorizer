@@ -114,16 +114,17 @@ func CreateRefreshToken(user models.User, roles, scopes []string, hostname, nonc
 		return "", 0, err
 	}
 	customClaims := jwt.MapClaims{
-		"iss":          hostname,
-		"aud":          clientID,
-		"sub":          user.ID,
-		"exp":          expiresAt,
-		"iat":          time.Now().Unix(),
-		"token_type":   constants.TokenTypeRefreshToken,
-		"roles":        roles,
-		"scope":        scopes,
-		"nonce":        nonce,
-		"login_method": loginMethod,
+		"iss":           hostname,
+		"aud":           clientID,
+		"sub":           user.ID,
+		"exp":           expiresAt,
+		"iat":           time.Now().Unix(),
+		"token_type":    constants.TokenTypeRefreshToken,
+		"roles":         roles,
+		"scope":         scopes,
+		"nonce":         nonce,
+		"login_method":  loginMethod,
+		"allowed_roles": strings.Split(user.Roles, ","),
 	}
 
 	token, err := SignJWTToken(customClaims)
@@ -153,16 +154,17 @@ func CreateAccessToken(user models.User, roles, scopes []string, hostName, nonce
 		return "", 0, err
 	}
 	customClaims := jwt.MapClaims{
-		"iss":          hostName,
-		"aud":          clientID,
-		"nonce":        nonce,
-		"sub":          user.ID,
-		"exp":          expiresAt,
-		"iat":          time.Now().Unix(),
-		"token_type":   constants.TokenTypeAccessToken,
-		"scope":        scopes,
-		"roles":        roles,
-		"login_method": loginMethod,
+		"iss":           hostName,
+		"aud":           clientID,
+		"nonce":         nonce,
+		"sub":           user.ID,
+		"exp":           expiresAt,
+		"iat":           time.Now().Unix(),
+		"token_type":    constants.TokenTypeAccessToken,
+		"scope":         scopes,
+		"roles":         roles,
+		"login_method":  loginMethod,
+		"allowed_roles": strings.Split(user.Roles, ","),
 	}
 
 	token, err := SignJWTToken(customClaims)
