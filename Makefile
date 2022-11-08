@@ -4,7 +4,7 @@ VERSION := $(or $(VERSION),$(DEFAULT_VERSION))
 cmd:
 	cd server && go build -ldflags "-w -X main.VERSION=$(VERSION)" -o '../build/server'
 build:
-	cd server && gox \
+	cd server && gox -cgo \
 		-osarch="linux/amd64 linux/arm64 darwin/amd64 windows/386 windows/amd64" \
 		-ldflags "-w -X main.VERSION=$(VERSION)" \
 		-output="../build/{{.OS}}/{{.Arch}}/server" \
