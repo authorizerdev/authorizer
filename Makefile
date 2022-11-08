@@ -3,6 +3,12 @@ VERSION := $(or $(VERSION),$(DEFAULT_VERSION))
 
 cmd:
 	cd server && go build -ldflags "-w -X main.VERSION=$(VERSION)" -o '../build/server'
+build:
+	cd server && gox \
+		-osarch="linux/amd64 linux/arm64 darwin/amd64 windows/386 windows/amd64" \
+		-ldflags "-w -X main.VERSION=$(VERSION)" \
+		-output="../build/{{.OS}}/{{.Arch}}/server" \
+		./...
 build-app:
 	cd app && npm i && npm run build
 build-dashboard:

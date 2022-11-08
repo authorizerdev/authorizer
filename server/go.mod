@@ -17,6 +17,7 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/guregu/dynamo v1.16.0
 	github.com/joho/godotenv v1.3.0
+	github.com/mitchellh/gox v1.0.1 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/pelletier/go-toml/v2 v2.0.5 // indirect
 	github.com/robertkrimen/otto v0.0.0-20211024170158-b87d35c0b86f
