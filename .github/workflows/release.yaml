@@ -68,7 +68,7 @@ jobs:
           make clean && \
           CGO_ENABLED=1 make && \
           tar cvfz authorizer-${VERSION}-linux-amd64.tar.gz .env app/build build templates dashboard/build
-       - name: Build package
+      - name: Build package
         run: |
           make clean && \
           make build && \
