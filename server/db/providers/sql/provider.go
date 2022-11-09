@@ -9,9 +9,9 @@ import (
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/memorystore"
+	"github.com/glebarez/sqlite"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
-	"gorm.io/driver/sqlite"
 	"gorm.io/driver/sqlserver"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -61,7 +61,7 @@ func NewProvider() (*provider, error) {
 	case constants.DbTypePostgres, constants.DbTypeYugabyte, constants.DbTypeCockroachDB:
 		sqlDB, err = gorm.Open(postgres.Open(dbURL), ormConfig)
 	case constants.DbTypeSqlite:
-		sqlDB, err = gorm.Open(sqlite.Open(dbURL), ormConfig)
+		sqlDB, err = gorm.Open(sqlite.Open(dbURL+"?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)"), ormConfig)
 	case constants.DbTypeMysql, constants.DbTypeMariaDB, constants.DbTypePlanetScaleDB:
 		sqlDB, err = gorm.Open(mysql.Open(dbURL), ormConfig)
 	case constants.DbTypeSqlserver:

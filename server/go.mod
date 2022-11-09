@@ -7,7 +7,9 @@ require (
 	github.com/arangodb/go-driver v1.2.1
 	github.com/aws/aws-sdk-go v1.44.109
 	github.com/coreos/go-oidc/v3 v3.1.0
+	github.com/denisenkom/go-mssqldb v0.11.0 // indirect
 	github.com/gin-gonic/gin v1.8.1
+	github.com/glebarez/sqlite v1.5.0 // indirect
 	github.com/go-playground/validator/v10 v10.11.1 // indirect
 	github.com/go-redis/redis/v8 v8.11.0
 	github.com/goccy/go-json v0.9.11 // indirect
@@ -17,6 +19,7 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/guregu/dynamo v1.16.0
 	github.com/joho/godotenv v1.3.0
+	github.com/mitchellh/gox v1.0.1 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/pelletier/go-toml/v2 v2.0.5 // indirect
 	github.com/robertkrimen/otto v0.0.0-20211024170158-b87d35c0b86f
@@ -24,7 +27,7 @@ require (
 	github.com/stretchr/testify v1.8.0
 	github.com/vektah/gqlparser/v2 v2.5.1
 	go.mongodb.org/mongo-driver v1.8.1
-	golang.org/x/crypto v0.0.0-20220926161630-eccd6366d1be
+	golang.org/x/crypto v0.0.0-20221005025214-4161e89ecf1b
 	golang.org/x/net v0.0.0-20220930213112-107f3e3c3b0b // indirect
 	golang.org/x/oauth2 v0.0.0-20210628180205-a41e5a781914
 	golang.org/x/sys v0.0.0-20220928140112-f11e5e49a4ec // indirect
@@ -33,9 +36,8 @@ require (
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/mail.v2 v2.3.1
 	gopkg.in/square/go-jose.v2 v2.6.0
-	gorm.io/driver/mysql v1.2.1
-	gorm.io/driver/postgres v1.2.3
-	gorm.io/driver/sqlite v1.2.6
-	gorm.io/driver/sqlserver v1.2.1
-	gorm.io/gorm v1.22.4
+	gorm.io/driver/mysql v1.4.3
+	gorm.io/driver/postgres v1.4.5
+	gorm.io/driver/sqlserver v1.4.1
+	gorm.io/gorm v1.24.1
 )
