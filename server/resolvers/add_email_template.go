@@ -42,7 +42,7 @@ func AddEmailTemplateResolver(ctx context.Context, params model.AddEmailTemplate
 
 	var design string
 
-	if params.Design == nil {
+	if params.Design == nil || strings.TrimSpace(*params.Design) == "" {
 		design = ""
 	}
 
