@@ -3,10 +3,10 @@
 package model
 
 type AddEmailTemplateRequest struct {
-	EventName string `json:"event_name"`
-	Subject   string `json:"subject"`
-	Template  string `json:"template"`
-	Design    string `json:"design"`
+	EventName string  `json:"event_name"`
+	Subject   string  `json:"subject"`
+	Template  string  `json:"template"`
+	Design    *string `json:"design"`
 }
 
 type AddWebhookRequest struct {
