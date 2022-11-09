@@ -63,7 +63,7 @@ jobs:
         run: |
           make clean && \
           make build && \
-          mkdir -p authorizer-${VERSION}-darwin-amd64/build authorizer-${VERSION}-darwin-amd64/app authorizer-${VERSION}-darwin-amd64/templates authorizer-${VERSION}-darwin-amd64/dashboard && cp build/darwin/amd64/server authorizer-${VERSION}-darwin-amd64/build/ && cp .env authorizer-${VERSION}-darwin-amd64/.env && cp -rf app/build authorizer-${VERSION}-darwin-amd64/app/build && cp -rf templates authorizer-${VERSION}-darwin-amd64/templates && cp -rf dashboard/build authorizer-${VERSION}-darwin-amd64/dashboard/build && tar cvfz  authorizer-${VERSION}-darwin-amd64.tar.gz authorizer-${VERSION}-darwin-amd64
+          mkdir -p authorizer-${VERSION}-darwin-amd64/build authorizer-${VERSION}-darwin-amd64/app authorizer-${VERSION}-darwin-amd64/dashboard && cp build/darwin/amd64/server authorizer-${VERSION}-darwin-amd64/build/ && cp .env authorizer-${VERSION}-darwin-amd64/.env && cp -rf app/build authorizer-${VERSION}-darwin-amd64/app/build && cp -rf templates authorizer-${VERSION}-darwin-amd64/ && cp -rf dashboard/build authorizer-${VERSION}-darwin-amd64/dashboard/build && tar cvfz  authorizer-${VERSION}-darwin-amd64.tar.gz authorizer-${VERSION}-darwin-amd64
       - name: Upload assets
         run: |
           github-assets-uploader -f authorizer-${VERSION}-darwin-amd64.tar.gz -mediatype application/gzip -repo authorizerdev/authorizer -token ${{secrets.RELEASE_TOKEN}} -tag ${VERSION}
@@ -79,7 +79,10 @@ jobs:
         with:
           images: lakhansamani/authorizer
           tags: |
-            # set latest tag for default branch
+            type=schedule
+            type=ref,event=branch
+            type=ref,event=tag
+            type=ref,event=pr
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push Docker image
