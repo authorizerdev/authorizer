@@ -81,17 +81,8 @@ func GetOrganization() map[string]interface{} {
 }
 
 // GetForgotPasswordURL to get url for given token and hostname
-func GetForgotPasswordURL(token, hostname string) string {
-	resetPasswordUrl, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyResetPasswordURL)
-	if err != nil {
-		return ""
-	}
-	if resetPasswordUrl == "" {
-		if err := memorystore.Provider.UpdateEnvVariable(constants.EnvKeyResetPasswordURL, hostname+"/app/reset-password"); err != nil {
-			return ""
-		}
-	}
-	verificationURL := resetPasswordUrl + "?token=" + token
+func GetForgotPasswordURL(token, redirectURI string) string {
+	verificationURL := redirectURI + "?token=" + token
 	return verificationURL
 }
 

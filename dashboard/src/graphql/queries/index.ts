@@ -45,6 +45,7 @@ export const EnvVariablesQuery = `
       SMTP_PORT
       SMTP_USERNAME
       SMTP_PASSWORD
+      SMTP_LOCAL_NAME
       SENDER_EMAIL
       ALLOWED_ORIGINS
       ORGANIZATION_NAME
@@ -166,6 +167,15 @@ export const WebhookLogsQuery = `
         offset
         total
       }
+    }
+  }
+`;
+
+export const GetAvailableRolesQuery = `
+  query {
+    _env {
+      ROLES
+      PROTECTED_ROLES
     }
   }
 `;

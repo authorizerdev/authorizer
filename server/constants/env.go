@@ -51,6 +51,8 @@ const (
 	EnvKeySmtpUsername = "SMTP_USERNAME"
 	// EnvKeySmtpPassword key for env variable SMTP_PASSWORD
 	EnvKeySmtpPassword = "SMTP_PASSWORD"
+	// EnvKeySmtpLocalName key for env variable SMTP_LOCAL_NAME
+	EnvKeySmtpLocalName = "SMTP_LOCAL_NAME"
 	// EnvKeySenderEmail key for env variable SENDER_EMAIL
 	EnvKeySenderEmail = "SENDER_EMAIL"
 	// EnvKeyIsEmailServiceEnabled key for env variable IS_EMAIL_SERVICE_ENABLED

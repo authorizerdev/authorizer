@@ -26,7 +26,6 @@ func NewProvider() (*provider, error) {
 	config := aws.Config{
 		MaxRetries:                    aws.Int(3),
 		CredentialsChainVerboseErrors: aws.Bool(true), // for full error logs
-
 	}
 
 	if awsRegion != "" {

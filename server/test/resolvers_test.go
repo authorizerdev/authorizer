@@ -2,7 +2,6 @@ package test
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -63,24 +62,23 @@ func TestResolvers(t *testing.T) {
 
 		err := db.InitDB()
 		if err != nil {
-			t.Errorf("Error initializing database: %s", err.Error())
+			t.Logf("Error initializing database: %s", err.Error())
 		}
 
 		// clean the persisted config for test to use fresh config
 		envData, err := db.Provider.GetEnv(ctx)
-		fmt.Println("envData", envData.ID, envData.EnvData)
 		if err == nil && envData.ID != "" {
 			envData.EnvData = ""
 			_, err = db.Provider.UpdateEnv(ctx, envData)
 			if err != nil {
-				t.Errorf("Error updating env: %s", err.Error())
+				t.Logf("Error updating env: %s", err.Error())
 			}
 		} else if err != nil {
-			t.Errorf("Error getting env: %s", err.Error())
+			t.Logf("Error getting env: %s", err.Error())
 		}
 		err = env.PersistEnv()
 		if err != nil {
-			t.Errorf("Error persisting env: %s", err.Error())
+			t.Logf("Error persisting env: %s", err.Error())
 		}
 
 		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyEnv, "test")

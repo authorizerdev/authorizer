@@ -16,3 +16,5 @@ test.db
 .yalc
 yalc.lock
 certs/
+*-shm
+*-wal

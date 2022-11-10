@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
 	Box,
 	Flex,
@@ -13,6 +13,12 @@ import {
 	Textarea,
 	Switch,
 	Text,
+	MenuButton,
+	MenuList,
+	MenuItemOption,
+	MenuOptionGroup,
+	Button,
+	Menu,
 } from '@chakra-ui/react';
 import {
 	FaRegClone,
@@ -20,6 +26,7 @@ import {
 	FaRegEyeSlash,
 	FaPlus,
 	FaTimes,
+	FaAngleDown,
 } from 'react-icons/fa';
 import {
 	ArrayInputOperations,
@@ -30,6 +37,7 @@ import {
 	TextAreaInputType,
 	SwitchInputType,
 	DateInputType,
+	MultiSelectInputType,
 } from '../constants';
 import { copyTextToClipboard } from '../utils';
 
@@ -39,13 +47,16 @@ const InputField = ({
 	setVariables,
 	fieldVisibility,
 	setFieldVisibility,
+	availableRoles,
 	...downshiftProps
 }: any) => {
 	const props = {
 		size: 'sm',
 		...downshiftProps,
 	};
-	const [inputFieldVisibility, setInputFieldVisibility] = React.useState<
+	const [availableUserRoles, setAvailableUserRoles] =
+		useState<string[]>(availableRoles);
+	const [inputFieldVisibility, setInputFieldVisibility] = useState<
 		Record<string, boolean>
 	>({
 		ROLES: false,
@@ -54,7 +65,7 @@ const InputField = ({
 		ALLOWED_ORIGINS: false,
 		roles: false,
 	});
-	const [inputData, setInputData] = React.useState<Record<string, string>>({
+	const [inputData, setInputData] = useState<Record<string, string>>({
 		ROLES: '',
 		DEFAULT_ROLES: '',
 		PROTECTED_ROLES: '',
@@ -116,7 +127,7 @@ const InputField = ({
 			<InputGroup size="sm">
 				<Input
 					{...props}
-					value={variables[inputType] ?? ''}
+					value={variables[inputType] || ''}
 					onChange={(
 						event: Event & {
 							target: HTMLInputElement;
@@ -221,7 +232,7 @@ const InputField = ({
 							size="xs"
 							minW="150px"
 							placeholder="add a new value"
-							value={inputData[inputType] ?? ''}
+							value={inputData[inputType] || ''}
 							onChange={(e: any) => {
 								setInputData({ ...inputData, [inputType]: e.target.value });
 							}}
@@ -276,6 +287,87 @@ const InputField = ({
 					</option>
 				))}
 			</Select>
+		);
+	}
+	if (Object.values(MultiSelectInputType).includes(inputType)) {
+		return (
+			<Flex w="100%" style={{ position: 'relative' }}>
+				<Flex
+					border="1px solid #e2e8f0"
+					w="100%"
+					borderRadius="var(--chakra-radii-sm)"
+					p="1% 0 0 2.5%"
+					overflowX={variables[inputType].length > 3 ? 'scroll' : 'hidden'}
+					overflowY="hidden"
+					justifyContent="space-between"
+					alignItems="center"
+				>
+					<Flex justifyContent="start" alignItems="center" w="100%" wrap="wrap">
+						{variables[inputType].map((role: string, index: number) => (
+							<Box key={index} margin="0.5%" role="group">
+								<Tag
+									size="sm"
+									variant="outline"
+									colorScheme="gray"
+									minW="fit-content"
+								>
+									<TagLabel cursor="default">{role}</TagLabel>
+									<TagRightIcon
+										boxSize="12px"
+										as={FaTimes}
+										display="none"
+										cursor="pointer"
+										_groupHover={{ display: 'block' }}
+										onClick={() =>
+											updateInputHandler(
+												inputType,
+												ArrayInputOperations.REMOVE,
+												role,
+											)
+										}
+									/>
+								</Tag>
+							</Box>
+						))}
+					</Flex>
+					<Menu matchWidth={true}>
+						<MenuButton px="10px" py="7.5px">
+							<FaAngleDown />
+						</MenuButton>
+						<MenuList
+							position="absolute"
+							top="0"
+							right="0"
+							zIndex="10"
+							maxH="150"
+							overflowX="scroll"
+						>
+							<MenuOptionGroup
+								title={undefined}
+								value={variables[inputType]}
+								type="checkbox"
+								onChange={(values: string[] | string) => {
+									setVariables({
+										...variables,
+										[inputType]: values,
+									});
+								}}
+							>
+								{availableUserRoles.map((role) => {
+									return (
+										<MenuItemOption
+											key={`multiselect-menu-${role}`}
+											value={role}
+										>
+											{role}
+										</MenuItemOption>
+									);
+								})}
+							</MenuOptionGroup>
+						</MenuList>
+					</Menu>
+				</Flex>
+			</Flex>
 		);
 	}
 	if (Object.values(TextAreaInputType).includes(inputType)) {

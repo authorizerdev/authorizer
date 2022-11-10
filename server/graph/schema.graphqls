@@ -110,6 +110,7 @@ type Env {
   SMTP_PORT: String
   SMTP_USERNAME: String
   SMTP_PASSWORD: String
+  SMTP_LOCAL_NAME: String
   SENDER_EMAIL: String
   JWT_TYPE: String
   JWT_SECRET: String
@@ -152,6 +153,7 @@ type Env {
 
 type ValidateJWTTokenResponse {
   is_valid: Boolean!
+  claims: Map
 }
 
 type GenerateJWTKeysResponse {
@@ -219,6 +221,7 @@ input UpdateEnvInput {
   SMTP_PORT: String
   SMTP_USERNAME: String
   SMTP_PASSWORD: String
+  SMTP_LOCAL_NAME: String
   SENDER_EMAIL: String
   JWT_TYPE: String
   JWT_SECRET: String

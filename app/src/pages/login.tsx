@@ -60,7 +60,12 @@ export default function Login({ urlProps }: { urlProps: Record<string, any> }) {
 			{view === VIEW_TYPES.FORGOT_PASSWORD && (
 				<Fragment>
 					<h1 style={{ textAlign: 'center' }}>Forgot Password</h1>
-					<AuthorizerForgotPassword urlProps={urlProps} />
+					<AuthorizerForgotPassword
+						urlProps={{
+							...urlProps,
+							redirect_uri: `${window.location.origin}/app/reset-password`,
+						}}
+					/>
 					<Footer>
 						<Link
 							to="#"

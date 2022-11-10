@@ -7,9 +7,9 @@ on:
         default: 'warning'
         type: choice
         options:
-        - info
-        - warning
-        - debug
+          - info
+          - warning
+          - debug
       tags:
         description: 'Tags'
         required: false
@@ -19,19 +19,27 @@ on:
 
 jobs:
   releases:
-    name: Release Authorizer Binary
+    name: Release Authorizer
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: actions/setup-node@v2
         with:
           node-version: '16'
+      - # Add support for more platforms with QEMU (optional)
+        # https://github.com/docker/setup-qemu-action
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        with:
+          platforms: linux/amd64,linux/arm64
       - uses: actions/setup-go@v2
         with:
           go-version: '^1.19.1'
       - name: Install dependencies
         run: |
-          sudo apt-get install build-essential wget zip gcc-mingw-w64 && \
+          sudo apt-get install build-essential wget zip  libc6-dev-arm64-cross && \
           echo "/usr/bin/x86_64-w64-mingw32-gcc" >> GITHUB_PATH && \
           wget --no-check-certificate --progress=dot:mega https://github.com/wangyoucao577/assets-uploader/releases/download/v0.3.0/github-assets-uploader-v0.3.0-linux-amd64.tar.gz -O github-assets-uploader.tar.gz && \
           tar -zxf github-assets-uploader.tar.gz && \
@@ -44,25 +52,26 @@ jobs:
         run: whereis go
       - name: Print Go Version
         run: go version
+      - name: Install gox
+        run: go install github.com/mitchellh/gox@latest
       - name: Set VERSION env
         run: echo VERSION=$(basename ${GITHUB_REF}) >> ${GITHUB_ENV}
       - name: Copy .env file
         run: mv .env.sample .env
-      - name: Package files for windows
+      - name: Build package
         run: |
           make clean && \
-          CGO_ENABLED=1 GOOS=windows CC=/usr/bin/x86_64-w64-mingw32-gcc make && \
-          mv build/server build/server.exe && \
-          zip -vr authorizer-${VERSION}-windows-amd64.zip .env app/build build templates dashboard/build
-      - name: Package files for linux
-        run: |
-          make clean && \
-          CGO_ENABLED=1 make && \
-          tar cvfz authorizer-${VERSION}-linux-amd64.tar.gz .env app/build build templates dashboard/build
+          make build && \
+          mkdir -p authorizer-${VERSION}-darwin-amd64/build authorizer-${VERSION}-darwin-amd64/app authorizer-${VERSION}-darwin-amd64/dashboard && cp build/darwin/amd64/server authorizer-${VERSION}-darwin-amd64/build/ && cp .env authorizer-${VERSION}-darwin-amd64/.env && cp -rf app/build authorizer-${VERSION}-darwin-amd64/app/build && cp -rf templates authorizer-${VERSION}-darwin-amd64/ && cp -rf dashboard/build authorizer-${VERSION}-darwin-amd64/dashboard/build && tar cvfz authorizer-${VERSION}-darwin-amd64.tar.gz authorizer-${VERSION}-darwin-amd64 && \
+          mkdir -p authorizer-${VERSION}-linux-amd64/build authorizer-${VERSION}-linux-amd64/app authorizer-${VERSION}-linux-amd64/dashboard && cp build/linux/amd64/server authorizer-${VERSION}-linux-amd64/build/ && cp .env authorizer-${VERSION}-linux-amd64/.env && cp -rf app/build authorizer-${VERSION}-linux-amd64/app/build && cp -rf templates authorizer-${VERSION}-linux-amd64/ && cp -rf dashboard/build authorizer-${VERSION}-linux-amd64/dashboard/build && tar cvfz authorizer-${VERSION}-linux-amd64.tar.gz authorizer-${VERSION}-linux-amd64 && \
+          mkdir -p authorizer-${VERSION}-linux-arm64/build authorizer-${VERSION}-linux-arm64/app authorizer-${VERSION}-linux-arm64/dashboard && cp build/linux/arm64/server authorizer-${VERSION}-linux-arm64/build/ && cp .env authorizer-${VERSION}-linux-arm64/.env && cp -rf app/build authorizer-${VERSION}-linux-arm64/app/build && cp -rf templates authorizer-${VERSION}-linux-arm64/ && cp -rf dashboard/build authorizer-${VERSION}-linux-arm64/dashboard/build && tar cvfz authorizer-${VERSION}-linux-arm64.tar.gz authorizer-${VERSION}-linux-arm64 && \
+          mkdir -p authorizer-${VERSION}-windows-amd64/build authorizer-${VERSION}-windows-amd64/app authorizer-${VERSION}-windows-amd64/dashboard && cp build/windows/amd64/server.exe authorizer-${VERSION}-windows-amd64/build/ && cp .env authorizer-${VERSION}-windows-amd64/.env && cp -rf app/build authorizer-${VERSION}-windows-amd64/app/build && cp -rf templates authorizer-${VERSION}-windows-amd64/ && cp -rf dashboard/build authorizer-${VERSION}-windows-amd64/dashboard/build && zip -vr authorizer-${VERSION}-windows-amd64.zip authorizer-${VERSION}-windows-amd64
       - name: Upload assets
         run: |
-          github-assets-uploader -f authorizer-${VERSION}-windows-amd64.zip -mediatype application/zip -repo authorizerdev/authorizer -token ${{secrets.RELEASE_TOKEN}} -tag ${VERSION} && \
+          github-assets-uploader -f authorizer-${VERSION}-darwin-amd64.tar.gz -mediatype application/gzip -repo authorizerdev/authorizer -token ${{secrets.RELEASE_TOKEN}} -tag ${VERSION}
           github-assets-uploader -f authorizer-${VERSION}-linux-amd64.tar.gz -mediatype application/gzip -repo authorizerdev/authorizer -token ${{secrets.RELEASE_TOKEN}} -tag ${VERSION}
+          github-assets-uploader -f authorizer-${VERSION}-linux-arm64.tar.gz -mediatype application/gzip -repo authorizerdev/authorizer -token ${{secrets.RELEASE_TOKEN}} -tag ${VERSION}
+          github-assets-uploader -f authorizer-${VERSION}-windows-amd64.zip -mediatype application/zip -repo authorizerdev/authorizer -token ${{secrets.RELEASE_TOKEN}} -tag ${VERSION}
       - name: Log in to Docker Hub
         uses: docker/login-action@v1
         with:
@@ -74,6 +83,11 @@ jobs:
         uses: docker/metadata-action@v3
         with:
           images: lakhansamani/authorizer
+          tags: |
+            type=schedule
+            type=ref,event=branch
+            type=ref,event=tag
+            type=ref,event=pr
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v2
@@ -82,5 +96,6 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64,linux/arm64
           build-args: |
             VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}
