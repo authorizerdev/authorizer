@@ -161,7 +161,6 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 			}
 			go memorystore.Provider.RemoveState(refs.StringValue(params.State))
 		}
-
 	}
 
 	authToken, err := token.CreateAuthToken(gc, user, roles, scope, constants.AuthRecipeMethodBasicAuth, nonce)
