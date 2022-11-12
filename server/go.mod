@@ -7,9 +7,8 @@ require (
 	github.com/arangodb/go-driver v1.2.1
 	github.com/aws/aws-sdk-go v1.44.109
 	github.com/coreos/go-oidc/v3 v3.1.0
-	github.com/denisenkom/go-mssqldb v0.11.0 // indirect
 	github.com/gin-gonic/gin v1.8.1
-	github.com/glebarez/sqlite v1.5.0 // indirect
+	github.com/glebarez/sqlite v1.5.0
 	github.com/go-playground/validator/v10 v10.11.1 // indirect
 	github.com/go-redis/redis/v8 v8.11.0
 	github.com/goccy/go-json v0.9.11 // indirect
@@ -19,7 +18,6 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/guregu/dynamo v1.16.0
 	github.com/joho/godotenv v1.3.0
-	github.com/mitchellh/gox v1.0.1 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/pelletier/go-toml/v2 v2.0.5 // indirect
 	github.com/robertkrimen/otto v0.0.0-20211024170158-b87d35c0b86f

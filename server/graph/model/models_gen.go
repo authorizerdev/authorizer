@@ -151,6 +151,7 @@ type LoginInput struct {
 	Password string   `json:"password"`
 	Roles    []string `json:"roles"`
 	Scope    []string `json:"scope"`
+	State    *string  `json:"state"`
 }
 
 type MagicLinkLoginInput struct {
@@ -238,6 +239,7 @@ type SignUpInput struct {
 	Scope                    []string `json:"scope"`
 	RedirectURI              *string  `json:"redirect_uri"`
 	IsMultiFactorAuthEnabled *bool    `json:"is_multi_factor_auth_enabled"`
+	State                    *string  `json:"state"`
 }
 
 type TestEndpointRequest struct {
@@ -408,7 +410,8 @@ type VerificationRequests struct {
 }
 
 type VerifyEmailInput struct {
-	Token string `json:"token"`
+	Token string  `json:"token"`
+	State *string `json:"state"`
 }
 
 type VerifyOTPRequest struct {

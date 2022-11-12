@@ -3,6 +3,7 @@ package handlers
 import (
 	"crypto/sha256"
 	"encoding/base64"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -18,12 +19,26 @@ import (
 	"github.com/authorizerdev/authorizer/server/token"
 )
 
+type RequestBody struct {
+	CodeVerifier string `form:"code_verifier" json:"code_verifier"`
+	Code         string `form:"code" json:"code"`
+	ClientID     string `form:"client_id" json:"client_id"`
+	ClientSecret string `form:"client_secret" json:"client_secret"`
+	GrantType    string `form:"grant_type" json:"grant_type"`
+	RefreshToken string `form:"refresh_token" json:"refresh_token"`
+	RedirectURI  string `form:"redirect_uri" json:"redirect_uri"`
+}
+
 // TokenHandler to handle /oauth/token requests
 // grant type required
 func TokenHandler() gin.HandlerFunc {
 	return func(gc *gin.Context) {
-		var reqBody map[string]string
-		if err := gc.BindJSON(&reqBody); err != nil {
+		// body := gc.Request.Body
+		// x, _ := ioutil.ReadAll(body)
+
+		// fmt.Printf("=> %s \n %s\n", string(x), gc.Request.Header.Get("Content-Type"))
+		var reqBody RequestBody
+		if err := gc.Bind(&reqBody); err != nil {
 			log.Debug("Error binding JSON: ", err)
 			gc.JSON(http.StatusBadRequest, gin.H{
 				"error":             "error_binding_json",
@@ -32,11 +47,14 @@ func TokenHandler() gin.HandlerFunc {
 			return
 		}
 
-		codeVerifier := strings.TrimSpace(reqBody["code_verifier"])
-		code := strings.TrimSpace(reqBody["code"])
-		clientID := strings.TrimSpace(reqBody["client_id"])
-		grantType := strings.TrimSpace(reqBody["grant_type"])
-		refreshToken := strings.TrimSpace(reqBody["refresh_token"])
+		fmt.Printf("=>req body: %+v\n", reqBody)
+
+		codeVerifier := strings.TrimSpace(reqBody.CodeVerifier)
+		code := strings.TrimSpace(reqBody.Code)
+		clientID := strings.TrimSpace(reqBody.ClientID)
+		grantType := strings.TrimSpace(reqBody.GrantType)
+		refreshToken := strings.TrimSpace(reqBody.RefreshToken)
+		clientSecret := strings.TrimSpace(reqBody.ClientSecret)
 
 		if grantType == "" {
 			grantType = "authorization_code"
@@ -77,15 +95,6 @@ func TokenHandler() gin.HandlerFunc {
 		sessionKey := ""
 
 		if isAuthorizationCodeGrant {
-			if codeVerifier == "" {
-				log.Debug("Code verifier is empty")
-				gc.JSON(http.StatusBadRequest, gin.H{
-					"error":             "invalid_code_verifier",
-					"error_description": "The code verifier is required",
-				})
-				return
-			}
-
 			if code == "" {
 				log.Debug("Code is empty")
 				gc.JSON(http.StatusBadRequest, gin.H{
@@ -95,33 +104,55 @@ func TokenHandler() gin.HandlerFunc {
 				return
 			}
 
-			hash := sha256.New()
-			hash.Write([]byte(codeVerifier))
-			encryptedCode := strings.ReplaceAll(base64.URLEncoding.EncodeToString(hash.Sum(nil)), "+", "-")
-			encryptedCode = strings.ReplaceAll(encryptedCode, "/", "_")
-			encryptedCode = strings.ReplaceAll(encryptedCode, "=", "")
-			sessionData, err := memorystore.Provider.GetState(encryptedCode)
+			if codeVerifier == "" && clientSecret == "" {
+				gc.JSON(http.StatusBadRequest, gin.H{
+					"error":             "invalid_dat",
+					"error_description": "The code verifier or client secret is required",
+				})
+				return
+			}
+			// Get state
+			sessionData, err := memorystore.Provider.GetState(code)
 			if sessionData == "" || err != nil {
 				log.Debug("Session data is empty")
 				gc.JSON(http.StatusBadRequest, gin.H{
-					"error":             "invalid_code_verifier",
-					"error_description": "The code verifier is invalid",
+					"error":             "invalid_code",
+					"error_description": "The code is invalid",
 				})
 				return
 			}
 
-			go memorystore.Provider.RemoveState(encryptedCode)
-			// split session data
-			// it contains code@sessiontoken
-			sessionDataSplit := strings.Split(sessionData, "@")
+			// [0] -> code_challenge
+			// [1] -> session cookie
+			sessionDataSplit := strings.Split(sessionData, "@@")
+			fmt.Println("=> sessionDataSplit:", sessionDataSplit)
 
-			if sessionDataSplit[0] != code {
-				log.Debug("Invalid code verifier. Unable to split session data")
-				gc.JSON(http.StatusBadRequest, gin.H{
-					"error":             "invalid_code_verifier",
-					"error_description": "The code verifier is invalid",
-				})
-				return
+			go memorystore.Provider.RemoveState(code)
+
+			if codeVerifier != "" {
+				hash := sha256.New()
+				hash.Write([]byte(codeVerifier))
+				encryptedCode := strings.ReplaceAll(base64.RawURLEncoding.EncodeToString(hash.Sum(nil)), "+", "-")
+				encryptedCode = strings.ReplaceAll(encryptedCode, "/", "_")
+				encryptedCode = strings.ReplaceAll(encryptedCode, "=", "")
+				fmt.Println("=> encryptedCode", encryptedCode)
+				if encryptedCode != sessionDataSplit[0] {
+					gc.JSON(http.StatusBadRequest, gin.H{
+						"error":             "invalid_code_verifier",
+						"error_description": "The code verifier is invalid",
+					})
+					return
+				}
+
+			} else {
+				if clientHash, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyClientSecret); clientSecret != clientHash || err != nil {
+					log.Debug("Client Secret is invalid: ", clientID)
+					gc.JSON(http.StatusBadRequest, gin.H{
+						"error":             "invalid_client_secret",
+						"error_description": "The client secret is invalid",
+					})
+					return
+				}
 			}
 
 			// validate session
@@ -135,6 +166,8 @@ func TokenHandler() gin.HandlerFunc {
 				return
 			}
 
+			fmt.Printf("=>claims: %+v\n", &claims)
+
 			userID = claims.Subject
 			roles = claims.Roles
 			scope = claims.Scope
@@ -147,6 +180,7 @@ func TokenHandler() gin.HandlerFunc {
 			}
 
 			go memorystore.Provider.DeleteUserSession(sessionKey, claims.Nonce)
+
 		} else {
 			// validate refresh token
 			if refreshToken == "" {
@@ -207,7 +241,11 @@ func TokenHandler() gin.HandlerFunc {
 			return
 		}
 
-		nonce := uuid.New().String()
+		nonce := uuid.New().String() + "@@" + code
+
+		fmt.Println("=> code", code)
+		fmt.Println("=> nonce", nonce)
+
 		authToken, err := token.CreateAuthToken(gc, user, roles, scope, loginMethod, nonce)
 		if err != nil {
 			log.Debug("Error creating auth token: ", err)

@@ -86,10 +86,23 @@ func AuthorizeHandler() gin.HandlerFunc {
 			"code":           code,
 		})
 
-		memorystore.Provider.SetState(codeChallenge, code)
+		// memorystore.Provider.SetState(codeChallenge, code)
+		// TODO add state with timeout
 
 		// used for response mode query or fragment
-		loginState := "state=" + state + "&scope=" + strings.Join(scope, " ") + "&redirect_uri=" + redirectURI + "&code=" + code + "&nonce=" + nonce
+		loginState := "state=" + state + "&scope=" + strings.Join(scope, " ") + "&redirect_uri=" + redirectURI
+		if responseType == constants.ResponseTypeCode {
+			loginState += "&code=" + code
+			if err := memorystore.Provider.SetState(state, code+"@@"+codeChallenge); err != nil {
+				log.Debug("Error setting temp code", err)
+			}
+		} else {
+			loginState += "&nonce=" + nonce
+			if err := memorystore.Provider.SetState(state, nonce); err != nil {
+				log.Debug("Error setting temp code", err)
+			}
+		}
+
 		loginURL := "/app?" + loginState
 
 		if responseMode == constants.ResponseModeFragment {
@@ -168,7 +181,15 @@ func AuthorizeHandler() gin.HandlerFunc {
 				return
 			}
 
-			if err := memorystore.Provider.SetState(codeChallenge, code+"@"+newSessionToken); err != nil {
+			// TODO: add state with timeout
+			// if err := memorystore.Provider.SetState(codeChallenge, code+"@"+newSessionToken); err != nil {
+			// 	log.Debug("SetState failed: ", err)
+			// 	handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
+			// 	return
+			// }
+
+			// TODO: add state with timeout
+			if err := memorystore.Provider.SetState(code, codeChallenge+"@@"+newSessionToken); err != nil {
 				log.Debug("SetState failed: ", err)
 				handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
 				return
@@ -317,13 +338,15 @@ func handleResponse(gc *gin.Context, responseMode, loginURI, redirectURI string,
 		isAuthenticationRequired = true
 	}
 
+	if isAuthenticationRequired {
+		gc.Redirect(http.StatusFound, loginURI)
+		return
+	}
+
 	switch responseMode {
 	case constants.ResponseModeQuery, constants.ResponseModeFragment:
-		if isAuthenticationRequired {
-			gc.Redirect(http.StatusFound, loginURI)
-		} else {
-			gc.Redirect(http.StatusFound, redirectURI)
-		}
+
+		gc.Redirect(http.StatusFound, redirectURI)
 		return
 	case constants.ResponseModeWebMessage:
 		gc.HTML(httpStatusCode, authorizeWebMessageTemplate, gin.H{
@@ -332,6 +355,8 @@ func handleResponse(gc *gin.Context, responseMode, loginURI, redirectURI string,
 		})
 		return
 	case constants.ResponseModeFormPost:
+		fmt.Println("=> trying tof orm post")
+		fmt.Printf("=> %+v \n", data["response"])
 		gc.HTML(httpStatusCode, authorizeFormPostTemplate, gin.H{
 			"target_origin":          redirectURI,
 			"authorization_response": data["response"],

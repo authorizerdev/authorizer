@@ -38,8 +38,8 @@ export default function Root({
 	const scope = searchParams.get('scope')
 		? searchParams.get('scope')?.toString().split(' ')
 		: ['openid', 'profile', 'email'];
-	const code = searchParams.get('code') || ''
-	const nonce = searchParams.get('nonce') || ''
+	const code = searchParams.get('code') || '';
+	const nonce = searchParams.get('nonce') || '';
 
 	const urlProps: Record<string, any> = {
 		state,
@@ -57,16 +57,17 @@ export default function Root({
 	urlProps.redirect_uri = urlProps.redirectURL;
 
 	useEffect(() => {
+		console.log(config);
 		if (token) {
 			let redirectURL = config.redirectURL || '/app';
 			let params = `access_token=${token.access_token}&id_token=${token.id_token}&expires_in=${token.expires_in}&state=${globalState.state}`;
 
 			if (code !== '') {
-				params += `&code=${code}`
+				params += `&code=${code}`;
 			}
 
 			if (nonce !== '') {
-				params += `&nonce=${nonce}`
+				params += `&nonce=${nonce}`;
 			}
 
 			if (token.refresh_token) {
@@ -86,7 +87,7 @@ export default function Root({
 			}
 		}
 		return () => {};
-	}, [token]);
+	}, [token, config]);
 
 	if (loading) {
 		return <h1>Loading...</h1>;

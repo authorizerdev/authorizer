@@ -142,6 +142,28 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 	}
 
 	nonce := uuid.New().String()
+	fmt.Println("=> state", refs.StringValue(params.State))
+	code := ""
+	codeChallenge := ""
+	if params.State != nil {
+		// Get state from store
+		authorizeState, _ := memorystore.Provider.GetState(refs.StringValue(params.State))
+		if authorizeState != "" {
+			authorizeStateSplit := strings.Split(authorizeState, "@@")
+			if len(authorizeStateSplit) > 1 {
+				code = authorizeStateSplit[0]
+				codeChallenge = authorizeStateSplit[1]
+
+				fmt.Println("=> code info", authorizeStateSplit)
+				nonce = nonce + "@@" + code
+			} else {
+				nonce = authorizeState
+			}
+			go memorystore.Provider.RemoveState(refs.StringValue(params.State))
+		}
+
+	}
+
 	authToken, err := token.CreateAuthToken(gc, user, roles, scope, constants.AuthRecipeMethodBasicAuth, nonce)
 	if err != nil {
 		log.Debug("Failed to create auth token", err)
@@ -165,6 +187,15 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 	sessionStoreKey := constants.AuthRecipeMethodBasicAuth + ":" + user.ID
 	memorystore.Provider.SetUserSession(sessionStoreKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash)
 	memorystore.Provider.SetUserSession(sessionStoreKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token)
+	// Code challenge could be optional if PKCE flow is not used
+
+	if code != "" {
+		fmt.Println("=> setting the state here....")
+		if err := memorystore.Provider.SetState(code, codeChallenge+"@@"+authToken.FingerPrintHash); err != nil {
+			log.Debug("SetState failed: ", err)
+			return res, err
+		}
+	}
 
 	if authToken.RefreshToken != nil {
 		res.RefreshToken = &authToken.RefreshToken.Token

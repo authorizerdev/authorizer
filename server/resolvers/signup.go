@@ -34,6 +34,16 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 		return res, err
 	}
 
+	code := ""
+	if params.State != nil {
+		// Get state from store
+		code, err = memorystore.Provider.GetState(*params.State)
+		if err != nil {
+			log.Debug("Invalid Error State:", err)
+			return res, fmt.Errorf("invalid_state: %s", err.Error())
+		}
+	}
+
 	isSignupDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableSignUp)
 	if err != nil {
 		log.Debug("Error getting signup disabled: ", err)
@@ -244,6 +254,10 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 		}
 
 		nonce := uuid.New().String()
+		if code != "" {
+			nonce = nonce + "@@" + code
+		}
+
 		authToken, err := token.CreateAuthToken(gc, user, roles, scope, constants.AuthRecipeMethodBasicAuth, nonce)
 		if err != nil {
 			log.Debug("Failed to create auth token: ", err)
