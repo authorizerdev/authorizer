@@ -1,5 +1,36 @@
 package handlers
 
+/**
+LOGIC TO REMEMBER THE AUTHORIZE FLOW
+
+
+jargons
+`at_hash` -> access_token_hash
+`c_hash` -> code_hash
+
+
+# ResponseType: Code
+	with /authorize request
+		- set state [state, code@@challenge]
+		- add &code to login redirect url
+	login resolver has optional param state
+		-if state found in store, split with @@
+		- if len > 1 -> response type is code and has code + challenge
+		- set `nonce@@code` for createAuthToken request so that `c_hash` can be generated
+		- do not add `nonce` to id_token in code flow, instead set `c_hash` and `at_hash`
+
+
+# ResponseType: token / id_token
+	with /authorize request
+		- set state [state, nonce]
+		- add &nonce to login redirect url
+	login resolver has optional param state
+		- if state found in store, split with @@
+		- if len < 1 -> response type is token / id_token and has nonce
+		- send received nonce for createAuthToken
+		- set `nonce` and `at_hash` in `id_token`
+**/
+
 import (
 	"fmt"
 	"net/http"
@@ -19,6 +50,15 @@ import (
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
+// Check the flow for generating and verifying codes: https://developer.okta.com/blog/2019/08/22/okta-authjs-pkce#:~:text=PKCE%20works%20by%20having%20the,is%20called%20the%20Code%20Challenge.
+
+// Check following docs for understanding request / response params for various types of requests: https://auth0.com/docs/authenticate/login/oidc-conformant-authentication/oidc-adoption-auth-code-flow
+
+const (
+	authorizeWebMessageTemplate = "authorize_web_message.tmpl"
+	authorizeFormPostTemplate   = "authorize_form_post.tmpl"
+)
+
 // AuthorizeHandler is the handler for the /authorize route
 // required params
 // ?redirect_uri = redirect url
@@ -26,14 +66,6 @@ import (
 // state[recommended] = to prevent CSRF attack (for authorizer its compulsory)
 // code_challenge = to prevent CSRF attack
 // code_challenge_method = to prevent CSRF attack [only sh256 is supported]
-
-// check the flow for generating and verifying codes: https://developer.okta.com/blog/2019/08/22/okta-authjs-pkce#:~:text=PKCE%20works%20by%20having%20the,is%20called%20the%20Code%20Challenge.
-
-const (
-	authorizeWebMessageTemplate = "authorize_web_message.tmpl"
-	authorizeFormPostTemplate   = "authorize_form_post.tmpl"
-)
-
 func AuthorizeHandler() gin.HandlerFunc {
 	return func(gc *gin.Context) {
 		redirectURI := strings.TrimSpace(gc.Query("redirect_uri"))
