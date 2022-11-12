@@ -258,7 +258,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 			nonce = nonce + "@@" + code
 		}
 
-		authToken, err := token.CreateAuthToken(gc, user, roles, scope, constants.AuthRecipeMethodBasicAuth, nonce)
+		authToken, err := token.CreateAuthToken(gc, user, roles, scope, constants.AuthRecipeMethodBasicAuth, nonce, code)
 		if err != nil {
 			log.Debug("Failed to create auth token: ", err)
 			return res, err

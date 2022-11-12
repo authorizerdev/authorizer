@@ -59,7 +59,7 @@ func VerifyOtpResolver(ctx context.Context, params model.VerifyOTPRequest) (*mod
 	roles := strings.Split(user.Roles, ",")
 	scope := []string{"openid", "email", "profile"}
 	nonce := uuid.New().String()
-	authToken, err := token.CreateAuthToken(gc, user, roles, scope, loginMethod, nonce)
+	authToken, err := token.CreateAuthToken(gc, user, roles, scope, loginMethod, nonce, "")
 	if err != nil {
 		log.Debug("Failed to create auth token: ", err)
 		return res, err

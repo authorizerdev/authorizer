@@ -49,18 +49,7 @@ type SessionData struct {
 }
 
 // CreateAuthToken creates a new auth token when userlogs in
-func CreateAuthToken(gc *gin.Context, user models.User, roles, scope []string, loginMethod, nonce string) (*Token, error) {
-
-	code := ""
-	nonceSplit := strings.Split(nonce, "@@")
-	fingerPrint := nonce
-	fmt.Println("=> nonce split", nonceSplit)
-	if len(nonceSplit) > 1 {
-		code = nonceSplit[1]
-		// use original nonce for session token and access token
-		nonce = nonceSplit[0]
-		fingerPrint = nonce
-	}
+func CreateAuthToken(gc *gin.Context, user models.User, roles, scope []string, loginMethod, nonce string, code string) (*Token, error) {
 
 	fmt.Println("=> original nonce:", nonce)
 
@@ -98,7 +87,7 @@ func CreateAuthToken(gc *gin.Context, user models.User, roles, scope []string, l
 	}
 
 	res := &Token{
-		FingerPrint:     fingerPrint,
+		FingerPrint:     nonce,
 		FingerPrintHash: fingerPrintHash,
 		AccessToken:     &JWTToken{Token: accessToken, ExpiresAt: accessTokenExpiresAt},
 		IDToken:         &JWTToken{Token: idToken, ExpiresAt: idTokenExpiresAt},

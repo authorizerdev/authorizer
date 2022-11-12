@@ -101,7 +101,7 @@ func VerifyEmailHandler() gin.HandlerFunc {
 		}
 
 		nonce := uuid.New().String()
-		authToken, err := token.CreateAuthToken(c, user, roles, scope, loginMethod, nonce)
+		authToken, err := token.CreateAuthToken(c, user, roles, scope, loginMethod, nonce, "")
 		if err != nil {
 			log.Debug("Error creating auth token: ", err)
 			errorRes["error_description"] = err.Error()

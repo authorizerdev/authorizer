@@ -155,7 +155,6 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 				codeChallenge = authorizeStateSplit[1]
 
 				fmt.Println("=> code info", authorizeStateSplit)
-				nonce = nonce + "@@" + code
 			} else {
 				nonce = authorizeState
 			}
@@ -163,7 +162,7 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 		}
 	}
 
-	authToken, err := token.CreateAuthToken(gc, user, roles, scope, constants.AuthRecipeMethodBasicAuth, nonce)
+	authToken, err := token.CreateAuthToken(gc, user, roles, scope, constants.AuthRecipeMethodBasicAuth, nonce, code)
 	if err != nil {
 		log.Debug("Failed to create auth token", err)
 		return res, err
@@ -186,8 +185,8 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 	sessionStoreKey := constants.AuthRecipeMethodBasicAuth + ":" + user.ID
 	memorystore.Provider.SetUserSession(sessionStoreKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash)
 	memorystore.Provider.SetUserSession(sessionStoreKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token)
+	// TODO add to other login options as well
 	// Code challenge could be optional if PKCE flow is not used
-
 	if code != "" {
 		fmt.Println("=> setting the state here....")
 		if err := memorystore.Provider.SetState(code, codeChallenge+"@@"+authToken.FingerPrintHash); err != nil {

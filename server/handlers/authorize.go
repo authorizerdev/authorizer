@@ -16,7 +16,7 @@ jargons
 	login resolver has optional param state
 		-if state found in store, split with @@
 		- if len > 1 -> response type is code and has code + challenge
-		- set `nonce@@code` for createAuthToken request so that `c_hash` can be generated
+		- set `nonce, code` for createAuthToken request so that `c_hash` can be generated
 		- do not add `nonce` to id_token in code flow, instead set `c_hash` and `at_hash`
 
 
@@ -26,8 +26,8 @@ jargons
 		- add &nonce to login redirect url
 	login resolver has optional param state
 		- if state found in store, split with @@
-		- if len < 1 -> response type is token / id_token and has nonce
-		- send received nonce for createAuthToken
+		- if len < 1 -> response type is token / id_token and value is nonce
+		- send received nonce for createAuthToken with empty code value
 		- set `nonce` and `at_hash` in `id_token`
 **/
 
@@ -277,7 +277,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 		if responseType == constants.ResponseTypeToken || responseType == constants.ResponseTypeIDToken {
 			hostname := parsers.GetHost(gc)
 			// rollover the session for security
-			authToken, err := token.CreateAuthToken(gc, user, claims.Roles, scope, claims.LoginMethod, nonce)
+			authToken, err := token.CreateAuthToken(gc, user, claims.Roles, scope, claims.LoginMethod, nonce, "")
 			if err != nil {
 				log.Debug("CreateAuthToken failed: ", err)
 				handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)

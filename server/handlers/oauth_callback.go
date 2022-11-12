@@ -197,8 +197,11 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			}
 		}
 
+		// TODO
+		// use stateValue to get code / nonce
+		// add code / nonce to id_token
 		nonce := uuid.New().String()
-		authToken, err := token.CreateAuthToken(ctx, user, inputRoles, scopes, provider, nonce)
+		authToken, err := token.CreateAuthToken(ctx, user, inputRoles, scopes, provider, nonce, "")
 		if err != nil {
 			log.Debug("Failed to create auth token: ", err)
 			ctx.JSON(500, gin.H{"error": err.Error()})

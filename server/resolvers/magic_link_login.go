@@ -15,6 +15,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/parsers"
+	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/authorizerdev/authorizer/server/validators"
@@ -185,7 +186,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 		}
 		redirectURLParams := "&roles=" + strings.Join(inputRoles, ",")
 		if params.State != nil {
-			redirectURLParams = redirectURLParams + "&state=" + *params.State
+			redirectURLParams = redirectURLParams + "&state=" + refs.StringValue(params.State)
 		}
 		if params.Scope != nil && len(params.Scope) > 0 {
 			redirectURLParams = redirectURLParams + "&scope=" + strings.Join(params.Scope, " ")

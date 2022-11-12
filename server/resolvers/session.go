@@ -72,7 +72,7 @@ func SessionResolver(ctx context.Context, params *model.SessionQueryInput) (*mod
 	}
 
 	nonce := uuid.New().String()
-	authToken, err := token.CreateAuthToken(gc, user, claimRoles, scope, claims.LoginMethod, nonce)
+	authToken, err := token.CreateAuthToken(gc, user, claimRoles, scope, claims.LoginMethod, nonce, "")
 	if err != nil {
 		log.Debug("Failed to create auth token: ", err)
 		return res, err

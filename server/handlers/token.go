@@ -246,7 +246,7 @@ func TokenHandler() gin.HandlerFunc {
 		fmt.Println("=> code", code)
 		fmt.Println("=> nonce", nonce)
 
-		authToken, err := token.CreateAuthToken(gc, user, roles, scope, loginMethod, nonce)
+		authToken, err := token.CreateAuthToken(gc, user, roles, scope, loginMethod, nonce, code)
 		if err != nil {
 			log.Debug("Error creating auth token: ", err)
 			gc.JSON(http.StatusUnauthorized, gin.H{
