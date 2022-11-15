@@ -3,7 +3,6 @@ package handlers
 import (
 	"crypto/sha256"
 	"encoding/base64"
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -33,10 +32,6 @@ type RequestBody struct {
 // grant type required
 func TokenHandler() gin.HandlerFunc {
 	return func(gc *gin.Context) {
-		// body := gc.Request.Body
-		// x, _ := ioutil.ReadAll(body)
-
-		// fmt.Printf("=> %s \n %s\n", string(x), gc.Request.Header.Get("Content-Type"))
 		var reqBody RequestBody
 		if err := gc.Bind(&reqBody); err != nil {
 			log.Debug("Error binding JSON: ", err)
@@ -46,8 +41,6 @@ func TokenHandler() gin.HandlerFunc {
 			})
 			return
 		}
-
-		fmt.Printf("=>req body: %+v\n", reqBody)
 
 		codeVerifier := strings.TrimSpace(reqBody.CodeVerifier)
 		code := strings.TrimSpace(reqBody.Code)
@@ -125,7 +118,6 @@ func TokenHandler() gin.HandlerFunc {
 			// [0] -> code_challenge
 			// [1] -> session cookie
 			sessionDataSplit := strings.Split(sessionData, "@@")
-			fmt.Println("=> sessionDataSplit:", sessionDataSplit)
 
 			go memorystore.Provider.RemoveState(code)
 
@@ -135,7 +127,6 @@ func TokenHandler() gin.HandlerFunc {
 				encryptedCode := strings.ReplaceAll(base64.RawURLEncoding.EncodeToString(hash.Sum(nil)), "+", "-")
 				encryptedCode = strings.ReplaceAll(encryptedCode, "/", "_")
 				encryptedCode = strings.ReplaceAll(encryptedCode, "=", "")
-				fmt.Println("=> encryptedCode", encryptedCode)
 				if encryptedCode != sessionDataSplit[0] {
 					gc.JSON(http.StatusBadRequest, gin.H{
 						"error":             "invalid_code_verifier",
@@ -165,8 +156,6 @@ func TokenHandler() gin.HandlerFunc {
 				})
 				return
 			}
-
-			fmt.Printf("=>claims: %+v\n", &claims)
 
 			userID = claims.Subject
 			roles = claims.Roles
@@ -242,10 +231,6 @@ func TokenHandler() gin.HandlerFunc {
 		}
 
 		nonce := uuid.New().String() + "@@" + code
-
-		fmt.Println("=> code", code)
-		fmt.Println("=> nonce", nonce)
-
 		authToken, err := token.CreateAuthToken(gc, user, roles, scope, loginMethod, nonce, code)
 		if err != nil {
 			log.Debug("Error creating auth token: ", err)

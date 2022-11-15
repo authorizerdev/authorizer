@@ -50,9 +50,6 @@ type SessionData struct {
 
 // CreateAuthToken creates a new auth token when userlogs in
 func CreateAuthToken(gc *gin.Context, user models.User, roles, scope []string, loginMethod, nonce string, code string) (*Token, error) {
-
-	fmt.Println("=> original nonce:", nonce)
-
 	hostname := parsers.GetHost(gc)
 	_, fingerPrintHash, err := CreateSessionToken(user, nonce, roles, scope, loginMethod)
 	if err != nil {
@@ -72,7 +69,6 @@ func CreateAuthToken(gc *gin.Context, user models.User, roles, scope []string, l
 
 	codeHashString := ""
 	if code != "" {
-		fmt.Println("=> atHash", atHashString)
 		codeHash := sha256.New()
 		codeHash.Write([]byte(code))
 		codeHashBytes := codeHash.Sum(nil)
@@ -80,7 +76,6 @@ func CreateAuthToken(gc *gin.Context, user models.User, roles, scope []string, l
 		codeHashString = base64.RawURLEncoding.EncodeToString(codeHashDigest)
 	}
 
-	fmt.Println("=> at hash nonce", nonce)
 	idToken, idTokenExpiresAt, err := CreateIDToken(user, roles, hostname, nonce, atHashString, codeHashString, loginMethod)
 	if err != nil {
 		return nil, err
@@ -116,7 +111,6 @@ func CreateSessionToken(user models.User, nonce string, roles, scope []string, l
 		IssuedAt:    time.Now().Unix(),
 		ExpiresAt:   time.Now().AddDate(1, 0, 0).Unix(),
 	}
-	fmt.Printf("=> session data %+v\n", fingerPrintMap)
 	fingerPrintBytes, _ := json.Marshal(fingerPrintMap)
 	fingerPrintHash, err := crypto.EncryptAES(string(fingerPrintBytes))
 	if err != nil {
@@ -381,8 +375,6 @@ func CreateIDToken(user models.User, roles []string, hostname, nonce, atHash, cH
 		claimKey:        roles,
 	}
 
-	fmt.Println("=> nonce", nonce)
-
 	// split nonce to see if its authorization code grant method
 
 	if cHash != "" {
@@ -392,8 +384,6 @@ func CreateIDToken(user models.User, roles []string, hostname, nonce, atHash, cH
 		customClaims["nonce"] = nonce
 		customClaims["at_hash"] = atHash
 	}
-
-	fmt.Println("custom_claims", customClaims)
 
 	for k, v := range userMap {
 		if k != "roles" {

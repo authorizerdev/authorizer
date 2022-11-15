@@ -57,7 +57,6 @@ export default function Root({
 	urlProps.redirect_uri = urlProps.redirectURL;
 
 	useEffect(() => {
-		console.log(config);
 		if (token) {
 			let redirectURL = config.redirectURL || '/app';
 			let params = `access_token=${token.access_token}&id_token=${token.id_token}&expires_in=${token.expires_in}&state=${globalState.state}`;
@@ -113,7 +112,7 @@ export default function Root({
 						<Route path="/app" exact>
 							<Login urlProps={urlProps} />
 						</Route>
-						<Route path="/app/signup" exact>
+						<Route path="/app/signup">
 							<SignUp urlProps={urlProps} />
 						</Route>
 						<Route path="/app/reset-password">

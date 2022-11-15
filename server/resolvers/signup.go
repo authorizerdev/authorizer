@@ -34,16 +34,6 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 		return res, err
 	}
 
-	code := ""
-	if params.State != nil {
-		// Get state from store
-		code, err = memorystore.Provider.GetState(*params.State)
-		if err != nil {
-			log.Debug("Invalid Error State:", err)
-			return res, fmt.Errorf("invalid_state: %s", err.Error())
-		}
-	}
-
 	isSignupDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableSignUp)
 	if err != nil {
 		log.Debug("Error getting signup disabled: ", err)
@@ -253,15 +243,40 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 			scope = params.Scope
 		}
 
-		nonce := uuid.New().String()
-		if code != "" {
-			nonce = nonce + "@@" + code
+		code := ""
+		codeChallenge := ""
+		nonce := ""
+		if params.State != nil {
+			// Get state from store
+			authorizeState, _ := memorystore.Provider.GetState(refs.StringValue(params.State))
+			if authorizeState != "" {
+				authorizeStateSplit := strings.Split(authorizeState, "@@")
+				if len(authorizeStateSplit) > 1 {
+					code = authorizeStateSplit[0]
+					codeChallenge = authorizeStateSplit[1]
+				} else {
+					nonce = authorizeState
+				}
+				go memorystore.Provider.RemoveState(refs.StringValue(params.State))
+			}
+		}
+
+		if nonce == "" {
+			nonce = uuid.New().String()
 		}
 
 		authToken, err := token.CreateAuthToken(gc, user, roles, scope, constants.AuthRecipeMethodBasicAuth, nonce, code)
 		if err != nil {
 			log.Debug("Failed to create auth token: ", err)
 			return res, err
+		}
+
+		// Code challenge could be optional if PKCE flow is not used
+		if code != "" {
+			if err := memorystore.Provider.SetState(code, codeChallenge+"@@"+authToken.FingerPrintHash); err != nil {
+				log.Debug("SetState failed: ", err)
+				return res, err
+			}
 		}
 
 		expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()

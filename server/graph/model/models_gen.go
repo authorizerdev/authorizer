@@ -200,12 +200,14 @@ type PaginationInput struct {
 }
 
 type ResendOTPRequest struct {
-	Email string `json:"email"`
+	Email string  `json:"email"`
+	State *string `json:"state"`
 }
 
 type ResendVerifyEmailInput struct {
-	Email      string `json:"email"`
-	Identifier string `json:"identifier"`
+	Email      string  `json:"email"`
+	Identifier string  `json:"identifier"`
+	State      *string `json:"state"`
 }
 
 type ResetPasswordInput struct {
@@ -415,8 +417,9 @@ type VerifyEmailInput struct {
 }
 
 type VerifyOTPRequest struct {
-	Email string `json:"email"`
-	Otp   string `json:"otp"`
+	Email string  `json:"email"`
+	Otp   string  `json:"otp"`
+	State *string `json:"state"`
 }
 
 type Webhook struct {

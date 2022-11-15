@@ -45,9 +45,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/memorystore"
-	"github.com/authorizerdev/authorizer/server/parsers"
 	"github.com/authorizerdev/authorizer/server/token"
-	"github.com/authorizerdev/authorizer/server/utils"
 )
 
 // Check the flow for generating and verifying codes: https://developer.okta.com/blog/2019/08/22/okta-authjs-pkce#:~:text=PKCE%20works%20by%20having%20the,is%20called%20the%20Code%20Challenge.
@@ -108,19 +106,11 @@ func AuthorizeHandler() gin.HandlerFunc {
 		}
 
 		log := log.WithFields(log.Fields{
-			"response_mode":  responseMode,
-			"response_type":  responseType,
-			"state":          state,
-			"code_challenge": codeChallenge,
-			"scope":          scope,
-			"redirect_uri":   redirectURI,
-			"nonce":          nonce,
-			"code":           code,
+			"response_mode": responseMode,
+			"response_type": responseType,
 		})
 
-		// memorystore.Provider.SetState(codeChallenge, code)
 		// TODO add state with timeout
-
 		// used for response mode query or fragment
 		loginState := "state=" + state + "&scope=" + strings.Join(scope, " ") + "&redirect_uri=" + redirectURI
 		if responseType == constants.ResponseTypeCode {
@@ -139,17 +129,6 @@ func AuthorizeHandler() gin.HandlerFunc {
 
 		if responseMode == constants.ResponseModeFragment {
 			loginURL = "/app#" + loginState
-		}
-
-		if state == "" {
-			handleResponse(gc, responseMode, loginURL, redirectURI, map[string]interface{}{
-				"type": "authorization_response",
-				"response": map[string]interface{}{
-					"error":             "state_required",
-					"error_description": "state is required",
-				},
-			}, http.StatusOK)
-			return
 		}
 
 		if responseType == constants.ResponseTypeCode && codeChallenge == "" {
@@ -275,7 +254,6 @@ func AuthorizeHandler() gin.HandlerFunc {
 		}
 
 		if responseType == constants.ResponseTypeToken || responseType == constants.ResponseTypeIDToken {
-			hostname := parsers.GetHost(gc)
 			// rollover the session for security
 			authToken, err := token.CreateAuthToken(gc, user, claims.Roles, scope, claims.LoginMethod, nonce, "")
 			if err != nil {
@@ -299,7 +277,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 			cookie.SetSession(gc, authToken.FingerPrintHash)
 
 			// used of query mode
-			params := "access_token=" + authToken.AccessToken.Token + "&token_type=bearer&expires_in=" + strconv.FormatInt(authToken.IDToken.ExpiresAt, 10) + "&state=" + state + "&id_token=" + authToken.IDToken.Token + "&code=" + code
+			params := "access_token=" + authToken.AccessToken.Token + "&token_type=bearer&expires_in=" + strconv.FormatInt(authToken.IDToken.ExpiresAt, 10) + "&state=" + state + "&id_token=" + authToken.IDToken.Token
 
 			res := map[string]interface{}{
 				"access_token": authToken.AccessToken.Token,
@@ -308,19 +286,17 @@ func AuthorizeHandler() gin.HandlerFunc {
 				"scope":        scope,
 				"token_type":   "Bearer",
 				"expires_in":   authToken.AccessToken.ExpiresAt,
-				"code":         code,
 			}
 
-			if utils.StringSliceContains(scope, "offline_access") {
-				refreshToken, _, err := token.CreateRefreshToken(user, claims.Roles, scope, hostname, nonce, claims.LoginMethod)
-				if err != nil {
-					log.Debug("SetUserSession failed: ", err)
-					handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
-					return
-				}
-				res["refresh_token"] = refreshToken
-				params += "&refresh_token=" + refreshToken
-				memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+nonce, refreshToken)
+			if nonce != "" {
+				params += "&nonce=" + nonce
+				res["nonce"] = nonce
+			}
+
+			if authToken.RefreshToken != nil {
+				res["refresh_token"] = authToken.RefreshToken.Token
+				params += "&refresh_token=" + authToken.RefreshToken.Token
+				memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token)
 			}
 
 			if responseMode == constants.ResponseModeQuery {
@@ -349,6 +325,9 @@ func AuthorizeHandler() gin.HandlerFunc {
 }
 
 func validateAuthorizeRequest(responseType, responseMode, clientID, state, codeChallenge string) error {
+	if strings.TrimSpace(state) == "" {
+		return fmt.Errorf("invalid state. state is required to prevent csrf attack", responseMode)
+	}
 	if responseType != constants.ResponseTypeCode && responseType != constants.ResponseTypeToken && responseType != constants.ResponseTypeIDToken {
 		return fmt.Errorf("invalid response type %s. 'code' & 'token' are valid response_type", responseMode)
 	}
@@ -387,8 +366,6 @@ func handleResponse(gc *gin.Context, responseMode, loginURI, redirectURI string,
 		})
 		return
 	case constants.ResponseModeFormPost:
-		fmt.Println("=> trying tof orm post")
-		fmt.Printf("=> %+v \n", data["response"])
 		gc.HTML(httpStatusCode, authorizeFormPostTemplate, gin.H{
 			"target_origin":          redirectURI,
 			"authorization_response": data["response"],

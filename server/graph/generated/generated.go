@@ -2278,6 +2278,10 @@ input VerifyEmailInput {
 input ResendVerifyEmailInput {
 	email: String!
 	identifier: String!
+	# state is used for authorization code grant flow
+	# it is used to get code for an on-going auth process during login
+	# and use that code for setting ` + "`" + `c_hash` + "`" + ` in id_token
+	state: String
 }
 
 input UpdateProfileInput {
@@ -2425,10 +2429,18 @@ input DeleteEmailTemplateRequest {
 input VerifyOTPRequest {
 	email: String!
 	otp: String!
+	# state is used for authorization code grant flow
+	# it is used to get code for an on-going auth process during login
+	# and use that code for setting ` + "`" + `c_hash` + "`" + ` in id_token
+	state: String
 }
 
 input ResendOTPRequest {
 	email: String!
+	# state is used for authorization code grant flow
+	# it is used to get code for an on-going auth process during login
+	# and use that code for setting ` + "`" + `c_hash` + "`" + ` in id_token
+	state: String
 }
 
 type Mutation {
@@ -14679,7 +14691,7 @@ func (ec *executionContext) unmarshalInputResendOTPRequest(ctx context.Context, 
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"email"}
+	fieldsInOrder := [...]string{"email", "state"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -14691,6 +14703,14 @@ func (ec *executionContext) unmarshalInputResendOTPRequest(ctx context.Context, 
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
 			it.Email, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "state":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
+			it.State, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -14707,7 +14727,7 @@ func (ec *executionContext) unmarshalInputResendVerifyEmailInput(ctx context.Con
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"email", "identifier"}
+	fieldsInOrder := [...]string{"email", "identifier", "state"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -14727,6 +14747,14 @@ func (ec *executionContext) unmarshalInputResendVerifyEmailInput(ctx context.Con
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("identifier"))
 			it.Identifier, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "state":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
+			it.State, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -15879,7 +15907,7 @@ func (ec *executionContext) unmarshalInputVerifyOTPRequest(ctx context.Context, 
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"email", "otp"}
+	fieldsInOrder := [...]string{"email", "otp", "state"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -15899,6 +15927,14 @@ func (ec *executionContext) unmarshalInputVerifyOTPRequest(ctx context.Context, 
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("otp"))
 			it.Otp, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "state":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
+			it.State, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
