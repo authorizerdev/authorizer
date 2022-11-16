@@ -446,6 +446,8 @@ input AddEmailTemplateRequest {
 	event_name: String!
 	subject: String!
 	template: String!
+	# Design value is set when editor is used
+	# If raw HTML is used design value is set to null
 	design: String
 }
 
@@ -454,6 +456,8 @@ input UpdateEmailTemplateRequest {
 	event_name: String
 	template: String
 	subject: String
+	# Design value is set when editor is used
+	# If raw HTML is used design value is set to null
 	design: String
 }
 
