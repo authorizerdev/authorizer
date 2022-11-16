@@ -430,7 +430,7 @@ input AddEmailTemplateRequest {
   event_name: String!
   subject: String!
   template: String!
-  design: String!
+  design: String
 }
 
 input UpdateEmailTemplateRequest {
