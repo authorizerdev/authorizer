@@ -2411,7 +2411,7 @@ input AddEmailTemplateRequest {
 	event_name: String!
 	subject: String!
 	template: String!
-	design: String!
+	design: String
 }
 
 input UpdateEmailTemplateRequest {
@@ -14154,7 +14154,7 @@ func (ec *executionContext) unmarshalInputAddEmailTemplateRequest(ctx context.Co
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("design"))
-			it.Design, err = ec.unmarshalNString2string(ctx, v)
+			it.Design, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}

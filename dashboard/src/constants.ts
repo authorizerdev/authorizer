@@ -337,3 +337,8 @@ export const webhookPayloadExample: string = `{
 	},
 	"auth_recipe":"google"
  }`;
+
+export enum EmailTemplateEditors {
+	UNLAYER_EDITOR = 'unlayer_editor',
+	PLAIN_HTML_EDITOR = 'plain_html_editor',
+}
