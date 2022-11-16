@@ -2250,6 +2250,10 @@ input SignUpInput {
 	scope: [String!]
 	redirect_uri: String
 	is_multi_factor_auth_enabled: Boolean
+	# state is used for authorization code grant flow
+	# it is used to get code for an on-going auth process during login
+	# and use that code for setting ` + "`" + `c_hash` + "`" + ` in id_token
+	state: String
 }
 
 input LoginInput {
@@ -2257,15 +2261,27 @@ input LoginInput {
 	password: String!
 	roles: [String!]
 	scope: [String!]
+	# state is used for authorization code grant flow
+	# it is used to get code for an on-going auth process during login
+	# and use that code for setting ` + "`" + `c_hash` + "`" + ` in id_token
+	state: String
 }
 
 input VerifyEmailInput {
 	token: String!
+	# state is used for authorization code grant flow
+	# it is used to get code for an on-going auth process during login
+	# and use that code for setting ` + "`" + `c_hash` + "`" + ` in id_token
+	state: String
 }
 
 input ResendVerifyEmailInput {
 	email: String!
 	identifier: String!
+	# state is used for authorization code grant flow
+	# it is used to get code for an on-going auth process during login
+	# and use that code for setting ` + "`" + `c_hash` + "`" + ` in id_token
+	state: String
 }
 
 input UpdateProfileInput {
@@ -2413,10 +2429,18 @@ input DeleteEmailTemplateRequest {
 input VerifyOTPRequest {
 	email: String!
 	otp: String!
+	# state is used for authorization code grant flow
+	# it is used to get code for an on-going auth process during login
+	# and use that code for setting ` + "`" + `c_hash` + "`" + ` in id_token
+	state: String
 }
 
 input ResendOTPRequest {
 	email: String!
+	# state is used for authorization code grant flow
+	# it is used to get code for an on-going auth process during login
+	# and use that code for setting ` + "`" + `c_hash` + "`" + ` in id_token
+	state: String
 }
 
 type Mutation {
@@ -14455,7 +14479,7 @@ func (ec *executionContext) unmarshalInputLoginInput(ctx context.Context, obj in
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"email", "password", "roles", "scope"}
+	fieldsInOrder := [...]string{"email", "password", "roles", "scope", "state"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -14491,6 +14515,14 @@ func (ec *executionContext) unmarshalInputLoginInput(ctx context.Context, obj in
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("scope"))
 			it.Scope, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "state":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
+			it.State, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -14659,7 +14691,7 @@ func (ec *executionContext) unmarshalInputResendOTPRequest(ctx context.Context, 
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"email"}
+	fieldsInOrder := [...]string{"email", "state"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -14671,6 +14703,14 @@ func (ec *executionContext) unmarshalInputResendOTPRequest(ctx context.Context, 
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
 			it.Email, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "state":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
+			it.State, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -14687,7 +14727,7 @@ func (ec *executionContext) unmarshalInputResendVerifyEmailInput(ctx context.Con
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"email", "identifier"}
+	fieldsInOrder := [...]string{"email", "identifier", "state"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -14707,6 +14747,14 @@ func (ec *executionContext) unmarshalInputResendVerifyEmailInput(ctx context.Con
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("identifier"))
 			it.Identifier, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "state":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
+			it.State, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -14803,7 +14851,7 @@ func (ec *executionContext) unmarshalInputSignUpInput(ctx context.Context, obj i
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"email", "given_name", "family_name", "middle_name", "nickname", "gender", "birthdate", "phone_number", "picture", "password", "confirm_password", "roles", "scope", "redirect_uri", "is_multi_factor_auth_enabled"}
+	fieldsInOrder := [...]string{"email", "given_name", "family_name", "middle_name", "nickname", "gender", "birthdate", "phone_number", "picture", "password", "confirm_password", "roles", "scope", "redirect_uri", "is_multi_factor_auth_enabled", "state"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -14927,6 +14975,14 @@ func (ec *executionContext) unmarshalInputSignUpInput(ctx context.Context, obj i
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("is_multi_factor_auth_enabled"))
 			it.IsMultiFactorAuthEnabled, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "state":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
+			it.State, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -15815,7 +15871,7 @@ func (ec *executionContext) unmarshalInputVerifyEmailInput(ctx context.Context, 
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"token"}
+	fieldsInOrder := [...]string{"token", "state"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -15827,6 +15883,14 @@ func (ec *executionContext) unmarshalInputVerifyEmailInput(ctx context.Context, 
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("token"))
 			it.Token, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "state":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
+			it.State, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -15843,7 +15907,7 @@ func (ec *executionContext) unmarshalInputVerifyOTPRequest(ctx context.Context, 
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"email", "otp"}
+	fieldsInOrder := [...]string{"email", "otp", "state"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -15863,6 +15927,14 @@ func (ec *executionContext) unmarshalInputVerifyOTPRequest(ctx context.Context, 
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("otp"))
 			it.Otp, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "state":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
+			it.State, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}

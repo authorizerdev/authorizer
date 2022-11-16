@@ -1,6 +1,8 @@
 package token
 
 import (
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -10,7 +12,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
-	"github.com/google/uuid"
 	"github.com/robertkrimen/otto"
 
 	"github.com/authorizerdev/authorizer/server/constants"
@@ -47,30 +48,9 @@ type SessionData struct {
 	LoginMethod string   `json:"login_method"`
 }
 
-// CreateSessionToken creates a new session token
-func CreateSessionToken(user models.User, nonce string, roles, scope []string, loginMethod string) (*SessionData, string, error) {
-	fingerPrintMap := &SessionData{
-		Nonce:       nonce,
-		Roles:       roles,
-		Subject:     user.ID,
-		Scope:       scope,
-		LoginMethod: loginMethod,
-		IssuedAt:    time.Now().Unix(),
-		ExpiresAt:   time.Now().AddDate(1, 0, 0).Unix(),
-	}
-	fingerPrintBytes, _ := json.Marshal(fingerPrintMap)
-	fingerPrintHash, err := crypto.EncryptAES(string(fingerPrintBytes))
-	if err != nil {
-		return nil, "", err
-	}
-
-	return fingerPrintMap, fingerPrintHash, nil
-}
-
 // CreateAuthToken creates a new auth token when userlogs in
-func CreateAuthToken(gc *gin.Context, user models.User, roles, scope []string, loginMethod string) (*Token, error) {
+func CreateAuthToken(gc *gin.Context, user models.User, roles, scope []string, loginMethod, nonce string, code string) (*Token, error) {
 	hostname := parsers.GetHost(gc)
-	nonce := uuid.New().String()
 	_, fingerPrintHash, err := CreateSessionToken(user, nonce, roles, scope, loginMethod)
 	if err != nil {
 		return nil, err
@@ -80,7 +60,23 @@ func CreateAuthToken(gc *gin.Context, user models.User, roles, scope []string, l
 		return nil, err
 	}
 
-	idToken, idTokenExpiresAt, err := CreateIDToken(user, roles, hostname, nonce, loginMethod)
+	atHash := sha256.New()
+	atHash.Write([]byte(accessToken))
+	atHashBytes := atHash.Sum(nil)
+	// hashedToken := string(bs)
+	atHashDigest := atHashBytes[0 : len(atHashBytes)/2]
+	atHashString := base64.RawURLEncoding.EncodeToString(atHashDigest)
+
+	codeHashString := ""
+	if code != "" {
+		codeHash := sha256.New()
+		codeHash.Write([]byte(code))
+		codeHashBytes := codeHash.Sum(nil)
+		codeHashDigest := codeHashBytes[0 : len(codeHashBytes)/2]
+		codeHashString = base64.RawURLEncoding.EncodeToString(codeHashDigest)
+	}
+
+	idToken, idTokenExpiresAt, err := CreateIDToken(user, roles, hostname, nonce, atHashString, codeHashString, loginMethod)
 	if err != nil {
 		return nil, err
 	}
@@ -102,6 +98,26 @@ func CreateAuthToken(gc *gin.Context, user models.User, roles, scope []string, l
 	}
 
 	return res, nil
+}
+
+// CreateSessionToken creates a new session token
+func CreateSessionToken(user models.User, nonce string, roles, scope []string, loginMethod string) (*SessionData, string, error) {
+	fingerPrintMap := &SessionData{
+		Nonce:       nonce,
+		Roles:       roles,
+		Subject:     user.ID,
+		Scope:       scope,
+		LoginMethod: loginMethod,
+		IssuedAt:    time.Now().Unix(),
+		ExpiresAt:   time.Now().AddDate(1, 0, 0).Unix(),
+	}
+	fingerPrintBytes, _ := json.Marshal(fingerPrintMap)
+	fingerPrintHash, err := crypto.EncryptAES(string(fingerPrintBytes))
+	if err != nil {
+		return nil, "", err
+	}
+
+	return fingerPrintMap, fingerPrintHash, nil
 }
 
 // CreateRefreshToken util to create JWT token
@@ -318,7 +334,9 @@ func ValidateBrowserSession(gc *gin.Context, encryptedSession string) (*SessionD
 
 // CreateIDToken util to create JWT token, based on
 // user information, roles config and CUSTOM_ACCESS_TOKEN_SCRIPT
-func CreateIDToken(user models.User, roles []string, hostname, nonce, loginMethod string) (string, int64, error) {
+// For response_type (code) / authorization_code grant nonce should be empty
+// for implicit flow it should be present to verify with actual state
+func CreateIDToken(user models.User, roles []string, hostname, nonce, atHash, cHash, loginMethod string) (string, int64, error) {
 	expireTime, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAccessTokenExpiryTime)
 	if err != nil {
 		return "", 0, err
@@ -344,10 +362,10 @@ func CreateIDToken(user models.User, roles []string, hostname, nonce, loginMetho
 	if err != nil {
 		return "", 0, err
 	}
+
 	customClaims := jwt.MapClaims{
 		"iss":           hostname,
 		"aud":           clientID,
-		"nonce":         nonce,
 		"sub":           user.ID,
 		"exp":           expiresAt,
 		"iat":           time.Now().Unix(),
@@ -355,6 +373,16 @@ func CreateIDToken(user models.User, roles []string, hostname, nonce, loginMetho
 		"allowed_roles": strings.Split(user.Roles, ","),
 		"login_method":  loginMethod,
 		claimKey:        roles,
+	}
+
+	// split nonce to see if its authorization code grant method
+
+	if cHash != "" {
+		customClaims["at_hash"] = atHash
+		customClaims["c_hash"] = cHash
+	} else {
+		customClaims["nonce"] = nonce
+		customClaims["at_hash"] = atHash
 	}
 
 	for k, v := range userMap {

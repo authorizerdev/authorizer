@@ -125,7 +125,6 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 			return res, fmt.Errorf("user with this email address already exists")
 		}
 
-		// TODO figure out how to do this
 		go memorystore.Provider.DeleteAllUserSessions(user.ID)
 
 		hostname := parsers.GetHost(gc)

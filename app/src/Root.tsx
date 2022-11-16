@@ -38,6 +38,8 @@ export default function Root({
 	const scope = searchParams.get('scope')
 		? searchParams.get('scope')?.toString().split(' ')
 		: ['openid', 'profile', 'email'];
+	const code = searchParams.get('code') || '';
+	const nonce = searchParams.get('nonce') || '';
 
 	const urlProps: Record<string, any> = {
 		state,
@@ -58,9 +60,19 @@ export default function Root({
 		if (token) {
 			let redirectURL = config.redirectURL || '/app';
 			let params = `access_token=${token.access_token}&id_token=${token.id_token}&expires_in=${token.expires_in}&state=${globalState.state}`;
+
+			if (code !== '') {
+				params += `&code=${code}`;
+			}
+
+			if (nonce !== '') {
+				params += `&nonce=${nonce}`;
+			}
+
 			if (token.refresh_token) {
 				params += `&refresh_token=${token.refresh_token}`;
 			}
+
 			const url = new URL(redirectURL);
 			if (redirectURL.includes('?')) {
 				redirectURL = `${redirectURL}&${params}`;
@@ -74,7 +86,7 @@ export default function Root({
 			}
 		}
 		return () => {};
-	}, [token]);
+	}, [token, config]);
 
 	if (loading) {
 		return <h1>Loading...</h1>;
@@ -100,7 +112,7 @@ export default function Root({
 						<Route path="/app" exact>
 							<Login urlProps={urlProps} />
 						</Route>
-						<Route path="/app/signup" exact>
+						<Route path="/app/signup">
 							<SignUp urlProps={urlProps} />
 						</Route>
 						<Route path="/app/reset-password">

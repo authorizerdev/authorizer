@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 
@@ -140,10 +141,41 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 		}, nil
 	}
 
-	authToken, err := token.CreateAuthToken(gc, user, roles, scope, constants.AuthRecipeMethodBasicAuth)
+	code := ""
+	codeChallenge := ""
+	nonce := ""
+	if params.State != nil {
+		// Get state from store
+		authorizeState, _ := memorystore.Provider.GetState(refs.StringValue(params.State))
+		if authorizeState != "" {
+			authorizeStateSplit := strings.Split(authorizeState, "@@")
+			if len(authorizeStateSplit) > 1 {
+				code = authorizeStateSplit[0]
+				codeChallenge = authorizeStateSplit[1]
+			} else {
+				nonce = authorizeState
+			}
+			go memorystore.Provider.RemoveState(refs.StringValue(params.State))
+		}
+	}
+
+	if nonce == "" {
+		nonce = uuid.New().String()
+	}
+
+	authToken, err := token.CreateAuthToken(gc, user, roles, scope, constants.AuthRecipeMethodBasicAuth, nonce, code)
 	if err != nil {
 		log.Debug("Failed to create auth token", err)
 		return res, err
+	}
+
+	// TODO add to other login options as well
+	// Code challenge could be optional if PKCE flow is not used
+	if code != "" {
+		if err := memorystore.Provider.SetState(code, codeChallenge+"@@"+authToken.FingerPrintHash); err != nil {
+			log.Debug("SetState failed: ", err)
+			return res, err
+		}
 	}
 
 	expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()

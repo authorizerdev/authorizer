@@ -91,7 +91,7 @@ func GetDomainName(uri string) string {
 	return host
 }
 
-// GetAppURL to get /app/ url if not configured by user
+// GetAppURL to get /app url if not configured by user
 func GetAppURL(gc *gin.Context) string {
 	envAppURL, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAppURL)
 	if envAppURL == "" || err != nil {
