@@ -1,7 +1,6 @@
 package sql
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/constants"
@@ -71,35 +70,43 @@ func NewProvider() (*provider, error) {
 		return nil, err
 	}
 
+	// For sqlserver, handle uniqueness of phone_number manually via extra db call
+	// during create and update mutation.
+	if sqlDB.Migrator().HasConstraint(&models.User{}, "authorizer_users_phone_number_key") {
+		err = sqlDB.Migrator().DropConstraint(&models.User{}, "authorizer_users_phone_number_key")
+		logrus.Debug("Failed to drop phone number constraint:", err)
+	}
+
 	err = sqlDB.AutoMigrate(&models.User{}, &models.VerificationRequest{}, &models.Session{}, &models.Env{}, &models.Webhook{}, models.WebhookLog{}, models.EmailTemplate{}, &models.OTP{})
 	if err != nil {
 		return nil, err
 	}
 
+	// IMPACT: Request user to manually delete: UQ_phone_number constraint
 	// unique constraint on phone number does not work with multiple null values for sqlserver
 	// for more information check https://stackoverflow.com/a/767702
-	if dbType == constants.DbTypeSqlserver {
-		var indexInfos []indexInfo
-		// remove index on phone number if present with different name
-		res := sqlDB.Raw("SELECT i.name AS index_name, i.type_desc AS index_algorithm, CASE i.is_unique WHEN 1 THEN 'TRUE' ELSE 'FALSE' END AS is_unique, ac.Name AS column_name FROM sys.tables AS t INNER JOIN sys.indexes AS i ON t.object_id = i.object_id INNER JOIN sys.index_columns AS ic ON ic.object_id = i.object_id AND ic.index_id = i.index_id INNER JOIN sys.all_columns AS ac ON ic.object_id = ac.object_id AND ic.column_id = ac.column_id WHERE t.name = 'authorizer_users' AND SCHEMA_NAME(t.schema_id) = 'dbo';").Scan(&indexInfos)
-		if res.Error != nil {
-			return nil, res.Error
-		}
+	// if dbType == constants.DbTypeSqlserver {
+	// 	var indexInfos []indexInfo
+	// 	// remove index on phone number if present with different name
+	// 	res := sqlDB.Raw("SELECT i.name AS index_name, i.type_desc AS index_algorithm, CASE i.is_unique WHEN 1 THEN 'TRUE' ELSE 'FALSE' END AS is_unique, ac.Name AS column_name FROM sys.tables AS t INNER JOIN sys.indexes AS i ON t.object_id = i.object_id INNER JOIN sys.index_columns AS ic ON ic.object_id = i.object_id AND ic.index_id = i.index_id INNER JOIN sys.all_columns AS ac ON ic.object_id = ac.object_id AND ic.column_id = ac.column_id WHERE t.name = 'authorizer_users' AND SCHEMA_NAME(t.schema_id) = 'dbo';").Scan(&indexInfos)
+	// 	if res.Error != nil {
+	// 		return nil, res.Error
+	// 	}
 
-		for _, val := range indexInfos {
-			if val.ColumnName == phoneNumberColumnName && val.IndexName != phoneNumberIndexName {
-				// drop index & create new
-				if res := sqlDB.Exec(fmt.Sprintf(`ALTER TABLE authorizer_users DROP CONSTRAINT "%s";`, val.IndexName)); res.Error != nil {
-					return nil, res.Error
-				}
+	// 	for _, val := range indexInfos {
+	// 		if val.ColumnName == phoneNumberColumnName && val.IndexName != phoneNumberIndexName {
+	// 			// drop index & create new
+	// 			if res := sqlDB.Exec(fmt.Sprintf(`ALTER TABLE authorizer_users DROP CONSTRAINT "%s";`, val.IndexName)); res.Error != nil {
+	// 				return nil, res.Error
+	// 			}
 
-				// create index
-				if res := sqlDB.Exec(fmt.Sprintf("CREATE UNIQUE NONCLUSTERED INDEX %s ON authorizer_users(phone_number) WHERE phone_number IS NOT NULL;", phoneNumberIndexName)); res.Error != nil {
-					return nil, res.Error
-				}
-			}
-		}
-	}
+	// 			// create index
+	// 			if res := sqlDB.Exec(fmt.Sprintf("CREATE UNIQUE NONCLUSTERED INDEX %s ON authorizer_users(phone_number) WHERE phone_number IS NOT NULL;", phoneNumberIndexName)); res.Error != nil {
+	// 				return nil, res.Error
+	// 			}
+	// 		}
+	// 	}
+	// }
 
 	return &provider{
 		db: sqlDB,
