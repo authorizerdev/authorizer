@@ -12,6 +12,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/oauth"
 	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/authorizerdev/authorizer/server/routes"
+	"github.com/sirupsen/logrus"
 )
 
 // VERSION is used to define the version of authorizer from build tags
@@ -25,15 +26,18 @@ func main() {
 	cli.ARG_REDIS_URL = flag.String("redis_url", "", "Redis connection string")
 	flag.Parse()
 
-	log := logs.InitLog(refs.StringValue(cli.ARG_LOG_LEVEL))
+	// global log level
+	logrus.SetFormatter(logs.LogUTCFormatter{&logrus.JSONFormatter{}})
 
 	constants.VERSION = VERSION
 
 	// initialize required envs (mainly db, env file path and redis)
 	err := memorystore.InitRequiredEnv()
 	if err != nil {
-		log.Fatal("Error while initializing required envs: ", err)
+		logrus.Fatal("Error while initializing required envs: ", err)
 	}
+
+	log := logs.InitLog(refs.StringValue(cli.ARG_LOG_LEVEL))
 
 	// initialize memory store
 	err = memorystore.InitMemStore()

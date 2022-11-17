@@ -19,8 +19,6 @@ func (u LogUTCFormatter) Format(e *log.Entry) ([]byte, error) {
 }
 
 func InitLog(cliLogLevel string) *log.Logger {
-	// global log level
-	logrus.SetFormatter(LogUTCFormatter{&logrus.JSONFormatter{}})
 
 	// log instance for gin server
 	log := logrus.New()
