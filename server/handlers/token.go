@@ -66,7 +66,7 @@ func TokenHandler() gin.HandlerFunc {
 
 		// check if clientID & clientSecret are present as part of
 		// authorization header with basic auth
-		if clientID == "" && clientSecret == "" && codeVerifier != "" {
+		if clientID == "" && clientSecret == "" {
 			clientID, clientSecret, _ = gc.Request.BasicAuth()
 		}
 
