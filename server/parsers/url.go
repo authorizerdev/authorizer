@@ -20,12 +20,12 @@ func GetHost(c *gin.Context) string {
 		authorizerURL = ""
 	}
 	if authorizerURL != "" {
-		return authorizerURL
+		return strings.TrimSuffix(authorizerURL, "/")
 	}
 
 	authorizerURL = c.Request.Header.Get("X-Authorizer-URL")
 	if authorizerURL != "" {
-		return authorizerURL
+		return strings.TrimSuffix(authorizerURL, "/")
 	}
 
 	scheme := c.Request.Header.Get("X-Forwarded-Proto")
@@ -33,7 +33,7 @@ func GetHost(c *gin.Context) string {
 		scheme = "http"
 	}
 	host := c.Request.Host
-	return scheme + "://" + host
+	return strings.TrimSuffix(scheme+"://"+host, "/")
 }
 
 // GetHostName function returns hostname and port
