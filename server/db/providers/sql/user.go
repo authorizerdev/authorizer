@@ -73,13 +73,12 @@ func (p *provider) UpdateUser(ctx context.Context, user models.User) (models.Use
 
 // DeleteUser to delete user information from database
 func (p *provider) DeleteUser(ctx context.Context, user models.User) error {
-	result := p.db.Delete(&user)
-
+	result := p.db.Where("user_id = ?", user.ID).Delete(&models.Session{})
 	if result.Error != nil {
 		return result.Error
 	}
 
-	result = p.db.Where("user_id = ?", user.ID).Delete(&models.Session{})
+	result = p.db.Delete(&user)
 	if result.Error != nil {
 		return result.Error
 	}
