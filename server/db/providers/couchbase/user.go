@@ -59,9 +59,9 @@ func (p *provider) DeleteUser(ctx context.Context, user models.User) error {
 	removeOpt := gocb.RemoveOptions{
 		Context: ctx,
 	}
+
 	_, err := p.db.Collection(models.Collections.User).Remove(user.ID, &removeOpt)
 	// query := fmt.Sprintf("INSERT INTO %s %s VALUES %s IF NOT EXISTS", KeySpace+"."+models.Collections.User, fields, values)
-
 	// sessionCollection := p.db.Collection(models.Collections.Session).Queue()
 	// _, err = sessionCollection.DeleteMany(ctx, bson.M{"user_id": user.ID}, options.Delete())
 	// if err != nil {
@@ -110,45 +110,36 @@ func (p *provider) ListUsers(ctx context.Context, pagination model.Pagination) (
 
 // GetUserByEmail to get user information from database using email address
 func (p *provider) GetUserByEmail(ctx context.Context, email string) (models.User, error) {
-	var user models.User
-	// inventoryScope := p.db.Scope("_default")
-	// userQuery := fmt.Sprintf("SELECT * FROM auth._default.%s WHERE email = '%s' LIMIT %d", models.Collections.User, email, 1)
-	queryResult, err := p.db.Collection(models.Collections.User).Get("email:"+email, &gocb.GetOptions{})
-	if err != nil {
-		return user, err
-	}
-
-	// queryResult, err := inventoryScope.Query(userQuery, &gocb.QueryOptions{})
-	err = queryResult.Content(&user)
+	user := models.User{}
+	scope := p.db.Scope("_default")
+	query := fmt.Sprintf("SELECT _id, email, email_verified_at, `password`, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, roles, revoked_timestamp, is_multi_factor_auth_enabled, created_at, updated_at FROM auth._default.%s WHERE email = '%s' LIMIT 1", models.Collections.User, email)
+	q, err := scope.Query(query, &gocb.QueryOptions{})
 
 	if err != nil {
 		return user, err
 	}
-
-	// for queryResult.Next() {
-	// 	var user models.User
-	// 	err := queryResult.Row(&user)
-	// 	if err != nil {
-	// 		log.Fatal(err)
-	// 	}
-	// 	return user, nil
-	// }
+	err = q.One(&user)
+	if err != nil {
+		return user, err
+	}
 
 	return user, nil
 }
 
 // GetUserByID to get user information from database using user ID
 func (p *provider) GetUserByID(ctx context.Context, id string) (models.User, error) {
-	var user models.User
-	queryResult, err := p.db.Collection(models.Collections.User).Get("id:"+id, &gocb.GetOptions{})
+	user := models.User{}
+	scope := p.db.Scope("_default")
+	query := fmt.Sprintf("SELECT _id, email, email_verified_at, `password`, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, roles, revoked_timestamp, is_multi_factor_auth_enabled, created_at, updated_at FROM auth._default.%s WHERE _id = '%s' LIMIT 1", models.Collections.User, id)
+	q, err := scope.Query(query, &gocb.QueryOptions{})
+	if err != nil {
+		return user, err
+	}
+	err = q.One(&user)
 	if err != nil {
 		return user, err
 	}
 
-	err = queryResult.Content(&user)
-	if err != nil {
-		return user, err
-	}
 	return user, nil
 }
 
@@ -185,6 +176,7 @@ func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{},
 	if ids != nil && len(ids) > 0 {
 		for _, v := range ids {
 			userQuery := fmt.Sprintf("UPDATE auth._default.%s SET %s WHERE id = '%s'", models.Collections.User, updateFields, v)
+
 			_, err := inventoryScope.Query(userQuery, &gocb.QueryOptions{})
 			if err != nil {
 				return err

@@ -18,6 +18,7 @@ func (p *provider) AddVerificationRequest(ctx context.Context, verificationReque
 		verificationRequest.ID = uuid.New().String()
 	}
 
+	verificationRequest.Key = verificationRequest.ID
 	verificationRequest.CreatedAt = time.Now().Unix()
 	verificationRequest.UpdatedAt = time.Now().Unix()
 	insertOpt := gocb.InsertOptions{
@@ -33,15 +34,22 @@ func (p *provider) AddVerificationRequest(ctx context.Context, verificationReque
 
 // GetVerificationRequestByToken to get verification request from database using token
 func (p *provider) GetVerificationRequestByToken(ctx context.Context, token string) (models.VerificationRequest, error) {
-	var verificationRequest models.VerificationRequest
+	verificationRequest := models.VerificationRequest{}
 	scope := p.db.Scope("_default")
+	params := make(map[string]interface{}, 1)
+	params["token"] = token
+	query := fmt.Sprintf("SELECT _id, token, identifier, expires_at, email, nonce, redirect_uri, created_at, updated_at FROM auth._default.%s WHERE token=$1 LIMIT 1", models.Collections.VerificationRequest)
 
-	query := fmt.Sprintf("SELECT _id, jwt_token, identifier, expires_at, email, nonce, redirect_uri, created_at, updated_at FROM auth._default.%s WHERE token = '%s' LIMIT 1", models.Collections.VerificationRequest, token)
-	queryResult, err := scope.Query(query, &gocb.QueryOptions{})
+	queryResult, err := scope.Query(query, &gocb.QueryOptions{
+		Context:              ctx,
+		PositionalParameters: []interface{}{token},
+	})
+
 	if err != nil {
 		return verificationRequest, err
 	}
 	err = queryResult.One(&verificationRequest)
+
 	if err != nil {
 		return verificationRequest, err
 	}
@@ -50,15 +58,23 @@ func (p *provider) GetVerificationRequestByToken(ctx context.Context, token stri
 
 // GetVerificationRequestByEmail to get verification request by email from database
 func (p *provider) GetVerificationRequestByEmail(ctx context.Context, email string, identifier string) (models.VerificationRequest, error) {
-	var verificationRequest models.VerificationRequest
-	scope := p.db.Scope("_default")
 
-	query := fmt.Sprintf("SELECT _id, jwt_token, identifier, expires_at, email, nonce, redirect_uri, created_at, updated_at FROM auth._default.%s WHERE email = '%s' AND identifier = '%s' LIMIT 1", models.Collections.VerificationRequest, email, identifier)
-	queryResult, err := scope.Query(query, &gocb.QueryOptions{})
+	scope := p.db.Scope("_default")
+	time.Sleep(200 * time.Millisecond)
+
+	query := fmt.Sprintf("SELECT _id, identifier, token, expires_at, email, nonce, redirect_uri, created_at, updated_at FROM auth._default.%s WHERE email=$1 AND identifier=$2 LIMIT 1", models.Collections.VerificationRequest)
+	queryResult, err := scope.Query(query, &gocb.QueryOptions{
+		Context:              ctx,
+		PositionalParameters: []interface{}{email, identifier},
+	})
+	verificationRequest := models.VerificationRequest{}
+
 	if err != nil {
 		return verificationRequest, err
 	}
+
 	err = queryResult.One(&verificationRequest)
+
 	if err != nil {
 		return verificationRequest, err
 	}
@@ -101,7 +117,7 @@ func (p *provider) DeleteVerificationRequest(ctx context.Context, verificationRe
 	removeOpt := gocb.RemoveOptions{
 		Context: ctx,
 	}
-	_, err := p.db.Collection(models.Collections.Webhook).Remove(verificationRequest.ID, &removeOpt)
+	_, err := p.db.Collection(models.Collections.VerificationRequest).Remove(verificationRequest.ID, &removeOpt)
 	if err != nil {
 		return err
 	}

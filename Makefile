@@ -28,9 +28,9 @@ test-dynamodb:
 	cd server && go clean --testcache && TEST_DBS="dynamodb" go test -p 1 -v ./test
 	docker rm -vf dynamodb-local-test
 test-couchbase:
-	docker run -d --name couchbase-local-test  -p 8091-8097:8091-8097 -p 11210:11210 -p 11207:11207 -p 18091-18095:18091-18095 -p 18096:18096 -p 18097:18097 couchbase:latest 
-	cd server && go clean --testcache && TEST_DBS="couchdb" go test -p 1 -v ./test
-	docker rm -vf couchbase-local-test
+	# docker run -d --name couchbase-local-test  -p 8091-8097:8091-8097 -p 11210:11210 -p 11207:11207 -p 18091-18095:18091-18095 -p 18096:18096 -p 18097:18097 couchbase:latest 
+	cd server && go clean --testcache && TEST_DBS="couchbase" go test -p 1 -v ./test
+	# docker rm -vf couchbase-local-test
 test-all-db:
 	rm -rf server/test/test.db && rm -rf test.db
 	docker run -d --name authorizer_scylla_db -p 9042:9042 scylladb/scylla

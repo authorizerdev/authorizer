@@ -34,7 +34,6 @@ func NewProvider() (*provider, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	bucket := cluster.Bucket(bucketName)
 
 	v := reflect.ValueOf(models.Collections)
@@ -47,9 +46,9 @@ func NewProvider() (*provider, error) {
 		collectionOpts := gocb.CreateCollectionOptions{
 			Context: context.TODO(),
 		}
-		bucket.Collections().CreateCollection(user, &collectionOpts)
+		_ = bucket.Collections().CreateCollection(user, &collectionOpts)
 	}
-	// bucket.Collection(models.Collections.User).Insert()
+
 	return &provider{
 		db: bucket,
 	}, nil

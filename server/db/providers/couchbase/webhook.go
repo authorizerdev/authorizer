@@ -94,7 +94,7 @@ func (p *provider) ListWebhook(ctx context.Context, pagination model.Pagination)
 	scope := p.db.Scope("_default")
 	paginationClone := pagination
 
-	query := fmt.Sprintf("SELECT _id, env, created_at, updated_at FROM auth._default.%s OFFSET %d LIMIT %d", models.Collections.Env, paginationClone.Offset, paginationClone.Limit)
+	query := fmt.Sprintf("SELECT _id, env, created_at, updated_at FROM auth._default.%s OFFSET %d LIMIT %d", models.Collections.Webhook, paginationClone.Offset, paginationClone.Limit)
 	queryResult, err := scope.Query(query, &gocb.QueryOptions{})
 
 	if err != nil {
@@ -143,6 +143,7 @@ func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) 
 	scope := p.db.Scope("_default")
 	query := fmt.Sprintf(`SELECT _id, event_name, endpoint, headers, enabled, created_at, updated_at FROM auth._default.%s WHERE event_name = '%s' LIMIT 1`, models.Collections.Webhook, eventName)
 	q, err := scope.Query(query, &gocb.QueryOptions{})
+
 	if err != nil {
 		return nil, err
 	}
