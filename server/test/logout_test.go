@@ -25,9 +25,11 @@ func logoutTests(t *testing.T, s TestSetup) {
 		})
 
 		verificationRequest, err := db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeMagicLinkLogin)
+		assert.NoError(t, err)
 		verifyRes, err := resolvers.VerifyEmailResolver(ctx, model.VerifyEmailInput{
 			Token: verificationRequest.Token,
 		})
+		assert.NoError(t, err)
 
 		accessToken := *verifyRes.AccessToken
 		assert.NotEmpty(t, accessToken)

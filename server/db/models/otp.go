@@ -1,5 +1,7 @@
 package models
 
+import "encoding/json"
+
 // OTP model for database
 type OTP struct {
 	Key       string `json:"_key,omitempty" bson:"_key,omitempty" cql:"_key,omitempty" dynamo:"key,omitempty"` // for arangodb
@@ -13,4 +15,11 @@ type OTP struct {
 
 type Paging struct {
 	ID string `json:"id,omitempty" dynamo:"id,hash"`
+}
+
+func (o *OTP) ToMap() map[string]interface{} {
+	res := map[string]interface{}{}
+	data, _ := json.Marshal(o) // Convert to a json string
+	json.Unmarshal(data, &res) // Convert to a map
+	return res
 }

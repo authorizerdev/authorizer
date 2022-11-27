@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"strings"
 
 	"github.com/authorizerdev/authorizer/server/graph/model"
@@ -40,4 +41,11 @@ func (v *VerificationRequest) AsAPIVerificationRequest() *model.VerificationRequ
 		CreatedAt:   refs.NewInt64Ref(v.CreatedAt),
 		UpdatedAt:   refs.NewInt64Ref(v.UpdatedAt),
 	}
+}
+
+func (v *VerificationRequest) ToMap() map[string]interface{} {
+	res := map[string]interface{}{}
+	data, _ := json.Marshal(v) // Convert to a json string
+	json.Unmarshal(data, &res) // Convert to a map
+	return res
 }

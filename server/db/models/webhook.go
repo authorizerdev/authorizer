@@ -42,3 +42,10 @@ func (w *Webhook) AsAPIWebhook() *model.Webhook {
 		UpdatedAt: refs.NewInt64Ref(w.UpdatedAt),
 	}
 }
+
+func (w *Webhook) ToMap() map[string]interface{} {
+	res := map[string]interface{}{}
+	data, _ := json.Marshal(w) // Convert to a json string
+	json.Unmarshal(data, &res) // Convert to a map
+	return res
+}

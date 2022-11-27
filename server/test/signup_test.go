@@ -22,6 +22,7 @@ func signupTests(t *testing.T, s TestSetup) {
 			ConfirmPassword: s.TestInfo.Password + "s",
 		})
 		assert.NotNil(t, err, "invalid password")
+		assert.Nil(t, res)
 
 		res, err = resolvers.SignupResolver(ctx, model.SignUpInput{
 			Email:           email,
@@ -29,6 +30,7 @@ func signupTests(t *testing.T, s TestSetup) {
 			ConfirmPassword: "test",
 		})
 		assert.NotNil(t, err, "invalid password")
+		assert.Nil(t, res)
 
 		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDisableSignUp, true)
 		res, err = resolvers.SignupResolver(ctx, model.SignUpInput{
@@ -37,6 +39,7 @@ func signupTests(t *testing.T, s TestSetup) {
 			ConfirmPassword: s.TestInfo.Password,
 		})
 		assert.NotNil(t, err, "singup disabled")
+		assert.Nil(t, res)
 
 		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDisableSignUp, false)
 		res, err = resolvers.SignupResolver(ctx, model.SignUpInput{
@@ -54,7 +57,7 @@ func signupTests(t *testing.T, s TestSetup) {
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password,
 		})
-
+		assert.Nil(t, res)
 		assert.NotNil(t, err, "should throw duplicate email error")
 
 		verificationRequest, err := db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeBasicAuthSignup)

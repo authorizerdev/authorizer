@@ -39,27 +39,27 @@ func cleanData(email string) {
 	ctx := context.Background()
 	verificationRequest, err := db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeBasicAuthSignup)
 	if err == nil {
-		err = db.Provider.DeleteVerificationRequest(ctx, verificationRequest)
+		db.Provider.DeleteVerificationRequest(ctx, verificationRequest)
 	}
 
 	verificationRequest, err = db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeForgotPassword)
 	if err == nil {
-		err = db.Provider.DeleteVerificationRequest(ctx, verificationRequest)
+		db.Provider.DeleteVerificationRequest(ctx, verificationRequest)
 	}
 
 	verificationRequest, err = db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeUpdateEmail)
 	if err == nil {
-		err = db.Provider.DeleteVerificationRequest(ctx, verificationRequest)
+		db.Provider.DeleteVerificationRequest(ctx, verificationRequest)
 	}
 
 	verificationRequest, err = db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeMagicLinkLogin)
 	if err == nil {
-		err = db.Provider.DeleteVerificationRequest(ctx, verificationRequest)
+		db.Provider.DeleteVerificationRequest(ctx, verificationRequest)
 	}
 
 	otp, err := db.Provider.GetOTPByEmail(ctx, email)
 	if err == nil {
-		err = db.Provider.DeleteOTP(ctx, otp)
+		db.Provider.DeleteOTP(ctx, otp)
 	}
 
 	dbUser, err := db.Provider.GetUserByEmail(ctx, email)

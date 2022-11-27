@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"strings"
 
 	"github.com/authorizerdev/authorizer/server/graph/model"
@@ -36,4 +37,11 @@ func (w *WebhookLog) AsAPIWebhookLog() *model.WebhookLog {
 		CreatedAt:  refs.NewInt64Ref(w.CreatedAt),
 		UpdatedAt:  refs.NewInt64Ref(w.UpdatedAt),
 	}
+}
+
+func (w *WebhookLog) ToMap() map[string]interface{} {
+	res := map[string]interface{}{}
+	data, _ := json.Marshal(w) // Convert to a json string
+	json.Unmarshal(data, &res) // Convert to a map
+	return res
 }
