@@ -139,6 +139,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 					"error_description": "code challenge is required",
 				},
 			}, http.StatusOK)
+			return
 		}
 
 		loginError := map[string]interface{}{
@@ -268,7 +269,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 				return
 			}
 
-			if err := memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+nonce, authToken.FingerPrintHash); err != nil {
+			if err := memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+nonce, authToken.AccessToken.Token); err != nil {
 				log.Debug("SetUserSession failed: ", err)
 				handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
 				return
@@ -321,6 +322,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 		}
 
 		handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
+		return
 	}
 }
 
@@ -349,14 +351,13 @@ func handleResponse(gc *gin.Context, responseMode, loginURI, redirectURI string,
 		isAuthenticationRequired = true
 	}
 
-	if isAuthenticationRequired {
+	if isAuthenticationRequired && responseMode != constants.ResponseModeWebMessage {
 		gc.Redirect(http.StatusFound, loginURI)
 		return
 	}
 
 	switch responseMode {
 	case constants.ResponseModeQuery, constants.ResponseModeFragment:
-
 		gc.Redirect(http.StatusFound, redirectURI)
 		return
 	case constants.ResponseModeWebMessage:
