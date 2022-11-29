@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
 	Button,
 	Center,
@@ -20,13 +20,14 @@ import { useClient } from 'urql';
 import { FaSave } from 'react-icons/fa';
 import InputField from './InputField';
 import {
-	ArrayInputType,
 	DateInputType,
+	MultiSelectInputType,
 	SelectInputType,
 	TextInputType,
 } from '../constants';
 import { getObjectDiff } from '../utils';
 import { UpdateUser } from '../graphql/mutation';
+import { GetAvailableRolesQuery } from '../graphql/queries';
 
 const GenderTypes = {
 	Undisclosed: null,
@@ -57,8 +58,9 @@ const EditUserModal = ({
 }) => {
 	const client = useClient();
 	const toast = useToast();
+	const [availableRoles, setAvailableRoles] = useState<string[]>([]);
 	const { isOpen, onOpen, onClose } = useDisclosure();
-	const [userData, setUserData] = React.useState<userDataTypes>({
+	const [userData, setUserData] = useState<userDataTypes>({
 		id: '',
 		email: '',
 		given_name: '',
@@ -73,7 +75,17 @@ const EditUserModal = ({
 	});
 	React.useEffect(() => {
 		setUserData(user);
+		fetchAvailableRoles();
 	}, []);
+	const fetchAvailableRoles = async () => {
+		const res = await client.query(GetAvailableRolesQuery).toPromise();
+		if (res.data?._env?.ROLES && res.data?._env?.PROTECTED_ROLES) {
+			setAvailableRoles([
+				...res.data._env.ROLES,
+				...res.data._env.PROTECTED_ROLES,
+			]);
+		}
+	};
 	const saveHandler = async () => {
 		const diff = getObjectDiff(user, userData);
 		const updatedUserData = diff.reduce(
@@ -221,7 +233,8 @@ const EditUserModal = ({
 									<InputField
 										variables={userData}
 										setVariables={setUserData}
-										inputType={ArrayInputType.USER_ROLES}
+										availableRoles={availableRoles}
+										inputType={MultiSelectInputType.USER_ROLES}
 									/>
 								</Center>
 							</Flex>

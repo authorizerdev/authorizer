@@ -15,6 +15,7 @@ export const TextInputType = {
 	SMTP_HOST: 'SMTP_HOST',
 	SMTP_PORT: 'SMTP_PORT',
 	SMTP_USERNAME: 'SMTP_USERNAME',
+	SMTP_LOCAL_NAME: 'SMTP_LOCAL_NAME',
 	SENDER_EMAIL: 'SENDER_EMAIL',
 	ORGANIZATION_NAME: 'ORGANIZATION_NAME',
 	ORGANIZATION_LOGO: 'ORGANIZATION_LOGO',
@@ -48,12 +49,15 @@ export const ArrayInputType = {
 	DEFAULT_ROLES: 'DEFAULT_ROLES',
 	PROTECTED_ROLES: 'PROTECTED_ROLES',
 	ALLOWED_ORIGINS: 'ALLOWED_ORIGINS',
-	USER_ROLES: 'roles',
 };
 
 export const SelectInputType = {
 	JWT_TYPE: 'JWT_TYPE',
 	GENDER: 'gender',
+};
+
+export const MultiSelectInputType = {
+	USER_ROLES: 'roles',
 };
 
 export const TextAreaInputType = {
@@ -129,6 +133,7 @@ export interface envVarTypes {
 	SMTP_PORT: string;
 	SMTP_USERNAME: string;
 	SMTP_PASSWORD: string;
+	SMTP_LOCAL_NAME: string;
 	SENDER_EMAIL: string;
 	ALLOWED_ORIGINS: [string] | [];
 	ORGANIZATION_NAME: string;

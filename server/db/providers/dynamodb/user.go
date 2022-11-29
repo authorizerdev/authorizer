@@ -180,7 +180,7 @@ func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{},
 
 		for _, user := range allUsers {
 			err = UpdateByHashKey(userCollection, "id", user.ID, data)
-			if err != nil {
+			if err == nil {
 				res = res + 1
 			}
 		}

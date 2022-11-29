@@ -55,6 +55,7 @@ func InitAllEnv() error {
 	osSmtpPort := os.Getenv(constants.EnvKeySmtpPort)
 	osSmtpUsername := os.Getenv(constants.EnvKeySmtpUsername)
 	osSmtpPassword := os.Getenv(constants.EnvKeySmtpPassword)
+	osSmtpLocalName := os.Getenv(constants.EnvKeySmtpLocalName)
 	osSenderEmail := os.Getenv(constants.EnvKeySenderEmail)
 	osJwtType := os.Getenv(constants.EnvKeyJwtType)
 	osJwtSecret := os.Getenv(constants.EnvKeyJwtSecret)
@@ -78,8 +79,8 @@ func InitAllEnv() error {
 	osOrganizationName := os.Getenv(constants.EnvKeyOrganizationName)
 	osOrganizationLogo := os.Getenv(constants.EnvKeyOrganizationLogo)
 	osAwsRegion := os.Getenv(constants.EnvAwsRegion)
-	osAwsAccessKey := os.Getenv(constants.EnvAwsAccessKey)
-	osAwsSecretKey := os.Getenv(constants.EnvAwsSecretKey)
+	osAwsAccessKey := os.Getenv(constants.EnvAwsAccessKeyID)
+	osAwsSecretKey := os.Getenv(constants.EnvAwsSecretAccessKey)
 
 	// os bool vars
 	osAppCookieSecure := os.Getenv(constants.EnvKeyAppCookieSecure)
@@ -129,18 +130,18 @@ func InitAllEnv() error {
 		envData[constants.EnvAwsRegion] = osAwsRegion
 	}
 
-	if val, ok := envData[constants.EnvAwsAccessKey]; !ok || val == "" {
-		envData[constants.EnvAwsAccessKey] = osAwsAccessKey
+	if val, ok := envData[constants.EnvAwsAccessKeyID]; !ok || val == "" {
+		envData[constants.EnvAwsAccessKeyID] = osAwsAccessKey
 	}
-	if osAwsAccessKey != "" && envData[constants.EnvAwsAccessKey] != osAwsRegion {
-		envData[constants.EnvAwsAccessKey] = osAwsAccessKey
+	if osAwsAccessKey != "" && envData[constants.EnvAwsAccessKeyID] != osAwsRegion {
+		envData[constants.EnvAwsAccessKeyID] = osAwsAccessKey
 	}
 
-	if val, ok := envData[constants.EnvAwsSecretKey]; !ok || val == "" {
-		envData[constants.EnvAwsSecretKey] = osAwsSecretKey
+	if val, ok := envData[constants.EnvAwsSecretAccessKey]; !ok || val == "" {
+		envData[constants.EnvAwsSecretAccessKey] = osAwsSecretKey
 	}
-	if osAwsSecretKey != "" && envData[constants.EnvAwsSecretKey] != osAwsRegion {
-		envData[constants.EnvAwsSecretKey] = osAwsSecretKey
+	if osAwsSecretKey != "" && envData[constants.EnvAwsSecretAccessKey] != osAwsRegion {
+		envData[constants.EnvAwsSecretAccessKey] = osAwsSecretKey
 	}
 
 	if val, ok := envData[constants.EnvKeyAppURL]; !ok || val == "" {
@@ -203,6 +204,13 @@ func InitAllEnv() error {
 	}
 	if osSmtpUsername != "" && envData[constants.EnvKeySmtpUsername] != osSmtpUsername {
 		envData[constants.EnvKeySmtpUsername] = osSmtpUsername
+	}
+
+	if val, ok := envData[constants.EnvKeySmtpLocalName]; !ok || val == "" {
+		envData[constants.EnvKeySmtpLocalName] = osSmtpLocalName
+	}
+	if osSmtpLocalName != "" && envData[constants.EnvKeySmtpLocalName] != osSmtpLocalName {
+		envData[constants.EnvKeySmtpLocalName] = osSmtpLocalName
 	}
 
 	if val, ok := envData[constants.EnvKeySmtpPassword]; !ok || val == "" {

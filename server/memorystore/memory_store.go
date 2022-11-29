@@ -57,7 +57,7 @@ func InitMemStore() error {
 	}
 
 	redisURL := requiredEnvs.RedisURL
-	if redisURL != "" && !requiredEnvs.disableRedisForEnv {
+	if redisURL != "" && !requiredEnvs.DisableRedisForEnv {
 		log.Info("Initializing Redis memory store")
 		Provider, err = redis.NewRedisProvider(redisURL)
 		if err != nil {

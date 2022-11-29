@@ -1,16 +1,15 @@
 package dynamodb
 
 import (
-	"os"
-
-	"github.com/authorizerdev/authorizer/server/constants"
-	"github.com/authorizerdev/authorizer/server/db/models"
-	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/guregu/dynamo"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/db/models"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 )
 
 type provider struct {
@@ -20,28 +19,29 @@ type provider struct {
 // NewProvider returns a new Dynamo provider
 func NewProvider() (*provider, error) {
 	dbURL := memorystore.RequiredEnvStoreObj.GetRequiredEnv().DatabaseURL
-	awsRegion := os.Getenv(constants.EnvAwsRegion)
-	accessKey := os.Getenv(constants.EnvAwsAccessKey)
-	secretKey := os.Getenv(constants.EnvAwsSecretKey)
+	awsRegion := memorystore.RequiredEnvStoreObj.GetRequiredEnv().AwsRegion
+	awsAccessKeyID := memorystore.RequiredEnvStoreObj.GetRequiredEnv().AwsAccessKeyID
+	awsSecretAccessKey := memorystore.RequiredEnvStoreObj.GetRequiredEnv().AwsSecretAccessKey
 
 	config := aws.Config{
 		MaxRetries:                    aws.Int(3),
 		CredentialsChainVerboseErrors: aws.Bool(true), // for full error logs
+
 	}
 
 	if awsRegion != "" {
 		config.Region = aws.String(awsRegion)
 	}
 
-	// custom accessKey, secretkey took first priority, if not then fetch config from aws credentials
-	if accessKey != "" && secretKey != "" {
-		config.Credentials = credentials.NewStaticCredentials(accessKey, secretKey, "")
+	// custom awsAccessKeyID, awsSecretAccessKey took first priority, if not then fetch config from aws credentials
+	if awsAccessKeyID != "" && awsSecretAccessKey != "" {
+		config.Credentials = credentials.NewStaticCredentials(awsAccessKeyID, awsSecretAccessKey, "")
 	} else if dbURL != "" {
 		// static config in case of testing or local-setup
 		config.Credentials = credentials.NewStaticCredentials("key", "key", "")
 		config.Endpoint = aws.String(dbURL)
 	} else {
-		log.Info("REGION, AWS_ACCESS_KEY and AWS_SECRET_KEY not found in .env, trying to load default profile from aws credentials")
+		log.Debugf("%s or %s or %s not found. Trying to load default credentials from aws config", constants.EnvAwsRegion, constants.EnvAwsAccessKeyID, constants.EnvAwsSecretAccessKey)
 	}
 
 	session := session.Must(session.NewSession(&config))

@@ -74,6 +74,7 @@ type Env struct {
 	SMTPPort                         *string  `json:"SMTP_PORT"`
 	SMTPUsername                     *string  `json:"SMTP_USERNAME"`
 	SMTPPassword                     *string  `json:"SMTP_PASSWORD"`
+	SMTPLocalName                    *string  `json:"SMTP_LOCAL_NAME"`
 	SenderEmail                      *string  `json:"SENDER_EMAIL"`
 	JwtType                          *string  `json:"JWT_TYPE"`
 	JwtSecret                        *string  `json:"JWT_SECRET"`
@@ -271,6 +272,7 @@ type UpdateEnvInput struct {
 	SMTPPort                         *string  `json:"SMTP_PORT"`
 	SMTPUsername                     *string  `json:"SMTP_USERNAME"`
 	SMTPPassword                     *string  `json:"SMTP_PASSWORD"`
+	SMTPLocalName                    *string  `json:"SMTP_LOCAL_NAME"`
 	SenderEmail                      *string  `json:"SENDER_EMAIL"`
 	JwtType                          *string  `json:"JWT_TYPE"`
 	JwtSecret                        *string  `json:"JWT_SECRET"`
@@ -384,7 +386,8 @@ type ValidateJWTTokenInput struct {
 }
 
 type ValidateJWTTokenResponse struct {
-	IsValid bool `json:"is_valid"`
+	IsValid bool                   `json:"is_valid"`
+	Claims  map[string]interface{} `json:"claims"`
 }
 
 type VerificationRequest struct {

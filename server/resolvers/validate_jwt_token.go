@@ -93,5 +93,6 @@ func ValidateJwtTokenResolver(ctx context.Context, params model.ValidateJWTToken
 	}
 	return &model.ValidateJWTTokenResponse{
 		IsValid: true,
+		Claims:  claims,
 	}, nil
 }
