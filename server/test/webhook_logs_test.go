@@ -25,7 +25,12 @@ func webhookLogsTest(t *testing.T, s TestSetup) {
 		assert.NoError(t, err)
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
 
+		time.Sleep(1 * time.Second)
 		webhookLogs, err := resolvers.WebhookLogsResolver(ctx, nil)
+		fmt.Printf("webhookLogs=========== %+v \n", webhookLogs.WebhookLogs)
+		time.Sleep(20 * time.Second)
+		fmt.Println("total documents found", len(webhookLogs.WebhookLogs))
+
 		assert.NoError(t, err)
 		assert.Greater(t, len(webhookLogs.WebhookLogs), 1)
 

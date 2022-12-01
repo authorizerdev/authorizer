@@ -63,7 +63,7 @@ func (p *provider) UpsertOTP(ctx context.Context, otpParam *models.OTP) (*models
 			return otp, err
 		}
 	} else {
-		query := fmt.Sprintf(`UPDATE auth._default.%s  SET otp = '%s', expires_at = %d, updated_at = %d WHERE id = '%s'`, models.Collections.OTP, otp.Otp, otp.ExpiresAt, otp.UpdatedAt, otp.ID)
+		query := fmt.Sprintf(`UPDATE auth._default.%s SET otp="%s", expires_at=%d, updated_at=%d WHERE _id="%s"`, models.Collections.OTP, otp.Otp, otp.ExpiresAt, otp.UpdatedAt, otp.ID)
 		scope := p.db.Scope("_default")
 		_, err := scope.Query(query, &gocb.QueryOptions{})
 		if err != nil {

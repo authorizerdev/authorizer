@@ -3,6 +3,7 @@ package test
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
@@ -41,9 +42,12 @@ func updateAllUsersTest(t *testing.T, s TestSetup) {
 			Offset: 0,
 		})
 		assert.NoError(t, err)
+		time.Sleep(500 * time.Millisecond)
+
 		for _, u := range listUsers.Users {
 			assert.True(t, refs.BoolValue(u.IsMultiFactorAuthEnabled))
 		}
+		time.Sleep(1 * time.Second)
 
 		// // update few users
 		updateIds := []string{listUsers.Users[0].ID, listUsers.Users[1].ID}

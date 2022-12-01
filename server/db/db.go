@@ -1,6 +1,8 @@
 package db
 
 import (
+	"fmt"
+
 	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/constants"
@@ -19,6 +21,7 @@ var Provider providers.Provider
 
 func InitDB() error {
 	var err error
+	fmt.Println("isCouchbaseDB::: InitDB")
 
 	envs := memorystore.RequiredEnvStoreObj.GetRequiredEnv()
 
@@ -77,11 +80,13 @@ func InitDB() error {
 	if isCouchbaseDB {
 		log.Info("Initializing CouchbaseDB Driver for: ", envs.DatabaseType)
 		Provider, err = couchbase.NewProvider()
+		fmt.Println("isCouchbaseDB", Provider)
 		if err != nil {
 			log.Fatal("Failed to initialize Couchbase driver: ", err)
 			return err
 		}
 	}
+	fmt.Println("isCouchbaseDB:::", Provider)
 
 	return nil
 }

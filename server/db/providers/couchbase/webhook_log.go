@@ -39,7 +39,10 @@ func (p *provider) ListWebhookLogs(ctx context.Context, pagination model.Paginat
 	scope := p.db.Scope("_default")
 	paginationClone := pagination
 	query := fmt.Sprintf("SELECT _id, env, created_at, updated_at FROM auth._default.%s OFFSET %d LIMIT %d", models.Collections.Env, paginationClone.Offset, paginationClone.Limit)
-	queryResult, err := scope.Query(query, &gocb.QueryOptions{})
+	queryResult, err := scope.Query(query, &gocb.QueryOptions{
+		Context:         ctx,
+		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
+	})
 
 	if err != nil {
 		return nil, err

@@ -74,6 +74,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 	log := log.WithFields(log.Fields{
 		"email": params.Email,
 	})
+	time.Sleep(500 * time.Millisecond)
 	// find user with email
 	existingUser, err := db.Provider.GetUserByEmail(ctx, params.Email)
 	if err != nil {

@@ -79,7 +79,10 @@ func (p *provider) UpdateWebhook(ctx context.Context, webhook models.Webhook) (*
 	updateFields = strings.TrimSuffix(updateFields, ",")
 
 	query := fmt.Sprintf("UPDATE auth._default.%s SET %s WHERE _id = '%s'", models.Collections.Webhook, updateFields, webhook.ID)
-	_, err = scope.Query(query, &gocb.QueryOptions{})
+	_, err = scope.Query(query, &gocb.QueryOptions{
+		Context:         ctx,
+		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
+	})
 
 	if err != nil {
 		return nil, err
@@ -95,7 +98,10 @@ func (p *provider) ListWebhook(ctx context.Context, pagination model.Pagination)
 	paginationClone := pagination
 
 	query := fmt.Sprintf("SELECT _id, env, created_at, updated_at FROM auth._default.%s OFFSET %d LIMIT %d", models.Collections.Webhook, paginationClone.Offset, paginationClone.Limit)
-	queryResult, err := scope.Query(query, &gocb.QueryOptions{})
+	queryResult, err := scope.Query(query, &gocb.QueryOptions{
+		Context:         ctx,
+		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
+	})
 
 	if err != nil {
 		return nil, err
@@ -124,7 +130,10 @@ func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*model
 	var webhook models.Webhook
 	scope := p.db.Scope("_default")
 	query := fmt.Sprintf(`SELECT _id, event_name, endpoint, headers, enabled, created_at, updated_at FROM auth._default.%s WHERE _id = '%s' LIMIT 1`, models.Collections.Webhook, webhookID)
-	q, err := scope.Query(query, &gocb.QueryOptions{})
+	q, err := scope.Query(query, &gocb.QueryOptions{
+		Context:         ctx,
+		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +151,10 @@ func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) 
 	var webhook models.Webhook
 	scope := p.db.Scope("_default")
 	query := fmt.Sprintf(`SELECT _id, event_name, endpoint, headers, enabled, created_at, updated_at FROM auth._default.%s WHERE event_name = '%s' LIMIT 1`, models.Collections.Webhook, eventName)
-	q, err := scope.Query(query, &gocb.QueryOptions{})
+	q, err := scope.Query(query, &gocb.QueryOptions{
+		Context:         ctx,
+		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
+	})
 
 	if err != nil {
 		return nil, err
@@ -158,12 +170,26 @@ func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) 
 
 // DeleteWebhook to delete webhook
 func (p *provider) DeleteWebhook(ctx context.Context, webhook *model.Webhook) error {
+	fmt.Println("trying to dlete webhooks logs", webhook.EventName)
+	scope := p.db.Scope("_default")
 	removeOpt := gocb.RemoveOptions{
 		Context: ctx,
 	}
 	_, err := p.db.Collection(models.Collections.Webhook).Remove(webhook.ID, &removeOpt)
+
 	if err != nil {
 		return err
 	}
+
+	query := fmt.Sprintf(`DELETE FROM auth._default.%s WHERE webhook_id=%s`, models.Collections.WebhookLog, webhook.ID)
+	fmt.Println("")
+	_, err = scope.Query(query, &gocb.QueryOptions{
+		Context:         ctx,
+		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
+	})
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

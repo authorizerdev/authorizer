@@ -80,9 +80,12 @@ func (p *provider) ListUsers(ctx context.Context, pagination model.Pagination) (
 	paginationClone := pagination
 
 	inventoryScope := p.db.Scope("_default")
-	userQuery := fmt.Sprintf("SELECT * FROM auth._default.%s ORDER BY id OFFSET %d LIMIT %d", models.Collections.User, paginationClone.Offset, paginationClone.Limit)
+	userQuery := fmt.Sprintf("SELECT _id, email, email_verified_at, `password`, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, roles, revoked_timestamp, is_multi_factor_auth_enabled, created_at, updated_at FROM auth._default.%s ORDER BY id OFFSET %d LIMIT %d", models.Collections.User, paginationClone.Offset, paginationClone.Limit)
 
-	queryResult, err := inventoryScope.Query(userQuery, &gocb.QueryOptions{})
+	queryResult, err := inventoryScope.Query(userQuery, &gocb.QueryOptions{
+		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
+		Context:         ctx,
+	})
 
 	if err != nil {
 		return nil, err
@@ -113,7 +116,10 @@ func (p *provider) GetUserByEmail(ctx context.Context, email string) (models.Use
 	user := models.User{}
 	scope := p.db.Scope("_default")
 	query := fmt.Sprintf("SELECT _id, email, email_verified_at, `password`, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, roles, revoked_timestamp, is_multi_factor_auth_enabled, created_at, updated_at FROM auth._default.%s WHERE email = '%s' LIMIT 1", models.Collections.User, email)
-	q, err := scope.Query(query, &gocb.QueryOptions{})
+	q, err := scope.Query(query, &gocb.QueryOptions{
+		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
+		Context:         ctx,
+	})
 
 	if err != nil {
 		return user, err
@@ -131,7 +137,10 @@ func (p *provider) GetUserByID(ctx context.Context, id string) (models.User, err
 	user := models.User{}
 	scope := p.db.Scope("_default")
 	query := fmt.Sprintf("SELECT _id, email, email_verified_at, `password`, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, roles, revoked_timestamp, is_multi_factor_auth_enabled, created_at, updated_at FROM auth._default.%s WHERE _id = '%s' LIMIT 1", models.Collections.User, id)
-	q, err := scope.Query(query, &gocb.QueryOptions{})
+	q, err := scope.Query(query, &gocb.QueryOptions{
+		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
+		Context:         ctx,
+	})
 	if err != nil {
 		return user, err
 	}
@@ -150,7 +159,7 @@ func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{},
 	data["updated_at"] = time.Now().Unix()
 	inventoryScope := p.db.Scope("_default")
 
-	updateFields := ""
+	upf := ""
 	for key, value := range data {
 		if key == "_id" {
 			continue
@@ -161,34 +170,45 @@ func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{},
 		}
 
 		if value == nil {
-			updateFields += fmt.Sprintf("%s = null,", key)
+			upf += fmt.Sprintf("%s = null,", key)
 			continue
 		}
 
 		valueType := reflect.TypeOf(value)
 		if valueType.Name() == "string" {
-			updateFields += fmt.Sprintf("%s = '%s', ", key, value.(string))
+			upf += fmt.Sprintf("%s = '%s', ", key, value.(string))
 		} else {
-			updateFields += fmt.Sprintf("%s = %v, ", key, value)
+			upf += fmt.Sprintf("%s = %v, ", key, value)
 		}
 	}
 
+	updateFields := removeLastRune(upf)
 	if ids != nil && len(ids) > 0 {
 		for _, v := range ids {
-			userQuery := fmt.Sprintf("UPDATE auth._default.%s SET %s WHERE id = '%s'", models.Collections.User, updateFields, v)
+			userQuery := fmt.Sprintf("UPDATE auth._default.%s SET %s WHERE _id = '%s'", models.Collections.User, updateFields, v)
 
-			_, err := inventoryScope.Query(userQuery, &gocb.QueryOptions{})
+			_, err := inventoryScope.Query(userQuery, &gocb.QueryOptions{
+				ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
+				Context:         ctx,
+			})
 			if err != nil {
 				return err
 			}
 		}
 	} else {
-		userQuery := fmt.Sprintf("UPDATE auth._default.%s SET %s WHERE id IS NOT NULL", models.Collections.User, updateFields)
-		_, err := inventoryScope.Query(userQuery, &gocb.QueryOptions{})
+		userQuery := fmt.Sprintf("UPDATE auth._default.%s SET %s WHERE _id IS NOT NULL", models.Collections.User, updateFields)
+		_, err := inventoryScope.Query(userQuery, &gocb.QueryOptions{
+			ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
+			Context:         ctx,
+		})
 		if err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+func removeLastRune(s string) string {
+	return s[:len(s)-2]
 }

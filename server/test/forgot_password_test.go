@@ -2,6 +2,7 @@ package test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
@@ -21,6 +22,7 @@ func forgotPasswordTest(t *testing.T, s TestSetup) {
 			ConfirmPassword: s.TestInfo.Password,
 		})
 
+		time.Sleep(500 * time.Millisecond)
 		_, err = resolvers.ForgotPasswordResolver(ctx, model.ForgotPasswordInput{
 			Email: email,
 		})
