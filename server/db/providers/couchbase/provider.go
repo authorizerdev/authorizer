@@ -1,7 +1,6 @@
 package couchbase
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/authorizerdev/authorizer/server/constants"
@@ -22,7 +21,6 @@ func NewProvider() (*provider, error) {
 	dbURL := memorystore.RequiredEnvStoreObj.GetRequiredEnv().DatabaseURL
 	userName := memorystore.RequiredEnvStoreObj.GetRequiredEnv().DatabaseUsername
 	password := memorystore.RequiredEnvStoreObj.GetRequiredEnv().DatabasePassword
-	fmt.Println("dbURL", dbURL, userName, password)
 	opts := gocb.ClusterOptions{
 		Username: userName,
 		Password: password,
@@ -33,7 +31,6 @@ func NewProvider() (*provider, error) {
 		return nil, err
 	}
 	bucket := cluster.Bucket(bucketName)
-	// fmt.Println("1 called in oprovuider")
 
 	// v := reflect.ValueOf(models.Collections)
 	// fmt.Println("called in v", v)

@@ -108,10 +108,8 @@ func testSetup() TestSetup {
 	memorystore.Provider.UpdateEnvVariable(constants.EnvKeySmtpPassword, "test")
 	memorystore.Provider.UpdateEnvVariable(constants.EnvKeySenderEmail, "info@yopmail.com")
 	memorystore.Provider.UpdateEnvVariable(constants.EnvKeyProtectedRoles, "admin")
-	fmt.Println("called test suite before")
 
 	err = db.InitDB()
-	fmt.Println("called test suite")
 	if err != nil {
 		log.Fatal("Error loading db: ", err)
 	}

@@ -1,7 +1,6 @@
 package test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/authorizerdev/authorizer/server/constants"
@@ -55,9 +54,6 @@ func signupTests(t *testing.T, s TestSetup) {
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password,
 		})
-
-		fmt.Println("err", err)
-		fmt.Println("res", res)
 
 		assert.NotNil(t, err, "should throw duplicate email error")
 

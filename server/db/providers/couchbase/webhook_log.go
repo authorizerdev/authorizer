@@ -35,13 +35,30 @@ func (p *provider) AddWebhookLog(ctx context.Context, webhookLog models.WebhookL
 
 // ListWebhookLogs to list webhook logs
 func (p *provider) ListWebhookLogs(ctx context.Context, pagination model.Pagination, webhookID string) (*model.WebhookLogs, error) {
+	var query string
+	var err error
+
 	webhookLogs := []*model.WebhookLog{}
+	params := make(map[string]interface{}, 1)
 	scope := p.db.Scope("_default")
 	paginationClone := pagination
-	query := fmt.Sprintf("SELECT _id, env, created_at, updated_at FROM auth._default.%s OFFSET %d LIMIT %d", models.Collections.Env, paginationClone.Offset, paginationClone.Limit)
+
+	params["webhookID"] = webhookID
+	params["offset"] = paginationClone.Offset
+	params["limit"] = paginationClone.Limit
+
+	_, paginationClone.Total = GetTotalDocs(ctx, scope, models.Collections.WebhookLog)
+
+	if webhookID != "" {
+		query = fmt.Sprintf(`SELECT _id, http_status, response, request, webhook_id, created_at, updated_at FROM auth._default.%s WHERE webhook_id=$webhookID`, models.Collections.WebhookLog)
+	} else {
+		query = fmt.Sprintf("SELECT _id, http_status, response, request, webhook_id, created_at, updated_at FROM auth._default.%s OFFSET $offset LIMIT $limit", models.Collections.WebhookLog)
+	}
+
 	queryResult, err := scope.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
+		NamedParameters: params,
 	})
 
 	if err != nil {

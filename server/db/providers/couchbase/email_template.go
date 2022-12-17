@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"reflect"
 	"strings"
 	"time"
 
@@ -39,7 +38,6 @@ func (p *provider) AddEmailTemplate(ctx context.Context, emailTemplate models.Em
 
 // UpdateEmailTemplate to update EmailTemplate
 func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate models.EmailTemplate) (*model.EmailTemplate, error) {
-	scope := p.db.Scope("_default")
 	bytes, err := json.Marshal(emailTemplate)
 	if err != nil {
 		return nil, err
@@ -53,33 +51,15 @@ func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate models
 		return nil, err
 	}
 
-	updateFields := ""
-	for key, value := range emailTemplateMap {
-		if key == "_id" {
-			continue
-		}
+	updateFields, params := GetSetFields(emailTemplateMap)
+	params["emailId"] = emailTemplate.ID
 
-		if key == "_key" {
-			continue
-		}
+	query := fmt.Sprintf("UPDATE auth._default.%s SET %s WHERE _id = $emailId", models.Collections.EmailTemplate, updateFields)
 
-		if value == nil {
-			updateFields += fmt.Sprintf("%s = null,", key)
-			continue
-		}
-
-		valueType := reflect.TypeOf(value)
-		if valueType.Name() == "string" {
-			updateFields += fmt.Sprintf("%s = '%s', ", key, value.(string))
-		} else {
-			updateFields += fmt.Sprintf("%s = %v, ", key, value)
-		}
-	}
-	updateFields = strings.Trim(updateFields, " ")
-	updateFields = strings.TrimSuffix(updateFields, ",")
-
-	query := fmt.Sprintf("UPDATE auth._default.%s SET %s WHERE _id = '%s'", models.Collections.EmailTemplate, updateFields, emailTemplate.ID)
-	_, err = scope.Query(query, &gocb.QueryOptions{})
+	_, err = p.db.Scope("_default").Query(query, &gocb.QueryOptions{
+		Context:         ctx,
+		NamedParameters: params,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -89,14 +69,17 @@ func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate models
 // ListEmailTemplates to list EmailTemplate
 func (p *provider) ListEmailTemplate(ctx context.Context, pagination model.Pagination) (*model.EmailTemplates, error) {
 	emailTemplates := []*model.EmailTemplate{}
-	// r := p.db.Collection(models.Collections.User).
 	paginationClone := pagination
-
 	scope := p.db.Scope("_default")
-	userQuery := fmt.Sprintf("SELECT  _id, event_name, subject, design, template, created_at, updated_at FROM auth._default.%s ORDER BY _id OFFSET %d LIMIT %d", models.Collections.EmailTemplate, paginationClone.Offset, paginationClone.Limit)
+
+	_, paginationClone.Total = GetTotalDocs(ctx, scope, models.Collections.EmailTemplate)
+
+	userQuery := fmt.Sprintf("SELECT _id, event_name, subject, design, template, created_at, updated_at FROM auth._default.%s ORDER BY _id OFFSET $1 LIMIT $2", models.Collections.EmailTemplate)
 
 	queryResult, err := scope.Query(userQuery, &gocb.QueryOptions{
-		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
+		Context:              ctx,
+		ScanConsistency:      gocb.QueryScanConsistencyRequestPlus,
+		PositionalParameters: []interface{}{paginationClone.Offset, paginationClone.Limit},
 	})
 
 	if err != nil {
@@ -126,11 +109,13 @@ func (p *provider) ListEmailTemplate(ctx context.Context, pagination model.Pagin
 // GetEmailTemplateByID to get EmailTemplate by id
 func (p *provider) GetEmailTemplateByID(ctx context.Context, emailTemplateID string) (*model.EmailTemplate, error) {
 	emailTemplate := models.EmailTemplate{}
-	time.Sleep(200 * time.Millisecond)
 
-	scope := p.db.Scope("_default")
-	query := fmt.Sprintf(`SELECT  _id, event_name, subject, design, template, created_at, updated_at  FROM auth._default.%s WHERE _id = '%s' LIMIT 1`, models.Collections.EmailTemplate, emailTemplateID)
-	q, err := scope.Query(query, &gocb.QueryOptions{})
+	query := fmt.Sprintf(`SELECT  _id, event_name, subject, design, template, created_at, updated_at  FROM auth._default.%s WHERE _id = $1 LIMIT 1`, models.Collections.EmailTemplate)
+	q, err := p.db.Scope("_default").Query(query, &gocb.QueryOptions{
+		Context:              ctx,
+		ScanConsistency:      gocb.QueryScanConsistencyRequestPlus,
+		PositionalParameters: []interface{}{emailTemplateID},
+	})
 
 	if err != nil {
 		return nil, err
@@ -147,12 +132,12 @@ func (p *provider) GetEmailTemplateByID(ctx context.Context, emailTemplateID str
 // GetEmailTemplateByEventName to get EmailTemplate by event_name
 func (p *provider) GetEmailTemplateByEventName(ctx context.Context, eventName string) (*model.EmailTemplate, error) {
 	emailTemplate := models.EmailTemplate{}
-	time.Sleep(200 * time.Millisecond)
 
 	scope := p.db.Scope("_default")
 	query := fmt.Sprintf("SELECT  _id, event_name, subject, design, template, created_at, updated_at  FROM auth._default.%s WHERE event_name=$1 LIMIT 1", models.Collections.EmailTemplate)
 	q, err := scope.Query(query, &gocb.QueryOptions{
 		Context:              ctx,
+		ScanConsistency:      gocb.QueryScanConsistencyRequestPlus,
 		PositionalParameters: []interface{}{eventName},
 	})
 
@@ -161,7 +146,6 @@ func (p *provider) GetEmailTemplateByEventName(ctx context.Context, eventName st
 	}
 	err = q.One(&emailTemplate)
 
-	time.Sleep(20 * time.Second)
 	if err != nil {
 		return nil, err
 	}

@@ -34,8 +34,11 @@ func (p *provider) UpdateEnv(ctx context.Context, env models.Env) (models.Env, e
 	env.UpdatedAt = time.Now().Unix()
 	scope := p.db.Scope("_default")
 
-	updateEnvQuery := fmt.Sprintf("UPDATE auth._default.%s SET env = '%s', updated_at = %d WHERE _id = '%s'", models.Collections.Env, env.EnvData, env.UpdatedAt, env.ID)
-	_, err := scope.Query(updateEnvQuery, &gocb.QueryOptions{})
+	updateEnvQuery := fmt.Sprintf("UPDATE auth._default.%s SET env = $1, updated_at = $2 WHERE _id = $3", models.Collections.Env)
+	_, err := scope.Query(updateEnvQuery, &gocb.QueryOptions{
+		Context:              ctx,
+		PositionalParameters: []interface{}{env.EnvData, env.UpdatedAt, env.UpdatedAt, env.ID},
+	})
 
 	if err != nil {
 		return env, err
@@ -49,7 +52,9 @@ func (p *provider) GetEnv(ctx context.Context) (models.Env, error) {
 	var env models.Env
 	scope := p.db.Scope("_default")
 	query := fmt.Sprintf("SELECT _id, env, created_at, updated_at FROM auth._default.%s LIMIT 1", models.Collections.Env)
-	q, err := scope.Query(query, &gocb.QueryOptions{})
+	q, err := scope.Query(query, &gocb.QueryOptions{
+		Context: ctx,
+	})
 	if err != nil {
 		return env, err
 	}

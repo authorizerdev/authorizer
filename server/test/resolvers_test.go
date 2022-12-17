@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
@@ -36,7 +37,7 @@ func TestResolvers(t *testing.T) {
 	} else {
 		t.Log("waiting for docker containers to start...")
 		// wait for docker containers to spun up
-		// time.Sleep(30 * time.Second)
+		time.Sleep(30 * time.Second)
 	}
 
 	testDb := "authorizer_test"

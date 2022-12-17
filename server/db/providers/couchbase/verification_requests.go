@@ -60,11 +60,8 @@ func (p *provider) GetVerificationRequestByToken(ctx context.Context, token stri
 // GetVerificationRequestByEmail to get verification request by email from database
 func (p *provider) GetVerificationRequestByEmail(ctx context.Context, email string, identifier string) (models.VerificationRequest, error) {
 
-	scope := p.db.Scope("_default")
-	time.Sleep(200 * time.Millisecond)
-
 	query := fmt.Sprintf("SELECT _id, identifier, token, expires_at, email, nonce, redirect_uri, created_at, updated_at FROM auth._default.%s WHERE email=$1 AND identifier=$2 LIMIT 1", models.Collections.VerificationRequest)
-	queryResult, err := scope.Query(query, &gocb.QueryOptions{
+	queryResult, err := p.db.Scope("_default").Query(query, &gocb.QueryOptions{
 		Context:              ctx,
 		PositionalParameters: []interface{}{email, identifier},
 		ScanConsistency:      gocb.QueryScanConsistencyRequestPlus,
@@ -89,10 +86,13 @@ func (p *provider) ListVerificationRequests(ctx context.Context, pagination mode
 	scope := p.db.Scope("_default")
 	paginationClone := pagination
 
-	query := fmt.Sprintf("SELECT _id, env, created_at, updated_at FROM auth._default.%s OFFSET %d LIMIT %d", models.Collections.VerificationRequest, paginationClone.Offset, paginationClone.Limit)
+	_, paginationClone.Total = GetTotalDocs(ctx, scope, models.Collections.VerificationRequest)
+
+	query := fmt.Sprintf("SELECT _id, env, created_at, updated_at FROM auth._default.%s OFFSET $1 LIMIT $2", models.Collections.VerificationRequest)
 	queryResult, err := scope.Query(query, &gocb.QueryOptions{
-		Context:         ctx,
-		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
+		Context:              ctx,
+		ScanConsistency:      gocb.QueryScanConsistencyRequestPlus,
+		PositionalParameters: []interface{}{paginationClone.Offset, paginationClone.Limit},
 	})
 
 	if err != nil {
