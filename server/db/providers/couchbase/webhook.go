@@ -36,11 +36,7 @@ func (p *provider) AddWebhook(ctx context.Context, webhook models.Webhook) (*mod
 
 // UpdateWebhook to update webhook
 func (p *provider) UpdateWebhook(ctx context.Context, webhook models.Webhook) (*model.Webhook, error) {
-	// params := make(map[string]interface{}, 1)
-	// params["webhook_id"] = webhook.ID
-
 	webhook.UpdatedAt = time.Now().Unix()
-	scope := p.db.Scope("_default")
 
 	bytes, err := json.Marshal(webhook)
 	if err != nil {
@@ -57,9 +53,9 @@ func (p *provider) UpdateWebhook(ctx context.Context, webhook models.Webhook) (*
 
 	updateFields, params := GetSetFields(webhookMap)
 
-	query := fmt.Sprintf(`UPDATE auth._default.%s SET %s WHERE _id='%s'`, models.Collections.Webhook, updateFields, webhook.ID)
+	query := fmt.Sprintf(`UPDATE %s.%s SET %s WHERE _id='%s'`, p.scopeName, models.Collections.Webhook, updateFields, webhook.ID)
 
-	_, err = scope.Query(query, &gocb.QueryOptions{
+	_, err = p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		NamedParameters: params,
 	})
@@ -76,16 +72,15 @@ func (p *provider) ListWebhook(ctx context.Context, pagination model.Pagination)
 	webhooks := []*model.Webhook{}
 	paginationClone := pagination
 
-	scope := p.db.Scope("_default")
 	params := make(map[string]interface{}, 1)
 	params["offset"] = paginationClone.Offset
 	params["limit"] = paginationClone.Limit
 
-	query := fmt.Sprintf("SELECT _id, env, created_at, updated_at FROM auth._default.%s OFFSET $offset LIMIT $limit", models.Collections.Webhook)
+	query := fmt.Sprintf("SELECT _id, env, created_at, updated_at FROM %s.%s OFFSET $offset LIMIT $limit", p.scopeName, models.Collections.Webhook)
 
-	_, paginationClone.Total = GetTotalDocs(ctx, scope, models.Collections.Webhook)
+	_, paginationClone.Total = p.GetTotalDocs(ctx, models.Collections.Webhook)
 
-	queryResult, err := scope.Query(query, &gocb.QueryOptions{
+	queryResult, err := p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
 		NamedParameters: params,
@@ -116,11 +111,12 @@ func (p *provider) ListWebhook(ctx context.Context, pagination model.Pagination)
 // GetWebhookByID to get webhook by id
 func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*model.Webhook, error) {
 	var webhook models.Webhook
-	scope := p.db.Scope("_default")
+
 	params := make(map[string]interface{}, 1)
 	params["_id"] = webhookID
-	query := fmt.Sprintf(`SELECT _id, event_name, endpoint, headers, enabled, created_at, updated_at FROM auth._default.%s WHERE _id=$_id LIMIT 1`, models.Collections.Webhook)
-	q, err := scope.Query(query, &gocb.QueryOptions{
+
+	query := fmt.Sprintf(`SELECT _id, event_name, endpoint, headers, enabled, created_at, updated_at FROM %s.%s WHERE _id=$_id LIMIT 1`, p.scopeName, models.Collections.Webhook)
+	q, err := p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
 		NamedParameters: params,
@@ -142,9 +138,9 @@ func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) 
 	var webhook models.Webhook
 	params := make(map[string]interface{}, 1)
 	params["event_name"] = eventName
-	scope := p.db.Scope("_default")
-	query := fmt.Sprintf(`SELECT _id, event_name, endpoint, headers, enabled, created_at, updated_at FROM auth._default.%s WHERE event_name=$event_name LIMIT 1`, models.Collections.Webhook)
-	q, err := scope.Query(query, &gocb.QueryOptions{
+
+	query := fmt.Sprintf(`SELECT _id, event_name, endpoint, headers, enabled, created_at, updated_at FROM %s.%s WHERE event_name=$event_name LIMIT 1`, p.scopeName, models.Collections.Webhook)
+	q, err := p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
 		NamedParameters: params,
@@ -164,7 +160,7 @@ func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) 
 
 // DeleteWebhook to delete webhook
 func (p *provider) DeleteWebhook(ctx context.Context, webhook *model.Webhook) error {
-	scope := p.db.Scope("_default")
+
 	params := make(map[string]interface{}, 1)
 	params["webhook_id"] = webhook.ID
 	removeOpt := gocb.RemoveOptions{
@@ -176,8 +172,8 @@ func (p *provider) DeleteWebhook(ctx context.Context, webhook *model.Webhook) er
 		return err
 	}
 
-	query := fmt.Sprintf(`DELETE FROM auth._default.%s  WHERE webhook_id=$webhook_id`, models.Collections.WebhookLog)
-	_, err = scope.Query(query, &gocb.QueryOptions{
+	query := fmt.Sprintf(`DELETE FROM %s.%s  WHERE webhook_id=$webhook_id`, p.scopeName, models.Collections.WebhookLog)
+	_, err = p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
 		NamedParameters: params,

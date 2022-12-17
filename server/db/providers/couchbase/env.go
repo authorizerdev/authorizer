@@ -32,10 +32,9 @@ func (p *provider) AddEnv(ctx context.Context, env models.Env) (models.Env, erro
 // UpdateEnv to update environment information in database
 func (p *provider) UpdateEnv(ctx context.Context, env models.Env) (models.Env, error) {
 	env.UpdatedAt = time.Now().Unix()
-	scope := p.db.Scope("_default")
 
-	updateEnvQuery := fmt.Sprintf("UPDATE auth._default.%s SET env = $1, updated_at = $2 WHERE _id = $3", models.Collections.Env)
-	_, err := scope.Query(updateEnvQuery, &gocb.QueryOptions{
+	updateEnvQuery := fmt.Sprintf("UPDATE %s.%s SET env = $1, updated_at = $2 WHERE _id = $3", p.scopeName, models.Collections.Env)
+	_, err := p.db.Query(updateEnvQuery, &gocb.QueryOptions{
 		Context:              ctx,
 		PositionalParameters: []interface{}{env.EnvData, env.UpdatedAt, env.UpdatedAt, env.ID},
 	})
@@ -50,10 +49,11 @@ func (p *provider) UpdateEnv(ctx context.Context, env models.Env) (models.Env, e
 // GetEnv to get environment information from database
 func (p *provider) GetEnv(ctx context.Context) (models.Env, error) {
 	var env models.Env
-	scope := p.db.Scope("_default")
-	query := fmt.Sprintf("SELECT _id, env, created_at, updated_at FROM auth._default.%s LIMIT 1", models.Collections.Env)
-	q, err := scope.Query(query, &gocb.QueryOptions{
-		Context: ctx,
+
+	query := fmt.Sprintf("SELECT _id, env, created_at, updated_at FROM %s.%s LIMIT 1", p.scopeName, models.Collections.Env)
+	q, err := p.db.Query(query, &gocb.QueryOptions{
+		Context:         ctx,
+		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
 	})
 	if err != nil {
 		return env, err

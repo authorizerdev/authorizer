@@ -40,22 +40,21 @@ func (p *provider) ListWebhookLogs(ctx context.Context, pagination model.Paginat
 
 	webhookLogs := []*model.WebhookLog{}
 	params := make(map[string]interface{}, 1)
-	scope := p.db.Scope("_default")
 	paginationClone := pagination
 
 	params["webhookID"] = webhookID
 	params["offset"] = paginationClone.Offset
 	params["limit"] = paginationClone.Limit
 
-	_, paginationClone.Total = GetTotalDocs(ctx, scope, models.Collections.WebhookLog)
+	_, paginationClone.Total = p.GetTotalDocs(ctx, models.Collections.WebhookLog)
 
 	if webhookID != "" {
-		query = fmt.Sprintf(`SELECT _id, http_status, response, request, webhook_id, created_at, updated_at FROM auth._default.%s WHERE webhook_id=$webhookID`, models.Collections.WebhookLog)
+		query = fmt.Sprintf(`SELECT _id, http_status, response, request, webhook_id, created_at, updated_at FROM %s.%s WHERE webhook_id=$webhookID`, p.scopeName, models.Collections.WebhookLog)
 	} else {
-		query = fmt.Sprintf("SELECT _id, http_status, response, request, webhook_id, created_at, updated_at FROM auth._default.%s OFFSET $offset LIMIT $limit", models.Collections.WebhookLog)
+		query = fmt.Sprintf("SELECT _id, http_status, response, request, webhook_id, created_at, updated_at FROM %s.%s OFFSET $offset LIMIT $limit", p.scopeName, models.Collections.WebhookLog)
 	}
 
-	queryResult, err := scope.Query(query, &gocb.QueryOptions{
+	queryResult, err := p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
 		NamedParameters: params,

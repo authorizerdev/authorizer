@@ -54,9 +54,9 @@ func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate models
 	updateFields, params := GetSetFields(emailTemplateMap)
 	params["emailId"] = emailTemplate.ID
 
-	query := fmt.Sprintf("UPDATE auth._default.%s SET %s WHERE _id = $emailId", models.Collections.EmailTemplate, updateFields)
+	query := fmt.Sprintf("UPDATE %s.%s SET %s WHERE _id = $emailId", p.scopeName, models.Collections.EmailTemplate, updateFields)
 
-	_, err = p.db.Scope("_default").Query(query, &gocb.QueryOptions{
+	_, err = p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		NamedParameters: params,
 	})
@@ -70,13 +70,12 @@ func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate models
 func (p *provider) ListEmailTemplate(ctx context.Context, pagination model.Pagination) (*model.EmailTemplates, error) {
 	emailTemplates := []*model.EmailTemplate{}
 	paginationClone := pagination
-	scope := p.db.Scope("_default")
 
-	_, paginationClone.Total = GetTotalDocs(ctx, scope, models.Collections.EmailTemplate)
+	_, paginationClone.Total = p.GetTotalDocs(ctx, models.Collections.EmailTemplate)
 
-	userQuery := fmt.Sprintf("SELECT _id, event_name, subject, design, template, created_at, updated_at FROM auth._default.%s ORDER BY _id OFFSET $1 LIMIT $2", models.Collections.EmailTemplate)
+	userQuery := fmt.Sprintf("SELECT _id, event_name, subject, design, template, created_at, updated_at FROM %s.%s ORDER BY _id OFFSET $1 LIMIT $2", p.scopeName, models.Collections.EmailTemplate)
 
-	queryResult, err := scope.Query(userQuery, &gocb.QueryOptions{
+	queryResult, err := p.db.Query(userQuery, &gocb.QueryOptions{
 		Context:              ctx,
 		ScanConsistency:      gocb.QueryScanConsistencyRequestPlus,
 		PositionalParameters: []interface{}{paginationClone.Offset, paginationClone.Limit},
@@ -110,8 +109,8 @@ func (p *provider) ListEmailTemplate(ctx context.Context, pagination model.Pagin
 func (p *provider) GetEmailTemplateByID(ctx context.Context, emailTemplateID string) (*model.EmailTemplate, error) {
 	emailTemplate := models.EmailTemplate{}
 
-	query := fmt.Sprintf(`SELECT  _id, event_name, subject, design, template, created_at, updated_at  FROM auth._default.%s WHERE _id = $1 LIMIT 1`, models.Collections.EmailTemplate)
-	q, err := p.db.Scope("_default").Query(query, &gocb.QueryOptions{
+	query := fmt.Sprintf(`SELECT  _id, event_name, subject, design, template, created_at, updated_at  FROM %s.%s WHERE _id = $1 LIMIT 1`, p.scopeName, models.Collections.EmailTemplate)
+	q, err := p.db.Query(query, &gocb.QueryOptions{
 		Context:              ctx,
 		ScanConsistency:      gocb.QueryScanConsistencyRequestPlus,
 		PositionalParameters: []interface{}{emailTemplateID},
@@ -133,9 +132,8 @@ func (p *provider) GetEmailTemplateByID(ctx context.Context, emailTemplateID str
 func (p *provider) GetEmailTemplateByEventName(ctx context.Context, eventName string) (*model.EmailTemplate, error) {
 	emailTemplate := models.EmailTemplate{}
 
-	scope := p.db.Scope("_default")
-	query := fmt.Sprintf("SELECT  _id, event_name, subject, design, template, created_at, updated_at  FROM auth._default.%s WHERE event_name=$1 LIMIT 1", models.Collections.EmailTemplate)
-	q, err := scope.Query(query, &gocb.QueryOptions{
+	query := fmt.Sprintf("SELECT  _id, event_name, subject, design, template, created_at, updated_at  FROM %s.%s WHERE event_name=$1 LIMIT 1", p.scopeName, models.Collections.EmailTemplate)
+	q, err := p.db.Query(query, &gocb.QueryOptions{
 		Context:              ctx,
 		ScanConsistency:      gocb.QueryScanConsistencyRequestPlus,
 		PositionalParameters: []interface{}{eventName},

@@ -44,11 +44,11 @@ func GetSetFields(webhookMap map[string]interface{}) (string, map[string]interfa
 	return updateFields, params
 }
 
-func GetTotalDocs(ctx context.Context, scope *gocb.Scope, collection string) (error, int64) {
+func (p *provider) GetTotalDocs(ctx context.Context, collection string) (error, int64) {
 	totalDocs := TotalDocs{}
 
-	countQuery := fmt.Sprintf("SELECT COUNT(*) as Total FROM auth._default.%s", collection)
-	queryRes, err := scope.Query(countQuery, &gocb.QueryOptions{
+	countQuery := fmt.Sprintf("SELECT COUNT(*) as Total FROM %s.%s", p.scopeName, collection)
+	queryRes, err := p.db.Query(countQuery, &gocb.QueryOptions{
 		Context: ctx,
 	})
 

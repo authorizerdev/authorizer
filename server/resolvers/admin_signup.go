@@ -53,18 +53,21 @@ func AdminSignupResolver(ctx context.Context, params model.AdminSignupInput) (*m
 	memorystore.Provider.UpdateEnvVariable(constants.EnvKeyAdminSecret, params.AdminSecret)
 	// consvert EnvData to JSON
 	storeData, err := memorystore.Provider.GetEnvStore()
+
 	if err != nil {
 		log.Debug("Error getting env store: ", err)
 		return res, err
 	}
 
 	env, err := db.Provider.GetEnv(ctx)
+
 	if err != nil {
 		log.Debug("Failed to get env: ", err)
 		return res, err
 	}
 
 	envData, err := crypto.EncryptEnvData(storeData)
+
 	if err != nil {
 		log.Debug("Failed to encrypt envstore: ", err)
 		return res, err
@@ -77,6 +80,7 @@ func AdminSignupResolver(ctx context.Context, params model.AdminSignupInput) (*m
 	}
 
 	hashedKey, err := crypto.EncryptPassword(params.AdminSecret)
+
 	if err != nil {
 		log.Debug("Failed to encrypt admin session key: ", err)
 		return res, err
