@@ -57,6 +57,7 @@ func (p *provider) UpdateWebhook(ctx context.Context, webhook models.Webhook) (*
 
 	_, err = p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
+		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
 		NamedParameters: params,
 	})
 
@@ -172,7 +173,7 @@ func (p *provider) DeleteWebhook(ctx context.Context, webhook *model.Webhook) er
 		return err
 	}
 
-	query := fmt.Sprintf(`DELETE FROM %s.%s  WHERE webhook_id=$webhook_id`, p.scopeName, models.Collections.WebhookLog)
+	query := fmt.Sprintf(`DELETE FROM %s.%s WHERE webhook_id=$webhook_id`, p.scopeName, models.Collections.WebhookLog)
 	_, err = p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
