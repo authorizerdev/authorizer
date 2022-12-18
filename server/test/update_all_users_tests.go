@@ -41,7 +41,6 @@ func updateAllUsersTest(t *testing.T, s TestSetup) {
 			Offset: 0,
 		})
 		assert.NoError(t, err)
-
 		for _, u := range listUsers.Users {
 			assert.True(t, refs.BoolValue(u.IsMultiFactorAuthEnabled))
 		}

@@ -31,6 +31,7 @@ func VerifyOtpResolver(ctx context.Context, params model.VerifyOTPRequest) (*mod
 		log.Debug("Failed to get otp request by email: ", err)
 		return res, fmt.Errorf(`invalid email: %s`, err.Error())
 	}
+
 	if params.Otp != otp.Otp {
 		log.Debug("Failed to verify otp request: Incorrect value")
 		return res, fmt.Errorf(`invalid otp`)

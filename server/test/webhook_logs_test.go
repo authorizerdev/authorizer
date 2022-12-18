@@ -24,7 +24,6 @@ func webhookLogsTest(t *testing.T, s TestSetup) {
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
 
 		webhookLogs, err := resolvers.WebhookLogsResolver(ctx, nil)
-
 		assert.NoError(t, err)
 		assert.Greater(t, len(webhookLogs.WebhookLogs), 1)
 
