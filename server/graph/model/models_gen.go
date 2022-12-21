@@ -179,6 +179,25 @@ type Meta struct {
 	IsMultiFactorAuthEnabled     bool   `json:"is_multi_factor_auth_enabled"`
 }
 
+type MobileBasicAuthSignUpUpInput struct {
+	Email                    *string  `json:"email"`
+	GivenName                *string  `json:"given_name"`
+	FamilyName               *string  `json:"family_name"`
+	MiddleName               *string  `json:"middle_name"`
+	Nickname                 *string  `json:"nickname"`
+	Gender                   *string  `json:"gender"`
+	Birthdate                *string  `json:"birthdate"`
+	PhoneNumber              string   `json:"phone_number"`
+	Picture                  *string  `json:"picture"`
+	Password                 string   `json:"password"`
+	ConfirmPassword          string   `json:"confirm_password"`
+	Roles                    []string `json:"roles"`
+	Scope                    []string `json:"scope"`
+	RedirectURI              *string  `json:"redirect_uri"`
+	IsMultiFactorAuthEnabled *bool    `json:"is_multi_factor_auth_enabled"`
+	State                    *string  `json:"state"`
+}
+
 type OAuthRevokeInput struct {
 	RefreshToken string `json:"refresh_token"`
 }

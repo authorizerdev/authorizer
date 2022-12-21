@@ -69,3 +69,10 @@ func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{},
 
 	return nil
 }
+
+// GetUserByPhoneNumber to get user information from database using phone number
+func (p *provider) GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (*models.User, error) {
+	var user *models.User
+
+	return user, nil
+}

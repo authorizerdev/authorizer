@@ -25,7 +25,7 @@ type User struct {
 	Nickname                 *string `json:"nickname" bson:"nickname" cql:"nickname" dynamo:"nickname"`
 	Gender                   *string `json:"gender" bson:"gender" cql:"gender" dynamo:"gender"`
 	Birthdate                *string `json:"birthdate" bson:"birthdate" cql:"birthdate" dynamo:"birthdate"`
-	PhoneNumber              *string `gorm:"index" json:"phone_number" bson:"phone_number" cql:"phone_number" dynamo:"phone_number"`
+	PhoneNumber              *string `gorm:"index" json:"phone_number" bson:"phone_number" cql:"phone_number" dynamo:"phone_number" index:"phone_number,hash"`
 	PhoneNumberVerifiedAt    *int64  `json:"phone_number_verified_at" bson:"phone_number_verified_at" cql:"phone_number_verified_at" dynamo:"phone_number_verified_at"`
 	Picture                  *string `json:"picture" bson:"picture" cql:"picture" dynamo:"picture"`
 	Roles                    string  `json:"roles" bson:"roles" cql:"roles" dynamo:"roles"`

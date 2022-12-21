@@ -86,6 +86,7 @@ func InitAllEnv() error {
 	osAppCookieSecure := os.Getenv(constants.EnvKeyAppCookieSecure)
 	osAdminCookieSecure := os.Getenv(constants.EnvKeyAdminCookieSecure)
 	osDisableBasicAuthentication := os.Getenv(constants.EnvKeyDisableBasicAuthentication)
+	osDisableMobileBasicAuthentication := os.Getenv(constants.AuthRecipeMethodMobileBasicAuth)
 	osDisableEmailVerification := os.Getenv(constants.EnvKeyDisableEmailVerification)
 	osDisableMagicLinkLogin := os.Getenv(constants.EnvKeyDisableMagicLinkLogin)
 	osDisableLoginPage := os.Getenv(constants.EnvKeyDisableLoginPage)
@@ -495,6 +496,19 @@ func InitAllEnv() error {
 		}
 		if boolValue != envData[constants.EnvKeyDisableBasicAuthentication].(bool) {
 			envData[constants.EnvKeyDisableBasicAuthentication] = boolValue
+		}
+	}
+
+	if _, ok := envData[constants.EnvKeyDisableMobileBasicAuthentication]; !ok {
+		envData[constants.EnvKeyDisableMobileBasicAuthentication] = osDisableBasicAuthentication == "true"
+	}
+	if osDisableMobileBasicAuthentication != "" {
+		boolValue, err := strconv.ParseBool(osDisableMobileBasicAuthentication)
+		if err != nil {
+			return err
+		}
+		if boolValue != envData[constants.EnvKeyDisableMobileBasicAuthentication].(bool) {
+			envData[constants.EnvKeyDisableMobileBasicAuthentication] = boolValue
 		}
 	}
 

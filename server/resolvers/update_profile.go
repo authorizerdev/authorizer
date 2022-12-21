@@ -154,8 +154,14 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 		isBasicAuthDisabled = true
 	}
 
+	isMobileBasicAuthDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableMobileBasicAuthentication)
+	if err != nil {
+		log.Debug("Error getting mobile basic auth disabled: ", err)
+		isBasicAuthDisabled = true
+	}
+
 	if params.NewPassword != nil && params.ConfirmNewPassword != nil {
-		if isBasicAuthDisabled {
+		if isBasicAuthDisabled || isMobileBasicAuthDisabled {
 			log.Debug("Cannot update password as basic authentication is disabled")
 			return res, fmt.Errorf(`basic authentication is disabled for this instance`)
 		}

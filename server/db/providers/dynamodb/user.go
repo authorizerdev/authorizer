@@ -3,12 +3,15 @@ package dynamodb
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
+	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/google/uuid"
 	"github.com/guregu/dynamo"
 	log "github.com/sirupsen/logrus"
@@ -30,6 +33,12 @@ func (p *provider) AddUser(ctx context.Context, user models.User) (models.User, 
 		user.Roles = defaultRoles
 	}
 
+	if user.PhoneNumber != nil && strings.TrimSpace(refs.StringValue(user.PhoneNumber)) != "" {
+		if u, _ := p.GetUserByPhoneNumber(ctx, refs.StringValue(user.PhoneNumber)); u != nil {
+			return user, fmt.Errorf("user with given phone number already exists")
+		}
+	}
+
 	user.CreatedAt = time.Now().Unix()
 	user.UpdatedAt = time.Now().Unix()
 
@@ -48,6 +57,12 @@ func (p *provider) UpdateUser(ctx context.Context, user models.User) (models.Use
 	if user.ID != "" {
 
 		user.UpdatedAt = time.Now().Unix()
+
+		if user.PhoneNumber != nil && strings.TrimSpace(refs.StringValue(user.PhoneNumber)) != "" {
+			if u, _ := p.GetUserByPhoneNumber(ctx, refs.StringValue(user.PhoneNumber)); u != nil && u.ID != user.ID {
+				return user, fmt.Errorf("user with given phone number already exists")
+			}
+		}
 
 		err := UpdateByHashKey(collection, "id", user.ID, user)
 		if err != nil {
@@ -192,4 +207,24 @@ func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{},
 		log.Info("Updated users: ", res)
 	}
 	return nil
+}
+
+// GetUserByPhoneNumber to get user information from database using phone number
+func (p *provider) GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (*models.User, error) {
+	var users []models.User
+	var user models.User
+
+	collection := p.db.Table(models.Collections.User)
+	err := collection.Scan().Index("phone_number").Filter("'phone_number' = ?", phoneNumber).AllWithContext(ctx, &users)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(users) > 0 {
+		user = users[0]
+		return &user, nil
+	} else {
+		return nil, errors.New("no record found")
+	}
 }

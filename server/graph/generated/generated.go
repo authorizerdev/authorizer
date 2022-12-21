@@ -156,35 +156,36 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		AddEmailTemplate    func(childComplexity int, params model.AddEmailTemplateRequest) int
-		AddWebhook          func(childComplexity int, params model.AddWebhookRequest) int
-		AdminLogin          func(childComplexity int, params model.AdminLoginInput) int
-		AdminLogout         func(childComplexity int) int
-		AdminSignup         func(childComplexity int, params model.AdminSignupInput) int
-		DeleteEmailTemplate func(childComplexity int, params model.DeleteEmailTemplateRequest) int
-		DeleteUser          func(childComplexity int, params model.DeleteUserInput) int
-		DeleteWebhook       func(childComplexity int, params model.WebhookRequest) int
-		EnableAccess        func(childComplexity int, param model.UpdateAccessInput) int
-		ForgotPassword      func(childComplexity int, params model.ForgotPasswordInput) int
-		GenerateJwtKeys     func(childComplexity int, params model.GenerateJWTKeysInput) int
-		InviteMembers       func(childComplexity int, params model.InviteMemberInput) int
-		Login               func(childComplexity int, params model.LoginInput) int
-		Logout              func(childComplexity int) int
-		MagicLinkLogin      func(childComplexity int, params model.MagicLinkLoginInput) int
-		ResendOtp           func(childComplexity int, params model.ResendOTPRequest) int
-		ResendVerifyEmail   func(childComplexity int, params model.ResendVerifyEmailInput) int
-		ResetPassword       func(childComplexity int, params model.ResetPasswordInput) int
-		Revoke              func(childComplexity int, params model.OAuthRevokeInput) int
-		RevokeAccess        func(childComplexity int, param model.UpdateAccessInput) int
-		Signup              func(childComplexity int, params model.SignUpInput) int
-		TestEndpoint        func(childComplexity int, params model.TestEndpointRequest) int
-		UpdateEmailTemplate func(childComplexity int, params model.UpdateEmailTemplateRequest) int
-		UpdateEnv           func(childComplexity int, params model.UpdateEnvInput) int
-		UpdateProfile       func(childComplexity int, params model.UpdateProfileInput) int
-		UpdateUser          func(childComplexity int, params model.UpdateUserInput) int
-		UpdateWebhook       func(childComplexity int, params model.UpdateWebhookRequest) int
-		VerifyEmail         func(childComplexity int, params model.VerifyEmailInput) int
-		VerifyOtp           func(childComplexity int, params model.VerifyOTPRequest) int
+		AddEmailTemplate      func(childComplexity int, params model.AddEmailTemplateRequest) int
+		AddWebhook            func(childComplexity int, params model.AddWebhookRequest) int
+		AdminLogin            func(childComplexity int, params model.AdminLoginInput) int
+		AdminLogout           func(childComplexity int) int
+		AdminSignup           func(childComplexity int, params model.AdminSignupInput) int
+		DeleteEmailTemplate   func(childComplexity int, params model.DeleteEmailTemplateRequest) int
+		DeleteUser            func(childComplexity int, params model.DeleteUserInput) int
+		DeleteWebhook         func(childComplexity int, params model.WebhookRequest) int
+		EnableAccess          func(childComplexity int, param model.UpdateAccessInput) int
+		ForgotPassword        func(childComplexity int, params model.ForgotPasswordInput) int
+		GenerateJwtKeys       func(childComplexity int, params model.GenerateJWTKeysInput) int
+		InviteMembers         func(childComplexity int, params model.InviteMemberInput) int
+		Login                 func(childComplexity int, params model.LoginInput) int
+		Logout                func(childComplexity int) int
+		MagicLinkLogin        func(childComplexity int, params model.MagicLinkLoginInput) int
+		MobileBasicAuthSignup func(childComplexity int, params *model.MobileBasicAuthSignUpUpInput) int
+		ResendOtp             func(childComplexity int, params model.ResendOTPRequest) int
+		ResendVerifyEmail     func(childComplexity int, params model.ResendVerifyEmailInput) int
+		ResetPassword         func(childComplexity int, params model.ResetPasswordInput) int
+		Revoke                func(childComplexity int, params model.OAuthRevokeInput) int
+		RevokeAccess          func(childComplexity int, param model.UpdateAccessInput) int
+		Signup                func(childComplexity int, params model.SignUpInput) int
+		TestEndpoint          func(childComplexity int, params model.TestEndpointRequest) int
+		UpdateEmailTemplate   func(childComplexity int, params model.UpdateEmailTemplateRequest) int
+		UpdateEnv             func(childComplexity int, params model.UpdateEnvInput) int
+		UpdateProfile         func(childComplexity int, params model.UpdateProfileInput) int
+		UpdateUser            func(childComplexity int, params model.UpdateUserInput) int
+		UpdateWebhook         func(childComplexity int, params model.UpdateWebhookRequest) int
+		VerifyEmail           func(childComplexity int, params model.VerifyEmailInput) int
+		VerifyOtp             func(childComplexity int, params model.VerifyOTPRequest) int
 	}
 
 	Pagination struct {
@@ -300,6 +301,7 @@ type ComplexityRoot struct {
 
 type MutationResolver interface {
 	Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse, error)
+	MobileBasicAuthSignup(ctx context.Context, params *model.MobileBasicAuthSignUpUpInput) (*model.AuthResponse, error)
 	Login(ctx context.Context, params model.LoginInput) (*model.AuthResponse, error)
 	MagicLinkLogin(ctx context.Context, params model.MagicLinkLoginInput) (*model.Response, error)
 	Logout(ctx context.Context) (*model.Response, error)
@@ -1159,6 +1161,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.MagicLinkLogin(childComplexity, args["params"].(model.MagicLinkLoginInput)), true
 
+	case "Mutation.mobile_basic_auth_signup":
+		if e.complexity.Mutation.MobileBasicAuthSignup == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_mobile_basic_auth_signup_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.MobileBasicAuthSignup(childComplexity, args["params"].(*model.MobileBasicAuthSignUpUpInput)), true
+
 	case "Mutation.resend_otp":
 		if e.complexity.Mutation.ResendOtp == nil {
 			break
@@ -1884,6 +1898,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputListWebhookLogRequest,
 		ec.unmarshalInputLoginInput,
 		ec.unmarshalInputMagicLinkLoginInput,
+		ec.unmarshalInputMobileBasicAuthSignUpUpInput,
 		ec.unmarshalInputOAuthRevokeInput,
 		ec.unmarshalInputPaginatedInput,
 		ec.unmarshalInputPaginationInput,
@@ -1971,525 +1986,552 @@ scalar Map
 scalar Any
 
 type Pagination {
-	limit: Int64!
-	page: Int64!
-	offset: Int64!
-	total: Int64!
+  limit: Int64!
+  page: Int64!
+  offset: Int64!
+  total: Int64!
 }
 
 type Meta {
-	version: String!
-	client_id: String!
-	is_google_login_enabled: Boolean!
-	is_facebook_login_enabled: Boolean!
-	is_github_login_enabled: Boolean!
-	is_linkedin_login_enabled: Boolean!
-	is_apple_login_enabled: Boolean!
-	is_twitter_login_enabled: Boolean!
-	is_email_verification_enabled: Boolean!
-	is_basic_authentication_enabled: Boolean!
-	is_magic_link_login_enabled: Boolean!
-	is_sign_up_enabled: Boolean!
-	is_strong_password_enabled: Boolean!
-	is_multi_factor_auth_enabled: Boolean!
+  version: String!
+  client_id: String!
+  is_google_login_enabled: Boolean!
+  is_facebook_login_enabled: Boolean!
+  is_github_login_enabled: Boolean!
+  is_linkedin_login_enabled: Boolean!
+  is_apple_login_enabled: Boolean!
+  is_twitter_login_enabled: Boolean!
+  is_email_verification_enabled: Boolean!
+  is_basic_authentication_enabled: Boolean!
+  is_magic_link_login_enabled: Boolean!
+  is_sign_up_enabled: Boolean!
+  is_strong_password_enabled: Boolean!
+  is_multi_factor_auth_enabled: Boolean!
 }
 
 type User {
-	id: ID!
-	email: String!
-	email_verified: Boolean!
-	signup_methods: String!
-	given_name: String
-	family_name: String
-	middle_name: String
-	nickname: String
-	# defaults to email
-	preferred_username: String
-	gender: String
-	birthdate: String
-	phone_number: String
-	phone_number_verified: Boolean
-	picture: String
-	roles: [String!]!
-	created_at: Int64
-	updated_at: Int64
-	revoked_timestamp: Int64
-	is_multi_factor_auth_enabled: Boolean
+  id: ID!
+  email: String!
+  email_verified: Boolean!
+  signup_methods: String!
+  given_name: String
+  family_name: String
+  middle_name: String
+  nickname: String
+  # defaults to email
+  preferred_username: String
+  gender: String
+  birthdate: String
+  phone_number: String
+  phone_number_verified: Boolean
+  picture: String
+  roles: [String!]!
+  created_at: Int64
+  updated_at: Int64
+  revoked_timestamp: Int64
+  is_multi_factor_auth_enabled: Boolean
 }
 
 type Users {
-	pagination: Pagination!
-	users: [User!]!
+  pagination: Pagination!
+  users: [User!]!
 }
 
 type VerificationRequest {
-	id: ID!
-	identifier: String
-	token: String
-	email: String
-	expires: Int64
-	created_at: Int64
-	updated_at: Int64
-	nonce: String
-	redirect_uri: String
+  id: ID!
+  identifier: String
+  token: String
+  email: String
+  expires: Int64
+  created_at: Int64
+  updated_at: Int64
+  nonce: String
+  redirect_uri: String
 }
 
 type VerificationRequests {
-	pagination: Pagination!
-	verification_requests: [VerificationRequest!]!
+  pagination: Pagination!
+  verification_requests: [VerificationRequest!]!
 }
 
 type Error {
-	message: String!
-	reason: String!
+  message: String!
+  reason: String!
 }
 
 type AuthResponse {
-	message: String!
-	should_show_otp_screen: Boolean
-	access_token: String
-	id_token: String
-	refresh_token: String
-	expires_in: Int64
-	user: User
+  message: String!
+  should_show_otp_screen: Boolean
+  access_token: String
+  id_token: String
+  refresh_token: String
+  expires_in: Int64
+  user: User
 }
 
 type Response {
-	message: String!
+  message: String!
 }
 
 type Env {
-	ACCESS_TOKEN_EXPIRY_TIME: String
-	ADMIN_SECRET: String
-	DATABASE_NAME: String
-	DATABASE_URL: String
-	DATABASE_TYPE: String
-	DATABASE_USERNAME: String
-	DATABASE_PASSWORD: String
-	DATABASE_HOST: String
-	DATABASE_PORT: String
-	CLIENT_ID: String!
-	CLIENT_SECRET: String!
-	CUSTOM_ACCESS_TOKEN_SCRIPT: String
-	SMTP_HOST: String
-	SMTP_PORT: String
-	SMTP_USERNAME: String
-	SMTP_PASSWORD: String
-	SMTP_LOCAL_NAME: String
-	SENDER_EMAIL: String
-	JWT_TYPE: String
-	JWT_SECRET: String
-	JWT_PRIVATE_KEY: String
-	JWT_PUBLIC_KEY: String
-	ALLOWED_ORIGINS: [String!]
-	APP_URL: String
-	REDIS_URL: String
-	RESET_PASSWORD_URL: String
-	DISABLE_EMAIL_VERIFICATION: Boolean!
-	DISABLE_BASIC_AUTHENTICATION: Boolean!
-	DISABLE_MAGIC_LINK_LOGIN: Boolean!
-	DISABLE_LOGIN_PAGE: Boolean!
-	DISABLE_SIGN_UP: Boolean!
-	DISABLE_REDIS_FOR_ENV: Boolean!
-	DISABLE_STRONG_PASSWORD: Boolean!
-	DISABLE_MULTI_FACTOR_AUTHENTICATION: Boolean!
-	ENFORCE_MULTI_FACTOR_AUTHENTICATION: Boolean!
-	ROLES: [String!]
-	PROTECTED_ROLES: [String!]
-	DEFAULT_ROLES: [String!]
-	JWT_ROLE_CLAIM: String
-	GOOGLE_CLIENT_ID: String
-	GOOGLE_CLIENT_SECRET: String
-	GITHUB_CLIENT_ID: String
-	GITHUB_CLIENT_SECRET: String
-	FACEBOOK_CLIENT_ID: String
-	FACEBOOK_CLIENT_SECRET: String
-	LINKEDIN_CLIENT_ID: String
-	LINKEDIN_CLIENT_SECRET: String
-	APPLE_CLIENT_ID: String
-	APPLE_CLIENT_SECRET: String
-	TWITTER_CLIENT_ID: String
-	TWITTER_CLIENT_SECRET: String
-	ORGANIZATION_NAME: String
-	ORGANIZATION_LOGO: String
-	APP_COOKIE_SECURE: Boolean!
-	ADMIN_COOKIE_SECURE: Boolean!
+  ACCESS_TOKEN_EXPIRY_TIME: String
+  ADMIN_SECRET: String
+  DATABASE_NAME: String
+  DATABASE_URL: String
+  DATABASE_TYPE: String
+  DATABASE_USERNAME: String
+  DATABASE_PASSWORD: String
+  DATABASE_HOST: String
+  DATABASE_PORT: String
+  CLIENT_ID: String!
+  CLIENT_SECRET: String!
+  CUSTOM_ACCESS_TOKEN_SCRIPT: String
+  SMTP_HOST: String
+  SMTP_PORT: String
+  SMTP_USERNAME: String
+  SMTP_PASSWORD: String
+  SMTP_LOCAL_NAME: String
+  SENDER_EMAIL: String
+  JWT_TYPE: String
+  JWT_SECRET: String
+  JWT_PRIVATE_KEY: String
+  JWT_PUBLIC_KEY: String
+  ALLOWED_ORIGINS: [String!]
+  APP_URL: String
+  REDIS_URL: String
+  RESET_PASSWORD_URL: String
+  DISABLE_EMAIL_VERIFICATION: Boolean!
+  DISABLE_BASIC_AUTHENTICATION: Boolean!
+  DISABLE_MAGIC_LINK_LOGIN: Boolean!
+  DISABLE_LOGIN_PAGE: Boolean!
+  DISABLE_SIGN_UP: Boolean!
+  DISABLE_REDIS_FOR_ENV: Boolean!
+  DISABLE_STRONG_PASSWORD: Boolean!
+  DISABLE_MULTI_FACTOR_AUTHENTICATION: Boolean!
+  ENFORCE_MULTI_FACTOR_AUTHENTICATION: Boolean!
+  ROLES: [String!]
+  PROTECTED_ROLES: [String!]
+  DEFAULT_ROLES: [String!]
+  JWT_ROLE_CLAIM: String
+  GOOGLE_CLIENT_ID: String
+  GOOGLE_CLIENT_SECRET: String
+  GITHUB_CLIENT_ID: String
+  GITHUB_CLIENT_SECRET: String
+  FACEBOOK_CLIENT_ID: String
+  FACEBOOK_CLIENT_SECRET: String
+  LINKEDIN_CLIENT_ID: String
+  LINKEDIN_CLIENT_SECRET: String
+  APPLE_CLIENT_ID: String
+  APPLE_CLIENT_SECRET: String
+  TWITTER_CLIENT_ID: String
+  TWITTER_CLIENT_SECRET: String
+  ORGANIZATION_NAME: String
+  ORGANIZATION_LOGO: String
+  APP_COOKIE_SECURE: Boolean!
+  ADMIN_COOKIE_SECURE: Boolean!
 }
 
 type ValidateJWTTokenResponse {
-	is_valid: Boolean!
-	claims: Map
+  is_valid: Boolean!
+  claims: Map
 }
 
 type GenerateJWTKeysResponse {
-	secret: String
-	public_key: String
-	private_key: String
+  secret: String
+  public_key: String
+  private_key: String
 }
 
 type Webhook {
-	id: ID!
-	event_name: String
-	endpoint: String
-	enabled: Boolean
-	headers: Map
-	created_at: Int64
-	updated_at: Int64
+  id: ID!
+  event_name: String
+  endpoint: String
+  enabled: Boolean
+  headers: Map
+  created_at: Int64
+  updated_at: Int64
 }
 
 type Webhooks {
-	pagination: Pagination!
-	webhooks: [Webhook!]!
+  pagination: Pagination!
+  webhooks: [Webhook!]!
 }
 
 type WebhookLog {
-	id: ID!
-	http_status: Int64
-	response: String
-	request: String
-	webhook_id: ID
-	created_at: Int64
-	updated_at: Int64
+  id: ID!
+  http_status: Int64
+  response: String
+  request: String
+  webhook_id: ID
+  created_at: Int64
+  updated_at: Int64
 }
 
 type TestEndpointResponse {
-	http_status: Int64
-	response: String
+  http_status: Int64
+  response: String
 }
 
 type WebhookLogs {
-	pagination: Pagination!
-	webhook_logs: [WebhookLog!]!
+  pagination: Pagination!
+  webhook_logs: [WebhookLog!]!
 }
 
 type EmailTemplate {
-	id: ID!
-	event_name: String!
-	template: String!
-	design: String!
-	subject: String!
-	created_at: Int64
-	updated_at: Int64
+  id: ID!
+  event_name: String!
+  template: String!
+  design: String!
+  subject: String!
+  created_at: Int64
+  updated_at: Int64
 }
 
 type EmailTemplates {
-	pagination: Pagination!
-	email_templates: [EmailTemplate!]!
+  pagination: Pagination!
+  email_templates: [EmailTemplate!]!
 }
 
 input UpdateEnvInput {
-	ACCESS_TOKEN_EXPIRY_TIME: String
-	ADMIN_SECRET: String
-	CUSTOM_ACCESS_TOKEN_SCRIPT: String
-	OLD_ADMIN_SECRET: String
-	SMTP_HOST: String
-	SMTP_PORT: String
-	SMTP_USERNAME: String
-	SMTP_PASSWORD: String
-	SMTP_LOCAL_NAME: String
-	SENDER_EMAIL: String
-	JWT_TYPE: String
-	JWT_SECRET: String
-	JWT_PRIVATE_KEY: String
-	JWT_PUBLIC_KEY: String
-	ALLOWED_ORIGINS: [String!]
-	APP_URL: String
-	RESET_PASSWORD_URL: String
-	APP_COOKIE_SECURE: Boolean
-	ADMIN_COOKIE_SECURE: Boolean
-	DISABLE_EMAIL_VERIFICATION: Boolean
-	DISABLE_BASIC_AUTHENTICATION: Boolean
-	DISABLE_MAGIC_LINK_LOGIN: Boolean
-	DISABLE_LOGIN_PAGE: Boolean
-	DISABLE_SIGN_UP: Boolean
-	DISABLE_REDIS_FOR_ENV: Boolean
-	DISABLE_STRONG_PASSWORD: Boolean
-	DISABLE_MULTI_FACTOR_AUTHENTICATION: Boolean
-	ENFORCE_MULTI_FACTOR_AUTHENTICATION: Boolean
-	ROLES: [String!]
-	PROTECTED_ROLES: [String!]
-	DEFAULT_ROLES: [String!]
-	JWT_ROLE_CLAIM: String
-	GOOGLE_CLIENT_ID: String
-	GOOGLE_CLIENT_SECRET: String
-	GITHUB_CLIENT_ID: String
-	GITHUB_CLIENT_SECRET: String
-	FACEBOOK_CLIENT_ID: String
-	FACEBOOK_CLIENT_SECRET: String
-	LINKEDIN_CLIENT_ID: String
-	LINKEDIN_CLIENT_SECRET: String
-	APPLE_CLIENT_ID: String
-	APPLE_CLIENT_SECRET: String
-	TWITTER_CLIENT_ID: String
-	TWITTER_CLIENT_SECRET: String
-	ORGANIZATION_NAME: String
-	ORGANIZATION_LOGO: String
+  ACCESS_TOKEN_EXPIRY_TIME: String
+  ADMIN_SECRET: String
+  CUSTOM_ACCESS_TOKEN_SCRIPT: String
+  OLD_ADMIN_SECRET: String
+  SMTP_HOST: String
+  SMTP_PORT: String
+  SMTP_USERNAME: String
+  SMTP_PASSWORD: String
+  SMTP_LOCAL_NAME: String
+  SENDER_EMAIL: String
+  JWT_TYPE: String
+  JWT_SECRET: String
+  JWT_PRIVATE_KEY: String
+  JWT_PUBLIC_KEY: String
+  ALLOWED_ORIGINS: [String!]
+  APP_URL: String
+  RESET_PASSWORD_URL: String
+  APP_COOKIE_SECURE: Boolean
+  ADMIN_COOKIE_SECURE: Boolean
+  DISABLE_EMAIL_VERIFICATION: Boolean
+  DISABLE_BASIC_AUTHENTICATION: Boolean
+  DISABLE_MAGIC_LINK_LOGIN: Boolean
+  DISABLE_LOGIN_PAGE: Boolean
+  DISABLE_SIGN_UP: Boolean
+  DISABLE_REDIS_FOR_ENV: Boolean
+  DISABLE_STRONG_PASSWORD: Boolean
+  DISABLE_MULTI_FACTOR_AUTHENTICATION: Boolean
+  ENFORCE_MULTI_FACTOR_AUTHENTICATION: Boolean
+  ROLES: [String!]
+  PROTECTED_ROLES: [String!]
+  DEFAULT_ROLES: [String!]
+  JWT_ROLE_CLAIM: String
+  GOOGLE_CLIENT_ID: String
+  GOOGLE_CLIENT_SECRET: String
+  GITHUB_CLIENT_ID: String
+  GITHUB_CLIENT_SECRET: String
+  FACEBOOK_CLIENT_ID: String
+  FACEBOOK_CLIENT_SECRET: String
+  LINKEDIN_CLIENT_ID: String
+  LINKEDIN_CLIENT_SECRET: String
+  APPLE_CLIENT_ID: String
+  APPLE_CLIENT_SECRET: String
+  TWITTER_CLIENT_ID: String
+  TWITTER_CLIENT_SECRET: String
+  ORGANIZATION_NAME: String
+  ORGANIZATION_LOGO: String
 }
 
 input AdminLoginInput {
-	admin_secret: String!
+  admin_secret: String!
 }
 
 input AdminSignupInput {
-	admin_secret: String!
+  admin_secret: String!
+}
+
+input MobileBasicAuthSignUpUpInput {
+  email: String
+  given_name: String
+  family_name: String
+  middle_name: String
+  nickname: String
+  gender: String
+  birthdate: String
+  phone_number: String!
+  picture: String
+  password: String!
+  confirm_password: String!
+  roles: [String!]
+  scope: [String!]
+  redirect_uri: String
+  is_multi_factor_auth_enabled: Boolean
+  # state is used for authorization code grant flow
+  # it is used to get code for an on-going auth process during login
+  # and use that code for setting ` + "`" + `c_hash` + "`" + ` in id_token
+  state: String
 }
 
 input SignUpInput {
-	email: String!
-	given_name: String
-	family_name: String
-	middle_name: String
-	nickname: String
-	gender: String
-	birthdate: String
-	phone_number: String
-	picture: String
-	password: String!
-	confirm_password: String!
-	roles: [String!]
-	scope: [String!]
-	redirect_uri: String
-	is_multi_factor_auth_enabled: Boolean
-	# state is used for authorization code grant flow
-	# it is used to get code for an on-going auth process during login
-	# and use that code for setting ` + "`" + `c_hash` + "`" + ` in id_token
-	state: String
+  email: String!
+  given_name: String
+  family_name: String
+  middle_name: String
+  nickname: String
+  gender: String
+  birthdate: String
+  phone_number: String
+  picture: String
+  password: String!
+  confirm_password: String!
+  roles: [String!]
+  scope: [String!]
+  redirect_uri: String
+  is_multi_factor_auth_enabled: Boolean
+  # state is used for authorization code grant flow
+  # it is used to get code for an on-going auth process during login
+  # and use that code for setting ` + "`" + `c_hash` + "`" + ` in id_token
+  state: String
 }
 
 input LoginInput {
-	email: String!
-	password: String!
-	roles: [String!]
-	scope: [String!]
-	# state is used for authorization code grant flow
-	# it is used to get code for an on-going auth process during login
-	# and use that code for setting ` + "`" + `c_hash` + "`" + ` in id_token
-	state: String
+  email: String!
+  password: String!
+  roles: [String!]
+  scope: [String!]
+  # state is used for authorization code grant flow
+  # it is used to get code for an on-going auth process during login
+  # and use that code for setting ` + "`" + `c_hash` + "`" + ` in id_token
+  state: String
 }
 
 input VerifyEmailInput {
-	token: String!
-	# state is used for authorization code grant flow
-	# it is used to get code for an on-going auth process during login
-	# and use that code for setting ` + "`" + `c_hash` + "`" + ` in id_token
-	state: String
+  token: String!
+  # state is used for authorization code grant flow
+  # it is used to get code for an on-going auth process during login
+  # and use that code for setting ` + "`" + `c_hash` + "`" + ` in id_token
+  state: String
 }
 
 input ResendVerifyEmailInput {
-	email: String!
-	identifier: String!
-	# state is used for authorization code grant flow
-	# it is used to get code for an on-going auth process during login
-	# and use that code for setting ` + "`" + `c_hash` + "`" + ` in id_token
-	state: String
+  email: String!
+  identifier: String!
+  # state is used for authorization code grant flow
+  # it is used to get code for an on-going auth process during login
+  # and use that code for setting ` + "`" + `c_hash` + "`" + ` in id_token
+  state: String
 }
 
 input UpdateProfileInput {
-	old_password: String
-	new_password: String
-	confirm_new_password: String
-	email: String
-	given_name: String
-	family_name: String
-	middle_name: String
-	nickname: String
-	gender: String
-	birthdate: String
-	phone_number: String
-	picture: String
-	is_multi_factor_auth_enabled: Boolean
+  old_password: String
+  new_password: String
+  confirm_new_password: String
+  email: String
+  given_name: String
+  family_name: String
+  middle_name: String
+  nickname: String
+  gender: String
+  birthdate: String
+  phone_number: String
+  picture: String
+  is_multi_factor_auth_enabled: Boolean
 }
 
 input UpdateUserInput {
-	id: ID!
-	email: String
-	email_verified: Boolean
-	given_name: String
-	family_name: String
-	middle_name: String
-	nickname: String
-	gender: String
-	birthdate: String
-	phone_number: String
-	picture: String
-	roles: [String]
-	is_multi_factor_auth_enabled: Boolean
+  id: ID!
+  email: String
+  email_verified: Boolean
+  given_name: String
+  family_name: String
+  middle_name: String
+  nickname: String
+  gender: String
+  birthdate: String
+  phone_number: String
+  picture: String
+  roles: [String]
+  is_multi_factor_auth_enabled: Boolean
 }
 
 input ForgotPasswordInput {
-	email: String!
-	state: String
-	redirect_uri: String
+  email: String!
+  state: String
+  redirect_uri: String
 }
 
 input ResetPasswordInput {
-	token: String!
-	password: String!
-	confirm_password: String!
+  token: String!
+  password: String!
+  confirm_password: String!
 }
 
 input DeleteUserInput {
-	email: String!
+  email: String!
 }
 
 input MagicLinkLoginInput {
-	email: String!
-	roles: [String!]
-	scope: [String!]
-	state: String
-	redirect_uri: String
+  email: String!
+  roles: [String!]
+  scope: [String!]
+  state: String
+  redirect_uri: String
 }
 
 input SessionQueryInput {
-	roles: [String!]
-	scope: [String!]
+  roles: [String!]
+  scope: [String!]
 }
 
 input PaginationInput {
-	limit: Int64
-	page: Int64
+  limit: Int64
+  page: Int64
 }
 
 input PaginatedInput {
-	pagination: PaginationInput
+  pagination: PaginationInput
 }
 
 input OAuthRevokeInput {
-	refresh_token: String!
+  refresh_token: String!
 }
 
 input InviteMemberInput {
-	emails: [String!]!
-	redirect_uri: String
+  emails: [String!]!
+  redirect_uri: String
 }
 
 input UpdateAccessInput {
-	user_id: String!
+  user_id: String!
 }
 
 input ValidateJWTTokenInput {
-	token_type: String!
-	token: String!
-	roles: [String!]
+  token_type: String!
+  token: String!
+  roles: [String!]
 }
 
 input GenerateJWTKeysInput {
-	type: String!
+  type: String!
 }
 
 input ListWebhookLogRequest {
-	pagination: PaginationInput
-	webhook_id: String
+  pagination: PaginationInput
+  webhook_id: String
 }
 
 input AddWebhookRequest {
-	event_name: String!
-	endpoint: String!
-	enabled: Boolean!
-	headers: Map
+  event_name: String!
+  endpoint: String!
+  enabled: Boolean!
+  headers: Map
 }
 
 input UpdateWebhookRequest {
-	id: ID!
-	event_name: String
-	endpoint: String
-	enabled: Boolean
-	headers: Map
+  id: ID!
+  event_name: String
+  endpoint: String
+  enabled: Boolean
+  headers: Map
 }
 
 input WebhookRequest {
-	id: ID!
+  id: ID!
 }
 
 input TestEndpointRequest {
-	endpoint: String!
-	event_name: String!
-	headers: Map
+  endpoint: String!
+  event_name: String!
+  headers: Map
 }
 
 input AddEmailTemplateRequest {
-	event_name: String!
-	subject: String!
-	template: String!
-	design: String
+  event_name: String!
+  subject: String!
+  template: String!
+  # Design value is set when editor is used
+  # If raw HTML is used design value is set to null
+  design: String
 }
 
 input UpdateEmailTemplateRequest {
-	id: ID!
-	event_name: String
-	template: String
-	subject: String
-	design: String
+  id: ID!
+  event_name: String
+  template: String
+  subject: String
+  # Design value is set when editor is used
+  # If raw HTML is used design value is set to null
+  design: String
 }
 
 input DeleteEmailTemplateRequest {
-	id: ID!
+  id: ID!
 }
 
 input VerifyOTPRequest {
-	email: String!
-	otp: String!
-	# state is used for authorization code grant flow
-	# it is used to get code for an on-going auth process during login
-	# and use that code for setting ` + "`" + `c_hash` + "`" + ` in id_token
-	state: String
+  email: String!
+  otp: String!
+  # state is used for authorization code grant flow
+  # it is used to get code for an on-going auth process during login
+  # and use that code for setting ` + "`" + `c_hash` + "`" + ` in id_token
+  state: String
 }
 
 input ResendOTPRequest {
-	email: String!
-	# state is used for authorization code grant flow
-	# it is used to get code for an on-going auth process during login
-	# and use that code for setting ` + "`" + `c_hash` + "`" + ` in id_token
-	state: String
+  email: String!
+  # state is used for authorization code grant flow
+  # it is used to get code for an on-going auth process during login
+  # and use that code for setting ` + "`" + `c_hash` + "`" + ` in id_token
+  state: String
 }
 
 type Mutation {
-	signup(params: SignUpInput!): AuthResponse!
-	login(params: LoginInput!): AuthResponse!
-	magic_link_login(params: MagicLinkLoginInput!): Response!
-	logout: Response!
-	update_profile(params: UpdateProfileInput!): Response!
-	verify_email(params: VerifyEmailInput!): AuthResponse!
-	resend_verify_email(params: ResendVerifyEmailInput!): Response!
-	forgot_password(params: ForgotPasswordInput!): Response!
-	reset_password(params: ResetPasswordInput!): Response!
-	revoke(params: OAuthRevokeInput!): Response!
-	verify_otp(params: VerifyOTPRequest!): AuthResponse!
-	resend_otp(params: ResendOTPRequest!): Response!
-	# admin only apis
-	_delete_user(params: DeleteUserInput!): Response!
-	_update_user(params: UpdateUserInput!): User!
-	_admin_signup(params: AdminSignupInput!): Response!
-	_admin_login(params: AdminLoginInput!): Response!
-	_admin_logout: Response!
-	_update_env(params: UpdateEnvInput!): Response!
-	_invite_members(params: InviteMemberInput!): Response!
-	_revoke_access(param: UpdateAccessInput!): Response!
-	_enable_access(param: UpdateAccessInput!): Response!
-	_generate_jwt_keys(params: GenerateJWTKeysInput!): GenerateJWTKeysResponse!
-	_add_webhook(params: AddWebhookRequest!): Response!
-	_update_webhook(params: UpdateWebhookRequest!): Response!
-	_delete_webhook(params: WebhookRequest!): Response!
-	_test_endpoint(params: TestEndpointRequest!): TestEndpointResponse!
-	_add_email_template(params: AddEmailTemplateRequest!): Response!
-	_update_email_template(params: UpdateEmailTemplateRequest!): Response!
-	_delete_email_template(params: DeleteEmailTemplateRequest!): Response!
+  signup(params: SignUpInput!): AuthResponse!
+  mobile_basic_auth_signup(params: MobileBasicAuthSignUpUpInput): AuthResponse!
+  login(params: LoginInput!): AuthResponse!
+  magic_link_login(params: MagicLinkLoginInput!): Response!
+  logout: Response!
+  update_profile(params: UpdateProfileInput!): Response!
+  verify_email(params: VerifyEmailInput!): AuthResponse!
+  resend_verify_email(params: ResendVerifyEmailInput!): Response!
+  forgot_password(params: ForgotPasswordInput!): Response!
+  reset_password(params: ResetPasswordInput!): Response!
+  revoke(params: OAuthRevokeInput!): Response!
+  verify_otp(params: VerifyOTPRequest!): AuthResponse!
+  resend_otp(params: ResendOTPRequest!): Response!
+  # admin only apis
+  _delete_user(params: DeleteUserInput!): Response!
+  _update_user(params: UpdateUserInput!): User!
+  _admin_signup(params: AdminSignupInput!): Response!
+  _admin_login(params: AdminLoginInput!): Response!
+  _admin_logout: Response!
+  _update_env(params: UpdateEnvInput!): Response!
+  _invite_members(params: InviteMemberInput!): Response!
+  _revoke_access(param: UpdateAccessInput!): Response!
+  _enable_access(param: UpdateAccessInput!): Response!
+  _generate_jwt_keys(params: GenerateJWTKeysInput!): GenerateJWTKeysResponse!
+  _add_webhook(params: AddWebhookRequest!): Response!
+  _update_webhook(params: UpdateWebhookRequest!): Response!
+  _delete_webhook(params: WebhookRequest!): Response!
+  _test_endpoint(params: TestEndpointRequest!): TestEndpointResponse!
+  _add_email_template(params: AddEmailTemplateRequest!): Response!
+  _update_email_template(params: UpdateEmailTemplateRequest!): Response!
+  _delete_email_template(params: DeleteEmailTemplateRequest!): Response!
 }
 
 type Query {
-	meta: Meta!
-	session(params: SessionQueryInput): AuthResponse!
-	profile: User!
-	validate_jwt_token(params: ValidateJWTTokenInput!): ValidateJWTTokenResponse!
-	# admin only apis
-	_users(params: PaginatedInput): Users!
-	_verification_requests(params: PaginatedInput): VerificationRequests!
-	_admin_session: Response!
-	_env: Env!
-	_webhook(params: WebhookRequest!): Webhook!
-	_webhooks(params: PaginatedInput): Webhooks!
-	_webhook_logs(params: ListWebhookLogRequest): WebhookLogs!
-	_email_templates(params: PaginatedInput): EmailTemplates!
+  meta: Meta!
+  session(params: SessionQueryInput): AuthResponse!
+  profile: User!
+  validate_jwt_token(params: ValidateJWTTokenInput!): ValidateJWTTokenResponse!
+  # admin only apis
+  _users(params: PaginatedInput): Users!
+  _verification_requests(params: PaginatedInput): VerificationRequests!
+  _admin_session: Response!
+  _env: Env!
+  _webhook(params: WebhookRequest!): Webhook!
+  _webhooks(params: PaginatedInput): Webhooks!
+  _webhook_logs(params: ListWebhookLogRequest): WebhookLogs!
+  _email_templates(params: PaginatedInput): EmailTemplates!
 }
 `, BuiltIn: false},
 }
@@ -2776,6 +2818,21 @@ func (ec *executionContext) field_Mutation_magic_link_login_args(ctx context.Con
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
 		arg0, err = ec.unmarshalNMagicLinkLoginInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐMagicLinkLoginInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["params"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_mobile_basic_auth_signup_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model.MobileBasicAuthSignUpUpInput
+	if tmp, ok := rawArgs["params"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+		arg0, err = ec.unmarshalOMobileBasicAuthSignUpUpInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐMobileBasicAuthSignUpUpInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -7009,6 +7066,77 @@ func (ec *executionContext) fieldContext_Mutation_signup(ctx context.Context, fi
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_signup_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_mobile_basic_auth_signup(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_mobile_basic_auth_signup(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().MobileBasicAuthSignup(rctx, fc.Args["params"].(*model.MobileBasicAuthSignUpUpInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.AuthResponse)
+	fc.Result = res
+	return ec.marshalNAuthResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAuthResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_mobile_basic_auth_signup(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "message":
+				return ec.fieldContext_AuthResponse_message(ctx, field)
+			case "should_show_otp_screen":
+				return ec.fieldContext_AuthResponse_should_show_otp_screen(ctx, field)
+			case "access_token":
+				return ec.fieldContext_AuthResponse_access_token(ctx, field)
+			case "id_token":
+				return ec.fieldContext_AuthResponse_id_token(ctx, field)
+			case "refresh_token":
+				return ec.fieldContext_AuthResponse_refresh_token(ctx, field)
+			case "expires_in":
+				return ec.fieldContext_AuthResponse_expires_in(ctx, field)
+			case "user":
+				return ec.fieldContext_AuthResponse_user(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type AuthResponse", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_mobile_basic_auth_signup_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
@@ -14592,6 +14720,154 @@ func (ec *executionContext) unmarshalInputMagicLinkLoginInput(ctx context.Contex
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputMobileBasicAuthSignUpUpInput(ctx context.Context, obj interface{}) (model.MobileBasicAuthSignUpUpInput, error) {
+	var it model.MobileBasicAuthSignUpUpInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"email", "given_name", "family_name", "middle_name", "nickname", "gender", "birthdate", "phone_number", "picture", "password", "confirm_password", "roles", "scope", "redirect_uri", "is_multi_factor_auth_enabled", "state"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "email":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
+			it.Email, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "given_name":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("given_name"))
+			it.GivenName, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "family_name":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("family_name"))
+			it.FamilyName, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "middle_name":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("middle_name"))
+			it.MiddleName, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "nickname":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("nickname"))
+			it.Nickname, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "gender":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("gender"))
+			it.Gender, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "birthdate":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("birthdate"))
+			it.Birthdate, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "phone_number":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phone_number"))
+			it.PhoneNumber, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "picture":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("picture"))
+			it.Picture, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "password":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("password"))
+			it.Password, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "confirm_password":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("confirm_password"))
+			it.ConfirmPassword, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "roles":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("roles"))
+			it.Roles, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "scope":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("scope"))
+			it.Scope, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "redirect_uri":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("redirect_uri"))
+			it.RedirectURI, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "is_multi_factor_auth_enabled":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("is_multi_factor_auth_enabled"))
+			it.IsMultiFactorAuthEnabled, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "state":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
+			it.State, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputOAuthRevokeInput(ctx context.Context, obj interface{}) (model.OAuthRevokeInput, error) {
 	var it model.OAuthRevokeInput
 	asMap := map[string]interface{}{}
@@ -16621,6 +16897,15 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_signup(ctx, field)
+			})
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "mobile_basic_auth_signup":
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_mobile_basic_auth_signup(ctx, field)
 			})
 
 			if out.Values[i] == graphql.Null {
@@ -19095,6 +19380,14 @@ func (ec *executionContext) marshalOMap2map(ctx context.Context, sel ast.Selecti
 	}
 	res := graphql.MarshalMap(v)
 	return res
+}
+
+func (ec *executionContext) unmarshalOMobileBasicAuthSignUpUpInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐMobileBasicAuthSignUpUpInput(ctx context.Context, v interface{}) (*model.MobileBasicAuthSignUpUpInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputMobileBasicAuthSignUpUpInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalOPaginatedInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐPaginatedInput(ctx context.Context, v interface{}) (*model.PaginatedInput, error) {
