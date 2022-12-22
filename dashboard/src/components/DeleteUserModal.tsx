@@ -51,7 +51,7 @@ const DeleteUserModal = ({
 				title: capitalizeFirstLetter(res.error.message),
 				isClosable: true,
 				status: 'error',
-				position: 'bottom-right',
+				position: 'top-right',
 			});
 
 			return;
@@ -60,7 +60,7 @@ const DeleteUserModal = ({
 				title: capitalizeFirstLetter(res.data?._delete_user.message),
 				isClosable: true,
 				status: 'success',
-				position: 'bottom-right',
+				position: 'top-right',
 			});
 		}
 		onClose();

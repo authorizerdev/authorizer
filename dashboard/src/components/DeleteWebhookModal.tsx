@@ -44,7 +44,7 @@ const DeleteWebhookModal = ({
 				title: capitalizeFirstLetter(res.error.message),
 				isClosable: true,
 				status: 'error',
-				position: 'bottom-right',
+				position: 'top-right',
 			});
 
 			return;
@@ -53,7 +53,7 @@ const DeleteWebhookModal = ({
 				title: capitalizeFirstLetter(res.data?._delete_webhook.message),
 				isClosable: true,
 				status: 'success',
-				position: 'bottom-right',
+				position: 'top-right',
 			});
 		}
 		onClose();

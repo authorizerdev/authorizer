@@ -173,7 +173,7 @@ const UpdateEmailTemplate = ({
 				title: capitalizeFirstLetter(res.error.message),
 				isClosable: true,
 				status: 'error',
-				position: 'bottom-right',
+				position: 'top-right',
 			});
 		} else if (
 			res.data?._add_email_template ||
@@ -186,7 +186,7 @@ const UpdateEmailTemplate = ({
 				),
 				isClosable: true,
 				status: 'success',
-				position: 'bottom-right',
+				position: 'top-right',
 			});
 			setTemplateData({
 				...initTemplateData,

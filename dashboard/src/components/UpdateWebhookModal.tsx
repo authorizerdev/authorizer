@@ -290,7 +290,7 @@ const UpdateWebhookModal = ({
 				title: capitalizeFirstLetter(res.error.message),
 				isClosable: true,
 				status: 'error',
-				position: 'bottom-right',
+				position: 'top-right',
 			});
 		} else if (res.data?._add_webhook || res.data?._update_webhook) {
 			toast({
@@ -299,7 +299,7 @@ const UpdateWebhookModal = ({
 				),
 				isClosable: true,
 				status: 'success',
-				position: 'bottom-right',
+				position: 'top-right',
 			});
 			setWebhook({
 				...initWebhookData,

@@ -104,14 +104,14 @@ const EditUserModal = ({
 				title: 'User data update failed',
 				isClosable: true,
 				status: 'error',
-				position: 'bottom-right',
+				position: 'top-right',
 			});
 		} else if (res.data?._update_user?.id) {
 			toast({
 				title: 'User data update successful',
 				isClosable: true,
 				status: 'success',
-				position: 'bottom-right',
+				position: 'top-right',
 			});
 		}
 		onClose();

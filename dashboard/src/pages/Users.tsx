@@ -180,14 +180,14 @@ export default function Users() {
 				title: 'User verification failed',
 				isClosable: true,
 				status: 'error',
-				position: 'bottom-right',
+				position: 'top-right',
 			});
 		} else if (res.data?._update_user?.id) {
 			toast({
 				title: 'User verification successful',
 				isClosable: true,
 				status: 'success',
-				position: 'bottom-right',
+				position: 'top-right',
 			});
 		}
 		updateUserList();
@@ -211,14 +211,14 @@ export default function Users() {
 						title: 'User access enable failed',
 						isClosable: true,
 						status: 'error',
-						position: 'bottom-right',
+						position: 'top-right',
 					});
 				} else {
 					toast({
 						title: 'User access enabled successfully',
 						isClosable: true,
 						status: 'success',
-						position: 'bottom-right',
+						position: 'top-right',
 					});
 				}
 				updateUserList();
@@ -236,14 +236,14 @@ export default function Users() {
 						title: 'User access revoke failed',
 						isClosable: true,
 						status: 'error',
-						position: 'bottom-right',
+						position: 'top-right',
 					});
 				} else {
 					toast({
 						title: 'User access revoked successfully',
 						isClosable: true,
 						status: 'success',
-						position: 'bottom-right',
+						position: 'top-right',
 					});
 				}
 				updateUserList();
@@ -268,7 +268,7 @@ export default function Users() {
 				} for user`,
 				isClosable: true,
 				status: 'success',
-				position: 'bottom-right',
+				position: 'top-right',
 			});
 			updateUserList();
 			return;
@@ -277,7 +277,7 @@ export default function Users() {
 			title: 'Multi factor authentication update failed for user',
 			isClosable: true,
 			status: 'error',
-			position: 'bottom-right',
+			position: 'top-right',
 		});
 	};
 
