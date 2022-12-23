@@ -44,7 +44,7 @@ const DeleteEmailTemplateModal = ({
 				title: capitalizeFirstLetter(res.error.message),
 				isClosable: true,
 				status: 'error',
-				position: 'bottom-right',
+				position: 'top-right',
 			});
 
 			return;
@@ -53,7 +53,7 @@ const DeleteEmailTemplateModal = ({
 				title: capitalizeFirstLetter(res.data?._delete_email_template.message),
 				isClosable: true,
 				status: 'success',
-				position: 'bottom-right',
+				position: 'top-right',
 			});
 		}
 		onClose();

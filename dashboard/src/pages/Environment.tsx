@@ -203,7 +203,7 @@ const Environment = () => {
 			} variables`,
 			isClosable: true,
 			status: 'success',
-			position: 'bottom-right',
+			position: 'top-right',
 		});
 	};
 

@@ -57,7 +57,7 @@ export default function Auth() {
 					title: capitalizeFirstLetter(error.message),
 					isClosable: true,
 					status: 'error',
-					position: 'bottom-right',
+					position: 'top-right',
 				});
 			});
 		}

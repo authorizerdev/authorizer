@@ -73,7 +73,7 @@ const GenerateKeysModal = ({ jwtType, getData }: propTypes) => {
 					title: 'Error occurred generating jwt keys',
 					isClosable: true,
 					status: 'error',
-					position: 'bottom-right',
+					position: 'top-right',
 				});
 				closeHandler();
 			} else {
@@ -107,7 +107,7 @@ const GenerateKeysModal = ({ jwtType, getData }: propTypes) => {
 				title: 'Error occurred setting jwt keys',
 				isClosable: true,
 				status: 'error',
-				position: 'bottom-right',
+				position: 'top-right',
 			});
 
 			return;
@@ -116,7 +116,7 @@ const GenerateKeysModal = ({ jwtType, getData }: propTypes) => {
 			title: 'JWT keys updated successfully',
 			isClosable: true,
 			status: 'success',
-			position: 'bottom-right',
+			position: 'top-right',
 		});
 		closeHandler();
 	};

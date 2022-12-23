@@ -105,7 +105,7 @@ const InviteMembersModal = ({
 					title: 'Invites sent successfully!',
 					isClosable: true,
 					status: 'success',
-					position: 'bottom-right',
+					position: 'top-right',
 				});
 				setLoading(false);
 				updateUserList();
@@ -117,7 +117,7 @@ const InviteMembersModal = ({
 				title: error?.message || 'Error occurred, try again!',
 				isClosable: true,
 				status: 'error',
-				position: 'bottom-right',
+				position: 'top-right',
 			});
 			setLoading(false);
 		}

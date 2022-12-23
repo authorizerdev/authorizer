@@ -43,7 +43,7 @@ const JSTConfigurations = ({
 				title: `JWT config copied successfully`,
 				isClosable: true,
 				status: 'success',
-				position: 'bottom-right',
+				position: 'top-right',
 			});
 		} catch (err) {
 			console.error({
@@ -54,7 +54,7 @@ const JSTConfigurations = ({
 				title: `Failed to copy JWT config`,
 				isClosable: true,
 				status: 'error',
-				position: 'bottom-right',
+				position: 'top-right',
 			});
 		}
 	};
