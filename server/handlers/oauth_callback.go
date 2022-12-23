@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -334,7 +334,7 @@ func processGithubUserInfo(code string) (models.User, error) {
 	}
 
 	defer response.Body.Close()
-	body, err := ioutil.ReadAll(response.Body)
+	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		log.Debug("Failed to read github user info response body: ", err)
 		return user, fmt.Errorf("failed to read github response body: %s", err.Error())
@@ -383,7 +383,7 @@ func processGithubUserInfo(code string) (models.User, error) {
 		}
 
 		defer response.Body.Close()
-		body, err := ioutil.ReadAll(response.Body)
+		body, err := io.ReadAll(response.Body)
 		if err != nil {
 			log.Debug("Failed to read github user email response body: ", err)
 			return user, fmt.Errorf("failed to read github response body: %s", err.Error())
@@ -438,7 +438,7 @@ func processFacebookUserInfo(code string) (models.User, error) {
 	}
 
 	defer response.Body.Close()
-	body, err := ioutil.ReadAll(response.Body)
+	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		log.Debug("Failed to read facebook response: ", err)
 		return user, fmt.Errorf("failed to read facebook response body: %s", err.Error())
@@ -493,7 +493,7 @@ func processLinkedInUserInfo(code string) (models.User, error) {
 	}
 
 	defer response.Body.Close()
-	body, err := ioutil.ReadAll(response.Body)
+	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		log.Debug("Failed to read linkedin user info response body: ", err)
 		return user, fmt.Errorf("failed to read linkedin response body: %s", err.Error())
@@ -523,7 +523,7 @@ func processLinkedInUserInfo(code string) (models.User, error) {
 	}
 
 	defer response.Body.Close()
-	body, err = ioutil.ReadAll(response.Body)
+	body, err = io.ReadAll(response.Body)
 	if err != nil {
 		log.Debug("Failed to read linkedin email info response body: ", err)
 		return user, fmt.Errorf("failed to read linkedin email response body: %s", err.Error())
@@ -628,7 +628,7 @@ func processTwitterUserInfo(code, verifier string) (models.User, error) {
 	}
 
 	defer response.Body.Close()
-	body, err := ioutil.ReadAll(response.Body)
+	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		log.Debug("Failed to read Twitter user info response body: ", err)
 		return user, fmt.Errorf("failed to read Twitter response body: %s", err.Error())

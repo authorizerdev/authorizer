@@ -322,7 +322,6 @@ func AuthorizeHandler() gin.HandlerFunc {
 		}
 
 		handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
-		return
 	}
 }
 
