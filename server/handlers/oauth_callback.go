@@ -312,7 +312,7 @@ func processGoogleUserInfo(code string) (models.User, error) {
 
 func processGithubUserInfo(code string) (models.User, error) {
 	user := models.User{}
-	oauth2Token, err := oauth.OAuthProviders.GithubConfig.Exchange(oauth2.NoContext, code)
+	oauth2Token, err := oauth.OAuthProviders.GithubConfig.Exchange(context.TODO(), code)
 	if err != nil {
 		log.Debug("Failed to exchange code for token: ", err)
 		return user, fmt.Errorf("invalid github exchange code: %s", err.Error())
@@ -419,7 +419,7 @@ func processGithubUserInfo(code string) (models.User, error) {
 
 func processFacebookUserInfo(code string) (models.User, error) {
 	user := models.User{}
-	oauth2Token, err := oauth.OAuthProviders.FacebookConfig.Exchange(oauth2.NoContext, code)
+	oauth2Token, err := oauth.OAuthProviders.FacebookConfig.Exchange(context.TODO(), code)
 	if err != nil {
 		log.Debug("Invalid facebook exchange code: ", err)
 		return user, fmt.Errorf("invalid facebook exchange code: %s", err.Error())
@@ -470,7 +470,7 @@ func processFacebookUserInfo(code string) (models.User, error) {
 
 func processLinkedInUserInfo(code string) (models.User, error) {
 	user := models.User{}
-	oauth2Token, err := oauth.OAuthProviders.LinkedInConfig.Exchange(oauth2.NoContext, code)
+	oauth2Token, err := oauth.OAuthProviders.LinkedInConfig.Exchange(context.TODO(), code)
 	if err != nil {
 		log.Debug("Failed to exchange code for token: ", err)
 		return user, fmt.Errorf("invalid linkedin exchange code: %s", err.Error())
@@ -552,7 +552,7 @@ func processLinkedInUserInfo(code string) (models.User, error) {
 
 func processAppleUserInfo(code string) (models.User, error) {
 	user := models.User{}
-	oauth2Token, err := oauth.OAuthProviders.AppleConfig.Exchange(oauth2.NoContext, code)
+	oauth2Token, err := oauth.OAuthProviders.AppleConfig.Exchange(context.TODO(), code)
 	if err != nil {
 		log.Debug("Failed to exchange code for token: ", err)
 		return user, fmt.Errorf("invalid apple exchange code: %s", err.Error())
@@ -605,7 +605,7 @@ func processAppleUserInfo(code string) (models.User, error) {
 
 func processTwitterUserInfo(code, verifier string) (models.User, error) {
 	user := models.User{}
-	oauth2Token, err := oauth.OAuthProviders.TwitterConfig.Exchange(oauth2.NoContext, code, oauth2.SetAuthURLParam("code_verifier", verifier))
+	oauth2Token, err := oauth.OAuthProviders.TwitterConfig.Exchange(context.TODO(), code, oauth2.SetAuthURLParam("code_verifier", verifier))
 	if err != nil {
 		log.Debug("Failed to exchange code for token: ", err)
 		return user, fmt.Errorf("invalid twitter exchange code: %s", err.Error())
