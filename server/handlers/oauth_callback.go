@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -312,7 +312,7 @@ func processGoogleUserInfo(code string) (models.User, error) {
 
 func processGithubUserInfo(code string) (models.User, error) {
 	user := models.User{}
-	oauth2Token, err := oauth.OAuthProviders.GithubConfig.Exchange(oauth2.NoContext, code)
+	oauth2Token, err := oauth.OAuthProviders.GithubConfig.Exchange(context.TODO(), code)
 	if err != nil {
 		log.Debug("Failed to exchange code for token: ", err)
 		return user, fmt.Errorf("invalid github exchange code: %s", err.Error())
@@ -334,7 +334,7 @@ func processGithubUserInfo(code string) (models.User, error) {
 	}
 
 	defer response.Body.Close()
-	body, err := ioutil.ReadAll(response.Body)
+	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		log.Debug("Failed to read github user info response body: ", err)
 		return user, fmt.Errorf("failed to read github response body: %s", err.Error())
@@ -383,7 +383,7 @@ func processGithubUserInfo(code string) (models.User, error) {
 		}
 
 		defer response.Body.Close()
-		body, err := ioutil.ReadAll(response.Body)
+		body, err := io.ReadAll(response.Body)
 		if err != nil {
 			log.Debug("Failed to read github user email response body: ", err)
 			return user, fmt.Errorf("failed to read github response body: %s", err.Error())
@@ -419,7 +419,7 @@ func processGithubUserInfo(code string) (models.User, error) {
 
 func processFacebookUserInfo(code string) (models.User, error) {
 	user := models.User{}
-	oauth2Token, err := oauth.OAuthProviders.FacebookConfig.Exchange(oauth2.NoContext, code)
+	oauth2Token, err := oauth.OAuthProviders.FacebookConfig.Exchange(context.TODO(), code)
 	if err != nil {
 		log.Debug("Invalid facebook exchange code: ", err)
 		return user, fmt.Errorf("invalid facebook exchange code: %s", err.Error())
@@ -438,7 +438,7 @@ func processFacebookUserInfo(code string) (models.User, error) {
 	}
 
 	defer response.Body.Close()
-	body, err := ioutil.ReadAll(response.Body)
+	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		log.Debug("Failed to read facebook response: ", err)
 		return user, fmt.Errorf("failed to read facebook response body: %s", err.Error())
@@ -470,7 +470,7 @@ func processFacebookUserInfo(code string) (models.User, error) {
 
 func processLinkedInUserInfo(code string) (models.User, error) {
 	user := models.User{}
-	oauth2Token, err := oauth.OAuthProviders.LinkedInConfig.Exchange(oauth2.NoContext, code)
+	oauth2Token, err := oauth.OAuthProviders.LinkedInConfig.Exchange(context.TODO(), code)
 	if err != nil {
 		log.Debug("Failed to exchange code for token: ", err)
 		return user, fmt.Errorf("invalid linkedin exchange code: %s", err.Error())
@@ -493,7 +493,7 @@ func processLinkedInUserInfo(code string) (models.User, error) {
 	}
 
 	defer response.Body.Close()
-	body, err := ioutil.ReadAll(response.Body)
+	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		log.Debug("Failed to read linkedin user info response body: ", err)
 		return user, fmt.Errorf("failed to read linkedin response body: %s", err.Error())
@@ -523,7 +523,7 @@ func processLinkedInUserInfo(code string) (models.User, error) {
 	}
 
 	defer response.Body.Close()
-	body, err = ioutil.ReadAll(response.Body)
+	body, err = io.ReadAll(response.Body)
 	if err != nil {
 		log.Debug("Failed to read linkedin email info response body: ", err)
 		return user, fmt.Errorf("failed to read linkedin email response body: %s", err.Error())
@@ -552,7 +552,7 @@ func processLinkedInUserInfo(code string) (models.User, error) {
 
 func processAppleUserInfo(code string) (models.User, error) {
 	user := models.User{}
-	oauth2Token, err := oauth.OAuthProviders.AppleConfig.Exchange(oauth2.NoContext, code)
+	oauth2Token, err := oauth.OAuthProviders.AppleConfig.Exchange(context.TODO(), code)
 	if err != nil {
 		log.Debug("Failed to exchange code for token: ", err)
 		return user, fmt.Errorf("invalid apple exchange code: %s", err.Error())
@@ -605,7 +605,7 @@ func processAppleUserInfo(code string) (models.User, error) {
 
 func processTwitterUserInfo(code, verifier string) (models.User, error) {
 	user := models.User{}
-	oauth2Token, err := oauth.OAuthProviders.TwitterConfig.Exchange(oauth2.NoContext, code, oauth2.SetAuthURLParam("code_verifier", verifier))
+	oauth2Token, err := oauth.OAuthProviders.TwitterConfig.Exchange(context.TODO(), code, oauth2.SetAuthURLParam("code_verifier", verifier))
 	if err != nil {
 		log.Debug("Failed to exchange code for token: ", err)
 		return user, fmt.Errorf("invalid twitter exchange code: %s", err.Error())
@@ -628,7 +628,7 @@ func processTwitterUserInfo(code, verifier string) (models.User, error) {
 	}
 
 	defer response.Body.Close()
-	body, err := ioutil.ReadAll(response.Body)
+	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		log.Debug("Failed to read Twitter user info response body: ", err)
 		return user, fmt.Errorf("failed to read Twitter response body: %s", err.Error())

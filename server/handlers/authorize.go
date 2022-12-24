@@ -322,13 +322,12 @@ func AuthorizeHandler() gin.HandlerFunc {
 		}
 
 		handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
-		return
 	}
 }
 
 func validateAuthorizeRequest(responseType, responseMode, clientID, state, codeChallenge string) error {
 	if strings.TrimSpace(state) == "" {
-		return fmt.Errorf("invalid state. state is required to prevent csrf attack", responseMode)
+		return fmt.Errorf("invalid state. state is required to prevent csrf attack")
 	}
 	if responseType != constants.ResponseTypeCode && responseType != constants.ResponseTypeToken && responseType != constants.ResponseTypeIDToken {
 		return fmt.Errorf("invalid response type %s. 'code' & 'token' are valid response_type", responseMode)
