@@ -1,5 +1,7 @@
 package models
 
+import "encoding/json"
+
 // Note: any change here should be reflected in providers/casandra/provider.go as it does not have model support in collection creation
 
 // Env model for db
@@ -10,4 +12,11 @@ type Env struct {
 	Hash      string `json:"hash" bson:"hash" cql:"hash" dynamo:"hash"`
 	UpdatedAt int64  `json:"updated_at" bson:"updated_at" cql:"updated_at" dynamo:"updated_at"`
 	CreatedAt int64  `json:"created_at" bson:"created_at" cql:"created_at" dynamo:"created_at"`
+}
+
+func (env *Env) ToMap() map[string]interface{} {
+	res := map[string]interface{}{}
+	data, _ := json.Marshal(env) // Convert to a json string
+	json.Unmarshal(data, &res)   // Convert to a map
+	return res
 }

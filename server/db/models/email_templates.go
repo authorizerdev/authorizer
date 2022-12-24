@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"strings"
 
 	"github.com/authorizerdev/authorizer/server/graph/model"
@@ -34,4 +35,11 @@ func (e *EmailTemplate) AsAPIEmailTemplate() *model.EmailTemplate {
 		CreatedAt: refs.NewInt64Ref(e.CreatedAt),
 		UpdatedAt: refs.NewInt64Ref(e.UpdatedAt),
 	}
+}
+
+func (e *EmailTemplate) ToMap() map[string]interface{} {
+	res := map[string]interface{}{}
+	data, _ := json.Marshal(e) // Convert to a json string
+	json.Unmarshal(data, &res) // Convert to a map
+	return res
 }

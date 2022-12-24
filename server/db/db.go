@@ -10,6 +10,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/db/providers/dynamodb"
 	"github.com/authorizerdev/authorizer/server/db/providers/mongodb"
 	"github.com/authorizerdev/authorizer/server/db/providers/sql"
+	"github.com/authorizerdev/authorizer/server/db/providers/surrealdb"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 )
 
@@ -21,11 +22,12 @@ func InitDB() error {
 
 	envs := memorystore.RequiredEnvStoreObj.GetRequiredEnv()
 
-	isSQL := envs.DatabaseType != constants.DbTypeArangodb && envs.DatabaseType != constants.DbTypeMongodb && envs.DatabaseType != constants.DbTypeCassandraDB && envs.DatabaseType != constants.DbTypeScyllaDB && envs.DatabaseType != constants.DbTypeDynamoDB
+	isSQL := envs.DatabaseType != constants.DbTypeArangodb && envs.DatabaseType != constants.DbTypeMongodb && envs.DatabaseType != constants.DbTypeCassandraDB && envs.DatabaseType != constants.DbTypeScyllaDB && envs.DatabaseType != constants.DbTypeDynamoDB && envs.DatabaseType != constants.DbTypeSurrealDB
 	isArangoDB := envs.DatabaseType == constants.DbTypeArangodb
 	isMongoDB := envs.DatabaseType == constants.DbTypeMongodb
 	isCassandra := envs.DatabaseType == constants.DbTypeCassandraDB || envs.DatabaseType == constants.DbTypeScyllaDB
 	isDynamoDB := envs.DatabaseType == constants.DbTypeDynamoDB
+	isSurrealDB := envs.DatabaseType == constants.DbTypeSurrealDB
 
 	if isSQL {
 		log.Info("Initializing SQL Driver for: ", envs.DatabaseType)
@@ -68,6 +70,15 @@ func InitDB() error {
 		Provider, err = dynamodb.NewProvider()
 		if err != nil {
 			log.Fatal("Failed to initialize DynamoDB driver: ", err)
+			return err
+		}
+	}
+
+	if isSurrealDB {
+		log.Info("Initializing Surreal Driver")
+		Provider, err = surrealdb.NewProvider()
+		if err != nil {
+			log.Fatal("Failed to initialize Surreal driver: ", err)
 			return err
 		}
 	}

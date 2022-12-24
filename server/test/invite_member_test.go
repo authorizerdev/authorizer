@@ -41,6 +41,8 @@ func inviteUserTest(t *testing.T, s TestSetup) {
 		res, err = resolvers.InviteMembersResolver(ctx, model.InviteMemberInput{
 			Emails: invalidEmailsTest,
 		})
+		assert.Error(t, err)
+		assert.Nil(t, res)
 
 		// valid test
 		res, err = resolvers.InviteMembersResolver(ctx, model.InviteMemberInput{

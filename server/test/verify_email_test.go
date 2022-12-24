@@ -20,6 +20,7 @@ func verifyEmailTest(t *testing.T, s TestSetup) {
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password,
 		})
+		assert.NoError(t, err)
 
 		user := *res.User
 		assert.Equal(t, email, user.Email)

@@ -38,6 +38,7 @@ func verificationRequestsTest(t *testing.T, s TestSetup) {
 		}
 
 		requests, err := resolvers.VerificationRequestsResolver(ctx, pagination)
+		assert.Nil(t, requests)
 		assert.NotNil(t, err, "unauthorized")
 		adminSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret)
 		assert.Nil(t, err)

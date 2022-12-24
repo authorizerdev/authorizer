@@ -13,6 +13,10 @@ type CollectionList struct {
 }
 
 var (
+	// DB/Namespace
+	DBNamespace = "authorizer"
+	// Identifier field used for surreal db
+	SurrealDbIdentifier = "identifier"
 	// Prefix for table name / collection names
 	Prefix = "authorizer_"
 	// Collections / Tables available for authorizer in the database (used for dbs other than gorm)
