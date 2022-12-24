@@ -31,7 +31,7 @@ func (p *provider) AddUser(ctx context.Context, user models.User) (models.User, 
 	}
 
 	if user.PhoneNumber != nil && strings.TrimSpace(refs.StringValue(user.PhoneNumber)) != "" {
-		if u, _ := p.GetUserByPhone(ctx, refs.StringValue(user.PhoneNumber)); u != nil {
+		if u, _ := p.GetUserByPhoneNumber(ctx, refs.StringValue(user.PhoneNumber)); u != nil {
 			return user, fmt.Errorf("user with given phone number already exists")
 		}
 	}
@@ -55,12 +55,6 @@ func (p *provider) AddUser(ctx context.Context, user models.User) (models.User, 
 // UpdateUser to update user information in database
 func (p *provider) UpdateUser(ctx context.Context, user models.User) (models.User, error) {
 	user.UpdatedAt = time.Now().Unix()
-
-	if user.PhoneNumber != nil && strings.TrimSpace(refs.StringValue(user.PhoneNumber)) != "" {
-		if u, _ := p.GetUserByPhone(ctx, refs.StringValue(user.PhoneNumber)); u != nil && u.ID != user.ID {
-			return user, fmt.Errorf("user with given phone number already exists")
-		}
-	}
 
 	result := p.db.Save(&user)
 
@@ -156,12 +150,13 @@ func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{},
 	return nil
 }
 
-func (p *provider) GetUserByPhone(ctx context.Context, phoneNumber string) (*models.User, error) {
+// GetUserByPhoneNumber to get user information from database using phone number
+func (p *provider) GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (*models.User, error) {
 	var user *models.User
 	result := p.db.Where("phone_number = ?", phoneNumber).First(&user)
 
 	if result.Error != nil {
-		return user, result.Error
+		return nil, result.Error
 	}
 
 	return user, nil

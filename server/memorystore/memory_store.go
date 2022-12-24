@@ -26,6 +26,7 @@ func InitMemStore() error {
 
 		// boolean envs
 		constants.EnvKeyDisableBasicAuthentication:       false,
+		constants.EnvKeyDisableMobileBasicAuthentication: false,
 		constants.EnvKeyDisableMagicLinkLogin:            false,
 		constants.EnvKeyDisableEmailVerification:         false,
 		constants.EnvKeyDisableLoginPage:                 false,

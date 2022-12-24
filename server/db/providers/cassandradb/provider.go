@@ -161,6 +161,12 @@ func NewProvider() (*provider, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	userPhoneNumberIndexQuery := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_user_phone_number ON %s.%s (phone_number)", KeySpace, models.Collections.User)
+	err = session.Query(userPhoneNumberIndexQuery).Exec()
+	if err != nil {
+		return nil, err
+	}
 	// add is_multi_factor_auth_enabled on users table
 	userTableAlterQuery := fmt.Sprintf(`ALTER TABLE %s.%s ADD is_multi_factor_auth_enabled boolean`, KeySpace, models.Collections.User)
 	err = session.Query(userTableAlterQuery).Exec()

@@ -88,6 +88,11 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 	}
 
 	if params.PhoneNumber != nil && refs.StringValue(user.PhoneNumber) != refs.StringValue(params.PhoneNumber) {
+		// verify if phone number is unique
+		if _, err := db.Provider.GetUserByPhoneNumber(ctx, strings.TrimSpace(refs.StringValue(params.PhoneNumber))); err == nil {
+			log.Debug("user with given phone number already exists")
+			return nil, errors.New("user with given phone number already exists")
+		}
 		user.PhoneNumber = params.PhoneNumber
 	}
 
@@ -154,8 +159,14 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 		isBasicAuthDisabled = true
 	}
 
+	isMobileBasicAuthDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableMobileBasicAuthentication)
+	if err != nil {
+		log.Debug("Error getting mobile basic auth disabled: ", err)
+		isBasicAuthDisabled = true
+	}
+
 	if params.NewPassword != nil && params.ConfirmNewPassword != nil {
-		if isBasicAuthDisabled {
+		if isBasicAuthDisabled || isMobileBasicAuthDisabled {
 			log.Debug("Cannot update password as basic authentication is disabled")
 			return res, fmt.Errorf(`basic authentication is disabled for this instance`)
 		}

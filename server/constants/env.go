@@ -125,6 +125,8 @@ const (
 	EnvKeyDisableEmailVerification = "DISABLE_EMAIL_VERIFICATION"
 	// EnvKeyDisableBasicAuthentication key for env variable DISABLE_BASIC_AUTH
 	EnvKeyDisableBasicAuthentication = "DISABLE_BASIC_AUTHENTICATION"
+	// EnvKeyDisableBasicAuthentication key for env variable DISABLE_MOBILE_BASIC_AUTH
+	EnvKeyDisableMobileBasicAuthentication = "DISABLE_MOBILE_BASIC_AUTHENTICATION"
 	// EnvKeyDisableMagicLinkLogin key for env variable DISABLE_MAGIC_LINK_LOGIN
 	EnvKeyDisableMagicLinkLogin = "DISABLE_MAGIC_LINK_LOGIN"
 	// EnvKeyDisableLoginPage key for env variable DISABLE_LOGIN_PAGE

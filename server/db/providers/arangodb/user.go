@@ -15,6 +15,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
+	"github.com/authorizerdev/authorizer/server/refs"
 )
 
 // AddUser to save user information in database
@@ -30,6 +31,12 @@ func (p *provider) AddUser(ctx context.Context, user models.User) (models.User, 
 			return user, err
 		}
 		user.Roles = defaultRoles
+	}
+
+	if user.PhoneNumber != nil && strings.TrimSpace(refs.StringValue(user.PhoneNumber)) != "" {
+		if u, _ := p.GetUserByPhoneNumber(ctx, refs.StringValue(user.PhoneNumber)); u != nil && u.ID != user.ID {
+			return user, fmt.Errorf("user with given phone number already exists")
+		}
 	}
 
 	user.CreatedAt = time.Now().Unix()
@@ -48,6 +55,7 @@ func (p *provider) AddUser(ctx context.Context, user models.User) (models.User, 
 // UpdateUser to update user information in database
 func (p *provider) UpdateUser(ctx context.Context, user models.User) (models.User, error) {
 	user.UpdatedAt = time.Now().Unix()
+
 	collection, _ := p.db.Collection(ctx, models.Collections.User)
 	meta, err := collection.UpdateDocument(ctx, user.Key, user)
 	if err != nil {
@@ -210,4 +218,35 @@ func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{},
 	}
 
 	return nil
+}
+
+// GetUserByPhoneNumber to get user information from database using phone number
+func (p *provider) GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (*models.User, error) {
+	var user models.User
+
+	query := fmt.Sprintf("FOR d in %s FILTER d.phone_number == @phone_number RETURN d", models.Collections.User)
+	bindVars := map[string]interface{}{
+		"phone_number": phoneNumber,
+	}
+
+	cursor, err := p.db.Query(ctx, query, bindVars)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close()
+
+	for {
+		if !cursor.HasMore() {
+			if user.Key == "" {
+				return nil, fmt.Errorf("user not found")
+			}
+			break
+		}
+		_, err := cursor.ReadDocument(ctx, &user)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &user, nil
 }

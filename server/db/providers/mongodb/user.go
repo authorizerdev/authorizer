@@ -155,3 +155,16 @@ func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{},
 	}
 	return nil
 }
+
+// GetUserByPhoneNumber to get user information from database using phone number
+func (p *provider) GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (*models.User, error) {
+	var user models.User
+
+	userCollection := p.db.Collection(models.Collections.User, options.Collection())
+	err := userCollection.FindOne(ctx, bson.M{"phone_number": phoneNumber}).Decode(&user)
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}

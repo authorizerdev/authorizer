@@ -111,6 +111,8 @@ func TestResolvers(t *testing.T) {
 			// user resolvers tests
 			loginTests(t, s)
 			signupTests(t, s)
+			mobileSingupTest(t, s)
+			mobileLoginTests(t, s)
 			forgotPasswordTest(t, s)
 			resendVerifyEmailTests(t, s)
 			resetPasswordTest(t, s)
