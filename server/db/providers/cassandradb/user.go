@@ -90,12 +90,6 @@ func (p *provider) AddUser(ctx context.Context, user models.User) (models.User, 
 func (p *provider) UpdateUser(ctx context.Context, user models.User) (models.User, error) {
 	user.UpdatedAt = time.Now().Unix()
 
-	if user.PhoneNumber != nil && strings.TrimSpace(refs.StringValue(user.PhoneNumber)) != "" {
-		if u, _ := p.GetUserByPhoneNumber(ctx, refs.StringValue(user.PhoneNumber)); u != nil && u.ID != user.ID {
-			return user, fmt.Errorf("user with given phone number already exists")
-		}
-	}
-
 	bytes, err := json.Marshal(user)
 	if err != nil {
 		return user, err

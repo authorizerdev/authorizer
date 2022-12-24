@@ -269,7 +269,7 @@ input AdminSignupInput {
   admin_secret: String!
 }
 
-input MobileBasicAuthSignUpUpInput {
+input MobileSignUpInput {
   email: String
   given_name: String
   family_name: String
@@ -315,6 +315,17 @@ input SignUpInput {
 
 input LoginInput {
   email: String!
+  password: String!
+  roles: [String!]
+  scope: [String!]
+  # state is used for authorization code grant flow
+  # it is used to get code for an on-going auth process during login
+  # and use that code for setting `c_hash` in id_token
+  state: String
+}
+
+input MobileLoginInput {
+  phone_number: String!
   password: String!
   roles: [String!]
   scope: [String!]
@@ -506,8 +517,9 @@ input ResendOTPRequest {
 
 type Mutation {
   signup(params: SignUpInput!): AuthResponse!
-  mobile_basic_auth_signup(params: MobileBasicAuthSignUpUpInput): AuthResponse!
+  mobile_signup(params: MobileSignUpInput): AuthResponse!
   login(params: LoginInput!): AuthResponse!
+  mobile_login(params: MobileLoginInput!): AuthResponse!
   magic_link_login(params: MagicLinkLoginInput!): Response!
   logout: Response!
   update_profile(params: UpdateProfileInput!): Response!

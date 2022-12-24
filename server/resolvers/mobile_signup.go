@@ -22,8 +22,8 @@ import (
 	"github.com/authorizerdev/authorizer/server/validators"
 )
 
-// MobileBasicAuthSignupResolver is a resolver for mobile_basic_auth_signup mutation
-func MobileBasicAuthSignupResolver(ctx context.Context, params *model.MobileBasicAuthSignUpUpInput) (*model.AuthResponse, error) {
+// MobileSignupResolver is a resolver for mobile_basic_auth_signup mutation
+func MobileSignupResolver(ctx context.Context, params *model.MobileSignUpInput) (*model.AuthResponse, error) {
 	var res *model.AuthResponse
 
 	gc, err := utils.GinContextFromContext(ctx)
@@ -221,7 +221,7 @@ func MobileBasicAuthSignupResolver(ctx context.Context, params *model.MobileBasi
 		nonce = uuid.New().String()
 	}
 
-	authToken, err := token.CreateAuthToken(gc, user, roles, scope, constants.AuthRecipeMethodBasicAuth, nonce, code)
+	authToken, err := token.CreateAuthToken(gc, user, roles, scope, constants.AuthRecipeMethodMobileBasicAuth, nonce, code)
 	if err != nil {
 		log.Debug("Failed to create auth token: ", err)
 		return res, err
@@ -247,7 +247,7 @@ func MobileBasicAuthSignupResolver(ctx context.Context, params *model.MobileBasi
 		User:        userToReturn,
 	}
 
-	sessionKey := constants.AuthRecipeMethodBasicAuth + ":" + user.ID
+	sessionKey := constants.AuthRecipeMethodMobileBasicAuth + ":" + user.ID
 	cookie.SetSession(gc, authToken.FingerPrintHash)
 	memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash)
 	memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token)
@@ -258,7 +258,7 @@ func MobileBasicAuthSignupResolver(ctx context.Context, params *model.MobileBasi
 	}
 
 	go func() {
-		utils.RegisterEvent(ctx, constants.UserSignUpWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
+		utils.RegisterEvent(ctx, constants.UserSignUpWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, user)
 		db.Provider.AddSession(ctx, models.Session{
 			UserID:    user.ID,
 			UserAgent: utils.GetUserAgent(gc.Request),

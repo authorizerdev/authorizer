@@ -179,7 +179,15 @@ type Meta struct {
 	IsMultiFactorAuthEnabled     bool   `json:"is_multi_factor_auth_enabled"`
 }
 
-type MobileBasicAuthSignUpUpInput struct {
+type MobileLoginInput struct {
+	PhoneNumber string   `json:"phone_number"`
+	Password    string   `json:"password"`
+	Roles       []string `json:"roles"`
+	Scope       []string `json:"scope"`
+	State       *string  `json:"state"`
+}
+
+type MobileSignUpInput struct {
 	Email                    *string  `json:"email"`
 	GivenName                *string  `json:"given_name"`
 	FamilyName               *string  `json:"family_name"`

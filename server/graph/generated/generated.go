@@ -156,36 +156,37 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		AddEmailTemplate      func(childComplexity int, params model.AddEmailTemplateRequest) int
-		AddWebhook            func(childComplexity int, params model.AddWebhookRequest) int
-		AdminLogin            func(childComplexity int, params model.AdminLoginInput) int
-		AdminLogout           func(childComplexity int) int
-		AdminSignup           func(childComplexity int, params model.AdminSignupInput) int
-		DeleteEmailTemplate   func(childComplexity int, params model.DeleteEmailTemplateRequest) int
-		DeleteUser            func(childComplexity int, params model.DeleteUserInput) int
-		DeleteWebhook         func(childComplexity int, params model.WebhookRequest) int
-		EnableAccess          func(childComplexity int, param model.UpdateAccessInput) int
-		ForgotPassword        func(childComplexity int, params model.ForgotPasswordInput) int
-		GenerateJwtKeys       func(childComplexity int, params model.GenerateJWTKeysInput) int
-		InviteMembers         func(childComplexity int, params model.InviteMemberInput) int
-		Login                 func(childComplexity int, params model.LoginInput) int
-		Logout                func(childComplexity int) int
-		MagicLinkLogin        func(childComplexity int, params model.MagicLinkLoginInput) int
-		MobileBasicAuthSignup func(childComplexity int, params *model.MobileBasicAuthSignUpUpInput) int
-		ResendOtp             func(childComplexity int, params model.ResendOTPRequest) int
-		ResendVerifyEmail     func(childComplexity int, params model.ResendVerifyEmailInput) int
-		ResetPassword         func(childComplexity int, params model.ResetPasswordInput) int
-		Revoke                func(childComplexity int, params model.OAuthRevokeInput) int
-		RevokeAccess          func(childComplexity int, param model.UpdateAccessInput) int
-		Signup                func(childComplexity int, params model.SignUpInput) int
-		TestEndpoint          func(childComplexity int, params model.TestEndpointRequest) int
-		UpdateEmailTemplate   func(childComplexity int, params model.UpdateEmailTemplateRequest) int
-		UpdateEnv             func(childComplexity int, params model.UpdateEnvInput) int
-		UpdateProfile         func(childComplexity int, params model.UpdateProfileInput) int
-		UpdateUser            func(childComplexity int, params model.UpdateUserInput) int
-		UpdateWebhook         func(childComplexity int, params model.UpdateWebhookRequest) int
-		VerifyEmail           func(childComplexity int, params model.VerifyEmailInput) int
-		VerifyOtp             func(childComplexity int, params model.VerifyOTPRequest) int
+		AddEmailTemplate    func(childComplexity int, params model.AddEmailTemplateRequest) int
+		AddWebhook          func(childComplexity int, params model.AddWebhookRequest) int
+		AdminLogin          func(childComplexity int, params model.AdminLoginInput) int
+		AdminLogout         func(childComplexity int) int
+		AdminSignup         func(childComplexity int, params model.AdminSignupInput) int
+		DeleteEmailTemplate func(childComplexity int, params model.DeleteEmailTemplateRequest) int
+		DeleteUser          func(childComplexity int, params model.DeleteUserInput) int
+		DeleteWebhook       func(childComplexity int, params model.WebhookRequest) int
+		EnableAccess        func(childComplexity int, param model.UpdateAccessInput) int
+		ForgotPassword      func(childComplexity int, params model.ForgotPasswordInput) int
+		GenerateJwtKeys     func(childComplexity int, params model.GenerateJWTKeysInput) int
+		InviteMembers       func(childComplexity int, params model.InviteMemberInput) int
+		Login               func(childComplexity int, params model.LoginInput) int
+		Logout              func(childComplexity int) int
+		MagicLinkLogin      func(childComplexity int, params model.MagicLinkLoginInput) int
+		MobileLogin         func(childComplexity int, params model.MobileLoginInput) int
+		MobileSignup        func(childComplexity int, params *model.MobileSignUpInput) int
+		ResendOtp           func(childComplexity int, params model.ResendOTPRequest) int
+		ResendVerifyEmail   func(childComplexity int, params model.ResendVerifyEmailInput) int
+		ResetPassword       func(childComplexity int, params model.ResetPasswordInput) int
+		Revoke              func(childComplexity int, params model.OAuthRevokeInput) int
+		RevokeAccess        func(childComplexity int, param model.UpdateAccessInput) int
+		Signup              func(childComplexity int, params model.SignUpInput) int
+		TestEndpoint        func(childComplexity int, params model.TestEndpointRequest) int
+		UpdateEmailTemplate func(childComplexity int, params model.UpdateEmailTemplateRequest) int
+		UpdateEnv           func(childComplexity int, params model.UpdateEnvInput) int
+		UpdateProfile       func(childComplexity int, params model.UpdateProfileInput) int
+		UpdateUser          func(childComplexity int, params model.UpdateUserInput) int
+		UpdateWebhook       func(childComplexity int, params model.UpdateWebhookRequest) int
+		VerifyEmail         func(childComplexity int, params model.VerifyEmailInput) int
+		VerifyOtp           func(childComplexity int, params model.VerifyOTPRequest) int
 	}
 
 	Pagination struct {
@@ -301,8 +302,9 @@ type ComplexityRoot struct {
 
 type MutationResolver interface {
 	Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse, error)
-	MobileBasicAuthSignup(ctx context.Context, params *model.MobileBasicAuthSignUpUpInput) (*model.AuthResponse, error)
+	MobileSignup(ctx context.Context, params *model.MobileSignUpInput) (*model.AuthResponse, error)
 	Login(ctx context.Context, params model.LoginInput) (*model.AuthResponse, error)
+	MobileLogin(ctx context.Context, params model.MobileLoginInput) (*model.AuthResponse, error)
 	MagicLinkLogin(ctx context.Context, params model.MagicLinkLoginInput) (*model.Response, error)
 	Logout(ctx context.Context) (*model.Response, error)
 	UpdateProfile(ctx context.Context, params model.UpdateProfileInput) (*model.Response, error)
@@ -1161,17 +1163,29 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.MagicLinkLogin(childComplexity, args["params"].(model.MagicLinkLoginInput)), true
 
-	case "Mutation.mobile_basic_auth_signup":
-		if e.complexity.Mutation.MobileBasicAuthSignup == nil {
+	case "Mutation.mobile_login":
+		if e.complexity.Mutation.MobileLogin == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation_mobile_basic_auth_signup_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation_mobile_login_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.MobileBasicAuthSignup(childComplexity, args["params"].(*model.MobileBasicAuthSignUpUpInput)), true
+		return e.complexity.Mutation.MobileLogin(childComplexity, args["params"].(model.MobileLoginInput)), true
+
+	case "Mutation.mobile_signup":
+		if e.complexity.Mutation.MobileSignup == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_mobile_signup_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.MobileSignup(childComplexity, args["params"].(*model.MobileSignUpInput)), true
 
 	case "Mutation.resend_otp":
 		if e.complexity.Mutation.ResendOtp == nil {
@@ -1898,7 +1912,8 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputListWebhookLogRequest,
 		ec.unmarshalInputLoginInput,
 		ec.unmarshalInputMagicLinkLoginInput,
-		ec.unmarshalInputMobileBasicAuthSignUpUpInput,
+		ec.unmarshalInputMobileLoginInput,
+		ec.unmarshalInputMobileSignUpInput,
 		ec.unmarshalInputOAuthRevokeInput,
 		ec.unmarshalInputPaginatedInput,
 		ec.unmarshalInputPaginationInput,
@@ -2249,7 +2264,7 @@ input AdminSignupInput {
   admin_secret: String!
 }
 
-input MobileBasicAuthSignUpUpInput {
+input MobileSignUpInput {
   email: String
   given_name: String
   family_name: String
@@ -2295,6 +2310,17 @@ input SignUpInput {
 
 input LoginInput {
   email: String!
+  password: String!
+  roles: [String!]
+  scope: [String!]
+  # state is used for authorization code grant flow
+  # it is used to get code for an on-going auth process during login
+  # and use that code for setting ` + "`" + `c_hash` + "`" + ` in id_token
+  state: String
+}
+
+input MobileLoginInput {
+  phone_number: String!
   password: String!
   roles: [String!]
   scope: [String!]
@@ -2486,8 +2512,9 @@ input ResendOTPRequest {
 
 type Mutation {
   signup(params: SignUpInput!): AuthResponse!
-  mobile_basic_auth_signup(params: MobileBasicAuthSignUpUpInput): AuthResponse!
+  mobile_signup(params: MobileSignUpInput): AuthResponse!
   login(params: LoginInput!): AuthResponse!
+  mobile_login(params: MobileLoginInput!): AuthResponse!
   magic_link_login(params: MagicLinkLoginInput!): Response!
   logout: Response!
   update_profile(params: UpdateProfileInput!): Response!
@@ -2826,13 +2853,28 @@ func (ec *executionContext) field_Mutation_magic_link_login_args(ctx context.Con
 	return args, nil
 }
 
-func (ec *executionContext) field_Mutation_mobile_basic_auth_signup_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Mutation_mobile_login_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 *model.MobileBasicAuthSignUpUpInput
+	var arg0 model.MobileLoginInput
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalOMobileBasicAuthSignUpUpInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐMobileBasicAuthSignUpUpInput(ctx, tmp)
+		arg0, err = ec.unmarshalNMobileLoginInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐMobileLoginInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["params"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_mobile_signup_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model.MobileSignUpInput
+	if tmp, ok := rawArgs["params"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+		arg0, err = ec.unmarshalOMobileSignUpInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐMobileSignUpInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -7072,8 +7114,8 @@ func (ec *executionContext) fieldContext_Mutation_signup(ctx context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation_mobile_basic_auth_signup(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation_mobile_basic_auth_signup(ctx, field)
+func (ec *executionContext) _Mutation_mobile_signup(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_mobile_signup(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -7086,7 +7128,7 @@ func (ec *executionContext) _Mutation_mobile_basic_auth_signup(ctx context.Conte
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().MobileBasicAuthSignup(rctx, fc.Args["params"].(*model.MobileBasicAuthSignUpUpInput))
+		return ec.resolvers.Mutation().MobileSignup(rctx, fc.Args["params"].(*model.MobileSignUpInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -7103,7 +7145,7 @@ func (ec *executionContext) _Mutation_mobile_basic_auth_signup(ctx context.Conte
 	return ec.marshalNAuthResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAuthResponse(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Mutation_mobile_basic_auth_signup(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation_mobile_signup(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -7136,7 +7178,7 @@ func (ec *executionContext) fieldContext_Mutation_mobile_basic_auth_signup(ctx c
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_mobile_basic_auth_signup_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation_mobile_signup_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
@@ -7208,6 +7250,77 @@ func (ec *executionContext) fieldContext_Mutation_login(ctx context.Context, fie
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_login_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_mobile_login(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_mobile_login(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().MobileLogin(rctx, fc.Args["params"].(model.MobileLoginInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.AuthResponse)
+	fc.Result = res
+	return ec.marshalNAuthResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAuthResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_mobile_login(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "message":
+				return ec.fieldContext_AuthResponse_message(ctx, field)
+			case "should_show_otp_screen":
+				return ec.fieldContext_AuthResponse_should_show_otp_screen(ctx, field)
+			case "access_token":
+				return ec.fieldContext_AuthResponse_access_token(ctx, field)
+			case "id_token":
+				return ec.fieldContext_AuthResponse_id_token(ctx, field)
+			case "refresh_token":
+				return ec.fieldContext_AuthResponse_refresh_token(ctx, field)
+			case "expires_in":
+				return ec.fieldContext_AuthResponse_expires_in(ctx, field)
+			case "user":
+				return ec.fieldContext_AuthResponse_user(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type AuthResponse", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_mobile_login_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
@@ -14720,8 +14833,68 @@ func (ec *executionContext) unmarshalInputMagicLinkLoginInput(ctx context.Contex
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputMobileBasicAuthSignUpUpInput(ctx context.Context, obj interface{}) (model.MobileBasicAuthSignUpUpInput, error) {
-	var it model.MobileBasicAuthSignUpUpInput
+func (ec *executionContext) unmarshalInputMobileLoginInput(ctx context.Context, obj interface{}) (model.MobileLoginInput, error) {
+	var it model.MobileLoginInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"phone_number", "password", "roles", "scope", "state"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "phone_number":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phone_number"))
+			it.PhoneNumber, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "password":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("password"))
+			it.Password, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "roles":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("roles"))
+			it.Roles, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "scope":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("scope"))
+			it.Scope, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "state":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
+			it.State, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputMobileSignUpInput(ctx context.Context, obj interface{}) (model.MobileSignUpInput, error) {
+	var it model.MobileSignUpInput
 	asMap := map[string]interface{}{}
 	for k, v := range obj.(map[string]interface{}) {
 		asMap[k] = v
@@ -16902,10 +17075,10 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "mobile_basic_auth_signup":
+		case "mobile_signup":
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_mobile_basic_auth_signup(ctx, field)
+				return ec._Mutation_mobile_signup(ctx, field)
 			})
 
 			if out.Values[i] == graphql.Null {
@@ -16915,6 +17088,15 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_login(ctx, field)
+			})
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "mobile_login":
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_mobile_login(ctx, field)
 			})
 
 			if out.Values[i] == graphql.Null {
@@ -18588,6 +18770,11 @@ func (ec *executionContext) marshalNMeta2ᚖgithubᚗcomᚋauthorizerdevᚋautho
 	return ec._Meta(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNMobileLoginInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐMobileLoginInput(ctx context.Context, v interface{}) (model.MobileLoginInput, error) {
+	res, err := ec.unmarshalInputMobileLoginInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNOAuthRevokeInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐOAuthRevokeInput(ctx context.Context, v interface{}) (model.OAuthRevokeInput, error) {
 	res, err := ec.unmarshalInputOAuthRevokeInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -19382,11 +19569,11 @@ func (ec *executionContext) marshalOMap2map(ctx context.Context, sel ast.Selecti
 	return res
 }
 
-func (ec *executionContext) unmarshalOMobileBasicAuthSignUpUpInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐMobileBasicAuthSignUpUpInput(ctx context.Context, v interface{}) (*model.MobileBasicAuthSignUpUpInput, error) {
+func (ec *executionContext) unmarshalOMobileSignUpInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐMobileSignUpInput(ctx context.Context, v interface{}) (*model.MobileSignUpInput, error) {
 	if v == nil {
 		return nil, nil
 	}
-	res, err := ec.unmarshalInputMobileBasicAuthSignUpUpInput(ctx, v)
+	res, err := ec.unmarshalInputMobileSignUpInput(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 

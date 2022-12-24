@@ -34,7 +34,6 @@ func (p *provider) AddEnv(ctx context.Context, env models.Env) (models.Env, erro
 
 // UpdateEnv to update environment information in database
 func (p *provider) UpdateEnv(ctx context.Context, env models.Env) (models.Env, error) {
-
 	collection := p.db.Table(models.Collections.Env)
 	env.UpdatedAt = time.Now().Unix()
 

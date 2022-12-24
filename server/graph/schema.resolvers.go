@@ -16,14 +16,19 @@ func (r *mutationResolver) Signup(ctx context.Context, params model.SignUpInput)
 	return resolvers.SignupResolver(ctx, params)
 }
 
-// MobileBasicAuthSignup is the resolver for the mobile_basic_auth_signup field.
-func (r *mutationResolver) MobileBasicAuthSignup(ctx context.Context, params *model.MobileBasicAuthSignUpUpInput) (*model.AuthResponse, error) {
-	return resolvers.MobileBasicAuthSignupResolver(ctx, params)
+// MobileSignup is the resolver for the mobile_signup field.
+func (r *mutationResolver) MobileSignup(ctx context.Context, params *model.MobileSignUpInput) (*model.AuthResponse, error) {
+	return resolvers.MobileSignupResolver(ctx, params)
 }
 
 // Login is the resolver for the login field.
 func (r *mutationResolver) Login(ctx context.Context, params model.LoginInput) (*model.AuthResponse, error) {
 	return resolvers.LoginResolver(ctx, params)
+}
+
+// MobileLogin is the resolver for the mobile_login field.
+func (r *mutationResolver) MobileLogin(ctx context.Context, params model.MobileLoginInput) (*model.AuthResponse, error) {
+	return resolvers.MobileLoginResolver(ctx, params)
 }
 
 // MagicLinkLogin is the resolver for the magic_link_login field.

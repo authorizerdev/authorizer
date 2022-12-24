@@ -58,12 +58,6 @@ func (p *provider) UpdateUser(ctx context.Context, user models.User) (models.Use
 
 		user.UpdatedAt = time.Now().Unix()
 
-		if user.PhoneNumber != nil && strings.TrimSpace(refs.StringValue(user.PhoneNumber)) != "" {
-			if u, _ := p.GetUserByPhoneNumber(ctx, refs.StringValue(user.PhoneNumber)); u != nil && u.ID != user.ID {
-				return user, fmt.Errorf("user with given phone number already exists")
-			}
-		}
-
 		err := UpdateByHashKey(collection, "id", user.ID, user)
 		if err != nil {
 			return user, err
@@ -215,7 +209,7 @@ func (p *provider) GetUserByPhoneNumber(ctx context.Context, phoneNumber string)
 	var user models.User
 
 	collection := p.db.Table(models.Collections.User)
-	err := collection.Scan().Index("phone_number").Filter("'phone_number' = ?", phoneNumber).AllWithContext(ctx, &users)
+	err := collection.Scan().Filter("'phone_number' = ?", phoneNumber).AllWithContext(ctx, &users)
 
 	if err != nil {
 		return nil, err

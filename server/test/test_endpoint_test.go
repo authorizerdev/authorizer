@@ -31,7 +31,7 @@ func testEndpointTest(t *testing.T, s TestSetup) {
 		})
 		assert.NoError(t, err)
 		assert.NotNil(t, res)
-		assert.GreaterOrEqual(t, int64(201), *res.HTTPStatus)
+		assert.GreaterOrEqual(t, *res.HTTPStatus, int64(200))
 		assert.NotEmpty(t, res.Response)
 	})
 }

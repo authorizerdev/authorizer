@@ -75,7 +75,6 @@ func GetEnvData() (map[string]interface{}, error) {
 	}
 
 	memorystore.Provider.UpdateEnvVariable(constants.EnvKeyEncryptionKey, decryptedEncryptionKey)
-
 	b64DecryptedConfig, err := crypto.DecryptB64(env.EnvData)
 	if err != nil {
 		log.Debug("Error while decrypting env data from B64: ", err)

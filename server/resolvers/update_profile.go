@@ -88,6 +88,11 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 	}
 
 	if params.PhoneNumber != nil && refs.StringValue(user.PhoneNumber) != refs.StringValue(params.PhoneNumber) {
+		// verify if phone number is unique
+		if _, err := db.Provider.GetUserByPhoneNumber(ctx, strings.TrimSpace(refs.StringValue(params.PhoneNumber))); err == nil {
+			log.Debug("user with given phone number already exists")
+			return nil, errors.New("user with given phone number already exists")
+		}
 		user.PhoneNumber = params.PhoneNumber
 	}
 
