@@ -13,6 +13,7 @@ import (
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 
@@ -55,20 +56,20 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 		scopes := strings.Split(sessionSplit[3], ",")
 
 		user := models.User{}
-		code := ctx.Request.FormValue("code")
+		oauthCode := ctx.Request.FormValue("code")
 		switch provider {
 		case constants.AuthRecipeMethodGoogle:
-			user, err = processGoogleUserInfo(code)
+			user, err = processGoogleUserInfo(oauthCode)
 		case constants.AuthRecipeMethodGithub:
-			user, err = processGithubUserInfo(code)
+			user, err = processGithubUserInfo(oauthCode)
 		case constants.AuthRecipeMethodFacebook:
-			user, err = processFacebookUserInfo(code)
+			user, err = processFacebookUserInfo(oauthCode)
 		case constants.AuthRecipeMethodLinkedIn:
-			user, err = processLinkedInUserInfo(code)
+			user, err = processLinkedInUserInfo(oauthCode)
 		case constants.AuthRecipeMethodApple:
-			user, err = processAppleUserInfo(code)
+			user, err = processAppleUserInfo(oauthCode)
 		case constants.AuthRecipeMethodTwitter:
-			user, err = processTwitterUserInfo(code, sessionState)
+			user, err = processTwitterUserInfo(oauthCode, sessionState)
 		default:
 			log.Info("Invalid oauth provider")
 			err = fmt.Errorf(`invalid oauth provider`)
@@ -196,10 +197,41 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			}
 		}
 
-		authToken, err := token.CreateAuthToken(ctx, user, inputRoles, scopes, provider)
+		// TODO
+		// use stateValue to get code / nonce
+		// add code / nonce to id_token
+		code := ""
+		codeChallenge := ""
+		nonce := ""
+		if stateValue != "" {
+			// Get state from store
+			authorizeState, _ := memorystore.Provider.GetState(stateValue)
+			if authorizeState != "" {
+				authorizeStateSplit := strings.Split(authorizeState, "@@")
+				if len(authorizeStateSplit) > 1 {
+					code = authorizeStateSplit[0]
+					codeChallenge = authorizeStateSplit[1]
+				} else {
+					nonce = authorizeState
+				}
+				go memorystore.Provider.RemoveState(stateValue)
+			}
+		}
+		if nonce == "" {
+			nonce = uuid.New().String()
+		}
+		authToken, err := token.CreateAuthToken(ctx, user, inputRoles, scopes, provider, nonce, code)
 		if err != nil {
 			log.Debug("Failed to create auth token: ", err)
 			ctx.JSON(500, gin.H{"error": err.Error()})
+		}
+
+		// Code challenge could be optional if PKCE flow is not used
+		if code != "" {
+			if err := memorystore.Provider.SetState(code, codeChallenge+"@@"+authToken.FingerPrintHash); err != nil {
+				log.Debug("SetState failed: ", err)
+				ctx.JSON(500, gin.H{"error": err.Error()})
+			}
 		}
 
 		expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
@@ -207,7 +239,11 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			expiresIn = 1
 		}
 
-		params := "access_token=" + authToken.AccessToken.Token + "&token_type=bearer&expires_in=" + strconv.FormatInt(expiresIn, 10) + "&state=" + stateValue + "&id_token=" + authToken.IDToken.Token
+		params := "access_token=" + authToken.AccessToken.Token + "&token_type=bearer&expires_in=" + strconv.FormatInt(expiresIn, 10) + "&state=" + stateValue + "&id_token=" + authToken.IDToken.Token + "&nonce=" + nonce
+
+		if code != "" {
+			params += "&code=" + code
+		}
 
 		sessionKey := provider + ":" + user.ID
 		cookie.SetSession(ctx, authToken.FingerPrintHash)
@@ -215,7 +251,7 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 		memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token)
 
 		if authToken.RefreshToken != nil {
-			params = params + `&refresh_token=` + authToken.RefreshToken.Token
+			params += `&refresh_token=` + authToken.RefreshToken.Token
 			memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token)
 		}
 

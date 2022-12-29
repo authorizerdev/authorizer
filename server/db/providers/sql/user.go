@@ -2,12 +2,15 @@ package sql
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
+	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -25,6 +28,12 @@ func (p *provider) AddUser(ctx context.Context, user models.User) (models.User, 
 			return user, err
 		}
 		user.Roles = defaultRoles
+	}
+
+	if user.PhoneNumber != nil && strings.TrimSpace(refs.StringValue(user.PhoneNumber)) != "" {
+		if u, _ := p.GetUserByPhone(ctx, refs.StringValue(user.PhoneNumber)); u != nil {
+			return user, fmt.Errorf("user with given phone number already exists")
+		}
 	}
 
 	user.CreatedAt = time.Now().Unix()
@@ -47,6 +56,12 @@ func (p *provider) AddUser(ctx context.Context, user models.User) (models.User, 
 func (p *provider) UpdateUser(ctx context.Context, user models.User) (models.User, error) {
 	user.UpdatedAt = time.Now().Unix()
 
+	if user.PhoneNumber != nil && strings.TrimSpace(refs.StringValue(user.PhoneNumber)) != "" {
+		if u, _ := p.GetUserByPhone(ctx, refs.StringValue(user.PhoneNumber)); u != nil && u.ID != user.ID {
+			return user, fmt.Errorf("user with given phone number already exists")
+		}
+	}
+
 	result := p.db.Save(&user)
 
 	if result.Error != nil {
@@ -58,13 +73,12 @@ func (p *provider) UpdateUser(ctx context.Context, user models.User) (models.Use
 
 // DeleteUser to delete user information from database
 func (p *provider) DeleteUser(ctx context.Context, user models.User) error {
-	result := p.db.Delete(&user)
-
+	result := p.db.Where("user_id = ?", user.ID).Delete(&models.Session{})
 	if result.Error != nil {
 		return result.Error
 	}
 
-	result = p.db.Where("user_id = ?", user.ID).Delete(&models.Session{})
+	result = p.db.Delete(&user)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -140,4 +154,15 @@ func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{},
 		return res.Error
 	}
 	return nil
+}
+
+func (p *provider) GetUserByPhone(ctx context.Context, phoneNumber string) (*models.User, error) {
+	var user *models.User
+	result := p.db.Where("phone_number = ?", phoneNumber).First(&user)
+
+	if result.Error != nil {
+		return user, result.Error
+	}
+
+	return user, nil
 }

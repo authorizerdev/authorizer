@@ -3,83 +3,41 @@ package main
 import (
 	"flag"
 
-	"github.com/sirupsen/logrus"
-	log "github.com/sirupsen/logrus"
-
 	"github.com/authorizerdev/authorizer/server/cli"
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/env"
+	"github.com/authorizerdev/authorizer/server/logs"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/oauth"
+	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/authorizerdev/authorizer/server/routes"
+	"github.com/sirupsen/logrus"
 )
 
 // VERSION is used to define the version of authorizer from build tags
 var VERSION string
 
-// LogUTCFormatter hels in setting UTC time format for the logs
-type LogUTCFormatter struct {
-	log.Formatter
-}
-
-// Format helps fomratting time to UTC
-func (u LogUTCFormatter) Format(e *log.Entry) ([]byte, error) {
-	e.Time = e.Time.UTC()
-	return u.Formatter.Format(e)
-}
-
 func main() {
 	cli.ARG_DB_URL = flag.String("database_url", "", "Database connection string")
 	cli.ARG_DB_TYPE = flag.String("database_type", "", "Database type, possible values are postgres,mysql,sqlite")
 	cli.ARG_ENV_FILE = flag.String("env_file", "", "Env file path")
-	cli.ARG_LOG_LEVEL = flag.String("log_level", "info", "Log level, possible values are debug,info,warn,error,fatal,panic")
+	cli.ARG_LOG_LEVEL = flag.String("log_level", "", "Log level, possible values are debug,info,warn,error,fatal,panic")
 	cli.ARG_REDIS_URL = flag.String("redis_url", "", "Redis connection string")
 	flag.Parse()
 
 	// global log level
-	logrus.SetFormatter(LogUTCFormatter{&logrus.JSONFormatter{}})
-
-	// log instance for gin server
-	log := logrus.New()
-	log.SetFormatter(LogUTCFormatter{&logrus.JSONFormatter{}})
-
-	var logLevel logrus.Level
-	switch *cli.ARG_LOG_LEVEL {
-	case "debug":
-		logLevel = logrus.DebugLevel
-	case "info":
-		logLevel = logrus.InfoLevel
-	case "warn":
-		logLevel = logrus.WarnLevel
-	case "error":
-		logLevel = logrus.ErrorLevel
-	case "fatal":
-		logLevel = logrus.FatalLevel
-	case "panic":
-		logLevel = logrus.PanicLevel
-	default:
-		logLevel = logrus.InfoLevel
-	}
-	// set log level globally
-	logrus.SetLevel(logLevel)
-
-	// set log level for go-gin middleware
-	log.SetLevel(logLevel)
-
-	// show file path in log for debug or other log levels.
-	if logLevel != logrus.InfoLevel {
-		logrus.SetReportCaller(true)
-		log.SetReportCaller(true)
-	}
+	logrus.SetFormatter(logs.LogUTCFormatter{&logrus.JSONFormatter{}})
 
 	constants.VERSION = VERSION
 
 	// initialize required envs (mainly db, env file path and redis)
 	err := memorystore.InitRequiredEnv()
 	if err != nil {
-		log.Fatal("Error while initializing required envs: ", err)
+		logrus.Fatal("Error while initializing required envs: ", err)
 	}
+
+	log := logs.InitLog(refs.StringValue(cli.ARG_LOG_LEVEL))
 
 	// initialize memory store
 	err = memorystore.InitMemStore()

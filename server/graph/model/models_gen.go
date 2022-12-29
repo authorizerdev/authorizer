@@ -3,10 +3,10 @@
 package model
 
 type AddEmailTemplateRequest struct {
-	EventName string `json:"event_name"`
-	Subject   string `json:"subject"`
-	Template  string `json:"template"`
-	Design    string `json:"design"`
+	EventName string  `json:"event_name"`
+	Subject   string  `json:"subject"`
+	Template  string  `json:"template"`
+	Design    *string `json:"design"`
 }
 
 type AddWebhookRequest struct {
@@ -151,6 +151,7 @@ type LoginInput struct {
 	Password string   `json:"password"`
 	Roles    []string `json:"roles"`
 	Scope    []string `json:"scope"`
+	State    *string  `json:"state"`
 }
 
 type MagicLinkLoginInput struct {
@@ -199,12 +200,14 @@ type PaginationInput struct {
 }
 
 type ResendOTPRequest struct {
-	Email string `json:"email"`
+	Email string  `json:"email"`
+	State *string `json:"state"`
 }
 
 type ResendVerifyEmailInput struct {
-	Email      string `json:"email"`
-	Identifier string `json:"identifier"`
+	Email      string  `json:"email"`
+	Identifier string  `json:"identifier"`
+	State      *string `json:"state"`
 }
 
 type ResetPasswordInput struct {
@@ -238,6 +241,7 @@ type SignUpInput struct {
 	Scope                    []string `json:"scope"`
 	RedirectURI              *string  `json:"redirect_uri"`
 	IsMultiFactorAuthEnabled *bool    `json:"is_multi_factor_auth_enabled"`
+	State                    *string  `json:"state"`
 }
 
 type TestEndpointRequest struct {
@@ -408,12 +412,14 @@ type VerificationRequests struct {
 }
 
 type VerifyEmailInput struct {
-	Token string `json:"token"`
+	Token string  `json:"token"`
+	State *string `json:"state"`
 }
 
 type VerifyOTPRequest struct {
-	Email string `json:"email"`
-	Otp   string `json:"otp"`
+	Email string  `json:"email"`
+	Otp   string  `json:"otp"`
+	State *string `json:"state"`
 }
 
 type Webhook struct {

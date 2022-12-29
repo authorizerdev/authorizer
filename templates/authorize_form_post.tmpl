@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Authorization Response</title>
+	</head>
+	<body onload="document.forms['authorize_form_post'].submit()">
+        <form action="{{.target_origin}}" name="authorize_form_post" method="POST">
+            {{ range $key, $val := .authorization_response }}
+                <input type="hidden" key="{{$key}}" value="{{$val}}" name="{{$key}}" id="{{$key}}" />
+            {{ end }}
+        </form>
+	</body>
+</html>

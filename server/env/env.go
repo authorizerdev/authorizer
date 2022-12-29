@@ -332,7 +332,7 @@ func InitAllEnv() error {
 		envData[constants.EnvKeyJwtRoleClaim] = osJwtRoleClaim
 
 		if envData[constants.EnvKeyJwtRoleClaim] == "" {
-			envData[constants.EnvKeyJwtRoleClaim] = "role"
+			envData[constants.EnvKeyJwtRoleClaim] = "roles"
 		}
 	}
 	if osJwtRoleClaim != "" && envData[constants.EnvKeyJwtRoleClaim] != osJwtRoleClaim {

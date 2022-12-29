@@ -51,7 +51,8 @@ func validateJwtTokenTest(t *testing.T, s TestSetup) {
 	gc, err := utils.GinContextFromContext(ctx)
 	assert.NoError(t, err)
 	sessionKey := constants.AuthRecipeMethodBasicAuth + ":" + user.ID
-	authToken, err := token.CreateAuthToken(gc, user, roles, scope, constants.AuthRecipeMethodBasicAuth)
+	nonce := uuid.New().String()
+	authToken, err := token.CreateAuthToken(gc, user, roles, scope, constants.AuthRecipeMethodBasicAuth, nonce, "")
 	memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash)
 	memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token)
 

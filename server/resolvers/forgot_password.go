@@ -94,7 +94,7 @@ func ForgotPasswordResolver(ctx context.Context, params model.ForgotPasswordInpu
 		return res, err
 	}
 
-	// exec it as go routine so that we can reduce the api latency
+	// execute it as go routine so that we can reduce the api latency
 	go email.SendEmail([]string{params.Email}, constants.VerificationTypeForgotPassword, map[string]interface{}{
 		"user":             user.ToMap(),
 		"organization":     utils.GetOrganization(),
