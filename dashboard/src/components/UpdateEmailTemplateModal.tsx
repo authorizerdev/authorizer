@@ -29,10 +29,6 @@ import {
 	Tbody,
 	Td,
 	Code,
-	Radio,
-	RadioGroup,
-	Stack,
-	Textarea,
 } from '@chakra-ui/react';
 import { FaPlus, FaAngleDown, FaAngleUp } from 'react-icons/fa';
 import { useClient } from 'urql';
@@ -42,7 +38,6 @@ import {
 	EmailTemplateInputDataFields,
 	emailTemplateEventNames,
 	emailTemplateVariables,
-	EmailTemplateEditors,
 } from '../constants';
 import { capitalizeFirstLetter } from '../utils';
 import { AddEmailTemplate, EditEmailTemplate } from '../graphql/mutation';
@@ -71,8 +66,6 @@ interface templateVariableDataTypes {
 interface emailTemplateDataType {
 	[EmailTemplateInputDataFields.EVENT_NAME]: string;
 	[EmailTemplateInputDataFields.SUBJECT]: string;
-	[EmailTemplateInputDataFields.TEMPLATE]: string;
-	[EmailTemplateInputDataFields.DESIGN]: string;
 }
 
 interface validatorDataType {
@@ -82,8 +75,6 @@ interface validatorDataType {
 const initTemplateData: emailTemplateDataType = {
 	[EmailTemplateInputDataFields.EVENT_NAME]: emailTemplateEventNames.Signup,
 	[EmailTemplateInputDataFields.SUBJECT]: '',
-	[EmailTemplateInputDataFields.TEMPLATE]: '',
-	[EmailTemplateInputDataFields.DESIGN]: '',
 };
 
 const initTemplateValidatorData: validatorDataType = {
@@ -100,9 +91,6 @@ const UpdateEmailTemplate = ({
 	const emailEditorRef = useRef(null);
 	const { isOpen, onOpen, onClose } = useDisclosure();
 	const [loading, setLoading] = useState<boolean>(false);
-	const [editor, setEditor] = useState<string>(
-		EmailTemplateEditors.PLAIN_HTML_EDITOR,
-	);
 	const [templateVariables, setTemplateVariables] = useState<
 		templateVariableDataTypes[]
 	>([]);
@@ -119,11 +107,9 @@ const UpdateEmailTemplate = ({
 		if (selectedTemplate) {
 			const { design } = selectedTemplate;
 			try {
-				if (design) {
-					const designData = JSON.parse(design);
-					// @ts-ignore
-					emailEditorRef.current.editor.loadDesign(designData);
-				}
+				const designData = JSON.parse(design);
+				// @ts-ignore
+				emailEditorRef.current.editor.loadDesign(designData);
 			} catch (error) {
 				console.error(error);
 				onClose();
@@ -150,85 +136,70 @@ const UpdateEmailTemplate = ({
 		);
 	};
 
-	const updateTemplate = async (params: emailTemplateDataType) => {
-		let res: any = {};
-		if (
-			view === UpdateModalViews.Edit &&
-			selectedTemplate?.[EmailTemplateInputDataFields.ID]
-		) {
-			res = await client
-				.mutation(EditEmailTemplate, {
-					params: {
-						...params,
-						id: selectedTemplate[EmailTemplateInputDataFields.ID],
-					},
-				})
-				.toPromise();
-		} else {
-			res = await client.mutation(AddEmailTemplate, { params }).toPromise();
-		}
-		setLoading(false);
-		if (res.error) {
-			toast({
-				title: capitalizeFirstLetter(res.error.message),
-				isClosable: true,
-				status: 'error',
-				position: 'bottom-right',
-			});
-		} else if (
-			res.data?._add_email_template ||
-			res.data?._update_email_template
-		) {
-			toast({
-				title: capitalizeFirstLetter(
-					res.data?._add_email_template?.message ||
-						res.data?._update_email_template?.message,
-				),
-				isClosable: true,
-				status: 'success',
-				position: 'bottom-right',
-			});
-			setTemplateData({
-				...initTemplateData,
-			});
-			setValidator({ ...initTemplateValidatorData });
-			fetchEmailTemplatesData();
-		}
-	};
-
 	const saveData = async () => {
 		if (!validateData()) return;
 		setLoading(true);
-		let params: emailTemplateDataType = {
-			[EmailTemplateInputDataFields.EVENT_NAME]:
-				templateData[EmailTemplateInputDataFields.EVENT_NAME],
-			[EmailTemplateInputDataFields.SUBJECT]:
-				templateData[EmailTemplateInputDataFields.SUBJECT],
-			[EmailTemplateInputDataFields.TEMPLATE]:
-				templateData[EmailTemplateInputDataFields.TEMPLATE],
-			[EmailTemplateInputDataFields.DESIGN]: '',
-		};
-		if (editor === EmailTemplateEditors.UNLAYER_EDITOR) {
-			// @ts-ignore
-			await emailEditorRef.current.editor.exportHtml(async (data) => {
-				const { design, html } = data;
-				if (!html || !design) {
-					setLoading(false);
-					return;
-				}
-				params = {
-					...params,
-					[EmailTemplateInputDataFields.TEMPLATE]: html.trim(),
-					[EmailTemplateInputDataFields.DESIGN]: JSON.stringify(design),
-				};
-				await updateTemplate(params);
-			});
-		} else {
-			await updateTemplate(params);
-		}
-		view === UpdateModalViews.ADD && onClose();
+		// @ts-ignore
+		return await emailEditorRef.current.editor.exportHtml(async (data) => {
+			const { design, html } = data;
+			if (!html || !design) {
+				setLoading(false);
+				return;
+			}
+			const params = {
+				[EmailTemplateInputDataFields.EVENT_NAME]:
+					templateData[EmailTemplateInputDataFields.EVENT_NAME],
+				[EmailTemplateInputDataFields.SUBJECT]:
+					templateData[EmailTemplateInputDataFields.SUBJECT],
+				[EmailTemplateInputDataFields.TEMPLATE]: html.trim(),
+				[EmailTemplateInputDataFields.DESIGN]: JSON.stringify(design),
+			};
+			let res: any = {};
+			if (
+				view === UpdateModalViews.Edit &&
+				selectedTemplate?.[EmailTemplateInputDataFields.ID]
+			) {
+				res = await client
+					.mutation(EditEmailTemplate, {
+						params: {
+							...params,
+							id: selectedTemplate[EmailTemplateInputDataFields.ID],
+						},
+					})
+					.toPromise();
+			} else {
+				res = await client.mutation(AddEmailTemplate, { params }).toPromise();
+			}
+			setLoading(false);
+			if (res.error) {
+				toast({
+					title: capitalizeFirstLetter(res.error.message),
+					isClosable: true,
+					status: 'error',
+					position: 'bottom-right',
+				});
+			} else if (
+				res.data?._add_email_template ||
+				res.data?._update_email_template
+			) {
+				toast({
+					title: capitalizeFirstLetter(
+						res.data?._add_email_template?.message ||
+							res.data?._update_email_template?.message,
+					),
+					isClosable: true,
+					status: 'success',
+					position: 'bottom-right',
+				});
+				setTemplateData({
+					...initTemplateData,
+				});
+				setValidator({ ...initTemplateValidatorData });
+				fetchEmailTemplatesData();
+			}
+			view === UpdateModalViews.ADD && onClose();
+		});
 	};
-
 	const resetData = () => {
 		if (selectedTemplate) {
 			setTemplateData(selectedTemplate);
@@ -236,8 +207,6 @@ const UpdateEmailTemplate = ({
 			setTemplateData({ ...initTemplateData });
 		}
 	};
-
-	// set template data if edit modal is open
 	useEffect(() => {
 		if (
 			isOpen &&
@@ -245,12 +214,10 @@ const UpdateEmailTemplate = ({
 			selectedTemplate &&
 			Object.keys(selectedTemplate || {}).length
 		) {
-			const { id, created_at, ...rest } = selectedTemplate;
+			const { id, created_at, template, design, ...rest } = selectedTemplate;
 			setTemplateData(rest);
 		}
 	}, [isOpen]);
-
-	// set template variables
 	useEffect(() => {
 		const updatedTemplateVariables = Object.entries(
 			emailTemplateVariables,
@@ -276,51 +243,6 @@ const UpdateEmailTemplate = ({
 		}, []);
 		setTemplateVariables(updatedTemplateVariables);
 	}, [templateData[EmailTemplateInputDataFields.EVENT_NAME]]);
-
-	// change editor
-	useEffect(() => {
-		if (isOpen && selectedTemplate) {
-			const { design } = selectedTemplate;
-			if (design) {
-				setEditor(EmailTemplateEditors.UNLAYER_EDITOR);
-			} else {
-				setEditor(EmailTemplateEditors.PLAIN_HTML_EDITOR);
-			}
-		}
-	}, [isOpen, selectedTemplate]);
-
-	// reset fields when editor is changed
-	useEffect(() => {
-		if (selectedTemplate?.design) {
-			if (editor === EmailTemplateEditors.UNLAYER_EDITOR) {
-				setTemplateData({
-					...templateData,
-					[EmailTemplateInputDataFields.TEMPLATE]: selectedTemplate.template,
-					[EmailTemplateInputDataFields.DESIGN]: selectedTemplate.design,
-				});
-			} else {
-				setTemplateData({
-					...templateData,
-					[EmailTemplateInputDataFields.TEMPLATE]: '',
-					[EmailTemplateInputDataFields.DESIGN]: '',
-				});
-			}
-		} else if (selectedTemplate?.template) {
-			if (editor === EmailTemplateEditors.UNLAYER_EDITOR) {
-				setTemplateData({
-					...templateData,
-					[EmailTemplateInputDataFields.TEMPLATE]: '',
-					[EmailTemplateInputDataFields.DESIGN]: '',
-				});
-			} else {
-				setTemplateData({
-					...templateData,
-					[EmailTemplateInputDataFields.TEMPLATE]: selectedTemplate?.template,
-					[EmailTemplateInputDataFields.DESIGN]: '',
-				});
-			}
-		}
-	}, [editor]);
 
 	return (
 		<>
@@ -492,22 +414,7 @@ const UpdateEmailTemplate = ({
 								alignItems="center"
 								marginBottom="2%"
 							>
-								<Flex flex="1">Template Body</Flex>
-								<Flex flex="3">
-									<RadioGroup
-										onChange={(value) => setEditor(value)}
-										value={editor}
-									>
-										<Stack direction="row" spacing="50px">
-											<Radio value={EmailTemplateEditors.PLAIN_HTML_EDITOR}>
-												Plain HTML
-											</Radio>
-											<Radio value={EmailTemplateEditors.UNLAYER_EDITOR}>
-												Unlayer Editor
-											</Radio>
-										</Stack>
-									</RadioGroup>
-								</Flex>
+								Template Body
 							</Flex>
 							<Flex
 								width="100%"
@@ -516,22 +423,7 @@ const UpdateEmailTemplate = ({
 								border="1px solid"
 								borderColor="gray.200"
 							>
-								{editor === EmailTemplateEditors.UNLAYER_EDITOR ? (
-									<EmailEditor ref={emailEditorRef} onReady={onReady} />
-								) : (
-									<Textarea
-										value={templateData.template}
-										onChange={(e) => {
-											setTemplateData({
-												...templateData,
-												[EmailTemplateInputDataFields.TEMPLATE]: e.target.value,
-											});
-										}}
-										placeholder="Template HTML"
-										border="0"
-										height="500px"
-									/>
-								)}
+								<EmailEditor ref={emailEditorRef} onReady={onReady} />
 							</Flex>
 						</Flex>
 					</ModalBody>

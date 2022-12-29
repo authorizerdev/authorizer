@@ -1,41 +1,10 @@
 package handlers
 
-/**
-LOGIC TO REMEMBER THE AUTHORIZE FLOW
-
-
-jargons
-`at_hash` -> access_token_hash
-`c_hash` -> code_hash
-
-
-# ResponseType: Code
-	with /authorize request
-		- set state [state, code@@challenge]
-		- add &code to login redirect url
-	login resolver has optional param state
-		-if state found in store, split with @@
-		- if len > 1 -> response type is code and has code + challenge
-		- set `nonce, code` for createAuthToken request so that `c_hash` can be generated
-		- do not add `nonce` to id_token in code flow, instead set `c_hash` and `at_hash`
-
-
-# ResponseType: token / id_token
-	with /authorize request
-		- set state [state, nonce]
-		- add &nonce to login redirect url
-	login resolver has optional param state
-		- if state found in store, split with @@
-		- if len < 1 -> response type is token / id_token and value is nonce
-		- send received nonce for createAuthToken with empty code value
-		- set `nonce` and `at_hash` in `id_token`
-**/
-
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -48,15 +17,6 @@ import (
 	"github.com/authorizerdev/authorizer/server/token"
 )
 
-// Check the flow for generating and verifying codes: https://developer.okta.com/blog/2019/08/22/okta-authjs-pkce#:~:text=PKCE%20works%20by%20having%20the,is%20called%20the%20Code%20Challenge.
-
-// Check following docs for understanding request / response params for various types of requests: https://auth0.com/docs/authenticate/login/oidc-conformant-authentication/oidc-adoption-auth-code-flow
-
-const (
-	authorizeWebMessageTemplate = "authorize_web_message.tmpl"
-	authorizeFormPostTemplate   = "authorize_form_post.tmpl"
-)
-
 // AuthorizeHandler is the handler for the /authorize route
 // required params
 // ?redirect_uri = redirect url
@@ -64,6 +24,8 @@ const (
 // state[recommended] = to prevent CSRF attack (for authorizer its compulsory)
 // code_challenge = to prevent CSRF attack
 // code_challenge_method = to prevent CSRF attack [only sh256 is supported]
+
+// check the flow for generating and verifying codes: https://developer.okta.com/blog/2019/08/22/okta-authjs-pkce#:~:text=PKCE%20works%20by%20having%20the,is%20called%20the%20Code%20Challenge.
 func AuthorizeHandler() gin.HandlerFunc {
 	return func(gc *gin.Context) {
 		redirectURI := strings.TrimSpace(gc.Query("redirect_uri"))
@@ -72,8 +34,8 @@ func AuthorizeHandler() gin.HandlerFunc {
 		codeChallenge := strings.TrimSpace(gc.Query("code_challenge"))
 		scopeString := strings.TrimSpace(gc.Query("scope"))
 		clientID := strings.TrimSpace(gc.Query("client_id"))
+		template := "authorize.tmpl"
 		responseMode := strings.TrimSpace(gc.Query("response_mode"))
-		nonce := strings.TrimSpace(gc.Query("nonce"))
 
 		var scope []string
 		if scopeString == "" {
@@ -83,97 +45,176 @@ func AuthorizeHandler() gin.HandlerFunc {
 		}
 
 		if responseMode == "" {
-			responseMode = constants.ResponseModeQuery
+			responseMode = "query"
+		}
+
+		if responseMode != "query" && responseMode != "web_message" {
+			log.Debug("Invalid response_mode: ", responseMode)
+			gc.JSON(400, gin.H{"error": "invalid response mode"})
 		}
 
 		if redirectURI == "" {
 			redirectURI = "/app"
 		}
 
+		isQuery := responseMode == "query"
+
+		loginURL := "/app?state=" + state + "&scope=" + strings.Join(scope, " ") + "&redirect_uri=" + redirectURI
+
+		if clientID == "" {
+			if isQuery {
+				gc.Redirect(http.StatusFound, loginURL)
+			} else {
+				log.Debug("Failed to get client_id: ", clientID)
+				gc.HTML(http.StatusOK, template, gin.H{
+					"target_origin": redirectURI,
+					"authorization_response": map[string]interface{}{
+						"type": "authorization_response",
+						"response": map[string]string{
+							"error": "client_id is required",
+						},
+					},
+				})
+			}
+			return
+		}
+
+		if client, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyClientID); client != clientID || err != nil {
+			if isQuery {
+				gc.Redirect(http.StatusFound, loginURL)
+			} else {
+				log.Debug("Invalid client_id: ", clientID)
+				gc.HTML(http.StatusOK, template, gin.H{
+					"target_origin": redirectURI,
+					"authorization_response": map[string]interface{}{
+						"type": "authorization_response",
+						"response": map[string]string{
+							"error": "invalid_client_id",
+						},
+					},
+				})
+			}
+			return
+		}
+
+		if state == "" {
+			if isQuery {
+				gc.Redirect(http.StatusFound, loginURL)
+			} else {
+				log.Debug("Failed to get state: ", state)
+				gc.HTML(http.StatusOK, template, gin.H{
+					"target_origin": redirectURI,
+					"authorization_response": map[string]interface{}{
+						"type": "authorization_response",
+						"response": map[string]string{
+							"error": "state is required",
+						},
+					},
+				})
+			}
+			return
+		}
+
 		if responseType == "" {
 			responseType = "token"
 		}
 
-		if err := validateAuthorizeRequest(responseType, responseMode, clientID, state, codeChallenge); err != nil {
-			log.Debug("invalid authorization request: ", err)
-			gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		isResponseTypeCode := responseType == "code"
+		isResponseTypeToken := responseType == "token"
+
+		if !isResponseTypeCode && !isResponseTypeToken {
+			if isQuery {
+				gc.Redirect(http.StatusFound, loginURL)
+			} else {
+				log.Debug("Invalid response_type: ", responseType)
+				gc.HTML(http.StatusOK, template, gin.H{
+					"target_origin": redirectURI,
+					"authorization_response": map[string]interface{}{
+						"type": "authorization_response",
+						"response": map[string]string{
+							"error": "response_type is invalid",
+						},
+					},
+				})
+			}
 			return
 		}
 
-		code := uuid.New().String()
-		if nonce == "" {
-			nonce = uuid.New().String()
-		}
-
-		log := log.WithFields(log.Fields{
-			"response_mode": responseMode,
-			"response_type": responseType,
-		})
-
-		// TODO add state with timeout
-		// used for response mode query or fragment
-		loginState := "state=" + state + "&scope=" + strings.Join(scope, " ") + "&redirect_uri=" + redirectURI
-		if responseType == constants.ResponseTypeCode {
-			loginState += "&code=" + code
-			if err := memorystore.Provider.SetState(state, code+"@@"+codeChallenge); err != nil {
-				log.Debug("Error setting temp code", err)
-			}
-		} else {
-			loginState += "&nonce=" + nonce
-			if err := memorystore.Provider.SetState(state, nonce); err != nil {
-				log.Debug("Error setting temp code", err)
+		if isResponseTypeCode {
+			if codeChallenge == "" {
+				if isQuery {
+					gc.Redirect(http.StatusFound, loginURL)
+				} else {
+					log.Debug("Failed to get code_challenge: ", codeChallenge)
+					gc.HTML(http.StatusBadRequest, template, gin.H{
+						"target_origin": redirectURI,
+						"authorization_response": map[string]interface{}{
+							"type": "authorization_response",
+							"response": map[string]string{
+								"error": "code_challenge is required",
+							},
+						},
+					})
+				}
+				return
 			}
 		}
 
-		loginURL := "/app?" + loginState
-
-		if responseMode == constants.ResponseModeFragment {
-			loginURL = "/app#" + loginState
-		}
-
-		if responseType == constants.ResponseTypeCode && codeChallenge == "" {
-			handleResponse(gc, responseMode, loginURL, redirectURI, map[string]interface{}{
-				"type": "authorization_response",
-				"response": map[string]interface{}{
-					"error":             "code_challenge_required",
-					"error_description": "code challenge is required",
-				},
-			}, http.StatusOK)
-		}
-
-		loginError := map[string]interface{}{
-			"type": "authorization_response",
-			"response": map[string]interface{}{
-				"error":             "login_required",
-				"error_description": "Login is required",
-			},
-		}
 		sessionToken, err := cookie.GetSession(gc)
 		if err != nil {
-			log.Debug("GetSession failed: ", err)
-			handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
+			if isQuery {
+				gc.Redirect(http.StatusFound, loginURL)
+			} else {
+				gc.HTML(http.StatusOK, template, gin.H{
+					"target_origin": redirectURI,
+					"authorization_response": map[string]interface{}{
+						"type": "authorization_response",
+						"response": map[string]string{
+							"error":             "login_required",
+							"error_description": "Login is required",
+						},
+					},
+				})
+			}
 			return
 		}
 
 		// get session from cookie
 		claims, err := token.ValidateBrowserSession(gc, sessionToken)
 		if err != nil {
-			log.Debug("ValidateBrowserSession failed: ", err)
-			handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
+			if isQuery {
+				gc.Redirect(http.StatusFound, loginURL)
+			} else {
+				gc.HTML(http.StatusOK, template, gin.H{
+					"target_origin": redirectURI,
+					"authorization_response": map[string]interface{}{
+						"type": "authorization_response",
+						"response": map[string]string{
+							"error":             "login_required",
+							"error_description": "Login is required",
+						},
+					},
+				})
+			}
 			return
 		}
-
 		userID := claims.Subject
 		user, err := db.Provider.GetUserByID(gc, userID)
 		if err != nil {
-			log.Debug("GetUserByID failed: ", err)
-			handleResponse(gc, responseMode, loginURL, redirectURI, map[string]interface{}{
-				"type": "authorization_response",
-				"response": map[string]interface{}{
-					"error":             "signup_required",
-					"error_description": "Sign up required",
-				},
-			}, http.StatusOK)
+			if isQuery {
+				gc.Redirect(http.StatusFound, loginURL)
+			} else {
+				gc.HTML(http.StatusOK, template, gin.H{
+					"target_origin": redirectURI,
+					"authorization_response": map[string]interface{}{
+						"type": "authorization_response",
+						"response": map[string]string{
+							"error":             "signup_required",
+							"error_description": "Sign up required",
+						},
+					},
+				})
+			}
 			return
 		}
 
@@ -182,102 +223,81 @@ func AuthorizeHandler() gin.HandlerFunc {
 			sessionKey = claims.LoginMethod + ":" + user.ID
 		}
 
-		// rollover the session for security
-		go memorystore.Provider.DeleteUserSession(sessionKey, claims.Nonce)
-		if responseType == constants.ResponseTypeCode {
+		// if user is logged in
+		// based on the response type code, generate the response
+		if isResponseTypeCode {
+			// rollover the session for security
+			go memorystore.Provider.DeleteUserSession(sessionKey, claims.Nonce)
+			nonce := uuid.New().String()
 			newSessionTokenData, newSessionToken, err := token.CreateSessionToken(user, nonce, claims.Roles, scope, claims.LoginMethod)
 			if err != nil {
-				log.Debug("CreateSessionToken failed: ", err)
-				handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
+				if isQuery {
+					gc.Redirect(http.StatusFound, loginURL)
+				} else {
+					gc.HTML(http.StatusOK, template, gin.H{
+						"target_origin": redirectURI,
+						"authorization_response": map[string]interface{}{
+							"type": "authorization_response",
+							"response": map[string]string{
+								"error":             "login_required",
+								"error_description": "Login is required",
+							},
+						},
+					})
+				}
 				return
 			}
 
-			// TODO: add state with timeout
-			// if err := memorystore.Provider.SetState(codeChallenge, code+"@"+newSessionToken); err != nil {
-			// 	log.Debug("SetState failed: ", err)
-			// 	handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
-			// 	return
-			// }
-
-			// TODO: add state with timeout
-			if err := memorystore.Provider.SetState(code, codeChallenge+"@@"+newSessionToken); err != nil {
-				log.Debug("SetState failed: ", err)
-				handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
-				return
-			}
-
-			if err := memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+newSessionTokenData.Nonce, newSessionToken); err != nil {
-				log.Debug("SetUserSession failed: ", err)
-				handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
-				return
-			}
-
+			memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+newSessionTokenData.Nonce, newSessionToken)
 			cookie.SetSession(gc, newSessionToken)
-
-			// in case, response type is code and user is already logged in send the code and state
-			// and cookie session will already be rolled over and set
-			// gc.HTML(http.StatusOK, authorizeWebMessageTemplate, gin.H{
-			// 	"target_origin": redirectURI,
-			// 	"authorization_response": map[string]interface{}{
-			// 		"type": "authorization_response",
-			// 		"response": map[string]string{
-			// 			"code":  code,
-			// 			"state": state,
-			// 		},
-			// 	},
-			// })
-
-			params := "code=" + code + "&state=" + state + "&nonce=" + nonce
-			if responseMode == constants.ResponseModeQuery {
-				if strings.Contains(redirectURI, "?") {
-					redirectURI = redirectURI + "&" + params
-				} else {
-					redirectURI = redirectURI + "?" + params
-				}
-			} else if responseMode == constants.ResponseModeFragment {
-				if strings.Contains(redirectURI, "#") {
-					redirectURI = redirectURI + "&" + params
-				} else {
-					redirectURI = redirectURI + "#" + params
-				}
-			}
-
-			handleResponse(gc, responseMode, loginURL, redirectURI, map[string]interface{}{
-				"type": "authorization_response",
-				"response": map[string]interface{}{
-					"code":  code,
-					"state": state,
+			code := uuid.New().String()
+			memorystore.Provider.SetState(codeChallenge, code+"@"+newSessionToken)
+			gc.HTML(http.StatusOK, template, gin.H{
+				"target_origin": redirectURI,
+				"authorization_response": map[string]interface{}{
+					"type": "authorization_response",
+					"response": map[string]string{
+						"code":  code,
+						"state": state,
+					},
 				},
-			}, http.StatusOK)
-
+			})
 			return
 		}
 
-		if responseType == constants.ResponseTypeToken || responseType == constants.ResponseTypeIDToken {
+		if isResponseTypeToken {
 			// rollover the session for security
-			authToken, err := token.CreateAuthToken(gc, user, claims.Roles, scope, claims.LoginMethod, nonce, "")
+			authToken, err := token.CreateAuthToken(gc, user, claims.Roles, scope, claims.LoginMethod)
 			if err != nil {
-				log.Debug("CreateAuthToken failed: ", err)
-				handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
+				if isQuery {
+					gc.Redirect(http.StatusFound, loginURL)
+				} else {
+					gc.HTML(http.StatusOK, template, gin.H{
+						"target_origin": redirectURI,
+						"authorization_response": map[string]interface{}{
+							"type": "authorization_response",
+							"response": map[string]string{
+								"error":             "login_required",
+								"error_description": "Login is required",
+							},
+						},
+					})
+				}
 				return
 			}
 
-			if err := memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+nonce, authToken.FingerPrintHash); err != nil {
-				log.Debug("SetUserSession failed: ", err)
-				handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
-				return
-			}
-
-			if err := memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+nonce, authToken.FingerPrintHash); err != nil {
-				log.Debug("SetUserSession failed: ", err)
-				handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
-				return
-			}
-
+			go memorystore.Provider.DeleteUserSession(sessionKey, claims.Nonce)
+			memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash)
+			memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token)
 			cookie.SetSession(gc, authToken.FingerPrintHash)
 
+			expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
+			if expiresIn <= 0 {
+				expiresIn = 1
+			}
+
 			// used of query mode
-			params := "access_token=" + authToken.AccessToken.Token + "&token_type=bearer&expires_in=" + strconv.FormatInt(authToken.IDToken.ExpiresAt, 10) + "&state=" + state + "&id_token=" + authToken.IDToken.Token
+			params := "access_token=" + authToken.AccessToken.Token + "&token_type=bearer&expires_in=" + strconv.FormatInt(expiresIn, 10) + "&state=" + state + "&id_token=" + authToken.IDToken.Token
 
 			res := map[string]interface{}{
 				"access_token": authToken.AccessToken.Token,
@@ -285,12 +305,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 				"state":        state,
 				"scope":        scope,
 				"token_type":   "Bearer",
-				"expires_in":   authToken.AccessToken.ExpiresAt,
-			}
-
-			if nonce != "" {
-				params += "&nonce=" + nonce
-				res["nonce"] = nonce
+				"expires_in":   expiresIn,
 			}
 
 			if authToken.RefreshToken != nil {
@@ -299,77 +314,38 @@ func AuthorizeHandler() gin.HandlerFunc {
 				memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token)
 			}
 
-			if responseMode == constants.ResponseModeQuery {
+			if isQuery {
 				if strings.Contains(redirectURI, "?") {
-					redirectURI = redirectURI + "&" + params
+					gc.Redirect(http.StatusFound, redirectURI+"&"+params)
 				} else {
-					redirectURI = redirectURI + "?" + params
+					gc.Redirect(http.StatusFound, redirectURI+"?"+params)
 				}
-			} else if responseMode == constants.ResponseModeFragment {
-				if strings.Contains(redirectURI, "#") {
-					redirectURI = redirectURI + "&" + params
-				} else {
-					redirectURI = redirectURI + "#" + params
-				}
+			} else {
+				gc.HTML(http.StatusOK, template, gin.H{
+					"target_origin": redirectURI,
+					"authorization_response": map[string]interface{}{
+						"type":     "authorization_response",
+						"response": res,
+					},
+				})
 			}
-
-			handleResponse(gc, responseMode, loginURL, redirectURI, map[string]interface{}{
-				"type":     "authorization_response",
-				"response": res,
-			}, http.StatusOK)
 			return
 		}
 
-		handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
-	}
-}
-
-func validateAuthorizeRequest(responseType, responseMode, clientID, state, codeChallenge string) error {
-	if strings.TrimSpace(state) == "" {
-		return fmt.Errorf("invalid state. state is required to prevent csrf attack", responseMode)
-	}
-	if responseType != constants.ResponseTypeCode && responseType != constants.ResponseTypeToken && responseType != constants.ResponseTypeIDToken {
-		return fmt.Errorf("invalid response type %s. 'code' & 'token' are valid response_type", responseMode)
-	}
-
-	if responseMode != constants.ResponseModeQuery && responseMode != constants.ResponseModeWebMessage && responseMode != constants.ResponseModeFragment && responseMode != constants.ResponseModeFormPost {
-		return fmt.Errorf("invalid response mode %s. 'query', 'fragment', 'form_post' and 'web_message' are valid response_mode", responseMode)
-	}
-
-	if client, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyClientID); client != clientID || err != nil {
-		return fmt.Errorf("invalid client_id %s", clientID)
-	}
-
-	return nil
-}
-
-func handleResponse(gc *gin.Context, responseMode, loginURI, redirectURI string, data map[string]interface{}, httpStatusCode int) {
-	isAuthenticationRequired := false
-	if _, ok := data["response"].(map[string]interface{})["error"]; ok {
-		isAuthenticationRequired = true
-	}
-
-	if isAuthenticationRequired {
-		gc.Redirect(http.StatusFound, loginURI)
-		return
-	}
-
-	switch responseMode {
-	case constants.ResponseModeQuery, constants.ResponseModeFragment:
-
-		gc.Redirect(http.StatusFound, redirectURI)
-		return
-	case constants.ResponseModeWebMessage:
-		gc.HTML(httpStatusCode, authorizeWebMessageTemplate, gin.H{
-			"target_origin":          redirectURI,
-			"authorization_response": data,
-		})
-		return
-	case constants.ResponseModeFormPost:
-		gc.HTML(httpStatusCode, authorizeFormPostTemplate, gin.H{
-			"target_origin":          redirectURI,
-			"authorization_response": data["response"],
-		})
-		return
+		if isQuery {
+			gc.Redirect(http.StatusFound, loginURL)
+		} else {
+			// by default return with error
+			gc.HTML(http.StatusOK, template, gin.H{
+				"target_origin": redirectURI,
+				"authorization_response": map[string]interface{}{
+					"type": "authorization_response",
+					"response": map[string]string{
+						"error":             "login_required",
+						"error_description": "Login is required",
+					},
+				},
+			})
+		}
 	}
 }

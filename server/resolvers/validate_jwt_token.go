@@ -77,16 +77,7 @@ func ValidateJwtTokenResolver(ctx context.Context, params model.ValidateJWTToken
 		}
 	}
 
-	claimKey := "roles"
-
-	if tokenType == constants.TokenTypeIdentityToken {
-		claimKey, err = memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyJwtRoleClaim)
-		if err != nil {
-			claimKey = "roles"
-		}
-	}
-
-	claimRolesInterface := claims[claimKey]
+	claimRolesInterface := claims["roles"]
 	roleSlice := utils.ConvertInterfaceToSlice(claimRolesInterface)
 	for _, v := range roleSlice {
 		claimRoles = append(claimRoles, v.(string))

@@ -3,12 +3,6 @@ VERSION := $(or $(VERSION),$(DEFAULT_VERSION))
 
 cmd:
 	cd server && go build -ldflags "-w -X main.VERSION=$(VERSION)" -o '../build/server'
-build:
-	cd server && gox \
-		-osarch="linux/amd64 linux/arm64 darwin/amd64 windows/amd64" \
-		-ldflags "-w -X main.VERSION=$(VERSION)" \
-		-output="../build/{{.OS}}/{{.Arch}}/server" \
-		./...
 build-app:
 	cd app && npm i && npm run build
 build-dashboard:
@@ -16,7 +10,7 @@ build-dashboard:
 clean:
 	rm -rf build
 test:
-	rm -rf server/test/test.db server/test/test.db-shm server/test/test.db-wal && rm -rf test.db test.db-shm test.db-wal && cd server && go clean --testcache && TEST_DBS="sqlite" go test -p 1 -v ./test
+	rm -rf server/test/test.db && rm -rf test.db && cd server && go clean --testcache && TEST_DBS="sqlite" go test -p 1 -v ./test
 test-mongodb:
 	docker run -d --name authorizer_mongodb_db -p 27017:27017 mongo:4.4.15
 	cd server && go clean --testcache && TEST_DBS="mongodb" go test -p 1 -v ./test
@@ -38,7 +32,7 @@ test-couchbase:
 	cd server && go clean --testcache && TEST_DBS="couchbase" go test -p 1 -v ./test
 	# docker rm -vf couchbase-local-test
 test-all-db:
-	rm -rf server/test/test.db server/test/test.db-shm server/test/test.db-wal && rm -rf test.db test.db-shm test.db-wal
+	rm -rf server/test/test.db && rm -rf test.db
 	docker run -d --name authorizer_scylla_db -p 9042:9042 scylladb/scylla
 	docker run -d --name authorizer_mongodb_db -p 27017:27017 mongo:4.4.15
 	docker run -d --name authorizer_arangodb -p 8529:8529 -e ARANGO_NO_AUTH=1 arangodb/arangodb:3.8.4

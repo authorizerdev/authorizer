@@ -8,7 +8,6 @@ import (
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/graph/model"
-	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/authorizerdev/authorizer/server/validators"
@@ -41,17 +40,15 @@ func AddEmailTemplateResolver(ctx context.Context, params model.AddEmailTemplate
 		return nil, fmt.Errorf("empty template not allowed")
 	}
 
-	var design string
-
-	if params.Design == nil || strings.TrimSpace(refs.StringValue(params.Design)) == "" {
-		design = ""
+	if strings.TrimSpace(params.Design) == "" {
+		return nil, fmt.Errorf("empty design not allowed")
 	}
 
 	_, err = db.Provider.AddEmailTemplate(ctx, models.EmailTemplate{
 		EventName: params.EventName,
 		Template:  params.Template,
 		Subject:   params.Subject,
-		Design:    design,
+		Design:    params.Design,
 	})
 	if err != nil {
 		log.Debug("Failed to add email template: ", err)

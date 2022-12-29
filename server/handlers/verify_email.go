@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/constants"
@@ -99,30 +98,7 @@ func VerifyEmailHandler() gin.HandlerFunc {
 		if verificationRequest.Identifier == constants.VerificationTypeMagicLinkLogin {
 			loginMethod = constants.AuthRecipeMethodMagicLinkLogin
 		}
-
-		code := ""
-		// Not required as /oauth/token cannot be resumed from other tab
-		// codeChallenge := ""
-		nonce := ""
-		if state != "" {
-			// Get state from store
-			authorizeState, _ := memorystore.Provider.GetState(state)
-			if authorizeState != "" {
-				authorizeStateSplit := strings.Split(authorizeState, "@@")
-				if len(authorizeStateSplit) > 1 {
-					code = authorizeStateSplit[0]
-					// Not required as /oauth/token cannot be resumed from other tab
-					// codeChallenge = authorizeStateSplit[1]
-				} else {
-					nonce = authorizeState
-				}
-				go memorystore.Provider.RemoveState(state)
-			}
-		}
-		if nonce == "" {
-			nonce = uuid.New().String()
-		}
-		authToken, err := token.CreateAuthToken(c, user, roles, scope, loginMethod, nonce, code)
+		authToken, err := token.CreateAuthToken(c, user, roles, scope, loginMethod)
 		if err != nil {
 			log.Debug("Error creating auth token: ", err)
 			errorRes["error_description"] = err.Error()
@@ -130,27 +106,12 @@ func VerifyEmailHandler() gin.HandlerFunc {
 			return
 		}
 
-		// Code challenge could be optional if PKCE flow is not used
-		// Not required as /oauth/token cannot be resumed from other tab
-		// if code != "" {
-		// 	if err := memorystore.Provider.SetState(code, codeChallenge+"@@"+authToken.FingerPrintHash); err != nil {
-		// 		log.Debug("Error setting code state ", err)
-		// 		errorRes["error_description"] = err.Error()
-		// 		c.JSON(500, errorRes)
-		// 		return
-		// 	}
-		// }
-
 		expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
 		if expiresIn <= 0 {
 			expiresIn = 1
 		}
 
-		params := "access_token=" + authToken.AccessToken.Token + "&token_type=bearer&expires_in=" + strconv.FormatInt(expiresIn, 10) + "&state=" + state + "&id_token=" + authToken.IDToken.Token + "&nonce=" + nonce
-
-		if code != "" {
-			params += "&code=" + code
-		}
+		params := "access_token=" + authToken.AccessToken.Token + "&token_type=bearer&expires_in=" + strconv.FormatInt(expiresIn, 10) + "&state=" + state + "&id_token=" + authToken.IDToken.Token
 
 		sessionKey := loginMethod + ":" + user.ID
 		cookie.SetSession(c, authToken.FingerPrintHash)

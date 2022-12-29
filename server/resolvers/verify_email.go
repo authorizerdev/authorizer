@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/constants"
@@ -16,7 +15,6 @@ import (
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/parsers"
-	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
@@ -86,42 +84,12 @@ func VerifyEmailResolver(ctx context.Context, params model.VerifyEmailInput) (*m
 
 	roles := strings.Split(user.Roles, ",")
 	scope := []string{"openid", "email", "profile"}
-	code := ""
-	// Not required as /oauth/token cannot be resumed from other tab
-	// codeChallenge := ""
-	nonce := ""
-	if params.State != nil {
-		// Get state from store
-		authorizeState, _ := memorystore.Provider.GetState(refs.StringValue(params.State))
-		if authorizeState != "" {
-			authorizeStateSplit := strings.Split(authorizeState, "@@")
-			if len(authorizeStateSplit) > 1 {
-				code = authorizeStateSplit[0]
-				// Not required as /oauth/token cannot be resumed from other tab
-				// codeChallenge = authorizeStateSplit[1]
-			} else {
-				nonce = authorizeState
-			}
-			go memorystore.Provider.RemoveState(refs.StringValue(params.State))
-		}
-	}
-	if nonce == "" {
-		nonce = uuid.New().String()
-	}
-	authToken, err := token.CreateAuthToken(gc, user, roles, scope, loginMethod, nonce, code)
+	authToken, err := token.CreateAuthToken(gc, user, roles, scope, loginMethod)
 	if err != nil {
 		log.Debug("Failed to create auth token: ", err)
 		return res, err
 	}
 
-	// Code challenge could be optional if PKCE flow is not used
-	// Not required as /oauth/token cannot be resumed from other tab
-	// if code != "" {
-	// 	if err := memorystore.Provider.SetState(code, codeChallenge+"@@"+authToken.FingerPrintHash); err != nil {
-	// 		log.Debug("SetState failed: ", err)
-	// 		return res, err
-	// 	}
-	// }
 	go func() {
 		if isSignUp {
 			utils.RegisterEvent(ctx, constants.UserSignUpWebhookEvent, loginMethod, user)

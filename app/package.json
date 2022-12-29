@@ -6,13 +6,13 @@
 	"scripts": {
 		"build": "rm -rf build && NODE_ENV=production node ./esbuild.config.js",
 		"start": "NODE_ENV=development node ./esbuild.config.js",
-		"format": "prettier --write 'src/**/*.(ts|tsx|js|jsx)'"
+		"format": "prettier --write --use-tabs 'src/**/*.(ts|tsx|js|jsx)'"
 	},
 	"keywords": [],
 	"author": "Lakhan Samani",
 	"license": "ISC",
 	"dependencies": {
-		"@authorizerdev/authorizer-react": "^1.1.4",
+		"@authorizerdev/authorizer-react": "^1.1.2",
 		"@types/react": "^17.0.15",
 		"@types/react-dom": "^17.0.9",
 		"esbuild": "^0.12.17",
