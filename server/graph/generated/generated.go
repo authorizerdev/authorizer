@@ -203,6 +203,7 @@ type ComplexityRoot struct {
 		Meta                 func(childComplexity int) int
 		Profile              func(childComplexity int) int
 		Session              func(childComplexity int, params *model.SessionQueryInput) int
+		User                 func(childComplexity int, params model.GetUserRequest) int
 		Users                func(childComplexity int, params *model.PaginatedInput) int
 		ValidateJwtToken     func(childComplexity int, params model.ValidateJWTTokenInput) int
 		VerificationRequests func(childComplexity int, params *model.PaginatedInput) int
@@ -339,6 +340,7 @@ type QueryResolver interface {
 	Profile(ctx context.Context) (*model.User, error)
 	ValidateJwtToken(ctx context.Context, params model.ValidateJWTTokenInput) (*model.ValidateJWTTokenResponse, error)
 	Users(ctx context.Context, params *model.PaginatedInput) (*model.Users, error)
+	User(ctx context.Context, params model.GetUserRequest) (*model.User, error)
 	VerificationRequests(ctx context.Context, params *model.PaginatedInput) (*model.VerificationRequests, error)
 	AdminSession(ctx context.Context) (*model.Response, error)
 	Env(ctx context.Context) (*model.Env, error)
@@ -1435,6 +1437,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Session(childComplexity, args["params"].(*model.SessionQueryInput)), true
 
+	case "Query._user":
+		if e.complexity.Query.User == nil {
+			break
+		}
+
+		args, err := ec.field_Query__user_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.User(childComplexity, args["params"].(model.GetUserRequest)), true
+
 	case "Query._users":
 		if e.complexity.Query.Users == nil {
 			break
@@ -1908,6 +1922,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputDeleteUserInput,
 		ec.unmarshalInputForgotPasswordInput,
 		ec.unmarshalInputGenerateJWTKeysInput,
+		ec.unmarshalInputGetUserRequest,
 		ec.unmarshalInputInviteMemberInput,
 		ec.unmarshalInputListWebhookLogRequest,
 		ec.unmarshalInputLoginInput,
@@ -2510,6 +2525,10 @@ input ResendOTPRequest {
   state: String
 }
 
+input GetUserRequest {
+  id: String!
+}
+
 type Mutation {
   signup(params: SignUpInput!): AuthResponse!
   mobile_signup(params: MobileSignUpInput): AuthResponse!
@@ -2552,6 +2571,7 @@ type Query {
   validate_jwt_token(params: ValidateJWTTokenInput!): ValidateJWTTokenResponse!
   # admin only apis
   _users(params: PaginatedInput): Users!
+  _user(params: GetUserRequest!): User!
   _verification_requests(params: PaginatedInput): VerificationRequests!
   _admin_session: Response!
   _env: Env!
@@ -3025,6 +3045,21 @@ func (ec *executionContext) field_Query__email_templates_args(ctx context.Contex
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
 		arg0, err = ec.unmarshalOPaginatedInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐPaginatedInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["params"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query__user_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.GetUserRequest
+	if tmp, ok := rawArgs["params"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+		arg0, err = ec.unmarshalNGetUserRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐGetUserRequest(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -9491,6 +9526,101 @@ func (ec *executionContext) fieldContext_Query__users(ctx context.Context, field
 	return fc, nil
 }
 
+func (ec *executionContext) _Query__user(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query__user(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().User(rctx, fc.Args["params"].(model.GetUserRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.User)
+	fc.Result = res
+	return ec.marshalNUser2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query__user(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_User_id(ctx, field)
+			case "email":
+				return ec.fieldContext_User_email(ctx, field)
+			case "email_verified":
+				return ec.fieldContext_User_email_verified(ctx, field)
+			case "signup_methods":
+				return ec.fieldContext_User_signup_methods(ctx, field)
+			case "given_name":
+				return ec.fieldContext_User_given_name(ctx, field)
+			case "family_name":
+				return ec.fieldContext_User_family_name(ctx, field)
+			case "middle_name":
+				return ec.fieldContext_User_middle_name(ctx, field)
+			case "nickname":
+				return ec.fieldContext_User_nickname(ctx, field)
+			case "preferred_username":
+				return ec.fieldContext_User_preferred_username(ctx, field)
+			case "gender":
+				return ec.fieldContext_User_gender(ctx, field)
+			case "birthdate":
+				return ec.fieldContext_User_birthdate(ctx, field)
+			case "phone_number":
+				return ec.fieldContext_User_phone_number(ctx, field)
+			case "phone_number_verified":
+				return ec.fieldContext_User_phone_number_verified(ctx, field)
+			case "picture":
+				return ec.fieldContext_User_picture(ctx, field)
+			case "roles":
+				return ec.fieldContext_User_roles(ctx, field)
+			case "created_at":
+				return ec.fieldContext_User_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_User_updated_at(ctx, field)
+			case "revoked_timestamp":
+				return ec.fieldContext_User_revoked_timestamp(ctx, field)
+			case "is_multi_factor_auth_enabled":
+				return ec.fieldContext_User_is_multi_factor_auth_enabled(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query__user_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query__verification_requests(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Query__verification_requests(ctx, field)
 	if err != nil {
@@ -14641,6 +14771,34 @@ func (ec *executionContext) unmarshalInputGenerateJWTKeysInput(ctx context.Conte
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputGetUserRequest(ctx context.Context, obj interface{}) (model.GetUserRequest, error) {
+	var it model.GetUserRequest
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"id"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "id":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			it.ID, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputInviteMemberInput(ctx context.Context, obj interface{}) (model.InviteMemberInput, error) {
 	var it model.InviteMemberInput
 	asMap := map[string]interface{}{}
@@ -17539,6 +17697,29 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			out.Concurrently(i, func() graphql.Marshaler {
 				return rrm(innerCtx)
 			})
+		case "_user":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query__user(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
 		case "_verification_requests":
 			field := field
 
@@ -18709,6 +18890,11 @@ func (ec *executionContext) marshalNGenerateJWTKeysResponse2ᚖgithubᚗcomᚋau
 		return graphql.Null
 	}
 	return ec._GenerateJWTKeysResponse(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNGetUserRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐGetUserRequest(ctx context.Context, v interface{}) (model.GetUserRequest, error) {
+	res, err := ec.unmarshalInputGetUserRequest(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNID2string(ctx context.Context, v interface{}) (string, error) {

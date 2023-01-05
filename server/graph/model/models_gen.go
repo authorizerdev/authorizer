@@ -136,6 +136,10 @@ type GenerateJWTKeysResponse struct {
 	PrivateKey *string `json:"private_key"`
 }
 
+type GetUserRequest struct {
+	ID string `json:"id"`
+}
+
 type InviteMemberInput struct {
 	Emails      []string `json:"emails"`
 	RedirectURI *string  `json:"redirect_uri"`
