@@ -93,6 +93,7 @@ func TestResolvers(t *testing.T) {
 			webhookTest(t, s)
 			webhooksTest(t, s)
 			usersTest(t, s)
+			userTest(t, s)
 			deleteUserTest(t, s)
 			updateUserTest(t, s)
 			adminLoginTests(t, s)

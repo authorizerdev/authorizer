@@ -515,6 +515,10 @@ input ResendOTPRequest {
   state: String
 }
 
+input GetUserRequest {
+  id: String!
+}
+
 type Mutation {
   signup(params: SignUpInput!): AuthResponse!
   mobile_signup(params: MobileSignUpInput): AuthResponse!
@@ -557,6 +561,7 @@ type Query {
   validate_jwt_token(params: ValidateJWTTokenInput!): ValidateJWTTokenResponse!
   # admin only apis
   _users(params: PaginatedInput): Users!
+  _user(params: GetUserRequest!): User!
   _verification_requests(params: PaginatedInput): VerificationRequests!
   _admin_session: Response!
   _env: Env!

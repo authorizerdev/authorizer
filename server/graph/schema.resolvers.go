@@ -191,6 +191,11 @@ func (r *queryResolver) Users(ctx context.Context, params *model.PaginatedInput)
 	return resolvers.UsersResolver(ctx, params)
 }
 
+// User is the resolver for the _user field.
+func (r *queryResolver) User(ctx context.Context, params model.GetUserRequest) (*model.User, error) {
+	return resolvers.UserResolver(ctx, params)
+}
+
 // VerificationRequests is the resolver for the _verification_requests field.
 func (r *queryResolver) VerificationRequests(ctx context.Context, params *model.PaginatedInput) (*model.VerificationRequests, error) {
 	return resolvers.VerificationRequestsResolver(ctx, params)
