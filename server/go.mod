@@ -7,6 +7,7 @@ require (
 	github.com/arangodb/go-driver v1.2.1
 	github.com/aws/aws-sdk-go v1.44.109
 	github.com/coreos/go-oidc/v3 v3.1.0
+	github.com/couchbase/gocb/v2 v2.6.0 // indirect
 	github.com/gin-gonic/gin v1.8.1
 	github.com/glebarez/sqlite v1.5.0
 	github.com/go-playground/validator/v10 v10.11.1 // indirect
