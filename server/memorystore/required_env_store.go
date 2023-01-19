@@ -32,6 +32,9 @@ type RequiredEnv struct {
 	AwsRegion          string `json:"AWS_REGION"`
 	AwsAccessKeyID     string `json:"AWS_ACCESS_KEY_ID"`
 	AwsSecretAccessKey string `json:"AWS_SECRET_ACCESS_KEY"`
+	// Couchbase related envs
+	CouchbaseBucket string `json:"COUCHBASE_BUCKET"`
+	CouchbaseScope  string `json:"COUCHBASE_SCOPE"`
 }
 
 // RequiredEnvObj is a simple in-memory store for sessions.
@@ -93,6 +96,8 @@ func InitRequiredEnv() error {
 	awsRegion := os.Getenv(constants.EnvAwsRegion)
 	awsAccessKeyID := os.Getenv(constants.EnvAwsAccessKeyID)
 	awsSecretAccessKey := os.Getenv(constants.EnvAwsSecretAccessKey)
+	couchbaseBucket := os.Getenv(constants.EnvCouchbaseBucket)
+	couchbaseScope := os.Getenv(constants.EnvCouchbaseScope)
 
 	if strings.TrimSpace(redisURL) == "" {
 		if cli.ARG_REDIS_URL != nil && *cli.ARG_REDIS_URL != "" {
@@ -151,6 +156,8 @@ func InitRequiredEnv() error {
 		AwsRegion:          awsRegion,
 		AwsAccessKeyID:     awsAccessKeyID,
 		AwsSecretAccessKey: awsSecretAccessKey,
+		CouchbaseBucket:    couchbaseBucket,
+		CouchbaseScope:     couchbaseScope,
 	}
 
 	RequiredEnvStoreObj = &RequiredEnvStore{

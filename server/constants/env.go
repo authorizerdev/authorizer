@@ -43,6 +43,10 @@ const (
 	EnvKeyDatabaseCertKey = "DATABASE_CERT_KEY"
 	// EnvKeyDatabaseCACert key for env variable DATABASE_CA_CERT
 	EnvKeyDatabaseCACert = "DATABASE_CA_CERT"
+	// EnvCouchbaseBucket key for env variable COUCHBASE_BUCKET
+	EnvCouchbaseBucket = "COUCHBASE_BUCKET"
+	// EnvCouchbaseBucket key for env variable COUCHBASE_SCOPE
+	EnvCouchbaseScope = "COUCHBASE_SCOPE"
 	// EnvKeySmtpHost key for env variable SMTP_HOST
 	EnvKeySmtpHost = "SMTP_HOST"
 	// EnvKeySmtpPort key for env variable SMTP_PORT

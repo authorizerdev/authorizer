@@ -16,11 +16,12 @@ import (
 
 func TestResolvers(t *testing.T) {
 	databases := map[string]string{
-		constants.DbTypeSqlite:   "../../test.db",
-		constants.DbTypeArangodb: "http://localhost:8529",
-		constants.DbTypeMongodb:  "mongodb://localhost:27017",
-		constants.DbTypeScyllaDB: "127.0.0.1:9042",
-		constants.DbTypeDynamoDB: "http://0.0.0.0:8000",
+		constants.DbTypeSqlite:      "../../test.db",
+		constants.DbTypeArangodb:    "http://localhost:8529",
+		constants.DbTypeMongodb:     "mongodb://localhost:27017",
+		constants.DbTypeScyllaDB:    "127.0.0.1:9042",
+		constants.DbTypeDynamoDB:    "http://0.0.0.0:8000",
+		constants.DbTypeCouchbaseDB: "couchbase://127.0.0.1",
 	}
 
 	testDBs := strings.Split(os.Getenv("TEST_DBS"), ",")
