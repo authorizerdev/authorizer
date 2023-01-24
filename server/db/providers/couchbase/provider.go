@@ -4,54 +4,52 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"reflect"
 
-	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/couchbase/gocb/v2"
+
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/memorystore"
-	"github.com/couchbase/gocb/v2"
 )
 
-// TODO change following provider to new db provider
+const (
+	defaultBucketName = "authorizer"
+	defaultScope      = "_default"
+)
+
 type provider struct {
 	db        *gocb.Scope
 	scopeName string
 }
 
-// NewProvider returns a new SQL provider
-// TODO change following provider to new db provider
+// NewProvider returns a new Couchbase provider
 func NewProvider() (*provider, error) {
-	// scopeName := os.Getenv(constants.EnvCouchbaseScope)
-	bucketName := os.Getenv(constants.EnvCouchbaseBucket)
-	scopeName := os.Getenv(constants.EnvCouchbaseScope)
-
+	bucketName := memorystore.RequiredEnvStoreObj.GetRequiredEnv().CouchbaseBucket
+	scopeName := memorystore.RequiredEnvStoreObj.GetRequiredEnv().CouchbaseScope
 	dbURL := memorystore.RequiredEnvStoreObj.GetRequiredEnv().DatabaseURL
 	userName := memorystore.RequiredEnvStoreObj.GetRequiredEnv().DatabaseUsername
 	password := memorystore.RequiredEnvStoreObj.GetRequiredEnv().DatabasePassword
-
 	opts := gocb.ClusterOptions{
 		Username: userName,
 		Password: password,
 	}
-
+	if bucketName == "" {
+		bucketName = defaultBucketName
+	}
+	if scopeName == "" {
+		scopeName = defaultScope
+	}
 	cluster, err := gocb.Connect(dbURL, opts)
-
 	if err != nil {
 		return nil, err
 	}
-
 	// To create the bucket and scope if not exist
 	bucket, err := CreateBucketAndScope(cluster, bucketName, scopeName)
-
 	if err != nil {
 		return nil, err
 	}
-
 	scope := bucket.Scope(scopeName)
-
 	scopeIdentifier := fmt.Sprintf("%s.%s", bucketName, scopeName)
-
 	v := reflect.ValueOf(models.Collections)
 	for i := 0; i < v.NumField(); i++ {
 		field := v.Field(i)
@@ -62,10 +60,10 @@ func NewProvider() (*provider, error) {
 		collectionOpts := gocb.CreateCollectionOptions{
 			Context: context.TODO(),
 		}
-		_ = bucket.Collections().CreateCollection(user, &collectionOpts)
-		// if err != nil && !errors.Is(err, gocb.ErrCollectionExists) {
-		// 	return nil, err
-		// }
+		err = bucket.Collections().CreateCollection(user, &collectionOpts)
+		if err != nil && !errors.Is(err, gocb.ErrCollectionExists) {
+			return nil, err
+		}
 		indexQuery := fmt.Sprintf("CREATE PRIMARY INDEX ON %s.%s", scopeIdentifier, field.String())
 		scope.Query(indexQuery, nil)
 	}
@@ -100,15 +98,15 @@ func CreateBucketAndScope(cluster *gocb.Cluster, bucketName string, scopeName st
 	}, nil)
 
 	bucket := cluster.Bucket(bucketName)
-
 	if err != nil && !errors.Is(err, gocb.ErrBucketExists) {
 		return bucket, err
 	}
 
-	err = bucket.Collections().CreateScope(scopeName, nil)
-
-	if err != nil && !errors.Is(err, gocb.ErrScopeExists) {
-		return bucket, err
+	if scopeName != defaultScope {
+		err = bucket.Collections().CreateScope(scopeName, nil)
+		if err != nil && !errors.Is(err, gocb.ErrScopeExists) {
+			return bucket, err
+		}
 	}
 
 	return bucket, nil

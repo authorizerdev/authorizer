@@ -58,6 +58,12 @@ func TestResolvers(t *testing.T) {
 			memorystore.Provider.UpdateEnvVariable(constants.EnvAwsRegion, "ap-south-1")
 			os.Setenv(constants.EnvAwsRegion, "ap-south-1")
 		}
+		if dbType == constants.DbTypeCouchbaseDB {
+			memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDatabaseUsername, "Administrator")
+			os.Setenv(constants.EnvKeyDatabaseUsername, "Administrator")
+			memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDatabasePassword, "password")
+			os.Setenv(constants.EnvKeyDatabasePassword, "password")
+		}
 
 		memorystore.InitRequiredEnv()
 
