@@ -3,6 +3,7 @@ package env
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"reflect"
 	"strconv"
@@ -115,6 +116,7 @@ func PersistEnv() error {
 	if err != nil || env.EnvData == "" {
 		// AES encryption needs 32 bit key only, so we chop off last 4 characters from 36 bit uuid
 		hash := uuid.New().String()[:36-4]
+		fmt.Println("hash:", hash)
 		err := memorystore.Provider.UpdateEnvVariable(constants.EnvKeyEncryptionKey, hash)
 		if err != nil {
 			log.Debug("Error while updating encryption env variable: ", err)

@@ -37,5 +37,3 @@ if [ "$TYPE" = "WORKER" ]; then
     couchbase-cli server-add --cluster=$COUCHBASE_MASTER:8091 --user=Administrator --password=password --server-add=$IP --server-add-username=Administrator --server-add-password=password
   fi;
 fi;
-
-fg 1

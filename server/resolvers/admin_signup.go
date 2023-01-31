@@ -67,6 +67,7 @@ func AdminSignupResolver(ctx context.Context, params model.AdminSignupInput) (*m
 	envData, err := crypto.EncryptEnvData(storeData)
 	if err != nil {
 		log.Debug("Failed to encrypt envstore: ", err)
+		fmt.Println("Failed to encrypt envstore: ", err)
 		return res, err
 	}
 

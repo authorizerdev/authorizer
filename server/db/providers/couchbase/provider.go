@@ -52,9 +52,9 @@ func NewProvider() (*provider, error) {
 	scopeIdentifier := fmt.Sprintf("%s.%s", bucketName, scopeName)
 	v := reflect.ValueOf(models.Collections)
 	for i := 0; i < v.NumField(); i++ {
-		field := v.Field(i)
+		collectionName := v.Field(i)
 		user := gocb.CollectionSpec{
-			Name:      field.String(),
+			Name:      collectionName.String(),
 			ScopeName: scopeName,
 		}
 		collectionOpts := gocb.CreateCollectionOptions{
@@ -64,8 +64,11 @@ func NewProvider() (*provider, error) {
 		if err != nil && !errors.Is(err, gocb.ErrCollectionExists) {
 			return nil, err
 		}
-		indexQuery := fmt.Sprintf("CREATE PRIMARY INDEX ON %s.%s", scopeIdentifier, field.String())
-		scope.Query(indexQuery, nil)
+		indexQuery := fmt.Sprintf("CREATE PRIMARY INDEX ON %s.%s", scopeIdentifier, collectionName.String())
+		_, err = scope.Query(indexQuery, nil)
+		if err != nil {
+			fmt.Println("=> err", err, collectionName.String())
+		}
 	}
 
 	indices := GetIndex(scopeIdentifier)
@@ -85,7 +88,6 @@ func CreateBucketAndScope(cluster *gocb.Cluster, bucketName string, scopeName st
 	settings := gocb.BucketSettings{
 		Name:            bucketName,
 		RAMQuotaMB:      1000,
-		NumReplicas:     1,
 		BucketType:      gocb.CouchbaseBucketType,
 		EvictionPolicy:  gocb.EvictionPolicyTypeValueOnly,
 		FlushEnabled:    true,

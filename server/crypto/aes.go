@@ -4,6 +4,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"fmt"
 	"io"
 
 	"github.com/authorizerdev/authorizer/server/constants"
@@ -56,6 +57,7 @@ func DecryptAES(text string) (string, error) {
 func EncryptAESEnv(text []byte) ([]byte, error) {
 	var res []byte
 	k, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyEncryptionKey)
+	fmt.Println("=> key:", k)
 	if err != nil {
 		return res, err
 	}
