@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 
@@ -90,15 +91,23 @@ func NewProvider() (*provider, error) {
 }
 
 func CreateBucketAndScope(cluster *gocb.Cluster, bucketName string, scopeName string) (*gocb.Bucket, error) {
+	bucketRAMQuotaMB := memorystore.RequiredEnvStoreObj.GetRequiredEnv().CouchbaseBucketRAMQuotaMB
+	if bucketRAMQuotaMB == "" {
+		bucketRAMQuotaMB = "1000"
+	}
+	bucketRAMQuota, err := strconv.ParseInt(bucketRAMQuotaMB, 10, 64)
+	if err != nil {
+		return nil, err
+	}
 	settings := gocb.BucketSettings{
 		Name:            bucketName,
-		RAMQuotaMB:      1000,
+		RAMQuotaMB:      uint64(bucketRAMQuota),
 		BucketType:      gocb.CouchbaseBucketType,
 		EvictionPolicy:  gocb.EvictionPolicyTypeValueOnly,
 		FlushEnabled:    true,
 		CompressionMode: gocb.CompressionModeActive,
 	}
-	err := cluster.Buckets().CreateBucket(gocb.CreateBucketSettings{
+	err = cluster.Buckets().CreateBucket(gocb.CreateBucketSettings{
 		BucketSettings:         settings,
 		ConflictResolutionType: gocb.ConflictResolutionTypeSequenceNumber,
 	}, nil)

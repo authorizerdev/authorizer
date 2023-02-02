@@ -83,6 +83,7 @@ func InitAllEnv() error {
 	osAwsSecretKey := os.Getenv(constants.EnvAwsSecretAccessKey)
 	osCouchbaseBucket := os.Getenv(constants.EnvCouchbaseBucket)
 	osCouchbaseScope := os.Getenv(constants.EnvCouchbaseScope)
+	osCouchbaseBucketRAMQuotaMB := os.Getenv(constants.EnvCouchbaseBucketRAMQuotaMB)
 
 	// os bool vars
 	osAppCookieSecure := os.Getenv(constants.EnvKeyAppCookieSecure)
@@ -152,6 +153,13 @@ func InitAllEnv() error {
 	}
 	if osCouchbaseBucket != "" && envData[constants.EnvCouchbaseBucket] != osCouchbaseBucket {
 		envData[constants.EnvCouchbaseBucket] = osCouchbaseBucket
+	}
+
+	if val, ok := envData[constants.EnvCouchbaseBucketRAMQuotaMB]; !ok || val == "" {
+		envData[constants.EnvCouchbaseBucketRAMQuotaMB] = osCouchbaseBucketRAMQuotaMB
+	}
+	if osCouchbaseBucketRAMQuotaMB != "" && envData[constants.EnvCouchbaseBucketRAMQuotaMB] != osCouchbaseBucketRAMQuotaMB {
+		envData[constants.EnvCouchbaseBucketRAMQuotaMB] = osCouchbaseBucketRAMQuotaMB
 	}
 
 	if val, ok := envData[constants.EnvCouchbaseScope]; !ok || val == "" {

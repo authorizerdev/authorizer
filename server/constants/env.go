@@ -45,6 +45,9 @@ const (
 	EnvKeyDatabaseCACert = "DATABASE_CA_CERT"
 	// EnvCouchbaseBucket key for env variable COUCHBASE_BUCKET
 	EnvCouchbaseBucket = "COUCHBASE_BUCKET"
+	// EnvCouchbaseBucketRAMQuotaMB key for env variable COUCHBASE_BUCKET_RAM_QUOTA
+	// This value should be parsed as number
+	EnvCouchbaseBucketRAMQuotaMB = "COUCHBASE_BUCKET_RAM_QUOTA"
 	// EnvCouchbaseBucket key for env variable COUCHBASE_SCOPE
 	EnvCouchbaseScope = "COUCHBASE_SCOPE"
 	// EnvKeySmtpHost key for env variable SMTP_HOST
