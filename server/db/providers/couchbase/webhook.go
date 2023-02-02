@@ -76,17 +76,17 @@ func (p *provider) ListWebhook(ctx context.Context, pagination model.Pagination)
 	params := make(map[string]interface{}, 1)
 	params["offset"] = paginationClone.Offset
 	params["limit"] = paginationClone.Limit
-
+	total, err := p.GetTotalDocs(ctx, models.Collections.Webhook)
+	if err != nil {
+		return nil, err
+	}
+	paginationClone.Total = total
 	query := fmt.Sprintf("SELECT _id, env, created_at, updated_at FROM %s.%s OFFSET $offset LIMIT $limit", p.scopeName, models.Collections.Webhook)
-
-	_, paginationClone.Total = p.GetTotalDocs(ctx, models.Collections.Webhook)
-
 	queryResult, err := p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
 		NamedParameters: params,
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -98,10 +98,8 @@ func (p *provider) ListWebhook(ctx context.Context, pagination model.Pagination)
 		}
 		webhooks = append(webhooks, webhook.AsAPIWebhook())
 	}
-
 	if err := queryResult.Err(); err != nil {
 		return nil, err
-
 	}
 	return &model.Webhooks{
 		Pagination: &paginationClone,

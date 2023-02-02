@@ -77,13 +77,14 @@ func (p *provider) ListUsers(ctx context.Context, pagination model.Pagination) (
 		Context:              ctx,
 		PositionalParameters: []interface{}{paginationClone.Offset, paginationClone.Limit},
 	})
-
-	_, paginationClone.Total = p.GetTotalDocs(ctx, models.Collections.User)
-
 	if err != nil {
 		return nil, err
 	}
-
+	total, err := p.GetTotalDocs(ctx, models.Collections.User)
+	if err != nil {
+		return nil, err
+	}
+	paginationClone.Total = total
 	for queryResult.Next() {
 		var user models.User
 		err := queryResult.Row(&user)
@@ -92,12 +93,9 @@ func (p *provider) ListUsers(ctx context.Context, pagination model.Pagination) (
 		}
 		users = append(users, user.AsAPIUser())
 	}
-
 	if err := queryResult.Err(); err != nil {
 		return nil, err
-
 	}
-
 	return &model.Users{
 		Pagination: &paginationClone,
 		Users:      users,
@@ -150,10 +148,8 @@ func (p *provider) GetUserByID(ctx context.Context, id string) (models.User, err
 func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{}, ids []string) error {
 	// set updated_at time for all users
 	data["updated_at"] = time.Now().Unix()
-
 	updateFields, params := GetSetFields(data)
-
-	if ids != nil && len(ids) > 0 {
+	if len(ids) > 0 {
 		for _, id := range ids {
 			params["id"] = id
 			userQuery := fmt.Sprintf("UPDATE %s.%s SET %s WHERE _id = $id", p.scopeName, models.Collections.User, updateFields)

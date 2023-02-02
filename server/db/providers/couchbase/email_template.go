@@ -70,9 +70,11 @@ func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate models
 func (p *provider) ListEmailTemplate(ctx context.Context, pagination model.Pagination) (*model.EmailTemplates, error) {
 	emailTemplates := []*model.EmailTemplate{}
 	paginationClone := pagination
-
-	_, paginationClone.Total = p.GetTotalDocs(ctx, models.Collections.EmailTemplate)
-
+	total, err := p.GetTotalDocs(ctx, models.Collections.EmailTemplate)
+	if err != nil {
+		return nil, err
+	}
+	paginationClone.Total = total
 	userQuery := fmt.Sprintf("SELECT _id, event_name, subject, design, template, created_at, updated_at FROM %s.%s ORDER BY _id OFFSET $1 LIMIT $2", p.scopeName, models.Collections.EmailTemplate)
 
 	queryResult, err := p.db.Query(userQuery, &gocb.QueryOptions{

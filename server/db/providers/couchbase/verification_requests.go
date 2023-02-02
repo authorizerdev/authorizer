@@ -83,16 +83,17 @@ func (p *provider) GetVerificationRequestByEmail(ctx context.Context, email stri
 func (p *provider) ListVerificationRequests(ctx context.Context, pagination model.Pagination) (*model.VerificationRequests, error) {
 	var verificationRequests []*model.VerificationRequest
 	paginationClone := pagination
-
-	_, paginationClone.Total = p.GetTotalDocs(ctx, models.Collections.VerificationRequest)
-
+	total, err := p.GetTotalDocs(ctx, models.Collections.VerificationRequest)
+	if err != nil {
+		return nil, err
+	}
+	paginationClone.Total = total
 	query := fmt.Sprintf("SELECT _id, env, created_at, updated_at FROM %s.%s OFFSET $1 LIMIT $2", p.scopeName, models.Collections.VerificationRequest)
 	queryResult, err := p.db.Query(query, &gocb.QueryOptions{
 		Context:              ctx,
 		ScanConsistency:      gocb.QueryScanConsistencyRequestPlus,
 		PositionalParameters: []interface{}{paginationClone.Offset, paginationClone.Limit},
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +105,6 @@ func (p *provider) ListVerificationRequests(ctx context.Context, pagination mode
 		}
 		verificationRequests = append(verificationRequests, verificationRequest.AsAPIVerificationRequest())
 	}
-
 	if err := queryResult.Err(); err != nil {
 		return nil, err
 

@@ -44,7 +44,7 @@ func GetSetFields(webhookMap map[string]interface{}) (string, map[string]interfa
 	return updateFields, params
 }
 
-func (p *provider) GetTotalDocs(ctx context.Context, collection string) (error, int64) {
+func (p *provider) GetTotalDocs(ctx context.Context, collection string) (int64, error) {
 	totalDocs := TotalDocs{}
 
 	countQuery := fmt.Sprintf("SELECT COUNT(*) as Total FROM %s.%s", p.scopeName, collection)
@@ -55,9 +55,9 @@ func (p *provider) GetTotalDocs(ctx context.Context, collection string) (error, 
 	queryRes.One(&totalDocs)
 
 	if err != nil {
-		return err, totalDocs.Total
+		return totalDocs.Total, err
 	}
-	return nil, totalDocs.Total
+	return totalDocs.Total, nil
 }
 
 type TotalDocs struct {

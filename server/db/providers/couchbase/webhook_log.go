@@ -45,9 +45,11 @@ func (p *provider) ListWebhookLogs(ctx context.Context, pagination model.Paginat
 	params["webhookID"] = webhookID
 	params["offset"] = paginationClone.Offset
 	params["limit"] = paginationClone.Limit
-
-	_, paginationClone.Total = p.GetTotalDocs(ctx, models.Collections.WebhookLog)
-
+	total, err := p.GetTotalDocs(ctx, models.Collections.WebhookLog)
+	if err != nil {
+		return nil, err
+	}
+	paginationClone.Total = total
 	if webhookID != "" {
 		query = fmt.Sprintf(`SELECT _id, http_status, response, request, webhook_id, created_at, updated_at FROM %s.%s WHERE webhook_id=$webhookID`, p.scopeName, models.Collections.WebhookLog)
 	} else {
