@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
+	"time"
 
 	"github.com/couchbase/gocb/v2"
 
@@ -64,10 +66,13 @@ func NewProvider() (*provider, error) {
 		if err != nil && !errors.Is(err, gocb.ErrCollectionExists) {
 			return nil, err
 		}
+		// TODO: find how to fix this sleep time.
+		// Add wait time for successful collection creation
+		time.Sleep(5 * time.Second)
 		indexQuery := fmt.Sprintf("CREATE PRIMARY INDEX ON %s.%s", scopeIdentifier, collectionName.String())
 		_, err = scope.Query(indexQuery, nil)
-		if err != nil {
-			fmt.Println("=> err", err, collectionName.String())
+		if err != nil && !strings.Contains(err.Error(), "The index #primary already exists") {
+			return nil, err
 		}
 	}
 
@@ -93,24 +98,20 @@ func CreateBucketAndScope(cluster *gocb.Cluster, bucketName string, scopeName st
 		FlushEnabled:    true,
 		CompressionMode: gocb.CompressionModeActive,
 	}
-
 	err := cluster.Buckets().CreateBucket(gocb.CreateBucketSettings{
 		BucketSettings:         settings,
 		ConflictResolutionType: gocb.ConflictResolutionTypeSequenceNumber,
 	}, nil)
-
 	bucket := cluster.Bucket(bucketName)
 	if err != nil && !errors.Is(err, gocb.ErrBucketExists) {
 		return bucket, err
 	}
-
 	if scopeName != defaultScope {
 		err = bucket.Collections().CreateScope(scopeName, nil)
 		if err != nil && !errors.Is(err, gocb.ErrScopeExists) {
 			return bucket, err
 		}
 	}
-
 	return bucket, nil
 }
 
