@@ -119,7 +119,7 @@ func CreateBucketAndScope(cluster *gocb.Cluster, bucketName string, scopeName st
 			BucketSettings:         settings,
 			ConflictResolutionType: gocb.ConflictResolutionTypeSequenceNumber,
 		}, nil)
-		if err != nil && !errors.Is(err, gocb.ErrBucketExists) {
+		if err != nil {
 			return nil, err
 		}
 	}
