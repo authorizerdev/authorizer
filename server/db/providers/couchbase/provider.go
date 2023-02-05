@@ -107,14 +107,23 @@ func CreateBucketAndScope(cluster *gocb.Cluster, bucketName string, scopeName st
 		FlushEnabled:    true,
 		CompressionMode: gocb.CompressionModeActive,
 	}
-	err = cluster.Buckets().CreateBucket(gocb.CreateBucketSettings{
-		BucketSettings:         settings,
-		ConflictResolutionType: gocb.ConflictResolutionTypeSequenceNumber,
-	}, nil)
-	bucket := cluster.Bucket(bucketName)
-	if err != nil && !errors.Is(err, gocb.ErrBucketExists) {
-		return bucket, err
+	shouldCreateBucket := false
+	// check if bucket exists
+	_, err = cluster.Buckets().GetBucket(bucketName, nil)
+	if err != nil {
+		// bucket not found
+		shouldCreateBucket = true
 	}
+	if shouldCreateBucket {
+		err = cluster.Buckets().CreateBucket(gocb.CreateBucketSettings{
+			BucketSettings:         settings,
+			ConflictResolutionType: gocb.ConflictResolutionTypeSequenceNumber,
+		}, nil)
+		if err != nil && !errors.Is(err, gocb.ErrBucketExists) {
+			return nil, err
+		}
+	}
+	bucket := cluster.Bucket(bucketName)
 	if scopeName != defaultScope {
 		err = bucket.Collections().CreateScope(scopeName, nil)
 		if err != nil && !errors.Is(err, gocb.ErrScopeExists) {
