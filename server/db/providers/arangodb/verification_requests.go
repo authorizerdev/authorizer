@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/arangodb/go-driver"
+	arangoDriver "github.com/arangodb/go-driver"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/google/uuid"
@@ -96,7 +96,7 @@ func (p *provider) GetVerificationRequestByEmail(ctx context.Context, email stri
 // ListVerificationRequests to get list of verification requests from database
 func (p *provider) ListVerificationRequests(ctx context.Context, pagination model.Pagination) (*model.VerificationRequests, error) {
 	var verificationRequests []*model.VerificationRequest
-	sctx := driver.WithQueryFullCount(ctx)
+	sctx := arangoDriver.WithQueryFullCount(ctx)
 	query := fmt.Sprintf("FOR d in %s SORT d.created_at DESC LIMIT %d, %d RETURN d", models.Collections.VerificationRequest, pagination.Offset, pagination.Limit)
 
 	cursor, err := p.db.Query(sctx, query, nil)
@@ -112,7 +112,7 @@ func (p *provider) ListVerificationRequests(ctx context.Context, pagination mode
 		var verificationRequest models.VerificationRequest
 		meta, err := cursor.ReadDocument(ctx, &verificationRequest)
 
-		if driver.IsNoMoreDocuments(err) {
+		if arangoDriver.IsNoMoreDocuments(err) {
 			break
 		} else if err != nil {
 			return nil, err
@@ -132,8 +132,8 @@ func (p *provider) ListVerificationRequests(ctx context.Context, pagination mode
 
 // DeleteVerificationRequest to delete verification request from database
 func (p *provider) DeleteVerificationRequest(ctx context.Context, verificationRequest models.VerificationRequest) error {
-	collection, _ := p.db.Collection(nil, models.Collections.VerificationRequest)
-	_, err := collection.RemoveDocument(nil, verificationRequest.Key)
+	collection, _ := p.db.Collection(ctx, models.Collections.VerificationRequest)
+	_, err := collection.RemoveDocument(ctx, verificationRequest.Key)
 	if err != nil {
 		return err
 	}

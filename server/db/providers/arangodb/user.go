@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/arangodb/go-driver"
 	arangoDriver "github.com/arangodb/go-driver"
 	"github.com/google/uuid"
 
@@ -91,7 +90,7 @@ func (p *provider) DeleteUser(ctx context.Context, user models.User) error {
 // ListUsers to get list of users from database
 func (p *provider) ListUsers(ctx context.Context, pagination model.Pagination) (*model.Users, error) {
 	var users []*model.User
-	sctx := driver.WithQueryFullCount(ctx)
+	sctx := arangoDriver.WithQueryFullCount(ctx)
 
 	query := fmt.Sprintf("FOR d in %s SORT d.created_at DESC LIMIT %d, %d RETURN d", models.Collections.User, pagination.Offset, pagination.Limit)
 
@@ -199,7 +198,7 @@ func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{},
 	}
 
 	query := ""
-	if ids != nil && len(ids) > 0 {
+	if len(ids) > 0 {
 		keysArray := ""
 		for _, id := range ids {
 			keysArray += fmt.Sprintf("'%s', ", id)
@@ -212,7 +211,6 @@ func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{},
 	}
 
 	_, err = p.db.Query(ctx, query, nil)
-
 	if err != nil {
 		return err
 	}
