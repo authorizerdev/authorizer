@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/arangodb/go-driver"
 	arangoDriver "github.com/arangodb/go-driver"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/graph/model"
@@ -52,7 +51,7 @@ func (p *provider) ListEmailTemplate(ctx context.Context, pagination model.Pagin
 
 	query := fmt.Sprintf("FOR d in %s SORT d.created_at DESC LIMIT %d, %d RETURN d", models.Collections.EmailTemplate, pagination.Offset, pagination.Limit)
 
-	sctx := driver.WithQueryFullCount(ctx)
+	sctx := arangoDriver.WithQueryFullCount(ctx)
 	cursor, err := p.db.Query(sctx, query, nil)
 	if err != nil {
 		return nil, err

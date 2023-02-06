@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/arangodb/go-driver"
 	arangoDriver "github.com/arangodb/go-driver"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/graph/model"
@@ -44,7 +43,7 @@ func (p *provider) ListWebhookLogs(ctx context.Context, pagination model.Paginat
 		}
 	}
 
-	sctx := driver.WithQueryFullCount(ctx)
+	sctx := arangoDriver.WithQueryFullCount(ctx)
 	cursor, err := p.db.Query(sctx, query, bindVariables)
 	if err != nil {
 		return nil, err
