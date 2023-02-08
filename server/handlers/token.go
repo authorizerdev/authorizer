@@ -259,7 +259,7 @@ func TokenHandler() gin.HandlerFunc {
 		res := map[string]interface{}{
 			"access_token": authToken.AccessToken.Token,
 			"id_token":     authToken.IDToken.Token,
-			"scope":        scope,
+			"scope":        strings.Join(scope, " "),
 			"roles":        roles,
 			"expires_in":   expiresIn,
 		}

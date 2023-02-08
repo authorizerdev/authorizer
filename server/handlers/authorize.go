@@ -284,7 +284,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 				"access_token": authToken.AccessToken.Token,
 				"id_token":     authToken.IDToken.Token,
 				"state":        state,
-				"scope":        scope,
+				"scope":        strings.Join(scope, " "),
 				"token_type":   "Bearer",
 				"expires_in":   authToken.AccessToken.ExpiresAt,
 			}

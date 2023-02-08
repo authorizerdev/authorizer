@@ -162,9 +162,7 @@ func CreateAccessToken(user models.User, roles, scopes []string, hostName, nonce
 	if err != nil {
 		expiryBound = time.Minute * 30
 	}
-
 	expiresAt := time.Now().Add(expiryBound).Unix()
-
 	clientID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyClientID)
 	if err != nil {
 		return "", 0, err
@@ -182,7 +180,41 @@ func CreateAccessToken(user models.User, roles, scopes []string, hostName, nonce
 		"login_method":  loginMethod,
 		"allowed_roles": strings.Split(user.Roles, ","),
 	}
+	// check for the extra access token script
+	accessTokenScript, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyCustomAccessTokenScript)
+	if err != nil {
+		log.Debug("Failed to get custom access token script: ", err)
+		accessTokenScript = ""
+	}
+	if accessTokenScript != "" {
+		resUser := user.AsAPIUser()
+		userBytes, _ := json.Marshal(&resUser)
+		var userMap map[string]interface{}
+		json.Unmarshal(userBytes, &userMap)
+		vm := otto.New()
+		claimBytes, _ := json.Marshal(customClaims)
+		vm.Run(fmt.Sprintf(`
+			var user = %s;
+			var tokenPayload = %s;
+			var customFunction = %s;
+			var functionRes = JSON.stringify(customFunction(user, tokenPayload));
+		`, string(userBytes), string(claimBytes), accessTokenScript))
 
+		val, err := vm.Get("functionRes")
+		if err != nil {
+			log.Debug("error getting custom access token script: ", err)
+		} else {
+			extraPayload := make(map[string]interface{})
+			err = json.Unmarshal([]byte(fmt.Sprintf("%s", val)), &extraPayload)
+			if err != nil {
+				log.Debug("error converting accessTokenScript response to map: ", err)
+			} else {
+				for k, v := range extraPayload {
+					customClaims[k] = v
+				}
+			}
+		}
+	}
 	token, err := SignJWTToken(customClaims)
 	if err != nil {
 		return "", 0, err
@@ -345,14 +377,11 @@ func CreateIDToken(user models.User, roles []string, hostname, nonce, atHash, cH
 	if err != nil {
 		expiryBound = time.Minute * 30
 	}
-
 	expiresAt := time.Now().Add(expiryBound).Unix()
-
 	resUser := user.AsAPIUser()
 	userBytes, _ := json.Marshal(&resUser)
 	var userMap map[string]interface{}
 	json.Unmarshal(userBytes, &userMap)
-
 	claimKey, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyJwtRoleClaim)
 	if err != nil {
 		claimKey = "roles"
@@ -376,7 +405,6 @@ func CreateIDToken(user models.User, roles []string, hostname, nonce, atHash, cH
 	}
 
 	// split nonce to see if its authorization code grant method
-
 	if cHash != "" {
 		customClaims["at_hash"] = atHash
 		customClaims["c_hash"] = cHash
@@ -384,13 +412,11 @@ func CreateIDToken(user models.User, roles []string, hostname, nonce, atHash, cH
 		customClaims["nonce"] = nonce
 		customClaims["at_hash"] = atHash
 	}
-
 	for k, v := range userMap {
 		if k != "roles" {
 			customClaims[k] = v
 		}
 	}
-
 	// check for the extra access token script
 	accessTokenScript, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyCustomAccessTokenScript)
 	if err != nil {
@@ -399,7 +425,6 @@ func CreateIDToken(user models.User, roles []string, hostname, nonce, atHash, cH
 	}
 	if accessTokenScript != "" {
 		vm := otto.New()
-
 		claimBytes, _ := json.Marshal(customClaims)
 		vm.Run(fmt.Sprintf(`
 			var user = %s;

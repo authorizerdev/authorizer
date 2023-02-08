@@ -76,7 +76,7 @@ func AppHandler() gin.HandlerFunc {
 			"data": map[string]interface{}{
 				"authorizerURL":    hostname,
 				"redirectURL":      redirectURI,
-				"scope":            scope,
+				"scope":            strings.Join(scope, " "),
 				"state":            state,
 				"organizationName": orgName,
 				"organizationLogo": orgLogo,
