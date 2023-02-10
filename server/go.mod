@@ -18,6 +18,7 @@ require (
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/uuid v1.3.0
 	github.com/guregu/dynamo v1.16.0
+	github.com/jackc/pgx/v4 v4.17.2 // indirect
 	github.com/joho/godotenv v1.3.0
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/pelletier/go-toml/v2 v2.0.5 // indirect
@@ -26,7 +27,7 @@ require (
 	github.com/stretchr/testify v1.8.0
 	github.com/vektah/gqlparser/v2 v2.5.1
 	go.mongodb.org/mongo-driver v1.8.1
-	golang.org/x/crypto v0.3.0
+	golang.org/x/crypto v0.4.0
 	golang.org/x/oauth2 v0.0.0-20210628180205-a41e5a781914
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
@@ -34,7 +35,7 @@ require (
 	gopkg.in/mail.v2 v2.3.1
 	gopkg.in/square/go-jose.v2 v2.6.0
 	gorm.io/driver/mysql v1.4.3
-	gorm.io/driver/postgres v1.4.5
+	gorm.io/driver/postgres v1.4.7
 	gorm.io/driver/sqlserver v1.4.1
-	gorm.io/gorm v1.24.1
+	gorm.io/gorm v1.24.2
 )
