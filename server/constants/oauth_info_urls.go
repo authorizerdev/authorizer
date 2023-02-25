@@ -16,4 +16,8 @@ const (
 	LinkedInEmailURL    = "https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements*(handle~))"
 
 	TwitterUserInfoURL = "https://api.twitter.com/2/users/me?user.fields=id,name,profile_image_url,username"
+
+	// Get microsoft user info.
+	// Ref: https://learn.microsoft.com/en-us/azure/active-directory/develop/userinfo
+	MicrosoftUserInfoURL = "https://graph.microsoft.com/oidc/userinfo"
 )

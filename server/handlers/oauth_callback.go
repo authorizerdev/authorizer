@@ -70,6 +70,8 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			user, err = processAppleUserInfo(oauthCode)
 		case constants.AuthRecipeMethodTwitter:
 			user, err = processTwitterUserInfo(oauthCode, sessionState)
+		case constants.AuthRecipeMethodMicrosoft:
+			user, err = processMicrosoftUserInfo(oauthCode)
 		default:
 			log.Info("Invalid oauth provider")
 			err = fmt.Errorf(`invalid oauth provider`)
@@ -665,6 +667,40 @@ func processTwitterUserInfo(code, verifier string) (models.User, error) {
 		FamilyName: &lastName,
 		Picture:    &profilePicture,
 		Nickname:   &nickname,
+	}
+
+	return user, nil
+}
+
+// process microsoft user information
+func processMicrosoftUserInfo(code string) (models.User, error) {
+	user := models.User{}
+	ctx := context.Background()
+	oauth2Token, err := oauth.OAuthProviders.MicrosoftConfig.Exchange(ctx, code)
+	if err != nil {
+		log.Debug("Failed to exchange code for token: ", err)
+		return user, fmt.Errorf("invalid google exchange code: %s", err.Error())
+	}
+
+	verifier := oauth.OIDCProviders.MicrosoftOIDC.Verifier(&oidc.Config{ClientID: oauth.OAuthProviders.MicrosoftConfig.ClientID})
+
+	// Extract the ID Token from OAuth2 token.
+	rawIDToken, ok := oauth2Token.Extra("id_token").(string)
+	if !ok {
+		log.Debug("Failed to extract ID Token from OAuth2 token")
+		return user, fmt.Errorf("unable to extract id_token")
+	}
+
+	// Parse and verify ID Token payload.
+	idToken, err := verifier.Verify(ctx, rawIDToken)
+	if err != nil {
+		log.Debug("Failed to verify ID Token: ", err)
+		return user, fmt.Errorf("unable to verify id_token: %s", err.Error())
+	}
+
+	if err := idToken.Claims(&user); err != nil {
+		log.Debug("Failed to parse ID Token claims: ", err)
+		return user, fmt.Errorf("unable to extract claims")
 	}
 
 	return user, nil

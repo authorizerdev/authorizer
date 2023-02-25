@@ -209,6 +209,24 @@ func OAuthLoginHandler() gin.HandlerFunc {
 			// check: https://github.com/golang/oauth2/issues/449
 			url := oauth.OAuthProviders.AppleConfig.AuthCodeURL(oauthStateString, oauth2.SetAuthURLParam("response_mode", "form_post")) + "&scope=name email"
 			c.Redirect(http.StatusTemporaryRedirect, url)
+		case constants.AuthRecipeMethodMicrosoft:
+			if oauth.OAuthProviders.MicrosoftConfig == nil {
+				log.Debug("Microsoft OAuth provider is not configured")
+				isProviderConfigured = false
+				break
+			}
+			err := memorystore.Provider.SetState(oauthStateString, constants.AuthRecipeMethodMicrosoft)
+			if err != nil {
+				log.Debug("Error setting state: ", err)
+				c.JSON(500, gin.H{
+					"error": "internal server error",
+				})
+				return
+			}
+			// during the init of OAuthProvider authorizer url might be empty
+			oauth.OAuthProviders.MicrosoftConfig.RedirectURL = hostname + "/oauth_callback/" + constants.AuthRecipeMethodMicrosoft
+			url := oauth.OAuthProviders.MicrosoftConfig.AuthCodeURL(oauthStateString)
+			c.Redirect(http.StatusTemporaryRedirect, url)
 		default:
 			log.Debug("Invalid oauth provider: ", provider)
 			c.JSON(422, gin.H{

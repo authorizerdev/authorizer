@@ -12,7 +12,7 @@
 	"author": "Lakhan Samani",
 	"license": "ISC",
 	"dependencies": {
-		"@authorizerdev/authorizer-react": "^1.1.7",
+		"@authorizerdev/authorizer-react": "^1.1.8-beta.1",
 		"@types/react": "^17.0.15",
 		"@types/react-dom": "^17.0.9",
 		"esbuild": "^0.12.17",

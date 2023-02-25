@@ -48,7 +48,15 @@ func InviteMembersResolver(ctx context.Context, params model.InviteMemberInput) 
 	}
 
 	isBasicAuthDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableBasicAuthentication)
+	if err != nil {
+		log.Debug("Failed to get is basic auth disabled")
+		return nil, err
+	}
 	isMagicLinkLoginDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableMagicLinkLogin)
+	if err != nil {
+		log.Debug("Failed to get is magic link login disabled")
+		return nil, err
+	}
 	if isBasicAuthDisabled && isMagicLinkLoginDisabled {
 		log.Debug("Basic authentication and Magic link login is disabled.")
 		return nil, errors.New("either basic authentication or magic link login is required")

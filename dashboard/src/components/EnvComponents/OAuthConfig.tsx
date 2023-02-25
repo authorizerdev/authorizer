@@ -16,6 +16,7 @@ import {
 	FaLinkedin,
 	FaApple,
 	FaTwitter,
+	FaMicrosoft,
 } from 'react-icons/fa';
 import { TextInputType, HiddenInputType } from '../../constants';
 
@@ -300,6 +301,57 @@ const OAuthConfig = ({
 								setFieldVisibility={setFieldVisibility}
 								inputType={HiddenInputType.TWITTER_CLIENT_SECRET}
 								placeholder="Twitter Client Secret"
+							/>
+						</Center>
+					</Flex>
+					<Flex direction={isNotSmallerScreen ? 'row' : 'column'}>
+						<Center
+							w={isNotSmallerScreen ? '55px' : '35px'}
+							h="35px"
+							marginRight="1.5%"
+							border="1px solid #3b5998"
+							borderRadius="5px"
+						>
+							<FaMicrosoft />
+						</Center>
+						<Center
+							w={isNotSmallerScreen ? '35%' : '100%'}
+							mt={isNotSmallerScreen ? '0' : '3'}
+							marginRight="1.5%"
+						>
+							<InputField
+								borderRadius={5}
+								variables={envVariables}
+								setVariables={setVariables}
+								inputType={TextInputType.MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID}
+								placeholder="Microsoft Active Directory TenantID"
+							/>
+						</Center>
+						<Center
+							w={isNotSmallerScreen ? '35%' : '100%'}
+							mt={isNotSmallerScreen ? '0' : '3'}
+							marginRight="1.5%"
+						>
+							<InputField
+								borderRadius={5}
+								variables={envVariables}
+								setVariables={setVariables}
+								inputType={TextInputType.MICROSOFT_CLIENT_ID}
+								placeholder="Microsoft Client ID"
+							/>
+						</Center>
+						<Center
+							w={isNotSmallerScreen ? '70%' : '100%'}
+							mt={isNotSmallerScreen ? '0' : '3'}
+						>
+							<InputField
+								borderRadius={5}
+								variables={envVariables}
+								setVariables={setVariables}
+								fieldVisibility={fieldVisibility}
+								setFieldVisibility={setFieldVisibility}
+								inputType={HiddenInputType.MICROSOFT_CLIENT_SECRET}
+								placeholder="Microsoft Client Secret"
 							/>
 						</Center>
 					</Flex>

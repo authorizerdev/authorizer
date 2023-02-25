@@ -72,6 +72,7 @@ func (c *provider) DeleteAllUserSessions(userID string) error {
 		constants.AuthRecipeMethodGoogle,
 		constants.AuthRecipeMethodLinkedIn,
 		constants.AuthRecipeMethodTwitter,
+		constants.AuthRecipeMethodMicrosoft,
 	}
 	for _, namespace := range namespaces {
 		err := c.store.Del(c.ctx, namespace+":"+userID).Err()

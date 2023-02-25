@@ -19,4 +19,6 @@ const (
 	AuthRecipeMethodApple = "apple"
 	// AuthRecipeMethodTwitter is the twitter auth method
 	AuthRecipeMethodTwitter = "twitter"
+	// AuthRecipeMethodMicrosoft is the microsoft auth method
+	AuthRecipeMethodMicrosoft = "microsoft"
 )

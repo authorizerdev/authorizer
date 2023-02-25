@@ -109,6 +109,9 @@ type Env struct {
 	AppleClientSecret                *string  `json:"APPLE_CLIENT_SECRET"`
 	TwitterClientID                  *string  `json:"TWITTER_CLIENT_ID"`
 	TwitterClientSecret              *string  `json:"TWITTER_CLIENT_SECRET"`
+	MicrosoftClientID                *string  `json:"MICROSOFT_CLIENT_ID"`
+	MicrosoftClientSecret            *string  `json:"MICROSOFT_CLIENT_SECRET"`
+	MicrosoftActiveDirectoryTenantID *string  `json:"MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID"`
 	OrganizationName                 *string  `json:"ORGANIZATION_NAME"`
 	OrganizationLogo                 *string  `json:"ORGANIZATION_LOGO"`
 	AppCookieSecure                  bool     `json:"APP_COOKIE_SECURE"`
@@ -175,6 +178,7 @@ type Meta struct {
 	IsLinkedinLoginEnabled       bool   `json:"is_linkedin_login_enabled"`
 	IsAppleLoginEnabled          bool   `json:"is_apple_login_enabled"`
 	IsTwitterLoginEnabled        bool   `json:"is_twitter_login_enabled"`
+	IsMicrosoftLoginEnabled      bool   `json:"is_microsoft_login_enabled"`
 	IsEmailVerificationEnabled   bool   `json:"is_email_verification_enabled"`
 	IsBasicAuthenticationEnabled bool   `json:"is_basic_authentication_enabled"`
 	IsMagicLinkLoginEnabled      bool   `json:"is_magic_link_login_enabled"`
@@ -343,6 +347,9 @@ type UpdateEnvInput struct {
 	AppleClientSecret                *string  `json:"APPLE_CLIENT_SECRET"`
 	TwitterClientID                  *string  `json:"TWITTER_CLIENT_ID"`
 	TwitterClientSecret              *string  `json:"TWITTER_CLIENT_SECRET"`
+	MicrosoftClientID                *string  `json:"MICROSOFT_CLIENT_ID"`
+	MicrosoftClientSecret            *string  `json:"MICROSOFT_CLIENT_SECRET"`
+	MicrosoftActiveDirectoryTenantID *string  `json:"MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID"`
 	OrganizationName                 *string  `json:"ORGANIZATION_NAME"`
 	OrganizationLogo                 *string  `json:"ORGANIZATION_LOGO"`
 }
