@@ -89,6 +89,24 @@ func MetaResolver(ctx context.Context) (*model.Meta, error) {
 		twitterClientSecret = ""
 	}
 
+	microsoftClientID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyMicrosoftClientID)
+	if err != nil {
+		log.Debug("Failed to get Microsoft Client ID from environment variable", err)
+		microsoftClientID = ""
+	}
+
+	microsoftClientSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyMicrosoftClientSecret)
+	if err != nil {
+		log.Debug("Failed to get Microsoft Client Secret from environment variable", err)
+		microsoftClientSecret = ""
+	}
+
+	microsoftActiveDirTenantID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyMicrosoftActiveDirectoryTenantID)
+	if err != nil {
+		log.Debug("Failed to get Microsoft Active Directory Tenant ID from environment variable", err)
+		microsoftActiveDirTenantID = ""
+	}
+
 	isBasicAuthDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableBasicAuthentication)
 	if err != nil {
 		log.Debug("Failed to get Disable Basic Authentication from environment variable", err)
@@ -134,6 +152,7 @@ func MetaResolver(ctx context.Context) (*model.Meta, error) {
 		IsLinkedinLoginEnabled:       linkedClientID != "" && linkedInClientSecret != "",
 		IsAppleLoginEnabled:          appleClientID != "" && appleClientSecret != "",
 		IsTwitterLoginEnabled:        twitterClientID != "" && twitterClientSecret != "",
+		IsMicrosoftLoginEnabled:      microsoftClientID != "" && microsoftClientSecret != "" && microsoftActiveDirTenantID != "",
 		IsBasicAuthenticationEnabled: !isBasicAuthDisabled,
 		IsEmailVerificationEnabled:   !isEmailVerificationDisabled,
 		IsMagicLinkLoginEnabled:      !isMagicLinkLoginDisabled,

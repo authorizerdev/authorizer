@@ -35,6 +35,7 @@ func (c *provider) DeleteAllUserSessions(userId string) error {
 		constants.AuthRecipeMethodGoogle,
 		constants.AuthRecipeMethodLinkedIn,
 		constants.AuthRecipeMethodTwitter,
+		constants.AuthRecipeMethodMicrosoft,
 	}
 
 	for _, namespace := range namespaces {

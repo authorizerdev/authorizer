@@ -111,6 +111,9 @@ type ComplexityRoot struct {
 		JwtType                          func(childComplexity int) int
 		LinkedinClientID                 func(childComplexity int) int
 		LinkedinClientSecret             func(childComplexity int) int
+		MicrosoftActiveDirectoryTenantID func(childComplexity int) int
+		MicrosoftClientID                func(childComplexity int) int
+		MicrosoftClientSecret            func(childComplexity int) int
 		OrganizationLogo                 func(childComplexity int) int
 		OrganizationName                 func(childComplexity int) int
 		ProtectedRoles                   func(childComplexity int) int
@@ -148,6 +151,7 @@ type ComplexityRoot struct {
 		IsGoogleLoginEnabled         func(childComplexity int) int
 		IsLinkedinLoginEnabled       func(childComplexity int) int
 		IsMagicLinkLoginEnabled      func(childComplexity int) int
+		IsMicrosoftLoginEnabled      func(childComplexity int) int
 		IsMultiFactorAuthEnabled     func(childComplexity int) int
 		IsSignUpEnabled              func(childComplexity int) int
 		IsStrongPasswordEnabled      func(childComplexity int) int
@@ -764,6 +768,27 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Env.LinkedinClientSecret(childComplexity), true
 
+	case "Env.MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID":
+		if e.complexity.Env.MicrosoftActiveDirectoryTenantID == nil {
+			break
+		}
+
+		return e.complexity.Env.MicrosoftActiveDirectoryTenantID(childComplexity), true
+
+	case "Env.MICROSOFT_CLIENT_ID":
+		if e.complexity.Env.MicrosoftClientID == nil {
+			break
+		}
+
+		return e.complexity.Env.MicrosoftClientID(childComplexity), true
+
+	case "Env.MICROSOFT_CLIENT_SECRET":
+		if e.complexity.Env.MicrosoftClientSecret == nil {
+			break
+		}
+
+		return e.complexity.Env.MicrosoftClientSecret(childComplexity), true
+
 	case "Env.ORGANIZATION_LOGO":
 		if e.complexity.Env.OrganizationLogo == nil {
 			break
@@ -959,6 +984,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Meta.IsMagicLinkLoginEnabled(childComplexity), true
+
+	case "Meta.is_microsoft_login_enabled":
+		if e.complexity.Meta.IsMicrosoftLoginEnabled == nil {
+			break
+		}
+
+		return e.complexity.Meta.IsMicrosoftLoginEnabled(childComplexity), true
 
 	case "Meta.is_multi_factor_auth_enabled":
 		if e.complexity.Meta.IsMultiFactorAuthEnabled == nil {
@@ -2031,6 +2063,7 @@ type Meta {
   is_linkedin_login_enabled: Boolean!
   is_apple_login_enabled: Boolean!
   is_twitter_login_enabled: Boolean!
+  is_microsoft_login_enabled: Boolean!
   is_email_verification_enabled: Boolean!
   is_basic_authentication_enabled: Boolean!
   is_magic_link_login_enabled: Boolean!
@@ -2155,6 +2188,9 @@ type Env {
   APPLE_CLIENT_SECRET: String
   TWITTER_CLIENT_ID: String
   TWITTER_CLIENT_SECRET: String
+  MICROSOFT_CLIENT_ID: String
+  MICROSOFT_CLIENT_SECRET: String
+  MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID: String
   ORGANIZATION_NAME: String
   ORGANIZATION_LOGO: String
   APP_COOKIE_SECURE: Boolean!
@@ -2267,6 +2303,9 @@ input UpdateEnvInput {
   APPLE_CLIENT_SECRET: String
   TWITTER_CLIENT_ID: String
   TWITTER_CLIENT_SECRET: String
+  MICROSOFT_CLIENT_ID: String
+  MICROSOFT_CLIENT_SECRET: String
+  MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID: String
   ORGANIZATION_NAME: String
   ORGANIZATION_LOGO: String
 }
@@ -6081,6 +6120,129 @@ func (ec *executionContext) fieldContext_Env_TWITTER_CLIENT_SECRET(ctx context.C
 	return fc, nil
 }
 
+func (ec *executionContext) _Env_MICROSOFT_CLIENT_ID(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Env_MICROSOFT_CLIENT_ID(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.MicrosoftClientID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Env_MICROSOFT_CLIENT_ID(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Env",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Env_MICROSOFT_CLIENT_SECRET(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Env_MICROSOFT_CLIENT_SECRET(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.MicrosoftClientSecret, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Env_MICROSOFT_CLIENT_SECRET(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Env",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Env_MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Env_MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.MicrosoftActiveDirectoryTenantID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Env_MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Env",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Env_ORGANIZATION_NAME(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Env_ORGANIZATION_NAME(ctx, field)
 	if err != nil {
@@ -6802,6 +6964,50 @@ func (ec *executionContext) _Meta_is_twitter_login_enabled(ctx context.Context, 
 }
 
 func (ec *executionContext) fieldContext_Meta_is_twitter_login_enabled(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Meta",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Meta_is_microsoft_login_enabled(ctx context.Context, field graphql.CollectedField, obj *model.Meta) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Meta_is_microsoft_login_enabled(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsMicrosoftLoginEnabled, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Meta_is_microsoft_login_enabled(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Meta",
 		Field:      field,
@@ -9230,6 +9436,8 @@ func (ec *executionContext) fieldContext_Query_meta(ctx context.Context, field g
 				return ec.fieldContext_Meta_is_apple_login_enabled(ctx, field)
 			case "is_twitter_login_enabled":
 				return ec.fieldContext_Meta_is_twitter_login_enabled(ctx, field)
+			case "is_microsoft_login_enabled":
+				return ec.fieldContext_Meta_is_microsoft_login_enabled(ctx, field)
 			case "is_email_verification_enabled":
 				return ec.fieldContext_Meta_is_email_verification_enabled(ctx, field)
 			case "is_basic_authentication_enabled":
@@ -9871,6 +10079,12 @@ func (ec *executionContext) fieldContext_Query__env(ctx context.Context, field g
 				return ec.fieldContext_Env_TWITTER_CLIENT_ID(ctx, field)
 			case "TWITTER_CLIENT_SECRET":
 				return ec.fieldContext_Env_TWITTER_CLIENT_SECRET(ctx, field)
+			case "MICROSOFT_CLIENT_ID":
+				return ec.fieldContext_Env_MICROSOFT_CLIENT_ID(ctx, field)
+			case "MICROSOFT_CLIENT_SECRET":
+				return ec.fieldContext_Env_MICROSOFT_CLIENT_SECRET(ctx, field)
+			case "MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID":
+				return ec.fieldContext_Env_MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID(ctx, field)
 			case "ORGANIZATION_NAME":
 				return ec.fieldContext_Env_ORGANIZATION_NAME(ctx, field)
 			case "ORGANIZATION_LOGO":
@@ -15738,7 +15952,7 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"ACCESS_TOKEN_EXPIRY_TIME", "ADMIN_SECRET", "CUSTOM_ACCESS_TOKEN_SCRIPT", "OLD_ADMIN_SECRET", "SMTP_HOST", "SMTP_PORT", "SMTP_USERNAME", "SMTP_PASSWORD", "SMTP_LOCAL_NAME", "SENDER_EMAIL", "JWT_TYPE", "JWT_SECRET", "JWT_PRIVATE_KEY", "JWT_PUBLIC_KEY", "ALLOWED_ORIGINS", "APP_URL", "RESET_PASSWORD_URL", "APP_COOKIE_SECURE", "ADMIN_COOKIE_SECURE", "DISABLE_EMAIL_VERIFICATION", "DISABLE_BASIC_AUTHENTICATION", "DISABLE_MAGIC_LINK_LOGIN", "DISABLE_LOGIN_PAGE", "DISABLE_SIGN_UP", "DISABLE_REDIS_FOR_ENV", "DISABLE_STRONG_PASSWORD", "DISABLE_MULTI_FACTOR_AUTHENTICATION", "ENFORCE_MULTI_FACTOR_AUTHENTICATION", "ROLES", "PROTECTED_ROLES", "DEFAULT_ROLES", "JWT_ROLE_CLAIM", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET", "FACEBOOK_CLIENT_ID", "FACEBOOK_CLIENT_SECRET", "LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET", "APPLE_CLIENT_ID", "APPLE_CLIENT_SECRET", "TWITTER_CLIENT_ID", "TWITTER_CLIENT_SECRET", "ORGANIZATION_NAME", "ORGANIZATION_LOGO"}
+	fieldsInOrder := [...]string{"ACCESS_TOKEN_EXPIRY_TIME", "ADMIN_SECRET", "CUSTOM_ACCESS_TOKEN_SCRIPT", "OLD_ADMIN_SECRET", "SMTP_HOST", "SMTP_PORT", "SMTP_USERNAME", "SMTP_PASSWORD", "SMTP_LOCAL_NAME", "SENDER_EMAIL", "JWT_TYPE", "JWT_SECRET", "JWT_PRIVATE_KEY", "JWT_PUBLIC_KEY", "ALLOWED_ORIGINS", "APP_URL", "RESET_PASSWORD_URL", "APP_COOKIE_SECURE", "ADMIN_COOKIE_SECURE", "DISABLE_EMAIL_VERIFICATION", "DISABLE_BASIC_AUTHENTICATION", "DISABLE_MAGIC_LINK_LOGIN", "DISABLE_LOGIN_PAGE", "DISABLE_SIGN_UP", "DISABLE_REDIS_FOR_ENV", "DISABLE_STRONG_PASSWORD", "DISABLE_MULTI_FACTOR_AUTHENTICATION", "ENFORCE_MULTI_FACTOR_AUTHENTICATION", "ROLES", "PROTECTED_ROLES", "DEFAULT_ROLES", "JWT_ROLE_CLAIM", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET", "FACEBOOK_CLIENT_ID", "FACEBOOK_CLIENT_SECRET", "LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET", "APPLE_CLIENT_ID", "APPLE_CLIENT_SECRET", "TWITTER_CLIENT_ID", "TWITTER_CLIENT_SECRET", "MICROSOFT_CLIENT_ID", "MICROSOFT_CLIENT_SECRET", "MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID", "ORGANIZATION_NAME", "ORGANIZATION_LOGO"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -16094,6 +16308,30 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("TWITTER_CLIENT_SECRET"))
 			it.TwitterClientSecret, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "MICROSOFT_CLIENT_ID":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("MICROSOFT_CLIENT_ID"))
+			it.MicrosoftClientID, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "MICROSOFT_CLIENT_SECRET":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("MICROSOFT_CLIENT_SECRET"))
+			it.MicrosoftClientSecret, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID"))
+			it.MicrosoftActiveDirectoryTenantID, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -16985,6 +17223,18 @@ func (ec *executionContext) _Env(ctx context.Context, sel ast.SelectionSet, obj 
 
 			out.Values[i] = ec._Env_TWITTER_CLIENT_SECRET(ctx, field, obj)
 
+		case "MICROSOFT_CLIENT_ID":
+
+			out.Values[i] = ec._Env_MICROSOFT_CLIENT_ID(ctx, field, obj)
+
+		case "MICROSOFT_CLIENT_SECRET":
+
+			out.Values[i] = ec._Env_MICROSOFT_CLIENT_SECRET(ctx, field, obj)
+
+		case "MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID":
+
+			out.Values[i] = ec._Env_MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID(ctx, field, obj)
+
 		case "ORGANIZATION_NAME":
 
 			out.Values[i] = ec._Env_ORGANIZATION_NAME(ctx, field, obj)
@@ -17148,6 +17398,13 @@ func (ec *executionContext) _Meta(ctx context.Context, sel ast.SelectionSet, obj
 		case "is_twitter_login_enabled":
 
 			out.Values[i] = ec._Meta_is_twitter_login_enabled(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "is_microsoft_login_enabled":
+
+			out.Values[i] = ec._Meta_is_microsoft_login_enabled(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				invalids++

@@ -75,6 +75,9 @@ func InitAllEnv() error {
 	osAppleClientSecret := os.Getenv(constants.EnvKeyAppleClientSecret)
 	osTwitterClientID := os.Getenv(constants.EnvKeyTwitterClientID)
 	osTwitterClientSecret := os.Getenv(constants.EnvKeyTwitterClientSecret)
+	osMicrosoftClientID := os.Getenv(constants.EnvKeyMicrosoftClientID)
+	osMicrosoftClientSecret := os.Getenv(constants.EnvKeyMicrosoftClientSecret)
+	osMicrosoftActiveDirectoryTenantID := os.Getenv(constants.EnvKeyMicrosoftActiveDirectoryTenantID)
 	osResetPasswordURL := os.Getenv(constants.EnvKeyResetPasswordURL)
 	osOrganizationName := os.Getenv(constants.EnvKeyOrganizationName)
 	osOrganizationLogo := os.Getenv(constants.EnvKeyOrganizationLogo)
@@ -453,6 +456,27 @@ func InitAllEnv() error {
 	}
 	if osTwitterClientSecret != "" && envData[constants.EnvKeyTwitterClientSecret] != osTwitterClientSecret {
 		envData[constants.EnvKeyTwitterClientSecret] = osTwitterClientSecret
+	}
+
+	if val, ok := envData[constants.EnvKeyMicrosoftClientID]; !ok || val == "" {
+		envData[constants.EnvKeyMicrosoftClientID] = osMicrosoftClientID
+	}
+	if osMicrosoftClientID != "" && envData[constants.EnvKeyMicrosoftClientID] != osMicrosoftClientID {
+		envData[constants.EnvKeyMicrosoftClientID] = osMicrosoftClientID
+	}
+
+	if val, ok := envData[constants.EnvKeyMicrosoftClientSecret]; !ok || val == "" {
+		envData[constants.EnvKeyMicrosoftClientSecret] = osMicrosoftClientSecret
+	}
+	if osMicrosoftClientSecret != "" && envData[constants.EnvKeyMicrosoftClientSecret] != osMicrosoftClientSecret {
+		envData[constants.EnvKeyMicrosoftClientSecret] = osMicrosoftClientSecret
+	}
+
+	if val, ok := envData[constants.EnvKeyMicrosoftActiveDirectoryTenantID]; !ok || val == "" {
+		envData[constants.EnvKeyMicrosoftActiveDirectoryTenantID] = osMicrosoftActiveDirectoryTenantID
+	}
+	if osMicrosoftActiveDirectoryTenantID != "" && envData[constants.EnvKeyMicrosoftActiveDirectoryTenantID] != osMicrosoftActiveDirectoryTenantID {
+		envData[constants.EnvKeyMicrosoftActiveDirectoryTenantID] = osMicrosoftActiveDirectoryTenantID
 	}
 
 	if val, ok := envData[constants.EnvKeyResetPasswordURL]; !ok || val == "" {

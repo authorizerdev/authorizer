@@ -21,6 +21,7 @@ type Meta {
   is_linkedin_login_enabled: Boolean!
   is_apple_login_enabled: Boolean!
   is_twitter_login_enabled: Boolean!
+  is_microsoft_login_enabled: Boolean!
   is_email_verification_enabled: Boolean!
   is_basic_authentication_enabled: Boolean!
   is_magic_link_login_enabled: Boolean!
@@ -145,6 +146,9 @@ type Env {
   APPLE_CLIENT_SECRET: String
   TWITTER_CLIENT_ID: String
   TWITTER_CLIENT_SECRET: String
+  MICROSOFT_CLIENT_ID: String
+  MICROSOFT_CLIENT_SECRET: String
+  MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID: String
   ORGANIZATION_NAME: String
   ORGANIZATION_LOGO: String
   APP_COOKIE_SECURE: Boolean!
@@ -257,6 +261,9 @@ input UpdateEnvInput {
   APPLE_CLIENT_SECRET: String
   TWITTER_CLIENT_ID: String
   TWITTER_CLIENT_SECRET: String
+  MICROSOFT_CLIENT_ID: String
+  MICROSOFT_CLIENT_SECRET: String
+  MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID: String
   ORGANIZATION_NAME: String
   ORGANIZATION_LOGO: String
 }
