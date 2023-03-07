@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -50,7 +49,6 @@ func UserInfoHandler() gin.HandlerFunc {
 			})
 			return
 		}
-		fmt.Println("=> str:", string(userBytes))
 		res := map[string]interface{}{}
 		err = json.Unmarshal(userBytes, &res)
 		if err != nil {

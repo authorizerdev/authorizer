@@ -403,7 +403,6 @@ func CreateIDToken(user models.User, roles []string, hostname, nonce, atHash, cH
 		"login_method":  loginMethod,
 		claimKey:        roles,
 	}
-
 	// split nonce to see if its authorization code grant method
 	if cHash != "" {
 		customClaims["at_hash"] = atHash
