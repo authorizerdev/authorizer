@@ -24,45 +24,47 @@ func updateWebhookTest(t *testing.T, s TestSetup) {
 		assert.NoError(t, err)
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
 		// get webhook
-		webhook, err := db.Provider.GetWebhookByEventName(ctx, constants.UserDeletedWebhookEvent)
+		webhooks, err := db.Provider.GetWebhookByEventName(ctx, constants.UserDeletedWebhookEvent)
 		assert.NoError(t, err)
-		assert.NotNil(t, webhook)
-		// it should completely replace headers
-		webhook.Headers = map[string]interface{}{
-			"x-new-test": "test",
+		assert.NotNil(t, webhooks)
+		assert.Greater(t, len(webhooks), 0)
+		for _, webhook := range webhooks {
+			// it should completely replace headers
+			webhook.Headers = map[string]interface{}{
+				"x-new-test": "test",
+			}
+			res, err := resolvers.UpdateWebhookResolver(ctx, model.UpdateWebhookRequest{
+				ID:       webhook.ID,
+				Headers:  webhook.Headers,
+				Enabled:  refs.NewBoolRef(false),
+				Endpoint: refs.NewStringRef("https://sometest.com"),
+			})
+			assert.NoError(t, err)
+			assert.NotEmpty(t, res)
+			assert.NotEmpty(t, res.Message)
 		}
 
-		res, err := resolvers.UpdateWebhookResolver(ctx, model.UpdateWebhookRequest{
-			ID:       webhook.ID,
-			Headers:  webhook.Headers,
-			Enabled:  refs.NewBoolRef(false),
-			Endpoint: refs.NewStringRef("https://sometest.com"),
-		})
-
+		updatedWebhooks, err := db.Provider.GetWebhookByEventName(ctx, constants.UserDeletedWebhookEvent)
 		assert.NoError(t, err)
-		assert.NotEmpty(t, res)
-		assert.NotEmpty(t, res.Message)
-
-		updatedWebhook, err := db.Provider.GetWebhookByEventName(ctx, constants.UserDeletedWebhookEvent)
-		assert.NoError(t, err)
-		assert.NotNil(t, updatedWebhook)
-		assert.Equal(t, webhook.ID, updatedWebhook.ID)
-		assert.Equal(t, refs.StringValue(webhook.EventName), refs.StringValue(updatedWebhook.EventName))
-		assert.Len(t, updatedWebhook.Headers, 1)
-		assert.False(t, refs.BoolValue(updatedWebhook.Enabled))
-		for key, val := range updatedWebhook.Headers {
-			assert.Equal(t, val, webhook.Headers[key])
+		assert.NotNil(t, updatedWebhooks)
+		for _, updatedWebhook := range updatedWebhooks {
+			assert.Contains(t, refs.StringValue(updatedWebhook.EventName), constants.UserDeletedWebhookEvent)
+			assert.Len(t, updatedWebhook.Headers, 1)
+			assert.False(t, refs.BoolValue(updatedWebhook.Enabled))
+			for key, val := range updatedWebhook.Headers {
+				assert.Equal(t, "x-new-test", key)
+				assert.Equal(t, "test", val)
+			}
+			assert.Equal(t, "https://sometest.com", refs.StringValue(updatedWebhook.Endpoint))
+			res, err := resolvers.UpdateWebhookResolver(ctx, model.UpdateWebhookRequest{
+				ID:       updatedWebhook.ID,
+				Headers:  updatedWebhook.Headers,
+				Enabled:  refs.NewBoolRef(true),
+				Endpoint: refs.NewStringRef(s.TestInfo.WebhookEndpoint),
+			})
+			assert.NoError(t, err)
+			assert.NotEmpty(t, res)
+			assert.NotEmpty(t, res.Message)
 		}
-		assert.Equal(t, refs.StringValue(updatedWebhook.Endpoint), "https://sometest.com")
-
-		res, err = resolvers.UpdateWebhookResolver(ctx, model.UpdateWebhookRequest{
-			ID:       webhook.ID,
-			Headers:  webhook.Headers,
-			Enabled:  refs.NewBoolRef(true),
-			Endpoint: refs.NewStringRef(s.TestInfo.WebhookEndpoint),
-		})
-		assert.NoError(t, err)
-		assert.NotEmpty(t, res)
-		assert.NotEmpty(t, res.Message)
 	})
 }

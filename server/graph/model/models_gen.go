@@ -10,6 +10,7 @@ type AddEmailTemplateRequest struct {
 }
 
 type AddWebhookRequest struct {
+	Title     string                 `json:"title"`
 	EventName string                 `json:"event_name"`
 	Endpoint  string                 `json:"endpoint"`
 	Enabled   bool                   `json:"enabled"`
@@ -388,6 +389,7 @@ type UpdateUserInput struct {
 
 type UpdateWebhookRequest struct {
 	ID        string                 `json:"id"`
+	Title     *string                `json:"title"`
 	EventName *string                `json:"event_name"`
 	Endpoint  *string                `json:"endpoint"`
 	Enabled   *bool                  `json:"enabled"`
@@ -462,6 +464,7 @@ type VerifyOTPRequest struct {
 
 type Webhook struct {
 	ID        string                 `json:"id"`
+	Title     *string                `json:"title"`
 	EventName *string                `json:"event_name"`
 	Endpoint  *string                `json:"endpoint"`
 	Enabled   *bool                  `json:"enabled"`
