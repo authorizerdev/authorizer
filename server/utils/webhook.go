@@ -19,6 +19,7 @@ import (
 func RegisterEvent(ctx context.Context, eventName string, authRecipe string, user models.User) error {
 	webhooks, err := db.Provider.GetWebhookByEventName(ctx, eventName)
 	if err != nil {
+		log.Debug("Error getting webhook: %v", err)
 		return err
 	}
 	for _, webhook := range webhooks {
@@ -38,6 +39,7 @@ func RegisterEvent(ctx context.Context, eventName string, authRecipe string, use
 		}
 
 		reqBody := map[string]interface{}{
+			"webhook_id": webhook.ID,
 			"event_name": eventName,
 			"user":       userMap,
 		}

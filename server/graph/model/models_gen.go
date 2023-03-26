@@ -10,11 +10,11 @@ type AddEmailTemplateRequest struct {
 }
 
 type AddWebhookRequest struct {
-	Title     string                 `json:"title"`
-	EventName string                 `json:"event_name"`
-	Endpoint  string                 `json:"endpoint"`
-	Enabled   bool                   `json:"enabled"`
-	Headers   map[string]interface{} `json:"headers"`
+	EventName        string                 `json:"event_name"`
+	EventDescription *string                `json:"event_description"`
+	Endpoint         string                 `json:"endpoint"`
+	Enabled          bool                   `json:"enabled"`
+	Headers          map[string]interface{} `json:"headers"`
 }
 
 type AdminLoginInput struct {
@@ -388,12 +388,12 @@ type UpdateUserInput struct {
 }
 
 type UpdateWebhookRequest struct {
-	ID        string                 `json:"id"`
-	Title     *string                `json:"title"`
-	EventName *string                `json:"event_name"`
-	Endpoint  *string                `json:"endpoint"`
-	Enabled   *bool                  `json:"enabled"`
-	Headers   map[string]interface{} `json:"headers"`
+	ID               string                 `json:"id"`
+	EventName        *string                `json:"event_name"`
+	EventDescription *string                `json:"event_description"`
+	Endpoint         *string                `json:"endpoint"`
+	Enabled          *bool                  `json:"enabled"`
+	Headers          map[string]interface{} `json:"headers"`
 }
 
 type User struct {
@@ -463,14 +463,14 @@ type VerifyOTPRequest struct {
 }
 
 type Webhook struct {
-	ID        string                 `json:"id"`
-	Title     *string                `json:"title"`
-	EventName *string                `json:"event_name"`
-	Endpoint  *string                `json:"endpoint"`
-	Enabled   *bool                  `json:"enabled"`
-	Headers   map[string]interface{} `json:"headers"`
-	CreatedAt *int64                 `json:"created_at"`
-	UpdatedAt *int64                 `json:"updated_at"`
+	ID               string                 `json:"id"`
+	EventName        *string                `json:"event_name"`
+	EventDescription *string                `json:"event_description"`
+	Endpoint         *string                `json:"endpoint"`
+	Enabled          *bool                  `json:"enabled"`
+	Headers          map[string]interface{} `json:"headers"`
+	CreatedAt        *int64                 `json:"created_at"`
+	UpdatedAt        *int64                 `json:"updated_at"`
 }
 
 type WebhookLog struct {

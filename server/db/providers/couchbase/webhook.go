@@ -22,8 +22,8 @@ func (p *provider) AddWebhook(ctx context.Context, webhook models.Webhook) (*mod
 	webhook.Key = webhook.ID
 	webhook.CreatedAt = time.Now().Unix()
 	webhook.UpdatedAt = time.Now().Unix()
-	if webhook.Title == "" {
-		webhook.Title = strings.Join(strings.Split(webhook.EventName, "."), " ")
+	if webhook.EventDescription == "" {
+		webhook.EventDescription = strings.Join(strings.Split(webhook.EventName, "."), " ")
 	}
 	// Add timestamp to make event name unique for legacy version
 	webhook.EventName = fmt.Sprintf("%s-%d", webhook.EventName, time.Now().Unix())
@@ -82,7 +82,7 @@ func (p *provider) ListWebhook(ctx context.Context, pagination model.Pagination)
 		return nil, err
 	}
 	paginationClone.Total = total
-	query := fmt.Sprintf("SELECT _id, title, event_name, endpoint, headers, enabled, created_at, updated_at FROM %s.%s OFFSET $offset LIMIT $limit", p.scopeName, models.Collections.Webhook)
+	query := fmt.Sprintf("SELECT _id, event_description, event_name, endpoint, headers, enabled, created_at, updated_at FROM %s.%s OFFSET $offset LIMIT $limit", p.scopeName, models.Collections.Webhook)
 	queryResult, err := p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
@@ -112,7 +112,7 @@ func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*model
 	var webhook models.Webhook
 	params := make(map[string]interface{}, 1)
 	params["_id"] = webhookID
-	query := fmt.Sprintf(`SELECT _id, title, event_name, endpoint, headers, enabled, created_at, updated_at FROM %s.%s WHERE _id=$_id LIMIT 1`, p.scopeName, models.Collections.Webhook)
+	query := fmt.Sprintf(`SELECT _id, event_description, event_name, endpoint, headers, enabled, created_at, updated_at FROM %s.%s WHERE _id=$_id LIMIT 1`, p.scopeName, models.Collections.Webhook)
 	q, err := p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
@@ -132,7 +132,7 @@ func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*model
 func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) ([]*model.Webhook, error) {
 	params := make(map[string]interface{}, 1)
 	params["event_name"] = eventName + "%"
-	query := fmt.Sprintf(`SELECT _id, title, event_name, endpoint, headers, enabled, created_at, updated_at FROM %s.%s WHERE event_name LIKE $event_name`, p.scopeName, models.Collections.Webhook)
+	query := fmt.Sprintf(`SELECT _id, event_description, event_name, endpoint, headers, enabled, created_at, updated_at FROM %s.%s WHERE event_name LIKE $event_name`, p.scopeName, models.Collections.Webhook)
 	queryResult, err := p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,

@@ -168,8 +168,8 @@ type GenerateJWTKeysResponse {
 
 type Webhook {
   id: ID!
-  title: String
   event_name: String
+  event_description: String
   endpoint: String
   enabled: Boolean
   headers: Map
@@ -459,8 +459,8 @@ input ListWebhookLogRequest {
 }
 
 input AddWebhookRequest {
-  title: String!
   event_name: String!
+  event_description: String
   endpoint: String!
   enabled: Boolean!
   headers: Map
@@ -468,8 +468,8 @@ input AddWebhookRequest {
 
 input UpdateWebhookRequest {
   id: ID!
-  title: String
   event_name: String
+  event_description: String
   endpoint: String
   enabled: Boolean
   headers: Map

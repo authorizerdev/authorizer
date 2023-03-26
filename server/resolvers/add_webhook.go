@@ -9,6 +9,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/authorizerdev/authorizer/server/validators"
@@ -44,10 +45,11 @@ func AddWebhookResolver(ctx context.Context, params model.AddWebhookRequest) (*m
 	}
 
 	_, err = db.Provider.AddWebhook(ctx, models.Webhook{
-		EventName: params.EventName,
-		EndPoint:  params.Endpoint,
-		Enabled:   params.Enabled,
-		Headers:   string(headerBytes),
+		EventDescription: refs.StringValue(params.EventDescription),
+		EventName:        params.EventName,
+		EndPoint:         params.Endpoint,
+		Enabled:          params.Enabled,
+		Headers:          string(headerBytes),
 	})
 	if err != nil {
 		log.Debug("Failed to add webhook: ", err)
