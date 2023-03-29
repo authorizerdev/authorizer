@@ -29,13 +29,13 @@ func RegisterEvent(ctx context.Context, eventName string, authRecipe string, use
 		userBytes, err := json.Marshal(user.AsAPIUser())
 		if err != nil {
 			log.Debug("error marshalling user obj: ", err)
-			return err
+			continue
 		}
 		userMap := map[string]interface{}{}
 		err = json.Unmarshal(userBytes, &userMap)
 		if err != nil {
 			log.Debug("error un-marshalling user obj: ", err)
-			return err
+			continue
 		}
 
 		reqBody := map[string]interface{}{
