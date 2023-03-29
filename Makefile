@@ -51,6 +51,6 @@ test-all-db:
 	docker rm -vf authorizer_mongodb_db
 	docker rm -vf authorizer_arangodb
 	docker rm -vf dynamodb-local-test
-	# docker rm -vf couchbase-local-test
+	docker rm -vf couchbase-local-test
 generate:
 	cd server && go run github.com/99designs/gqlgen generate && go mod tidy
