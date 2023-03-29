@@ -207,6 +207,13 @@ func NewProvider() (*provider, error) {
 	if err != nil {
 		return nil, err
 	}
+	// add event_description to webhook table
+	webhookAlterQuery := fmt.Sprintf(`ALTER TABLE %s.%s ADD (event_description text);`, KeySpace, models.Collections.Webhook)
+	err = session.Query(webhookAlterQuery).Exec()
+	if err != nil {
+		log.Debug("Failed to alter table as column exists: ", err)
+		// continue
+	}
 
 	webhookLogCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, http_status bigint, response text, request text, webhook_id text,updated_at bigint, created_at bigint, PRIMARY KEY (id))", KeySpace, models.Collections.WebhookLog)
 	err = session.Query(webhookLogCollectionQuery).Exec()

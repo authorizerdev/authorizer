@@ -179,6 +179,7 @@ export const envSubViews = {
 
 export enum WebhookInputDataFields {
 	ID = 'id',
+	EVENT_DESCRIPTION = 'event_description',
 	EVENT_NAME = 'event_name',
 	ENDPOINT = 'endpoint',
 	ENABLED = 'enabled',

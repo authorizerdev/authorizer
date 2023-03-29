@@ -20,22 +20,24 @@ func logoutTests(t *testing.T, s TestSetup) {
 		req, ctx := createContext(s)
 		email := "logout." + s.TestInfo.Email
 
-		_, err := resolvers.MagicLinkLoginResolver(ctx, model.MagicLinkLoginInput{
+		magicLoginRes, err := resolvers.MagicLinkLoginResolver(ctx, model.MagicLinkLoginInput{
 			Email: email,
 		})
-
+		assert.NoError(t, err)
+		assert.NotNil(t, magicLoginRes)
 		verificationRequest, err := db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeMagicLinkLogin)
+		assert.NoError(t, err)
+		assert.NotNil(t, verificationRequest)
 		verifyRes, err := resolvers.VerifyEmailResolver(ctx, model.VerifyEmailInput{
 			Token: verificationRequest.Token,
 		})
-
+		assert.NoError(t, err)
+		assert.NotNil(t, verifyRes)
 		accessToken := *verifyRes.AccessToken
 		assert.NotEmpty(t, accessToken)
-
 		claims, err := token.ParseJWTToken(accessToken)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, claims)
-
 		loginMethod := claims["login_method"]
 		sessionKey := verifyRes.User.ID
 		if loginMethod != nil && loginMethod != "" {

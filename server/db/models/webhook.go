@@ -34,18 +34,12 @@ func (w *Webhook) AsAPIWebhook() *model.Webhook {
 	if strings.Contains(id, Collections.Webhook+"/") {
 		id = strings.TrimPrefix(id, Collections.Webhook+"/")
 	}
-	// If event name contains timestamp trim that part
-	if strings.Contains(w.EventName, "-") {
-		splitData := strings.Split(w.EventName, "-")
-		w.EventName = splitData[0]
-	}
 	// set default title to event name without dot(.)
 	if w.EventDescription == "" {
 		w.EventDescription = strings.Join(strings.Split(w.EventName, "."), " ")
 	}
 	return &model.Webhook{
-		ID: id,
-		// Title:     refs.NewStringRef(w.EventDescription),
+		ID:        id,
 		EventName: refs.NewStringRef(w.EventName),
 		Endpoint:  refs.NewStringRef(w.EndPoint),
 		Headers:   headersMap,

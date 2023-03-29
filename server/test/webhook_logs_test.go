@@ -29,17 +29,20 @@ func webhookLogsTest(t *testing.T, s TestSetup) {
 		assert.NoError(t, err)
 		assert.Greater(t, len(webhookLogs.WebhookLogs), 1)
 
-		webhooks, err := resolvers.WebhooksResolver(ctx, nil)
+		webhooks, err := resolvers.WebhooksResolver(ctx, &model.PaginatedInput{
+			Pagination: &model.PaginationInput{
+				Limit: refs.NewInt64Ref(20),
+			},
+		})
 		assert.NoError(t, err)
 		assert.NotEmpty(t, webhooks)
-
 		for _, w := range webhooks.Webhooks {
 			t.Run(fmt.Sprintf("should get webhook for webhook_id:%s", w.ID), func(t *testing.T) {
 				webhookLogs, err := resolvers.WebhookLogsResolver(ctx, &model.ListWebhookLogRequest{
 					WebhookID: &w.ID,
 				})
 				assert.NoError(t, err)
-				assert.GreaterOrEqual(t, len(webhookLogs.WebhookLogs), 1)
+				assert.GreaterOrEqual(t, len(webhookLogs.WebhookLogs), 1, refs.StringValue(w.EventName))
 				for _, wl := range webhookLogs.WebhookLogs {
 					assert.Equal(t, refs.StringValue(wl.WebhookID), w.ID)
 				}

@@ -27,7 +27,7 @@ func updateWebhookTest(t *testing.T, s TestSetup) {
 		webhooks, err := db.Provider.GetWebhookByEventName(ctx, constants.UserDeletedWebhookEvent)
 		assert.NoError(t, err)
 		assert.NotNil(t, webhooks)
-		assert.Greater(t, len(webhooks), 0)
+		assert.Equal(t, 2, len(webhooks))
 		for _, webhook := range webhooks {
 			// it should completely replace headers
 			webhook.Headers = map[string]interface{}{
@@ -43,18 +43,44 @@ func updateWebhookTest(t *testing.T, s TestSetup) {
 			assert.NotEmpty(t, res)
 			assert.NotEmpty(t, res.Message)
 		}
-
+		if len(webhooks) == 0 {
+			// avoid index out of range error
+			return
+		}
+		// Test updating webhook name
+		w := webhooks[0]
+		res, err := resolvers.UpdateWebhookResolver(ctx, model.UpdateWebhookRequest{
+			ID:        w.ID,
+			EventName: refs.NewStringRef(constants.UserAccessEnabledWebhookEvent),
+		})
+		assert.NoError(t, err)
+		assert.NotNil(t, res)
+		// Check if webhooks with new name is as per expected len
+		accessWebhooks, err := db.Provider.GetWebhookByEventName(ctx, constants.UserAccessEnabledWebhookEvent)
+		assert.NoError(t, err)
+		assert.Equal(t, 3, len(accessWebhooks))
+		// Revert name change
+		res, err = resolvers.UpdateWebhookResolver(ctx, model.UpdateWebhookRequest{
+			ID:        w.ID,
+			EventName: refs.NewStringRef(constants.UserDeletedWebhookEvent),
+		})
+		assert.NoError(t, err)
+		assert.NotNil(t, res)
 		updatedWebhooks, err := db.Provider.GetWebhookByEventName(ctx, constants.UserDeletedWebhookEvent)
 		assert.NoError(t, err)
 		assert.NotNil(t, updatedWebhooks)
+		assert.Equal(t, 2, len(updatedWebhooks))
 		for _, updatedWebhook := range updatedWebhooks {
 			assert.Contains(t, refs.StringValue(updatedWebhook.EventName), constants.UserDeletedWebhookEvent)
 			assert.Len(t, updatedWebhook.Headers, 1)
 			assert.False(t, refs.BoolValue(updatedWebhook.Enabled))
+			foundUpdatedHeader := false
 			for key, val := range updatedWebhook.Headers {
-				assert.Equal(t, "x-new-test", key)
-				assert.Equal(t, "test", val)
+				if key == "x-new-test" && val == "test" {
+					foundUpdatedHeader = true
+				}
 			}
+			assert.True(t, foundUpdatedHeader)
 			assert.Equal(t, "https://sometest.com", refs.StringValue(updatedWebhook.Endpoint))
 			res, err := resolvers.UpdateWebhookResolver(ctx, model.UpdateWebhookRequest{
 				ID:       updatedWebhook.ID,

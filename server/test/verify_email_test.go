@@ -20,7 +20,8 @@ func verifyEmailTest(t *testing.T, s TestSetup) {
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password,
 		})
-
+		assert.NoError(t, err)
+		assert.NotNil(t, res)
 		user := *res.User
 		assert.Equal(t, email, user.Email)
 		assert.Nil(t, res.AccessToken, "access token should be nil")

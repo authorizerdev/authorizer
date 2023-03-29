@@ -24,7 +24,7 @@ func RegisterEvent(ctx context.Context, eventName string, authRecipe string, use
 	}
 	for _, webhook := range webhooks {
 		if !refs.BoolValue(webhook.Enabled) {
-			return nil
+			continue
 		}
 		userBytes, err := json.Marshal(user.AsAPIUser())
 		if err != nil {
@@ -51,30 +51,32 @@ func RegisterEvent(ctx context.Context, eventName string, authRecipe string, use
 		requestBody, err := json.Marshal(reqBody)
 		if err != nil {
 			log.Debug("error marshalling requestBody obj: ", err)
-			return err
+			continue
 		}
 
 		// dont trigger webhook call in case of test
 		envKey, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyEnv)
 		if err != nil {
-			return err
+			continue
 		}
 		if envKey == constants.TestEnv {
-			db.Provider.AddWebhookLog(ctx, models.WebhookLog{
+			_, err := db.Provider.AddWebhookLog(ctx, models.WebhookLog{
 				HttpStatus: 200,
 				Request:    string(requestBody),
 				Response:   string(`{"message": "test"}`),
 				WebhookID:  webhook.ID,
 			})
-
-			return nil
+			if err != nil {
+				log.Debug("error saving webhook log:", err)
+			}
+			continue
 		}
 
 		requestBytesBuffer := bytes.NewBuffer(requestBody)
 		req, err := http.NewRequest("POST", refs.StringValue(webhook.Endpoint), requestBytesBuffer)
 		if err != nil {
 			log.Debug("error creating webhook post request: ", err)
-			return err
+			continue
 		}
 		req.Header.Set("Content-Type", "application/json")
 
@@ -88,14 +90,14 @@ func RegisterEvent(ctx context.Context, eventName string, authRecipe string, use
 		resp, err := client.Do(req)
 		if err != nil {
 			log.Debug("error making request: ", err)
-			return err
+			continue
 		}
 		defer resp.Body.Close()
 
 		responseBytes, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			log.Debug("error reading response: ", err)
-			return err
+			continue
 		}
 
 		statusCode := int64(resp.StatusCode)
@@ -105,10 +107,9 @@ func RegisterEvent(ctx context.Context, eventName string, authRecipe string, use
 			Response:   string(responseBytes),
 			WebhookID:  webhook.ID,
 		})
-
 		if err != nil {
 			log.Debug("failed to add webhook log: ", err)
-			return err
+			continue
 		}
 	}
 	return nil

@@ -25,6 +25,6 @@ func adminSignupTests(t *testing.T, s TestSetup) {
 		_, err = resolvers.AdminSignupResolver(ctx, model.AdminSignupInput{
 			AdminSecret: "admin123",
 		})
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 	})
 }

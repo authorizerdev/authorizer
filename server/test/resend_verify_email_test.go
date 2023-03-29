@@ -19,13 +19,12 @@ func resendVerifyEmailTests(t *testing.T, s TestSetup) {
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password,
 		})
-
+		assert.NoError(t, err)
 		_, err = resolvers.ResendVerifyEmailResolver(ctx, model.ResendVerifyEmailInput{
 			Email:      email,
 			Identifier: constants.VerificationTypeBasicAuthSignup,
 		})
-
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 
 		cleanData(email)
 	})

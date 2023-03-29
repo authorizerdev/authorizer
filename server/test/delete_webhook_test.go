@@ -25,7 +25,7 @@ func deleteWebhookTest(t *testing.T, s TestSetup) {
 
 		// get all webhooks
 		webhooks, err := db.Provider.ListWebhook(ctx, model.Pagination{
-			Limit:  10,
+			Limit:  20,
 			Page:   1,
 			Offset: 0,
 		})
@@ -42,7 +42,7 @@ func deleteWebhookTest(t *testing.T, s TestSetup) {
 		}
 
 		webhooks, err = db.Provider.ListWebhook(ctx, model.Pagination{
-			Limit:  10,
+			Limit:  20,
 			Page:   1,
 			Offset: 0,
 		})

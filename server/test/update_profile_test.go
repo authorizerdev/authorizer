@@ -30,11 +30,13 @@ func updateProfileTests(t *testing.T, s TestSetup) {
 		assert.NotNil(t, err, "unauthorized")
 
 		verificationRequest, err := db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeBasicAuthSignup)
+		assert.NoError(t, err)
+		assert.NotNil(t, verificationRequest)
 		verifyRes, err := resolvers.VerifyEmailResolver(ctx, model.VerifyEmailInput{
 			Token: verificationRequest.Token,
 		})
 		assert.NoError(t, err)
-
+		assert.NotNil(t, verifyRes)
 		s.GinContext.Request.Header.Set("Authorization", "Bearer "+*verifyRes.AccessToken)
 		ctx = context.WithValue(req.Context(), "GinContextKey", s.GinContext)
 

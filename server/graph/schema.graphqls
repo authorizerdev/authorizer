@@ -168,7 +168,7 @@ type GenerateJWTKeysResponse {
 
 type Webhook {
   id: ID!
-  event_name: String
+  event_name: String # this is unique string
   event_description: String
   endpoint: String
   enabled: Boolean

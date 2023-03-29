@@ -28,13 +28,11 @@ func UpdateWebhookResolver(ctx context.Context, params model.UpdateWebhookReques
 		log.Debug("Not logged in as super admin")
 		return nil, fmt.Errorf("unauthorized")
 	}
-
 	webhook, err := db.Provider.GetWebhookByID(ctx, params.ID)
 	if err != nil {
 		log.Debug("failed to get webhook: ", err)
 		return nil, err
 	}
-
 	headersString := ""
 	if webhook.Headers != nil {
 		headerBytes, err := json.Marshal(webhook.Headers)
@@ -43,17 +41,16 @@ func UpdateWebhookResolver(ctx context.Context, params model.UpdateWebhookReques
 		}
 		headersString = string(headerBytes)
 	}
-
 	webhookDetails := models.Webhook{
-		ID:        webhook.ID,
-		Key:       webhook.ID,
-		EventName: refs.StringValue(webhook.EventName),
-		EndPoint:  refs.StringValue(webhook.Endpoint),
-		Enabled:   refs.BoolValue(webhook.Enabled),
-		Headers:   headersString,
-		CreatedAt: refs.Int64Value(webhook.CreatedAt),
+		ID:               webhook.ID,
+		Key:              webhook.ID,
+		EventName:        refs.StringValue(webhook.EventName),
+		EventDescription: refs.StringValue(webhook.EventDescription),
+		EndPoint:         refs.StringValue(webhook.Endpoint),
+		Enabled:          refs.BoolValue(webhook.Enabled),
+		Headers:          headersString,
+		CreatedAt:        refs.Int64Value(webhook.CreatedAt),
 	}
-
 	if params.EventName != nil && webhookDetails.EventName != refs.StringValue(params.EventName) {
 		if isValid := validators.IsValidWebhookEventName(refs.StringValue(params.EventName)); !isValid {
 			log.Debug("invalid event name: ", refs.StringValue(params.EventName))
@@ -61,7 +58,6 @@ func UpdateWebhookResolver(ctx context.Context, params model.UpdateWebhookReques
 		}
 		webhookDetails.EventName = refs.StringValue(params.EventName)
 	}
-
 	if params.Endpoint != nil && webhookDetails.EndPoint != refs.StringValue(params.Endpoint) {
 		if strings.TrimSpace(refs.StringValue(params.Endpoint)) == "" {
 			log.Debug("empty endpoint not allowed")
@@ -69,11 +65,12 @@ func UpdateWebhookResolver(ctx context.Context, params model.UpdateWebhookReques
 		}
 		webhookDetails.EndPoint = refs.StringValue(params.Endpoint)
 	}
-
 	if params.Enabled != nil && webhookDetails.Enabled != refs.BoolValue(params.Enabled) {
 		webhookDetails.Enabled = refs.BoolValue(params.Enabled)
 	}
-
+	if params.EventDescription != nil && webhookDetails.EventDescription != refs.StringValue(params.EventDescription) {
+		webhookDetails.EventDescription = refs.StringValue(params.EventDescription)
+	}
 	if params.Headers != nil {
 		headerBytes, err := json.Marshal(params.Headers)
 		if err != nil {
@@ -83,12 +80,10 @@ func UpdateWebhookResolver(ctx context.Context, params model.UpdateWebhookReques
 
 		webhookDetails.Headers = string(headerBytes)
 	}
-
 	_, err = db.Provider.UpdateWebhook(ctx, webhookDetails)
 	if err != nil {
 		return nil, err
 	}
-
 	return &model.Response{
 		Message: `Webhook updated successfully.`,
 	}, nil

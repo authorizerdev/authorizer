@@ -20,7 +20,7 @@ func resetPasswordTest(t *testing.T, s TestSetup) {
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password,
 		})
-
+		assert.NoError(t, err)
 		_, err = resolvers.ForgotPasswordResolver(ctx, model.ForgotPasswordInput{
 			Email: email,
 		})
@@ -28,7 +28,7 @@ func resetPasswordTest(t *testing.T, s TestSetup) {
 
 		verificationRequest, err := db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeForgotPassword)
 		assert.Nil(t, err, "should get forgot password request")
-
+		assert.NotNil(t, verificationRequest)
 		_, err = resolvers.ResetPasswordResolver(ctx, model.ResetPasswordInput{
 			Token:           verificationRequest.Token,
 			Password:        "test1",

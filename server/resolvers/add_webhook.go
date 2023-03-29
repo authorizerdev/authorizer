@@ -23,27 +23,26 @@ func AddWebhookResolver(ctx context.Context, params model.AddWebhookRequest) (*m
 		log.Debug("Failed to get GinContext: ", err)
 		return nil, err
 	}
-
 	if !token.IsSuperAdmin(gc) {
 		log.Debug("Not logged in as super admin")
 		return nil, fmt.Errorf("unauthorized")
 	}
-
 	if !validators.IsValidWebhookEventName(params.EventName) {
 		log.Debug("Invalid Event Name: ", params.EventName)
 		return nil, fmt.Errorf("invalid event name %s", params.EventName)
 	}
-
 	if strings.TrimSpace(params.Endpoint) == "" {
 		log.Debug("empty endpoint not allowed")
 		return nil, fmt.Errorf("empty endpoint not allowed")
 	}
-
 	headerBytes, err := json.Marshal(params.Headers)
 	if err != nil {
 		return nil, err
 	}
 
+	if params.EventDescription == nil {
+		params.EventDescription = refs.NewStringRef(strings.Join(strings.Split(params.EventName, "."), " "))
+	}
 	_, err = db.Provider.AddWebhook(ctx, models.Webhook{
 		EventDescription: refs.StringValue(params.EventDescription),
 		EventName:        params.EventName,

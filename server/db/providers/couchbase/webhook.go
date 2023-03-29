@@ -22,9 +22,6 @@ func (p *provider) AddWebhook(ctx context.Context, webhook models.Webhook) (*mod
 	webhook.Key = webhook.ID
 	webhook.CreatedAt = time.Now().Unix()
 	webhook.UpdatedAt = time.Now().Unix()
-	if webhook.EventDescription == "" {
-		webhook.EventDescription = strings.Join(strings.Split(webhook.EventName, "."), " ")
-	}
 	// Add timestamp to make event name unique for legacy version
 	webhook.EventName = fmt.Sprintf("%s-%d", webhook.EventName, time.Now().Unix())
 	insertOpt := gocb.InsertOptions{
@@ -90,8 +87,6 @@ func (p *provider) ListWebhook(ctx context.Context, pagination model.Pagination)
 	})
 	if err != nil {
 		return nil, err
-	} else if err := queryResult.Err(); err != nil {
-		return nil, err
 	}
 	for queryResult.Next() {
 		var webhook models.Webhook
@@ -100,6 +95,9 @@ func (p *provider) ListWebhook(ctx context.Context, pagination model.Pagination)
 			log.Fatal(err)
 		}
 		webhooks = append(webhooks, webhook.AsAPIWebhook())
+	}
+	if err := queryResult.Err(); err != nil {
+		return nil, err
 	}
 	return &model.Webhooks{
 		Pagination: &paginationClone,
@@ -131,16 +129,14 @@ func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*model
 // GetWebhookByEventName to get webhook by event_name
 func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) ([]*model.Webhook, error) {
 	params := make(map[string]interface{}, 1)
-	params["event_name"] = eventName + "%"
-	query := fmt.Sprintf(`SELECT _id, event_description, event_name, endpoint, headers, enabled, created_at, updated_at FROM %s.%s WHERE event_name LIKE $event_name`, p.scopeName, models.Collections.Webhook)
+	// params["event_name"] = eventName + "%"
+	query := fmt.Sprintf(`SELECT _id, event_description, event_name, endpoint, headers, enabled, created_at, updated_at FROM %s.%s WHERE event_name LIKE '%s'`, p.scopeName, models.Collections.Webhook, eventName+"%")
 	queryResult, err := p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
 		NamedParameters: params,
 	})
 	if err != nil {
-		return nil, err
-	} else if err := queryResult.Err(); err != nil {
 		return nil, err
 	}
 	webhooks := []*model.Webhook{}
@@ -152,12 +148,14 @@ func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) 
 		}
 		webhooks = append(webhooks, webhook.AsAPIWebhook())
 	}
+	if err := queryResult.Err(); err != nil {
+		return nil, err
+	}
 	return webhooks, nil
 }
 
 // DeleteWebhook to delete webhook
 func (p *provider) DeleteWebhook(ctx context.Context, webhook *model.Webhook) error {
-
 	params := make(map[string]interface{}, 1)
 	params["webhook_id"] = webhook.ID
 	removeOpt := gocb.RemoveOptions{

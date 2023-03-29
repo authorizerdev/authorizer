@@ -34,7 +34,7 @@ func usersTest(t *testing.T, s TestSetup) {
 
 		usersRes, err := resolvers.UsersResolver(ctx, pagination)
 		assert.NotNil(t, err, "unauthorized")
-
+		assert.Nil(t, usersRes)
 		adminSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret)
 		assert.Nil(t, err)
 		h, err := crypto.EncryptPassword(adminSecret)

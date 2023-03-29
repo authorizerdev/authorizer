@@ -20,9 +20,6 @@ func (p *provider) AddWebhook(ctx context.Context, webhook models.Webhook) (*mod
 		webhook.Key = webhook.ID
 	}
 	webhook.Key = webhook.ID
-	if webhook.EventDescription == "" {
-		webhook.EventDescription = strings.Join(strings.Split(webhook.EventName, "."), " ")
-	}
 	// Add timestamp to make event name unique for legacy version
 	webhook.EventName = fmt.Sprintf("%s-%d", webhook.EventName, time.Now().Unix())
 	webhook.CreatedAt = time.Now().Unix()

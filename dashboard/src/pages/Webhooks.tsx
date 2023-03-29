@@ -56,6 +56,7 @@ interface paginationPropTypes {
 interface webhookDataTypes {
 	[WebhookInputDataFields.ID]: string;
 	[WebhookInputDataFields.EVENT_NAME]: string;
+	[WebhookInputDataFields.EVENT_DESCRIPTION]: string;
 	[WebhookInputDataFields.ENDPOINT]: string;
 	[WebhookInputDataFields.ENABLED]: boolean;
 	[WebhookInputDataFields.HEADERS]?: Record<string, string>;
@@ -134,6 +135,7 @@ const Webhooks = () => {
 						<Thead>
 							<Tr>
 								<Th>Event Name</Th>
+								<Th>Event Description</Th>
 								<Th>Endpoint</Th>
 								<Th>Enabled</Th>
 								<Th>Headers</Th>
@@ -147,7 +149,10 @@ const Webhooks = () => {
 									style={{ fontSize: 14 }}
 								>
 									<Td maxW="300">
-										{webhook[WebhookInputDataFields.EVENT_NAME]}
+										{webhook[WebhookInputDataFields.EVENT_NAME].split('-')[0]}
+									</Td>
+									<Td maxW="300">
+										{webhook[WebhookInputDataFields.EVENT_DESCRIPTION]}
 									</Td>
 									<Td>{webhook[WebhookInputDataFields.ENDPOINT]}</Td>
 									<Td>
@@ -264,7 +269,7 @@ const Webhooks = () => {
 											</Text>
 										</Text>
 										<Flex alignItems="center">
-											<Text flexShrink="0">Go to page:</Text>{' '}
+											<Text>Go to page:</Text>{' '}
 											<NumberInput
 												ml={2}
 												mr={8}

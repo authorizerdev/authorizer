@@ -21,9 +21,6 @@ func (p *provider) AddWebhook(ctx context.Context, webhook models.Webhook) (*mod
 	webhook.Key = webhook.ID
 	webhook.CreatedAt = time.Now().Unix()
 	webhook.UpdatedAt = time.Now().Unix()
-	if webhook.EventDescription == "" {
-		webhook.EventDescription = strings.Join(strings.Split(webhook.EventName, "."), " ")
-	}
 	// Add timestamp to make event name unique for legacy version
 	webhook.EventName = fmt.Sprintf("%s-%d", webhook.EventName, time.Now().Unix())
 	webhookCollection := p.db.Collection(models.Collections.Webhook, options.Collection())
@@ -99,9 +96,9 @@ func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) 
 	webhookCollection := p.db.Collection(models.Collections.Webhook, options.Collection())
 	opts := options.Find()
 	opts.SetSort(bson.M{"created_at": -1})
-	cursor, err := webhookCollection.Find(ctx, bson.M{
-		"event_name": fmt.Sprintf("'^%s'", eventName),
-	}, opts)
+	cursor, err := webhookCollection.Find(ctx, bson.M{"event_name": bson.M{
+		"$regex": fmt.Sprintf("^%s", eventName),
+	}}, opts)
 	if err != nil {
 		return nil, err
 	}

@@ -44,10 +44,11 @@ func resendOTPTest(t *testing.T, s TestSetup) {
 		// Using access token update profile
 		s.GinContext.Request.Header.Set("Authorization", "Bearer "+refs.StringValue(verifyRes.AccessToken))
 		ctx = context.WithValue(req.Context(), "GinContextKey", s.GinContext)
-		_, err = resolvers.UpdateProfileResolver(ctx, model.UpdateProfileInput{
+		updateRes, err := resolvers.UpdateProfileResolver(ctx, model.UpdateProfileInput{
 			IsMultiFactorAuthEnabled: refs.NewBoolRef(true),
 		})
-
+		assert.NoError(t, err)
+		assert.NotNil(t, updateRes)
 		// Resend otp should return error as no initial opt is being sent
 		resendOtpRes, err := resolvers.ResendOTPResolver(ctx, model.ResendOTPRequest{
 			Email: email,
@@ -87,7 +88,7 @@ func resendOTPTest(t *testing.T, s TestSetup) {
 			Otp:   otp.Otp,
 		})
 		assert.Error(t, err)
-
+		assert.Nil(t, verifyOtpRes)
 		verifyOtpRes, err = resolvers.VerifyOtpResolver(ctx, model.VerifyOTPRequest{
 			Email: email,
 			Otp:   newOtp.Otp,

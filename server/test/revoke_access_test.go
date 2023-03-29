@@ -23,6 +23,8 @@ func revokeAccessTest(t *testing.T, s TestSetup) {
 		})
 		assert.NoError(t, err)
 		verificationRequest, err := db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeMagicLinkLogin)
+		assert.NoError(t, err)
+		assert.NotNil(t, verificationRequest)
 		verifyRes, err := resolvers.VerifyEmailResolver(ctx, model.VerifyEmailInput{
 			Token: verificationRequest.Token,
 		})
@@ -33,7 +35,7 @@ func revokeAccessTest(t *testing.T, s TestSetup) {
 			UserID: verifyRes.User.ID,
 		})
 		assert.Error(t, err)
-
+		assert.Nil(t, res)
 		adminSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAdminSecret)
 		assert.Nil(t, err)
 
