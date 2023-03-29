@@ -118,6 +118,7 @@ export const WebhooksDataQuery = `
     _webhooks(params: $params){
       webhooks{
         id
+        event_description
         event_name
         endpoint
         enabled

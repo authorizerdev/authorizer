@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"github.com/99designs/gqlgen/graphql/handler"
-	graph "github.com/authorizerdev/authorizer/server/graph"
+	"github.com/authorizerdev/authorizer/server/graph"
 	"github.com/authorizerdev/authorizer/server/graph/generated"
 	"github.com/gin-gonic/gin"
 )

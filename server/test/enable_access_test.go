@@ -23,6 +23,8 @@ func enableAccessTest(t *testing.T, s TestSetup) {
 		})
 		assert.NoError(t, err)
 		verificationRequest, err := db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeMagicLinkLogin)
+		assert.NoError(t, err)
+		assert.NotNil(t, verificationRequest)
 		verifyRes, err := resolvers.VerifyEmailResolver(ctx, model.VerifyEmailInput{
 			Token: verificationRequest.Token,
 		})

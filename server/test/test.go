@@ -40,31 +40,49 @@ func cleanData(email string) {
 	verificationRequest, err := db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeBasicAuthSignup)
 	if err == nil {
 		err = db.Provider.DeleteVerificationRequest(ctx, verificationRequest)
+		if err != nil {
+			log.Debug("DeleteVerificationRequest err", err)
+		}
 	}
 
 	verificationRequest, err = db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeForgotPassword)
 	if err == nil {
 		err = db.Provider.DeleteVerificationRequest(ctx, verificationRequest)
+		if err != nil {
+			log.Debug("DeleteVerificationRequest err", err)
+		}
 	}
 
 	verificationRequest, err = db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeUpdateEmail)
 	if err == nil {
 		err = db.Provider.DeleteVerificationRequest(ctx, verificationRequest)
+		if err != nil {
+			log.Debug("DeleteVerificationRequest err", err)
+		}
 	}
 
 	verificationRequest, err = db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeMagicLinkLogin)
 	if err == nil {
 		err = db.Provider.DeleteVerificationRequest(ctx, verificationRequest)
+		if err != nil {
+			log.Debug("DeleteVerificationRequest err", err)
+		}
 	}
 
 	otp, err := db.Provider.GetOTPByEmail(ctx, email)
 	if err == nil {
 		err = db.Provider.DeleteOTP(ctx, otp)
+		if err != nil {
+			log.Debug("DeleteOTP err", err)
+		}
 	}
 
 	dbUser, err := db.Provider.GetUserByEmail(ctx, email)
 	if err == nil {
-		db.Provider.DeleteUser(ctx, dbUser)
+		err = db.Provider.DeleteUser(ctx, dbUser)
+		if err != nil {
+			log.Debug("DeleteUser err", err)
+		}
 	}
 }
 

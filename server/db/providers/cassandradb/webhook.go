@@ -19,29 +19,26 @@ func (p *provider) AddWebhook(ctx context.Context, webhook models.Webhook) (*mod
 	if webhook.ID == "" {
 		webhook.ID = uuid.New().String()
 	}
-
 	webhook.Key = webhook.ID
 	webhook.CreatedAt = time.Now().Unix()
 	webhook.UpdatedAt = time.Now().Unix()
-
-	existingHook, _ := p.GetWebhookByEventName(ctx, webhook.EventName)
-	if existingHook != nil {
-		return nil, fmt.Errorf("Webhook with %s event_name already exists", webhook.EventName)
-	}
-
-	insertQuery := fmt.Sprintf("INSERT INTO %s (id, event_name, endpoint, headers, enabled,  created_at, updated_at) VALUES ('%s', '%s', '%s', '%s', %t, %d, %d)", KeySpace+"."+models.Collections.Webhook, webhook.ID, webhook.EventName, webhook.EndPoint, webhook.Headers, webhook.Enabled, webhook.CreatedAt, webhook.UpdatedAt)
+	// Add timestamp to make event name unique for legacy version
+	webhook.EventName = fmt.Sprintf("%s-%d", webhook.EventName, time.Now().Unix())
+	insertQuery := fmt.Sprintf("INSERT INTO %s (id, event_description, event_name, endpoint, headers, enabled,  created_at, updated_at) VALUES ('%s', '%s', '%s', '%s', '%s', %t, %d, %d)", KeySpace+"."+models.Collections.Webhook, webhook.ID, webhook.EventDescription, webhook.EventName, webhook.EndPoint, webhook.Headers, webhook.Enabled, webhook.CreatedAt, webhook.UpdatedAt)
 	err := p.db.Query(insertQuery).Exec()
 	if err != nil {
 		return nil, err
 	}
-
 	return webhook.AsAPIWebhook(), nil
 }
 
 // UpdateWebhook to update webhook
 func (p *provider) UpdateWebhook(ctx context.Context, webhook models.Webhook) (*model.Webhook, error) {
 	webhook.UpdatedAt = time.Now().Unix()
-
+	// Event is changed
+	if !strings.Contains(webhook.EventName, "-") {
+		webhook.EventName = fmt.Sprintf("%s-%d", webhook.EventName, time.Now().Unix())
+	}
 	bytes, err := json.Marshal(webhook)
 	if err != nil {
 		return nil, err
@@ -54,22 +51,18 @@ func (p *provider) UpdateWebhook(ctx context.Context, webhook models.Webhook) (*
 	if err != nil {
 		return nil, err
 	}
-
 	updateFields := ""
 	for key, value := range webhookMap {
 		if key == "_id" {
 			continue
 		}
-
 		if key == "_key" {
 			continue
 		}
-
 		if value == nil {
 			updateFields += fmt.Sprintf("%s = null,", key)
 			continue
 		}
-
 		valueType := reflect.TypeOf(value)
 		if valueType.Name() == "string" {
 			updateFields += fmt.Sprintf("%s = '%s', ", key, value.(string))
@@ -79,7 +72,6 @@ func (p *provider) UpdateWebhook(ctx context.Context, webhook models.Webhook) (*
 	}
 	updateFields = strings.Trim(updateFields, " ")
 	updateFields = strings.TrimSuffix(updateFields, ",")
-
 	query := fmt.Sprintf("UPDATE %s SET %s WHERE id = '%s'", KeySpace+"."+models.Collections.Webhook, updateFields, webhook.ID)
 	err = p.db.Query(query).Exec()
 	if err != nil {
@@ -92,24 +84,21 @@ func (p *provider) UpdateWebhook(ctx context.Context, webhook models.Webhook) (*
 func (p *provider) ListWebhook(ctx context.Context, pagination model.Pagination) (*model.Webhooks, error) {
 	webhooks := []*model.Webhook{}
 	paginationClone := pagination
-
 	totalCountQuery := fmt.Sprintf(`SELECT COUNT(*) FROM %s`, KeySpace+"."+models.Collections.Webhook)
 	err := p.db.Query(totalCountQuery).Consistency(gocql.One).Scan(&paginationClone.Total)
 	if err != nil {
 		return nil, err
 	}
-
 	// there is no offset in cassandra
 	// so we fetch till limit + offset
 	// and return the results from offset to limit
-	query := fmt.Sprintf("SELECT id, event_name, endpoint, headers, enabled, created_at, updated_at FROM %s LIMIT %d", KeySpace+"."+models.Collections.Webhook, pagination.Limit+pagination.Offset)
-
+	query := fmt.Sprintf("SELECT id, event_description, event_name, endpoint, headers, enabled, created_at, updated_at FROM %s LIMIT %d", KeySpace+"."+models.Collections.Webhook, pagination.Limit+pagination.Offset)
 	scanner := p.db.Query(query).Iter().Scanner()
 	counter := int64(0)
 	for scanner.Next() {
 		if counter >= pagination.Offset {
 			var webhook models.Webhook
-			err := scanner.Scan(&webhook.ID, &webhook.EventName, &webhook.EndPoint, &webhook.Headers, &webhook.Enabled, &webhook.CreatedAt, &webhook.UpdatedAt)
+			err := scanner.Scan(&webhook.ID, &webhook.EventDescription, &webhook.EventName, &webhook.EndPoint, &webhook.Headers, &webhook.Enabled, &webhook.CreatedAt, &webhook.UpdatedAt)
 			if err != nil {
 				return nil, err
 			}
@@ -127,8 +116,8 @@ func (p *provider) ListWebhook(ctx context.Context, pagination model.Pagination)
 // GetWebhookByID to get webhook by id
 func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*model.Webhook, error) {
 	var webhook models.Webhook
-	query := fmt.Sprintf(`SELECT id, event_name, endpoint, headers, enabled, created_at, updated_at FROM %s WHERE id = '%s' LIMIT 1`, KeySpace+"."+models.Collections.Webhook, webhookID)
-	err := p.db.Query(query).Consistency(gocql.One).Scan(&webhook.ID, &webhook.EventName, &webhook.EndPoint, &webhook.Headers, &webhook.Enabled, &webhook.CreatedAt, &webhook.UpdatedAt)
+	query := fmt.Sprintf(`SELECT id, event_description, event_name, endpoint, headers, enabled, created_at, updated_at FROM %s WHERE id = '%s' LIMIT 1`, KeySpace+"."+models.Collections.Webhook, webhookID)
+	err := p.db.Query(query).Consistency(gocql.One).Scan(&webhook.ID, &webhook.EventDescription, &webhook.EventName, &webhook.EndPoint, &webhook.Headers, &webhook.Enabled, &webhook.CreatedAt, &webhook.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -136,14 +125,19 @@ func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*model
 }
 
 // GetWebhookByEventName to get webhook by event_name
-func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) (*model.Webhook, error) {
-	var webhook models.Webhook
-	query := fmt.Sprintf(`SELECT id, event_name, endpoint, headers, enabled, created_at, updated_at FROM %s WHERE event_name = '%s' LIMIT 1 ALLOW FILTERING`, KeySpace+"."+models.Collections.Webhook, eventName)
-	err := p.db.Query(query).Consistency(gocql.One).Scan(&webhook.ID, &webhook.EventName, &webhook.EndPoint, &webhook.Headers, &webhook.Enabled, &webhook.CreatedAt, &webhook.UpdatedAt)
-	if err != nil {
-		return nil, err
+func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) ([]*model.Webhook, error) {
+	query := fmt.Sprintf(`SELECT id, event_description, event_name, endpoint, headers, enabled, created_at, updated_at FROM %s WHERE event_name LIKE '%s' ALLOW FILTERING`, KeySpace+"."+models.Collections.Webhook, eventName+"%")
+	scanner := p.db.Query(query).Iter().Scanner()
+	webhooks := []*model.Webhook{}
+	for scanner.Next() {
+		var webhook models.Webhook
+		err := scanner.Scan(&webhook.ID, &webhook.EventDescription, &webhook.EventName, &webhook.EndPoint, &webhook.Headers, &webhook.Enabled, &webhook.CreatedAt, &webhook.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		webhooks = append(webhooks, webhook.AsAPIWebhook())
 	}
-	return webhook.AsAPIWebhook(), nil
+	return webhooks, nil
 }
 
 // DeleteWebhook to delete webhook

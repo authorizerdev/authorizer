@@ -16,12 +16,13 @@ func loginTests(t *testing.T, s TestSetup) {
 	t.Run(`should login`, func(t *testing.T) {
 		_, ctx := createContext(s)
 		email := "login." + s.TestInfo.Email
-		_, err := resolvers.SignupResolver(ctx, model.SignUpInput{
+		signUpRes, err := resolvers.SignupResolver(ctx, model.SignUpInput{
 			Email:           email,
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password,
 		})
-
+		assert.NoError(t, err)
+		assert.NotNil(t, signUpRes)
 		res, err := resolvers.LoginResolver(ctx, model.LoginInput{
 			Email:    email,
 			Password: s.TestInfo.Password,
@@ -30,6 +31,8 @@ func loginTests(t *testing.T, s TestSetup) {
 		assert.NotNil(t, err, "should fail because email is not verified")
 		assert.Nil(t, res)
 		verificationRequest, err := db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeBasicAuthSignup)
+		assert.NoError(t, err)
+		assert.NotNil(t, verificationRequest)
 		n, err := utils.EncryptNonce(verificationRequest.Nonce)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, n)

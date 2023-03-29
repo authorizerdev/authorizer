@@ -30,10 +30,13 @@ func sessionTests(t *testing.T, s TestSetup) {
 		assert.NotNil(t, err, "unauthorized")
 
 		verificationRequest, err := db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeBasicAuthSignup)
+		assert.NoError(t, err)
+		assert.NotNil(t, verificationRequest)
 		verifyRes, err := resolvers.VerifyEmailResolver(ctx, model.VerifyEmailInput{
 			Token: verificationRequest.Token,
 		})
-
+		assert.NoError(t, err)
+		assert.NotNil(t, verifyRes)
 		accessToken := *verifyRes.AccessToken
 		assert.NotEmpty(t, accessToken)
 

@@ -56,7 +56,7 @@ type Provider interface {
 	// GetWebhookByID to get webhook by id
 	GetWebhookByID(ctx context.Context, webhookID string) (*model.Webhook, error)
 	// GetWebhookByEventName to get webhook by event_name
-	GetWebhookByEventName(ctx context.Context, eventName string) (*model.Webhook, error)
+	GetWebhookByEventName(ctx context.Context, eventName string) ([]*model.Webhook, error)
 	// DeleteWebhook to delete webhook
 	DeleteWebhook(ctx context.Context, webhook *model.Webhook) error
 

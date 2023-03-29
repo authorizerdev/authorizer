@@ -29,24 +29,25 @@ func mobileSingupTest(t *testing.T, s TestSetup) {
 			Password:        "test",
 			ConfirmPassword: "test",
 		})
-		assert.NotNil(t, err, "invalid password")
-
+		assert.Error(t, err)
+		assert.Nil(t, res)
 		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDisableSignUp, true)
 		res, err = resolvers.MobileSignupResolver(ctx, &model.MobileSignUpInput{
 			Email:           refs.NewStringRef(email),
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password,
 		})
-		assert.NotNil(t, err, "singup disabled")
+		assert.Error(t, err)
+		assert.Nil(t, res)
 		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDisableSignUp, false)
-
 		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDisableMobileBasicAuthentication, true)
 		res, err = resolvers.MobileSignupResolver(ctx, &model.MobileSignUpInput{
 			Email:           refs.NewStringRef(email),
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password,
 		})
-		assert.NotNil(t, err, "singup disabled")
+		assert.Error(t, err)
+		assert.Nil(t, res)
 		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDisableMobileBasicAuthentication, false)
 
 		res, err = resolvers.MobileSignupResolver(ctx, &model.MobileSignUpInput{
@@ -54,14 +55,16 @@ func mobileSingupTest(t *testing.T, s TestSetup) {
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password,
 		})
-		assert.NotNil(t, err, "invalid mobile")
+		assert.Error(t, err)
+		assert.Nil(t, res)
 
 		res, err = resolvers.MobileSignupResolver(ctx, &model.MobileSignUpInput{
 			PhoneNumber:     "test",
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password,
 		})
-		assert.NotNil(t, err, "invalid mobile")
+		assert.Error(t, err)
+		assert.Nil(t, res)
 
 		res, err = resolvers.MobileSignupResolver(ctx, &model.MobileSignUpInput{
 			PhoneNumber:     "1234567890",
@@ -77,7 +80,8 @@ func mobileSingupTest(t *testing.T, s TestSetup) {
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password,
 		})
-		assert.Error(t, err, "user exists")
+		assert.Error(t, err)
+		assert.Nil(t, res)
 
 		cleanData(email)
 		cleanData("1234567890@authorizer.dev")

@@ -15,17 +15,18 @@ func forgotPasswordTest(t *testing.T, s TestSetup) {
 	t.Run(`should run forgot password`, func(t *testing.T) {
 		_, ctx := createContext(s)
 		email := "forgot_password." + s.TestInfo.Email
-		_, err := resolvers.SignupResolver(ctx, model.SignUpInput{
+		res, err := resolvers.SignupResolver(ctx, model.SignUpInput{
 			Email:           email,
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password,
 		})
-
-		_, err = resolvers.ForgotPasswordResolver(ctx, model.ForgotPasswordInput{
+		assert.NoError(t, err)
+		assert.NotNil(t, res)
+		forgotPasswordRes, err := resolvers.ForgotPasswordResolver(ctx, model.ForgotPasswordInput{
 			Email: email,
 		})
 		assert.Nil(t, err, "no errors for forgot password")
-
+		assert.NotNil(t, forgotPasswordRes)
 		verificationRequest, err := db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeForgotPassword)
 		assert.Nil(t, err)
 
