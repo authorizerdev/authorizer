@@ -39,9 +39,10 @@ func RegisterEvent(ctx context.Context, eventName string, authRecipe string, use
 		}
 
 		reqBody := map[string]interface{}{
-			"webhook_id": webhook.ID,
-			"event_name": eventName,
-			"user":       userMap,
+			"webhook_id":        webhook.ID,
+			"event_name":        eventName,
+			"event_description": webhook.EventDescription,
+			"user":              userMap,
 		}
 
 		if eventName == constants.UserLoginWebhookEvent || eventName == constants.UserSignUpWebhookEvent {
