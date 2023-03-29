@@ -118,7 +118,6 @@ export const WebhooksDataQuery = `
     _webhooks(params: $params){
       webhooks{
         id
-        event
         event_description
         event_name
         endpoint

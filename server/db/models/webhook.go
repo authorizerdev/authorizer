@@ -39,12 +39,13 @@ func (w *Webhook) AsAPIWebhook() *model.Webhook {
 		w.EventDescription = strings.Join(strings.Split(w.EventName, "."), " ")
 	}
 	return &model.Webhook{
-		ID:        id,
-		EventName: refs.NewStringRef(w.EventName),
-		Endpoint:  refs.NewStringRef(w.EndPoint),
-		Headers:   headersMap,
-		Enabled:   refs.NewBoolRef(w.Enabled),
-		CreatedAt: refs.NewInt64Ref(w.CreatedAt),
-		UpdatedAt: refs.NewInt64Ref(w.UpdatedAt),
+		ID:               id,
+		EventName:        refs.NewStringRef(w.EventName),
+		EventDescription: refs.NewStringRef(w.EventDescription),
+		Endpoint:         refs.NewStringRef(w.EndPoint),
+		Headers:          headersMap,
+		Enabled:          refs.NewBoolRef(w.Enabled),
+		CreatedAt:        refs.NewInt64Ref(w.CreatedAt),
+		UpdatedAt:        refs.NewInt64Ref(w.UpdatedAt),
 	}
 }

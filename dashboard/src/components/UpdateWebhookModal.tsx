@@ -63,6 +63,7 @@ interface headersValidatorDataType {
 interface selecetdWebhookDataTypes {
 	[WebhookInputDataFields.ID]: string;
 	[WebhookInputDataFields.EVENT_NAME]: string;
+	[WebhookInputDataFields.EVENT_DESCRIPTION]?: string;
 	[WebhookInputDataFields.ENDPOINT]: string;
 	[WebhookInputDataFields.ENABLED]: boolean;
 	[WebhookInputDataFields.HEADERS]?: Record<string, string>;
@@ -86,6 +87,7 @@ const initHeadersValidatorData: headersValidatorDataType = {
 
 interface webhookDataType {
 	[WebhookInputDataFields.EVENT_NAME]: string;
+	[WebhookInputDataFields.EVENT_DESCRIPTION]?: string;
 	[WebhookInputDataFields.ENDPOINT]: string;
 	[WebhookInputDataFields.ENABLED]: boolean;
 	[WebhookInputDataFields.HEADERS]: headersDataType[];
@@ -98,6 +100,7 @@ interface validatorDataType {
 
 const initWebhookData: webhookDataType = {
 	[WebhookInputDataFields.EVENT_NAME]: webhookEventNames['User login'],
+	[WebhookInputDataFields.EVENT_DESCRIPTION]: '',
 	[WebhookInputDataFields.ENDPOINT]: '',
 	[WebhookInputDataFields.ENABLED]: true,
 	[WebhookInputDataFields.HEADERS]: [{ ...initHeadersData }],
@@ -142,6 +145,9 @@ const UpdateWebhookModal = ({
 		}
 		switch (inputType) {
 			case WebhookInputDataFields.EVENT_NAME:
+				setWebhook({ ...webhook, [inputType]: value });
+				break;
+			case WebhookInputDataFields.EVENT_DESCRIPTION:
 				setWebhook({ ...webhook, [inputType]: value });
 				break;
 			case WebhookInputDataFields.ENDPOINT:
@@ -246,6 +252,8 @@ const UpdateWebhookModal = ({
 		let params: any = {
 			[WebhookInputDataFields.EVENT_NAME]:
 				webhook[WebhookInputDataFields.EVENT_NAME],
+			[WebhookInputDataFields.EVENT_DESCRIPTION]:
+				webhook[WebhookInputDataFields.EVENT_DESCRIPTION],
 			[WebhookInputDataFields.ENDPOINT]:
 				webhook[WebhookInputDataFields.ENDPOINT],
 			[WebhookInputDataFields.ENABLED]: webhook[WebhookInputDataFields.ENABLED],
@@ -402,7 +410,9 @@ const UpdateWebhookModal = ({
 								<Flex flex="3">
 									<Select
 										size="md"
-										value={webhook[WebhookInputDataFields.EVENT_NAME]}
+										value={
+											webhook[WebhookInputDataFields.EVENT_NAME].split('-')[0]
+										}
 										onChange={(e) =>
 											inputChangehandler(
 												WebhookInputDataFields.EVENT_NAME,
@@ -418,6 +428,30 @@ const UpdateWebhookModal = ({
 											),
 										)}
 									</Select>
+								</Flex>
+							</Flex>
+							<Flex
+								width="100%"
+								justifyContent="start"
+								alignItems="center"
+								marginBottom="5%"
+							>
+								<Flex flex="1">Event Description</Flex>
+								<Flex flex="3">
+									<InputGroup size="md">
+										<Input
+											pr="4.5rem"
+											type="text"
+											placeholder="User event"
+											value={webhook[WebhookInputDataFields.EVENT_DESCRIPTION]}
+											onChange={(e) =>
+												inputChangehandler(
+													WebhookInputDataFields.EVENT_DESCRIPTION,
+													e.currentTarget.value,
+												)
+											}
+										/>
+									</InputGroup>
 								</Flex>
 							</Flex>
 							<Flex

@@ -56,7 +56,7 @@ interface paginationPropTypes {
 interface webhookDataTypes {
 	[WebhookInputDataFields.ID]: string;
 	[WebhookInputDataFields.EVENT_NAME]: string;
-	[WebhookInputDataFields.EVENT_DESCRIPTION]: string;
+	[WebhookInputDataFields.EVENT_DESCRIPTION]?: string;
 	[WebhookInputDataFields.ENDPOINT]: string;
 	[WebhookInputDataFields.ENABLED]: boolean;
 	[WebhookInputDataFields.HEADERS]?: Record<string, string>;
@@ -118,6 +118,7 @@ const Webhooks = () => {
 	useEffect(() => {
 		fetchWebookData();
 	}, [paginationProps.page, paginationProps.limit]);
+	console.log({ webhookData });
 	return (
 		<Box m="5" py="5" px="10" bg="white" rounded="md">
 			<Flex margin="2% 0" justifyContent="space-between" alignItems="center">
