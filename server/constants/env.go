@@ -166,4 +166,12 @@ const (
 	EnvKeyDefaultRoles = "DEFAULT_ROLES"
 	// EnvKeyAllowedOrigins key for env variable ALLOWED_ORIGINS
 	EnvKeyAllowedOrigins = "ALLOWED_ORIGINS"
+
+	// For oauth/openid/authorize
+	// EnvKeyDefaultAuthorizeResponseType key for env variable DEFAULT_AUTHORIZE_RESPONSE_TYPE
+	// This env is used for setting default response type in authorize handler
+	EnvKeyDefaultAuthorizeResponseType = "DEFAULT_AUTHORIZE_RESPONSE_TYPE"
+	// EnvKeyDefaultAuthorizeResponseMode key for env variable DEFAULT_AUTHORIZE_RESPONSE_MODE
+	// This env is used for setting default response mode in authorize handler
+	EnvKeyDefaultAuthorizeResponseMode = "DEFAULT_AUTHORIZE_RESPONSE_MODE"
 )

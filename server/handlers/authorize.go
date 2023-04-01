@@ -83,7 +83,11 @@ func AuthorizeHandler() gin.HandlerFunc {
 		}
 
 		if responseMode == "" {
-			responseMode = constants.ResponseModeQuery
+			if val, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDefaultAuthorizeResponseMode); err == nil {
+				responseType = val
+			} else {
+				responseType = constants.ResponseModeQuery
+			}
 		}
 
 		if redirectURI == "" {
@@ -91,7 +95,11 @@ func AuthorizeHandler() gin.HandlerFunc {
 		}
 
 		if responseType == "" {
-			responseType = "token"
+			if val, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDefaultAuthorizeResponseType); err == nil {
+				responseType = val
+			} else {
+				responseType = constants.ResponseTypeToken
+			}
 		}
 
 		if err := validateAuthorizeRequest(responseType, responseMode, clientID, state, codeChallenge); err != nil {

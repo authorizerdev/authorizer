@@ -90,6 +90,8 @@ const Environment = () => {
 		ACCESS_TOKEN_EXPIRY_TIME: '',
 		DISABLE_MULTI_FACTOR_AUTHENTICATION: false,
 		ENFORCE_MULTI_FACTOR_AUTHENTICATION: false,
+		DEFAULT_AUTHORIZE_RESPONSE_TYPE: '',
+		DEFAULT_AUTHORIZE_RESPONSE_MODE: '',
 	});
 
 	const [fieldVisibility, setFieldVisibility] = React.useState<

@@ -117,6 +117,8 @@ type Env struct {
 	OrganizationLogo                 *string  `json:"ORGANIZATION_LOGO"`
 	AppCookieSecure                  bool     `json:"APP_COOKIE_SECURE"`
 	AdminCookieSecure                bool     `json:"ADMIN_COOKIE_SECURE"`
+	DefaultAuthorizeResponseType     *string  `json:"DEFAULT_AUTHORIZE_RESPONSE_TYPE"`
+	DefaultAuthorizeResponseMode     *string  `json:"DEFAULT_AUTHORIZE_RESPONSE_MODE"`
 }
 
 type Error struct {
@@ -353,6 +355,8 @@ type UpdateEnvInput struct {
 	MicrosoftActiveDirectoryTenantID *string  `json:"MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID"`
 	OrganizationName                 *string  `json:"ORGANIZATION_NAME"`
 	OrganizationLogo                 *string  `json:"ORGANIZATION_LOGO"`
+	DefaultAuthorizeResponseType     *string  `json:"DEFAULT_AUTHORIZE_RESPONSE_TYPE"`
+	DefaultAuthorizeResponseMode     *string  `json:"DEFAULT_AUTHORIZE_RESPONSE_MODE"`
 }
 
 type UpdateProfileInput struct {
