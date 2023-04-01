@@ -87,6 +87,8 @@ func InitAllEnv() error {
 	osCouchbaseBucket := os.Getenv(constants.EnvCouchbaseBucket)
 	osCouchbaseScope := os.Getenv(constants.EnvCouchbaseScope)
 	osCouchbaseBucketRAMQuotaMB := os.Getenv(constants.EnvCouchbaseBucketRAMQuotaMB)
+	osAuthorizeResponseType := os.Getenv(constants.EnvKeyDefaultAuthorizeResponseType)
+	osAuthorizeResponseMode := os.Getenv(constants.EnvKeyDefaultAuthorizeResponseMode)
 
 	// os bool vars
 	osAppCookieSecure := os.Getenv(constants.EnvKeyAppCookieSecure)
@@ -733,6 +735,28 @@ func InitAllEnv() error {
 	}
 	if osProtectedRoles != "" && envData[constants.EnvKeyProtectedRoles] != osProtectedRoles {
 		envData[constants.EnvKeyProtectedRoles] = osProtectedRoles
+	}
+
+	if val, ok := envData[constants.EnvKeyDefaultAuthorizeResponseType]; !ok || val == "" {
+		envData[constants.EnvKeyDefaultAuthorizeResponseType] = osAuthorizeResponseType
+		// Set the default value to token type
+		if envData[constants.EnvKeyDefaultAuthorizeResponseType] == "" {
+			envData[constants.EnvKeyDefaultAuthorizeResponseType] = constants.ResponseTypeToken
+		}
+	}
+	if osAuthorizeResponseType != "" && envData[constants.EnvKeyDefaultAuthorizeResponseType] != osAuthorizeResponseType {
+		envData[constants.EnvKeyDefaultAuthorizeResponseType] = osAuthorizeResponseType
+	}
+
+	if val, ok := envData[constants.EnvKeyDefaultAuthorizeResponseMode]; !ok || val == "" {
+		envData[constants.EnvKeyDefaultAuthorizeResponseMode] = osAuthorizeResponseMode
+		// Set the default value to token type
+		if envData[constants.EnvKeyDefaultAuthorizeResponseMode] == "" {
+			envData[constants.EnvKeyDefaultAuthorizeResponseMode] = constants.ResponseModeQuery
+		}
+	}
+	if osAuthorizeResponseMode != "" && envData[constants.EnvKeyDefaultAuthorizeResponseMode] != osAuthorizeResponseMode {
+		envData[constants.EnvKeyDefaultAuthorizeResponseMode] = osAuthorizeResponseMode
 	}
 
 	err = memorystore.Provider.UpdateEnvStore(envData)

@@ -168,6 +168,12 @@ func EnvResolver(ctx context.Context) (*model.Env, error) {
 	if val, ok := store[constants.EnvKeyOrganizationLogo]; ok {
 		res.OrganizationLogo = refs.NewStringRef(val.(string))
 	}
+	if val, ok := store[constants.EnvKeyDefaultAuthorizeResponseType]; ok {
+		res.DefaultAuthorizeResponseType = refs.NewStringRef(val.(string))
+	}
+	if val, ok := store[constants.EnvKeyDefaultAuthorizeResponseMode]; ok {
+		res.DefaultAuthorizeResponseMode = refs.NewStringRef(val.(string))
+	}
 
 	// string slice vars
 	res.AllowedOrigins = strings.Split(store[constants.EnvKeyAllowedOrigins].(string), ",")

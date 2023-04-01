@@ -57,6 +57,8 @@ export const ArrayInputType = {
 export const SelectInputType = {
 	JWT_TYPE: 'JWT_TYPE',
 	GENDER: 'gender',
+	DEFAULT_AUTHORIZE_RESPONSE_TYPE: 'DEFAULT_AUTHORIZE_RESPONSE_TYPE',
+	DEFAULT_AUTHORIZE_RESPONSE_MODE: 'DEFAULT_AUTHORIZE_RESPONSE_MODE',
 };
 
 export const MultiSelectInputType = {
@@ -161,6 +163,8 @@ export interface envVarTypes {
 	ACCESS_TOKEN_EXPIRY_TIME: string;
 	DISABLE_MULTI_FACTOR_AUTHENTICATION: boolean;
 	ENFORCE_MULTI_FACTOR_AUTHENTICATION: boolean;
+	DEFAULT_AUTHORIZE_RESPONSE_TYPE: string;
+	DEFAULT_AUTHORIZE_RESPONSE_MODE: string;
 }
 
 export const envSubViews = {
@@ -349,3 +353,16 @@ export enum EmailTemplateEditors {
 	UNLAYER_EDITOR = 'unlayer_editor',
 	PLAIN_HTML_EDITOR = 'plain_html_editor',
 }
+
+export const ResponseTypes = {
+	token: 'token',
+	code: 'code',
+	id_token: 'id_token',
+};
+
+export const ResponseModes = {
+	query: 'query',
+	form_post: 'form_post',
+	fragment: 'fragment',
+	web_message: 'web_message',
+};

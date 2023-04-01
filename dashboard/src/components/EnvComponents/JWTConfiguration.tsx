@@ -61,7 +61,6 @@ const JSTConfigurations = ({
 
 	return (
 		<div>
-			{' '}
 			<Flex
 				borderRadius={5}
 				width="100%"

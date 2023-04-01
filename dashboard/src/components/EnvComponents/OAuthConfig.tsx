@@ -18,7 +18,13 @@ import {
 	FaTwitter,
 	FaMicrosoft,
 } from 'react-icons/fa';
-import { TextInputType, HiddenInputType } from '../../constants';
+import {
+	TextInputType,
+	HiddenInputType,
+	ResponseModes,
+	ResponseTypes,
+	SelectInputType,
+} from '../../constants';
 
 const OAuthConfig = ({
 	envVariables,
@@ -69,6 +75,42 @@ const OAuthConfig = ({
 								readOnly={true}
 							/>
 						</Center>
+					</Flex>
+					<Flex direction={isNotSmallerScreen ? 'row' : 'column'}>
+						<Flex w="30%" justifyContent="start" alignItems="center">
+							<Text fontSize="sm">Default Response Type:</Text>
+						</Flex>
+						<Flex
+							w={isNotSmallerScreen ? '70%' : '100%'}
+							mt={isNotSmallerScreen ? '0' : '2'}
+						>
+							<InputField
+								borderRadius={5}
+								variables={envVariables}
+								setVariables={setVariables}
+								inputType={SelectInputType.DEFAULT_AUTHORIZE_RESPONSE_TYPE}
+								value={SelectInputType}
+								options={ResponseTypes}
+							/>
+						</Flex>
+					</Flex>
+					<Flex direction={isNotSmallerScreen ? 'row' : 'column'}>
+						<Flex w="30%" justifyContent="start" alignItems="center">
+							<Text fontSize="sm">Default Response Mode:</Text>
+						</Flex>
+						<Flex
+							w={isNotSmallerScreen ? '70%' : '100%'}
+							mt={isNotSmallerScreen ? '0' : '2'}
+						>
+							<InputField
+								borderRadius={5}
+								variables={envVariables}
+								setVariables={setVariables}
+								inputType={SelectInputType.DEFAULT_AUTHORIZE_RESPONSE_MODE}
+								value={SelectInputType}
+								options={ResponseModes}
+							/>
+						</Flex>
 					</Flex>
 				</Stack>
 				<Divider mt={5} mb={2} color="blackAlpha.700" />
