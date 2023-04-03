@@ -13,12 +13,6 @@ func (c *provider) SetUserSession(userId, key, token string) error {
 	return nil
 }
 
-// GetAllUserSessions returns all the user sessions token from the in-memory store.
-func (c *provider) GetAllUserSessions(userId string) (map[string]string, error) {
-	data := c.sessionStore.GetAll(userId)
-	return data, nil
-}
-
 // GetUserSession returns value for given session token
 func (c *provider) GetUserSession(userId, sessionToken string) (string, error) {
 	return c.sessionStore.Get(userId, sessionToken), nil

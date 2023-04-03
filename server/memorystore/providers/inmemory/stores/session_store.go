@@ -5,23 +5,31 @@ import (
 	"sync"
 )
 
+// SessionEntry is the struct for entry stored in store
+type SessionEntry struct {
+	Value     string
+	ExpiresAt int64
+}
+
 // SessionStore struct to store the env variables
 type SessionStore struct {
 	mutex sync.Mutex
-	store map[string]map[string]string
+	store map[string]map[string]*SessionEntry
 }
 
 // NewSessionStore create a new session store
 func NewSessionStore() *SessionStore {
 	return &SessionStore{
 		mutex: sync.Mutex{},
-		store: make(map[string]map[string]string),
+		store: make(map[string]map[string]*SessionEntry),
 	}
 }
 
 // Get returns the value of the key in state store
 func (s *SessionStore) Get(key, subKey string) string {
-	return s.store[key][subKey]
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	return s.store[key][subKey].Value
 }
 
 // Set sets the value of the key in state store

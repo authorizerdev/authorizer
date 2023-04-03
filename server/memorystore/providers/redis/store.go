@@ -1,6 +1,7 @@
 package redis
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/authorizerdev/authorizer/server/constants"
@@ -16,28 +17,17 @@ var (
 
 // SetUserSession sets the user session for given user identifier in form recipe:user_id
 func (c *provider) SetUserSession(userId, key, token string) error {
-	err := c.store.HSet(c.ctx, userId, key, token).Err()
+	err := c.store.Set(c.ctx, fmt.Sprintf("%s:%s", userId, key), token, 0).Err()
 	if err != nil {
-		log.Debug("Error saving to redis: ", err)
+		log.Debug("Error saving user session to redis: ", err)
 		return err
 	}
 	return nil
 }
 
-// GetAllUserSessions returns all the user session token from the redis store.
-func (c *provider) GetAllUserSessions(userID string) (map[string]string, error) {
-	data, err := c.store.HGetAll(c.ctx, userID).Result()
-	if err != nil {
-		log.Debug("error getting all user sessions from redis store: ", err)
-		return nil, err
-	}
-
-	return data, nil
-}
-
 // GetUserSession returns the user session from redis store.
 func (c *provider) GetUserSession(userId, key string) (string, error) {
-	data, err := c.store.HGet(c.ctx, userId, key).Result()
+	data, err := c.store.Get(c.ctx, fmt.Sprintf("%s:%s", userId, key)).Result()
 	if err != nil {
 		return "", err
 	}
@@ -46,15 +36,15 @@ func (c *provider) GetUserSession(userId, key string) (string, error) {
 
 // DeleteUserSession deletes the user session from redis store.
 func (c *provider) DeleteUserSession(userId, key string) error {
-	if err := c.store.HDel(c.ctx, userId, constants.TokenTypeSessionToken+"_"+key).Err(); err != nil {
+	if err := c.store.Del(c.ctx, fmt.Sprintf("%s:%s", userId, constants.TokenTypeSessionToken+"_"+key)).Err(); err != nil {
 		log.Debug("Error deleting user session from redis: ", err)
 		return err
 	}
-	if err := c.store.HDel(c.ctx, userId, constants.TokenTypeAccessToken+"_"+key).Err(); err != nil {
+	if err := c.store.Del(c.ctx, fmt.Sprintf("%s:%s", userId, constants.TokenTypeAccessToken+"_"+key)).Err(); err != nil {
 		log.Debug("Error deleting user session from redis: ", err)
 		return err
 	}
-	if err := c.store.HDel(c.ctx, userId, constants.TokenTypeRefreshToken+"_"+key).Err(); err != nil {
+	if err := c.store.Del(c.ctx, fmt.Sprintf("%s:%s", userId, constants.TokenTypeRefreshToken+"_"+key)).Err(); err != nil {
 		log.Debug("Error deleting user session from redis: ", err)
 		return err
 	}

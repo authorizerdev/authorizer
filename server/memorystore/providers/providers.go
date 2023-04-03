@@ -4,8 +4,6 @@ package providers
 type Provider interface {
 	// SetUserSession sets the user session for given user identifier in form recipe:user_id
 	SetUserSession(userId, key, token string) error
-	// GetAllUserSessions returns all the user sessions from the session store
-	GetAllUserSessions(userId string) (map[string]string, error)
 	// GetUserSession returns the session token for given token
 	GetUserSession(userId, key string) (string, error)
 	// DeleteUserSession deletes the user session

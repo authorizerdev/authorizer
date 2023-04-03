@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-redis/redis/v8"
+	"github.com/redis/go-redis/v9"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -17,10 +17,11 @@ type RedisClient interface {
 	HMGet(ctx context.Context, key string, fields ...string) *redis.SliceCmd
 	HSet(ctx context.Context, key string, values ...interface{}) *redis.IntCmd
 	HGet(ctx context.Context, key, field string) *redis.StringCmd
-	HGetAll(ctx context.Context, key string) *redis.StringStringMapCmd
+	HGetAll(ctx context.Context, key string) *redis.MapStringStringCmd
 	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.StatusCmd
 	Get(ctx context.Context, key string) *redis.StringCmd
 	Scan(ctx context.Context, cursor uint64, match string, count int64) *redis.ScanCmd
+	Keys(ctx context.Context, pattern string) *redis.StringSliceCmd
 }
 
 type provider struct {
@@ -70,7 +71,6 @@ func NewRedisProvider(redisURL string) (*provider, error) {
 		log.Debug("error connecting to redis: ", err)
 		return nil, err
 	}
-
 	return &provider{
 		ctx:   ctx,
 		store: rdb,

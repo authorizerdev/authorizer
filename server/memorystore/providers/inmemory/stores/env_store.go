@@ -31,11 +31,15 @@ func (e *EnvStore) UpdateStore(store map[string]interface{}) {
 
 // GetStore returns the env store
 func (e *EnvStore) GetStore() map[string]interface{} {
+	e.mutex.Lock()
+	defer e.mutex.Unlock()
 	return e.store
 }
 
 // Get returns the value of the key in evn store
 func (e *EnvStore) Get(key string) interface{} {
+	e.mutex.Lock()
+	defer e.mutex.Unlock()
 	return e.store[key]
 }
 

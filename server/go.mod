@@ -21,6 +21,7 @@ require (
 	github.com/joho/godotenv v1.3.0
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/pelletier/go-toml/v2 v2.0.5 // indirect
+	github.com/redis/go-redis/v9 v9.0.3 // indirect
 	github.com/robertkrimen/otto v0.0.0-20211024170158-b87d35c0b86f
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.8.0
