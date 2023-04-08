@@ -3,6 +3,7 @@ package redis
 import (
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	log "github.com/sirupsen/logrus"
@@ -16,8 +17,11 @@ var (
 )
 
 // SetUserSession sets the user session for given user identifier in form recipe:user_id
-func (c *provider) SetUserSession(userId, key, token string) error {
-	err := c.store.Set(c.ctx, fmt.Sprintf("%s:%s", userId, key), token, 0).Err()
+func (c *provider) SetUserSession(userId, key, token string, expiration int64) error {
+	currentTime := time.Now()
+	expireTime := time.Unix(expiration, 0)
+	duration := expireTime.Sub(currentTime)
+	err := c.store.Set(c.ctx, fmt.Sprintf("%s:%s", userId, key), token, duration).Err()
 	if err != nil {
 		log.Debug("Error saving user session to redis: ", err)
 		return err
@@ -38,37 +42,35 @@ func (c *provider) GetUserSession(userId, key string) (string, error) {
 func (c *provider) DeleteUserSession(userId, key string) error {
 	if err := c.store.Del(c.ctx, fmt.Sprintf("%s:%s", userId, constants.TokenTypeSessionToken+"_"+key)).Err(); err != nil {
 		log.Debug("Error deleting user session from redis: ", err)
-		return err
+		fmt.Println("Error deleting user session from redis: ", err, userId, constants.TokenTypeSessionToken, key)
+		// continue
 	}
 	if err := c.store.Del(c.ctx, fmt.Sprintf("%s:%s", userId, constants.TokenTypeAccessToken+"_"+key)).Err(); err != nil {
 		log.Debug("Error deleting user session from redis: ", err)
-		return err
+		fmt.Println("Error deleting user session from redis: ", err, userId, constants.TokenTypeAccessToken, key)
+		// continue
 	}
 	if err := c.store.Del(c.ctx, fmt.Sprintf("%s:%s", userId, constants.TokenTypeRefreshToken+"_"+key)).Err(); err != nil {
 		log.Debug("Error deleting user session from redis: ", err)
-		return err
+		fmt.Println("Error deleting user session from redis: ", err, userId, constants.TokenTypeRefreshToken, key)
+		// continue
 	}
 	return nil
 }
 
 // DeleteAllUserSessions deletes all the user session from redis
 func (c *provider) DeleteAllUserSessions(userID string) error {
-	namespaces := []string{
-		constants.AuthRecipeMethodBasicAuth,
-		constants.AuthRecipeMethodMagicLinkLogin,
-		constants.AuthRecipeMethodApple,
-		constants.AuthRecipeMethodFacebook,
-		constants.AuthRecipeMethodGithub,
-		constants.AuthRecipeMethodGoogle,
-		constants.AuthRecipeMethodLinkedIn,
-		constants.AuthRecipeMethodTwitter,
-		constants.AuthRecipeMethodMicrosoft,
+	res := c.store.Keys(c.ctx, fmt.Sprintf("*%s*", userID))
+	if res.Err() != nil {
+		log.Debug("Error getting all user sessions from redis: ", res.Err())
+		return res.Err()
 	}
-	for _, namespace := range namespaces {
-		err := c.store.Del(c.ctx, namespace+":"+userID).Err()
+	keys := res.Val()
+	for _, key := range keys {
+		err := c.store.Del(c.ctx, key).Err()
 		if err != nil {
 			log.Debug("Error deleting all user sessions from redis: ", err)
-			return err
+			continue
 		}
 	}
 	return nil
@@ -76,27 +78,19 @@ func (c *provider) DeleteAllUserSessions(userID string) error {
 
 // DeleteSessionForNamespace to delete session for a given namespace example google,github
 func (c *provider) DeleteSessionForNamespace(namespace string) error {
-	var cursor uint64
-	for {
-		keys := []string{}
-		keys, cursor, err := c.store.Scan(c.ctx, cursor, namespace+":*", 0).Result()
+	res := c.store.Keys(c.ctx, fmt.Sprintf("%s:*", namespace))
+	if res.Err() != nil {
+		log.Debug("Error getting all user sessions from redis: ", res.Err())
+		return res.Err()
+	}
+	keys := res.Val()
+	for _, key := range keys {
+		err := c.store.Del(c.ctx, key).Err()
 		if err != nil {
-			log.Debugf("Error scanning keys for %s namespace: %s", namespace, err.Error())
-			return err
-		}
-
-		for _, key := range keys {
-			err := c.store.Del(c.ctx, key).Err()
-			if err != nil {
-				log.Debugf("Error deleting sessions for %s namespace: %s", namespace, err.Error())
-				return err
-			}
-		}
-		if cursor == 0 { // no more keys
-			break
+			log.Debug("Error deleting all user sessions from redis: ", err)
+			continue
 		}
 	}
-
 	return nil
 }
 

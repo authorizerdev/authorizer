@@ -47,7 +47,14 @@ func LogoutHandler() gin.HandlerFunc {
 			return
 		}
 
-		memorystore.Provider.DeleteUserSession(sessionData.Subject, sessionData.Nonce)
+		userID := sessionData.Subject
+		loginMethod := sessionData.LoginMethod
+		sessionToken := userID
+		if loginMethod != "" {
+			sessionToken = loginMethod + ":" + userID
+		}
+
+		memorystore.Provider.DeleteUserSession(sessionToken, sessionData.Nonce)
 		cookie.DeleteSession(gc)
 
 		if redirectURL != "" {

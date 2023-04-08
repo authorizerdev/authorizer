@@ -30,11 +30,13 @@ type JWTToken struct {
 
 // Token object to hold the finger print and refresh token information
 type Token struct {
-	FingerPrint     string    `json:"fingerprint"`
-	FingerPrintHash string    `json:"fingerprint_hash"`
-	RefreshToken    *JWTToken `json:"refresh_token"`
-	AccessToken     *JWTToken `json:"access_token"`
-	IDToken         *JWTToken `json:"id_token"`
+	FingerPrint string `json:"fingerprint"`
+	// Session Token
+	FingerPrintHash       string    `json:"fingerprint_hash"`
+	SessionTokenExpiresAt int64     `json:"expires_at"`
+	RefreshToken          *JWTToken `json:"refresh_token"`
+	AccessToken           *JWTToken `json:"access_token"`
+	IDToken               *JWTToken `json:"id_token"`
 }
 
 // SessionData
@@ -51,7 +53,7 @@ type SessionData struct {
 // CreateAuthToken creates a new auth token when userlogs in
 func CreateAuthToken(gc *gin.Context, user models.User, roles, scope []string, loginMethod, nonce string, code string) (*Token, error) {
 	hostname := parsers.GetHost(gc)
-	_, fingerPrintHash, err := CreateSessionToken(user, nonce, roles, scope, loginMethod)
+	_, fingerPrintHash, sessionTokenExpiresAt, err := CreateSessionToken(user, nonce, roles, scope, loginMethod)
 	if err != nil {
 		return nil, err
 	}
@@ -82,10 +84,11 @@ func CreateAuthToken(gc *gin.Context, user models.User, roles, scope []string, l
 	}
 
 	res := &Token{
-		FingerPrint:     nonce,
-		FingerPrintHash: fingerPrintHash,
-		AccessToken:     &JWTToken{Token: accessToken, ExpiresAt: accessTokenExpiresAt},
-		IDToken:         &JWTToken{Token: idToken, ExpiresAt: idTokenExpiresAt},
+		FingerPrint:           nonce,
+		FingerPrintHash:       fingerPrintHash,
+		SessionTokenExpiresAt: sessionTokenExpiresAt,
+		AccessToken:           &JWTToken{Token: accessToken, ExpiresAt: accessTokenExpiresAt},
+		IDToken:               &JWTToken{Token: idToken, ExpiresAt: idTokenExpiresAt},
 	}
 
 	if utils.StringSliceContains(scope, "offline_access") {
@@ -101,7 +104,8 @@ func CreateAuthToken(gc *gin.Context, user models.User, roles, scope []string, l
 }
 
 // CreateSessionToken creates a new session token
-func CreateSessionToken(user models.User, nonce string, roles, scope []string, loginMethod string) (*SessionData, string, error) {
+func CreateSessionToken(user models.User, nonce string, roles, scope []string, loginMethod string) (*SessionData, string, int64, error) {
+	expiresAt := time.Now().AddDate(1, 0, 0).Unix()
 	fingerPrintMap := &SessionData{
 		Nonce:       nonce,
 		Roles:       roles,
@@ -109,15 +113,15 @@ func CreateSessionToken(user models.User, nonce string, roles, scope []string, l
 		Scope:       scope,
 		LoginMethod: loginMethod,
 		IssuedAt:    time.Now().Unix(),
-		ExpiresAt:   time.Now().AddDate(1, 0, 0).Unix(),
+		ExpiresAt:   expiresAt,
 	}
 	fingerPrintBytes, _ := json.Marshal(fingerPrintMap)
 	fingerPrintHash, err := crypto.EncryptAES(string(fingerPrintBytes))
 	if err != nil {
-		return nil, "", err
+		return nil, "", 0, err
 	}
 
-	return fingerPrintMap, fingerPrintHash, nil
+	return fingerPrintMap, fingerPrintHash, expiresAt, nil
 }
 
 // CreateRefreshToken util to create JWT token

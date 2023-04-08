@@ -32,7 +32,6 @@ type provider struct {
 // NewRedisProvider returns a new redis provider
 func NewRedisProvider(redisURL string) (*provider, error) {
 	redisURLHostPortsList := strings.Split(redisURL, ",")
-
 	if len(redisURLHostPortsList) > 1 {
 		opt, err := redis.ParseURL(redisURLHostPortsList[0])
 		if err != nil {
