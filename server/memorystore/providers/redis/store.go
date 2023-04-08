@@ -42,17 +42,14 @@ func (c *provider) GetUserSession(userId, key string) (string, error) {
 func (c *provider) DeleteUserSession(userId, key string) error {
 	if err := c.store.Del(c.ctx, fmt.Sprintf("%s:%s", userId, constants.TokenTypeSessionToken+"_"+key)).Err(); err != nil {
 		log.Debug("Error deleting user session from redis: ", err)
-		fmt.Println("Error deleting user session from redis: ", err, userId, constants.TokenTypeSessionToken, key)
 		// continue
 	}
 	if err := c.store.Del(c.ctx, fmt.Sprintf("%s:%s", userId, constants.TokenTypeAccessToken+"_"+key)).Err(); err != nil {
 		log.Debug("Error deleting user session from redis: ", err)
-		fmt.Println("Error deleting user session from redis: ", err, userId, constants.TokenTypeAccessToken, key)
 		// continue
 	}
 	if err := c.store.Del(c.ctx, fmt.Sprintf("%s:%s", userId, constants.TokenTypeRefreshToken+"_"+key)).Err(); err != nil {
 		log.Debug("Error deleting user session from redis: ", err)
-		fmt.Println("Error deleting user session from redis: ", err, userId, constants.TokenTypeRefreshToken, key)
 		// continue
 	}
 	return nil

@@ -2,6 +2,7 @@ package stores
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -10,6 +11,8 @@ import (
 const (
 	// Maximum entries to keep in session storage
 	maxCacheSize = 1000
+	// Cache clear interval
+	clearInterval = 10 * time.Minute
 )
 
 // SessionEntry is the struct for entry stored in store
@@ -20,30 +23,64 @@ type SessionEntry struct {
 
 // SessionStore struct to store the env variables
 type SessionStore struct {
-	mutex        sync.Mutex
-	store        map[string]*SessionEntry
-	itemsToEvict []string
+	wg    sync.WaitGroup
+	mutex sync.RWMutex
+	store map[string]*SessionEntry
+	// stores expireTime: key to remove data when cache is full
+	// map is sorted by key so older most entry can be deleted first
+	keyIndex map[int64]string
+	stop     chan struct{}
 }
 
 // NewSessionStore create a new session store
 func NewSessionStore() *SessionStore {
-	return &SessionStore{
-		mutex: sync.Mutex{},
-		store: make(map[string]*SessionEntry),
+	store := &SessionStore{
+		mutex:    sync.RWMutex{},
+		store:    make(map[string]*SessionEntry),
+		keyIndex: make(map[int64]string),
+		stop:     make(chan struct{}),
+	}
+	store.wg.Add(1)
+	go func() {
+		defer store.wg.Done()
+		store.clean()
+	}()
+	return store
+}
+
+func (s *SessionStore) clean() {
+	t := time.NewTicker(clearInterval)
+	defer t.Stop()
+	for {
+		select {
+		case <-s.stop:
+			return
+		case <-t.C:
+			s.mutex.Lock()
+			currentTime := time.Now().Unix()
+			for k, v := range s.store {
+				if v.ExpiresAt < currentTime {
+					delete(s.store, k)
+					delete(s.keyIndex, v.ExpiresAt)
+				}
+			}
+			s.mutex.Unlock()
+		}
 	}
 }
 
 // Get returns the value of the key in state store
 func (s *SessionStore) Get(key, subKey string) string {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
 	currentTime := time.Now().Unix()
 	k := fmt.Sprintf("%s:%s", key, subKey)
 	if v, ok := s.store[k]; ok {
 		if v.ExpiresAt > currentTime {
 			return v.Value
 		}
-		s.itemsToEvict = append(s.itemsToEvict, k)
+		// Delete expired items
+		delete(s.store, k)
 	}
 	return ""
 }
@@ -54,17 +91,25 @@ func (s *SessionStore) Set(key string, subKey, value string, expiration int64) {
 	defer s.mutex.Unlock()
 	k := fmt.Sprintf("%s:%s", key, subKey)
 	if _, ok := s.store[k]; !ok {
-		s.store[k] = &SessionEntry{
-			Value:     value,
-			ExpiresAt: expiration,
-			// TODO add expire time
+		// check if there is enough space in cache
+		// else delete entries based on FIFO
+		if len(s.store) == maxCacheSize {
+			// remove older most entry
+			sortedKeys := []int64{}
+			for ik := range s.keyIndex {
+				sortedKeys = append(sortedKeys, ik)
+			}
+			sort.Slice(sortedKeys, func(i, j int) bool { return sortedKeys[i] < sortedKeys[j] })
+			itemToRemove := sortedKeys[0]
+			delete(s.store, s.keyIndex[itemToRemove])
+			delete(s.keyIndex, itemToRemove)
 		}
 	}
 	s.store[k] = &SessionEntry{
 		Value:     value,
 		ExpiresAt: expiration,
-		// TODO add expire time
 	}
+	s.keyIndex[expiration] = k
 }
 
 // RemoveAll all values for given key
