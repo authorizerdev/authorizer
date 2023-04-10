@@ -24,7 +24,7 @@ type SessionEntry struct {
 // SessionStore struct to store the env variables
 type SessionStore struct {
 	wg    sync.WaitGroup
-	mutex sync.RWMutex
+	mutex sync.Mutex
 	store map[string]*SessionEntry
 	// stores expireTime: key to remove data when cache is full
 	// map is sorted by key so older most entry can be deleted first
@@ -35,7 +35,7 @@ type SessionStore struct {
 // NewSessionStore create a new session store
 func NewSessionStore() *SessionStore {
 	store := &SessionStore{
-		mutex:    sync.RWMutex{},
+		mutex:    sync.Mutex{},
 		store:    make(map[string]*SessionEntry),
 		keyIndex: make(map[int64]string),
 		stop:     make(chan struct{}),
@@ -71,8 +71,8 @@ func (s *SessionStore) clean() {
 
 // Get returns the value of the key in state store
 func (s *SessionStore) Get(key, subKey string) string {
-	s.mutex.RLock()
-	defer s.mutex.RUnlock()
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
 	currentTime := time.Now().Unix()
 	k := fmt.Sprintf("%s:%s", key, subKey)
 	if v, ok := s.store[k]; ok {
