@@ -2,19 +2,19 @@
 # yarn lockfile v1
 
 
-"@authorizerdev/authorizer-js@^1.1.4":
-  version "1.1.4"
-  resolved "https://registry.npmjs.org/@authorizerdev/authorizer-js/-/authorizer-js-1.1.4.tgz"
-  integrity sha512-oLp3XMYU9xHlg5urpAOaw6NrKQ07SaI8oAi1BAMHZWivv5qi2V+6roey0y9MdvCUmsMULBBcZg87kuoMTXRJOw==
+"@authorizerdev/authorizer-js@^1.2.3":
+  version "1.2.3"
+  resolved "https://registry.yarnpkg.com/@authorizerdev/authorizer-js/-/authorizer-js-1.2.3.tgz#cd3667d541ef34587c6c19b9ef37f3e5992d8870"
+  integrity sha512-rk/fMRIsqbp+fsy2y09etVjf7CY9/4mG6hf0RKgXgRRfxtAQa1jdkt/De23hBTNeEwAWu6hP/9BQZjcrln6KtA==
   dependencies:
     cross-fetch "^3.1.5"
 
-"@authorizerdev/authorizer-react@^1.1.8":
-  version "1.1.8"
-  resolved "https://registry.npmjs.org/@authorizerdev/authorizer-react/-/authorizer-react-1.1.8.tgz"
-  integrity sha512-5v9Zc7ZxiEQEHT1Fwj1jvEemdckcrn7mZPkdmJ/z0YOWNbF20ZpM4WsfrtJB+d293m7Rb1QKwzdFPkYINMh5tw==
+"@authorizerdev/authorizer-react@^1.1.11":
+  version "1.1.11"
+  resolved "https://registry.yarnpkg.com/@authorizerdev/authorizer-react/-/authorizer-react-1.1.11.tgz#10cd32acc13bd178d089a5fe77e5e7c4aee79601"
+  integrity sha512-tSI/yjsoeK/RvCOMiHSf1QGOeSpaLYQZEM864LFLndKoJwk7UWCJ86qg1w6ge7B00PmZSNWqST/w5JTcQaVNpw==
   dependencies:
-    "@authorizerdev/authorizer-js" "^1.1.4"
+    "@authorizerdev/authorizer-js" "^1.2.3"
 
 "@babel/code-frame@^7.16.7":
   version "7.16.7"
@@ -418,7 +418,7 @@ prettier@2.7.1:
   resolved "https://registry.npmjs.org/prettier/-/prettier-2.7.1.tgz"
   integrity sha512-ujppO+MkdPqoVINuDFDRLClm7D78qbDt0/NR+wp5FqEZOoTNAjPHWj17QRhu7geIHJfcNhRk1XVQmF8Bp3ye+g==
 
-prop-types@^15.0.0, prop-types@^15.6.2:
+prop-types@^15.6.2:
   version "15.7.2"
   resolved "https://registry.npmjs.org/prop-types/-/prop-types-15.7.2.tgz"
   integrity sha512-8QQikdH7//R2vurIJSutZ1smHYTcLpRWEOlHnzcWHmBYrOGUysKwSsrC89BCiFj3CbrfJ/nXFdJepOVrY1GCHQ==
@@ -427,7 +427,7 @@ prop-types@^15.0.0, prop-types@^15.6.2:
     object-assign "^4.1.1"
     react-is "^16.8.1"
 
-react-dom@^17.0.2, "react-dom@>= 16.8.0":
+react-dom@^17.0.2:
   version "17.0.2"
   resolved "https://registry.npmjs.org/react-dom/-/react-dom-17.0.2.tgz"
   integrity sha512-s4h96KtLDUQlsENhMn1ar8t2bEa+q/YAtj8pPPdIjPDGBDIVNsrD9aXNWqspUe6AzKCIG0C1HZZLqLV7qpOBGA==
@@ -436,22 +436,12 @@ react-dom@^17.0.2, "react-dom@>= 16.8.0":
     object-assign "^4.1.1"
     scheduler "^0.20.2"
 
-react-is@^16.6.0:
+react-is@^16.6.0, react-is@^16.7.0, react-is@^16.8.1:
   version "16.13.1"
   resolved "https://registry.npmjs.org/react-is/-/react-is-16.13.1.tgz"
   integrity sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==
 
-react-is@^16.7.0:
-  version "16.13.1"
-  resolved "https://registry.npmjs.org/react-is/-/react-is-16.13.1.tgz"
-  integrity sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==
-
-react-is@^16.8.1:
-  version "16.13.1"
-  resolved "https://registry.npmjs.org/react-is/-/react-is-16.13.1.tgz"
-  integrity sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==
-
-react-is@^17.0.2, "react-is@>= 16.8.0":
+react-is@^17.0.2:
   version "17.0.2"
   resolved "https://registry.npmjs.org/react-is/-/react-is-17.0.2.tgz"
   integrity sha512-w2GsyukL62IJnlaff/nRegPQR94C/XXamvMWmSHRJ4y7Ts/4ocGRmTHvOs8PSE6pB3dWOrD/nueuU5sduBsQ4w==
@@ -485,7 +475,7 @@ react-router@5.2.0:
     tiny-invariant "^1.0.2"
     tiny-warning "^1.0.0"
 
-"react@^0.14.0 || ^15.0.0 || ^16.0.0 || ^17.0.0", react@^17.0.2, "react@>= 16.8.0", react@>=15, react@>=16, react@17.0.2:
+react@^17.0.2:
   version "17.0.2"
   resolved "https://registry.npmjs.org/react/-/react-17.0.2.tgz"
   integrity sha512-gnhPt75i/dq/z3/6q/0asP78D0u592D5L1pd7M8P+dck6Fu/jJeL6iVVK23fptSUZj8Vjf++7wXA8UNclGQcbA==
@@ -521,7 +511,7 @@ source-map@^0.5.0:
   resolved "https://registry.npmjs.org/source-map/-/source-map-0.5.7.tgz"
   integrity sha1-igOdLRAh0i0eoUyA2OpGi6LvP8w=
 
-styled-components@^5.3.0, "styled-components@>= 2":
+styled-components@^5.3.0:
   version "5.3.3"
   resolved "https://registry.npmjs.org/styled-components/-/styled-components-5.3.3.tgz"
   integrity sha512-++4iHwBM7ZN+x6DtPPWkCI4vdtwumQ+inA/DdAsqYd4SVgUKJie5vXyzotA00ttcFdQkCng7zc6grwlfIfw+lw==
