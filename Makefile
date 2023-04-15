@@ -52,5 +52,8 @@ test-all-db:
 	docker rm -vf authorizer_arangodb
 	docker rm -vf dynamodb-local-test
 	docker rm -vf couchbase-local-test
-generate:
+generate-graphql:
 	cd server && go run github.com/99designs/gqlgen generate && go mod tidy
+generate-db-template:
+	cp -rf server/db/providers/provider_template server/db/providers/${dbname}
+	find server/db/providers/${dbname} -type f -exec sed -i -e 's/provider_template/${dbname}/g' {} \;
