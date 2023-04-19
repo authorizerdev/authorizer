@@ -151,6 +151,11 @@ type InviteMemberInput struct {
 	RedirectURI *string  `json:"redirect_uri"`
 }
 
+type InviteMembersResponse struct {
+	Message string  `json:"message"`
+	Users   []*User `json:"Users"`
+}
+
 type ListWebhookLogRequest struct {
 	Pagination *PaginationInput `json:"pagination"`
 	WebhookID  *string          `json:"webhook_id"`

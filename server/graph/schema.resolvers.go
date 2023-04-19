@@ -112,7 +112,7 @@ func (r *mutationResolver) UpdateEnv(ctx context.Context, params model.UpdateEnv
 }
 
 // InviteMembers is the resolver for the _invite_members field.
-func (r *mutationResolver) InviteMembers(ctx context.Context, params model.InviteMemberInput) (*model.Response, error) {
+func (r *mutationResolver) InviteMembers(ctx context.Context, params model.InviteMemberInput) (*model.InviteMembersResponse, error) {
 	return resolvers.InviteMembersResolver(ctx, params)
 }
 

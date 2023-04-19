@@ -23,7 +23,7 @@ import (
 )
 
 // InviteMembersResolver resolver to invite members
-func InviteMembersResolver(ctx context.Context, params model.InviteMemberInput) (*model.Response, error) {
+func InviteMembersResolver(ctx context.Context, params model.InviteMemberInput) (*model.InviteMembersResponse, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
 		log.Debug("Failed to get GinContext: ", err)
@@ -178,7 +178,25 @@ func InviteMembersResolver(ctx context.Context, params model.InviteMemberInput) 
 		})
 	}
 
-	return &model.Response{
+	InvitedUsers := []*model.User{}
+
+	// newUsers := []models.User{}
+	for _, email := range emails {
+		user, err := db.Provider.GetUserByEmail(ctx, email)
+
+		if err != nil {
+			log.Debugf("err: %s", err.Error())
+		}
+
+		InvitedUsers = append(InvitedUsers, &model.User{
+			Email: user.Email,
+			ID:    user.ID,
+		})
+
+	}
+
+	return &model.InviteMembersResponse{
 		Message: fmt.Sprintf("%d user(s) invited successfully.", len(newEmails)),
+		Users:   InvitedUsers,
 	}, nil
 }
