@@ -94,6 +94,11 @@ type Response {
   message: String!
 }
 
+type InviteMembersResponse {
+  message: String!
+  Users: [User!]!
+}
+
 type Env {
   ACCESS_TOKEN_EXPIRY_TIME: String
   ADMIN_SECRET: String
@@ -555,7 +560,7 @@ type Mutation {
   _admin_login(params: AdminLoginInput!): Response!
   _admin_logout: Response!
   _update_env(params: UpdateEnvInput!): Response!
-  _invite_members(params: InviteMemberInput!): Response!
+  _invite_members(params: InviteMemberInput!): InviteMembersResponse!
   _revoke_access(param: UpdateAccessInput!): Response!
   _enable_access(param: UpdateAccessInput!): Response!
   _generate_jwt_keys(params: GenerateJWTKeysInput!): GenerateJWTKeysResponse!
