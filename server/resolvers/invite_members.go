@@ -185,6 +185,7 @@ func InviteMembersResolver(ctx context.Context, params model.InviteMemberInput) 
 
 		if err != nil {
 			log.Debugf("err: %s", err.Error())
+			return nil, err
 		}
 
 		InvitedUsers = append(InvitedUsers, &model.User{
