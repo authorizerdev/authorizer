@@ -180,7 +180,6 @@ func InviteMembersResolver(ctx context.Context, params model.InviteMemberInput) 
 
 	InvitedUsers := []*model.User{}
 
-	// newUsers := []models.User{}
 	for _, email := range emails {
 		user, err := db.Provider.GetUserByEmail(ctx, email)
 
