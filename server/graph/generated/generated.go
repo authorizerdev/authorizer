@@ -143,6 +143,11 @@ type ComplexityRoot struct {
 		Secret     func(childComplexity int) int
 	}
 
+	InviteMembersResponse struct {
+		Message func(childComplexity int) int
+		Users   func(childComplexity int) int
+	}
+
 	Meta struct {
 		ClientID                     func(childComplexity int) int
 		IsAppleLoginEnabled          func(childComplexity int) int
@@ -329,7 +334,7 @@ type MutationResolver interface {
 	AdminLogin(ctx context.Context, params model.AdminLoginInput) (*model.Response, error)
 	AdminLogout(ctx context.Context) (*model.Response, error)
 	UpdateEnv(ctx context.Context, params model.UpdateEnvInput) (*model.Response, error)
-	InviteMembers(ctx context.Context, params model.InviteMemberInput) (*model.Response, error)
+	InviteMembers(ctx context.Context, params model.InviteMemberInput) (*model.InviteMembersResponse, error)
 	RevokeAccess(ctx context.Context, param model.UpdateAccessInput) (*model.Response, error)
 	EnableAccess(ctx context.Context, param model.UpdateAccessInput) (*model.Response, error)
 	GenerateJwtKeys(ctx context.Context, params model.GenerateJWTKeysInput) (*model.GenerateJWTKeysResponse, error)
@@ -938,6 +943,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.GenerateJWTKeysResponse.Secret(childComplexity), true
+
+	case "InviteMembersResponse.message":
+		if e.complexity.InviteMembersResponse.Message == nil {
+			break
+		}
+
+		return e.complexity.InviteMembersResponse.Message(childComplexity), true
+
+	case "InviteMembersResponse.Users":
+		if e.complexity.InviteMembersResponse.Users == nil {
+			break
+		}
+
+		return e.complexity.InviteMembersResponse.Users(childComplexity), true
 
 	case "Meta.client_id":
 		if e.complexity.Meta.ClientID == nil {
@@ -2160,6 +2179,11 @@ type Response {
   message: String!
 }
 
+type InviteMembersResponse {
+  message: String!
+  Users: [User!]!
+}
+
 type Env {
   ACCESS_TOKEN_EXPIRY_TIME: String
   ADMIN_SECRET: String
@@ -2621,7 +2645,7 @@ type Mutation {
   _admin_login(params: AdminLoginInput!): Response!
   _admin_logout: Response!
   _update_env(params: UpdateEnvInput!): Response!
-  _invite_members(params: InviteMemberInput!): Response!
+  _invite_members(params: InviteMemberInput!): InviteMembersResponse!
   _revoke_access(param: UpdateAccessInput!): Response!
   _enable_access(param: UpdateAccessInput!): Response!
   _generate_jwt_keys(params: GenerateJWTKeysInput!): GenerateJWTKeysResponse!
@@ -6737,6 +6761,134 @@ func (ec *executionContext) fieldContext_GenerateJWTKeysResponse_private_key(ctx
 	return fc, nil
 }
 
+func (ec *executionContext) _InviteMembersResponse_message(ctx context.Context, field graphql.CollectedField, obj *model.InviteMembersResponse) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_InviteMembersResponse_message(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Message, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_InviteMembersResponse_message(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "InviteMembersResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _InviteMembersResponse_Users(ctx context.Context, field graphql.CollectedField, obj *model.InviteMembersResponse) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_InviteMembersResponse_Users(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Users, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.User)
+	fc.Result = res
+	return ec.marshalNUser2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUserᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_InviteMembersResponse_Users(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "InviteMembersResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_User_id(ctx, field)
+			case "email":
+				return ec.fieldContext_User_email(ctx, field)
+			case "email_verified":
+				return ec.fieldContext_User_email_verified(ctx, field)
+			case "signup_methods":
+				return ec.fieldContext_User_signup_methods(ctx, field)
+			case "given_name":
+				return ec.fieldContext_User_given_name(ctx, field)
+			case "family_name":
+				return ec.fieldContext_User_family_name(ctx, field)
+			case "middle_name":
+				return ec.fieldContext_User_middle_name(ctx, field)
+			case "nickname":
+				return ec.fieldContext_User_nickname(ctx, field)
+			case "preferred_username":
+				return ec.fieldContext_User_preferred_username(ctx, field)
+			case "gender":
+				return ec.fieldContext_User_gender(ctx, field)
+			case "birthdate":
+				return ec.fieldContext_User_birthdate(ctx, field)
+			case "phone_number":
+				return ec.fieldContext_User_phone_number(ctx, field)
+			case "phone_number_verified":
+				return ec.fieldContext_User_phone_number_verified(ctx, field)
+			case "picture":
+				return ec.fieldContext_User_picture(ctx, field)
+			case "roles":
+				return ec.fieldContext_User_roles(ctx, field)
+			case "created_at":
+				return ec.fieldContext_User_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_User_updated_at(ctx, field)
+			case "revoked_timestamp":
+				return ec.fieldContext_User_revoked_timestamp(ctx, field)
+			case "is_multi_factor_auth_enabled":
+				return ec.fieldContext_User_is_multi_factor_auth_enabled(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Meta_version(ctx context.Context, field graphql.CollectedField, obj *model.Meta) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Meta_version(ctx, field)
 	if err != nil {
@@ -8689,9 +8841,9 @@ func (ec *executionContext) _Mutation__invite_members(ctx context.Context, field
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.Response)
+	res := resTmp.(*model.InviteMembersResponse)
 	fc.Result = res
-	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+	return ec.marshalNInviteMembersResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐInviteMembersResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation__invite_members(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -8703,9 +8855,11 @@ func (ec *executionContext) fieldContext_Mutation__invite_members(ctx context.Co
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "message":
-				return ec.fieldContext_Response_message(ctx, field)
+				return ec.fieldContext_InviteMembersResponse_message(ctx, field)
+			case "Users":
+				return ec.fieldContext_InviteMembersResponse_Users(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Response", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type InviteMembersResponse", field.Name)
 		},
 	}
 	defer func() {
@@ -17538,6 +17692,41 @@ func (ec *executionContext) _GenerateJWTKeysResponse(ctx context.Context, sel as
 	return out
 }
 
+var inviteMembersResponseImplementors = []string{"InviteMembersResponse"}
+
+func (ec *executionContext) _InviteMembersResponse(ctx context.Context, sel ast.SelectionSet, obj *model.InviteMembersResponse) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, inviteMembersResponseImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("InviteMembersResponse")
+		case "message":
+
+			out.Values[i] = ec._InviteMembersResponse_message(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "Users":
+
+			out.Values[i] = ec._InviteMembersResponse_Users(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var metaImplementors = []string{"Meta"}
 
 func (ec *executionContext) _Meta(ctx context.Context, sel ast.SelectionSet, obj *model.Meta) graphql.Marshaler {
@@ -19393,6 +19582,20 @@ func (ec *executionContext) marshalNInt642int64(ctx context.Context, sel ast.Sel
 func (ec *executionContext) unmarshalNInviteMemberInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐInviteMemberInput(ctx context.Context, v interface{}) (model.InviteMemberInput, error) {
 	res, err := ec.unmarshalInputInviteMemberInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNInviteMembersResponse2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐInviteMembersResponse(ctx context.Context, sel ast.SelectionSet, v model.InviteMembersResponse) graphql.Marshaler {
+	return ec._InviteMembersResponse(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNInviteMembersResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐInviteMembersResponse(ctx context.Context, sel ast.SelectionSet, v *model.InviteMembersResponse) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._InviteMembersResponse(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNLoginInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐLoginInput(ctx context.Context, v interface{}) (model.LoginInput, error) {
