@@ -49,6 +49,8 @@ func inviteUserTest(t *testing.T, s TestSetup) {
 		})
 		assert.Nil(t, err)
 		assert.NotNil(t, res)
+		assert.NotNil(t, res.Message)
+		assert.NotNil(t, res.Users)
 		// duplicate error test
 		res, err = resolvers.InviteMembersResolver(ctx, model.InviteMemberInput{
 			Emails: emails,
