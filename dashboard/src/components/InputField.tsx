@@ -48,6 +48,7 @@ const InputField = ({
 	fieldVisibility,
 	setFieldVisibility,
 	availableRoles,
+	is_Disable,
 	...downshiftProps
 }: any) => {
 	const props = {
@@ -398,7 +399,7 @@ const InputField = ({
 				</Text>
 				<Switch
 					size="md"
-					isChecked={variables[inputType]}
+					isChecked={is_Disable ? !variables[inputType] : variables[inputType]}
 					onChange={() => {
 						setVariables({
 							...variables,

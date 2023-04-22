@@ -8,86 +8,90 @@ const Features = ({ variables, setVariables }: any) => {
 		<div>
 			{' '}
 			<Text fontSize="md" paddingTop="2%" fontWeight="bold" mb={5}>
-				Disable Features
+				Features
 			</Text>
 			<Stack spacing={6}>
 				<Flex>
 					<Flex w="100%" justifyContent="start" alignItems="center">
-						<Text fontSize="sm">Disable Login Page:</Text>
+						<Text fontSize="sm">Login Page:</Text>
 					</Flex>
 					<Flex justifyContent="start">
 						<InputField
 							variables={variables}
 							setVariables={setVariables}
 							inputType={SwitchInputType.DISABLE_LOGIN_PAGE}
+							is_Disable={true}
 						/>
 					</Flex>
 				</Flex>
 				<Flex>
 					<Flex w="100%" justifyContent="start" alignItems="center">
-						<Text fontSize="sm">Disable Email Verification:</Text>
+						<Text fontSize="sm">Email Verification:</Text>
 					</Flex>
 					<Flex justifyContent="start">
 						<InputField
 							variables={variables}
 							setVariables={setVariables}
 							inputType={SwitchInputType.DISABLE_EMAIL_VERIFICATION}
+							is_Disable={true}
 						/>
 					</Flex>
 				</Flex>
 				<Flex>
 					<Flex w="100%" justifyContent="start" alignItems="center">
-						<Text fontSize="sm">Disable Magic Login Link:</Text>
+						<Text fontSize="sm">Magic Login Link:</Text>
 					</Flex>
 					<Flex justifyContent="start">
 						<InputField
 							variables={variables}
 							setVariables={setVariables}
 							inputType={SwitchInputType.DISABLE_MAGIC_LINK_LOGIN}
+							is_Disable={true}
 						/>
 					</Flex>
 				</Flex>
 				<Flex>
 					<Flex w="100%" justifyContent="start" alignItems="center">
-						<Text fontSize="sm">Disable Basic Authentication:</Text>
+						<Text fontSize="sm">Basic Authentication:</Text>
 					</Flex>
 					<Flex justifyContent="start">
 						<InputField
 							variables={variables}
 							setVariables={setVariables}
 							inputType={SwitchInputType.DISABLE_BASIC_AUTHENTICATION}
+							is_Disable={true}
 						/>
 					</Flex>
 				</Flex>
 				<Flex>
 					<Flex w="100%" justifyContent="start" alignItems="center">
-						<Text fontSize="sm">Disable Sign Up:</Text>
+						<Text fontSize="sm">Sign Up:</Text>
 					</Flex>
 					<Flex justifyContent="start" mb={3}>
 						<InputField
 							variables={variables}
 							setVariables={setVariables}
 							inputType={SwitchInputType.DISABLE_SIGN_UP}
+							is_Disable={true}
 						/>
 					</Flex>
 				</Flex>
 				<Flex>
 					<Flex w="100%" justifyContent="start" alignItems="center">
-						<Text fontSize="sm">Disable Strong Password:</Text>
+						<Text fontSize="sm">Strong Password:</Text>
 					</Flex>
 					<Flex justifyContent="start" mb={3}>
 						<InputField
 							variables={variables}
 							setVariables={setVariables}
 							inputType={SwitchInputType.DISABLE_STRONG_PASSWORD}
+							is_Disable={true}
 						/>
 					</Flex>
 				</Flex>
 				<Flex alignItems="center">
 					<Flex w="100%" alignItems="baseline" flexDir="column">
-						<Text fontSize="sm">
-							Disable Multi Factor Authentication (MFA):
-						</Text>
+						<Text fontSize="sm">Multi Factor Authentication (MFA):</Text>
 						<Text fontSize="x-small">
 							Note: Enabling this will ignore Enforcing MFA shown below and will
 							also ignore the user MFA setting.
@@ -98,15 +102,10 @@ const Features = ({ variables, setVariables }: any) => {
 							variables={variables}
 							setVariables={setVariables}
 							inputType={SwitchInputType.DISABLE_MULTI_FACTOR_AUTHENTICATION}
+							is_Disable={true}
 						/>
 					</Flex>
 				</Flex>
-			</Stack>
-			<Divider paddingY={5} />
-			<Text fontSize="md" paddingTop={5} fontWeight="bold" mb={5}>
-				Enable Features
-			</Text>
-			<Stack spacing={6}>
 				<Flex alignItems="center">
 					<Flex w="100%" alignItems="baseline" flexDir="column">
 						<Text fontSize="sm">
@@ -122,6 +121,7 @@ const Features = ({ variables, setVariables }: any) => {
 							variables={variables}
 							setVariables={setVariables}
 							inputType={SwitchInputType.ENFORCE_MULTI_FACTOR_AUTHENTICATION}
+							is_Disable={false}
 						/>
 					</Flex>
 				</Flex>
