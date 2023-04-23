@@ -20,7 +20,7 @@ const Features = ({ variables, setVariables }: any) => {
 							variables={variables}
 							setVariables={setVariables}
 							inputType={SwitchInputType.DISABLE_LOGIN_PAGE}
-							is_Disable={true}
+							hasReversedValue
 						/>
 					</Flex>
 				</Flex>
@@ -33,7 +33,7 @@ const Features = ({ variables, setVariables }: any) => {
 							variables={variables}
 							setVariables={setVariables}
 							inputType={SwitchInputType.DISABLE_EMAIL_VERIFICATION}
-							is_Disable={true}
+							hasReversedValue
 						/>
 					</Flex>
 				</Flex>
@@ -46,7 +46,7 @@ const Features = ({ variables, setVariables }: any) => {
 							variables={variables}
 							setVariables={setVariables}
 							inputType={SwitchInputType.DISABLE_MAGIC_LINK_LOGIN}
-							is_Disable={true}
+							hasReversedValue
 						/>
 					</Flex>
 				</Flex>
@@ -59,7 +59,7 @@ const Features = ({ variables, setVariables }: any) => {
 							variables={variables}
 							setVariables={setVariables}
 							inputType={SwitchInputType.DISABLE_BASIC_AUTHENTICATION}
-							is_Disable={true}
+							hasReversedValue
 						/>
 					</Flex>
 				</Flex>
@@ -72,7 +72,7 @@ const Features = ({ variables, setVariables }: any) => {
 							variables={variables}
 							setVariables={setVariables}
 							inputType={SwitchInputType.DISABLE_SIGN_UP}
-							is_Disable={true}
+							hasReversedValue
 						/>
 					</Flex>
 				</Flex>
@@ -85,7 +85,7 @@ const Features = ({ variables, setVariables }: any) => {
 							variables={variables}
 							setVariables={setVariables}
 							inputType={SwitchInputType.DISABLE_STRONG_PASSWORD}
-							is_Disable={true}
+							hasReversedValue
 						/>
 					</Flex>
 				</Flex>
@@ -102,7 +102,7 @@ const Features = ({ variables, setVariables }: any) => {
 							variables={variables}
 							setVariables={setVariables}
 							inputType={SwitchInputType.DISABLE_MULTI_FACTOR_AUTHENTICATION}
-							is_Disable={true}
+							hasReversedValue
 						/>
 					</Flex>
 				</Flex>
@@ -121,7 +121,6 @@ const Features = ({ variables, setVariables }: any) => {
 							variables={variables}
 							setVariables={setVariables}
 							inputType={SwitchInputType.ENFORCE_MULTI_FACTOR_AUTHENTICATION}
-							is_Disable={false}
 						/>
 					</Flex>
 				</Flex>
