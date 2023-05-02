@@ -82,7 +82,7 @@ func GetOrganization() map[string]interface{} {
 
 // GetForgotPasswordURL to get url for given token and hostname
 func GetForgotPasswordURL(token, redirectURI string) string {
-	verificationURL := redirectURI + "?token=" + token
+	verificationURL := redirectURI + "?token=" + token + "&redirect_uri=" + redirectURI
 	return verificationURL
 }
 
@@ -92,6 +92,6 @@ func GetInviteVerificationURL(verificationURL, token, redirectURI string) string
 }
 
 // GetEmailVerificationURL to get url for invite email verification
-func GetEmailVerificationURL(token, hostname string) string {
-	return hostname + "/verify_email?token=" + token
+func GetEmailVerificationURL(token, hostname, redirectURI string) string {
+	return hostname + "/verify_email?token=" + token + "&redirect_uri=" + redirectURI
 }

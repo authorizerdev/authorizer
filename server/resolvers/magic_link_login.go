@@ -224,7 +224,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 		go email.SendEmail([]string{params.Email}, constants.VerificationTypeMagicLinkLogin, map[string]interface{}{
 			"user":             user.ToMap(),
 			"organization":     utils.GetOrganization(),
-			"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname),
+			"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname, redirectURL),
 		})
 	}
 
