@@ -82,7 +82,7 @@ func GetOrganization() map[string]interface{} {
 
 // GetForgotPasswordURL to get url for given token and hostname
 func GetForgotPasswordURL(token, redirectURI string) string {
-	verificationURL := redirectURI + "?token=" + token + "&redirect_uri=" + redirectURI
+	verificationURL := redirectURI + "?token=" + token
 	return verificationURL
 }
 
