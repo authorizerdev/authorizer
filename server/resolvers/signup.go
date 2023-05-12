@@ -227,7 +227,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 			email.SendEmail([]string{params.Email}, constants.VerificationTypeBasicAuthSignup, map[string]interface{}{
 				"user":             user.ToMap(),
 				"organization":     utils.GetOrganization(),
-				"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname),
+				"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname, redirectURL),
 			})
 			utils.RegisterEvent(ctx, constants.UserCreatedWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
 		}()

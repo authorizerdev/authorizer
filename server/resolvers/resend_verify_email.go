@@ -83,7 +83,7 @@ func ResendVerifyEmailResolver(ctx context.Context, params model.ResendVerifyEma
 	go email.SendEmail([]string{params.Email}, params.Identifier, map[string]interface{}{
 		"user":             user.ToMap(),
 		"organization":     utils.GetOrganization(),
-		"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname),
+		"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname, verificationRequest.RedirectURI),
 	})
 
 	res = &model.Response{

@@ -24,21 +24,22 @@ import (
 // It verifies email based on JWT token in query string
 func VerifyEmailHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		redirectURL := strings.TrimSpace(c.Query("redirect_uri"))
 		errorRes := gin.H{
-			"error": "invalid_token",
+			"error": "token is required",
 		}
 		tokenInQuery := c.Query("token")
 		if tokenInQuery == "" {
 			log.Debug("Token is empty")
-			c.JSON(400, errorRes)
+			utils.HandleRedirectORJsonResponse(c, http.StatusBadRequest, errorRes, generateRedirectURL(redirectURL, errorRes))
 			return
 		}
 
 		verificationRequest, err := db.Provider.GetVerificationRequestByToken(c, tokenInQuery)
 		if err != nil {
 			log.Debug("Error getting verification request: ", err)
-			errorRes["error_description"] = err.Error()
-			c.JSON(400, errorRes)
+			errorRes["error"] = err.Error()
+			utils.HandleRedirectORJsonResponse(c, http.StatusBadRequest, errorRes, generateRedirectURL(redirectURL, errorRes))
 			return
 		}
 
@@ -47,23 +48,23 @@ func VerifyEmailHandler() gin.HandlerFunc {
 		claim, err := token.ParseJWTToken(tokenInQuery)
 		if err != nil {
 			log.Debug("Error parsing token: ", err)
-			errorRes["error_description"] = err.Error()
-			c.JSON(400, errorRes)
+			errorRes["error"] = err.Error()
+			utils.HandleRedirectORJsonResponse(c, http.StatusBadRequest, errorRes, generateRedirectURL(redirectURL, errorRes))
 			return
 		}
 
 		if ok, err := token.ValidateJWTClaims(claim, hostname, verificationRequest.Nonce, verificationRequest.Email); !ok || err != nil {
 			log.Debug("Error validating jwt claims: ", err)
-			errorRes["error_description"] = err.Error()
-			c.JSON(400, errorRes)
+			errorRes["error"] = err.Error()
+			utils.HandleRedirectORJsonResponse(c, http.StatusBadRequest, errorRes, generateRedirectURL(redirectURL, errorRes))
 			return
 		}
 
 		user, err := db.Provider.GetUserByEmail(c, verificationRequest.Email)
 		if err != nil {
 			log.Debug("Error getting user: ", err)
-			errorRes["error_description"] = err.Error()
-			c.JSON(400, errorRes)
+			errorRes["error"] = err.Error()
+			utils.HandleRedirectORJsonResponse(c, http.StatusBadRequest, errorRes, generateRedirectURL(redirectURL, errorRes))
 			return
 		}
 
@@ -79,7 +80,6 @@ func VerifyEmailHandler() gin.HandlerFunc {
 		db.Provider.DeleteVerificationRequest(c, verificationRequest)
 
 		state := strings.TrimSpace(c.Query("state"))
-		redirectURL := strings.TrimSpace(c.Query("redirect_uri"))
 		rolesString := strings.TrimSpace(c.Query("roles"))
 		var roles []string
 		if rolesString == "" {
@@ -125,8 +125,8 @@ func VerifyEmailHandler() gin.HandlerFunc {
 		authToken, err := token.CreateAuthToken(c, user, roles, scope, loginMethod, nonce, code)
 		if err != nil {
 			log.Debug("Error creating auth token: ", err)
-			errorRes["error_description"] = err.Error()
-			c.JSON(500, errorRes)
+			errorRes["error"] = err.Error()
+			utils.HandleRedirectORJsonResponse(c, http.StatusInternalServerError, errorRes, generateRedirectURL(redirectURL, errorRes))
 			return
 		}
 
@@ -135,7 +135,7 @@ func VerifyEmailHandler() gin.HandlerFunc {
 		// if code != "" {
 		// 	if err := memorystore.Provider.SetState(code, codeChallenge+"@@"+authToken.FingerPrintHash); err != nil {
 		// 		log.Debug("Error setting code state ", err)
-		// 		errorRes["error_description"] = err.Error()
+		// 		errorRes["error"] = err.Error()
 		// 		c.JSON(500, errorRes)
 		// 		return
 		// 	}
@@ -188,4 +188,22 @@ func VerifyEmailHandler() gin.HandlerFunc {
 
 		c.Redirect(http.StatusTemporaryRedirect, redirectURL)
 	}
+}
+
+func generateRedirectURL(url string, res map[string]interface{}) string {
+	redirectURL := url
+	if redirectURL == "" {
+		return ""
+	}
+	var paramsArr []string
+	for key, value := range res {
+		paramsArr = append(paramsArr, key+"="+value.(string))
+	}
+	params := strings.Join(paramsArr, "&")
+	if strings.Contains(redirectURL, "?") {
+		redirectURL = redirectURL + "&" + params
+	} else {
+		redirectURL = redirectURL + "?" + strings.TrimPrefix(params, "&")
+	}
+	return redirectURL
 }

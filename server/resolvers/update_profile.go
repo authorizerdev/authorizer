@@ -259,7 +259,7 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 			go email.SendEmail([]string{user.Email}, verificationType, map[string]interface{}{
 				"user":             user.ToMap(),
 				"organization":     utils.GetOrganization(),
-				"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname),
+				"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname, redirectURL),
 			})
 
 		}

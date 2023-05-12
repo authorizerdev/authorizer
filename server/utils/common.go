@@ -92,6 +92,6 @@ func GetInviteVerificationURL(verificationURL, token, redirectURI string) string
 }
 
 // GetEmailVerificationURL to get url for invite email verification
-func GetEmailVerificationURL(token, hostname string) string {
-	return hostname + "/verify_email?token=" + token
+func GetEmailVerificationURL(token, hostname, redirectURI string) string {
+	return hostname + "/verify_email?token=" + token + "&redirect_uri=" + redirectURI
 }
