@@ -103,6 +103,12 @@ func SendEmail(to []string, event string, data map[string]interface{}) error {
 		return err
 	}
 
+	senderName, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeySenderName)
+	if err != nil {
+		log.Errorf("Error while getting sender name from env variable: %v", err)
+		return err
+	}
+
 	smtpPort, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeySmtpPort)
 	if err != nil {
 		log.Errorf("Error while getting smtp port from env variable: %v", err)
@@ -139,7 +145,7 @@ func SendEmail(to []string, event string, data map[string]interface{}) error {
 		return err
 	}
 
-	m.SetHeader("From", senderEmail)
+	m.SetAddressHeader("From", senderEmail, senderName)
 	m.SetHeader("To", to...)
 	m.SetHeader("Subject", tmp.Subject)
 	m.SetBody("text/html", tmp.Template)
