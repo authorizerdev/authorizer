@@ -126,6 +126,22 @@ const EmailConfigurations = ({
 						/>
 					</Center>
 				</Flex>
+				<Flex direction={isNotSmallerScreen ? 'row' : 'column'}>
+					<Flex w="30%" justifyContent="start" alignItems="center">
+						<Text fontSize="sm">Sender Name:</Text>
+					</Flex>
+					<Center
+						w={isNotSmallerScreen ? '70%' : '100%'}
+						mt={isNotSmallerScreen ? '0' : '3'}
+					>
+						<InputField
+							borderRadius={5}
+							variables={variables}
+							setVariables={setVariables}
+							inputType={TextInputType.SENDER_NAME}
+						/>
+					</Center>
+				</Flex>
 			</Stack>
 		</div>
 	);
