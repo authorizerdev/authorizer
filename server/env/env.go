@@ -57,6 +57,7 @@ func InitAllEnv() error {
 	osSmtpPassword := os.Getenv(constants.EnvKeySmtpPassword)
 	osSmtpLocalName := os.Getenv(constants.EnvKeySmtpLocalName)
 	osSenderEmail := os.Getenv(constants.EnvKeySenderEmail)
+	osSenderName := os.Getenv(constants.EnvKeySenderName)
 	osJwtType := os.Getenv(constants.EnvKeyJwtType)
 	osJwtSecret := os.Getenv(constants.EnvKeyJwtSecret)
 	osJwtPrivateKey := os.Getenv(constants.EnvKeyJwtPrivateKey)
@@ -255,6 +256,13 @@ func InitAllEnv() error {
 	}
 	if osSenderEmail != "" && envData[constants.EnvKeySenderEmail] != osSenderEmail {
 		envData[constants.EnvKeySenderEmail] = osSenderEmail
+	}
+
+	if val, ok := envData[constants.EnvKeySenderName]; !ok || val == "" {
+		envData[constants.EnvKeySenderName] = osSenderName
+	}
+	if osSenderName != "" && envData[constants.EnvKeySenderName] != osSenderName {
+		envData[constants.EnvKeySenderName] = osSenderName
 	}
 
 	algoVal, ok := envData[constants.EnvKeyJwtType]
