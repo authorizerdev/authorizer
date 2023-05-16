@@ -89,6 +89,9 @@ func EnvResolver(ctx context.Context) (*model.Env, error) {
 	if val, ok := store[constants.EnvKeySenderEmail]; ok {
 		res.SenderEmail = refs.NewStringRef(val.(string))
 	}
+	if val, ok := store[constants.EnvKeySenderName]; ok {
+		res.SenderName = refs.NewStringRef(val.(string))
+	}
 	if val, ok := store[constants.EnvKeySmtpLocalName]; ok {
 		res.SMTPLocalName = refs.NewStringRef(val.(string))
 	}

@@ -50,6 +50,7 @@ export const EnvVariablesQuery = `
       SMTP_PASSWORD
       SMTP_LOCAL_NAME
       SENDER_EMAIL
+      SENDER_NAME
       ALLOWED_ORIGINS
       ORGANIZATION_NAME
       ORGANIZATION_LOGO

@@ -77,6 +77,7 @@ type Env struct {
 	SMTPPassword                     *string  `json:"SMTP_PASSWORD"`
 	SMTPLocalName                    *string  `json:"SMTP_LOCAL_NAME"`
 	SenderEmail                      *string  `json:"SENDER_EMAIL"`
+	SenderName                       *string  `json:"SENDER_NAME"`
 	JwtType                          *string  `json:"JWT_TYPE"`
 	JwtSecret                        *string  `json:"JWT_SECRET"`
 	JwtPrivateKey                    *string  `json:"JWT_PRIVATE_KEY"`
@@ -321,6 +322,7 @@ type UpdateEnvInput struct {
 	SMTPPassword                     *string  `json:"SMTP_PASSWORD"`
 	SMTPLocalName                    *string  `json:"SMTP_LOCAL_NAME"`
 	SenderEmail                      *string  `json:"SENDER_EMAIL"`
+	SenderName                       *string  `json:"SENDER_NAME"`
 	JwtType                          *string  `json:"JWT_TYPE"`
 	JwtSecret                        *string  `json:"JWT_SECRET"`
 	JwtPrivateKey                    *string  `json:"JWT_PRIVATE_KEY"`

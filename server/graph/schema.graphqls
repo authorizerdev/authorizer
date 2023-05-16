@@ -118,6 +118,7 @@ type Env {
   SMTP_PASSWORD: String
   SMTP_LOCAL_NAME: String
   SENDER_EMAIL: String
+  SENDER_NAME: String
   JWT_TYPE: String
   JWT_SECRET: String
   JWT_PRIVATE_KEY: String
@@ -235,6 +236,7 @@ input UpdateEnvInput {
   SMTP_PASSWORD: String
   SMTP_LOCAL_NAME: String
   SENDER_EMAIL: String
+  SENDER_NAME: String
   JWT_TYPE: String
   JWT_SECRET: String
   JWT_PRIVATE_KEY: String

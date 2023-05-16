@@ -128,6 +128,7 @@ type ComplexityRoot struct {
 		SMTPPort                         func(childComplexity int) int
 		SMTPUsername                     func(childComplexity int) int
 		SenderEmail                      func(childComplexity int) int
+		SenderName                       func(childComplexity int) int
 		TwitterClientID                  func(childComplexity int) int
 		TwitterClientSecret              func(childComplexity int) int
 	}
@@ -894,6 +895,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Env.SenderEmail(childComplexity), true
+
+	case "Env.SENDER_NAME":
+		if e.complexity.Env.SenderName == nil {
+			break
+		}
+
+		return e.complexity.Env.SenderName(childComplexity), true
 
 	case "Env.TWITTER_CLIENT_ID":
 		if e.complexity.Env.TwitterClientID == nil {
@@ -2203,6 +2211,7 @@ type Env {
   SMTP_PASSWORD: String
   SMTP_LOCAL_NAME: String
   SENDER_EMAIL: String
+  SENDER_NAME: String
   JWT_TYPE: String
   JWT_SECRET: String
   JWT_PRIVATE_KEY: String
@@ -2320,6 +2329,7 @@ input UpdateEnvInput {
   SMTP_PASSWORD: String
   SMTP_LOCAL_NAME: String
   SENDER_EMAIL: String
+  SENDER_NAME: String
   JWT_TYPE: String
   JWT_SECRET: String
   JWT_PRIVATE_KEY: String
@@ -4783,6 +4793,47 @@ func (ec *executionContext) _Env_SENDER_EMAIL(ctx context.Context, field graphql
 }
 
 func (ec *executionContext) fieldContext_Env_SENDER_EMAIL(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Env",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Env_SENDER_NAME(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Env_SENDER_NAME(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.SenderName, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Env_SENDER_NAME(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Env",
 		Field:      field,
@@ -10280,6 +10331,8 @@ func (ec *executionContext) fieldContext_Query__env(ctx context.Context, field g
 				return ec.fieldContext_Env_SMTP_LOCAL_NAME(ctx, field)
 			case "SENDER_EMAIL":
 				return ec.fieldContext_Env_SENDER_EMAIL(ctx, field)
+			case "SENDER_NAME":
+				return ec.fieldContext_Env_SENDER_NAME(ctx, field)
 			case "JWT_TYPE":
 				return ec.fieldContext_Env_JWT_TYPE(ctx, field)
 			case "JWT_SECRET":
@@ -16276,7 +16329,7 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"ACCESS_TOKEN_EXPIRY_TIME", "ADMIN_SECRET", "CUSTOM_ACCESS_TOKEN_SCRIPT", "OLD_ADMIN_SECRET", "SMTP_HOST", "SMTP_PORT", "SMTP_USERNAME", "SMTP_PASSWORD", "SMTP_LOCAL_NAME", "SENDER_EMAIL", "JWT_TYPE", "JWT_SECRET", "JWT_PRIVATE_KEY", "JWT_PUBLIC_KEY", "ALLOWED_ORIGINS", "APP_URL", "RESET_PASSWORD_URL", "APP_COOKIE_SECURE", "ADMIN_COOKIE_SECURE", "DISABLE_EMAIL_VERIFICATION", "DISABLE_BASIC_AUTHENTICATION", "DISABLE_MAGIC_LINK_LOGIN", "DISABLE_LOGIN_PAGE", "DISABLE_SIGN_UP", "DISABLE_REDIS_FOR_ENV", "DISABLE_STRONG_PASSWORD", "DISABLE_MULTI_FACTOR_AUTHENTICATION", "ENFORCE_MULTI_FACTOR_AUTHENTICATION", "ROLES", "PROTECTED_ROLES", "DEFAULT_ROLES", "JWT_ROLE_CLAIM", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET", "FACEBOOK_CLIENT_ID", "FACEBOOK_CLIENT_SECRET", "LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET", "APPLE_CLIENT_ID", "APPLE_CLIENT_SECRET", "TWITTER_CLIENT_ID", "TWITTER_CLIENT_SECRET", "MICROSOFT_CLIENT_ID", "MICROSOFT_CLIENT_SECRET", "MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID", "ORGANIZATION_NAME", "ORGANIZATION_LOGO", "DEFAULT_AUTHORIZE_RESPONSE_TYPE", "DEFAULT_AUTHORIZE_RESPONSE_MODE"}
+	fieldsInOrder := [...]string{"ACCESS_TOKEN_EXPIRY_TIME", "ADMIN_SECRET", "CUSTOM_ACCESS_TOKEN_SCRIPT", "OLD_ADMIN_SECRET", "SMTP_HOST", "SMTP_PORT", "SMTP_USERNAME", "SMTP_PASSWORD", "SMTP_LOCAL_NAME", "SENDER_EMAIL", "SENDER_NAME", "JWT_TYPE", "JWT_SECRET", "JWT_PRIVATE_KEY", "JWT_PUBLIC_KEY", "ALLOWED_ORIGINS", "APP_URL", "RESET_PASSWORD_URL", "APP_COOKIE_SECURE", "ADMIN_COOKIE_SECURE", "DISABLE_EMAIL_VERIFICATION", "DISABLE_BASIC_AUTHENTICATION", "DISABLE_MAGIC_LINK_LOGIN", "DISABLE_LOGIN_PAGE", "DISABLE_SIGN_UP", "DISABLE_REDIS_FOR_ENV", "DISABLE_STRONG_PASSWORD", "DISABLE_MULTI_FACTOR_AUTHENTICATION", "ENFORCE_MULTI_FACTOR_AUTHENTICATION", "ROLES", "PROTECTED_ROLES", "DEFAULT_ROLES", "JWT_ROLE_CLAIM", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET", "FACEBOOK_CLIENT_ID", "FACEBOOK_CLIENT_SECRET", "LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET", "APPLE_CLIENT_ID", "APPLE_CLIENT_SECRET", "TWITTER_CLIENT_ID", "TWITTER_CLIENT_SECRET", "MICROSOFT_CLIENT_ID", "MICROSOFT_CLIENT_SECRET", "MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID", "ORGANIZATION_NAME", "ORGANIZATION_LOGO", "DEFAULT_AUTHORIZE_RESPONSE_TYPE", "DEFAULT_AUTHORIZE_RESPONSE_MODE"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -16360,6 +16413,14 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("SENDER_EMAIL"))
 			it.SenderEmail, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "SENDER_NAME":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("SENDER_NAME"))
+			it.SenderName, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -17411,6 +17472,10 @@ func (ec *executionContext) _Env(ctx context.Context, sel ast.SelectionSet, obj 
 		case "SENDER_EMAIL":
 
 			out.Values[i] = ec._Env_SENDER_EMAIL(ctx, field, obj)
+
+		case "SENDER_NAME":
+
+			out.Values[i] = ec._Env_SENDER_NAME(ctx, field, obj)
 
 		case "JWT_TYPE":
 
