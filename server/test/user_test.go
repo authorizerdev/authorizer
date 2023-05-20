@@ -8,6 +8,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
+	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/authorizerdev/authorizer/server/resolvers"
 	"github.com/stretchr/testify/assert"
 )
@@ -26,7 +27,7 @@ func userTest(t *testing.T, s TestSetup) {
 		assert.NotEmpty(t, res.User)
 
 		userRes, err := resolvers.UserResolver(ctx, model.GetUserRequest{
-			ID: res.User.ID,
+			ID: &res.User.ID,
 		})
 		assert.Nil(t, userRes)
 		assert.NotNil(t, err, "unauthorized")
@@ -36,14 +37,36 @@ func userTest(t *testing.T, s TestSetup) {
 		h, err := crypto.EncryptPassword(adminSecret)
 		assert.Nil(t, err)
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
-
+		// Should throw error for invalid params
+		userRes, err = resolvers.UserResolver(ctx, model.GetUserRequest{})
+		assert.Nil(t, userRes)
+		assert.NotNil(t, err, "invalid params, user id or email is required")
+		// Should throw error for invalid params with empty id
 		userRes, err = resolvers.UserResolver(ctx, model.GetUserRequest{
-			ID: res.User.ID,
+			ID: refs.NewStringRef("   "),
+		})
+		assert.Nil(t, userRes)
+		assert.NotNil(t, err, "invalid params, user id or email is required")
+		// Should throw error for invalid params with empty email
+		userRes, err = resolvers.UserResolver(ctx, model.GetUserRequest{
+			Email: refs.NewStringRef("   "),
+		})
+		assert.Nil(t, userRes)
+		assert.NotNil(t, err, "invalid params, user id or email is required")
+		// Should get user by id
+		userRes, err = resolvers.UserResolver(ctx, model.GetUserRequest{
+			ID: &res.User.ID,
 		})
 		assert.Nil(t, err)
 		assert.Equal(t, res.User.ID, userRes.ID)
 		assert.Equal(t, email, userRes.Email)
-
+		// Should get user by email
+		userRes, err = resolvers.UserResolver(ctx, model.GetUserRequest{
+			Email: &email,
+		})
+		assert.Nil(t, err)
+		assert.Equal(t, res.User.ID, userRes.ID)
+		assert.Equal(t, email, userRes.Email)
 		cleanData(email)
 	})
 }
