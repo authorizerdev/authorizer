@@ -3,6 +3,7 @@ package resolvers
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 
@@ -20,17 +21,28 @@ func UserResolver(ctx context.Context, params model.GetUserRequest) (*model.User
 		log.Debug("Failed to get GinContext: ", err)
 		return nil, err
 	}
-
 	if !token.IsSuperAdmin(gc) {
 		log.Debug("Not logged in as super admin.")
 		return nil, fmt.Errorf("unauthorized")
 	}
-
-	res, err := db.Provider.GetUserByID(ctx, params.ID)
-	if err != nil {
-		log.Debug("Failed to get users: ", err)
-		return nil, err
+	// Try getting user by ID
+	if params.ID != nil && strings.Trim(*params.ID, " ") != "" {
+		res, err := db.Provider.GetUserByID(ctx, *params.ID)
+		if err != nil {
+			log.Debug("Failed to get users by ID: ", err)
+			return nil, err
+		}
+		return res.AsAPIUser(), nil
 	}
-
-	return res.AsAPIUser(), nil
+	// Try getting user by email
+	if params.Email != nil && strings.Trim(*params.Email, " ") != "" {
+		res, err := db.Provider.GetUserByEmail(ctx, *params.Email)
+		if err != nil {
+			log.Debug("Failed to get users by email: ", err)
+			return nil, err
+		}
+		return res.AsAPIUser(), nil
+	}
+	// Return error if no params are provided
+	return nil, fmt.Errorf("invalid params, user id or email is required")
 }

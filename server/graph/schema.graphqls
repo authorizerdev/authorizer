@@ -537,7 +537,8 @@ input ResendOTPRequest {
 }
 
 input GetUserRequest {
-  id: String!
+  id: String
+  email: String
 }
 
 type Mutation {

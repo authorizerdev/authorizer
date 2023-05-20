@@ -144,7 +144,8 @@ type GenerateJWTKeysResponse struct {
 }
 
 type GetUserRequest struct {
-	ID string `json:"id"`
+	ID    *string `json:"id"`
+	Email *string `json:"email"`
 }
 
 type InviteMemberInput struct {
