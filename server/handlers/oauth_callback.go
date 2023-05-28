@@ -450,7 +450,7 @@ func processFacebookUserInfo(code string) (models.User, error) {
 	userRawData := make(map[string]interface{})
 	json.Unmarshal(body, &userRawData)
 
-	email := fmt.Sprintf("%v", userRawData["sub"])
+	email := fmt.Sprintf("%v", userRawData["email"])
 
 	picObject := userRawData["picture"].(map[string]interface{})["data"]
 	picDataObject := picObject.(map[string]interface{})
