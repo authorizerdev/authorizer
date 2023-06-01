@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
-
+	
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/crypto"
@@ -20,7 +20,13 @@ import (
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/authorizerdev/authorizer/server/validators"
+	// "github.com/twilio/twilio-go"
+	// api "github.com/twilio/twilio-go/rest/api/v2010"
 )
+
+// Send Message With Twilio
+// Verify It
+// Then set phone_verified_at ..
 
 // MobileSignupResolver is a resolver for mobile_basic_auth_signup mutation
 func MobileSignupResolver(ctx context.Context, params *model.MobileSignUpInput) (*model.AuthResponse, error) {
@@ -137,6 +143,33 @@ func MobileSignupResolver(ctx context.Context, params *model.MobileSignUpInput) 
 		PhoneNumber:           &mobile,
 		PhoneNumberVerifiedAt: &now,
 	}
+
+	// create the model sms_verification_requests
+	// insert the data into sms_verification_requests
+	// while inserting - encrypt the code
+	// give max mins to verify and (10m - configurable)
+	// new mutation verify sms - to compare against
+	// check if it is verified - mobile login - set phone_number_verified_at (throw phone_not_verified_error if not)
+	// client := twilio.NewRestClientWithParams(twilio.ClientParams{
+	// 	Username: "AC2fa25c42aebbb4adecf321f98f2378f8",
+	// 	Password: "80d261d70d81a7838df0ab30e3b0b837",
+	// })
+
+	// paramTwilio := &api.CreateMessageParams{}
+	// paramTwilio.SetBody("The mobile signup here")
+	// paramTwilio.SetFrom("+13655360739")
+	// paramTwilio.SetTo(mobile)
+
+	// resp, err := client.Api.CreateMessage(paramTwilio)
+	// if err != nil {
+	// 	log.Info("Error getting default roles: ", err.Error())
+	// } else {
+	// 	if resp.Sid != nil {
+	// 		log.Info("--Good--")
+	// 	} else {
+	// 		log.Info("-- --")
+	// 	}
+	// }
 
 	user.Roles = strings.Join(inputRoles, ",")
 
