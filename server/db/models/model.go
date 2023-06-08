@@ -10,6 +10,7 @@ type CollectionList struct {
 	WebhookLog          string
 	EmailTemplate       string
 	OTP                 string
+	SMSVerificationRequest string
 }
 
 var (
@@ -25,5 +26,6 @@ var (
 		WebhookLog:          Prefix + "webhook_logs",
 		EmailTemplate:       Prefix + "email_templates",
 		OTP:                 Prefix + "otps",
+		SMSVerificationRequest:			Prefix + "sms_verification_requests",
 	}
 )
