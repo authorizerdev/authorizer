@@ -120,6 +120,7 @@ type Env struct {
 	AdminCookieSecure                bool     `json:"ADMIN_COOKIE_SECURE"`
 	DefaultAuthorizeResponseType     *string  `json:"DEFAULT_AUTHORIZE_RESPONSE_TYPE"`
 	DefaultAuthorizeResponseMode     *string  `json:"DEFAULT_AUTHORIZE_RESPONSE_MODE"`
+	SmsCodeExpiryTime				 *string  `json:"SMS_CODE_EXPIRY_TIME"`
 }
 
 type Error struct {
@@ -263,6 +264,15 @@ type ResetPasswordInput struct {
 
 type Response struct {
 	Message string `json:"message"`
+}
+
+type SMSVerificationRequests struct {
+	ID            string `json:"id"`
+	Code          string `json:"code"`
+	CodeExpiresAt int64  `json:"code_expires_at"`
+	PhoneNumber   string `json:"phone_number"`
+	CreatedAt     int64  `json:"created_at"`
+	UpdatedAt     *int64 `json:"updated_at"`
 }
 
 type SessionQueryInput struct {
@@ -466,6 +476,11 @@ type VerificationRequests struct {
 type VerifyEmailInput struct {
 	Token string  `json:"token"`
 	State *string `json:"state"`
+}
+
+type VerifyMobileRequest struct {
+	PhoneNumber string `json:"phone_number"`
+	Code        string `json:"code"`
 }
 
 type VerifyOTPRequest struct {
