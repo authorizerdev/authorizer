@@ -19,14 +19,9 @@ import (
 	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
+	"github.com/authorizerdev/authorizer/server/smsproviders"
 	"github.com/authorizerdev/authorizer/server/validators"
-	// "github.com/twilio/twilio-go"
-	// api "github.com/twilio/twilio-go/rest/api/v2010"
 )
-
-// Send Message With Twilio
-// Verify It
-// Then set phone_verified_at ..
 
 // MobileSignupResolver is a resolver for mobile_basic_auth_signup mutation
 func MobileSignupResolver(ctx context.Context, params *model.MobileSignUpInput) (*model.AuthResponse, error) {
@@ -137,39 +132,10 @@ func MobileSignupResolver(ctx context.Context, params *model.MobileSignUpInput) 
 		}
 	}
 
-	now := time.Now().Unix()
 	user := models.User{
 		Email:                 emailInput,
 		PhoneNumber:           &mobile,
-		PhoneNumberVerifiedAt: &now,
 	}
-
-	// create the model sms_verification_requests
-	// insert the data into sms_verification_requests
-	// while inserting - encrypt the code
-	// give max mins to verify and (10m - configurable)
-	// new mutation verify sms - to compare against
-	// check if it is verified - mobile login - set phone_number_verified_at (throw phone_not_verified_error if not)
-	// client := twilio.NewRestClientWithParams(twilio.ClientParams{
-	// 	Username: "AC2fa25c42aebbb4adecf321f98f2378f8",
-	// 	Password: "80d261d70d81a7838df0ab30e3b0b837",
-	// })
-
-	// paramTwilio := &api.CreateMessageParams{}
-	// paramTwilio.SetBody("The mobile signup here")
-	// paramTwilio.SetFrom("+13655360739")
-	// paramTwilio.SetTo(mobile)
-
-	// resp, err := client.Api.CreateMessage(paramTwilio)
-	// if err != nil {
-	// 	log.Info("Error getting default roles: ", err.Error())
-	// } else {
-	// 	if resp.Sid != nil {
-	// 		log.Info("--Good--")
-	// 	} else {
-	// 		log.Info("-- --")
-	// 	}
-	// }
 
 	user.Roles = strings.Join(inputRoles, ",")
 
@@ -213,17 +179,51 @@ func MobileSignupResolver(ctx context.Context, params *model.MobileSignUpInput) 
 		log.Debug("MFA service not enabled: ", err)
 		isMFAEnforced = false
 	}
-
+	
 	if isMFAEnforced {
 		user.IsMultiFactorAuthEnabled = refs.NewBoolRef(true)
 	}
 
+	disablePhoneVerification, _ := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisablePhoneVerification)
+	log.Errorf("ooioioioioioioioi: ", disablePhoneVerification)
+
+	if disablePhoneVerification {
+		now := time.Now().Unix()
+		user.PhoneNumberVerifiedAt = &now
+	}
+
 	user.SignupMethods = constants.AuthRecipeMethodMobileBasicAuth
 	user, err = db.Provider.AddUser(ctx, user)
+
 	if err != nil {
 		log.Debug("Failed to add user: ", err)
 		return res, err
 	}
+	
+	if !disablePhoneVerification {
+		duration, _ := time.ParseDuration("10m")
+		smsCode := utils.GenerateOTP()
+	
+		smsBody := strings.Builder{}
+		smsBody.WriteString("Your verification code is: ")
+		smsBody.WriteString(smsCode)
+
+		// TODO: For those who enabled the webhook to call their sms vendor separately - sending the otp to their api
+		if err != nil {
+			log.Debug("error while upserting user: ", err.Error())
+			return nil, err
+		}
+
+		go func() {
+			db.Provider.UpsertSMSRequest(ctx, &models.SMSVerificationRequest{
+				PhoneNumber:     mobile,
+				Code:   	     smsCode,
+				CodeExpiresAt:   time.Now().Add(duration).Unix(),
+			})
+			smsproviders.SendSMS(mobile, smsBody.String())
+		}()
+	}
+
 	roles := strings.Split(user.Roles, ",")
 	userToReturn := user.AsAPIUser()
 
