@@ -28,7 +28,7 @@ func VerifyMobileResolver(ctx context.Context, params model.VerifyMobileRequest)
 
 	if smsVerificationRequest.Code != params.Code {
 		log.Debug("Failed to verify request: bad credentials")
-		return res, fmt.Errorf(`bad crredentials`)
+		return res, fmt.Errorf(`bad credentials`)
 	}
 
 	expiresIn := smsVerificationRequest.CodeExpiresAt - time.Now().Unix()
