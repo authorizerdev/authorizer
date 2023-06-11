@@ -185,8 +185,6 @@ func MobileSignupResolver(ctx context.Context, params *model.MobileSignUpInput) 
 	}
 
 	disablePhoneVerification, _ := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisablePhoneVerification)
-	log.Errorf("ooioioioioioioioi: ", disablePhoneVerification)
-
 	if disablePhoneVerification {
 		now := time.Now().Unix()
 		user.PhoneNumberVerifiedAt = &now
