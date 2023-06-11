@@ -6,6 +6,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/authorizerdev/authorizer/server/resolvers"
 	"github.com/stretchr/testify/assert"
@@ -45,6 +46,25 @@ func mobileLoginTests(t *testing.T, s TestSetup) {
 		assert.Error(t, err)
 		assert.Nil(t, res)
 
+		// should fail because phone is not verified
+		res, err = resolvers.MobileLoginResolver(ctx, model.MobileLoginInput{
+			PhoneNumber: phoneNumber,
+			Password:    s.TestInfo.Password,
+		})
+		assert.NotNil(t, err, "should fail because phone is not verified")
+		assert.Nil(t, res)
+
+		smsRequest, err := db.Provider.GetCodeByPhone(ctx, phoneNumber)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, smsRequest.Code)
+
+		verifySMSRequest, err := resolvers.VerifyMobileResolver(ctx, model.VerifyMobileRequest{
+			PhoneNumber: phoneNumber,
+			Code:   smsRequest.Code,
+		})
+		assert.Nil(t, err)
+		assert.NotEqual(t, verifySMSRequest.Message, "", "message should not be empty")
+	
 		res, err = resolvers.MobileLoginResolver(ctx, model.MobileLoginInput{
 			PhoneNumber: phoneNumber,
 			Password:    s.TestInfo.Password,
