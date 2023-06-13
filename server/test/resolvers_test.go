@@ -135,6 +135,7 @@ func TestResolvers(t *testing.T) {
 			validateJwtTokenTest(t, s)
 			verifyOTPTest(t, s)
 			resendOTPTest(t, s)
+			verifyMobileTest(t, s)
 
 			updateAllUsersTest(t, s)
 			webhookLogsTest(t, s)   // get logs after above resolver tests are done

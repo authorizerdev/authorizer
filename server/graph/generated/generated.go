@@ -198,6 +198,7 @@ type ComplexityRoot struct {
 		UpdateUser          func(childComplexity int, params model.UpdateUserInput) int
 		UpdateWebhook       func(childComplexity int, params model.UpdateWebhookRequest) int
 		VerifyEmail         func(childComplexity int, params model.VerifyEmailInput) int
+		VerifyMobile        func(childComplexity int, params model.VerifyMobileRequest) int
 		VerifyOtp           func(childComplexity int, params model.VerifyOTPRequest) int
 	}
 
@@ -226,6 +227,15 @@ type ComplexityRoot struct {
 
 	Response struct {
 		Message func(childComplexity int) int
+	}
+
+	SMSVerificationRequests struct {
+		Code          func(childComplexity int) int
+		CodeExpiresAt func(childComplexity int) int
+		CreatedAt     func(childComplexity int) int
+		ID            func(childComplexity int) int
+		PhoneNumber   func(childComplexity int) int
+		UpdatedAt     func(childComplexity int) int
 	}
 
 	TestEndpointResponse struct {
@@ -329,6 +339,7 @@ type MutationResolver interface {
 	Revoke(ctx context.Context, params model.OAuthRevokeInput) (*model.Response, error)
 	VerifyOtp(ctx context.Context, params model.VerifyOTPRequest) (*model.AuthResponse, error)
 	ResendOtp(ctx context.Context, params model.ResendOTPRequest) (*model.Response, error)
+	VerifyMobile(ctx context.Context, params model.VerifyMobileRequest) (*model.AuthResponse, error)
 	DeleteUser(ctx context.Context, params model.DeleteUserInput) (*model.Response, error)
 	UpdateUser(ctx context.Context, params model.UpdateUserInput) (*model.User, error)
 	AdminSignup(ctx context.Context, params model.AdminSignupInput) (*model.Response, error)
@@ -1421,6 +1432,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.VerifyEmail(childComplexity, args["params"].(model.VerifyEmailInput)), true
 
+	case "Mutation.verify_mobile":
+		if e.complexity.Mutation.VerifyMobile == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_verify_mobile_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.VerifyMobile(childComplexity, args["params"].(model.VerifyMobileRequest)), true
+
 	case "Mutation.verify_otp":
 		if e.complexity.Mutation.VerifyOtp == nil {
 			break
@@ -1603,6 +1626,48 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Response.Message(childComplexity), true
+
+	case "SMSVerificationRequests.code":
+		if e.complexity.SMSVerificationRequests.Code == nil {
+			break
+		}
+
+		return e.complexity.SMSVerificationRequests.Code(childComplexity), true
+
+	case "SMSVerificationRequests.code_expires_at":
+		if e.complexity.SMSVerificationRequests.CodeExpiresAt == nil {
+			break
+		}
+
+		return e.complexity.SMSVerificationRequests.CodeExpiresAt(childComplexity), true
+
+	case "SMSVerificationRequests.created_at":
+		if e.complexity.SMSVerificationRequests.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.SMSVerificationRequests.CreatedAt(childComplexity), true
+
+	case "SMSVerificationRequests.id":
+		if e.complexity.SMSVerificationRequests.ID == nil {
+			break
+		}
+
+		return e.complexity.SMSVerificationRequests.ID(childComplexity), true
+
+	case "SMSVerificationRequests.phone_number":
+		if e.complexity.SMSVerificationRequests.PhoneNumber == nil {
+			break
+		}
+
+		return e.complexity.SMSVerificationRequests.PhoneNumber(childComplexity), true
+
+	case "SMSVerificationRequests.updated_at":
+		if e.complexity.SMSVerificationRequests.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.SMSVerificationRequests.UpdatedAt(childComplexity), true
 
 	case "TestEndpointResponse.http_status":
 		if e.complexity.TestEndpointResponse.HTTPStatus == nil {
@@ -2029,6 +2094,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputUpdateWebhookRequest,
 		ec.unmarshalInputValidateJWTTokenInput,
 		ec.unmarshalInputVerifyEmailInput,
+		ec.unmarshalInputVerifyMobileRequest,
 		ec.unmarshalInputVerifyOTPRequest,
 		ec.unmarshalInputWebhookRequest,
 	)
@@ -2166,6 +2232,20 @@ type VerificationRequest {
 type VerificationRequests {
   pagination: Pagination!
   verification_requests: [VerificationRequest!]!
+}
+
+type SMSVerificationRequests {
+  id: ID!
+  code: String!
+  code_expires_at: Int64!
+  phone_number: String!
+  created_at: Int64!
+  updated_at: Int64
+}
+
+input VerifyMobileRequest {
+  phone_number: String!
+  code: String!
 }
 
 type Error {
@@ -2649,6 +2729,7 @@ type Mutation {
   revoke(params: OAuthRevokeInput!): Response!
   verify_otp(params: VerifyOTPRequest!): AuthResponse!
   resend_otp(params: ResendOTPRequest!): Response!
+  verify_mobile(params: VerifyMobileRequest!): AuthResponse!
   # admin only apis
   _delete_user(params: DeleteUserInput!): Response!
   _update_user(params: UpdateUserInput!): User!
@@ -3105,6 +3186,21 @@ func (ec *executionContext) field_Mutation_verify_email_args(ctx context.Context
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
 		arg0, err = ec.unmarshalNVerifyEmailInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐVerifyEmailInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["params"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_verify_mobile_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.VerifyMobileRequest
+	if tmp, ok := rawArgs["params"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+		arg0, err = ec.unmarshalNVerifyMobileRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐVerifyMobileRequest(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -8488,6 +8584,77 @@ func (ec *executionContext) fieldContext_Mutation_resend_otp(ctx context.Context
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_verify_mobile(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_verify_mobile(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().VerifyMobile(rctx, fc.Args["params"].(model.VerifyMobileRequest))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.AuthResponse)
+	fc.Result = res
+	return ec.marshalNAuthResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAuthResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_verify_mobile(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "message":
+				return ec.fieldContext_AuthResponse_message(ctx, field)
+			case "should_show_otp_screen":
+				return ec.fieldContext_AuthResponse_should_show_otp_screen(ctx, field)
+			case "access_token":
+				return ec.fieldContext_AuthResponse_access_token(ctx, field)
+			case "id_token":
+				return ec.fieldContext_AuthResponse_id_token(ctx, field)
+			case "refresh_token":
+				return ec.fieldContext_AuthResponse_refresh_token(ctx, field)
+			case "expires_in":
+				return ec.fieldContext_AuthResponse_expires_in(ctx, field)
+			case "user":
+				return ec.fieldContext_AuthResponse_user(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type AuthResponse", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_verify_mobile_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation__delete_user(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Mutation__delete_user(ctx, field)
 	if err != nil {
@@ -10849,6 +11016,267 @@ func (ec *executionContext) fieldContext_Response_message(ctx context.Context, f
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SMSVerificationRequests_id(ctx context.Context, field graphql.CollectedField, obj *model.SMSVerificationRequests) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SMSVerificationRequests_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SMSVerificationRequests_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SMSVerificationRequests",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SMSVerificationRequests_code(ctx context.Context, field graphql.CollectedField, obj *model.SMSVerificationRequests) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SMSVerificationRequests_code(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Code, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SMSVerificationRequests_code(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SMSVerificationRequests",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SMSVerificationRequests_code_expires_at(ctx context.Context, field graphql.CollectedField, obj *model.SMSVerificationRequests) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SMSVerificationRequests_code_expires_at(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CodeExpiresAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int64)
+	fc.Result = res
+	return ec.marshalNInt642int64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SMSVerificationRequests_code_expires_at(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SMSVerificationRequests",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int64 does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SMSVerificationRequests_phone_number(ctx context.Context, field graphql.CollectedField, obj *model.SMSVerificationRequests) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SMSVerificationRequests_phone_number(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.PhoneNumber, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SMSVerificationRequests_phone_number(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SMSVerificationRequests",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SMSVerificationRequests_created_at(ctx context.Context, field graphql.CollectedField, obj *model.SMSVerificationRequests) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SMSVerificationRequests_created_at(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CreatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int64)
+	fc.Result = res
+	return ec.marshalNInt642int64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SMSVerificationRequests_created_at(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SMSVerificationRequests",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int64 does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SMSVerificationRequests_updated_at(ctx context.Context, field graphql.CollectedField, obj *model.SMSVerificationRequests) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SMSVerificationRequests_updated_at(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.UpdatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int64)
+	fc.Result = res
+	return ec.marshalOInt642ᚖint64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SMSVerificationRequests_updated_at(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SMSVerificationRequests",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int64 does not have child fields")
 		},
 	}
 	return fc, nil
@@ -17163,6 +17591,42 @@ func (ec *executionContext) unmarshalInputVerifyEmailInput(ctx context.Context, 
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputVerifyMobileRequest(ctx context.Context, obj interface{}) (model.VerifyMobileRequest, error) {
+	var it model.VerifyMobileRequest
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"phone_number", "code"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "phone_number":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phone_number"))
+			it.PhoneNumber, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "code":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("code"))
+			it.Code, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputVerifyOTPRequest(ctx context.Context, obj interface{}) (model.VerifyOTPRequest, error) {
 	var it model.VerifyOTPRequest
 	asMap := map[string]interface{}{}
@@ -18072,6 +18536,15 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "verify_mobile":
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_verify_mobile(ctx, field)
+			})
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "_delete_user":
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
@@ -18643,6 +19116,66 @@ func (ec *executionContext) _Response(ctx context.Context, sel ast.SelectionSet,
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var sMSVerificationRequestsImplementors = []string{"SMSVerificationRequests"}
+
+func (ec *executionContext) _SMSVerificationRequests(ctx context.Context, sel ast.SelectionSet, obj *model.SMSVerificationRequests) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, sMSVerificationRequestsImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("SMSVerificationRequests")
+		case "id":
+
+			out.Values[i] = ec._SMSVerificationRequests_id(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "code":
+
+			out.Values[i] = ec._SMSVerificationRequests_code(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "code_expires_at":
+
+			out.Values[i] = ec._SMSVerificationRequests_code_expires_at(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "phone_number":
+
+			out.Values[i] = ec._SMSVerificationRequests_phone_number(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "created_at":
+
+			out.Values[i] = ec._SMSVerificationRequests_created_at(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "updated_at":
+
+			out.Values[i] = ec._SMSVerificationRequests_updated_at(ctx, field, obj)
+
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -20007,6 +20540,11 @@ func (ec *executionContext) marshalNVerificationRequests2ᚖgithubᚗcomᚋautho
 
 func (ec *executionContext) unmarshalNVerifyEmailInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐVerifyEmailInput(ctx context.Context, v interface{}) (model.VerifyEmailInput, error) {
 	res, err := ec.unmarshalInputVerifyEmailInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNVerifyMobileRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐVerifyMobileRequest(ctx context.Context, v interface{}) (model.VerifyMobileRequest, error) {
+	res, err := ec.unmarshalInputVerifyMobileRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 

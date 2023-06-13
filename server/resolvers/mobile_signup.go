@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
-
+	
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/crypto"
@@ -19,6 +19,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
+	"github.com/authorizerdev/authorizer/server/smsproviders"
 	"github.com/authorizerdev/authorizer/server/validators"
 )
 
@@ -131,11 +132,9 @@ func MobileSignupResolver(ctx context.Context, params *model.MobileSignUpInput) 
 		}
 	}
 
-	now := time.Now().Unix()
 	user := models.User{
 		Email:                 emailInput,
 		PhoneNumber:           &mobile,
-		PhoneNumberVerifiedAt: &now,
 	}
 
 	user.Roles = strings.Join(inputRoles, ",")
@@ -180,17 +179,49 @@ func MobileSignupResolver(ctx context.Context, params *model.MobileSignUpInput) 
 		log.Debug("MFA service not enabled: ", err)
 		isMFAEnforced = false
 	}
-
+	
 	if isMFAEnforced {
 		user.IsMultiFactorAuthEnabled = refs.NewBoolRef(true)
 	}
 
+	disablePhoneVerification, _ := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisablePhoneVerification)
+	if disablePhoneVerification {
+		now := time.Now().Unix()
+		user.PhoneNumberVerifiedAt = &now
+	}
+
 	user.SignupMethods = constants.AuthRecipeMethodMobileBasicAuth
 	user, err = db.Provider.AddUser(ctx, user)
+
 	if err != nil {
 		log.Debug("Failed to add user: ", err)
 		return res, err
 	}
+	
+	if !disablePhoneVerification {
+		duration, _ := time.ParseDuration("10m")
+		smsCode := utils.GenerateOTP()
+	
+		smsBody := strings.Builder{}
+		smsBody.WriteString("Your verification code is: ")
+		smsBody.WriteString(smsCode)
+
+		// TODO: For those who enabled the webhook to call their sms vendor separately - sending the otp to their api
+		if err != nil {
+			log.Debug("error while upserting user: ", err.Error())
+			return nil, err
+		}
+
+		go func() {
+			db.Provider.UpsertSMSRequest(ctx, &models.SMSVerificationRequest{
+				PhoneNumber:     mobile,
+				Code:   	     smsCode,
+				CodeExpiresAt:   time.Now().Add(duration).Unix(),
+			})
+			smsproviders.SendSMS(mobile, smsBody.String())
+		}()
+	}
+
 	roles := strings.Split(user.Roles, ",")
 	userToReturn := user.AsAPIUser()
 

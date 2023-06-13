@@ -75,6 +75,20 @@ type VerificationRequests {
   verification_requests: [VerificationRequest!]!
 }
 
+type SMSVerificationRequests {
+  id: ID!
+  code: String!
+  code_expires_at: Int64!
+  phone_number: String!
+  created_at: Int64!
+  updated_at: Int64
+}
+
+input VerifyMobileRequest {
+  phone_number: String!
+  code: String!
+}
+
 type Error {
   message: String!
   reason: String!
@@ -556,6 +570,7 @@ type Mutation {
   revoke(params: OAuthRevokeInput!): Response!
   verify_otp(params: VerifyOTPRequest!): AuthResponse!
   resend_otp(params: ResendOTPRequest!): Response!
+  verify_mobile(params: VerifyMobileRequest!): AuthResponse!
   # admin only apis
   _delete_user(params: DeleteUserInput!): Response!
   _update_user(params: UpdateUserInput!): User!

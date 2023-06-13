@@ -111,6 +111,15 @@ func InitAllEnv() error {
 	osDefaultRoles := os.Getenv(constants.EnvKeyDefaultRoles)
 	osProtectedRoles := os.Getenv(constants.EnvKeyProtectedRoles)
 
+	// phone verification var
+	osDisablePhoneVerification := os.Getenv(constants.EnvKeyDisablePhoneVerification)
+
+	// twilio vars
+	osTwilioApiKey := os.Getenv(constants.EnvKeyTwilioAPIKey)
+	osTwilioApiSecret := os.Getenv(constants.EnvKeyTwilioAPISecret)
+	osTwilioAccountSid := os.Getenv(constants.EnvKeyTwilioAccountSID)
+	osTwilioSenderFrom := os.Getenv(constants.EnvKeyTwilioSenderFrom)
+
 	ienv, ok := envData[constants.EnvKeyEnv]
 	if !ok || ienv == "" {
 		envData[constants.EnvKeyEnv] = osEnv
@@ -136,6 +145,7 @@ func InitAllEnv() error {
 	if val, ok := envData[constants.EnvAwsRegion]; !ok || val == "" {
 		envData[constants.EnvAwsRegion] = osAwsRegion
 	}
+	
 	if osAwsRegion != "" && envData[constants.EnvAwsRegion] != osAwsRegion {
 		envData[constants.EnvAwsRegion] = osAwsRegion
 	}
@@ -591,7 +601,7 @@ func InitAllEnv() error {
 		if err != nil {
 			return err
 		}
-		if boolValue != envData[constants.EnvKeyDisableMagicLinkLogin].(bool) {
+		if boolValue != envData[constants.EnvKeyDisableMagicLinkLogin] {
 			envData[constants.EnvKeyDisableMagicLinkLogin] = boolValue
 		}
 	}
@@ -765,6 +775,37 @@ func InitAllEnv() error {
 	}
 	if osAuthorizeResponseMode != "" && envData[constants.EnvKeyDefaultAuthorizeResponseMode] != osAuthorizeResponseMode {
 		envData[constants.EnvKeyDefaultAuthorizeResponseMode] = osAuthorizeResponseMode
+	}
+
+	if osTwilioApiSecret != "" && envData[constants.EnvKeyTwilioAPISecret] != osTwilioApiSecret {
+		envData[constants.EnvKeyTwilioAPISecret] = osTwilioApiSecret
+	}
+
+	if osTwilioApiKey != "" && envData[constants.EnvKeyTwilioAPIKey] != osTwilioApiKey {
+		envData[constants.EnvKeyTwilioAPIKey] = osTwilioApiKey
+	}
+
+	if osTwilioAccountSid != "" && envData[constants.EnvKeyTwilioAccountSID] != osTwilioAccountSid {
+		envData[constants.EnvKeyTwilioAccountSID] = osTwilioAccountSid
+	}
+
+    if osTwilioSenderFrom != "" && envData[constants.EnvKeyTwilioSenderFrom] != osTwilioSenderFrom {
+		envData[constants.EnvKeyTwilioSenderFrom] = osTwilioSenderFrom
+	}
+
+	if _, ok := envData[constants.EnvKeyDisablePhoneVerification]; !ok {
+		envData[constants.EnvKeyDisablePhoneVerification] = osDisablePhoneVerification == "false"
+	}
+	
+	if osDisablePhoneVerification != "" {
+		boolValue, err := strconv.ParseBool(osDisablePhoneVerification)
+		
+		if err != nil {
+			return err
+		}
+		if boolValue != envData[constants.EnvKeyDisablePhoneVerification] {
+			envData[constants.EnvKeyDisablePhoneVerification] = boolValue
+		}
 	}
 
 	err = memorystore.Provider.UpdateEnvStore(envData)

@@ -84,4 +84,11 @@ type Provider interface {
 	GetOTPByEmail(ctx context.Context, emailAddress string) (*models.OTP, error)
 	// DeleteOTP to delete otp
 	DeleteOTP(ctx context.Context, otp *models.OTP) error
+
+	// Upsert SMS code request
+	UpsertSMSRequest(ctx context.Context, smsRequest *models.SMSVerificationRequest) (*models.SMSVerificationRequest, error)
+	// Get sms code by phone number
+	GetCodeByPhone(ctx context.Context, phoneNumber string) (*models.SMSVerificationRequest, error)
+	// Delete sms
+	DeleteSMSRequest(ctx context.Context, smsRequest *models.SMSVerificationRequest) error
 }

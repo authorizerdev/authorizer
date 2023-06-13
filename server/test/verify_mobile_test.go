@@ -12,11 +12,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func mobileLoginTests(t *testing.T, s TestSetup) {
+func verifyMobileTest(t *testing.T, s TestSetup) {
 	t.Helper()
-	t.Run(`should login via mobile`, func(t *testing.T) {
+	t.Run(`should verify mobile`, func(t *testing.T) {
 		_, ctx := createContext(s)
-		email := "mobile_login." + s.TestInfo.Email
+		email := "mobile_verification." + s.TestInfo.Email
 		phoneNumber := "2234567890"
 		signUpRes, err := resolvers.MobileSignupResolver(ctx, &model.MobileSignUpInput{
 			Email:           refs.NewStringRef(email),
@@ -38,14 +38,6 @@ func mobileLoginTests(t *testing.T, s TestSetup) {
 		assert.Error(t, err)
 		assert.Nil(t, res)
 
-		// Should fail for email login
-		res, err = resolvers.LoginResolver(ctx, model.LoginInput{
-			Email:    email,
-			Password: s.TestInfo.Password,
-		})
-		assert.Error(t, err)
-		assert.Nil(t, res)
-
 		// should fail because phone is not verified
 		res, err = resolvers.MobileLoginResolver(ctx, model.MobileLoginInput{
 			PhoneNumber: phoneNumber,
@@ -54,11 +46,20 @@ func mobileLoginTests(t *testing.T, s TestSetup) {
 		assert.NotNil(t, err, "should fail because phone is not verified")
 		assert.Nil(t, res)
 
+		// get code from db
 		smsRequest, err := db.Provider.GetCodeByPhone(ctx, phoneNumber)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, smsRequest.Code)
 
+		// throw an error if the code is not correct
 		verifySMSRequest, err := resolvers.VerifyMobileResolver(ctx, model.VerifyMobileRequest{
+			PhoneNumber: phoneNumber,
+			Code:  "rand_12@1",
+		})
+		assert.NotNil(t, err, "should fail because of bad credentials")
+		assert.Nil(t, verifySMSRequest)
+	
+		verifySMSRequest, err = resolvers.VerifyMobileResolver(ctx, model.VerifyMobileRequest{
 			PhoneNumber: phoneNumber,
 			Code:   smsRequest.Code,
 		})

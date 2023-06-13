@@ -176,4 +176,13 @@ const (
 	// EnvKeyDefaultAuthorizeResponseMode key for env variable DEFAULT_AUTHORIZE_RESPONSE_MODE
 	// This env is used for setting default response mode in authorize handler
 	EnvKeyDefaultAuthorizeResponseMode = "DEFAULT_AUTHORIZE_RESPONSE_MODE"
+
+	// Phone verification setting
+	EnvKeyDisablePhoneVerification = "DISABLE_PHONE_VERIFICATION"
+
+	// Twilio env variables
+	EnvKeyTwilioAPIKey = "TWILIO_API_KEY"
+	EnvKeyTwilioAPISecret = "TWILIO_API_SECRET"
+	EnvKeyTwilioAccountSID = "TWILIO_ACCOUNT_SID"
+	EnvKeyTwilioSenderFrom = "TWILIO_SENDER_FROM"
 )
