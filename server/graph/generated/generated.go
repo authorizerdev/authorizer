@@ -2577,15 +2577,16 @@ input UpdateUserInput {
 }
 
 input ForgotPasswordInput {
-  email: String!
+  email_or_phone: String!
   state: String
   redirect_uri: String
 }
 
 input ResetPasswordInput {
-  token: String!
+  token_or_code: String!
   password: String!
   confirm_password: String!
+  phone_number: String
 }
 
 input DeleteUserInput {
@@ -15726,18 +15727,18 @@ func (ec *executionContext) unmarshalInputForgotPasswordInput(ctx context.Contex
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"email", "state", "redirect_uri"}
+	fieldsInOrder := [...]string{"email_or_phone", "state", "redirect_uri"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
 			continue
 		}
 		switch k {
-		case "email":
+		case "email_or_phone":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
-			it.Email, err = ec.unmarshalNString2string(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email_or_phone"))
+			it.EmailOrPhone, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -16406,18 +16407,18 @@ func (ec *executionContext) unmarshalInputResetPasswordInput(ctx context.Context
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"token", "password", "confirm_password"}
+	fieldsInOrder := [...]string{"token_or_code", "password", "confirm_password", "phone_number"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
 			continue
 		}
 		switch k {
-		case "token":
+		case "token_or_code":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("token"))
-			it.Token, err = ec.unmarshalNString2string(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("token_or_code"))
+			it.TokenOrCode, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -16434,6 +16435,14 @@ func (ec *executionContext) unmarshalInputResetPasswordInput(ctx context.Context
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("confirm_password"))
 			it.ConfirmPassword, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "phone_number":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phone_number"))
+			it.PhoneNumber, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}

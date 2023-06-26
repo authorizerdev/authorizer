@@ -418,15 +418,16 @@ input UpdateUserInput {
 }
 
 input ForgotPasswordInput {
-  email: String!
+  email_or_phone: String!
   state: String
   redirect_uri: String
 }
 
 input ResetPasswordInput {
-  token: String!
+  token_or_code: String!
   password: String!
   confirm_password: String!
+  phone_number: String
 }
 
 input DeleteUserInput {
