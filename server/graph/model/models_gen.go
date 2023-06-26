@@ -120,7 +120,6 @@ type Env struct {
 	AdminCookieSecure                bool     `json:"ADMIN_COOKIE_SECURE"`
 	DefaultAuthorizeResponseType     *string  `json:"DEFAULT_AUTHORIZE_RESPONSE_TYPE"`
 	DefaultAuthorizeResponseMode     *string  `json:"DEFAULT_AUTHORIZE_RESPONSE_MODE"`
-	SmsCodeExpiryTime				 *string  `json:"SMS_CODE_EXPIRY_TIME"`
 }
 
 type Error struct {
@@ -129,9 +128,9 @@ type Error struct {
 }
 
 type ForgotPasswordInput struct {
-	Email       string  `json:"email"`
-	State       *string `json:"state"`
-	RedirectURI *string `json:"redirect_uri"`
+	EmailOrPhone string  `json:"email_or_phone"`
+	State        *string `json:"state"`
+	RedirectURI  *string `json:"redirect_uri"`
 }
 
 type GenerateJWTKeysInput struct {
@@ -257,9 +256,10 @@ type ResendVerifyEmailInput struct {
 }
 
 type ResetPasswordInput struct {
-	Token           string `json:"token"`
-	Password        string `json:"password"`
-	ConfirmPassword string `json:"confirm_password"`
+	TokenOrCode     string  `json:"token_or_code"`
+	Password        string  `json:"password"`
+	ConfirmPassword string  `json:"confirm_password"`
+	PhoneNumber     *string `json:"phone_number"`
 }
 
 type Response struct {
