@@ -39,8 +39,63 @@ func ResetPasswordResolver(ctx context.Context, params model.ResetPasswordInput)
 		log.Debug("Basic authentication is disabled")
 		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
 	}
+	
+	if params.PhoneNumber != nil {
+		smsVerificationRequest, err := db.Provider.GetCodeByPhone(ctx, *params.PhoneNumber)
 
-	verificationRequest, err := db.Provider.GetVerificationRequestByToken(ctx, params.Token)
+		if err != nil {
+			log.Debug("Failed to get verification request: ", err)
+			return res, err
+		}
+
+		if smsVerificationRequest == nil {
+			return res, fmt.Errorf(`phone number not found`)
+		}
+	
+		if smsVerificationRequest.Code != params.TokenOrCode {
+			log.Debug("Failed to verify request: bad credentials")
+			return res, fmt.Errorf(`bad credentials`)
+		}
+	
+		expiresIn := smsVerificationRequest.CodeExpiresAt - time.Now().Unix()
+		if expiresIn < 0 {
+			log.Debug("Failed to verify sms request: Timeout")
+			return res, fmt.Errorf("time expired")
+		}
+
+		err = db.Provider.DeleteSMSRequest(ctx, smsVerificationRequest)
+		if err != nil {
+			log.Debug("Failed to delete sms request: ", err.Error())
+		}
+
+		user, err := db.Provider.GetUserByPhoneNumber(ctx, *params.PhoneNumber)
+		if err != nil {
+			log.Debug("Failed to get user: ", err)
+			return res, err
+		}
+
+		password, _ := crypto.EncryptPassword(params.Password)
+		user.Password = &password
+
+		if user.PhoneNumberVerifiedAt == nil {
+			now := time.Now().Unix()
+			user.PhoneNumberVerifiedAt = &now
+		}
+
+		_, err = db.Provider.UpdateUser(ctx, *user)
+		if err != nil {
+			log.Debug("Failed to update user: ", err)
+			return res, err
+		}
+
+		res = &model.Response{
+			Message: `Password updated successfully.`,
+		}
+
+		return res, nil
+	}
+
+	verificationRequest, err := db.Provider.GetVerificationRequestByToken(ctx, params.TokenOrCode)
 	if err != nil {
 		log.Debug("Failed to get verification request: ", err)
 		return res, fmt.Errorf(`invalid token`)
@@ -58,7 +113,7 @@ func ResetPasswordResolver(ctx context.Context, params model.ResetPasswordInput)
 
 	// verify if token exists in db
 	hostname := parsers.GetHost(gc)
-	claim, err := token.ParseJWTToken(params.Token)
+	claim, err := token.ParseJWTToken(params.TokenOrCode)
 	if err != nil {
 		log.Debug("Failed to parse token: ", err)
 		return res, fmt.Errorf(`invalid token`)
