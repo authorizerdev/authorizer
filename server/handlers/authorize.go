@@ -84,9 +84,9 @@ func AuthorizeHandler() gin.HandlerFunc {
 
 		if responseMode == "" {
 			if val, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDefaultAuthorizeResponseMode); err == nil {
-				responseType = val
+				responseMode = val
 			} else {
-				responseType = constants.ResponseModeQuery
+				responseMode = constants.ResponseModeQuery
 			}
 		}
 
