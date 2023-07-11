@@ -181,8 +181,13 @@ const (
 	EnvKeyDisablePhoneVerification = "DISABLE_PHONE_VERIFICATION"
 
 	// Twilio env variables
+
+	// EnvKeyTwilioAPIKey key for env variable TWILIO_API_KEY
 	EnvKeyTwilioAPIKey = "TWILIO_API_KEY"
+	// EnvKeyTwilioAPISecret key for env variable TWILIO_API_SECRET
 	EnvKeyTwilioAPISecret = "TWILIO_API_SECRET"
+	// EnvKeyTwilioAccountSID key for env variable TWILIO_ACCOUNT_SID
 	EnvKeyTwilioAccountSID = "TWILIO_ACCOUNT_SID"
+	// EnvKeyTwilioSenderFrom key for env variable TWILIO_SENDER_FROM
 	EnvKeyTwilioSenderFrom = "TWILIO_SENDER_FROM"
 )
