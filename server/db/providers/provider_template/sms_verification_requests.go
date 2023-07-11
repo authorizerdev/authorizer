@@ -1,4 +1,4 @@
-package couchbase
+package provider_template
 
 import (
 	"context"

@@ -10,41 +10,40 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// SMS verification Request
+// UpsertSMSRequest adds/updates SMS verification request
 func (p *provider) UpsertSMSRequest(ctx context.Context, smsRequest *models.SMSVerificationRequest) (*models.SMSVerificationRequest, error) {
-	smsVerificationRequest, _ := p.GetCodeByPhone(ctx, smsRequest.PhoneNumber)
+	smsVerificationRequest, err := p.GetCodeByPhone(ctx, smsRequest.PhoneNumber)
+	if err != nil {
+		return nil, err
+	}
+	// Boolean to check if we should create a new record or update the existing one
 	shouldCreate := false
-
 	if smsVerificationRequest == nil {
 		id := uuid.NewString()
-
 		smsVerificationRequest = &models.SMSVerificationRequest{
-			ID: 		id,
-			CreatedAt:	time.Now().Unix(),
-			Code: smsRequest.Code,
-			PhoneNumber: smsRequest.PhoneNumber,
+			ID:            id,
+			CreatedAt:     time.Now().Unix(),
+			Code:          smsRequest.Code,
+			PhoneNumber:   smsRequest.PhoneNumber,
 			CodeExpiresAt: smsRequest.CodeExpiresAt,
 		}
 		shouldCreate = true
 	}
-	
+
 	smsVerificationRequest.UpdatedAt = time.Now().Unix()
 	smsRequestCollection := p.db.Collection(models.Collections.SMSVerificationRequest, options.Collection())
-
-	var err error
 	if shouldCreate {
 		_, err = smsRequestCollection.InsertOne(ctx, smsVerificationRequest)
 	} else {
 		_, err = smsRequestCollection.UpdateOne(ctx, bson.M{"phone_number": bson.M{"$eq": smsRequest.PhoneNumber}}, bson.M{"$set": smsVerificationRequest}, options.MergeUpdateOptions())
 	}
-
 	if err != nil {
 		return nil, err
 	}
-	
 	return smsVerificationRequest, nil
 }
 
+// GetCodeByPhone to get code for a given phone number
 func (p *provider) GetCodeByPhone(ctx context.Context, phoneNumber string) (*models.SMSVerificationRequest, error) {
 	var smsVerificationRequest models.SMSVerificationRequest
 
@@ -58,6 +57,7 @@ func (p *provider) GetCodeByPhone(ctx context.Context, phoneNumber string) (*mod
 	return &smsVerificationRequest, nil
 }
 
+// DeleteSMSRequest to delete SMS verification request
 func (p *provider) DeleteSMSRequest(ctx context.Context, smsRequest *models.SMSVerificationRequest) error {
 	smsVerificationRequests := p.db.Collection(models.Collections.SMSVerificationRequest, options.Collection())
 	_, err := smsVerificationRequests.DeleteOne(nil, bson.M{"_id": smsRequest.ID}, options.Delete())
