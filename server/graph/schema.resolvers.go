@@ -191,6 +191,11 @@ func (r *queryResolver) ValidateJwtToken(ctx context.Context, params model.Valid
 	return resolvers.ValidateJwtTokenResolver(ctx, params)
 }
 
+// ValidateSession is the resolver for the validate_session field.
+func (r *queryResolver) ValidateSession(ctx context.Context, params *model.ValidateSessionInput) (*model.ValidateSessionResponse, error) {
+	return resolvers.ValidateSessionResolver(ctx, params)
+}
+
 // Users is the resolver for the _users field.
 func (r *queryResolver) Users(ctx context.Context, params *model.PaginatedInput) (*model.Users, error) {
 	return resolvers.UsersResolver(ctx, params)
