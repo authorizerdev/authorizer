@@ -118,6 +118,12 @@ func NewProvider() (*provider, error) {
 			Options: options.Index().SetUnique(true).SetSparse(true),
 		},
 	}, options.CreateIndexes())
+	otpCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{
+			Keys:    bson.M{"phone_number": 1},
+			Options: options.Index().SetUnique(true).SetSparse(true),
+		},
+	}, options.CreateIndexes())
 
 	mongodb.CreateCollection(ctx, models.Collections.SMSVerificationRequest, options.CreateCollection())
 	smsCollection := mongodb.Collection(models.Collections.SMSVerificationRequest, options.Collection())

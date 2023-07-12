@@ -12,10 +12,7 @@ import (
 
 // UpsertSMSRequest adds/updates SMS verification request
 func (p *provider) UpsertSMSRequest(ctx context.Context, smsRequest *models.SMSVerificationRequest) (*models.SMSVerificationRequest, error) {
-	smsVerificationRequest, err := p.GetCodeByPhone(ctx, smsRequest.PhoneNumber)
-	if err != nil {
-		return nil, err
-	}
+	smsVerificationRequest, _ := p.GetCodeByPhone(ctx, smsRequest.PhoneNumber)
 	// Boolean to check if we should create a new record or update the existing one
 	shouldCreate := false
 	if smsVerificationRequest == nil {
@@ -29,7 +26,7 @@ func (p *provider) UpsertSMSRequest(ctx context.Context, smsRequest *models.SMSV
 		}
 		shouldCreate = true
 	}
-
+	var err error
 	smsVerificationRequest.UpdatedAt = time.Now().Unix()
 	smsRequestCollection := p.db.Collection(models.Collections.SMSVerificationRequest, options.Collection())
 	if shouldCreate {
