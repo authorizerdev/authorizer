@@ -1,7 +1,8 @@
 package models
 
-// SMS verification requests model for database
+// SMSVerificationRequest is SMS verification requests model for database
 type SMSVerificationRequest struct {
+	Key           string `json:"_key,omitempty" bson:"_key,omitempty" cql:"_key,omitempty" dynamo:"key,omitempty"` // for arangodb
 	ID            string `gorm:"primaryKey;type:char(36)" json:"_id" bson:"_id" cql:"id" dynamo:"id,hash"`
 	PhoneNumber   string `gorm:"unique" json:"phone_number" bson:"phone_number" cql:"phone_number" dynamo:"phone_number" index:"phone_number,hash"`
 	Code          string `json:"code" bson:"code" cql:"code" dynamo:"code"`

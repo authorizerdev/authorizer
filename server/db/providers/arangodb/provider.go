@@ -225,7 +225,6 @@ func NewProvider() (*provider, error) {
 			return nil, err
 		}
 	}
-
 	otpCollection, err := arangodb.Collection(ctx, models.Collections.OTP)
 	if err != nil {
 		return nil, err
@@ -235,6 +234,24 @@ func NewProvider() (*provider, error) {
 		Sparse: true,
 	})
 
+	smsVerificationCollectionExists, err := arangodb.CollectionExists(ctx, models.Collections.SMSVerificationRequest)
+	if err != nil {
+		return nil, err
+	}
+	if !smsVerificationCollectionExists {
+		_, err = arangodb.CreateCollection(ctx, models.Collections.SMSVerificationRequest, nil)
+		if err != nil {
+			return nil, err
+		}
+	}
+	smsVerificationCollection, err := arangodb.Collection(ctx, models.Collections.SMSVerificationRequest)
+	if err != nil {
+		return nil, err
+	}
+	smsVerificationCollection.EnsureHashIndex(ctx, []string{"phone_number"}, &arangoDriver.EnsureHashIndexOptions{
+		Unique: true,
+		Sparse: true,
+	})
 	return &provider{
 		db: arangodb,
 	}, err

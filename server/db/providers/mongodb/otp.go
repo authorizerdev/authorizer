@@ -2,6 +2,7 @@ package mongodb
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/db/models"
@@ -12,6 +13,18 @@ import (
 
 // UpsertOTP to add or update otp
 func (p *provider) UpsertOTP(ctx context.Context, otpParam *models.OTP) (*models.OTP, error) {
+	// check if email or phone number is present
+	if otpParam.Email == "" && otpParam.PhoneNumber == "" {
+		return nil, errors.New("email or phone_number is required")
+	}
+	// check if email or phone number is present
+	if otpParam.Email == "" && otpParam.PhoneNumber == "" {
+		return nil, errors.New("email or phone_number is required")
+	}
+	uniqueField := models.FieldNameEmail
+	if otp.Email == "" && otp.PhoneNumber != "" {
+		uniqueField = models.FieldNamePhoneNumber
+	}
 	otp, _ := p.GetOTPByEmail(ctx, otpParam.Email)
 	shouldCreate := false
 	if otp == nil {
