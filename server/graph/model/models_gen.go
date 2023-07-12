@@ -120,7 +120,6 @@ type Env struct {
 	AdminCookieSecure                bool     `json:"ADMIN_COOKIE_SECURE"`
 	DefaultAuthorizeResponseType     *string  `json:"DEFAULT_AUTHORIZE_RESPONSE_TYPE"`
 	DefaultAuthorizeResponseMode     *string  `json:"DEFAULT_AUTHORIZE_RESPONSE_MODE"`
-	SmsCodeExpiryTime				 *string  `json:"SMS_CODE_EXPIRY_TIME"`
 }
 
 type Error struct {
@@ -454,6 +453,15 @@ type ValidateJWTTokenInput struct {
 type ValidateJWTTokenResponse struct {
 	IsValid bool                   `json:"is_valid"`
 	Claims  map[string]interface{} `json:"claims"`
+}
+
+type ValidateSessionInput struct {
+	Cookie string   `json:"cookie"`
+	Roles  []string `json:"roles"`
+}
+
+type ValidateSessionResponse struct {
+	IsValid bool `json:"is_valid"`
 }
 
 type VerificationRequest struct {

@@ -182,6 +182,10 @@ type ValidateJWTTokenResponse {
   claims: Map
 }
 
+type ValidateSessionResponse {
+  is_valid: Boolean!
+}
+
 type GenerateJWTKeysResponse {
   secret: String
   public_key: String
@@ -474,6 +478,11 @@ input ValidateJWTTokenInput {
   roles: [String!]
 }
 
+input ValidateSessionInput {
+  cookie: String!
+  roles: [String!]
+}
+
 input GenerateJWTKeysInput {
   type: String!
 }
@@ -596,6 +605,7 @@ type Query {
   session(params: SessionQueryInput): AuthResponse!
   profile: User!
   validate_jwt_token(params: ValidateJWTTokenInput!): ValidateJWTTokenResponse!
+  validate_session(params: ValidateSessionInput): ValidateSessionResponse!
   # admin only apis
   _users(params: PaginatedInput): Users!
   _user(params: GetUserRequest!): User!
