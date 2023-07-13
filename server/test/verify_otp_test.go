@@ -65,7 +65,7 @@ func verifyOTPTest(t *testing.T, s TestSetup) {
 		assert.NotEmpty(t, otp.Otp)
 
 		verifyOtpRes, err := resolvers.VerifyOtpResolver(ctx, model.VerifyOTPRequest{
-			Email: email,
+			Email: &email,
 			Otp:   otp.Otp,
 		})
 		assert.Nil(t, err)

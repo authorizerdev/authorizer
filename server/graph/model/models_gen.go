@@ -486,15 +486,11 @@ type VerifyEmailInput struct {
 	State *string `json:"state"`
 }
 
-type VerifyMobileRequest struct {
-	PhoneNumber string `json:"phone_number"`
-	Code        string `json:"code"`
-}
-
 type VerifyOTPRequest struct {
-	Email string  `json:"email"`
-	Otp   string  `json:"otp"`
-	State *string `json:"state"`
+	Email       *string `json:"email"`
+	PhoneNumber *string `json:"phone_number"`
+	Otp         string  `json:"otp"`
+	State       *string `json:"state"`
 }
 
 type Webhook struct {

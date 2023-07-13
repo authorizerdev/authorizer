@@ -254,7 +254,11 @@ func NewProvider() (*provider, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	otpIndexQueryPhoneNumber := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_otp_phone_number ON %s.%s (phone_number)", KeySpace, models.Collections.OTP)
+	err = session.Query(otpIndexQueryPhoneNumber).Exec()
+	if err != nil {
+		return nil, err
+	}
 	return &provider{
 		db: session,
 	}, err

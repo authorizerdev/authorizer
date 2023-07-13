@@ -86,11 +86,4 @@ type Provider interface {
 	GetOTPByPhoneNumber(ctx context.Context, phoneNumber string) (*models.OTP, error)
 	// DeleteOTP to delete otp
 	DeleteOTP(ctx context.Context, otp *models.OTP) error
-
-	// UpsertSMSRequest adds/updates SMS verification request
-	UpsertSMSRequest(ctx context.Context, smsRequest *models.SMSVerificationRequest) (*models.SMSVerificationRequest, error)
-	// GetCodeByPhone to get code for a given phone number
-	GetCodeByPhone(ctx context.Context, phoneNumber string) (*models.SMSVerificationRequest, error)
-	// DeleteSMSRequest to delete SMS verification request
-	DeleteSMSRequest(ctx context.Context, smsRequest *models.SMSVerificationRequest) error
 }

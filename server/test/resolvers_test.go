@@ -135,7 +135,6 @@ func TestResolvers(t *testing.T) {
 			validateJwtTokenTest(t, s)
 			verifyOTPTest(t, s)
 			resendOTPTest(t, s)
-			verifyMobileTest(t, s)
 			validateSessionTests(t, s)
 
 			updateAllUsersTest(t, s)

@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
-	
+
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/crypto"
@@ -17,9 +17,9 @@ import (
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/refs"
+	"github.com/authorizerdev/authorizer/server/smsproviders"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
-	"github.com/authorizerdev/authorizer/server/smsproviders"
 	"github.com/authorizerdev/authorizer/server/validators"
 )
 
@@ -133,8 +133,8 @@ func MobileSignupResolver(ctx context.Context, params *model.MobileSignUpInput) 
 	}
 
 	user := models.User{
-		Email:                 emailInput,
-		PhoneNumber:           &mobile,
+		Email:       emailInput,
+		PhoneNumber: &mobile,
 	}
 
 	user.Roles = strings.Join(inputRoles, ",")
@@ -179,7 +179,7 @@ func MobileSignupResolver(ctx context.Context, params *model.MobileSignUpInput) 
 		log.Debug("MFA service not enabled: ", err)
 		isMFAEnforced = false
 	}
-	
+
 	if isMFAEnforced {
 		user.IsMultiFactorAuthEnabled = refs.NewBoolRef(true)
 	}
@@ -197,11 +197,11 @@ func MobileSignupResolver(ctx context.Context, params *model.MobileSignUpInput) 
 		log.Debug("Failed to add user: ", err)
 		return res, err
 	}
-	
+
 	if !disablePhoneVerification {
 		duration, _ := time.ParseDuration("10m")
 		smsCode := utils.GenerateOTP()
-	
+
 		smsBody := strings.Builder{}
 		smsBody.WriteString("Your verification code is: ")
 		smsBody.WriteString(smsCode)
@@ -213,10 +213,10 @@ func MobileSignupResolver(ctx context.Context, params *model.MobileSignUpInput) 
 		}
 
 		go func() {
-			db.Provider.UpsertSMSRequest(ctx, &models.SMSVerificationRequest{
-				PhoneNumber:     mobile,
-				Code:   	     smsCode,
-				CodeExpiresAt:   time.Now().Add(duration).Unix(),
+			db.Provider.UpsertOTP(ctx, &models.OTP{
+				PhoneNumber: mobile,
+				Otp:         smsCode,
+				ExpiresAt:   time.Now().Add(duration).Unix(),
 			})
 			smsproviders.SendSMS(mobile, smsBody.String())
 		}()
