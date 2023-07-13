@@ -166,5 +166,9 @@ func GetIndex(scopeName string) map[string][]string {
 	otpIndex1 := fmt.Sprintf("CREATE INDEX OTPEmailIndex ON %s.%s(email)", scopeName, models.Collections.OTP)
 	indices[models.Collections.OTP] = []string{otpIndex1}
 
+	// OTP index
+	otpIndex2 := fmt.Sprintf("CREATE INDEX OTPPhoneNumberIndex ON %s.%s(phone_number)", scopeName, models.Collections.OTP)
+	indices[models.Collections.OTP] = []string{otpIndex2}
+
 	return indices
 }

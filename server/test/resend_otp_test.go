@@ -84,13 +84,13 @@ func resendOTPTest(t *testing.T, s TestSetup) {
 
 		// Should return error for older otp
 		verifyOtpRes, err := resolvers.VerifyOtpResolver(ctx, model.VerifyOTPRequest{
-			Email: email,
+			Email: &email,
 			Otp:   otp.Otp,
 		})
 		assert.Error(t, err)
 		assert.Nil(t, verifyOtpRes)
 		verifyOtpRes, err = resolvers.VerifyOtpResolver(ctx, model.VerifyOTPRequest{
-			Email: email,
+			Email: &email,
 			Otp:   newOtp.Otp,
 		})
 		assert.NoError(t, err)
