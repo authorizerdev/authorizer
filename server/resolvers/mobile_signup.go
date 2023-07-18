@@ -105,7 +105,6 @@ func MobileSignupResolver(ctx context.Context, params *model.MobileSignUpInput) 
 	}
 
 	inputRoles := []string{}
-
 	if len(params.Roles) > 0 {
 		// check if roles exists
 		rolesString, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyRoles)
@@ -197,7 +196,7 @@ func MobileSignupResolver(ctx context.Context, params *model.MobileSignUpInput) 
 		log.Debug("Failed to add user: ", err)
 		return res, err
 	}
-
+	fmt.Println("=> disablePhoneVerification signup", disablePhoneVerification)
 	if !disablePhoneVerification {
 		duration, _ := time.ParseDuration("10m")
 		smsCode := utils.GenerateOTP()
@@ -211,15 +210,22 @@ func MobileSignupResolver(ctx context.Context, params *model.MobileSignUpInput) 
 			log.Debug("error while upserting user: ", err.Error())
 			return nil, err
 		}
-
+		_, err = db.Provider.UpsertOTP(ctx, &models.OTP{
+			PhoneNumber: mobile,
+			Otp:         smsCode,
+			ExpiresAt:   time.Now().Add(duration).Unix(),
+		})
+		if err != nil {
+			log.Debug("error while upserting OTP: ", err.Error())
+			return nil, err
+		}
 		go func() {
-			db.Provider.UpsertOTP(ctx, &models.OTP{
-				PhoneNumber: mobile,
-				Otp:         smsCode,
-				ExpiresAt:   time.Now().Add(duration).Unix(),
-			})
 			smsproviders.SendSMS(mobile, smsBody.String())
 		}()
+		return &model.AuthResponse{
+			Message:             "Please check the OTP in your inbox",
+			ShouldShowOtpScreen: refs.NewBoolRef(true),
+		}, nil
 	}
 
 	roles := strings.Split(user.Roles, ",")

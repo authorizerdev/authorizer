@@ -17,6 +17,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/refs"
+	"github.com/authorizerdev/authorizer/server/smsproviders"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/authorizerdev/authorizer/server/validators"
@@ -92,6 +93,45 @@ func MobileLoginResolver(ctx context.Context, params model.MobileLoginInput) (*m
 		}
 
 		roles = params.Roles
+	}
+
+	disablePhoneVerification, _ := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisablePhoneVerification)
+	if disablePhoneVerification {
+		now := time.Now().Unix()
+		user.PhoneNumberVerifiedAt = &now
+	}
+	fmt.Println("=> disablePhoneVerification", disablePhoneVerification)
+
+	if !disablePhoneVerification {
+		duration, _ := time.ParseDuration("10m")
+		smsCode := utils.GenerateOTP()
+
+		smsBody := strings.Builder{}
+		smsBody.WriteString("Your verification code is: ")
+		smsBody.WriteString(smsCode)
+
+		// TODO: For those who enabled the webhook to call their sms vendor separately - sending the otp to their api
+		if err != nil {
+			log.Debug("error while upserting user: ", err.Error())
+			return nil, err
+		}
+		_, err := db.Provider.UpsertOTP(ctx, &models.OTP{
+			PhoneNumber: params.PhoneNumber,
+			Otp:         smsCode,
+			ExpiresAt:   time.Now().Add(duration).Unix(),
+		})
+		if err != nil {
+			log.Debug("error while upserting OTP: ", err.Error())
+			return nil, err
+		}
+		go func() {
+
+			smsproviders.SendSMS(params.PhoneNumber, smsBody.String())
+		}()
+		return &model.AuthResponse{
+			Message:             "Please check the OTP",
+			ShouldShowOtpScreen: refs.NewBoolRef(true),
+		}, nil
 	}
 
 	scope := []string{"openid", "email", "profile"}
