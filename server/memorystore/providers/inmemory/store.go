@@ -42,6 +42,24 @@ func (c *provider) DeleteSessionForNamespace(namespace string) error {
 	return nil
 }
 
+func (c *provider) SetMfaSession(email, key string, expiration int64) error {
+	c.mfasessionStore.Set(email, key, email, expiration)
+	return nil
+}
+
+func (c *provider) GetMfaSession(email, key string) (string, error) {
+	val := c.mfasessionStore.Get(email, key)
+	if val == "" {
+		return "", fmt.Errorf("Not found")
+	}
+	return val, nil
+}
+
+func (c *provider) DeleteMfaSession(email, key string) error {
+	c.mfasessionStore.Remove(email, key)
+	return nil
+}
+
 // SetState sets the state in the in-memory store.
 func (c *provider) SetState(key, state string) error {
 	if os.Getenv("ENV") != constants.TestEnv {

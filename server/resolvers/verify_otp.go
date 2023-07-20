@@ -28,6 +28,17 @@ func VerifyOtpResolver(ctx context.Context, params model.VerifyOTPRequest) (*mod
 		return res, err
 	}
 
+	mfaSession, err := cookie.GetMfaSession(gc)
+	if err != nil {
+		log.Debug("Failed to get otp request by email: ", err)
+		return res, fmt.Errorf(`invalid session: %s`, err.Error())
+	}
+
+	if _, err := memorystore.Provider.GetMfaSession(params.Email, mfaSession); err != nil {
+		log.Debug("Failed to get mfa session: ", err)
+		return res, fmt.Errorf(`invalid session: %s`, err.Error())
+	}
+
 	otp, err := db.Provider.GetOTPByEmail(ctx, params.Email)
 	if err != nil {
 		log.Debug("Failed to get otp request by email: ", err)
