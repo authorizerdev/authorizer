@@ -16,6 +16,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// RegisterEvent util to register event
+// TODO change user to user ref
 func RegisterEvent(ctx context.Context, eventName string, authRecipe string, user models.User) error {
 	webhooks, err := db.Provider.GetWebhookByEventName(ctx, eventName)
 	if err != nil {

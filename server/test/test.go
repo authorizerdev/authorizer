@@ -126,6 +126,10 @@ func testSetup() TestSetup {
 	memorystore.Provider.UpdateEnvVariable(constants.EnvKeySmtpPassword, "test")
 	memorystore.Provider.UpdateEnvVariable(constants.EnvKeySenderEmail, "info@yopmail.com")
 	memorystore.Provider.UpdateEnvVariable(constants.EnvKeyProtectedRoles, "admin")
+	memorystore.Provider.UpdateEnvVariable(constants.EnvKeyTwilioAPIKey, "test")
+	memorystore.Provider.UpdateEnvVariable(constants.EnvKeyTwilioAPISecret, "test")
+	memorystore.Provider.UpdateEnvVariable(constants.EnvKeyTwilioAccountSID, "test")
+	memorystore.Provider.UpdateEnvVariable(constants.EnvKeyTwilioSender, "1234567890")
 
 	err = db.InitDB()
 	if err != nil {

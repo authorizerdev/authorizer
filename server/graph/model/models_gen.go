@@ -245,8 +245,9 @@ type PaginationInput struct {
 }
 
 type ResendOTPRequest struct {
-	Email string  `json:"email"`
-	State *string `json:"state"`
+	Email       *string `json:"email"`
+	PhoneNumber *string `json:"phone_number"`
+	State       *string `json:"state"`
 }
 
 type ResendVerifyEmailInput struct {

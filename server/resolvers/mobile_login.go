@@ -95,24 +95,33 @@ func MobileLoginResolver(ctx context.Context, params model.MobileLoginInput) (*m
 		roles = params.Roles
 	}
 
-	disablePhoneVerification, _ := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisablePhoneVerification)
+	disablePhoneVerification, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisablePhoneVerification)
+	if err != nil {
+		log.Debug("Error getting disable phone verification: ", err)
+	}
 	if disablePhoneVerification {
 		now := time.Now().Unix()
 		user.PhoneNumberVerifiedAt = &now
 	}
-	if !disablePhoneVerification {
+	isSMSServiceEnabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyIsSMSServiceEnabled)
+	if err != nil || !isSMSServiceEnabled {
+		log.Debug("SMS service not enabled: ", err)
+	}
+	if disablePhoneVerification {
+		now := time.Now().Unix()
+		user.PhoneNumberVerifiedAt = &now
+	}
+	isMFADisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableMultiFactorAuthentication)
+	if err != nil || !isMFADisabled {
+		log.Debug("MFA service not enabled: ", err)
+	}
+	if !disablePhoneVerification && isSMSServiceEnabled && !isMFADisabled {
 		duration, _ := time.ParseDuration("10m")
 		smsCode := utils.GenerateOTP()
 
 		smsBody := strings.Builder{}
 		smsBody.WriteString("Your verification code is: ")
 		smsBody.WriteString(smsCode)
-
-		// TODO: For those who enabled the webhook to call their sms vendor separately - sending the otp to their api
-		if err != nil {
-			log.Debug("error while upserting user: ", err.Error())
-			return nil, err
-		}
 		_, err := db.Provider.UpsertOTP(ctx, &models.OTP{
 			PhoneNumber: params.PhoneNumber,
 			Otp:         smsCode,
@@ -123,7 +132,7 @@ func MobileLoginResolver(ctx context.Context, params model.MobileLoginInput) (*m
 			return nil, err
 		}
 		go func() {
-
+			utils.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, *user)
 			smsproviders.SendSMS(params.PhoneNumber, smsBody.String())
 		}()
 		return &model.AuthResponse{
@@ -136,50 +145,6 @@ func MobileLoginResolver(ctx context.Context, params model.MobileLoginInput) (*m
 	if params.Scope != nil && len(scope) > 0 {
 		scope = params.Scope
 	}
-
-	/*
-		// TODO use sms authentication for MFA
-		isEmailServiceEnabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyIsEmailServiceEnabled)
-		if err != nil || !isEmailServiceEnabled {
-			log.Debug("Email service not enabled: ", err)
-		}
-
-		isMFADisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableMultiFactorAuthentication)
-		if err != nil || !isEmailServiceEnabled {
-			log.Debug("MFA service not enabled: ", err)
-		}
-
-		// If email service is not enabled continue the process in any way
-		if refs.BoolValue(user.IsMultiFactorAuthEnabled) && isEmailServiceEnabled && !isMFADisabled {
-			otp := utils.GenerateOTP()
-			otpData, err := db.Provider.UpsertOTP(ctx, &models.OTP{
-				Email:     user.Email,
-				Otp:       otp,
-				ExpiresAt: time.Now().Add(1 * time.Minute).Unix(),
-			})
-			if err != nil {
-				log.Debug("Failed to add otp: ", err)
-				return nil, err
-			}
-
-			go func() {
-				// exec it as go routine so that we can reduce the api latency
-				go email.SendEmail([]string{params.PhoneNumber}, constants.VerificationTypeOTP, map[string]interface{}{
-					"user":         user.ToMap(),
-					"organization": utils.GetOrganization(),
-					"otp":          otpData.Otp,
-				})
-				if err != nil {
-					log.Debug("Failed to send otp email: ", err)
-				}
-			}()
-
-			return &model.AuthResponse{
-				Message:             "Please check the OTP in your inbox",
-				ShouldShowOtpScreen: refs.NewBoolRef(true),
-			}, nil
-		}
-	*/
 
 	code := ""
 	codeChallenge := ""

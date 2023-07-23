@@ -51,7 +51,7 @@ func resendOTPTest(t *testing.T, s TestSetup) {
 		assert.NotNil(t, updateRes)
 		// Resend otp should return error as no initial opt is being sent
 		resendOtpRes, err := resolvers.ResendOTPResolver(ctx, model.ResendOTPRequest{
-			Email: email,
+			Email: refs.NewStringRef(email),
 		})
 		assert.Error(t, err)
 		assert.Nil(t, resendOtpRes)
@@ -72,7 +72,7 @@ func resendOTPTest(t *testing.T, s TestSetup) {
 
 		// resend otp
 		resendOtpRes, err = resolvers.ResendOTPResolver(ctx, model.ResendOTPRequest{
-			Email: email,
+			Email: refs.NewStringRef(email),
 		})
 		assert.NoError(t, err)
 		assert.NotEmpty(t, resendOtpRes.Message)
