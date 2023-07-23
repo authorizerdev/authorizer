@@ -2719,7 +2719,8 @@ input VerifyOTPRequest {
 }
 
 input ResendOTPRequest {
-  email: String!
+  email: String
+  phone_number: String
   # state is used for authorization code grant flow
   # it is used to get code for an on-going auth process during login
   # and use that code for setting ` + "`" + `c_hash` + "`" + ` in id_token
@@ -16375,7 +16376,7 @@ func (ec *executionContext) unmarshalInputResendOTPRequest(ctx context.Context, 
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"email", "state"}
+	fieldsInOrder := [...]string{"email", "phone_number", "state"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -16386,7 +16387,15 @@ func (ec *executionContext) unmarshalInputResendOTPRequest(ctx context.Context, 
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
-			it.Email, err = ec.unmarshalNString2string(ctx, v)
+			it.Email, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "phone_number":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phone_number"))
+			it.PhoneNumber, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}

@@ -8,6 +8,7 @@ import (
 	api "github.com/twilio/twilio-go/rest/api/v2010"
 )
 
+// SendSMS util to send sms
 // TODO: Should be restructured to interface when another provider is added
 func SendSMS(sendTo, messageBody string) error {
 	twilioAPISecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyTwilioAPISecret)
@@ -20,7 +21,7 @@ func SendSMS(sendTo, messageBody string) error {
 		log.Debug("Failed to get api key: ", err)
 		return err
 	}
-	twilioSenderFrom, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyTwilioSenderFrom)
+	twilioSenderFrom, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyTwilioSender)
 	if err != nil || twilioSenderFrom == "" {
 		log.Debug("Failed to get sender: ", err)
 		return err

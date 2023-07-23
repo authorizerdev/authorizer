@@ -187,6 +187,10 @@ func MobileSignupResolver(ctx context.Context, params *model.MobileSignUpInput) 
 		now := time.Now().Unix()
 		user.PhoneNumberVerifiedAt = &now
 	}
+	isSMSServiceEnabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyIsSMSServiceEnabled)
+	if err != nil || !isSMSServiceEnabled {
+		log.Debug("SMS service not enabled: ", err)
+	}
 
 	user.SignupMethods = constants.AuthRecipeMethodMobileBasicAuth
 	user, err = db.Provider.AddUser(ctx, user)
@@ -195,7 +199,7 @@ func MobileSignupResolver(ctx context.Context, params *model.MobileSignUpInput) 
 		log.Debug("Failed to add user: ", err)
 		return res, err
 	}
-	if !disablePhoneVerification {
+	if !disablePhoneVerification && isSMSServiceEnabled {
 		duration, _ := time.ParseDuration("10m")
 		smsCode := utils.GenerateOTP()
 

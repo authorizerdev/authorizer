@@ -106,7 +106,7 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 	}
 
 	isMFADisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableMultiFactorAuthentication)
-	if err != nil || !isEmailServiceEnabled {
+	if err != nil || !isMFADisabled {
 		log.Debug("MFA service not enabled: ", err)
 	}
 
