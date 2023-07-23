@@ -136,8 +136,8 @@ func MobileLoginResolver(ctx context.Context, params model.MobileLoginInput) (*m
 			smsproviders.SendSMS(params.PhoneNumber, smsBody.String())
 		}()
 		return &model.AuthResponse{
-			Message:             "Please check the OTP",
-			ShouldShowOtpScreen: refs.NewBoolRef(true),
+			Message:                   "Please check the OTP",
+			ShouldShowMobileOtpScreen: refs.NewBoolRef(true),
 		}, nil
 	}
 

@@ -74,7 +74,7 @@ func mobileSingupTest(t *testing.T, s TestSetup) {
 		})
 		assert.NoError(t, err)
 		assert.NotNil(t, res)
-		assert.True(t, *res.ShouldShowOtpScreen)
+		assert.True(t, *res.ShouldShowMobileOtpScreen)
 		// Verify with otp
 		otp, err := db.Provider.GetOTPByPhoneNumber(ctx, phoneNumber)
 		assert.Nil(t, err)

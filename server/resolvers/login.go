@@ -136,8 +136,8 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 		}()
 
 		return &model.AuthResponse{
-			Message:             "Please check the OTP in your inbox",
-			ShouldShowOtpScreen: refs.NewBoolRef(true),
+			Message:                  "Please check the OTP in your inbox",
+			ShouldShowEmailOtpScreen: refs.NewBoolRef(true),
 		}, nil
 	}
 

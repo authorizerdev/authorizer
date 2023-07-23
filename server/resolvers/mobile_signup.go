@@ -225,8 +225,8 @@ func MobileSignupResolver(ctx context.Context, params *model.MobileSignUpInput) 
 			smsproviders.SendSMS(mobile, smsBody.String())
 		}()
 		return &model.AuthResponse{
-			Message:             "Please check the OTP in your inbox",
-			ShouldShowOtpScreen: refs.NewBoolRef(true),
+			Message:                   "Please check the OTP in your inbox",
+			ShouldShowMobileOtpScreen: refs.NewBoolRef(true),
 		}, nil
 	}
 
