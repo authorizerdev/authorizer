@@ -66,6 +66,8 @@ const (
 	EnvKeySenderName = "SENDER_NAME"
 	// EnvKeyIsEmailServiceEnabled key for env variable IS_EMAIL_SERVICE_ENABLED
 	EnvKeyIsEmailServiceEnabled = "IS_EMAIL_SERVICE_ENABLED"
+	// EnvKeyIsSMSServiceEnabled key for env variable IS_SMS_SERVICE_ENABLED
+	EnvKeyIsSMSServiceEnabled = "IS_SMS_SERVICE_ENABLED"
 	// EnvKeyAppCookieSecure key for env variable APP_COOKIE_SECURE
 	EnvKeyAppCookieSecure = "APP_COOKIE_SECURE"
 	// EnvKeyAdminCookieSecure key for env variable ADMIN_COOKIE_SECURE
@@ -158,6 +160,9 @@ const (
 	// EnvKeyDisableMultiFactorAuthentication is key for env variable DISABLE_MULTI_FACTOR_AUTHENTICATION
 	// this variable is used to completely disable multi factor authentication. It will have no effect on profile preference
 	EnvKeyDisableMultiFactorAuthentication = "DISABLE_MULTI_FACTOR_AUTHENTICATION"
+	// EnvKeyDisablePhoneVerification is key for env variable DISABLE_PHONE_VERIFICATION
+	// this variable is used to disable phone verification
+	EnvKeyDisablePhoneVerification = "DISABLE_PHONE_VERIFICATION"
 
 	// Slice variables
 	// EnvKeyRoles key for env variable ROLES
@@ -177,17 +182,13 @@ const (
 	// This env is used for setting default response mode in authorize handler
 	EnvKeyDefaultAuthorizeResponseMode = "DEFAULT_AUTHORIZE_RESPONSE_MODE"
 
-	// Phone verification setting
-	EnvKeyDisablePhoneVerification = "DISABLE_PHONE_VERIFICATION"
-
 	// Twilio env variables
-
 	// EnvKeyTwilioAPIKey key for env variable TWILIO_API_KEY
 	EnvKeyTwilioAPIKey = "TWILIO_API_KEY"
 	// EnvKeyTwilioAPISecret key for env variable TWILIO_API_SECRET
 	EnvKeyTwilioAPISecret = "TWILIO_API_SECRET"
 	// EnvKeyTwilioAccountSID key for env variable TWILIO_ACCOUNT_SID
 	EnvKeyTwilioAccountSID = "TWILIO_ACCOUNT_SID"
-	// EnvKeyTwilioSenderFrom key for env variable TWILIO_SENDER_FROM
-	EnvKeyTwilioSenderFrom = "TWILIO_SENDER_FROM"
+	// EnvKeyTwilioSender key for env variable TWILIO_SENDER
+	EnvKeyTwilioSender = "TWILIO_SENDER"
 )

@@ -198,7 +198,6 @@ type ComplexityRoot struct {
 		UpdateUser          func(childComplexity int, params model.UpdateUserInput) int
 		UpdateWebhook       func(childComplexity int, params model.UpdateWebhookRequest) int
 		VerifyEmail         func(childComplexity int, params model.VerifyEmailInput) int
-		VerifyMobile        func(childComplexity int, params model.VerifyMobileRequest) int
 		VerifyOtp           func(childComplexity int, params model.VerifyOTPRequest) int
 	}
 
@@ -344,7 +343,6 @@ type MutationResolver interface {
 	Revoke(ctx context.Context, params model.OAuthRevokeInput) (*model.Response, error)
 	VerifyOtp(ctx context.Context, params model.VerifyOTPRequest) (*model.AuthResponse, error)
 	ResendOtp(ctx context.Context, params model.ResendOTPRequest) (*model.Response, error)
-	VerifyMobile(ctx context.Context, params model.VerifyMobileRequest) (*model.AuthResponse, error)
 	DeleteUser(ctx context.Context, params model.DeleteUserInput) (*model.Response, error)
 	UpdateUser(ctx context.Context, params model.UpdateUserInput) (*model.User, error)
 	AdminSignup(ctx context.Context, params model.AdminSignupInput) (*model.Response, error)
@@ -1438,18 +1436,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.VerifyEmail(childComplexity, args["params"].(model.VerifyEmailInput)), true
 
-	case "Mutation.verify_mobile":
-		if e.complexity.Mutation.VerifyMobile == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_verify_mobile_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.VerifyMobile(childComplexity, args["params"].(model.VerifyMobileRequest)), true
-
 	case "Mutation.verify_otp":
 		if e.complexity.Mutation.VerifyOtp == nil {
 			break
@@ -2120,7 +2106,6 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputValidateJWTTokenInput,
 		ec.unmarshalInputValidateSessionInput,
 		ec.unmarshalInputVerifyEmailInput,
-		ec.unmarshalInputVerifyMobileRequest,
 		ec.unmarshalInputVerifyOTPRequest,
 		ec.unmarshalInputWebhookRequest,
 	)
@@ -2267,11 +2252,6 @@ type SMSVerificationRequests {
   phone_number: String!
   created_at: Int64!
   updated_at: Int64
-}
-
-input VerifyMobileRequest {
-  phone_number: String!
-  code: String!
 }
 
 type Error {
@@ -2728,7 +2708,9 @@ input DeleteEmailTemplateRequest {
 }
 
 input VerifyOTPRequest {
-  email: String!
+  # either email or phone_number is required
+  email: String
+  phone_number: String
   otp: String!
   # state is used for authorization code grant flow
   # it is used to get code for an on-going auth process during login
@@ -2737,7 +2719,8 @@ input VerifyOTPRequest {
 }
 
 input ResendOTPRequest {
-  email: String!
+  email: String
+  phone_number: String
   # state is used for authorization code grant flow
   # it is used to get code for an on-going auth process during login
   # and use that code for setting ` + "`" + `c_hash` + "`" + ` in id_token
@@ -2764,7 +2747,6 @@ type Mutation {
   revoke(params: OAuthRevokeInput!): Response!
   verify_otp(params: VerifyOTPRequest!): AuthResponse!
   resend_otp(params: ResendOTPRequest!): Response!
-  verify_mobile(params: VerifyMobileRequest!): AuthResponse!
   # admin only apis
   _delete_user(params: DeleteUserInput!): Response!
   _update_user(params: UpdateUserInput!): User!
@@ -3222,21 +3204,6 @@ func (ec *executionContext) field_Mutation_verify_email_args(ctx context.Context
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
 		arg0, err = ec.unmarshalNVerifyEmailInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐVerifyEmailInput(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["params"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Mutation_verify_mobile_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 model.VerifyMobileRequest
-	if tmp, ok := rawArgs["params"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalNVerifyMobileRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐVerifyMobileRequest(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -8629,77 +8596,6 @@ func (ec *executionContext) fieldContext_Mutation_resend_otp(ctx context.Context
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_resend_otp_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_verify_mobile(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation_verify_mobile(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().VerifyMobile(rctx, fc.Args["params"].(model.VerifyMobileRequest))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.AuthResponse)
-	fc.Result = res
-	return ec.marshalNAuthResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAuthResponse(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Mutation_verify_mobile(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "message":
-				return ec.fieldContext_AuthResponse_message(ctx, field)
-			case "should_show_otp_screen":
-				return ec.fieldContext_AuthResponse_should_show_otp_screen(ctx, field)
-			case "access_token":
-				return ec.fieldContext_AuthResponse_access_token(ctx, field)
-			case "id_token":
-				return ec.fieldContext_AuthResponse_id_token(ctx, field)
-			case "refresh_token":
-				return ec.fieldContext_AuthResponse_refresh_token(ctx, field)
-			case "expires_in":
-				return ec.fieldContext_AuthResponse_expires_in(ctx, field)
-			case "user":
-				return ec.fieldContext_AuthResponse_user(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type AuthResponse", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_verify_mobile_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
@@ -16480,7 +16376,7 @@ func (ec *executionContext) unmarshalInputResendOTPRequest(ctx context.Context, 
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"email", "state"}
+	fieldsInOrder := [...]string{"email", "phone_number", "state"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -16491,7 +16387,15 @@ func (ec *executionContext) unmarshalInputResendOTPRequest(ctx context.Context, 
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
-			it.Email, err = ec.unmarshalNString2string(ctx, v)
+			it.Email, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "phone_number":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phone_number"))
+			it.PhoneNumber, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -17781,42 +17685,6 @@ func (ec *executionContext) unmarshalInputVerifyEmailInput(ctx context.Context, 
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputVerifyMobileRequest(ctx context.Context, obj interface{}) (model.VerifyMobileRequest, error) {
-	var it model.VerifyMobileRequest
-	asMap := map[string]interface{}{}
-	for k, v := range obj.(map[string]interface{}) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"phone_number", "code"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "phone_number":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phone_number"))
-			it.PhoneNumber, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "code":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("code"))
-			it.Code, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
 func (ec *executionContext) unmarshalInputVerifyOTPRequest(ctx context.Context, obj interface{}) (model.VerifyOTPRequest, error) {
 	var it model.VerifyOTPRequest
 	asMap := map[string]interface{}{}
@@ -17824,7 +17692,7 @@ func (ec *executionContext) unmarshalInputVerifyOTPRequest(ctx context.Context, 
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"email", "otp", "state"}
+	fieldsInOrder := [...]string{"email", "phone_number", "otp", "state"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -17835,7 +17703,15 @@ func (ec *executionContext) unmarshalInputVerifyOTPRequest(ctx context.Context, 
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
-			it.Email, err = ec.unmarshalNString2string(ctx, v)
+			it.Email, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "phone_number":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phone_number"))
+			it.PhoneNumber, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -18721,15 +18597,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_resend_otp(ctx, field)
-			})
-
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "verify_mobile":
-
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_verify_mobile(ctx, field)
 			})
 
 			if out.Values[i] == graphql.Null {
@@ -20795,11 +20662,6 @@ func (ec *executionContext) marshalNVerificationRequests2ᚖgithubᚗcomᚋautho
 
 func (ec *executionContext) unmarshalNVerifyEmailInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐVerifyEmailInput(ctx context.Context, v interface{}) (model.VerifyEmailInput, error) {
 	res, err := ec.unmarshalInputVerifyEmailInput(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) unmarshalNVerifyMobileRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐVerifyMobileRequest(ctx context.Context, v interface{}) (model.VerifyMobileRequest, error) {
-	res, err := ec.unmarshalInputVerifyMobileRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 

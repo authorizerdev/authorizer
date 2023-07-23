@@ -31,11 +31,11 @@ func NewProvider() (*provider, error) {
 	if awsRegion != "" {
 		config.Region = aws.String(awsRegion)
 	}
-
 	// custom awsAccessKeyID, awsSecretAccessKey took first priority, if not then fetch config from aws credentials
 	if awsAccessKeyID != "" && awsSecretAccessKey != "" {
 		config.Credentials = credentials.NewStaticCredentials(awsAccessKeyID, awsSecretAccessKey, "")
 	} else if dbURL != "" {
+		log.Debug("Tring to use database url for dynamodb")
 		// static config in case of testing or local-setup
 		config.Credentials = credentials.NewStaticCredentials("key", "key", "")
 		config.Endpoint = aws.String(dbURL)

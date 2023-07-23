@@ -27,36 +27,53 @@ func VerifyOtpResolver(ctx context.Context, params model.VerifyOTPRequest) (*mod
 		log.Debug("Failed to get GinContext: ", err)
 		return res, err
 	}
-
-	otp, err := db.Provider.GetOTPByEmail(ctx, params.Email)
-	if err != nil {
-		log.Debug("Failed to get otp request by email: ", err)
-		return res, fmt.Errorf(`invalid email: %s`, err.Error())
+	if refs.StringValue(params.Email) == "" && refs.StringValue(params.PhoneNumber) == "" {
+		log.Debug("Email or phone number is required")
+		return res, fmt.Errorf(`email or phone_number is required`)
 	}
 
+	currentField := models.FieldNameEmail
+	if refs.StringValue(params.Email) == "" {
+		currentField = models.FieldNamePhoneNumber
+	}
+	var otp *models.OTP
+	if currentField == models.FieldNameEmail {
+		otp, err = db.Provider.GetOTPByEmail(ctx, refs.StringValue(params.Email))
+	} else {
+		otp, err = db.Provider.GetOTPByPhoneNumber(ctx, refs.StringValue(params.PhoneNumber))
+	}
+	if otp == nil && err != nil {
+		log.Debugf("Failed to get otp request for %s: %s", currentField, err.Error())
+		return res, fmt.Errorf(`invalid %s: %s`, currentField, err.Error())
+	}
 	if params.Otp != otp.Otp {
 		log.Debug("Failed to verify otp request: Incorrect value")
 		return res, fmt.Errorf(`invalid otp`)
 	}
-
 	expiresIn := otp.ExpiresAt - time.Now().Unix()
-
 	if expiresIn < 0 {
 		log.Debug("Failed to verify otp request: Timeout")
 		return res, fmt.Errorf("otp expired")
 	}
-
-	user, err := db.Provider.GetUserByEmail(ctx, params.Email)
-	if err != nil {
+	var user models.User
+	if currentField == models.FieldNameEmail {
+		user, err = db.Provider.GetUserByEmail(ctx, refs.StringValue(params.Email))
+	} else {
+		// TODO fix after refs of db providers are fixed
+		var u *models.User
+		u, err = db.Provider.GetUserByPhoneNumber(ctx, refs.StringValue(params.PhoneNumber))
+		user = *u
+	}
+	if user.ID == "" && err != nil {
 		log.Debug("Failed to get user by email: ", err)
 		return res, err
 	}
-
-	isSignUp := user.EmailVerifiedAt == nil
-
+	isSignUp := user.EmailVerifiedAt == nil && user.PhoneNumberVerifiedAt == nil
 	// TODO - Add Login method in DB when we introduce OTP for social media login
 	loginMethod := constants.AuthRecipeMethodBasicAuth
-
+	if currentField == models.FieldNamePhoneNumber {
+		loginMethod = constants.AuthRecipeMethodMobileOTP
+	}
 	roles := strings.Split(user.Roles, ",")
 	scope := []string{"openid", "email", "profile"}
 	code := ""

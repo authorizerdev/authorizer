@@ -2,6 +2,7 @@ package arangodb
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -12,17 +13,31 @@ import (
 
 // UpsertOTP to add or update otp
 func (p *provider) UpsertOTP(ctx context.Context, otpParam *models.OTP) (*models.OTP, error) {
-	otp, _ := p.GetOTPByEmail(ctx, otpParam.Email)
+	// check if email or phone number is present
+	if otpParam.Email == "" && otpParam.PhoneNumber == "" {
+		return nil, errors.New("email or phone_number is required")
+	}
+	uniqueField := models.FieldNameEmail
+	if otpParam.Email == "" && otpParam.PhoneNumber != "" {
+		uniqueField = models.FieldNamePhoneNumber
+	}
+	var otp *models.OTP
+	if uniqueField == models.FieldNameEmail {
+		otp, _ = p.GetOTPByEmail(ctx, otpParam.Email)
+	} else {
+		otp, _ = p.GetOTPByPhoneNumber(ctx, otpParam.PhoneNumber)
+	}
 	shouldCreate := false
 	if otp == nil {
 		id := uuid.NewString()
 		otp = &models.OTP{
-			ID:        id,
-			Key:       id,
-			Otp:       otpParam.Otp,
-			Email:     otpParam.Email,
-			ExpiresAt: otpParam.ExpiresAt,
-			CreatedAt: time.Now().Unix(),
+			ID:          id,
+			Key:         id,
+			Otp:         otpParam.Otp,
+			Email:       otpParam.Email,
+			PhoneNumber: otpParam.PhoneNumber,
+			ExpiresAt:   otpParam.ExpiresAt,
+			CreatedAt:   time.Now().Unix(),
 		}
 		shouldCreate = true
 	} else {
@@ -67,7 +82,35 @@ func (p *provider) GetOTPByEmail(ctx context.Context, emailAddress string) (*mod
 	for {
 		if !cursor.HasMore() {
 			if otp.Key == "" {
-				return nil, fmt.Errorf("email template not found")
+				return nil, fmt.Errorf("otp with given email not found")
+			}
+			break
+		}
+		_, err := cursor.ReadDocument(ctx, &otp)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &otp, nil
+}
+
+// GetOTPByPhoneNumber to get otp for a given phone number
+func (p *provider) GetOTPByPhoneNumber(ctx context.Context, phoneNumber string) (*models.OTP, error) {
+	var otp models.OTP
+	query := fmt.Sprintf("FOR d in %s FILTER d.phone_number == @phone_number RETURN d", models.Collections.OTP)
+	bindVars := map[string]interface{}{
+		"phone_number": phoneNumber,
+	}
+	cursor, err := p.db.Query(ctx, query, bindVars)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close()
+	for {
+		if !cursor.HasMore() {
+			if otp.Key == "" {
+				return nil, fmt.Errorf("otp with given phone_number not found")
 			}
 			break
 		}

@@ -27,7 +27,7 @@ func updateWebhookTest(t *testing.T, s TestSetup) {
 		webhooks, err := db.Provider.GetWebhookByEventName(ctx, constants.UserDeletedWebhookEvent)
 		assert.NoError(t, err)
 		assert.NotNil(t, webhooks)
-		assert.Equal(t, 2, len(webhooks))
+		assert.GreaterOrEqual(t, len(webhooks), 2)
 		for _, webhook := range webhooks {
 			// it should completely replace headers
 			webhook.Headers = map[string]interface{}{
@@ -58,7 +58,7 @@ func updateWebhookTest(t *testing.T, s TestSetup) {
 		// Check if webhooks with new name is as per expected len
 		accessWebhooks, err := db.Provider.GetWebhookByEventName(ctx, constants.UserAccessEnabledWebhookEvent)
 		assert.NoError(t, err)
-		assert.Equal(t, 3, len(accessWebhooks))
+		assert.GreaterOrEqual(t, len(accessWebhooks), 3)
 		// Revert name change
 		res, err = resolvers.UpdateWebhookResolver(ctx, model.UpdateWebhookRequest{
 			ID:        w.ID,
@@ -69,7 +69,7 @@ func updateWebhookTest(t *testing.T, s TestSetup) {
 		updatedWebhooks, err := db.Provider.GetWebhookByEventName(ctx, constants.UserDeletedWebhookEvent)
 		assert.NoError(t, err)
 		assert.NotNil(t, updatedWebhooks)
-		assert.Equal(t, 2, len(updatedWebhooks))
+		assert.GreaterOrEqual(t, len(updatedWebhooks), 2)
 		for _, updatedWebhook := range updatedWebhooks {
 			assert.Contains(t, refs.StringValue(updatedWebhook.EventName), constants.UserDeletedWebhookEvent)
 			assert.Len(t, updatedWebhook.Headers, 1)

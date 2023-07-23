@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/refs"
@@ -65,16 +66,25 @@ func mobileSingupTest(t *testing.T, s TestSetup) {
 		})
 		assert.Error(t, err)
 		assert.Nil(t, res)
-
+		phoneNumber := "1234567890"
 		res, err = resolvers.MobileSignupResolver(ctx, &model.MobileSignUpInput{
-			PhoneNumber:     "1234567890",
+			PhoneNumber:     phoneNumber,
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password,
 		})
 		assert.NoError(t, err)
-		assert.NotEmpty(t, res.AccessToken)
-		assert.Equal(t, "1234567890@authorizer.dev", res.User.Email)
-
+		assert.NotNil(t, res)
+		assert.True(t, *res.ShouldShowOtpScreen)
+		// Verify with otp
+		otp, err := db.Provider.GetOTPByPhoneNumber(ctx, phoneNumber)
+		assert.Nil(t, err)
+		assert.NotEmpty(t, otp.Otp)
+		otpRes, err := resolvers.VerifyOtpResolver(ctx, model.VerifyOTPRequest{
+			PhoneNumber: &phoneNumber,
+			Otp:         otp.Otp,
+		})
+		assert.Nil(t, err)
+		assert.NotEmpty(t, otpRes.Message)
 		res, err = resolvers.MobileSignupResolver(ctx, &model.MobileSignUpInput{
 			PhoneNumber:     "1234567890",
 			Password:        s.TestInfo.Password,

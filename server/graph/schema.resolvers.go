@@ -81,11 +81,6 @@ func (r *mutationResolver) ResendOtp(ctx context.Context, params model.ResendOTP
 	return resolvers.ResendOTPResolver(ctx, params)
 }
 
-// VerifyMobile is the resolver for the verify_mobile field.
-func (r *mutationResolver) VerifyMobile(ctx context.Context, params model.VerifyMobileRequest) (*model.AuthResponse, error) {
-	return resolvers.VerifyMobileResolver(ctx, params)
-}
-
 // DeleteUser is the resolver for the _delete_user field.
 func (r *mutationResolver) DeleteUser(ctx context.Context, params model.DeleteUserInput) (*model.Response, error) {
 	return resolvers.DeleteUserResolver(ctx, params)

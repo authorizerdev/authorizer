@@ -267,6 +267,13 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 		updatedData[constants.EnvKeyIsEmailServiceEnabled] = true
 	}
 
+	if updatedData[constants.EnvKeyTwilioAPIKey] == "" || updatedData[constants.EnvKeyTwilioAPISecret] == "" || updatedData[constants.EnvKeyTwilioAccountSID] == "" || updatedData[constants.EnvKeyTwilioSender] == "" {
+		updatedData[constants.EnvKeyIsSMSServiceEnabled] = false
+		if !updatedData[constants.EnvKeyIsSMSServiceEnabled].(bool) {
+			updatedData[constants.EnvKeyDisablePhoneVerification] = true
+		}
+	}
+
 	if !currentData[constants.EnvKeyEnforceMultiFactorAuthentication].(bool) && updatedData[constants.EnvKeyEnforceMultiFactorAuthentication].(bool) && !updatedData[constants.EnvKeyDisableMultiFactorAuthentication].(bool) {
 		go db.Provider.UpdateUsers(ctx, map[string]interface{}{
 			"is_multi_factor_auth_enabled": true,

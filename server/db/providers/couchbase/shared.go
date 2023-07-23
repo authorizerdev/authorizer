@@ -11,24 +11,19 @@ import (
 
 func GetSetFields(webhookMap map[string]interface{}) (string, map[string]interface{}) {
 	params := make(map[string]interface{}, 1)
-
 	updateFields := ""
-
 	for key, value := range webhookMap {
 		if key == "_id" {
 			continue
 		}
-
 		if key == "_key" {
 			continue
 		}
-
 		if value == nil {
 			updateFields += fmt.Sprintf("%s=$%s,", key, key)
 			params[key] = "null"
 			continue
 		}
-
 		valueType := reflect.TypeOf(value)
 		if valueType.Name() == "string" {
 			updateFields += fmt.Sprintf("%s = $%s, ", key, key)

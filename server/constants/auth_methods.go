@@ -7,6 +7,8 @@ const (
 	AuthRecipeMethodMobileBasicAuth = "mobile_basic_auth"
 	// AuthRecipeMethodMagicLinkLogin is the magic_link_login auth method
 	AuthRecipeMethodMagicLinkLogin = "magic_link_login"
+	// AuthRecipeMethodMobileOTP is the mobile_otp auth method
+	AuthRecipeMethodMobileOTP = "mobile_otp"
 	// AuthRecipeMethodGoogle is the google auth method
 	AuthRecipeMethodGoogle = "google"
 	// AuthRecipeMethodGithub is the github auth method

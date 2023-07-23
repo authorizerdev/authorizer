@@ -84,11 +84,6 @@ type SMSVerificationRequests {
   updated_at: Int64
 }
 
-input VerifyMobileRequest {
-  phone_number: String!
-  code: String!
-}
-
 type Error {
   message: String!
   reason: String!
@@ -543,7 +538,9 @@ input DeleteEmailTemplateRequest {
 }
 
 input VerifyOTPRequest {
-  email: String!
+  # either email or phone_number is required
+  email: String
+  phone_number: String
   otp: String!
   # state is used for authorization code grant flow
   # it is used to get code for an on-going auth process during login
@@ -552,7 +549,8 @@ input VerifyOTPRequest {
 }
 
 input ResendOTPRequest {
-  email: String!
+  email: String
+  phone_number: String
   # state is used for authorization code grant flow
   # it is used to get code for an on-going auth process during login
   # and use that code for setting `c_hash` in id_token
@@ -579,7 +577,6 @@ type Mutation {
   revoke(params: OAuthRevokeInput!): Response!
   verify_otp(params: VerifyOTPRequest!): AuthResponse!
   resend_otp(params: ResendOTPRequest!): Response!
-  verify_mobile(params: VerifyMobileRequest!): AuthResponse!
   # admin only apis
   _delete_user(params: DeleteUserInput!): Response!
   _update_user(params: UpdateUserInput!): User!
