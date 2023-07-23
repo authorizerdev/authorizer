@@ -1,7 +1,6 @@
 package test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/authorizerdev/authorizer/server/constants"
@@ -78,7 +77,6 @@ func mobileSingupTest(t *testing.T, s TestSetup) {
 		assert.True(t, *res.ShouldShowOtpScreen)
 		// Verify with otp
 		otp, err := db.Provider.GetOTPByPhoneNumber(ctx, phoneNumber)
-		fmt.Println("=> otp", otp, err)
 		assert.Nil(t, err)
 		assert.NotEmpty(t, otp.Otp)
 		otpRes, err := resolvers.VerifyOtpResolver(ctx, model.VerifyOTPRequest{

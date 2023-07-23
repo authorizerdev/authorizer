@@ -100,8 +100,6 @@ func MobileLoginResolver(ctx context.Context, params model.MobileLoginInput) (*m
 		now := time.Now().Unix()
 		user.PhoneNumberVerifiedAt = &now
 	}
-	fmt.Println("=> disablePhoneVerification", disablePhoneVerification)
-
 	if !disablePhoneVerification {
 		duration, _ := time.ParseDuration("10m")
 		smsCode := utils.GenerateOTP()

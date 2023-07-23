@@ -77,7 +77,7 @@ func (p *provider) GetOTPByPhoneNumber(ctx context.Context, phoneNumber string) 
 	var otps []models.OTP
 	var otp models.OTP
 	collection := p.db.Table(models.Collections.OTP)
-	err := collection.Scan().Index("phone_number").Filter("'phone_number' = ?", phoneNumber).Limit(1).AllWithContext(ctx, &otps)
+	err := collection.Scan().Filter("'phone_number' = ?", phoneNumber).Limit(1).AllWithContext(ctx, &otps)
 	if err != nil {
 		return nil, err
 	}
