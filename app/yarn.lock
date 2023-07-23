@@ -2,19 +2,19 @@
 # yarn lockfile v1
 
 
-"@authorizerdev/authorizer-js@^1.2.5":
-  "integrity" "sha512-X855+gqw+xuyVxUkqJh98bi+XgZPupaIgLmURQdZo2jfRVDqnnCP5bAkNr37SyX67r+IMBoPndj6xkN8cwS91Q=="
-  "resolved" "https://registry.npmjs.org/@authorizerdev/authorizer-js/-/authorizer-js-1.2.5.tgz"
-  "version" "1.2.5"
+"@authorizerdev/authorizer-js@^1.2.6":
+  "integrity" "sha512-9+9phHUMF+AeDM0y+XQvIRDoerOXnQ1vfTfYN6KxWN1apdrkAd9nzS1zUsA2uJSnX3fFZOErn83GjbYYCYF1BA=="
+  "resolved" "https://registry.npmjs.org/@authorizerdev/authorizer-js/-/authorizer-js-1.2.6.tgz"
+  "version" "1.2.6"
   dependencies:
     "cross-fetch" "^3.1.5"
 
-"@authorizerdev/authorizer-react@^1.1.12":
-  "integrity" "sha512-CbwkUkcVNPJueY13QyPnXJOeJyJtgtBdycsqSXcxyh4iNrqnxkv9mFRxJn8G/o16jZWmPDH6lNSnZOIfLRKfLA=="
-  "resolved" "https://registry.npmjs.org/@authorizerdev/authorizer-react/-/authorizer-react-1.1.12.tgz"
-  "version" "1.1.12"
+"@authorizerdev/authorizer-react@^1.1.13":
+  "integrity" "sha512-LmpzyfR0+nEn+bjUrb/QU9b3kiVoYzMBIvcQ1nV4TNvrvVSqbLPKk+GmoIPkiBEtfy/QSM6XFLkiGNGD9BRP+g=="
+  "resolved" "https://registry.npmjs.org/@authorizerdev/authorizer-react/-/authorizer-react-1.1.13.tgz"
+  "version" "1.1.13"
   dependencies:
-    "@authorizerdev/authorizer-js" "^1.2.5"
+    "@authorizerdev/authorizer-js" "^1.2.6"
 
 "@babel/code-frame@^7.16.7":
   "integrity" "sha512-iAXqUn8IIeBTNd72xsFlgaXHkMBMt6y4HJp1tIaK465CWLT/fG1aqB7ykr95gHHmlBdGbFeWWfyB4NJJ0nmeIg=="
