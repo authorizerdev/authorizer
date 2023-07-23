@@ -45,13 +45,14 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	AuthResponse struct {
-		AccessToken         func(childComplexity int) int
-		ExpiresIn           func(childComplexity int) int
-		IDToken             func(childComplexity int) int
-		Message             func(childComplexity int) int
-		RefreshToken        func(childComplexity int) int
-		ShouldShowOtpScreen func(childComplexity int) int
-		User                func(childComplexity int) int
+		AccessToken               func(childComplexity int) int
+		ExpiresIn                 func(childComplexity int) int
+		IDToken                   func(childComplexity int) int
+		Message                   func(childComplexity int) int
+		RefreshToken              func(childComplexity int) int
+		ShouldShowEmailOtpScreen  func(childComplexity int) int
+		ShouldShowMobileOtpScreen func(childComplexity int) int
+		User                      func(childComplexity int) int
 	}
 
 	EmailTemplate struct {
@@ -428,12 +429,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.AuthResponse.RefreshToken(childComplexity), true
 
-	case "AuthResponse.should_show_otp_screen":
-		if e.complexity.AuthResponse.ShouldShowOtpScreen == nil {
+	case "AuthResponse.should_show_email_otp_screen":
+		if e.complexity.AuthResponse.ShouldShowEmailOtpScreen == nil {
 			break
 		}
 
-		return e.complexity.AuthResponse.ShouldShowOtpScreen(childComplexity), true
+		return e.complexity.AuthResponse.ShouldShowEmailOtpScreen(childComplexity), true
+
+	case "AuthResponse.should_show_mobile_otp_screen":
+		if e.complexity.AuthResponse.ShouldShowMobileOtpScreen == nil {
+			break
+		}
+
+		return e.complexity.AuthResponse.ShouldShowMobileOtpScreen(childComplexity), true
 
 	case "AuthResponse.user":
 		if e.complexity.AuthResponse.User == nil {
@@ -2261,7 +2269,8 @@ type Error {
 
 type AuthResponse {
   message: String!
-  should_show_otp_screen: Boolean
+  should_show_email_otp_screen: Boolean
+  should_show_mobile_otp_screen: Boolean
   access_token: String
   id_token: String
   refresh_token: String
@@ -3474,8 +3483,8 @@ func (ec *executionContext) fieldContext_AuthResponse_message(ctx context.Contex
 	return fc, nil
 }
 
-func (ec *executionContext) _AuthResponse_should_show_otp_screen(ctx context.Context, field graphql.CollectedField, obj *model.AuthResponse) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthResponse_should_show_otp_screen(ctx, field)
+func (ec *executionContext) _AuthResponse_should_show_email_otp_screen(ctx context.Context, field graphql.CollectedField, obj *model.AuthResponse) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AuthResponse_should_show_email_otp_screen(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -3488,7 +3497,7 @@ func (ec *executionContext) _AuthResponse_should_show_otp_screen(ctx context.Con
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.ShouldShowOtpScreen, nil
+		return obj.ShouldShowEmailOtpScreen, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3502,7 +3511,48 @@ func (ec *executionContext) _AuthResponse_should_show_otp_screen(ctx context.Con
 	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_AuthResponse_should_show_otp_screen(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_AuthResponse_should_show_email_otp_screen(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AuthResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AuthResponse_should_show_mobile_otp_screen(ctx context.Context, field graphql.CollectedField, obj *model.AuthResponse) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AuthResponse_should_show_mobile_otp_screen(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ShouldShowMobileOtpScreen, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*bool)
+	fc.Result = res
+	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AuthResponse_should_show_mobile_otp_screen(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "AuthResponse",
 		Field:      field,
@@ -7756,8 +7806,10 @@ func (ec *executionContext) fieldContext_Mutation_signup(ctx context.Context, fi
 			switch field.Name {
 			case "message":
 				return ec.fieldContext_AuthResponse_message(ctx, field)
-			case "should_show_otp_screen":
-				return ec.fieldContext_AuthResponse_should_show_otp_screen(ctx, field)
+			case "should_show_email_otp_screen":
+				return ec.fieldContext_AuthResponse_should_show_email_otp_screen(ctx, field)
+			case "should_show_mobile_otp_screen":
+				return ec.fieldContext_AuthResponse_should_show_mobile_otp_screen(ctx, field)
 			case "access_token":
 				return ec.fieldContext_AuthResponse_access_token(ctx, field)
 			case "id_token":
@@ -7827,8 +7879,10 @@ func (ec *executionContext) fieldContext_Mutation_mobile_signup(ctx context.Cont
 			switch field.Name {
 			case "message":
 				return ec.fieldContext_AuthResponse_message(ctx, field)
-			case "should_show_otp_screen":
-				return ec.fieldContext_AuthResponse_should_show_otp_screen(ctx, field)
+			case "should_show_email_otp_screen":
+				return ec.fieldContext_AuthResponse_should_show_email_otp_screen(ctx, field)
+			case "should_show_mobile_otp_screen":
+				return ec.fieldContext_AuthResponse_should_show_mobile_otp_screen(ctx, field)
 			case "access_token":
 				return ec.fieldContext_AuthResponse_access_token(ctx, field)
 			case "id_token":
@@ -7898,8 +7952,10 @@ func (ec *executionContext) fieldContext_Mutation_login(ctx context.Context, fie
 			switch field.Name {
 			case "message":
 				return ec.fieldContext_AuthResponse_message(ctx, field)
-			case "should_show_otp_screen":
-				return ec.fieldContext_AuthResponse_should_show_otp_screen(ctx, field)
+			case "should_show_email_otp_screen":
+				return ec.fieldContext_AuthResponse_should_show_email_otp_screen(ctx, field)
+			case "should_show_mobile_otp_screen":
+				return ec.fieldContext_AuthResponse_should_show_mobile_otp_screen(ctx, field)
 			case "access_token":
 				return ec.fieldContext_AuthResponse_access_token(ctx, field)
 			case "id_token":
@@ -7969,8 +8025,10 @@ func (ec *executionContext) fieldContext_Mutation_mobile_login(ctx context.Conte
 			switch field.Name {
 			case "message":
 				return ec.fieldContext_AuthResponse_message(ctx, field)
-			case "should_show_otp_screen":
-				return ec.fieldContext_AuthResponse_should_show_otp_screen(ctx, field)
+			case "should_show_email_otp_screen":
+				return ec.fieldContext_AuthResponse_should_show_email_otp_screen(ctx, field)
+			case "should_show_mobile_otp_screen":
+				return ec.fieldContext_AuthResponse_should_show_mobile_otp_screen(ctx, field)
 			case "access_token":
 				return ec.fieldContext_AuthResponse_access_token(ctx, field)
 			case "id_token":
@@ -8206,8 +8264,10 @@ func (ec *executionContext) fieldContext_Mutation_verify_email(ctx context.Conte
 			switch field.Name {
 			case "message":
 				return ec.fieldContext_AuthResponse_message(ctx, field)
-			case "should_show_otp_screen":
-				return ec.fieldContext_AuthResponse_should_show_otp_screen(ctx, field)
+			case "should_show_email_otp_screen":
+				return ec.fieldContext_AuthResponse_should_show_email_otp_screen(ctx, field)
+			case "should_show_mobile_otp_screen":
+				return ec.fieldContext_AuthResponse_should_show_mobile_otp_screen(ctx, field)
 			case "access_token":
 				return ec.fieldContext_AuthResponse_access_token(ctx, field)
 			case "id_token":
@@ -8513,8 +8573,10 @@ func (ec *executionContext) fieldContext_Mutation_verify_otp(ctx context.Context
 			switch field.Name {
 			case "message":
 				return ec.fieldContext_AuthResponse_message(ctx, field)
-			case "should_show_otp_screen":
-				return ec.fieldContext_AuthResponse_should_show_otp_screen(ctx, field)
+			case "should_show_email_otp_screen":
+				return ec.fieldContext_AuthResponse_should_show_email_otp_screen(ctx, field)
+			case "should_show_mobile_otp_screen":
+				return ec.fieldContext_AuthResponse_should_show_mobile_otp_screen(ctx, field)
 			case "access_token":
 				return ec.fieldContext_AuthResponse_access_token(ctx, field)
 			case "id_token":
@@ -9931,8 +9993,10 @@ func (ec *executionContext) fieldContext_Query_session(ctx context.Context, fiel
 			switch field.Name {
 			case "message":
 				return ec.fieldContext_AuthResponse_message(ctx, field)
-			case "should_show_otp_screen":
-				return ec.fieldContext_AuthResponse_should_show_otp_screen(ctx, field)
+			case "should_show_email_otp_screen":
+				return ec.fieldContext_AuthResponse_should_show_email_otp_screen(ctx, field)
+			case "should_show_mobile_otp_screen":
+				return ec.fieldContext_AuthResponse_should_show_mobile_otp_screen(ctx, field)
 			case "access_token":
 				return ec.fieldContext_AuthResponse_access_token(ctx, field)
 			case "id_token":
@@ -17790,9 +17854,13 @@ func (ec *executionContext) _AuthResponse(ctx context.Context, sel ast.Selection
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "should_show_otp_screen":
+		case "should_show_email_otp_screen":
 
-			out.Values[i] = ec._AuthResponse_should_show_otp_screen(ctx, field, obj)
+			out.Values[i] = ec._AuthResponse_should_show_email_otp_screen(ctx, field, obj)
+
+		case "should_show_mobile_otp_screen":
+
+			out.Values[i] = ec._AuthResponse_should_show_mobile_otp_screen(ctx, field, obj)
 
 		case "access_token":
 

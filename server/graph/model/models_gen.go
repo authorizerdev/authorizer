@@ -26,13 +26,14 @@ type AdminSignupInput struct {
 }
 
 type AuthResponse struct {
-	Message             string  `json:"message"`
-	ShouldShowOtpScreen *bool   `json:"should_show_otp_screen"`
-	AccessToken         *string `json:"access_token"`
-	IDToken             *string `json:"id_token"`
-	RefreshToken        *string `json:"refresh_token"`
-	ExpiresIn           *int64  `json:"expires_in"`
-	User                *User   `json:"user"`
+	Message                   string  `json:"message"`
+	ShouldShowEmailOtpScreen  *bool   `json:"should_show_email_otp_screen"`
+	ShouldShowMobileOtpScreen *bool   `json:"should_show_mobile_otp_screen"`
+	AccessToken               *string `json:"access_token"`
+	IDToken                   *string `json:"id_token"`
+	RefreshToken              *string `json:"refresh_token"`
+	ExpiresIn                 *int64  `json:"expires_in"`
+	User                      *User   `json:"user"`
 }
 
 type DeleteEmailTemplateRequest struct {

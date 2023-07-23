@@ -91,7 +91,8 @@ type Error {
 
 type AuthResponse {
   message: String!
-  should_show_otp_screen: Boolean
+  should_show_email_otp_screen: Boolean
+  should_show_mobile_otp_screen: Boolean
   access_token: String
   id_token: String
   refresh_token: String
