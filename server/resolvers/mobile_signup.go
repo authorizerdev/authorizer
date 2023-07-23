@@ -92,7 +92,6 @@ func MobileSignupResolver(ctx context.Context, params *model.MobileSignUpInput) 
 	if err != nil {
 		log.Debug("Failed to get user by email: ", err)
 	}
-
 	if existingUser != nil {
 		if existingUser.PhoneNumberVerifiedAt != nil {
 			// email is verified
@@ -196,7 +195,6 @@ func MobileSignupResolver(ctx context.Context, params *model.MobileSignUpInput) 
 		log.Debug("Failed to add user: ", err)
 		return res, err
 	}
-	fmt.Println("=> disablePhoneVerification signup", disablePhoneVerification)
 	if !disablePhoneVerification {
 		duration, _ := time.ParseDuration("10m")
 		smsCode := utils.GenerateOTP()

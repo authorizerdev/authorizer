@@ -254,6 +254,14 @@ func NewProvider() (*provider, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Add phone_number column to otp table
+	otpAlterQuery := fmt.Sprintf(`ALTER TABLE %s.%s ADD (phone_number text);`, KeySpace, models.Collections.OTP)
+	err = session.Query(otpAlterQuery).Exec()
+	if err != nil {
+		log.Debug("Failed to alter table as column exists: ", err)
+		// continue
+	}
+	// Add phone number index
 	otpIndexQueryPhoneNumber := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_otp_phone_number ON %s.%s (phone_number)", KeySpace, models.Collections.OTP)
 	err = session.Query(otpIndexQueryPhoneNumber).Exec()
 	if err != nil {

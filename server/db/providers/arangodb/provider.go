@@ -229,11 +229,7 @@ func NewProvider() (*provider, error) {
 	if err != nil {
 		return nil, err
 	}
-	otpCollection.EnsureHashIndex(ctx, []string{"email"}, &arangoDriver.EnsureHashIndexOptions{
-		Unique: true,
-		Sparse: true,
-	})
-	otpCollection.EnsureHashIndex(ctx, []string{"phone_number"}, &arangoDriver.EnsureHashIndexOptions{
+	otpCollection.EnsureHashIndex(ctx, []string{models.FieldNameEmail, models.FieldNamePhoneNumber}, &arangoDriver.EnsureHashIndexOptions{
 		Unique: true,
 		Sparse: true,
 	})
