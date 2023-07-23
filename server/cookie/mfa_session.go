@@ -12,7 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// SetSession sets the session cookie in the response
+// SetMfaSession sets the mfa session cookie in the response
 func SetMfaSession(gc *gin.Context, sessionID string) {
 	appCookieSecure, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyAppCookieSecure)
 	if err != nil {
@@ -47,7 +47,7 @@ func SetMfaSession(gc *gin.Context, sessionID string) {
 	gc.SetCookie(constants.MfaCookieName+"_session_domain", sessionID, age, "/", domain, secure, httpOnly)
 }
 
-// DeleteSession sets session cookies to expire
+// DeleteMfaSession deletes the mfa session cookies to expire
 func DeleteMfaSession(gc *gin.Context) {
 	appCookieSecure, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyAppCookieSecure)
 	if err != nil {
@@ -69,7 +69,7 @@ func DeleteMfaSession(gc *gin.Context) {
 	gc.SetCookie(constants.MfaCookieName+"_session_domain", "", -1, "/", domain, secure, httpOnly)
 }
 
-// GetSession gets the session cookie from context
+// GetMfaSession gets the mfa session cookie from context
 func GetMfaSession(gc *gin.Context) (string, error) {
 	var cookie *http.Cookie
 	var err error

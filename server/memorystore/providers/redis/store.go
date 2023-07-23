@@ -93,6 +93,7 @@ func (c *provider) DeleteSessionForNamespace(namespace string) error {
 	return nil
 }
 
+// SetMfaSession sets the mfa session with key and value of email
 func (c *provider) SetMfaSession(email, key string, expiration int64) error {
 	currentTime := time.Now()
 	expireTime := time.Unix(expiration, 0)
@@ -105,6 +106,7 @@ func (c *provider) SetMfaSession(email, key string, expiration int64) error {
 	return nil
 }
 
+	// GetMfaSession returns value of given mfa session
 func (c *provider) GetMfaSession(email, key string) (string, error) {
 	data, err := c.store.Get(c.ctx, fmt.Sprintf("%s%s:%s", mfaSessionPrefix, email, key)).Result()
 	if err != nil {
@@ -113,6 +115,7 @@ func (c *provider) GetMfaSession(email, key string) (string, error) {
 	return data, nil
 }
 
+// DeleteMfaSession deletes given mfa session from in-memory store.
 func (c *provider) DeleteMfaSession(email, key string) error {
 	if err := c.store.Del(c.ctx, fmt.Sprintf("%s%s:%s", mfaSessionPrefix, email, key)).Err(); err != nil {
 		log.Debug("Error deleting user session from redis: ", err)
