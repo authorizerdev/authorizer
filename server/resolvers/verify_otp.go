@@ -27,6 +27,13 @@ func VerifyOtpResolver(ctx context.Context, params model.VerifyOTPRequest) (*mod
 		log.Debug("Failed to get GinContext: ", err)
 		return res, err
 	}
+
+	mfaSession, err := cookie.GetMfaSession(gc)
+	if err != nil {
+		log.Debug("Failed to get otp request by email: ", err)
+		return res, fmt.Errorf(`invalid session: %s`, err.Error())
+	}
+
 	if refs.StringValue(params.Email) == "" && refs.StringValue(params.PhoneNumber) == "" {
 		log.Debug("Email or phone number is required")
 		return res, fmt.Errorf(`email or phone_number is required`)
@@ -68,6 +75,12 @@ func VerifyOtpResolver(ctx context.Context, params model.VerifyOTPRequest) (*mod
 		log.Debug("Failed to get user by email: ", err)
 		return res, err
 	}
+
+	if _, err := memorystore.Provider.GetMfaSession(user.ID, mfaSession); err != nil {
+		log.Debug("Failed to get mfa session: ", err)
+		return res, fmt.Errorf(`invalid session: %s`, err.Error())
+	}
+
 	isSignUp := user.EmailVerifiedAt == nil && user.PhoneNumberVerifiedAt == nil
 	// TODO - Add Login method in DB when we introduce OTP for social media login
 	loginMethod := constants.AuthRecipeMethodBasicAuth

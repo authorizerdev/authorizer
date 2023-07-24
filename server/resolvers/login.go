@@ -125,7 +125,7 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 		}
 
 		mfaSession := uuid.NewString()
-		err = memorystore.Provider.SetMfaSession(params.Email, mfaSession, expires)
+		err = memorystore.Provider.SetMfaSession(user.ID, mfaSession, expires)
 		if err != nil {
 			log.Debug("Failed to add mfasession: ", err)
 			return nil, err

@@ -42,15 +42,15 @@ func (c *provider) DeleteSessionForNamespace(namespace string) error {
 	return nil
 }
 
-// SetMfaSession sets the mfa session with key and value of email
-func (c *provider) SetMfaSession(email, key string, expiration int64) error {
-	c.mfasessionStore.Set(email, key, email, expiration)
+// SetMfaSession sets the mfa session with key and value of userId
+func (c *provider) SetMfaSession(userId, key string, expiration int64) error {
+	c.mfasessionStore.Set(userId, key, userId, expiration)
 	return nil
 }
 
 // GetMfaSession returns value of given mfa session
-func (c *provider) GetMfaSession(email, key string) (string, error) {
-	val := c.mfasessionStore.Get(email, key)
+func (c *provider) GetMfaSession(userId, key string) (string, error) {
+	val := c.mfasessionStore.Get(userId, key)
 	if val == "" {
 		return "", fmt.Errorf("Not found")
 	}
@@ -58,8 +58,8 @@ func (c *provider) GetMfaSession(email, key string) (string, error) {
 }
 
 // DeleteMfaSession deletes given mfa session from in-memory store.
-func (c *provider) DeleteMfaSession(email, key string) error {
-	c.mfasessionStore.Remove(email, key)
+func (c *provider) DeleteMfaSession(userId, key string) error {
+	c.mfasessionStore.Remove(userId, key)
 	return nil
 }
 

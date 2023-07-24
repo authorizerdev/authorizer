@@ -93,12 +93,12 @@ func (c *provider) DeleteSessionForNamespace(namespace string) error {
 	return nil
 }
 
-// SetMfaSession sets the mfa session with key and value of email
-func (c *provider) SetMfaSession(email, key string, expiration int64) error {
+// SetMfaSession sets the mfa session with key and value of userId
+func (c *provider) SetMfaSession(userId, key string, expiration int64) error {
 	currentTime := time.Now()
 	expireTime := time.Unix(expiration, 0)
 	duration := expireTime.Sub(currentTime)
-	err := c.store.Set(c.ctx, fmt.Sprintf("%s%s:%s", mfaSessionPrefix, email, key), email, duration).Err()
+	err := c.store.Set(c.ctx, fmt.Sprintf("%s%s:%s", mfaSessionPrefix, userId, key), userId, duration).Err()
 	if err != nil {
 		log.Debug("Error saving user session to redis: ", err)
 		return err
@@ -106,9 +106,9 @@ func (c *provider) SetMfaSession(email, key string, expiration int64) error {
 	return nil
 }
 
-	// GetMfaSession returns value of given mfa session
-func (c *provider) GetMfaSession(email, key string) (string, error) {
-	data, err := c.store.Get(c.ctx, fmt.Sprintf("%s%s:%s", mfaSessionPrefix, email, key)).Result()
+// GetMfaSession returns value of given mfa session
+func (c *provider) GetMfaSession(userId, key string) (string, error) {
+	data, err := c.store.Get(c.ctx, fmt.Sprintf("%s%s:%s", mfaSessionPrefix, userId, key)).Result()
 	if err != nil {
 		return "", err
 	}
@@ -116,8 +116,8 @@ func (c *provider) GetMfaSession(email, key string) (string, error) {
 }
 
 // DeleteMfaSession deletes given mfa session from in-memory store.
-func (c *provider) DeleteMfaSession(email, key string) error {
-	if err := c.store.Del(c.ctx, fmt.Sprintf("%s%s:%s", mfaSessionPrefix, email, key)).Err(); err != nil {
+func (c *provider) DeleteMfaSession(userId, key string) error {
+	if err := c.store.Del(c.ctx, fmt.Sprintf("%s%s:%s", mfaSessionPrefix, userId, key)).Err(); err != nil {
 		log.Debug("Error deleting user session from redis: ", err)
 		// continue
 	}
