@@ -15,7 +15,7 @@ import (
 )
 
 // AddUser to save user information in database
-func (p *provider) AddUser(ctx context.Context, user models.User) (models.User, error) {
+func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User, error) {
 	if user.ID == "" {
 		user.ID = uuid.New().String()
 	}
@@ -41,7 +41,7 @@ func (p *provider) AddUser(ctx context.Context, user models.User) (models.User, 
 }
 
 // UpdateUser to update user information in database
-func (p *provider) UpdateUser(ctx context.Context, user models.User) (models.User, error) {
+func (p *provider) UpdateUser(ctx context.Context, user *models.User) (*models.User, error) {
 	user.UpdatedAt = time.Now().Unix()
 	unsertOpt := gocb.UpsertOptions{
 		Context: ctx,
@@ -54,7 +54,7 @@ func (p *provider) UpdateUser(ctx context.Context, user models.User) (models.Use
 }
 
 // DeleteUser to delete user information from database
-func (p *provider) DeleteUser(ctx context.Context, user models.User) error {
+func (p *provider) DeleteUser(ctx context.Context, user *models.User) error {
 	removeOpt := gocb.RemoveOptions{
 		Context: ctx,
 	}
@@ -66,12 +66,10 @@ func (p *provider) DeleteUser(ctx context.Context, user models.User) error {
 }
 
 // ListUsers to get list of users from database
-func (p *provider) ListUsers(ctx context.Context, pagination model.Pagination) (*model.Users, error) {
+func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) (*model.Users, error) {
 	users := []*model.User{}
 	paginationClone := pagination
-
 	userQuery := fmt.Sprintf("SELECT _id, email, email_verified_at, `password`, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, roles, revoked_timestamp, is_multi_factor_auth_enabled, created_at, updated_at FROM %s.%s ORDER BY id OFFSET $1 LIMIT $2", p.scopeName, models.Collections.User)
-
 	queryResult, err := p.db.Query(userQuery, &gocb.QueryOptions{
 		ScanConsistency:      gocb.QueryScanConsistencyRequestPlus,
 		Context:              ctx,
@@ -86,7 +84,7 @@ func (p *provider) ListUsers(ctx context.Context, pagination model.Pagination) (
 	}
 	paginationClone.Total = total
 	for queryResult.Next() {
-		var user models.User
+		var user *models.User
 		err := queryResult.Row(&user)
 		if err != nil {
 			log.Fatal(err)
@@ -97,21 +95,20 @@ func (p *provider) ListUsers(ctx context.Context, pagination model.Pagination) (
 		return nil, err
 	}
 	return &model.Users{
-		Pagination: &paginationClone,
+		Pagination: paginationClone,
 		Users:      users,
 	}, nil
 }
 
 // GetUserByEmail to get user information from database using email address
-func (p *provider) GetUserByEmail(ctx context.Context, email string) (models.User, error) {
-	user := models.User{}
+func (p *provider) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
+	var user *models.User
 	query := fmt.Sprintf("SELECT _id, email, email_verified_at, `password`, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, roles, revoked_timestamp, is_multi_factor_auth_enabled, created_at, updated_at FROM %s.%s WHERE email = $1 LIMIT 1", p.scopeName, models.Collections.User)
 	q, err := p.db.Query(query, &gocb.QueryOptions{
 		ScanConsistency:      gocb.QueryScanConsistencyRequestPlus,
 		Context:              ctx,
 		PositionalParameters: []interface{}{email},
 	})
-
 	if err != nil {
 		return user, err
 	}
@@ -119,13 +116,12 @@ func (p *provider) GetUserByEmail(ctx context.Context, email string) (models.Use
 	if err != nil {
 		return user, err
 	}
-
 	return user, nil
 }
 
 // GetUserByID to get user information from database using user ID
-func (p *provider) GetUserByID(ctx context.Context, id string) (models.User, error) {
-	user := models.User{}
+func (p *provider) GetUserByID(ctx context.Context, id string) (*models.User, error) {
+	var user *models.User
 	query := fmt.Sprintf("SELECT _id, email, email_verified_at, `password`, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, roles, revoked_timestamp, is_multi_factor_auth_enabled, created_at, updated_at FROM %s.%s WHERE _id = $1 LIMIT 1", p.scopeName, models.Collections.User)
 	q, err := p.db.Query(query, &gocb.QueryOptions{
 		ScanConsistency:      gocb.QueryScanConsistencyRequestPlus,
@@ -139,7 +135,6 @@ func (p *provider) GetUserByID(ctx context.Context, id string) (models.User, err
 	if err != nil {
 		return user, err
 	}
-
 	return user, nil
 }
 
@@ -174,7 +169,6 @@ func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{},
 			return err
 		}
 	}
-
 	return nil
 }
 
@@ -194,6 +188,5 @@ func (p *provider) GetUserByPhoneNumber(ctx context.Context, phoneNumber string)
 	if err != nil {
 		return user, err
 	}
-
 	return user, nil
 }

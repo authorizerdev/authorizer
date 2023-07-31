@@ -12,7 +12,7 @@ import (
 )
 
 // AddVerification to save verification request in database
-func (p *provider) AddVerificationRequest(ctx context.Context, verificationRequest models.VerificationRequest) (models.VerificationRequest, error) {
+func (p *provider) AddVerificationRequest(ctx context.Context, verificationRequest *models.VerificationRequest) (*models.VerificationRequest, error) {
 	if verificationRequest.ID == "" {
 		verificationRequest.ID = uuid.New().String()
 	}
@@ -29,8 +29,8 @@ func (p *provider) AddVerificationRequest(ctx context.Context, verificationReque
 }
 
 // GetVerificationRequestByToken to get verification request from database using token
-func (p *provider) GetVerificationRequestByToken(ctx context.Context, token string) (models.VerificationRequest, error) {
-	var verificationRequest models.VerificationRequest
+func (p *provider) GetVerificationRequestByToken(ctx context.Context, token string) (*models.VerificationRequest, error) {
+	var verificationRequest *models.VerificationRequest
 	query := fmt.Sprintf(`SELECT id, jwt_token, identifier, expires_at, email, nonce, redirect_uri, created_at, updated_at FROM %s WHERE jwt_token = '%s' LIMIT 1`, KeySpace+"."+models.Collections.VerificationRequest, token)
 
 	err := p.db.Query(query).Consistency(gocql.One).Scan(&verificationRequest.ID, &verificationRequest.Token, &verificationRequest.Identifier, &verificationRequest.ExpiresAt, &verificationRequest.Email, &verificationRequest.Nonce, &verificationRequest.RedirectURI, &verificationRequest.CreatedAt, &verificationRequest.UpdatedAt)
@@ -41,8 +41,8 @@ func (p *provider) GetVerificationRequestByToken(ctx context.Context, token stri
 }
 
 // GetVerificationRequestByEmail to get verification request by email from database
-func (p *provider) GetVerificationRequestByEmail(ctx context.Context, email string, identifier string) (models.VerificationRequest, error) {
-	var verificationRequest models.VerificationRequest
+func (p *provider) GetVerificationRequestByEmail(ctx context.Context, email string, identifier string) (*models.VerificationRequest, error) {
+	var verificationRequest *models.VerificationRequest
 	query := fmt.Sprintf(`SELECT id, jwt_token, identifier, expires_at, email, nonce, redirect_uri, created_at, updated_at FROM %s WHERE email = '%s' AND identifier = '%s' LIMIT 1 ALLOW FILTERING`, KeySpace+"."+models.Collections.VerificationRequest, email, identifier)
 
 	err := p.db.Query(query).Consistency(gocql.One).Scan(&verificationRequest.ID, &verificationRequest.Token, &verificationRequest.Identifier, &verificationRequest.ExpiresAt, &verificationRequest.Email, &verificationRequest.Nonce, &verificationRequest.RedirectURI, &verificationRequest.CreatedAt, &verificationRequest.UpdatedAt)
@@ -54,12 +54,11 @@ func (p *provider) GetVerificationRequestByEmail(ctx context.Context, email stri
 }
 
 // ListVerificationRequests to get list of verification requests from database
-func (p *provider) ListVerificationRequests(ctx context.Context, pagination model.Pagination) (*model.VerificationRequests, error) {
+func (p *provider) ListVerificationRequests(ctx context.Context, pagination *model.Pagination) (*model.VerificationRequests, error) {
 	var verificationRequests []*model.VerificationRequest
-
 	paginationClone := pagination
 	totalCountQuery := fmt.Sprintf(`SELECT COUNT(*) FROM %s`, KeySpace+"."+models.Collections.VerificationRequest)
-	err := p.db.Query(totalCountQuery).Consistency(gocql.One).Scan(&paginationClone.Total)
+	err := p.db.Query(totalCountQuery).Consistency(gocql.One).Scan(paginationClone.Total)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +72,7 @@ func (p *provider) ListVerificationRequests(ctx context.Context, pagination mode
 	counter := int64(0)
 	for scanner.Next() {
 		if counter >= pagination.Offset {
-			var verificationRequest models.VerificationRequest
+			var verificationRequest *models.VerificationRequest
 			err := scanner.Scan(&verificationRequest.ID, &verificationRequest.Token, &verificationRequest.Identifier, &verificationRequest.ExpiresAt, &verificationRequest.Email, &verificationRequest.Nonce, &verificationRequest.RedirectURI, &verificationRequest.CreatedAt, &verificationRequest.UpdatedAt)
 			if err != nil {
 				return nil, err
@@ -85,12 +84,12 @@ func (p *provider) ListVerificationRequests(ctx context.Context, pagination mode
 
 	return &model.VerificationRequests{
 		VerificationRequests: verificationRequests,
-		Pagination:           &paginationClone,
+		Pagination:           paginationClone,
 	}, nil
 }
 
 // DeleteVerificationRequest to delete verification request from database
-func (p *provider) DeleteVerificationRequest(ctx context.Context, verificationRequest models.VerificationRequest) error {
+func (p *provider) DeleteVerificationRequest(ctx context.Context, verificationRequest *models.VerificationRequest) error {
 	query := fmt.Sprintf("DELETE FROM %s WHERE id = '%s'", KeySpace+"."+models.Collections.VerificationRequest, verificationRequest.ID)
 	err := p.db.Query(query).Exec()
 	if err != nil {

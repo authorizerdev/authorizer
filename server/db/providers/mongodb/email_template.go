@@ -12,7 +12,7 @@ import (
 )
 
 // AddEmailTemplate to add EmailTemplate
-func (p *provider) AddEmailTemplate(ctx context.Context, emailTemplate models.EmailTemplate) (*model.EmailTemplate, error) {
+func (p *provider) AddEmailTemplate(ctx context.Context, emailTemplate *models.EmailTemplate) (*model.EmailTemplate, error) {
 	if emailTemplate.ID == "" {
 		emailTemplate.ID = uuid.New().String()
 	}
@@ -30,7 +30,7 @@ func (p *provider) AddEmailTemplate(ctx context.Context, emailTemplate models.Em
 }
 
 // UpdateEmailTemplate to update EmailTemplate
-func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate models.EmailTemplate) (*model.EmailTemplate, error) {
+func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate *models.EmailTemplate) (*model.EmailTemplate, error) {
 	emailTemplate.UpdatedAt = time.Now().Unix()
 
 	emailTemplateCollection := p.db.Collection(models.Collections.EmailTemplate, options.Collection())
@@ -43,7 +43,7 @@ func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate models
 }
 
 // ListEmailTemplates to list EmailTemplate
-func (p *provider) ListEmailTemplate(ctx context.Context, pagination model.Pagination) (*model.EmailTemplates, error) {
+func (p *provider) ListEmailTemplate(ctx context.Context, pagination *model.Pagination) (*model.EmailTemplates, error) {
 	var emailTemplates []*model.EmailTemplate
 	opts := options.Find()
 	opts.SetLimit(pagination.Limit)
@@ -67,7 +67,7 @@ func (p *provider) ListEmailTemplate(ctx context.Context, pagination model.Pagin
 	defer cursor.Close(ctx)
 
 	for cursor.Next(ctx) {
-		var emailTemplate models.EmailTemplate
+		var emailTemplate *models.EmailTemplate
 		err := cursor.Decode(&emailTemplate)
 		if err != nil {
 			return nil, err
@@ -76,14 +76,14 @@ func (p *provider) ListEmailTemplate(ctx context.Context, pagination model.Pagin
 	}
 
 	return &model.EmailTemplates{
-		Pagination:     &paginationClone,
+		Pagination:     paginationClone,
 		EmailTemplates: emailTemplates,
 	}, nil
 }
 
 // GetEmailTemplateByID to get EmailTemplate by id
 func (p *provider) GetEmailTemplateByID(ctx context.Context, emailTemplateID string) (*model.EmailTemplate, error) {
-	var emailTemplate models.EmailTemplate
+	var emailTemplate *models.EmailTemplate
 	emailTemplateCollection := p.db.Collection(models.Collections.EmailTemplate, options.Collection())
 	err := emailTemplateCollection.FindOne(ctx, bson.M{"_id": emailTemplateID}).Decode(&emailTemplate)
 	if err != nil {
@@ -94,7 +94,7 @@ func (p *provider) GetEmailTemplateByID(ctx context.Context, emailTemplateID str
 
 // GetEmailTemplateByEventName to get EmailTemplate by event_name
 func (p *provider) GetEmailTemplateByEventName(ctx context.Context, eventName string) (*model.EmailTemplate, error) {
-	var emailTemplate models.EmailTemplate
+	var emailTemplate *models.EmailTemplate
 	emailTemplateCollection := p.db.Collection(models.Collections.EmailTemplate, options.Collection())
 	err := emailTemplateCollection.FindOne(ctx, bson.M{"event_name": eventName}).Decode(&emailTemplate)
 	if err != nil {

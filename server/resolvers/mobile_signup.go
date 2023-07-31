@@ -130,7 +130,7 @@ func MobileSignupResolver(ctx context.Context, params *model.MobileSignUpInput) 
 		}
 	}
 
-	user := models.User{
+	user := &models.User{
 		Email:       emailInput,
 		PhoneNumber: &mobile,
 	}
@@ -298,7 +298,7 @@ func MobileSignupResolver(ctx context.Context, params *model.MobileSignUpInput) 
 
 	go func() {
 		utils.RegisterEvent(ctx, constants.UserSignUpWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, user)
-		db.Provider.AddSession(ctx, models.Session{
+		db.Provider.AddSession(ctx, &models.Session{
 			UserID:    user.ID,
 			UserAgent: utils.GetUserAgent(gc.Request),
 			IP:        utils.GetIP(gc.Request),

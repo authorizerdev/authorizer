@@ -12,7 +12,7 @@ import (
 )
 
 // AddWebhookLog to add webhook log
-func (p *provider) AddWebhookLog(ctx context.Context, webhookLog models.WebhookLog) (*model.WebhookLog, error) {
+func (p *provider) AddWebhookLog(ctx context.Context, webhookLog *models.WebhookLog) (*model.WebhookLog, error) {
 	if webhookLog.ID == "" {
 		webhookLog.ID = uuid.New().String()
 		webhookLog.Key = webhookLog.ID
@@ -30,7 +30,7 @@ func (p *provider) AddWebhookLog(ctx context.Context, webhookLog models.WebhookL
 }
 
 // ListWebhookLogs to list webhook logs
-func (p *provider) ListWebhookLogs(ctx context.Context, pagination model.Pagination, webhookID string) (*model.WebhookLogs, error) {
+func (p *provider) ListWebhookLogs(ctx context.Context, pagination *model.Pagination, webhookID string) (*model.WebhookLogs, error) {
 	webhookLogs := []*model.WebhookLog{}
 	bindVariables := map[string]interface{}{}
 
@@ -54,7 +54,7 @@ func (p *provider) ListWebhookLogs(ctx context.Context, pagination model.Paginat
 	paginationClone.Total = cursor.Statistics().FullCount()
 
 	for {
-		var webhookLog models.WebhookLog
+		var webhookLog *models.WebhookLog
 		meta, err := cursor.ReadDocument(ctx, &webhookLog)
 
 		if arangoDriver.IsNoMoreDocuments(err) {
@@ -69,7 +69,7 @@ func (p *provider) ListWebhookLogs(ctx context.Context, pagination model.Paginat
 	}
 
 	return &model.WebhookLogs{
-		Pagination:  &paginationClone,
+		Pagination:  paginationClone,
 		WebhookLogs: webhookLogs,
 	}, nil
 }

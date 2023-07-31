@@ -9,7 +9,7 @@ import (
 )
 
 // AddSession to save session information in database
-func (p *provider) AddSession(ctx context.Context, session models.Session) error {
+func (p *provider) AddSession(ctx context.Context, session *models.Session) error {
 	if session.ID == "" {
 		session.ID = uuid.New().String()
 		session.Key = session.ID

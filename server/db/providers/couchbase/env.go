@@ -11,7 +11,7 @@ import (
 )
 
 // AddEnv to save environment information in database
-func (p *provider) AddEnv(ctx context.Context, env models.Env) (models.Env, error) {
+func (p *provider) AddEnv(ctx context.Context, env *models.Env) (*models.Env, error) {
 	if env.ID == "" {
 		env.ID = uuid.New().String()
 	}
@@ -31,7 +31,7 @@ func (p *provider) AddEnv(ctx context.Context, env models.Env) (models.Env, erro
 }
 
 // UpdateEnv to update environment information in database
-func (p *provider) UpdateEnv(ctx context.Context, env models.Env) (models.Env, error) {
+func (p *provider) UpdateEnv(ctx context.Context, env *models.Env) (*models.Env, error) {
 	env.UpdatedAt = time.Now().Unix()
 	env.EncryptionKey = env.Hash
 
@@ -49,8 +49,8 @@ func (p *provider) UpdateEnv(ctx context.Context, env models.Env) (models.Env, e
 }
 
 // GetEnv to get environment information from database
-func (p *provider) GetEnv(ctx context.Context) (models.Env, error) {
-	var env models.Env
+func (p *provider) GetEnv(ctx context.Context) (*models.Env, error) {
+	var env *models.Env
 
 	query := fmt.Sprintf("SELECT _id, env, encryption_key, created_at, updated_at FROM %s.%s LIMIT 1", p.scopeName, models.Collections.Env)
 	q, err := p.db.Query(query, &gocb.QueryOptions{

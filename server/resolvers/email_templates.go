@@ -25,7 +25,6 @@ func EmailTemplatesResolver(ctx context.Context, params *model.PaginatedInput) (
 	}
 
 	pagination := utils.GetPagination(params)
-
 	emailTemplates, err := db.Provider.ListEmailTemplate(ctx, pagination)
 	if err != nil {
 		log.Debug("failed to get email templates: ", err)

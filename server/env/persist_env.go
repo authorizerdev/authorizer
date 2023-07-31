@@ -134,12 +134,11 @@ func PersistEnv() error {
 			return err
 		}
 
-		env = models.Env{
+		env = &models.Env{
 			Hash:    encodedHash,
 			EnvData: encryptedConfig,
 		}
-
-		env, err = db.Provider.AddEnv(ctx, env)
+		_, err = db.Provider.AddEnv(ctx, env)
 		if err != nil {
 			log.Debug("Error while persisting env data to db: ", err)
 			return err

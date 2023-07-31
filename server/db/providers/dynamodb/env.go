@@ -11,7 +11,7 @@ import (
 )
 
 // AddEnv to save environment information in database
-func (p *provider) AddEnv(ctx context.Context, env models.Env) (models.Env, error) {
+func (p *provider) AddEnv(ctx context.Context, env *models.Env) (*models.Env, error) {
 	collection := p.db.Table(models.Collections.Env)
 
 	if env.ID == "" {
@@ -33,7 +33,7 @@ func (p *provider) AddEnv(ctx context.Context, env models.Env) (models.Env, erro
 }
 
 // UpdateEnv to update environment information in database
-func (p *provider) UpdateEnv(ctx context.Context, env models.Env) (models.Env, error) {
+func (p *provider) UpdateEnv(ctx context.Context, env *models.Env) (*models.Env, error) {
 	collection := p.db.Table(models.Collections.Env)
 	env.UpdatedAt = time.Now().Unix()
 
@@ -46,8 +46,8 @@ func (p *provider) UpdateEnv(ctx context.Context, env models.Env) (models.Env, e
 }
 
 // GetEnv to get environment information from database
-func (p *provider) GetEnv(ctx context.Context) (models.Env, error) {
-	var env models.Env
+func (p *provider) GetEnv(ctx context.Context) (*models.Env, error) {
+	var env *models.Env
 
 	collection := p.db.Table(models.Collections.Env)
 	// As there is no Findone supported.

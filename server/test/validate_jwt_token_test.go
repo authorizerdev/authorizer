@@ -39,7 +39,7 @@ func validateJwtTokenTest(t *testing.T, s TestSetup) {
 	})
 
 	scope := []string{"openid", "email", "profile", "offline_access"}
-	user := models.User{
+	user := &models.User{
 		ID:        uuid.New().String(),
 		Email:     "jwt_test_" + s.TestInfo.Email,
 		Roles:     "user",

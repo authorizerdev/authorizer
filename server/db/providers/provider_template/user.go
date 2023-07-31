@@ -12,11 +12,10 @@ import (
 )
 
 // AddUser to save user information in database
-func (p *provider) AddUser(ctx context.Context, user models.User) (models.User, error) {
+func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User, error) {
 	if user.ID == "" {
 		user.ID = uuid.New().String()
 	}
-
 	if user.Roles == "" {
 		defaultRoles, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDefaultRoles)
 		if err != nil {
@@ -24,40 +23,36 @@ func (p *provider) AddUser(ctx context.Context, user models.User) (models.User, 
 		}
 		user.Roles = defaultRoles
 	}
-
 	user.CreatedAt = time.Now().Unix()
 	user.UpdatedAt = time.Now().Unix()
-
 	return user, nil
 }
 
 // UpdateUser to update user information in database
-func (p *provider) UpdateUser(ctx context.Context, user models.User) (models.User, error) {
+func (p *provider) UpdateUser(ctx context.Context, user *models.User) (*models.User, error) {
 	user.UpdatedAt = time.Now().Unix()
 	return user, nil
 }
 
 // DeleteUser to delete user information from database
-func (p *provider) DeleteUser(ctx context.Context, user models.User) error {
+func (p *provider) DeleteUser(ctx context.Context, user *models.User) error {
 	return nil
 }
 
 // ListUsers to get list of users from database
-func (p *provider) ListUsers(ctx context.Context, pagination model.Pagination) (*model.Users, error) {
+func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) (*model.Users, error) {
 	return nil, nil
 }
 
 // GetUserByEmail to get user information from database using email address
-func (p *provider) GetUserByEmail(ctx context.Context, email string) (models.User, error) {
-	var user models.User
-
+func (p *provider) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
+	var user *models.User
 	return user, nil
 }
 
 // GetUserByID to get user information from database using user ID
-func (p *provider) GetUserByID(ctx context.Context, id string) (models.User, error) {
-	var user models.User
-
+func (p *provider) GetUserByID(ctx context.Context, id string) (*models.User, error) {
+	var user *models.User
 	return user, nil
 }
 
@@ -66,13 +61,11 @@ func (p *provider) GetUserByID(ctx context.Context, id string) (models.User, err
 func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{}, ids []string) error {
 	// set updated_at time for all users
 	data["updated_at"] = time.Now().Unix()
-
 	return nil
 }
 
 // GetUserByPhoneNumber to get user information from database using phone number
 func (p *provider) GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (*models.User, error) {
 	var user *models.User
-
 	return user, nil
 }

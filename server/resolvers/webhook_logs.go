@@ -25,7 +25,7 @@ func WebhookLogsResolver(ctx context.Context, params *model.ListWebhookLogReques
 		return nil, fmt.Errorf("unauthorized")
 	}
 
-	var pagination model.Pagination
+	var pagination *model.Pagination
 	var webhookID string
 
 	if params != nil {
@@ -37,7 +37,7 @@ func WebhookLogsResolver(ctx context.Context, params *model.ListWebhookLogReques
 		pagination = utils.GetPagination(nil)
 		webhookID = ""
 	}
-
+	// TODO fix
 	webhookLogs, err := db.Provider.ListWebhookLogs(ctx, pagination, webhookID)
 	if err != nil {
 		log.Debug("failed to get webhook logs: ", err)

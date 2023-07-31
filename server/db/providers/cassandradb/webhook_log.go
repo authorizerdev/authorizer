@@ -12,7 +12,7 @@ import (
 )
 
 // AddWebhookLog to add webhook log
-func (p *provider) AddWebhookLog(ctx context.Context, webhookLog models.WebhookLog) (*model.WebhookLog, error) {
+func (p *provider) AddWebhookLog(ctx context.Context, webhookLog *models.WebhookLog) (*model.WebhookLog, error) {
 	if webhookLog.ID == "" {
 		webhookLog.ID = uuid.New().String()
 	}
@@ -30,7 +30,7 @@ func (p *provider) AddWebhookLog(ctx context.Context, webhookLog models.WebhookL
 }
 
 // ListWebhookLogs to list webhook logs
-func (p *provider) ListWebhookLogs(ctx context.Context, pagination model.Pagination, webhookID string) (*model.WebhookLogs, error) {
+func (p *provider) ListWebhookLogs(ctx context.Context, pagination *model.Pagination, webhookID string) (*model.WebhookLogs, error) {
 	webhookLogs := []*model.WebhookLog{}
 	paginationClone := pagination
 	totalCountQuery := fmt.Sprintf(`SELECT COUNT(*) FROM %s`, KeySpace+"."+models.Collections.WebhookLog)
@@ -44,7 +44,7 @@ func (p *provider) ListWebhookLogs(ctx context.Context, pagination model.Paginat
 		query = fmt.Sprintf("SELECT id, http_status, response, request, webhook_id, created_at, updated_at FROM %s WHERE webhook_id = '%s' LIMIT %d ALLOW FILTERING", KeySpace+"."+models.Collections.WebhookLog, webhookID, pagination.Limit+pagination.Offset)
 	}
 
-	err := p.db.Query(totalCountQuery).Consistency(gocql.One).Scan(&paginationClone.Total)
+	err := p.db.Query(totalCountQuery).Consistency(gocql.One).Scan(paginationClone.Total)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +53,7 @@ func (p *provider) ListWebhookLogs(ctx context.Context, pagination model.Paginat
 	counter := int64(0)
 	for scanner.Next() {
 		if counter >= pagination.Offset {
-			var webhookLog models.WebhookLog
+			var webhookLog *models.WebhookLog
 			err := scanner.Scan(&webhookLog.ID, &webhookLog.HttpStatus, &webhookLog.Response, &webhookLog.Request, &webhookLog.WebhookID, &webhookLog.CreatedAt, &webhookLog.UpdatedAt)
 			if err != nil {
 				return nil, err
@@ -64,7 +64,7 @@ func (p *provider) ListWebhookLogs(ctx context.Context, pagination model.Paginat
 	}
 
 	return &model.WebhookLogs{
-		Pagination:  &paginationClone,
+		Pagination:  paginationClone,
 		WebhookLogs: webhookLogs,
 	}, nil
 }

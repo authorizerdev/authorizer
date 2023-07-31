@@ -117,7 +117,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 		}
 	}
 
-	user := models.User{
+	user := &models.User{
 		Email: params.Email,
 	}
 
@@ -208,7 +208,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 			log.Debug("Failed to create verification token: ", err)
 			return res, err
 		}
-		_, err = db.Provider.AddVerificationRequest(ctx, models.VerificationRequest{
+		_, err = db.Provider.AddVerificationRequest(ctx, &models.VerificationRequest{
 			Token:       verificationToken,
 			Identifier:  verificationType,
 			ExpiresAt:   time.Now().Add(time.Minute * 30).Unix(),
@@ -302,7 +302,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 
 		go func() {
 			utils.RegisterEvent(ctx, constants.UserSignUpWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
-			db.Provider.AddSession(ctx, models.Session{
+			db.Provider.AddSession(ctx, &models.Session{
 				UserID:    user.ID,
 				UserAgent: utils.GetUserAgent(gc.Request),
 				IP:        utils.GetIP(gc.Request),

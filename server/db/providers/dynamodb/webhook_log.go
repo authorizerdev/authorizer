@@ -11,7 +11,7 @@ import (
 )
 
 // AddWebhookLog to add webhook log
-func (p *provider) AddWebhookLog(ctx context.Context, webhookLog models.WebhookLog) (*model.WebhookLog, error) {
+func (p *provider) AddWebhookLog(ctx context.Context, webhookLog *models.WebhookLog) (*model.WebhookLog, error) {
 	collection := p.db.Table(models.Collections.WebhookLog)
 
 	if webhookLog.ID == "" {
@@ -30,9 +30,9 @@ func (p *provider) AddWebhookLog(ctx context.Context, webhookLog models.WebhookL
 }
 
 // ListWebhookLogs to list webhook logs
-func (p *provider) ListWebhookLogs(ctx context.Context, pagination model.Pagination, webhookID string) (*model.WebhookLogs, error) {
+func (p *provider) ListWebhookLogs(ctx context.Context, pagination *model.Pagination, webhookID string) (*model.WebhookLogs, error) {
 	webhookLogs := []*model.WebhookLog{}
-	var webhookLog models.WebhookLog
+	var webhookLog *models.WebhookLog
 	var lastEval dynamo.PagingKey
 	var iter dynamo.PagingIter
 	var iteration int64 = 0
@@ -72,7 +72,7 @@ func (p *provider) ListWebhookLogs(ctx context.Context, pagination model.Paginat
 	paginationClone.Total = count
 	// paginationClone.Cursor = iter.LastEvaluatedKey()
 	return &model.WebhookLogs{
-		Pagination:  &paginationClone,
+		Pagination:  paginationClone,
 		WebhookLogs: webhookLogs,
 	}, nil
 }

@@ -12,7 +12,7 @@ import (
 )
 
 // AddEmailTemplate to add EmailTemplate
-func (p *provider) AddEmailTemplate(ctx context.Context, emailTemplate models.EmailTemplate) (*model.EmailTemplate, error) {
+func (p *provider) AddEmailTemplate(ctx context.Context, emailTemplate *models.EmailTemplate) (*model.EmailTemplate, error) {
 	collection := p.db.Table(models.Collections.EmailTemplate)
 	if emailTemplate.ID == "" {
 		emailTemplate.ID = uuid.New().String()
@@ -31,7 +31,7 @@ func (p *provider) AddEmailTemplate(ctx context.Context, emailTemplate models.Em
 }
 
 // UpdateEmailTemplate to update EmailTemplate
-func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate models.EmailTemplate) (*model.EmailTemplate, error) {
+func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate *models.EmailTemplate) (*model.EmailTemplate, error) {
 	collection := p.db.Table(models.Collections.EmailTemplate)
 	emailTemplate.UpdatedAt = time.Now().Unix()
 	err := UpdateByHashKey(collection, "id", emailTemplate.ID, emailTemplate)
@@ -42,9 +42,9 @@ func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate models
 }
 
 // ListEmailTemplates to list EmailTemplate
-func (p *provider) ListEmailTemplate(ctx context.Context, pagination model.Pagination) (*model.EmailTemplates, error) {
+func (p *provider) ListEmailTemplate(ctx context.Context, pagination *model.Pagination) (*model.EmailTemplates, error) {
 
-	var emailTemplate models.EmailTemplate
+	var emailTemplate *models.EmailTemplate
 	var iter dynamo.PagingIter
 	var lastEval dynamo.PagingKey
 	var iteration int64 = 0
@@ -73,7 +73,7 @@ func (p *provider) ListEmailTemplate(ctx context.Context, pagination model.Pagin
 	paginationClone.Total = count
 
 	return &model.EmailTemplates{
-		Pagination:     &paginationClone,
+		Pagination:     paginationClone,
 		EmailTemplates: emailTemplates,
 	}, nil
 }
@@ -81,7 +81,7 @@ func (p *provider) ListEmailTemplate(ctx context.Context, pagination model.Pagin
 // GetEmailTemplateByID to get EmailTemplate by id
 func (p *provider) GetEmailTemplateByID(ctx context.Context, emailTemplateID string) (*model.EmailTemplate, error) {
 	collection := p.db.Table(models.Collections.EmailTemplate)
-	var emailTemplate models.EmailTemplate
+	var emailTemplate *models.EmailTemplate
 	err := collection.Get("id", emailTemplateID).OneWithContext(ctx, &emailTemplate)
 	if err != nil {
 		return nil, err
@@ -92,9 +92,8 @@ func (p *provider) GetEmailTemplateByID(ctx context.Context, emailTemplateID str
 // GetEmailTemplateByEventName to get EmailTemplate by event_name
 func (p *provider) GetEmailTemplateByEventName(ctx context.Context, eventName string) (*model.EmailTemplate, error) {
 	collection := p.db.Table(models.Collections.EmailTemplate)
-	var emailTemplates []models.EmailTemplate
-	var emailTemplate models.EmailTemplate
-
+	var emailTemplates []*models.EmailTemplate
+	var emailTemplate *models.EmailTemplate
 	err := collection.Scan().Index("event_name").Filter("'event_name' = ?", eventName).Limit(1).AllWithContext(ctx, &emailTemplates)
 	if err != nil {
 		return nil, err

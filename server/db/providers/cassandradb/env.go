@@ -11,7 +11,7 @@ import (
 )
 
 // AddEnv to save environment information in database
-func (p *provider) AddEnv(ctx context.Context, env models.Env) (models.Env, error) {
+func (p *provider) AddEnv(ctx context.Context, env *models.Env) (*models.Env, error) {
 	if env.ID == "" {
 		env.ID = uuid.New().String()
 	}
@@ -28,7 +28,7 @@ func (p *provider) AddEnv(ctx context.Context, env models.Env) (models.Env, erro
 }
 
 // UpdateEnv to update environment information in database
-func (p *provider) UpdateEnv(ctx context.Context, env models.Env) (models.Env, error) {
+func (p *provider) UpdateEnv(ctx context.Context, env *models.Env) (*models.Env, error) {
 	env.UpdatedAt = time.Now().Unix()
 
 	updateEnvQuery := fmt.Sprintf("UPDATE %s SET env = '%s', updated_at = %d WHERE id = '%s'", KeySpace+"."+models.Collections.Env, env.EnvData, env.UpdatedAt, env.ID)
@@ -40,8 +40,8 @@ func (p *provider) UpdateEnv(ctx context.Context, env models.Env) (models.Env, e
 }
 
 // GetEnv to get environment information from database
-func (p *provider) GetEnv(ctx context.Context) (models.Env, error) {
-	var env models.Env
+func (p *provider) GetEnv(ctx context.Context) (*models.Env, error) {
+	var env *models.Env
 
 	query := fmt.Sprintf("SELECT id, env, hash, created_at, updated_at FROM %s LIMIT 1", KeySpace+"."+models.Collections.Env)
 	err := p.db.Query(query).Consistency(gocql.One).Scan(&env.ID, &env.EnvData, &env.Hash, &env.CreatedAt, &env.UpdatedAt)

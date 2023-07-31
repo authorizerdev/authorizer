@@ -41,7 +41,7 @@ func UpdateWebhookResolver(ctx context.Context, params model.UpdateWebhookReques
 		}
 		headersString = string(headerBytes)
 	}
-	webhookDetails := models.Webhook{
+	webhookDetails := &models.Webhook{
 		ID:               webhook.ID,
 		Key:              webhook.ID,
 		EventName:        refs.StringValue(webhook.EventName),

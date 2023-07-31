@@ -11,7 +11,7 @@ import (
 )
 
 // AddVerification to save verification request in database
-func (p *provider) AddVerificationRequest(ctx context.Context, verificationRequest models.VerificationRequest) (models.VerificationRequest, error) {
+func (p *provider) AddVerificationRequest(ctx context.Context, verificationRequest *models.VerificationRequest) (*models.VerificationRequest, error) {
 	collection := p.db.Table(models.Collections.VerificationRequest)
 
 	if verificationRequest.ID == "" {
@@ -28,9 +28,9 @@ func (p *provider) AddVerificationRequest(ctx context.Context, verificationReque
 }
 
 // GetVerificationRequestByToken to get verification request from database using token
-func (p *provider) GetVerificationRequestByToken(ctx context.Context, token string) (models.VerificationRequest, error) {
+func (p *provider) GetVerificationRequestByToken(ctx context.Context, token string) (*models.VerificationRequest, error) {
 	collection := p.db.Table(models.Collections.VerificationRequest)
-	var verificationRequest models.VerificationRequest
+	var verificationRequest *models.VerificationRequest
 
 	iter := collection.Scan().Filter("'token' = ?", token).Iter()
 	for iter.NextWithContext(ctx, &verificationRequest) {
@@ -45,8 +45,8 @@ func (p *provider) GetVerificationRequestByToken(ctx context.Context, token stri
 }
 
 // GetVerificationRequestByEmail to get verification request by email from database
-func (p *provider) GetVerificationRequestByEmail(ctx context.Context, email string, identifier string) (models.VerificationRequest, error) {
-	var verificationRequest models.VerificationRequest
+func (p *provider) GetVerificationRequestByEmail(ctx context.Context, email string, identifier string) (*models.VerificationRequest, error) {
+	var verificationRequest *models.VerificationRequest
 	collection := p.db.Table(models.Collections.VerificationRequest)
 	iter := collection.Scan().Filter("'email' = ?", email).Filter("'identifier' = ?", identifier).Iter()
 	for iter.NextWithContext(ctx, &verificationRequest) {
@@ -61,9 +61,9 @@ func (p *provider) GetVerificationRequestByEmail(ctx context.Context, email stri
 }
 
 // ListVerificationRequests to get list of verification requests from database
-func (p *provider) ListVerificationRequests(ctx context.Context, pagination model.Pagination) (*model.VerificationRequests, error) {
+func (p *provider) ListVerificationRequests(ctx context.Context, pagination *model.Pagination) (*model.VerificationRequests, error) {
 	verificationRequests := []*model.VerificationRequest{}
-	var verificationRequest models.VerificationRequest
+	var verificationRequest *models.VerificationRequest
 	var lastEval dynamo.PagingKey
 	var iter dynamo.PagingIter
 	var iteration int64 = 0
@@ -97,12 +97,12 @@ func (p *provider) ListVerificationRequests(ctx context.Context, pagination mode
 
 	return &model.VerificationRequests{
 		VerificationRequests: verificationRequests,
-		Pagination:           &paginationClone,
+		Pagination:           paginationClone,
 	}, nil
 }
 
 // DeleteVerificationRequest to delete verification request from database
-func (p *provider) DeleteVerificationRequest(ctx context.Context, verificationRequest models.VerificationRequest) error {
+func (p *provider) DeleteVerificationRequest(ctx context.Context, verificationRequest *models.VerificationRequest) error {
 	collection := p.db.Table(models.Collections.VerificationRequest)
 
 	if verificationRequest.ID != "" {

@@ -15,7 +15,7 @@ import (
 )
 
 // AddWebhook to add webhook
-func (p *provider) AddWebhook(ctx context.Context, webhook models.Webhook) (*model.Webhook, error) {
+func (p *provider) AddWebhook(ctx context.Context, webhook *models.Webhook) (*model.Webhook, error) {
 	collection := p.db.Table(models.Collections.Webhook)
 	if webhook.ID == "" {
 		webhook.ID = uuid.New().String()
@@ -33,7 +33,7 @@ func (p *provider) AddWebhook(ctx context.Context, webhook models.Webhook) (*mod
 }
 
 // UpdateWebhook to update webhook
-func (p *provider) UpdateWebhook(ctx context.Context, webhook models.Webhook) (*model.Webhook, error) {
+func (p *provider) UpdateWebhook(ctx context.Context, webhook *models.Webhook) (*model.Webhook, error) {
 	webhook.UpdatedAt = time.Now().Unix()
 	// Event is changed
 	if !strings.Contains(webhook.EventName, "-") {
@@ -48,9 +48,9 @@ func (p *provider) UpdateWebhook(ctx context.Context, webhook models.Webhook) (*
 }
 
 // ListWebhooks to list webhook
-func (p *provider) ListWebhook(ctx context.Context, pagination model.Pagination) (*model.Webhooks, error) {
+func (p *provider) ListWebhook(ctx context.Context, pagination *model.Pagination) (*model.Webhooks, error) {
 	webhooks := []*model.Webhook{}
-	var webhook models.Webhook
+	var webhook *models.Webhook
 	var lastEval dynamo.PagingKey
 	var iter dynamo.PagingIter
 	var iteration int64 = 0
@@ -77,7 +77,7 @@ func (p *provider) ListWebhook(ctx context.Context, pagination model.Pagination)
 	}
 	paginationClone.Total = count
 	return &model.Webhooks{
-		Pagination: &paginationClone,
+		Pagination: paginationClone,
 		Webhooks:   webhooks,
 	}, nil
 }
@@ -85,7 +85,7 @@ func (p *provider) ListWebhook(ctx context.Context, pagination model.Pagination)
 // GetWebhookByID to get webhook by id
 func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*model.Webhook, error) {
 	collection := p.db.Table(models.Collections.Webhook)
-	var webhook models.Webhook
+	var webhook *models.Webhook
 	err := collection.Get("id", webhookID).OneWithContext(ctx, &webhook)
 	if err != nil {
 		return nil, err
@@ -116,7 +116,7 @@ func (p *provider) DeleteWebhook(ctx context.Context, webhook *model.Webhook) er
 	// Also delete webhook logs for given webhook id
 	if webhook.ID != "" {
 		webhookCollection := p.db.Table(models.Collections.Webhook)
-		pagination := model.Pagination{}
+		var pagination *model.Pagination
 		webhookLogCollection := p.db.Table(models.Collections.WebhookLog)
 		err := webhookCollection.Delete("id", webhook.ID).RunWithContext(ctx)
 		if err != nil {
