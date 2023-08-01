@@ -2690,6 +2690,7 @@ input WebhookRequest {
 input TestEndpointRequest {
   endpoint: String!
   event_name: String!
+  event_description: String
   headers: Map
 }
 
@@ -16756,7 +16757,7 @@ func (ec *executionContext) unmarshalInputTestEndpointRequest(ctx context.Contex
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"endpoint", "event_name", "headers"}
+	fieldsInOrder := [...]string{"endpoint", "event_name", "event_description", "headers"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -16776,6 +16777,14 @@ func (ec *executionContext) unmarshalInputTestEndpointRequest(ctx context.Contex
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("event_name"))
 			it.EventName, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "event_description":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("event_description"))
+			it.EventDescription, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}

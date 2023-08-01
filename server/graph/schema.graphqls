@@ -512,6 +512,7 @@ input WebhookRequest {
 input TestEndpointRequest {
   endpoint: String!
   event_name: String!
+  event_description: String
   headers: Map
 }
 
