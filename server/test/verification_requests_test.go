@@ -44,9 +44,7 @@ func verificationRequestsTest(t *testing.T, s TestSetup) {
 		assert.Nil(t, err)
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
 		requests, err = resolvers.VerificationRequestsResolver(ctx, pagination)
-
 		assert.Nil(t, err)
-
 		rLen := len(requests.VerificationRequests)
 		assert.GreaterOrEqual(t, rLen, 1)
 

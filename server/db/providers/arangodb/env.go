@@ -48,16 +48,14 @@ func (p *provider) UpdateEnv(ctx context.Context, env *models.Env) (*models.Env,
 func (p *provider) GetEnv(ctx context.Context) (*models.Env, error) {
 	var env *models.Env
 	query := fmt.Sprintf("FOR d in %s RETURN d", models.Collections.Env)
-
 	cursor, err := p.db.Query(ctx, query, nil)
 	if err != nil {
 		return env, err
 	}
 	defer cursor.Close()
-
 	for {
 		if !cursor.HasMore() {
-			if env.Key == "" {
+			if env == nil {
 				return env, fmt.Errorf("config not found")
 			}
 			break

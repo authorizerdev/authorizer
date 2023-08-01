@@ -16,7 +16,6 @@ func (p *provider) AddEnv(ctx context.Context, env *models.Env) (*models.Env, er
 	if env.ID == "" {
 		env.ID = uuid.New().String()
 	}
-
 	env.CreatedAt = time.Now().Unix()
 	env.UpdatedAt = time.Now().Unix()
 	env.Key = env.ID
@@ -48,17 +47,14 @@ func (p *provider) GetEnv(ctx context.Context) (*models.Env, error) {
 		return env, err
 	}
 	defer cursor.Close(ctx)
-
 	for cursor.Next(nil) {
 		err := cursor.Decode(&env)
 		if err != nil {
 			return env, err
 		}
 	}
-
-	if env.ID == "" {
+	if env == nil {
 		return env, fmt.Errorf("config not found")
 	}
-
 	return env, nil
 }

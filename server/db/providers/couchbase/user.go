@@ -84,7 +84,7 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) 
 	}
 	paginationClone.Total = total
 	for queryResult.Next() {
-		var user *models.User
+		var user models.User
 		err := queryResult.Row(&user)
 		if err != nil {
 			log.Fatal(err)

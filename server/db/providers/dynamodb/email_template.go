@@ -43,22 +43,18 @@ func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate *model
 
 // ListEmailTemplates to list EmailTemplate
 func (p *provider) ListEmailTemplate(ctx context.Context, pagination *model.Pagination) (*model.EmailTemplates, error) {
-
 	var emailTemplate *models.EmailTemplate
 	var iter dynamo.PagingIter
 	var lastEval dynamo.PagingKey
 	var iteration int64 = 0
-
 	collection := p.db.Table(models.Collections.EmailTemplate)
 	emailTemplates := []*model.EmailTemplate{}
 	paginationClone := pagination
 	scanner := collection.Scan()
 	count, err := scanner.Count()
-
 	if err != nil {
 		return nil, err
 	}
-
 	for (paginationClone.Offset + paginationClone.Limit) > iteration {
 		iter = scanner.StartFrom(lastEval).Limit(paginationClone.Limit).Iter()
 		for iter.NextWithContext(ctx, &emailTemplate) {
@@ -69,9 +65,7 @@ func (p *provider) ListEmailTemplate(ctx context.Context, pagination *model.Pagi
 		lastEval = iter.LastEvaluatedKey()
 		iteration += paginationClone.Limit
 	}
-
 	paginationClone.Total = count
-
 	return &model.EmailTemplates{
 		Pagination:     paginationClone,
 		EmailTemplates: emailTemplates,
@@ -111,7 +105,6 @@ func (p *provider) GetEmailTemplateByEventName(ctx context.Context, eventName st
 func (p *provider) DeleteEmailTemplate(ctx context.Context, emailTemplate *model.EmailTemplate) error {
 	collection := p.db.Table(models.Collections.EmailTemplate)
 	err := collection.Delete("id", emailTemplate.ID).RunWithContext(ctx)
-
 	if err != nil {
 		return err
 	}

@@ -17,7 +17,6 @@ func (p *provider) AddVerificationRequest(ctx context.Context, verificationReque
 	if verificationRequest.ID == "" {
 		verificationRequest.ID = uuid.New().String()
 	}
-
 	verificationRequest.Key = verificationRequest.ID
 	verificationRequest.CreatedAt = time.Now().Unix()
 	verificationRequest.UpdatedAt = time.Now().Unix()
@@ -28,7 +27,6 @@ func (p *provider) AddVerificationRequest(ctx context.Context, verificationReque
 	if err != nil {
 		return verificationRequest, err
 	}
-
 	return verificationRequest, nil
 }
 
@@ -95,7 +93,7 @@ func (p *provider) ListVerificationRequests(ctx context.Context, pagination *mod
 		return nil, err
 	}
 	for queryResult.Next() {
-		var verificationRequest *models.VerificationRequest
+		var verificationRequest models.VerificationRequest
 		err := queryResult.Row(&verificationRequest)
 		if err != nil {
 			log.Fatal(err)

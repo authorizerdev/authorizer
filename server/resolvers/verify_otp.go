@@ -61,8 +61,9 @@ func VerifyOtpResolver(ctx context.Context, params model.VerifyOTPRequest) (*mod
 	} else {
 		user, err = db.Provider.GetUserByPhoneNumber(ctx, refs.StringValue(params.PhoneNumber))
 	}
-	if user.ID == "" && err != nil {
-		log.Debug("Failed to get user by email: ", err)
+	if user == nil || err != nil {
+		fmt.Println("=> failing here....", err)
+		log.Debug("Failed to get user by email or phone number: ", err)
 		return res, err
 	}
 	isSignUp := user.EmailVerifiedAt == nil && user.PhoneNumberVerifiedAt == nil

@@ -19,7 +19,6 @@ func (p *provider) AddEnv(ctx context.Context, env *models.Env) (*models.Env, er
 	env.UpdatedAt = time.Now().Unix()
 	env.Key = env.ID
 	env.EncryptionKey = env.Hash
-
 	insertOpt := gocb.InsertOptions{
 		Context: ctx,
 	}
@@ -40,11 +39,9 @@ func (p *provider) UpdateEnv(ctx context.Context, env *models.Env) (*models.Env,
 		Context:              ctx,
 		PositionalParameters: []interface{}{env.EnvData, env.UpdatedAt, env.UpdatedAt, env.ID},
 	})
-
 	if err != nil {
 		return env, err
 	}
-
 	return env, nil
 }
 
@@ -61,7 +58,6 @@ func (p *provider) GetEnv(ctx context.Context) (*models.Env, error) {
 		return env, err
 	}
 	err = q.One(&env)
-
 	if err != nil {
 		return env, err
 	}

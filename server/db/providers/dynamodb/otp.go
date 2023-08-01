@@ -91,7 +91,6 @@ func (p *provider) GetOTPByPhoneNumber(ctx context.Context, phoneNumber string) 
 // DeleteOTP to delete otp
 func (p *provider) DeleteOTP(ctx context.Context, otp *models.OTP) error {
 	collection := p.db.Table(models.Collections.OTP)
-
 	if otp.ID != "" {
 		err := collection.Delete("id", otp.ID).RunWithContext(ctx)
 		if err != nil {

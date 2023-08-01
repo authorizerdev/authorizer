@@ -95,7 +95,7 @@ func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*model
 	defer cursor.Close()
 	for {
 		if !cursor.HasMore() {
-			if webhook.Key == "" {
+			if webhook == nil {
 				return nil, fmt.Errorf("webhook not found")
 			}
 			break

@@ -14,7 +14,6 @@ func (p *provider) AddSession(ctx context.Context, session *models.Session) erro
 	if session.ID == "" {
 		session.ID = uuid.New().String()
 	}
-
 	session.CreatedAt = time.Now().Unix()
 	session.UpdatedAt = time.Now().Unix()
 	insertOpt := gocb.InsertOptions{
@@ -24,7 +23,6 @@ func (p *provider) AddSession(ctx context.Context, session *models.Session) erro
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 

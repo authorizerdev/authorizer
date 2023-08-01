@@ -38,13 +38,12 @@ func (p *provider) ListWebhookLogs(ctx context.Context, pagination *model.Pagina
 	// so we fetch till limit + offset
 	// and return the results from offset to limit
 	query := fmt.Sprintf("SELECT id, http_status, response, request, webhook_id, created_at, updated_at FROM %s LIMIT %d", KeySpace+"."+models.Collections.WebhookLog, pagination.Limit+pagination.Offset)
-
 	if webhookID != "" {
 		totalCountQuery = fmt.Sprintf(`SELECT COUNT(*) FROM %s WHERE webhook_id='%s' ALLOW FILTERING`, KeySpace+"."+models.Collections.WebhookLog, webhookID)
 		query = fmt.Sprintf("SELECT id, http_status, response, request, webhook_id, created_at, updated_at FROM %s WHERE webhook_id = '%s' LIMIT %d ALLOW FILTERING", KeySpace+"."+models.Collections.WebhookLog, webhookID, pagination.Limit+pagination.Offset)
 	}
 
-	err := p.db.Query(totalCountQuery).Consistency(gocql.One).Scan(paginationClone.Total)
+	err := p.db.Query(totalCountQuery).Consistency(gocql.One).Scan(&paginationClone.Total)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +52,7 @@ func (p *provider) ListWebhookLogs(ctx context.Context, pagination *model.Pagina
 	counter := int64(0)
 	for scanner.Next() {
 		if counter >= pagination.Offset {
-			var webhookLog *models.WebhookLog
+			var webhookLog models.WebhookLog
 			err := scanner.Scan(&webhookLog.ID, &webhookLog.HttpStatus, &webhookLog.Response, &webhookLog.Request, &webhookLog.WebhookID, &webhookLog.CreatedAt, &webhookLog.UpdatedAt)
 			if err != nil {
 				return nil, err

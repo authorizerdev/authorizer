@@ -116,38 +116,32 @@ func (p *provider) GetEmailTemplateByID(ctx context.Context, emailTemplateID str
 		ScanConsistency:      gocb.QueryScanConsistencyRequestPlus,
 		PositionalParameters: []interface{}{emailTemplateID},
 	})
-
 	if err != nil {
 		return nil, err
 	}
 	err = q.One(&emailTemplate)
-
 	if err != nil {
 		return nil, err
 	}
-
 	return emailTemplate.AsAPIEmailTemplate(), nil
 }
 
 // GetEmailTemplateByEventName to get EmailTemplate by event_name
 func (p *provider) GetEmailTemplateByEventName(ctx context.Context, eventName string) (*model.EmailTemplate, error) {
-	var emailTemplate *models.EmailTemplate
+	var emailTemplate models.EmailTemplate
 	query := fmt.Sprintf("SELECT  _id, event_name, subject, design, template, created_at, updated_at  FROM %s.%s WHERE event_name=$1 LIMIT 1", p.scopeName, models.Collections.EmailTemplate)
 	q, err := p.db.Query(query, &gocb.QueryOptions{
 		Context:              ctx,
 		ScanConsistency:      gocb.QueryScanConsistencyRequestPlus,
 		PositionalParameters: []interface{}{eventName},
 	})
-
 	if err != nil {
 		return nil, err
 	}
 	err = q.One(&emailTemplate)
-
 	if err != nil {
 		return nil, err
 	}
-
 	return emailTemplate.AsAPIEmailTemplate(), nil
 }
 

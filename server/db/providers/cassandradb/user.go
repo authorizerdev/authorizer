@@ -77,7 +77,6 @@ func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User
 	values = values[:len(values)-1] + ")"
 
 	query := fmt.Sprintf("INSERT INTO %s %s VALUES %s IF NOT EXISTS", KeySpace+"."+models.Collections.User, fields, values)
-
 	err = p.db.Query(query).Exec()
 	if err != nil {
 		return user, err
@@ -170,7 +169,7 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) 
 	responseUsers := []*model.User{}
 	paginationClone := pagination
 	totalCountQuery := fmt.Sprintf(`SELECT COUNT(*) FROM %s`, KeySpace+"."+models.Collections.User)
-	err := p.db.Query(totalCountQuery).Consistency(gocql.One).Scan(paginationClone.Total)
+	err := p.db.Query(totalCountQuery).Consistency(gocql.One).Scan(&paginationClone.Total)
 	if err != nil {
 		return nil, err
 	}
@@ -183,8 +182,8 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) 
 	counter := int64(0)
 	for scanner.Next() {
 		if counter >= pagination.Offset {
-			var user *models.User
-			err := scanner.Scan(user.ID, user.Email, user.EmailVerifiedAt, user.Password, user.SignupMethods, user.GivenName, user.FamilyName, user.MiddleName, user.Nickname, user.Birthdate, user.PhoneNumber, user.PhoneNumberVerifiedAt, user.Picture, user.Roles, user.RevokedTimestamp, user.IsMultiFactorAuthEnabled, user.CreatedAt, user.UpdatedAt)
+			var user models.User
+			err := scanner.Scan(&user.ID, &user.Email, &user.EmailVerifiedAt, &user.Password, &user.SignupMethods, &user.GivenName, &user.FamilyName, &user.MiddleName, &user.Nickname, &user.Birthdate, &user.PhoneNumber, &user.PhoneNumberVerifiedAt, &user.Picture, &user.Roles, &user.RevokedTimestamp, &user.IsMultiFactorAuthEnabled, &user.CreatedAt, &user.UpdatedAt)
 			if err != nil {
 				return nil, err
 			}
@@ -200,24 +199,24 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) 
 
 // GetUserByEmail to get user information from database using email address
 func (p *provider) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
-	var user *models.User
+	var user models.User
 	query := fmt.Sprintf("SELECT id, email, email_verified_at, password, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, roles, revoked_timestamp, is_multi_factor_auth_enabled, created_at, updated_at FROM %s WHERE email = '%s' LIMIT 1 ALLOW FILTERING", KeySpace+"."+models.Collections.User, email)
 	err := p.db.Query(query).Consistency(gocql.One).Scan(&user.ID, &user.Email, &user.EmailVerifiedAt, &user.Password, &user.SignupMethods, &user.GivenName, &user.FamilyName, &user.MiddleName, &user.Nickname, &user.Birthdate, &user.PhoneNumber, &user.PhoneNumberVerifiedAt, &user.Picture, &user.Roles, &user.RevokedTimestamp, &user.IsMultiFactorAuthEnabled, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
-		return user, err
+		return nil, err
 	}
-	return user, nil
+	return &user, nil
 }
 
 // GetUserByID to get user information from database using user ID
 func (p *provider) GetUserByID(ctx context.Context, id string) (*models.User, error) {
-	var user *models.User
+	var user models.User
 	query := fmt.Sprintf("SELECT id, email, email_verified_at, password, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, roles, revoked_timestamp, is_multi_factor_auth_enabled, created_at, updated_at FROM %s WHERE id = '%s' LIMIT 1", KeySpace+"."+models.Collections.User, id)
 	err := p.db.Query(query).Consistency(gocql.One).Scan(&user.ID, &user.Email, &user.EmailVerifiedAt, &user.Password, &user.SignupMethods, &user.GivenName, &user.FamilyName, &user.MiddleName, &user.Nickname, &user.Birthdate, &user.PhoneNumber, &user.PhoneNumberVerifiedAt, &user.Picture, &user.Roles, &user.RevokedTimestamp, &user.IsMultiFactorAuthEnabled, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
-		return user, err
+		return nil, err
 	}
-	return user, nil
+	return &user, nil
 }
 
 // UpdateUsers to update multiple users, with parameters of user IDs slice
@@ -306,11 +305,11 @@ func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{},
 
 // GetUserByPhoneNumber to get user information from database using phone number
 func (p *provider) GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (*models.User, error) {
-	var user *models.User
+	var user models.User
 	query := fmt.Sprintf("SELECT id, email, email_verified_at, password, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, roles, revoked_timestamp, is_multi_factor_auth_enabled, created_at, updated_at FROM %s WHERE phone_number = '%s' LIMIT 1 ALLOW FILTERING", KeySpace+"."+models.Collections.User, phoneNumber)
-	err := p.db.Query(query).Consistency(gocql.One).Scan(user.ID, user.Email, user.EmailVerifiedAt, user.Password, user.SignupMethods, user.GivenName, user.FamilyName, user.MiddleName, user.Nickname, user.Birthdate, user.PhoneNumber, user.PhoneNumberVerifiedAt, user.Picture, user.Roles, user.RevokedTimestamp, user.IsMultiFactorAuthEnabled, user.CreatedAt, user.UpdatedAt)
+	err := p.db.Query(query).Consistency(gocql.One).Scan(&user.ID, &user.Email, &user.EmailVerifiedAt, &user.Password, &user.SignupMethods, &user.GivenName, &user.FamilyName, &user.MiddleName, &user.Nickname, &user.Birthdate, &user.PhoneNumber, &user.PhoneNumberVerifiedAt, &user.Picture, &user.Roles, &user.RevokedTimestamp, &user.IsMultiFactorAuthEnabled, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
-	return user, nil
+	return &user, nil
 }

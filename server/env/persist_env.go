@@ -62,7 +62,7 @@ func GetEnvData() (map[string]interface{}, error) {
 	ctx := context.Background()
 	env, err := db.Provider.GetEnv(ctx)
 	// config not found in db
-	if err != nil {
+	if err != nil || env == nil {
 		log.Debug("Error while getting env data from db: ", err)
 		return result, err
 	}
@@ -112,7 +112,7 @@ func PersistEnv() error {
 	ctx := context.Background()
 	env, err := db.Provider.GetEnv(ctx)
 	// config not found in db
-	if err != nil || env.EnvData == "" {
+	if err != nil || env == nil {
 		// AES encryption needs 32 bit key only, so we chop off last 4 characters from 36 bit uuid
 		hash := uuid.New().String()[:36-4]
 		err := memorystore.Provider.UpdateEnvVariable(constants.EnvKeyEncryptionKey, hash)
@@ -121,19 +121,16 @@ func PersistEnv() error {
 			return err
 		}
 		encodedHash := crypto.EncryptB64(hash)
-
 		res, err := memorystore.Provider.GetEnvStore()
 		if err != nil {
 			log.Debug("Error while getting env store: ", err)
 			return err
 		}
-
 		encryptedConfig, err := crypto.EncryptEnvData(res)
 		if err != nil {
 			log.Debug("Error while encrypting env data: ", err)
 			return err
 		}
-
 		env = &models.Env{
 			Hash:    encodedHash,
 			EnvData: encryptedConfig,

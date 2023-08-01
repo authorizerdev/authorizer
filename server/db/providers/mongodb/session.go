@@ -25,3 +25,8 @@ func (p *provider) AddSession(ctx context.Context, session *models.Session) erro
 	}
 	return nil
 }
+
+// DeleteSession to delete session information from database
+func (p *provider) DeleteSession(ctx context.Context, userId string) error {
+	return nil
+}

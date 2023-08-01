@@ -81,13 +81,15 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 		log.Debug("Failed to get user by email: ", err)
 	}
 
-	if existingUser.EmailVerifiedAt != nil {
-		// email is verified
-		log.Debug("Email is already verified and signed up.")
-		return res, fmt.Errorf(`%s has already signed up`, params.Email)
-	} else if existingUser.ID != "" && existingUser.EmailVerifiedAt == nil {
-		log.Debug("Email is already signed up. Verification pending...")
-		return res, fmt.Errorf("%s has already signed up. please complete the email verification process or reset the password", params.Email)
+	if existingUser != nil {
+		if existingUser.EmailVerifiedAt != nil {
+			// email is verified
+			log.Debug("Email is already verified and signed up.")
+			return res, fmt.Errorf(`%s has already signed up`, params.Email)
+		} else if existingUser.ID != "" && existingUser.EmailVerifiedAt == nil {
+			log.Debug("Email is already signed up. Verification pending...")
+			return res, fmt.Errorf("%s has already signed up. please complete the email verification process or reset the password", params.Email)
+		}
 	}
 
 	inputRoles := []string{}
@@ -116,13 +118,10 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 			inputRoles = strings.Split(inputRolesString, ",")
 		}
 	}
-
 	user := &models.User{
 		Email: params.Email,
 	}
-
 	user.Roles = strings.Join(inputRoles, ",")
-
 	password, _ := crypto.EncryptPassword(params.Password)
 	user.Password = &password
 

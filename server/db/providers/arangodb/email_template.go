@@ -17,11 +17,9 @@ func (p *provider) AddEmailTemplate(ctx context.Context, emailTemplate *models.E
 		emailTemplate.ID = uuid.New().String()
 		emailTemplate.Key = emailTemplate.ID
 	}
-
 	emailTemplate.Key = emailTemplate.ID
 	emailTemplate.CreatedAt = time.Now().Unix()
 	emailTemplate.UpdatedAt = time.Now().Unix()
-
 	emailTemplateCollection, _ := p.db.Collection(ctx, models.Collections.EmailTemplate)
 	_, err := emailTemplateCollection.CreateDocument(ctx, emailTemplate)
 	if err != nil {
@@ -33,13 +31,11 @@ func (p *provider) AddEmailTemplate(ctx context.Context, emailTemplate *models.E
 // UpdateEmailTemplate to update EmailTemplate
 func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate *models.EmailTemplate) (*model.EmailTemplate, error) {
 	emailTemplate.UpdatedAt = time.Now().Unix()
-
 	emailTemplateCollection, _ := p.db.Collection(ctx, models.Collections.EmailTemplate)
 	meta, err := emailTemplateCollection.UpdateDocument(ctx, emailTemplate.Key, emailTemplate)
 	if err != nil {
 		return nil, err
 	}
-
 	emailTemplate.Key = meta.Key
 	emailTemplate.ID = meta.ID.String()
 	return emailTemplate.AsAPIEmailTemplate(), nil
@@ -57,22 +53,18 @@ func (p *provider) ListEmailTemplate(ctx context.Context, pagination *model.Pagi
 	defer cursor.Close()
 	paginationClone := pagination
 	paginationClone.Total = cursor.Statistics().FullCount()
-
 	for {
 		var emailTemplate *models.EmailTemplate
 		meta, err := cursor.ReadDocument(ctx, &emailTemplate)
-
 		if arangoDriver.IsNoMoreDocuments(err) {
 			break
 		} else if err != nil {
 			return nil, err
 		}
-
 		if meta.Key != "" {
 			emailTemplates = append(emailTemplates, emailTemplate.AsAPIEmailTemplate())
 		}
 	}
-
 	return &model.EmailTemplates{
 		Pagination:     paginationClone,
 		EmailTemplates: emailTemplates,
@@ -86,16 +78,14 @@ func (p *provider) GetEmailTemplateByID(ctx context.Context, emailTemplateID str
 	bindVars := map[string]interface{}{
 		"email_template_id": emailTemplateID,
 	}
-
 	cursor, err := p.db.Query(ctx, query, bindVars)
 	if err != nil {
 		return nil, err
 	}
 	defer cursor.Close()
-
 	for {
 		if !cursor.HasMore() {
-			if emailTemplate.Key == "" {
+			if emailTemplate == nil {
 				return nil, fmt.Errorf("email template not found")
 			}
 			break
@@ -115,16 +105,14 @@ func (p *provider) GetEmailTemplateByEventName(ctx context.Context, eventName st
 	bindVars := map[string]interface{}{
 		"event_name": eventName,
 	}
-
 	cursor, err := p.db.Query(ctx, query, bindVars)
 	if err != nil {
 		return nil, err
 	}
 	defer cursor.Close()
-
 	for {
 		if !cursor.HasMore() {
-			if emailTemplate.Key == "" {
+			if emailTemplate == nil {
 				return nil, fmt.Errorf("email template not found")
 			}
 			break

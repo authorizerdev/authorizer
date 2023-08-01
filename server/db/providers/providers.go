@@ -39,6 +39,8 @@ type Provider interface {
 
 	// AddSession to save session information in database
 	AddSession(ctx context.Context, session *models.Session) error
+	// DeleteSession to delete session information from database
+	DeleteSession(ctx context.Context, userId string) error
 
 	// AddEnv to save environment information in database
 	AddEnv(ctx context.Context, env *models.Env) (*models.Env, error)

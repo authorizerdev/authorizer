@@ -85,7 +85,7 @@ func (p *provider) ListWebhook(ctx context.Context, pagination *model.Pagination
 	webhooks := []*model.Webhook{}
 	paginationClone := pagination
 	totalCountQuery := fmt.Sprintf(`SELECT COUNT(*) FROM %s`, KeySpace+"."+models.Collections.Webhook)
-	err := p.db.Query(totalCountQuery).Consistency(gocql.One).Scan(paginationClone.Total)
+	err := p.db.Query(totalCountQuery).Consistency(gocql.One).Scan(&paginationClone.Total)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +97,7 @@ func (p *provider) ListWebhook(ctx context.Context, pagination *model.Pagination
 	counter := int64(0)
 	for scanner.Next() {
 		if counter >= pagination.Offset {
-			var webhook *models.Webhook
+			var webhook models.Webhook
 			err := scanner.Scan(&webhook.ID, &webhook.EventDescription, &webhook.EventName, &webhook.EndPoint, &webhook.Headers, &webhook.Enabled, &webhook.CreatedAt, &webhook.UpdatedAt)
 			if err != nil {
 				return nil, err
@@ -115,7 +115,7 @@ func (p *provider) ListWebhook(ctx context.Context, pagination *model.Pagination
 
 // GetWebhookByID to get webhook by id
 func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*model.Webhook, error) {
-	var webhook *models.Webhook
+	var webhook models.Webhook
 	query := fmt.Sprintf(`SELECT id, event_description, event_name, endpoint, headers, enabled, created_at, updated_at FROM %s WHERE id = '%s' LIMIT 1`, KeySpace+"."+models.Collections.Webhook, webhookID)
 	err := p.db.Query(query).Consistency(gocql.One).Scan(&webhook.ID, &webhook.EventDescription, &webhook.EventName, &webhook.EndPoint, &webhook.Headers, &webhook.Enabled, &webhook.CreatedAt, &webhook.UpdatedAt)
 	if err != nil {
@@ -130,7 +130,7 @@ func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) 
 	scanner := p.db.Query(query).Iter().Scanner()
 	webhooks := []*model.Webhook{}
 	for scanner.Next() {
-		var webhook *models.Webhook
+		var webhook models.Webhook
 		err := scanner.Scan(&webhook.ID, &webhook.EventDescription, &webhook.EventName, &webhook.EndPoint, &webhook.Headers, &webhook.Enabled, &webhook.CreatedAt, &webhook.UpdatedAt)
 		if err != nil {
 			return nil, err

@@ -44,10 +44,8 @@ func (p *provider) UpsertOTP(ctx context.Context, otpParam *models.OTP) (*models
 		otp.Otp = otpParam.Otp
 		otp.ExpiresAt = otpParam.ExpiresAt
 	}
-
 	otp.UpdatedAt = time.Now().Unix()
 	otpCollection, _ := p.db.Collection(ctx, models.Collections.OTP)
-
 	var meta driver.DocumentMeta
 	var err error
 	if shouldCreate {
@@ -55,11 +53,9 @@ func (p *provider) UpsertOTP(ctx context.Context, otpParam *models.OTP) (*models
 	} else {
 		meta, err = otpCollection.UpdateDocument(ctx, otp.Key, otp)
 	}
-
 	if err != nil {
 		return nil, err
 	}
-
 	otp.Key = meta.Key
 	otp.ID = meta.ID.String()
 	return otp, nil
@@ -67,21 +63,19 @@ func (p *provider) UpsertOTP(ctx context.Context, otpParam *models.OTP) (*models
 
 // GetOTPByEmail to get otp for a given email address
 func (p *provider) GetOTPByEmail(ctx context.Context, emailAddress string) (*models.OTP, error) {
-	var otp models.OTP
+	var otp *models.OTP
 	query := fmt.Sprintf("FOR d in %s FILTER d.email == @email RETURN d", models.Collections.OTP)
 	bindVars := map[string]interface{}{
 		"email": emailAddress,
 	}
-
 	cursor, err := p.db.Query(ctx, query, bindVars)
 	if err != nil {
 		return nil, err
 	}
 	defer cursor.Close()
-
 	for {
 		if !cursor.HasMore() {
-			if otp.Key == "" {
+			if otp == nil {
 				return nil, fmt.Errorf("otp with given email not found")
 			}
 			break
@@ -91,13 +85,12 @@ func (p *provider) GetOTPByEmail(ctx context.Context, emailAddress string) (*mod
 			return nil, err
 		}
 	}
-
-	return &otp, nil
+	return otp, nil
 }
 
 // GetOTPByPhoneNumber to get otp for a given phone number
 func (p *provider) GetOTPByPhoneNumber(ctx context.Context, phoneNumber string) (*models.OTP, error) {
-	var otp models.OTP
+	var otp *models.OTP
 	query := fmt.Sprintf("FOR d in %s FILTER d.phone_number == @phone_number RETURN d", models.Collections.OTP)
 	bindVars := map[string]interface{}{
 		"phone_number": phoneNumber,
@@ -109,7 +102,7 @@ func (p *provider) GetOTPByPhoneNumber(ctx context.Context, phoneNumber string) 
 	defer cursor.Close()
 	for {
 		if !cursor.HasMore() {
-			if otp.Key == "" {
+			if otp == nil {
 				return nil, fmt.Errorf("otp with given phone_number not found")
 			}
 			break
@@ -119,8 +112,7 @@ func (p *provider) GetOTPByPhoneNumber(ctx context.Context, phoneNumber string) 
 			return nil, err
 		}
 	}
-
-	return &otp, nil
+	return otp, nil
 }
 
 // DeleteOTP to delete otp
@@ -130,6 +122,5 @@ func (p *provider) DeleteOTP(ctx context.Context, otp *models.OTP) error {
 	if err != nil {
 		return err
 	}
-
 	return nil
 }

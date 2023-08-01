@@ -9,6 +9,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
+	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/env"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/utils"
@@ -78,8 +79,10 @@ func TestResolvers(t *testing.T) {
 
 		// clean the persisted config for test to use fresh config
 		envData, err := db.Provider.GetEnv(ctx)
-		if err == nil && envData.ID != "" {
-			envData.EnvData = ""
+		if err == nil && envData == nil {
+			envData = &models.Env{
+				EnvData: "",
+			}
 			_, err = db.Provider.UpdateEnv(ctx, envData)
 			if err != nil {
 				t.Logf("Error updating env: %s", err.Error())

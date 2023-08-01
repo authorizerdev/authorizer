@@ -19,7 +19,7 @@ import (
 // InitEnv to initialize EnvData and through error if required env are not present
 func InitAllEnv() error {
 	envData, err := GetEnvData()
-	if err != nil {
+	if err != nil || envData == nil {
 		log.Info("No env data found in db, using local clone of env data")
 		// get clone of current store
 		envData, err = memorystore.Provider.GetEnvStore()

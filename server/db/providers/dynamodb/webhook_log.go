@@ -13,16 +13,13 @@ import (
 // AddWebhookLog to add webhook log
 func (p *provider) AddWebhookLog(ctx context.Context, webhookLog *models.WebhookLog) (*model.WebhookLog, error) {
 	collection := p.db.Table(models.Collections.WebhookLog)
-
 	if webhookLog.ID == "" {
 		webhookLog.ID = uuid.New().String()
 	}
-
 	webhookLog.Key = webhookLog.ID
 	webhookLog.CreatedAt = time.Now().Unix()
 	webhookLog.UpdatedAt = time.Now().Unix()
 	err := collection.Put(webhookLog).RunWithContext(ctx)
-
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +39,6 @@ func (p *provider) ListWebhookLogs(ctx context.Context, pagination *model.Pagina
 	collection := p.db.Table(models.Collections.WebhookLog)
 	paginationClone := pagination
 	scanner := collection.Scan()
-
 	if webhookID != "" {
 		iter = scanner.Index("webhook_id").Filter("'webhook_id' = ?", webhookID).Iter()
 		for iter.NextWithContext(ctx, &webhookLog) {
@@ -68,7 +64,6 @@ func (p *provider) ListWebhookLogs(ctx context.Context, pagination *model.Pagina
 			iteration += paginationClone.Limit
 		}
 	}
-
 	paginationClone.Total = count
 	// paginationClone.Cursor = iter.LastEvaluatedKey()
 	return &model.WebhookLogs{

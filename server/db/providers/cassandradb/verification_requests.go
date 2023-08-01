@@ -30,27 +30,27 @@ func (p *provider) AddVerificationRequest(ctx context.Context, verificationReque
 
 // GetVerificationRequestByToken to get verification request from database using token
 func (p *provider) GetVerificationRequestByToken(ctx context.Context, token string) (*models.VerificationRequest, error) {
-	var verificationRequest *models.VerificationRequest
+	var verificationRequest models.VerificationRequest
 	query := fmt.Sprintf(`SELECT id, jwt_token, identifier, expires_at, email, nonce, redirect_uri, created_at, updated_at FROM %s WHERE jwt_token = '%s' LIMIT 1`, KeySpace+"."+models.Collections.VerificationRequest, token)
 
 	err := p.db.Query(query).Consistency(gocql.One).Scan(&verificationRequest.ID, &verificationRequest.Token, &verificationRequest.Identifier, &verificationRequest.ExpiresAt, &verificationRequest.Email, &verificationRequest.Nonce, &verificationRequest.RedirectURI, &verificationRequest.CreatedAt, &verificationRequest.UpdatedAt)
 	if err != nil {
-		return verificationRequest, err
+		return nil, err
 	}
-	return verificationRequest, nil
+	return &verificationRequest, nil
 }
 
 // GetVerificationRequestByEmail to get verification request by email from database
 func (p *provider) GetVerificationRequestByEmail(ctx context.Context, email string, identifier string) (*models.VerificationRequest, error) {
-	var verificationRequest *models.VerificationRequest
+	var verificationRequest models.VerificationRequest
 	query := fmt.Sprintf(`SELECT id, jwt_token, identifier, expires_at, email, nonce, redirect_uri, created_at, updated_at FROM %s WHERE email = '%s' AND identifier = '%s' LIMIT 1 ALLOW FILTERING`, KeySpace+"."+models.Collections.VerificationRequest, email, identifier)
 
 	err := p.db.Query(query).Consistency(gocql.One).Scan(&verificationRequest.ID, &verificationRequest.Token, &verificationRequest.Identifier, &verificationRequest.ExpiresAt, &verificationRequest.Email, &verificationRequest.Nonce, &verificationRequest.RedirectURI, &verificationRequest.CreatedAt, &verificationRequest.UpdatedAt)
 	if err != nil {
-		return verificationRequest, err
+		return nil, err
 	}
 
-	return verificationRequest, nil
+	return &verificationRequest, nil
 }
 
 // ListVerificationRequests to get list of verification requests from database
@@ -58,11 +58,10 @@ func (p *provider) ListVerificationRequests(ctx context.Context, pagination *mod
 	var verificationRequests []*model.VerificationRequest
 	paginationClone := pagination
 	totalCountQuery := fmt.Sprintf(`SELECT COUNT(*) FROM %s`, KeySpace+"."+models.Collections.VerificationRequest)
-	err := p.db.Query(totalCountQuery).Consistency(gocql.One).Scan(paginationClone.Total)
+	err := p.db.Query(totalCountQuery).Consistency(gocql.One).Scan(&paginationClone.Total)
 	if err != nil {
 		return nil, err
 	}
-
 	// there is no offset in cassandra
 	// so we fetch till limit + offset
 	// and return the results from offset to limit
@@ -72,9 +71,10 @@ func (p *provider) ListVerificationRequests(ctx context.Context, pagination *mod
 	counter := int64(0)
 	for scanner.Next() {
 		if counter >= pagination.Offset {
-			var verificationRequest *models.VerificationRequest
+			var verificationRequest models.VerificationRequest
 			err := scanner.Scan(&verificationRequest.ID, &verificationRequest.Token, &verificationRequest.Identifier, &verificationRequest.ExpiresAt, &verificationRequest.Email, &verificationRequest.Nonce, &verificationRequest.RedirectURI, &verificationRequest.CreatedAt, &verificationRequest.UpdatedAt)
 			if err != nil {
+				fmt.Println("=> getting error here...", err)
 				return nil, err
 			}
 			verificationRequests = append(verificationRequests, verificationRequest.AsAPIVerificationRequest())

@@ -73,7 +73,6 @@ func (p *provider) DeleteUser(ctx context.Context, user *models.User) error {
 	if err != nil {
 		return err
 	}
-
 	query := fmt.Sprintf(`FOR d IN %s FILTER d.user_id == @user_id REMOVE { _key: d._key } IN %s`, models.Collections.Session, models.Collections.Session)
 	bindVars := map[string]interface{}{
 		"user_id": user.Key,
@@ -83,7 +82,6 @@ func (p *provider) DeleteUser(ctx context.Context, user *models.User) error {
 		return err
 	}
 	defer cursor.Close()
-
 	return nil
 }
 
@@ -93,16 +91,13 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) 
 	sctx := arangoDriver.WithQueryFullCount(ctx)
 
 	query := fmt.Sprintf("FOR d in %s SORT d.created_at DESC LIMIT %d, %d RETURN d", models.Collections.User, pagination.Offset, pagination.Limit)
-
 	cursor, err := p.db.Query(sctx, query, nil)
 	if err != nil {
 		return nil, err
 	}
 	defer cursor.Close()
-
 	paginationClone := pagination
 	paginationClone.Total = cursor.Statistics().FullCount()
-
 	for {
 		var user *models.User
 		meta, err := cursor.ReadDocument(ctx, &user)
@@ -115,7 +110,6 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) 
 			users = append(users, user.AsAPIUser())
 		}
 	}
-
 	return &model.Users{
 		Pagination: paginationClone,
 		Users:      users,
@@ -136,7 +130,7 @@ func (p *provider) GetUserByEmail(ctx context.Context, email string) (*models.Us
 	defer cursor.Close()
 	for {
 		if !cursor.HasMore() {
-			if user.Key == "" {
+			if user == nil {
 				return user, fmt.Errorf("user not found")
 			}
 			break
@@ -163,7 +157,7 @@ func (p *provider) GetUserByID(ctx context.Context, id string) (*models.User, er
 	defer cursor.Close()
 	for {
 		if !cursor.HasMore() {
-			if user.Key == "" {
+			if user == nil {
 				return user, fmt.Errorf("user not found")
 			}
 			break
@@ -218,7 +212,7 @@ func (p *provider) GetUserByPhoneNumber(ctx context.Context, phoneNumber string)
 	defer cursor.Close()
 	for {
 		if !cursor.HasMore() {
-			if user.Key == "" {
+			if user == nil {
 				return nil, fmt.Errorf("user not found")
 			}
 			break

@@ -89,7 +89,7 @@ func (p *provider) ListWebhook(ctx context.Context, pagination *model.Pagination
 		return nil, err
 	}
 	for queryResult.Next() {
-		var webhook *models.Webhook
+		var webhook models.Webhook
 		err := queryResult.Row(&webhook)
 		if err != nil {
 			log.Fatal(err)
@@ -162,11 +162,9 @@ func (p *provider) DeleteWebhook(ctx context.Context, webhook *model.Webhook) er
 		Context: ctx,
 	}
 	_, err := p.db.Collection(models.Collections.Webhook).Remove(webhook.ID, &removeOpt)
-
 	if err != nil {
 		return err
 	}
-
 	query := fmt.Sprintf(`DELETE FROM %s.%s WHERE webhook_id=$webhook_id`, p.scopeName, models.Collections.WebhookLog)
 	_, err = p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
@@ -176,6 +174,5 @@ func (p *provider) DeleteWebhook(ctx context.Context, webhook *model.Webhook) er
 	if err != nil {
 		return err
 	}
-
 	return nil
 }

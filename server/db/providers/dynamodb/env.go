@@ -13,22 +13,16 @@ import (
 // AddEnv to save environment information in database
 func (p *provider) AddEnv(ctx context.Context, env *models.Env) (*models.Env, error) {
 	collection := p.db.Table(models.Collections.Env)
-
 	if env.ID == "" {
 		env.ID = uuid.New().String()
 	}
-
 	env.Key = env.ID
-
 	env.CreatedAt = time.Now().Unix()
 	env.UpdatedAt = time.Now().Unix()
-
 	err := collection.Put(env).RunWithContext(ctx)
-
 	if err != nil {
 		return env, err
 	}
-
 	return env, nil
 }
 
@@ -36,9 +30,7 @@ func (p *provider) AddEnv(ctx context.Context, env *models.Env) (*models.Env, er
 func (p *provider) UpdateEnv(ctx context.Context, env *models.Env) (*models.Env, error) {
 	collection := p.db.Table(models.Collections.Env)
 	env.UpdatedAt = time.Now().Unix()
-
 	err := UpdateByHashKey(collection, "id", env.ID, env)
-
 	if err != nil {
 		return env, err
 	}
@@ -48,24 +40,19 @@ func (p *provider) UpdateEnv(ctx context.Context, env *models.Env) (*models.Env,
 // GetEnv to get environment information from database
 func (p *provider) GetEnv(ctx context.Context) (*models.Env, error) {
 	var env *models.Env
-
 	collection := p.db.Table(models.Collections.Env)
 	// As there is no Findone supported.
 	iter := collection.Scan().Limit(1).Iter()
-
 	for iter.NextWithContext(ctx, &env) {
-		if env.ID == "" {
+		if env == nil {
 			return env, errors.New("no documets found")
 		} else {
 			return env, nil
 		}
 	}
-
 	err := iter.Err()
-
 	if err != nil {
 		return env, fmt.Errorf("config not found")
 	}
-
 	return env, nil
 }
