@@ -93,7 +93,7 @@ func (p *provider) ListVerificationRequests(ctx context.Context, pagination *mod
 // DeleteVerificationRequest to delete verification request from database
 func (p *provider) DeleteVerificationRequest(ctx context.Context, verificationRequest *models.VerificationRequest) error {
 	collection := p.db.Table(models.Collections.VerificationRequest)
-	if verificationRequest.ID != "" {
+	if verificationRequest != nil {
 		err := collection.Delete("id", verificationRequest.ID).RunWithContext(ctx)
 
 		if err != nil {

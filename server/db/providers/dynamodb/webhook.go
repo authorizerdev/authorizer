@@ -114,14 +114,14 @@ func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) 
 // DeleteWebhook to delete webhook
 func (p *provider) DeleteWebhook(ctx context.Context, webhook *model.Webhook) error {
 	// Also delete webhook logs for given webhook id
-	if webhook.ID != "" {
+	if webhook != nil {
 		webhookCollection := p.db.Table(models.Collections.Webhook)
-		var pagination *model.Pagination
 		webhookLogCollection := p.db.Table(models.Collections.WebhookLog)
 		err := webhookCollection.Delete("id", webhook.ID).RunWithContext(ctx)
 		if err != nil {
 			return err
 		}
+		pagination := &model.Pagination{}
 		webhookLogs, errIs := p.ListWebhookLogs(ctx, pagination, webhook.ID)
 		for _, webhookLog := range webhookLogs.WebhookLogs {
 			err = webhookLogCollection.Delete("id", webhookLog.ID).RunWithContext(ctx)
