@@ -132,7 +132,7 @@ func MobileLoginResolver(ctx context.Context, params model.MobileLoginInput) (*m
 			return nil, err
 		}
 		go func() {
-			utils.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, *user)
+			utils.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, user)
 			smsproviders.SendSMS(params.PhoneNumber, smsBody.String())
 		}()
 		return &model.AuthResponse{
@@ -168,7 +168,7 @@ func MobileLoginResolver(ctx context.Context, params model.MobileLoginInput) (*m
 		nonce = uuid.New().String()
 	}
 
-	authToken, err := token.CreateAuthToken(gc, *user, roles, scope, constants.AuthRecipeMethodMobileBasicAuth, nonce, code)
+	authToken, err := token.CreateAuthToken(gc, user, roles, scope, constants.AuthRecipeMethodMobileBasicAuth, nonce, code)
 	if err != nil {
 		log.Debug("Failed to create auth token", err)
 		return res, err
@@ -207,8 +207,8 @@ func MobileLoginResolver(ctx context.Context, params model.MobileLoginInput) (*m
 	}
 
 	go func() {
-		utils.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, *user)
-		db.Provider.AddSession(ctx, models.Session{
+		utils.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, user)
+		db.Provider.AddSession(ctx, &models.Session{
 			UserID:    user.ID,
 			UserAgent: utils.GetUserAgent(gc.Request),
 			IP:        utils.GetIP(gc.Request),

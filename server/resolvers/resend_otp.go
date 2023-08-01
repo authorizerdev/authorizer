@@ -32,7 +32,7 @@ func ResendOTPResolver(ctx context.Context, params model.ResendOTPRequest) (*mod
 		log.Debug("Email or phone number is required")
 		return nil, errors.New("email or phone number is required")
 	}
-	var user models.User
+	var user *models.User
 	var err error
 	if email != "" {
 		isEmailServiceEnabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyIsEmailServiceEnabled)
@@ -47,10 +47,7 @@ func ResendOTPResolver(ctx context.Context, params model.ResendOTPRequest) (*mod
 			log.Debug("Email service not enabled: ", err)
 			return nil, errors.New("email service not enabled")
 		}
-		// TODO fix after refs fixes
-		var u *models.User
-		u, err = db.Provider.GetUserByPhoneNumber(ctx, phoneNumber)
-		user = *u
+		user, err = db.Provider.GetUserByPhoneNumber(ctx, phoneNumber)
 	}
 	if err != nil {
 		log.Debug("Failed to get user by email: ", err)

@@ -18,7 +18,7 @@ func updateAllUsersTest(t *testing.T, s TestSetup) {
 	t.Run("Should update all users", func(t *testing.T) {
 		_, ctx := createContext(s)
 		for i := 0; i < 10; i++ {
-			user := models.User{
+			user := &models.User{
 				Email:         fmt.Sprintf("update_all_user_%d_%s", i, s.TestInfo.Email),
 				SignupMethods: constants.AuthRecipeMethodBasicAuth,
 				Roles:         "user",
@@ -33,7 +33,7 @@ func updateAllUsersTest(t *testing.T, s TestSetup) {
 		}, nil)
 		assert.NoError(t, err)
 
-		listUsers, err := db.Provider.ListUsers(ctx, model.Pagination{
+		listUsers, err := db.Provider.ListUsers(ctx, &model.Pagination{
 			Limit:  20,
 			Offset: 0,
 		})
@@ -49,7 +49,7 @@ func updateAllUsersTest(t *testing.T, s TestSetup) {
 		}, updateIds)
 		assert.NoError(t, err)
 
-		listUsers, err = db.Provider.ListUsers(ctx, model.Pagination{
+		listUsers, err = db.Provider.ListUsers(ctx, &model.Pagination{
 			Limit:  20,
 			Offset: 0,
 		})

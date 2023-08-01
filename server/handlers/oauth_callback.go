@@ -55,7 +55,7 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 		inputRoles := strings.Split(sessionSplit[2], ",")
 		scopes := strings.Split(sessionSplit[3], ",")
 
-		user := models.User{}
+		var user *models.User
 		oauthCode := ctx.Request.FormValue("code")
 		switch provider {
 		case constants.AuthRecipeMethodGoogle:
@@ -263,7 +263,7 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			} else {
 				utils.RegisterEvent(ctx, constants.UserLoginWebhookEvent, provider, user)
 			}
-			db.Provider.AddSession(ctx, models.Session{
+			db.Provider.AddSession(ctx, &models.Session{
 				UserID:    user.ID,
 				UserAgent: utils.GetUserAgent(ctx.Request),
 				IP:        utils.GetIP(ctx.Request),
@@ -279,15 +279,14 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 	}
 }
 
-func processGoogleUserInfo(code string) (models.User, error) {
-	user := models.User{}
+func processGoogleUserInfo(code string) (*models.User, error) {
+	var user *models.User
 	ctx := context.Background()
 	oauth2Token, err := oauth.OAuthProviders.GoogleConfig.Exchange(ctx, code)
 	if err != nil {
 		log.Debug("Failed to exchange code for token: ", err)
 		return user, fmt.Errorf("invalid google exchange code: %s", err.Error())
 	}
-
 	verifier := oauth.OIDCProviders.GoogleOIDC.Verifier(&oidc.Config{ClientID: oauth.OAuthProviders.GoogleConfig.ClientID})
 
 	// Extract the ID Token from OAuth2 token.
@@ -312,8 +311,8 @@ func processGoogleUserInfo(code string) (models.User, error) {
 	return user, nil
 }
 
-func processGithubUserInfo(code string) (models.User, error) {
-	user := models.User{}
+func processGithubUserInfo(code string) (*models.User, error) {
+	var user *models.User
 	oauth2Token, err := oauth.OAuthProviders.GithubConfig.Exchange(context.TODO(), code)
 	if err != nil {
 		log.Debug("Failed to exchange code for token: ", err)
@@ -409,7 +408,7 @@ func processGithubUserInfo(code string) (models.User, error) {
 		}
 	}
 
-	user = models.User{
+	user = &models.User{
 		GivenName:  &firstName,
 		FamilyName: &lastName,
 		Picture:    &picture,
@@ -419,8 +418,8 @@ func processGithubUserInfo(code string) (models.User, error) {
 	return user, nil
 }
 
-func processFacebookUserInfo(code string) (models.User, error) {
-	user := models.User{}
+func processFacebookUserInfo(code string) (*models.User, error) {
+	var user *models.User
 	oauth2Token, err := oauth.OAuthProviders.FacebookConfig.Exchange(context.TODO(), code)
 	if err != nil {
 		log.Debug("Invalid facebook exchange code: ", err)
@@ -460,7 +459,7 @@ func processFacebookUserInfo(code string) (models.User, error) {
 	lastName := fmt.Sprintf("%v", userRawData["last_name"])
 	picture := fmt.Sprintf("%v", picDataObject["url"])
 
-	user = models.User{
+	user = &models.User{
 		GivenName:  &firstName,
 		FamilyName: &lastName,
 		Picture:    &picture,
@@ -470,8 +469,8 @@ func processFacebookUserInfo(code string) (models.User, error) {
 	return user, nil
 }
 
-func processLinkedInUserInfo(code string) (models.User, error) {
-	user := models.User{}
+func processLinkedInUserInfo(code string) (*models.User, error) {
+	var user *models.User
 	oauth2Token, err := oauth.OAuthProviders.LinkedInConfig.Exchange(context.TODO(), code)
 	if err != nil {
 		log.Debug("Failed to exchange code for token: ", err)
@@ -542,7 +541,7 @@ func processLinkedInUserInfo(code string) (models.User, error) {
 	profilePicture := userRawData["profilePicture"].(map[string]interface{})["displayImage~"].(map[string]interface{})["elements"].([]interface{})[0].(map[string]interface{})["identifiers"].([]interface{})[0].(map[string]interface{})["identifier"].(string)
 	emailAddress := emailRawData["elements"].([]interface{})[0].(map[string]interface{})["handle~"].(map[string]interface{})["emailAddress"].(string)
 
-	user = models.User{
+	user = &models.User{
 		GivenName:  &firstName,
 		FamilyName: &lastName,
 		Picture:    &profilePicture,
@@ -552,8 +551,8 @@ func processLinkedInUserInfo(code string) (models.User, error) {
 	return user, nil
 }
 
-func processAppleUserInfo(code string) (models.User, error) {
-	user := models.User{}
+func processAppleUserInfo(code string) (*models.User, error) {
+	var user *models.User
 	oauth2Token, err := oauth.OAuthProviders.AppleConfig.Exchange(context.TODO(), code)
 	if err != nil {
 		log.Debug("Failed to exchange code for token: ", err)
@@ -605,8 +604,8 @@ func processAppleUserInfo(code string) (models.User, error) {
 	return user, err
 }
 
-func processTwitterUserInfo(code, verifier string) (models.User, error) {
-	user := models.User{}
+func processTwitterUserInfo(code, verifier string) (*models.User, error) {
+	var user *models.User
 	oauth2Token, err := oauth.OAuthProviders.TwitterConfig.Exchange(context.TODO(), code, oauth2.SetAuthURLParam("code_verifier", verifier))
 	if err != nil {
 		log.Debug("Failed to exchange code for token: ", err)
@@ -662,7 +661,7 @@ func processTwitterUserInfo(code, verifier string) (models.User, error) {
 	nickname := userRawData["username"].(string)
 	profilePicture := userRawData["profile_image_url"].(string)
 
-	user = models.User{
+	user = &models.User{
 		GivenName:  &firstName,
 		FamilyName: &lastName,
 		Picture:    &profilePicture,
@@ -673,8 +672,8 @@ func processTwitterUserInfo(code, verifier string) (models.User, error) {
 }
 
 // process microsoft user information
-func processMicrosoftUserInfo(code string) (models.User, error) {
-	user := models.User{}
+func processMicrosoftUserInfo(code string) (*models.User, error) {
+	var user *models.User
 	ctx := context.Background()
 	oauth2Token, err := oauth.OAuthProviders.MicrosoftConfig.Exchange(ctx, code)
 	if err != nil {

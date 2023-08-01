@@ -178,8 +178,7 @@ func VerifyEmailHandler() gin.HandlerFunc {
 			} else {
 				utils.RegisterEvent(c, constants.UserLoginWebhookEvent, loginMethod, user)
 			}
-
-			db.Provider.AddSession(c, models.Session{
+			db.Provider.AddSession(c, &models.Session{
 				UserID:    user.ID,
 				UserAgent: utils.GetUserAgent(c.Request),
 				IP:        utils.GetIP(c.Request),

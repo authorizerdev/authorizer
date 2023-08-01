@@ -41,14 +41,11 @@ func GetSetFields(webhookMap map[string]interface{}) (string, map[string]interfa
 
 func (p *provider) GetTotalDocs(ctx context.Context, collection string) (int64, error) {
 	totalDocs := TotalDocs{}
-
 	countQuery := fmt.Sprintf("SELECT COUNT(*) as Total FROM %s.%s", p.scopeName, collection)
 	queryRes, err := p.db.Query(countQuery, &gocb.QueryOptions{
 		Context: ctx,
 	})
-
 	queryRes.One(&totalDocs)
-
 	if err != nil {
 		return totalDocs.Total, err
 	}

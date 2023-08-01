@@ -129,7 +129,7 @@ func VerifyEmailResolver(ctx context.Context, params model.VerifyEmailInput) (*m
 			utils.RegisterEvent(ctx, constants.UserLoginWebhookEvent, loginMethod, user)
 		}
 
-		db.Provider.AddSession(ctx, models.Session{
+		db.Provider.AddSession(ctx, &models.Session{
 			UserID:    user.ID,
 			UserAgent: utils.GetUserAgent(gc.Request),
 			IP:        utils.GetIP(gc.Request),

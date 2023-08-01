@@ -27,7 +27,6 @@ func VerificationRequestsResolver(ctx context.Context, params *model.PaginatedIn
 	}
 
 	pagination := utils.GetPagination(params)
-
 	res, err := db.Provider.ListVerificationRequests(ctx, pagination)
 	if err != nil {
 		log.Debug("Failed to get verification requests: ", err)

@@ -13,11 +13,10 @@ import (
 )
 
 // AddVerification to save verification request in database
-func (p *provider) AddVerificationRequest(ctx context.Context, verificationRequest models.VerificationRequest) (models.VerificationRequest, error) {
+func (p *provider) AddVerificationRequest(ctx context.Context, verificationRequest *models.VerificationRequest) (*models.VerificationRequest, error) {
 	if verificationRequest.ID == "" {
 		verificationRequest.ID = uuid.New().String()
 	}
-
 	verificationRequest.Key = verificationRequest.ID
 	verificationRequest.CreatedAt = time.Now().Unix()
 	verificationRequest.UpdatedAt = time.Now().Unix()
@@ -28,13 +27,12 @@ func (p *provider) AddVerificationRequest(ctx context.Context, verificationReque
 	if err != nil {
 		return verificationRequest, err
 	}
-
 	return verificationRequest, nil
 }
 
 // GetVerificationRequestByToken to get verification request from database using token
-func (p *provider) GetVerificationRequestByToken(ctx context.Context, token string) (models.VerificationRequest, error) {
-	verificationRequest := models.VerificationRequest{}
+func (p *provider) GetVerificationRequestByToken(ctx context.Context, token string) (*models.VerificationRequest, error) {
+	var verificationRequest *models.VerificationRequest
 	params := make(map[string]interface{}, 1)
 	params["token"] = token
 	query := fmt.Sprintf("SELECT _id, token, identifier, expires_at, email, nonce, redirect_uri, created_at, updated_at FROM %s.%s WHERE token=$1 LIMIT 1", p.scopeName, models.Collections.VerificationRequest)
@@ -57,7 +55,7 @@ func (p *provider) GetVerificationRequestByToken(ctx context.Context, token stri
 }
 
 // GetVerificationRequestByEmail to get verification request by email from database
-func (p *provider) GetVerificationRequestByEmail(ctx context.Context, email string, identifier string) (models.VerificationRequest, error) {
+func (p *provider) GetVerificationRequestByEmail(ctx context.Context, email string, identifier string) (*models.VerificationRequest, error) {
 
 	query := fmt.Sprintf("SELECT _id, identifier, token, expires_at, email, nonce, redirect_uri, created_at, updated_at FROM %s.%s WHERE email=$1 AND identifier=$2 LIMIT 1", p.scopeName, models.Collections.VerificationRequest)
 	queryResult, err := p.db.Query(query, &gocb.QueryOptions{
@@ -65,14 +63,11 @@ func (p *provider) GetVerificationRequestByEmail(ctx context.Context, email stri
 		PositionalParameters: []interface{}{email, identifier},
 		ScanConsistency:      gocb.QueryScanConsistencyRequestPlus,
 	})
-	verificationRequest := models.VerificationRequest{}
-
 	if err != nil {
-		return verificationRequest, err
+		return nil, err
 	}
-
+	var verificationRequest *models.VerificationRequest
 	err = queryResult.One(&verificationRequest)
-
 	if err != nil {
 		return verificationRequest, err
 	}
@@ -80,7 +75,7 @@ func (p *provider) GetVerificationRequestByEmail(ctx context.Context, email stri
 }
 
 // ListVerificationRequests to get list of verification requests from database
-func (p *provider) ListVerificationRequests(ctx context.Context, pagination model.Pagination) (*model.VerificationRequests, error) {
+func (p *provider) ListVerificationRequests(ctx context.Context, pagination *model.Pagination) (*model.VerificationRequests, error) {
 	var verificationRequests []*model.VerificationRequest
 	paginationClone := pagination
 	total, err := p.GetTotalDocs(ctx, models.Collections.VerificationRequest)
@@ -111,12 +106,12 @@ func (p *provider) ListVerificationRequests(ctx context.Context, pagination mode
 	}
 	return &model.VerificationRequests{
 		VerificationRequests: verificationRequests,
-		Pagination:           &paginationClone,
+		Pagination:           paginationClone,
 	}, nil
 }
 
 // DeleteVerificationRequest to delete verification request from database
-func (p *provider) DeleteVerificationRequest(ctx context.Context, verificationRequest models.VerificationRequest) error {
+func (p *provider) DeleteVerificationRequest(ctx context.Context, verificationRequest *models.VerificationRequest) error {
 	removeOpt := gocb.RemoveOptions{
 		Context: ctx,
 	}

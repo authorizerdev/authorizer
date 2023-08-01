@@ -55,17 +55,15 @@ func VerifyOtpResolver(ctx context.Context, params model.VerifyOTPRequest) (*mod
 		log.Debug("Failed to verify otp request: Timeout")
 		return res, fmt.Errorf("otp expired")
 	}
-	var user models.User
+	var user *models.User
 	if currentField == models.FieldNameEmail {
 		user, err = db.Provider.GetUserByEmail(ctx, refs.StringValue(params.Email))
 	} else {
-		// TODO fix after refs of db providers are fixed
-		var u *models.User
-		u, err = db.Provider.GetUserByPhoneNumber(ctx, refs.StringValue(params.PhoneNumber))
-		user = *u
+		user, err = db.Provider.GetUserByPhoneNumber(ctx, refs.StringValue(params.PhoneNumber))
 	}
-	if user.ID == "" && err != nil {
-		log.Debug("Failed to get user by email: ", err)
+	if user == nil || err != nil {
+		fmt.Println("=> failing here....", err)
+		log.Debug("Failed to get user by email or phone number: ", err)
 		return res, err
 	}
 	isSignUp := user.EmailVerifiedAt == nil && user.PhoneNumberVerifiedAt == nil
@@ -118,7 +116,7 @@ func VerifyOtpResolver(ctx context.Context, params model.VerifyOTPRequest) (*mod
 			utils.RegisterEvent(ctx, constants.UserLoginWebhookEvent, loginMethod, user)
 		}
 
-		db.Provider.AddSession(ctx, models.Session{
+		db.Provider.AddSession(ctx, &models.Session{
 			UserID:    user.ID,
 			UserAgent: utils.GetUserAgent(gc.Request),
 			IP:        utils.GetIP(gc.Request),

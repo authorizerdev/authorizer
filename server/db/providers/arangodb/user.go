@@ -18,7 +18,7 @@ import (
 )
 
 // AddUser to save user information in database
-func (p *provider) AddUser(ctx context.Context, user models.User) (models.User, error) {
+func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User, error) {
 	if user.ID == "" {
 		user.ID = uuid.New().String()
 		user.Key = user.ID
@@ -52,7 +52,7 @@ func (p *provider) AddUser(ctx context.Context, user models.User) (models.User, 
 }
 
 // UpdateUser to update user information in database
-func (p *provider) UpdateUser(ctx context.Context, user models.User) (models.User, error) {
+func (p *provider) UpdateUser(ctx context.Context, user *models.User) (*models.User, error) {
 	user.UpdatedAt = time.Now().Unix()
 
 	collection, _ := p.db.Collection(ctx, models.Collections.User)
@@ -67,13 +67,12 @@ func (p *provider) UpdateUser(ctx context.Context, user models.User) (models.Use
 }
 
 // DeleteUser to delete user information from database
-func (p *provider) DeleteUser(ctx context.Context, user models.User) error {
+func (p *provider) DeleteUser(ctx context.Context, user *models.User) error {
 	collection, _ := p.db.Collection(ctx, models.Collections.User)
 	_, err := collection.RemoveDocument(ctx, user.Key)
 	if err != nil {
 		return err
 	}
-
 	query := fmt.Sprintf(`FOR d IN %s FILTER d.user_id == @user_id REMOVE { _key: d._key } IN %s`, models.Collections.Session, models.Collections.Session)
 	bindVars := map[string]interface{}{
 		"user_id": user.Key,
@@ -83,65 +82,55 @@ func (p *provider) DeleteUser(ctx context.Context, user models.User) error {
 		return err
 	}
 	defer cursor.Close()
-
 	return nil
 }
 
 // ListUsers to get list of users from database
-func (p *provider) ListUsers(ctx context.Context, pagination model.Pagination) (*model.Users, error) {
+func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) (*model.Users, error) {
 	var users []*model.User
 	sctx := arangoDriver.WithQueryFullCount(ctx)
 
 	query := fmt.Sprintf("FOR d in %s SORT d.created_at DESC LIMIT %d, %d RETURN d", models.Collections.User, pagination.Offset, pagination.Limit)
-
 	cursor, err := p.db.Query(sctx, query, nil)
 	if err != nil {
 		return nil, err
 	}
 	defer cursor.Close()
-
 	paginationClone := pagination
 	paginationClone.Total = cursor.Statistics().FullCount()
-
 	for {
-		var user models.User
+		var user *models.User
 		meta, err := cursor.ReadDocument(ctx, &user)
-
 		if arangoDriver.IsNoMoreDocuments(err) {
 			break
 		} else if err != nil {
 			return nil, err
 		}
-
 		if meta.Key != "" {
 			users = append(users, user.AsAPIUser())
 		}
 	}
-
 	return &model.Users{
-		Pagination: &paginationClone,
+		Pagination: paginationClone,
 		Users:      users,
 	}, nil
 }
 
 // GetUserByEmail to get user information from database using email address
-func (p *provider) GetUserByEmail(ctx context.Context, email string) (models.User, error) {
-	var user models.User
-
+func (p *provider) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
+	var user *models.User
 	query := fmt.Sprintf("FOR d in %s FILTER d.email == @email RETURN d", models.Collections.User)
 	bindVars := map[string]interface{}{
 		"email": email,
 	}
-
 	cursor, err := p.db.Query(ctx, query, bindVars)
 	if err != nil {
 		return user, err
 	}
 	defer cursor.Close()
-
 	for {
 		if !cursor.HasMore() {
-			if user.Key == "" {
+			if user == nil {
 				return user, fmt.Errorf("user not found")
 			}
 			break
@@ -151,28 +140,24 @@ func (p *provider) GetUserByEmail(ctx context.Context, email string) (models.Use
 			return user, err
 		}
 	}
-
 	return user, nil
 }
 
 // GetUserByID to get user information from database using user ID
-func (p *provider) GetUserByID(ctx context.Context, id string) (models.User, error) {
-	var user models.User
-
+func (p *provider) GetUserByID(ctx context.Context, id string) (*models.User, error) {
+	var user *models.User
 	query := fmt.Sprintf("FOR d in %s FILTER d._id == @id LIMIT 1 RETURN d", models.Collections.User)
 	bindVars := map[string]interface{}{
 		"id": id,
 	}
-
 	cursor, err := p.db.Query(ctx, query, bindVars)
 	if err != nil {
 		return user, err
 	}
 	defer cursor.Close()
-
 	for {
 		if !cursor.HasMore() {
-			if user.Key == "" {
+			if user == nil {
 				return user, fmt.Errorf("user not found")
 			}
 			break
@@ -182,7 +167,6 @@ func (p *provider) GetUserByID(ctx context.Context, id string) (models.User, err
 			return user, err
 		}
 	}
-
 	return user, nil
 }
 
@@ -191,12 +175,10 @@ func (p *provider) GetUserByID(ctx context.Context, id string) (models.User, err
 func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{}, ids []string) error {
 	// set updated_at time for all users
 	data["updated_at"] = time.Now().Unix()
-
 	userInfoBytes, err := json.Marshal(data)
 	if err != nil {
 		return err
 	}
-
 	query := ""
 	if len(ids) > 0 {
 		keysArray := ""
@@ -209,33 +191,28 @@ func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{},
 	} else {
 		query = fmt.Sprintf("FOR u IN %s UPDATE u._key with %s IN %s", models.Collections.User, string(userInfoBytes), models.Collections.User)
 	}
-
 	_, err = p.db.Query(ctx, query, nil)
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 
 // GetUserByPhoneNumber to get user information from database using phone number
 func (p *provider) GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (*models.User, error) {
-	var user models.User
-
+	var user *models.User
 	query := fmt.Sprintf("FOR d in %s FILTER d.phone_number == @phone_number RETURN d", models.Collections.User)
 	bindVars := map[string]interface{}{
 		"phone_number": phoneNumber,
 	}
-
 	cursor, err := p.db.Query(ctx, query, bindVars)
 	if err != nil {
 		return nil, err
 	}
 	defer cursor.Close()
-
 	for {
 		if !cursor.HasMore() {
-			if user.Key == "" {
+			if user == nil {
 				return nil, fmt.Errorf("user not found")
 			}
 			break
@@ -245,6 +222,5 @@ func (p *provider) GetUserByPhoneNumber(ctx context.Context, phoneNumber string)
 			return nil, err
 		}
 	}
-
-	return &user, nil
+	return user, nil
 }
