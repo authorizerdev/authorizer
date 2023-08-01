@@ -301,9 +301,10 @@ type SignUpInput struct {
 }
 
 type TestEndpointRequest struct {
-	Endpoint  string                 `json:"endpoint"`
-	EventName string                 `json:"event_name"`
-	Headers   map[string]interface{} `json:"headers"`
+	Endpoint         string                 `json:"endpoint"`
+	EventName        string                 `json:"event_name"`
+	EventDescription *string                `json:"event_description"`
+	Headers          map[string]interface{} `json:"headers"`
 }
 
 type TestEndpointResponse struct {
