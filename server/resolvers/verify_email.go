@@ -125,6 +125,8 @@ func VerifyEmailResolver(ctx context.Context, params model.VerifyEmailInput) (*m
 	go func() {
 		if isSignUp {
 			utils.RegisterEvent(ctx, constants.UserSignUpWebhookEvent, loginMethod, user)
+			// User is also logged in with signup
+			utils.RegisterEvent(ctx, constants.UserLoginWebhookEvent, loginMethod, user)
 		} else {
 			utils.RegisterEvent(ctx, constants.UserLoginWebhookEvent, loginMethod, user)
 		}

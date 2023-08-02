@@ -112,6 +112,8 @@ func VerifyOtpResolver(ctx context.Context, params model.VerifyOTPRequest) (*mod
 		db.Provider.DeleteOTP(gc, otp)
 		if isSignUp {
 			utils.RegisterEvent(ctx, constants.UserSignUpWebhookEvent, loginMethod, user)
+			// User is also logged in with signup
+			utils.RegisterEvent(ctx, constants.UserLoginWebhookEvent, loginMethod, user)
 		} else {
 			utils.RegisterEvent(ctx, constants.UserLoginWebhookEvent, loginMethod, user)
 		}

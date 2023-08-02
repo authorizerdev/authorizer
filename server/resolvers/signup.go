@@ -301,6 +301,8 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 
 		go func() {
 			utils.RegisterEvent(ctx, constants.UserSignUpWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
+			// User is also logged in with signup
+			utils.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
 			db.Provider.AddSession(ctx, &models.Session{
 				UserID:    user.ID,
 				UserAgent: utils.GetUserAgent(gc.Request),

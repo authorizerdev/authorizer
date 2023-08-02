@@ -223,6 +223,7 @@ func MobileSignupResolver(ctx context.Context, params *model.MobileSignUpInput) 
 		}
 		go func() {
 			smsproviders.SendSMS(mobile, smsBody.String())
+			utils.RegisterEvent(ctx, constants.UserCreatedWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
 		}()
 		return &model.AuthResponse{
 			Message:                   "Please check the OTP in your inbox",
@@ -298,6 +299,8 @@ func MobileSignupResolver(ctx context.Context, params *model.MobileSignUpInput) 
 
 	go func() {
 		utils.RegisterEvent(ctx, constants.UserSignUpWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, user)
+		// User is also logged in with signup
+		utils.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, user)
 		db.Provider.AddSession(ctx, &models.Session{
 			UserID:    user.ID,
 			UserAgent: utils.GetUserAgent(gc.Request),
