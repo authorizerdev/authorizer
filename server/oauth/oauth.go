@@ -171,8 +171,8 @@ func InitOAuth() error {
 		microsoftClientSecret = ""
 	}
 	microsoftActiveDirTenantID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyMicrosoftActiveDirectoryTenantID)
-	if err != nil || microsoftActiveDirTenantID == "" {
-		microsoftActiveDirTenantID = "common"
+	if err != nil {
+		microsoftActiveDirTenantID = ""
 	}
 	if microsoftClientID != "" && microsoftClientSecret != "" && microsoftActiveDirTenantID != "" {
 		p, err := oidc.NewProvider(ctx, fmt.Sprintf("https://login.microsoftonline.com/%s/v2.0", microsoftActiveDirTenantID))
