@@ -16,6 +16,8 @@ var (
 	envStorePrefix = "authorizer_env"
 )
 
+const mfaSessionPrefix = "mfa_sess_"
+
 // SetUserSession sets the user session for given user identifier in form recipe:user_id
 func (c *provider) SetUserSession(userId, key, token string, expiration int64) error {
 	currentTime := time.Now()
@@ -87,6 +89,37 @@ func (c *provider) DeleteSessionForNamespace(namespace string) error {
 			log.Debug("Error deleting all user sessions from redis: ", err)
 			continue
 		}
+	}
+	return nil
+}
+
+// SetMfaSession sets the mfa session with key and value of userId
+func (c *provider) SetMfaSession(userId, key string, expiration int64) error {
+	currentTime := time.Now()
+	expireTime := time.Unix(expiration, 0)
+	duration := expireTime.Sub(currentTime)
+	err := c.store.Set(c.ctx, fmt.Sprintf("%s%s:%s", mfaSessionPrefix, userId, key), userId, duration).Err()
+	if err != nil {
+		log.Debug("Error saving user session to redis: ", err)
+		return err
+	}
+	return nil
+}
+
+// GetMfaSession returns value of given mfa session
+func (c *provider) GetMfaSession(userId, key string) (string, error) {
+	data, err := c.store.Get(c.ctx, fmt.Sprintf("%s%s:%s", mfaSessionPrefix, userId, key)).Result()
+	if err != nil {
+		return "", err
+	}
+	return data, nil
+}
+
+// DeleteMfaSession deletes given mfa session from in-memory store.
+func (c *provider) DeleteMfaSession(userId, key string) error {
+	if err := c.store.Del(c.ctx, fmt.Sprintf("%s%s:%s", mfaSessionPrefix, userId, key)).Err(); err != nil {
+		log.Debug("Error deleting user session from redis: ", err)
+		// continue
 	}
 	return nil
 }

@@ -112,4 +112,15 @@ func ProviderTests(t *testing.T, p Provider) {
 	key, err = p.GetUserSession("auth_provider1:124", "access_token_key")
 	assert.Empty(t, key)
 	assert.Error(t, err)
+
+	err = p.SetMfaSession("auth_provider:123", "session123", time.Now().Add(60*time.Second).Unix())
+	assert.NoError(t, err)
+	key, err = p.GetMfaSession("auth_provider:123", "session123")
+	assert.NoError(t, err)
+	assert.Equal(t, "auth_provider:123", key)
+	err = p.DeleteMfaSession("auth_provider:123", "session123")
+	assert.NoError(t, err)
+	key, err = p.GetMfaSession("auth_provider:123", "session123")
+	assert.Error(t, err)
+	assert.Empty(t, key)
 }

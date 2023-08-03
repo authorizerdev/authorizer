@@ -113,15 +113,24 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 	// If email service is not enabled continue the process in any way
 	if refs.BoolValue(user.IsMultiFactorAuthEnabled) && isEmailServiceEnabled && !isMFADisabled {
 		otp := utils.GenerateOTP()
+		expires := time.Now().Add(1 * time.Minute).Unix()
 		otpData, err := db.Provider.UpsertOTP(ctx, &models.OTP{
 			Email:     user.Email,
 			Otp:       otp,
-			ExpiresAt: time.Now().Add(1 * time.Minute).Unix(),
+			ExpiresAt: expires,
 		})
 		if err != nil {
 			log.Debug("Failed to add otp: ", err)
 			return nil, err
 		}
+
+		mfaSession := uuid.NewString()
+		err = memorystore.Provider.SetMfaSession(user.ID, mfaSession, expires)
+		if err != nil {
+			log.Debug("Failed to add mfasession: ", err)
+			return nil, err
+		}
+		cookie.SetMfaSession(gc, mfaSession)
 
 		go func() {
 			// exec it as go routine so that we can reduce the api latency
