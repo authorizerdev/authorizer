@@ -171,7 +171,7 @@ func InitOAuth() error {
 		microsoftClientSecret = ""
 	}
 	microsoftActiveDirTenantID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyMicrosoftActiveDirectoryTenantID)
-	if err != nil {
+	if err != nil || microsoftActiveDirTenantID == "" {
 		microsoftActiveDirTenantID = "common"
 	}
 	if microsoftClientID != "" && microsoftClientSecret != "" && microsoftActiveDirTenantID != "" {
