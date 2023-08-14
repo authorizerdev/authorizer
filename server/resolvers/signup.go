@@ -2,6 +2,8 @@ package resolvers
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -169,6 +171,17 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 
 	if isMFAEnforced {
 		user.IsMultiFactorAuthEnabled = refs.NewBoolRef(true)
+	}
+
+	if params.AppData != nil {
+		appDataString := ""
+		appDataBytes, err := json.Marshal(params.AppData)
+		if err != nil {
+			log.Debug("failed to marshall source app_data: ", err)
+			return nil, errors.New("malformed app_data")
+		}
+		appDataString = string(appDataBytes)
+		user.AppData = &appDataString
 	}
 
 	user.SignupMethods = constants.AuthRecipeMethodBasicAuth

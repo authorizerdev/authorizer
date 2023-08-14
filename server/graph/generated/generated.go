@@ -245,6 +245,7 @@ type ComplexityRoot struct {
 	}
 
 	User struct {
+		AppData                  func(childComplexity int) int
 		Birthdate                func(childComplexity int) int
 		CreatedAt                func(childComplexity int) int
 		Email                    func(childComplexity int) int
@@ -1695,6 +1696,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.TestEndpointResponse.Response(childComplexity), true
 
+	case "User.app_data":
+		if e.complexity.User.AppData == nil {
+			break
+		}
+
+		return e.complexity.User.AppData(childComplexity), true
+
 	case "User.birthdate":
 		if e.complexity.User.Birthdate == nil {
 			break
@@ -2229,6 +2237,7 @@ type User {
   updated_at: Int64
   revoked_timestamp: Int64
   is_multi_factor_auth_enabled: Boolean
+  app_data: Map
 }
 
 type Users {
@@ -2500,6 +2509,7 @@ input MobileSignUpInput {
   # it is used to get code for an on-going auth process during login
   # and use that code for setting ` + "`" + `c_hash` + "`" + ` in id_token
   state: String
+  app_data: Map
 }
 
 input SignUpInput {
@@ -2522,6 +2532,7 @@ input SignUpInput {
   # it is used to get code for an on-going auth process during login
   # and use that code for setting ` + "`" + `c_hash` + "`" + ` in id_token
   state: String
+  app_data: Map
 }
 
 input LoginInput {
@@ -2577,6 +2588,7 @@ input UpdateProfileInput {
   phone_number: String
   picture: String
   is_multi_factor_auth_enabled: Boolean
+  app_data: Map
 }
 
 input UpdateUserInput {
@@ -2593,6 +2605,7 @@ input UpdateUserInput {
   picture: String
   roles: [String]
   is_multi_factor_auth_enabled: Boolean
+  app_data: Map
 }
 
 input ForgotPasswordInput {
@@ -3804,6 +3817,8 @@ func (ec *executionContext) fieldContext_AuthResponse_user(ctx context.Context, 
 				return ec.fieldContext_User_revoked_timestamp(ctx, field)
 			case "is_multi_factor_auth_enabled":
 				return ec.fieldContext_User_is_multi_factor_auth_enabled(ctx, field)
+			case "app_data":
+				return ec.fieldContext_User_app_data(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -7099,6 +7114,8 @@ func (ec *executionContext) fieldContext_InviteMembersResponse_Users(ctx context
 				return ec.fieldContext_User_revoked_timestamp(ctx, field)
 			case "is_multi_factor_auth_enabled":
 				return ec.fieldContext_User_is_multi_factor_auth_enabled(ctx, field)
+			case "app_data":
+				return ec.fieldContext_User_app_data(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -8801,6 +8818,8 @@ func (ec *executionContext) fieldContext_Mutation__update_user(ctx context.Conte
 				return ec.fieldContext_User_revoked_timestamp(ctx, field)
 			case "is_multi_factor_auth_enabled":
 				return ec.fieldContext_User_is_multi_factor_auth_enabled(ctx, field)
+			case "app_data":
+				return ec.fieldContext_User_app_data(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -10103,6 +10122,8 @@ func (ec *executionContext) fieldContext_Query_profile(ctx context.Context, fiel
 				return ec.fieldContext_User_revoked_timestamp(ctx, field)
 			case "is_multi_factor_auth_enabled":
 				return ec.fieldContext_User_is_multi_factor_auth_enabled(ctx, field)
+			case "app_data":
+				return ec.fieldContext_User_app_data(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -10368,6 +10389,8 @@ func (ec *executionContext) fieldContext_Query__user(ctx context.Context, field 
 				return ec.fieldContext_User_revoked_timestamp(ctx, field)
 			case "is_multi_factor_auth_enabled":
 				return ec.fieldContext_User_is_multi_factor_auth_enabled(ctx, field)
+			case "app_data":
+				return ec.fieldContext_User_app_data(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -12229,6 +12252,47 @@ func (ec *executionContext) fieldContext_User_is_multi_factor_auth_enabled(ctx c
 	return fc, nil
 }
 
+func (ec *executionContext) _User_app_data(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_User_app_data(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.AppData, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(map[string]interface{})
+	fc.Result = res
+	return ec.marshalOMap2map(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_User_app_data(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Map does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Users_pagination(ctx context.Context, field graphql.CollectedField, obj *model.Users) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Users_pagination(ctx, field)
 	if err != nil {
@@ -12360,6 +12424,8 @@ func (ec *executionContext) fieldContext_Users_users(ctx context.Context, field 
 				return ec.fieldContext_User_revoked_timestamp(ctx, field)
 			case "is_multi_factor_auth_enabled":
 				return ec.fieldContext_User_is_multi_factor_auth_enabled(ctx, field)
+			case "app_data":
+				return ec.fieldContext_User_app_data(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -16201,7 +16267,7 @@ func (ec *executionContext) unmarshalInputMobileSignUpInput(ctx context.Context,
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"email", "given_name", "family_name", "middle_name", "nickname", "gender", "birthdate", "phone_number", "picture", "password", "confirm_password", "roles", "scope", "redirect_uri", "is_multi_factor_auth_enabled", "state"}
+	fieldsInOrder := [...]string{"email", "given_name", "family_name", "middle_name", "nickname", "gender", "birthdate", "phone_number", "picture", "password", "confirm_password", "roles", "scope", "redirect_uri", "is_multi_factor_auth_enabled", "state", "app_data"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -16333,6 +16399,14 @@ func (ec *executionContext) unmarshalInputMobileSignUpInput(ctx context.Context,
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
 			it.State, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "app_data":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("app_data"))
+			it.AppData, err = ec.unmarshalOMap2map(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -16609,7 +16683,7 @@ func (ec *executionContext) unmarshalInputSignUpInput(ctx context.Context, obj i
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"email", "given_name", "family_name", "middle_name", "nickname", "gender", "birthdate", "phone_number", "picture", "password", "confirm_password", "roles", "scope", "redirect_uri", "is_multi_factor_auth_enabled", "state"}
+	fieldsInOrder := [...]string{"email", "given_name", "family_name", "middle_name", "nickname", "gender", "birthdate", "phone_number", "picture", "password", "confirm_password", "roles", "scope", "redirect_uri", "is_multi_factor_auth_enabled", "state", "app_data"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -16741,6 +16815,14 @@ func (ec *executionContext) unmarshalInputSignUpInput(ctx context.Context, obj i
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
 			it.State, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "app_data":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("app_data"))
+			it.AppData, err = ec.unmarshalOMap2map(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -17333,7 +17415,7 @@ func (ec *executionContext) unmarshalInputUpdateProfileInput(ctx context.Context
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"old_password", "new_password", "confirm_new_password", "email", "given_name", "family_name", "middle_name", "nickname", "gender", "birthdate", "phone_number", "picture", "is_multi_factor_auth_enabled"}
+	fieldsInOrder := [...]string{"old_password", "new_password", "confirm_new_password", "email", "given_name", "family_name", "middle_name", "nickname", "gender", "birthdate", "phone_number", "picture", "is_multi_factor_auth_enabled", "app_data"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -17444,6 +17526,14 @@ func (ec *executionContext) unmarshalInputUpdateProfileInput(ctx context.Context
 			if err != nil {
 				return it, err
 			}
+		case "app_data":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("app_data"))
+			it.AppData, err = ec.unmarshalOMap2map(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		}
 	}
 
@@ -17457,7 +17547,7 @@ func (ec *executionContext) unmarshalInputUpdateUserInput(ctx context.Context, o
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"id", "email", "email_verified", "given_name", "family_name", "middle_name", "nickname", "gender", "birthdate", "phone_number", "picture", "roles", "is_multi_factor_auth_enabled"}
+	fieldsInOrder := [...]string{"id", "email", "email_verified", "given_name", "family_name", "middle_name", "nickname", "gender", "birthdate", "phone_number", "picture", "roles", "is_multi_factor_auth_enabled", "app_data"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -17565,6 +17655,14 @@ func (ec *executionContext) unmarshalInputUpdateUserInput(ctx context.Context, o
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("is_multi_factor_auth_enabled"))
 			it.IsMultiFactorAuthEnabled, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "app_data":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("app_data"))
+			it.AppData, err = ec.unmarshalOMap2map(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -19473,6 +19571,10 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 		case "is_multi_factor_auth_enabled":
 
 			out.Values[i] = ec._User_is_multi_factor_auth_enabled(ctx, field, obj)
+
+		case "app_data":
+
+			out.Values[i] = ec._User_app_data(ctx, field, obj)
 
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
