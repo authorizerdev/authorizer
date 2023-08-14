@@ -207,22 +207,23 @@ type MobileLoginInput struct {
 }
 
 type MobileSignUpInput struct {
-	Email                    *string  `json:"email"`
-	GivenName                *string  `json:"given_name"`
-	FamilyName               *string  `json:"family_name"`
-	MiddleName               *string  `json:"middle_name"`
-	Nickname                 *string  `json:"nickname"`
-	Gender                   *string  `json:"gender"`
-	Birthdate                *string  `json:"birthdate"`
-	PhoneNumber              string   `json:"phone_number"`
-	Picture                  *string  `json:"picture"`
-	Password                 string   `json:"password"`
-	ConfirmPassword          string   `json:"confirm_password"`
-	Roles                    []string `json:"roles"`
-	Scope                    []string `json:"scope"`
-	RedirectURI              *string  `json:"redirect_uri"`
-	IsMultiFactorAuthEnabled *bool    `json:"is_multi_factor_auth_enabled"`
-	State                    *string  `json:"state"`
+	Email                    *string                `json:"email"`
+	GivenName                *string                `json:"given_name"`
+	FamilyName               *string                `json:"family_name"`
+	MiddleName               *string                `json:"middle_name"`
+	Nickname                 *string                `json:"nickname"`
+	Gender                   *string                `json:"gender"`
+	Birthdate                *string                `json:"birthdate"`
+	PhoneNumber              string                 `json:"phone_number"`
+	Picture                  *string                `json:"picture"`
+	Password                 string                 `json:"password"`
+	ConfirmPassword          string                 `json:"confirm_password"`
+	Roles                    []string               `json:"roles"`
+	Scope                    []string               `json:"scope"`
+	RedirectURI              *string                `json:"redirect_uri"`
+	IsMultiFactorAuthEnabled *bool                  `json:"is_multi_factor_auth_enabled"`
+	State                    *string                `json:"state"`
+	AppData                  map[string]interface{} `json:"app_data"`
 }
 
 type OAuthRevokeInput struct {
@@ -282,22 +283,23 @@ type SessionQueryInput struct {
 }
 
 type SignUpInput struct {
-	Email                    string   `json:"email"`
-	GivenName                *string  `json:"given_name"`
-	FamilyName               *string  `json:"family_name"`
-	MiddleName               *string  `json:"middle_name"`
-	Nickname                 *string  `json:"nickname"`
-	Gender                   *string  `json:"gender"`
-	Birthdate                *string  `json:"birthdate"`
-	PhoneNumber              *string  `json:"phone_number"`
-	Picture                  *string  `json:"picture"`
-	Password                 string   `json:"password"`
-	ConfirmPassword          string   `json:"confirm_password"`
-	Roles                    []string `json:"roles"`
-	Scope                    []string `json:"scope"`
-	RedirectURI              *string  `json:"redirect_uri"`
-	IsMultiFactorAuthEnabled *bool    `json:"is_multi_factor_auth_enabled"`
-	State                    *string  `json:"state"`
+	Email                    string                 `json:"email"`
+	GivenName                *string                `json:"given_name"`
+	FamilyName               *string                `json:"family_name"`
+	MiddleName               *string                `json:"middle_name"`
+	Nickname                 *string                `json:"nickname"`
+	Gender                   *string                `json:"gender"`
+	Birthdate                *string                `json:"birthdate"`
+	PhoneNumber              *string                `json:"phone_number"`
+	Picture                  *string                `json:"picture"`
+	Password                 string                 `json:"password"`
+	ConfirmPassword          string                 `json:"confirm_password"`
+	Roles                    []string               `json:"roles"`
+	Scope                    []string               `json:"scope"`
+	RedirectURI              *string                `json:"redirect_uri"`
+	IsMultiFactorAuthEnabled *bool                  `json:"is_multi_factor_auth_enabled"`
+	State                    *string                `json:"state"`
+	AppData                  map[string]interface{} `json:"app_data"`
 }
 
 type TestEndpointRequest struct {
@@ -380,35 +382,37 @@ type UpdateEnvInput struct {
 }
 
 type UpdateProfileInput struct {
-	OldPassword              *string `json:"old_password"`
-	NewPassword              *string `json:"new_password"`
-	ConfirmNewPassword       *string `json:"confirm_new_password"`
-	Email                    *string `json:"email"`
-	GivenName                *string `json:"given_name"`
-	FamilyName               *string `json:"family_name"`
-	MiddleName               *string `json:"middle_name"`
-	Nickname                 *string `json:"nickname"`
-	Gender                   *string `json:"gender"`
-	Birthdate                *string `json:"birthdate"`
-	PhoneNumber              *string `json:"phone_number"`
-	Picture                  *string `json:"picture"`
-	IsMultiFactorAuthEnabled *bool   `json:"is_multi_factor_auth_enabled"`
+	OldPassword              *string                `json:"old_password"`
+	NewPassword              *string                `json:"new_password"`
+	ConfirmNewPassword       *string                `json:"confirm_new_password"`
+	Email                    *string                `json:"email"`
+	GivenName                *string                `json:"given_name"`
+	FamilyName               *string                `json:"family_name"`
+	MiddleName               *string                `json:"middle_name"`
+	Nickname                 *string                `json:"nickname"`
+	Gender                   *string                `json:"gender"`
+	Birthdate                *string                `json:"birthdate"`
+	PhoneNumber              *string                `json:"phone_number"`
+	Picture                  *string                `json:"picture"`
+	IsMultiFactorAuthEnabled *bool                  `json:"is_multi_factor_auth_enabled"`
+	AppData                  map[string]interface{} `json:"app_data"`
 }
 
 type UpdateUserInput struct {
-	ID                       string    `json:"id"`
-	Email                    *string   `json:"email"`
-	EmailVerified            *bool     `json:"email_verified"`
-	GivenName                *string   `json:"given_name"`
-	FamilyName               *string   `json:"family_name"`
-	MiddleName               *string   `json:"middle_name"`
-	Nickname                 *string   `json:"nickname"`
-	Gender                   *string   `json:"gender"`
-	Birthdate                *string   `json:"birthdate"`
-	PhoneNumber              *string   `json:"phone_number"`
-	Picture                  *string   `json:"picture"`
-	Roles                    []*string `json:"roles"`
-	IsMultiFactorAuthEnabled *bool     `json:"is_multi_factor_auth_enabled"`
+	ID                       string                 `json:"id"`
+	Email                    *string                `json:"email"`
+	EmailVerified            *bool                  `json:"email_verified"`
+	GivenName                *string                `json:"given_name"`
+	FamilyName               *string                `json:"family_name"`
+	MiddleName               *string                `json:"middle_name"`
+	Nickname                 *string                `json:"nickname"`
+	Gender                   *string                `json:"gender"`
+	Birthdate                *string                `json:"birthdate"`
+	PhoneNumber              *string                `json:"phone_number"`
+	Picture                  *string                `json:"picture"`
+	Roles                    []*string              `json:"roles"`
+	IsMultiFactorAuthEnabled *bool                  `json:"is_multi_factor_auth_enabled"`
+	AppData                  map[string]interface{} `json:"app_data"`
 }
 
 type UpdateWebhookRequest struct {
@@ -421,25 +425,26 @@ type UpdateWebhookRequest struct {
 }
 
 type User struct {
-	ID                       string   `json:"id"`
-	Email                    string   `json:"email"`
-	EmailVerified            bool     `json:"email_verified"`
-	SignupMethods            string   `json:"signup_methods"`
-	GivenName                *string  `json:"given_name"`
-	FamilyName               *string  `json:"family_name"`
-	MiddleName               *string  `json:"middle_name"`
-	Nickname                 *string  `json:"nickname"`
-	PreferredUsername        *string  `json:"preferred_username"`
-	Gender                   *string  `json:"gender"`
-	Birthdate                *string  `json:"birthdate"`
-	PhoneNumber              *string  `json:"phone_number"`
-	PhoneNumberVerified      *bool    `json:"phone_number_verified"`
-	Picture                  *string  `json:"picture"`
-	Roles                    []string `json:"roles"`
-	CreatedAt                *int64   `json:"created_at"`
-	UpdatedAt                *int64   `json:"updated_at"`
-	RevokedTimestamp         *int64   `json:"revoked_timestamp"`
-	IsMultiFactorAuthEnabled *bool    `json:"is_multi_factor_auth_enabled"`
+	ID                       string                 `json:"id"`
+	Email                    string                 `json:"email"`
+	EmailVerified            bool                   `json:"email_verified"`
+	SignupMethods            string                 `json:"signup_methods"`
+	GivenName                *string                `json:"given_name"`
+	FamilyName               *string                `json:"family_name"`
+	MiddleName               *string                `json:"middle_name"`
+	Nickname                 *string                `json:"nickname"`
+	PreferredUsername        *string                `json:"preferred_username"`
+	Gender                   *string                `json:"gender"`
+	Birthdate                *string                `json:"birthdate"`
+	PhoneNumber              *string                `json:"phone_number"`
+	PhoneNumberVerified      *bool                  `json:"phone_number_verified"`
+	Picture                  *string                `json:"picture"`
+	Roles                    []string               `json:"roles"`
+	CreatedAt                *int64                 `json:"created_at"`
+	UpdatedAt                *int64                 `json:"updated_at"`
+	RevokedTimestamp         *int64                 `json:"revoked_timestamp"`
+	IsMultiFactorAuthEnabled *bool                  `json:"is_multi_factor_auth_enabled"`
+	AppData                  map[string]interface{} `json:"app_data"`
 }
 
 type Users struct {

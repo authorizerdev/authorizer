@@ -2,6 +2,7 @@ package resolvers
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -93,6 +94,17 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 
 	if params.Picture != nil && refs.StringValue(user.Picture) != refs.StringValue(params.Picture) {
 		user.Picture = params.Picture
+	}
+
+	if params.AppData != nil {
+		appDataString := ""
+		appDataBytes, err := json.Marshal(params.AppData)
+		if err != nil {
+			log.Debug("failed to marshall source app_data: ", err)
+			return nil, errors.New("malformed app_data")
+		}
+		appDataString = string(appDataBytes)
+		user.AppData = &appDataString
 	}
 
 	if params.IsMultiFactorAuthEnabled != nil && refs.BoolValue(user.IsMultiFactorAuthEnabled) != refs.BoolValue(params.IsMultiFactorAuthEnabled) {

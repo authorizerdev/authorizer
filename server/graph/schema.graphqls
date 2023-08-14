@@ -51,6 +51,7 @@ type User {
   updated_at: Int64
   revoked_timestamp: Int64
   is_multi_factor_auth_enabled: Boolean
+  app_data: Map
 }
 
 type Users {
@@ -322,6 +323,7 @@ input MobileSignUpInput {
   # it is used to get code for an on-going auth process during login
   # and use that code for setting `c_hash` in id_token
   state: String
+  app_data: Map
 }
 
 input SignUpInput {
@@ -344,6 +346,7 @@ input SignUpInput {
   # it is used to get code for an on-going auth process during login
   # and use that code for setting `c_hash` in id_token
   state: String
+  app_data: Map
 }
 
 input LoginInput {
@@ -399,6 +402,7 @@ input UpdateProfileInput {
   phone_number: String
   picture: String
   is_multi_factor_auth_enabled: Boolean
+  app_data: Map
 }
 
 input UpdateUserInput {
@@ -415,6 +419,7 @@ input UpdateUserInput {
   picture: String
   roles: [String]
   is_multi_factor_auth_enabled: Boolean
+  app_data: Map
 }
 
 input ForgotPasswordInput {

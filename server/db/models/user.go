@@ -33,12 +33,14 @@ type User struct {
 	IsMultiFactorAuthEnabled *bool   `json:"is_multi_factor_auth_enabled" bson:"is_multi_factor_auth_enabled" cql:"is_multi_factor_auth_enabled" dynamo:"is_multi_factor_auth_enabled"`
 	UpdatedAt                int64   `json:"updated_at" bson:"updated_at" cql:"updated_at" dynamo:"updated_at"`
 	CreatedAt                int64   `json:"created_at" bson:"created_at" cql:"created_at" dynamo:"created_at"`
+	AppData                  *string `json:"app_data" bson:"app_data" cql:"app_data" dynamo:"app_data"`
 }
 
 func (user *User) AsAPIUser() *model.User {
 	isEmailVerified := user.EmailVerifiedAt != nil
 	isPhoneVerified := user.PhoneNumberVerifiedAt != nil
-
+	appDataMap := make(map[string]interface{})
+	json.Unmarshal([]byte(refs.StringValue(user.AppData)), &appDataMap)
 	// id := user.ID
 	// if strings.Contains(id, Collections.User+"/") {
 	// 	id = strings.TrimPrefix(id, Collections.User+"/")
@@ -63,6 +65,7 @@ func (user *User) AsAPIUser() *model.User {
 		IsMultiFactorAuthEnabled: user.IsMultiFactorAuthEnabled,
 		CreatedAt:                refs.NewInt64Ref(user.CreatedAt),
 		UpdatedAt:                refs.NewInt64Ref(user.UpdatedAt),
+		AppData:                  appDataMap,
 	}
 }
 

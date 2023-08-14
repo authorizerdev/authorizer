@@ -171,7 +171,6 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 	if nonce == "" {
 		nonce = uuid.New().String()
 	}
-
 	authToken, err := token.CreateAuthToken(gc, user, roles, scope, constants.AuthRecipeMethodBasicAuth, nonce, code)
 	if err != nil {
 		log.Debug("Failed to create auth token", err)
