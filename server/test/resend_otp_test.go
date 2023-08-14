@@ -2,13 +2,18 @@ package test
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/authorizerdev/authorizer/server/resolvers"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -89,6 +94,16 @@ func resendOTPTest(t *testing.T, s TestSetup) {
 		})
 		assert.Error(t, err)
 		assert.Nil(t, verifyOtpRes)
+		// Get user by email
+		user, err := db.Provider.GetUserByEmail(ctx, email)
+		assert.NoError(t, err)
+		assert.NotNil(t, user)
+		// Set mfa cookie session
+		mfaSession := uuid.NewString()
+		memorystore.Provider.SetMfaSession(user.ID, mfaSession, time.Now().Add(1*time.Minute).Unix())
+		cookie := fmt.Sprintf("%s=%s;", constants.MfaCookieName+"_session", mfaSession)
+		cookie = strings.TrimSuffix(cookie, ";")
+		req.Header.Set("Cookie", cookie)
 		verifyOtpRes, err = resolvers.VerifyOtpResolver(ctx, model.VerifyOTPRequest{
 			Email: &email,
 			Otp:   newOtp.Otp,

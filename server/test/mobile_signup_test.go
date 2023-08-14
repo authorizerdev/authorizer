@@ -1,7 +1,10 @@
 package test
 
 import (
+	"fmt"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
@@ -9,6 +12,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/authorizerdev/authorizer/server/resolvers"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -79,6 +83,17 @@ func mobileSingupTest(t *testing.T, s TestSetup) {
 		otp, err := db.Provider.GetOTPByPhoneNumber(ctx, phoneNumber)
 		assert.Nil(t, err)
 		assert.NotEmpty(t, otp.Otp)
+		// Get user by phone number
+		user, err := db.Provider.GetUserByPhoneNumber(ctx, phoneNumber)
+		assert.NoError(t, err)
+		assert.NotNil(t, user)
+		// Set mfa cookie session
+		mfaSession := uuid.NewString()
+		memorystore.Provider.SetMfaSession(user.ID, mfaSession, time.Now().Add(1*time.Minute).Unix())
+		cookie := fmt.Sprintf("%s=%s;", constants.MfaCookieName+"_session", mfaSession)
+		cookie = strings.TrimSuffix(cookie, ";")
+		req, ctx := createContext(s)
+		req.Header.Set("Cookie", cookie)
 		otpRes, err := resolvers.VerifyOtpResolver(ctx, model.VerifyOTPRequest{
 			PhoneNumber: &phoneNumber,
 			Otp:         otp.Otp,

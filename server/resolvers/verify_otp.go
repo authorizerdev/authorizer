@@ -31,6 +31,15 @@ func VerifyOtpResolver(ctx context.Context, params model.VerifyOTPRequest) (*mod
 	mfaSession, err := cookie.GetMfaSession(gc)
 	if err != nil {
 		log.Debug("Failed to get otp request by email: ", err)
+		// // Ignore mfa session error in test env
+		// // dont trigger email sending in case of test
+		// envKey, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyEnv)
+		// if err != nil {
+		// 	envKey = ""
+		// }
+		// if envKey != constants.TestEnv {
+		//
+		// }
 		return res, fmt.Errorf(`invalid session: %s`, err.Error())
 	}
 
@@ -76,6 +85,15 @@ func VerifyOtpResolver(ctx context.Context, params model.VerifyOTPRequest) (*mod
 
 	if _, err := memorystore.Provider.GetMfaSession(user.ID, mfaSession); err != nil {
 		log.Debug("Failed to get mfa session: ", err)
+		// Ignore mfa session error in test env
+		// dont trigger email sending in case of test
+		// envKey, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyEnv)
+		// if err != nil {
+		// 	envKey = ""
+		// }
+		// if envKey != constants.TestEnv {
+		//
+		// }
 		return res, fmt.Errorf(`invalid session: %s`, err.Error())
 	}
 
