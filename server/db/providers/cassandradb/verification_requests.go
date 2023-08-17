@@ -74,7 +74,6 @@ func (p *provider) ListVerificationRequests(ctx context.Context, pagination *mod
 			var verificationRequest models.VerificationRequest
 			err := scanner.Scan(&verificationRequest.ID, &verificationRequest.Token, &verificationRequest.Identifier, &verificationRequest.ExpiresAt, &verificationRequest.Email, &verificationRequest.Nonce, &verificationRequest.RedirectURI, &verificationRequest.CreatedAt, &verificationRequest.UpdatedAt)
 			if err != nil {
-				fmt.Println("=> getting error here...", err)
 				return nil, err
 			}
 			verificationRequests = append(verificationRequests, verificationRequest.AsAPIVerificationRequest())

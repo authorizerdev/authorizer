@@ -32,11 +32,11 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		provider := ctx.Param("oauth_provider")
 		state := ctx.Request.FormValue("state")
-
 		sessionState, err := memorystore.Provider.GetState(state)
 		if sessionState == "" || err != nil {
 			log.Debug("Invalid oauth state: ", state)
 			ctx.JSON(400, gin.H{"error": "invalid oauth state"})
+			return
 		}
 		// contains random token, redirect url, role
 		sessionSplit := strings.Split(state, "___")
@@ -46,32 +46,34 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			ctx.JSON(400, gin.H{"error": "invalid redirect url"})
 			return
 		}
-
 		// remove state from store
 		go memorystore.Provider.RemoveState(state)
-
 		stateValue := sessionSplit[0]
 		redirectURL := sessionSplit[1]
 		inputRoles := strings.Split(sessionSplit[2], ",")
 		scopes := strings.Split(sessionSplit[3], ",")
-
 		var user *models.User
 		oauthCode := ctx.Request.FormValue("code")
+		if oauthCode == "" {
+			log.Debug("Invalid oauth code: ", oauthCode)
+			ctx.JSON(400, gin.H{"error": "invalid oauth code"})
+			return
+		}
 		switch provider {
 		case constants.AuthRecipeMethodGoogle:
-			user, err = processGoogleUserInfo(oauthCode)
+			user, err = processGoogleUserInfo(ctx, oauthCode)
 		case constants.AuthRecipeMethodGithub:
-			user, err = processGithubUserInfo(oauthCode)
+			user, err = processGithubUserInfo(ctx, oauthCode)
 		case constants.AuthRecipeMethodFacebook:
-			user, err = processFacebookUserInfo(oauthCode)
+			user, err = processFacebookUserInfo(ctx, oauthCode)
 		case constants.AuthRecipeMethodLinkedIn:
-			user, err = processLinkedInUserInfo(oauthCode)
+			user, err = processLinkedInUserInfo(ctx, oauthCode)
 		case constants.AuthRecipeMethodApple:
-			user, err = processAppleUserInfo(oauthCode)
+			user, err = processAppleUserInfo(ctx, oauthCode)
 		case constants.AuthRecipeMethodTwitter:
-			user, err = processTwitterUserInfo(oauthCode, sessionState)
+			user, err = processTwitterUserInfo(ctx, oauthCode, sessionState)
 		case constants.AuthRecipeMethodMicrosoft:
-			user, err = processMicrosoftUserInfo(oauthCode)
+			user, err = processMicrosoftUserInfo(ctx, oauthCode)
 		default:
 			log.Info("Invalid oauth provider")
 			err = fmt.Errorf(`invalid oauth provider`)
@@ -281,9 +283,8 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 	}
 }
 
-func processGoogleUserInfo(code string) (*models.User, error) {
+func processGoogleUserInfo(ctx context.Context, code string) (*models.User, error) {
 	var user *models.User
-	ctx := context.Background()
 	oauth2Token, err := oauth.OAuthProviders.GoogleConfig.Exchange(ctx, code)
 	if err != nil {
 		log.Debug("Failed to exchange code for token: ", err)
@@ -313,9 +314,9 @@ func processGoogleUserInfo(code string) (*models.User, error) {
 	return user, nil
 }
 
-func processGithubUserInfo(code string) (*models.User, error) {
+func processGithubUserInfo(ctx context.Context, code string) (*models.User, error) {
 	var user *models.User
-	oauth2Token, err := oauth.OAuthProviders.GithubConfig.Exchange(context.TODO(), code)
+	oauth2Token, err := oauth.OAuthProviders.GithubConfig.Exchange(ctx, code)
 	if err != nil {
 		log.Debug("Failed to exchange code for token: ", err)
 		return user, fmt.Errorf("invalid github exchange code: %s", err.Error())
@@ -420,9 +421,9 @@ func processGithubUserInfo(code string) (*models.User, error) {
 	return user, nil
 }
 
-func processFacebookUserInfo(code string) (*models.User, error) {
+func processFacebookUserInfo(ctx context.Context, code string) (*models.User, error) {
 	var user *models.User
-	oauth2Token, err := oauth.OAuthProviders.FacebookConfig.Exchange(context.TODO(), code)
+	oauth2Token, err := oauth.OAuthProviders.FacebookConfig.Exchange(ctx, code)
 	if err != nil {
 		log.Debug("Invalid facebook exchange code: ", err)
 		return user, fmt.Errorf("invalid facebook exchange code: %s", err.Error())
@@ -471,9 +472,9 @@ func processFacebookUserInfo(code string) (*models.User, error) {
 	return user, nil
 }
 
-func processLinkedInUserInfo(code string) (*models.User, error) {
+func processLinkedInUserInfo(ctx context.Context, code string) (*models.User, error) {
 	var user *models.User
-	oauth2Token, err := oauth.OAuthProviders.LinkedInConfig.Exchange(context.TODO(), code)
+	oauth2Token, err := oauth.OAuthProviders.LinkedInConfig.Exchange(ctx, code)
 	if err != nil {
 		log.Debug("Failed to exchange code for token: ", err)
 		return user, fmt.Errorf("invalid linkedin exchange code: %s", err.Error())
@@ -553,9 +554,9 @@ func processLinkedInUserInfo(code string) (*models.User, error) {
 	return user, nil
 }
 
-func processAppleUserInfo(code string) (*models.User, error) {
+func processAppleUserInfo(ctx context.Context, code string) (*models.User, error) {
 	var user *models.User
-	oauth2Token, err := oauth.OAuthProviders.AppleConfig.Exchange(context.TODO(), code)
+	oauth2Token, err := oauth.OAuthProviders.AppleConfig.Exchange(ctx, code)
 	if err != nil {
 		log.Debug("Failed to exchange code for token: ", err)
 		return user, fmt.Errorf("invalid apple exchange code: %s", err.Error())
@@ -606,9 +607,9 @@ func processAppleUserInfo(code string) (*models.User, error) {
 	return user, err
 }
 
-func processTwitterUserInfo(code, verifier string) (*models.User, error) {
+func processTwitterUserInfo(ctx context.Context, code, verifier string) (*models.User, error) {
 	var user *models.User
-	oauth2Token, err := oauth.OAuthProviders.TwitterConfig.Exchange(context.TODO(), code, oauth2.SetAuthURLParam("code_verifier", verifier))
+	oauth2Token, err := oauth.OAuthProviders.TwitterConfig.Exchange(ctx, code, oauth2.SetAuthURLParam("code_verifier", verifier))
 	if err != nil {
 		log.Debug("Failed to exchange code for token: ", err)
 		return user, fmt.Errorf("invalid twitter exchange code: %s", err.Error())
@@ -674,24 +675,24 @@ func processTwitterUserInfo(code, verifier string) (*models.User, error) {
 }
 
 // process microsoft user information
-func processMicrosoftUserInfo(code string) (*models.User, error) {
+func processMicrosoftUserInfo(ctx context.Context, code string) (*models.User, error) {
 	var user *models.User
-	ctx := context.Background()
 	oauth2Token, err := oauth.OAuthProviders.MicrosoftConfig.Exchange(ctx, code)
 	if err != nil {
 		log.Debug("Failed to exchange code for token: ", err)
-		return user, fmt.Errorf("invalid google exchange code: %s", err.Error())
+		return user, fmt.Errorf("invalid microsoft exchange code: %s", err.Error())
 	}
-
-	verifier := oauth.OIDCProviders.MicrosoftOIDC.Verifier(&oidc.Config{ClientID: oauth.OAuthProviders.MicrosoftConfig.ClientID})
-
+	// we need to skip issuer check because for common tenant it will return internal issuer which does not match
+	verifier := oauth.OIDCProviders.MicrosoftOIDC.Verifier(&oidc.Config{
+		ClientID:        oauth.OAuthProviders.MicrosoftConfig.ClientID,
+		SkipIssuerCheck: true,
+	})
 	// Extract the ID Token from OAuth2 token.
 	rawIDToken, ok := oauth2Token.Extra("id_token").(string)
 	if !ok {
 		log.Debug("Failed to extract ID Token from OAuth2 token")
 		return user, fmt.Errorf("unable to extract id_token")
 	}
-
 	// Parse and verify ID Token payload.
 	idToken, err := verifier.Verify(ctx, rawIDToken)
 	if err != nil {

@@ -386,7 +386,6 @@ func CreateIDToken(user *models.User, roles []string, hostname, nonce, atHash, c
 	userBytes, _ := json.Marshal(&resUser)
 	var userMap map[string]interface{}
 	json.Unmarshal(userBytes, &userMap)
-	fmt.Println("=> userBytes", string(userBytes))
 	claimKey, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyJwtRoleClaim)
 	if err != nil {
 		claimKey = "roles"
