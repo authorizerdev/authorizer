@@ -37,8 +37,9 @@ func ValidateSessionResolver(ctx context.Context, params *model.ValidateSessionI
 	log := log.WithFields(log.Fields{
 		"user_id": userID,
 	})
-	_, err = db.Provider.GetUserByID(ctx, userID)
+	user, err := db.Provider.GetUserByID(ctx, userID)
 	if err != nil {
+		log.Debug("Failed to get user: ", err)
 		return nil, err
 	}
 	// refresh token has "roles" as claim
@@ -55,5 +56,6 @@ func ValidateSessionResolver(ctx context.Context, params *model.ValidateSessionI
 	}
 	return &model.ValidateSessionResponse{
 		IsValid: true,
+		User:    user.AsAPIUser(),
 	}, nil
 }

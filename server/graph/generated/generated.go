@@ -279,6 +279,7 @@ type ComplexityRoot struct {
 
 	ValidateSessionResponse struct {
 		IsValid func(childComplexity int) int
+		User    func(childComplexity int) int
 	}
 
 	VerificationRequest struct {
@@ -1871,6 +1872,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.ValidateSessionResponse.IsValid(childComplexity), true
 
+	case "ValidateSessionResponse.user":
+		if e.complexity.ValidateSessionResponse.User == nil {
+			break
+		}
+
+		return e.complexity.ValidateSessionResponse.User(childComplexity), true
+
 	case "VerificationRequest.created_at":
 		if e.complexity.VerificationRequest.CreatedAt == nil {
 			break
@@ -2367,6 +2375,7 @@ type ValidateJWTTokenResponse {
 
 type ValidateSessionResponse {
   is_valid: Boolean!
+  user: User!
 }
 
 type GenerateJWTKeysResponse {
@@ -10233,6 +10242,8 @@ func (ec *executionContext) fieldContext_Query_validate_session(ctx context.Cont
 			switch field.Name {
 			case "is_valid":
 				return ec.fieldContext_ValidateSessionResponse_is_valid(ctx, field)
+			case "user":
+				return ec.fieldContext_ValidateSessionResponse_user(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ValidateSessionResponse", field.Name)
 		},
@@ -12557,6 +12568,92 @@ func (ec *executionContext) fieldContext_ValidateSessionResponse_is_valid(ctx co
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ValidateSessionResponse_user(ctx context.Context, field graphql.CollectedField, obj *model.ValidateSessionResponse) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ValidateSessionResponse_user(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.User, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.User)
+	fc.Result = res
+	return ec.marshalNUser2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ValidateSessionResponse_user(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ValidateSessionResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_User_id(ctx, field)
+			case "email":
+				return ec.fieldContext_User_email(ctx, field)
+			case "email_verified":
+				return ec.fieldContext_User_email_verified(ctx, field)
+			case "signup_methods":
+				return ec.fieldContext_User_signup_methods(ctx, field)
+			case "given_name":
+				return ec.fieldContext_User_given_name(ctx, field)
+			case "family_name":
+				return ec.fieldContext_User_family_name(ctx, field)
+			case "middle_name":
+				return ec.fieldContext_User_middle_name(ctx, field)
+			case "nickname":
+				return ec.fieldContext_User_nickname(ctx, field)
+			case "preferred_username":
+				return ec.fieldContext_User_preferred_username(ctx, field)
+			case "gender":
+				return ec.fieldContext_User_gender(ctx, field)
+			case "birthdate":
+				return ec.fieldContext_User_birthdate(ctx, field)
+			case "phone_number":
+				return ec.fieldContext_User_phone_number(ctx, field)
+			case "phone_number_verified":
+				return ec.fieldContext_User_phone_number_verified(ctx, field)
+			case "picture":
+				return ec.fieldContext_User_picture(ctx, field)
+			case "roles":
+				return ec.fieldContext_User_roles(ctx, field)
+			case "created_at":
+				return ec.fieldContext_User_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_User_updated_at(ctx, field)
+			case "revoked_timestamp":
+				return ec.fieldContext_User_revoked_timestamp(ctx, field)
+			case "is_multi_factor_auth_enabled":
+				return ec.fieldContext_User_is_multi_factor_auth_enabled(ctx, field)
+			case "app_data":
+				return ec.fieldContext_User_app_data(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
 	}
 	return fc, nil
@@ -19667,6 +19764,13 @@ func (ec *executionContext) _ValidateSessionResponse(ctx context.Context, sel as
 		case "is_valid":
 
 			out.Values[i] = ec._ValidateSessionResponse_is_valid(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "user":
+
+			out.Values[i] = ec._ValidateSessionResponse_user(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				invalids++

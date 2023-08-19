@@ -469,7 +469,8 @@ type ValidateSessionInput struct {
 }
 
 type ValidateSessionResponse struct {
-	IsValid bool `json:"is_valid"`
+	IsValid bool  `json:"is_valid"`
+	User    *User `json:"user"`
 }
 
 type VerificationRequest struct {

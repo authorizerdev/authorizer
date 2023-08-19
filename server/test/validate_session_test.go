@@ -56,6 +56,7 @@ func validateSessionTests(t *testing.T, s TestSetup) {
 		res, err = resolvers.ValidateSessionResolver(ctx, &model.ValidateSessionInput{})
 		assert.Nil(t, err)
 		assert.True(t, res.IsValid)
+		assert.Equal(t, res.User.ID, verifyRes.User.ID)
 		cleanData(email)
 	})
 }

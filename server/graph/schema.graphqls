@@ -181,6 +181,7 @@ type ValidateJWTTokenResponse {
 
 type ValidateSessionResponse {
   is_valid: Boolean!
+  user: User!
 }
 
 type GenerateJWTKeysResponse {
