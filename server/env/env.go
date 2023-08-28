@@ -104,6 +104,7 @@ func InitAllEnv() error {
 	osDisableStrongPassword := os.Getenv(constants.EnvKeyDisableStrongPassword)
 	osEnforceMultiFactorAuthentication := os.Getenv(constants.EnvKeyEnforceMultiFactorAuthentication)
 	osDisableMultiFactorAuthentication := os.Getenv(constants.EnvKeyDisableMultiFactorAuthentication)
+	osDisablePlayground := os.Getenv(constants.EnvKeyDisablePlayGround)
 
 	// os slice vars
 	osAllowedOrigins := os.Getenv(constants.EnvKeyAllowedOrigins)
@@ -145,7 +146,7 @@ func InitAllEnv() error {
 	if val, ok := envData[constants.EnvAwsRegion]; !ok || val == "" {
 		envData[constants.EnvAwsRegion] = osAwsRegion
 	}
-	
+
 	if osAwsRegion != "" && envData[constants.EnvAwsRegion] != osAwsRegion {
 		envData[constants.EnvAwsRegion] = osAwsRegion
 	}
@@ -789,22 +790,35 @@ func InitAllEnv() error {
 		envData[constants.EnvKeyTwilioAccountSID] = osTwilioAccountSid
 	}
 
-    if osTwilioSenderFrom != "" && envData[constants.EnvKeyTwilioSenderFrom] != osTwilioSenderFrom {
+	if osTwilioSenderFrom != "" && envData[constants.EnvKeyTwilioSenderFrom] != osTwilioSenderFrom {
 		envData[constants.EnvKeyTwilioSenderFrom] = osTwilioSenderFrom
 	}
 
 	if _, ok := envData[constants.EnvKeyDisablePhoneVerification]; !ok {
 		envData[constants.EnvKeyDisablePhoneVerification] = osDisablePhoneVerification == "false"
 	}
-	
+
 	if osDisablePhoneVerification != "" {
 		boolValue, err := strconv.ParseBool(osDisablePhoneVerification)
-		
+
 		if err != nil {
 			return err
 		}
 		if boolValue != envData[constants.EnvKeyDisablePhoneVerification] {
 			envData[constants.EnvKeyDisablePhoneVerification] = boolValue
+		}
+	}
+
+	if _, ok := envData[constants.EnvKeyDisablePlayGround]; !ok {
+		envData[constants.EnvKeyDisablePlayGround] = osDisablePlayground == "true"
+	}
+	if osDisablePlayground != "" {
+		boolValue, err := strconv.ParseBool(osDisablePlayground)
+		if err != nil {
+			return err
+		}
+		if boolValue != envData[constants.EnvKeyDisablePlayGround].(bool) {
+			envData[constants.EnvKeyDisablePlayGround] = boolValue
 		}
 	}
 

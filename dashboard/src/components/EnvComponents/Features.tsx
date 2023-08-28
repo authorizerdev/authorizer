@@ -124,6 +124,19 @@ const Features = ({ variables, setVariables }: any) => {
 						/>
 					</Flex>
 				</Flex>
+				<Flex>
+					<Flex w="100%" justifyContent="start" alignItems="center">
+						<Text fontSize="sm">Playground:</Text>
+					</Flex>
+					<Flex justifyContent="start">
+						<InputField
+							variables={variables}
+							setVariables={setVariables}
+							inputType={SwitchInputType.DISABLE_PLAYGROUND}
+							hasReversedValue
+						/>
+					</Flex>
+				</Flex>
 			</Stack>
 			<Divider paddingY={5} />
 			<Text fontSize="md" paddingTop={5} fontWeight="bold" mb={5}>

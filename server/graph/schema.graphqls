@@ -175,6 +175,7 @@ type Env {
   ADMIN_COOKIE_SECURE: Boolean!
   DEFAULT_AUTHORIZE_RESPONSE_TYPE: String
   DEFAULT_AUTHORIZE_RESPONSE_MODE: String
+  DISABLE_PLAYGROUND: Boolean!
 }
 
 type ValidateJWTTokenResponse {
@@ -292,6 +293,7 @@ input UpdateEnvInput {
   ORGANIZATION_LOGO: String
   DEFAULT_AUTHORIZE_RESPONSE_TYPE: String
   DEFAULT_AUTHORIZE_RESPONSE_MODE: String
+  DISABLE_PLAYGROUND: Boolean
 }
 
 input AdminLoginInput {

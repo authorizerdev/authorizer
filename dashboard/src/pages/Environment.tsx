@@ -93,6 +93,7 @@ const Environment = () => {
 		ENFORCE_MULTI_FACTOR_AUTHENTICATION: false,
 		DEFAULT_AUTHORIZE_RESPONSE_TYPE: '',
 		DEFAULT_AUTHORIZE_RESPONSE_MODE: '',
+		DISABLE_PLAYGROUND: false,
 	});
 
 	const [fieldVisibility, setFieldVisibility] = React.useState<
