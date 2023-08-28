@@ -158,6 +158,9 @@ const (
 	// EnvKeyDisableMultiFactorAuthentication is key for env variable DISABLE_MULTI_FACTOR_AUTHENTICATION
 	// this variable is used to completely disable multi factor authentication. It will have no effect on profile preference
 	EnvKeyDisableMultiFactorAuthentication = "DISABLE_MULTI_FACTOR_AUTHENTICATION"
+	// EnvKeyDisablePlayGround is key for env variable DISABLE_PLAYGROUND
+	// this variable will disable or enable playground use in dashboard
+	EnvKeyDisablePlayGround = "DISABLE_PLAYGROUND"
 
 	// Slice variables
 	// EnvKeyRoles key for env variable ROLES
@@ -181,8 +184,8 @@ const (
 	EnvKeyDisablePhoneVerification = "DISABLE_PHONE_VERIFICATION"
 
 	// Twilio env variables
-	EnvKeyTwilioAPIKey = "TWILIO_API_KEY"
-	EnvKeyTwilioAPISecret = "TWILIO_API_SECRET"
+	EnvKeyTwilioAPIKey     = "TWILIO_API_KEY"
+	EnvKeyTwilioAPISecret  = "TWILIO_API_SECRET"
 	EnvKeyTwilioAccountSID = "TWILIO_ACCOUNT_SID"
 	EnvKeyTwilioSenderFrom = "TWILIO_SENDER_FROM"
 )
