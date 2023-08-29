@@ -17,6 +17,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/refs"
+	"github.com/authorizerdev/authorizer/server/smsproviders"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/authorizerdev/authorizer/server/validators"
@@ -94,54 +95,66 @@ func MobileLoginResolver(ctx context.Context, params model.MobileLoginInput) (*m
 		roles = params.Roles
 	}
 
+	disablePhoneVerification, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisablePhoneVerification)
+	if err != nil {
+		log.Debug("Error getting disable phone verification: ", err)
+	}
+	if disablePhoneVerification {
+		now := time.Now().Unix()
+		user.PhoneNumberVerifiedAt = &now
+	}
+	isSMSServiceEnabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyIsSMSServiceEnabled)
+	if err != nil || !isSMSServiceEnabled {
+		log.Debug("SMS service not enabled: ", err)
+	}
+	if disablePhoneVerification {
+		now := time.Now().Unix()
+		user.PhoneNumberVerifiedAt = &now
+	}
+	isMFADisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableMultiFactorAuthentication)
+	if err != nil || !isMFADisabled {
+		log.Debug("MFA service not enabled: ", err)
+	}
+	if !disablePhoneVerification && isSMSServiceEnabled && !isMFADisabled {
+		duration, _ := time.ParseDuration("10m")
+		smsCode := utils.GenerateOTP()
+
+		smsBody := strings.Builder{}
+		smsBody.WriteString("Your verification code is: ")
+		smsBody.WriteString(smsCode)
+		expires := time.Now().Add(duration).Unix()
+		_, err := db.Provider.UpsertOTP(ctx, &models.OTP{
+			PhoneNumber: params.PhoneNumber,
+			Otp:         smsCode,
+			ExpiresAt:   expires,
+		})
+		if err != nil {
+			log.Debug("error while upserting OTP: ", err.Error())
+			return nil, err
+		}
+
+		mfaSession := uuid.NewString()
+		err = memorystore.Provider.SetMfaSession(user.ID, mfaSession, expires)
+		if err != nil {
+			log.Debug("Failed to add mfasession: ", err)
+			return nil, err
+		}
+		cookie.SetMfaSession(gc, mfaSession)
+
+		go func() {
+			utils.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, user)
+			smsproviders.SendSMS(params.PhoneNumber, smsBody.String())
+		}()
+		return &model.AuthResponse{
+			Message:                   "Please check the OTP",
+			ShouldShowMobileOtpScreen: refs.NewBoolRef(true),
+		}, nil
+	}
+
 	scope := []string{"openid", "email", "profile"}
 	if params.Scope != nil && len(scope) > 0 {
 		scope = params.Scope
 	}
-
-	/*
-		// TODO use sms authentication for MFA
-		isEmailServiceEnabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyIsEmailServiceEnabled)
-		if err != nil || !isEmailServiceEnabled {
-			log.Debug("Email service not enabled: ", err)
-		}
-
-		isMFADisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableMultiFactorAuthentication)
-		if err != nil || !isEmailServiceEnabled {
-			log.Debug("MFA service not enabled: ", err)
-		}
-
-		// If email service is not enabled continue the process in any way
-		if refs.BoolValue(user.IsMultiFactorAuthEnabled) && isEmailServiceEnabled && !isMFADisabled {
-			otp := utils.GenerateOTP()
-			otpData, err := db.Provider.UpsertOTP(ctx, &models.OTP{
-				Email:     user.Email,
-				Otp:       otp,
-				ExpiresAt: time.Now().Add(1 * time.Minute).Unix(),
-			})
-			if err != nil {
-				log.Debug("Failed to add otp: ", err)
-				return nil, err
-			}
-
-			go func() {
-				// exec it as go routine so that we can reduce the api latency
-				go email.SendEmail([]string{params.PhoneNumber}, constants.VerificationTypeOTP, map[string]interface{}{
-					"user":         user.ToMap(),
-					"organization": utils.GetOrganization(),
-					"otp":          otpData.Otp,
-				})
-				if err != nil {
-					log.Debug("Failed to send otp email: ", err)
-				}
-			}()
-
-			return &model.AuthResponse{
-				Message:             "Please check the OTP in your inbox",
-				ShouldShowOtpScreen: refs.NewBoolRef(true),
-			}, nil
-		}
-	*/
 
 	code := ""
 	codeChallenge := ""
@@ -165,7 +178,7 @@ func MobileLoginResolver(ctx context.Context, params model.MobileLoginInput) (*m
 		nonce = uuid.New().String()
 	}
 
-	authToken, err := token.CreateAuthToken(gc, *user, roles, scope, constants.AuthRecipeMethodMobileBasicAuth, nonce, code)
+	authToken, err := token.CreateAuthToken(gc, user, roles, scope, constants.AuthRecipeMethodMobileBasicAuth, nonce, code)
 	if err != nil {
 		log.Debug("Failed to create auth token", err)
 		return res, err
@@ -204,8 +217,8 @@ func MobileLoginResolver(ctx context.Context, params model.MobileLoginInput) (*m
 	}
 
 	go func() {
-		utils.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, *user)
-		db.Provider.AddSession(ctx, models.Session{
+		utils.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, user)
+		db.Provider.AddSession(ctx, &models.Session{
 			UserID:    user.ID,
 			UserAgent: utils.GetUserAgent(gc.Request),
 			IP:        utils.GetIP(gc.Request),

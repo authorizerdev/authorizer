@@ -2,6 +2,7 @@ package resolvers
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -95,6 +96,17 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 		user.Picture = params.Picture
 	}
 
+	if params.AppData != nil {
+		appDataString := ""
+		appDataBytes, err := json.Marshal(params.AppData)
+		if err != nil {
+			log.Debug("failed to marshall source app_data: ", err)
+			return nil, errors.New("malformed app_data")
+		}
+		appDataString = string(appDataBytes)
+		user.AppData = &appDataString
+	}
+
 	if params.IsMultiFactorAuthEnabled != nil && refs.BoolValue(user.IsMultiFactorAuthEnabled) != refs.BoolValue(params.IsMultiFactorAuthEnabled) {
 		user.IsMultiFactorAuthEnabled = params.IsMultiFactorAuthEnabled
 		if refs.BoolValue(params.IsMultiFactorAuthEnabled) {
@@ -147,7 +159,7 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 		if err != nil {
 			log.Debug("Failed to create verification token: ", err)
 		}
-		_, err = db.Provider.AddVerificationRequest(ctx, models.VerificationRequest{
+		_, err = db.Provider.AddVerificationRequest(ctx, &models.VerificationRequest{
 			Token:       verificationToken,
 			Identifier:  verificationType,
 			ExpiresAt:   time.Now().Add(time.Minute * 30).Unix(),

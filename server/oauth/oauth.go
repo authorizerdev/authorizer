@@ -10,9 +10,14 @@ import (
 	githubOAuth2 "golang.org/x/oauth2/github"
 	linkedInOAuth2 "golang.org/x/oauth2/linkedin"
 	microsoftOAuth2 "golang.org/x/oauth2/microsoft"
+	"google.golang.org/appengine/log"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/memorystore"
+)
+
+const (
+	microsoftCommonTenant = "common"
 )
 
 // OAuthProviders is a struct that contains reference all the OAuth providers
@@ -171,12 +176,16 @@ func InitOAuth() error {
 		microsoftClientSecret = ""
 	}
 	microsoftActiveDirTenantID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyMicrosoftActiveDirectoryTenantID)
-	if err != nil {
-		microsoftActiveDirTenantID = ""
+	if err != nil || microsoftActiveDirTenantID == "" {
+		microsoftActiveDirTenantID = microsoftCommonTenant
 	}
-	if microsoftClientID != "" && microsoftClientSecret != "" && microsoftActiveDirTenantID != "" {
+	if microsoftClientID != "" && microsoftClientSecret != "" {
+		if microsoftActiveDirTenantID == microsoftCommonTenant {
+			ctx = oidc.InsecureIssuerURLContext(ctx, fmt.Sprintf("https://login.microsoftonline.com/%s/v2.0", microsoftActiveDirTenantID))
+		}
 		p, err := oidc.NewProvider(ctx, fmt.Sprintf("https://login.microsoftonline.com/%s/v2.0", microsoftActiveDirTenantID))
 		if err != nil {
+			log.Debugf(ctx, "Error while creating OIDC provider for Microsoft: %v", err)
 			return err
 		}
 		OIDCProviders.MicrosoftOIDC = p

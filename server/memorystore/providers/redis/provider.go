@@ -9,6 +9,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	dialTimeout = 60 * time.Second
+)
+
 // RedisClient is the interface for redis client & redis cluster client
 type RedisClient interface {
 	HMSet(ctx context.Context, key string, values ...interface{}) *redis.BoolCmd
@@ -41,8 +45,7 @@ func NewRedisProvider(redisURL string) (*provider, error) {
 		urls := []string{opt.Addr}
 		urlList := redisURLHostPortsList[1:]
 		urls = append(urls, urlList...)
-		clusterOpt := &redis.ClusterOptions{Addrs: urls}
-
+		clusterOpt := &redis.ClusterOptions{Addrs: urls, DialTimeout: dialTimeout}
 		rdb := redis.NewClusterClient(clusterOpt)
 		ctx := context.Background()
 		_, err = rdb.Ping(ctx).Result()
@@ -62,7 +65,7 @@ func NewRedisProvider(redisURL string) (*provider, error) {
 		log.Debug("error parsing redis url: ", err)
 		return nil, err
 	}
-
+	opt.DialTimeout = dialTimeout
 	rdb := redis.NewClient(opt)
 	ctx := context.Background()
 	_, err = rdb.Ping(ctx).Result()

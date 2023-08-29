@@ -16,11 +16,10 @@ import (
 )
 
 // AddUser to save user information in database
-func (p *provider) AddUser(ctx context.Context, user models.User) (models.User, error) {
+func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User, error) {
 	if user.ID == "" {
 		user.ID = uuid.New().String()
 	}
-
 	if user.Roles == "" {
 		defaultRoles, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDefaultRoles)
 		if err != nil {
@@ -36,12 +35,11 @@ func (p *provider) AddUser(ctx context.Context, user models.User) (models.User, 
 	if err != nil {
 		return user, err
 	}
-
 	return user, nil
 }
 
 // UpdateUser to update user information in database
-func (p *provider) UpdateUser(ctx context.Context, user models.User) (models.User, error) {
+func (p *provider) UpdateUser(ctx context.Context, user *models.User) (*models.User, error) {
 	user.UpdatedAt = time.Now().Unix()
 	userCollection := p.db.Collection(models.Collections.User, options.Collection())
 	_, err := userCollection.UpdateOne(ctx, bson.M{"_id": bson.M{"$eq": user.ID}}, bson.M{"$set": user}, options.MergeUpdateOptions())
@@ -52,83 +50,72 @@ func (p *provider) UpdateUser(ctx context.Context, user models.User) (models.Use
 }
 
 // DeleteUser to delete user information from database
-func (p *provider) DeleteUser(ctx context.Context, user models.User) error {
+func (p *provider) DeleteUser(ctx context.Context, user *models.User) error {
 	userCollection := p.db.Collection(models.Collections.User, options.Collection())
 	_, err := userCollection.DeleteOne(ctx, bson.M{"_id": user.ID}, options.Delete())
 	if err != nil {
 		return err
 	}
-
 	sessionCollection := p.db.Collection(models.Collections.Session, options.Collection())
 	_, err = sessionCollection.DeleteMany(ctx, bson.M{"user_id": user.ID}, options.Delete())
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 
 // ListUsers to get list of users from database
-func (p *provider) ListUsers(ctx context.Context, pagination model.Pagination) (*model.Users, error) {
+func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) (*model.Users, error) {
 	var users []*model.User
 	opts := options.Find()
 	opts.SetLimit(pagination.Limit)
 	opts.SetSkip(pagination.Offset)
 	opts.SetSort(bson.M{"created_at": -1})
-
 	paginationClone := pagination
-
 	userCollection := p.db.Collection(models.Collections.User, options.Collection())
 	count, err := userCollection.CountDocuments(ctx, bson.M{}, options.Count())
 	if err != nil {
 		return nil, err
 	}
-
 	paginationClone.Total = count
-
 	cursor, err := userCollection.Find(ctx, bson.M{}, opts)
 	if err != nil {
 		return nil, err
 	}
 	defer cursor.Close(ctx)
-
 	for cursor.Next(ctx) {
-		var user models.User
+		var user *models.User
 		err := cursor.Decode(&user)
 		if err != nil {
 			return nil, err
 		}
 		users = append(users, user.AsAPIUser())
 	}
-
 	return &model.Users{
-		Pagination: &paginationClone,
+		Pagination: paginationClone,
 		Users:      users,
 	}, nil
 }
 
 // GetUserByEmail to get user information from database using email address
-func (p *provider) GetUserByEmail(ctx context.Context, email string) (models.User, error) {
-	var user models.User
+func (p *provider) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
+	var user *models.User
 	userCollection := p.db.Collection(models.Collections.User, options.Collection())
 	err := userCollection.FindOne(ctx, bson.M{"email": email}).Decode(&user)
 	if err != nil {
 		return user, err
 	}
-
 	return user, nil
 }
 
 // GetUserByID to get user information from database using user ID
-func (p *provider) GetUserByID(ctx context.Context, id string) (models.User, error) {
-	var user models.User
-
+func (p *provider) GetUserByID(ctx context.Context, id string) (*models.User, error) {
+	var user *models.User
 	userCollection := p.db.Collection(models.Collections.User, options.Collection())
 	err := userCollection.FindOne(ctx, bson.M{"_id": id}).Decode(&user)
 	if err != nil {
 		return user, err
 	}
-
 	return user, nil
 }
 
@@ -137,17 +124,14 @@ func (p *provider) GetUserByID(ctx context.Context, id string) (models.User, err
 func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{}, ids []string) error {
 	// set updated_at time for all users
 	data["updated_at"] = time.Now().Unix()
-
 	userCollection := p.db.Collection(models.Collections.User, options.Collection())
-
 	var res *mongo.UpdateResult
 	var err error
-	if ids != nil && len(ids) > 0 {
+	if len(ids) > 0 {
 		res, err = userCollection.UpdateMany(ctx, bson.M{"_id": bson.M{"$in": ids}}, bson.M{"$set": data})
 	} else {
 		res, err = userCollection.UpdateMany(ctx, bson.M{}, bson.M{"$set": data})
 	}
-
 	if err != nil {
 		return err
 	} else {
@@ -158,13 +142,11 @@ func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{},
 
 // GetUserByPhoneNumber to get user information from database using phone number
 func (p *provider) GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (*models.User, error) {
-	var user models.User
-
+	var user *models.User
 	userCollection := p.db.Collection(models.Collections.User, options.Collection())
 	err := userCollection.FindOne(ctx, bson.M{"phone_number": phoneNumber}).Decode(&user)
 	if err != nil {
 		return nil, err
 	}
-
-	return &user, nil
+	return user, nil
 }

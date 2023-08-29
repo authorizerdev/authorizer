@@ -16,6 +16,11 @@ func (p *provider) GetOTPByEmail(ctx context.Context, emailAddress string) (*mod
 	return nil, nil
 }
 
+// GetOTPByPhoneNumber to get otp for a given phone number
+func (p *provider) GetOTPByPhoneNumber(ctx context.Context, phoneNumber string) (*models.OTP, error) {
+	return nil, nil
+}
+
 // DeleteOTP to delete otp
 func (p *provider) DeleteOTP(ctx context.Context, otp *models.OTP) error {
 	return nil

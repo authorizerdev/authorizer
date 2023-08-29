@@ -2,6 +2,7 @@ package resolvers
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -47,7 +48,7 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 	}
 
 	// validate if all params are not empty
-	if params.GivenName == nil && params.FamilyName == nil && params.Picture == nil && params.MiddleName == nil && params.Nickname == nil && params.OldPassword == nil && params.Email == nil && params.Birthdate == nil && params.Gender == nil && params.PhoneNumber == nil && params.NewPassword == nil && params.ConfirmNewPassword == nil && params.IsMultiFactorAuthEnabled == nil {
+	if params.GivenName == nil && params.FamilyName == nil && params.Picture == nil && params.MiddleName == nil && params.Nickname == nil && params.OldPassword == nil && params.Email == nil && params.Birthdate == nil && params.Gender == nil && params.PhoneNumber == nil && params.NewPassword == nil && params.ConfirmNewPassword == nil && params.IsMultiFactorAuthEnabled == nil && params.AppData == nil {
 		log.Debug("All params are empty")
 		return res, fmt.Errorf("please enter at least one param to update")
 	}
@@ -56,7 +57,6 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 	log := log.WithFields(log.Fields{
 		"user_id": userID,
 	})
-
 	user, err := db.Provider.GetUserByID(ctx, userID)
 	if err != nil {
 		log.Debug("Failed to get user by id: ", err)
@@ -99,7 +99,16 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 	if params.Picture != nil && refs.StringValue(user.Picture) != refs.StringValue(params.Picture) {
 		user.Picture = params.Picture
 	}
-
+	if params.AppData != nil {
+		appDataString := ""
+		appDataBytes, err := json.Marshal(params.AppData)
+		if err != nil {
+			log.Debug("failed to marshall source app_data: ", err)
+			return nil, errors.New("malformed app_data")
+		}
+		appDataString = string(appDataBytes)
+		user.AppData = &appDataString
+	}
 	if params.IsMultiFactorAuthEnabled != nil && refs.BoolValue(user.IsMultiFactorAuthEnabled) != refs.BoolValue(params.IsMultiFactorAuthEnabled) {
 		if refs.BoolValue(params.IsMultiFactorAuthEnabled) {
 			isEnvServiceEnabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyIsEmailServiceEnabled)
@@ -242,7 +251,7 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 				log.Debug("Failed to create verification token: ", err)
 				return res, err
 			}
-			_, err = db.Provider.AddVerificationRequest(ctx, models.VerificationRequest{
+			_, err = db.Provider.AddVerificationRequest(ctx, &models.VerificationRequest{
 				Token:       verificationToken,
 				Identifier:  verificationType,
 				ExpiresAt:   time.Now().Add(time.Minute * 30).Unix(),

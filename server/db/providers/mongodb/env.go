@@ -12,11 +12,10 @@ import (
 )
 
 // AddEnv to save environment information in database
-func (p *provider) AddEnv(ctx context.Context, env models.Env) (models.Env, error) {
+func (p *provider) AddEnv(ctx context.Context, env *models.Env) (*models.Env, error) {
 	if env.ID == "" {
 		env.ID = uuid.New().String()
 	}
-
 	env.CreatedAt = time.Now().Unix()
 	env.UpdatedAt = time.Now().Unix()
 	env.Key = env.ID
@@ -29,7 +28,7 @@ func (p *provider) AddEnv(ctx context.Context, env models.Env) (models.Env, erro
 }
 
 // UpdateEnv to update environment information in database
-func (p *provider) UpdateEnv(ctx context.Context, env models.Env) (models.Env, error) {
+func (p *provider) UpdateEnv(ctx context.Context, env *models.Env) (*models.Env, error) {
 	env.UpdatedAt = time.Now().Unix()
 	configCollection := p.db.Collection(models.Collections.Env, options.Collection())
 	_, err := configCollection.UpdateOne(ctx, bson.M{"_id": bson.M{"$eq": env.ID}}, bson.M{"$set": env}, options.MergeUpdateOptions())
@@ -40,25 +39,22 @@ func (p *provider) UpdateEnv(ctx context.Context, env models.Env) (models.Env, e
 }
 
 // GetEnv to get environment information from database
-func (p *provider) GetEnv(ctx context.Context) (models.Env, error) {
-	var env models.Env
+func (p *provider) GetEnv(ctx context.Context) (*models.Env, error) {
+	var env *models.Env
 	configCollection := p.db.Collection(models.Collections.Env, options.Collection())
 	cursor, err := configCollection.Find(ctx, bson.M{}, options.Find())
 	if err != nil {
 		return env, err
 	}
 	defer cursor.Close(ctx)
-
 	for cursor.Next(nil) {
 		err := cursor.Decode(&env)
 		if err != nil {
 			return env, err
 		}
 	}
-
-	if env.ID == "" {
+	if env == nil {
 		return env, fmt.Errorf("config not found")
 	}
-
 	return env, nil
 }

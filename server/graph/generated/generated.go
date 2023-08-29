@@ -45,13 +45,14 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	AuthResponse struct {
-		AccessToken         func(childComplexity int) int
-		ExpiresIn           func(childComplexity int) int
-		IDToken             func(childComplexity int) int
-		Message             func(childComplexity int) int
-		RefreshToken        func(childComplexity int) int
-		ShouldShowOtpScreen func(childComplexity int) int
-		User                func(childComplexity int) int
+		AccessToken               func(childComplexity int) int
+		ExpiresIn                 func(childComplexity int) int
+		IDToken                   func(childComplexity int) int
+		Message                   func(childComplexity int) int
+		RefreshToken              func(childComplexity int) int
+		ShouldShowEmailOtpScreen  func(childComplexity int) int
+		ShouldShowMobileOtpScreen func(childComplexity int) int
+		User                      func(childComplexity int) int
 	}
 
 	EmailTemplate struct {
@@ -198,7 +199,6 @@ type ComplexityRoot struct {
 		UpdateUser          func(childComplexity int, params model.UpdateUserInput) int
 		UpdateWebhook       func(childComplexity int, params model.UpdateWebhookRequest) int
 		VerifyEmail         func(childComplexity int, params model.VerifyEmailInput) int
-		VerifyMobile        func(childComplexity int, params model.VerifyMobileRequest) int
 		VerifyOtp           func(childComplexity int, params model.VerifyOTPRequest) int
 	}
 
@@ -219,6 +219,7 @@ type ComplexityRoot struct {
 		User                 func(childComplexity int, params model.GetUserRequest) int
 		Users                func(childComplexity int, params *model.PaginatedInput) int
 		ValidateJwtToken     func(childComplexity int, params model.ValidateJWTTokenInput) int
+		ValidateSession      func(childComplexity int, params *model.ValidateSessionInput) int
 		VerificationRequests func(childComplexity int, params *model.PaginatedInput) int
 		Webhook              func(childComplexity int, params model.WebhookRequest) int
 		WebhookLogs          func(childComplexity int, params *model.ListWebhookLogRequest) int
@@ -244,6 +245,7 @@ type ComplexityRoot struct {
 	}
 
 	User struct {
+		AppData                  func(childComplexity int) int
 		Birthdate                func(childComplexity int) int
 		CreatedAt                func(childComplexity int) int
 		Email                    func(childComplexity int) int
@@ -273,6 +275,11 @@ type ComplexityRoot struct {
 	ValidateJWTTokenResponse struct {
 		Claims  func(childComplexity int) int
 		IsValid func(childComplexity int) int
+	}
+
+	ValidateSessionResponse struct {
+		IsValid func(childComplexity int) int
+		User    func(childComplexity int) int
 	}
 
 	VerificationRequest struct {
@@ -339,7 +346,6 @@ type MutationResolver interface {
 	Revoke(ctx context.Context, params model.OAuthRevokeInput) (*model.Response, error)
 	VerifyOtp(ctx context.Context, params model.VerifyOTPRequest) (*model.AuthResponse, error)
 	ResendOtp(ctx context.Context, params model.ResendOTPRequest) (*model.Response, error)
-	VerifyMobile(ctx context.Context, params model.VerifyMobileRequest) (*model.AuthResponse, error)
 	DeleteUser(ctx context.Context, params model.DeleteUserInput) (*model.Response, error)
 	UpdateUser(ctx context.Context, params model.UpdateUserInput) (*model.User, error)
 	AdminSignup(ctx context.Context, params model.AdminSignupInput) (*model.Response, error)
@@ -363,6 +369,7 @@ type QueryResolver interface {
 	Session(ctx context.Context, params *model.SessionQueryInput) (*model.AuthResponse, error)
 	Profile(ctx context.Context) (*model.User, error)
 	ValidateJwtToken(ctx context.Context, params model.ValidateJWTTokenInput) (*model.ValidateJWTTokenResponse, error)
+	ValidateSession(ctx context.Context, params *model.ValidateSessionInput) (*model.ValidateSessionResponse, error)
 	Users(ctx context.Context, params *model.PaginatedInput) (*model.Users, error)
 	User(ctx context.Context, params model.GetUserRequest) (*model.User, error)
 	VerificationRequests(ctx context.Context, params *model.PaginatedInput) (*model.VerificationRequests, error)
@@ -424,12 +431,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.AuthResponse.RefreshToken(childComplexity), true
 
-	case "AuthResponse.should_show_otp_screen":
-		if e.complexity.AuthResponse.ShouldShowOtpScreen == nil {
+	case "AuthResponse.should_show_email_otp_screen":
+		if e.complexity.AuthResponse.ShouldShowEmailOtpScreen == nil {
 			break
 		}
 
-		return e.complexity.AuthResponse.ShouldShowOtpScreen(childComplexity), true
+		return e.complexity.AuthResponse.ShouldShowEmailOtpScreen(childComplexity), true
+
+	case "AuthResponse.should_show_mobile_otp_screen":
+		if e.complexity.AuthResponse.ShouldShowMobileOtpScreen == nil {
+			break
+		}
+
+		return e.complexity.AuthResponse.ShouldShowMobileOtpScreen(childComplexity), true
 
 	case "AuthResponse.user":
 		if e.complexity.AuthResponse.User == nil {
@@ -1432,18 +1446,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.VerifyEmail(childComplexity, args["params"].(model.VerifyEmailInput)), true
 
-	case "Mutation.verify_mobile":
-		if e.complexity.Mutation.VerifyMobile == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_verify_mobile_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.VerifyMobile(childComplexity, args["params"].(model.VerifyMobileRequest)), true
-
 	case "Mutation.verify_otp":
 		if e.complexity.Mutation.VerifyOtp == nil {
 			break
@@ -1572,6 +1574,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.ValidateJwtToken(childComplexity, args["params"].(model.ValidateJWTTokenInput)), true
 
+	case "Query.validate_session":
+		if e.complexity.Query.ValidateSession == nil {
+			break
+		}
+
+		args, err := ec.field_Query_validate_session_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.ValidateSession(childComplexity, args["params"].(*model.ValidateSessionInput)), true
+
 	case "Query._verification_requests":
 		if e.complexity.Query.VerificationRequests == nil {
 			break
@@ -1682,6 +1696,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.TestEndpointResponse.Response(childComplexity), true
+
+	case "User.app_data":
+		if e.complexity.User.AppData == nil {
+			break
+		}
+
+		return e.complexity.User.AppData(childComplexity), true
 
 	case "User.birthdate":
 		if e.complexity.User.Birthdate == nil {
@@ -1843,6 +1864,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.ValidateJWTTokenResponse.IsValid(childComplexity), true
+
+	case "ValidateSessionResponse.is_valid":
+		if e.complexity.ValidateSessionResponse.IsValid == nil {
+			break
+		}
+
+		return e.complexity.ValidateSessionResponse.IsValid(childComplexity), true
+
+	case "ValidateSessionResponse.user":
+		if e.complexity.ValidateSessionResponse.User == nil {
+			break
+		}
+
+		return e.complexity.ValidateSessionResponse.User(childComplexity), true
 
 	case "VerificationRequest.created_at":
 		if e.complexity.VerificationRequest.CreatedAt == nil {
@@ -2093,8 +2128,8 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputUpdateUserInput,
 		ec.unmarshalInputUpdateWebhookRequest,
 		ec.unmarshalInputValidateJWTTokenInput,
+		ec.unmarshalInputValidateSessionInput,
 		ec.unmarshalInputVerifyEmailInput,
-		ec.unmarshalInputVerifyMobileRequest,
 		ec.unmarshalInputVerifyOTPRequest,
 		ec.unmarshalInputWebhookRequest,
 	)
@@ -2210,6 +2245,7 @@ type User {
   updated_at: Int64
   revoked_timestamp: Int64
   is_multi_factor_auth_enabled: Boolean
+  app_data: Map
 }
 
 type Users {
@@ -2243,11 +2279,6 @@ type SMSVerificationRequests {
   updated_at: Int64
 }
 
-input VerifyMobileRequest {
-  phone_number: String!
-  code: String!
-}
-
 type Error {
   message: String!
   reason: String!
@@ -2255,7 +2286,8 @@ type Error {
 
 type AuthResponse {
   message: String!
-  should_show_otp_screen: Boolean
+  should_show_email_otp_screen: Boolean
+  should_show_mobile_otp_screen: Boolean
   access_token: String
   id_token: String
   refresh_token: String
@@ -2339,6 +2371,11 @@ type Env {
 type ValidateJWTTokenResponse {
   is_valid: Boolean!
   claims: Map
+}
+
+type ValidateSessionResponse {
+  is_valid: Boolean!
+  user: User!
 }
 
 type GenerateJWTKeysResponse {
@@ -2481,6 +2518,7 @@ input MobileSignUpInput {
   # it is used to get code for an on-going auth process during login
   # and use that code for setting ` + "`" + `c_hash` + "`" + ` in id_token
   state: String
+  app_data: Map
 }
 
 input SignUpInput {
@@ -2503,6 +2541,7 @@ input SignUpInput {
   # it is used to get code for an on-going auth process during login
   # and use that code for setting ` + "`" + `c_hash` + "`" + ` in id_token
   state: String
+  app_data: Map
 }
 
 input LoginInput {
@@ -2558,6 +2597,7 @@ input UpdateProfileInput {
   phone_number: String
   picture: String
   is_multi_factor_auth_enabled: Boolean
+  app_data: Map
 }
 
 input UpdateUserInput {
@@ -2574,6 +2614,7 @@ input UpdateUserInput {
   picture: String
   roles: [String]
   is_multi_factor_auth_enabled: Boolean
+  app_data: Map
 }
 
 input ForgotPasswordInput {
@@ -2633,6 +2674,11 @@ input ValidateJWTTokenInput {
   roles: [String!]
 }
 
+input ValidateSessionInput {
+  cookie: String!
+  roles: [String!]
+}
+
 input GenerateJWTKeysInput {
   type: String!
 }
@@ -2666,6 +2712,7 @@ input WebhookRequest {
 input TestEndpointRequest {
   endpoint: String!
   event_name: String!
+  event_description: String
   headers: Map
 }
 
@@ -2693,7 +2740,9 @@ input DeleteEmailTemplateRequest {
 }
 
 input VerifyOTPRequest {
-  email: String!
+  # either email or phone_number is required
+  email: String
+  phone_number: String
   otp: String!
   # state is used for authorization code grant flow
   # it is used to get code for an on-going auth process during login
@@ -2702,7 +2751,8 @@ input VerifyOTPRequest {
 }
 
 input ResendOTPRequest {
-  email: String!
+  email: String
+  phone_number: String
   # state is used for authorization code grant flow
   # it is used to get code for an on-going auth process during login
   # and use that code for setting ` + "`" + `c_hash` + "`" + ` in id_token
@@ -2729,7 +2779,6 @@ type Mutation {
   revoke(params: OAuthRevokeInput!): Response!
   verify_otp(params: VerifyOTPRequest!): AuthResponse!
   resend_otp(params: ResendOTPRequest!): Response!
-  verify_mobile(params: VerifyMobileRequest!): AuthResponse!
   # admin only apis
   _delete_user(params: DeleteUserInput!): Response!
   _update_user(params: UpdateUserInput!): User!
@@ -2755,6 +2804,7 @@ type Query {
   session(params: SessionQueryInput): AuthResponse!
   profile: User!
   validate_jwt_token(params: ValidateJWTTokenInput!): ValidateJWTTokenResponse!
+  validate_session(params: ValidateSessionInput): ValidateSessionResponse!
   # admin only apis
   _users(params: PaginatedInput): Users!
   _user(params: GetUserRequest!): User!
@@ -3194,21 +3244,6 @@ func (ec *executionContext) field_Mutation_verify_email_args(ctx context.Context
 	return args, nil
 }
 
-func (ec *executionContext) field_Mutation_verify_mobile_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 model.VerifyMobileRequest
-	if tmp, ok := rawArgs["params"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalNVerifyMobileRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐVerifyMobileRequest(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["params"] = arg0
-	return args, nil
-}
-
 func (ec *executionContext) field_Mutation_verify_otp_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -3374,6 +3409,21 @@ func (ec *executionContext) field_Query_validate_jwt_token_args(ctx context.Cont
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_validate_session_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model.ValidateSessionInput
+	if tmp, ok := rawArgs["params"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+		arg0, err = ec.unmarshalOValidateSessionInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐValidateSessionInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["params"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field___Type_enumValues_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -3456,8 +3506,8 @@ func (ec *executionContext) fieldContext_AuthResponse_message(ctx context.Contex
 	return fc, nil
 }
 
-func (ec *executionContext) _AuthResponse_should_show_otp_screen(ctx context.Context, field graphql.CollectedField, obj *model.AuthResponse) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthResponse_should_show_otp_screen(ctx, field)
+func (ec *executionContext) _AuthResponse_should_show_email_otp_screen(ctx context.Context, field graphql.CollectedField, obj *model.AuthResponse) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AuthResponse_should_show_email_otp_screen(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -3470,7 +3520,7 @@ func (ec *executionContext) _AuthResponse_should_show_otp_screen(ctx context.Con
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.ShouldShowOtpScreen, nil
+		return obj.ShouldShowEmailOtpScreen, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3484,7 +3534,48 @@ func (ec *executionContext) _AuthResponse_should_show_otp_screen(ctx context.Con
 	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_AuthResponse_should_show_otp_screen(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_AuthResponse_should_show_email_otp_screen(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AuthResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AuthResponse_should_show_mobile_otp_screen(ctx context.Context, field graphql.CollectedField, obj *model.AuthResponse) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AuthResponse_should_show_mobile_otp_screen(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ShouldShowMobileOtpScreen, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*bool)
+	fc.Result = res
+	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AuthResponse_should_show_mobile_otp_screen(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "AuthResponse",
 		Field:      field,
@@ -3735,6 +3826,8 @@ func (ec *executionContext) fieldContext_AuthResponse_user(ctx context.Context, 
 				return ec.fieldContext_User_revoked_timestamp(ctx, field)
 			case "is_multi_factor_auth_enabled":
 				return ec.fieldContext_User_is_multi_factor_auth_enabled(ctx, field)
+			case "app_data":
+				return ec.fieldContext_User_app_data(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -7030,6 +7123,8 @@ func (ec *executionContext) fieldContext_InviteMembersResponse_Users(ctx context
 				return ec.fieldContext_User_revoked_timestamp(ctx, field)
 			case "is_multi_factor_auth_enabled":
 				return ec.fieldContext_User_is_multi_factor_auth_enabled(ctx, field)
+			case "app_data":
+				return ec.fieldContext_User_app_data(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -7738,8 +7833,10 @@ func (ec *executionContext) fieldContext_Mutation_signup(ctx context.Context, fi
 			switch field.Name {
 			case "message":
 				return ec.fieldContext_AuthResponse_message(ctx, field)
-			case "should_show_otp_screen":
-				return ec.fieldContext_AuthResponse_should_show_otp_screen(ctx, field)
+			case "should_show_email_otp_screen":
+				return ec.fieldContext_AuthResponse_should_show_email_otp_screen(ctx, field)
+			case "should_show_mobile_otp_screen":
+				return ec.fieldContext_AuthResponse_should_show_mobile_otp_screen(ctx, field)
 			case "access_token":
 				return ec.fieldContext_AuthResponse_access_token(ctx, field)
 			case "id_token":
@@ -7809,8 +7906,10 @@ func (ec *executionContext) fieldContext_Mutation_mobile_signup(ctx context.Cont
 			switch field.Name {
 			case "message":
 				return ec.fieldContext_AuthResponse_message(ctx, field)
-			case "should_show_otp_screen":
-				return ec.fieldContext_AuthResponse_should_show_otp_screen(ctx, field)
+			case "should_show_email_otp_screen":
+				return ec.fieldContext_AuthResponse_should_show_email_otp_screen(ctx, field)
+			case "should_show_mobile_otp_screen":
+				return ec.fieldContext_AuthResponse_should_show_mobile_otp_screen(ctx, field)
 			case "access_token":
 				return ec.fieldContext_AuthResponse_access_token(ctx, field)
 			case "id_token":
@@ -7880,8 +7979,10 @@ func (ec *executionContext) fieldContext_Mutation_login(ctx context.Context, fie
 			switch field.Name {
 			case "message":
 				return ec.fieldContext_AuthResponse_message(ctx, field)
-			case "should_show_otp_screen":
-				return ec.fieldContext_AuthResponse_should_show_otp_screen(ctx, field)
+			case "should_show_email_otp_screen":
+				return ec.fieldContext_AuthResponse_should_show_email_otp_screen(ctx, field)
+			case "should_show_mobile_otp_screen":
+				return ec.fieldContext_AuthResponse_should_show_mobile_otp_screen(ctx, field)
 			case "access_token":
 				return ec.fieldContext_AuthResponse_access_token(ctx, field)
 			case "id_token":
@@ -7951,8 +8052,10 @@ func (ec *executionContext) fieldContext_Mutation_mobile_login(ctx context.Conte
 			switch field.Name {
 			case "message":
 				return ec.fieldContext_AuthResponse_message(ctx, field)
-			case "should_show_otp_screen":
-				return ec.fieldContext_AuthResponse_should_show_otp_screen(ctx, field)
+			case "should_show_email_otp_screen":
+				return ec.fieldContext_AuthResponse_should_show_email_otp_screen(ctx, field)
+			case "should_show_mobile_otp_screen":
+				return ec.fieldContext_AuthResponse_should_show_mobile_otp_screen(ctx, field)
 			case "access_token":
 				return ec.fieldContext_AuthResponse_access_token(ctx, field)
 			case "id_token":
@@ -8188,8 +8291,10 @@ func (ec *executionContext) fieldContext_Mutation_verify_email(ctx context.Conte
 			switch field.Name {
 			case "message":
 				return ec.fieldContext_AuthResponse_message(ctx, field)
-			case "should_show_otp_screen":
-				return ec.fieldContext_AuthResponse_should_show_otp_screen(ctx, field)
+			case "should_show_email_otp_screen":
+				return ec.fieldContext_AuthResponse_should_show_email_otp_screen(ctx, field)
+			case "should_show_mobile_otp_screen":
+				return ec.fieldContext_AuthResponse_should_show_mobile_otp_screen(ctx, field)
 			case "access_token":
 				return ec.fieldContext_AuthResponse_access_token(ctx, field)
 			case "id_token":
@@ -8495,8 +8600,10 @@ func (ec *executionContext) fieldContext_Mutation_verify_otp(ctx context.Context
 			switch field.Name {
 			case "message":
 				return ec.fieldContext_AuthResponse_message(ctx, field)
-			case "should_show_otp_screen":
-				return ec.fieldContext_AuthResponse_should_show_otp_screen(ctx, field)
+			case "should_show_email_otp_screen":
+				return ec.fieldContext_AuthResponse_should_show_email_otp_screen(ctx, field)
+			case "should_show_mobile_otp_screen":
+				return ec.fieldContext_AuthResponse_should_show_mobile_otp_screen(ctx, field)
 			case "access_token":
 				return ec.fieldContext_AuthResponse_access_token(ctx, field)
 			case "id_token":
@@ -8578,77 +8685,6 @@ func (ec *executionContext) fieldContext_Mutation_resend_otp(ctx context.Context
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_resend_otp_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_verify_mobile(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation_verify_mobile(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().VerifyMobile(rctx, fc.Args["params"].(model.VerifyMobileRequest))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.AuthResponse)
-	fc.Result = res
-	return ec.marshalNAuthResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAuthResponse(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Mutation_verify_mobile(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "message":
-				return ec.fieldContext_AuthResponse_message(ctx, field)
-			case "should_show_otp_screen":
-				return ec.fieldContext_AuthResponse_should_show_otp_screen(ctx, field)
-			case "access_token":
-				return ec.fieldContext_AuthResponse_access_token(ctx, field)
-			case "id_token":
-				return ec.fieldContext_AuthResponse_id_token(ctx, field)
-			case "refresh_token":
-				return ec.fieldContext_AuthResponse_refresh_token(ctx, field)
-			case "expires_in":
-				return ec.fieldContext_AuthResponse_expires_in(ctx, field)
-			case "user":
-				return ec.fieldContext_AuthResponse_user(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type AuthResponse", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_verify_mobile_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
@@ -8791,6 +8827,8 @@ func (ec *executionContext) fieldContext_Mutation__update_user(ctx context.Conte
 				return ec.fieldContext_User_revoked_timestamp(ctx, field)
 			case "is_multi_factor_auth_enabled":
 				return ec.fieldContext_User_is_multi_factor_auth_enabled(ctx, field)
+			case "app_data":
+				return ec.fieldContext_User_app_data(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -9984,8 +10022,10 @@ func (ec *executionContext) fieldContext_Query_session(ctx context.Context, fiel
 			switch field.Name {
 			case "message":
 				return ec.fieldContext_AuthResponse_message(ctx, field)
-			case "should_show_otp_screen":
-				return ec.fieldContext_AuthResponse_should_show_otp_screen(ctx, field)
+			case "should_show_email_otp_screen":
+				return ec.fieldContext_AuthResponse_should_show_email_otp_screen(ctx, field)
+			case "should_show_mobile_otp_screen":
+				return ec.fieldContext_AuthResponse_should_show_mobile_otp_screen(ctx, field)
 			case "access_token":
 				return ec.fieldContext_AuthResponse_access_token(ctx, field)
 			case "id_token":
@@ -10091,6 +10131,8 @@ func (ec *executionContext) fieldContext_Query_profile(ctx context.Context, fiel
 				return ec.fieldContext_User_revoked_timestamp(ctx, field)
 			case "is_multi_factor_auth_enabled":
 				return ec.fieldContext_User_is_multi_factor_auth_enabled(ctx, field)
+			case "app_data":
+				return ec.fieldContext_User_app_data(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -10153,6 +10195,67 @@ func (ec *executionContext) fieldContext_Query_validate_jwt_token(ctx context.Co
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_validate_jwt_token_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_validate_session(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_validate_session(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().ValidateSession(rctx, fc.Args["params"].(*model.ValidateSessionInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.ValidateSessionResponse)
+	fc.Result = res
+	return ec.marshalNValidateSessionResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐValidateSessionResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_validate_session(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "is_valid":
+				return ec.fieldContext_ValidateSessionResponse_is_valid(ctx, field)
+			case "user":
+				return ec.fieldContext_ValidateSessionResponse_user(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ValidateSessionResponse", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_validate_session_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
@@ -10297,6 +10400,8 @@ func (ec *executionContext) fieldContext_Query__user(ctx context.Context, field 
 				return ec.fieldContext_User_revoked_timestamp(ctx, field)
 			case "is_multi_factor_auth_enabled":
 				return ec.fieldContext_User_is_multi_factor_auth_enabled(ctx, field)
+			case "app_data":
+				return ec.fieldContext_User_app_data(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -12158,6 +12263,47 @@ func (ec *executionContext) fieldContext_User_is_multi_factor_auth_enabled(ctx c
 	return fc, nil
 }
 
+func (ec *executionContext) _User_app_data(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_User_app_data(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.AppData, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(map[string]interface{})
+	fc.Result = res
+	return ec.marshalOMap2map(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_User_app_data(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Map does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Users_pagination(ctx context.Context, field graphql.CollectedField, obj *model.Users) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Users_pagination(ctx, field)
 	if err != nil {
@@ -12289,6 +12435,8 @@ func (ec *executionContext) fieldContext_Users_users(ctx context.Context, field 
 				return ec.fieldContext_User_revoked_timestamp(ctx, field)
 			case "is_multi_factor_auth_enabled":
 				return ec.fieldContext_User_is_multi_factor_auth_enabled(ctx, field)
+			case "app_data":
+				return ec.fieldContext_User_app_data(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -12376,6 +12524,136 @@ func (ec *executionContext) fieldContext_ValidateJWTTokenResponse_claims(ctx con
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Map does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ValidateSessionResponse_is_valid(ctx context.Context, field graphql.CollectedField, obj *model.ValidateSessionResponse) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ValidateSessionResponse_is_valid(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsValid, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ValidateSessionResponse_is_valid(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ValidateSessionResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ValidateSessionResponse_user(ctx context.Context, field graphql.CollectedField, obj *model.ValidateSessionResponse) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ValidateSessionResponse_user(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.User, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.User)
+	fc.Result = res
+	return ec.marshalNUser2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ValidateSessionResponse_user(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ValidateSessionResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_User_id(ctx, field)
+			case "email":
+				return ec.fieldContext_User_email(ctx, field)
+			case "email_verified":
+				return ec.fieldContext_User_email_verified(ctx, field)
+			case "signup_methods":
+				return ec.fieldContext_User_signup_methods(ctx, field)
+			case "given_name":
+				return ec.fieldContext_User_given_name(ctx, field)
+			case "family_name":
+				return ec.fieldContext_User_family_name(ctx, field)
+			case "middle_name":
+				return ec.fieldContext_User_middle_name(ctx, field)
+			case "nickname":
+				return ec.fieldContext_User_nickname(ctx, field)
+			case "preferred_username":
+				return ec.fieldContext_User_preferred_username(ctx, field)
+			case "gender":
+				return ec.fieldContext_User_gender(ctx, field)
+			case "birthdate":
+				return ec.fieldContext_User_birthdate(ctx, field)
+			case "phone_number":
+				return ec.fieldContext_User_phone_number(ctx, field)
+			case "phone_number_verified":
+				return ec.fieldContext_User_phone_number_verified(ctx, field)
+			case "picture":
+				return ec.fieldContext_User_picture(ctx, field)
+			case "roles":
+				return ec.fieldContext_User_roles(ctx, field)
+			case "created_at":
+				return ec.fieldContext_User_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_User_updated_at(ctx, field)
+			case "revoked_timestamp":
+				return ec.fieldContext_User_revoked_timestamp(ctx, field)
+			case "is_multi_factor_auth_enabled":
+				return ec.fieldContext_User_is_multi_factor_auth_enabled(ctx, field)
+			case "app_data":
+				return ec.fieldContext_User_app_data(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
 	}
 	return fc, nil
@@ -16086,7 +16364,7 @@ func (ec *executionContext) unmarshalInputMobileSignUpInput(ctx context.Context,
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"email", "given_name", "family_name", "middle_name", "nickname", "gender", "birthdate", "phone_number", "picture", "password", "confirm_password", "roles", "scope", "redirect_uri", "is_multi_factor_auth_enabled", "state"}
+	fieldsInOrder := [...]string{"email", "given_name", "family_name", "middle_name", "nickname", "gender", "birthdate", "phone_number", "picture", "password", "confirm_password", "roles", "scope", "redirect_uri", "is_multi_factor_auth_enabled", "state", "app_data"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -16221,6 +16499,14 @@ func (ec *executionContext) unmarshalInputMobileSignUpInput(ctx context.Context,
 			if err != nil {
 				return it, err
 			}
+		case "app_data":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("app_data"))
+			it.AppData, err = ec.unmarshalOMap2map(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		}
 	}
 
@@ -16326,7 +16612,7 @@ func (ec *executionContext) unmarshalInputResendOTPRequest(ctx context.Context, 
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"email", "state"}
+	fieldsInOrder := [...]string{"email", "phone_number", "state"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -16337,7 +16623,15 @@ func (ec *executionContext) unmarshalInputResendOTPRequest(ctx context.Context, 
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
-			it.Email, err = ec.unmarshalNString2string(ctx, v)
+			it.Email, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "phone_number":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phone_number"))
+			it.PhoneNumber, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -16486,7 +16780,7 @@ func (ec *executionContext) unmarshalInputSignUpInput(ctx context.Context, obj i
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"email", "given_name", "family_name", "middle_name", "nickname", "gender", "birthdate", "phone_number", "picture", "password", "confirm_password", "roles", "scope", "redirect_uri", "is_multi_factor_auth_enabled", "state"}
+	fieldsInOrder := [...]string{"email", "given_name", "family_name", "middle_name", "nickname", "gender", "birthdate", "phone_number", "picture", "password", "confirm_password", "roles", "scope", "redirect_uri", "is_multi_factor_auth_enabled", "state", "app_data"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -16621,6 +16915,14 @@ func (ec *executionContext) unmarshalInputSignUpInput(ctx context.Context, obj i
 			if err != nil {
 				return it, err
 			}
+		case "app_data":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("app_data"))
+			it.AppData, err = ec.unmarshalOMap2map(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		}
 	}
 
@@ -16634,7 +16936,7 @@ func (ec *executionContext) unmarshalInputTestEndpointRequest(ctx context.Contex
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"endpoint", "event_name", "headers"}
+	fieldsInOrder := [...]string{"endpoint", "event_name", "event_description", "headers"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -16654,6 +16956,14 @@ func (ec *executionContext) unmarshalInputTestEndpointRequest(ctx context.Contex
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("event_name"))
 			it.EventName, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "event_description":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("event_description"))
+			it.EventDescription, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -17202,7 +17512,7 @@ func (ec *executionContext) unmarshalInputUpdateProfileInput(ctx context.Context
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"old_password", "new_password", "confirm_new_password", "email", "given_name", "family_name", "middle_name", "nickname", "gender", "birthdate", "phone_number", "picture", "is_multi_factor_auth_enabled"}
+	fieldsInOrder := [...]string{"old_password", "new_password", "confirm_new_password", "email", "given_name", "family_name", "middle_name", "nickname", "gender", "birthdate", "phone_number", "picture", "is_multi_factor_auth_enabled", "app_data"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -17313,6 +17623,14 @@ func (ec *executionContext) unmarshalInputUpdateProfileInput(ctx context.Context
 			if err != nil {
 				return it, err
 			}
+		case "app_data":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("app_data"))
+			it.AppData, err = ec.unmarshalOMap2map(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		}
 	}
 
@@ -17326,7 +17644,7 @@ func (ec *executionContext) unmarshalInputUpdateUserInput(ctx context.Context, o
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"id", "email", "email_verified", "given_name", "family_name", "middle_name", "nickname", "gender", "birthdate", "phone_number", "picture", "roles", "is_multi_factor_auth_enabled"}
+	fieldsInOrder := [...]string{"id", "email", "email_verified", "given_name", "family_name", "middle_name", "nickname", "gender", "birthdate", "phone_number", "picture", "roles", "is_multi_factor_auth_enabled", "app_data"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -17434,6 +17752,14 @@ func (ec *executionContext) unmarshalInputUpdateUserInput(ctx context.Context, o
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("is_multi_factor_auth_enabled"))
 			it.IsMultiFactorAuthEnabled, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "app_data":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("app_data"))
+			it.AppData, err = ec.unmarshalOMap2map(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -17555,6 +17881,42 @@ func (ec *executionContext) unmarshalInputValidateJWTTokenInput(ctx context.Cont
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputValidateSessionInput(ctx context.Context, obj interface{}) (model.ValidateSessionInput, error) {
+	var it model.ValidateSessionInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"cookie", "roles"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "cookie":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("cookie"))
+			it.Cookie, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "roles":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("roles"))
+			it.Roles, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputVerifyEmailInput(ctx context.Context, obj interface{}) (model.VerifyEmailInput, error) {
 	var it model.VerifyEmailInput
 	asMap := map[string]interface{}{}
@@ -17591,42 +17953,6 @@ func (ec *executionContext) unmarshalInputVerifyEmailInput(ctx context.Context, 
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputVerifyMobileRequest(ctx context.Context, obj interface{}) (model.VerifyMobileRequest, error) {
-	var it model.VerifyMobileRequest
-	asMap := map[string]interface{}{}
-	for k, v := range obj.(map[string]interface{}) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"phone_number", "code"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "phone_number":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phone_number"))
-			it.PhoneNumber, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "code":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("code"))
-			it.Code, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
 func (ec *executionContext) unmarshalInputVerifyOTPRequest(ctx context.Context, obj interface{}) (model.VerifyOTPRequest, error) {
 	var it model.VerifyOTPRequest
 	asMap := map[string]interface{}{}
@@ -17634,7 +17960,7 @@ func (ec *executionContext) unmarshalInputVerifyOTPRequest(ctx context.Context, 
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"email", "otp", "state"}
+	fieldsInOrder := [...]string{"email", "phone_number", "otp", "state"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -17645,7 +17971,15 @@ func (ec *executionContext) unmarshalInputVerifyOTPRequest(ctx context.Context, 
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
-			it.Email, err = ec.unmarshalNString2string(ctx, v)
+			it.Email, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "phone_number":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phone_number"))
+			it.PhoneNumber, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -17724,9 +18058,13 @@ func (ec *executionContext) _AuthResponse(ctx context.Context, sel ast.Selection
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "should_show_otp_screen":
+		case "should_show_email_otp_screen":
 
-			out.Values[i] = ec._AuthResponse_should_show_otp_screen(ctx, field, obj)
+			out.Values[i] = ec._AuthResponse_should_show_email_otp_screen(ctx, field, obj)
+
+		case "should_show_mobile_otp_screen":
+
+			out.Values[i] = ec._AuthResponse_should_show_mobile_otp_screen(ctx, field, obj)
 
 		case "access_token":
 
@@ -18536,15 +18874,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "verify_mobile":
-
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_verify_mobile(ctx, field)
-			})
-
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "_delete_user":
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
@@ -18856,6 +19185,29 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_validate_jwt_token(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
+		case "validate_session":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_validate_session(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -19317,6 +19669,10 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 
 			out.Values[i] = ec._User_is_multi_factor_auth_enabled(ctx, field, obj)
 
+		case "app_data":
+
+			out.Values[i] = ec._User_app_data(ctx, field, obj)
+
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -19384,6 +19740,41 @@ func (ec *executionContext) _ValidateJWTTokenResponse(ctx context.Context, sel a
 
 			out.Values[i] = ec._ValidateJWTTokenResponse_claims(ctx, field, obj)
 
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var validateSessionResponseImplementors = []string{"ValidateSessionResponse"}
+
+func (ec *executionContext) _ValidateSessionResponse(ctx context.Context, sel ast.SelectionSet, obj *model.ValidateSessionResponse) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, validateSessionResponseImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ValidateSessionResponse")
+		case "is_valid":
+
+			out.Values[i] = ec._ValidateSessionResponse_is_valid(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "user":
+
+			out.Values[i] = ec._ValidateSessionResponse_user(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -20470,6 +20861,20 @@ func (ec *executionContext) marshalNValidateJWTTokenResponse2ᚖgithubᚗcomᚋa
 	return ec._ValidateJWTTokenResponse(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNValidateSessionResponse2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐValidateSessionResponse(ctx context.Context, sel ast.SelectionSet, v model.ValidateSessionResponse) graphql.Marshaler {
+	return ec._ValidateSessionResponse(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNValidateSessionResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐValidateSessionResponse(ctx context.Context, sel ast.SelectionSet, v *model.ValidateSessionResponse) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._ValidateSessionResponse(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNVerificationRequest2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐVerificationRequestᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.VerificationRequest) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -20540,11 +20945,6 @@ func (ec *executionContext) marshalNVerificationRequests2ᚖgithubᚗcomᚋautho
 
 func (ec *executionContext) unmarshalNVerifyEmailInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐVerifyEmailInput(ctx context.Context, v interface{}) (model.VerifyEmailInput, error) {
 	res, err := ec.unmarshalInputVerifyEmailInput(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) unmarshalNVerifyMobileRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐVerifyMobileRequest(ctx context.Context, v interface{}) (model.VerifyMobileRequest, error) {
-	res, err := ec.unmarshalInputVerifyMobileRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
@@ -21156,6 +21556,14 @@ func (ec *executionContext) marshalOUser2ᚖgithubᚗcomᚋauthorizerdevᚋautho
 		return graphql.Null
 	}
 	return ec._User(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOValidateSessionInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐValidateSessionInput(ctx context.Context, v interface{}) (*model.ValidateSessionInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputValidateSessionInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {

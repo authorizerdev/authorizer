@@ -16,6 +16,8 @@ var (
 	envStorePrefix = "authorizer_env"
 )
 
+const mfaSessionPrefix = "mfa_sess_"
+
 // SetUserSession sets the user session for given user identifier in form recipe:user_id
 func (c *provider) SetUserSession(userId, key, token string, expiration int64) error {
 	currentTime := time.Now()
@@ -91,6 +93,37 @@ func (c *provider) DeleteSessionForNamespace(namespace string) error {
 	return nil
 }
 
+// SetMfaSession sets the mfa session with key and value of userId
+func (c *provider) SetMfaSession(userId, key string, expiration int64) error {
+	currentTime := time.Now()
+	expireTime := time.Unix(expiration, 0)
+	duration := expireTime.Sub(currentTime)
+	err := c.store.Set(c.ctx, fmt.Sprintf("%s%s:%s", mfaSessionPrefix, userId, key), userId, duration).Err()
+	if err != nil {
+		log.Debug("Error saving user session to redis: ", err)
+		return err
+	}
+	return nil
+}
+
+// GetMfaSession returns value of given mfa session
+func (c *provider) GetMfaSession(userId, key string) (string, error) {
+	data, err := c.store.Get(c.ctx, fmt.Sprintf("%s%s:%s", mfaSessionPrefix, userId, key)).Result()
+	if err != nil {
+		return "", err
+	}
+	return data, nil
+}
+
+// DeleteMfaSession deletes given mfa session from in-memory store.
+func (c *provider) DeleteMfaSession(userId, key string) error {
+	if err := c.store.Del(c.ctx, fmt.Sprintf("%s%s:%s", mfaSessionPrefix, userId, key)).Err(); err != nil {
+		log.Debug("Error deleting user session from redis: ", err)
+		// continue
+	}
+	return nil
+}
+
 // SetState sets the state in redis store.
 func (c *provider) SetState(key, value string) error {
 	err := c.store.Set(c.ctx, stateStorePrefix+key, value, 0).Err()
@@ -143,7 +176,7 @@ func (c *provider) GetEnvStore() (map[string]interface{}, error) {
 		return nil, err
 	}
 	for key, value := range data {
-		if key == constants.EnvKeyDisableBasicAuthentication || key == constants.EnvKeyDisableMobileBasicAuthentication || key == constants.EnvKeyDisableEmailVerification || key == constants.EnvKeyDisableLoginPage || key == constants.EnvKeyDisableMagicLinkLogin || key == constants.EnvKeyDisableRedisForEnv || key == constants.EnvKeyDisableSignUp || key == constants.EnvKeyDisableStrongPassword || key == constants.EnvKeyIsEmailServiceEnabled || key == constants.EnvKeyEnforceMultiFactorAuthentication || key == constants.EnvKeyDisableMultiFactorAuthentication || key == constants.EnvKeyAppCookieSecure || key == constants.EnvKeyAdminCookieSecure {
+		if key == constants.EnvKeyDisableBasicAuthentication || key == constants.EnvKeyDisableMobileBasicAuthentication || key == constants.EnvKeyDisableEmailVerification || key == constants.EnvKeyDisableLoginPage || key == constants.EnvKeyDisableMagicLinkLogin || key == constants.EnvKeyDisableRedisForEnv || key == constants.EnvKeyDisableSignUp || key == constants.EnvKeyDisableStrongPassword || key == constants.EnvKeyIsEmailServiceEnabled || key == constants.EnvKeyIsSMSServiceEnabled || key == constants.EnvKeyEnforceMultiFactorAuthentication || key == constants.EnvKeyDisableMultiFactorAuthentication || key == constants.EnvKeyAppCookieSecure || key == constants.EnvKeyAdminCookieSecure {
 			boolValue, err := strconv.ParseBool(value)
 			if err != nil {
 				return res, err

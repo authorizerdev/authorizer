@@ -12,7 +12,7 @@ import (
 )
 
 // AddWebhookLog to add webhook log
-func (p *provider) AddWebhookLog(ctx context.Context, webhookLog models.WebhookLog) (*model.WebhookLog, error) {
+func (p *provider) AddWebhookLog(ctx context.Context, webhookLog *models.WebhookLog) (*model.WebhookLog, error) {
 	if webhookLog.ID == "" {
 		webhookLog.ID = uuid.New().String()
 	}
@@ -30,7 +30,7 @@ func (p *provider) AddWebhookLog(ctx context.Context, webhookLog models.WebhookL
 }
 
 // ListWebhookLogs to list webhook logs
-func (p *provider) ListWebhookLogs(ctx context.Context, pagination model.Pagination, webhookID string) (*model.WebhookLogs, error) {
+func (p *provider) ListWebhookLogs(ctx context.Context, pagination *model.Pagination, webhookID string) (*model.WebhookLogs, error) {
 	webhookLogs := []*model.WebhookLog{}
 	paginationClone := pagination
 	totalCountQuery := fmt.Sprintf(`SELECT COUNT(*) FROM %s`, KeySpace+"."+models.Collections.WebhookLog)
@@ -38,7 +38,6 @@ func (p *provider) ListWebhookLogs(ctx context.Context, pagination model.Paginat
 	// so we fetch till limit + offset
 	// and return the results from offset to limit
 	query := fmt.Sprintf("SELECT id, http_status, response, request, webhook_id, created_at, updated_at FROM %s LIMIT %d", KeySpace+"."+models.Collections.WebhookLog, pagination.Limit+pagination.Offset)
-
 	if webhookID != "" {
 		totalCountQuery = fmt.Sprintf(`SELECT COUNT(*) FROM %s WHERE webhook_id='%s' ALLOW FILTERING`, KeySpace+"."+models.Collections.WebhookLog, webhookID)
 		query = fmt.Sprintf("SELECT id, http_status, response, request, webhook_id, created_at, updated_at FROM %s WHERE webhook_id = '%s' LIMIT %d ALLOW FILTERING", KeySpace+"."+models.Collections.WebhookLog, webhookID, pagination.Limit+pagination.Offset)
@@ -64,7 +63,7 @@ func (p *provider) ListWebhookLogs(ctx context.Context, pagination model.Paginat
 	}
 
 	return &model.WebhookLogs{
-		Pagination:  &paginationClone,
+		Pagination:  paginationClone,
 		WebhookLogs: webhookLogs,
 	}, nil
 }

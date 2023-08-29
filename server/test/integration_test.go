@@ -9,6 +9,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
+	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/env"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/utils"
@@ -46,7 +47,6 @@ func TestResolvers(t *testing.T) {
 
 	for dbType, dbURL := range databases {
 		ctx := context.Background()
-
 		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDatabaseURL, dbURL)
 		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDatabaseType, dbType)
 		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDatabaseName, testDb)
@@ -57,6 +57,11 @@ func TestResolvers(t *testing.T) {
 		if dbType == constants.DbTypeDynamoDB {
 			memorystore.Provider.UpdateEnvVariable(constants.EnvAwsRegion, "ap-south-1")
 			os.Setenv(constants.EnvAwsRegion, "ap-south-1")
+			os.Unsetenv(constants.EnvAwsAccessKeyID)
+			os.Unsetenv(constants.EnvAwsSecretAccessKey)
+			// Remove aws credentials from env, so that local dynamodb can be used
+			memorystore.Provider.UpdateEnvVariable(constants.EnvAwsAccessKeyID, "")
+			memorystore.Provider.UpdateEnvVariable(constants.EnvAwsSecretAccessKey, "")
 		}
 		if dbType == constants.DbTypeCouchbaseDB {
 			memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDatabaseUsername, "Administrator")
@@ -74,8 +79,10 @@ func TestResolvers(t *testing.T) {
 
 		// clean the persisted config for test to use fresh config
 		envData, err := db.Provider.GetEnv(ctx)
-		if err == nil && envData.ID != "" {
-			envData.EnvData = ""
+		if err == nil && envData == nil {
+			envData = &models.Env{
+				EnvData: "",
+			}
 			_, err = db.Provider.UpdateEnv(ctx, envData)
 			if err != nil {
 				t.Logf("Error updating env: %s", err.Error())
@@ -135,7 +142,7 @@ func TestResolvers(t *testing.T) {
 			validateJwtTokenTest(t, s)
 			verifyOTPTest(t, s)
 			resendOTPTest(t, s)
-			verifyMobileTest(t, s)
+			validateSessionTests(t, s)
 
 			updateAllUsersTest(t, s)
 			webhookLogsTest(t, s)   // get logs after above resolver tests are done

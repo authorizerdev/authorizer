@@ -33,6 +33,7 @@ func InitMemStore() error {
 		constants.EnvKeyDisableSignUp:                    false,
 		constants.EnvKeyDisableStrongPassword:            false,
 		constants.EnvKeyIsEmailServiceEnabled:            false,
+		constants.EnvKeyIsSMSServiceEnabled:              false,
 		constants.EnvKeyEnforceMultiFactorAuthentication: false,
 		constants.EnvKeyDisableMultiFactorAuthentication: false,
 		constants.EnvKeyAppCookieSecure:                  true,

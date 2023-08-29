@@ -15,33 +15,28 @@ import (
 )
 
 // AddEmailTemplate to add EmailTemplate
-func (p *provider) AddEmailTemplate(ctx context.Context, emailTemplate models.EmailTemplate) (*model.EmailTemplate, error) {
+func (p *provider) AddEmailTemplate(ctx context.Context, emailTemplate *models.EmailTemplate) (*model.EmailTemplate, error) {
 	if emailTemplate.ID == "" {
 		emailTemplate.ID = uuid.New().String()
 	}
-
 	emailTemplate.Key = emailTemplate.ID
 	emailTemplate.CreatedAt = time.Now().Unix()
 	emailTemplate.UpdatedAt = time.Now().Unix()
-
 	existingEmailTemplate, _ := p.GetEmailTemplateByEventName(ctx, emailTemplate.EventName)
 	if existingEmailTemplate != nil {
 		return nil, fmt.Errorf("Email template with %s event_name already exists", emailTemplate.EventName)
 	}
-
 	insertQuery := fmt.Sprintf("INSERT INTO %s (id, event_name, subject, design, template,  created_at, updated_at) VALUES ('%s', '%s', '%s','%s','%s', %d, %d)", KeySpace+"."+models.Collections.EmailTemplate, emailTemplate.ID, emailTemplate.EventName, emailTemplate.Subject, emailTemplate.Design, emailTemplate.Template, emailTemplate.CreatedAt, emailTemplate.UpdatedAt)
 	err := p.db.Query(insertQuery).Exec()
 	if err != nil {
 		return nil, err
 	}
-
 	return emailTemplate.AsAPIEmailTemplate(), nil
 }
 
 // UpdateEmailTemplate to update EmailTemplate
-func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate models.EmailTemplate) (*model.EmailTemplate, error) {
+func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate *models.EmailTemplate) (*model.EmailTemplate, error) {
 	emailTemplate.UpdatedAt = time.Now().Unix()
-
 	bytes, err := json.Marshal(emailTemplate)
 	if err != nil {
 		return nil, err
@@ -54,22 +49,18 @@ func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate models
 	if err != nil {
 		return nil, err
 	}
-
 	updateFields := ""
 	for key, value := range emailTemplateMap {
 		if key == "_id" {
 			continue
 		}
-
 		if key == "_key" {
 			continue
 		}
-
 		if value == nil {
 			updateFields += fmt.Sprintf("%s = null,", key)
 			continue
 		}
-
 		valueType := reflect.TypeOf(value)
 		if valueType.Name() == "string" {
 			updateFields += fmt.Sprintf("%s = '%s', ", key, value.(string))
@@ -90,7 +81,7 @@ func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate models
 }
 
 // ListEmailTemplates to list EmailTemplate
-func (p *provider) ListEmailTemplate(ctx context.Context, pagination model.Pagination) (*model.EmailTemplates, error) {
+func (p *provider) ListEmailTemplate(ctx context.Context, pagination *model.Pagination) (*model.EmailTemplates, error) {
 	emailTemplates := []*model.EmailTemplate{}
 	paginationClone := pagination
 
@@ -120,7 +111,7 @@ func (p *provider) ListEmailTemplate(ctx context.Context, pagination model.Pagin
 	}
 
 	return &model.EmailTemplates{
-		Pagination:     &paginationClone,
+		Pagination:     paginationClone,
 		EmailTemplates: emailTemplates,
 	}, nil
 }

@@ -1,13 +1,18 @@
 package test
 
 import (
+	"fmt"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/authorizerdev/authorizer/server/resolvers"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -65,16 +70,36 @@ func mobileSingupTest(t *testing.T, s TestSetup) {
 		})
 		assert.Error(t, err)
 		assert.Nil(t, res)
-
+		phoneNumber := "1234567890"
 		res, err = resolvers.MobileSignupResolver(ctx, &model.MobileSignUpInput{
-			PhoneNumber:     "1234567890",
+			PhoneNumber:     phoneNumber,
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password,
 		})
 		assert.NoError(t, err)
-		assert.NotEmpty(t, res.AccessToken)
-		assert.Equal(t, "1234567890@authorizer.dev", res.User.Email)
-
+		assert.NotNil(t, res)
+		assert.True(t, *res.ShouldShowMobileOtpScreen)
+		// Verify with otp
+		otp, err := db.Provider.GetOTPByPhoneNumber(ctx, phoneNumber)
+		assert.Nil(t, err)
+		assert.NotEmpty(t, otp.Otp)
+		// Get user by phone number
+		user, err := db.Provider.GetUserByPhoneNumber(ctx, phoneNumber)
+		assert.NoError(t, err)
+		assert.NotNil(t, user)
+		// Set mfa cookie session
+		mfaSession := uuid.NewString()
+		memorystore.Provider.SetMfaSession(user.ID, mfaSession, time.Now().Add(1*time.Minute).Unix())
+		cookie := fmt.Sprintf("%s=%s;", constants.MfaCookieName+"_session", mfaSession)
+		cookie = strings.TrimSuffix(cookie, ";")
+		req, ctx := createContext(s)
+		req.Header.Set("Cookie", cookie)
+		otpRes, err := resolvers.VerifyOtpResolver(ctx, model.VerifyOTPRequest{
+			PhoneNumber: &phoneNumber,
+			Otp:         otp.Otp,
+		})
+		assert.Nil(t, err)
+		assert.NotEmpty(t, otpRes.Message)
 		res, err = resolvers.MobileSignupResolver(ctx, &model.MobileSignUpInput{
 			PhoneNumber:     "1234567890",
 			Password:        s.TestInfo.Password,

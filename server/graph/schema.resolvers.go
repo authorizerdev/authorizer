@@ -81,11 +81,6 @@ func (r *mutationResolver) ResendOtp(ctx context.Context, params model.ResendOTP
 	return resolvers.ResendOTPResolver(ctx, params)
 }
 
-// VerifyMobile is the resolver for the verify_mobile field.
-func (r *mutationResolver) VerifyMobile(ctx context.Context, params model.VerifyMobileRequest) (*model.AuthResponse, error) {
-	return resolvers.VerifyMobileResolver(ctx, params)
-}
-
 // DeleteUser is the resolver for the _delete_user field.
 func (r *mutationResolver) DeleteUser(ctx context.Context, params model.DeleteUserInput) (*model.Response, error) {
 	return resolvers.DeleteUserResolver(ctx, params)
@@ -189,6 +184,11 @@ func (r *queryResolver) Profile(ctx context.Context) (*model.User, error) {
 // ValidateJwtToken is the resolver for the validate_jwt_token field.
 func (r *queryResolver) ValidateJwtToken(ctx context.Context, params model.ValidateJWTTokenInput) (*model.ValidateJWTTokenResponse, error) {
 	return resolvers.ValidateJwtTokenResolver(ctx, params)
+}
+
+// ValidateSession is the resolver for the validate_session field.
+func (r *queryResolver) ValidateSession(ctx context.Context, params *model.ValidateSessionInput) (*model.ValidateSessionResponse, error) {
+	return resolvers.ValidateSessionResolver(ctx, params)
 }
 
 // Users is the resolver for the _users field.

@@ -12,6 +12,12 @@ type Provider interface {
 	DeleteAllUserSessions(userId string) error
 	// DeleteSessionForNamespace deletes the session for a given namespace
 	DeleteSessionForNamespace(namespace string) error
+	// SetMfaSession sets the mfa session with key and value of userId
+	SetMfaSession(userId, key string, expiration int64) error
+	// GetMfaSession returns value of given mfa session
+	GetMfaSession(userId, key string) (string, error)
+	// DeleteMfaSession deletes given mfa session from in-memory store.
+	DeleteMfaSession(userId, key string) error
 
 	// SetState sets the login state (key, value form) in the session store
 	SetState(key, state string) error

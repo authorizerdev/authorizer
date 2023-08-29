@@ -19,7 +19,7 @@ import (
 // InitEnv to initialize EnvData and through error if required env are not present
 func InitAllEnv() error {
 	envData, err := GetEnvData()
-	if err != nil {
+	if err != nil || envData == nil {
 		log.Info("No env data found in db, using local clone of env data")
 		// get clone of current store
 		envData, err = memorystore.Provider.GetEnvStore()
@@ -104,21 +104,19 @@ func InitAllEnv() error {
 	osDisableStrongPassword := os.Getenv(constants.EnvKeyDisableStrongPassword)
 	osEnforceMultiFactorAuthentication := os.Getenv(constants.EnvKeyEnforceMultiFactorAuthentication)
 	osDisableMultiFactorAuthentication := os.Getenv(constants.EnvKeyDisableMultiFactorAuthentication)
+	// phone verification var
+	osDisablePhoneVerification := os.Getenv(constants.EnvKeyDisablePhoneVerification)
+	// twilio vars
+	osTwilioApiKey := os.Getenv(constants.EnvKeyTwilioAPIKey)
+	osTwilioApiSecret := os.Getenv(constants.EnvKeyTwilioAPISecret)
+	osTwilioAccountSid := os.Getenv(constants.EnvKeyTwilioAccountSID)
+	osTwilioSender := os.Getenv(constants.EnvKeyTwilioSender)
 
 	// os slice vars
 	osAllowedOrigins := os.Getenv(constants.EnvKeyAllowedOrigins)
 	osRoles := os.Getenv(constants.EnvKeyRoles)
 	osDefaultRoles := os.Getenv(constants.EnvKeyDefaultRoles)
 	osProtectedRoles := os.Getenv(constants.EnvKeyProtectedRoles)
-
-	// phone verification var
-	osDisablePhoneVerification := os.Getenv(constants.EnvKeyDisablePhoneVerification)
-
-	// twilio vars
-	osTwilioApiKey := os.Getenv(constants.EnvKeyTwilioAPIKey)
-	osTwilioApiSecret := os.Getenv(constants.EnvKeyTwilioAPISecret)
-	osTwilioAccountSid := os.Getenv(constants.EnvKeyTwilioAccountSID)
-	osTwilioSenderFrom := os.Getenv(constants.EnvKeyTwilioSenderFrom)
 
 	ienv, ok := envData[constants.EnvKeyEnv]
 	if !ok || ienv == "" {
@@ -145,7 +143,7 @@ func InitAllEnv() error {
 	if val, ok := envData[constants.EnvAwsRegion]; !ok || val == "" {
 		envData[constants.EnvAwsRegion] = osAwsRegion
 	}
-	
+
 	if osAwsRegion != "" && envData[constants.EnvAwsRegion] != osAwsRegion {
 		envData[constants.EnvAwsRegion] = osAwsRegion
 	}
@@ -691,11 +689,11 @@ func InitAllEnv() error {
 		envData[constants.EnvKeyIsEmailServiceEnabled] = false
 	}
 
-	if envData[constants.EnvKeySmtpHost] != "" || envData[constants.EnvKeySmtpUsername] != "" || envData[constants.EnvKeySmtpPassword] != "" || envData[constants.EnvKeySenderEmail] != "" && envData[constants.EnvKeySmtpPort] != "" {
+	if envData[constants.EnvKeySmtpHost] != "" && envData[constants.EnvKeySmtpUsername] != "" && envData[constants.EnvKeySmtpPassword] != "" && envData[constants.EnvKeySenderEmail] != "" && envData[constants.EnvKeySmtpPort] != "" {
 		envData[constants.EnvKeyIsEmailServiceEnabled] = true
 	}
 
-	if envData[constants.EnvKeyEnforceMultiFactorAuthentication].(bool) && !envData[constants.EnvKeyIsEmailServiceEnabled].(bool) {
+	if envData[constants.EnvKeyEnforceMultiFactorAuthentication].(bool) && !envData[constants.EnvKeyIsEmailServiceEnabled].(bool) && !envData[constants.EnvKeyIsSMSServiceEnabled].(bool) {
 		return errors.New("to enable multi factor authentication, please enable email service")
 	}
 
@@ -777,35 +775,54 @@ func InitAllEnv() error {
 		envData[constants.EnvKeyDefaultAuthorizeResponseMode] = osAuthorizeResponseMode
 	}
 
+	if val, ok := envData[constants.EnvKeyTwilioAPISecret]; !ok || val == "" {
+		envData[constants.EnvKeyTwilioAPISecret] = osTwilioApiSecret
+	}
 	if osTwilioApiSecret != "" && envData[constants.EnvKeyTwilioAPISecret] != osTwilioApiSecret {
 		envData[constants.EnvKeyTwilioAPISecret] = osTwilioApiSecret
 	}
 
+	if val, ok := envData[constants.EnvKeyTwilioAPIKey]; !ok || val == "" {
+		envData[constants.EnvKeyTwilioAPIKey] = osTwilioApiKey
+	}
 	if osTwilioApiKey != "" && envData[constants.EnvKeyTwilioAPIKey] != osTwilioApiKey {
 		envData[constants.EnvKeyTwilioAPIKey] = osTwilioApiKey
 	}
 
+	if val, ok := envData[constants.EnvKeyTwilioAccountSID]; !ok || val == "" {
+		envData[constants.EnvKeyTwilioAccountSID] = osTwilioAccountSid
+	}
 	if osTwilioAccountSid != "" && envData[constants.EnvKeyTwilioAccountSID] != osTwilioAccountSid {
 		envData[constants.EnvKeyTwilioAccountSID] = osTwilioAccountSid
 	}
 
-    if osTwilioSenderFrom != "" && envData[constants.EnvKeyTwilioSenderFrom] != osTwilioSenderFrom {
-		envData[constants.EnvKeyTwilioSenderFrom] = osTwilioSenderFrom
+	if val, ok := envData[constants.EnvKeyTwilioSender]; !ok || val == "" {
+		envData[constants.EnvKeyTwilioSender] = osTwilioSender
+	}
+	if osTwilioSender != "" && envData[constants.EnvKeyTwilioSender] != osTwilioSender {
+		envData[constants.EnvKeyTwilioSender] = osTwilioSender
 	}
 
 	if _, ok := envData[constants.EnvKeyDisablePhoneVerification]; !ok {
 		envData[constants.EnvKeyDisablePhoneVerification] = osDisablePhoneVerification == "false"
 	}
-	
 	if osDisablePhoneVerification != "" {
 		boolValue, err := strconv.ParseBool(osDisablePhoneVerification)
-		
 		if err != nil {
 			return err
 		}
 		if boolValue != envData[constants.EnvKeyDisablePhoneVerification] {
 			envData[constants.EnvKeyDisablePhoneVerification] = boolValue
 		}
+	}
+
+	if envData[constants.EnvKeyTwilioAPIKey] == "" || envData[constants.EnvKeyTwilioAPISecret] == "" || envData[constants.EnvKeyTwilioAccountSID] == "" || envData[constants.EnvKeyTwilioSender] == "" {
+		envData[constants.EnvKeyDisablePhoneVerification] = true
+		envData[constants.EnvKeyIsSMSServiceEnabled] = false
+	}
+	if envData[constants.EnvKeyTwilioAPIKey] != "" && envData[constants.EnvKeyTwilioAPISecret] != "" && envData[constants.EnvKeyTwilioAccountSID] != "" && envData[constants.EnvKeyTwilioSender] != "" {
+		envData[constants.EnvKeyDisablePhoneVerification] = false
+		envData[constants.EnvKeyIsSMSServiceEnabled] = true
 	}
 
 	err = memorystore.Provider.UpdateEnvStore(envData)

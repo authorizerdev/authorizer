@@ -14,7 +14,7 @@ import (
 )
 
 // AddWebhook to add webhook
-func (p *provider) AddWebhook(ctx context.Context, webhook models.Webhook) (*model.Webhook, error) {
+func (p *provider) AddWebhook(ctx context.Context, webhook *models.Webhook) (*model.Webhook, error) {
 	if webhook.ID == "" {
 		webhook.ID = uuid.New().String()
 	}
@@ -32,7 +32,7 @@ func (p *provider) AddWebhook(ctx context.Context, webhook models.Webhook) (*mod
 }
 
 // UpdateWebhook to update webhook
-func (p *provider) UpdateWebhook(ctx context.Context, webhook models.Webhook) (*model.Webhook, error) {
+func (p *provider) UpdateWebhook(ctx context.Context, webhook *models.Webhook) (*model.Webhook, error) {
 	webhook.UpdatedAt = time.Now().Unix()
 	// Event is changed
 	if !strings.Contains(webhook.EventName, "-") {
@@ -47,7 +47,7 @@ func (p *provider) UpdateWebhook(ctx context.Context, webhook models.Webhook) (*
 }
 
 // ListWebhooks to list webhook
-func (p *provider) ListWebhook(ctx context.Context, pagination model.Pagination) (*model.Webhooks, error) {
+func (p *provider) ListWebhook(ctx context.Context, pagination *model.Pagination) (*model.Webhooks, error) {
 	webhooks := []*model.Webhook{}
 	opts := options.Find()
 	opts.SetLimit(pagination.Limit)
@@ -66,7 +66,7 @@ func (p *provider) ListWebhook(ctx context.Context, pagination model.Pagination)
 	}
 	defer cursor.Close(ctx)
 	for cursor.Next(ctx) {
-		var webhook models.Webhook
+		var webhook *models.Webhook
 		err := cursor.Decode(&webhook)
 		if err != nil {
 			return nil, err
@@ -74,14 +74,14 @@ func (p *provider) ListWebhook(ctx context.Context, pagination model.Pagination)
 		webhooks = append(webhooks, webhook.AsAPIWebhook())
 	}
 	return &model.Webhooks{
-		Pagination: &paginationClone,
+		Pagination: paginationClone,
 		Webhooks:   webhooks,
 	}, nil
 }
 
 // GetWebhookByID to get webhook by id
 func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*model.Webhook, error) {
-	var webhook models.Webhook
+	var webhook *models.Webhook
 	webhookCollection := p.db.Collection(models.Collections.Webhook, options.Collection())
 	err := webhookCollection.FindOne(ctx, bson.M{"_id": webhookID}).Decode(&webhook)
 	if err != nil {
@@ -104,7 +104,7 @@ func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) 
 	}
 	defer cursor.Close(ctx)
 	for cursor.Next(ctx) {
-		var webhook models.Webhook
+		var webhook *models.Webhook
 		err := cursor.Decode(&webhook)
 		if err != nil {
 			return nil, err

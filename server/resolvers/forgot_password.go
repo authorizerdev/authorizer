@@ -81,7 +81,7 @@ func ForgotPasswordResolver(ctx context.Context, params model.ForgotPasswordInpu
 		log.Debug("Failed to create verification token", err)
 		return res, err
 	}
-	_, err = db.Provider.AddVerificationRequest(ctx, models.VerificationRequest{
+	_, err = db.Provider.AddVerificationRequest(ctx, &models.VerificationRequest{
 		Token:       verificationToken,
 		Identifier:  constants.VerificationTypeForgotPassword,
 		ExpiresAt:   time.Now().Add(time.Minute * 30).Unix(),

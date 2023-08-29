@@ -13,15 +13,13 @@ import (
 )
 
 // AddWebhookLog to add webhook log
-func (p *provider) AddWebhookLog(ctx context.Context, webhookLog models.WebhookLog) (*model.WebhookLog, error) {
+func (p *provider) AddWebhookLog(ctx context.Context, webhookLog *models.WebhookLog) (*model.WebhookLog, error) {
 	if webhookLog.ID == "" {
 		webhookLog.ID = uuid.New().String()
 	}
-
 	webhookLog.Key = webhookLog.ID
 	webhookLog.CreatedAt = time.Now().Unix()
 	webhookLog.UpdatedAt = time.Now().Unix()
-
 	insertOpt := gocb.InsertOptions{
 		Context: ctx,
 	}
@@ -29,19 +27,16 @@ func (p *provider) AddWebhookLog(ctx context.Context, webhookLog models.WebhookL
 	if err != nil {
 		return webhookLog.AsAPIWebhookLog(), err
 	}
-
 	return webhookLog.AsAPIWebhookLog(), nil
 }
 
 // ListWebhookLogs to list webhook logs
-func (p *provider) ListWebhookLogs(ctx context.Context, pagination model.Pagination, webhookID string) (*model.WebhookLogs, error) {
+func (p *provider) ListWebhookLogs(ctx context.Context, pagination *model.Pagination, webhookID string) (*model.WebhookLogs, error) {
 	var query string
 	var err error
-
 	webhookLogs := []*model.WebhookLog{}
 	params := make(map[string]interface{}, 1)
 	paginationClone := pagination
-
 	params["webhookID"] = webhookID
 	params["offset"] = paginationClone.Offset
 	params["limit"] = paginationClone.Limit
@@ -55,13 +50,11 @@ func (p *provider) ListWebhookLogs(ctx context.Context, pagination model.Paginat
 	} else {
 		query = fmt.Sprintf("SELECT _id, http_status, response, request, webhook_id, created_at, updated_at FROM %s.%s OFFSET $offset LIMIT $limit", p.scopeName, models.Collections.WebhookLog)
 	}
-
 	queryResult, err := p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
 		NamedParameters: params,
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -73,13 +66,12 @@ func (p *provider) ListWebhookLogs(ctx context.Context, pagination model.Paginat
 		}
 		webhookLogs = append(webhookLogs, webhookLog.AsAPIWebhookLog())
 	}
-
 	if err := queryResult.Err(); err != nil {
 		return nil, err
 
 	}
 	return &model.WebhookLogs{
-		Pagination:  &paginationClone,
+		Pagination:  paginationClone,
 		WebhookLogs: webhookLogs,
 	}, nil
 }

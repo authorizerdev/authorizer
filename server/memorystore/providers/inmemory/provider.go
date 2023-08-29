@@ -7,18 +7,20 @@ import (
 )
 
 type provider struct {
-	mutex        sync.Mutex
-	sessionStore *stores.SessionStore
-	stateStore   *stores.StateStore
-	envStore     *stores.EnvStore
+	mutex           sync.Mutex
+	sessionStore    *stores.SessionStore
+	mfasessionStore *stores.SessionStore
+	stateStore      *stores.StateStore
+	envStore        *stores.EnvStore
 }
 
 // NewInMemoryStore returns a new in-memory store.
 func NewInMemoryProvider() (*provider, error) {
 	return &provider{
-		mutex:        sync.Mutex{},
-		envStore:     stores.NewEnvStore(),
-		sessionStore: stores.NewSessionStore(),
-		stateStore:   stores.NewStateStore(),
+		mutex:           sync.Mutex{},
+		envStore:        stores.NewEnvStore(),
+		sessionStore:    stores.NewSessionStore(),
+		mfasessionStore: stores.NewSessionStore(),
+		stateStore:      stores.NewStateStore(),
 	}, nil
 }

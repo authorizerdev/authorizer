@@ -9,16 +9,13 @@ import (
 func UpdateByHashKey(table dynamo.Table, hashKey string, hashValue string, item interface{}) error {
 	existingValue, err := dynamo.MarshalItem(item)
 	var i interface{}
-
 	if err != nil {
 		return err
 	}
-
 	nullableValue, err := dynamodbattribute.MarshalMap(item)
 	if err != nil {
 		return err
 	}
-
 	u := table.Update(hashKey, hashValue)
 	for k, v := range existingValue {
 		if k == hashKey {
@@ -26,7 +23,6 @@ func UpdateByHashKey(table dynamo.Table, hashKey string, hashValue string, item 
 		}
 		u = u.Set(k, v)
 	}
-
 	for k, v := range nullableValue {
 		if k == hashKey {
 			continue
@@ -36,11 +32,9 @@ func UpdateByHashKey(table dynamo.Table, hashKey string, hashValue string, item 
 			u = u.SetNullable(k, v)
 		}
 	}
-
 	err = u.Run()
 	if err != nil {
 		return err
 	}
-
 	return nil
 }

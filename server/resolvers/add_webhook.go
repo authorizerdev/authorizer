@@ -43,7 +43,7 @@ func AddWebhookResolver(ctx context.Context, params model.AddWebhookRequest) (*m
 	if params.EventDescription == nil {
 		params.EventDescription = refs.NewStringRef(strings.Join(strings.Split(params.EventName, "."), " "))
 	}
-	_, err = db.Provider.AddWebhook(ctx, models.Webhook{
+	_, err = db.Provider.AddWebhook(ctx, &models.Webhook{
 		EventDescription: refs.StringValue(params.EventDescription),
 		EventName:        params.EventName,
 		EndPoint:         params.Endpoint,
