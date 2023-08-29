@@ -10,7 +10,7 @@ import (
 )
 
 // AddEmailTemplate to add EmailTemplate
-func (p *provider) AddEmailTemplate(ctx context.Context, emailTemplate models.EmailTemplate) (*model.EmailTemplate, error) {
+func (p *provider) AddEmailTemplate(ctx context.Context, emailTemplate *models.EmailTemplate) (*model.EmailTemplate, error) {
 	if emailTemplate.ID == "" {
 		emailTemplate.ID = uuid.New().String()
 	}
@@ -22,13 +22,13 @@ func (p *provider) AddEmailTemplate(ctx context.Context, emailTemplate models.Em
 }
 
 // UpdateEmailTemplate to update EmailTemplate
-func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate models.EmailTemplate) (*model.EmailTemplate, error) {
+func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate *models.EmailTemplate) (*model.EmailTemplate, error) {
 	emailTemplate.UpdatedAt = time.Now().Unix()
 	return emailTemplate.AsAPIEmailTemplate(), nil
 }
 
 // ListEmailTemplates to list EmailTemplate
-func (p *provider) ListEmailTemplate(ctx context.Context, pagination model.Pagination) (*model.EmailTemplates, error) {
+func (p *provider) ListEmailTemplate(ctx context.Context, pagination *model.Pagination) (*model.EmailTemplates, error) {
 	return nil, nil
 }
 

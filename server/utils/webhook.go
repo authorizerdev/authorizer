@@ -16,10 +16,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func RegisterEvent(ctx context.Context, eventName string, authRecipe string, user models.User) error {
+// RegisterEvent util to register event
+// TODO change user to user ref
+func RegisterEvent(ctx context.Context, eventName string, authRecipe string, user *models.User) error {
 	webhooks, err := db.Provider.GetWebhookByEventName(ctx, eventName)
 	if err != nil {
-		log.Debug("Error getting webhook: %v", err)
+		log.Debug("error getting webhook: %v", err)
 		return err
 	}
 	for _, webhook := range webhooks {
@@ -61,7 +63,7 @@ func RegisterEvent(ctx context.Context, eventName string, authRecipe string, use
 			continue
 		}
 		if envKey == constants.TestEnv {
-			_, err := db.Provider.AddWebhookLog(ctx, models.WebhookLog{
+			_, err := db.Provider.AddWebhookLog(ctx, &models.WebhookLog{
 				HttpStatus: 200,
 				Request:    string(requestBody),
 				Response:   string(`{"message": "test"}`),
@@ -102,7 +104,7 @@ func RegisterEvent(ctx context.Context, eventName string, authRecipe string, use
 		}
 
 		statusCode := int64(resp.StatusCode)
-		_, err = db.Provider.AddWebhookLog(ctx, models.WebhookLog{
+		_, err = db.Provider.AddWebhookLog(ctx, &models.WebhookLog{
 			HttpStatus: statusCode,
 			Request:    string(requestBody),
 			Response:   string(responseBytes),

@@ -15,7 +15,7 @@ import (
 )
 
 // AddWebhook to add webhook
-func (p *provider) AddWebhook(ctx context.Context, webhook models.Webhook) (*model.Webhook, error) {
+func (p *provider) AddWebhook(ctx context.Context, webhook *models.Webhook) (*model.Webhook, error) {
 	if webhook.ID == "" {
 		webhook.ID = uuid.New().String()
 	}
@@ -35,7 +35,7 @@ func (p *provider) AddWebhook(ctx context.Context, webhook models.Webhook) (*mod
 }
 
 // UpdateWebhook to update webhook
-func (p *provider) UpdateWebhook(ctx context.Context, webhook models.Webhook) (*model.Webhook, error) {
+func (p *provider) UpdateWebhook(ctx context.Context, webhook *models.Webhook) (*model.Webhook, error) {
 	webhook.UpdatedAt = time.Now().Unix()
 	// Event is changed
 	if !strings.Contains(webhook.EventName, "-") {
@@ -68,7 +68,7 @@ func (p *provider) UpdateWebhook(ctx context.Context, webhook models.Webhook) (*
 }
 
 // ListWebhooks to list webhook
-func (p *provider) ListWebhook(ctx context.Context, pagination model.Pagination) (*model.Webhooks, error) {
+func (p *provider) ListWebhook(ctx context.Context, pagination *model.Pagination) (*model.Webhooks, error) {
 	webhooks := []*model.Webhook{}
 	paginationClone := pagination
 	params := make(map[string]interface{}, 1)
@@ -100,14 +100,14 @@ func (p *provider) ListWebhook(ctx context.Context, pagination model.Pagination)
 		return nil, err
 	}
 	return &model.Webhooks{
-		Pagination: &paginationClone,
+		Pagination: paginationClone,
 		Webhooks:   webhooks,
 	}, nil
 }
 
 // GetWebhookByID to get webhook by id
 func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*model.Webhook, error) {
-	var webhook models.Webhook
+	var webhook *models.Webhook
 	params := make(map[string]interface{}, 1)
 	params["_id"] = webhookID
 	query := fmt.Sprintf(`SELECT _id, event_description, event_name, endpoint, headers, enabled, created_at, updated_at FROM %s.%s WHERE _id=$_id LIMIT 1`, p.scopeName, models.Collections.Webhook)
@@ -141,7 +141,7 @@ func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) 
 	}
 	webhooks := []*model.Webhook{}
 	for queryResult.Next() {
-		var webhook models.Webhook
+		var webhook *models.Webhook
 		err := queryResult.Row(&webhook)
 		if err != nil {
 			log.Fatal(err)
@@ -162,11 +162,9 @@ func (p *provider) DeleteWebhook(ctx context.Context, webhook *model.Webhook) er
 		Context: ctx,
 	}
 	_, err := p.db.Collection(models.Collections.Webhook).Remove(webhook.ID, &removeOpt)
-
 	if err != nil {
 		return err
 	}
-
 	query := fmt.Sprintf(`DELETE FROM %s.%s WHERE webhook_id=$webhook_id`, p.scopeName, models.Collections.WebhookLog)
 	_, err = p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
@@ -176,6 +174,5 @@ func (p *provider) DeleteWebhook(ctx context.Context, webhook *model.Webhook) er
 	if err != nil {
 		return err
 	}
-
 	return nil
 }

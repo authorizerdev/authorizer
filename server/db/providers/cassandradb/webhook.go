@@ -15,7 +15,7 @@ import (
 )
 
 // AddWebhook to add webhook
-func (p *provider) AddWebhook(ctx context.Context, webhook models.Webhook) (*model.Webhook, error) {
+func (p *provider) AddWebhook(ctx context.Context, webhook *models.Webhook) (*model.Webhook, error) {
 	if webhook.ID == "" {
 		webhook.ID = uuid.New().String()
 	}
@@ -33,7 +33,7 @@ func (p *provider) AddWebhook(ctx context.Context, webhook models.Webhook) (*mod
 }
 
 // UpdateWebhook to update webhook
-func (p *provider) UpdateWebhook(ctx context.Context, webhook models.Webhook) (*model.Webhook, error) {
+func (p *provider) UpdateWebhook(ctx context.Context, webhook *models.Webhook) (*model.Webhook, error) {
 	webhook.UpdatedAt = time.Now().Unix()
 	// Event is changed
 	if !strings.Contains(webhook.EventName, "-") {
@@ -81,7 +81,7 @@ func (p *provider) UpdateWebhook(ctx context.Context, webhook models.Webhook) (*
 }
 
 // ListWebhooks to list webhook
-func (p *provider) ListWebhook(ctx context.Context, pagination model.Pagination) (*model.Webhooks, error) {
+func (p *provider) ListWebhook(ctx context.Context, pagination *model.Pagination) (*model.Webhooks, error) {
 	webhooks := []*model.Webhook{}
 	paginationClone := pagination
 	totalCountQuery := fmt.Sprintf(`SELECT COUNT(*) FROM %s`, KeySpace+"."+models.Collections.Webhook)
@@ -108,7 +108,7 @@ func (p *provider) ListWebhook(ctx context.Context, pagination model.Pagination)
 	}
 
 	return &model.Webhooks{
-		Pagination: &paginationClone,
+		Pagination: paginationClone,
 		Webhooks:   webhooks,
 	}, nil
 }

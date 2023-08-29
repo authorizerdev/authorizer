@@ -72,7 +72,6 @@ func getEmailTemplate(event string, data map[string]interface{}) (*model.EmailTe
 		return nil, err
 	}
 	subjectString := buf.String()
-
 	return &model.EmailTemplate{
 		Template: templateString,
 		Subject:  subjectString,

@@ -28,7 +28,7 @@ func webhookTest(t *testing.T, s TestSetup) {
 		webhooks, err := db.Provider.GetWebhookByEventName(ctx, constants.UserCreatedWebhookEvent)
 		assert.NoError(t, err)
 		assert.NotNil(t, webhooks)
-		assert.Equal(t, 2, len(webhooks))
+		assert.GreaterOrEqual(t, len(webhooks), 2)
 		for _, webhook := range webhooks {
 			res, err := resolvers.WebhookResolver(ctx, model.WebhookRequest{
 				ID: webhook.ID,

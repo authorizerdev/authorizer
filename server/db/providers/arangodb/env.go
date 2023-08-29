@@ -12,7 +12,7 @@ import (
 )
 
 // AddEnv to save environment information in database
-func (p *provider) AddEnv(ctx context.Context, env models.Env) (models.Env, error) {
+func (p *provider) AddEnv(ctx context.Context, env *models.Env) (*models.Env, error) {
 	if env.ID == "" {
 		env.ID = uuid.New().String()
 		env.Key = env.ID
@@ -31,7 +31,7 @@ func (p *provider) AddEnv(ctx context.Context, env models.Env) (models.Env, erro
 }
 
 // UpdateEnv to update environment information in database
-func (p *provider) UpdateEnv(ctx context.Context, env models.Env) (models.Env, error) {
+func (p *provider) UpdateEnv(ctx context.Context, env *models.Env) (*models.Env, error) {
 	env.UpdatedAt = time.Now().Unix()
 	collection, _ := p.db.Collection(ctx, models.Collections.Env)
 	meta, err := collection.UpdateDocument(ctx, env.Key, env)
@@ -45,19 +45,17 @@ func (p *provider) UpdateEnv(ctx context.Context, env models.Env) (models.Env, e
 }
 
 // GetEnv to get environment information from database
-func (p *provider) GetEnv(ctx context.Context) (models.Env, error) {
-	var env models.Env
+func (p *provider) GetEnv(ctx context.Context) (*models.Env, error) {
+	var env *models.Env
 	query := fmt.Sprintf("FOR d in %s RETURN d", models.Collections.Env)
-
 	cursor, err := p.db.Query(ctx, query, nil)
 	if err != nil {
 		return env, err
 	}
 	defer cursor.Close()
-
 	for {
 		if !cursor.HasMore() {
-			if env.Key == "" {
+			if env == nil {
 				return env, fmt.Errorf("config not found")
 			}
 			break

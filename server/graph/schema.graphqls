@@ -51,6 +51,7 @@ type User {
   updated_at: Int64
   revoked_timestamp: Int64
   is_multi_factor_auth_enabled: Boolean
+  app_data: Map
 }
 
 type Users {
@@ -84,11 +85,6 @@ type SMSVerificationRequests {
   updated_at: Int64
 }
 
-input VerifyMobileRequest {
-  phone_number: String!
-  code: String!
-}
-
 type Error {
   message: String!
   reason: String!
@@ -96,7 +92,8 @@ type Error {
 
 type AuthResponse {
   message: String!
-  should_show_otp_screen: Boolean
+  should_show_email_otp_screen: Boolean
+  should_show_mobile_otp_screen: Boolean
   access_token: String
   id_token: String
   refresh_token: String
@@ -181,6 +178,11 @@ type Env {
 type ValidateJWTTokenResponse {
   is_valid: Boolean!
   claims: Map
+}
+
+type ValidateSessionResponse {
+  is_valid: Boolean!
+  user: User!
 }
 
 type GenerateJWTKeysResponse {
@@ -324,6 +326,7 @@ input MobileSignUpInput {
   # it is used to get code for an on-going auth process during login
   # and use that code for setting `c_hash` in id_token
   state: String
+  app_data: Map
 }
 
 input SignUpInput {
@@ -346,6 +349,7 @@ input SignUpInput {
   # it is used to get code for an on-going auth process during login
   # and use that code for setting `c_hash` in id_token
   state: String
+  app_data: Map
 }
 
 input LoginInput {
@@ -401,6 +405,7 @@ input UpdateProfileInput {
   phone_number: String
   picture: String
   is_multi_factor_auth_enabled: Boolean
+  app_data: Map
 }
 
 input UpdateUserInput {
@@ -417,6 +422,7 @@ input UpdateUserInput {
   picture: String
   roles: [String]
   is_multi_factor_auth_enabled: Boolean
+  app_data: Map
 }
 
 input ForgotPasswordInput {
@@ -476,6 +482,11 @@ input ValidateJWTTokenInput {
   roles: [String!]
 }
 
+input ValidateSessionInput {
+  cookie: String!
+  roles: [String!]
+}
+
 input GenerateJWTKeysInput {
   type: String!
 }
@@ -509,6 +520,7 @@ input WebhookRequest {
 input TestEndpointRequest {
   endpoint: String!
   event_name: String!
+  event_description: String
   headers: Map
 }
 
@@ -536,7 +548,9 @@ input DeleteEmailTemplateRequest {
 }
 
 input VerifyOTPRequest {
-  email: String!
+  # either email or phone_number is required
+  email: String
+  phone_number: String
   otp: String!
   # state is used for authorization code grant flow
   # it is used to get code for an on-going auth process during login
@@ -545,7 +559,8 @@ input VerifyOTPRequest {
 }
 
 input ResendOTPRequest {
-  email: String!
+  email: String
+  phone_number: String
   # state is used for authorization code grant flow
   # it is used to get code for an on-going auth process during login
   # and use that code for setting `c_hash` in id_token
@@ -572,7 +587,6 @@ type Mutation {
   revoke(params: OAuthRevokeInput!): Response!
   verify_otp(params: VerifyOTPRequest!): AuthResponse!
   resend_otp(params: ResendOTPRequest!): Response!
-  verify_mobile(params: VerifyMobileRequest!): AuthResponse!
   # admin only apis
   _delete_user(params: DeleteUserInput!): Response!
   _update_user(params: UpdateUserInput!): User!
@@ -598,6 +612,7 @@ type Query {
   session(params: SessionQueryInput): AuthResponse!
   profile: User!
   validate_jwt_token(params: ValidateJWTTokenInput!): ValidateJWTTokenResponse!
+  validate_session(params: ValidateSessionInput): ValidateSessionResponse!
   # admin only apis
   _users(params: PaginatedInput): Users!
   _user(params: GetUserRequest!): User!

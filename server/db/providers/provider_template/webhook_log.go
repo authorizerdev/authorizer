@@ -10,7 +10,7 @@ import (
 )
 
 // AddWebhookLog to add webhook log
-func (p *provider) AddWebhookLog(ctx context.Context, webhookLog models.WebhookLog) (*model.WebhookLog, error) {
+func (p *provider) AddWebhookLog(ctx context.Context, webhookLog *models.WebhookLog) (*model.WebhookLog, error) {
 	if webhookLog.ID == "" {
 		webhookLog.ID = uuid.New().String()
 	}
@@ -22,6 +22,6 @@ func (p *provider) AddWebhookLog(ctx context.Context, webhookLog models.WebhookL
 }
 
 // ListWebhookLogs to list webhook logs
-func (p *provider) ListWebhookLogs(ctx context.Context, pagination model.Pagination, webhookID string) (*model.WebhookLogs, error) {
+func (p *provider) ListWebhookLogs(ctx context.Context, pagination *model.Pagination, webhookID string) (*model.WebhookLogs, error) {
 	return nil, nil
 }

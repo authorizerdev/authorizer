@@ -2,6 +2,8 @@ package resolvers
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -81,13 +83,15 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 		log.Debug("Failed to get user by email: ", err)
 	}
 
-	if existingUser.EmailVerifiedAt != nil {
-		// email is verified
-		log.Debug("Email is already verified and signed up.")
-		return res, fmt.Errorf(`%s has already signed up`, params.Email)
-	} else if existingUser.ID != "" && existingUser.EmailVerifiedAt == nil {
-		log.Debug("Email is already signed up. Verification pending...")
-		return res, fmt.Errorf("%s has already signed up. please complete the email verification process or reset the password", params.Email)
+	if existingUser != nil {
+		if existingUser.EmailVerifiedAt != nil {
+			// email is verified
+			log.Debug("Email is already verified and signed up.")
+			return res, fmt.Errorf(`%s has already signed up`, params.Email)
+		} else if existingUser.ID != "" && existingUser.EmailVerifiedAt == nil {
+			log.Debug("Email is already signed up. Verification pending...")
+			return res, fmt.Errorf("%s has already signed up. please complete the email verification process or reset the password", params.Email)
+		}
 	}
 
 	inputRoles := []string{}
@@ -116,13 +120,10 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 			inputRoles = strings.Split(inputRolesString, ",")
 		}
 	}
-
-	user := models.User{
+	user := &models.User{
 		Email: params.Email,
 	}
-
 	user.Roles = strings.Join(inputRoles, ",")
-
 	password, _ := crypto.EncryptPassword(params.Password)
 	user.Password = &password
 
@@ -172,6 +173,17 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 		user.IsMultiFactorAuthEnabled = refs.NewBoolRef(true)
 	}
 
+	if params.AppData != nil {
+		appDataString := ""
+		appDataBytes, err := json.Marshal(params.AppData)
+		if err != nil {
+			log.Debug("failed to marshall source app_data: ", err)
+			return nil, errors.New("malformed app_data")
+		}
+		appDataString = string(appDataBytes)
+		user.AppData = &appDataString
+	}
+
 	user.SignupMethods = constants.AuthRecipeMethodBasicAuth
 	isEmailVerificationDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification)
 	if err != nil {
@@ -208,7 +220,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 			log.Debug("Failed to create verification token: ", err)
 			return res, err
 		}
-		_, err = db.Provider.AddVerificationRequest(ctx, models.VerificationRequest{
+		_, err = db.Provider.AddVerificationRequest(ctx, &models.VerificationRequest{
 			Token:       verificationToken,
 			Identifier:  verificationType,
 			ExpiresAt:   time.Now().Add(time.Minute * 30).Unix(),
@@ -302,7 +314,9 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 
 		go func() {
 			utils.RegisterEvent(ctx, constants.UserSignUpWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
-			db.Provider.AddSession(ctx, models.Session{
+			// User is also logged in with signup
+			utils.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
+			db.Provider.AddSession(ctx, &models.Session{
 				UserID:    user.ID,
 				UserAgent: utils.GetUserAgent(gc.Request),
 				IP:        utils.GetIP(gc.Request),

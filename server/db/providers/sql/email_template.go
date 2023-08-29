@@ -10,7 +10,7 @@ import (
 )
 
 // AddEmailTemplate to add EmailTemplate
-func (p *provider) AddEmailTemplate(ctx context.Context, emailTemplate models.EmailTemplate) (*model.EmailTemplate, error) {
+func (p *provider) AddEmailTemplate(ctx context.Context, emailTemplate *models.EmailTemplate) (*model.EmailTemplate, error) {
 	if emailTemplate.ID == "" {
 		emailTemplate.ID = uuid.New().String()
 	}
@@ -27,7 +27,7 @@ func (p *provider) AddEmailTemplate(ctx context.Context, emailTemplate models.Em
 }
 
 // UpdateEmailTemplate to update EmailTemplate
-func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate models.EmailTemplate) (*model.EmailTemplate, error) {
+func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate *models.EmailTemplate) (*model.EmailTemplate, error) {
 	emailTemplate.UpdatedAt = time.Now().Unix()
 
 	res := p.db.Save(&emailTemplate)
@@ -38,9 +38,8 @@ func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate models
 }
 
 // ListEmailTemplates to list EmailTemplate
-func (p *provider) ListEmailTemplate(ctx context.Context, pagination model.Pagination) (*model.EmailTemplates, error) {
-	var emailTemplates []models.EmailTemplate
-
+func (p *provider) ListEmailTemplate(ctx context.Context, pagination *model.Pagination) (*model.EmailTemplates, error) {
+	var emailTemplates []*models.EmailTemplate
 	result := p.db.Limit(int(pagination.Limit)).Offset(int(pagination.Offset)).Order("created_at DESC").Find(&emailTemplates)
 	if result.Error != nil {
 		return nil, result.Error
@@ -60,14 +59,14 @@ func (p *provider) ListEmailTemplate(ctx context.Context, pagination model.Pagin
 		responseEmailTemplates = append(responseEmailTemplates, w.AsAPIEmailTemplate())
 	}
 	return &model.EmailTemplates{
-		Pagination:     &paginationClone,
+		Pagination:     paginationClone,
 		EmailTemplates: responseEmailTemplates,
 	}, nil
 }
 
 // GetEmailTemplateByID to get EmailTemplate by id
 func (p *provider) GetEmailTemplateByID(ctx context.Context, emailTemplateID string) (*model.EmailTemplate, error) {
-	var emailTemplate models.EmailTemplate
+	var emailTemplate *models.EmailTemplate
 
 	result := p.db.Where("id = ?", emailTemplateID).First(&emailTemplate)
 	if result.Error != nil {
@@ -78,7 +77,7 @@ func (p *provider) GetEmailTemplateByID(ctx context.Context, emailTemplateID str
 
 // GetEmailTemplateByEventName to get EmailTemplate by event_name
 func (p *provider) GetEmailTemplateByEventName(ctx context.Context, eventName string) (*model.EmailTemplate, error) {
-	var emailTemplate models.EmailTemplate
+	var emailTemplate *models.EmailTemplate
 
 	result := p.db.Where("event_name = ?", eventName).First(&emailTemplate)
 	if result.Error != nil {
@@ -95,6 +94,5 @@ func (p *provider) DeleteEmailTemplate(ctx context.Context, emailTemplate *model
 	if result.Error != nil {
 		return result.Error
 	}
-
 	return nil
 }

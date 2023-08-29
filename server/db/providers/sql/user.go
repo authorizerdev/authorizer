@@ -17,7 +17,7 @@ import (
 )
 
 // AddUser to save user information in database
-func (p *provider) AddUser(ctx context.Context, user models.User) (models.User, error) {
+func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User, error) {
 	if user.ID == "" {
 		user.ID = uuid.New().String()
 	}
@@ -53,7 +53,7 @@ func (p *provider) AddUser(ctx context.Context, user models.User) (models.User, 
 }
 
 // UpdateUser to update user information in database
-func (p *provider) UpdateUser(ctx context.Context, user models.User) (models.User, error) {
+func (p *provider) UpdateUser(ctx context.Context, user *models.User) (*models.User, error) {
 	user.UpdatedAt = time.Now().Unix()
 
 	result := p.db.Save(&user)
@@ -66,7 +66,7 @@ func (p *provider) UpdateUser(ctx context.Context, user models.User) (models.Use
 }
 
 // DeleteUser to delete user information from database
-func (p *provider) DeleteUser(ctx context.Context, user models.User) error {
+func (p *provider) DeleteUser(ctx context.Context, user *models.User) error {
 	result := p.db.Where("user_id = ?", user.ID).Delete(&models.Session{})
 	if result.Error != nil {
 		return result.Error
@@ -81,7 +81,7 @@ func (p *provider) DeleteUser(ctx context.Context, user models.User) error {
 }
 
 // ListUsers to get list of users from database
-func (p *provider) ListUsers(ctx context.Context, pagination model.Pagination) (*model.Users, error) {
+func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) (*model.Users, error) {
 	var users []models.User
 	result := p.db.Limit(int(pagination.Limit)).Offset(int(pagination.Offset)).Order("created_at DESC").Find(&users)
 	if result.Error != nil {
@@ -103,31 +103,28 @@ func (p *provider) ListUsers(ctx context.Context, pagination model.Pagination) (
 	paginationClone.Total = total
 
 	return &model.Users{
-		Pagination: &paginationClone,
+		Pagination: paginationClone,
 		Users:      responseUsers,
 	}, nil
 }
 
 // GetUserByEmail to get user information from database using email address
-func (p *provider) GetUserByEmail(ctx context.Context, email string) (models.User, error) {
-	var user models.User
+func (p *provider) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
+	var user *models.User
 	result := p.db.Where("email = ?", email).First(&user)
 	if result.Error != nil {
 		return user, result.Error
 	}
-
 	return user, nil
 }
 
 // GetUserByID to get user information from database using user ID
-func (p *provider) GetUserByID(ctx context.Context, id string) (models.User, error) {
-	var user models.User
-
+func (p *provider) GetUserByID(ctx context.Context, id string) (*models.User, error) {
+	var user *models.User
 	result := p.db.Where("id = ?", id).First(&user)
 	if result.Error != nil {
 		return user, result.Error
 	}
-
 	return user, nil
 }
 
@@ -136,14 +133,12 @@ func (p *provider) GetUserByID(ctx context.Context, id string) (models.User, err
 func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{}, ids []string) error {
 	// set updated_at time for all users
 	data["updated_at"] = time.Now().Unix()
-
 	var res *gorm.DB
-	if ids != nil && len(ids) > 0 {
+	if len(ids) > 0 {
 		res = p.db.Model(&models.User{}).Where("id in ?", ids).Updates(data)
 	} else {
 		res = p.db.Model(&models.User{}).Updates(data)
 	}
-
 	if res.Error != nil {
 		return res.Error
 	}
@@ -154,10 +149,8 @@ func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{},
 func (p *provider) GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (*models.User, error) {
 	var user *models.User
 	result := p.db.Where("phone_number = ?", phoneNumber).First(&user)
-
 	if result.Error != nil {
 		return nil, result.Error
 	}
-
 	return user, nil
 }

@@ -105,7 +105,7 @@ func InviteMembersResolver(ctx context.Context, params model.InviteMemberInput) 
 			defaultRoles = strings.Split(defaultRolesString, ",")
 		}
 
-		user := models.User{
+		user := &models.User{
 			Email: email,
 			Roles: strings.Join(defaultRoles, ","),
 		}
@@ -128,7 +128,7 @@ func InviteMembersResolver(ctx context.Context, params model.InviteMemberInput) 
 			log.Debug("Failed to create verification token: ", err)
 		}
 
-		verificationRequest := models.VerificationRequest{
+		verificationRequest := &models.VerificationRequest{
 			Token:       verificationToken,
 			ExpiresAt:   time.Now().Add(time.Minute * 30).Unix(),
 			Email:       email,
