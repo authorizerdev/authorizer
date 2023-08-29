@@ -33,13 +33,13 @@ func MobileLoginResolver(ctx context.Context, params model.MobileLoginInput) (*m
 		return res, err
 	}
 
-	isBasiAuthDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableMobileBasicAuthentication)
+	isBasicAuthDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableMobileBasicAuthentication)
 	if err != nil {
 		log.Debug("Error getting mobile basic auth disabled: ", err)
-		isBasiAuthDisabled = true
+		isBasicAuthDisabled = true
 	}
 
-	if isBasiAuthDisabled {
+	if isBasicAuthDisabled {
 		log.Debug("Basic authentication is disabled.")
 		return res, fmt.Errorf(`phone number based basic authentication is disabled for this instance`)
 	}
