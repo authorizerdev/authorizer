@@ -99,6 +99,7 @@ type AuthResponse {
   refresh_token: String
   expires_in: Int64
   user: User
+  totpBase64URL: String
 }
 
 type Response {

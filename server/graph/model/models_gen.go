@@ -34,6 +34,7 @@ type AuthResponse struct {
 	RefreshToken              *string `json:"refresh_token"`
 	ExpiresIn                 *int64  `json:"expires_in"`
 	User                      *User   `json:"user"`
+	TotpBase64url             *string `json:"totpBase64URL"`
 }
 
 type DeleteEmailTemplateRequest struct {

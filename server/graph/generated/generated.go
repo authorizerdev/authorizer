@@ -52,6 +52,7 @@ type ComplexityRoot struct {
 		RefreshToken              func(childComplexity int) int
 		ShouldShowEmailOtpScreen  func(childComplexity int) int
 		ShouldShowMobileOtpScreen func(childComplexity int) int
+		TotpBase64url             func(childComplexity int) int
 		User                      func(childComplexity int) int
 	}
 
@@ -445,6 +446,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.AuthResponse.ShouldShowMobileOtpScreen(childComplexity), true
+
+	case "AuthResponse.totpBase64URL":
+		if e.complexity.AuthResponse.TotpBase64url == nil {
+			break
+		}
+
+		return e.complexity.AuthResponse.TotpBase64url(childComplexity), true
 
 	case "AuthResponse.user":
 		if e.complexity.AuthResponse.User == nil {
@@ -2301,6 +2309,7 @@ type AuthResponse {
   refresh_token: String
   expires_in: Int64
   user: User
+  totpBase64URL: String
 }
 
 type Response {
@@ -3840,6 +3849,47 @@ func (ec *executionContext) fieldContext_AuthResponse_user(ctx context.Context, 
 				return ec.fieldContext_User_app_data(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AuthResponse_totpBase64URL(ctx context.Context, field graphql.CollectedField, obj *model.AuthResponse) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AuthResponse_totpBase64URL(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TotpBase64url, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AuthResponse_totpBase64URL(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AuthResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -7901,6 +7951,8 @@ func (ec *executionContext) fieldContext_Mutation_signup(ctx context.Context, fi
 				return ec.fieldContext_AuthResponse_expires_in(ctx, field)
 			case "user":
 				return ec.fieldContext_AuthResponse_user(ctx, field)
+			case "totpBase64URL":
+				return ec.fieldContext_AuthResponse_totpBase64URL(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type AuthResponse", field.Name)
 		},
@@ -7974,6 +8026,8 @@ func (ec *executionContext) fieldContext_Mutation_mobile_signup(ctx context.Cont
 				return ec.fieldContext_AuthResponse_expires_in(ctx, field)
 			case "user":
 				return ec.fieldContext_AuthResponse_user(ctx, field)
+			case "totpBase64URL":
+				return ec.fieldContext_AuthResponse_totpBase64URL(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type AuthResponse", field.Name)
 		},
@@ -8047,6 +8101,8 @@ func (ec *executionContext) fieldContext_Mutation_login(ctx context.Context, fie
 				return ec.fieldContext_AuthResponse_expires_in(ctx, field)
 			case "user":
 				return ec.fieldContext_AuthResponse_user(ctx, field)
+			case "totpBase64URL":
+				return ec.fieldContext_AuthResponse_totpBase64URL(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type AuthResponse", field.Name)
 		},
@@ -8120,6 +8176,8 @@ func (ec *executionContext) fieldContext_Mutation_mobile_login(ctx context.Conte
 				return ec.fieldContext_AuthResponse_expires_in(ctx, field)
 			case "user":
 				return ec.fieldContext_AuthResponse_user(ctx, field)
+			case "totpBase64URL":
+				return ec.fieldContext_AuthResponse_totpBase64URL(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type AuthResponse", field.Name)
 		},
@@ -8359,6 +8417,8 @@ func (ec *executionContext) fieldContext_Mutation_verify_email(ctx context.Conte
 				return ec.fieldContext_AuthResponse_expires_in(ctx, field)
 			case "user":
 				return ec.fieldContext_AuthResponse_user(ctx, field)
+			case "totpBase64URL":
+				return ec.fieldContext_AuthResponse_totpBase64URL(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type AuthResponse", field.Name)
 		},
@@ -8668,6 +8728,8 @@ func (ec *executionContext) fieldContext_Mutation_verify_otp(ctx context.Context
 				return ec.fieldContext_AuthResponse_expires_in(ctx, field)
 			case "user":
 				return ec.fieldContext_AuthResponse_user(ctx, field)
+			case "totpBase64URL":
+				return ec.fieldContext_AuthResponse_totpBase64URL(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type AuthResponse", field.Name)
 		},
@@ -10090,6 +10152,8 @@ func (ec *executionContext) fieldContext_Query_session(ctx context.Context, fiel
 				return ec.fieldContext_AuthResponse_expires_in(ctx, field)
 			case "user":
 				return ec.fieldContext_AuthResponse_user(ctx, field)
+			case "totpBase64URL":
+				return ec.fieldContext_AuthResponse_totpBase64URL(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type AuthResponse", field.Name)
 		},
@@ -18149,6 +18213,10 @@ func (ec *executionContext) _AuthResponse(ctx context.Context, sel ast.Selection
 		case "user":
 
 			out.Values[i] = ec._AuthResponse_user(ctx, field, obj)
+
+		case "totpBase64URL":
+
+			out.Values[i] = ec._AuthResponse_totpBase64URL(ctx, field, obj)
 
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))

@@ -2,7 +2,6 @@ package providers
 
 import (
 	"context"
-
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 )
@@ -88,4 +87,9 @@ type Provider interface {
 	GetOTPByPhoneNumber(ctx context.Context, phoneNumber string) (*models.OTP, error)
 	// DeleteOTP to delete otp
 	DeleteOTP(ctx context.Context, otp *models.OTP) error
+
+	// GenerateTotp to generate totp, store secret into db and returns base64 of QR code image
+	GenerateTotp(ctx context.Context, id string) (*string, error)
+	// ValidatePasscode validate user passcode with secret stored in our db
+	ValidatePasscode(ctx context.Context, passcode string, id string) (bool, error)
 }

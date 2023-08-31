@@ -150,6 +150,16 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 		}, nil
 	}
 
+	if !isMFADisabled && refs.BoolValue(user.IsMultiFactorAuthEnabled) {
+		if user.TotpSecret == nil {
+			base64URL, err := db.Provider.GenerateTotp(ctx, user.ID)
+			if err != nil {
+				log.Debug("error while generating base64 url: ", err)
+			}
+			res.TotpBase64url = base64URL
+		}
+	}
+
 	code := ""
 	codeChallenge := ""
 	nonce := ""

@@ -160,6 +160,9 @@ const (
 	// EnvKeyDisableMultiFactorAuthentication is key for env variable DISABLE_MULTI_FACTOR_AUTHENTICATION
 	// this variable is used to completely disable multi factor authentication. It will have no effect on profile preference
 	EnvKeyDisableMultiFactorAuthentication = "DISABLE_MULTI_FACTOR_AUTHENTICATION"
+	// EnvKeyDisableTotpAuthentication is key for env variable DISABLE_TOTP_AUTHENTICATION
+	// this variable is used to completely disable totp verification
+	EnvKeyDisableTotpAuthentication = "DISABLE_TOTP_AUTHENTICATION"
 	// EnvKeyDisablePhoneVerification is key for env variable DISABLE_PHONE_VERIFICATION
 	// this variable is used to disable phone verification
 	EnvKeyDisablePhoneVerification = "DISABLE_PHONE_VERIFICATION"
