@@ -176,7 +176,7 @@ func (c *provider) GetEnvStore() (map[string]interface{}, error) {
 		return nil, err
 	}
 	for key, value := range data {
-		if key == constants.EnvKeyDisableBasicAuthentication || key == constants.EnvKeyDisableMobileBasicAuthentication || key == constants.EnvKeyDisableEmailVerification || key == constants.EnvKeyDisableLoginPage || key == constants.EnvKeyDisableMagicLinkLogin || key == constants.EnvKeyDisableRedisForEnv || key == constants.EnvKeyDisableSignUp || key == constants.EnvKeyDisableStrongPassword || key == constants.EnvKeyIsEmailServiceEnabled || key == constants.EnvKeyIsSMSServiceEnabled || key == constants.EnvKeyEnforceMultiFactorAuthentication || key == constants.EnvKeyDisableMultiFactorAuthentication || key == constants.EnvKeyAppCookieSecure || key == constants.EnvKeyAdminCookieSecure  || key == constants.EnvKeyDisablePlayGround {
+		if key == constants.EnvKeyDisableBasicAuthentication || key == constants.EnvKeyDisableMobileBasicAuthentication || key == constants.EnvKeyDisableEmailVerification || key == constants.EnvKeyDisableLoginPage || key == constants.EnvKeyDisableMagicLinkLogin || key == constants.EnvKeyDisableRedisForEnv || key == constants.EnvKeyDisableSignUp || key == constants.EnvKeyDisableStrongPassword || key == constants.EnvKeyIsEmailServiceEnabled || key == constants.EnvKeyIsSMSServiceEnabled || key == constants.EnvKeyEnforceMultiFactorAuthentication || key == constants.EnvKeyDisableMultiFactorAuthentication || key == constants.EnvKeyAppCookieSecure || key == constants.EnvKeyAdminCookieSecure || key == constants.EnvKeyDisablePlayGround || key == constants.EnvKeyDisableTOTPLogin || key == constants.EnvKeyDisableMailOTPLogin {
 			boolValue, err := strconv.ParseBool(value)
 			if err != nil {
 				return res, err

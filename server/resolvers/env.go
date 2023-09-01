@@ -203,6 +203,8 @@ func EnvResolver(ctx context.Context) (*model.Env, error) {
 	res.AdminCookieSecure = store[constants.EnvKeyAdminCookieSecure].(bool)
 	res.AppCookieSecure = store[constants.EnvKeyAppCookieSecure].(bool)
 	res.DisablePlayground = store[constants.EnvKeyDisablePlayGround].(bool)
+	res.DisableMailOtpLogin = store[constants.EnvKeyDisableMailOTPLogin].(bool)
+	res.DisableTotpLogin = store[constants.EnvKeyDisableTOTPLogin].(bool)
 
 	return res, nil
 }

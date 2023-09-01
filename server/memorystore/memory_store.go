@@ -36,9 +36,11 @@ func InitMemStore() error {
 		constants.EnvKeyIsSMSServiceEnabled:              false,
 		constants.EnvKeyEnforceMultiFactorAuthentication: false,
 		constants.EnvKeyDisableMultiFactorAuthentication: false,
+		constants.EnvKeyDisableTOTPLogin:                 false,
 		constants.EnvKeyAppCookieSecure:                  true,
 		constants.EnvKeyAdminCookieSecure:                true,
 		constants.EnvKeyDisablePlayGround:                true,
+		constants.EnvKeyDisableMailOTPLogin:              true,
 	}
 
 	requiredEnvs := RequiredEnvStoreObj.GetRequiredEnv()

@@ -110,8 +110,18 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 		log.Debug("MFA service not enabled: ", err)
 	}
 
+	isTOTPLoginDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableTOTPLogin)
+	if err != nil || !isTOTPLoginDisabled {
+		log.Debug("totp service not enabled: ", err)
+	}
+
+	isMailOTPDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableMailOTPLogin)
+	if err != nil || !isMailOTPDisabled {
+		log.Debug("mail OTP service not enabled: ", err)
+	}
+
 	// If email service is not enabled continue the process in any way
-	if refs.BoolValue(user.IsMultiFactorAuthEnabled) && isEmailServiceEnabled && !isMFADisabled {
+	if refs.BoolValue(user.IsMultiFactorAuthEnabled) && !isMailOTPDisabled && !isMFADisabled {
 		otp := utils.GenerateOTP()
 		expires := time.Now().Add(1 * time.Minute).Unix()
 		otpData, err := db.Provider.UpsertOTP(ctx, &models.OTP{
@@ -150,14 +160,16 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 		}, nil
 	}
 
-	if !isMFADisabled && refs.BoolValue(user.IsMultiFactorAuthEnabled) {
+	if !isMFADisabled && refs.BoolValue(user.IsMultiFactorAuthEnabled) && !isTOTPLoginDisabled {
 		if user.TotpSecret == nil {
 			base64URL, err := db.Provider.GenerateTotp(ctx, user.ID)
 			if err != nil {
 				log.Debug("error while generating base64 url: ", err)
 			}
 			res.TotpBase64url = base64URL
+
 		}
+
 	}
 
 	code := ""

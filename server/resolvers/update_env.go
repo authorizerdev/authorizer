@@ -263,6 +263,17 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 		}
 	}
 
+	if updatedData[constants.EnvKeyDisableMultiFactorAuthentication].(bool) {
+		updatedData[constants.EnvKeyDisableTOTPLogin] = true
+		updatedData[constants.EnvKeyDisableMailOTPLogin] = true
+	} else {
+		if !updatedData[constants.EnvKeyDisableMailOTPLogin].(bool) && !updatedData[constants.EnvKeyDisableTOTPLogin].(bool) {
+			errors.New("can't enable both mfa methods at same time")
+			updatedData[constants.EnvKeyDisableMailOTPLogin] = true
+			updatedData[constants.EnvKeyDisableTOTPLogin] = false
+		}
+	}
+
 	if updatedData[constants.EnvKeySmtpHost] != "" || updatedData[constants.EnvKeySmtpUsername] != "" || updatedData[constants.EnvKeySmtpPassword] != "" || updatedData[constants.EnvKeySenderEmail] != "" && updatedData[constants.EnvKeySmtpPort] != "" {
 		updatedData[constants.EnvKeyIsEmailServiceEnabled] = true
 	}

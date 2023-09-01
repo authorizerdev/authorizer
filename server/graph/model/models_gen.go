@@ -123,6 +123,8 @@ type Env struct {
 	DefaultAuthorizeResponseType     *string  `json:"DEFAULT_AUTHORIZE_RESPONSE_TYPE"`
 	DefaultAuthorizeResponseMode     *string  `json:"DEFAULT_AUTHORIZE_RESPONSE_MODE"`
 	DisablePlayground                bool     `json:"DISABLE_PLAYGROUND"`
+	DisableMailOtpLogin              bool     `json:"DISABLE_MAIL_OTP_LOGIN"`
+	DisableTotpLogin                 bool     `json:"DISABLE_TOTP_LOGIN"`
 }
 
 type Error struct {
@@ -382,6 +384,8 @@ type UpdateEnvInput struct {
 	DefaultAuthorizeResponseType     *string  `json:"DEFAULT_AUTHORIZE_RESPONSE_TYPE"`
 	DefaultAuthorizeResponseMode     *string  `json:"DEFAULT_AUTHORIZE_RESPONSE_MODE"`
 	DisablePlayground                *bool    `json:"DISABLE_PLAYGROUND"`
+	DisableMailOtpLogin              *bool    `json:"DISABLE_MAIL_OTP_LOGIN"`
+	DisableTotpLogin                 *bool    `json:"DISABLE_TOTP_LOGIN"`
 }
 
 type UpdateProfileInput struct {

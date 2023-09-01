@@ -94,6 +94,8 @@ const Environment = () => {
 		DEFAULT_AUTHORIZE_RESPONSE_TYPE: '',
 		DEFAULT_AUTHORIZE_RESPONSE_MODE: '',
 		DISABLE_PLAYGROUND: false,
+		DISABLE_TOTP_LOGIN: false,
+		DISABLE_MAIL_OTP_LOGIN: true,
 	});
 
 	const [fieldVisibility, setFieldVisibility] = React.useState<
