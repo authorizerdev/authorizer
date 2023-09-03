@@ -68,6 +68,7 @@ Deploy production ready Authorizer instance using one click deployment options a
 |    Railway.app     |                    <a href="https://railway.app/new/template/nwXp1C?referralCode=FEF4uT"><img src="https://railway.app/button.svg" style="height: 44px" alt="Deploy on Railway"></a>                     | [docs](https://docs.authorizer.dev/deployment/railway) |
 |       Heroku       | <a href="https://heroku.com/deploy?template=https://github.com/authorizerdev/authorizer-heroku"><img src="https://www.herokucdn.com/deploy/button.svg" alt="Deploy to Heroku" style="height: 44px;"></a> | [docs](https://docs.authorizer.dev/deployment/heroku)  |
 |       Render       |                     [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/authorizerdev/authorizer-render)                      | [docs](https://docs.authorizer.dev/deployment/render)  |
+|       Koyeb       | <a target="_blank" href="https://app.koyeb.com/deploy?name=authorizer&type=docker&image=docker.io/lakhansamani/authorizer&env[PORT]=8000&env[DATABASE_TYPE]=postgres&env[DATABASE_URL]=CHANGE_ME&ports=8000;http;/"><img alt="Deploy to Koyeb" src="https://www.koyeb.com/static/images/deploy/button.svg" /></a> | [docs](https://docs.authorizer.dev/deployment/koyeb)  |
 
 ### Deploy Authorizer Using Source Code
 
