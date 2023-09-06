@@ -3,6 +3,7 @@ package resolvers
 import (
 	"context"
 	"fmt"
+	"github.com/authorizerdev/authorizer/server/crypto"
 	"strings"
 	"time"
 
@@ -24,7 +25,22 @@ import (
 func VerifyTotpResolver(ctx context.Context, params model.VerifyTOTPRequest) (*model.AuthResponse, error) {
 	var res *model.AuthResponse
 
-	userID := params.Token
+	encryptedkey := params.Token
+
+	pvtKey, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyJwtPrivateKey)
+	if err != nil {
+		log.Debug("error while getting private key")
+	}
+
+	privateKey, err := crypto.ParseRsaPrivateKeyFromPemStr(pvtKey)
+	if err != nil {
+		log.Debug("error while parsing private key")
+	}
+
+	userID, err := crypto.DecryptRSA(encryptedkey, *privateKey)
+	if err != nil {
+		log.Debug("error while decrypting userId")
+	}
 
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {

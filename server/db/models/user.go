@@ -35,6 +35,7 @@ type User struct {
 	CreatedAt                int64   `json:"created_at" bson:"created_at" cql:"created_at" dynamo:"created_at"`
 	AppData                  *string `json:"app_data" bson:"app_data" cql:"app_data" dynamo:"app_data"`
 	TotpSecret               *string `json:"totp_secret" bson:"totp_secret" cql:"totp_secret" dynamo:"totp_secret"`
+	TotpVerified             bool    `json:"totp_verified" bson:"totp_verified" cql:"totp_verified" dynamo:"totp_verified"`
 }
 
 func (user *User) AsAPIUser() *model.User {

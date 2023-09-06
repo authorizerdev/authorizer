@@ -3,13 +3,8 @@ package dynamodb
 import (
 	"bytes"
 	"context"
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/x509"
-	"encoding/pem"
 	"fmt"
 	"image/png"
-	"os"
 	"time"
 
 	"github.com/pquerna/otp/totp"
@@ -62,44 +57,14 @@ func (p *provider) ValidatePasscode(ctx context.Context, passcode string, id str
 	if err != nil {
 		return false, fmt.Errorf("error while getting user details")
 	}
-
-	// validate passcode inputted by user
-	for {
-		status := totp.Validate(passcode, *user.TotpSecret)
+	status := totp.Validate(passcode, *user.TotpSecret)
+	if !user.TotpVerified {
 		if status {
+			user.TotpVerified = true
+			p.UpdateUser(ctx, user)
 			return status, nil
 		}
+		return status, nil
 	}
-}
-
-func (p *provider) GenerateKeysTOTP() (*rsa.PublicKey, error) {
-	key := os.Getenv("TOTP_PRIVATE_KEY")
-	var privateKey *rsa.PrivateKey
-	if key == "" {
-		privateKey, err := rsa.GenerateKey(rand.Reader, 1024)
-		if err != nil {
-			return nil, err
-		}
-
-		privateKeyPEM := encodePrivateKeyToPEM(privateKey)
-		os.Setenv("TOTP_PRIVATE_KEY", string(privateKeyPEM))
-	}
-	publicKey := privateKey.PublicKey
-	return &publicKey, nil
-}
-
-func encodePrivateKeyToPEM(privateKey *rsa.PrivateKey) []byte {
-	// Marshal the private key to DER format.
-	privateKeyBytes := x509.MarshalPKCS1PrivateKey(privateKey)
-
-	// Create a PEM block for the private key.
-	privateKeyPEMBlock := &pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: privateKeyBytes,
-	}
-
-	// Encode the PEM block to PEM format.
-	privateKeyPEM := pem.EncodeToMemory(privateKeyPEMBlock)
-
-	return privateKeyPEM
+	return status, nil
 }

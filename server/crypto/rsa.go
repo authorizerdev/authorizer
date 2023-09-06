@@ -8,7 +8,6 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"errors"
-	"fmt"
 )
 
 // NewRSAKey to generate new RSA Key if env is not set
@@ -138,28 +137,5 @@ func DecryptRSA(cipherText string, privateKey rsa.PrivateKey) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	fmt.Println("Plaintext:", string(plaintext))
 	return string(plaintext), nil
-}
-
-func ParseRSAPublicKey(key string) (*rsa.PublicKey, error) {
-	// Decode the PEM-encoded public key data.
-	block, _ := pem.Decode([]byte(key))
-	if block == nil {
-		return nil, fmt.Errorf("failed to parse PEM block containing public key")
-	}
-
-	// Parse the DER-encoded public key data.
-	pubKey, err := x509.ParsePKIXPublicKey(block.Bytes)
-	if err != nil {
-		return nil, err
-	}
-
-	// Type-assert the parsed public key to an rsa.PublicKey.
-	rsaPublicKey, ok := pubKey.(*rsa.PublicKey)
-	if !ok {
-		return nil, fmt.Errorf("parsed public key is not an RSA public key")
-	}
-
-	return rsaPublicKey, nil
 }

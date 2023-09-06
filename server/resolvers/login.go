@@ -3,6 +3,7 @@ package resolvers
 import (
 	"context"
 	"fmt"
+	"github.com/authorizerdev/authorizer/server/crypto"
 	"strings"
 	"time"
 
@@ -161,7 +162,21 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 	}
 
 	if !isMFADisabled && refs.BoolValue(user.IsMultiFactorAuthEnabled) && !isTOTPLoginDisabled {
-		if user.TotpSecret == nil {
+		pubKey, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyJwtPublicKey)
+		if err != nil {
+			log.Debug("error while getting public key")
+		}
+
+		publicKey, err := crypto.ParseRsaPublicKeyFromPemStr(pubKey)
+		if err != nil {
+			log.Debug("error while parsing public key")
+		}
+
+		encryptedUserId, err := crypto.EncryptRSA(user.ID, *publicKey)
+		if err != nil {
+			log.Debug("error while encrypting user id")
+		}
+		if !user.TotpVerified {
 			base64URL, err := db.Provider.GenerateTotp(ctx, user.ID)
 			if err != nil {
 				log.Debug("error while generating base64 url: ", err)
@@ -170,14 +185,13 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 			res = &model.AuthResponse{
 				Message:       `Proceed to totp screen`,
 				TotpBase64url: base64URL,
-				TokenTotp:     &user.ID,
+				TokenTotp:     &encryptedUserId,
 			}
 			return res, nil
 		} else {
-			//res.TokenTotp = &user.ID
 			res = &model.AuthResponse{
 				Message:   `Proceed to totp screen`,
-				TokenTotp: &user.ID,
+				TokenTotp: &encryptedUserId,
 			}
 			return res, nil
 		}
