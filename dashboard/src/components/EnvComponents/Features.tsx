@@ -177,6 +177,7 @@ const Features = ({ variables, setVariables }: any) => {
 							variables={variables}
 							setVariables={setVariables}
 							inputType={SwitchInputType.DISABLE_PLAYGROUND}
+							hasReversedValue
 						/>
 					</Flex>
 				</Flex>

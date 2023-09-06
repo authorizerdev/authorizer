@@ -698,17 +698,8 @@ func InitAllEnv() error {
 		envData[constants.EnvKeyIsEmailServiceEnabled] = true
 	}
 
-	if envData[constants.EnvKeyEnforceMultiFactorAuthentication].(bool) && !envData[constants.EnvKeyIsEmailServiceEnabled].(bool) && !envData[constants.EnvKeyIsSMSServiceEnabled].(bool) {
-		return errors.New("to enable multi factor authentication, please enable email service")
-	}
-
-	if !envData[constants.EnvKeyIsEmailServiceEnabled].(bool) {
-		envData[constants.EnvKeyDisableMultiFactorAuthentication] = true
-	}
-
 	if envData[constants.EnvKeyDisableEmailVerification].(bool) {
 		envData[constants.EnvKeyDisableMagicLinkLogin] = true
-		envData[constants.EnvKeyDisableMailOTPLogin] = true
 	}
 
 	if val, ok := envData[constants.EnvKeyAllowedOrigins]; !ok || val == "" {
@@ -867,21 +858,6 @@ func InitAllEnv() error {
 		}
 		if boolValue != envData[constants.EnvKeyDisableMailOTPLogin].(bool) {
 			envData[constants.EnvKeyDisableMailOTPLogin] = boolValue
-		}
-	}
-
-	if envData[constants.EnvKeyDisableTOTPLogin] == false && envData[constants.EnvKeyDisableMailOTPLogin].(bool) == false {
-		errors.New("can't enable both mfa")
-	}
-
-	if envData[constants.EnvKeyDisableMultiFactorAuthentication].(bool) {
-		envData[constants.EnvKeyDisableTOTPLogin] = true
-		envData[constants.EnvKeyDisableMailOTPLogin] = true
-	} else {
-		if !envData[constants.EnvKeyDisableMailOTPLogin].(bool) && !envData[constants.EnvKeyDisableTOTPLogin].(bool) {
-			errors.New("can't enable both mfa methods at same time")
-			envData[constants.EnvKeyDisableMailOTPLogin] = false
-			envData[constants.EnvKeyDisableTOTPLogin] = true
 		}
 	}
 

@@ -26,15 +26,18 @@ type AdminSignupInput struct {
 }
 
 type AuthResponse struct {
-	Message                   string  `json:"message"`
-	ShouldShowEmailOtpScreen  *bool   `json:"should_show_email_otp_screen"`
-	ShouldShowMobileOtpScreen *bool   `json:"should_show_mobile_otp_screen"`
-	AccessToken               *string `json:"access_token"`
-	IDToken                   *string `json:"id_token"`
-	RefreshToken              *string `json:"refresh_token"`
-	ExpiresIn                 *int64  `json:"expires_in"`
-	User                      *User   `json:"user"`
-	TotpBase64url             *string `json:"totpBase64URL"`
+	Message                    string  `json:"message"`
+	ShouldShowEmailOtpScreen   *bool   `json:"should_show_email_otp_screen"`
+	ShouldShowMobileOtpScreen  *bool   `json:"should_show_mobile_otp_screen"`
+	ShouldShowMobileTotpScreen *bool   `json:"should_show_mobile_totp_screen"`
+	ShouldShowTotpScreen       *bool   `json:"should_show_totp_screen"`
+	AccessToken                *string `json:"access_token"`
+	IDToken                    *string `json:"id_token"`
+	RefreshToken               *string `json:"refresh_token"`
+	ExpiresIn                  *int64  `json:"expires_in"`
+	User                       *User   `json:"user"`
+	TotpBase64url              *string `json:"totpBase64URL"`
+	TokenTotp                  *string `json:"tokenTOTP"`
 }
 
 type DeleteEmailTemplateRequest struct {
@@ -507,6 +510,12 @@ type VerifyOTPRequest struct {
 	PhoneNumber *string `json:"phone_number"`
 	Otp         string  `json:"otp"`
 	State       *string `json:"state"`
+}
+
+type VerifyTOTPRequest struct {
+	Otp   string  `json:"otp"`
+	Token string  `json:"token"`
+	State *string `json:"state"`
 }
 
 type Webhook struct {

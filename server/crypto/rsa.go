@@ -3,9 +3,12 @@ package crypto
 import (
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha256"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/pem"
 	"errors"
+	"fmt"
 )
 
 // NewRSAKey to generate new RSA Key if env is not set
@@ -115,4 +118,48 @@ func AsRSAStr(privateKey *rsa.PrivateKey, publickKey *rsa.PublicKey) (string, st
 	pubParsedPem := ExportRsaPublicKeyAsPemStr(pubParsed)
 
 	return privParsedPem, pubParsedPem, nil
+}
+
+func EncryptRSA(message string, key rsa.PublicKey) (string, error) {
+	label := []byte("OAEP Encrypted")
+	rng := rand.Reader
+	ciphertext, err := rsa.EncryptOAEP(sha256.New(), rng, &key, []byte(message), label)
+	if err != nil {
+		return "", err
+	}
+	return base64.StdEncoding.EncodeToString(ciphertext), nil
+}
+
+func DecryptRSA(cipherText string, privateKey rsa.PrivateKey) (string, error) {
+	ct, _ := base64.StdEncoding.DecodeString(cipherText)
+	label := []byte("OAEP Encrypted")
+	rng := rand.Reader
+	plaintext, err := rsa.DecryptOAEP(sha256.New(), rng, &privateKey, ct, label)
+	if err != nil {
+		return "", err
+	}
+	fmt.Println("Plaintext:", string(plaintext))
+	return string(plaintext), nil
+}
+
+func ParseRSAPublicKey(key string) (*rsa.PublicKey, error) {
+	// Decode the PEM-encoded public key data.
+	block, _ := pem.Decode([]byte(key))
+	if block == nil {
+		return nil, fmt.Errorf("failed to parse PEM block containing public key")
+	}
+
+	// Parse the DER-encoded public key data.
+	pubKey, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		return nil, err
+	}
+
+	// Type-assert the parsed public key to an rsa.PublicKey.
+	rsaPublicKey, ok := pubKey.(*rsa.PublicKey)
+	if !ok {
+		return nil, fmt.Errorf("parsed public key is not an RSA public key")
+	}
+
+	return rsaPublicKey, nil
 }

@@ -94,12 +94,15 @@ type AuthResponse {
   message: String!
   should_show_email_otp_screen: Boolean
   should_show_mobile_otp_screen: Boolean
+  should_show_mobile_totp_screen: Boolean
+  should_show_totp_screen: Boolean
   access_token: String
   id_token: String
   refresh_token: String
   expires_in: Int64
   user: User
   totpBase64URL: String
+  tokenTOTP: String
 }
 
 type Response {
@@ -563,6 +566,12 @@ input VerifyOTPRequest {
   state: String
 }
 
+input VerifyTOTPRequest {
+  otp: String!
+  token: String!
+  state: String
+}
+
 input ResendOTPRequest {
   email: String
   phone_number: String
@@ -592,6 +601,7 @@ type Mutation {
   revoke(params: OAuthRevokeInput!): Response!
   verify_otp(params: VerifyOTPRequest!): AuthResponse!
   resend_otp(params: ResendOTPRequest!): Response!
+  verify_totp(params: VerifyTOTPRequest!): AuthResponse!
   # admin only apis
   _delete_user(params: DeleteUserInput!): Response!
   _update_user(params: UpdateUserInput!): User!

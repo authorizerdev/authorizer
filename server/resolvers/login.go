@@ -166,10 +166,21 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 			if err != nil {
 				log.Debug("error while generating base64 url: ", err)
 			}
-			res.TotpBase64url = base64URL
 
+			res = &model.AuthResponse{
+				Message:       `Proceed to totp screen`,
+				TotpBase64url: base64URL,
+				TokenTotp:     &user.ID,
+			}
+			return res, nil
+		} else {
+			//res.TokenTotp = &user.ID
+			res = &model.AuthResponse{
+				Message:   `Proceed to totp screen`,
+				TokenTotp: &user.ID,
+			}
+			return res, nil
 		}
-
 	}
 
 	code := ""

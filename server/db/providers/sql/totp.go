@@ -3,7 +3,10 @@ package sql
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"image/png"
 	"time"
 
@@ -47,7 +50,7 @@ func (p *provider) GenerateTotp(ctx context.Context, id string) (*string, error)
 	if err != nil {
 		return nil, fmt.Errorf("error while updating user's totp secret")
 	}
-
+	log.Info("\n\n\n", &encodedText)
 	return &encodedText, nil
 }
 
@@ -59,10 +62,16 @@ func (p *provider) ValidatePasscode(ctx context.Context, passcode string, id str
 	}
 
 	// validate passcode inputted by user
-	for {
-		status := totp.Validate(passcode, *user.TotpSecret)
-		if status {
-			return status, nil
-		}
+
+	status := totp.Validate(passcode, *user.TotpSecret)
+	return status, nil
+}
+
+func (p *provider) GenerateKeysTOTP() (*rsa.PublicKey, error) {
+	privateKey, err := rsa.GenerateKey(rand.Reader, 1024)
+	if err != nil {
+		return nil, err
 	}
+	publicKey := privateKey.PublicKey
+	return &publicKey, nil
 }

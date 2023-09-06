@@ -81,6 +81,11 @@ func (r *mutationResolver) ResendOtp(ctx context.Context, params model.ResendOTP
 	return resolvers.ResendOTPResolver(ctx, params)
 }
 
+// VerifyTotp is the resolver for the verify_totp field.
+func (r *mutationResolver) VerifyTotp(ctx context.Context, params model.VerifyTOTPRequest) (*model.AuthResponse, error) {
+	return resolvers.VerifyTotpResolver(ctx, params)
+}
+
 // DeleteUser is the resolver for the _delete_user field.
 func (r *mutationResolver) DeleteUser(ctx context.Context, params model.DeleteUserInput) (*model.Response, error) {
 	return resolvers.DeleteUserResolver(ctx, params)
