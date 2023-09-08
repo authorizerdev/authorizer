@@ -163,6 +163,9 @@ const (
 	// EnvKeyDisablePhoneVerification is key for env variable DISABLE_PHONE_VERIFICATION
 	// this variable is used to disable phone verification
 	EnvKeyDisablePhoneVerification = "DISABLE_PHONE_VERIFICATION"
+	// EnvKeyDisablePlayGround is key for env variable DISABLE_PLAYGROUND
+	// this variable will disable or enable playground use in dashboard
+	EnvKeyDisablePlayGround = "DISABLE_PLAYGROUND"
 
 	// Slice variables
 	// EnvKeyRoles key for env variable ROLES

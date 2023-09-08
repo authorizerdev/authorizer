@@ -106,6 +106,8 @@ func InitAllEnv() error {
 	osDisableMultiFactorAuthentication := os.Getenv(constants.EnvKeyDisableMultiFactorAuthentication)
 	// phone verification var
 	osDisablePhoneVerification := os.Getenv(constants.EnvKeyDisablePhoneVerification)
+	osDisablePlayground := os.Getenv(constants.EnvKeyDisablePlayGround)
+
 	// twilio vars
 	osTwilioApiKey := os.Getenv(constants.EnvKeyTwilioAPIKey)
 	osTwilioApiSecret := os.Getenv(constants.EnvKeyTwilioAPISecret)
@@ -823,6 +825,19 @@ func InitAllEnv() error {
 	if envData[constants.EnvKeyTwilioAPIKey] != "" && envData[constants.EnvKeyTwilioAPISecret] != "" && envData[constants.EnvKeyTwilioAccountSID] != "" && envData[constants.EnvKeyTwilioSender] != "" {
 		envData[constants.EnvKeyDisablePhoneVerification] = false
 		envData[constants.EnvKeyIsSMSServiceEnabled] = true
+	}
+
+	if _, ok := envData[constants.EnvKeyDisablePlayGround]; !ok {
+		envData[constants.EnvKeyDisablePlayGround] = osDisablePlayground == "true"
+	}
+	if osDisablePlayground != "" {
+		boolValue, err := strconv.ParseBool(osDisablePlayground)
+		if err != nil {
+			return err
+		}
+		if boolValue != envData[constants.EnvKeyDisablePlayGround].(bool) {
+			envData[constants.EnvKeyDisablePlayGround] = boolValue
+		}
 	}
 
 	err = memorystore.Provider.UpdateEnvStore(envData)
