@@ -1,4 +1,4 @@
-FROM golang:1.19.5-alpine as go-builder
+FROM golang:1.21.1-alpine as go-builder
 WORKDIR /authorizer
 COPY server server
 COPY Makefile .

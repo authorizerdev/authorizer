@@ -21,7 +21,7 @@ func PlaygroundHandler() gin.HandlerFunc {
 		disablePlayground, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisablePlayGround)
 		if err != nil {
 			log.Debug("error while getting disable playground value")
-			return
+			disablePlayground = false
 		}
 
 		// if env set to false, then check if logged in as super admin, if logged in then return graphql else 401 error
