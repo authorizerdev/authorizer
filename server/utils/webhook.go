@@ -83,10 +83,8 @@ func RegisterEvent(ctx context.Context, eventName string, authRecipe string, use
 		}
 		req.Header.Set("Content-Type", "application/json")
 
-		if webhook.Headers != nil {
-			for key, val := range webhook.Headers {
-				req.Header.Set(key, val.(string))
-			}
+		for key, val := range webhook.Headers {
+			req.Header.Set(key, val.(string))
 		}
 
 		client := &http.Client{Timeout: time.Second * 30}

@@ -121,6 +121,7 @@ type Env struct {
 	AdminCookieSecure                bool     `json:"ADMIN_COOKIE_SECURE"`
 	DefaultAuthorizeResponseType     *string  `json:"DEFAULT_AUTHORIZE_RESPONSE_TYPE"`
 	DefaultAuthorizeResponseMode     *string  `json:"DEFAULT_AUTHORIZE_RESPONSE_MODE"`
+	DisablePlayground                bool     `json:"DISABLE_PLAYGROUND"`
 }
 
 type Error struct {
@@ -379,6 +380,7 @@ type UpdateEnvInput struct {
 	OrganizationLogo                 *string  `json:"ORGANIZATION_LOGO"`
 	DefaultAuthorizeResponseType     *string  `json:"DEFAULT_AUTHORIZE_RESPONSE_TYPE"`
 	DefaultAuthorizeResponseMode     *string  `json:"DEFAULT_AUTHORIZE_RESPONSE_MODE"`
+	DisablePlayground                *bool    `json:"DISABLE_PLAYGROUND"`
 }
 
 type UpdateProfileInput struct {
