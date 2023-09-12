@@ -52,6 +52,7 @@ type User {
   revoked_timestamp: Int64
   is_multi_factor_auth_enabled: Boolean
   app_data: Map
+  totp_verified: Boolean
 }
 
 type Users {

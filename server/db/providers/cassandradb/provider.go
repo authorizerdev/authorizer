@@ -267,6 +267,14 @@ func NewProvider() (*provider, error) {
 	if err != nil {
 		return nil, err
 	}
+	// add totp_secret and totp_verified on users table
+	totpTableAlterQuery := fmt.Sprintf(`ALTER TABLE %s.%s ADD (totp_verified boolean, totp_secret text, app_data text)`, KeySpace, models.Collections.User)
+	err = session.Query(totpTableAlterQuery).Exec()
+	if err != nil {
+		log.Debug("Failed to alter table as column exists: ", err)
+		// return nil, err
+	}
+
 	return &provider{
 		db: session,
 	}, err

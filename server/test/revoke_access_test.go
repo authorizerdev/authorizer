@@ -28,6 +28,8 @@ func revokeAccessTest(t *testing.T, s TestSetup) {
 		verifyRes, err := resolvers.VerifyEmailResolver(ctx, model.VerifyEmailInput{
 			Token: verificationRequest.Token,
 		})
+		fmt.Println("\n", verifyRes)
+		fmt.Println("\n", err)
 		assert.NoError(t, err)
 		assert.NotNil(t, verifyRes.AccessToken)
 

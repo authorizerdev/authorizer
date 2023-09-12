@@ -54,6 +54,8 @@ func verifyOTPTest(t *testing.T, s TestSetup) {
 		})
 		assert.NoError(t, err)
 		assert.NotEmpty(t, updateProfileRes.Message)
+		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDisableMailOTPLogin, false)
+		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDisableTOTPLogin, true)
 
 		// Login should not return error but access token should be empty as otp should have been sent
 		loginRes, err = resolvers.LoginResolver(ctx, model.LoginInput{

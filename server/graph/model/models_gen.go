@@ -455,6 +455,7 @@ type User struct {
 	RevokedTimestamp         *int64                 `json:"revoked_timestamp"`
 	IsMultiFactorAuthEnabled *bool                  `json:"is_multi_factor_auth_enabled"`
 	AppData                  map[string]interface{} `json:"app_data"`
+	TotpVerified             *bool                  `json:"totp_verified"`
 }
 
 type Users struct {

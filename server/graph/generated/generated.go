@@ -272,6 +272,7 @@ type ComplexityRoot struct {
 		RevokedTimestamp         func(childComplexity int) int
 		Roles                    func(childComplexity int) int
 		SignupMethods            func(childComplexity int) int
+		TotpVerified             func(childComplexity int) int
 		UpdatedAt                func(childComplexity int) int
 	}
 
@@ -1900,6 +1901,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.User.SignupMethods(childComplexity), true
 
+	case "User.totp_verified":
+		if e.complexity.User.TotpVerified == nil {
+			break
+		}
+
+		return e.complexity.User.TotpVerified(childComplexity), true
+
 	case "User.updated_at":
 		if e.complexity.User.UpdatedAt == nil {
 			break
@@ -2317,6 +2325,7 @@ type User {
   revoked_timestamp: Int64
   is_multi_factor_auth_enabled: Boolean
   app_data: Map
+  totp_verified: Boolean
 }
 
 type Users {
@@ -4013,6 +4022,8 @@ func (ec *executionContext) fieldContext_AuthResponse_user(ctx context.Context, 
 				return ec.fieldContext_User_is_multi_factor_auth_enabled(ctx, field)
 			case "app_data":
 				return ec.fieldContext_User_app_data(ctx, field)
+			case "totp_verified":
+				return ec.fieldContext_User_totp_verified(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -7524,6 +7535,8 @@ func (ec *executionContext) fieldContext_InviteMembersResponse_Users(ctx context
 				return ec.fieldContext_User_is_multi_factor_auth_enabled(ctx, field)
 			case "app_data":
 				return ec.fieldContext_User_app_data(ctx, field)
+			case "totp_verified":
+				return ec.fieldContext_User_totp_verified(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -9357,6 +9370,8 @@ func (ec *executionContext) fieldContext_Mutation__update_user(ctx context.Conte
 				return ec.fieldContext_User_is_multi_factor_auth_enabled(ctx, field)
 			case "app_data":
 				return ec.fieldContext_User_app_data(ctx, field)
+			case "totp_verified":
+				return ec.fieldContext_User_totp_verified(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -10669,6 +10684,8 @@ func (ec *executionContext) fieldContext_Query_profile(ctx context.Context, fiel
 				return ec.fieldContext_User_is_multi_factor_auth_enabled(ctx, field)
 			case "app_data":
 				return ec.fieldContext_User_app_data(ctx, field)
+			case "totp_verified":
+				return ec.fieldContext_User_totp_verified(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -10938,6 +10955,8 @@ func (ec *executionContext) fieldContext_Query__user(ctx context.Context, field 
 				return ec.fieldContext_User_is_multi_factor_auth_enabled(ctx, field)
 			case "app_data":
 				return ec.fieldContext_User_app_data(ctx, field)
+			case "totp_verified":
+				return ec.fieldContext_User_totp_verified(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -12846,6 +12865,47 @@ func (ec *executionContext) fieldContext_User_app_data(ctx context.Context, fiel
 	return fc, nil
 }
 
+func (ec *executionContext) _User_totp_verified(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_User_totp_verified(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TotpVerified, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*bool)
+	fc.Result = res
+	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_User_totp_verified(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Users_pagination(ctx context.Context, field graphql.CollectedField, obj *model.Users) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Users_pagination(ctx, field)
 	if err != nil {
@@ -12979,6 +13039,8 @@ func (ec *executionContext) fieldContext_Users_users(ctx context.Context, field 
 				return ec.fieldContext_User_is_multi_factor_auth_enabled(ctx, field)
 			case "app_data":
 				return ec.fieldContext_User_app_data(ctx, field)
+			case "totp_verified":
+				return ec.fieldContext_User_totp_verified(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -13194,6 +13256,8 @@ func (ec *executionContext) fieldContext_ValidateSessionResponse_user(ctx contex
 				return ec.fieldContext_User_is_multi_factor_auth_enabled(ctx, field)
 			case "app_data":
 				return ec.fieldContext_User_app_data(ctx, field)
+			case "totp_verified":
+				return ec.fieldContext_User_totp_verified(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -20328,6 +20392,10 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 		case "app_data":
 
 			out.Values[i] = ec._User_app_data(ctx, field, obj)
+
+		case "totp_verified":
+
+			out.Values[i] = ec._User_totp_verified(ctx, field, obj)
 
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
