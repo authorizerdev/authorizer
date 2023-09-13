@@ -3,16 +3,17 @@ package resolvers
 import (
 	"context"
 	"fmt"
-	"github.com/authorizerdev/authorizer/server/crypto"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
-	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/cookie"
+	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/email"
@@ -161,6 +162,7 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 		}, nil
 	}
 
+	// if mfa enabled and also totp enabled
 	if !isMFADisabled && refs.BoolValue(user.IsMultiFactorAuthEnabled) && !isTOTPLoginDisabled {
 		pubKey, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyJwtPublicKey)
 		if err != nil {
@@ -172,26 +174,30 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 			log.Debug("error while parsing public key")
 		}
 
+		//encrypting user id, so it can be used as token for verifying
 		encryptedUserId, err := crypto.EncryptRSA(user.ID, *publicKey)
 		if err != nil {
 			log.Debug("error while encrypting user id")
 		}
+
+		// for first time user or whose totp is not verified
 		if !user.TotpVerified {
 			base64URL, err := db.Provider.GenerateTotp(ctx, user.ID)
 			if err != nil {
 				log.Debug("error while generating base64 url: ", err)
 			}
-
+			// when user is first time registering for totp
 			res = &model.AuthResponse{
 				Message:       `Proceed to totp screen`,
-				TotpBase64url: base64URL,
-				TokenTotp:     &encryptedUserId,
+				TotpBase64URL: base64URL,
+				TotpToken:     &encryptedUserId,
 			}
 			return res, nil
 		} else {
+			//when user is already register for totp
 			res = &model.AuthResponse{
 				Message:   `Proceed to totp screen`,
-				TokenTotp: &encryptedUserId,
+				TotpToken: &encryptedUserId,
 			}
 			return res, nil
 		}

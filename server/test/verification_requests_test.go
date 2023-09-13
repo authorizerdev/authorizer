@@ -23,8 +23,6 @@ func verificationRequestsTest(t *testing.T, s TestSetup) {
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password,
 		})
-		fmt.Println("res", res)
-		fmt.Println("err", err)
 		assert.NoError(t, err)
 		assert.NotNil(t, res)
 		limit := int64(10)

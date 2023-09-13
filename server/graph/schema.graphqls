@@ -95,15 +95,13 @@ type AuthResponse {
   message: String!
   should_show_email_otp_screen: Boolean
   should_show_mobile_otp_screen: Boolean
-  should_show_mobile_totp_screen: Boolean
-  should_show_totp_screen: Boolean
   access_token: String
   id_token: String
   refresh_token: String
   expires_in: Int64
   user: User
-  totpBase64URL: String
-  tokenTOTP: String
+  totp_base64_url: String
+  totp_token: String
 }
 
 type Response {

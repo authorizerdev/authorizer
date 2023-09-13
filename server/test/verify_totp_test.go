@@ -5,6 +5,13 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"strings"
+	"testing"
+
+	"github.com/gokyle/twofactor"
+	"github.com/stretchr/testify/assert"
+	"github.com/tuotoo/qrcode"
+
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/graph/model"
@@ -12,11 +19,6 @@ import (
 	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/authorizerdev/authorizer/server/resolvers"
 	"github.com/authorizerdev/authorizer/server/token"
-	"github.com/gokyle/twofactor"
-	"github.com/stretchr/testify/assert"
-	"github.com/tuotoo/qrcode"
-	"strings"
-	"testing"
 )
 
 func verifyTOTPTest(t *testing.T, s TestSetup) {
@@ -67,13 +69,13 @@ func verifyTOTPTest(t *testing.T, s TestSetup) {
 		})
 		assert.NoError(t, err)
 		assert.NotNil(t, loginRes)
-		assert.NotNil(t, loginRes.TotpBase64url)
-		assert.NotNil(t, loginRes.TokenTotp)
+		assert.NotNil(t, loginRes.TotpBase64URL)
+		assert.NotNil(t, loginRes.TotpToken)
 		assert.Nil(t, loginRes.AccessToken)
 		assert.Equal(t, loginRes.Message, `Proceed to totp screen`)
 
 		// get totp url for validation
-		pngBytes, err := base64.StdEncoding.DecodeString(*loginRes.TotpBase64url)
+		pngBytes, err := base64.StdEncoding.DecodeString(*loginRes.TotpBase64URL)
 		assert.NoError(t, err)
 		qrmatrix, err := qrcode.Decode(bytes.NewReader(pngBytes))
 		assert.NoError(t, err)
@@ -89,7 +91,7 @@ func verifyTOTPTest(t *testing.T, s TestSetup) {
 
 		valid, err := resolvers.VerifyTotpResolver(ctx, model.VerifyTOTPRequest{
 			Otp:   code,
-			Token: *loginRes.TokenTotp,
+			Token: *loginRes.TotpToken,
 		})
 
 		accessToken := *valid.AccessToken
@@ -126,8 +128,8 @@ func verifyTOTPTest(t *testing.T, s TestSetup) {
 		})
 		assert.NoError(t, err)
 		assert.NotNil(t, loginRes)
-		assert.NotNil(t, loginRes.TokenTotp)
-		assert.Nil(t, loginRes.TotpBase64url)
+		assert.NotNil(t, loginRes.TotpToken)
+		assert.Nil(t, loginRes.TotpBase64URL)
 		assert.Nil(t, loginRes.AccessToken)
 		assert.Equal(t, loginRes.Message, `Proceed to totp screen`)
 
@@ -136,7 +138,7 @@ func verifyTOTPTest(t *testing.T, s TestSetup) {
 
 		valid, err = resolvers.VerifyTotpResolver(ctx, model.VerifyTOTPRequest{
 			Otp:   code,
-			Token: *loginRes.TokenTotp,
+			Token: *loginRes.TotpToken,
 		})
 		assert.NoError(t, err)
 		assert.NotNil(t, *valid.AccessToken)

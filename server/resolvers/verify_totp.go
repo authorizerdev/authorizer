@@ -3,15 +3,16 @@ package resolvers
 import (
 	"context"
 	"fmt"
-	"github.com/authorizerdev/authorizer/server/crypto"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
+
 	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/cookie"
+	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/graph/model"
@@ -55,7 +56,7 @@ func VerifyTotpResolver(ctx context.Context, params model.VerifyTOTPRequest) (*m
 
 	status, err := db.Provider.ValidatePasscode(ctx, params.Otp, userID)
 	if err != nil || !status {
-		return nil, fmt.Errorf("error while validating passcode", err)
+		return nil, fmt.Errorf("error while validating passcode")
 	}
 
 	code := ""
