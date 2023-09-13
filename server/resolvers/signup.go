@@ -313,6 +313,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 		}
 
 		go func() {
+			utils.RegisterEvent(ctx, constants.UserCreatedWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
 			utils.RegisterEvent(ctx, constants.UserSignUpWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
 			// User is also logged in with signup
 			utils.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)

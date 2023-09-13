@@ -33,13 +33,13 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 		return res, err
 	}
 
-	isBasiAuthDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableBasicAuthentication)
+	isBasicAuthDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableBasicAuthentication)
 	if err != nil {
 		log.Debug("Error getting basic auth disabled: ", err)
-		isBasiAuthDisabled = true
+		isBasicAuthDisabled = true
 	}
 
-	if isBasiAuthDisabled {
+	if isBasicAuthDisabled {
 		log.Debug("Basic authentication is disabled.")
 		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
 	}
