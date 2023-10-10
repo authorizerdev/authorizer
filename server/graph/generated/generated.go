@@ -175,6 +175,7 @@ type ComplexityRoot struct {
 		AdminLogin          func(childComplexity int, params model.AdminLoginInput) int
 		AdminLogout         func(childComplexity int) int
 		AdminSignup         func(childComplexity int, params model.AdminSignupInput) int
+		DeactivateAccount   func(childComplexity int) int
 		DeleteEmailTemplate func(childComplexity int, params model.DeleteEmailTemplateRequest) int
 		DeleteUser          func(childComplexity int, params model.DeleteUserInput) int
 		DeleteWebhook       func(childComplexity int, params model.WebhookRequest) int
@@ -347,6 +348,7 @@ type MutationResolver interface {
 	Revoke(ctx context.Context, params model.OAuthRevokeInput) (*model.Response, error)
 	VerifyOtp(ctx context.Context, params model.VerifyOTPRequest) (*model.AuthResponse, error)
 	ResendOtp(ctx context.Context, params model.ResendOTPRequest) (*model.Response, error)
+	DeactivateAccount(ctx context.Context) (*model.Response, error)
 	DeleteUser(ctx context.Context, params model.DeleteUserInput) (*model.Response, error)
 	UpdateUser(ctx context.Context, params model.UpdateUserInput) (*model.User, error)
 	AdminSignup(ctx context.Context, params model.AdminSignupInput) (*model.Response, error)
@@ -1158,6 +1160,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.AdminSignup(childComplexity, args["params"].(model.AdminSignupInput)), true
+
+	case "Mutation.deactivate_account":
+		if e.complexity.Mutation.DeactivateAccount == nil {
+			break
+		}
+
+		return e.complexity.Mutation.DeactivateAccount(childComplexity), true
 
 	case "Mutation._delete_email_template":
 		if e.complexity.Mutation.DeleteEmailTemplate == nil {
@@ -2789,6 +2798,7 @@ type Mutation {
   revoke(params: OAuthRevokeInput!): Response!
   verify_otp(params: VerifyOTPRequest!): AuthResponse!
   resend_otp(params: ResendOTPRequest!): Response!
+  deactivate_account: Response!
   # admin only apis
   _delete_user(params: DeleteUserInput!): Response!
   _update_user(params: UpdateUserInput!): User!
@@ -8741,6 +8751,54 @@ func (ec *executionContext) fieldContext_Mutation_resend_otp(ctx context.Context
 	if fc.Args, err = ec.field_Mutation_resend_otp_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_deactivate_account(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_deactivate_account(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeactivateAccount(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Response)
+	fc.Result = res
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_deactivate_account(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "message":
+				return ec.fieldContext_Response_message(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Response", field.Name)
+		},
 	}
 	return fc, nil
 }
@@ -18940,6 +18998,15 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_resend_otp(ctx, field)
+			})
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "deactivate_account":
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_deactivate_account(ctx, field)
 			})
 
 			if out.Values[i] == graphql.Null {

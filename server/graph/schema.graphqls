@@ -587,6 +587,7 @@ type Mutation {
   revoke(params: OAuthRevokeInput!): Response!
   verify_otp(params: VerifyOTPRequest!): AuthResponse!
   resend_otp(params: ResendOTPRequest!): Response!
+  deactivate_account: Response!
   # admin only apis
   _delete_user(params: DeleteUserInput!): Response!
   _update_user(params: UpdateUserInput!): User!
