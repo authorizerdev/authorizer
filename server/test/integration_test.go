@@ -143,6 +143,7 @@ func TestResolvers(t *testing.T) {
 			verifyOTPTest(t, s)
 			resendOTPTest(t, s)
 			validateSessionTests(t, s)
+			deactivateAccountTests(t, s)
 
 			updateAllUsersTest(t, s)
 			webhookLogsTest(t, s)   // get logs after above resolver tests are done
