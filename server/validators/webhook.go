@@ -4,7 +4,7 @@ import "github.com/authorizerdev/authorizer/server/constants"
 
 // IsValidWebhookEventName to validate webhook event name
 func IsValidWebhookEventName(eventName string) bool {
-	if eventName != constants.UserCreatedWebhookEvent && eventName != constants.UserLoginWebhookEvent && eventName != constants.UserSignUpWebhookEvent && eventName != constants.UserDeletedWebhookEvent && eventName != constants.UserAccessEnabledWebhookEvent && eventName != constants.UserAccessRevokedWebhookEvent {
+	if eventName != constants.UserCreatedWebhookEvent && eventName != constants.UserLoginWebhookEvent && eventName != constants.UserSignUpWebhookEvent && eventName != constants.UserDeletedWebhookEvent && eventName != constants.UserAccessEnabledWebhookEvent && eventName != constants.UserAccessRevokedWebhookEvent && eventName != constants.UserDeactivatedWebhookEvent {
 		return false
 	}
 

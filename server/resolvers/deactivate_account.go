@@ -49,7 +49,7 @@ func DeactivateAccountResolver(ctx context.Context) (*model.Response, error) {
 	}
 	go func() {
 		memorystore.Provider.DeleteAllUserSessions(user.ID)
-		utils.RegisterEvent(ctx, constants.UserAccessRevokedWebhookEvent, "", user)
+		utils.RegisterEvent(ctx, constants.UserDeactivatedWebhookEvent, "", user)
 	}()
 	res = &model.Response{
 		Message: `user account deactivated successfully`,

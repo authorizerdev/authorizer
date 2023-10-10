@@ -103,7 +103,7 @@ func testSetup() TestSetup {
 		Email:                       fmt.Sprintf("%d_authorizer_tester@yopmail.com", time.Now().Unix()),
 		Password:                    "Test@123",
 		WebhookEndpoint:             "https://62f93101e05644803533cf36.mockapi.io/authorizer/webhook",
-		TestWebhookEventTypes:       []string{constants.UserAccessEnabledWebhookEvent, constants.UserAccessRevokedWebhookEvent, constants.UserCreatedWebhookEvent, constants.UserDeletedWebhookEvent, constants.UserLoginWebhookEvent, constants.UserSignUpWebhookEvent},
+		TestWebhookEventTypes:       []string{constants.UserAccessEnabledWebhookEvent, constants.UserAccessRevokedWebhookEvent, constants.UserCreatedWebhookEvent, constants.UserDeletedWebhookEvent, constants.UserLoginWebhookEvent, constants.UserSignUpWebhookEvent, constants.UserDeactivatedWebhookEvent},
 		TestEmailTemplateEventTypes: []string{constants.VerificationTypeBasicAuthSignup, constants.VerificationTypeForgotPassword, constants.VerificationTypeMagicLinkLogin, constants.VerificationTypeUpdateEmail},
 	}
 
