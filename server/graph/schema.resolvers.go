@@ -5,7 +5,6 @@ package graph
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/authorizerdev/authorizer/server/graph/generated"
 	"github.com/authorizerdev/authorizer/server/graph/model"
@@ -84,7 +83,7 @@ func (r *mutationResolver) ResendOtp(ctx context.Context, params model.ResendOTP
 
 // DeactivateAccount is the resolver for the deactivate_account field.
 func (r *mutationResolver) DeactivateAccount(ctx context.Context) (*model.Response, error) {
-	panic(fmt.Errorf("not implemented: DeactivateAccount - deactivate_account"))
+	return resolvers.DeactivateAccountResolver(ctx)
 }
 
 // DeleteUser is the resolver for the _delete_user field.
