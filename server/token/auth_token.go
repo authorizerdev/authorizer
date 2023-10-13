@@ -15,6 +15,7 @@ import (
 	"github.com/robertkrimen/otto"
 
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/memorystore"
@@ -479,4 +480,35 @@ func GetIDToken(gc *gin.Context) (string, error) {
 
 	token := strings.TrimPrefix(auth, "Bearer ")
 	return token, nil
+}
+
+// GetUserIDFromSessionOrAccessToken returns the user id from the session or access token
+func GetUserIDFromSessionOrAccessToken(gc *gin.Context) (string, error) {
+	// First try to get the user id from the session
+	isSession := true
+	token, err := cookie.GetSession(gc)
+	if err != nil || token == "" {
+		log.Debug("Failed to get session token: ", err)
+		isSession = false
+		token, err = GetAccessToken(gc)
+		if err != nil || token == "" {
+			log.Debug("Failed to get access token: ", err)
+			return "", fmt.Errorf(`unauthorized`)
+		}
+	}
+	if isSession {
+		claims, err := ValidateBrowserSession(gc, token)
+		if err != nil {
+			log.Debug("Failed to validate session token: ", err)
+			return "", fmt.Errorf(`unauthorized`)
+		}
+		return claims.Subject, nil
+	}
+	// If not session, then validate the access token
+	claims, err := ValidateAccessToken(gc, token)
+	if err != nil {
+		log.Debug("Failed to validate access token: ", err)
+		return "", fmt.Errorf(`unauthorized`)
+	}
+	return claims["sub"].(string), nil
 }

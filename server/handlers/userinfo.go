@@ -21,7 +21,6 @@ func UserInfoHandler() gin.HandlerFunc {
 			})
 			return
 		}
-
 		claims, err := token.ValidateAccessToken(gc, accessToken)
 		if err != nil {
 			log.Debug("Error validating access token: ", err)
@@ -30,7 +29,6 @@ func UserInfoHandler() gin.HandlerFunc {
 			})
 			return
 		}
-
 		userID := claims["sub"].(string)
 		user, err := db.Provider.GetUserByID(gc, userID)
 		if err != nil {

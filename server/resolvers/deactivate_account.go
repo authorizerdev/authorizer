@@ -21,17 +21,11 @@ func DeactivateAccountResolver(ctx context.Context) (*model.Response, error) {
 		log.Debug("Failed to get GinContext: ", err)
 		return res, err
 	}
-	accessToken, err := token.GetAccessToken(gc)
+	userID, err := token.GetUserIDFromSessionOrAccessToken(gc)
 	if err != nil {
-		log.Debug("Failed to get access token: ", err)
+		log.Debug("Failed GetUserIDFromSessionOrAccessToken: ", err)
 		return res, err
 	}
-	claims, err := token.ValidateAccessToken(gc, accessToken)
-	if err != nil {
-		log.Debug("Failed to validate access token: ", err)
-		return res, err
-	}
-	userID := claims["sub"].(string)
 	log := log.WithFields(log.Fields{
 		"user_id": userID,
 	})
