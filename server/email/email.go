@@ -91,7 +91,7 @@ func SendEmail(to []string, event string, data map[string]interface{}) error {
 
 	tmp, err := getEmailTemplate(event, data)
 	if err != nil {
-		log.Errorf("Failed to get event template: ", err)
+		log.Error("Failed to get event template: ", err)
 		return err
 	}
 

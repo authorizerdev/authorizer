@@ -43,10 +43,14 @@ func signupTests(t *testing.T, s TestSetup) {
 			Email:           email,
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password,
+			AppData: map[string]interface{}{
+				"test": "test",
+			},
 		})
 		assert.Nil(t, err, "signup should be successful")
 		user := *res.User
 		assert.Equal(t, email, user.Email)
+		assert.Equal(t, "test", user.AppData["test"])
 		assert.Nil(t, res.AccessToken, "access token should be nil")
 		res, err = resolvers.SignupResolver(ctx, model.SignUpInput{
 			Email:           email,
