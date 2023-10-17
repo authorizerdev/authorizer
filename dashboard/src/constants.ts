@@ -226,6 +226,7 @@ export const webhookEventNames = {
 	'User deleted': 'user.deleted',
 	'User access enabled': 'user.access_enabled',
 	'User access revoked': 'user.access_revoked',
+	'User deactivated': 'user.deactivated',
 };
 
 export const emailTemplateEventNames = {

@@ -5,7 +5,7 @@ cmd:
 	cd server && go build -ldflags "-w -X main.VERSION=$(VERSION)" -o '../build/server'
 build:
 	cd server && gox \
-		-osarch="linux/amd64 linux/arm64 darwin/amd64 windows/amd64" \
+		-osarch="linux/amd64 linux/arm64 darwin/arm64 darwin/amd64 windows/amd64" \
 		-ldflags "-w -X main.VERSION=$(VERSION)" \
 		-output="../build/{{.OS}}/{{.Arch}}/server" \
 		./...
@@ -30,7 +30,7 @@ test-arangodb:
 	cd server && go clean --testcache && TEST_DBS="arangodb" go test -p 1 -v ./test
 	docker rm -vf authorizer_arangodb
 test-dynamodb:
-	docker run -d --name dynamodb-local-test  -p 8000:8000 amazon/dynamodb-local:latest 
+	docker run -d --name dynamodb-local-test  -p 8000:8000 amazon/dynamodb-local:latest
 	cd server && go clean --testcache && TEST_DBS="dynamodb" go test -p 1 -v ./test
 	docker rm -vf dynamodb-local-test
 test-couchbase:

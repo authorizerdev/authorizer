@@ -261,6 +261,13 @@ func NewProvider() (*provider, error) {
 		log.Debug("Failed to alter table as column exists: ", err)
 		// continue
 	}
+	// Add app_data column to users table
+	appDataAlterQuery := fmt.Sprintf(`ALTER TABLE %s.%s ADD (app_data text);`, KeySpace, models.Collections.User)
+	err = session.Query(appDataAlterQuery).Exec()
+	if err != nil {
+		log.Debug("Failed to alter user table as app_data column exists: ", err)
+		// continue
+	}
 	// Add phone number index
 	otpIndexQueryPhoneNumber := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_otp_phone_number ON %s.%s (phone_number)", KeySpace, models.Collections.OTP)
 	err = session.Query(otpIndexQueryPhoneNumber).Exec()

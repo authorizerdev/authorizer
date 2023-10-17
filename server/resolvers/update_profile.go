@@ -35,15 +35,9 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 		log.Debug("Failed to get GinContext: ", err)
 		return res, err
 	}
-
-	accessToken, err := token.GetAccessToken(gc)
+	userID, err := token.GetUserIDFromSessionOrAccessToken(gc)
 	if err != nil {
-		log.Debug("Failed to get access token: ", err)
-		return res, err
-	}
-	claims, err := token.ValidateAccessToken(gc, accessToken)
-	if err != nil {
-		log.Debug("Failed to validate access token: ", err)
+		log.Debug("Failed GetUserIDFromSessionOrAccessToken: ", err)
 		return res, err
 	}
 
@@ -52,8 +46,6 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 		log.Debug("All params are empty")
 		return res, fmt.Errorf("please enter at least one param to update")
 	}
-
-	userID := claims["sub"].(string)
 	log := log.WithFields(log.Fields{
 		"user_id": userID,
 	})

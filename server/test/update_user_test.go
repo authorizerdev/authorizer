@@ -50,8 +50,19 @@ func updateUserTest(t *testing.T, s TestSetup) {
 		_, err = resolvers.UpdateUserResolver(ctx, model.UpdateUserInput{
 			ID:    user.ID,
 			Roles: newRoles,
+			AppData: map[string]interface{}{
+				"test": "test",
+			},
 		})
 		assert.Nil(t, err)
+		// Get user and check if roles are updated
+		users, err := resolvers.UsersResolver(ctx, nil)
+		assert.Nil(t, err)
+		for _, u := range users.Users {
+			if u.ID == user.ID {
+				assert.Equal(t, u.AppData["test"], "test")
+			}
+		}
 		cleanData(email)
 	})
 }
