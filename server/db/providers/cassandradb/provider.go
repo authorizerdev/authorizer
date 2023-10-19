@@ -275,11 +275,15 @@ func NewProvider() (*provider, error) {
 		return nil, err
 	}
 	// add totp_secret and totp_verified on users table
-	totpTableAlterQuery := fmt.Sprintf(`ALTER TABLE %s.%s ADD (totp_verified boolean, totp_secret text, app_data text)`, KeySpace, models.Collections.User)
-	err = session.Query(totpTableAlterQuery).Exec()
+	totpCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, user_id text, totp_method text, totp_secret text, totp_recovery_code text, totp_verified_at bigint, updated_at bigint, created_at bigint, PRIMARY KEY (id))", KeySpace, models.Collections.TOTP)
+	err = session.Query(totpCollectionQuery).Exec()
 	if err != nil {
-		log.Debug("Failed to alter table as column exists: ", err)
-		// return nil, err
+		return nil, err
+	}
+	totpIndexQuery := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_totp_user_id ON %s.%s (user_id)", KeySpace, models.Collections.TOTP)
+	err = session.Query(totpIndexQuery).Exec()
+	if err != nil {
+		return nil, err
 	}
 
 	return &provider{

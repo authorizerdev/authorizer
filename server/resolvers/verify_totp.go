@@ -3,6 +3,7 @@ package resolvers
 import (
 	"context"
 	"fmt"
+	"github.com/authorizerdev/authorizer/server/authenticators"
 	"strings"
 	"time"
 
@@ -54,7 +55,7 @@ func VerifyTotpResolver(ctx context.Context, params model.VerifyTOTPRequest) (*m
 		return nil, err
 	}
 
-	status, err := db.Provider.ValidatePasscode(ctx, params.Otp, userID)
+	status, recoveryCode, err := authenticators.Provider.Validate(ctx, params.Otp, userID)
 	if err != nil || !status {
 		return nil, fmt.Errorf("error while validating passcode")
 	}
@@ -106,11 +107,12 @@ func VerifyTotpResolver(ctx context.Context, params model.VerifyTOTPRequest) (*m
 	}
 
 	res = &model.AuthResponse{
-		Message:     `Logged in successfully`,
-		AccessToken: &authToken.AccessToken.Token,
-		IDToken:     &authToken.IDToken.Token,
-		ExpiresIn:   &expiresIn,
-		User:        user.AsAPIUser(),
+		Message:      `Logged in successfully`,
+		AccessToken:  &authToken.AccessToken.Token,
+		IDToken:      &authToken.IDToken.Token,
+		ExpiresIn:    &expiresIn,
+		User:         user.AsAPIUser(),
+		RecoveryCode: recoveryCode,
 	}
 
 	cookie.SetSession(gc, authToken.FingerPrintHash)

@@ -82,14 +82,14 @@ func (r *mutationResolver) ResendOtp(ctx context.Context, params model.ResendOTP
 	return resolvers.ResendOTPResolver(ctx, params)
 }
 
-// DeactivateAccount is the resolver for the deactivate_account field.
-func (r *mutationResolver) DeactivateAccount(ctx context.Context) (*model.Response, error) {
-	return resolvers.DeactivateAccountResolver(ctx)
-}
-
 // VerifyTotp is the resolver for the verify_totp field.
 func (r *mutationResolver) VerifyTotp(ctx context.Context, params model.VerifyTOTPRequest) (*model.AuthResponse, error) {
 	return resolvers.VerifyTotpResolver(ctx, params)
+}
+
+// DeactivateAccount is the resolver for the deactivate_account field.
+func (r *mutationResolver) DeactivateAccount(ctx context.Context) (*model.Response, error) {
+	return resolvers.DeactivateAccountResolver(ctx)
 }
 
 // DeleteUser is the resolver for the _delete_user field.

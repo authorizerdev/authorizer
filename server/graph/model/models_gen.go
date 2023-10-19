@@ -34,8 +34,9 @@ type AuthResponse struct {
 	RefreshToken              *string `json:"refresh_token,omitempty"`
 	ExpiresIn                 *int64  `json:"expires_in,omitempty"`
 	User                      *User   `json:"user,omitempty"`
-	TotpBase64URL             *string `json:"totp_base64_url"`
-	TotpToken                 *string `json:"totp_token"`
+	TotpBase64URL             *string `json:"totp_base64_url,omitempty"`
+	TotpToken                 *string `json:"totp_token,omitempty"`
+	RecoveryCode              *string `json:"recovery_code,omitempty"`
 }
 
 type DeleteEmailTemplateRequest struct {
@@ -385,8 +386,8 @@ type UpdateEnvInput struct {
 	DefaultAuthorizeResponseType     *string  `json:"DEFAULT_AUTHORIZE_RESPONSE_TYPE,omitempty"`
 	DefaultAuthorizeResponseMode     *string  `json:"DEFAULT_AUTHORIZE_RESPONSE_MODE,omitempty"`
 	DisablePlayground                *bool    `json:"DISABLE_PLAYGROUND,omitempty"`
-	DisableMailOtpLogin              *bool    `json:"DISABLE_MAIL_OTP_LOGIN"`
-	DisableTotpLogin                 *bool    `json:"DISABLE_TOTP_LOGIN"`
+	DisableMailOtpLogin              *bool    `json:"DISABLE_MAIL_OTP_LOGIN,omitempty"`
+	DisableTotpLogin                 *bool    `json:"DISABLE_TOTP_LOGIN,omitempty"`
 }
 
 type UpdateProfileInput struct {
@@ -453,7 +454,6 @@ type User struct {
 	RevokedTimestamp         *int64                 `json:"revoked_timestamp,omitempty"`
 	IsMultiFactorAuthEnabled *bool                  `json:"is_multi_factor_auth_enabled,omitempty"`
 	AppData                  map[string]interface{} `json:"app_data,omitempty"`
-	TotpVerified             *bool                  `json:"totp_verified"`
 }
 
 type Users struct {
@@ -514,7 +514,7 @@ type VerifyOTPRequest struct {
 type VerifyTOTPRequest struct {
 	Otp   string  `json:"otp"`
 	Token string  `json:"token"`
-	State *string `json:"state"`
+	State *string `json:"state,omitempty"`
 }
 
 type Webhook struct {

@@ -1,71 +1,38 @@
 package sql
 
 import (
-	"bytes"
 	"context"
-	"fmt"
-	log "github.com/sirupsen/logrus"
-	"image/png"
 	"time"
 
-	"github.com/pquerna/otp/totp"
+	"github.com/google/uuid"
+	"gorm.io/gorm/clause"
 
-	"github.com/authorizerdev/authorizer/server/crypto"
+	"github.com/authorizerdev/authorizer/server/db/models"
 )
 
-func (p *provider) GenerateTotp(ctx context.Context, id string) (*string, error) {
-	var buf bytes.Buffer
-	//get user details
-	user, err := p.GetUserByID(ctx, id)
-	if err != nil {
-		return nil, fmt.Errorf("error while getting user details")
+func (p *provider) UpsertAuthenticator(ctx context.Context, authenticators models.Authenticators) (*models.Authenticators, error) {
+	if authenticators.ID == "" {
+		authenticators.ID = uuid.New().String()
 	}
-
-	// generate totp, TOTP hash is valid for 30 seconds
-	key, err := totp.Generate(totp.GenerateOpts{
-		Issuer:      "authorizer",
-		AccountName: user.Email,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("error while genrating totp")
+	authenticators.Key = authenticators.ID
+	authenticators.CreatedAt = time.Now().Unix()
+	authenticators.UpdatedAt = time.Now().Unix()
+	res := p.db.Clauses(
+		clause.OnConflict{
+			UpdateAll: true,
+			Columns:   []clause.Column{{Name: "id"}},
+		}).Create(&authenticators)
+	if res.Error != nil {
+		return nil, res.Error
 	}
-
-	// get secret for user
-	secret := key.Secret()
-
-	//generating image for key and encoding to base64 for displaying in frontend
-	img, err := key.Image(200, 200)
-	if err != nil {
-		return nil, fmt.Errorf("error while creating qr image for totp")
-	}
-	png.Encode(&buf, img)
-	encodedText := crypto.EncryptB64(buf.String())
-
-	// update user totp secret in db
-	user.UpdatedAt = time.Now().Unix()
-	user.TotpSecret = &secret
-	_, err = p.UpdateUser(ctx, user)
-	if err != nil {
-		return nil, fmt.Errorf("error while updating user's totp secret")
-	}
-	log.Info("\n\n\n", &encodedText)
-	return &encodedText, nil
+	return &authenticators, nil
 }
 
-func (p *provider) ValidatePasscode(ctx context.Context, passcode string, id string) (bool, error) {
-	// get user details
-	user, err := p.GetUserByID(ctx, id)
-	if err != nil {
-		return false, fmt.Errorf("error while getting user details")
+func (p *provider) GetAuthenticatorDetailsByUserId(ctx context.Context, userId string, authenticatorType string) (*models.Authenticators, error) {
+	var authenticators models.Authenticators
+	result := p.db.Where("user_id = ?", userId).Where("method = ?", authenticatorType).First(&authenticators)
+	if result.Error != nil {
+		return nil, result.Error
 	}
-	status := totp.Validate(passcode, *user.TotpSecret)
-	if !user.TotpVerified {
-		if status {
-			user.TotpVerified = true
-			p.UpdateUser(ctx, user)
-			return status, nil
-		}
-		return status, nil
-	}
-	return status, nil
+	return &authenticators, nil
 }

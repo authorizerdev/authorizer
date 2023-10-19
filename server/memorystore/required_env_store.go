@@ -38,7 +38,7 @@ type RequiredEnv struct {
 	CouchbaseBucketRAMQuotaMB string `json:"COUCHBASE_BUCKET_RAM_QUOTA"`
 }
 
-// RequiredEnvObj is a simple in-memory store for sessions.
+// RequiredEnvStore is a simple in-memory store for sessions.
 type RequiredEnvStore struct {
 	mutex       sync.Mutex
 	requiredEnv RequiredEnv

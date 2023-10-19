@@ -3,6 +3,7 @@ package resolvers
 import (
 	"context"
 	"fmt"
+	"github.com/authorizerdev/authorizer/server/authenticators"
 	"strings"
 	"time"
 
@@ -180,9 +181,11 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 			log.Debug("error while encrypting user id")
 		}
 
+		totpModel, err := db.Provider.GetAuthenticatorDetailsByUserId(ctx, user.ID, constants.EnvKeyTOTPAuthenticator)
+
 		// for first time user or whose totp is not verified
-		if !user.TotpVerified {
-			base64URL, err := db.Provider.GenerateTotp(ctx, user.ID)
+		if (err != nil && err.Error() == "record not found") || (totpModel != nil && totpModel.VerifiedAt == nil) {
+			base64URL, err := authenticators.Provider.Generate(ctx, user.ID)
 			if err != nil {
 				log.Debug("error while generating base64 url: ", err)
 			}

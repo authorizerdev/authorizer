@@ -1222,10 +1222,10 @@ error-ex@^1.3.1:
   dependencies:
     is-arrayish "^0.2.1"
 
-esbuild-darwin-arm64@0.14.9:
+esbuild-linux-64@0.14.9:
   version "0.14.9"
-  resolved "https://registry.npmjs.org/esbuild-darwin-arm64/-/esbuild-darwin-arm64-0.14.9.tgz"
-  integrity sha512-3ue+1T4FR5TaAu4/V1eFMG8Uwn0pgAwQZb/WwL1X78d5Cy8wOVQ67KNH1lsjU+y/9AcwMKZ9x0GGNxBB4a1Rbw==
+  resolved "https://registry.npmjs.org/esbuild-linux-64/-/esbuild-linux-64-0.14.9.tgz"
+  integrity sha512-WoEI+R6/PLZAxS7XagfQMFgRtLUi5cjqqU9VCfo3tnWmAXh/wt8QtUfCVVCcXVwZLS/RNvI19CtfjlrJU61nOg==
 
 esbuild@^0.14.9:
   version "0.14.9"

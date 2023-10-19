@@ -1,6 +1,6 @@
 package models
 
-// Collections / Tables available for authorizer in the database
+// CollectionList / Tables available for authorizer in the database
 type CollectionList struct {
 	User                   string
 	VerificationRequest    string
@@ -11,6 +11,7 @@ type CollectionList struct {
 	EmailTemplate          string
 	OTP                    string
 	SMSVerificationRequest string
+	Authenticators         string
 }
 
 var (
@@ -27,5 +28,6 @@ var (
 		EmailTemplate:          Prefix + "email_templates",
 		OTP:                    Prefix + "otps",
 		SMSVerificationRequest: Prefix + "sms_verification_requests",
+		Authenticators:         Prefix + "authenticators",
 	}
 )

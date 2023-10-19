@@ -52,7 +52,6 @@ type User {
   revoked_timestamp: Int64
   is_multi_factor_auth_enabled: Boolean
   app_data: Map
-  totp_verified: Boolean
 }
 
 type Users {
@@ -102,6 +101,7 @@ type AuthResponse {
   user: User
   totp_base64_url: String
   totp_token: String
+  recovery_code: String
 }
 
 type Response {

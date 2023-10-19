@@ -2,6 +2,7 @@ package providers
 
 import (
 	"context"
+
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 )
@@ -25,7 +26,7 @@ type Provider interface {
 	// If ids set to nil / empty all the users will be updated
 	UpdateUsers(ctx context.Context, data map[string]interface{}, ids []string) error
 
-	// AddVerification to save verification request in database
+	// AddVerificationRequest to save verification request in database
 	AddVerificationRequest(ctx context.Context, verificationRequest *models.VerificationRequest) (*models.VerificationRequest, error)
 	// GetVerificationRequestByToken to get verification request from database using token
 	GetVerificationRequestByToken(ctx context.Context, token string) (*models.VerificationRequest, error)
@@ -52,7 +53,7 @@ type Provider interface {
 	AddWebhook(ctx context.Context, webhook *models.Webhook) (*model.Webhook, error)
 	// UpdateWebhook to update webhook
 	UpdateWebhook(ctx context.Context, webhook *models.Webhook) (*model.Webhook, error)
-	// ListWebhooks to list webhook
+	// ListWebhook to list webhook
 	ListWebhook(ctx context.Context, pagination *model.Pagination) (*model.Webhooks, error)
 	// GetWebhookByID to get webhook by id
 	GetWebhookByID(ctx context.Context, webhookID string) (*model.Webhook, error)
@@ -70,7 +71,7 @@ type Provider interface {
 	AddEmailTemplate(ctx context.Context, emailTemplate *models.EmailTemplate) (*model.EmailTemplate, error)
 	// UpdateEmailTemplate to update EmailTemplate
 	UpdateEmailTemplate(ctx context.Context, emailTemplate *models.EmailTemplate) (*model.EmailTemplate, error)
-	// ListEmailTemplates to list EmailTemplate
+	// ListEmailTemplate to list EmailTemplate
 	ListEmailTemplate(ctx context.Context, pagination *model.Pagination) (*model.EmailTemplates, error)
 	// GetEmailTemplateByID to get EmailTemplate by id
 	GetEmailTemplateByID(ctx context.Context, emailTemplateID string) (*model.EmailTemplate, error)
@@ -88,8 +89,8 @@ type Provider interface {
 	// DeleteOTP to delete otp
 	DeleteOTP(ctx context.Context, otp *models.OTP) error
 
-	// GenerateTotp to generate totp, store secret into db and returns base64 of QR code image
-	GenerateTotp(ctx context.Context, id string) (*string, error)
-	// ValidatePasscode validate user passcode with secret stored in our db
-	ValidatePasscode(ctx context.Context, passcode string, id string) (bool, error)
+	// UpsertAuthenticator to add or update totp details for user
+	UpsertAuthenticator(ctx context.Context, totp models.Authenticators) (*models.Authenticators, error)
+	// GetAuthenticatorDetailsByUserId get user details for user by id
+	GetAuthenticatorDetailsByUserId(ctx context.Context, userId string, authenticatorType string) (*models.Authenticators, error)
 }
