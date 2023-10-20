@@ -89,8 +89,10 @@ type Provider interface {
 	// DeleteOTP to delete otp
 	DeleteOTP(ctx context.Context, otp *models.OTP) error
 
-	// UpsertAuthenticator to add or update totp details for user
-	UpsertAuthenticator(ctx context.Context, totp models.Authenticators) (*models.Authenticators, error)
+	// AddAuthenticator to add totp details for user
+	AddAuthenticator(ctx context.Context, totp models.Authenticators) (*models.Authenticators, error)
+	// UpdateAuthenticator to update totp details for user
+	UpdateAuthenticator(ctx context.Context, totp models.Authenticators) (*models.Authenticators, error)
 	// GetAuthenticatorDetailsByUserId get user details for user by id
 	GetAuthenticatorDetailsByUserId(ctx context.Context, userId string, authenticatorType string) (*models.Authenticators, error)
 }

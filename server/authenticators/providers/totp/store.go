@@ -47,7 +47,7 @@ func (p *provider) Generate(ctx context.Context, id string) (*string, error) {
 	totpModel.Secret = secret
 	totpModel.UserID = user.ID
 	totpModel.Method = constants.EnvKeyTOTPAuthenticator
-	_, err = db.Provider.UpsertAuthenticator(ctx, totpModel)
+	_, err = db.Provider.AddAuthenticator(ctx, totpModel)
 	if err != nil {
 		return nil, fmt.Errorf("error while inserting into totp table")
 	}
@@ -70,7 +70,7 @@ func (p *provider) Validate(ctx context.Context, passcode string, id string) (bo
 			totpModel.VerifiedAt = &timeNow
 			totpModel.RecoveryCode = &recoveryCode
 
-			_, err = db.Provider.UpsertAuthenticator(ctx, *totpModel)
+			_, err = db.Provider.UpdateAuthenticator(ctx, *totpModel)
 			if err != nil {
 				return false, nil, fmt.Errorf("error while updaing authenticator table for totp")
 			}

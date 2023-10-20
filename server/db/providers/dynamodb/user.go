@@ -53,10 +53,6 @@ func (p *provider) UpdateUser(ctx context.Context, user *models.User) (*models.U
 		if err != nil {
 			return user, err
 		}
-		if err != nil {
-			return user, err
-		}
-
 	}
 	return user, nil
 }

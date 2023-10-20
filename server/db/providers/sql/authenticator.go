@@ -10,7 +10,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/db/models"
 )
 
-func (p *provider) UpsertAuthenticator(ctx context.Context, authenticators models.Authenticators) (*models.Authenticators, error) {
+func (p *provider) AddAuthenticator(ctx context.Context, authenticators models.Authenticators) (*models.Authenticators, error) {
 	if authenticators.ID == "" {
 		authenticators.ID = uuid.New().String()
 	}
@@ -25,6 +25,18 @@ func (p *provider) UpsertAuthenticator(ctx context.Context, authenticators model
 	if res.Error != nil {
 		return nil, res.Error
 	}
+	return &authenticators, nil
+}
+
+func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators models.Authenticators) (*models.Authenticators, error) {
+	authenticators.UpdatedAt = time.Now().Unix()
+
+	result := p.db.Save(&authenticators)
+
+	if result.Error != nil {
+		return &authenticators, result.Error
+	}
+
 	return &authenticators, nil
 }
 

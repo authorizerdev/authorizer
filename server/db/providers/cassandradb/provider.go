@@ -274,13 +274,13 @@ func NewProvider() (*provider, error) {
 	if err != nil {
 		return nil, err
 	}
-	// add totp_secret and totp_verified on users table
-	totpCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, user_id text, totp_method text, totp_secret text, totp_recovery_code text, totp_verified_at bigint, updated_at bigint, created_at bigint, PRIMARY KEY (id))", KeySpace, models.Collections.TOTP)
+	// add authenticators table
+	totpCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, user_id text, method text, secret text, recovery_code text, verified_at bigint, updated_at bigint, created_at bigint, PRIMARY KEY (id))", KeySpace, models.Collections.Authenticators)
 	err = session.Query(totpCollectionQuery).Exec()
 	if err != nil {
 		return nil, err
 	}
-	totpIndexQuery := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_totp_user_id ON %s.%s (user_id)", KeySpace, models.Collections.TOTP)
+	totpIndexQuery := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_authenticators_user_id ON %s.%s (user_id)", KeySpace, models.Collections.Authenticators)
 	err = session.Query(totpIndexQuery).Exec()
 	if err != nil {
 		return nil, err
