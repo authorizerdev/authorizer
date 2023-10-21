@@ -19,4 +19,4 @@ certs/
 *-shm
 *-wal
 .idea
-.iml
+*.iml
