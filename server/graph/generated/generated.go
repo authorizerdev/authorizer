@@ -2560,7 +2560,7 @@ input AdminSignupInput {
   admin_secret: String!
 }
 
-# Deprecated with v1.2.0
+# Deprecated from v1.2.0
 input MobileSignUpInput {
   email: String
   given_name: String
@@ -2619,7 +2619,7 @@ input LoginInput {
   state: String
 }
 
-# Deprecated with v1.2.0
+# Deprecated from v1.2.0
 input MobileLoginInput {
   phone_number: String!
   password: String!
@@ -2831,10 +2831,10 @@ input GetUserRequest {
 
 type Mutation {
   signup(params: SignUpInput!): AuthResponse!
-  # Deprecated with v1.2.0
+  # Deprecated from v1.2.0
   mobile_signup(params: MobileSignUpInput): AuthResponse!
   login(params: LoginInput!): AuthResponse!
-  # Deprecated with v1.2.0
+  # Deprecated from v1.2.0
   mobile_login(params: MobileLoginInput!): AuthResponse!
   magic_link_login(params: MagicLinkLoginInput!): Response!
   logout: Response!
