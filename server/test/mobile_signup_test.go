@@ -20,25 +20,23 @@ func mobileSingupTest(t *testing.T, s TestSetup) {
 	t.Helper()
 	t.Run(`should complete the signup with mobile and check duplicates`, func(t *testing.T) {
 		_, ctx := createContext(s)
-		email := "mobile_basic_auth_signup." + s.TestInfo.Email
-		res, err := resolvers.MobileSignupResolver(ctx, &model.MobileSignUpInput{
-			Email:           refs.NewStringRef(email),
+		phoneNumber := "1234567890"
+		res, err := resolvers.SignupResolver(ctx, model.SignUpInput{
+			PhoneNumber:     refs.NewStringRef(phoneNumber),
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password + "s",
 		})
 		assert.NotNil(t, err, "invalid password")
 		assert.Nil(t, res)
-
-		res, err = resolvers.MobileSignupResolver(ctx, &model.MobileSignUpInput{
-			Email:           refs.NewStringRef(email),
+		res, err = resolvers.SignupResolver(ctx, model.SignUpInput{
 			Password:        "test",
 			ConfirmPassword: "test",
 		})
-		assert.Error(t, err)
+		assert.Error(t, err, "phone number or email should be provided")
 		assert.Nil(t, res)
 		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDisableSignUp, true)
-		res, err = resolvers.MobileSignupResolver(ctx, &model.MobileSignUpInput{
-			Email:           refs.NewStringRef(email),
+		res, err = resolvers.SignupResolver(ctx, model.SignUpInput{
+			PhoneNumber:     refs.NewStringRef(phoneNumber),
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password,
 		})
@@ -46,8 +44,8 @@ func mobileSingupTest(t *testing.T, s TestSetup) {
 		assert.Nil(t, res)
 		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDisableSignUp, false)
 		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDisableMobileBasicAuthentication, true)
-		res, err = resolvers.MobileSignupResolver(ctx, &model.MobileSignUpInput{
-			Email:           refs.NewStringRef(email),
+		res, err = resolvers.SignupResolver(ctx, model.SignUpInput{
+			PhoneNumber:     refs.NewStringRef(phoneNumber),
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password,
 		})
@@ -55,24 +53,24 @@ func mobileSingupTest(t *testing.T, s TestSetup) {
 		assert.Nil(t, res)
 		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDisableMobileBasicAuthentication, false)
 
-		res, err = resolvers.MobileSignupResolver(ctx, &model.MobileSignUpInput{
-			PhoneNumber:     "   ",
+		res, err = resolvers.SignupResolver(ctx, model.SignUpInput{
+			PhoneNumber:     refs.NewStringRef("   "),
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password,
 		})
 		assert.Error(t, err)
 		assert.Nil(t, res)
 
-		res, err = resolvers.MobileSignupResolver(ctx, &model.MobileSignUpInput{
-			PhoneNumber:     "test",
+		res, err = resolvers.SignupResolver(ctx, model.SignUpInput{
+			PhoneNumber:     refs.NewStringRef("test"),
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password,
 		})
 		assert.Error(t, err)
 		assert.Nil(t, res)
-		phoneNumber := "1234567890"
-		res, err = resolvers.MobileSignupResolver(ctx, &model.MobileSignUpInput{
-			PhoneNumber:     phoneNumber,
+
+		res, err = resolvers.SignupResolver(ctx, model.SignUpInput{
+			PhoneNumber:     refs.NewStringRef(phoneNumber),
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password,
 		})
@@ -95,20 +93,18 @@ func mobileSingupTest(t *testing.T, s TestSetup) {
 		req, ctx := createContext(s)
 		req.Header.Set("Cookie", cookie)
 		otpRes, err := resolvers.VerifyOtpResolver(ctx, model.VerifyOTPRequest{
-			PhoneNumber: &phoneNumber,
+			PhoneNumber: refs.NewStringRef(phoneNumber),
 			Otp:         otp.Otp,
 		})
 		assert.Nil(t, err)
 		assert.NotEmpty(t, otpRes.Message)
-		res, err = resolvers.MobileSignupResolver(ctx, &model.MobileSignUpInput{
-			PhoneNumber:     "1234567890",
+		res, err = resolvers.SignupResolver(ctx, model.SignUpInput{
+			PhoneNumber:     refs.NewStringRef(phoneNumber),
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password,
 		})
 		assert.Error(t, err)
 		assert.Nil(t, res)
-
-		cleanData(email)
 		cleanData("1234567890@authorizer.dev")
 	})
 }

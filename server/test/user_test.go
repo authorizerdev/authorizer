@@ -19,7 +19,7 @@ func userTest(t *testing.T, s TestSetup) {
 		req, ctx := createContext(s)
 		email := "user." + s.TestInfo.Email
 		res, err := resolvers.SignupResolver(ctx, model.SignUpInput{
-			Email:           email,
+			Email:           refs.NewStringRef(email),
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password,
 		})

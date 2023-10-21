@@ -2560,6 +2560,7 @@ input AdminSignupInput {
   admin_secret: String!
 }
 
+# Deprecated with v1.2.0
 input MobileSignUpInput {
   email: String
   given_name: String
@@ -2584,7 +2585,7 @@ input MobileSignUpInput {
 }
 
 input SignUpInput {
-  email: String!
+  email: String
   given_name: String
   family_name: String
   middle_name: String
@@ -2607,7 +2608,8 @@ input SignUpInput {
 }
 
 input LoginInput {
-  email: String!
+  email: String
+  phone_number: String
   password: String!
   roles: [String!]
   scope: [String!]
@@ -2617,6 +2619,7 @@ input LoginInput {
   state: String
 }
 
+# Deprecated with v1.2.0
 input MobileLoginInput {
   phone_number: String!
   password: String!
@@ -2828,8 +2831,10 @@ input GetUserRequest {
 
 type Mutation {
   signup(params: SignUpInput!): AuthResponse!
+  # Deprecated with v1.2.0
   mobile_signup(params: MobileSignUpInput): AuthResponse!
   login(params: LoginInput!): AuthResponse!
+  # Deprecated with v1.2.0
   mobile_login(params: MobileLoginInput!): AuthResponse!
   magic_link_login(params: MagicLinkLoginInput!): Response!
   logout: Response!
@@ -16364,7 +16369,7 @@ func (ec *executionContext) unmarshalInputLoginInput(ctx context.Context, obj in
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"email", "password", "roles", "scope", "state"}
+	fieldsInOrder := [...]string{"email", "phone_number", "password", "roles", "scope", "state"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -16375,11 +16380,20 @@ func (ec *executionContext) unmarshalInputLoginInput(ctx context.Context, obj in
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
-			data, err := ec.unmarshalNString2string(ctx, v)
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
 			it.Email = data
+		case "phone_number":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phone_number"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PhoneNumber = data
 		case "password":
 			var err error
 
@@ -17018,7 +17032,7 @@ func (ec *executionContext) unmarshalInputSignUpInput(ctx context.Context, obj i
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
-			data, err := ec.unmarshalNString2string(ctx, v)
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
