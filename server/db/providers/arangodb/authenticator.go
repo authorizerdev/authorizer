@@ -35,7 +35,7 @@ func (p *provider) AddAuthenticator(ctx context.Context, authenticators models.A
 func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators models.Authenticators) (*models.Authenticators, error) {
 	authenticators.UpdatedAt = time.Now().Unix()
 
-	collection, _ := p.db.Collection(ctx, models.Collections.User)
+	collection, _ := p.db.Collection(ctx, models.Collections.Authenticators)
 	meta, err := collection.UpdateDocument(ctx, authenticators.Key, authenticators)
 	if err != nil {
 		return &authenticators, err
@@ -61,7 +61,7 @@ func (p *provider) GetAuthenticatorDetailsByUserId(ctx context.Context, userId s
 	for {
 		if !cursor.HasMore() {
 			if authenticators == nil {
-				return authenticators, fmt.Errorf("user not found")
+				return authenticators, fmt.Errorf("authenticator not found")
 			}
 			break
 		}

@@ -1,70 +1,46 @@
 package mongodb
 
 import (
-	"bytes"
 	"context"
-	"fmt"
-	"image/png"
+	"github.com/authorizerdev/authorizer/server/db/models"
+	"github.com/google/uuid"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"time"
-
-	"github.com/pquerna/otp/totp"
-
-	"github.com/authorizerdev/authorizer/server/crypto"
 )
 
-func (p *provider) GenerateTotp(ctx context.Context, id string) (*string, error) {
-	var buf bytes.Buffer
-	//get user details
-	user, err := p.GetUserByID(ctx, id)
-	if err != nil {
-		return nil, fmt.Errorf("error while getting user details")
+func (p *provider) AddAuthenticator(ctx context.Context, authenticators models.Authenticators) (*models.Authenticators, error) {
+	if authenticators.ID == "" {
+		authenticators.ID = uuid.New().String()
 	}
-
-	// generate totp, TOTP hash is valid for 30 seconds
-	key, err := totp.Generate(totp.GenerateOpts{
-		Issuer:      "authorizer",
-		AccountName: user.Email,
-	})
+	authenticators.CreatedAt = time.Now().Unix()
+	authenticators.UpdatedAt = time.Now().Unix()
+	authenticators.Key = authenticators.ID
+	authenticatorsCollection := p.db.Collection(models.Collections.Authenticators, options.Collection())
+	_, err := authenticatorsCollection.InsertOne(ctx, authenticators)
 	if err != nil {
-		return nil, fmt.Errorf("error while genrating totp")
+		return &authenticators, err
 	}
-
-	// get secret for user
-	secret := key.Secret()
-
-	//generating image for key and encoding to base64 for displaying in frontend
-	img, err := key.Image(200, 200)
-	if err != nil {
-		return nil, fmt.Errorf("error while creating qr image for totp")
-	}
-	png.Encode(&buf, img)
-	encodedText := crypto.EncryptB64(buf.String())
-
-	// update user totp secret in db
-	user.UpdatedAt = time.Now().Unix()
-	user.TotpSecret = &secret
-	_, err = p.UpdateUser(ctx, user)
-	if err != nil {
-		return nil, fmt.Errorf("error while updating user's totp secret")
-	}
-
-	return &encodedText, nil
+	return &authenticators, nil
 }
 
-func (p *provider) ValidatePasscode(ctx context.Context, passcode string, id string) (bool, error) {
-	// get user details
-	user, err := p.GetUserByID(ctx, id)
+func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators models.Authenticators) (*models.Authenticators, error) {
+	authenticators.UpdatedAt = time.Now().Unix()
+	authenticatorsCollection := p.db.Collection(models.Collections.Authenticators, options.Collection())
+	_, err := authenticatorsCollection.UpdateOne(ctx, bson.M{"id": bson.M{"$eq": authenticators.ID}}, bson.M{"$set": authenticators}, options.MergeUpdateOptions())
 	if err != nil {
-		return false, fmt.Errorf("error while getting user details")
+		return &authenticators, err
 	}
-	status := totp.Validate(passcode, *user.TotpSecret)
-	if !user.TotpVerified {
-		if status {
-			user.TotpVerified = true
-			p.UpdateUser(ctx, user)
-			return status, nil
-		}
-		return status, nil
+	return &authenticators, nil
+
+}
+
+func (p *provider) GetAuthenticatorDetailsByUserId(ctx context.Context, userId string, authenticatorType string) (*models.Authenticators, error) {
+	var authenticators *models.Authenticators
+	authenticatorsCollection := p.db.Collection(models.Collections.Authenticators, options.Collection())
+	err := authenticatorsCollection.FindOne(ctx, bson.M{"user_id": userId, "method": authenticatorType}).Decode(&authenticators)
+	if err != nil {
+		return authenticators, err
 	}
-	return status, nil
+	return authenticators, nil
 }

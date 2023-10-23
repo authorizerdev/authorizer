@@ -2,6 +2,8 @@ package dynamodb
 
 import (
 	"context"
+	"errors"
+	"github.com/guregu/dynamo"
 	"time"
 
 	"github.com/google/uuid"
@@ -40,13 +42,13 @@ func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators model
 func (p *provider) GetAuthenticatorDetailsByUserId(ctx context.Context, userId string, authenticatorType string) (*models.Authenticators, error) {
 	collection := p.db.Table(models.Collections.Authenticators)
 	var authenticators *models.Authenticators
-	err := collection.Get().OneWithContext(ctx, &authenticators)
+	err := collection.Get("user_id", userId).Range("method", dynamo.Equal, authenticatorType).OneWithContext(ctx, &authenticators)
 	if err != nil {
-		if authenticators.Email == "" {
-			return user, errors.New("no documets found")
+		if authenticators.ID == "" {
+			return authenticators, errors.New("no documets found")
 		} else {
-			return user, nil
+			return authenticators, nil
 		}
 	}
-	return user, nil
+	return authenticators, nil
 }

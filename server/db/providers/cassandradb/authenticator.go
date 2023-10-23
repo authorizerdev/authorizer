@@ -119,7 +119,7 @@ func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators model
 
 func (p *provider) GetAuthenticatorDetailsByUserId(ctx context.Context, userId string, authenticatorType string) (*models.Authenticators, error) {
 	var authenticators models.Authenticators
-	query := fmt.Sprintf("SELECT id, user_id, method, secret, recovery_code, verified_at, created_at, updated_at FROM %s WHERE user_id = '%s' AND method = '%s' LIMIT 1", KeySpace+"."+models.Collections.User, userId, authenticatorType)
+	query := fmt.Sprintf("SELECT id, user_id, method, secret, recovery_code, verified_at, created_at, updated_at FROM %s WHERE user_id = '%s' AND method = '%s' LIMIT 1", KeySpace+"."+models.Collections.Authenticators, userId, authenticatorType)
 	err := p.db.Query(query).Consistency(gocql.One).Scan(&authenticators.ID, &authenticators.UserID, &authenticators.Method, &authenticators.Secret, &authenticators.RecoveryCode, &authenticators.VerifiedAt, &authenticators.CreatedAt, &authenticators.UpdatedAt)
 	if err != nil {
 		return nil, err

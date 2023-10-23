@@ -19,7 +19,7 @@ func (p *provider) AddAuthenticator(ctx context.Context, authenticators models.A
 	insertOpt := gocb.InsertOptions{
 		Context: ctx,
 	}
-	_, err := p.db.Collection(models.Collections.User).Insert(authenticators.ID, authenticators, &insertOpt)
+	_, err := p.db.Collection(models.Collections.Authenticators).Insert(authenticators.ID, authenticators, &insertOpt)
 	if err != nil {
 		return &authenticators, err
 	}
@@ -31,7 +31,7 @@ func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators model
 	upsertOpt := gocb.UpsertOptions{
 		Context: ctx,
 	}
-	_, err := p.db.Collection(models.Collections.User).Upsert(authenticators.ID, authenticators, &upsertOpt)
+	_, err := p.db.Collection(models.Collections.Authenticators).Upsert(authenticators.ID, authenticators, &upsertOpt)
 	if err != nil {
 		return &authenticators, err
 	}
