@@ -429,7 +429,7 @@ type UpdateWebhookRequest struct {
 
 type User struct {
 	ID                       string                 `json:"id"`
-	Email                    string                 `json:"email"`
+	Email                    *string                `json:"email,omitempty"`
 	EmailVerified            bool                   `json:"email_verified"`
 	SignupMethods            string                 `json:"signup_methods"`
 	GivenName                *string                `json:"given_name,omitempty"`

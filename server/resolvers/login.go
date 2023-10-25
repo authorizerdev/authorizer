@@ -145,7 +145,7 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 		otp := utils.GenerateOTP()
 		expires := time.Now().Add(1 * time.Minute).Unix()
 		otpData, err := db.Provider.UpsertOTP(ctx, &models.OTP{
-			Email:     user.Email,
+			Email:     refs.StringValue(user.Email),
 			Otp:       otp,
 			ExpiresAt: expires,
 		})

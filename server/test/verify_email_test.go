@@ -24,7 +24,7 @@ func verifyEmailTest(t *testing.T, s TestSetup) {
 		assert.NoError(t, err)
 		assert.NotNil(t, res)
 		user := *res.User
-		assert.Equal(t, email, user.Email)
+		assert.Equal(t, email, refs.StringValue(user.Email))
 		assert.Nil(t, res.AccessToken, "access token should be nil")
 		verificationRequest, err := db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeBasicAuthSignup)
 		assert.Nil(t, err)

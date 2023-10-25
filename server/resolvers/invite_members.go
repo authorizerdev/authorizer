@@ -106,7 +106,7 @@ func InviteMembersResolver(ctx context.Context, params model.InviteMemberInput) 
 		}
 
 		user := &models.User{
-			Email: email,
+			Email: refs.NewStringRef(email),
 			Roles: strings.Join(defaultRoles, ","),
 		}
 		hostname := parsers.GetHost(gc)
@@ -171,7 +171,7 @@ func InviteMembersResolver(ctx context.Context, params model.InviteMemberInput) 
 		}
 
 		// exec it as go routine so that we can reduce the api latency
-		go emailservice.SendEmail([]string{user.Email}, constants.VerificationTypeInviteMember, map[string]interface{}{
+		go emailservice.SendEmail([]string{refs.StringValue(user.Email)}, constants.VerificationTypeInviteMember, map[string]interface{}{
 			"user":             user.ToMap(),
 			"organization":     utils.GetOrganization(),
 			"verification_url": utils.GetInviteVerificationURL(verifyEmailURL, verificationToken, redirectURL),

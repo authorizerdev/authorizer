@@ -19,7 +19,7 @@ func updateAllUsersTest(t *testing.T, s TestSetup) {
 		_, ctx := createContext(s)
 		for i := 0; i < 10; i++ {
 			user := &models.User{
-				Email:         fmt.Sprintf("update_all_user_%d_%s", i, s.TestInfo.Email),
+				Email:         refs.NewStringRef(fmt.Sprintf("update_all_user_%d_%s", i, s.TestInfo.Email)),
 				SignupMethods: constants.AuthRecipeMethodBasicAuth,
 				Roles:         "user",
 			}
@@ -61,7 +61,7 @@ func updateAllUsersTest(t *testing.T, s TestSetup) {
 			} else {
 				assert.True(t, refs.BoolValue(u.IsMultiFactorAuthEnabled))
 			}
-			cleanData(u.Email)
+			cleanData(refs.StringValue(u.Email))
 		}
 	})
 }

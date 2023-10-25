@@ -32,7 +32,8 @@ type Meta {
 
 type User {
   id: ID!
-  email: String!
+  # email or phone_number is always present
+  email: String
   email_verified: Boolean!
   signup_methods: String!
   given_name: String

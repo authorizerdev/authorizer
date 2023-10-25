@@ -47,8 +47,6 @@ func NewProvider() (*provider, error) {
 			Keys:    bson.M{"email": 1},
 			Options: options.Index().SetUnique(true).SetSparse(true),
 		},
-	}, options.CreateIndexes())
-	userCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		{
 			Keys: bson.M{"phone_number": 1},
 			Options: options.Index().SetUnique(true).SetSparse(true).SetPartialFilterExpression(map[string]interface{}{
@@ -56,7 +54,6 @@ func NewProvider() (*provider, error) {
 			}),
 		},
 	}, options.CreateIndexes())
-
 	mongodb.CreateCollection(ctx, models.Collections.VerificationRequest, options.CreateCollection())
 	verificationRequestCollection := mongodb.Collection(models.Collections.VerificationRequest, options.Collection())
 	verificationRequestCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{

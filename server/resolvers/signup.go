@@ -158,7 +158,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 	user.Password = &password
 	if email != "" {
 		user.SignupMethods = constants.AuthRecipeMethodBasicAuth
-		user.Email = email
+		user.Email = &email
 	}
 	if params.GivenName != nil {
 		user.GivenName = params.GivenName
