@@ -200,8 +200,4 @@ const (
 	EnvKeyTwilioAccountSID = "TWILIO_ACCOUNT_SID"
 	// EnvKeyTwilioSender key for env variable TWILIO_SENDER
 	EnvKeyTwilioSender = "TWILIO_SENDER"
-
-	// Authenticators Methods
-	// EnvKeyTOTPAuthenticator key for env variable TOTP
-	EnvKeyTOTPAuthenticator = "totp"
 )
