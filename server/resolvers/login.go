@@ -155,7 +155,6 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 	}
 
 	// If email service is not enabled continue the process in any way
-	if refs.BoolValue(user.IsMultiFactorAuthEnabled) && !isMailOTPDisabled && !isMFADisabled {
 	if refs.BoolValue(user.IsMultiFactorAuthEnabled) && !isMFADisabled {
 		otp := utils.GenerateOTP()
 		expires := time.Now().Add(1 * time.Minute).Unix()
@@ -218,7 +217,7 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 			log.Debug("error while parsing public key")
 		}
 
-		//encrypting user id, so it can be used as token for verifying
+		//encrypting user id, so it can Kbe used as token for verifying
 		encryptedUserId, err := crypto.EncryptRSA(user.ID, *publicKey)
 		if err != nil {
 			log.Debug("error while encrypting user id")
@@ -227,7 +226,7 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 		totpModel, err := db.Provider.GetAuthenticatorDetailsByUserId(ctx, user.ID, constants.EnvKeyTOTPAuthenticator)
 
 		// for first time user or whose totp is not verified
-		if (err != nil && err.Error() == "record not found") || (totpModel != nil && totpModel.VerifiedAt == nil) {
+		if err != nil || (totpModel != nil && totpModel.VerifiedAt == nil) {
 			base64URL, err := authenticators.Provider.Generate(ctx, user.ID)
 			if err != nil {
 				log.Debug("error while generating base64 url: ", err)
