@@ -2341,7 +2341,8 @@ type Meta {
 
 type User {
   id: ID!
-  email: String!
+  # email or phone_number is always present
+  email: String
   email_verified: Boolean!
   signup_methods: String!
   given_name: String
@@ -2622,6 +2623,7 @@ input AdminSignupInput {
   admin_secret: String!
 }
 
+# Deprecated from v1.2.0
 input MobileSignUpInput {
   email: String
   given_name: String
@@ -2646,7 +2648,7 @@ input MobileSignUpInput {
 }
 
 input SignUpInput {
-  email: String!
+  email: String
   given_name: String
   family_name: String
   middle_name: String
@@ -2669,7 +2671,8 @@ input SignUpInput {
 }
 
 input LoginInput {
-  email: String!
+  email: String
+  phone_number: String
   password: String!
   roles: [String!]
   scope: [String!]
@@ -2679,6 +2682,7 @@ input LoginInput {
   state: String
 }
 
+# Deprecated from v1.2.0
 input MobileLoginInput {
   phone_number: String!
   password: String!
@@ -2896,8 +2900,10 @@ input GetUserRequest {
 
 type Mutation {
   signup(params: SignUpInput!): AuthResponse!
+  # Deprecated from v1.2.0
   mobile_signup(params: MobileSignUpInput): AuthResponse!
   login(params: LoginInput!): AuthResponse!
+  # Deprecated from v1.2.0
   mobile_login(params: MobileLoginInput!): AuthResponse!
   magic_link_login(params: MagicLinkLoginInput!): Response!
   logout: Response!
@@ -12111,14 +12117,11 @@ func (ec *executionContext) _User_email(ctx context.Context, field graphql.Colle
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(*string)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_User_email(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -16784,7 +16787,7 @@ func (ec *executionContext) unmarshalInputLoginInput(ctx context.Context, obj in
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"email", "password", "roles", "scope", "state"}
+	fieldsInOrder := [...]string{"email", "phone_number", "password", "roles", "scope", "state"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -16795,11 +16798,20 @@ func (ec *executionContext) unmarshalInputLoginInput(ctx context.Context, obj in
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
-			data, err := ec.unmarshalNString2string(ctx, v)
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
 			it.Email = data
+		case "phone_number":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phone_number"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PhoneNumber = data
 		case "password":
 			var err error
 
@@ -17438,7 +17450,7 @@ func (ec *executionContext) unmarshalInputSignUpInput(ctx context.Context, obj i
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
-			data, err := ec.unmarshalNString2string(ctx, v)
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -20341,9 +20353,6 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			}
 		case "email":
 			out.Values[i] = ec._User_email(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		case "email_verified":
 			out.Values[i] = ec._User_email_verified(ctx, field, obj)
 			if out.Values[i] == graphql.Null {

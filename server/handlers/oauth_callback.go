@@ -23,6 +23,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/oauth"
+	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
@@ -85,7 +86,7 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			return
 		}
 
-		existingUser, err := db.Provider.GetUserByEmail(ctx, user.Email)
+		existingUser, err := db.Provider.GetUserByEmail(ctx, refs.StringValue(user.Email))
 		log := log.WithField("user", user.Email)
 		isSignUp := false
 
@@ -415,7 +416,7 @@ func processGithubUserInfo(ctx context.Context, code string) (*models.User, erro
 		GivenName:  &firstName,
 		FamilyName: &lastName,
 		Picture:    &picture,
-		Email:      email,
+		Email:      &email,
 	}
 
 	return user, nil
@@ -466,7 +467,7 @@ func processFacebookUserInfo(ctx context.Context, code string) (*models.User, er
 		GivenName:  &firstName,
 		FamilyName: &lastName,
 		Picture:    &picture,
-		Email:      email,
+		Email:      &email,
 	}
 
 	return user, nil
@@ -548,7 +549,7 @@ func processLinkedInUserInfo(ctx context.Context, code string) (*models.User, er
 		GivenName:  &firstName,
 		FamilyName: &lastName,
 		Picture:    &profilePicture,
-		Email:      emailAddress,
+		Email:      &emailAddress,
 	}
 
 	return user, nil
@@ -588,7 +589,8 @@ func processAppleUserInfo(ctx context.Context, code string) (*models.User, error
 		log.Debug("Failed to extract email from claims.")
 		return user, fmt.Errorf("unable to extract email, please check the scopes enabled for your app. It needs `email`, `name` scopes")
 	} else {
-		user.Email = val.(string)
+		email := val.(string)
+		user.Email = &email
 	}
 
 	if val, ok := claims["name"]; ok {

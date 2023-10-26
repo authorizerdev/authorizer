@@ -100,7 +100,7 @@ func ResendOTPResolver(ctx context.Context, params model.ResendOTPRequest) (*mod
 
 	otp := utils.GenerateOTP()
 	if _, err := db.Provider.UpsertOTP(ctx, &models.OTP{
-		Email:     user.Email,
+		Email:     refs.StringValue(user.Email),
 		Otp:       otp,
 		ExpiresAt: time.Now().Add(1 * time.Minute).Unix(),
 	}); err != nil {

@@ -8,6 +8,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
+	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/authorizerdev/authorizer/server/resolvers"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
@@ -41,7 +42,7 @@ func validateJwtTokenTest(t *testing.T, s TestSetup) {
 	scope := []string{"openid", "email", "profile", "offline_access"}
 	user := &models.User{
 		ID:        uuid.New().String(),
-		Email:     "jwt_test_" + s.TestInfo.Email,
+		Email:     refs.NewStringRef("jwt_test_" + s.TestInfo.Email),
 		Roles:     "user",
 		UpdatedAt: time.Now().Unix(),
 		CreatedAt: time.Now().Unix(),
@@ -96,6 +97,6 @@ func validateJwtTokenTest(t *testing.T, s TestSetup) {
 		})
 		assert.NoError(t, err)
 		assert.True(t, res.IsValid)
-		assert.Equal(t, user.Email, res.Claims["email"])
+		assert.Equal(t, refs.StringValue(user.Email), res.Claims["email"])
 	})
 }

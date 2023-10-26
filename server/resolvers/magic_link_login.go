@@ -56,7 +56,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 	inputRoles := []string{}
 
 	user := &models.User{
-		Email: params.Email,
+		Email: refs.NewStringRef(params.Email),
 	}
 
 	// find user with email

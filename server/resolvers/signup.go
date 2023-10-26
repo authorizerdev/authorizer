@@ -16,11 +16,12 @@ import (
 	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
-	"github.com/authorizerdev/authorizer/server/email"
+	emailService "github.com/authorizerdev/authorizer/server/email"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/parsers"
 	"github.com/authorizerdev/authorizer/server/refs"
+	"github.com/authorizerdev/authorizer/server/smsproviders"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/authorizerdev/authorizer/server/validators"
@@ -51,46 +52,77 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 		log.Debug("Error getting basic auth disabled: ", err)
 		isBasicAuthDisabled = true
 	}
-
-	if isBasicAuthDisabled {
-		log.Debug("Basic authentication is disabled")
-		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
+	isMobileBasicAuthDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableMobileBasicAuthentication)
+	if err != nil {
+		log.Debug("Error getting mobile basic auth disabled: ", err)
+		isMobileBasicAuthDisabled = true
 	}
-
 	if params.ConfirmPassword != params.Password {
 		log.Debug("Passwords do not match")
 		return res, fmt.Errorf(`password and confirm password does not match`)
 	}
-
 	if err := validators.IsValidPassword(params.Password); err != nil {
 		log.Debug("Invalid password")
 		return res, err
 	}
-
-	params.Email = strings.ToLower(params.Email)
-
-	if !validators.IsValidEmail(params.Email) {
+	email := strings.TrimSpace(refs.StringValue(params.Email))
+	phoneNumber := strings.TrimSpace(refs.StringValue(params.PhoneNumber))
+	if email == "" && phoneNumber == "" {
+		log.Debug("Email or phone number is required")
+		return res, fmt.Errorf(`email or phone number is required`)
+	}
+	isEmailSignup := email != ""
+	isMobileSignup := phoneNumber != ""
+	if isBasicAuthDisabled {
+		log.Debug("Basic authentication is disabled")
+		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
+	}
+	if isMobileBasicAuthDisabled && isMobileSignup {
+		log.Debug("Mobile basic authentication is disabled")
+		return res, fmt.Errorf(`mobile basic authentication is disabled for this instance`)
+	}
+	if isEmailSignup && !validators.IsValidEmail(email) {
 		log.Debug("Invalid email: ", params.Email)
 		return res, fmt.Errorf(`invalid email address`)
 	}
-
-	log := log.WithFields(log.Fields{
-		"email": params.Email,
-	})
-	// find user with email
-	existingUser, err := db.Provider.GetUserByEmail(ctx, params.Email)
-	if err != nil {
-		log.Debug("Failed to get user by email: ", err)
+	if isMobileSignup && (phoneNumber == "" || len(phoneNumber) < 10) {
+		log.Debug("Invalid phone number: ", phoneNumber)
+		return res, fmt.Errorf(`invalid phone number`)
 	}
-
-	if existingUser != nil {
-		if existingUser.EmailVerifiedAt != nil {
-			// email is verified
-			log.Debug("Email is already verified and signed up.")
-			return res, fmt.Errorf(`%s has already signed up`, params.Email)
-		} else if existingUser.ID != "" && existingUser.EmailVerifiedAt == nil {
-			log.Debug("Email is already signed up. Verification pending...")
-			return res, fmt.Errorf("%s has already signed up. please complete the email verification process or reset the password", params.Email)
+	log := log.WithFields(log.Fields{
+		"email":        email,
+		"phone_number": phoneNumber,
+	})
+	// find user with email / phone number
+	if isEmailSignup {
+		existingUser, err := db.Provider.GetUserByEmail(ctx, email)
+		if err != nil {
+			log.Debug("Failed to get user by email: ", err)
+		}
+		if existingUser != nil {
+			if existingUser.EmailVerifiedAt != nil {
+				// email is verified
+				log.Debug("Email is already verified and signed up.")
+				return res, fmt.Errorf(`%s has already signed up`, email)
+			} else if existingUser.ID != "" && existingUser.EmailVerifiedAt == nil {
+				log.Debug("Email is already signed up. Verification pending...")
+				return res, fmt.Errorf("%s has already signed up. please complete the email verification process or reset the password", email)
+			}
+		}
+	} else {
+		existingUser, err := db.Provider.GetUserByPhoneNumber(ctx, phoneNumber)
+		if err != nil {
+			log.Debug("Failed to get user by phone number: ", err)
+		}
+		if existingUser != nil {
+			if existingUser.PhoneNumberVerifiedAt != nil {
+				// email is verified
+				log.Debug("Phone number is already verified and signed up.")
+				return res, fmt.Errorf(`%s has already signed up`, phoneNumber)
+			} else if existingUser.ID != "" && existingUser.PhoneNumberVerifiedAt == nil {
+				log.Debug("Phone number is already signed up. Verification pending...")
+				return res, fmt.Errorf("%s has already signed up. please complete the phone number verification process or reset the password", phoneNumber)
+			}
 		}
 	}
 
@@ -120,13 +152,14 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 			inputRoles = strings.Split(inputRolesString, ",")
 		}
 	}
-	user := &models.User{
-		Email: params.Email,
-	}
+	user := &models.User{}
 	user.Roles = strings.Join(inputRoles, ",")
 	password, _ := crypto.EncryptPassword(params.Password)
 	user.Password = &password
-
+	if email != "" {
+		user.SignupMethods = constants.AuthRecipeMethodBasicAuth
+		user.Email = &email
+	}
 	if params.GivenName != nil {
 		user.GivenName = params.GivenName
 	}
@@ -151,8 +184,9 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 		user.Birthdate = params.Birthdate
 	}
 
-	if params.PhoneNumber != nil {
-		user.PhoneNumber = params.PhoneNumber
+	if phoneNumber != "" {
+		user.SignupMethods = constants.AuthRecipeMethodMobileBasicAuth
+		user.PhoneNumber = refs.NewStringRef(phoneNumber)
 	}
 
 	if params.Picture != nil {
@@ -183,8 +217,6 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 		appDataString = string(appDataBytes)
 		user.AppData = &appDataString
 	}
-
-	user.SignupMethods = constants.AuthRecipeMethodBasicAuth
 	isEmailVerificationDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification)
 	if err != nil {
 		log.Debug("Error getting email verification disabled: ", err)
@@ -194,6 +226,15 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 		now := time.Now().Unix()
 		user.EmailVerifiedAt = &now
 	}
+	disablePhoneVerification, _ := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisablePhoneVerification)
+	if disablePhoneVerification {
+		now := time.Now().Unix()
+		user.PhoneNumberVerifiedAt = &now
+	}
+	isSMSServiceEnabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyIsSMSServiceEnabled)
+	if err != nil || !isSMSServiceEnabled {
+		log.Debug("SMS service not enabled: ", err)
+	}
 	user, err = db.Provider.AddUser(ctx, user)
 	if err != nil {
 		log.Debug("Failed to add user: ", err)
@@ -201,9 +242,8 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 	}
 	roles := strings.Split(user.Roles, ",")
 	userToReturn := user.AsAPIUser()
-
 	hostname := parsers.GetHost(gc)
-	if !isEmailVerificationDisabled {
+	if !isEmailVerificationDisabled && isEmailSignup {
 		// insert verification request
 		_, nonceHash, err := utils.GenerateNonce()
 		if err != nil {
@@ -215,7 +255,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 		if params.RedirectURI != nil {
 			redirectURL = *params.RedirectURI
 		}
-		verificationToken, err := token.CreateVerificationToken(params.Email, verificationType, hostname, nonceHash, redirectURL)
+		verificationToken, err := token.CreateVerificationToken(email, verificationType, hostname, nonceHash, redirectURL)
 		if err != nil {
 			log.Debug("Failed to create verification token: ", err)
 			return res, err
@@ -224,7 +264,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 			Token:       verificationToken,
 			Identifier:  verificationType,
 			ExpiresAt:   time.Now().Add(time.Minute * 30).Unix(),
-			Email:       params.Email,
+			Email:       email,
 			Nonce:       nonceHash,
 			RedirectURI: redirectURL,
 		})
@@ -232,11 +272,10 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 			log.Debug("Failed to add verification request: ", err)
 			return res, err
 		}
-
 		// exec it as go routine so that we can reduce the api latency
 		go func() {
 			// exec it as go routine so that we can reduce the api latency
-			email.SendEmail([]string{params.Email}, constants.VerificationTypeBasicAuthSignup, map[string]interface{}{
+			emailService.SendEmail([]string{email}, constants.VerificationTypeBasicAuthSignup, map[string]interface{}{
 				"user":             user.ToMap(),
 				"organization":     utils.GetOrganization(),
 				"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname, redirectURL),
@@ -244,86 +283,120 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 			utils.RegisterEvent(ctx, constants.UserCreatedWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
 		}()
 
-		res = &model.AuthResponse{
+		return &model.AuthResponse{
 			Message: `Verification email has been sent. Please check your inbox`,
 			User:    userToReturn,
-		}
-	} else {
-		scope := []string{"openid", "email", "profile"}
-		if params.Scope != nil && len(scope) > 0 {
-			scope = params.Scope
-		}
+		}, nil
+	} else if !disablePhoneVerification && isSMSServiceEnabled && isMobileSignup {
+		duration, _ := time.ParseDuration("10m")
+		smsCode := utils.GenerateOTP()
 
-		code := ""
-		codeChallenge := ""
-		nonce := ""
-		if params.State != nil {
-			// Get state from store
-			authorizeState, _ := memorystore.Provider.GetState(refs.StringValue(params.State))
-			if authorizeState != "" {
-				authorizeStateSplit := strings.Split(authorizeState, "@@")
-				if len(authorizeStateSplit) > 1 {
-					code = authorizeStateSplit[0]
-					codeChallenge = authorizeStateSplit[1]
-				} else {
-					nonce = authorizeState
-				}
-				go memorystore.Provider.RemoveState(refs.StringValue(params.State))
-			}
-		}
+		smsBody := strings.Builder{}
+		smsBody.WriteString("Your verification code is: ")
+		smsBody.WriteString(smsCode)
 
-		if nonce == "" {
-			nonce = uuid.New().String()
-		}
-
-		authToken, err := token.CreateAuthToken(gc, user, roles, scope, constants.AuthRecipeMethodBasicAuth, nonce, code)
+		// TODO: For those who enabled the webhook to call their sms vendor separately - sending the otp to their api
 		if err != nil {
-			log.Debug("Failed to create auth token: ", err)
+			log.Debug("error while upserting user: ", err.Error())
+			return nil, err
+		}
+		_, err = db.Provider.UpsertOTP(ctx, &models.OTP{
+			PhoneNumber: phoneNumber,
+			Otp:         smsCode,
+			ExpiresAt:   time.Now().Add(duration).Unix(),
+		})
+		if err != nil {
+			log.Debug("error while upserting OTP: ", err.Error())
+			return nil, err
+		}
+		go func() {
+			smsproviders.SendSMS(phoneNumber, smsBody.String())
+			utils.RegisterEvent(ctx, constants.UserCreatedWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, user)
+		}()
+		return &model.AuthResponse{
+			Message:                   "Please check the OTP in your inbox",
+			ShouldShowMobileOtpScreen: refs.NewBoolRef(true),
+		}, nil
+	}
+	scope := []string{"openid", "email", "profile"}
+	if params.Scope != nil && len(scope) > 0 {
+		scope = params.Scope
+	}
+
+	code := ""
+	codeChallenge := ""
+	nonce := ""
+	if params.State != nil {
+		// Get state from store
+		authorizeState, _ := memorystore.Provider.GetState(refs.StringValue(params.State))
+		if authorizeState != "" {
+			authorizeStateSplit := strings.Split(authorizeState, "@@")
+			if len(authorizeStateSplit) > 1 {
+				code = authorizeStateSplit[0]
+				codeChallenge = authorizeStateSplit[1]
+			} else {
+				nonce = authorizeState
+			}
+			go memorystore.Provider.RemoveState(refs.StringValue(params.State))
+		}
+	}
+
+	if nonce == "" {
+		nonce = uuid.New().String()
+	}
+
+	authToken, err := token.CreateAuthToken(gc, user, roles, scope, constants.AuthRecipeMethodBasicAuth, nonce, code)
+	if err != nil {
+		log.Debug("Failed to create auth token: ", err)
+		return res, err
+	}
+
+	// Code challenge could be optional if PKCE flow is not used
+	if code != "" {
+		if err := memorystore.Provider.SetState(code, codeChallenge+"@@"+authToken.FingerPrintHash); err != nil {
+			log.Debug("SetState failed: ", err)
 			return res, err
 		}
-
-		// Code challenge could be optional if PKCE flow is not used
-		if code != "" {
-			if err := memorystore.Provider.SetState(code, codeChallenge+"@@"+authToken.FingerPrintHash); err != nil {
-				log.Debug("SetState failed: ", err)
-				return res, err
-			}
-		}
-
-		expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
-		if expiresIn <= 0 {
-			expiresIn = 1
-		}
-
-		res = &model.AuthResponse{
-			Message:     `Signed up successfully.`,
-			AccessToken: &authToken.AccessToken.Token,
-			ExpiresIn:   &expiresIn,
-			User:        userToReturn,
-		}
-
-		sessionKey := constants.AuthRecipeMethodBasicAuth + ":" + user.ID
-		cookie.SetSession(gc, authToken.FingerPrintHash)
-		memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt)
-		memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt)
-
-		if authToken.RefreshToken != nil {
-			res.RefreshToken = &authToken.RefreshToken.Token
-			memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token, authToken.RefreshToken.ExpiresAt)
-		}
-
-		go func() {
-			utils.RegisterEvent(ctx, constants.UserCreatedWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
-			utils.RegisterEvent(ctx, constants.UserSignUpWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
-			// User is also logged in with signup
-			utils.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
-			db.Provider.AddSession(ctx, &models.Session{
-				UserID:    user.ID,
-				UserAgent: utils.GetUserAgent(gc.Request),
-				IP:        utils.GetIP(gc.Request),
-			})
-		}()
 	}
+
+	expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
+	if expiresIn <= 0 {
+		expiresIn = 1
+	}
+
+	res = &model.AuthResponse{
+		Message:     `Signed up successfully.`,
+		AccessToken: &authToken.AccessToken.Token,
+		ExpiresIn:   &expiresIn,
+		User:        userToReturn,
+	}
+
+	sessionKey := constants.AuthRecipeMethodBasicAuth + ":" + user.ID
+	cookie.SetSession(gc, authToken.FingerPrintHash)
+	memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt)
+	memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt)
+
+	if authToken.RefreshToken != nil {
+		res.RefreshToken = &authToken.RefreshToken.Token
+		memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token, authToken.RefreshToken.ExpiresAt)
+	}
+
+	go func() {
+		utils.RegisterEvent(ctx, constants.UserCreatedWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
+		if isEmailSignup {
+			utils.RegisterEvent(ctx, constants.UserSignUpWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
+			utils.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
+		} else {
+			utils.RegisterEvent(ctx, constants.UserSignUpWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, user)
+			utils.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, user)
+		}
+
+		db.Provider.AddSession(ctx, &models.Session{
+			UserID:    user.ID,
+			UserAgent: utils.GetUserAgent(gc.Request),
+			IP:        utils.GetIP(gc.Request),
+		})
+	}()
 
 	return res, nil
 }

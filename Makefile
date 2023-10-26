@@ -46,7 +46,7 @@ test-all-db:
 	docker run -d --name dynamodb-local-test  -p 8000:8000 amazon/dynamodb-local:latest
 	docker run -d --name couchbase-local-test  -p 8091-8097:8091-8097 -p 11210:11210 -p 11207:11207 -p 18091-18095:18091-18095 -p 18096:18096 -p 18097:18097 couchbase:latest
 	sh scripts/couchbase-test.sh
-	cd server && go clean --testcache && TEST_DBS="sqlite,mongodb,arangodb,scylladb,dynamodb" go test -p 1 -v ./test
+	cd server && go clean --testcache && TEST_DBS="sqlite,mongodb,arangodb,scylladb,dynamodb,couchbase" go test -p 1 -v ./test
 	docker rm -vf authorizer_scylla_db
 	docker rm -vf authorizer_mongodb_db
 	docker rm -vf authorizer_arangodb

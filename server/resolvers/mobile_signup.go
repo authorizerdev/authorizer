@@ -131,7 +131,7 @@ func MobileSignupResolver(ctx context.Context, params *model.MobileSignUpInput) 
 	}
 
 	user := &models.User{
-		Email:       emailInput,
+		Email:       &emailInput,
 		PhoneNumber: &mobile,
 	}
 

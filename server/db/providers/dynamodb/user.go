@@ -132,7 +132,7 @@ func (p *provider) GetUserByID(ctx context.Context, id string) (*models.User, er
 	var user *models.User
 	err := collection.Get("id", id).OneWithContext(ctx, &user)
 	if err != nil {
-		if user.Email == "" {
+		if refs.StringValue(user.Email) == "" {
 			return user, errors.New("no documets found")
 		} else {
 			return user, nil

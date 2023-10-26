@@ -199,7 +199,7 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 
 	hasEmailChanged := false
 
-	if params.Email != nil && user.Email != refs.StringValue(params.Email) {
+	if params.Email != nil && refs.StringValue(user.Email) != refs.StringValue(params.Email) {
 		// check if valid email
 		if !validators.IsValidEmail(*params.Email) {
 			log.Debug("Failed to validate email: ", refs.StringValue(params.Email))
@@ -223,7 +223,7 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 		go memorystore.Provider.DeleteAllUserSessions(user.ID)
 		go cookie.DeleteSession(gc)
 
-		user.Email = newEmail
+		user.Email = &newEmail
 		isEmailVerificationDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification)
 		if err != nil {
 			log.Debug("Failed to get disable email verification env variable: ", err)
@@ -260,7 +260,7 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 			}
 
 			// exec it as go routine so that we can reduce the api latency
-			go email.SendEmail([]string{user.Email}, verificationType, map[string]interface{}{
+			go email.SendEmail([]string{refs.StringValue(user.Email)}, verificationType, map[string]interface{}{
 				"user":             user.ToMap(),
 				"organization":     utils.GetOrganization(),
 				"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname, redirectURL),

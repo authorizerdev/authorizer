@@ -130,7 +130,7 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 		}
 	}
 
-	if params.Email != nil && user.Email != *params.Email {
+	if params.Email != nil && refs.StringValue(user.Email) != refs.StringValue(params.Email) {
 		// check if valid email
 		if !validators.IsValidEmail(*params.Email) {
 			log.Debug("Invalid email: ", *params.Email)
@@ -148,7 +148,7 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 		go memorystore.Provider.DeleteAllUserSessions(user.ID)
 
 		hostname := parsers.GetHost(gc)
-		user.Email = newEmail
+		user.Email = &newEmail
 		user.EmailVerifiedAt = nil
 		// insert verification request
 		_, nonceHash, err := utils.GenerateNonce()
@@ -176,7 +176,7 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 		}
 
 		// exec it as go routine so that we can reduce the api latency
-		go email.SendEmail([]string{user.Email}, constants.VerificationTypeBasicAuthSignup, map[string]interface{}{
+		go email.SendEmail([]string{refs.StringValue(user.Email)}, constants.VerificationTypeBasicAuthSignup, map[string]interface{}{
 			"user":             user.ToMap(),
 			"organization":     utils.GetOrganization(),
 			"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname, redirectURL),
