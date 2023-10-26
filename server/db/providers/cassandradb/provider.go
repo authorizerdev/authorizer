@@ -280,11 +280,6 @@ func NewProvider() (*provider, error) {
 	if err != nil {
 		return nil, err
 	}
-	totpIndexQuery := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_authenticators_user_id ON %s.%s (user_id)", KeySpace, models.Collections.Authenticators)
-	err = session.Query(totpIndexQuery).Exec()
-	if err != nil {
-		return nil, err
-	}
 
 	return &provider{
 		db: session,

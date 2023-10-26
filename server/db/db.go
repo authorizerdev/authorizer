@@ -1,15 +1,15 @@
 package db
 
 import (
+	log "github.com/sirupsen/logrus"
+
+	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/db/providers"
 	"github.com/authorizerdev/authorizer/server/db/providers/arangodb"
 	"github.com/authorizerdev/authorizer/server/db/providers/cassandradb"
 	"github.com/authorizerdev/authorizer/server/db/providers/couchbase"
 	"github.com/authorizerdev/authorizer/server/db/providers/dynamodb"
 	"github.com/authorizerdev/authorizer/server/db/providers/mongodb"
-	log "github.com/sirupsen/logrus"
-
-	"github.com/authorizerdev/authorizer/server/constants"
-	"github.com/authorizerdev/authorizer/server/db/providers"
 	"github.com/authorizerdev/authorizer/server/db/providers/sql"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 )

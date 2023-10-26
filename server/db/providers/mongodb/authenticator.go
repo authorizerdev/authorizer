@@ -27,12 +27,11 @@ func (p *provider) AddAuthenticator(ctx context.Context, authenticators models.A
 func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators models.Authenticators) (*models.Authenticators, error) {
 	authenticators.UpdatedAt = time.Now().Unix()
 	authenticatorsCollection := p.db.Collection(models.Collections.Authenticators, options.Collection())
-	_, err := authenticatorsCollection.UpdateOne(ctx, bson.M{"id": bson.M{"$eq": authenticators.ID}}, bson.M{"$set": authenticators}, options.MergeUpdateOptions())
+	_, err := authenticatorsCollection.UpdateOne(ctx, bson.D{{"_id", authenticators.ID}}, bson.M{"$set": authenticators})
 	if err != nil {
 		return &authenticators, err
 	}
 	return &authenticators, nil
-
 }
 
 func (p *provider) GetAuthenticatorDetailsByUserId(ctx context.Context, userId string, authenticatorType string) (*models.Authenticators, error) {

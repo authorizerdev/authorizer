@@ -55,9 +55,16 @@ func VerifyTotpResolver(ctx context.Context, params model.VerifyTOTPRequest) (*m
 		return nil, err
 	}
 
-	status, recoveryCode, err := authenticators.Provider.Validate(ctx, params.Otp, userID)
+	status, err := authenticators.Provider.Validate(ctx, params.Otp, userID)
+	fmt.Println("status", status)
+	fmt.Println("err status", err)
 	if err != nil || !status {
 		return nil, fmt.Errorf("error while validating passcode")
+	}
+
+	recoveryCode, err := authenticators.Provider.RecoveryCode(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("error while getting recovery code")
 	}
 
 	code := ""

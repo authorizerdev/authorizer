@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"github.com/authorizerdev/authorizer/server/authenticators"
 	"strings"
 	"testing"
 
@@ -28,7 +29,7 @@ func verifyTOTPTest(t *testing.T, s TestSetup) {
 		email := "verify_totp." + s.TestInfo.Email
 		cleanData(email)
 		res, err := resolvers.SignupResolver(ctx, model.SignUpInput{
-			Email:           email,
+			Email:           &email,
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password,
 		})
@@ -37,7 +38,7 @@ func verifyTOTPTest(t *testing.T, s TestSetup) {
 
 		// Login should fail as email is not verified
 		loginRes, err := resolvers.LoginResolver(ctx, model.LoginInput{
-			Email:    email,
+			Email:    &email,
 			Password: s.TestInfo.Password,
 		})
 		assert.Error(t, err)
@@ -54,22 +55,25 @@ func verifyTOTPTest(t *testing.T, s TestSetup) {
 		// Using access token update profile
 		s.GinContext.Request.Header.Set("Authorization", "Bearer "+refs.StringValue(verifyRes.AccessToken))
 		ctx = context.WithValue(req.Context(), "GinContextKey", s.GinContext)
+		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDisableTOTPLogin, false)
+		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDisableMailOTPLogin, true)
 		updateProfileRes, err := resolvers.UpdateProfileResolver(ctx, model.UpdateProfileInput{
 			IsMultiFactorAuthEnabled: refs.NewBoolRef(true),
 		})
 		assert.NoError(t, err)
 		assert.NotEmpty(t, updateProfileRes.Message)
-		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDisableTOTPLogin, false)
-		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDisableMailOTPLogin, true)
 
+		fmt.Println("updateProfileRes in verify_totp_test", updateProfileRes)
+		authenticators.InitTOTPStore()
 		// Login should not return error but access token should be empty
 		loginRes, err = resolvers.LoginResolver(ctx, model.LoginInput{
-			Email:    email,
+			Email:    &email,
 			Password: s.TestInfo.Password,
 		})
+		fmt.Printf("loginREs %+v \n", loginRes)
 		assert.NoError(t, err)
 		assert.NotNil(t, loginRes)
-		assert.NotNil(t, loginRes.TotpBase64URL)
+		assert.NotNil(t, *loginRes.TotpBase64URL)
 		assert.NotNil(t, loginRes.TotpToken)
 		assert.Nil(t, loginRes.AccessToken)
 		assert.Equal(t, loginRes.Message, `Proceed to totp screen`)
@@ -88,19 +92,22 @@ func verifyTOTPTest(t *testing.T, s TestSetup) {
 		code := tf.OTP()
 
 		assert.NotEmpty(t, code)
-
+		totpToken := *loginRes.TotpToken
+		fmt.Println("totpToken", totpToken)
+		fmt.Println("code", code)
 		valid, err := resolvers.VerifyTotpResolver(ctx, model.VerifyTOTPRequest{
 			Otp:   code,
-			Token: *loginRes.TotpToken,
+			Token: totpToken,
 		})
-
-		accessToken := *valid.AccessToken
+		fmt.Println("err valid", err)
+		fmt.Printf("valid %+v \n", valid)
+		accessToken := valid.AccessToken
 		assert.NoError(t, err)
 		assert.NotNil(t, accessToken)
 		assert.Equal(t, `Logged in successfully`, valid.Message)
 
 		assert.NotEmpty(t, accessToken)
-		claims, err := token.ParseJWTToken(accessToken)
+		claims, err := token.ParseJWTToken(*accessToken)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, claims)
 		loginMethod := claims["login_method"]
@@ -123,9 +130,10 @@ func verifyTOTPTest(t *testing.T, s TestSetup) {
 		assert.Equal(t, logout.Message, `Logged out successfully`)
 
 		loginRes, err = resolvers.LoginResolver(ctx, model.LoginInput{
-			Email:    email,
+			Email:    &email,
 			Password: s.TestInfo.Password,
 		})
+		fmt.Printf("loginRes 1221412 %+v \n", loginRes)
 		assert.NoError(t, err)
 		assert.NotNil(t, loginRes)
 		assert.NotNil(t, loginRes.TotpToken)

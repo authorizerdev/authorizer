@@ -186,6 +186,7 @@ func NewProvider() (*provider, error) {
 	webhookLogCollection.EnsureHashIndex(ctx, []string{"webhook_id"}, &arangoDriver.EnsureHashIndexOptions{
 		Sparse: true,
 	})
+
 	emailTemplateCollectionExists, err := arangodb.CollectionExists(ctx, models.Collections.EmailTemplate)
 	if err != nil {
 		return nil, err
@@ -204,6 +205,7 @@ func NewProvider() (*provider, error) {
 		Unique: true,
 		Sparse: true,
 	})
+
 	otpCollectionExists, err := arangodb.CollectionExists(ctx, models.Collections.OTP)
 	if err != nil {
 		return nil, err
@@ -234,14 +236,14 @@ func NewProvider() (*provider, error) {
 			return nil, err
 		}
 	}
-	authenticatorsCollection, err := arangodb.Collection(ctx, models.Collections.OTP)
+	authenticatorsCollection, err := arangodb.Collection(ctx, models.Collections.Authenticators)
 	if err != nil {
 		return nil, err
 	}
 	authenticatorsCollection.EnsureHashIndex(ctx, []string{"user_id"}, &arangoDriver.EnsureHashIndexOptions{
-		Unique: true,
 		Sparse: true,
 	})
+
 	return &provider{
 		db: arangodb,
 	}, err

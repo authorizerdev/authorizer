@@ -122,6 +122,15 @@ func NewProvider() (*provider, error) {
 		},
 	}, options.CreateIndexes())
 
+	mongodb.CreateCollection(ctx, models.Collections.Authenticators, options.CreateCollection())
+	authenticatorsCollection := mongodb.Collection(models.Collections.Authenticators, options.Collection())
+	authenticatorsCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{
+			Keys:    bson.M{"user_id": 1},
+			Options: options.Index().SetSparse(true),
+		},
+	}, options.CreateIndexes())
+
 	return &provider{
 		db: mongodb,
 	}, nil

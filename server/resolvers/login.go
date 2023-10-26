@@ -155,7 +155,7 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 	}
 
 	// If email service is not enabled continue the process in any way
-	if refs.BoolValue(user.IsMultiFactorAuthEnabled) && !isMFADisabled {
+	if refs.BoolValue(user.IsMultiFactorAuthEnabled) && !isMFADisabled && !isMailOTPDisabled {
 		otp := utils.GenerateOTP()
 		expires := time.Now().Add(1 * time.Minute).Unix()
 		otpData, err := db.Provider.UpsertOTP(ctx, &models.OTP{
@@ -224,9 +224,11 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 		}
 
 		totpModel, err := db.Provider.GetAuthenticatorDetailsByUserId(ctx, user.ID, constants.EnvKeyTOTPAuthenticator)
-
+		fmt.Printf(" \n totpModel before checking new or not %+v \n", totpModel)
+		fmt.Println("err \n", err != nil || (totpModel != nil && totpModel.VerifiedAt == nil))
 		// for first time user or whose totp is not verified
-		if err != nil || (totpModel != nil && totpModel.VerifiedAt == nil) {
+		//if err != nil || (totpModel != nil && totpModel.VerifiedAt == nil) {
+		if err != nil || ((totpModel == nil) || (totpModel != nil && totpModel.VerifiedAt == nil)) {
 			base64URL, err := authenticators.Provider.Generate(ctx, user.ID)
 			if err != nil {
 				log.Debug("error while generating base64 url: ", err)

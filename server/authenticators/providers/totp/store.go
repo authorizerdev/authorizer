@@ -29,7 +29,7 @@ func (p *provider) Generate(ctx context.Context, id string) (*string, error) {
 	// generate totp, Authenticators hash is valid for 30 seconds
 	key, err := totp.Generate(totp.GenerateOpts{
 		Issuer:      "authorizer",
-		AccountName: user.Email,
+		AccountName: *user.Email,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("error while genrating totp")
@@ -54,29 +54,49 @@ func (p *provider) Generate(ctx context.Context, id string) (*string, error) {
 	return &encodedText, nil
 }
 
-func (p *provider) Validate(ctx context.Context, passcode string, id string) (bool, *string, error) {
+func (p *provider) Validate(ctx context.Context, passcode string, id string) (bool, error) {
 	// get totp details
 	totpModel, err := db.Provider.GetAuthenticatorDetailsByUserId(ctx, id, constants.EnvKeyTOTPAuthenticator)
 	if err != nil {
-		return false, nil, fmt.Errorf("error while getting totp details from authenticators")
+		return false, fmt.Errorf("error while getting totp details from authenticators")
 	}
 
 	status := totp.Validate(passcode, totpModel.Secret)
 	if totpModel.VerifiedAt == nil {
 		if status {
-			recoveryCode := utils.GenerateTOTPRecoveryCode()
 			timeNow := time.Now().Unix()
-
 			totpModel.VerifiedAt = &timeNow
-			totpModel.RecoveryCode = &recoveryCode
-
+			fmt.Printf("totpModel validate %+v \n", totpModel)
 			_, err = db.Provider.UpdateAuthenticator(ctx, *totpModel)
 			if err != nil {
-				return false, nil, fmt.Errorf("error while updaing authenticator table for totp")
+				return false, fmt.Errorf("error while updaing authenticator table for totp")
 			}
-			return status, &recoveryCode, nil
+			return status, nil
 		}
-		return status, nil, nil
+		return status, nil
 	}
-	return status, nil, nil
+	return status, nil
+}
+
+func (p *provider) RecoveryCode(ctx context.Context, id string) (*string, error) {
+	// get totp details
+	totpModel, err := db.Provider.GetAuthenticatorDetailsByUserId(ctx, id, constants.EnvKeyTOTPAuthenticator)
+	if err != nil {
+		return nil, fmt.Errorf("error while getting totp details from authenticators")
+	}
+
+	if totpModel.VerifiedAt == nil {
+		recoveryCode := utils.GenerateTOTPRecoveryCode()
+		timeNow := time.Now().Unix()
+
+		totpModel.VerifiedAt = &timeNow
+		totpModel.RecoveryCode = &recoveryCode
+
+		_, err = db.Provider.UpdateAuthenticator(ctx, *totpModel)
+		if err != nil {
+			return nil, fmt.Errorf("error while updaing authenticator table for totp")
+		}
+		return &recoveryCode, nil
+	}
+	return nil, nil
 }

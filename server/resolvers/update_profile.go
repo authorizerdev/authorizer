@@ -102,12 +102,19 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 		user.AppData = &appDataString
 	}
 	if params.IsMultiFactorAuthEnabled != nil && refs.BoolValue(user.IsMultiFactorAuthEnabled) != refs.BoolValue(params.IsMultiFactorAuthEnabled) {
+		checkMailOTPEnable := false
 		if refs.BoolValue(params.IsMultiFactorAuthEnabled) {
 			isEnvServiceEnabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyIsEmailServiceEnabled)
-			isMailOTPEnvServiceEnabled, _ := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableMailOTPLogin)
-			isTOTPEnvServiceEnabled, _ := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableTOTPLogin)
-			checkMailOTP := !isEnvServiceEnabled && !isTOTPEnvServiceEnabled && isMailOTPEnvServiceEnabled
-			if err != nil || !checkMailOTP {
+			isMailOTPEnvServiceDisabled, _ := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableMailOTPLogin)
+			//checkMailOTP := isEnvServiceEnabled && isMailOTPEnvServiceEnabled
+			//fmt.Println("checkMailOTP", checkMailOTP)
+			//fmt.Println("err ", err)
+			if !isEnvServiceEnabled {
+				if !isMailOTPEnvServiceDisabled {
+					checkMailOTPEnable = true
+				}
+			}
+			if err != nil || checkMailOTPEnable {
 				log.Debug("Email service not enabled:")
 				return nil, errors.New("email service not enabled, so cannot enable multi factor authentication")
 			}
