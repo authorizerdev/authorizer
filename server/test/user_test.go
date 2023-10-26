@@ -19,7 +19,7 @@ func userTest(t *testing.T, s TestSetup) {
 		req, ctx := createContext(s)
 		email := "user." + s.TestInfo.Email
 		res, err := resolvers.SignupResolver(ctx, model.SignUpInput{
-			Email:           email,
+			Email:           refs.NewStringRef(email),
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password,
 		})
@@ -59,14 +59,14 @@ func userTest(t *testing.T, s TestSetup) {
 		})
 		assert.Nil(t, err)
 		assert.Equal(t, res.User.ID, userRes.ID)
-		assert.Equal(t, email, userRes.Email)
+		assert.Equal(t, email, refs.StringValue(userRes.Email))
 		// Should get user by email
 		userRes, err = resolvers.UserResolver(ctx, model.GetUserRequest{
 			Email: &email,
 		})
 		assert.Nil(t, err)
 		assert.Equal(t, res.User.ID, userRes.ID)
-		assert.Equal(t, email, userRes.Email)
+		assert.Equal(t, email, refs.StringValue(userRes.Email))
 		cleanData(email)
 	})
 }

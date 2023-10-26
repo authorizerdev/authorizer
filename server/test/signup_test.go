@@ -7,6 +7,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
+	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/authorizerdev/authorizer/server/resolvers"
 	"github.com/stretchr/testify/assert"
 )
@@ -17,14 +18,14 @@ func signupTests(t *testing.T, s TestSetup) {
 		_, ctx := createContext(s)
 		email := "signup." + s.TestInfo.Email
 		res, err := resolvers.SignupResolver(ctx, model.SignUpInput{
-			Email:           email,
+			Email:           refs.NewStringRef(email),
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password + "s",
 		})
 		assert.NotNil(t, err, "invalid password")
 		assert.Nil(t, res)
 		res, err = resolvers.SignupResolver(ctx, model.SignUpInput{
-			Email:           email,
+			Email:           refs.NewStringRef(email),
 			Password:        "test",
 			ConfirmPassword: "test",
 		})
@@ -32,7 +33,7 @@ func signupTests(t *testing.T, s TestSetup) {
 		assert.Nil(t, res)
 		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDisableSignUp, true)
 		res, err = resolvers.SignupResolver(ctx, model.SignUpInput{
-			Email:           email,
+			Email:           refs.NewStringRef(email),
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password,
 		})
@@ -40,7 +41,7 @@ func signupTests(t *testing.T, s TestSetup) {
 		assert.Nil(t, res)
 		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDisableSignUp, false)
 		res, err = resolvers.SignupResolver(ctx, model.SignUpInput{
-			Email:           email,
+			Email:           refs.NewStringRef(email),
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password,
 			AppData: map[string]interface{}{
@@ -49,11 +50,11 @@ func signupTests(t *testing.T, s TestSetup) {
 		})
 		assert.Nil(t, err, "signup should be successful")
 		user := *res.User
-		assert.Equal(t, email, user.Email)
+		assert.Equal(t, email, refs.StringValue(user.Email))
 		assert.Equal(t, "test", user.AppData["test"])
 		assert.Nil(t, res.AccessToken, "access token should be nil")
 		res, err = resolvers.SignupResolver(ctx, model.SignUpInput{
-			Email:           email,
+			Email:           refs.NewStringRef(email),
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password,
 		})

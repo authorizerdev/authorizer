@@ -6,6 +6,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/authorizerdev/authorizer/server/resolvers"
 	"github.com/stretchr/testify/assert"
 )
@@ -16,14 +17,14 @@ func verifyEmailTest(t *testing.T, s TestSetup) {
 		_, ctx := createContext(s)
 		email := "verify_email." + s.TestInfo.Email
 		res, err := resolvers.SignupResolver(ctx, model.SignUpInput{
-			Email:           email,
+			Email:           refs.NewStringRef(email),
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password,
 		})
 		assert.NoError(t, err)
 		assert.NotNil(t, res)
 		user := *res.User
-		assert.Equal(t, email, user.Email)
+		assert.Equal(t, email, refs.StringValue(user.Email))
 		assert.Nil(t, res.AccessToken, "access token should be nil")
 		verificationRequest, err := db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeBasicAuthSignup)
 		assert.Nil(t, err)

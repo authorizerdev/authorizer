@@ -8,6 +8,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
+	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/authorizerdev/authorizer/server/resolvers"
 	"github.com/stretchr/testify/assert"
 )
@@ -18,7 +19,7 @@ func usersTest(t *testing.T, s TestSetup) {
 		req, ctx := createContext(s)
 		email := "users." + s.TestInfo.Email
 		resolvers.SignupResolver(ctx, model.SignUpInput{
-			Email:           email,
+			Email:           refs.NewStringRef(email),
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password,
 		})

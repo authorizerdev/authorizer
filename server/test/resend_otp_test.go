@@ -23,7 +23,7 @@ func resendOTPTest(t *testing.T, s TestSetup) {
 		req, ctx := createContext(s)
 		email := "resend_otp." + s.TestInfo.Email
 		res, err := resolvers.SignupResolver(ctx, model.SignUpInput{
-			Email:           email,
+			Email:           refs.NewStringRef(email),
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password,
 		})
@@ -32,7 +32,7 @@ func resendOTPTest(t *testing.T, s TestSetup) {
 
 		// Login should fail as email is not verified
 		loginRes, err := resolvers.LoginResolver(ctx, model.LoginInput{
-			Email:    email,
+			Email:    refs.NewStringRef(email),
 			Password: s.TestInfo.Password,
 		})
 		assert.Error(t, err)
@@ -63,7 +63,7 @@ func resendOTPTest(t *testing.T, s TestSetup) {
 
 		// Login should not return error but access token should be empty as otp should have been sent
 		loginRes, err = resolvers.LoginResolver(ctx, model.LoginInput{
-			Email:    email,
+			Email:    refs.NewStringRef(email),
 			Password: s.TestInfo.Password,
 		})
 		assert.NoError(t, err)

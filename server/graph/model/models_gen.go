@@ -166,11 +166,12 @@ type ListWebhookLogRequest struct {
 }
 
 type LoginInput struct {
-	Email    string   `json:"email"`
-	Password string   `json:"password"`
-	Roles    []string `json:"roles,omitempty"`
-	Scope    []string `json:"scope,omitempty"`
-	State    *string  `json:"state,omitempty"`
+	Email       *string  `json:"email,omitempty"`
+	PhoneNumber *string  `json:"phone_number,omitempty"`
+	Password    string   `json:"password"`
+	Roles       []string `json:"roles,omitempty"`
+	Scope       []string `json:"scope,omitempty"`
+	State       *string  `json:"state,omitempty"`
 }
 
 type MagicLinkLoginInput struct {
@@ -284,7 +285,7 @@ type SessionQueryInput struct {
 }
 
 type SignUpInput struct {
-	Email                    string                 `json:"email"`
+	Email                    *string                `json:"email,omitempty"`
 	GivenName                *string                `json:"given_name,omitempty"`
 	FamilyName               *string                `json:"family_name,omitempty"`
 	MiddleName               *string                `json:"middle_name,omitempty"`
@@ -428,7 +429,7 @@ type UpdateWebhookRequest struct {
 
 type User struct {
 	ID                       string                 `json:"id"`
-	Email                    string                 `json:"email"`
+	Email                    *string                `json:"email,omitempty"`
 	EmailVerified            bool                   `json:"email_verified"`
 	SignupMethods            string                 `json:"signup_methods"`
 	GivenName                *string                `json:"given_name,omitempty"`
