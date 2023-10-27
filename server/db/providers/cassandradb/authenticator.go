@@ -4,17 +4,22 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/gocql/gocql"
 	"reflect"
 	"strings"
 	"time"
 
+	"github.com/gocql/gocql"
 	"github.com/google/uuid"
 
 	"github.com/authorizerdev/authorizer/server/db/models"
 )
 
 func (p *provider) AddAuthenticator(ctx context.Context, authenticators models.Authenticators) (*models.Authenticators, error) {
+	exists, _ := p.GetAuthenticatorDetailsByUserId(ctx, authenticators.UserID, authenticators.Method)
+	if exists != nil {
+		return &authenticators, nil
+	}
+
 	if authenticators.ID == "" {
 		authenticators.ID = uuid.New().String()
 	}
@@ -119,7 +124,7 @@ func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators model
 
 func (p *provider) GetAuthenticatorDetailsByUserId(ctx context.Context, userId string, authenticatorType string) (*models.Authenticators, error) {
 	var authenticators models.Authenticators
-	query := fmt.Sprintf("SELECT id, user_id, method, secret, recovery_code, verified_at, created_at, updated_at FROM %s WHERE user_id = '%s' AND method = '%s' LIMIT 1", KeySpace+"."+models.Collections.Authenticators, userId, authenticatorType)
+	query := fmt.Sprintf("SELECT id, user_id, method, secret, recovery_code, verified_at, created_at, updated_at FROM %s WHERE user_id = '%s' AND method = '%s' LIMIT 1 ALLOW FILTERING", KeySpace+"."+models.Collections.Authenticators, userId, authenticatorType)
 	err := p.db.Query(query).Consistency(gocql.One).Scan(&authenticators.ID, &authenticators.UserID, &authenticators.Method, &authenticators.Secret, &authenticators.RecoveryCode, &authenticators.VerifiedAt, &authenticators.CreatedAt, &authenticators.UpdatedAt)
 	if err != nil {
 		return nil, err

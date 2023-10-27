@@ -10,6 +10,11 @@ import (
 )
 
 func (p *provider) AddAuthenticator(ctx context.Context, authenticators models.Authenticators) (*models.Authenticators, error) {
+	exists, _ := p.GetAuthenticatorDetailsByUserId(ctx, authenticators.UserID, authenticators.Method)
+	if exists != nil {
+		return &authenticators, nil
+	}
+
 	collection := p.db.Table(models.Collections.Authenticators)
 	if authenticators.ID == "" {
 		authenticators.ID = uuid.New().String()

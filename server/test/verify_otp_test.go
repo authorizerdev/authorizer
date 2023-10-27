@@ -54,7 +54,6 @@ func verifyOTPTest(t *testing.T, s TestSetup) {
 		updateProfileRes, err := resolvers.UpdateProfileResolver(ctx, model.UpdateProfileInput{
 			IsMultiFactorAuthEnabled: refs.NewBoolRef(true),
 		})
-		fmt.Println("updateProfileRes", updateProfileRes)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, updateProfileRes.Message)
 

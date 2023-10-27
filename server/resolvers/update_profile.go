@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/crypto/bcrypt"
+
 	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/constants"
@@ -23,7 +25,6 @@ import (
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/authorizerdev/authorizer/server/validators"
-	"golang.org/x/crypto/bcrypt"
 )
 
 // UpdateProfileResolver is resolver for update profile mutation
@@ -101,19 +102,21 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 		appDataString = string(appDataBytes)
 		user.AppData = &appDataString
 	}
+	// Check if the user is trying to enable or disable multi-factor authentication (MFA)
 	if params.IsMultiFactorAuthEnabled != nil && refs.BoolValue(user.IsMultiFactorAuthEnabled) != refs.BoolValue(params.IsMultiFactorAuthEnabled) {
+		// Initialize a flag to check if enabling Mail OTP is required
 		checkMailOTPEnable := false
 		if refs.BoolValue(params.IsMultiFactorAuthEnabled) {
+			// Check if the email service is enabled and Mail OTP is not disabled
 			isEnvServiceEnabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyIsEmailServiceEnabled)
 			isMailOTPEnvServiceDisabled, _ := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableMailOTPLogin)
-			//checkMailOTP := isEnvServiceEnabled && isMailOTPEnvServiceEnabled
-			//fmt.Println("checkMailOTP", checkMailOTP)
-			//fmt.Println("err ", err)
+			// If the email service is not enabled and Mail OTP is not disabled, set the flag to true
 			if !isEnvServiceEnabled {
 				if !isMailOTPEnvServiceDisabled {
 					checkMailOTPEnable = true
 				}
 			}
+			// Check if enabling MFA is allowed (email service is enabled and Mail OTP is not disabled)
 			if err != nil || checkMailOTPEnable {
 				log.Debug("Email service not enabled:")
 				return nil, errors.New("email service not enabled, so cannot enable multi factor authentication")

@@ -3,7 +3,6 @@ package resolvers
 import (
 	"context"
 	"fmt"
-	"github.com/authorizerdev/authorizer/server/authenticators"
 	"strings"
 	"time"
 
@@ -12,12 +11,12 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/authorizerdev/authorizer/server/authenticators"
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
-	mailService "github.com/authorizerdev/authorizer/server/email"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/refs"
@@ -25,6 +24,8 @@ import (
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/authorizerdev/authorizer/server/validators"
+
+	mailService "github.com/authorizerdev/authorizer/server/email"
 )
 
 // LoginResolver is a resolver for login mutation
@@ -224,11 +225,10 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 		}
 
 		totpModel, err := db.Provider.GetAuthenticatorDetailsByUserId(ctx, user.ID, constants.EnvKeyTOTPAuthenticator)
-		fmt.Printf(" \n totpModel before checking new or not %+v \n", totpModel)
-		fmt.Println("err \n", err != nil || (totpModel != nil && totpModel.VerifiedAt == nil))
-		// for first time user or whose totp is not verified
-		//if err != nil || (totpModel != nil && totpModel.VerifiedAt == nil) {
+
+		// Check if it's the first time user or if their TOTP is not verified
 		if err != nil || ((totpModel == nil) || (totpModel != nil && totpModel.VerifiedAt == nil)) {
+			// Generate a base64 URL and initiate the registration for TOTP
 			base64URL, err := authenticators.Provider.Generate(ctx, user.ID)
 			if err != nil {
 				log.Debug("error while generating base64 url: ", err)

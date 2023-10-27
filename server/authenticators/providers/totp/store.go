@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/authorizerdev/authorizer/server/utils"
 	"image/png"
 	"time"
 
@@ -14,8 +13,10 @@ import (
 	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
+	"github.com/authorizerdev/authorizer/server/utils"
 )
 
+// Generate generates a Time-Based One-Time Password (TOTP) for a user and returns the base64-encoded QR code for frontend display.
 func (p *provider) Generate(ctx context.Context, id string) (*string, error) {
 	var buf bytes.Buffer
 	var totpModel models.Authenticators
@@ -54,6 +55,7 @@ func (p *provider) Generate(ctx context.Context, id string) (*string, error) {
 	return &encodedText, nil
 }
 
+// Validate validates a Time-Based One-Time Password (TOTP) against the stored TOTP secret for a user.
 func (p *provider) Validate(ctx context.Context, passcode string, id string) (bool, error) {
 	// get totp details
 	totpModel, err := db.Provider.GetAuthenticatorDetailsByUserId(ctx, id, constants.EnvKeyTOTPAuthenticator)
@@ -62,11 +64,11 @@ func (p *provider) Validate(ctx context.Context, passcode string, id string) (bo
 	}
 
 	status := totp.Validate(passcode, totpModel.Secret)
+	// checks if user not signed in for totp and totp code is correct then VerifiedAt will be stored in db
 	if totpModel.VerifiedAt == nil {
 		if status {
 			timeNow := time.Now().Unix()
 			totpModel.VerifiedAt = &timeNow
-			fmt.Printf("totpModel validate %+v \n", totpModel)
 			_, err = db.Provider.UpdateAuthenticator(ctx, *totpModel)
 			if err != nil {
 				return false, fmt.Errorf("error while updaing authenticator table for totp")
@@ -78,18 +80,17 @@ func (p *provider) Validate(ctx context.Context, passcode string, id string) (bo
 	return status, nil
 }
 
+// RecoveryCode generates a recovery code for a user's TOTP authentication, if not already verified.
 func (p *provider) RecoveryCode(ctx context.Context, id string) (*string, error) {
 	// get totp details
 	totpModel, err := db.Provider.GetAuthenticatorDetailsByUserId(ctx, id, constants.EnvKeyTOTPAuthenticator)
 	if err != nil {
 		return nil, fmt.Errorf("error while getting totp details from authenticators")
 	}
-
-	if totpModel.VerifiedAt == nil {
+	//TODO *totpModel.RecoveryCode == "null" used to just verify couchbase recoveryCode value to be nil
+	// have to find another way round
+	if totpModel.RecoveryCode == nil || *totpModel.RecoveryCode == "null" {
 		recoveryCode := utils.GenerateTOTPRecoveryCode()
-		timeNow := time.Now().Unix()
-
-		totpModel.VerifiedAt = &timeNow
 		totpModel.RecoveryCode = &recoveryCode
 
 		_, err = db.Provider.UpdateAuthenticator(ctx, *totpModel)

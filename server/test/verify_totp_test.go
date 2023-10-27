@@ -63,14 +63,12 @@ func verifyTOTPTest(t *testing.T, s TestSetup) {
 		assert.NoError(t, err)
 		assert.NotEmpty(t, updateProfileRes.Message)
 
-		fmt.Println("updateProfileRes in verify_totp_test", updateProfileRes)
 		authenticators.InitTOTPStore()
 		// Login should not return error but access token should be empty
 		loginRes, err = resolvers.LoginResolver(ctx, model.LoginInput{
 			Email:    &email,
 			Password: s.TestInfo.Password,
 		})
-		fmt.Printf("loginREs %+v \n", loginRes)
 		assert.NoError(t, err)
 		assert.NotNil(t, loginRes)
 		assert.NotNil(t, *loginRes.TotpBase64URL)
@@ -93,17 +91,14 @@ func verifyTOTPTest(t *testing.T, s TestSetup) {
 
 		assert.NotEmpty(t, code)
 		totpToken := *loginRes.TotpToken
-		fmt.Println("totpToken", totpToken)
-		fmt.Println("code", code)
 		valid, err := resolvers.VerifyTotpResolver(ctx, model.VerifyTOTPRequest{
 			Otp:   code,
 			Token: totpToken,
 		})
-		fmt.Println("err valid", err)
-		fmt.Printf("valid %+v \n", valid)
 		accessToken := valid.AccessToken
 		assert.NoError(t, err)
 		assert.NotNil(t, accessToken)
+		assert.NotNil(t, valid.RecoveryCode)
 		assert.Equal(t, `Logged in successfully`, valid.Message)
 
 		assert.NotEmpty(t, accessToken)
@@ -133,12 +128,12 @@ func verifyTOTPTest(t *testing.T, s TestSetup) {
 			Email:    &email,
 			Password: s.TestInfo.Password,
 		})
-		fmt.Printf("loginRes 1221412 %+v \n", loginRes)
 		assert.NoError(t, err)
 		assert.NotNil(t, loginRes)
 		assert.NotNil(t, loginRes.TotpToken)
 		assert.Nil(t, loginRes.TotpBase64URL)
 		assert.Nil(t, loginRes.AccessToken)
+		assert.Nil(t, loginRes.RecoveryCode)
 		assert.Equal(t, loginRes.Message, `Proceed to totp screen`)
 
 		code = tf.OTP()
@@ -150,6 +145,7 @@ func verifyTOTPTest(t *testing.T, s TestSetup) {
 		})
 		assert.NoError(t, err)
 		assert.NotNil(t, *valid.AccessToken)
+		assert.Nil(t, valid.RecoveryCode)
 		assert.Equal(t, `Logged in successfully`, valid.Message)
 
 		cleanData(email)

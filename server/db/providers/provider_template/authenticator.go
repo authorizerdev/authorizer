@@ -2,12 +2,19 @@ package provider_template
 
 import (
 	"context"
-	"github.com/authorizerdev/authorizer/server/db/models"
-	"github.com/google/uuid"
 	"time"
+
+	"github.com/google/uuid"
+
+	"github.com/authorizerdev/authorizer/server/db/models"
 )
 
 func (p *provider) AddAuthenticator(ctx context.Context, authenticators models.Authenticators) (*models.Authenticators, error) {
+	exists, _ := p.GetAuthenticatorDetailsByUserId(ctx, authenticators.UserID, authenticators.Method)
+	if exists != nil {
+		return &authenticators, nil
+	}
+
 	if authenticators.ID == "" {
 		authenticators.ID = uuid.New().String()
 	}

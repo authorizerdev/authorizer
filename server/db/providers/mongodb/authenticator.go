@@ -2,14 +2,21 @@ package mongodb
 
 import (
 	"context"
-	"github.com/authorizerdev/authorizer/server/db/models"
+	"time"
+
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"time"
+
+	"github.com/authorizerdev/authorizer/server/db/models"
 )
 
 func (p *provider) AddAuthenticator(ctx context.Context, authenticators models.Authenticators) (*models.Authenticators, error) {
+	exists, _ := p.GetAuthenticatorDetailsByUserId(ctx, authenticators.UserID, authenticators.Method)
+	if exists != nil {
+		return &authenticators, nil
+	}
+
 	if authenticators.ID == "" {
 		authenticators.ID = uuid.New().String()
 	}

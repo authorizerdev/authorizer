@@ -78,6 +78,7 @@ func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User
 
 	query := fmt.Sprintf("INSERT INTO %s %s VALUES %s IF NOT EXISTS", KeySpace+"."+models.Collections.User, fields, values)
 	err = p.db.Query(query).Exec()
+
 	if err != nil {
 		return user, err
 	}
@@ -303,9 +304,7 @@ func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{},
 				return err
 			}
 		}
-
 	}
-
 	return nil
 }
 
