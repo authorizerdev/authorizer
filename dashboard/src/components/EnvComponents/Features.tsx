@@ -4,7 +4,6 @@ import InputField from '../InputField';
 import { SwitchInputType } from '../../constants';
 
 const Features = ({ variables, setVariables }: any) => {
-	// window.alert(variables)
 	return (
 		<div>
 			{' '}
