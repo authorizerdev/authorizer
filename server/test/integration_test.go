@@ -146,7 +146,7 @@ func TestResolvers(t *testing.T) {
 			validateSessionTests(t, s)
 			deactivateAccountTests(t, s)
 
-			//updateAllUsersTest(t, s)
+			updateAllUsersTest(t, s)
 			webhookLogsTest(t, s)   // get logs after above resolver tests are done
 			deleteWebhookTest(t, s) // delete webhooks (admin resolver)
 		})

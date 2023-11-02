@@ -38,23 +38,23 @@ func updateAllUsersTest(t *testing.T, s TestSetup) {
 			Offset: 0,
 		})
 		assert.NoError(t, err)
+		assert.Greater(t, len(listUsers.Users), 0)
 		for _, u := range listUsers.Users {
 			assert.True(t, refs.BoolValue(u.IsMultiFactorAuthEnabled))
 		}
-
 		// // update few users
 		updateIds := []string{listUsers.Users[0].ID, listUsers.Users[1].ID}
 		err = db.Provider.UpdateUsers(ctx, map[string]interface{}{
 			"is_multi_factor_auth_enabled": false,
 		}, updateIds)
 		assert.NoError(t, err)
-
 		listUsers, err = db.Provider.ListUsers(ctx, &model.Pagination{
 			Limit:  20,
 			Offset: 0,
 		})
 		assert.NoError(t, err)
 		assert.NotNil(t, listUsers)
+		assert.Greater(t, len(listUsers.Users), 0)
 		for _, u := range listUsers.Users {
 			if utils.StringSliceContains(updateIds, u.ID) {
 				assert.False(t, refs.BoolValue(u.IsMultiFactorAuthEnabled))
