@@ -15,4 +15,6 @@ const (
 	UserAccessEnabledWebhookEvent = `user.access_enabled`
 	// UserDeletedWebhookEvent name for user deleted event
 	UserDeletedWebhookEvent = `user.deleted`
+	// UserDeactivatedWebhookEvent name for user deactivated event
+	UserDeactivatedWebhookEvent = `user.deactivated`
 )

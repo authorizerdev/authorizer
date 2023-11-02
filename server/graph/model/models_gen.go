@@ -6,14 +6,15 @@ type AddEmailTemplateRequest struct {
 	EventName string  `json:"event_name"`
 	Subject   string  `json:"subject"`
 	Template  string  `json:"template"`
-	Design    *string `json:"design"`
+	Design    *string `json:"design,omitempty"`
 }
 
 type AddWebhookRequest struct {
-	EventName string                 `json:"event_name"`
-	Endpoint  string                 `json:"endpoint"`
-	Enabled   bool                   `json:"enabled"`
-	Headers   map[string]interface{} `json:"headers"`
+	EventName        string                 `json:"event_name"`
+	EventDescription *string                `json:"event_description,omitempty"`
+	Endpoint         string                 `json:"endpoint"`
+	Enabled          bool                   `json:"enabled"`
+	Headers          map[string]interface{} `json:"headers,omitempty"`
 }
 
 type AdminLoginInput struct {
@@ -25,13 +26,17 @@ type AdminSignupInput struct {
 }
 
 type AuthResponse struct {
-	Message             string  `json:"message"`
-	ShouldShowOtpScreen *bool   `json:"should_show_otp_screen"`
-	AccessToken         *string `json:"access_token"`
-	IDToken             *string `json:"id_token"`
-	RefreshToken        *string `json:"refresh_token"`
-	ExpiresIn           *int64  `json:"expires_in"`
-	User                *User   `json:"user"`
+	Message                   string  `json:"message"`
+	ShouldShowEmailOtpScreen  *bool   `json:"should_show_email_otp_screen,omitempty"`
+	ShouldShowMobileOtpScreen *bool   `json:"should_show_mobile_otp_screen,omitempty"`
+	AccessToken               *string `json:"access_token,omitempty"`
+	IDToken                   *string `json:"id_token,omitempty"`
+	RefreshToken              *string `json:"refresh_token,omitempty"`
+	ExpiresIn                 *int64  `json:"expires_in,omitempty"`
+	User                      *User   `json:"user,omitempty"`
+	TotpBase64URL             *string `json:"totp_base64_url,omitempty"`
+	TotpToken                 *string `json:"totp_token,omitempty"`
+	RecoveryCode              *string `json:"recovery_code,omitempty"`
 }
 
 type DeleteEmailTemplateRequest struct {
@@ -48,8 +53,8 @@ type EmailTemplate struct {
 	Template  string `json:"template"`
 	Design    string `json:"design"`
 	Subject   string `json:"subject"`
-	CreatedAt *int64 `json:"created_at"`
-	UpdatedAt *int64 `json:"updated_at"`
+	CreatedAt *int64 `json:"created_at,omitempty"`
+	UpdatedAt *int64 `json:"updated_at,omitempty"`
 }
 
 type EmailTemplates struct {
@@ -58,32 +63,33 @@ type EmailTemplates struct {
 }
 
 type Env struct {
-	AccessTokenExpiryTime            *string  `json:"ACCESS_TOKEN_EXPIRY_TIME"`
-	AdminSecret                      *string  `json:"ADMIN_SECRET"`
-	DatabaseName                     *string  `json:"DATABASE_NAME"`
-	DatabaseURL                      *string  `json:"DATABASE_URL"`
-	DatabaseType                     *string  `json:"DATABASE_TYPE"`
-	DatabaseUsername                 *string  `json:"DATABASE_USERNAME"`
-	DatabasePassword                 *string  `json:"DATABASE_PASSWORD"`
-	DatabaseHost                     *string  `json:"DATABASE_HOST"`
-	DatabasePort                     *string  `json:"DATABASE_PORT"`
+	AccessTokenExpiryTime            *string  `json:"ACCESS_TOKEN_EXPIRY_TIME,omitempty"`
+	AdminSecret                      *string  `json:"ADMIN_SECRET,omitempty"`
+	DatabaseName                     *string  `json:"DATABASE_NAME,omitempty"`
+	DatabaseURL                      *string  `json:"DATABASE_URL,omitempty"`
+	DatabaseType                     *string  `json:"DATABASE_TYPE,omitempty"`
+	DatabaseUsername                 *string  `json:"DATABASE_USERNAME,omitempty"`
+	DatabasePassword                 *string  `json:"DATABASE_PASSWORD,omitempty"`
+	DatabaseHost                     *string  `json:"DATABASE_HOST,omitempty"`
+	DatabasePort                     *string  `json:"DATABASE_PORT,omitempty"`
 	ClientID                         string   `json:"CLIENT_ID"`
 	ClientSecret                     string   `json:"CLIENT_SECRET"`
-	CustomAccessTokenScript          *string  `json:"CUSTOM_ACCESS_TOKEN_SCRIPT"`
-	SMTPHost                         *string  `json:"SMTP_HOST"`
-	SMTPPort                         *string  `json:"SMTP_PORT"`
-	SMTPUsername                     *string  `json:"SMTP_USERNAME"`
-	SMTPPassword                     *string  `json:"SMTP_PASSWORD"`
-	SMTPLocalName                    *string  `json:"SMTP_LOCAL_NAME"`
-	SenderEmail                      *string  `json:"SENDER_EMAIL"`
-	JwtType                          *string  `json:"JWT_TYPE"`
-	JwtSecret                        *string  `json:"JWT_SECRET"`
-	JwtPrivateKey                    *string  `json:"JWT_PRIVATE_KEY"`
-	JwtPublicKey                     *string  `json:"JWT_PUBLIC_KEY"`
-	AllowedOrigins                   []string `json:"ALLOWED_ORIGINS"`
-	AppURL                           *string  `json:"APP_URL"`
-	RedisURL                         *string  `json:"REDIS_URL"`
-	ResetPasswordURL                 *string  `json:"RESET_PASSWORD_URL"`
+	CustomAccessTokenScript          *string  `json:"CUSTOM_ACCESS_TOKEN_SCRIPT,omitempty"`
+	SMTPHost                         *string  `json:"SMTP_HOST,omitempty"`
+	SMTPPort                         *string  `json:"SMTP_PORT,omitempty"`
+	SMTPUsername                     *string  `json:"SMTP_USERNAME,omitempty"`
+	SMTPPassword                     *string  `json:"SMTP_PASSWORD,omitempty"`
+	SMTPLocalName                    *string  `json:"SMTP_LOCAL_NAME,omitempty"`
+	SenderEmail                      *string  `json:"SENDER_EMAIL,omitempty"`
+	SenderName                       *string  `json:"SENDER_NAME,omitempty"`
+	JwtType                          *string  `json:"JWT_TYPE,omitempty"`
+	JwtSecret                        *string  `json:"JWT_SECRET,omitempty"`
+	JwtPrivateKey                    *string  `json:"JWT_PRIVATE_KEY,omitempty"`
+	JwtPublicKey                     *string  `json:"JWT_PUBLIC_KEY,omitempty"`
+	AllowedOrigins                   []string `json:"ALLOWED_ORIGINS,omitempty"`
+	AppURL                           *string  `json:"APP_URL,omitempty"`
+	RedisURL                         *string  `json:"REDIS_URL,omitempty"`
+	ResetPasswordURL                 *string  `json:"RESET_PASSWORD_URL,omitempty"`
 	DisableEmailVerification         bool     `json:"DISABLE_EMAIL_VERIFICATION"`
 	DisableBasicAuthentication       bool     `json:"DISABLE_BASIC_AUTHENTICATION"`
 	DisableMagicLinkLogin            bool     `json:"DISABLE_MAGIC_LINK_LOGIN"`
@@ -93,26 +99,34 @@ type Env struct {
 	DisableStrongPassword            bool     `json:"DISABLE_STRONG_PASSWORD"`
 	DisableMultiFactorAuthentication bool     `json:"DISABLE_MULTI_FACTOR_AUTHENTICATION"`
 	EnforceMultiFactorAuthentication bool     `json:"ENFORCE_MULTI_FACTOR_AUTHENTICATION"`
-	Roles                            []string `json:"ROLES"`
-	ProtectedRoles                   []string `json:"PROTECTED_ROLES"`
-	DefaultRoles                     []string `json:"DEFAULT_ROLES"`
-	JwtRoleClaim                     *string  `json:"JWT_ROLE_CLAIM"`
-	GoogleClientID                   *string  `json:"GOOGLE_CLIENT_ID"`
-	GoogleClientSecret               *string  `json:"GOOGLE_CLIENT_SECRET"`
-	GithubClientID                   *string  `json:"GITHUB_CLIENT_ID"`
-	GithubClientSecret               *string  `json:"GITHUB_CLIENT_SECRET"`
-	FacebookClientID                 *string  `json:"FACEBOOK_CLIENT_ID"`
-	FacebookClientSecret             *string  `json:"FACEBOOK_CLIENT_SECRET"`
-	LinkedinClientID                 *string  `json:"LINKEDIN_CLIENT_ID"`
-	LinkedinClientSecret             *string  `json:"LINKEDIN_CLIENT_SECRET"`
-	AppleClientID                    *string  `json:"APPLE_CLIENT_ID"`
-	AppleClientSecret                *string  `json:"APPLE_CLIENT_SECRET"`
-	TwitterClientID                  *string  `json:"TWITTER_CLIENT_ID"`
-	TwitterClientSecret              *string  `json:"TWITTER_CLIENT_SECRET"`
-	OrganizationName                 *string  `json:"ORGANIZATION_NAME"`
-	OrganizationLogo                 *string  `json:"ORGANIZATION_LOGO"`
+	Roles                            []string `json:"ROLES,omitempty"`
+	ProtectedRoles                   []string `json:"PROTECTED_ROLES,omitempty"`
+	DefaultRoles                     []string `json:"DEFAULT_ROLES,omitempty"`
+	JwtRoleClaim                     *string  `json:"JWT_ROLE_CLAIM,omitempty"`
+	GoogleClientID                   *string  `json:"GOOGLE_CLIENT_ID,omitempty"`
+	GoogleClientSecret               *string  `json:"GOOGLE_CLIENT_SECRET,omitempty"`
+	GithubClientID                   *string  `json:"GITHUB_CLIENT_ID,omitempty"`
+	GithubClientSecret               *string  `json:"GITHUB_CLIENT_SECRET,omitempty"`
+	FacebookClientID                 *string  `json:"FACEBOOK_CLIENT_ID,omitempty"`
+	FacebookClientSecret             *string  `json:"FACEBOOK_CLIENT_SECRET,omitempty"`
+	LinkedinClientID                 *string  `json:"LINKEDIN_CLIENT_ID,omitempty"`
+	LinkedinClientSecret             *string  `json:"LINKEDIN_CLIENT_SECRET,omitempty"`
+	AppleClientID                    *string  `json:"APPLE_CLIENT_ID,omitempty"`
+	AppleClientSecret                *string  `json:"APPLE_CLIENT_SECRET,omitempty"`
+	TwitterClientID                  *string  `json:"TWITTER_CLIENT_ID,omitempty"`
+	TwitterClientSecret              *string  `json:"TWITTER_CLIENT_SECRET,omitempty"`
+	MicrosoftClientID                *string  `json:"MICROSOFT_CLIENT_ID,omitempty"`
+	MicrosoftClientSecret            *string  `json:"MICROSOFT_CLIENT_SECRET,omitempty"`
+	MicrosoftActiveDirectoryTenantID *string  `json:"MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID,omitempty"`
+	OrganizationName                 *string  `json:"ORGANIZATION_NAME,omitempty"`
+	OrganizationLogo                 *string  `json:"ORGANIZATION_LOGO,omitempty"`
 	AppCookieSecure                  bool     `json:"APP_COOKIE_SECURE"`
 	AdminCookieSecure                bool     `json:"ADMIN_COOKIE_SECURE"`
+	DefaultAuthorizeResponseType     *string  `json:"DEFAULT_AUTHORIZE_RESPONSE_TYPE,omitempty"`
+	DefaultAuthorizeResponseMode     *string  `json:"DEFAULT_AUTHORIZE_RESPONSE_MODE,omitempty"`
+	DisablePlayground                bool     `json:"DISABLE_PLAYGROUND"`
+	DisableMailOtpLogin              bool     `json:"DISABLE_MAIL_OTP_LOGIN"`
+	DisableTotpLogin                 bool     `json:"DISABLE_TOTP_LOGIN"`
 }
 
 type Error struct {
@@ -122,8 +136,8 @@ type Error struct {
 
 type ForgotPasswordInput struct {
 	Email       string  `json:"email"`
-	State       *string `json:"state"`
-	RedirectURI *string `json:"redirect_uri"`
+	State       *string `json:"state,omitempty"`
+	RedirectURI *string `json:"redirect_uri,omitempty"`
 }
 
 type GenerateJWTKeysInput struct {
@@ -131,39 +145,46 @@ type GenerateJWTKeysInput struct {
 }
 
 type GenerateJWTKeysResponse struct {
-	Secret     *string `json:"secret"`
-	PublicKey  *string `json:"public_key"`
-	PrivateKey *string `json:"private_key"`
+	Secret     *string `json:"secret,omitempty"`
+	PublicKey  *string `json:"public_key,omitempty"`
+	PrivateKey *string `json:"private_key,omitempty"`
 }
 
 type GetUserRequest struct {
-	ID string `json:"id"`
+	ID    *string `json:"id,omitempty"`
+	Email *string `json:"email,omitempty"`
 }
 
 type InviteMemberInput struct {
 	Emails      []string `json:"emails"`
-	RedirectURI *string  `json:"redirect_uri"`
+	RedirectURI *string  `json:"redirect_uri,omitempty"`
+}
+
+type InviteMembersResponse struct {
+	Message string  `json:"message"`
+	Users   []*User `json:"Users"`
 }
 
 type ListWebhookLogRequest struct {
-	Pagination *PaginationInput `json:"pagination"`
-	WebhookID  *string          `json:"webhook_id"`
+	Pagination *PaginationInput `json:"pagination,omitempty"`
+	WebhookID  *string          `json:"webhook_id,omitempty"`
 }
 
 type LoginInput struct {
-	Email    string   `json:"email"`
-	Password string   `json:"password"`
-	Roles    []string `json:"roles"`
-	Scope    []string `json:"scope"`
-	State    *string  `json:"state"`
+	Email       *string  `json:"email,omitempty"`
+	PhoneNumber *string  `json:"phone_number,omitempty"`
+	Password    string   `json:"password"`
+	Roles       []string `json:"roles,omitempty"`
+	Scope       []string `json:"scope,omitempty"`
+	State       *string  `json:"state,omitempty"`
 }
 
 type MagicLinkLoginInput struct {
 	Email       string   `json:"email"`
-	Roles       []string `json:"roles"`
-	Scope       []string `json:"scope"`
-	State       *string  `json:"state"`
-	RedirectURI *string  `json:"redirect_uri"`
+	Roles       []string `json:"roles,omitempty"`
+	Scope       []string `json:"scope,omitempty"`
+	State       *string  `json:"state,omitempty"`
+	RedirectURI *string  `json:"redirect_uri,omitempty"`
 }
 
 type Meta struct {
@@ -175,6 +196,7 @@ type Meta struct {
 	IsLinkedinLoginEnabled       bool   `json:"is_linkedin_login_enabled"`
 	IsAppleLoginEnabled          bool   `json:"is_apple_login_enabled"`
 	IsTwitterLoginEnabled        bool   `json:"is_twitter_login_enabled"`
+	IsMicrosoftLoginEnabled      bool   `json:"is_microsoft_login_enabled"`
 	IsEmailVerificationEnabled   bool   `json:"is_email_verification_enabled"`
 	IsBasicAuthenticationEnabled bool   `json:"is_basic_authentication_enabled"`
 	IsMagicLinkLoginEnabled      bool   `json:"is_magic_link_login_enabled"`
@@ -186,28 +208,29 @@ type Meta struct {
 type MobileLoginInput struct {
 	PhoneNumber string   `json:"phone_number"`
 	Password    string   `json:"password"`
-	Roles       []string `json:"roles"`
-	Scope       []string `json:"scope"`
-	State       *string  `json:"state"`
+	Roles       []string `json:"roles,omitempty"`
+	Scope       []string `json:"scope,omitempty"`
+	State       *string  `json:"state,omitempty"`
 }
 
 type MobileSignUpInput struct {
-	Email                    *string  `json:"email"`
-	GivenName                *string  `json:"given_name"`
-	FamilyName               *string  `json:"family_name"`
-	MiddleName               *string  `json:"middle_name"`
-	Nickname                 *string  `json:"nickname"`
-	Gender                   *string  `json:"gender"`
-	Birthdate                *string  `json:"birthdate"`
-	PhoneNumber              string   `json:"phone_number"`
-	Picture                  *string  `json:"picture"`
-	Password                 string   `json:"password"`
-	ConfirmPassword          string   `json:"confirm_password"`
-	Roles                    []string `json:"roles"`
-	Scope                    []string `json:"scope"`
-	RedirectURI              *string  `json:"redirect_uri"`
-	IsMultiFactorAuthEnabled *bool    `json:"is_multi_factor_auth_enabled"`
-	State                    *string  `json:"state"`
+	Email                    *string                `json:"email,omitempty"`
+	GivenName                *string                `json:"given_name,omitempty"`
+	FamilyName               *string                `json:"family_name,omitempty"`
+	MiddleName               *string                `json:"middle_name,omitempty"`
+	Nickname                 *string                `json:"nickname,omitempty"`
+	Gender                   *string                `json:"gender,omitempty"`
+	Birthdate                *string                `json:"birthdate,omitempty"`
+	PhoneNumber              string                 `json:"phone_number"`
+	Picture                  *string                `json:"picture,omitempty"`
+	Password                 string                 `json:"password"`
+	ConfirmPassword          string                 `json:"confirm_password"`
+	Roles                    []string               `json:"roles,omitempty"`
+	Scope                    []string               `json:"scope,omitempty"`
+	RedirectURI              *string                `json:"redirect_uri,omitempty"`
+	IsMultiFactorAuthEnabled *bool                  `json:"is_multi_factor_auth_enabled,omitempty"`
+	State                    *string                `json:"state,omitempty"`
+	AppData                  map[string]interface{} `json:"app_data,omitempty"`
 }
 
 type OAuthRevokeInput struct {
@@ -215,7 +238,7 @@ type OAuthRevokeInput struct {
 }
 
 type PaginatedInput struct {
-	Pagination *PaginationInput `json:"pagination"`
+	Pagination *PaginationInput `json:"pagination,omitempty"`
 }
 
 type Pagination struct {
@@ -226,19 +249,20 @@ type Pagination struct {
 }
 
 type PaginationInput struct {
-	Limit *int64 `json:"limit"`
-	Page  *int64 `json:"page"`
+	Limit *int64 `json:"limit,omitempty"`
+	Page  *int64 `json:"page,omitempty"`
 }
 
 type ResendOTPRequest struct {
-	Email string  `json:"email"`
-	State *string `json:"state"`
+	Email       *string `json:"email,omitempty"`
+	PhoneNumber *string `json:"phone_number,omitempty"`
+	State       *string `json:"state,omitempty"`
 }
 
 type ResendVerifyEmailInput struct {
 	Email      string  `json:"email"`
 	Identifier string  `json:"identifier"`
-	State      *string `json:"state"`
+	State      *string `json:"state,omitempty"`
 }
 
 type ResetPasswordInput struct {
@@ -251,39 +275,50 @@ type Response struct {
 	Message string `json:"message"`
 }
 
+type SMSVerificationRequests struct {
+	ID            string `json:"id"`
+	Code          string `json:"code"`
+	CodeExpiresAt int64  `json:"code_expires_at"`
+	PhoneNumber   string `json:"phone_number"`
+	CreatedAt     int64  `json:"created_at"`
+	UpdatedAt     *int64 `json:"updated_at,omitempty"`
+}
+
 type SessionQueryInput struct {
-	Roles []string `json:"roles"`
-	Scope []string `json:"scope"`
+	Roles []string `json:"roles,omitempty"`
+	Scope []string `json:"scope,omitempty"`
 }
 
 type SignUpInput struct {
-	Email                    string   `json:"email"`
-	GivenName                *string  `json:"given_name"`
-	FamilyName               *string  `json:"family_name"`
-	MiddleName               *string  `json:"middle_name"`
-	Nickname                 *string  `json:"nickname"`
-	Gender                   *string  `json:"gender"`
-	Birthdate                *string  `json:"birthdate"`
-	PhoneNumber              *string  `json:"phone_number"`
-	Picture                  *string  `json:"picture"`
-	Password                 string   `json:"password"`
-	ConfirmPassword          string   `json:"confirm_password"`
-	Roles                    []string `json:"roles"`
-	Scope                    []string `json:"scope"`
-	RedirectURI              *string  `json:"redirect_uri"`
-	IsMultiFactorAuthEnabled *bool    `json:"is_multi_factor_auth_enabled"`
-	State                    *string  `json:"state"`
+	Email                    *string                `json:"email,omitempty"`
+	GivenName                *string                `json:"given_name,omitempty"`
+	FamilyName               *string                `json:"family_name,omitempty"`
+	MiddleName               *string                `json:"middle_name,omitempty"`
+	Nickname                 *string                `json:"nickname,omitempty"`
+	Gender                   *string                `json:"gender,omitempty"`
+	Birthdate                *string                `json:"birthdate,omitempty"`
+	PhoneNumber              *string                `json:"phone_number,omitempty"`
+	Picture                  *string                `json:"picture,omitempty"`
+	Password                 string                 `json:"password"`
+	ConfirmPassword          string                 `json:"confirm_password"`
+	Roles                    []string               `json:"roles,omitempty"`
+	Scope                    []string               `json:"scope,omitempty"`
+	RedirectURI              *string                `json:"redirect_uri,omitempty"`
+	IsMultiFactorAuthEnabled *bool                  `json:"is_multi_factor_auth_enabled,omitempty"`
+	State                    *string                `json:"state,omitempty"`
+	AppData                  map[string]interface{} `json:"app_data,omitempty"`
 }
 
 type TestEndpointRequest struct {
-	Endpoint  string                 `json:"endpoint"`
-	EventName string                 `json:"event_name"`
-	Headers   map[string]interface{} `json:"headers"`
+	Endpoint         string                 `json:"endpoint"`
+	EventName        string                 `json:"event_name"`
+	EventDescription *string                `json:"event_description,omitempty"`
+	Headers          map[string]interface{} `json:"headers,omitempty"`
 }
 
 type TestEndpointResponse struct {
-	HTTPStatus *int64  `json:"http_status"`
-	Response   *string `json:"response"`
+	HTTPStatus *int64  `json:"http_status,omitempty"`
+	Response   *string `json:"response,omitempty"`
 }
 
 type UpdateAccessInput struct {
@@ -292,121 +327,134 @@ type UpdateAccessInput struct {
 
 type UpdateEmailTemplateRequest struct {
 	ID        string  `json:"id"`
-	EventName *string `json:"event_name"`
-	Template  *string `json:"template"`
-	Subject   *string `json:"subject"`
-	Design    *string `json:"design"`
+	EventName *string `json:"event_name,omitempty"`
+	Template  *string `json:"template,omitempty"`
+	Subject   *string `json:"subject,omitempty"`
+	Design    *string `json:"design,omitempty"`
 }
 
 type UpdateEnvInput struct {
-	AccessTokenExpiryTime            *string  `json:"ACCESS_TOKEN_EXPIRY_TIME"`
-	AdminSecret                      *string  `json:"ADMIN_SECRET"`
-	CustomAccessTokenScript          *string  `json:"CUSTOM_ACCESS_TOKEN_SCRIPT"`
-	OldAdminSecret                   *string  `json:"OLD_ADMIN_SECRET"`
-	SMTPHost                         *string  `json:"SMTP_HOST"`
-	SMTPPort                         *string  `json:"SMTP_PORT"`
-	SMTPUsername                     *string  `json:"SMTP_USERNAME"`
-	SMTPPassword                     *string  `json:"SMTP_PASSWORD"`
-	SMTPLocalName                    *string  `json:"SMTP_LOCAL_NAME"`
-	SenderEmail                      *string  `json:"SENDER_EMAIL"`
-	JwtType                          *string  `json:"JWT_TYPE"`
-	JwtSecret                        *string  `json:"JWT_SECRET"`
-	JwtPrivateKey                    *string  `json:"JWT_PRIVATE_KEY"`
-	JwtPublicKey                     *string  `json:"JWT_PUBLIC_KEY"`
-	AllowedOrigins                   []string `json:"ALLOWED_ORIGINS"`
-	AppURL                           *string  `json:"APP_URL"`
-	ResetPasswordURL                 *string  `json:"RESET_PASSWORD_URL"`
-	AppCookieSecure                  *bool    `json:"APP_COOKIE_SECURE"`
-	AdminCookieSecure                *bool    `json:"ADMIN_COOKIE_SECURE"`
-	DisableEmailVerification         *bool    `json:"DISABLE_EMAIL_VERIFICATION"`
-	DisableBasicAuthentication       *bool    `json:"DISABLE_BASIC_AUTHENTICATION"`
-	DisableMagicLinkLogin            *bool    `json:"DISABLE_MAGIC_LINK_LOGIN"`
-	DisableLoginPage                 *bool    `json:"DISABLE_LOGIN_PAGE"`
-	DisableSignUp                    *bool    `json:"DISABLE_SIGN_UP"`
-	DisableRedisForEnv               *bool    `json:"DISABLE_REDIS_FOR_ENV"`
-	DisableStrongPassword            *bool    `json:"DISABLE_STRONG_PASSWORD"`
-	DisableMultiFactorAuthentication *bool    `json:"DISABLE_MULTI_FACTOR_AUTHENTICATION"`
-	EnforceMultiFactorAuthentication *bool    `json:"ENFORCE_MULTI_FACTOR_AUTHENTICATION"`
-	Roles                            []string `json:"ROLES"`
-	ProtectedRoles                   []string `json:"PROTECTED_ROLES"`
-	DefaultRoles                     []string `json:"DEFAULT_ROLES"`
-	JwtRoleClaim                     *string  `json:"JWT_ROLE_CLAIM"`
-	GoogleClientID                   *string  `json:"GOOGLE_CLIENT_ID"`
-	GoogleClientSecret               *string  `json:"GOOGLE_CLIENT_SECRET"`
-	GithubClientID                   *string  `json:"GITHUB_CLIENT_ID"`
-	GithubClientSecret               *string  `json:"GITHUB_CLIENT_SECRET"`
-	FacebookClientID                 *string  `json:"FACEBOOK_CLIENT_ID"`
-	FacebookClientSecret             *string  `json:"FACEBOOK_CLIENT_SECRET"`
-	LinkedinClientID                 *string  `json:"LINKEDIN_CLIENT_ID"`
-	LinkedinClientSecret             *string  `json:"LINKEDIN_CLIENT_SECRET"`
-	AppleClientID                    *string  `json:"APPLE_CLIENT_ID"`
-	AppleClientSecret                *string  `json:"APPLE_CLIENT_SECRET"`
-	TwitterClientID                  *string  `json:"TWITTER_CLIENT_ID"`
-	TwitterClientSecret              *string  `json:"TWITTER_CLIENT_SECRET"`
-	OrganizationName                 *string  `json:"ORGANIZATION_NAME"`
-	OrganizationLogo                 *string  `json:"ORGANIZATION_LOGO"`
+	AccessTokenExpiryTime            *string  `json:"ACCESS_TOKEN_EXPIRY_TIME,omitempty"`
+	AdminSecret                      *string  `json:"ADMIN_SECRET,omitempty"`
+	CustomAccessTokenScript          *string  `json:"CUSTOM_ACCESS_TOKEN_SCRIPT,omitempty"`
+	OldAdminSecret                   *string  `json:"OLD_ADMIN_SECRET,omitempty"`
+	SMTPHost                         *string  `json:"SMTP_HOST,omitempty"`
+	SMTPPort                         *string  `json:"SMTP_PORT,omitempty"`
+	SMTPUsername                     *string  `json:"SMTP_USERNAME,omitempty"`
+	SMTPPassword                     *string  `json:"SMTP_PASSWORD,omitempty"`
+	SMTPLocalName                    *string  `json:"SMTP_LOCAL_NAME,omitempty"`
+	SenderEmail                      *string  `json:"SENDER_EMAIL,omitempty"`
+	SenderName                       *string  `json:"SENDER_NAME,omitempty"`
+	JwtType                          *string  `json:"JWT_TYPE,omitempty"`
+	JwtSecret                        *string  `json:"JWT_SECRET,omitempty"`
+	JwtPrivateKey                    *string  `json:"JWT_PRIVATE_KEY,omitempty"`
+	JwtPublicKey                     *string  `json:"JWT_PUBLIC_KEY,omitempty"`
+	AllowedOrigins                   []string `json:"ALLOWED_ORIGINS,omitempty"`
+	AppURL                           *string  `json:"APP_URL,omitempty"`
+	ResetPasswordURL                 *string  `json:"RESET_PASSWORD_URL,omitempty"`
+	AppCookieSecure                  *bool    `json:"APP_COOKIE_SECURE,omitempty"`
+	AdminCookieSecure                *bool    `json:"ADMIN_COOKIE_SECURE,omitempty"`
+	DisableEmailVerification         *bool    `json:"DISABLE_EMAIL_VERIFICATION,omitempty"`
+	DisableBasicAuthentication       *bool    `json:"DISABLE_BASIC_AUTHENTICATION,omitempty"`
+	DisableMagicLinkLogin            *bool    `json:"DISABLE_MAGIC_LINK_LOGIN,omitempty"`
+	DisableLoginPage                 *bool    `json:"DISABLE_LOGIN_PAGE,omitempty"`
+	DisableSignUp                    *bool    `json:"DISABLE_SIGN_UP,omitempty"`
+	DisableRedisForEnv               *bool    `json:"DISABLE_REDIS_FOR_ENV,omitempty"`
+	DisableStrongPassword            *bool    `json:"DISABLE_STRONG_PASSWORD,omitempty"`
+	DisableMultiFactorAuthentication *bool    `json:"DISABLE_MULTI_FACTOR_AUTHENTICATION,omitempty"`
+	EnforceMultiFactorAuthentication *bool    `json:"ENFORCE_MULTI_FACTOR_AUTHENTICATION,omitempty"`
+	Roles                            []string `json:"ROLES,omitempty"`
+	ProtectedRoles                   []string `json:"PROTECTED_ROLES,omitempty"`
+	DefaultRoles                     []string `json:"DEFAULT_ROLES,omitempty"`
+	JwtRoleClaim                     *string  `json:"JWT_ROLE_CLAIM,omitempty"`
+	GoogleClientID                   *string  `json:"GOOGLE_CLIENT_ID,omitempty"`
+	GoogleClientSecret               *string  `json:"GOOGLE_CLIENT_SECRET,omitempty"`
+	GithubClientID                   *string  `json:"GITHUB_CLIENT_ID,omitempty"`
+	GithubClientSecret               *string  `json:"GITHUB_CLIENT_SECRET,omitempty"`
+	FacebookClientID                 *string  `json:"FACEBOOK_CLIENT_ID,omitempty"`
+	FacebookClientSecret             *string  `json:"FACEBOOK_CLIENT_SECRET,omitempty"`
+	LinkedinClientID                 *string  `json:"LINKEDIN_CLIENT_ID,omitempty"`
+	LinkedinClientSecret             *string  `json:"LINKEDIN_CLIENT_SECRET,omitempty"`
+	AppleClientID                    *string  `json:"APPLE_CLIENT_ID,omitempty"`
+	AppleClientSecret                *string  `json:"APPLE_CLIENT_SECRET,omitempty"`
+	TwitterClientID                  *string  `json:"TWITTER_CLIENT_ID,omitempty"`
+	TwitterClientSecret              *string  `json:"TWITTER_CLIENT_SECRET,omitempty"`
+	MicrosoftClientID                *string  `json:"MICROSOFT_CLIENT_ID,omitempty"`
+	MicrosoftClientSecret            *string  `json:"MICROSOFT_CLIENT_SECRET,omitempty"`
+	MicrosoftActiveDirectoryTenantID *string  `json:"MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID,omitempty"`
+	OrganizationName                 *string  `json:"ORGANIZATION_NAME,omitempty"`
+	OrganizationLogo                 *string  `json:"ORGANIZATION_LOGO,omitempty"`
+	DefaultAuthorizeResponseType     *string  `json:"DEFAULT_AUTHORIZE_RESPONSE_TYPE,omitempty"`
+	DefaultAuthorizeResponseMode     *string  `json:"DEFAULT_AUTHORIZE_RESPONSE_MODE,omitempty"`
+	DisablePlayground                *bool    `json:"DISABLE_PLAYGROUND,omitempty"`
+	DisableMailOtpLogin              *bool    `json:"DISABLE_MAIL_OTP_LOGIN,omitempty"`
+	DisableTotpLogin                 *bool    `json:"DISABLE_TOTP_LOGIN,omitempty"`
 }
 
 type UpdateProfileInput struct {
-	OldPassword              *string `json:"old_password"`
-	NewPassword              *string `json:"new_password"`
-	ConfirmNewPassword       *string `json:"confirm_new_password"`
-	Email                    *string `json:"email"`
-	GivenName                *string `json:"given_name"`
-	FamilyName               *string `json:"family_name"`
-	MiddleName               *string `json:"middle_name"`
-	Nickname                 *string `json:"nickname"`
-	Gender                   *string `json:"gender"`
-	Birthdate                *string `json:"birthdate"`
-	PhoneNumber              *string `json:"phone_number"`
-	Picture                  *string `json:"picture"`
-	IsMultiFactorAuthEnabled *bool   `json:"is_multi_factor_auth_enabled"`
+	OldPassword              *string                `json:"old_password,omitempty"`
+	NewPassword              *string                `json:"new_password,omitempty"`
+	ConfirmNewPassword       *string                `json:"confirm_new_password,omitempty"`
+	Email                    *string                `json:"email,omitempty"`
+	GivenName                *string                `json:"given_name,omitempty"`
+	FamilyName               *string                `json:"family_name,omitempty"`
+	MiddleName               *string                `json:"middle_name,omitempty"`
+	Nickname                 *string                `json:"nickname,omitempty"`
+	Gender                   *string                `json:"gender,omitempty"`
+	Birthdate                *string                `json:"birthdate,omitempty"`
+	PhoneNumber              *string                `json:"phone_number,omitempty"`
+	Picture                  *string                `json:"picture,omitempty"`
+	IsMultiFactorAuthEnabled *bool                  `json:"is_multi_factor_auth_enabled,omitempty"`
+	AppData                  map[string]interface{} `json:"app_data,omitempty"`
 }
 
 type UpdateUserInput struct {
-	ID                       string    `json:"id"`
-	Email                    *string   `json:"email"`
-	EmailVerified            *bool     `json:"email_verified"`
-	GivenName                *string   `json:"given_name"`
-	FamilyName               *string   `json:"family_name"`
-	MiddleName               *string   `json:"middle_name"`
-	Nickname                 *string   `json:"nickname"`
-	Gender                   *string   `json:"gender"`
-	Birthdate                *string   `json:"birthdate"`
-	PhoneNumber              *string   `json:"phone_number"`
-	Picture                  *string   `json:"picture"`
-	Roles                    []*string `json:"roles"`
-	IsMultiFactorAuthEnabled *bool     `json:"is_multi_factor_auth_enabled"`
+	ID                       string                 `json:"id"`
+	Email                    *string                `json:"email,omitempty"`
+	EmailVerified            *bool                  `json:"email_verified,omitempty"`
+	GivenName                *string                `json:"given_name,omitempty"`
+	FamilyName               *string                `json:"family_name,omitempty"`
+	MiddleName               *string                `json:"middle_name,omitempty"`
+	Nickname                 *string                `json:"nickname,omitempty"`
+	Gender                   *string                `json:"gender,omitempty"`
+	Birthdate                *string                `json:"birthdate,omitempty"`
+	PhoneNumber              *string                `json:"phone_number,omitempty"`
+	Picture                  *string                `json:"picture,omitempty"`
+	Roles                    []*string              `json:"roles,omitempty"`
+	IsMultiFactorAuthEnabled *bool                  `json:"is_multi_factor_auth_enabled,omitempty"`
+	AppData                  map[string]interface{} `json:"app_data,omitempty"`
 }
 
 type UpdateWebhookRequest struct {
-	ID        string                 `json:"id"`
-	EventName *string                `json:"event_name"`
-	Endpoint  *string                `json:"endpoint"`
-	Enabled   *bool                  `json:"enabled"`
-	Headers   map[string]interface{} `json:"headers"`
+	ID               string                 `json:"id"`
+	EventName        *string                `json:"event_name,omitempty"`
+	EventDescription *string                `json:"event_description,omitempty"`
+	Endpoint         *string                `json:"endpoint,omitempty"`
+	Enabled          *bool                  `json:"enabled,omitempty"`
+	Headers          map[string]interface{} `json:"headers,omitempty"`
 }
 
 type User struct {
-	ID                       string   `json:"id"`
-	Email                    string   `json:"email"`
-	EmailVerified            bool     `json:"email_verified"`
-	SignupMethods            string   `json:"signup_methods"`
-	GivenName                *string  `json:"given_name"`
-	FamilyName               *string  `json:"family_name"`
-	MiddleName               *string  `json:"middle_name"`
-	Nickname                 *string  `json:"nickname"`
-	PreferredUsername        *string  `json:"preferred_username"`
-	Gender                   *string  `json:"gender"`
-	Birthdate                *string  `json:"birthdate"`
-	PhoneNumber              *string  `json:"phone_number"`
-	PhoneNumberVerified      *bool    `json:"phone_number_verified"`
-	Picture                  *string  `json:"picture"`
-	Roles                    []string `json:"roles"`
-	CreatedAt                *int64   `json:"created_at"`
-	UpdatedAt                *int64   `json:"updated_at"`
-	RevokedTimestamp         *int64   `json:"revoked_timestamp"`
-	IsMultiFactorAuthEnabled *bool    `json:"is_multi_factor_auth_enabled"`
+	ID                       string                 `json:"id"`
+	Email                    *string                `json:"email,omitempty"`
+	EmailVerified            bool                   `json:"email_verified"`
+	SignupMethods            string                 `json:"signup_methods"`
+	GivenName                *string                `json:"given_name,omitempty"`
+	FamilyName               *string                `json:"family_name,omitempty"`
+	MiddleName               *string                `json:"middle_name,omitempty"`
+	Nickname                 *string                `json:"nickname,omitempty"`
+	PreferredUsername        *string                `json:"preferred_username,omitempty"`
+	Gender                   *string                `json:"gender,omitempty"`
+	Birthdate                *string                `json:"birthdate,omitempty"`
+	PhoneNumber              *string                `json:"phone_number,omitempty"`
+	PhoneNumberVerified      *bool                  `json:"phone_number_verified,omitempty"`
+	Picture                  *string                `json:"picture,omitempty"`
+	Roles                    []string               `json:"roles"`
+	CreatedAt                *int64                 `json:"created_at,omitempty"`
+	UpdatedAt                *int64                 `json:"updated_at,omitempty"`
+	RevokedTimestamp         *int64                 `json:"revoked_timestamp,omitempty"`
+	IsMultiFactorAuthEnabled *bool                  `json:"is_multi_factor_auth_enabled,omitempty"`
+	AppData                  map[string]interface{} `json:"app_data,omitempty"`
 }
 
 type Users struct {
@@ -417,24 +465,34 @@ type Users struct {
 type ValidateJWTTokenInput struct {
 	TokenType string   `json:"token_type"`
 	Token     string   `json:"token"`
-	Roles     []string `json:"roles"`
+	Roles     []string `json:"roles,omitempty"`
 }
 
 type ValidateJWTTokenResponse struct {
 	IsValid bool                   `json:"is_valid"`
-	Claims  map[string]interface{} `json:"claims"`
+	Claims  map[string]interface{} `json:"claims,omitempty"`
+}
+
+type ValidateSessionInput struct {
+	Cookie string   `json:"cookie"`
+	Roles  []string `json:"roles,omitempty"`
+}
+
+type ValidateSessionResponse struct {
+	IsValid bool  `json:"is_valid"`
+	User    *User `json:"user"`
 }
 
 type VerificationRequest struct {
 	ID          string  `json:"id"`
-	Identifier  *string `json:"identifier"`
-	Token       *string `json:"token"`
-	Email       *string `json:"email"`
-	Expires     *int64  `json:"expires"`
-	CreatedAt   *int64  `json:"created_at"`
-	UpdatedAt   *int64  `json:"updated_at"`
-	Nonce       *string `json:"nonce"`
-	RedirectURI *string `json:"redirect_uri"`
+	Identifier  *string `json:"identifier,omitempty"`
+	Token       *string `json:"token,omitempty"`
+	Email       *string `json:"email,omitempty"`
+	Expires     *int64  `json:"expires,omitempty"`
+	CreatedAt   *int64  `json:"created_at,omitempty"`
+	UpdatedAt   *int64  `json:"updated_at,omitempty"`
+	Nonce       *string `json:"nonce,omitempty"`
+	RedirectURI *string `json:"redirect_uri,omitempty"`
 }
 
 type VerificationRequests struct {
@@ -444,33 +502,41 @@ type VerificationRequests struct {
 
 type VerifyEmailInput struct {
 	Token string  `json:"token"`
-	State *string `json:"state"`
+	State *string `json:"state,omitempty"`
 }
 
 type VerifyOTPRequest struct {
-	Email string  `json:"email"`
+	Email       *string `json:"email,omitempty"`
+	PhoneNumber *string `json:"phone_number,omitempty"`
+	Otp         string  `json:"otp"`
+	State       *string `json:"state,omitempty"`
+}
+
+type VerifyTOTPRequest struct {
 	Otp   string  `json:"otp"`
-	State *string `json:"state"`
+	Token string  `json:"token"`
+	State *string `json:"state,omitempty"`
 }
 
 type Webhook struct {
-	ID        string                 `json:"id"`
-	EventName *string                `json:"event_name"`
-	Endpoint  *string                `json:"endpoint"`
-	Enabled   *bool                  `json:"enabled"`
-	Headers   map[string]interface{} `json:"headers"`
-	CreatedAt *int64                 `json:"created_at"`
-	UpdatedAt *int64                 `json:"updated_at"`
+	ID               string                 `json:"id"`
+	EventName        *string                `json:"event_name,omitempty"`
+	EventDescription *string                `json:"event_description,omitempty"`
+	Endpoint         *string                `json:"endpoint,omitempty"`
+	Enabled          *bool                  `json:"enabled,omitempty"`
+	Headers          map[string]interface{} `json:"headers,omitempty"`
+	CreatedAt        *int64                 `json:"created_at,omitempty"`
+	UpdatedAt        *int64                 `json:"updated_at,omitempty"`
 }
 
 type WebhookLog struct {
 	ID         string  `json:"id"`
-	HTTPStatus *int64  `json:"http_status"`
-	Response   *string `json:"response"`
-	Request    *string `json:"request"`
-	WebhookID  *string `json:"webhook_id"`
-	CreatedAt  *int64  `json:"created_at"`
-	UpdatedAt  *int64  `json:"updated_at"`
+	HTTPStatus *int64  `json:"http_status,omitempty"`
+	Response   *string `json:"response,omitempty"`
+	Request    *string `json:"request,omitempty"`
+	WebhookID  *string `json:"webhook_id,omitempty"`
+	CreatedAt  *int64  `json:"created_at,omitempty"`
+	UpdatedAt  *int64  `json:"updated_at,omitempty"`
 }
 
 type WebhookLogs struct {

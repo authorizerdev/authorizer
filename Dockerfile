@@ -1,4 +1,4 @@
-FROM golang:1.19.1-alpine as go-builder
+FROM golang:1.21.3-alpine3.18 as go-builder
 WORKDIR /authorizer
 COPY server server
 COPY Makefile .
@@ -11,7 +11,7 @@ RUN apk add build-base &&\
     make clean && make && \
     chmod 777 build/server
 
-FROM node:17-alpine3.12 as node-builder
+FROM node:20-alpine3.18 as node-builder
 WORKDIR /authorizer
 COPY app app
 COPY dashboard dashboard
@@ -20,7 +20,7 @@ RUN apk add build-base &&\
     make build-app && \
     make build-dashboard
 
-FROM alpine:latest
+FROM alpine:3.18
 RUN adduser -D -h /authorizer -u 1000 -k /dev/null authorizer
 WORKDIR /authorizer
 RUN mkdir app dashboard

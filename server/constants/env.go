@@ -45,6 +45,9 @@ const (
 	EnvKeyDatabaseCACert = "DATABASE_CA_CERT"
 	// EnvCouchbaseBucket key for env variable COUCHBASE_BUCKET
 	EnvCouchbaseBucket = "COUCHBASE_BUCKET"
+	// EnvCouchbaseBucketRAMQuotaMB key for env variable COUCHBASE_BUCKET_RAM_QUOTA
+	// This value should be parsed as number
+	EnvCouchbaseBucketRAMQuotaMB = "COUCHBASE_BUCKET_RAM_QUOTA"
 	// EnvCouchbaseBucket key for env variable COUCHBASE_SCOPE
 	EnvCouchbaseScope = "COUCHBASE_SCOPE"
 	// EnvKeySmtpHost key for env variable SMTP_HOST
@@ -59,8 +62,12 @@ const (
 	EnvKeySmtpLocalName = "SMTP_LOCAL_NAME"
 	// EnvKeySenderEmail key for env variable SENDER_EMAIL
 	EnvKeySenderEmail = "SENDER_EMAIL"
+	// EnvKeySenderName key for env variable SENDER_NAME
+	EnvKeySenderName = "SENDER_NAME"
 	// EnvKeyIsEmailServiceEnabled key for env variable IS_EMAIL_SERVICE_ENABLED
 	EnvKeyIsEmailServiceEnabled = "IS_EMAIL_SERVICE_ENABLED"
+	// EnvKeyIsSMSServiceEnabled key for env variable IS_SMS_SERVICE_ENABLED
+	EnvKeyIsSMSServiceEnabled = "IS_SMS_SERVICE_ENABLED"
 	// EnvKeyAppCookieSecure key for env variable APP_COOKIE_SECURE
 	EnvKeyAppCookieSecure = "APP_COOKIE_SECURE"
 	// EnvKeyAdminCookieSecure key for env variable ADMIN_COOKIE_SECURE
@@ -105,6 +112,12 @@ const (
 	EnvKeyTwitterClientID = "TWITTER_CLIENT_ID"
 	// EnvKeyTwitterClientSecret key for env variable TWITTER_CLIENT_SECRET
 	EnvKeyTwitterClientSecret = "TWITTER_CLIENT_SECRET"
+	// EnvKeyMicrosoftClientID key for env variable MICROSOFT_CLIENT_ID
+	EnvKeyMicrosoftClientID = "MICROSOFT_CLIENT_ID"
+	// EnvKeyMicrosoftActiveDirectoryTenantID key for env variable MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID
+	EnvKeyMicrosoftActiveDirectoryTenantID = "MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID"
+	// EnvKeyMicrosoftClientSecret key for env variable MICROSOFT_CLIENT_SECRET
+	EnvKeyMicrosoftClientSecret = "MICROSOFT_CLIENT_SECRET"
 	// EnvKeyOrganizationName key for env variable ORGANIZATION_NAME
 	EnvKeyOrganizationName = "ORGANIZATION_NAME"
 	// EnvKeyOrganizationLogo key for env variable ORGANIZATION_LOGO
@@ -147,6 +160,18 @@ const (
 	// EnvKeyDisableMultiFactorAuthentication is key for env variable DISABLE_MULTI_FACTOR_AUTHENTICATION
 	// this variable is used to completely disable multi factor authentication. It will have no effect on profile preference
 	EnvKeyDisableMultiFactorAuthentication = "DISABLE_MULTI_FACTOR_AUTHENTICATION"
+	// EnvKeyDisableTOTPLogin is key for env variable DISABLE_TOTP_LOGIN
+	// this variable is used to completely disable totp verification
+	EnvKeyDisableTOTPLogin = "DISABLE_TOTP_LOGIN"
+	// EnvKeyDisableMailOTPLogin is key for env variable DISABLE_MAIL_OTP_LOGIN
+	// this variable is used to completely disable totp verification
+	EnvKeyDisableMailOTPLogin = "DISABLE_MAIL_OTP_LOGIN"
+	// EnvKeyDisablePhoneVerification is key for env variable DISABLE_PHONE_VERIFICATION
+	// this variable is used to disable phone verification
+	EnvKeyDisablePhoneVerification = "DISABLE_PHONE_VERIFICATION"
+	// EnvKeyDisablePlayGround is key for env variable DISABLE_PLAYGROUND
+	// this variable will disable or enable playground use in dashboard
+	EnvKeyDisablePlayGround = "DISABLE_PLAYGROUND"
 
 	// Slice variables
 	// EnvKeyRoles key for env variable ROLES
@@ -157,4 +182,22 @@ const (
 	EnvKeyDefaultRoles = "DEFAULT_ROLES"
 	// EnvKeyAllowedOrigins key for env variable ALLOWED_ORIGINS
 	EnvKeyAllowedOrigins = "ALLOWED_ORIGINS"
+
+	// For oauth/openid/authorize
+	// EnvKeyDefaultAuthorizeResponseType key for env variable DEFAULT_AUTHORIZE_RESPONSE_TYPE
+	// This env is used for setting default response type in authorize handler
+	EnvKeyDefaultAuthorizeResponseType = "DEFAULT_AUTHORIZE_RESPONSE_TYPE"
+	// EnvKeyDefaultAuthorizeResponseMode key for env variable DEFAULT_AUTHORIZE_RESPONSE_MODE
+	// This env is used for setting default response mode in authorize handler
+	EnvKeyDefaultAuthorizeResponseMode = "DEFAULT_AUTHORIZE_RESPONSE_MODE"
+
+	// Twilio env variables
+	// EnvKeyTwilioAPIKey key for env variable TWILIO_API_KEY
+	EnvKeyTwilioAPIKey = "TWILIO_API_KEY"
+	// EnvKeyTwilioAPISecret key for env variable TWILIO_API_SECRET
+	EnvKeyTwilioAPISecret = "TWILIO_API_SECRET"
+	// EnvKeyTwilioAccountSID key for env variable TWILIO_ACCOUNT_SID
+	EnvKeyTwilioAccountSID = "TWILIO_ACCOUNT_SID"
+	// EnvKeyTwilioSender key for env variable TWILIO_SENDER
+	EnvKeyTwilioSender = "TWILIO_SENDER"
 )

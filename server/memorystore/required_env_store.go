@@ -33,11 +33,12 @@ type RequiredEnv struct {
 	AwsAccessKeyID     string `json:"AWS_ACCESS_KEY_ID"`
 	AwsSecretAccessKey string `json:"AWS_SECRET_ACCESS_KEY"`
 	// Couchbase related envs
-	CouchbaseBucket string `json:"COUCHBASE_BUCKET"`
-	CouchbaseScope  string `json:"COUCHBASE_SCOPE"`
+	CouchbaseBucket           string `json:"COUCHBASE_BUCKET"`
+	CouchbaseScope            string `json:"COUCHBASE_SCOPE"`
+	CouchbaseBucketRAMQuotaMB string `json:"COUCHBASE_BUCKET_RAM_QUOTA"`
 }
 
-// RequiredEnvObj is a simple in-memory store for sessions.
+// RequiredEnvStore is a simple in-memory store for sessions.
 type RequiredEnvStore struct {
 	mutex       sync.Mutex
 	requiredEnv RequiredEnv
@@ -98,6 +99,7 @@ func InitRequiredEnv() error {
 	awsSecretAccessKey := os.Getenv(constants.EnvAwsSecretAccessKey)
 	couchbaseBucket := os.Getenv(constants.EnvCouchbaseBucket)
 	couchbaseScope := os.Getenv(constants.EnvCouchbaseScope)
+	couchbaseBucketRAMQuotaMB := os.Getenv(constants.EnvCouchbaseBucketRAMQuotaMB)
 
 	if strings.TrimSpace(redisURL) == "" {
 		if cli.ARG_REDIS_URL != nil && *cli.ARG_REDIS_URL != "" {
@@ -140,24 +142,25 @@ func InitRequiredEnv() error {
 	}
 
 	requiredEnv := RequiredEnv{
-		EnvPath:            envPath,
-		DatabaseURL:        dbURL,
-		DatabaseType:       dbType,
-		DatabaseName:       dbName,
-		DatabaseHost:       dbHost,
-		DatabasePort:       dbPort,
-		DatabaseUsername:   dbUsername,
-		DatabasePassword:   dbPassword,
-		DatabaseCert:       dbCert,
-		DatabaseCertKey:    dbCertKey,
-		DatabaseCACert:     dbCACert,
-		RedisURL:           redisURL,
-		DisableRedisForEnv: disableRedisForEnv,
-		AwsRegion:          awsRegion,
-		AwsAccessKeyID:     awsAccessKeyID,
-		AwsSecretAccessKey: awsSecretAccessKey,
-		CouchbaseBucket:    couchbaseBucket,
-		CouchbaseScope:     couchbaseScope,
+		EnvPath:                   envPath,
+		DatabaseURL:               dbURL,
+		DatabaseType:              dbType,
+		DatabaseName:              dbName,
+		DatabaseHost:              dbHost,
+		DatabasePort:              dbPort,
+		DatabaseUsername:          dbUsername,
+		DatabasePassword:          dbPassword,
+		DatabaseCert:              dbCert,
+		DatabaseCertKey:           dbCertKey,
+		DatabaseCACert:            dbCACert,
+		RedisURL:                  redisURL,
+		DisableRedisForEnv:        disableRedisForEnv,
+		AwsRegion:                 awsRegion,
+		AwsAccessKeyID:            awsAccessKeyID,
+		AwsSecretAccessKey:        awsSecretAccessKey,
+		CouchbaseBucket:           couchbaseBucket,
+		CouchbaseScope:            couchbaseScope,
+		CouchbaseBucketRAMQuotaMB: couchbaseBucketRAMQuotaMB,
 	}
 
 	RequiredEnvStoreObj = &RequiredEnvStore{

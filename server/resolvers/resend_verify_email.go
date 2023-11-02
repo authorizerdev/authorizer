@@ -67,7 +67,7 @@ func ResendVerifyEmailResolver(ctx context.Context, params model.ResendVerifyEma
 	if err != nil {
 		log.Debug("Failed to create verification token: ", err)
 	}
-	_, err = db.Provider.AddVerificationRequest(ctx, models.VerificationRequest{
+	_, err = db.Provider.AddVerificationRequest(ctx, &models.VerificationRequest{
 		Token:       verificationToken,
 		Identifier:  params.Identifier,
 		ExpiresAt:   time.Now().Add(time.Minute * 30).Unix(),
@@ -83,7 +83,7 @@ func ResendVerifyEmailResolver(ctx context.Context, params model.ResendVerifyEma
 	go email.SendEmail([]string{params.Email}, params.Identifier, map[string]interface{}{
 		"user":             user.ToMap(),
 		"organization":     utils.GetOrganization(),
-		"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname),
+		"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname, verificationRequest.RedirectURI),
 	})
 
 	res = &model.Response{

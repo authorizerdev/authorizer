@@ -34,7 +34,7 @@ func UpdateEmailTemplateResolver(ctx context.Context, params model.UpdateEmailTe
 		return nil, err
 	}
 
-	emailTemplateDetails := models.EmailTemplate{
+	emailTemplateDetails := &models.EmailTemplate{
 		ID:        emailTemplate.ID,
 		Key:       emailTemplate.ID,
 		EventName: emailTemplate.EventName,

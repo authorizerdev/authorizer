@@ -2,13 +2,18 @@ package test
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/authorizerdev/authorizer/server/resolvers"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,7 +23,7 @@ func resendOTPTest(t *testing.T, s TestSetup) {
 		req, ctx := createContext(s)
 		email := "resend_otp." + s.TestInfo.Email
 		res, err := resolvers.SignupResolver(ctx, model.SignUpInput{
-			Email:           email,
+			Email:           refs.NewStringRef(email),
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password,
 		})
@@ -27,7 +32,7 @@ func resendOTPTest(t *testing.T, s TestSetup) {
 
 		// Login should fail as email is not verified
 		loginRes, err := resolvers.LoginResolver(ctx, model.LoginInput{
-			Email:    email,
+			Email:    refs.NewStringRef(email),
 			Password: s.TestInfo.Password,
 		})
 		assert.Error(t, err)
@@ -44,20 +49,24 @@ func resendOTPTest(t *testing.T, s TestSetup) {
 		// Using access token update profile
 		s.GinContext.Request.Header.Set("Authorization", "Bearer "+refs.StringValue(verifyRes.AccessToken))
 		ctx = context.WithValue(req.Context(), "GinContextKey", s.GinContext)
-		_, err = resolvers.UpdateProfileResolver(ctx, model.UpdateProfileInput{
+		updateRes, err := resolvers.UpdateProfileResolver(ctx, model.UpdateProfileInput{
 			IsMultiFactorAuthEnabled: refs.NewBoolRef(true),
 		})
+		assert.NoError(t, err)
+		assert.NotNil(t, updateRes)
+		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDisableMailOTPLogin, false)
+		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDisableTOTPLogin, true)
 
 		// Resend otp should return error as no initial opt is being sent
 		resendOtpRes, err := resolvers.ResendOTPResolver(ctx, model.ResendOTPRequest{
-			Email: email,
+			Email: refs.NewStringRef(email),
 		})
 		assert.Error(t, err)
 		assert.Nil(t, resendOtpRes)
 
 		// Login should not return error but access token should be empty as otp should have been sent
 		loginRes, err = resolvers.LoginResolver(ctx, model.LoginInput{
-			Email:    email,
+			Email:    refs.NewStringRef(email),
 			Password: s.TestInfo.Password,
 		})
 		assert.NoError(t, err)
@@ -71,7 +80,7 @@ func resendOTPTest(t *testing.T, s TestSetup) {
 
 		// resend otp
 		resendOtpRes, err = resolvers.ResendOTPResolver(ctx, model.ResendOTPRequest{
-			Email: email,
+			Email: refs.NewStringRef(email),
 		})
 		assert.NoError(t, err)
 		assert.NotEmpty(t, resendOtpRes.Message)
@@ -83,13 +92,23 @@ func resendOTPTest(t *testing.T, s TestSetup) {
 
 		// Should return error for older otp
 		verifyOtpRes, err := resolvers.VerifyOtpResolver(ctx, model.VerifyOTPRequest{
-			Email: email,
+			Email: &email,
 			Otp:   otp.Otp,
 		})
 		assert.Error(t, err)
-
+		assert.Nil(t, verifyOtpRes)
+		// Get user by email
+		user, err := db.Provider.GetUserByEmail(ctx, email)
+		assert.NoError(t, err)
+		assert.NotNil(t, user)
+		// Set mfa cookie session
+		mfaSession := uuid.NewString()
+		memorystore.Provider.SetMfaSession(user.ID, mfaSession, time.Now().Add(1*time.Minute).Unix())
+		cookie := fmt.Sprintf("%s=%s;", constants.MfaCookieName+"_session", mfaSession)
+		cookie = strings.TrimSuffix(cookie, ";")
+		req.Header.Set("Cookie", cookie)
 		verifyOtpRes, err = resolvers.VerifyOtpResolver(ctx, model.VerifyOTPRequest{
-			Email: email,
+			Email: &email,
 			Otp:   newOtp.Otp,
 		})
 		assert.NoError(t, err)

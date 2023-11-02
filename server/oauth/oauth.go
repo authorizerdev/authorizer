@@ -2,30 +2,39 @@ package oauth
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"golang.org/x/oauth2"
 	facebookOAuth2 "golang.org/x/oauth2/facebook"
 	githubOAuth2 "golang.org/x/oauth2/github"
 	linkedInOAuth2 "golang.org/x/oauth2/linkedin"
+	microsoftOAuth2 "golang.org/x/oauth2/microsoft"
+	"google.golang.org/appengine/log"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 )
 
+const (
+	microsoftCommonTenant = "common"
+)
+
 // OAuthProviders is a struct that contains reference all the OAuth providers
 type OAuthProvider struct {
-	GoogleConfig   *oauth2.Config
-	GithubConfig   *oauth2.Config
-	FacebookConfig *oauth2.Config
-	LinkedInConfig *oauth2.Config
-	AppleConfig    *oauth2.Config
-	TwitterConfig  *oauth2.Config
+	GoogleConfig    *oauth2.Config
+	GithubConfig    *oauth2.Config
+	FacebookConfig  *oauth2.Config
+	LinkedInConfig  *oauth2.Config
+	AppleConfig     *oauth2.Config
+	TwitterConfig   *oauth2.Config
+	MicrosoftConfig *oauth2.Config
 }
 
 // OIDCProviders is a struct that contains reference all the OpenID providers
 type OIDCProvider struct {
-	GoogleOIDC *oidc.Provider
+	GoogleOIDC    *oidc.Provider
+	MicrosoftOIDC *oidc.Provider
 }
 
 var (
@@ -155,6 +164,37 @@ func InitOAuth() error {
 				AuthStyle: oauth2.AuthStyleInHeader,
 			},
 			Scopes: []string{"tweet.read", "users.read"},
+		}
+	}
+
+	microsoftClientID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyMicrosoftClientID)
+	if err != nil {
+		microsoftClientID = ""
+	}
+	microsoftClientSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyMicrosoftClientSecret)
+	if err != nil {
+		microsoftClientSecret = ""
+	}
+	microsoftActiveDirTenantID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyMicrosoftActiveDirectoryTenantID)
+	if err != nil || microsoftActiveDirTenantID == "" {
+		microsoftActiveDirTenantID = microsoftCommonTenant
+	}
+	if microsoftClientID != "" && microsoftClientSecret != "" {
+		if microsoftActiveDirTenantID == microsoftCommonTenant {
+			ctx = oidc.InsecureIssuerURLContext(ctx, fmt.Sprintf("https://login.microsoftonline.com/%s/v2.0", microsoftActiveDirTenantID))
+		}
+		p, err := oidc.NewProvider(ctx, fmt.Sprintf("https://login.microsoftonline.com/%s/v2.0", microsoftActiveDirTenantID))
+		if err != nil {
+			log.Debugf(ctx, "Error while creating OIDC provider for Microsoft: %v", err)
+			return err
+		}
+		OIDCProviders.MicrosoftOIDC = p
+		OAuthProviders.MicrosoftConfig = &oauth2.Config{
+			ClientID:     microsoftClientID,
+			ClientSecret: microsoftClientSecret,
+			RedirectURL:  "/oauth_callback/microsoft",
+			Endpoint:     microsoftOAuth2.AzureADEndpoint(microsoftActiveDirTenantID),
+			Scopes:       []string{oidc.ScopeOpenID, "profile", "email"},
 		}
 	}
 

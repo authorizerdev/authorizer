@@ -8,6 +8,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
+	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/authorizerdev/authorizer/server/resolvers"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
@@ -39,9 +40,9 @@ func validateJwtTokenTest(t *testing.T, s TestSetup) {
 	})
 
 	scope := []string{"openid", "email", "profile", "offline_access"}
-	user := models.User{
+	user := &models.User{
 		ID:        uuid.New().String(),
-		Email:     "jwt_test_" + s.TestInfo.Email,
+		Email:     refs.NewStringRef("jwt_test_" + s.TestInfo.Email),
 		Roles:     "user",
 		UpdatedAt: time.Now().Unix(),
 		CreatedAt: time.Now().Unix(),
@@ -53,11 +54,13 @@ func validateJwtTokenTest(t *testing.T, s TestSetup) {
 	sessionKey := constants.AuthRecipeMethodBasicAuth + ":" + user.ID
 	nonce := uuid.New().String()
 	authToken, err := token.CreateAuthToken(gc, user, roles, scope, constants.AuthRecipeMethodBasicAuth, nonce, "")
-	memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash)
-	memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token)
+	assert.NoError(t, err)
+	assert.NotNil(t, authToken)
+	memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt)
+	memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt)
 
 	if authToken.RefreshToken != nil {
-		memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token)
+		memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token, authToken.RefreshToken.ExpiresAt)
 	}
 
 	t.Run(`should validate the access token`, func(t *testing.T) {
@@ -74,8 +77,8 @@ func validateJwtTokenTest(t *testing.T, s TestSetup) {
 			Token:     authToken.AccessToken.Token,
 			Roles:     []string{"invalid_role"},
 		})
-
 		assert.Error(t, err)
+		assert.Nil(t, res)
 	})
 
 	t.Run(`should validate the refresh token`, func(t *testing.T) {
@@ -94,6 +97,6 @@ func validateJwtTokenTest(t *testing.T, s TestSetup) {
 		})
 		assert.NoError(t, err)
 		assert.True(t, res.IsValid)
-		assert.Equal(t, user.Email, res.Claims["email"])
+		assert.Equal(t, refs.StringValue(user.Email), res.Claims["email"])
 	})
 }

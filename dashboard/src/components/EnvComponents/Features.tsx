@@ -8,105 +8,147 @@ const Features = ({ variables, setVariables }: any) => {
 		<div>
 			{' '}
 			<Text fontSize="md" paddingTop="2%" fontWeight="bold" mb={5}>
-				Disable Features
+				Features
 			</Text>
 			<Stack spacing={6}>
 				<Flex>
 					<Flex w="100%" justifyContent="start" alignItems="center">
-						<Text fontSize="sm">Disable Login Page:</Text>
+						<Text fontSize="sm">Login Page:</Text>
 					</Flex>
 					<Flex justifyContent="start">
 						<InputField
 							variables={variables}
 							setVariables={setVariables}
 							inputType={SwitchInputType.DISABLE_LOGIN_PAGE}
+							hasReversedValue
 						/>
 					</Flex>
 				</Flex>
+
+
 				<Flex>
 					<Flex w="100%" justifyContent="start" alignItems="center">
-						<Text fontSize="sm">Disable Email Verification:</Text>
+						<Text fontSize="sm">Email Verification:</Text>
 					</Flex>
 					<Flex justifyContent="start">
 						<InputField
 							variables={variables}
 							setVariables={setVariables}
 							inputType={SwitchInputType.DISABLE_EMAIL_VERIFICATION}
+							hasReversedValue
 						/>
 					</Flex>
 				</Flex>
 				<Flex>
 					<Flex w="100%" justifyContent="start" alignItems="center">
-						<Text fontSize="sm">Disable Magic Login Link:</Text>
+						<Text fontSize="sm">Magic Login Link:</Text>
 					</Flex>
 					<Flex justifyContent="start">
 						<InputField
 							variables={variables}
 							setVariables={setVariables}
 							inputType={SwitchInputType.DISABLE_MAGIC_LINK_LOGIN}
+							hasReversedValue
 						/>
 					</Flex>
 				</Flex>
 				<Flex>
 					<Flex w="100%" justifyContent="start" alignItems="center">
-						<Text fontSize="sm">Disable Basic Authentication:</Text>
+						<Text fontSize="sm">Basic Authentication:</Text>
 					</Flex>
 					<Flex justifyContent="start">
 						<InputField
 							variables={variables}
 							setVariables={setVariables}
 							inputType={SwitchInputType.DISABLE_BASIC_AUTHENTICATION}
+							hasReversedValue
 						/>
 					</Flex>
 				</Flex>
 				<Flex>
 					<Flex w="100%" justifyContent="start" alignItems="center">
-						<Text fontSize="sm">Disable Sign Up:</Text>
+						<Text fontSize="sm">Sign Up:</Text>
 					</Flex>
 					<Flex justifyContent="start" mb={3}>
 						<InputField
 							variables={variables}
 							setVariables={setVariables}
 							inputType={SwitchInputType.DISABLE_SIGN_UP}
+							hasReversedValue
 						/>
 					</Flex>
 				</Flex>
 				<Flex>
 					<Flex w="100%" justifyContent="start" alignItems="center">
-						<Text fontSize="sm">Disable Strong Password:</Text>
+						<Text fontSize="sm">Strong Password:</Text>
 					</Flex>
 					<Flex justifyContent="start" mb={3}>
 						<InputField
 							variables={variables}
 							setVariables={setVariables}
 							inputType={SwitchInputType.DISABLE_STRONG_PASSWORD}
+							hasReversedValue
 						/>
 					</Flex>
 				</Flex>
 				<Flex alignItems="center">
 					<Flex w="100%" alignItems="baseline" flexDir="column">
-						<Text fontSize="sm">
-							Disable Multi Factor Authentication (MFA):
-						</Text>
+						<Text fontSize="sm">Multi Factor Authentication (MFA):</Text>
 						<Text fontSize="x-small">
 							Note: Enabling this will ignore Enforcing MFA shown below and will
 							also ignore the user MFA setting.
 						</Text>
 					</Flex>
+
 					<Flex justifyContent="start" mb={3}>
 						<InputField
 							variables={variables}
 							setVariables={setVariables}
 							inputType={SwitchInputType.DISABLE_MULTI_FACTOR_AUTHENTICATION}
+							hasReversedValue
 						/>
 					</Flex>
 				</Flex>
-			</Stack>
-			<Divider paddingY={5} />
-			<Text fontSize="md" paddingTop={5} fontWeight="bold" mb={5}>
-				Enable Features
-			</Text>
-			<Stack spacing={6}>
+
+				{
+					!variables.DISABLE_MULTI_FACTOR_AUTHENTICATION &&
+					<Flex alignItems="center">
+						<Flex w="100%" alignItems="baseline" flexDir="column">
+							<Text fontSize="sm">TOTP:</Text>
+							<Text fontSize="x-small">
+								Note: to enable totp mfa
+							</Text>
+						</Flex>
+
+						<Flex justifyContent="start" mb={3}>
+							<InputField
+								variables={variables}
+								setVariables={setVariables}
+								inputType={SwitchInputType.DISABLE_TOTP_LOGIN}
+								hasReversedValue
+							/>
+						</Flex>
+					</Flex>
+				}
+				{!variables.DISABLE_MULTI_FACTOR_AUTHENTICATION &&
+					<Flex alignItems="center">
+					<Flex w="100%" alignItems="baseline" flexDir="column">
+					<Text fontSize="sm">EMAIL OTP:</Text>
+					<Text fontSize="x-small">
+					Note: to enable email otp mfa
+					</Text>
+					</Flex>
+
+					<Flex justifyContent="start" mb={3}>
+				<InputField
+					variables={variables}
+					setVariables={setVariables}
+					inputType={SwitchInputType.DISABLE_MAIL_OTP_LOGIN}
+					hasReversedValue
+				/>
+			</Flex>
+		</Flex>}
+
 				<Flex alignItems="center">
 					<Flex w="100%" alignItems="baseline" flexDir="column">
 						<Text fontSize="sm">
@@ -122,6 +164,19 @@ const Features = ({ variables, setVariables }: any) => {
 							variables={variables}
 							setVariables={setVariables}
 							inputType={SwitchInputType.ENFORCE_MULTI_FACTOR_AUTHENTICATION}
+						/>
+					</Flex>
+				</Flex>
+				<Flex>
+					<Flex w="100%" justifyContent="start" alignItems="center">
+						<Text fontSize="sm">Playground:</Text>
+					</Flex>
+					<Flex justifyContent="start">
+						<InputField
+							variables={variables}
+							setVariables={setVariables}
+							inputType={SwitchInputType.DISABLE_PLAYGROUND}
+							hasReversedValue
 						/>
 					</Flex>
 				</Flex>

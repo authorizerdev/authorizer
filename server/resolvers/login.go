@@ -7,23 +7,29 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 
+	log "github.com/sirupsen/logrus"
+
+	"github.com/authorizerdev/authorizer/server/authenticators"
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/cookie"
+	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
-	"github.com/authorizerdev/authorizer/server/email"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/refs"
+	"github.com/authorizerdev/authorizer/server/smsproviders"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/authorizerdev/authorizer/server/validators"
+
+	mailService "github.com/authorizerdev/authorizer/server/email"
 )
 
 // LoginResolver is a resolver for login mutation
+// User can login with email or phone number, but not both
 func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthResponse, error) {
 	var res *model.AuthResponse
 
@@ -33,49 +39,78 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 		return res, err
 	}
 
-	isBasiAuthDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableBasicAuthentication)
+	isBasicAuthDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableBasicAuthentication)
 	if err != nil {
 		log.Debug("Error getting basic auth disabled: ", err)
-		isBasiAuthDisabled = true
+		isBasicAuthDisabled = true
 	}
 
-	if isBasiAuthDisabled {
+	isMobileBasicAuthDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableMobileBasicAuthentication)
+	if err != nil {
+		log.Debug("Error getting mobile basic auth disabled: ", err)
+		isMobileBasicAuthDisabled = true
+	}
+
+	email := refs.StringValue(params.Email)
+	phoneNumber := refs.StringValue(params.PhoneNumber)
+	if email == "" && phoneNumber == "" {
+		log.Debug("Email or phone number is required")
+		return res, fmt.Errorf(`email or phone number is required`)
+	}
+	log := log.WithFields(log.Fields{
+		"email":        refs.StringValue(params.Email),
+		"phone_number": refs.StringValue(params.PhoneNumber),
+	})
+	isEmailLogin := email != ""
+	isMobileLogin := phoneNumber != ""
+	if isBasicAuthDisabled {
 		log.Debug("Basic authentication is disabled.")
 		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
 	}
-
-	log := log.WithFields(log.Fields{
-		"email": params.Email,
-	})
-	params.Email = strings.ToLower(params.Email)
-	user, err := db.Provider.GetUserByEmail(ctx, params.Email)
+	if isMobileBasicAuthDisabled && isMobileLogin {
+		log.Debug("Mobile basic authentication is disabled.")
+		return res, fmt.Errorf(`mobile basic authentication is disabled for this instance`)
+	}
+	var user *models.User
+	if isEmailLogin {
+		user, err = db.Provider.GetUserByEmail(ctx, email)
+	} else {
+		user, err = db.Provider.GetUserByPhoneNumber(ctx, phoneNumber)
+	}
 	if err != nil {
-		log.Debug("Failed to get user by email: ", err)
+		log.Debug("Failed to get user: ", err)
 		return res, fmt.Errorf(`bad user credentials`)
 	}
-
 	if user.RevokedTimestamp != nil {
 		log.Debug("User access is revoked")
 		return res, fmt.Errorf(`user access has been revoked`)
 	}
+	if isEmailLogin {
+		if !strings.Contains(user.SignupMethods, constants.AuthRecipeMethodBasicAuth) {
+			log.Debug("User signup method is not basic auth")
+			return res, fmt.Errorf(`user has not signed up email & password`)
+		}
 
-	if !strings.Contains(user.SignupMethods, constants.AuthRecipeMethodBasicAuth) {
-		log.Debug("User signup method is not basic auth")
-		return res, fmt.Errorf(`user has not signed up email & password`)
+		if user.EmailVerifiedAt == nil {
+			log.Debug("User email is not verified")
+			return res, fmt.Errorf(`email not verified`)
+		}
+	} else {
+		if !strings.Contains(user.SignupMethods, constants.AuthRecipeMethodMobileBasicAuth) {
+			log.Debug("User signup method is not mobile basic auth")
+			return res, fmt.Errorf(`user has not signed up with phone number & password`)
+		}
+
+		if user.PhoneNumberVerifiedAt == nil {
+			log.Debug("User phone number is not verified")
+			return res, fmt.Errorf(`phone number is not verified`)
+		}
 	}
-
-	if user.EmailVerifiedAt == nil {
-		log.Debug("User email is not verified")
-		return res, fmt.Errorf(`email not verified`)
-	}
-
 	err = bcrypt.CompareHashAndPassword([]byte(*user.Password), []byte(params.Password))
-
 	if err != nil {
 		log.Debug("Failed to compare password: ", err)
 		return res, fmt.Errorf(`bad user credentials`)
 	}
-
 	defaultRolesString, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDefaultRoles)
 	roles := []string{}
 	if err != nil {
@@ -84,61 +119,135 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 	} else {
 		roles = strings.Split(defaultRolesString, ",")
 	}
-
 	currentRoles := strings.Split(user.Roles, ",")
 	if len(params.Roles) > 0 {
 		if !validators.IsValidRoles(params.Roles, currentRoles) {
 			log.Debug("Invalid roles: ", params.Roles)
 			return res, fmt.Errorf(`invalid roles`)
 		}
-
 		roles = params.Roles
 	}
-
 	scope := []string{"openid", "email", "profile"}
 	if params.Scope != nil && len(scope) > 0 {
 		scope = params.Scope
 	}
-
 	isEmailServiceEnabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyIsEmailServiceEnabled)
 	if err != nil || !isEmailServiceEnabled {
 		log.Debug("Email service not enabled: ", err)
 	}
+	isSMSServiceEnabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyIsSMSServiceEnabled)
+	if err != nil || !isSMSServiceEnabled {
+		log.Debug("SMS service not enabled: ", err)
+	}
 
 	isMFADisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableMultiFactorAuthentication)
-	if err != nil || !isEmailServiceEnabled {
+	if err != nil || !isMFADisabled {
 		log.Debug("MFA service not enabled: ", err)
 	}
 
+	isTOTPLoginDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableTOTPLogin)
+	if err != nil || !isTOTPLoginDisabled {
+		log.Debug("totp service not enabled: ", err)
+	}
+
+	isMailOTPDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableMailOTPLogin)
+	if err != nil || !isMailOTPDisabled {
+		log.Debug("mail OTP service not enabled: ", err)
+	}
+
 	// If email service is not enabled continue the process in any way
-	if refs.BoolValue(user.IsMultiFactorAuthEnabled) && isEmailServiceEnabled && !isMFADisabled {
+	if refs.BoolValue(user.IsMultiFactorAuthEnabled) && !isMFADisabled && !isMailOTPDisabled {
 		otp := utils.GenerateOTP()
+		expires := time.Now().Add(1 * time.Minute).Unix()
 		otpData, err := db.Provider.UpsertOTP(ctx, &models.OTP{
-			Email:     user.Email,
+			Email:     refs.StringValue(user.Email),
 			Otp:       otp,
-			ExpiresAt: time.Now().Add(1 * time.Minute).Unix(),
+			ExpiresAt: expires,
 		})
 		if err != nil {
 			log.Debug("Failed to add otp: ", err)
 			return nil, err
 		}
 
-		go func() {
-			// exec it as go routine so that we can reduce the api latency
-			go email.SendEmail([]string{params.Email}, constants.VerificationTypeOTP, map[string]interface{}{
-				"user":         user.ToMap(),
-				"organization": utils.GetOrganization(),
-				"otp":          otpData.Otp,
-			})
-			if err != nil {
-				log.Debug("Failed to send otp email: ", err)
-			}
-		}()
-
+		mfaSession := uuid.NewString()
+		err = memorystore.Provider.SetMfaSession(user.ID, mfaSession, expires)
+		if err != nil {
+			log.Debug("Failed to add mfasession: ", err)
+			return nil, err
+		}
+		cookie.SetMfaSession(gc, mfaSession)
+		if isEmailServiceEnabled && isEmailLogin {
+			go func() {
+				// exec it as go routine so that we can reduce the api latency
+				if err := mailService.SendEmail([]string{email}, constants.VerificationTypeOTP, map[string]interface{}{
+					"user":         user.ToMap(),
+					"organization": utils.GetOrganization(),
+					"otp":          otpData.Otp,
+				}); err != nil {
+					log.Debug("Failed to send otp email: ", err)
+				}
+				utils.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
+			}()
+		} else if isSMSServiceEnabled && isMobileLogin {
+			smsBody := strings.Builder{}
+			smsBody.WriteString("Your verification code is: ")
+			smsBody.WriteString(otpData.Otp)
+			go func() {
+				utils.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, user)
+				if err := smsproviders.SendSMS(phoneNumber, smsBody.String()); err != nil {
+					log.Debug("Failed to send sms: ", err)
+				}
+			}()
+		}
 		return &model.AuthResponse{
-			Message:             "Please check the OTP in your inbox",
-			ShouldShowOtpScreen: refs.NewBoolRef(true),
+			Message:                   "Please check the OTP in",
+			ShouldShowEmailOtpScreen:  refs.NewBoolRef(isEmailLogin),
+			ShouldShowMobileOtpScreen: refs.NewBoolRef(isMobileLogin),
 		}, nil
+	}
+
+	// if mfa enabled and also totp enabled
+	if !isMFADisabled && refs.BoolValue(user.IsMultiFactorAuthEnabled) && !isTOTPLoginDisabled {
+		pubKey, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyJwtPublicKey)
+		if err != nil {
+			log.Debug("error while getting public key")
+		}
+
+		publicKey, err := crypto.ParseRsaPublicKeyFromPemStr(pubKey)
+		if err != nil {
+			log.Debug("error while parsing public key")
+		}
+
+		//encrypting user id, so it can Kbe used as token for verifying
+		encryptedUserId, err := crypto.EncryptRSA(user.ID, *publicKey)
+		if err != nil {
+			log.Debug("error while encrypting user id")
+		}
+
+		totpModel, err := db.Provider.GetAuthenticatorDetailsByUserId(ctx, user.ID, constants.EnvKeyTOTPAuthenticator)
+
+		// Check if it's the first time user or if their TOTP is not verified
+		if err != nil || ((totpModel == nil) || (totpModel != nil && totpModel.VerifiedAt == nil)) {
+			// Generate a base64 URL and initiate the registration for TOTP
+			base64URL, err := authenticators.Provider.Generate(ctx, user.ID)
+			if err != nil {
+				log.Debug("error while generating base64 url: ", err)
+			}
+			// when user is first time registering for totp
+			res = &model.AuthResponse{
+				Message:       `Proceed to totp screen`,
+				TotpBase64URL: base64URL,
+				TotpToken:     &encryptedUserId,
+			}
+			return res, nil
+		} else {
+			//when user is already register for totp
+			res = &model.AuthResponse{
+				Message:   `Proceed to totp screen`,
+				TotpToken: &encryptedUserId,
+			}
+			return res, nil
+		}
 	}
 
 	code := ""
@@ -162,7 +271,6 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 	if nonce == "" {
 		nonce = uuid.New().String()
 	}
-
 	authToken, err := token.CreateAuthToken(gc, user, roles, scope, constants.AuthRecipeMethodBasicAuth, nonce, code)
 	if err != nil {
 		log.Debug("Failed to create auth token", err)
@@ -193,17 +301,23 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 
 	cookie.SetSession(gc, authToken.FingerPrintHash)
 	sessionStoreKey := constants.AuthRecipeMethodBasicAuth + ":" + user.ID
-	memorystore.Provider.SetUserSession(sessionStoreKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash)
-	memorystore.Provider.SetUserSession(sessionStoreKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token)
+	memorystore.Provider.SetUserSession(sessionStoreKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt)
+	memorystore.Provider.SetUserSession(sessionStoreKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt)
 
 	if authToken.RefreshToken != nil {
 		res.RefreshToken = &authToken.RefreshToken.Token
-		memorystore.Provider.SetUserSession(sessionStoreKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token)
+		memorystore.Provider.SetUserSession(sessionStoreKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token, authToken.RefreshToken.ExpiresAt)
 	}
 
 	go func() {
-		utils.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
-		db.Provider.AddSession(ctx, models.Session{
+		// Register event
+		if isEmailLogin {
+			utils.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
+		} else {
+			utils.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, user)
+		}
+		// Record session
+		db.Provider.AddSession(ctx, &models.Session{
 			UserID:    user.ID,
 			UserAgent: utils.GetUserAgent(gc.Request),
 			IP:        utils.GetIP(gc.Request),

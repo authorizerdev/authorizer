@@ -33,6 +33,7 @@ func clearSessionIfRequired(currentData, updatedData map[string]interface{}) {
 	isCurrentGithubLoginEnabled := currentData[constants.EnvKeyGithubClientID] != nil && currentData[constants.EnvKeyGithubClientSecret] != nil && currentData[constants.EnvKeyGithubClientID].(string) != "" && currentData[constants.EnvKeyGithubClientSecret].(string) != ""
 	isCurrentLinkedInLoginEnabled := currentData[constants.EnvKeyLinkedInClientID] != nil && currentData[constants.EnvKeyLinkedInClientSecret] != nil && currentData[constants.EnvKeyLinkedInClientID].(string) != "" && currentData[constants.EnvKeyLinkedInClientSecret].(string) != ""
 	isCurrentTwitterLoginEnabled := currentData[constants.EnvKeyTwitterClientID] != nil && currentData[constants.EnvKeyTwitterClientSecret] != nil && currentData[constants.EnvKeyTwitterClientID].(string) != "" && currentData[constants.EnvKeyTwitterClientSecret].(string) != ""
+	isCurrentMicrosoftLoginEnabled := currentData[constants.EnvKeyMicrosoftClientID] != nil && currentData[constants.EnvKeyMicrosoftClientSecret] != nil && currentData[constants.EnvKeyMicrosoftClientID].(string) != "" && currentData[constants.EnvKeyMicrosoftClientSecret].(string) != ""
 
 	isUpdatedBasicAuthEnabled := !updatedData[constants.EnvKeyDisableBasicAuthentication].(bool)
 	isUpdatedMobileBasicAuthEnabled := !updatedData[constants.EnvKeyDisableMobileBasicAuthentication].(bool)
@@ -43,6 +44,7 @@ func clearSessionIfRequired(currentData, updatedData map[string]interface{}) {
 	isUpdatedGithubLoginEnabled := updatedData[constants.EnvKeyGithubClientID] != nil && updatedData[constants.EnvKeyGithubClientSecret] != nil && updatedData[constants.EnvKeyGithubClientID].(string) != "" && updatedData[constants.EnvKeyGithubClientSecret].(string) != ""
 	isUpdatedLinkedInLoginEnabled := updatedData[constants.EnvKeyLinkedInClientID] != nil && updatedData[constants.EnvKeyLinkedInClientSecret] != nil && updatedData[constants.EnvKeyLinkedInClientID].(string) != "" && updatedData[constants.EnvKeyLinkedInClientSecret].(string) != ""
 	isUpdatedTwitterLoginEnabled := updatedData[constants.EnvKeyTwitterClientID] != nil && updatedData[constants.EnvKeyTwitterClientSecret] != nil && updatedData[constants.EnvKeyTwitterClientID].(string) != "" && updatedData[constants.EnvKeyTwitterClientSecret].(string) != ""
+	isUpdatedMicrosoftLoginEnabled := updatedData[constants.EnvKeyMicrosoftClientID] != nil && updatedData[constants.EnvKeyMicrosoftClientSecret] != nil && updatedData[constants.EnvKeyMicrosoftClientID].(string) != "" && updatedData[constants.EnvKeyMicrosoftClientSecret].(string) != ""
 
 	if isCurrentBasicAuthEnabled && !isUpdatedBasicAuthEnabled {
 		memorystore.Provider.DeleteSessionForNamespace(constants.AuthRecipeMethodBasicAuth)
@@ -78,6 +80,10 @@ func clearSessionIfRequired(currentData, updatedData map[string]interface{}) {
 
 	if isCurrentTwitterLoginEnabled && !isUpdatedTwitterLoginEnabled {
 		memorystore.Provider.DeleteSessionForNamespace(constants.AuthRecipeMethodTwitter)
+	}
+
+	if isCurrentMicrosoftLoginEnabled && !isUpdatedMicrosoftLoginEnabled {
+		memorystore.Provider.DeleteSessionForNamespace(constants.AuthRecipeMethodMicrosoft)
 	}
 }
 
@@ -247,18 +253,42 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 	// in case SMTP is off but env is set to true
 	if updatedData[constants.EnvKeySmtpHost] == "" || updatedData[constants.EnvKeySmtpUsername] == "" || updatedData[constants.EnvKeySmtpPassword] == "" || updatedData[constants.EnvKeySenderEmail] == "" && updatedData[constants.EnvKeySmtpPort] == "" {
 		updatedData[constants.EnvKeyIsEmailServiceEnabled] = false
-		updatedData[constants.EnvKeyDisableMultiFactorAuthentication] = true
 		if !updatedData[constants.EnvKeyDisableEmailVerification].(bool) {
 			updatedData[constants.EnvKeyDisableEmailVerification] = true
 		}
-
+		if !updatedData[constants.EnvKeyDisableMailOTPLogin].(bool) {
+			updatedData[constants.EnvKeyDisableMailOTPLogin] = true
+		}
 		if !updatedData[constants.EnvKeyDisableMagicLinkLogin].(bool) {
-			updatedData[constants.EnvKeyDisableMagicLinkLogin] = true
+			updatedData[constants.EnvKeyDisableMailOTPLogin] = true
+			updatedData[constants.EnvKeyDisableTOTPLogin] = false
 		}
 	}
 
 	if updatedData[constants.EnvKeySmtpHost] != "" || updatedData[constants.EnvKeySmtpUsername] != "" || updatedData[constants.EnvKeySmtpPassword] != "" || updatedData[constants.EnvKeySenderEmail] != "" && updatedData[constants.EnvKeySmtpPort] != "" {
 		updatedData[constants.EnvKeyIsEmailServiceEnabled] = true
+	}
+
+	if updatedData[constants.EnvKeyTwilioAPIKey] == "" || updatedData[constants.EnvKeyTwilioAPISecret] == "" || updatedData[constants.EnvKeyTwilioAccountSID] == "" || updatedData[constants.EnvKeyTwilioSender] == "" {
+		updatedData[constants.EnvKeyIsSMSServiceEnabled] = false
+		if !updatedData[constants.EnvKeyIsSMSServiceEnabled].(bool) {
+			updatedData[constants.EnvKeyDisablePhoneVerification] = true
+		}
+	}
+
+	if updatedData[constants.EnvKeyDisableMultiFactorAuthentication].(bool) {
+		updatedData[constants.EnvKeyDisableTOTPLogin] = true
+		updatedData[constants.EnvKeyDisableMailOTPLogin] = true
+	} else {
+		if !updatedData[constants.EnvKeyDisableMailOTPLogin].(bool) && !updatedData[constants.EnvKeyDisableTOTPLogin].(bool) {
+			errors.New("can't enable both mfa methods at same time")
+			updatedData[constants.EnvKeyDisableMailOTPLogin] = true
+			updatedData[constants.EnvKeyDisableTOTPLogin] = false
+		} else if updatedData[constants.EnvKeyDisableMailOTPLogin].(bool) && updatedData[constants.EnvKeyDisableTOTPLogin].(bool) {
+			errors.New("can't disable both mfa methods at same time")
+			updatedData[constants.EnvKeyDisableMailOTPLogin] = true
+			updatedData[constants.EnvKeyDisableTOTPLogin] = false
+		}
 	}
 
 	if !currentData[constants.EnvKeyEnforceMultiFactorAuthentication].(bool) && updatedData[constants.EnvKeyEnforceMultiFactorAuthentication].(bool) && !updatedData[constants.EnvKeyDisableMultiFactorAuthentication].(bool) {

@@ -62,7 +62,7 @@ func GetEnvData() (map[string]interface{}, error) {
 	ctx := context.Background()
 	env, err := db.Provider.GetEnv(ctx)
 	// config not found in db
-	if err != nil {
+	if err != nil || env == nil {
 		log.Debug("Error while getting env data from db: ", err)
 		return result, err
 	}
@@ -112,7 +112,7 @@ func PersistEnv() error {
 	ctx := context.Background()
 	env, err := db.Provider.GetEnv(ctx)
 	// config not found in db
-	if err != nil || env.EnvData == "" {
+	if err != nil || env == nil {
 		// AES encryption needs 32 bit key only, so we chop off last 4 characters from 36 bit uuid
 		hash := uuid.New().String()[:36-4]
 		err := memorystore.Provider.UpdateEnvVariable(constants.EnvKeyEncryptionKey, hash)
@@ -121,25 +121,21 @@ func PersistEnv() error {
 			return err
 		}
 		encodedHash := crypto.EncryptB64(hash)
-
 		res, err := memorystore.Provider.GetEnvStore()
 		if err != nil {
 			log.Debug("Error while getting env store: ", err)
 			return err
 		}
-
 		encryptedConfig, err := crypto.EncryptEnvData(res)
 		if err != nil {
 			log.Debug("Error while encrypting env data: ", err)
 			return err
 		}
-
-		env = models.Env{
+		env = &models.Env{
 			Hash:    encodedHash,
 			EnvData: encryptedConfig,
 		}
-
-		env, err = db.Provider.AddEnv(ctx, env)
+		_, err = db.Provider.AddEnv(ctx, env)
 		if err != nil {
 			log.Debug("Error while persisting env data to db: ", err)
 			return err
@@ -200,7 +196,7 @@ func PersistEnv() error {
 				envValue := strings.TrimSpace(os.Getenv(key))
 				if envValue != "" {
 					switch key {
-					case constants.EnvKeyIsProd, constants.EnvKeyDisableBasicAuthentication, constants.EnvKeyDisableMobileBasicAuthentication, constants.EnvKeyDisableEmailVerification, constants.EnvKeyDisableLoginPage, constants.EnvKeyDisableMagicLinkLogin, constants.EnvKeyDisableSignUp, constants.EnvKeyDisableRedisForEnv, constants.EnvKeyDisableStrongPassword, constants.EnvKeyIsEmailServiceEnabled, constants.EnvKeyEnforceMultiFactorAuthentication, constants.EnvKeyDisableMultiFactorAuthentication, constants.EnvKeyAdminCookieSecure, constants.EnvKeyAppCookieSecure:
+					case constants.EnvKeyIsProd, constants.EnvKeyDisableBasicAuthentication, constants.EnvKeyDisableMobileBasicAuthentication, constants.EnvKeyDisableEmailVerification, constants.EnvKeyDisableLoginPage, constants.EnvKeyDisableMagicLinkLogin, constants.EnvKeyDisableSignUp, constants.EnvKeyDisableRedisForEnv, constants.EnvKeyDisableStrongPassword, constants.EnvKeyIsEmailServiceEnabled, constants.EnvKeyIsSMSServiceEnabled, constants.EnvKeyEnforceMultiFactorAuthentication, constants.EnvKeyDisableMultiFactorAuthentication, constants.EnvKeyAdminCookieSecure, constants.EnvKeyAppCookieSecure, constants.EnvKeyDisablePhoneVerification, constants.EnvKeyDisablePlayGround, constants.EnvKeyDisableTOTPLogin, constants.EnvKeyDisableMailOTPLogin:
 						if envValueBool, err := strconv.ParseBool(envValue); err == nil {
 							if value.(bool) != envValueBool {
 								storeData[key] = envValueBool
@@ -229,6 +225,11 @@ func PersistEnv() error {
 
 			if !storeData[constants.EnvKeyDisableMagicLinkLogin].(bool) {
 				storeData[constants.EnvKeyDisableMagicLinkLogin] = true
+				hasChanged = true
+			}
+
+			if !storeData[constants.EnvKeyDisableMailOTPLogin].(bool) {
+				storeData[constants.EnvKeyDisableMailOTPLogin] = true
 				hasChanged = true
 			}
 		}

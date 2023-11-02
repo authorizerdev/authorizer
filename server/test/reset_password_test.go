@@ -6,6 +6,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/authorizerdev/authorizer/server/resolvers"
 	"github.com/stretchr/testify/assert"
 )
@@ -16,11 +17,11 @@ func resetPasswordTest(t *testing.T, s TestSetup) {
 		email := "reset_password." + s.TestInfo.Email
 		_, ctx := createContext(s)
 		_, err := resolvers.SignupResolver(ctx, model.SignUpInput{
-			Email:           email,
+			Email:           refs.NewStringRef(email),
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password,
 		})
-
+		assert.NoError(t, err)
 		_, err = resolvers.ForgotPasswordResolver(ctx, model.ForgotPasswordInput{
 			Email: email,
 		})
@@ -28,7 +29,7 @@ func resetPasswordTest(t *testing.T, s TestSetup) {
 
 		verificationRequest, err := db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeForgotPassword)
 		assert.Nil(t, err, "should get forgot password request")
-
+		assert.NotNil(t, verificationRequest)
 		_, err = resolvers.ResetPasswordResolver(ctx, model.ResetPasswordInput{
 			Token:           verificationRequest.Token,
 			Password:        "test1",

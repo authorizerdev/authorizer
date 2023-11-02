@@ -47,7 +47,7 @@ func AddEmailTemplateResolver(ctx context.Context, params model.AddEmailTemplate
 		design = ""
 	}
 
-	_, err = db.Provider.AddEmailTemplate(ctx, models.EmailTemplate{
+	_, err = db.Provider.AddEmailTemplate(ctx, &models.EmailTemplate{
 		EventName: params.EventName,
 		Template:  params.Template,
 		Subject:   params.Subject,

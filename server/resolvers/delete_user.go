@@ -10,6 +10,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
+	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
@@ -51,28 +52,41 @@ func DeleteUserResolver(ctx context.Context, params model.DeleteUserInput) (*mod
 
 	go func() {
 		// delete otp for given email
-		otp, err := db.Provider.GetOTPByEmail(ctx, user.Email)
+		otp, err := db.Provider.GetOTPByEmail(ctx, refs.StringValue(user.Email))
 		if err != nil {
 			log.Infof("No OTP found for email (%s): %v", user.Email, err)
 			// continue
 		} else {
 			err := db.Provider.DeleteOTP(ctx, otp)
 			if err != nil {
-				log.Debugf("Failed to delete otp for given email (%s): %v", user.Email, err)
+				log.Debugf("Failed to delete otp for given email (%s): %v", refs.StringValue(user.Email), err)
+				// continue
+			}
+		}
+
+		// delete otp for given phone number
+		otp, err = db.Provider.GetOTPByPhoneNumber(ctx, refs.StringValue(user.PhoneNumber))
+		if err != nil {
+			log.Infof("No OTP found for email (%s): %v", refs.StringValue(user.Email), err)
+			// continue
+		} else {
+			err := db.Provider.DeleteOTP(ctx, otp)
+			if err != nil {
+				log.Debugf("Failed to delete otp for given phone (%s): %v", refs.StringValue(user.PhoneNumber), err)
 				// continue
 			}
 		}
 
 		// delete verification requests for given email
 		for _, vt := range constants.VerificationTypes {
-			verificationRequest, err := db.Provider.GetVerificationRequestByEmail(ctx, user.Email, vt)
+			verificationRequest, err := db.Provider.GetVerificationRequestByEmail(ctx, refs.StringValue(user.Email), vt)
 			if err != nil {
-				log.Infof("No verification verification request found for email: %s, verification_request_type: %s. %v", user.Email, vt, err)
+				log.Infof("No verification verification request found for email: %s, verification_request_type: %s. %v", refs.StringValue(user.Email), vt, err)
 				// continue
 			} else {
 				err := db.Provider.DeleteVerificationRequest(ctx, verificationRequest)
 				if err != nil {
-					log.Debugf("Failed to DeleteVerificationRequest for email: %s, verification_request_type: %s. %v", user.Email, vt, err)
+					log.Debugf("Failed to DeleteVerificationRequest for email: %s, verification_request_type: %s. %v", refs.StringValue(user.Email), vt, err)
 					// continue
 				}
 			}

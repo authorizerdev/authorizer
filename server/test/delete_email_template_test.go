@@ -24,7 +24,7 @@ func deleteEmailTemplateTest(t *testing.T, s TestSetup) {
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
 
 		// get all email templates
-		emailTemplates, err := db.Provider.ListEmailTemplate(ctx, model.Pagination{
+		emailTemplates, err := db.Provider.ListEmailTemplate(ctx, &model.Pagination{
 			Limit:  10,
 			Page:   1,
 			Offset: 0,
@@ -41,7 +41,7 @@ func deleteEmailTemplateTest(t *testing.T, s TestSetup) {
 			assert.NotEmpty(t, res.Message)
 		}
 
-		emailTemplates, err = db.Provider.ListEmailTemplate(ctx, model.Pagination{
+		emailTemplates, err = db.Provider.ListEmailTemplate(ctx, &model.Pagination{
 			Limit:  10,
 			Page:   1,
 			Offset: 0,

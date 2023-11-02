@@ -89,6 +89,9 @@ func EnvResolver(ctx context.Context) (*model.Env, error) {
 	if val, ok := store[constants.EnvKeySenderEmail]; ok {
 		res.SenderEmail = refs.NewStringRef(val.(string))
 	}
+	if val, ok := store[constants.EnvKeySenderName]; ok {
+		res.SenderName = refs.NewStringRef(val.(string))
+	}
 	if val, ok := store[constants.EnvKeySmtpLocalName]; ok {
 		res.SMTPLocalName = refs.NewStringRef(val.(string))
 	}
@@ -152,12 +155,27 @@ func EnvResolver(ctx context.Context) (*model.Env, error) {
 	if val, ok := store[constants.EnvKeyTwitterClientSecret]; ok {
 		res.TwitterClientSecret = refs.NewStringRef(val.(string))
 	}
+	if val, ok := store[constants.EnvKeyMicrosoftClientID]; ok {
+		res.MicrosoftClientID = refs.NewStringRef(val.(string))
+	}
+	if val, ok := store[constants.EnvKeyMicrosoftClientSecret]; ok {
+		res.MicrosoftClientSecret = refs.NewStringRef(val.(string))
+	}
+	if val, ok := store[constants.EnvKeyMicrosoftActiveDirectoryTenantID]; ok {
+		res.MicrosoftActiveDirectoryTenantID = refs.NewStringRef(val.(string))
+	}
 
 	if val, ok := store[constants.EnvKeyOrganizationName]; ok {
 		res.OrganizationName = refs.NewStringRef(val.(string))
 	}
 	if val, ok := store[constants.EnvKeyOrganizationLogo]; ok {
 		res.OrganizationLogo = refs.NewStringRef(val.(string))
+	}
+	if val, ok := store[constants.EnvKeyDefaultAuthorizeResponseType]; ok {
+		res.DefaultAuthorizeResponseType = refs.NewStringRef(val.(string))
+	}
+	if val, ok := store[constants.EnvKeyDefaultAuthorizeResponseMode]; ok {
+		res.DefaultAuthorizeResponseMode = refs.NewStringRef(val.(string))
 	}
 
 	// string slice vars
@@ -184,6 +202,9 @@ func EnvResolver(ctx context.Context) (*model.Env, error) {
 	res.DisableMultiFactorAuthentication = store[constants.EnvKeyDisableMultiFactorAuthentication].(bool)
 	res.AdminCookieSecure = store[constants.EnvKeyAdminCookieSecure].(bool)
 	res.AppCookieSecure = store[constants.EnvKeyAppCookieSecure].(bool)
+	res.DisablePlayground = store[constants.EnvKeyDisablePlayGround].(bool)
+	res.DisableMailOtpLogin = store[constants.EnvKeyDisableMailOTPLogin].(bool)
+	res.DisableTotpLogin = store[constants.EnvKeyDisableTOTPLogin].(bool)
 
 	return res, nil
 }

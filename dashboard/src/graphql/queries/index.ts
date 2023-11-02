@@ -32,6 +32,9 @@ export const EnvVariablesQuery = `
       APPLE_CLIENT_SECRET
       TWITTER_CLIENT_ID
       TWITTER_CLIENT_SECRET
+      MICROSOFT_CLIENT_ID
+      MICROSOFT_CLIENT_SECRET
+      MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID
       DEFAULT_ROLES
       PROTECTED_ROLES
       ROLES
@@ -47,6 +50,7 @@ export const EnvVariablesQuery = `
       SMTP_PASSWORD
       SMTP_LOCAL_NAME
       SENDER_EMAIL
+      SENDER_NAME
       ALLOWED_ORIGINS
       ORGANIZATION_NAME
       ORGANIZATION_LOGO
@@ -67,6 +71,11 @@ export const EnvVariablesQuery = `
       ACCESS_TOKEN_EXPIRY_TIME
       DISABLE_MULTI_FACTOR_AUTHENTICATION
       ENFORCE_MULTI_FACTOR_AUTHENTICATION
+      DEFAULT_AUTHORIZE_RESPONSE_TYPE
+      DEFAULT_AUTHORIZE_RESPONSE_MODE
+      DISABLE_PLAYGROUND
+      DISABLE_TOTP_LOGIN
+      DISABLE_MAIL_OTP_LOGIN
     }
   }
 `;
@@ -115,6 +124,7 @@ export const WebhooksDataQuery = `
     _webhooks(params: $params){
       webhooks{
         id
+        event_description
         event_name
         endpoint
         enabled

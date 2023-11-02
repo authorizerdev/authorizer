@@ -2,6 +2,7 @@ package resolvers
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -95,11 +96,25 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 		user.Picture = params.Picture
 	}
 
+	if params.AppData != nil {
+		appDataString := ""
+		appDataBytes, err := json.Marshal(params.AppData)
+		if err != nil {
+			log.Debug("failed to marshall source app_data: ", err)
+			return nil, errors.New("malformed app_data")
+		}
+		appDataString = string(appDataBytes)
+		user.AppData = &appDataString
+	}
+
 	if params.IsMultiFactorAuthEnabled != nil && refs.BoolValue(user.IsMultiFactorAuthEnabled) != refs.BoolValue(params.IsMultiFactorAuthEnabled) {
 		user.IsMultiFactorAuthEnabled = params.IsMultiFactorAuthEnabled
 		if refs.BoolValue(params.IsMultiFactorAuthEnabled) {
 			isEnvServiceEnabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyIsEmailServiceEnabled)
-			if err != nil || !isEnvServiceEnabled {
+			isMailOTPEnvServiceEnabled, _ := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableMailOTPLogin)
+			isTOTPEnvServiceEnabled, _ := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableTOTPLogin)
+			checkMailOTP := !isEnvServiceEnabled && !isTOTPEnvServiceEnabled && isMailOTPEnvServiceEnabled
+			if err != nil || !checkMailOTP {
 				log.Debug("Email service not enabled:")
 				return nil, errors.New("email service not enabled, so cannot enable multi factor authentication")
 			}
@@ -115,7 +130,7 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 		}
 	}
 
-	if params.Email != nil && user.Email != *params.Email {
+	if params.Email != nil && refs.StringValue(user.Email) != refs.StringValue(params.Email) {
 		// check if valid email
 		if !validators.IsValidEmail(*params.Email) {
 			log.Debug("Invalid email: ", *params.Email)
@@ -133,7 +148,7 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 		go memorystore.Provider.DeleteAllUserSessions(user.ID)
 
 		hostname := parsers.GetHost(gc)
-		user.Email = newEmail
+		user.Email = &newEmail
 		user.EmailVerifiedAt = nil
 		// insert verification request
 		_, nonceHash, err := utils.GenerateNonce()
@@ -147,7 +162,7 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 		if err != nil {
 			log.Debug("Failed to create verification token: ", err)
 		}
-		_, err = db.Provider.AddVerificationRequest(ctx, models.VerificationRequest{
+		_, err = db.Provider.AddVerificationRequest(ctx, &models.VerificationRequest{
 			Token:       verificationToken,
 			Identifier:  verificationType,
 			ExpiresAt:   time.Now().Add(time.Minute * 30).Unix(),
@@ -161,10 +176,10 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 		}
 
 		// exec it as go routine so that we can reduce the api latency
-		go email.SendEmail([]string{user.Email}, constants.VerificationTypeBasicAuthSignup, map[string]interface{}{
+		go email.SendEmail([]string{refs.StringValue(user.Email)}, constants.VerificationTypeBasicAuthSignup, map[string]interface{}{
 			"user":             user.ToMap(),
 			"organization":     utils.GetOrganization(),
-			"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname),
+			"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname, redirectURL),
 		})
 
 	}

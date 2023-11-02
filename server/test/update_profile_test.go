@@ -7,6 +7,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/graph/model"
+	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/authorizerdev/authorizer/server/resolvers"
 	"github.com/stretchr/testify/assert"
 )
@@ -18,7 +19,7 @@ func updateProfileTests(t *testing.T, s TestSetup) {
 		email := "update_profile." + s.TestInfo.Email
 
 		resolvers.SignupResolver(ctx, model.SignUpInput{
-			Email:           email,
+			Email:           refs.NewStringRef(email),
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password,
 		})
@@ -30,11 +31,13 @@ func updateProfileTests(t *testing.T, s TestSetup) {
 		assert.NotNil(t, err, "unauthorized")
 
 		verificationRequest, err := db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeBasicAuthSignup)
+		assert.NoError(t, err)
+		assert.NotNil(t, verificationRequest)
 		verifyRes, err := resolvers.VerifyEmailResolver(ctx, model.VerifyEmailInput{
 			Token: verificationRequest.Token,
 		})
 		assert.NoError(t, err)
-
+		assert.NotNil(t, verifyRes)
 		s.GinContext.Request.Header.Set("Authorization", "Bearer "+*verifyRes.AccessToken)
 		ctx = context.WithValue(req.Context(), "GinContextKey", s.GinContext)
 

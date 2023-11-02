@@ -19,7 +19,7 @@ import (
 // InitEnv to initialize EnvData and through error if required env are not present
 func InitAllEnv() error {
 	envData, err := GetEnvData()
-	if err != nil {
+	if err != nil || envData == nil {
 		log.Info("No env data found in db, using local clone of env data")
 		// get clone of current store
 		envData, err = memorystore.Provider.GetEnvStore()
@@ -57,6 +57,7 @@ func InitAllEnv() error {
 	osSmtpPassword := os.Getenv(constants.EnvKeySmtpPassword)
 	osSmtpLocalName := os.Getenv(constants.EnvKeySmtpLocalName)
 	osSenderEmail := os.Getenv(constants.EnvKeySenderEmail)
+	osSenderName := os.Getenv(constants.EnvKeySenderName)
 	osJwtType := os.Getenv(constants.EnvKeyJwtType)
 	osJwtSecret := os.Getenv(constants.EnvKeyJwtSecret)
 	osJwtPrivateKey := os.Getenv(constants.EnvKeyJwtPrivateKey)
@@ -75,6 +76,9 @@ func InitAllEnv() error {
 	osAppleClientSecret := os.Getenv(constants.EnvKeyAppleClientSecret)
 	osTwitterClientID := os.Getenv(constants.EnvKeyTwitterClientID)
 	osTwitterClientSecret := os.Getenv(constants.EnvKeyTwitterClientSecret)
+	osMicrosoftClientID := os.Getenv(constants.EnvKeyMicrosoftClientID)
+	osMicrosoftClientSecret := os.Getenv(constants.EnvKeyMicrosoftClientSecret)
+	osMicrosoftActiveDirectoryTenantID := os.Getenv(constants.EnvKeyMicrosoftActiveDirectoryTenantID)
 	osResetPasswordURL := os.Getenv(constants.EnvKeyResetPasswordURL)
 	osOrganizationName := os.Getenv(constants.EnvKeyOrganizationName)
 	osOrganizationLogo := os.Getenv(constants.EnvKeyOrganizationLogo)
@@ -83,6 +87,9 @@ func InitAllEnv() error {
 	osAwsSecretKey := os.Getenv(constants.EnvAwsSecretAccessKey)
 	osCouchbaseBucket := os.Getenv(constants.EnvCouchbaseBucket)
 	osCouchbaseScope := os.Getenv(constants.EnvCouchbaseScope)
+	osCouchbaseBucketRAMQuotaMB := os.Getenv(constants.EnvCouchbaseBucketRAMQuotaMB)
+	osAuthorizeResponseType := os.Getenv(constants.EnvKeyDefaultAuthorizeResponseType)
+	osAuthorizeResponseMode := os.Getenv(constants.EnvKeyDefaultAuthorizeResponseMode)
 
 	// os bool vars
 	osAppCookieSecure := os.Getenv(constants.EnvKeyAppCookieSecure)
@@ -97,6 +104,17 @@ func InitAllEnv() error {
 	osDisableStrongPassword := os.Getenv(constants.EnvKeyDisableStrongPassword)
 	osEnforceMultiFactorAuthentication := os.Getenv(constants.EnvKeyEnforceMultiFactorAuthentication)
 	osDisableMultiFactorAuthentication := os.Getenv(constants.EnvKeyDisableMultiFactorAuthentication)
+	osDisableTOTPLogin := os.Getenv(constants.EnvKeyDisableTOTPLogin)
+	osDisableMailOTPLogin := os.Getenv(constants.EnvKeyDisableMailOTPLogin)
+	// phone verification var
+	osDisablePhoneVerification := os.Getenv(constants.EnvKeyDisablePhoneVerification)
+	osDisablePlayground := os.Getenv(constants.EnvKeyDisablePlayGround)
+
+	// twilio vars
+	osTwilioApiKey := os.Getenv(constants.EnvKeyTwilioAPIKey)
+	osTwilioApiSecret := os.Getenv(constants.EnvKeyTwilioAPISecret)
+	osTwilioAccountSid := os.Getenv(constants.EnvKeyTwilioAccountSID)
+	osTwilioSender := os.Getenv(constants.EnvKeyTwilioSender)
 
 	// os slice vars
 	osAllowedOrigins := os.Getenv(constants.EnvKeyAllowedOrigins)
@@ -129,6 +147,7 @@ func InitAllEnv() error {
 	if val, ok := envData[constants.EnvAwsRegion]; !ok || val == "" {
 		envData[constants.EnvAwsRegion] = osAwsRegion
 	}
+
 	if osAwsRegion != "" && envData[constants.EnvAwsRegion] != osAwsRegion {
 		envData[constants.EnvAwsRegion] = osAwsRegion
 	}
@@ -152,6 +171,13 @@ func InitAllEnv() error {
 	}
 	if osCouchbaseBucket != "" && envData[constants.EnvCouchbaseBucket] != osCouchbaseBucket {
 		envData[constants.EnvCouchbaseBucket] = osCouchbaseBucket
+	}
+
+	if val, ok := envData[constants.EnvCouchbaseBucketRAMQuotaMB]; !ok || val == "" {
+		envData[constants.EnvCouchbaseBucketRAMQuotaMB] = osCouchbaseBucketRAMQuotaMB
+	}
+	if osCouchbaseBucketRAMQuotaMB != "" && envData[constants.EnvCouchbaseBucketRAMQuotaMB] != osCouchbaseBucketRAMQuotaMB {
+		envData[constants.EnvCouchbaseBucketRAMQuotaMB] = osCouchbaseBucketRAMQuotaMB
 	}
 
 	if val, ok := envData[constants.EnvCouchbaseScope]; !ok || val == "" {
@@ -242,6 +268,13 @@ func InitAllEnv() error {
 	}
 	if osSenderEmail != "" && envData[constants.EnvKeySenderEmail] != osSenderEmail {
 		envData[constants.EnvKeySenderEmail] = osSenderEmail
+	}
+
+	if val, ok := envData[constants.EnvKeySenderName]; !ok || val == "" {
+		envData[constants.EnvKeySenderName] = osSenderName
+	}
+	if osSenderName != "" && envData[constants.EnvKeySenderName] != osSenderName {
+		envData[constants.EnvKeySenderName] = osSenderName
 	}
 
 	algoVal, ok := envData[constants.EnvKeyJwtType]
@@ -447,6 +480,27 @@ func InitAllEnv() error {
 		envData[constants.EnvKeyTwitterClientSecret] = osTwitterClientSecret
 	}
 
+	if val, ok := envData[constants.EnvKeyMicrosoftClientID]; !ok || val == "" {
+		envData[constants.EnvKeyMicrosoftClientID] = osMicrosoftClientID
+	}
+	if osMicrosoftClientID != "" && envData[constants.EnvKeyMicrosoftClientID] != osMicrosoftClientID {
+		envData[constants.EnvKeyMicrosoftClientID] = osMicrosoftClientID
+	}
+
+	if val, ok := envData[constants.EnvKeyMicrosoftClientSecret]; !ok || val == "" {
+		envData[constants.EnvKeyMicrosoftClientSecret] = osMicrosoftClientSecret
+	}
+	if osMicrosoftClientSecret != "" && envData[constants.EnvKeyMicrosoftClientSecret] != osMicrosoftClientSecret {
+		envData[constants.EnvKeyMicrosoftClientSecret] = osMicrosoftClientSecret
+	}
+
+	if val, ok := envData[constants.EnvKeyMicrosoftActiveDirectoryTenantID]; !ok || val == "" {
+		envData[constants.EnvKeyMicrosoftActiveDirectoryTenantID] = osMicrosoftActiveDirectoryTenantID
+	}
+	if osMicrosoftActiveDirectoryTenantID != "" && envData[constants.EnvKeyMicrosoftActiveDirectoryTenantID] != osMicrosoftActiveDirectoryTenantID {
+		envData[constants.EnvKeyMicrosoftActiveDirectoryTenantID] = osMicrosoftActiveDirectoryTenantID
+	}
+
 	if val, ok := envData[constants.EnvKeyResetPasswordURL]; !ok || val == "" {
 		envData[constants.EnvKeyResetPasswordURL] = strings.TrimPrefix(osResetPasswordURL, "/")
 	}
@@ -549,7 +603,7 @@ func InitAllEnv() error {
 		if err != nil {
 			return err
 		}
-		if boolValue != envData[constants.EnvKeyDisableMagicLinkLogin].(bool) {
+		if boolValue != envData[constants.EnvKeyDisableMagicLinkLogin] {
 			envData[constants.EnvKeyDisableMagicLinkLogin] = boolValue
 		}
 	}
@@ -637,18 +691,11 @@ func InitAllEnv() error {
 		envData[constants.EnvKeyDisableEmailVerification] = true
 		envData[constants.EnvKeyDisableMagicLinkLogin] = true
 		envData[constants.EnvKeyIsEmailServiceEnabled] = false
+		envData[constants.EnvKeyDisableMailOTPLogin] = true
 	}
 
-	if envData[constants.EnvKeySmtpHost] != "" || envData[constants.EnvKeySmtpUsername] != "" || envData[constants.EnvKeySmtpPassword] != "" || envData[constants.EnvKeySenderEmail] != "" && envData[constants.EnvKeySmtpPort] != "" {
+	if envData[constants.EnvKeySmtpHost] != "" && envData[constants.EnvKeySmtpUsername] != "" && envData[constants.EnvKeySmtpPassword] != "" && envData[constants.EnvKeySenderEmail] != "" && envData[constants.EnvKeySmtpPort] != "" {
 		envData[constants.EnvKeyIsEmailServiceEnabled] = true
-	}
-
-	if envData[constants.EnvKeyEnforceMultiFactorAuthentication].(bool) && !envData[constants.EnvKeyIsEmailServiceEnabled].(bool) {
-		return errors.New("to enable multi factor authentication, please enable email service")
-	}
-
-	if !envData[constants.EnvKeyIsEmailServiceEnabled].(bool) {
-		envData[constants.EnvKeyDisableMultiFactorAuthentication] = true
 	}
 
 	if envData[constants.EnvKeyDisableEmailVerification].(bool) {
@@ -701,6 +748,117 @@ func InitAllEnv() error {
 	}
 	if osProtectedRoles != "" && envData[constants.EnvKeyProtectedRoles] != osProtectedRoles {
 		envData[constants.EnvKeyProtectedRoles] = osProtectedRoles
+	}
+
+	if val, ok := envData[constants.EnvKeyDefaultAuthorizeResponseType]; !ok || val == "" {
+		envData[constants.EnvKeyDefaultAuthorizeResponseType] = osAuthorizeResponseType
+		// Set the default value to token type
+		if envData[constants.EnvKeyDefaultAuthorizeResponseType] == "" {
+			envData[constants.EnvKeyDefaultAuthorizeResponseType] = constants.ResponseTypeToken
+		}
+	}
+	if osAuthorizeResponseType != "" && envData[constants.EnvKeyDefaultAuthorizeResponseType] != osAuthorizeResponseType {
+		envData[constants.EnvKeyDefaultAuthorizeResponseType] = osAuthorizeResponseType
+	}
+
+	if val, ok := envData[constants.EnvKeyDefaultAuthorizeResponseMode]; !ok || val == "" {
+		envData[constants.EnvKeyDefaultAuthorizeResponseMode] = osAuthorizeResponseMode
+		// Set the default value to token type
+		if envData[constants.EnvKeyDefaultAuthorizeResponseMode] == "" {
+			envData[constants.EnvKeyDefaultAuthorizeResponseMode] = constants.ResponseModeQuery
+		}
+	}
+	if osAuthorizeResponseMode != "" && envData[constants.EnvKeyDefaultAuthorizeResponseMode] != osAuthorizeResponseMode {
+		envData[constants.EnvKeyDefaultAuthorizeResponseMode] = osAuthorizeResponseMode
+	}
+
+	if val, ok := envData[constants.EnvKeyTwilioAPISecret]; !ok || val == "" {
+		envData[constants.EnvKeyTwilioAPISecret] = osTwilioApiSecret
+	}
+	if osTwilioApiSecret != "" && envData[constants.EnvKeyTwilioAPISecret] != osTwilioApiSecret {
+		envData[constants.EnvKeyTwilioAPISecret] = osTwilioApiSecret
+	}
+
+	if val, ok := envData[constants.EnvKeyTwilioAPIKey]; !ok || val == "" {
+		envData[constants.EnvKeyTwilioAPIKey] = osTwilioApiKey
+	}
+	if osTwilioApiKey != "" && envData[constants.EnvKeyTwilioAPIKey] != osTwilioApiKey {
+		envData[constants.EnvKeyTwilioAPIKey] = osTwilioApiKey
+	}
+
+	if val, ok := envData[constants.EnvKeyTwilioAccountSID]; !ok || val == "" {
+		envData[constants.EnvKeyTwilioAccountSID] = osTwilioAccountSid
+	}
+	if osTwilioAccountSid != "" && envData[constants.EnvKeyTwilioAccountSID] != osTwilioAccountSid {
+		envData[constants.EnvKeyTwilioAccountSID] = osTwilioAccountSid
+	}
+
+	if val, ok := envData[constants.EnvKeyTwilioSender]; !ok || val == "" {
+		envData[constants.EnvKeyTwilioSender] = osTwilioSender
+	}
+	if osTwilioSender != "" && envData[constants.EnvKeyTwilioSender] != osTwilioSender {
+		envData[constants.EnvKeyTwilioSender] = osTwilioSender
+	}
+
+	if _, ok := envData[constants.EnvKeyDisablePhoneVerification]; !ok {
+		envData[constants.EnvKeyDisablePhoneVerification] = osDisablePhoneVerification == "false"
+	}
+	if osDisablePhoneVerification != "" {
+		boolValue, err := strconv.ParseBool(osDisablePhoneVerification)
+		if err != nil {
+			return err
+		}
+		if boolValue != envData[constants.EnvKeyDisablePhoneVerification] {
+			envData[constants.EnvKeyDisablePhoneVerification] = boolValue
+		}
+	}
+
+	if envData[constants.EnvKeyTwilioAPIKey] == "" || envData[constants.EnvKeyTwilioAPISecret] == "" || envData[constants.EnvKeyTwilioAccountSID] == "" || envData[constants.EnvKeyTwilioSender] == "" {
+		envData[constants.EnvKeyDisablePhoneVerification] = true
+		envData[constants.EnvKeyIsSMSServiceEnabled] = false
+	}
+	if envData[constants.EnvKeyTwilioAPIKey] != "" && envData[constants.EnvKeyTwilioAPISecret] != "" && envData[constants.EnvKeyTwilioAccountSID] != "" && envData[constants.EnvKeyTwilioSender] != "" {
+		envData[constants.EnvKeyDisablePhoneVerification] = false
+		envData[constants.EnvKeyIsSMSServiceEnabled] = true
+	}
+
+	if _, ok := envData[constants.EnvKeyDisablePlayGround]; !ok {
+		envData[constants.EnvKeyDisablePlayGround] = osDisablePlayground == "true"
+	}
+	if osDisablePlayground != "" {
+		boolValue, err := strconv.ParseBool(osDisablePlayground)
+		if err != nil {
+			return err
+		}
+		if boolValue != envData[constants.EnvKeyDisablePlayGround].(bool) {
+			envData[constants.EnvKeyDisablePlayGround] = boolValue
+		}
+	}
+
+	if _, ok := envData[constants.EnvKeyDisableTOTPLogin]; !ok {
+		envData[constants.EnvKeyDisableTOTPLogin] = osDisableTOTPLogin == "false"
+	}
+	if osDisableTOTPLogin != "" {
+		boolValue, err := strconv.ParseBool(osDisableTOTPLogin)
+		if err != nil {
+			return err
+		}
+		if boolValue != envData[constants.EnvKeyDisableTOTPLogin].(bool) {
+			envData[constants.EnvKeyDisableTOTPLogin] = boolValue
+		}
+	}
+
+	if _, ok := envData[constants.EnvKeyDisableMailOTPLogin]; !ok {
+		envData[constants.EnvKeyDisableMailOTPLogin] = osDisableMailOTPLogin == "true"
+	}
+	if osDisableMailOTPLogin != "" {
+		boolValue, err := strconv.ParseBool(osDisableMailOTPLogin)
+		if err != nil {
+			return err
+		}
+		if boolValue != envData[constants.EnvKeyDisableMailOTPLogin].(bool) {
+			envData[constants.EnvKeyDisableMailOTPLogin] = boolValue
+		}
 	}
 
 	err = memorystore.Provider.UpdateEnvStore(envData)

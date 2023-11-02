@@ -72,7 +72,6 @@ func getEmailTemplate(event string, data map[string]interface{}) (*model.EmailTe
 		return nil, err
 	}
 	subjectString := buf.String()
-
 	return &model.EmailTemplate{
 		Template: templateString,
 		Subject:  subjectString,
@@ -92,7 +91,7 @@ func SendEmail(to []string, event string, data map[string]interface{}) error {
 
 	tmp, err := getEmailTemplate(event, data)
 	if err != nil {
-		log.Errorf("Failed to get event template: ", err)
+		log.Error("Failed to get event template: ", err)
 		return err
 	}
 
@@ -100,6 +99,12 @@ func SendEmail(to []string, event string, data map[string]interface{}) error {
 	senderEmail, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeySenderEmail)
 	if err != nil {
 		log.Errorf("Error while getting sender email from env variable: %v", err)
+		return err
+	}
+
+	senderName, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeySenderName)
+	if err != nil {
+		log.Errorf("Error while getting sender name from env variable: %v", err)
 		return err
 	}
 
@@ -139,7 +144,7 @@ func SendEmail(to []string, event string, data map[string]interface{}) error {
 		return err
 	}
 
-	m.SetHeader("From", senderEmail)
+	m.SetAddressHeader("From", senderEmail, senderName)
 	m.SetHeader("To", to...)
 	m.SetHeader("Subject", tmp.Subject)
 	m.SetBody("text/html", tmp.Template)

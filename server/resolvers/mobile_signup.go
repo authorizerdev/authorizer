@@ -17,6 +17,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/refs"
+	"github.com/authorizerdev/authorizer/server/smsproviders"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/authorizerdev/authorizer/server/validators"
@@ -91,7 +92,6 @@ func MobileSignupResolver(ctx context.Context, params *model.MobileSignUpInput) 
 	if err != nil {
 		log.Debug("Failed to get user by email: ", err)
 	}
-
 	if existingUser != nil {
 		if existingUser.PhoneNumberVerifiedAt != nil {
 			// email is verified
@@ -104,7 +104,6 @@ func MobileSignupResolver(ctx context.Context, params *model.MobileSignUpInput) 
 	}
 
 	inputRoles := []string{}
-
 	if len(params.Roles) > 0 {
 		// check if roles exists
 		rolesString, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyRoles)
@@ -131,11 +130,9 @@ func MobileSignupResolver(ctx context.Context, params *model.MobileSignUpInput) 
 		}
 	}
 
-	now := time.Now().Unix()
-	user := models.User{
-		Email:                 emailInput,
-		PhoneNumber:           &mobile,
-		PhoneNumberVerifiedAt: &now,
+	user := &models.User{
+		Email:       &emailInput,
+		PhoneNumber: &mobile,
 	}
 
 	user.Roles = strings.Join(inputRoles, ",")
@@ -185,12 +182,55 @@ func MobileSignupResolver(ctx context.Context, params *model.MobileSignUpInput) 
 		user.IsMultiFactorAuthEnabled = refs.NewBoolRef(true)
 	}
 
+	disablePhoneVerification, _ := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisablePhoneVerification)
+	if disablePhoneVerification {
+		now := time.Now().Unix()
+		user.PhoneNumberVerifiedAt = &now
+	}
+	isSMSServiceEnabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyIsSMSServiceEnabled)
+	if err != nil || !isSMSServiceEnabled {
+		log.Debug("SMS service not enabled: ", err)
+	}
+
 	user.SignupMethods = constants.AuthRecipeMethodMobileBasicAuth
 	user, err = db.Provider.AddUser(ctx, user)
+
 	if err != nil {
 		log.Debug("Failed to add user: ", err)
 		return res, err
 	}
+	if !disablePhoneVerification && isSMSServiceEnabled {
+		duration, _ := time.ParseDuration("10m")
+		smsCode := utils.GenerateOTP()
+
+		smsBody := strings.Builder{}
+		smsBody.WriteString("Your verification code is: ")
+		smsBody.WriteString(smsCode)
+
+		// TODO: For those who enabled the webhook to call their sms vendor separately - sending the otp to their api
+		if err != nil {
+			log.Debug("error while upserting user: ", err.Error())
+			return nil, err
+		}
+		_, err = db.Provider.UpsertOTP(ctx, &models.OTP{
+			PhoneNumber: mobile,
+			Otp:         smsCode,
+			ExpiresAt:   time.Now().Add(duration).Unix(),
+		})
+		if err != nil {
+			log.Debug("error while upserting OTP: ", err.Error())
+			return nil, err
+		}
+		go func() {
+			smsproviders.SendSMS(mobile, smsBody.String())
+			utils.RegisterEvent(ctx, constants.UserCreatedWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
+		}()
+		return &model.AuthResponse{
+			Message:                   "Please check the OTP in your inbox",
+			ShouldShowMobileOtpScreen: refs.NewBoolRef(true),
+		}, nil
+	}
+
 	roles := strings.Split(user.Roles, ",")
 	userToReturn := user.AsAPIUser()
 
@@ -249,17 +289,19 @@ func MobileSignupResolver(ctx context.Context, params *model.MobileSignUpInput) 
 
 	sessionKey := constants.AuthRecipeMethodMobileBasicAuth + ":" + user.ID
 	cookie.SetSession(gc, authToken.FingerPrintHash)
-	memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash)
-	memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token)
+	memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt)
+	memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt)
 
 	if authToken.RefreshToken != nil {
 		res.RefreshToken = &authToken.RefreshToken.Token
-		memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token)
+		memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token, authToken.RefreshToken.ExpiresAt)
 	}
 
 	go func() {
 		utils.RegisterEvent(ctx, constants.UserSignUpWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, user)
-		db.Provider.AddSession(ctx, models.Session{
+		// User is also logged in with signup
+		utils.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, user)
+		db.Provider.AddSession(ctx, &models.Session{
 			UserID:    user.ID,
 			UserAgent: utils.GetUserAgent(gc.Request),
 			IP:        utils.GetIP(gc.Request),

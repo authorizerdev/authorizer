@@ -2,10 +2,13 @@ package resolvers
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
 	"time"
+
+	"golang.org/x/crypto/bcrypt"
 
 	log "github.com/sirupsen/logrus"
 
@@ -22,7 +25,6 @@ import (
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/authorizerdev/authorizer/server/validators"
-	"golang.org/x/crypto/bcrypt"
 )
 
 // UpdateProfileResolver is resolver for update profile mutation
@@ -34,29 +36,20 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 		log.Debug("Failed to get GinContext: ", err)
 		return res, err
 	}
-
-	accessToken, err := token.GetAccessToken(gc)
+	userID, err := token.GetUserIDFromSessionOrAccessToken(gc)
 	if err != nil {
-		log.Debug("Failed to get access token: ", err)
-		return res, err
-	}
-	claims, err := token.ValidateAccessToken(gc, accessToken)
-	if err != nil {
-		log.Debug("Failed to validate access token: ", err)
+		log.Debug("Failed GetUserIDFromSessionOrAccessToken: ", err)
 		return res, err
 	}
 
 	// validate if all params are not empty
-	if params.GivenName == nil && params.FamilyName == nil && params.Picture == nil && params.MiddleName == nil && params.Nickname == nil && params.OldPassword == nil && params.Email == nil && params.Birthdate == nil && params.Gender == nil && params.PhoneNumber == nil && params.NewPassword == nil && params.ConfirmNewPassword == nil && params.IsMultiFactorAuthEnabled == nil {
+	if params.GivenName == nil && params.FamilyName == nil && params.Picture == nil && params.MiddleName == nil && params.Nickname == nil && params.OldPassword == nil && params.Email == nil && params.Birthdate == nil && params.Gender == nil && params.PhoneNumber == nil && params.NewPassword == nil && params.ConfirmNewPassword == nil && params.IsMultiFactorAuthEnabled == nil && params.AppData == nil {
 		log.Debug("All params are empty")
 		return res, fmt.Errorf("please enter at least one param to update")
 	}
-
-	userID := claims["sub"].(string)
 	log := log.WithFields(log.Fields{
 		"user_id": userID,
 	})
-
 	user, err := db.Provider.GetUserByID(ctx, userID)
 	if err != nil {
 		log.Debug("Failed to get user by id: ", err)
@@ -99,11 +92,32 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 	if params.Picture != nil && refs.StringValue(user.Picture) != refs.StringValue(params.Picture) {
 		user.Picture = params.Picture
 	}
-
+	if params.AppData != nil {
+		appDataString := ""
+		appDataBytes, err := json.Marshal(params.AppData)
+		if err != nil {
+			log.Debug("failed to marshall source app_data: ", err)
+			return nil, errors.New("malformed app_data")
+		}
+		appDataString = string(appDataBytes)
+		user.AppData = &appDataString
+	}
+	// Check if the user is trying to enable or disable multi-factor authentication (MFA)
 	if params.IsMultiFactorAuthEnabled != nil && refs.BoolValue(user.IsMultiFactorAuthEnabled) != refs.BoolValue(params.IsMultiFactorAuthEnabled) {
+		// Initialize a flag to check if enabling Mail OTP is required
+		checkMailOTPEnable := false
 		if refs.BoolValue(params.IsMultiFactorAuthEnabled) {
+			// Check if the email service is enabled and Mail OTP is not disabled
 			isEnvServiceEnabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyIsEmailServiceEnabled)
-			if err != nil || !isEnvServiceEnabled {
+			isMailOTPEnvServiceDisabled, _ := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableMailOTPLogin)
+			// If the email service is not enabled and Mail OTP is not disabled, set the flag to true
+			if !isEnvServiceEnabled {
+				if !isMailOTPEnvServiceDisabled {
+					checkMailOTPEnable = true
+				}
+			}
+			// Check if enabling MFA is allowed (email service is enabled and Mail OTP is not disabled)
+			if err != nil || checkMailOTPEnable {
 				log.Debug("Email service not enabled:")
 				return nil, errors.New("email service not enabled, so cannot enable multi factor authentication")
 			}
@@ -195,7 +209,7 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 
 	hasEmailChanged := false
 
-	if params.Email != nil && user.Email != refs.StringValue(params.Email) {
+	if params.Email != nil && refs.StringValue(user.Email) != refs.StringValue(params.Email) {
 		// check if valid email
 		if !validators.IsValidEmail(*params.Email) {
 			log.Debug("Failed to validate email: ", refs.StringValue(params.Email))
@@ -219,7 +233,7 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 		go memorystore.Provider.DeleteAllUserSessions(user.ID)
 		go cookie.DeleteSession(gc)
 
-		user.Email = newEmail
+		user.Email = &newEmail
 		isEmailVerificationDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification)
 		if err != nil {
 			log.Debug("Failed to get disable email verification env variable: ", err)
@@ -242,7 +256,7 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 				log.Debug("Failed to create verification token: ", err)
 				return res, err
 			}
-			_, err = db.Provider.AddVerificationRequest(ctx, models.VerificationRequest{
+			_, err = db.Provider.AddVerificationRequest(ctx, &models.VerificationRequest{
 				Token:       verificationToken,
 				Identifier:  verificationType,
 				ExpiresAt:   time.Now().Add(time.Minute * 30).Unix(),
@@ -256,10 +270,10 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 			}
 
 			// exec it as go routine so that we can reduce the api latency
-			go email.SendEmail([]string{user.Email}, verificationType, map[string]interface{}{
+			go email.SendEmail([]string{refs.StringValue(user.Email)}, verificationType, map[string]interface{}{
 				"user":             user.ToMap(),
 				"organization":     utils.GetOrganization(),
-				"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname),
+				"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname, redirectURL),
 			})
 
 		}

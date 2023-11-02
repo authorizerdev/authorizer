@@ -9,6 +9,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
+	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/authorizerdev/authorizer/server/resolvers"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/stretchr/testify/assert"
@@ -21,7 +22,7 @@ func sessionTests(t *testing.T, s TestSetup) {
 		email := "session." + s.TestInfo.Email
 
 		resolvers.SignupResolver(ctx, model.SignUpInput{
-			Email:           email,
+			Email:           refs.NewStringRef(email),
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password,
 		})
@@ -30,10 +31,13 @@ func sessionTests(t *testing.T, s TestSetup) {
 		assert.NotNil(t, err, "unauthorized")
 
 		verificationRequest, err := db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeBasicAuthSignup)
+		assert.NoError(t, err)
+		assert.NotNil(t, verificationRequest)
 		verifyRes, err := resolvers.VerifyEmailResolver(ctx, model.VerifyEmailInput{
 			Token: verificationRequest.Token,
 		})
-
+		assert.NoError(t, err)
+		assert.NotNil(t, verifyRes)
 		accessToken := *verifyRes.AccessToken
 		assert.NotEmpty(t, accessToken)
 

@@ -15,6 +15,7 @@ import (
 	"github.com/robertkrimen/otto"
 
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/memorystore"
@@ -30,11 +31,13 @@ type JWTToken struct {
 
 // Token object to hold the finger print and refresh token information
 type Token struct {
-	FingerPrint     string    `json:"fingerprint"`
-	FingerPrintHash string    `json:"fingerprint_hash"`
-	RefreshToken    *JWTToken `json:"refresh_token"`
-	AccessToken     *JWTToken `json:"access_token"`
-	IDToken         *JWTToken `json:"id_token"`
+	FingerPrint string `json:"fingerprint"`
+	// Session Token
+	FingerPrintHash       string    `json:"fingerprint_hash"`
+	SessionTokenExpiresAt int64     `json:"expires_at"`
+	RefreshToken          *JWTToken `json:"refresh_token"`
+	AccessToken           *JWTToken `json:"access_token"`
+	IDToken               *JWTToken `json:"id_token"`
 }
 
 // SessionData
@@ -49,9 +52,9 @@ type SessionData struct {
 }
 
 // CreateAuthToken creates a new auth token when userlogs in
-func CreateAuthToken(gc *gin.Context, user models.User, roles, scope []string, loginMethod, nonce string, code string) (*Token, error) {
+func CreateAuthToken(gc *gin.Context, user *models.User, roles, scope []string, loginMethod, nonce string, code string) (*Token, error) {
 	hostname := parsers.GetHost(gc)
-	_, fingerPrintHash, err := CreateSessionToken(user, nonce, roles, scope, loginMethod)
+	_, fingerPrintHash, sessionTokenExpiresAt, err := CreateSessionToken(user, nonce, roles, scope, loginMethod)
 	if err != nil {
 		return nil, err
 	}
@@ -82,10 +85,11 @@ func CreateAuthToken(gc *gin.Context, user models.User, roles, scope []string, l
 	}
 
 	res := &Token{
-		FingerPrint:     nonce,
-		FingerPrintHash: fingerPrintHash,
-		AccessToken:     &JWTToken{Token: accessToken, ExpiresAt: accessTokenExpiresAt},
-		IDToken:         &JWTToken{Token: idToken, ExpiresAt: idTokenExpiresAt},
+		FingerPrint:           nonce,
+		FingerPrintHash:       fingerPrintHash,
+		SessionTokenExpiresAt: sessionTokenExpiresAt,
+		AccessToken:           &JWTToken{Token: accessToken, ExpiresAt: accessTokenExpiresAt},
+		IDToken:               &JWTToken{Token: idToken, ExpiresAt: idTokenExpiresAt},
 	}
 
 	if utils.StringSliceContains(scope, "offline_access") {
@@ -101,7 +105,8 @@ func CreateAuthToken(gc *gin.Context, user models.User, roles, scope []string, l
 }
 
 // CreateSessionToken creates a new session token
-func CreateSessionToken(user models.User, nonce string, roles, scope []string, loginMethod string) (*SessionData, string, error) {
+func CreateSessionToken(user *models.User, nonce string, roles, scope []string, loginMethod string) (*SessionData, string, int64, error) {
+	expiresAt := time.Now().AddDate(1, 0, 0).Unix()
 	fingerPrintMap := &SessionData{
 		Nonce:       nonce,
 		Roles:       roles,
@@ -109,19 +114,19 @@ func CreateSessionToken(user models.User, nonce string, roles, scope []string, l
 		Scope:       scope,
 		LoginMethod: loginMethod,
 		IssuedAt:    time.Now().Unix(),
-		ExpiresAt:   time.Now().AddDate(1, 0, 0).Unix(),
+		ExpiresAt:   expiresAt,
 	}
 	fingerPrintBytes, _ := json.Marshal(fingerPrintMap)
 	fingerPrintHash, err := crypto.EncryptAES(string(fingerPrintBytes))
 	if err != nil {
-		return nil, "", err
+		return nil, "", 0, err
 	}
 
-	return fingerPrintMap, fingerPrintHash, nil
+	return fingerPrintMap, fingerPrintHash, expiresAt, nil
 }
 
 // CreateRefreshToken util to create JWT token
-func CreateRefreshToken(user models.User, roles, scopes []string, hostname, nonce, loginMethod string) (string, int64, error) {
+func CreateRefreshToken(user *models.User, roles, scopes []string, hostname, nonce, loginMethod string) (string, int64, error) {
 	// expires in 1 year
 	expiryBound := time.Hour * 8760
 	expiresAt := time.Now().Add(expiryBound).Unix()
@@ -153,7 +158,7 @@ func CreateRefreshToken(user models.User, roles, scopes []string, hostname, nonc
 
 // CreateAccessToken util to create JWT token, based on
 // user information, roles config and CUSTOM_ACCESS_TOKEN_SCRIPT
-func CreateAccessToken(user models.User, roles, scopes []string, hostName, nonce, loginMethod string) (string, int64, error) {
+func CreateAccessToken(user *models.User, roles, scopes []string, hostName, nonce, loginMethod string) (string, int64, error) {
 	expireTime, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAccessTokenExpiryTime)
 	if err != nil {
 		return "", 0, err
@@ -162,9 +167,7 @@ func CreateAccessToken(user models.User, roles, scopes []string, hostName, nonce
 	if err != nil {
 		expiryBound = time.Minute * 30
 	}
-
 	expiresAt := time.Now().Add(expiryBound).Unix()
-
 	clientID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyClientID)
 	if err != nil {
 		return "", 0, err
@@ -182,7 +185,41 @@ func CreateAccessToken(user models.User, roles, scopes []string, hostName, nonce
 		"login_method":  loginMethod,
 		"allowed_roles": strings.Split(user.Roles, ","),
 	}
+	// check for the extra access token script
+	accessTokenScript, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyCustomAccessTokenScript)
+	if err != nil {
+		log.Debug("Failed to get custom access token script: ", err)
+		accessTokenScript = ""
+	}
+	if accessTokenScript != "" {
+		resUser := user.AsAPIUser()
+		userBytes, _ := json.Marshal(&resUser)
+		var userMap map[string]interface{}
+		json.Unmarshal(userBytes, &userMap)
+		vm := otto.New()
+		claimBytes, _ := json.Marshal(customClaims)
+		vm.Run(fmt.Sprintf(`
+			var user = %s;
+			var tokenPayload = %s;
+			var customFunction = %s;
+			var functionRes = JSON.stringify(customFunction(user, tokenPayload));
+		`, string(userBytes), string(claimBytes), accessTokenScript))
 
+		val, err := vm.Get("functionRes")
+		if err != nil {
+			log.Debug("error getting custom access token script: ", err)
+		} else {
+			extraPayload := make(map[string]interface{})
+			err = json.Unmarshal([]byte(fmt.Sprintf("%s", val)), &extraPayload)
+			if err != nil {
+				log.Debug("error converting accessTokenScript response to map: ", err)
+			} else {
+				for k, v := range extraPayload {
+					customClaims[k] = v
+				}
+			}
+		}
+	}
 	token, err := SignJWTToken(customClaims)
 	if err != nil {
 		return "", 0, err
@@ -336,7 +373,7 @@ func ValidateBrowserSession(gc *gin.Context, encryptedSession string) (*SessionD
 // user information, roles config and CUSTOM_ACCESS_TOKEN_SCRIPT
 // For response_type (code) / authorization_code grant nonce should be empty
 // for implicit flow it should be present to verify with actual state
-func CreateIDToken(user models.User, roles []string, hostname, nonce, atHash, cHash, loginMethod string) (string, int64, error) {
+func CreateIDToken(user *models.User, roles []string, hostname, nonce, atHash, cHash, loginMethod string) (string, int64, error) {
 	expireTime, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAccessTokenExpiryTime)
 	if err != nil {
 		return "", 0, err
@@ -345,14 +382,11 @@ func CreateIDToken(user models.User, roles []string, hostname, nonce, atHash, cH
 	if err != nil {
 		expiryBound = time.Minute * 30
 	}
-
 	expiresAt := time.Now().Add(expiryBound).Unix()
-
 	resUser := user.AsAPIUser()
 	userBytes, _ := json.Marshal(&resUser)
 	var userMap map[string]interface{}
 	json.Unmarshal(userBytes, &userMap)
-
 	claimKey, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyJwtRoleClaim)
 	if err != nil {
 		claimKey = "roles"
@@ -374,9 +408,7 @@ func CreateIDToken(user models.User, roles []string, hostname, nonce, atHash, cH
 		"login_method":  loginMethod,
 		claimKey:        roles,
 	}
-
 	// split nonce to see if its authorization code grant method
-
 	if cHash != "" {
 		customClaims["at_hash"] = atHash
 		customClaims["c_hash"] = cHash
@@ -384,13 +416,11 @@ func CreateIDToken(user models.User, roles []string, hostname, nonce, atHash, cH
 		customClaims["nonce"] = nonce
 		customClaims["at_hash"] = atHash
 	}
-
 	for k, v := range userMap {
 		if k != "roles" {
 			customClaims[k] = v
 		}
 	}
-
 	// check for the extra access token script
 	accessTokenScript, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyCustomAccessTokenScript)
 	if err != nil {
@@ -399,7 +429,6 @@ func CreateIDToken(user models.User, roles []string, hostname, nonce, atHash, cH
 	}
 	if accessTokenScript != "" {
 		vm := otto.New()
-
 		claimBytes, _ := json.Marshal(customClaims)
 		vm.Run(fmt.Sprintf(`
 			var user = %s;
@@ -451,4 +480,35 @@ func GetIDToken(gc *gin.Context) (string, error) {
 
 	token := strings.TrimPrefix(auth, "Bearer ")
 	return token, nil
+}
+
+// GetUserIDFromSessionOrAccessToken returns the user id from the session or access token
+func GetUserIDFromSessionOrAccessToken(gc *gin.Context) (string, error) {
+	// First try to get the user id from the session
+	isSession := true
+	token, err := cookie.GetSession(gc)
+	if err != nil || token == "" {
+		log.Debug("Failed to get session token: ", err)
+		isSession = false
+		token, err = GetAccessToken(gc)
+		if err != nil || token == "" {
+			log.Debug("Failed to get access token: ", err)
+			return "", fmt.Errorf(`unauthorized`)
+		}
+	}
+	if isSession {
+		claims, err := ValidateBrowserSession(gc, token)
+		if err != nil {
+			log.Debug("Failed to validate session token: ", err)
+			return "", fmt.Errorf(`unauthorized`)
+		}
+		return claims.Subject, nil
+	}
+	// If not session, then validate the access token
+	claims, err := ValidateAccessToken(gc, token)
+	if err != nil {
+		log.Debug("Failed to validate access token: ", err)
+		return "", fmt.Errorf(`unauthorized`)
+	}
+	return claims["sub"].(string), nil
 }

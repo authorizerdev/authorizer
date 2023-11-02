@@ -23,7 +23,7 @@ import (
 )
 
 // InviteMembersResolver resolver to invite members
-func InviteMembersResolver(ctx context.Context, params model.InviteMemberInput) (*model.Response, error) {
+func InviteMembersResolver(ctx context.Context, params model.InviteMemberInput) (*model.InviteMembersResponse, error) {
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
 		log.Debug("Failed to get GinContext: ", err)
@@ -48,7 +48,15 @@ func InviteMembersResolver(ctx context.Context, params model.InviteMemberInput) 
 	}
 
 	isBasicAuthDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableBasicAuthentication)
+	if err != nil {
+		log.Debug("Failed to get is basic auth disabled")
+		return nil, err
+	}
 	isMagicLinkLoginDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableMagicLinkLogin)
+	if err != nil {
+		log.Debug("Failed to get is magic link login disabled")
+		return nil, err
+	}
 	if isBasicAuthDisabled && isMagicLinkLoginDisabled {
 		log.Debug("Basic authentication and Magic link login is disabled.")
 		return nil, errors.New("either basic authentication or magic link login is required")
@@ -97,8 +105,8 @@ func InviteMembersResolver(ctx context.Context, params model.InviteMemberInput) 
 			defaultRoles = strings.Split(defaultRolesString, ",")
 		}
 
-		user := models.User{
-			Email: email,
+		user := &models.User{
+			Email: refs.NewStringRef(email),
 			Roles: strings.Join(defaultRoles, ","),
 		}
 		hostname := parsers.GetHost(gc)
@@ -120,7 +128,7 @@ func InviteMembersResolver(ctx context.Context, params model.InviteMemberInput) 
 			log.Debug("Failed to create verification token: ", err)
 		}
 
-		verificationRequest := models.VerificationRequest{
+		verificationRequest := &models.VerificationRequest{
 			Token:       verificationToken,
 			ExpiresAt:   time.Now().Add(time.Minute * 30).Unix(),
 			Email:       email,
@@ -163,14 +171,32 @@ func InviteMembersResolver(ctx context.Context, params model.InviteMemberInput) 
 		}
 
 		// exec it as go routine so that we can reduce the api latency
-		go emailservice.SendEmail([]string{user.Email}, constants.VerificationTypeInviteMember, map[string]interface{}{
+		go emailservice.SendEmail([]string{refs.StringValue(user.Email)}, constants.VerificationTypeInviteMember, map[string]interface{}{
 			"user":             user.ToMap(),
 			"organization":     utils.GetOrganization(),
 			"verification_url": utils.GetInviteVerificationURL(verifyEmailURL, verificationToken, redirectURL),
 		})
 	}
 
-	return &model.Response{
+	InvitedUsers := []*model.User{}
+
+	for _, email := range newEmails {
+		user, err := db.Provider.GetUserByEmail(ctx, email)
+
+		if err != nil {
+			log.Debugf("err: %s", err.Error())
+			return nil, err
+		}
+
+		InvitedUsers = append(InvitedUsers, &model.User{
+			Email: user.Email,
+			ID:    user.ID,
+		})
+
+	}
+
+	return &model.InviteMembersResponse{
 		Message: fmt.Sprintf("%d user(s) invited successfully.", len(newEmails)),
+		Users:   InvitedUsers,
 	}, nil
 }

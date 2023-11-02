@@ -2,6 +2,8 @@ package sql
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/db/models"
@@ -10,14 +12,15 @@ import (
 )
 
 // AddWebhook to add webhook
-func (p *provider) AddWebhook(ctx context.Context, webhook models.Webhook) (*model.Webhook, error) {
+func (p *provider) AddWebhook(ctx context.Context, webhook *models.Webhook) (*model.Webhook, error) {
 	if webhook.ID == "" {
 		webhook.ID = uuid.New().String()
 	}
-
 	webhook.Key = webhook.ID
 	webhook.CreatedAt = time.Now().Unix()
 	webhook.UpdatedAt = time.Now().Unix()
+	// Add timestamp to make event name unique for legacy version
+	webhook.EventName = fmt.Sprintf("%s-%d", webhook.EventName, time.Now().Unix())
 	res := p.db.Create(&webhook)
 	if res.Error != nil {
 		return nil, res.Error
@@ -26,48 +29,46 @@ func (p *provider) AddWebhook(ctx context.Context, webhook models.Webhook) (*mod
 }
 
 // UpdateWebhook to update webhook
-func (p *provider) UpdateWebhook(ctx context.Context, webhook models.Webhook) (*model.Webhook, error) {
+func (p *provider) UpdateWebhook(ctx context.Context, webhook *models.Webhook) (*model.Webhook, error) {
 	webhook.UpdatedAt = time.Now().Unix()
-
+	// Event is changed
+	if !strings.Contains(webhook.EventName, "-") {
+		webhook.EventName = fmt.Sprintf("%s-%d", webhook.EventName, time.Now().Unix())
+	}
 	result := p.db.Save(&webhook)
 	if result.Error != nil {
 		return nil, result.Error
 	}
-
 	return webhook.AsAPIWebhook(), nil
 }
 
 // ListWebhooks to list webhook
-func (p *provider) ListWebhook(ctx context.Context, pagination model.Pagination) (*model.Webhooks, error) {
+func (p *provider) ListWebhook(ctx context.Context, pagination *model.Pagination) (*model.Webhooks, error) {
 	var webhooks []models.Webhook
-
 	result := p.db.Limit(int(pagination.Limit)).Offset(int(pagination.Offset)).Order("created_at DESC").Find(&webhooks)
 	if result.Error != nil {
 		return nil, result.Error
 	}
-
 	var total int64
 	totalRes := p.db.Model(&models.Webhook{}).Count(&total)
 	if totalRes.Error != nil {
 		return nil, totalRes.Error
 	}
-
 	paginationClone := pagination
 	paginationClone.Total = total
-
 	responseWebhooks := []*model.Webhook{}
 	for _, w := range webhooks {
 		responseWebhooks = append(responseWebhooks, w.AsAPIWebhook())
 	}
 	return &model.Webhooks{
-		Pagination: &paginationClone,
+		Pagination: paginationClone,
 		Webhooks:   responseWebhooks,
 	}, nil
 }
 
 // GetWebhookByID to get webhook by id
 func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*model.Webhook, error) {
-	var webhook models.Webhook
+	var webhook *models.Webhook
 
 	result := p.db.Where("id = ?", webhookID).First(&webhook)
 	if result.Error != nil {
@@ -77,14 +78,17 @@ func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*model
 }
 
 // GetWebhookByEventName to get webhook by event_name
-func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) (*model.Webhook, error) {
-	var webhook models.Webhook
-
-	result := p.db.Where("event_name = ?", eventName).First(&webhook)
+func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) ([]*model.Webhook, error) {
+	var webhooks []models.Webhook
+	result := p.db.Where("event_name LIKE ?", eventName+"%").Find(&webhooks)
 	if result.Error != nil {
 		return nil, result.Error
 	}
-	return webhook.AsAPIWebhook(), nil
+	responseWebhooks := []*model.Webhook{}
+	for _, w := range webhooks {
+		responseWebhooks = append(responseWebhooks, w.AsAPIWebhook())
+	}
+	return responseWebhooks, nil
 }
 
 // DeleteWebhook to delete webhook

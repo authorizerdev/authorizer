@@ -55,8 +55,8 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 
 	inputRoles := []string{}
 
-	user := models.User{
-		Email: params.Email,
+	user := &models.User{
+		Email: refs.NewStringRef(params.Email),
 	}
 
 	// find user with email
@@ -207,7 +207,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 		if err != nil {
 			log.Debug("Failed to create verification token: ", err)
 		}
-		_, err = db.Provider.AddVerificationRequest(ctx, models.VerificationRequest{
+		_, err = db.Provider.AddVerificationRequest(ctx, &models.VerificationRequest{
 			Token:       verificationToken,
 			Identifier:  verificationType,
 			ExpiresAt:   time.Now().Add(time.Minute * 30).Unix(),
@@ -224,7 +224,7 @@ func MagicLinkLoginResolver(ctx context.Context, params model.MagicLinkLoginInpu
 		go email.SendEmail([]string{params.Email}, constants.VerificationTypeMagicLinkLogin, map[string]interface{}{
 			"user":             user.ToMap(),
 			"organization":     utils.GetOrganization(),
-			"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname),
+			"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname, redirectURL),
 		})
 	}
 

@@ -40,31 +40,49 @@ func cleanData(email string) {
 	verificationRequest, err := db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeBasicAuthSignup)
 	if err == nil {
 		err = db.Provider.DeleteVerificationRequest(ctx, verificationRequest)
+		if err != nil {
+			log.Debug("DeleteVerificationRequest err", err)
+		}
 	}
 
 	verificationRequest, err = db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeForgotPassword)
 	if err == nil {
 		err = db.Provider.DeleteVerificationRequest(ctx, verificationRequest)
+		if err != nil {
+			log.Debug("DeleteVerificationRequest err", err)
+		}
 	}
 
 	verificationRequest, err = db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeUpdateEmail)
 	if err == nil {
 		err = db.Provider.DeleteVerificationRequest(ctx, verificationRequest)
+		if err != nil {
+			log.Debug("DeleteVerificationRequest err", err)
+		}
 	}
 
 	verificationRequest, err = db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeMagicLinkLogin)
 	if err == nil {
 		err = db.Provider.DeleteVerificationRequest(ctx, verificationRequest)
+		if err != nil {
+			log.Debug("DeleteVerificationRequest err", err)
+		}
 	}
 
 	otp, err := db.Provider.GetOTPByEmail(ctx, email)
 	if err == nil {
 		err = db.Provider.DeleteOTP(ctx, otp)
+		if err != nil {
+			log.Debug("DeleteOTP err", err)
+		}
 	}
 
 	dbUser, err := db.Provider.GetUserByEmail(ctx, email)
 	if err == nil {
-		db.Provider.DeleteUser(ctx, dbUser)
+		err = db.Provider.DeleteUser(ctx, dbUser)
+		if err != nil {
+			log.Debug("DeleteUser err", err)
+		}
 	}
 }
 
@@ -85,7 +103,7 @@ func testSetup() TestSetup {
 		Email:                       fmt.Sprintf("%d_authorizer_tester@yopmail.com", time.Now().Unix()),
 		Password:                    "Test@123",
 		WebhookEndpoint:             "https://62f93101e05644803533cf36.mockapi.io/authorizer/webhook",
-		TestWebhookEventTypes:       []string{constants.UserAccessEnabledWebhookEvent, constants.UserAccessRevokedWebhookEvent, constants.UserCreatedWebhookEvent, constants.UserDeletedWebhookEvent, constants.UserLoginWebhookEvent, constants.UserSignUpWebhookEvent},
+		TestWebhookEventTypes:       []string{constants.UserAccessEnabledWebhookEvent, constants.UserAccessRevokedWebhookEvent, constants.UserCreatedWebhookEvent, constants.UserDeletedWebhookEvent, constants.UserLoginWebhookEvent, constants.UserSignUpWebhookEvent, constants.UserDeactivatedWebhookEvent},
 		TestEmailTemplateEventTypes: []string{constants.VerificationTypeBasicAuthSignup, constants.VerificationTypeForgotPassword, constants.VerificationTypeMagicLinkLogin, constants.VerificationTypeUpdateEmail},
 	}
 
@@ -108,6 +126,10 @@ func testSetup() TestSetup {
 	memorystore.Provider.UpdateEnvVariable(constants.EnvKeySmtpPassword, "test")
 	memorystore.Provider.UpdateEnvVariable(constants.EnvKeySenderEmail, "info@yopmail.com")
 	memorystore.Provider.UpdateEnvVariable(constants.EnvKeyProtectedRoles, "admin")
+	memorystore.Provider.UpdateEnvVariable(constants.EnvKeyTwilioAPIKey, "test")
+	memorystore.Provider.UpdateEnvVariable(constants.EnvKeyTwilioAPISecret, "test")
+	memorystore.Provider.UpdateEnvVariable(constants.EnvKeyTwilioAccountSID, "test")
+	memorystore.Provider.UpdateEnvVariable(constants.EnvKeyTwilioSender, "1234567890")
 
 	err = db.InitDB()
 	if err != nil {

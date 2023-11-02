@@ -31,21 +31,19 @@ func NewProvider() (*provider, error) {
 	if awsRegion != "" {
 		config.Region = aws.String(awsRegion)
 	}
-
 	// custom awsAccessKeyID, awsSecretAccessKey took first priority, if not then fetch config from aws credentials
 	if awsAccessKeyID != "" && awsSecretAccessKey != "" {
 		config.Credentials = credentials.NewStaticCredentials(awsAccessKeyID, awsSecretAccessKey, "")
 	} else if dbURL != "" {
+		log.Debug("Tring to use database url for dynamodb")
 		// static config in case of testing or local-setup
 		config.Credentials = credentials.NewStaticCredentials("key", "key", "")
 		config.Endpoint = aws.String(dbURL)
 	} else {
 		log.Debugf("%s or %s or %s not found. Trying to load default credentials from aws config", constants.EnvAwsRegion, constants.EnvAwsAccessKeyID, constants.EnvAwsSecretAccessKey)
 	}
-
 	session := session.Must(session.NewSession(&config))
 	db := dynamo.New(session)
-
 	db.CreateTable(models.Collections.User, models.User{}).Wait()
 	db.CreateTable(models.Collections.Session, models.Session{}).Wait()
 	db.CreateTable(models.Collections.EmailTemplate, models.EmailTemplate{}).Wait()
@@ -54,7 +52,7 @@ func NewProvider() (*provider, error) {
 	db.CreateTable(models.Collections.VerificationRequest, models.VerificationRequest{}).Wait()
 	db.CreateTable(models.Collections.Webhook, models.Webhook{}).Wait()
 	db.CreateTable(models.Collections.WebhookLog, models.WebhookLog{}).Wait()
-
+	db.CreateTable(models.Collections.Authenticators, models.Authenticators{}).Wait()
 	return &provider{
 		db: db,
 	}, nil

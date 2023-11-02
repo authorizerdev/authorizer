@@ -39,7 +39,7 @@ func TestEndpointResolver(ctx context.Context, params model.TestEndpointRequest)
 
 	user := model.User{
 		ID:            uuid.NewString(),
-		Email:         "test_endpoint@foo.com",
+		Email:         refs.NewStringRef("test_endpoint@authorizer.dev"),
 		EmailVerified: true,
 		SignupMethods: constants.AuthRecipeMethodMagicLinkLogin,
 		GivenName:     refs.NewStringRef("Foo"),

@@ -20,6 +20,8 @@ func NewStateStore() *StateStore {
 
 // Get returns the value of the key in state store
 func (s *StateStore) Get(key string) string {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
 	return s.store[key]
 }
 

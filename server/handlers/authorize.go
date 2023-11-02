@@ -83,7 +83,11 @@ func AuthorizeHandler() gin.HandlerFunc {
 		}
 
 		if responseMode == "" {
-			responseMode = constants.ResponseModeQuery
+			if val, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDefaultAuthorizeResponseMode); err == nil {
+				responseMode = val
+			} else {
+				responseMode = constants.ResponseModeQuery
+			}
 		}
 
 		if redirectURI == "" {
@@ -91,7 +95,11 @@ func AuthorizeHandler() gin.HandlerFunc {
 		}
 
 		if responseType == "" {
-			responseType = "token"
+			if val, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDefaultAuthorizeResponseType); err == nil {
+				responseType = val
+			} else {
+				responseType = constants.ResponseTypeToken
+			}
 		}
 
 		if err := validateAuthorizeRequest(responseType, responseMode, clientID, state, codeChallenge); err != nil {
@@ -186,7 +194,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 		// rollover the session for security
 		go memorystore.Provider.DeleteUserSession(sessionKey, claims.Nonce)
 		if responseType == constants.ResponseTypeCode {
-			newSessionTokenData, newSessionToken, err := token.CreateSessionToken(user, nonce, claims.Roles, scope, claims.LoginMethod)
+			newSessionTokenData, newSessionToken, newSessionExpiresAt, err := token.CreateSessionToken(user, nonce, claims.Roles, scope, claims.LoginMethod)
 			if err != nil {
 				log.Debug("CreateSessionToken failed: ", err)
 				handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
@@ -207,7 +215,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 				return
 			}
 
-			if err := memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+newSessionTokenData.Nonce, newSessionToken); err != nil {
+			if err := memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+newSessionTokenData.Nonce, newSessionToken, newSessionExpiresAt); err != nil {
 				log.Debug("SetUserSession failed: ", err)
 				handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
 				return
@@ -263,13 +271,13 @@ func AuthorizeHandler() gin.HandlerFunc {
 				return
 			}
 
-			if err := memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+nonce, authToken.FingerPrintHash); err != nil {
+			if err := memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+nonce, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt); err != nil {
 				log.Debug("SetUserSession failed: ", err)
 				handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
 				return
 			}
 
-			if err := memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+nonce, authToken.AccessToken.Token); err != nil {
+			if err := memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+nonce, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt); err != nil {
 				log.Debug("SetUserSession failed: ", err)
 				handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
 				return
@@ -284,7 +292,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 				"access_token": authToken.AccessToken.Token,
 				"id_token":     authToken.IDToken.Token,
 				"state":        state,
-				"scope":        scope,
+				"scope":        strings.Join(scope, " "),
 				"token_type":   "Bearer",
 				"expires_in":   authToken.AccessToken.ExpiresAt,
 			}
@@ -297,7 +305,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 			if authToken.RefreshToken != nil {
 				res["refresh_token"] = authToken.RefreshToken.Token
 				params += "&refresh_token=" + authToken.RefreshToken.Token
-				memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token)
+				memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token, authToken.RefreshToken.ExpiresAt)
 			}
 
 			if responseMode == constants.ResponseModeQuery {

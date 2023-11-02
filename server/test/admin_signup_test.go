@@ -17,15 +17,13 @@ func adminSignupTests(t *testing.T, s TestSetup) {
 		_, err := resolvers.AdminSignupResolver(ctx, model.AdminSignupInput{
 			AdminSecret: "admin",
 		})
-
 		assert.NotNil(t, err)
 		// reset env for test to pass
-		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyAdminSecret, "")
-
+		err = memorystore.Provider.UpdateEnvVariable(constants.EnvKeyAdminSecret, "")
+		assert.Nil(t, err)
 		_, err = resolvers.AdminSignupResolver(ctx, model.AdminSignupInput{
 			AdminSecret: "admin123",
 		})
-
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 	})
 }

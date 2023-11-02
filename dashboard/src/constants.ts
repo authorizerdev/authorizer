@@ -10,6 +10,8 @@ export const TextInputType = {
 	LINKEDIN_CLIENT_ID: 'LINKEDIN_CLIENT_ID',
 	APPLE_CLIENT_ID: 'APPLE_CLIENT_ID',
 	TWITTER_CLIENT_ID: 'TWITTER_CLIENT_ID',
+	MICROSOFT_CLIENT_ID: 'MICROSOFT_CLIENT_ID',
+	MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID: 'MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID',
 	JWT_ROLE_CLAIM: 'JWT_ROLE_CLAIM',
 	REDIS_URL: 'REDIS_URL',
 	SMTP_HOST: 'SMTP_HOST',
@@ -17,6 +19,7 @@ export const TextInputType = {
 	SMTP_USERNAME: 'SMTP_USERNAME',
 	SMTP_LOCAL_NAME: 'SMTP_LOCAL_NAME',
 	SENDER_EMAIL: 'SENDER_EMAIL',
+	SENDER_NAME: 'SENDER_NAME',
 	ORGANIZATION_NAME: 'ORGANIZATION_NAME',
 	ORGANIZATION_LOGO: 'ORGANIZATION_LOGO',
 	DATABASE_NAME: 'DATABASE_NAME',
@@ -38,6 +41,7 @@ export const HiddenInputType = {
 	LINKEDIN_CLIENT_SECRET: 'LINKEDIN_CLIENT_SECRET',
 	APPLE_CLIENT_SECRET: 'APPLE_CLIENT_SECRET',
 	TWITTER_CLIENT_SECRET: 'TWITTER_CLIENT_SECRET',
+	MICROSOFT_CLIENT_SECRET: 'MICROSOFT_CLIENT_SECRET',
 	JWT_SECRET: 'JWT_SECRET',
 	SMTP_PASSWORD: 'SMTP_PASSWORD',
 	ADMIN_SECRET: 'ADMIN_SECRET',
@@ -54,6 +58,8 @@ export const ArrayInputType = {
 export const SelectInputType = {
 	JWT_TYPE: 'JWT_TYPE',
 	GENDER: 'gender',
+	DEFAULT_AUTHORIZE_RESPONSE_TYPE: 'DEFAULT_AUTHORIZE_RESPONSE_TYPE',
+	DEFAULT_AUTHORIZE_RESPONSE_MODE: 'DEFAULT_AUTHORIZE_RESPONSE_MODE',
 };
 
 export const MultiSelectInputType = {
@@ -78,6 +84,9 @@ export const SwitchInputType = {
 	DISABLE_STRONG_PASSWORD: 'DISABLE_STRONG_PASSWORD',
 	DISABLE_MULTI_FACTOR_AUTHENTICATION: 'DISABLE_MULTI_FACTOR_AUTHENTICATION',
 	ENFORCE_MULTI_FACTOR_AUTHENTICATION: 'ENFORCE_MULTI_FACTOR_AUTHENTICATION',
+	DISABLE_PLAYGROUND: 'DISABLE_PLAYGROUND',
+	DISABLE_TOTP_LOGIN: 'DISABLE_TOTP_LOGIN',
+	DISABLE_MAIL_OTP_LOGIN: 'DISABLE_MAIL_OTP_LOGIN',
 };
 
 export const DateInputType = {
@@ -120,6 +129,9 @@ export interface envVarTypes {
 	APPLE_CLIENT_SECRET: string;
 	TWITTER_CLIENT_ID: string;
 	TWITTER_CLIENT_SECRET: string;
+	MICROSOFT_CLIENT_ID: string;
+	MICROSOFT_CLIENT_SECRET: string;
+	MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID: string;
 	ROLES: [string] | [];
 	DEFAULT_ROLES: [string] | [];
 	PROTECTED_ROLES: [string] | [];
@@ -135,6 +147,7 @@ export interface envVarTypes {
 	SMTP_PASSWORD: string;
 	SMTP_LOCAL_NAME: string;
 	SENDER_EMAIL: string;
+	SENDER_NAME: string;
 	ALLOWED_ORIGINS: [string] | [];
 	ORGANIZATION_NAME: string;
 	ORGANIZATION_LOGO: string;
@@ -155,6 +168,11 @@ export interface envVarTypes {
 	ACCESS_TOKEN_EXPIRY_TIME: string;
 	DISABLE_MULTI_FACTOR_AUTHENTICATION: boolean;
 	ENFORCE_MULTI_FACTOR_AUTHENTICATION: boolean;
+	DEFAULT_AUTHORIZE_RESPONSE_TYPE: string;
+	DEFAULT_AUTHORIZE_RESPONSE_MODE: string;
+	DISABLE_PLAYGROUND: boolean;
+	DISABLE_TOTP_LOGIN: boolean;
+	DISABLE_MAIL_OTP_LOGIN: boolean;
 }
 
 export const envSubViews = {
@@ -173,6 +191,7 @@ export const envSubViews = {
 
 export enum WebhookInputDataFields {
 	ID = 'id',
+	EVENT_DESCRIPTION = 'event_description',
 	EVENT_NAME = 'event_name',
 	ENDPOINT = 'endpoint',
 	ENABLED = 'enabled',
@@ -207,6 +226,7 @@ export const webhookEventNames = {
 	'User deleted': 'user.deleted',
 	'User access enabled': 'user.access_enabled',
 	'User access revoked': 'user.access_revoked',
+	'User deactivated': 'user.deactivated',
 };
 
 export const emailTemplateEventNames = {
@@ -342,3 +362,16 @@ export enum EmailTemplateEditors {
 	UNLAYER_EDITOR = 'unlayer_editor',
 	PLAIN_HTML_EDITOR = 'plain_html_editor',
 }
+
+export const ResponseTypes = {
+	token: 'token',
+	code: 'code',
+	id_token: 'id_token',
+};
+
+export const ResponseModes = {
+	query: 'query',
+	form_post: 'form_post',
+	fragment: 'fragment',
+	web_message: 'web_message',
+};

@@ -18,3 +18,5 @@ yalc.lock
 certs/
 *-shm
 *-wal
+.idea
+*.iml

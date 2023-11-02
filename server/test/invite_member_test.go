@@ -41,21 +41,22 @@ func inviteUserTest(t *testing.T, s TestSetup) {
 		res, err = resolvers.InviteMembersResolver(ctx, model.InviteMemberInput{
 			Emails: invalidEmailsTest,
 		})
-
+		assert.Error(t, err)
+		assert.Nil(t, res)
 		// valid test
 		res, err = resolvers.InviteMembersResolver(ctx, model.InviteMemberInput{
 			Emails: emails,
 		})
 		assert.Nil(t, err)
 		assert.NotNil(t, res)
-
+		assert.NotNil(t, res.Message)
+		assert.NotNil(t, res.Users)
 		// duplicate error test
 		res, err = resolvers.InviteMembersResolver(ctx, model.InviteMemberInput{
 			Emails: emails,
 		})
 		assert.Error(t, err)
 		assert.Nil(t, res)
-
 		cleanData(emails[0])
 	})
 }

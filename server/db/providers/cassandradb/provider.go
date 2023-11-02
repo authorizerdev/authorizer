@@ -207,6 +207,13 @@ func NewProvider() (*provider, error) {
 	if err != nil {
 		return nil, err
 	}
+	// add event_description to webhook table
+	webhookAlterQuery := fmt.Sprintf(`ALTER TABLE %s.%s ADD (event_description text);`, KeySpace, models.Collections.Webhook)
+	err = session.Query(webhookAlterQuery).Exec()
+	if err != nil {
+		log.Debug("Failed to alter table as column exists: ", err)
+		// continue
+	}
 
 	webhookLogCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, http_status bigint, response text, request text, webhook_id text,updated_at bigint, created_at bigint, PRIMARY KEY (id))", KeySpace, models.Collections.WebhookLog)
 	err = session.Query(webhookLogCollectionQuery).Exec()
@@ -244,6 +251,32 @@ func NewProvider() (*provider, error) {
 	}
 	otpIndexQuery := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_otp_email ON %s.%s (email)", KeySpace, models.Collections.OTP)
 	err = session.Query(otpIndexQuery).Exec()
+	if err != nil {
+		return nil, err
+	}
+	// Add phone_number column to otp table
+	otpAlterQuery := fmt.Sprintf(`ALTER TABLE %s.%s ADD (phone_number text);`, KeySpace, models.Collections.OTP)
+	err = session.Query(otpAlterQuery).Exec()
+	if err != nil {
+		log.Debug("Failed to alter table as column exists: ", err)
+		// continue
+	}
+	// Add app_data column to users table
+	appDataAlterQuery := fmt.Sprintf(`ALTER TABLE %s.%s ADD (app_data text);`, KeySpace, models.Collections.User)
+	err = session.Query(appDataAlterQuery).Exec()
+	if err != nil {
+		log.Debug("Failed to alter user table as app_data column exists: ", err)
+		// continue
+	}
+	// Add phone number index
+	otpIndexQueryPhoneNumber := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_otp_phone_number ON %s.%s (phone_number)", KeySpace, models.Collections.OTP)
+	err = session.Query(otpIndexQueryPhoneNumber).Exec()
+	if err != nil {
+		return nil, err
+	}
+	// add authenticators table
+	totpCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, user_id text, method text, secret text, recovery_code text, verified_at bigint, updated_at bigint, created_at bigint, PRIMARY KEY (id))", KeySpace, models.Collections.Authenticators)
+	err = session.Query(totpCollectionQuery).Exec()
 	if err != nil {
 		return nil, err
 	}

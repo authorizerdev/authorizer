@@ -247,8 +247,8 @@ func TokenHandler() gin.HandlerFunc {
 			return
 		}
 
-		memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash)
-		memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token)
+		memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt)
+		memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt)
 		cookie.SetSession(gc, authToken.FingerPrintHash)
 
 		expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
@@ -259,14 +259,14 @@ func TokenHandler() gin.HandlerFunc {
 		res := map[string]interface{}{
 			"access_token": authToken.AccessToken.Token,
 			"id_token":     authToken.IDToken.Token,
-			"scope":        scope,
+			"scope":        strings.Join(scope, " "),
 			"roles":        roles,
 			"expires_in":   expiresIn,
 		}
 
 		if authToken.RefreshToken != nil {
 			res["refresh_token"] = authToken.RefreshToken.Token
-			memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token)
+			memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token, authToken.RefreshToken.ExpiresAt)
 		}
 
 		gc.JSON(http.StatusOK, res)

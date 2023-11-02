@@ -8,6 +8,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
+	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/authorizerdev/authorizer/server/resolvers"
 	"github.com/stretchr/testify/assert"
 )
@@ -18,7 +19,7 @@ func updateUserTest(t *testing.T, s TestSetup) {
 		req, ctx := createContext(s)
 		email := "update_user." + s.TestInfo.Email
 		signupRes, _ := resolvers.SignupResolver(ctx, model.SignUpInput{
-			Email:           email,
+			Email:           refs.NewStringRef(email),
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password,
 		})
@@ -50,8 +51,19 @@ func updateUserTest(t *testing.T, s TestSetup) {
 		_, err = resolvers.UpdateUserResolver(ctx, model.UpdateUserInput{
 			ID:    user.ID,
 			Roles: newRoles,
+			AppData: map[string]interface{}{
+				"test": "test",
+			},
 		})
 		assert.Nil(t, err)
+		// Get user and check if roles are updated
+		users, err := resolvers.UsersResolver(ctx, nil)
+		assert.Nil(t, err)
+		for _, u := range users.Users {
+			if u.ID == user.ID {
+				assert.Equal(t, u.AppData["test"], "test")
+			}
+		}
 		cleanData(email)
 	})
 }

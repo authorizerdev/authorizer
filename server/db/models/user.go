@@ -15,7 +15,7 @@ type User struct {
 	Key string `json:"_key,omitempty" bson:"_key,omitempty" cql:"_key,omitempty" dynamo:"key,omitempty"` // for arangodb
 	ID  string `gorm:"primaryKey;type:char(36)" json:"_id" bson:"_id" cql:"id" dynamo:"id,hash"`
 
-	Email                    string  `gorm:"unique" json:"email" bson:"email" cql:"email" dynamo:"email" index:"email,hash"`
+	Email                    *string `gorm:"unique" json:"email" bson:"email" cql:"email" dynamo:"email" index:"email,hash"`
 	EmailVerifiedAt          *int64  `json:"email_verified_at" bson:"email_verified_at" cql:"email_verified_at" dynamo:"email_verified_at"`
 	Password                 *string `json:"password" bson:"password" cql:"password" dynamo:"password"`
 	SignupMethods            string  `json:"signup_methods" bson:"signup_methods" cql:"signup_methods" dynamo:"signup_methods"`
@@ -33,12 +33,14 @@ type User struct {
 	IsMultiFactorAuthEnabled *bool   `json:"is_multi_factor_auth_enabled" bson:"is_multi_factor_auth_enabled" cql:"is_multi_factor_auth_enabled" dynamo:"is_multi_factor_auth_enabled"`
 	UpdatedAt                int64   `json:"updated_at" bson:"updated_at" cql:"updated_at" dynamo:"updated_at"`
 	CreatedAt                int64   `json:"created_at" bson:"created_at" cql:"created_at" dynamo:"created_at"`
+	AppData                  *string `json:"app_data" bson:"app_data" cql:"app_data" dynamo:"app_data"`
 }
 
 func (user *User) AsAPIUser() *model.User {
 	isEmailVerified := user.EmailVerifiedAt != nil
 	isPhoneVerified := user.PhoneNumberVerifiedAt != nil
-
+	appDataMap := make(map[string]interface{})
+	json.Unmarshal([]byte(refs.StringValue(user.AppData)), &appDataMap)
 	// id := user.ID
 	// if strings.Contains(id, Collections.User+"/") {
 	// 	id = strings.TrimPrefix(id, Collections.User+"/")
@@ -52,7 +54,7 @@ func (user *User) AsAPIUser() *model.User {
 		FamilyName:               user.FamilyName,
 		MiddleName:               user.MiddleName,
 		Nickname:                 user.Nickname,
-		PreferredUsername:        refs.NewStringRef(user.Email),
+		PreferredUsername:        user.Email,
 		Gender:                   user.Gender,
 		Birthdate:                user.Birthdate,
 		PhoneNumber:              user.PhoneNumber,
@@ -63,6 +65,7 @@ func (user *User) AsAPIUser() *model.User {
 		IsMultiFactorAuthEnabled: user.IsMultiFactorAuthEnabled,
 		CreatedAt:                refs.NewInt64Ref(user.CreatedAt),
 		UpdatedAt:                refs.NewInt64Ref(user.UpdatedAt),
+		AppData:                  appDataMap,
 	}
 }
 
