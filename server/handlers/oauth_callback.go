@@ -285,11 +285,10 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 }
 
 func processGoogleUserInfo(ctx context.Context, code string) (*models.User, error) {
-	var user *models.User
 	oauth2Token, err := oauth.OAuthProviders.GoogleConfig.Exchange(ctx, code)
 	if err != nil {
 		log.Debug("Failed to exchange code for token: ", err)
-		return user, fmt.Errorf("invalid google exchange code: %s", err.Error())
+		return nil, fmt.Errorf("invalid google exchange code: %s", err.Error())
 	}
 	verifier := oauth.OIDCProviders.GoogleOIDC.Verifier(&oidc.Config{ClientID: oauth.OAuthProviders.GoogleConfig.ClientID})
 
@@ -297,36 +296,35 @@ func processGoogleUserInfo(ctx context.Context, code string) (*models.User, erro
 	rawIDToken, ok := oauth2Token.Extra("id_token").(string)
 	if !ok {
 		log.Debug("Failed to extract ID Token from OAuth2 token")
-		return user, fmt.Errorf("unable to extract id_token")
+		return nil, fmt.Errorf("unable to extract id_token")
 	}
 
 	// Parse and verify ID Token payload.
 	idToken, err := verifier.Verify(ctx, rawIDToken)
 	if err != nil {
 		log.Debug("Failed to verify ID Token: ", err)
-		return user, fmt.Errorf("unable to verify id_token: %s", err.Error())
+		return nil, fmt.Errorf("unable to verify id_token: %s", err.Error())
 	}
-
+	user := &models.User{}
 	if err := idToken.Claims(&user); err != nil {
 		log.Debug("Failed to parse ID Token claims: ", err)
-		return user, fmt.Errorf("unable to extract claims")
+		return nil, fmt.Errorf("unable to extract claims")
 	}
 
 	return user, nil
 }
 
 func processGithubUserInfo(ctx context.Context, code string) (*models.User, error) {
-	var user *models.User
 	oauth2Token, err := oauth.OAuthProviders.GithubConfig.Exchange(ctx, code)
 	if err != nil {
 		log.Debug("Failed to exchange code for token: ", err)
-		return user, fmt.Errorf("invalid github exchange code: %s", err.Error())
+		return nil, fmt.Errorf("invalid github exchange code: %s", err.Error())
 	}
 	client := http.Client{}
 	req, err := http.NewRequest("GET", constants.GithubUserInfoURL, nil)
 	if err != nil {
 		log.Debug("Failed to create github user info request: ", err)
-		return user, fmt.Errorf("error creating github user info request: %s", err.Error())
+		return nil, fmt.Errorf("error creating github user info request: %s", err.Error())
 	}
 	req.Header.Set(
 		"Authorization", fmt.Sprintf("token %s", oauth2Token.AccessToken),
@@ -335,18 +333,18 @@ func processGithubUserInfo(ctx context.Context, code string) (*models.User, erro
 	response, err := client.Do(req)
 	if err != nil {
 		log.Debug("Failed to request github user info: ", err)
-		return user, err
+		return nil, err
 	}
 
 	defer response.Body.Close()
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		log.Debug("Failed to read github user info response body: ", err)
-		return user, fmt.Errorf("failed to read github response body: %s", err.Error())
+		return nil, fmt.Errorf("failed to read github response body: %s", err.Error())
 	}
 	if response.StatusCode >= 400 {
 		log.Debug("Failed to request github user info: ", string(body))
-		return user, fmt.Errorf("failed to request github user info: %s", string(body))
+		return nil, fmt.Errorf("failed to request github user info: %s", string(body))
 	}
 
 	userRawData := make(map[string]string)
@@ -375,7 +373,7 @@ func processGithubUserInfo(ctx context.Context, code string) (*models.User, erro
 		req, err := http.NewRequest(http.MethodGet, constants.GithubUserEmails, nil)
 		if err != nil {
 			log.Debug("Failed to create github emails request: ", err)
-			return user, fmt.Errorf("error creating github user info request: %s", err.Error())
+			return nil, fmt.Errorf("error creating github user info request: %s", err.Error())
 		}
 		req.Header.Set(
 			"Authorization", fmt.Sprintf("token %s", oauth2Token.AccessToken),
@@ -384,24 +382,25 @@ func processGithubUserInfo(ctx context.Context, code string) (*models.User, erro
 		response, err := client.Do(req)
 		if err != nil {
 			log.Debug("Failed to request github user email: ", err)
-			return user, err
+			return nil, err
 		}
 
 		defer response.Body.Close()
 		body, err := io.ReadAll(response.Body)
 		if err != nil {
 			log.Debug("Failed to read github user email response body: ", err)
-			return user, fmt.Errorf("failed to read github response body: %s", err.Error())
+			return nil, fmt.Errorf("failed to read github response body: %s", err.Error())
 		}
 		if response.StatusCode >= 400 {
 			log.Debug("Failed to request github user email: ", string(body))
-			return user, fmt.Errorf("failed to request github user info: %s", string(body))
+			return nil, fmt.Errorf("failed to request github user info: %s", string(body))
 		}
 
 		emailData := []GithubUserEmails{}
 		err = json.Unmarshal(body, &emailData)
 		if err != nil {
 			log.Debug("Failed to parse github user email: ", err)
+			return nil, fmt.Errorf("failed to parse github user email: %s", err.Error())
 		}
 
 		for _, userEmail := range emailData {
@@ -412,7 +411,7 @@ func processGithubUserInfo(ctx context.Context, code string) (*models.User, erro
 		}
 	}
 
-	user = &models.User{
+	user := &models.User{
 		GivenName:  &firstName,
 		FamilyName: &lastName,
 		Picture:    &picture,
@@ -423,34 +422,33 @@ func processGithubUserInfo(ctx context.Context, code string) (*models.User, erro
 }
 
 func processFacebookUserInfo(ctx context.Context, code string) (*models.User, error) {
-	var user *models.User
 	oauth2Token, err := oauth.OAuthProviders.FacebookConfig.Exchange(ctx, code)
 	if err != nil {
 		log.Debug("Invalid facebook exchange code: ", err)
-		return user, fmt.Errorf("invalid facebook exchange code: %s", err.Error())
+		return nil, fmt.Errorf("invalid facebook exchange code: %s", err.Error())
 	}
 	client := http.Client{}
 	req, err := http.NewRequest("GET", constants.FacebookUserInfoURL+oauth2Token.AccessToken, nil)
 	if err != nil {
 		log.Debug("Error creating facebook user info request: ", err)
-		return user, fmt.Errorf("error creating facebook user info request: %s", err.Error())
+		return nil, fmt.Errorf("error creating facebook user info request: %s", err.Error())
 	}
 
 	response, err := client.Do(req)
 	if err != nil {
 		log.Debug("Failed to process facebook user: ", err)
-		return user, err
+		return nil, err
 	}
 
 	defer response.Body.Close()
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		log.Debug("Failed to read facebook response: ", err)
-		return user, fmt.Errorf("failed to read facebook response body: %s", err.Error())
+		return nil, fmt.Errorf("failed to read facebook response body: %s", err.Error())
 	}
 	if response.StatusCode >= 400 {
 		log.Debug("Failed to request facebook user info: ", string(body))
-		return user, fmt.Errorf("failed to request facebook user info: %s", string(body))
+		return nil, fmt.Errorf("failed to request facebook user info: %s", string(body))
 	}
 	userRawData := make(map[string]interface{})
 	json.Unmarshal(body, &userRawData)
@@ -463,7 +461,7 @@ func processFacebookUserInfo(ctx context.Context, code string) (*models.User, er
 	lastName := fmt.Sprintf("%v", userRawData["last_name"])
 	picture := fmt.Sprintf("%v", picDataObject["url"])
 
-	user = &models.User{
+	user := &models.User{
 		GivenName:  &firstName,
 		FamilyName: &lastName,
 		Picture:    &picture,
@@ -474,18 +472,17 @@ func processFacebookUserInfo(ctx context.Context, code string) (*models.User, er
 }
 
 func processLinkedInUserInfo(ctx context.Context, code string) (*models.User, error) {
-	var user *models.User
 	oauth2Token, err := oauth.OAuthProviders.LinkedInConfig.Exchange(ctx, code)
 	if err != nil {
 		log.Debug("Failed to exchange code for token: ", err)
-		return user, fmt.Errorf("invalid linkedin exchange code: %s", err.Error())
+		return nil, fmt.Errorf("invalid linkedin exchange code: %s", err.Error())
 	}
 
 	client := http.Client{}
 	req, err := http.NewRequest("GET", constants.LinkedInUserInfoURL, nil)
 	if err != nil {
 		log.Debug("Failed to create linkedin user info request: ", err)
-		return user, fmt.Errorf("error creating linkedin user info request: %s", err.Error())
+		return nil, fmt.Errorf("error creating linkedin user info request: %s", err.Error())
 	}
 	req.Header = http.Header{
 		"Authorization": []string{fmt.Sprintf("Bearer %s", oauth2Token.AccessToken)},
@@ -494,19 +491,19 @@ func processLinkedInUserInfo(ctx context.Context, code string) (*models.User, er
 	response, err := client.Do(req)
 	if err != nil {
 		log.Debug("Failed to request linkedin user info: ", err)
-		return user, err
+		return nil, err
 	}
 
 	defer response.Body.Close()
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		log.Debug("Failed to read linkedin user info response body: ", err)
-		return user, fmt.Errorf("failed to read linkedin response body: %s", err.Error())
+		return nil, fmt.Errorf("failed to read linkedin response body: %s", err.Error())
 	}
 
 	if response.StatusCode >= 400 {
 		log.Debug("Failed to request linkedin user info: ", string(body))
-		return user, fmt.Errorf("failed to request linkedin user info: %s", string(body))
+		return nil, fmt.Errorf("failed to request linkedin user info: %s", string(body))
 	}
 
 	userRawData := make(map[string]interface{})
@@ -515,7 +512,7 @@ func processLinkedInUserInfo(ctx context.Context, code string) (*models.User, er
 	req, err = http.NewRequest("GET", constants.LinkedInEmailURL, nil)
 	if err != nil {
 		log.Debug("Failed to create linkedin email info request: ", err)
-		return user, fmt.Errorf("error creating linkedin user info request: %s", err.Error())
+		return nil, fmt.Errorf("error creating linkedin user info request: %s", err.Error())
 	}
 	req.Header = http.Header{
 		"Authorization": []string{fmt.Sprintf("Bearer %s", oauth2Token.AccessToken)},
@@ -524,18 +521,18 @@ func processLinkedInUserInfo(ctx context.Context, code string) (*models.User, er
 	response, err = client.Do(req)
 	if err != nil {
 		log.Debug("Failed to request linkedin email info: ", err)
-		return user, err
+		return nil, err
 	}
 
 	defer response.Body.Close()
 	body, err = io.ReadAll(response.Body)
 	if err != nil {
 		log.Debug("Failed to read linkedin email info response body: ", err)
-		return user, fmt.Errorf("failed to read linkedin email response body: %s", err.Error())
+		return nil, fmt.Errorf("failed to read linkedin email response body: %s", err.Error())
 	}
 	if response.StatusCode >= 400 {
 		log.Debug("Failed to request linkedin user info: ", string(body))
-		return user, fmt.Errorf("failed to request linkedin user info: %s", string(body))
+		return nil, fmt.Errorf("failed to request linkedin user info: %s", string(body))
 	}
 	emailRawData := make(map[string]interface{})
 	json.Unmarshal(body, &emailRawData)
@@ -545,7 +542,7 @@ func processLinkedInUserInfo(ctx context.Context, code string) (*models.User, er
 	profilePicture := userRawData["profilePicture"].(map[string]interface{})["displayImage~"].(map[string]interface{})["elements"].([]interface{})[0].(map[string]interface{})["identifiers"].([]interface{})[0].(map[string]interface{})["identifier"].(string)
 	emailAddress := emailRawData["elements"].([]interface{})[0].(map[string]interface{})["handle~"].(map[string]interface{})["emailAddress"].(string)
 
-	user = &models.User{
+	user := &models.User{
 		GivenName:  &firstName,
 		FamilyName: &lastName,
 		Picture:    &profilePicture,
@@ -556,7 +553,7 @@ func processLinkedInUserInfo(ctx context.Context, code string) (*models.User, er
 }
 
 func processAppleUserInfo(ctx context.Context, code string) (*models.User, error) {
-	var user *models.User
+	var user = &models.User{}
 	oauth2Token, err := oauth.OAuthProviders.AppleConfig.Exchange(ctx, code)
 	if err != nil {
 		log.Debug("Failed to exchange code for token: ", err)
@@ -584,8 +581,7 @@ func processAppleUserInfo(ctx context.Context, code string) (*models.User, error
 		log.Debug("Failed to unmarshal claims data: ", err)
 		return user, fmt.Errorf("failed to unmarshal claims data: %s", err.Error())
 	}
-
-	if val, ok := claims["email"]; !ok {
+	if val, ok := claims["email"]; !ok || val == nil {
 		log.Debug("Failed to extract email from claims.")
 		return user, fmt.Errorf("unable to extract email, please check the scopes enabled for your app. It needs `email`, `name` scopes")
 	} else {
@@ -610,18 +606,17 @@ func processAppleUserInfo(ctx context.Context, code string) (*models.User, error
 }
 
 func processTwitterUserInfo(ctx context.Context, code, verifier string) (*models.User, error) {
-	var user *models.User
 	oauth2Token, err := oauth.OAuthProviders.TwitterConfig.Exchange(ctx, code, oauth2.SetAuthURLParam("code_verifier", verifier))
 	if err != nil {
 		log.Debug("Failed to exchange code for token: ", err)
-		return user, fmt.Errorf("invalid twitter exchange code: %s", err.Error())
+		return nil, fmt.Errorf("invalid twitter exchange code: %s", err.Error())
 	}
 
 	client := http.Client{}
 	req, err := http.NewRequest("GET", constants.TwitterUserInfoURL, nil)
 	if err != nil {
 		log.Debug("Failed to create Twitter user info request: ", err)
-		return user, fmt.Errorf("error creating Twitter user info request: %s", err.Error())
+		return nil, fmt.Errorf("error creating Twitter user info request: %s", err.Error())
 	}
 	req.Header = http.Header{
 		"Authorization": []string{fmt.Sprintf("Bearer %s", oauth2Token.AccessToken)},
@@ -630,19 +625,19 @@ func processTwitterUserInfo(ctx context.Context, code, verifier string) (*models
 	response, err := client.Do(req)
 	if err != nil {
 		log.Debug("Failed to request Twitter user info: ", err)
-		return user, err
+		return nil, err
 	}
 
 	defer response.Body.Close()
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		log.Debug("Failed to read Twitter user info response body: ", err)
-		return user, fmt.Errorf("failed to read Twitter response body: %s", err.Error())
+		return nil, fmt.Errorf("failed to read Twitter response body: %s", err.Error())
 	}
 
 	if response.StatusCode >= 400 {
 		log.Debug("Failed to request Twitter user info: ", string(body))
-		return user, fmt.Errorf("failed to request Twitter user info: %s", string(body))
+		return nil, fmt.Errorf("failed to request Twitter user info: %s", string(body))
 	}
 
 	responseRawData := make(map[string]interface{})
@@ -666,7 +661,7 @@ func processTwitterUserInfo(ctx context.Context, code, verifier string) (*models
 	nickname := userRawData["username"].(string)
 	profilePicture := userRawData["profile_image_url"].(string)
 
-	user = &models.User{
+	user := &models.User{
 		GivenName:  &firstName,
 		FamilyName: &lastName,
 		Picture:    &profilePicture,
@@ -678,11 +673,10 @@ func processTwitterUserInfo(ctx context.Context, code, verifier string) (*models
 
 // process microsoft user information
 func processMicrosoftUserInfo(ctx context.Context, code string) (*models.User, error) {
-	var user *models.User
 	oauth2Token, err := oauth.OAuthProviders.MicrosoftConfig.Exchange(ctx, code)
 	if err != nil {
 		log.Debug("Failed to exchange code for token: ", err)
-		return user, fmt.Errorf("invalid microsoft exchange code: %s", err.Error())
+		return nil, fmt.Errorf("invalid microsoft exchange code: %s", err.Error())
 	}
 	// we need to skip issuer check because for common tenant it will return internal issuer which does not match
 	verifier := oauth.OIDCProviders.MicrosoftOIDC.Verifier(&oidc.Config{
@@ -693,18 +687,18 @@ func processMicrosoftUserInfo(ctx context.Context, code string) (*models.User, e
 	rawIDToken, ok := oauth2Token.Extra("id_token").(string)
 	if !ok {
 		log.Debug("Failed to extract ID Token from OAuth2 token")
-		return user, fmt.Errorf("unable to extract id_token")
+		return nil, fmt.Errorf("unable to extract id_token")
 	}
 	// Parse and verify ID Token payload.
 	idToken, err := verifier.Verify(ctx, rawIDToken)
 	if err != nil {
 		log.Debug("Failed to verify ID Token: ", err)
-		return user, fmt.Errorf("unable to verify id_token: %s", err.Error())
+		return nil, fmt.Errorf("unable to verify id_token: %s", err.Error())
 	}
-
+	user := &models.User{}
 	if err := idToken.Claims(&user); err != nil {
 		log.Debug("Failed to parse ID Token claims: ", err)
-		return user, fmt.Errorf("unable to extract claims")
+		return nil, fmt.Errorf("unable to extract claims")
 	}
 
 	return user, nil
