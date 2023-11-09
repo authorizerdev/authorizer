@@ -579,6 +579,7 @@ func processAppleUserInfo(ctx context.Context, code string) (*models.User, error
 	}
 
 	claims := make(map[string]interface{})
+	log.Debug("Decoded data :%s", string(decodedClaimsData))
 	err = json.Unmarshal(decodedClaimsData, &claims)
 	if err != nil {
 		log.Debug("Failed to unmarshal claims data: ", err)
