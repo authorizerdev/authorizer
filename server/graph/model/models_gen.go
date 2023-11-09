@@ -29,14 +29,13 @@ type AuthResponse struct {
 	Message                   string  `json:"message"`
 	ShouldShowEmailOtpScreen  *bool   `json:"should_show_email_otp_screen,omitempty"`
 	ShouldShowMobileOtpScreen *bool   `json:"should_show_mobile_otp_screen,omitempty"`
+	ShouldShowTotpScreen      *bool   `json:"should_show_totp_screen,omitempty"`
 	AccessToken               *string `json:"access_token,omitempty"`
 	IDToken                   *string `json:"id_token,omitempty"`
 	RefreshToken              *string `json:"refresh_token,omitempty"`
 	ExpiresIn                 *int64  `json:"expires_in,omitempty"`
 	User                      *User   `json:"user,omitempty"`
 	TotpBase64URL             *string `json:"totp_base64_url,omitempty"`
-	TotpToken                 *string `json:"totp_token,omitempty"`
-	RecoveryCode              *string `json:"recovery_code,omitempty"`
 }
 
 type DeleteEmailTemplateRequest struct {
@@ -509,6 +508,7 @@ type VerifyOTPRequest struct {
 	Email       *string `json:"email,omitempty"`
 	PhoneNumber *string `json:"phone_number,omitempty"`
 	Otp         string  `json:"otp"`
+	Totp        *bool   `json:"totp,omitempty"`
 	State       *string `json:"state,omitempty"`
 }
 

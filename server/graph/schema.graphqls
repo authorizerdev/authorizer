@@ -95,14 +95,15 @@ type AuthResponse {
   message: String!
   should_show_email_otp_screen: Boolean
   should_show_mobile_otp_screen: Boolean
+  should_show_totp_screen: Boolean
   access_token: String
   id_token: String
   refresh_token: String
   expires_in: Int64
   user: User
+  # key for totp login
+  # it is a base64 image url
   totp_base64_url: String
-  totp_token: String
-  recovery_code: String
 }
 
 type Response {
@@ -559,10 +560,11 @@ input DeleteEmailTemplateRequest {
 }
 
 input VerifyOTPRequest {
-  # either email or phone_number is required
+  # either email, phone_number or totp_token is required
   email: String
   phone_number: String
   otp: String!
+  totp: Boolean
   # state is used for authorization code grant flow
   # it is used to get code for an on-going auth process during login
   # and use that code for setting `c_hash` in id_token
@@ -606,7 +608,6 @@ type Mutation {
   revoke(params: OAuthRevokeInput!): Response!
   verify_otp(params: VerifyOTPRequest!): AuthResponse!
   resend_otp(params: ResendOTPRequest!): Response!
-  verify_totp(params: VerifyTOTPRequest!): AuthResponse!
   deactivate_account: Response!
   # admin only apis
   _delete_user(params: DeleteUserInput!): Response!

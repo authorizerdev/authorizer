@@ -14,10 +14,10 @@ import (
 	"github.com/authorizerdev/authorizer/server/db/models"
 )
 
-func (p *provider) AddAuthenticator(ctx context.Context, authenticators models.Authenticators) (*models.Authenticators, error) {
+func (p *provider) AddAuthenticator(ctx context.Context, authenticators *models.Authenticators) (*models.Authenticators, error) {
 	exists, _ := p.GetAuthenticatorDetailsByUserId(ctx, authenticators.UserID, authenticators.Method)
 	if exists != nil {
-		return &authenticators, nil
+		return authenticators, nil
 	}
 
 	if authenticators.ID == "" {
@@ -29,7 +29,7 @@ func (p *provider) AddAuthenticator(ctx context.Context, authenticators models.A
 
 	bytes, err := json.Marshal(authenticators)
 	if err != nil {
-		return &authenticators, err
+		return authenticators, err
 	}
 
 	// use decoder instead of json.Unmarshall, because it converts int64 -> float64 after unmarshalling
@@ -38,7 +38,7 @@ func (p *provider) AddAuthenticator(ctx context.Context, authenticators models.A
 	authenticatorsMap := map[string]interface{}{}
 	err = decoder.Decode(&authenticatorsMap)
 	if err != nil {
-		return &authenticators, err
+		return authenticators, err
 	}
 
 	fields := "("
@@ -66,18 +66,18 @@ func (p *provider) AddAuthenticator(ctx context.Context, authenticators models.A
 	query := fmt.Sprintf("INSERT INTO %s %s VALUES %s IF NOT EXISTS", KeySpace+"."+models.Collections.Authenticators, fields, values)
 	err = p.db.Query(query).Exec()
 	if err != nil {
-		return &authenticators, err
+		return authenticators, err
 	}
 
-	return &authenticators, nil
+	return authenticators, nil
 }
 
-func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators models.Authenticators) (*models.Authenticators, error) {
+func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators *models.Authenticators) (*models.Authenticators, error) {
 	authenticators.UpdatedAt = time.Now().Unix()
 
 	bytes, err := json.Marshal(authenticators)
 	if err != nil {
-		return &authenticators, err
+		return authenticators, err
 	}
 	// use decoder instead of json.Unmarshall, because it converts int64 -> float64 after unmarshalling
 	decoder := json.NewDecoder(strings.NewReader(string(bytes)))
@@ -85,7 +85,7 @@ func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators model
 	authenticatorsMap := map[string]interface{}{}
 	err = decoder.Decode(&authenticatorsMap)
 	if err != nil {
-		return &authenticators, err
+		return authenticators, err
 	}
 
 	updateFields := ""
@@ -116,10 +116,10 @@ func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators model
 	query := fmt.Sprintf("UPDATE %s SET %s WHERE id = '%s'", KeySpace+"."+models.Collections.Authenticators, updateFields, authenticators.ID)
 	err = p.db.Query(query).Exec()
 	if err != nil {
-		return &authenticators, err
+		return authenticators, err
 	}
 
-	return &authenticators, nil
+	return authenticators, nil
 }
 
 func (p *provider) GetAuthenticatorDetailsByUserId(ctx context.Context, userId string, authenticatorType string) (*models.Authenticators, error) {

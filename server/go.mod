@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/99designs/gqlgen v0.17.39
 	github.com/arangodb/go-driver v1.6.0
-	github.com/aws/aws-sdk-go v1.45.25
+	github.com/aws/aws-sdk-go v1.47.4
 	github.com/bytedance/sonic v1.10.2 // indirect
 	github.com/coreos/go-oidc/v3 v3.6.0
 	github.com/couchbase/gocb/v2 v2.6.4
@@ -16,7 +16,6 @@ require (
 	github.com/go-playground/validator/v10 v10.15.5 // indirect
 	github.com/go-sql-driver/mysql v1.7.1 // indirect
 	github.com/gocql/gocql v1.6.0
-	github.com/gokyle/twofactor v1.0.1
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/google/uuid v1.3.1
 	github.com/guregu/dynamo v1.20.2
@@ -33,7 +32,6 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/sosodev/duration v1.2.0 // indirect
 	github.com/stretchr/testify v1.8.4
-	github.com/tuotoo/qrcode v0.0.0-20220425170535-52ccc2bebf5d
 	github.com/twilio/twilio-go v1.14.1
 	github.com/urfave/cli/v2 v2.25.7 // indirect
 	github.com/vektah/gqlparser/v2 v2.5.10

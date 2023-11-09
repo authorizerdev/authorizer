@@ -26,9 +26,7 @@ import (
 // VerifyTotpResolver resolver for verify totp mutation
 func VerifyTotpResolver(ctx context.Context, params model.VerifyTOTPRequest) (*model.AuthResponse, error) {
 	var res *model.AuthResponse
-
 	encryptedkey := params.Token
-
 	pvtKey, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyJwtPrivateKey)
 	if err != nil {
 		log.Debug("error while getting private key")
@@ -58,10 +56,6 @@ func VerifyTotpResolver(ctx context.Context, params model.VerifyTOTPRequest) (*m
 	status, err := authenticators.Provider.Validate(ctx, params.Otp, userID)
 	if err != nil || !status {
 		return nil, fmt.Errorf("error while validating passcode")
-	}
-	recoveryCode, err := authenticators.Provider.RecoveryCode(ctx, userID)
-	if err != nil {
-		return nil, fmt.Errorf("error while getting recovery code")
 	}
 
 	code := ""
@@ -111,24 +105,20 @@ func VerifyTotpResolver(ctx context.Context, params model.VerifyTOTPRequest) (*m
 	}
 
 	res = &model.AuthResponse{
-		Message:      `Logged in successfully`,
-		AccessToken:  &authToken.AccessToken.Token,
-		IDToken:      &authToken.IDToken.Token,
-		ExpiresIn:    &expiresIn,
-		User:         user.AsAPIUser(),
-		RecoveryCode: recoveryCode,
+		Message:     `Logged in successfully`,
+		AccessToken: &authToken.AccessToken.Token,
+		IDToken:     &authToken.IDToken.Token,
+		ExpiresIn:   &expiresIn,
+		User:        user.AsAPIUser(),
 	}
-
 	cookie.SetSession(gc, authToken.FingerPrintHash)
 	sessionStoreKey := constants.AuthRecipeMethodBasicAuth + ":" + user.ID
 	memorystore.Provider.SetUserSession(sessionStoreKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt)
 	memorystore.Provider.SetUserSession(sessionStoreKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt)
-
 	if authToken.RefreshToken != nil {
 		res.RefreshToken = &authToken.RefreshToken.Token
 		memorystore.Provider.SetUserSession(sessionStoreKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token, authToken.RefreshToken.ExpiresAt)
 	}
-
 	go func() {
 		utils.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
 		db.Provider.AddSession(ctx, &models.Session{
@@ -137,6 +127,5 @@ func VerifyTotpResolver(ctx context.Context, params model.VerifyTOTPRequest) (*m
 			IP:        utils.GetIP(gc.Request),
 		})
 	}()
-
 	return res, nil
 }

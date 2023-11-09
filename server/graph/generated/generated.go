@@ -51,12 +51,11 @@ type ComplexityRoot struct {
 		ExpiresIn                 func(childComplexity int) int
 		IDToken                   func(childComplexity int) int
 		Message                   func(childComplexity int) int
-		RecoveryCode              func(childComplexity int) int
 		RefreshToken              func(childComplexity int) int
 		ShouldShowEmailOtpScreen  func(childComplexity int) int
 		ShouldShowMobileOtpScreen func(childComplexity int) int
+		ShouldShowTotpScreen      func(childComplexity int) int
 		TotpBase64URL             func(childComplexity int) int
-		TotpToken                 func(childComplexity int) int
 		User                      func(childComplexity int) int
 	}
 
@@ -209,7 +208,6 @@ type ComplexityRoot struct {
 		UpdateWebhook       func(childComplexity int, params model.UpdateWebhookRequest) int
 		VerifyEmail         func(childComplexity int, params model.VerifyEmailInput) int
 		VerifyOtp           func(childComplexity int, params model.VerifyOTPRequest) int
-		VerifyTotp          func(childComplexity int, params model.VerifyTOTPRequest) int
 	}
 
 	Pagination struct {
@@ -356,7 +354,6 @@ type MutationResolver interface {
 	Revoke(ctx context.Context, params model.OAuthRevokeInput) (*model.Response, error)
 	VerifyOtp(ctx context.Context, params model.VerifyOTPRequest) (*model.AuthResponse, error)
 	ResendOtp(ctx context.Context, params model.ResendOTPRequest) (*model.Response, error)
-	VerifyTotp(ctx context.Context, params model.VerifyTOTPRequest) (*model.AuthResponse, error)
 	DeactivateAccount(ctx context.Context) (*model.Response, error)
 	DeleteUser(ctx context.Context, params model.DeleteUserInput) (*model.Response, error)
 	UpdateUser(ctx context.Context, params model.UpdateUserInput) (*model.User, error)
@@ -440,13 +437,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.AuthResponse.Message(childComplexity), true
 
-	case "AuthResponse.recovery_code":
-		if e.complexity.AuthResponse.RecoveryCode == nil {
-			break
-		}
-
-		return e.complexity.AuthResponse.RecoveryCode(childComplexity), true
-
 	case "AuthResponse.refresh_token":
 		if e.complexity.AuthResponse.RefreshToken == nil {
 			break
@@ -468,19 +458,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.AuthResponse.ShouldShowMobileOtpScreen(childComplexity), true
 
+	case "AuthResponse.should_show_totp_screen":
+		if e.complexity.AuthResponse.ShouldShowTotpScreen == nil {
+			break
+		}
+
+		return e.complexity.AuthResponse.ShouldShowTotpScreen(childComplexity), true
+
 	case "AuthResponse.totp_base64_url":
 		if e.complexity.AuthResponse.TotpBase64URL == nil {
 			break
 		}
 
 		return e.complexity.AuthResponse.TotpBase64URL(childComplexity), true
-
-	case "AuthResponse.totp_token":
-		if e.complexity.AuthResponse.TotpToken == nil {
-			break
-		}
-
-		return e.complexity.AuthResponse.TotpToken(childComplexity), true
 
 	case "AuthResponse.user":
 		if e.complexity.AuthResponse.User == nil {
@@ -1523,18 +1513,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.VerifyOtp(childComplexity, args["params"].(model.VerifyOTPRequest)), true
 
-	case "Mutation.verify_totp":
-		if e.complexity.Mutation.VerifyTotp == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_verify_totp_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.VerifyTotp(childComplexity, args["params"].(model.VerifyTOTPRequest)), true
-
 	case "Pagination.limit":
 		if e.complexity.Pagination.Limit == nil {
 			break
@@ -2404,14 +2382,15 @@ type AuthResponse {
   message: String!
   should_show_email_otp_screen: Boolean
   should_show_mobile_otp_screen: Boolean
+  should_show_totp_screen: Boolean
   access_token: String
   id_token: String
   refresh_token: String
   expires_in: Int64
   user: User
+  # key for totp login
+  # it is a base64 image url
   totp_base64_url: String
-  totp_token: String
-  recovery_code: String
 }
 
 type Response {
@@ -2868,10 +2847,11 @@ input DeleteEmailTemplateRequest {
 }
 
 input VerifyOTPRequest {
-  # either email or phone_number is required
+  # either email, phone_number or totp_token is required
   email: String
   phone_number: String
   otp: String!
+  totp: Boolean
   # state is used for authorization code grant flow
   # it is used to get code for an on-going auth process during login
   # and use that code for setting ` + "`" + `c_hash` + "`" + ` in id_token
@@ -2915,7 +2895,6 @@ type Mutation {
   revoke(params: OAuthRevokeInput!): Response!
   verify_otp(params: VerifyOTPRequest!): AuthResponse!
   resend_otp(params: ResendOTPRequest!): Response!
-  verify_totp(params: VerifyTOTPRequest!): AuthResponse!
   deactivate_account: Response!
   # admin only apis
   _delete_user(params: DeleteUserInput!): Response!
@@ -3397,21 +3376,6 @@ func (ec *executionContext) field_Mutation_verify_otp_args(ctx context.Context, 
 	return args, nil
 }
 
-func (ec *executionContext) field_Mutation_verify_totp_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 model.VerifyTOTPRequest
-	if tmp, ok := rawArgs["params"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalNVerifyTOTPRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐVerifyTOTPRequest(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["params"] = arg0
-	return args, nil
-}
-
 func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -3741,6 +3705,47 @@ func (ec *executionContext) fieldContext_AuthResponse_should_show_mobile_otp_scr
 	return fc, nil
 }
 
+func (ec *executionContext) _AuthResponse_should_show_totp_screen(ctx context.Context, field graphql.CollectedField, obj *model.AuthResponse) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AuthResponse_should_show_totp_screen(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ShouldShowTotpScreen, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*bool)
+	fc.Result = res
+	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AuthResponse_should_show_totp_screen(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AuthResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _AuthResponse_access_token(ctx context.Context, field graphql.CollectedField, obj *model.AuthResponse) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_AuthResponse_access_token(ctx, field)
 	if err != nil {
@@ -4017,88 +4022,6 @@ func (ec *executionContext) _AuthResponse_totp_base64_url(ctx context.Context, f
 }
 
 func (ec *executionContext) fieldContext_AuthResponse_totp_base64_url(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuthResponse",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AuthResponse_totp_token(ctx context.Context, field graphql.CollectedField, obj *model.AuthResponse) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthResponse_totp_token(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.TotpToken, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*string)
-	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AuthResponse_totp_token(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuthResponse",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AuthResponse_recovery_code(ctx context.Context, field graphql.CollectedField, obj *model.AuthResponse) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthResponse_recovery_code(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.RecoveryCode, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*string)
-	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AuthResponse_recovery_code(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "AuthResponse",
 		Field:      field,
@@ -8245,6 +8168,8 @@ func (ec *executionContext) fieldContext_Mutation_signup(ctx context.Context, fi
 				return ec.fieldContext_AuthResponse_should_show_email_otp_screen(ctx, field)
 			case "should_show_mobile_otp_screen":
 				return ec.fieldContext_AuthResponse_should_show_mobile_otp_screen(ctx, field)
+			case "should_show_totp_screen":
+				return ec.fieldContext_AuthResponse_should_show_totp_screen(ctx, field)
 			case "access_token":
 				return ec.fieldContext_AuthResponse_access_token(ctx, field)
 			case "id_token":
@@ -8257,10 +8182,6 @@ func (ec *executionContext) fieldContext_Mutation_signup(ctx context.Context, fi
 				return ec.fieldContext_AuthResponse_user(ctx, field)
 			case "totp_base64_url":
 				return ec.fieldContext_AuthResponse_totp_base64_url(ctx, field)
-			case "totp_token":
-				return ec.fieldContext_AuthResponse_totp_token(ctx, field)
-			case "recovery_code":
-				return ec.fieldContext_AuthResponse_recovery_code(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type AuthResponse", field.Name)
 		},
@@ -8324,6 +8245,8 @@ func (ec *executionContext) fieldContext_Mutation_mobile_signup(ctx context.Cont
 				return ec.fieldContext_AuthResponse_should_show_email_otp_screen(ctx, field)
 			case "should_show_mobile_otp_screen":
 				return ec.fieldContext_AuthResponse_should_show_mobile_otp_screen(ctx, field)
+			case "should_show_totp_screen":
+				return ec.fieldContext_AuthResponse_should_show_totp_screen(ctx, field)
 			case "access_token":
 				return ec.fieldContext_AuthResponse_access_token(ctx, field)
 			case "id_token":
@@ -8336,10 +8259,6 @@ func (ec *executionContext) fieldContext_Mutation_mobile_signup(ctx context.Cont
 				return ec.fieldContext_AuthResponse_user(ctx, field)
 			case "totp_base64_url":
 				return ec.fieldContext_AuthResponse_totp_base64_url(ctx, field)
-			case "totp_token":
-				return ec.fieldContext_AuthResponse_totp_token(ctx, field)
-			case "recovery_code":
-				return ec.fieldContext_AuthResponse_recovery_code(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type AuthResponse", field.Name)
 		},
@@ -8403,6 +8322,8 @@ func (ec *executionContext) fieldContext_Mutation_login(ctx context.Context, fie
 				return ec.fieldContext_AuthResponse_should_show_email_otp_screen(ctx, field)
 			case "should_show_mobile_otp_screen":
 				return ec.fieldContext_AuthResponse_should_show_mobile_otp_screen(ctx, field)
+			case "should_show_totp_screen":
+				return ec.fieldContext_AuthResponse_should_show_totp_screen(ctx, field)
 			case "access_token":
 				return ec.fieldContext_AuthResponse_access_token(ctx, field)
 			case "id_token":
@@ -8415,10 +8336,6 @@ func (ec *executionContext) fieldContext_Mutation_login(ctx context.Context, fie
 				return ec.fieldContext_AuthResponse_user(ctx, field)
 			case "totp_base64_url":
 				return ec.fieldContext_AuthResponse_totp_base64_url(ctx, field)
-			case "totp_token":
-				return ec.fieldContext_AuthResponse_totp_token(ctx, field)
-			case "recovery_code":
-				return ec.fieldContext_AuthResponse_recovery_code(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type AuthResponse", field.Name)
 		},
@@ -8482,6 +8399,8 @@ func (ec *executionContext) fieldContext_Mutation_mobile_login(ctx context.Conte
 				return ec.fieldContext_AuthResponse_should_show_email_otp_screen(ctx, field)
 			case "should_show_mobile_otp_screen":
 				return ec.fieldContext_AuthResponse_should_show_mobile_otp_screen(ctx, field)
+			case "should_show_totp_screen":
+				return ec.fieldContext_AuthResponse_should_show_totp_screen(ctx, field)
 			case "access_token":
 				return ec.fieldContext_AuthResponse_access_token(ctx, field)
 			case "id_token":
@@ -8494,10 +8413,6 @@ func (ec *executionContext) fieldContext_Mutation_mobile_login(ctx context.Conte
 				return ec.fieldContext_AuthResponse_user(ctx, field)
 			case "totp_base64_url":
 				return ec.fieldContext_AuthResponse_totp_base64_url(ctx, field)
-			case "totp_token":
-				return ec.fieldContext_AuthResponse_totp_token(ctx, field)
-			case "recovery_code":
-				return ec.fieldContext_AuthResponse_recovery_code(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type AuthResponse", field.Name)
 		},
@@ -8727,6 +8642,8 @@ func (ec *executionContext) fieldContext_Mutation_verify_email(ctx context.Conte
 				return ec.fieldContext_AuthResponse_should_show_email_otp_screen(ctx, field)
 			case "should_show_mobile_otp_screen":
 				return ec.fieldContext_AuthResponse_should_show_mobile_otp_screen(ctx, field)
+			case "should_show_totp_screen":
+				return ec.fieldContext_AuthResponse_should_show_totp_screen(ctx, field)
 			case "access_token":
 				return ec.fieldContext_AuthResponse_access_token(ctx, field)
 			case "id_token":
@@ -8739,10 +8656,6 @@ func (ec *executionContext) fieldContext_Mutation_verify_email(ctx context.Conte
 				return ec.fieldContext_AuthResponse_user(ctx, field)
 			case "totp_base64_url":
 				return ec.fieldContext_AuthResponse_totp_base64_url(ctx, field)
-			case "totp_token":
-				return ec.fieldContext_AuthResponse_totp_token(ctx, field)
-			case "recovery_code":
-				return ec.fieldContext_AuthResponse_recovery_code(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type AuthResponse", field.Name)
 		},
@@ -9042,6 +8955,8 @@ func (ec *executionContext) fieldContext_Mutation_verify_otp(ctx context.Context
 				return ec.fieldContext_AuthResponse_should_show_email_otp_screen(ctx, field)
 			case "should_show_mobile_otp_screen":
 				return ec.fieldContext_AuthResponse_should_show_mobile_otp_screen(ctx, field)
+			case "should_show_totp_screen":
+				return ec.fieldContext_AuthResponse_should_show_totp_screen(ctx, field)
 			case "access_token":
 				return ec.fieldContext_AuthResponse_access_token(ctx, field)
 			case "id_token":
@@ -9054,10 +8969,6 @@ func (ec *executionContext) fieldContext_Mutation_verify_otp(ctx context.Context
 				return ec.fieldContext_AuthResponse_user(ctx, field)
 			case "totp_base64_url":
 				return ec.fieldContext_AuthResponse_totp_base64_url(ctx, field)
-			case "totp_token":
-				return ec.fieldContext_AuthResponse_totp_token(ctx, field)
-			case "recovery_code":
-				return ec.fieldContext_AuthResponse_recovery_code(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type AuthResponse", field.Name)
 		},
@@ -9129,85 +9040,6 @@ func (ec *executionContext) fieldContext_Mutation_resend_otp(ctx context.Context
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_resend_otp_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_verify_totp(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation_verify_totp(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().VerifyTotp(rctx, fc.Args["params"].(model.VerifyTOTPRequest))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.AuthResponse)
-	fc.Result = res
-	return ec.marshalNAuthResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAuthResponse(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Mutation_verify_totp(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "message":
-				return ec.fieldContext_AuthResponse_message(ctx, field)
-			case "should_show_email_otp_screen":
-				return ec.fieldContext_AuthResponse_should_show_email_otp_screen(ctx, field)
-			case "should_show_mobile_otp_screen":
-				return ec.fieldContext_AuthResponse_should_show_mobile_otp_screen(ctx, field)
-			case "access_token":
-				return ec.fieldContext_AuthResponse_access_token(ctx, field)
-			case "id_token":
-				return ec.fieldContext_AuthResponse_id_token(ctx, field)
-			case "refresh_token":
-				return ec.fieldContext_AuthResponse_refresh_token(ctx, field)
-			case "expires_in":
-				return ec.fieldContext_AuthResponse_expires_in(ctx, field)
-			case "user":
-				return ec.fieldContext_AuthResponse_user(ctx, field)
-			case "totp_base64_url":
-				return ec.fieldContext_AuthResponse_totp_base64_url(ctx, field)
-			case "totp_token":
-				return ec.fieldContext_AuthResponse_totp_token(ctx, field)
-			case "recovery_code":
-				return ec.fieldContext_AuthResponse_recovery_code(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type AuthResponse", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_verify_totp_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -10597,6 +10429,8 @@ func (ec *executionContext) fieldContext_Query_session(ctx context.Context, fiel
 				return ec.fieldContext_AuthResponse_should_show_email_otp_screen(ctx, field)
 			case "should_show_mobile_otp_screen":
 				return ec.fieldContext_AuthResponse_should_show_mobile_otp_screen(ctx, field)
+			case "should_show_totp_screen":
+				return ec.fieldContext_AuthResponse_should_show_totp_screen(ctx, field)
 			case "access_token":
 				return ec.fieldContext_AuthResponse_access_token(ctx, field)
 			case "id_token":
@@ -10609,10 +10443,6 @@ func (ec *executionContext) fieldContext_Query_session(ctx context.Context, fiel
 				return ec.fieldContext_AuthResponse_user(ctx, field)
 			case "totp_base64_url":
 				return ec.fieldContext_AuthResponse_totp_base64_url(ctx, field)
-			case "totp_token":
-				return ec.fieldContext_AuthResponse_totp_token(ctx, field)
-			case "recovery_code":
-				return ec.fieldContext_AuthResponse_recovery_code(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type AuthResponse", field.Name)
 		},
@@ -18766,7 +18596,7 @@ func (ec *executionContext) unmarshalInputVerifyOTPRequest(ctx context.Context, 
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"email", "phone_number", "otp", "state"}
+	fieldsInOrder := [...]string{"email", "phone_number", "otp", "totp", "state"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -18800,6 +18630,15 @@ func (ec *executionContext) unmarshalInputVerifyOTPRequest(ctx context.Context, 
 				return it, err
 			}
 			it.Otp = data
+		case "totp":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("totp"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Totp = data
 		case "state":
 			var err error
 
@@ -18919,6 +18758,8 @@ func (ec *executionContext) _AuthResponse(ctx context.Context, sel ast.Selection
 			out.Values[i] = ec._AuthResponse_should_show_email_otp_screen(ctx, field, obj)
 		case "should_show_mobile_otp_screen":
 			out.Values[i] = ec._AuthResponse_should_show_mobile_otp_screen(ctx, field, obj)
+		case "should_show_totp_screen":
+			out.Values[i] = ec._AuthResponse_should_show_totp_screen(ctx, field, obj)
 		case "access_token":
 			out.Values[i] = ec._AuthResponse_access_token(ctx, field, obj)
 		case "id_token":
@@ -18931,10 +18772,6 @@ func (ec *executionContext) _AuthResponse(ctx context.Context, sel ast.Selection
 			out.Values[i] = ec._AuthResponse_user(ctx, field, obj)
 		case "totp_base64_url":
 			out.Values[i] = ec._AuthResponse_totp_base64_url(ctx, field, obj)
-		case "totp_token":
-			out.Values[i] = ec._AuthResponse_totp_token(ctx, field, obj)
-		case "recovery_code":
-			out.Values[i] = ec._AuthResponse_recovery_code(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -19625,13 +19462,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "resend_otp":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_resend_otp(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "verify_totp":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_verify_totp(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -21740,11 +21570,6 @@ func (ec *executionContext) unmarshalNVerifyEmailInput2githubᚗcomᚋauthorizer
 
 func (ec *executionContext) unmarshalNVerifyOTPRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐVerifyOTPRequest(ctx context.Context, v interface{}) (model.VerifyOTPRequest, error) {
 	res, err := ec.unmarshalInputVerifyOTPRequest(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) unmarshalNVerifyTOTPRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐVerifyTOTPRequest(ctx context.Context, v interface{}) (model.VerifyTOTPRequest, error) {
-	res, err := ec.unmarshalInputVerifyTOTPRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 

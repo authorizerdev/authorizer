@@ -92,10 +92,10 @@ type Provider interface {
 	// AddAuthenticator adds a new authenticator document to the database.
 	// If the authenticator doesn't have an ID, a new one is generated.
 	// The created document is returned, or an error if the operation fails.
-	AddAuthenticator(ctx context.Context, totp models.Authenticators) (*models.Authenticators, error)
+	AddAuthenticator(ctx context.Context, totp *models.Authenticators) (*models.Authenticators, error)
 	// UpdateAuthenticator updates an existing authenticator document in the database.
 	// The updated document is returned, or an error if the operation fails.
-	UpdateAuthenticator(ctx context.Context, totp models.Authenticators) (*models.Authenticators, error)
+	UpdateAuthenticator(ctx context.Context, totp *models.Authenticators) (*models.Authenticators, error)
 	// GetAuthenticatorDetailsByUserId retrieves details of an authenticator document based on user ID and authenticator type.
 	// If found, the authenticator document is returned, or an error if not found or an error occurs during the retrieval.
 	GetAuthenticatorDetailsByUserId(ctx context.Context, userId string, authenticatorType string) (*models.Authenticators, error)

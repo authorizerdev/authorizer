@@ -82,11 +82,6 @@ func (r *mutationResolver) ResendOtp(ctx context.Context, params model.ResendOTP
 	return resolvers.ResendOTPResolver(ctx, params)
 }
 
-// VerifyTotp is the resolver for the verify_totp field.
-func (r *mutationResolver) VerifyTotp(ctx context.Context, params model.VerifyTOTPRequest) (*model.AuthResponse, error) {
-	return resolvers.VerifyTotpResolver(ctx, params)
-}
-
 // DeactivateAccount is the resolver for the deactivate_account field.
 func (r *mutationResolver) DeactivateAccount(ctx context.Context) (*model.Response, error) {
 	return resolvers.DeactivateAccountResolver(ctx)
@@ -255,3 +250,13 @@ func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//   - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//     it when you're done.
+//   - You have helper methods in this file. Move them out to keep these resolver files clean.
+func (r *mutationResolver) VerifyTotp(ctx context.Context, params model.VerifyTOTPRequest) (*model.AuthResponse, error) {
+	return resolvers.VerifyTotpResolver(ctx, params)
+}

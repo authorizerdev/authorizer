@@ -13,13 +13,13 @@ import (
 	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
+	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
 
 // Generate generates a Time-Based One-Time Password (TOTP) for a user and returns the base64-encoded QR code for frontend display.
 func (p *provider) Generate(ctx context.Context, id string) (*string, error) {
 	var buf bytes.Buffer
-	var totpModel models.Authenticators
 
 	//get user details
 	user, err := db.Provider.GetUserByID(ctx, id)
@@ -30,7 +30,7 @@ func (p *provider) Generate(ctx context.Context, id string) (*string, error) {
 	// generate totp, Authenticators hash is valid for 30 seconds
 	key, err := totp.Generate(totp.GenerateOpts{
 		Issuer:      "authorizer",
-		AccountName: *user.Email,
+		AccountName: refs.StringValue(user.Email),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("error while genrating totp")
@@ -45,9 +45,11 @@ func (p *provider) Generate(ctx context.Context, id string) (*string, error) {
 	encodedText := crypto.EncryptB64(buf.String())
 
 	secret := key.Secret()
-	totpModel.Secret = secret
-	totpModel.UserID = user.ID
-	totpModel.Method = constants.EnvKeyTOTPAuthenticator
+	totpModel := &models.Authenticators{
+		Secret: secret,
+		UserID: user.ID,
+		Method: constants.EnvKeyTOTPAuthenticator,
+	}
 	_, err = db.Provider.AddAuthenticator(ctx, totpModel)
 	if err != nil {
 		return nil, fmt.Errorf("error while inserting into totp table")
@@ -56,9 +58,9 @@ func (p *provider) Generate(ctx context.Context, id string) (*string, error) {
 }
 
 // Validate validates a Time-Based One-Time Password (TOTP) against the stored TOTP secret for a user.
-func (p *provider) Validate(ctx context.Context, passcode string, id string) (bool, error) {
+func (p *provider) Validate(ctx context.Context, passcode string, userID string) (bool, error) {
 	// get totp details
-	totpModel, err := db.Provider.GetAuthenticatorDetailsByUserId(ctx, id, constants.EnvKeyTOTPAuthenticator)
+	totpModel, err := db.Provider.GetAuthenticatorDetailsByUserId(ctx, userID, constants.EnvKeyTOTPAuthenticator)
 	if err != nil {
 		return false, fmt.Errorf("error while getting totp details from authenticators")
 	}
@@ -69,7 +71,7 @@ func (p *provider) Validate(ctx context.Context, passcode string, id string) (bo
 		if status {
 			timeNow := time.Now().Unix()
 			totpModel.VerifiedAt = &timeNow
-			_, err = db.Provider.UpdateAuthenticator(ctx, *totpModel)
+			_, err = db.Provider.UpdateAuthenticator(ctx, totpModel)
 			if err != nil {
 				return false, fmt.Errorf("error while updaing authenticator table for totp")
 			}
@@ -93,7 +95,7 @@ func (p *provider) RecoveryCode(ctx context.Context, id string) (*string, error)
 		recoveryCode := utils.GenerateTOTPRecoveryCode()
 		totpModel.RecoveryCode = &recoveryCode
 
-		_, err = db.Provider.UpdateAuthenticator(ctx, *totpModel)
+		_, err = db.Provider.UpdateAuthenticator(ctx, totpModel)
 		if err != nil {
 			return nil, fmt.Errorf("error while updaing authenticator table for totp")
 		}

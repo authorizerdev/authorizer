@@ -11,10 +11,10 @@ import (
 	"github.com/authorizerdev/authorizer/server/db/models"
 )
 
-func (p *provider) AddAuthenticator(ctx context.Context, authenticators models.Authenticators) (*models.Authenticators, error) {
+func (p *provider) AddAuthenticator(ctx context.Context, authenticators *models.Authenticators) (*models.Authenticators, error) {
 	exists, _ := p.GetAuthenticatorDetailsByUserId(ctx, authenticators.UserID, authenticators.Method)
 	if exists != nil {
-		return &authenticators, nil
+		return authenticators, nil
 	}
 
 	if authenticators.ID == "" {
@@ -26,19 +26,19 @@ func (p *provider) AddAuthenticator(ctx context.Context, authenticators models.A
 	authenticatorsCollection := p.db.Collection(models.Collections.Authenticators, options.Collection())
 	_, err := authenticatorsCollection.InsertOne(ctx, authenticators)
 	if err != nil {
-		return &authenticators, err
+		return authenticators, err
 	}
-	return &authenticators, nil
+	return authenticators, nil
 }
 
-func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators models.Authenticators) (*models.Authenticators, error) {
+func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators *models.Authenticators) (*models.Authenticators, error) {
 	authenticators.UpdatedAt = time.Now().Unix()
 	authenticatorsCollection := p.db.Collection(models.Collections.Authenticators, options.Collection())
-	_, err := authenticatorsCollection.UpdateOne(ctx, bson.D{{"_id", authenticators.ID}}, bson.M{"$set": authenticators})
+	_, err := authenticatorsCollection.UpdateOne(ctx, bson.M{"_id": bson.M{"$eq": authenticators.ID}}, bson.M{"$set": authenticators})
 	if err != nil {
-		return &authenticators, err
+		return authenticators, err
 	}
-	return &authenticators, nil
+	return authenticators, nil
 }
 
 func (p *provider) GetAuthenticatorDetailsByUserId(ctx context.Context, userId string, authenticatorType string) (*models.Authenticators, error) {

@@ -9,10 +9,10 @@ import (
 	"github.com/authorizerdev/authorizer/server/db/models"
 )
 
-func (p *provider) AddAuthenticator(ctx context.Context, authenticators models.Authenticators) (*models.Authenticators, error) {
+func (p *provider) AddAuthenticator(ctx context.Context, authenticators *models.Authenticators) (*models.Authenticators, error) {
 	exists, _ := p.GetAuthenticatorDetailsByUserId(ctx, authenticators.UserID, authenticators.Method)
 	if exists != nil {
-		return &authenticators, nil
+		return authenticators, nil
 	}
 
 	collection := p.db.Table(models.Collections.Authenticators)
@@ -24,21 +24,21 @@ func (p *provider) AddAuthenticator(ctx context.Context, authenticators models.A
 	authenticators.UpdatedAt = time.Now().Unix()
 	err := collection.Put(authenticators).RunWithContext(ctx)
 	if err != nil {
-		return &authenticators, err
+		return authenticators, err
 	}
-	return &authenticators, nil
+	return authenticators, nil
 }
 
-func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators models.Authenticators) (*models.Authenticators, error) {
+func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators *models.Authenticators) (*models.Authenticators, error) {
 	collection := p.db.Table(models.Collections.Authenticators)
 	if authenticators.ID != "" {
 		authenticators.UpdatedAt = time.Now().Unix()
 		err := UpdateByHashKey(collection, "id", authenticators.ID, authenticators)
 		if err != nil {
-			return &authenticators, err
+			return authenticators, err
 		}
 	}
-	return &authenticators, nil
+	return authenticators, nil
 
 }
 
