@@ -20,7 +20,16 @@ func ValidateSessionResolver(ctx context.Context, params *model.ValidateSessionI
 		log.Debug("Failed to get GinContext: ", err)
 		return nil, err
 	}
-	sessionToken := params.Cookie
+	sessionToken := ""
+	if params != nil && params.Cookie != "" {
+		sessionToken = params.Cookie
+	} else {
+		sessionToken, err = cookie.GetSession(gc)
+		if err != nil {
+			log.Debug("Failed to get session token: ", err)
+			return nil, errors.New("unauthorized")
+		}
+	}
 	if sessionToken == "" {
 		sessionToken, err = cookie.GetSession(gc)
 		if err != nil {
