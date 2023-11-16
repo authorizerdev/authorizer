@@ -9,7 +9,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/db/models"
 )
 
-func (p *provider) AddAuthenticator(ctx context.Context, authenticators *models.Authenticators) (*models.Authenticators, error) {
+func (p *provider) AddAuthenticator(ctx context.Context, authenticators *models.Authenticator) (*models.Authenticator, error) {
 	exists, _ := p.GetAuthenticatorDetailsByUserId(ctx, authenticators.UserID, authenticators.Method)
 	if exists != nil {
 		return authenticators, nil
@@ -23,12 +23,12 @@ func (p *provider) AddAuthenticator(ctx context.Context, authenticators *models.
 	return authenticators, nil
 }
 
-func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators *models.Authenticators) (*models.Authenticators, error) {
+func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators *models.Authenticator) (*models.Authenticator, error) {
 	authenticators.UpdatedAt = time.Now().Unix()
 	return authenticators, nil
 }
 
-func (p *provider) GetAuthenticatorDetailsByUserId(ctx context.Context, userId string, authenticatorType string) (*models.Authenticators, error) {
-	var authenticators *models.Authenticators
+func (p *provider) GetAuthenticatorDetailsByUserId(ctx context.Context, userId string, authenticatorType string) (*models.Authenticator, error) {
+	var authenticators *models.Authenticator
 	return authenticators, nil
 }

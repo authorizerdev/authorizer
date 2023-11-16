@@ -110,13 +110,26 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 	if params.IsMultiFactorAuthEnabled != nil && refs.BoolValue(user.IsMultiFactorAuthEnabled) != refs.BoolValue(params.IsMultiFactorAuthEnabled) {
 		user.IsMultiFactorAuthEnabled = params.IsMultiFactorAuthEnabled
 		if refs.BoolValue(params.IsMultiFactorAuthEnabled) {
-			isEnvServiceEnabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyIsEmailServiceEnabled)
-			isMailOTPEnvServiceEnabled, _ := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableMailOTPLogin)
-			isTOTPEnvServiceEnabled, _ := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableTOTPLogin)
-			checkMailOTP := !isEnvServiceEnabled && !isTOTPEnvServiceEnabled && isMailOTPEnvServiceEnabled
-			if err != nil || !checkMailOTP {
-				log.Debug("Email service not enabled:")
-				return nil, errors.New("email service not enabled, so cannot enable multi factor authentication")
+			// Check if totp, email or sms is enabled
+			isMailOTPEnvServiceDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableMailOTPLogin)
+			if err != nil {
+				log.Debug("Error getting mail otp disabled: ", err)
+				isMailOTPEnvServiceDisabled = false
+			}
+			isTOTPEnvServiceDisabled, _ := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableTOTPLogin)
+			if err != nil {
+				log.Debug("Error getting totp disabled: ", err)
+				isTOTPEnvServiceDisabled = false
+			}
+			isSMSOTPEnvServiceDisabled, _ := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisablePhoneVerification)
+			if err != nil {
+				log.Debug("Error getting sms otp disabled: ", err)
+				isSMSOTPEnvServiceDisabled = false
+			}
+			// Initialize a flag to check if enabling Mail OTP is required
+			if isMailOTPEnvServiceDisabled && isTOTPEnvServiceDisabled && isSMSOTPEnvServiceDisabled {
+				log.Debug("Cannot enable mfa service as all mfa services are disabled")
+				return nil, errors.New("cannot enable multi factor authentication as all mfa services are disabled")
 			}
 		}
 	}

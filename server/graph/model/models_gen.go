@@ -26,16 +26,18 @@ type AdminSignupInput struct {
 }
 
 type AuthResponse struct {
-	Message                   string  `json:"message"`
-	ShouldShowEmailOtpScreen  *bool   `json:"should_show_email_otp_screen,omitempty"`
-	ShouldShowMobileOtpScreen *bool   `json:"should_show_mobile_otp_screen,omitempty"`
-	ShouldShowTotpScreen      *bool   `json:"should_show_totp_screen,omitempty"`
-	AccessToken               *string `json:"access_token,omitempty"`
-	IDToken                   *string `json:"id_token,omitempty"`
-	RefreshToken              *string `json:"refresh_token,omitempty"`
-	ExpiresIn                 *int64  `json:"expires_in,omitempty"`
-	User                      *User   `json:"user,omitempty"`
-	TotpBase64URL             *string `json:"totp_base64_url,omitempty"`
+	Message                    string    `json:"message"`
+	ShouldShowEmailOtpScreen   *bool     `json:"should_show_email_otp_screen,omitempty"`
+	ShouldShowMobileOtpScreen  *bool     `json:"should_show_mobile_otp_screen,omitempty"`
+	ShouldShowTotpScreen       *bool     `json:"should_show_totp_screen,omitempty"`
+	AccessToken                *string   `json:"access_token,omitempty"`
+	IDToken                    *string   `json:"id_token,omitempty"`
+	RefreshToken               *string   `json:"refresh_token,omitempty"`
+	ExpiresIn                  *int64    `json:"expires_in,omitempty"`
+	User                       *User     `json:"user,omitempty"`
+	AuthenticatorScannerImage  *string   `json:"authenticator_scanner_image,omitempty"`
+	AuthenticatorSecret        *string   `json:"authenticator_secret,omitempty"`
+	AuthenticatorRecoveryCodes []*string `json:"authenticator_recovery_codes,omitempty"`
 }
 
 type DeleteEmailTemplateRequest struct {
@@ -510,12 +512,6 @@ type VerifyOTPRequest struct {
 	Otp         string  `json:"otp"`
 	Totp        *bool   `json:"totp,omitempty"`
 	State       *string `json:"state,omitempty"`
-}
-
-type VerifyTOTPRequest struct {
-	Otp   string  `json:"otp"`
-	Token string  `json:"token"`
-	State *string `json:"state,omitempty"`
 }
 
 type Webhook struct {

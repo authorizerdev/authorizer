@@ -3,22 +3,24 @@ package totp
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"image/png"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/pquerna/otp/totp"
 
+	"github.com/authorizerdev/authorizer/server/authenticators/providers"
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/refs"
-	"github.com/authorizerdev/authorizer/server/utils"
 )
 
 // Generate generates a Time-Based One-Time Password (TOTP) for a user and returns the base64-encoded QR code for frontend display.
-func (p *provider) Generate(ctx context.Context, id string) (*string, error) {
+func (p *provider) Generate(ctx context.Context, id string) (*providers.AuthenticatorConfig, error) {
 	var buf bytes.Buffer
 
 	//get user details
@@ -45,16 +47,37 @@ func (p *provider) Generate(ctx context.Context, id string) (*string, error) {
 	encodedText := crypto.EncryptB64(buf.String())
 
 	secret := key.Secret()
-	totpModel := &models.Authenticators{
-		Secret: secret,
-		UserID: user.ID,
-		Method: constants.EnvKeyTOTPAuthenticator,
+	recoveryCodes := []string{}
+	for i := 0; i < 10; i++ {
+		recoveryCodes = append(recoveryCodes, uuid.NewString())
+	}
+	// Converting recoveryCodes to string
+	recoverCodesMap := map[string]bool{}
+	for i := 0; i < len(recoveryCodes); i++ {
+		recoverCodesMap[recoveryCodes[i]] = false
+	}
+	// Converting recoveryCodesMap to string
+	jsonData, err := json.Marshal(recoverCodesMap)
+	if err != nil {
+		return nil, fmt.Errorf("error while converting recoveryCodes to string")
+	}
+	recoveryCodesString := string(jsonData)
+
+	totpModel := &models.Authenticator{
+		Secret:        secret,
+		RecoveryCodes: refs.NewStringRef(recoveryCodesString),
+		UserID:        user.ID,
+		Method:        constants.EnvKeyTOTPAuthenticator,
 	}
 	_, err = db.Provider.AddAuthenticator(ctx, totpModel)
 	if err != nil {
 		return nil, fmt.Errorf("error while inserting into totp table")
 	}
-	return &encodedText, nil
+	return &providers.AuthenticatorConfig{
+		ScannerImage:  encodedText,
+		Secret:        secret,
+		RecoveryCodes: recoveryCodes,
+	}, nil
 }
 
 // Validate validates a Time-Based One-Time Password (TOTP) against the stored TOTP secret for a user.
@@ -85,21 +108,21 @@ func (p *provider) Validate(ctx context.Context, passcode string, userID string)
 // RecoveryCode generates a recovery code for a user's TOTP authentication, if not already verified.
 func (p *provider) RecoveryCode(ctx context.Context, id string) (*string, error) {
 	// get totp details
-	totpModel, err := db.Provider.GetAuthenticatorDetailsByUserId(ctx, id, constants.EnvKeyTOTPAuthenticator)
-	if err != nil {
-		return nil, fmt.Errorf("error while getting totp details from authenticators")
-	}
-	//TODO *totpModel.RecoveryCode == "null" used to just verify couchbase recoveryCode value to be nil
-	// have to find another way round
-	if totpModel.RecoveryCode == nil || *totpModel.RecoveryCode == "null" {
-		recoveryCode := utils.GenerateTOTPRecoveryCode()
-		totpModel.RecoveryCode = &recoveryCode
+	// totpModel, err := db.Provider.GetAuthenticatorDetailsByUserId(ctx, id, constants.EnvKeyTOTPAuthenticator)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("error while getting totp details from authenticators")
+	// }
+	// //TODO *totpModel.RecoveryCode == "null" used to just verify couchbase recoveryCode value to be nil
+	// // have to find another way round
+	// if totpModel.RecoveryCode == nil || *totpModel.RecoveryCode == "null" {
+	// 	recoveryCode := utils.GenerateTOTPRecoveryCode()
+	// 	totpModel.RecoveryCode = &recoveryCode
 
-		_, err = db.Provider.UpdateAuthenticator(ctx, totpModel)
-		if err != nil {
-			return nil, fmt.Errorf("error while updaing authenticator table for totp")
-		}
-		return &recoveryCode, nil
-	}
+	// 	_, err = db.Provider.UpdateAuthenticator(ctx, totpModel)
+	// 	if err != nil {
+	// 		return nil, fmt.Errorf("error while updaing authenticator table for totp")
+	// 	}
+	// 	return &recoveryCode, nil
+	// }
 	return nil, nil
 }

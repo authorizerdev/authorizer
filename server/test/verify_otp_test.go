@@ -51,6 +51,7 @@ func verifyOTPTest(t *testing.T, s TestSetup) {
 		ctx = context.WithValue(req.Context(), "GinContextKey", s.GinContext)
 		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDisableMailOTPLogin, false)
 		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDisableTOTPLogin, true)
+		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDisablePhoneVerification, true)
 		updateProfileRes, err := resolvers.UpdateProfileResolver(ctx, model.UpdateProfileInput{
 			IsMultiFactorAuthEnabled: refs.NewBoolRef(true),
 		})

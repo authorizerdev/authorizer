@@ -104,23 +104,26 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 	}
 	// Check if the user is trying to enable or disable multi-factor authentication (MFA)
 	if params.IsMultiFactorAuthEnabled != nil && refs.BoolValue(user.IsMultiFactorAuthEnabled) != refs.BoolValue(params.IsMultiFactorAuthEnabled) {
+		// Check if totp, email or sms is enabled
+		isMailOTPEnvServiceDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableMailOTPLogin)
+		if err != nil {
+			log.Debug("Error getting mail otp disabled: ", err)
+			isMailOTPEnvServiceDisabled = false
+		}
+		isTOTPEnvServiceDisabled, _ := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableTOTPLogin)
+		if err != nil {
+			log.Debug("Error getting totp disabled: ", err)
+			isTOTPEnvServiceDisabled = false
+		}
+		isSMSOTPEnvServiceDisabled, _ := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisablePhoneVerification)
+		if err != nil {
+			log.Debug("Error getting sms otp disabled: ", err)
+			isSMSOTPEnvServiceDisabled = false
+		}
 		// Initialize a flag to check if enabling Mail OTP is required
-		checkMailOTPEnable := false
-		if refs.BoolValue(params.IsMultiFactorAuthEnabled) {
-			// Check if the email service is enabled and Mail OTP is not disabled
-			isEnvServiceEnabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyIsEmailServiceEnabled)
-			isMailOTPEnvServiceDisabled, _ := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableMailOTPLogin)
-			// If the email service is not enabled and Mail OTP is not disabled, set the flag to true
-			if !isEnvServiceEnabled {
-				if !isMailOTPEnvServiceDisabled {
-					checkMailOTPEnable = true
-				}
-			}
-			// Check if enabling MFA is allowed (email service is enabled and Mail OTP is not disabled)
-			if err != nil || checkMailOTPEnable {
-				log.Debug("Email service not enabled:")
-				return nil, errors.New("email service not enabled, so cannot enable multi factor authentication")
-			}
+		if isMailOTPEnvServiceDisabled && isTOTPEnvServiceDisabled && isSMSOTPEnvServiceDisabled {
+			log.Debug("Cannot enable mfa service as all mfa services are disabled")
+			return nil, errors.New("cannot enable multi factor authentication as all mfa services are disabled")
 		}
 
 		isMFAEnforced, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyEnforceMultiFactorAuthentication)

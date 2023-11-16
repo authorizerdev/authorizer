@@ -64,7 +64,6 @@ func VerifyOtpResolver(ctx context.Context, params model.VerifyOTPRequest) (*mod
 		}
 	} else {
 		var otp *models.OTP
-		db.Provider.DeleteOTP(gc, otp)
 		if currentField == models.FieldNameEmail {
 			otp, err = db.Provider.GetOTPByEmail(ctx, refs.StringValue(params.Email))
 		} else {
@@ -83,6 +82,7 @@ func VerifyOtpResolver(ctx context.Context, params model.VerifyOTPRequest) (*mod
 			log.Debug("Failed to verify otp request: Timeout")
 			return res, fmt.Errorf("otp expired")
 		}
+		db.Provider.DeleteOTP(gc, otp)
 	}
 
 	if _, err := memorystore.Provider.GetMfaSession(user.ID, mfaSession); err != nil {

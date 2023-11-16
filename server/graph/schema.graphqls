@@ -103,7 +103,11 @@ type AuthResponse {
   user: User
   # key for totp login
   # it is a base64 image url
-  totp_base64_url: String
+  authenticator_scanner_image: String
+  # string which can be used instead of scanner image
+  authenticator_secret: String
+  # recovery codes for totp login shared with user only once
+  authenticator_recovery_codes: [String]
 }
 
 type Response {
@@ -568,12 +572,6 @@ input VerifyOTPRequest {
   # state is used for authorization code grant flow
   # it is used to get code for an on-going auth process during login
   # and use that code for setting `c_hash` in id_token
-  state: String
-}
-
-input VerifyTOTPRequest {
-  otp: String!
-  token: String!
   state: String
 }
 

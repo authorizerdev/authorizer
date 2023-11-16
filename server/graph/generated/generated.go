@@ -47,16 +47,18 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	AuthResponse struct {
-		AccessToken               func(childComplexity int) int
-		ExpiresIn                 func(childComplexity int) int
-		IDToken                   func(childComplexity int) int
-		Message                   func(childComplexity int) int
-		RefreshToken              func(childComplexity int) int
-		ShouldShowEmailOtpScreen  func(childComplexity int) int
-		ShouldShowMobileOtpScreen func(childComplexity int) int
-		ShouldShowTotpScreen      func(childComplexity int) int
-		TotpBase64URL             func(childComplexity int) int
-		User                      func(childComplexity int) int
+		AccessToken                func(childComplexity int) int
+		AuthenticatorRecoveryCodes func(childComplexity int) int
+		AuthenticatorScannerImage  func(childComplexity int) int
+		AuthenticatorSecret        func(childComplexity int) int
+		ExpiresIn                  func(childComplexity int) int
+		IDToken                    func(childComplexity int) int
+		Message                    func(childComplexity int) int
+		RefreshToken               func(childComplexity int) int
+		ShouldShowEmailOtpScreen   func(childComplexity int) int
+		ShouldShowMobileOtpScreen  func(childComplexity int) int
+		ShouldShowTotpScreen       func(childComplexity int) int
+		User                       func(childComplexity int) int
 	}
 
 	EmailTemplate struct {
@@ -416,6 +418,27 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.AuthResponse.AccessToken(childComplexity), true
 
+	case "AuthResponse.authenticator_recovery_codes":
+		if e.complexity.AuthResponse.AuthenticatorRecoveryCodes == nil {
+			break
+		}
+
+		return e.complexity.AuthResponse.AuthenticatorRecoveryCodes(childComplexity), true
+
+	case "AuthResponse.authenticator_scanner_image":
+		if e.complexity.AuthResponse.AuthenticatorScannerImage == nil {
+			break
+		}
+
+		return e.complexity.AuthResponse.AuthenticatorScannerImage(childComplexity), true
+
+	case "AuthResponse.authenticator_secret":
+		if e.complexity.AuthResponse.AuthenticatorSecret == nil {
+			break
+		}
+
+		return e.complexity.AuthResponse.AuthenticatorSecret(childComplexity), true
+
 	case "AuthResponse.expires_in":
 		if e.complexity.AuthResponse.ExpiresIn == nil {
 			break
@@ -464,13 +487,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.AuthResponse.ShouldShowTotpScreen(childComplexity), true
-
-	case "AuthResponse.totp_base64_url":
-		if e.complexity.AuthResponse.TotpBase64URL == nil {
-			break
-		}
-
-		return e.complexity.AuthResponse.TotpBase64URL(childComplexity), true
 
 	case "AuthResponse.user":
 		if e.complexity.AuthResponse.User == nil {
@@ -2186,7 +2202,6 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputValidateSessionInput,
 		ec.unmarshalInputVerifyEmailInput,
 		ec.unmarshalInputVerifyOTPRequest,
-		ec.unmarshalInputVerifyTOTPRequest,
 		ec.unmarshalInputWebhookRequest,
 	)
 	first := true
@@ -2390,7 +2405,11 @@ type AuthResponse {
   user: User
   # key for totp login
   # it is a base64 image url
-  totp_base64_url: String
+  authenticator_scanner_image: String
+  # string which can be used instead of scanner image
+  authenticator_secret: String
+  # recovery codes for totp login shared with user only once
+  authenticator_recovery_codes: [String]
 }
 
 type Response {
@@ -2855,12 +2874,6 @@ input VerifyOTPRequest {
   # state is used for authorization code grant flow
   # it is used to get code for an on-going auth process during login
   # and use that code for setting ` + "`" + `c_hash` + "`" + ` in id_token
-  state: String
-}
-
-input VerifyTOTPRequest {
-  otp: String!
-  token: String!
   state: String
 }
 
@@ -3993,8 +4006,8 @@ func (ec *executionContext) fieldContext_AuthResponse_user(ctx context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _AuthResponse_totp_base64_url(ctx context.Context, field graphql.CollectedField, obj *model.AuthResponse) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthResponse_totp_base64_url(ctx, field)
+func (ec *executionContext) _AuthResponse_authenticator_scanner_image(ctx context.Context, field graphql.CollectedField, obj *model.AuthResponse) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AuthResponse_authenticator_scanner_image(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -4007,7 +4020,7 @@ func (ec *executionContext) _AuthResponse_totp_base64_url(ctx context.Context, f
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.TotpBase64URL, nil
+		return obj.AuthenticatorScannerImage, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4021,7 +4034,89 @@ func (ec *executionContext) _AuthResponse_totp_base64_url(ctx context.Context, f
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_AuthResponse_totp_base64_url(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_AuthResponse_authenticator_scanner_image(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AuthResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AuthResponse_authenticator_secret(ctx context.Context, field graphql.CollectedField, obj *model.AuthResponse) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AuthResponse_authenticator_secret(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.AuthenticatorSecret, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AuthResponse_authenticator_secret(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AuthResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AuthResponse_authenticator_recovery_codes(ctx context.Context, field graphql.CollectedField, obj *model.AuthResponse) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AuthResponse_authenticator_recovery_codes(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.AuthenticatorRecoveryCodes, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*string)
+	fc.Result = res
+	return ec.marshalOString2ᚕᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AuthResponse_authenticator_recovery_codes(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "AuthResponse",
 		Field:      field,
@@ -8180,8 +8275,12 @@ func (ec *executionContext) fieldContext_Mutation_signup(ctx context.Context, fi
 				return ec.fieldContext_AuthResponse_expires_in(ctx, field)
 			case "user":
 				return ec.fieldContext_AuthResponse_user(ctx, field)
-			case "totp_base64_url":
-				return ec.fieldContext_AuthResponse_totp_base64_url(ctx, field)
+			case "authenticator_scanner_image":
+				return ec.fieldContext_AuthResponse_authenticator_scanner_image(ctx, field)
+			case "authenticator_secret":
+				return ec.fieldContext_AuthResponse_authenticator_secret(ctx, field)
+			case "authenticator_recovery_codes":
+				return ec.fieldContext_AuthResponse_authenticator_recovery_codes(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type AuthResponse", field.Name)
 		},
@@ -8257,8 +8356,12 @@ func (ec *executionContext) fieldContext_Mutation_mobile_signup(ctx context.Cont
 				return ec.fieldContext_AuthResponse_expires_in(ctx, field)
 			case "user":
 				return ec.fieldContext_AuthResponse_user(ctx, field)
-			case "totp_base64_url":
-				return ec.fieldContext_AuthResponse_totp_base64_url(ctx, field)
+			case "authenticator_scanner_image":
+				return ec.fieldContext_AuthResponse_authenticator_scanner_image(ctx, field)
+			case "authenticator_secret":
+				return ec.fieldContext_AuthResponse_authenticator_secret(ctx, field)
+			case "authenticator_recovery_codes":
+				return ec.fieldContext_AuthResponse_authenticator_recovery_codes(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type AuthResponse", field.Name)
 		},
@@ -8334,8 +8437,12 @@ func (ec *executionContext) fieldContext_Mutation_login(ctx context.Context, fie
 				return ec.fieldContext_AuthResponse_expires_in(ctx, field)
 			case "user":
 				return ec.fieldContext_AuthResponse_user(ctx, field)
-			case "totp_base64_url":
-				return ec.fieldContext_AuthResponse_totp_base64_url(ctx, field)
+			case "authenticator_scanner_image":
+				return ec.fieldContext_AuthResponse_authenticator_scanner_image(ctx, field)
+			case "authenticator_secret":
+				return ec.fieldContext_AuthResponse_authenticator_secret(ctx, field)
+			case "authenticator_recovery_codes":
+				return ec.fieldContext_AuthResponse_authenticator_recovery_codes(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type AuthResponse", field.Name)
 		},
@@ -8411,8 +8518,12 @@ func (ec *executionContext) fieldContext_Mutation_mobile_login(ctx context.Conte
 				return ec.fieldContext_AuthResponse_expires_in(ctx, field)
 			case "user":
 				return ec.fieldContext_AuthResponse_user(ctx, field)
-			case "totp_base64_url":
-				return ec.fieldContext_AuthResponse_totp_base64_url(ctx, field)
+			case "authenticator_scanner_image":
+				return ec.fieldContext_AuthResponse_authenticator_scanner_image(ctx, field)
+			case "authenticator_secret":
+				return ec.fieldContext_AuthResponse_authenticator_secret(ctx, field)
+			case "authenticator_recovery_codes":
+				return ec.fieldContext_AuthResponse_authenticator_recovery_codes(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type AuthResponse", field.Name)
 		},
@@ -8654,8 +8765,12 @@ func (ec *executionContext) fieldContext_Mutation_verify_email(ctx context.Conte
 				return ec.fieldContext_AuthResponse_expires_in(ctx, field)
 			case "user":
 				return ec.fieldContext_AuthResponse_user(ctx, field)
-			case "totp_base64_url":
-				return ec.fieldContext_AuthResponse_totp_base64_url(ctx, field)
+			case "authenticator_scanner_image":
+				return ec.fieldContext_AuthResponse_authenticator_scanner_image(ctx, field)
+			case "authenticator_secret":
+				return ec.fieldContext_AuthResponse_authenticator_secret(ctx, field)
+			case "authenticator_recovery_codes":
+				return ec.fieldContext_AuthResponse_authenticator_recovery_codes(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type AuthResponse", field.Name)
 		},
@@ -8967,8 +9082,12 @@ func (ec *executionContext) fieldContext_Mutation_verify_otp(ctx context.Context
 				return ec.fieldContext_AuthResponse_expires_in(ctx, field)
 			case "user":
 				return ec.fieldContext_AuthResponse_user(ctx, field)
-			case "totp_base64_url":
-				return ec.fieldContext_AuthResponse_totp_base64_url(ctx, field)
+			case "authenticator_scanner_image":
+				return ec.fieldContext_AuthResponse_authenticator_scanner_image(ctx, field)
+			case "authenticator_secret":
+				return ec.fieldContext_AuthResponse_authenticator_secret(ctx, field)
+			case "authenticator_recovery_codes":
+				return ec.fieldContext_AuthResponse_authenticator_recovery_codes(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type AuthResponse", field.Name)
 		},
@@ -10441,8 +10560,12 @@ func (ec *executionContext) fieldContext_Query_session(ctx context.Context, fiel
 				return ec.fieldContext_AuthResponse_expires_in(ctx, field)
 			case "user":
 				return ec.fieldContext_AuthResponse_user(ctx, field)
-			case "totp_base64_url":
-				return ec.fieldContext_AuthResponse_totp_base64_url(ctx, field)
+			case "authenticator_scanner_image":
+				return ec.fieldContext_AuthResponse_authenticator_scanner_image(ctx, field)
+			case "authenticator_secret":
+				return ec.fieldContext_AuthResponse_authenticator_secret(ctx, field)
+			case "authenticator_recovery_codes":
+				return ec.fieldContext_AuthResponse_authenticator_recovery_codes(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type AuthResponse", field.Name)
 		},
@@ -18654,53 +18777,6 @@ func (ec *executionContext) unmarshalInputVerifyOTPRequest(ctx context.Context, 
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputVerifyTOTPRequest(ctx context.Context, obj interface{}) (model.VerifyTOTPRequest, error) {
-	var it model.VerifyTOTPRequest
-	asMap := map[string]interface{}{}
-	for k, v := range obj.(map[string]interface{}) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"otp", "token", "state"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "otp":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("otp"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Otp = data
-		case "token":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("token"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Token = data
-		case "state":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.State = data
-		}
-	}
-
-	return it, nil
-}
-
 func (ec *executionContext) unmarshalInputWebhookRequest(ctx context.Context, obj interface{}) (model.WebhookRequest, error) {
 	var it model.WebhookRequest
 	asMap := map[string]interface{}{}
@@ -18770,8 +18846,12 @@ func (ec *executionContext) _AuthResponse(ctx context.Context, sel ast.Selection
 			out.Values[i] = ec._AuthResponse_expires_in(ctx, field, obj)
 		case "user":
 			out.Values[i] = ec._AuthResponse_user(ctx, field, obj)
-		case "totp_base64_url":
-			out.Values[i] = ec._AuthResponse_totp_base64_url(ctx, field, obj)
+		case "authenticator_scanner_image":
+			out.Values[i] = ec._AuthResponse_authenticator_scanner_image(ctx, field, obj)
+		case "authenticator_secret":
+			out.Values[i] = ec._AuthResponse_authenticator_secret(ctx, field, obj)
+		case "authenticator_recovery_codes":
+			out.Values[i] = ec._AuthResponse_authenticator_recovery_codes(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
