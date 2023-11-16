@@ -37,7 +37,6 @@ func InitDB() error {
 			return err
 		}
 	}
-
 	if isArangoDB {
 		log.Info("Initializing ArangoDB Driver")
 		Provider, err = arangodb.NewProvider()

@@ -95,11 +95,19 @@ type AuthResponse {
   message: String!
   should_show_email_otp_screen: Boolean
   should_show_mobile_otp_screen: Boolean
+  should_show_totp_screen: Boolean
   access_token: String
   id_token: String
   refresh_token: String
   expires_in: Int64
   user: User
+  # key for totp login
+  # it is a base64 image url
+  authenticator_scanner_image: String
+  # string which can be used instead of scanner image
+  authenticator_secret: String
+  # recovery codes for totp login shared with user only once
+  authenticator_recovery_codes: [String]
 }
 
 type Response {
@@ -174,6 +182,8 @@ type Env {
   DEFAULT_AUTHORIZE_RESPONSE_TYPE: String
   DEFAULT_AUTHORIZE_RESPONSE_MODE: String
   DISABLE_PLAYGROUND: Boolean!
+  DISABLE_MAIL_OTP_LOGIN: Boolean!
+  DISABLE_TOTP_LOGIN: Boolean!
 }
 
 type ValidateJWTTokenResponse {
@@ -297,6 +307,8 @@ input UpdateEnvInput {
   DEFAULT_AUTHORIZE_RESPONSE_TYPE: String
   DEFAULT_AUTHORIZE_RESPONSE_MODE: String
   DISABLE_PLAYGROUND: Boolean
+  DISABLE_MAIL_OTP_LOGIN: Boolean
+  DISABLE_TOTP_LOGIN: Boolean
 }
 
 input AdminLoginInput {
@@ -552,10 +564,11 @@ input DeleteEmailTemplateRequest {
 }
 
 input VerifyOTPRequest {
-  # either email or phone_number is required
+  # either email, phone_number or totp_token is required
   email: String
   phone_number: String
   otp: String!
+  totp: Boolean
   # state is used for authorization code grant flow
   # it is used to get code for an on-going auth process during login
   # and use that code for setting `c_hash` in id_token

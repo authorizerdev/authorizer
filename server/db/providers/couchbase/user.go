@@ -43,10 +43,10 @@ func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User
 // UpdateUser to update user information in database
 func (p *provider) UpdateUser(ctx context.Context, user *models.User) (*models.User, error) {
 	user.UpdatedAt = time.Now().Unix()
-	unsertOpt := gocb.UpsertOptions{
+	upsertOpt := gocb.UpsertOptions{
 		Context: ctx,
 	}
-	_, err := p.db.Collection(models.Collections.User).Upsert(user.ID, user, &unsertOpt)
+	_, err := p.db.Collection(models.Collections.User).Upsert(user.ID, user, &upsertOpt)
 	if err != nil {
 		return user, err
 	}

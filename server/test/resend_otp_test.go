@@ -54,6 +54,9 @@ func resendOTPTest(t *testing.T, s TestSetup) {
 		})
 		assert.NoError(t, err)
 		assert.NotNil(t, updateRes)
+		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDisableMailOTPLogin, false)
+		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDisableTOTPLogin, true)
+
 		// Resend otp should return error as no initial opt is being sent
 		resendOtpRes, err := resolvers.ResendOTPResolver(ctx, model.ResendOTPRequest{
 			Email: refs.NewStringRef(email),

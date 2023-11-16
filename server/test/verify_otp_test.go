@@ -49,6 +49,9 @@ func verifyOTPTest(t *testing.T, s TestSetup) {
 		// Using access token update profile
 		s.GinContext.Request.Header.Set("Authorization", "Bearer "+refs.StringValue(verifyRes.AccessToken))
 		ctx = context.WithValue(req.Context(), "GinContextKey", s.GinContext)
+		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDisableMailOTPLogin, false)
+		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDisableTOTPLogin, true)
+		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDisablePhoneVerification, true)
 		updateProfileRes, err := resolvers.UpdateProfileResolver(ctx, model.UpdateProfileInput{
 			IsMultiFactorAuthEnabled: refs.NewBoolRef(true),
 		})

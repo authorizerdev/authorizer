@@ -52,6 +52,7 @@ func NewProvider() (*provider, error) {
 	db.CreateTable(models.Collections.VerificationRequest, models.VerificationRequest{}).Wait()
 	db.CreateTable(models.Collections.Webhook, models.Webhook{}).Wait()
 	db.CreateTable(models.Collections.WebhookLog, models.WebhookLog{}).Wait()
+	db.CreateTable(models.Collections.Authenticators, models.Authenticator{}).Wait()
 	return &provider{
 		db: db,
 	}, nil

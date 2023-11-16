@@ -253,13 +253,15 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 	// in case SMTP is off but env is set to true
 	if updatedData[constants.EnvKeySmtpHost] == "" || updatedData[constants.EnvKeySmtpUsername] == "" || updatedData[constants.EnvKeySmtpPassword] == "" || updatedData[constants.EnvKeySenderEmail] == "" && updatedData[constants.EnvKeySmtpPort] == "" {
 		updatedData[constants.EnvKeyIsEmailServiceEnabled] = false
-		updatedData[constants.EnvKeyDisableMultiFactorAuthentication] = true
 		if !updatedData[constants.EnvKeyDisableEmailVerification].(bool) {
 			updatedData[constants.EnvKeyDisableEmailVerification] = true
 		}
-
+		if !updatedData[constants.EnvKeyDisableMailOTPLogin].(bool) {
+			updatedData[constants.EnvKeyDisableMailOTPLogin] = true
+		}
 		if !updatedData[constants.EnvKeyDisableMagicLinkLogin].(bool) {
-			updatedData[constants.EnvKeyDisableMagicLinkLogin] = true
+			updatedData[constants.EnvKeyDisableMailOTPLogin] = true
+			updatedData[constants.EnvKeyDisableTOTPLogin] = false
 		}
 	}
 
@@ -271,6 +273,21 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 		updatedData[constants.EnvKeyIsSMSServiceEnabled] = false
 		if !updatedData[constants.EnvKeyIsSMSServiceEnabled].(bool) {
 			updatedData[constants.EnvKeyDisablePhoneVerification] = true
+		}
+	}
+
+	if updatedData[constants.EnvKeyDisableMultiFactorAuthentication].(bool) {
+		updatedData[constants.EnvKeyDisableTOTPLogin] = true
+		updatedData[constants.EnvKeyDisableMailOTPLogin] = true
+	} else {
+		if !updatedData[constants.EnvKeyDisableMailOTPLogin].(bool) && !updatedData[constants.EnvKeyDisableTOTPLogin].(bool) {
+			errors.New("can't enable both mfa methods at same time")
+			updatedData[constants.EnvKeyDisableMailOTPLogin] = true
+			updatedData[constants.EnvKeyDisableTOTPLogin] = false
+		} else if updatedData[constants.EnvKeyDisableMailOTPLogin].(bool) && updatedData[constants.EnvKeyDisableTOTPLogin].(bool) {
+			errors.New("can't disable both mfa methods at same time")
+			updatedData[constants.EnvKeyDisableMailOTPLogin] = true
+			updatedData[constants.EnvKeyDisableTOTPLogin] = false
 		}
 	}
 

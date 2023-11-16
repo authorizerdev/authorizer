@@ -6,6 +6,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
+	log "github.com/sirupsen/logrus"
+
+	"github.com/authorizerdev/authorizer/server/authenticators"
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/db"
@@ -15,8 +19,6 @@ import (
 	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
-	"github.com/google/uuid"
-	log "github.com/sirupsen/logrus"
 )
 
 // VerifyOtpResolver resolver for verify otp mutation
@@ -38,30 +40,11 @@ func VerifyOtpResolver(ctx context.Context, params model.VerifyOTPRequest) (*mod
 		log.Debug("Email or phone number is required")
 		return res, fmt.Errorf(`email or phone_number is required`)
 	}
-
 	currentField := models.FieldNameEmail
 	if refs.StringValue(params.Email) == "" {
 		currentField = models.FieldNamePhoneNumber
 	}
-	var otp *models.OTP
-	if currentField == models.FieldNameEmail {
-		otp, err = db.Provider.GetOTPByEmail(ctx, refs.StringValue(params.Email))
-	} else {
-		otp, err = db.Provider.GetOTPByPhoneNumber(ctx, refs.StringValue(params.PhoneNumber))
-	}
-	if otp == nil && err != nil {
-		log.Debugf("Failed to get otp request for %s: %s", currentField, err.Error())
-		return res, fmt.Errorf(`invalid %s: %s`, currentField, err.Error())
-	}
-	if params.Otp != otp.Otp {
-		log.Debug("Failed to verify otp request: Incorrect value")
-		return res, fmt.Errorf(`invalid otp`)
-	}
-	expiresIn := otp.ExpiresAt - time.Now().Unix()
-	if expiresIn < 0 {
-		log.Debug("Failed to verify otp request: Timeout")
-		return res, fmt.Errorf("otp expired")
-	}
+	// Get user by email or phone number
 	var user *models.User
 	if currentField == models.FieldNameEmail {
 		user, err = db.Provider.GetUserByEmail(ctx, refs.StringValue(params.Email))
@@ -71,6 +54,35 @@ func VerifyOtpResolver(ctx context.Context, params model.VerifyOTPRequest) (*mod
 	if user == nil || err != nil {
 		log.Debug("Failed to get user by email or phone number: ", err)
 		return res, err
+	}
+	// Verify OTP based on TOPT or OTP
+	if refs.BoolValue(params.Totp) {
+		status, err := authenticators.Provider.Validate(ctx, params.Otp, user.ID)
+		if err != nil || !status {
+			log.Debug("Failed to validate totp: ", err)
+			return nil, fmt.Errorf("error while validating passcode")
+		}
+	} else {
+		var otp *models.OTP
+		if currentField == models.FieldNameEmail {
+			otp, err = db.Provider.GetOTPByEmail(ctx, refs.StringValue(params.Email))
+		} else {
+			otp, err = db.Provider.GetOTPByPhoneNumber(ctx, refs.StringValue(params.PhoneNumber))
+		}
+		if otp == nil && err != nil {
+			log.Debugf("Failed to get otp request for %s: %s", currentField, err.Error())
+			return res, fmt.Errorf(`invalid %s: %s`, currentField, err.Error())
+		}
+		if params.Otp != otp.Otp {
+			log.Debug("Failed to verify otp request: Incorrect value")
+			return res, fmt.Errorf(`invalid otp`)
+		}
+		expiresIn := otp.ExpiresAt - time.Now().Unix()
+		if expiresIn < 0 {
+			log.Debug("Failed to verify otp request: Timeout")
+			return res, fmt.Errorf("otp expired")
+		}
+		db.Provider.DeleteOTP(gc, otp)
 	}
 
 	if _, err := memorystore.Provider.GetMfaSession(user.ID, mfaSession); err != nil {
@@ -121,7 +133,6 @@ func VerifyOtpResolver(ctx context.Context, params model.VerifyOTPRequest) (*mod
 	}
 
 	go func() {
-		db.Provider.DeleteOTP(gc, otp)
 		if isSignUp {
 			utils.RegisterEvent(ctx, constants.UserSignUpWebhookEvent, loginMethod, user)
 			// User is also logged in with signup

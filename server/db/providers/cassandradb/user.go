@@ -78,6 +78,7 @@ func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User
 
 	query := fmt.Sprintf("INSERT INTO %s %s VALUES %s IF NOT EXISTS", KeySpace+"."+models.Collections.User, fields, values)
 	err = p.db.Query(query).Exec()
+
 	if err != nil {
 		return user, err
 	}
@@ -177,13 +178,17 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) 
 	// there is no offset in cassandra
 	// so we fetch till limit + offset
 	// and return the results from offset to limit
-	query := fmt.Sprintf("SELECT id, email, email_verified_at, password, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, roles, revoked_timestamp, is_multi_factor_auth_enabled, app_data, created_at, updated_at FROM %s LIMIT %d", KeySpace+"."+models.Collections.User, pagination.Limit+pagination.Offset)
+	query := fmt.Sprintf("SELECT id, email, email_verified_at, password, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, roles, revoked_timestamp, is_multi_factor_auth_enabled, app_data, created_at, updated_at FROM %s LIMIT %d", KeySpace+"."+models.Collections.User,
+		pagination.Limit+pagination.Offset)
 	scanner := p.db.Query(query).Iter().Scanner()
 	counter := int64(0)
 	for scanner.Next() {
 		if counter >= pagination.Offset {
 			var user models.User
-			err := scanner.Scan(&user.ID, &user.Email, &user.EmailVerifiedAt, &user.Password, &user.SignupMethods, &user.GivenName, &user.FamilyName, &user.MiddleName, &user.Nickname, &user.Birthdate, &user.PhoneNumber, &user.PhoneNumberVerifiedAt, &user.Picture, &user.Roles, &user.RevokedTimestamp, &user.IsMultiFactorAuthEnabled, &user.AppData, &user.CreatedAt, &user.UpdatedAt)
+			err := scanner.Scan(&user.ID, &user.Email, &user.EmailVerifiedAt, &user.Password, &user.SignupMethods,
+				&user.GivenName, &user.FamilyName, &user.MiddleName, &user.Nickname, &user.Birthdate, &user.PhoneNumber,
+				&user.PhoneNumberVerifiedAt, &user.Picture, &user.Roles, &user.RevokedTimestamp, &user.IsMultiFactorAuthEnabled,
+				&user.AppData, &user.CreatedAt, &user.UpdatedAt)
 			if err != nil {
 				return nil, err
 			}
@@ -297,9 +302,7 @@ func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{},
 				return err
 			}
 		}
-
 	}
-
 	return nil
 }
 

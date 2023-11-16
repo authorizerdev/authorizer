@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"github.com/authorizerdev/authorizer/server/authenticators"
 
 	"github.com/authorizerdev/authorizer/server/cli"
 	"github.com/authorizerdev/authorizer/server/constants"
@@ -68,6 +69,11 @@ func main() {
 	err = oauth.InitOAuth()
 	if err != nil {
 		log.Fatalln("Error while initializing oauth: ", err)
+	}
+
+	err = authenticators.InitTOTPStore()
+	if err != nil {
+		log.Fatalln("Error while initializing authenticator: ", err)
 	}
 
 	router := routes.InitRouter(log)

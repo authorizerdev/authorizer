@@ -26,14 +26,18 @@ type AdminSignupInput struct {
 }
 
 type AuthResponse struct {
-	Message                   string  `json:"message"`
-	ShouldShowEmailOtpScreen  *bool   `json:"should_show_email_otp_screen,omitempty"`
-	ShouldShowMobileOtpScreen *bool   `json:"should_show_mobile_otp_screen,omitempty"`
-	AccessToken               *string `json:"access_token,omitempty"`
-	IDToken                   *string `json:"id_token,omitempty"`
-	RefreshToken              *string `json:"refresh_token,omitempty"`
-	ExpiresIn                 *int64  `json:"expires_in,omitempty"`
-	User                      *User   `json:"user,omitempty"`
+	Message                    string    `json:"message"`
+	ShouldShowEmailOtpScreen   *bool     `json:"should_show_email_otp_screen,omitempty"`
+	ShouldShowMobileOtpScreen  *bool     `json:"should_show_mobile_otp_screen,omitempty"`
+	ShouldShowTotpScreen       *bool     `json:"should_show_totp_screen,omitempty"`
+	AccessToken                *string   `json:"access_token,omitempty"`
+	IDToken                    *string   `json:"id_token,omitempty"`
+	RefreshToken               *string   `json:"refresh_token,omitempty"`
+	ExpiresIn                  *int64    `json:"expires_in,omitempty"`
+	User                       *User     `json:"user,omitempty"`
+	AuthenticatorScannerImage  *string   `json:"authenticator_scanner_image,omitempty"`
+	AuthenticatorSecret        *string   `json:"authenticator_secret,omitempty"`
+	AuthenticatorRecoveryCodes []*string `json:"authenticator_recovery_codes,omitempty"`
 }
 
 type DeleteEmailTemplateRequest struct {
@@ -122,6 +126,8 @@ type Env struct {
 	DefaultAuthorizeResponseType     *string  `json:"DEFAULT_AUTHORIZE_RESPONSE_TYPE,omitempty"`
 	DefaultAuthorizeResponseMode     *string  `json:"DEFAULT_AUTHORIZE_RESPONSE_MODE,omitempty"`
 	DisablePlayground                bool     `json:"DISABLE_PLAYGROUND"`
+	DisableMailOtpLogin              bool     `json:"DISABLE_MAIL_OTP_LOGIN"`
+	DisableTotpLogin                 bool     `json:"DISABLE_TOTP_LOGIN"`
 }
 
 type Error struct {
@@ -382,6 +388,8 @@ type UpdateEnvInput struct {
 	DefaultAuthorizeResponseType     *string  `json:"DEFAULT_AUTHORIZE_RESPONSE_TYPE,omitempty"`
 	DefaultAuthorizeResponseMode     *string  `json:"DEFAULT_AUTHORIZE_RESPONSE_MODE,omitempty"`
 	DisablePlayground                *bool    `json:"DISABLE_PLAYGROUND,omitempty"`
+	DisableMailOtpLogin              *bool    `json:"DISABLE_MAIL_OTP_LOGIN,omitempty"`
+	DisableTotpLogin                 *bool    `json:"DISABLE_TOTP_LOGIN,omitempty"`
 }
 
 type UpdateProfileInput struct {
@@ -502,6 +510,7 @@ type VerifyOTPRequest struct {
 	Email       *string `json:"email,omitempty"`
 	PhoneNumber *string `json:"phone_number,omitempty"`
 	Otp         string  `json:"otp"`
+	Totp        *bool   `json:"totp,omitempty"`
 	State       *string `json:"state,omitempty"`
 }
 

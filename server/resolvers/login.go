@@ -7,14 +7,15 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 
+	log "github.com/sirupsen/logrus"
+
+	"github.com/authorizerdev/authorizer/server/authenticators"
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
-	mailService "github.com/authorizerdev/authorizer/server/email"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/refs"
@@ -22,6 +23,8 @@ import (
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/authorizerdev/authorizer/server/validators"
+
+	mailService "github.com/authorizerdev/authorizer/server/email"
 )
 
 // LoginResolver is a resolver for login mutation
@@ -141,52 +144,134 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 		log.Debug("MFA service not enabled: ", err)
 	}
 
-	if refs.BoolValue(user.IsMultiFactorAuthEnabled) && !isMFADisabled {
+	isTOTPLoginDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableTOTPLogin)
+	if err != nil || !isTOTPLoginDisabled {
+		log.Debug("totp service not enabled: ", err)
+	}
+
+	isMailOTPDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableMailOTPLogin)
+	if err != nil || !isMailOTPDisabled {
+		log.Debug("mail OTP service not enabled: ", err)
+	}
+
+	isSMSOTPDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisablePhoneVerification)
+	if err != nil || !isSMSOTPDisabled {
+		log.Debug("sms OTP service not enabled: ", err)
+	}
+	setOTPMFaSession := func(expiresAt int64) error {
+		mfaSession := uuid.NewString()
+		err = memorystore.Provider.SetMfaSession(user.ID, mfaSession, expiresAt)
+		if err != nil {
+			log.Debug("Failed to add mfasession: ", err)
+			return err
+		}
+		cookie.SetMfaSession(gc, mfaSession)
+		return nil
+	}
+	// If multi factor authentication is enabled and we need to generate OTP for mail / sms based MFA
+	generateOTP := func(expiresAt int64) (*models.OTP, error) {
 		otp := utils.GenerateOTP()
-		expires := time.Now().Add(1 * time.Minute).Unix()
 		otpData, err := db.Provider.UpsertOTP(ctx, &models.OTP{
 			Email:     refs.StringValue(user.Email),
 			Otp:       otp,
-			ExpiresAt: expires,
+			ExpiresAt: expiresAt,
 		})
 		if err != nil {
 			log.Debug("Failed to add otp: ", err)
 			return nil, err
 		}
-
-		mfaSession := uuid.NewString()
-		err = memorystore.Provider.SetMfaSession(user.ID, mfaSession, expires)
-		if err != nil {
-			log.Debug("Failed to add mfasession: ", err)
+		return otpData, nil
+	}
+	// If mfa enabled and also totp enabled
+	// first priority is given to totp
+	if refs.BoolValue(user.IsMultiFactorAuthEnabled) && !isMFADisabled && !isTOTPLoginDisabled {
+		expiresAt := time.Now().Add(3 * time.Minute).Unix()
+		if err := setOTPMFaSession(expiresAt); err != nil {
+			log.Debug("Failed to set mfa session: ", err)
 			return nil, err
 		}
-		cookie.SetMfaSession(gc, mfaSession)
-		if isEmailServiceEnabled && isEmailLogin {
-			go func() {
-				// exec it as go routine so that we can reduce the api latency
-				if err := mailService.SendEmail([]string{email}, constants.VerificationTypeOTP, map[string]interface{}{
-					"user":         user.ToMap(),
-					"organization": utils.GetOrganization(),
-					"otp":          otpData.Otp,
-				}); err != nil {
-					log.Debug("Failed to send otp email: ", err)
-				}
-				utils.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
-			}()
-		} else if isSMSServiceEnabled && isMobileLogin {
+		authenticator, err := db.Provider.GetAuthenticatorDetailsByUserId(ctx, user.ID, constants.EnvKeyTOTPAuthenticator)
+		// Check if it's the first time user or if their TOTP is not verified
+		if err != nil || ((authenticator == nil) || (authenticator != nil && authenticator.VerifiedAt == nil)) {
+			// Generate a base64 URL and initiate the registration for TOTP
+			authConfig, err := authenticators.Provider.Generate(ctx, user.ID)
+			if err != nil {
+				log.Debug("error while generating base64 url: ", err)
+				return nil, err
+			}
+			recoveryCodes := []*string{}
+			for _, code := range authConfig.RecoveryCodes {
+				recoveryCodes = append(recoveryCodes, refs.NewStringRef(code))
+			}
+			// when user is first time registering for totp
+			res = &model.AuthResponse{
+				Message:                    `Proceed to totp verification screen`,
+				ShouldShowTotpScreen:       refs.NewBoolRef(true),
+				AuthenticatorScannerImage:  refs.NewStringRef(authConfig.ScannerImage),
+				AuthenticatorSecret:        refs.NewStringRef(authConfig.Secret),
+				AuthenticatorRecoveryCodes: recoveryCodes,
+			}
+			return res, nil
+		} else {
+			//when user is already register for totp
+			res = &model.AuthResponse{
+				Message:              `Proceed to totp screen`,
+				ShouldShowTotpScreen: refs.NewBoolRef(true),
+			}
+			return res, nil
+		}
+	}
+	// If multi factor authentication is enabled and is email based login and email otp is enabled
+	if refs.BoolValue(user.IsMultiFactorAuthEnabled) && !isMFADisabled && !isMailOTPDisabled && isEmailServiceEnabled && isEmailLogin {
+		expiresAt := time.Now().Add(1 * time.Minute).Unix()
+		otpData, err := generateOTP(expiresAt)
+		go func() {
+			if err != nil {
+				log.Debug("Failed to generate otp: ", err)
+				return
+			}
+			if err := setOTPMFaSession(expiresAt); err != nil {
+				log.Debug("Failed to set mfa session: ", err)
+				return
+			}
+			// exec it as go routine so that we can reduce the api latency
+			if err := mailService.SendEmail([]string{email}, constants.VerificationTypeOTP, map[string]interface{}{
+				"user":         user.ToMap(),
+				"organization": utils.GetOrganization(),
+				"otp":          otpData.Otp,
+			}); err != nil {
+				log.Debug("Failed to send otp email: ", err)
+			}
+			utils.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
+		}()
+		return &model.AuthResponse{
+			Message:                  "Please check email inbox for the OTP",
+			ShouldShowEmailOtpScreen: refs.NewBoolRef(isMobileLogin),
+		}, nil
+	}
+	// If multi factor authentication is enabled and is sms based login and sms otp is enabled
+	if refs.BoolValue(user.IsMultiFactorAuthEnabled) && !isMFADisabled && !isSMSOTPDisabled && isSMSServiceEnabled && isMobileLogin {
+		expiresAt := time.Now().Add(1 * time.Minute).Unix()
+		otpData, err := generateOTP(expiresAt)
+		go func() {
+			if err != nil {
+				log.Debug("Failed to generate otp: ", err)
+				return
+			}
+			if err := setOTPMFaSession(expiresAt); err != nil {
+				log.Debug("Failed to set mfa session: ", err)
+				return
+			}
 			smsBody := strings.Builder{}
 			smsBody.WriteString("Your verification code is: ")
 			smsBody.WriteString(otpData.Otp)
-			go func() {
-				utils.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, user)
-				if err := smsproviders.SendSMS(phoneNumber, smsBody.String()); err != nil {
-					log.Debug("Failed to send sms: ", err)
-				}
-			}()
-		}
+			utils.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, user)
+			if err := smsproviders.SendSMS(phoneNumber, smsBody.String()); err != nil {
+				log.Debug("Failed to send sms: ", err)
+			}
+		}()
 		return &model.AuthResponse{
-			Message:                   "Please check the OTP in",
-			ShouldShowEmailOtpScreen:  refs.NewBoolRef(isEmailLogin),
+			Message:                   "Please check text message for the OTP",
 			ShouldShowMobileOtpScreen: refs.NewBoolRef(isMobileLogin),
 		}, nil
 	}

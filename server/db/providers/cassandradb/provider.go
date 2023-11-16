@@ -274,6 +274,13 @@ func NewProvider() (*provider, error) {
 	if err != nil {
 		return nil, err
 	}
+	// add authenticators table
+	totpCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, user_id text, method text, secret text, recovery_codes text, verified_at bigint, updated_at bigint, created_at bigint, PRIMARY KEY (id))", KeySpace, models.Collections.Authenticators)
+	err = session.Query(totpCollectionQuery).Exec()
+	if err != nil {
+		return nil, err
+	}
+
 	return &provider{
 		db: session,
 	}, err

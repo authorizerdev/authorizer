@@ -104,6 +104,8 @@ func InitAllEnv() error {
 	osDisableStrongPassword := os.Getenv(constants.EnvKeyDisableStrongPassword)
 	osEnforceMultiFactorAuthentication := os.Getenv(constants.EnvKeyEnforceMultiFactorAuthentication)
 	osDisableMultiFactorAuthentication := os.Getenv(constants.EnvKeyDisableMultiFactorAuthentication)
+	osDisableTOTPLogin := os.Getenv(constants.EnvKeyDisableTOTPLogin)
+	osDisableMailOTPLogin := os.Getenv(constants.EnvKeyDisableMailOTPLogin)
 	// phone verification var
 	osDisablePhoneVerification := os.Getenv(constants.EnvKeyDisablePhoneVerification)
 	osDisablePlayground := os.Getenv(constants.EnvKeyDisablePlayGround)
@@ -689,18 +691,11 @@ func InitAllEnv() error {
 		envData[constants.EnvKeyDisableEmailVerification] = true
 		envData[constants.EnvKeyDisableMagicLinkLogin] = true
 		envData[constants.EnvKeyIsEmailServiceEnabled] = false
+		envData[constants.EnvKeyDisableMailOTPLogin] = true
 	}
 
 	if envData[constants.EnvKeySmtpHost] != "" && envData[constants.EnvKeySmtpUsername] != "" && envData[constants.EnvKeySmtpPassword] != "" && envData[constants.EnvKeySenderEmail] != "" && envData[constants.EnvKeySmtpPort] != "" {
 		envData[constants.EnvKeyIsEmailServiceEnabled] = true
-	}
-
-	if envData[constants.EnvKeyEnforceMultiFactorAuthentication].(bool) && !envData[constants.EnvKeyIsEmailServiceEnabled].(bool) && !envData[constants.EnvKeyIsSMSServiceEnabled].(bool) {
-		return errors.New("to enable multi factor authentication, please enable email service")
-	}
-
-	if !envData[constants.EnvKeyIsEmailServiceEnabled].(bool) {
-		envData[constants.EnvKeyDisableMultiFactorAuthentication] = true
 	}
 
 	if envData[constants.EnvKeyDisableEmailVerification].(bool) {
@@ -837,6 +832,32 @@ func InitAllEnv() error {
 		}
 		if boolValue != envData[constants.EnvKeyDisablePlayGround].(bool) {
 			envData[constants.EnvKeyDisablePlayGround] = boolValue
+		}
+	}
+
+	if _, ok := envData[constants.EnvKeyDisableTOTPLogin]; !ok {
+		envData[constants.EnvKeyDisableTOTPLogin] = osDisableTOTPLogin == "false"
+	}
+	if osDisableTOTPLogin != "" {
+		boolValue, err := strconv.ParseBool(osDisableTOTPLogin)
+		if err != nil {
+			return err
+		}
+		if boolValue != envData[constants.EnvKeyDisableTOTPLogin].(bool) {
+			envData[constants.EnvKeyDisableTOTPLogin] = boolValue
+		}
+	}
+
+	if _, ok := envData[constants.EnvKeyDisableMailOTPLogin]; !ok {
+		envData[constants.EnvKeyDisableMailOTPLogin] = osDisableMailOTPLogin == "true"
+	}
+	if osDisableMailOTPLogin != "" {
+		boolValue, err := strconv.ParseBool(osDisableMailOTPLogin)
+		if err != nil {
+			return err
+		}
+		if boolValue != envData[constants.EnvKeyDisableMailOTPLogin].(bool) {
+			envData[constants.EnvKeyDisableMailOTPLogin] = boolValue
 		}
 	}
 

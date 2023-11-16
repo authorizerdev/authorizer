@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/crypto/bcrypt"
+
 	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/constants"
@@ -23,7 +25,6 @@ import (
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/authorizerdev/authorizer/server/validators"
-	"golang.org/x/crypto/bcrypt"
 )
 
 // UpdateProfileResolver is resolver for update profile mutation
@@ -101,13 +102,28 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 		appDataString = string(appDataBytes)
 		user.AppData = &appDataString
 	}
+	// Check if the user is trying to enable or disable multi-factor authentication (MFA)
 	if params.IsMultiFactorAuthEnabled != nil && refs.BoolValue(user.IsMultiFactorAuthEnabled) != refs.BoolValue(params.IsMultiFactorAuthEnabled) {
-		if refs.BoolValue(params.IsMultiFactorAuthEnabled) {
-			isEnvServiceEnabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyIsEmailServiceEnabled)
-			if err != nil || !isEnvServiceEnabled {
-				log.Debug("Email service not enabled:")
-				return nil, errors.New("email service not enabled, so cannot enable multi factor authentication")
-			}
+		// Check if totp, email or sms is enabled
+		isMailOTPEnvServiceDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableMailOTPLogin)
+		if err != nil {
+			log.Debug("Error getting mail otp disabled: ", err)
+			isMailOTPEnvServiceDisabled = false
+		}
+		isTOTPEnvServiceDisabled, _ := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableTOTPLogin)
+		if err != nil {
+			log.Debug("Error getting totp disabled: ", err)
+			isTOTPEnvServiceDisabled = false
+		}
+		isSMSOTPEnvServiceDisabled, _ := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisablePhoneVerification)
+		if err != nil {
+			log.Debug("Error getting sms otp disabled: ", err)
+			isSMSOTPEnvServiceDisabled = false
+		}
+		// Initialize a flag to check if enabling Mail OTP is required
+		if isMailOTPEnvServiceDisabled && isTOTPEnvServiceDisabled && isSMSOTPEnvServiceDisabled {
+			log.Debug("Cannot enable mfa service as all mfa services are disabled")
+			return nil, errors.New("cannot enable multi factor authentication as all mfa services are disabled")
 		}
 
 		isMFAEnforced, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyEnforceMultiFactorAuthentication)

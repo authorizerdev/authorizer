@@ -26,7 +26,7 @@ type Provider interface {
 	// If ids set to nil / empty all the users will be updated
 	UpdateUsers(ctx context.Context, data map[string]interface{}, ids []string) error
 
-	// AddVerification to save verification request in database
+	// AddVerificationRequest to save verification request in database
 	AddVerificationRequest(ctx context.Context, verificationRequest *models.VerificationRequest) (*models.VerificationRequest, error)
 	// GetVerificationRequestByToken to get verification request from database using token
 	GetVerificationRequestByToken(ctx context.Context, token string) (*models.VerificationRequest, error)
@@ -53,7 +53,7 @@ type Provider interface {
 	AddWebhook(ctx context.Context, webhook *models.Webhook) (*model.Webhook, error)
 	// UpdateWebhook to update webhook
 	UpdateWebhook(ctx context.Context, webhook *models.Webhook) (*model.Webhook, error)
-	// ListWebhooks to list webhook
+	// ListWebhook to list webhook
 	ListWebhook(ctx context.Context, pagination *model.Pagination) (*model.Webhooks, error)
 	// GetWebhookByID to get webhook by id
 	GetWebhookByID(ctx context.Context, webhookID string) (*model.Webhook, error)
@@ -71,7 +71,7 @@ type Provider interface {
 	AddEmailTemplate(ctx context.Context, emailTemplate *models.EmailTemplate) (*model.EmailTemplate, error)
 	// UpdateEmailTemplate to update EmailTemplate
 	UpdateEmailTemplate(ctx context.Context, emailTemplate *models.EmailTemplate) (*model.EmailTemplate, error)
-	// ListEmailTemplates to list EmailTemplate
+	// ListEmailTemplate to list EmailTemplate
 	ListEmailTemplate(ctx context.Context, pagination *model.Pagination) (*model.EmailTemplates, error)
 	// GetEmailTemplateByID to get EmailTemplate by id
 	GetEmailTemplateByID(ctx context.Context, emailTemplateID string) (*model.EmailTemplate, error)
@@ -88,4 +88,15 @@ type Provider interface {
 	GetOTPByPhoneNumber(ctx context.Context, phoneNumber string) (*models.OTP, error)
 	// DeleteOTP to delete otp
 	DeleteOTP(ctx context.Context, otp *models.OTP) error
+
+	// AddAuthenticator adds a new authenticator document to the database.
+	// If the authenticator doesn't have an ID, a new one is generated.
+	// The created document is returned, or an error if the operation fails.
+	AddAuthenticator(ctx context.Context, totp *models.Authenticator) (*models.Authenticator, error)
+	// UpdateAuthenticator updates an existing authenticator document in the database.
+	// The updated document is returned, or an error if the operation fails.
+	UpdateAuthenticator(ctx context.Context, totp *models.Authenticator) (*models.Authenticator, error)
+	// GetAuthenticatorDetailsByUserId retrieves details of an authenticator document based on user ID and authenticator type.
+	// If found, the authenticator document is returned, or an error if not found or an error occurs during the retrieval.
+	GetAuthenticatorDetailsByUserId(ctx context.Context, userId string, authenticatorType string) (*models.Authenticator, error)
 }
