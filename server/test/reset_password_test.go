@@ -36,7 +36,7 @@ func resetPasswordTest(t *testing.T, s TestSetup) {
 			ConfirmPassword: "test",
 		})
 
-		assert.NotNil(t, err, "passowrds don't match")
+		assert.NotNil(t, err, "passwords don't match")
 
 		_, err = resolvers.ResetPasswordResolver(ctx, model.ResetPasswordInput{
 			Token:           verificationRequest.Token,
