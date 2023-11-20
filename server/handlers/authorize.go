@@ -74,6 +74,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 		clientID := strings.TrimSpace(gc.Query("client_id"))
 		responseMode := strings.TrimSpace(gc.Query("response_mode"))
 		nonce := strings.TrimSpace(gc.Query("nonce"))
+		screenHint := strings.TrimSpace(gc.Query("screen_hint"))
 
 		var scope []string
 		if scopeString == "" {
@@ -120,27 +121,33 @@ func AuthorizeHandler() gin.HandlerFunc {
 
 		// TODO add state with timeout
 		// used for response mode query or fragment
-		loginState := "state=" + state + "&scope=" + strings.Join(scope, " ") + "&redirect_uri=" + redirectURI
+		authState := "state=" + state + "&scope=" + strings.Join(scope, " ") + "&redirect_uri=" + redirectURI
 		if responseType == constants.ResponseTypeCode {
-			loginState += "&code=" + code
+			authState += "&code=" + code
 			if err := memorystore.Provider.SetState(state, code+"@@"+codeChallenge); err != nil {
 				log.Debug("Error setting temp code", err)
 			}
 		} else {
-			loginState += "&nonce=" + nonce
+			authState += "&nonce=" + nonce
 			if err := memorystore.Provider.SetState(state, nonce); err != nil {
 				log.Debug("Error setting temp code", err)
 			}
 		}
 
-		loginURL := "/app?" + loginState
+		authURL := "/app?" + authState
 
-		if responseMode == constants.ResponseModeFragment {
-			loginURL = "/app#" + loginState
+		if screenHint == "signup" {
+			authURL = "/app/signup?" + authState
+		}
+
+		if responseMode == constants.ResponseModeFragment && screenHint == "signup" {
+			authURL = "/app/signup#" + authState
+		} else if responseMode == constants.ResponseModeFragment {
+			authURL = "/app#" + authState
 		}
 
 		if responseType == constants.ResponseTypeCode && codeChallenge == "" {
-			handleResponse(gc, responseMode, loginURL, redirectURI, map[string]interface{}{
+			handleResponse(gc, responseMode, authURL, redirectURI, map[string]interface{}{
 				"type": "authorization_response",
 				"response": map[string]interface{}{
 					"error":             "code_challenge_required",
@@ -160,7 +167,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 		sessionToken, err := cookie.GetSession(gc)
 		if err != nil {
 			log.Debug("GetSession failed: ", err)
-			handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
+			handleResponse(gc, responseMode, authURL, redirectURI, loginError, http.StatusOK)
 			return
 		}
 
@@ -168,7 +175,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 		claims, err := token.ValidateBrowserSession(gc, sessionToken)
 		if err != nil {
 			log.Debug("ValidateBrowserSession failed: ", err)
-			handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
+			handleResponse(gc, responseMode, authURL, redirectURI, loginError, http.StatusOK)
 			return
 		}
 
@@ -176,7 +183,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 		user, err := db.Provider.GetUserByID(gc, userID)
 		if err != nil {
 			log.Debug("GetUserByID failed: ", err)
-			handleResponse(gc, responseMode, loginURL, redirectURI, map[string]interface{}{
+			handleResponse(gc, responseMode, authURL, redirectURI, map[string]interface{}{
 				"type": "authorization_response",
 				"response": map[string]interface{}{
 					"error":             "signup_required",
@@ -197,27 +204,27 @@ func AuthorizeHandler() gin.HandlerFunc {
 			newSessionTokenData, newSessionToken, newSessionExpiresAt, err := token.CreateSessionToken(user, nonce, claims.Roles, scope, claims.LoginMethod)
 			if err != nil {
 				log.Debug("CreateSessionToken failed: ", err)
-				handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
+				handleResponse(gc, responseMode, authURL, redirectURI, loginError, http.StatusOK)
 				return
 			}
 
 			// TODO: add state with timeout
 			// if err := memorystore.Provider.SetState(codeChallenge, code+"@"+newSessionToken); err != nil {
 			// 	log.Debug("SetState failed: ", err)
-			// 	handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
+			// 	handleResponse(gc, responseMode, authURL, redirectURI, loginError, http.StatusOK)
 			// 	return
 			// }
 
 			// TODO: add state with timeout
 			if err := memorystore.Provider.SetState(code, codeChallenge+"@@"+newSessionToken); err != nil {
 				log.Debug("SetState failed: ", err)
-				handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
+				handleResponse(gc, responseMode, authURL, redirectURI, loginError, http.StatusOK)
 				return
 			}
 
 			if err := memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+newSessionTokenData.Nonce, newSessionToken, newSessionExpiresAt); err != nil {
 				log.Debug("SetUserSession failed: ", err)
-				handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
+				handleResponse(gc, responseMode, authURL, redirectURI, loginError, http.StatusOK)
 				return
 			}
 
@@ -251,7 +258,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 				}
 			}
 
-			handleResponse(gc, responseMode, loginURL, redirectURI, map[string]interface{}{
+			handleResponse(gc, responseMode, authURL, redirectURI, map[string]interface{}{
 				"type": "authorization_response",
 				"response": map[string]interface{}{
 					"code":  code,
@@ -267,19 +274,19 @@ func AuthorizeHandler() gin.HandlerFunc {
 			authToken, err := token.CreateAuthToken(gc, user, claims.Roles, scope, claims.LoginMethod, nonce, "")
 			if err != nil {
 				log.Debug("CreateAuthToken failed: ", err)
-				handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
+				handleResponse(gc, responseMode, authURL, redirectURI, loginError, http.StatusOK)
 				return
 			}
 
 			if err := memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+nonce, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt); err != nil {
 				log.Debug("SetUserSession failed: ", err)
-				handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
+				handleResponse(gc, responseMode, authURL, redirectURI, loginError, http.StatusOK)
 				return
 			}
 
 			if err := memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+nonce, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt); err != nil {
 				log.Debug("SetUserSession failed: ", err)
-				handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
+				handleResponse(gc, responseMode, authURL, redirectURI, loginError, http.StatusOK)
 				return
 			}
 
@@ -322,14 +329,14 @@ func AuthorizeHandler() gin.HandlerFunc {
 				}
 			}
 
-			handleResponse(gc, responseMode, loginURL, redirectURI, map[string]interface{}{
+			handleResponse(gc, responseMode, authURL, redirectURI, map[string]interface{}{
 				"type":     "authorization_response",
 				"response": res,
 			}, http.StatusOK)
 			return
 		}
 
-		handleResponse(gc, responseMode, loginURL, redirectURI, loginError, http.StatusOK)
+		handleResponse(gc, responseMode, authURL, redirectURI, loginError, http.StatusOK)
 	}
 }
 
@@ -352,14 +359,14 @@ func validateAuthorizeRequest(responseType, responseMode, clientID, state, codeC
 	return nil
 }
 
-func handleResponse(gc *gin.Context, responseMode, loginURI, redirectURI string, data map[string]interface{}, httpStatusCode int) {
+func handleResponse(gc *gin.Context, responseMode, authURI, redirectURI string, data map[string]interface{}, httpStatusCode int) {
 	isAuthenticationRequired := false
 	if _, ok := data["response"].(map[string]interface{})["error"]; ok {
 		isAuthenticationRequired = true
 	}
 
 	if isAuthenticationRequired && responseMode != constants.ResponseModeWebMessage {
-		gc.Redirect(http.StatusFound, loginURI)
+		gc.Redirect(http.StatusFound, authURI)
 		return
 	}
 
