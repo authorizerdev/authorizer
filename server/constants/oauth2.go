@@ -18,5 +18,5 @@ const (
 	ResponseTypeIDToken = "id_token"
 
 	// Constant indicating the "signup" screen hint for customizing authentication process and redirect to a signup page.
-	ScreenHint = "signup"
+	ScreenHintSignUp = "signup"
 )

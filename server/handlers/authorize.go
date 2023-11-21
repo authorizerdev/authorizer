@@ -138,11 +138,11 @@ func AuthorizeHandler() gin.HandlerFunc {
 
 		authURL := baseAppPath + "?" + authState
 
-		if screenHint == constants.ScreenHint {
+		if screenHint == constants.ScreenHintSignUp {
 			authURL = signupPath + "?" + authState
 		}
 
-		if responseMode == constants.ResponseModeFragment && screenHint == constants.ScreenHint {
+		if responseMode == constants.ResponseModeFragment && screenHint == constants.ScreenHintSignUp {
 			authURL = signupPath + "#" + authState
 		} else if responseMode == constants.ResponseModeFragment {
 			authURL = baseAppPath + "#" + authState
