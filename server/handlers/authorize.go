@@ -55,6 +55,8 @@ import (
 const (
 	authorizeWebMessageTemplate = "authorize_web_message.tmpl"
 	authorizeFormPostTemplate   = "authorize_form_post.tmpl"
+	baseAppPath                 = "/app"
+	signupPath                  = "/app/signup"
 )
 
 // AuthorizeHandler is the handler for the /authorize route
@@ -134,16 +136,16 @@ func AuthorizeHandler() gin.HandlerFunc {
 			}
 		}
 
-		authURL := "/app?" + authState
+		authURL := baseAppPath + "?" + authState
 
-		if screenHint == "signup" {
-			authURL = "/app/signup?" + authState
+		if screenHint == constants.ScreenHint {
+			authURL = signupPath + "?" + authState
 		}
 
-		if responseMode == constants.ResponseModeFragment && screenHint == "signup" {
-			authURL = "/app/signup#" + authState
+		if responseMode == constants.ResponseModeFragment && screenHint == constants.ScreenHint {
+			authURL = signupPath + "#" + authState
 		} else if responseMode == constants.ResponseModeFragment {
-			authURL = "/app#" + authState
+			authURL = baseAppPath + "#" + authState
 		}
 
 		if responseType == constants.ResponseTypeCode && codeChallenge == "" {
