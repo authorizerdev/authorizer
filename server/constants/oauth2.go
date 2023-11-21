@@ -16,4 +16,7 @@ const (
 	ResponseTypeToken = "token"
 	// For the Implicit grant of id_token, use response_type=id_token to include an identifier token.
 	ResponseTypeIDToken = "id_token"
+
+	// Constant indicating the "signup" screen hint for customizing authentication process and redirect to a signup page.
+	ScreenHintSignUp = "signup"
 )
