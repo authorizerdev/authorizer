@@ -182,45 +182,6 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 		}
 		return otpData, nil
 	}
-	// If mfa enabled and also totp enabled
-	// first priority is given to totp
-	if refs.BoolValue(user.IsMultiFactorAuthEnabled) && !isMFADisabled && !isTOTPLoginDisabled {
-		expiresAt := time.Now().Add(3 * time.Minute).Unix()
-		if err := setOTPMFaSession(expiresAt); err != nil {
-			log.Debug("Failed to set mfa session: ", err)
-			return nil, err
-		}
-		authenticator, err := db.Provider.GetAuthenticatorDetailsByUserId(ctx, user.ID, constants.EnvKeyTOTPAuthenticator)
-		// Check if it's the first time user or if their TOTP is not verified
-		if err != nil || ((authenticator == nil) || (authenticator != nil && authenticator.VerifiedAt == nil)) {
-			// Generate a base64 URL and initiate the registration for TOTP
-			authConfig, err := authenticators.Provider.Generate(ctx, user.ID)
-			if err != nil {
-				log.Debug("error while generating base64 url: ", err)
-				return nil, err
-			}
-			recoveryCodes := []*string{}
-			for _, code := range authConfig.RecoveryCodes {
-				recoveryCodes = append(recoveryCodes, refs.NewStringRef(code))
-			}
-			// when user is first time registering for totp
-			res = &model.AuthResponse{
-				Message:                    `Proceed to totp verification screen`,
-				ShouldShowTotpScreen:       refs.NewBoolRef(true),
-				AuthenticatorScannerImage:  refs.NewStringRef(authConfig.ScannerImage),
-				AuthenticatorSecret:        refs.NewStringRef(authConfig.Secret),
-				AuthenticatorRecoveryCodes: recoveryCodes,
-			}
-			return res, nil
-		} else {
-			//when user is already register for totp
-			res = &model.AuthResponse{
-				Message:              `Proceed to totp screen`,
-				ShouldShowTotpScreen: refs.NewBoolRef(true),
-			}
-			return res, nil
-		}
-	}
 	// If multi factor authentication is enabled and is email based login and email otp is enabled
 	if refs.BoolValue(user.IsMultiFactorAuthEnabled) && !isMFADisabled && !isMailOTPDisabled && isEmailServiceEnabled && isEmailLogin {
 		expiresAt := time.Now().Add(1 * time.Minute).Unix()
@@ -274,6 +235,44 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 			Message:                   "Please check text message for the OTP",
 			ShouldShowMobileOtpScreen: refs.NewBoolRef(isMobileLogin),
 		}, nil
+	}
+	// If mfa enabled and also totp enabled
+	if refs.BoolValue(user.IsMultiFactorAuthEnabled) && !isMFADisabled && !isTOTPLoginDisabled {
+		expiresAt := time.Now().Add(3 * time.Minute).Unix()
+		if err := setOTPMFaSession(expiresAt); err != nil {
+			log.Debug("Failed to set mfa session: ", err)
+			return nil, err
+		}
+		authenticator, err := db.Provider.GetAuthenticatorDetailsByUserId(ctx, user.ID, constants.EnvKeyTOTPAuthenticator)
+		// Check if it's the first time user or if their TOTP is not verified
+		if err != nil || ((authenticator == nil) || (authenticator != nil && authenticator.VerifiedAt == nil)) {
+			// Generate a base64 URL and initiate the registration for TOTP
+			authConfig, err := authenticators.Provider.Generate(ctx, user.ID)
+			if err != nil {
+				log.Debug("error while generating base64 url: ", err)
+				return nil, err
+			}
+			recoveryCodes := []*string{}
+			for _, code := range authConfig.RecoveryCodes {
+				recoveryCodes = append(recoveryCodes, refs.NewStringRef(code))
+			}
+			// when user is first time registering for totp
+			res = &model.AuthResponse{
+				Message:                    `Proceed to totp verification screen`,
+				ShouldShowTotpScreen:       refs.NewBoolRef(true),
+				AuthenticatorScannerImage:  refs.NewStringRef(authConfig.ScannerImage),
+				AuthenticatorSecret:        refs.NewStringRef(authConfig.Secret),
+				AuthenticatorRecoveryCodes: recoveryCodes,
+			}
+			return res, nil
+		} else {
+			//when user is already register for totp
+			res = &model.AuthResponse{
+				Message:              `Proceed to totp screen`,
+				ShouldShowTotpScreen: refs.NewBoolRef(true),
+			}
+			return res, nil
+		}
 	}
 
 	code := ""

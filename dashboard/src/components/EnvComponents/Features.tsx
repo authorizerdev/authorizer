@@ -25,7 +25,6 @@ const Features = ({ variables, setVariables }: any) => {
 					</Flex>
 				</Flex>
 
-
 				<Flex>
 					<Flex w="100%" justifyContent="start" alignItems="center">
 						<Text fontSize="sm">Email Verification:</Text>
@@ -109,15 +108,12 @@ const Features = ({ variables, setVariables }: any) => {
 						/>
 					</Flex>
 				</Flex>
-
-				{
-					!variables.DISABLE_MULTI_FACTOR_AUTHENTICATION &&
+				{/** TODO enable after final release */}
+				{/* {!variables.DISABLE_MULTI_FACTOR_AUTHENTICATION && (
 					<Flex alignItems="center">
 						<Flex w="100%" alignItems="baseline" flexDir="column">
 							<Text fontSize="sm">TOTP:</Text>
-							<Text fontSize="x-small">
-								Note: to enable totp mfa
-							</Text>
+							<Text fontSize="x-small">Note: to enable totp mfa</Text>
 						</Flex>
 
 						<Flex justifyContent="start" mb={3}>
@@ -129,25 +125,24 @@ const Features = ({ variables, setVariables }: any) => {
 							/>
 						</Flex>
 					</Flex>
-				}
-				{!variables.DISABLE_MULTI_FACTOR_AUTHENTICATION &&
+				)} */}
+				{!variables.DISABLE_MULTI_FACTOR_AUTHENTICATION && (
 					<Flex alignItems="center">
-					<Flex w="100%" alignItems="baseline" flexDir="column">
-					<Text fontSize="sm">EMAIL OTP:</Text>
-					<Text fontSize="x-small">
-					Note: to enable email otp mfa
-					</Text>
-					</Flex>
+						<Flex w="100%" alignItems="baseline" flexDir="column">
+							<Text fontSize="sm">EMAIL OTP:</Text>
+							<Text fontSize="x-small">Note: to enable email otp mfa</Text>
+						</Flex>
 
-					<Flex justifyContent="start" mb={3}>
-				<InputField
-					variables={variables}
-					setVariables={setVariables}
-					inputType={SwitchInputType.DISABLE_MAIL_OTP_LOGIN}
-					hasReversedValue
-				/>
-			</Flex>
-		</Flex>}
+						<Flex justifyContent="start" mb={3}>
+							<InputField
+								variables={variables}
+								setVariables={setVariables}
+								inputType={SwitchInputType.DISABLE_MAIL_OTP_LOGIN}
+								hasReversedValue
+							/>
+						</Flex>
+					</Flex>
+				)}
 
 				<Flex alignItems="center">
 					<Flex w="100%" alignItems="baseline" flexDir="column">

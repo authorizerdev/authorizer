@@ -261,7 +261,6 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 		}
 		if !updatedData[constants.EnvKeyDisableMagicLinkLogin].(bool) {
 			updatedData[constants.EnvKeyDisableMailOTPLogin] = true
-			updatedData[constants.EnvKeyDisableTOTPLogin] = false
 		}
 	}
 
@@ -276,19 +275,8 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 		}
 	}
 
-	if updatedData[constants.EnvKeyDisableMultiFactorAuthentication].(bool) {
-		updatedData[constants.EnvKeyDisableTOTPLogin] = true
+	if updatedData[constants.EnvKeyDisableMultiFactorAuthentication].(bool) && updatedData[constants.EnvKeyIsEmailServiceEnabled].(bool) {
 		updatedData[constants.EnvKeyDisableMailOTPLogin] = true
-	} else {
-		if !updatedData[constants.EnvKeyDisableMailOTPLogin].(bool) && !updatedData[constants.EnvKeyDisableTOTPLogin].(bool) {
-			errors.New("can't enable both mfa methods at same time")
-			updatedData[constants.EnvKeyDisableMailOTPLogin] = true
-			updatedData[constants.EnvKeyDisableTOTPLogin] = false
-		} else if updatedData[constants.EnvKeyDisableMailOTPLogin].(bool) && updatedData[constants.EnvKeyDisableTOTPLogin].(bool) {
-			errors.New("can't disable both mfa methods at same time")
-			updatedData[constants.EnvKeyDisableMailOTPLogin] = true
-			updatedData[constants.EnvKeyDisableTOTPLogin] = false
-		}
 	}
 
 	if !currentData[constants.EnvKeyEnforceMultiFactorAuthentication].(bool) && updatedData[constants.EnvKeyEnforceMultiFactorAuthentication].(bool) && !updatedData[constants.EnvKeyDisableMultiFactorAuthentication].(bool) {

@@ -834,9 +834,10 @@ func InitAllEnv() error {
 			envData[constants.EnvKeyDisablePlayGround] = boolValue
 		}
 	}
-
+	// TODO: remove after beta launch
+	envData[constants.EnvKeyDisableTOTPLogin] = true
 	if _, ok := envData[constants.EnvKeyDisableTOTPLogin]; !ok {
-		envData[constants.EnvKeyDisableTOTPLogin] = osDisableTOTPLogin == "false"
+		envData[constants.EnvKeyDisableTOTPLogin] = osDisableTOTPLogin == "true"
 	}
 	if osDisableTOTPLogin != "" {
 		boolValue, err := strconv.ParseBool(osDisableTOTPLogin)
@@ -847,6 +848,7 @@ func InitAllEnv() error {
 			envData[constants.EnvKeyDisableTOTPLogin] = boolValue
 		}
 	}
+	fmt.Println("=> final value", envData[constants.EnvKeyDisableTOTPLogin])
 
 	if _, ok := envData[constants.EnvKeyDisableMailOTPLogin]; !ok {
 		envData[constants.EnvKeyDisableMailOTPLogin] = osDisableMailOTPLogin == "true"
