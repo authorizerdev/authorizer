@@ -54,7 +54,7 @@ export default function App() {
 				<img
 					src={`${globalState.organizationLogo}`}
 					alt="logo"
-					style={{ height: 60, width: 60, objectFit: 'cover' }}
+					style={{ height: 60, objectFit: 'cover' }}
 				/>
 				<h1>{globalState.organizationName}</h1>
 			</div>
