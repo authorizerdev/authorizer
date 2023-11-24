@@ -848,7 +848,6 @@ func InitAllEnv() error {
 			envData[constants.EnvKeyDisableTOTPLogin] = boolValue
 		}
 	}
-	fmt.Println("=> final value", envData[constants.EnvKeyDisableTOTPLogin])
 
 	if _, ok := envData[constants.EnvKeyDisableMailOTPLogin]; !ok {
 		envData[constants.EnvKeyDisableMailOTPLogin] = osDisableMailOTPLogin == "true"
