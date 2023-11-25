@@ -6,6 +6,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/memorystore"
+	libsql "github.com/ekristen/gorm-libsql"
 	"github.com/glebarez/sqlite"
 	"github.com/sirupsen/logrus"
 	"gorm.io/driver/mysql"
@@ -60,6 +61,8 @@ func NewProvider() (*provider, error) {
 		sqlDB, err = gorm.Open(postgres.Open(dbURL), ormConfig)
 	case constants.DbTypeSqlite:
 		sqlDB, err = gorm.Open(sqlite.Open(dbURL+"?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)"), ormConfig)
+	case constants.DbTypeLibSQL:
+		sqlDB, err = gorm.Open(libsql.Open(dbURL), ormConfig)
 	case constants.DbTypeMysql, constants.DbTypeMariaDB, constants.DbTypePlanetScaleDB:
 		sqlDB, err = gorm.Open(mysql.Open(dbURL), ormConfig)
 	case constants.DbTypeSqlserver:
