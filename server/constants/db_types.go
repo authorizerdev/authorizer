@@ -5,6 +5,8 @@ const (
 	DbTypePostgres = "postgres"
 	// DbTypeSqlite is the sqlite database type
 	DbTypeSqlite = "sqlite"
+	// DbTypeLibSQL is the libsql / Turso database type
+	DbTypeLibSQL = "libsql"
 	// DbTypeMysql is the mysql database type
 	DbTypeMysql = "mysql"
 	// DbTypeSqlserver is the sqlserver database type
