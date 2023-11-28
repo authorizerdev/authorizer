@@ -218,17 +218,17 @@ func PersistEnv() error {
 		if storeData[constants.EnvKeySmtpHost] == "" || storeData[constants.EnvKeySmtpUsername] == "" || storeData[constants.EnvKeySmtpPassword] == "" || storeData[constants.EnvKeySenderEmail] == "" && storeData[constants.EnvKeySmtpPort] == "" {
 			storeData[constants.EnvKeyIsEmailServiceEnabled] = false
 
-			if !storeData[constants.EnvKeyDisableEmailVerification].(bool) {
+			if val, ok := storeData[constants.EnvKeyDisableEmailVerification]; ok && val != nil && !val.(bool) {
 				storeData[constants.EnvKeyDisableEmailVerification] = true
 				hasChanged = true
 			}
 
-			if !storeData[constants.EnvKeyDisableMagicLinkLogin].(bool) {
+			if val, ok := storeData[constants.EnvKeyDisableMagicLinkLogin]; ok && val != nil && !val.(bool) {
 				storeData[constants.EnvKeyDisableMagicLinkLogin] = true
 				hasChanged = true
 			}
 
-			if !storeData[constants.EnvKeyDisableMailOTPLogin].(bool) {
+			if val, ok := storeData[constants.EnvKeyDisableMailOTPLogin]; ok && val != nil && !val.(bool) {
 				storeData[constants.EnvKeyDisableMailOTPLogin] = true
 				hasChanged = true
 			}
