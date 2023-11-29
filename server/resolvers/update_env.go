@@ -34,6 +34,7 @@ func clearSessionIfRequired(currentData, updatedData map[string]interface{}) {
 	isCurrentLinkedInLoginEnabled := currentData[constants.EnvKeyLinkedInClientID] != nil && currentData[constants.EnvKeyLinkedInClientSecret] != nil && currentData[constants.EnvKeyLinkedInClientID].(string) != "" && currentData[constants.EnvKeyLinkedInClientSecret].(string) != ""
 	isCurrentTwitterLoginEnabled := currentData[constants.EnvKeyTwitterClientID] != nil && currentData[constants.EnvKeyTwitterClientSecret] != nil && currentData[constants.EnvKeyTwitterClientID].(string) != "" && currentData[constants.EnvKeyTwitterClientSecret].(string) != ""
 	isCurrentMicrosoftLoginEnabled := currentData[constants.EnvKeyMicrosoftClientID] != nil && currentData[constants.EnvKeyMicrosoftClientSecret] != nil && currentData[constants.EnvKeyMicrosoftClientID].(string) != "" && currentData[constants.EnvKeyMicrosoftClientSecret].(string) != ""
+	isCurrentTwitchLoginEnabled := currentData[constants.EnvKeyTwitchClientID] != nil && currentData[constants.EnvKeyTwitchClientSecret] != nil && currentData[constants.EnvKeyTwitchClientID].(string) != "" && currentData[constants.EnvKeyTwitchClientSecret].(string) != ""
 
 	isUpdatedBasicAuthEnabled := !updatedData[constants.EnvKeyDisableBasicAuthentication].(bool)
 	isUpdatedMobileBasicAuthEnabled := !updatedData[constants.EnvKeyDisableMobileBasicAuthentication].(bool)
@@ -45,6 +46,7 @@ func clearSessionIfRequired(currentData, updatedData map[string]interface{}) {
 	isUpdatedLinkedInLoginEnabled := updatedData[constants.EnvKeyLinkedInClientID] != nil && updatedData[constants.EnvKeyLinkedInClientSecret] != nil && updatedData[constants.EnvKeyLinkedInClientID].(string) != "" && updatedData[constants.EnvKeyLinkedInClientSecret].(string) != ""
 	isUpdatedTwitterLoginEnabled := updatedData[constants.EnvKeyTwitterClientID] != nil && updatedData[constants.EnvKeyTwitterClientSecret] != nil && updatedData[constants.EnvKeyTwitterClientID].(string) != "" && updatedData[constants.EnvKeyTwitterClientSecret].(string) != ""
 	isUpdatedMicrosoftLoginEnabled := updatedData[constants.EnvKeyMicrosoftClientID] != nil && updatedData[constants.EnvKeyMicrosoftClientSecret] != nil && updatedData[constants.EnvKeyMicrosoftClientID].(string) != "" && updatedData[constants.EnvKeyMicrosoftClientSecret].(string) != ""
+	isUpdatedTwitchLoginEnabled := updatedData[constants.EnvKeyTwitchClientID] != nil && updatedData[constants.EnvKeyTwitchClientSecret] != nil && updatedData[constants.EnvKeyTwitchClientID].(string) != "" && updatedData[constants.EnvKeyTwitchClientSecret].(string) != ""
 
 	if isCurrentBasicAuthEnabled && !isUpdatedBasicAuthEnabled {
 		memorystore.Provider.DeleteSessionForNamespace(constants.AuthRecipeMethodBasicAuth)
@@ -84,6 +86,10 @@ func clearSessionIfRequired(currentData, updatedData map[string]interface{}) {
 
 	if isCurrentMicrosoftLoginEnabled && !isUpdatedMicrosoftLoginEnabled {
 		memorystore.Provider.DeleteSessionForNamespace(constants.AuthRecipeMethodMicrosoft)
+	}
+
+	if isCurrentTwitchLoginEnabled && !isUpdatedTwitchLoginEnabled {
+		memorystore.Provider.DeleteSessionForNamespace(constants.AuthRecipeMethodTwitch)
 	}
 }
 

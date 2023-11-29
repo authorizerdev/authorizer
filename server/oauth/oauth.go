@@ -4,13 +4,16 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/coreos/go-oidc/v3/oidc"
 	"golang.org/x/oauth2"
+	"google.golang.org/appengine/log"
+
 	facebookOAuth2 "golang.org/x/oauth2/facebook"
 	githubOAuth2 "golang.org/x/oauth2/github"
 	linkedInOAuth2 "golang.org/x/oauth2/linkedin"
 	microsoftOAuth2 "golang.org/x/oauth2/microsoft"
-	"google.golang.org/appengine/log"
+	twitchOAuth2 "golang.org/x/oauth2/twitch"
+
+	"github.com/coreos/go-oidc/v3/oidc"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/memorystore"
@@ -29,12 +32,14 @@ type OAuthProvider struct {
 	AppleConfig     *oauth2.Config
 	TwitterConfig   *oauth2.Config
 	MicrosoftConfig *oauth2.Config
+	TwitchConfig    *oauth2.Config
 }
 
 // OIDCProviders is a struct that contains reference all the OpenID providers
 type OIDCProvider struct {
 	GoogleOIDC    *oidc.Provider
 	MicrosoftOIDC *oidc.Provider
+	TwitchOIDC    *oidc.Provider
 }
 
 var (
@@ -195,6 +200,32 @@ func InitOAuth() error {
 			RedirectURL:  "/oauth_callback/microsoft",
 			Endpoint:     microsoftOAuth2.AzureADEndpoint(microsoftActiveDirTenantID),
 			Scopes:       []string{oidc.ScopeOpenID, "profile", "email"},
+		}
+	}
+
+	twitchClientID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyTwitchClientID)
+	if err != nil {
+		twitchClientID = ""
+	}
+	twitchClientSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyTwitchClientSecret)
+	if err != nil {
+		twitchClientSecret = ""
+	}
+
+	if twitchClientID != "" && twitchClientSecret != "" {
+		p, err := oidc.NewProvider(ctx, "https://id.twitch.tv/oauth2")
+		if err != nil {
+			log.Debugf(ctx, "Error while creating OIDC provider for Twitch: %v", err)
+			return err
+		}
+
+		OIDCProviders.TwitchOIDC = p
+		OAuthProviders.TwitchConfig = &oauth2.Config{
+			ClientID:     twitchClientID,
+			ClientSecret: twitchClientSecret,
+			RedirectURL:  "/oauth_callback/twitch",
+			Endpoint:     twitchOAuth2.Endpoint,
+			Scopes:       []string{oidc.ScopeOpenID},
 		}
 	}
 
