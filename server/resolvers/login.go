@@ -244,8 +244,8 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 			return nil, err
 		}
 		authenticator, err := db.Provider.GetAuthenticatorDetailsByUserId(ctx, user.ID, constants.EnvKeyTOTPAuthenticator)
-		// Check if it's the first time user or if their TOTP is not verified
-		if err != nil || ((authenticator == nil) || (authenticator != nil && authenticator.VerifiedAt == nil)) {
+		if err != nil || authenticator == nil || authenticator.VerifiedAt == nil {
+			// generate totp
 			// Generate a base64 URL and initiate the registration for TOTP
 			authConfig, err := authenticators.Provider.Generate(ctx, user.ID)
 			if err != nil {

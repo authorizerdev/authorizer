@@ -35,13 +35,10 @@ func (p *provider) AddAuthenticator(ctx context.Context, authenticators *models.
 
 func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators *models.Authenticator) (*models.Authenticator, error) {
 	authenticators.UpdatedAt = time.Now().Unix()
-
 	result := p.db.Save(&authenticators)
-
 	if result.Error != nil {
 		return authenticators, result.Error
 	}
-
 	return authenticators, nil
 }
 
