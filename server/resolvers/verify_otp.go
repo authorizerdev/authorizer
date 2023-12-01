@@ -58,9 +58,13 @@ func VerifyOtpResolver(ctx context.Context, params model.VerifyOTPRequest) (*mod
 	// Verify OTP based on TOPT or OTP
 	if refs.BoolValue(params.Totp) {
 		status, err := authenticators.Provider.Validate(ctx, params.Otp, user.ID)
-		if err != nil || !status {
+		if err != nil {
 			log.Debug("Failed to validate totp: ", err)
 			return nil, fmt.Errorf("error while validating passcode")
+		}
+		if !status {
+			log.Debug("Failed to verify otp request: Incorrect value")
+			return res, fmt.Errorf(`invalid otp`)
 		}
 	} else {
 		var otp *models.OTP

@@ -8,8 +8,10 @@ type AuthenticatorConfig struct {
 	ScannerImage string
 	// Secrets is the secret key
 	Secret string
-	// RecoveryCode is the secret key
+	// RecoveryCode is the list of recovery codes
 	RecoveryCodes []string
+	// RecoveryCodeMap is the map of recovery codes
+	RecoveryCodeMap map[string]bool
 }
 
 // Provider defines authenticators provider
