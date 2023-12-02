@@ -722,8 +722,6 @@ func processTwitchUserInfo(ctx context.Context, code string) (*models.User, erro
 		log.Debug("Failed to extract ID Token from OAuth2 token")
 		return nil, fmt.Errorf("unable to extract id_token")
 	}
-
-	// we need to skip issuer check because for common tenant it will return internal issuer which does not match
 	verifier := oauth.OIDCProviders.TwitchOIDC.Verifier(&oidc.Config{
 		ClientID:        oauth.OAuthProviders.TwitchConfig.ClientID,
 		SkipIssuerCheck: true,
@@ -744,4 +742,3 @@ func processTwitchUserInfo(ctx context.Context, code string) (*models.User, erro
 
 	return user, nil
 }
-
