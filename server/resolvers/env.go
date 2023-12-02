@@ -164,7 +164,12 @@ func EnvResolver(ctx context.Context) (*model.Env, error) {
 	if val, ok := store[constants.EnvKeyMicrosoftActiveDirectoryTenantID]; ok {
 		res.MicrosoftActiveDirectoryTenantID = refs.NewStringRef(val.(string))
 	}
-
+	if val, ok := store[constants.EnvKeyTwitchClientID]; ok {
+		res.TwitchClientID = refs.NewStringRef(val.(string))
+	}
+	if val, ok := store[constants.EnvKeyTwitchClientSecret]; ok {
+		res.TwitchClientSecret = refs.NewStringRef(val.(string))
+	}
 	if val, ok := store[constants.EnvKeyOrganizationName]; ok {
 		res.OrganizationName = refs.NewStringRef(val.(string))
 	}

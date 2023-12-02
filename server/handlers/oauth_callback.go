@@ -11,11 +11,13 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/oauth2"
+
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/oauth2"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/cookie"
@@ -75,6 +77,8 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			user, err = processTwitterUserInfo(ctx, oauthCode, sessionState)
 		case constants.AuthRecipeMethodMicrosoft:
 			user, err = processMicrosoftUserInfo(ctx, oauthCode)
+		case constants.AuthRecipeMethodTwitch:
+			user, err = processTwitchUserInfo(ctx, oauthCode)
 		default:
 			log.Info("Invalid oauth provider")
 			err = fmt.Errorf(`invalid oauth provider`)
@@ -703,3 +707,41 @@ func processMicrosoftUserInfo(ctx context.Context, code string) (*models.User, e
 
 	return user, nil
 }
+
+// process twitch user information
+func processTwitchUserInfo(ctx context.Context, code string) (*models.User, error) {
+	oauth2Token, err := oauth.OAuthProviders.TwitchConfig.Exchange(ctx, code)
+	if err != nil {
+		log.Debug("Failed to exchange code for token: ", err)
+		return nil, fmt.Errorf("invalid twitch exchange code: %s", err.Error())
+	}
+
+	// Extract the ID Token from OAuth2 token.
+	rawIDToken, ok := oauth2Token.Extra("id_token").(string)
+	if !ok {
+		log.Debug("Failed to extract ID Token from OAuth2 token")
+		return nil, fmt.Errorf("unable to extract id_token")
+	}
+
+	// we need to skip issuer check because for common tenant it will return internal issuer which does not match
+	verifier := oauth.OIDCProviders.TwitchOIDC.Verifier(&oidc.Config{
+		ClientID:        oauth.OAuthProviders.TwitchConfig.ClientID,
+		SkipIssuerCheck: true,
+	})
+
+	// Parse and verify ID Token payload.
+	idToken, err := verifier.Verify(ctx, rawIDToken)
+	if err != nil {
+		log.Debug("Failed to verify ID Token: ", err)
+		return nil, fmt.Errorf("unable to verify id_token: %s", err.Error())
+	}
+
+	user := &models.User{}
+	if err := idToken.Claims(&user); err != nil {
+		log.Debug("Failed to parse ID Token claims: ", err)
+		return nil, fmt.Errorf("unable to extract claims")
+	}
+
+	return user, nil
+}
+

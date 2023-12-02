@@ -118,6 +118,10 @@ const (
 	EnvKeyMicrosoftActiveDirectoryTenantID = "MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID"
 	// EnvKeyMicrosoftClientSecret key for env variable MICROSOFT_CLIENT_SECRET
 	EnvKeyMicrosoftClientSecret = "MICROSOFT_CLIENT_SECRET"
+	// EnvKeyTwitchClientID key for env variable TWITCH_CLIENT_ID
+	EnvKeyTwitchClientID = "TWITCH_CLIENT_ID"
+	// EnvKeyTwitchClientSecret key for env variable TWITCH_CLIENT_SECRET
+	EnvKeyTwitchClientSecret = "TWITCH_CLIENT_SECRET"
 	// EnvKeyOrganizationName key for env variable ORGANIZATION_NAME
 	EnvKeyOrganizationName = "ORGANIZATION_NAME"
 	// EnvKeyOrganizationLogo key for env variable ORGANIZATION_LOGO

@@ -119,6 +119,8 @@ type Env struct {
 	MicrosoftClientID                *string  `json:"MICROSOFT_CLIENT_ID,omitempty"`
 	MicrosoftClientSecret            *string  `json:"MICROSOFT_CLIENT_SECRET,omitempty"`
 	MicrosoftActiveDirectoryTenantID *string  `json:"MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID,omitempty"`
+	TwitchClientID                   *string  `json:"TWITCH_CLIENT_ID,omitempty"`
+	TwitchClientSecret               *string  `json:"TWITCH_CLIENT_SECRET,omitempty"`
 	OrganizationName                 *string  `json:"ORGANIZATION_NAME,omitempty"`
 	OrganizationLogo                 *string  `json:"ORGANIZATION_LOGO,omitempty"`
 	AppCookieSecure                  bool     `json:"APP_COOKIE_SECURE"`
@@ -198,6 +200,7 @@ type Meta struct {
 	IsAppleLoginEnabled          bool   `json:"is_apple_login_enabled"`
 	IsTwitterLoginEnabled        bool   `json:"is_twitter_login_enabled"`
 	IsMicrosoftLoginEnabled      bool   `json:"is_microsoft_login_enabled"`
+	IsTwitchLoginEnabled         bool   `json:"is_twitch_login_enabled"`
 	IsEmailVerificationEnabled   bool   `json:"is_email_verification_enabled"`
 	IsBasicAuthenticationEnabled bool   `json:"is_basic_authentication_enabled"`
 	IsMagicLinkLoginEnabled      bool   `json:"is_magic_link_login_enabled"`
@@ -383,6 +386,8 @@ type UpdateEnvInput struct {
 	MicrosoftClientID                *string  `json:"MICROSOFT_CLIENT_ID,omitempty"`
 	MicrosoftClientSecret            *string  `json:"MICROSOFT_CLIENT_SECRET,omitempty"`
 	MicrosoftActiveDirectoryTenantID *string  `json:"MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID,omitempty"`
+	TwitchClientID                   *string  `json:"TWITCH_CLIENT_ID,omitempty"`
+	TwitchClientSecret               *string  `json:"TWITCH_CLIENT_SECRET,omitempty"`
 	OrganizationName                 *string  `json:"ORGANIZATION_NAME,omitempty"`
 	OrganizationLogo                 *string  `json:"ORGANIZATION_LOGO,omitempty"`
 	DefaultAuthorizeResponseType     *string  `json:"DEFAULT_AUTHORIZE_RESPONSE_TYPE,omitempty"`

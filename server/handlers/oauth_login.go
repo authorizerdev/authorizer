@@ -4,9 +4,11 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/gin-gonic/gin"
-	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
+
+	"github.com/gin-gonic/gin"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/memorystore"
@@ -226,6 +228,24 @@ func OAuthLoginHandler() gin.HandlerFunc {
 			// during the init of OAuthProvider authorizer url might be empty
 			oauth.OAuthProviders.MicrosoftConfig.RedirectURL = hostname + "/oauth_callback/" + constants.AuthRecipeMethodMicrosoft
 			url := oauth.OAuthProviders.MicrosoftConfig.AuthCodeURL(oauthStateString)
+			c.Redirect(http.StatusTemporaryRedirect, url)
+		case constants.AuthRecipeMethodTwitch:
+			if oauth.OAuthProviders.TwitchConfig == nil {
+				log.Debug("Twitch OAuth provider is not configured")
+				isProviderConfigured = false
+				break
+			}
+			err := memorystore.Provider.SetState(oauthStateString, constants.AuthRecipeMethodTwitch)
+			if err != nil {
+				log.Debug("Error setting state: ", err)
+				c.JSON(500, gin.H{
+					"error": "internal server error",
+				})
+				return
+			}
+			// during the init of OAuthProvider authorizer url might be empty
+			oauth.OAuthProviders.TwitchConfig.RedirectURL = hostname + "/oauth_callback/" + constants.AuthRecipeMethodTwitch
+			url := oauth.OAuthProviders.TwitchConfig.AuthCodeURL(oauthStateString)
 			c.Redirect(http.StatusTemporaryRedirect, url)
 		default:
 			log.Debug("Invalid oauth provider: ", provider)
