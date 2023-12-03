@@ -138,7 +138,8 @@ type Error struct {
 }
 
 type ForgotPasswordInput struct {
-	Email       string  `json:"email"`
+	Email       *string `json:"email,omitempty"`
+	PhoneNumber *string `json:"phone_number,omitempty"`
 	State       *string `json:"state,omitempty"`
 	RedirectURI *string `json:"redirect_uri,omitempty"`
 }

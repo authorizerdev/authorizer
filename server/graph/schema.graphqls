@@ -449,7 +449,8 @@ input UpdateUserInput {
 }
 
 input ForgotPasswordInput {
-  email: String!
+  email: String
+  phone_number: String
   state: String
   redirect_uri: String
 }

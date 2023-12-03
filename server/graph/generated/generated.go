@@ -2791,7 +2791,8 @@ input UpdateUserInput {
 }
 
 input ForgotPasswordInput {
-  email: String!
+  email: String
+  phone_number: String
   state: String
   redirect_uri: String
 }
@@ -16821,7 +16822,7 @@ func (ec *executionContext) unmarshalInputForgotPasswordInput(ctx context.Contex
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"email", "state", "redirect_uri"}
+	fieldsInOrder := [...]string{"email", "phone_number", "state", "redirect_uri"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -16832,11 +16833,20 @@ func (ec *executionContext) unmarshalInputForgotPasswordInput(ctx context.Contex
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
-			data, err := ec.unmarshalNString2string(ctx, v)
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
 			it.Email = data
+		case "phone_number":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phone_number"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PhoneNumber = data
 		case "state":
 			var err error
 

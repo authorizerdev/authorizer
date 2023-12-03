@@ -16,6 +16,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
+	mailService "github.com/authorizerdev/authorizer/server/email"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/refs"
@@ -23,8 +24,6 @@ import (
 	"github.com/authorizerdev/authorizer/server/token"
 	"github.com/authorizerdev/authorizer/server/utils"
 	"github.com/authorizerdev/authorizer/server/validators"
-
-	mailService "github.com/authorizerdev/authorizer/server/email"
 )
 
 // LoginResolver is a resolver for login mutation
