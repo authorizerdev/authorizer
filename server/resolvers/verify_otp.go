@@ -56,7 +56,7 @@ func VerifyOtpResolver(ctx context.Context, params model.VerifyOTPRequest) (*mod
 		return res, err
 	}
 	// Verify OTP based on TOPT or OTP
-	if refs.BoolValue(params.Totp) {
+	if refs.BoolValue(params.IsTotp) {
 		status, err := authenticators.Provider.Validate(ctx, params.Otp, user.ID)
 		if err != nil {
 			log.Debug("Failed to validate totp: ", err)
@@ -64,7 +64,17 @@ func VerifyOtpResolver(ctx context.Context, params model.VerifyOTPRequest) (*mod
 		}
 		if !status {
 			log.Debug("Failed to verify otp request: Incorrect value")
-			return res, fmt.Errorf(`invalid otp`)
+			log.Info("Checking if otp is recovery code")
+			// Check if otp is recovery code
+			isValidRecoveryCode, err := authenticators.Provider.ValidateRecoveryCode(ctx, params.Otp, user.ID)
+			if err != nil {
+				log.Debug("Failed to validate recovery code: ", err)
+				return nil, fmt.Errorf("error while validating recovery code")
+			}
+			if !isValidRecoveryCode {
+				log.Debug("Failed to verify otp request: Incorrect value")
+				return res, fmt.Errorf(`invalid otp`)
+			}
 		}
 	} else {
 		var otp *models.OTP

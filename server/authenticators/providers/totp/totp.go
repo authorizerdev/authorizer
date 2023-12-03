@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"image/png"
 	"time"
 
@@ -113,24 +114,38 @@ func (p *provider) Validate(ctx context.Context, passcode string, userID string)
 	return status, nil
 }
 
-// RecoveryCode generates a recovery code for a user's TOTP authentication, if not already verified.
-func (p *provider) RecoveryCode(ctx context.Context, id string) (*string, error) {
+// ValidateRecoveryCode validates a Time-Based One-Time Password (TOTP) recovery code against the stored TOTP recovery code for a user.
+func (p *provider) ValidateRecoveryCode(ctx context.Context, recoveryCode, userID string) (bool, error) {
 	// get totp details
-	// totpModel, err := db.Provider.GetAuthenticatorDetailsByUserId(ctx, id, constants.EnvKeyTOTPAuthenticator)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("error while getting totp details from authenticators")
-	// }
-	// //TODO *totpModel.RecoveryCode == "null" used to just verify couchbase recoveryCode value to be nil
-	// // have to find another way round
-	// if totpModel.RecoveryCode == nil || *totpModel.RecoveryCode == "null" {
-	// 	recoveryCode := utils.GenerateTOTPRecoveryCode()
-	// 	totpModel.RecoveryCode = &recoveryCode
-
-	// 	_, err = db.Provider.UpdateAuthenticator(ctx, totpModel)
-	// 	if err != nil {
-	// 		return nil, fmt.Errorf("error while updaing authenticator table for totp")
-	// 	}
-	// 	return &recoveryCode, nil
-	// }
-	return nil, nil
+	totpModel, err := db.Provider.GetAuthenticatorDetailsByUserId(ctx, userID, constants.EnvKeyTOTPAuthenticator)
+	if err != nil {
+		return false, err
+	}
+	// convert recoveryCodes to map
+	recoveryCodesMap := map[string]bool{}
+	err = json.Unmarshal([]byte(refs.StringValue(totpModel.RecoveryCodes)), &recoveryCodesMap)
+	if err != nil {
+		return false, err
+	}
+	// check if recovery code is valid
+	if val, ok := recoveryCodesMap[recoveryCode]; !ok {
+		return false, fmt.Errorf("invalid recovery code")
+	} else if val {
+		return false, fmt.Errorf("recovery code already used")
+	}
+	// update recovery code map
+	recoveryCodesMap[recoveryCode] = true
+	// convert recoveryCodesMap to string
+	jsonData, err := json.Marshal(recoveryCodesMap)
+	if err != nil {
+		return false, err
+	}
+	recoveryCodesString := string(jsonData)
+	totpModel.RecoveryCodes = refs.NewStringRef(recoveryCodesString)
+	// update recovery code map in db
+	_, err = db.Provider.UpdateAuthenticator(ctx, totpModel)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
