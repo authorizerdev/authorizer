@@ -29,6 +29,8 @@ type Meta {
   is_sign_up_enabled: Boolean!
   is_strong_password_enabled: Boolean!
   is_multi_factor_auth_enabled: Boolean!
+  is_mobile_basic_authentication_enabled: Boolean!
+  is_phone_verification_enabled: Boolean!
 }
 
 type User {

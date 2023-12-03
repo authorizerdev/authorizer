@@ -106,6 +106,16 @@ func MetaResolver(ctx context.Context) (*model.Meta, error) {
 		log.Debug("Failed to get Disable Basic Authentication from environment variable", err)
 		isBasicAuthDisabled = true
 	}
+	isMobileBasicAuthDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableMobileBasicAuthentication)
+	if err != nil {
+		log.Debug("Failed to get Disable Basic Authentication from environment variable", err)
+		isMobileBasicAuthDisabled = true
+	}
+	isMobileVerificationDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisablePhoneVerification)
+	if err != nil {
+		log.Debug("Failed to get Disable Basic Authentication from environment variable", err)
+		isMobileVerificationDisabled = true
+	}
 
 	isEmailVerificationDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableEmailVerification)
 	if err != nil {
@@ -138,21 +148,23 @@ func MetaResolver(ctx context.Context) (*model.Meta, error) {
 	}
 
 	metaInfo := model.Meta{
-		Version:                      constants.VERSION,
-		ClientID:                     clientID,
-		IsGoogleLoginEnabled:         googleClientID != "" && googleClientSecret != "",
-		IsGithubLoginEnabled:         githubClientID != "" && githubClientSecret != "",
-		IsFacebookLoginEnabled:       facebookClientID != "" && facebookClientSecret != "",
-		IsLinkedinLoginEnabled:       linkedClientID != "" && linkedInClientSecret != "",
-		IsAppleLoginEnabled:          appleClientID != "" && appleClientSecret != "",
-		IsTwitterLoginEnabled:        twitterClientID != "" && twitterClientSecret != "",
-		IsMicrosoftLoginEnabled:      microsoftClientID != "" && microsoftClientSecret != "",
-		IsBasicAuthenticationEnabled: !isBasicAuthDisabled,
-		IsEmailVerificationEnabled:   !isEmailVerificationDisabled,
-		IsMagicLinkLoginEnabled:      !isMagicLinkLoginDisabled,
-		IsSignUpEnabled:              !isSignUpDisabled,
-		IsStrongPasswordEnabled:      !isStrongPasswordDisabled,
-		IsMultiFactorAuthEnabled:     !isMultiFactorAuthenticationEnabled,
+		Version:                            constants.VERSION,
+		ClientID:                           clientID,
+		IsGoogleLoginEnabled:               googleClientID != "" && googleClientSecret != "",
+		IsGithubLoginEnabled:               githubClientID != "" && githubClientSecret != "",
+		IsFacebookLoginEnabled:             facebookClientID != "" && facebookClientSecret != "",
+		IsLinkedinLoginEnabled:             linkedClientID != "" && linkedInClientSecret != "",
+		IsAppleLoginEnabled:                appleClientID != "" && appleClientSecret != "",
+		IsTwitterLoginEnabled:              twitterClientID != "" && twitterClientSecret != "",
+		IsMicrosoftLoginEnabled:            microsoftClientID != "" && microsoftClientSecret != "",
+		IsBasicAuthenticationEnabled:       !isBasicAuthDisabled,
+		IsEmailVerificationEnabled:         !isEmailVerificationDisabled,
+		IsMagicLinkLoginEnabled:            !isMagicLinkLoginDisabled,
+		IsSignUpEnabled:                    !isSignUpDisabled,
+		IsStrongPasswordEnabled:            !isStrongPasswordDisabled,
+		IsMultiFactorAuthEnabled:           !isMultiFactorAuthenticationEnabled,
+		IsMobileBasicAuthenticationEnabled: !isMobileBasicAuthDisabled,
+		IsPhoneVerificationEnabled:         !isMobileVerificationDisabled,
 	}
 	return &metaInfo, nil
 }
