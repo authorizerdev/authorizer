@@ -162,22 +162,24 @@ type ComplexityRoot struct {
 	}
 
 	Meta struct {
-		ClientID                     func(childComplexity int) int
-		IsAppleLoginEnabled          func(childComplexity int) int
-		IsBasicAuthenticationEnabled func(childComplexity int) int
-		IsEmailVerificationEnabled   func(childComplexity int) int
-		IsFacebookLoginEnabled       func(childComplexity int) int
-		IsGithubLoginEnabled         func(childComplexity int) int
-		IsGoogleLoginEnabled         func(childComplexity int) int
-		IsLinkedinLoginEnabled       func(childComplexity int) int
-		IsMagicLinkLoginEnabled      func(childComplexity int) int
-		IsMicrosoftLoginEnabled      func(childComplexity int) int
-		IsMultiFactorAuthEnabled     func(childComplexity int) int
-		IsSignUpEnabled              func(childComplexity int) int
-		IsStrongPasswordEnabled      func(childComplexity int) int
-		IsTwitchLoginEnabled         func(childComplexity int) int
-		IsTwitterLoginEnabled        func(childComplexity int) int
-		Version                      func(childComplexity int) int
+		ClientID                           func(childComplexity int) int
+		IsAppleLoginEnabled                func(childComplexity int) int
+		IsBasicAuthenticationEnabled       func(childComplexity int) int
+		IsEmailVerificationEnabled         func(childComplexity int) int
+		IsFacebookLoginEnabled             func(childComplexity int) int
+		IsGithubLoginEnabled               func(childComplexity int) int
+		IsGoogleLoginEnabled               func(childComplexity int) int
+		IsLinkedinLoginEnabled             func(childComplexity int) int
+		IsMagicLinkLoginEnabled            func(childComplexity int) int
+		IsMicrosoftLoginEnabled            func(childComplexity int) int
+		IsMobileBasicAuthenticationEnabled func(childComplexity int) int
+		IsMultiFactorAuthEnabled           func(childComplexity int) int
+		IsPhoneVerificationEnabled         func(childComplexity int) int
+		IsSignUpEnabled                    func(childComplexity int) int
+		IsStrongPasswordEnabled            func(childComplexity int) int
+		IsTwitchLoginEnabled               func(childComplexity int) int
+		IsTwitterLoginEnabled              func(childComplexity int) int
+		Version                            func(childComplexity int) int
 	}
 
 	Mutation struct {
@@ -1142,12 +1144,26 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Meta.IsMicrosoftLoginEnabled(childComplexity), true
 
+	case "Meta.is_mobile_basic_authentication_enabled":
+		if e.complexity.Meta.IsMobileBasicAuthenticationEnabled == nil {
+			break
+		}
+
+		return e.complexity.Meta.IsMobileBasicAuthenticationEnabled(childComplexity), true
+
 	case "Meta.is_multi_factor_auth_enabled":
 		if e.complexity.Meta.IsMultiFactorAuthEnabled == nil {
 			break
 		}
 
 		return e.complexity.Meta.IsMultiFactorAuthEnabled(childComplexity), true
+
+	case "Meta.is_phone_verification_enabled":
+		if e.complexity.Meta.IsPhoneVerificationEnabled == nil {
+			break
+		}
+
+		return e.complexity.Meta.IsPhoneVerificationEnabled(childComplexity), true
 
 	case "Meta.is_sign_up_enabled":
 		if e.complexity.Meta.IsSignUpEnabled == nil {
@@ -2355,6 +2371,8 @@ type Meta {
   is_sign_up_enabled: Boolean!
   is_strong_password_enabled: Boolean!
   is_multi_factor_auth_enabled: Boolean!
+  is_mobile_basic_authentication_enabled: Boolean!
+  is_phone_verification_enabled: Boolean!
 }
 
 type User {
@@ -8373,6 +8391,94 @@ func (ec *executionContext) fieldContext_Meta_is_multi_factor_auth_enabled(ctx c
 	return fc, nil
 }
 
+func (ec *executionContext) _Meta_is_mobile_basic_authentication_enabled(ctx context.Context, field graphql.CollectedField, obj *model.Meta) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Meta_is_mobile_basic_authentication_enabled(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsMobileBasicAuthenticationEnabled, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Meta_is_mobile_basic_authentication_enabled(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Meta",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Meta_is_phone_verification_enabled(ctx context.Context, field graphql.CollectedField, obj *model.Meta) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Meta_is_phone_verification_enabled(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsPhoneVerificationEnabled, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Meta_is_phone_verification_enabled(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Meta",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation_signup(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Mutation_signup(ctx, field)
 	if err != nil {
@@ -10653,6 +10759,10 @@ func (ec *executionContext) fieldContext_Query_meta(ctx context.Context, field g
 				return ec.fieldContext_Meta_is_strong_password_enabled(ctx, field)
 			case "is_multi_factor_auth_enabled":
 				return ec.fieldContext_Meta_is_multi_factor_auth_enabled(ctx, field)
+			case "is_mobile_basic_authentication_enabled":
+				return ec.fieldContext_Meta_is_mobile_basic_authentication_enabled(ctx, field)
+			case "is_phone_verification_enabled":
+				return ec.fieldContext_Meta_is_phone_verification_enabled(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Meta", field.Name)
 		},
@@ -19591,6 +19701,16 @@ func (ec *executionContext) _Meta(ctx context.Context, sel ast.SelectionSet, obj
 			}
 		case "is_multi_factor_auth_enabled":
 			out.Values[i] = ec._Meta_is_multi_factor_auth_enabled(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "is_mobile_basic_authentication_enabled":
+			out.Values[i] = ec._Meta_is_mobile_basic_authentication_enabled(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "is_phone_verification_enabled":
+			out.Values[i] = ec._Meta_is_phone_verification_enabled(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
