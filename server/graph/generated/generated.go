@@ -2899,7 +2899,7 @@ input VerifyOTPRequest {
   email: String
   phone_number: String
   otp: String!
-  totp: Boolean
+  is_totp: Boolean
   # state is used for authorization code grant flow
   # it is used to get code for an on-going auth process during login
   # and use that code for setting ` + "`" + `c_hash` + "`" + ` in id_token
@@ -18898,7 +18898,7 @@ func (ec *executionContext) unmarshalInputVerifyOTPRequest(ctx context.Context, 
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"email", "phone_number", "otp", "totp", "state"}
+	fieldsInOrder := [...]string{"email", "phone_number", "otp", "is_totp", "state"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -18932,15 +18932,15 @@ func (ec *executionContext) unmarshalInputVerifyOTPRequest(ctx context.Context, 
 				return it, err
 			}
 			it.Otp = data
-		case "totp":
+		case "is_totp":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("totp"))
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("is_totp"))
 			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.Totp = data
+			it.IsTotp = data
 		case "state":
 			var err error
 

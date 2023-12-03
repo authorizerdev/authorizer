@@ -573,7 +573,7 @@ input VerifyOTPRequest {
   email: String
   phone_number: String
   otp: String!
-  totp: Boolean
+  is_totp: Boolean
   # state is used for authorization code grant flow
   # it is used to get code for an on-going auth process during login
   # and use that code for setting `c_hash` in id_token

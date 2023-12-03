@@ -515,7 +515,7 @@ type VerifyOTPRequest struct {
 	Email       *string `json:"email,omitempty"`
 	PhoneNumber *string `json:"phone_number,omitempty"`
 	Otp         string  `json:"otp"`
-	Totp        *bool   `json:"totp,omitempty"`
+	IsTotp      *bool   `json:"is_totp,omitempty"`
 	State       *string `json:"state,omitempty"`
 }
 

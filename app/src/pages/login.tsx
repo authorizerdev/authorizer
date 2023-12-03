@@ -37,8 +37,8 @@ export default function Login({ urlProps }: { urlProps: Record<string, any> }) {
 			{view === VIEW_TYPES.LOGIN && (
 				<Fragment>
 					<h1 style={{ textAlign: 'center' }}>Login</h1>
-					<br />
 					<AuthorizerSocialLogin urlProps={urlProps} />
+					<br />
 					{config.is_basic_authentication_enabled &&
 						!config.is_magic_link_login_enabled && (
 							<AuthorizerBasicAuthLogin urlProps={urlProps} />
