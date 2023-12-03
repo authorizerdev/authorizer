@@ -46,15 +46,17 @@ export default function Login({ urlProps }: { urlProps: Record<string, any> }) {
 					{config.is_magic_link_login_enabled && (
 						<AuthorizerMagicLinkLogin urlProps={urlProps} />
 					)}
-					<Footer>
-						<Link
-							to="#"
-							onClick={() => setView(VIEW_TYPES.FORGOT_PASSWORD)}
-							style={{ marginBottom: 10 }}
-						>
-							Forgot Password?
-						</Link>
-					</Footer>
+					{config.is_basic_authentication_enabled && (
+						<Footer>
+							<Link
+								to="#"
+								onClick={() => setView(VIEW_TYPES.FORGOT_PASSWORD)}
+								style={{ marginBottom: 10 }}
+							>
+								Forgot Password?
+							</Link>
+						</Footer>
+					)}
 				</Fragment>
 			)}
 			{view === VIEW_TYPES.FORGOT_PASSWORD && (
@@ -81,7 +83,7 @@ export default function Login({ urlProps }: { urlProps: Record<string, any> }) {
 				!config.is_magic_link_login_enabled &&
 				config.is_sign_up_enabled && (
 					<FooterContent>
-						Don't have an account? <Link to="/app/signup"> Sign Up</Link>
+						Don't have an account? &nbsp; <Link to="/app/signup"> Sign Up</Link>
 					</FooterContent>
 				)}
 		</Fragment>

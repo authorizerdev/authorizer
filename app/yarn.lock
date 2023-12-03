@@ -9,10 +9,10 @@
   dependencies:
     cross-fetch "^3.1.5"
 
-"@authorizerdev/authorizer-react@^1.1.15":
-  version "1.1.15"
-  resolved "https://registry.npmjs.org/@authorizerdev/authorizer-react/-/authorizer-react-1.1.15.tgz"
-  integrity sha512-Y71qC4GUAHL0QCNj5mVv0Jwv1cIg4Y0yXRiOeYV21C1NMleyLRXgw4qzJ/Vk8rmXsxqSHmr8SGrwOLcSKA2oMA==
+"@authorizerdev/authorizer-react@^1.1.16":
+  version "1.1.16"
+  resolved "https://registry.npmjs.org/@authorizerdev/authorizer-react/-/authorizer-react-1.1.16.tgz"
+  integrity sha512-zdLcAqQe6J6cTuZ41QOxdsjEruXLDRk/Trlj5qsLFfIiov3gjuS5a9nTkGRLLOhZqdr6VFBRNfFTrhEdeqHjZw==
   dependencies:
     "@authorizerdev/authorizer-js" "^1.2.17"
 
