@@ -2,19 +2,20 @@
 # yarn lockfile v1
 
 
-"@authorizerdev/authorizer-js@^1.2.17":
-  version "1.2.17"
-  resolved "https://registry.npmjs.org/@authorizerdev/authorizer-js/-/authorizer-js-1.2.17.tgz"
-  integrity sha512-aF/lu9wZR7TBRaRMAes/hy1q8cZzz5Zo60QLU9Iu09sqnhliHJCp5wSkjsVH+V4ER9i7bmJ2HNABTmOdluxj3A==
+"@authorizerdev/authorizer-js@^1.2.18":
+  version "1.2.18"
+  resolved "https://registry.npmjs.org/@authorizerdev/authorizer-js/-/authorizer-js-1.2.18.tgz"
+  integrity sha512-9j5U/4lqaaEcG78Zli+TtLJ0migSKhFwnXXunulAGTZOzQSTCJ/CSSPip5wWNa/Mkr6gdEMwk1HYfhIdk2A9Mg==
   dependencies:
     cross-fetch "^3.1.5"
 
-"@authorizerdev/authorizer-react@^1.1.16":
-  version "1.1.16"
-  resolved "https://registry.npmjs.org/@authorizerdev/authorizer-react/-/authorizer-react-1.1.16.tgz"
-  integrity sha512-zdLcAqQe6J6cTuZ41QOxdsjEruXLDRk/Trlj5qsLFfIiov3gjuS5a9nTkGRLLOhZqdr6VFBRNfFTrhEdeqHjZw==
+"@authorizerdev/authorizer-react@^1.1.18":
+  version "1.1.18"
+  resolved "https://registry.npmjs.org/@authorizerdev/authorizer-react/-/authorizer-react-1.1.18.tgz"
+  integrity sha512-5SgFzG1VatmrMpl9XKwPcoVmCayA4Hn+sd2I9CwRlCWkdcna4pGJL8kYesuIGjGagS9394qp4ICRLRZ35wXj8A==
   dependencies:
-    "@authorizerdev/authorizer-js" "^1.2.17"
+    "@authorizerdev/authorizer-js" "^1.2.18"
+    validator "^13.11.0"
 
 "@babel/code-frame@^7.22.13":
   version "7.22.13"
@@ -593,6 +594,11 @@ typescript@^4.3.5:
   version "4.3.5"
   resolved "https://registry.npmjs.org/typescript/-/typescript-4.3.5.tgz"
   integrity sha512-DqQgihaQ9cUrskJo9kIyW/+g0Vxsk8cDtZ52a3NGh0YNTfpUSArXSohyUGnvbPazEPLu398C0UxmKSOrPumUzA==
+
+validator@^13.11.0:
+  version "13.11.0"
+  resolved "https://registry.npmjs.org/validator/-/validator-13.11.0.tgz"
+  integrity sha512-Ii+sehpSfZy+At5nPdnyMhx78fEoPDkR2XW/zimHEL3MyGJQOCQ7WeP20jPYRz7ZCpcKLB21NxuXHF3bxjStBQ==
 
 value-equal@^1.0.1:
   version "1.0.1"
