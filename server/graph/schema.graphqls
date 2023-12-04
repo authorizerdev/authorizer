@@ -22,12 +22,15 @@ type Meta {
   is_apple_login_enabled: Boolean!
   is_twitter_login_enabled: Boolean!
   is_microsoft_login_enabled: Boolean!
+  is_twitch_login_enabled: Boolean!
   is_email_verification_enabled: Boolean!
   is_basic_authentication_enabled: Boolean!
   is_magic_link_login_enabled: Boolean!
   is_sign_up_enabled: Boolean!
   is_strong_password_enabled: Boolean!
   is_multi_factor_auth_enabled: Boolean!
+  is_mobile_basic_authentication_enabled: Boolean!
+  is_phone_verification_enabled: Boolean!
 }
 
 type User {
@@ -175,6 +178,8 @@ type Env {
   MICROSOFT_CLIENT_ID: String
   MICROSOFT_CLIENT_SECRET: String
   MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID: String
+  TWITCH_CLIENT_ID: String
+  TWITCH_CLIENT_SECRET: String
   ORGANIZATION_NAME: String
   ORGANIZATION_LOGO: String
   APP_COOKIE_SECURE: Boolean!
@@ -302,6 +307,8 @@ input UpdateEnvInput {
   MICROSOFT_CLIENT_ID: String
   MICROSOFT_CLIENT_SECRET: String
   MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID: String
+  TWITCH_CLIENT_ID: String
+  TWITCH_CLIENT_SECRET: String
   ORGANIZATION_NAME: String
   ORGANIZATION_LOGO: String
   DEFAULT_AUTHORIZE_RESPONSE_TYPE: String
@@ -568,7 +575,7 @@ input VerifyOTPRequest {
   email: String
   phone_number: String
   otp: String!
-  totp: Boolean
+  is_totp: Boolean
   # state is used for authorization code grant flow
   # it is used to get code for an on-going auth process during login
   # and use that code for setting `c_hash` in id_token

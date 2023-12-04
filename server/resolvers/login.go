@@ -78,7 +78,7 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 	}
 	if err != nil {
 		log.Debug("Failed to get user: ", err)
-		return res, fmt.Errorf(`bad user credentials`)
+		return res, fmt.Errorf(`user not found`)
 	}
 	if user.RevokedTimestamp != nil {
 		log.Debug("User access is revoked")

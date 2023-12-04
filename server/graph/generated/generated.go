@@ -139,6 +139,8 @@ type ComplexityRoot struct {
 		SMTPUsername                     func(childComplexity int) int
 		SenderEmail                      func(childComplexity int) int
 		SenderName                       func(childComplexity int) int
+		TwitchClientID                   func(childComplexity int) int
+		TwitchClientSecret               func(childComplexity int) int
 		TwitterClientID                  func(childComplexity int) int
 		TwitterClientSecret              func(childComplexity int) int
 	}
@@ -160,21 +162,24 @@ type ComplexityRoot struct {
 	}
 
 	Meta struct {
-		ClientID                     func(childComplexity int) int
-		IsAppleLoginEnabled          func(childComplexity int) int
-		IsBasicAuthenticationEnabled func(childComplexity int) int
-		IsEmailVerificationEnabled   func(childComplexity int) int
-		IsFacebookLoginEnabled       func(childComplexity int) int
-		IsGithubLoginEnabled         func(childComplexity int) int
-		IsGoogleLoginEnabled         func(childComplexity int) int
-		IsLinkedinLoginEnabled       func(childComplexity int) int
-		IsMagicLinkLoginEnabled      func(childComplexity int) int
-		IsMicrosoftLoginEnabled      func(childComplexity int) int
-		IsMultiFactorAuthEnabled     func(childComplexity int) int
-		IsSignUpEnabled              func(childComplexity int) int
-		IsStrongPasswordEnabled      func(childComplexity int) int
-		IsTwitterLoginEnabled        func(childComplexity int) int
-		Version                      func(childComplexity int) int
+		ClientID                           func(childComplexity int) int
+		IsAppleLoginEnabled                func(childComplexity int) int
+		IsBasicAuthenticationEnabled       func(childComplexity int) int
+		IsEmailVerificationEnabled         func(childComplexity int) int
+		IsFacebookLoginEnabled             func(childComplexity int) int
+		IsGithubLoginEnabled               func(childComplexity int) int
+		IsGoogleLoginEnabled               func(childComplexity int) int
+		IsLinkedinLoginEnabled             func(childComplexity int) int
+		IsMagicLinkLoginEnabled            func(childComplexity int) int
+		IsMicrosoftLoginEnabled            func(childComplexity int) int
+		IsMobileBasicAuthenticationEnabled func(childComplexity int) int
+		IsMultiFactorAuthEnabled           func(childComplexity int) int
+		IsPhoneVerificationEnabled         func(childComplexity int) int
+		IsSignUpEnabled                    func(childComplexity int) int
+		IsStrongPasswordEnabled            func(childComplexity int) int
+		IsTwitchLoginEnabled               func(childComplexity int) int
+		IsTwitterLoginEnabled              func(childComplexity int) int
+		Version                            func(childComplexity int) int
 	}
 
 	Mutation struct {
@@ -992,6 +997,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Env.SenderName(childComplexity), true
 
+	case "Env.TWITCH_CLIENT_ID":
+		if e.complexity.Env.TwitchClientID == nil {
+			break
+		}
+
+		return e.complexity.Env.TwitchClientID(childComplexity), true
+
+	case "Env.TWITCH_CLIENT_SECRET":
+		if e.complexity.Env.TwitchClientSecret == nil {
+			break
+		}
+
+		return e.complexity.Env.TwitchClientSecret(childComplexity), true
+
 	case "Env.TWITTER_CLIENT_ID":
 		if e.complexity.Env.TwitterClientID == nil {
 			break
@@ -1125,12 +1144,26 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Meta.IsMicrosoftLoginEnabled(childComplexity), true
 
+	case "Meta.is_mobile_basic_authentication_enabled":
+		if e.complexity.Meta.IsMobileBasicAuthenticationEnabled == nil {
+			break
+		}
+
+		return e.complexity.Meta.IsMobileBasicAuthenticationEnabled(childComplexity), true
+
 	case "Meta.is_multi_factor_auth_enabled":
 		if e.complexity.Meta.IsMultiFactorAuthEnabled == nil {
 			break
 		}
 
 		return e.complexity.Meta.IsMultiFactorAuthEnabled(childComplexity), true
+
+	case "Meta.is_phone_verification_enabled":
+		if e.complexity.Meta.IsPhoneVerificationEnabled == nil {
+			break
+		}
+
+		return e.complexity.Meta.IsPhoneVerificationEnabled(childComplexity), true
 
 	case "Meta.is_sign_up_enabled":
 		if e.complexity.Meta.IsSignUpEnabled == nil {
@@ -1145,6 +1178,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Meta.IsStrongPasswordEnabled(childComplexity), true
+
+	case "Meta.is_twitch_login_enabled":
+		if e.complexity.Meta.IsTwitchLoginEnabled == nil {
+			break
+		}
+
+		return e.complexity.Meta.IsTwitchLoginEnabled(childComplexity), true
 
 	case "Meta.is_twitter_login_enabled":
 		if e.complexity.Meta.IsTwitterLoginEnabled == nil {
@@ -2324,12 +2364,15 @@ type Meta {
   is_apple_login_enabled: Boolean!
   is_twitter_login_enabled: Boolean!
   is_microsoft_login_enabled: Boolean!
+  is_twitch_login_enabled: Boolean!
   is_email_verification_enabled: Boolean!
   is_basic_authentication_enabled: Boolean!
   is_magic_link_login_enabled: Boolean!
   is_sign_up_enabled: Boolean!
   is_strong_password_enabled: Boolean!
   is_multi_factor_auth_enabled: Boolean!
+  is_mobile_basic_authentication_enabled: Boolean!
+  is_phone_verification_enabled: Boolean!
 }
 
 type User {
@@ -2477,6 +2520,8 @@ type Env {
   MICROSOFT_CLIENT_ID: String
   MICROSOFT_CLIENT_SECRET: String
   MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID: String
+  TWITCH_CLIENT_ID: String
+  TWITCH_CLIENT_SECRET: String
   ORGANIZATION_NAME: String
   ORGANIZATION_LOGO: String
   APP_COOKIE_SECURE: Boolean!
@@ -2604,6 +2649,8 @@ input UpdateEnvInput {
   MICROSOFT_CLIENT_ID: String
   MICROSOFT_CLIENT_SECRET: String
   MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID: String
+  TWITCH_CLIENT_ID: String
+  TWITCH_CLIENT_SECRET: String
   ORGANIZATION_NAME: String
   ORGANIZATION_LOGO: String
   DEFAULT_AUTHORIZE_RESPONSE_TYPE: String
@@ -2870,7 +2917,7 @@ input VerifyOTPRequest {
   email: String
   phone_number: String
   otp: String!
-  totp: Boolean
+  is_totp: Boolean
   # state is used for authorization code grant flow
   # it is used to get code for an on-going auth process during login
   # and use that code for setting ` + "`" + `c_hash` + "`" + ` in id_token
@@ -6833,6 +6880,88 @@ func (ec *executionContext) fieldContext_Env_MICROSOFT_ACTIVE_DIRECTORY_TENANT_I
 	return fc, nil
 }
 
+func (ec *executionContext) _Env_TWITCH_CLIENT_ID(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Env_TWITCH_CLIENT_ID(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TwitchClientID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Env_TWITCH_CLIENT_ID(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Env",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Env_TWITCH_CLIENT_SECRET(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Env_TWITCH_CLIENT_SECRET(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TwitchClientSecret, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Env_TWITCH_CLIENT_SECRET(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Env",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Env_ORGANIZATION_NAME(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Env_ORGANIZATION_NAME(ctx, field)
 	if err != nil {
@@ -7954,6 +8083,50 @@ func (ec *executionContext) fieldContext_Meta_is_microsoft_login_enabled(ctx con
 	return fc, nil
 }
 
+func (ec *executionContext) _Meta_is_twitch_login_enabled(ctx context.Context, field graphql.CollectedField, obj *model.Meta) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Meta_is_twitch_login_enabled(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsTwitchLoginEnabled, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Meta_is_twitch_login_enabled(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Meta",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Meta_is_email_verification_enabled(ctx context.Context, field graphql.CollectedField, obj *model.Meta) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Meta_is_email_verification_enabled(ctx, field)
 	if err != nil {
@@ -8206,6 +8379,94 @@ func (ec *executionContext) _Meta_is_multi_factor_auth_enabled(ctx context.Conte
 }
 
 func (ec *executionContext) fieldContext_Meta_is_multi_factor_auth_enabled(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Meta",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Meta_is_mobile_basic_authentication_enabled(ctx context.Context, field graphql.CollectedField, obj *model.Meta) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Meta_is_mobile_basic_authentication_enabled(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsMobileBasicAuthenticationEnabled, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Meta_is_mobile_basic_authentication_enabled(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Meta",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Meta_is_phone_verification_enabled(ctx context.Context, field graphql.CollectedField, obj *model.Meta) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Meta_is_phone_verification_enabled(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsPhoneVerificationEnabled, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Meta_is_phone_verification_enabled(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Meta",
 		Field:      field,
@@ -10484,6 +10745,8 @@ func (ec *executionContext) fieldContext_Query_meta(ctx context.Context, field g
 				return ec.fieldContext_Meta_is_twitter_login_enabled(ctx, field)
 			case "is_microsoft_login_enabled":
 				return ec.fieldContext_Meta_is_microsoft_login_enabled(ctx, field)
+			case "is_twitch_login_enabled":
+				return ec.fieldContext_Meta_is_twitch_login_enabled(ctx, field)
 			case "is_email_verification_enabled":
 				return ec.fieldContext_Meta_is_email_verification_enabled(ctx, field)
 			case "is_basic_authentication_enabled":
@@ -10496,6 +10759,10 @@ func (ec *executionContext) fieldContext_Query_meta(ctx context.Context, field g
 				return ec.fieldContext_Meta_is_strong_password_enabled(ctx, field)
 			case "is_multi_factor_auth_enabled":
 				return ec.fieldContext_Meta_is_multi_factor_auth_enabled(ctx, field)
+			case "is_mobile_basic_authentication_enabled":
+				return ec.fieldContext_Meta_is_mobile_basic_authentication_enabled(ctx, field)
+			case "is_phone_verification_enabled":
+				return ec.fieldContext_Meta_is_phone_verification_enabled(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Meta", field.Name)
 		},
@@ -11208,6 +11475,10 @@ func (ec *executionContext) fieldContext_Query__env(ctx context.Context, field g
 				return ec.fieldContext_Env_MICROSOFT_CLIENT_SECRET(ctx, field)
 			case "MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID":
 				return ec.fieldContext_Env_MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID(ctx, field)
+			case "TWITCH_CLIENT_ID":
+				return ec.fieldContext_Env_TWITCH_CLIENT_ID(ctx, field)
+			case "TWITCH_CLIENT_SECRET":
+				return ec.fieldContext_Env_TWITCH_CLIENT_SECRET(ctx, field)
 			case "ORGANIZATION_NAME":
 				return ec.fieldContext_Env_ORGANIZATION_NAME(ctx, field)
 			case "ORGANIZATION_LOGO":
@@ -17715,7 +17986,7 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"ACCESS_TOKEN_EXPIRY_TIME", "ADMIN_SECRET", "CUSTOM_ACCESS_TOKEN_SCRIPT", "OLD_ADMIN_SECRET", "SMTP_HOST", "SMTP_PORT", "SMTP_USERNAME", "SMTP_PASSWORD", "SMTP_LOCAL_NAME", "SENDER_EMAIL", "SENDER_NAME", "JWT_TYPE", "JWT_SECRET", "JWT_PRIVATE_KEY", "JWT_PUBLIC_KEY", "ALLOWED_ORIGINS", "APP_URL", "RESET_PASSWORD_URL", "APP_COOKIE_SECURE", "ADMIN_COOKIE_SECURE", "DISABLE_EMAIL_VERIFICATION", "DISABLE_BASIC_AUTHENTICATION", "DISABLE_MAGIC_LINK_LOGIN", "DISABLE_LOGIN_PAGE", "DISABLE_SIGN_UP", "DISABLE_REDIS_FOR_ENV", "DISABLE_STRONG_PASSWORD", "DISABLE_MULTI_FACTOR_AUTHENTICATION", "ENFORCE_MULTI_FACTOR_AUTHENTICATION", "ROLES", "PROTECTED_ROLES", "DEFAULT_ROLES", "JWT_ROLE_CLAIM", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET", "FACEBOOK_CLIENT_ID", "FACEBOOK_CLIENT_SECRET", "LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET", "APPLE_CLIENT_ID", "APPLE_CLIENT_SECRET", "TWITTER_CLIENT_ID", "TWITTER_CLIENT_SECRET", "MICROSOFT_CLIENT_ID", "MICROSOFT_CLIENT_SECRET", "MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID", "ORGANIZATION_NAME", "ORGANIZATION_LOGO", "DEFAULT_AUTHORIZE_RESPONSE_TYPE", "DEFAULT_AUTHORIZE_RESPONSE_MODE", "DISABLE_PLAYGROUND", "DISABLE_MAIL_OTP_LOGIN", "DISABLE_TOTP_LOGIN"}
+	fieldsInOrder := [...]string{"ACCESS_TOKEN_EXPIRY_TIME", "ADMIN_SECRET", "CUSTOM_ACCESS_TOKEN_SCRIPT", "OLD_ADMIN_SECRET", "SMTP_HOST", "SMTP_PORT", "SMTP_USERNAME", "SMTP_PASSWORD", "SMTP_LOCAL_NAME", "SENDER_EMAIL", "SENDER_NAME", "JWT_TYPE", "JWT_SECRET", "JWT_PRIVATE_KEY", "JWT_PUBLIC_KEY", "ALLOWED_ORIGINS", "APP_URL", "RESET_PASSWORD_URL", "APP_COOKIE_SECURE", "ADMIN_COOKIE_SECURE", "DISABLE_EMAIL_VERIFICATION", "DISABLE_BASIC_AUTHENTICATION", "DISABLE_MAGIC_LINK_LOGIN", "DISABLE_LOGIN_PAGE", "DISABLE_SIGN_UP", "DISABLE_REDIS_FOR_ENV", "DISABLE_STRONG_PASSWORD", "DISABLE_MULTI_FACTOR_AUTHENTICATION", "ENFORCE_MULTI_FACTOR_AUTHENTICATION", "ROLES", "PROTECTED_ROLES", "DEFAULT_ROLES", "JWT_ROLE_CLAIM", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET", "FACEBOOK_CLIENT_ID", "FACEBOOK_CLIENT_SECRET", "LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET", "APPLE_CLIENT_ID", "APPLE_CLIENT_SECRET", "TWITTER_CLIENT_ID", "TWITTER_CLIENT_SECRET", "MICROSOFT_CLIENT_ID", "MICROSOFT_CLIENT_SECRET", "MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID", "TWITCH_CLIENT_ID", "TWITCH_CLIENT_SECRET", "ORGANIZATION_NAME", "ORGANIZATION_LOGO", "DEFAULT_AUTHORIZE_RESPONSE_TYPE", "DEFAULT_AUTHORIZE_RESPONSE_MODE", "DISABLE_PLAYGROUND", "DISABLE_MAIL_OTP_LOGIN", "DISABLE_TOTP_LOGIN"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -18154,6 +18425,24 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 				return it, err
 			}
 			it.MicrosoftActiveDirectoryTenantID = data
+		case "TWITCH_CLIENT_ID":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("TWITCH_CLIENT_ID"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.TwitchClientID = data
+		case "TWITCH_CLIENT_SECRET":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("TWITCH_CLIENT_SECRET"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.TwitchClientSecret = data
 		case "ORGANIZATION_NAME":
 			var err error
 
@@ -18719,7 +19008,7 @@ func (ec *executionContext) unmarshalInputVerifyOTPRequest(ctx context.Context, 
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"email", "phone_number", "otp", "totp", "state"}
+	fieldsInOrder := [...]string{"email", "phone_number", "otp", "is_totp", "state"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -18753,15 +19042,15 @@ func (ec *executionContext) unmarshalInputVerifyOTPRequest(ctx context.Context, 
 				return it, err
 			}
 			it.Otp = data
-		case "totp":
+		case "is_totp":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("totp"))
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("is_totp"))
 			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.Totp = data
+			it.IsTotp = data
 		case "state":
 			var err error
 
@@ -19136,6 +19425,10 @@ func (ec *executionContext) _Env(ctx context.Context, sel ast.SelectionSet, obj 
 			out.Values[i] = ec._Env_MICROSOFT_CLIENT_SECRET(ctx, field, obj)
 		case "MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID":
 			out.Values[i] = ec._Env_MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID(ctx, field, obj)
+		case "TWITCH_CLIENT_ID":
+			out.Values[i] = ec._Env_TWITCH_CLIENT_ID(ctx, field, obj)
+		case "TWITCH_CLIENT_SECRET":
+			out.Values[i] = ec._Env_TWITCH_CLIENT_SECRET(ctx, field, obj)
 		case "ORGANIZATION_NAME":
 			out.Values[i] = ec._Env_ORGANIZATION_NAME(ctx, field, obj)
 		case "ORGANIZATION_LOGO":
@@ -19376,6 +19669,11 @@ func (ec *executionContext) _Meta(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "is_twitch_login_enabled":
+			out.Values[i] = ec._Meta_is_twitch_login_enabled(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "is_email_verification_enabled":
 			out.Values[i] = ec._Meta_is_email_verification_enabled(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -19403,6 +19701,16 @@ func (ec *executionContext) _Meta(ctx context.Context, sel ast.SelectionSet, obj
 			}
 		case "is_multi_factor_auth_enabled":
 			out.Values[i] = ec._Meta_is_multi_factor_auth_enabled(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "is_mobile_basic_authentication_enabled":
+			out.Values[i] = ec._Meta_is_mobile_basic_authentication_enabled(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "is_phone_verification_enabled":
+			out.Values[i] = ec._Meta_is_phone_verification_enabled(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}

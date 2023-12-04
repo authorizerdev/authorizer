@@ -36,27 +36,32 @@ func VerifyOtpResolver(ctx context.Context, params model.VerifyOTPRequest) (*mod
 		return res, fmt.Errorf(`invalid session: %s`, err.Error())
 	}
 
-	if refs.StringValue(params.Email) == "" && refs.StringValue(params.PhoneNumber) == "" {
+	email := strings.TrimSpace(refs.StringValue(params.Email))
+	phoneNumber := strings.TrimSpace(refs.StringValue(params.PhoneNumber))
+	if email == "" && phoneNumber == "" {
 		log.Debug("Email or phone number is required")
-		return res, fmt.Errorf(`email or phone_number is required`)
+		return res, fmt.Errorf(`email or phone number is required`)
 	}
-	currentField := models.FieldNameEmail
-	if refs.StringValue(params.Email) == "" {
-		currentField = models.FieldNamePhoneNumber
-	}
+	isEmailVerification := email != ""
+	isMobileVerification := phoneNumber != ""
 	// Get user by email or phone number
 	var user *models.User
-	if currentField == models.FieldNameEmail {
+	if isEmailVerification {
 		user, err = db.Provider.GetUserByEmail(ctx, refs.StringValue(params.Email))
+		if err != nil {
+			log.Debug("Failed to get user by email: ", err)
+		}
 	} else {
 		user, err = db.Provider.GetUserByPhoneNumber(ctx, refs.StringValue(params.PhoneNumber))
+		if err != nil {
+			log.Debug("Failed to get user by phone number: ", err)
+		}
 	}
 	if user == nil || err != nil {
-		log.Debug("Failed to get user by email or phone number: ", err)
-		return res, err
+		return res, fmt.Errorf(`user not found`)
 	}
 	// Verify OTP based on TOPT or OTP
-	if refs.BoolValue(params.Totp) {
+	if refs.BoolValue(params.IsTotp) {
 		status, err := authenticators.Provider.Validate(ctx, params.Otp, user.ID)
 		if err != nil {
 			log.Debug("Failed to validate totp: ", err)
@@ -64,18 +69,33 @@ func VerifyOtpResolver(ctx context.Context, params model.VerifyOTPRequest) (*mod
 		}
 		if !status {
 			log.Debug("Failed to verify otp request: Incorrect value")
-			return res, fmt.Errorf(`invalid otp`)
+			log.Info("Checking if otp is recovery code")
+			// Check if otp is recovery code
+			isValidRecoveryCode, err := authenticators.Provider.ValidateRecoveryCode(ctx, params.Otp, user.ID)
+			if err != nil {
+				log.Debug("Failed to validate recovery code: ", err)
+				return nil, fmt.Errorf("error while validating recovery code")
+			}
+			if !isValidRecoveryCode {
+				log.Debug("Failed to verify otp request: Incorrect value")
+				return res, fmt.Errorf(`invalid otp`)
+			}
 		}
 	} else {
 		var otp *models.OTP
-		if currentField == models.FieldNameEmail {
+		if isEmailVerification {
 			otp, err = db.Provider.GetOTPByEmail(ctx, refs.StringValue(params.Email))
+			if err != nil {
+				log.Debug(`Failed to get otp request for email: `, err.Error())
+			}
 		} else {
 			otp, err = db.Provider.GetOTPByPhoneNumber(ctx, refs.StringValue(params.PhoneNumber))
+			if err != nil {
+				log.Debug(`Failed to get otp request for phone number: `, err.Error())
+			}
 		}
 		if otp == nil && err != nil {
-			log.Debugf("Failed to get otp request for %s: %s", currentField, err.Error())
-			return res, fmt.Errorf(`invalid %s: %s`, currentField, err.Error())
+			return res, fmt.Errorf(`OTP not found`)
 		}
 		if params.Otp != otp.Otp {
 			log.Debug("Failed to verify otp request: Incorrect value")
@@ -94,10 +114,26 @@ func VerifyOtpResolver(ctx context.Context, params model.VerifyOTPRequest) (*mod
 		return res, fmt.Errorf(`invalid session: %s`, err.Error())
 	}
 
-	isSignUp := user.EmailVerifiedAt == nil && user.PhoneNumberVerifiedAt == nil
-	// TODO - Add Login method in DB when we introduce OTP for social media login
+	isSignUp := false
+	if user.EmailVerifiedAt == nil && isEmailVerification {
+		isSignUp = true
+		now := time.Now().Unix()
+		user.EmailVerifiedAt = &now
+	}
+	if user.PhoneNumberVerifiedAt == nil && isMobileVerification {
+		isSignUp = true
+		now := time.Now().Unix()
+		user.PhoneNumberVerifiedAt = &now
+	}
+	if isSignUp {
+		user, err = db.Provider.UpdateUser(ctx, user)
+		if err != nil {
+			log.Debug("Failed to update user: ", err)
+			return res, err
+		}
+	}
 	loginMethod := constants.AuthRecipeMethodBasicAuth
-	if currentField == models.FieldNamePhoneNumber {
+	if isMobileVerification {
 		loginMethod = constants.AuthRecipeMethodMobileOTP
 	}
 	roles := strings.Split(user.Roles, ",")

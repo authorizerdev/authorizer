@@ -119,6 +119,8 @@ type Env struct {
 	MicrosoftClientID                *string  `json:"MICROSOFT_CLIENT_ID,omitempty"`
 	MicrosoftClientSecret            *string  `json:"MICROSOFT_CLIENT_SECRET,omitempty"`
 	MicrosoftActiveDirectoryTenantID *string  `json:"MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID,omitempty"`
+	TwitchClientID                   *string  `json:"TWITCH_CLIENT_ID,omitempty"`
+	TwitchClientSecret               *string  `json:"TWITCH_CLIENT_SECRET,omitempty"`
 	OrganizationName                 *string  `json:"ORGANIZATION_NAME,omitempty"`
 	OrganizationLogo                 *string  `json:"ORGANIZATION_LOGO,omitempty"`
 	AppCookieSecure                  bool     `json:"APP_COOKIE_SECURE"`
@@ -189,21 +191,24 @@ type MagicLinkLoginInput struct {
 }
 
 type Meta struct {
-	Version                      string `json:"version"`
-	ClientID                     string `json:"client_id"`
-	IsGoogleLoginEnabled         bool   `json:"is_google_login_enabled"`
-	IsFacebookLoginEnabled       bool   `json:"is_facebook_login_enabled"`
-	IsGithubLoginEnabled         bool   `json:"is_github_login_enabled"`
-	IsLinkedinLoginEnabled       bool   `json:"is_linkedin_login_enabled"`
-	IsAppleLoginEnabled          bool   `json:"is_apple_login_enabled"`
-	IsTwitterLoginEnabled        bool   `json:"is_twitter_login_enabled"`
-	IsMicrosoftLoginEnabled      bool   `json:"is_microsoft_login_enabled"`
-	IsEmailVerificationEnabled   bool   `json:"is_email_verification_enabled"`
-	IsBasicAuthenticationEnabled bool   `json:"is_basic_authentication_enabled"`
-	IsMagicLinkLoginEnabled      bool   `json:"is_magic_link_login_enabled"`
-	IsSignUpEnabled              bool   `json:"is_sign_up_enabled"`
-	IsStrongPasswordEnabled      bool   `json:"is_strong_password_enabled"`
-	IsMultiFactorAuthEnabled     bool   `json:"is_multi_factor_auth_enabled"`
+	Version                            string `json:"version"`
+	ClientID                           string `json:"client_id"`
+	IsGoogleLoginEnabled               bool   `json:"is_google_login_enabled"`
+	IsFacebookLoginEnabled             bool   `json:"is_facebook_login_enabled"`
+	IsGithubLoginEnabled               bool   `json:"is_github_login_enabled"`
+	IsLinkedinLoginEnabled             bool   `json:"is_linkedin_login_enabled"`
+	IsAppleLoginEnabled                bool   `json:"is_apple_login_enabled"`
+	IsTwitterLoginEnabled              bool   `json:"is_twitter_login_enabled"`
+	IsMicrosoftLoginEnabled            bool   `json:"is_microsoft_login_enabled"`
+	IsTwitchLoginEnabled               bool   `json:"is_twitch_login_enabled"`
+	IsEmailVerificationEnabled         bool   `json:"is_email_verification_enabled"`
+	IsBasicAuthenticationEnabled       bool   `json:"is_basic_authentication_enabled"`
+	IsMagicLinkLoginEnabled            bool   `json:"is_magic_link_login_enabled"`
+	IsSignUpEnabled                    bool   `json:"is_sign_up_enabled"`
+	IsStrongPasswordEnabled            bool   `json:"is_strong_password_enabled"`
+	IsMultiFactorAuthEnabled           bool   `json:"is_multi_factor_auth_enabled"`
+	IsMobileBasicAuthenticationEnabled bool   `json:"is_mobile_basic_authentication_enabled"`
+	IsPhoneVerificationEnabled         bool   `json:"is_phone_verification_enabled"`
 }
 
 type MobileLoginInput struct {
@@ -383,6 +388,8 @@ type UpdateEnvInput struct {
 	MicrosoftClientID                *string  `json:"MICROSOFT_CLIENT_ID,omitempty"`
 	MicrosoftClientSecret            *string  `json:"MICROSOFT_CLIENT_SECRET,omitempty"`
 	MicrosoftActiveDirectoryTenantID *string  `json:"MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID,omitempty"`
+	TwitchClientID                   *string  `json:"TWITCH_CLIENT_ID,omitempty"`
+	TwitchClientSecret               *string  `json:"TWITCH_CLIENT_SECRET,omitempty"`
 	OrganizationName                 *string  `json:"ORGANIZATION_NAME,omitempty"`
 	OrganizationLogo                 *string  `json:"ORGANIZATION_LOGO,omitempty"`
 	DefaultAuthorizeResponseType     *string  `json:"DEFAULT_AUTHORIZE_RESPONSE_TYPE,omitempty"`
@@ -510,7 +517,7 @@ type VerifyOTPRequest struct {
 	Email       *string `json:"email,omitempty"`
 	PhoneNumber *string `json:"phone_number,omitempty"`
 	Otp         string  `json:"otp"`
-	Totp        *bool   `json:"totp,omitempty"`
+	IsTotp      *bool   `json:"is_totp,omitempty"`
 	State       *string `json:"state,omitempty"`
 }
 

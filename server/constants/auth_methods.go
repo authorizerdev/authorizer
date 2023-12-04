@@ -23,4 +23,6 @@ const (
 	AuthRecipeMethodTwitter = "twitter"
 	// AuthRecipeMethodMicrosoft is the microsoft auth method
 	AuthRecipeMethodMicrosoft = "microsoft"
+	// AuthRecipeMethodTwitch is the twitch auth method
+	AuthRecipeMethodTwitch = "twitch"
 )

@@ -99,9 +99,9 @@ func totpLoginTest(t *testing.T, s TestSetup) {
 		cookie = strings.TrimSuffix(cookie, ";")
 		req.Header.Set("Cookie", cookie)
 		valid, err := resolvers.VerifyOtpResolver(ctx, model.VerifyOTPRequest{
-			Email: &email,
-			Totp:  refs.NewBoolRef(true),
-			Otp:   code,
+			Email:  &email,
+			IsTotp: refs.NewBoolRef(true),
+			Otp:    code,
 		})
 		accessToken := valid.AccessToken
 		assert.NoError(t, err)
@@ -147,9 +147,9 @@ func totpLoginTest(t *testing.T, s TestSetup) {
 		cookie = strings.TrimSuffix(cookie, ";")
 		req.Header.Set("Cookie", cookie)
 		valid, err = resolvers.VerifyOtpResolver(ctx, model.VerifyOTPRequest{
-			Otp:   code,
-			Email: &email,
-			Totp:  refs.NewBoolRef(true),
+			Otp:    code,
+			Email:  &email,
+			IsTotp: refs.NewBoolRef(true),
 		})
 		assert.NoError(t, err)
 		assert.NotNil(t, *valid.AccessToken)
