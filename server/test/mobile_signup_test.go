@@ -98,12 +98,17 @@ func mobileSingupTest(t *testing.T, s TestSetup) {
 		})
 		assert.Nil(t, err)
 		assert.NotEmpty(t, otpRes.Message)
+		// Check if phone number is verified
+		user, err = db.Provider.GetUserByPhoneNumber(ctx, phoneNumber)
+		assert.NoError(t, err)
+		assert.NotNil(t, user)
+		assert.NotNil(t, user.PhoneNumberVerifiedAt)
 		res, err = resolvers.SignupResolver(ctx, model.SignUpInput{
 			PhoneNumber:     refs.NewStringRef(phoneNumber),
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password,
 		})
-		assert.Error(t, err)
+		assert.Error(t, err, "should throw duplicate error")
 		assert.Nil(t, res)
 		cleanData("1234567890@authorizer.dev")
 	})
