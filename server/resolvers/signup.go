@@ -222,12 +222,12 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 		log.Debug("Error getting email verification disabled: ", err)
 		isEmailVerificationDisabled = true
 	}
-	if isEmailVerificationDisabled {
+	if isEmailVerificationDisabled && isEmailSignup {
 		now := time.Now().Unix()
 		user.EmailVerifiedAt = &now
 	}
 	disablePhoneVerification, _ := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisablePhoneVerification)
-	if disablePhoneVerification {
+	if disablePhoneVerification && isMobileSignup {
 		now := time.Now().Unix()
 		user.PhoneNumberVerifiedAt = &now
 	}
