@@ -108,11 +108,10 @@ const Features = ({ variables, setVariables }: any) => {
 						/>
 					</Flex>
 				</Flex>
-				{/** TODO enable after final release */}
-				{/* {!variables.DISABLE_MULTI_FACTOR_AUTHENTICATION && (
+				{!variables.DISABLE_MULTI_FACTOR_AUTHENTICATION && (
 					<Flex alignItems="center">
 						<Flex w="100%" alignItems="baseline" flexDir="column">
-							<Text fontSize="sm">TOTP:</Text>
+							<Text fontSize="sm">Time Based OTP (TOTP):</Text>
 							<Text fontSize="x-small">Note: to enable totp mfa</Text>
 						</Flex>
 
@@ -125,7 +124,7 @@ const Features = ({ variables, setVariables }: any) => {
 							/>
 						</Flex>
 					</Flex>
-				)} */}
+				)}
 				{!variables.DISABLE_MULTI_FACTOR_AUTHENTICATION && (
 					<Flex alignItems="center">
 						<Flex w="100%" alignItems="baseline" flexDir="column">
