@@ -74,7 +74,13 @@ func VerifyEmailHandler() gin.HandlerFunc {
 			now := time.Now().Unix()
 			user.EmailVerifiedAt = &now
 			isSignUp = true
-			db.Provider.UpdateUser(c, user)
+			user, err = db.Provider.UpdateUser(c, user)
+			if err != nil {
+				log.Debug("Error updating user: ", err)
+				errorRes["error"] = err.Error()
+				utils.HandleRedirectORJsonResponse(c, http.StatusBadRequest, errorRes, generateRedirectURL(redirectURL, errorRes))
+				return
+			}
 		}
 		// delete from verification table
 		db.Provider.DeleteVerificationRequest(c, verificationRequest)

@@ -35,7 +35,11 @@ func verifyEmailTest(t *testing.T, s TestSetup) {
 		})
 		assert.Nil(t, err)
 		assert.NotEqual(t, verifyRes.AccessToken, "", "access token should not be empty")
-
+		// Check if phone number is verified
+		user1, err := db.Provider.GetUserByEmail(ctx, email)
+		assert.NoError(t, err)
+		assert.NotNil(t, user1)
+		assert.NotNil(t, user1.EmailVerifiedAt)
 		cleanData(email)
 	})
 }

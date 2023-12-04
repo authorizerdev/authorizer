@@ -73,7 +73,7 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 	}
 	isEmailSignup := email != ""
 	isMobileSignup := phoneNumber != ""
-	if isBasicAuthDisabled {
+	if isBasicAuthDisabled && isEmailSignup {
 		log.Debug("Basic authentication is disabled")
 		return res, fmt.Errorf(`basic authentication is disabled for this instance`)
 	}
