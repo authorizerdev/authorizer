@@ -37,7 +37,7 @@ func signupTests(t *testing.T, s TestSetup) {
 			Password:        s.TestInfo.Password,
 			ConfirmPassword: s.TestInfo.Password,
 		})
-		assert.NotNil(t, err, "singup disabled")
+		assert.NotNil(t, err, "signup disabled")
 		assert.Nil(t, res)
 		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDisableSignUp, false)
 		res, err = resolvers.SignupResolver(ctx, model.SignUpInput{

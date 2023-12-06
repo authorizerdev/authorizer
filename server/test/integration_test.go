@@ -129,6 +129,7 @@ func TestResolvers(t *testing.T) {
 			mobileSingupTest(t, s)
 			mobileLoginTests(t, s)
 			totpLoginTest(t, s)
+			totpSignupTest(t, s)
 			forgotPasswordTest(t, s)
 			resendVerifyEmailTests(t, s)
 			resetPasswordTest(t, s)
