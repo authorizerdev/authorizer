@@ -48,7 +48,7 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 		"user_id": params.ID,
 	})
 
-	if params.GivenName == nil && params.FamilyName == nil && params.Picture == nil && params.MiddleName == nil && params.Nickname == nil && params.Email == nil && params.Birthdate == nil && params.Gender == nil && params.PhoneNumber == nil && params.Roles == nil && params.IsMultiFactorAuthEnabled == nil {
+	if params.GivenName == nil && params.FamilyName == nil && params.Picture == nil && params.MiddleName == nil && params.Nickname == nil && params.Email == nil && params.Birthdate == nil && params.Gender == nil && params.PhoneNumber == nil && params.Roles == nil && params.IsMultiFactorAuthEnabled == nil && params.AppData == nil {
 		log.Debug("No params to update")
 		return res, fmt.Errorf("please enter atleast one param to update")
 	}
