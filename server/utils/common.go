@@ -95,3 +95,43 @@ func GetInviteVerificationURL(verificationURL, token, redirectURI string) string
 func GetEmailVerificationURL(token, hostname, redirectURI string) string {
 	return hostname + "/verify_email?token=" + token + "&redirect_uri=" + redirectURI
 }
+
+// FindDeletedValues find deleted values between original and updated one
+func FindDeletedValues(original, updated []string) []string {
+	deletedValues := make([]string, 0)
+
+	// Create a map to store elements of the updated array for faster lookups
+	updatedMap := make(map[string]bool)
+	for _, value := range updated {
+		updatedMap[value] = true
+	}
+
+	// Check for deleted values in the original array
+	for _, value := range original {
+		if _, found := updatedMap[value]; !found {
+			deletedValues = append(deletedValues, value)
+		}
+	}
+
+	return deletedValues
+}
+
+// DeleteFromArray will delete array from an array
+func DeleteFromArray(original, valuesToDelete []string) []string {
+	result := make([]string, 0)
+
+	// Create a map to store values to delete for faster lookups
+	valuesToDeleteMap := make(map[string]bool)
+	for _, value := range valuesToDelete {
+		valuesToDeleteMap[value] = true
+	}
+
+	// Check if each element in the original array should be deleted
+	for _, value := range original {
+		if _, found := valuesToDeleteMap[value]; !found {
+			result = append(result, value)
+		}
+	}
+
+	return result
+}
