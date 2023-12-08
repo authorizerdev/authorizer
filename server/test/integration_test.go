@@ -122,6 +122,7 @@ func TestResolvers(t *testing.T) {
 			updateEmailTemplateTest(t, s)
 			emailTemplatesTest(t, s)
 			deleteEmailTemplateTest(t, s)
+			RoleDeletionTest(t, s)
 
 			// user resolvers tests
 			loginTests(t, s)
