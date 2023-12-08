@@ -94,6 +94,8 @@ func clearSessionIfRequired(currentData, updatedData map[string]interface{}) {
 	}
 }
 
+// updateRoles will update DB for user roles, if a role is deleted by admin
+// then this function will those roles from user roles if exists
 func updateRoles(ctx context.Context, deletedRoles []string) error {
 	data, err := db.Provider.ListUsers(ctx, &model.Pagination{
 		Limit:  1,
@@ -111,20 +113,17 @@ func updateRoles(ctx context.Context, deletedRoles []string) error {
 	}
 
 	for i := range allData.Users {
-		now := time.Now().Unix()
-		allData.Users[i].Roles = utils.DeleteFromArray(allData.Users[i].Roles, deletedRoles)
-		allData.Users[i].UpdatedAt = &now
-	}
-
-	for i := range allData.Users {
-		updatedValues := map[string]interface{}{
-			"roles":      strings.Join(allData.Users[i].Roles, ","),
-			"updated_at": time.Now().Unix(),
-		}
-		id := []string{allData.Users[i].ID}
-		err = db.Provider.UpdateUsers(ctx, updatedValues, id)
-		if err != nil {
-			return err
+		roles := utils.DeleteFromArray(allData.Users[i].Roles, deletedRoles)
+		if len(allData.Users[i].Roles) != len(roles) {
+			updatedValues := map[string]interface{}{
+				"roles":      strings.Join(roles, ","),
+				"updated_at": time.Now().Unix(),
+			}
+			id := []string{allData.Users[i].ID}
+			err = db.Provider.UpdateUsers(ctx, updatedValues, id)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
