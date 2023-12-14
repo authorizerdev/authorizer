@@ -36,7 +36,7 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 		log.Debug("Failed to get GinContext: ", err)
 		return res, err
 	}
-	userID, err := token.GetUserIDFromSessionOrAccessToken(gc)
+	tokenData, err := token.GetUserIDFromSessionOrAccessToken(gc)
 	if err != nil {
 		log.Debug("Failed GetUserIDFromSessionOrAccessToken: ", err)
 		return res, err
@@ -48,9 +48,9 @@ func UpdateProfileResolver(ctx context.Context, params model.UpdateProfileInput)
 		return res, fmt.Errorf("please enter at least one param to update")
 	}
 	log := log.WithFields(log.Fields{
-		"user_id": userID,
+		"user_id": tokenData.UserID,
 	})
-	user, err := db.Provider.GetUserByID(ctx, userID)
+	user, err := db.Provider.GetUserByID(ctx, tokenData.UserID)
 	if err != nil {
 		log.Debug("Failed to get user by id: ", err)
 		return res, err

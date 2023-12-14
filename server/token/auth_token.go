@@ -482,8 +482,15 @@ func GetIDToken(gc *gin.Context) (string, error) {
 	return token, nil
 }
 
+// SessionOrAccessTokenData is a struct to hold session or access token data
+type SessionOrAccessTokenData struct {
+	UserID      string
+	LoginMethod string
+	Nonce       string
+}
+
 // GetUserIDFromSessionOrAccessToken returns the user id from the session or access token
-func GetUserIDFromSessionOrAccessToken(gc *gin.Context) (string, error) {
+func GetUserIDFromSessionOrAccessToken(gc *gin.Context) (*SessionOrAccessTokenData, error) {
 	// First try to get the user id from the session
 	isSession := true
 	token, err := cookie.GetSession(gc)
@@ -493,22 +500,30 @@ func GetUserIDFromSessionOrAccessToken(gc *gin.Context) (string, error) {
 		token, err = GetAccessToken(gc)
 		if err != nil || token == "" {
 			log.Debug("Failed to get access token: ", err)
-			return "", fmt.Errorf(`unauthorized`)
+			return nil, fmt.Errorf(`unauthorized`)
 		}
 	}
 	if isSession {
 		claims, err := ValidateBrowserSession(gc, token)
 		if err != nil {
 			log.Debug("Failed to validate session token: ", err)
-			return "", fmt.Errorf(`unauthorized`)
+			return nil, fmt.Errorf(`unauthorized`)
 		}
-		return claims.Subject, nil
+		return &SessionOrAccessTokenData{
+			UserID:      claims.Subject,
+			LoginMethod: claims.LoginMethod,
+			Nonce:       claims.Nonce,
+		}, nil
 	}
 	// If not session, then validate the access token
 	claims, err := ValidateAccessToken(gc, token)
 	if err != nil {
 		log.Debug("Failed to validate access token: ", err)
-		return "", fmt.Errorf(`unauthorized`)
+		return nil, fmt.Errorf(`unauthorized`)
 	}
-	return claims["sub"].(string), nil
+	return &SessionOrAccessTokenData{
+		UserID:      claims["sub"].(string),
+		LoginMethod: claims["login_method"].(string),
+		Nonce:       claims["nonce"].(string),
+	}, nil
 }
