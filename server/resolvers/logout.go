@@ -2,12 +2,10 @@ package resolvers
 
 import (
 	"context"
-	"encoding/json"
 
 	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/cookie"
-	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/token"
@@ -22,31 +20,18 @@ func LogoutResolver(ctx context.Context) (*model.Response, error) {
 		return nil, err
 	}
 
-	// get fingerprint hash
-	fingerprintHash, err := cookie.GetSession(gc)
+	tokenData, err := token.GetUserIDFromSessionOrAccessToken(gc)
 	if err != nil {
-		log.Debug("Failed to get fingerprint hash: ", err)
+		log.Debug("Failed GetUserIDFromSessionOrAccessToken: ", err)
 		return nil, err
 	}
 
-	decryptedFingerPrint, err := crypto.DecryptAES(fingerprintHash)
-	if err != nil {
-		log.Debug("Failed to decrypt fingerprint hash: ", err)
-		return nil, err
+	sessionKey := tokenData.UserID
+	if tokenData.LoginMethod != "" {
+		sessionKey = tokenData.LoginMethod + ":" + tokenData.UserID
 	}
 
-	var sessionData token.SessionData
-	err = json.Unmarshal([]byte(decryptedFingerPrint), &sessionData)
-	if err != nil {
-		return nil, err
-	}
-
-	sessionKey := sessionData.Subject
-	if sessionData.LoginMethod != "" {
-		sessionKey = sessionData.LoginMethod + ":" + sessionData.Subject
-	}
-
-	memorystore.Provider.DeleteUserSession(sessionKey, sessionData.Nonce)
+	memorystore.Provider.DeleteUserSession(sessionKey, tokenData.Nonce)
 	cookie.DeleteSession(gc)
 
 	res := &model.Response{
