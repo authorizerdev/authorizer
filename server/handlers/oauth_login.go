@@ -192,6 +192,24 @@ func OAuthLoginHandler() gin.HandlerFunc {
 			oauth.OAuthProviders.TwitterConfig.RedirectURL = hostname + "/oauth_callback/" + constants.AuthRecipeMethodTwitter
 			url := oauth.OAuthProviders.TwitterConfig.AuthCodeURL(oauthStateString, oauth2.SetAuthURLParam("code_challenge", challenge), oauth2.SetAuthURLParam("code_challenge_method", "S256"))
 			c.Redirect(http.StatusTemporaryRedirect, url)
+
+		case constants.AuthRecipeMethodDiscord:
+			if oauth.OAuthProviders.DiscordConfig == nil {
+				log.Debug("Discord OAuth provider is not configured")
+				isProviderConfigured = false
+				break
+			}
+			err := memorystore.Provider.SetState(oauthStateString, constants.AuthRecipeMethodDiscord)
+			if err != nil {
+				log.Debug("Error setting state: ", err)
+				c.JSON(500, gin.H{
+					"error": "internal server error",
+				})
+				return
+			}
+			oauth.OAuthProviders.DiscordConfig.RedirectURL = hostname + "/oauth_callback/" + constants.AuthRecipeMethodDiscord
+			url := oauth.OAuthProviders.DiscordConfig.AuthCodeURL(oauthStateString)
+			c.Redirect(http.StatusTemporaryRedirect, url)
 		case constants.AuthRecipeMethodApple:
 			if oauth.OAuthProviders.AppleConfig == nil {
 				log.Debug("Apple OAuth provider is not configured")

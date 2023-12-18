@@ -114,6 +114,8 @@ type Env struct {
 	LinkedinClientSecret             *string  `json:"LINKEDIN_CLIENT_SECRET,omitempty"`
 	AppleClientID                    *string  `json:"APPLE_CLIENT_ID,omitempty"`
 	AppleClientSecret                *string  `json:"APPLE_CLIENT_SECRET,omitempty"`
+	DiscordClientID                  *string  `json:"DISCORD_CLIENT_ID,omitempty"`
+	DiscordClientSecret              *string  `json:"DISCORD_CLIENT_SECRET,omitempty"`
 	TwitterClientID                  *string  `json:"TWITTER_CLIENT_ID,omitempty"`
 	TwitterClientSecret              *string  `json:"TWITTER_CLIENT_SECRET,omitempty"`
 	MicrosoftClientID                *string  `json:"MICROSOFT_CLIENT_ID,omitempty"`
@@ -204,6 +206,7 @@ type Meta struct {
 	IsGithubLoginEnabled               bool   `json:"is_github_login_enabled"`
 	IsLinkedinLoginEnabled             bool   `json:"is_linkedin_login_enabled"`
 	IsAppleLoginEnabled                bool   `json:"is_apple_login_enabled"`
+	IsDiscordLoginEnabled              bool   `json:"is_discord_login_enabled"`
 	IsTwitterLoginEnabled              bool   `json:"is_twitter_login_enabled"`
 	IsMicrosoftLoginEnabled            bool   `json:"is_microsoft_login_enabled"`
 	IsTwitchLoginEnabled               bool   `json:"is_twitch_login_enabled"`
@@ -391,6 +394,8 @@ type UpdateEnvInput struct {
 	LinkedinClientSecret             *string  `json:"LINKEDIN_CLIENT_SECRET,omitempty"`
 	AppleClientID                    *string  `json:"APPLE_CLIENT_ID,omitempty"`
 	AppleClientSecret                *string  `json:"APPLE_CLIENT_SECRET,omitempty"`
+	DiscordClientID                  *string  `json:"DISCORD_CLIENT_ID,omitempty"`
+	DiscordClientSecret              *string  `json:"DISCORD_CLIENT_SECRET,omitempty"`
 	TwitterClientID                  *string  `json:"TWITTER_CLIENT_ID,omitempty"`
 	TwitterClientSecret              *string  `json:"TWITTER_CLIENT_SECRET,omitempty"`
 	MicrosoftClientID                *string  `json:"MICROSOFT_CLIENT_ID,omitempty"`
