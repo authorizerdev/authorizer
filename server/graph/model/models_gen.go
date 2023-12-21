@@ -144,6 +144,11 @@ type ForgotPasswordInput struct {
 	RedirectURI *string `json:"redirect_uri,omitempty"`
 }
 
+type ForgotPasswordResponse struct {
+	Message                   string `json:"message"`
+	ShouldShowMobileOtpScreen *bool  `json:"should_show_mobile_otp_screen,omitempty"`
+}
+
 type GenerateJWTKeysInput struct {
 	Type string `json:"type"`
 }
@@ -273,9 +278,11 @@ type ResendVerifyEmailInput struct {
 }
 
 type ResetPasswordInput struct {
-	Token           string `json:"token"`
-	Password        string `json:"password"`
-	ConfirmPassword string `json:"confirm_password"`
+	Token           *string `json:"token,omitempty"`
+	Otp             *string `json:"otp,omitempty"`
+	PhoneNumber     *string `json:"phone_number,omitempty"`
+	Password        string  `json:"password"`
+	ConfirmPassword string  `json:"confirm_password"`
 }
 
 type Response struct {

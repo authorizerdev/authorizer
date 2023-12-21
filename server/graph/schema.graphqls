@@ -117,6 +117,11 @@ type Response {
   message: String!
 }
 
+type ForgotPasswordResponse {
+  message: String!
+  should_show_mobile_otp_screen: Boolean
+}
+
 type InviteMembersResponse {
   message: String!
   Users: [User!]!
@@ -456,7 +461,9 @@ input ForgotPasswordInput {
 }
 
 input ResetPasswordInput {
-  token: String!
+  token: String
+  otp: String
+  phone_number: String
   password: String!
   confirm_password: String!
 }
@@ -609,7 +616,7 @@ type Mutation {
   update_profile(params: UpdateProfileInput!): Response!
   verify_email(params: VerifyEmailInput!): AuthResponse!
   resend_verify_email(params: ResendVerifyEmailInput!): Response!
-  forgot_password(params: ForgotPasswordInput!): Response!
+  forgot_password(params: ForgotPasswordInput!): ForgotPasswordResponse!
   reset_password(params: ResetPasswordInput!): Response!
   revoke(params: OAuthRevokeInput!): Response!
   verify_otp(params: VerifyOTPRequest!): AuthResponse!

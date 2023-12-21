@@ -171,9 +171,10 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 	generateOTP := func(expiresAt int64) (*models.OTP, error) {
 		otp := utils.GenerateOTP()
 		otpData, err := db.Provider.UpsertOTP(ctx, &models.OTP{
-			Email:     refs.StringValue(user.Email),
-			Otp:       otp,
-			ExpiresAt: expiresAt,
+			Email:       refs.StringValue(user.Email),
+			PhoneNumber: refs.StringValue(user.PhoneNumber),
+			Otp:         otp,
+			ExpiresAt:   expiresAt,
 		})
 		if err != nil {
 			log.Debug("Failed to add otp: ", err)
