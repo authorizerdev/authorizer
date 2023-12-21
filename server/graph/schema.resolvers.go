@@ -58,7 +58,7 @@ func (r *mutationResolver) ResendVerifyEmail(ctx context.Context, params model.R
 }
 
 // ForgotPassword is the resolver for the forgot_password field.
-func (r *mutationResolver) ForgotPassword(ctx context.Context, params model.ForgotPasswordInput) (*model.Response, error) {
+func (r *mutationResolver) ForgotPassword(ctx context.Context, params model.ForgotPasswordInput) (*model.ForgotPasswordResponse, error) {
 	return resolvers.ForgotPasswordResolver(ctx, params)
 }
 

@@ -71,6 +71,9 @@ export default function Login({ urlProps }: { urlProps: Record<string, any> }) {
 							...urlProps,
 							redirect_uri: `${window.location.origin}/app/reset-password`,
 						}}
+						onPasswordReset={() => {
+							setView(VIEW_TYPES.LOGIN);
+						}}
 					/>
 					<Footer>
 						<Link
