@@ -134,7 +134,6 @@ func ForgotPasswordResolver(ctx context.Context, params model.ForgotPasswordInpu
 		}, nil
 	}
 	if isMobileLogin {
-		// TODO: send sms
 		expiresAt := time.Now().Add(1 * time.Minute).Unix()
 		otp := utils.GenerateOTP()
 		otpData, err := db.Provider.UpsertOTP(ctx, &models.OTP{
