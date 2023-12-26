@@ -24,7 +24,7 @@ func forgotPasswordTest(t *testing.T, s TestSetup) {
 		assert.NoError(t, err)
 		assert.NotNil(t, res)
 		forgotPasswordRes, err := resolvers.ForgotPasswordResolver(ctx, model.ForgotPasswordInput{
-			Email: email,
+			Email: refs.NewStringRef(email),
 		})
 		assert.Nil(t, err, "no errors for forgot password")
 		assert.NotNil(t, forgotPasswordRes)
