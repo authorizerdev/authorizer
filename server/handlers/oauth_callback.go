@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -248,8 +247,9 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			expiresIn = 1
 		}
 
-		params := "access_token=" + authToken.AccessToken.Token + "&token_type=bearer&expires_in=" + strconv.FormatInt(expiresIn, 10) + "&state=" + stateValue + "&id_token=" + authToken.IDToken.Token + "&nonce=" + nonce
-
+		// params := "access_token=" + authToken.AccessToken.Token + "&token_type=bearer&expires_in=" + strconv.FormatInt(expiresIn, 10) + "&state=" + stateValue + "&id_token=" + authToken.IDToken.Token + "&nonce=" + nonce
+		// Note: If OIDC breaks in the future, use the above params
+		params := "state=" + stateValue + "&nonce=" + nonce
 		if code != "" {
 			params += "&code=" + code
 		}
