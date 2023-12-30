@@ -72,6 +72,8 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			user, err = processLinkedInUserInfo(ctx, oauthCode)
 		case constants.AuthRecipeMethodApple:
 			user, err = processAppleUserInfo(ctx, oauthCode)
+		case constants.AuthRecipeMethodDiscord:
+			user, err = processDiscordUserInfo(ctx, oauthCode)
 		case constants.AuthRecipeMethodTwitter:
 			user, err = processTwitterUserInfo(ctx, oauthCode, sessionState)
 		case constants.AuthRecipeMethodMicrosoft:
@@ -607,6 +609,71 @@ func processAppleUserInfo(ctx context.Context, code string) (*models.User, error
 	}
 
 	return user, err
+}
+
+func processDiscordUserInfo(ctx context.Context, code string) (*models.User, error) {
+	oauth2Token, err := oauth.OAuthProviders.DiscordConfig.Exchange(ctx, code)
+	if err != nil {
+		log.Debug("Failed to exchange code for token: ", err)
+		return nil, fmt.Errorf("invalid discord exchange code: %s", err.Error())
+	}
+
+	client := http.Client{}
+	req, err := http.NewRequest("GET", constants.DiscordUserInfoURL, nil)
+	if err != nil {
+		log.Debug("Failed to create Discord user info request: ", err)
+		return nil, fmt.Errorf("error creating Discord user info request: %s", err.Error())
+	}
+	req.Header = http.Header{
+		"Authorization": []string{fmt.Sprintf("Bearer %s", oauth2Token.AccessToken)},
+	}
+
+	response, err := client.Do(req)
+	if err != nil {
+		log.Debug("Failed to request Discord user info: ", err)
+		return nil, err
+	}
+
+	defer response.Body.Close()
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		log.Debug("Failed to read Discord user info response body: ", err)
+		return nil, fmt.Errorf("failed to read Discord response body: %s", err.Error())
+	}
+
+	if response.StatusCode >= 400 {
+		log.Debug("Failed to request Discord user info: ", string(body))
+		return nil, fmt.Errorf("failed to request Discord user info: %s", string(body))
+	}
+
+	// Unmarshal the response body into a map
+	responseRawData := make(map[string]interface{})
+	if err := json.Unmarshal(body, &responseRawData); err != nil {
+		log.Debug("Failed to unmarshal Discord response: ", err)
+		return nil, fmt.Errorf("failed to unmarshal Discord response: %s", err.Error())
+	}
+
+	// Safely extract the user data
+	userRawData, ok := responseRawData["user"].(map[string]interface{})
+	if !ok {
+		log.Debug("User data is not in expected format or missing in response")
+		return nil, fmt.Errorf("user data is not in expected format or missing in response")
+	}
+
+	// Extract the username
+	firstName, ok := userRawData["username"].(string)
+	if !ok {
+		log.Debug("Username is not in expected format or missing in user data")
+		return nil, fmt.Errorf("username is not in expected format or missing in user data")
+	}
+	profilePicture := fmt.Sprintf("https://cdn.discordapp.com/avatars/%s/%s.png", userRawData["id"].(string), userRawData["avatar"].(string))
+
+	user := &models.User{
+		GivenName: &firstName,
+		Picture:   &profilePicture,
+	}
+
+	return user, nil
 }
 
 func processTwitterUserInfo(ctx context.Context, code, verifier string) (*models.User, error) {

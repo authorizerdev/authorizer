@@ -17,6 +17,7 @@ const (
 
 	TwitterUserInfoURL = "https://api.twitter.com/2/users/me?user.fields=id,name,profile_image_url,username"
 
+	DiscordUserInfoURL = "https://discord.com/api/oauth2/@me"
 	// Get microsoft user info.
 	// Ref: https://learn.microsoft.com/en-us/azure/active-directory/develop/userinfo
 	MicrosoftUserInfoURL = "https://graph.microsoft.com/oidc/userinfo"

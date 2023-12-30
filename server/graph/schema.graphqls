@@ -20,6 +20,7 @@ type Meta {
   is_github_login_enabled: Boolean!
   is_linkedin_login_enabled: Boolean!
   is_apple_login_enabled: Boolean!
+  is_discord_login_enabled: Boolean!
   is_twitter_login_enabled: Boolean!
   is_microsoft_login_enabled: Boolean!
   is_twitch_login_enabled: Boolean!
@@ -178,6 +179,8 @@ type Env {
   LINKEDIN_CLIENT_SECRET: String
   APPLE_CLIENT_ID: String
   APPLE_CLIENT_SECRET: String
+  DISCORD_CLIENT_ID: String
+  DISCORD_CLIENT_SECRET: String
   TWITTER_CLIENT_ID: String
   TWITTER_CLIENT_SECRET: String
   MICROSOFT_CLIENT_ID: String
@@ -307,6 +310,8 @@ input UpdateEnvInput {
   LINKEDIN_CLIENT_SECRET: String
   APPLE_CLIENT_ID: String
   APPLE_CLIENT_SECRET: String
+  DISCORD_CLIENT_ID: String
+  DISCORD_CLIENT_SECRET: String
   TWITTER_CLIENT_ID: String
   TWITTER_CLIENT_SECRET: String
   MICROSOFT_CLIENT_ID: String
