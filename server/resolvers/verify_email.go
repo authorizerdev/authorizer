@@ -71,11 +71,6 @@ func VerifyEmailResolver(ctx context.Context, params model.VerifyEmailInput) (*m
 		log.Debug("totp service not enabled: ", err)
 	}
 
-	isMailOTPDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableMailOTPLogin)
-	if err != nil || !isMailOTPDisabled {
-		log.Debug("mail OTP service not enabled: ", err)
-	}
-
 	setOTPMFaSession := func(expiresAt int64) error {
 		mfaSession := uuid.NewString()
 		err = memorystore.Provider.SetMfaSession(user.ID, mfaSession, expiresAt)
