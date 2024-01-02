@@ -328,19 +328,17 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 	}
 
 	previousRoles := strings.Split(currentData[constants.EnvKeyRoles].(string), ",")
+	previousProtectedRoles := strings.Split(currentData[constants.EnvKeyProtectedRoles].(string), ",")
 	updatedRoles := strings.Split(updatedData[constants.EnvKeyRoles].(string), ",")
 	updatedDefaultRoles := strings.Split(updatedData[constants.EnvKeyDefaultRoles].(string), ",")
 	updatedProtectedRoles := strings.Split(updatedData[constants.EnvKeyProtectedRoles].(string), ",")
-
 	// check the roles change
-	if len(updatedRoles) > 0 {
-		if len(updatedDefaultRoles) > 0 {
-			// should be subset of roles
-			for _, role := range updatedDefaultRoles {
-				if !utils.StringSliceContains(updatedRoles, role) {
-					log.Debug("Default roles should be subset of roles")
-					return res, fmt.Errorf("default role %s is not in roles", role)
-				}
+	if len(updatedRoles) > 0 && len(updatedDefaultRoles) > 0 {
+		// should be subset of roles
+		for _, role := range updatedDefaultRoles {
+			if !utils.StringSliceContains(updatedRoles, role) {
+				log.Debug("Default roles should be subset of roles")
+				return res, fmt.Errorf("default role %s is not in roles", role)
 			}
 		}
 	}
@@ -357,6 +355,11 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 	deletedRoles := utils.FindDeletedValues(previousRoles, updatedRoles)
 	if len(deletedRoles) > 0 {
 		go updateRoles(ctx, deletedRoles)
+	}
+
+	deletedProtectedRoles := utils.FindDeletedValues(previousProtectedRoles, updatedProtectedRoles)
+	if len(deletedProtectedRoles) > 0 {
+		go updateRoles(ctx, deletedProtectedRoles)
 	}
 
 	// Update local store
