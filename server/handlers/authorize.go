@@ -123,7 +123,7 @@ func AuthorizeHandler() gin.HandlerFunc {
 
 		// TODO add state with timeout
 		// used for response mode query or fragment
-		authState := "state=" + state + "&scope=" + strings.Join(scope, " ") + "&redirect_uri=" + redirectURI
+		authState := "state=" + state + "&scope=" + scopeString + "&redirect_uri=" + redirectURI
 		if responseType == constants.ResponseTypeCode {
 			authState += "&code=" + code
 			if err := memorystore.Provider.SetState(state, code+"@@"+codeChallenge); err != nil {

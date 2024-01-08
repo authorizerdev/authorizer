@@ -3,6 +3,7 @@ package handlers
 import (
 	"crypto/sha256"
 	"encoding/base64"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -105,7 +106,7 @@ func TokenHandler() gin.HandlerFunc {
 
 			if codeVerifier == "" && clientSecret == "" {
 				gc.JSON(http.StatusBadRequest, gin.H{
-					"error":             "invalid_dat",
+					"error":             "invalid_data",
 					"error_description": "The code verifier or client secret is required",
 				})
 				return
@@ -263,12 +264,14 @@ func TokenHandler() gin.HandlerFunc {
 			"roles":        roles,
 			"expires_in":   expiresIn,
 		}
-
+		fmt.Println("=> scopes:", scope)
+		fmt.Println("=> refreshToken:", authToken.RefreshToken)
 		if authToken.RefreshToken != nil {
+			log.Debug("Refresh token is present: ", fmt.Sprintf("%s:%s", sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint))
 			res["refresh_token"] = authToken.RefreshToken.Token
 			memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token, authToken.RefreshToken.ExpiresAt)
 		}
-
+		fmt.Printf("=> res %v", res)
 		gc.JSON(http.StatusOK, res)
 	}
 }

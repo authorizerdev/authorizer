@@ -53,7 +53,16 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 		stateValue := sessionSplit[0]
 		redirectURL := sessionSplit[1]
 		inputRoles := strings.Split(sessionSplit[2], ",")
-		scopes := strings.Split(sessionSplit[3], ",")
+		scopeString := sessionSplit[3]
+		scopes := []string{}
+		if scopeString != "" {
+			if strings.Contains(scopeString, ",") {
+				scopes = strings.Split(scopeString, ",")
+			}
+			if strings.Contains(scopeString, " ") {
+				scopes = strings.Split(scopeString, " ")
+			}
+		}
 		var user *models.User
 		oauthCode := ctx.Request.FormValue("code")
 		if oauthCode == "" {

@@ -91,7 +91,6 @@ func CreateAuthToken(gc *gin.Context, user *models.User, roles, scope []string, 
 		AccessToken:           &JWTToken{Token: accessToken, ExpiresAt: accessTokenExpiresAt},
 		IDToken:               &JWTToken{Token: idToken, ExpiresAt: idTokenExpiresAt},
 	}
-
 	if utils.StringSliceContains(scope, "offline_access") {
 		refreshToken, refreshTokenExpiresAt, err := CreateRefreshToken(user, roles, scope, hostname, nonce, loginMethod)
 		if err != nil {
