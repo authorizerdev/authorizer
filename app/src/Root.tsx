@@ -59,7 +59,9 @@ export default function Root({
 	useEffect(() => {
 		if (token) {
 			let redirectURL = config.redirectURL || '/app';
-			let params = `access_token=${token.access_token}&id_token=${token.id_token}&expires_in=${token.expires_in}&state=${globalState.state}`;
+			// let params = `access_token=${token.access_token}&id_token=${token.id_token}&expires_in=${token.expires_in}&state=${globalState.state}`;
+			// Note: If OIDC breaks in the future, use the above params
+			let params = `state=${globalState.state}`;
 
 			if (code !== '') {
 				params += `&code=${code}`;

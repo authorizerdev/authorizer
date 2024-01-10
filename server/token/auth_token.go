@@ -91,7 +91,6 @@ func CreateAuthToken(gc *gin.Context, user *models.User, roles, scope []string, 
 		AccessToken:           &JWTToken{Token: accessToken, ExpiresAt: accessTokenExpiresAt},
 		IDToken:               &JWTToken{Token: idToken, ExpiresAt: idTokenExpiresAt},
 	}
-
 	if utils.StringSliceContains(scope, "offline_access") {
 		refreshToken, refreshTokenExpiresAt, err := CreateRefreshToken(user, roles, scope, hostname, nonce, loginMethod)
 		if err != nil {
@@ -354,7 +353,7 @@ func ValidateBrowserSession(gc *gin.Context, encryptedSession string) (*SessionD
 	}
 	token, err := memorystore.Provider.GetUserSession(sessionStoreKey, constants.TokenTypeSessionToken+"_"+res.Nonce)
 	if token == "" || err != nil {
-		log.Debug("invalid browser session:", err)
+		log.Debugf("invalid browser session: %v, key: %s", err, sessionStoreKey+":"+constants.TokenTypeSessionToken+"_"+res.Nonce)
 		return nil, fmt.Errorf(`unauthorized`)
 	}
 

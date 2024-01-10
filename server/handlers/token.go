@@ -105,7 +105,7 @@ func TokenHandler() gin.HandlerFunc {
 
 			if codeVerifier == "" && clientSecret == "" {
 				gc.JSON(http.StatusBadRequest, gin.H{
-					"error":             "invalid_dat",
+					"error":             "invalid_data",
 					"error_description": "The code verifier or client secret is required",
 				})
 				return
@@ -263,12 +263,10 @@ func TokenHandler() gin.HandlerFunc {
 			"roles":        roles,
 			"expires_in":   expiresIn,
 		}
-
 		if authToken.RefreshToken != nil {
 			res["refresh_token"] = authToken.RefreshToken.Token
 			memorystore.Provider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token, authToken.RefreshToken.ExpiresAt)
 		}
-
 		gc.JSON(http.StatusOK, res)
 	}
 }

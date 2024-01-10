@@ -38,7 +38,7 @@ func SessionResolver(ctx context.Context, params *model.SessionQueryInput) (*mod
 	// get session from cookie
 	claims, err := token.ValidateBrowserSession(gc, sessionToken)
 	if err != nil {
-		log.Debug("Failed to validate session token", err)
+		log.Debug("Failed to validate session token: ", err)
 		return res, errors.New("unauthorized")
 	}
 	userID := claims.Subject

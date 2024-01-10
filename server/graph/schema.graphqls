@@ -20,6 +20,7 @@ type Meta {
   is_github_login_enabled: Boolean!
   is_linkedin_login_enabled: Boolean!
   is_apple_login_enabled: Boolean!
+  is_discord_login_enabled: Boolean!
   is_twitter_login_enabled: Boolean!
   is_microsoft_login_enabled: Boolean!
   is_twitch_login_enabled: Boolean!
@@ -117,6 +118,11 @@ type Response {
   message: String!
 }
 
+type ForgotPasswordResponse {
+  message: String!
+  should_show_mobile_otp_screen: Boolean
+}
+
 type InviteMembersResponse {
   message: String!
   Users: [User!]!
@@ -173,6 +179,8 @@ type Env {
   LINKEDIN_CLIENT_SECRET: String
   APPLE_CLIENT_ID: String
   APPLE_CLIENT_SECRET: String
+  DISCORD_CLIENT_ID: String
+  DISCORD_CLIENT_SECRET: String
   TWITTER_CLIENT_ID: String
   TWITTER_CLIENT_SECRET: String
   MICROSOFT_CLIENT_ID: String
@@ -302,6 +310,8 @@ input UpdateEnvInput {
   LINKEDIN_CLIENT_SECRET: String
   APPLE_CLIENT_ID: String
   APPLE_CLIENT_SECRET: String
+  DISCORD_CLIENT_ID: String
+  DISCORD_CLIENT_SECRET: String
   TWITTER_CLIENT_ID: String
   TWITTER_CLIENT_SECRET: String
   MICROSOFT_CLIENT_ID: String
@@ -449,13 +459,16 @@ input UpdateUserInput {
 }
 
 input ForgotPasswordInput {
-  email: String!
+  email: String
+  phone_number: String
   state: String
   redirect_uri: String
 }
 
 input ResetPasswordInput {
-  token: String!
+  token: String
+  otp: String
+  phone_number: String
   password: String!
   confirm_password: String!
 }
@@ -608,7 +621,7 @@ type Mutation {
   update_profile(params: UpdateProfileInput!): Response!
   verify_email(params: VerifyEmailInput!): AuthResponse!
   resend_verify_email(params: ResendVerifyEmailInput!): Response!
-  forgot_password(params: ForgotPasswordInput!): Response!
+  forgot_password(params: ForgotPasswordInput!): ForgotPasswordResponse!
   reset_password(params: ResetPasswordInput!): Response!
   revoke(params: OAuthRevokeInput!): Response!
   verify_otp(params: VerifyOTPRequest!): AuthResponse!

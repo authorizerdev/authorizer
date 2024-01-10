@@ -109,6 +109,8 @@ type ComplexityRoot struct {
 		DisableSignUp                    func(childComplexity int) int
 		DisableStrongPassword            func(childComplexity int) int
 		DisableTotpLogin                 func(childComplexity int) int
+		DiscordClientID                  func(childComplexity int) int
+		DiscordClientSecret              func(childComplexity int) int
 		EnforceMultiFactorAuthentication func(childComplexity int) int
 		FacebookClientID                 func(childComplexity int) int
 		FacebookClientSecret             func(childComplexity int) int
@@ -150,6 +152,11 @@ type ComplexityRoot struct {
 		Reason  func(childComplexity int) int
 	}
 
+	ForgotPasswordResponse struct {
+		Message                   func(childComplexity int) int
+		ShouldShowMobileOtpScreen func(childComplexity int) int
+	}
+
 	GenerateJWTKeysResponse struct {
 		PrivateKey func(childComplexity int) int
 		PublicKey  func(childComplexity int) int
@@ -165,6 +172,7 @@ type ComplexityRoot struct {
 		ClientID                           func(childComplexity int) int
 		IsAppleLoginEnabled                func(childComplexity int) int
 		IsBasicAuthenticationEnabled       func(childComplexity int) int
+		IsDiscordLoginEnabled              func(childComplexity int) int
 		IsEmailVerificationEnabled         func(childComplexity int) int
 		IsFacebookLoginEnabled             func(childComplexity int) int
 		IsGithubLoginEnabled               func(childComplexity int) int
@@ -356,7 +364,7 @@ type MutationResolver interface {
 	UpdateProfile(ctx context.Context, params model.UpdateProfileInput) (*model.Response, error)
 	VerifyEmail(ctx context.Context, params model.VerifyEmailInput) (*model.AuthResponse, error)
 	ResendVerifyEmail(ctx context.Context, params model.ResendVerifyEmailInput) (*model.Response, error)
-	ForgotPassword(ctx context.Context, params model.ForgotPasswordInput) (*model.Response, error)
+	ForgotPassword(ctx context.Context, params model.ForgotPasswordInput) (*model.ForgotPasswordResponse, error)
 	ResetPassword(ctx context.Context, params model.ResetPasswordInput) (*model.Response, error)
 	Revoke(ctx context.Context, params model.OAuthRevokeInput) (*model.Response, error)
 	VerifyOtp(ctx context.Context, params model.VerifyOTPRequest) (*model.AuthResponse, error)
@@ -787,6 +795,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Env.DisableTotpLogin(childComplexity), true
 
+	case "Env.DISCORD_CLIENT_ID":
+		if e.complexity.Env.DiscordClientID == nil {
+			break
+		}
+
+		return e.complexity.Env.DiscordClientID(childComplexity), true
+
+	case "Env.DISCORD_CLIENT_SECRET":
+		if e.complexity.Env.DiscordClientSecret == nil {
+			break
+		}
+
+		return e.complexity.Env.DiscordClientSecret(childComplexity), true
+
 	case "Env.ENFORCE_MULTI_FACTOR_AUTHENTICATION":
 		if e.complexity.Env.EnforceMultiFactorAuthentication == nil {
 			break
@@ -1039,6 +1061,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Error.Reason(childComplexity), true
 
+	case "ForgotPasswordResponse.message":
+		if e.complexity.ForgotPasswordResponse.Message == nil {
+			break
+		}
+
+		return e.complexity.ForgotPasswordResponse.Message(childComplexity), true
+
+	case "ForgotPasswordResponse.should_show_mobile_otp_screen":
+		if e.complexity.ForgotPasswordResponse.ShouldShowMobileOtpScreen == nil {
+			break
+		}
+
+		return e.complexity.ForgotPasswordResponse.ShouldShowMobileOtpScreen(childComplexity), true
+
 	case "GenerateJWTKeysResponse.private_key":
 		if e.complexity.GenerateJWTKeysResponse.PrivateKey == nil {
 			break
@@ -1094,6 +1130,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Meta.IsBasicAuthenticationEnabled(childComplexity), true
+
+	case "Meta.is_discord_login_enabled":
+		if e.complexity.Meta.IsDiscordLoginEnabled == nil {
+			break
+		}
+
+		return e.complexity.Meta.IsDiscordLoginEnabled(childComplexity), true
 
 	case "Meta.is_email_verification_enabled":
 		if e.complexity.Meta.IsEmailVerificationEnabled == nil {
@@ -2362,6 +2405,7 @@ type Meta {
   is_github_login_enabled: Boolean!
   is_linkedin_login_enabled: Boolean!
   is_apple_login_enabled: Boolean!
+  is_discord_login_enabled: Boolean!
   is_twitter_login_enabled: Boolean!
   is_microsoft_login_enabled: Boolean!
   is_twitch_login_enabled: Boolean!
@@ -2459,6 +2503,11 @@ type Response {
   message: String!
 }
 
+type ForgotPasswordResponse {
+  message: String!
+  should_show_mobile_otp_screen: Boolean
+}
+
 type InviteMembersResponse {
   message: String!
   Users: [User!]!
@@ -2515,6 +2564,8 @@ type Env {
   LINKEDIN_CLIENT_SECRET: String
   APPLE_CLIENT_ID: String
   APPLE_CLIENT_SECRET: String
+  DISCORD_CLIENT_ID: String
+  DISCORD_CLIENT_SECRET: String
   TWITTER_CLIENT_ID: String
   TWITTER_CLIENT_SECRET: String
   MICROSOFT_CLIENT_ID: String
@@ -2644,6 +2695,8 @@ input UpdateEnvInput {
   LINKEDIN_CLIENT_SECRET: String
   APPLE_CLIENT_ID: String
   APPLE_CLIENT_SECRET: String
+  DISCORD_CLIENT_ID: String
+  DISCORD_CLIENT_SECRET: String
   TWITTER_CLIENT_ID: String
   TWITTER_CLIENT_SECRET: String
   MICROSOFT_CLIENT_ID: String
@@ -2791,13 +2844,16 @@ input UpdateUserInput {
 }
 
 input ForgotPasswordInput {
-  email: String!
+  email: String
+  phone_number: String
   state: String
   redirect_uri: String
 }
 
 input ResetPasswordInput {
-  token: String!
+  token: String
+  otp: String
+  phone_number: String
   password: String!
   confirm_password: String!
 }
@@ -2950,7 +3006,7 @@ type Mutation {
   update_profile(params: UpdateProfileInput!): Response!
   verify_email(params: VerifyEmailInput!): AuthResponse!
   resend_verify_email(params: ResendVerifyEmailInput!): Response!
-  forgot_password(params: ForgotPasswordInput!): Response!
+  forgot_password(params: ForgotPasswordInput!): ForgotPasswordResponse!
   reset_password(params: ResetPasswordInput!): Response!
   revoke(params: OAuthRevokeInput!): Response!
   verify_otp(params: VerifyOTPRequest!): AuthResponse!
@@ -6675,6 +6731,88 @@ func (ec *executionContext) fieldContext_Env_APPLE_CLIENT_SECRET(ctx context.Con
 	return fc, nil
 }
 
+func (ec *executionContext) _Env_DISCORD_CLIENT_ID(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Env_DISCORD_CLIENT_ID(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DiscordClientID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Env_DISCORD_CLIENT_ID(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Env",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Env_DISCORD_CLIENT_SECRET(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Env_DISCORD_CLIENT_SECRET(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DiscordClientSecret, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Env_DISCORD_CLIENT_SECRET(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Env",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Env_TWITTER_CLIENT_ID(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Env_TWITTER_CLIENT_ID(ctx, field)
 	if err != nil {
@@ -7434,6 +7572,91 @@ func (ec *executionContext) fieldContext_Error_reason(ctx context.Context, field
 	return fc, nil
 }
 
+func (ec *executionContext) _ForgotPasswordResponse_message(ctx context.Context, field graphql.CollectedField, obj *model.ForgotPasswordResponse) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ForgotPasswordResponse_message(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Message, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ForgotPasswordResponse_message(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ForgotPasswordResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ForgotPasswordResponse_should_show_mobile_otp_screen(ctx context.Context, field graphql.CollectedField, obj *model.ForgotPasswordResponse) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ForgotPasswordResponse_should_show_mobile_otp_screen(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ShouldShowMobileOtpScreen, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*bool)
+	fc.Result = res
+	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ForgotPasswordResponse_should_show_mobile_otp_screen(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ForgotPasswordResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _GenerateJWTKeysResponse_secret(ctx context.Context, field graphql.CollectedField, obj *model.GenerateJWTKeysResponse) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_GenerateJWTKeysResponse_secret(ctx, field)
 	if err != nil {
@@ -7983,6 +8206,50 @@ func (ec *executionContext) _Meta_is_apple_login_enabled(ctx context.Context, fi
 }
 
 func (ec *executionContext) fieldContext_Meta_is_apple_login_enabled(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Meta",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Meta_is_discord_login_enabled(ctx context.Context, field graphql.CollectedField, obj *model.Meta) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Meta_is_discord_login_enabled(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsDiscordLoginEnabled, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Meta_is_discord_login_enabled(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Meta",
 		Field:      field,
@@ -9135,9 +9402,9 @@ func (ec *executionContext) _Mutation_forgot_password(ctx context.Context, field
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.Response)
+	res := resTmp.(*model.ForgotPasswordResponse)
 	fc.Result = res
-	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+	return ec.marshalNForgotPasswordResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐForgotPasswordResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_forgot_password(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -9149,9 +9416,11 @@ func (ec *executionContext) fieldContext_Mutation_forgot_password(ctx context.Co
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "message":
-				return ec.fieldContext_Response_message(ctx, field)
+				return ec.fieldContext_ForgotPasswordResponse_message(ctx, field)
+			case "should_show_mobile_otp_screen":
+				return ec.fieldContext_ForgotPasswordResponse_should_show_mobile_otp_screen(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Response", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type ForgotPasswordResponse", field.Name)
 		},
 	}
 	defer func() {
@@ -10741,6 +11010,8 @@ func (ec *executionContext) fieldContext_Query_meta(ctx context.Context, field g
 				return ec.fieldContext_Meta_is_linkedin_login_enabled(ctx, field)
 			case "is_apple_login_enabled":
 				return ec.fieldContext_Meta_is_apple_login_enabled(ctx, field)
+			case "is_discord_login_enabled":
+				return ec.fieldContext_Meta_is_discord_login_enabled(ctx, field)
 			case "is_twitter_login_enabled":
 				return ec.fieldContext_Meta_is_twitter_login_enabled(ctx, field)
 			case "is_microsoft_login_enabled":
@@ -11465,6 +11736,10 @@ func (ec *executionContext) fieldContext_Query__env(ctx context.Context, field g
 				return ec.fieldContext_Env_APPLE_CLIENT_ID(ctx, field)
 			case "APPLE_CLIENT_SECRET":
 				return ec.fieldContext_Env_APPLE_CLIENT_SECRET(ctx, field)
+			case "DISCORD_CLIENT_ID":
+				return ec.fieldContext_Env_DISCORD_CLIENT_ID(ctx, field)
+			case "DISCORD_CLIENT_SECRET":
+				return ec.fieldContext_Env_DISCORD_CLIENT_SECRET(ctx, field)
 			case "TWITTER_CLIENT_ID":
 				return ec.fieldContext_Env_TWITTER_CLIENT_ID(ctx, field)
 			case "TWITTER_CLIENT_SECRET":
@@ -16821,7 +17096,7 @@ func (ec *executionContext) unmarshalInputForgotPasswordInput(ctx context.Contex
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"email", "state", "redirect_uri"}
+	fieldsInOrder := [...]string{"email", "phone_number", "state", "redirect_uri"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -16832,11 +17107,20 @@ func (ec *executionContext) unmarshalInputForgotPasswordInput(ctx context.Contex
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
-			data, err := ec.unmarshalNString2string(ctx, v)
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
 			it.Email = data
+		case "phone_number":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phone_number"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PhoneNumber = data
 		case "state":
 			var err error
 
@@ -17578,7 +17862,7 @@ func (ec *executionContext) unmarshalInputResetPasswordInput(ctx context.Context
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"token", "password", "confirm_password"}
+	fieldsInOrder := [...]string{"token", "otp", "phone_number", "password", "confirm_password"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -17589,11 +17873,29 @@ func (ec *executionContext) unmarshalInputResetPasswordInput(ctx context.Context
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("token"))
-			data, err := ec.unmarshalNString2string(ctx, v)
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
 			it.Token = data
+		case "otp":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("otp"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Otp = data
+		case "phone_number":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phone_number"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PhoneNumber = data
 		case "password":
 			var err error
 
@@ -17986,7 +18288,7 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"ACCESS_TOKEN_EXPIRY_TIME", "ADMIN_SECRET", "CUSTOM_ACCESS_TOKEN_SCRIPT", "OLD_ADMIN_SECRET", "SMTP_HOST", "SMTP_PORT", "SMTP_USERNAME", "SMTP_PASSWORD", "SMTP_LOCAL_NAME", "SENDER_EMAIL", "SENDER_NAME", "JWT_TYPE", "JWT_SECRET", "JWT_PRIVATE_KEY", "JWT_PUBLIC_KEY", "ALLOWED_ORIGINS", "APP_URL", "RESET_PASSWORD_URL", "APP_COOKIE_SECURE", "ADMIN_COOKIE_SECURE", "DISABLE_EMAIL_VERIFICATION", "DISABLE_BASIC_AUTHENTICATION", "DISABLE_MAGIC_LINK_LOGIN", "DISABLE_LOGIN_PAGE", "DISABLE_SIGN_UP", "DISABLE_REDIS_FOR_ENV", "DISABLE_STRONG_PASSWORD", "DISABLE_MULTI_FACTOR_AUTHENTICATION", "ENFORCE_MULTI_FACTOR_AUTHENTICATION", "ROLES", "PROTECTED_ROLES", "DEFAULT_ROLES", "JWT_ROLE_CLAIM", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET", "FACEBOOK_CLIENT_ID", "FACEBOOK_CLIENT_SECRET", "LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET", "APPLE_CLIENT_ID", "APPLE_CLIENT_SECRET", "TWITTER_CLIENT_ID", "TWITTER_CLIENT_SECRET", "MICROSOFT_CLIENT_ID", "MICROSOFT_CLIENT_SECRET", "MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID", "TWITCH_CLIENT_ID", "TWITCH_CLIENT_SECRET", "ORGANIZATION_NAME", "ORGANIZATION_LOGO", "DEFAULT_AUTHORIZE_RESPONSE_TYPE", "DEFAULT_AUTHORIZE_RESPONSE_MODE", "DISABLE_PLAYGROUND", "DISABLE_MAIL_OTP_LOGIN", "DISABLE_TOTP_LOGIN"}
+	fieldsInOrder := [...]string{"ACCESS_TOKEN_EXPIRY_TIME", "ADMIN_SECRET", "CUSTOM_ACCESS_TOKEN_SCRIPT", "OLD_ADMIN_SECRET", "SMTP_HOST", "SMTP_PORT", "SMTP_USERNAME", "SMTP_PASSWORD", "SMTP_LOCAL_NAME", "SENDER_EMAIL", "SENDER_NAME", "JWT_TYPE", "JWT_SECRET", "JWT_PRIVATE_KEY", "JWT_PUBLIC_KEY", "ALLOWED_ORIGINS", "APP_URL", "RESET_PASSWORD_URL", "APP_COOKIE_SECURE", "ADMIN_COOKIE_SECURE", "DISABLE_EMAIL_VERIFICATION", "DISABLE_BASIC_AUTHENTICATION", "DISABLE_MAGIC_LINK_LOGIN", "DISABLE_LOGIN_PAGE", "DISABLE_SIGN_UP", "DISABLE_REDIS_FOR_ENV", "DISABLE_STRONG_PASSWORD", "DISABLE_MULTI_FACTOR_AUTHENTICATION", "ENFORCE_MULTI_FACTOR_AUTHENTICATION", "ROLES", "PROTECTED_ROLES", "DEFAULT_ROLES", "JWT_ROLE_CLAIM", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET", "FACEBOOK_CLIENT_ID", "FACEBOOK_CLIENT_SECRET", "LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET", "APPLE_CLIENT_ID", "APPLE_CLIENT_SECRET", "DISCORD_CLIENT_ID", "DISCORD_CLIENT_SECRET", "TWITTER_CLIENT_ID", "TWITTER_CLIENT_SECRET", "MICROSOFT_CLIENT_ID", "MICROSOFT_CLIENT_SECRET", "MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID", "TWITCH_CLIENT_ID", "TWITCH_CLIENT_SECRET", "ORGANIZATION_NAME", "ORGANIZATION_LOGO", "DEFAULT_AUTHORIZE_RESPONSE_TYPE", "DEFAULT_AUTHORIZE_RESPONSE_MODE", "DISABLE_PLAYGROUND", "DISABLE_MAIL_OTP_LOGIN", "DISABLE_TOTP_LOGIN"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -18380,6 +18682,24 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 				return it, err
 			}
 			it.AppleClientSecret = data
+		case "DISCORD_CLIENT_ID":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("DISCORD_CLIENT_ID"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.DiscordClientID = data
+		case "DISCORD_CLIENT_SECRET":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("DISCORD_CLIENT_SECRET"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.DiscordClientSecret = data
 		case "TWITTER_CLIENT_ID":
 			var err error
 
@@ -19415,6 +19735,10 @@ func (ec *executionContext) _Env(ctx context.Context, sel ast.SelectionSet, obj 
 			out.Values[i] = ec._Env_APPLE_CLIENT_ID(ctx, field, obj)
 		case "APPLE_CLIENT_SECRET":
 			out.Values[i] = ec._Env_APPLE_CLIENT_SECRET(ctx, field, obj)
+		case "DISCORD_CLIENT_ID":
+			out.Values[i] = ec._Env_DISCORD_CLIENT_ID(ctx, field, obj)
+		case "DISCORD_CLIENT_SECRET":
+			out.Values[i] = ec._Env_DISCORD_CLIENT_SECRET(ctx, field, obj)
 		case "TWITTER_CLIENT_ID":
 			out.Values[i] = ec._Env_TWITTER_CLIENT_ID(ctx, field, obj)
 		case "TWITTER_CLIENT_SECRET":
@@ -19506,6 +19830,47 @@ func (ec *executionContext) _Error(ctx context.Context, sel ast.SelectionSet, ob
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var forgotPasswordResponseImplementors = []string{"ForgotPasswordResponse"}
+
+func (ec *executionContext) _ForgotPasswordResponse(ctx context.Context, sel ast.SelectionSet, obj *model.ForgotPasswordResponse) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, forgotPasswordResponseImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ForgotPasswordResponse")
+		case "message":
+			out.Values[i] = ec._ForgotPasswordResponse_message(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "should_show_mobile_otp_screen":
+			out.Values[i] = ec._ForgotPasswordResponse_should_show_mobile_otp_screen(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -19656,6 +20021,11 @@ func (ec *executionContext) _Meta(ctx context.Context, sel ast.SelectionSet, obj
 			}
 		case "is_apple_login_enabled":
 			out.Values[i] = ec._Meta_is_apple_login_enabled(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "is_discord_login_enabled":
+			out.Values[i] = ec._Meta_is_discord_login_enabled(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -21529,6 +21899,20 @@ func (ec *executionContext) marshalNEnv2ᚖgithubᚗcomᚋauthorizerdevᚋauthor
 func (ec *executionContext) unmarshalNForgotPasswordInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐForgotPasswordInput(ctx context.Context, v interface{}) (model.ForgotPasswordInput, error) {
 	res, err := ec.unmarshalInputForgotPasswordInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNForgotPasswordResponse2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐForgotPasswordResponse(ctx context.Context, sel ast.SelectionSet, v model.ForgotPasswordResponse) graphql.Marshaler {
+	return ec._ForgotPasswordResponse(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNForgotPasswordResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐForgotPasswordResponse(ctx context.Context, sel ast.SelectionSet, v *model.ForgotPasswordResponse) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._ForgotPasswordResponse(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNGenerateJWTKeysInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐGenerateJWTKeysInput(ctx context.Context, v interface{}) (model.GenerateJWTKeysInput, error) {

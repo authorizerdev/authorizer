@@ -19,6 +19,8 @@ const (
 	AuthRecipeMethodLinkedIn = "linkedin"
 	// AuthRecipeMethodApple is the apple auth method
 	AuthRecipeMethodApple = "apple"
+	// AuthRecipeMethodDiscord is the discord auth method
+	AuthRecipeMethodDiscord = "discord"
 	// AuthRecipeMethodTwitter is the twitter auth method
 	AuthRecipeMethodTwitter = "twitter"
 	// AuthRecipeMethodMicrosoft is the microsoft auth method
