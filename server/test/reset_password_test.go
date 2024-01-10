@@ -23,37 +23,30 @@ func resetPasswordTest(t *testing.T, s TestSetup) {
 		})
 		assert.NoError(t, err)
 		_, err = resolvers.ForgotPasswordResolver(ctx, model.ForgotPasswordInput{
-			Email: email,
+			Email: refs.NewStringRef(email),
 		})
 		assert.Nil(t, err, "no errors for forgot password")
-
 		verificationRequest, err := db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeForgotPassword)
 		assert.Nil(t, err, "should get forgot password request")
 		assert.NotNil(t, verificationRequest)
 		_, err = resolvers.ResetPasswordResolver(ctx, model.ResetPasswordInput{
-			Token:           verificationRequest.Token,
+			Token:           refs.NewStringRef(verificationRequest.Token),
 			Password:        "test1",
 			ConfirmPassword: "test",
 		})
-
 		assert.NotNil(t, err, "passwords don't match")
-
 		_, err = resolvers.ResetPasswordResolver(ctx, model.ResetPasswordInput{
-			Token:           verificationRequest.Token,
+			Token:           refs.NewStringRef(verificationRequest.Token),
 			Password:        "test1",
 			ConfirmPassword: "test1",
 		})
-
 		assert.NotNil(t, err, "invalid password")
-
 		_, err = resolvers.ResetPasswordResolver(ctx, model.ResetPasswordInput{
-			Token:           verificationRequest.Token,
+			Token:           refs.NewStringRef(verificationRequest.Token),
 			Password:        "Test@1234",
 			ConfirmPassword: "Test@1234",
 		})
-
 		assert.Nil(t, err, "password changed successfully")
-
 		cleanData(email)
 	})
 }

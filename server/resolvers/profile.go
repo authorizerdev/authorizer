@@ -20,15 +20,15 @@ func ProfileResolver(ctx context.Context) (*model.User, error) {
 		log.Debug("Failed to get GinContext: ", err)
 		return res, err
 	}
-	userID, err := token.GetUserIDFromSessionOrAccessToken(gc)
+	tokenData, err := token.GetUserIDFromSessionOrAccessToken(gc)
 	if err != nil {
 		log.Debug("Failed GetUserIDFromSessionOrAccessToken: ", err)
 		return res, err
 	}
 	log := log.WithFields(log.Fields{
-		"user_id": userID,
+		"user_id": tokenData.UserID,
 	})
-	user, err := db.Provider.GetUserByID(ctx, userID)
+	user, err := db.Provider.GetUserByID(ctx, tokenData.UserID)
 	if err != nil {
 		log.Debug("Failed to get user: ", err)
 		return res, err

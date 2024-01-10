@@ -27,13 +27,13 @@ export default function App() {
 	if (redirectURL) {
 		urlProps.redirectURL = redirectURL;
 	} else {
-		urlProps.redirectURL = window.location.origin + '/app';
+		urlProps.redirectURL = window.location.href;
 	}
 	const globalState: Record<string, string> = {
 		...window['__authorizer__'],
 		...urlProps,
 	};
-
+	console.log({ globalState });
 	return (
 		<div
 			style={{

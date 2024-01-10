@@ -35,6 +35,30 @@ func logoutTests(t *testing.T, s TestSetup) {
 		assert.NotNil(t, verifyRes)
 		accessToken := *verifyRes.AccessToken
 		assert.NotEmpty(t, accessToken)
+		// Test logout with access token
+		req.Header.Set("Authorization", "Bearer "+accessToken)
+		logoutRes, err := resolvers.LogoutResolver(ctx)
+		assert.Nil(t, err)
+		assert.NotNil(t, logoutRes)
+		assert.NotEmpty(t, logoutRes.Message)
+		req.Header.Set("Authorization", "")
+
+		// Test logout with session cookie
+		magicLoginRes, err = resolvers.MagicLinkLoginResolver(ctx, model.MagicLinkLoginInput{
+			Email: email,
+		})
+		assert.NoError(t, err)
+		assert.NotNil(t, magicLoginRes)
+		verificationRequest, err = db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeMagicLinkLogin)
+		assert.NoError(t, err)
+		assert.NotNil(t, verificationRequest)
+		verifyRes, err = resolvers.VerifyEmailResolver(ctx, model.VerifyEmailInput{
+			Token: verificationRequest.Token,
+		})
+		assert.NoError(t, err)
+		assert.NotNil(t, verifyRes)
+		accessToken = *verifyRes.AccessToken
+		assert.NotEmpty(t, accessToken)
 		claims, err := token.ParseJWTToken(accessToken)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, claims)

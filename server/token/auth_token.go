@@ -91,7 +91,6 @@ func CreateAuthToken(gc *gin.Context, user *models.User, roles, scope []string, 
 		AccessToken:           &JWTToken{Token: accessToken, ExpiresAt: accessTokenExpiresAt},
 		IDToken:               &JWTToken{Token: idToken, ExpiresAt: idTokenExpiresAt},
 	}
-
 	if utils.StringSliceContains(scope, "offline_access") {
 		refreshToken, refreshTokenExpiresAt, err := CreateRefreshToken(user, roles, scope, hostname, nonce, loginMethod)
 		if err != nil {
@@ -354,7 +353,7 @@ func ValidateBrowserSession(gc *gin.Context, encryptedSession string) (*SessionD
 	}
 	token, err := memorystore.Provider.GetUserSession(sessionStoreKey, constants.TokenTypeSessionToken+"_"+res.Nonce)
 	if token == "" || err != nil {
-		log.Debug("invalid browser session:", err)
+		log.Debugf("invalid browser session: %v, key: %s", err, sessionStoreKey+":"+constants.TokenTypeSessionToken+"_"+res.Nonce)
 		return nil, fmt.Errorf(`unauthorized`)
 	}
 
@@ -482,8 +481,15 @@ func GetIDToken(gc *gin.Context) (string, error) {
 	return token, nil
 }
 
+// SessionOrAccessTokenData is a struct to hold session or access token data
+type SessionOrAccessTokenData struct {
+	UserID      string
+	LoginMethod string
+	Nonce       string
+}
+
 // GetUserIDFromSessionOrAccessToken returns the user id from the session or access token
-func GetUserIDFromSessionOrAccessToken(gc *gin.Context) (string, error) {
+func GetUserIDFromSessionOrAccessToken(gc *gin.Context) (*SessionOrAccessTokenData, error) {
 	// First try to get the user id from the session
 	isSession := true
 	token, err := cookie.GetSession(gc)
@@ -493,22 +499,30 @@ func GetUserIDFromSessionOrAccessToken(gc *gin.Context) (string, error) {
 		token, err = GetAccessToken(gc)
 		if err != nil || token == "" {
 			log.Debug("Failed to get access token: ", err)
-			return "", fmt.Errorf(`unauthorized`)
+			return nil, fmt.Errorf(`unauthorized`)
 		}
 	}
 	if isSession {
 		claims, err := ValidateBrowserSession(gc, token)
 		if err != nil {
 			log.Debug("Failed to validate session token: ", err)
-			return "", fmt.Errorf(`unauthorized`)
+			return nil, fmt.Errorf(`unauthorized`)
 		}
-		return claims.Subject, nil
+		return &SessionOrAccessTokenData{
+			UserID:      claims.Subject,
+			LoginMethod: claims.LoginMethod,
+			Nonce:       claims.Nonce,
+		}, nil
 	}
 	// If not session, then validate the access token
 	claims, err := ValidateAccessToken(gc, token)
 	if err != nil {
 		log.Debug("Failed to validate access token: ", err)
-		return "", fmt.Errorf(`unauthorized`)
+		return nil, fmt.Errorf(`unauthorized`)
 	}
-	return claims["sub"].(string), nil
+	return &SessionOrAccessTokenData{
+		UserID:      claims["sub"].(string),
+		LoginMethod: claims["login_method"].(string),
+		Nonce:       claims["nonce"].(string),
+	}, nil
 }

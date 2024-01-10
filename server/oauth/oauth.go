@@ -30,6 +30,7 @@ type OAuthProvider struct {
 	FacebookConfig  *oauth2.Config
 	LinkedInConfig  *oauth2.Config
 	AppleConfig     *oauth2.Config
+	DiscordConfig   *oauth2.Config
 	TwitterConfig   *oauth2.Config
 	MicrosoftConfig *oauth2.Config
 	TwitchConfig    *oauth2.Config
@@ -146,6 +147,27 @@ func InitOAuth() error {
 				AuthURL:  "https://appleid.apple.com/auth/authorize",
 				TokenURL: "https://appleid.apple.com/auth/token",
 			},
+		}
+	}
+
+	discordClientID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDiscordClientID)
+	if err != nil {
+		discordClientID = ""
+	}
+	discordClientSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDiscordClientSecret)
+	if err != nil {
+		discordClientSecret = ""
+	}
+	if discordClientID != "" && discordClientSecret != "" {
+		OAuthProviders.DiscordConfig = &oauth2.Config{
+			ClientID:     discordClientID,
+			ClientSecret: discordClientSecret,
+			RedirectURL:  "/oauth_callback/discord",
+			Endpoint: oauth2.Endpoint{
+				AuthURL:  "https://discord.com/oauth2/authorize",
+				TokenURL: "https://discord.com/api/oauth2/token",
+			},
+			Scopes: []string{"identify", "email"},
 		}
 	}
 

@@ -17,7 +17,7 @@ import {
 	FaApple,
 	FaTwitter,
 	FaMicrosoft,
-	FaTwitch,
+	FaTwitch, FaDiscord,
 } from 'react-icons/fa';
 import {
 	TextInputType,
@@ -306,6 +306,44 @@ const OAuthConfig = ({
 								setFieldVisibility={setFieldVisibility}
 								inputType={HiddenInputType.APPLE_CLIENT_SECRET}
 								placeholder="Apple Client Secret"
+							/>
+						</Center>
+					</Flex>
+					<Flex direction={isNotSmallerScreen ? 'row' : 'column'}>
+						<Center
+							w={isNotSmallerScreen ? '55px' : '35px'}
+							h="35px"
+							marginRight="1.5%"
+							border="1px solid #3b5998"
+							borderRadius="5px"
+						>
+							<FaDiscord style={{ color: '#7289da' }} />
+						</Center>
+						<Center
+							w={isNotSmallerScreen ? '70%' : '100%'}
+							mt={isNotSmallerScreen ? '0' : '3'}
+							marginRight="1.5%"
+						>
+							<InputField
+								borderRadius={5}
+								variables={envVariables}
+								setVariables={setVariables}
+								inputType={TextInputType.DISCORD_CLIENT_ID}
+								placeholder="Discord Client ID"
+							/>
+						</Center>
+						<Center
+							w={isNotSmallerScreen ? '70%' : '100%'}
+							mt={isNotSmallerScreen ? '0' : '3'}
+						>
+							<InputField
+								borderRadius={5}
+								variables={envVariables}
+								setVariables={setVariables}
+								fieldVisibility={fieldVisibility}
+								setFieldVisibility={setFieldVisibility}
+								inputType={HiddenInputType.DISCORD_CLIENT_SECRET}
+								placeholder="Discord Client Secret"
 							/>
 						</Center>
 					</Flex>

@@ -49,17 +49,18 @@ export default function Login({ urlProps }: { urlProps: Record<string, any> }) {
 						<AuthorizerMagicLinkLogin urlProps={urlProps} />
 					)}
 					{(config.is_basic_authentication_enabled ||
-						config.is_mobile_basic_authentication_enabled) && (
-						<Footer>
-							<Link
-								to="#"
-								onClick={() => setView(VIEW_TYPES.FORGOT_PASSWORD)}
-								style={{ marginBottom: 10 }}
-							>
-								Forgot Password?
-							</Link>
-						</Footer>
-					)}
+						config.is_mobile_basic_authentication_enabled) &&
+						!config.is_magic_link_login_enabled && (
+							<Footer>
+								<Link
+									to="#"
+									onClick={() => setView(VIEW_TYPES.FORGOT_PASSWORD)}
+									style={{ marginBottom: 10 }}
+								>
+									Forgot Password?
+								</Link>
+							</Footer>
+						)}
 				</Fragment>
 			)}
 			{view === VIEW_TYPES.FORGOT_PASSWORD && (
@@ -69,6 +70,9 @@ export default function Login({ urlProps }: { urlProps: Record<string, any> }) {
 						urlProps={{
 							...urlProps,
 							redirect_uri: `${window.location.origin}/app/reset-password`,
+						}}
+						onPasswordReset={() => {
+							setView(VIEW_TYPES.LOGIN);
 						}}
 					/>
 					<Footer>
