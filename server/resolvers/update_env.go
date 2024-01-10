@@ -112,17 +112,29 @@ func updateRoles(ctx context.Context, deletedRoles []string) error {
 		return err
 	}
 
-	for i := range allData.Users {
-		roles := utils.DeleteFromArray(allData.Users[i].Roles, deletedRoles)
-		if len(allData.Users[i].Roles) != len(roles) {
-			updatedValues := map[string]interface{}{
-				"roles":      strings.Join(roles, ","),
-				"updated_at": time.Now().Unix(),
-			}
-			id := []string{allData.Users[i].ID}
-			err = db.Provider.UpdateUsers(ctx, updatedValues, id)
-			if err != nil {
-				return err
+	chunkSize := 1000
+	totalUsers := len(allData.Users)
+
+	for start := 0; start < totalUsers; start += chunkSize {
+		end := start + chunkSize
+		if end > totalUsers {
+			end = totalUsers
+		}
+
+		chunkUsers := allData.Users[start:end]
+
+		for i := range chunkUsers {
+			roles := utils.DeleteFromArray(chunkUsers[i].Roles, deletedRoles)
+			if len(chunkUsers[i].Roles) != len(roles) {
+				updatedValues := map[string]interface{}{
+					"roles":      strings.Join(roles, ","),
+					"updated_at": time.Now().Unix(),
+				}
+				id := []string{chunkUsers[i].ID}
+				err = db.Provider.UpdateUsers(ctx, updatedValues, id)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
