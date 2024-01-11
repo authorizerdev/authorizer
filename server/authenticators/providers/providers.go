@@ -1,6 +1,10 @@
 package providers
 
-import "context"
+import (
+	"context"
+
+	"github.com/authorizerdev/authorizer/server/graph/model"
+)
 
 // AuthenticatorConfig defines authenticator config
 type AuthenticatorConfig struct {
@@ -22,4 +26,6 @@ type Provider interface {
 	Validate(ctx context.Context, passcode string, userID string) (bool, error)
 	// ValidateRecoveryCode totp: allows user to validate using recovery code incase if they lost their device
 	ValidateRecoveryCode(ctx context.Context, recoveryCode, userID string) (bool, error)
+	// UpdateTotpInfo: to update secret and recovery codes into db and returns base64 of QR code image
+	UpdateTotpInfo(ctx context.Context, id string) (*model.AuthResponse, error)
 }

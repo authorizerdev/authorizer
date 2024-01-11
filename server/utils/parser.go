@@ -2,6 +2,7 @@ package utils
 
 import (
 	"errors"
+	"strings"
 	"time"
 )
 
@@ -18,4 +19,20 @@ func ParseDurationInSeconds(s string) (time.Duration, error) {
 	}
 
 	return d, nil
+}
+
+// Helper function to parse string array values
+func ParseStringArray(value string) []*string {
+	if value == "" {
+		return nil
+	}
+	splitValues := strings.Split(value, "|")
+
+	var result []*string
+	for _, s := range splitValues {
+		temp := s
+		result = append(result, &temp)
+	}
+
+	return result
 }
