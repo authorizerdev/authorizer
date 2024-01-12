@@ -141,13 +141,18 @@ func VerifyOtpResolver(ctx context.Context, params model.VerifyOTPRequest) (*mod
 							return nil, err
 						}
 
+						recoveryCodes := []*string{}
+						for _, code := range authConfig.RecoveryCodes {
+							recoveryCodes = append(recoveryCodes, refs.NewStringRef(code))
+						}
+
 						// Response for the case when the user validate through TOTP recovery codes
 						res = &model.AuthResponse{
 							Message:                    `Proceed to totp verification screen`,
 							ShouldShowTotpScreen:       refs.NewBoolRef(true),
-							AuthenticatorScannerImage:  authConfig.AuthenticatorScannerImage,
-							AuthenticatorSecret:        authConfig.AuthenticatorSecret,
-							AuthenticatorRecoveryCodes: authConfig.AuthenticatorRecoveryCodes,
+							AuthenticatorScannerImage:  &authConfig.ScannerImage,
+							AuthenticatorSecret:        &authConfig.Secret,
+							AuthenticatorRecoveryCodes: recoveryCodes,
 						}
 
 						return res, nil

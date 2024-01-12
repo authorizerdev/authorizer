@@ -18,7 +18,6 @@ import (
 	"github.com/authorizerdev/authorizer/server/crypto"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
-	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/authorizerdev/authorizer/server/utils"
 )
@@ -155,7 +154,7 @@ func (p *provider) ValidateRecoveryCode(ctx context.Context, recoveryCode, userI
 
 // UpdateTotpInfo generates a Time-Based One-Time Password (TOTP) for a user,
 // updates the user's authenticator details, and returns the base64-encoded QR code for frontend display.
-func (p *provider) UpdateTotpInfo(ctx context.Context, id string) (*model.AuthResponse, error) {
+func (p *provider) UpdateTotpInfo(ctx context.Context, id string) (*providers.AuthenticatorConfig, error) {
 	// Buffer to store the base64-encoded QR code image
 	var buf bytes.Buffer
 
@@ -203,9 +202,9 @@ func (p *provider) UpdateTotpInfo(ctx context.Context, id string) (*model.AuthRe
 	}
 
 	// Return the response with base64-encoded QR code, TOTP secret, and recovery codes
-	return &model.AuthResponse{
-		AuthenticatorScannerImage:  &encodedText,
-		AuthenticatorSecret:        &secret,
-		AuthenticatorRecoveryCodes: utils.ParseStringArray(*authenticator.RecoveryCodes),
+	return &providers.AuthenticatorConfig{
+		ScannerImage:  encodedText,
+		Secret:        secret,
+		RecoveryCodes: utils.ParseReferenceStringArray(authenticator.RecoveryCodes),
 	}, nil
 }
