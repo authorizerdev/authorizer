@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/authorizerdev/authorizer/server/authenticators"
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/db"
@@ -58,6 +59,66 @@ func VerifyEmailResolver(ctx context.Context, params model.VerifyEmailInput) (*m
 	if err != nil {
 		log.Debug("Failed to get user by email: ", err)
 		return res, err
+	}
+
+	isMFADisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableMultiFactorAuthentication)
+	if err != nil || !isMFADisabled {
+		log.Debug("MFA service not enabled: ", err)
+	}
+
+	isTOTPLoginDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableTOTPLogin)
+	if err != nil || !isTOTPLoginDisabled {
+		log.Debug("totp service not enabled: ", err)
+	}
+
+	setOTPMFaSession := func(expiresAt int64) error {
+		mfaSession := uuid.NewString()
+		err = memorystore.Provider.SetMfaSession(user.ID, mfaSession, expiresAt)
+		if err != nil {
+			log.Debug("Failed to add mfasession: ", err)
+			return err
+		}
+		cookie.SetMfaSession(gc, mfaSession)
+		return nil
+	}
+
+	// If mfa enabled and also totp enabled
+	if refs.BoolValue(user.IsMultiFactorAuthEnabled) && !isMFADisabled && !isTOTPLoginDisabled {
+		expiresAt := time.Now().Add(3 * time.Minute).Unix()
+		if err := setOTPMFaSession(expiresAt); err != nil {
+			log.Debug("Failed to set mfa session: ", err)
+			return nil, err
+		}
+		authenticator, err := db.Provider.GetAuthenticatorDetailsByUserId(ctx, user.ID, constants.EnvKeyTOTPAuthenticator)
+		if err != nil || authenticator == nil || authenticator.VerifiedAt == nil {
+			// generate totp
+			// Generate a base64 URL and initiate the registration for TOTP
+			authConfig, err := authenticators.Provider.Generate(ctx, user.ID)
+			if err != nil {
+				log.Debug("error while generating base64 url: ", err)
+				return nil, err
+			}
+			recoveryCodes := []*string{}
+			for _, code := range authConfig.RecoveryCodes {
+				recoveryCodes = append(recoveryCodes, refs.NewStringRef(code))
+			}
+			// when user is first time registering for totp
+			res = &model.AuthResponse{
+				Message:                    `Proceed to totp verification screen`,
+				ShouldShowTotpScreen:       refs.NewBoolRef(true),
+				AuthenticatorScannerImage:  refs.NewStringRef(authConfig.ScannerImage),
+				AuthenticatorSecret:        refs.NewStringRef(authConfig.Secret),
+				AuthenticatorRecoveryCodes: recoveryCodes,
+			}
+			return res, nil
+		} else {
+			//when user is already register for totp
+			res = &model.AuthResponse{
+				Message:              `Proceed to totp screen`,
+				ShouldShowTotpScreen: refs.NewBoolRef(true),
+			}
+			return res, nil
+		}
 	}
 
 	isSignUp := false
