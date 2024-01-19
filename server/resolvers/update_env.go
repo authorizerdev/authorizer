@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 
@@ -91,6 +92,53 @@ func clearSessionIfRequired(currentData, updatedData map[string]interface{}) {
 	if isCurrentTwitchLoginEnabled && !isUpdatedTwitchLoginEnabled {
 		memorystore.Provider.DeleteSessionForNamespace(constants.AuthRecipeMethodTwitch)
 	}
+}
+
+// updateRoles will update DB for user roles, if a role is deleted by admin
+// then this function will those roles from user roles if exists
+func updateRoles(ctx context.Context, deletedRoles []string) error {
+	data, err := db.Provider.ListUsers(ctx, &model.Pagination{
+		Limit:  1,
+		Offset: 1,
+	})
+	if err != nil {
+		return err
+	}
+
+	allData, err := db.Provider.ListUsers(ctx, &model.Pagination{
+		Limit: data.Pagination.Total,
+	})
+	if err != nil {
+		return err
+	}
+
+	chunkSize := 1000
+	totalUsers := len(allData.Users)
+
+	for start := 0; start < totalUsers; start += chunkSize {
+		end := start + chunkSize
+		if end > totalUsers {
+			end = totalUsers
+		}
+
+		chunkUsers := allData.Users[start:end]
+
+		for i := range chunkUsers {
+			roles := utils.DeleteFromArray(chunkUsers[i].Roles, deletedRoles)
+			if len(chunkUsers[i].Roles) != len(roles) {
+				updatedValues := map[string]interface{}{
+					"roles":      strings.Join(roles, ","),
+					"updated_at": time.Now().Unix(),
+				}
+				id := []string{chunkUsers[i].ID}
+				err = db.Provider.UpdateUsers(ctx, updatedValues, id)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
 }
 
 // UpdateEnvResolver is a resolver for update config mutation
@@ -291,26 +339,39 @@ func UpdateEnvResolver(ctx context.Context, params model.UpdateEnvInput) (*model
 		}, nil)
 	}
 
+	previousRoles := strings.Split(currentData[constants.EnvKeyRoles].(string), ",")
+	previousProtectedRoles := strings.Split(currentData[constants.EnvKeyProtectedRoles].(string), ",")
+	updatedRoles := strings.Split(updatedData[constants.EnvKeyRoles].(string), ",")
+	updatedDefaultRoles := strings.Split(updatedData[constants.EnvKeyDefaultRoles].(string), ",")
+	updatedProtectedRoles := strings.Split(updatedData[constants.EnvKeyProtectedRoles].(string), ",")
 	// check the roles change
-	if len(params.Roles) > 0 {
-		if len(params.DefaultRoles) > 0 {
-			// should be subset of roles
-			for _, role := range params.DefaultRoles {
-				if !utils.StringSliceContains(params.Roles, role) {
-					log.Debug("Default roles should be subset of roles")
-					return res, fmt.Errorf("default role %s is not in roles", role)
-				}
+	if len(updatedRoles) > 0 && len(updatedDefaultRoles) > 0 {
+		// should be subset of roles
+		for _, role := range updatedDefaultRoles {
+			if !utils.StringSliceContains(updatedRoles, role) {
+				log.Debug("Default roles should be subset of roles")
+				return res, fmt.Errorf("default role %s is not in roles", role)
 			}
 		}
 	}
 
-	if len(params.ProtectedRoles) > 0 {
-		for _, role := range params.ProtectedRoles {
-			if utils.StringSliceContains(params.Roles, role) || utils.StringSliceContains(params.DefaultRoles, role) {
+	if len(updatedProtectedRoles) > 0 {
+		for _, role := range updatedProtectedRoles {
+			if utils.StringSliceContains(updatedRoles, role) || utils.StringSliceContains(updatedDefaultRoles, role) {
 				log.Debug("Protected roles should not be in roles or default roles")
 				return res, fmt.Errorf("protected role %s found roles or default roles", role)
 			}
 		}
+	}
+
+	deletedRoles := utils.FindDeletedValues(previousRoles, updatedRoles)
+	if len(deletedRoles) > 0 {
+		go updateRoles(ctx, deletedRoles)
+	}
+
+	deletedProtectedRoles := utils.FindDeletedValues(previousProtectedRoles, updatedProtectedRoles)
+	if len(deletedProtectedRoles) > 0 {
+		go updateRoles(ctx, deletedProtectedRoles)
 	}
 
 	// Update local store
