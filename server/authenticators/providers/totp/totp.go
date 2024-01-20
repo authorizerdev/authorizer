@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/pquerna/otp/totp"
+
 	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/authenticators/providers"
@@ -18,6 +19,7 @@ import (
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/refs"
+	"github.com/authorizerdev/authorizer/server/utils"
 )
 
 // Generate generates a Time-Based One-Time Password (TOTP) for a user and returns the base64-encoded QR code for frontend display.
@@ -148,4 +150,61 @@ func (p *provider) ValidateRecoveryCode(ctx context.Context, recoveryCode, userI
 		return false, err
 	}
 	return true, nil
+}
+
+// UpdateTotpInfo generates a Time-Based One-Time Password (TOTP) for a user,
+// updates the user's authenticator details, and returns the base64-encoded QR code for frontend display.
+func (p *provider) UpdateTotpInfo(ctx context.Context, id string) (*providers.AuthenticatorConfig, error) {
+	// Buffer to store the base64-encoded QR code image
+	var buf bytes.Buffer
+
+	// Retrieve user details from the database
+	user, err := db.Provider.GetUserByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	// Generate TOTP, Authenticators hash is valid for 30 seconds
+	key, err := totp.Generate(totp.GenerateOpts{
+		Issuer:      "authorizer",
+		AccountName: refs.StringValue(user.Email),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Generate image for the TOTP key and encode it to base64 for frontend display
+	img, err := key.Image(200, 200)
+	if err != nil {
+		return nil, err
+	}
+
+	// Encode the QR code image to base64
+	png.Encode(&buf, img)
+	encodedText := crypto.EncryptB64(buf.String())
+
+	// Update the authenticator record with the new TOTP secret
+	secret := key.Secret()
+
+	// Retrieve an authenticator details for the user
+	authenticator, err := db.Provider.GetAuthenticatorDetailsByUserId(ctx, user.ID, constants.EnvKeyTOTPAuthenticator)
+	if err != nil {
+		log.Debug("Failed to get authenticator details by user id, creating new record: ", err)
+		return nil, err
+	}
+
+	// Update the authenticator record with the new TOTP secret
+	authenticator.Secret = secret
+
+	// Update the authenticator record in the database
+	_, err = db.Provider.UpdateAuthenticator(ctx, authenticator)
+	if err != nil {
+		return nil, err
+	}
+
+	// Return the response with base64-encoded QR code, TOTP secret, and recovery codes
+	return &providers.AuthenticatorConfig{
+		ScannerImage:  encodedText,
+		Secret:        secret,
+		RecoveryCodes: utils.ParseReferenceStringArray(authenticator.RecoveryCodes),
+	}, nil
 }
