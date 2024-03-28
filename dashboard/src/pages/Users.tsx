@@ -165,14 +165,25 @@ export default function Users() {
 	};
 
 	const userVerificationHandler = async (user: userDataTypes) => {
-		const { id, email } = user;
+		const { id, email, phone_number } = user;
+		let params = {};
+		if (email) {
+			params = {
+				id,
+				email,
+				email_verified: true,
+			};
+		}
+		if (phone_number) {
+			params = {
+				id,
+				phone_number,
+				phone_number_verified: true,
+			};
+		}
 		const res = await client
 			.mutation(UpdateUser, {
-				params: {
-					id,
-					email,
-					email_verified: true,
-				},
+				params,
 			})
 			.toPromise();
 		if (res.error) {
@@ -298,7 +309,7 @@ export default function Users() {
 						<Table variant="simple">
 							<Thead>
 								<Tr>
-									<Th>Email</Th>
+									<Th>Email / Phone</Th>
 									<Th>Created At</Th>
 									<Th>Signup Methods</Th>
 									<Th>Roles</Th>
@@ -314,10 +325,15 @@ export default function Users() {
 							</Thead>
 							<Tbody>
 								{userList.map((user: userDataTypes) => {
-									const { email_verified, created_at, ...rest }: any = user;
+									const {
+										email_verified,
+										phone_number_verified,
+										created_at,
+										...rest
+									}: any = user;
 									return (
 										<Tr key={user.id} style={{ fontSize: 14 }}>
-											<Td maxW="300">{user.email}</Td>
+											<Td maxW="300">{user.email || user.phone_number}</Td>
 											<Td>
 												{dayjs(user.created_at * 1000).format('MMM DD, YYYY')}
 											</Td>
@@ -327,9 +343,15 @@ export default function Users() {
 												<Tag
 													size="sm"
 													variant="outline"
-													colorScheme={user.email_verified ? 'green' : 'yellow'}
+													colorScheme={
+														user.email_verified || user.phone_number_verified
+															? 'green'
+															: 'yellow'
+													}
 												>
-													{user.email_verified.toString()}
+													{(
+														user.email_verified || user.phone_number_verified
+													).toString()}
 												</Tag>
 											</Td>
 											<Td>
@@ -368,13 +390,14 @@ export default function Users() {
 														</Flex>
 													</MenuButton>
 													<MenuList>
-														{!user.email_verified && (
-															<MenuItem
-																onClick={() => userVerificationHandler(user)}
-															>
-																Verify User
-															</MenuItem>
-														)}
+														{!user.email_verified &&
+															!user.phone_number_verified && (
+																<MenuItem
+																	onClick={() => userVerificationHandler(user)}
+																>
+																	Verify User
+																</MenuItem>
+															)}
 														<EditUserModal
 															user={rest}
 															updateUserList={updateUserList}

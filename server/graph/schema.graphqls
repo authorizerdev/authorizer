@@ -452,6 +452,7 @@ input UpdateUserInput {
   gender: String
   birthdate: String
   phone_number: String
+  phone_number_verified: Boolean
   picture: String
   roles: [String]
   is_multi_factor_auth_enabled: Boolean

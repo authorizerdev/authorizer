@@ -440,6 +440,7 @@ type UpdateUserInput struct {
 	Gender                   *string                `json:"gender,omitempty"`
 	Birthdate                *string                `json:"birthdate,omitempty"`
 	PhoneNumber              *string                `json:"phone_number,omitempty"`
+	PhoneNumberVerified      *bool                  `json:"phone_number_verified,omitempty"`
 	Picture                  *string                `json:"picture,omitempty"`
 	Roles                    []*string              `json:"roles,omitempty"`
 	IsMultiFactorAuthEnabled *bool                  `json:"is_multi_factor_auth_enabled,omitempty"`

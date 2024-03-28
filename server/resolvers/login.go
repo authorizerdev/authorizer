@@ -83,6 +83,39 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 		log.Debug("User access is revoked")
 		return res, fmt.Errorf(`user access has been revoked`)
 	}
+	isEmailServiceEnabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyIsEmailServiceEnabled)
+	if err != nil || !isEmailServiceEnabled {
+		log.Debug("Email service not enabled: ", err)
+	}
+	isSMSServiceEnabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyIsSMSServiceEnabled)
+	if err != nil || !isSMSServiceEnabled {
+		log.Debug("SMS service not enabled: ", err)
+	}
+	// If multi factor authentication is enabled and we need to generate OTP for mail / sms based MFA
+	generateOTP := func(expiresAt int64) (*models.OTP, error) {
+		otp := utils.GenerateOTP()
+		otpData, err := db.Provider.UpsertOTP(ctx, &models.OTP{
+			Email:       refs.StringValue(user.Email),
+			PhoneNumber: refs.StringValue(user.PhoneNumber),
+			Otp:         otp,
+			ExpiresAt:   expiresAt,
+		})
+		if err != nil {
+			log.Debug("Failed to add otp: ", err)
+			return nil, err
+		}
+		return otpData, nil
+	}
+	setOTPMFaSession := func(expiresAt int64) error {
+		mfaSession := uuid.NewString()
+		err = memorystore.Provider.SetMfaSession(user.ID, mfaSession, expiresAt)
+		if err != nil {
+			log.Debug("Failed to add mfasession: ", err)
+			return err
+		}
+		cookie.SetMfaSession(gc, mfaSession)
+		return nil
+	}
 	if isEmailLogin {
 		if !strings.Contains(user.SignupMethods, constants.AuthRecipeMethodBasicAuth) {
 			log.Debug("User signup method is not basic auth")
@@ -90,8 +123,38 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 		}
 
 		if user.EmailVerifiedAt == nil {
-			log.Debug("User email is not verified")
-			return res, fmt.Errorf(`email not verified`)
+			// Check if email service is enabled
+			// Send email verification via otp
+			if !isEmailServiceEnabled {
+				log.Debug("User email is not verified and email service is not enabled")
+				return res, fmt.Errorf(`email not verified`)
+			} else {
+				expiresAt := time.Now().Add(1 * time.Minute).Unix()
+				otpData, err := generateOTP(expiresAt)
+				if err != nil {
+					log.Debug("Failed to generate otp: ", err)
+					return nil, err
+				}
+				if err := setOTPMFaSession(expiresAt); err != nil {
+					log.Debug("Failed to set mfa session: ", err)
+					return nil, err
+				}
+				go func() {
+					// exec it as go routine so that we can reduce the api latency
+					if err := mailService.SendEmail([]string{email}, constants.VerificationTypeOTP, map[string]interface{}{
+						"user":         user.ToMap(),
+						"organization": utils.GetOrganization(),
+						"otp":          otpData.Otp,
+					}); err != nil {
+						log.Debug("Failed to send otp email: ", err)
+					}
+					utils.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
+				}()
+				return &model.AuthResponse{
+					Message:                  "Please check email inbox for the OTP",
+					ShouldShowEmailOtpScreen: refs.NewBoolRef(isMobileLogin),
+				}, nil
+			}
 		}
 	} else {
 		if !strings.Contains(user.SignupMethods, constants.AuthRecipeMethodMobileBasicAuth) {
@@ -100,8 +163,34 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 		}
 
 		if user.PhoneNumberVerifiedAt == nil {
-			log.Debug("User phone number is not verified")
-			return res, fmt.Errorf(`phone number is not verified`)
+			if !isSMSServiceEnabled {
+				log.Debug("User phone number is not verified")
+				return res, fmt.Errorf(`phone number is not verified and sms service is not enabled`)
+			} else {
+				expiresAt := time.Now().Add(1 * time.Minute).Unix()
+				otpData, err := generateOTP(expiresAt)
+				if err != nil {
+					log.Debug("Failed to generate otp: ", err)
+					return nil, err
+				}
+				if err := setOTPMFaSession(expiresAt); err != nil {
+					log.Debug("Failed to set mfa session: ", err)
+					return nil, err
+				}
+				go func() {
+					smsBody := strings.Builder{}
+					smsBody.WriteString("Your verification code is: ")
+					smsBody.WriteString(otpData.Otp)
+					utils.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, user)
+					if err := smsproviders.SendSMS(phoneNumber, smsBody.String()); err != nil {
+						log.Debug("Failed to send sms: ", err)
+					}
+				}()
+				return &model.AuthResponse{
+					Message:                   "Please check text message for the OTP",
+					ShouldShowMobileOtpScreen: refs.NewBoolRef(isMobileLogin),
+				}, nil
+			}
 		}
 	}
 	err = bcrypt.CompareHashAndPassword([]byte(*user.Password), []byte(params.Password))
@@ -129,14 +218,6 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 	if params.Scope != nil && len(scope) > 0 {
 		scope = params.Scope
 	}
-	isEmailServiceEnabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyIsEmailServiceEnabled)
-	if err != nil || !isEmailServiceEnabled {
-		log.Debug("Email service not enabled: ", err)
-	}
-	isSMSServiceEnabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyIsSMSServiceEnabled)
-	if err != nil || !isSMSServiceEnabled {
-		log.Debug("SMS service not enabled: ", err)
-	}
 
 	isMFADisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableMultiFactorAuthentication)
 	if err != nil || !isMFADisabled {
@@ -157,44 +238,20 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 	if err != nil || !isSMSOTPDisabled {
 		log.Debug("sms OTP service not enabled: ", err)
 	}
-	setOTPMFaSession := func(expiresAt int64) error {
-		mfaSession := uuid.NewString()
-		err = memorystore.Provider.SetMfaSession(user.ID, mfaSession, expiresAt)
-		if err != nil {
-			log.Debug("Failed to add mfasession: ", err)
-			return err
-		}
-		cookie.SetMfaSession(gc, mfaSession)
-		return nil
-	}
-	// If multi factor authentication is enabled and we need to generate OTP for mail / sms based MFA
-	generateOTP := func(expiresAt int64) (*models.OTP, error) {
-		otp := utils.GenerateOTP()
-		otpData, err := db.Provider.UpsertOTP(ctx, &models.OTP{
-			Email:       refs.StringValue(user.Email),
-			PhoneNumber: refs.StringValue(user.PhoneNumber),
-			Otp:         otp,
-			ExpiresAt:   expiresAt,
-		})
-		if err != nil {
-			log.Debug("Failed to add otp: ", err)
-			return nil, err
-		}
-		return otpData, nil
-	}
+
 	// If multi factor authentication is enabled and is email based login and email otp is enabled
 	if refs.BoolValue(user.IsMultiFactorAuthEnabled) && !isMFADisabled && !isMailOTPDisabled && isEmailServiceEnabled && isEmailLogin {
 		expiresAt := time.Now().Add(1 * time.Minute).Unix()
 		otpData, err := generateOTP(expiresAt)
+		if err != nil {
+			log.Debug("Failed to generate otp: ", err)
+			return nil, err
+		}
+		if err := setOTPMFaSession(expiresAt); err != nil {
+			log.Debug("Failed to set mfa session: ", err)
+			return nil, err
+		}
 		go func() {
-			if err != nil {
-				log.Debug("Failed to generate otp: ", err)
-				return
-			}
-			if err := setOTPMFaSession(expiresAt); err != nil {
-				log.Debug("Failed to set mfa session: ", err)
-				return
-			}
 			// exec it as go routine so that we can reduce the api latency
 			if err := mailService.SendEmail([]string{email}, constants.VerificationTypeOTP, map[string]interface{}{
 				"user":         user.ToMap(),
@@ -214,15 +271,15 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 	if refs.BoolValue(user.IsMultiFactorAuthEnabled) && !isMFADisabled && !isSMSOTPDisabled && isSMSServiceEnabled && isMobileLogin {
 		expiresAt := time.Now().Add(1 * time.Minute).Unix()
 		otpData, err := generateOTP(expiresAt)
+		if err != nil {
+			log.Debug("Failed to generate otp: ", err)
+			return nil, err
+		}
+		if err := setOTPMFaSession(expiresAt); err != nil {
+			log.Debug("Failed to set mfa session: ", err)
+			return nil, err
+		}
 		go func() {
-			if err != nil {
-				log.Debug("Failed to generate otp: ", err)
-				return
-			}
-			if err := setOTPMFaSession(expiresAt); err != nil {
-				log.Debug("Failed to set mfa session: ", err)
-				return
-			}
 			smsBody := strings.Builder{}
 			smsBody.WriteString("Your verification code is: ")
 			smsBody.WriteString(otpData.Otp)

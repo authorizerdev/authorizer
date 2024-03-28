@@ -97,6 +97,7 @@ export const UserDetailsQuery = `
         id
         email
         email_verified
+        phone_number_verified
         given_name
         family_name
         middle_name
