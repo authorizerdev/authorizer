@@ -7,33 +7,56 @@ import (
 
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/google/uuid"
-	"gorm.io/gorm/clause"
 )
 
 // UpsertOTP to add or update otp
-func (p *provider) UpsertOTP(ctx context.Context, otp *models.OTP) (*models.OTP, error) {
-	if otp.ID == "" {
-		otp.ID = uuid.New().String()
+func (p *provider) UpsertOTP(ctx context.Context, otpParam *models.OTP) (*models.OTP, error) {
+	if otpParam.ID == "" {
+		otpParam.ID = uuid.New().String()
 	}
 	// check if email or phone number is present
-	if otp.Email == "" && otp.PhoneNumber == "" {
+	if otpParam.Email == "" && otpParam.PhoneNumber == "" {
 		return nil, errors.New("email or phone_number is required")
 	}
 	uniqueField := models.FieldNameEmail
-	if otp.Email == "" && otp.PhoneNumber != "" {
+	if otpParam.Email == "" && otpParam.PhoneNumber != "" {
 		uniqueField = models.FieldNamePhoneNumber
 	}
-	otp.Key = otp.ID
-	otp.CreatedAt = time.Now().Unix()
-	otp.UpdatedAt = time.Now().Unix()
-	res := p.db.Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: uniqueField}},
-		DoUpdates: clause.AssignmentColumns([]string{"otp", "expires_at", "updated_at"}),
-	}).Create(&otp)
-	if res.Error != nil {
-		return nil, res.Error
+	var otp *models.OTP
+	if uniqueField == models.FieldNameEmail {
+		otp, _ = p.GetOTPByEmail(ctx, otpParam.Email)
+	} else {
+		otp, _ = p.GetOTPByPhoneNumber(ctx, otpParam.PhoneNumber)
 	}
-
+	shouldCreate := false
+	if otp == nil {
+		id := uuid.NewString()
+		otp = &models.OTP{
+			ID:          id,
+			Key:         id,
+			Otp:         otpParam.Otp,
+			Email:       otpParam.Email,
+			PhoneNumber: otpParam.PhoneNumber,
+			ExpiresAt:   otpParam.ExpiresAt,
+			CreatedAt:   time.Now().Unix(),
+		}
+		shouldCreate = true
+	} else {
+		otp.Otp = otpParam.Otp
+		otp.ExpiresAt = otpParam.ExpiresAt
+	}
+	otp.UpdatedAt = time.Now().Unix()
+	if shouldCreate {
+		result := p.db.Create(&otp)
+		if result.Error != nil {
+			return nil, result.Error
+		}
+	} else {
+		result := p.db.Save(&otp)
+		if result.Error != nil {
+			return nil, result.Error
+		}
+	}
 	return otp, nil
 }
 

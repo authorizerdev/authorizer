@@ -7,12 +7,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/constants"
+	"github.com/authorizerdev/authorizer/server/cookie"
 	"github.com/authorizerdev/authorizer/server/db"
 	"github.com/authorizerdev/authorizer/server/db/models"
-	emailHelper "github.com/authorizerdev/authorizer/server/email"
+	mailService "github.com/authorizerdev/authorizer/server/email"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
 	"github.com/authorizerdev/authorizer/server/refs"
@@ -32,44 +34,42 @@ func ResendOTPResolver(ctx context.Context, params model.ResendOTPRequest) (*mod
 		log.Debug("Email or phone number is required")
 		return nil, errors.New("email or phone number is required")
 	}
+	gc, err := utils.GinContextFromContext(ctx)
+	if err != nil {
+		log.Debug("Failed to get GinContext: ", err)
+		return nil, err
+	}
 	var user *models.User
-	var err error
+	var isEmailServiceEnabled, isSMSServiceEnabled bool
 	if email != "" {
-		isEmailServiceEnabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyIsEmailServiceEnabled)
+		isEmailServiceEnabled, err = memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyIsEmailServiceEnabled)
 		if err != nil || !isEmailServiceEnabled {
 			log.Debug("Email service not enabled: ", err)
 			return nil, errors.New("email service not enabled")
 		}
 		user, err = db.Provider.GetUserByEmail(ctx, email)
+		if err != nil {
+			log.Debug("Failed to get user by email: ", err)
+			return nil, fmt.Errorf(`user with this email/phone not found`)
+		}
 	} else {
-		isSMSServiceEnabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyIsEmailServiceEnabled)
+		isSMSServiceEnabled, err = memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyIsEmailServiceEnabled)
 		if err != nil || !isSMSServiceEnabled {
 			log.Debug("Email service not enabled: ", err)
 			return nil, errors.New("email service not enabled")
 		}
 		user, err = db.Provider.GetUserByPhoneNumber(ctx, phoneNumber)
+		if err != nil {
+			log.Debug("Failed to get user by phone: ", err)
+			return nil, fmt.Errorf(`user with this email/phone not found`)
+		}
 	}
-	if err != nil {
-		log.Debug("Failed to get user by email: ", err)
-		return nil, fmt.Errorf(`user with this email/phone not found`)
-	}
-
 	if user.RevokedTimestamp != nil {
 		log.Debug("User access is revoked")
 		return nil, fmt.Errorf(`user access has been revoked`)
 	}
 
-	if email != "" && user.EmailVerifiedAt == nil {
-		log.Debug("User email is not verified")
-		return nil, fmt.Errorf(`email not verified`)
-	}
-
-	if phoneNumber != "" && user.PhoneNumberVerifiedAt == nil {
-		log.Debug("User phone number is not verified")
-		return nil, fmt.Errorf(`phone number not verified`)
-	}
-
-	if !refs.BoolValue(user.IsMultiFactorAuthEnabled) {
+	if !refs.BoolValue(user.IsMultiFactorAuthEnabled) && user.EmailVerifiedAt != nil && user.PhoneNumberVerifiedAt != nil {
 		log.Debug("User multi factor authentication is not enabled")
 		return nil, fmt.Errorf(`multi factor authentication not enabled`)
 	}
@@ -97,30 +97,63 @@ func ResendOTPResolver(ctx context.Context, params model.ResendOTPRequest) (*mod
 			Message: "Failed to get for given email",
 		}, errors.New("failed to get otp for given email")
 	}
-
-	otp := utils.GenerateOTP()
-	if _, err := db.Provider.UpsertOTP(ctx, &models.OTP{
-		Email:     refs.StringValue(user.Email),
-		Otp:       otp,
-		ExpiresAt: time.Now().Add(1 * time.Minute).Unix(),
-	}); err != nil {
-		log.Debug("Error upserting otp: ", err)
+	// If multi factor authentication is enabled and we need to generate OTP for mail / sms based MFA
+	generateOTP := func(expiresAt int64) (*models.OTP, error) {
+		otp := utils.GenerateOTP()
+		otpData, err := db.Provider.UpsertOTP(ctx, &models.OTP{
+			Email:       refs.StringValue(user.Email),
+			PhoneNumber: refs.StringValue(user.PhoneNumber),
+			Otp:         otp,
+			ExpiresAt:   expiresAt,
+		})
+		if err != nil {
+			log.Debug("Failed to add otp: ", err)
+			return nil, err
+		}
+		return otpData, nil
+	}
+	setOTPMFaSession := func(expiresAt int64) error {
+		mfaSession := uuid.NewString()
+		err = memorystore.Provider.SetMfaSession(user.ID, mfaSession, expiresAt)
+		if err != nil {
+			log.Debug("Failed to add mfasession: ", err)
+			return err
+		}
+		cookie.SetMfaSession(gc, mfaSession)
+		return nil
+	}
+	expiresAt := time.Now().Add(1 * time.Minute).Unix()
+	otpData, err = generateOTP(expiresAt)
+	if err != nil {
+		log.Debug("Failed to generate otp: ", err)
 		return nil, err
 	}
-
+	if err := setOTPMFaSession(expiresAt); err != nil {
+		log.Debug("Failed to set mfa session: ", err)
+		return nil, err
+	}
 	if email != "" {
-		// exec it as go routine so that we can reduce the api latency
-		go emailHelper.SendEmail([]string{email}, constants.VerificationTypeOTP, map[string]interface{}{
-			"user":         user.ToMap(),
-			"organization": utils.GetOrganization(),
-			"otp":          otp,
-		})
+		go func() {
+			// exec it as go routine so that we can reduce the api latency
+			if err := mailService.SendEmail([]string{email}, constants.VerificationTypeOTP, map[string]interface{}{
+				"user":         user.ToMap(),
+				"organization": utils.GetOrganization(),
+				"otp":          otpData.Otp,
+			}); err != nil {
+				log.Debug("Failed to send otp email: ", err)
+			}
+			utils.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodBasicAuth, user)
+		}()
 	} else {
-		smsBody := strings.Builder{}
-		smsBody.WriteString("Your verification code is: ")
-		smsBody.WriteString(otp)
-		// exec it as go routine so that we can reduce the api latency
-		go smsproviders.SendSMS(phoneNumber, smsBody.String())
+		go func() {
+			smsBody := strings.Builder{}
+			smsBody.WriteString("Your verification code is: ")
+			smsBody.WriteString(otpData.Otp)
+			utils.RegisterEvent(ctx, constants.UserLoginWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, user)
+			if err := smsproviders.SendSMS(phoneNumber, smsBody.String()); err != nil {
+				log.Debug("Failed to send sms: ", err)
+			}
+		}()
 	}
 	log.Info("OTP has been resent")
 	return &model.Response{

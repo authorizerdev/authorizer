@@ -2837,6 +2837,7 @@ input UpdateUserInput {
   gender: String
   birthdate: String
   phone_number: String
+  phone_number_verified: Boolean
   picture: String
   roles: [String]
   is_multi_factor_auth_enabled: Boolean
@@ -18985,7 +18986,7 @@ func (ec *executionContext) unmarshalInputUpdateUserInput(ctx context.Context, o
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"id", "email", "email_verified", "given_name", "family_name", "middle_name", "nickname", "gender", "birthdate", "phone_number", "picture", "roles", "is_multi_factor_auth_enabled", "app_data"}
+	fieldsInOrder := [...]string{"id", "email", "email_verified", "given_name", "family_name", "middle_name", "nickname", "gender", "birthdate", "phone_number", "phone_number_verified", "picture", "roles", "is_multi_factor_auth_enabled", "app_data"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -19082,6 +19083,15 @@ func (ec *executionContext) unmarshalInputUpdateUserInput(ctx context.Context, o
 				return it, err
 			}
 			it.PhoneNumber = data
+		case "phone_number_verified":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phone_number_verified"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PhoneNumberVerified = data
 		case "picture":
 			var err error
 

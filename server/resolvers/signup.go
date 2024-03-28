@@ -290,25 +290,26 @@ func SignupResolver(ctx context.Context, params model.SignUpInput) (*model.AuthR
 	} else if !disablePhoneVerification && isSMSServiceEnabled && isMobileSignup {
 		duration, _ := time.ParseDuration("10m")
 		smsCode := utils.GenerateOTP()
-
 		smsBody := strings.Builder{}
 		smsBody.WriteString("Your verification code is: ")
 		smsBody.WriteString(smsCode)
-
-		// TODO: For those who enabled the webhook to call their sms vendor separately - sending the otp to their api
-		if err != nil {
-			log.Debug("error while upserting user: ", err.Error())
-			return nil, err
-		}
+		expiresAt := time.Now().Add(duration).Unix()
 		_, err = db.Provider.UpsertOTP(ctx, &models.OTP{
 			PhoneNumber: phoneNumber,
 			Otp:         smsCode,
-			ExpiresAt:   time.Now().Add(duration).Unix(),
+			ExpiresAt:   expiresAt,
 		})
 		if err != nil {
 			log.Debug("error while upserting OTP: ", err.Error())
 			return nil, err
 		}
+		mfaSession := uuid.NewString()
+		err = memorystore.Provider.SetMfaSession(user.ID, mfaSession, expiresAt)
+		if err != nil {
+			log.Debug("Failed to add mfasession: ", err)
+			return nil, err
+		}
+		cookie.SetMfaSession(gc, mfaSession)
 		go func() {
 			smsproviders.SendSMS(phoneNumber, smsBody.String())
 			utils.RegisterEvent(ctx, constants.UserCreatedWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, user)

@@ -2,12 +2,15 @@ package provider_template
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
+	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/google/uuid"
 )
 
@@ -22,6 +25,15 @@ func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User
 			return user, err
 		}
 		user.Roles = defaultRoles
+	}
+	if user.PhoneNumber != nil && strings.TrimSpace(refs.StringValue(user.PhoneNumber)) != "" {
+		if u, _ := p.GetUserByPhoneNumber(ctx, refs.StringValue(user.PhoneNumber)); u != nil && u.ID != user.ID {
+			return user, fmt.Errorf("user with given phone number already exists")
+		}
+	} else if user.Email != nil && strings.TrimSpace(refs.StringValue(user.Email)) != "" {
+		if u, _ := p.GetUserByEmail(ctx, refs.StringValue(user.Email)); u != nil && u.ID != user.ID {
+			return user, fmt.Errorf("user with given email already exists")
+		}
 	}
 	user.CreatedAt = time.Now().Unix()
 	user.UpdatedAt = time.Now().Unix()
