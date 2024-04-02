@@ -22,7 +22,7 @@ func (p *provider) AddVerificationRequest(ctx context.Context, verificationReque
 	verificationRequestRequestCollection, _ := p.db.Collection(ctx, models.Collections.VerificationRequest)
 	meta, err := verificationRequestRequestCollection.CreateDocument(ctx, verificationRequest)
 	if err != nil {
-		return verificationRequest, err
+		return nil, err
 	}
 	verificationRequest.Key = meta.Key
 	verificationRequest.ID = meta.ID.String()
@@ -38,7 +38,7 @@ func (p *provider) GetVerificationRequestByToken(ctx context.Context, token stri
 	}
 	cursor, err := p.db.Query(ctx, query, bindVars)
 	if err != nil {
-		return verificationRequest, err
+		return nil, err
 	}
 	defer cursor.Close()
 	for {
@@ -50,7 +50,7 @@ func (p *provider) GetVerificationRequestByToken(ctx context.Context, token stri
 		}
 		_, err := cursor.ReadDocument(ctx, &verificationRequest)
 		if err != nil {
-			return verificationRequest, err
+			return nil, err
 		}
 	}
 	return verificationRequest, nil
@@ -66,7 +66,7 @@ func (p *provider) GetVerificationRequestByEmail(ctx context.Context, email stri
 	}
 	cursor, err := p.db.Query(ctx, query, bindVars)
 	if err != nil {
-		return verificationRequest, err
+		return nil, err
 	}
 	defer cursor.Close()
 	for {
@@ -78,7 +78,7 @@ func (p *provider) GetVerificationRequestByEmail(ctx context.Context, email stri
 		}
 		_, err := cursor.ReadDocument(ctx, &verificationRequest)
 		if err != nil {
-			return verificationRequest, err
+			return nil, err
 		}
 	}
 	return verificationRequest, nil

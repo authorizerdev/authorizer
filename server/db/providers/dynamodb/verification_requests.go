@@ -19,7 +19,7 @@ func (p *provider) AddVerificationRequest(ctx context.Context, verificationReque
 		verificationRequest.UpdatedAt = time.Now().Unix()
 		err := collection.Put(verificationRequest).RunWithContext(ctx)
 		if err != nil {
-			return verificationRequest, err
+			return nil, err
 		}
 	}
 	return verificationRequest, nil
@@ -35,7 +35,7 @@ func (p *provider) GetVerificationRequestByToken(ctx context.Context, token stri
 	}
 	err := iter.Err()
 	if err != nil {
-		return verificationRequest, err
+		return nil, err
 	}
 	return verificationRequest, nil
 }
@@ -50,7 +50,7 @@ func (p *provider) GetVerificationRequestByEmail(ctx context.Context, email stri
 	}
 	err := iter.Err()
 	if err != nil {
-		return verificationRequest, err
+		return nil, err
 	}
 	return verificationRequest, nil
 }

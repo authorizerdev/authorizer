@@ -103,6 +103,7 @@ type ComplexityRoot struct {
 		DisableLoginPage                 func(childComplexity int) int
 		DisableMagicLinkLogin            func(childComplexity int) int
 		DisableMailOtpLogin              func(childComplexity int) int
+		DisableMobileBasicAuthentication func(childComplexity int) int
 		DisableMultiFactorAuthentication func(childComplexity int) int
 		DisablePlayground                func(childComplexity int) int
 		DisableRedisForEnv               func(childComplexity int) int
@@ -752,6 +753,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Env.DisableMailOtpLogin(childComplexity), true
+
+	case "Env.DISABLE_MOBILE_BASIC_AUTHENTICATION":
+		if e.complexity.Env.DisableMobileBasicAuthentication == nil {
+			break
+		}
+
+		return e.complexity.Env.DisableMobileBasicAuthentication(childComplexity), true
 
 	case "Env.DISABLE_MULTI_FACTOR_AUTHENTICATION":
 		if e.complexity.Env.DisableMultiFactorAuthentication == nil {
@@ -2543,6 +2551,7 @@ type Env {
   RESET_PASSWORD_URL: String
   DISABLE_EMAIL_VERIFICATION: Boolean!
   DISABLE_BASIC_AUTHENTICATION: Boolean!
+  DISABLE_MOBILE_BASIC_AUTHENTICATION: Boolean!
   DISABLE_MAGIC_LINK_LOGIN: Boolean!
   DISABLE_LOGIN_PAGE: Boolean!
   DISABLE_SIGN_UP: Boolean!
@@ -2674,6 +2683,7 @@ input UpdateEnvInput {
   ADMIN_COOKIE_SECURE: Boolean
   DISABLE_EMAIL_VERIFICATION: Boolean
   DISABLE_BASIC_AUTHENTICATION: Boolean
+  DISABLE_MOBILE_BASIC_AUTHENTICATION: Boolean
   DISABLE_MAGIC_LINK_LOGIN: Boolean
   DISABLE_LOGIN_PAGE: Boolean
   DISABLE_SIGN_UP: Boolean
@@ -2837,6 +2847,7 @@ input UpdateUserInput {
   gender: String
   birthdate: String
   phone_number: String
+  phone_number_verified: Boolean
   picture: String
   roles: [String]
   is_multi_factor_auth_enabled: Boolean
@@ -5837,6 +5848,50 @@ func (ec *executionContext) _Env_DISABLE_BASIC_AUTHENTICATION(ctx context.Contex
 }
 
 func (ec *executionContext) fieldContext_Env_DISABLE_BASIC_AUTHENTICATION(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Env",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Env_DISABLE_MOBILE_BASIC_AUTHENTICATION(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Env_DISABLE_MOBILE_BASIC_AUTHENTICATION(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DisableMobileBasicAuthentication, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Env_DISABLE_MOBILE_BASIC_AUTHENTICATION(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Env",
 		Field:      field,
@@ -11694,6 +11749,8 @@ func (ec *executionContext) fieldContext_Query__env(ctx context.Context, field g
 				return ec.fieldContext_Env_DISABLE_EMAIL_VERIFICATION(ctx, field)
 			case "DISABLE_BASIC_AUTHENTICATION":
 				return ec.fieldContext_Env_DISABLE_BASIC_AUTHENTICATION(ctx, field)
+			case "DISABLE_MOBILE_BASIC_AUTHENTICATION":
+				return ec.fieldContext_Env_DISABLE_MOBILE_BASIC_AUTHENTICATION(ctx, field)
 			case "DISABLE_MAGIC_LINK_LOGIN":
 				return ec.fieldContext_Env_DISABLE_MAGIC_LINK_LOGIN(ctx, field)
 			case "DISABLE_LOGIN_PAGE":
@@ -18288,7 +18345,7 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"ACCESS_TOKEN_EXPIRY_TIME", "ADMIN_SECRET", "CUSTOM_ACCESS_TOKEN_SCRIPT", "OLD_ADMIN_SECRET", "SMTP_HOST", "SMTP_PORT", "SMTP_USERNAME", "SMTP_PASSWORD", "SMTP_LOCAL_NAME", "SENDER_EMAIL", "SENDER_NAME", "JWT_TYPE", "JWT_SECRET", "JWT_PRIVATE_KEY", "JWT_PUBLIC_KEY", "ALLOWED_ORIGINS", "APP_URL", "RESET_PASSWORD_URL", "APP_COOKIE_SECURE", "ADMIN_COOKIE_SECURE", "DISABLE_EMAIL_VERIFICATION", "DISABLE_BASIC_AUTHENTICATION", "DISABLE_MAGIC_LINK_LOGIN", "DISABLE_LOGIN_PAGE", "DISABLE_SIGN_UP", "DISABLE_REDIS_FOR_ENV", "DISABLE_STRONG_PASSWORD", "DISABLE_MULTI_FACTOR_AUTHENTICATION", "ENFORCE_MULTI_FACTOR_AUTHENTICATION", "ROLES", "PROTECTED_ROLES", "DEFAULT_ROLES", "JWT_ROLE_CLAIM", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET", "FACEBOOK_CLIENT_ID", "FACEBOOK_CLIENT_SECRET", "LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET", "APPLE_CLIENT_ID", "APPLE_CLIENT_SECRET", "DISCORD_CLIENT_ID", "DISCORD_CLIENT_SECRET", "TWITTER_CLIENT_ID", "TWITTER_CLIENT_SECRET", "MICROSOFT_CLIENT_ID", "MICROSOFT_CLIENT_SECRET", "MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID", "TWITCH_CLIENT_ID", "TWITCH_CLIENT_SECRET", "ORGANIZATION_NAME", "ORGANIZATION_LOGO", "DEFAULT_AUTHORIZE_RESPONSE_TYPE", "DEFAULT_AUTHORIZE_RESPONSE_MODE", "DISABLE_PLAYGROUND", "DISABLE_MAIL_OTP_LOGIN", "DISABLE_TOTP_LOGIN"}
+	fieldsInOrder := [...]string{"ACCESS_TOKEN_EXPIRY_TIME", "ADMIN_SECRET", "CUSTOM_ACCESS_TOKEN_SCRIPT", "OLD_ADMIN_SECRET", "SMTP_HOST", "SMTP_PORT", "SMTP_USERNAME", "SMTP_PASSWORD", "SMTP_LOCAL_NAME", "SENDER_EMAIL", "SENDER_NAME", "JWT_TYPE", "JWT_SECRET", "JWT_PRIVATE_KEY", "JWT_PUBLIC_KEY", "ALLOWED_ORIGINS", "APP_URL", "RESET_PASSWORD_URL", "APP_COOKIE_SECURE", "ADMIN_COOKIE_SECURE", "DISABLE_EMAIL_VERIFICATION", "DISABLE_BASIC_AUTHENTICATION", "DISABLE_MOBILE_BASIC_AUTHENTICATION", "DISABLE_MAGIC_LINK_LOGIN", "DISABLE_LOGIN_PAGE", "DISABLE_SIGN_UP", "DISABLE_REDIS_FOR_ENV", "DISABLE_STRONG_PASSWORD", "DISABLE_MULTI_FACTOR_AUTHENTICATION", "ENFORCE_MULTI_FACTOR_AUTHENTICATION", "ROLES", "PROTECTED_ROLES", "DEFAULT_ROLES", "JWT_ROLE_CLAIM", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET", "FACEBOOK_CLIENT_ID", "FACEBOOK_CLIENT_SECRET", "LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET", "APPLE_CLIENT_ID", "APPLE_CLIENT_SECRET", "DISCORD_CLIENT_ID", "DISCORD_CLIENT_SECRET", "TWITTER_CLIENT_ID", "TWITTER_CLIENT_SECRET", "MICROSOFT_CLIENT_ID", "MICROSOFT_CLIENT_SECRET", "MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID", "TWITCH_CLIENT_ID", "TWITCH_CLIENT_SECRET", "ORGANIZATION_NAME", "ORGANIZATION_LOGO", "DEFAULT_AUTHORIZE_RESPONSE_TYPE", "DEFAULT_AUTHORIZE_RESPONSE_MODE", "DISABLE_PLAYGROUND", "DISABLE_MAIL_OTP_LOGIN", "DISABLE_TOTP_LOGIN"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -18493,6 +18550,15 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 				return it, err
 			}
 			it.DisableBasicAuthentication = data
+		case "DISABLE_MOBILE_BASIC_AUTHENTICATION":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("DISABLE_MOBILE_BASIC_AUTHENTICATION"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.DisableMobileBasicAuthentication = data
 		case "DISABLE_MAGIC_LINK_LOGIN":
 			var err error
 
@@ -18985,7 +19051,7 @@ func (ec *executionContext) unmarshalInputUpdateUserInput(ctx context.Context, o
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"id", "email", "email_verified", "given_name", "family_name", "middle_name", "nickname", "gender", "birthdate", "phone_number", "picture", "roles", "is_multi_factor_auth_enabled", "app_data"}
+	fieldsInOrder := [...]string{"id", "email", "email_verified", "given_name", "family_name", "middle_name", "nickname", "gender", "birthdate", "phone_number", "phone_number_verified", "picture", "roles", "is_multi_factor_auth_enabled", "app_data"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -19082,6 +19148,15 @@ func (ec *executionContext) unmarshalInputUpdateUserInput(ctx context.Context, o
 				return it, err
 			}
 			it.PhoneNumber = data
+		case "phone_number_verified":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phone_number_verified"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PhoneNumberVerified = data
 		case "picture":
 			var err error
 
@@ -19669,6 +19744,11 @@ func (ec *executionContext) _Env(ctx context.Context, sel ast.SelectionSet, obj 
 			}
 		case "DISABLE_BASIC_AUTHENTICATION":
 			out.Values[i] = ec._Env_DISABLE_BASIC_AUTHENTICATION(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "DISABLE_MOBILE_BASIC_AUTHENTICATION":
+			out.Values[i] = ec._Env_DISABLE_MOBILE_BASIC_AUTHENTICATION(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}

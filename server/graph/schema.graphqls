@@ -158,6 +158,7 @@ type Env {
   RESET_PASSWORD_URL: String
   DISABLE_EMAIL_VERIFICATION: Boolean!
   DISABLE_BASIC_AUTHENTICATION: Boolean!
+  DISABLE_MOBILE_BASIC_AUTHENTICATION: Boolean!
   DISABLE_MAGIC_LINK_LOGIN: Boolean!
   DISABLE_LOGIN_PAGE: Boolean!
   DISABLE_SIGN_UP: Boolean!
@@ -289,6 +290,7 @@ input UpdateEnvInput {
   ADMIN_COOKIE_SECURE: Boolean
   DISABLE_EMAIL_VERIFICATION: Boolean
   DISABLE_BASIC_AUTHENTICATION: Boolean
+  DISABLE_MOBILE_BASIC_AUTHENTICATION: Boolean
   DISABLE_MAGIC_LINK_LOGIN: Boolean
   DISABLE_LOGIN_PAGE: Boolean
   DISABLE_SIGN_UP: Boolean
@@ -452,6 +454,7 @@ input UpdateUserInput {
   gender: String
   birthdate: String
   phone_number: String
+  phone_number_verified: Boolean
   picture: String
   roles: [String]
   is_multi_factor_auth_enabled: Boolean

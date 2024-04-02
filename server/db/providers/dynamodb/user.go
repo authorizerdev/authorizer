@@ -26,20 +26,24 @@ func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User
 	if user.Roles == "" {
 		defaultRoles, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDefaultRoles)
 		if err != nil {
-			return user, err
+			return nil, err
 		}
 		user.Roles = defaultRoles
 	}
 	if user.PhoneNumber != nil && strings.TrimSpace(refs.StringValue(user.PhoneNumber)) != "" {
-		if u, _ := p.GetUserByPhoneNumber(ctx, refs.StringValue(user.PhoneNumber)); u != nil {
+		if u, _ := p.GetUserByPhoneNumber(ctx, refs.StringValue(user.PhoneNumber)); u != nil && u.ID != user.ID {
 			return user, fmt.Errorf("user with given phone number already exists")
+		}
+	} else if user.Email != nil && strings.TrimSpace(refs.StringValue(user.Email)) != "" {
+		if u, _ := p.GetUserByEmail(ctx, refs.StringValue(user.Email)); u != nil && u.ID != user.ID {
+			return user, fmt.Errorf("user with given email already exists")
 		}
 	}
 	user.CreatedAt = time.Now().Unix()
 	user.UpdatedAt = time.Now().Unix()
 	err := collection.Put(user).RunWithContext(ctx)
 	if err != nil {
-		return user, err
+		return nil, err
 	}
 	return user, nil
 }
@@ -51,7 +55,7 @@ func (p *provider) UpdateUser(ctx context.Context, user *models.User) (*models.U
 		user.UpdatedAt = time.Now().Unix()
 		err := UpdateByHashKey(collection, "id", user.ID, user)
 		if err != nil {
-			return user, err
+			return nil, err
 		}
 	}
 	return user, nil
@@ -122,7 +126,7 @@ func (p *provider) GetUserByEmail(ctx context.Context, email string) (*models.Us
 		user = users[0]
 		return user, nil
 	} else {
-		return user, errors.New("no record found")
+		return nil, errors.New("no record found")
 	}
 }
 
@@ -133,7 +137,7 @@ func (p *provider) GetUserByID(ctx context.Context, id string) (*models.User, er
 	err := collection.Get("id", id).OneWithContext(ctx, &user)
 	if err != nil {
 		if refs.StringValue(user.Email) == "" {
-			return user, errors.New("no documets found")
+			return nil, errors.New("no documets found")
 		} else {
 			return user, nil
 		}

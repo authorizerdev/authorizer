@@ -24,9 +24,13 @@ func RevokeRefreshTokenHandler() gin.HandlerFunc {
 			})
 			return
 		}
+		// get client ID
+		clientID := strings.TrimSpace(reqBody["client_id"]) // kept for backward compatibility // else we expect to be present as header
+		if clientID == "" {
+			clientID = gc.Request.Header.Get("x-authorizer-client-id")
+		}
 		// get fingerprint hash
 		refreshToken := strings.TrimSpace(reqBody["refresh_token"])
-		clientID := strings.TrimSpace(reqBody["client_id"])
 
 		if clientID == "" {
 			log.Debug("Client ID is empty")

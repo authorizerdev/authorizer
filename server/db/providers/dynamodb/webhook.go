@@ -91,7 +91,7 @@ func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*model
 		return nil, err
 	}
 	if webhook.ID == "" {
-		return webhook.AsAPIWebhook(), errors.New("no documets found")
+		return nil, errors.New("no documets found")
 	}
 	return webhook.AsAPIWebhook(), nil
 }

@@ -13,7 +13,6 @@ import (
 	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 // AddUser to save user information in database
@@ -25,25 +24,25 @@ func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User
 	if user.Roles == "" {
 		defaultRoles, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDefaultRoles)
 		if err != nil {
-			return user, err
+			return nil, err
 		}
 		user.Roles = defaultRoles
 	}
 
 	if user.PhoneNumber != nil && strings.TrimSpace(refs.StringValue(user.PhoneNumber)) != "" {
-		if u, _ := p.GetUserByPhoneNumber(ctx, refs.StringValue(user.PhoneNumber)); u != nil {
+		if u, _ := p.GetUserByPhoneNumber(ctx, refs.StringValue(user.PhoneNumber)); u != nil && u.ID != user.ID {
 			return user, fmt.Errorf("user with given phone number already exists")
+		}
+	} else if user.Email != nil && strings.TrimSpace(refs.StringValue(user.Email)) != "" {
+		if u, _ := p.GetUserByEmail(ctx, refs.StringValue(user.Email)); u != nil && u.ID != user.ID {
+			return user, fmt.Errorf("user with given email already exists")
 		}
 	}
 
 	user.CreatedAt = time.Now().Unix()
 	user.UpdatedAt = time.Now().Unix()
 	user.Key = user.ID
-	result := p.db.Clauses(
-		clause.OnConflict{
-			UpdateAll: true,
-			Columns:   []clause.Column{{Name: "email"}},
-		}).Create(&user)
+	result := p.db.Create(&user)
 
 	if result.Error != nil {
 		return user, result.Error
@@ -113,7 +112,7 @@ func (p *provider) GetUserByEmail(ctx context.Context, email string) (*models.Us
 	var user *models.User
 	result := p.db.Where("email = ?", email).First(&user)
 	if result.Error != nil {
-		return user, result.Error
+		return nil, result.Error
 	}
 	return user, nil
 }
@@ -123,7 +122,7 @@ func (p *provider) GetUserByID(ctx context.Context, id string) (*models.User, er
 	var user *models.User
 	result := p.db.Where("id = ?", id).First(&user)
 	if result.Error != nil {
-		return user, result.Error
+		return nil, result.Error
 	}
 	return user, nil
 }

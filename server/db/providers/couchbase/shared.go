@@ -47,7 +47,7 @@ func (p *provider) GetTotalDocs(ctx context.Context, collection string) (int64, 
 	})
 	queryRes.One(&totalDocs)
 	if err != nil {
-		return totalDocs.Total, err
+		return 0, err
 	}
 	return totalDocs.Total, nil
 }

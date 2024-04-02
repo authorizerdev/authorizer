@@ -42,8 +42,11 @@ func totpLoginTest(t *testing.T, s TestSetup) {
 			Email:    &email,
 			Password: s.TestInfo.Password,
 		})
-		assert.Error(t, err)
-		assert.Nil(t, loginRes)
+		// access token should be empty as email is not verified
+		assert.NoError(t, err)
+		assert.NotNil(t, loginRes)
+		assert.Nil(t, loginRes.AccessToken)
+		assert.NotEmpty(t, loginRes.Message)
 		verificationRequest, err := db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeBasicAuthSignup)
 		assert.Nil(t, err)
 		assert.Equal(t, email, verificationRequest.Email)

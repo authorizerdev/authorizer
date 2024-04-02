@@ -26,7 +26,7 @@ func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User
 	if user.Roles == "" {
 		defaultRoles, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDefaultRoles)
 		if err != nil {
-			return user, err
+			return nil, err
 		}
 		user.Roles = defaultRoles
 	}
@@ -35,6 +35,10 @@ func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User
 		if u, _ := p.GetUserByPhoneNumber(ctx, refs.StringValue(user.PhoneNumber)); u != nil && u.ID != user.ID {
 			return user, fmt.Errorf("user with given phone number already exists")
 		}
+	} else if user.Email != nil && strings.TrimSpace(refs.StringValue(user.Email)) != "" {
+		if u, _ := p.GetUserByEmail(ctx, refs.StringValue(user.Email)); u != nil && u.ID != user.ID {
+			return user, fmt.Errorf("user with given email already exists")
+		}
 	}
 
 	user.CreatedAt = time.Now().Unix()
@@ -42,7 +46,7 @@ func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User
 
 	bytes, err := json.Marshal(user)
 	if err != nil {
-		return user, err
+		return nil, err
 	}
 
 	// use decoder instead of json.Unmarshall, because it converts int64 -> float64 after unmarshalling
@@ -51,7 +55,7 @@ func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User
 	userMap := map[string]interface{}{}
 	err = decoder.Decode(&userMap)
 	if err != nil {
-		return user, err
+		return nil, err
 	}
 
 	fields := "("
@@ -80,7 +84,7 @@ func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User
 	err = p.db.Query(query).Exec()
 
 	if err != nil {
-		return user, err
+		return nil, err
 	}
 
 	return user, nil
@@ -92,7 +96,7 @@ func (p *provider) UpdateUser(ctx context.Context, user *models.User) (*models.U
 
 	bytes, err := json.Marshal(user)
 	if err != nil {
-		return user, err
+		return nil, err
 	}
 	// use decoder instead of json.Unmarshall, because it converts int64 -> float64 after unmarshalling
 	decoder := json.NewDecoder(strings.NewReader(string(bytes)))
@@ -100,7 +104,7 @@ func (p *provider) UpdateUser(ctx context.Context, user *models.User) (*models.U
 	userMap := map[string]interface{}{}
 	err = decoder.Decode(&userMap)
 	if err != nil {
-		return user, err
+		return nil, err
 	}
 
 	updateFields := ""
@@ -131,7 +135,7 @@ func (p *provider) UpdateUser(ctx context.Context, user *models.User) (*models.U
 	query := fmt.Sprintf("UPDATE %s SET %s WHERE id = '%s'", KeySpace+"."+models.Collections.User, updateFields, user.ID)
 	err = p.db.Query(query).Exec()
 	if err != nil {
-		return user, err
+		return nil, err
 	}
 
 	return user, nil

@@ -53,13 +53,13 @@ const (
                                                                                 <table width="100%%" cellspacing="0" cellpadding="0">
                                                                                     <tbody>
                                                                                         <tr>
-                                                                                            <td class="esd-block-image es-m-txt-c es-p5b" style="font-size:0;padding:10px" align="center"><a target="_blank" clicktracking="off"><img src="{{.org_logo}}" alt="icon" style="display: block;" title="icon" width="30"></a></td>
+                                                                                            <td class="esd-block-image es-m-txt-c es-p5b" style="font-size:0;padding:10px" align="center"><a target="_blank" clicktracking="off"><img src="{{.organization.logo}}" alt="icon" style="display: block;" title="icon" width="30"></a></td>
                                                                                         </tr>
                                                                                         
                                                                                         <tr style="background: rgb(249,250,251);padding: 10px;margin-bottom:10px;border-radius:5px;">
                                                                                             <td class="esd-block-text es-m-txt-c es-p15t" align="center" style="padding:10px;padding-bottom:30px;">
                                                                                                 <p>Hey there 👋</p>
-                                                                                                <p>We have received request to verify email for <b>{{.org_name}}</b>. If this is correct, please confirm your email address by clicking the button below.</p> <br/>
+                                                                                                <p>We have received request to verify email for <b>{{.organization.name}}</b>. If this is correct, please confirm your email address by clicking the button below.</p> <br/>
                                                                                                 <a 
                                                                                                 clicktracking="off" href="{{.verification_url}}" class="es-button" target="_blank" style="text-decoration: none;padding:10px 15px;background-color: rgba(59,130,246,1);color: #fff;font-size: 1em;border-radius:5px;">Confirm Email</a>
                                                                                             </td>

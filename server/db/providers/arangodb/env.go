@@ -23,7 +23,7 @@ func (p *provider) AddEnv(ctx context.Context, env *models.Env) (*models.Env, er
 	configCollection, _ := p.db.Collection(ctx, models.Collections.Env)
 	meta, err := configCollection.CreateDocument(arangoDriver.WithOverwrite(ctx), env)
 	if err != nil {
-		return env, err
+		return nil, err
 	}
 	env.Key = meta.Key
 	env.ID = meta.ID.String()
@@ -36,7 +36,7 @@ func (p *provider) UpdateEnv(ctx context.Context, env *models.Env) (*models.Env,
 	collection, _ := p.db.Collection(ctx, models.Collections.Env)
 	meta, err := collection.UpdateDocument(ctx, env.Key, env)
 	if err != nil {
-		return env, err
+		return nil, err
 	}
 
 	env.Key = meta.Key
@@ -50,7 +50,7 @@ func (p *provider) GetEnv(ctx context.Context) (*models.Env, error) {
 	query := fmt.Sprintf("FOR d in %s RETURN d", models.Collections.Env)
 	cursor, err := p.db.Query(ctx, query, nil)
 	if err != nil {
-		return env, err
+		return nil, err
 	}
 	defer cursor.Close()
 	for {
@@ -62,7 +62,7 @@ func (p *provider) GetEnv(ctx context.Context) (*models.Env, error) {
 		}
 		_, err := cursor.ReadDocument(ctx, &env)
 		if err != nil {
-			return env, err
+			return nil, err
 		}
 	}
 

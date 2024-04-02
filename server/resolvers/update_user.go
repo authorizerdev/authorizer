@@ -48,7 +48,18 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 		"user_id": params.ID,
 	})
 
-	if params.GivenName == nil && params.FamilyName == nil && params.Picture == nil && params.MiddleName == nil && params.Nickname == nil && params.Email == nil && params.Birthdate == nil && params.Gender == nil && params.PhoneNumber == nil && params.Roles == nil && params.IsMultiFactorAuthEnabled == nil && params.AppData == nil {
+	if params.GivenName == nil &&
+		params.FamilyName == nil &&
+		params.Picture == nil &&
+		params.MiddleName == nil &&
+		params.Nickname == nil &&
+		params.Email == nil &&
+		params.Birthdate == nil &&
+		params.Gender == nil &&
+		params.PhoneNumber == nil &&
+		params.Roles == nil &&
+		params.IsMultiFactorAuthEnabled == nil &&
+		params.AppData == nil {
 		log.Debug("No params to update")
 		return res, fmt.Errorf("please enter atleast one param to update")
 	}
@@ -142,6 +153,15 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 			user.EmailVerifiedAt = nil
 		}
 	}
+	if params.PhoneNumberVerified != nil {
+		if *params.PhoneNumberVerified {
+			now := time.Now().Unix()
+			user.PhoneNumberVerifiedAt = &now
+		} else {
+			user.PhoneNumberVerifiedAt = nil
+		}
+
+	}
 
 	if params.Email != nil && refs.StringValue(user.Email) != refs.StringValue(params.Email) {
 		// check if valid email
@@ -197,6 +217,24 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 
 	}
 
+	if params.PhoneNumber != nil && refs.StringValue(user.PhoneNumber) != refs.StringValue(params.PhoneNumber) {
+		phone := strings.TrimSpace(refs.StringValue(params.PhoneNumber))
+		if len(phone) < 10 || len(phone) > 15 {
+			log.Debug("Invalid phone number: ", *params.PhoneNumber)
+			return res, fmt.Errorf("invalid phone number")
+		}
+		// check if user with new phone number exists
+		_, err = db.Provider.GetUserByPhoneNumber(ctx, phone)
+		// err = nil means user exists
+		if err == nil {
+			log.Debug("User with phone number already exists: ", phone)
+			return res, fmt.Errorf("user with this phone number already exists")
+		}
+		go memorystore.Provider.DeleteAllUserSessions(user.ID)
+		user.PhoneNumber = &phone
+		user.PhoneNumberVerifiedAt = nil
+	}
+
 	rolesToSave := ""
 	if params.Roles != nil && len(params.Roles) > 0 {
 		currentRoles := strings.Split(user.Roles, ",")
@@ -237,7 +275,6 @@ func UpdateUserResolver(ctx context.Context, params model.UpdateUserInput) (*mod
 	if rolesToSave != "" {
 		user.Roles = rolesToSave
 	}
-
 	user, err = db.Provider.UpdateUser(ctx, user)
 	if err != nil {
 		log.Debug("Failed to update user: ", err)

@@ -27,7 +27,7 @@ func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User
 	if user.Roles == "" {
 		defaultRoles, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDefaultRoles)
 		if err != nil {
-			return user, err
+			return nil, err
 		}
 		user.Roles = defaultRoles
 	}
@@ -36,6 +36,10 @@ func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User
 		if u, _ := p.GetUserByPhoneNumber(ctx, refs.StringValue(user.PhoneNumber)); u != nil && u.ID != user.ID {
 			return user, fmt.Errorf("user with given phone number already exists")
 		}
+	} else if user.Email != nil && strings.TrimSpace(refs.StringValue(user.Email)) != "" {
+		if u, _ := p.GetUserByEmail(ctx, refs.StringValue(user.Email)); u != nil && u.ID != user.ID {
+			return user, fmt.Errorf("user with given email already exists")
+		}
 	}
 
 	user.CreatedAt = time.Now().Unix()
@@ -43,7 +47,7 @@ func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User
 	userCollection, _ := p.db.Collection(ctx, models.Collections.User)
 	meta, err := userCollection.CreateDocument(arangoDriver.WithOverwrite(ctx), user)
 	if err != nil {
-		return user, err
+		return nil, err
 	}
 	user.Key = meta.Key
 	user.ID = meta.ID.String()
@@ -58,7 +62,7 @@ func (p *provider) UpdateUser(ctx context.Context, user *models.User) (*models.U
 	collection, _ := p.db.Collection(ctx, models.Collections.User)
 	meta, err := collection.UpdateDocument(ctx, user.Key, user)
 	if err != nil {
-		return user, err
+		return nil, err
 	}
 
 	user.Key = meta.Key
@@ -125,19 +129,19 @@ func (p *provider) GetUserByEmail(ctx context.Context, email string) (*models.Us
 	}
 	cursor, err := p.db.Query(ctx, query, bindVars)
 	if err != nil {
-		return user, err
+		return nil, err
 	}
 	defer cursor.Close()
 	for {
 		if !cursor.HasMore() {
 			if user == nil {
-				return user, fmt.Errorf("user not found")
+				return nil, fmt.Errorf("user not found")
 			}
 			break
 		}
 		_, err := cursor.ReadDocument(ctx, &user)
 		if err != nil {
-			return user, err
+			return nil, err
 		}
 	}
 	return user, nil
@@ -152,19 +156,19 @@ func (p *provider) GetUserByID(ctx context.Context, id string) (*models.User, er
 	}
 	cursor, err := p.db.Query(ctx, query, bindVars)
 	if err != nil {
-		return user, err
+		return nil, err
 	}
 	defer cursor.Close()
 	for {
 		if !cursor.HasMore() {
 			if user == nil {
-				return user, fmt.Errorf("user not found")
+				return nil, fmt.Errorf("user not found")
 			}
 			break
 		}
 		_, err := cursor.ReadDocument(ctx, &user)
 		if err != nil {
-			return user, err
+			return nil, err
 		}
 	}
 	return user, nil

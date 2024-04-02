@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
+	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/couchbase/gocb/v2"
 	"github.com/google/uuid"
 )
@@ -23,9 +25,19 @@ func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User
 	if user.Roles == "" {
 		defaultRoles, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDefaultRoles)
 		if err != nil {
-			return user, err
+			return nil, err
 		}
 		user.Roles = defaultRoles
+	}
+
+	if user.PhoneNumber != nil && strings.TrimSpace(refs.StringValue(user.PhoneNumber)) != "" {
+		if u, _ := p.GetUserByPhoneNumber(ctx, refs.StringValue(user.PhoneNumber)); u != nil && u.ID != user.ID {
+			return user, fmt.Errorf("user with given phone number already exists")
+		}
+	} else if user.Email != nil && strings.TrimSpace(refs.StringValue(user.Email)) != "" {
+		if u, _ := p.GetUserByEmail(ctx, refs.StringValue(user.Email)); u != nil && u.ID != user.ID {
+			return user, fmt.Errorf("user with given email already exists")
+		}
 	}
 
 	user.CreatedAt = time.Now().Unix()
@@ -35,7 +47,7 @@ func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User
 	}
 	_, err := p.db.Collection(models.Collections.User).Insert(user.ID, user, &insertOpt)
 	if err != nil {
-		return user, err
+		return nil, err
 	}
 	return user, nil
 }
@@ -48,7 +60,7 @@ func (p *provider) UpdateUser(ctx context.Context, user *models.User) (*models.U
 	}
 	_, err := p.db.Collection(models.Collections.User).Upsert(user.ID, user, &upsertOpt)
 	if err != nil {
-		return user, err
+		return nil, err
 	}
 	return user, nil
 }
@@ -110,11 +122,11 @@ func (p *provider) GetUserByEmail(ctx context.Context, email string) (*models.Us
 		PositionalParameters: []interface{}{email},
 	})
 	if err != nil {
-		return user, err
+		return nil, err
 	}
 	err = q.One(&user)
 	if err != nil {
-		return user, err
+		return nil, err
 	}
 	return user, nil
 }
@@ -129,11 +141,11 @@ func (p *provider) GetUserByID(ctx context.Context, id string) (*models.User, er
 		PositionalParameters: []interface{}{id},
 	})
 	if err != nil {
-		return user, err
+		return nil, err
 	}
 	err = q.One(&user)
 	if err != nil {
-		return user, err
+		return nil, err
 	}
 	return user, nil
 }
@@ -182,11 +194,11 @@ func (p *provider) GetUserByPhoneNumber(ctx context.Context, phoneNumber string)
 		PositionalParameters: []interface{}{phoneNumber},
 	})
 	if err != nil {
-		return user, err
+		return nil, err
 	}
 	err = q.One(&user)
 	if err != nil {
-		return user, err
+		return nil, err
 	}
 	return user, nil
 }

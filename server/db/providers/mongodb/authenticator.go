@@ -26,7 +26,7 @@ func (p *provider) AddAuthenticator(ctx context.Context, authenticators *models.
 	authenticatorsCollection := p.db.Collection(models.Collections.Authenticators, options.Collection())
 	_, err := authenticatorsCollection.InsertOne(ctx, authenticators)
 	if err != nil {
-		return authenticators, err
+		return nil, err
 	}
 	return authenticators, nil
 }
@@ -36,7 +36,7 @@ func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators *mode
 	authenticatorsCollection := p.db.Collection(models.Collections.Authenticators, options.Collection())
 	_, err := authenticatorsCollection.UpdateOne(ctx, bson.M{"_id": bson.M{"$eq": authenticators.ID}}, bson.M{"$set": authenticators})
 	if err != nil {
-		return authenticators, err
+		return nil, err
 	}
 	return authenticators, nil
 }
@@ -46,7 +46,7 @@ func (p *provider) GetAuthenticatorDetailsByUserId(ctx context.Context, userId s
 	authenticatorsCollection := p.db.Collection(models.Collections.Authenticators, options.Collection())
 	err := authenticatorsCollection.FindOne(ctx, bson.M{"user_id": userId, "method": authenticatorType}).Decode(&authenticators)
 	if err != nil {
-		return authenticators, err
+		return nil, err
 	}
 	return authenticators, nil
 }

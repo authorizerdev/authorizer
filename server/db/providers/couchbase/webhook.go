@@ -29,7 +29,7 @@ func (p *provider) AddWebhook(ctx context.Context, webhook *models.Webhook) (*mo
 	}
 	_, err := p.db.Collection(models.Collections.Webhook).Insert(webhook.ID, webhook, &insertOpt)
 	if err != nil {
-		return webhook.AsAPIWebhook(), err
+		return nil, err
 	}
 	return webhook.AsAPIWebhook(), nil
 }

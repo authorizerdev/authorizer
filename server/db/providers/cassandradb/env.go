@@ -20,7 +20,7 @@ func (p *provider) AddEnv(ctx context.Context, env *models.Env) (*models.Env, er
 	insertEnvQuery := fmt.Sprintf("INSERT INTO %s (id, env, hash, created_at, updated_at) VALUES ('%s', '%s', '%s', %d, %d)", KeySpace+"."+models.Collections.Env, env.ID, env.EnvData, env.Hash, env.CreatedAt, env.UpdatedAt)
 	err := p.db.Query(insertEnvQuery).Exec()
 	if err != nil {
-		return env, err
+		return nil, err
 	}
 
 	return env, nil
@@ -32,7 +32,7 @@ func (p *provider) UpdateEnv(ctx context.Context, env *models.Env) (*models.Env,
 	updateEnvQuery := fmt.Sprintf("UPDATE %s SET env = '%s', updated_at = %d WHERE id = '%s'", KeySpace+"."+models.Collections.Env, env.EnvData, env.UpdatedAt, env.ID)
 	err := p.db.Query(updateEnvQuery).Exec()
 	if err != nil {
-		return env, err
+		return nil, err
 	}
 	return env, nil
 }

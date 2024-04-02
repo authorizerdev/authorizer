@@ -65,6 +65,7 @@ export const EnvVariablesQuery = `
       DISABLE_MAGIC_LINK_LOGIN
       DISABLE_EMAIL_VERIFICATION
       DISABLE_BASIC_AUTHENTICATION
+      DISABLE_MOBILE_BASIC_AUTHENTICATION
       DISABLE_SIGN_UP
       DISABLE_STRONG_PASSWORD
       DISABLE_REDIS_FOR_ENV
@@ -97,6 +98,7 @@ export const UserDetailsQuery = `
         id
         email
         email_verified
+        phone_number_verified
         given_name
         family_name
         middle_name

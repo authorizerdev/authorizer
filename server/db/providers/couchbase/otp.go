@@ -50,7 +50,7 @@ func (p *provider) UpsertOTP(ctx context.Context, otpParam *models.OTP) (*models
 		}
 		_, err := p.db.Collection(models.Collections.OTP).Insert(otp.ID, otp, &insertOpt)
 		if err != nil {
-			return otp, err
+			return nil, err
 		}
 	} else {
 		query := fmt.Sprintf(`UPDATE %s.%s SET otp=$1, expires_at=$2, updated_at=$3 WHERE _id=$4`, p.scopeName, models.Collections.OTP)
@@ -58,7 +58,7 @@ func (p *provider) UpsertOTP(ctx context.Context, otpParam *models.OTP) (*models
 			PositionalParameters: []interface{}{otp.Otp, otp.ExpiresAt, otp.UpdatedAt, otp.ID},
 		})
 		if err != nil {
-			return otp, err
+			return nil, err
 		}
 	}
 	return otp, nil

@@ -2,12 +2,15 @@ package mongodb
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/authorizerdev/authorizer/server/constants"
 	"github.com/authorizerdev/authorizer/server/db/models"
 	"github.com/authorizerdev/authorizer/server/graph/model"
 	"github.com/authorizerdev/authorizer/server/memorystore"
+	"github.com/authorizerdev/authorizer/server/refs"
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
@@ -23,9 +26,18 @@ func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User
 	if user.Roles == "" {
 		defaultRoles, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDefaultRoles)
 		if err != nil {
-			return user, err
+			return nil, err
 		}
 		user.Roles = defaultRoles
+	}
+	if user.PhoneNumber != nil && strings.TrimSpace(refs.StringValue(user.PhoneNumber)) != "" {
+		if u, _ := p.GetUserByPhoneNumber(ctx, refs.StringValue(user.PhoneNumber)); u != nil && u.ID != user.ID {
+			return user, fmt.Errorf("user with given phone number already exists")
+		}
+	} else if user.Email != nil && strings.TrimSpace(refs.StringValue(user.Email)) != "" {
+		if u, _ := p.GetUserByEmail(ctx, refs.StringValue(user.Email)); u != nil && u.ID != user.ID {
+			return user, fmt.Errorf("user with given email already exists")
+		}
 	}
 	user.CreatedAt = time.Now().Unix()
 	user.UpdatedAt = time.Now().Unix()
@@ -33,7 +45,7 @@ func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User
 	userCollection := p.db.Collection(models.Collections.User, options.Collection())
 	_, err := userCollection.InsertOne(ctx, user)
 	if err != nil {
-		return user, err
+		return nil, err
 	}
 	return user, nil
 }
@@ -44,7 +56,7 @@ func (p *provider) UpdateUser(ctx context.Context, user *models.User) (*models.U
 	userCollection := p.db.Collection(models.Collections.User, options.Collection())
 	_, err := userCollection.UpdateOne(ctx, bson.M{"_id": bson.M{"$eq": user.ID}}, bson.M{"$set": user}, options.MergeUpdateOptions())
 	if err != nil {
-		return user, err
+		return nil, err
 	}
 	return user, nil
 }
@@ -103,7 +115,7 @@ func (p *provider) GetUserByEmail(ctx context.Context, email string) (*models.Us
 	userCollection := p.db.Collection(models.Collections.User, options.Collection())
 	err := userCollection.FindOne(ctx, bson.M{"email": email}).Decode(&user)
 	if err != nil {
-		return user, err
+		return nil, err
 	}
 	return user, nil
 }
@@ -114,7 +126,7 @@ func (p *provider) GetUserByID(ctx context.Context, id string) (*models.User, er
 	userCollection := p.db.Collection(models.Collections.User, options.Collection())
 	err := userCollection.FindOne(ctx, bson.M{"_id": id}).Decode(&user)
 	if err != nil {
-		return user, err
+		return nil, err
 	}
 	return user, nil
 }

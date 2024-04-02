@@ -127,7 +127,7 @@ func CreateBucketAndScope(cluster *gocb.Cluster, bucketName string, scopeName st
 	if scopeName != defaultScope {
 		err = bucket.Collections().CreateScope(scopeName, nil)
 		if err != nil && !errors.Is(err, gocb.ErrScopeExists) {
-			return bucket, err
+			return nil, err
 		}
 	}
 	return bucket, nil

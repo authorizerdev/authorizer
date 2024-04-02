@@ -24,7 +24,7 @@ func (p *provider) AddEnv(ctx context.Context, env *models.Env) (*models.Env, er
 	}
 	_, err := p.db.Collection(models.Collections.Env).Insert(env.ID, env, &insertOpt)
 	if err != nil {
-		return env, err
+		return nil, err
 	}
 	return env, nil
 }
@@ -40,7 +40,7 @@ func (p *provider) UpdateEnv(ctx context.Context, env *models.Env) (*models.Env,
 		PositionalParameters: []interface{}{env.EnvData, env.UpdatedAt, env.UpdatedAt, env.ID},
 	})
 	if err != nil {
-		return env, err
+		return nil, err
 	}
 	return env, nil
 }
@@ -55,11 +55,11 @@ func (p *provider) GetEnv(ctx context.Context) (*models.Env, error) {
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
 	})
 	if err != nil {
-		return env, err
+		return nil, err
 	}
 	err = q.One(&env)
 	if err != nil {
-		return env, err
+		return nil, err
 	}
 	env.Hash = env.EncryptionKey
 	return env, nil

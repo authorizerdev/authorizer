@@ -23,7 +23,7 @@ func (p *provider) AddVerificationRequest(ctx context.Context, verificationReque
 	query := fmt.Sprintf("INSERT INTO %s (id, jwt_token, identifier, expires_at, email, nonce, redirect_uri, created_at, updated_at) VALUES ('%s', '%s', '%s', %d, '%s', '%s', '%s', %d, %d)", KeySpace+"."+models.Collections.VerificationRequest, verificationRequest.ID, verificationRequest.Token, verificationRequest.Identifier, verificationRequest.ExpiresAt, verificationRequest.Email, verificationRequest.Nonce, verificationRequest.RedirectURI, verificationRequest.CreatedAt, verificationRequest.UpdatedAt)
 	err := p.db.Query(query).Exec()
 	if err != nil {
-		return verificationRequest, err
+		return nil, err
 	}
 	return verificationRequest, nil
 }
