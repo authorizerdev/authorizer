@@ -24,7 +24,7 @@ func (p *provider) AddAuthenticator(ctx context.Context, authenticators *models.
 	authenticators.UpdatedAt = time.Now().Unix()
 	err := collection.Put(authenticators).RunWithContext(ctx)
 	if err != nil {
-		return authenticators, err
+		return nil, err
 	}
 	return authenticators, nil
 }
@@ -35,7 +35,7 @@ func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators *mode
 		authenticators.UpdatedAt = time.Now().Unix()
 		err := UpdateByHashKey(collection, "id", authenticators.ID, authenticators)
 		if err != nil {
-			return authenticators, err
+			return nil, err
 		}
 	}
 	return authenticators, nil
@@ -51,7 +51,7 @@ func (p *provider) GetAuthenticatorDetailsByUserId(ctx context.Context, userId s
 	}
 	err := iter.Err()
 	if err != nil {
-		return authenticators, err
+		return nil, err
 	}
 	return authenticators, nil
 }

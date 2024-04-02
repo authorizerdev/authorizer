@@ -22,7 +22,7 @@ func (p *provider) AddVerificationRequest(ctx context.Context, verificationReque
 		verificationRequestCollection := p.db.Collection(models.Collections.VerificationRequest, options.Collection())
 		_, err := verificationRequestCollection.InsertOne(ctx, verificationRequest)
 		if err != nil {
-			return verificationRequest, err
+			return nil, err
 		}
 	}
 
@@ -36,7 +36,7 @@ func (p *provider) GetVerificationRequestByToken(ctx context.Context, token stri
 	verificationRequestCollection := p.db.Collection(models.Collections.VerificationRequest, options.Collection())
 	err := verificationRequestCollection.FindOne(ctx, bson.M{"token": token}).Decode(&verificationRequest)
 	if err != nil {
-		return verificationRequest, err
+		return nil, err
 	}
 
 	return verificationRequest, nil
@@ -49,7 +49,7 @@ func (p *provider) GetVerificationRequestByEmail(ctx context.Context, email stri
 	verificationRequestCollection := p.db.Collection(models.Collections.VerificationRequest, options.Collection())
 	err := verificationRequestCollection.FindOne(ctx, bson.M{"email": email, "identifier": identifier}).Decode(&verificationRequest)
 	if err != nil {
-		return verificationRequest, err
+		return nil, err
 	}
 
 	return verificationRequest, nil

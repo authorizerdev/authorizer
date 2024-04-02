@@ -26,7 +26,7 @@ func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User
 	if user.Roles == "" {
 		defaultRoles, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDefaultRoles)
 		if err != nil {
-			return user, err
+			return nil, err
 		}
 		user.Roles = defaultRoles
 	}
@@ -45,7 +45,7 @@ func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User
 	userCollection := p.db.Collection(models.Collections.User, options.Collection())
 	_, err := userCollection.InsertOne(ctx, user)
 	if err != nil {
-		return user, err
+		return nil, err
 	}
 	return user, nil
 }
@@ -56,7 +56,7 @@ func (p *provider) UpdateUser(ctx context.Context, user *models.User) (*models.U
 	userCollection := p.db.Collection(models.Collections.User, options.Collection())
 	_, err := userCollection.UpdateOne(ctx, bson.M{"_id": bson.M{"$eq": user.ID}}, bson.M{"$set": user}, options.MergeUpdateOptions())
 	if err != nil {
-		return user, err
+		return nil, err
 	}
 	return user, nil
 }
@@ -115,7 +115,7 @@ func (p *provider) GetUserByEmail(ctx context.Context, email string) (*models.Us
 	userCollection := p.db.Collection(models.Collections.User, options.Collection())
 	err := userCollection.FindOne(ctx, bson.M{"email": email}).Decode(&user)
 	if err != nil {
-		return user, err
+		return nil, err
 	}
 	return user, nil
 }
@@ -126,7 +126,7 @@ func (p *provider) GetUserByID(ctx context.Context, id string) (*models.User, er
 	userCollection := p.db.Collection(models.Collections.User, options.Collection())
 	err := userCollection.FindOne(ctx, bson.M{"_id": id}).Decode(&user)
 	if err != nil {
-		return user, err
+		return nil, err
 	}
 	return user, nil
 }

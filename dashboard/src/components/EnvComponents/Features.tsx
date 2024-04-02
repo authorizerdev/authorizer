@@ -53,13 +53,26 @@ const Features = ({ variables, setVariables }: any) => {
 				</Flex>
 				<Flex>
 					<Flex w="100%" justifyContent="start" alignItems="center">
-						<Text fontSize="sm">Basic Authentication:</Text>
+						<Text fontSize="sm">Email Basic Authentication:</Text>
 					</Flex>
 					<Flex justifyContent="start">
 						<InputField
 							variables={variables}
 							setVariables={setVariables}
 							inputType={SwitchInputType.DISABLE_BASIC_AUTHENTICATION}
+							hasReversedValue
+						/>
+					</Flex>
+				</Flex>
+				<Flex>
+					<Flex w="100%" justifyContent="start" alignItems="center">
+						<Text fontSize="sm">Mobile Basic Authentication:</Text>
+					</Flex>
+					<Flex justifyContent="start">
+						<InputField
+							variables={variables}
+							setVariables={setVariables}
+							inputType={SwitchInputType.DISABLE_MOBILE_BASIC_AUTHENTICATION}
 							hasReversedValue
 						/>
 					</Flex>

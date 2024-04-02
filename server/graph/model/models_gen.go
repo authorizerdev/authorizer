@@ -93,6 +93,7 @@ type Env struct {
 	ResetPasswordURL                 *string  `json:"RESET_PASSWORD_URL,omitempty"`
 	DisableEmailVerification         bool     `json:"DISABLE_EMAIL_VERIFICATION"`
 	DisableBasicAuthentication       bool     `json:"DISABLE_BASIC_AUTHENTICATION"`
+	DisableMobileBasicAuthentication bool     `json:"DISABLE_MOBILE_BASIC_AUTHENTICATION"`
 	DisableMagicLinkLogin            bool     `json:"DISABLE_MAGIC_LINK_LOGIN"`
 	DisableLoginPage                 bool     `json:"DISABLE_LOGIN_PAGE"`
 	DisableSignUp                    bool     `json:"DISABLE_SIGN_UP"`
@@ -373,6 +374,7 @@ type UpdateEnvInput struct {
 	AdminCookieSecure                *bool    `json:"ADMIN_COOKIE_SECURE,omitempty"`
 	DisableEmailVerification         *bool    `json:"DISABLE_EMAIL_VERIFICATION,omitempty"`
 	DisableBasicAuthentication       *bool    `json:"DISABLE_BASIC_AUTHENTICATION,omitempty"`
+	DisableMobileBasicAuthentication *bool    `json:"DISABLE_MOBILE_BASIC_AUTHENTICATION,omitempty"`
 	DisableMagicLinkLogin            *bool    `json:"DISABLE_MAGIC_LINK_LOGIN,omitempty"`
 	DisableLoginPage                 *bool    `json:"DISABLE_LOGIN_PAGE,omitempty"`
 	DisableSignUp                    *bool    `json:"DISABLE_SIGN_UP,omitempty"`

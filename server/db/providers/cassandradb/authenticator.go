@@ -29,7 +29,7 @@ func (p *provider) AddAuthenticator(ctx context.Context, authenticators *models.
 
 	bytes, err := json.Marshal(authenticators)
 	if err != nil {
-		return authenticators, err
+		return nil, err
 	}
 
 	// use decoder instead of json.Unmarshall, because it converts int64 -> float64 after unmarshalling
@@ -38,7 +38,7 @@ func (p *provider) AddAuthenticator(ctx context.Context, authenticators *models.
 	authenticatorsMap := map[string]interface{}{}
 	err = decoder.Decode(&authenticatorsMap)
 	if err != nil {
-		return authenticators, err
+		return nil, err
 	}
 
 	fields := "("
@@ -66,7 +66,7 @@ func (p *provider) AddAuthenticator(ctx context.Context, authenticators *models.
 	query := fmt.Sprintf("INSERT INTO %s %s VALUES %s IF NOT EXISTS", KeySpace+"."+models.Collections.Authenticators, fields, values)
 	err = p.db.Query(query).Exec()
 	if err != nil {
-		return authenticators, err
+		return nil, err
 	}
 
 	return authenticators, nil
@@ -77,7 +77,7 @@ func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators *mode
 
 	bytes, err := json.Marshal(authenticators)
 	if err != nil {
-		return authenticators, err
+		return nil, err
 	}
 	// use decoder instead of json.Unmarshall, because it converts int64 -> float64 after unmarshalling
 	decoder := json.NewDecoder(strings.NewReader(string(bytes)))
@@ -85,7 +85,7 @@ func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators *mode
 	authenticatorsMap := map[string]interface{}{}
 	err = decoder.Decode(&authenticatorsMap)
 	if err != nil {
-		return authenticators, err
+		return nil, err
 	}
 
 	updateFields := ""
@@ -116,7 +116,7 @@ func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators *mode
 	query := fmt.Sprintf("UPDATE %s SET %s WHERE id = '%s'", KeySpace+"."+models.Collections.Authenticators, updateFields, authenticators.ID)
 	err = p.db.Query(query).Exec()
 	if err != nil {
-		return authenticators, err
+		return nil, err
 	}
 
 	return authenticators, nil

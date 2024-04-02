@@ -617,7 +617,7 @@ func processAppleUserInfo(ctx context.Context, code string) (*models.User, error
 		}
 	}
 
-	return user, err
+	return nil, err
 }
 
 func processDiscordUserInfo(ctx context.Context, code string) (*models.User, error) {

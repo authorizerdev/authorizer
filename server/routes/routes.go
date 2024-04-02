@@ -16,6 +16,7 @@ func InitRouter(log *logrus.Logger) *gin.Engine {
 	router.Use(middlewares.Logger(log), gin.Recovery())
 	router.Use(middlewares.GinContextToContextMiddleware())
 	router.Use(middlewares.CORSMiddleware())
+	router.Use(middlewares.ClientCheckMiddleware())
 
 	router.GET("/", handlers.RootHandler())
 	router.GET("/health", handlers.HealthHandler())

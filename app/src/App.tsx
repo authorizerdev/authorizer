@@ -33,7 +33,6 @@ export default function App() {
 		...window['__authorizer__'],
 		...urlProps,
 	};
-	console.log({ globalState });
 	return (
 		<div
 			style={{

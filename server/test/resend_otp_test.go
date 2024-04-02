@@ -35,8 +35,11 @@ func resendOTPTest(t *testing.T, s TestSetup) {
 			Email:    refs.NewStringRef(email),
 			Password: s.TestInfo.Password,
 		})
-		assert.Error(t, err)
-		assert.Nil(t, loginRes)
+		// access token should be empty as email is not verified
+		assert.NoError(t, err)
+		assert.NotNil(t, loginRes)
+		assert.Nil(t, loginRes.AccessToken)
+		assert.NotEmpty(t, loginRes.Message)
 		verificationRequest, err := db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeBasicAuthSignup)
 		assert.Nil(t, err)
 		assert.Equal(t, email, verificationRequest.Email)
@@ -57,13 +60,6 @@ func resendOTPTest(t *testing.T, s TestSetup) {
 		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDisableMailOTPLogin, false)
 		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyDisableTOTPLogin, true)
 
-		// Resend otp should return error as no initial opt is being sent
-		resendOtpRes, err := resolvers.ResendOTPResolver(ctx, model.ResendOTPRequest{
-			Email: refs.NewStringRef(email),
-		})
-		assert.Error(t, err)
-		assert.Nil(t, resendOtpRes)
-
 		// Login should not return error but access token should be empty as otp should have been sent
 		loginRes, err = resolvers.LoginResolver(ctx, model.LoginInput{
 			Email:    refs.NewStringRef(email),
@@ -79,7 +75,7 @@ func resendOTPTest(t *testing.T, s TestSetup) {
 		assert.NotEmpty(t, otp.Otp)
 
 		// resend otp
-		resendOtpRes, err = resolvers.ResendOTPResolver(ctx, model.ResendOTPRequest{
+		resendOtpRes, err := resolvers.ResendOTPResolver(ctx, model.ResendOTPRequest{
 			Email: refs.NewStringRef(email),
 		})
 		assert.NoError(t, err)

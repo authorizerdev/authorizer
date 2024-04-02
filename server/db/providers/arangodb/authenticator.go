@@ -28,7 +28,7 @@ func (p *provider) AddAuthenticator(ctx context.Context, authenticators *models.
 	authenticatorsCollection, _ := p.db.Collection(ctx, models.Collections.Authenticators)
 	meta, err := authenticatorsCollection.CreateDocument(arangoDriver.WithOverwrite(ctx), authenticators)
 	if err != nil {
-		return authenticators, err
+		return nil, err
 	}
 	authenticators.Key = meta.Key
 	authenticators.ID = meta.ID.String()
@@ -42,7 +42,7 @@ func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators *mode
 	collection, _ := p.db.Collection(ctx, models.Collections.Authenticators)
 	meta, err := collection.UpdateDocument(ctx, authenticators.Key, authenticators)
 	if err != nil {
-		return authenticators, err
+		return nil, err
 	}
 
 	authenticators.Key = meta.Key
@@ -59,7 +59,7 @@ func (p *provider) GetAuthenticatorDetailsByUserId(ctx context.Context, userId s
 	}
 	cursor, err := p.db.Query(ctx, query, bindVars)
 	if err != nil {
-		return authenticators, err
+		return nil, err
 	}
 	defer cursor.Close()
 	for {
@@ -71,7 +71,7 @@ func (p *provider) GetAuthenticatorDetailsByUserId(ctx context.Context, userId s
 		}
 		_, err := cursor.ReadDocument(ctx, &authenticators)
 		if err != nil {
-			return authenticators, err
+			return nil, err
 		}
 	}
 	return authenticators, nil

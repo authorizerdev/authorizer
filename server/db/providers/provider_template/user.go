@@ -22,7 +22,7 @@ func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User
 	if user.Roles == "" {
 		defaultRoles, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDefaultRoles)
 		if err != nil {
-			return user, err
+			return nil, err
 		}
 		user.Roles = defaultRoles
 	}

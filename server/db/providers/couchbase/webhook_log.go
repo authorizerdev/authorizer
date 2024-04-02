@@ -25,7 +25,7 @@ func (p *provider) AddWebhookLog(ctx context.Context, webhookLog *models.Webhook
 	}
 	_, err := p.db.Collection(models.Collections.WebhookLog).Insert(webhookLog.ID, webhookLog, &insertOpt)
 	if err != nil {
-		return webhookLog.AsAPIWebhookLog(), err
+		return nil, err
 	}
 	return webhookLog.AsAPIWebhookLog(), nil
 }

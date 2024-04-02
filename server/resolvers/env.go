@@ -205,6 +205,7 @@ func EnvResolver(ctx context.Context) (*model.Env, error) {
 	// bool vars
 	res.DisableEmailVerification = store[constants.EnvKeyDisableEmailVerification].(bool)
 	res.DisableBasicAuthentication = store[constants.EnvKeyDisableBasicAuthentication].(bool)
+	res.DisableMobileBasicAuthentication = store[constants.EnvKeyDisableMobileBasicAuthentication].(bool)
 	res.DisableMagicLinkLogin = store[constants.EnvKeyDisableMagicLinkLogin].(bool)
 	res.DisableLoginPage = store[constants.EnvKeyDisableLoginPage].(bool)
 	res.DisableSignUp = store[constants.EnvKeyDisableSignUp].(bool)

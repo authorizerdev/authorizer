@@ -33,8 +33,12 @@ func mobileLoginTests(t *testing.T, s TestSetup) {
 			PhoneNumber: refs.NewStringRef(phoneNumber),
 			Password:    s.TestInfo.Password,
 		})
-		assert.NotNil(t, err, "should fail because phone is not verified")
-		assert.Nil(t, res)
+		// access token should be empty as email is not verified
+		assert.NoError(t, err)
+		assert.NotNil(t, res)
+		assert.Nil(t, res.AccessToken)
+		assert.NotEmpty(t, res.Message)
+		assert.True(t, *res.ShouldShowMobileOtpScreen)
 		smsRequest, err := db.Provider.GetOTPByPhoneNumber(ctx, phoneNumber)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, smsRequest.Otp)

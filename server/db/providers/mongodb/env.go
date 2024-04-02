@@ -22,7 +22,7 @@ func (p *provider) AddEnv(ctx context.Context, env *models.Env) (*models.Env, er
 	configCollection := p.db.Collection(models.Collections.Env, options.Collection())
 	_, err := configCollection.InsertOne(ctx, env)
 	if err != nil {
-		return env, err
+		return nil, err
 	}
 	return env, nil
 }
@@ -33,7 +33,7 @@ func (p *provider) UpdateEnv(ctx context.Context, env *models.Env) (*models.Env,
 	configCollection := p.db.Collection(models.Collections.Env, options.Collection())
 	_, err := configCollection.UpdateOne(ctx, bson.M{"_id": bson.M{"$eq": env.ID}}, bson.M{"$set": env}, options.MergeUpdateOptions())
 	if err != nil {
-		return env, err
+		return nil, err
 	}
 	return env, nil
 }
@@ -44,13 +44,13 @@ func (p *provider) GetEnv(ctx context.Context) (*models.Env, error) {
 	configCollection := p.db.Collection(models.Collections.Env, options.Collection())
 	cursor, err := configCollection.Find(ctx, bson.M{}, options.Find())
 	if err != nil {
-		return env, err
+		return nil, err
 	}
 	defer cursor.Close(ctx)
 	for cursor.Next(nil) {
 		err := cursor.Decode(&env)
 		if err != nil {
-			return env, err
+			return nil, err
 		}
 	}
 	if env == nil {

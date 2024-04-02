@@ -30,7 +30,7 @@ func (p *provider) AddAuthenticator(ctx context.Context, authenticators *models.
 	}
 	_, err := p.db.Collection(models.Collections.Authenticators).Insert(authenticators.ID, authenticators, &insertOpt)
 	if err != nil {
-		return authenticators, err
+		return nil, err
 	}
 	return authenticators, nil
 }
@@ -71,11 +71,11 @@ func (p *provider) GetAuthenticatorDetailsByUserId(ctx context.Context, userId s
 		PositionalParameters: []interface{}{userId, authenticatorType},
 	})
 	if err != nil {
-		return authenticators, err
+		return nil, err
 	}
 	err = q.One(&authenticators)
 	if err != nil {
-		return authenticators, err
+		return nil, err
 	}
 	return authenticators, nil
 }

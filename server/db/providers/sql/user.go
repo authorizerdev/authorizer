@@ -24,7 +24,7 @@ func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User
 	if user.Roles == "" {
 		defaultRoles, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDefaultRoles)
 		if err != nil {
-			return user, err
+			return nil, err
 		}
 		user.Roles = defaultRoles
 	}
@@ -112,7 +112,7 @@ func (p *provider) GetUserByEmail(ctx context.Context, email string) (*models.Us
 	var user *models.User
 	result := p.db.Where("email = ?", email).First(&user)
 	if result.Error != nil {
-		return user, result.Error
+		return nil, result.Error
 	}
 	return user, nil
 }
@@ -122,7 +122,7 @@ func (p *provider) GetUserByID(ctx context.Context, id string) (*models.User, er
 	var user *models.User
 	result := p.db.Where("id = ?", id).First(&user)
 	if result.Error != nil {
-		return user, result.Error
+		return nil, result.Error
 	}
 	return user, nil
 }

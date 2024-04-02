@@ -25,7 +25,7 @@ func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User
 	if user.Roles == "" {
 		defaultRoles, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDefaultRoles)
 		if err != nil {
-			return user, err
+			return nil, err
 		}
 		user.Roles = defaultRoles
 	}
@@ -47,7 +47,7 @@ func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User
 	}
 	_, err := p.db.Collection(models.Collections.User).Insert(user.ID, user, &insertOpt)
 	if err != nil {
-		return user, err
+		return nil, err
 	}
 	return user, nil
 }
@@ -60,7 +60,7 @@ func (p *provider) UpdateUser(ctx context.Context, user *models.User) (*models.U
 	}
 	_, err := p.db.Collection(models.Collections.User).Upsert(user.ID, user, &upsertOpt)
 	if err != nil {
-		return user, err
+		return nil, err
 	}
 	return user, nil
 }
@@ -122,11 +122,11 @@ func (p *provider) GetUserByEmail(ctx context.Context, email string) (*models.Us
 		PositionalParameters: []interface{}{email},
 	})
 	if err != nil {
-		return user, err
+		return nil, err
 	}
 	err = q.One(&user)
 	if err != nil {
-		return user, err
+		return nil, err
 	}
 	return user, nil
 }
@@ -141,11 +141,11 @@ func (p *provider) GetUserByID(ctx context.Context, id string) (*models.User, er
 		PositionalParameters: []interface{}{id},
 	})
 	if err != nil {
-		return user, err
+		return nil, err
 	}
 	err = q.One(&user)
 	if err != nil {
-		return user, err
+		return nil, err
 	}
 	return user, nil
 }
@@ -194,11 +194,11 @@ func (p *provider) GetUserByPhoneNumber(ctx context.Context, phoneNumber string)
 		PositionalParameters: []interface{}{phoneNumber},
 	})
 	if err != nil {
-		return user, err
+		return nil, err
 	}
 	err = q.One(&user)
 	if err != nil {
-		return user, err
+		return nil, err
 	}
 	return user, nil
 }

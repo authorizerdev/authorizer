@@ -21,7 +21,7 @@ func (p *provider) AddEnv(ctx context.Context, env *models.Env) (*models.Env, er
 	env.UpdatedAt = time.Now().Unix()
 	err := collection.Put(env).RunWithContext(ctx)
 	if err != nil {
-		return env, err
+		return nil, err
 	}
 	return env, nil
 }
@@ -32,7 +32,7 @@ func (p *provider) UpdateEnv(ctx context.Context, env *models.Env) (*models.Env,
 	env.UpdatedAt = time.Now().Unix()
 	err := UpdateByHashKey(collection, "id", env.ID, env)
 	if err != nil {
-		return env, err
+		return nil, err
 	}
 	return env, nil
 }
@@ -45,7 +45,7 @@ func (p *provider) GetEnv(ctx context.Context) (*models.Env, error) {
 	iter := collection.Scan().Limit(1).Iter()
 	for iter.NextWithContext(ctx, &env) {
 		if env == nil {
-			return env, errors.New("no documets found")
+			return nil, errors.New("no documets found")
 		} else {
 			return env, nil
 		}

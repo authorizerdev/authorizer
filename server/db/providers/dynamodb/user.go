@@ -26,7 +26,7 @@ func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User
 	if user.Roles == "" {
 		defaultRoles, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDefaultRoles)
 		if err != nil {
-			return user, err
+			return nil, err
 		}
 		user.Roles = defaultRoles
 	}
@@ -43,7 +43,7 @@ func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User
 	user.UpdatedAt = time.Now().Unix()
 	err := collection.Put(user).RunWithContext(ctx)
 	if err != nil {
-		return user, err
+		return nil, err
 	}
 	return user, nil
 }
@@ -55,7 +55,7 @@ func (p *provider) UpdateUser(ctx context.Context, user *models.User) (*models.U
 		user.UpdatedAt = time.Now().Unix()
 		err := UpdateByHashKey(collection, "id", user.ID, user)
 		if err != nil {
-			return user, err
+			return nil, err
 		}
 	}
 	return user, nil
@@ -126,7 +126,7 @@ func (p *provider) GetUserByEmail(ctx context.Context, email string) (*models.Us
 		user = users[0]
 		return user, nil
 	} else {
-		return user, errors.New("no record found")
+		return nil, errors.New("no record found")
 	}
 }
 
@@ -137,7 +137,7 @@ func (p *provider) GetUserByID(ctx context.Context, id string) (*models.User, er
 	err := collection.Get("id", id).OneWithContext(ctx, &user)
 	if err != nil {
 		if refs.StringValue(user.Email) == "" {
-			return user, errors.New("no documets found")
+			return nil, errors.New("no documets found")
 		} else {
 			return user, nil
 		}
