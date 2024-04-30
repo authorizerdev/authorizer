@@ -134,6 +134,8 @@ type ComplexityRoot struct {
 		ProtectedRoles                   func(childComplexity int) int
 		RedisURL                         func(childComplexity int) int
 		ResetPasswordURL                 func(childComplexity int) int
+		RobloxClientID                   func(childComplexity int) int
+		RobloxClientSecret               func(childComplexity int) int
 		Roles                            func(childComplexity int) int
 		SMTPHost                         func(childComplexity int) int
 		SMTPLocalName                    func(childComplexity int) int
@@ -184,6 +186,7 @@ type ComplexityRoot struct {
 		IsMobileBasicAuthenticationEnabled func(childComplexity int) int
 		IsMultiFactorAuthEnabled           func(childComplexity int) int
 		IsPhoneVerificationEnabled         func(childComplexity int) int
+		IsRobloxLoginEnabled               func(childComplexity int) int
 		IsSignUpEnabled                    func(childComplexity int) int
 		IsStrongPasswordEnabled            func(childComplexity int) int
 		IsTwitchLoginEnabled               func(childComplexity int) int
@@ -971,6 +974,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Env.ResetPasswordURL(childComplexity), true
 
+	case "Env.ROBLOX_CLIENT_ID":
+		if e.complexity.Env.RobloxClientID == nil {
+			break
+		}
+
+		return e.complexity.Env.RobloxClientID(childComplexity), true
+
+	case "Env.ROBLOX_CLIENT_SECRET":
+		if e.complexity.Env.RobloxClientSecret == nil {
+			break
+		}
+
+		return e.complexity.Env.RobloxClientSecret(childComplexity), true
+
 	case "Env.ROLES":
 		if e.complexity.Env.Roles == nil {
 			break
@@ -1215,6 +1232,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Meta.IsPhoneVerificationEnabled(childComplexity), true
+
+	case "Meta.is_roblox_login_enabled":
+		if e.complexity.Meta.IsRobloxLoginEnabled == nil {
+			break
+		}
+
+		return e.complexity.Meta.IsRobloxLoginEnabled(childComplexity), true
 
 	case "Meta.is_sign_up_enabled":
 		if e.complexity.Meta.IsSignUpEnabled == nil {
@@ -2417,6 +2441,7 @@ type Meta {
   is_twitter_login_enabled: Boolean!
   is_microsoft_login_enabled: Boolean!
   is_twitch_login_enabled: Boolean!
+  is_roblox_login_enabled: Boolean!
   is_email_verification_enabled: Boolean!
   is_basic_authentication_enabled: Boolean!
   is_magic_link_login_enabled: Boolean!
@@ -2582,6 +2607,8 @@ type Env {
   MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID: String
   TWITCH_CLIENT_ID: String
   TWITCH_CLIENT_SECRET: String
+  ROBLOX_CLIENT_ID: String
+  ROBLOX_CLIENT_SECRET: String
   ORGANIZATION_NAME: String
   ORGANIZATION_LOGO: String
   APP_COOKIE_SECURE: Boolean!
@@ -2714,6 +2741,8 @@ input UpdateEnvInput {
   MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID: String
   TWITCH_CLIENT_ID: String
   TWITCH_CLIENT_SECRET: String
+  ROBLOX_CLIENT_ID: String
+  ROBLOX_CLIENT_SECRET: String
   ORGANIZATION_NAME: String
   ORGANIZATION_LOGO: String
   DEFAULT_AUTHORIZE_RESPONSE_TYPE: String
@@ -7155,6 +7184,88 @@ func (ec *executionContext) fieldContext_Env_TWITCH_CLIENT_SECRET(ctx context.Co
 	return fc, nil
 }
 
+func (ec *executionContext) _Env_ROBLOX_CLIENT_ID(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Env_ROBLOX_CLIENT_ID(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.RobloxClientID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Env_ROBLOX_CLIENT_ID(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Env",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Env_ROBLOX_CLIENT_SECRET(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Env_ROBLOX_CLIENT_SECRET(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.RobloxClientSecret, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Env_ROBLOX_CLIENT_SECRET(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Env",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Env_ORGANIZATION_NAME(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Env_ORGANIZATION_NAME(ctx, field)
 	if err != nil {
@@ -8437,6 +8548,50 @@ func (ec *executionContext) _Meta_is_twitch_login_enabled(ctx context.Context, f
 }
 
 func (ec *executionContext) fieldContext_Meta_is_twitch_login_enabled(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Meta",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Meta_is_roblox_login_enabled(ctx context.Context, field graphql.CollectedField, obj *model.Meta) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Meta_is_roblox_login_enabled(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsRobloxLoginEnabled, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Meta_is_roblox_login_enabled(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Meta",
 		Field:      field,
@@ -11073,6 +11228,8 @@ func (ec *executionContext) fieldContext_Query_meta(ctx context.Context, field g
 				return ec.fieldContext_Meta_is_microsoft_login_enabled(ctx, field)
 			case "is_twitch_login_enabled":
 				return ec.fieldContext_Meta_is_twitch_login_enabled(ctx, field)
+			case "is_roblox_login_enabled":
+				return ec.fieldContext_Meta_is_roblox_login_enabled(ctx, field)
 			case "is_email_verification_enabled":
 				return ec.fieldContext_Meta_is_email_verification_enabled(ctx, field)
 			case "is_basic_authentication_enabled":
@@ -11811,6 +11968,10 @@ func (ec *executionContext) fieldContext_Query__env(ctx context.Context, field g
 				return ec.fieldContext_Env_TWITCH_CLIENT_ID(ctx, field)
 			case "TWITCH_CLIENT_SECRET":
 				return ec.fieldContext_Env_TWITCH_CLIENT_SECRET(ctx, field)
+			case "ROBLOX_CLIENT_ID":
+				return ec.fieldContext_Env_ROBLOX_CLIENT_ID(ctx, field)
+			case "ROBLOX_CLIENT_SECRET":
+				return ec.fieldContext_Env_ROBLOX_CLIENT_SECRET(ctx, field)
 			case "ORGANIZATION_NAME":
 				return ec.fieldContext_Env_ORGANIZATION_NAME(ctx, field)
 			case "ORGANIZATION_LOGO":
@@ -16924,8 +17085,6 @@ func (ec *executionContext) unmarshalInputAddEmailTemplateRequest(ctx context.Co
 		}
 		switch k {
 		case "event_name":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("event_name"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -16933,8 +17092,6 @@ func (ec *executionContext) unmarshalInputAddEmailTemplateRequest(ctx context.Co
 			}
 			it.EventName = data
 		case "subject":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("subject"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -16942,8 +17099,6 @@ func (ec *executionContext) unmarshalInputAddEmailTemplateRequest(ctx context.Co
 			}
 			it.Subject = data
 		case "template":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("template"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -16951,8 +17106,6 @@ func (ec *executionContext) unmarshalInputAddEmailTemplateRequest(ctx context.Co
 			}
 			it.Template = data
 		case "design":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("design"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -16980,8 +17133,6 @@ func (ec *executionContext) unmarshalInputAddWebhookRequest(ctx context.Context,
 		}
 		switch k {
 		case "event_name":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("event_name"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -16989,8 +17140,6 @@ func (ec *executionContext) unmarshalInputAddWebhookRequest(ctx context.Context,
 			}
 			it.EventName = data
 		case "event_description":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("event_description"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -16998,8 +17147,6 @@ func (ec *executionContext) unmarshalInputAddWebhookRequest(ctx context.Context,
 			}
 			it.EventDescription = data
 		case "endpoint":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("endpoint"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -17007,8 +17154,6 @@ func (ec *executionContext) unmarshalInputAddWebhookRequest(ctx context.Context,
 			}
 			it.Endpoint = data
 		case "enabled":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("enabled"))
 			data, err := ec.unmarshalNBoolean2bool(ctx, v)
 			if err != nil {
@@ -17016,8 +17161,6 @@ func (ec *executionContext) unmarshalInputAddWebhookRequest(ctx context.Context,
 			}
 			it.Enabled = data
 		case "headers":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("headers"))
 			data, err := ec.unmarshalOMap2map(ctx, v)
 			if err != nil {
@@ -17045,8 +17188,6 @@ func (ec *executionContext) unmarshalInputAdminLoginInput(ctx context.Context, o
 		}
 		switch k {
 		case "admin_secret":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("admin_secret"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -17074,8 +17215,6 @@ func (ec *executionContext) unmarshalInputAdminSignupInput(ctx context.Context, 
 		}
 		switch k {
 		case "admin_secret":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("admin_secret"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -17103,8 +17242,6 @@ func (ec *executionContext) unmarshalInputDeleteEmailTemplateRequest(ctx context
 		}
 		switch k {
 		case "id":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
 			data, err := ec.unmarshalNID2string(ctx, v)
 			if err != nil {
@@ -17132,8 +17269,6 @@ func (ec *executionContext) unmarshalInputDeleteUserInput(ctx context.Context, o
 		}
 		switch k {
 		case "email":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -17161,8 +17296,6 @@ func (ec *executionContext) unmarshalInputForgotPasswordInput(ctx context.Contex
 		}
 		switch k {
 		case "email":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -17170,8 +17303,6 @@ func (ec *executionContext) unmarshalInputForgotPasswordInput(ctx context.Contex
 			}
 			it.Email = data
 		case "phone_number":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phone_number"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -17179,8 +17310,6 @@ func (ec *executionContext) unmarshalInputForgotPasswordInput(ctx context.Contex
 			}
 			it.PhoneNumber = data
 		case "state":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -17188,8 +17317,6 @@ func (ec *executionContext) unmarshalInputForgotPasswordInput(ctx context.Contex
 			}
 			it.State = data
 		case "redirect_uri":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("redirect_uri"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -17217,8 +17344,6 @@ func (ec *executionContext) unmarshalInputGenerateJWTKeysInput(ctx context.Conte
 		}
 		switch k {
 		case "type":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("type"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -17246,8 +17371,6 @@ func (ec *executionContext) unmarshalInputGetUserRequest(ctx context.Context, ob
 		}
 		switch k {
 		case "id":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -17255,8 +17378,6 @@ func (ec *executionContext) unmarshalInputGetUserRequest(ctx context.Context, ob
 			}
 			it.ID = data
 		case "email":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -17284,8 +17405,6 @@ func (ec *executionContext) unmarshalInputInviteMemberInput(ctx context.Context,
 		}
 		switch k {
 		case "emails":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("emails"))
 			data, err := ec.unmarshalNString2ᚕstringᚄ(ctx, v)
 			if err != nil {
@@ -17293,8 +17412,6 @@ func (ec *executionContext) unmarshalInputInviteMemberInput(ctx context.Context,
 			}
 			it.Emails = data
 		case "redirect_uri":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("redirect_uri"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -17322,8 +17439,6 @@ func (ec *executionContext) unmarshalInputListWebhookLogRequest(ctx context.Cont
 		}
 		switch k {
 		case "pagination":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pagination"))
 			data, err := ec.unmarshalOPaginationInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐPaginationInput(ctx, v)
 			if err != nil {
@@ -17331,8 +17446,6 @@ func (ec *executionContext) unmarshalInputListWebhookLogRequest(ctx context.Cont
 			}
 			it.Pagination = data
 		case "webhook_id":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("webhook_id"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -17360,8 +17473,6 @@ func (ec *executionContext) unmarshalInputLoginInput(ctx context.Context, obj in
 		}
 		switch k {
 		case "email":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -17369,8 +17480,6 @@ func (ec *executionContext) unmarshalInputLoginInput(ctx context.Context, obj in
 			}
 			it.Email = data
 		case "phone_number":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phone_number"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -17378,8 +17487,6 @@ func (ec *executionContext) unmarshalInputLoginInput(ctx context.Context, obj in
 			}
 			it.PhoneNumber = data
 		case "password":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("password"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -17387,8 +17494,6 @@ func (ec *executionContext) unmarshalInputLoginInput(ctx context.Context, obj in
 			}
 			it.Password = data
 		case "roles":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("roles"))
 			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
@@ -17396,8 +17501,6 @@ func (ec *executionContext) unmarshalInputLoginInput(ctx context.Context, obj in
 			}
 			it.Roles = data
 		case "scope":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("scope"))
 			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
@@ -17405,8 +17508,6 @@ func (ec *executionContext) unmarshalInputLoginInput(ctx context.Context, obj in
 			}
 			it.Scope = data
 		case "state":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -17434,8 +17535,6 @@ func (ec *executionContext) unmarshalInputMagicLinkLoginInput(ctx context.Contex
 		}
 		switch k {
 		case "email":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -17443,8 +17542,6 @@ func (ec *executionContext) unmarshalInputMagicLinkLoginInput(ctx context.Contex
 			}
 			it.Email = data
 		case "roles":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("roles"))
 			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
@@ -17452,8 +17549,6 @@ func (ec *executionContext) unmarshalInputMagicLinkLoginInput(ctx context.Contex
 			}
 			it.Roles = data
 		case "scope":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("scope"))
 			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
@@ -17461,8 +17556,6 @@ func (ec *executionContext) unmarshalInputMagicLinkLoginInput(ctx context.Contex
 			}
 			it.Scope = data
 		case "state":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -17470,8 +17563,6 @@ func (ec *executionContext) unmarshalInputMagicLinkLoginInput(ctx context.Contex
 			}
 			it.State = data
 		case "redirect_uri":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("redirect_uri"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -17499,8 +17590,6 @@ func (ec *executionContext) unmarshalInputMobileLoginInput(ctx context.Context, 
 		}
 		switch k {
 		case "phone_number":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phone_number"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -17508,8 +17597,6 @@ func (ec *executionContext) unmarshalInputMobileLoginInput(ctx context.Context, 
 			}
 			it.PhoneNumber = data
 		case "password":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("password"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -17517,8 +17604,6 @@ func (ec *executionContext) unmarshalInputMobileLoginInput(ctx context.Context, 
 			}
 			it.Password = data
 		case "roles":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("roles"))
 			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
@@ -17526,8 +17611,6 @@ func (ec *executionContext) unmarshalInputMobileLoginInput(ctx context.Context, 
 			}
 			it.Roles = data
 		case "scope":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("scope"))
 			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
@@ -17535,8 +17618,6 @@ func (ec *executionContext) unmarshalInputMobileLoginInput(ctx context.Context, 
 			}
 			it.Scope = data
 		case "state":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -17564,8 +17645,6 @@ func (ec *executionContext) unmarshalInputMobileSignUpInput(ctx context.Context,
 		}
 		switch k {
 		case "email":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -17573,8 +17652,6 @@ func (ec *executionContext) unmarshalInputMobileSignUpInput(ctx context.Context,
 			}
 			it.Email = data
 		case "given_name":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("given_name"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -17582,8 +17659,6 @@ func (ec *executionContext) unmarshalInputMobileSignUpInput(ctx context.Context,
 			}
 			it.GivenName = data
 		case "family_name":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("family_name"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -17591,8 +17666,6 @@ func (ec *executionContext) unmarshalInputMobileSignUpInput(ctx context.Context,
 			}
 			it.FamilyName = data
 		case "middle_name":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("middle_name"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -17600,8 +17673,6 @@ func (ec *executionContext) unmarshalInputMobileSignUpInput(ctx context.Context,
 			}
 			it.MiddleName = data
 		case "nickname":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("nickname"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -17609,8 +17680,6 @@ func (ec *executionContext) unmarshalInputMobileSignUpInput(ctx context.Context,
 			}
 			it.Nickname = data
 		case "gender":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("gender"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -17618,8 +17687,6 @@ func (ec *executionContext) unmarshalInputMobileSignUpInput(ctx context.Context,
 			}
 			it.Gender = data
 		case "birthdate":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("birthdate"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -17627,8 +17694,6 @@ func (ec *executionContext) unmarshalInputMobileSignUpInput(ctx context.Context,
 			}
 			it.Birthdate = data
 		case "phone_number":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phone_number"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -17636,8 +17701,6 @@ func (ec *executionContext) unmarshalInputMobileSignUpInput(ctx context.Context,
 			}
 			it.PhoneNumber = data
 		case "picture":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("picture"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -17645,8 +17708,6 @@ func (ec *executionContext) unmarshalInputMobileSignUpInput(ctx context.Context,
 			}
 			it.Picture = data
 		case "password":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("password"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -17654,8 +17715,6 @@ func (ec *executionContext) unmarshalInputMobileSignUpInput(ctx context.Context,
 			}
 			it.Password = data
 		case "confirm_password":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("confirm_password"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -17663,8 +17722,6 @@ func (ec *executionContext) unmarshalInputMobileSignUpInput(ctx context.Context,
 			}
 			it.ConfirmPassword = data
 		case "roles":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("roles"))
 			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
@@ -17672,8 +17729,6 @@ func (ec *executionContext) unmarshalInputMobileSignUpInput(ctx context.Context,
 			}
 			it.Roles = data
 		case "scope":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("scope"))
 			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
@@ -17681,8 +17736,6 @@ func (ec *executionContext) unmarshalInputMobileSignUpInput(ctx context.Context,
 			}
 			it.Scope = data
 		case "redirect_uri":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("redirect_uri"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -17690,8 +17743,6 @@ func (ec *executionContext) unmarshalInputMobileSignUpInput(ctx context.Context,
 			}
 			it.RedirectURI = data
 		case "is_multi_factor_auth_enabled":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("is_multi_factor_auth_enabled"))
 			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
 			if err != nil {
@@ -17699,8 +17750,6 @@ func (ec *executionContext) unmarshalInputMobileSignUpInput(ctx context.Context,
 			}
 			it.IsMultiFactorAuthEnabled = data
 		case "state":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -17708,8 +17757,6 @@ func (ec *executionContext) unmarshalInputMobileSignUpInput(ctx context.Context,
 			}
 			it.State = data
 		case "app_data":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("app_data"))
 			data, err := ec.unmarshalOMap2map(ctx, v)
 			if err != nil {
@@ -17737,8 +17784,6 @@ func (ec *executionContext) unmarshalInputOAuthRevokeInput(ctx context.Context, 
 		}
 		switch k {
 		case "refresh_token":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("refresh_token"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -17766,8 +17811,6 @@ func (ec *executionContext) unmarshalInputPaginatedInput(ctx context.Context, ob
 		}
 		switch k {
 		case "pagination":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pagination"))
 			data, err := ec.unmarshalOPaginationInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐPaginationInput(ctx, v)
 			if err != nil {
@@ -17795,8 +17838,6 @@ func (ec *executionContext) unmarshalInputPaginationInput(ctx context.Context, o
 		}
 		switch k {
 		case "limit":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
 			data, err := ec.unmarshalOInt642ᚖint64(ctx, v)
 			if err != nil {
@@ -17804,8 +17845,6 @@ func (ec *executionContext) unmarshalInputPaginationInput(ctx context.Context, o
 			}
 			it.Limit = data
 		case "page":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("page"))
 			data, err := ec.unmarshalOInt642ᚖint64(ctx, v)
 			if err != nil {
@@ -17833,8 +17872,6 @@ func (ec *executionContext) unmarshalInputResendOTPRequest(ctx context.Context, 
 		}
 		switch k {
 		case "email":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -17842,8 +17879,6 @@ func (ec *executionContext) unmarshalInputResendOTPRequest(ctx context.Context, 
 			}
 			it.Email = data
 		case "phone_number":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phone_number"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -17851,8 +17886,6 @@ func (ec *executionContext) unmarshalInputResendOTPRequest(ctx context.Context, 
 			}
 			it.PhoneNumber = data
 		case "state":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -17880,8 +17913,6 @@ func (ec *executionContext) unmarshalInputResendVerifyEmailInput(ctx context.Con
 		}
 		switch k {
 		case "email":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -17889,8 +17920,6 @@ func (ec *executionContext) unmarshalInputResendVerifyEmailInput(ctx context.Con
 			}
 			it.Email = data
 		case "identifier":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("identifier"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -17898,8 +17927,6 @@ func (ec *executionContext) unmarshalInputResendVerifyEmailInput(ctx context.Con
 			}
 			it.Identifier = data
 		case "state":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -17927,8 +17954,6 @@ func (ec *executionContext) unmarshalInputResetPasswordInput(ctx context.Context
 		}
 		switch k {
 		case "token":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("token"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -17936,8 +17961,6 @@ func (ec *executionContext) unmarshalInputResetPasswordInput(ctx context.Context
 			}
 			it.Token = data
 		case "otp":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("otp"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -17945,8 +17968,6 @@ func (ec *executionContext) unmarshalInputResetPasswordInput(ctx context.Context
 			}
 			it.Otp = data
 		case "phone_number":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phone_number"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -17954,8 +17975,6 @@ func (ec *executionContext) unmarshalInputResetPasswordInput(ctx context.Context
 			}
 			it.PhoneNumber = data
 		case "password":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("password"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -17963,8 +17982,6 @@ func (ec *executionContext) unmarshalInputResetPasswordInput(ctx context.Context
 			}
 			it.Password = data
 		case "confirm_password":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("confirm_password"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -17992,8 +18009,6 @@ func (ec *executionContext) unmarshalInputSessionQueryInput(ctx context.Context,
 		}
 		switch k {
 		case "roles":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("roles"))
 			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
@@ -18001,8 +18016,6 @@ func (ec *executionContext) unmarshalInputSessionQueryInput(ctx context.Context,
 			}
 			it.Roles = data
 		case "scope":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("scope"))
 			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
@@ -18030,8 +18043,6 @@ func (ec *executionContext) unmarshalInputSignUpInput(ctx context.Context, obj i
 		}
 		switch k {
 		case "email":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18039,8 +18050,6 @@ func (ec *executionContext) unmarshalInputSignUpInput(ctx context.Context, obj i
 			}
 			it.Email = data
 		case "given_name":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("given_name"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18048,8 +18057,6 @@ func (ec *executionContext) unmarshalInputSignUpInput(ctx context.Context, obj i
 			}
 			it.GivenName = data
 		case "family_name":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("family_name"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18057,8 +18064,6 @@ func (ec *executionContext) unmarshalInputSignUpInput(ctx context.Context, obj i
 			}
 			it.FamilyName = data
 		case "middle_name":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("middle_name"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18066,8 +18071,6 @@ func (ec *executionContext) unmarshalInputSignUpInput(ctx context.Context, obj i
 			}
 			it.MiddleName = data
 		case "nickname":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("nickname"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18075,8 +18078,6 @@ func (ec *executionContext) unmarshalInputSignUpInput(ctx context.Context, obj i
 			}
 			it.Nickname = data
 		case "gender":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("gender"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18084,8 +18085,6 @@ func (ec *executionContext) unmarshalInputSignUpInput(ctx context.Context, obj i
 			}
 			it.Gender = data
 		case "birthdate":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("birthdate"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18093,8 +18092,6 @@ func (ec *executionContext) unmarshalInputSignUpInput(ctx context.Context, obj i
 			}
 			it.Birthdate = data
 		case "phone_number":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phone_number"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18102,8 +18099,6 @@ func (ec *executionContext) unmarshalInputSignUpInput(ctx context.Context, obj i
 			}
 			it.PhoneNumber = data
 		case "picture":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("picture"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18111,8 +18106,6 @@ func (ec *executionContext) unmarshalInputSignUpInput(ctx context.Context, obj i
 			}
 			it.Picture = data
 		case "password":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("password"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -18120,8 +18113,6 @@ func (ec *executionContext) unmarshalInputSignUpInput(ctx context.Context, obj i
 			}
 			it.Password = data
 		case "confirm_password":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("confirm_password"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -18129,8 +18120,6 @@ func (ec *executionContext) unmarshalInputSignUpInput(ctx context.Context, obj i
 			}
 			it.ConfirmPassword = data
 		case "roles":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("roles"))
 			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
@@ -18138,8 +18127,6 @@ func (ec *executionContext) unmarshalInputSignUpInput(ctx context.Context, obj i
 			}
 			it.Roles = data
 		case "scope":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("scope"))
 			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
@@ -18147,8 +18134,6 @@ func (ec *executionContext) unmarshalInputSignUpInput(ctx context.Context, obj i
 			}
 			it.Scope = data
 		case "redirect_uri":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("redirect_uri"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18156,8 +18141,6 @@ func (ec *executionContext) unmarshalInputSignUpInput(ctx context.Context, obj i
 			}
 			it.RedirectURI = data
 		case "is_multi_factor_auth_enabled":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("is_multi_factor_auth_enabled"))
 			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
 			if err != nil {
@@ -18165,8 +18148,6 @@ func (ec *executionContext) unmarshalInputSignUpInput(ctx context.Context, obj i
 			}
 			it.IsMultiFactorAuthEnabled = data
 		case "state":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18174,8 +18155,6 @@ func (ec *executionContext) unmarshalInputSignUpInput(ctx context.Context, obj i
 			}
 			it.State = data
 		case "app_data":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("app_data"))
 			data, err := ec.unmarshalOMap2map(ctx, v)
 			if err != nil {
@@ -18203,8 +18182,6 @@ func (ec *executionContext) unmarshalInputTestEndpointRequest(ctx context.Contex
 		}
 		switch k {
 		case "endpoint":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("endpoint"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -18212,8 +18189,6 @@ func (ec *executionContext) unmarshalInputTestEndpointRequest(ctx context.Contex
 			}
 			it.Endpoint = data
 		case "event_name":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("event_name"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -18221,8 +18196,6 @@ func (ec *executionContext) unmarshalInputTestEndpointRequest(ctx context.Contex
 			}
 			it.EventName = data
 		case "event_description":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("event_description"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18230,8 +18203,6 @@ func (ec *executionContext) unmarshalInputTestEndpointRequest(ctx context.Contex
 			}
 			it.EventDescription = data
 		case "headers":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("headers"))
 			data, err := ec.unmarshalOMap2map(ctx, v)
 			if err != nil {
@@ -18259,8 +18230,6 @@ func (ec *executionContext) unmarshalInputUpdateAccessInput(ctx context.Context,
 		}
 		switch k {
 		case "user_id":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("user_id"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -18288,8 +18257,6 @@ func (ec *executionContext) unmarshalInputUpdateEmailTemplateRequest(ctx context
 		}
 		switch k {
 		case "id":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
 			data, err := ec.unmarshalNID2string(ctx, v)
 			if err != nil {
@@ -18297,8 +18264,6 @@ func (ec *executionContext) unmarshalInputUpdateEmailTemplateRequest(ctx context
 			}
 			it.ID = data
 		case "event_name":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("event_name"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18306,8 +18271,6 @@ func (ec *executionContext) unmarshalInputUpdateEmailTemplateRequest(ctx context
 			}
 			it.EventName = data
 		case "template":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("template"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18315,8 +18278,6 @@ func (ec *executionContext) unmarshalInputUpdateEmailTemplateRequest(ctx context
 			}
 			it.Template = data
 		case "subject":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("subject"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18324,8 +18285,6 @@ func (ec *executionContext) unmarshalInputUpdateEmailTemplateRequest(ctx context
 			}
 			it.Subject = data
 		case "design":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("design"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18345,7 +18304,7 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"ACCESS_TOKEN_EXPIRY_TIME", "ADMIN_SECRET", "CUSTOM_ACCESS_TOKEN_SCRIPT", "OLD_ADMIN_SECRET", "SMTP_HOST", "SMTP_PORT", "SMTP_USERNAME", "SMTP_PASSWORD", "SMTP_LOCAL_NAME", "SENDER_EMAIL", "SENDER_NAME", "JWT_TYPE", "JWT_SECRET", "JWT_PRIVATE_KEY", "JWT_PUBLIC_KEY", "ALLOWED_ORIGINS", "APP_URL", "RESET_PASSWORD_URL", "APP_COOKIE_SECURE", "ADMIN_COOKIE_SECURE", "DISABLE_EMAIL_VERIFICATION", "DISABLE_BASIC_AUTHENTICATION", "DISABLE_MOBILE_BASIC_AUTHENTICATION", "DISABLE_MAGIC_LINK_LOGIN", "DISABLE_LOGIN_PAGE", "DISABLE_SIGN_UP", "DISABLE_REDIS_FOR_ENV", "DISABLE_STRONG_PASSWORD", "DISABLE_MULTI_FACTOR_AUTHENTICATION", "ENFORCE_MULTI_FACTOR_AUTHENTICATION", "ROLES", "PROTECTED_ROLES", "DEFAULT_ROLES", "JWT_ROLE_CLAIM", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET", "FACEBOOK_CLIENT_ID", "FACEBOOK_CLIENT_SECRET", "LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET", "APPLE_CLIENT_ID", "APPLE_CLIENT_SECRET", "DISCORD_CLIENT_ID", "DISCORD_CLIENT_SECRET", "TWITTER_CLIENT_ID", "TWITTER_CLIENT_SECRET", "MICROSOFT_CLIENT_ID", "MICROSOFT_CLIENT_SECRET", "MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID", "TWITCH_CLIENT_ID", "TWITCH_CLIENT_SECRET", "ORGANIZATION_NAME", "ORGANIZATION_LOGO", "DEFAULT_AUTHORIZE_RESPONSE_TYPE", "DEFAULT_AUTHORIZE_RESPONSE_MODE", "DISABLE_PLAYGROUND", "DISABLE_MAIL_OTP_LOGIN", "DISABLE_TOTP_LOGIN"}
+	fieldsInOrder := [...]string{"ACCESS_TOKEN_EXPIRY_TIME", "ADMIN_SECRET", "CUSTOM_ACCESS_TOKEN_SCRIPT", "OLD_ADMIN_SECRET", "SMTP_HOST", "SMTP_PORT", "SMTP_USERNAME", "SMTP_PASSWORD", "SMTP_LOCAL_NAME", "SENDER_EMAIL", "SENDER_NAME", "JWT_TYPE", "JWT_SECRET", "JWT_PRIVATE_KEY", "JWT_PUBLIC_KEY", "ALLOWED_ORIGINS", "APP_URL", "RESET_PASSWORD_URL", "APP_COOKIE_SECURE", "ADMIN_COOKIE_SECURE", "DISABLE_EMAIL_VERIFICATION", "DISABLE_BASIC_AUTHENTICATION", "DISABLE_MOBILE_BASIC_AUTHENTICATION", "DISABLE_MAGIC_LINK_LOGIN", "DISABLE_LOGIN_PAGE", "DISABLE_SIGN_UP", "DISABLE_REDIS_FOR_ENV", "DISABLE_STRONG_PASSWORD", "DISABLE_MULTI_FACTOR_AUTHENTICATION", "ENFORCE_MULTI_FACTOR_AUTHENTICATION", "ROLES", "PROTECTED_ROLES", "DEFAULT_ROLES", "JWT_ROLE_CLAIM", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET", "FACEBOOK_CLIENT_ID", "FACEBOOK_CLIENT_SECRET", "LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET", "APPLE_CLIENT_ID", "APPLE_CLIENT_SECRET", "DISCORD_CLIENT_ID", "DISCORD_CLIENT_SECRET", "TWITTER_CLIENT_ID", "TWITTER_CLIENT_SECRET", "MICROSOFT_CLIENT_ID", "MICROSOFT_CLIENT_SECRET", "MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID", "TWITCH_CLIENT_ID", "TWITCH_CLIENT_SECRET", "ROBLOX_CLIENT_ID", "ROBLOX_CLIENT_SECRET", "ORGANIZATION_NAME", "ORGANIZATION_LOGO", "DEFAULT_AUTHORIZE_RESPONSE_TYPE", "DEFAULT_AUTHORIZE_RESPONSE_MODE", "DISABLE_PLAYGROUND", "DISABLE_MAIL_OTP_LOGIN", "DISABLE_TOTP_LOGIN"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -18353,8 +18312,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 		}
 		switch k {
 		case "ACCESS_TOKEN_EXPIRY_TIME":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ACCESS_TOKEN_EXPIRY_TIME"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18362,8 +18319,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.AccessTokenExpiryTime = data
 		case "ADMIN_SECRET":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ADMIN_SECRET"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18371,8 +18326,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.AdminSecret = data
 		case "CUSTOM_ACCESS_TOKEN_SCRIPT":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("CUSTOM_ACCESS_TOKEN_SCRIPT"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18380,8 +18333,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.CustomAccessTokenScript = data
 		case "OLD_ADMIN_SECRET":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("OLD_ADMIN_SECRET"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18389,8 +18340,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.OldAdminSecret = data
 		case "SMTP_HOST":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("SMTP_HOST"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18398,8 +18347,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.SMTPHost = data
 		case "SMTP_PORT":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("SMTP_PORT"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18407,8 +18354,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.SMTPPort = data
 		case "SMTP_USERNAME":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("SMTP_USERNAME"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18416,8 +18361,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.SMTPUsername = data
 		case "SMTP_PASSWORD":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("SMTP_PASSWORD"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18425,8 +18368,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.SMTPPassword = data
 		case "SMTP_LOCAL_NAME":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("SMTP_LOCAL_NAME"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18434,8 +18375,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.SMTPLocalName = data
 		case "SENDER_EMAIL":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("SENDER_EMAIL"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18443,8 +18382,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.SenderEmail = data
 		case "SENDER_NAME":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("SENDER_NAME"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18452,8 +18389,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.SenderName = data
 		case "JWT_TYPE":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("JWT_TYPE"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18461,8 +18396,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.JwtType = data
 		case "JWT_SECRET":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("JWT_SECRET"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18470,8 +18403,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.JwtSecret = data
 		case "JWT_PRIVATE_KEY":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("JWT_PRIVATE_KEY"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18479,8 +18410,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.JwtPrivateKey = data
 		case "JWT_PUBLIC_KEY":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("JWT_PUBLIC_KEY"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18488,8 +18417,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.JwtPublicKey = data
 		case "ALLOWED_ORIGINS":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ALLOWED_ORIGINS"))
 			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
@@ -18497,8 +18424,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.AllowedOrigins = data
 		case "APP_URL":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("APP_URL"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18506,8 +18431,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.AppURL = data
 		case "RESET_PASSWORD_URL":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("RESET_PASSWORD_URL"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18515,8 +18438,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.ResetPasswordURL = data
 		case "APP_COOKIE_SECURE":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("APP_COOKIE_SECURE"))
 			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
 			if err != nil {
@@ -18524,8 +18445,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.AppCookieSecure = data
 		case "ADMIN_COOKIE_SECURE":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ADMIN_COOKIE_SECURE"))
 			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
 			if err != nil {
@@ -18533,8 +18452,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.AdminCookieSecure = data
 		case "DISABLE_EMAIL_VERIFICATION":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("DISABLE_EMAIL_VERIFICATION"))
 			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
 			if err != nil {
@@ -18542,8 +18459,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.DisableEmailVerification = data
 		case "DISABLE_BASIC_AUTHENTICATION":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("DISABLE_BASIC_AUTHENTICATION"))
 			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
 			if err != nil {
@@ -18551,8 +18466,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.DisableBasicAuthentication = data
 		case "DISABLE_MOBILE_BASIC_AUTHENTICATION":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("DISABLE_MOBILE_BASIC_AUTHENTICATION"))
 			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
 			if err != nil {
@@ -18560,8 +18473,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.DisableMobileBasicAuthentication = data
 		case "DISABLE_MAGIC_LINK_LOGIN":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("DISABLE_MAGIC_LINK_LOGIN"))
 			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
 			if err != nil {
@@ -18569,8 +18480,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.DisableMagicLinkLogin = data
 		case "DISABLE_LOGIN_PAGE":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("DISABLE_LOGIN_PAGE"))
 			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
 			if err != nil {
@@ -18578,8 +18487,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.DisableLoginPage = data
 		case "DISABLE_SIGN_UP":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("DISABLE_SIGN_UP"))
 			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
 			if err != nil {
@@ -18587,8 +18494,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.DisableSignUp = data
 		case "DISABLE_REDIS_FOR_ENV":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("DISABLE_REDIS_FOR_ENV"))
 			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
 			if err != nil {
@@ -18596,8 +18501,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.DisableRedisForEnv = data
 		case "DISABLE_STRONG_PASSWORD":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("DISABLE_STRONG_PASSWORD"))
 			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
 			if err != nil {
@@ -18605,8 +18508,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.DisableStrongPassword = data
 		case "DISABLE_MULTI_FACTOR_AUTHENTICATION":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("DISABLE_MULTI_FACTOR_AUTHENTICATION"))
 			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
 			if err != nil {
@@ -18614,8 +18515,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.DisableMultiFactorAuthentication = data
 		case "ENFORCE_MULTI_FACTOR_AUTHENTICATION":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ENFORCE_MULTI_FACTOR_AUTHENTICATION"))
 			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
 			if err != nil {
@@ -18623,8 +18522,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.EnforceMultiFactorAuthentication = data
 		case "ROLES":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ROLES"))
 			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
@@ -18632,8 +18529,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.Roles = data
 		case "PROTECTED_ROLES":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("PROTECTED_ROLES"))
 			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
@@ -18641,8 +18536,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.ProtectedRoles = data
 		case "DEFAULT_ROLES":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("DEFAULT_ROLES"))
 			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
@@ -18650,8 +18543,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.DefaultRoles = data
 		case "JWT_ROLE_CLAIM":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("JWT_ROLE_CLAIM"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18659,8 +18550,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.JwtRoleClaim = data
 		case "GOOGLE_CLIENT_ID":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("GOOGLE_CLIENT_ID"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18668,8 +18557,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.GoogleClientID = data
 		case "GOOGLE_CLIENT_SECRET":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("GOOGLE_CLIENT_SECRET"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18677,8 +18564,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.GoogleClientSecret = data
 		case "GITHUB_CLIENT_ID":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("GITHUB_CLIENT_ID"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18686,8 +18571,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.GithubClientID = data
 		case "GITHUB_CLIENT_SECRET":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("GITHUB_CLIENT_SECRET"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18695,8 +18578,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.GithubClientSecret = data
 		case "FACEBOOK_CLIENT_ID":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("FACEBOOK_CLIENT_ID"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18704,8 +18585,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.FacebookClientID = data
 		case "FACEBOOK_CLIENT_SECRET":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("FACEBOOK_CLIENT_SECRET"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18713,8 +18592,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.FacebookClientSecret = data
 		case "LINKEDIN_CLIENT_ID":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("LINKEDIN_CLIENT_ID"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18722,8 +18599,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.LinkedinClientID = data
 		case "LINKEDIN_CLIENT_SECRET":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("LINKEDIN_CLIENT_SECRET"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18731,8 +18606,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.LinkedinClientSecret = data
 		case "APPLE_CLIENT_ID":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("APPLE_CLIENT_ID"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18740,8 +18613,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.AppleClientID = data
 		case "APPLE_CLIENT_SECRET":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("APPLE_CLIENT_SECRET"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18749,8 +18620,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.AppleClientSecret = data
 		case "DISCORD_CLIENT_ID":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("DISCORD_CLIENT_ID"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18758,8 +18627,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.DiscordClientID = data
 		case "DISCORD_CLIENT_SECRET":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("DISCORD_CLIENT_SECRET"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18767,8 +18634,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.DiscordClientSecret = data
 		case "TWITTER_CLIENT_ID":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("TWITTER_CLIENT_ID"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18776,8 +18641,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.TwitterClientID = data
 		case "TWITTER_CLIENT_SECRET":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("TWITTER_CLIENT_SECRET"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18785,8 +18648,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.TwitterClientSecret = data
 		case "MICROSOFT_CLIENT_ID":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("MICROSOFT_CLIENT_ID"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18794,8 +18655,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.MicrosoftClientID = data
 		case "MICROSOFT_CLIENT_SECRET":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("MICROSOFT_CLIENT_SECRET"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18803,8 +18662,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.MicrosoftClientSecret = data
 		case "MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18812,8 +18669,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.MicrosoftActiveDirectoryTenantID = data
 		case "TWITCH_CLIENT_ID":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("TWITCH_CLIENT_ID"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18821,17 +18676,27 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.TwitchClientID = data
 		case "TWITCH_CLIENT_SECRET":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("TWITCH_CLIENT_SECRET"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
 			it.TwitchClientSecret = data
+		case "ROBLOX_CLIENT_ID":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ROBLOX_CLIENT_ID"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.RobloxClientID = data
+		case "ROBLOX_CLIENT_SECRET":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ROBLOX_CLIENT_SECRET"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.RobloxClientSecret = data
 		case "ORGANIZATION_NAME":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ORGANIZATION_NAME"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18839,8 +18704,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.OrganizationName = data
 		case "ORGANIZATION_LOGO":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ORGANIZATION_LOGO"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18848,8 +18711,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.OrganizationLogo = data
 		case "DEFAULT_AUTHORIZE_RESPONSE_TYPE":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("DEFAULT_AUTHORIZE_RESPONSE_TYPE"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18857,8 +18718,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.DefaultAuthorizeResponseType = data
 		case "DEFAULT_AUTHORIZE_RESPONSE_MODE":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("DEFAULT_AUTHORIZE_RESPONSE_MODE"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18866,8 +18725,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.DefaultAuthorizeResponseMode = data
 		case "DISABLE_PLAYGROUND":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("DISABLE_PLAYGROUND"))
 			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
 			if err != nil {
@@ -18875,8 +18732,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.DisablePlayground = data
 		case "DISABLE_MAIL_OTP_LOGIN":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("DISABLE_MAIL_OTP_LOGIN"))
 			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
 			if err != nil {
@@ -18884,8 +18739,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 			}
 			it.DisableMailOtpLogin = data
 		case "DISABLE_TOTP_LOGIN":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("DISABLE_TOTP_LOGIN"))
 			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
 			if err != nil {
@@ -18913,8 +18766,6 @@ func (ec *executionContext) unmarshalInputUpdateProfileInput(ctx context.Context
 		}
 		switch k {
 		case "old_password":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("old_password"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18922,8 +18773,6 @@ func (ec *executionContext) unmarshalInputUpdateProfileInput(ctx context.Context
 			}
 			it.OldPassword = data
 		case "new_password":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("new_password"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18931,8 +18780,6 @@ func (ec *executionContext) unmarshalInputUpdateProfileInput(ctx context.Context
 			}
 			it.NewPassword = data
 		case "confirm_new_password":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("confirm_new_password"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18940,8 +18787,6 @@ func (ec *executionContext) unmarshalInputUpdateProfileInput(ctx context.Context
 			}
 			it.ConfirmNewPassword = data
 		case "email":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18949,8 +18794,6 @@ func (ec *executionContext) unmarshalInputUpdateProfileInput(ctx context.Context
 			}
 			it.Email = data
 		case "given_name":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("given_name"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18958,8 +18801,6 @@ func (ec *executionContext) unmarshalInputUpdateProfileInput(ctx context.Context
 			}
 			it.GivenName = data
 		case "family_name":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("family_name"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18967,8 +18808,6 @@ func (ec *executionContext) unmarshalInputUpdateProfileInput(ctx context.Context
 			}
 			it.FamilyName = data
 		case "middle_name":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("middle_name"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18976,8 +18815,6 @@ func (ec *executionContext) unmarshalInputUpdateProfileInput(ctx context.Context
 			}
 			it.MiddleName = data
 		case "nickname":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("nickname"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18985,8 +18822,6 @@ func (ec *executionContext) unmarshalInputUpdateProfileInput(ctx context.Context
 			}
 			it.Nickname = data
 		case "gender":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("gender"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -18994,8 +18829,6 @@ func (ec *executionContext) unmarshalInputUpdateProfileInput(ctx context.Context
 			}
 			it.Gender = data
 		case "birthdate":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("birthdate"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -19003,8 +18836,6 @@ func (ec *executionContext) unmarshalInputUpdateProfileInput(ctx context.Context
 			}
 			it.Birthdate = data
 		case "phone_number":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phone_number"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -19012,8 +18843,6 @@ func (ec *executionContext) unmarshalInputUpdateProfileInput(ctx context.Context
 			}
 			it.PhoneNumber = data
 		case "picture":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("picture"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -19021,8 +18850,6 @@ func (ec *executionContext) unmarshalInputUpdateProfileInput(ctx context.Context
 			}
 			it.Picture = data
 		case "is_multi_factor_auth_enabled":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("is_multi_factor_auth_enabled"))
 			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
 			if err != nil {
@@ -19030,8 +18857,6 @@ func (ec *executionContext) unmarshalInputUpdateProfileInput(ctx context.Context
 			}
 			it.IsMultiFactorAuthEnabled = data
 		case "app_data":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("app_data"))
 			data, err := ec.unmarshalOMap2map(ctx, v)
 			if err != nil {
@@ -19059,8 +18884,6 @@ func (ec *executionContext) unmarshalInputUpdateUserInput(ctx context.Context, o
 		}
 		switch k {
 		case "id":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
 			data, err := ec.unmarshalNID2string(ctx, v)
 			if err != nil {
@@ -19068,8 +18891,6 @@ func (ec *executionContext) unmarshalInputUpdateUserInput(ctx context.Context, o
 			}
 			it.ID = data
 		case "email":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -19077,8 +18898,6 @@ func (ec *executionContext) unmarshalInputUpdateUserInput(ctx context.Context, o
 			}
 			it.Email = data
 		case "email_verified":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email_verified"))
 			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
 			if err != nil {
@@ -19086,8 +18905,6 @@ func (ec *executionContext) unmarshalInputUpdateUserInput(ctx context.Context, o
 			}
 			it.EmailVerified = data
 		case "given_name":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("given_name"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -19095,8 +18912,6 @@ func (ec *executionContext) unmarshalInputUpdateUserInput(ctx context.Context, o
 			}
 			it.GivenName = data
 		case "family_name":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("family_name"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -19104,8 +18919,6 @@ func (ec *executionContext) unmarshalInputUpdateUserInput(ctx context.Context, o
 			}
 			it.FamilyName = data
 		case "middle_name":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("middle_name"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -19113,8 +18926,6 @@ func (ec *executionContext) unmarshalInputUpdateUserInput(ctx context.Context, o
 			}
 			it.MiddleName = data
 		case "nickname":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("nickname"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -19122,8 +18933,6 @@ func (ec *executionContext) unmarshalInputUpdateUserInput(ctx context.Context, o
 			}
 			it.Nickname = data
 		case "gender":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("gender"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -19131,8 +18940,6 @@ func (ec *executionContext) unmarshalInputUpdateUserInput(ctx context.Context, o
 			}
 			it.Gender = data
 		case "birthdate":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("birthdate"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -19140,8 +18947,6 @@ func (ec *executionContext) unmarshalInputUpdateUserInput(ctx context.Context, o
 			}
 			it.Birthdate = data
 		case "phone_number":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phone_number"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -19149,8 +18954,6 @@ func (ec *executionContext) unmarshalInputUpdateUserInput(ctx context.Context, o
 			}
 			it.PhoneNumber = data
 		case "phone_number_verified":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phone_number_verified"))
 			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
 			if err != nil {
@@ -19158,8 +18961,6 @@ func (ec *executionContext) unmarshalInputUpdateUserInput(ctx context.Context, o
 			}
 			it.PhoneNumberVerified = data
 		case "picture":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("picture"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -19167,8 +18968,6 @@ func (ec *executionContext) unmarshalInputUpdateUserInput(ctx context.Context, o
 			}
 			it.Picture = data
 		case "roles":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("roles"))
 			data, err := ec.unmarshalOString2ᚕᚖstring(ctx, v)
 			if err != nil {
@@ -19176,8 +18975,6 @@ func (ec *executionContext) unmarshalInputUpdateUserInput(ctx context.Context, o
 			}
 			it.Roles = data
 		case "is_multi_factor_auth_enabled":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("is_multi_factor_auth_enabled"))
 			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
 			if err != nil {
@@ -19185,8 +18982,6 @@ func (ec *executionContext) unmarshalInputUpdateUserInput(ctx context.Context, o
 			}
 			it.IsMultiFactorAuthEnabled = data
 		case "app_data":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("app_data"))
 			data, err := ec.unmarshalOMap2map(ctx, v)
 			if err != nil {
@@ -19214,8 +19009,6 @@ func (ec *executionContext) unmarshalInputUpdateWebhookRequest(ctx context.Conte
 		}
 		switch k {
 		case "id":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
 			data, err := ec.unmarshalNID2string(ctx, v)
 			if err != nil {
@@ -19223,8 +19016,6 @@ func (ec *executionContext) unmarshalInputUpdateWebhookRequest(ctx context.Conte
 			}
 			it.ID = data
 		case "event_name":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("event_name"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -19232,8 +19023,6 @@ func (ec *executionContext) unmarshalInputUpdateWebhookRequest(ctx context.Conte
 			}
 			it.EventName = data
 		case "event_description":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("event_description"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -19241,8 +19030,6 @@ func (ec *executionContext) unmarshalInputUpdateWebhookRequest(ctx context.Conte
 			}
 			it.EventDescription = data
 		case "endpoint":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("endpoint"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -19250,8 +19037,6 @@ func (ec *executionContext) unmarshalInputUpdateWebhookRequest(ctx context.Conte
 			}
 			it.Endpoint = data
 		case "enabled":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("enabled"))
 			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
 			if err != nil {
@@ -19259,8 +19044,6 @@ func (ec *executionContext) unmarshalInputUpdateWebhookRequest(ctx context.Conte
 			}
 			it.Enabled = data
 		case "headers":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("headers"))
 			data, err := ec.unmarshalOMap2map(ctx, v)
 			if err != nil {
@@ -19288,8 +19071,6 @@ func (ec *executionContext) unmarshalInputValidateJWTTokenInput(ctx context.Cont
 		}
 		switch k {
 		case "token_type":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("token_type"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -19297,8 +19078,6 @@ func (ec *executionContext) unmarshalInputValidateJWTTokenInput(ctx context.Cont
 			}
 			it.TokenType = data
 		case "token":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("token"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -19306,8 +19085,6 @@ func (ec *executionContext) unmarshalInputValidateJWTTokenInput(ctx context.Cont
 			}
 			it.Token = data
 		case "roles":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("roles"))
 			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
@@ -19335,8 +19112,6 @@ func (ec *executionContext) unmarshalInputValidateSessionInput(ctx context.Conte
 		}
 		switch k {
 		case "cookie":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("cookie"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -19344,8 +19119,6 @@ func (ec *executionContext) unmarshalInputValidateSessionInput(ctx context.Conte
 			}
 			it.Cookie = data
 		case "roles":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("roles"))
 			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
@@ -19373,8 +19146,6 @@ func (ec *executionContext) unmarshalInputVerifyEmailInput(ctx context.Context, 
 		}
 		switch k {
 		case "token":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("token"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -19382,8 +19153,6 @@ func (ec *executionContext) unmarshalInputVerifyEmailInput(ctx context.Context, 
 			}
 			it.Token = data
 		case "state":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -19411,8 +19180,6 @@ func (ec *executionContext) unmarshalInputVerifyOTPRequest(ctx context.Context, 
 		}
 		switch k {
 		case "email":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -19420,8 +19187,6 @@ func (ec *executionContext) unmarshalInputVerifyOTPRequest(ctx context.Context, 
 			}
 			it.Email = data
 		case "phone_number":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phone_number"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -19429,8 +19194,6 @@ func (ec *executionContext) unmarshalInputVerifyOTPRequest(ctx context.Context, 
 			}
 			it.PhoneNumber = data
 		case "otp":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("otp"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -19438,8 +19201,6 @@ func (ec *executionContext) unmarshalInputVerifyOTPRequest(ctx context.Context, 
 			}
 			it.Otp = data
 		case "is_totp":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("is_totp"))
 			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
 			if err != nil {
@@ -19447,8 +19208,6 @@ func (ec *executionContext) unmarshalInputVerifyOTPRequest(ctx context.Context, 
 			}
 			it.IsTotp = data
 		case "state":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -19476,8 +19235,6 @@ func (ec *executionContext) unmarshalInputWebhookRequest(ctx context.Context, ob
 		}
 		switch k {
 		case "id":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
 			data, err := ec.unmarshalNID2string(ctx, v)
 			if err != nil {
@@ -19833,6 +19590,10 @@ func (ec *executionContext) _Env(ctx context.Context, sel ast.SelectionSet, obj 
 			out.Values[i] = ec._Env_TWITCH_CLIENT_ID(ctx, field, obj)
 		case "TWITCH_CLIENT_SECRET":
 			out.Values[i] = ec._Env_TWITCH_CLIENT_SECRET(ctx, field, obj)
+		case "ROBLOX_CLIENT_ID":
+			out.Values[i] = ec._Env_ROBLOX_CLIENT_ID(ctx, field, obj)
+		case "ROBLOX_CLIENT_SECRET":
+			out.Values[i] = ec._Env_ROBLOX_CLIENT_SECRET(ctx, field, obj)
 		case "ORGANIZATION_NAME":
 			out.Values[i] = ec._Env_ORGANIZATION_NAME(ctx, field, obj)
 		case "ORGANIZATION_LOGO":
@@ -20121,6 +19882,11 @@ func (ec *executionContext) _Meta(ctx context.Context, sel ast.SelectionSet, obj
 			}
 		case "is_twitch_login_enabled":
 			out.Values[i] = ec._Meta_is_twitch_login_enabled(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "is_roblox_login_enabled":
+			out.Values[i] = ec._Meta_is_roblox_login_enabled(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}

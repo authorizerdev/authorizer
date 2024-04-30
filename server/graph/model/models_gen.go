@@ -124,6 +124,8 @@ type Env struct {
 	MicrosoftActiveDirectoryTenantID *string  `json:"MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID,omitempty"`
 	TwitchClientID                   *string  `json:"TWITCH_CLIENT_ID,omitempty"`
 	TwitchClientSecret               *string  `json:"TWITCH_CLIENT_SECRET,omitempty"`
+	RobloxClientID                   *string  `json:"ROBLOX_CLIENT_ID,omitempty"`
+	RobloxClientSecret               *string  `json:"ROBLOX_CLIENT_SECRET,omitempty"`
 	OrganizationName                 *string  `json:"ORGANIZATION_NAME,omitempty"`
 	OrganizationLogo                 *string  `json:"ORGANIZATION_LOGO,omitempty"`
 	AppCookieSecure                  bool     `json:"APP_COOKIE_SECURE"`
@@ -211,6 +213,7 @@ type Meta struct {
 	IsTwitterLoginEnabled              bool   `json:"is_twitter_login_enabled"`
 	IsMicrosoftLoginEnabled            bool   `json:"is_microsoft_login_enabled"`
 	IsTwitchLoginEnabled               bool   `json:"is_twitch_login_enabled"`
+	IsRobloxLoginEnabled               bool   `json:"is_roblox_login_enabled"`
 	IsEmailVerificationEnabled         bool   `json:"is_email_verification_enabled"`
 	IsBasicAuthenticationEnabled       bool   `json:"is_basic_authentication_enabled"`
 	IsMagicLinkLoginEnabled            bool   `json:"is_magic_link_login_enabled"`
@@ -249,6 +252,9 @@ type MobileSignUpInput struct {
 	AppData                  map[string]interface{} `json:"app_data,omitempty"`
 }
 
+type Mutation struct {
+}
+
 type OAuthRevokeInput struct {
 	RefreshToken string `json:"refresh_token"`
 }
@@ -267,6 +273,9 @@ type Pagination struct {
 type PaginationInput struct {
 	Limit *int64 `json:"limit,omitempty"`
 	Page  *int64 `json:"page,omitempty"`
+}
+
+type Query struct {
 }
 
 type ResendOTPRequest struct {
@@ -405,6 +414,8 @@ type UpdateEnvInput struct {
 	MicrosoftActiveDirectoryTenantID *string  `json:"MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID,omitempty"`
 	TwitchClientID                   *string  `json:"TWITCH_CLIENT_ID,omitempty"`
 	TwitchClientSecret               *string  `json:"TWITCH_CLIENT_SECRET,omitempty"`
+	RobloxClientID                   *string  `json:"ROBLOX_CLIENT_ID,omitempty"`
+	RobloxClientSecret               *string  `json:"ROBLOX_CLIENT_SECRET,omitempty"`
 	OrganizationName                 *string  `json:"ORGANIZATION_NAME,omitempty"`
 	OrganizationLogo                 *string  `json:"ORGANIZATION_LOGO,omitempty"`
 	DefaultAuthorizeResponseType     *string  `json:"DEFAULT_AUTHORIZE_RESPONSE_TYPE,omitempty"`

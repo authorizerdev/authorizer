@@ -79,6 +79,10 @@ func InitAllEnv() error {
 	osMicrosoftClientID := os.Getenv(constants.EnvKeyMicrosoftClientID)
 	osMicrosoftClientSecret := os.Getenv(constants.EnvKeyMicrosoftClientSecret)
 	osMicrosoftActiveDirectoryTenantID := os.Getenv(constants.EnvKeyMicrosoftActiveDirectoryTenantID)
+	osTwitchClientID := os.Getenv(constants.EnvKeyTwitchClientID)
+	osTwitchClientSecret := os.Getenv(constants.EnvKeyTwitchClientSecret)
+	osRobloxClientID := os.Getenv(constants.EnvKeyTwitchClientID)
+	osRobloxClientSecret := os.Getenv(constants.EnvKeyTwitchClientSecret)
 	osResetPasswordURL := os.Getenv(constants.EnvKeyResetPasswordURL)
 	osOrganizationName := os.Getenv(constants.EnvKeyOrganizationName)
 	osOrganizationLogo := os.Getenv(constants.EnvKeyOrganizationLogo)
@@ -499,6 +503,34 @@ func InitAllEnv() error {
 	}
 	if osMicrosoftActiveDirectoryTenantID != "" && envData[constants.EnvKeyMicrosoftActiveDirectoryTenantID] != osMicrosoftActiveDirectoryTenantID {
 		envData[constants.EnvKeyMicrosoftActiveDirectoryTenantID] = osMicrosoftActiveDirectoryTenantID
+	}
+
+	if val, ok := envData[constants.EnvKeyTwitchClientID]; !ok || val == "" {
+		envData[constants.EnvKeyTwitchClientID] = osTwitchClientID
+	}
+	if osTwitchClientID != "" && envData[constants.EnvKeyTwitchClientID] != osTwitchClientID {
+		envData[constants.EnvKeyTwitchClientID] = osTwitchClientID
+	}
+
+	if val, ok := envData[constants.EnvKeyTwitchClientSecret]; !ok || val == "" {
+		envData[constants.EnvKeyTwitchClientSecret] = osTwitchClientSecret
+	}
+	if osTwitchClientSecret != "" && envData[constants.EnvKeyTwitchClientSecret] != osTwitchClientSecret {
+		envData[constants.EnvKeyTwitchClientSecret] = osTwitchClientSecret
+	}
+
+	if val, ok := envData[constants.EnvKeyRobloxClientID]; !ok || val == "" {
+		envData[constants.EnvKeyRobloxClientID] = osRobloxClientID
+	}
+	if osRobloxClientID != "" && envData[constants.EnvKeyRobloxClientID] != osRobloxClientID {
+		envData[constants.EnvKeyRobloxClientID] = osRobloxClientID
+	}
+
+	if val, ok := envData[constants.EnvKeyRobloxClientSecret]; !ok || val == "" {
+		envData[constants.EnvKeyRobloxClientSecret] = osRobloxClientSecret
+	}
+	if osRobloxClientSecret != "" && envData[constants.EnvKeyRobloxClientSecret] != osRobloxClientSecret {
+		envData[constants.EnvKeyRobloxClientSecret] = osRobloxClientSecret
 	}
 
 	if val, ok := envData[constants.EnvKeyResetPasswordURL]; !ok || val == "" {
