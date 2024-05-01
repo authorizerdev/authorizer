@@ -873,7 +873,7 @@ func processRobloxUserInfo(ctx context.Context, code, verifier string) (*models.
 	if val, ok := userRawData["email"]; ok {
 		email = val.(string)
 	} else {
-		email = userRawData["preferred_username"].(string)
+		email = userRawData["sub"].(string)
 	}
 	user := &models.User{
 		GivenName:  &firstName,

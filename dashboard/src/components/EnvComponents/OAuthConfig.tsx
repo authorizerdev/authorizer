@@ -483,7 +483,10 @@ const OAuthConfig = ({
 							border="1px solid #3b5998"
 							borderRadius="5px"
 						>
-							Roblox
+							<img
+								src="https://authorizer.dev/_next/image?url=%2Fimages%2Froblox.png&w=25&q=25"
+								alt="Roblox"
+							/>
 						</Center>
 						<Center
 							w={isNotSmallerScreen ? '70%' : '100%'}
