@@ -34,6 +34,7 @@ type OAuthProvider struct {
 	TwitterConfig   *oauth2.Config
 	MicrosoftConfig *oauth2.Config
 	TwitchConfig    *oauth2.Config
+	RobloxConfig    *oauth2.Config
 }
 
 // OIDCProviders is a struct that contains reference all the OpenID providers
@@ -251,5 +252,25 @@ func InitOAuth() error {
 		}
 	}
 
+	robloxClientID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyRobloxClientID)
+	if err != nil {
+		robloxClientID = ""
+	}
+	robloxClientSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyRobloxClientSecret)
+	if err != nil {
+		robloxClientSecret = ""
+	}
+	if robloxClientID != "" && robloxClientSecret != "" {
+		OAuthProviders.RobloxConfig = &oauth2.Config{
+			ClientID:     robloxClientID,
+			ClientSecret: robloxClientSecret,
+			RedirectURL:  "/oauth_callback/roblox",
+			Endpoint: oauth2.Endpoint{
+				AuthURL:  "https://apis.roblox.com/oauth/v1/authorize",
+				TokenURL: "https://apis.roblox.com/oauth/v1/token",
+			},
+			Scopes: []string{oidc.ScopeOpenID, "profile"},
+		}
+	}
 	return nil
 }

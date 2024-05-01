@@ -27,4 +27,6 @@ const (
 	AuthRecipeMethodMicrosoft = "microsoft"
 	// AuthRecipeMethodTwitch is the twitch auth method
 	AuthRecipeMethodTwitch = "twitch"
+	// AuthRecipeMethodRoblox is the roblox auth method
+	AuthRecipeMethodRoblox = "roblox"
 )

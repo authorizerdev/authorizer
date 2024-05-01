@@ -101,6 +101,30 @@ func MetaResolver(ctx context.Context) (*model.Meta, error) {
 		microsoftClientSecret = ""
 	}
 
+	twitchClientID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyTwitchClientID)
+	if err != nil {
+		log.Debug("Failed to get Twitch Client ID from environment variable", err)
+		microsoftClientID = ""
+	}
+
+	twitchClientSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyTwitchClientSecret)
+	if err != nil {
+		log.Debug("Failed to get Twitch Client Secret from environment variable", err)
+		microsoftClientSecret = ""
+	}
+
+	robloxClientID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyRobloxClientID)
+	if err != nil {
+		log.Debug("Failed to get Roblox Client ID from environment variable", err)
+		microsoftClientID = ""
+	}
+
+	robloxClientSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyRobloxClientSecret)
+	if err != nil {
+		log.Debug("Failed to get Roblox Client Secret from environment variable", err)
+		microsoftClientSecret = ""
+	}
+
 	isBasicAuthDisabled, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableBasicAuthentication)
 	if err != nil {
 		log.Debug("Failed to get Disable Basic Authentication from environment variable", err)
@@ -165,6 +189,8 @@ func MetaResolver(ctx context.Context) (*model.Meta, error) {
 		IsMultiFactorAuthEnabled:           !isMultiFactorAuthenticationEnabled,
 		IsMobileBasicAuthenticationEnabled: !isMobileBasicAuthDisabled,
 		IsPhoneVerificationEnabled:         !isMobileVerificationDisabled,
+		IsTwitchLoginEnabled:               twitchClientID != "" && twitchClientSecret != "",
+		IsRobloxLoginEnabled:               robloxClientID != "" && robloxClientSecret != "",
 	}
 	return &metaInfo, nil
 }

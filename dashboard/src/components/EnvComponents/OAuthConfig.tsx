@@ -17,7 +17,8 @@ import {
 	FaApple,
 	FaTwitter,
 	FaMicrosoft,
-	FaTwitch, FaDiscord,
+	FaTwitch,
+	FaDiscord,
 } from 'react-icons/fa';
 import {
 	TextInputType,
@@ -471,6 +472,47 @@ const OAuthConfig = ({
 								setFieldVisibility={setFieldVisibility}
 								inputType={HiddenInputType.TWITCH_CLIENT_SECRET}
 								placeholder="Twitch Client Secret"
+							/>
+						</Center>
+					</Flex>
+					<Flex direction={isNotSmallerScreen ? 'row' : 'column'}>
+						<Center
+							w={isNotSmallerScreen ? '55px' : '35px'}
+							h="35px"
+							marginRight="1.5%"
+							border="1px solid #3b5998"
+							borderRadius="5px"
+						>
+							<img
+								src="https://authorizer.dev/_next/image?url=%2Fimages%2Froblox.png&w=25&q=25"
+								alt="Roblox"
+							/>
+						</Center>
+						<Center
+							w={isNotSmallerScreen ? '70%' : '100%'}
+							mt={isNotSmallerScreen ? '0' : '3'}
+							marginRight="1.5%"
+						>
+							<InputField
+								borderRadius={5}
+								variables={envVariables}
+								setVariables={setVariables}
+								inputType={TextInputType.ROBLOX_CLIENT_ID}
+								placeholder="Roblox Client ID"
+							/>
+						</Center>
+						<Center
+							w={isNotSmallerScreen ? '70%' : '100%'}
+							mt={isNotSmallerScreen ? '0' : '3'}
+						>
+							<InputField
+								borderRadius={5}
+								variables={envVariables}
+								setVariables={setVariables}
+								fieldVisibility={fieldVisibility}
+								setFieldVisibility={setFieldVisibility}
+								inputType={HiddenInputType.ROBLOX_CLIENT_SECRET}
+								placeholder="Roblox Client Secret"
 							/>
 						</Center>
 					</Flex>

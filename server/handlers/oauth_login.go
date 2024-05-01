@@ -265,6 +265,24 @@ func OAuthLoginHandler() gin.HandlerFunc {
 			oauth.OAuthProviders.TwitchConfig.RedirectURL = hostname + "/oauth_callback/" + constants.AuthRecipeMethodTwitch
 			url := oauth.OAuthProviders.TwitchConfig.AuthCodeURL(oauthStateString)
 			c.Redirect(http.StatusTemporaryRedirect, url)
+		case constants.AuthRecipeMethodRoblox:
+			if oauth.OAuthProviders.RobloxConfig == nil {
+				log.Debug("RobloxConfig OAuth provider is not configured")
+				isProviderConfigured = false
+				break
+			}
+			err := memorystore.Provider.SetState(oauthStateString, constants.AuthRecipeMethodRoblox)
+			if err != nil {
+				log.Debug("Error setting state: ", err)
+				c.JSON(500, gin.H{
+					"error": "internal server error",
+				})
+				return
+			}
+			// during the init of OAuthProvider authorizer url might be empty
+			oauth.OAuthProviders.RobloxConfig.RedirectURL = hostname + "/oauth_callback/" + constants.AuthRecipeMethodRoblox
+			url := oauth.OAuthProviders.RobloxConfig.AuthCodeURL(oauthStateString)
+			c.Redirect(http.StatusTemporaryRedirect, url)
 		default:
 			log.Debug("Invalid oauth provider: ", provider)
 			c.JSON(422, gin.H{

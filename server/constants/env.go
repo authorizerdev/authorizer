@@ -126,6 +126,10 @@ const (
 	EnvKeyTwitchClientID = "TWITCH_CLIENT_ID"
 	// EnvKeyTwitchClientSecret key for env variable TWITCH_CLIENT_SECRET
 	EnvKeyTwitchClientSecret = "TWITCH_CLIENT_SECRET"
+	// EnvKeyRobloxClientID key for env variable ROBLOX_CLIENT_ID
+	EnvKeyRobloxClientID = "ROBLOX_CLIENT_ID"
+	// EnvKeyRobloxClientSecret key for env variable ROBLOX_CLIENT_SECRET
+	EnvKeyRobloxClientSecret = "ROBLOX_CLIENT_SECRET"
 	// EnvKeyOrganizationName key for env variable ORGANIZATION_NAME
 	EnvKeyOrganizationName = "ORGANIZATION_NAME"
 	// EnvKeyOrganizationLogo key for env variable ORGANIZATION_LOGO

@@ -176,6 +176,12 @@ func EnvResolver(ctx context.Context) (*model.Env, error) {
 	if val, ok := store[constants.EnvKeyTwitchClientSecret]; ok {
 		res.TwitchClientSecret = refs.NewStringRef(val.(string))
 	}
+	if val, ok := store[constants.EnvKeyRobloxClientID]; ok {
+		res.RobloxClientID = refs.NewStringRef(val.(string))
+	}
+	if val, ok := store[constants.EnvKeyRobloxClientSecret]; ok {
+		res.RobloxClientSecret = refs.NewStringRef(val.(string))
+	}
 	if val, ok := store[constants.EnvKeyOrganizationName]; ok {
 		res.OrganizationName = refs.NewStringRef(val.(string))
 	}
