@@ -42,7 +42,6 @@ type OIDCProvider struct {
 	GoogleOIDC    *oidc.Provider
 	MicrosoftOIDC *oidc.Provider
 	TwitchOIDC    *oidc.Provider
-	RobloxOIDC    *oidc.Provider
 }
 
 var (
@@ -261,22 +260,14 @@ func InitOAuth() error {
 	if err != nil {
 		robloxClientSecret = ""
 	}
-
 	if robloxClientID != "" && robloxClientSecret != "" {
-		p, err := oidc.NewProvider(ctx, "https://apis.roblox.com/oauth")
-		if err != nil {
-			log.Debugf(ctx, "Error while creating OIDC provider for roblox: %v", err)
-			return err
-		}
-
-		OIDCProviders.RobloxOIDC = p
 		OAuthProviders.RobloxConfig = &oauth2.Config{
 			ClientID:     robloxClientID,
 			ClientSecret: robloxClientSecret,
 			RedirectURL:  "/oauth_callback/roblox",
 			Endpoint: oauth2.Endpoint{
-				AuthURL:  "https://apis.roblox.com/oauth/authorize",
-				TokenURL: "https://apis.roblox.com/oauth/token",
+				AuthURL:  "https://apis.roblox.com/oauth/v1/authorize",
+				TokenURL: "https://apis.roblox.com/oauth/v1/token",
 			},
 			Scopes: []string{oidc.ScopeOpenID, "profile"},
 		}

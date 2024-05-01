@@ -89,6 +89,8 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			user, err = processMicrosoftUserInfo(ctx, oauthCode)
 		case constants.AuthRecipeMethodTwitch:
 			user, err = processTwitchUserInfo(ctx, oauthCode)
+		case constants.AuthRecipeMethodRoblox:
+			user, err = processRobloxUserInfo(ctx, oauthCode, sessionState)
 		default:
 			log.Info("Invalid oauth provider")
 			err = fmt.Errorf(`invalid oauth provider`)
@@ -814,6 +816,71 @@ func processTwitchUserInfo(ctx context.Context, code string) (*models.User, erro
 	if err := idToken.Claims(&user); err != nil {
 		log.Debug("Failed to parse ID Token claims: ", err)
 		return nil, fmt.Errorf("unable to extract claims")
+	}
+
+	return user, nil
+}
+
+// process roblox user information
+func processRobloxUserInfo(ctx context.Context, code, verifier string) (*models.User, error) {
+	oauth2Token, err := oauth.OAuthProviders.RobloxConfig.Exchange(ctx, code, oauth2.SetAuthURLParam("code_verifier", verifier))
+	if err != nil {
+		log.Debug("Failed to exchange code for token: ", err)
+		return nil, fmt.Errorf("invalid roblox exchange code: %s", err.Error())
+	}
+
+	client := http.Client{}
+	req, err := http.NewRequest("GET", constants.RobloxUserInfoURL, nil)
+	if err != nil {
+		log.Debug("Failed to create roblox user info request: ", err)
+		return nil, fmt.Errorf("error creating roblox user info request: %s", err.Error())
+	}
+	req.Header = http.Header{
+		"Authorization": []string{fmt.Sprintf("Bearer %s", oauth2Token.AccessToken)},
+	}
+
+	response, err := client.Do(req)
+	if err != nil {
+		log.Debug("Failed to request roblox user info: ", err)
+		return nil, err
+	}
+
+	defer response.Body.Close()
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		log.Debug("Failed to read roblox user info response body: ", err)
+		return nil, fmt.Errorf("failed to read roblox response body: %s", err.Error())
+	}
+
+	if response.StatusCode >= 400 {
+		log.Debug("Failed to request roblox user info: ", string(body))
+		return nil, fmt.Errorf("failed to request roblox user info: %s", string(body))
+	}
+
+	userRawData := make(map[string]interface{})
+	json.Unmarshal(body, &userRawData)
+
+	// log.Info(userRawData)
+	nameArr := strings.SplitAfterN(userRawData["name"].(string), " ", 2)
+	firstName := nameArr[0]
+	lastName := ""
+	if len(nameArr) == 2 {
+		lastName = nameArr[1]
+	}
+	nickname := userRawData["nickname"].(string)
+	profilePicture := userRawData["picture"].(string)
+	email := ""
+	if val, ok := userRawData["email"]; ok {
+		email = val.(string)
+	} else {
+		email = userRawData["preferred_username"].(string)
+	}
+	user := &models.User{
+		GivenName:  &firstName,
+		FamilyName: &lastName,
+		Picture:    &profilePicture,
+		Nickname:   &nickname,
+		Email:      &email,
 	}
 
 	return user, nil

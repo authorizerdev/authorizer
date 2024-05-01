@@ -17,6 +17,9 @@ const (
 
 	TwitterUserInfoURL = "https://api.twitter.com/2/users/me?user.fields=id,name,profile_image_url,username"
 
+	// RobloxUserInfoURL is the URL to get user info from Roblox
+	RobloxUserInfoURL = "https://apis.roblox.com/oauth/v1/userinfo"
+
 	DiscordUserInfoURL = "https://discord.com/api/oauth2/@me"
 	// Get microsoft user info.
 	// Ref: https://learn.microsoft.com/en-us/azure/active-directory/develop/userinfo
