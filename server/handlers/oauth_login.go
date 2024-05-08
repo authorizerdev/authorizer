@@ -7,7 +7,7 @@ import (
 	"golang.org/x/oauth2"
 
 	"github.com/gin-gonic/gin"
-
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/server/constants"
@@ -40,11 +40,8 @@ func OAuthLoginHandler() gin.HandlerFunc {
 		}
 
 		if state == "" {
-			log.Debug("state is empty")
-			c.JSON(400, gin.H{
-				"error": "invalid state",
-			})
-			return
+			log.Debug("state is empty. creating a new state")
+			state = uuid.New().String()
 		}
 
 		var scope []string
