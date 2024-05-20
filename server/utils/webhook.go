@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
@@ -95,7 +95,7 @@ func RegisterEvent(ctx context.Context, eventName string, authRecipe string, use
 		}
 		defer resp.Body.Close()
 
-		responseBytes, err := ioutil.ReadAll(resp.Body)
+		responseBytes, err := io.ReadAll(resp.Body)
 		if err != nil {
 			log.Debug("error reading response: ", err)
 			continue
