@@ -30,6 +30,14 @@ import (
 )
 
 // OAuthCallbackHandler handles the OAuth callback for various oauth providers
+type AppleUserInfo struct {
+	Email string `json:"email"`
+	Name  struct {
+		FirstName string `json:"firstName"`
+		LastName  string `json:"lastName"`
+	} `json:"name"`
+}
+
 func OAuthCallbackHandler() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		provider := ctx.Param("oauth_provider")
@@ -80,7 +88,10 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 		case constants.AuthRecipeMethodLinkedIn:
 			user, err = processLinkedInUserInfo(ctx, oauthCode)
 		case constants.AuthRecipeMethodApple:
-			user, err = processAppleUserInfo(ctx, oauthCode)
+			user_ := AppleUserInfo{}
+			userRaw := ctx.Request.FormValue("user")
+			err = json.Unmarshal([]byte(userRaw), &user_)
+			user, err = processAppleUserInfo(ctx, oauthCode, &user_)
 		case constants.AuthRecipeMethodDiscord:
 			user, err = processDiscordUserInfo(ctx, oauthCode)
 		case constants.AuthRecipeMethodTwitter:
@@ -575,7 +586,7 @@ func processLinkedInUserInfo(ctx context.Context, code string) (*models.User, er
 	return user, nil
 }
 
-func processAppleUserInfo(ctx context.Context, code string) (*models.User, error) {
+func processAppleUserInfo(ctx context.Context, code string, user_ *AppleUserInfo) (*models.User, error) {
 	var user = &models.User{}
 	oauth2Token, err := oauth.OAuthProviders.AppleConfig.Exchange(ctx, code)
 	if err != nil {
@@ -624,8 +635,10 @@ func processAppleUserInfo(ctx context.Context, code string) (*models.User, error
 			user.FamilyName = &familyName
 		}
 	}
+	user.GivenName = &user_.Name.FirstName
+	user.FamilyName = &user_.Name.LastName
 
-	return nil, err
+	return user, err
 }
 
 func processDiscordUserInfo(ctx context.Context, code string) (*models.User, error) {
