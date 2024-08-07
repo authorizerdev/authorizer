@@ -101,7 +101,13 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			ctx.JSON(400, gin.H{"error": err.Error()})
 			return
 		}
-
+		if user == nil{
+			ctx.JSON(
+				500,
+				gin.H{"error": "Something Went Wrong. Please Try Again."},
+			)
+			return
+		}
 		existingUser, err := db.Provider.GetUserByEmail(ctx, refs.StringValue(user.Email))
 		log := log.WithField("user", user.Email)
 		isSignUp := false
