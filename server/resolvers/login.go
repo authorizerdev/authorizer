@@ -129,6 +129,19 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 				log.Debug("User email is not verified and email service is not enabled")
 				return res, fmt.Errorf(`email not verified`)
 			} else {
+				if vreq, err := db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeBasicAuthSignup); err == nil && vreq != nil {
+					// if verification request exists and not expired then return
+					// if verification request exists and expired then delete it and proceed
+					if vreq.ExpiresAt <= time.Now().Unix() {
+						if err := db.Provider.DeleteVerificationRequest(ctx, vreq); err != nil {
+							log.Debug("Failed to delete verification request: ", err)
+							// continue with the flow
+						}
+					} else {
+						log.Debug("Verification request exists. Please verify email")
+						return res, fmt.Errorf(`email verification pending`)
+					}
+				}
 				expiresAt := time.Now().Add(1 * time.Minute).Unix()
 				otpData, err := generateOTP(expiresAt)
 				if err != nil {
@@ -152,7 +165,7 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 				}()
 				return &model.AuthResponse{
 					Message:                  "Please check email inbox for the OTP",
-					ShouldShowEmailOtpScreen: refs.NewBoolRef(isMobileLogin),
+					ShouldShowEmailOtpScreen: refs.NewBoolRef(isEmailLogin),
 				}, nil
 			}
 		}
