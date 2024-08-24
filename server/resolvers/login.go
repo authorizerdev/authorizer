@@ -129,6 +129,10 @@ func LoginResolver(ctx context.Context, params model.LoginInput) (*model.AuthRes
 				log.Debug("User email is not verified and email service is not enabled")
 				return res, fmt.Errorf(`email not verified`)
 			} else {
+				if vreq, err := db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeBasicAuthSignup); err == nil && vreq != nil {
+					log.Debug("Verification request exists. Please verify email")
+					return res, fmt.Errorf(`email verification pending`)
+				}
 				expiresAt := time.Now().Add(1 * time.Minute).Unix()
 				otpData, err := generateOTP(expiresAt)
 				if err != nil {
