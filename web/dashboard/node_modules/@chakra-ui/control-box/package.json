@@ -1,0 +1,45 @@
+{
+  "name": "@chakra-ui/control-box",
+  "version": "1.1.1",
+  "description": "Chakra UI ControlBox component",
+  "keywords": [
+    "checkbox",
+    "custom",
+    "input",
+    "react",
+    "chakra-ui"
+  ],
+  "author": "Segun Adebayo <sage@adebayosegun.com>",
+  "homepage": "https://github.com/chakra-ui/chakra-ui#readme",
+  "license": "MIT",
+  "main": "dist/chakra-ui-control-box.cjs.js",
+  "module": "dist/chakra-ui-control-box.esm.js",
+  "types": "dist/chakra-ui-control-box.cjs.d.ts",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chakra-ui/chakra-ui.git",
+    "directory": "packages/control-box"
+  },
+  "bugs": {
+    "url": "https://github.com/chakra-ui/chakra-ui/issues"
+  },
+  "dependencies": {
+    "@chakra-ui/utils": "1.9.1"
+  },
+  "devDependencies": {
+    "@chakra-ui/system": "1.8.1",
+    "react": "^17.0.1"
+  },
+  "peerDependencies": {
+    "@chakra-ui/system": ">=1.0.0",
+    "react": ">=16.8.6"
+  },
+  "sideEffects": false
+}

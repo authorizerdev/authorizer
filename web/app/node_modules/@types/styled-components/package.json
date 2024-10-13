@@ -1,0 +1,64 @@
+{
+    "name": "@types/styled-components",
+    "version": "5.1.25",
+    "description": "TypeScript definitions for styled-components",
+    "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/styled-components",
+    "license": "MIT",
+    "contributors": [
+        {
+            "name": "Igor Oleinikov",
+            "url": "https://github.com/Igorbek",
+            "githubUsername": "Igorbek"
+        },
+        {
+            "name": "Ihor Chulinda",
+            "url": "https://github.com/Igmat",
+            "githubUsername": "Igmat"
+        },
+        {
+            "name": "Jessica Franco",
+            "url": "https://github.com/Jessidhia",
+            "githubUsername": "Jessidhia"
+        },
+        {
+            "name": "Jason Killian",
+            "url": "https://github.com/jkillian",
+            "githubUsername": "jkillian"
+        },
+        {
+            "name": "Sebastian Silbermann",
+            "url": "https://github.com/eps1lon",
+            "githubUsername": "eps1lon"
+        },
+        {
+            "name": "Matthew Wagerfield",
+            "url": "https://github.com/wagerfield",
+            "githubUsername": "wagerfield"
+        },
+        {
+            "name": "Yuki Ito",
+            "url": "https://github.com/Lazyuki",
+            "githubUsername": "Lazyuki"
+        },
+        {
+            "name": "Aaron Reisman",
+            "url": "https://github.com/lifeiscontent",
+            "githubUsername": "lifeiscontent"
+        }
+    ],
+    "main": "",
+    "types": "index.d.ts",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+        "directory": "types/styled-components"
+    },
+    "scripts": {},
+    "dependencies": {
+        "@types/hoist-non-react-statics": "*",
+        "@types/react": "*",
+        "csstype": "^3.0.2"
+    },
+    "typesPublisherContentHash": "c3d4ec711de46298f89532a71cb5f3549e7798cab2d6d50cbb9760d5dd35625e",
+    "typeScriptVersion": "3.9"
+}

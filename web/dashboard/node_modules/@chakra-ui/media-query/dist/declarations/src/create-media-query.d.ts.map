@@ -1,0 +1,1 @@
+{"version":3,"file":"create-media-query.d.ts","sourceRoot":"../../../src","sources":["create-media-query.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,IAAI,EAA4B,MAAM,kBAAkB,CAAA;AAEjE,MAAM,CAAC,OAAO,UAAU,kBAAkB,CAAC,WAAW,EAAE,IAAI,GAAG,UAAU,EAAE,CAuB1E;AA4BD,UAAU,UAAU;IAClB,UAAU,EAAE,MAAM,CAAA;IAClB,QAAQ,CAAC,EAAE,MAAM,CAAA;IACjB,QAAQ,EAAE,MAAM,CAAA;IAChB,KAAK,EAAE,MAAM,CAAA;CACd"}

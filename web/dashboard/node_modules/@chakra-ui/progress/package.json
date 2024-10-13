@@ -1,0 +1,46 @@
+{
+  "name": "@chakra-ui/progress",
+  "version": "1.2.1",
+  "description": "Progress bar component for Chakra UI",
+  "keywords": [
+    "theme",
+    "theming",
+    "chakra ui",
+    "progress",
+    "progress bar"
+  ],
+  "sideEffects": false,
+  "author": "Segun Adebayo <sage@adebayosegun.com>",
+  "homepage": "https://github.com/chakra-ui/chakra-ui#readme",
+  "license": "MIT",
+  "main": "dist/chakra-ui-progress.cjs.js",
+  "module": "dist/chakra-ui-progress.esm.js",
+  "types": "dist/chakra-ui-progress.cjs.d.ts",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chakra-ui/chakra-ui.git",
+    "directory": "packages/progress"
+  },
+  "bugs": {
+    "url": "https://github.com/chakra-ui/chakra-ui/issues"
+  },
+  "dependencies": {
+    "@chakra-ui/theme-tools": "1.3.1",
+    "@chakra-ui/utils": "1.9.1"
+  },
+  "devDependencies": {
+    "@chakra-ui/system": "1.8.1",
+    "react": "^17.0.1"
+  },
+  "peerDependencies": {
+    "@chakra-ui/system": ">=1.0.0",
+    "react": ">=16.8.6"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "name": "@chakra-ui/focus-lock",
+  "version": "1.2.1",
+  "description": "React focus lock for all Chakra components",
+  "keywords": [
+    "react focus lock",
+    "focus trap",
+    "focus",
+    "chakra ui",
+    "react"
+  ],
+  "sideEffects": false,
+  "author": "Segun Adebayo <sage@adebayosegun.com>",
+  "homepage": "https://github.com/chakra-ui/chakra-ui#readme",
+  "license": "MIT",
+  "main": "dist/chakra-ui-focus-lock.cjs.js",
+  "module": "dist/chakra-ui-focus-lock.esm.js",
+  "types": "dist/chakra-ui-focus-lock.cjs.d.ts",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chakra-ui/chakra-ui.git",
+    "directory": "packages/focus-lock"
+  },
+  "bugs": {
+    "url": "https://github.com/chakra-ui/chakra-ui/issues"
+  },
+  "dependencies": {
+    "@chakra-ui/utils": "1.9.1",
+    "react-focus-lock": "2.5.2"
+  },
+  "peerDependencies": {
+    "react": ">=16.8.6"
+  },
+  "devDependencies": {
+    "react": "^17.0.1"
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "name": "@chakra-ui/table",
+  "version": "1.3.1",
+  "description": "Table component for React and Chakra UI",
+  "keywords": [
+    "react",
+    "react component",
+    "table",
+    "accessible table",
+    "a11y table",
+    "react a11y table",
+    "react accessible table",
+    "react table",
+    "chakra ui",
+    "chakra",
+    "react table component",
+    "a11y",
+    "react aria table",
+    "aria",
+    "aria table"
+  ],
+  "sideEffects": false,
+  "author": "Tim Kolberger <tim@kolberger.eu>",
+  "homepage": "https://github.com/chakra-ui/chakra-ui#readme",
+  "license": "MIT",
+  "main": "dist/chakra-ui-table.cjs.js",
+  "module": "dist/chakra-ui-table.esm.js",
+  "types": "dist/chakra-ui-table.cjs.d.ts",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chakra-ui/chakra-ui.git",
+    "directory": "packages/table"
+  },
+  "bugs": {
+    "url": "https://github.com/chakra-ui/chakra-ui/issues"
+  },
+  "dependencies": {
+    "@chakra-ui/utils": "1.9.1"
+  },
+  "devDependencies": {
+    "@chakra-ui/button": "1.5.1",
+    "@chakra-ui/icons": "1.1.1",
+    "@chakra-ui/system": "1.8.1",
+    "@chakra-ui/test-utils": "1.1.1",
+    "react": "^17.0.1"
+  },
+  "peerDependencies": {
+    "@chakra-ui/system": ">=1.0.0",
+    "react": ">=16.8.6"
+  }
+}
