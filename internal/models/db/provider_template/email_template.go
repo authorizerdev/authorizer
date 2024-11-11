@@ -4,13 +4,14 @@ import (
 	"context"
 	"time"
 
-	"github.com/authorizerdev/authorizer/internal/db/models"
-	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/google/uuid"
+
+	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/models/schemas"
 )
 
 // AddEmailTemplate to add EmailTemplate
-func (p *provider) AddEmailTemplate(ctx context.Context, emailTemplate *models.EmailTemplate) (*model.EmailTemplate, error) {
+func (p *provider) AddEmailTemplate(ctx context.Context, emailTemplate *schemas.EmailTemplate) (*model.EmailTemplate, error) {
 	if emailTemplate.ID == "" {
 		emailTemplate.ID = uuid.New().String()
 	}
@@ -22,7 +23,7 @@ func (p *provider) AddEmailTemplate(ctx context.Context, emailTemplate *models.E
 }
 
 // UpdateEmailTemplate to update EmailTemplate
-func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate *models.EmailTemplate) (*model.EmailTemplate, error) {
+func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate *schemas.EmailTemplate) (*model.EmailTemplate, error) {
 	emailTemplate.UpdatedAt = time.Now().Unix()
 	return emailTemplate.AsAPIEmailTemplate(), nil
 }

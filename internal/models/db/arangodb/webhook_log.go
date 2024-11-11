@@ -6,13 +6,14 @@ import (
 	"time"
 
 	arangoDriver "github.com/arangodb/go-driver"
-	"github.com/authorizerdev/authorizer/internal/db/models"
-	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/google/uuid"
+
+	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/models/schemas"
 )
 
 // AddWebhookLog to add webhook log
-func (p *provider) AddWebhookLog(ctx context.Context, webhookLog *models.WebhookLog) (*model.WebhookLog, error) {
+func (p *provider) AddWebhookLog(ctx context.Context, webhookLog *schemas.WebhookLog) (*model.WebhookLog, error) {
 	if webhookLog.ID == "" {
 		webhookLog.ID = uuid.New().String()
 		webhookLog.Key = webhookLog.ID
@@ -20,7 +21,7 @@ func (p *provider) AddWebhookLog(ctx context.Context, webhookLog *models.Webhook
 	webhookLog.Key = webhookLog.ID
 	webhookLog.CreatedAt = time.Now().Unix()
 	webhookLog.UpdatedAt = time.Now().Unix()
-	webhookLogCollection, _ := p.db.Collection(ctx, models.Collections.WebhookLog)
+	webhookLogCollection, _ := p.db.Collection(ctx, schemas.Collections.WebhookLog)
 	_, err := webhookLogCollection.CreateDocument(ctx, webhookLog)
 	if err != nil {
 		return nil, err
@@ -32,9 +33,9 @@ func (p *provider) AddWebhookLog(ctx context.Context, webhookLog *models.Webhook
 func (p *provider) ListWebhookLogs(ctx context.Context, pagination *model.Pagination, webhookID string) (*model.WebhookLogs, error) {
 	webhookLogs := []*model.WebhookLog{}
 	bindVariables := map[string]interface{}{}
-	query := fmt.Sprintf("FOR d in %s SORT d.created_at DESC LIMIT %d, %d RETURN d", models.Collections.WebhookLog, pagination.Offset, pagination.Limit)
+	query := fmt.Sprintf("FOR d in %s SORT d.created_at DESC LIMIT %d, %d RETURN d", schemas.Collections.WebhookLog, pagination.Offset, pagination.Limit)
 	if webhookID != "" {
-		query = fmt.Sprintf("FOR d in %s FILTER d.webhook_id == @webhook_id SORT d.created_at DESC LIMIT %d, %d RETURN d", models.Collections.WebhookLog, pagination.Offset, pagination.Limit)
+		query = fmt.Sprintf("FOR d in %s FILTER d.webhook_id == @webhook_id SORT d.created_at DESC LIMIT %d, %d RETURN d", schemas.Collections.WebhookLog, pagination.Offset, pagination.Limit)
 		bindVariables = map[string]interface{}{
 			"webhook_id": webhookID,
 		}
@@ -48,7 +49,7 @@ func (p *provider) ListWebhookLogs(ctx context.Context, pagination *model.Pagina
 	paginationClone := pagination
 	paginationClone.Total = cursor.Statistics().FullCount()
 	for {
-		var webhookLog *models.WebhookLog
+		var webhookLog *schemas.WebhookLog
 		meta, err := cursor.ReadDocument(ctx, &webhookLog)
 		if arangoDriver.IsNoMoreDocuments(err) {
 			break

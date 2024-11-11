@@ -8,14 +8,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/authorizerdev/authorizer/internal/db/models"
-	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/couchbase/gocb/v2"
 	"github.com/google/uuid"
+
+	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/models/schemas"
 )
 
 // AddWebhook to add webhook
-func (p *provider) AddWebhook(ctx context.Context, webhook *models.Webhook) (*model.Webhook, error) {
+func (p *provider) AddWebhook(ctx context.Context, webhook *schemas.Webhook) (*model.Webhook, error) {
 	if webhook.ID == "" {
 		webhook.ID = uuid.New().String()
 	}
@@ -27,7 +28,7 @@ func (p *provider) AddWebhook(ctx context.Context, webhook *models.Webhook) (*mo
 	insertOpt := gocb.InsertOptions{
 		Context: ctx,
 	}
-	_, err := p.db.Collection(models.Collections.Webhook).Insert(webhook.ID, webhook, &insertOpt)
+	_, err := p.db.Collection(schemas.Collections.Webhook).Insert(webhook.ID, webhook, &insertOpt)
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +36,7 @@ func (p *provider) AddWebhook(ctx context.Context, webhook *models.Webhook) (*mo
 }
 
 // UpdateWebhook to update webhook
-func (p *provider) UpdateWebhook(ctx context.Context, webhook *models.Webhook) (*model.Webhook, error) {
+func (p *provider) UpdateWebhook(ctx context.Context, webhook *schemas.Webhook) (*model.Webhook, error) {
 	webhook.UpdatedAt = time.Now().Unix()
 	// Event is changed
 	if !strings.Contains(webhook.EventName, "-") {
@@ -54,7 +55,7 @@ func (p *provider) UpdateWebhook(ctx context.Context, webhook *models.Webhook) (
 		return nil, err
 	}
 	updateFields, params := GetSetFields(webhookMap)
-	query := fmt.Sprintf(`UPDATE %s.%s SET %s WHERE _id='%s'`, p.scopeName, models.Collections.Webhook, updateFields, webhook.ID)
+	query := fmt.Sprintf(`UPDATE %s.%s SET %s WHERE _id='%s'`, p.scopeName, schemas.Collections.Webhook, updateFields, webhook.ID)
 	_, err = p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
@@ -74,12 +75,12 @@ func (p *provider) ListWebhook(ctx context.Context, pagination *model.Pagination
 	params := make(map[string]interface{}, 1)
 	params["offset"] = paginationClone.Offset
 	params["limit"] = paginationClone.Limit
-	total, err := p.GetTotalDocs(ctx, models.Collections.Webhook)
+	total, err := p.GetTotalDocs(ctx, schemas.Collections.Webhook)
 	if err != nil {
 		return nil, err
 	}
 	paginationClone.Total = total
-	query := fmt.Sprintf("SELECT _id, event_description, event_name, endpoint, headers, enabled, created_at, updated_at FROM %s.%s OFFSET $offset LIMIT $limit", p.scopeName, models.Collections.Webhook)
+	query := fmt.Sprintf("SELECT _id, event_description, event_name, endpoint, headers, enabled, created_at, updated_at FROM %s.%s OFFSET $offset LIMIT $limit", p.scopeName, schemas.Collections.Webhook)
 	queryResult, err := p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
@@ -89,7 +90,7 @@ func (p *provider) ListWebhook(ctx context.Context, pagination *model.Pagination
 		return nil, err
 	}
 	for queryResult.Next() {
-		var webhook models.Webhook
+		var webhook schemas.Webhook
 		err := queryResult.Row(&webhook)
 		if err != nil {
 			log.Fatal(err)
@@ -107,10 +108,10 @@ func (p *provider) ListWebhook(ctx context.Context, pagination *model.Pagination
 
 // GetWebhookByID to get webhook by id
 func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*model.Webhook, error) {
-	var webhook *models.Webhook
+	var webhook *schemas.Webhook
 	params := make(map[string]interface{}, 1)
 	params["_id"] = webhookID
-	query := fmt.Sprintf(`SELECT _id, event_description, event_name, endpoint, headers, enabled, created_at, updated_at FROM %s.%s WHERE _id=$_id LIMIT 1`, p.scopeName, models.Collections.Webhook)
+	query := fmt.Sprintf(`SELECT _id, event_description, event_name, endpoint, headers, enabled, created_at, updated_at FROM %s.%s WHERE _id=$_id LIMIT 1`, p.scopeName, schemas.Collections.Webhook)
 	q, err := p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
@@ -130,7 +131,7 @@ func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*model
 func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) ([]*model.Webhook, error) {
 	params := make(map[string]interface{}, 1)
 	// params["event_name"] = eventName + "%"
-	query := fmt.Sprintf(`SELECT _id, event_description, event_name, endpoint, headers, enabled, created_at, updated_at FROM %s.%s WHERE event_name LIKE '%s'`, p.scopeName, models.Collections.Webhook, eventName+"%")
+	query := fmt.Sprintf(`SELECT _id, event_description, event_name, endpoint, headers, enabled, created_at, updated_at FROM %s.%s WHERE event_name LIKE '%s'`, p.scopeName, schemas.Collections.Webhook, eventName+"%")
 	queryResult, err := p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
@@ -141,7 +142,7 @@ func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) 
 	}
 	webhooks := []*model.Webhook{}
 	for queryResult.Next() {
-		var webhook *models.Webhook
+		var webhook *schemas.Webhook
 		err := queryResult.Row(&webhook)
 		if err != nil {
 			log.Fatal(err)
@@ -161,11 +162,11 @@ func (p *provider) DeleteWebhook(ctx context.Context, webhook *model.Webhook) er
 	removeOpt := gocb.RemoveOptions{
 		Context: ctx,
 	}
-	_, err := p.db.Collection(models.Collections.Webhook).Remove(webhook.ID, &removeOpt)
+	_, err := p.db.Collection(schemas.Collections.Webhook).Remove(webhook.ID, &removeOpt)
 	if err != nil {
 		return err
 	}
-	query := fmt.Sprintf(`DELETE FROM %s.%s WHERE webhook_id=$webhook_id`, p.scopeName, models.Collections.WebhookLog)
+	query := fmt.Sprintf(`DELETE FROM %s.%s WHERE webhook_id=$webhook_id`, p.scopeName, schemas.Collections.WebhookLog)
 	_, err = p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,

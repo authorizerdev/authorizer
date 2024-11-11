@@ -8,16 +8,19 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
-	"github.com/authorizerdev/authorizer/internal/db/models"
 	"github.com/authorizerdev/authorizer/internal/memorystore"
+	"github.com/authorizerdev/authorizer/internal/models/config"
+	"github.com/authorizerdev/authorizer/internal/models/schemas"
 )
 
 type provider struct {
-	db *dynamo.DB
+	Config config.Config
+	Deps   config.Dependencies
+	db     *dynamo.DB
 }
 
 // NewProvider returns a new Dynamo provider
-func NewProvider() (*provider, error) {
+func NewProvider(cfg config.Config, deps config.Dependencies) (*provider, error) {
 	dbURL := memorystore.RequiredEnvStoreObj.GetRequiredEnv().DatabaseURL
 	awsRegion := memorystore.RequiredEnvStoreObj.GetRequiredEnv().AwsRegion
 	awsAccessKeyID := memorystore.RequiredEnvStoreObj.GetRequiredEnv().AwsAccessKeyID
@@ -44,15 +47,15 @@ func NewProvider() (*provider, error) {
 	}
 	session := session.Must(session.NewSession(&config))
 	db := dynamo.New(session)
-	db.CreateTable(models.Collections.User, models.User{}).Wait()
-	db.CreateTable(models.Collections.Session, models.Session{}).Wait()
-	db.CreateTable(models.Collections.EmailTemplate, models.EmailTemplate{}).Wait()
-	db.CreateTable(models.Collections.Env, models.Env{}).Wait()
-	db.CreateTable(models.Collections.OTP, models.OTP{}).Wait()
-	db.CreateTable(models.Collections.VerificationRequest, models.VerificationRequest{}).Wait()
-	db.CreateTable(models.Collections.Webhook, models.Webhook{}).Wait()
-	db.CreateTable(models.Collections.WebhookLog, models.WebhookLog{}).Wait()
-	db.CreateTable(models.Collections.Authenticators, models.Authenticator{}).Wait()
+	db.CreateTable(schemas.Collections.User, schemas.User{}).Wait()
+	db.CreateTable(schemas.Collections.Session, schemas.Session{}).Wait()
+	db.CreateTable(schemas.Collections.EmailTemplate, schemas.EmailTemplate{}).Wait()
+	db.CreateTable(schemas.Collections.Env, schemas.Env{}).Wait()
+	db.CreateTable(schemas.Collections.OTP, schemas.OTP{}).Wait()
+	db.CreateTable(schemas.Collections.VerificationRequest, schemas.VerificationRequest{}).Wait()
+	db.CreateTable(schemas.Collections.Webhook, schemas.Webhook{}).Wait()
+	db.CreateTable(schemas.Collections.WebhookLog, schemas.WebhookLog{}).Wait()
+	db.CreateTable(schemas.Collections.Authenticators, schemas.Authenticator{}).Wait()
 	return &provider{
 		db: db,
 	}, nil

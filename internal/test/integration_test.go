@@ -9,9 +9,9 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/db"
-	"github.com/authorizerdev/authorizer/internal/db/models"
 	"github.com/authorizerdev/authorizer/internal/env"
 	"github.com/authorizerdev/authorizer/internal/memorystore"
+	"github.com/authorizerdev/authorizer/internal/models/db"
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
 

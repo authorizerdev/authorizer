@@ -1,11 +1,15 @@
 package totp
 
 import (
-	"context"
+	"github.com/authorizerdev/authorizer/internal/models"
 )
 
+type Dependencies struct {
+	model models.Provider
+}
+
 type provider struct {
-	ctx context.Context
+	deps Dependencies
 }
 
 // TOTPConfig defines totp config
@@ -15,9 +19,8 @@ type TOTPConfig struct {
 }
 
 // NewProvider returns a new totp provider
-func NewProvider() (*provider, error) {
-	ctx := context.Background()
+func NewProvider(deps Dependencies) (*provider, error) {
 	return &provider{
-		ctx: ctx,
+		deps: deps,
 	}, nil
 }

@@ -6,14 +6,15 @@ import (
 	"log"
 	"time"
 
-	"github.com/authorizerdev/authorizer/internal/db/models"
-	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/couchbase/gocb/v2"
 	"github.com/google/uuid"
+
+	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/models/schemas"
 )
 
 // AddWebhookLog to add webhook log
-func (p *provider) AddWebhookLog(ctx context.Context, webhookLog *models.WebhookLog) (*model.WebhookLog, error) {
+func (p *provider) AddWebhookLog(ctx context.Context, webhookLog *schemas.WebhookLog) (*model.WebhookLog, error) {
 	if webhookLog.ID == "" {
 		webhookLog.ID = uuid.New().String()
 	}
@@ -23,7 +24,7 @@ func (p *provider) AddWebhookLog(ctx context.Context, webhookLog *models.Webhook
 	insertOpt := gocb.InsertOptions{
 		Context: ctx,
 	}
-	_, err := p.db.Collection(models.Collections.WebhookLog).Insert(webhookLog.ID, webhookLog, &insertOpt)
+	_, err := p.db.Collection(schemas.Collections.WebhookLog).Insert(webhookLog.ID, webhookLog, &insertOpt)
 	if err != nil {
 		return nil, err
 	}
@@ -40,15 +41,15 @@ func (p *provider) ListWebhookLogs(ctx context.Context, pagination *model.Pagina
 	params["webhookID"] = webhookID
 	params["offset"] = paginationClone.Offset
 	params["limit"] = paginationClone.Limit
-	total, err := p.GetTotalDocs(ctx, models.Collections.WebhookLog)
+	total, err := p.GetTotalDocs(ctx, schemas.Collections.WebhookLog)
 	if err != nil {
 		return nil, err
 	}
 	paginationClone.Total = total
 	if webhookID != "" {
-		query = fmt.Sprintf(`SELECT _id, http_status, response, request, webhook_id, created_at, updated_at FROM %s.%s WHERE webhook_id=$webhookID`, p.scopeName, models.Collections.WebhookLog)
+		query = fmt.Sprintf(`SELECT _id, http_status, response, request, webhook_id, created_at, updated_at FROM %s.%s WHERE webhook_id=$webhookID`, p.scopeName, schemas.Collections.WebhookLog)
 	} else {
-		query = fmt.Sprintf("SELECT _id, http_status, response, request, webhook_id, created_at, updated_at FROM %s.%s OFFSET $offset LIMIT $limit", p.scopeName, models.Collections.WebhookLog)
+		query = fmt.Sprintf("SELECT _id, http_status, response, request, webhook_id, created_at, updated_at FROM %s.%s OFFSET $offset LIMIT $limit", p.scopeName, schemas.Collections.WebhookLog)
 	}
 	queryResult, err := p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
@@ -59,7 +60,7 @@ func (p *provider) ListWebhookLogs(ctx context.Context, pagination *model.Pagina
 		return nil, err
 	}
 	for queryResult.Next() {
-		var webhookLog models.WebhookLog
+		var webhookLog schemas.WebhookLog
 		err := queryResult.Row(&webhookLog)
 		if err != nil {
 			log.Fatal(err)

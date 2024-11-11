@@ -12,7 +12,7 @@ import (
 
 	// "golang.org/x/sync/errgroup"
 
-	"github.com/authorizerdev/authorizer/internal/models"
+	modelsConfig "github.com/authorizerdev/authorizer/internal/models/config"
 	"github.com/authorizerdev/authorizer/internal/server"
 )
 
@@ -23,7 +23,7 @@ var (
 	}
 	rootArgs struct {
 		server   server.Config
-		models   models.Config
+		models   modelsConfig.Config
 		logLevel string
 	}
 )

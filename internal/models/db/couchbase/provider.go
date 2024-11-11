@@ -11,8 +11,9 @@ import (
 
 	"github.com/couchbase/gocb/v2"
 
-	"github.com/authorizerdev/authorizer/internal/db/models"
 	"github.com/authorizerdev/authorizer/internal/memorystore"
+	"github.com/authorizerdev/authorizer/internal/models/config"
+	"github.com/authorizerdev/authorizer/internal/models/schemas"
 )
 
 const (
@@ -26,7 +27,7 @@ type provider struct {
 }
 
 // NewProvider returns a new Couchbase provider
-func NewProvider() (*provider, error) {
+func NewProvider(config config.Config, deps config.Dependencies) (*provider, error) {
 	bucketName := memorystore.RequiredEnvStoreObj.GetRequiredEnv().CouchbaseBucket
 	scopeName := memorystore.RequiredEnvStoreObj.GetRequiredEnv().CouchbaseScope
 	dbURL := memorystore.RequiredEnvStoreObj.GetRequiredEnv().DatabaseURL
@@ -53,7 +54,7 @@ func NewProvider() (*provider, error) {
 	}
 	scope := bucket.Scope(scopeName)
 	scopeIdentifier := fmt.Sprintf("%s.%s", bucketName, scopeName)
-	v := reflect.ValueOf(models.Collections)
+	v := reflect.ValueOf(schemas.Collections)
 	for i := 0; i < v.NumField(); i++ {
 		collectionName := v.Field(i)
 		user := gocb.CollectionSpec{
@@ -137,38 +138,38 @@ func GetIndex(scopeName string) map[string][]string {
 	indices := make(map[string][]string)
 
 	// User Index
-	userIndex1 := fmt.Sprintf("CREATE INDEX userEmailIndex ON %s.%s(email)", scopeName, models.Collections.User)
-	userIndex2 := fmt.Sprintf("CREATE INDEX userPhoneIndex ON %s.%s(phone_number)", scopeName, models.Collections.User)
-	indices[models.Collections.User] = []string{userIndex1, userIndex2}
+	userIndex1 := fmt.Sprintf("CREATE INDEX userEmailIndex ON %s.%s(email)", scopeName, schemas.Collections.User)
+	userIndex2 := fmt.Sprintf("CREATE INDEX userPhoneIndex ON %s.%s(phone_number)", scopeName, schemas.Collections.User)
+	indices[schemas.Collections.User] = []string{userIndex1, userIndex2}
 
 	// VerificationRequest
-	verificationIndex1 := fmt.Sprintf("CREATE INDEX verificationRequestTokenIndex ON %s.%s(token)", scopeName, models.Collections.VerificationRequest)
-	verificationIndex2 := fmt.Sprintf("CREATE INDEX verificationRequestEmailAndIdentifierIndex ON %s.%s(email,identifier)", scopeName, models.Collections.VerificationRequest)
-	indices[models.Collections.VerificationRequest] = []string{verificationIndex1, verificationIndex2}
+	verificationIndex1 := fmt.Sprintf("CREATE INDEX verificationRequestTokenIndex ON %s.%s(token)", scopeName, schemas.Collections.VerificationRequest)
+	verificationIndex2 := fmt.Sprintf("CREATE INDEX verificationRequestEmailAndIdentifierIndex ON %s.%s(email,identifier)", scopeName, schemas.Collections.VerificationRequest)
+	indices[schemas.Collections.VerificationRequest] = []string{verificationIndex1, verificationIndex2}
 
 	// Session index
-	sessionIndex1 := fmt.Sprintf("CREATE INDEX SessionUserIdIndex ON %s.%s(user_id)", scopeName, models.Collections.Session)
-	indices[models.Collections.Session] = []string{sessionIndex1}
+	sessionIndex1 := fmt.Sprintf("CREATE INDEX SessionUserIdIndex ON %s.%s(user_id)", scopeName, schemas.Collections.Session)
+	indices[schemas.Collections.Session] = []string{sessionIndex1}
 
 	// Webhook index
-	webhookIndex1 := fmt.Sprintf("CREATE INDEX webhookEventNameIndex ON %s.%s(event_name)", scopeName, models.Collections.Webhook)
-	indices[models.Collections.Webhook] = []string{webhookIndex1}
+	webhookIndex1 := fmt.Sprintf("CREATE INDEX webhookEventNameIndex ON %s.%s(event_name)", scopeName, schemas.Collections.Webhook)
+	indices[schemas.Collections.Webhook] = []string{webhookIndex1}
 
 	// WebhookLog index
-	webhookLogIndex1 := fmt.Sprintf("CREATE INDEX webhookLogIdIndex ON %s.%s(webhook_id)", scopeName, models.Collections.WebhookLog)
-	indices[models.Collections.Webhook] = []string{webhookLogIndex1}
+	webhookLogIndex1 := fmt.Sprintf("CREATE INDEX webhookLogIdIndex ON %s.%s(webhook_id)", scopeName, schemas.Collections.WebhookLog)
+	indices[schemas.Collections.Webhook] = []string{webhookLogIndex1}
 
 	// WebhookLog index
-	emailTempIndex1 := fmt.Sprintf("CREATE INDEX EmailTemplateEventNameIndex ON %s.%s(event_name)", scopeName, models.Collections.EmailTemplate)
-	indices[models.Collections.EmailTemplate] = []string{emailTempIndex1}
+	emailTempIndex1 := fmt.Sprintf("CREATE INDEX EmailTemplateEventNameIndex ON %s.%s(event_name)", scopeName, schemas.Collections.EmailTemplate)
+	indices[schemas.Collections.EmailTemplate] = []string{emailTempIndex1}
 
 	// OTP index
-	otpIndex1 := fmt.Sprintf("CREATE INDEX OTPEmailIndex ON %s.%s(email)", scopeName, models.Collections.OTP)
-	indices[models.Collections.OTP] = []string{otpIndex1}
+	otpIndex1 := fmt.Sprintf("CREATE INDEX OTPEmailIndex ON %s.%s(email)", scopeName, schemas.Collections.OTP)
+	indices[schemas.Collections.OTP] = []string{otpIndex1}
 
 	// OTP index
-	otpIndex2 := fmt.Sprintf("CREATE INDEX OTPPhoneNumberIndex ON %s.%s(phone_number)", scopeName, models.Collections.OTP)
-	indices[models.Collections.OTP] = []string{otpIndex2}
+	otpIndex2 := fmt.Sprintf("CREATE INDEX OTPPhoneNumberIndex ON %s.%s(phone_number)", scopeName, schemas.Collections.OTP)
+	indices[schemas.Collections.OTP] = []string{otpIndex2}
 
 	return indices
 }

@@ -10,13 +10,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/guregu/dynamo"
 
-	"github.com/authorizerdev/authorizer/internal/db/models"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/models/schemas"
 )
 
 // AddWebhook to add webhook
-func (p *provider) AddWebhook(ctx context.Context, webhook *models.Webhook) (*model.Webhook, error) {
-	collection := p.db.Table(models.Collections.Webhook)
+func (p *provider) AddWebhook(ctx context.Context, webhook *schemas.Webhook) (*model.Webhook, error) {
+	collection := p.db.Table(schemas.Collections.Webhook)
 	if webhook.ID == "" {
 		webhook.ID = uuid.New().String()
 	}
@@ -33,13 +33,13 @@ func (p *provider) AddWebhook(ctx context.Context, webhook *models.Webhook) (*mo
 }
 
 // UpdateWebhook to update webhook
-func (p *provider) UpdateWebhook(ctx context.Context, webhook *models.Webhook) (*model.Webhook, error) {
+func (p *provider) UpdateWebhook(ctx context.Context, webhook *schemas.Webhook) (*model.Webhook, error) {
 	webhook.UpdatedAt = time.Now().Unix()
 	// Event is changed
 	if !strings.Contains(webhook.EventName, "-") {
 		webhook.EventName = fmt.Sprintf("%s-%d", webhook.EventName, time.Now().Unix())
 	}
-	collection := p.db.Table(models.Collections.Webhook)
+	collection := p.db.Table(schemas.Collections.Webhook)
 	err := UpdateByHashKey(collection, "id", webhook.ID, webhook)
 	if err != nil {
 		return nil, err
@@ -50,11 +50,11 @@ func (p *provider) UpdateWebhook(ctx context.Context, webhook *models.Webhook) (
 // ListWebhooks to list webhook
 func (p *provider) ListWebhook(ctx context.Context, pagination *model.Pagination) (*model.Webhooks, error) {
 	webhooks := []*model.Webhook{}
-	var webhook *models.Webhook
+	var webhook *schemas.Webhook
 	var lastEval dynamo.PagingKey
 	var iter dynamo.PagingIter
 	var iteration int64 = 0
-	collection := p.db.Table(models.Collections.Webhook)
+	collection := p.db.Table(schemas.Collections.Webhook)
 	paginationClone := pagination
 	scanner := collection.Scan()
 	count, err := scanner.Count()
@@ -84,8 +84,8 @@ func (p *provider) ListWebhook(ctx context.Context, pagination *model.Pagination
 
 // GetWebhookByID to get webhook by id
 func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*model.Webhook, error) {
-	collection := p.db.Table(models.Collections.Webhook)
-	var webhook *models.Webhook
+	collection := p.db.Table(schemas.Collections.Webhook)
+	var webhook *schemas.Webhook
 	err := collection.Get("id", webhookID).OneWithContext(ctx, &webhook)
 	if err != nil {
 		return nil, err
@@ -98,8 +98,8 @@ func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*model
 
 // GetWebhookByEventName to get webhook by event_name
 func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) ([]*model.Webhook, error) {
-	webhooks := []models.Webhook{}
-	collection := p.db.Table(models.Collections.Webhook)
+	webhooks := []schemas.Webhook{}
+	collection := p.db.Table(schemas.Collections.Webhook)
 	err := collection.Scan().Index("event_name").Filter("contains(event_name, ?)", eventName).AllWithContext(ctx, &webhooks)
 	if err != nil {
 		return nil, err
@@ -115,8 +115,8 @@ func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) 
 func (p *provider) DeleteWebhook(ctx context.Context, webhook *model.Webhook) error {
 	// Also delete webhook logs for given webhook id
 	if webhook != nil {
-		webhookCollection := p.db.Table(models.Collections.Webhook)
-		webhookLogCollection := p.db.Table(models.Collections.WebhookLog)
+		webhookCollection := p.db.Table(schemas.Collections.Webhook)
+		webhookLogCollection := p.db.Table(schemas.Collections.WebhookLog)
 		err := webhookCollection.Delete("id", webhook.ID).RunWithContext(ctx)
 		if err != nil {
 			return err

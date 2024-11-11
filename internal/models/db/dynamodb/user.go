@@ -7,19 +7,20 @@ import (
 	"strings"
 	"time"
 
-	"github.com/authorizerdev/authorizer/internal/constants"
-	"github.com/authorizerdev/authorizer/internal/db/models"
-	"github.com/authorizerdev/authorizer/internal/graph/model"
-	"github.com/authorizerdev/authorizer/internal/memorystore"
-	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/google/uuid"
 	"github.com/guregu/dynamo"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/authorizerdev/authorizer/internal/constants"
+	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/memorystore"
+	"github.com/authorizerdev/authorizer/internal/models/schemas"
+	"github.com/authorizerdev/authorizer/internal/refs"
 )
 
 // AddUser to save user information in database
-func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User, error) {
-	collection := p.db.Table(models.Collections.User)
+func (p *provider) AddUser(ctx context.Context, user *schemas.User) (*schemas.User, error) {
+	collection := p.db.Table(schemas.Collections.User)
 	if user.ID == "" {
 		user.ID = uuid.New().String()
 	}
@@ -49,8 +50,8 @@ func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User
 }
 
 // UpdateUser to update user information in database
-func (p *provider) UpdateUser(ctx context.Context, user *models.User) (*models.User, error) {
-	collection := p.db.Table(models.Collections.User)
+func (p *provider) UpdateUser(ctx context.Context, user *schemas.User) (*schemas.User, error) {
+	collection := p.db.Table(schemas.Collections.User)
 	if user.ID != "" {
 		user.UpdatedAt = time.Now().Unix()
 		err := UpdateByHashKey(collection, "id", user.ID, user)
@@ -62,9 +63,9 @@ func (p *provider) UpdateUser(ctx context.Context, user *models.User) (*models.U
 }
 
 // DeleteUser to delete user information from database
-func (p *provider) DeleteUser(ctx context.Context, user *models.User) error {
-	collection := p.db.Table(models.Collections.User)
-	sessionCollection := p.db.Table(models.Collections.Session)
+func (p *provider) DeleteUser(ctx context.Context, user *schemas.User) error {
+	collection := p.db.Table(schemas.Collections.User)
+	sessionCollection := p.db.Table(schemas.Collections.Session)
 	if user.ID != "" {
 		err := collection.Delete("id", user.ID).Run()
 		if err != nil {
@@ -80,11 +81,11 @@ func (p *provider) DeleteUser(ctx context.Context, user *models.User) error {
 
 // ListUsers to get list of users from database
 func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) (*model.Users, error) {
-	var user *models.User
+	var user *schemas.User
 	var lastEval dynamo.PagingKey
 	var iter dynamo.PagingIter
 	var iteration int64 = 0
-	collection := p.db.Table(models.Collections.User)
+	collection := p.db.Table(schemas.Collections.User)
 	users := []*model.User{}
 	paginationClone := pagination
 	scanner := collection.Scan()
@@ -114,10 +115,10 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) 
 }
 
 // GetUserByEmail to get user information from database using email address
-func (p *provider) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
-	var users []*models.User
-	var user *models.User
-	collection := p.db.Table(models.Collections.User)
+func (p *provider) GetUserByEmail(ctx context.Context, email string) (*schemas.User, error) {
+	var users []*schemas.User
+	var user *schemas.User
+	collection := p.db.Table(schemas.Collections.User)
 	err := collection.Scan().Index("email").Filter("'email' = ?", email).AllWithContext(ctx, &users)
 	if err != nil {
 		return user, nil
@@ -131,9 +132,9 @@ func (p *provider) GetUserByEmail(ctx context.Context, email string) (*models.Us
 }
 
 // GetUserByID to get user information from database using user ID
-func (p *provider) GetUserByID(ctx context.Context, id string) (*models.User, error) {
-	collection := p.db.Table(models.Collections.User)
-	var user *models.User
+func (p *provider) GetUserByID(ctx context.Context, id string) (*schemas.User, error) {
+	collection := p.db.Table(schemas.Collections.User)
+	var user *schemas.User
 	err := collection.Get("id", id).OneWithContext(ctx, &user)
 	if err != nil {
 		if refs.StringValue(user.Email) == "" {
@@ -149,8 +150,8 @@ func (p *provider) GetUserByID(ctx context.Context, id string) (*models.User, er
 // If ids set to nil / empty all the users will be updated
 func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{}, ids []string) error {
 	// set updated_at time for all users
-	userCollection := p.db.Table(models.Collections.User)
-	var allUsers []models.User
+	userCollection := p.db.Table(schemas.Collections.User)
+	var allUsers []schemas.User
 	var res int64 = 0
 	var err error
 	if len(ids) > 0 {
@@ -176,10 +177,10 @@ func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{},
 }
 
 // GetUserByPhoneNumber to get user information from database using phone number
-func (p *provider) GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (*models.User, error) {
-	var users []*models.User
-	var user *models.User
-	collection := p.db.Table(models.Collections.User)
+func (p *provider) GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (*schemas.User, error) {
+	var users []*schemas.User
+	var user *schemas.User
+	collection := p.db.Table(schemas.Collections.User)
 	err := collection.Scan().Filter("'phone_number' = ?", phoneNumber).AllWithContext(ctx, &users)
 	if err != nil {
 		return nil, err

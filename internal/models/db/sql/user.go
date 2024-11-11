@@ -6,17 +6,18 @@ import (
 	"strings"
 	"time"
 
-	"github.com/authorizerdev/authorizer/internal/constants"
-	"github.com/authorizerdev/authorizer/internal/db/models"
-	"github.com/authorizerdev/authorizer/internal/graph/model"
-	"github.com/authorizerdev/authorizer/internal/memorystore"
-	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+
+	"github.com/authorizerdev/authorizer/internal/constants"
+	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/memorystore"
+	"github.com/authorizerdev/authorizer/internal/models/schemas"
+	"github.com/authorizerdev/authorizer/internal/refs"
 )
 
 // AddUser to save user information in database
-func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User, error) {
+func (p *provider) AddUser(ctx context.Context, user *schemas.User) (*schemas.User, error) {
 	if user.ID == "" {
 		user.ID = uuid.New().String()
 	}
@@ -52,7 +53,7 @@ func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User
 }
 
 // UpdateUser to update user information in database
-func (p *provider) UpdateUser(ctx context.Context, user *models.User) (*models.User, error) {
+func (p *provider) UpdateUser(ctx context.Context, user *schemas.User) (*schemas.User, error) {
 	user.UpdatedAt = time.Now().Unix()
 
 	result := p.db.Save(&user)
@@ -65,8 +66,8 @@ func (p *provider) UpdateUser(ctx context.Context, user *models.User) (*models.U
 }
 
 // DeleteUser to delete user information from database
-func (p *provider) DeleteUser(ctx context.Context, user *models.User) error {
-	result := p.db.Where("user_id = ?", user.ID).Delete(&models.Session{})
+func (p *provider) DeleteUser(ctx context.Context, user *schemas.User) error {
+	result := p.db.Where("user_id = ?", user.ID).Delete(&schemas.Session{})
 	if result.Error != nil {
 		return result.Error
 	}
@@ -81,7 +82,7 @@ func (p *provider) DeleteUser(ctx context.Context, user *models.User) error {
 
 // ListUsers to get list of users from database
 func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) (*model.Users, error) {
-	var users []models.User
+	var users []schemas.User
 	result := p.db.Limit(int(pagination.Limit)).Offset(int(pagination.Offset)).Order("created_at DESC").Find(&users)
 	if result.Error != nil {
 		return nil, result.Error
@@ -93,7 +94,7 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) 
 	}
 
 	var total int64
-	totalRes := p.db.Model(&models.User{}).Count(&total)
+	totalRes := p.db.Model(&schemas.User{}).Count(&total)
 	if totalRes.Error != nil {
 		return nil, totalRes.Error
 	}
@@ -108,8 +109,8 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) 
 }
 
 // GetUserByEmail to get user information from database using email address
-func (p *provider) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
-	var user *models.User
+func (p *provider) GetUserByEmail(ctx context.Context, email string) (*schemas.User, error) {
+	var user *schemas.User
 	result := p.db.Where("email = ?", email).First(&user)
 	if result.Error != nil {
 		return nil, result.Error
@@ -118,8 +119,8 @@ func (p *provider) GetUserByEmail(ctx context.Context, email string) (*models.Us
 }
 
 // GetUserByID to get user information from database using user ID
-func (p *provider) GetUserByID(ctx context.Context, id string) (*models.User, error) {
-	var user *models.User
+func (p *provider) GetUserByID(ctx context.Context, id string) (*schemas.User, error) {
+	var user *schemas.User
 	result := p.db.Where("id = ?", id).First(&user)
 	if result.Error != nil {
 		return nil, result.Error
@@ -134,9 +135,9 @@ func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{},
 	data["updated_at"] = time.Now().Unix()
 	var res *gorm.DB
 	if len(ids) > 0 {
-		res = p.db.Model(&models.User{}).Where("id in ?", ids).Updates(data)
+		res = p.db.Model(&schemas.User{}).Where("id in ?", ids).Updates(data)
 	} else {
-		res = p.db.Model(&models.User{}).Updates(data)
+		res = p.db.Model(&schemas.User{}).Updates(data)
 	}
 	if res.Error != nil {
 		return res.Error
@@ -145,8 +146,8 @@ func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{},
 }
 
 // GetUserByPhoneNumber to get user information from database using phone number
-func (p *provider) GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (*models.User, error) {
-	var user *models.User
+func (p *provider) GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (*schemas.User, error) {
+	var user *schemas.User
 	result := p.db.Where("phone_number = ?", phoneNumber).First(&user)
 	if result.Error != nil {
 		return nil, result.Error

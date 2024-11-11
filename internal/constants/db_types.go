@@ -17,9 +17,12 @@ const (
 	DbTypeMariaDB = "mariadb"
 	// DbTypePlanetScaleDB is the planetscale database type
 	DbTypePlanetScaleDB = "planetscale"
+	// DbTypeCockroachDB is the cockroach database type
+	DbTypeCockroachDB = "cockroachdb"
 
 	// DbTypeArangoDB is the arangodb database type
 	DbTypeArangoDB = "arangodb"
+
 	// DbTypeMongoDB is the mongodb database type
 	DbTypeMongoDB = "mongodb"
 
@@ -28,10 +31,9 @@ const (
 	// DbTypeScyllaDB is the scylla database type
 	DbTypeScyllaDB = "scylladb"
 
-	// DbTypeCockroachDB is the cockroach database type
-	DbTypeCockroachDB = "cockroachdb"
 	// DbTypeDynamoDB is the Dynamo database type
 	DbTypeDynamoDB = "dynamodb"
+
 	// DbTypeCouchbaseDB is the Couchbase database type
 	DbTypeCouchbaseDB = "couchbase"
 )

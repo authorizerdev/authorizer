@@ -17,8 +17,8 @@ import (
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/crypto"
-	"github.com/authorizerdev/authorizer/internal/db/models"
 	"github.com/authorizerdev/authorizer/internal/memorystore"
+	"github.com/authorizerdev/authorizer/internal/models/schemas"
 	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
@@ -52,7 +52,7 @@ type SessionData struct {
 }
 
 // CreateAuthToken creates a new auth token when userlogs in
-func CreateAuthToken(gc *gin.Context, user *models.User, roles, scope []string, loginMethod, nonce string, code string) (*Token, error) {
+func CreateAuthToken(gc *gin.Context, user *schemas.User, roles, scope []string, loginMethod, nonce string, code string) (*Token, error) {
 	hostname := parsers.GetHost(gc)
 	_, fingerPrintHash, sessionTokenExpiresAt, err := CreateSessionToken(user, nonce, roles, scope, loginMethod)
 	if err != nil {
@@ -104,7 +104,7 @@ func CreateAuthToken(gc *gin.Context, user *models.User, roles, scope []string, 
 }
 
 // CreateSessionToken creates a new session token
-func CreateSessionToken(user *models.User, nonce string, roles, scope []string, loginMethod string) (*SessionData, string, int64, error) {
+func CreateSessionToken(user *schemas.User, nonce string, roles, scope []string, loginMethod string) (*SessionData, string, int64, error) {
 	expiresAt := time.Now().AddDate(1, 0, 0).Unix()
 	fingerPrintMap := &SessionData{
 		Nonce:       nonce,
@@ -125,7 +125,7 @@ func CreateSessionToken(user *models.User, nonce string, roles, scope []string, 
 }
 
 // CreateRefreshToken util to create JWT token
-func CreateRefreshToken(user *models.User, roles, scopes []string, hostname, nonce, loginMethod string) (string, int64, error) {
+func CreateRefreshToken(user *schemas.User, roles, scopes []string, hostname, nonce, loginMethod string) (string, int64, error) {
 	// expires in 1 year
 	expiryBound := time.Hour * 8760
 	expiresAt := time.Now().Add(expiryBound).Unix()
@@ -157,7 +157,7 @@ func CreateRefreshToken(user *models.User, roles, scopes []string, hostname, non
 
 // CreateAccessToken util to create JWT token, based on
 // user information, roles config and CUSTOM_ACCESS_TOKEN_SCRIPT
-func CreateAccessToken(user *models.User, roles, scopes []string, hostName, nonce, loginMethod string) (string, int64, error) {
+func CreateAccessToken(user *schemas.User, roles, scopes []string, hostName, nonce, loginMethod string) (string, int64, error) {
 	expireTime, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAccessTokenExpiryTime)
 	if err != nil {
 		return "", 0, err
@@ -372,7 +372,7 @@ func ValidateBrowserSession(gc *gin.Context, encryptedSession string) (*SessionD
 // user information, roles config and CUSTOM_ACCESS_TOKEN_SCRIPT
 // For response_type (code) / authorization_code grant nonce should be empty
 // for implicit flow it should be present to verify with actual state
-func CreateIDToken(user *models.User, roles []string, hostname, nonce, atHash, cHash, loginMethod string) (string, int64, error) {
+func CreateIDToken(user *schemas.User, roles []string, hostname, nonce, atHash, cHash, loginMethod string) (string, int64, error) {
 	expireTime, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAccessTokenExpiryTime)
 	if err != nil {
 		return "", 0, err

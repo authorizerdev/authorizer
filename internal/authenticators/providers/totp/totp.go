@@ -15,8 +15,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/authenticators/providers"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/crypto"
-	"github.com/authorizerdev/authorizer/internal/db"
-	"github.com/authorizerdev/authorizer/internal/db/models"
+	"github.com/authorizerdev/authorizer/internal/models/schemas"
 	"github.com/authorizerdev/authorizer/internal/refs"
 )
 
@@ -24,7 +23,7 @@ import (
 func (p *provider) Generate(ctx context.Context, id string) (*providers.AuthenticatorConfig, error) {
 	var buf bytes.Buffer
 	//get user details
-	user, err := db.Provider.GetUserByID(ctx, id)
+	user, err := p.deps.model.GetUserByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -59,20 +58,20 @@ func (p *provider) Generate(ctx context.Context, id string) (*providers.Authenti
 		return nil, err
 	}
 	recoveryCodesString := string(jsonData)
-	totpModel := &models.Authenticator{
+	totpModel := &schemas.Authenticator{
 		Secret:        secret,
 		RecoveryCodes: refs.NewStringRef(recoveryCodesString),
 		UserID:        user.ID,
 		Method:        constants.EnvKeyTOTPAuthenticator,
 	}
-	authenticator, err := db.Provider.GetAuthenticatorDetailsByUserId(ctx, user.ID, constants.EnvKeyTOTPAuthenticator)
+	authenticator, err := p.deps.model.GetAuthenticatorDetailsByUserId(ctx, user.ID, constants.EnvKeyTOTPAuthenticator)
 	if err != nil {
 		log.Debug("Failed to get authenticator details by user id, creating new record: ", err)
 		// continue
 	}
 	if authenticator == nil {
 		// if authenticator is nil then create new authenticator
-		_, err = db.Provider.AddAuthenticator(ctx, totpModel)
+		_, err = p.deps.model.AddAuthenticator(ctx, totpModel)
 		if err != nil {
 			return nil, err
 		}
@@ -80,7 +79,7 @@ func (p *provider) Generate(ctx context.Context, id string) (*providers.Authenti
 		authenticator.Secret = secret
 		authenticator.RecoveryCodes = refs.NewStringRef(recoveryCodesString)
 		// if authenticator is not nil then update authenticator
-		_, err = db.Provider.UpdateAuthenticator(ctx, authenticator)
+		_, err = p.deps.model.UpdateAuthenticator(ctx, authenticator)
 		if err != nil {
 			return nil, err
 		}
@@ -96,7 +95,7 @@ func (p *provider) Generate(ctx context.Context, id string) (*providers.Authenti
 // Validate validates a Time-Based One-Time Password (TOTP) against the stored TOTP secret for a user.
 func (p *provider) Validate(ctx context.Context, passcode string, userID string) (bool, error) {
 	// get totp details
-	totpModel, err := db.Provider.GetAuthenticatorDetailsByUserId(ctx, userID, constants.EnvKeyTOTPAuthenticator)
+	totpModel, err := p.deps.model.GetAuthenticatorDetailsByUserId(ctx, userID, constants.EnvKeyTOTPAuthenticator)
 	if err != nil {
 		return false, err
 	}
@@ -106,7 +105,7 @@ func (p *provider) Validate(ctx context.Context, passcode string, userID string)
 	if totpModel.VerifiedAt == nil && status {
 		timeNow := time.Now().Unix()
 		totpModel.VerifiedAt = &timeNow
-		_, err = db.Provider.UpdateAuthenticator(ctx, totpModel)
+		_, err = p.deps.model.UpdateAuthenticator(ctx, totpModel)
 		if err != nil {
 			return false, err
 		}
@@ -117,7 +116,7 @@ func (p *provider) Validate(ctx context.Context, passcode string, userID string)
 // ValidateRecoveryCode validates a Time-Based One-Time Password (TOTP) recovery code against the stored TOTP recovery code for a user.
 func (p *provider) ValidateRecoveryCode(ctx context.Context, recoveryCode, userID string) (bool, error) {
 	// get totp details
-	totpModel, err := db.Provider.GetAuthenticatorDetailsByUserId(ctx, userID, constants.EnvKeyTOTPAuthenticator)
+	totpModel, err := p.deps.model.GetAuthenticatorDetailsByUserId(ctx, userID, constants.EnvKeyTOTPAuthenticator)
 	if err != nil {
 		return false, err
 	}
@@ -143,7 +142,7 @@ func (p *provider) ValidateRecoveryCode(ctx context.Context, recoveryCode, userI
 	recoveryCodesString := string(jsonData)
 	totpModel.RecoveryCodes = refs.NewStringRef(recoveryCodesString)
 	// update recovery code map in db
-	_, err = db.Provider.UpdateAuthenticator(ctx, totpModel)
+	_, err = p.deps.model.UpdateAuthenticator(ctx, totpModel)
 	if err != nil {
 		return false, err
 	}

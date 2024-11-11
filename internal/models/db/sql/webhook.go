@@ -6,13 +6,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/authorizerdev/authorizer/internal/db/models"
-	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/google/uuid"
+
+	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/models/schemas"
 )
 
 // AddWebhook to add webhook
-func (p *provider) AddWebhook(ctx context.Context, webhook *models.Webhook) (*model.Webhook, error) {
+func (p *provider) AddWebhook(ctx context.Context, webhook *schemas.Webhook) (*model.Webhook, error) {
 	if webhook.ID == "" {
 		webhook.ID = uuid.New().String()
 	}
@@ -29,7 +30,7 @@ func (p *provider) AddWebhook(ctx context.Context, webhook *models.Webhook) (*mo
 }
 
 // UpdateWebhook to update webhook
-func (p *provider) UpdateWebhook(ctx context.Context, webhook *models.Webhook) (*model.Webhook, error) {
+func (p *provider) UpdateWebhook(ctx context.Context, webhook *schemas.Webhook) (*model.Webhook, error) {
 	webhook.UpdatedAt = time.Now().Unix()
 	// Event is changed
 	if !strings.Contains(webhook.EventName, "-") {
@@ -44,13 +45,13 @@ func (p *provider) UpdateWebhook(ctx context.Context, webhook *models.Webhook) (
 
 // ListWebhooks to list webhook
 func (p *provider) ListWebhook(ctx context.Context, pagination *model.Pagination) (*model.Webhooks, error) {
-	var webhooks []models.Webhook
+	var webhooks []schemas.Webhook
 	result := p.db.Limit(int(pagination.Limit)).Offset(int(pagination.Offset)).Order("created_at DESC").Find(&webhooks)
 	if result.Error != nil {
 		return nil, result.Error
 	}
 	var total int64
-	totalRes := p.db.Model(&models.Webhook{}).Count(&total)
+	totalRes := p.db.Model(&schemas.Webhook{}).Count(&total)
 	if totalRes.Error != nil {
 		return nil, totalRes.Error
 	}
@@ -68,7 +69,7 @@ func (p *provider) ListWebhook(ctx context.Context, pagination *model.Pagination
 
 // GetWebhookByID to get webhook by id
 func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*model.Webhook, error) {
-	var webhook *models.Webhook
+	var webhook *schemas.Webhook
 
 	result := p.db.Where("id = ?", webhookID).First(&webhook)
 	if result.Error != nil {
@@ -79,7 +80,7 @@ func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*model
 
 // GetWebhookByEventName to get webhook by event_name
 func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) ([]*model.Webhook, error) {
-	var webhooks []models.Webhook
+	var webhooks []schemas.Webhook
 	result := p.db.Where("event_name LIKE ?", eventName+"%").Find(&webhooks)
 	if result.Error != nil {
 		return nil, result.Error
@@ -93,14 +94,14 @@ func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) 
 
 // DeleteWebhook to delete webhook
 func (p *provider) DeleteWebhook(ctx context.Context, webhook *model.Webhook) error {
-	result := p.db.Delete(&models.Webhook{
+	result := p.db.Delete(&schemas.Webhook{
 		ID: webhook.ID,
 	})
 	if result.Error != nil {
 		return result.Error
 	}
 
-	result = p.db.Where("webhook_id = ?", webhook.ID).Delete(&models.WebhookLog{})
+	result = p.db.Where("webhook_id = ?", webhook.ID).Delete(&schemas.WebhookLog{})
 	if result.Error != nil {
 		return result.Error
 	}

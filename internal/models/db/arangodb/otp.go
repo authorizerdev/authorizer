@@ -7,22 +7,23 @@ import (
 	"time"
 
 	"github.com/arangodb/go-driver"
-	"github.com/authorizerdev/authorizer/internal/db/models"
 	"github.com/google/uuid"
+
+	"github.com/authorizerdev/authorizer/internal/models/schemas"
 )
 
 // UpsertOTP to add or update otp
-func (p *provider) UpsertOTP(ctx context.Context, otpParam *models.OTP) (*models.OTP, error) {
+func (p *provider) UpsertOTP(ctx context.Context, otpParam *schemas.OTP) (*schemas.OTP, error) {
 	// check if email or phone number is present
 	if otpParam.Email == "" && otpParam.PhoneNumber == "" {
 		return nil, errors.New("email or phone_number is required")
 	}
-	uniqueField := models.FieldNameEmail
+	uniqueField := schemas.FieldNameEmail
 	if otpParam.Email == "" && otpParam.PhoneNumber != "" {
-		uniqueField = models.FieldNamePhoneNumber
+		uniqueField = schemas.FieldNamePhoneNumber
 	}
-	var otp *models.OTP
-	if uniqueField == models.FieldNameEmail {
+	var otp *schemas.OTP
+	if uniqueField == schemas.FieldNameEmail {
 		otp, _ = p.GetOTPByEmail(ctx, otpParam.Email)
 	} else {
 		otp, _ = p.GetOTPByPhoneNumber(ctx, otpParam.PhoneNumber)
@@ -30,7 +31,7 @@ func (p *provider) UpsertOTP(ctx context.Context, otpParam *models.OTP) (*models
 	shouldCreate := false
 	if otp == nil {
 		id := uuid.NewString()
-		otp = &models.OTP{
+		otp = &schemas.OTP{
 			ID:          id,
 			Key:         id,
 			Otp:         otpParam.Otp,
@@ -45,7 +46,7 @@ func (p *provider) UpsertOTP(ctx context.Context, otpParam *models.OTP) (*models
 		otp.ExpiresAt = otpParam.ExpiresAt
 	}
 	otp.UpdatedAt = time.Now().Unix()
-	otpCollection, _ := p.db.Collection(ctx, models.Collections.OTP)
+	otpCollection, _ := p.db.Collection(ctx, schemas.Collections.OTP)
 	var meta driver.DocumentMeta
 	var err error
 	if shouldCreate {
@@ -62,9 +63,9 @@ func (p *provider) UpsertOTP(ctx context.Context, otpParam *models.OTP) (*models
 }
 
 // GetOTPByEmail to get otp for a given email address
-func (p *provider) GetOTPByEmail(ctx context.Context, emailAddress string) (*models.OTP, error) {
-	var otp *models.OTP
-	query := fmt.Sprintf("FOR d in %s FILTER d.email == @email RETURN d", models.Collections.OTP)
+func (p *provider) GetOTPByEmail(ctx context.Context, emailAddress string) (*schemas.OTP, error) {
+	var otp *schemas.OTP
+	query := fmt.Sprintf("FOR d in %s FILTER d.email == @email RETURN d", schemas.Collections.OTP)
 	bindVars := map[string]interface{}{
 		"email": emailAddress,
 	}
@@ -89,9 +90,9 @@ func (p *provider) GetOTPByEmail(ctx context.Context, emailAddress string) (*mod
 }
 
 // GetOTPByPhoneNumber to get otp for a given phone number
-func (p *provider) GetOTPByPhoneNumber(ctx context.Context, phoneNumber string) (*models.OTP, error) {
-	var otp *models.OTP
-	query := fmt.Sprintf("FOR d in %s FILTER d.phone_number == @phone_number RETURN d", models.Collections.OTP)
+func (p *provider) GetOTPByPhoneNumber(ctx context.Context, phoneNumber string) (*schemas.OTP, error) {
+	var otp *schemas.OTP
+	query := fmt.Sprintf("FOR d in %s FILTER d.phone_number == @phone_number RETURN d", schemas.Collections.OTP)
 	bindVars := map[string]interface{}{
 		"phone_number": phoneNumber,
 	}
@@ -116,8 +117,8 @@ func (p *provider) GetOTPByPhoneNumber(ctx context.Context, phoneNumber string) 
 }
 
 // DeleteOTP to delete otp
-func (p *provider) DeleteOTP(ctx context.Context, otp *models.OTP) error {
-	otpCollection, _ := p.db.Collection(ctx, models.Collections.OTP)
+func (p *provider) DeleteOTP(ctx context.Context, otp *schemas.OTP) error {
+	otpCollection, _ := p.db.Collection(ctx, schemas.Collections.OTP)
 	_, err := otpCollection.RemoveDocument(ctx, otp.ID)
 	if err != nil {
 		return err

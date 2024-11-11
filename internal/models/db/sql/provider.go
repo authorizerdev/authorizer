@@ -10,17 +10,17 @@ import (
 	"gorm.io/gorm/schema"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
-	"github.com/authorizerdev/authorizer/internal/db/models"
+	"github.com/authorizerdev/authorizer/internal/models/config"
+	"github.com/authorizerdev/authorizer/internal/models/schemas"
 )
 
 type provider struct {
-	Config       models.Config
-	Dependencies models.Dependencies
+	Dependencies config.Dependencies
 	db           *gorm.DB
 }
 
-var _ models.Provider = &provider{}
-
+/**
+Required to address the impact of the following code block:
 const (
 	phoneNumberIndexName  = "UQ_phone_number"
 	phoneNumberColumnName = "phone_number"
@@ -30,18 +30,19 @@ type indexInfo struct {
 	IndexName  string `json:"index_name"`
 	ColumnName string `json:"column_name"`
 }
+**/
 
 // NewProvider returns a new SQL provider
 func NewProvider(
-	config models.Config,
-	deps models.Dependencies,
+	config config.Config,
+	deps config.Dependencies,
 ) (*provider, error) {
 	var sqlDB *gorm.DB
 	var err error
 
 	ormConfig := &gorm.Config{
 		NamingStrategy: schema.NamingStrategy{
-			TablePrefix: models.Prefix,
+			TablePrefix: schemas.Prefix,
 		},
 		AllowGlobalUpdate: true,
 	}
@@ -68,12 +69,14 @@ func NewProvider(
 
 	// For sqlserver, handle uniqueness of phone_number manually via extra db call
 	// during create and update mutation.
-	if sqlDB.Migrator().HasConstraint(&models.User{}, "authorizer_users_phone_number_key") {
-		err = sqlDB.Migrator().DropConstraint(&models.User{}, "authorizer_users_phone_number_key")
-		// TODO add logs
+	if sqlDB.Migrator().HasConstraint(&schemas.User{}, "authorizer_users_phone_number_key") {
+		err = sqlDB.Migrator().DropConstraint(&schemas.User{}, "authorizer_users_phone_number_key")
+		if err != nil {
+			deps.Log.Debug().Err(err).Msg("failed to drop unique constraint on phone_number")
+		}
 	}
 
-	err = sqlDB.AutoMigrate(&models.User{}, &models.VerificationRequest{}, &models.Session{}, &models.Env{}, &models.Webhook{}, &models.WebhookLog{}, &models.EmailTemplate{}, &models.OTP{}, &models.Authenticator{})
+	err = sqlDB.AutoMigrate(&schemas.User{}, &schemas.VerificationRequest{}, &schemas.Session{}, &schemas.Env{}, &schemas.Webhook{}, &schemas.WebhookLog{}, &schemas.EmailTemplate{}, &schemas.OTP{}, &schemas.Authenticator{})
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +108,6 @@ func NewProvider(
 	// }
 
 	return &provider{
-		Config:       config,
 		Dependencies: deps,
 		db:           sqlDB,
 	}, nil

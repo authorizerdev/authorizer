@@ -6,16 +6,17 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/authorizerdev/authorizer/internal/constants"
-	"github.com/authorizerdev/authorizer/internal/db/models"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/memorystore"
+	"github.com/authorizerdev/authorizer/internal/models/schemas"
 	"github.com/authorizerdev/authorizer/internal/refs"
-	"github.com/google/uuid"
 )
 
 // AddUser to save user information in database
-func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User, error) {
+func (p *provider) AddUser(ctx context.Context, user *schemas.User) (*schemas.User, error) {
 	if user.ID == "" {
 		user.ID = uuid.New().String()
 	}
@@ -41,13 +42,13 @@ func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User
 }
 
 // UpdateUser to update user information in database
-func (p *provider) UpdateUser(ctx context.Context, user *models.User) (*models.User, error) {
+func (p *provider) UpdateUser(ctx context.Context, user *schemas.User) (*schemas.User, error) {
 	user.UpdatedAt = time.Now().Unix()
 	return user, nil
 }
 
 // DeleteUser to delete user information from database
-func (p *provider) DeleteUser(ctx context.Context, user *models.User) error {
+func (p *provider) DeleteUser(ctx context.Context, user *schemas.User) error {
 	return nil
 }
 
@@ -57,14 +58,14 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) 
 }
 
 // GetUserByEmail to get user information from database using email address
-func (p *provider) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
-	var user *models.User
+func (p *provider) GetUserByEmail(ctx context.Context, email string) (*schemas.User, error) {
+	var user *schemas.User
 	return user, nil
 }
 
 // GetUserByID to get user information from database using user ID
-func (p *provider) GetUserByID(ctx context.Context, id string) (*models.User, error) {
-	var user *models.User
+func (p *provider) GetUserByID(ctx context.Context, id string) (*schemas.User, error) {
+	var user *schemas.User
 	return user, nil
 }
 
@@ -77,7 +78,7 @@ func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{},
 }
 
 // GetUserByPhoneNumber to get user information from database using phone number
-func (p *provider) GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (*models.User, error) {
-	var user *models.User
+func (p *provider) GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (*schemas.User, error) {
+	var user *schemas.User
 	return user, nil
 }

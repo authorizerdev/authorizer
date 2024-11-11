@@ -8,14 +8,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/authorizerdev/authorizer/internal/db/models"
-	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/gocql/gocql"
 	"github.com/google/uuid"
+
+	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/models/schemas"
 )
 
 // AddEmailTemplate to add EmailTemplate
-func (p *provider) AddEmailTemplate(ctx context.Context, emailTemplate *models.EmailTemplate) (*model.EmailTemplate, error) {
+func (p *provider) AddEmailTemplate(ctx context.Context, emailTemplate *schemas.EmailTemplate) (*model.EmailTemplate, error) {
 	if emailTemplate.ID == "" {
 		emailTemplate.ID = uuid.New().String()
 	}
@@ -26,7 +27,7 @@ func (p *provider) AddEmailTemplate(ctx context.Context, emailTemplate *models.E
 	if existingEmailTemplate != nil {
 		return nil, fmt.Errorf("Email template with %s event_name already exists", emailTemplate.EventName)
 	}
-	insertQuery := fmt.Sprintf("INSERT INTO %s (id, event_name, subject, design, template,  created_at, updated_at) VALUES ('%s', '%s', '%s','%s','%s', %d, %d)", KeySpace+"."+models.Collections.EmailTemplate, emailTemplate.ID, emailTemplate.EventName, emailTemplate.Subject, emailTemplate.Design, emailTemplate.Template, emailTemplate.CreatedAt, emailTemplate.UpdatedAt)
+	insertQuery := fmt.Sprintf("INSERT INTO %s (id, event_name, subject, design, template,  created_at, updated_at) VALUES ('%s', '%s', '%s','%s','%s', %d, %d)", KeySpace+"."+schemas.Collections.EmailTemplate, emailTemplate.ID, emailTemplate.EventName, emailTemplate.Subject, emailTemplate.Design, emailTemplate.Template, emailTemplate.CreatedAt, emailTemplate.UpdatedAt)
 	err := p.db.Query(insertQuery).Exec()
 	if err != nil {
 		return nil, err
@@ -35,7 +36,7 @@ func (p *provider) AddEmailTemplate(ctx context.Context, emailTemplate *models.E
 }
 
 // UpdateEmailTemplate to update EmailTemplate
-func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate *models.EmailTemplate) (*model.EmailTemplate, error) {
+func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate *schemas.EmailTemplate) (*model.EmailTemplate, error) {
 	emailTemplate.UpdatedAt = time.Now().Unix()
 	bytes, err := json.Marshal(emailTemplate)
 	if err != nil {
@@ -71,7 +72,7 @@ func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate *model
 	updateFields = strings.Trim(updateFields, " ")
 	updateFields = strings.TrimSuffix(updateFields, ",")
 
-	query := fmt.Sprintf("UPDATE %s SET %s WHERE id = '%s'", KeySpace+"."+models.Collections.EmailTemplate, updateFields, emailTemplate.ID)
+	query := fmt.Sprintf("UPDATE %s SET %s WHERE id = '%s'", KeySpace+"."+schemas.Collections.EmailTemplate, updateFields, emailTemplate.ID)
 	err = p.db.Query(query).Exec()
 	if err != nil {
 		return nil, err
@@ -85,7 +86,7 @@ func (p *provider) ListEmailTemplate(ctx context.Context, pagination *model.Pagi
 	emailTemplates := []*model.EmailTemplate{}
 	paginationClone := pagination
 
-	totalCountQuery := fmt.Sprintf(`SELECT COUNT(*) FROM %s`, KeySpace+"."+models.Collections.EmailTemplate)
+	totalCountQuery := fmt.Sprintf(`SELECT COUNT(*) FROM %s`, KeySpace+"."+schemas.Collections.EmailTemplate)
 	err := p.db.Query(totalCountQuery).Consistency(gocql.One).Scan(&paginationClone.Total)
 	if err != nil {
 		return nil, err
@@ -94,13 +95,13 @@ func (p *provider) ListEmailTemplate(ctx context.Context, pagination *model.Pagi
 	// there is no offset in cassandra
 	// so we fetch till limit + offset
 	// and return the results from offset to limit
-	query := fmt.Sprintf("SELECT id, event_name, subject, design, template, created_at, updated_at FROM %s LIMIT %d", KeySpace+"."+models.Collections.EmailTemplate, pagination.Limit+pagination.Offset)
+	query := fmt.Sprintf("SELECT id, event_name, subject, design, template, created_at, updated_at FROM %s LIMIT %d", KeySpace+"."+schemas.Collections.EmailTemplate, pagination.Limit+pagination.Offset)
 
 	scanner := p.db.Query(query).Iter().Scanner()
 	counter := int64(0)
 	for scanner.Next() {
 		if counter >= pagination.Offset {
-			var emailTemplate models.EmailTemplate
+			var emailTemplate schemas.EmailTemplate
 			err := scanner.Scan(&emailTemplate.ID, &emailTemplate.EventName, &emailTemplate.Subject, &emailTemplate.Design, &emailTemplate.Template, &emailTemplate.CreatedAt, &emailTemplate.UpdatedAt)
 			if err != nil {
 				return nil, err
@@ -118,8 +119,8 @@ func (p *provider) ListEmailTemplate(ctx context.Context, pagination *model.Pagi
 
 // GetEmailTemplateByID to get EmailTemplate by id
 func (p *provider) GetEmailTemplateByID(ctx context.Context, emailTemplateID string) (*model.EmailTemplate, error) {
-	var emailTemplate models.EmailTemplate
-	query := fmt.Sprintf(`SELECT id, event_name, subject, design, template, created_at, updated_at FROM %s WHERE id = '%s' LIMIT 1`, KeySpace+"."+models.Collections.EmailTemplate, emailTemplateID)
+	var emailTemplate schemas.EmailTemplate
+	query := fmt.Sprintf(`SELECT id, event_name, subject, design, template, created_at, updated_at FROM %s WHERE id = '%s' LIMIT 1`, KeySpace+"."+schemas.Collections.EmailTemplate, emailTemplateID)
 	err := p.db.Query(query).Consistency(gocql.One).Scan(&emailTemplate.ID, &emailTemplate.EventName, &emailTemplate.Subject, &emailTemplate.Design, &emailTemplate.Template, &emailTemplate.CreatedAt, &emailTemplate.UpdatedAt)
 	if err != nil {
 		return nil, err
@@ -129,8 +130,8 @@ func (p *provider) GetEmailTemplateByID(ctx context.Context, emailTemplateID str
 
 // GetEmailTemplateByEventName to get EmailTemplate by event_name
 func (p *provider) GetEmailTemplateByEventName(ctx context.Context, eventName string) (*model.EmailTemplate, error) {
-	var emailTemplate models.EmailTemplate
-	query := fmt.Sprintf(`SELECT id, event_name, subject, design, template, created_at, updated_at FROM %s WHERE event_name = '%s' LIMIT 1 ALLOW FILTERING`, KeySpace+"."+models.Collections.EmailTemplate, eventName)
+	var emailTemplate schemas.EmailTemplate
+	query := fmt.Sprintf(`SELECT id, event_name, subject, design, template, created_at, updated_at FROM %s WHERE event_name = '%s' LIMIT 1 ALLOW FILTERING`, KeySpace+"."+schemas.Collections.EmailTemplate, eventName)
 	err := p.db.Query(query).Consistency(gocql.One).Scan(&emailTemplate.ID, &emailTemplate.EventName, &emailTemplate.Subject, &emailTemplate.Design, &emailTemplate.Template, &emailTemplate.CreatedAt, &emailTemplate.UpdatedAt)
 	if err != nil {
 		return nil, err
@@ -140,7 +141,7 @@ func (p *provider) GetEmailTemplateByEventName(ctx context.Context, eventName st
 
 // DeleteEmailTemplate to delete EmailTemplate
 func (p *provider) DeleteEmailTemplate(ctx context.Context, emailTemplate *model.EmailTemplate) error {
-	query := fmt.Sprintf("DELETE FROM %s WHERE id = '%s'", KeySpace+"."+models.Collections.EmailTemplate, emailTemplate.ID)
+	query := fmt.Sprintf("DELETE FROM %s WHERE id = '%s'", KeySpace+"."+schemas.Collections.EmailTemplate, emailTemplate.ID)
 	err := p.db.Query(query).Exec()
 	if err != nil {
 		return err

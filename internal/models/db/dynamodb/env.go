@@ -6,13 +6,14 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/authorizerdev/authorizer/internal/db/models"
 	"github.com/google/uuid"
+
+	"github.com/authorizerdev/authorizer/internal/models/schemas"
 )
 
 // AddEnv to save environment information in database
-func (p *provider) AddEnv(ctx context.Context, env *models.Env) (*models.Env, error) {
-	collection := p.db.Table(models.Collections.Env)
+func (p *provider) AddEnv(ctx context.Context, env *schemas.Env) (*schemas.Env, error) {
+	collection := p.db.Table(schemas.Collections.Env)
 	if env.ID == "" {
 		env.ID = uuid.New().String()
 	}
@@ -27,8 +28,8 @@ func (p *provider) AddEnv(ctx context.Context, env *models.Env) (*models.Env, er
 }
 
 // UpdateEnv to update environment information in database
-func (p *provider) UpdateEnv(ctx context.Context, env *models.Env) (*models.Env, error) {
-	collection := p.db.Table(models.Collections.Env)
+func (p *provider) UpdateEnv(ctx context.Context, env *schemas.Env) (*schemas.Env, error) {
+	collection := p.db.Table(schemas.Collections.Env)
 	env.UpdatedAt = time.Now().Unix()
 	err := UpdateByHashKey(collection, "id", env.ID, env)
 	if err != nil {
@@ -38,10 +39,10 @@ func (p *provider) UpdateEnv(ctx context.Context, env *models.Env) (*models.Env,
 }
 
 // GetEnv to get environment information from database
-func (p *provider) GetEnv(ctx context.Context) (*models.Env, error) {
-	var env *models.Env
-	collection := p.db.Table(models.Collections.Env)
-	// As there is no Findone supported.
+func (p *provider) GetEnv(ctx context.Context) (*schemas.Env, error) {
+	var env *schemas.Env
+	collection := p.db.Table(schemas.Collections.Env)
+	// As there is no Find one supported.
 	iter := collection.Scan().Limit(1).Iter()
 	for iter.NextWithContext(ctx, &env) {
 		if env == nil {

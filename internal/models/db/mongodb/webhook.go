@@ -6,15 +6,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/authorizerdev/authorizer/internal/db/models"
-	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
+
+	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/models/schemas"
 )
 
 // AddWebhook to add webhook
-func (p *provider) AddWebhook(ctx context.Context, webhook *models.Webhook) (*model.Webhook, error) {
+func (p *provider) AddWebhook(ctx context.Context, webhook *schemas.Webhook) (*model.Webhook, error) {
 	if webhook.ID == "" {
 		webhook.ID = uuid.New().String()
 	}
@@ -23,7 +24,7 @@ func (p *provider) AddWebhook(ctx context.Context, webhook *models.Webhook) (*mo
 	webhook.UpdatedAt = time.Now().Unix()
 	// Add timestamp to make event name unique for legacy version
 	webhook.EventName = fmt.Sprintf("%s-%d", webhook.EventName, time.Now().Unix())
-	webhookCollection := p.db.Collection(models.Collections.Webhook, options.Collection())
+	webhookCollection := p.db.Collection(schemas.Collections.Webhook, options.Collection())
 	_, err := webhookCollection.InsertOne(ctx, webhook)
 	if err != nil {
 		return nil, err
@@ -32,13 +33,13 @@ func (p *provider) AddWebhook(ctx context.Context, webhook *models.Webhook) (*mo
 }
 
 // UpdateWebhook to update webhook
-func (p *provider) UpdateWebhook(ctx context.Context, webhook *models.Webhook) (*model.Webhook, error) {
+func (p *provider) UpdateWebhook(ctx context.Context, webhook *schemas.Webhook) (*model.Webhook, error) {
 	webhook.UpdatedAt = time.Now().Unix()
 	// Event is changed
 	if !strings.Contains(webhook.EventName, "-") {
 		webhook.EventName = fmt.Sprintf("%s-%d", webhook.EventName, time.Now().Unix())
 	}
-	webhookCollection := p.db.Collection(models.Collections.Webhook, options.Collection())
+	webhookCollection := p.db.Collection(schemas.Collections.Webhook, options.Collection())
 	_, err := webhookCollection.UpdateOne(ctx, bson.M{"_id": bson.M{"$eq": webhook.ID}}, bson.M{"$set": webhook}, options.MergeUpdateOptions())
 	if err != nil {
 		return nil, err
@@ -54,7 +55,7 @@ func (p *provider) ListWebhook(ctx context.Context, pagination *model.Pagination
 	opts.SetSkip(pagination.Offset)
 	opts.SetSort(bson.M{"created_at": -1})
 	paginationClone := pagination
-	webhookCollection := p.db.Collection(models.Collections.Webhook, options.Collection())
+	webhookCollection := p.db.Collection(schemas.Collections.Webhook, options.Collection())
 	count, err := webhookCollection.CountDocuments(ctx, bson.M{}, options.Count())
 	if err != nil {
 		return nil, err
@@ -66,7 +67,7 @@ func (p *provider) ListWebhook(ctx context.Context, pagination *model.Pagination
 	}
 	defer cursor.Close(ctx)
 	for cursor.Next(ctx) {
-		var webhook *models.Webhook
+		var webhook *schemas.Webhook
 		err := cursor.Decode(&webhook)
 		if err != nil {
 			return nil, err
@@ -81,8 +82,8 @@ func (p *provider) ListWebhook(ctx context.Context, pagination *model.Pagination
 
 // GetWebhookByID to get webhook by id
 func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*model.Webhook, error) {
-	var webhook *models.Webhook
-	webhookCollection := p.db.Collection(models.Collections.Webhook, options.Collection())
+	var webhook *schemas.Webhook
+	webhookCollection := p.db.Collection(schemas.Collections.Webhook, options.Collection())
 	err := webhookCollection.FindOne(ctx, bson.M{"_id": webhookID}).Decode(&webhook)
 	if err != nil {
 		return nil, err
@@ -93,7 +94,7 @@ func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*model
 // GetWebhookByEventName to get webhook by event_name
 func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) ([]*model.Webhook, error) {
 	webhooks := []*model.Webhook{}
-	webhookCollection := p.db.Collection(models.Collections.Webhook, options.Collection())
+	webhookCollection := p.db.Collection(schemas.Collections.Webhook, options.Collection())
 	opts := options.Find()
 	opts.SetSort(bson.M{"created_at": -1})
 	cursor, err := webhookCollection.Find(ctx, bson.M{"event_name": bson.M{
@@ -104,7 +105,7 @@ func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) 
 	}
 	defer cursor.Close(ctx)
 	for cursor.Next(ctx) {
-		var webhook *models.Webhook
+		var webhook *schemas.Webhook
 		err := cursor.Decode(&webhook)
 		if err != nil {
 			return nil, err
@@ -116,12 +117,12 @@ func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) 
 
 // DeleteWebhook to delete webhook
 func (p *provider) DeleteWebhook(ctx context.Context, webhook *model.Webhook) error {
-	webhookCollection := p.db.Collection(models.Collections.Webhook, options.Collection())
+	webhookCollection := p.db.Collection(schemas.Collections.Webhook, options.Collection())
 	_, err := webhookCollection.DeleteOne(nil, bson.M{"_id": webhook.ID}, options.Delete())
 	if err != nil {
 		return err
 	}
-	webhookLogCollection := p.db.Collection(models.Collections.WebhookLog, options.Collection())
+	webhookLogCollection := p.db.Collection(schemas.Collections.WebhookLog, options.Collection())
 	_, err = webhookLogCollection.DeleteMany(nil, bson.M{"webhook_id": webhook.ID}, options.Delete())
 	if err != nil {
 		return err

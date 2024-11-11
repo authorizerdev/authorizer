@@ -4,14 +4,15 @@ import (
 	"context"
 	"time"
 
-	"github.com/authorizerdev/authorizer/internal/db/models"
-	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/google/uuid"
 	"gorm.io/gorm/clause"
+
+	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/models/schemas"
 )
 
 // AddVerification to save verification request in database
-func (p *provider) AddVerificationRequest(ctx context.Context, verificationRequest *models.VerificationRequest) (*models.VerificationRequest, error) {
+func (p *provider) AddVerificationRequest(ctx context.Context, verificationRequest *schemas.VerificationRequest) (*schemas.VerificationRequest, error) {
 	if verificationRequest.ID == "" {
 		verificationRequest.ID = uuid.New().String()
 	}
@@ -29,8 +30,8 @@ func (p *provider) AddVerificationRequest(ctx context.Context, verificationReque
 }
 
 // GetVerificationRequestByToken to get verification request from database using token
-func (p *provider) GetVerificationRequestByToken(ctx context.Context, token string) (*models.VerificationRequest, error) {
-	var verificationRequest *models.VerificationRequest
+func (p *provider) GetVerificationRequestByToken(ctx context.Context, token string) (*schemas.VerificationRequest, error) {
+	var verificationRequest *schemas.VerificationRequest
 	result := p.db.Where("token = ?", token).First(&verificationRequest)
 	if result.Error != nil {
 		return verificationRequest, result.Error
@@ -39,8 +40,8 @@ func (p *provider) GetVerificationRequestByToken(ctx context.Context, token stri
 }
 
 // GetVerificationRequestByEmail to get verification request by email from database
-func (p *provider) GetVerificationRequestByEmail(ctx context.Context, email string, identifier string) (*models.VerificationRequest, error) {
-	var verificationRequest *models.VerificationRequest
+func (p *provider) GetVerificationRequestByEmail(ctx context.Context, email string, identifier string) (*schemas.VerificationRequest, error) {
+	var verificationRequest *schemas.VerificationRequest
 	result := p.db.Where("email = ? AND identifier = ?", email, identifier).First(&verificationRequest)
 	if result.Error != nil {
 		return verificationRequest, result.Error
@@ -50,7 +51,7 @@ func (p *provider) GetVerificationRequestByEmail(ctx context.Context, email stri
 
 // ListVerificationRequests to get list of verification requests from database
 func (p *provider) ListVerificationRequests(ctx context.Context, pagination *model.Pagination) (*model.VerificationRequests, error) {
-	var verificationRequests []models.VerificationRequest
+	var verificationRequests []schemas.VerificationRequest
 	result := p.db.Limit(int(pagination.Limit)).Offset(int(pagination.Offset)).Order("created_at DESC").Find(&verificationRequests)
 	if result.Error != nil {
 		return nil, result.Error
@@ -60,7 +61,7 @@ func (p *provider) ListVerificationRequests(ctx context.Context, pagination *mod
 		responseVerificationRequests = append(responseVerificationRequests, v.AsAPIVerificationRequest())
 	}
 	var total int64
-	totalRes := p.db.Model(&models.VerificationRequest{}).Count(&total)
+	totalRes := p.db.Model(&schemas.VerificationRequest{}).Count(&total)
 	if totalRes.Error != nil {
 		return nil, totalRes.Error
 	}
@@ -73,7 +74,7 @@ func (p *provider) ListVerificationRequests(ctx context.Context, pagination *mod
 }
 
 // DeleteVerificationRequest to delete verification request from database
-func (p *provider) DeleteVerificationRequest(ctx context.Context, verificationRequest *models.VerificationRequest) error {
+func (p *provider) DeleteVerificationRequest(ctx context.Context, verificationRequest *schemas.VerificationRequest) error {
 	result := p.db.Delete(&verificationRequest)
 	if result.Error != nil {
 		return result.Error

@@ -11,14 +11,14 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
-	"github.com/authorizerdev/authorizer/internal/db/models"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/memorystore"
+	"github.com/authorizerdev/authorizer/internal/models/schemas"
 	"github.com/authorizerdev/authorizer/internal/refs"
 )
 
 // AddUser to save user information in database
-func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User, error) {
+func (p *provider) AddUser(ctx context.Context, user *schemas.User) (*schemas.User, error) {
 	if user.ID == "" {
 		user.ID = uuid.New().String()
 		user.Key = user.ID
@@ -44,7 +44,7 @@ func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User
 
 	user.CreatedAt = time.Now().Unix()
 	user.UpdatedAt = time.Now().Unix()
-	userCollection, _ := p.db.Collection(ctx, models.Collections.User)
+	userCollection, _ := p.db.Collection(ctx, schemas.Collections.User)
 	meta, err := userCollection.CreateDocument(arangoDriver.WithOverwrite(ctx), user)
 	if err != nil {
 		return nil, err
@@ -56,10 +56,10 @@ func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User
 }
 
 // UpdateUser to update user information in database
-func (p *provider) UpdateUser(ctx context.Context, user *models.User) (*models.User, error) {
+func (p *provider) UpdateUser(ctx context.Context, user *schemas.User) (*schemas.User, error) {
 	user.UpdatedAt = time.Now().Unix()
 
-	collection, _ := p.db.Collection(ctx, models.Collections.User)
+	collection, _ := p.db.Collection(ctx, schemas.Collections.User)
 	meta, err := collection.UpdateDocument(ctx, user.Key, user)
 	if err != nil {
 		return nil, err
@@ -71,13 +71,13 @@ func (p *provider) UpdateUser(ctx context.Context, user *models.User) (*models.U
 }
 
 // DeleteUser to delete user information from database
-func (p *provider) DeleteUser(ctx context.Context, user *models.User) error {
-	collection, _ := p.db.Collection(ctx, models.Collections.User)
+func (p *provider) DeleteUser(ctx context.Context, user *schemas.User) error {
+	collection, _ := p.db.Collection(ctx, schemas.Collections.User)
 	_, err := collection.RemoveDocument(ctx, user.Key)
 	if err != nil {
 		return err
 	}
-	query := fmt.Sprintf(`FOR d IN %s FILTER d.user_id == @user_id REMOVE { _key: d._key } IN %s`, models.Collections.Session, models.Collections.Session)
+	query := fmt.Sprintf(`FOR d IN %s FILTER d.user_id == @user_id REMOVE { _key: d._key } IN %s`, schemas.Collections.Session, schemas.Collections.Session)
 	bindVars := map[string]interface{}{
 		"user_id": user.Key,
 	}
@@ -94,7 +94,7 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) 
 	var users []*model.User
 	sctx := arangoDriver.WithQueryFullCount(ctx)
 
-	query := fmt.Sprintf("FOR d in %s SORT d.created_at DESC LIMIT %d, %d RETURN d", models.Collections.User, pagination.Offset, pagination.Limit)
+	query := fmt.Sprintf("FOR d in %s SORT d.created_at DESC LIMIT %d, %d RETURN d", schemas.Collections.User, pagination.Offset, pagination.Limit)
 	cursor, err := p.db.Query(sctx, query, nil)
 	if err != nil {
 		return nil, err
@@ -103,7 +103,7 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) 
 	paginationClone := pagination
 	paginationClone.Total = cursor.Statistics().FullCount()
 	for {
-		var user *models.User
+		var user *schemas.User
 		meta, err := cursor.ReadDocument(ctx, &user)
 		if arangoDriver.IsNoMoreDocuments(err) {
 			break
@@ -121,9 +121,9 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) 
 }
 
 // GetUserByEmail to get user information from database using email address
-func (p *provider) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
-	var user *models.User
-	query := fmt.Sprintf("FOR d in %s FILTER d.email == @email RETURN d", models.Collections.User)
+func (p *provider) GetUserByEmail(ctx context.Context, email string) (*schemas.User, error) {
+	var user *schemas.User
+	query := fmt.Sprintf("FOR d in %s FILTER d.email == @email RETURN d", schemas.Collections.User)
 	bindVars := map[string]interface{}{
 		"email": email,
 	}
@@ -148,9 +148,9 @@ func (p *provider) GetUserByEmail(ctx context.Context, email string) (*models.Us
 }
 
 // GetUserByID to get user information from database using user ID
-func (p *provider) GetUserByID(ctx context.Context, id string) (*models.User, error) {
-	var user *models.User
-	query := fmt.Sprintf("FOR d in %s FILTER d._id == @id LIMIT 1 RETURN d", models.Collections.User)
+func (p *provider) GetUserByID(ctx context.Context, id string) (*schemas.User, error) {
+	var user *schemas.User
+	query := fmt.Sprintf("FOR d in %s FILTER d._id == @id LIMIT 1 RETURN d", schemas.Collections.User)
 	bindVars := map[string]interface{}{
 		"id": id,
 	}
@@ -191,9 +191,9 @@ func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{},
 		}
 		keysArray = strings.Trim(keysArray, " ")
 		keysArray = strings.TrimSuffix(keysArray, ",")
-		query = fmt.Sprintf("FOR u IN %s FILTER u._id IN [%s] UPDATE u._key with %s IN %s", models.Collections.User, keysArray, string(userInfoBytes), models.Collections.User)
+		query = fmt.Sprintf("FOR u IN %s FILTER u._id IN [%s] UPDATE u._key with %s IN %s", schemas.Collections.User, keysArray, string(userInfoBytes), schemas.Collections.User)
 	} else {
-		query = fmt.Sprintf("FOR u IN %s UPDATE u._key with %s IN %s", models.Collections.User, string(userInfoBytes), models.Collections.User)
+		query = fmt.Sprintf("FOR u IN %s UPDATE u._key with %s IN %s", schemas.Collections.User, string(userInfoBytes), schemas.Collections.User)
 	}
 	_, err = p.db.Query(ctx, query, nil)
 	if err != nil {
@@ -203,9 +203,9 @@ func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{},
 }
 
 // GetUserByPhoneNumber to get user information from database using phone number
-func (p *provider) GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (*models.User, error) {
-	var user *models.User
-	query := fmt.Sprintf("FOR d in %s FILTER d.phone_number == @phone_number RETURN d", models.Collections.User)
+func (p *provider) GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (*schemas.User, error) {
+	var user *schemas.User
+	query := fmt.Sprintf("FOR d in %s FILTER d.phone_number == @phone_number RETURN d", schemas.Collections.User)
 	bindVars := map[string]interface{}{
 		"phone_number": phoneNumber,
 	}

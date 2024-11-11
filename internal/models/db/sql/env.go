@@ -4,12 +4,13 @@ import (
 	"context"
 	"time"
 
-	"github.com/authorizerdev/authorizer/internal/db/models"
 	"github.com/google/uuid"
+
+	"github.com/authorizerdev/authorizer/internal/models/schemas"
 )
 
 // AddEnv to save environment information in database
-func (p *provider) AddEnv(ctx context.Context, env *models.Env) (*models.Env, error) {
+func (p *provider) AddEnv(ctx context.Context, env *schemas.Env) (*schemas.Env, error) {
 	if env.ID == "" {
 		env.ID = uuid.New().String()
 	}
@@ -26,7 +27,7 @@ func (p *provider) AddEnv(ctx context.Context, env *models.Env) (*models.Env, er
 }
 
 // UpdateEnv to update environment information in database
-func (p *provider) UpdateEnv(ctx context.Context, env *models.Env) (*models.Env, error) {
+func (p *provider) UpdateEnv(ctx context.Context, env *schemas.Env) (*schemas.Env, error) {
 	env.UpdatedAt = time.Now().Unix()
 	result := p.db.Save(&env)
 	if result.Error != nil {
@@ -36,8 +37,8 @@ func (p *provider) UpdateEnv(ctx context.Context, env *models.Env) (*models.Env,
 }
 
 // GetEnv to get environment information from database
-func (p *provider) GetEnv(ctx context.Context) (*models.Env, error) {
-	var env *models.Env
+func (p *provider) GetEnv(ctx context.Context) (*schemas.Env, error) {
+	var env *schemas.Env
 	result := p.db.First(&env)
 	if result.Error != nil {
 		return env, result.Error

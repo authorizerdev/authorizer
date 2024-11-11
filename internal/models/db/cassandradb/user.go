@@ -8,17 +8,18 @@ import (
 	"strings"
 	"time"
 
-	"github.com/authorizerdev/authorizer/internal/constants"
-	"github.com/authorizerdev/authorizer/internal/db/models"
-	"github.com/authorizerdev/authorizer/internal/graph/model"
-	"github.com/authorizerdev/authorizer/internal/memorystore"
-	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/gocql/gocql"
 	"github.com/google/uuid"
+
+	"github.com/authorizerdev/authorizer/internal/constants"
+	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/memorystore"
+	"github.com/authorizerdev/authorizer/internal/models/schemas"
+	"github.com/authorizerdev/authorizer/internal/refs"
 )
 
 // AddUser to save user information in database
-func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User, error) {
+func (p *provider) AddUser(ctx context.Context, user *schemas.User) (*schemas.User, error) {
 	if user.ID == "" {
 		user.ID = uuid.New().String()
 	}
@@ -80,7 +81,7 @@ func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User
 	fields = fields[:len(fields)-1] + ")"
 	values = values[:len(values)-1] + ")"
 
-	query := fmt.Sprintf("INSERT INTO %s %s VALUES %s IF NOT EXISTS", KeySpace+"."+models.Collections.User, fields, values)
+	query := fmt.Sprintf("INSERT INTO %s %s VALUES %s IF NOT EXISTS", KeySpace+"."+schemas.Collections.User, fields, values)
 	err = p.db.Query(query).Exec()
 
 	if err != nil {
@@ -91,7 +92,7 @@ func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User
 }
 
 // UpdateUser to update user information in database
-func (p *provider) UpdateUser(ctx context.Context, user *models.User) (*models.User, error) {
+func (p *provider) UpdateUser(ctx context.Context, user *schemas.User) (*schemas.User, error) {
 	user.UpdatedAt = time.Now().Unix()
 
 	bytes, err := json.Marshal(user)
@@ -132,7 +133,7 @@ func (p *provider) UpdateUser(ctx context.Context, user *models.User) (*models.U
 	updateFields = strings.Trim(updateFields, " ")
 	updateFields = strings.TrimSuffix(updateFields, ",")
 
-	query := fmt.Sprintf("UPDATE %s SET %s WHERE id = '%s'", KeySpace+"."+models.Collections.User, updateFields, user.ID)
+	query := fmt.Sprintf("UPDATE %s SET %s WHERE id = '%s'", KeySpace+"."+schemas.Collections.User, updateFields, user.ID)
 	err = p.db.Query(query).Exec()
 	if err != nil {
 		return nil, err
@@ -142,13 +143,13 @@ func (p *provider) UpdateUser(ctx context.Context, user *models.User) (*models.U
 }
 
 // DeleteUser to delete user information from database
-func (p *provider) DeleteUser(ctx context.Context, user *models.User) error {
-	query := fmt.Sprintf("DELETE FROM %s WHERE id = '%s'", KeySpace+"."+models.Collections.User, user.ID)
+func (p *provider) DeleteUser(ctx context.Context, user *schemas.User) error {
+	query := fmt.Sprintf("DELETE FROM %s WHERE id = '%s'", KeySpace+"."+schemas.Collections.User, user.ID)
 	err := p.db.Query(query).Exec()
 	if err != nil {
 		return err
 	}
-	getSessionsQuery := fmt.Sprintf("SELECT id FROM %s WHERE user_id = '%s' ALLOW FILTERING", KeySpace+"."+models.Collections.Session, user.ID)
+	getSessionsQuery := fmt.Sprintf("SELECT id FROM %s WHERE user_id = '%s' ALLOW FILTERING", KeySpace+"."+schemas.Collections.Session, user.ID)
 	scanner := p.db.Query(getSessionsQuery).Iter().Scanner()
 	sessionIDs := ""
 	for scanner.Next() {
@@ -160,7 +161,7 @@ func (p *provider) DeleteUser(ctx context.Context, user *models.User) error {
 		sessionIDs += fmt.Sprintf("'%s',", wlID)
 	}
 	sessionIDs = strings.TrimSuffix(sessionIDs, ",")
-	deleteSessionQuery := fmt.Sprintf("DELETE FROM %s WHERE id IN (%s)", KeySpace+"."+models.Collections.Session, sessionIDs)
+	deleteSessionQuery := fmt.Sprintf("DELETE FROM %s WHERE id IN (%s)", KeySpace+"."+schemas.Collections.Session, sessionIDs)
 	err = p.db.Query(deleteSessionQuery).Exec()
 	if err != nil {
 		return err
@@ -173,7 +174,7 @@ func (p *provider) DeleteUser(ctx context.Context, user *models.User) error {
 func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) (*model.Users, error) {
 	responseUsers := []*model.User{}
 	paginationClone := pagination
-	totalCountQuery := fmt.Sprintf(`SELECT COUNT(*) FROM %s`, KeySpace+"."+models.Collections.User)
+	totalCountQuery := fmt.Sprintf(`SELECT COUNT(*) FROM %s`, KeySpace+"."+schemas.Collections.User)
 	err := p.db.Query(totalCountQuery).Consistency(gocql.One).Scan(&paginationClone.Total)
 	if err != nil {
 		return nil, err
@@ -182,13 +183,13 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) 
 	// there is no offset in cassandra
 	// so we fetch till limit + offset
 	// and return the results from offset to limit
-	query := fmt.Sprintf("SELECT id, email, email_verified_at, password, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, roles, revoked_timestamp, is_multi_factor_auth_enabled, app_data, created_at, updated_at FROM %s LIMIT %d", KeySpace+"."+models.Collections.User,
+	query := fmt.Sprintf("SELECT id, email, email_verified_at, password, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, roles, revoked_timestamp, is_multi_factor_auth_enabled, app_data, created_at, updated_at FROM %s LIMIT %d", KeySpace+"."+schemas.Collections.User,
 		pagination.Limit+pagination.Offset)
 	scanner := p.db.Query(query).Iter().Scanner()
 	counter := int64(0)
 	for scanner.Next() {
 		if counter >= pagination.Offset {
-			var user models.User
+			var user schemas.User
 			err := scanner.Scan(&user.ID, &user.Email, &user.EmailVerifiedAt, &user.Password, &user.SignupMethods,
 				&user.GivenName, &user.FamilyName, &user.MiddleName, &user.Nickname, &user.Birthdate, &user.PhoneNumber,
 				&user.PhoneNumberVerifiedAt, &user.Picture, &user.Roles, &user.RevokedTimestamp, &user.IsMultiFactorAuthEnabled,
@@ -207,9 +208,9 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) 
 }
 
 // GetUserByEmail to get user information from database using email address
-func (p *provider) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
-	var user models.User
-	query := fmt.Sprintf("SELECT id, email, email_verified_at, password, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, roles, revoked_timestamp, is_multi_factor_auth_enabled, app_data, created_at, updated_at FROM %s WHERE email = '%s' LIMIT 1 ALLOW FILTERING", KeySpace+"."+models.Collections.User, email)
+func (p *provider) GetUserByEmail(ctx context.Context, email string) (*schemas.User, error) {
+	var user schemas.User
+	query := fmt.Sprintf("SELECT id, email, email_verified_at, password, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, roles, revoked_timestamp, is_multi_factor_auth_enabled, app_data, created_at, updated_at FROM %s WHERE email = '%s' LIMIT 1 ALLOW FILTERING", KeySpace+"."+schemas.Collections.User, email)
 	err := p.db.Query(query).Consistency(gocql.One).Scan(&user.ID, &user.Email, &user.EmailVerifiedAt, &user.Password, &user.SignupMethods, &user.GivenName, &user.FamilyName, &user.MiddleName, &user.Nickname, &user.Birthdate, &user.PhoneNumber, &user.PhoneNumberVerifiedAt, &user.Picture, &user.Roles, &user.RevokedTimestamp, &user.IsMultiFactorAuthEnabled, &user.AppData, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		return nil, err
@@ -218,9 +219,9 @@ func (p *provider) GetUserByEmail(ctx context.Context, email string) (*models.Us
 }
 
 // GetUserByID to get user information from database using user ID
-func (p *provider) GetUserByID(ctx context.Context, id string) (*models.User, error) {
-	var user models.User
-	query := fmt.Sprintf("SELECT id, email, email_verified_at, password, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, roles, revoked_timestamp, is_multi_factor_auth_enabled, app_data, created_at, updated_at FROM %s WHERE id = '%s' LIMIT 1", KeySpace+"."+models.Collections.User, id)
+func (p *provider) GetUserByID(ctx context.Context, id string) (*schemas.User, error) {
+	var user schemas.User
+	query := fmt.Sprintf("SELECT id, email, email_verified_at, password, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, roles, revoked_timestamp, is_multi_factor_auth_enabled, app_data, created_at, updated_at FROM %s WHERE id = '%s' LIMIT 1", KeySpace+"."+schemas.Collections.User, id)
 	err := p.db.Query(query).Consistency(gocql.One).Scan(&user.ID, &user.Email, &user.EmailVerifiedAt, &user.Password, &user.SignupMethods, &user.GivenName, &user.FamilyName, &user.MiddleName, &user.Nickname, &user.Birthdate, &user.PhoneNumber, &user.PhoneNumberVerifiedAt, &user.Picture, &user.Roles, &user.RevokedTimestamp, &user.IsMultiFactorAuthEnabled, &user.AppData, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		return nil, err
@@ -266,14 +267,14 @@ func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{},
 		}
 		idsString = strings.Trim(idsString, " ")
 		idsString = strings.TrimSuffix(idsString, ",")
-		query = fmt.Sprintf("UPDATE %s SET %s WHERE id IN (%s)", KeySpace+"."+models.Collections.User, updateFields, idsString)
+		query = fmt.Sprintf("UPDATE %s SET %s WHERE id IN (%s)", KeySpace+"."+schemas.Collections.User, updateFields, idsString)
 		err := p.db.Query(query).Exec()
 		if err != nil {
 			return err
 		}
 	} else {
 		// get all ids
-		getUserIDsQuery := fmt.Sprintf(`SELECT id FROM %s`, KeySpace+"."+models.Collections.User)
+		getUserIDsQuery := fmt.Sprintf(`SELECT id FROM %s`, KeySpace+"."+schemas.Collections.User)
 		scanner := p.db.Query(getUserIDsQuery).Iter().Scanner()
 		// only 100 ids are allowed in 1 query
 		// hence we need create multiple update queries
@@ -300,7 +301,7 @@ func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{},
 		for _, idStr := range idsStringArray {
 			idStr = strings.Trim(idStr, " ")
 			idStr = strings.TrimSuffix(idStr, ",")
-			query = fmt.Sprintf("UPDATE %s SET %s WHERE id IN (%s)", KeySpace+"."+models.Collections.User, updateFields, idStr)
+			query = fmt.Sprintf("UPDATE %s SET %s WHERE id IN (%s)", KeySpace+"."+schemas.Collections.User, updateFields, idStr)
 			err := p.db.Query(query).Exec()
 			if err != nil {
 				return err
@@ -311,9 +312,9 @@ func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{},
 }
 
 // GetUserByPhoneNumber to get user information from database using phone number
-func (p *provider) GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (*models.User, error) {
-	var user models.User
-	query := fmt.Sprintf("SELECT id, email, email_verified_at, password, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, roles, revoked_timestamp, is_multi_factor_auth_enabled, app_data, created_at, updated_at FROM %s WHERE phone_number = '%s' LIMIT 1 ALLOW FILTERING", KeySpace+"."+models.Collections.User, phoneNumber)
+func (p *provider) GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (*schemas.User, error) {
+	var user schemas.User
+	query := fmt.Sprintf("SELECT id, email, email_verified_at, password, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, roles, revoked_timestamp, is_multi_factor_auth_enabled, app_data, created_at, updated_at FROM %s WHERE phone_number = '%s' LIMIT 1 ALLOW FILTERING", KeySpace+"."+schemas.Collections.User, phoneNumber)
 	err := p.db.Query(query).Consistency(gocql.One).Scan(&user.ID, &user.Email, &user.EmailVerifiedAt, &user.Password, &user.SignupMethods, &user.GivenName, &user.FamilyName, &user.MiddleName, &user.Nickname, &user.Birthdate, &user.PhoneNumber, &user.PhoneNumberVerifiedAt, &user.Picture, &user.Roles, &user.RevokedTimestamp, &user.IsMultiFactorAuthEnabled, &user.AppData, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		return nil, err

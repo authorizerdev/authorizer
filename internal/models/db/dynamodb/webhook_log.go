@@ -4,15 +4,16 @@ import (
 	"context"
 	"time"
 
-	"github.com/authorizerdev/authorizer/internal/db/models"
-	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/google/uuid"
 	"github.com/guregu/dynamo"
+
+	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/models/schemas"
 )
 
 // AddWebhookLog to add webhook log
-func (p *provider) AddWebhookLog(ctx context.Context, webhookLog *models.WebhookLog) (*model.WebhookLog, error) {
-	collection := p.db.Table(models.Collections.WebhookLog)
+func (p *provider) AddWebhookLog(ctx context.Context, webhookLog *schemas.WebhookLog) (*model.WebhookLog, error) {
+	collection := p.db.Table(schemas.Collections.WebhookLog)
 	if webhookLog.ID == "" {
 		webhookLog.ID = uuid.New().String()
 	}
@@ -29,14 +30,14 @@ func (p *provider) AddWebhookLog(ctx context.Context, webhookLog *models.Webhook
 // ListWebhookLogs to list webhook logs
 func (p *provider) ListWebhookLogs(ctx context.Context, pagination *model.Pagination, webhookID string) (*model.WebhookLogs, error) {
 	webhookLogs := []*model.WebhookLog{}
-	var webhookLog *models.WebhookLog
+	var webhookLog *schemas.WebhookLog
 	var lastEval dynamo.PagingKey
 	var iter dynamo.PagingIter
 	var iteration int64 = 0
 	var err error
 	var count int64
 
-	collection := p.db.Table(models.Collections.WebhookLog)
+	collection := p.db.Table(schemas.Collections.WebhookLog)
 	paginationClone := pagination
 	scanner := collection.Scan()
 	if webhookID != "" {

@@ -8,20 +8,21 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/authorizerdev/authorizer/internal/constants"
-	"github.com/authorizerdev/authorizer/internal/db"
-	"github.com/authorizerdev/authorizer/internal/db/models"
-	"github.com/authorizerdev/authorizer/internal/memorystore"
-	"github.com/authorizerdev/authorizer/internal/refs"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/authorizerdev/authorizer/internal/constants"
+	"github.com/authorizerdev/authorizer/internal/memorystore"
+	"github.com/authorizerdev/authorizer/internal/models"
+	"github.com/authorizerdev/authorizer/internal/models/schemas"
+	"github.com/authorizerdev/authorizer/internal/refs"
 )
 
 // RegisterEvent util to register event
 // TODO change user to user ref
-func RegisterEvent(ctx context.Context, eventName string, authRecipe string, user *models.User) error {
-	webhooks, err := db.Provider.GetWebhookByEventName(ctx, eventName)
+func RegisterEvent(ctx context.Context, db models.Provider, eventName string, authRecipe string, user *schemas.User) error {
+	webhooks, err := db.GetWebhookByEventName(ctx, eventName)
 	if err != nil {
-		log.Debug("error getting webhook: %v", err)
+		log.Debugf("error getting webhook: %v", err)
 		return err
 	}
 	for _, webhook := range webhooks {
@@ -63,7 +64,7 @@ func RegisterEvent(ctx context.Context, eventName string, authRecipe string, use
 			continue
 		}
 		if envKey == constants.TestEnv {
-			_, err := db.Provider.AddWebhookLog(ctx, &models.WebhookLog{
+			_, err := db.AddWebhookLog(ctx, &schemas.WebhookLog{
 				HttpStatus: 200,
 				Request:    string(requestBody),
 				Response:   string(`{"message": "test"}`),
@@ -102,7 +103,7 @@ func RegisterEvent(ctx context.Context, eventName string, authRecipe string, use
 		}
 
 		statusCode := int64(resp.StatusCode)
-		_, err = db.Provider.AddWebhookLog(ctx, &models.WebhookLog{
+		_, err = db.AddWebhookLog(ctx, &schemas.WebhookLog{
 			HttpStatus: statusCode,
 			Request:    string(requestBody),
 			Response:   string(responseBytes),

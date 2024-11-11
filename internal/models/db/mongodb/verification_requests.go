@@ -4,22 +4,23 @@ import (
 	"context"
 	"time"
 
-	"github.com/authorizerdev/authorizer/internal/db/models"
-	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
+
+	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/models/schemas"
 )
 
 // AddVerification to save verification request in database
-func (p *provider) AddVerificationRequest(ctx context.Context, verificationRequest *models.VerificationRequest) (*models.VerificationRequest, error) {
+func (p *provider) AddVerificationRequest(ctx context.Context, verificationRequest *schemas.VerificationRequest) (*schemas.VerificationRequest, error) {
 	if verificationRequest.ID == "" {
 		verificationRequest.ID = uuid.New().String()
 
 		verificationRequest.CreatedAt = time.Now().Unix()
 		verificationRequest.UpdatedAt = time.Now().Unix()
 		verificationRequest.Key = verificationRequest.ID
-		verificationRequestCollection := p.db.Collection(models.Collections.VerificationRequest, options.Collection())
+		verificationRequestCollection := p.db.Collection(schemas.Collections.VerificationRequest, options.Collection())
 		_, err := verificationRequestCollection.InsertOne(ctx, verificationRequest)
 		if err != nil {
 			return nil, err
@@ -30,10 +31,10 @@ func (p *provider) AddVerificationRequest(ctx context.Context, verificationReque
 }
 
 // GetVerificationRequestByToken to get verification request from database using token
-func (p *provider) GetVerificationRequestByToken(ctx context.Context, token string) (*models.VerificationRequest, error) {
-	var verificationRequest *models.VerificationRequest
+func (p *provider) GetVerificationRequestByToken(ctx context.Context, token string) (*schemas.VerificationRequest, error) {
+	var verificationRequest *schemas.VerificationRequest
 
-	verificationRequestCollection := p.db.Collection(models.Collections.VerificationRequest, options.Collection())
+	verificationRequestCollection := p.db.Collection(schemas.Collections.VerificationRequest, options.Collection())
 	err := verificationRequestCollection.FindOne(ctx, bson.M{"token": token}).Decode(&verificationRequest)
 	if err != nil {
 		return nil, err
@@ -43,10 +44,10 @@ func (p *provider) GetVerificationRequestByToken(ctx context.Context, token stri
 }
 
 // GetVerificationRequestByEmail to get verification request by email from database
-func (p *provider) GetVerificationRequestByEmail(ctx context.Context, email string, identifier string) (*models.VerificationRequest, error) {
-	var verificationRequest *models.VerificationRequest
+func (p *provider) GetVerificationRequestByEmail(ctx context.Context, email string, identifier string) (*schemas.VerificationRequest, error) {
+	var verificationRequest *schemas.VerificationRequest
 
-	verificationRequestCollection := p.db.Collection(models.Collections.VerificationRequest, options.Collection())
+	verificationRequestCollection := p.db.Collection(schemas.Collections.VerificationRequest, options.Collection())
 	err := verificationRequestCollection.FindOne(ctx, bson.M{"email": email, "identifier": identifier}).Decode(&verificationRequest)
 	if err != nil {
 		return nil, err
@@ -64,7 +65,7 @@ func (p *provider) ListVerificationRequests(ctx context.Context, pagination *mod
 	opts.SetSkip(pagination.Offset)
 	opts.SetSort(bson.M{"created_at": -1})
 
-	verificationRequestCollection := p.db.Collection(models.Collections.VerificationRequest, options.Collection())
+	verificationRequestCollection := p.db.Collection(schemas.Collections.VerificationRequest, options.Collection())
 
 	verificationRequestCollectionCount, err := verificationRequestCollection.CountDocuments(ctx, bson.M{})
 	paginationClone := pagination
@@ -77,7 +78,7 @@ func (p *provider) ListVerificationRequests(ctx context.Context, pagination *mod
 	defer cursor.Close(ctx)
 
 	for cursor.Next(ctx) {
-		var verificationRequest *models.VerificationRequest
+		var verificationRequest *schemas.VerificationRequest
 		err := cursor.Decode(&verificationRequest)
 		if err != nil {
 			return nil, err
@@ -92,8 +93,8 @@ func (p *provider) ListVerificationRequests(ctx context.Context, pagination *mod
 }
 
 // DeleteVerificationRequest to delete verification request from database
-func (p *provider) DeleteVerificationRequest(ctx context.Context, verificationRequest *models.VerificationRequest) error {
-	verificationRequestCollection := p.db.Collection(models.Collections.VerificationRequest, options.Collection())
+func (p *provider) DeleteVerificationRequest(ctx context.Context, verificationRequest *schemas.VerificationRequest) error {
+	verificationRequestCollection := p.db.Collection(schemas.Collections.VerificationRequest, options.Collection())
 	_, err := verificationRequestCollection.DeleteOne(ctx, bson.M{"_id": verificationRequest.ID}, options.Delete())
 	if err != nil {
 		return err

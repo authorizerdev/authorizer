@@ -8,11 +8,11 @@ import (
 	arangoDriver "github.com/arangodb/go-driver"
 	"github.com/google/uuid"
 
-	"github.com/authorizerdev/authorizer/internal/db/models"
+	"github.com/authorizerdev/authorizer/internal/models/schemas"
 )
 
 // AddEnv to save environment information in database
-func (p *provider) AddEnv(ctx context.Context, env *models.Env) (*models.Env, error) {
+func (p *provider) AddEnv(ctx context.Context, env *schemas.Env) (*schemas.Env, error) {
 	if env.ID == "" {
 		env.ID = uuid.New().String()
 		env.Key = env.ID
@@ -20,7 +20,7 @@ func (p *provider) AddEnv(ctx context.Context, env *models.Env) (*models.Env, er
 
 	env.CreatedAt = time.Now().Unix()
 	env.UpdatedAt = time.Now().Unix()
-	configCollection, _ := p.db.Collection(ctx, models.Collections.Env)
+	configCollection, _ := p.db.Collection(ctx, schemas.Collections.Env)
 	meta, err := configCollection.CreateDocument(arangoDriver.WithOverwrite(ctx), env)
 	if err != nil {
 		return nil, err
@@ -31,9 +31,9 @@ func (p *provider) AddEnv(ctx context.Context, env *models.Env) (*models.Env, er
 }
 
 // UpdateEnv to update environment information in database
-func (p *provider) UpdateEnv(ctx context.Context, env *models.Env) (*models.Env, error) {
+func (p *provider) UpdateEnv(ctx context.Context, env *schemas.Env) (*schemas.Env, error) {
 	env.UpdatedAt = time.Now().Unix()
-	collection, _ := p.db.Collection(ctx, models.Collections.Env)
+	collection, _ := p.db.Collection(ctx, schemas.Collections.Env)
 	meta, err := collection.UpdateDocument(ctx, env.Key, env)
 	if err != nil {
 		return nil, err
@@ -45,9 +45,9 @@ func (p *provider) UpdateEnv(ctx context.Context, env *models.Env) (*models.Env,
 }
 
 // GetEnv to get environment information from database
-func (p *provider) GetEnv(ctx context.Context) (*models.Env, error) {
-	var env *models.Env
-	query := fmt.Sprintf("FOR d in %s RETURN d", models.Collections.Env)
+func (p *provider) GetEnv(ctx context.Context) (*schemas.Env, error) {
+	var env *schemas.Env
+	query := fmt.Sprintf("FOR d in %s RETURN d", schemas.Collections.Env)
 	cursor, err := p.db.Query(ctx, query, nil)
 	if err != nil {
 		return nil, err

@@ -6,20 +6,21 @@ import (
 	"time"
 
 	arangoDriver "github.com/arangodb/go-driver"
-	"github.com/authorizerdev/authorizer/internal/db/models"
-	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/google/uuid"
+
+	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/models/schemas"
 )
 
 // AddVerification to save verification request in database
-func (p *provider) AddVerificationRequest(ctx context.Context, verificationRequest *models.VerificationRequest) (*models.VerificationRequest, error) {
+func (p *provider) AddVerificationRequest(ctx context.Context, verificationRequest *schemas.VerificationRequest) (*schemas.VerificationRequest, error) {
 	if verificationRequest.ID == "" {
 		verificationRequest.ID = uuid.New().String()
 		verificationRequest.Key = verificationRequest.ID
 	}
 	verificationRequest.CreatedAt = time.Now().Unix()
 	verificationRequest.UpdatedAt = time.Now().Unix()
-	verificationRequestRequestCollection, _ := p.db.Collection(ctx, models.Collections.VerificationRequest)
+	verificationRequestRequestCollection, _ := p.db.Collection(ctx, schemas.Collections.VerificationRequest)
 	meta, err := verificationRequestRequestCollection.CreateDocument(ctx, verificationRequest)
 	if err != nil {
 		return nil, err
@@ -30,9 +31,9 @@ func (p *provider) AddVerificationRequest(ctx context.Context, verificationReque
 }
 
 // GetVerificationRequestByToken to get verification request from database using token
-func (p *provider) GetVerificationRequestByToken(ctx context.Context, token string) (*models.VerificationRequest, error) {
-	var verificationRequest *models.VerificationRequest
-	query := fmt.Sprintf("FOR d in %s FILTER d.token == @token LIMIT 1 RETURN d", models.Collections.VerificationRequest)
+func (p *provider) GetVerificationRequestByToken(ctx context.Context, token string) (*schemas.VerificationRequest, error) {
+	var verificationRequest *schemas.VerificationRequest
+	query := fmt.Sprintf("FOR d in %s FILTER d.token == @token LIMIT 1 RETURN d", schemas.Collections.VerificationRequest)
 	bindVars := map[string]interface{}{
 		"token": token,
 	}
@@ -57,9 +58,9 @@ func (p *provider) GetVerificationRequestByToken(ctx context.Context, token stri
 }
 
 // GetVerificationRequestByEmail to get verification request by email from database
-func (p *provider) GetVerificationRequestByEmail(ctx context.Context, email string, identifier string) (*models.VerificationRequest, error) {
-	var verificationRequest *models.VerificationRequest
-	query := fmt.Sprintf("FOR d in %s FILTER d.email == @email FILTER d.identifier == @identifier LIMIT 1 RETURN d", models.Collections.VerificationRequest)
+func (p *provider) GetVerificationRequestByEmail(ctx context.Context, email string, identifier string) (*schemas.VerificationRequest, error) {
+	var verificationRequest *schemas.VerificationRequest
+	query := fmt.Sprintf("FOR d in %s FILTER d.email == @email FILTER d.identifier == @identifier LIMIT 1 RETURN d", schemas.Collections.VerificationRequest)
 	bindVars := map[string]interface{}{
 		"email":      email,
 		"identifier": identifier,
@@ -88,7 +89,7 @@ func (p *provider) GetVerificationRequestByEmail(ctx context.Context, email stri
 func (p *provider) ListVerificationRequests(ctx context.Context, pagination *model.Pagination) (*model.VerificationRequests, error) {
 	var verificationRequests []*model.VerificationRequest
 	sctx := arangoDriver.WithQueryFullCount(ctx)
-	query := fmt.Sprintf("FOR d in %s SORT d.created_at DESC LIMIT %d, %d RETURN d", models.Collections.VerificationRequest, pagination.Offset, pagination.Limit)
+	query := fmt.Sprintf("FOR d in %s SORT d.created_at DESC LIMIT %d, %d RETURN d", schemas.Collections.VerificationRequest, pagination.Offset, pagination.Limit)
 	cursor, err := p.db.Query(sctx, query, nil)
 	if err != nil {
 		return nil, err
@@ -97,7 +98,7 @@ func (p *provider) ListVerificationRequests(ctx context.Context, pagination *mod
 	paginationClone := pagination
 	paginationClone.Total = cursor.Statistics().FullCount()
 	for {
-		var verificationRequest *models.VerificationRequest
+		var verificationRequest *schemas.VerificationRequest
 		meta, err := cursor.ReadDocument(ctx, &verificationRequest)
 
 		if arangoDriver.IsNoMoreDocuments(err) {
@@ -118,8 +119,8 @@ func (p *provider) ListVerificationRequests(ctx context.Context, pagination *mod
 }
 
 // DeleteVerificationRequest to delete verification request from database
-func (p *provider) DeleteVerificationRequest(ctx context.Context, verificationRequest *models.VerificationRequest) error {
-	collection, _ := p.db.Collection(ctx, models.Collections.VerificationRequest)
+func (p *provider) DeleteVerificationRequest(ctx context.Context, verificationRequest *schemas.VerificationRequest) error {
+	collection, _ := p.db.Collection(ctx, schemas.Collections.VerificationRequest)
 	_, err := collection.RemoveDocument(ctx, verificationRequest.Key)
 	if err != nil {
 		return err

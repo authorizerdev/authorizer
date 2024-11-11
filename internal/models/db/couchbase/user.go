@@ -7,17 +7,18 @@ import (
 	"strings"
 	"time"
 
-	"github.com/authorizerdev/authorizer/internal/constants"
-	"github.com/authorizerdev/authorizer/internal/db/models"
-	"github.com/authorizerdev/authorizer/internal/graph/model"
-	"github.com/authorizerdev/authorizer/internal/memorystore"
-	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/couchbase/gocb/v2"
 	"github.com/google/uuid"
+
+	"github.com/authorizerdev/authorizer/internal/constants"
+	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/memorystore"
+	"github.com/authorizerdev/authorizer/internal/models/schemas"
+	"github.com/authorizerdev/authorizer/internal/refs"
 )
 
 // AddUser to save user information in database
-func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User, error) {
+func (p *provider) AddUser(ctx context.Context, user *schemas.User) (*schemas.User, error) {
 	if user.ID == "" {
 		user.ID = uuid.New().String()
 	}
@@ -45,7 +46,7 @@ func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User
 	insertOpt := gocb.InsertOptions{
 		Context: ctx,
 	}
-	_, err := p.db.Collection(models.Collections.User).Insert(user.ID, user, &insertOpt)
+	_, err := p.db.Collection(schemas.Collections.User).Insert(user.ID, user, &insertOpt)
 	if err != nil {
 		return nil, err
 	}
@@ -53,12 +54,12 @@ func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User
 }
 
 // UpdateUser to update user information in database
-func (p *provider) UpdateUser(ctx context.Context, user *models.User) (*models.User, error) {
+func (p *provider) UpdateUser(ctx context.Context, user *schemas.User) (*schemas.User, error) {
 	user.UpdatedAt = time.Now().Unix()
 	upsertOpt := gocb.UpsertOptions{
 		Context: ctx,
 	}
-	_, err := p.db.Collection(models.Collections.User).Upsert(user.ID, user, &upsertOpt)
+	_, err := p.db.Collection(schemas.Collections.User).Upsert(user.ID, user, &upsertOpt)
 	if err != nil {
 		return nil, err
 	}
@@ -66,11 +67,11 @@ func (p *provider) UpdateUser(ctx context.Context, user *models.User) (*models.U
 }
 
 // DeleteUser to delete user information from database
-func (p *provider) DeleteUser(ctx context.Context, user *models.User) error {
+func (p *provider) DeleteUser(ctx context.Context, user *schemas.User) error {
 	removeOpt := gocb.RemoveOptions{
 		Context: ctx,
 	}
-	_, err := p.db.Collection(models.Collections.User).Remove(user.ID, &removeOpt)
+	_, err := p.db.Collection(schemas.Collections.User).Remove(user.ID, &removeOpt)
 	if err != nil {
 		return err
 	}
@@ -81,7 +82,7 @@ func (p *provider) DeleteUser(ctx context.Context, user *models.User) error {
 func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) (*model.Users, error) {
 	users := []*model.User{}
 	paginationClone := pagination
-	userQuery := fmt.Sprintf("SELECT _id, email, email_verified_at, `password`, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, roles, revoked_timestamp, is_multi_factor_auth_enabled, app_data, created_at, updated_at FROM %s.%s ORDER BY id OFFSET $1 LIMIT $2", p.scopeName, models.Collections.User)
+	userQuery := fmt.Sprintf("SELECT _id, email, email_verified_at, `password`, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, roles, revoked_timestamp, is_multi_factor_auth_enabled, app_data, created_at, updated_at FROM %s.%s ORDER BY id OFFSET $1 LIMIT $2", p.scopeName, schemas.Collections.User)
 	queryResult, err := p.db.Query(userQuery, &gocb.QueryOptions{
 		ScanConsistency:      gocb.QueryScanConsistencyRequestPlus,
 		Context:              ctx,
@@ -90,13 +91,13 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) 
 	if err != nil {
 		return nil, err
 	}
-	total, err := p.GetTotalDocs(ctx, models.Collections.User)
+	total, err := p.GetTotalDocs(ctx, schemas.Collections.User)
 	if err != nil {
 		return nil, err
 	}
 	paginationClone.Total = total
 	for queryResult.Next() {
-		var user models.User
+		var user schemas.User
 		err := queryResult.Row(&user)
 		if err != nil {
 			log.Fatal(err)
@@ -113,9 +114,9 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) 
 }
 
 // GetUserByEmail to get user information from database using email address
-func (p *provider) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
-	var user *models.User
-	query := fmt.Sprintf("SELECT _id, email, email_verified_at, `password`, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, roles, revoked_timestamp, is_multi_factor_auth_enabled, app_data, created_at, updated_at FROM %s.%s WHERE email = $1 LIMIT 1", p.scopeName, models.Collections.User)
+func (p *provider) GetUserByEmail(ctx context.Context, email string) (*schemas.User, error) {
+	var user *schemas.User
+	query := fmt.Sprintf("SELECT _id, email, email_verified_at, `password`, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, roles, revoked_timestamp, is_multi_factor_auth_enabled, app_data, created_at, updated_at FROM %s.%s WHERE email = $1 LIMIT 1", p.scopeName, schemas.Collections.User)
 	q, err := p.db.Query(query, &gocb.QueryOptions{
 		ScanConsistency:      gocb.QueryScanConsistencyRequestPlus,
 		Context:              ctx,
@@ -132,9 +133,9 @@ func (p *provider) GetUserByEmail(ctx context.Context, email string) (*models.Us
 }
 
 // GetUserByID to get user information from database using user ID
-func (p *provider) GetUserByID(ctx context.Context, id string) (*models.User, error) {
-	var user *models.User
-	query := fmt.Sprintf("SELECT _id, email, email_verified_at, `password`, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, roles, revoked_timestamp, is_multi_factor_auth_enabled, app_data, created_at, updated_at FROM %s.%s WHERE _id = $1 LIMIT 1", p.scopeName, models.Collections.User)
+func (p *provider) GetUserByID(ctx context.Context, id string) (*schemas.User, error) {
+	var user *schemas.User
+	query := fmt.Sprintf("SELECT _id, email, email_verified_at, `password`, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, roles, revoked_timestamp, is_multi_factor_auth_enabled, app_data, created_at, updated_at FROM %s.%s WHERE _id = $1 LIMIT 1", p.scopeName, schemas.Collections.User)
 	q, err := p.db.Query(query, &gocb.QueryOptions{
 		ScanConsistency:      gocb.QueryScanConsistencyRequestPlus,
 		Context:              ctx,
@@ -159,7 +160,7 @@ func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{},
 	if len(ids) > 0 {
 		for _, id := range ids {
 			params["id"] = id
-			userQuery := fmt.Sprintf("UPDATE %s.%s SET %s WHERE _id = $id", p.scopeName, models.Collections.User, updateFields)
+			userQuery := fmt.Sprintf("UPDATE %s.%s SET %s WHERE _id = $id", p.scopeName, schemas.Collections.User, updateFields)
 
 			_, err := p.db.Query(userQuery, &gocb.QueryOptions{
 				ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
@@ -171,7 +172,7 @@ func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{},
 			}
 		}
 	} else {
-		userQuery := fmt.Sprintf("UPDATE %s.%s SET %s WHERE _id IS NOT NULL", p.scopeName, models.Collections.User, updateFields)
+		userQuery := fmt.Sprintf("UPDATE %s.%s SET %s WHERE _id IS NOT NULL", p.scopeName, schemas.Collections.User, updateFields)
 		_, err := p.db.Query(userQuery, &gocb.QueryOptions{
 			ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
 			Context:         ctx,
@@ -185,9 +186,9 @@ func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{},
 }
 
 // GetUserByPhoneNumber to get user information from database using phone number
-func (p *provider) GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (*models.User, error) {
-	var user *models.User
-	query := fmt.Sprintf("SELECT _id, email, email_verified_at, `password`, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, roles, revoked_timestamp, is_multi_factor_auth_enabled, app_data, created_at, updated_at FROM %s.%s WHERE phone_number = $1 LIMIT 1", p.scopeName, models.Collections.User)
+func (p *provider) GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (*schemas.User, error) {
+	var user *schemas.User
+	query := fmt.Sprintf("SELECT _id, email, email_verified_at, `password`, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, roles, revoked_timestamp, is_multi_factor_auth_enabled, app_data, created_at, updated_at FROM %s.%s WHERE phone_number = $1 LIMIT 1", p.scopeName, schemas.Collections.User)
 	q, err := p.db.Query(query, &gocb.QueryOptions{
 		ScanConsistency:      gocb.QueryScanConsistencyRequestPlus,
 		Context:              ctx,

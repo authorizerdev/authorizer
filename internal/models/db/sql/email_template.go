@@ -4,13 +4,14 @@ import (
 	"context"
 	"time"
 
-	"github.com/authorizerdev/authorizer/internal/db/models"
-	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/google/uuid"
+
+	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/models/schemas"
 )
 
 // AddEmailTemplate to add EmailTemplate
-func (p *provider) AddEmailTemplate(ctx context.Context, emailTemplate *models.EmailTemplate) (*model.EmailTemplate, error) {
+func (p *provider) AddEmailTemplate(ctx context.Context, emailTemplate *schemas.EmailTemplate) (*model.EmailTemplate, error) {
 	if emailTemplate.ID == "" {
 		emailTemplate.ID = uuid.New().String()
 	}
@@ -27,7 +28,7 @@ func (p *provider) AddEmailTemplate(ctx context.Context, emailTemplate *models.E
 }
 
 // UpdateEmailTemplate to update EmailTemplate
-func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate *models.EmailTemplate) (*model.EmailTemplate, error) {
+func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate *schemas.EmailTemplate) (*model.EmailTemplate, error) {
 	emailTemplate.UpdatedAt = time.Now().Unix()
 
 	res := p.db.Save(&emailTemplate)
@@ -39,14 +40,14 @@ func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate *model
 
 // ListEmailTemplates to list EmailTemplate
 func (p *provider) ListEmailTemplate(ctx context.Context, pagination *model.Pagination) (*model.EmailTemplates, error) {
-	var emailTemplates []*models.EmailTemplate
+	var emailTemplates []*schemas.EmailTemplate
 	result := p.db.Limit(int(pagination.Limit)).Offset(int(pagination.Offset)).Order("created_at DESC").Find(&emailTemplates)
 	if result.Error != nil {
 		return nil, result.Error
 	}
 
 	var total int64
-	totalRes := p.db.Model(&models.EmailTemplate{}).Count(&total)
+	totalRes := p.db.Model(&schemas.EmailTemplate{}).Count(&total)
 	if totalRes.Error != nil {
 		return nil, totalRes.Error
 	}
@@ -66,7 +67,7 @@ func (p *provider) ListEmailTemplate(ctx context.Context, pagination *model.Pagi
 
 // GetEmailTemplateByID to get EmailTemplate by id
 func (p *provider) GetEmailTemplateByID(ctx context.Context, emailTemplateID string) (*model.EmailTemplate, error) {
-	var emailTemplate *models.EmailTemplate
+	var emailTemplate *schemas.EmailTemplate
 
 	result := p.db.Where("id = ?", emailTemplateID).First(&emailTemplate)
 	if result.Error != nil {
@@ -77,7 +78,7 @@ func (p *provider) GetEmailTemplateByID(ctx context.Context, emailTemplateID str
 
 // GetEmailTemplateByEventName to get EmailTemplate by event_name
 func (p *provider) GetEmailTemplateByEventName(ctx context.Context, eventName string) (*model.EmailTemplate, error) {
-	var emailTemplate *models.EmailTemplate
+	var emailTemplate *schemas.EmailTemplate
 
 	result := p.db.Where("event_name = ?", eventName).First(&emailTemplate)
 	if result.Error != nil {
@@ -88,7 +89,7 @@ func (p *provider) GetEmailTemplateByEventName(ctx context.Context, eventName st
 
 // DeleteEmailTemplate to delete EmailTemplate
 func (p *provider) DeleteEmailTemplate(ctx context.Context, emailTemplate *model.EmailTemplate) error {
-	result := p.db.Delete(&models.EmailTemplate{
+	result := p.db.Delete(&schemas.EmailTemplate{
 		ID: emailTemplate.ID,
 	})
 	if result.Error != nil {

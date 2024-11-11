@@ -4,15 +4,16 @@ import (
 	"context"
 	"time"
 
-	"github.com/authorizerdev/authorizer/internal/db/models"
-	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/google/uuid"
 	"github.com/guregu/dynamo"
+
+	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/models/schemas"
 )
 
 // AddVerification to save verification request in database
-func (p *provider) AddVerificationRequest(ctx context.Context, verificationRequest *models.VerificationRequest) (*models.VerificationRequest, error) {
-	collection := p.db.Table(models.Collections.VerificationRequest)
+func (p *provider) AddVerificationRequest(ctx context.Context, verificationRequest *schemas.VerificationRequest) (*schemas.VerificationRequest, error) {
+	collection := p.db.Table(schemas.Collections.VerificationRequest)
 	if verificationRequest.ID == "" {
 		verificationRequest.ID = uuid.New().String()
 		verificationRequest.CreatedAt = time.Now().Unix()
@@ -26,9 +27,9 @@ func (p *provider) AddVerificationRequest(ctx context.Context, verificationReque
 }
 
 // GetVerificationRequestByToken to get verification request from database using token
-func (p *provider) GetVerificationRequestByToken(ctx context.Context, token string) (*models.VerificationRequest, error) {
-	collection := p.db.Table(models.Collections.VerificationRequest)
-	var verificationRequest *models.VerificationRequest
+func (p *provider) GetVerificationRequestByToken(ctx context.Context, token string) (*schemas.VerificationRequest, error) {
+	collection := p.db.Table(schemas.Collections.VerificationRequest)
+	var verificationRequest *schemas.VerificationRequest
 	iter := collection.Scan().Filter("'token' = ?", token).Iter()
 	for iter.NextWithContext(ctx, &verificationRequest) {
 		return verificationRequest, nil
@@ -41,9 +42,9 @@ func (p *provider) GetVerificationRequestByToken(ctx context.Context, token stri
 }
 
 // GetVerificationRequestByEmail to get verification request by email from database
-func (p *provider) GetVerificationRequestByEmail(ctx context.Context, email string, identifier string) (*models.VerificationRequest, error) {
-	var verificationRequest *models.VerificationRequest
-	collection := p.db.Table(models.Collections.VerificationRequest)
+func (p *provider) GetVerificationRequestByEmail(ctx context.Context, email string, identifier string) (*schemas.VerificationRequest, error) {
+	var verificationRequest *schemas.VerificationRequest
+	collection := p.db.Table(schemas.Collections.VerificationRequest)
 	iter := collection.Scan().Filter("'email' = ?", email).Filter("'identifier' = ?", identifier).Iter()
 	for iter.NextWithContext(ctx, &verificationRequest) {
 		return verificationRequest, nil
@@ -58,11 +59,11 @@ func (p *provider) GetVerificationRequestByEmail(ctx context.Context, email stri
 // ListVerificationRequests to get list of verification requests from database
 func (p *provider) ListVerificationRequests(ctx context.Context, pagination *model.Pagination) (*model.VerificationRequests, error) {
 	verificationRequests := []*model.VerificationRequest{}
-	var verificationRequest *models.VerificationRequest
+	var verificationRequest *schemas.VerificationRequest
 	var lastEval dynamo.PagingKey
 	var iter dynamo.PagingIter
 	var iteration int64 = 0
-	collection := p.db.Table(models.Collections.VerificationRequest)
+	collection := p.db.Table(schemas.Collections.VerificationRequest)
 	paginationClone := pagination
 	scanner := collection.Scan()
 	count, err := scanner.Count()
@@ -91,8 +92,8 @@ func (p *provider) ListVerificationRequests(ctx context.Context, pagination *mod
 }
 
 // DeleteVerificationRequest to delete verification request from database
-func (p *provider) DeleteVerificationRequest(ctx context.Context, verificationRequest *models.VerificationRequest) error {
-	collection := p.db.Table(models.Collections.VerificationRequest)
+func (p *provider) DeleteVerificationRequest(ctx context.Context, verificationRequest *schemas.VerificationRequest) error {
+	collection := p.db.Table(schemas.Collections.VerificationRequest)
 	if verificationRequest != nil {
 		err := collection.Delete("id", verificationRequest.ID).RunWithContext(ctx)
 

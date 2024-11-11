@@ -9,8 +9,10 @@ import (
 
 	arangoDriver "github.com/arangodb/go-driver"
 	"github.com/arangodb/go-driver/http"
-	"github.com/authorizerdev/authorizer/internal/db/models"
+
 	"github.com/authorizerdev/authorizer/internal/memorystore"
+	"github.com/authorizerdev/authorizer/internal/models/config"
+	"github.com/authorizerdev/authorizer/internal/models/schemas"
 )
 
 type provider struct {
@@ -22,7 +24,7 @@ type provider struct {
 // docker run -p 8529:8529 -e ARANGO_ROOT_PASSWORD=root arangodb/arangodb:3.8.4
 
 // NewProvider to initialize arangodb connection
-func NewProvider() (*provider, error) {
+func NewProvider(cfg config.Config, deps config.Dependencies) (*provider, error) {
 	ctx := context.Background()
 	dbURL := memorystore.RequiredEnvStoreObj.GetRequiredEnv().DatabaseURL
 	dbUsername := memorystore.RequiredEnvStoreObj.GetRequiredEnv().DatabaseUsername
@@ -78,17 +80,17 @@ func NewProvider() (*provider, error) {
 			return nil, err
 		}
 	}
-	userCollectionExists, err := arangodb.CollectionExists(ctx, models.Collections.User)
+	userCollectionExists, err := arangodb.CollectionExists(ctx, schemas.Collections.User)
 	if err != nil {
 		return nil, err
 	}
 	if !userCollectionExists {
-		_, err = arangodb.CreateCollection(ctx, models.Collections.User, nil)
+		_, err = arangodb.CreateCollection(ctx, schemas.Collections.User, nil)
 		if err != nil {
 			return nil, err
 		}
 	}
-	userCollection, err := arangodb.Collection(ctx, models.Collections.User)
+	userCollection, err := arangodb.Collection(ctx, schemas.Collections.User)
 	if err != nil {
 		return nil, err
 	}
@@ -101,17 +103,17 @@ func NewProvider() (*provider, error) {
 		Sparse: true,
 	})
 
-	verificationRequestCollectionExists, err := arangodb.CollectionExists(ctx, models.Collections.VerificationRequest)
+	verificationRequestCollectionExists, err := arangodb.CollectionExists(ctx, schemas.Collections.VerificationRequest)
 	if err != nil {
 		return nil, err
 	}
 	if !verificationRequestCollectionExists {
-		_, err = arangodb.CreateCollection(ctx, models.Collections.VerificationRequest, nil)
+		_, err = arangodb.CreateCollection(ctx, schemas.Collections.VerificationRequest, nil)
 		if err != nil {
 			return nil, err
 		}
 	}
-	verificationRequestCollection, err := arangodb.Collection(ctx, models.Collections.VerificationRequest)
+	verificationRequestCollection, err := arangodb.Collection(ctx, schemas.Collections.VerificationRequest)
 	if err != nil {
 		return nil, err
 	}
@@ -123,44 +125,44 @@ func NewProvider() (*provider, error) {
 		Sparse: true,
 	})
 
-	sessionCollectionExists, err := arangodb.CollectionExists(ctx, models.Collections.Session)
+	sessionCollectionExists, err := arangodb.CollectionExists(ctx, schemas.Collections.Session)
 	if err != nil {
 		return nil, err
 	}
 	if !sessionCollectionExists {
-		_, err = arangodb.CreateCollection(ctx, models.Collections.Session, nil)
+		_, err = arangodb.CreateCollection(ctx, schemas.Collections.Session, nil)
 		if err != nil {
 			return nil, err
 		}
 	}
-	sessionCollection, err := arangodb.Collection(ctx, models.Collections.Session)
+	sessionCollection, err := arangodb.Collection(ctx, schemas.Collections.Session)
 	if err != nil {
 		return nil, err
 	}
 	sessionCollection.EnsureHashIndex(ctx, []string{"user_id"}, &arangoDriver.EnsureHashIndexOptions{
 		Sparse: true,
 	})
-	envCollectionExists, err := arangodb.CollectionExists(ctx, models.Collections.Env)
+	envCollectionExists, err := arangodb.CollectionExists(ctx, schemas.Collections.Env)
 	if err != nil {
 		return nil, err
 	}
 	if !envCollectionExists {
-		_, err = arangodb.CreateCollection(ctx, models.Collections.Env, nil)
+		_, err = arangodb.CreateCollection(ctx, schemas.Collections.Env, nil)
 		if err != nil {
 			return nil, err
 		}
 	}
-	webhookCollectionExists, err := arangodb.CollectionExists(ctx, models.Collections.Webhook)
+	webhookCollectionExists, err := arangodb.CollectionExists(ctx, schemas.Collections.Webhook)
 	if err != nil {
 		return nil, err
 	}
 	if !webhookCollectionExists {
-		_, err = arangodb.CreateCollection(ctx, models.Collections.Webhook, nil)
+		_, err = arangodb.CreateCollection(ctx, schemas.Collections.Webhook, nil)
 		if err != nil {
 			return nil, err
 		}
 	}
-	webhookCollection, err := arangodb.Collection(ctx, models.Collections.Webhook)
+	webhookCollection, err := arangodb.Collection(ctx, schemas.Collections.Webhook)
 	if err != nil {
 		return nil, err
 	}
@@ -169,17 +171,17 @@ func NewProvider() (*provider, error) {
 		Sparse: true,
 	})
 
-	webhookLogCollectionExists, err := arangodb.CollectionExists(ctx, models.Collections.WebhookLog)
+	webhookLogCollectionExists, err := arangodb.CollectionExists(ctx, schemas.Collections.WebhookLog)
 	if err != nil {
 		return nil, err
 	}
 	if !webhookLogCollectionExists {
-		_, err = arangodb.CreateCollection(ctx, models.Collections.WebhookLog, nil)
+		_, err = arangodb.CreateCollection(ctx, schemas.Collections.WebhookLog, nil)
 		if err != nil {
 			return nil, err
 		}
 	}
-	webhookLogCollection, err := arangodb.Collection(ctx, models.Collections.WebhookLog)
+	webhookLogCollection, err := arangodb.Collection(ctx, schemas.Collections.WebhookLog)
 	if err != nil {
 		return nil, err
 	}
@@ -187,17 +189,17 @@ func NewProvider() (*provider, error) {
 		Sparse: true,
 	})
 
-	emailTemplateCollectionExists, err := arangodb.CollectionExists(ctx, models.Collections.EmailTemplate)
+	emailTemplateCollectionExists, err := arangodb.CollectionExists(ctx, schemas.Collections.EmailTemplate)
 	if err != nil {
 		return nil, err
 	}
 	if !emailTemplateCollectionExists {
-		_, err = arangodb.CreateCollection(ctx, models.Collections.EmailTemplate, nil)
+		_, err = arangodb.CreateCollection(ctx, schemas.Collections.EmailTemplate, nil)
 		if err != nil {
 			return nil, err
 		}
 	}
-	emailTemplateCollection, err := arangodb.Collection(ctx, models.Collections.EmailTemplate)
+	emailTemplateCollection, err := arangodb.Collection(ctx, schemas.Collections.EmailTemplate)
 	if err != nil {
 		return nil, err
 	}
@@ -206,37 +208,37 @@ func NewProvider() (*provider, error) {
 		Sparse: true,
 	})
 
-	otpCollectionExists, err := arangodb.CollectionExists(ctx, models.Collections.OTP)
+	otpCollectionExists, err := arangodb.CollectionExists(ctx, schemas.Collections.OTP)
 	if err != nil {
 		return nil, err
 	}
 	if !otpCollectionExists {
-		_, err = arangodb.CreateCollection(ctx, models.Collections.OTP, nil)
+		_, err = arangodb.CreateCollection(ctx, schemas.Collections.OTP, nil)
 		if err != nil {
 			return nil, err
 		}
 	}
-	otpCollection, err := arangodb.Collection(ctx, models.Collections.OTP)
+	otpCollection, err := arangodb.Collection(ctx, schemas.Collections.OTP)
 	if err != nil {
 		return nil, err
 	}
-	otpCollection.EnsureHashIndex(ctx, []string{models.FieldNameEmail, models.FieldNamePhoneNumber}, &arangoDriver.EnsureHashIndexOptions{
+	otpCollection.EnsureHashIndex(ctx, []string{schemas.FieldNameEmail, schemas.FieldNamePhoneNumber}, &arangoDriver.EnsureHashIndexOptions{
 		Unique: true,
 		Sparse: true,
 	})
 
 	//authenticators table define
-	authenticatorsCollectionExists, err := arangodb.CollectionExists(ctx, models.Collections.Authenticators)
+	authenticatorsCollectionExists, err := arangodb.CollectionExists(ctx, schemas.Collections.Authenticators)
 	if err != nil {
 		return nil, err
 	}
 	if !authenticatorsCollectionExists {
-		_, err = arangodb.CreateCollection(ctx, models.Collections.Authenticators, nil)
+		_, err = arangodb.CreateCollection(ctx, schemas.Collections.Authenticators, nil)
 		if err != nil {
 			return nil, err
 		}
 	}
-	authenticatorsCollection, err := arangodb.Collection(ctx, models.Collections.Authenticators)
+	authenticatorsCollection, err := arangodb.Collection(ctx, schemas.Collections.Authenticators)
 	if err != nil {
 		return nil, err
 	}

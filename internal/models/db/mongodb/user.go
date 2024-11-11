@@ -6,20 +6,21 @@ import (
 	"strings"
 	"time"
 
-	"github.com/authorizerdev/authorizer/internal/constants"
-	"github.com/authorizerdev/authorizer/internal/db/models"
-	"github.com/authorizerdev/authorizer/internal/graph/model"
-	"github.com/authorizerdev/authorizer/internal/memorystore"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+
+	"github.com/authorizerdev/authorizer/internal/constants"
+	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/memorystore"
+	"github.com/authorizerdev/authorizer/internal/models/schemas"
 )
 
 // AddUser to save user information in database
-func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User, error) {
+func (p *provider) AddUser(ctx context.Context, user *schemas.User) (*schemas.User, error) {
 	if user.ID == "" {
 		user.ID = uuid.New().String()
 	}
@@ -42,7 +43,7 @@ func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User
 	user.CreatedAt = time.Now().Unix()
 	user.UpdatedAt = time.Now().Unix()
 	user.Key = user.ID
-	userCollection := p.db.Collection(models.Collections.User, options.Collection())
+	userCollection := p.db.Collection(schemas.Collections.User, options.Collection())
 	_, err := userCollection.InsertOne(ctx, user)
 	if err != nil {
 		return nil, err
@@ -51,9 +52,9 @@ func (p *provider) AddUser(ctx context.Context, user *models.User) (*models.User
 }
 
 // UpdateUser to update user information in database
-func (p *provider) UpdateUser(ctx context.Context, user *models.User) (*models.User, error) {
+func (p *provider) UpdateUser(ctx context.Context, user *schemas.User) (*schemas.User, error) {
 	user.UpdatedAt = time.Now().Unix()
-	userCollection := p.db.Collection(models.Collections.User, options.Collection())
+	userCollection := p.db.Collection(schemas.Collections.User, options.Collection())
 	_, err := userCollection.UpdateOne(ctx, bson.M{"_id": bson.M{"$eq": user.ID}}, bson.M{"$set": user}, options.MergeUpdateOptions())
 	if err != nil {
 		return nil, err
@@ -62,13 +63,13 @@ func (p *provider) UpdateUser(ctx context.Context, user *models.User) (*models.U
 }
 
 // DeleteUser to delete user information from database
-func (p *provider) DeleteUser(ctx context.Context, user *models.User) error {
-	userCollection := p.db.Collection(models.Collections.User, options.Collection())
+func (p *provider) DeleteUser(ctx context.Context, user *schemas.User) error {
+	userCollection := p.db.Collection(schemas.Collections.User, options.Collection())
 	_, err := userCollection.DeleteOne(ctx, bson.M{"_id": user.ID}, options.Delete())
 	if err != nil {
 		return err
 	}
-	sessionCollection := p.db.Collection(models.Collections.Session, options.Collection())
+	sessionCollection := p.db.Collection(schemas.Collections.Session, options.Collection())
 	_, err = sessionCollection.DeleteMany(ctx, bson.M{"user_id": user.ID}, options.Delete())
 	if err != nil {
 		return err
@@ -84,7 +85,7 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) 
 	opts.SetSkip(pagination.Offset)
 	opts.SetSort(bson.M{"created_at": -1})
 	paginationClone := pagination
-	userCollection := p.db.Collection(models.Collections.User, options.Collection())
+	userCollection := p.db.Collection(schemas.Collections.User, options.Collection())
 	count, err := userCollection.CountDocuments(ctx, bson.M{}, options.Count())
 	if err != nil {
 		return nil, err
@@ -96,7 +97,7 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) 
 	}
 	defer cursor.Close(ctx)
 	for cursor.Next(ctx) {
-		var user *models.User
+		var user *schemas.User
 		err := cursor.Decode(&user)
 		if err != nil {
 			return nil, err
@@ -110,9 +111,9 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) 
 }
 
 // GetUserByEmail to get user information from database using email address
-func (p *provider) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
-	var user *models.User
-	userCollection := p.db.Collection(models.Collections.User, options.Collection())
+func (p *provider) GetUserByEmail(ctx context.Context, email string) (*schemas.User, error) {
+	var user *schemas.User
+	userCollection := p.db.Collection(schemas.Collections.User, options.Collection())
 	err := userCollection.FindOne(ctx, bson.M{"email": email}).Decode(&user)
 	if err != nil {
 		return nil, err
@@ -121,9 +122,9 @@ func (p *provider) GetUserByEmail(ctx context.Context, email string) (*models.Us
 }
 
 // GetUserByID to get user information from database using user ID
-func (p *provider) GetUserByID(ctx context.Context, id string) (*models.User, error) {
-	var user *models.User
-	userCollection := p.db.Collection(models.Collections.User, options.Collection())
+func (p *provider) GetUserByID(ctx context.Context, id string) (*schemas.User, error) {
+	var user *schemas.User
+	userCollection := p.db.Collection(schemas.Collections.User, options.Collection())
 	err := userCollection.FindOne(ctx, bson.M{"_id": id}).Decode(&user)
 	if err != nil {
 		return nil, err
@@ -136,7 +137,7 @@ func (p *provider) GetUserByID(ctx context.Context, id string) (*models.User, er
 func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{}, ids []string) error {
 	// set updated_at time for all users
 	data["updated_at"] = time.Now().Unix()
-	userCollection := p.db.Collection(models.Collections.User, options.Collection())
+	userCollection := p.db.Collection(schemas.Collections.User, options.Collection())
 	var res *mongo.UpdateResult
 	var err error
 	if len(ids) > 0 {
@@ -153,9 +154,9 @@ func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{},
 }
 
 // GetUserByPhoneNumber to get user information from database using phone number
-func (p *provider) GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (*models.User, error) {
-	var user *models.User
-	userCollection := p.db.Collection(models.Collections.User, options.Collection())
+func (p *provider) GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (*schemas.User, error) {
+	var user *schemas.User
+	userCollection := p.db.Collection(schemas.Collections.User, options.Collection())
 	err := userCollection.FindOne(ctx, bson.M{"phone_number": phoneNumber}).Decode(&user)
 	if err != nil {
 		return nil, err

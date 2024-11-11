@@ -4,15 +4,15 @@ import (
 	"context"
 	"time"
 
-	"github.com/authorizerdev/authorizer/internal/db/models"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/models/schemas"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // AddWebhookLog to add webhook log
-func (p *provider) AddWebhookLog(ctx context.Context, webhookLog *models.WebhookLog) (*model.WebhookLog, error) {
+func (p *provider) AddWebhookLog(ctx context.Context, webhookLog *schemas.WebhookLog) (*model.WebhookLog, error) {
 	if webhookLog.ID == "" {
 		webhookLog.ID = uuid.New().String()
 	}
@@ -21,7 +21,7 @@ func (p *provider) AddWebhookLog(ctx context.Context, webhookLog *models.Webhook
 	webhookLog.CreatedAt = time.Now().Unix()
 	webhookLog.UpdatedAt = time.Now().Unix()
 
-	webhookLogCollection := p.db.Collection(models.Collections.WebhookLog, options.Collection())
+	webhookLogCollection := p.db.Collection(schemas.Collections.WebhookLog, options.Collection())
 	_, err := webhookLogCollection.InsertOne(ctx, webhookLog)
 	if err != nil {
 		return nil, err
@@ -44,7 +44,7 @@ func (p *provider) ListWebhookLogs(ctx context.Context, pagination *model.Pagina
 		query = bson.M{"webhook_id": webhookID}
 	}
 
-	webhookLogCollection := p.db.Collection(models.Collections.WebhookLog, options.Collection())
+	webhookLogCollection := p.db.Collection(schemas.Collections.WebhookLog, options.Collection())
 	count, err := webhookLogCollection.CountDocuments(ctx, query, options.Count())
 	if err != nil {
 		return nil, err
@@ -59,7 +59,7 @@ func (p *provider) ListWebhookLogs(ctx context.Context, pagination *model.Pagina
 	defer cursor.Close(ctx)
 
 	for cursor.Next(ctx) {
-		var webhookLog *models.WebhookLog
+		var webhookLog *schemas.WebhookLog
 		err := cursor.Decode(&webhookLog)
 		if err != nil {
 			return nil, err
