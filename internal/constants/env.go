@@ -73,21 +73,21 @@ const (
 	// EnvKeyAdminCookieSecure key for env variable ADMIN_COOKIE_SECURE
 	EnvKeyAdminCookieSecure = "ADMIN_COOKIE_SECURE"
 	// EnvKeyJwtType key for env variable JWT_TYPE
-	EnvKeyJwtType = "JWT_TYPE"
-	// EnvKeyJwtSecret key for env variable JWT_SECRET
-	EnvKeyJwtSecret = "JWT_SECRET"
-	// EnvKeyJwtPrivateKey key for env variable JWT_PRIVATE_KEY
-	EnvKeyJwtPrivateKey = "JWT_PRIVATE_KEY"
-	// EnvKeyJwtPublicKey key for env variable JWT_PUBLIC_KEY
-	EnvKeyJwtPublicKey = "JWT_PUBLIC_KEY"
+	// EnvKeyJwtType = "JWT_TYPE"
+	// // EnvKeyJwtSecret key for env variable JWT_SECRET
+	// EnvKeyJwtSecret = "JWT_SECRET"
+	// // EnvKeyJwtPrivateKey key for env variable JWT_PRIVATE_KEY
+	// EnvKeyJwtPrivateKey = "JWT_PRIVATE_KEY"
+	// // EnvKeyJwtPublicKey key for env variable JWT_PUBLIC_KEY
+	// EnvKeyJwtPublicKey = "JWT_PUBLIC_KEY"
 	// EnvKeyAppURL key for env variable APP_URL
 	EnvKeyAppURL = "APP_URL"
 	// EnvKeyRedisURL key for env variable REDIS_URL
-	EnvKeyRedisURL = "REDIS_URL"
+	// EnvKeyRedisURL = "REDIS_URL"
 	// EnvKeyResetPasswordURL key for env variable RESET_PASSWORD_URL
 	EnvKeyResetPasswordURL = "RESET_PASSWORD_URL"
 	// EnvKeyJwtRoleClaim key for env variable JWT_ROLE_CLAIM
-	EnvKeyJwtRoleClaim = "JWT_ROLE_CLAIM"
+	// EnvKeyJwtRoleClaim = "JWT_ROLE_CLAIM"
 	// EnvKeyGoogleClientID key for env variable GOOGLE_CLIENT_ID
 	EnvKeyGoogleClientID = "GOOGLE_CLIENT_ID"
 	// EnvKeyGoogleClientSecret key for env variable GOOGLE_CLIENT_SECRET

@@ -2,12 +2,11 @@ package crypto
 
 import (
 	"crypto/x509"
-	"encoding/json"
 
-	"github.com/authorizerdev/authorizer/internal/constants"
-	"github.com/authorizerdev/authorizer/internal/memorystore"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/square/go-jose.v2"
+
+	"github.com/authorizerdev/authorizer/internal/config"
 )
 
 // GetPubJWK returns JWK for given keys
@@ -33,35 +32,22 @@ func GetPubJWK(algo, keyID string, publicKey interface{}) (string, error) {
 }
 
 // GenerateJWKBasedOnEnv generates JWK based on env
+// TODO update description
 // make sure clientID, jwtType, jwtSecret / public & private key pair is set
 // this is called while initializing app / when env is updated
-func GenerateJWKBasedOnEnv() (string, error) {
+func GenerateJWKBasedOnEnv(cfg config.Config) (string, error) {
 	jwk := ""
-	algo, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyJwtType)
-	if err != nil {
-		return jwk, err
-	}
-	clientID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyClientID)
-	if err != nil {
-		return jwk, err
-	}
-
-	jwtSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyJwtSecret)
-	if err != nil {
-		return jwk, err
-	}
-
+	algo := cfg.JWTType
+	clientID := cfg.ClientID
+	jwtSecret := cfg.JWTSecret
+	jwtPublicKey := cfg.JWTPublicKey
+	var err error
 	// check if jwt secret is provided
 	if IsHMACA(algo) {
 		jwk, err = GetPubJWK(algo, clientID, []byte(jwtSecret))
 		if err != nil {
 			return "", err
 		}
-	}
-
-	jwtPublicKey, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyJwtPublicKey)
-	if err != nil {
-		return jwk, err
 	}
 
 	if IsRSA(algo) {
@@ -77,10 +63,6 @@ func GenerateJWKBasedOnEnv() (string, error) {
 	}
 
 	if IsECDSA(algo) {
-		jwtPublicKey, err = memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyJwtPublicKey)
-		if err != nil {
-			return jwk, err
-		}
 		publicKeyInstance, err := ParseEcdsaPublicKeyFromPemStr(jwtPublicKey)
 		if err != nil {
 			return "", err
@@ -95,35 +77,36 @@ func GenerateJWKBasedOnEnv() (string, error) {
 	return jwk, nil
 }
 
-// EncryptEnvData is used to encrypt the env data
-func EncryptEnvData(data map[string]interface{}) (string, error) {
-	jsonBytes, err := json.Marshal(data)
-	if err != nil {
-		return "", err
-	}
+// // EncryptEnvData is used to encrypt the env data
+// TODO: remove this function if not needed
+// func EncryptEnvData(data map[string]interface{}) (string, error) {
+// 	jsonBytes, err := json.Marshal(data)
+// 	if err != nil {
+// 		return "", err
+// 	}
 
-	storeData, err := memorystore.Provider.GetEnvStore()
-	if err != nil {
-		return "", err
-	}
+// 	storeData, err := memorystore.Provider.GetEnvStore()
+// 	if err != nil {
+// 		return "", err
+// 	}
 
-	err = json.Unmarshal(jsonBytes, &storeData)
-	if err != nil {
-		return "", err
-	}
+// 	err = json.Unmarshal(jsonBytes, &storeData)
+// 	if err != nil {
+// 		return "", err
+// 	}
 
-	configData, err := json.Marshal(storeData)
-	if err != nil {
-		return "", err
-	}
+// 	configData, err := json.Marshal(storeData)
+// 	if err != nil {
+// 		return "", err
+// 	}
 
-	encryptedConfig, err := EncryptAESEnv(configData)
-	if err != nil {
-		return "", err
-	}
+// 	encryptedConfig, err := EncryptAESEnv(configData)
+// 	if err != nil {
+// 		return "", err
+// 	}
 
-	return EncryptB64(string(encryptedConfig)), nil
-}
+// 	return EncryptB64(string(encryptedConfig)), nil
+// }
 
 // EncryptPassword is used for encrypting password
 func EncryptPassword(password string) (string, error) {

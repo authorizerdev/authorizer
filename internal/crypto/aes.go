@@ -5,20 +5,18 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"io"
-
-	"github.com/authorizerdev/authorizer/internal/constants"
-	"github.com/authorizerdev/authorizer/internal/memorystore"
 )
 
 var bytes = []byte{35, 46, 57, 24, 85, 35, 24, 74, 87, 35, 88, 98, 66, 32, 14, 0o5}
 
+const (
+	// Static key for encryption
+	encryptionKey = "authorizerdev"
+)
+
 // EncryptAES method is to encrypt or hide any classified text
 func EncryptAES(text string) (string, error) {
-	k, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyEncryptionKey)
-	if err != nil {
-		return "", err
-	}
-	key := []byte(k)
+	key := []byte(encryptionKey)
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return "", err
@@ -32,11 +30,7 @@ func EncryptAES(text string) (string, error) {
 
 // DecryptAES method is to extract back the encrypted text
 func DecryptAES(text string) (string, error) {
-	k, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyEncryptionKey)
-	if err != nil {
-		return "", err
-	}
-	key := []byte(k)
+	key := []byte(encryptionKey)
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return "", err
@@ -53,13 +47,10 @@ func DecryptAES(text string) (string, error) {
 
 // EncryptAESEnv encrypts data using AES algorithm
 // kept for the backward compatibility of env data encryption
+// TODO: Check if this is still needed
 func EncryptAESEnv(text []byte) ([]byte, error) {
 	var res []byte
-	k, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyEncryptionKey)
-	if err != nil {
-		return res, err
-	}
-	key := []byte(k)
+	key := []byte(encryptionKey)
 	c, err := aes.NewCipher(key)
 	if err != nil {
 		return res, err
@@ -92,13 +83,10 @@ func EncryptAESEnv(text []byte) ([]byte, error) {
 
 // DecryptAES decrypts data using AES algorithm
 // Kept for the backward compatibility of env data decryption
+// TODO: Check if this is still needed
 func DecryptAESEnv(ciphertext []byte) ([]byte, error) {
 	var res []byte
-	k, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyEncryptionKey)
-	if err != nil {
-		return res, err
-	}
-	key := []byte(k)
+	key := []byte(encryptionKey)
 	c, err := aes.NewCipher(key)
 	if err != nil {
 		return res, err

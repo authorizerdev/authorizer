@@ -74,4 +74,29 @@ type Config struct {
 	// DefaultRoles is the default roles for the user
 	// It is a comma separated string
 	DefaultRoles string
+
+	// JWT Configurations
+	// JWTType is the type of JWT to use
+	JWTType string
+	// JWTSecret is the secret for the JWT
+	JWTSecret string
+	// JWTPublicKey is the public key for the JWT
+	JWTPublicKey string
+	// JWTPrivateKey is the private key for the JWT
+	JWTPrivateKey string
+	// JWTRoleClaim is the role claim for the JWT
+	JWTRoleClaim string
+
+	// OAuth Configurations
+	ClientID string
+
+	// Twilio Configurations
+	// TwilioAPISecret is the API secret for Twilio
+	TwilioAPISecret string
+	// TwilioAPIKey is the API key for Twilio
+	TwilioAPIKey string
+	// TwilioSender is the sender for Twilio
+	TwilioSender string
+	// TwilioAccountSID is the account SID for Twilio
+	TwilioAccountSID string
 }
