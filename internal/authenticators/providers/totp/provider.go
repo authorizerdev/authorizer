@@ -1,9 +1,5 @@
 package totp
 
-import (
-	"github.com/authorizerdev/authorizer/internal/models"
-)
-
 type Dependencies struct {
 	model models.Provider
 }

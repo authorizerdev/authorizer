@@ -4,49 +4,113 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
-	"strconv"
 	"strings"
 	"text/template"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 	gomail "gopkg.in/mail.v2"
 
+	"github.com/authorizerdev/authorizer/internal/config"
 	"github.com/authorizerdev/authorizer/internal/constants"
-	"github.com/authorizerdev/authorizer/internal/db"
+	"github.com/authorizerdev/authorizer/internal/data_store"
+	"github.com/authorizerdev/authorizer/internal/email/templates"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
-	"github.com/authorizerdev/authorizer/internal/memorystore"
 )
+
+// Provider interface for email provider
+type Provider interface {
+	SendEmail(to []string, event string, data map[string]interface{}) error
+}
+
+// Dependencies struct for email provider
+type Dependencies struct {
+	Log *zerolog.Logger
+	DB  data_store.Provider
+}
+
+// provider struct for email provider
+type provider struct {
+	config config.Config
+	deps   Dependencies
+
+	mailer *gomail.Dialer
+}
+
+// NewProvider returns a new email provider
+func NewProvider(
+	config config.Config,
+	deps Dependencies,
+) Provider {
+	mailer := gomail.NewDialer(config.SMTPHost, config.SMTPPort, config.SMTPUsername, config.SMTPPassword)
+	if strings.TrimSpace(config.SMTPLocalName) != "" {
+		mailer.LocalName = config.SMTPLocalName
+	}
+	if config.SkipTLSVerification {
+		mailer.TLSConfig = &tls.Config{InsecureSkipVerify: true}
+	}
+	return &provider{
+		config: config,
+		deps:   deps,
+		mailer: mailer,
+	}
+}
+
+// SendEmail function to send mail
+func (p *provider) SendEmail(to []string, event string, data map[string]interface{}) error {
+	log := p.deps.Log.With().Str("func", "send_email").Str("event", event).Logger()
+	// Don't trigger email sending in case of test
+	if p.config.Env == constants.TestEnv {
+		return nil
+	}
+
+	tmp, err := p.getEmailTemplate(event, data)
+	if err != nil {
+		log.Debug().Err(err).Msg("Failed to get email template")
+		return err
+	}
+
+	m := gomail.NewMessage()
+	m.SetAddressHeader("From", p.config.SMTPSenderEmail, p.config.SMTPSenderName)
+	m.SetHeader("To", to...)
+	m.SetHeader("Subject", tmp.Subject)
+	m.SetBody("text/html", tmp.Template)
+	if err := p.mailer.DialAndSend(m); err != nil {
+		log.Debug().Err(err).Msg("Failed to send email")
+		return err
+	}
+	return nil
+}
 
 func getDefaultTemplate(event string) *model.EmailTemplate {
 	switch event {
 	case constants.VerificationTypeBasicAuthSignup, constants.VerificationTypeMagicLinkLogin, constants.VerificationTypeUpdateEmail:
 		return &model.EmailTemplate{
-			Subject:  emailVerificationSubject,
-			Template: emailVerificationTemplate,
+			Subject:  templates.EmailVerificationSubject,
+			Template: templates.EmailVerificationTemplate,
 		}
 	case constants.VerificationTypeForgotPassword:
 		return &model.EmailTemplate{
-			Subject:  forgotPasswordSubject,
-			Template: forgotPasswordTemplate,
+			Subject:  templates.ForgotPasswordSubject,
+			Template: templates.ForgotPasswordTemplate,
 		}
 	case constants.VerificationTypeInviteMember:
 		return &model.EmailTemplate{
-			Subject:  inviteEmailSubject,
-			Template: inviteEmailTemplate,
+			Subject:  templates.InviteUserEmailSubject,
+			Template: templates.InviteUserEmailTemplate,
 		}
 	case constants.VerificationTypeOTP:
 		return &model.EmailTemplate{
-			Subject:  otpEmailSubject,
-			Template: otpEmailTemplate,
+			Subject:  templates.OtpEmailSubject,
+			Template: templates.OtpEmailTemplate,
 		}
 	default:
 		return nil
 	}
 }
 
-func getEmailTemplate(event string, data map[string]interface{}) (*model.EmailTemplate, error) {
+func (p *provider) getEmailTemplate(event string, data map[string]interface{}) (*model.EmailTemplate, error) {
 	ctx := context.Background()
-	tmp, err := db.Provider.GetEmailTemplateByEventName(ctx, event)
+	tmp, err := p.deps.DB.GetEmailTemplateByEventName(ctx, event)
 	if err != nil || tmp == nil {
 		tmp = getDefaultTemplate(event)
 	}
@@ -76,91 +140,4 @@ func getEmailTemplate(event string, data map[string]interface{}) (*model.EmailTe
 		Template: templateString,
 		Subject:  subjectString,
 	}, nil
-}
-
-// SendEmail function to send mail
-func SendEmail(to []string, event string, data map[string]interface{}) error {
-	// dont trigger email sending in case of test
-	envKey, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyEnv)
-	if err != nil {
-		return err
-	}
-	if envKey == constants.TestEnv {
-		return nil
-	}
-
-	tmp, err := getEmailTemplate(event, data)
-	if err != nil {
-		log.Error("Failed to get event template: ", err)
-		return err
-	}
-
-	m := gomail.NewMessage()
-	senderEmail, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeySenderEmail)
-	if err != nil {
-		log.Errorf("Error while getting sender email from env variable: %v", err)
-		return err
-	}
-
-	senderName, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeySenderName)
-	if err != nil {
-		log.Errorf("Error while getting sender name from env variable: %v", err)
-		return err
-	}
-
-	smtpPort, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeySmtpPort)
-	if err != nil {
-		log.Errorf("Error while getting smtp port from env variable: %v", err)
-		return err
-	}
-
-	smtpHost, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeySmtpHost)
-	if err != nil {
-		log.Errorf("Error while getting smtp host from env variable: %v", err)
-		return err
-	}
-
-	smtpUsername, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeySmtpUsername)
-	if err != nil {
-		log.Errorf("Error while getting smtp username from env variable: %v", err)
-		return err
-	}
-
-	smtpPassword, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeySmtpPassword)
-	if err != nil {
-		log.Errorf("Error while getting smtp password from env variable: %v", err)
-		return err
-	}
-
-	smtpLocalName, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeySmtpLocalName)
-	if err != nil {
-		log.Debugf("Error while getting smtp localname from env variable: %v", err)
-		smtpLocalName = ""
-	}
-
-	isProd, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyIsProd)
-	if err != nil {
-		log.Errorf("Error while getting env variable: %v", err)
-		return err
-	}
-
-	m.SetAddressHeader("From", senderEmail, senderName)
-	m.SetHeader("To", to...)
-	m.SetHeader("Subject", tmp.Subject)
-	m.SetBody("text/html", tmp.Template)
-	port, _ := strconv.Atoi(smtpPort)
-	d := gomail.NewDialer(smtpHost, port, smtpUsername, smtpPassword)
-	if !isProd {
-		d.TLSConfig = &tls.Config{InsecureSkipVerify: true}
-	}
-
-	if strings.TrimSpace(smtpLocalName) != "" {
-		d.LocalName = smtpLocalName
-	}
-
-	if err := d.DialAndSend(m); err != nil {
-		log.Debug("SMTP Failed: ", err)
-		return err
-	}
-	return nil
 }

@@ -15,55 +15,55 @@ const (
 	EnvKeyPort = "PORT"
 	// EnvKeyAccessTokenExpiryTime key for env variable ACCESS_TOKEN_EXPIRY_TIME
 	EnvKeyAccessTokenExpiryTime = "ACCESS_TOKEN_EXPIRY_TIME"
-	// EnvKeyAdminSecret key for env variable ADMIN_SECRET
-	EnvKeyAdminSecret = "ADMIN_SECRET"
-	// EnvKeyDatabaseType key for env variable DATABASE_TYPE
-	EnvKeyDatabaseType = "DATABASE_TYPE"
-	// EnvKeyDatabaseURL key for env variable DATABASE_URL
-	EnvKeyDatabaseURL = "DATABASE_URL"
-	// EnvAwsRegion key for env variable AWS REGION
-	EnvAwsRegion = "AWS_REGION"
-	// EnvAwsAccessKeyID key for env variable AWS_ACCESS_KEY_ID
-	EnvAwsAccessKeyID = "AWS_ACCESS_KEY_ID"
-	// EnvAwsAccessKey key for env variable AWS_SECRET_ACCESS_KEY
-	EnvAwsSecretAccessKey = "AWS_SECRET_ACCESS_KEY"
-	// EnvKeyDatabaseName key for env variable DATABASE_NAME
-	EnvKeyDatabaseName = "DATABASE_NAME"
-	// EnvKeyDatabaseUsername key for env variable DATABASE_USERNAME
-	EnvKeyDatabaseUsername = "DATABASE_USERNAME"
-	// EnvKeyDatabasePassword key for env variable DATABASE_PASSWORD
-	EnvKeyDatabasePassword = "DATABASE_PASSWORD"
-	// EnvKeyDatabasePort key for env variable DATABASE_PORT
-	EnvKeyDatabasePort = "DATABASE_PORT"
-	// EnvKeyDatabaseHost key for env variable DATABASE_HOST
-	EnvKeyDatabaseHost = "DATABASE_HOST"
-	// EnvKeyDatabaseCert key for env variable DATABASE_CERT
-	EnvKeyDatabaseCert = "DATABASE_CERT"
-	// EnvKeyDatabaseCertKey key for env variable DATABASE_KEY
-	EnvKeyDatabaseCertKey = "DATABASE_CERT_KEY"
-	// EnvKeyDatabaseCACert key for env variable DATABASE_CA_CERT
-	EnvKeyDatabaseCACert = "DATABASE_CA_CERT"
-	// EnvCouchbaseBucket key for env variable COUCHBASE_BUCKET
-	EnvCouchbaseBucket = "COUCHBASE_BUCKET"
-	// EnvCouchbaseBucketRAMQuotaMB key for env variable COUCHBASE_BUCKET_RAM_QUOTA
-	// This value should be parsed as number
-	EnvCouchbaseBucketRAMQuotaMB = "COUCHBASE_BUCKET_RAM_QUOTA"
-	// EnvCouchbaseBucket key for env variable COUCHBASE_SCOPE
-	EnvCouchbaseScope = "COUCHBASE_SCOPE"
-	// EnvKeySmtpHost key for env variable SMTP_HOST
-	EnvKeySmtpHost = "SMTP_HOST"
-	// EnvKeySmtpPort key for env variable SMTP_PORT
-	EnvKeySmtpPort = "SMTP_PORT"
-	// EnvKeySmtpUsername key for env variable SMTP_USERNAME
-	EnvKeySmtpUsername = "SMTP_USERNAME"
-	// EnvKeySmtpPassword key for env variable SMTP_PASSWORD
-	EnvKeySmtpPassword = "SMTP_PASSWORD"
-	// EnvKeySmtpLocalName key for env variable SMTP_LOCAL_NAME
-	EnvKeySmtpLocalName = "SMTP_LOCAL_NAME"
-	// EnvKeySenderEmail key for env variable SENDER_EMAIL
-	EnvKeySenderEmail = "SENDER_EMAIL"
-	// EnvKeySenderName key for env variable SENDER_NAME
-	EnvKeySenderName = "SENDER_NAME"
+	// // EnvKeyAdminSecret key for env variable ADMIN_SECRET
+	// EnvKeyAdminSecret = "ADMIN_SECRET"
+	// // EnvKeyDatabaseType key for env variable DATABASE_TYPE
+	// EnvKeyDatabaseType = "DATABASE_TYPE"
+	// // EnvKeyDatabaseURL key for env variable DATABASE_URL
+	// EnvKeyDatabaseURL = "DATABASE_URL"
+	// // EnvAwsRegion key for env variable AWS REGION
+	// EnvAwsRegion = "AWS_REGION"
+	// // EnvAwsAccessKeyID key for env variable AWS_ACCESS_KEY_ID
+	// EnvAwsAccessKeyID = "AWS_ACCESS_KEY_ID"
+	// // EnvAwsAccessKey key for env variable AWS_SECRET_ACCESS_KEY
+	// EnvAwsSecretAccessKey = "AWS_SECRET_ACCESS_KEY"
+	// // EnvKeyDatabaseName key for env variable DATABASE_NAME
+	// EnvKeyDatabaseName = "DATABASE_NAME"
+	// // EnvKeyDatabaseUsername key for env variable DATABASE_USERNAME
+	// EnvKeyDatabaseUsername = "DATABASE_USERNAME"
+	// // EnvKeyDatabasePassword key for env variable DATABASE_PASSWORD
+	// EnvKeyDatabasePassword = "DATABASE_PASSWORD"
+	// // EnvKeyDatabasePort key for env variable DATABASE_PORT
+	// EnvKeyDatabasePort = "DATABASE_PORT"
+	// // EnvKeyDatabaseHost key for env variable DATABASE_HOST
+	// EnvKeyDatabaseHost = "DATABASE_HOST"
+	// // EnvKeyDatabaseCert key for env variable DATABASE_CERT
+	// EnvKeyDatabaseCert = "DATABASE_CERT"
+	// // EnvKeyDatabaseCertKey key for env variable DATABASE_KEY
+	// EnvKeyDatabaseCertKey = "DATABASE_CERT_KEY"
+	// // EnvKeyDatabaseCACert key for env variable DATABASE_CA_CERT
+	// EnvKeyDatabaseCACert = "DATABASE_CA_CERT"
+	// // EnvCouchbaseBucket key for env variable COUCHBASE_BUCKET
+	// EnvCouchbaseBucket = "COUCHBASE_BUCKET"
+	// // EnvCouchbaseBucketRAMQuotaMB key for env variable COUCHBASE_BUCKET_RAM_QUOTA
+	// // This value should be parsed as number
+	// EnvCouchbaseBucketRAMQuotaMB = "COUCHBASE_BUCKET_RAM_QUOTA"
+	// // EnvCouchbaseBucket key for env variable COUCHBASE_SCOPE
+	// EnvCouchbaseScope = "COUCHBASE_SCOPE"
+	// // EnvKeySmtpHost key for env variable SMTP_HOST
+	// EnvKeySmtpHost = "SMTP_HOST"
+	// // EnvKeySmtpPort key for env variable SMTP_PORT
+	// EnvKeySmtpPort = "SMTP_PORT"
+	// // EnvKeySmtpUsername key for env variable SMTP_USERNAME
+	// EnvKeySmtpUsername = "SMTP_USERNAME"
+	// // EnvKeySmtpPassword key for env variable SMTP_PASSWORD
+	// EnvKeySmtpPassword = "SMTP_PASSWORD"
+	// // EnvKeySmtpLocalName key for env variable SMTP_LOCAL_NAME
+	// EnvKeySmtpLocalName = "SMTP_LOCAL_NAME"
+	// // EnvKeySenderEmail key for env variable SENDER_EMAIL
+	// EnvKeySenderEmail = "SENDER_EMAIL"
+	// // EnvKeySenderName key for env variable SENDER_NAME
+	// EnvKeySenderName = "SENDER_NAME"
 	// EnvKeyIsEmailServiceEnabled key for env variable IS_EMAIL_SERVICE_ENABLED
 	EnvKeyIsEmailServiceEnabled = "IS_EMAIL_SERVICE_ENABLED"
 	// EnvKeyIsSMSServiceEnabled key for env variable IS_SMS_SERVICE_ENABLED

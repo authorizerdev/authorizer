@@ -20,9 +20,10 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
+	"github.com/authorizerdev/authorizer/internal/data_store/db"
+	"github.com/authorizerdev/authorizer/internal/data_store/schemas"
 	"github.com/authorizerdev/authorizer/internal/db"
 	"github.com/authorizerdev/authorizer/internal/memorystore"
-	"github.com/authorizerdev/authorizer/internal/models/db"
 	"github.com/authorizerdev/authorizer/internal/oauth"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/token"
@@ -71,7 +72,7 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 				scopes = strings.Split(scopeString, " ")
 			}
 		}
-		var user *models.User
+		var user *schemas.User
 		oauthCode := ctx.Request.FormValue("code")
 		if oauthCode == "" {
 			log.Debug("Invalid oauth code: ", oauthCode)
@@ -303,7 +304,7 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 			} else {
 				utils.RegisterEvent(ctx, constants.UserLoginWebhookEvent, provider, user)
 			}
-			db.Provider.AddSession(ctx, &models.Session{
+			db.Provider.AddSession(ctx, &schemas.Session{
 				UserID:    user.ID,
 				UserAgent: utils.GetUserAgent(ctx.Request),
 				IP:        utils.GetIP(ctx.Request),
@@ -319,7 +320,7 @@ func OAuthCallbackHandler() gin.HandlerFunc {
 	}
 }
 
-func processGoogleUserInfo(ctx context.Context, code string) (*models.User, error) {
+func processGoogleUserInfo(ctx context.Context, code string) (*schemas.User, error) {
 	oauth2Token, err := oauth.OAuthProviders.GoogleConfig.Exchange(ctx, code)
 	if err != nil {
 		log.Debug("Failed to exchange code for token: ", err)
@@ -340,7 +341,7 @@ func processGoogleUserInfo(ctx context.Context, code string) (*models.User, erro
 		log.Debug("Failed to verify ID Token: ", err)
 		return nil, fmt.Errorf("unable to verify id_token: %s", err.Error())
 	}
-	user := &models.User{}
+	user := &schemas.User{}
 	if err := idToken.Claims(&user); err != nil {
 		log.Debug("Failed to parse ID Token claims: ", err)
 		return nil, fmt.Errorf("unable to extract claims")
@@ -349,7 +350,7 @@ func processGoogleUserInfo(ctx context.Context, code string) (*models.User, erro
 	return user, nil
 }
 
-func processGithubUserInfo(ctx context.Context, code string) (*models.User, error) {
+func processGithubUserInfo(ctx context.Context, code string) (*schemas.User, error) {
 	oauth2Token, err := oauth.OAuthProviders.GithubConfig.Exchange(ctx, code)
 	if err != nil {
 		log.Debug("Failed to exchange code for token: ", err)
@@ -446,7 +447,7 @@ func processGithubUserInfo(ctx context.Context, code string) (*models.User, erro
 		}
 	}
 
-	user := &models.User{
+	user := &schemas.User{
 		GivenName:  &firstName,
 		FamilyName: &lastName,
 		Picture:    &picture,
@@ -456,7 +457,7 @@ func processGithubUserInfo(ctx context.Context, code string) (*models.User, erro
 	return user, nil
 }
 
-func processFacebookUserInfo(ctx context.Context, code string) (*models.User, error) {
+func processFacebookUserInfo(ctx context.Context, code string) (*schemas.User, error) {
 	oauth2Token, err := oauth.OAuthProviders.FacebookConfig.Exchange(ctx, code)
 	if err != nil {
 		log.Debug("Invalid facebook exchange code: ", err)
@@ -496,7 +497,7 @@ func processFacebookUserInfo(ctx context.Context, code string) (*models.User, er
 	lastName := fmt.Sprintf("%v", userRawData["last_name"])
 	picture := fmt.Sprintf("%v", picDataObject["url"])
 
-	user := &models.User{
+	user := &schemas.User{
 		GivenName:  &firstName,
 		FamilyName: &lastName,
 		Picture:    &picture,
@@ -506,7 +507,7 @@ func processFacebookUserInfo(ctx context.Context, code string) (*models.User, er
 	return user, nil
 }
 
-func processLinkedInUserInfo(ctx context.Context, code string) (*models.User, error) {
+func processLinkedInUserInfo(ctx context.Context, code string) (*schemas.User, error) {
 	oauth2Token, err := oauth.OAuthProviders.LinkedInConfig.Exchange(ctx, code)
 	if err != nil {
 		log.Debug("Failed to exchange code for token: ", err)
@@ -577,7 +578,7 @@ func processLinkedInUserInfo(ctx context.Context, code string) (*models.User, er
 	profilePicture := userRawData["profilePicture"].(map[string]interface{})["displayImage~"].(map[string]interface{})["elements"].([]interface{})[0].(map[string]interface{})["identifiers"].([]interface{})[0].(map[string]interface{})["identifier"].(string)
 	emailAddress := emailRawData["elements"].([]interface{})[0].(map[string]interface{})["handle~"].(map[string]interface{})["emailAddress"].(string)
 
-	user := &models.User{
+	user := &schemas.User{
 		GivenName:  &firstName,
 		FamilyName: &lastName,
 		Picture:    &profilePicture,
@@ -587,8 +588,8 @@ func processLinkedInUserInfo(ctx context.Context, code string) (*models.User, er
 	return user, nil
 }
 
-func processAppleUserInfo(ctx context.Context, code string, user_ *AppleUserInfo) (*models.User, error) {
-	var user = &models.User{}
+func processAppleUserInfo(ctx context.Context, code string, user_ *AppleUserInfo) (*schemas.User, error) {
+	var user = &schemas.User{}
 	oauth2Token, err := oauth.OAuthProviders.AppleConfig.Exchange(ctx, code)
 	if err != nil {
 		log.Debug("Failed to exchange code for token: ", err)
@@ -642,7 +643,7 @@ func processAppleUserInfo(ctx context.Context, code string, user_ *AppleUserInfo
 	return user, err
 }
 
-func processDiscordUserInfo(ctx context.Context, code string) (*models.User, error) {
+func processDiscordUserInfo(ctx context.Context, code string) (*schemas.User, error) {
 	oauth2Token, err := oauth.OAuthProviders.DiscordConfig.Exchange(ctx, code)
 	if err != nil {
 		log.Debug("Failed to exchange code for token: ", err)
@@ -699,7 +700,7 @@ func processDiscordUserInfo(ctx context.Context, code string) (*models.User, err
 	}
 	profilePicture := fmt.Sprintf("https://cdn.discordapp.com/avatars/%s/%s.png", userRawData["id"].(string), userRawData["avatar"].(string))
 
-	user := &models.User{
+	user := &schemas.User{
 		GivenName: &firstName,
 		Picture:   &profilePicture,
 	}
@@ -707,7 +708,7 @@ func processDiscordUserInfo(ctx context.Context, code string) (*models.User, err
 	return user, nil
 }
 
-func processTwitterUserInfo(ctx context.Context, code, verifier string) (*models.User, error) {
+func processTwitterUserInfo(ctx context.Context, code, verifier string) (*schemas.User, error) {
 	oauth2Token, err := oauth.OAuthProviders.TwitterConfig.Exchange(ctx, code, oauth2.SetAuthURLParam("code_verifier", verifier))
 	if err != nil {
 		log.Debug("Failed to exchange code for token: ", err)
@@ -763,7 +764,7 @@ func processTwitterUserInfo(ctx context.Context, code, verifier string) (*models
 	nickname := userRawData["username"].(string)
 	profilePicture := userRawData["profile_image_url"].(string)
 
-	user := &models.User{
+	user := &schemas.User{
 		GivenName:  &firstName,
 		FamilyName: &lastName,
 		Picture:    &profilePicture,
@@ -774,7 +775,7 @@ func processTwitterUserInfo(ctx context.Context, code, verifier string) (*models
 }
 
 // process microsoft user information
-func processMicrosoftUserInfo(ctx context.Context, code string) (*models.User, error) {
+func processMicrosoftUserInfo(ctx context.Context, code string) (*schemas.User, error) {
 	oauth2Token, err := oauth.OAuthProviders.MicrosoftConfig.Exchange(ctx, code)
 	if err != nil {
 		log.Debug("Failed to exchange code for token: ", err)
@@ -797,7 +798,7 @@ func processMicrosoftUserInfo(ctx context.Context, code string) (*models.User, e
 		log.Debug("Failed to verify ID Token: ", err)
 		return nil, fmt.Errorf("unable to verify id_token: %s", err.Error())
 	}
-	user := &models.User{}
+	user := &schemas.User{}
 	if err := idToken.Claims(&user); err != nil {
 		log.Debug("Failed to parse ID Token claims: ", err)
 		return nil, fmt.Errorf("unable to extract claims")
@@ -807,7 +808,7 @@ func processMicrosoftUserInfo(ctx context.Context, code string) (*models.User, e
 }
 
 // process twitch user information
-func processTwitchUserInfo(ctx context.Context, code string) (*models.User, error) {
+func processTwitchUserInfo(ctx context.Context, code string) (*schemas.User, error) {
 	oauth2Token, err := oauth.OAuthProviders.TwitchConfig.Exchange(ctx, code)
 	if err != nil {
 		log.Debug("Failed to exchange code for token: ", err)
@@ -832,7 +833,7 @@ func processTwitchUserInfo(ctx context.Context, code string) (*models.User, erro
 		return nil, fmt.Errorf("unable to verify id_token: %s", err.Error())
 	}
 
-	user := &models.User{}
+	user := &schemas.User{}
 	if err := idToken.Claims(&user); err != nil {
 		log.Debug("Failed to parse ID Token claims: ", err)
 		return nil, fmt.Errorf("unable to extract claims")
@@ -842,7 +843,7 @@ func processTwitchUserInfo(ctx context.Context, code string) (*models.User, erro
 }
 
 // process roblox user information
-func processRobloxUserInfo(ctx context.Context, code, verifier string) (*models.User, error) {
+func processRobloxUserInfo(ctx context.Context, code, verifier string) (*schemas.User, error) {
 	oauth2Token, err := oauth.OAuthProviders.RobloxConfig.Exchange(ctx, code, oauth2.SetAuthURLParam("code_verifier", verifier))
 	if err != nil {
 		log.Debug("Failed to exchange code for token: ", err)
@@ -895,7 +896,7 @@ func processRobloxUserInfo(ctx context.Context, code, verifier string) (*models.
 	} else {
 		email = userRawData["sub"].(string)
 	}
-	user := &models.User{
+	user := &schemas.User{
 		GivenName:  &firstName,
 		FamilyName: &lastName,
 		Picture:    &profilePicture,

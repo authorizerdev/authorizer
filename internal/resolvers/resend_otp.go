@@ -12,12 +12,12 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
+	"github.com/authorizerdev/authorizer/internal/data_store/db"
 	"github.com/authorizerdev/authorizer/internal/db"
 	"github.com/authorizerdev/authorizer/internal/db/models"
 	mailService "github.com/authorizerdev/authorizer/internal/email"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/memorystore"
-	"github.com/authorizerdev/authorizer/internal/models/db"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/smsproviders"
 	"github.com/authorizerdev/authorizer/internal/utils"

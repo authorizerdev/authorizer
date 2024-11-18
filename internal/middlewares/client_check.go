@@ -1,13 +1,9 @@
 package middlewares
 
 import (
-	"net/http"
+	"fmt"
 
 	"github.com/gin-gonic/gin"
-	log "github.com/sirupsen/logrus"
-
-	"github.com/authorizerdev/authorizer/internal/constants"
-	"github.com/authorizerdev/authorizer/internal/memorystore"
 )
 
 // ClientCheckMiddleware is a middleware to verify the client ID
@@ -15,14 +11,16 @@ import (
 func ClientCheckMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		clientID := c.Request.Header.Get("X-Authorizer-Client-ID")
-		if client, _ := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyClientID); clientID != "" && client != "" && client != clientID {
-			log.Debug("Client ID is invalid: ", clientID)
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error":             "invalid_client_id",
-				"error_description": "The client id is invalid",
-			})
-			return
-		}
+		// TODO - uncomment the below code after implementing the client ID check
+		fmt.Println("clientID: ", clientID)
+		// if client, _ := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyClientID); clientID != "" && client != "" && client != clientID {
+		// 	log.Debug("Client ID is invalid: ", clientID)
+		// 	c.JSON(http.StatusBadRequest, gin.H{
+		// 		"error":             "invalid_client_id",
+		// 		"error_description": "The client id is invalid",
+		// 	})
+		// 	return
+		// }
 
 		c.Next()
 	}

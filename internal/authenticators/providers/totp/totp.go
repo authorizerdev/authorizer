@@ -15,7 +15,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/authenticators/providers"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/crypto"
-	"github.com/authorizerdev/authorizer/internal/models/schemas"
+	"github.com/authorizerdev/authorizer/internal/data_store/schemas"
 	"github.com/authorizerdev/authorizer/internal/refs"
 )
 
