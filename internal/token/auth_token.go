@@ -203,7 +203,7 @@ func (p *provider) CreateAccessToken(cfg *AuthTokenConfig) (string, int64, error
 			log.Debug("error getting custom access token script: ", err)
 		} else {
 			extraPayload := make(map[string]interface{})
-			err = json.Unmarshal([]byte(fmt.Sprintf("%s", val)), &extraPayload)
+			err = json.Unmarshal([]byte(fmt.Sprintf("%v", val)), &extraPayload)
 			if err != nil {
 				log.Debug("error converting accessTokenScript response to map: ", err)
 			} else {
@@ -430,7 +430,7 @@ func (p *provider) CreateIDToken(cfg *AuthTokenConfig) (string, int64, error) {
 			log.Debug("error getting custom access token script: ", err)
 		} else {
 			extraPayload := make(map[string]interface{})
-			err = json.Unmarshal([]byte(fmt.Sprintf("%s", val)), &extraPayload)
+			err = json.Unmarshal([]byte(fmt.Sprintf("%v", val)), &extraPayload)
 			if err != nil {
 				log.Debug("error converting accessTokenScript response to map: ", err)
 			} else {
