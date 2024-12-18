@@ -1,15 +1,17 @@
 package middlewares
 
 import (
-	"github.com/authorizerdev/authorizer/internal/validators"
 	"github.com/gin-gonic/gin"
+
+	"github.com/authorizerdev/authorizer/internal/validators"
 )
 
 // CORSMiddleware is a middleware to add cors headers
 func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		origin := c.Request.Header.Get("Origin")
-		if validators.IsValidOrigin(origin) {
+		// TODO set valid origins as per config
+		if validators.IsValidOrigin(origin, "") {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
 		}
 

@@ -4,16 +4,13 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/authorizerdev/authorizer/internal/constants"
-	"github.com/authorizerdev/authorizer/internal/memorystore"
 	"github.com/authorizerdev/authorizer/internal/parsers"
 )
 
 // IsValidOrigin validates origin based on ALLOWED_ORIGINS
-func IsValidOrigin(url string) bool {
-	allowedOriginsString, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAllowedOrigins)
+func IsValidOrigin(url string, allowedOriginsString string) bool {
 	allowedOrigins := []string{}
-	if err != nil {
+	if allowedOriginsString != "" {
 		allowedOrigins = []string{"*"}
 	} else {
 		allowedOrigins = strings.Split(allowedOriginsString, ",")

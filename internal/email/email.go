@@ -30,7 +30,7 @@ type Dependencies struct {
 
 // provider struct for email provider
 type provider struct {
-	config config.Config
+	config *config.Config
 	deps   Dependencies
 
 	mailer *gomail.Dialer
@@ -38,7 +38,7 @@ type provider struct {
 
 // NewProvider returns a new email provider
 func NewProvider(
-	config config.Config,
+	config *config.Config,
 	deps Dependencies,
 ) Provider {
 	mailer := gomail.NewDialer(config.SMTPHost, config.SMTPPort, config.SMTPUsername, config.SMTPPassword)

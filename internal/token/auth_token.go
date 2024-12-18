@@ -8,20 +8,32 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/sirupsen/logrus"
-
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
 	"github.com/robertkrimen/otto"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/data_store/schemas"
-	"github.com/authorizerdev/authorizer/internal/memorystore"
 	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
+
+// AuthTokenConfig is the configuration for auth token
+type AuthTokenConfig struct {
+	LoginMethod string
+	Nonce       string
+	Code        string
+	AtHash      string
+	CodeHash    string
+	ExpireTime  string
+	User        *schemas.User
+	HostName    string
+	Roles       []string
+	Scope       []string
+}
 
 // JWTToken is a struct to hold JWT token and its expiration time
 type JWTToken struct {
@@ -29,8 +41,8 @@ type JWTToken struct {
 	ExpiresAt int64  `json:"expires_at"`
 }
 
-// Token object to hold the finger print and refresh token information
-type Token struct {
+// AuthToken object to hold the finger print, access token, id token and refresh token information
+type AuthToken struct {
 	FingerPrint string `json:"fingerprint"`
 	// Session Token
 	FingerPrintHash       string    `json:"fingerprint_hash"`
@@ -52,13 +64,12 @@ type SessionData struct {
 }
 
 // CreateAuthToken creates a new auth token when userlogs in
-func CreateAuthToken(gc *gin.Context, user *schemas.User, roles, scope []string, loginMethod, nonce string, code string) (*Token, error) {
-	hostname := parsers.GetHost(gc)
-	_, fingerPrintHash, sessionTokenExpiresAt, err := CreateSessionToken(user, nonce, roles, scope, loginMethod)
+func (p *provider) CreateAuthToken(gc *gin.Context, cfg *AuthTokenConfig) (*AuthToken, error) {
+	_, fingerPrintHash, sessionTokenExpiresAt, err := p.CreateSessionToken(cfg)
 	if err != nil {
 		return nil, err
 	}
-	accessToken, accessTokenExpiresAt, err := CreateAccessToken(user, roles, scope, hostname, nonce, loginMethod)
+	accessToken, accessTokenExpiresAt, err := p.CreateAccessToken(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -69,30 +80,30 @@ func CreateAuthToken(gc *gin.Context, user *schemas.User, roles, scope []string,
 	// hashedToken := string(bs)
 	atHashDigest := atHashBytes[0 : len(atHashBytes)/2]
 	atHashString := base64.RawURLEncoding.EncodeToString(atHashDigest)
-
+	cfg.AtHash = atHashString
 	codeHashString := ""
-	if code != "" {
+	if cfg.Code != "" {
 		codeHash := sha256.New()
-		codeHash.Write([]byte(code))
+		codeHash.Write([]byte(cfg.Code))
 		codeHashBytes := codeHash.Sum(nil)
 		codeHashDigest := codeHashBytes[0 : len(codeHashBytes)/2]
 		codeHashString = base64.RawURLEncoding.EncodeToString(codeHashDigest)
 	}
-
-	idToken, idTokenExpiresAt, err := CreateIDToken(user, roles, hostname, nonce, atHashString, codeHashString, loginMethod)
+	cfg.CodeHash = codeHashString
+	idToken, idTokenExpiresAt, err := p.CreateIDToken(cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	res := &Token{
-		FingerPrint:           nonce,
+	res := &AuthToken{
+		FingerPrint:           cfg.Nonce,
 		FingerPrintHash:       fingerPrintHash,
 		SessionTokenExpiresAt: sessionTokenExpiresAt,
 		AccessToken:           &JWTToken{Token: accessToken, ExpiresAt: accessTokenExpiresAt},
 		IDToken:               &JWTToken{Token: idToken, ExpiresAt: idTokenExpiresAt},
 	}
-	if utils.StringSliceContains(scope, "offline_access") {
-		refreshToken, refreshTokenExpiresAt, err := CreateRefreshToken(user, roles, scope, hostname, nonce, loginMethod)
+	if utils.StringSliceContains(cfg.Scope, "offline_access") {
+		refreshToken, refreshTokenExpiresAt, err := p.CreateRefreshToken(cfg)
 		if err != nil {
 			return nil, err
 		}
@@ -104,14 +115,14 @@ func CreateAuthToken(gc *gin.Context, user *schemas.User, roles, scope []string,
 }
 
 // CreateSessionToken creates a new session token
-func CreateSessionToken(user *schemas.User, nonce string, roles, scope []string, loginMethod string) (*SessionData, string, int64, error) {
+func (p *provider) CreateSessionToken(cfg *AuthTokenConfig) (*SessionData, string, int64, error) {
 	expiresAt := time.Now().AddDate(1, 0, 0).Unix()
 	fingerPrintMap := &SessionData{
-		Nonce:       nonce,
-		Roles:       roles,
-		Subject:     user.ID,
-		Scope:       scope,
-		LoginMethod: loginMethod,
+		Nonce:       cfg.Nonce,
+		Roles:       cfg.Roles,
+		Subject:     cfg.User.ID,
+		Scope:       cfg.Scope,
+		LoginMethod: cfg.LoginMethod,
 		IssuedAt:    time.Now().Unix(),
 		ExpiresAt:   expiresAt,
 	}
@@ -125,29 +136,25 @@ func CreateSessionToken(user *schemas.User, nonce string, roles, scope []string,
 }
 
 // CreateRefreshToken util to create JWT token
-func CreateRefreshToken(user *schemas.User, roles, scopes []string, hostname, nonce, loginMethod string) (string, int64, error) {
+func (p *provider) CreateRefreshToken(cfg *AuthTokenConfig) (string, int64, error) {
 	// expires in 1 year
 	expiryBound := time.Hour * 8760
 	expiresAt := time.Now().Add(expiryBound).Unix()
-	clientID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyClientID)
-	if err != nil {
-		return "", 0, err
-	}
 	customClaims := jwt.MapClaims{
-		"iss":           hostname,
-		"aud":           clientID,
-		"sub":           user.ID,
+		"iss":           cfg.HostName,
+		"aud":           p.config.ClientID,
+		"sub":           cfg.User.ID,
 		"exp":           expiresAt,
 		"iat":           time.Now().Unix(),
 		"token_type":    constants.TokenTypeRefreshToken,
-		"roles":         roles,
-		"scope":         scopes,
-		"nonce":         nonce,
-		"login_method":  loginMethod,
-		"allowed_roles": strings.Split(user.Roles, ","),
+		"roles":         cfg.Roles,
+		"scope":         cfg.Scope,
+		"nonce":         cfg.Nonce,
+		"login_method":  cfg.Nonce,
+		"allowed_roles": strings.Split(cfg.User.Roles, ","),
 	}
 
-	token, err := SignJWTToken(customClaims)
+	token, err := p.SignJWTToken(customClaims)
 	if err != nil {
 		return "", 0, err
 	}
@@ -157,41 +164,28 @@ func CreateRefreshToken(user *schemas.User, roles, scopes []string, hostname, no
 
 // CreateAccessToken util to create JWT token, based on
 // user information, roles config and CUSTOM_ACCESS_TOKEN_SCRIPT
-func CreateAccessToken(user *schemas.User, roles, scopes []string, hostName, nonce, loginMethod string) (string, int64, error) {
-	expireTime, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAccessTokenExpiryTime)
-	if err != nil {
-		return "", 0, err
-	}
-	expiryBound, err := utils.ParseDurationInSeconds(expireTime)
+func (p *provider) CreateAccessToken(cfg *AuthTokenConfig) (string, int64, error) {
+	expiryBound, err := utils.ParseDurationInSeconds(cfg.ExpireTime)
 	if err != nil {
 		expiryBound = time.Minute * 30
 	}
 	expiresAt := time.Now().Add(expiryBound).Unix()
-	clientID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyClientID)
-	if err != nil {
-		return "", 0, err
-	}
 	customClaims := jwt.MapClaims{
-		"iss":           hostName,
-		"aud":           clientID,
-		"nonce":         nonce,
-		"sub":           user.ID,
+		"iss":           cfg.HostName,
+		"aud":           p.config.ClientID,
+		"nonce":         cfg.Nonce,
+		"sub":           cfg.User.ID,
 		"exp":           expiresAt,
 		"iat":           time.Now().Unix(),
 		"token_type":    constants.TokenTypeAccessToken,
-		"scope":         scopes,
-		"roles":         roles,
-		"login_method":  loginMethod,
-		"allowed_roles": strings.Split(user.Roles, ","),
+		"scope":         cfg.Scope,
+		"roles":         cfg.Roles,
+		"login_method":  cfg.LoginMethod,
+		"allowed_roles": strings.Split(cfg.User.Roles, ","),
 	}
 	// check for the extra access token script
-	accessTokenScript, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyCustomAccessTokenScript)
-	if err != nil {
-		log.Debug("Failed to get custom access token script: ", err)
-		accessTokenScript = ""
-	}
-	if accessTokenScript != "" {
-		resUser := user.AsAPIUser()
+	if p.config.CustomAccessTokenScript != "" {
+		resUser := cfg.User.AsAPIUser()
 		userBytes, _ := json.Marshal(&resUser)
 		var userMap map[string]interface{}
 		json.Unmarshal(userBytes, &userMap)
@@ -202,7 +196,7 @@ func CreateAccessToken(user *schemas.User, roles, scopes []string, hostName, non
 			var tokenPayload = %s;
 			var customFunction = %s;
 			var functionRes = JSON.stringify(customFunction(user, tokenPayload));
-		`, string(userBytes), string(claimBytes), accessTokenScript))
+		`, string(userBytes), string(claimBytes), p.config.CustomAccessTokenScript))
 
 		val, err := vm.Get("functionRes")
 		if err != nil {
@@ -219,7 +213,7 @@ func CreateAccessToken(user *schemas.User, roles, scopes []string, hostName, non
 			}
 		}
 	}
-	token, err := SignJWTToken(customClaims)
+	token, err := p.SignJWTToken(customClaims)
 	if err != nil {
 		return "", 0, err
 	}
@@ -249,37 +243,43 @@ func GetAccessToken(gc *gin.Context) (string, error) {
 }
 
 // Function to validate access token for authorizer apis (profile, update_profile)
-func ValidateAccessToken(gc *gin.Context, accessToken string) (map[string]interface{}, error) {
+func (p *provider) ValidateAccessToken(gc *gin.Context, accessToken string) (map[string]interface{}, error) {
 	res := make(map[string]interface{})
 
 	if accessToken == "" {
 		return res, fmt.Errorf(`unauthorized`)
 	}
 
-	res, err := ParseJWTToken(accessToken)
+	res, err := p.ParseJWTToken(accessToken)
 	if err != nil {
 		return res, err
 	}
 
 	userID := res["sub"].(string)
 	nonce := res["nonce"].(string)
-	loginMethod := res["login_method"]
-	sessionKey := userID
-	if loginMethod != nil && loginMethod != "" {
-		sessionKey = loginMethod.(string) + ":" + userID
-	}
 
-	token, err := memorystore.Provider.GetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+nonce)
-	if nonce == "" || err != nil {
-		return res, fmt.Errorf(`unauthorized`)
-	}
+	// TODO: validate against existing Token
+	// loginMethod := res["login_method"]
+	// sessionKey := userID
+	// if loginMethod != nil && loginMethod != "" {
+	// 	sessionKey = loginMethod.(string) + ":" + userID
+	// }
 
-	if token != accessToken {
-		return res, fmt.Errorf(`unauthorized`)
-	}
+	// token, err := memorystore.Provider.GetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+nonce)
+	// if nonce == "" || err != nil {
+	// 	return res, fmt.Errorf(`unauthorized`)
+	// }
+
+	// if token != accessToken {
+	// 	return res, fmt.Errorf(`unauthorized`)
+	// }
 
 	hostname := parsers.GetHost(gc)
-	if ok, err := ValidateJWTClaims(res, hostname, nonce, userID); !ok || err != nil {
+	if ok, err := p.ValidateJWTClaims(res, &AuthTokenConfig{
+		HostName: hostname,
+		Nonce:    nonce,
+		User:     &schemas.User{ID: userID},
+	}); !ok || err != nil {
 		return res, err
 	}
 
@@ -291,36 +291,42 @@ func ValidateAccessToken(gc *gin.Context, accessToken string) (map[string]interf
 }
 
 // Function to validate refreshToken
-func ValidateRefreshToken(gc *gin.Context, refreshToken string) (map[string]interface{}, error) {
+func (p *provider) ValidateRefreshToken(gc *gin.Context, refreshToken string) (map[string]interface{}, error) {
 	res := make(map[string]interface{})
 
 	if refreshToken == "" {
 		return res, fmt.Errorf(`unauthorized`)
 	}
 
-	res, err := ParseJWTToken(refreshToken)
+	res, err := p.ParseJWTToken(refreshToken)
 	if err != nil {
 		return res, err
 	}
 
 	userID := res["sub"].(string)
 	nonce := res["nonce"].(string)
-	loginMethod := res["login_method"]
-	sessionKey := userID
-	if loginMethod != nil && loginMethod != "" {
-		sessionKey = loginMethod.(string) + ":" + userID
-	}
-	token, err := memorystore.Provider.GetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+nonce)
-	if nonce == "" || err != nil {
-		return res, fmt.Errorf(`unauthorized`)
-	}
 
-	if token != refreshToken {
-		return res, fmt.Errorf(`unauthorized`)
-	}
+	// TODO: validate against existing token
+	// loginMethod := res["login_method"]
+	// sessionKey := userID
+	// if loginMethod != nil && loginMethod != "" {
+	// 	sessionKey = loginMethod.(string) + ":" + userID
+	// }
+	// token, err := memorystore.Provider.GetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+nonce)
+	// if nonce == "" || err != nil {
+	// 	return res, fmt.Errorf(`unauthorized`)
+	// }
+
+	// if token != refreshToken {
+	// 	return res, fmt.Errorf(`unauthorized`)
+	// }
 
 	hostname := parsers.GetHost(gc)
-	if ok, err := ValidateJWTClaims(res, hostname, nonce, userID); !ok || err != nil {
+	if ok, err := p.ValidateJWTClaims(res, &AuthTokenConfig{
+		HostName: hostname,
+		Nonce:    nonce,
+		User:     &schemas.User{ID: userID},
+	}); !ok || err != nil {
 		return res, err
 	}
 
@@ -331,7 +337,7 @@ func ValidateRefreshToken(gc *gin.Context, refreshToken string) (map[string]inte
 	return res, nil
 }
 
-func ValidateBrowserSession(gc *gin.Context, encryptedSession string) (*SessionData, error) {
+func (p *provider) ValidateBrowserSession(gc *gin.Context, encryptedSession string) (*SessionData, error) {
 	if encryptedSession == "" {
 		return nil, fmt.Errorf(`unauthorized`)
 	}
@@ -347,19 +353,20 @@ func ValidateBrowserSession(gc *gin.Context, encryptedSession string) (*SessionD
 		return nil, err
 	}
 
-	sessionStoreKey := res.Subject
-	if res.LoginMethod != "" {
-		sessionStoreKey = res.LoginMethod + ":" + res.Subject
-	}
-	token, err := memorystore.Provider.GetUserSession(sessionStoreKey, constants.TokenTypeSessionToken+"_"+res.Nonce)
-	if token == "" || err != nil {
-		log.Debugf("invalid browser session: %v, key: %s", err, sessionStoreKey+":"+constants.TokenTypeSessionToken+"_"+res.Nonce)
-		return nil, fmt.Errorf(`unauthorized`)
-	}
+	// TODO validate against saved token
+	// sessionStoreKey := res.Subject
+	// if res.LoginMethod != "" {
+	// 	sessionStoreKey = res.LoginMethod + ":" + res.Subject
+	// }
+	// token, err := memorystore.Provider.GetUserSession(sessionStoreKey, constants.TokenTypeSessionToken+"_"+res.Nonce)
+	// if token == "" || err != nil {
+	// 	log.Debugf("invalid browser session: %v, key: %s", err, sessionStoreKey+":"+constants.TokenTypeSessionToken+"_"+res.Nonce)
+	// 	return nil, fmt.Errorf(`unauthorized`)
+	// }
 
-	if encryptedSession != token {
-		return nil, fmt.Errorf(`unauthorized: invalid nonce`)
-	}
+	// if encryptedSession != token {
+	// 	return nil, fmt.Errorf(`unauthorized: invalid nonce`)
+	// }
 
 	if res.ExpiresAt < time.Now().Unix() {
 		return nil, fmt.Errorf(`unauthorized: token expired`)
@@ -372,48 +379,35 @@ func ValidateBrowserSession(gc *gin.Context, encryptedSession string) (*SessionD
 // user information, roles config and CUSTOM_ACCESS_TOKEN_SCRIPT
 // For response_type (code) / authorization_code grant nonce should be empty
 // for implicit flow it should be present to verify with actual state
-func CreateIDToken(user *schemas.User, roles []string, hostname, nonce, atHash, cHash, loginMethod string) (string, int64, error) {
-	expireTime, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAccessTokenExpiryTime)
-	if err != nil {
-		return "", 0, err
-	}
-	expiryBound, err := utils.ParseDurationInSeconds(expireTime)
+func (p *provider) CreateIDToken(cfg *AuthTokenConfig) (string, int64, error) {
+	expiryBound, err := utils.ParseDurationInSeconds(cfg.ExpireTime)
 	if err != nil {
 		expiryBound = time.Minute * 30
 	}
 	expiresAt := time.Now().Add(expiryBound).Unix()
-	resUser := user.AsAPIUser()
+	resUser := cfg.User.AsAPIUser()
 	userBytes, _ := json.Marshal(&resUser)
 	var userMap map[string]interface{}
 	json.Unmarshal(userBytes, &userMap)
-	claimKey, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyJwtRoleClaim)
-	if err != nil {
-		claimKey = "roles"
-	}
-
-	clientID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyClientID)
-	if err != nil {
-		return "", 0, err
-	}
 
 	customClaims := jwt.MapClaims{
-		"iss":           hostname,
-		"aud":           clientID,
-		"sub":           user.ID,
-		"exp":           expiresAt,
-		"iat":           time.Now().Unix(),
-		"token_type":    constants.TokenTypeIdentityToken,
-		"allowed_roles": strings.Split(user.Roles, ","),
-		"login_method":  loginMethod,
-		claimKey:        roles,
+		"iss":                 cfg.HostName,
+		"aud":                 p.config.ClientID,
+		"sub":                 cfg.User.ID,
+		"exp":                 expiresAt,
+		"iat":                 time.Now().Unix(),
+		"token_type":          constants.TokenTypeIdentityToken,
+		"allowed_roles":       strings.Split(cfg.User.Roles, ","),
+		"login_method":        cfg.LoginMethod,
+		p.config.JWTRoleClaim: cfg.Roles,
 	}
 	// split nonce to see if its authorization code grant method
-	if cHash != "" {
-		customClaims["at_hash"] = atHash
-		customClaims["c_hash"] = cHash
+	if cfg.CodeHash != "" {
+		customClaims["at_hash"] = cfg.AtHash
+		customClaims["c_hash"] = cfg.CodeHash
 	} else {
-		customClaims["nonce"] = nonce
-		customClaims["at_hash"] = atHash
+		customClaims["nonce"] = cfg.Nonce
+		customClaims["at_hash"] = cfg.Nonce
 	}
 	for k, v := range userMap {
 		if k != "roles" {
@@ -421,12 +415,7 @@ func CreateIDToken(user *schemas.User, roles []string, hostname, nonce, atHash, 
 		}
 	}
 	// check for the extra access token script
-	accessTokenScript, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyCustomAccessTokenScript)
-	if err != nil {
-		log.Debug("Failed to get custom access token script: ", err)
-		accessTokenScript = ""
-	}
-	if accessTokenScript != "" {
+	if p.config.CustomAccessTokenScript != "" {
 		vm := otto.New()
 		claimBytes, _ := json.Marshal(customClaims)
 		vm.Run(fmt.Sprintf(`
@@ -434,7 +423,7 @@ func CreateIDToken(user *schemas.User, roles []string, hostname, nonce, atHash, 
 			var tokenPayload = %s;
 			var customFunction = %s;
 			var functionRes = JSON.stringify(customFunction(user, tokenPayload));
-		`, string(userBytes), string(claimBytes), accessTokenScript))
+		`, string(userBytes), string(claimBytes), p.config.CustomAccessTokenScript))
 
 		val, err := vm.Get("functionRes")
 		if err != nil {
@@ -452,7 +441,7 @@ func CreateIDToken(user *schemas.User, roles []string, hostname, nonce, atHash, 
 		}
 	}
 
-	token, err := SignJWTToken(customClaims)
+	token, err := p.SignJWTToken(customClaims)
 	if err != nil {
 		return "", 0, err
 	}
@@ -461,7 +450,7 @@ func CreateIDToken(user *schemas.User, roles []string, hostname, nonce, atHash, 
 }
 
 // GetIDToken returns the id token from the request header
-func GetIDToken(gc *gin.Context) (string, error) {
+func (p *provider) GetIDToken(gc *gin.Context) (string, error) {
 	// try to check in auth header for cookie
 	auth := gc.Request.Header.Get("Authorization")
 	if auth == "" {
@@ -489,7 +478,7 @@ type SessionOrAccessTokenData struct {
 }
 
 // GetUserIDFromSessionOrAccessToken returns the user id from the session or access token
-func GetUserIDFromSessionOrAccessToken(gc *gin.Context) (*SessionOrAccessTokenData, error) {
+func (p *provider) GetUserIDFromSessionOrAccessToken(gc *gin.Context) (*SessionOrAccessTokenData, error) {
 	// First try to get the user id from the session
 	isSession := true
 	token, err := cookie.GetSession(gc)
@@ -503,7 +492,7 @@ func GetUserIDFromSessionOrAccessToken(gc *gin.Context) (*SessionOrAccessTokenDa
 		}
 	}
 	if isSession {
-		claims, err := ValidateBrowserSession(gc, token)
+		claims, err := p.ValidateBrowserSession(gc, token)
 		if err != nil {
 			log.Debug("Failed to validate session token: ", err)
 			return nil, fmt.Errorf(`unauthorized`)
@@ -515,7 +504,7 @@ func GetUserIDFromSessionOrAccessToken(gc *gin.Context) (*SessionOrAccessTokenDa
 		}, nil
 	}
 	// If not session, then validate the access token
-	claims, err := ValidateAccessToken(gc, token)
+	claims, err := p.ValidateAccessToken(gc, token)
 	if err != nil {
 		log.Debug("Failed to validate access token: ", err)
 		return nil, fmt.Errorf(`unauthorized`)

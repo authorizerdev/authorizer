@@ -4,19 +4,15 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/coreos/go-oidc/v3/oidc"
 	"golang.org/x/oauth2"
-	"google.golang.org/appengine/log"
-
 	facebookOAuth2 "golang.org/x/oauth2/facebook"
 	githubOAuth2 "golang.org/x/oauth2/github"
 	linkedInOAuth2 "golang.org/x/oauth2/linkedin"
 	microsoftOAuth2 "golang.org/x/oauth2/microsoft"
 	twitchOAuth2 "golang.org/x/oauth2/twitch"
 
-	"github.com/coreos/go-oidc/v3/oidc"
-
-	"github.com/authorizerdev/authorizer/internal/constants"
-	"github.com/authorizerdev/authorizer/internal/memorystore"
+	"github.com/authorizerdev/authorizer/internal/config"
 )
 
 const (
@@ -51,17 +47,11 @@ var (
 	OIDCProviders OIDCProvider
 )
 
-// InitOAuth initializes the OAuth providers based on EnvData
-func InitOAuth() error {
+// NewOAuthProvider initializes the OAuth providers based on EnvData
+func NewOAuthProvider(cfg *config.Config) error {
 	ctx := context.Background()
-	googleClientID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyGoogleClientID)
-	if err != nil {
-		googleClientID = ""
-	}
-	googleClientSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyGoogleClientSecret)
-	if err != nil {
-		googleClientSecret = ""
-	}
+	googleClientID := cfg.GoogleClientID
+	googleClientSecret := cfg.GoogleClientSecret
 	if googleClientID != "" && googleClientSecret != "" {
 		p, err := oidc.NewProvider(ctx, "https://accounts.google.com")
 		if err != nil {
@@ -77,14 +67,8 @@ func InitOAuth() error {
 		}
 	}
 
-	githubClientID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyGithubClientID)
-	if err != nil {
-		githubClientID = ""
-	}
-	githubClientSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyGithubClientSecret)
-	if err != nil {
-		githubClientSecret = ""
-	}
+	githubClientID := cfg.GithubClientID
+	githubClientSecret := cfg.GithubClientSecret
 	if githubClientID != "" && githubClientSecret != "" {
 		OAuthProviders.GithubConfig = &oauth2.Config{
 			ClientID:     githubClientID,
@@ -95,14 +79,8 @@ func InitOAuth() error {
 		}
 	}
 
-	facebookClientID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyFacebookClientID)
-	if err != nil {
-		facebookClientID = ""
-	}
-	facebookClientSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyFacebookClientSecret)
-	if err != nil {
-		facebookClientSecret = ""
-	}
+	facebookClientID := cfg.FacebookClientID
+	facebookClientSecret := cfg.FacebookClientSecret
 	if facebookClientID != "" && facebookClientSecret != "" {
 		OAuthProviders.FacebookConfig = &oauth2.Config{
 			ClientID:     facebookClientID,
@@ -113,14 +91,8 @@ func InitOAuth() error {
 		}
 	}
 
-	linkedInClientID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyLinkedInClientID)
-	if err != nil {
-		linkedInClientID = ""
-	}
-	linkedInClientSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyLinkedInClientSecret)
-	if err != nil {
-		linkedInClientSecret = ""
-	}
+	linkedInClientID := cfg.LinkedinClientID
+	linkedInClientSecret := cfg.LinkedinClientSecret
 	if linkedInClientID != "" && linkedInClientSecret != "" {
 		OAuthProviders.LinkedInConfig = &oauth2.Config{
 			ClientID:     linkedInClientID,
@@ -131,14 +103,8 @@ func InitOAuth() error {
 		}
 	}
 
-	appleClientID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAppleClientID)
-	if err != nil {
-		appleClientID = ""
-	}
-	appleClientSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAppleClientSecret)
-	if err != nil {
-		appleClientSecret = ""
-	}
+	appleClientID := cfg.AppleClientID
+	appleClientSecret := cfg.AppleClientSecret
 	if appleClientID != "" && appleClientSecret != "" {
 		OAuthProviders.AppleConfig = &oauth2.Config{
 			ClientID:     appleClientID,
@@ -151,14 +117,8 @@ func InitOAuth() error {
 		}
 	}
 
-	discordClientID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDiscordClientID)
-	if err != nil {
-		discordClientID = ""
-	}
-	discordClientSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyDiscordClientSecret)
-	if err != nil {
-		discordClientSecret = ""
-	}
+	discordClientID := cfg.DiscordClientID
+	discordClientSecret := cfg.DiscordClientSecret
 	if discordClientID != "" && discordClientSecret != "" {
 		OAuthProviders.DiscordConfig = &oauth2.Config{
 			ClientID:     discordClientID,
@@ -172,14 +132,8 @@ func InitOAuth() error {
 		}
 	}
 
-	twitterClientID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyTwitterClientID)
-	if err != nil {
-		twitterClientID = ""
-	}
-	twitterClientSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyTwitterClientSecret)
-	if err != nil {
-		twitterClientSecret = ""
-	}
+	twitterClientID := cfg.TwitterClientID
+	twitterClientSecret := cfg.TwitterClientSecret
 	if twitterClientID != "" && twitterClientSecret != "" {
 		OAuthProviders.TwitterConfig = &oauth2.Config{
 			ClientID:     twitterClientID,
@@ -195,16 +149,10 @@ func InitOAuth() error {
 		}
 	}
 
-	microsoftClientID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyMicrosoftClientID)
-	if err != nil {
-		microsoftClientID = ""
-	}
-	microsoftClientSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyMicrosoftClientSecret)
-	if err != nil {
-		microsoftClientSecret = ""
-	}
-	microsoftActiveDirTenantID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyMicrosoftActiveDirectoryTenantID)
-	if err != nil || microsoftActiveDirTenantID == "" {
+	microsoftClientID := cfg.MicrosoftClientID
+	microsoftClientSecret := cfg.MicrosoftClientSecret
+	microsoftActiveDirTenantID := cfg.MicrosoftTenantID
+	if microsoftActiveDirTenantID == "" {
 		microsoftActiveDirTenantID = microsoftCommonTenant
 	}
 	if microsoftClientID != "" && microsoftClientSecret != "" {
@@ -213,7 +161,6 @@ func InitOAuth() error {
 		}
 		p, err := oidc.NewProvider(ctx, fmt.Sprintf("https://login.microsoftonline.com/%s/v2.0", microsoftActiveDirTenantID))
 		if err != nil {
-			log.Debugf(ctx, "Error while creating OIDC provider for Microsoft: %v", err)
 			return err
 		}
 		OIDCProviders.MicrosoftOIDC = p
@@ -226,19 +173,11 @@ func InitOAuth() error {
 		}
 	}
 
-	twitchClientID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyTwitchClientID)
-	if err != nil {
-		twitchClientID = ""
-	}
-	twitchClientSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyTwitchClientSecret)
-	if err != nil {
-		twitchClientSecret = ""
-	}
-
+	twitchClientID := cfg.TwitchClientID
+	twitchClientSecret := cfg.TwitchClientSecret
 	if twitchClientID != "" && twitchClientSecret != "" {
 		p, err := oidc.NewProvider(ctx, "https://id.twitch.tv/oauth2")
 		if err != nil {
-			log.Debugf(ctx, "Error while creating OIDC provider for Twitch: %v", err)
 			return err
 		}
 
@@ -252,14 +191,8 @@ func InitOAuth() error {
 		}
 	}
 
-	robloxClientID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyRobloxClientID)
-	if err != nil {
-		robloxClientID = ""
-	}
-	robloxClientSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyRobloxClientSecret)
-	if err != nil {
-		robloxClientSecret = ""
-	}
+	robloxClientID := cfg.RoboloxClientID
+	robloxClientSecret := cfg.RoboloxClientSecret
 	if robloxClientID != "" && robloxClientSecret != "" {
 		OAuthProviders.RobloxConfig = &oauth2.Config{
 			ClientID:     robloxClientID,

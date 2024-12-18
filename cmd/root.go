@@ -21,7 +21,7 @@ var (
 	}
 	rootArgs struct {
 		server   server.Config
-		config   config.Config
+		config   *config.Config
 		logLevel string
 	}
 )
@@ -42,6 +42,16 @@ func init() {
 
 	// Logging flags
 	f.StringVar(&rootArgs.logLevel, "log-level", "debug", "Log level to use")
+
+	// Env
+	f.StringVar(&rootArgs.config.Env, "env", "", "Environment of the authorizer instance")
+
+	// Organization flags
+	f.StringVar(&rootArgs.config.OrganizationLogo, "organization-logo", "", "Logo of the organization")
+	f.StringVar(&rootArgs.config.OrganizationName, "organization-name", "", "Name of the organization")
+
+	// Admin flags
+	f.StringVar(&rootArgs.config.AdminSecret, "admin-secret", "password", "Secret for the admin")
 
 	// Database flags
 	f.StringVar(&rootArgs.config.DatabaseType, "database-type", "", "Type of database to use")
@@ -74,8 +84,47 @@ func init() {
 	f.StringVar(&rootArgs.config.SMTPLocalName, "smtp-local-name", "", "Local name for the SMTP server")
 	f.BoolVar(&rootArgs.config.SkipTLSVerification, "skip-tls-verification", false, "Skip TLS verification for the SMTP server")
 
-	// User flags
+	// Auth flags
 	f.StringVar(&rootArgs.config.DefaultRoles, "default-roles", "user", "Default user roles to assign")
+	f.BoolVar(&rootArgs.config.DisableStrongPassword, "disable-strong-password", false, "Disable strong password requirement")
+	f.BoolVar(&rootArgs.config.DisableTOTPLogin, "disable-totp-login", false, "Disable TOTP login")
+
+	// JWT flags
+	f.StringVar(&rootArgs.config.JWTType, "jwt-type", "", "Type of JWT to use")
+	f.StringVar(&rootArgs.config.JWTSecret, "jwt-secret", "", "Secret for the JWT")
+	f.StringVar(&rootArgs.config.JWTPrivateKey, "jwt-private-key", "", "Private key for the JWT")
+	f.StringVar(&rootArgs.config.JWTPublicKey, "jwt-public-key", "", "Public key for the JWT")
+	f.StringVar(&rootArgs.config.JWTRoleClaim, "jwt-role-claim", "role", "Role claim for the JWT")
+	f.StringVar(&rootArgs.config.CustomAccessTokenScript, "custom-access-token-script", "", "Custom access token script")
+
+	// Twilio flags
+	f.StringVar(&rootArgs.config.TwilioAccountSID, "twilio-account-sid", "", "Account SID for Twilio")
+	f.StringVar(&rootArgs.config.TwilioAPIKey, "twilio-api-key", "", "API key for Twilio")
+	f.StringVar(&rootArgs.config.TwilioAPISecret, "twilio-api-secret", "", "API secret for Twilio")
+	f.StringVar(&rootArgs.config.TwilioSender, "twilio-sender", "", "Sender for Twilio")
+
+	// Oauth provider flags
+	f.StringVar(&rootArgs.config.GoogleClientID, "google-client-id", "", "Client ID for Google")
+	f.StringVar(&rootArgs.config.GoogleClientSecret, "google-client-secret", "", "Client secret for Google")
+	f.StringVar(&rootArgs.config.GithubClientID, "github-client-id", "", "Client ID for Github")
+	f.StringVar(&rootArgs.config.GithubClientSecret, "github-client-secret", "", "Client secret for Github")
+	f.StringVar(&rootArgs.config.FacebookClientID, "facebook-client-id", "", "Client ID for Facebook")
+	f.StringVar(&rootArgs.config.FacebookClientSecret, "facebook-client-secret", "", "Client secret for Facebook")
+	f.StringVar(&rootArgs.config.MicrosoftClientID, "microsoft-client-id", "", "Client ID for Microsoft")
+	f.StringVar(&rootArgs.config.MicrosoftClientSecret, "microsoft-client-secret", "", "Client secret for Microsoft")
+	f.StringVar(&rootArgs.config.MicrosoftTenantID, "microsoft-tenant-id", "", "Tenant ID for Microsoft")
+	f.StringVar(&rootArgs.config.TwitchClientID, "twitch-client-id", "", "Client ID for Twitch")
+	f.StringVar(&rootArgs.config.TwitchClientSecret, "twitch-client-secret", "", "Client secret for Twitch")
+	f.StringVar(&rootArgs.config.LinkedinClientID, "linkedin-client-id", "", "Client ID for Linkedin")
+	f.StringVar(&rootArgs.config.LinkedinClientSecret, "linkedin-client-secret", "", "Client secret for Linkedin")
+	f.StringVar(&rootArgs.config.AppleClientID, "apple-client-id", "", "Client ID for Apple")
+	f.StringVar(&rootArgs.config.AppleClientSecret, "apple-client-secret", "", "Client secret for Apple")
+	f.StringVar(&rootArgs.config.DiscordClientID, "discord-client-id", "", "Client ID for Discord")
+	f.StringVar(&rootArgs.config.DiscordClientSecret, "discord-client-secret", "", "Client secret for Discord")
+	f.StringVar(&rootArgs.config.TwitterClientID, "twitter-client-id", "", "Client ID for Twitter")
+	f.StringVar(&rootArgs.config.TwitterClientSecret, "twitter-client-secret", "", "Client secret for Twitter")
+	f.StringVar(&rootArgs.config.RoboloxClientID, "roblox-client-id", "", "Client ID for Roblox")
+	f.StringVar(&rootArgs.config.RoboloxClientSecret, "roblox-client-secret", "", "Client secret for Roblox")
 
 	// Deprecated flags
 	f.MarkDeprecated("database_url", "use --database-url instead")

@@ -4,6 +4,13 @@ package config
 type Config struct {
 	// Env is the environment of the authorizer instance
 	Env string
+	// OrganizationLogo is the logo of the organization
+	OrganizationLogo string
+	// OrganizationName is the name of the organization
+	OrganizationName string
+	// AdminSecret is the secret for the admin
+	AdminSecret string
+
 	// Database Configurations
 	// DatabaseType is the type of database to use
 	DatabaseType string
@@ -70,10 +77,14 @@ type Config struct {
 	// RedisURL is the URL of the redis server
 	RedisURL string
 
-	// User Configurations
+	// Auth Configurations
 	// DefaultRoles is the default roles for the user
 	// It is a comma separated string
 	DefaultRoles string
+	// DisableStrongPassword is the flag to disable strong password
+	DisableStrongPassword bool
+	// DisableTOTPLogin boolean to disable TOTP login
+	DisableTOTPLogin bool
 
 	// JWT Configurations
 	// JWTType is the type of JWT to use
@@ -86,6 +97,8 @@ type Config struct {
 	JWTPrivateKey string
 	// JWTRoleClaim is the role claim for the JWT
 	JWTRoleClaim string
+	// CustomAccessTokenScript is the custom access token script
+	CustomAccessTokenScript string
 
 	// OAuth Configurations
 	ClientID string
@@ -99,4 +112,57 @@ type Config struct {
 	TwilioSender string
 	// TwilioAccountSID is the account SID for Twilio
 	TwilioAccountSID string
+
+	// OAuth providers that authorizer supports
+	// GoogleClientID is the client ID for Google OAuth
+	GoogleClientID string
+	// GoogleClientSecret is the client secret for Google OAuth
+	GoogleClientSecret string
+
+	// GithubClientID is the client ID for Github OAuth
+	GithubClientID string
+	// GithubClientSecret is the client secret for Github OAuth
+	GithubClientSecret string
+
+	// FacebookClientID is the client ID for Facebook OAuth
+	FacebookClientID string
+	// FacebookClientSecret is the client secret for Facebook OAuth
+	FacebookClientSecret string
+
+	// LinkedinClientID is the client ID for Linkedin OAuth
+	LinkedinClientID string
+	// LinkedinClientSecret is the client secret for Linkedin OAuth
+	LinkedinClientSecret string
+
+	// TwitterClientID is the client ID for Twitter OAuth
+	TwitterClientID string
+	// TwitterClientSecret is the client secret for Twitter OAuth
+	TwitterClientSecret string
+
+	// MicrosoftClientID is the client ID for Microsoft OAuth
+	MicrosoftClientID string
+	// MicrosoftClientSecret is the client secret for Microsoft OAuth
+	MicrosoftClientSecret string
+	// MicrosoftTenantID is the tenant ID for Microsoft OAuth
+	MicrosoftTenantID string
+
+	// AppleClientID is the client ID for Apple OAuth
+	AppleClientID string
+	// AppleClientSecret is the client secret for Apple OAuth
+	AppleClientSecret string
+
+	// DiscordClientID is the client ID for Discord OAuth
+	DiscordClientID string
+	// DiscordClientSecret is the client secret for Discord OAuth
+	DiscordClientSecret string
+
+	// TwitchClientID is the client ID for Twitch OAuth
+	TwitchClientID string
+	// TwitchClientSecret is the client secret for Twitch OAuth
+	TwitchClientSecret string
+
+	// RoboloxClientID is the client ID for Robolox OAuth
+	RoboloxClientID string
+	// RoboloxClientSecret is the client secret for Robolox OAuth
+	RoboloxClientSecret string
 }

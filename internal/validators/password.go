@@ -2,9 +2,6 @@ package validators
 
 import (
 	"errors"
-
-	"github.com/authorizerdev/authorizer/internal/constants"
-	"github.com/authorizerdev/authorizer/internal/memorystore"
 )
 
 // ValidatePassword to validate the password against the following policy
@@ -14,16 +11,9 @@ import (
 // at least one lower case letter
 // at least one digit
 // at least one special character
-func IsValidPassword(password string) error {
+func IsValidPassword(password string, isStrongPasswordDisabled bool) error {
 	if len(password) < 6 || len(password) > 36 {
 		return errors.New("password must be of minimum 6 characters and maximum 36 characters")
-	}
-
-	// if strong password is disabled
-	// just check for min 6 chars & max 36
-	isStrongPasswordDisabled, _ := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyDisableStrongPassword)
-	if isStrongPasswordDisabled {
-		return nil
 	}
 
 	hasUpperCase := false

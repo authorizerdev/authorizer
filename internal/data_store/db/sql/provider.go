@@ -21,7 +21,7 @@ type Dependencies struct {
 }
 
 type provider struct {
-	config       config.Config
+	config       *config.Config
 	dependencies Dependencies
 	db           *gorm.DB
 }
@@ -41,7 +41,7 @@ type indexInfo struct {
 
 // NewProvider returns a new SQL provider
 func NewProvider(
-	config config.Config,
+	config *config.Config,
 	deps Dependencies,
 ) (*provider, error) {
 	var sqlDB *gorm.DB

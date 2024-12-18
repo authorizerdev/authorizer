@@ -22,7 +22,7 @@ type Dependencies struct {
 }
 
 type provider struct {
-	config       config.Config
+	config       *config.Config
 	dependencies Dependencies
 	db           *cansandraDriver.Session
 }
@@ -31,7 +31,7 @@ type provider struct {
 var KeySpace string
 
 // NewProvider to initialize arangodb connection
-func NewProvider(cfg config.Config, deps Dependencies) (*provider, error) {
+func NewProvider(cfg *config.Config, deps Dependencies) (*provider, error) {
 	dbURL := cfg.DatabaseURL
 	if dbURL == "" {
 		dbHost := cfg.DatabaseHost

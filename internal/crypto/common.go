@@ -35,7 +35,7 @@ func GetPubJWK(algo, keyID string, publicKey interface{}) (string, error) {
 // TODO update description
 // make sure clientID, jwtType, jwtSecret / public & private key pair is set
 // this is called while initializing app / when env is updated
-func GenerateJWKBasedOnEnv(cfg config.Config) (string, error) {
+func GenerateJWKBasedOnEnv(cfg *config.Config) (string, error) {
 	jwk := ""
 	algo := cfg.JWTType
 	clientID := cfg.ClientID

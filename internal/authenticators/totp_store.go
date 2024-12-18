@@ -1,11 +1,8 @@
-package authenticators
+package providers
 
-import (
-	"github.com/authorizerdev/authorizer/internal/authenticators/providers"
-)
-
+// TODO delete file
 // Provider is the global authenticators provider.
-var Provider providers.Provider
+// var Provider providers.Provider
 
 // InitTOTPStore initializes the TOTP authenticator store if it's not disabled in the environment variables.
 // It sets the global Provider variable to a new TOTP provider.

@@ -3,27 +3,21 @@ package token
 import (
 	"time"
 
-	"github.com/authorizerdev/authorizer/internal/constants"
-	"github.com/authorizerdev/authorizer/internal/memorystore"
 	"github.com/golang-jwt/jwt"
 )
 
 // CreateVerificationToken creates a verification JWT token
-func CreateVerificationToken(email, tokenType, hostname, nonceHash, redirectURL string) (string, error) {
-	clientID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyClientID)
-	if err != nil {
-		return "", err
-	}
+func (p *provider) CreateVerificationToken(authTokenConfig *AuthTokenConfig, redirectURL, tokenType string) (string, error) {
 	claims := jwt.MapClaims{
-		"iss":          hostname,
-		"aud":          clientID,
-		"sub":          email,
+		"iss":          authTokenConfig.HostName,
+		"aud":          p.config.ClientID,
+		"sub":          authTokenConfig.User.Email,
 		"exp":          time.Now().Add(time.Minute * 30).Unix(),
 		"iat":          time.Now().Unix(),
 		"token_type":   tokenType,
-		"nonce":        nonceHash,
+		"nonce":        authTokenConfig.Nonce,
 		"redirect_uri": redirectURL,
 	}
 
-	return SignJWTToken(claims)
+	return p.SignJWTToken(claims)
 }

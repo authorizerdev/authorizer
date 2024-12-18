@@ -1,268 +1,249 @@
 package env
 
-import (
-	"context"
-	"encoding/json"
-	"os"
-	"reflect"
-	"strconv"
-	"strings"
+// func fixBackwardCompatibility(data map[string]interface{}) (bool, map[string]interface{}) {
+// 	result := data
+// 	// check if env data is stored in older format
+// 	hasOlderFormat := false
+// 	if _, ok := result["bool_env"]; ok {
+// 		for key, value := range result["bool_env"].(map[string]interface{}) {
+// 			result[key] = value
+// 		}
+// 		hasOlderFormat = true
+// 		delete(result, "bool_env")
+// 	}
 
-	"github.com/google/uuid"
-	log "github.com/sirupsen/logrus"
+// 	if _, ok := result["string_env"]; ok {
+// 		for key, value := range result["string_env"].(map[string]interface{}) {
+// 			result[key] = value
+// 		}
+// 		hasOlderFormat = true
+// 		delete(result, "string_env")
+// 	}
 
-	"github.com/authorizerdev/authorizer/internal/constants"
-	"github.com/authorizerdev/authorizer/internal/crypto"
-	"github.com/authorizerdev/authorizer/internal/data_store/db"
-	"github.com/authorizerdev/authorizer/internal/db"
-	"github.com/authorizerdev/authorizer/internal/memorystore"
-	"github.com/authorizerdev/authorizer/internal/utils"
-)
+// 	if _, ok := result["slice_env"]; ok {
+// 		for key, value := range result["slice_env"].(map[string]interface{}) {
+// 			typeOfValue := reflect.TypeOf(value)
+// 			if strings.Contains(typeOfValue.String(), "[]string") {
+// 				result[key] = strings.Join(value.([]string), ",")
+// 			}
+// 			if strings.Contains(typeOfValue.String(), "[]interface") {
+// 				result[key] = strings.Join(utils.ConvertInterfaceToStringSlice(value), ",")
+// 			}
+// 		}
+// 		hasOlderFormat = true
+// 		delete(result, "slice_env")
+// 	}
 
-func fixBackwardCompatibility(data map[string]interface{}) (bool, map[string]interface{}) {
-	result := data
-	// check if env data is stored in older format
-	hasOlderFormat := false
-	if _, ok := result["bool_env"]; ok {
-		for key, value := range result["bool_env"].(map[string]interface{}) {
-			result[key] = value
-		}
-		hasOlderFormat = true
-		delete(result, "bool_env")
-	}
+// 	return hasOlderFormat, result
+// }
 
-	if _, ok := result["string_env"]; ok {
-		for key, value := range result["string_env"].(map[string]interface{}) {
-			result[key] = value
-		}
-		hasOlderFormat = true
-		delete(result, "string_env")
-	}
+// // GetEnvData returns the env data from database
+// func GetEnvData() (map[string]interface{}, error) {
+// 	var result map[string]interface{}
+// 	ctx := context.Background()
+// 	env, err := db.Provider.GetEnv(ctx)
+// 	// config not found in db
+// 	if err != nil || env == nil {
+// 		log.Debug("Error while getting env data from db: ", err)
+// 		return result, err
+// 	}
 
-	if _, ok := result["slice_env"]; ok {
-		for key, value := range result["slice_env"].(map[string]interface{}) {
-			typeOfValue := reflect.TypeOf(value)
-			if strings.Contains(typeOfValue.String(), "[]string") {
-				result[key] = strings.Join(value.([]string), ",")
-			}
-			if strings.Contains(typeOfValue.String(), "[]interface") {
-				result[key] = strings.Join(utils.ConvertInterfaceToStringSlice(value), ",")
-			}
-		}
-		hasOlderFormat = true
-		delete(result, "slice_env")
-	}
+// 	encryptionKey := env.Hash
+// 	decryptedEncryptionKey, err := crypto.DecryptB64(encryptionKey)
+// 	if err != nil {
+// 		log.Debug("Error while decrypting encryption key: ", err)
+// 		return result, err
+// 	}
 
-	return hasOlderFormat, result
-}
+// 	memorystore.Provider.UpdateEnvVariable(constants.EnvKeyEncryptionKey, decryptedEncryptionKey)
+// 	b64DecryptedConfig, err := crypto.DecryptB64(env.EnvData)
+// 	if err != nil {
+// 		log.Debug("Error while decrypting env data from B64: ", err)
+// 		return result, err
+// 	}
 
-// GetEnvData returns the env data from database
-func GetEnvData() (map[string]interface{}, error) {
-	var result map[string]interface{}
-	ctx := context.Background()
-	env, err := db.Provider.GetEnv(ctx)
-	// config not found in db
-	if err != nil || env == nil {
-		log.Debug("Error while getting env data from db: ", err)
-		return result, err
-	}
+// 	decryptedConfigs, err := crypto.DecryptAESEnv([]byte(b64DecryptedConfig))
+// 	if err != nil {
+// 		log.Debug("Error while decrypting env data from AES: ", err)
+// 		return result, err
+// 	}
 
-	encryptionKey := env.Hash
-	decryptedEncryptionKey, err := crypto.DecryptB64(encryptionKey)
-	if err != nil {
-		log.Debug("Error while decrypting encryption key: ", err)
-		return result, err
-	}
+// 	err = json.Unmarshal(decryptedConfigs, &result)
+// 	if err != nil {
+// 		log.Debug("Error while unmarshalling env data: ", err)
+// 		return result, err
+// 	}
 
-	memorystore.Provider.UpdateEnvVariable(constants.EnvKeyEncryptionKey, decryptedEncryptionKey)
-	b64DecryptedConfig, err := crypto.DecryptB64(env.EnvData)
-	if err != nil {
-		log.Debug("Error while decrypting env data from B64: ", err)
-		return result, err
-	}
+// 	hasOlderFormat, result := fixBackwardCompatibility(result)
 
-	decryptedConfigs, err := crypto.DecryptAESEnv([]byte(b64DecryptedConfig))
-	if err != nil {
-		log.Debug("Error while decrypting env data from AES: ", err)
-		return result, err
-	}
+// 	if hasOlderFormat {
+// 		err = memorystore.Provider.UpdateEnvStore(result)
+// 		if err != nil {
+// 			log.Debug("Error while updating env store: ", err)
+// 			return result, err
+// 		}
 
-	err = json.Unmarshal(decryptedConfigs, &result)
-	if err != nil {
-		log.Debug("Error while unmarshalling env data: ", err)
-		return result, err
-	}
+// 	}
 
-	hasOlderFormat, result := fixBackwardCompatibility(result)
+// 	return result, err
+// }
 
-	if hasOlderFormat {
-		err = memorystore.Provider.UpdateEnvStore(result)
-		if err != nil {
-			log.Debug("Error while updating env store: ", err)
-			return result, err
-		}
+// // PersistEnv persists the environment variables to the database
+// func PersistEnv() error {
+// 	ctx := context.Background()
+// 	env, err := db.Provider.GetEnv(ctx)
+// 	// config not found in db
+// 	if err != nil || env == nil {
+// 		// AES encryption needs 32 bit key only, so we chop off last 4 characters from 36 bit uuid
+// 		hash := uuid.New().String()[:36-4]
+// 		err := memorystore.Provider.UpdateEnvVariable(constants.EnvKeyEncryptionKey, hash)
+// 		if err != nil {
+// 			log.Debug("Error while updating encryption env variable: ", err)
+// 			return err
+// 		}
+// 		encodedHash := crypto.EncryptB64(hash)
+// 		res, err := memorystore.Provider.GetEnvStore()
+// 		if err != nil {
+// 			log.Debug("Error while getting env store: ", err)
+// 			return err
+// 		}
+// 		encryptedConfig, err := crypto.EncryptEnvData(res)
+// 		if err != nil {
+// 			log.Debug("Error while encrypting env data: ", err)
+// 			return err
+// 		}
+// 		env = &models.Env{
+// 			Hash:    encodedHash,
+// 			EnvData: encryptedConfig,
+// 		}
+// 		_, err = db.Provider.AddEnv(ctx, env)
+// 		if err != nil {
+// 			log.Debug("Error while persisting env data to db: ", err)
+// 			return err
+// 		}
+// 	} else {
+// 		// decrypt the config data from db
+// 		// decryption can be done using the hash stored in db
+// 		encryptionKey := env.Hash
+// 		decryptedEncryptionKey, err := crypto.DecryptB64(encryptionKey)
+// 		if err != nil {
+// 			log.Debug("Error while decrypting encryption key: ", err)
+// 			return err
+// 		}
 
-	}
+// 		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyEncryptionKey, decryptedEncryptionKey)
 
-	return result, err
-}
+// 		b64DecryptedConfig, err := crypto.DecryptB64(env.EnvData)
+// 		if err != nil {
+// 			log.Debug("Error while decrypting env data from B64: ", err)
+// 			return err
+// 		}
 
-// PersistEnv persists the environment variables to the database
-func PersistEnv() error {
-	ctx := context.Background()
-	env, err := db.Provider.GetEnv(ctx)
-	// config not found in db
-	if err != nil || env == nil {
-		// AES encryption needs 32 bit key only, so we chop off last 4 characters from 36 bit uuid
-		hash := uuid.New().String()[:36-4]
-		err := memorystore.Provider.UpdateEnvVariable(constants.EnvKeyEncryptionKey, hash)
-		if err != nil {
-			log.Debug("Error while updating encryption env variable: ", err)
-			return err
-		}
-		encodedHash := crypto.EncryptB64(hash)
-		res, err := memorystore.Provider.GetEnvStore()
-		if err != nil {
-			log.Debug("Error while getting env store: ", err)
-			return err
-		}
-		encryptedConfig, err := crypto.EncryptEnvData(res)
-		if err != nil {
-			log.Debug("Error while encrypting env data: ", err)
-			return err
-		}
-		env = &models.Env{
-			Hash:    encodedHash,
-			EnvData: encryptedConfig,
-		}
-		_, err = db.Provider.AddEnv(ctx, env)
-		if err != nil {
-			log.Debug("Error while persisting env data to db: ", err)
-			return err
-		}
-	} else {
-		// decrypt the config data from db
-		// decryption can be done using the hash stored in db
-		encryptionKey := env.Hash
-		decryptedEncryptionKey, err := crypto.DecryptB64(encryptionKey)
-		if err != nil {
-			log.Debug("Error while decrypting encryption key: ", err)
-			return err
-		}
+// 		decryptedConfigs, err := crypto.DecryptAESEnv([]byte(b64DecryptedConfig))
+// 		if err != nil {
+// 			log.Debug("Error while decrypting env data from AES: ", err)
+// 			return err
+// 		}
 
-		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyEncryptionKey, decryptedEncryptionKey)
+// 		// temp store variable
+// 		storeData := map[string]interface{}{}
 
-		b64DecryptedConfig, err := crypto.DecryptB64(env.EnvData)
-		if err != nil {
-			log.Debug("Error while decrypting env data from B64: ", err)
-			return err
-		}
+// 		err = json.Unmarshal(decryptedConfigs, &storeData)
+// 		if err != nil {
+// 			log.Debug("Error while un-marshalling env data: ", err)
+// 			return err
+// 		}
 
-		decryptedConfigs, err := crypto.DecryptAESEnv([]byte(b64DecryptedConfig))
-		if err != nil {
-			log.Debug("Error while decrypting env data from AES: ", err)
-			return err
-		}
+// 		hasOlderFormat, result := fixBackwardCompatibility(storeData)
+// 		if hasOlderFormat {
+// 			err = memorystore.Provider.UpdateEnvStore(result)
+// 			if err != nil {
+// 				log.Debug("Error while updating env store: ", err)
+// 				return err
+// 			}
 
-		// temp store variable
-		storeData := map[string]interface{}{}
+// 		}
 
-		err = json.Unmarshal(decryptedConfigs, &storeData)
-		if err != nil {
-			log.Debug("Error while un-marshalling env data: ", err)
-			return err
-		}
+// 		// if env is changed via env file or OS env
+// 		// give that higher preference and update db, but we don't recommend it
 
-		hasOlderFormat, result := fixBackwardCompatibility(storeData)
-		if hasOlderFormat {
-			err = memorystore.Provider.UpdateEnvStore(result)
-			if err != nil {
-				log.Debug("Error while updating env store: ", err)
-				return err
-			}
+// 		hasChanged := false
+// 		for key, value := range storeData {
+// 			// don't override unexposed envs
+// 			// check only for derivative keys
+// 			// No need to check for ENCRYPTION_KEY which special key we use for encrypting config data
+// 			// as we have removed it from json
+// 			if key != constants.EnvKeyEncryptionKey {
+// 				envValue := strings.TrimSpace(os.Getenv(key))
+// 				if envValue != "" {
+// 					switch key {
+// 					case constants.EnvKeyIsProd, constants.EnvKeyDisableBasicAuthentication, constants.EnvKeyDisableMobileBasicAuthentication, constants.EnvKeyDisableEmailVerification, constants.EnvKeyDisableLoginPage, constants.EnvKeyDisableMagicLinkLogin, constants.EnvKeyDisableSignUp, constants.EnvKeyDisableRedisForEnv, constants.EnvKeyDisableStrongPassword, constants.EnvKeyIsEmailServiceEnabled, constants.EnvKeyIsSMSServiceEnabled, constants.EnvKeyEnforceMultiFactorAuthentication, constants.EnvKeyDisableMultiFactorAuthentication, constants.EnvKeyAdminCookieSecure, constants.EnvKeyAppCookieSecure, constants.EnvKeyDisablePhoneVerification, constants.EnvKeyDisablePlayGround, constants.EnvKeyDisableTOTPLogin, constants.EnvKeyDisableMailOTPLogin:
+// 						if envValueBool, err := strconv.ParseBool(envValue); err == nil {
+// 							if value.(bool) != envValueBool {
+// 								storeData[key] = envValueBool
+// 								hasChanged = true
+// 							}
+// 						}
+// 					default:
+// 						if value != nil && value.(string) != envValue {
+// 							storeData[key] = envValue
+// 							hasChanged = true
+// 						}
+// 					}
+// 				}
+// 			}
+// 		}
 
-		}
+// 		// handle derivative cases like disabling email verification & magic login
+// 		// in case SMTP is off but env is set to true
+// 		if storeData[constants.EnvKeySmtpHost] == "" || storeData[constants.EnvKeySmtpUsername] == "" || storeData[constants.EnvKeySmtpPassword] == "" || storeData[constants.EnvKeySenderEmail] == "" && storeData[constants.EnvKeySmtpPort] == "" {
+// 			storeData[constants.EnvKeyIsEmailServiceEnabled] = false
 
-		// if env is changed via env file or OS env
-		// give that higher preference and update db, but we don't recommend it
+// 			if val, ok := storeData[constants.EnvKeyDisableEmailVerification]; ok && val != nil && !val.(bool) {
+// 				storeData[constants.EnvKeyDisableEmailVerification] = true
+// 				hasChanged = true
+// 			}
 
-		hasChanged := false
-		for key, value := range storeData {
-			// don't override unexposed envs
-			// check only for derivative keys
-			// No need to check for ENCRYPTION_KEY which special key we use for encrypting config data
-			// as we have removed it from json
-			if key != constants.EnvKeyEncryptionKey {
-				envValue := strings.TrimSpace(os.Getenv(key))
-				if envValue != "" {
-					switch key {
-					case constants.EnvKeyIsProd, constants.EnvKeyDisableBasicAuthentication, constants.EnvKeyDisableMobileBasicAuthentication, constants.EnvKeyDisableEmailVerification, constants.EnvKeyDisableLoginPage, constants.EnvKeyDisableMagicLinkLogin, constants.EnvKeyDisableSignUp, constants.EnvKeyDisableRedisForEnv, constants.EnvKeyDisableStrongPassword, constants.EnvKeyIsEmailServiceEnabled, constants.EnvKeyIsSMSServiceEnabled, constants.EnvKeyEnforceMultiFactorAuthentication, constants.EnvKeyDisableMultiFactorAuthentication, constants.EnvKeyAdminCookieSecure, constants.EnvKeyAppCookieSecure, constants.EnvKeyDisablePhoneVerification, constants.EnvKeyDisablePlayGround, constants.EnvKeyDisableTOTPLogin, constants.EnvKeyDisableMailOTPLogin:
-						if envValueBool, err := strconv.ParseBool(envValue); err == nil {
-							if value.(bool) != envValueBool {
-								storeData[key] = envValueBool
-								hasChanged = true
-							}
-						}
-					default:
-						if value != nil && value.(string) != envValue {
-							storeData[key] = envValue
-							hasChanged = true
-						}
-					}
-				}
-			}
-		}
+// 			if val, ok := storeData[constants.EnvKeyDisableMagicLinkLogin]; ok && val != nil && !val.(bool) {
+// 				storeData[constants.EnvKeyDisableMagicLinkLogin] = true
+// 				hasChanged = true
+// 			}
 
-		// handle derivative cases like disabling email verification & magic login
-		// in case SMTP is off but env is set to true
-		if storeData[constants.EnvKeySmtpHost] == "" || storeData[constants.EnvKeySmtpUsername] == "" || storeData[constants.EnvKeySmtpPassword] == "" || storeData[constants.EnvKeySenderEmail] == "" && storeData[constants.EnvKeySmtpPort] == "" {
-			storeData[constants.EnvKeyIsEmailServiceEnabled] = false
+// 			if val, ok := storeData[constants.EnvKeyDisableMailOTPLogin]; ok && val != nil && !val.(bool) {
+// 				storeData[constants.EnvKeyDisableMailOTPLogin] = true
+// 				hasChanged = true
+// 			}
+// 		}
 
-			if val, ok := storeData[constants.EnvKeyDisableEmailVerification]; ok && val != nil && !val.(bool) {
-				storeData[constants.EnvKeyDisableEmailVerification] = true
-				hasChanged = true
-			}
+// 		err = memorystore.Provider.UpdateEnvStore(storeData)
+// 		if err != nil {
+// 			log.Debug("Error while updating env store: ", err)
+// 			return err
+// 		}
 
-			if val, ok := storeData[constants.EnvKeyDisableMagicLinkLogin]; ok && val != nil && !val.(bool) {
-				storeData[constants.EnvKeyDisableMagicLinkLogin] = true
-				hasChanged = true
-			}
+// 		jwk, err := crypto.GenerateJWKBasedOnEnv()
+// 		if err != nil {
+// 			log.Debug("Error while generating JWK: ", err)
+// 			return err
+// 		}
+// 		// updating jwk
+// 		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyJWK, jwk)
 
-			if val, ok := storeData[constants.EnvKeyDisableMailOTPLogin]; ok && val != nil && !val.(bool) {
-				storeData[constants.EnvKeyDisableMailOTPLogin] = true
-				hasChanged = true
-			}
-		}
+// 		if hasChanged {
+// 			encryptedConfig, err := crypto.EncryptEnvData(storeData)
+// 			if err != nil {
+// 				log.Debug("Error while encrypting env data: ", err)
+// 				return err
+// 			}
 
-		err = memorystore.Provider.UpdateEnvStore(storeData)
-		if err != nil {
-			log.Debug("Error while updating env store: ", err)
-			return err
-		}
+// 			env.EnvData = encryptedConfig
+// 			_, err = db.Provider.UpdateEnv(ctx, env)
+// 			if err != nil {
+// 				log.Debug("Failed to Update Config: ", err)
+// 				return err
+// 			}
+// 		}
+// 	}
 
-		jwk, err := crypto.GenerateJWKBasedOnEnv()
-		if err != nil {
-			log.Debug("Error while generating JWK: ", err)
-			return err
-		}
-		// updating jwk
-		memorystore.Provider.UpdateEnvVariable(constants.EnvKeyJWK, jwk)
-
-		if hasChanged {
-			encryptedConfig, err := crypto.EncryptEnvData(storeData)
-			if err != nil {
-				log.Debug("Error while encrypting env data: ", err)
-				return err
-			}
-
-			env.EnvData = encryptedConfig
-			_, err = db.Provider.UpdateEnv(ctx, env)
-			if err != nil {
-				log.Debug("Failed to Update Config: ", err)
-				return err
-			}
-		}
-	}
-
-	return nil
-}
+// 	return nil
+// }

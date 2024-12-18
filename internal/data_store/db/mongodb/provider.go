@@ -21,13 +21,13 @@ type Dependencies struct {
 }
 
 type provider struct {
-	config       config.Config
+	config       *config.Config
 	dependencies Dependencies
 	db           *mongo.Database
 }
 
 // NewProvider to initialize mongodb connection
-func NewProvider(config config.Config, deps Dependencies) (*provider, error) {
+func NewProvider(config *config.Config, deps Dependencies) (*provider, error) {
 	dbURL := config.DatabaseURL
 	mongodbOptions := options.Client().ApplyURI(dbURL)
 	maxWait := time.Duration(5 * time.Second)

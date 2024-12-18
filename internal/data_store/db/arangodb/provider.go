@@ -21,7 +21,7 @@ type Dependencies struct {
 }
 
 type provider struct {
-	config       config.Config
+	config       *config.Config
 	dependencies Dependencies
 	db           arangoDriver.Database
 }
@@ -31,7 +31,7 @@ type provider struct {
 // docker run -p 8529:8529 -e ARANGO_ROOT_PASSWORD=root arangodb/arangodb:3.8.4
 
 // NewProvider to initialize arangodb connection
-func NewProvider(cfg config.Config, deps Dependencies) (*provider, error) {
+func NewProvider(cfg *config.Config, deps Dependencies) (*provider, error) {
 	ctx := context.Background()
 	dbURL := cfg.DatabaseURL
 	dbUsername := cfg.DatabaseUsername

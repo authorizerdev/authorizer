@@ -27,7 +27,7 @@ const (
 )
 
 type provider struct {
-	config       config.Config
+	config       *config.Config
 	dependencies Dependencies
 
 	db        *gocb.Scope
@@ -35,7 +35,7 @@ type provider struct {
 }
 
 // NewProvider returns a new Couchbase provider
-func NewProvider(config config.Config, deps Dependencies) (*provider, error) {
+func NewProvider(config *config.Config, deps Dependencies) (*provider, error) {
 	bucketName := config.CouchBaseBucket
 	ramQuota := config.CouchBaseRamQuota
 	scopeName := config.CouchBaseScope

@@ -17,13 +17,13 @@ type Dependencies struct {
 }
 
 type provider struct {
-	config       config.Config
+	config       *config.Config
 	dependencies Dependencies
 	db           *dynamo.DB
 }
 
 // NewProvider returns a new Dynamo provider
-func NewProvider(cfg config.Config, deps Dependencies) (*provider, error) {
+func NewProvider(cfg *config.Config, deps Dependencies) (*provider, error) {
 	dbURL := cfg.DatabaseURL
 	awsRegion := cfg.AWSRegion
 	awsAccessKeyID := cfg.AWSAccessKeyID

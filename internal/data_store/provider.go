@@ -119,7 +119,7 @@ type Provider interface {
 }
 
 // NewProvider creates a new database provider based on the configuration
-func NewProvider(config config.Config, deps Dependencies) (Provider, error) {
+func NewProvider(config *config.Config, deps Dependencies) (Provider, error) {
 	var provider Provider
 	var err error
 	if config.DatabaseType == "" {

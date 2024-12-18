@@ -1,7 +1,14 @@
 package totp
 
+import (
+	"github.com/rs/zerolog"
+
+	"github.com/authorizerdev/authorizer/internal/data_store"
+)
+
 type Dependencies struct {
-	model models.Provider
+	Log *zerolog.Logger
+	DB  data_store.Provider
 }
 
 type provider struct {

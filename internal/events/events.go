@@ -30,11 +30,11 @@ type Provider interface {
 }
 
 type provider struct {
-	config config.Config
+	config *config.Config
 	deps   Dependencies
 }
 
-func NewProvider(config config.Config, deps Dependencies) Provider {
+func NewProvider(config *config.Config, deps Dependencies) Provider {
 	return &provider{
 		config: config,
 		deps:   deps,

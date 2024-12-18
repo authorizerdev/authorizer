@@ -14,7 +14,7 @@ type Dependencies struct {
 
 // TODO change following provider to new db provider
 type provider struct {
-	config       config.Config
+	config       *config.Config
 	dependencies Dependencies
 	db           *gorm.DB
 }
@@ -22,7 +22,7 @@ type provider struct {
 // NewProvider returns a new SQL provider
 // TODO change following provider to new db provider
 func NewProvider(
-	config config.Config,
+	config *config.Config,
 	deps Dependencies,
 ) (*provider, error) {
 	var sqlDB *gorm.DB

@@ -5,18 +5,12 @@ import (
 
 	"github.com/golang-jwt/jwt"
 
-	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/crypto"
-	"github.com/authorizerdev/authorizer/internal/memorystore"
 )
 
 // SignJWTToken common util to sing jwt token
-func SignJWTToken(claims jwt.MapClaims) (string, error) {
-	jwtType, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyJwtType)
-	if err != nil {
-		return "", err
-	}
-	signingMethod := jwt.GetSigningMethod(jwtType)
+func (p *provider) SignJWTToken(jwtclaims jwt.MapClaims) (string, error) {
+	signingMethod := jwt.GetSigningMethod(p.config.JWTType)
 	if signingMethod == nil {
 		return "", errors.New("unsupported signing method")
 	}
@@ -24,31 +18,19 @@ func SignJWTToken(claims jwt.MapClaims) (string, error) {
 	if t == nil {
 		return "", errors.New("unsupported signing method")
 	}
-	t.Claims = claims
+	t.Claims = jwtclaims
 
 	switch signingMethod {
 	case jwt.SigningMethodHS256, jwt.SigningMethodHS384, jwt.SigningMethodHS512:
-		jwtSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyJwtSecret)
-		if err != nil {
-			return "", err
-		}
-		return t.SignedString([]byte(jwtSecret))
+		return t.SignedString([]byte(p.config.JWTSecret))
 	case jwt.SigningMethodRS256, jwt.SigningMethodRS384, jwt.SigningMethodRS512:
-		jwtPrivateKey, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyJwtPrivateKey)
-		if err != nil {
-			return "", err
-		}
-		key, err := crypto.ParseRsaPrivateKeyFromPemStr(jwtPrivateKey)
+		key, err := crypto.ParseRsaPrivateKeyFromPemStr(p.config.JWTPublicKey)
 		if err != nil {
 			return "", err
 		}
 		return t.SignedString(key)
 	case jwt.SigningMethodES256, jwt.SigningMethodES384, jwt.SigningMethodES512:
-		jwtPrivateKey, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyJwtPrivateKey)
-		if err != nil {
-			return "", err
-		}
-		key, err := crypto.ParseEcdsaPrivateKeyFromPemStr(jwtPrivateKey)
+		key, err := crypto.ParseEcdsaPrivateKeyFromPemStr(p.config.JWTPrivateKey)
 		if err != nil {
 			return "", err
 		}
@@ -60,31 +42,19 @@ func SignJWTToken(claims jwt.MapClaims) (string, error) {
 }
 
 // ParseJWTToken common util to parse jwt token
-func ParseJWTToken(token string) (jwt.MapClaims, error) {
-	jwtType, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyJwtType)
-	if err != nil {
-		return nil, err
-	}
-	signingMethod := jwt.GetSigningMethod(jwtType)
+func (p *provider) ParseJWTToken(token string) (jwt.MapClaims, error) {
+	signingMethod := jwt.GetSigningMethod(p.config.JWTType)
 
 	var claims jwt.MapClaims
-
+	var err error
 	switch signingMethod {
 	case jwt.SigningMethodHS256, jwt.SigningMethodHS384, jwt.SigningMethodHS512:
 		_, err = jwt.ParseWithClaims(token, &claims, func(token *jwt.Token) (interface{}, error) {
-			jwtSecret, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyJwtSecret)
-			if err != nil {
-				return nil, err
-			}
-			return []byte(jwtSecret), nil
+			return []byte(p.config.JWTSecret), nil
 		})
 	case jwt.SigningMethodRS256, jwt.SigningMethodRS384, jwt.SigningMethodRS512:
 		_, err = jwt.ParseWithClaims(token, &claims, func(token *jwt.Token) (interface{}, error) {
-			jwtPublicKey, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyJwtPublicKey)
-			if err != nil {
-				return nil, err
-			}
-			key, err := crypto.ParseRsaPublicKeyFromPemStr(jwtPublicKey)
+			key, err := crypto.ParseRsaPublicKeyFromPemStr(p.config.JWTPublicKey)
 			if err != nil {
 				return nil, err
 			}
@@ -92,11 +62,7 @@ func ParseJWTToken(token string) (jwt.MapClaims, error) {
 		})
 	case jwt.SigningMethodES256, jwt.SigningMethodES384, jwt.SigningMethodES512:
 		_, err = jwt.ParseWithClaims(token, &claims, func(token *jwt.Token) (interface{}, error) {
-			jwtPublicKey, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyJwtPublicKey)
-			if err != nil {
-				return nil, err
-			}
-			key, err := crypto.ParseEcdsaPublicKeyFromPemStr(jwtPublicKey)
+			key, err := crypto.ParseEcdsaPublicKeyFromPemStr(p.config.JWTSecret)
 			if err != nil {
 				return nil, err
 			}
@@ -121,24 +87,20 @@ func ParseJWTToken(token string) (jwt.MapClaims, error) {
 }
 
 // ValidateJWTClaims common util to validate claims
-func ValidateJWTClaims(claims jwt.MapClaims, hostname, nonce, subject string) (bool, error) {
-	clientID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyClientID)
-	if err != nil {
-		return false, err
-	}
-	if claims["aud"] != clientID {
+func (p *provider) ValidateJWTClaims(claims jwt.MapClaims, authTokenConfig *AuthTokenConfig) (bool, error) {
+	if claims["aud"] != p.config.ClientID {
 		return false, errors.New("invalid audience")
 	}
 
-	if claims["nonce"] != nonce {
+	if claims["nonce"] != authTokenConfig.Nonce {
 		return false, errors.New("invalid nonce")
 	}
 
-	if claims["iss"] != hostname {
+	if claims["iss"] != authTokenConfig.HostName {
 		return false, errors.New("invalid issuer")
 	}
 
-	if claims["sub"] != subject {
+	if claims["sub"] != authTokenConfig.User.ID {
 		return false, errors.New("invalid subject")
 	}
 
@@ -146,20 +108,16 @@ func ValidateJWTClaims(claims jwt.MapClaims, hostname, nonce, subject string) (b
 }
 
 // ValidateJWTTokenWithoutNonce common util to validate claims without nonce
-func ValidateJWTTokenWithoutNonce(claims jwt.MapClaims, hostname, subject string) (bool, error) {
-	clientID, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyClientID)
-	if err != nil {
-		return false, err
-	}
-	if claims["aud"] != clientID {
+func (p *provider) ValidateJWTTokenWithoutNonce(claims jwt.MapClaims, authTokenConfig *AuthTokenConfig) (bool, error) {
+	if claims["aud"] != p.config.ClientID {
 		return false, errors.New("invalid audience")
 	}
 
-	if claims["iss"] != hostname {
+	if claims["iss"] != authTokenConfig.HostName {
 		return false, errors.New("invalid issuer")
 	}
 
-	if claims["sub"] != subject {
+	if claims["sub"] != authTokenConfig.User.ID {
 		return false, errors.New("invalid subject")
 	}
 	return true, nil

@@ -3,8 +3,7 @@ package utils
 import (
 	"reflect"
 
-	"github.com/authorizerdev/authorizer/internal/constants"
-	"github.com/authorizerdev/authorizer/internal/memorystore"
+	"github.com/authorizerdev/authorizer/internal/config"
 )
 
 // StringSliceContains checks if a string slice contains a particular string
@@ -63,15 +62,9 @@ func ConvertInterfaceToStringSlice(slice interface{}) []string {
 }
 
 // GetOrganization to get organization object
-func GetOrganization() map[string]interface{} {
-	orgLogo, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyOrganizationLogo)
-	if err != nil {
-		return nil
-	}
-	orgName, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyOrganizationName)
-	if err != nil {
-		return nil
-	}
+func GetOrganization(cfg *config.Config) map[string]interface{} {
+	orgLogo := cfg.OrganizationLogo
+	orgName := cfg.OrganizationName
 	organization := map[string]interface{}{
 		"name": orgName,
 		"logo": orgLogo,

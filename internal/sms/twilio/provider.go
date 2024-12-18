@@ -13,12 +13,12 @@ type Dependencies struct {
 }
 
 type provider struct {
-	config       config.Config
+	config       *config.Config
 	dependencies Dependencies
 }
 
 // NewTwilioProvider returns a new twilio provider
-func NewTwilioProvider(cfg config.Config, deps Dependencies) (*provider, error) {
+func NewTwilioProvider(cfg *config.Config, deps Dependencies) (*provider, error) {
 	if cfg.TwilioAPIKey == "" {
 		deps.Log.Debug().Msg("missing twilio api key")
 		return nil, fmt.Errorf("missing twilio api key")

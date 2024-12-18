@@ -81,7 +81,7 @@ const (
 	// // EnvKeyJwtPublicKey key for env variable JWT_PUBLIC_KEY
 	// EnvKeyJwtPublicKey = "JWT_PUBLIC_KEY"
 	// EnvKeyAppURL key for env variable APP_URL
-	EnvKeyAppURL = "APP_URL"
+	// EnvKeyAppURL = "APP_URL"
 	// EnvKeyRedisURL key for env variable REDIS_URL
 	// EnvKeyRedisURL = "REDIS_URL"
 	// EnvKeyResetPasswordURL key for env variable RESET_PASSWORD_URL
@@ -89,53 +89,53 @@ const (
 	// EnvKeyJwtRoleClaim key for env variable JWT_ROLE_CLAIM
 	// EnvKeyJwtRoleClaim = "JWT_ROLE_CLAIM"
 	// EnvKeyGoogleClientID key for env variable GOOGLE_CLIENT_ID
-	EnvKeyGoogleClientID = "GOOGLE_CLIENT_ID"
-	// EnvKeyGoogleClientSecret key for env variable GOOGLE_CLIENT_SECRET
-	EnvKeyGoogleClientSecret = "GOOGLE_CLIENT_SECRET"
-	// EnvKeyGithubClientID key for env variable GITHUB_CLIENT_ID
-	EnvKeyGithubClientID = "GITHUB_CLIENT_ID"
-	// EnvKeyGithubClientSecret key for env variable GITHUB_CLIENT_SECRET
-	EnvKeyGithubClientSecret = "GITHUB_CLIENT_SECRET"
-	// EnvKeyFacebookClientID key for env variable FACEBOOK_CLIENT_ID
-	EnvKeyFacebookClientID = "FACEBOOK_CLIENT_ID"
-	// EnvKeyFacebookClientSecret key for env variable FACEBOOK_CLIENT_SECRET
-	EnvKeyFacebookClientSecret = "FACEBOOK_CLIENT_SECRET"
-	// EnvKeyLinkedinClientID key for env variable LINKEDIN_CLIENT_ID
-	EnvKeyLinkedInClientID = "LINKEDIN_CLIENT_ID"
-	// EnvKeyLinkedinClientSecret key for env variable LINKEDIN_CLIENT_SECRET
-	EnvKeyLinkedInClientSecret = "LINKEDIN_CLIENT_SECRET"
-	// EnvKeyAppleClientID key for env variable APPLE_CLIENT_ID
-	EnvKeyAppleClientID = "APPLE_CLIENT_ID"
-	// EnvKeyAppleClientSecret key for env variable APPLE_CLIENT_SECRET
-	EnvKeyAppleClientSecret = "APPLE_CLIENT_SECRET"
-	// EnvKeyDiscordClientID key for env variable DISCORD_CLIENT_ID
-	EnvKeyDiscordClientID = "DISCORD_CLIENT_ID"
-	// EnvKeyDiscordClientSecret key for env variable DISCORD_CLIENT_SECRET
-	EnvKeyDiscordClientSecret = "DISCORD_CLIENT_SECRET"
-	// EnvKeyTwitterClientID key for env variable TWITTER_CLIENT_ID
-	EnvKeyTwitterClientID = "TWITTER_CLIENT_ID"
-	// EnvKeyTwitterClientSecret key for env variable TWITTER_CLIENT_SECRET
-	EnvKeyTwitterClientSecret = "TWITTER_CLIENT_SECRET"
-	// EnvKeyMicrosoftClientID key for env variable MICROSOFT_CLIENT_ID
-	EnvKeyMicrosoftClientID = "MICROSOFT_CLIENT_ID"
-	// EnvKeyMicrosoftActiveDirectoryTenantID key for env variable MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID
-	EnvKeyMicrosoftActiveDirectoryTenantID = "MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID"
-	// EnvKeyMicrosoftClientSecret key for env variable MICROSOFT_CLIENT_SECRET
-	EnvKeyMicrosoftClientSecret = "MICROSOFT_CLIENT_SECRET"
-	// EnvKeyTwitchClientID key for env variable TWITCH_CLIENT_ID
-	EnvKeyTwitchClientID = "TWITCH_CLIENT_ID"
-	// EnvKeyTwitchClientSecret key for env variable TWITCH_CLIENT_SECRET
-	EnvKeyTwitchClientSecret = "TWITCH_CLIENT_SECRET"
-	// EnvKeyRobloxClientID key for env variable ROBLOX_CLIENT_ID
-	EnvKeyRobloxClientID = "ROBLOX_CLIENT_ID"
-	// EnvKeyRobloxClientSecret key for env variable ROBLOX_CLIENT_SECRET
-	EnvKeyRobloxClientSecret = "ROBLOX_CLIENT_SECRET"
-	// EnvKeyOrganizationName key for env variable ORGANIZATION_NAME
-	EnvKeyOrganizationName = "ORGANIZATION_NAME"
-	// EnvKeyOrganizationLogo key for env variable ORGANIZATION_LOGO
-	EnvKeyOrganizationLogo = "ORGANIZATION_LOGO"
-	// EnvKeyCustomAccessTokenScript key for env variable CUSTOM_ACCESS_TOKEN_SCRIPT
-	EnvKeyCustomAccessTokenScript = "CUSTOM_ACCESS_TOKEN_SCRIPT"
+	// EnvKeyGoogleClientID = "GOOGLE_CLIENT_ID"
+	// // EnvKeyGoogleClientSecret key for env variable GOOGLE_CLIENT_SECRET
+	// EnvKeyGoogleClientSecret = "GOOGLE_CLIENT_SECRET"
+	// // EnvKeyGithubClientID key for env variable GITHUB_CLIENT_ID
+	// EnvKeyGithubClientID = "GITHUB_CLIENT_ID"
+	// // EnvKeyGithubClientSecret key for env variable GITHUB_CLIENT_SECRET
+	// EnvKeyGithubClientSecret = "GITHUB_CLIENT_SECRET"
+	// // EnvKeyFacebookClientID key for env variable FACEBOOK_CLIENT_ID
+	// EnvKeyFacebookClientID = "FACEBOOK_CLIENT_ID"
+	// // EnvKeyFacebookClientSecret key for env variable FACEBOOK_CLIENT_SECRET
+	// EnvKeyFacebookClientSecret = "FACEBOOK_CLIENT_SECRET"
+	// // EnvKeyLinkedinClientID key for env variable LINKEDIN_CLIENT_ID
+	// EnvKeyLinkedInClientID = "LINKEDIN_CLIENT_ID"
+	// // EnvKeyLinkedinClientSecret key for env variable LINKEDIN_CLIENT_SECRET
+	// EnvKeyLinkedInClientSecret = "LINKEDIN_CLIENT_SECRET"
+	// // EnvKeyAppleClientID key for env variable APPLE_CLIENT_ID
+	// EnvKeyAppleClientID = "APPLE_CLIENT_ID"
+	// // EnvKeyAppleClientSecret key for env variable APPLE_CLIENT_SECRET
+	// EnvKeyAppleClientSecret = "APPLE_CLIENT_SECRET"
+	// // EnvKeyDiscordClientID key for env variable DISCORD_CLIENT_ID
+	// EnvKeyDiscordClientID = "DISCORD_CLIENT_ID"
+	// // EnvKeyDiscordClientSecret key for env variable DISCORD_CLIENT_SECRET
+	// EnvKeyDiscordClientSecret = "DISCORD_CLIENT_SECRET"
+	// // EnvKeyTwitterClientID key for env variable TWITTER_CLIENT_ID
+	// EnvKeyTwitterClientID = "TWITTER_CLIENT_ID"
+	// // EnvKeyTwitterClientSecret key for env variable TWITTER_CLIENT_SECRET
+	// EnvKeyTwitterClientSecret = "TWITTER_CLIENT_SECRET"
+	// // EnvKeyMicrosoftClientID key for env variable MICROSOFT_CLIENT_ID
+	// EnvKeyMicrosoftClientID = "MICROSOFT_CLIENT_ID"
+	// // EnvKeyMicrosoftActiveDirectoryTenantID key for env variable MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID
+	// EnvKeyMicrosoftActiveDirectoryTenantID = "MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID"
+	// // EnvKeyMicrosoftClientSecret key for env variable MICROSOFT_CLIENT_SECRET
+	// EnvKeyMicrosoftClientSecret = "MICROSOFT_CLIENT_SECRET"
+	// // EnvKeyTwitchClientID key for env variable TWITCH_CLIENT_ID
+	// EnvKeyTwitchClientID = "TWITCH_CLIENT_ID"
+	// // EnvKeyTwitchClientSecret key for env variable TWITCH_CLIENT_SECRET
+	// EnvKeyTwitchClientSecret = "TWITCH_CLIENT_SECRET"
+	// // EnvKeyRobloxClientID key for env variable ROBLOX_CLIENT_ID
+	// EnvKeyRobloxClientID = "ROBLOX_CLIENT_ID"
+	// // EnvKeyRobloxClientSecret key for env variable ROBLOX_CLIENT_SECRET
+	// EnvKeyRobloxClientSecret = "ROBLOX_CLIENT_SECRET"
+	// // EnvKeyOrganizationName key for env variable ORGANIZATION_NAME
+	// EnvKeyOrganizationName = "ORGANIZATION_NAME"
+	// // EnvKeyOrganizationLogo key for env variable ORGANIZATION_LOGO
+	// EnvKeyOrganizationLogo = "ORGANIZATION_LOGO"
+	// // EnvKeyCustomAccessTokenScript key for env variable CUSTOM_ACCESS_TOKEN_SCRIPT
+	// EnvKeyCustomAccessTokenScript = "CUSTOM_ACCESS_TOKEN_SCRIPT"
 
 	// Not Exposed Keys
 	// EnvKeyClientID key for env variable CLIENT_ID
@@ -165,7 +165,7 @@ const (
 	// EnvKeyDisableRedisForEnv key for env variable DISABLE_REDIS_FOR_ENV
 	EnvKeyDisableRedisForEnv = "DISABLE_REDIS_FOR_ENV"
 	// EnvKeyDisableStrongPassword key for env variable DISABLE_STRONG_PASSWORD
-	EnvKeyDisableStrongPassword = "DISABLE_STRONG_PASSWORD"
+	// EnvKeyDisableStrongPassword = "DISABLE_STRONG_PASSWORD"
 	// EnvKeyEnforceMultiFactorAuthentication is key for env variable ENFORCE_MULTI_FACTOR_AUTHENTICATION
 	// If enforced and changed later on, existing user will have MFA but new user will not have MFA
 	EnvKeyEnforceMultiFactorAuthentication = "ENFORCE_MULTI_FACTOR_AUTHENTICATION"
@@ -205,11 +205,11 @@ const (
 
 	// Twilio env variables
 	// EnvKeyTwilioAPIKey key for env variable TWILIO_API_KEY
-	EnvKeyTwilioAPIKey = "TWILIO_API_KEY"
-	// EnvKeyTwilioAPISecret key for env variable TWILIO_API_SECRET
-	EnvKeyTwilioAPISecret = "TWILIO_API_SECRET"
-	// EnvKeyTwilioAccountSID key for env variable TWILIO_ACCOUNT_SID
-	EnvKeyTwilioAccountSID = "TWILIO_ACCOUNT_SID"
-	// EnvKeyTwilioSender key for env variable TWILIO_SENDER
-	EnvKeyTwilioSender = "TWILIO_SENDER"
+	// EnvKeyTwilioAPIKey = "TWILIO_API_KEY"
+	// // EnvKeyTwilioAPISecret key for env variable TWILIO_API_SECRET
+	// EnvKeyTwilioAPISecret = "TWILIO_API_SECRET"
+	// // EnvKeyTwilioAccountSID key for env variable TWILIO_ACCOUNT_SID
+	// EnvKeyTwilioAccountSID = "TWILIO_ACCOUNT_SID"
+	// // EnvKeyTwilioSender key for env variable TWILIO_SENDER
+	// EnvKeyTwilioSender = "TWILIO_SENDER"
 )
