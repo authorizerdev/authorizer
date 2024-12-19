@@ -10,8 +10,16 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/authorizerdev/authorizer/internal/authenticators"
 	"github.com/authorizerdev/authorizer/internal/config"
+	"github.com/authorizerdev/authorizer/internal/email"
+	"github.com/authorizerdev/authorizer/internal/events"
+	"github.com/authorizerdev/authorizer/internal/memory_store"
 	"github.com/authorizerdev/authorizer/internal/server"
+	"github.com/authorizerdev/authorizer/internal/service"
+	"github.com/authorizerdev/authorizer/internal/sms"
+	"github.com/authorizerdev/authorizer/internal/storage"
+	"github.com/authorizerdev/authorizer/internal/token"
 )
 
 var (
@@ -20,25 +28,25 @@ var (
 		Run: runRoot,
 	}
 	rootArgs struct {
-		server   server.Config
-		config   *config.Config
 		logLevel string
+		config   *config.Config
+		server   *server.Config
 	}
 )
 
-const (
-	defaultHost        = "0.0.0.0"
-	defaultHTTPPort    = 8080
-	defaultMetricsPort = 8081
-)
+// const (
+// 	defaultHost        = "0.0.0.0"
+// 	defaultHTTPPort    = 8080
+// 	defaultMetricsPort = 8081
+// )
 
 func init() {
 	f := RootCmd.Flags()
 
 	// Server flags
-	f.StringVar(&rootArgs.server.Host, "host", defaultHost, "Host address to listen on")
-	f.IntVar(&rootArgs.server.HTTPPort, "http-port", defaultHTTPPort, "Port to serve HTTP requests on")
-	f.IntVar(&rootArgs.server.MetricsPort, "metrics-port", defaultMetricsPort, "Port to serve metrics requests on")
+	f.StringVar(&rootArgs.server.Host, "host", "0.0.0.0", "Host address to listen on")
+	f.IntVar(&rootArgs.server.HTTPPort, "http-port", 8080, "Port to serve HTTP requests on")
+	f.IntVar(&rootArgs.server.MetricsPort, "metrics-port", 8081, "Port to serve metrics requests on")
 
 	// Logging flags
 	f.StringVar(&rootArgs.logLevel, "log-level", "debug", "Log level to use")
@@ -153,9 +161,77 @@ func runRoot(c *cobra.Command, args []string) {
 		Level(zeroLogLevel).
 		With().Timestamp().Logger()
 
+	// Storage provider
+	storageProvider, err := storage.NewProvider(rootArgs.config, storage.Dependencies{
+		Log: &log,
+	})
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to create storage provider")
+	}
+
+	// Authenticator provider
+	authenticatorProvider, err := authenticators.NewProvider(rootArgs.config, authenticators.Dependencies{
+		Log: &log,
+		DB:  storageProvider,
+	})
+
+	// Email provider
+	emailProvider, err := email.NewProvider(rootArgs.config, email.Dependencies{
+		Log: &log,
+		DB:  storageProvider,
+	})
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to create email provider")
+	}
+
+	// Events provider
+	eventsProvider, err := events.NewProvider(rootArgs.config, events.Dependencies{
+		Log: &log,
+		DB:  storageProvider,
+	})
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to create events provider")
+	}
+
+	// Memory store provider
+	memoryStoreProvider, err := memory_store.NewProvider(rootArgs.config, memory_store.Dependencies{
+		Log: &log,
+	})
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to create memory store provider")
+	}
+
+	// SMS provider
+	smsProvider, err := sms.NewProvider(rootArgs.config, sms.Dependencies{
+		Log: &log,
+	})
+
+	// Token provider
+	tokenProvider, err := token.NewProvider(rootArgs.config, token.Dependencies{
+		Log: &log,
+	})
+
+	// Prepare service
+	svcDeps := service.Dependencies{
+		Log:                   &log,
+		AuthenticatorProvider: authenticatorProvider,
+		EmailProvider:         emailProvider,
+		EventsProvider:        eventsProvider,
+		MemoryStoreProvider:   memoryStoreProvider,
+		SMSProvider:           smsProvider,
+		StorageProvider:       storageProvider,
+		TokenProvider:         tokenProvider,
+	}
+	// Create the service
+	svc, err := service.New(rootArgs.config, svcDeps)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to create service")
+	}
+
 	// Prepare server
 	deps := server.Dependencies{
-		Log: log,
+		Log:     &log,
+		Service: svc,
 	}
 	// Create the server
 	svr, err := server.New(rootArgs.server, deps)

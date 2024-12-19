@@ -14,13 +14,13 @@ type Dependencies struct {
 }
 
 // NewProvider returns a new memory store provider
-func NewProvider(cfg *config.Config, deps Dependencies) (Provider, error) {
+func NewProvider(cfg *config.Config, deps *Dependencies) (Provider, error) {
 	if cfg.RedisURL != "" {
-		return redis.NewRedisProvider(cfg, redis.Dependencies{
+		return redis.NewRedisProvider(cfg, &redis.Dependencies{
 			Log: deps.Log,
 		})
 	}
-	return in_memory.NewInMemoryProvider(in_memory.Dependencies{
+	return in_memory.NewInMemoryProvider(&in_memory.Dependencies{
 		Log: deps.Log,
 	})
 }

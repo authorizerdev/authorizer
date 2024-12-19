@@ -1,4 +1,4 @@
-package providers
+package authenticators
 
 // TODO delete file
 // Provider is the global authenticators provider.

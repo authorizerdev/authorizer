@@ -14,7 +14,7 @@ type Dependencies struct {
 }
 
 type provider struct {
-	dependencies    Dependencies
+	dependencies    *Dependencies
 	mutex           sync.Mutex
 	sessionStore    *stores.SessionStore
 	mfasessionStore *stores.SessionStore
@@ -23,7 +23,7 @@ type provider struct {
 }
 
 // NewInMemoryStore returns a new in-memory store.
-func NewInMemoryProvider(deps Dependencies) (*provider, error) {
+func NewInMemoryProvider(deps *Dependencies) (*provider, error) {
 	return &provider{
 		dependencies:    deps,
 		mutex:           sync.Mutex{},

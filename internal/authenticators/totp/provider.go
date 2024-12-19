@@ -3,16 +3,16 @@ package totp
 import (
 	"github.com/rs/zerolog"
 
-	"github.com/authorizerdev/authorizer/internal/data_store"
+	"github.com/authorizerdev/authorizer/internal/storage"
 )
 
 type Dependencies struct {
 	Log *zerolog.Logger
-	DB  data_store.Provider
+	DB  storage.Provider
 }
 
 type provider struct {
-	deps Dependencies
+	deps *Dependencies
 }
 
 // TOTPConfig defines totp config
@@ -22,7 +22,7 @@ type TOTPConfig struct {
 }
 
 // NewProvider returns a new totp provider
-func NewProvider(deps Dependencies) (*provider, error) {
+func NewProvider(deps *Dependencies) (*provider, error) {
 	return &provider{
 		deps: deps,
 	}, nil

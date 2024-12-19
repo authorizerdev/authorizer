@@ -16,8 +16,8 @@ import (
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/crypto"
-	"github.com/authorizerdev/authorizer/internal/data_store/schemas"
 	"github.com/authorizerdev/authorizer/internal/parsers"
+	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
 
@@ -222,7 +222,7 @@ func (p *provider) CreateAccessToken(cfg *AuthTokenConfig) (string, int64, error
 }
 
 // GetAccessToken returns the access token from the request (either from header or cookie)
-func GetAccessToken(gc *gin.Context) (string, error) {
+func (p *provider) GetAccessToken(gc *gin.Context) (string, error) {
 	// try to check in auth header for cookie
 	auth := gc.Request.Header.Get("Authorization")
 	if auth == "" {
@@ -485,7 +485,7 @@ func (p *provider) GetUserIDFromSessionOrAccessToken(gc *gin.Context) (*SessionO
 	if err != nil || token == "" {
 		log.Debug("Failed to get session token: ", err)
 		isSession = false
-		token, err = GetAccessToken(gc)
+		token, err = p.GetAccessToken(gc)
 		if err != nil || token == "" {
 			log.Debug("Failed to get access token: ", err)
 			return nil, fmt.Errorf(`unauthorized`)

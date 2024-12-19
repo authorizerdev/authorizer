@@ -37,14 +37,14 @@ type RedisClient interface {
 
 type provider struct {
 	config       *config.Config
-	dependencies Dependencies
+	dependencies *Dependencies
 
 	ctx   context.Context
 	store RedisClient
 }
 
 // NewRedisProvider returns a new redis provider
-func NewRedisProvider(cfg *config.Config, deps Dependencies) (*provider, error) {
+func NewRedisProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	redisURLHostPortsList := strings.Split(cfg.RedisURL, ",")
 	if len(redisURLHostPortsList) > 1 {
 		opt, err := redis.ParseURL(redisURLHostPortsList[0])

@@ -8,12 +8,12 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/authorizerdev/authorizer/internal/data_store/db"
 	"github.com/authorizerdev/authorizer/internal/db"
 	"github.com/authorizerdev/authorizer/internal/db/models"
 	"github.com/authorizerdev/authorizer/internal/email"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/parsers"
+	"github.com/authorizerdev/authorizer/internal/storage/db"
 	"github.com/authorizerdev/authorizer/internal/token"
 	"github.com/authorizerdev/authorizer/internal/utils"
 	"github.com/authorizerdev/authorizer/internal/validators"

@@ -3,10 +3,57 @@ package service
 import (
 	"context"
 
+	"github.com/rs/zerolog"
+
+	"github.com/authorizerdev/authorizer/internal/authenticators"
+	"github.com/authorizerdev/authorizer/internal/config"
+	"github.com/authorizerdev/authorizer/internal/email"
+	"github.com/authorizerdev/authorizer/internal/events"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/memory_store"
+	"github.com/authorizerdev/authorizer/internal/sms"
+	"github.com/authorizerdev/authorizer/internal/storage"
+	"github.com/authorizerdev/authorizer/internal/token"
 )
 
-// Service is the interface that provides the service methods.
+// Dependencies for a server
+type Dependencies struct {
+	Log *zerolog.Logger
+
+	// Providers for various services
+	// AuthenticatorProvider is used to register authenticators like totp (Google Authenticator)
+	AuthenticatorProvider authenticators.Provider
+	// EmailProvider is used to send emails
+	EmailProvider email.Provider
+	// EventsProvider is used to register events
+	EventsProvider events.Provider
+	// MemoryStoreProvider is used to store data in memory
+	MemoryStoreProvider memory_store.Provider
+	// SMSProvider is used to send SMS
+	SMSProvider sms.Provider
+	// StorageProvider is used to register storage like database
+	StorageProvider storage.Provider
+	// TokenProvider is used to generate tokens
+	TokenProvider token.Provider
+}
+
+// New constructs a new service with given arguments
+func New(cfg *config.Config, deps *Dependencies) (Service, error) {
+	// TODO - Add any validation here for config and dependencies
+	s := &service{
+		Config:       cfg,
+		Dependencies: *deps,
+	}
+	return s, nil
+}
+
+// Service is the server that provides the API.
+type service struct {
+	*config.Config
+	Dependencies
+}
+
+// Service is the interface that provides the methods to interact with the service.
 type Service interface {
 	// AddEmailTemplate is the method to add email template.
 	// Permissions: authorizer:admin

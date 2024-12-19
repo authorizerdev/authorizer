@@ -17,6 +17,6 @@ type Provider interface {
 }
 
 // NewProvider returns a new sms provider
-func NewProvider(cfg *config.Config, deps Dependencies) (Provider, error) {
+func NewProvider(cfg *config.Config, deps *Dependencies) (Provider, error) {
 	return nil, nil
 }

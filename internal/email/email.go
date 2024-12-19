@@ -12,9 +12,9 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/config"
 	"github.com/authorizerdev/authorizer/internal/constants"
-	"github.com/authorizerdev/authorizer/internal/data_store"
 	"github.com/authorizerdev/authorizer/internal/email/templates"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/storage"
 )
 
 // Provider interface for email provider
@@ -25,13 +25,13 @@ type Provider interface {
 // Dependencies struct for email provider
 type Dependencies struct {
 	Log *zerolog.Logger
-	DB  data_store.Provider
+	DB  storage.Provider
 }
 
 // provider struct for email provider
 type provider struct {
 	config *config.Config
-	deps   Dependencies
+	deps   *Dependencies
 
 	mailer *gomail.Dialer
 }
@@ -39,8 +39,8 @@ type provider struct {
 // NewProvider returns a new email provider
 func NewProvider(
 	config *config.Config,
-	deps Dependencies,
-) Provider {
+	deps *Dependencies,
+) (Provider, error) {
 	mailer := gomail.NewDialer(config.SMTPHost, config.SMTPPort, config.SMTPUsername, config.SMTPPassword)
 	if strings.TrimSpace(config.SMTPLocalName) != "" {
 		mailer.LocalName = config.SMTPLocalName
@@ -52,7 +52,7 @@ func NewProvider(
 		config: config,
 		deps:   deps,
 		mailer: mailer,
-	}
+	}, nil
 }
 
 // SendEmail function to send mail

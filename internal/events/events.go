@@ -12,15 +12,15 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/config"
 	"github.com/authorizerdev/authorizer/internal/constants"
-	"github.com/authorizerdev/authorizer/internal/data_store"
-	"github.com/authorizerdev/authorizer/internal/data_store/schemas"
 	"github.com/authorizerdev/authorizer/internal/refs"
+	"github.com/authorizerdev/authorizer/internal/storage"
+	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
 
 // Dependencies for events
 type Dependencies struct {
 	Log *zerolog.Logger
-	DB  data_store.Provider
+	DB  storage.Provider
 }
 
 // Provider interface for registering events
@@ -31,14 +31,14 @@ type Provider interface {
 
 type provider struct {
 	config *config.Config
-	deps   Dependencies
+	deps   *Dependencies
 }
 
-func NewProvider(config *config.Config, deps Dependencies) Provider {
+func NewProvider(config *config.Config, deps *Dependencies) (Provider, error) {
 	return &provider{
 		config: config,
 		deps:   deps,
-	}
+	}, nil
 }
 
 // RegisterEvent util to register event

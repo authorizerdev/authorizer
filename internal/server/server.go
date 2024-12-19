@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/authorizerdev/authorizer/internal/router"
 	"github.com/rs/zerolog"
+
+	"github.com/authorizerdev/authorizer/internal/router"
+	"github.com/authorizerdev/authorizer/internal/service"
 )
 
 // Configuration of a server.
@@ -20,13 +22,14 @@ type Config struct {
 
 // Dependencies for a server
 type Dependencies struct {
-	Log zerolog.Logger
+	Log     *zerolog.Logger
+	Service service.Service
 }
 
 // New constructs a new server with given arguments
-func New(cfg Config, deps Dependencies) (*server, error) {
+func New(cfg *Config, deps Dependencies) (*server, error) {
 	s := &server{
-		Config:       cfg,
+		Config:       *cfg,
 		Dependencies: deps,
 	}
 	return s, nil

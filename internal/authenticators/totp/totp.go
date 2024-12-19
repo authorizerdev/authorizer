@@ -14,8 +14,8 @@ import (
 	"github.com/authorizerdev/authorizer/internal/authenticators/config"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/crypto"
-	"github.com/authorizerdev/authorizer/internal/data_store/schemas"
 	"github.com/authorizerdev/authorizer/internal/refs"
+	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
 
 // Generate generates a Time-Based One-Time Password (TOTP) for a user and returns the base64-encoded QR code for frontend display.

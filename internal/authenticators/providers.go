@@ -1,4 +1,4 @@
-package providers
+package authenticators
 
 import (
 	"context"
@@ -6,14 +6,14 @@ import (
 	ac "github.com/authorizerdev/authorizer/internal/authenticators/config"
 	"github.com/authorizerdev/authorizer/internal/authenticators/totp"
 	"github.com/authorizerdev/authorizer/internal/config"
-	"github.com/authorizerdev/authorizer/internal/data_store"
+	"github.com/authorizerdev/authorizer/internal/storage"
 	"github.com/rs/zerolog"
 )
 
 // Dependencies defines the dependencies for authenticators provider
 type Dependencies struct {
 	Log *zerolog.Logger
-	DB  data_store.Provider
+	DB  storage.Provider
 }
 
 // Provider defines authenticators provider
@@ -27,11 +27,11 @@ type Provider interface {
 }
 
 // NewProvider returns a new authenticators provider
-func NewProvider(cfg *config.Config, deps Dependencies) (Provider, error) {
+func NewProvider(cfg *config.Config, deps *Dependencies) (Provider, error) {
 	if cfg.DisableTOTPLogin {
 		return nil, nil
 	}
-	return totp.NewProvider(totp.Dependencies{
+	return totp.NewProvider(&totp.Dependencies{
 		Log: deps.Log,
 		DB:  deps.DB,
 	})

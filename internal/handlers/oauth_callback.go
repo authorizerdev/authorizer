@@ -20,12 +20,12 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
-	"github.com/authorizerdev/authorizer/internal/data_store/db"
-	"github.com/authorizerdev/authorizer/internal/data_store/schemas"
 	"github.com/authorizerdev/authorizer/internal/db"
 	"github.com/authorizerdev/authorizer/internal/memorystore"
 	"github.com/authorizerdev/authorizer/internal/oauth"
 	"github.com/authorizerdev/authorizer/internal/refs"
+	"github.com/authorizerdev/authorizer/internal/storage/db"
+	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 	"github.com/authorizerdev/authorizer/internal/token"
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
