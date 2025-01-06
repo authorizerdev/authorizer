@@ -100,7 +100,7 @@ func (p *provider) ValidateJWTClaims(claims jwt.MapClaims, authTokenConfig *Auth
 		return false, errors.New("invalid issuer")
 	}
 
-	if claims["sub"] != authTokenConfig.User.ID {
+	if claims["sub"] != authTokenConfig.User.ID && claims["sub"] != authTokenConfig.User.Email {
 		return false, errors.New("invalid subject")
 	}
 

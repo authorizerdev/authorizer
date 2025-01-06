@@ -12,8 +12,8 @@ import (
 
 // Dependencies defines the dependencies for authenticators provider
 type Dependencies struct {
-	Log *zerolog.Logger
-	DB  storage.Provider
+	Log             *zerolog.Logger
+	StorageProvider storage.Provider
 }
 
 // Provider defines authenticators provider
@@ -32,7 +32,7 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (Provider, error) {
 		return nil, nil
 	}
 	return totp.NewProvider(&totp.Dependencies{
-		Log: deps.Log,
-		DB:  deps.DB,
+		Log:             deps.Log,
+		StorageProvider: deps.StorageProvider,
 	})
 }

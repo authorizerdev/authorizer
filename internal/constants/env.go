@@ -5,16 +5,16 @@ var VERSION = "0.0.1"
 const (
 	// TestEnv is used for testing
 	TestEnv = "test"
-	// EnvKeyEnv key for env variable ENV
-	EnvKeyEnv = "ENV"
-	// EnvKeyEnvPath key for cli arg variable ENV_PATH
-	EnvKeyEnvPath = "ENV_PATH"
-	// EnvKeyAuthorizerURL key for env variable AUTHORIZER_URL
-	EnvKeyAuthorizerURL = "AUTHORIZER_URL"
-	// EnvKeyPort key for env variable PORT
-	EnvKeyPort = "PORT"
-	// EnvKeyAccessTokenExpiryTime key for env variable ACCESS_TOKEN_EXPIRY_TIME
-	EnvKeyAccessTokenExpiryTime = "ACCESS_TOKEN_EXPIRY_TIME"
+	// // EnvKeyEnv key for env variable ENV
+	// EnvKeyEnv = "ENV"
+	// // EnvKeyEnvPath key for cli arg variable ENV_PATH
+	// EnvKeyEnvPath = "ENV_PATH"
+	// // EnvKeyAuthorizerURL key for env variable AUTHORIZER_URL
+	// EnvKeyAuthorizerURL = "AUTHORIZER_URL"
+	// // EnvKeyPort key for env variable PORT
+	// EnvKeyPort = "PORT"
+	// // EnvKeyAccessTokenExpiryTime key for env variable ACCESS_TOKEN_EXPIRY_TIME
+	// EnvKeyAccessTokenExpiryTime = "ACCESS_TOKEN_EXPIRY_TIME"
 	// // EnvKeyAdminSecret key for env variable ADMIN_SECRET
 	// EnvKeyAdminSecret = "ADMIN_SECRET"
 	// // EnvKeyDatabaseType key for env variable DATABASE_TYPE
@@ -65,9 +65,9 @@ const (
 	// // EnvKeySenderName key for env variable SENDER_NAME
 	// EnvKeySenderName = "SENDER_NAME"
 	// EnvKeyIsEmailServiceEnabled key for env variable IS_EMAIL_SERVICE_ENABLED
-	EnvKeyIsEmailServiceEnabled = "IS_EMAIL_SERVICE_ENABLED"
+	// EnvKeyIsEmailServiceEnabled = "IS_EMAIL_SERVICE_ENABLED"
 	// EnvKeyIsSMSServiceEnabled key for env variable IS_SMS_SERVICE_ENABLED
-	EnvKeyIsSMSServiceEnabled = "IS_SMS_SERVICE_ENABLED"
+	// EnvKeyIsSMSServiceEnabled = "IS_SMS_SERVICE_ENABLED"
 	// EnvKeyAppCookieSecure key for env variable APP_COOKIE_SECURE
 	EnvKeyAppCookieSecure = "APP_COOKIE_SECURE"
 	// EnvKeyAdminCookieSecure key for env variable ADMIN_COOKIE_SECURE
@@ -85,7 +85,7 @@ const (
 	// EnvKeyRedisURL key for env variable REDIS_URL
 	// EnvKeyRedisURL = "REDIS_URL"
 	// EnvKeyResetPasswordURL key for env variable RESET_PASSWORD_URL
-	EnvKeyResetPasswordURL = "RESET_PASSWORD_URL"
+	// EnvKeyResetPasswordURL = "RESET_PASSWORD_URL"
 	// EnvKeyJwtRoleClaim key for env variable JWT_ROLE_CLAIM
 	// EnvKeyJwtRoleClaim = "JWT_ROLE_CLAIM"
 	// EnvKeyGoogleClientID key for env variable GOOGLE_CLIENT_ID

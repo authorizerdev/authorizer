@@ -80,11 +80,47 @@ type Config struct {
 	// Auth Configurations
 	// DefaultRoles is the default roles for the user
 	// It is a comma separated string
+	// TODO: check derived keys
 	DefaultRoles string
+	// Roles is the list of all the roles of the user
+	// It is a comma separated string
+	Roles string
+	// ProtectedRoles is the list of all the protected roles
+	// For this roles, sign-up is disabled
+	// It is a comma separated string
+	ProtectedRoles string
 	// DisableStrongPassword is the flag to disable strong password
 	DisableStrongPassword bool
 	// DisableTOTPLogin boolean to disable TOTP login
 	DisableTOTPLogin bool
+	// DisableBasicAuthentication boolean to disable basic authentication
+	DisableBasicAuthentication bool
+	// DisableMagicLinkLogin boolean to disable magic link login
+	DisableMagicLinkLogin bool
+	// DisableEmailVerification boolean to disable email verification
+	DisableEmailVerification bool
+	// DisableMobileBasicAuthentication boolean to disable mobile basic authentication
+	DisableMobileBasicAuthentication bool
+	// DisablePhoneVerification boolean to disable phone verification
+	DisablePhoneVerification bool
+	// DisableMFA boolean to disable MFA
+	DisableMFA bool
+	// DisableEmailOTP boolean to disable email OTP
+	DisableEmailOTP bool
+	// DisableSMSOTP boolean to disable SMS OTP
+	DisableSMSOTP bool
+	// DisableSignup boolean to disable signup
+	DisableSignup bool
+	// IsEmailServiceEnabled is derived from SMTP configurations
+	IsEmailServiceEnabled bool
+	// IsSMSServiceEnabled is derived from Twilio configurations
+	IsSMSServiceEnabled bool
+	// EnforceMFA is the flag to enforce MFA
+	EnforceMFA bool
+
+	// URLs
+	// ResetPasswordURL is the URL for reset password
+	ResetPasswordURL string
 
 	// JWT Configurations
 	// JWTType is the type of JWT to use

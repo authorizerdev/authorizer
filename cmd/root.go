@@ -94,8 +94,20 @@ func init() {
 
 	// Auth flags
 	f.StringVar(&rootArgs.config.DefaultRoles, "default-roles", "user", "Default user roles to assign")
+	f.StringVar(&rootArgs.config.Roles, "roles", "user", "Roles to assign")
+	f.StringVar(&rootArgs.config.ProtectedRoles, "protected-roles", "", "Roles that cannot be deleted")
 	f.BoolVar(&rootArgs.config.DisableStrongPassword, "disable-strong-password", false, "Disable strong password requirement")
 	f.BoolVar(&rootArgs.config.DisableTOTPLogin, "disable-totp-login", false, "Disable TOTP login")
+	f.BoolVar(&rootArgs.config.DisableBasicAuthentication, "disable-basic-authentication", false, "Disable basic authentication")
+	f.BoolVar(&rootArgs.config.DisableEmailVerification, "disable-email-verification", false, "Disable email verification")
+	f.BoolVar(&rootArgs.config.DisableMobileBasicAuthentication, "disable-mobile-basic-authentication", false, "Disable mobile basic authentication")
+	f.BoolVar(&rootArgs.config.DisablePhoneVerification, "disable-phone-verification", false, "Disable phone verification")
+	f.BoolVar(&rootArgs.config.DisableMagicLinkLogin, "disable-magic-link-login", false, "Disable magic link login")
+	f.BoolVar(&rootArgs.config.EnforceMFA, "enforce-mfa", false, "Enforce MFA for all users")
+	f.BoolVar(&rootArgs.config.DisableMFA, "disable-mfa", false, "Disable MFA for all users")
+	f.BoolVar(&rootArgs.config.DisableEmailOTP, "disable-email-otp", false, "Disable email OTP")
+	f.BoolVar(&rootArgs.config.DisableSMSOTP, "disable-sms-otp", false, "Disable SMS OTP")
+	f.BoolVar(&rootArgs.config.DisableSignup, "disable-signup", false, "Disable signup")
 
 	// JWT flags
 	f.StringVar(&rootArgs.config.JWTType, "jwt-type", "", "Type of JWT to use")
@@ -134,6 +146,9 @@ func init() {
 	f.StringVar(&rootArgs.config.RoboloxClientID, "roblox-client-id", "", "Client ID for Roblox")
 	f.StringVar(&rootArgs.config.RoboloxClientSecret, "roblox-client-secret", "", "Client secret for Roblox")
 
+	// URLs
+	f.StringVar(&rootArgs.config.ResetPasswordURL, "reset-password-url", "", "URL for reset password")
+
 	// Deprecated flags
 	f.MarkDeprecated("database_url", "use --database-url instead")
 	f.MarkDeprecated("database_type", "use --database-type instead")
@@ -162,7 +177,7 @@ func runRoot(c *cobra.Command, args []string) {
 		With().Timestamp().Logger()
 
 	// Storage provider
-	storageProvider, err := storage.NewProvider(rootArgs.config, storage.Dependencies{
+	storageProvider, err := storage.NewProvider(rootArgs.config, &storage.Dependencies{
 		Log: &log,
 	})
 	if err != nil {
@@ -170,31 +185,31 @@ func runRoot(c *cobra.Command, args []string) {
 	}
 
 	// Authenticator provider
-	authenticatorProvider, err := authenticators.NewProvider(rootArgs.config, authenticators.Dependencies{
-		Log: &log,
-		DB:  storageProvider,
+	authenticatorProvider, err := authenticators.NewProvider(rootArgs.config, &authenticators.Dependencies{
+		Log:             &log,
+		StorageProvider: storageProvider,
 	})
 
 	// Email provider
-	emailProvider, err := email.NewProvider(rootArgs.config, email.Dependencies{
-		Log: &log,
-		DB:  storageProvider,
+	emailProvider, err := email.NewProvider(rootArgs.config, &email.Dependencies{
+		Log:             &log,
+		StorageProvider: storageProvider,
 	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create email provider")
 	}
 
 	// Events provider
-	eventsProvider, err := events.NewProvider(rootArgs.config, events.Dependencies{
-		Log: &log,
-		DB:  storageProvider,
+	eventsProvider, err := events.NewProvider(rootArgs.config, &events.Dependencies{
+		Log:             &log,
+		StorageProvider: storageProvider,
 	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create events provider")
 	}
 
 	// Memory store provider
-	memoryStoreProvider, err := memory_store.NewProvider(rootArgs.config, memory_store.Dependencies{
+	memoryStoreProvider, err := memory_store.NewProvider(rootArgs.config, &memory_store.Dependencies{
 		Log: &log,
 	})
 	if err != nil {
@@ -202,17 +217,17 @@ func runRoot(c *cobra.Command, args []string) {
 	}
 
 	// SMS provider
-	smsProvider, err := sms.NewProvider(rootArgs.config, sms.Dependencies{
+	smsProvider, err := sms.NewProvider(rootArgs.config, &sms.Dependencies{
 		Log: &log,
 	})
 
 	// Token provider
-	tokenProvider, err := token.NewProvider(rootArgs.config, token.Dependencies{
+	tokenProvider, err := token.NewProvider(rootArgs.config, &token.Dependencies{
 		Log: &log,
 	})
 
 	// Prepare service
-	svcDeps := service.Dependencies{
+	svcDeps := &service.Dependencies{
 		Log:                   &log,
 		AuthenticatorProvider: authenticatorProvider,
 		EmailProvider:         emailProvider,

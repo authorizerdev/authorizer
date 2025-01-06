@@ -19,8 +19,8 @@ import (
 
 // Dependencies for events
 type Dependencies struct {
-	Log *zerolog.Logger
-	DB  storage.Provider
+	Log             *zerolog.Logger
+	StorageProvider storage.Provider
 }
 
 // Provider interface for registering events
@@ -44,7 +44,7 @@ func NewProvider(config *config.Config, deps *Dependencies) (Provider, error) {
 // RegisterEvent util to register event
 func (p *provider) RegisterEvent(ctx context.Context, eventName string, authRecipe string, user *schemas.User) error {
 	log := p.deps.Log.With().Str("func", "RegisterEvent").Str("event", eventName).Logger()
-	webhooks, err := p.deps.DB.GetWebhookByEventName(ctx, eventName)
+	webhooks, err := p.deps.StorageProvider.GetWebhookByEventName(ctx, eventName)
 	if err != nil {
 		log.Debug().Err(err).Msg("error getting webhook")
 		return err
@@ -84,7 +84,7 @@ func (p *provider) RegisterEvent(ctx context.Context, eventName string, authReci
 
 		// don't trigger webhook call in case of test
 		if p.config.Env == constants.TestEnv {
-			_, err := p.deps.DB.AddWebhookLog(ctx, &schemas.WebhookLog{
+			_, err := p.deps.StorageProvider.AddWebhookLog(ctx, &schemas.WebhookLog{
 				HttpStatus: 200,
 				Request:    string(requestBody),
 				Response:   string(`{"message": "test"}`),
@@ -123,7 +123,7 @@ func (p *provider) RegisterEvent(ctx context.Context, eventName string, authReci
 		}
 
 		statusCode := int64(resp.StatusCode)
-		_, err = p.deps.DB.AddWebhookLog(ctx, &schemas.WebhookLog{
+		_, err = p.deps.StorageProvider.AddWebhookLog(ctx, &schemas.WebhookLog{
 			HttpStatus: statusCode,
 			Request:    string(requestBody),
 			Response:   string(responseBytes),

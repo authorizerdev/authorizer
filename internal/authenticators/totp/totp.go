@@ -23,7 +23,7 @@ func (p *provider) Generate(ctx context.Context, id string) (*config.Authenticat
 	log := p.deps.Log.With().Str("func", "Generate (totp provider)").Logger()
 	var buf bytes.Buffer
 	// Get user details
-	user, err := p.deps.DB.GetUserByID(ctx, id)
+	user, err := p.deps.StorageProvider.GetUserByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -64,14 +64,14 @@ func (p *provider) Generate(ctx context.Context, id string) (*config.Authenticat
 		UserID:        user.ID,
 		Method:        constants.EnvKeyTOTPAuthenticator,
 	}
-	authenticator, err := p.deps.DB.GetAuthenticatorDetailsByUserId(ctx, user.ID, constants.EnvKeyTOTPAuthenticator)
+	authenticator, err := p.deps.StorageProvider.GetAuthenticatorDetailsByUserId(ctx, user.ID, constants.EnvKeyTOTPAuthenticator)
 	if err != nil {
 		log.Debug().Err(err).Msg("error getting authenticator details")
 		// continue
 	}
 	if authenticator == nil {
 		// if authenticator is nil then create new authenticator
-		_, err = p.deps.DB.AddAuthenticator(ctx, totpModel)
+		_, err = p.deps.StorageProvider.AddAuthenticator(ctx, totpModel)
 		if err != nil {
 			return nil, err
 		}
@@ -79,7 +79,7 @@ func (p *provider) Generate(ctx context.Context, id string) (*config.Authenticat
 		authenticator.Secret = secret
 		authenticator.RecoveryCodes = refs.NewStringRef(recoveryCodesString)
 		// if authenticator is not nil then update authenticator
-		_, err = p.deps.DB.UpdateAuthenticator(ctx, authenticator)
+		_, err = p.deps.StorageProvider.UpdateAuthenticator(ctx, authenticator)
 		if err != nil {
 			return nil, err
 		}
@@ -95,7 +95,7 @@ func (p *provider) Generate(ctx context.Context, id string) (*config.Authenticat
 // Validate validates a Time-Based One-Time Password (TOTP) against the stored TOTP secret for a user.
 func (p *provider) Validate(ctx context.Context, passcode string, userID string) (bool, error) {
 	// get totp details
-	totpModel, err := p.deps.DB.GetAuthenticatorDetailsByUserId(ctx, userID, constants.EnvKeyTOTPAuthenticator)
+	totpModel, err := p.deps.StorageProvider.GetAuthenticatorDetailsByUserId(ctx, userID, constants.EnvKeyTOTPAuthenticator)
 	if err != nil {
 		return false, err
 	}
@@ -105,7 +105,7 @@ func (p *provider) Validate(ctx context.Context, passcode string, userID string)
 	if totpModel.VerifiedAt == nil && status {
 		timeNow := time.Now().Unix()
 		totpModel.VerifiedAt = &timeNow
-		_, err = p.deps.DB.UpdateAuthenticator(ctx, totpModel)
+		_, err = p.deps.StorageProvider.UpdateAuthenticator(ctx, totpModel)
 		if err != nil {
 			return false, err
 		}
@@ -116,7 +116,7 @@ func (p *provider) Validate(ctx context.Context, passcode string, userID string)
 // ValidateRecoveryCode validates a Time-Based One-Time Password (TOTP) recovery code against the stored TOTP recovery code for a user.
 func (p *provider) ValidateRecoveryCode(ctx context.Context, recoveryCode, userID string) (bool, error) {
 	// get totp details
-	totpModel, err := p.deps.DB.GetAuthenticatorDetailsByUserId(ctx, userID, constants.EnvKeyTOTPAuthenticator)
+	totpModel, err := p.deps.StorageProvider.GetAuthenticatorDetailsByUserId(ctx, userID, constants.EnvKeyTOTPAuthenticator)
 	if err != nil {
 		return false, err
 	}
@@ -142,7 +142,7 @@ func (p *provider) ValidateRecoveryCode(ctx context.Context, recoveryCode, userI
 	recoveryCodesString := string(jsonData)
 	totpModel.RecoveryCodes = refs.NewStringRef(recoveryCodesString)
 	// update recovery code map in db
-	_, err = p.deps.DB.UpdateAuthenticator(ctx, totpModel)
+	_, err = p.deps.StorageProvider.UpdateAuthenticator(ctx, totpModel)
 	if err != nil {
 		return false, err
 	}

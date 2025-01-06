@@ -24,8 +24,8 @@ type Provider interface {
 
 // Dependencies struct for email provider
 type Dependencies struct {
-	Log *zerolog.Logger
-	DB  storage.Provider
+	Log             *zerolog.Logger
+	StorageProvider storage.Provider
 }
 
 // provider struct for email provider
@@ -110,7 +110,7 @@ func getDefaultTemplate(event string) *model.EmailTemplate {
 
 func (p *provider) getEmailTemplate(event string, data map[string]interface{}) (*model.EmailTemplate, error) {
 	ctx := context.Background()
-	tmp, err := p.deps.DB.GetEmailTemplateByEventName(ctx, event)
+	tmp, err := p.deps.StorageProvider.GetEmailTemplateByEventName(ctx, event)
 	if err != nil || tmp == nil {
 		tmp = getDefaultTemplate(event)
 	}

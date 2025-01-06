@@ -7,8 +7,8 @@ import (
 )
 
 type Dependencies struct {
-	Log *zerolog.Logger
-	DB  storage.Provider
+	Log             *zerolog.Logger
+	StorageProvider storage.Provider
 }
 
 type provider struct {

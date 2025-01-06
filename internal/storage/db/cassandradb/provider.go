@@ -37,7 +37,7 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 		dbHost := cfg.DatabaseHost
 		dbPort := cfg.DatabasePort
 		if dbPort != 0 && dbHost != "" {
-			dbURL = fmt.Sprintf("%s:%s", dbHost, dbPort)
+			dbURL = fmt.Sprintf("%s:%d", dbHost, dbPort)
 		} else if dbHost != "" {
 			dbURL = dbHost
 		}
