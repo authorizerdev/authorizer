@@ -11,7 +11,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
 	"github.com/robertkrimen/otto"
-	log "github.com/sirupsen/logrus"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
@@ -200,12 +199,12 @@ func (p *provider) CreateAccessToken(cfg *AuthTokenConfig) (string, int64, error
 
 		val, err := vm.Get("functionRes")
 		if err != nil {
-			log.Debug("error getting custom access token script: ", err)
+			p.dependencies.Log.Debug().Err(err).Msg("error getting custom access token script")
 		} else {
 			extraPayload := make(map[string]interface{})
 			err = json.Unmarshal([]byte(fmt.Sprintf("%v", val)), &extraPayload)
 			if err != nil {
-				log.Debug("error converting accessTokenScript response to map: ", err)
+				p.dependencies.Log.Debug().Err(err).Msg("error converting accessTokenScript response to map")
 			} else {
 				for k, v := range extraPayload {
 					customClaims[k] = v
@@ -427,12 +426,12 @@ func (p *provider) CreateIDToken(cfg *AuthTokenConfig) (string, int64, error) {
 
 		val, err := vm.Get("functionRes")
 		if err != nil {
-			log.Debug("error getting custom access token script: ", err)
+			p.dependencies.Log.Debug().Err(err).Msg("error getting custom access token script")
 		} else {
 			extraPayload := make(map[string]interface{})
 			err = json.Unmarshal([]byte(fmt.Sprintf("%v", val)), &extraPayload)
 			if err != nil {
-				log.Debug("error converting accessTokenScript response to map: ", err)
+				p.dependencies.Log.Debug().Err(err).Msg("error converting accessTokenScript response to map")
 			} else {
 				for k, v := range extraPayload {
 					customClaims[k] = v
@@ -483,18 +482,18 @@ func (p *provider) GetUserIDFromSessionOrAccessToken(gc *gin.Context) (*SessionO
 	isSession := true
 	token, err := cookie.GetSession(gc)
 	if err != nil || token == "" {
-		log.Debug("Failed to get session token: ", err)
+		p.dependencies.Log.Debug().Err(err).Msg("Failed to get session token")
 		isSession = false
 		token, err = p.GetAccessToken(gc)
 		if err != nil || token == "" {
-			log.Debug("Failed to get access token: ", err)
+			p.dependencies.Log.Debug().Err(err).Msg("Failed to get access token")
 			return nil, fmt.Errorf(`unauthorized`)
 		}
 	}
 	if isSession {
 		claims, err := p.ValidateBrowserSession(gc, token)
 		if err != nil {
-			log.Debug("Failed to validate session token: ", err)
+			p.dependencies.Log.Debug().Err(err).Msg("Failed to validate session token")
 			return nil, fmt.Errorf(`unauthorized`)
 		}
 		return &SessionOrAccessTokenData{
@@ -506,7 +505,7 @@ func (p *provider) GetUserIDFromSessionOrAccessToken(gc *gin.Context) (*SessionO
 	// If not session, then validate the access token
 	claims, err := p.ValidateAccessToken(gc, token)
 	if err != nil {
-		log.Debug("Failed to validate access token: ", err)
+		p.dependencies.Log.Debug().Err(err).Msg("Failed to validate access token")
 		return nil, fmt.Errorf(`unauthorized`)
 	}
 	return &SessionOrAccessTokenData{
