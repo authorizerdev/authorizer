@@ -12,23 +12,22 @@ require (
 	github.com/gin-gonic/gin v1.9.1
 	github.com/glebarez/sqlite v1.10.0
 	github.com/gocql/gocql v1.6.0
-	github.com/gokyle/twofactor v1.0.1
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/google/uuid v1.6.0
 	github.com/guregu/dynamo v1.20.2
-	github.com/joho/godotenv v1.5.1
 	github.com/pquerna/otp v1.4.0
 	github.com/redis/go-redis/v9 v9.2.1
 	github.com/robertkrimen/otto v0.2.1
+	github.com/rs/zerolog v1.33.0
 	github.com/sirupsen/logrus v1.9.3
+	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.9.0
-	github.com/tuotoo/qrcode v0.0.0-20220425170535-52ccc2bebf5d
 	github.com/twilio/twilio-go v1.14.1
 	github.com/vektah/gqlparser/v2 v2.5.11
 	go.mongodb.org/mongo-driver v1.12.1
 	golang.org/x/crypto v0.21.0
 	golang.org/x/oauth2 v0.13.0
-	google.golang.org/appengine v1.6.8
+	golang.org/x/sync v0.8.0
 	gopkg.in/mail.v2 v2.3.1
 	gopkg.in/square/go-jose.v2 v2.6.0
 	gorm.io/driver/mysql v1.5.2
@@ -81,7 +80,6 @@ require (
 	github.com/leodido/go-urn v1.2.4 // indirect
 	github.com/libsql/libsql-client-go v0.0.0-20231026052543-fce76c0f39a7 // indirect
 	github.com/libsql/sqlite-antlr4-parser v0.0.0-20230802215326-5cb5bb604475 // indirect
-	github.com/maruel/rs v1.1.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/microsoft/go-mssqldb v1.6.0 // indirect
@@ -94,10 +92,8 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rogpeppe/go-internal v1.11.0 // indirect
-	github.com/rs/zerolog v1.33.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sosodev/duration v1.2.0 // indirect
-	github.com/spf13/cobra v1.8.1 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.11 // indirect
@@ -111,10 +107,10 @@ require (
 	golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e // indirect
 	golang.org/x/mod v0.16.0 // indirect
 	golang.org/x/net v0.22.0 // indirect
-	golang.org/x/sync v0.8.0 // indirect
 	golang.org/x/sys v0.18.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/tools v0.19.0 // indirect
+	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
@@ -125,5 +121,4 @@ require (
 	modernc.org/memory v1.5.0 // indirect
 	modernc.org/sqlite v1.23.1 // indirect
 	nhooyr.io/websocket v1.8.7 // indirect
-	rsc.io/qr v0.2.0 // indirect
 )

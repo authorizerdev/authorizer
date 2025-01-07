@@ -118,8 +118,8 @@ type Provider interface {
 	GetAuthenticatorDetailsByUserId(ctx context.Context, userId string, authenticatorType string) (*schemas.Authenticator, error)
 }
 
-// NewProvider creates a new database provider based on the configuration
-func NewProvider(config *config.Config, deps *Dependencies) (Provider, error) {
+// New creates a new database provider based on the configuration
+func New(config *config.Config, deps *Dependencies) (Provider, error) {
 	var provider Provider
 	var err error
 	if config.DatabaseType == "" {

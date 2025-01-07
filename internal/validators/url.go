@@ -8,12 +8,10 @@ import (
 )
 
 // IsValidOrigin validates origin based on ALLOWED_ORIGINS
-func IsValidOrigin(url string, allowedOriginsString string) bool {
-	allowedOrigins := []string{}
-	if allowedOriginsString != "" {
+func IsValidOrigin(url string, allowedOriginsConfig []string) bool {
+	allowedOrigins := allowedOriginsConfig
+	if len(allowedOrigins) == 0 {
 		allowedOrigins = []string{"*"}
-	} else {
-		allowedOrigins = strings.Split(allowedOriginsString, ",")
 	}
 	if len(allowedOrigins) == 1 && allowedOrigins[0] == "*" {
 		return true

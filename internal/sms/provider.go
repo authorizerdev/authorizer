@@ -16,7 +16,7 @@ type Provider interface {
 	SendSMS(sendTo, messageBody string) error
 }
 
-// NewProvider returns a new sms provider
-func NewProvider(cfg *config.Config, deps *Dependencies) (Provider, error) {
+// New returns a new sms provider
+func New(cfg *config.Config, deps *Dependencies) (Provider, error) {
 	return nil, nil
 }

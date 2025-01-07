@@ -22,7 +22,7 @@ func (p *provider) AddUser(ctx context.Context, user *schemas.User) (*schemas.Us
 		user.ID = uuid.New().String()
 	}
 	if user.Roles == "" {
-		user.Roles = p.config.DefaultRoles
+		user.Roles = strings.Join(p.config.DefaultRoles, ",")
 	}
 	if user.PhoneNumber != nil && strings.TrimSpace(refs.StringValue(user.PhoneNumber)) != "" {
 		if u, _ := p.GetUserByPhoneNumber(ctx, refs.StringValue(user.PhoneNumber)); u != nil && u.ID != user.ID {

@@ -3103,7 +3103,7 @@ func (ec *executionContext) field_Mutation__add_email_template_args(ctx context.
 	var arg0 model.AddEmailTemplateRequest
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalNAddEmailTemplateRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAddEmailTemplateRequest(ctx, tmp)
+		arg0, err = ec.unmarshalNAddEmailTemplateRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAddEmailTemplateRequest(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3118,7 +3118,7 @@ func (ec *executionContext) field_Mutation__add_webhook_args(ctx context.Context
 	var arg0 model.AddWebhookRequest
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalNAddWebhookRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAddWebhookRequest(ctx, tmp)
+		arg0, err = ec.unmarshalNAddWebhookRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAddWebhookRequest(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3133,7 +3133,7 @@ func (ec *executionContext) field_Mutation__admin_login_args(ctx context.Context
 	var arg0 model.AdminLoginInput
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalNAdminLoginInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAdminLoginInput(ctx, tmp)
+		arg0, err = ec.unmarshalNAdminLoginInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAdminLoginInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3148,7 +3148,7 @@ func (ec *executionContext) field_Mutation__admin_signup_args(ctx context.Contex
 	var arg0 model.AdminSignupInput
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalNAdminSignupInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAdminSignupInput(ctx, tmp)
+		arg0, err = ec.unmarshalNAdminSignupInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAdminSignupInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3163,7 +3163,7 @@ func (ec *executionContext) field_Mutation__delete_email_template_args(ctx conte
 	var arg0 model.DeleteEmailTemplateRequest
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalNDeleteEmailTemplateRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐDeleteEmailTemplateRequest(ctx, tmp)
+		arg0, err = ec.unmarshalNDeleteEmailTemplateRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐDeleteEmailTemplateRequest(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3178,7 +3178,7 @@ func (ec *executionContext) field_Mutation__delete_user_args(ctx context.Context
 	var arg0 model.DeleteUserInput
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalNDeleteUserInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐDeleteUserInput(ctx, tmp)
+		arg0, err = ec.unmarshalNDeleteUserInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐDeleteUserInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3193,7 +3193,7 @@ func (ec *executionContext) field_Mutation__delete_webhook_args(ctx context.Cont
 	var arg0 model.WebhookRequest
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalNWebhookRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐWebhookRequest(ctx, tmp)
+		arg0, err = ec.unmarshalNWebhookRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐWebhookRequest(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3208,7 +3208,7 @@ func (ec *executionContext) field_Mutation__enable_access_args(ctx context.Conte
 	var arg0 model.UpdateAccessInput
 	if tmp, ok := rawArgs["param"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("param"))
-		arg0, err = ec.unmarshalNUpdateAccessInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUpdateAccessInput(ctx, tmp)
+		arg0, err = ec.unmarshalNUpdateAccessInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateAccessInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3223,7 +3223,7 @@ func (ec *executionContext) field_Mutation__generate_jwt_keys_args(ctx context.C
 	var arg0 model.GenerateJWTKeysInput
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalNGenerateJWTKeysInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐGenerateJWTKeysInput(ctx, tmp)
+		arg0, err = ec.unmarshalNGenerateJWTKeysInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐGenerateJWTKeysInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3238,7 +3238,7 @@ func (ec *executionContext) field_Mutation__invite_members_args(ctx context.Cont
 	var arg0 model.InviteMemberInput
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalNInviteMemberInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐInviteMemberInput(ctx, tmp)
+		arg0, err = ec.unmarshalNInviteMemberInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐInviteMemberInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3253,7 +3253,7 @@ func (ec *executionContext) field_Mutation__revoke_access_args(ctx context.Conte
 	var arg0 model.UpdateAccessInput
 	if tmp, ok := rawArgs["param"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("param"))
-		arg0, err = ec.unmarshalNUpdateAccessInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUpdateAccessInput(ctx, tmp)
+		arg0, err = ec.unmarshalNUpdateAccessInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateAccessInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3268,7 +3268,7 @@ func (ec *executionContext) field_Mutation__test_endpoint_args(ctx context.Conte
 	var arg0 model.TestEndpointRequest
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalNTestEndpointRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐTestEndpointRequest(ctx, tmp)
+		arg0, err = ec.unmarshalNTestEndpointRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐTestEndpointRequest(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3283,7 +3283,7 @@ func (ec *executionContext) field_Mutation__update_email_template_args(ctx conte
 	var arg0 model.UpdateEmailTemplateRequest
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalNUpdateEmailTemplateRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUpdateEmailTemplateRequest(ctx, tmp)
+		arg0, err = ec.unmarshalNUpdateEmailTemplateRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateEmailTemplateRequest(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3298,7 +3298,7 @@ func (ec *executionContext) field_Mutation__update_env_args(ctx context.Context,
 	var arg0 model.UpdateEnvInput
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalNUpdateEnvInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUpdateEnvInput(ctx, tmp)
+		arg0, err = ec.unmarshalNUpdateEnvInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateEnvInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3313,7 +3313,7 @@ func (ec *executionContext) field_Mutation__update_user_args(ctx context.Context
 	var arg0 model.UpdateUserInput
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalNUpdateUserInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUpdateUserInput(ctx, tmp)
+		arg0, err = ec.unmarshalNUpdateUserInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateUserInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3328,7 +3328,7 @@ func (ec *executionContext) field_Mutation__update_webhook_args(ctx context.Cont
 	var arg0 model.UpdateWebhookRequest
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalNUpdateWebhookRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUpdateWebhookRequest(ctx, tmp)
+		arg0, err = ec.unmarshalNUpdateWebhookRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateWebhookRequest(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3343,7 +3343,7 @@ func (ec *executionContext) field_Mutation_forgot_password_args(ctx context.Cont
 	var arg0 model.ForgotPasswordInput
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalNForgotPasswordInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐForgotPasswordInput(ctx, tmp)
+		arg0, err = ec.unmarshalNForgotPasswordInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐForgotPasswordInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3358,7 +3358,7 @@ func (ec *executionContext) field_Mutation_login_args(ctx context.Context, rawAr
 	var arg0 model.LoginInput
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalNLoginInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐLoginInput(ctx, tmp)
+		arg0, err = ec.unmarshalNLoginInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐLoginInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3373,7 +3373,7 @@ func (ec *executionContext) field_Mutation_magic_link_login_args(ctx context.Con
 	var arg0 model.MagicLinkLoginInput
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalNMagicLinkLoginInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐMagicLinkLoginInput(ctx, tmp)
+		arg0, err = ec.unmarshalNMagicLinkLoginInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐMagicLinkLoginInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3388,7 +3388,7 @@ func (ec *executionContext) field_Mutation_mobile_login_args(ctx context.Context
 	var arg0 model.MobileLoginInput
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalNMobileLoginInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐMobileLoginInput(ctx, tmp)
+		arg0, err = ec.unmarshalNMobileLoginInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐMobileLoginInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3403,7 +3403,7 @@ func (ec *executionContext) field_Mutation_mobile_signup_args(ctx context.Contex
 	var arg0 *model.MobileSignUpInput
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalOMobileSignUpInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐMobileSignUpInput(ctx, tmp)
+		arg0, err = ec.unmarshalOMobileSignUpInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐMobileSignUpInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3418,7 +3418,7 @@ func (ec *executionContext) field_Mutation_resend_otp_args(ctx context.Context, 
 	var arg0 model.ResendOTPRequest
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalNResendOTPRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResendOTPRequest(ctx, tmp)
+		arg0, err = ec.unmarshalNResendOTPRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResendOTPRequest(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3433,7 +3433,7 @@ func (ec *executionContext) field_Mutation_resend_verify_email_args(ctx context.
 	var arg0 model.ResendVerifyEmailInput
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalNResendVerifyEmailInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResendVerifyEmailInput(ctx, tmp)
+		arg0, err = ec.unmarshalNResendVerifyEmailInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResendVerifyEmailInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3448,7 +3448,7 @@ func (ec *executionContext) field_Mutation_reset_password_args(ctx context.Conte
 	var arg0 model.ResetPasswordInput
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalNResetPasswordInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResetPasswordInput(ctx, tmp)
+		arg0, err = ec.unmarshalNResetPasswordInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResetPasswordInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3463,7 +3463,7 @@ func (ec *executionContext) field_Mutation_revoke_args(ctx context.Context, rawA
 	var arg0 model.OAuthRevokeInput
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalNOAuthRevokeInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐOAuthRevokeInput(ctx, tmp)
+		arg0, err = ec.unmarshalNOAuthRevokeInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐOAuthRevokeInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3478,7 +3478,7 @@ func (ec *executionContext) field_Mutation_signup_args(ctx context.Context, rawA
 	var arg0 model.SignUpInput
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalNSignUpInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐSignUpInput(ctx, tmp)
+		arg0, err = ec.unmarshalNSignUpInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐSignUpInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3493,7 +3493,7 @@ func (ec *executionContext) field_Mutation_update_profile_args(ctx context.Conte
 	var arg0 model.UpdateProfileInput
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalNUpdateProfileInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUpdateProfileInput(ctx, tmp)
+		arg0, err = ec.unmarshalNUpdateProfileInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateProfileInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3508,7 +3508,7 @@ func (ec *executionContext) field_Mutation_verify_email_args(ctx context.Context
 	var arg0 model.VerifyEmailInput
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalNVerifyEmailInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐVerifyEmailInput(ctx, tmp)
+		arg0, err = ec.unmarshalNVerifyEmailInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐVerifyEmailInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3523,7 +3523,7 @@ func (ec *executionContext) field_Mutation_verify_otp_args(ctx context.Context, 
 	var arg0 model.VerifyOTPRequest
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalNVerifyOTPRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐVerifyOTPRequest(ctx, tmp)
+		arg0, err = ec.unmarshalNVerifyOTPRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐVerifyOTPRequest(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3553,7 +3553,7 @@ func (ec *executionContext) field_Query__email_templates_args(ctx context.Contex
 	var arg0 *model.PaginatedInput
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalOPaginatedInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐPaginatedInput(ctx, tmp)
+		arg0, err = ec.unmarshalOPaginatedInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginatedInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3568,7 +3568,7 @@ func (ec *executionContext) field_Query__user_args(ctx context.Context, rawArgs 
 	var arg0 model.GetUserRequest
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalNGetUserRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐGetUserRequest(ctx, tmp)
+		arg0, err = ec.unmarshalNGetUserRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐGetUserRequest(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3583,7 +3583,7 @@ func (ec *executionContext) field_Query__users_args(ctx context.Context, rawArgs
 	var arg0 *model.PaginatedInput
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalOPaginatedInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐPaginatedInput(ctx, tmp)
+		arg0, err = ec.unmarshalOPaginatedInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginatedInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3598,7 +3598,7 @@ func (ec *executionContext) field_Query__verification_requests_args(ctx context.
 	var arg0 *model.PaginatedInput
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalOPaginatedInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐPaginatedInput(ctx, tmp)
+		arg0, err = ec.unmarshalOPaginatedInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginatedInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3613,7 +3613,7 @@ func (ec *executionContext) field_Query__webhook_args(ctx context.Context, rawAr
 	var arg0 model.WebhookRequest
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalNWebhookRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐWebhookRequest(ctx, tmp)
+		arg0, err = ec.unmarshalNWebhookRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐWebhookRequest(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3628,7 +3628,7 @@ func (ec *executionContext) field_Query__webhook_logs_args(ctx context.Context, 
 	var arg0 *model.ListWebhookLogRequest
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalOListWebhookLogRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐListWebhookLogRequest(ctx, tmp)
+		arg0, err = ec.unmarshalOListWebhookLogRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐListWebhookLogRequest(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3643,7 +3643,7 @@ func (ec *executionContext) field_Query__webhooks_args(ctx context.Context, rawA
 	var arg0 *model.PaginatedInput
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalOPaginatedInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐPaginatedInput(ctx, tmp)
+		arg0, err = ec.unmarshalOPaginatedInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginatedInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3658,7 +3658,7 @@ func (ec *executionContext) field_Query_session_args(ctx context.Context, rawArg
 	var arg0 *model.SessionQueryInput
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalOSessionQueryInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐSessionQueryInput(ctx, tmp)
+		arg0, err = ec.unmarshalOSessionQueryInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐSessionQueryInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3673,7 +3673,7 @@ func (ec *executionContext) field_Query_validate_jwt_token_args(ctx context.Cont
 	var arg0 model.ValidateJWTTokenInput
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalNValidateJWTTokenInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐValidateJWTTokenInput(ctx, tmp)
+		arg0, err = ec.unmarshalNValidateJWTTokenInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐValidateJWTTokenInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3688,7 +3688,7 @@ func (ec *executionContext) field_Query_validate_session_args(ctx context.Contex
 	var arg0 *model.ValidateSessionInput
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalOValidateSessionInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐValidateSessionInput(ctx, tmp)
+		arg0, err = ec.unmarshalOValidateSessionInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐValidateSessionInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -4091,7 +4091,7 @@ func (ec *executionContext) _AuthResponse_user(ctx context.Context, field graphq
 	}
 	res := resTmp.(*model.User)
 	fc.Result = res
-	return ec.marshalOUser2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+	return ec.marshalOUser2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_AuthResponse_user(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -4602,7 +4602,7 @@ func (ec *executionContext) _EmailTemplates_pagination(ctx context.Context, fiel
 	}
 	res := resTmp.(*model.Pagination)
 	fc.Result = res
-	return ec.marshalNPagination2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐPagination(ctx, field.Selections, res)
+	return ec.marshalNPagination2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPagination(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_EmailTemplates_pagination(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -4656,7 +4656,7 @@ func (ec *executionContext) _EmailTemplates_email_templates(ctx context.Context,
 	}
 	res := resTmp.([]*model.EmailTemplate)
 	fc.Result = res
-	return ec.marshalNEmailTemplate2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐEmailTemplateᚄ(ctx, field.Selections, res)
+	return ec.marshalNEmailTemplate2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐEmailTemplateᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_EmailTemplates_email_templates(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -8018,7 +8018,7 @@ func (ec *executionContext) _InviteMembersResponse_Users(ctx context.Context, fi
 	}
 	res := resTmp.([]*model.User)
 	fc.Result = res
-	return ec.marshalNUser2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUserᚄ(ctx, field.Selections, res)
+	return ec.marshalNUser2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUserᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_InviteMembersResponse_Users(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -8984,7 +8984,7 @@ func (ec *executionContext) _Mutation_signup(ctx context.Context, field graphql.
 	}
 	res := resTmp.(*model.AuthResponse)
 	fc.Result = res
-	return ec.marshalNAuthResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAuthResponse(ctx, field.Selections, res)
+	return ec.marshalNAuthResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_signup(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -9065,7 +9065,7 @@ func (ec *executionContext) _Mutation_mobile_signup(ctx context.Context, field g
 	}
 	res := resTmp.(*model.AuthResponse)
 	fc.Result = res
-	return ec.marshalNAuthResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAuthResponse(ctx, field.Selections, res)
+	return ec.marshalNAuthResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_mobile_signup(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -9146,7 +9146,7 @@ func (ec *executionContext) _Mutation_login(ctx context.Context, field graphql.C
 	}
 	res := resTmp.(*model.AuthResponse)
 	fc.Result = res
-	return ec.marshalNAuthResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAuthResponse(ctx, field.Selections, res)
+	return ec.marshalNAuthResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_login(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -9227,7 +9227,7 @@ func (ec *executionContext) _Mutation_mobile_login(ctx context.Context, field gr
 	}
 	res := resTmp.(*model.AuthResponse)
 	fc.Result = res
-	return ec.marshalNAuthResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAuthResponse(ctx, field.Selections, res)
+	return ec.marshalNAuthResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_mobile_login(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -9308,7 +9308,7 @@ func (ec *executionContext) _Mutation_magic_link_login(ctx context.Context, fiel
 	}
 	res := resTmp.(*model.Response)
 	fc.Result = res
-	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_magic_link_login(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -9367,7 +9367,7 @@ func (ec *executionContext) _Mutation_logout(ctx context.Context, field graphql.
 	}
 	res := resTmp.(*model.Response)
 	fc.Result = res
-	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_logout(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -9415,7 +9415,7 @@ func (ec *executionContext) _Mutation_update_profile(ctx context.Context, field 
 	}
 	res := resTmp.(*model.Response)
 	fc.Result = res
-	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_update_profile(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -9474,7 +9474,7 @@ func (ec *executionContext) _Mutation_verify_email(ctx context.Context, field gr
 	}
 	res := resTmp.(*model.AuthResponse)
 	fc.Result = res
-	return ec.marshalNAuthResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAuthResponse(ctx, field.Selections, res)
+	return ec.marshalNAuthResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_verify_email(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -9555,7 +9555,7 @@ func (ec *executionContext) _Mutation_resend_verify_email(ctx context.Context, f
 	}
 	res := resTmp.(*model.Response)
 	fc.Result = res
-	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_resend_verify_email(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -9614,7 +9614,7 @@ func (ec *executionContext) _Mutation_forgot_password(ctx context.Context, field
 	}
 	res := resTmp.(*model.ForgotPasswordResponse)
 	fc.Result = res
-	return ec.marshalNForgotPasswordResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐForgotPasswordResponse(ctx, field.Selections, res)
+	return ec.marshalNForgotPasswordResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐForgotPasswordResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_forgot_password(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -9675,7 +9675,7 @@ func (ec *executionContext) _Mutation_reset_password(ctx context.Context, field 
 	}
 	res := resTmp.(*model.Response)
 	fc.Result = res
-	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_reset_password(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -9734,7 +9734,7 @@ func (ec *executionContext) _Mutation_revoke(ctx context.Context, field graphql.
 	}
 	res := resTmp.(*model.Response)
 	fc.Result = res
-	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_revoke(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -9793,7 +9793,7 @@ func (ec *executionContext) _Mutation_verify_otp(ctx context.Context, field grap
 	}
 	res := resTmp.(*model.AuthResponse)
 	fc.Result = res
-	return ec.marshalNAuthResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAuthResponse(ctx, field.Selections, res)
+	return ec.marshalNAuthResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_verify_otp(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -9874,7 +9874,7 @@ func (ec *executionContext) _Mutation_resend_otp(ctx context.Context, field grap
 	}
 	res := resTmp.(*model.Response)
 	fc.Result = res
-	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_resend_otp(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -9933,7 +9933,7 @@ func (ec *executionContext) _Mutation_deactivate_account(ctx context.Context, fi
 	}
 	res := resTmp.(*model.Response)
 	fc.Result = res
-	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_deactivate_account(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -9981,7 +9981,7 @@ func (ec *executionContext) _Mutation__delete_user(ctx context.Context, field gr
 	}
 	res := resTmp.(*model.Response)
 	fc.Result = res
-	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation__delete_user(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -10040,7 +10040,7 @@ func (ec *executionContext) _Mutation__update_user(ctx context.Context, field gr
 	}
 	res := resTmp.(*model.User)
 	fc.Result = res
-	return ec.marshalNUser2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+	return ec.marshalNUser2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation__update_user(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -10137,7 +10137,7 @@ func (ec *executionContext) _Mutation__admin_signup(ctx context.Context, field g
 	}
 	res := resTmp.(*model.Response)
 	fc.Result = res
-	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation__admin_signup(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -10196,7 +10196,7 @@ func (ec *executionContext) _Mutation__admin_login(ctx context.Context, field gr
 	}
 	res := resTmp.(*model.Response)
 	fc.Result = res
-	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation__admin_login(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -10255,7 +10255,7 @@ func (ec *executionContext) _Mutation__admin_logout(ctx context.Context, field g
 	}
 	res := resTmp.(*model.Response)
 	fc.Result = res
-	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation__admin_logout(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -10303,7 +10303,7 @@ func (ec *executionContext) _Mutation__update_env(ctx context.Context, field gra
 	}
 	res := resTmp.(*model.Response)
 	fc.Result = res
-	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation__update_env(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -10362,7 +10362,7 @@ func (ec *executionContext) _Mutation__invite_members(ctx context.Context, field
 	}
 	res := resTmp.(*model.InviteMembersResponse)
 	fc.Result = res
-	return ec.marshalNInviteMembersResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐInviteMembersResponse(ctx, field.Selections, res)
+	return ec.marshalNInviteMembersResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐInviteMembersResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation__invite_members(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -10423,7 +10423,7 @@ func (ec *executionContext) _Mutation__revoke_access(ctx context.Context, field 
 	}
 	res := resTmp.(*model.Response)
 	fc.Result = res
-	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation__revoke_access(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -10482,7 +10482,7 @@ func (ec *executionContext) _Mutation__enable_access(ctx context.Context, field 
 	}
 	res := resTmp.(*model.Response)
 	fc.Result = res
-	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation__enable_access(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -10541,7 +10541,7 @@ func (ec *executionContext) _Mutation__generate_jwt_keys(ctx context.Context, fi
 	}
 	res := resTmp.(*model.GenerateJWTKeysResponse)
 	fc.Result = res
-	return ec.marshalNGenerateJWTKeysResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐGenerateJWTKeysResponse(ctx, field.Selections, res)
+	return ec.marshalNGenerateJWTKeysResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐGenerateJWTKeysResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation__generate_jwt_keys(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -10604,7 +10604,7 @@ func (ec *executionContext) _Mutation__add_webhook(ctx context.Context, field gr
 	}
 	res := resTmp.(*model.Response)
 	fc.Result = res
-	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation__add_webhook(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -10663,7 +10663,7 @@ func (ec *executionContext) _Mutation__update_webhook(ctx context.Context, field
 	}
 	res := resTmp.(*model.Response)
 	fc.Result = res
-	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation__update_webhook(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -10722,7 +10722,7 @@ func (ec *executionContext) _Mutation__delete_webhook(ctx context.Context, field
 	}
 	res := resTmp.(*model.Response)
 	fc.Result = res
-	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation__delete_webhook(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -10781,7 +10781,7 @@ func (ec *executionContext) _Mutation__test_endpoint(ctx context.Context, field 
 	}
 	res := resTmp.(*model.TestEndpointResponse)
 	fc.Result = res
-	return ec.marshalNTestEndpointResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐTestEndpointResponse(ctx, field.Selections, res)
+	return ec.marshalNTestEndpointResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐTestEndpointResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation__test_endpoint(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -10842,7 +10842,7 @@ func (ec *executionContext) _Mutation__add_email_template(ctx context.Context, f
 	}
 	res := resTmp.(*model.Response)
 	fc.Result = res
-	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation__add_email_template(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -10901,7 +10901,7 @@ func (ec *executionContext) _Mutation__update_email_template(ctx context.Context
 	}
 	res := resTmp.(*model.Response)
 	fc.Result = res
-	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation__update_email_template(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -10960,7 +10960,7 @@ func (ec *executionContext) _Mutation__delete_email_template(ctx context.Context
 	}
 	res := resTmp.(*model.Response)
 	fc.Result = res
-	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation__delete_email_template(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -11195,7 +11195,7 @@ func (ec *executionContext) _Query_meta(ctx context.Context, field graphql.Colle
 	}
 	res := resTmp.(*model.Meta)
 	fc.Result = res
-	return ec.marshalNMeta2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐMeta(ctx, field.Selections, res)
+	return ec.marshalNMeta2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐMeta(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_meta(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -11281,7 +11281,7 @@ func (ec *executionContext) _Query_session(ctx context.Context, field graphql.Co
 	}
 	res := resTmp.(*model.AuthResponse)
 	fc.Result = res
-	return ec.marshalNAuthResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAuthResponse(ctx, field.Selections, res)
+	return ec.marshalNAuthResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_session(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -11362,7 +11362,7 @@ func (ec *executionContext) _Query_profile(ctx context.Context, field graphql.Co
 	}
 	res := resTmp.(*model.User)
 	fc.Result = res
-	return ec.marshalNUser2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+	return ec.marshalNUser2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_profile(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -11448,7 +11448,7 @@ func (ec *executionContext) _Query_validate_jwt_token(ctx context.Context, field
 	}
 	res := resTmp.(*model.ValidateJWTTokenResponse)
 	fc.Result = res
-	return ec.marshalNValidateJWTTokenResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐValidateJWTTokenResponse(ctx, field.Selections, res)
+	return ec.marshalNValidateJWTTokenResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐValidateJWTTokenResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_validate_jwt_token(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -11509,7 +11509,7 @@ func (ec *executionContext) _Query_validate_session(ctx context.Context, field g
 	}
 	res := resTmp.(*model.ValidateSessionResponse)
 	fc.Result = res
-	return ec.marshalNValidateSessionResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐValidateSessionResponse(ctx, field.Selections, res)
+	return ec.marshalNValidateSessionResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐValidateSessionResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_validate_session(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -11570,7 +11570,7 @@ func (ec *executionContext) _Query__users(ctx context.Context, field graphql.Col
 	}
 	res := resTmp.(*model.Users)
 	fc.Result = res
-	return ec.marshalNUsers2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUsers(ctx, field.Selections, res)
+	return ec.marshalNUsers2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUsers(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query__users(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -11631,7 +11631,7 @@ func (ec *executionContext) _Query__user(ctx context.Context, field graphql.Coll
 	}
 	res := resTmp.(*model.User)
 	fc.Result = res
-	return ec.marshalNUser2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+	return ec.marshalNUser2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query__user(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -11728,7 +11728,7 @@ func (ec *executionContext) _Query__verification_requests(ctx context.Context, f
 	}
 	res := resTmp.(*model.VerificationRequests)
 	fc.Result = res
-	return ec.marshalNVerificationRequests2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐVerificationRequests(ctx, field.Selections, res)
+	return ec.marshalNVerificationRequests2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐVerificationRequests(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query__verification_requests(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -11789,7 +11789,7 @@ func (ec *executionContext) _Query__admin_session(ctx context.Context, field gra
 	}
 	res := resTmp.(*model.Response)
 	fc.Result = res
-	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query__admin_session(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -11837,7 +11837,7 @@ func (ec *executionContext) _Query__env(ctx context.Context, field graphql.Colle
 	}
 	res := resTmp.(*model.Env)
 	fc.Result = res
-	return ec.marshalNEnv2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐEnv(ctx, field.Selections, res)
+	return ec.marshalNEnv2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐEnv(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query__env(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -12025,7 +12025,7 @@ func (ec *executionContext) _Query__webhook(ctx context.Context, field graphql.C
 	}
 	res := resTmp.(*model.Webhook)
 	fc.Result = res
-	return ec.marshalNWebhook2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐWebhook(ctx, field.Selections, res)
+	return ec.marshalNWebhook2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐWebhook(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query__webhook(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -12098,7 +12098,7 @@ func (ec *executionContext) _Query__webhooks(ctx context.Context, field graphql.
 	}
 	res := resTmp.(*model.Webhooks)
 	fc.Result = res
-	return ec.marshalNWebhooks2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐWebhooks(ctx, field.Selections, res)
+	return ec.marshalNWebhooks2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐWebhooks(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query__webhooks(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -12159,7 +12159,7 @@ func (ec *executionContext) _Query__webhook_logs(ctx context.Context, field grap
 	}
 	res := resTmp.(*model.WebhookLogs)
 	fc.Result = res
-	return ec.marshalNWebhookLogs2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐWebhookLogs(ctx, field.Selections, res)
+	return ec.marshalNWebhookLogs2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐWebhookLogs(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query__webhook_logs(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -12220,7 +12220,7 @@ func (ec *executionContext) _Query__email_templates(ctx context.Context, field g
 	}
 	res := resTmp.(*model.EmailTemplates)
 	fc.Result = res
-	return ec.marshalNEmailTemplates2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐEmailTemplates(ctx, field.Selections, res)
+	return ec.marshalNEmailTemplates2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐEmailTemplates(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query__email_templates(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -13629,7 +13629,7 @@ func (ec *executionContext) _Users_pagination(ctx context.Context, field graphql
 	}
 	res := resTmp.(*model.Pagination)
 	fc.Result = res
-	return ec.marshalNPagination2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐPagination(ctx, field.Selections, res)
+	return ec.marshalNPagination2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPagination(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Users_pagination(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -13683,7 +13683,7 @@ func (ec *executionContext) _Users_users(ctx context.Context, field graphql.Coll
 	}
 	res := resTmp.([]*model.User)
 	fc.Result = res
-	return ec.marshalNUser2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUserᚄ(ctx, field.Selections, res)
+	return ec.marshalNUser2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUserᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Users_users(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -13898,7 +13898,7 @@ func (ec *executionContext) _ValidateSessionResponse_user(ctx context.Context, f
 	}
 	res := resTmp.(*model.User)
 	fc.Result = res
-	return ec.marshalNUser2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+	return ec.marshalNUser2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_ValidateSessionResponse_user(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -14356,7 +14356,7 @@ func (ec *executionContext) _VerificationRequests_pagination(ctx context.Context
 	}
 	res := resTmp.(*model.Pagination)
 	fc.Result = res
-	return ec.marshalNPagination2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐPagination(ctx, field.Selections, res)
+	return ec.marshalNPagination2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPagination(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_VerificationRequests_pagination(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -14410,7 +14410,7 @@ func (ec *executionContext) _VerificationRequests_verification_requests(ctx cont
 	}
 	res := resTmp.([]*model.VerificationRequest)
 	fc.Result = res
-	return ec.marshalNVerificationRequest2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐVerificationRequestᚄ(ctx, field.Selections, res)
+	return ec.marshalNVerificationRequest2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐVerificationRequestᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_VerificationRequests_verification_requests(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -15095,7 +15095,7 @@ func (ec *executionContext) _WebhookLogs_pagination(ctx context.Context, field g
 	}
 	res := resTmp.(*model.Pagination)
 	fc.Result = res
-	return ec.marshalNPagination2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐPagination(ctx, field.Selections, res)
+	return ec.marshalNPagination2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPagination(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_WebhookLogs_pagination(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -15149,7 +15149,7 @@ func (ec *executionContext) _WebhookLogs_webhook_logs(ctx context.Context, field
 	}
 	res := resTmp.([]*model.WebhookLog)
 	fc.Result = res
-	return ec.marshalNWebhookLog2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐWebhookLogᚄ(ctx, field.Selections, res)
+	return ec.marshalNWebhookLog2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐWebhookLogᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_WebhookLogs_webhook_logs(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -15209,7 +15209,7 @@ func (ec *executionContext) _Webhooks_pagination(ctx context.Context, field grap
 	}
 	res := resTmp.(*model.Pagination)
 	fc.Result = res
-	return ec.marshalNPagination2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐPagination(ctx, field.Selections, res)
+	return ec.marshalNPagination2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPagination(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Webhooks_pagination(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -15263,7 +15263,7 @@ func (ec *executionContext) _Webhooks_webhooks(ctx context.Context, field graphq
 	}
 	res := resTmp.([]*model.Webhook)
 	fc.Result = res
-	return ec.marshalNWebhook2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐWebhookᚄ(ctx, field.Selections, res)
+	return ec.marshalNWebhook2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐWebhookᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Webhooks_webhooks(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -17440,7 +17440,7 @@ func (ec *executionContext) unmarshalInputListWebhookLogRequest(ctx context.Cont
 		switch k {
 		case "pagination":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pagination"))
-			data, err := ec.unmarshalOPaginationInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐPaginationInput(ctx, v)
+			data, err := ec.unmarshalOPaginationInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginationInput(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -17812,7 +17812,7 @@ func (ec *executionContext) unmarshalInputPaginatedInput(ctx context.Context, ob
 		switch k {
 		case "pagination":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pagination"))
-			data, err := ec.unmarshalOPaginationInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐPaginationInput(ctx, v)
+			data, err := ec.unmarshalOPaginationInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginationInput(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -21601,31 +21601,31 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 
 // region    ***************************** type.gotpl *****************************
 
-func (ec *executionContext) unmarshalNAddEmailTemplateRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAddEmailTemplateRequest(ctx context.Context, v interface{}) (model.AddEmailTemplateRequest, error) {
+func (ec *executionContext) unmarshalNAddEmailTemplateRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAddEmailTemplateRequest(ctx context.Context, v interface{}) (model.AddEmailTemplateRequest, error) {
 	res, err := ec.unmarshalInputAddEmailTemplateRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNAddWebhookRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAddWebhookRequest(ctx context.Context, v interface{}) (model.AddWebhookRequest, error) {
+func (ec *executionContext) unmarshalNAddWebhookRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAddWebhookRequest(ctx context.Context, v interface{}) (model.AddWebhookRequest, error) {
 	res, err := ec.unmarshalInputAddWebhookRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNAdminLoginInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAdminLoginInput(ctx context.Context, v interface{}) (model.AdminLoginInput, error) {
+func (ec *executionContext) unmarshalNAdminLoginInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAdminLoginInput(ctx context.Context, v interface{}) (model.AdminLoginInput, error) {
 	res, err := ec.unmarshalInputAdminLoginInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNAdminSignupInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAdminSignupInput(ctx context.Context, v interface{}) (model.AdminSignupInput, error) {
+func (ec *executionContext) unmarshalNAdminSignupInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAdminSignupInput(ctx context.Context, v interface{}) (model.AdminSignupInput, error) {
 	res, err := ec.unmarshalInputAdminSignupInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNAuthResponse2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAuthResponse(ctx context.Context, sel ast.SelectionSet, v model.AuthResponse) graphql.Marshaler {
+func (ec *executionContext) marshalNAuthResponse2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthResponse(ctx context.Context, sel ast.SelectionSet, v model.AuthResponse) graphql.Marshaler {
 	return ec._AuthResponse(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNAuthResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐAuthResponse(ctx context.Context, sel ast.SelectionSet, v *model.AuthResponse) graphql.Marshaler {
+func (ec *executionContext) marshalNAuthResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthResponse(ctx context.Context, sel ast.SelectionSet, v *model.AuthResponse) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -21650,17 +21650,17 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
-func (ec *executionContext) unmarshalNDeleteEmailTemplateRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐDeleteEmailTemplateRequest(ctx context.Context, v interface{}) (model.DeleteEmailTemplateRequest, error) {
+func (ec *executionContext) unmarshalNDeleteEmailTemplateRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐDeleteEmailTemplateRequest(ctx context.Context, v interface{}) (model.DeleteEmailTemplateRequest, error) {
 	res, err := ec.unmarshalInputDeleteEmailTemplateRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNDeleteUserInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐDeleteUserInput(ctx context.Context, v interface{}) (model.DeleteUserInput, error) {
+func (ec *executionContext) unmarshalNDeleteUserInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐDeleteUserInput(ctx context.Context, v interface{}) (model.DeleteUserInput, error) {
 	res, err := ec.unmarshalInputDeleteUserInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNEmailTemplate2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐEmailTemplateᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.EmailTemplate) graphql.Marshaler {
+func (ec *executionContext) marshalNEmailTemplate2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐEmailTemplateᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.EmailTemplate) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -21684,7 +21684,7 @@ func (ec *executionContext) marshalNEmailTemplate2ᚕᚖgithubᚗcomᚋauthorize
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNEmailTemplate2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐEmailTemplate(ctx, sel, v[i])
+			ret[i] = ec.marshalNEmailTemplate2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐEmailTemplate(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -21704,7 +21704,7 @@ func (ec *executionContext) marshalNEmailTemplate2ᚕᚖgithubᚗcomᚋauthorize
 	return ret
 }
 
-func (ec *executionContext) marshalNEmailTemplate2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐEmailTemplate(ctx context.Context, sel ast.SelectionSet, v *model.EmailTemplate) graphql.Marshaler {
+func (ec *executionContext) marshalNEmailTemplate2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐEmailTemplate(ctx context.Context, sel ast.SelectionSet, v *model.EmailTemplate) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -21714,11 +21714,11 @@ func (ec *executionContext) marshalNEmailTemplate2ᚖgithubᚗcomᚋauthorizerde
 	return ec._EmailTemplate(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNEmailTemplates2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐEmailTemplates(ctx context.Context, sel ast.SelectionSet, v model.EmailTemplates) graphql.Marshaler {
+func (ec *executionContext) marshalNEmailTemplates2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐEmailTemplates(ctx context.Context, sel ast.SelectionSet, v model.EmailTemplates) graphql.Marshaler {
 	return ec._EmailTemplates(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNEmailTemplates2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐEmailTemplates(ctx context.Context, sel ast.SelectionSet, v *model.EmailTemplates) graphql.Marshaler {
+func (ec *executionContext) marshalNEmailTemplates2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐEmailTemplates(ctx context.Context, sel ast.SelectionSet, v *model.EmailTemplates) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -21728,11 +21728,11 @@ func (ec *executionContext) marshalNEmailTemplates2ᚖgithubᚗcomᚋauthorizerd
 	return ec._EmailTemplates(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNEnv2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐEnv(ctx context.Context, sel ast.SelectionSet, v model.Env) graphql.Marshaler {
+func (ec *executionContext) marshalNEnv2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐEnv(ctx context.Context, sel ast.SelectionSet, v model.Env) graphql.Marshaler {
 	return ec._Env(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNEnv2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐEnv(ctx context.Context, sel ast.SelectionSet, v *model.Env) graphql.Marshaler {
+func (ec *executionContext) marshalNEnv2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐEnv(ctx context.Context, sel ast.SelectionSet, v *model.Env) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -21742,16 +21742,16 @@ func (ec *executionContext) marshalNEnv2ᚖgithubᚗcomᚋauthorizerdevᚋauthor
 	return ec._Env(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNForgotPasswordInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐForgotPasswordInput(ctx context.Context, v interface{}) (model.ForgotPasswordInput, error) {
+func (ec *executionContext) unmarshalNForgotPasswordInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐForgotPasswordInput(ctx context.Context, v interface{}) (model.ForgotPasswordInput, error) {
 	res, err := ec.unmarshalInputForgotPasswordInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNForgotPasswordResponse2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐForgotPasswordResponse(ctx context.Context, sel ast.SelectionSet, v model.ForgotPasswordResponse) graphql.Marshaler {
+func (ec *executionContext) marshalNForgotPasswordResponse2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐForgotPasswordResponse(ctx context.Context, sel ast.SelectionSet, v model.ForgotPasswordResponse) graphql.Marshaler {
 	return ec._ForgotPasswordResponse(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNForgotPasswordResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐForgotPasswordResponse(ctx context.Context, sel ast.SelectionSet, v *model.ForgotPasswordResponse) graphql.Marshaler {
+func (ec *executionContext) marshalNForgotPasswordResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐForgotPasswordResponse(ctx context.Context, sel ast.SelectionSet, v *model.ForgotPasswordResponse) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -21761,16 +21761,16 @@ func (ec *executionContext) marshalNForgotPasswordResponse2ᚖgithubᚗcomᚋaut
 	return ec._ForgotPasswordResponse(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNGenerateJWTKeysInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐGenerateJWTKeysInput(ctx context.Context, v interface{}) (model.GenerateJWTKeysInput, error) {
+func (ec *executionContext) unmarshalNGenerateJWTKeysInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐGenerateJWTKeysInput(ctx context.Context, v interface{}) (model.GenerateJWTKeysInput, error) {
 	res, err := ec.unmarshalInputGenerateJWTKeysInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNGenerateJWTKeysResponse2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐGenerateJWTKeysResponse(ctx context.Context, sel ast.SelectionSet, v model.GenerateJWTKeysResponse) graphql.Marshaler {
+func (ec *executionContext) marshalNGenerateJWTKeysResponse2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐGenerateJWTKeysResponse(ctx context.Context, sel ast.SelectionSet, v model.GenerateJWTKeysResponse) graphql.Marshaler {
 	return ec._GenerateJWTKeysResponse(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNGenerateJWTKeysResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐGenerateJWTKeysResponse(ctx context.Context, sel ast.SelectionSet, v *model.GenerateJWTKeysResponse) graphql.Marshaler {
+func (ec *executionContext) marshalNGenerateJWTKeysResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐGenerateJWTKeysResponse(ctx context.Context, sel ast.SelectionSet, v *model.GenerateJWTKeysResponse) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -21780,7 +21780,7 @@ func (ec *executionContext) marshalNGenerateJWTKeysResponse2ᚖgithubᚗcomᚋau
 	return ec._GenerateJWTKeysResponse(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNGetUserRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐGetUserRequest(ctx context.Context, v interface{}) (model.GetUserRequest, error) {
+func (ec *executionContext) unmarshalNGetUserRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐGetUserRequest(ctx context.Context, v interface{}) (model.GetUserRequest, error) {
 	res, err := ec.unmarshalInputGetUserRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -21815,16 +21815,16 @@ func (ec *executionContext) marshalNInt642int64(ctx context.Context, sel ast.Sel
 	return res
 }
 
-func (ec *executionContext) unmarshalNInviteMemberInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐInviteMemberInput(ctx context.Context, v interface{}) (model.InviteMemberInput, error) {
+func (ec *executionContext) unmarshalNInviteMemberInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐInviteMemberInput(ctx context.Context, v interface{}) (model.InviteMemberInput, error) {
 	res, err := ec.unmarshalInputInviteMemberInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNInviteMembersResponse2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐInviteMembersResponse(ctx context.Context, sel ast.SelectionSet, v model.InviteMembersResponse) graphql.Marshaler {
+func (ec *executionContext) marshalNInviteMembersResponse2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐInviteMembersResponse(ctx context.Context, sel ast.SelectionSet, v model.InviteMembersResponse) graphql.Marshaler {
 	return ec._InviteMembersResponse(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNInviteMembersResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐInviteMembersResponse(ctx context.Context, sel ast.SelectionSet, v *model.InviteMembersResponse) graphql.Marshaler {
+func (ec *executionContext) marshalNInviteMembersResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐInviteMembersResponse(ctx context.Context, sel ast.SelectionSet, v *model.InviteMembersResponse) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -21834,21 +21834,21 @@ func (ec *executionContext) marshalNInviteMembersResponse2ᚖgithubᚗcomᚋauth
 	return ec._InviteMembersResponse(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNLoginInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐLoginInput(ctx context.Context, v interface{}) (model.LoginInput, error) {
+func (ec *executionContext) unmarshalNLoginInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐLoginInput(ctx context.Context, v interface{}) (model.LoginInput, error) {
 	res, err := ec.unmarshalInputLoginInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNMagicLinkLoginInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐMagicLinkLoginInput(ctx context.Context, v interface{}) (model.MagicLinkLoginInput, error) {
+func (ec *executionContext) unmarshalNMagicLinkLoginInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐMagicLinkLoginInput(ctx context.Context, v interface{}) (model.MagicLinkLoginInput, error) {
 	res, err := ec.unmarshalInputMagicLinkLoginInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNMeta2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐMeta(ctx context.Context, sel ast.SelectionSet, v model.Meta) graphql.Marshaler {
+func (ec *executionContext) marshalNMeta2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐMeta(ctx context.Context, sel ast.SelectionSet, v model.Meta) graphql.Marshaler {
 	return ec._Meta(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNMeta2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐMeta(ctx context.Context, sel ast.SelectionSet, v *model.Meta) graphql.Marshaler {
+func (ec *executionContext) marshalNMeta2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐMeta(ctx context.Context, sel ast.SelectionSet, v *model.Meta) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -21858,17 +21858,17 @@ func (ec *executionContext) marshalNMeta2ᚖgithubᚗcomᚋauthorizerdevᚋautho
 	return ec._Meta(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNMobileLoginInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐMobileLoginInput(ctx context.Context, v interface{}) (model.MobileLoginInput, error) {
+func (ec *executionContext) unmarshalNMobileLoginInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐMobileLoginInput(ctx context.Context, v interface{}) (model.MobileLoginInput, error) {
 	res, err := ec.unmarshalInputMobileLoginInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNOAuthRevokeInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐOAuthRevokeInput(ctx context.Context, v interface{}) (model.OAuthRevokeInput, error) {
+func (ec *executionContext) unmarshalNOAuthRevokeInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐOAuthRevokeInput(ctx context.Context, v interface{}) (model.OAuthRevokeInput, error) {
 	res, err := ec.unmarshalInputOAuthRevokeInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNPagination2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐPagination(ctx context.Context, sel ast.SelectionSet, v *model.Pagination) graphql.Marshaler {
+func (ec *executionContext) marshalNPagination2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPagination(ctx context.Context, sel ast.SelectionSet, v *model.Pagination) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -21878,26 +21878,26 @@ func (ec *executionContext) marshalNPagination2ᚖgithubᚗcomᚋauthorizerdev�
 	return ec._Pagination(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNResendOTPRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResendOTPRequest(ctx context.Context, v interface{}) (model.ResendOTPRequest, error) {
+func (ec *executionContext) unmarshalNResendOTPRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResendOTPRequest(ctx context.Context, v interface{}) (model.ResendOTPRequest, error) {
 	res, err := ec.unmarshalInputResendOTPRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNResendVerifyEmailInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResendVerifyEmailInput(ctx context.Context, v interface{}) (model.ResendVerifyEmailInput, error) {
+func (ec *executionContext) unmarshalNResendVerifyEmailInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResendVerifyEmailInput(ctx context.Context, v interface{}) (model.ResendVerifyEmailInput, error) {
 	res, err := ec.unmarshalInputResendVerifyEmailInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNResetPasswordInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResetPasswordInput(ctx context.Context, v interface{}) (model.ResetPasswordInput, error) {
+func (ec *executionContext) unmarshalNResetPasswordInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResetPasswordInput(ctx context.Context, v interface{}) (model.ResetPasswordInput, error) {
 	res, err := ec.unmarshalInputResetPasswordInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNResponse2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx context.Context, sel ast.SelectionSet, v model.Response) graphql.Marshaler {
+func (ec *executionContext) marshalNResponse2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx context.Context, sel ast.SelectionSet, v model.Response) graphql.Marshaler {
 	return ec._Response(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐResponse(ctx context.Context, sel ast.SelectionSet, v *model.Response) graphql.Marshaler {
+func (ec *executionContext) marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx context.Context, sel ast.SelectionSet, v *model.Response) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -21907,7 +21907,7 @@ func (ec *executionContext) marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋa
 	return ec._Response(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNSignUpInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐSignUpInput(ctx context.Context, v interface{}) (model.SignUpInput, error) {
+func (ec *executionContext) unmarshalNSignUpInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐSignUpInput(ctx context.Context, v interface{}) (model.SignUpInput, error) {
 	res, err := ec.unmarshalInputSignUpInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -21959,16 +21959,16 @@ func (ec *executionContext) marshalNString2ᚕstringᚄ(ctx context.Context, sel
 	return ret
 }
 
-func (ec *executionContext) unmarshalNTestEndpointRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐTestEndpointRequest(ctx context.Context, v interface{}) (model.TestEndpointRequest, error) {
+func (ec *executionContext) unmarshalNTestEndpointRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐTestEndpointRequest(ctx context.Context, v interface{}) (model.TestEndpointRequest, error) {
 	res, err := ec.unmarshalInputTestEndpointRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNTestEndpointResponse2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐTestEndpointResponse(ctx context.Context, sel ast.SelectionSet, v model.TestEndpointResponse) graphql.Marshaler {
+func (ec *executionContext) marshalNTestEndpointResponse2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐTestEndpointResponse(ctx context.Context, sel ast.SelectionSet, v model.TestEndpointResponse) graphql.Marshaler {
 	return ec._TestEndpointResponse(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNTestEndpointResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐTestEndpointResponse(ctx context.Context, sel ast.SelectionSet, v *model.TestEndpointResponse) graphql.Marshaler {
+func (ec *executionContext) marshalNTestEndpointResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐTestEndpointResponse(ctx context.Context, sel ast.SelectionSet, v *model.TestEndpointResponse) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -21978,41 +21978,41 @@ func (ec *executionContext) marshalNTestEndpointResponse2ᚖgithubᚗcomᚋautho
 	return ec._TestEndpointResponse(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNUpdateAccessInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUpdateAccessInput(ctx context.Context, v interface{}) (model.UpdateAccessInput, error) {
+func (ec *executionContext) unmarshalNUpdateAccessInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateAccessInput(ctx context.Context, v interface{}) (model.UpdateAccessInput, error) {
 	res, err := ec.unmarshalInputUpdateAccessInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNUpdateEmailTemplateRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUpdateEmailTemplateRequest(ctx context.Context, v interface{}) (model.UpdateEmailTemplateRequest, error) {
+func (ec *executionContext) unmarshalNUpdateEmailTemplateRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateEmailTemplateRequest(ctx context.Context, v interface{}) (model.UpdateEmailTemplateRequest, error) {
 	res, err := ec.unmarshalInputUpdateEmailTemplateRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNUpdateEnvInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUpdateEnvInput(ctx context.Context, v interface{}) (model.UpdateEnvInput, error) {
+func (ec *executionContext) unmarshalNUpdateEnvInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateEnvInput(ctx context.Context, v interface{}) (model.UpdateEnvInput, error) {
 	res, err := ec.unmarshalInputUpdateEnvInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNUpdateProfileInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUpdateProfileInput(ctx context.Context, v interface{}) (model.UpdateProfileInput, error) {
+func (ec *executionContext) unmarshalNUpdateProfileInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateProfileInput(ctx context.Context, v interface{}) (model.UpdateProfileInput, error) {
 	res, err := ec.unmarshalInputUpdateProfileInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNUpdateUserInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUpdateUserInput(ctx context.Context, v interface{}) (model.UpdateUserInput, error) {
+func (ec *executionContext) unmarshalNUpdateUserInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateUserInput(ctx context.Context, v interface{}) (model.UpdateUserInput, error) {
 	res, err := ec.unmarshalInputUpdateUserInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNUpdateWebhookRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUpdateWebhookRequest(ctx context.Context, v interface{}) (model.UpdateWebhookRequest, error) {
+func (ec *executionContext) unmarshalNUpdateWebhookRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateWebhookRequest(ctx context.Context, v interface{}) (model.UpdateWebhookRequest, error) {
 	res, err := ec.unmarshalInputUpdateWebhookRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNUser2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v model.User) graphql.Marshaler {
+func (ec *executionContext) marshalNUser2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v model.User) graphql.Marshaler {
 	return ec._User(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNUser2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUserᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.User) graphql.Marshaler {
+func (ec *executionContext) marshalNUser2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUserᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.User) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -22036,7 +22036,7 @@ func (ec *executionContext) marshalNUser2ᚕᚖgithubᚗcomᚋauthorizerdevᚋau
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNUser2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUser(ctx, sel, v[i])
+			ret[i] = ec.marshalNUser2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUser(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -22056,7 +22056,7 @@ func (ec *executionContext) marshalNUser2ᚕᚖgithubᚗcomᚋauthorizerdevᚋau
 	return ret
 }
 
-func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v *model.User) graphql.Marshaler {
+func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v *model.User) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -22066,11 +22066,11 @@ func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋauthorizerdevᚋautho
 	return ec._User(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNUsers2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUsers(ctx context.Context, sel ast.SelectionSet, v model.Users) graphql.Marshaler {
+func (ec *executionContext) marshalNUsers2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUsers(ctx context.Context, sel ast.SelectionSet, v model.Users) graphql.Marshaler {
 	return ec._Users(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNUsers2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUsers(ctx context.Context, sel ast.SelectionSet, v *model.Users) graphql.Marshaler {
+func (ec *executionContext) marshalNUsers2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUsers(ctx context.Context, sel ast.SelectionSet, v *model.Users) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -22080,16 +22080,16 @@ func (ec *executionContext) marshalNUsers2ᚖgithubᚗcomᚋauthorizerdevᚋauth
 	return ec._Users(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNValidateJWTTokenInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐValidateJWTTokenInput(ctx context.Context, v interface{}) (model.ValidateJWTTokenInput, error) {
+func (ec *executionContext) unmarshalNValidateJWTTokenInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐValidateJWTTokenInput(ctx context.Context, v interface{}) (model.ValidateJWTTokenInput, error) {
 	res, err := ec.unmarshalInputValidateJWTTokenInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNValidateJWTTokenResponse2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐValidateJWTTokenResponse(ctx context.Context, sel ast.SelectionSet, v model.ValidateJWTTokenResponse) graphql.Marshaler {
+func (ec *executionContext) marshalNValidateJWTTokenResponse2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐValidateJWTTokenResponse(ctx context.Context, sel ast.SelectionSet, v model.ValidateJWTTokenResponse) graphql.Marshaler {
 	return ec._ValidateJWTTokenResponse(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNValidateJWTTokenResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐValidateJWTTokenResponse(ctx context.Context, sel ast.SelectionSet, v *model.ValidateJWTTokenResponse) graphql.Marshaler {
+func (ec *executionContext) marshalNValidateJWTTokenResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐValidateJWTTokenResponse(ctx context.Context, sel ast.SelectionSet, v *model.ValidateJWTTokenResponse) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -22099,11 +22099,11 @@ func (ec *executionContext) marshalNValidateJWTTokenResponse2ᚖgithubᚗcomᚋa
 	return ec._ValidateJWTTokenResponse(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNValidateSessionResponse2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐValidateSessionResponse(ctx context.Context, sel ast.SelectionSet, v model.ValidateSessionResponse) graphql.Marshaler {
+func (ec *executionContext) marshalNValidateSessionResponse2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐValidateSessionResponse(ctx context.Context, sel ast.SelectionSet, v model.ValidateSessionResponse) graphql.Marshaler {
 	return ec._ValidateSessionResponse(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNValidateSessionResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐValidateSessionResponse(ctx context.Context, sel ast.SelectionSet, v *model.ValidateSessionResponse) graphql.Marshaler {
+func (ec *executionContext) marshalNValidateSessionResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐValidateSessionResponse(ctx context.Context, sel ast.SelectionSet, v *model.ValidateSessionResponse) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -22113,7 +22113,7 @@ func (ec *executionContext) marshalNValidateSessionResponse2ᚖgithubᚗcomᚋau
 	return ec._ValidateSessionResponse(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNVerificationRequest2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐVerificationRequestᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.VerificationRequest) graphql.Marshaler {
+func (ec *executionContext) marshalNVerificationRequest2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐVerificationRequestᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.VerificationRequest) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -22137,7 +22137,7 @@ func (ec *executionContext) marshalNVerificationRequest2ᚕᚖgithubᚗcomᚋaut
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNVerificationRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐVerificationRequest(ctx, sel, v[i])
+			ret[i] = ec.marshalNVerificationRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐVerificationRequest(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -22157,7 +22157,7 @@ func (ec *executionContext) marshalNVerificationRequest2ᚕᚖgithubᚗcomᚋaut
 	return ret
 }
 
-func (ec *executionContext) marshalNVerificationRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐVerificationRequest(ctx context.Context, sel ast.SelectionSet, v *model.VerificationRequest) graphql.Marshaler {
+func (ec *executionContext) marshalNVerificationRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐVerificationRequest(ctx context.Context, sel ast.SelectionSet, v *model.VerificationRequest) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -22167,11 +22167,11 @@ func (ec *executionContext) marshalNVerificationRequest2ᚖgithubᚗcomᚋauthor
 	return ec._VerificationRequest(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNVerificationRequests2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐVerificationRequests(ctx context.Context, sel ast.SelectionSet, v model.VerificationRequests) graphql.Marshaler {
+func (ec *executionContext) marshalNVerificationRequests2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐVerificationRequests(ctx context.Context, sel ast.SelectionSet, v model.VerificationRequests) graphql.Marshaler {
 	return ec._VerificationRequests(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNVerificationRequests2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐVerificationRequests(ctx context.Context, sel ast.SelectionSet, v *model.VerificationRequests) graphql.Marshaler {
+func (ec *executionContext) marshalNVerificationRequests2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐVerificationRequests(ctx context.Context, sel ast.SelectionSet, v *model.VerificationRequests) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -22181,21 +22181,21 @@ func (ec *executionContext) marshalNVerificationRequests2ᚖgithubᚗcomᚋautho
 	return ec._VerificationRequests(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNVerifyEmailInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐVerifyEmailInput(ctx context.Context, v interface{}) (model.VerifyEmailInput, error) {
+func (ec *executionContext) unmarshalNVerifyEmailInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐVerifyEmailInput(ctx context.Context, v interface{}) (model.VerifyEmailInput, error) {
 	res, err := ec.unmarshalInputVerifyEmailInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNVerifyOTPRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐVerifyOTPRequest(ctx context.Context, v interface{}) (model.VerifyOTPRequest, error) {
+func (ec *executionContext) unmarshalNVerifyOTPRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐVerifyOTPRequest(ctx context.Context, v interface{}) (model.VerifyOTPRequest, error) {
 	res, err := ec.unmarshalInputVerifyOTPRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNWebhook2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐWebhook(ctx context.Context, sel ast.SelectionSet, v model.Webhook) graphql.Marshaler {
+func (ec *executionContext) marshalNWebhook2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐWebhook(ctx context.Context, sel ast.SelectionSet, v model.Webhook) graphql.Marshaler {
 	return ec._Webhook(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNWebhook2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐWebhookᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Webhook) graphql.Marshaler {
+func (ec *executionContext) marshalNWebhook2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐWebhookᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Webhook) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -22219,7 +22219,7 @@ func (ec *executionContext) marshalNWebhook2ᚕᚖgithubᚗcomᚋauthorizerdev�
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNWebhook2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐWebhook(ctx, sel, v[i])
+			ret[i] = ec.marshalNWebhook2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐWebhook(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -22239,7 +22239,7 @@ func (ec *executionContext) marshalNWebhook2ᚕᚖgithubᚗcomᚋauthorizerdev�
 	return ret
 }
 
-func (ec *executionContext) marshalNWebhook2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐWebhook(ctx context.Context, sel ast.SelectionSet, v *model.Webhook) graphql.Marshaler {
+func (ec *executionContext) marshalNWebhook2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐWebhook(ctx context.Context, sel ast.SelectionSet, v *model.Webhook) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -22249,7 +22249,7 @@ func (ec *executionContext) marshalNWebhook2ᚖgithubᚗcomᚋauthorizerdevᚋau
 	return ec._Webhook(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNWebhookLog2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐWebhookLogᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.WebhookLog) graphql.Marshaler {
+func (ec *executionContext) marshalNWebhookLog2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐWebhookLogᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.WebhookLog) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -22273,7 +22273,7 @@ func (ec *executionContext) marshalNWebhookLog2ᚕᚖgithubᚗcomᚋauthorizerde
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNWebhookLog2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐWebhookLog(ctx, sel, v[i])
+			ret[i] = ec.marshalNWebhookLog2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐWebhookLog(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -22293,7 +22293,7 @@ func (ec *executionContext) marshalNWebhookLog2ᚕᚖgithubᚗcomᚋauthorizerde
 	return ret
 }
 
-func (ec *executionContext) marshalNWebhookLog2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐWebhookLog(ctx context.Context, sel ast.SelectionSet, v *model.WebhookLog) graphql.Marshaler {
+func (ec *executionContext) marshalNWebhookLog2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐWebhookLog(ctx context.Context, sel ast.SelectionSet, v *model.WebhookLog) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -22303,11 +22303,11 @@ func (ec *executionContext) marshalNWebhookLog2ᚖgithubᚗcomᚋauthorizerdev�
 	return ec._WebhookLog(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNWebhookLogs2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐWebhookLogs(ctx context.Context, sel ast.SelectionSet, v model.WebhookLogs) graphql.Marshaler {
+func (ec *executionContext) marshalNWebhookLogs2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐWebhookLogs(ctx context.Context, sel ast.SelectionSet, v model.WebhookLogs) graphql.Marshaler {
 	return ec._WebhookLogs(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNWebhookLogs2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐWebhookLogs(ctx context.Context, sel ast.SelectionSet, v *model.WebhookLogs) graphql.Marshaler {
+func (ec *executionContext) marshalNWebhookLogs2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐWebhookLogs(ctx context.Context, sel ast.SelectionSet, v *model.WebhookLogs) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -22317,16 +22317,16 @@ func (ec *executionContext) marshalNWebhookLogs2ᚖgithubᚗcomᚋauthorizerdev�
 	return ec._WebhookLogs(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNWebhookRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐWebhookRequest(ctx context.Context, v interface{}) (model.WebhookRequest, error) {
+func (ec *executionContext) unmarshalNWebhookRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐWebhookRequest(ctx context.Context, v interface{}) (model.WebhookRequest, error) {
 	res, err := ec.unmarshalInputWebhookRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNWebhooks2githubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐWebhooks(ctx context.Context, sel ast.SelectionSet, v model.Webhooks) graphql.Marshaler {
+func (ec *executionContext) marshalNWebhooks2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐWebhooks(ctx context.Context, sel ast.SelectionSet, v model.Webhooks) graphql.Marshaler {
 	return ec._Webhooks(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNWebhooks2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐWebhooks(ctx context.Context, sel ast.SelectionSet, v *model.Webhooks) graphql.Marshaler {
+func (ec *executionContext) marshalNWebhooks2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐWebhooks(ctx context.Context, sel ast.SelectionSet, v *model.Webhooks) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -22647,7 +22647,7 @@ func (ec *executionContext) marshalOInt642ᚖint64(ctx context.Context, sel ast.
 	return res
 }
 
-func (ec *executionContext) unmarshalOListWebhookLogRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐListWebhookLogRequest(ctx context.Context, v interface{}) (*model.ListWebhookLogRequest, error) {
+func (ec *executionContext) unmarshalOListWebhookLogRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐListWebhookLogRequest(ctx context.Context, v interface{}) (*model.ListWebhookLogRequest, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -22671,7 +22671,7 @@ func (ec *executionContext) marshalOMap2map(ctx context.Context, sel ast.Selecti
 	return res
 }
 
-func (ec *executionContext) unmarshalOMobileSignUpInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐMobileSignUpInput(ctx context.Context, v interface{}) (*model.MobileSignUpInput, error) {
+func (ec *executionContext) unmarshalOMobileSignUpInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐMobileSignUpInput(ctx context.Context, v interface{}) (*model.MobileSignUpInput, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -22679,7 +22679,7 @@ func (ec *executionContext) unmarshalOMobileSignUpInput2ᚖgithubᚗcomᚋauthor
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalOPaginatedInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐPaginatedInput(ctx context.Context, v interface{}) (*model.PaginatedInput, error) {
+func (ec *executionContext) unmarshalOPaginatedInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginatedInput(ctx context.Context, v interface{}) (*model.PaginatedInput, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -22687,7 +22687,7 @@ func (ec *executionContext) unmarshalOPaginatedInput2ᚖgithubᚗcomᚋauthorize
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalOPaginationInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐPaginationInput(ctx context.Context, v interface{}) (*model.PaginationInput, error) {
+func (ec *executionContext) unmarshalOPaginationInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginationInput(ctx context.Context, v interface{}) (*model.PaginationInput, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -22695,7 +22695,7 @@ func (ec *executionContext) unmarshalOPaginationInput2ᚖgithubᚗcomᚋauthoriz
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalOSessionQueryInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐSessionQueryInput(ctx context.Context, v interface{}) (*model.SessionQueryInput, error) {
+func (ec *executionContext) unmarshalOSessionQueryInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐSessionQueryInput(ctx context.Context, v interface{}) (*model.SessionQueryInput, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -22789,14 +22789,14 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 	return res
 }
 
-func (ec *executionContext) marshalOUser2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v *model.User) graphql.Marshaler {
+func (ec *executionContext) marshalOUser2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v *model.User) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._User(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalOValidateSessionInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋserverᚋgraphᚋmodelᚐValidateSessionInput(ctx context.Context, v interface{}) (*model.ValidateSessionInput, error) {
+func (ec *executionContext) unmarshalOValidateSessionInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐValidateSessionInput(ctx context.Context, v interface{}) (*model.ValidateSessionInput, error) {
 	if v == nil {
 		return nil, nil
 	}

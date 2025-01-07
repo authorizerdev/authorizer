@@ -62,8 +62,8 @@ type Provider interface {
 	ValidateRefreshToken(gc *gin.Context, refreshToken string) (map[string]interface{}, error)
 }
 
-// NewProvider returns a new token provider
-func NewProvider(cfg *config.Config, deps *Dependencies) (Provider, error) {
+// New returns a new token provider
+func New(cfg *config.Config, deps *Dependencies) (Provider, error) {
 	if cfg.JWTType == "" {
 		deps.Log.Debug().Msg("missing jwt type")
 		return nil, fmt.Errorf("missing jwt type")

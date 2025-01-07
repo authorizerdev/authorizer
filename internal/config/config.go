@@ -10,6 +10,13 @@ type Config struct {
 	OrganizationName string
 	// AdminSecret is the secret for the admin
 	AdminSecret string
+	// AllowedOrigins is the list of allowed origins
+	AllowedOrigins []string
+
+	// DisableLoginPage is the flag to disable login page
+	DisableLoginPage bool
+	// DisablePlayground is the flag to disable playground
+	DisablePlayground bool
 
 	// Database Configurations
 	// DatabaseType is the type of database to use
@@ -81,14 +88,14 @@ type Config struct {
 	// DefaultRoles is the default roles for the user
 	// It is a comma separated string
 	// TODO: check derived keys
-	DefaultRoles string
+	DefaultRoles []string
 	// Roles is the list of all the roles of the user
 	// It is a comma separated string
-	Roles string
+	Roles []string
 	// ProtectedRoles is the list of all the protected roles
 	// For this roles, sign-up is disabled
 	// It is a comma separated string
-	ProtectedRoles string
+	ProtectedRoles []string
 	// DisableStrongPassword is the flag to disable strong password
 	DisableStrongPassword bool
 	// DisableTOTPLogin boolean to disable TOTP login
@@ -137,7 +144,14 @@ type Config struct {
 	CustomAccessTokenScript string
 
 	// OAuth Configurations
+	// ClientID is the client ID for the authorizer
 	ClientID string
+	// ClientSecret is the secret for the authorizer
+	ClientSecret string
+	// Default Authorize response mode
+	DefaultAuthorizeResponseMode string
+	// Default Authorize response type
+	DefaultAuthorizeResponseType string
 
 	// Twilio Configurations
 	// TwilioAPISecret is the API secret for Twilio

@@ -12,11 +12,12 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/authenticators"
 	"github.com/authorizerdev/authorizer/internal/config"
+	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/email"
 	"github.com/authorizerdev/authorizer/internal/events"
+	"github.com/authorizerdev/authorizer/internal/http_handlers"
 	"github.com/authorizerdev/authorizer/internal/memory_store"
 	"github.com/authorizerdev/authorizer/internal/server"
-	"github.com/authorizerdev/authorizer/internal/service"
 	"github.com/authorizerdev/authorizer/internal/sms"
 	"github.com/authorizerdev/authorizer/internal/storage"
 	"github.com/authorizerdev/authorizer/internal/token"
@@ -29,16 +30,10 @@ var (
 	}
 	rootArgs struct {
 		logLevel string
-		config   *config.Config
-		server   *server.Config
+		config   config.Config
+		server   server.Config
 	}
 )
-
-// const (
-// 	defaultHost        = "0.0.0.0"
-// 	defaultHTTPPort    = 8080
-// 	defaultMetricsPort = 8081
-// )
 
 func init() {
 	f := RootCmd.Flags()
@@ -54,12 +49,25 @@ func init() {
 	// Env
 	f.StringVar(&rootArgs.config.Env, "env", "", "Environment of the authorizer instance")
 
+	// Http routes
+	f.BoolVar(&rootArgs.config.DisableLoginPage, "disable-login-page", false, "Disable login page")
+	f.BoolVar(&rootArgs.config.DisablePlayground, "disable-playground", false, "Disable playground")
+
 	// Organization flags
 	f.StringVar(&rootArgs.config.OrganizationLogo, "organization-logo", "", "Logo of the organization")
 	f.StringVar(&rootArgs.config.OrganizationName, "organization-name", "", "Name of the organization")
 
+	// OAuth flags
+	f.StringVar(&rootArgs.config.ClientID, "client-id", "", "Client ID for the OAuth")
+	f.StringVar(&rootArgs.config.ClientSecret, "client-secret", "", "Client secret for the OAuth")
+	f.StringVar(&rootArgs.config.DefaultAuthorizeResponseMode, "default-authorize-response-mode", constants.ResponseModeQuery, "Default response mode for the authorize endpoint")
+	f.StringVar(&rootArgs.config.DefaultAuthorizeResponseType, "default-authorize-response-type", constants.ResponseTypeToken, "Default response type for the authorize endpoint")
+
 	// Admin flags
 	f.StringVar(&rootArgs.config.AdminSecret, "admin-secret", "password", "Secret for the admin")
+
+	// Allowed origins
+	f.StringSliceVar(&rootArgs.config.AllowedOrigins, "allowed-origins", []string{"*"}, "Allowed origins")
 
 	// Database flags
 	f.StringVar(&rootArgs.config.DatabaseType, "database-type", "", "Type of database to use")
@@ -93,9 +101,9 @@ func init() {
 	f.BoolVar(&rootArgs.config.SkipTLSVerification, "skip-tls-verification", false, "Skip TLS verification for the SMTP server")
 
 	// Auth flags
-	f.StringVar(&rootArgs.config.DefaultRoles, "default-roles", "user", "Default user roles to assign")
-	f.StringVar(&rootArgs.config.Roles, "roles", "user", "Roles to assign")
-	f.StringVar(&rootArgs.config.ProtectedRoles, "protected-roles", "", "Roles that cannot be deleted")
+	f.StringSliceVar(&rootArgs.config.DefaultRoles, "default-roles", []string{"user"}, "Default user roles to assign")
+	f.StringSliceVar(&rootArgs.config.Roles, "roles", []string{"user"}, "Roles to assign")
+	f.StringSliceVar(&rootArgs.config.ProtectedRoles, "protected-roles", []string{}, "Roles that cannot be deleted")
 	f.BoolVar(&rootArgs.config.DisableStrongPassword, "disable-strong-password", false, "Disable strong password requirement")
 	f.BoolVar(&rootArgs.config.DisableTOTPLogin, "disable-totp-login", false, "Disable TOTP login")
 	f.BoolVar(&rootArgs.config.DisableBasicAuthentication, "disable-basic-authentication", false, "Disable basic authentication")
@@ -168,16 +176,19 @@ func runRoot(c *cobra.Command, args []string) {
 		zeroLogLevel = zerolog.DebugLevel
 	}
 	// Create a new console writer
-	consoleWriter := zerolog.NewConsoleWriter()
-	consoleWriter.NoColor = true
-	consoleWriter.TimeFormat = time.RFC3339
-	consoleWriter.TimeLocation = time.UTC
-	log := zerolog.New(consoleWriter).
+	// consoleWriter := zerolog.New(os.Stdout)
+	// consoleWriter.NoColor = true
+	// consoleWriter.TimeFormat = time.RFC3339
+	// consoleWriter.TimeLocation = time.UTC
+	zerolog.TimestampFunc = func() time.Time {
+		return time.Now().UTC()
+	}
+	log := zerolog.New(os.Stdout).
 		Level(zeroLogLevel).
 		With().Timestamp().Logger()
 
 	// Storage provider
-	storageProvider, err := storage.NewProvider(rootArgs.config, &storage.Dependencies{
+	storageProvider, err := storage.New(&rootArgs.config, &storage.Dependencies{
 		Log: &log,
 	})
 	if err != nil {
@@ -185,13 +196,16 @@ func runRoot(c *cobra.Command, args []string) {
 	}
 
 	// Authenticator provider
-	authenticatorProvider, err := authenticators.NewProvider(rootArgs.config, &authenticators.Dependencies{
+	authenticatorProvider, err := authenticators.New(&rootArgs.config, &authenticators.Dependencies{
 		Log:             &log,
 		StorageProvider: storageProvider,
 	})
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to create authenticator provider")
+	}
 
 	// Email provider
-	emailProvider, err := email.NewProvider(rootArgs.config, &email.Dependencies{
+	emailProvider, err := email.New(&rootArgs.config, &email.Dependencies{
 		Log:             &log,
 		StorageProvider: storageProvider,
 	})
@@ -200,7 +214,7 @@ func runRoot(c *cobra.Command, args []string) {
 	}
 
 	// Events provider
-	eventsProvider, err := events.NewProvider(rootArgs.config, &events.Dependencies{
+	eventsProvider, err := events.New(&rootArgs.config, &events.Dependencies{
 		Log:             &log,
 		StorageProvider: storageProvider,
 	})
@@ -209,7 +223,7 @@ func runRoot(c *cobra.Command, args []string) {
 	}
 
 	// Memory store provider
-	memoryStoreProvider, err := memory_store.NewProvider(rootArgs.config, &memory_store.Dependencies{
+	memoryStoreProvider, err := memory_store.New(&rootArgs.config, &memory_store.Dependencies{
 		Log: &log,
 	})
 	if err != nil {
@@ -217,17 +231,22 @@ func runRoot(c *cobra.Command, args []string) {
 	}
 
 	// SMS provider
-	smsProvider, err := sms.NewProvider(rootArgs.config, &sms.Dependencies{
+	smsProvider, err := sms.New(&rootArgs.config, &sms.Dependencies{
 		Log: &log,
 	})
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to create graphql provider")
+	}
 
 	// Token provider
-	tokenProvider, err := token.NewProvider(rootArgs.config, &token.Dependencies{
+	tokenProvider, err := token.New(&rootArgs.config, &token.Dependencies{
 		Log: &log,
 	})
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to create graphql provider")
+	}
 
-	// Prepare service
-	svcDeps := &service.Dependencies{
+	httpProvider, err := http_handlers.New(&rootArgs.config, &http_handlers.Dependencies{
 		Log:                   &log,
 		AuthenticatorProvider: authenticatorProvider,
 		EmailProvider:         emailProvider,
@@ -236,20 +255,17 @@ func runRoot(c *cobra.Command, args []string) {
 		SMSProvider:           smsProvider,
 		StorageProvider:       storageProvider,
 		TokenProvider:         tokenProvider,
-	}
-	// Create the service
-	svc, err := service.New(rootArgs.config, svcDeps)
+	})
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to create service")
+		log.Fatal().Err(err).Msg("failed to create http provider")
 	}
-
 	// Prepare server
-	deps := server.Dependencies{
-		Log:     &log,
-		Service: svc,
+	deps := &server.Dependencies{
+		Log:          &log,
+		HTTPProvider: httpProvider,
 	}
 	// Create the server
-	svr, err := server.New(rootArgs.server, deps)
+	svr, err := server.New(&rootArgs.server, deps)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create server")
 	}

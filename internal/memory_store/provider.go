@@ -13,8 +13,8 @@ type Dependencies struct {
 	Log *zerolog.Logger
 }
 
-// NewProvider returns a new memory store provider
-func NewProvider(cfg *config.Config, deps *Dependencies) (Provider, error) {
+// New returns a new memory store provider
+func New(cfg *config.Config, deps *Dependencies) (Provider, error) {
 	if cfg.RedisURL != "" {
 		return redis.NewRedisProvider(cfg, &redis.Dependencies{
 			Log: deps.Log,

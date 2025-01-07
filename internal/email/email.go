@@ -36,8 +36,8 @@ type provider struct {
 	mailer *gomail.Dialer
 }
 
-// NewProvider returns a new email provider
-func NewProvider(
+// New returns a new email provider
+func New(
 	config *config.Config,
 	deps *Dependencies,
 ) (Provider, error) {

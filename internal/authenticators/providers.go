@@ -26,8 +26,8 @@ type Provider interface {
 	ValidateRecoveryCode(ctx context.Context, recoveryCode, userID string) (bool, error)
 }
 
-// NewProvider returns a new authenticators provider
-func NewProvider(cfg *config.Config, deps *Dependencies) (Provider, error) {
+// New returns a new authenticators provider
+func New(cfg *config.Config, deps *Dependencies) (Provider, error) {
 	if cfg.DisableTOTPLogin {
 		return nil, nil
 	}

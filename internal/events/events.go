@@ -34,7 +34,8 @@ type provider struct {
 	deps   *Dependencies
 }
 
-func NewProvider(config *config.Config, deps *Dependencies) (Provider, error) {
+// New returns a new events provider
+func New(config *config.Config, deps *Dependencies) (Provider, error) {
 	return &provider{
 		config: config,
 		deps:   deps,
