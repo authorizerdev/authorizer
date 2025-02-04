@@ -178,6 +178,7 @@ func (g *graphqlProvider) SignUp(ctx context.Context, params *model.SignUpInput)
 		user.AppData = &appDataString
 	}
 	isEmailVerificationDisabled := g.Config.DisableEmailVerification
+	fmt.Println("==>", isEmailVerificationDisabled, g.Config.DisableEmailVerification)
 	if isEmailVerificationDisabled && isEmailSignup {
 		now := time.Now().Unix()
 		user.EmailVerifiedAt = &now
@@ -186,7 +187,7 @@ func (g *graphqlProvider) SignUp(ctx context.Context, params *model.SignUpInput)
 	isSMSServiceEnabled := g.Config.IsSMSServiceEnabled
 	user, err = g.StorageProvider.AddUser(ctx, user)
 	if err != nil {
-		log.Debug().Err(err).Msg("Failed to add user")
+		log.Debug().Err(err).Msg("failed to add user")
 		return nil, err
 	}
 	roles := strings.Split(user.Roles, ",")

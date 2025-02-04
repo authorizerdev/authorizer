@@ -126,7 +126,7 @@ func (p *provider) CreateSessionToken(cfg *AuthTokenConfig) (*SessionData, strin
 		ExpiresAt:   expiresAt,
 	}
 	fingerPrintBytes, _ := json.Marshal(fingerPrintMap)
-	fingerPrintHash, err := crypto.EncryptAES(string(fingerPrintBytes))
+	fingerPrintHash, err := crypto.EncryptAES(p.config.ClientSecret, string(fingerPrintBytes))
 	if err != nil {
 		return nil, "", 0, err
 	}
@@ -341,7 +341,7 @@ func (p *provider) ValidateBrowserSession(gc *gin.Context, encryptedSession stri
 		return nil, fmt.Errorf(`unauthorized`)
 	}
 
-	decryptedFingerPrint, err := crypto.DecryptAES(encryptedSession)
+	decryptedFingerPrint, err := crypto.DecryptAES(p.config.ClientSecret, encryptedSession)
 	if err != nil {
 		return nil, err
 	}

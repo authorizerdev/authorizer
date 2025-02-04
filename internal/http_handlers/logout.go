@@ -27,7 +27,7 @@ func (h *httpProvider) LogoutHandler() gin.HandlerFunc {
 			return
 		}
 
-		decryptedFingerPrint, err := crypto.DecryptAES(fingerprintHash)
+		decryptedFingerPrint, err := crypto.DecryptAES(h.ClientSecret, fingerprintHash)
 		if err != nil {
 			log.Debug().Err(err).Msg("failed to decrypt fingerprint")
 			gc.JSON(http.StatusUnauthorized, gin.H{

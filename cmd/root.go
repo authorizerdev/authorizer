@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"os/signal"
+	"strings"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -244,6 +245,15 @@ func runRoot(c *cobra.Command, args []string) {
 	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create graphql provider")
+	}
+
+	// Ensure client ID and secret are set for authorizer instance
+	if strings.TrimSpace(rootArgs.config.ClientID) == "" {
+		log.Fatal().Msg("client ID missing in rootArgs")
+	}
+
+	if strings.TrimSpace(rootArgs.config.ClientSecret) == "" {
+		log.Fatal().Msg("client secret missing in rootArgs")
 	}
 
 	httpProvider, err := http_handlers.New(&rootArgs.config, &http_handlers.Dependencies{
