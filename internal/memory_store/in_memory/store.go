@@ -57,6 +57,15 @@ func (c *provider) GetMfaSession(userId, key string) (string, error) {
 	return val, nil
 }
 
+// GetAllMfaSessions returns all mfa sessions for given userId
+func (p *provider) GetAllMfaSessions(userId string) ([]string, error) {
+	values := p.mfasessionStore.GetAll(userId)
+	if len(values) == 0 {
+		return nil, fmt.Errorf("Not found")
+	}
+	return values, nil
+}
+
 // DeleteMfaSession deletes given mfa session from in-memory store.
 func (c *provider) DeleteMfaSession(userId, key string) error {
 	c.mfasessionStore.Remove(userId, key)

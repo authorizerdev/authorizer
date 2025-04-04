@@ -13,7 +13,7 @@ import (
 )
 
 // AddWebhookLog to add webhook log
-func (p *provider) AddWebhookLog(ctx context.Context, webhookLog *schemas.WebhookLog) (*model.WebhookLog, error) {
+func (p *provider) AddWebhookLog(ctx context.Context, webhookLog *schemas.WebhookLog) (*schemas.WebhookLog, error) {
 	if webhookLog.ID == "" {
 		webhookLog.ID = uuid.New().String()
 	}
@@ -29,12 +29,12 @@ func (p *provider) AddWebhookLog(ctx context.Context, webhookLog *schemas.Webhoo
 		return nil, res.Error
 	}
 
-	return webhookLog.AsAPIWebhookLog(), nil
+	return webhookLog, nil
 }
 
 // ListWebhookLogs to list webhook logs
-func (p *provider) ListWebhookLogs(ctx context.Context, pagination *model.Pagination, webhookID string) (*model.WebhookLogs, error) {
-	var webhookLogs []schemas.WebhookLog
+func (p *provider) ListWebhookLogs(ctx context.Context, pagination *model.Pagination, webhookID string) ([]*schemas.WebhookLog, *model.Pagination, error) {
+	var webhookLogs []*schemas.WebhookLog
 	var result *gorm.DB
 	var totalRes *gorm.DB
 	var total int64
@@ -48,22 +48,15 @@ func (p *provider) ListWebhookLogs(ctx context.Context, pagination *model.Pagina
 	}
 
 	if result.Error != nil {
-		return nil, result.Error
+		return nil, nil, result.Error
 	}
 
 	if totalRes.Error != nil {
-		return nil, totalRes.Error
+		return nil, nil, totalRes.Error
 	}
 
 	paginationClone := pagination
 	paginationClone.Total = total
 
-	responseWebhookLogs := []*model.WebhookLog{}
-	for _, w := range webhookLogs {
-		responseWebhookLogs = append(responseWebhookLogs, w.AsAPIWebhookLog())
-	}
-	return &model.WebhookLogs{
-		WebhookLogs: responseWebhookLogs,
-		Pagination:  paginationClone,
-	}, nil
+	return webhookLogs, paginationClone, nil
 }

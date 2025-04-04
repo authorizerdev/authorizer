@@ -31,8 +31,13 @@ func (g *graphqlProvider) UpdateWebhook(ctx context.Context, params *model.Updat
 		log.Debug().Err(err).Msg("failed GetWebhookByID")
 		return nil, err
 	}
+	var headersMap map[string]interface{}
+	err = json.Unmarshal([]byte(webhook.Headers), &headersMap)
+	if err != nil {
+		log.Debug().Err(err).Msg("error un-marshalling headers")
+	}
 	headersString := ""
-	if webhook.Headers != nil {
+	if headersMap != nil {
 		headerBytes, err := json.Marshal(webhook.Headers)
 		if err != nil {
 			log.Debug().Err(err).Msg("failed to marshall headers")
@@ -43,12 +48,12 @@ func (g *graphqlProvider) UpdateWebhook(ctx context.Context, params *model.Updat
 	webhookDetails := &schemas.Webhook{
 		ID:               webhook.ID,
 		Key:              webhook.ID,
-		EventName:        refs.StringValue(webhook.EventName),
-		EventDescription: refs.StringValue(webhook.EventDescription),
-		EndPoint:         refs.StringValue(webhook.Endpoint),
-		Enabled:          refs.BoolValue(webhook.Enabled),
+		EventName:        webhook.EventName,
+		EventDescription: webhook.EventDescription,
+		EndPoint:         webhook.EndPoint,
+		Enabled:          webhook.Enabled,
 		Headers:          headersString,
-		CreatedAt:        refs.Int64Value(webhook.CreatedAt),
+		CreatedAt:        webhook.CreatedAt,
 	}
 	if params.EventName != nil && webhookDetails.EventName != refs.StringValue(params.EventName) {
 		if isValid := validators.IsValidWebhookEventName(refs.StringValue(params.EventName)); !isValid {

@@ -6,6 +6,7 @@ import (
 	"github.com/golang-jwt/jwt"
 
 	"github.com/authorizerdev/authorizer/internal/crypto"
+	"github.com/authorizerdev/authorizer/internal/refs"
 )
 
 // SignJWTToken common util to sing jwt token
@@ -100,7 +101,7 @@ func (p *provider) ValidateJWTClaims(claims jwt.MapClaims, authTokenConfig *Auth
 		return false, errors.New("invalid issuer")
 	}
 
-	if claims["sub"] != authTokenConfig.User.ID && claims["sub"] != authTokenConfig.User.Email {
+	if claims["sub"] != authTokenConfig.User.ID && claims["sub"] != refs.StringValue(authTokenConfig.User.Email) {
 		return false, errors.New("invalid subject")
 	}
 

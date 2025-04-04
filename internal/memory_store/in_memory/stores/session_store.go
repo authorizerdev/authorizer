@@ -85,6 +85,26 @@ func (s *SessionStore) Get(key, subKey string) string {
 	return ""
 }
 
+// Get returns the value of the key in state store
+func (s *SessionStore) GetAll(key string) []string {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	currentTime := time.Now().Unix()
+	// Match all keys with the given key
+	var values []string
+	for k, v := range s.store {
+		if strings.HasPrefix(k, key) {
+			if v.ExpiresAt < currentTime {
+				values = append(values, v.Value)
+			} else {
+				// Delete expired items
+				delete(s.store, k)
+			}
+		}
+	}
+	return values
+}
+
 // Set sets the value of the key in state store
 func (s *SessionStore) Set(key string, subKey, value string, expiration int64) {
 	s.mutex.Lock()

@@ -56,6 +56,11 @@ func NewProvider(config *config.Config, deps *Dependencies) (*provider, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Wait until the cluster is ready
+	err = cluster.WaitUntilReady(30*time.Second, nil)
+	if err != nil {
+		return nil, err
+	}
 	// To create the bucket and scope if not exist
 	bucket, err := createBucketAndScope(cluster, bucketName, scopeName, ramQuota)
 	if err != nil {
@@ -135,6 +140,11 @@ func createBucketAndScope(cluster *gocb.Cluster, bucketName string, scopeName st
 		}
 	}
 	bucket := cluster.Bucket(bucketName)
+	// Wait until bucket is ready
+	err = bucket.WaitUntilReady(30*time.Second, nil)
+	if err != nil {
+		return nil, err
+	}
 	if scopeName != defaultScope {
 		err = bucket.Collections().CreateScope(scopeName, nil)
 		if err != nil && !errors.Is(err, gocb.ErrScopeExists) {

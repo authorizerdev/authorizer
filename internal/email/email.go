@@ -110,9 +110,12 @@ func getDefaultTemplate(event string) *model.EmailTemplate {
 
 func (p *provider) getEmailTemplate(event string, data map[string]interface{}) (*model.EmailTemplate, error) {
 	ctx := context.Background()
-	tmp, err := p.deps.StorageProvider.GetEmailTemplateByEventName(ctx, event)
-	if err != nil || tmp == nil {
+	var tmp *model.EmailTemplate
+	et, err := p.deps.StorageProvider.GetEmailTemplateByEventName(ctx, event)
+	if err != nil || et == nil {
 		tmp = getDefaultTemplate(event)
+	} else {
+		tmp = et.AsAPIEmailTemplate()
 	}
 
 	templ, err := template.New(event + "_template.tmpl").Parse(tmp.Template)

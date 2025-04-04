@@ -76,12 +76,12 @@ func (p *provider) GetVerificationRequestByEmail(ctx context.Context, email stri
 }
 
 // ListVerificationRequests to get list of verification requests from database
-func (p *provider) ListVerificationRequests(ctx context.Context, pagination *model.Pagination) (*model.VerificationRequests, error) {
-	var verificationRequests []*model.VerificationRequest
+func (p *provider) ListVerificationRequests(ctx context.Context, pagination *model.Pagination) ([]*schemas.VerificationRequest, *model.Pagination, error) {
+	var verificationRequests []*schemas.VerificationRequest
 	paginationClone := pagination
 	total, err := p.GetTotalDocs(ctx, schemas.Collections.VerificationRequest)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	paginationClone.Total = total
 	query := fmt.Sprintf("SELECT _id, env, created_at, updated_at FROM %s.%s OFFSET $1 LIMIT $2", p.scopeName, schemas.Collections.VerificationRequest)
@@ -91,7 +91,7 @@ func (p *provider) ListVerificationRequests(ctx context.Context, pagination *mod
 		PositionalParameters: []interface{}{paginationClone.Offset, paginationClone.Limit},
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	for queryResult.Next() {
 		var verificationRequest schemas.VerificationRequest
@@ -99,16 +99,13 @@ func (p *provider) ListVerificationRequests(ctx context.Context, pagination *mod
 		if err != nil {
 			log.Fatal(err)
 		}
-		verificationRequests = append(verificationRequests, verificationRequest.AsAPIVerificationRequest())
+		verificationRequests = append(verificationRequests, &verificationRequest)
 	}
 	if err := queryResult.Err(); err != nil {
-		return nil, err
+		return nil, nil, err
 
 	}
-	return &model.VerificationRequests{
-		VerificationRequests: verificationRequests,
-		Pagination:           paginationClone,
-	}, nil
+	return verificationRequests, paginationClone, nil
 }
 
 // DeleteVerificationRequest to delete verification request from database

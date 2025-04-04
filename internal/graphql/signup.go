@@ -32,6 +32,13 @@ func (g *graphqlProvider) SignUp(ctx context.Context, params *model.SignUpInput)
 		return nil, err
 	}
 
+	email := strings.TrimSpace(refs.StringValue(params.Email))
+	phoneNumber := strings.TrimSpace(refs.StringValue(params.PhoneNumber))
+	if email == "" && phoneNumber == "" {
+		log.Debug().Msg("Email or phone number is required")
+		return nil, fmt.Errorf(`email or phone number is required`)
+	}
+
 	isSignupDisabled := g.Config.DisableSignup
 	if isSignupDisabled {
 		log.Debug().Msg("Signup is disabled")
@@ -48,12 +55,7 @@ func (g *graphqlProvider) SignUp(ctx context.Context, params *model.SignUpInput)
 		log.Debug().Msg("Invalid password")
 		return nil, err
 	}
-	email := strings.TrimSpace(refs.StringValue(params.Email))
-	phoneNumber := strings.TrimSpace(refs.StringValue(params.PhoneNumber))
-	if email == "" && phoneNumber == "" {
-		log.Debug().Msg("Email or phone number is required")
-		return nil, fmt.Errorf(`email or phone number is required`)
-	}
+
 	log = log.With().Str("email", email).Str("phone_number", phoneNumber).Logger()
 	isEmailSignup := email != ""
 	isMobileSignup := phoneNumber != ""
@@ -177,14 +179,18 @@ func (g *graphqlProvider) SignUp(ctx context.Context, params *model.SignUpInput)
 		appDataString = string(appDataBytes)
 		user.AppData = &appDataString
 	}
-	isEmailVerificationDisabled := g.Config.DisableEmailVerification
-	fmt.Println("==>", isEmailVerificationDisabled, g.Config.DisableEmailVerification)
-	if isEmailVerificationDisabled && isEmailSignup {
+	isEmailServiceEnabled := g.Config.IsEmailServiceEnabled
+	isEmailVerificationDisabled := g.Config.DisableEmailVerification || !isEmailServiceEnabled
+	if (isEmailVerificationDisabled) && isEmailSignup {
 		now := time.Now().Unix()
 		user.EmailVerifiedAt = &now
 	}
-	disablePhoneVerification := g.Config.DisablePhoneVerification
 	isSMSServiceEnabled := g.Config.IsSMSServiceEnabled
+	isPhoneVerificationDisabled := g.Config.DisablePhoneVerification || !isSMSServiceEnabled
+	if (isPhoneVerificationDisabled) && isMobileSignup {
+		now := time.Now().Unix()
+		user.PhoneNumberVerifiedAt = &now
+	}
 	user, err = g.StorageProvider.AddUser(ctx, user)
 	if err != nil {
 		log.Debug().Err(err).Msg("failed to add user")
@@ -240,9 +246,8 @@ func (g *graphqlProvider) SignUp(ctx context.Context, params *model.SignUpInput)
 
 		return &model.AuthResponse{
 			Message: `Verification email has been sent. Please check your inbox`,
-			User:    userToReturn,
 		}, nil
-	} else if !disablePhoneVerification && isSMSServiceEnabled && isMobileSignup {
+	} else if !isPhoneVerificationDisabled && isMobileSignup {
 		duration, _ := time.ParseDuration("10m")
 		smsCode := utils.GenerateOTP()
 		smsBody := strings.Builder{}

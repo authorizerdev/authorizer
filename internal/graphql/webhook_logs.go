@@ -35,11 +35,17 @@ func (g *graphqlProvider) WebhookLogs(ctx context.Context, params *model.ListWeb
 		pagination = utils.GetPagination(nil)
 		webhookID = ""
 	}
-	// TODO fix
-	webhookLogs, err := g.StorageProvider.ListWebhookLogs(ctx, pagination, webhookID)
+	webhookLogs, pagination, err := g.StorageProvider.ListWebhookLogs(ctx, pagination, webhookID)
 	if err != nil {
 		log.Debug().Err(err).Msg("failed ListWebhookLogs")
 		return nil, err
 	}
-	return webhookLogs, nil
+	resItems := make([]*model.WebhookLog, len(webhookLogs))
+	for i, webhookLog := range webhookLogs {
+		resItems[i] = webhookLog.AsAPIWebhookLog()
+	}
+	return &model.WebhookLogs{
+		Pagination:  pagination,
+		WebhookLogs: resItems,
+	}, nil
 }

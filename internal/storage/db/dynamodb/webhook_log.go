@@ -12,7 +12,7 @@ import (
 )
 
 // AddWebhookLog to add webhook log
-func (p *provider) AddWebhookLog(ctx context.Context, webhookLog *schemas.WebhookLog) (*model.WebhookLog, error) {
+func (p *provider) AddWebhookLog(ctx context.Context, webhookLog *schemas.WebhookLog) (*schemas.WebhookLog, error) {
 	collection := p.db.Table(schemas.Collections.WebhookLog)
 	if webhookLog.ID == "" {
 		webhookLog.ID = uuid.New().String()
@@ -24,12 +24,12 @@ func (p *provider) AddWebhookLog(ctx context.Context, webhookLog *schemas.Webhoo
 	if err != nil {
 		return nil, err
 	}
-	return webhookLog.AsAPIWebhookLog(), nil
+	return webhookLog, nil
 }
 
 // ListWebhookLogs to list webhook logs
-func (p *provider) ListWebhookLogs(ctx context.Context, pagination *model.Pagination, webhookID string) (*model.WebhookLogs, error) {
-	webhookLogs := []*model.WebhookLog{}
+func (p *provider) ListWebhookLogs(ctx context.Context, pagination *model.Pagination, webhookID string) ([]*schemas.WebhookLog, *model.Pagination, error) {
+	webhookLogs := []*schemas.WebhookLog{}
 	var webhookLog *schemas.WebhookLog
 	var lastEval dynamo.PagingKey
 	var iter dynamo.PagingIter
@@ -43,23 +43,23 @@ func (p *provider) ListWebhookLogs(ctx context.Context, pagination *model.Pagina
 	if webhookID != "" {
 		iter = scanner.Index("webhook_id").Filter("'webhook_id' = ?", webhookID).Iter()
 		for iter.NextWithContext(ctx, &webhookLog) {
-			webhookLogs = append(webhookLogs, webhookLog.AsAPIWebhookLog())
+			webhookLogs = append(webhookLogs, webhookLog)
 		}
 		err = iter.Err()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	} else {
 		for (paginationClone.Offset + paginationClone.Limit) > iteration {
 			iter = scanner.StartFrom(lastEval).Limit(paginationClone.Limit).Iter()
 			for iter.NextWithContext(ctx, &webhookLog) {
 				if paginationClone.Offset == iteration {
-					webhookLogs = append(webhookLogs, webhookLog.AsAPIWebhookLog())
+					webhookLogs = append(webhookLogs, webhookLog)
 				}
 			}
 			err = iter.Err()
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			lastEval = iter.LastEvaluatedKey()
 			iteration += paginationClone.Limit
@@ -67,8 +67,5 @@ func (p *provider) ListWebhookLogs(ctx context.Context, pagination *model.Pagina
 	}
 	paginationClone.Total = count
 	// paginationClone.Cursor = iter.LastEvaluatedKey()
-	return &model.WebhookLogs{
-		Pagination:  paginationClone,
-		WebhookLogs: webhookLogs,
-	}, nil
+	return webhookLogs, paginationClone, nil
 }

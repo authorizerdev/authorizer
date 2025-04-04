@@ -73,24 +73,24 @@ func (p *provider) DeleteUser(ctx context.Context, user *schemas.User) error {
 }
 
 // ListUsers to get list of users from database
-func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) (*model.Users, error) {
+func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) ([]*schemas.User, *model.Pagination, error) {
 	var user *schemas.User
 	var lastEval dynamo.PagingKey
 	var iter dynamo.PagingIter
 	var iteration int64 = 0
 	collection := p.db.Table(schemas.Collections.User)
-	users := []*model.User{}
+	var users []*schemas.User
 	paginationClone := pagination
 	scanner := collection.Scan()
 	count, err := scanner.Count()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	for (paginationClone.Offset + paginationClone.Limit) > iteration {
 		iter = scanner.StartFrom(lastEval).Limit(paginationClone.Limit).Iter()
 		for iter.NextWithContext(ctx, &user) {
 			if paginationClone.Offset == iteration {
-				users = append(users, user.AsAPIUser())
+				users = append(users, user)
 			}
 		}
 		lastEval = iter.LastEvaluatedKey()
@@ -98,13 +98,10 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) 
 	}
 	err = iter.Err()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	paginationClone.Total = count
-	return &model.Users{
-		Pagination: paginationClone,
-		Users:      users,
-	}, nil
+	return users, paginationClone, nil
 }
 
 // GetUserByEmail to get user information from database using email address

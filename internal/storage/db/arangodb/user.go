@@ -84,14 +84,14 @@ func (p *provider) DeleteUser(ctx context.Context, user *schemas.User) error {
 }
 
 // ListUsers to get list of users from database
-func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) (*model.Users, error) {
-	var users []*model.User
+func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) ([]*schemas.User, *model.Pagination, error) {
+	var users []*schemas.User
 	sctx := arangoDriver.WithQueryFullCount(ctx)
 
 	query := fmt.Sprintf("FOR d in %s SORT d.created_at DESC LIMIT %d, %d RETURN d", schemas.Collections.User, pagination.Offset, pagination.Limit)
 	cursor, err := p.db.Query(sctx, query, nil)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer cursor.Close()
 	paginationClone := pagination
@@ -102,16 +102,13 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) 
 		if arangoDriver.IsNoMoreDocuments(err) {
 			break
 		} else if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		if meta.Key != "" {
-			users = append(users, user.AsAPIUser())
+			users = append(users, user)
 		}
 	}
-	return &model.Users{
-		Pagination: paginationClone,
-		Users:      users,
-	}, nil
+	return users, paginationClone, nil
 }
 
 // GetUserByEmail to get user information from database using email address

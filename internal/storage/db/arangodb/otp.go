@@ -57,6 +57,7 @@ func (p *provider) UpsertOTP(ctx context.Context, otpParam *schemas.OTP) (*schem
 	if err != nil {
 		return nil, err
 	}
+
 	otp.Key = meta.Key
 	otp.ID = meta.ID.String()
 	return otp, nil
@@ -119,7 +120,7 @@ func (p *provider) GetOTPByPhoneNumber(ctx context.Context, phoneNumber string) 
 // DeleteOTP to delete otp
 func (p *provider) DeleteOTP(ctx context.Context, otp *schemas.OTP) error {
 	otpCollection, _ := p.db.Collection(ctx, schemas.Collections.OTP)
-	_, err := otpCollection.RemoveDocument(ctx, otp.ID)
+	_, err := otpCollection.RemoveDocument(ctx, otp.Key)
 	if err != nil {
 		return err
 	}

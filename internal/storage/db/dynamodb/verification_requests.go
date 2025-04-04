@@ -57,8 +57,8 @@ func (p *provider) GetVerificationRequestByEmail(ctx context.Context, email stri
 }
 
 // ListVerificationRequests to get list of verification requests from database
-func (p *provider) ListVerificationRequests(ctx context.Context, pagination *model.Pagination) (*model.VerificationRequests, error) {
-	verificationRequests := []*model.VerificationRequest{}
+func (p *provider) ListVerificationRequests(ctx context.Context, pagination *model.Pagination) ([]*schemas.VerificationRequest, *model.Pagination, error) {
+	var verificationRequests []*schemas.VerificationRequest
 	var verificationRequest *schemas.VerificationRequest
 	var lastEval dynamo.PagingKey
 	var iter dynamo.PagingIter
@@ -68,27 +68,24 @@ func (p *provider) ListVerificationRequests(ctx context.Context, pagination *mod
 	scanner := collection.Scan()
 	count, err := scanner.Count()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	for (paginationClone.Offset + paginationClone.Limit) > iteration {
 		iter = scanner.StartFrom(lastEval).Limit(paginationClone.Limit).Iter()
 		for iter.NextWithContext(ctx, &verificationRequest) {
 			if paginationClone.Offset == iteration {
-				verificationRequests = append(verificationRequests, verificationRequest.AsAPIVerificationRequest())
+				verificationRequests = append(verificationRequests, verificationRequest)
 			}
 		}
 		err = iter.Err()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		lastEval = iter.LastEvaluatedKey()
 		iteration += paginationClone.Limit
 	}
 	paginationClone.Total = count
-	return &model.VerificationRequests{
-		VerificationRequests: verificationRequests,
-		Pagination:           paginationClone,
-	}, nil
+	return verificationRequests, paginationClone, nil
 }
 
 // DeleteVerificationRequest to delete verification request from database

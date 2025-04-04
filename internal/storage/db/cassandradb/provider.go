@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gocql/gocql"
 	cansandraDriver "github.com/gocql/gocql"
 	"github.com/rs/zerolog"
 
@@ -104,7 +103,7 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	cassandraClient.RetryPolicy = &cansandraDriver.SimpleRetryPolicy{
 		NumRetries: 3,
 	}
-	cassandraClient.Consistency = gocql.LocalQuorum
+	cassandraClient.Consistency = cansandraDriver.LocalQuorum
 	cassandraClient.ConnectTimeout = 10 * time.Second
 	cassandraClient.ProtoVersion = 4
 	cassandraClient.Timeout = 30 * time.Minute // for large data
@@ -116,7 +115,7 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 
 	// Note for astra keyspaces can only be created from there console
 	// https://docs.datastax.com/en/astra/docs/datastax-astra-faq.html#_i_am_trying_to_create_a_keyspace_in_the_cql_shell_and_i_am_running_into_an_error_how_do_i_fix_this
-	getKeyspaceQuery := fmt.Sprintf("SELECT keyspace_name FROM system_schema.keyspaces;")
+	getKeyspaceQuery := "SELECT keyspace_name FROM system_schema.keyspaces;"
 	scanner := session.Query(getKeyspaceQuery).Iter().Scanner()
 	hasAuthorizerKeySpace := false
 	for scanner.Next() {

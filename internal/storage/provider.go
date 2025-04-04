@@ -32,7 +32,7 @@ type Provider interface {
 	// DeleteUser to delete user information from database
 	DeleteUser(ctx context.Context, user *schemas.User) error
 	// ListUsers to get list of users from database
-	ListUsers(ctx context.Context, pagination *model.Pagination) (*model.Users, error)
+	ListUsers(ctx context.Context, pagination *model.Pagination) ([]*schemas.User, *model.Pagination, error)
 	// GetUserByEmail to get user information from database using email address
 	GetUserByEmail(ctx context.Context, email string) (*schemas.User, error)
 	// GetUserByPhoneNumber to get user information from database using phone number
@@ -50,7 +50,7 @@ type Provider interface {
 	// GetVerificationRequestByEmail to get verification request by email from database
 	GetVerificationRequestByEmail(ctx context.Context, email string, identifier string) (*schemas.VerificationRequest, error)
 	// ListVerificationRequests to get list of verification requests from database
-	ListVerificationRequests(ctx context.Context, pagination *model.Pagination) (*model.VerificationRequests, error)
+	ListVerificationRequests(ctx context.Context, pagination *model.Pagination) ([]*schemas.VerificationRequest, *model.Pagination, error)
 	// DeleteVerificationRequest to delete verification request from database
 	DeleteVerificationRequest(ctx context.Context, verificationRequest *schemas.VerificationRequest) error
 
@@ -59,43 +59,43 @@ type Provider interface {
 	// DeleteSession to delete session information from database
 	DeleteSession(ctx context.Context, userId string) error
 
-	// AddEnv to save environment information in database
-	AddEnv(ctx context.Context, env *schemas.Env) (*schemas.Env, error)
-	// UpdateEnv to update environment information in database
-	UpdateEnv(ctx context.Context, env *schemas.Env) (*schemas.Env, error)
-	// GetEnv to get environment information from database
-	GetEnv(ctx context.Context) (*schemas.Env, error)
+	// // AddEnv to save environment information in database
+	// AddEnv(ctx context.Context, env *schemas.Env) (*schemas.Env, error)
+	// // UpdateEnv to update environment information in database
+	// UpdateEnv(ctx context.Context, env *schemas.Env) (*schemas.Env, error)
+	// // GetEnv to get environment information from database
+	// GetEnv(ctx context.Context) (*schemas.Env, error)
 
 	// AddWebhook to add webhook
-	AddWebhook(ctx context.Context, webhook *schemas.Webhook) (*model.Webhook, error)
+	AddWebhook(ctx context.Context, webhook *schemas.Webhook) (*schemas.Webhook, error)
 	// UpdateWebhook to update webhook
-	UpdateWebhook(ctx context.Context, webhook *schemas.Webhook) (*model.Webhook, error)
+	UpdateWebhook(ctx context.Context, webhook *schemas.Webhook) (*schemas.Webhook, error)
 	// ListWebhook to list webhook
-	ListWebhook(ctx context.Context, pagination *model.Pagination) (*model.Webhooks, error)
+	ListWebhook(ctx context.Context, pagination *model.Pagination) ([]*schemas.Webhook, *model.Pagination, error)
 	// GetWebhookByID to get webhook by id
-	GetWebhookByID(ctx context.Context, webhookID string) (*model.Webhook, error)
+	GetWebhookByID(ctx context.Context, webhookID string) (*schemas.Webhook, error)
 	// GetWebhookByEventName to get webhook by event_name
-	GetWebhookByEventName(ctx context.Context, eventName string) ([]*model.Webhook, error)
+	GetWebhookByEventName(ctx context.Context, eventName string) ([]*schemas.Webhook, error)
 	// DeleteWebhook to delete webhook
-	DeleteWebhook(ctx context.Context, webhook *model.Webhook) error
+	DeleteWebhook(ctx context.Context, webhook *schemas.Webhook) error
 
 	// AddWebhookLog to add webhook log
-	AddWebhookLog(ctx context.Context, webhookLog *schemas.WebhookLog) (*model.WebhookLog, error)
+	AddWebhookLog(ctx context.Context, webhookLog *schemas.WebhookLog) (*schemas.WebhookLog, error)
 	// ListWebhookLogs to list webhook logs
-	ListWebhookLogs(ctx context.Context, pagination *model.Pagination, webhookID string) (*model.WebhookLogs, error)
+	ListWebhookLogs(ctx context.Context, pagination *model.Pagination, webhookID string) ([]*schemas.WebhookLog, *model.Pagination, error)
 
 	// AddEmailTemplate to add EmailTemplate
-	AddEmailTemplate(ctx context.Context, emailTemplate *schemas.EmailTemplate) (*model.EmailTemplate, error)
+	AddEmailTemplate(ctx context.Context, emailTemplate *schemas.EmailTemplate) (*schemas.EmailTemplate, error)
 	// UpdateEmailTemplate to update EmailTemplate
-	UpdateEmailTemplate(ctx context.Context, emailTemplate *schemas.EmailTemplate) (*model.EmailTemplate, error)
+	UpdateEmailTemplate(ctx context.Context, emailTemplate *schemas.EmailTemplate) (*schemas.EmailTemplate, error)
 	// ListEmailTemplate to list EmailTemplate
-	ListEmailTemplate(ctx context.Context, pagination *model.Pagination) (*model.EmailTemplates, error)
+	ListEmailTemplate(ctx context.Context, pagination *model.Pagination) ([]*schemas.EmailTemplate, *model.Pagination, error)
 	// GetEmailTemplateByID to get EmailTemplate by id
-	GetEmailTemplateByID(ctx context.Context, emailTemplateID string) (*model.EmailTemplate, error)
+	GetEmailTemplateByID(ctx context.Context, emailTemplateID string) (*schemas.EmailTemplate, error)
 	// GetEmailTemplateByEventName to get EmailTemplate by event_name
-	GetEmailTemplateByEventName(ctx context.Context, eventName string) (*model.EmailTemplate, error)
+	GetEmailTemplateByEventName(ctx context.Context, eventName string) (*schemas.EmailTemplate, error)
 	// DeleteEmailTemplate to delete EmailTemplate
-	DeleteEmailTemplate(ctx context.Context, emailTemplate *model.EmailTemplate) error
+	DeleteEmailTemplate(ctx context.Context, emailTemplate *schemas.EmailTemplate) error
 
 	// UpsertOTP to add or update otp
 	UpsertOTP(ctx context.Context, otp *schemas.OTP) (*schemas.OTP, error)

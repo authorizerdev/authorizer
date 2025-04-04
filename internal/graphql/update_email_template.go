@@ -36,7 +36,7 @@ func (g *graphqlProvider) UpdateEmailTemplate(ctx context.Context, params *model
 		ID:        emailTemplate.ID,
 		Key:       emailTemplate.ID,
 		EventName: emailTemplate.EventName,
-		CreatedAt: refs.Int64Value(emailTemplate.CreatedAt),
+		CreatedAt: emailTemplate.CreatedAt,
 	}
 
 	if params.EventName != nil && emailTemplateDetails.EventName != refs.StringValue(params.EventName) {

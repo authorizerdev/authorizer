@@ -24,10 +24,18 @@ func (g *graphqlProvider) EmailTemplates(ctx context.Context, params *model.Pagi
 	}
 
 	pagination := utils.GetPagination(params)
-	emailTemplates, err := g.StorageProvider.ListEmailTemplate(ctx, pagination)
+	emailTemplates, pagination, err := g.StorageProvider.ListEmailTemplate(ctx, pagination)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to get email templates")
 		return nil, err
 	}
-	return emailTemplates, nil
+	resItems := make([]*model.EmailTemplate, len(emailTemplates))
+	for _, emailTemplate := range emailTemplates {
+		resItems = append(resItems, emailTemplate.AsAPIEmailTemplate())
+	}
+
+	return &model.EmailTemplates{
+		Pagination:     pagination,
+		EmailTemplates: resItems,
+	}, nil
 }

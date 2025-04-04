@@ -14,7 +14,7 @@ import (
 )
 
 // AddWebhook to add webhook
-func (p *provider) AddWebhook(ctx context.Context, webhook *schemas.Webhook) (*model.Webhook, error) {
+func (p *provider) AddWebhook(ctx context.Context, webhook *schemas.Webhook) (*schemas.Webhook, error) {
 	if webhook.ID == "" {
 		webhook.ID = uuid.New().String()
 		webhook.Key = webhook.ID
@@ -25,15 +25,17 @@ func (p *provider) AddWebhook(ctx context.Context, webhook *schemas.Webhook) (*m
 	webhook.CreatedAt = time.Now().Unix()
 	webhook.UpdatedAt = time.Now().Unix()
 	webhookCollection, _ := p.db.Collection(ctx, schemas.Collections.Webhook)
-	_, err := webhookCollection.CreateDocument(ctx, webhook)
+	meta, err := webhookCollection.CreateDocument(ctx, webhook)
 	if err != nil {
 		return nil, err
 	}
-	return webhook.AsAPIWebhook(), nil
+	webhook.Key = meta.Key
+	webhook.ID = meta.ID.String()
+	return webhook, nil
 }
 
 // UpdateWebhook to update webhook
-func (p *provider) UpdateWebhook(ctx context.Context, webhook *schemas.Webhook) (*model.Webhook, error) {
+func (p *provider) UpdateWebhook(ctx context.Context, webhook *schemas.Webhook) (*schemas.Webhook, error) {
 	webhook.UpdatedAt = time.Now().Unix()
 	// Event is changed
 	if !strings.Contains(webhook.EventName, "-") {
@@ -46,17 +48,17 @@ func (p *provider) UpdateWebhook(ctx context.Context, webhook *schemas.Webhook) 
 	}
 	webhook.Key = meta.Key
 	webhook.ID = meta.ID.String()
-	return webhook.AsAPIWebhook(), nil
+	return webhook, nil
 }
 
 // ListWebhooks to list webhook
-func (p *provider) ListWebhook(ctx context.Context, pagination *model.Pagination) (*model.Webhooks, error) {
-	webhooks := []*model.Webhook{}
+func (p *provider) ListWebhook(ctx context.Context, pagination *model.Pagination) ([]*schemas.Webhook, *model.Pagination, error) {
+	webhooks := []*schemas.Webhook{}
 	query := fmt.Sprintf("FOR d in %s SORT d.created_at DESC LIMIT %d, %d RETURN d", schemas.Collections.Webhook, pagination.Offset, pagination.Limit)
 	sctx := arangoDriver.WithQueryFullCount(ctx)
 	cursor, err := p.db.Query(sctx, query, nil)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer cursor.Close()
 	paginationClone := pagination
@@ -67,26 +69,22 @@ func (p *provider) ListWebhook(ctx context.Context, pagination *model.Pagination
 		if arangoDriver.IsNoMoreDocuments(err) {
 			break
 		} else if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		if meta.Key != "" {
-			webhooks = append(webhooks, webhook.AsAPIWebhook())
+			webhooks = append(webhooks, webhook)
 		}
 	}
-
-	return &model.Webhooks{
-		Pagination: paginationClone,
-		Webhooks:   webhooks,
-	}, nil
+	return webhooks, paginationClone, nil
 }
 
 // GetWebhookByID to get webhook by id
-func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*model.Webhook, error) {
+func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*schemas.Webhook, error) {
 	var webhook *schemas.Webhook
-	query := fmt.Sprintf("FOR d in %s FILTER d._key == @webhook_id RETURN d", schemas.Collections.Webhook)
+	query := fmt.Sprintf("FOR d in %s FILTER d._id == @id RETURN d", schemas.Collections.Webhook)
 	bindVars := map[string]interface{}{
-		"webhook_id": webhookID,
+		"id": webhookID,
 	}
 	cursor, err := p.db.Query(ctx, query, bindVars)
 	if err != nil {
@@ -105,11 +103,11 @@ func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*model
 			return nil, err
 		}
 	}
-	return webhook.AsAPIWebhook(), nil
+	return webhook, nil
 }
 
 // GetWebhookByEventName to get webhook by event_name
-func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) ([]*model.Webhook, error) {
+func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) ([]*schemas.Webhook, error) {
 	query := fmt.Sprintf("FOR d in %s FILTER d.event_name LIKE @event_name RETURN d", schemas.Collections.Webhook)
 	bindVars := map[string]interface{}{
 		"event_name": eventName + "%",
@@ -119,7 +117,7 @@ func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) 
 		return nil, err
 	}
 	defer cursor.Close()
-	webhooks := []*model.Webhook{}
+	webhooks := []*schemas.Webhook{}
 	for {
 		var webhook *schemas.Webhook
 		if _, err := cursor.ReadDocument(ctx, &webhook); arangoDriver.IsNoMoreDocuments(err) {
@@ -128,21 +126,21 @@ func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) 
 		} else if err != nil {
 			return nil, err
 		}
-		webhooks = append(webhooks, webhook.AsAPIWebhook())
+		webhooks = append(webhooks, webhook)
 	}
 	return webhooks, nil
 }
 
 // DeleteWebhook to delete webhook
-func (p *provider) DeleteWebhook(ctx context.Context, webhook *model.Webhook) error {
+func (p *provider) DeleteWebhook(ctx context.Context, webhook *schemas.Webhook) error {
 	webhookCollection, _ := p.db.Collection(ctx, schemas.Collections.Webhook)
-	_, err := webhookCollection.RemoveDocument(ctx, webhook.ID)
+	_, err := webhookCollection.RemoveDocument(ctx, webhook.Key)
 	if err != nil {
 		return err
 	}
 	query := fmt.Sprintf("FOR d IN %s FILTER d.webhook_id == @webhook_id REMOVE { _key: d._key } IN %s", schemas.Collections.WebhookLog, schemas.Collections.WebhookLog)
 	bindVars := map[string]interface{}{
-		"webhook_id": webhook.ID,
+		"webhook_id": webhook.Key,
 	}
 	cursor, err := p.db.Query(ctx, query, bindVars)
 	if err != nil {

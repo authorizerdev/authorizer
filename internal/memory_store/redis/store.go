@@ -12,7 +12,7 @@ var (
 	stateStorePrefix = "authorizer_state:"
 )
 
-const mfaSessionPrefix = "mfa_sess_"
+const mfaSessionPrefix = "mfa_session_"
 
 // SetUserSession sets the user session for given user identifier in form recipe:user_id
 func (p *provider) SetUserSession(userId, key, token string, expiration int64) error {
@@ -109,6 +109,20 @@ func (p *provider) GetMfaSession(userId, key string) (string, error) {
 		return "", err
 	}
 	return data, nil
+}
+
+// GetAllMfaSessions returns all mfa sessions for given userId
+func (p *provider) GetAllMfaSessions(userId string) ([]string, error) {
+	res := p.store.Keys(p.ctx, fmt.Sprintf("%s%s:*", mfaSessionPrefix, userId))
+	if res.Err() != nil {
+		p.dependencies.Log.Debug().Err(res.Err()).Msg("Error getting all mfa sessions from redis")
+		return nil, res.Err()
+	}
+	keys := res.Val()
+	for i := 0; i < len(keys); i++ {
+		keys[i] = keys[i][len(mfaSessionPrefix)+len(userId)+1:]
+	}
+	return keys, nil
 }
 
 // DeleteMfaSession deletes given mfa session from in-memory store.

@@ -236,7 +236,7 @@ func runRoot(c *cobra.Command, args []string) {
 		Log: &log,
 	})
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to create graphql provider")
+		log.Fatal().Err(err).Msg("failed to create sms provider")
 	}
 
 	// Token provider
@@ -244,7 +244,7 @@ func runRoot(c *cobra.Command, args []string) {
 		Log: &log,
 	})
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to create graphql provider")
+		log.Fatal().Err(err).Msg("failed to create token provider")
 	}
 
 	// Ensure client ID and secret are set for authorizer instance

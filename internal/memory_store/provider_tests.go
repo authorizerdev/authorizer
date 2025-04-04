@@ -9,7 +9,6 @@ import (
 
 // ProviderTests runs all provider tests
 func ProviderTests(t *testing.T, p Provider) {
-
 	err := p.SetUserSession("auth_provider:123", "session_token_key", "test_hash123", time.Now().Add(60*time.Second).Unix())
 	assert.NoError(t, err)
 	err = p.SetUserSession("auth_provider:123", "access_token_key", "test_jwt123", time.Now().Add(60*time.Second).Unix())

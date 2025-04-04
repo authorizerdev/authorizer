@@ -57,9 +57,8 @@ func (p *provider) GetVerificationRequestByEmail(ctx context.Context, email stri
 }
 
 // ListVerificationRequests to get list of verification requests from database
-func (p *provider) ListVerificationRequests(ctx context.Context, pagination *model.Pagination) (*model.VerificationRequests, error) {
-	var verificationRequests []*model.VerificationRequest
-
+func (p *provider) ListVerificationRequests(ctx context.Context, pagination *model.Pagination) ([]*schemas.VerificationRequest, *model.Pagination, error) {
+	var verificationRequests []*schemas.VerificationRequest
 	opts := options.Find()
 	opts.SetLimit(pagination.Limit)
 	opts.SetSkip(pagination.Offset)
@@ -69,14 +68,14 @@ func (p *provider) ListVerificationRequests(ctx context.Context, pagination *mod
 
 	verificationRequestCollectionCount, err := verificationRequestCollection.CountDocuments(ctx, bson.M{})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	paginationClone := pagination
 	paginationClone.Total = verificationRequestCollectionCount
 
 	cursor, err := verificationRequestCollection.Find(ctx, bson.M{}, opts)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer cursor.Close(ctx)
 
@@ -84,15 +83,12 @@ func (p *provider) ListVerificationRequests(ctx context.Context, pagination *mod
 		var verificationRequest *schemas.VerificationRequest
 		err := cursor.Decode(&verificationRequest)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		verificationRequests = append(verificationRequests, verificationRequest.AsAPIVerificationRequest())
+		verificationRequests = append(verificationRequests, verificationRequest)
 	}
 
-	return &model.VerificationRequests{
-		VerificationRequests: verificationRequests,
-		Pagination:           paginationClone,
-	}, nil
+	return verificationRequests, paginationClone, nil
 }
 
 // DeleteVerificationRequest to delete verification request from database

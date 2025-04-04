@@ -27,5 +27,5 @@ func (g *graphqlProvider) Webhook(ctx context.Context, params *model.WebhookRequ
 		log.Debug().Err(err).Msg("failed GetWebhookByID")
 		return nil, err
 	}
-	return webhook, nil
+	return webhook.AsAPIWebhook(), nil
 }

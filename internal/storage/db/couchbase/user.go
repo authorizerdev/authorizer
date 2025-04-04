@@ -73,8 +73,8 @@ func (p *provider) DeleteUser(ctx context.Context, user *schemas.User) error {
 }
 
 // ListUsers to get list of users from database
-func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) (*model.Users, error) {
-	users := []*model.User{}
+func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) ([]*schemas.User, *model.Pagination, error) {
+	users := []*schemas.User{}
 	paginationClone := pagination
 	userQuery := fmt.Sprintf("SELECT _id, email, email_verified_at, `password`, signup_methods, given_name, family_name, middle_name, nickname, birthdate, phone_number, phone_number_verified_at, picture, roles, revoked_timestamp, is_multi_factor_auth_enabled, app_data, created_at, updated_at FROM %s.%s ORDER BY id OFFSET $1 LIMIT $2", p.scopeName, schemas.Collections.User)
 	queryResult, err := p.db.Query(userQuery, &gocb.QueryOptions{
@@ -83,11 +83,11 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) 
 		PositionalParameters: []interface{}{paginationClone.Offset, paginationClone.Limit},
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	total, err := p.GetTotalDocs(ctx, schemas.Collections.User)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	paginationClone.Total = total
 	for queryResult.Next() {
@@ -96,15 +96,12 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) 
 		if err != nil {
 			log.Fatal(err)
 		}
-		users = append(users, user.AsAPIUser())
+		users = append(users, &user)
 	}
 	if err := queryResult.Err(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return &model.Users{
-		Pagination: paginationClone,
-		Users:      users,
-	}, nil
+	return users, paginationClone, nil
 }
 
 // GetUserByEmail to get user information from database using email address

@@ -24,11 +24,17 @@ func (g *graphqlProvider) Users(ctx context.Context, params *model.PaginatedInpu
 
 	pagination := utils.GetPagination(params)
 
-	res, err := g.StorageProvider.ListUsers(ctx, pagination)
+	res, pagination, err := g.StorageProvider.ListUsers(ctx, pagination)
 	if err != nil {
 		log.Debug().Err(err).Msg("failed ListUsers")
 		return nil, err
 	}
-
-	return res, nil
+	resItems := make([]*model.User, len(res))
+	for i, user := range res {
+		resItems[i] = user.AsAPIUser()
+	}
+	return &model.Users{
+		Pagination: pagination,
+		Users:      resItems,
+	}, nil
 }

@@ -47,8 +47,8 @@ func (p *provider) DeleteUser(ctx context.Context, user *schemas.User) error {
 }
 
 // ListUsers to get list of users from database
-func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) (*model.Users, error) {
-	return nil, nil
+func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) ([]*schemas.User, *model.Pagination, error) {
+	return nil, nil, nil
 }
 
 // GetUserByEmail to get user information from database using email address

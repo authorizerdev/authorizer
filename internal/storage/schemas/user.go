@@ -58,7 +58,7 @@ func (user *User) AsAPIUser() *model.User {
 		Gender:                   user.Gender,
 		Birthdate:                user.Birthdate,
 		PhoneNumber:              user.PhoneNumber,
-		PhoneNumberVerified:      &isPhoneVerified,
+		PhoneNumberVerified:      isPhoneVerified,
 		Picture:                  user.Picture,
 		Roles:                    strings.Split(user.Roles, ","),
 		RevokedTimestamp:         user.RevokedTimestamp,

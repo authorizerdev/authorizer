@@ -15,7 +15,7 @@ import (
 )
 
 // AddWebhook to add webhook
-func (p *provider) AddWebhook(ctx context.Context, webhook *schemas.Webhook) (*model.Webhook, error) {
+func (p *provider) AddWebhook(ctx context.Context, webhook *schemas.Webhook) (*schemas.Webhook, error) {
 	collection := p.db.Table(schemas.Collections.Webhook)
 	if webhook.ID == "" {
 		webhook.ID = uuid.New().String()
@@ -29,11 +29,11 @@ func (p *provider) AddWebhook(ctx context.Context, webhook *schemas.Webhook) (*m
 	if err != nil {
 		return nil, err
 	}
-	return webhook.AsAPIWebhook(), nil
+	return webhook, nil
 }
 
 // UpdateWebhook to update webhook
-func (p *provider) UpdateWebhook(ctx context.Context, webhook *schemas.Webhook) (*model.Webhook, error) {
+func (p *provider) UpdateWebhook(ctx context.Context, webhook *schemas.Webhook) (*schemas.Webhook, error) {
 	webhook.UpdatedAt = time.Now().Unix()
 	// Event is changed
 	if !strings.Contains(webhook.EventName, "-") {
@@ -44,12 +44,12 @@ func (p *provider) UpdateWebhook(ctx context.Context, webhook *schemas.Webhook) 
 	if err != nil {
 		return nil, err
 	}
-	return webhook.AsAPIWebhook(), nil
+	return webhook, nil
 }
 
 // ListWebhooks to list webhook
-func (p *provider) ListWebhook(ctx context.Context, pagination *model.Pagination) (*model.Webhooks, error) {
-	webhooks := []*model.Webhook{}
+func (p *provider) ListWebhook(ctx context.Context, pagination *model.Pagination) ([]*schemas.Webhook, *model.Pagination, error) {
+	webhooks := []*schemas.Webhook{}
 	var webhook *schemas.Webhook
 	var lastEval dynamo.PagingKey
 	var iter dynamo.PagingIter
@@ -59,31 +59,28 @@ func (p *provider) ListWebhook(ctx context.Context, pagination *model.Pagination
 	scanner := collection.Scan()
 	count, err := scanner.Count()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	for (paginationClone.Offset + paginationClone.Limit) > iteration {
 		iter = scanner.StartFrom(lastEval).Limit(paginationClone.Limit).Iter()
 		for iter.NextWithContext(ctx, &webhook) {
 			if paginationClone.Offset == iteration {
-				webhooks = append(webhooks, webhook.AsAPIWebhook())
+				webhooks = append(webhooks, webhook)
 			}
 		}
 		err = iter.Err()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		lastEval = iter.LastEvaluatedKey()
 		iteration += paginationClone.Limit
 	}
 	paginationClone.Total = count
-	return &model.Webhooks{
-		Pagination: paginationClone,
-		Webhooks:   webhooks,
-	}, nil
+	return webhooks, paginationClone, nil
 }
 
 // GetWebhookByID to get webhook by id
-func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*model.Webhook, error) {
+func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*schemas.Webhook, error) {
 	collection := p.db.Table(schemas.Collections.Webhook)
 	var webhook *schemas.Webhook
 	err := collection.Get("id", webhookID).OneWithContext(ctx, &webhook)
@@ -91,28 +88,24 @@ func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*model
 		return nil, err
 	}
 	if webhook.ID == "" {
-		return nil, errors.New("no documets found")
+		return nil, errors.New("no document found")
 	}
-	return webhook.AsAPIWebhook(), nil
+	return webhook, nil
 }
 
 // GetWebhookByEventName to get webhook by event_name
-func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) ([]*model.Webhook, error) {
-	webhooks := []schemas.Webhook{}
+func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) ([]*schemas.Webhook, error) {
+	webhooks := []*schemas.Webhook{}
 	collection := p.db.Table(schemas.Collections.Webhook)
 	err := collection.Scan().Index("event_name").Filter("contains(event_name, ?)", eventName).AllWithContext(ctx, &webhooks)
 	if err != nil {
 		return nil, err
 	}
-	resWebhooks := []*model.Webhook{}
-	for _, w := range webhooks {
-		resWebhooks = append(resWebhooks, w.AsAPIWebhook())
-	}
-	return resWebhooks, nil
+	return webhooks, nil
 }
 
 // DeleteWebhook to delete webhook
-func (p *provider) DeleteWebhook(ctx context.Context, webhook *model.Webhook) error {
+func (p *provider) DeleteWebhook(ctx context.Context, webhook *schemas.Webhook) error {
 	// Also delete webhook logs for given webhook id
 	if webhook != nil {
 		webhookCollection := p.db.Table(schemas.Collections.Webhook)
@@ -122,15 +115,17 @@ func (p *provider) DeleteWebhook(ctx context.Context, webhook *model.Webhook) er
 			return err
 		}
 		pagination := &model.Pagination{}
-		webhookLogs, errIs := p.ListWebhookLogs(ctx, pagination, webhook.ID)
-		for _, webhookLog := range webhookLogs.WebhookLogs {
-			err = webhookLogCollection.Delete("id", webhookLog.ID).RunWithContext(ctx)
-			if err != nil {
-				return err
+		webhookLogs, _, err := p.ListWebhookLogs(ctx, pagination, webhook.ID)
+		if err != nil {
+			p.dependencies.Log.Debug().Err(err).Msg("failed to list webhook logs")
+		} else {
+			for _, webhookLog := range webhookLogs {
+				err = webhookLogCollection.Delete("id", webhookLog.ID).RunWithContext(ctx)
+				if err != nil {
+					p.dependencies.Log.Debug().Err(err).Msg("failed to delete webhook log")
+					// continue
+				}
 			}
-		}
-		if errIs != nil {
-			return errIs
 		}
 	}
 	return nil

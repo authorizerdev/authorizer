@@ -16,7 +16,7 @@ import (
 )
 
 // AddWebhook to add webhook
-func (p *provider) AddWebhook(ctx context.Context, webhook *schemas.Webhook) (*model.Webhook, error) {
+func (p *provider) AddWebhook(ctx context.Context, webhook *schemas.Webhook) (*schemas.Webhook, error) {
 	if webhook.ID == "" {
 		webhook.ID = uuid.New().String()
 	}
@@ -32,11 +32,11 @@ func (p *provider) AddWebhook(ctx context.Context, webhook *schemas.Webhook) (*m
 	if err != nil {
 		return nil, err
 	}
-	return webhook.AsAPIWebhook(), nil
+	return webhook, nil
 }
 
 // UpdateWebhook to update webhook
-func (p *provider) UpdateWebhook(ctx context.Context, webhook *schemas.Webhook) (*model.Webhook, error) {
+func (p *provider) UpdateWebhook(ctx context.Context, webhook *schemas.Webhook) (*schemas.Webhook, error) {
 	webhook.UpdatedAt = time.Now().Unix()
 	// Event is changed
 	if !strings.Contains(webhook.EventName, "-") {
@@ -65,19 +65,19 @@ func (p *provider) UpdateWebhook(ctx context.Context, webhook *schemas.Webhook) 
 		return nil, err
 	}
 
-	return webhook.AsAPIWebhook(), nil
+	return webhook, nil
 }
 
 // ListWebhooks to list webhook
-func (p *provider) ListWebhook(ctx context.Context, pagination *model.Pagination) (*model.Webhooks, error) {
-	webhooks := []*model.Webhook{}
+func (p *provider) ListWebhook(ctx context.Context, pagination *model.Pagination) ([]*schemas.Webhook, *model.Pagination, error) {
+	webhooks := []*schemas.Webhook{}
 	paginationClone := pagination
 	params := make(map[string]interface{}, 1)
 	params["offset"] = paginationClone.Offset
 	params["limit"] = paginationClone.Limit
 	total, err := p.GetTotalDocs(ctx, schemas.Collections.Webhook)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	paginationClone.Total = total
 	query := fmt.Sprintf("SELECT _id, event_description, event_name, endpoint, headers, enabled, created_at, updated_at FROM %s.%s OFFSET $offset LIMIT $limit", p.scopeName, schemas.Collections.Webhook)
@@ -87,7 +87,7 @@ func (p *provider) ListWebhook(ctx context.Context, pagination *model.Pagination
 		NamedParameters: params,
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	for queryResult.Next() {
 		var webhook schemas.Webhook
@@ -95,19 +95,16 @@ func (p *provider) ListWebhook(ctx context.Context, pagination *model.Pagination
 		if err != nil {
 			log.Fatal(err)
 		}
-		webhooks = append(webhooks, webhook.AsAPIWebhook())
+		webhooks = append(webhooks, &webhook)
 	}
 	if err := queryResult.Err(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return &model.Webhooks{
-		Pagination: paginationClone,
-		Webhooks:   webhooks,
-	}, nil
+	return webhooks, paginationClone, nil
 }
 
 // GetWebhookByID to get webhook by id
-func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*model.Webhook, error) {
+func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*schemas.Webhook, error) {
 	var webhook *schemas.Webhook
 	params := make(map[string]interface{}, 1)
 	params["_id"] = webhookID
@@ -124,11 +121,11 @@ func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*model
 	if err != nil {
 		return nil, err
 	}
-	return webhook.AsAPIWebhook(), nil
+	return webhook, nil
 }
 
 // GetWebhookByEventName to get webhook by event_name
-func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) ([]*model.Webhook, error) {
+func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) ([]*schemas.Webhook, error) {
 	params := make(map[string]interface{}, 1)
 	// params["event_name"] = eventName + "%"
 	query := fmt.Sprintf(`SELECT _id, event_description, event_name, endpoint, headers, enabled, created_at, updated_at FROM %s.%s WHERE event_name LIKE '%s'`, p.scopeName, schemas.Collections.Webhook, eventName+"%")
@@ -140,14 +137,14 @@ func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) 
 	if err != nil {
 		return nil, err
 	}
-	webhooks := []*model.Webhook{}
+	webhooks := []*schemas.Webhook{}
 	for queryResult.Next() {
 		var webhook *schemas.Webhook
 		err := queryResult.Row(&webhook)
 		if err != nil {
 			log.Fatal(err)
 		}
-		webhooks = append(webhooks, webhook.AsAPIWebhook())
+		webhooks = append(webhooks, webhook)
 	}
 	if err := queryResult.Err(); err != nil {
 		return nil, err
@@ -156,7 +153,7 @@ func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) 
 }
 
 // DeleteWebhook to delete webhook
-func (p *provider) DeleteWebhook(ctx context.Context, webhook *model.Webhook) error {
+func (p *provider) DeleteWebhook(ctx context.Context, webhook *schemas.Webhook) error {
 	params := make(map[string]interface{}, 1)
 	params["webhook_id"] = webhook.ID
 	removeOpt := gocb.RemoveOptions{

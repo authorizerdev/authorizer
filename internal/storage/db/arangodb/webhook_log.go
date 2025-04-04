@@ -13,7 +13,7 @@ import (
 )
 
 // AddWebhookLog to add webhook log
-func (p *provider) AddWebhookLog(ctx context.Context, webhookLog *schemas.WebhookLog) (*model.WebhookLog, error) {
+func (p *provider) AddWebhookLog(ctx context.Context, webhookLog *schemas.WebhookLog) (*schemas.WebhookLog, error) {
 	if webhookLog.ID == "" {
 		webhookLog.ID = uuid.New().String()
 		webhookLog.Key = webhookLog.ID
@@ -26,12 +26,12 @@ func (p *provider) AddWebhookLog(ctx context.Context, webhookLog *schemas.Webhoo
 	if err != nil {
 		return nil, err
 	}
-	return webhookLog.AsAPIWebhookLog(), nil
+	return webhookLog, nil
 }
 
 // ListWebhookLogs to list webhook logs
-func (p *provider) ListWebhookLogs(ctx context.Context, pagination *model.Pagination, webhookID string) (*model.WebhookLogs, error) {
-	webhookLogs := []*model.WebhookLog{}
+func (p *provider) ListWebhookLogs(ctx context.Context, pagination *model.Pagination, webhookID string) ([]*schemas.WebhookLog, *model.Pagination, error) {
+	webhookLogs := []*schemas.WebhookLog{}
 	bindVariables := map[string]interface{}{}
 	query := fmt.Sprintf("FOR d in %s SORT d.created_at DESC LIMIT %d, %d RETURN d", schemas.Collections.WebhookLog, pagination.Offset, pagination.Limit)
 	if webhookID != "" {
@@ -43,7 +43,7 @@ func (p *provider) ListWebhookLogs(ctx context.Context, pagination *model.Pagina
 	sctx := arangoDriver.WithQueryFullCount(ctx)
 	cursor, err := p.db.Query(sctx, query, bindVariables)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer cursor.Close()
 	paginationClone := pagination
@@ -54,14 +54,11 @@ func (p *provider) ListWebhookLogs(ctx context.Context, pagination *model.Pagina
 		if arangoDriver.IsNoMoreDocuments(err) {
 			break
 		} else if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		if meta.Key != "" {
-			webhookLogs = append(webhookLogs, webhookLog.AsAPIWebhookLog())
+			webhookLogs = append(webhookLogs, webhookLog)
 		}
 	}
-	return &model.WebhookLogs{
-		Pagination:  paginationClone,
-		WebhookLogs: webhookLogs,
-	}, nil
+	return webhookLogs, paginationClone, nil
 }

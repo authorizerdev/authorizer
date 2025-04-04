@@ -165,13 +165,13 @@ func (p *provider) DeleteUser(ctx context.Context, user *schemas.User) error {
 }
 
 // ListUsers to get list of users from database
-func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) (*model.Users, error) {
-	responseUsers := []*model.User{}
+func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) ([]*schemas.User, *model.Pagination, error) {
+	responseUsers := []*schemas.User{}
 	paginationClone := pagination
 	totalCountQuery := fmt.Sprintf(`SELECT COUNT(*) FROM %s`, KeySpace+"."+schemas.Collections.User)
 	err := p.db.Query(totalCountQuery).Consistency(gocql.One).Scan(&paginationClone.Total)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// there is no offset in cassandra
@@ -189,16 +189,13 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) 
 				&user.PhoneNumberVerifiedAt, &user.Picture, &user.Roles, &user.RevokedTimestamp, &user.IsMultiFactorAuthEnabled,
 				&user.AppData, &user.CreatedAt, &user.UpdatedAt)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
-			responseUsers = append(responseUsers, user.AsAPIUser())
+			responseUsers = append(responseUsers, &user)
 		}
 		counter++
 	}
-	return &model.Users{
-		Pagination: paginationClone,
-		Users:      responseUsers,
-	}, nil
+	return responseUsers, paginationClone, nil
 }
 
 // GetUserByEmail to get user information from database using email address

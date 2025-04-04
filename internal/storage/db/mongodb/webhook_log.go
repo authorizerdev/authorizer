@@ -12,7 +12,7 @@ import (
 )
 
 // AddWebhookLog to add webhook log
-func (p *provider) AddWebhookLog(ctx context.Context, webhookLog *schemas.WebhookLog) (*model.WebhookLog, error) {
+func (p *provider) AddWebhookLog(ctx context.Context, webhookLog *schemas.WebhookLog) (*schemas.WebhookLog, error) {
 	if webhookLog.ID == "" {
 		webhookLog.ID = uuid.New().String()
 	}
@@ -26,12 +26,12 @@ func (p *provider) AddWebhookLog(ctx context.Context, webhookLog *schemas.Webhoo
 	if err != nil {
 		return nil, err
 	}
-	return webhookLog.AsAPIWebhookLog(), nil
+	return webhookLog, nil
 }
 
 // ListWebhookLogs to list webhook logs
-func (p *provider) ListWebhookLogs(ctx context.Context, pagination *model.Pagination, webhookID string) (*model.WebhookLogs, error) {
-	webhookLogs := []*model.WebhookLog{}
+func (p *provider) ListWebhookLogs(ctx context.Context, pagination *model.Pagination, webhookID string) ([]*schemas.WebhookLog, *model.Pagination, error) {
+	webhookLogs := []*schemas.WebhookLog{}
 	opts := options.Find()
 	opts.SetLimit(pagination.Limit)
 	opts.SetSkip(pagination.Offset)
@@ -47,14 +47,14 @@ func (p *provider) ListWebhookLogs(ctx context.Context, pagination *model.Pagina
 	webhookLogCollection := p.db.Collection(schemas.Collections.WebhookLog, options.Collection())
 	count, err := webhookLogCollection.CountDocuments(ctx, query, options.Count())
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	paginationClone.Total = count
 
 	cursor, err := webhookLogCollection.Find(ctx, query, opts)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer cursor.Close(ctx)
 
@@ -62,13 +62,10 @@ func (p *provider) ListWebhookLogs(ctx context.Context, pagination *model.Pagina
 		var webhookLog *schemas.WebhookLog
 		err := cursor.Decode(&webhookLog)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		webhookLogs = append(webhookLogs, webhookLog.AsAPIWebhookLog())
+		webhookLogs = append(webhookLogs, webhookLog)
 	}
 
-	return &model.WebhookLogs{
-		Pagination:  paginationClone,
-		WebhookLogs: webhookLogs,
-	}, nil
+	return webhookLogs, paginationClone, nil
 }

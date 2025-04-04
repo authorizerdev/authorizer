@@ -75,31 +75,23 @@ func (p *provider) DeleteUser(ctx context.Context, user *schemas.User) error {
 }
 
 // ListUsers to get list of users from database
-func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) (*model.Users, error) {
-	var users []schemas.User
+func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) ([]*schemas.User, *model.Pagination, error) {
+	var users []*schemas.User
 	result := p.db.Limit(int(pagination.Limit)).Offset(int(pagination.Offset)).Order("created_at DESC").Find(&users)
 	if result.Error != nil {
-		return nil, result.Error
-	}
-
-	responseUsers := []*model.User{}
-	for _, user := range users {
-		responseUsers = append(responseUsers, user.AsAPIUser())
+		return nil, nil, result.Error
 	}
 
 	var total int64
 	totalRes := p.db.Model(&schemas.User{}).Count(&total)
 	if totalRes.Error != nil {
-		return nil, totalRes.Error
+		return nil, nil, totalRes.Error
 	}
 
 	paginationClone := pagination
 	paginationClone.Total = total
 
-	return &model.Users{
-		Pagination: paginationClone,
-		Users:      responseUsers,
-	}, nil
+	return users, paginationClone, nil
 }
 
 // GetUserByEmail to get user information from database using email address

@@ -41,6 +41,8 @@ type Provider interface {
 	SetMfaSession(userId, key string, expiration int64) error
 	// GetMfaSession returns value of given mfa session
 	GetMfaSession(userId, key string) (string, error)
+	// GetAllMfaSessions returns all mfa sessions for given userId
+	GetAllMfaSessions(userId string) ([]string, error)
 	// DeleteMfaSession deletes given mfa session from in-memory store.
 	DeleteMfaSession(userId, key string) error
 

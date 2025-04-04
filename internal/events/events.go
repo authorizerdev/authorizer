@@ -12,7 +12,6 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/config"
 	"github.com/authorizerdev/authorizer/internal/constants"
-	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/storage"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
@@ -51,7 +50,7 @@ func (p *provider) RegisterEvent(ctx context.Context, eventName string, authReci
 		return err
 	}
 	for _, webhook := range webhooks {
-		if !refs.BoolValue(webhook.Enabled) {
+		if !webhook.Enabled {
 			continue
 		}
 		userBytes, err := json.Marshal(user.AsAPIUser())
@@ -98,14 +97,18 @@ func (p *provider) RegisterEvent(ctx context.Context, eventName string, authReci
 		}
 
 		requestBytesBuffer := bytes.NewBuffer(requestBody)
-		req, err := http.NewRequest("POST", refs.StringValue(webhook.Endpoint), requestBytesBuffer)
+		req, err := http.NewRequest("POST", webhook.EndPoint, requestBytesBuffer)
 		if err != nil {
 			log.Debug().Err(err).Msg("error creating request")
 			continue
 		}
 		req.Header.Set("Content-Type", "application/json")
-
-		for key, val := range webhook.Headers {
+		headersMap := make(map[string]interface{})
+		err = json.Unmarshal([]byte(webhook.Headers), &headersMap)
+		if err != nil {
+			log.Debug().Err(err).Msg("error un-marshalling headers")
+		}
+		for key, val := range headersMap {
 			req.Header.Set(key, val.(string))
 		}
 

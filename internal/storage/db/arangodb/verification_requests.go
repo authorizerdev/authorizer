@@ -86,13 +86,13 @@ func (p *provider) GetVerificationRequestByEmail(ctx context.Context, email stri
 }
 
 // ListVerificationRequests to get list of verification requests from database
-func (p *provider) ListVerificationRequests(ctx context.Context, pagination *model.Pagination) (*model.VerificationRequests, error) {
-	var verificationRequests []*model.VerificationRequest
+func (p *provider) ListVerificationRequests(ctx context.Context, pagination *model.Pagination) ([]*schemas.VerificationRequest, *model.Pagination, error) {
+	var verificationRequests []*schemas.VerificationRequest
 	sctx := arangoDriver.WithQueryFullCount(ctx)
 	query := fmt.Sprintf("FOR d in %s SORT d.created_at DESC LIMIT %d, %d RETURN d", schemas.Collections.VerificationRequest, pagination.Offset, pagination.Limit)
 	cursor, err := p.db.Query(sctx, query, nil)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer cursor.Close()
 	paginationClone := pagination
@@ -104,18 +104,15 @@ func (p *provider) ListVerificationRequests(ctx context.Context, pagination *mod
 		if arangoDriver.IsNoMoreDocuments(err) {
 			break
 		} else if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		if meta.Key != "" {
-			verificationRequests = append(verificationRequests, verificationRequest.AsAPIVerificationRequest())
+			verificationRequests = append(verificationRequests, verificationRequest)
 		}
 
 	}
-	return &model.VerificationRequests{
-		VerificationRequests: verificationRequests,
-		Pagination:           paginationClone,
-	}, nil
+	return verificationRequests, paginationClone, nil
 }
 
 // DeleteVerificationRequest to delete verification request from database

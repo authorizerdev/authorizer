@@ -16,7 +16,7 @@ import (
 )
 
 // AddWebhook to add webhook
-func (p *provider) AddWebhook(ctx context.Context, webhook *schemas.Webhook) (*model.Webhook, error) {
+func (p *provider) AddWebhook(ctx context.Context, webhook *schemas.Webhook) (*schemas.Webhook, error) {
 	if webhook.ID == "" {
 		webhook.ID = uuid.New().String()
 	}
@@ -30,11 +30,11 @@ func (p *provider) AddWebhook(ctx context.Context, webhook *schemas.Webhook) (*m
 	if err != nil {
 		return nil, err
 	}
-	return webhook.AsAPIWebhook(), nil
+	return webhook, nil
 }
 
 // UpdateWebhook to update webhook
-func (p *provider) UpdateWebhook(ctx context.Context, webhook *schemas.Webhook) (*model.Webhook, error) {
+func (p *provider) UpdateWebhook(ctx context.Context, webhook *schemas.Webhook) (*schemas.Webhook, error) {
 	webhook.UpdatedAt = time.Now().Unix()
 	// Event is changed
 	if !strings.Contains(webhook.EventName, "-") {
@@ -78,17 +78,17 @@ func (p *provider) UpdateWebhook(ctx context.Context, webhook *schemas.Webhook) 
 	if err != nil {
 		return nil, err
 	}
-	return webhook.AsAPIWebhook(), nil
+	return webhook, nil
 }
 
 // ListWebhooks to list webhook
-func (p *provider) ListWebhook(ctx context.Context, pagination *model.Pagination) (*model.Webhooks, error) {
-	webhooks := []*model.Webhook{}
+func (p *provider) ListWebhook(ctx context.Context, pagination *model.Pagination) ([]*schemas.Webhook, *model.Pagination, error) {
+	webhooks := []*schemas.Webhook{}
 	paginationClone := pagination
 	totalCountQuery := fmt.Sprintf(`SELECT COUNT(*) FROM %s`, KeySpace+"."+schemas.Collections.Webhook)
 	err := p.db.Query(totalCountQuery).Consistency(gocql.One).Scan(&paginationClone.Total)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	// there is no offset in cassandra
 	// so we fetch till limit + offset
@@ -101,48 +101,45 @@ func (p *provider) ListWebhook(ctx context.Context, pagination *model.Pagination
 			var webhook schemas.Webhook
 			err := scanner.Scan(&webhook.ID, &webhook.EventDescription, &webhook.EventName, &webhook.EndPoint, &webhook.Headers, &webhook.Enabled, &webhook.CreatedAt, &webhook.UpdatedAt)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
-			webhooks = append(webhooks, webhook.AsAPIWebhook())
+			webhooks = append(webhooks, &webhook)
 		}
 		counter++
 	}
 
-	return &model.Webhooks{
-		Pagination: paginationClone,
-		Webhooks:   webhooks,
-	}, nil
+	return webhooks, paginationClone, nil
 }
 
 // GetWebhookByID to get webhook by id
-func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*model.Webhook, error) {
+func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*schemas.Webhook, error) {
 	var webhook schemas.Webhook
 	query := fmt.Sprintf(`SELECT id, event_description, event_name, endpoint, headers, enabled, created_at, updated_at FROM %s WHERE id = '%s' LIMIT 1`, KeySpace+"."+schemas.Collections.Webhook, webhookID)
 	err := p.db.Query(query).Consistency(gocql.One).Scan(&webhook.ID, &webhook.EventDescription, &webhook.EventName, &webhook.EndPoint, &webhook.Headers, &webhook.Enabled, &webhook.CreatedAt, &webhook.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
-	return webhook.AsAPIWebhook(), nil
+	return &webhook, nil
 }
 
 // GetWebhookByEventName to get webhook by event_name
-func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) ([]*model.Webhook, error) {
+func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) ([]*schemas.Webhook, error) {
 	query := fmt.Sprintf(`SELECT id, event_description, event_name, endpoint, headers, enabled, created_at, updated_at FROM %s WHERE event_name LIKE '%s' ALLOW FILTERING`, KeySpace+"."+schemas.Collections.Webhook, eventName+"%")
 	scanner := p.db.Query(query).Iter().Scanner()
-	webhooks := []*model.Webhook{}
+	webhooks := []*schemas.Webhook{}
 	for scanner.Next() {
 		var webhook schemas.Webhook
 		err := scanner.Scan(&webhook.ID, &webhook.EventDescription, &webhook.EventName, &webhook.EndPoint, &webhook.Headers, &webhook.Enabled, &webhook.CreatedAt, &webhook.UpdatedAt)
 		if err != nil {
 			return nil, err
 		}
-		webhooks = append(webhooks, webhook.AsAPIWebhook())
+		webhooks = append(webhooks, &webhook)
 	}
 	return webhooks, nil
 }
 
 // DeleteWebhook to delete webhook
-func (p *provider) DeleteWebhook(ctx context.Context, webhook *model.Webhook) error {
+func (p *provider) DeleteWebhook(ctx context.Context, webhook *schemas.Webhook) error {
 	query := fmt.Sprintf("DELETE FROM %s WHERE id = '%s'", KeySpace+"."+schemas.Collections.Webhook, webhook.ID)
 	err := p.db.Query(query).Exec()
 	if err != nil {

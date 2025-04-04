@@ -16,7 +16,7 @@ import (
 )
 
 // AddEmailTemplate to add EmailTemplate
-func (p *provider) AddEmailTemplate(ctx context.Context, emailTemplate *schemas.EmailTemplate) (*model.EmailTemplate, error) {
+func (p *provider) AddEmailTemplate(ctx context.Context, emailTemplate *schemas.EmailTemplate) (*schemas.EmailTemplate, error) {
 
 	if emailTemplate.ID == "" {
 		emailTemplate.ID = uuid.New().String()
@@ -31,14 +31,14 @@ func (p *provider) AddEmailTemplate(ctx context.Context, emailTemplate *schemas.
 
 	_, err := p.db.Collection(schemas.Collections.EmailTemplate).Insert(emailTemplate.ID, emailTemplate, &insertOpt)
 	if err != nil {
-		return emailTemplate.AsAPIEmailTemplate(), err
+		return nil, err
 	}
 
-	return emailTemplate.AsAPIEmailTemplate(), nil
+	return emailTemplate, nil
 }
 
 // UpdateEmailTemplate to update EmailTemplate
-func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate *schemas.EmailTemplate) (*model.EmailTemplate, error) {
+func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate *schemas.EmailTemplate) (*schemas.EmailTemplate, error) {
 	bytes, err := json.Marshal(emailTemplate)
 	if err != nil {
 		return nil, err
@@ -64,16 +64,16 @@ func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate *schem
 	if err != nil {
 		return nil, err
 	}
-	return emailTemplate.AsAPIEmailTemplate(), nil
+	return emailTemplate, nil
 }
 
 // ListEmailTemplates to list EmailTemplate
-func (p *provider) ListEmailTemplate(ctx context.Context, pagination *model.Pagination) (*model.EmailTemplates, error) {
-	emailTemplates := []*model.EmailTemplate{}
+func (p *provider) ListEmailTemplate(ctx context.Context, pagination *model.Pagination) ([]*schemas.EmailTemplate, *model.Pagination, error) {
+	emailTemplates := []*schemas.EmailTemplate{}
 	paginationClone := pagination
 	total, err := p.GetTotalDocs(ctx, schemas.Collections.EmailTemplate)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	paginationClone.Total = total
 	userQuery := fmt.Sprintf("SELECT _id, event_name, subject, design, template, created_at, updated_at FROM %s.%s ORDER BY _id OFFSET $1 LIMIT $2", p.scopeName, schemas.Collections.EmailTemplate)
@@ -85,7 +85,7 @@ func (p *provider) ListEmailTemplate(ctx context.Context, pagination *model.Pagi
 	})
 
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	for queryResult.Next() {
@@ -94,22 +94,19 @@ func (p *provider) ListEmailTemplate(ctx context.Context, pagination *model.Pagi
 		if err != nil {
 			log.Fatal(err)
 		}
-		emailTemplates = append(emailTemplates, emailTemplate.AsAPIEmailTemplate())
+		emailTemplates = append(emailTemplates, emailTemplate)
 	}
 
 	if err := queryResult.Err(); err != nil {
-		return nil, err
+		return nil, nil, err
 
 	}
 
-	return &model.EmailTemplates{
-		Pagination:     paginationClone,
-		EmailTemplates: emailTemplates,
-	}, nil
+	return emailTemplates, paginationClone, nil
 }
 
 // GetEmailTemplateByID to get EmailTemplate by id
-func (p *provider) GetEmailTemplateByID(ctx context.Context, emailTemplateID string) (*model.EmailTemplate, error) {
+func (p *provider) GetEmailTemplateByID(ctx context.Context, emailTemplateID string) (*schemas.EmailTemplate, error) {
 	var emailTemplate *schemas.EmailTemplate
 	query := fmt.Sprintf(`SELECT  _id, event_name, subject, design, template, created_at, updated_at  FROM %s.%s WHERE _id = $1 LIMIT 1`, p.scopeName, schemas.Collections.EmailTemplate)
 	q, err := p.db.Query(query, &gocb.QueryOptions{
@@ -124,11 +121,11 @@ func (p *provider) GetEmailTemplateByID(ctx context.Context, emailTemplateID str
 	if err != nil {
 		return nil, err
 	}
-	return emailTemplate.AsAPIEmailTemplate(), nil
+	return emailTemplate, nil
 }
 
 // GetEmailTemplateByEventName to get EmailTemplate by event_name
-func (p *provider) GetEmailTemplateByEventName(ctx context.Context, eventName string) (*model.EmailTemplate, error) {
+func (p *provider) GetEmailTemplateByEventName(ctx context.Context, eventName string) (*schemas.EmailTemplate, error) {
 	var emailTemplate schemas.EmailTemplate
 	query := fmt.Sprintf("SELECT  _id, event_name, subject, design, template, created_at, updated_at  FROM %s.%s WHERE event_name=$1 LIMIT 1", p.scopeName, schemas.Collections.EmailTemplate)
 	q, err := p.db.Query(query, &gocb.QueryOptions{
@@ -143,11 +140,11 @@ func (p *provider) GetEmailTemplateByEventName(ctx context.Context, eventName st
 	if err != nil {
 		return nil, err
 	}
-	return emailTemplate.AsAPIEmailTemplate(), nil
+	return &emailTemplate, nil
 }
 
 // DeleteEmailTemplate to delete EmailTemplate
-func (p *provider) DeleteEmailTemplate(ctx context.Context, emailTemplate *model.EmailTemplate) error {
+func (p *provider) DeleteEmailTemplate(ctx context.Context, emailTemplate *schemas.EmailTemplate) error {
 	removeOpt := gocb.RemoveOptions{
 		Context: ctx,
 	}

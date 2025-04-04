@@ -23,10 +23,17 @@ func (g *graphqlProvider) Webhooks(ctx context.Context, params *model.PaginatedI
 	}
 
 	pagination := utils.GetPagination(params)
-	webhooks, err := g.StorageProvider.ListWebhook(ctx, pagination)
+	webhooks, pagination, err := g.StorageProvider.ListWebhook(ctx, pagination)
 	if err != nil {
 		log.Debug().Err(err).Msg("failed ListWebhook")
 		return nil, err
 	}
-	return webhooks, nil
+	res := make([]*model.Webhook, len(webhooks))
+	for i, webhook := range webhooks {
+		res[i] = webhook.AsAPIWebhook()
+	}
+	return &model.Webhooks{
+		Pagination: pagination,
+		Webhooks:   res,
+	}, nil
 }

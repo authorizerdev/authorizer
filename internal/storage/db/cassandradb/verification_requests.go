@@ -55,13 +55,13 @@ func (p *provider) GetVerificationRequestByEmail(ctx context.Context, email stri
 }
 
 // ListVerificationRequests to get list of verification requests from database
-func (p *provider) ListVerificationRequests(ctx context.Context, pagination *model.Pagination) (*model.VerificationRequests, error) {
-	var verificationRequests []*model.VerificationRequest
+func (p *provider) ListVerificationRequests(ctx context.Context, pagination *model.Pagination) ([]*schemas.VerificationRequest, *model.Pagination, error) {
+	var verificationRequests []*schemas.VerificationRequest
 	paginationClone := pagination
 	totalCountQuery := fmt.Sprintf(`SELECT COUNT(*) FROM %s`, KeySpace+"."+schemas.Collections.VerificationRequest)
 	err := p.db.Query(totalCountQuery).Consistency(gocql.One).Scan(&paginationClone.Total)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	// there is no offset in cassandra
 	// so we fetch till limit + offset
@@ -75,17 +75,14 @@ func (p *provider) ListVerificationRequests(ctx context.Context, pagination *mod
 			var verificationRequest schemas.VerificationRequest
 			err := scanner.Scan(&verificationRequest.ID, &verificationRequest.Token, &verificationRequest.Identifier, &verificationRequest.ExpiresAt, &verificationRequest.Email, &verificationRequest.Nonce, &verificationRequest.RedirectURI, &verificationRequest.CreatedAt, &verificationRequest.UpdatedAt)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
-			verificationRequests = append(verificationRequests, verificationRequest.AsAPIVerificationRequest())
+			verificationRequests = append(verificationRequests, &verificationRequest)
 		}
 		counter++
 	}
 
-	return &model.VerificationRequests{
-		VerificationRequests: verificationRequests,
-		Pagination:           paginationClone,
-	}, nil
+	return verificationRequests, paginationClone, nil
 }
 
 // DeleteVerificationRequest to delete verification request from database
