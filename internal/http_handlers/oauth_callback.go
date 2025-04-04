@@ -19,6 +19,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/oauth"
+	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 	"github.com/authorizerdev/authorizer/internal/token"
@@ -248,6 +249,7 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 		if nonce == "" {
 			nonce = uuid.New().String()
 		}
+		hostname := parsers.GetHost(ctx)
 		//  user, inputRoles, scopes, provider, nonce, code
 		authToken, err := h.TokenProvider.CreateAuthToken(ctx, &token.AuthTokenConfig{
 			User:        user,
@@ -255,6 +257,7 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 			Scope:       scopes,
 			LoginMethod: provider,
 			Nonce:       nonce,
+			HostName:    hostname,
 		})
 		if err != nil {
 			log.Debug().Err(err).Msg("Failed to create auth token")

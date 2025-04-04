@@ -11,6 +11,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 	"github.com/authorizerdev/authorizer/internal/token"
@@ -160,6 +161,7 @@ func (g *graphqlProvider) VerifyOTP(ctx context.Context, params *model.VerifyOTP
 	if nonce == "" {
 		nonce = uuid.New().String()
 	}
+	hostname := parsers.GetHost(gc)
 	// user, roles, scope, loginMethod, nonce, code
 	authToken, err := g.TokenProvider.CreateAuthToken(gc, &token.AuthTokenConfig{
 		User:        user,
@@ -168,6 +170,7 @@ func (g *graphqlProvider) VerifyOTP(ctx context.Context, params *model.VerifyOTP
 		LoginMethod: loginMethod,
 		Nonce:       nonce,
 		Code:        code,
+		HostName:    hostname,
 	})
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to create auth token")

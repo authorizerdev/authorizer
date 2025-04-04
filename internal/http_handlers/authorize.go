@@ -42,6 +42,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
+	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/token"
 )
 
@@ -269,6 +270,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 		}
 
 		if responseType == constants.ResponseTypeToken || responseType == constants.ResponseTypeIDToken {
+			hostname := parsers.GetHost(gc)
 			// rollover the session for security
 			authToken, err := h.TokenProvider.CreateAuthToken(gc, &token.AuthTokenConfig{
 				User:        user,
@@ -276,6 +278,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				Roles:       claims.Roles,
 				Scope:       scope,
 				LoginMethod: claims.LoginMethod,
+				HostName:    hostname,
 			})
 			if err != nil {
 				log.Debug().Err(err).Msg("Error creating auth token")

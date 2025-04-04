@@ -164,6 +164,7 @@ func (g *graphqlProvider) VerifyEmail(ctx context.Context, params *model.VerifyE
 		nonce = uuid.New().String()
 	}
 	authToken, err := g.TokenProvider.CreateAuthToken(gc, &token.AuthTokenConfig{
+		HostName:    hostname,
 		User:        user,
 		Roles:       roles,
 		Scope:       scope,

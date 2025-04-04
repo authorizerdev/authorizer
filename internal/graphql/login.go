@@ -12,6 +12,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 	"github.com/authorizerdev/authorizer/internal/token"
@@ -320,6 +321,7 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginInput) (
 	if nonce == "" {
 		nonce = uuid.New().String()
 	}
+	hostname := parsers.GetHost(gc)
 	// gc, user, roles, scope, constants.AuthRecipeMethodBasicAuth, nonce, code
 	authToken, err := g.TokenProvider.CreateAuthToken(gc, &token.AuthTokenConfig{
 		User:        user,
@@ -328,6 +330,7 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginInput) (
 		Nonce:       nonce,
 		Code:        code,
 		LoginMethod: constants.AuthRecipeMethodBasicAuth,
+		HostName:    hostname,
 	})
 	if err != nil {
 		log.Debug().Msg("Failed to create auth token")

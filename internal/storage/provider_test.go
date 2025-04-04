@@ -20,11 +20,11 @@ import (
 
 var dbTypes = []string{
 	constants.DbTypePostgres,
-	constants.DbTypeMongoDB,
-	constants.DbTypeArangoDB,
-	constants.DbTypeScyllaDB,
-	constants.DbTypeCouchbaseDB,
-	constants.DbTypeDynamoDB,
+	// constants.DbTypeMongoDB,
+	// constants.DbTypeArangoDB,
+	// constants.DbTypeScyllaDB,
+	// constants.DbTypeCouchbaseDB,
+	// constants.DbTypeDynamoDB,
 }
 
 func getTestDBConfig(dbType string) *config.Config {

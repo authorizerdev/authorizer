@@ -142,6 +142,7 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 			LoginMethod: loginMethod,
 			Nonce:       nonce,
 			Code:        code,
+			HostName:    hostname,
 		})
 		if err != nil {
 			log.Debug().Err(err).Msg("Error creating auth token")

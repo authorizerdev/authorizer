@@ -12,6 +12,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
+	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/token"
 )
 
@@ -233,7 +234,7 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 			})
 			return
 		}
-
+		hostname := parsers.GetHost(gc)
 		nonce := uuid.New().String() + "@@" + code
 		authToken, err := h.TokenProvider.CreateAuthToken(gc, &token.AuthTokenConfig{
 			User:        user,
@@ -241,6 +242,7 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 			Scope:       scope,
 			LoginMethod: loginMethod,
 			Nonce:       nonce,
+			HostName:    hostname,
 		})
 		if err != nil {
 			log.Debug().Err(err).Msg("Error creating auth token")

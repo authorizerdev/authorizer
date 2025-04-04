@@ -1,4 +1,4 @@
-package tests
+package integration_tests
 
 import (
 	"context"
@@ -12,6 +12,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/authenticators"
 	"github.com/authorizerdev/authorizer/internal/config"
+	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/email"
 	"github.com/authorizerdev/authorizer/internal/events"
 	"github.com/authorizerdev/authorizer/internal/graphql"
@@ -51,13 +52,14 @@ func getTestConfig() *config.Config {
 	// Initialize config with test settings
 	cfg := &config.Config{
 		Env:            "test",
-		DatabaseType:   "sqlite",
-		DatabaseURL:    "test.db",
+		DatabaseType:   constants.DbTypePostgres,
+		DatabaseURL:    "postgres://postgres:postgres@localhost:5432/postgres",
 		JWTSecret:      "test-secret",
 		ClientID:       "test-client-id",
 		ClientSecret:   "test-client-secret",
 		AllowedOrigins: []string{"http://localhost:3000"},
 		JWTType:        "HS256",
+		AdminSecret:    "test-admin-secret",
 	}
 
 	return cfg

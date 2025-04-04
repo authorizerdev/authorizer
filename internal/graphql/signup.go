@@ -305,7 +305,6 @@ func (g *graphqlProvider) SignUp(ctx context.Context, params *model.SignUpInput)
 	if nonce == "" {
 		nonce = uuid.New().String()
 	}
-
 	authToken, err := g.TokenProvider.CreateAuthToken(gc, &token.AuthTokenConfig{
 		User:        user,
 		Roles:       roles,
@@ -313,6 +312,7 @@ func (g *graphqlProvider) SignUp(ctx context.Context, params *model.SignUpInput)
 		Nonce:       nonce,
 		Code:        code,
 		LoginMethod: constants.AuthRecipeMethodBasicAuth,
+		HostName:    hostname,
 	})
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to create auth token")
