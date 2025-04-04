@@ -59,6 +59,7 @@ func NewProvider(config *config.Config, deps *Dependencies) (*provider, error) {
 	// Wait until the cluster is ready
 	err = cluster.WaitUntilReady(30*time.Second, nil)
 	if err != nil {
+		fmt.Println("=> Error waiting for cluster to be ready:", err)
 		return nil, err
 	}
 	// To create the bucket and scope if not exist
@@ -143,6 +144,7 @@ func createBucketAndScope(cluster *gocb.Cluster, bucketName string, scopeName st
 	// Wait until bucket is ready
 	err = bucket.WaitUntilReady(30*time.Second, nil)
 	if err != nil {
+		fmt.Println("Error waiting for bucket to be ready:", err)
 		return nil, err
 	}
 	if scopeName != defaultScope {

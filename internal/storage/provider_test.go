@@ -13,6 +13,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -62,13 +63,18 @@ func TestStorageProvider(t *testing.T) {
 				os.Unsetenv("AWS_SECRET_ACCESS_KEY")
 			}
 			cfg := getTestDBConfig(dbType)
+			if dbType == constants.DbTypeCouchbaseDB {
+				cfg.DatabaseUsername = "Administrator"
+				cfg.DatabasePassword = "password"
+			}
 			ctx := context.Background()
 			provider, err := New(cfg, &Dependencies{
 				Log: &logger,
 			})
-			if dbType != constants.DbTypeCouchbaseDB {
-				require.NoError(t, err)
+			if err != nil {
+				log.Error().Err(err).Msg("failed to create storage provider")
 			}
+			require.NoError(t, err)
 			require.NotNil(t, provider)
 
 			t.Run("Authenticator Operations", func(t *testing.T) {
