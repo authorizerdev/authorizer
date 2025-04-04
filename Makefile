@@ -22,14 +22,16 @@ test:
 	docker rm -vf authorizer_scylla_db
 	docker rm -vf authorizer_mongodb_db
 	docker rm -vf authorizer_arangodb
-	docker rm -vf dynamodb-local-test
-	docker rm -vf couchbase-local-test
+	docker rm -vf authorizer_dynamodb
+	docker rm -vf authorizer_couchbase
+	docker rm -vf authorizer_redis
+	docker run -d --name authorizer_redis -p 6380:6379 redis
 	docker run --name authorizer_postgres -p 5432:5432 -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=postgres -d postgres
 	docker run -d --name authorizer_scylla_db -p 9042:9042 scylladb/scylla
 	docker run -d --name authorizer_mongodb_db -p 27017:27017 mongo:4.4.15
 	docker run -d --name authorizer_arangodb -p 8529:8529 -e ARANGO_NO_AUTH=1 arangodb/arangodb:3.10.3
-	docker run -d --name dynamodb-local-test  -p 8000:8000 amazon/dynamodb-local:latest
-	docker run -d --name couchbase-local-test  -p 8091-8097:8091-8097 -p 11210:11210 -p 11207:11207 -p 18091-18095:18091-18095 -p 18096:18096 -p 18097:18097 couchbase:latest
+	docker run -d --name authorizer_dynamodb  -p 8000:8000 amazon/dynamodb-local:latest
+	docker run -d --name authorizer_couchbase  -p 8091-8097:8091-8097 -p 11210:11210 -p 11207:11207 -p 18091-18095:18091-18095 -p 18096:18096 -p 18097:18097 couchbase:latest
 	sh scripts/couchbase-test.sh
 	
 	go test -v ./...
@@ -38,8 +40,9 @@ test:
 	docker rm -vf authorizer_scylla_db
 	docker rm -vf authorizer_mongodb_db
 	docker rm -vf authorizer_arangodb
-	docker rm -vf dynamodb-local-test
-	docker rm -vf couchbase-local-test
+	docker rm -vf authorizer_dynamodb
+	docker rm -vf authorizer_couchbase
+	docker rm -vf authorizer_redis
 test-mongodb:
 	docker run -d --name authorizer_mongodb_db -p 27017:27017 mongo:4.4.15
 	cd server && go clean --testcache && TEST_DBS="mongodb" go test -p 1 -v ./test
