@@ -28,7 +28,7 @@ func (g *graphqlProvider) AdminSession(ctx context.Context) (*model.Response, er
 		log.Debug().Err(err).Msg("Failed to encrypt admin secret")
 		return nil, err
 	}
-	cookie.SetAdminCookie(gc, hashedKey)
+	cookie.SetAdminCookie(gc, hashedKey, g.Config.AdminCookieSecure)
 
 	res := &model.Response{
 		Message: "admin session refreshed successfully",

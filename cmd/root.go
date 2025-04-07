@@ -118,6 +118,10 @@ func init() {
 	f.BoolVar(&rootArgs.config.DisableSMSOTP, "disable-sms-otp", false, "Disable SMS OTP")
 	f.BoolVar(&rootArgs.config.DisableSignup, "disable-signup", false, "Disable signup")
 
+	// Cookies flags
+	f.BoolVar(&rootArgs.config.AppCookieSecure, "app-cookie-secure", true, "Application secure cookie flag")
+	f.BoolVar(&rootArgs.config.AdminCookieSecure, "admin-cookie-secure", true, "Admin secure cookie flag")
+
 	// JWT flags
 	f.StringVar(&rootArgs.config.JWTType, "jwt-type", "", "Type of JWT to use")
 	f.StringVar(&rootArgs.config.JWTSecret, "jwt-secret", "", "Secret for the JWT")
@@ -161,7 +165,7 @@ func init() {
 	// Deprecated flags
 	f.MarkDeprecated("database_url", "use --database-url instead")
 	f.MarkDeprecated("database_type", "use --database-type instead")
-	f.MarkDeprecated("env_file", "use --env-file instead")
+	f.MarkDeprecated("env_file", "no more supported")
 	f.MarkDeprecated("log_level", "use --log-level instead")
 	f.MarkDeprecated("redis_url", "use --redis-url instead")
 }

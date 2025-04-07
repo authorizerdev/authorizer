@@ -69,9 +69,9 @@ const (
 	// EnvKeyIsSMSServiceEnabled key for env variable IS_SMS_SERVICE_ENABLED
 	// EnvKeyIsSMSServiceEnabled = "IS_SMS_SERVICE_ENABLED"
 	// EnvKeyAppCookieSecure key for env variable APP_COOKIE_SECURE
-	EnvKeyAppCookieSecure = "APP_COOKIE_SECURE"
+	// EnvKeyAppCookieSecure = "APP_COOKIE_SECURE"
 	// EnvKeyAdminCookieSecure key for env variable ADMIN_COOKIE_SECURE
-	EnvKeyAdminCookieSecure = "ADMIN_COOKIE_SECURE"
+	// EnvKeyAdminCookieSecure = "ADMIN_COOKIE_SECURE"
 	// EnvKeyJwtType key for env variable JWT_TYPE
 	// EnvKeyJwtType = "JWT_TYPE"
 	// // EnvKeyJwtSecret key for env variable JWT_SECRET
@@ -139,69 +139,69 @@ const (
 
 	// Not Exposed Keys
 	// EnvKeyClientID key for env variable CLIENT_ID
-	EnvKeyClientID = "CLIENT_ID"
-	// EnvKeyClientSecret key for env variable CLIENT_SECRET
-	EnvKeyClientSecret = "CLIENT_SECRET"
-	// EnvKeyEncryptionKey key for env variable ENCRYPTION_KEY
-	EnvKeyEncryptionKey = "ENCRYPTION_KEY"
-	// EnvKeyJWK key for env variable JWK
-	EnvKeyJWK = "JWK"
+	// EnvKeyClientID = "CLIENT_ID"
+	// // EnvKeyClientSecret key for env variable CLIENT_SECRET
+	// EnvKeyClientSecret = "CLIENT_SECRET"
+	// // EnvKeyEncryptionKey key for env variable ENCRYPTION_KEY
+	// EnvKeyEncryptionKey = "ENCRYPTION_KEY"
+	// // EnvKeyJWK key for env variable JWK
+	// EnvKeyJWK = "JWK"
 
 	// Boolean variables
 	// EnvKeyIsProd key for env variable IS_PROD
-	EnvKeyIsProd = "IS_PROD"
-	// EnvKeyDisableEmailVerification key for env variable DISABLE_EMAIL_VERIFICATION
-	EnvKeyDisableEmailVerification = "DISABLE_EMAIL_VERIFICATION"
-	// EnvKeyDisableBasicAuthentication key for env variable DISABLE_BASIC_AUTH
-	EnvKeyDisableBasicAuthentication = "DISABLE_BASIC_AUTHENTICATION"
-	// EnvKeyDisableBasicAuthentication key for env variable DISABLE_MOBILE_BASIC_AUTH
-	EnvKeyDisableMobileBasicAuthentication = "DISABLE_MOBILE_BASIC_AUTHENTICATION"
-	// EnvKeyDisableMagicLinkLogin key for env variable DISABLE_MAGIC_LINK_LOGIN
-	EnvKeyDisableMagicLinkLogin = "DISABLE_MAGIC_LINK_LOGIN"
-	// EnvKeyDisableLoginPage key for env variable DISABLE_LOGIN_PAGE
-	EnvKeyDisableLoginPage = "DISABLE_LOGIN_PAGE"
-	// EnvKeyDisableSignUp key for env variable DISABLE_SIGN_UP
-	EnvKeyDisableSignUp = "DISABLE_SIGN_UP"
-	// EnvKeyDisableRedisForEnv key for env variable DISABLE_REDIS_FOR_ENV
-	EnvKeyDisableRedisForEnv = "DISABLE_REDIS_FOR_ENV"
+	// EnvKeyIsProd = "IS_PROD"
+	// // EnvKeyDisableEmailVerification key for env variable DISABLE_EMAIL_VERIFICATION
+	// EnvKeyDisableEmailVerification = "DISABLE_EMAIL_VERIFICATION"
+	// // EnvKeyDisableBasicAuthentication key for env variable DISABLE_BASIC_AUTH
+	// EnvKeyDisableBasicAuthentication = "DISABLE_BASIC_AUTHENTICATION"
+	// // EnvKeyDisableBasicAuthentication key for env variable DISABLE_MOBILE_BASIC_AUTH
+	// EnvKeyDisableMobileBasicAuthentication = "DISABLE_MOBILE_BASIC_AUTHENTICATION"
+	// // EnvKeyDisableMagicLinkLogin key for env variable DISABLE_MAGIC_LINK_LOGIN
+	// EnvKeyDisableMagicLinkLogin = "DISABLE_MAGIC_LINK_LOGIN"
+	// // EnvKeyDisableLoginPage key for env variable DISABLE_LOGIN_PAGE
+	// EnvKeyDisableLoginPage = "DISABLE_LOGIN_PAGE"
+	// // EnvKeyDisableSignUp key for env variable DISABLE_SIGN_UP
+	// EnvKeyDisableSignUp = "DISABLE_SIGN_UP"
+	// // EnvKeyDisableRedisForEnv key for env variable DISABLE_REDIS_FOR_ENV
+	// EnvKeyDisableRedisForEnv = "DISABLE_REDIS_FOR_ENV"
 	// EnvKeyDisableStrongPassword key for env variable DISABLE_STRONG_PASSWORD
 	// EnvKeyDisableStrongPassword = "DISABLE_STRONG_PASSWORD"
 	// EnvKeyEnforceMultiFactorAuthentication is key for env variable ENFORCE_MULTI_FACTOR_AUTHENTICATION
 	// If enforced and changed later on, existing user will have MFA but new user will not have MFA
-	EnvKeyEnforceMultiFactorAuthentication = "ENFORCE_MULTI_FACTOR_AUTHENTICATION"
+	// EnvKeyEnforceMultiFactorAuthentication = "ENFORCE_MULTI_FACTOR_AUTHENTICATION"
 	// EnvKeyDisableMultiFactorAuthentication is key for env variable DISABLE_MULTI_FACTOR_AUTHENTICATION
 	// this variable is used to completely disable multi factor authentication. It will have no effect on profile preference
-	EnvKeyDisableMultiFactorAuthentication = "DISABLE_MULTI_FACTOR_AUTHENTICATION"
+	// EnvKeyDisableMultiFactorAuthentication = "DISABLE_MULTI_FACTOR_AUTHENTICATION"
 	// EnvKeyDisableTOTPLogin is key for env variable DISABLE_TOTP_LOGIN
 	// this variable is used to completely disable totp verification
-	EnvKeyDisableTOTPLogin = "DISABLE_TOTP_LOGIN"
+	// EnvKeyDisableTOTPLogin = "DISABLE_TOTP_LOGIN"
 	// EnvKeyDisableMailOTPLogin is key for env variable DISABLE_MAIL_OTP_LOGIN
 	// this variable is used to completely disable totp verification
-	EnvKeyDisableMailOTPLogin = "DISABLE_MAIL_OTP_LOGIN"
+	// EnvKeyDisableMailOTPLogin = "DISABLE_MAIL_OTP_LOGIN"
 	// EnvKeyDisablePhoneVerification is key for env variable DISABLE_PHONE_VERIFICATION
 	// this variable is used to disable phone verification
-	EnvKeyDisablePhoneVerification = "DISABLE_PHONE_VERIFICATION"
+	// EnvKeyDisablePhoneVerification = "DISABLE_PHONE_VERIFICATION"
 	// EnvKeyDisablePlayGround is key for env variable DISABLE_PLAYGROUND
 	// this variable will disable or enable playground use in dashboard
-	EnvKeyDisablePlayGround = "DISABLE_PLAYGROUND"
+	// EnvKeyDisablePlayGround = "DISABLE_PLAYGROUND"
 
 	// Slice variables
 	// EnvKeyRoles key for env variable ROLES
-	EnvKeyRoles = "ROLES"
+	// EnvKeyRoles = "ROLES"
 	// EnvKeyProtectedRoles key for env variable PROTECTED_ROLES
-	EnvKeyProtectedRoles = "PROTECTED_ROLES"
+	// EnvKeyProtectedRoles = "PROTECTED_ROLES"
 	// EnvKeyDefaultRoles key for env variable DEFAULT_ROLES
-	EnvKeyDefaultRoles = "DEFAULT_ROLES"
+	// EnvKeyDefaultRoles = "DEFAULT_ROLES"
 	// EnvKeyAllowedOrigins key for env variable ALLOWED_ORIGINS
-	EnvKeyAllowedOrigins = "ALLOWED_ORIGINS"
+	// EnvKeyAllowedOrigins = "ALLOWED_ORIGINS"
 
 	// For oauth/openid/authorize
 	// EnvKeyDefaultAuthorizeResponseType key for env variable DEFAULT_AUTHORIZE_RESPONSE_TYPE
 	// This env is used for setting default response type in authorize handler
-	EnvKeyDefaultAuthorizeResponseType = "DEFAULT_AUTHORIZE_RESPONSE_TYPE"
+	// EnvKeyDefaultAuthorizeResponseType = "DEFAULT_AUTHORIZE_RESPONSE_TYPE"
 	// EnvKeyDefaultAuthorizeResponseMode key for env variable DEFAULT_AUTHORIZE_RESPONSE_MODE
 	// This env is used for setting default response mode in authorize handler
-	EnvKeyDefaultAuthorizeResponseMode = "DEFAULT_AUTHORIZE_RESPONSE_MODE"
+	// EnvKeyDefaultAuthorizeResponseMode = "DEFAULT_AUTHORIZE_RESPONSE_MODE"
 
 	// Twilio env variables
 	// EnvKeyTwilioAPIKey key for env variable TWILIO_API_KEY

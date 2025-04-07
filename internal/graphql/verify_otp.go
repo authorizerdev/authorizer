@@ -217,7 +217,7 @@ func (g *graphqlProvider) VerifyOTP(ctx context.Context, params *model.VerifyOTP
 	}
 
 	sessionKey := loginMethod + ":" + user.ID
-	cookie.SetSession(gc, authToken.FingerPrintHash)
+	cookie.SetSession(gc, authToken.FingerPrintHash, g.Config.AppCookieSecure)
 	g.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt)
 	g.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt)
 

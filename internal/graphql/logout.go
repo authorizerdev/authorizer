@@ -33,7 +33,7 @@ func (g *graphqlProvider) Logout(ctx context.Context) (*model.Response, error) {
 		log.Debug().Err(err).Msg("Failed to delete user session")
 		return nil, err
 	}
-	cookie.DeleteSession(gc)
+	cookie.DeleteSession(gc, g.Config.AppCookieSecure)
 
 	res := &model.Response{
 		Message: "Logged out successfully",

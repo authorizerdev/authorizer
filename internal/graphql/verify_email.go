@@ -72,7 +72,7 @@ func (g *graphqlProvider) VerifyEmail(ctx context.Context, params *model.VerifyE
 			log.Debug().Err(err).Msg("Failed to set mfa session")
 			return err
 		}
-		cookie.SetMfaSession(gc, mfaSession)
+		cookie.SetMfaSession(gc, mfaSession, g.Config.AppCookieSecure)
 		return nil
 	}
 
@@ -216,7 +216,7 @@ func (g *graphqlProvider) VerifyEmail(ctx context.Context, params *model.VerifyE
 	}
 
 	sessionKey := loginMethod + ":" + user.ID
-	cookie.SetSession(gc, authToken.FingerPrintHash)
+	cookie.SetSession(gc, authToken.FingerPrintHash, g.Config.AppCookieSecure)
 	g.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt)
 	g.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt)
 

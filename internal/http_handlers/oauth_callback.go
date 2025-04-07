@@ -285,7 +285,7 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 		}
 
 		sessionKey := provider + ":" + user.ID
-		cookie.SetSession(ctx, authToken.FingerPrintHash)
+		cookie.SetSession(ctx, authToken.FingerPrintHash, h.Config.AppCookieSecure)
 		h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt)
 		h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt)
 

@@ -10,16 +10,8 @@ import (
 	"github.com/authorizerdev/authorizer/internal/parsers"
 )
 
-// TODO set app cookie as per config
-
 // SetSession sets the session cookie in the response
-func SetSession(gc *gin.Context, sessionID string) {
-	// appCookieSecure, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyAppCookieSecure)
-	// if err != nil {
-	// 	log.Debug("Error while getting app cookie secure from env variable: %v", err)
-	// 	appCookieSecure = true
-	// }
-	appCookieSecure := true
+func SetSession(gc *gin.Context, sessionID string, appCookieSecure bool) {
 	secure := appCookieSecure
 	httpOnly := appCookieSecure
 	hostname := parsers.GetHost(gc)
@@ -48,13 +40,7 @@ func SetSession(gc *gin.Context, sessionID string) {
 }
 
 // DeleteSession sets session cookies to expire
-func DeleteSession(gc *gin.Context) {
-	// appCookieSecure, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyAppCookieSecure)
-	// if err != nil {
-	// 	log.Debug("Error while getting app cookie secure from env variable: %v", err)
-	// 	appCookieSecure = true
-	// }
-	appCookieSecure := true
+func DeleteSession(gc *gin.Context, appCookieSecure bool) {
 	secure := appCookieSecure
 	httpOnly := appCookieSecure
 	hostname := parsers.GetHost(gc)

@@ -269,7 +269,7 @@ func (g *graphqlProvider) SignUp(ctx context.Context, params *model.SignUpInput)
 			log.Debug().Err(err).Msg("Failed to add mfasession")
 			return nil, err
 		}
-		cookie.SetMfaSession(gc, mfaSession)
+		cookie.SetMfaSession(gc, mfaSession, g.Config.AppCookieSecure)
 		go func() {
 			g.SMSProvider.SendSMS(phoneNumber, smsBody.String())
 			g.EventsProvider.RegisterEvent(ctx, constants.UserCreatedWebhookEvent, constants.AuthRecipeMethodMobileBasicAuth, user)
@@ -340,7 +340,7 @@ func (g *graphqlProvider) SignUp(ctx context.Context, params *model.SignUpInput)
 	}
 
 	sessionKey := constants.AuthRecipeMethodBasicAuth + ":" + user.ID
-	cookie.SetSession(gc, authToken.FingerPrintHash)
+	cookie.SetSession(gc, authToken.FingerPrintHash, g.Config.AppCookieSecure)
 	g.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt)
 	g.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt)
 

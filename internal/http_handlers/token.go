@@ -255,7 +255,7 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 
 		h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt)
 		h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt)
-		cookie.SetSession(gc, authToken.FingerPrintHash)
+		cookie.SetSession(gc, authToken.FingerPrintHash, h.Config.AppCookieSecure)
 
 		expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
 		if expiresIn <= 0 {

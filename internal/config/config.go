@@ -215,4 +215,9 @@ type Config struct {
 	RoboloxClientID string
 	// RoboloxClientSecret is the client secret for Robolox OAuth
 	RoboloxClientSecret string
+
+	// IsAppCookieSecure is the flag to set secure(http only) cookie
+	AppCookieSecure bool
+	// IsAdminCookieSecure is the flag to set secure(http only) cookie
+	AdminCookieSecure bool
 }

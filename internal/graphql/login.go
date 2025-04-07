@@ -90,7 +90,7 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginInput) (
 			log.Debug().Msg("Failed to set mfa session")
 			return err
 		}
-		cookie.SetMfaSession(gc, mfaSession)
+		cookie.SetMfaSession(gc, mfaSession, g.Config.AppCookieSecure)
 		return nil
 	}
 	if isEmailLogin {
@@ -359,7 +359,7 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginInput) (
 		User:        user.AsAPIUser(),
 	}
 
-	cookie.SetSession(gc, authToken.FingerPrintHash)
+	cookie.SetSession(gc, authToken.FingerPrintHash, g.Config.AppCookieSecure)
 	sessionStoreKey := constants.AuthRecipeMethodBasicAuth + ":" + user.ID
 	g.MemoryStoreProvider.SetUserSession(sessionStoreKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt)
 	g.MemoryStoreProvider.SetUserSession(sessionStoreKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt)

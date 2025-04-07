@@ -134,7 +134,7 @@ func (g *graphqlProvider) ForgotPassword(ctx context.Context, params *model.Forg
 			log.Debug().Err(err).Msg("Failed to set mfa session")
 			return nil, err
 		}
-		cookie.SetMfaSession(gc, mfaSession)
+		cookie.SetMfaSession(gc, mfaSession, g.Config.AppCookieSecure)
 		smsBody := strings.Builder{}
 		smsBody.WriteString("Your verification code is: ")
 		smsBody.WriteString(otpData.Otp)

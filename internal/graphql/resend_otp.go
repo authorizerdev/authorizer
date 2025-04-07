@@ -113,7 +113,7 @@ func (g *graphqlProvider) ResendOTP(ctx context.Context, params *model.ResendOTP
 			log.Debug().Msg("Failed to set mfa session")
 			return err
 		}
-		cookie.SetMfaSession(gc, mfaSession)
+		cookie.SetMfaSession(gc, mfaSession, g.Config.AppCookieSecure)
 		return nil
 	}
 	expiresAt := time.Now().Add(1 * time.Minute).Unix()

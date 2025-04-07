@@ -54,7 +54,7 @@ func (h *httpProvider) LogoutHandler() gin.HandlerFunc {
 		}
 
 		h.MemoryStoreProvider.DeleteUserSession(sessionToken, sessionData.Nonce)
-		cookie.DeleteSession(gc)
+		cookie.DeleteSession(gc, h.Config.AppCookieSecure)
 
 		if redirectURL != "" {
 			gc.Redirect(http.StatusFound, redirectURL)

@@ -23,7 +23,7 @@ func (g *graphqlProvider) AdminLogout(ctx context.Context) (*model.Response, err
 		return nil, fmt.Errorf("unauthorized")
 	}
 
-	cookie.DeleteAdminCookie(gc)
+	cookie.DeleteAdminCookie(gc, g.Config.AdminCookieSecure)
 
 	res := &model.Response{
 		Message: "admin logged out successfully",

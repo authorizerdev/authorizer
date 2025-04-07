@@ -228,7 +228,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				return
 			}
 
-			cookie.SetSession(gc, newSessionToken)
+			cookie.SetSession(gc, newSessionToken, h.Config.AppCookieSecure)
 
 			// in case, response type is code and user is already logged in send the code and state
 			// and cookie session will already be rolled over and set
@@ -298,7 +298,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				return
 			}
 
-			cookie.SetSession(gc, authToken.FingerPrintHash)
+			cookie.SetSession(gc, authToken.FingerPrintHash, h.Config.AppCookieSecure)
 
 			// used of query mode
 			params := "access_token=" + authToken.AccessToken.Token + "&token_type=bearer&expires_in=" + strconv.FormatInt(authToken.IDToken.ExpiresAt, 10) + "&state=" + state + "&id_token=" + authToken.IDToken.Token

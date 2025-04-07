@@ -13,13 +13,7 @@ import (
 // TODO set app cookie as per config
 
 // SetMfaSession sets the mfa session cookie in the response
-func SetMfaSession(gc *gin.Context, sessionID string) {
-	// appCookieSecure, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyAppCookieSecure)
-	// if err != nil {
-	// 	log.Debug("Error while getting app cookie secure from env variable: %v", err)
-	// 	appCookieSecure = true
-	// }
-	appCookieSecure := true
+func SetMfaSession(gc *gin.Context, sessionID string, appCookieSecure bool) {
 	secure := appCookieSecure
 	httpOnly := appCookieSecure
 	hostname := parsers.GetHost(gc)
@@ -48,13 +42,7 @@ func SetMfaSession(gc *gin.Context, sessionID string) {
 }
 
 // DeleteMfaSession deletes the mfa session cookies to expire
-func DeleteMfaSession(gc *gin.Context) {
-	// appCookieSecure, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyAppCookieSecure)
-	// if err != nil {
-	// 	log.Debug("Error while getting app cookie secure from env variable: %v", err)
-	// 	appCookieSecure = true
-	// }
-	appCookieSecure := true
+func DeleteMfaSession(gc *gin.Context, appCookieSecure bool) {
 	secure := appCookieSecure
 	httpOnly := appCookieSecure
 	hostname := parsers.GetHost(gc)

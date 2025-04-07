@@ -9,16 +9,8 @@ import (
 	"github.com/authorizerdev/authorizer/internal/parsers"
 )
 
-// TODO set admin cookie
-
 // SetAdminCookie sets the admin cookie in the response
-func SetAdminCookie(gc *gin.Context, token string) {
-	// adminCookieSecure, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyAdminCookieSecure)
-	// if err != nil {
-	// 	log.Debug("Error while getting admin cookie secure from env variable: %v", err)
-	// 	adminCookieSecure = true
-	// }
-	adminCookieSecure := true
+func SetAdminCookie(gc *gin.Context, token string, adminCookieSecure bool) {
 	secure := adminCookieSecure
 	httpOnly := adminCookieSecure
 	hostname := parsers.GetHost(gc)
@@ -43,13 +35,7 @@ func GetAdminCookie(gc *gin.Context) (string, error) {
 }
 
 // DeleteAdminCookie sets the response cookie to empty
-func DeleteAdminCookie(gc *gin.Context) {
-	// adminCookieSecure, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyAdminCookieSecure)
-	// if err != nil {
-	// 	log.Debug("Error while getting admin cookie secure from env variable: %v", err)
-	// 	adminCookieSecure = true
-	// }
-	adminCookieSecure := true
+func DeleteAdminCookie(gc *gin.Context, adminCookieSecure bool) {
 	secure := adminCookieSecure
 	httpOnly := adminCookieSecure
 	hostname := parsers.GetHost(gc)

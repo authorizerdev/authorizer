@@ -29,7 +29,7 @@ func (g *graphqlProvider) AdminLogin(ctx context.Context, params *model.AdminLog
 	if err != nil {
 		return res, err
 	}
-	cookie.SetAdminCookie(gc, hashedKey)
+	cookie.SetAdminCookie(gc, hashedKey, g.Config.AdminCookieSecure)
 
 	res = &model.Response{
 		Message: "admin logged in successfully",
