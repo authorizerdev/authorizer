@@ -257,21 +257,22 @@ func (p *provider) ValidateAccessToken(gc *gin.Context, accessToken string) (map
 	userID := res["sub"].(string)
 	nonce := res["nonce"].(string)
 
-	// TODO: validate against existing Token
-	// loginMethod := res["login_method"]
-	// sessionKey := userID
-	// if loginMethod != nil && loginMethod != "" {
-	// 	sessionKey = loginMethod.(string) + ":" + userID
-	// }
+	loginMethod := res["login_method"]
+	sessionKey := userID
+	if loginMethod != nil && loginMethod != "" {
+		sessionKey = loginMethod.(string) + ":" + userID
+	}
 
-	// token, err := memorystore.Provider.GetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+nonce)
-	// if nonce == "" || err != nil {
-	// 	return res, fmt.Errorf(`unauthorized`)
-	// }
+	token, err := p.dependencies.MemoryStoreProvider.GetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+nonce)
+	if nonce == "" || err != nil {
+		p.dependencies.Log.Debug().Err(err).Msgf("invalid access token: %v, key: %s", err, sessionKey+":"+constants.TokenTypeAccessToken+"_"+nonce)
+		return res, fmt.Errorf(`unauthorized`)
+	}
 
-	// if token != accessToken {
-	// 	return res, fmt.Errorf(`unauthorized`)
-	// }
+	if token != accessToken {
+		p.dependencies.Log.Debug().Msgf("invalid access token: %s, key: %s", err, sessionKey+":"+constants.TokenTypeAccessToken+"_"+nonce)
+		return res, fmt.Errorf(`unauthorized`)
+	}
 
 	hostname := parsers.GetHost(gc)
 	if ok, err := p.ValidateJWTClaims(res, &AuthTokenConfig{
@@ -305,20 +306,21 @@ func (p *provider) ValidateRefreshToken(gc *gin.Context, refreshToken string) (m
 	userID := res["sub"].(string)
 	nonce := res["nonce"].(string)
 
-	// TODO: validate against existing token
-	// loginMethod := res["login_method"]
-	// sessionKey := userID
-	// if loginMethod != nil && loginMethod != "" {
-	// 	sessionKey = loginMethod.(string) + ":" + userID
-	// }
-	// token, err := memorystore.Provider.GetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+nonce)
-	// if nonce == "" || err != nil {
-	// 	return res, fmt.Errorf(`unauthorized`)
-	// }
+	loginMethod := res["login_method"]
+	sessionKey := userID
+	if loginMethod != nil && loginMethod != "" {
+		sessionKey = loginMethod.(string) + ":" + userID
+	}
+	token, err := p.dependencies.MemoryStoreProvider.GetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+nonce)
+	if nonce == "" || err != nil {
+		p.dependencies.Log.Debug().Err(err).Msgf("invalid refresh token: %v, key: %s", err, sessionKey+":"+constants.TokenTypeRefreshToken+"_"+nonce)
+		return res, fmt.Errorf(`unauthorized`)
+	}
 
-	// if token != refreshToken {
-	// 	return res, fmt.Errorf(`unauthorized`)
-	// }
+	if token != refreshToken {
+		p.dependencies.Log.Debug().Msgf("invalid refresh token: %s, key: %s", err, sessionKey+":"+constants.TokenTypeRefreshToken+"_"+nonce)
+		return res, fmt.Errorf(`unauthorized`)
+	}
 
 	hostname := parsers.GetHost(gc)
 	if ok, err := p.ValidateJWTClaims(res, &AuthTokenConfig{
@@ -352,20 +354,19 @@ func (p *provider) ValidateBrowserSession(gc *gin.Context, encryptedSession stri
 		return nil, err
 	}
 
-	// TODO validate against saved token
-	// sessionStoreKey := res.Subject
-	// if res.LoginMethod != "" {
-	// 	sessionStoreKey = res.LoginMethod + ":" + res.Subject
-	// }
-	// token, err := memorystore.Provider.GetUserSession(sessionStoreKey, constants.TokenTypeSessionToken+"_"+res.Nonce)
-	// if token == "" || err != nil {
-	// 	log.Debugf("invalid browser session: %v, key: %s", err, sessionStoreKey+":"+constants.TokenTypeSessionToken+"_"+res.Nonce)
-	// 	return nil, fmt.Errorf(`unauthorized`)
-	// }
+	sessionStoreKey := res.Subject
+	if res.LoginMethod != "" {
+		sessionStoreKey = res.LoginMethod + ":" + res.Subject
+	}
+	token, err := p.dependencies.MemoryStoreProvider.GetUserSession(sessionStoreKey, constants.TokenTypeSessionToken+"_"+res.Nonce)
+	if token == "" || err != nil {
+		p.dependencies.Log.Debug().Err(err).Msgf("invalid session token: %v, key: %s", err, sessionStoreKey+":"+constants.TokenTypeSessionToken+"_"+res.Nonce)
+		return nil, fmt.Errorf(`unauthorized`)
+	}
 
-	// if encryptedSession != token {
-	// 	return nil, fmt.Errorf(`unauthorized: invalid nonce`)
-	// }
+	if encryptedSession != token {
+		return nil, fmt.Errorf(`unauthorized: invalid nonce`)
+	}
 
 	if res.ExpiresAt < time.Now().Unix() {
 		return nil, fmt.Errorf(`unauthorized: token expired`)

@@ -241,7 +241,8 @@ func runRoot(c *cobra.Command, args []string) {
 
 	// Token provider
 	tokenProvider, err := token.New(&rootArgs.config, &token.Dependencies{
-		Log: &log,
+		Log:                 &log,
+		MemoryStoreProvider: memoryStoreProvider,
 	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create token provider")

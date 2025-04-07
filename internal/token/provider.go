@@ -8,11 +8,13 @@ import (
 	"github.com/rs/zerolog"
 
 	"github.com/authorizerdev/authorizer/internal/config"
+	"github.com/authorizerdev/authorizer/internal/memory_store"
 )
 
 // Dependencies struct for twilio provider
 type Dependencies struct {
-	Log *zerolog.Logger
+	Log                 *zerolog.Logger
+	MemoryStoreProvider memory_store.Provider
 }
 
 type provider struct {

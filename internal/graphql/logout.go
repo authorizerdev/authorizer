@@ -29,7 +29,10 @@ func (g *graphqlProvider) Logout(ctx context.Context) (*model.Response, error) {
 		sessionKey = tokenData.LoginMethod + ":" + tokenData.UserID
 	}
 
-	g.MemoryStoreProvider.DeleteUserSession(sessionKey, tokenData.Nonce)
+	if err = g.MemoryStoreProvider.DeleteUserSession(sessionKey, tokenData.Nonce); err != nil {
+		log.Debug().Err(err).Msg("Failed to delete user session")
+		return nil, err
+	}
 	cookie.DeleteSession(gc)
 
 	res := &model.Response{
