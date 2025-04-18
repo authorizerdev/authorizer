@@ -1,7 +1,6 @@
 package integration_tests
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/google/uuid"
@@ -64,9 +63,6 @@ func TestLogout(t *testing.T) {
 	t.Run("should successfully logout with valid access token", func(t *testing.T) {
 		// Set the valid access token
 		ts.GinContext.Request.Header.Set("Authorization", "Bearer "+*loginRes.AccessToken)
-
-		fmt.Println("=> user", loginRes.User.ID, "logged in with access token", *loginRes.AccessToken)
-
 		logoutRes, err := ts.GraphQLProvider.Logout(ctx)
 		assert.NoError(t, err)
 		assert.NotNil(t, logoutRes)
