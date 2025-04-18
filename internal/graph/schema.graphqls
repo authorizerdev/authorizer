@@ -638,13 +638,16 @@ type Mutation {
   # admin only apis
   _delete_user(params: DeleteUserInput!): Response!
   _update_user(params: UpdateUserInput!): User!
+  # deprecated from v2.0.0
   _admin_signup(params: AdminSignupInput!): Response!
   _admin_login(params: AdminLoginInput!): Response!
   _admin_logout: Response!
+  # Deprecated from v2.0.0
   _update_env(params: UpdateEnvInput!): Response!
   _invite_members(params: InviteMemberInput!): InviteMembersResponse!
   _revoke_access(param: UpdateAccessInput!): Response!
   _enable_access(param: UpdateAccessInput!): Response!
+  # Deprecated from v2.0.0
   _generate_jwt_keys(params: GenerateJWTKeysInput!): GenerateJWTKeysResponse!
   _add_webhook(params: AddWebhookRequest!): Response!
   _update_webhook(params: UpdateWebhookRequest!): Response!
@@ -666,6 +669,7 @@ type Query {
   _user(params: GetUserRequest!): User!
   _verification_requests(params: PaginatedInput): VerificationRequests!
   _admin_session: Response!
+  # Deprecated from v2.0.0
   _env: Env!
   _webhook(params: WebhookRequest!): Webhook!
   _webhooks(params: PaginatedInput): Webhooks!
