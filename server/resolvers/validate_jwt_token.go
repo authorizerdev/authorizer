@@ -62,7 +62,10 @@ func ValidateJwtTokenResolver(ctx context.Context, params model.ValidateJWTToken
 		}
 	}
 
-	hostname := parsers.GetHost(gc)
+	hostname := gc.Request.Header.Get("X-Forwarded-Host")
+	if hostname == "" {
+		hostname = parsers.GetHost(gc)
+	}
 
 	// we cannot validate nonce in case of id_token as that token is not persisted in session store
 	if nonce != "" {

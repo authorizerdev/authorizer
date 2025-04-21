@@ -2,6 +2,7 @@ package token
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/golang-jwt/jwt"
 
@@ -156,7 +157,7 @@ func ValidateJWTTokenWithoutNonce(claims jwt.MapClaims, hostname, subject string
 	}
 
 	if claims["iss"] != hostname {
-		return false, errors.New("invalid issuer")
+		return false, fmt.Errorf("invalid issuer iss[%s] != hostname[%s]", claims["iss"], hostname)
 	}
 
 	if claims["sub"] != subject {
