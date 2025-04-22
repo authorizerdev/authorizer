@@ -12,7 +12,7 @@ RUN apk add build-base &&\
     make clean && make && \
     chmod 777 build/server
 
-FROM node:slim AS node-builder
+FROM node:alpine AS node-builder
 WORKDIR /authorizer
 COPY app app
 COPY dashboard dashboard
