@@ -149,7 +149,7 @@ func (p *provider) CreateRefreshToken(cfg *AuthTokenConfig) (string, int64, erro
 		"roles":         cfg.Roles,
 		"scope":         cfg.Scope,
 		"nonce":         cfg.Nonce,
-		"login_method":  cfg.Nonce,
+		"login_method":  cfg.LoginMethod,
 		"allowed_roles": strings.Split(cfg.User.Roles, ","),
 	}
 

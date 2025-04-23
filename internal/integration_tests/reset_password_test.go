@@ -32,11 +32,13 @@ func TestResetPassword(t *testing.T) {
 	assert.NotNil(t, signupRes.User)
 
 	// Create forgot password request
-	t.Run("should fail for invalid email", func(t *testing.T) {
-		forgotPasswordReq := &model.ForgotPasswordInput{
-			Email: refs.NewStringRef("invalid-email@gmail.com"),
+	t.Run("should fail for invalid request", func(t *testing.T) {
+		resetPasswordReq := &model.ResetPasswordInput{
+			Token:           refs.NewStringRef("test"),
+			Password:        "NewPassword@123",
+			ConfirmPassword: "NewPassword@123",
 		}
-		forgotPasswordRes, err := ts.GraphQLProvider.ForgotPassword(ctx, forgotPasswordReq)
+		forgotPasswordRes, err := ts.GraphQLProvider.ResetPassword(ctx, resetPasswordReq)
 		assert.Error(t, err)
 		assert.Nil(t, forgotPasswordRes)
 	})

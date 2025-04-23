@@ -2,7 +2,6 @@ package in_memory
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
 )
@@ -17,7 +16,7 @@ func (c *provider) SetUserSession(userId, key, token string, expiration int64) e
 func (c *provider) GetUserSession(userId, sessionToken string) (string, error) {
 	val := c.sessionStore.Get(userId, sessionToken)
 	if val == "" {
-		return "", fmt.Errorf("Not found")
+		return "", fmt.Errorf("not found")
 	}
 	return val, nil
 }
@@ -52,7 +51,7 @@ func (c *provider) SetMfaSession(userId, key string, expiration int64) error {
 func (c *provider) GetMfaSession(userId, key string) (string, error) {
 	val := c.mfasessionStore.Get(userId, key)
 	if val == "" {
-		return "", fmt.Errorf("Not found")
+		return "", fmt.Errorf("not found")
 	}
 	return val, nil
 }
@@ -61,7 +60,7 @@ func (c *provider) GetMfaSession(userId, key string) (string, error) {
 func (p *provider) GetAllMfaSessions(userId string) ([]string, error) {
 	values := p.mfasessionStore.GetAll(userId)
 	if len(values) == 0 {
-		return nil, fmt.Errorf("Not found")
+		return nil, fmt.Errorf("not found")
 	}
 	return values, nil
 }
@@ -74,10 +73,9 @@ func (c *provider) DeleteMfaSession(userId, key string) error {
 
 // SetState sets the state in the in-memory store.
 func (c *provider) SetState(key, state string) error {
-	if os.Getenv("ENV") != constants.TestEnv {
-		c.mutex.Lock()
-		defer c.mutex.Unlock()
-	}
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
 	c.stateStore.Set(key, state)
 
 	return nil

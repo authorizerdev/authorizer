@@ -65,6 +65,10 @@ func (h *httpProvider) RevokeRefreshTokenHandler() gin.HandlerFunc {
 
 		if err := h.MemoryStoreProvider.DeleteUserSession(sessionToken, claims["nonce"].(string)); err != nil {
 			log.Debug().Err(err).Msg("failed to delete user session")
+			gc.JSON(http.StatusInternalServerError, gin.H{
+				"error":             "failed_to_delete_user_session",
+				"error_description": "Failed to delete user session: " + err.Error(),
+			})
 		}
 
 		gc.JSON(http.StatusOK, gin.H{
