@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/gin-gonic/gin"
 )
 
@@ -63,12 +64,41 @@ func (h *httpProvider) RevokeRefreshTokenHandler() gin.HandlerFunc {
 			sessionToken = loginMethod.(string) + ":" + userID
 		}
 
+		existingToken, err := h.MemoryStoreProvider.GetUserSession(sessionToken, constants.TokenTypeRefreshToken+"_"+claims["nonce"].(string))
+		if err != nil {
+			log.Debug().Err(err).Msg("Failed to get refresh token")
+			gc.JSON(http.StatusInternalServerError, gin.H{
+				"error":             "failed_to_get_refresh_token",
+				"error_description": "Failed to get user refresh token: " + err.Error(),
+			})
+			return
+		}
+
+		if existingToken == "" {
+			log.Debug().Msg("Token not found")
+			gc.JSON(http.StatusBadRequest, gin.H{
+				"error":             "token_not_found",
+				"error_description": "Token not found",
+			})
+			return
+		}
+
+		if existingToken != refreshToken {
+			log.Debug().Msg("Token does not match")
+			gc.JSON(http.StatusBadRequest, gin.H{
+				"error":             "token_does_not_match",
+				"error_description": "Token does not match",
+			})
+			return
+		}
+
 		if err := h.MemoryStoreProvider.DeleteUserSession(sessionToken, claims["nonce"].(string)); err != nil {
 			log.Debug().Err(err).Msg("failed to delete user session")
 			gc.JSON(http.StatusInternalServerError, gin.H{
 				"error":             "failed_to_delete_user_session",
 				"error_description": "Failed to delete user session: " + err.Error(),
 			})
+			return
 		}
 
 		gc.JSON(http.StatusOK, gin.H{
