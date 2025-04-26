@@ -20,7 +20,7 @@ func New(cfg *config.Config, deps *Dependencies) (Provider, error) {
 			Log: deps.Log,
 		})
 	}
-	return in_memory.NewInMemoryProvider(&in_memory.Dependencies{
+	return in_memory.NewInMemoryProvider(cfg, &in_memory.Dependencies{
 		Log: deps.Log,
 	})
 }

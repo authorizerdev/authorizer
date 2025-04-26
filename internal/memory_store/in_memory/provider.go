@@ -5,6 +5,7 @@ import (
 
 	"github.com/rs/zerolog"
 
+	"github.com/authorizerdev/authorizer/internal/config"
 	"github.com/authorizerdev/authorizer/internal/memory_store/in_memory/stores"
 )
 
@@ -14,6 +15,7 @@ type Dependencies struct {
 }
 
 type provider struct {
+	cfg             *config.Config
 	dependencies    *Dependencies
 	mutex           sync.Mutex
 	sessionStore    *stores.SessionStore
@@ -23,8 +25,9 @@ type provider struct {
 }
 
 // NewInMemoryStore returns a new in-memory store.
-func NewInMemoryProvider(deps *Dependencies) (*provider, error) {
+func NewInMemoryProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	return &provider{
+		cfg:             cfg,
 		dependencies:    deps,
 		mutex:           sync.Mutex{},
 		envStore:        stores.NewEnvStore(),

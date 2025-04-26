@@ -109,7 +109,7 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginInput) (
 				if vreq, err := g.StorageProvider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeBasicAuthSignup); err == nil && vreq != nil {
 					// if verification request exists and not expired then return
 					// if verification request exists and expired then delete it and proceed
-					if vreq.ExpiresAt <= time.Now().Unix() {
+					if vreq.ExpiresAt > time.Now().Unix() {
 						if err := g.StorageProvider.DeleteVerificationRequest(ctx, vreq); err != nil {
 							log.Debug().Msg("Failed to delete verification request")
 							// continue with the flow

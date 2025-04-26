@@ -94,7 +94,7 @@ func (s *SessionStore) GetAll(key string) []string {
 	var values []string
 	for k, v := range s.store {
 		if strings.HasPrefix(k, key) {
-			if v.ExpiresAt < currentTime {
+			if v.ExpiresAt > currentTime {
 				values = append(values, v.Value)
 			} else {
 				// Delete expired items

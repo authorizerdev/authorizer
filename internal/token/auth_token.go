@@ -368,7 +368,7 @@ func (p *provider) ValidateBrowserSession(gc *gin.Context, encryptedSession stri
 		return nil, fmt.Errorf(`unauthorized: invalid nonce`)
 	}
 
-	if res.ExpiresAt < time.Now().Unix() {
+	if res.ExpiresAt > time.Now().Unix() {
 		return nil, fmt.Errorf(`unauthorized: token expired`)
 	}
 

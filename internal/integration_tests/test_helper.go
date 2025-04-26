@@ -51,15 +51,19 @@ func createContext(s *testSetup) (*http.Request, context.Context) {
 func getTestConfig() *config.Config {
 	// Initialize config with test settings
 	cfg := &config.Config{
-		Env:            "test",
-		DatabaseType:   constants.DbTypePostgres,
-		DatabaseURL:    "postgres://postgres:postgres@localhost:5432/postgres",
-		JWTSecret:      "test-secret",
-		ClientID:       "test-client-id",
-		ClientSecret:   "test-client-secret",
-		AllowedOrigins: []string{"http://localhost:3000"},
-		JWTType:        "HS256",
-		AdminSecret:    "test-admin-secret",
+		Env:              constants.TestEnv,
+		DatabaseType:     constants.DbTypePostgres,
+		DatabaseURL:      "postgres://postgres:postgres@localhost:5432/postgres",
+		JWTSecret:        "test-secret",
+		ClientID:         "test-client-id",
+		ClientSecret:     "test-client-secret",
+		AllowedOrigins:   []string{"http://localhost:3000"},
+		JWTType:          "HS256",
+		AdminSecret:      "test-admin-secret",
+		TwilioAPISecret:  "test-twilio-api-secret",
+		TwilioAPIKey:     "test-twilio-api-key",
+		TwilioAccountSID: "test-twilio-account-sid",
+		TwilioSender:     "test-twilio-sender",
 	}
 
 	return cfg
