@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestVerifyOTP tests the resend verify email functionality
+// TestVerifyOTP tests the resend verify OTP functionality
 func TestVerifyOTP(t *testing.T) {
 	cfg := getTestConfig()
 	cfg.IsSMSServiceEnabled = true
@@ -71,7 +71,7 @@ func TestVerifyOTP(t *testing.T) {
 			Otp:         otpData.Otp,
 		}
 		verificationRes, err := ts.GraphQLProvider.VerifyOTP(ctx, verificationReq)
-		assert.Error(t, err)
-		assert.Nil(t, verificationRes)
+		require.NoError(t, err)
+		assert.NotNil(t, verificationRes)
 	})
 }
