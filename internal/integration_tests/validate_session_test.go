@@ -11,15 +11,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestValidateJWTToken add test cases for validating JWT tokens
-func TestValidateJWTToken(t *testing.T) {
+// TestValidateSession add test cases for validating session tokens
+func TestValidateSession(t *testing.T) {
 	// Initialize test setup
 	cfg := getTestConfig()
 	ts := initTestSetup(t, cfg)
 	_, ctx := createContext(ts)
 
 	// Test setup - create a test user
-	email := "validate_jwt_test_" + uuid.New().String() + "@authorizer.dev"
+	email := "validate_session_test_" + uuid.New().String() + "@authorizer.dev"
 	password := "Password@123"
 
 	signupReq := &model.SignUpRequest{
@@ -47,24 +47,15 @@ func TestValidateJWTToken(t *testing.T) {
 		assert.Equal(t, email, *loginRes.User.Email)
 		assert.True(t, loginRes.User.EmailVerified)
 
-		t.Run("should fail without token", func(t *testing.T) {
-			res, err := ts.GraphQLProvider.ValidateJWTToken(ctx, &model.ValidateJWTTokenRequest{})
+		t.Run("should fail without cookie", func(t *testing.T) {
+			res, err := ts.GraphQLProvider.ValidateSession(ctx, &model.ValidateSessionRequest{})
 			assert.Error(t, err)
 			assert.Nil(t, res)
 		})
 
-		t.Run("should fail without token type", func(t *testing.T) {
-			res, err := ts.GraphQLProvider.ValidateJWTToken(ctx, &model.ValidateJWTTokenRequest{
-				Token: "invalid-token",
-			})
-			assert.Error(t, err)
-			assert.Nil(t, res)
-		})
-
-		t.Run("should fail with invalid token", func(t *testing.T) {
-			res, err := ts.GraphQLProvider.ValidateJWTToken(ctx, &model.ValidateJWTTokenRequest{
-				Token:     "invalid-token",
-				TokenType: constants.TokenTypeAccessToken,
+		t.Run("should fail with invalid cookie", func(t *testing.T) {
+			res, err := ts.GraphQLProvider.ValidateSession(ctx, &model.ValidateSessionRequest{
+				Cookie: "invalid-token",
 			})
 			assert.Error(t, err)
 			assert.Nil(t, res)
@@ -73,19 +64,36 @@ func TestValidateJWTToken(t *testing.T) {
 		t.Run("should pass with valid input", func(t *testing.T) {
 			allData, err := ts.MemoryStoreProvider.GetAllData()
 			require.NoError(t, err)
-			accessToken := ""
+			sessionToken := ""
 			for k, v := range allData {
-				if strings.Contains(k, constants.TokenTypeAccessToken) {
-					accessToken = v
+				if strings.Contains(k, constants.TokenTypeSessionToken) {
+					sessionToken = v
 					break
 				}
 			}
-			res, err := ts.GraphQLProvider.ValidateJWTToken(ctx, &model.ValidateJWTTokenRequest{
-				Token:     accessToken,
-				TokenType: constants.TokenTypeAccessToken,
+			res, err := ts.GraphQLProvider.ValidateSession(ctx, &model.ValidateSessionRequest{
+				Cookie: sessionToken,
 			})
 			require.NoError(t, err)
 			require.NotNil(t, res)
+
+			t.Run("should fail with invalid roles", func(t *testing.T) {
+				res, err := ts.GraphQLProvider.ValidateSession(ctx, &model.ValidateSessionRequest{
+					Cookie: sessionToken,
+					Roles:  []string{"invalid-role"},
+				})
+				assert.Error(t, err)
+				assert.Nil(t, res)
+			})
+			t.Run("should pass with valid roles", func(t *testing.T) {
+				res, err := ts.GraphQLProvider.ValidateSession(ctx, &model.ValidateSessionRequest{
+					Cookie: sessionToken,
+					Roles:  []string{"user"},
+				})
+				assert.NoError(t, err)
+				assert.NotNil(t, res)
+				assert.True(t, res.IsValid)
+			})
 		})
 	})
 }

@@ -64,6 +64,7 @@ func getTestConfig() *config.Config {
 		TwilioAPIKey:     "test-twilio-api-key",
 		TwilioAccountSID: "test-twilio-account-sid",
 		TwilioSender:     "test-twilio-sender",
+		DefaultRoles:     []string{"user"},
 	}
 
 	return cfg
