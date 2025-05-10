@@ -52,4 +52,8 @@ type Provider interface {
 	GetState(key string) (string, error)
 	// RemoveState removes the social login state from the session store
 	RemoveState(key string) error
+
+	// GetAllData returns all the data from the session store
+	// This is used for testing purposes only
+	GetAllData() (map[string]string, error)
 }

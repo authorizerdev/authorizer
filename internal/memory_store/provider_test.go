@@ -21,7 +21,9 @@ var memoryStoreTypes = []string{
 }
 
 func getTestMemoryStorageConfig(storageType string) *config.Config {
-	cfg := &config.Config{}
+	cfg := &config.Config{
+		Env: "prod",
+	}
 	switch storageType {
 	case memoryStoreTypeRedis:
 		cfg.RedisURL = "redis://localhost:6380"

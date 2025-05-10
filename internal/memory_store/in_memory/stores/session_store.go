@@ -162,3 +162,15 @@ func (s *SessionStore) RemoveByNamespace(namespace string) error {
 	}
 	return nil
 }
+
+// GetAllData returns all the data from the session store
+// This is used for testing purposes only
+func (s *SessionStore) GetAllData() map[string]string {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	data := make(map[string]string)
+	for k, v := range s.store {
+		data[k] = v.Value
+	}
+	return data
+}

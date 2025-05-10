@@ -13,8 +13,8 @@ func (c *provider) SetUserSession(userId, key, token string, expiration int64) e
 }
 
 // GetUserSession returns value for given session token
-func (c *provider) GetUserSession(userId, sessionToken string) (string, error) {
-	val := c.sessionStore.Get(userId, sessionToken)
+func (c *provider) GetUserSession(userId, key string) (string, error) {
+	val := c.sessionStore.Get(userId, key)
 	if val == "" {
 		return "", fmt.Errorf("not found")
 	}
@@ -28,10 +28,16 @@ func (c *provider) DeleteAllUserSessions(userId string) error {
 }
 
 // DeleteUserSession deletes the user session from the in-memory store.
-func (c *provider) DeleteUserSession(userId, sessionToken string) error {
-	c.sessionStore.Remove(userId, constants.TokenTypeSessionToken+"_"+sessionToken)
-	c.sessionStore.Remove(userId, constants.TokenTypeAccessToken+"_"+sessionToken)
-	c.sessionStore.Remove(userId, constants.TokenTypeRefreshToken+"_"+sessionToken)
+func (c *provider) DeleteUserSession(userId, key string) error {
+	keys := []string{
+		constants.TokenTypeSessionToken + "_" + key,
+		constants.TokenTypeAccessToken + "_" + key,
+		constants.TokenTypeRefreshToken + "_" + key,
+	}
+
+	for _, k := range keys {
+		c.sessionStore.Remove(userId, k)
+	}
 	return nil
 }
 
@@ -43,18 +49,12 @@ func (c *provider) DeleteSessionForNamespace(namespace string) error {
 
 // SetMfaSession sets the mfa session with key and value of userId
 func (c *provider) SetMfaSession(userId, key string, expiration int64) error {
-	if c.cfg.Env == constants.TestEnv {
-		key = constants.TestEnv
-	}
 	c.mfasessionStore.Set(userId, key, userId, expiration)
 	return nil
 }
 
 // GetMfaSession returns value of given mfa session
 func (c *provider) GetMfaSession(userId, key string) (string, error) {
-	if c.cfg.Env == constants.TestEnv {
-		key = constants.TestEnv
-	}
 	val := c.mfasessionStore.Get(userId, key)
 	if val == "" {
 		return "", fmt.Errorf("not found")
@@ -73,9 +73,6 @@ func (p *provider) GetAllMfaSessions(userId string) ([]string, error) {
 
 // DeleteMfaSession deletes given mfa session from in-memory store.
 func (c *provider) DeleteMfaSession(userId, key string) error {
-	if c.cfg.Env == constants.TestEnv {
-		key = constants.TestEnv
-	}
 	c.mfasessionStore.Remove(userId, key)
 	return nil
 }
@@ -99,4 +96,19 @@ func (c *provider) GetState(key string) (string, error) {
 func (c *provider) RemoveState(key string) error {
 	c.stateStore.Remove(key)
 	return nil
+}
+
+// GetAllData returns all the data from the in-memory store
+// This is used for testing purposes only
+func (c *provider) GetAllData() (map[string]string, error) {
+	// Get all data from the session store and mfa session store
+	// and merge them into a single map
+	data := make(map[string]string)
+	for k, v := range c.sessionStore.GetAllData() {
+		data[k] = v
+	}
+	for k, v := range c.mfasessionStore.GetAllData() {
+		data[k] = v
+	}
+	return data, nil
 }

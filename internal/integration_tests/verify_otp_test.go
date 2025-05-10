@@ -2,6 +2,7 @@ package integration_tests
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
@@ -54,7 +55,7 @@ func TestVerifyOTP(t *testing.T) {
 	})
 
 	t.Run("should fail for invalid OTP", func(t *testing.T) {
-		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", constants.TestEnv))
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", "test"))
 		verificationReq := &model.VerifyOTPRequest{
 			PhoneNumber: &mobile,
 			Otp:         "-----",
@@ -65,7 +66,20 @@ func TestVerifyOTP(t *testing.T) {
 	})
 
 	t.Run("should verify OTP", func(t *testing.T) {
-		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", constants.TestEnv))
+		// Get MFA session cookie
+		allData, err := ts.MemoryStoreProvider.GetAllData()
+		require.NoError(t, err)
+		sessionKey := ""
+		for k := range allData {
+			if strings.Contains(k, userData.ID) {
+				splitData := strings.Split(k, ":")
+				if len(splitData) > 1 {
+					sessionKey = splitData[1]
+					break
+				}
+			}
+		}
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", sessionKey))
 		verificationReq := &model.VerifyOTPRequest{
 			PhoneNumber: &mobile,
 			Otp:         otpData.Otp,

@@ -86,7 +86,9 @@ func NewRedisProvider(cfg *config.Config, deps *Dependencies) (*provider, error)
 		return nil, err
 	}
 	return &provider{
-		ctx:   ctx,
-		store: rdb,
+		config:       cfg,
+		dependencies: deps,
+		ctx:          ctx,
+		store:        rdb,
 	}, nil
 }

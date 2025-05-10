@@ -15,22 +15,20 @@ type Dependencies struct {
 }
 
 type provider struct {
-	cfg             *config.Config
+	config          *config.Config
 	dependencies    *Dependencies
 	mutex           sync.Mutex
 	sessionStore    *stores.SessionStore
 	mfasessionStore *stores.SessionStore
 	stateStore      *stores.StateStore
-	envStore        *stores.EnvStore
 }
 
 // NewInMemoryStore returns a new in-memory store.
 func NewInMemoryProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	return &provider{
-		cfg:             cfg,
+		config:          cfg,
 		dependencies:    deps,
 		mutex:           sync.Mutex{},
-		envStore:        stores.NewEnvStore(),
 		sessionStore:    stores.NewSessionStore(),
 		mfasessionStore: stores.NewSessionStore(),
 		stateStore:      stores.NewStateStore(),

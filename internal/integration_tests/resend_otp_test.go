@@ -2,6 +2,7 @@ package integration_tests
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
@@ -70,6 +71,20 @@ func TestResendOTP(t *testing.T) {
 			assert.Nil(t, verificationRes)
 		})
 		t.Run("should verify OTP", func(t *testing.T) {
+			// Get MFA session cookie
+			allData, err := ts.MemoryStoreProvider.GetAllData()
+			require.NoError(t, err)
+			sessionKey := ""
+			for k := range allData {
+				if strings.Contains(k, userData.ID) {
+					splitData := strings.Split(k, ":")
+					if len(splitData) > 1 {
+						sessionKey = splitData[1]
+						break
+					}
+				}
+			}
+			req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", sessionKey))
 			newOtpData, err := ts.StorageProvider.GetOTPByPhoneNumber(ctx, mobile)
 			require.NoError(t, err)
 			assert.NotNil(t, newOtpData)

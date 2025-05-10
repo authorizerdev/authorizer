@@ -38,18 +38,18 @@ func (p *provider) GetUserSession(userId, key string) (string, error) {
 
 // DeleteUserSession deletes the user session from redis store.
 func (p *provider) DeleteUserSession(userId, key string) error {
-	if err := p.store.Del(p.ctx, fmt.Sprintf("%s:%s", userId, constants.TokenTypeSessionToken+"_"+key)).Err(); err != nil {
+	keys := []string{
+		constants.TokenTypeSessionToken + "_" + key,
+		constants.TokenTypeAccessToken + "_" + key,
+		constants.TokenTypeRefreshToken + "_" + key,
+	}
+	for _, k := range keys {
+		if err := p.store.Del(p.ctx, fmt.Sprintf("%s:%s", userId, k)).Err(); err != nil {
+			p.dependencies.Log.Debug().Err(err).Msg("Error deleting user session from redis")
+			// continue
+		}
+	}
 
-		// continue
-	}
-	if err := p.store.Del(p.ctx, fmt.Sprintf("%s:%s", userId, constants.TokenTypeAccessToken+"_"+key)).Err(); err != nil {
-		p.dependencies.Log.Debug().Err(err).Msg("Error deleting user session from redis")
-		// continue
-	}
-	if err := p.store.Del(p.ctx, fmt.Sprintf("%s:%s", userId, constants.TokenTypeRefreshToken+"_"+key)).Err(); err != nil {
-		p.dependencies.Log.Debug().Err(err).Msg("Error deleting user session from redis")
-		// continue
-	}
 	return nil
 }
 
@@ -165,4 +165,25 @@ func (p *provider) RemoveState(key string) error {
 	}
 
 	return nil
+}
+
+// GetAllData returns all the data from the session store
+// This is used for testing purposes only
+func (p *provider) GetAllData() (map[string]string, error) {
+	res := p.store.Keys(p.ctx, "*")
+	if res.Err() != nil {
+		p.dependencies.Log.Debug().Err(res.Err()).Msg("Error getting all data from redis")
+		return nil, res.Err()
+	}
+	keys := res.Val()
+	data := make(map[string]string)
+	for _, key := range keys {
+		val, err := p.store.Get(p.ctx, key).Result()
+		if err != nil {
+			p.dependencies.Log.Debug().Err(err).Msg("Error getting all data from redis")
+			continue
+		}
+		data[key] = val
+	}
+	return data, nil
 }
