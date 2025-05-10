@@ -20,7 +20,7 @@ import (
 
 // ResetPassword is the method to reset password.
 // Permissions: none
-func (g *graphqlProvider) ResetPassword(ctx context.Context, params *model.ResetPasswordInput) (*model.Response, error) {
+func (g *graphqlProvider) ResetPassword(ctx context.Context, params *model.ResetPasswordRequest) (*model.Response, error) {
 	log := g.Log.With().Str("func", "ResetPassword").Logger()
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {

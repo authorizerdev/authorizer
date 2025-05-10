@@ -27,7 +27,7 @@ func (g *graphqlProvider) WebhookLogs(ctx context.Context, params *model.ListWeb
 	var webhookID string
 
 	if params != nil {
-		pagination = utils.GetPagination(&model.PaginatedInput{
+		pagination = utils.GetPagination(&model.PaginatedRequest{
 			Pagination: params.Pagination,
 		})
 		webhookID = refs.StringValue(params.WebhookID)

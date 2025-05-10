@@ -2,13 +2,14 @@ package integration_tests
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 // TestRevokeAccessUser tests the revoke access functionality by the admin
@@ -21,7 +22,7 @@ func TestRevokeAccessUser(t *testing.T) {
 	email := "revoke_access_test_" + uuid.New().String() + "@authorizer.dev"
 	password := "Password@123"
 	// Signup the user
-	signupReq := &model.SignUpInput{
+	signupReq := &model.SignUpRequest{
 		Email:           &email,
 		Password:        password,
 		ConfirmPassword: password,
@@ -32,7 +33,7 @@ func TestRevokeAccessUser(t *testing.T) {
 	require.NotNil(t, signupRes.User)
 
 	t.Run("should fail without admin cookie", func(t *testing.T) {
-		revokeAccessDets, err := ts.GraphQLProvider.RevokeAccess(ctx, &model.UpdateAccessInput{
+		revokeAccessDets, err := ts.GraphQLProvider.RevokeAccess(ctx, &model.UpdateAccessRequest{
 			UserID: signupRes.User.ID,
 		})
 		require.Error(t, err)
@@ -44,7 +45,7 @@ func TestRevokeAccessUser(t *testing.T) {
 		assert.Nil(t, err)
 
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
-		_, err = ts.GraphQLProvider.RevokeAccess(ctx, &model.UpdateAccessInput{
+		_, err = ts.GraphQLProvider.RevokeAccess(ctx, &model.UpdateAccessRequest{
 			UserID: "",
 		})
 		require.Error(t, err)
@@ -55,7 +56,7 @@ func TestRevokeAccessUser(t *testing.T) {
 		assert.Nil(t, err)
 
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
-		_, err = ts.GraphQLProvider.RevokeAccess(ctx, &model.UpdateAccessInput{
+		_, err = ts.GraphQLProvider.RevokeAccess(ctx, &model.UpdateAccessRequest{
 			UserID: uuid.NewString(),
 		})
 		require.Error(t, err)
@@ -66,7 +67,7 @@ func TestRevokeAccessUser(t *testing.T) {
 		assert.Nil(t, err)
 
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
-		revokeAccessDets, err := ts.GraphQLProvider.RevokeAccess(ctx, &model.UpdateAccessInput{
+		revokeAccessDets, err := ts.GraphQLProvider.RevokeAccess(ctx, &model.UpdateAccessRequest{
 			UserID: signupRes.User.ID,
 		})
 		require.NoError(t, err)

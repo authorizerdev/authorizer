@@ -19,13 +19,13 @@ func TestMagicLinkLogin(t *testing.T) {
 	email := "magic_link_user" + uuid.New().String() + "@authorizer.dev"
 
 	t.Run("should fail for missing email", func(t *testing.T) {
-		loginReq := &model.MagicLinkLoginInput{}
+		loginReq := &model.MagicLinkLoginRequest{}
 		res, err := ts.GraphQLProvider.MagicLinkLogin(ctx, loginReq)
 		assert.Error(t, err)
 		assert.Nil(t, res)
 	})
 	t.Run("should fail for invalid email", func(t *testing.T) {
-		loginReq := &model.MagicLinkLoginInput{
+		loginReq := &model.MagicLinkLoginRequest{
 			Email: "invalid-email",
 		}
 		res, err := ts.GraphQLProvider.MagicLinkLogin(ctx, loginReq)
@@ -33,7 +33,7 @@ func TestMagicLinkLogin(t *testing.T) {
 		assert.Nil(t, res)
 	})
 	t.Run("should pass for valid email", func(t *testing.T) {
-		res, err := ts.GraphQLProvider.MagicLinkLogin(ctx, &model.MagicLinkLoginInput{
+		res, err := ts.GraphQLProvider.MagicLinkLogin(ctx, &model.MagicLinkLoginRequest{
 			Email: email,
 		})
 		assert.NoError(t, err)
@@ -43,7 +43,7 @@ func TestMagicLinkLogin(t *testing.T) {
 		verificationRequest, err := ts.StorageProvider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeMagicLinkLogin)
 		assert.NoError(t, err)
 		assert.NotNil(t, verificationRequest)
-		verifyRes, err := ts.GraphQLProvider.VerifyEmail(ctx, &model.VerifyEmailInput{
+		verifyRes, err := ts.GraphQLProvider.VerifyEmail(ctx, &model.VerifyEmailRequest{
 			Token: verificationRequest.Token,
 		})
 		assert.NoError(t, err)

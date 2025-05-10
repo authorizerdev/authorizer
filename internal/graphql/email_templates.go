@@ -10,7 +10,7 @@ import (
 
 // EmailTemplates is the method to get all email templates.
 // Permissions: authorizer:admin
-func (g *graphqlProvider) EmailTemplates(ctx context.Context, params *model.PaginatedInput) (*model.EmailTemplates, error) {
+func (g *graphqlProvider) EmailTemplates(ctx context.Context, params *model.PaginatedRequest) (*model.EmailTemplates, error) {
 	log := g.Log.With().Str("func", "EmailTemplates").Logger()
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {

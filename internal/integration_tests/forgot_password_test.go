@@ -20,7 +20,7 @@ func TestForgotPassword(t *testing.T) {
 	email := "forgot_password_test_" + uuid.New().String() + "@authorizer.dev"
 	password := "Password@123"
 	// Signup the user
-	signupReq := &model.SignUpInput{
+	signupReq := &model.SignUpRequest{
 		Email:           &email,
 		Password:        password,
 		ConfirmPassword: password,
@@ -33,7 +33,7 @@ func TestForgotPassword(t *testing.T) {
 
 	// Create forgot password request
 	t.Run("should fail for invalid email", func(t *testing.T) {
-		forgotPasswordReq := &model.ForgotPasswordInput{
+		forgotPasswordReq := &model.ForgotPasswordRequest{
 			Email: refs.NewStringRef("invalid-email@gmail.com"),
 		}
 		forgotPasswordRes, err := ts.GraphQLProvider.ForgotPassword(ctx, forgotPasswordReq)
@@ -42,7 +42,7 @@ func TestForgotPassword(t *testing.T) {
 	})
 
 	t.Run("should send forgot password email", func(t *testing.T) {
-		forgotPasswordReq := &model.ForgotPasswordInput{
+		forgotPasswordReq := &model.ForgotPasswordRequest{
 			Email: refs.NewStringRef(email),
 		}
 		forgotPasswordRes, err := ts.GraphQLProvider.ForgotPassword(ctx, forgotPasswordReq)

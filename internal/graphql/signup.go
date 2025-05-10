@@ -24,7 +24,7 @@ import (
 
 // SignUp is the method to singup user
 // Permission: none
-func (g *graphqlProvider) SignUp(ctx context.Context, params *model.SignUpInput) (*model.AuthResponse, error) {
+func (g *graphqlProvider) SignUp(ctx context.Context, params *model.SignUpRequest) (*model.AuthResponse, error) {
 	log := g.Log.With().Str("func", "SignUp").Logger()
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {

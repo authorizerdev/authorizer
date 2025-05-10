@@ -12,7 +12,7 @@ import (
 
 // DeleteUser is the method to delete a user.
 // Permissions: authorizer:admin
-func (g *graphqlProvider) DeleteUser(ctx context.Context, params *model.DeleteUserInput) (*model.Response, error) {
+func (g *graphqlProvider) DeleteUser(ctx context.Context, params *model.DeleteUserRequest) (*model.Response, error) {
 	log := g.Log.With().Str("func", "DeleteUser").Logger()
 
 	var res *model.Response

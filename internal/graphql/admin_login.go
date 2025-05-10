@@ -12,7 +12,7 @@ import (
 
 // AdminLogin is the method to login as admin.
 // Permissions: none
-func (g *graphqlProvider) AdminLogin(ctx context.Context, params *model.AdminLoginInput) (*model.Response, error) {
+func (g *graphqlProvider) AdminLogin(ctx context.Context, params *model.AdminLoginRequest) (*model.Response, error) {
 	log := g.Log.With().Str("func", "AdminLogin").Logger()
 	var res *model.Response
 	gc, err := utils.GinContextFromContext(ctx)

@@ -3,16 +3,17 @@ package integration_tests
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"net/http"
-	"net/http/httptest"
-	"testing"
-	"time"
 )
 
 // TestEndpointTest tests the webhook endpoint testing functionality by the admin
@@ -26,7 +27,7 @@ func TestEndpointTest(t *testing.T) {
 	password := "Password@123"
 
 	// Signup the user
-	signupReq := &model.SignUpInput{
+	signupReq := &model.SignUpRequest{
 		Email:           &email,
 		Password:        password,
 		ConfirmPassword: password,

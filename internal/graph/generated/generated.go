@@ -197,35 +197,35 @@ type ComplexityRoot struct {
 	Mutation struct {
 		AddEmailTemplate    func(childComplexity int, params model.AddEmailTemplateRequest) int
 		AddWebhook          func(childComplexity int, params model.AddWebhookRequest) int
-		AdminLogin          func(childComplexity int, params model.AdminLoginInput) int
+		AdminLogin          func(childComplexity int, params model.AdminLoginRequest) int
 		AdminLogout         func(childComplexity int) int
-		AdminSignup         func(childComplexity int, params model.AdminSignupInput) int
+		AdminSignup         func(childComplexity int, params model.AdminSignupRequest) int
 		DeactivateAccount   func(childComplexity int) int
 		DeleteEmailTemplate func(childComplexity int, params model.DeleteEmailTemplateRequest) int
-		DeleteUser          func(childComplexity int, params model.DeleteUserInput) int
+		DeleteUser          func(childComplexity int, params model.DeleteUserRequest) int
 		DeleteWebhook       func(childComplexity int, params model.WebhookRequest) int
-		EnableAccess        func(childComplexity int, param model.UpdateAccessInput) int
-		ForgotPassword      func(childComplexity int, params model.ForgotPasswordInput) int
-		GenerateJwtKeys     func(childComplexity int, params model.GenerateJWTKeysInput) int
-		InviteMembers       func(childComplexity int, params model.InviteMemberInput) int
-		Login               func(childComplexity int, params model.LoginInput) int
+		EnableAccess        func(childComplexity int, param model.UpdateAccessRequest) int
+		ForgotPassword      func(childComplexity int, params model.ForgotPasswordRequest) int
+		GenerateJwtKeys     func(childComplexity int, params model.GenerateJWTKeysRequest) int
+		InviteMembers       func(childComplexity int, params model.InviteMemberRequest) int
+		Login               func(childComplexity int, params model.LoginRequest) int
 		Logout              func(childComplexity int) int
-		MagicLinkLogin      func(childComplexity int, params model.MagicLinkLoginInput) int
-		MobileLogin         func(childComplexity int, params model.MobileLoginInput) int
-		MobileSignup        func(childComplexity int, params *model.MobileSignUpInput) int
+		MagicLinkLogin      func(childComplexity int, params model.MagicLinkLoginRequest) int
+		MobileLogin         func(childComplexity int, params model.MobileLoginRequest) int
+		MobileSignup        func(childComplexity int, params *model.MobileSignUpRequest) int
 		ResendOtp           func(childComplexity int, params model.ResendOTPRequest) int
-		ResendVerifyEmail   func(childComplexity int, params model.ResendVerifyEmailInput) int
-		ResetPassword       func(childComplexity int, params model.ResetPasswordInput) int
-		Revoke              func(childComplexity int, params model.OAuthRevokeInput) int
-		RevokeAccess        func(childComplexity int, param model.UpdateAccessInput) int
-		Signup              func(childComplexity int, params model.SignUpInput) int
+		ResendVerifyEmail   func(childComplexity int, params model.ResendVerifyEmailRequest) int
+		ResetPassword       func(childComplexity int, params model.ResetPasswordRequest) int
+		Revoke              func(childComplexity int, params model.OAuthRevokeRequest) int
+		RevokeAccess        func(childComplexity int, param model.UpdateAccessRequest) int
+		Signup              func(childComplexity int, params model.SignUpRequest) int
 		TestEndpoint        func(childComplexity int, params model.TestEndpointRequest) int
 		UpdateEmailTemplate func(childComplexity int, params model.UpdateEmailTemplateRequest) int
-		UpdateEnv           func(childComplexity int, params model.UpdateEnvInput) int
-		UpdateProfile       func(childComplexity int, params model.UpdateProfileInput) int
-		UpdateUser          func(childComplexity int, params model.UpdateUserInput) int
+		UpdateEnv           func(childComplexity int, params model.UpdateEnvRequest) int
+		UpdateProfile       func(childComplexity int, params model.UpdateProfileRequest) int
+		UpdateUser          func(childComplexity int, params model.UpdateUserRequest) int
 		UpdateWebhook       func(childComplexity int, params model.UpdateWebhookRequest) int
-		VerifyEmail         func(childComplexity int, params model.VerifyEmailInput) int
+		VerifyEmail         func(childComplexity int, params model.VerifyEmailRequest) int
 		VerifyOtp           func(childComplexity int, params model.VerifyOTPRequest) int
 	}
 
@@ -238,32 +238,23 @@ type ComplexityRoot struct {
 
 	Query struct {
 		AdminSession         func(childComplexity int) int
-		EmailTemplates       func(childComplexity int, params *model.PaginatedInput) int
+		EmailTemplates       func(childComplexity int, params *model.PaginatedRequest) int
 		Env                  func(childComplexity int) int
 		Meta                 func(childComplexity int) int
 		Profile              func(childComplexity int) int
-		Session              func(childComplexity int, params *model.SessionQueryInput) int
+		Session              func(childComplexity int, params *model.SessionQueryRequest) int
 		User                 func(childComplexity int, params model.GetUserRequest) int
-		Users                func(childComplexity int, params *model.PaginatedInput) int
-		ValidateJwtToken     func(childComplexity int, params model.ValidateJWTTokenInput) int
-		ValidateSession      func(childComplexity int, params *model.ValidateSessionInput) int
-		VerificationRequests func(childComplexity int, params *model.PaginatedInput) int
+		Users                func(childComplexity int, params *model.PaginatedRequest) int
+		ValidateJwtToken     func(childComplexity int, params model.ValidateJWTTokenRequest) int
+		ValidateSession      func(childComplexity int, params *model.ValidateSessionRequest) int
+		VerificationRequests func(childComplexity int, params *model.PaginatedRequest) int
 		Webhook              func(childComplexity int, params model.WebhookRequest) int
 		WebhookLogs          func(childComplexity int, params *model.ListWebhookLogRequest) int
-		Webhooks             func(childComplexity int, params *model.PaginatedInput) int
+		Webhooks             func(childComplexity int, params *model.PaginatedRequest) int
 	}
 
 	Response struct {
 		Message func(childComplexity int) int
-	}
-
-	SMSVerificationRequests struct {
-		Code          func(childComplexity int) int
-		CodeExpiresAt func(childComplexity int) int
-		CreatedAt     func(childComplexity int) int
-		ID            func(childComplexity int) int
-		PhoneNumber   func(childComplexity int) int
-		UpdatedAt     func(childComplexity int) int
 	}
 
 	TestEndpointResponse struct {
@@ -359,31 +350,31 @@ type ComplexityRoot struct {
 }
 
 type MutationResolver interface {
-	Signup(ctx context.Context, params model.SignUpInput) (*model.AuthResponse, error)
-	MobileSignup(ctx context.Context, params *model.MobileSignUpInput) (*model.AuthResponse, error)
-	Login(ctx context.Context, params model.LoginInput) (*model.AuthResponse, error)
-	MobileLogin(ctx context.Context, params model.MobileLoginInput) (*model.AuthResponse, error)
-	MagicLinkLogin(ctx context.Context, params model.MagicLinkLoginInput) (*model.Response, error)
+	Signup(ctx context.Context, params model.SignUpRequest) (*model.AuthResponse, error)
+	MobileSignup(ctx context.Context, params *model.MobileSignUpRequest) (*model.AuthResponse, error)
+	Login(ctx context.Context, params model.LoginRequest) (*model.AuthResponse, error)
+	MobileLogin(ctx context.Context, params model.MobileLoginRequest) (*model.AuthResponse, error)
+	MagicLinkLogin(ctx context.Context, params model.MagicLinkLoginRequest) (*model.Response, error)
 	Logout(ctx context.Context) (*model.Response, error)
-	UpdateProfile(ctx context.Context, params model.UpdateProfileInput) (*model.Response, error)
-	VerifyEmail(ctx context.Context, params model.VerifyEmailInput) (*model.AuthResponse, error)
-	ResendVerifyEmail(ctx context.Context, params model.ResendVerifyEmailInput) (*model.Response, error)
-	ForgotPassword(ctx context.Context, params model.ForgotPasswordInput) (*model.ForgotPasswordResponse, error)
-	ResetPassword(ctx context.Context, params model.ResetPasswordInput) (*model.Response, error)
-	Revoke(ctx context.Context, params model.OAuthRevokeInput) (*model.Response, error)
+	UpdateProfile(ctx context.Context, params model.UpdateProfileRequest) (*model.Response, error)
+	VerifyEmail(ctx context.Context, params model.VerifyEmailRequest) (*model.AuthResponse, error)
+	ResendVerifyEmail(ctx context.Context, params model.ResendVerifyEmailRequest) (*model.Response, error)
+	ForgotPassword(ctx context.Context, params model.ForgotPasswordRequest) (*model.ForgotPasswordResponse, error)
+	ResetPassword(ctx context.Context, params model.ResetPasswordRequest) (*model.Response, error)
+	Revoke(ctx context.Context, params model.OAuthRevokeRequest) (*model.Response, error)
 	VerifyOtp(ctx context.Context, params model.VerifyOTPRequest) (*model.AuthResponse, error)
 	ResendOtp(ctx context.Context, params model.ResendOTPRequest) (*model.Response, error)
 	DeactivateAccount(ctx context.Context) (*model.Response, error)
-	DeleteUser(ctx context.Context, params model.DeleteUserInput) (*model.Response, error)
-	UpdateUser(ctx context.Context, params model.UpdateUserInput) (*model.User, error)
-	AdminSignup(ctx context.Context, params model.AdminSignupInput) (*model.Response, error)
-	AdminLogin(ctx context.Context, params model.AdminLoginInput) (*model.Response, error)
+	DeleteUser(ctx context.Context, params model.DeleteUserRequest) (*model.Response, error)
+	UpdateUser(ctx context.Context, params model.UpdateUserRequest) (*model.User, error)
+	AdminSignup(ctx context.Context, params model.AdminSignupRequest) (*model.Response, error)
+	AdminLogin(ctx context.Context, params model.AdminLoginRequest) (*model.Response, error)
 	AdminLogout(ctx context.Context) (*model.Response, error)
-	UpdateEnv(ctx context.Context, params model.UpdateEnvInput) (*model.Response, error)
-	InviteMembers(ctx context.Context, params model.InviteMemberInput) (*model.InviteMembersResponse, error)
-	RevokeAccess(ctx context.Context, param model.UpdateAccessInput) (*model.Response, error)
-	EnableAccess(ctx context.Context, param model.UpdateAccessInput) (*model.Response, error)
-	GenerateJwtKeys(ctx context.Context, params model.GenerateJWTKeysInput) (*model.GenerateJWTKeysResponse, error)
+	UpdateEnv(ctx context.Context, params model.UpdateEnvRequest) (*model.Response, error)
+	InviteMembers(ctx context.Context, params model.InviteMemberRequest) (*model.InviteMembersResponse, error)
+	RevokeAccess(ctx context.Context, param model.UpdateAccessRequest) (*model.Response, error)
+	EnableAccess(ctx context.Context, param model.UpdateAccessRequest) (*model.Response, error)
+	GenerateJwtKeys(ctx context.Context, params model.GenerateJWTKeysRequest) (*model.GenerateJWTKeysResponse, error)
 	AddWebhook(ctx context.Context, params model.AddWebhookRequest) (*model.Response, error)
 	UpdateWebhook(ctx context.Context, params model.UpdateWebhookRequest) (*model.Response, error)
 	DeleteWebhook(ctx context.Context, params model.WebhookRequest) (*model.Response, error)
@@ -394,19 +385,19 @@ type MutationResolver interface {
 }
 type QueryResolver interface {
 	Meta(ctx context.Context) (*model.Meta, error)
-	Session(ctx context.Context, params *model.SessionQueryInput) (*model.AuthResponse, error)
+	Session(ctx context.Context, params *model.SessionQueryRequest) (*model.AuthResponse, error)
 	Profile(ctx context.Context) (*model.User, error)
-	ValidateJwtToken(ctx context.Context, params model.ValidateJWTTokenInput) (*model.ValidateJWTTokenResponse, error)
-	ValidateSession(ctx context.Context, params *model.ValidateSessionInput) (*model.ValidateSessionResponse, error)
-	Users(ctx context.Context, params *model.PaginatedInput) (*model.Users, error)
+	ValidateJwtToken(ctx context.Context, params model.ValidateJWTTokenRequest) (*model.ValidateJWTTokenResponse, error)
+	ValidateSession(ctx context.Context, params *model.ValidateSessionRequest) (*model.ValidateSessionResponse, error)
+	Users(ctx context.Context, params *model.PaginatedRequest) (*model.Users, error)
 	User(ctx context.Context, params model.GetUserRequest) (*model.User, error)
-	VerificationRequests(ctx context.Context, params *model.PaginatedInput) (*model.VerificationRequests, error)
+	VerificationRequests(ctx context.Context, params *model.PaginatedRequest) (*model.VerificationRequests, error)
 	AdminSession(ctx context.Context) (*model.Response, error)
 	Env(ctx context.Context) (*model.Env, error)
 	Webhook(ctx context.Context, params model.WebhookRequest) (*model.Webhook, error)
-	Webhooks(ctx context.Context, params *model.PaginatedInput) (*model.Webhooks, error)
+	Webhooks(ctx context.Context, params *model.PaginatedRequest) (*model.Webhooks, error)
 	WebhookLogs(ctx context.Context, params *model.ListWebhookLogRequest) (*model.WebhookLogs, error)
-	EmailTemplates(ctx context.Context, params *model.PaginatedInput) (*model.EmailTemplates, error)
+	EmailTemplates(ctx context.Context, params *model.PaginatedRequest) (*model.EmailTemplates, error)
 }
 
 type executableSchema struct {
@@ -423,7 +414,7 @@ func (e *executableSchema) Schema() *ast.Schema {
 	return parsedSchema
 }
 
-func (e *executableSchema) Complexity(typeName, field string, childComplexity int, rawArgs map[string]any) (int, bool) {
+func (e *executableSchema) Complexity(ctx context.Context, typeName, field string, childComplexity int, rawArgs map[string]any) (int, bool) {
 	ec := executionContext{nil, e, 0, 0, nil}
 	_ = ec
 	switch typeName + "." + field {
@@ -1280,7 +1271,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		args, err := ec.field_Mutation__add_email_template_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation__add_email_template_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
@@ -1292,7 +1283,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		args, err := ec.field_Mutation__add_webhook_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation__add_webhook_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
@@ -1304,12 +1295,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		args, err := ec.field_Mutation__admin_login_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation__admin_login_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.AdminLogin(childComplexity, args["params"].(model.AdminLoginInput)), true
+		return e.complexity.Mutation.AdminLogin(childComplexity, args["params"].(model.AdminLoginRequest)), true
 
 	case "Mutation._admin_logout":
 		if e.complexity.Mutation.AdminLogout == nil {
@@ -1323,12 +1314,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		args, err := ec.field_Mutation__admin_signup_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation__admin_signup_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.AdminSignup(childComplexity, args["params"].(model.AdminSignupInput)), true
+		return e.complexity.Mutation.AdminSignup(childComplexity, args["params"].(model.AdminSignupRequest)), true
 
 	case "Mutation.deactivate_account":
 		if e.complexity.Mutation.DeactivateAccount == nil {
@@ -1342,7 +1333,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		args, err := ec.field_Mutation__delete_email_template_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation__delete_email_template_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
@@ -1354,19 +1345,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		args, err := ec.field_Mutation__delete_user_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation__delete_user_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.DeleteUser(childComplexity, args["params"].(model.DeleteUserInput)), true
+		return e.complexity.Mutation.DeleteUser(childComplexity, args["params"].(model.DeleteUserRequest)), true
 
 	case "Mutation._delete_webhook":
 		if e.complexity.Mutation.DeleteWebhook == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation__delete_webhook_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation__delete_webhook_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
@@ -1378,60 +1369,60 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		args, err := ec.field_Mutation__enable_access_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation__enable_access_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.EnableAccess(childComplexity, args["param"].(model.UpdateAccessInput)), true
+		return e.complexity.Mutation.EnableAccess(childComplexity, args["param"].(model.UpdateAccessRequest)), true
 
 	case "Mutation.forgot_password":
 		if e.complexity.Mutation.ForgotPassword == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation_forgot_password_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation_forgot_password_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.ForgotPassword(childComplexity, args["params"].(model.ForgotPasswordInput)), true
+		return e.complexity.Mutation.ForgotPassword(childComplexity, args["params"].(model.ForgotPasswordRequest)), true
 
 	case "Mutation._generate_jwt_keys":
 		if e.complexity.Mutation.GenerateJwtKeys == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation__generate_jwt_keys_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation__generate_jwt_keys_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.GenerateJwtKeys(childComplexity, args["params"].(model.GenerateJWTKeysInput)), true
+		return e.complexity.Mutation.GenerateJwtKeys(childComplexity, args["params"].(model.GenerateJWTKeysRequest)), true
 
 	case "Mutation._invite_members":
 		if e.complexity.Mutation.InviteMembers == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation__invite_members_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation__invite_members_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.InviteMembers(childComplexity, args["params"].(model.InviteMemberInput)), true
+		return e.complexity.Mutation.InviteMembers(childComplexity, args["params"].(model.InviteMemberRequest)), true
 
 	case "Mutation.login":
 		if e.complexity.Mutation.Login == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation_login_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation_login_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.Login(childComplexity, args["params"].(model.LoginInput)), true
+		return e.complexity.Mutation.Login(childComplexity, args["params"].(model.LoginRequest)), true
 
 	case "Mutation.logout":
 		if e.complexity.Mutation.Logout == nil {
@@ -1445,43 +1436,43 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		args, err := ec.field_Mutation_magic_link_login_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation_magic_link_login_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.MagicLinkLogin(childComplexity, args["params"].(model.MagicLinkLoginInput)), true
+		return e.complexity.Mutation.MagicLinkLogin(childComplexity, args["params"].(model.MagicLinkLoginRequest)), true
 
 	case "Mutation.mobile_login":
 		if e.complexity.Mutation.MobileLogin == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation_mobile_login_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation_mobile_login_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.MobileLogin(childComplexity, args["params"].(model.MobileLoginInput)), true
+		return e.complexity.Mutation.MobileLogin(childComplexity, args["params"].(model.MobileLoginRequest)), true
 
 	case "Mutation.mobile_signup":
 		if e.complexity.Mutation.MobileSignup == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation_mobile_signup_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation_mobile_signup_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.MobileSignup(childComplexity, args["params"].(*model.MobileSignUpInput)), true
+		return e.complexity.Mutation.MobileSignup(childComplexity, args["params"].(*model.MobileSignUpRequest)), true
 
 	case "Mutation.resend_otp":
 		if e.complexity.Mutation.ResendOtp == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation_resend_otp_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation_resend_otp_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
@@ -1493,67 +1484,67 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		args, err := ec.field_Mutation_resend_verify_email_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation_resend_verify_email_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.ResendVerifyEmail(childComplexity, args["params"].(model.ResendVerifyEmailInput)), true
+		return e.complexity.Mutation.ResendVerifyEmail(childComplexity, args["params"].(model.ResendVerifyEmailRequest)), true
 
 	case "Mutation.reset_password":
 		if e.complexity.Mutation.ResetPassword == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation_reset_password_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation_reset_password_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.ResetPassword(childComplexity, args["params"].(model.ResetPasswordInput)), true
+		return e.complexity.Mutation.ResetPassword(childComplexity, args["params"].(model.ResetPasswordRequest)), true
 
 	case "Mutation.revoke":
 		if e.complexity.Mutation.Revoke == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation_revoke_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation_revoke_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.Revoke(childComplexity, args["params"].(model.OAuthRevokeInput)), true
+		return e.complexity.Mutation.Revoke(childComplexity, args["params"].(model.OAuthRevokeRequest)), true
 
 	case "Mutation._revoke_access":
 		if e.complexity.Mutation.RevokeAccess == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation__revoke_access_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation__revoke_access_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.RevokeAccess(childComplexity, args["param"].(model.UpdateAccessInput)), true
+		return e.complexity.Mutation.RevokeAccess(childComplexity, args["param"].(model.UpdateAccessRequest)), true
 
 	case "Mutation.signup":
 		if e.complexity.Mutation.Signup == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation_signup_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation_signup_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.Signup(childComplexity, args["params"].(model.SignUpInput)), true
+		return e.complexity.Mutation.Signup(childComplexity, args["params"].(model.SignUpRequest)), true
 
 	case "Mutation._test_endpoint":
 		if e.complexity.Mutation.TestEndpoint == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation__test_endpoint_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation__test_endpoint_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
@@ -1565,7 +1556,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		args, err := ec.field_Mutation__update_email_template_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation__update_email_template_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
@@ -1577,43 +1568,43 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		args, err := ec.field_Mutation__update_env_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation__update_env_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateEnv(childComplexity, args["params"].(model.UpdateEnvInput)), true
+		return e.complexity.Mutation.UpdateEnv(childComplexity, args["params"].(model.UpdateEnvRequest)), true
 
 	case "Mutation.update_profile":
 		if e.complexity.Mutation.UpdateProfile == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation_update_profile_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation_update_profile_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateProfile(childComplexity, args["params"].(model.UpdateProfileInput)), true
+		return e.complexity.Mutation.UpdateProfile(childComplexity, args["params"].(model.UpdateProfileRequest)), true
 
 	case "Mutation._update_user":
 		if e.complexity.Mutation.UpdateUser == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation__update_user_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation__update_user_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateUser(childComplexity, args["params"].(model.UpdateUserInput)), true
+		return e.complexity.Mutation.UpdateUser(childComplexity, args["params"].(model.UpdateUserRequest)), true
 
 	case "Mutation._update_webhook":
 		if e.complexity.Mutation.UpdateWebhook == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation__update_webhook_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation__update_webhook_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
@@ -1625,19 +1616,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		args, err := ec.field_Mutation_verify_email_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation_verify_email_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.VerifyEmail(childComplexity, args["params"].(model.VerifyEmailInput)), true
+		return e.complexity.Mutation.VerifyEmail(childComplexity, args["params"].(model.VerifyEmailRequest)), true
 
 	case "Mutation.verify_otp":
 		if e.complexity.Mutation.VerifyOtp == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation_verify_otp_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation_verify_otp_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
@@ -1684,12 +1675,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		args, err := ec.field_Query__email_templates_args(context.TODO(), rawArgs)
+		args, err := ec.field_Query__email_templates_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Query.EmailTemplates(childComplexity, args["params"].(*model.PaginatedInput)), true
+		return e.complexity.Query.EmailTemplates(childComplexity, args["params"].(*model.PaginatedRequest)), true
 
 	case "Query._env":
 		if e.complexity.Query.Env == nil {
@@ -1717,19 +1708,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		args, err := ec.field_Query_session_args(context.TODO(), rawArgs)
+		args, err := ec.field_Query_session_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Query.Session(childComplexity, args["params"].(*model.SessionQueryInput)), true
+		return e.complexity.Query.Session(childComplexity, args["params"].(*model.SessionQueryRequest)), true
 
 	case "Query._user":
 		if e.complexity.Query.User == nil {
 			break
 		}
 
-		args, err := ec.field_Query__user_args(context.TODO(), rawArgs)
+		args, err := ec.field_Query__user_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
@@ -1741,55 +1732,55 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		args, err := ec.field_Query__users_args(context.TODO(), rawArgs)
+		args, err := ec.field_Query__users_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Query.Users(childComplexity, args["params"].(*model.PaginatedInput)), true
+		return e.complexity.Query.Users(childComplexity, args["params"].(*model.PaginatedRequest)), true
 
 	case "Query.validate_jwt_token":
 		if e.complexity.Query.ValidateJwtToken == nil {
 			break
 		}
 
-		args, err := ec.field_Query_validate_jwt_token_args(context.TODO(), rawArgs)
+		args, err := ec.field_Query_validate_jwt_token_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Query.ValidateJwtToken(childComplexity, args["params"].(model.ValidateJWTTokenInput)), true
+		return e.complexity.Query.ValidateJwtToken(childComplexity, args["params"].(model.ValidateJWTTokenRequest)), true
 
 	case "Query.validate_session":
 		if e.complexity.Query.ValidateSession == nil {
 			break
 		}
 
-		args, err := ec.field_Query_validate_session_args(context.TODO(), rawArgs)
+		args, err := ec.field_Query_validate_session_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Query.ValidateSession(childComplexity, args["params"].(*model.ValidateSessionInput)), true
+		return e.complexity.Query.ValidateSession(childComplexity, args["params"].(*model.ValidateSessionRequest)), true
 
 	case "Query._verification_requests":
 		if e.complexity.Query.VerificationRequests == nil {
 			break
 		}
 
-		args, err := ec.field_Query__verification_requests_args(context.TODO(), rawArgs)
+		args, err := ec.field_Query__verification_requests_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Query.VerificationRequests(childComplexity, args["params"].(*model.PaginatedInput)), true
+		return e.complexity.Query.VerificationRequests(childComplexity, args["params"].(*model.PaginatedRequest)), true
 
 	case "Query._webhook":
 		if e.complexity.Query.Webhook == nil {
 			break
 		}
 
-		args, err := ec.field_Query__webhook_args(context.TODO(), rawArgs)
+		args, err := ec.field_Query__webhook_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
@@ -1801,7 +1792,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		args, err := ec.field_Query__webhook_logs_args(context.TODO(), rawArgs)
+		args, err := ec.field_Query__webhook_logs_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
@@ -1813,12 +1804,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		args, err := ec.field_Query__webhooks_args(context.TODO(), rawArgs)
+		args, err := ec.field_Query__webhooks_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Query.Webhooks(childComplexity, args["params"].(*model.PaginatedInput)), true
+		return e.complexity.Query.Webhooks(childComplexity, args["params"].(*model.PaginatedRequest)), true
 
 	case "Response.message":
 		if e.complexity.Response.Message == nil {
@@ -1826,48 +1817,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Response.Message(childComplexity), true
-
-	case "SMSVerificationRequests.code":
-		if e.complexity.SMSVerificationRequests.Code == nil {
-			break
-		}
-
-		return e.complexity.SMSVerificationRequests.Code(childComplexity), true
-
-	case "SMSVerificationRequests.code_expires_at":
-		if e.complexity.SMSVerificationRequests.CodeExpiresAt == nil {
-			break
-		}
-
-		return e.complexity.SMSVerificationRequests.CodeExpiresAt(childComplexity), true
-
-	case "SMSVerificationRequests.created_at":
-		if e.complexity.SMSVerificationRequests.CreatedAt == nil {
-			break
-		}
-
-		return e.complexity.SMSVerificationRequests.CreatedAt(childComplexity), true
-
-	case "SMSVerificationRequests.id":
-		if e.complexity.SMSVerificationRequests.ID == nil {
-			break
-		}
-
-		return e.complexity.SMSVerificationRequests.ID(childComplexity), true
-
-	case "SMSVerificationRequests.phone_number":
-		if e.complexity.SMSVerificationRequests.PhoneNumber == nil {
-			break
-		}
-
-		return e.complexity.SMSVerificationRequests.PhoneNumber(childComplexity), true
-
-	case "SMSVerificationRequests.updated_at":
-		if e.complexity.SMSVerificationRequests.UpdatedAt == nil {
-			break
-		}
-
-		return e.complexity.SMSVerificationRequests.UpdatedAt(childComplexity), true
 
 	case "TestEndpointResponse.http_status":
 		if e.complexity.TestEndpointResponse.HTTPStatus == nil {
@@ -2285,37 +2234,37 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
 		ec.unmarshalInputAddEmailTemplateRequest,
 		ec.unmarshalInputAddWebhookRequest,
-		ec.unmarshalInputAdminLoginInput,
-		ec.unmarshalInputAdminSignupInput,
+		ec.unmarshalInputAdminLoginRequest,
+		ec.unmarshalInputAdminSignupRequest,
 		ec.unmarshalInputDeleteEmailTemplateRequest,
-		ec.unmarshalInputDeleteUserInput,
-		ec.unmarshalInputForgotPasswordInput,
-		ec.unmarshalInputGenerateJWTKeysInput,
+		ec.unmarshalInputDeleteUserRequest,
+		ec.unmarshalInputForgotPasswordRequest,
+		ec.unmarshalInputGenerateJWTKeysRequest,
 		ec.unmarshalInputGetUserRequest,
-		ec.unmarshalInputInviteMemberInput,
+		ec.unmarshalInputInviteMemberRequest,
 		ec.unmarshalInputListWebhookLogRequest,
-		ec.unmarshalInputLoginInput,
-		ec.unmarshalInputMagicLinkLoginInput,
-		ec.unmarshalInputMobileLoginInput,
-		ec.unmarshalInputMobileSignUpInput,
-		ec.unmarshalInputOAuthRevokeInput,
-		ec.unmarshalInputPaginatedInput,
-		ec.unmarshalInputPaginationInput,
+		ec.unmarshalInputLoginRequest,
+		ec.unmarshalInputMagicLinkLoginRequest,
+		ec.unmarshalInputMobileLoginRequest,
+		ec.unmarshalInputMobileSignUpRequest,
+		ec.unmarshalInputOAuthRevokeRequest,
+		ec.unmarshalInputPaginatedRequest,
+		ec.unmarshalInputPaginationRequest,
 		ec.unmarshalInputResendOTPRequest,
-		ec.unmarshalInputResendVerifyEmailInput,
-		ec.unmarshalInputResetPasswordInput,
-		ec.unmarshalInputSessionQueryInput,
-		ec.unmarshalInputSignUpInput,
+		ec.unmarshalInputResendVerifyEmailRequest,
+		ec.unmarshalInputResetPasswordRequest,
+		ec.unmarshalInputSessionQueryRequest,
+		ec.unmarshalInputSignUpRequest,
 		ec.unmarshalInputTestEndpointRequest,
-		ec.unmarshalInputUpdateAccessInput,
+		ec.unmarshalInputUpdateAccessRequest,
 		ec.unmarshalInputUpdateEmailTemplateRequest,
-		ec.unmarshalInputUpdateEnvInput,
-		ec.unmarshalInputUpdateProfileInput,
-		ec.unmarshalInputUpdateUserInput,
+		ec.unmarshalInputUpdateEnvRequest,
+		ec.unmarshalInputUpdateProfileRequest,
+		ec.unmarshalInputUpdateUserRequest,
 		ec.unmarshalInputUpdateWebhookRequest,
-		ec.unmarshalInputValidateJWTTokenInput,
-		ec.unmarshalInputValidateSessionInput,
-		ec.unmarshalInputVerifyEmailInput,
+		ec.unmarshalInputValidateJWTTokenRequest,
+		ec.unmarshalInputValidateSessionRequest,
+		ec.unmarshalInputVerifyEmailRequest,
 		ec.unmarshalInputVerifyOTPRequest,
 		ec.unmarshalInputWebhookRequest,
 	)
@@ -2499,15 +2448,6 @@ type VerificationRequests {
   verification_requests: [VerificationRequest!]!
 }
 
-type SMSVerificationRequests {
-  id: ID!
-  code: String!
-  code_expires_at: Int64!
-  phone_number: String!
-  created_at: Int64!
-  updated_at: Int64
-}
-
 type Error {
   message: String!
   reason: String!
@@ -2687,7 +2627,7 @@ type EmailTemplates {
   email_templates: [EmailTemplate!]!
 }
 
-input UpdateEnvInput {
+input UpdateEnvRequest {
   ACCESS_TOKEN_EXPIRY_TIME: String
   ADMIN_SECRET: String
   CUSTOM_ACCESS_TOKEN_SCRIPT: String
@@ -2752,16 +2692,16 @@ input UpdateEnvInput {
   DISABLE_TOTP_LOGIN: Boolean
 }
 
-input AdminLoginInput {
+input AdminLoginRequest {
   admin_secret: String!
 }
 
-input AdminSignupInput {
+input AdminSignupRequest {
   admin_secret: String!
 }
 
 # Deprecated from v1.2.0
-input MobileSignUpInput {
+input MobileSignUpRequest {
   email: String
   given_name: String
   family_name: String
@@ -2784,7 +2724,7 @@ input MobileSignUpInput {
   app_data: Map
 }
 
-input SignUpInput {
+input SignUpRequest {
   email: String
   given_name: String
   family_name: String
@@ -2807,7 +2747,7 @@ input SignUpInput {
   app_data: Map
 }
 
-input LoginInput {
+input LoginRequest {
   email: String
   phone_number: String
   password: String!
@@ -2820,7 +2760,7 @@ input LoginInput {
 }
 
 # Deprecated from v1.2.0
-input MobileLoginInput {
+input MobileLoginRequest {
   phone_number: String!
   password: String!
   roles: [String!]
@@ -2831,7 +2771,7 @@ input MobileLoginInput {
   state: String
 }
 
-input VerifyEmailInput {
+input VerifyEmailRequest {
   token: String!
   # state is used for authorization code grant flow
   # it is used to get code for an on-going auth process during login
@@ -2839,7 +2779,7 @@ input VerifyEmailInput {
   state: String
 }
 
-input ResendVerifyEmailInput {
+input ResendVerifyEmailRequest {
   email: String!
   identifier: String!
   # state is used for authorization code grant flow
@@ -2848,7 +2788,7 @@ input ResendVerifyEmailInput {
   state: String
 }
 
-input UpdateProfileInput {
+input UpdateProfileRequest {
   old_password: String
   new_password: String
   confirm_new_password: String
@@ -2865,7 +2805,7 @@ input UpdateProfileInput {
   app_data: Map
 }
 
-input UpdateUserInput {
+input UpdateUserRequest {
   id: ID!
   email: String
   email_verified: Boolean
@@ -2883,14 +2823,14 @@ input UpdateUserInput {
   app_data: Map
 }
 
-input ForgotPasswordInput {
+input ForgotPasswordRequest {
   email: String
   phone_number: String
   state: String
   redirect_uri: String
 }
 
-input ResetPasswordInput {
+input ResetPasswordRequest {
   token: String
   otp: String
   phone_number: String
@@ -2898,11 +2838,11 @@ input ResetPasswordInput {
   confirm_password: String!
 }
 
-input DeleteUserInput {
+input DeleteUserRequest {
   email: String!
 }
 
-input MagicLinkLoginInput {
+input MagicLinkLoginRequest {
   email: String!
   roles: [String!]
   scope: [String!]
@@ -2910,50 +2850,50 @@ input MagicLinkLoginInput {
   redirect_uri: String
 }
 
-input SessionQueryInput {
+input SessionQueryRequest {
   roles: [String!]
   scope: [String!]
 }
 
-input PaginationInput {
+input PaginationRequest {
   limit: Int64
   page: Int64
 }
 
-input PaginatedInput {
-  pagination: PaginationInput
+input PaginatedRequest {
+  pagination: PaginationRequest
 }
 
-input OAuthRevokeInput {
+input OAuthRevokeRequest {
   refresh_token: String!
 }
 
-input InviteMemberInput {
+input InviteMemberRequest {
   emails: [String!]!
   redirect_uri: String
 }
 
-input UpdateAccessInput {
+input UpdateAccessRequest {
   user_id: String!
 }
 
-input ValidateJWTTokenInput {
+input ValidateJWTTokenRequest {
   token_type: String!
   token: String!
   roles: [String!]
 }
 
-input ValidateSessionInput {
+input ValidateSessionRequest {
   cookie: String!
   roles: [String!]
 }
 
-input GenerateJWTKeysInput {
+input GenerateJWTKeysRequest {
   type: String!
 }
 
 input ListWebhookLogRequest {
-  pagination: PaginationInput
+  pagination: PaginationRequest
   webhook_id: String
 }
 
@@ -3035,34 +2975,37 @@ input GetUserRequest {
 }
 
 type Mutation {
-  signup(params: SignUpInput!): AuthResponse!
+  signup(params: SignUpRequest!): AuthResponse!
   # Deprecated from v1.2.0
-  mobile_signup(params: MobileSignUpInput): AuthResponse!
-  login(params: LoginInput!): AuthResponse!
+  mobile_signup(params: MobileSignUpRequest): AuthResponse!
+  login(params: LoginRequest!): AuthResponse!
   # Deprecated from v1.2.0
-  mobile_login(params: MobileLoginInput!): AuthResponse!
-  magic_link_login(params: MagicLinkLoginInput!): Response!
+  mobile_login(params: MobileLoginRequest!): AuthResponse!
+  magic_link_login(params: MagicLinkLoginRequest!): Response!
   logout: Response!
-  update_profile(params: UpdateProfileInput!): Response!
-  verify_email(params: VerifyEmailInput!): AuthResponse!
-  resend_verify_email(params: ResendVerifyEmailInput!): Response!
-  forgot_password(params: ForgotPasswordInput!): ForgotPasswordResponse!
-  reset_password(params: ResetPasswordInput!): Response!
-  revoke(params: OAuthRevokeInput!): Response!
+  update_profile(params: UpdateProfileRequest!): Response!
+  verify_email(params: VerifyEmailRequest!): AuthResponse!
+  resend_verify_email(params: ResendVerifyEmailRequest!): Response!
+  forgot_password(params: ForgotPasswordRequest!): ForgotPasswordResponse!
+  reset_password(params: ResetPasswordRequest!): Response!
+  revoke(params: OAuthRevokeRequest!): Response!
   verify_otp(params: VerifyOTPRequest!): AuthResponse!
   resend_otp(params: ResendOTPRequest!): Response!
   deactivate_account: Response!
   # admin only apis
-  _delete_user(params: DeleteUserInput!): Response!
-  _update_user(params: UpdateUserInput!): User!
-  _admin_signup(params: AdminSignupInput!): Response!
-  _admin_login(params: AdminLoginInput!): Response!
+  _delete_user(params: DeleteUserRequest!): Response!
+  _update_user(params: UpdateUserRequest!): User!
+  # deprecated from v2.0.0
+  _admin_signup(params: AdminSignupRequest!): Response!
+  _admin_login(params: AdminLoginRequest!): Response!
   _admin_logout: Response!
-  _update_env(params: UpdateEnvInput!): Response!
-  _invite_members(params: InviteMemberInput!): InviteMembersResponse!
-  _revoke_access(param: UpdateAccessInput!): Response!
-  _enable_access(param: UpdateAccessInput!): Response!
-  _generate_jwt_keys(params: GenerateJWTKeysInput!): GenerateJWTKeysResponse!
+  # Deprecated from v2.0.0
+  _update_env(params: UpdateEnvRequest!): Response!
+  _invite_members(params: InviteMemberRequest!): InviteMembersResponse!
+  _revoke_access(param: UpdateAccessRequest!): Response!
+  _enable_access(param: UpdateAccessRequest!): Response!
+  # Deprecated from v2.0.0
+  _generate_jwt_keys(params: GenerateJWTKeysRequest!): GenerateJWTKeysResponse!
   _add_webhook(params: AddWebhookRequest!): Response!
   _update_webhook(params: UpdateWebhookRequest!): Response!
   _delete_webhook(params: WebhookRequest!): Response!
@@ -3074,20 +3017,21 @@ type Mutation {
 
 type Query {
   meta: Meta!
-  session(params: SessionQueryInput): AuthResponse!
+  session(params: SessionQueryRequest): AuthResponse!
   profile: User!
-  validate_jwt_token(params: ValidateJWTTokenInput!): ValidateJWTTokenResponse!
-  validate_session(params: ValidateSessionInput): ValidateSessionResponse!
+  validate_jwt_token(params: ValidateJWTTokenRequest!): ValidateJWTTokenResponse!
+  validate_session(params: ValidateSessionRequest): ValidateSessionResponse!
   # admin only apis
-  _users(params: PaginatedInput): Users!
+  _users(params: PaginatedRequest): Users!
   _user(params: GetUserRequest!): User!
-  _verification_requests(params: PaginatedInput): VerificationRequests!
+  _verification_requests(params: PaginatedRequest): VerificationRequests!
   _admin_session: Response!
+  # Deprecated from v2.0.0
   _env: Env!
   _webhook(params: WebhookRequest!): Webhook!
-  _webhooks(params: PaginatedInput): Webhooks!
+  _webhooks(params: PaginatedRequest): Webhooks!
   _webhook_logs(params: ListWebhookLogRequest): WebhookLogs!
-  _email_templates(params: PaginatedInput): EmailTemplates!
+  _email_templates(params: PaginatedRequest): EmailTemplates!
 }
 `, BuiltIn: false},
 }
@@ -3166,18 +3110,18 @@ func (ec *executionContext) field_Mutation__admin_login_args(ctx context.Context
 func (ec *executionContext) field_Mutation__admin_login_argsParams(
 	ctx context.Context,
 	rawArgs map[string]any,
-) (model.AdminLoginInput, error) {
+) (model.AdminLoginRequest, error) {
 	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal model.AdminLoginInput
+		var zeroVal model.AdminLoginRequest
 		return zeroVal, nil
 	}
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
 	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalNAdminLoginInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAdminLoginInput(ctx, tmp)
+		return ec.unmarshalNAdminLoginRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAdminLoginRequest(ctx, tmp)
 	}
 
-	var zeroVal model.AdminLoginInput
+	var zeroVal model.AdminLoginRequest
 	return zeroVal, nil
 }
 
@@ -3194,18 +3138,18 @@ func (ec *executionContext) field_Mutation__admin_signup_args(ctx context.Contex
 func (ec *executionContext) field_Mutation__admin_signup_argsParams(
 	ctx context.Context,
 	rawArgs map[string]any,
-) (model.AdminSignupInput, error) {
+) (model.AdminSignupRequest, error) {
 	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal model.AdminSignupInput
+		var zeroVal model.AdminSignupRequest
 		return zeroVal, nil
 	}
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
 	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalNAdminSignupInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAdminSignupInput(ctx, tmp)
+		return ec.unmarshalNAdminSignupRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAdminSignupRequest(ctx, tmp)
 	}
 
-	var zeroVal model.AdminSignupInput
+	var zeroVal model.AdminSignupRequest
 	return zeroVal, nil
 }
 
@@ -3250,18 +3194,18 @@ func (ec *executionContext) field_Mutation__delete_user_args(ctx context.Context
 func (ec *executionContext) field_Mutation__delete_user_argsParams(
 	ctx context.Context,
 	rawArgs map[string]any,
-) (model.DeleteUserInput, error) {
+) (model.DeleteUserRequest, error) {
 	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal model.DeleteUserInput
+		var zeroVal model.DeleteUserRequest
 		return zeroVal, nil
 	}
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
 	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalNDeleteUserInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐDeleteUserInput(ctx, tmp)
+		return ec.unmarshalNDeleteUserRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐDeleteUserRequest(ctx, tmp)
 	}
 
-	var zeroVal model.DeleteUserInput
+	var zeroVal model.DeleteUserRequest
 	return zeroVal, nil
 }
 
@@ -3306,18 +3250,18 @@ func (ec *executionContext) field_Mutation__enable_access_args(ctx context.Conte
 func (ec *executionContext) field_Mutation__enable_access_argsParam(
 	ctx context.Context,
 	rawArgs map[string]any,
-) (model.UpdateAccessInput, error) {
+) (model.UpdateAccessRequest, error) {
 	if _, ok := rawArgs["param"]; !ok {
-		var zeroVal model.UpdateAccessInput
+		var zeroVal model.UpdateAccessRequest
 		return zeroVal, nil
 	}
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("param"))
 	if tmp, ok := rawArgs["param"]; ok {
-		return ec.unmarshalNUpdateAccessInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateAccessInput(ctx, tmp)
+		return ec.unmarshalNUpdateAccessRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateAccessRequest(ctx, tmp)
 	}
 
-	var zeroVal model.UpdateAccessInput
+	var zeroVal model.UpdateAccessRequest
 	return zeroVal, nil
 }
 
@@ -3334,18 +3278,18 @@ func (ec *executionContext) field_Mutation__generate_jwt_keys_args(ctx context.C
 func (ec *executionContext) field_Mutation__generate_jwt_keys_argsParams(
 	ctx context.Context,
 	rawArgs map[string]any,
-) (model.GenerateJWTKeysInput, error) {
+) (model.GenerateJWTKeysRequest, error) {
 	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal model.GenerateJWTKeysInput
+		var zeroVal model.GenerateJWTKeysRequest
 		return zeroVal, nil
 	}
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
 	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalNGenerateJWTKeysInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐGenerateJWTKeysInput(ctx, tmp)
+		return ec.unmarshalNGenerateJWTKeysRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐGenerateJWTKeysRequest(ctx, tmp)
 	}
 
-	var zeroVal model.GenerateJWTKeysInput
+	var zeroVal model.GenerateJWTKeysRequest
 	return zeroVal, nil
 }
 
@@ -3362,18 +3306,18 @@ func (ec *executionContext) field_Mutation__invite_members_args(ctx context.Cont
 func (ec *executionContext) field_Mutation__invite_members_argsParams(
 	ctx context.Context,
 	rawArgs map[string]any,
-) (model.InviteMemberInput, error) {
+) (model.InviteMemberRequest, error) {
 	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal model.InviteMemberInput
+		var zeroVal model.InviteMemberRequest
 		return zeroVal, nil
 	}
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
 	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalNInviteMemberInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐInviteMemberInput(ctx, tmp)
+		return ec.unmarshalNInviteMemberRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐInviteMemberRequest(ctx, tmp)
 	}
 
-	var zeroVal model.InviteMemberInput
+	var zeroVal model.InviteMemberRequest
 	return zeroVal, nil
 }
 
@@ -3390,18 +3334,18 @@ func (ec *executionContext) field_Mutation__revoke_access_args(ctx context.Conte
 func (ec *executionContext) field_Mutation__revoke_access_argsParam(
 	ctx context.Context,
 	rawArgs map[string]any,
-) (model.UpdateAccessInput, error) {
+) (model.UpdateAccessRequest, error) {
 	if _, ok := rawArgs["param"]; !ok {
-		var zeroVal model.UpdateAccessInput
+		var zeroVal model.UpdateAccessRequest
 		return zeroVal, nil
 	}
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("param"))
 	if tmp, ok := rawArgs["param"]; ok {
-		return ec.unmarshalNUpdateAccessInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateAccessInput(ctx, tmp)
+		return ec.unmarshalNUpdateAccessRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateAccessRequest(ctx, tmp)
 	}
 
-	var zeroVal model.UpdateAccessInput
+	var zeroVal model.UpdateAccessRequest
 	return zeroVal, nil
 }
 
@@ -3474,18 +3418,18 @@ func (ec *executionContext) field_Mutation__update_env_args(ctx context.Context,
 func (ec *executionContext) field_Mutation__update_env_argsParams(
 	ctx context.Context,
 	rawArgs map[string]any,
-) (model.UpdateEnvInput, error) {
+) (model.UpdateEnvRequest, error) {
 	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal model.UpdateEnvInput
+		var zeroVal model.UpdateEnvRequest
 		return zeroVal, nil
 	}
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
 	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalNUpdateEnvInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateEnvInput(ctx, tmp)
+		return ec.unmarshalNUpdateEnvRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateEnvRequest(ctx, tmp)
 	}
 
-	var zeroVal model.UpdateEnvInput
+	var zeroVal model.UpdateEnvRequest
 	return zeroVal, nil
 }
 
@@ -3502,18 +3446,18 @@ func (ec *executionContext) field_Mutation__update_user_args(ctx context.Context
 func (ec *executionContext) field_Mutation__update_user_argsParams(
 	ctx context.Context,
 	rawArgs map[string]any,
-) (model.UpdateUserInput, error) {
+) (model.UpdateUserRequest, error) {
 	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal model.UpdateUserInput
+		var zeroVal model.UpdateUserRequest
 		return zeroVal, nil
 	}
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
 	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalNUpdateUserInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateUserInput(ctx, tmp)
+		return ec.unmarshalNUpdateUserRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateUserRequest(ctx, tmp)
 	}
 
-	var zeroVal model.UpdateUserInput
+	var zeroVal model.UpdateUserRequest
 	return zeroVal, nil
 }
 
@@ -3558,18 +3502,18 @@ func (ec *executionContext) field_Mutation_forgot_password_args(ctx context.Cont
 func (ec *executionContext) field_Mutation_forgot_password_argsParams(
 	ctx context.Context,
 	rawArgs map[string]any,
-) (model.ForgotPasswordInput, error) {
+) (model.ForgotPasswordRequest, error) {
 	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal model.ForgotPasswordInput
+		var zeroVal model.ForgotPasswordRequest
 		return zeroVal, nil
 	}
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
 	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalNForgotPasswordInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐForgotPasswordInput(ctx, tmp)
+		return ec.unmarshalNForgotPasswordRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐForgotPasswordRequest(ctx, tmp)
 	}
 
-	var zeroVal model.ForgotPasswordInput
+	var zeroVal model.ForgotPasswordRequest
 	return zeroVal, nil
 }
 
@@ -3586,18 +3530,18 @@ func (ec *executionContext) field_Mutation_login_args(ctx context.Context, rawAr
 func (ec *executionContext) field_Mutation_login_argsParams(
 	ctx context.Context,
 	rawArgs map[string]any,
-) (model.LoginInput, error) {
+) (model.LoginRequest, error) {
 	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal model.LoginInput
+		var zeroVal model.LoginRequest
 		return zeroVal, nil
 	}
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
 	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalNLoginInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐLoginInput(ctx, tmp)
+		return ec.unmarshalNLoginRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐLoginRequest(ctx, tmp)
 	}
 
-	var zeroVal model.LoginInput
+	var zeroVal model.LoginRequest
 	return zeroVal, nil
 }
 
@@ -3614,18 +3558,18 @@ func (ec *executionContext) field_Mutation_magic_link_login_args(ctx context.Con
 func (ec *executionContext) field_Mutation_magic_link_login_argsParams(
 	ctx context.Context,
 	rawArgs map[string]any,
-) (model.MagicLinkLoginInput, error) {
+) (model.MagicLinkLoginRequest, error) {
 	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal model.MagicLinkLoginInput
+		var zeroVal model.MagicLinkLoginRequest
 		return zeroVal, nil
 	}
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
 	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalNMagicLinkLoginInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐMagicLinkLoginInput(ctx, tmp)
+		return ec.unmarshalNMagicLinkLoginRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐMagicLinkLoginRequest(ctx, tmp)
 	}
 
-	var zeroVal model.MagicLinkLoginInput
+	var zeroVal model.MagicLinkLoginRequest
 	return zeroVal, nil
 }
 
@@ -3642,18 +3586,18 @@ func (ec *executionContext) field_Mutation_mobile_login_args(ctx context.Context
 func (ec *executionContext) field_Mutation_mobile_login_argsParams(
 	ctx context.Context,
 	rawArgs map[string]any,
-) (model.MobileLoginInput, error) {
+) (model.MobileLoginRequest, error) {
 	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal model.MobileLoginInput
+		var zeroVal model.MobileLoginRequest
 		return zeroVal, nil
 	}
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
 	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalNMobileLoginInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐMobileLoginInput(ctx, tmp)
+		return ec.unmarshalNMobileLoginRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐMobileLoginRequest(ctx, tmp)
 	}
 
-	var zeroVal model.MobileLoginInput
+	var zeroVal model.MobileLoginRequest
 	return zeroVal, nil
 }
 
@@ -3670,18 +3614,18 @@ func (ec *executionContext) field_Mutation_mobile_signup_args(ctx context.Contex
 func (ec *executionContext) field_Mutation_mobile_signup_argsParams(
 	ctx context.Context,
 	rawArgs map[string]any,
-) (*model.MobileSignUpInput, error) {
+) (*model.MobileSignUpRequest, error) {
 	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal *model.MobileSignUpInput
+		var zeroVal *model.MobileSignUpRequest
 		return zeroVal, nil
 	}
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
 	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalOMobileSignUpInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐMobileSignUpInput(ctx, tmp)
+		return ec.unmarshalOMobileSignUpRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐMobileSignUpRequest(ctx, tmp)
 	}
 
-	var zeroVal *model.MobileSignUpInput
+	var zeroVal *model.MobileSignUpRequest
 	return zeroVal, nil
 }
 
@@ -3726,18 +3670,18 @@ func (ec *executionContext) field_Mutation_resend_verify_email_args(ctx context.
 func (ec *executionContext) field_Mutation_resend_verify_email_argsParams(
 	ctx context.Context,
 	rawArgs map[string]any,
-) (model.ResendVerifyEmailInput, error) {
+) (model.ResendVerifyEmailRequest, error) {
 	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal model.ResendVerifyEmailInput
+		var zeroVal model.ResendVerifyEmailRequest
 		return zeroVal, nil
 	}
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
 	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalNResendVerifyEmailInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResendVerifyEmailInput(ctx, tmp)
+		return ec.unmarshalNResendVerifyEmailRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResendVerifyEmailRequest(ctx, tmp)
 	}
 
-	var zeroVal model.ResendVerifyEmailInput
+	var zeroVal model.ResendVerifyEmailRequest
 	return zeroVal, nil
 }
 
@@ -3754,18 +3698,18 @@ func (ec *executionContext) field_Mutation_reset_password_args(ctx context.Conte
 func (ec *executionContext) field_Mutation_reset_password_argsParams(
 	ctx context.Context,
 	rawArgs map[string]any,
-) (model.ResetPasswordInput, error) {
+) (model.ResetPasswordRequest, error) {
 	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal model.ResetPasswordInput
+		var zeroVal model.ResetPasswordRequest
 		return zeroVal, nil
 	}
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
 	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalNResetPasswordInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResetPasswordInput(ctx, tmp)
+		return ec.unmarshalNResetPasswordRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResetPasswordRequest(ctx, tmp)
 	}
 
-	var zeroVal model.ResetPasswordInput
+	var zeroVal model.ResetPasswordRequest
 	return zeroVal, nil
 }
 
@@ -3782,18 +3726,18 @@ func (ec *executionContext) field_Mutation_revoke_args(ctx context.Context, rawA
 func (ec *executionContext) field_Mutation_revoke_argsParams(
 	ctx context.Context,
 	rawArgs map[string]any,
-) (model.OAuthRevokeInput, error) {
+) (model.OAuthRevokeRequest, error) {
 	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal model.OAuthRevokeInput
+		var zeroVal model.OAuthRevokeRequest
 		return zeroVal, nil
 	}
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
 	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalNOAuthRevokeInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐOAuthRevokeInput(ctx, tmp)
+		return ec.unmarshalNOAuthRevokeRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐOAuthRevokeRequest(ctx, tmp)
 	}
 
-	var zeroVal model.OAuthRevokeInput
+	var zeroVal model.OAuthRevokeRequest
 	return zeroVal, nil
 }
 
@@ -3810,18 +3754,18 @@ func (ec *executionContext) field_Mutation_signup_args(ctx context.Context, rawA
 func (ec *executionContext) field_Mutation_signup_argsParams(
 	ctx context.Context,
 	rawArgs map[string]any,
-) (model.SignUpInput, error) {
+) (model.SignUpRequest, error) {
 	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal model.SignUpInput
+		var zeroVal model.SignUpRequest
 		return zeroVal, nil
 	}
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
 	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalNSignUpInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐSignUpInput(ctx, tmp)
+		return ec.unmarshalNSignUpRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐSignUpRequest(ctx, tmp)
 	}
 
-	var zeroVal model.SignUpInput
+	var zeroVal model.SignUpRequest
 	return zeroVal, nil
 }
 
@@ -3838,18 +3782,18 @@ func (ec *executionContext) field_Mutation_update_profile_args(ctx context.Conte
 func (ec *executionContext) field_Mutation_update_profile_argsParams(
 	ctx context.Context,
 	rawArgs map[string]any,
-) (model.UpdateProfileInput, error) {
+) (model.UpdateProfileRequest, error) {
 	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal model.UpdateProfileInput
+		var zeroVal model.UpdateProfileRequest
 		return zeroVal, nil
 	}
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
 	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalNUpdateProfileInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateProfileInput(ctx, tmp)
+		return ec.unmarshalNUpdateProfileRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateProfileRequest(ctx, tmp)
 	}
 
-	var zeroVal model.UpdateProfileInput
+	var zeroVal model.UpdateProfileRequest
 	return zeroVal, nil
 }
 
@@ -3866,18 +3810,18 @@ func (ec *executionContext) field_Mutation_verify_email_args(ctx context.Context
 func (ec *executionContext) field_Mutation_verify_email_argsParams(
 	ctx context.Context,
 	rawArgs map[string]any,
-) (model.VerifyEmailInput, error) {
+) (model.VerifyEmailRequest, error) {
 	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal model.VerifyEmailInput
+		var zeroVal model.VerifyEmailRequest
 		return zeroVal, nil
 	}
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
 	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalNVerifyEmailInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐVerifyEmailInput(ctx, tmp)
+		return ec.unmarshalNVerifyEmailRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐVerifyEmailRequest(ctx, tmp)
 	}
 
-	var zeroVal model.VerifyEmailInput
+	var zeroVal model.VerifyEmailRequest
 	return zeroVal, nil
 }
 
@@ -3950,18 +3894,18 @@ func (ec *executionContext) field_Query__email_templates_args(ctx context.Contex
 func (ec *executionContext) field_Query__email_templates_argsParams(
 	ctx context.Context,
 	rawArgs map[string]any,
-) (*model.PaginatedInput, error) {
+) (*model.PaginatedRequest, error) {
 	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal *model.PaginatedInput
+		var zeroVal *model.PaginatedRequest
 		return zeroVal, nil
 	}
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
 	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalOPaginatedInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginatedInput(ctx, tmp)
+		return ec.unmarshalOPaginatedRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginatedRequest(ctx, tmp)
 	}
 
-	var zeroVal *model.PaginatedInput
+	var zeroVal *model.PaginatedRequest
 	return zeroVal, nil
 }
 
@@ -4006,18 +3950,18 @@ func (ec *executionContext) field_Query__users_args(ctx context.Context, rawArgs
 func (ec *executionContext) field_Query__users_argsParams(
 	ctx context.Context,
 	rawArgs map[string]any,
-) (*model.PaginatedInput, error) {
+) (*model.PaginatedRequest, error) {
 	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal *model.PaginatedInput
+		var zeroVal *model.PaginatedRequest
 		return zeroVal, nil
 	}
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
 	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalOPaginatedInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginatedInput(ctx, tmp)
+		return ec.unmarshalOPaginatedRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginatedRequest(ctx, tmp)
 	}
 
-	var zeroVal *model.PaginatedInput
+	var zeroVal *model.PaginatedRequest
 	return zeroVal, nil
 }
 
@@ -4034,18 +3978,18 @@ func (ec *executionContext) field_Query__verification_requests_args(ctx context.
 func (ec *executionContext) field_Query__verification_requests_argsParams(
 	ctx context.Context,
 	rawArgs map[string]any,
-) (*model.PaginatedInput, error) {
+) (*model.PaginatedRequest, error) {
 	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal *model.PaginatedInput
+		var zeroVal *model.PaginatedRequest
 		return zeroVal, nil
 	}
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
 	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalOPaginatedInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginatedInput(ctx, tmp)
+		return ec.unmarshalOPaginatedRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginatedRequest(ctx, tmp)
 	}
 
-	var zeroVal *model.PaginatedInput
+	var zeroVal *model.PaginatedRequest
 	return zeroVal, nil
 }
 
@@ -4118,18 +4062,18 @@ func (ec *executionContext) field_Query__webhooks_args(ctx context.Context, rawA
 func (ec *executionContext) field_Query__webhooks_argsParams(
 	ctx context.Context,
 	rawArgs map[string]any,
-) (*model.PaginatedInput, error) {
+) (*model.PaginatedRequest, error) {
 	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal *model.PaginatedInput
+		var zeroVal *model.PaginatedRequest
 		return zeroVal, nil
 	}
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
 	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalOPaginatedInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginatedInput(ctx, tmp)
+		return ec.unmarshalOPaginatedRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginatedRequest(ctx, tmp)
 	}
 
-	var zeroVal *model.PaginatedInput
+	var zeroVal *model.PaginatedRequest
 	return zeroVal, nil
 }
 
@@ -4146,18 +4090,18 @@ func (ec *executionContext) field_Query_session_args(ctx context.Context, rawArg
 func (ec *executionContext) field_Query_session_argsParams(
 	ctx context.Context,
 	rawArgs map[string]any,
-) (*model.SessionQueryInput, error) {
+) (*model.SessionQueryRequest, error) {
 	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal *model.SessionQueryInput
+		var zeroVal *model.SessionQueryRequest
 		return zeroVal, nil
 	}
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
 	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalOSessionQueryInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐSessionQueryInput(ctx, tmp)
+		return ec.unmarshalOSessionQueryRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐSessionQueryRequest(ctx, tmp)
 	}
 
-	var zeroVal *model.SessionQueryInput
+	var zeroVal *model.SessionQueryRequest
 	return zeroVal, nil
 }
 
@@ -4174,18 +4118,18 @@ func (ec *executionContext) field_Query_validate_jwt_token_args(ctx context.Cont
 func (ec *executionContext) field_Query_validate_jwt_token_argsParams(
 	ctx context.Context,
 	rawArgs map[string]any,
-) (model.ValidateJWTTokenInput, error) {
+) (model.ValidateJWTTokenRequest, error) {
 	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal model.ValidateJWTTokenInput
+		var zeroVal model.ValidateJWTTokenRequest
 		return zeroVal, nil
 	}
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
 	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalNValidateJWTTokenInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐValidateJWTTokenInput(ctx, tmp)
+		return ec.unmarshalNValidateJWTTokenRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐValidateJWTTokenRequest(ctx, tmp)
 	}
 
-	var zeroVal model.ValidateJWTTokenInput
+	var zeroVal model.ValidateJWTTokenRequest
 	return zeroVal, nil
 }
 
@@ -4202,18 +4146,74 @@ func (ec *executionContext) field_Query_validate_session_args(ctx context.Contex
 func (ec *executionContext) field_Query_validate_session_argsParams(
 	ctx context.Context,
 	rawArgs map[string]any,
-) (*model.ValidateSessionInput, error) {
+) (*model.ValidateSessionRequest, error) {
 	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal *model.ValidateSessionInput
+		var zeroVal *model.ValidateSessionRequest
 		return zeroVal, nil
 	}
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
 	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalOValidateSessionInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐValidateSessionInput(ctx, tmp)
+		return ec.unmarshalOValidateSessionRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐValidateSessionRequest(ctx, tmp)
 	}
 
-	var zeroVal *model.ValidateSessionInput
+	var zeroVal *model.ValidateSessionRequest
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field___Directive_args_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field___Directive_args_argsIncludeDeprecated(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["includeDeprecated"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field___Directive_args_argsIncludeDeprecated(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*bool, error) {
+	if _, ok := rawArgs["includeDeprecated"]; !ok {
+		var zeroVal *bool
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("includeDeprecated"))
+	if tmp, ok := rawArgs["includeDeprecated"]; ok {
+		return ec.unmarshalOBoolean2ᚖbool(ctx, tmp)
+	}
+
+	var zeroVal *bool
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field___Field_args_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field___Field_args_argsIncludeDeprecated(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["includeDeprecated"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field___Field_args_argsIncludeDeprecated(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*bool, error) {
+	if _, ok := rawArgs["includeDeprecated"]; !ok {
+		var zeroVal *bool
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("includeDeprecated"))
+	if tmp, ok := rawArgs["includeDeprecated"]; ok {
+		return ec.unmarshalOBoolean2ᚖbool(ctx, tmp)
+	}
+
+	var zeroVal *bool
 	return zeroVal, nil
 }
 
@@ -9516,7 +9516,7 @@ func (ec *executionContext) _Mutation_signup(ctx context.Context, field graphql.
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().Signup(rctx, fc.Args["params"].(model.SignUpInput))
+		return ec.resolvers.Mutation().Signup(rctx, fc.Args["params"].(model.SignUpRequest))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -9597,7 +9597,7 @@ func (ec *executionContext) _Mutation_mobile_signup(ctx context.Context, field g
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().MobileSignup(rctx, fc.Args["params"].(*model.MobileSignUpInput))
+		return ec.resolvers.Mutation().MobileSignup(rctx, fc.Args["params"].(*model.MobileSignUpRequest))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -9678,7 +9678,7 @@ func (ec *executionContext) _Mutation_login(ctx context.Context, field graphql.C
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().Login(rctx, fc.Args["params"].(model.LoginInput))
+		return ec.resolvers.Mutation().Login(rctx, fc.Args["params"].(model.LoginRequest))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -9759,7 +9759,7 @@ func (ec *executionContext) _Mutation_mobile_login(ctx context.Context, field gr
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().MobileLogin(rctx, fc.Args["params"].(model.MobileLoginInput))
+		return ec.resolvers.Mutation().MobileLogin(rctx, fc.Args["params"].(model.MobileLoginRequest))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -9840,7 +9840,7 @@ func (ec *executionContext) _Mutation_magic_link_login(ctx context.Context, fiel
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().MagicLinkLogin(rctx, fc.Args["params"].(model.MagicLinkLoginInput))
+		return ec.resolvers.Mutation().MagicLinkLogin(rctx, fc.Args["params"].(model.MagicLinkLoginRequest))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -9947,7 +9947,7 @@ func (ec *executionContext) _Mutation_update_profile(ctx context.Context, field 
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpdateProfile(rctx, fc.Args["params"].(model.UpdateProfileInput))
+		return ec.resolvers.Mutation().UpdateProfile(rctx, fc.Args["params"].(model.UpdateProfileRequest))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -10006,7 +10006,7 @@ func (ec *executionContext) _Mutation_verify_email(ctx context.Context, field gr
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().VerifyEmail(rctx, fc.Args["params"].(model.VerifyEmailInput))
+		return ec.resolvers.Mutation().VerifyEmail(rctx, fc.Args["params"].(model.VerifyEmailRequest))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -10087,7 +10087,7 @@ func (ec *executionContext) _Mutation_resend_verify_email(ctx context.Context, f
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().ResendVerifyEmail(rctx, fc.Args["params"].(model.ResendVerifyEmailInput))
+		return ec.resolvers.Mutation().ResendVerifyEmail(rctx, fc.Args["params"].(model.ResendVerifyEmailRequest))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -10146,7 +10146,7 @@ func (ec *executionContext) _Mutation_forgot_password(ctx context.Context, field
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().ForgotPassword(rctx, fc.Args["params"].(model.ForgotPasswordInput))
+		return ec.resolvers.Mutation().ForgotPassword(rctx, fc.Args["params"].(model.ForgotPasswordRequest))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -10207,7 +10207,7 @@ func (ec *executionContext) _Mutation_reset_password(ctx context.Context, field 
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().ResetPassword(rctx, fc.Args["params"].(model.ResetPasswordInput))
+		return ec.resolvers.Mutation().ResetPassword(rctx, fc.Args["params"].(model.ResetPasswordRequest))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -10266,7 +10266,7 @@ func (ec *executionContext) _Mutation_revoke(ctx context.Context, field graphql.
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().Revoke(rctx, fc.Args["params"].(model.OAuthRevokeInput))
+		return ec.resolvers.Mutation().Revoke(rctx, fc.Args["params"].(model.OAuthRevokeRequest))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -10513,7 +10513,7 @@ func (ec *executionContext) _Mutation__delete_user(ctx context.Context, field gr
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().DeleteUser(rctx, fc.Args["params"].(model.DeleteUserInput))
+		return ec.resolvers.Mutation().DeleteUser(rctx, fc.Args["params"].(model.DeleteUserRequest))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -10572,7 +10572,7 @@ func (ec *executionContext) _Mutation__update_user(ctx context.Context, field gr
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpdateUser(rctx, fc.Args["params"].(model.UpdateUserInput))
+		return ec.resolvers.Mutation().UpdateUser(rctx, fc.Args["params"].(model.UpdateUserRequest))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -10669,7 +10669,7 @@ func (ec *executionContext) _Mutation__admin_signup(ctx context.Context, field g
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().AdminSignup(rctx, fc.Args["params"].(model.AdminSignupInput))
+		return ec.resolvers.Mutation().AdminSignup(rctx, fc.Args["params"].(model.AdminSignupRequest))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -10728,7 +10728,7 @@ func (ec *executionContext) _Mutation__admin_login(ctx context.Context, field gr
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().AdminLogin(rctx, fc.Args["params"].(model.AdminLoginInput))
+		return ec.resolvers.Mutation().AdminLogin(rctx, fc.Args["params"].(model.AdminLoginRequest))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -10835,7 +10835,7 @@ func (ec *executionContext) _Mutation__update_env(ctx context.Context, field gra
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpdateEnv(rctx, fc.Args["params"].(model.UpdateEnvInput))
+		return ec.resolvers.Mutation().UpdateEnv(rctx, fc.Args["params"].(model.UpdateEnvRequest))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -10894,7 +10894,7 @@ func (ec *executionContext) _Mutation__invite_members(ctx context.Context, field
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().InviteMembers(rctx, fc.Args["params"].(model.InviteMemberInput))
+		return ec.resolvers.Mutation().InviteMembers(rctx, fc.Args["params"].(model.InviteMemberRequest))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -10955,7 +10955,7 @@ func (ec *executionContext) _Mutation__revoke_access(ctx context.Context, field 
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().RevokeAccess(rctx, fc.Args["param"].(model.UpdateAccessInput))
+		return ec.resolvers.Mutation().RevokeAccess(rctx, fc.Args["param"].(model.UpdateAccessRequest))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -11014,7 +11014,7 @@ func (ec *executionContext) _Mutation__enable_access(ctx context.Context, field 
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().EnableAccess(rctx, fc.Args["param"].(model.UpdateAccessInput))
+		return ec.resolvers.Mutation().EnableAccess(rctx, fc.Args["param"].(model.UpdateAccessRequest))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -11073,7 +11073,7 @@ func (ec *executionContext) _Mutation__generate_jwt_keys(ctx context.Context, fi
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().GenerateJwtKeys(rctx, fc.Args["params"].(model.GenerateJWTKeysInput))
+		return ec.resolvers.Mutation().GenerateJwtKeys(rctx, fc.Args["params"].(model.GenerateJWTKeysRequest))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -11813,7 +11813,7 @@ func (ec *executionContext) _Query_session(ctx context.Context, field graphql.Co
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Session(rctx, fc.Args["params"].(*model.SessionQueryInput))
+		return ec.resolvers.Query().Session(rctx, fc.Args["params"].(*model.SessionQueryRequest))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -11980,7 +11980,7 @@ func (ec *executionContext) _Query_validate_jwt_token(ctx context.Context, field
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().ValidateJwtToken(rctx, fc.Args["params"].(model.ValidateJWTTokenInput))
+		return ec.resolvers.Query().ValidateJwtToken(rctx, fc.Args["params"].(model.ValidateJWTTokenRequest))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -12041,7 +12041,7 @@ func (ec *executionContext) _Query_validate_session(ctx context.Context, field g
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().ValidateSession(rctx, fc.Args["params"].(*model.ValidateSessionInput))
+		return ec.resolvers.Query().ValidateSession(rctx, fc.Args["params"].(*model.ValidateSessionRequest))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -12102,7 +12102,7 @@ func (ec *executionContext) _Query__users(ctx context.Context, field graphql.Col
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Users(rctx, fc.Args["params"].(*model.PaginatedInput))
+		return ec.resolvers.Query().Users(rctx, fc.Args["params"].(*model.PaginatedRequest))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -12260,7 +12260,7 @@ func (ec *executionContext) _Query__verification_requests(ctx context.Context, f
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().VerificationRequests(rctx, fc.Args["params"].(*model.PaginatedInput))
+		return ec.resolvers.Query().VerificationRequests(rctx, fc.Args["params"].(*model.PaginatedRequest))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -12630,7 +12630,7 @@ func (ec *executionContext) _Query__webhooks(ctx context.Context, field graphql.
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Webhooks(rctx, fc.Args["params"].(*model.PaginatedInput))
+		return ec.resolvers.Query().Webhooks(rctx, fc.Args["params"].(*model.PaginatedRequest))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -12752,7 +12752,7 @@ func (ec *executionContext) _Query__email_templates(ctx context.Context, field g
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().EmailTemplates(rctx, fc.Args["params"].(*model.PaginatedInput))
+		return ec.resolvers.Query().EmailTemplates(rctx, fc.Args["params"].(*model.PaginatedRequest))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -12841,6 +12841,8 @@ func (ec *executionContext) fieldContext_Query___type(ctx context.Context, field
 				return ec.fieldContext___Type_name(ctx, field)
 			case "description":
 				return ec.fieldContext___Type_description(ctx, field)
+			case "specifiedByURL":
+				return ec.fieldContext___Type_specifiedByURL(ctx, field)
 			case "fields":
 				return ec.fieldContext___Type_fields(ctx, field)
 			case "interfaces":
@@ -12853,8 +12855,8 @@ func (ec *executionContext) fieldContext_Query___type(ctx context.Context, field
 				return ec.fieldContext___Type_inputFields(ctx, field)
 			case "ofType":
 				return ec.fieldContext___Type_ofType(ctx, field)
-			case "specifiedByURL":
-				return ec.fieldContext___Type_specifiedByURL(ctx, field)
+			case "isOneOf":
+				return ec.fieldContext___Type_isOneOf(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type __Type", field.Name)
 		},
@@ -12967,267 +12969,6 @@ func (ec *executionContext) fieldContext_Response_message(_ context.Context, fie
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _SMSVerificationRequests_id(ctx context.Context, field graphql.CollectedField, obj *model.SMSVerificationRequests) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_SMSVerificationRequests_id(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_SMSVerificationRequests_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "SMSVerificationRequests",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _SMSVerificationRequests_code(ctx context.Context, field graphql.CollectedField, obj *model.SMSVerificationRequests) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_SMSVerificationRequests_code(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Code, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_SMSVerificationRequests_code(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "SMSVerificationRequests",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _SMSVerificationRequests_code_expires_at(ctx context.Context, field graphql.CollectedField, obj *model.SMSVerificationRequests) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_SMSVerificationRequests_code_expires_at(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.CodeExpiresAt, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(int64)
-	fc.Result = res
-	return ec.marshalNInt642int64(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_SMSVerificationRequests_code_expires_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "SMSVerificationRequests",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int64 does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _SMSVerificationRequests_phone_number(ctx context.Context, field graphql.CollectedField, obj *model.SMSVerificationRequests) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_SMSVerificationRequests_phone_number(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.PhoneNumber, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_SMSVerificationRequests_phone_number(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "SMSVerificationRequests",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _SMSVerificationRequests_created_at(ctx context.Context, field graphql.CollectedField, obj *model.SMSVerificationRequests) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_SMSVerificationRequests_created_at(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.CreatedAt, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(int64)
-	fc.Result = res
-	return ec.marshalNInt642int64(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_SMSVerificationRequests_created_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "SMSVerificationRequests",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int64 does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _SMSVerificationRequests_updated_at(ctx context.Context, field graphql.CollectedField, obj *model.SMSVerificationRequests) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_SMSVerificationRequests_updated_at(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.UpdatedAt, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*int64)
-	fc.Result = res
-	return ec.marshalOInt642ᚖint64(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_SMSVerificationRequests_updated_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "SMSVerificationRequests",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int64 does not have child fields")
 		},
 	}
 	return fc, nil
@@ -15931,6 +15672,50 @@ func (ec *executionContext) fieldContext___Directive_description(_ context.Conte
 	return fc, nil
 }
 
+func (ec *executionContext) ___Directive_isRepeatable(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext___Directive_isRepeatable(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsRepeatable, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext___Directive_isRepeatable(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "__Directive",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) ___Directive_locations(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext___Directive_locations(ctx, field)
 	if err != nil {
@@ -16006,7 +15791,7 @@ func (ec *executionContext) ___Directive_args(ctx context.Context, field graphql
 	return ec.marshalN__InputValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐInputValueᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext___Directive_args(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext___Directive_args(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "__Directive",
 		Field:      field,
@@ -16022,53 +15807,24 @@ func (ec *executionContext) fieldContext___Directive_args(_ context.Context, fie
 				return ec.fieldContext___InputValue_type(ctx, field)
 			case "defaultValue":
 				return ec.fieldContext___InputValue_defaultValue(ctx, field)
+			case "isDeprecated":
+				return ec.fieldContext___InputValue_isDeprecated(ctx, field)
+			case "deprecationReason":
+				return ec.fieldContext___InputValue_deprecationReason(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type __InputValue", field.Name)
 		},
 	}
-	return fc, nil
-}
-
-func (ec *executionContext) ___Directive_isRepeatable(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext___Directive_isRepeatable(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
 	defer func() {
 		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.IsRepeatable, nil
-	})
-	if err != nil {
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field___Directive_args_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(bool)
-	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext___Directive_isRepeatable(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "__Directive",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
+		return fc, err
 	}
 	return fc, nil
 }
@@ -16359,7 +16115,7 @@ func (ec *executionContext) ___Field_args(ctx context.Context, field graphql.Col
 	return ec.marshalN__InputValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐInputValueᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext___Field_args(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext___Field_args(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "__Field",
 		Field:      field,
@@ -16375,9 +16131,24 @@ func (ec *executionContext) fieldContext___Field_args(_ context.Context, field g
 				return ec.fieldContext___InputValue_type(ctx, field)
 			case "defaultValue":
 				return ec.fieldContext___InputValue_defaultValue(ctx, field)
+			case "isDeprecated":
+				return ec.fieldContext___InputValue_isDeprecated(ctx, field)
+			case "deprecationReason":
+				return ec.fieldContext___InputValue_deprecationReason(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type __InputValue", field.Name)
 		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field___Field_args_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -16427,6 +16198,8 @@ func (ec *executionContext) fieldContext___Field_type(_ context.Context, field g
 				return ec.fieldContext___Type_name(ctx, field)
 			case "description":
 				return ec.fieldContext___Type_description(ctx, field)
+			case "specifiedByURL":
+				return ec.fieldContext___Type_specifiedByURL(ctx, field)
 			case "fields":
 				return ec.fieldContext___Type_fields(ctx, field)
 			case "interfaces":
@@ -16439,8 +16212,8 @@ func (ec *executionContext) fieldContext___Field_type(_ context.Context, field g
 				return ec.fieldContext___Type_inputFields(ctx, field)
 			case "ofType":
 				return ec.fieldContext___Type_ofType(ctx, field)
-			case "specifiedByURL":
-				return ec.fieldContext___Type_specifiedByURL(ctx, field)
+			case "isOneOf":
+				return ec.fieldContext___Type_isOneOf(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type __Type", field.Name)
 		},
@@ -16663,6 +16436,8 @@ func (ec *executionContext) fieldContext___InputValue_type(_ context.Context, fi
 				return ec.fieldContext___Type_name(ctx, field)
 			case "description":
 				return ec.fieldContext___Type_description(ctx, field)
+			case "specifiedByURL":
+				return ec.fieldContext___Type_specifiedByURL(ctx, field)
 			case "fields":
 				return ec.fieldContext___Type_fields(ctx, field)
 			case "interfaces":
@@ -16675,8 +16450,8 @@ func (ec *executionContext) fieldContext___InputValue_type(_ context.Context, fi
 				return ec.fieldContext___Type_inputFields(ctx, field)
 			case "ofType":
 				return ec.fieldContext___Type_ofType(ctx, field)
-			case "specifiedByURL":
-				return ec.fieldContext___Type_specifiedByURL(ctx, field)
+			case "isOneOf":
+				return ec.fieldContext___Type_isOneOf(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type __Type", field.Name)
 		},
@@ -16717,6 +16492,91 @@ func (ec *executionContext) fieldContext___InputValue_defaultValue(_ context.Con
 		Object:     "__InputValue",
 		Field:      field,
 		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) ___InputValue_isDeprecated(ctx context.Context, field graphql.CollectedField, obj *introspection.InputValue) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext___InputValue_isDeprecated(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsDeprecated(), nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext___InputValue_isDeprecated(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "__InputValue",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) ___InputValue_deprecationReason(ctx context.Context, field graphql.CollectedField, obj *introspection.InputValue) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext___InputValue_deprecationReason(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DeprecationReason(), nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext___InputValue_deprecationReason(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "__InputValue",
+		Field:      field,
+		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
@@ -16811,6 +16671,8 @@ func (ec *executionContext) fieldContext___Schema_types(_ context.Context, field
 				return ec.fieldContext___Type_name(ctx, field)
 			case "description":
 				return ec.fieldContext___Type_description(ctx, field)
+			case "specifiedByURL":
+				return ec.fieldContext___Type_specifiedByURL(ctx, field)
 			case "fields":
 				return ec.fieldContext___Type_fields(ctx, field)
 			case "interfaces":
@@ -16823,8 +16685,8 @@ func (ec *executionContext) fieldContext___Schema_types(_ context.Context, field
 				return ec.fieldContext___Type_inputFields(ctx, field)
 			case "ofType":
 				return ec.fieldContext___Type_ofType(ctx, field)
-			case "specifiedByURL":
-				return ec.fieldContext___Type_specifiedByURL(ctx, field)
+			case "isOneOf":
+				return ec.fieldContext___Type_isOneOf(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type __Type", field.Name)
 		},
@@ -16877,6 +16739,8 @@ func (ec *executionContext) fieldContext___Schema_queryType(_ context.Context, f
 				return ec.fieldContext___Type_name(ctx, field)
 			case "description":
 				return ec.fieldContext___Type_description(ctx, field)
+			case "specifiedByURL":
+				return ec.fieldContext___Type_specifiedByURL(ctx, field)
 			case "fields":
 				return ec.fieldContext___Type_fields(ctx, field)
 			case "interfaces":
@@ -16889,8 +16753,8 @@ func (ec *executionContext) fieldContext___Schema_queryType(_ context.Context, f
 				return ec.fieldContext___Type_inputFields(ctx, field)
 			case "ofType":
 				return ec.fieldContext___Type_ofType(ctx, field)
-			case "specifiedByURL":
-				return ec.fieldContext___Type_specifiedByURL(ctx, field)
+			case "isOneOf":
+				return ec.fieldContext___Type_isOneOf(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type __Type", field.Name)
 		},
@@ -16940,6 +16804,8 @@ func (ec *executionContext) fieldContext___Schema_mutationType(_ context.Context
 				return ec.fieldContext___Type_name(ctx, field)
 			case "description":
 				return ec.fieldContext___Type_description(ctx, field)
+			case "specifiedByURL":
+				return ec.fieldContext___Type_specifiedByURL(ctx, field)
 			case "fields":
 				return ec.fieldContext___Type_fields(ctx, field)
 			case "interfaces":
@@ -16952,8 +16818,8 @@ func (ec *executionContext) fieldContext___Schema_mutationType(_ context.Context
 				return ec.fieldContext___Type_inputFields(ctx, field)
 			case "ofType":
 				return ec.fieldContext___Type_ofType(ctx, field)
-			case "specifiedByURL":
-				return ec.fieldContext___Type_specifiedByURL(ctx, field)
+			case "isOneOf":
+				return ec.fieldContext___Type_isOneOf(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type __Type", field.Name)
 		},
@@ -17003,6 +16869,8 @@ func (ec *executionContext) fieldContext___Schema_subscriptionType(_ context.Con
 				return ec.fieldContext___Type_name(ctx, field)
 			case "description":
 				return ec.fieldContext___Type_description(ctx, field)
+			case "specifiedByURL":
+				return ec.fieldContext___Type_specifiedByURL(ctx, field)
 			case "fields":
 				return ec.fieldContext___Type_fields(ctx, field)
 			case "interfaces":
@@ -17015,8 +16883,8 @@ func (ec *executionContext) fieldContext___Schema_subscriptionType(_ context.Con
 				return ec.fieldContext___Type_inputFields(ctx, field)
 			case "ofType":
 				return ec.fieldContext___Type_ofType(ctx, field)
-			case "specifiedByURL":
-				return ec.fieldContext___Type_specifiedByURL(ctx, field)
+			case "isOneOf":
+				return ec.fieldContext___Type_isOneOf(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type __Type", field.Name)
 		},
@@ -17067,12 +16935,12 @@ func (ec *executionContext) fieldContext___Schema_directives(_ context.Context, 
 				return ec.fieldContext___Directive_name(ctx, field)
 			case "description":
 				return ec.fieldContext___Directive_description(ctx, field)
+			case "isRepeatable":
+				return ec.fieldContext___Directive_isRepeatable(ctx, field)
 			case "locations":
 				return ec.fieldContext___Directive_locations(ctx, field)
 			case "args":
 				return ec.fieldContext___Directive_args(ctx, field)
-			case "isRepeatable":
-				return ec.fieldContext___Directive_isRepeatable(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type __Directive", field.Name)
 		},
@@ -17206,6 +17074,47 @@ func (ec *executionContext) fieldContext___Type_description(_ context.Context, f
 	return fc, nil
 }
 
+func (ec *executionContext) ___Type_specifiedByURL(ctx context.Context, field graphql.CollectedField, obj *introspection.Type) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext___Type_specifiedByURL(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.SpecifiedByURL(), nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext___Type_specifiedByURL(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "__Type",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) ___Type_fields(ctx context.Context, field graphql.CollectedField, obj *introspection.Type) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext___Type_fields(ctx, field)
 	if err != nil {
@@ -17314,6 +17223,8 @@ func (ec *executionContext) fieldContext___Type_interfaces(_ context.Context, fi
 				return ec.fieldContext___Type_name(ctx, field)
 			case "description":
 				return ec.fieldContext___Type_description(ctx, field)
+			case "specifiedByURL":
+				return ec.fieldContext___Type_specifiedByURL(ctx, field)
 			case "fields":
 				return ec.fieldContext___Type_fields(ctx, field)
 			case "interfaces":
@@ -17326,8 +17237,8 @@ func (ec *executionContext) fieldContext___Type_interfaces(_ context.Context, fi
 				return ec.fieldContext___Type_inputFields(ctx, field)
 			case "ofType":
 				return ec.fieldContext___Type_ofType(ctx, field)
-			case "specifiedByURL":
-				return ec.fieldContext___Type_specifiedByURL(ctx, field)
+			case "isOneOf":
+				return ec.fieldContext___Type_isOneOf(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type __Type", field.Name)
 		},
@@ -17377,6 +17288,8 @@ func (ec *executionContext) fieldContext___Type_possibleTypes(_ context.Context,
 				return ec.fieldContext___Type_name(ctx, field)
 			case "description":
 				return ec.fieldContext___Type_description(ctx, field)
+			case "specifiedByURL":
+				return ec.fieldContext___Type_specifiedByURL(ctx, field)
 			case "fields":
 				return ec.fieldContext___Type_fields(ctx, field)
 			case "interfaces":
@@ -17389,8 +17302,8 @@ func (ec *executionContext) fieldContext___Type_possibleTypes(_ context.Context,
 				return ec.fieldContext___Type_inputFields(ctx, field)
 			case "ofType":
 				return ec.fieldContext___Type_ofType(ctx, field)
-			case "specifiedByURL":
-				return ec.fieldContext___Type_specifiedByURL(ctx, field)
+			case "isOneOf":
+				return ec.fieldContext___Type_isOneOf(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type __Type", field.Name)
 		},
@@ -17504,6 +17417,10 @@ func (ec *executionContext) fieldContext___Type_inputFields(_ context.Context, f
 				return ec.fieldContext___InputValue_type(ctx, field)
 			case "defaultValue":
 				return ec.fieldContext___InputValue_defaultValue(ctx, field)
+			case "isDeprecated":
+				return ec.fieldContext___InputValue_isDeprecated(ctx, field)
+			case "deprecationReason":
+				return ec.fieldContext___InputValue_deprecationReason(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type __InputValue", field.Name)
 		},
@@ -17553,6 +17470,8 @@ func (ec *executionContext) fieldContext___Type_ofType(_ context.Context, field 
 				return ec.fieldContext___Type_name(ctx, field)
 			case "description":
 				return ec.fieldContext___Type_description(ctx, field)
+			case "specifiedByURL":
+				return ec.fieldContext___Type_specifiedByURL(ctx, field)
 			case "fields":
 				return ec.fieldContext___Type_fields(ctx, field)
 			case "interfaces":
@@ -17565,8 +17484,8 @@ func (ec *executionContext) fieldContext___Type_ofType(_ context.Context, field 
 				return ec.fieldContext___Type_inputFields(ctx, field)
 			case "ofType":
 				return ec.fieldContext___Type_ofType(ctx, field)
-			case "specifiedByURL":
-				return ec.fieldContext___Type_specifiedByURL(ctx, field)
+			case "isOneOf":
+				return ec.fieldContext___Type_isOneOf(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type __Type", field.Name)
 		},
@@ -17574,8 +17493,8 @@ func (ec *executionContext) fieldContext___Type_ofType(_ context.Context, field 
 	return fc, nil
 }
 
-func (ec *executionContext) ___Type_specifiedByURL(ctx context.Context, field graphql.CollectedField, obj *introspection.Type) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext___Type_specifiedByURL(ctx, field)
+func (ec *executionContext) ___Type_isOneOf(ctx context.Context, field graphql.CollectedField, obj *introspection.Type) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext___Type_isOneOf(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -17588,7 +17507,7 @@ func (ec *executionContext) ___Type_specifiedByURL(ctx context.Context, field gr
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.SpecifiedByURL(), nil
+		return obj.IsOneOf(), nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -17597,19 +17516,19 @@ func (ec *executionContext) ___Type_specifiedByURL(ctx context.Context, field gr
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(bool)
 	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalOBoolean2bool(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext___Type_specifiedByURL(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext___Type_isOneOf(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "__Type",
 		Field:      field,
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type Boolean does not have child fields")
 		},
 	}
 	return fc, nil
@@ -17722,8 +17641,8 @@ func (ec *executionContext) unmarshalInputAddWebhookRequest(ctx context.Context,
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputAdminLoginInput(ctx context.Context, obj any) (model.AdminLoginInput, error) {
-	var it model.AdminLoginInput
+func (ec *executionContext) unmarshalInputAdminLoginRequest(ctx context.Context, obj any) (model.AdminLoginRequest, error) {
+	var it model.AdminLoginRequest
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -17749,8 +17668,8 @@ func (ec *executionContext) unmarshalInputAdminLoginInput(ctx context.Context, o
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputAdminSignupInput(ctx context.Context, obj any) (model.AdminSignupInput, error) {
-	var it model.AdminSignupInput
+func (ec *executionContext) unmarshalInputAdminSignupRequest(ctx context.Context, obj any) (model.AdminSignupRequest, error) {
+	var it model.AdminSignupRequest
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -17803,8 +17722,8 @@ func (ec *executionContext) unmarshalInputDeleteEmailTemplateRequest(ctx context
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputDeleteUserInput(ctx context.Context, obj any) (model.DeleteUserInput, error) {
-	var it model.DeleteUserInput
+func (ec *executionContext) unmarshalInputDeleteUserRequest(ctx context.Context, obj any) (model.DeleteUserRequest, error) {
+	var it model.DeleteUserRequest
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -17830,8 +17749,8 @@ func (ec *executionContext) unmarshalInputDeleteUserInput(ctx context.Context, o
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputForgotPasswordInput(ctx context.Context, obj any) (model.ForgotPasswordInput, error) {
-	var it model.ForgotPasswordInput
+func (ec *executionContext) unmarshalInputForgotPasswordRequest(ctx context.Context, obj any) (model.ForgotPasswordRequest, error) {
+	var it model.ForgotPasswordRequest
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -17878,8 +17797,8 @@ func (ec *executionContext) unmarshalInputForgotPasswordInput(ctx context.Contex
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputGenerateJWTKeysInput(ctx context.Context, obj any) (model.GenerateJWTKeysInput, error) {
-	var it model.GenerateJWTKeysInput
+func (ec *executionContext) unmarshalInputGenerateJWTKeysRequest(ctx context.Context, obj any) (model.GenerateJWTKeysRequest, error) {
+	var it model.GenerateJWTKeysRequest
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -17939,8 +17858,8 @@ func (ec *executionContext) unmarshalInputGetUserRequest(ctx context.Context, ob
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputInviteMemberInput(ctx context.Context, obj any) (model.InviteMemberInput, error) {
-	var it model.InviteMemberInput
+func (ec *executionContext) unmarshalInputInviteMemberRequest(ctx context.Context, obj any) (model.InviteMemberRequest, error) {
+	var it model.InviteMemberRequest
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -17989,7 +17908,7 @@ func (ec *executionContext) unmarshalInputListWebhookLogRequest(ctx context.Cont
 		switch k {
 		case "pagination":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pagination"))
-			data, err := ec.unmarshalOPaginationInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginationInput(ctx, v)
+			data, err := ec.unmarshalOPaginationRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginationRequest(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -18007,8 +17926,8 @@ func (ec *executionContext) unmarshalInputListWebhookLogRequest(ctx context.Cont
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputLoginInput(ctx context.Context, obj any) (model.LoginInput, error) {
-	var it model.LoginInput
+func (ec *executionContext) unmarshalInputLoginRequest(ctx context.Context, obj any) (model.LoginRequest, error) {
+	var it model.LoginRequest
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -18069,8 +17988,8 @@ func (ec *executionContext) unmarshalInputLoginInput(ctx context.Context, obj an
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputMagicLinkLoginInput(ctx context.Context, obj any) (model.MagicLinkLoginInput, error) {
-	var it model.MagicLinkLoginInput
+func (ec *executionContext) unmarshalInputMagicLinkLoginRequest(ctx context.Context, obj any) (model.MagicLinkLoginRequest, error) {
+	var it model.MagicLinkLoginRequest
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -18124,8 +18043,8 @@ func (ec *executionContext) unmarshalInputMagicLinkLoginInput(ctx context.Contex
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputMobileLoginInput(ctx context.Context, obj any) (model.MobileLoginInput, error) {
-	var it model.MobileLoginInput
+func (ec *executionContext) unmarshalInputMobileLoginRequest(ctx context.Context, obj any) (model.MobileLoginRequest, error) {
+	var it model.MobileLoginRequest
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -18179,8 +18098,8 @@ func (ec *executionContext) unmarshalInputMobileLoginInput(ctx context.Context, 
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputMobileSignUpInput(ctx context.Context, obj any) (model.MobileSignUpInput, error) {
-	var it model.MobileSignUpInput
+func (ec *executionContext) unmarshalInputMobileSignUpRequest(ctx context.Context, obj any) (model.MobileSignUpRequest, error) {
+	var it model.MobileSignUpRequest
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -18318,8 +18237,8 @@ func (ec *executionContext) unmarshalInputMobileSignUpInput(ctx context.Context,
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputOAuthRevokeInput(ctx context.Context, obj any) (model.OAuthRevokeInput, error) {
-	var it model.OAuthRevokeInput
+func (ec *executionContext) unmarshalInputOAuthRevokeRequest(ctx context.Context, obj any) (model.OAuthRevokeRequest, error) {
+	var it model.OAuthRevokeRequest
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -18345,8 +18264,8 @@ func (ec *executionContext) unmarshalInputOAuthRevokeInput(ctx context.Context, 
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputPaginatedInput(ctx context.Context, obj any) (model.PaginatedInput, error) {
-	var it model.PaginatedInput
+func (ec *executionContext) unmarshalInputPaginatedRequest(ctx context.Context, obj any) (model.PaginatedRequest, error) {
+	var it model.PaginatedRequest
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -18361,7 +18280,7 @@ func (ec *executionContext) unmarshalInputPaginatedInput(ctx context.Context, ob
 		switch k {
 		case "pagination":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pagination"))
-			data, err := ec.unmarshalOPaginationInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginationInput(ctx, v)
+			data, err := ec.unmarshalOPaginationRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginationRequest(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -18372,8 +18291,8 @@ func (ec *executionContext) unmarshalInputPaginatedInput(ctx context.Context, ob
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputPaginationInput(ctx context.Context, obj any) (model.PaginationInput, error) {
-	var it model.PaginationInput
+func (ec *executionContext) unmarshalInputPaginationRequest(ctx context.Context, obj any) (model.PaginationRequest, error) {
+	var it model.PaginationRequest
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -18447,8 +18366,8 @@ func (ec *executionContext) unmarshalInputResendOTPRequest(ctx context.Context, 
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputResendVerifyEmailInput(ctx context.Context, obj any) (model.ResendVerifyEmailInput, error) {
-	var it model.ResendVerifyEmailInput
+func (ec *executionContext) unmarshalInputResendVerifyEmailRequest(ctx context.Context, obj any) (model.ResendVerifyEmailRequest, error) {
+	var it model.ResendVerifyEmailRequest
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -18488,8 +18407,8 @@ func (ec *executionContext) unmarshalInputResendVerifyEmailInput(ctx context.Con
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputResetPasswordInput(ctx context.Context, obj any) (model.ResetPasswordInput, error) {
-	var it model.ResetPasswordInput
+func (ec *executionContext) unmarshalInputResetPasswordRequest(ctx context.Context, obj any) (model.ResetPasswordRequest, error) {
+	var it model.ResetPasswordRequest
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -18543,8 +18462,8 @@ func (ec *executionContext) unmarshalInputResetPasswordInput(ctx context.Context
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputSessionQueryInput(ctx context.Context, obj any) (model.SessionQueryInput, error) {
-	var it model.SessionQueryInput
+func (ec *executionContext) unmarshalInputSessionQueryRequest(ctx context.Context, obj any) (model.SessionQueryRequest, error) {
+	var it model.SessionQueryRequest
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -18577,8 +18496,8 @@ func (ec *executionContext) unmarshalInputSessionQueryInput(ctx context.Context,
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputSignUpInput(ctx context.Context, obj any) (model.SignUpInput, error) {
-	var it model.SignUpInput
+func (ec *executionContext) unmarshalInputSignUpRequest(ctx context.Context, obj any) (model.SignUpRequest, error) {
+	var it model.SignUpRequest
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -18764,8 +18683,8 @@ func (ec *executionContext) unmarshalInputTestEndpointRequest(ctx context.Contex
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputUpdateAccessInput(ctx context.Context, obj any) (model.UpdateAccessInput, error) {
-	var it model.UpdateAccessInput
+func (ec *executionContext) unmarshalInputUpdateAccessRequest(ctx context.Context, obj any) (model.UpdateAccessRequest, error) {
+	var it model.UpdateAccessRequest
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -18846,8 +18765,8 @@ func (ec *executionContext) unmarshalInputUpdateEmailTemplateRequest(ctx context
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, obj any) (model.UpdateEnvInput, error) {
-	var it model.UpdateEnvInput
+func (ec *executionContext) unmarshalInputUpdateEnvRequest(ctx context.Context, obj any) (model.UpdateEnvRequest, error) {
+	var it model.UpdateEnvRequest
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -19300,8 +19219,8 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputUpdateProfileInput(ctx context.Context, obj any) (model.UpdateProfileInput, error) {
-	var it model.UpdateProfileInput
+func (ec *executionContext) unmarshalInputUpdateProfileRequest(ctx context.Context, obj any) (model.UpdateProfileRequest, error) {
+	var it model.UpdateProfileRequest
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -19418,8 +19337,8 @@ func (ec *executionContext) unmarshalInputUpdateProfileInput(ctx context.Context
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputUpdateUserInput(ctx context.Context, obj any) (model.UpdateUserInput, error) {
-	var it model.UpdateUserInput
+func (ec *executionContext) unmarshalInputUpdateUserRequest(ctx context.Context, obj any) (model.UpdateUserRequest, error) {
+	var it model.UpdateUserRequest
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -19605,8 +19524,8 @@ func (ec *executionContext) unmarshalInputUpdateWebhookRequest(ctx context.Conte
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputValidateJWTTokenInput(ctx context.Context, obj any) (model.ValidateJWTTokenInput, error) {
-	var it model.ValidateJWTTokenInput
+func (ec *executionContext) unmarshalInputValidateJWTTokenRequest(ctx context.Context, obj any) (model.ValidateJWTTokenRequest, error) {
+	var it model.ValidateJWTTokenRequest
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -19646,8 +19565,8 @@ func (ec *executionContext) unmarshalInputValidateJWTTokenInput(ctx context.Cont
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputValidateSessionInput(ctx context.Context, obj any) (model.ValidateSessionInput, error) {
-	var it model.ValidateSessionInput
+func (ec *executionContext) unmarshalInputValidateSessionRequest(ctx context.Context, obj any) (model.ValidateSessionRequest, error) {
+	var it model.ValidateSessionRequest
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -19680,8 +19599,8 @@ func (ec *executionContext) unmarshalInputValidateSessionInput(ctx context.Conte
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputVerifyEmailInput(ctx context.Context, obj any) (model.VerifyEmailInput, error) {
-	var it model.VerifyEmailInput
+func (ec *executionContext) unmarshalInputVerifyEmailRequest(ctx context.Context, obj any) (model.VerifyEmailRequest, error) {
+	var it model.VerifyEmailRequest
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -21219,67 +21138,6 @@ func (ec *executionContext) _Response(ctx context.Context, sel ast.SelectionSet,
 	return out
 }
 
-var sMSVerificationRequestsImplementors = []string{"SMSVerificationRequests"}
-
-func (ec *executionContext) _SMSVerificationRequests(ctx context.Context, sel ast.SelectionSet, obj *model.SMSVerificationRequests) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, sMSVerificationRequestsImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("SMSVerificationRequests")
-		case "id":
-			out.Values[i] = ec._SMSVerificationRequests_id(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "code":
-			out.Values[i] = ec._SMSVerificationRequests_code(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "code_expires_at":
-			out.Values[i] = ec._SMSVerificationRequests_code_expires_at(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "phone_number":
-			out.Values[i] = ec._SMSVerificationRequests_phone_number(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "created_at":
-			out.Values[i] = ec._SMSVerificationRequests_created_at(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "updated_at":
-			out.Values[i] = ec._SMSVerificationRequests_updated_at(ctx, field, obj)
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
 var testEndpointResponseImplementors = []string{"TestEndpointResponse"}
 
 func (ec *executionContext) _TestEndpointResponse(ctx context.Context, sel ast.SelectionSet, obj *model.TestEndpointResponse) graphql.Marshaler {
@@ -21845,6 +21703,11 @@ func (ec *executionContext) ___Directive(ctx context.Context, sel ast.SelectionS
 			}
 		case "description":
 			out.Values[i] = ec.___Directive_description(ctx, field, obj)
+		case "isRepeatable":
+			out.Values[i] = ec.___Directive_isRepeatable(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "locations":
 			out.Values[i] = ec.___Directive_locations(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -21852,11 +21715,6 @@ func (ec *executionContext) ___Directive(ctx context.Context, sel ast.SelectionS
 			}
 		case "args":
 			out.Values[i] = ec.___Directive_args(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "isRepeatable":
-			out.Values[i] = ec.___Directive_isRepeatable(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -22014,6 +21872,13 @@ func (ec *executionContext) ___InputValue(ctx context.Context, sel ast.Selection
 			}
 		case "defaultValue":
 			out.Values[i] = ec.___InputValue_defaultValue(ctx, field, obj)
+		case "isDeprecated":
+			out.Values[i] = ec.___InputValue_isDeprecated(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "deprecationReason":
+			out.Values[i] = ec.___InputValue_deprecationReason(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -22112,6 +21977,8 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 			out.Values[i] = ec.___Type_name(ctx, field, obj)
 		case "description":
 			out.Values[i] = ec.___Type_description(ctx, field, obj)
+		case "specifiedByURL":
+			out.Values[i] = ec.___Type_specifiedByURL(ctx, field, obj)
 		case "fields":
 			out.Values[i] = ec.___Type_fields(ctx, field, obj)
 		case "interfaces":
@@ -22124,8 +21991,8 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 			out.Values[i] = ec.___Type_inputFields(ctx, field, obj)
 		case "ofType":
 			out.Values[i] = ec.___Type_ofType(ctx, field, obj)
-		case "specifiedByURL":
-			out.Values[i] = ec.___Type_specifiedByURL(ctx, field, obj)
+		case "isOneOf":
+			out.Values[i] = ec.___Type_isOneOf(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -22163,13 +22030,13 @@ func (ec *executionContext) unmarshalNAddWebhookRequest2githubᚗcomᚋauthorize
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNAdminLoginInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAdminLoginInput(ctx context.Context, v any) (model.AdminLoginInput, error) {
-	res, err := ec.unmarshalInputAdminLoginInput(ctx, v)
+func (ec *executionContext) unmarshalNAdminLoginRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAdminLoginRequest(ctx context.Context, v any) (model.AdminLoginRequest, error) {
+	res, err := ec.unmarshalInputAdminLoginRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNAdminSignupInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAdminSignupInput(ctx context.Context, v any) (model.AdminSignupInput, error) {
-	res, err := ec.unmarshalInputAdminSignupInput(ctx, v)
+func (ec *executionContext) unmarshalNAdminSignupRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAdminSignupRequest(ctx context.Context, v any) (model.AdminSignupRequest, error) {
+	res, err := ec.unmarshalInputAdminSignupRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
@@ -22193,6 +22060,7 @@ func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v any) (
 }
 
 func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.SelectionSet, v bool) graphql.Marshaler {
+	_ = sel
 	res := graphql.MarshalBoolean(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -22207,8 +22075,8 @@ func (ec *executionContext) unmarshalNDeleteEmailTemplateRequest2githubᚗcomᚋ
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNDeleteUserInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐDeleteUserInput(ctx context.Context, v any) (model.DeleteUserInput, error) {
-	res, err := ec.unmarshalInputDeleteUserInput(ctx, v)
+func (ec *executionContext) unmarshalNDeleteUserRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐDeleteUserRequest(ctx context.Context, v any) (model.DeleteUserRequest, error) {
+	res, err := ec.unmarshalInputDeleteUserRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
@@ -22294,8 +22162,8 @@ func (ec *executionContext) marshalNEnv2ᚖgithubᚗcomᚋauthorizerdevᚋauthor
 	return ec._Env(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNForgotPasswordInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐForgotPasswordInput(ctx context.Context, v any) (model.ForgotPasswordInput, error) {
-	res, err := ec.unmarshalInputForgotPasswordInput(ctx, v)
+func (ec *executionContext) unmarshalNForgotPasswordRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐForgotPasswordRequest(ctx context.Context, v any) (model.ForgotPasswordRequest, error) {
+	res, err := ec.unmarshalInputForgotPasswordRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
@@ -22313,8 +22181,8 @@ func (ec *executionContext) marshalNForgotPasswordResponse2ᚖgithubᚗcomᚋaut
 	return ec._ForgotPasswordResponse(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNGenerateJWTKeysInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐGenerateJWTKeysInput(ctx context.Context, v any) (model.GenerateJWTKeysInput, error) {
-	res, err := ec.unmarshalInputGenerateJWTKeysInput(ctx, v)
+func (ec *executionContext) unmarshalNGenerateJWTKeysRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐGenerateJWTKeysRequest(ctx context.Context, v any) (model.GenerateJWTKeysRequest, error) {
+	res, err := ec.unmarshalInputGenerateJWTKeysRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
@@ -22343,6 +22211,7 @@ func (ec *executionContext) unmarshalNID2string(ctx context.Context, v any) (str
 }
 
 func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
+	_ = sel
 	res := graphql.MarshalID(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -22358,6 +22227,7 @@ func (ec *executionContext) unmarshalNInt642int64(ctx context.Context, v any) (i
 }
 
 func (ec *executionContext) marshalNInt642int64(ctx context.Context, sel ast.SelectionSet, v int64) graphql.Marshaler {
+	_ = sel
 	res := graphql.MarshalInt64(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -22367,8 +22237,8 @@ func (ec *executionContext) marshalNInt642int64(ctx context.Context, sel ast.Sel
 	return res
 }
 
-func (ec *executionContext) unmarshalNInviteMemberInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐInviteMemberInput(ctx context.Context, v any) (model.InviteMemberInput, error) {
-	res, err := ec.unmarshalInputInviteMemberInput(ctx, v)
+func (ec *executionContext) unmarshalNInviteMemberRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐInviteMemberRequest(ctx context.Context, v any) (model.InviteMemberRequest, error) {
+	res, err := ec.unmarshalInputInviteMemberRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
@@ -22386,13 +22256,13 @@ func (ec *executionContext) marshalNInviteMembersResponse2ᚖgithubᚗcomᚋauth
 	return ec._InviteMembersResponse(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNLoginInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐLoginInput(ctx context.Context, v any) (model.LoginInput, error) {
-	res, err := ec.unmarshalInputLoginInput(ctx, v)
+func (ec *executionContext) unmarshalNLoginRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐLoginRequest(ctx context.Context, v any) (model.LoginRequest, error) {
+	res, err := ec.unmarshalInputLoginRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNMagicLinkLoginInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐMagicLinkLoginInput(ctx context.Context, v any) (model.MagicLinkLoginInput, error) {
-	res, err := ec.unmarshalInputMagicLinkLoginInput(ctx, v)
+func (ec *executionContext) unmarshalNMagicLinkLoginRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐMagicLinkLoginRequest(ctx context.Context, v any) (model.MagicLinkLoginRequest, error) {
+	res, err := ec.unmarshalInputMagicLinkLoginRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
@@ -22410,13 +22280,13 @@ func (ec *executionContext) marshalNMeta2ᚖgithubᚗcomᚋauthorizerdevᚋautho
 	return ec._Meta(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNMobileLoginInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐMobileLoginInput(ctx context.Context, v any) (model.MobileLoginInput, error) {
-	res, err := ec.unmarshalInputMobileLoginInput(ctx, v)
+func (ec *executionContext) unmarshalNMobileLoginRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐMobileLoginRequest(ctx context.Context, v any) (model.MobileLoginRequest, error) {
+	res, err := ec.unmarshalInputMobileLoginRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNOAuthRevokeInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐOAuthRevokeInput(ctx context.Context, v any) (model.OAuthRevokeInput, error) {
-	res, err := ec.unmarshalInputOAuthRevokeInput(ctx, v)
+func (ec *executionContext) unmarshalNOAuthRevokeRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐOAuthRevokeRequest(ctx context.Context, v any) (model.OAuthRevokeRequest, error) {
+	res, err := ec.unmarshalInputOAuthRevokeRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
@@ -22435,13 +22305,13 @@ func (ec *executionContext) unmarshalNResendOTPRequest2githubᚗcomᚋauthorizer
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNResendVerifyEmailInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResendVerifyEmailInput(ctx context.Context, v any) (model.ResendVerifyEmailInput, error) {
-	res, err := ec.unmarshalInputResendVerifyEmailInput(ctx, v)
+func (ec *executionContext) unmarshalNResendVerifyEmailRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResendVerifyEmailRequest(ctx context.Context, v any) (model.ResendVerifyEmailRequest, error) {
+	res, err := ec.unmarshalInputResendVerifyEmailRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNResetPasswordInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResetPasswordInput(ctx context.Context, v any) (model.ResetPasswordInput, error) {
-	res, err := ec.unmarshalInputResetPasswordInput(ctx, v)
+func (ec *executionContext) unmarshalNResetPasswordRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResetPasswordRequest(ctx context.Context, v any) (model.ResetPasswordRequest, error) {
+	res, err := ec.unmarshalInputResetPasswordRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
@@ -22459,8 +22329,8 @@ func (ec *executionContext) marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋa
 	return ec._Response(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNSignUpInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐSignUpInput(ctx context.Context, v any) (model.SignUpInput, error) {
-	res, err := ec.unmarshalInputSignUpInput(ctx, v)
+func (ec *executionContext) unmarshalNSignUpRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐSignUpRequest(ctx context.Context, v any) (model.SignUpRequest, error) {
+	res, err := ec.unmarshalInputSignUpRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
@@ -22470,6 +22340,7 @@ func (ec *executionContext) unmarshalNString2string(ctx context.Context, v any) 
 }
 
 func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
+	_ = sel
 	res := graphql.MarshalString(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -22481,9 +22352,7 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 
 func (ec *executionContext) unmarshalNString2ᚕstringᚄ(ctx context.Context, v any) ([]string, error) {
 	var vSlice []any
-	if v != nil {
-		vSlice = graphql.CoerceList(v)
-	}
+	vSlice = graphql.CoerceList(v)
 	var err error
 	res := make([]string, len(vSlice))
 	for i := range vSlice {
@@ -22530,8 +22399,8 @@ func (ec *executionContext) marshalNTestEndpointResponse2ᚖgithubᚗcomᚋautho
 	return ec._TestEndpointResponse(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNUpdateAccessInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateAccessInput(ctx context.Context, v any) (model.UpdateAccessInput, error) {
-	res, err := ec.unmarshalInputUpdateAccessInput(ctx, v)
+func (ec *executionContext) unmarshalNUpdateAccessRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateAccessRequest(ctx context.Context, v any) (model.UpdateAccessRequest, error) {
+	res, err := ec.unmarshalInputUpdateAccessRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
@@ -22540,18 +22409,18 @@ func (ec *executionContext) unmarshalNUpdateEmailTemplateRequest2githubᚗcomᚋ
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNUpdateEnvInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateEnvInput(ctx context.Context, v any) (model.UpdateEnvInput, error) {
-	res, err := ec.unmarshalInputUpdateEnvInput(ctx, v)
+func (ec *executionContext) unmarshalNUpdateEnvRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateEnvRequest(ctx context.Context, v any) (model.UpdateEnvRequest, error) {
+	res, err := ec.unmarshalInputUpdateEnvRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNUpdateProfileInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateProfileInput(ctx context.Context, v any) (model.UpdateProfileInput, error) {
-	res, err := ec.unmarshalInputUpdateProfileInput(ctx, v)
+func (ec *executionContext) unmarshalNUpdateProfileRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateProfileRequest(ctx context.Context, v any) (model.UpdateProfileRequest, error) {
+	res, err := ec.unmarshalInputUpdateProfileRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNUpdateUserInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateUserInput(ctx context.Context, v any) (model.UpdateUserInput, error) {
-	res, err := ec.unmarshalInputUpdateUserInput(ctx, v)
+func (ec *executionContext) unmarshalNUpdateUserRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateUserRequest(ctx context.Context, v any) (model.UpdateUserRequest, error) {
+	res, err := ec.unmarshalInputUpdateUserRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
@@ -22632,8 +22501,8 @@ func (ec *executionContext) marshalNUsers2ᚖgithubᚗcomᚋauthorizerdevᚋauth
 	return ec._Users(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNValidateJWTTokenInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐValidateJWTTokenInput(ctx context.Context, v any) (model.ValidateJWTTokenInput, error) {
-	res, err := ec.unmarshalInputValidateJWTTokenInput(ctx, v)
+func (ec *executionContext) unmarshalNValidateJWTTokenRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐValidateJWTTokenRequest(ctx context.Context, v any) (model.ValidateJWTTokenRequest, error) {
+	res, err := ec.unmarshalInputValidateJWTTokenRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
@@ -22733,8 +22602,8 @@ func (ec *executionContext) marshalNVerificationRequests2ᚖgithubᚗcomᚋautho
 	return ec._VerificationRequests(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNVerifyEmailInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐVerifyEmailInput(ctx context.Context, v any) (model.VerifyEmailInput, error) {
-	res, err := ec.unmarshalInputVerifyEmailInput(ctx, v)
+func (ec *executionContext) unmarshalNVerifyEmailRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐVerifyEmailRequest(ctx context.Context, v any) (model.VerifyEmailRequest, error) {
+	res, err := ec.unmarshalInputVerifyEmailRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
@@ -22942,6 +22811,7 @@ func (ec *executionContext) unmarshalN__DirectiveLocation2string(ctx context.Con
 }
 
 func (ec *executionContext) marshalN__DirectiveLocation2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
+	_ = sel
 	res := graphql.MarshalString(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -22953,9 +22823,7 @@ func (ec *executionContext) marshalN__DirectiveLocation2string(ctx context.Conte
 
 func (ec *executionContext) unmarshalN__DirectiveLocation2ᚕstringᚄ(ctx context.Context, v any) ([]string, error) {
 	var vSlice []any
-	if v != nil {
-		vSlice = graphql.CoerceList(v)
-	}
+	vSlice = graphql.CoerceList(v)
 	var err error
 	res := make([]string, len(vSlice))
 	for i := range vSlice {
@@ -23132,6 +23000,7 @@ func (ec *executionContext) unmarshalN__TypeKind2string(ctx context.Context, v a
 }
 
 func (ec *executionContext) marshalN__TypeKind2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
+	_ = sel
 	res := graphql.MarshalString(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -23147,6 +23016,8 @@ func (ec *executionContext) unmarshalOBoolean2bool(ctx context.Context, v any) (
 }
 
 func (ec *executionContext) marshalOBoolean2bool(ctx context.Context, sel ast.SelectionSet, v bool) graphql.Marshaler {
+	_ = sel
+	_ = ctx
 	res := graphql.MarshalBoolean(v)
 	return res
 }
@@ -23163,6 +23034,8 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	if v == nil {
 		return graphql.Null
 	}
+	_ = sel
+	_ = ctx
 	res := graphql.MarshalBoolean(*v)
 	return res
 }
@@ -23179,6 +23052,8 @@ func (ec *executionContext) marshalOID2ᚖstring(ctx context.Context, sel ast.Se
 	if v == nil {
 		return graphql.Null
 	}
+	_ = sel
+	_ = ctx
 	res := graphql.MarshalID(*v)
 	return res
 }
@@ -23195,6 +23070,8 @@ func (ec *executionContext) marshalOInt642ᚖint64(ctx context.Context, sel ast.
 	if v == nil {
 		return graphql.Null
 	}
+	_ = sel
+	_ = ctx
 	res := graphql.MarshalInt64(*v)
 	return res
 }
@@ -23219,39 +23096,41 @@ func (ec *executionContext) marshalOMap2map(ctx context.Context, sel ast.Selecti
 	if v == nil {
 		return graphql.Null
 	}
+	_ = sel
+	_ = ctx
 	res := graphql.MarshalMap(v)
 	return res
 }
 
-func (ec *executionContext) unmarshalOMobileSignUpInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐMobileSignUpInput(ctx context.Context, v any) (*model.MobileSignUpInput, error) {
+func (ec *executionContext) unmarshalOMobileSignUpRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐMobileSignUpRequest(ctx context.Context, v any) (*model.MobileSignUpRequest, error) {
 	if v == nil {
 		return nil, nil
 	}
-	res, err := ec.unmarshalInputMobileSignUpInput(ctx, v)
+	res, err := ec.unmarshalInputMobileSignUpRequest(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalOPaginatedInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginatedInput(ctx context.Context, v any) (*model.PaginatedInput, error) {
+func (ec *executionContext) unmarshalOPaginatedRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginatedRequest(ctx context.Context, v any) (*model.PaginatedRequest, error) {
 	if v == nil {
 		return nil, nil
 	}
-	res, err := ec.unmarshalInputPaginatedInput(ctx, v)
+	res, err := ec.unmarshalInputPaginatedRequest(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalOPaginationInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginationInput(ctx context.Context, v any) (*model.PaginationInput, error) {
+func (ec *executionContext) unmarshalOPaginationRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginationRequest(ctx context.Context, v any) (*model.PaginationRequest, error) {
 	if v == nil {
 		return nil, nil
 	}
-	res, err := ec.unmarshalInputPaginationInput(ctx, v)
+	res, err := ec.unmarshalInputPaginationRequest(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalOSessionQueryInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐSessionQueryInput(ctx context.Context, v any) (*model.SessionQueryInput, error) {
+func (ec *executionContext) unmarshalOSessionQueryRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐSessionQueryRequest(ctx context.Context, v any) (*model.SessionQueryRequest, error) {
 	if v == nil {
 		return nil, nil
 	}
-	res, err := ec.unmarshalInputSessionQueryInput(ctx, v)
+	res, err := ec.unmarshalInputSessionQueryRequest(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
@@ -23260,9 +23139,7 @@ func (ec *executionContext) unmarshalOString2ᚕstringᚄ(ctx context.Context, v
 		return nil, nil
 	}
 	var vSlice []any
-	if v != nil {
-		vSlice = graphql.CoerceList(v)
-	}
+	vSlice = graphql.CoerceList(v)
 	var err error
 	res := make([]string, len(vSlice))
 	for i := range vSlice {
@@ -23298,9 +23175,7 @@ func (ec *executionContext) unmarshalOString2ᚕᚖstring(ctx context.Context, v
 		return nil, nil
 	}
 	var vSlice []any
-	if v != nil {
-		vSlice = graphql.CoerceList(v)
-	}
+	vSlice = graphql.CoerceList(v)
 	var err error
 	res := make([]*string, len(vSlice))
 	for i := range vSlice {
@@ -23337,6 +23212,8 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 	if v == nil {
 		return graphql.Null
 	}
+	_ = sel
+	_ = ctx
 	res := graphql.MarshalString(*v)
 	return res
 }
@@ -23348,11 +23225,11 @@ func (ec *executionContext) marshalOUser2ᚖgithubᚗcomᚋauthorizerdevᚋautho
 	return ec._User(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalOValidateSessionInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐValidateSessionInput(ctx context.Context, v any) (*model.ValidateSessionInput, error) {
+func (ec *executionContext) unmarshalOValidateSessionRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐValidateSessionRequest(ctx context.Context, v any) (*model.ValidateSessionRequest, error) {
 	if v == nil {
 		return nil, nil
 	}
-	res, err := ec.unmarshalInputValidateSessionInput(ctx, v)
+	res, err := ec.unmarshalInputValidateSessionRequest(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 

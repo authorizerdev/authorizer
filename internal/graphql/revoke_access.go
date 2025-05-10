@@ -12,7 +12,7 @@ import (
 
 // RevokeAccess is the method to revoke access of a user.
 // Permission: authorizer:admin
-func (g *graphqlProvider) RevokeAccess(ctx context.Context, params *model.UpdateAccessInput) (*model.Response, error) {
+func (g *graphqlProvider) RevokeAccess(ctx context.Context, params *model.UpdateAccessRequest) (*model.Response, error) {
 	log := g.Log.With().Str("func", "RevokeAccess").Logger()
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {

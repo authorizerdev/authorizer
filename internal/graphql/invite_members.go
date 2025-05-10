@@ -19,7 +19,7 @@ import (
 
 // InviteMembers is the method to invite members to the organization.
 // Permissions: authorizer:admin
-func (g *graphqlProvider) InviteMembers(ctx context.Context, params *model.InviteMemberInput) (*model.InviteMembersResponse, error) {
+func (g *graphqlProvider) InviteMembers(ctx context.Context, params *model.InviteMemberRequest) (*model.InviteMembersResponse, error) {
 	log := g.Log.With().Str("func", "InviteMembers").Logger()
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {

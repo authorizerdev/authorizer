@@ -10,7 +10,7 @@ import (
 
 // VerificationRequests is used to get all verification requests
 // Permission: authorizer:admin
-func (g *graphqlProvider) VerificationRequests(ctx context.Context, params *model.PaginatedInput) (*model.VerificationRequests, error) {
+func (g *graphqlProvider) VerificationRequests(ctx context.Context, params *model.PaginatedRequest) (*model.VerificationRequests, error) {
 	log := g.Log.With().Str("func", "VerificationRequests").Logger()
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {

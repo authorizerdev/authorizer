@@ -20,7 +20,7 @@ func TestRevoke(t *testing.T) {
 	email := "revoke_test_" + uuid.New().String() + "@authorizer.dev"
 	password := "Password@123"
 	// Signup the user
-	signupReq := &model.SignUpInput{
+	signupReq := &model.SignUpRequest{
 		Email:           &email,
 		Password:        password,
 		ConfirmPassword: password,
@@ -33,7 +33,7 @@ func TestRevoke(t *testing.T) {
 
 	// Create forgot password request
 	t.Run("should fail for invalid session", func(t *testing.T) {
-		revokeReq := &model.OAuthRevokeInput{
+		revokeReq := &model.OAuthRevokeRequest{
 			RefreshToken: "invalid_token",
 		}
 		revokeRes, err := ts.GraphQLProvider.Revoke(ctx, revokeReq)
@@ -43,7 +43,7 @@ func TestRevoke(t *testing.T) {
 
 	t.Run("should revoke", func(t *testing.T) {
 		// Login request
-		loginReq := &model.LoginInput{
+		loginReq := &model.LoginRequest{
 			Email:    &email,
 			Password: password,
 			Scope:    []string{"offline_access"},
@@ -55,7 +55,7 @@ func TestRevoke(t *testing.T) {
 		assert.NotEmpty(t, loginRes.AccessToken)
 
 		// Revoke refresh token
-		revokeReq := &model.OAuthRevokeInput{
+		revokeReq := &model.OAuthRevokeRequest{
 			RefreshToken: *loginRes.RefreshToken,
 		}
 

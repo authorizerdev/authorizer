@@ -24,7 +24,7 @@ func TestUpdateProfile(t *testing.T) {
 	password := "Password@123"
 
 	// Signup the user
-	signupReq := &model.SignUpInput{
+	signupReq := &model.SignUpRequest{
 		Email:           &email,
 		Password:        password,
 		ConfirmPassword: password,
@@ -36,7 +36,7 @@ func TestUpdateProfile(t *testing.T) {
 	assert.NotEmpty(t, *signupRes.AccessToken)
 
 	// Login to get fresh tokens
-	loginReq := &model.LoginInput{
+	loginReq := &model.LoginRequest{
 		Email:    &email,
 		Password: password,
 	}
@@ -56,7 +56,7 @@ func TestUpdateProfile(t *testing.T) {
 			ts.GinContext.Request.Header.Set("Authorization", "Bearer "+*loginRes.AccessToken)
 		}()
 
-		updateReq := &model.UpdateProfileInput{
+		updateReq := &model.UpdateProfileRequest{
 			GivenName: refs.NewStringRef("Test"),
 		}
 		updateRes, err := ts.GraphQLProvider.UpdateProfile(ctx, updateReq)
@@ -70,7 +70,7 @@ func TestUpdateProfile(t *testing.T) {
 		nickname := "Johnny"
 		phoneNumber := "+1234567890"
 
-		updateReq := &model.UpdateProfileInput{
+		updateReq := &model.UpdateProfileRequest{
 			GivenName:   refs.NewStringRef(givenName),
 			FamilyName:  refs.NewStringRef(familyName),
 			Nickname:    refs.NewStringRef(nickname),
@@ -95,7 +95,7 @@ func TestUpdateProfile(t *testing.T) {
 	t.Run("should update profile picture", func(t *testing.T) {
 		picture := "https://example.com/profile.jpg"
 
-		updateReq := &model.UpdateProfileInput{
+		updateReq := &model.UpdateProfileRequest{
 			Picture: refs.NewStringRef(picture),
 		}
 
@@ -113,7 +113,7 @@ func TestUpdateProfile(t *testing.T) {
 	t.Run("should update gender", func(t *testing.T) {
 		gender := "male"
 
-		updateReq := &model.UpdateProfileInput{
+		updateReq := &model.UpdateProfileRequest{
 			Gender: refs.NewStringRef(gender),
 		}
 
@@ -130,7 +130,7 @@ func TestUpdateProfile(t *testing.T) {
 	t.Run("should update birthdate", func(t *testing.T) {
 		birthdate := "1990-01-01"
 
-		updateReq := &model.UpdateProfileInput{
+		updateReq := &model.UpdateProfileRequest{
 			Birthdate: refs.NewStringRef(birthdate),
 		}
 
@@ -150,7 +150,7 @@ func TestUpdateProfile(t *testing.T) {
 		familyName := "User"
 		picture := "https://example.com/new-profile.jpg"
 
-		updateReq := &model.UpdateProfileInput{
+		updateReq := &model.UpdateProfileRequest{
 			GivenName:  refs.NewStringRef(givenName),
 			FamilyName: refs.NewStringRef(familyName),
 			Picture:    refs.NewStringRef(picture),

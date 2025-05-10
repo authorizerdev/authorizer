@@ -22,7 +22,7 @@ import (
 // id_token
 // refresh_token
 // Permission: none
-func (g *graphqlProvider) ValidateJWTToken(ctx context.Context, params *model.ValidateJWTTokenInput) (*model.ValidateJWTTokenResponse, error) {
+func (g *graphqlProvider) ValidateJWTToken(ctx context.Context, params *model.ValidateJWTTokenRequest) (*model.ValidateJWTTokenResponse, error) {
 	log := g.Log.With().Str("func", "ValidateJWTToken").Logger()
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {

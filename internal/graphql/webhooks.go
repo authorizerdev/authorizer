@@ -10,7 +10,7 @@ import (
 
 // Webhooks is the method to list webhooks
 // Permission: authorizer:admin
-func (g *graphqlProvider) Webhooks(ctx context.Context, params *model.PaginatedInput) (*model.Webhooks, error) {
+func (g *graphqlProvider) Webhooks(ctx context.Context, params *model.PaginatedRequest) (*model.Webhooks, error) {
 	log := g.Log.With().Str("func", "Webhooks").Logger()
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {

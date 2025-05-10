@@ -16,7 +16,7 @@ func TestAdminLogin(t *testing.T) {
 	_, ctx := createContext(ts)
 
 	t.Run("should fail login with invalid admin secret", func(t *testing.T) {
-		adminLoginReq := &model.AdminLoginInput{
+		adminLoginReq := &model.AdminLoginRequest{
 			AdminSecret: "invalid_secret",
 		}
 		adminLoginRes, err := ts.GraphQLProvider.AdminLogin(ctx, adminLoginReq)
@@ -25,7 +25,7 @@ func TestAdminLogin(t *testing.T) {
 	})
 
 	t.Run("should complete admin login", func(t *testing.T) {
-		adminLoginReq := &model.AdminLoginInput{
+		adminLoginReq := &model.AdminLoginRequest{
 			AdminSecret: cfg.AdminSecret,
 		}
 		res, err := ts.GraphQLProvider.AdminLogin(ctx, adminLoginReq)

@@ -24,7 +24,7 @@ import (
 
 // UpdateProfile is the method to update profile
 // Permissions: authenticated:user
-func (g *graphqlProvider) UpdateProfile(ctx context.Context, params *model.UpdateProfileInput) (*model.Response, error) {
+func (g *graphqlProvider) UpdateProfile(ctx context.Context, params *model.UpdateProfileRequest) (*model.Response, error) {
 	log := g.Log.With().Str("func", "UpdateProfile").Logger()
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {

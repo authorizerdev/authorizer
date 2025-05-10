@@ -12,15 +12,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestSession tests the session functionality
-func TestSession(t *testing.T) {
+// TestValidateJWTToken add test cases for validating JWT tokens
+func TestValidateJWTToken(t *testing.T) {
 	// Initialize test setup
 	cfg := getTestConfig()
 	ts := initTestSetup(t, cfg)
 	req, ctx := createContext(ts)
 
 	// Test setup - create a test user
-	email := "session_test_" + uuid.New().String() + "@authorizer.dev"
+	email := "validate_jwt_test_" + uuid.New().String() + "@authorizer.dev"
 	password := "Password@123"
 
 	signupReq := &model.SignUpRequest{
@@ -32,7 +32,7 @@ func TestSession(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, res)
 
-	// Session tests
+	// Profile tests
 	t.Run("after login", func(t *testing.T) {
 		loginReq := &model.LoginRequest{
 			Email:    &email,
@@ -48,13 +48,13 @@ func TestSession(t *testing.T) {
 		assert.Equal(t, email, *loginRes.User.Email)
 		assert.True(t, loginRes.User.EmailVerified)
 
-		t.Run("should fail without cookie", func(t *testing.T) {
-			res, err := ts.GraphQLProvider.Session(ctx, &model.SessionQueryRequest{})
+		t.Run("should fail without cookie and authorization header", func(t *testing.T) {
+			res, err := ts.GraphQLProvider.ValidateJWTToken(ctx, &model.ValidateJWTTokenRequest{})
 			assert.Error(t, err)
 			assert.Nil(t, res)
 		})
 
-		t.Run("should return new access token with cookie", func(t *testing.T) {
+		t.Run("should return profile with browser session", func(t *testing.T) {
 			allData, err := ts.MemoryStoreProvider.GetAllData()
 			require.NoError(t, err)
 			sessionToken := ""
@@ -65,12 +65,33 @@ func TestSession(t *testing.T) {
 				}
 			}
 			req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AppCookieName+"_session", sessionToken))
-			res, err := ts.GraphQLProvider.Session(ctx, &model.SessionQueryRequest{})
+			defer func() {
+				req.Header.Del("Cookie")
+			}()
+			res, err := ts.GraphQLProvider.Profile(ctx)
 			require.NoError(t, err)
 			require.NotNil(t, res)
-			assert.NotEmpty(t, res.AccessToken)
-			assert.NotEqual(t, res.AccessToken, res.RefreshToken)
-			assert.Equal(t, email, *res.User.Email)
+			assert.Equal(t, email, *res.Email)
+		})
+
+		t.Run("should return profile with authorization header", func(t *testing.T) {
+			allData, err := ts.MemoryStoreProvider.GetAllData()
+			require.NoError(t, err)
+			accessToken := ""
+			for k, v := range allData {
+				if strings.Contains(k, constants.TokenTypeAccessToken) {
+					accessToken = v
+					break
+				}
+			}
+			req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", accessToken))
+			defer func() {
+				req.Header.Del("Authorization")
+			}()
+			res, err := ts.GraphQLProvider.Profile(ctx)
+			require.NoError(t, err)
+			require.NotNil(t, res)
+			assert.Equal(t, email, *res.Email)
 		})
 	})
 }

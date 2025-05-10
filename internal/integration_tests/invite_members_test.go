@@ -2,13 +2,14 @@ package integration_tests
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 // TestInviteMembersUser tests the invite user functionality by the admin
@@ -23,7 +24,7 @@ func TestInviteMembersUser(t *testing.T) {
 	password := "Password@123"
 	url := "https://authorizer.dev/"
 	// Signup the user
-	signupReq := &model.SignUpInput{
+	signupReq := &model.SignUpRequest{
 		Email:           &email,
 		Password:        password,
 		ConfirmPassword: password,
@@ -34,7 +35,7 @@ func TestInviteMembersUser(t *testing.T) {
 	require.NotNil(t, signupRes.User)
 
 	t.Run("should fail without admin cookie", func(t *testing.T) {
-		invitedUserDets, err := ts.GraphQLProvider.InviteMembers(ctx, &model.InviteMemberInput{
+		invitedUserDets, err := ts.GraphQLProvider.InviteMembers(ctx, &model.InviteMemberRequest{
 			Emails:      []string{emailTo},
 			RedirectURI: &url,
 		})
@@ -47,7 +48,7 @@ func TestInviteMembersUser(t *testing.T) {
 		assert.Nil(t, err)
 
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
-		_, err = ts.GraphQLProvider.InviteMembers(ctx, &model.InviteMemberInput{
+		_, err = ts.GraphQLProvider.InviteMembers(ctx, &model.InviteMemberRequest{
 			Emails:      []string{emailTo},
 			RedirectURI: &url,
 		})
@@ -62,7 +63,7 @@ func TestInviteMembersUser(t *testing.T) {
 		assert.Nil(t, err)
 
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
-		_, err = ts.GraphQLProvider.InviteMembers(ctx, &model.InviteMemberInput{
+		_, err = ts.GraphQLProvider.InviteMembers(ctx, &model.InviteMemberRequest{
 			Emails:      []string{},
 			RedirectURI: &url,
 		})
@@ -77,7 +78,7 @@ func TestInviteMembersUser(t *testing.T) {
 		assert.Nil(t, err)
 
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
-		invitedUserDets, err := ts.GraphQLProvider.InviteMembers(ctx, &model.InviteMemberInput{
+		invitedUserDets, err := ts.GraphQLProvider.InviteMembers(ctx, &model.InviteMemberRequest{
 			Emails:      []string{emailTo},
 			RedirectURI: &url,
 		})

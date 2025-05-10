@@ -11,7 +11,7 @@ import (
 
 // EnableAccess is the method to enable access for a user.
 // Permissions: authorizer:admin
-func (g *graphqlProvider) EnableAccess(ctx context.Context, params *model.UpdateAccessInput) (*model.Response, error) {
+func (g *graphqlProvider) EnableAccess(ctx context.Context, params *model.UpdateAccessRequest) (*model.Response, error) {
 	log := g.Log.With().Str("func", "EnableAccess").Logger()
 
 	gc, err := utils.GinContextFromContext(ctx)

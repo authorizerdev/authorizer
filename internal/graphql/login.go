@@ -23,7 +23,7 @@ import (
 // Login is the method to login a user.
 // User can login with email or phone number, but not both
 // Permissions: none
-func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginInput) (*model.AuthResponse, error) {
+func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest) (*model.AuthResponse, error) {
 	log := g.Log.With().Str("func", "Login").Logger()
 
 	gc, err := utils.GinContextFromContext(ctx)

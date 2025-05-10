@@ -24,7 +24,7 @@ func TestVerifyEmail(t *testing.T) {
 	email := "verify_email_test_" + uuid.New().String() + "@authorizer.dev"
 	password := "Password@123"
 	// Signup the user
-	signupReq := &model.SignUpInput{
+	signupReq := &model.SignUpRequest{
 		Email:           &email,
 		Password:        password,
 		ConfirmPassword: password,
@@ -37,7 +37,7 @@ func TestVerifyEmail(t *testing.T) {
 	assert.Nil(t, signupRes.User)
 
 	t.Run("should fail for invalid token", func(t *testing.T) {
-		verificationReq := &model.VerifyEmailInput{
+		verificationReq := &model.VerifyEmailRequest{
 			Token: "invalid-token",
 		}
 		verificationRes, err := ts.GraphQLProvider.VerifyEmail(ctx, verificationReq)
@@ -53,7 +53,7 @@ func TestVerifyEmail(t *testing.T) {
 		assert.NotEmpty(t, request.Token)
 
 		// Verify email with an invalid token
-		verificationReq := &model.VerifyEmailInput{
+		verificationReq := &model.VerifyEmailRequest{
 			Token: request.Token,
 		}
 

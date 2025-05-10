@@ -20,7 +20,7 @@ import (
 
 // VerifyEmail is the method to verify email
 // Permission: none
-func (g *graphqlProvider) VerifyEmail(ctx context.Context, params *model.VerifyEmailInput) (*model.AuthResponse, error) {
+func (g *graphqlProvider) VerifyEmail(ctx context.Context, params *model.VerifyEmailRequest) (*model.AuthResponse, error) {
 	log := g.Log.With().Str("func", "VerifyEmail").Logger()
 
 	gc, err := utils.GinContextFromContext(ctx)

@@ -21,7 +21,7 @@ import (
 // ForgotPassword is a  for forgot password mutation
 // It sends an email or sms with a verification token
 // Permissions: none
-func (g *graphqlProvider) ForgotPassword(ctx context.Context, params *model.ForgotPasswordInput) (*model.ForgotPasswordResponse, error) {
+func (g *graphqlProvider) ForgotPassword(ctx context.Context, params *model.ForgotPasswordRequest) (*model.ForgotPasswordResponse, error) {
 	log := g.Log.With().Str("func", "ForgotPassword").Logger()
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {

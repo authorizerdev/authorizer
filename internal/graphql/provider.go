@@ -66,7 +66,7 @@ type Provider interface {
 	AddWebhook(ctx context.Context, params *model.AddWebhookRequest) (*model.Response, error)
 	// AdminLogin is the method to login as admin.
 	// Permissions: none
-	AdminLogin(ctx context.Context, params *model.AdminLoginInput) (*model.Response, error)
+	AdminLogin(ctx context.Context, params *model.AdminLoginRequest) (*model.Response, error)
 	// AdminLogout is the method to logout as admin.
 	// Permissions: authorizer:admin
 	AdminLogout(ctx context.Context) (*model.Response, error)
@@ -81,31 +81,31 @@ type Provider interface {
 	DeleteEmailTemplate(ctx context.Context, params *model.DeleteEmailTemplateRequest) (*model.Response, error)
 	// DeleteUser is the method to delete user.
 	// Permissions: authorizer:admin
-	DeleteUser(ctx context.Context, params *model.DeleteUserInput) (*model.Response, error)
+	DeleteUser(ctx context.Context, params *model.DeleteUserRequest) (*model.Response, error)
 	// DeleteWebhook is the method to delete webhook.
 	// Permissions: authorizer:admin
 	DeleteWebhook(ctx context.Context, params *model.WebhookRequest) (*model.Response, error)
 	// EmailTemplates is the method to list email templates.
 	// Permissions: authorizer:admin
-	EmailTemplates(ctx context.Context, in *model.PaginatedInput) (*model.EmailTemplates, error)
+	EmailTemplates(ctx context.Context, in *model.PaginatedRequest) (*model.EmailTemplates, error)
 	// EnableAccess is the method to enable access.
 	// Permissions: authorizer:admin
-	EnableAccess(ctx context.Context, params *model.UpdateAccessInput) (*model.Response, error)
+	EnableAccess(ctx context.Context, params *model.UpdateAccessRequest) (*model.Response, error)
 	// ForgotPassword is the method to forgot password.
 	// Permissions: none
-	ForgotPassword(ctx context.Context, params *model.ForgotPasswordInput) (*model.ForgotPasswordResponse, error)
+	ForgotPassword(ctx context.Context, params *model.ForgotPasswordRequest) (*model.ForgotPasswordResponse, error)
 	// InviteMembers is the method to invite members.
 	// Permissions: authorizer:admin
-	InviteMembers(ctx context.Context, params *model.InviteMemberInput) (*model.InviteMembersResponse, error)
+	InviteMembers(ctx context.Context, params *model.InviteMemberRequest) (*model.InviteMembersResponse, error)
 	// Login is the method to login.
 	// Permissions: none
-	Login(ctx context.Context, params *model.LoginInput) (*model.AuthResponse, error)
+	Login(ctx context.Context, params *model.LoginRequest) (*model.AuthResponse, error)
 	// Logout is the method to logout.
 	// Permissions: authorized user
 	Logout(ctx context.Context) (*model.Response, error)
 	// MagicLinkLogin is the method to login using magic link.
 	// Permissions: none
-	MagicLinkLogin(ctx context.Context, params *model.MagicLinkLoginInput) (*model.Response, error)
+	MagicLinkLogin(ctx context.Context, params *model.MagicLinkLoginRequest) (*model.Response, error)
 	// Meta is the method to get meta.
 	// Permissions: none
 	Meta(ctx context.Context) (*model.Meta, error)
@@ -117,22 +117,22 @@ type Provider interface {
 	ResendOTP(ctx context.Context, params *model.ResendOTPRequest) (*model.Response, error)
 	// ResendVerifyEmail is the method to resend verification email.
 	// Permissions: none
-	ResendVerifyEmail(ctx context.Context, params *model.ResendVerifyEmailInput) (*model.Response, error)
+	ResendVerifyEmail(ctx context.Context, params *model.ResendVerifyEmailRequest) (*model.Response, error)
 	// ResetPassword is the method to reset password.
 	// Permissions: none
-	ResetPassword(ctx context.Context, params *model.ResetPasswordInput) (*model.Response, error)
+	ResetPassword(ctx context.Context, params *model.ResetPasswordRequest) (*model.Response, error)
 	// RevokeAccess is the method to revoke access.
 	// Permissions: authorizer:admin
-	RevokeAccess(ctx context.Context, params *model.UpdateAccessInput) (*model.Response, error)
+	RevokeAccess(ctx context.Context, params *model.UpdateAccessRequest) (*model.Response, error)
 	// Revoke is the method to revoke refresh token.
 	// Permissions: none
-	Revoke(ctx context.Context, params *model.OAuthRevokeInput) (*model.Response, error)
+	Revoke(ctx context.Context, params *model.OAuthRevokeRequest) (*model.Response, error)
 	// Session is the method to get session.
 	// Permissions: authorized user
-	Session(ctx context.Context, params *model.SessionQueryInput) (*model.AuthResponse, error)
+	Session(ctx context.Context, params *model.SessionQueryRequest) (*model.AuthResponse, error)
 	// SignUp is the method to SignUp.
 	// Permissions: none
-	SignUp(ctx context.Context, params *model.SignUpInput) (*model.AuthResponse, error)
+	SignUp(ctx context.Context, params *model.SignUpRequest) (*model.AuthResponse, error)
 	// TestEndpoint is the method to test endpoint.
 	// Permissions: authorizer:admin
 	TestEndpoint(ctx context.Context, params *model.TestEndpointRequest) (*model.TestEndpointResponse, error)
@@ -141,10 +141,10 @@ type Provider interface {
 	UpdateEmailTemplate(ctx context.Context, params *model.UpdateEmailTemplateRequest) (*model.Response, error)
 	// UpdateProfile is the method to update profile.
 	// Permissions: authorized user
-	UpdateProfile(ctx context.Context, params *model.UpdateProfileInput) (*model.Response, error)
+	UpdateProfile(ctx context.Context, params *model.UpdateProfileRequest) (*model.Response, error)
 	// UpdateUser is the method to update user.
 	// Permissions: authorizer:admin
-	UpdateUser(ctx context.Context, params *model.UpdateUserInput) (*model.User, error)
+	UpdateUser(ctx context.Context, params *model.UpdateUserRequest) (*model.User, error)
 	// UpdateWebhook is the method to update webhook.
 	// Permissions: authorizer:admin
 	UpdateWebhook(ctx context.Context, params *model.UpdateWebhookRequest) (*model.Response, error)
@@ -153,19 +153,19 @@ type Provider interface {
 	User(ctx context.Context, params *model.GetUserRequest) (*model.User, error)
 	// Users is the method to list users.
 	// Permissions: authorizer:admin
-	Users(ctx context.Context, in *model.PaginatedInput) (*model.Users, error)
+	Users(ctx context.Context, in *model.PaginatedRequest) (*model.Users, error)
 	// ValidateJWTToken is the method to validate JWT token.
 	// Permissions: none
-	ValidateJWTToken(ctx context.Context, params *model.ValidateJWTTokenInput) (*model.ValidateJWTTokenResponse, error)
+	ValidateJWTToken(ctx context.Context, params *model.ValidateJWTTokenRequest) (*model.ValidateJWTTokenResponse, error)
 	// ValidateSession is the method to validate browser session.
 	// Permissions: authorized user
-	ValidateSession(ctx context.Context, params *model.ValidateSessionInput) (*model.ValidateSessionResponse, error)
+	ValidateSession(ctx context.Context, params *model.ValidateSessionRequest) (*model.ValidateSessionResponse, error)
 	// VerificationRequests is the method to list verification requests.
 	// Permissions: authorizer:admin
-	VerificationRequests(ctx context.Context, in *model.PaginatedInput) (*model.VerificationRequests, error)
+	VerificationRequests(ctx context.Context, in *model.PaginatedRequest) (*model.VerificationRequests, error)
 	// VerifyEmail is the method to verify email.
 	// Permissions: none
-	VerifyEmail(ctx context.Context, params *model.VerifyEmailInput) (*model.AuthResponse, error)
+	VerifyEmail(ctx context.Context, params *model.VerifyEmailRequest) (*model.AuthResponse, error)
 	// VerifyOTP is the method to verify OTP.
 	// Permissions: authorized otp request
 	VerifyOTP(ctx context.Context, params *model.VerifyOTPRequest) (*model.AuthResponse, error)
@@ -177,5 +177,5 @@ type Provider interface {
 	Webhook(ctx context.Context, params *model.WebhookRequest) (*model.Webhook, error)
 	// Webhooks is the method to list webhooks.
 	// Permissions: authorizer:admin
-	Webhooks(ctx context.Context, in *model.PaginatedInput) (*model.Webhooks, error)
+	Webhooks(ctx context.Context, in *model.PaginatedRequest) (*model.Webhooks, error)
 }

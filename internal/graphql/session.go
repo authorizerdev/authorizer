@@ -19,7 +19,7 @@ import (
 // Session is the method to get session.
 // It also refreshes the session token.
 // TODO allow validating with code and code verifier instead of cookie (PKCE flow)
-func (g *graphqlProvider) Session(ctx context.Context, params *model.SessionQueryInput) (*model.AuthResponse, error) {
+func (g *graphqlProvider) Session(ctx context.Context, params *model.SessionQueryRequest) (*model.AuthResponse, error) {
 	log := g.Log.With().Str("func", "Session").Logger()
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {

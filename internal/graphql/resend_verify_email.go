@@ -17,7 +17,7 @@ import (
 
 // ResendVerifyEmail is the method to resend verification email.
 // Permissions: none
-func (g *graphqlProvider) ResendVerifyEmail(ctx context.Context, params *model.ResendVerifyEmailInput) (*model.Response, error) {
+func (g *graphqlProvider) ResendVerifyEmail(ctx context.Context, params *model.ResendVerifyEmailRequest) (*model.Response, error) {
 	log := g.Log.With().Str("func", "ResendVerifyEmail").Logger()
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {

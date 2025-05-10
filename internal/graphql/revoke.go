@@ -10,7 +10,7 @@ import (
 )
 
 // Revoke is the method to revoke refresh token
-func (g *graphqlProvider) Revoke(ctx context.Context, params *model.OAuthRevokeInput) (*model.Response, error) {
+func (g *graphqlProvider) Revoke(ctx context.Context, params *model.OAuthRevokeRequest) (*model.Response, error) {
 	log := g.Log.With().Str("func", "Revoke").Logger()
 	token := strings.TrimSpace(params.RefreshToken)
 	if token == "" {

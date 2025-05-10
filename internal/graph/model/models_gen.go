@@ -17,11 +17,11 @@ type AddWebhookRequest struct {
 	Headers          map[string]any `json:"headers,omitempty"`
 }
 
-type AdminLoginInput struct {
+type AdminLoginRequest struct {
 	AdminSecret string `json:"admin_secret"`
 }
 
-type AdminSignupInput struct {
+type AdminSignupRequest struct {
 	AdminSecret string `json:"admin_secret"`
 }
 
@@ -44,7 +44,7 @@ type DeleteEmailTemplateRequest struct {
 	ID string `json:"id"`
 }
 
-type DeleteUserInput struct {
+type DeleteUserRequest struct {
 	Email string `json:"email"`
 }
 
@@ -142,7 +142,7 @@ type Error struct {
 	Reason  string `json:"reason"`
 }
 
-type ForgotPasswordInput struct {
+type ForgotPasswordRequest struct {
 	Email       *string `json:"email,omitempty"`
 	PhoneNumber *string `json:"phone_number,omitempty"`
 	State       *string `json:"state,omitempty"`
@@ -154,7 +154,7 @@ type ForgotPasswordResponse struct {
 	ShouldShowMobileOtpScreen *bool  `json:"should_show_mobile_otp_screen,omitempty"`
 }
 
-type GenerateJWTKeysInput struct {
+type GenerateJWTKeysRequest struct {
 	Type string `json:"type"`
 }
 
@@ -169,7 +169,7 @@ type GetUserRequest struct {
 	Email *string `json:"email,omitempty"`
 }
 
-type InviteMemberInput struct {
+type InviteMemberRequest struct {
 	Emails      []string `json:"emails"`
 	RedirectURI *string  `json:"redirect_uri,omitempty"`
 }
@@ -180,11 +180,11 @@ type InviteMembersResponse struct {
 }
 
 type ListWebhookLogRequest struct {
-	Pagination *PaginationInput `json:"pagination,omitempty"`
-	WebhookID  *string          `json:"webhook_id,omitempty"`
+	Pagination *PaginationRequest `json:"pagination,omitempty"`
+	WebhookID  *string            `json:"webhook_id,omitempty"`
 }
 
-type LoginInput struct {
+type LoginRequest struct {
 	Email       *string  `json:"email,omitempty"`
 	PhoneNumber *string  `json:"phone_number,omitempty"`
 	Password    string   `json:"password"`
@@ -193,7 +193,7 @@ type LoginInput struct {
 	State       *string  `json:"state,omitempty"`
 }
 
-type MagicLinkLoginInput struct {
+type MagicLinkLoginRequest struct {
 	Email       string   `json:"email"`
 	Roles       []string `json:"roles,omitempty"`
 	Scope       []string `json:"scope,omitempty"`
@@ -224,7 +224,7 @@ type Meta struct {
 	IsPhoneVerificationEnabled         bool   `json:"is_phone_verification_enabled"`
 }
 
-type MobileLoginInput struct {
+type MobileLoginRequest struct {
 	PhoneNumber string   `json:"phone_number"`
 	Password    string   `json:"password"`
 	Roles       []string `json:"roles,omitempty"`
@@ -232,7 +232,7 @@ type MobileLoginInput struct {
 	State       *string  `json:"state,omitempty"`
 }
 
-type MobileSignUpInput struct {
+type MobileSignUpRequest struct {
 	Email                    *string        `json:"email,omitempty"`
 	GivenName                *string        `json:"given_name,omitempty"`
 	FamilyName               *string        `json:"family_name,omitempty"`
@@ -255,12 +255,12 @@ type MobileSignUpInput struct {
 type Mutation struct {
 }
 
-type OAuthRevokeInput struct {
+type OAuthRevokeRequest struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
-type PaginatedInput struct {
-	Pagination *PaginationInput `json:"pagination,omitempty"`
+type PaginatedRequest struct {
+	Pagination *PaginationRequest `json:"pagination,omitempty"`
 }
 
 type Pagination struct {
@@ -270,7 +270,7 @@ type Pagination struct {
 	Total  int64 `json:"total"`
 }
 
-type PaginationInput struct {
+type PaginationRequest struct {
 	Limit *int64 `json:"limit,omitempty"`
 	Page  *int64 `json:"page,omitempty"`
 }
@@ -284,13 +284,13 @@ type ResendOTPRequest struct {
 	State       *string `json:"state,omitempty"`
 }
 
-type ResendVerifyEmailInput struct {
+type ResendVerifyEmailRequest struct {
 	Email      string  `json:"email"`
 	Identifier string  `json:"identifier"`
 	State      *string `json:"state,omitempty"`
 }
 
-type ResetPasswordInput struct {
+type ResetPasswordRequest struct {
 	Token           *string `json:"token,omitempty"`
 	Otp             *string `json:"otp,omitempty"`
 	PhoneNumber     *string `json:"phone_number,omitempty"`
@@ -302,21 +302,12 @@ type Response struct {
 	Message string `json:"message"`
 }
 
-type SMSVerificationRequests struct {
-	ID            string `json:"id"`
-	Code          string `json:"code"`
-	CodeExpiresAt int64  `json:"code_expires_at"`
-	PhoneNumber   string `json:"phone_number"`
-	CreatedAt     int64  `json:"created_at"`
-	UpdatedAt     *int64 `json:"updated_at,omitempty"`
-}
-
-type SessionQueryInput struct {
+type SessionQueryRequest struct {
 	Roles []string `json:"roles,omitempty"`
 	Scope []string `json:"scope,omitempty"`
 }
 
-type SignUpInput struct {
+type SignUpRequest struct {
 	Email                    *string        `json:"email,omitempty"`
 	GivenName                *string        `json:"given_name,omitempty"`
 	FamilyName               *string        `json:"family_name,omitempty"`
@@ -348,7 +339,7 @@ type TestEndpointResponse struct {
 	Response   *string `json:"response,omitempty"`
 }
 
-type UpdateAccessInput struct {
+type UpdateAccessRequest struct {
 	UserID string `json:"user_id"`
 }
 
@@ -360,7 +351,7 @@ type UpdateEmailTemplateRequest struct {
 	Design    *string `json:"design,omitempty"`
 }
 
-type UpdateEnvInput struct {
+type UpdateEnvRequest struct {
 	AccessTokenExpiryTime            *string  `json:"ACCESS_TOKEN_EXPIRY_TIME,omitempty"`
 	AdminSecret                      *string  `json:"ADMIN_SECRET,omitempty"`
 	CustomAccessTokenScript          *string  `json:"CUSTOM_ACCESS_TOKEN_SCRIPT,omitempty"`
@@ -425,7 +416,7 @@ type UpdateEnvInput struct {
 	DisableTotpLogin                 *bool    `json:"DISABLE_TOTP_LOGIN,omitempty"`
 }
 
-type UpdateProfileInput struct {
+type UpdateProfileRequest struct {
 	OldPassword              *string        `json:"old_password,omitempty"`
 	NewPassword              *string        `json:"new_password,omitempty"`
 	ConfirmNewPassword       *string        `json:"confirm_new_password,omitempty"`
@@ -442,7 +433,7 @@ type UpdateProfileInput struct {
 	AppData                  map[string]any `json:"app_data,omitempty"`
 }
 
-type UpdateUserInput struct {
+type UpdateUserRequest struct {
 	ID                       string         `json:"id"`
 	Email                    *string        `json:"email,omitempty"`
 	EmailVerified            *bool          `json:"email_verified,omitempty"`
@@ -497,7 +488,7 @@ type Users struct {
 	Users      []*User     `json:"users"`
 }
 
-type ValidateJWTTokenInput struct {
+type ValidateJWTTokenRequest struct {
 	TokenType string   `json:"token_type"`
 	Token     string   `json:"token"`
 	Roles     []string `json:"roles,omitempty"`
@@ -508,7 +499,7 @@ type ValidateJWTTokenResponse struct {
 	Claims  map[string]any `json:"claims,omitempty"`
 }
 
-type ValidateSessionInput struct {
+type ValidateSessionRequest struct {
 	Cookie string   `json:"cookie"`
 	Roles  []string `json:"roles,omitempty"`
 }
@@ -535,7 +526,7 @@ type VerificationRequests struct {
 	VerificationRequests []*VerificationRequest `json:"verification_requests"`
 }
 
-type VerifyEmailInput struct {
+type VerifyEmailRequest struct {
 	Token string  `json:"token"`
 	State *string `json:"state,omitempty"`
 }

@@ -10,7 +10,7 @@ import (
 
 // Users is the method to get list of users
 // Permission: authorizer:admin
-func (g *graphqlProvider) Users(ctx context.Context, params *model.PaginatedInput) (*model.Users, error) {
+func (g *graphqlProvider) Users(ctx context.Context, params *model.PaginatedRequest) (*model.Users, error) {
 	log := g.Log.With().Str("func", "Users").Logger()
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {

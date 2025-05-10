@@ -7,7 +7,7 @@ import (
 
 // GetPagination helps getting pagination data from paginated input
 // also returns default limit and offset if pagination data is not present
-func GetPagination(paginatedInput *model.PaginatedInput) *model.Pagination {
+func GetPagination(paginatedInput *model.PaginatedRequest) *model.Pagination {
 	limit := int64(constants.DefaultLimit)
 	page := int64(1)
 	if paginatedInput != nil && paginatedInput.Pagination != nil {

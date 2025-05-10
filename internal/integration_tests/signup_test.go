@@ -21,7 +21,7 @@ func TestSignup(t *testing.T) {
 	password := "Password@123"
 
 	t.Run("should fail for missing email or phone number", func(t *testing.T) {
-		signupReq := &model.SignUpInput{
+		signupReq := &model.SignUpRequest{
 			Password: password,
 		}
 		res, err := ts.GraphQLProvider.SignUp(ctx, signupReq)
@@ -30,7 +30,7 @@ func TestSignup(t *testing.T) {
 	})
 
 	t.Run("should fail for missing confirm password", func(t *testing.T) {
-		signupReq := &model.SignUpInput{
+		signupReq := &model.SignUpRequest{
 			Email:    &email,
 			Password: password,
 		}
@@ -41,7 +41,7 @@ func TestSignup(t *testing.T) {
 	})
 
 	t.Run("should fail for mismatch confirm password", func(t *testing.T) {
-		signupReq := &model.SignUpInput{
+		signupReq := &model.SignUpRequest{
 			Email:           &email,
 			Password:        password,
 			ConfirmPassword: "test@123",
@@ -53,7 +53,7 @@ func TestSignup(t *testing.T) {
 	})
 
 	t.Run("should fail for weak password", func(t *testing.T) {
-		signupReq := &model.SignUpInput{
+		signupReq := &model.SignUpRequest{
 			Email:           &email,
 			Password:        "test",
 			ConfirmPassword: "test",
@@ -66,7 +66,7 @@ func TestSignup(t *testing.T) {
 
 	t.Run("should fail for invalid email", func(t *testing.T) {
 		invalidEmail := "test"
-		signupReq := &model.SignUpInput{
+		signupReq := &model.SignUpRequest{
 			Email:           &invalidEmail,
 			Password:        password,
 			ConfirmPassword: password,
@@ -78,7 +78,7 @@ func TestSignup(t *testing.T) {
 
 	t.Run("should fail for invalid mobile number", func(t *testing.T) {
 		invalidMobileNumber := "1243234"
-		signupReq := &model.SignUpInput{
+		signupReq := &model.SignUpRequest{
 			PhoneNumber:     &invalidMobileNumber,
 			Password:        password,
 			ConfirmPassword: password,
@@ -89,7 +89,7 @@ func TestSignup(t *testing.T) {
 	})
 
 	t.Run("should pass for valid email", func(t *testing.T) {
-		signupReq := &model.SignUpInput{
+		signupReq := &model.SignUpRequest{
 			Email:           &email,
 			Password:        password,
 			ConfirmPassword: password,
@@ -100,7 +100,7 @@ func TestSignup(t *testing.T) {
 		assert.NotNil(t, res.User)
 
 		t.Run("should fail for duplicate email", func(t *testing.T) {
-			signupReq := &model.SignUpInput{
+			signupReq := &model.SignUpRequest{
 				Email:           &email,
 				Password:        password,
 				ConfirmPassword: password,
@@ -113,7 +113,7 @@ func TestSignup(t *testing.T) {
 
 	t.Run("should pass for valid mobile number", func(t *testing.T) {
 		mobileNumber := fmt.Sprintf("%d", time.Now().Unix())
-		signupReq := &model.SignUpInput{
+		signupReq := &model.SignUpRequest{
 			PhoneNumber:     &mobileNumber,
 			Password:        password,
 			ConfirmPassword: password,
@@ -128,7 +128,7 @@ func TestSignup(t *testing.T) {
 		assert.Contains(t, constants.AuthRecipeMethodMobileBasicAuth, res.User.SignupMethods)
 
 		t.Run("should fail for duplicate mobile number", func(t *testing.T) {
-			signupReq := &model.SignUpInput{
+			signupReq := &model.SignUpRequest{
 				PhoneNumber:     &mobileNumber,
 				Password:        password,
 				ConfirmPassword: password,

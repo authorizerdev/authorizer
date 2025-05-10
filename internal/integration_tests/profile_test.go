@@ -23,7 +23,7 @@ func TestProfile(t *testing.T) {
 	email := "profile_test_" + uuid.New().String() + "@authorizer.dev"
 	password := "Password@123"
 
-	signupReq := &model.SignUpInput{
+	signupReq := &model.SignUpRequest{
 		Email:           &email,
 		Password:        password,
 		ConfirmPassword: password,
@@ -34,7 +34,7 @@ func TestProfile(t *testing.T) {
 
 	// Profile tests
 	t.Run("after login", func(t *testing.T) {
-		loginReq := &model.LoginInput{
+		loginReq := &model.LoginRequest{
 			Email:    &email,
 			Password: password,
 		}

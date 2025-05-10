@@ -24,7 +24,7 @@ func TestResendOTP(t *testing.T) {
 	mobile := "+14155552672"
 	password := "Password@123"
 	// Signup the user
-	signupReq := &model.SignUpInput{
+	signupReq := &model.SignUpRequest{
 		PhoneNumber:     &mobile,
 		Password:        password,
 		ConfirmPassword: password,

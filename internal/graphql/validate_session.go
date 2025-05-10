@@ -12,7 +12,7 @@ import (
 
 // ValidateSession is used to validate a cookie session without its rotation
 // Permission: authorized:user
-func (g *graphqlProvider) ValidateSession(ctx context.Context, params *model.ValidateSessionInput) (*model.ValidateSessionResponse, error) {
+func (g *graphqlProvider) ValidateSession(ctx context.Context, params *model.ValidateSessionRequest) (*model.ValidateSessionResponse, error) {
 	log := g.Log.With().Str("func", "ValidateSession").Logger()
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {

@@ -22,7 +22,7 @@ func TestUpdateUser(t *testing.T) {
 	email := "update_user_test_" + uuid.New().String() + "@authorizer.dev"
 	password := "Password@123"
 	// Signup the user
-	signupReq := &model.SignUpInput{
+	signupReq := &model.SignUpRequest{
 		Email:           &email,
 		Password:        password,
 		ConfirmPassword: password,
@@ -33,7 +33,7 @@ func TestUpdateUser(t *testing.T) {
 	require.NotNil(t, signupRes.User)
 
 	userFirstName := "UpdatedFirstName"
-	updateReq := &model.UpdateUserInput{
+	updateReq := &model.UpdateUserRequest{
 		ID:        signupRes.User.ID,
 		GivenName: &userFirstName,
 	}

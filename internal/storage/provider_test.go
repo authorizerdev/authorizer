@@ -155,7 +155,7 @@ func testUserOperations(t *testing.T, ctx context.Context, provider Provider) {
 	assert.Error(t, err)
 
 	// Test GetUserByPhoneNumber
-	user.PhoneNumber = refs.NewStringRef("+1234567890")
+	user.PhoneNumber = refs.NewStringRef("+1234567891")
 	createdUser, err = provider.AddUser(ctx, user)
 	assert.NoError(t, err)
 	assert.NotNil(t, createdUser)

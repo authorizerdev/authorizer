@@ -2,13 +2,14 @@ package integration_tests
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 // TestDeleteEmailTemplate tests the delete email template functionality
@@ -22,7 +23,7 @@ func TestDeleteEmailTemplate(t *testing.T) {
 	password := "Password@123"
 
 	// Signup the user
-	signupReq := &model.SignUpInput{
+	signupReq := &model.SignUpRequest{
 		Email:           &email,
 		Password:        password,
 		ConfirmPassword: password,

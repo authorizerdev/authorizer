@@ -20,7 +20,7 @@ import (
 
 // UpdateUser is the method to update user details
 // Permission: authorizer:admin
-func (g *graphqlProvider) UpdateUser(ctx context.Context, params *model.UpdateUserInput) (*model.User, error) {
+func (g *graphqlProvider) UpdateUser(ctx context.Context, params *model.UpdateUserRequest) (*model.User, error) {
 	log := g.Log.With().Str("func", "UpdateUser").Logger()
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {

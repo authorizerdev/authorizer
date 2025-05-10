@@ -82,15 +82,6 @@ type VerificationRequests {
   verification_requests: [VerificationRequest!]!
 }
 
-type SMSVerificationRequests {
-  id: ID!
-  code: String!
-  code_expires_at: Int64!
-  phone_number: String!
-  created_at: Int64!
-  updated_at: Int64
-}
-
 type Error {
   message: String!
   reason: String!
@@ -270,7 +261,7 @@ type EmailTemplates {
   email_templates: [EmailTemplate!]!
 }
 
-input UpdateEnvInput {
+input UpdateEnvRequest {
   ACCESS_TOKEN_EXPIRY_TIME: String
   ADMIN_SECRET: String
   CUSTOM_ACCESS_TOKEN_SCRIPT: String
@@ -335,16 +326,16 @@ input UpdateEnvInput {
   DISABLE_TOTP_LOGIN: Boolean
 }
 
-input AdminLoginInput {
+input AdminLoginRequest {
   admin_secret: String!
 }
 
-input AdminSignupInput {
+input AdminSignupRequest {
   admin_secret: String!
 }
 
 # Deprecated from v1.2.0
-input MobileSignUpInput {
+input MobileSignUpRequest {
   email: String
   given_name: String
   family_name: String
@@ -367,7 +358,7 @@ input MobileSignUpInput {
   app_data: Map
 }
 
-input SignUpInput {
+input SignUpRequest {
   email: String
   given_name: String
   family_name: String
@@ -390,7 +381,7 @@ input SignUpInput {
   app_data: Map
 }
 
-input LoginInput {
+input LoginRequest {
   email: String
   phone_number: String
   password: String!
@@ -403,7 +394,7 @@ input LoginInput {
 }
 
 # Deprecated from v1.2.0
-input MobileLoginInput {
+input MobileLoginRequest {
   phone_number: String!
   password: String!
   roles: [String!]
@@ -414,7 +405,7 @@ input MobileLoginInput {
   state: String
 }
 
-input VerifyEmailInput {
+input VerifyEmailRequest {
   token: String!
   # state is used for authorization code grant flow
   # it is used to get code for an on-going auth process during login
@@ -422,7 +413,7 @@ input VerifyEmailInput {
   state: String
 }
 
-input ResendVerifyEmailInput {
+input ResendVerifyEmailRequest {
   email: String!
   identifier: String!
   # state is used for authorization code grant flow
@@ -431,7 +422,7 @@ input ResendVerifyEmailInput {
   state: String
 }
 
-input UpdateProfileInput {
+input UpdateProfileRequest {
   old_password: String
   new_password: String
   confirm_new_password: String
@@ -448,7 +439,7 @@ input UpdateProfileInput {
   app_data: Map
 }
 
-input UpdateUserInput {
+input UpdateUserRequest {
   id: ID!
   email: String
   email_verified: Boolean
@@ -466,14 +457,14 @@ input UpdateUserInput {
   app_data: Map
 }
 
-input ForgotPasswordInput {
+input ForgotPasswordRequest {
   email: String
   phone_number: String
   state: String
   redirect_uri: String
 }
 
-input ResetPasswordInput {
+input ResetPasswordRequest {
   token: String
   otp: String
   phone_number: String
@@ -481,11 +472,11 @@ input ResetPasswordInput {
   confirm_password: String!
 }
 
-input DeleteUserInput {
+input DeleteUserRequest {
   email: String!
 }
 
-input MagicLinkLoginInput {
+input MagicLinkLoginRequest {
   email: String!
   roles: [String!]
   scope: [String!]
@@ -493,50 +484,50 @@ input MagicLinkLoginInput {
   redirect_uri: String
 }
 
-input SessionQueryInput {
+input SessionQueryRequest {
   roles: [String!]
   scope: [String!]
 }
 
-input PaginationInput {
+input PaginationRequest {
   limit: Int64
   page: Int64
 }
 
-input PaginatedInput {
-  pagination: PaginationInput
+input PaginatedRequest {
+  pagination: PaginationRequest
 }
 
-input OAuthRevokeInput {
+input OAuthRevokeRequest {
   refresh_token: String!
 }
 
-input InviteMemberInput {
+input InviteMemberRequest {
   emails: [String!]!
   redirect_uri: String
 }
 
-input UpdateAccessInput {
+input UpdateAccessRequest {
   user_id: String!
 }
 
-input ValidateJWTTokenInput {
+input ValidateJWTTokenRequest {
   token_type: String!
   token: String!
   roles: [String!]
 }
 
-input ValidateSessionInput {
+input ValidateSessionRequest {
   cookie: String!
   roles: [String!]
 }
 
-input GenerateJWTKeysInput {
+input GenerateJWTKeysRequest {
   type: String!
 }
 
 input ListWebhookLogRequest {
-  pagination: PaginationInput
+  pagination: PaginationRequest
   webhook_id: String
 }
 
@@ -618,37 +609,37 @@ input GetUserRequest {
 }
 
 type Mutation {
-  signup(params: SignUpInput!): AuthResponse!
+  signup(params: SignUpRequest!): AuthResponse!
   # Deprecated from v1.2.0
-  mobile_signup(params: MobileSignUpInput): AuthResponse!
-  login(params: LoginInput!): AuthResponse!
+  mobile_signup(params: MobileSignUpRequest): AuthResponse!
+  login(params: LoginRequest!): AuthResponse!
   # Deprecated from v1.2.0
-  mobile_login(params: MobileLoginInput!): AuthResponse!
-  magic_link_login(params: MagicLinkLoginInput!): Response!
+  mobile_login(params: MobileLoginRequest!): AuthResponse!
+  magic_link_login(params: MagicLinkLoginRequest!): Response!
   logout: Response!
-  update_profile(params: UpdateProfileInput!): Response!
-  verify_email(params: VerifyEmailInput!): AuthResponse!
-  resend_verify_email(params: ResendVerifyEmailInput!): Response!
-  forgot_password(params: ForgotPasswordInput!): ForgotPasswordResponse!
-  reset_password(params: ResetPasswordInput!): Response!
-  revoke(params: OAuthRevokeInput!): Response!
+  update_profile(params: UpdateProfileRequest!): Response!
+  verify_email(params: VerifyEmailRequest!): AuthResponse!
+  resend_verify_email(params: ResendVerifyEmailRequest!): Response!
+  forgot_password(params: ForgotPasswordRequest!): ForgotPasswordResponse!
+  reset_password(params: ResetPasswordRequest!): Response!
+  revoke(params: OAuthRevokeRequest!): Response!
   verify_otp(params: VerifyOTPRequest!): AuthResponse!
   resend_otp(params: ResendOTPRequest!): Response!
   deactivate_account: Response!
   # admin only apis
-  _delete_user(params: DeleteUserInput!): Response!
-  _update_user(params: UpdateUserInput!): User!
+  _delete_user(params: DeleteUserRequest!): Response!
+  _update_user(params: UpdateUserRequest!): User!
   # deprecated from v2.0.0
-  _admin_signup(params: AdminSignupInput!): Response!
-  _admin_login(params: AdminLoginInput!): Response!
+  _admin_signup(params: AdminSignupRequest!): Response!
+  _admin_login(params: AdminLoginRequest!): Response!
   _admin_logout: Response!
   # Deprecated from v2.0.0
-  _update_env(params: UpdateEnvInput!): Response!
-  _invite_members(params: InviteMemberInput!): InviteMembersResponse!
-  _revoke_access(param: UpdateAccessInput!): Response!
-  _enable_access(param: UpdateAccessInput!): Response!
+  _update_env(params: UpdateEnvRequest!): Response!
+  _invite_members(params: InviteMemberRequest!): InviteMembersResponse!
+  _revoke_access(param: UpdateAccessRequest!): Response!
+  _enable_access(param: UpdateAccessRequest!): Response!
   # Deprecated from v2.0.0
-  _generate_jwt_keys(params: GenerateJWTKeysInput!): GenerateJWTKeysResponse!
+  _generate_jwt_keys(params: GenerateJWTKeysRequest!): GenerateJWTKeysResponse!
   _add_webhook(params: AddWebhookRequest!): Response!
   _update_webhook(params: UpdateWebhookRequest!): Response!
   _delete_webhook(params: WebhookRequest!): Response!
@@ -660,19 +651,19 @@ type Mutation {
 
 type Query {
   meta: Meta!
-  session(params: SessionQueryInput): AuthResponse!
+  session(params: SessionQueryRequest): AuthResponse!
   profile: User!
-  validate_jwt_token(params: ValidateJWTTokenInput!): ValidateJWTTokenResponse!
-  validate_session(params: ValidateSessionInput): ValidateSessionResponse!
+  validate_jwt_token(params: ValidateJWTTokenRequest!): ValidateJWTTokenResponse!
+  validate_session(params: ValidateSessionRequest): ValidateSessionResponse!
   # admin only apis
-  _users(params: PaginatedInput): Users!
+  _users(params: PaginatedRequest): Users!
   _user(params: GetUserRequest!): User!
-  _verification_requests(params: PaginatedInput): VerificationRequests!
+  _verification_requests(params: PaginatedRequest): VerificationRequests!
   _admin_session: Response!
   # Deprecated from v2.0.0
   _env: Env!
   _webhook(params: WebhookRequest!): Webhook!
-  _webhooks(params: PaginatedInput): Webhooks!
+  _webhooks(params: PaginatedRequest): Webhooks!
   _webhook_logs(params: ListWebhookLogRequest): WebhookLogs!
-  _email_templates(params: PaginatedInput): EmailTemplates!
+  _email_templates(params: PaginatedRequest): EmailTemplates!
 }

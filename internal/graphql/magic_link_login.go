@@ -18,7 +18,7 @@ import (
 
 // MagicLinkLogin is the method to login a user using magic link.
 // Permissions: none
-func (g *graphqlProvider) MagicLinkLogin(ctx context.Context, params *model.MagicLinkLoginInput) (*model.Response, error) {
+func (g *graphqlProvider) MagicLinkLogin(ctx context.Context, params *model.MagicLinkLoginRequest) (*model.Response, error) {
 	log := g.Log.With().Str("func", "MagicLinkLogin").Logger()
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {

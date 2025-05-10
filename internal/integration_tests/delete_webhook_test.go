@@ -2,6 +2,8 @@ package integration_tests
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
@@ -9,7 +11,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 // TestDeleteWebhookTest tests the delete webhook functionality by the admin
@@ -22,7 +23,7 @@ func TestDeleteWebhookTest(t *testing.T) {
 	email := "delete_webhook_user_test_" + uuid.New().String() + "@authorizer.dev"
 	password := "Password@123"
 	// Signup the user
-	signupReq := &model.SignUpInput{
+	signupReq := &model.SignUpRequest{
 		Email:           &email,
 		Password:        password,
 		ConfirmPassword: password,

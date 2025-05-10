@@ -21,7 +21,7 @@ func TestLogin(t *testing.T) {
 	email := "login_test_" + uuid.New().String() + "@authorizer.dev"
 	password := "Password@123"
 
-	signupReq := &model.SignUpInput{
+	signupReq := &model.SignUpRequest{
 		Email:           &email,
 		Password:        password,
 		ConfirmPassword: password,
@@ -33,7 +33,7 @@ func TestLogin(t *testing.T) {
 	// Login tests
 	t.Run("should fail login with invalid email", func(t *testing.T) {
 		invalidEmail := "invalid@email.com"
-		loginReq := &model.LoginInput{
+		loginReq := &model.LoginRequest{
 			Email:    &invalidEmail,
 			Password: password,
 		}
@@ -43,7 +43,7 @@ func TestLogin(t *testing.T) {
 	})
 
 	t.Run("should fail login with invalid password", func(t *testing.T) {
-		loginReq := &model.LoginInput{
+		loginReq := &model.LoginRequest{
 			Email:    &email,
 			Password: "WrongPassword@123",
 		}
@@ -53,7 +53,7 @@ func TestLogin(t *testing.T) {
 	})
 
 	t.Run("should login successfully with valid credentials", func(t *testing.T) {
-		loginReq := &model.LoginInput{
+		loginReq := &model.LoginRequest{
 			Email:    &email,
 			Password: password,
 		}
@@ -69,7 +69,7 @@ func TestLogin(t *testing.T) {
 	})
 
 	t.Run("should fail login with empty credentials", func(t *testing.T) {
-		loginReq := &model.LoginInput{}
+		loginReq := &model.LoginRequest{}
 		res, err := ts.GraphQLProvider.Login(ctx, loginReq)
 		assert.Error(t, err)
 		assert.Nil(t, res)
@@ -77,7 +77,7 @@ func TestLogin(t *testing.T) {
 
 	t.Run("mobile login", func(t *testing.T) {
 		mobile := fmt.Sprintf("%d", time.Now().Add(10*time.Second).Unix())
-		signUpReq := &model.SignUpInput{
+		signUpReq := &model.SignUpRequest{
 			PhoneNumber:     &mobile,
 			Password:        password,
 			ConfirmPassword: password,
@@ -87,7 +87,7 @@ func TestLogin(t *testing.T) {
 		assert.NotNil(t, res)
 
 		// Login
-		loginReq := &model.LoginInput{
+		loginReq := &model.LoginRequest{
 			PhoneNumber: &mobile,
 			Password:    password,
 		}

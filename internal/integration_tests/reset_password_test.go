@@ -20,7 +20,7 @@ func TestResetPassword(t *testing.T) {
 	email := "reset_password_test_" + uuid.New().String() + "@authorizer.dev"
 	password := "Password@123"
 	// Signup the user
-	signupReq := &model.SignUpInput{
+	signupReq := &model.SignUpRequest{
 		Email:           &email,
 		Password:        password,
 		ConfirmPassword: password,
@@ -33,7 +33,7 @@ func TestResetPassword(t *testing.T) {
 
 	// Create forgot password request
 	t.Run("should fail for invalid request", func(t *testing.T) {
-		resetPasswordReq := &model.ResetPasswordInput{
+		resetPasswordReq := &model.ResetPasswordRequest{
 			Token:           refs.NewStringRef("test"),
 			Password:        "NewPassword@123",
 			ConfirmPassword: "NewPassword@123",
@@ -44,7 +44,7 @@ func TestResetPassword(t *testing.T) {
 	})
 
 	t.Run("should reset password with verification token", func(t *testing.T) {
-		forgotPasswordReq := &model.ForgotPasswordInput{
+		forgotPasswordReq := &model.ForgotPasswordRequest{
 			Email: refs.NewStringRef(email),
 		}
 		forgotPasswordRes, err := ts.GraphQLProvider.ForgotPassword(ctx, forgotPasswordReq)
@@ -60,7 +60,7 @@ func TestResetPassword(t *testing.T) {
 		assert.Equal(t, email, request.Email)
 
 		// Reset password using the token
-		resetPasswordReq := &model.ResetPasswordInput{
+		resetPasswordReq := &model.ResetPasswordRequest{
 			Token:           refs.NewStringRef(request.Token),
 			Password:        "NewPassword@123",
 			ConfirmPassword: "NewPassword@123",
@@ -72,7 +72,7 @@ func TestResetPassword(t *testing.T) {
 		assert.NotEmpty(t, resetPasswordRes.Message)
 
 		// Validate if the password is updated in db by logging in
-		loginReq := &model.LoginInput{
+		loginReq := &model.LoginRequest{
 			Email:    &email,
 			Password: "NewPassword@123",
 		}
