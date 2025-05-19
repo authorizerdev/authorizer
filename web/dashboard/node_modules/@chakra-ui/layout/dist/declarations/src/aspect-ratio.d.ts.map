@@ -1,1 +1,0 @@
-{"version":3,"file":"aspect-ratio.d.ts","sourceRoot":"../../../src","sources":["aspect-ratio.tsx"],"names":[],"mappings":"AAAA,OAAO,EAGL,eAAe,EACf,eAAe,EAChB,MAAM,mBAAmB,CAAA;AAI1B,UAAU,kBAAkB;IAC1B;;;;OAIG;IACH,KAAK,CAAC,EAAE,eAAe,CAAC,MAAM,CAAC,CAAA;CAChC;AAED,MAAM,WAAW,gBACf,SAAQ,eAAe,CAAC,KAAK,CAAC,EAC5B,kBAAkB;CAAG;AAEzB;;;;;GAKG;AACH,eAAO,MAAM,WAAW,sEA0CtB,CAAA"}

@@ -114,7 +114,7 @@ export declare type ModifierArguments<Options extends Obj> = {
     options: Partial<Options>;
     name: string;
 };
-export declare type Modifier<Name, Options> = {
+export declare type Modifier<Name, Options extends Obj> = {
     name: Name;
     enabled: boolean;
     phase: ModifierPhases;

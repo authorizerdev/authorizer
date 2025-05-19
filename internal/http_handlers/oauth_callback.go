@@ -1,7 +1,6 @@
 package http_handlers
 
 import (
-	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -18,7 +17,6 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
-	"github.com/authorizerdev/authorizer/internal/oauth"
 	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
@@ -320,15 +318,24 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 	}
 }
 
-func (h *httpProvider) processGoogleUserInfo(ctx context.Context, code string) (*schemas.User, error) {
+func (h *httpProvider) processGoogleUserInfo(ctx *gin.Context, code string) (*schemas.User, error) {
 	log := h.Log.With().Str("func", "processGoogleUserInfo").Logger()
-	oauth2Token, err := oauth.OAuthProviders.GoogleConfig.Exchange(ctx, code)
+	cfg, err := h.OAuthProvider.GetOAuthConfig(ctx, constants.AuthRecipeMethodGoogle)
+	if err != nil {
+		log.Debug().Err(err).Msg("Error getting oauth config")
+		return nil, fmt.Errorf("error getting oauth config: %s", err.Error())
+	}
+	oauth2Token, err := cfg.Exchange(ctx, code)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to exchange code for token")
 		return nil, fmt.Errorf("invalid google exchange code: %s", err.Error())
 	}
-	verifier := oauth.OIDCProviders.GoogleOIDC.Verifier(&oidc.Config{ClientID: oauth.OAuthProviders.GoogleConfig.ClientID})
 
+	oidcProvider, err := oidc.NewProvider(ctx, "https://accounts.google.com")
+	verifier := oidcProvider.Verifier(&oidc.Config{ClientID: h.GoogleClientID})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create oidc provider: %s", err.Error())
+	}
 	// Extract the ID Token from OAuth2 token.
 	rawIDToken, ok := oauth2Token.Extra("id_token").(string)
 	if !ok {
@@ -351,9 +358,15 @@ func (h *httpProvider) processGoogleUserInfo(ctx context.Context, code string) (
 	return user, nil
 }
 
-func (h *httpProvider) processGithubUserInfo(ctx context.Context, code string) (*schemas.User, error) {
+func (h *httpProvider) processGithubUserInfo(ctx *gin.Context, code string) (*schemas.User, error) {
 	log := h.Log.With().Str("func", "processGithubUserInfo").Logger()
-	oauth2Token, err := oauth.OAuthProviders.GithubConfig.Exchange(ctx, code)
+	cfg, err := h.OAuthProvider.GetOAuthConfig(ctx, constants.AuthRecipeMethodGithub)
+	if err != nil {
+		log.Debug().Err(err).Msg("Error getting oauth config")
+		return nil, fmt.Errorf("error getting oauth config: %s", err.Error())
+	}
+
+	oauth2Token, err := cfg.Exchange(ctx, code)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to exchange code for token")
 		return nil, fmt.Errorf("invalid github exchange code: %s", err.Error())
@@ -459,9 +472,14 @@ func (h *httpProvider) processGithubUserInfo(ctx context.Context, code string) (
 	return user, nil
 }
 
-func (h *httpProvider) processFacebookUserInfo(ctx context.Context, code string) (*schemas.User, error) {
+func (h *httpProvider) processFacebookUserInfo(ctx *gin.Context, code string) (*schemas.User, error) {
 	log := h.Log.With().Str("func", "processFacebookUserInfo").Logger()
-	oauth2Token, err := oauth.OAuthProviders.FacebookConfig.Exchange(ctx, code)
+	cfg, err := h.OAuthProvider.GetOAuthConfig(ctx, constants.AuthRecipeMethodFacebook)
+	if err != nil {
+		log.Debug().Err(err).Msg("Error getting oauth config")
+		return nil, fmt.Errorf("error getting oauth config: %s", err.Error())
+	}
+	oauth2Token, err := cfg.Exchange(ctx, code)
 	if err != nil {
 		log.Debug().Err(err).Msg("Invalid facebook exchange code")
 		return nil, fmt.Errorf("invalid facebook exchange code: %s", err.Error())
@@ -510,9 +528,15 @@ func (h *httpProvider) processFacebookUserInfo(ctx context.Context, code string)
 	return user, nil
 }
 
-func (h *httpProvider) processLinkedInUserInfo(ctx context.Context, code string) (*schemas.User, error) {
+func (h *httpProvider) processLinkedInUserInfo(ctx *gin.Context, code string) (*schemas.User, error) {
 	log := h.Log.With().Str("func", "processLinkedInUserInfo").Logger()
-	oauth2Token, err := oauth.OAuthProviders.LinkedInConfig.Exchange(ctx, code)
+	cfg, err := h.OAuthProvider.GetOAuthConfig(ctx, constants.AuthRecipeMethodLinkedIn)
+	if err != nil {
+		log.Debug().Err(err).Msg("Error getting oauth config")
+		return nil, fmt.Errorf("error getting oauth config: %s", err.Error())
+	}
+
+	oauth2Token, err := cfg.Exchange(ctx, code)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to exchange code for token")
 		return nil, fmt.Errorf("invalid linkedin exchange code: %s", err.Error())
@@ -592,10 +616,16 @@ func (h *httpProvider) processLinkedInUserInfo(ctx context.Context, code string)
 	return user, nil
 }
 
-func (h *httpProvider) processAppleUserInfo(ctx context.Context, code string, user_ *AppleUserInfo) (*schemas.User, error) {
+func (h *httpProvider) processAppleUserInfo(ctx *gin.Context, code string, user_ *AppleUserInfo) (*schemas.User, error) {
 	log := h.Log.With().Str("func", "processAppleUserInfo").Logger()
+	cfg, err := h.OAuthProvider.GetOAuthConfig(ctx, constants.AuthRecipeMethodApple)
+	if err != nil {
+		log.Debug().Err(err).Msg("Error getting oauth config")
+		return nil, fmt.Errorf("error getting oauth config: %s", err.Error())
+	}
+
 	var user = &schemas.User{}
-	oauth2Token, err := oauth.OAuthProviders.AppleConfig.Exchange(ctx, code)
+	oauth2Token, err := cfg.Exchange(ctx, code)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to exchange code for token")
 		return user, fmt.Errorf("invalid apple exchange code: %s", err.Error())
@@ -648,9 +678,14 @@ func (h *httpProvider) processAppleUserInfo(ctx context.Context, code string, us
 	return user, err
 }
 
-func (h *httpProvider) processDiscordUserInfo(ctx context.Context, code string) (*schemas.User, error) {
+func (h *httpProvider) processDiscordUserInfo(ctx *gin.Context, code string) (*schemas.User, error) {
 	log := h.Log.With().Str("func", "processDiscordUserInfo").Logger()
-	oauth2Token, err := oauth.OAuthProviders.DiscordConfig.Exchange(ctx, code)
+	cfg, err := h.OAuthProvider.GetOAuthConfig(ctx, constants.AuthRecipeMethodDiscord)
+	if err != nil {
+		log.Debug().Err(err).Msg("Error getting oauth config")
+		return nil, fmt.Errorf("error getting oauth config: %s", err.Error())
+	}
+	oauth2Token, err := cfg.Exchange(ctx, code)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to exchange code for token")
 		return nil, fmt.Errorf("invalid discord exchange code: %s", err.Error())
@@ -714,9 +749,15 @@ func (h *httpProvider) processDiscordUserInfo(ctx context.Context, code string) 
 	return user, nil
 }
 
-func (h *httpProvider) processTwitterUserInfo(ctx context.Context, code, verifier string) (*schemas.User, error) {
+func (h *httpProvider) processTwitterUserInfo(ctx *gin.Context, code, verifier string) (*schemas.User, error) {
 	log := h.Log.With().Str("func", "processTwitterUserInfo").Logger()
-	oauth2Token, err := oauth.OAuthProviders.TwitterConfig.Exchange(ctx, code, oauth2.SetAuthURLParam("code_verifier", verifier))
+	cfg, err := h.OAuthProvider.GetOAuthConfig(ctx, constants.AuthRecipeMethodTwitter)
+	if err != nil {
+		log.Debug().Err(err).Msg("Error getting oauth config")
+		return nil, fmt.Errorf("error getting oauth config: %s", err.Error())
+	}
+
+	oauth2Token, err := cfg.Exchange(ctx, code, oauth2.SetAuthURLParam("code_verifier", verifier))
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to exchange code for token")
 		return nil, fmt.Errorf("invalid twitter exchange code: %s", err.Error())
@@ -782,16 +823,22 @@ func (h *httpProvider) processTwitterUserInfo(ctx context.Context, code, verifie
 }
 
 // process microsoft user information
-func (h *httpProvider) processMicrosoftUserInfo(ctx context.Context, code string) (*schemas.User, error) {
+func (h *httpProvider) processMicrosoftUserInfo(ctx *gin.Context, code string) (*schemas.User, error) {
 	log := h.Log.With().Str("func", "processMicrosoftUserInfo").Logger()
-	oauth2Token, err := oauth.OAuthProviders.MicrosoftConfig.Exchange(ctx, code)
+	cfg, err := h.OAuthProvider.GetOAuthConfig(ctx, constants.AuthRecipeMethodMicrosoft)
+	if err != nil {
+		log.Debug().Err(err).Msg("Error getting oauth config")
+		return nil, fmt.Errorf("error getting oauth config: %s", err.Error())
+	}
+	oauth2Token, err := cfg.Exchange(ctx, code)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to exchange code for token")
 		return nil, fmt.Errorf("invalid microsoft exchange code: %s", err.Error())
 	}
+	oidcProvider, err := oidc.NewProvider(ctx, fmt.Sprintf("https://login.microsoftonline.com/%s/v2.0", h.MicrosoftTenantID))
 	// we need to skip issuer check because for common tenant it will return internal issuer which does not match
-	verifier := oauth.OIDCProviders.MicrosoftOIDC.Verifier(&oidc.Config{
-		ClientID:        oauth.OAuthProviders.MicrosoftConfig.ClientID,
+	verifier := oidcProvider.Verifier(&oidc.Config{
+		ClientID:        h.MicrosoftClientID,
 		SkipIssuerCheck: true,
 	})
 	// Extract the ID Token from OAuth2 token.
@@ -816,9 +863,15 @@ func (h *httpProvider) processMicrosoftUserInfo(ctx context.Context, code string
 }
 
 // process twitch user information
-func (h *httpProvider) processTwitchUserInfo(ctx context.Context, code string) (*schemas.User, error) {
+func (h *httpProvider) processTwitchUserInfo(ctx *gin.Context, code string) (*schemas.User, error) {
 	log := h.Log.With().Str("func", "processTwitchUserInfo").Logger()
-	oauth2Token, err := oauth.OAuthProviders.TwitchConfig.Exchange(ctx, code)
+	cfg, err := h.OAuthProvider.GetOAuthConfig(ctx, constants.AuthRecipeMethodTwitch)
+	if err != nil {
+		log.Debug().Err(err).Msg("Error getting oauth config")
+		return nil, fmt.Errorf("error getting oauth config: %s", err.Error())
+	}
+
+	oauth2Token, err := cfg.Exchange(ctx, code)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to exchange code for token")
 		return nil, fmt.Errorf("invalid twitch exchange code: %s", err.Error())
@@ -830,8 +883,13 @@ func (h *httpProvider) processTwitchUserInfo(ctx context.Context, code string) (
 		log.Debug().Err(err).Msg("Failed to extract ID Token from OAuth2 token")
 		return nil, fmt.Errorf("unable to extract id_token")
 	}
-	verifier := oauth.OIDCProviders.TwitchOIDC.Verifier(&oidc.Config{
-		ClientID:        oauth.OAuthProviders.TwitchConfig.ClientID,
+	oidcProvider, err := oidc.NewProvider(ctx, "https://id.twitch.tv/oauth2")
+	if err != nil {
+		log.Debug().Err(err).Msg("Failed to create OIDC provider")
+		return nil, fmt.Errorf("failed to create oidc provider: %s", err.Error())
+	}
+	verifier := oidcProvider.Verifier(&oidc.Config{
+		ClientID:        h.TwitchClientID,
 		SkipIssuerCheck: true,
 	})
 
@@ -852,9 +910,14 @@ func (h *httpProvider) processTwitchUserInfo(ctx context.Context, code string) (
 }
 
 // process roblox user information
-func (h *httpProvider) processRobloxUserInfo(ctx context.Context, code, verifier string) (*schemas.User, error) {
+func (h *httpProvider) processRobloxUserInfo(ctx *gin.Context, code, verifier string) (*schemas.User, error) {
 	log := h.Log.With().Str("func", "processRobloxUserInfo").Logger()
-	oauth2Token, err := oauth.OAuthProviders.RobloxConfig.Exchange(ctx, code, oauth2.SetAuthURLParam("code_verifier", verifier))
+	cfg, err := h.OAuthProvider.GetOAuthConfig(ctx, constants.AuthRecipeMethodRoblox)
+	if err != nil {
+		log.Debug().Err(err).Msg("Error getting oauth config")
+		return nil, fmt.Errorf("error getting oauth config: %s", err.Error())
+	}
+	oauth2Token, err := cfg.Exchange(ctx, code, oauth2.SetAuthURLParam("code_verifier", verifier))
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to exchange code for token")
 		return nil, fmt.Errorf("invalid roblox exchange code: %s", err.Error())

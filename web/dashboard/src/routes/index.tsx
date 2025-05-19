@@ -6,7 +6,6 @@ import { DashboardLayout } from '../layouts/DashboardLayout';
 import EmailTemplates from '../pages/EmailTemplates';
 
 const Auth = lazy(() => import('../pages/Auth'));
-const Environment = lazy(() => import('../pages/Environment'));
 const Home = lazy(() => import('../pages/Home'));
 const Users = lazy(() => import('../pages/Users'));
 const Webhooks = lazy(() => import('../pages/Webhooks'));
@@ -26,11 +25,11 @@ export const AppRoutes = () => {
 								</DashboardLayout>
 							}
 						>
-							<Route path="/" element={<Outlet />}>
+							{/* <Route path="/" element={<Outlet />}>
 								<Route index element={<Environment />} />
 								<Route path="/:sec" element={<Environment />} />
-							</Route>
-							<Route path="users" element={<Users />} />
+							</Route> */}
+							<Route path="/" element={<Users />} />
 							<Route path="webhooks" element={<Webhooks />} />
 							<Route path="email-templates" element={<EmailTemplates />} />
 							<Route path="*" element={<Home />} />

@@ -1,25 +1,24 @@
 import { addUniqueItem, removeItem } from '../../utils/array.mjs';
 import { compareByDepth } from './compare-by-depth.mjs';
 
-var FlatTree = /** @class */ (function () {
-    function FlatTree() {
+class FlatTree {
+    constructor() {
         this.children = [];
         this.isDirty = false;
     }
-    FlatTree.prototype.add = function (child) {
+    add(child) {
         addUniqueItem(this.children, child);
         this.isDirty = true;
-    };
-    FlatTree.prototype.remove = function (child) {
+    }
+    remove(child) {
         removeItem(this.children, child);
         this.isDirty = true;
-    };
-    FlatTree.prototype.forEach = function (callback) {
+    }
+    forEach(callback) {
         this.isDirty && this.children.sort(compareByDepth);
         this.isDirty = false;
         this.children.forEach(callback);
-    };
-    return FlatTree;
-}());
+    }
+}
 
 export { FlatTree };

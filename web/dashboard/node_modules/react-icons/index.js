@@ -1,2 +1,2 @@
 // THIS FILE IS AUTO GENERATED
-module.exports = require('./lib/cjs/index.js');
+module.exports = require('./lib/index.js');

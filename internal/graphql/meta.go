@@ -36,8 +36,8 @@ func (g *graphqlProvider) Meta(ctx context.Context) (*model.Meta, error) {
 	twitchClientID := g.Config.TwitchClientID
 	twitchClientSecret := g.Config.TwitchClientSecret
 
-	robloxClientID := g.Config.RoboloxClientID
-	robloxClientSecret := g.Config.RoboloxClientSecret
+	robloxClientID := g.Config.RobloxClientID
+	robloxClientSecret := g.Config.RobloxClientSecret
 
 	isBasicAuthDisabled := g.Config.DisableBasicAuthentication
 	isMobileBasicAuthDisabled := g.Config.DisableMobileBasicAuthentication

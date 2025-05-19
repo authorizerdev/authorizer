@@ -1,6 +1,6 @@
 import { MILLISECONDS_A_DAY, MILLISECONDS_A_HOUR, MILLISECONDS_A_MINUTE, MILLISECONDS_A_SECOND, MILLISECONDS_A_WEEK, REGEX_FORMAT } from '../../constant';
 var MILLISECONDS_A_YEAR = MILLISECONDS_A_DAY * 365;
-var MILLISECONDS_A_MONTH = MILLISECONDS_A_DAY * 30;
+var MILLISECONDS_A_MONTH = MILLISECONDS_A_YEAR / 12;
 var durationRegex = /^(-|\+)?P(?:([-+]?[0-9,.]*)Y)?(?:([-+]?[0-9,.]*)M)?(?:([-+]?[0-9,.]*)W)?(?:([-+]?[0-9,.]*)D)?(?:T(?:([-+]?[0-9,.]*)H)?(?:([-+]?[0-9,.]*)M)?(?:([-+]?[0-9,.]*)S)?)?$/;
 var unitToMS = {
   years: MILLISECONDS_A_YEAR,
@@ -159,6 +159,7 @@ var Duration = /*#__PURE__*/function () {
 
     if (this.$d.milliseconds) {
       seconds += this.$d.milliseconds / 1000;
+      seconds = Math.round(seconds * 1000) / 1000;
     }
 
     var S = getNumberUnitFormat(seconds, 'S');
@@ -212,7 +213,7 @@ var Duration = /*#__PURE__*/function () {
       base = this.$d[pUnit];
     }
 
-    return base === 0 ? 0 : base; // a === 0 will be true on both 0 and -0
+    return base || 0; // a === 0 will be true on both 0 and -0
   };
 
   _proto.add = function add(input, unit, isSubtract) {
@@ -245,6 +246,10 @@ var Duration = /*#__PURE__*/function () {
 
   _proto.humanize = function humanize(withSuffix) {
     return $d().add(this.$ms, 'ms').locale(this.$l).fromNow(!withSuffix);
+  };
+
+  _proto.valueOf = function valueOf() {
+    return this.asMilliseconds();
   };
 
   _proto.milliseconds = function milliseconds() {
@@ -314,6 +319,10 @@ var Duration = /*#__PURE__*/function () {
   return Duration;
 }();
 
+var manipulateDuration = function manipulateDuration(date, duration, k) {
+  return date.add(duration.years() * k, 'y').add(duration.months() * k, 'M').add(duration.days() * k, 'd').add(duration.hours() * k, 'h').add(duration.minutes() * k, 'm').add(duration.seconds() * k, 's').add(duration.milliseconds() * k, 'ms');
+};
+
 export default (function (option, Dayjs, dayjs) {
   $d = dayjs;
   $u = dayjs().$utils();
@@ -330,12 +339,18 @@ export default (function (option, Dayjs, dayjs) {
   var oldSubtract = Dayjs.prototype.subtract;
 
   Dayjs.prototype.add = function (value, unit) {
-    if (isDuration(value)) value = value.asMilliseconds();
+    if (isDuration(value)) {
+      return manipulateDuration(this, value, 1);
+    }
+
     return oldAdd.bind(this)(value, unit);
   };
 
   Dayjs.prototype.subtract = function (value, unit) {
-    if (isDuration(value)) value = value.asMilliseconds();
+    if (isDuration(value)) {
+      return manipulateDuration(this, value, -1);
+    }
+
     return oldSubtract.bind(this)(value, unit);
   };
 });

@@ -1,14 +1,14 @@
-import type { ObjMap } from '../jsutils/ObjMap';
 import type { Maybe } from '../jsutils/Maybe';
+import type { ObjMap } from '../jsutils/ObjMap';
 import { GraphQLError } from '../error/GraphQLError';
 import type {
-  FieldNode,
   DirectiveNode,
+  FieldNode,
   VariableDefinitionNode,
 } from '../language/ast';
-import type { GraphQLSchema } from '../type/schema';
 import type { GraphQLField } from '../type/definition';
 import type { GraphQLDirective } from '../type/directives';
+import type { GraphQLSchema } from '../type/schema';
 declare type CoercedVariableValues =
   | {
       errors: ReadonlyArray<GraphQLError>;
@@ -28,8 +28,6 @@ declare type CoercedVariableValues =
  * Note: The returned value is a plain Object with a prototype, since it is
  * exposed to user code. Care should be taken to not pull values from the
  * Object prototype.
- *
- * @internal
  */
 export declare function getVariableValues(
   schema: GraphQLSchema,
@@ -48,8 +46,6 @@ export declare function getVariableValues(
  * Note: The returned value is a plain Object with a prototype, since it is
  * exposed to user code. Care should be taken to not pull values from the
  * Object prototype.
- *
- * @internal
  */
 export declare function getArgumentValues(
   def: GraphQLField<unknown, unknown> | GraphQLDirective,

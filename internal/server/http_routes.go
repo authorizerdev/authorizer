@@ -30,24 +30,24 @@ func (s *server) NewRouter() *gin.Engine {
 	router.POST("/oauth/token", s.Dependencies.HTTPProvider.TokenHandler())
 	router.POST("/oauth/revoke", s.Dependencies.HTTPProvider.RevokeRefreshTokenHandler())
 
-	// router.LoadHTMLGlob("web/templates/*")
+	router.LoadHTMLGlob("web/templates/*")
 	// // login page app related routes.
-	// app := router.Group("/app")
-	// {
-	// 	app.Static("/favicon_io", "app/favicon_io")
-	// 	app.Static("/build", "app/build")
-	// 	app.GET("/", s.Dependencies.HTTPProvider.AppHandler())
-	// 	app.GET("/:page", s.Dependencies.HTTPProvider.AppHandler())
-	// }
+	app := router.Group("/app")
+	{
+		app.Static("/favicon_io", "web/app/favicon_io")
+		app.Static("/build", "web/app/build")
+		app.GET("/", s.Dependencies.HTTPProvider.AppHandler())
+		app.GET("/:page", s.Dependencies.HTTPProvider.AppHandler())
+	}
 
 	// // dashboard related routes
-	// dashboard := router.Group("/dashboard")
-	// {
-	// 	dashboard.Static("/favicon_io", "dashboard/favicon_io")
-	// 	dashboard.Static("/build", "dashboard/build")
-	// 	dashboard.Static("/public", "dashboard/public")
-	// 	dashboard.GET("/", s.Dependencies.HTTPProvider.DashboardHandler())
-	// 	dashboard.GET("/:page", s.Dependencies.HTTPProvider.DashboardHandler())
-	// }
+	dashboard := router.Group("/dashboard")
+	{
+		dashboard.Static("/favicon_io", "web/dashboard/favicon_io")
+		dashboard.Static("/build", "web/dashboard/build")
+		dashboard.Static("/public", "web/dashboard/public")
+		dashboard.GET("/", s.Dependencies.HTTPProvider.DashboardHandler())
+		dashboard.GET("/:page", s.Dependencies.HTTPProvider.DashboardHandler())
+	}
 	return router
 }

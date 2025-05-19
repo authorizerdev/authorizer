@@ -46,8 +46,7 @@ const unsetSides = {
 // Round the offsets to the nearest suitable subpixel based on the DPR.
 // Zooming can change the DPR, but it seems to report a value that will
 // cleanly divide the values into the appropriate subpixels.
-function roundOffsetsByDPR({ x, y }): Offsets {
-  const win: Window = window;
+function roundOffsetsByDPR({ x, y }, win: Window): Offsets {
   const dpr = win.devicePixelRatio || 1;
 
   return {
@@ -79,12 +78,10 @@ export function mapToStyles({
   roundOffsets: boolean | RoundOffsets,
   isFixed: boolean,
 }) {
-  let { x = 0, y = 0 } =
-    roundOffsets === true
-      ? roundOffsetsByDPR(offsets)
-      : typeof roundOffsets === 'function'
-      ? roundOffsets(offsets)
-      : offsets;
+  let { x = 0, y = 0 } = offsets;
+
+  ({ x, y } =
+    typeof roundOffsets === 'function' ? roundOffsets({ x, y }) : { x, y });
 
   const hasX = offsets.hasOwnProperty('x');
   const hasY = offsets.hasOwnProperty('y');
@@ -120,7 +117,7 @@ export function mapToStyles({
     ) {
       sideY = bottom;
       const offsetY =
-        isFixed && win.visualViewport
+        isFixed && offsetParent === win && win.visualViewport
           ? win.visualViewport.height
           : // $FlowFixMe[prop-missing]
             offsetParent[heightProp];
@@ -134,7 +131,7 @@ export function mapToStyles({
     ) {
       sideX = right;
       const offsetX =
-        isFixed && win.visualViewport
+        isFixed && offsetParent === win && win.visualViewport
           ? win.visualViewport.width
           : // $FlowFixMe[prop-missing]
             offsetParent[widthProp];
@@ -147,6 +144,11 @@ export function mapToStyles({
     position,
     ...(adaptive && unsetSides),
   };
+
+  ({ x, y } =
+    roundOffsets === true
+      ? roundOffsetsByDPR({ x, y }, getWindow(popper))
+      : { x, y });
 
   if (gpuAcceleration) {
     return {
@@ -178,33 +180,6 @@ function computeStyles({ state, options }: ModifierArguments<Options>) {
     // defaults to use builtin `roundOffsetsByDPR`
     roundOffsets = true,
   } = options;
-
-  if (false) {
-    const transitionProperty =
-      getComputedStyle(state.elements.popper).transitionProperty || '';
-
-    if (
-      adaptive &&
-      ['transform', 'top', 'right', 'bottom', 'left'].some(
-        (property) => transitionProperty.indexOf(property) >= 0
-      )
-    ) {
-      console.warn(
-        [
-          'Popper: Detected CSS transitions on at least one of the following',
-          'CSS properties: "transform", "top", "right", "bottom", "left".',
-          '\n\n',
-          'Disable the "computeStyles" modifier\'s `adaptive` option to allow',
-          'for smooth transitions, or remove these properties from the CSS',
-          'transition declaration on the popper element if only transitioning',
-          'opacity or background-color for example.',
-          '\n\n',
-          'We recommend using the popper element as a wrapper around an inner',
-          'element that can have any CSS property transitioned for animations.',
-        ].join(' ')
-      );
-    }
-  }
 
   const commonStyles = {
     placement: getBasePlacement(state.placement),

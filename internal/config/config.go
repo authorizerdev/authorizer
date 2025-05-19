@@ -168,26 +168,36 @@ type Config struct {
 	GoogleClientID string
 	// GoogleClientSecret is the client secret for Google OAuth
 	GoogleClientSecret string
+	// Scopes is the list of scopes for Google OAuth
+	GoogleScopes []string
 
 	// GithubClientID is the client ID for Github OAuth
 	GithubClientID string
 	// GithubClientSecret is the client secret for Github OAuth
 	GithubClientSecret string
+	// GithubScopes is the list of scopes for Github OAuth
+	GithubScopes []string
 
 	// FacebookClientID is the client ID for Facebook OAuth
 	FacebookClientID string
 	// FacebookClientSecret is the client secret for Facebook OAuth
 	FacebookClientSecret string
+	// FacebookScopes is the list of scopes for Facebook OAuth
+	FacebookScopes []string
 
 	// LinkedinClientID is the client ID for Linkedin OAuth
 	LinkedinClientID string
 	// LinkedinClientSecret is the client secret for Linkedin OAuth
 	LinkedinClientSecret string
+	// LinkedinScopes is the list of scopes for Linkedin OAuth
+	LinkedinScopes []string
 
 	// TwitterClientID is the client ID for Twitter OAuth
 	TwitterClientID string
 	// TwitterClientSecret is the client secret for Twitter OAuth
 	TwitterClientSecret string
+	// TwitterScopes is the list of scopes for Twitter OAuth
+	TwitterScopes []string
 
 	// MicrosoftClientID is the client ID for Microsoft OAuth
 	MicrosoftClientID string
@@ -195,26 +205,36 @@ type Config struct {
 	MicrosoftClientSecret string
 	// MicrosoftTenantID is the tenant ID for Microsoft OAuth
 	MicrosoftTenantID string
+	// MicrosoftScopes is the list of scopes for Microsoft OAuth
+	MicrosoftScopes []string
 
 	// AppleClientID is the client ID for Apple OAuth
 	AppleClientID string
 	// AppleClientSecret is the client secret for Apple OAuth
 	AppleClientSecret string
+	// AppleScopes is the list of scopes for Apple OAuth
+	AppleScopes []string
 
 	// DiscordClientID is the client ID for Discord OAuth
 	DiscordClientID string
 	// DiscordClientSecret is the client secret for Discord OAuth
 	DiscordClientSecret string
+	// DiscordScopes is the list of scopes for Discord OAuth
+	DiscordScopes []string
 
 	// TwitchClientID is the client ID for Twitch OAuth
 	TwitchClientID string
 	// TwitchClientSecret is the client secret for Twitch OAuth
 	TwitchClientSecret string
+	// TwitchScopes is the list of scopes for Twitch OAuth
+	TwitchScopes []string
 
-	// RoboloxClientID is the client ID for Robolox OAuth
-	RoboloxClientID string
-	// RoboloxClientSecret is the client secret for Robolox OAuth
-	RoboloxClientSecret string
+	// RobloxClientID is the client ID for Roblox OAuth
+	RobloxClientID string
+	// RobloxClientSecret is the client secret for Roblox OAuth
+	RobloxClientSecret string
+	// RobloxScopes is the list of scopes for Roblox OAuth
+	RobloxScopes []string
 
 	// IsAppCookieSecure is the flag to set secure(http only) cookie
 	AppCookieSecure bool

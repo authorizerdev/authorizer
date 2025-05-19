@@ -4,6 +4,6 @@ import { createDomMotionConfig } from './utils/create-config.mjs';
 /**
  * @public
  */
-var m = createMotionProxy(createDomMotionConfig);
+const m = createMotionProxy(createDomMotionConfig);
 
 export { m };

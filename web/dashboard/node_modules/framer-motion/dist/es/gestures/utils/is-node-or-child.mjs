@@ -5,7 +5,7 @@
  * @param parent - Element to find
  * @param child - Element to test against parent
  */
-var isNodeOrChild = function (parent, child) {
+const isNodeOrChild = (parent, child) => {
     if (!child) {
         return false;
     }

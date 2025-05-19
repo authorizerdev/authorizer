@@ -25,7 +25,7 @@ require (
 	github.com/vektah/gqlparser/v2 v2.5.26
 	go.mongodb.org/mongo-driver v1.12.1
 	golang.org/x/crypto v0.37.0
-	golang.org/x/oauth2 v0.13.0
+	golang.org/x/oauth2 v0.30.0
 	golang.org/x/sync v0.13.0
 	gopkg.in/mail.v2 v2.3.1
 	gopkg.in/square/go-jose.v2 v2.6.0

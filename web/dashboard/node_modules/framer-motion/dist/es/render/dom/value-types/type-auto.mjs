@@ -1,9 +1,9 @@
 /**
  * ValueType for "auto"
  */
-var auto = {
-    test: function (v) { return v === "auto"; },
-    parse: function (v) { return v; },
+const auto = {
+    test: (v) => v === "auto",
+    parse: (v) => v,
 };
 
 export { auto };

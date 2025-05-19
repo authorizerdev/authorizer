@@ -35,6 +35,8 @@ function copy(text, options) {
 
     mark = document.createElement("span");
     mark.textContent = text;
+    // avoid screen readers from reading out loud the text
+    mark.ariaHidden = "true"
     // reset user styles for span element
     mark.style.all = "unset";
     // prevents scrolling to the end of the page

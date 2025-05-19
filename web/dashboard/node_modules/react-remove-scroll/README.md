@@ -76,7 +76,7 @@ const sidecar = sidecar(() => import('react-remove-scroll/sidecar'));
 > Consider setting `-webkit-overflow-scrolling: touch;` on a document level for a proper mobile experience.
 
 ## Internal div
-But default RemoveScroll will create a div to handle and capture events.
+By default RemoveScroll will create a div to handle and capture events.
 You may specify `className` for it, if you need, or __remove it__.
 
 The following code samples will produce the same output

@@ -1,9 +1,11 @@
 # Wonka
 
-A fast push & pull stream library for Reason, loosely following the [callbag spec](https://github.com/callbag/callbag)
+A tiny but capable push & pull stream library for TypeScript and Flow,
+loosely following the [callbag spec](https://github.com/callbag/callbag)
 
-> **NOTE:** The `master` branch currently points to the v4 Release Candidate version!
-> If you're looking for v3, [please check the `v3.2.2`](https://github.com/kitten/wonka/tree/v3.2.2)
+> **NOTE:** The currently released version v6 is only compatible now with TypeScript, Flow, and JavaScript.
+> If you're looking for Reason/OCaml/esy/dune support, please check v5, and if you're looking for the legacy version
+> of this library check v4.
 
 <br>
 <a href="https://npmjs.com/package/wonka">
@@ -33,19 +35,6 @@ Wonka is a lightweight iterable and observable library loosely based on
 the [callbag spec](https://github.com/callbag/callbag). It exposes a set of helpers to create streams,
 which are sources of multiple values, which allow you to create, transform
 and consume event streams or iterable sets of data.
-
-Wonka is written in [Reason](https://reasonml.github.io/), a dialect of OCaml, and can hence be used
-for native applications. It is also compiled using [BuckleScript](https://bucklescript.github.io) to plain
-JavaScript and has typings for [TypeScript](https://www.typescriptlang.org/) and [Flow](https://flow.org/).
-
-This means that out of the box Wonka is usable in any project that use the following:
-
-- Plain JavaScript
-- TypeScript
-- Flow
-- Reason/OCaml with BuckleScript
-- Reason/OCaml with `bs-native`
-- Reason/OCaml with Dune and Esy
 
 ## [Documentation](https://wonka.kitten.sh/)
 

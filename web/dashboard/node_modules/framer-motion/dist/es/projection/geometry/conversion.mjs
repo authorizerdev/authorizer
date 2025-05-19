@@ -3,15 +3,13 @@
  * it's easier to consider each axis individually. This function returns a bounding box
  * as a map of single-axis min/max values.
  */
-function convertBoundingBoxToBox(_a) {
-    var top = _a.top, left = _a.left, right = _a.right, bottom = _a.bottom;
+function convertBoundingBoxToBox({ top, left, right, bottom, }) {
     return {
         x: { min: left, max: right },
         y: { min: top, max: bottom },
     };
 }
-function convertBoxToBoundingBox(_a) {
-    var x = _a.x, y = _a.y;
+function convertBoxToBoundingBox({ x, y }) {
     return { top: y.min, right: x.max, bottom: y.max, left: x.min };
 }
 /**
@@ -22,8 +20,8 @@ function convertBoxToBoundingBox(_a) {
 function transformBoxPoints(point, transformPoint) {
     if (!transformPoint)
         return point;
-    var topLeft = transformPoint({ x: point.left, y: point.top });
-    var bottomRight = transformPoint({ x: point.right, y: point.bottom });
+    const topLeft = transformPoint({ x: point.left, y: point.top });
+    const bottomRight = transformPoint({ x: point.right, y: point.bottom });
     return {
         top: topLeft.y,
         left: topLeft.x,

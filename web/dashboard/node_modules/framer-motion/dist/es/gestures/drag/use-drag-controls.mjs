@@ -20,8 +20,8 @@ import { useConstant } from '../../utils/use-constant.mjs';
  *
  * @public
  */
-var DragControls = /** @class */ (function () {
-    function DragControls() {
+class DragControls {
+    constructor() {
         this.componentControls = new Set();
     }
     /**
@@ -29,11 +29,10 @@ var DragControls = /** @class */ (function () {
      *
      * @internal
      */
-    DragControls.prototype.subscribe = function (controls) {
-        var _this = this;
+    subscribe(controls) {
         this.componentControls.add(controls);
-        return function () { return _this.componentControls.delete(controls); };
-    };
+        return () => this.componentControls.delete(controls);
+    }
     /**
      * Start a drag gesture on every `motion` component that has this set of drag controls
      * passed into it via the `dragControls` prop.
@@ -49,14 +48,13 @@ var DragControls = /** @class */ (function () {
      *
      * @public
      */
-    DragControls.prototype.start = function (event, options) {
-        this.componentControls.forEach(function (controls) {
+    start(event, options) {
+        this.componentControls.forEach((controls) => {
             controls.start(event.nativeEvent || event, options);
         });
-    };
-    return DragControls;
-}());
-var createDragControls = function () { return new DragControls(); };
+    }
+}
+const createDragControls = () => new DragControls();
 /**
  * Usually, dragging is initiated by pressing down on a `motion` component with a `drag` prop
  * and moving it. For some use-cases, for instance clicking at an arbitrary point on a video scrubber, we

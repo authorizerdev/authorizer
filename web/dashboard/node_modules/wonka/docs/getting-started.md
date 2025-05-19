@@ -77,8 +77,8 @@ import { pipe } from 'wonka';
 
 const output = pipe(
   'test',
-  x => x + ' this',
-  x => x.toUpperCase()
+  (x) => x + ' this',
+  (x) => x.toUpperCase()
 );
 
 output; // "TEST THIS"

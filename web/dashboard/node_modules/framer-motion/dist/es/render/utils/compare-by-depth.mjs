@@ -1,5 +1,3 @@
-var compareByDepth = function (a, b) {
-    return a.depth - b.depth;
-};
+const compareByDepth = (a, b) => a.depth - b.depth;
 
 export { compareByDepth };

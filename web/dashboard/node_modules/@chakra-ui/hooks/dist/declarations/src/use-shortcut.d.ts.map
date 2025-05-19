@@ -1,1 +1,0 @@
-{"version":3,"file":"use-shortcut.d.ts","sourceRoot":"../../../src","sources":["use-shortcut.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,KAAK,MAAM,OAAO,CAAA;AAW9B,MAAM,WAAW,gBAAgB;IAC/B,OAAO,CAAC,EAAE,MAAM,CAAA;IAChB,cAAc,CAAC,EAAE,CAAC,KAAK,EAAE,KAAK,CAAC,aAAa,KAAK,OAAO,CAAA;CACzD;AAED;;;GAGG;AACH,wBAAgB,WAAW,CAAC,KAAK,GAAE,gBAAqB,oBAuB1B,MAAM,KAAK,IAAI,aAG1B,mBAAmB,UAyBrC"}

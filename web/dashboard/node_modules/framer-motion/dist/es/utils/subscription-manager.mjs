@@ -1,16 +1,15 @@
 import { addUniqueItem, removeItem } from './array.mjs';
 
-var SubscriptionManager = /** @class */ (function () {
-    function SubscriptionManager() {
+class SubscriptionManager {
+    constructor() {
         this.subscriptions = [];
     }
-    SubscriptionManager.prototype.add = function (handler) {
-        var _this = this;
+    add(handler) {
         addUniqueItem(this.subscriptions, handler);
-        return function () { return removeItem(_this.subscriptions, handler); };
-    };
-    SubscriptionManager.prototype.notify = function (a, b, c) {
-        var numSubscriptions = this.subscriptions.length;
+        return () => removeItem(this.subscriptions, handler);
+    }
+    notify(a, b, c) {
+        const numSubscriptions = this.subscriptions.length;
         if (!numSubscriptions)
             return;
         if (numSubscriptions === 1) {
@@ -20,23 +19,22 @@ var SubscriptionManager = /** @class */ (function () {
             this.subscriptions[0](a, b, c);
         }
         else {
-            for (var i = 0; i < numSubscriptions; i++) {
+            for (let i = 0; i < numSubscriptions; i++) {
                 /**
                  * Check whether the handler exists before firing as it's possible
                  * the subscriptions were modified during this loop running.
                  */
-                var handler = this.subscriptions[i];
+                const handler = this.subscriptions[i];
                 handler && handler(a, b, c);
             }
         }
-    };
-    SubscriptionManager.prototype.getSize = function () {
+    }
+    getSize() {
         return this.subscriptions.length;
-    };
-    SubscriptionManager.prototype.clear = function () {
+    }
+    clear() {
         this.subscriptions.length = 0;
-    };
-    return SubscriptionManager;
-}());
+    }
+}
 
 export { SubscriptionManager };

@@ -21,23 +21,14 @@ synchronously if an iterable source runs synchronously.
 
 It also comes with many operators that users from [RxJS](https://github.com/ReactiveX/rxjs) will be used to.
 
-## Compatibility
+## Reason Support
 
-Wonka is written in [Reason](https://reasonml.github.io/), a dialect of OCaml, and can hence be used
-for native applications. It is also compiled using [BuckleScript](https://bucklescript.github.io) to plain
-JavaScript and has typings for [TypeScript](https://www.typescriptlang.org/) and [Flow](https://flow.org/).
+Wonka used to be written in [Reason](https://reasonml.github.io/),, a dialect of OCaml, and was usable
+for native development and compileable with [BuckleScript](https://bucklescript.github.io).
+Out of the box it supported usage with BuckleScript, `bs-native`, Dune, and Esy.
 
-This means that out of the box Wonka is usable in any project that use the following:
-
-- Plain JavaScript
-- TypeScript
-- Flow
-- Reason/OCaml with BuckleScript
-- Reason/OCaml with `bs-native`
-- Reason/OCaml with Dune and Esy
-
-In summary, Wonka provides a consistent interface in and works across
-TypeScript/Flow/Reason/OCaml environments with full type safety.
+If you're looking for the legacy version that supported this, you may want to install v4 or v5 rather
+than v6 onwards, which converted the project to TypeScript.
 
 ## About the docs
 

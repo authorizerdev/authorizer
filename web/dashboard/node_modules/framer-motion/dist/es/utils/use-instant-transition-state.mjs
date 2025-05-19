@@ -1,4 +1,4 @@
-var instantAnimationState = {
+const instantAnimationState = {
     current: false,
 };
 

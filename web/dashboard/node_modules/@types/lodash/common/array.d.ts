@@ -25,16 +25,17 @@ declare module "../index" {
     }
     interface LoDashStatic {
         /**
-         * Creates an array with all falsey values removed. The values false, null, 0, "", undefined, and NaN are
+         * Creates an array with all falsey values removed. The values false, null, 0, 0n, "", undefined, and NaN are
          * falsey.
          *
          * @param array The array to compact.
          * @return Returns the new array of filtered values.
          */
-        compact<T>(array: List<T | null | undefined | false | "" | 0> | null | undefined): T[];
+        compact<T>(array: List<T | Falsey> | null | undefined): T[];
     }
 
-    type Truthy<T> = T extends null | undefined | false | "" | 0 ? never : T;
+    type Falsey = null | undefined | false | "" | 0 | 0n;
+    type Truthy<T> = T extends Falsey ? never : T;
     interface Collection<T> {
         /**
          * @see _.compact
@@ -573,6 +574,7 @@ declare module "../index" {
          * @param array The array to query.
          * @return Returns the first element of array.
          */
+        head<T>(array: readonly [T, ...unknown[]]): T;
         head<T>(array: List<T> | null | undefined): T | undefined;
     }
     interface String {
@@ -1449,6 +1451,7 @@ declare module "../index" {
          * @param array The array to query.
          * @return Returns the slice of array.
          */
+        tail<T extends unknown[]>(array: readonly [unknown, ...T]): T;
         tail<T>(array: List<T> | null | undefined): T[];
     }
     interface Collection<T> {

@@ -1,7 +1,7 @@
 function createLock(name) {
-    var lock = null;
-    return function () {
-        var openLock = function () {
+    let lock = null;
+    return () => {
+        const openLock = () => {
             lock = null;
         };
         if (lock === null) {
@@ -11,10 +11,10 @@ function createLock(name) {
         return false;
     };
 }
-var globalHorizontalLock = createLock("dragHorizontal");
-var globalVerticalLock = createLock("dragVertical");
+const globalHorizontalLock = createLock("dragHorizontal");
+const globalVerticalLock = createLock("dragVertical");
 function getGlobalLock(drag) {
-    var lock = false;
+    let lock = false;
     if (drag === "y") {
         lock = globalVerticalLock();
     }
@@ -22,20 +22,20 @@ function getGlobalLock(drag) {
         lock = globalHorizontalLock();
     }
     else {
-        var openHorizontal_1 = globalHorizontalLock();
-        var openVertical_1 = globalVerticalLock();
-        if (openHorizontal_1 && openVertical_1) {
-            lock = function () {
-                openHorizontal_1();
-                openVertical_1();
+        const openHorizontal = globalHorizontalLock();
+        const openVertical = globalVerticalLock();
+        if (openHorizontal && openVertical) {
+            lock = () => {
+                openHorizontal();
+                openVertical();
             };
         }
         else {
             // Release the locks because we don't use them
-            if (openHorizontal_1)
-                openHorizontal_1();
-            if (openVertical_1)
-                openVertical_1();
+            if (openHorizontal)
+                openHorizontal();
+            if (openVertical)
+                openVertical();
         }
     }
     return lock;
@@ -43,7 +43,7 @@ function getGlobalLock(drag) {
 function isDragActive() {
     // Check the gesture lock - if we get it, it means no drag gesture is active
     // and we can safely fire the tap gesture.
-    var openGestureLock = getGlobalLock(true);
+    const openGestureLock = getGlobalLock(true);
     if (!openGestureLock)
         return true;
     openGestureLock();

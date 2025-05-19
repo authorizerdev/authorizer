@@ -43,8 +43,8 @@ export function prefixer (element, index, children, callback) {
 	if (element.length > -1)
 		if (!element.return)
 			switch (element.type) {
-				case DECLARATION: element.return = prefix(element.value, element.length)
-					break
+				case DECLARATION: element.return = prefix(element.value, element.length, children)
+					return
 				case KEYFRAMES:
 					return serialize([copy(element, {value: replace(element.value, '@', '@' + WEBKIT)})], callback)
 				case RULESET:

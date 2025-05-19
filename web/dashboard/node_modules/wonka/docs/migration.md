@@ -6,6 +6,23 @@ order: 2
 This page lists breaking changes and migration guides for
 various major releases of Wonka.
 
+## v6.0.0
+
+In `v6.0.0` of Wonka, we've migrated fully to TypeScript.
+If you're using this project with Reason or OCaml before, we're sorry for
+the inconvenience. However, v4 and v5-rc will remain usable for these
+platforms and languages.
+
+The internal API and data structures of Wonka haven't changed in `v6.0.0`
+compared to the prior releases and are based on `v4.0.14`. This means that
+from a TypeScript, Flow, and JS perspective, `v6.0.0` is backwards compatible
+and continues to function as before.
+
+However, the `fromList` API has been removed so far, and we reserve ourselves
+room to make more breaking changes were behaviour before was broken.
+
+We're also dropping IE11 support and are now bundling against an ES2015 target.
+
 ## v4.0.0
 
 In `v4.0.0` of Wonka, we've migrated to BuckleScript v7 and

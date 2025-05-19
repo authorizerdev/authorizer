@@ -64,6 +64,7 @@ interface userDataTypes {
 	gender: string;
 	birthdate: string;
 	phone_number: string;
+	phone_number_verified: boolean;
 	picture: string;
 	signup_methods: string;
 	roles: [string];
@@ -145,7 +146,7 @@ export default function Users() {
 	};
 	const checkEmailVerification = async () => {
 		setLoading(true);
-		const { data } = await client.query(EmailVerificationQuery).toPromise();
+		const { data } = await client.query(EmailVerificationQuery, {}).toPromise();
 		if (data?._env) {
 			const { DISABLE_EMAIL_VERIFICATION } = data._env;
 			setDisableInviteMembers(DISABLE_EMAIL_VERIFICATION);

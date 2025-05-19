@@ -1,9 +1,10 @@
 import getWindow from "./getWindow.js";
 import getNodeName from "./getNodeName.js";
 import getComputedStyle from "./getComputedStyle.js";
-import { isHTMLElement } from "./instanceOf.js";
+import { isHTMLElement, isShadowRoot } from "./instanceOf.js";
 import isTableElement from "./isTableElement.js";
 import getParentNode from "./getParentNode.js";
+import getUAString from "../utils/userAgent.js";
 
 function getTrueOffsetParent(element) {
   if (!isHTMLElement(element) || // https://github.com/popperjs/popper-core/issues/837
@@ -17,8 +18,8 @@ function getTrueOffsetParent(element) {
 
 
 function getContainingBlock(element) {
-  var isFirefox = navigator.userAgent.toLowerCase().indexOf('firefox') !== -1;
-  var isIE = navigator.userAgent.indexOf('Trident') !== -1;
+  var isFirefox = /firefox/i.test(getUAString());
+  var isIE = /Trident/i.test(getUAString());
 
   if (isIE && isHTMLElement(element)) {
     // In IE 9, 10 and 11 fixed elements containing block is always established by the viewport
@@ -30,6 +31,10 @@ function getContainingBlock(element) {
   }
 
   var currentNode = getParentNode(element);
+
+  if (isShadowRoot(currentNode)) {
+    currentNode = currentNode.host;
+  }
 
   while (isHTMLElement(currentNode) && ['html', 'body'].indexOf(getNodeName(currentNode)) < 0) {
     var css = getComputedStyle(currentNode); // This is non-exhaustive but covers the most common CSS properties that

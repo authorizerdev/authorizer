@@ -39,3 +39,7 @@ export const App = () => {
   return (<div />);
 }
 ```
+
+# License
+
+MIT

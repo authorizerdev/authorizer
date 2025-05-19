@@ -1,4 +1,4 @@
-var isKeyframesTarget = function (v) {
+const isKeyframesTarget = (v) => {
     return Array.isArray(v);
 };
 

@@ -29,5 +29,6 @@ module.exports = moduleId => {
 
 	const parent = require.cache[parentPath]; // If `filePath` and `parentPath` are the same, cache will already be deleted so we won't get a memory leak in next step
 
-	return parent === undefined ? require(filePath) : parent.require(filePath); // In case cache doesn't have parent, fall back to normal require
+	// In case cache doesn't have parent, fall back to normal require
+	return parent === undefined || parent.require === undefined ? require(filePath) : parent.require(filePath);
 };

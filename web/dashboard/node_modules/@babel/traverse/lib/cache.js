@@ -21,23 +21,17 @@ function clearPath() {
 function clearScope() {
   exports.scope = scope = new WeakMap();
 }
-const nullHub = Object.freeze({});
-function getCachedPaths(hub, parent) {
-  var _pathsCache$get, _hub;
-  {
-    hub = null;
-  }
-  return (_pathsCache$get = pathsCache.get((_hub = hub) != null ? _hub : nullHub)) == null ? void 0 : _pathsCache$get.get(parent);
+function getCachedPaths(path) {
+  const {
+    parent,
+    parentPath
+  } = path;
+  return pathsCache.get(parent);
 }
-function getOrCreateCachedPaths(hub, parent) {
-  var _hub2, _hub3;
-  {
-    hub = null;
-  }
-  let parents = pathsCache.get((_hub2 = hub) != null ? _hub2 : nullHub);
-  if (!parents) pathsCache.set((_hub3 = hub) != null ? _hub3 : nullHub, parents = new WeakMap());
-  let paths = parents.get(parent);
-  if (!paths) parents.set(parent, paths = new Map());
+function getOrCreateCachedPaths(node, parentPath) {
+  ;
+  let paths = pathsCache.get(node);
+  if (!paths) pathsCache.set(node, paths = new Map());
   return paths;
 }
 

@@ -1,4 +1,4 @@
-var warned = new Set();
+const warned = new Set();
 function warnOnce(condition, message, element) {
     if (condition || warned.has(message))
         return;

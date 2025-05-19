@@ -18,6 +18,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/events"
 	"github.com/authorizerdev/authorizer/internal/http_handlers"
 	"github.com/authorizerdev/authorizer/internal/memory_store"
+	"github.com/authorizerdev/authorizer/internal/oauth"
 	"github.com/authorizerdev/authorizer/internal/server"
 	"github.com/authorizerdev/authorizer/internal/sms"
 	"github.com/authorizerdev/authorizer/internal/storage"
@@ -139,25 +140,35 @@ func init() {
 	// Oauth provider flags
 	f.StringVar(&rootArgs.config.GoogleClientID, "google-client-id", "", "Client ID for Google")
 	f.StringVar(&rootArgs.config.GoogleClientSecret, "google-client-secret", "", "Client secret for Google")
+	f.StringSliceVar(&rootArgs.config.GoogleScopes, "google-scopes", []string{"openid", "profile", "email"}, "Scopes for Google")
 	f.StringVar(&rootArgs.config.GithubClientID, "github-client-id", "", "Client ID for Github")
 	f.StringVar(&rootArgs.config.GithubClientSecret, "github-client-secret", "", "Client secret for Github")
+	f.StringSliceVar(&rootArgs.config.GithubScopes, "github-scopes", []string{"read:user", "user:email"}, "Scopes for Github")
 	f.StringVar(&rootArgs.config.FacebookClientID, "facebook-client-id", "", "Client ID for Facebook")
 	f.StringVar(&rootArgs.config.FacebookClientSecret, "facebook-client-secret", "", "Client secret for Facebook")
+	f.StringSliceVar(&rootArgs.config.FacebookScopes, "facebook-scopes", []string{"public_profile", "email"}, "Scopes for Facebook")
 	f.StringVar(&rootArgs.config.MicrosoftClientID, "microsoft-client-id", "", "Client ID for Microsoft")
 	f.StringVar(&rootArgs.config.MicrosoftClientSecret, "microsoft-client-secret", "", "Client secret for Microsoft")
-	f.StringVar(&rootArgs.config.MicrosoftTenantID, "microsoft-tenant-id", "", "Tenant ID for Microsoft")
+	f.StringVar(&rootArgs.config.MicrosoftTenantID, "microsoft-tenant-id", "common", "Tenant ID for Microsoft")
+	f.StringSliceVar(&rootArgs.config.MicrosoftScopes, "microsoft-scopes", []string{"openid", "profile", "email"}, "Scopes for Microsoft")
 	f.StringVar(&rootArgs.config.TwitchClientID, "twitch-client-id", "", "Client ID for Twitch")
 	f.StringVar(&rootArgs.config.TwitchClientSecret, "twitch-client-secret", "", "Client secret for Twitch")
+	f.StringSliceVar(&rootArgs.config.TwitchScopes, "twitch-scopes", []string{"openid", "user:read:email"}, "Scopes for Twitch")
 	f.StringVar(&rootArgs.config.LinkedinClientID, "linkedin-client-id", "", "Client ID for Linkedin")
 	f.StringVar(&rootArgs.config.LinkedinClientSecret, "linkedin-client-secret", "", "Client secret for Linkedin")
+	f.StringSliceVar(&rootArgs.config.LinkedinScopes, "linkedin-scopes", []string{"r_liteprofile", "r_emailaddress"}, "Scopes for Linkedin")
 	f.StringVar(&rootArgs.config.AppleClientID, "apple-client-id", "", "Client ID for Apple")
 	f.StringVar(&rootArgs.config.AppleClientSecret, "apple-client-secret", "", "Client secret for Apple")
+	f.StringSliceVar(&rootArgs.config.AppleScopes, "apple-scopes", []string{"email", "name"}, "Scopes for Apple")
 	f.StringVar(&rootArgs.config.DiscordClientID, "discord-client-id", "", "Client ID for Discord")
 	f.StringVar(&rootArgs.config.DiscordClientSecret, "discord-client-secret", "", "Client secret for Discord")
+	f.StringSliceVar(&rootArgs.config.DiscordScopes, "discord-scopes", []string{"identify", "email"}, "Scopes for Discord")
 	f.StringVar(&rootArgs.config.TwitterClientID, "twitter-client-id", "", "Client ID for Twitter")
 	f.StringVar(&rootArgs.config.TwitterClientSecret, "twitter-client-secret", "", "Client secret for Twitter")
-	f.StringVar(&rootArgs.config.RoboloxClientID, "roblox-client-id", "", "Client ID for Roblox")
-	f.StringVar(&rootArgs.config.RoboloxClientSecret, "roblox-client-secret", "", "Client secret for Roblox")
+	f.StringSliceVar(&rootArgs.config.TwitterScopes, "twitter-scopes", []string{"tweet.read", "users.read"}, "Scopes for Twitter")
+	f.StringVar(&rootArgs.config.RobloxClientID, "roblox-client-id", "", "Client ID for Roblox")
+	f.StringVar(&rootArgs.config.RobloxClientSecret, "roblox-client-secret", "", "Client secret for Roblox")
+	f.StringSliceVar(&rootArgs.config.RobloxScopes, "Roblox-scopes", []string{"openid", "profile"}, "Scopes for Roblox")
 
 	// URLs
 	f.StringVar(&rootArgs.config.ResetPasswordURL, "reset-password-url", "", "URL for reset password")
@@ -251,6 +262,11 @@ func runRoot(c *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create token provider")
 	}
+	// OAuth provider
+	oauthProvider, err := oauth.New(&rootArgs.config)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to create oauth provider")
+	}
 
 	// Ensure client ID and secret are set for authorizer instance
 	if strings.TrimSpace(rootArgs.config.ClientID) == "" {
@@ -270,6 +286,7 @@ func runRoot(c *cobra.Command, args []string) {
 		SMSProvider:           smsProvider,
 		StorageProvider:       storageProvider,
 		TokenProvider:         tokenProvider,
+		OAuthProvider:         oauthProvider,
 	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create http provider")

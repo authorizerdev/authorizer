@@ -1,9 +1,9 @@
 import { Group } from './Group.mjs';
 import { Item } from './Item.mjs';
 
-var Reorder = {
-    Group: Group,
-    Item: Item,
+const Reorder = {
+    Group,
+    Item,
 };
 
 export { Reorder };

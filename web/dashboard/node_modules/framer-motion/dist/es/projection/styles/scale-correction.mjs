@@ -1,4 +1,4 @@
-var scaleCorrectors = {};
+const scaleCorrectors = {};
 function addScaleCorrector(correctors) {
     Object.assign(scaleCorrectors, correctors);
 }

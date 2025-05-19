@@ -3,6 +3,7 @@ import { Fragment } from 'react';
 import { ChakraProvider, extendTheme } from '@chakra-ui/react';
 import { BrowserRouter } from 'react-router-dom';
 import { createClient, Provider } from 'urql';
+import { cacheExchange, fetchExchange } from '@urql/core';
 import { AppRoutes } from './routes';
 import { AuthContextProvider } from './contexts/AuthContext';
 
@@ -17,6 +18,7 @@ const queryClient = createClient({
 		};
 	},
 	requestPolicy: 'network-only',
+	exchanges: [cacheExchange, fetchExchange],
 });
 
 const theme = extendTheme({

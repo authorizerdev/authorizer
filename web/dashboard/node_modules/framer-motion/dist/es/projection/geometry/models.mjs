@@ -1,17 +1,17 @@
-var createAxisDelta = function () { return ({
+const createAxisDelta = () => ({
     translate: 0,
     scale: 1,
     origin: 0,
     originPoint: 0,
-}); };
-var createDelta = function () { return ({
+});
+const createDelta = () => ({
     x: createAxisDelta(),
     y: createAxisDelta(),
-}); };
-var createAxis = function () { return ({ min: 0, max: 0 }); };
-var createBox = function () { return ({
+});
+const createAxis = () => ({ min: 0, max: 0 });
+const createBox = () => ({
     x: createAxis(),
     y: createAxis(),
-}); };
+});
 
 export { createAxis, createAxisDelta, createBox, createDelta };

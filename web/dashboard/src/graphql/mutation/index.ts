@@ -22,14 +22,6 @@ export const AdminLogout = `
   }
 `;
 
-export const UpdateEnvVariables = `
-  mutation updateEnvVariables($params: UpdateEnvInput!) {
-    _update_env(params: $params) {
-      message
-    }
-  }
-`;
-
 export const UpdateUser = `
   mutation updateUser($params: UpdateUserInput!) {
     _update_user(params: $params) {

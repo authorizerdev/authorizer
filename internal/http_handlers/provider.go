@@ -9,6 +9,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/email"
 	"github.com/authorizerdev/authorizer/internal/events"
 	"github.com/authorizerdev/authorizer/internal/memory_store"
+	"github.com/authorizerdev/authorizer/internal/oauth"
 	"github.com/authorizerdev/authorizer/internal/sms"
 	"github.com/authorizerdev/authorizer/internal/storage"
 	"github.com/authorizerdev/authorizer/internal/token"
@@ -33,9 +34,11 @@ type Dependencies struct {
 	StorageProvider storage.Provider
 	// TokenProvider is used to generate tokens
 	TokenProvider token.Provider
+	// OAuthProvider is used to register oauth providers
+	OAuthProvider oauth.Provider
 }
 
-// New constructs a new graphql provider with given arguments
+// New constructs a new http provider with given arguments
 func New(cfg *config.Config, deps *Dependencies) (Provider, error) {
 	// TODO - Add any validation here for config and dependencies
 	g := &httpProvider{
@@ -45,7 +48,7 @@ func New(cfg *config.Config, deps *Dependencies) (Provider, error) {
 	return g, nil
 }
 
-// graphqlProvider is the struct that provides resolver functions.
+// httpProvider is the struct that provides resolver functions for http routes.
 type httpProvider struct {
 	*config.Config
 	Dependencies

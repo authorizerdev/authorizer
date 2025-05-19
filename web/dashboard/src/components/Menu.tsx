@@ -6,7 +6,6 @@ import {
 	Flex,
 	Image,
 	HStack,
-	VStack,
 	Icon,
 	useColorModeValue,
 	Link,
@@ -24,24 +23,14 @@ import {
 	useMediaQuery,
 } from '@chakra-ui/react';
 import {
-	FiUser,
 	FiCode,
-	FiSettings,
 	FiMenu,
 	FiUsers,
 	FiChevronDown,
 	FiLink,
 	FiFileText,
 } from 'react-icons/fi';
-import { BiCustomize } from 'react-icons/bi';
-import { AiOutlineKey } from 'react-icons/ai';
-import { SiOpenaccess, SiJsonwebtokens } from 'react-icons/si';
-import { MdSecurity } from 'react-icons/md';
-import { RiDatabase2Line } from 'react-icons/ri';
-import { BsCheck2Circle } from 'react-icons/bs';
-import { HiOutlineMail, HiOutlineOfficeBuilding } from 'react-icons/hi';
 import { IconType } from 'react-icons';
-import { ReactText } from 'react';
 import { useMutation, useQuery } from 'urql';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthContext } from '../contexts/AuthContext';
@@ -61,58 +50,7 @@ interface LinkItemProps {
 	subRoutes?: SubRoutes[];
 }
 const LinkItems: Array<LinkItemProps> = [
-	{
-		name: 'Environment ',
-		icon: FiSettings,
-		route: '/',
-		subRoutes: [
-			{
-				name: 'OAuth Config',
-				icon: AiOutlineKey,
-				route: '/oauth-setting',
-			},
-
-			{ name: 'Roles', icon: FiUser, route: '/roles' },
-			{
-				name: 'JWT Secrets',
-				icon: SiJsonwebtokens,
-				route: '/jwt-config',
-			},
-			{
-				name: 'Session Storage',
-				icon: RiDatabase2Line,
-				route: '/session-storage',
-			},
-			{
-				name: 'Email Configurations',
-				icon: HiOutlineMail,
-				route: '/email-config',
-			},
-			{
-				name: 'Domain White Listing',
-				icon: BsCheck2Circle,
-				route: '/whitelist-variables',
-			},
-			{
-				name: 'Organization Info',
-				icon: HiOutlineOfficeBuilding,
-				route: '/organization-info',
-			},
-			{ name: 'Access Token', icon: SiOpenaccess, route: '/access-token' },
-			{
-				name: 'Features',
-				icon: BiCustomize,
-				route: '/features',
-			},
-			{ name: 'Database', icon: RiDatabase2Line, route: '/db-cred' },
-			{
-				name: ' Security',
-				icon: MdSecurity,
-				route: '/admin-secret',
-			},
-		],
-	},
-	{ name: 'Users', icon: FiUsers, route: '/users' },
+	{ name: 'Users', icon: FiUsers, route: '/' },
 	{ name: 'Webhooks', icon: FiLink, route: '/webhooks' },
 	{ name: 'Email Templates', icon: FiFileText, route: '/email-templates' },
 ];
@@ -254,8 +192,9 @@ export const Sidebar = ({ onClose, ...rest }: SidebarProps) => {
 
 interface NavItemProps extends FlexProps {
 	icon: IconType;
-	children: ReactText | JSX.Element | JSX.Element[];
+	children: ReactNode;
 }
+
 export const NavItem = ({ icon, children, ...rest }: NavItemProps) => {
 	return (
 		<Flex
@@ -335,30 +274,13 @@ export const MobileNav = ({ onOpen, ...rest }: MobileProps) => {
 				<Flex alignItems={'center'}>
 					<Menu>
 						<MenuButton
-							py={2}
-							transition="all 0.3s"
-							_focus={{ boxShadow: 'none' }}
-						>
-							<HStack mr={5}>
-								<FiUser />
-								<VStack
-									display={{ base: 'none', md: 'flex' }}
-									alignItems="flex-start"
-									spacing="1px"
-									ml="2"
-								>
-									<Text fontSize="sm">Admin</Text>
-								</VStack>
-								<Box display={{ base: 'none', md: 'flex' }}>
-									<FiChevronDown />
-								</Box>
-							</HStack>
-						</MenuButton>
-						<MenuList
-							bg={useColorModeValue('white', 'gray.900')}
-							borderColor={useColorModeValue('gray.200', 'gray.700')}
-						>
-							<MenuItem onClick={handleLogout}>Sign out</MenuItem>
+							as={IconButton}
+							aria-label="Options"
+							icon={<FiChevronDown />}
+							variant="outline"
+						/>
+						<MenuList>
+							<MenuItem onClick={handleLogout}>Logout</MenuItem>
 						</MenuList>
 					</Menu>
 				</Flex>

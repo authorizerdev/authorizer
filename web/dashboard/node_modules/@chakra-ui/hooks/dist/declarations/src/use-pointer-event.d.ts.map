@@ -1,1 +1,0 @@
-{"version":3,"file":"use-pointer-event.d.ts","sourceRoot":"../../../src","sources":["use-pointer-event.ts"],"names":[],"mappings":"AAAA;;;GAGG;AAEH,OAAO,EACL,0BAA0B,EAG3B,MAAM,kBAAkB,CAAA;AACzB,OAAO,EAAE,gBAAgB,EAAoB,MAAM,sBAAsB,CAAA;AAEzE;;GAEG;AACH,wBAAgB,eAAe,CAC7B,GAAG,EAAE,gBAAgB,EACrB,SAAS,EAAE,MAAM,EACjB,OAAO,EAAE,0BAA0B,EACnC,OAAO,CAAC,EAAE,uBAAuB,cAQlC"}

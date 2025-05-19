@@ -1,5 +1,5 @@
 import { createContext } from 'react';
 
-var ReorderContext = createContext(null);
+const ReorderContext = createContext(null);
 
 export { ReorderContext };

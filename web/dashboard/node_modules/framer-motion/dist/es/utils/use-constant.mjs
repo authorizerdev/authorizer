@@ -8,7 +8,7 @@ import { useRef } from 'react';
  * you can ensure that initialisers don't execute twice or more.
  */
 function useConstant(init) {
-    var ref = useRef(null);
+    const ref = useRef(null);
     if (ref.current === null) {
         ref.current = init();
     }

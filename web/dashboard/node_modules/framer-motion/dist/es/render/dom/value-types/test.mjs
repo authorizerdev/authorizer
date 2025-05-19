@@ -1,6 +1,6 @@
 /**
  * Tests a provided value against a ValueType
  */
-var testValueType = function (v) { return function (type) { return type.test(v); }; };
+const testValueType = (v) => (type) => type.test(v);
 
 export { testValueType };

@@ -15,8 +15,7 @@ import { createMotionComponent } from '../../motion/index.mjs';
  * @public
  */
 function createMotionProxy(createConfig) {
-    function custom(Component, customMotionComponentConfig) {
-        if (customMotionComponentConfig === void 0) { customMotionComponentConfig = {}; }
+    function custom(Component, customMotionComponentConfig = {}) {
         return createMotionComponent(createConfig(Component, customMotionComponentConfig));
     }
     if (typeof Proxy === "undefined") {
@@ -26,14 +25,14 @@ function createMotionProxy(createConfig) {
      * A cache of generated `motion` components, e.g `motion.div`, `motion.input` etc.
      * Rather than generating them anew every render.
      */
-    var componentCache = new Map();
+    const componentCache = new Map();
     return new Proxy(custom, {
         /**
          * Called when `motion` is referenced with a prop: `motion.div`, `motion.input` etc.
          * The prop name is passed through as `key` and we can use that to generate a `motion`
          * DOM component with that name.
          */
-        get: function (_target, key) {
+        get: (_target, key) => {
             /**
              * If this element doesn't exist in the component cache, create it and cache.
              */
