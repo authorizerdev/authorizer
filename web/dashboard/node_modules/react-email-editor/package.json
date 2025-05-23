@@ -1,0 +1,55 @@
+{
+  "name": "react-email-editor",
+  "version": "1.7.11",
+  "description": "Unlayer's Email Editor Component for React.js",
+  "main": "dist/index.js",
+  "typings": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=10"
+  },
+  "scripts": {
+    "start": "tsdx watch",
+    "build": "tsdx build",
+    "test": "tsdx test",
+    "test:watch": "tsdx test --watch",
+    "test:coverage": "tsdx test --coverage",
+    "lint": "tsdx lint",
+    "prepare": "tsdx build",
+    "release": "npm run build && npm publish",
+    "netlify-build": "cd demo && npm install && npm run build"
+  },
+  "peerDependencies": {
+    "react": ">=15"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "tsdx lint"
+    }
+  },
+  "dependencies": {
+    "unlayer-types": "latest"
+  },
+  "devDependencies": {
+    "@rollup/plugin-replace": "^5.0.2",
+    "@testing-library/react": "^13.4.0",
+    "@types/react": "^18.0.27",
+    "@types/react-dom": "^18.0.10",
+    "husky": "^8.0.3",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "rollup-plugin-copy": "^3.4.0",
+    "tsdx": "^0.14.1",
+    "tslib": "^2.4.1",
+    "typescript": "^4.9.4"
+  },
+  "author": "",
+  "homepage": "https://github.com/unlayer/react-email-editor#readme",
+  "license": "MIT",
+  "repository": "https://github.com/unlayer/react-email-editor.git",
+  "keywords": [
+    "react-component"
+  ]
+}
