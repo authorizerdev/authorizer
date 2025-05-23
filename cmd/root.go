@@ -263,7 +263,9 @@ func runRoot(c *cobra.Command, args []string) {
 		log.Fatal().Err(err).Msg("failed to create token provider")
 	}
 	// OAuth provider
-	oauthProvider, err := oauth.New(&rootArgs.config)
+	oauthProvider, err := oauth.New(&rootArgs.config, &oauth.Dependencies{
+		Log: &log,
+	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create oauth provider")
 	}

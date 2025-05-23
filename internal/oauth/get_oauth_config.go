@@ -41,7 +41,7 @@ func (o *oauthProvider) GetOAuthConfig(ctx *gin.Context, provider string) (*oaut
 			scopes = o.FacebookScopes
 		}
 	case constants.AuthRecipeMethodLinkedIn:
-		if o.LinkedinClientID != "" && o.LinkedinClientID != "" {
+		if o.LinkedinClientID != "" && o.LinkedinClientSecret != "" {
 			clientID = o.LinkedinClientID
 			clientSecret = o.LinkedinClientSecret
 			endPoint = &endpoints.LinkedIn
