@@ -10,7 +10,6 @@ import (
 func (h *httpProvider) CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		origin := c.Request.Header.Get("Origin")
-		// TODO set valid origins as per config
 		if validators.IsValidOrigin(origin, h.Config.AllowedOrigins) {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
 		}
