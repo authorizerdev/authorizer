@@ -83,6 +83,7 @@ const Environment = () => {
 		CUSTOM_ACCESS_TOKEN_SCRIPT: '',
 		ADMIN_SECRET: '',
 		APP_COOKIE_SECURE: false,
+		APP_COOKIE_HTTPONLY: false,
 		ADMIN_COOKIE_SECURE: false,
 		DISABLE_LOGIN_PAGE: false,
 		DISABLE_MAGIC_LINK_LOGIN: false,

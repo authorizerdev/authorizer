@@ -81,6 +81,7 @@ type ComplexityRoot struct {
 		AdminCookieSecure                func(childComplexity int) int
 		AdminSecret                      func(childComplexity int) int
 		AllowedOrigins                   func(childComplexity int) int
+		AppCookieHTTPOnly                func(childComplexity int) int
 		AppCookieSecure                  func(childComplexity int) int
 		AppURL                           func(childComplexity int) int
 		AppleClientID                    func(childComplexity int) int
@@ -602,6 +603,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Env.AllowedOrigins(childComplexity), true
+
+	case "Env.APP_COOKIE_HTTPONLY":
+		if e.complexity.Env.AppCookieHTTPOnly == nil {
+			break
+		}
+
+		return e.complexity.Env.AppCookieHTTPOnly(childComplexity), true
 
 	case "Env.APP_COOKIE_SECURE":
 		if e.complexity.Env.AppCookieSecure == nil {
@@ -2612,6 +2620,7 @@ type Env {
   ORGANIZATION_NAME: String
   ORGANIZATION_LOGO: String
   APP_COOKIE_SECURE: Boolean!
+  APP_COOKIE_HTTPONLY: Boolean!
   ADMIN_COOKIE_SECURE: Boolean!
   DEFAULT_AUTHORIZE_RESPONSE_TYPE: String
   DEFAULT_AUTHORIZE_RESPONSE_MODE: String
@@ -2707,6 +2716,7 @@ input UpdateEnvInput {
   APP_URL: String
   RESET_PASSWORD_URL: String
   APP_COOKIE_SECURE: Boolean
+  APP_COOKIE_HTTPONLY: Boolean
   ADMIN_COOKIE_SECURE: Boolean
   DISABLE_EMAIL_VERIFICATION: Boolean
   DISABLE_BASIC_AUTHENTICATION: Boolean
@@ -7392,6 +7402,50 @@ func (ec *executionContext) fieldContext_Env_APP_COOKIE_SECURE(ctx context.Conte
 	return fc, nil
 }
 
+func (ec *executionContext) _Env_APP_COOKIE_HTTPONLY(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Env_APP_COOKIE_HTTPONLY(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.AppCookieHTTPOnly, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Env_APP_COOKIE_HTTPONLY(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Env",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Env_ADMIN_COOKIE_SECURE(ctx context.Context, field graphql.CollectedField, obj *model.Env) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Env_ADMIN_COOKIE_SECURE(ctx, field)
 	if err != nil {
@@ -11978,6 +12032,8 @@ func (ec *executionContext) fieldContext_Query__env(ctx context.Context, field g
 				return ec.fieldContext_Env_ORGANIZATION_LOGO(ctx, field)
 			case "APP_COOKIE_SECURE":
 				return ec.fieldContext_Env_APP_COOKIE_SECURE(ctx, field)
+			case "APP_COOKIE_HTTPONLY":
+				return ec.fieldContext_Env_APP_COOKIE_HTTPONLY(ctx, field)
 			case "ADMIN_COOKIE_SECURE":
 				return ec.fieldContext_Env_ADMIN_COOKIE_SECURE(ctx, field)
 			case "DEFAULT_AUTHORIZE_RESPONSE_TYPE":
@@ -18304,7 +18360,7 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"ACCESS_TOKEN_EXPIRY_TIME", "ADMIN_SECRET", "CUSTOM_ACCESS_TOKEN_SCRIPT", "OLD_ADMIN_SECRET", "SMTP_HOST", "SMTP_PORT", "SMTP_USERNAME", "SMTP_PASSWORD", "SMTP_LOCAL_NAME", "SENDER_EMAIL", "SENDER_NAME", "JWT_TYPE", "JWT_SECRET", "JWT_PRIVATE_KEY", "JWT_PUBLIC_KEY", "ALLOWED_ORIGINS", "APP_URL", "RESET_PASSWORD_URL", "APP_COOKIE_SECURE", "ADMIN_COOKIE_SECURE", "DISABLE_EMAIL_VERIFICATION", "DISABLE_BASIC_AUTHENTICATION", "DISABLE_MOBILE_BASIC_AUTHENTICATION", "DISABLE_MAGIC_LINK_LOGIN", "DISABLE_LOGIN_PAGE", "DISABLE_SIGN_UP", "DISABLE_REDIS_FOR_ENV", "DISABLE_STRONG_PASSWORD", "DISABLE_MULTI_FACTOR_AUTHENTICATION", "ENFORCE_MULTI_FACTOR_AUTHENTICATION", "ROLES", "PROTECTED_ROLES", "DEFAULT_ROLES", "JWT_ROLE_CLAIM", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET", "FACEBOOK_CLIENT_ID", "FACEBOOK_CLIENT_SECRET", "LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET", "APPLE_CLIENT_ID", "APPLE_CLIENT_SECRET", "DISCORD_CLIENT_ID", "DISCORD_CLIENT_SECRET", "TWITTER_CLIENT_ID", "TWITTER_CLIENT_SECRET", "MICROSOFT_CLIENT_ID", "MICROSOFT_CLIENT_SECRET", "MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID", "TWITCH_CLIENT_ID", "TWITCH_CLIENT_SECRET", "ROBLOX_CLIENT_ID", "ROBLOX_CLIENT_SECRET", "ORGANIZATION_NAME", "ORGANIZATION_LOGO", "DEFAULT_AUTHORIZE_RESPONSE_TYPE", "DEFAULT_AUTHORIZE_RESPONSE_MODE", "DISABLE_PLAYGROUND", "DISABLE_MAIL_OTP_LOGIN", "DISABLE_TOTP_LOGIN"}
+	fieldsInOrder := [...]string{"ACCESS_TOKEN_EXPIRY_TIME", "ADMIN_SECRET", "CUSTOM_ACCESS_TOKEN_SCRIPT", "OLD_ADMIN_SECRET", "SMTP_HOST", "SMTP_PORT", "SMTP_USERNAME", "SMTP_PASSWORD", "SMTP_LOCAL_NAME", "SENDER_EMAIL", "SENDER_NAME", "JWT_TYPE", "JWT_SECRET", "JWT_PRIVATE_KEY", "JWT_PUBLIC_KEY", "ALLOWED_ORIGINS", "APP_URL", "RESET_PASSWORD_URL", "APP_COOKIE_SECURE", "APP_COOKIE_HTTPONLY", "ADMIN_COOKIE_SECURE", "DISABLE_EMAIL_VERIFICATION", "DISABLE_BASIC_AUTHENTICATION", "DISABLE_MOBILE_BASIC_AUTHENTICATION", "DISABLE_MAGIC_LINK_LOGIN", "DISABLE_LOGIN_PAGE", "DISABLE_SIGN_UP", "DISABLE_REDIS_FOR_ENV", "DISABLE_STRONG_PASSWORD", "DISABLE_MULTI_FACTOR_AUTHENTICATION", "ENFORCE_MULTI_FACTOR_AUTHENTICATION", "ROLES", "PROTECTED_ROLES", "DEFAULT_ROLES", "JWT_ROLE_CLAIM", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET", "FACEBOOK_CLIENT_ID", "FACEBOOK_CLIENT_SECRET", "LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET", "APPLE_CLIENT_ID", "APPLE_CLIENT_SECRET", "DISCORD_CLIENT_ID", "DISCORD_CLIENT_SECRET", "TWITTER_CLIENT_ID", "TWITTER_CLIENT_SECRET", "MICROSOFT_CLIENT_ID", "MICROSOFT_CLIENT_SECRET", "MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID", "TWITCH_CLIENT_ID", "TWITCH_CLIENT_SECRET", "ROBLOX_CLIENT_ID", "ROBLOX_CLIENT_SECRET", "ORGANIZATION_NAME", "ORGANIZATION_LOGO", "DEFAULT_AUTHORIZE_RESPONSE_TYPE", "DEFAULT_AUTHORIZE_RESPONSE_MODE", "DISABLE_PLAYGROUND", "DISABLE_MAIL_OTP_LOGIN", "DISABLE_TOTP_LOGIN"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -18444,6 +18500,13 @@ func (ec *executionContext) unmarshalInputUpdateEnvInput(ctx context.Context, ob
 				return it, err
 			}
 			it.AppCookieSecure = data
+		case "APP_COOKIE_HTTPONLY":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("APP_COOKIE_HTTPONLY"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AppCookieHTTPOnly = data
 		case "ADMIN_COOKIE_SECURE":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ADMIN_COOKIE_SECURE"))
 			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
@@ -19600,6 +19663,11 @@ func (ec *executionContext) _Env(ctx context.Context, sel ast.SelectionSet, obj 
 			out.Values[i] = ec._Env_ORGANIZATION_LOGO(ctx, field, obj)
 		case "APP_COOKIE_SECURE":
 			out.Values[i] = ec._Env_APP_COOKIE_SECURE(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "APP_COOKIE_HTTPONLY":
+			out.Values[i] = ec._Env_APP_COOKIE_HTTPONLY(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}

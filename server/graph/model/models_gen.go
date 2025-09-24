@@ -129,6 +129,7 @@ type Env struct {
 	OrganizationName                 *string  `json:"ORGANIZATION_NAME,omitempty"`
 	OrganizationLogo                 *string  `json:"ORGANIZATION_LOGO,omitempty"`
 	AppCookieSecure                  bool     `json:"APP_COOKIE_SECURE"`
+	AppCookieHTTPOnly                bool     `json:"APP_COOKIE_HTTPONLY"`
 	AdminCookieSecure                bool     `json:"ADMIN_COOKIE_SECURE"`
 	DefaultAuthorizeResponseType     *string  `json:"DEFAULT_AUTHORIZE_RESPONSE_TYPE,omitempty"`
 	DefaultAuthorizeResponseMode     *string  `json:"DEFAULT_AUTHORIZE_RESPONSE_MODE,omitempty"`
@@ -380,6 +381,7 @@ type UpdateEnvInput struct {
 	AppURL                           *string  `json:"APP_URL,omitempty"`
 	ResetPasswordURL                 *string  `json:"RESET_PASSWORD_URL,omitempty"`
 	AppCookieSecure                  *bool    `json:"APP_COOKIE_SECURE,omitempty"`
+	AppCookieHTTPOnly                *bool    `json:"APP_COOKIE_HTTPONLY,omitempty"`
 	AdminCookieSecure                *bool    `json:"ADMIN_COOKIE_SECURE,omitempty"`
 	DisableEmailVerification         *bool    `json:"DISABLE_EMAIL_VERIFICATION,omitempty"`
 	DisableBasicAuthentication       *bool    `json:"DISABLE_BASIC_AUTHENTICATION,omitempty"`

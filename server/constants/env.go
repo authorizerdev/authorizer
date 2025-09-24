@@ -70,6 +70,8 @@ const (
 	EnvKeyIsSMSServiceEnabled = "IS_SMS_SERVICE_ENABLED"
 	// EnvKeyAppCookieSecure key for env variable APP_COOKIE_SECURE
 	EnvKeyAppCookieSecure = "APP_COOKIE_SECURE"
+	// EnvKeyAppCookieHTTPOnly key for env variable APP_COOKIE_HTTPONLY
+	EnvKeyAppCookieHTTPOnly = "APP_COOKIE_HTTPONLY"
 	// EnvKeyAdminCookieSecure key for env variable ADMIN_COOKIE_SECURE
 	EnvKeyAdminCookieSecure = "ADMIN_COOKIE_SECURE"
 	// EnvKeyJwtType key for env variable JWT_TYPE

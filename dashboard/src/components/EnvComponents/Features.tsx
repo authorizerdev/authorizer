@@ -211,6 +211,18 @@ const Features = ({ variables, setVariables }: any) => {
 				</Flex>
 				<Flex>
 					<Flex w="100%" alignItems="baseline" flexDir="column">
+						<Text fontSize="sm">Use HttpOnly App Cookie:</Text>
+					</Flex>
+					<Flex justifyContent="start">
+						<InputField
+							variables={variables}
+							setVariables={setVariables}
+							inputType={SwitchInputType.APP_COOKIE_HTTPONLY}
+						/>
+					</Flex>
+				</Flex>
+				<Flex>
+					<Flex w="100%" alignItems="baseline" flexDir="column">
 						<Text fontSize="sm">Use Secure Admin Cookie:</Text>
 					</Flex>
 					<Flex justifyContent="start">
