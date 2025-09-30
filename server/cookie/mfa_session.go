@@ -76,7 +76,12 @@ func DeleteMfaSession(gc *gin.Context) {
 		domain = "." + domain
 	}
 
-	gc.SetSameSite(http.SameSiteNoneMode)
+	if !appCookieSecure {
+		gc.SetSameSite(http.SameSiteLaxMode)
+	} else {
+		gc.SetSameSite(http.SameSiteNoneMode)
+	}
+
 	gc.SetCookie(constants.MfaCookieName+"_session", "", -1, "/", host, secure, httpOnly)
 	gc.SetCookie(constants.MfaCookieName+"_session_domain", "", -1, "/", domain, secure, httpOnly)
 }

@@ -76,7 +76,12 @@ func DeleteSession(gc *gin.Context) {
 		domain = "." + domain
 	}
 
-	gc.SetSameSite(http.SameSiteNoneMode)
+	if !appCookieSecure {
+		gc.SetSameSite(http.SameSiteLaxMode)
+	} else {
+		gc.SetSameSite(http.SameSiteNoneMode)
+	}
+
 	gc.SetCookie(constants.AppCookieName+"_session", "", -1, "/", host, secure, httpOnly)
 	gc.SetCookie(constants.AppCookieName+"_session_domain", "", -1, "/", domain, secure, httpOnly)
 }
