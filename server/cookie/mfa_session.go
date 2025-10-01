@@ -20,8 +20,14 @@ func SetMfaSession(gc *gin.Context, sessionID string) {
 		appCookieSecure = true
 	}
 
+	appCookieHttpOnly, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyAppCookieHTTPOnly)
+	if err != nil {
+		log.Debug("Error while getting app cookie httponly from env variable: %v", err)
+		appCookieHttpOnly = true
+	}
+
 	secure := appCookieSecure
-	httpOnly := appCookieSecure
+	httpOnly := appCookieHttpOnly
 	hostname := parsers.GetHost(gc)
 	host, _ := parsers.GetHostParts(hostname)
 	domain := parsers.GetDomainName(hostname)
@@ -55,8 +61,14 @@ func DeleteMfaSession(gc *gin.Context) {
 		appCookieSecure = true
 	}
 
+	appCookieHttpOnly, err := memorystore.Provider.GetBoolStoreEnvVariable(constants.EnvKeyAppCookieHTTPOnly)
+	if err != nil {
+		log.Debug("Error while getting app cookie secure from env variable: %v", err)
+		appCookieHttpOnly = true
+	}
+
 	secure := appCookieSecure
-	httpOnly := appCookieSecure
+	httpOnly := appCookieHttpOnly
 	hostname := parsers.GetHost(gc)
 	host, _ := parsers.GetHostParts(hostname)
 	domain := parsers.GetDomainName(hostname)
@@ -64,7 +76,12 @@ func DeleteMfaSession(gc *gin.Context) {
 		domain = "." + domain
 	}
 
-	gc.SetSameSite(http.SameSiteNoneMode)
+	if !appCookieSecure {
+		gc.SetSameSite(http.SameSiteLaxMode)
+	} else {
+		gc.SetSameSite(http.SameSiteNoneMode)
+	}
+
 	gc.SetCookie(constants.MfaCookieName+"_session", "", -1, "/", host, secure, httpOnly)
 	gc.SetCookie(constants.MfaCookieName+"_session_domain", "", -1, "/", domain, secure, httpOnly)
 }

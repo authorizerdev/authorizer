@@ -47,10 +47,10 @@ func verifyOTPTest(t *testing.T, s TestSetup) {
 				Email:    refs.NewStringRef(email),
 				Password: s.TestInfo.Password,
 			})
-			assert.NoError(t, err)
-			assert.NotNil(t, loginRes)
-			assert.Nil(t, loginRes.AccessToken)
-			assert.NotEmpty(t, loginRes.Message)
+
+			// Response should be empty because email is not verified
+			assert.Error(t, err)
+			assert.Nil(t, loginRes)
 
 			// Verify the email
 			verificationRequest, err := db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeBasicAuthSignup)

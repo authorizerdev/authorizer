@@ -99,6 +99,17 @@ If you are adding new resolver,
 make test
 ```
 
+**Command to debug tests:**
+
+Requires Delve, the Go debugger:
+  `go install github.com/go-delve/delve/cmd/dlv@latest`
+
+```sh
+make test-debug
+```
+
+`make test-debug` will launch the test suite with Delve and wait for your debugger UI to attach on port 2345 so you can hit your breakpoints and step through.
+
 **Manual Testing:**
 
 For manually testing using graphql playground, you can paste following queries and mutations in your playground and test it

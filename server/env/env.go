@@ -30,6 +30,7 @@ func InitAllEnv() error {
 	}
 
 	// unique client id for each instance
+	// TODO: fix this bug - should check os first so it can be init'd on first startup
 	cid, ok := envData[constants.EnvKeyClientID]
 	clientID := ""
 	if !ok || cid == "" {
@@ -97,6 +98,7 @@ func InitAllEnv() error {
 
 	// os bool vars
 	osAppCookieSecure := os.Getenv(constants.EnvKeyAppCookieSecure)
+	osAppCookieHTTPOnly := os.Getenv(constants.EnvKeyAppCookieHTTPOnly)
 	osAdminCookieSecure := os.Getenv(constants.EnvKeyAdminCookieSecure)
 	osDisableBasicAuthentication := os.Getenv(constants.EnvKeyDisableBasicAuthentication)
 	osDisableMobileBasicAuthentication := os.Getenv(constants.AuthRecipeMethodMobileBasicAuth)
@@ -568,6 +570,23 @@ func InitAllEnv() error {
 		}
 		if boolValue != envData[constants.EnvKeyAppCookieSecure].(bool) {
 			envData[constants.EnvKeyAppCookieSecure] = boolValue
+		}
+	}
+
+	if _, ok := envData[constants.EnvKeyAppCookieHTTPOnly]; !ok {
+		if osAppCookieHTTPOnly == "" {
+			envData[constants.EnvKeyAppCookieHTTPOnly] = true
+		} else {
+			envData[constants.EnvKeyAppCookieHTTPOnly] = osAppCookieHTTPOnly == "true"
+		}
+	}
+	if osAppCookieHTTPOnly != "" {
+		boolValue, err := strconv.ParseBool(osAppCookieHTTPOnly)
+		if err != nil {
+			return err
+		}
+		if boolValue != envData[constants.EnvKeyAppCookieHTTPOnly].(bool) {
+			envData[constants.EnvKeyAppCookieHTTPOnly] = boolValue
 		}
 	}
 

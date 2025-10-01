@@ -20,3 +20,5 @@ certs/
 *-wal
 .idea
 *.iml
+*.code-workspace
+tmp/
