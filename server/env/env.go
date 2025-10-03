@@ -29,16 +29,6 @@ func InitAllEnv() error {
 		}
 	}
 
-	// unique client id for each instance
-	cid, ok := envData[constants.EnvKeyClientID]
-	clientID := ""
-	if !ok || cid == "" {
-		clientID = uuid.New().String()
-		envData[constants.EnvKeyClientID] = clientID
-	} else {
-		clientID = cid.(string)
-	}
-
 	// unique client secret for each instance
 	if val, ok := envData[constants.EnvKeyClientSecret]; !ok || val != "" {
 		envData[constants.EnvKeyClientSecret] = uuid.New().String()
@@ -49,6 +39,7 @@ func InitAllEnv() error {
 	osAppURL := os.Getenv(constants.EnvKeyAppURL)
 	osAuthorizerURL := os.Getenv(constants.EnvKeyAuthorizerURL)
 	osPort := os.Getenv(constants.EnvKeyPort)
+	osClientID := os.Getenv(constants.EnvKeyClientID)
 	osAccessTokenExpiryTime := os.Getenv(constants.EnvKeyAccessTokenExpiryTime)
 	osAdminSecret := os.Getenv(constants.EnvKeyAdminSecret)
 	osSmtpHost := os.Getenv(constants.EnvKeySmtpHost)
@@ -146,6 +137,19 @@ func InitAllEnv() error {
 		} else {
 			envData[constants.EnvKeyIsProd] = false
 		}
+	}
+
+	// unique client id for each instance
+	cid, ok := envData[constants.EnvKeyClientID]
+	clientID := ""
+	if !ok || cid == "" {
+		clientID = uuid.New().String()
+		envData[constants.EnvKeyClientID] = clientID
+	} else {
+		clientID = cid.(string)
+	}
+	if osClientID != "" && osClientID != envData[constants.EnvKeyClientID] {
+		envData[constants.EnvKeyClientID] = osClientID
 	}
 
 	if val, ok := envData[constants.EnvAwsRegion]; !ok || val == "" {

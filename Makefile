@@ -17,6 +17,8 @@ clean:
 	rm -rf build
 test:
 	rm -rf server/test/test.db server/test/test.db-shm server/test/test.db-wal && rm -rf test.db test.db-shm test.db-wal && cd server && go clean --testcache && TEST_DBS="sqlite" go test -p 1 -v ./test
+test-debug:
+	rm -rf server/test/test.db server/test/test.db-shm server/test/test.db-wal && rm -rf test.db test.db-shm test.db-wal && cd server && go clean -testcache && cd ./test && TEST_DBS="sqlite" dlv test --headless --listen=:2345 --api-version=2 --log
 test-mongodb:
 	docker run -d --name authorizer_mongodb_db -p 27017:27017 mongo:4.4.15
 	cd server && go clean --testcache && TEST_DBS="mongodb" go test -p 1 -v ./test
