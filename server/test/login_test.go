@@ -24,15 +24,15 @@ func loginTests(t *testing.T, s TestSetup) {
 		})
 		assert.NoError(t, err)
 		assert.NotNil(t, signUpRes)
+
 		res, err := resolvers.LoginResolver(ctx, model.LoginInput{
 			Email:    refs.NewStringRef(email),
 			Password: s.TestInfo.Password,
 		})
-		// access token should be empty as email is not verified
-		assert.NoError(t, err)
-		assert.NotNil(t, res)
-		assert.Nil(t, res.AccessToken)
-		assert.NotEmpty(t, res.Message)
+		// Response should be empty as email is not verified
+		assert.Error(t, err)
+		assert.Nil(t, res)
+
 		verificationRequest, err := db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeBasicAuthSignup)
 		assert.NoError(t, err)
 		assert.NotNil(t, verificationRequest)

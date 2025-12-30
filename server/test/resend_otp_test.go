@@ -35,11 +35,10 @@ func resendOTPTest(t *testing.T, s TestSetup) {
 			Email:    refs.NewStringRef(email),
 			Password: s.TestInfo.Password,
 		})
-		// access token should be empty as email is not verified
-		assert.NoError(t, err)
-		assert.NotNil(t, loginRes)
-		assert.Nil(t, loginRes.AccessToken)
-		assert.NotEmpty(t, loginRes.Message)
+		// Response should be empty as email is not verified
+		assert.Error(t, err)
+		assert.Nil(t, loginRes)
+
 		verificationRequest, err := db.Provider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeBasicAuthSignup)
 		assert.Nil(t, err)
 		assert.Equal(t, email, verificationRequest.Email)
