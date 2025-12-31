@@ -1,6 +1,6 @@
-import React, { ReactNode } from 'react';
+import { ReactNode } from 'react';
 import { MessageType } from '../constants';
-import styles from '../styles/default.css';
+import '../styles/default.css';
 
 const getBackgroundColor = (type: MessageType): string => {
   switch (type) {
@@ -26,7 +26,7 @@ const StyledMessageWrapper = ({
 }) => {
   return (
     <div
-      className={styles['styled-message-wrapper']}
+      className="styled-message-wrapper"
       style={{
         backgroundColor: getBackgroundColor(type),
         ...extraStyles,

@@ -28,10 +28,10 @@ func (g *graphqlProvider) ForgotPassword(ctx context.Context, params *model.Forg
 		log.Debug().Err(err).Msg("Failed to get GinContext")
 		return nil, err
 	}
-	isBasicAuthDisabled := g.Config.DisableStrongPassword
-	isEmailVerificationDisabled := g.Config.DisableEmailVerification
-	isMobileBasicAuthDisabled := g.Config.DisableMobileBasicAuthentication
-	isMobileVerificationDisabled := g.Config.DisablePhoneVerification
+	isBasicAuthEnabled := g.Config.EnableBasicAuthentication
+	isEmailVerificationEnabled := g.Config.EnableEmailVerification
+	isMobileBasicAuthEnabled := g.Config.EnableMobileBasicAuthentication
+	isMobileVerificationEnabled := g.Config.EnablePhoneVerification
 	email := refs.StringValue(params.Email)
 	phoneNumber := refs.StringValue(params.PhoneNumber)
 	if email == "" && phoneNumber == "" {
@@ -41,11 +41,11 @@ func (g *graphqlProvider) ForgotPassword(ctx context.Context, params *model.Forg
 	log = log.With().Str("email", email).Str("phoneNumber", phoneNumber).Logger()
 	isEmailLogin := email != ""
 	isMobileLogin := phoneNumber != ""
-	if isBasicAuthDisabled && isEmailLogin && !isEmailVerificationDisabled {
+	if !isBasicAuthEnabled && isEmailLogin && isEmailVerificationEnabled {
 		log.Debug().Msgf("Basic authentication is disabled.")
 		return nil, fmt.Errorf(`basic authentication is disabled for this instance`)
 	}
-	if isMobileBasicAuthDisabled && isMobileLogin && !isMobileVerificationDisabled {
+	if !isMobileBasicAuthEnabled && isMobileLogin && isMobileVerificationEnabled {
 		log.Debug().Msgf("Mobile basic authentication is disabled.")
 		return nil, fmt.Errorf(`mobile basic authentication is disabled for this instance`)
 	}

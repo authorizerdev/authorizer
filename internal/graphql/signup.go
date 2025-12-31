@@ -39,19 +39,19 @@ func (g *graphqlProvider) SignUp(ctx context.Context, params *model.SignUpReques
 		return nil, fmt.Errorf(`email or phone number is required`)
 	}
 
-	isSignupDisabled := g.Config.DisableSignup
-	if isSignupDisabled {
+	isSignupEnabled := g.Config.EnableSignup
+	if !isSignupEnabled {
 		log.Debug().Msg("Signup is disabled")
 		return nil, fmt.Errorf(`signup is disabled for this instance`)
 	}
 
-	isBasicAuthDisabled := g.Config.DisableBasicAuthentication
-	isMobileBasicAuthDisabled := g.Config.DisableMobileBasicAuthentication
+	isBasicAuthEnabled := g.Config.EnableBasicAuthentication
+	isMobileBasicAuthEnabled := g.Config.EnableMobileBasicAuthentication
 	if params.ConfirmPassword != params.Password {
 		log.Debug().Msg("Passwords do not match")
 		return nil, fmt.Errorf(`password and confirm password does not match`)
 	}
-	if err := validators.IsValidPassword(params.Password, g.Config.DisableStrongPassword); err != nil {
+	if err := validators.IsValidPassword(params.Password, !g.Config.EnableStrongPassword); err != nil {
 		log.Debug().Msg("Invalid password")
 		return nil, err
 	}
@@ -59,11 +59,11 @@ func (g *graphqlProvider) SignUp(ctx context.Context, params *model.SignUpReques
 	log = log.With().Str("email", email).Str("phone_number", phoneNumber).Logger()
 	isEmailSignup := email != ""
 	isMobileSignup := phoneNumber != ""
-	if isBasicAuthDisabled && isEmailSignup {
+	if !isBasicAuthEnabled && isEmailSignup {
 		log.Debug().Msg("Basic authentication is disabled")
 		return nil, fmt.Errorf(`basic authentication is disabled for this instance`)
 	}
-	if isMobileBasicAuthDisabled && isMobileSignup {
+	if !isMobileBasicAuthEnabled && isMobileSignup {
 		log.Debug().Msg("Mobile basic authentication is disabled")
 		return nil, fmt.Errorf(`mobile basic authentication is disabled for this instance`)
 	}
@@ -180,14 +180,14 @@ func (g *graphqlProvider) SignUp(ctx context.Context, params *model.SignUpReques
 		user.AppData = &appDataString
 	}
 	isEmailServiceEnabled := g.Config.IsEmailServiceEnabled
-	isEmailVerificationDisabled := g.Config.DisableEmailVerification || !isEmailServiceEnabled
-	if (isEmailVerificationDisabled) && isEmailSignup {
+	isEmailVerificationEnabled := g.Config.EnableEmailVerification && isEmailServiceEnabled
+	if !isEmailVerificationEnabled && isEmailSignup {
 		now := time.Now().Unix()
 		user.EmailVerifiedAt = &now
 	}
 	isSMSServiceEnabled := g.Config.IsSMSServiceEnabled
-	isPhoneVerificationDisabled := g.Config.DisablePhoneVerification || !isSMSServiceEnabled
-	if (isPhoneVerificationDisabled) && isMobileSignup {
+	isPhoneVerificationEnabled := g.Config.EnablePhoneVerification && isSMSServiceEnabled
+	if !isPhoneVerificationEnabled && isMobileSignup {
 		now := time.Now().Unix()
 		user.PhoneNumberVerifiedAt = &now
 	}
@@ -199,7 +199,7 @@ func (g *graphqlProvider) SignUp(ctx context.Context, params *model.SignUpReques
 	roles := strings.Split(user.Roles, ",")
 	userToReturn := user.AsAPIUser()
 	hostname := parsers.GetHost(gc)
-	if !isEmailVerificationDisabled && isEmailSignup {
+	if isEmailVerificationEnabled && isEmailSignup {
 		// insert verification request
 		_, nonceHash, err := utils.GenerateNonce()
 		if err != nil {
@@ -247,7 +247,7 @@ func (g *graphqlProvider) SignUp(ctx context.Context, params *model.SignUpReques
 		return &model.AuthResponse{
 			Message: `Verification email has been sent. Please check your inbox`,
 		}, nil
-	} else if !isPhoneVerificationDisabled && isMobileSignup {
+	} else if isPhoneVerificationEnabled && isMobileSignup {
 		duration, _ := time.ParseDuration("10m")
 		smsCode := utils.GenerateOTP()
 		smsBody := strings.Builder{}

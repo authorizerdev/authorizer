@@ -92,7 +92,6 @@ String literals of pseudo classes and pseudo elements
 - `Pseudos`
 
   Extends:
-
   - `AdvancedPseudos`
 
     Function-like pseudos e.g. `:not(:first-child)`. The string literal contains the value excluding the parenthesis: `:not`. These are separated because they require an argument that results in infinite number of variations.
@@ -189,13 +188,11 @@ The goal is to have as perfect types as possible and we're trying to do our best
 _If you're using CSS Custom Properties you can step directly to step 3._
 
 1.  **First of all, make sure you're doing it right.** A type error could also indicate that you're not :wink:
-
     - Some CSS specs that some vendors has implemented could have been officially rejected or haven't yet received any official acceptance and are therefor not included
     - If you're using TypeScript, [type widening](https://blog.mariusschulz.com/2017/02/04/TypeScript-2-1-literal-type-widening) could be the reason you get `Type 'string' is not assignable to...` errors
 
 2.  **Have a look in [issues](https://github.com/frenic/csstype/issues) to see if an issue already has been filed. If not, create a new one.** To help us out, please refer to any information you have found.
 3.  Fix the issue locally with **TypeScript** (Flow further down):
-
     - The recommended way is to use **module augmentation**. Here's a few examples:
 
       ```ts
@@ -212,7 +209,7 @@ _If you're using CSS Custom Properties you can step directly to step 3._
 
           // Allow namespaced CSS Custom Properties
           [index: `--theme-${string}`]: any;
-          
+
           // Allow any CSS Custom Properties
           [index: `--${string}`]: any;
 
@@ -235,7 +232,6 @@ _If you're using CSS Custom Properties you can step directly to step 3._
       ```
 
     Fix the issue locally with **Flow**:
-
     - Use **type assertion**. Here's a few examples:
 
       ```js
@@ -247,6 +243,24 @@ _If you're using CSS Custom Properties you can step directly to step 3._
         [('--theme-color': any)]: 'black',
       };
       ```
+
+## Version 3.2
+
+- **No longer compatible with version 2**  
+  Conflicts may occur when both version ^3.2.0 and ^2.0.0 are installed. Potential fix for Npm would be to force resolution in `package.json`:
+  ```json
+  {
+    "overrides": {
+      "csstype": "^3.2.0"
+    }
+  }
+  ```
+
+## Version 3.1
+
+- **Data types are exposed**  
+  TypeScript: `DataType.Color`
+  Flow: `DataType$Color`
 
 ## Version 3.0
 

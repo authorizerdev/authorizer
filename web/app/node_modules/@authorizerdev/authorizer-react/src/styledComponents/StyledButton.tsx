@@ -1,6 +1,6 @@
-import React, { MouseEventHandler, ReactNode } from 'react';
+import { MouseEventHandler, ReactNode } from 'react';
 import { ButtonAppearance } from '../constants';
-import styles from '../styles/default.css';
+import '../styles/default.css';
 
 const StyledButton = ({
   style = {
@@ -21,7 +21,7 @@ const StyledButton = ({
 }) => {
   return (
     <button
-      className={styles['styled-button']}
+      className="styled-button"
       type={type}
       style={{
         width: style.width,

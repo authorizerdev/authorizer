@@ -1,28 +1,13 @@
-import React, { useEffect, lazy, Suspense } from 'react';
-import { Switch, Route } from 'react-router-dom';
+import { useEffect, lazy, Suspense } from 'react';
+import { Routes, Route } from 'react-router-dom';
 import { useAuthorizer } from '@authorizerdev/authorizer-react';
-import styled, { ThemeProvider } from 'styled-components';
 import SetupPassword from './pages/setup-password';
 import { hasWindow, createRandomString } from './utils/common';
-import { theme } from './theme';
 
 const ResetPassword = lazy(() => import('./pages/rest-password'));
 const Login = lazy(() => import('./pages/login'));
 const Dashboard = lazy(() => import('./pages/dashboard'));
 const SignUp = lazy(() => import('./pages/signup'));
-
-const Wrapper = styled.div`
-	font-family: ${(props) => props.theme.fonts.fontStack};
-	color: ${(props) => props.theme.colors.textColor};
-	font-size: ${(props) => props.theme.fonts.mediumText};
-	box-sizing: border-box;
-
-	*,
-	*:before,
-	*:after {
-		box-sizing: inherit;
-	}
-`;
 
 export default function Root({
 	globalState,
@@ -97,35 +82,21 @@ export default function Root({
 	if (token) {
 		return (
 			<Suspense fallback={<></>}>
-				<Switch>
-					<Route path="/app" exact>
-						<Dashboard />
-					</Route>
-				</Switch>
+				<Routes>
+					<Route path="/app" element={<Dashboard />} />
+				</Routes>
 			</Suspense>
 		);
 	}
 
 	return (
 		<Suspense fallback={<></>}>
-			<ThemeProvider theme={theme}>
-				<Wrapper>
-					<Switch>
-						<Route path="/app" exact>
-							<Login urlProps={urlProps} />
-						</Route>
-						<Route path="/app/signup">
-							<SignUp urlProps={urlProps} />
-						</Route>
-						<Route path="/app/reset-password">
-							<ResetPassword />
-						</Route>
-						<Route path="/app/setup-password">
-							<SetupPassword />
-						</Route>
-					</Switch>
-				</Wrapper>
-			</ThemeProvider>
+			<Routes>
+				<Route path="/app" element={<Login urlProps={urlProps} />} />
+				<Route path="/app/signup" element={<SignUp urlProps={urlProps} />} />
+				<Route path="/app/reset-password" element={<ResetPassword />} />
+				<Route path="/app/setup-password" element={<SetupPassword />} />
+			</Routes>
 		</Suspense>
 	);
 }

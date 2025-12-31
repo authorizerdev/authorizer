@@ -18,7 +18,7 @@ func (g *graphqlProvider) AdminLogin(ctx context.Context, params *model.AdminLog
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to get GinContext")
-		return res, err
+		return res, fmt.Errorf("internal server error")
 	}
 	if params.AdminSecret != g.Config.AdminSecret {
 		log.Debug().Msg("Invalid admin secret")

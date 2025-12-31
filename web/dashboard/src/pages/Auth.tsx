@@ -109,18 +109,6 @@ export default function Auth() {
 					>
 						{isLogin ? 'Login' : 'Sign up'}
 					</Button>
-					{isLogin ? (
-						<Text color="gray.600" fontSize="sm">
-							<b>Note:</b> In case if you have forgot your admin secret, you can
-							reset it by updating <code>ADMIN_SECRET</code> environment
-							variable. For more information, please refer to the{' '}
-							<a href="https://docs.authorizer.dev/core/env/">documentation</a>.
-						</Text>
-					) : (
-						<Text color="gray.600" fontSize="sm">
-							<b>Note:</b> Configure the password to start using your dashboard.
-						</Text>
-					)}
 				</VStack>
 			</form>
 		</AuthLayout>

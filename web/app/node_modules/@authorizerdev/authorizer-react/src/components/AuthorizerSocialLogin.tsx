@@ -1,4 +1,4 @@
-import React from 'react';
+import { FC } from 'react';
 import { Github } from '../icons/github';
 import { Google } from '../icons/google';
 import { Facebook } from '../icons/facebook';
@@ -13,7 +13,7 @@ import { Microsoft } from '../icons/microsoft';
 import { Twitch } from '../icons/twitch';
 import { Roblox } from '../icons/roblox';
 
-export const AuthorizerSocialLogin: React.FC<{
+export const AuthorizerSocialLogin: FC<{
   urlProps?: Record<string, any>;
   roles?: string[];
 }> = ({ urlProps, roles }) => {

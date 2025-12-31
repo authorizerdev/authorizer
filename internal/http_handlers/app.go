@@ -22,7 +22,7 @@ func (h *httpProvider) AppHandler() gin.HandlerFunc {
 	log := h.Log.With().Str("func", "AppHandler").Logger()
 	return func(c *gin.Context) {
 		hostname := parsers.GetHost(c)
-		if h.Config.DisableLoginPage {
+		if !h.Config.EnableLoginPage {
 			log.Debug().Msg("Login page is disabled")
 			c.JSON(400, gin.H{"error": "login page is not enabled"})
 			return

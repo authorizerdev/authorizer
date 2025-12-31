@@ -99,11 +99,11 @@ func (g *graphqlProvider) UpdateProfile(ctx context.Context, params *model.Updat
 	// Check if the user is trying to enable or disable multi-factor authentication (MFA)
 	if params.IsMultiFactorAuthEnabled != nil && refs.BoolValue(user.IsMultiFactorAuthEnabled) != refs.BoolValue(params.IsMultiFactorAuthEnabled) {
 		// Check if totp, email or sms is enabled
-		isMailOTPEnvServiceDisabled := g.Config.DisableEmailOTP
-		isTOTPEnvServiceDisabled := g.Config.DisableTOTPLogin
-		isSMSOTPEnvServiceDisabled := g.Config.DisableSMSOTP
+		isMailOTPEnvServiceEnabled := g.Config.EnableEmailOTP
+		isTOTPEnvServiceEnabled := g.Config.EnableTOTPLogin
+		isSMSOTPEnvServiceEnabled := g.Config.EnableSMSOTP
 		// Initialize a flag to check if enabling Mail OTP is required
-		if isMailOTPEnvServiceDisabled && isTOTPEnvServiceDisabled && isSMSOTPEnvServiceDisabled {
+		if !isMailOTPEnvServiceEnabled && !isTOTPEnvServiceEnabled && !isSMSOTPEnvServiceEnabled {
 			log.Debug().Msg("Cannot enable mfa service as all mfa services are disabled")
 			return nil, errors.New("cannot enable multi factor authentication as all mfa services are disabled")
 		}
@@ -147,11 +147,11 @@ func (g *graphqlProvider) UpdateProfile(ctx context.Context, params *model.Updat
 	}
 
 	shouldAddBasicSignUpMethod := false
-	isBasicAuthDisabled := g.Config.DisableBasicAuthentication
-	isMobileBasicAuthDisabled := g.Config.DisableMobileBasicAuthentication
+	isBasicAuthEnabled := g.Config.EnableBasicAuthentication
+	isMobileBasicAuthEnabled := g.Config.EnableMobileBasicAuthentication
 
 	if params.NewPassword != nil && params.ConfirmNewPassword != nil {
-		if isBasicAuthDisabled || isMobileBasicAuthDisabled {
+		if !isBasicAuthEnabled || !isMobileBasicAuthEnabled {
 			log.Debug().Msg("Cannot update password as basic authentication is disabled")
 			return nil, fmt.Errorf(`basic authentication is disabled for this instance`)
 		}
@@ -165,7 +165,7 @@ func (g *graphqlProvider) UpdateProfile(ctx context.Context, params *model.Updat
 			shouldAddBasicSignUpMethod = true
 		}
 
-		if err := validators.IsValidPassword(refs.StringValue(params.NewPassword), g.Config.DisableStrongPassword); err != nil {
+		if err := validators.IsValidPassword(refs.StringValue(params.NewPassword), !g.Config.EnableStrongPassword); err != nil {
 			log.Debug().Msg("Invalid password")
 			return nil, err
 		}
@@ -205,8 +205,8 @@ func (g *graphqlProvider) UpdateProfile(ctx context.Context, params *model.Updat
 		go cookie.DeleteSession(gc, g.Config.AppCookieSecure)
 
 		user.Email = &newEmail
-		isEmailVerificationDisabled := g.Config.DisableEmailVerification
-		if !isEmailVerificationDisabled {
+		isEmailVerificationEnabled := g.Config.EnableEmailVerification
+		if isEmailVerificationEnabled {
 			hostname := parsers.GetHost(gc)
 			user.EmailVerifiedAt = nil
 			hasEmailChanged = true

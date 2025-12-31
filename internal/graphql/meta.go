@@ -39,14 +39,16 @@ func (g *graphqlProvider) Meta(ctx context.Context) (*model.Meta, error) {
 	robloxClientID := g.Config.RobloxClientID
 	robloxClientSecret := g.Config.RobloxClientSecret
 
-	isBasicAuthDisabled := g.Config.DisableBasicAuthentication
-	isMobileBasicAuthDisabled := g.Config.DisableMobileBasicAuthentication
-	isMobileVerificationDisabled := g.Config.DisablePhoneVerification
-	isMagicLinkLoginDisabled := g.Config.DisableMagicLinkLogin
-	isEmailVerificationDisabled := g.Config.DisableEmailVerification
-	isMultiFactorAuthenticationDisabled := g.Config.DisableMFA
-	isStrongPasswordDisabled := g.Config.DisableStrongPassword
-	isSignUpDisabled := g.Config.DisableSignup
+	g.Log.Info().Interface("config", g.Config).Msg("Config")
+
+	isBasicAuthEnabled := g.Config.EnableBasicAuthentication
+	isMobileBasicAuthEnabled := g.Config.EnableMobileBasicAuthentication
+	isMobileVerificationEnabled := g.Config.EnablePhoneVerification
+	isMagicLinkLoginEnabled := g.Config.EnableMagicLinkLogin
+	isEmailVerificationEnabled := g.Config.EnableEmailVerification
+	isMultiFactorAuthenticationEnabled := g.Config.EnableMFA
+	isStrongPasswordEnabled := g.Config.EnableStrongPassword
+	isSignUpEnabled := g.Config.EnableSignup
 
 	metaInfo := model.Meta{
 		Version:                            constants.VERSION,
@@ -58,14 +60,14 @@ func (g *graphqlProvider) Meta(ctx context.Context) (*model.Meta, error) {
 		IsAppleLoginEnabled:                appleClientID != "" && appleClientSecret != "",
 		IsTwitterLoginEnabled:              twitterClientID != "" && twitterClientSecret != "",
 		IsMicrosoftLoginEnabled:            microsoftClientID != "" && microsoftClientSecret != "",
-		IsBasicAuthenticationEnabled:       !isBasicAuthDisabled,
-		IsEmailVerificationEnabled:         !isEmailVerificationDisabled,
-		IsMagicLinkLoginEnabled:            !isMagicLinkLoginDisabled,
-		IsSignUpEnabled:                    !isSignUpDisabled,
-		IsStrongPasswordEnabled:            !isStrongPasswordDisabled,
-		IsMultiFactorAuthEnabled:           !isMultiFactorAuthenticationDisabled,
-		IsMobileBasicAuthenticationEnabled: !isMobileBasicAuthDisabled,
-		IsPhoneVerificationEnabled:         !isMobileVerificationDisabled,
+		IsBasicAuthenticationEnabled:       isBasicAuthEnabled,
+		IsEmailVerificationEnabled:         isEmailVerificationEnabled,
+		IsMagicLinkLoginEnabled:            isMagicLinkLoginEnabled,
+		IsSignUpEnabled:                    isSignUpEnabled,
+		IsStrongPasswordEnabled:            isStrongPasswordEnabled,
+		IsMultiFactorAuthEnabled:           isMultiFactorAuthenticationEnabled,
+		IsMobileBasicAuthenticationEnabled: isMobileBasicAuthEnabled,
+		IsPhoneVerificationEnabled:         isMobileVerificationEnabled,
 		IsTwitchLoginEnabled:               twitchClientID != "" && twitchClientSecret != "",
 		IsRobloxLoginEnabled:               robloxClientID != "" && robloxClientSecret != "",
 	}

@@ -13,10 +13,10 @@ type Config struct {
 	// AllowedOrigins is the list of allowed origins
 	AllowedOrigins []string
 
-	// DisableLoginPage is the flag to disable login page
-	DisableLoginPage bool
-	// DisablePlayground is the flag to disable playground
-	DisablePlayground bool
+	// EnableLoginPage is the flag to enable login page
+	EnableLoginPage bool
+	// EnablePlayground is the flag to enable playground
+	EnablePlayground bool
 
 	// Database Configurations
 	// DatabaseType is the type of database to use
@@ -96,28 +96,28 @@ type Config struct {
 	// For this roles, sign-up is disabled
 	// It is a comma separated string
 	ProtectedRoles []string
-	// DisableStrongPassword is the flag to disable strong password
-	DisableStrongPassword bool
-	// DisableTOTPLogin boolean to disable TOTP login
-	DisableTOTPLogin bool
-	// DisableBasicAuthentication boolean to disable basic authentication
-	DisableBasicAuthentication bool
-	// DisableMagicLinkLogin boolean to disable magic link login
-	DisableMagicLinkLogin bool
-	// DisableEmailVerification boolean to disable email verification
-	DisableEmailVerification bool
-	// DisableMobileBasicAuthentication boolean to disable mobile basic authentication
-	DisableMobileBasicAuthentication bool
-	// DisablePhoneVerification boolean to disable phone verification
-	DisablePhoneVerification bool
-	// DisableMFA boolean to disable MFA
-	DisableMFA bool
-	// DisableEmailOTP boolean to disable email OTP
-	DisableEmailOTP bool
-	// DisableSMSOTP boolean to disable SMS OTP
-	DisableSMSOTP bool
-	// DisableSignup boolean to disable signup
-	DisableSignup bool
+	// EnableStrongPassword is the flag to enable strong password
+	EnableStrongPassword bool
+	// EnableTOTPLogin boolean to enable TOTP login
+	EnableTOTPLogin bool
+	// EnableBasicAuthentication boolean to enable basic authentication
+	EnableBasicAuthentication bool
+	// EnableMagicLinkLogin boolean to enable magic link login
+	EnableMagicLinkLogin bool
+	// EnableEmailVerification boolean to enable email verification
+	EnableEmailVerification bool
+	// EnableMobileBasicAuthentication boolean to enable mobile basic authentication
+	EnableMobileBasicAuthentication bool
+	// EnablePhoneVerification boolean to enable phone verification
+	EnablePhoneVerification bool
+	// EnableMFA boolean to enable MFA
+	EnableMFA bool
+	// EnableEmailOTP boolean to enable email OTP
+	EnableEmailOTP bool
+	// EnableSMSOTP boolean to enable SMS OTP
+	EnableSMSOTP bool
+	// EnableSignup boolean to enable signup
+	EnableSignup bool
 	// IsEmailServiceEnabled is derived from SMTP configurations
 	IsEmailServiceEnabled bool
 	// IsSMSServiceEnabled is derived from Twilio configurations

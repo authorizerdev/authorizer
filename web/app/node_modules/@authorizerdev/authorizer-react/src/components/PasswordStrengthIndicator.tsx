@@ -1,4 +1,4 @@
-import React from 'react';
+import { useState, useEffect } from 'react';
 import {
   StyledFlex,
   StyledPasswordStrengthWrapper,
@@ -24,9 +24,9 @@ const PasswordStrengthIndicator = ({ value, setDisableButton }: PropTypes) => {
       maxThirtySixChar,
     },
     setValidations,
-  ] = React.useState({ ...validatePassword(value || '') });
+  ] = useState({ ...validatePassword(value || '') });
 
-  React.useEffect(() => {
+  useEffect(() => {
     const validationData = validatePassword(value || '');
     setValidations({ ...validationData });
     if (!validationData.isValid) {

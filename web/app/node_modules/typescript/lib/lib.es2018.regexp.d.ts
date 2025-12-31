@@ -14,20 +14,18 @@ and limitations under the License.
 ***************************************************************************** */
 
 
-
 /// <reference no-default-lib="true"/>
-
 
 interface RegExpMatchArray {
     groups?: {
-        [key: string]: string
-    }
+        [key: string]: string;
+    };
 }
 
 interface RegExpExecArray {
     groups?: {
-        [key: string]: string
-    }
+        [key: string]: string;
+    };
 }
 
 interface RegExp {

@@ -1,3 +1,6 @@
+// Import styles - consumers should also import '@authorizerdev/authorizer-react/dist/styles.css'
+import './styles/default.css';
+
 import {
   AuthorizerProvider,
   useAuthorizer,

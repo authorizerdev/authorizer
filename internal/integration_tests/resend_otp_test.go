@@ -16,7 +16,24 @@ import (
 func TestResendOTP(t *testing.T) {
 	cfg := getTestConfig()
 	cfg.IsSMSServiceEnabled = true
-	cfg.DisableEmailOTP = false
+	cfg.EnableEmailOTP = true
+	cfg.EnableSMSOTP = true
+	cfg.EnablePhoneVerification = true
+	cfg.EnableMobileBasicAuthentication = true
+	cfg.EnableMFA = true
+	cfg.SMTPHost = "localhost"
+	cfg.SMTPPort = 1025
+	cfg.SMTPSenderEmail = "test@authorizer.dev"
+	cfg.SMTPSenderName = "Test"
+	cfg.SMTPLocalName = "Test"
+	cfg.SkipTLSVerification = true
+	cfg.IsEmailServiceEnabled = true
+	cfg.IsSMSServiceEnabled = true
+	cfg.EnableEmailVerification = true
+	cfg.TwilioAPISecret = "test-twilio-api-secret"
+	cfg.TwilioAPIKey = "test-twilio-api-key"
+	cfg.TwilioAccountSID = "test-twilio-account-sid"
+	cfg.TwilioSender = "test-twilio-sender"
 	ts := initTestSetup(t, cfg)
 	req, ctx := createContext(ts)
 

@@ -13,6 +13,16 @@ import (
 // TestMagicLinkLogin tests the magic link login functionality of the Authorizer application.
 func TestMagicLinkLogin(t *testing.T) {
 	cfg := getTestConfig()
+	cfg.EnableMagicLinkLogin = true
+	cfg.SMTPHost = "localhost"
+	cfg.SMTPPort = 1025
+	cfg.SMTPSenderEmail = "test@authorizer.dev"
+	cfg.SMTPSenderName = "Test"
+	cfg.SMTPLocalName = "Test"
+	cfg.SkipTLSVerification = true
+	cfg.IsEmailServiceEnabled = true
+	cfg.IsSMSServiceEnabled = true
+	cfg.EnableEmailVerification = true
 	ts := initTestSetup(t, cfg)
 	_, ctx := createContext(ts)
 

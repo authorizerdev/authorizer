@@ -14,11 +14,11 @@ func (h *httpProvider) PlaygroundHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var handlerFunc http.HandlerFunc
 
-		disablePlayground := h.Config.DisablePlayground
+		enablePlayground := h.Config.EnablePlayground
 
-		// if env set to false, then check if logged in as super admin, if logged in then return graphql else 401 error
-		// if env set to true, then disabled the playground with 404 error
-		if !disablePlayground {
+		// if env set to true, then check if logged in as super admin, if logged in then return graphql else 401 error
+		// if env set to false, then disabled the playground with 404 error
+		if enablePlayground {
 			if h.TokenProvider.IsSuperAdmin(c) {
 				handlerFunc = playground.Handler("GraphQL", "/graphql")
 			} else {

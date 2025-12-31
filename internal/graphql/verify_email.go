@@ -62,8 +62,8 @@ func (g *graphqlProvider) VerifyEmail(ctx context.Context, params *model.VerifyE
 		return nil, err
 	}
 
-	isMFADisabled := g.Config.DisableMFA
-	isTOTPLoginDisabled := g.Config.DisableTOTPLogin
+	isMFAEnabled := g.Config.EnableMFA
+	isTOTPLoginEnabled := g.Config.EnableTOTPLogin
 
 	setOTPMFaSession := func(expiresAt int64) error {
 		mfaSession := uuid.NewString()
@@ -77,7 +77,7 @@ func (g *graphqlProvider) VerifyEmail(ctx context.Context, params *model.VerifyE
 	}
 
 	// If mfa enabled and also totp enabled
-	if refs.BoolValue(user.IsMultiFactorAuthEnabled) && !isMFADisabled && !isTOTPLoginDisabled {
+	if refs.BoolValue(user.IsMultiFactorAuthEnabled) && isMFAEnabled && isTOTPLoginEnabled {
 		expiresAt := time.Now().Add(3 * time.Minute).Unix()
 		if err := setOTPMFaSession(expiresAt); err != nil {
 			log.Debug().Err(err).Msg("Failed to set mfa session")

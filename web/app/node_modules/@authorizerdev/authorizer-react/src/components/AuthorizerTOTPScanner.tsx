@@ -1,4 +1,4 @@
-import React, { FC, useState } from 'react';
+import { FC, useState } from 'react';
 import { StyledButton, StyledFlex, StyledSeparator } from '../styledComponents';
 import { ButtonAppearance, Views } from '../constants';
 import { AuthorizerVerifyOtp } from './AuthorizerVerifyOtp';

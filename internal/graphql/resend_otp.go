@@ -67,8 +67,8 @@ func (g *graphqlProvider) ResendOTP(ctx context.Context, params *model.ResendOTP
 		return nil, fmt.Errorf(`multi factor authentication not enabled`)
 	}
 
-	isMFADisabled := g.Config.DisableMFA
-	if isMFADisabled {
+	isMFAEnabled := g.Config.EnableMFA
+	if !isMFAEnabled {
 		log.Debug().Msg("Multi factor authentication is disabled for this instance")
 		return nil, errors.New("multi factor authentication is disabled for this instance")
 	}

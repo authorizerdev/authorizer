@@ -28,7 +28,7 @@ type Provider interface {
 
 // New returns a new authenticators provider
 func New(cfg *config.Config, deps *Dependencies) (Provider, error) {
-	if cfg.DisableTOTPLogin {
+	if !cfg.EnableTOTPLogin {
 		return nil, nil
 	}
 	return totp.NewProvider(&totp.Dependencies{

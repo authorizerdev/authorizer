@@ -113,11 +113,11 @@ func (g *graphqlProvider) UpdateUser(ctx context.Context, params *model.UpdateUs
 		user.IsMultiFactorAuthEnabled = params.IsMultiFactorAuthEnabled
 		if refs.BoolValue(params.IsMultiFactorAuthEnabled) {
 			// Check if totp, email or sms is enabled
-			isMailOTPEnvServiceDisabled := g.Config.DisableEmailOTP
-			isTOTPEnvServiceDisabled := g.Config.DisableTOTPLogin
-			isSMSOTPEnvServiceDisabled := g.Config.DisableSMSOTP
+			isMailOTPEnvServiceEnabled := g.Config.EnableEmailOTP
+			isTOTPEnvServiceEnabled := g.Config.EnableTOTPLogin
+			isSMSOTPEnvServiceEnabled := g.Config.EnableSMSOTP
 			// Initialize a flag to check if enabling Mail OTP is required
-			if isMailOTPEnvServiceDisabled && isTOTPEnvServiceDisabled && isSMSOTPEnvServiceDisabled {
+			if !isMailOTPEnvServiceEnabled && !isTOTPEnvServiceEnabled && !isSMSOTPEnvServiceEnabled {
 				log.Debug().Msg("cannot enable multi factor authentication as all mfa services are disabled")
 				return nil, errors.New("cannot enable multi factor authentication as all mfa services are disabled")
 			}

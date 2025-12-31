@@ -127,8 +127,8 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 		isSignUp := false
 
 		if err != nil {
-			isSignupDisabled := h.Config.DisableSignup
-			if isSignupDisabled {
+			isSignupEnabled := h.Config.EnableSignup
+			if !isSignupEnabled {
 				log.Debug().Err(err).Msg("Signup is disabled")
 				ctx.JSON(400, gin.H{"error": "signup is disabled for this instance"})
 				return

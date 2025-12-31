@@ -2,30 +2,32 @@
 	"name": "app",
 	"version": "1.0.0",
 	"description": "",
-	"main": "index.js",
+	"type": "module",
 	"scripts": {
-		"build": "rm -rf build && NODE_ENV=production node ./esbuild.config.js",
-		"start": "NODE_ENV=development node ./esbuild.config.js",
+		"dev": "vite build --watch",
+		"build": "vite build",
+		"preview": "vite preview",
 		"format": "prettier --write 'src/**/*.(ts|tsx|js|jsx)'"
 	},
 	"keywords": [],
 	"author": "Lakhan Samani",
 	"license": "ISC",
 	"dependencies": {
-		"@authorizerdev/authorizer-react": "^1.3.2",
-		"@types/react": "^17.0.15",
-		"@types/react-dom": "^17.0.9",
-		"esbuild": "^0.12.17",
-		"react": "^17.0.2",
-		"react-dom": "^17.0.2",
-		"react-is": "^17.0.2",
-		"react-router-dom": "^5.2.0",
-		"styled-components": "^5.3.0",
-		"typescript": "^4.3.5"
+		"@authorizerdev/authorizer-react": "^2.0.0-rc.2",
+		"react": "^18.3.1",
+		"react-dom": "^18.3.1",
+		"react-is": "^18.3.1",
+		"react-router-dom": "^6.28.0",
+		"styled-components": "^6.1.13"
 	},
 	"devDependencies": {
-		"@types/react-router-dom": "^5.1.8",
-		"@types/styled-components": "^5.1.11",
-		"prettier": "2.7.1"
+		"@types/react": "^18.3.12",
+		"@types/react-dom": "^18.3.1",
+		"@types/react-router-dom": "^5.3.3",
+		"@types/styled-components": "^5.1.34",
+		"@vitejs/plugin-react": "^4.3.1",
+		"prettier": "^3.3.3",
+		"typescript": "^5.6.3",
+		"vite": "^7.3.0"
 	}
 }

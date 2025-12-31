@@ -1,5 +1,5 @@
-import React, { ReactNode } from 'react';
-import styles from '../styles/default.css';
+import { ReactNode } from 'react';
+import '../styles/default.css';
 
 const StyledFlex = ({
   flexDirection = 'row',
@@ -18,7 +18,7 @@ const StyledFlex = ({
 }) => {
   return (
     <div
-      className={styles['styled-flex']}
+      className="styled-flex"
       style={{
         flexDirection,
         alignItems,

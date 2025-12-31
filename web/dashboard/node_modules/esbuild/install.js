@@ -57,7 +57,8 @@ var knownUnixlikePackages = {
 };
 var knownWebAssemblyFallbackPackages = {
   "android arm LE": "@esbuild/android-arm",
-  "android x64 LE": "@esbuild/android-x64"
+  "android x64 LE": "@esbuild/android-x64",
+  "openharmony arm64 LE": "@esbuild/openharmony-arm64"
 };
 function pkgAndSubpathForCurrentPlatform() {
   let pkg;
@@ -220,7 +221,8 @@ require('child_process').execFileSync(${pathString}, process.argv.slice(2), { st
 ${code}`);
 }
 function maybeOptimizePackage(binPath) {
-  if (os2.platform() !== "win32" && !isYarn()) {
+  const { isWASM } = pkgAndSubpathForCurrentPlatform();
+  if (os2.platform() !== "win32" && !isYarn() && !isWASM) {
     const tempPath = path2.join(__dirname, "bin-esbuild");
     try {
       fs2.linkSync(binPath, tempPath);

@@ -1,10 +1,11 @@
-import React, {
+import {
   FC,
   createContext,
   useReducer,
   useContext,
   useRef,
   useEffect,
+  ReactNode,
 } from 'react';
 import { Authorizer, User, AuthToken } from '@authorizerdev/authorizer-js';
 
@@ -115,7 +116,7 @@ let initialState: AuthorizerState = {
 };
 
 export const AuthorizerProvider: FC<{
-  children: React.ReactNode;
+  children: ReactNode;
   config: {
     authorizerURL: string;
     redirectURL: string;
@@ -144,10 +145,8 @@ export const AuthorizerProvider: FC<{
   );
 
   const getToken = async () => {
-    const {
-      data: metaRes,
-      errors: metaResErrors,
-    } = await authorizerRef.current.getMetaData();
+    const { data: metaRes, errors: metaResErrors } =
+      await authorizerRef.current.getMetaData();
     try {
       if (metaResErrors && metaResErrors.length) {
         throw new Error(metaResErrors[0].message);
@@ -157,17 +156,11 @@ export const AuthorizerProvider: FC<{
         throw new Error(errors[0].message);
       }
       if (res && res.access_token && res.user) {
-        const token = {
-          access_token: res.access_token,
-          expires_in: res.expires_in,
-          id_token: res.id_token,
-          refresh_token: res.refresh_token || '',
-        };
         dispatch({
           type: AuthorizerProviderActionType.SET_AUTH_DATA,
           payload: {
             ...state,
-            token,
+            token: res,
             user: res.user,
             config: {
               ...state.config,
@@ -185,9 +178,11 @@ export const AuthorizerProvider: FC<{
         //   }, millisecond);
         // }
         if (intervalRef) clearInterval(intervalRef);
-        intervalRef = setInterval(() => {
-          getToken();
-        }, res.expires_in * 1000);
+        if (res.expires_in) {
+          intervalRef = setInterval(() => {
+            getToken();
+          }, res.expires_in * 1000);
+        }
       } else {
         dispatch({
           type: AuthorizerProviderActionType.SET_AUTH_DATA,
@@ -243,7 +238,7 @@ export const AuthorizerProvider: FC<{
       },
     });
 
-    if (token?.access_token) {
+    if (token?.access_token && token.expires_in) {
       if (intervalRef) clearInterval(intervalRef);
       intervalRef = setInterval(() => {
         getToken();
@@ -257,7 +252,7 @@ export const AuthorizerProvider: FC<{
       payload: data,
     });
 
-    if (data.token?.access_token) {
+    if (data.token?.access_token && data.token.expires_in) {
       if (intervalRef) clearInterval(intervalRef);
       intervalRef = setInterval(() => {
         getToken();

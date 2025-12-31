@@ -1,4 +1,3 @@
-import React from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import { AuthorizerProvider } from '@authorizerdev/authorizer-react';
 import Root from './Root';

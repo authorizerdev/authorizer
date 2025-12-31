@@ -119,5 +119,8 @@ var _utils = require("./utils.js");
 (0, _utils.default)("PipelinePrimaryTopicReference", {
   aliases: ["Expression"]
 });
+(0, _utils.default)("VoidPattern", {
+  aliases: ["Pattern", "PatternLike", "FunctionParameter"]
+});
 
 //# sourceMappingURL=experimental.js.map

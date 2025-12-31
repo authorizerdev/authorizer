@@ -21,6 +21,7 @@ import {
 	AccordionPanel,
 	AccordionItem,
 	useMediaQuery,
+	Button,
 } from '@chakra-ui/react';
 import {
 	FiCode,
@@ -29,6 +30,7 @@ import {
 	FiChevronDown,
 	FiLink,
 	FiFileText,
+	FiPower,
 } from 'react-icons/fi';
 import { IconType } from 'react-icons';
 import { useMutation, useQuery } from 'urql';
@@ -272,17 +274,9 @@ export const MobileNav = ({ onOpen, ...rest }: MobileProps) => {
 
 			<HStack spacing={{ base: '0', md: '6' }}>
 				<Flex alignItems={'center'}>
-					<Menu>
-						<MenuButton
-							as={IconButton}
-							aria-label="Options"
-							icon={<FiChevronDown />}
-							variant="outline"
-						/>
-						<MenuList>
-							<MenuItem onClick={handleLogout}>Logout</MenuItem>
-						</MenuList>
-					</Menu>
+					<Button variant="solid" colorScheme="red" onClick={handleLogout}>
+						<FiPower />
+					</Button>
 				</Flex>
 			</HStack>
 		</Flex>

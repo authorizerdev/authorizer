@@ -1,4 +1,4 @@
-import React, { FC } from 'react';
+import { FC } from 'react';
 import { MessageType } from '../constants';
 import { IconClose } from '../icons/close';
 import { StyledMessageWrapper, StyledFlex } from '../styledComponents';

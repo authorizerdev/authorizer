@@ -16,7 +16,7 @@ import (
 func TestVerifyEmail(t *testing.T) {
 	cfg := getTestConfig()
 	cfg.IsEmailServiceEnabled = true
-	cfg.DisableEmailVerification = false
+	cfg.EnableEmailVerification = true
 	ts := initTestSetup(t, cfg)
 	_, ctx := createContext(ts)
 

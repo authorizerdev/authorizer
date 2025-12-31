@@ -14,9 +14,7 @@ and limitations under the License.
 ***************************************************************************** */
 
 
-
 /// <reference no-default-lib="true"/>
-
 
 /**
  * Represents the completion of an asynchronous operation
@@ -28,5 +26,5 @@ interface Promise<T> {
      * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
      * @returns A Promise for the completion of the callback.
      */
-    finally(onfinally?: (() => void) | undefined | null): Promise<T>
+    finally(onfinally?: (() => void) | undefined | null): Promise<T>;
 }

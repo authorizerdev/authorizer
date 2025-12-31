@@ -40,13 +40,13 @@ func (g *graphqlProvider) ResetPassword(ctx context.Context, params *model.Reset
 		log.Debug().Msg("Phone number is required")
 		return nil, fmt.Errorf(`phone number is required`)
 	}
-	isBasicAuthDisabled := g.Config.DisableBasicAuthentication
-	isMobileBasicAuthDisabled := g.Config.DisableMobileBasicAuthentication
-	if isTokenVerification && isBasicAuthDisabled {
+	isBasicAuthEnabled := g.Config.EnableBasicAuthentication
+	isMobileBasicAuthEnabled := g.Config.EnableMobileBasicAuthentication
+	if isTokenVerification && !isBasicAuthEnabled {
 		log.Debug().Msg("Basic authentication is disabled")
 		return nil, fmt.Errorf(`basic authentication is disabled for this instance`)
 	}
-	if isOtpVerification && isMobileBasicAuthDisabled {
+	if isOtpVerification && !isMobileBasicAuthEnabled {
 		log.Debug().Msg("Mobile basic authentication is disabled")
 		return nil, fmt.Errorf(`mobile basic authentication is disabled for this instance`)
 	}
@@ -117,7 +117,7 @@ func (g *graphqlProvider) ResetPassword(ctx context.Context, params *model.Reset
 		log.Debug().Msg("Passwords do not match")
 		return nil, fmt.Errorf(`passwords don't match`)
 	}
-	if err := validators.IsValidPassword(params.Password, g.Config.DisableStrongPassword); err != nil {
+	if err := validators.IsValidPassword(params.Password, !g.Config.EnableStrongPassword); err != nil {
 		log.Debug().Msg("Invalid password")
 		return nil, err
 	}

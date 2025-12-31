@@ -38,9 +38,9 @@ func (g *graphqlProvider) InviteMembers(ctx context.Context, params *model.Invit
 		return nil, errors.New("email sending is disabled")
 	}
 
-	isBasicAuthDisabled := g.Config.DisableBasicAuthentication
-	isMagicLinkLoginDisabled := g.Config.DisableMagicLinkLogin
-	if isBasicAuthDisabled && isMagicLinkLoginDisabled {
+	isBasicAuthEnabled := g.Config.EnableBasicAuthentication
+	isMagicLinkLoginEnabled := g.Config.EnableMagicLinkLogin
+	if !isBasicAuthEnabled && !isMagicLinkLoginEnabled {
 		log.Debug().Msg("Either basic authentication or magic link login is required")
 		return nil, errors.New("either basic authentication or magic link login is required")
 	}
@@ -117,7 +117,7 @@ func (g *graphqlProvider) InviteMembers(ctx context.Context, params *model.Invit
 		}
 
 		// use magic link login if that option is on
-		if !isMagicLinkLoginDisabled {
+		if isMagicLinkLoginEnabled {
 			user.SignupMethods = constants.AuthRecipeMethodMagicLinkLogin
 			verificationRequest.Identifier = constants.VerificationTypeMagicLinkLogin
 		} else {

@@ -1,8 +1,8 @@
-import React, { ReactNode } from 'react';
-import styles from '../styles/default.css';
+import { ReactNode } from 'react';
+import '../styles/default.css';
 
 const StyledSeparator = ({ children }: { children?: ReactNode }) => {
-  return <div className={styles['styled-separator']}>{children}</div>;
+  return <div className="styled-separator">{children}</div>;
 };
 
 export default StyledSeparator;

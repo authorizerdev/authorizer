@@ -32,8 +32,8 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 		return nil, err
 	}
 
-	isBasicAuthDisabled := g.Config.DisableBasicAuthentication
-	isMobileBasicAuthDisabled := g.Config.DisableMobileBasicAuthentication
+	isBasicAuthEnabled := g.Config.EnableBasicAuthentication
+	isMobileBasicAuthEnabled := g.Config.EnableMobileBasicAuthentication
 	email := refs.StringValue(params.Email)
 	phoneNumber := refs.StringValue(params.PhoneNumber)
 	if email == "" && phoneNumber == "" {
@@ -43,11 +43,11 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 	log = log.With().Str("email", email).Str("phone_number", phoneNumber).Logger()
 	isEmailLogin := email != ""
 	isMobileLogin := phoneNumber != ""
-	if isBasicAuthDisabled && isEmailLogin {
+	if !isBasicAuthEnabled && isEmailLogin {
 		log.Debug().Msg("Basic authentication is disabled")
 		return nil, fmt.Errorf(`basic authentication is disabled for this instance`)
 	}
-	if isMobileBasicAuthDisabled && isMobileLogin {
+	if !isMobileBasicAuthEnabled && isMobileLogin {
 		log.Debug().Msg("Mobile basic authentication is disabled")
 		return nil, fmt.Errorf(`mobile basic authentication is disabled for this instance`)
 	}
@@ -202,13 +202,13 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 		scope = params.Scope
 	}
 
-	isMFADisabled := g.Config.DisableMFA
-	isTOTPLoginDisabled := g.Config.DisableTOTPLogin
-	isMailOTPDisabled := g.Config.DisableEmailOTP
-	isSMSOTPDisabled := g.Config.DisableSMSOTP
+	isMFAEnabled := g.Config.EnableMFA
+	isTOTPLoginEnabled := g.Config.EnableTOTPLogin
+	isMailOTPEnabled := g.Config.EnableEmailOTP
+	isSMSOTPEnabled := g.Config.EnableSMSOTP
 
 	// If multi factor authentication is enabled and is email based login and email otp is enabled
-	if refs.BoolValue(user.IsMultiFactorAuthEnabled) && !isMFADisabled && !isMailOTPDisabled && isEmailServiceEnabled && isEmailLogin {
+	if refs.BoolValue(user.IsMultiFactorAuthEnabled) && isMFAEnabled && isMailOTPEnabled && isEmailServiceEnabled && isEmailLogin {
 		expiresAt := time.Now().Add(1 * time.Minute).Unix()
 		otpData, err := generateOTP(expiresAt)
 		if err != nil {
@@ -236,7 +236,7 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 		}, nil
 	}
 	// If multi factor authentication is enabled and is sms based login and sms otp is enabled
-	if refs.BoolValue(user.IsMultiFactorAuthEnabled) && !isMFADisabled && !isSMSOTPDisabled && isSMSServiceEnabled && isMobileLogin {
+	if refs.BoolValue(user.IsMultiFactorAuthEnabled) && isMFAEnabled && isSMSOTPEnabled && isSMSServiceEnabled && isMobileLogin {
 		expiresAt := time.Now().Add(1 * time.Minute).Unix()
 		otpData, err := generateOTP(expiresAt)
 		if err != nil {
@@ -262,7 +262,7 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 		}, nil
 	}
 	// If mfa enabled and also totp enabled
-	if refs.BoolValue(user.IsMultiFactorAuthEnabled) && !isMFADisabled && !isTOTPLoginDisabled {
+	if refs.BoolValue(user.IsMultiFactorAuthEnabled) && isMFAEnabled && isTOTPLoginEnabled {
 		expiresAt := time.Now().Add(3 * time.Minute).Unix()
 		if err := setOTPMFaSession(expiresAt); err != nil {
 			log.Debug().Msg("Failed to set mfa session")

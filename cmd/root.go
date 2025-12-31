@@ -52,12 +52,12 @@ func init() {
 	f.StringVar(&rootArgs.config.Env, "env", "", "Environment of the authorizer instance")
 
 	// Http routes
-	f.BoolVar(&rootArgs.config.DisableLoginPage, "disable-login-page", false, "Disable login page")
-	f.BoolVar(&rootArgs.config.DisablePlayground, "disable-playground", false, "Disable playground")
+	f.BoolVar(&rootArgs.config.EnableLoginPage, "enable-login-page", true, "Enable login page")
+	f.BoolVar(&rootArgs.config.EnablePlayground, "enable-playground", true, "Enable playground")
 
 	// Organization flags
-	f.StringVar(&rootArgs.config.OrganizationLogo, "organization-logo", "", "Logo of the organization")
-	f.StringVar(&rootArgs.config.OrganizationName, "organization-name", "", "Name of the organization")
+	f.StringVar(&rootArgs.config.OrganizationLogo, "organization-logo", "https://authorizer.dev/images/logo.png", "Logo of the organization")
+	f.StringVar(&rootArgs.config.OrganizationName, "organization-name", "Authorizer", "Name of the organization")
 
 	// OAuth flags
 	f.StringVar(&rootArgs.config.ClientID, "client-id", "", "Client ID for the OAuth")
@@ -106,18 +106,18 @@ func init() {
 	f.StringSliceVar(&rootArgs.config.DefaultRoles, "default-roles", []string{"user"}, "Default user roles to assign")
 	f.StringSliceVar(&rootArgs.config.Roles, "roles", []string{"user"}, "Roles to assign")
 	f.StringSliceVar(&rootArgs.config.ProtectedRoles, "protected-roles", []string{}, "Roles that cannot be deleted")
-	f.BoolVar(&rootArgs.config.DisableStrongPassword, "disable-strong-password", false, "Disable strong password requirement")
-	f.BoolVar(&rootArgs.config.DisableTOTPLogin, "disable-totp-login", false, "Disable TOTP login")
-	f.BoolVar(&rootArgs.config.DisableBasicAuthentication, "disable-basic-authentication", false, "Disable basic authentication")
-	f.BoolVar(&rootArgs.config.DisableEmailVerification, "disable-email-verification", false, "Disable email verification")
-	f.BoolVar(&rootArgs.config.DisableMobileBasicAuthentication, "disable-mobile-basic-authentication", false, "Disable mobile basic authentication")
-	f.BoolVar(&rootArgs.config.DisablePhoneVerification, "disable-phone-verification", false, "Disable phone verification")
-	f.BoolVar(&rootArgs.config.DisableMagicLinkLogin, "disable-magic-link-login", false, "Disable magic link login")
-	f.BoolVar(&rootArgs.config.EnforceMFA, "enforce-mfa", false, "Enforce MFA for all users")
-	f.BoolVar(&rootArgs.config.DisableMFA, "disable-mfa", false, "Disable MFA for all users")
-	f.BoolVar(&rootArgs.config.DisableEmailOTP, "disable-email-otp", false, "Disable email OTP")
-	f.BoolVar(&rootArgs.config.DisableSMSOTP, "disable-sms-otp", false, "Disable SMS OTP")
-	f.BoolVar(&rootArgs.config.DisableSignup, "disable-signup", false, "Disable signup")
+	f.BoolVar(&rootArgs.config.EnableStrongPassword, "enable-strong-password", true, "Enable strong password requirement")
+	f.BoolVar(&rootArgs.config.EnableTOTPLogin, "enable-totp-login", false, "Enable TOTP login")
+	f.BoolVar(&rootArgs.config.EnableBasicAuthentication, "enable-basic-authentication", true, "Enable basic authentication")
+	f.BoolVar(&rootArgs.config.EnableEmailVerification, "enable-email-verification", false, "Enable email verification")
+	f.BoolVar(&rootArgs.config.EnableMobileBasicAuthentication, "enable-mobile-basic-authentication", true, "Enable mobile basic authentication")
+	f.BoolVar(&rootArgs.config.EnablePhoneVerification, "enable-phone-verification", false, "Enable phone verification")
+	f.BoolVar(&rootArgs.config.EnableMagicLinkLogin, "enable-magic-link-login", false, "Enable magic link login")
+	f.BoolVar(&rootArgs.config.EnforceMFA, "enforce-mfa", true, "Enforce MFA for all users")
+	f.BoolVar(&rootArgs.config.EnableMFA, "enable-mfa", false, "Enable MFA for all users")
+	f.BoolVar(&rootArgs.config.EnableEmailOTP, "enable-email-otp", false, "Enable email OTP")
+	f.BoolVar(&rootArgs.config.EnableSMSOTP, "enable-sms-otp", false, "Enable SMS OTP")
+	f.BoolVar(&rootArgs.config.EnableSignup, "enable-signup", true, "Enable signup")
 
 	// Cookies flags
 	f.BoolVar(&rootArgs.config.AppCookieSecure, "app-cookie-secure", true, "Application secure cookie flag")
@@ -168,7 +168,7 @@ func init() {
 	f.StringSliceVar(&rootArgs.config.TwitterScopes, "twitter-scopes", []string{"tweet.read", "users.read"}, "Scopes for Twitter")
 	f.StringVar(&rootArgs.config.RobloxClientID, "roblox-client-id", "", "Client ID for Roblox")
 	f.StringVar(&rootArgs.config.RobloxClientSecret, "roblox-client-secret", "", "Client secret for Roblox")
-	f.StringSliceVar(&rootArgs.config.RobloxScopes, "Roblox-scopes", []string{"openid", "profile"}, "Scopes for Roblox")
+	f.StringSliceVar(&rootArgs.config.RobloxScopes, "roblox-scopes", []string{"openid", "profile"}, "Scopes for Roblox")
 
 	// URLs
 	f.StringVar(&rootArgs.config.ResetPasswordURL, "reset-password-url", "", "URL for reset password")

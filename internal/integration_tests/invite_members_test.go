@@ -57,8 +57,8 @@ func TestInviteMembersUser(t *testing.T) {
 
 	t.Run("should fail to invite user as email is blank", func(t *testing.T) {
 		cfg.IsEmailServiceEnabled = true
-		cfg.DisableBasicAuthentication = false
-		cfg.DisableMagicLinkLogin = false
+		cfg.EnableBasicAuthentication = true
+		cfg.EnableMagicLinkLogin = true
 		h, err := crypto.EncryptPassword(cfg.AdminSecret)
 		assert.Nil(t, err)
 
@@ -72,8 +72,8 @@ func TestInviteMembersUser(t *testing.T) {
 
 	t.Run("should invite user as email sending is enabled", func(t *testing.T) {
 		cfg.IsEmailServiceEnabled = true
-		cfg.DisableBasicAuthentication = false
-		cfg.DisableMagicLinkLogin = false
+		cfg.EnableBasicAuthentication = true
+		cfg.EnableMagicLinkLogin = true
 		h, err := crypto.EncryptPassword(cfg.AdminSecret)
 		assert.Nil(t, err)
 

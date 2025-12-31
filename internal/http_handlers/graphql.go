@@ -2,6 +2,7 @@ package http_handlers
 
 import (
 	"context"
+	"net/http"
 
 	gql "github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/handler"
@@ -69,6 +70,13 @@ func (h *httpProvider) GraphqlHandler() gin.HandlerFunc {
 	})
 
 	return func(c *gin.Context) {
-		srv.ServeHTTP(c.Writer, c.Request)
+		// Create a custom handler that ensures gin context is available
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Ensure the gin context is available in the request context
+			ctx := context.WithValue(r.Context(), "GinContextKey", c)
+			r = r.WithContext(ctx)
+			srv.ServeHTTP(w, r)
+		})
+		handler.ServeHTTP(c.Writer, c.Request)
 	}
 }

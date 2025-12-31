@@ -26,8 +26,8 @@ func (g *graphqlProvider) MagicLinkLogin(ctx context.Context, params *model.Magi
 		return nil, err
 	}
 
-	isMagicLinkLoginDisabled := g.Config.DisableMagicLinkLogin
-	if isMagicLinkLoginDisabled {
+	isMagicLinkLoginEnabled := g.Config.EnableMagicLinkLogin
+	if !isMagicLinkLoginEnabled {
 		log.Debug().Msg("Magic link login is disabled")
 		return nil, fmt.Errorf(`magic link login is disabled for this instance`)
 	}
@@ -46,13 +46,13 @@ func (g *graphqlProvider) MagicLinkLogin(ctx context.Context, params *model.Magi
 	}
 
 	// find user with email
-	existingUser, err := g.StorageProvider.GetUserByEmail(ctx, params.Email)
-	if err != nil {
-		isSignupDisabled := g.Config.DisableSignup
-		if isSignupDisabled {
-			log.Debug().Msg("Signup is disabled")
-			return nil, fmt.Errorf(`signup is disabled for this instance`)
-		}
+		existingUser, err := g.StorageProvider.GetUserByEmail(ctx, params.Email)
+		if err != nil {
+			isSignupEnabled := g.Config.EnableSignup
+			if !isSignupEnabled {
+				log.Debug().Msg("Signup is disabled")
+				return nil, fmt.Errorf(`signup is disabled for this instance`)
+			}
 
 		user.SignupMethods = constants.AuthRecipeMethodMagicLinkLogin
 		// define roles for new user
@@ -131,8 +131,8 @@ func (g *graphqlProvider) MagicLinkLogin(ctx context.Context, params *model.Magi
 	}
 
 	hostname := parsers.GetHost(gc)
-	isEmailVerificationDisabled := g.Config.DisableEmailVerification
-	if !isEmailVerificationDisabled {
+	isEmailVerificationEnabled := g.Config.EnableEmailVerification
+	if isEmailVerificationEnabled {
 		// insert verification request
 		_, nonceHash, err := utils.GenerateNonce()
 		if err != nil {

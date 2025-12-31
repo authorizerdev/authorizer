@@ -1,6 +1,9 @@
 package server
 
 import (
+	"encoding/json"
+	"html/template"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -30,6 +33,13 @@ func (s *server) NewRouter() *gin.Engine {
 	router.POST("/oauth/token", s.Dependencies.HTTPProvider.TokenHandler())
 	router.POST("/oauth/revoke", s.Dependencies.HTTPProvider.RevokeRefreshTokenHandler())
 
+	// Set up template functions for JSON encoding
+	router.SetFuncMap(template.FuncMap{
+		"json": func(v interface{}) template.JS {
+			a, _ := json.Marshal(v)
+			return template.JS(a)
+		},
+	})
 	router.LoadHTMLGlob("web/templates/*")
 	// // login page app related routes.
 	app := router.Group("/app")
