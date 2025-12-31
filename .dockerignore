@@ -7,8 +7,6 @@ ROADMAP.md
 build
 .env
 data.db
-app/node_modules
-app/build
 web/app/node_modules
 web/app/build
 web/app/.vite
