@@ -40,13 +40,13 @@ RUN cd web/app && npm run build && \
 FROM alpine:3.23
 RUN adduser -D -h /authorizer -u 1000 -k /dev/null authorizer
 WORKDIR /authorizer
-RUN mkdir app dashboard
-COPY --from=node-builder --chown=nobody:nobody /authorizer/web/app/build app/build
-COPY --from=node-builder --chown=nobody:nobody /authorizer/web/app/favicon_io app/favicon_io
-COPY --from=node-builder --chown=nobody:nobody /authorizer/web/dashboard/build dashboard/build
-COPY --from=node-builder --chown=nobody:nobody /authorizer/web/dashboard/favicon_io dashboard/favicon_io
+RUN mkdir -p web/app web/dashboard
+COPY --from=node-builder --chown=nobody:nobody /authorizer/web/app/build web/app/build
+COPY --from=node-builder --chown=nobody:nobody /authorizer/web/app/favicon_io web/app/favicon_io
+COPY --from=node-builder --chown=nobody:nobody /authorizer/web/dashboard/build web/dashboard/build
+COPY --from=node-builder --chown=nobody:nobody /authorizer/web/dashboard/favicon_io web/dashboard/favicon_io
 COPY --from=go-builder --chown=nobody:nobody /authorizer/build build
-COPY templates templates
+COPY web/templates web/templates
 EXPOSE 8080 8081
 USER authorizer
 # Use ENTRYPOINT to allow passing CLI arguments
