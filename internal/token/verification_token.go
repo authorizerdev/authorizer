@@ -3,7 +3,7 @@ package token
 import (
 	"time"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v4"
 )
 
 // CreateVerificationToken creates a verification JWT token
