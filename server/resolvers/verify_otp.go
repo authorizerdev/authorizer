@@ -80,6 +80,85 @@ func VerifyOtpResolver(ctx context.Context, params model.VerifyOTPRequest) (*mod
 				log.Debug("Failed to verify otp request: Incorrect value")
 				return res, fmt.Errorf(`invalid otp`)
 			}
+
+			// Redirect to TOTP scanner image screen when the user validates through a recovery code
+			{
+				// Update totp info into db
+				{
+					// Get TOTP details for the user
+					totpModel, err := db.Provider.GetAuthenticatorDetailsByUserId(ctx, user.ID, constants.EnvKeyTOTPAuthenticator)
+					if err != nil {
+						return nil, err
+					}
+
+					// Clear TOTP secret from the TOTP model
+					totpModel.Secret = ""
+
+					// Reset recovery code and TOTP secret in the database
+					_, err = db.Provider.UpdateAuthenticator(ctx, totpModel)
+					if err != nil {
+						return nil, err
+					}
+				}
+
+				// Redirect to TOTP scanner image screen by resetting TOTP secret and updating a recovery codes
+				{
+					// Function to set OTP MFA session
+					setOTPMFaSession := func(expiresAt int64) error {
+						// Generate a new MFA session ID
+						mfaSession := uuid.NewString()
+
+						// Store the MFA session in the memory store
+						err = memorystore.Provider.SetMfaSession(user.ID, mfaSession, expiresAt)
+						if err != nil {
+							log.Debug("Failed to add mfasession: ", err)
+							return err
+						}
+
+						// Set the MFA session ID in a cookie
+						cookie.SetMfaSession(gc, mfaSession)
+						return nil
+					}
+
+					// Calculate the expiration time for the TOTP information
+					expiresAt := time.Now().Add(3 * time.Minute).Unix()
+
+					// Set the OTP MFA session
+					if err := setOTPMFaSession(expiresAt); err != nil {
+						log.Debug("Failed to set mfa session: ", err)
+						return nil, err
+					}
+
+					// Retrieve TOTP details again after updating the session
+					authenticator, err := db.Provider.GetAuthenticatorDetailsByUserId(ctx, user.ID, constants.EnvKeyTOTPAuthenticator)
+
+					// Check for an error or an empty TOTP secret in the authenticator details
+					if err != nil || authenticator.Secret == "" {
+						// If there's an error or the TOTP secret is empty, initiate TOTP information update
+						authConfig, err := authenticators.Provider.UpdateTotpInfo(ctx, user.ID)
+						if err != nil {
+							log.Debug("error while generating base64 url: ", err)
+							return nil, err
+						}
+
+						recoveryCodes := []*string{}
+						for _, code := range authConfig.RecoveryCodes {
+							recoveryCodes = append(recoveryCodes, refs.NewStringRef(code))
+						}
+
+						// Response for the case when the user validate through TOTP recovery codes
+						res = &model.AuthResponse{
+							Message:                    `Proceed to totp verification screen`,
+							ShouldShowTotpScreen:       refs.NewBoolRef(true),
+							AuthenticatorScannerImage:  &authConfig.ScannerImage,
+							AuthenticatorSecret:        &authConfig.Secret,
+							AuthenticatorRecoveryCodes: recoveryCodes,
+						}
+
+						return res, nil
+					}
+				}
+			}
 		}
 	} else {
 		var otp *models.OTP
