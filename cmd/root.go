@@ -240,7 +240,8 @@ func runRoot(c *cobra.Command, args []string) {
 
 	// Memory store provider
 	memoryStoreProvider, err := memory_store.New(&rootArgs.config, &memory_store.Dependencies{
-		Log: &log,
+		Log:             &log,
+		StorageProvider: storageProvider,
 	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create memory store provider")

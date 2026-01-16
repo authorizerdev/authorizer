@@ -13,6 +13,7 @@ import (
 const (
 	memoryStoreTypeRedis    = "redis"
 	memoryStoreTypeInMemory = "inmemory"
+	memoryStoreTypeDB       = "db"
 )
 
 var memoryStoreTypes = []string{
@@ -29,6 +30,9 @@ func getTestMemoryStorageConfig(storageType string) *config.Config {
 		cfg.RedisURL = "redis://localhost:6380"
 	case memoryStoreTypeInMemory:
 		cfg.RedisURL = ""
+	case memoryStoreTypeDB:
+		cfg.DatabaseType = "sqlite"
+		cfg.DatabaseURL = "test.db"
 	default:
 		cfg.RedisURL = ""
 	}

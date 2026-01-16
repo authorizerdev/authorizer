@@ -12,6 +12,9 @@ type CollectionList struct {
 	OTP                    string
 	SMSVerificationRequest string
 	Authenticators         string
+	SessionToken           string
+	MFASession             string
+	OAuthState             string
 }
 
 var (
@@ -29,5 +32,8 @@ var (
 		OTP:                    Prefix + "otps",
 		SMSVerificationRequest: Prefix + "sms_verification_requests",
 		Authenticators:         Prefix + "authenticators",
+		SessionToken:           Prefix + "session_tokens",
+		MFASession:             Prefix + "mfa_sessions",
+		OAuthState:             Prefix + "oauth_states",
 	}
 )

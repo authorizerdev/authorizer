@@ -116,6 +116,50 @@ type Provider interface {
 	// GetAuthenticatorDetailsByUserId retrieves details of an authenticator document based on user ID and authenticator type.
 	// If found, the authenticator document is returned, or an error if not found or an error occurs during the retrieval.
 	GetAuthenticatorDetailsByUserId(ctx context.Context, userId string, authenticatorType string) (*schemas.Authenticator, error)
+
+	// Session Token methods (for database-backed memory store)
+	// AddSessionToken adds a session token to the database
+	AddSessionToken(ctx context.Context, token *schemas.SessionToken) error
+	// GetSessionTokenByUserIDAndKey retrieves a session token by user ID and key
+	GetSessionTokenByUserIDAndKey(ctx context.Context, userId, key string) (*schemas.SessionToken, error)
+	// DeleteSessionToken deletes a session token by ID
+	DeleteSessionToken(ctx context.Context, id string) error
+	// DeleteSessionTokenByUserIDAndKey deletes a session token by user ID and key
+	DeleteSessionTokenByUserIDAndKey(ctx context.Context, userId, key string) error
+	// DeleteAllSessionTokensByUserID deletes all session tokens for a user ID
+	DeleteAllSessionTokensByUserID(ctx context.Context, userId string) error
+	// DeleteSessionTokensByNamespace deletes all session tokens for a namespace (e.g., "auth_provider")
+	DeleteSessionTokensByNamespace(ctx context.Context, namespace string) error
+	// CleanExpiredSessionTokens removes expired session tokens from the database
+	CleanExpiredSessionTokens(ctx context.Context) error
+	// GetAllSessionTokens retrieves all session tokens (for testing)
+	GetAllSessionTokens(ctx context.Context) ([]*schemas.SessionToken, error)
+
+	// MFA Session methods (for database-backed memory store)
+	// AddMFASession adds an MFA session to the database
+	AddMFASession(ctx context.Context, session *schemas.MFASession) error
+	// GetMFASessionByUserIDAndKey retrieves an MFA session by user ID and key
+	GetMFASessionByUserIDAndKey(ctx context.Context, userId, key string) (*schemas.MFASession, error)
+	// DeleteMFASession deletes an MFA session by ID
+	DeleteMFASession(ctx context.Context, id string) error
+	// DeleteMFASessionByUserIDAndKey deletes an MFA session by user ID and key
+	DeleteMFASessionByUserIDAndKey(ctx context.Context, userId, key string) error
+	// GetAllMFASessionsByUserID retrieves all MFA sessions for a user ID
+	GetAllMFASessionsByUserID(ctx context.Context, userId string) ([]*schemas.MFASession, error)
+	// CleanExpiredMFASessions removes expired MFA sessions from the database
+	CleanExpiredMFASessions(ctx context.Context) error
+	// GetAllMFASessions retrieves all MFA sessions (for testing)
+	GetAllMFASessions(ctx context.Context) ([]*schemas.MFASession, error)
+
+	// OAuth State methods (for database-backed memory store)
+	// AddOAuthState adds an OAuth state to the database
+	AddOAuthState(ctx context.Context, state *schemas.OAuthState) error
+	// GetOAuthStateByKey retrieves an OAuth state by key
+	GetOAuthStateByKey(ctx context.Context, key string) (*schemas.OAuthState, error)
+	// DeleteOAuthStateByKey deletes an OAuth state by key
+	DeleteOAuthStateByKey(ctx context.Context, key string) error
+	// GetAllOAuthStates retrieves all OAuth states (for testing)
+	GetAllOAuthStates(ctx context.Context) ([]*schemas.OAuthState, error)
 }
 
 // New creates a new database provider based on the configuration

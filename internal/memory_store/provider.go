@@ -4,13 +4,16 @@ import (
 	"github.com/rs/zerolog"
 
 	"github.com/authorizerdev/authorizer/internal/config"
+	"github.com/authorizerdev/authorizer/internal/memory_store/db"
 	"github.com/authorizerdev/authorizer/internal/memory_store/in_memory"
 	"github.com/authorizerdev/authorizer/internal/memory_store/redis"
+	"github.com/authorizerdev/authorizer/internal/storage"
 )
 
 // Dependencies struct for memory store provider
 type Dependencies struct {
-	Log *zerolog.Logger
+	Log             *zerolog.Logger
+	StorageProvider storage.Provider
 }
 
 // New returns a new memory store provider
@@ -20,6 +23,14 @@ func New(cfg *config.Config, deps *Dependencies) (Provider, error) {
 			Log: deps.Log,
 		})
 	}
+	// If database is configured, use database-backed memory store
+	if cfg.DatabaseType != "" && deps.StorageProvider != nil {
+		return db.NewDBProvider(cfg, &db.Dependencies{
+			Log:             deps.Log,
+			StorageProvider: deps.StorageProvider,
+		})
+	}
+	// Fallback to in-memory store
 	return in_memory.NewInMemoryProvider(cfg, &in_memory.Dependencies{
 		Log: deps.Log,
 	})

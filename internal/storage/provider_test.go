@@ -105,6 +105,18 @@ func TestStorageProvider(t *testing.T) {
 				testWebhookOperations(t, ctx, provider)
 			})
 
+			t.Run("Session Token Operations", func(t *testing.T) {
+				testSessionTokenOperations(t, ctx, provider)
+			})
+
+			t.Run("MFA Session Operations", func(t *testing.T) {
+				testMFASessionOperations(t, ctx, provider)
+			})
+
+			t.Run("OAuth State Operations", func(t *testing.T) {
+				testOAuthStateOperations(t, ctx, provider)
+			})
+
 		})
 	}
 }
@@ -398,4 +410,297 @@ func testAuthenticatorOperations(t *testing.T, ctx context.Context, provider Pro
 	updated, err := provider.UpdateAuthenticator(ctx, auth)
 	assert.NoError(t, err)
 	assert.Equal(t, "updated_secret", updated.Secret)
+}
+
+func testSessionTokenOperations(t *testing.T, ctx context.Context, provider Provider) {
+	userId := "auth_provider:" + uuid.New().String()
+	token1 := &schemas.SessionToken{
+		UserID:    userId,
+		KeyName:   "session_token_key",
+		Token:     "test_hash_token",
+		ExpiresAt: time.Now().Add(60 * time.Second).Unix(),
+	}
+
+	// Test AddSessionToken
+	err := provider.AddSessionToken(ctx, token1)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, token1.ID)
+
+	// Test GetSessionTokenByUserIDAndKey
+	fetched, err := provider.GetSessionTokenByUserIDAndKey(ctx, userId, "session_token_key")
+	assert.NoError(t, err)
+	assert.NotNil(t, fetched)
+	assert.Equal(t, token1.Token, fetched.Token)
+	assert.Equal(t, userId, fetched.UserID)
+
+	// Test AddSessionToken with same key (should replace)
+	token2 := &schemas.SessionToken{
+		UserID:    userId,
+		KeyName:   "session_token_key",
+		Token:     "updated_hash_token",
+		ExpiresAt: time.Now().Add(60 * time.Second).Unix(),
+	}
+	err = provider.AddSessionToken(ctx, token2)
+	assert.NoError(t, err)
+
+	// Verify it was updated
+	fetched, err = provider.GetSessionTokenByUserIDAndKey(ctx, userId, "session_token_key")
+	assert.NoError(t, err)
+	assert.Equal(t, "updated_hash_token", fetched.Token)
+
+	// Test AddSessionToken with different key
+	token3 := &schemas.SessionToken{
+		UserID:    userId,
+		KeyName:   "access_token_key",
+		Token:     "test_access_token",
+		ExpiresAt: time.Now().Add(60 * time.Second).Unix(),
+	}
+	err = provider.AddSessionToken(ctx, token3)
+	assert.NoError(t, err)
+
+	// Test DeleteSessionTokenByUserIDAndKey
+	err = provider.DeleteSessionTokenByUserIDAndKey(ctx, userId, "session_token_key")
+	assert.NoError(t, err)
+
+	// Verify deletion
+	_, err = provider.GetSessionTokenByUserIDAndKey(ctx, userId, "session_token_key")
+	assert.Error(t, err)
+
+	// Verify other key still exists
+	fetched, err = provider.GetSessionTokenByUserIDAndKey(ctx, userId, "access_token_key")
+	assert.NoError(t, err)
+	assert.Equal(t, token3.Token, fetched.Token)
+
+	// Test DeleteSessionToken by ID
+	err = provider.DeleteSessionToken(ctx, fetched.ID)
+	assert.NoError(t, err)
+
+	// Test DeleteAllSessionTokensByUserID
+	userId2 := "auth_provider:" + uuid.New().String()
+	token4 := &schemas.SessionToken{
+		UserID:    userId2,
+		KeyName:   "session_token_key",
+		Token:     "test_token_4",
+		ExpiresAt: time.Now().Add(60 * time.Second).Unix(),
+	}
+	token5 := &schemas.SessionToken{
+		UserID:    userId2,
+		KeyName:   "access_token_key",
+		Token:     "test_token_5",
+		ExpiresAt: time.Now().Add(60 * time.Second).Unix(),
+	}
+	err = provider.AddSessionToken(ctx, token4)
+	assert.NoError(t, err)
+	err = provider.AddSessionToken(ctx, token5)
+	assert.NoError(t, err)
+
+	// Extract just the user ID part for DeleteAllSessionTokensByUserID
+	userIDPart := userId2[len("auth_provider:"):]
+	err = provider.DeleteAllSessionTokensByUserID(ctx, userIDPart)
+	assert.NoError(t, err)
+
+	// Verify all sessions for user are deleted
+	_, err = provider.GetSessionTokenByUserIDAndKey(ctx, userId2, "session_token_key")
+	assert.Error(t, err)
+	_, err = provider.GetSessionTokenByUserIDAndKey(ctx, userId2, "access_token_key")
+	assert.Error(t, err)
+
+	// Test DeleteSessionTokensByNamespace
+	namespace := "auth_provider"
+	token6 := &schemas.SessionToken{
+		UserID:    namespace + ":user1",
+		KeyName:   "session_token_key",
+		Token:     "test_token_6",
+		ExpiresAt: time.Now().Add(60 * time.Second).Unix(),
+	}
+	err = provider.AddSessionToken(ctx, token6)
+	assert.NoError(t, err)
+
+	err = provider.DeleteSessionTokensByNamespace(ctx, namespace)
+	assert.NoError(t, err)
+
+	// Verify namespace sessions are deleted
+	_, err = provider.GetSessionTokenByUserIDAndKey(ctx, namespace+":user1", "session_token_key")
+	assert.Error(t, err)
+
+	// Test CleanExpiredSessionTokens
+	expiredToken := &schemas.SessionToken{
+		UserID:    "auth_provider:expired_user",
+		KeyName:   "session_token_key",
+		Token:     "expired_token",
+		ExpiresAt: time.Now().Add(-60 * time.Second).Unix(), // Already expired
+	}
+	err = provider.AddSessionToken(ctx, expiredToken)
+	assert.NoError(t, err)
+
+	err = provider.CleanExpiredSessionTokens(ctx)
+	assert.NoError(t, err)
+
+	// Verify expired token is cleaned
+	_, err = provider.GetSessionTokenByUserIDAndKey(ctx, "auth_provider:expired_user", "session_token_key")
+	assert.Error(t, err)
+}
+
+func testMFASessionOperations(t *testing.T, ctx context.Context, provider Provider) {
+	userId := "auth_provider:" + uuid.New().String()
+	mfaSession1 := &schemas.MFASession{
+		UserID:    userId,
+		KeyName:   "mfa_session_key_1",
+		ExpiresAt: time.Now().Add(60 * time.Second).Unix(),
+	}
+
+	// Test AddMFASession
+	err := provider.AddMFASession(ctx, mfaSession1)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, mfaSession1.ID)
+
+	// Test GetMFASessionByUserIDAndKey
+	fetched, err := provider.GetMFASessionByUserIDAndKey(ctx, userId, "mfa_session_key_1")
+	assert.NoError(t, err)
+	assert.NotNil(t, fetched)
+	assert.Equal(t, userId, fetched.UserID)
+	assert.Equal(t, "mfa_session_key_1", fetched.KeyName)
+
+	// Test AddMFASession with same key (should replace)
+	mfaSession2 := &schemas.MFASession{
+		UserID:    userId,
+		KeyName:   "mfa_session_key_1",
+		ExpiresAt: time.Now().Add(120 * time.Second).Unix(),
+	}
+	err = provider.AddMFASession(ctx, mfaSession2)
+	assert.NoError(t, err)
+
+	// Verify it was updated
+	fetched, err = provider.GetMFASessionByUserIDAndKey(ctx, userId, "mfa_session_key_1")
+	assert.NoError(t, err)
+	assert.Equal(t, mfaSession2.ExpiresAt, fetched.ExpiresAt)
+
+	// Test AddMFASession with different key
+	mfaSession3 := &schemas.MFASession{
+		UserID:    userId,
+		KeyName:   "mfa_session_key_2",
+		ExpiresAt: time.Now().Add(60 * time.Second).Unix(),
+	}
+	err = provider.AddMFASession(ctx, mfaSession3)
+	assert.NoError(t, err)
+
+	// Test GetAllMFASessionsByUserID
+	allSessions, err := provider.GetAllMFASessionsByUserID(ctx, userId)
+	assert.NoError(t, err)
+	assert.NotNil(t, allSessions)
+	assert.GreaterOrEqual(t, len(allSessions), 2)
+
+	// Verify both sessions are present
+	foundKey1 := false
+	foundKey2 := false
+	for _, session := range allSessions {
+		if session.KeyName == "mfa_session_key_1" {
+			foundKey1 = true
+		}
+		if session.KeyName == "mfa_session_key_2" {
+			foundKey2 = true
+		}
+	}
+	assert.True(t, foundKey1, "Should find mfa_session_key_1")
+	assert.True(t, foundKey2, "Should find mfa_session_key_2")
+
+	// Test DeleteMFASessionByUserIDAndKey
+	err = provider.DeleteMFASessionByUserIDAndKey(ctx, userId, "mfa_session_key_1")
+	assert.NoError(t, err)
+
+	// Verify deletion
+	_, err = provider.GetMFASessionByUserIDAndKey(ctx, userId, "mfa_session_key_1")
+	assert.Error(t, err)
+
+	// Verify other key still exists
+	fetched, err = provider.GetMFASessionByUserIDAndKey(ctx, userId, "mfa_session_key_2")
+	assert.NoError(t, err)
+	assert.Equal(t, mfaSession3.UserID, fetched.UserID)
+
+	// Test DeleteMFASession by ID
+	err = provider.DeleteMFASession(ctx, fetched.ID)
+	assert.NoError(t, err)
+
+	// Test CleanExpiredMFASessions
+	expiredMFA := &schemas.MFASession{
+		UserID:    "auth_provider:expired_user",
+		KeyName:   "expired_session_key",
+		ExpiresAt: time.Now().Add(-60 * time.Second).Unix(), // Already expired
+	}
+	err = provider.AddMFASession(ctx, expiredMFA)
+	assert.NoError(t, err)
+
+	err = provider.CleanExpiredMFASessions(ctx)
+	assert.NoError(t, err)
+
+	// Verify expired session is cleaned
+	_, err = provider.GetMFASessionByUserIDAndKey(ctx, "auth_provider:expired_user", "expired_session_key")
+	assert.Error(t, err)
+}
+
+func testOAuthStateOperations(t *testing.T, ctx context.Context, provider Provider) {
+	state1 := &schemas.OAuthState{
+		StateKey: "test_state_key_1",
+		State:    "test_state_value_1",
+	}
+
+	// Test AddOAuthState
+	err := provider.AddOAuthState(ctx, state1)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, state1.ID)
+
+	// Test GetOAuthStateByKey
+	fetched, err := provider.GetOAuthStateByKey(ctx, "test_state_key_1")
+	assert.NoError(t, err)
+	assert.NotNil(t, fetched)
+	assert.Equal(t, "test_state_value_1", fetched.State)
+	assert.Equal(t, "test_state_key_1", fetched.StateKey)
+
+	// Test AddOAuthState with same key (should replace)
+	state2 := &schemas.OAuthState{
+		StateKey: "test_state_key_1",
+		State:    "updated_state_value",
+	}
+	err = provider.AddOAuthState(ctx, state2)
+	assert.NoError(t, err)
+
+	// Verify it was updated
+	fetched, err = provider.GetOAuthStateByKey(ctx, "test_state_key_1")
+	assert.NoError(t, err)
+	assert.Equal(t, "updated_state_value", fetched.State)
+
+	// Test AddOAuthState with different key
+	state3 := &schemas.OAuthState{
+		StateKey: "test_state_key_2",
+		State:    "test_state_value_2",
+	}
+	err = provider.AddOAuthState(ctx, state3)
+	assert.NoError(t, err)
+
+	// Test DeleteOAuthStateByKey
+	err = provider.DeleteOAuthStateByKey(ctx, "test_state_key_1")
+	assert.NoError(t, err)
+
+	// Verify deletion
+	_, err = provider.GetOAuthStateByKey(ctx, "test_state_key_1")
+	assert.Error(t, err)
+
+	// Verify other key still exists
+	fetched, err = provider.GetOAuthStateByKey(ctx, "test_state_key_2")
+	assert.NoError(t, err)
+	assert.Equal(t, "test_state_value_2", fetched.State)
+
+	// Test GetAllOAuthStates (for testing purposes)
+	allStates, err := provider.GetAllOAuthStates(ctx)
+	assert.NoError(t, err)
+	assert.NotNil(t, allStates)
+	// Should have at least state2
+	found := false
+	for _, state := range allStates {
+		if state.StateKey == "test_state_key_2" {
+			found = true
+			break
+		}
+	}
+	assert.True(t, found, "Should find test_state_key_2 in all states")
 }
