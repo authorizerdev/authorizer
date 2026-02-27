@@ -1,5 +1,5 @@
 import { useEffect, lazy, Suspense } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthorizer } from '@authorizerdev/authorizer-react';
 import SetupPassword from './pages/setup-password';
 import { hasWindow, createRandomString } from './utils/common';
@@ -78,17 +78,16 @@ export default function Root({
 	if (loading) {
 		return <h1>Loading...</h1>;
 	}
-
 	if (token) {
 		return (
 			<Suspense fallback={<></>}>
 				<Routes>
 					<Route path="/app" element={<Dashboard />} />
+					<Route path="*" element={<Navigate to="/app" replace />} />
 				</Routes>
 			</Suspense>
 		);
 	}
-
 	return (
 		<Suspense fallback={<></>}>
 			<Routes>

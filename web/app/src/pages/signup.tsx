@@ -1,5 +1,8 @@
 import React, { Fragment } from 'react';
-import { AuthorizerSignup, AuthorizerSocialLogin } from '@authorizerdev/authorizer-react';
+import {
+	AuthorizerSignup,
+	AuthorizerSocialLogin,
+} from '@authorizerdev/authorizer-react';
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
 
@@ -19,7 +22,7 @@ export default function SignUp({
 		<Fragment>
 			<h1 style={{ textAlign: 'center' }}>Sign Up</h1>
 			<br />
-            <AuthorizerSocialLogin urlProps={urlProps} />
+			<AuthorizerSocialLogin urlProps={urlProps} />
 			<AuthorizerSignup urlProps={urlProps} />
 			<FooterContent>
 				Already have an account? <Link to="/app"> Login</Link>
