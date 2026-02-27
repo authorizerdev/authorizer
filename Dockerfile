@@ -1,35 +1,68 @@
-FROM golang:1.21.3-alpine3.18 as go-builder
+FROM golang:1.24-alpine3.23 as go-builder
 WORKDIR /authorizer
-COPY server server
-COPY Makefile .
 
+ARG TARGETPLATFORM
+ARG TARGETOS=linux
+ARG TARGETARCH=amd64
 ARG VERSION="latest"
-ENV VERSION="$VERSION"
+
+ENV CGO_ENABLED=0 \
+    GOOS=$TARGETOS \
+    GOARCH=$TARGETARCH \
+    VERSION=$VERSION
+
+# Copy go mod files for dependency resolution
+COPY go.mod go.sum ./
+
+# Download dependencies
+RUN go mod download
+
+# Copy source code
+COPY main.go ./
+COPY cmd/ ./cmd/
+COPY internal/ ./internal/
+COPY gqlgen.yml ./
 
 RUN echo "$VERSION"
-RUN apk add build-base &&\
-    make clean && make && \
-    chmod 777 build/server
+# Build the server binary (upgrade apk index for security)
+RUN apk update && apk upgrade --no-cache && apk add --no-cache build-base && \
+    mkdir -p build/${GOOS}/${GOARCH} && \
+    go build -trimpath -mod=readonly -tags netgo -ldflags "-w -s -X main.VERSION=$VERSION" -o build/${GOOS}/${GOARCH}/authorizer . && \
+    chmod 755 build/${GOOS}/${GOARCH}/authorizer
 
-FROM node:20-alpine3.18 as node-builder
+FROM alpine:3.23.3 as node-builder
 WORKDIR /authorizer
-COPY app app
-COPY dashboard dashboard
-COPY Makefile .
-RUN apk add build-base &&\
-    make build-app && \
-    make build-dashboard
+# Copy package files first for better layer caching
+COPY web/app/package*.json web/app/
+COPY web/dashboard/package*.json web/dashboard/
+# Install Node.js, npm, and dependencies with upgraded base for security
+RUN apk update && apk upgrade --no-cache && \
+    apk add --no-cache nodejs npm && \
+    cd web/app && npm ci && \
+    cd ../dashboard && npm ci
+# Copy source files
+COPY web/app web/app
+COPY web/dashboard web/dashboard
+# Build applications
+RUN cd web/app && npm run build && \
+    cd ../dashboard && npm run build
 
-FROM alpine:3.18
-RUN adduser -D -h /authorizer -u 1000 -k /dev/null authorizer
+FROM alpine:3.23.3
+
+ARG TARGETARCH=amd64
+
+RUN apk update && apk upgrade --no-cache && \
+    adduser -D -h /home/authorizer -u 1000 -k /dev/null authorizer
 WORKDIR /authorizer
-RUN mkdir app dashboard
-COPY --from=node-builder --chown=nobody:nobody /authorizer/app/build app/build
-COPY --from=node-builder --chown=nobody:nobody /authorizer/app/favicon_io app/favicon_io
-COPY --from=node-builder --chown=nobody:nobody /authorizer/dashboard/build dashboard/build
-COPY --from=node-builder --chown=nobody:nobody /authorizer/dashboard/favicon_io dashboard/favicon_io
-COPY --from=go-builder --chown=nobody:nobody /authorizer/build build
-COPY templates templates
-EXPOSE 8080
+RUN mkdir -p web/app web/dashboard
+COPY --from=node-builder --chown=nobody:nobody /authorizer/web/app/build web/app/build
+COPY --from=node-builder --chown=nobody:nobody /authorizer/web/app/favicon_io web/app/favicon_io
+COPY --from=node-builder --chown=nobody:nobody /authorizer/web/dashboard/build web/dashboard/build
+COPY --from=node-builder --chown=nobody:nobody /authorizer/web/dashboard/favicon_io web/dashboard/favicon_io
+COPY --from=go-builder --chown=nobody:nobody /authorizer/build/linux/${TARGETARCH}/authorizer ./authorizer
+COPY web/templates web/templates
+EXPOSE 8080 8081
 USER authorizer
-CMD [ "./build/server" ]
+# Use ENTRYPOINT to allow passing CLI arguments
+ENTRYPOINT [ "./authorizer" ]
+CMD []

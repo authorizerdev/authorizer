@@ -7,6 +7,12 @@ ROADMAP.md
 build
 .env
 data.db
-app/node_modules
-app/build
+web/app/node_modules
+web/app/build
+web/app/.vite
+web/dashboard/node_modules
+web/dashboard/build
+web/dashboard/.vite
 certs/
+*.log
+.DS_Store

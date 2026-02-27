@@ -1,10 +1,10 @@
 server/server
 server/.env
 data
-app/node_modules
-app/build
-dashboard/node_modules
-dashboard/build
+web/app/node_modules
+web/app/build
+web/dashboard/node_modules
+web/dashboard/build
 build
 .env
 data.db
@@ -20,4 +20,5 @@ certs/
 *-wal
 .idea
 *.iml
+node_modules/*
 *.code-workspace
