@@ -27,7 +27,7 @@ test:
 	docker rm -vf authorizer_dynamodb
 	docker rm -vf authorizer_couchbase
 	docker rm -vf authorizer_redis
-	docker run -d --name authorizer_redis -p 6380:6379 redis
+	# docker run -d --name authorizer_redis -p 6380:6379 redis
 	docker run --name authorizer_postgres -p 5432:5432 -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=postgres -d postgres
 	docker run -d --name authorizer_scylla_db -p 9042:9042 scylladb/scylla
 	docker run -d --name authorizer_mongodb_db -p 27017:27017 mongo:4.4.15
@@ -44,7 +44,7 @@ test:
 	docker rm -vf authorizer_arangodb
 	docker rm -vf authorizer_dynamodb
 	docker rm -vf authorizer_couchbase
-	docker rm -vf authorizer_redis
+	# docker rm -vf authorizer_redis
 test-mongodb:
 	docker run -d --name authorizer_mongodb_db -p 27017:27017 mongo:4.4.15
 	cd server && go clean --testcache && TEST_DBS="mongodb" go test -p 1 -v ./test

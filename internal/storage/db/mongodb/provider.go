@@ -140,6 +140,44 @@ func NewProvider(config *config.Config, deps *Dependencies) (*provider, error) {
 		},
 	}, options.CreateIndexes())
 
+	// SessionToken collection and indexes
+	mongodb.CreateCollection(ctx, schemas.Collections.SessionToken, options.CreateCollection())
+	sessionTokenCollection := mongodb.Collection(schemas.Collections.SessionToken, options.Collection())
+	sessionTokenCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{
+			Keys:    bson.M{"user_id": 1, "key_name": 1},
+			Options: options.Index().SetSparse(true),
+		},
+		{
+			Keys:    bson.M{"expires_at": 1},
+			Options: options.Index().SetSparse(true),
+		},
+	}, options.CreateIndexes())
+
+	// MFASession collection and indexes
+	mongodb.CreateCollection(ctx, schemas.Collections.MFASession, options.CreateCollection())
+	mfaSessionCollection := mongodb.Collection(schemas.Collections.MFASession, options.Collection())
+	mfaSessionCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{
+			Keys:    bson.M{"user_id": 1, "key_name": 1},
+			Options: options.Index().SetSparse(true),
+		},
+		{
+			Keys:    bson.M{"expires_at": 1},
+			Options: options.Index().SetSparse(true),
+		},
+	}, options.CreateIndexes())
+
+	// OAuthState collection and indexes
+	mongodb.CreateCollection(ctx, schemas.Collections.OAuthState, options.CreateCollection())
+	oauthStateCollection := mongodb.Collection(schemas.Collections.OAuthState, options.Collection())
+	oauthStateCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{
+			Keys:    bson.M{"state_key": 1},
+			Options: options.Index().SetUnique(true).SetSparse(true),
+		},
+	}, options.CreateIndexes())
+
 	return &provider{
 		config:       config,
 		dependencies: deps,

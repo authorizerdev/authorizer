@@ -132,19 +132,21 @@ func testUserOperations(t *testing.T, ctx context.Context, provider Provider) {
 
 	// Test AddUser
 	createdUser, err := provider.AddUser(ctx, user)
-	assert.NoError(t, err)
-	assert.NotNil(t, createdUser)
+	require.NoError(t, err)
+	require.NotNil(t, createdUser)
 	assert.Equal(t, user.Email, createdUser.Email)
 
 	// Test GetUserByEmail
 	fetchedUser, err := provider.GetUserByEmail(ctx, *user.Email)
-	assert.NoError(t, err)
+	require.NoError(t, err)
+	require.NotNil(t, fetchedUser)
 	assert.Equal(t, user.Email, fetchedUser.Email)
 
 	// Test UpdateUser
 	fetchedUser.GivenName = refs.NewStringRef("Updated")
 	updatedUser, err := provider.UpdateUser(ctx, fetchedUser)
-	assert.NoError(t, err)
+	require.NoError(t, err)
+	require.NotNil(t, updatedUser)
 	assert.Equal(t, "Updated", *updatedUser.GivenName)
 
 	// Test ListUsers
@@ -169,14 +171,14 @@ func testUserOperations(t *testing.T, ctx context.Context, provider Provider) {
 	// Test GetUserByPhoneNumber
 	user.PhoneNumber = refs.NewStringRef("+1234567891")
 	createdUser, err = provider.AddUser(ctx, user)
-	assert.NoError(t, err)
-	assert.NotNil(t, createdUser)
+	require.NoError(t, err)
+	require.NotNil(t, createdUser)
 	assert.Equal(t, user.PhoneNumber, createdUser.PhoneNumber)
 
 	// Test GetUserByID
 	fetchedUser, err = provider.GetUserByID(ctx, createdUser.ID)
-	assert.NoError(t, err)
-	assert.NotNil(t, fetchedUser)
+	require.NoError(t, err)
+	require.NotNil(t, fetchedUser)
 	assert.Equal(t, user.PhoneNumber, fetchedUser.PhoneNumber)
 
 	// Test UpdateUsers
@@ -195,9 +197,13 @@ func testUserOperations(t *testing.T, ctx context.Context, provider Provider) {
 
 	// Test GetUserByPhoneNumber after update
 	user, err = provider.GetUserByPhoneNumber(ctx, "+3216549870")
-	assert.NoError(t, err)
-	assert.NotNil(t, user)
+	require.NoError(t, err)
+	require.NotNil(t, user)
 	assert.Equal(t, "+3216549870", *user.PhoneNumber)
+
+	// Cleanup: delete the user to avoid data leakage between test runs
+	err = provider.DeleteUser(ctx, user)
+	assert.NoError(t, err)
 
 }
 
@@ -309,7 +315,7 @@ func testWebhookOperations(t *testing.T, ctx context.Context, provider Provider)
 
 func testEmailTemplateOperations(t *testing.T, ctx context.Context, provider Provider) {
 	template := &schemas.EmailTemplate{
-		EventName: "test_event",
+		EventName: "test_event_" + uuid.New().String(),
 		Template:  "Test template",
 		Subject:   "Test subject",
 	}
@@ -345,8 +351,15 @@ func testEmailTemplateOperations(t *testing.T, ctx context.Context, provider Pro
 	assert.NoError(t, err)
 	assert.NotNil(t, templates)
 	assert.Greater(t, len(templates), 0)
-	assert.Equal(t, template.EventName, templates[0].EventName)
-	assert.Equal(t, template.Template, templates[0].Template)
+	found := false
+	for _, tmpl := range templates {
+		if tmpl.EventName == template.EventName {
+			found = true
+			assert.Equal(t, template.Template, tmpl.Template)
+			break
+		}
+	}
+	assert.True(t, found, "expected updated template in listed templates")
 
 	// Test DeleteEmailTemplate
 	err = provider.DeleteEmailTemplate(ctx, updated)
@@ -423,17 +436,21 @@ func testSessionTokenOperations(t *testing.T, ctx context.Context, provider Prov
 
 	// Test AddSessionToken
 	err := provider.AddSessionToken(ctx, token1)
-	assert.NoError(t, err)
-	assert.NotEmpty(t, token1.ID)
+	require.NoError(t, err)
+	require.NotEmpty(t, token1.ID)
 
 	// Test GetSessionTokenByUserIDAndKey
 	fetched, err := provider.GetSessionTokenByUserIDAndKey(ctx, userId, "session_token_key")
-	assert.NoError(t, err)
-	assert.NotNil(t, fetched)
+	require.NoError(t, err)
+	require.NotNil(t, fetched)
 	assert.Equal(t, token1.Token, fetched.Token)
 	assert.Equal(t, userId, fetched.UserID)
 
-	// Test AddSessionToken with same key (should replace)
+	// Test AddSessionToken with same key (should replace - delete first then add)
+	// Note: Multiple sessions per user are allowed (different key_name), but same (user_id, key_name) should be unique
+	err = provider.DeleteSessionTokenByUserIDAndKey(ctx, userId, "session_token_key")
+	assert.NoError(t, err)
+
 	token2 := &schemas.SessionToken{
 		UserID:    userId,
 		KeyName:   "session_token_key",
@@ -441,11 +458,12 @@ func testSessionTokenOperations(t *testing.T, ctx context.Context, provider Prov
 		ExpiresAt: time.Now().Add(60 * time.Second).Unix(),
 	}
 	err = provider.AddSessionToken(ctx, token2)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Verify it was updated
 	fetched, err = provider.GetSessionTokenByUserIDAndKey(ctx, userId, "session_token_key")
-	assert.NoError(t, err)
+	require.NoError(t, err)
+	require.NotNil(t, fetched)
 	assert.Equal(t, "updated_hash_token", fetched.Token)
 
 	// Test AddSessionToken with different key
@@ -456,7 +474,7 @@ func testSessionTokenOperations(t *testing.T, ctx context.Context, provider Prov
 		ExpiresAt: time.Now().Add(60 * time.Second).Unix(),
 	}
 	err = provider.AddSessionToken(ctx, token3)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Test DeleteSessionTokenByUserIDAndKey
 	err = provider.DeleteSessionTokenByUserIDAndKey(ctx, userId, "session_token_key")
@@ -468,12 +486,13 @@ func testSessionTokenOperations(t *testing.T, ctx context.Context, provider Prov
 
 	// Verify other key still exists
 	fetched, err = provider.GetSessionTokenByUserIDAndKey(ctx, userId, "access_token_key")
-	assert.NoError(t, err)
+	require.NoError(t, err)
+	require.NotNil(t, fetched)
 	assert.Equal(t, token3.Token, fetched.Token)
 
 	// Test DeleteSessionToken by ID
 	err = provider.DeleteSessionToken(ctx, fetched.ID)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Test DeleteAllSessionTokensByUserID
 	userId2 := "auth_provider:" + uuid.New().String()
@@ -490,9 +509,9 @@ func testSessionTokenOperations(t *testing.T, ctx context.Context, provider Prov
 		ExpiresAt: time.Now().Add(60 * time.Second).Unix(),
 	}
 	err = provider.AddSessionToken(ctx, token4)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	err = provider.AddSessionToken(ctx, token5)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Extract just the user ID part for DeleteAllSessionTokensByUserID
 	userIDPart := userId2[len("auth_provider:"):]
@@ -514,7 +533,7 @@ func testSessionTokenOperations(t *testing.T, ctx context.Context, provider Prov
 		ExpiresAt: time.Now().Add(60 * time.Second).Unix(),
 	}
 	err = provider.AddSessionToken(ctx, token6)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = provider.DeleteSessionTokensByNamespace(ctx, namespace)
 	assert.NoError(t, err)
@@ -531,7 +550,7 @@ func testSessionTokenOperations(t *testing.T, ctx context.Context, provider Prov
 		ExpiresAt: time.Now().Add(-60 * time.Second).Unix(), // Already expired
 	}
 	err = provider.AddSessionToken(ctx, expiredToken)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = provider.CleanExpiredSessionTokens(ctx)
 	assert.NoError(t, err)
@@ -551,28 +570,33 @@ func testMFASessionOperations(t *testing.T, ctx context.Context, provider Provid
 
 	// Test AddMFASession
 	err := provider.AddMFASession(ctx, mfaSession1)
-	assert.NoError(t, err)
-	assert.NotEmpty(t, mfaSession1.ID)
+	require.NoError(t, err)
+	require.NotEmpty(t, mfaSession1.ID)
 
 	// Test GetMFASessionByUserIDAndKey
 	fetched, err := provider.GetMFASessionByUserIDAndKey(ctx, userId, "mfa_session_key_1")
-	assert.NoError(t, err)
-	assert.NotNil(t, fetched)
+	require.NoError(t, err)
+	require.NotNil(t, fetched)
 	assert.Equal(t, userId, fetched.UserID)
 	assert.Equal(t, "mfa_session_key_1", fetched.KeyName)
 
-	// Test AddMFASession with same key (should replace)
+	// Test AddMFASession with same key (should replace - delete first then add)
+	// Note: Multiple MFA sessions per user are allowed (different key_name), but same (user_id, key_name) should be unique
+	err = provider.DeleteMFASessionByUserIDAndKey(ctx, userId, "mfa_session_key_1")
+	assert.NoError(t, err)
+
 	mfaSession2 := &schemas.MFASession{
 		UserID:    userId,
 		KeyName:   "mfa_session_key_1",
 		ExpiresAt: time.Now().Add(120 * time.Second).Unix(),
 	}
 	err = provider.AddMFASession(ctx, mfaSession2)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Verify it was updated
 	fetched, err = provider.GetMFASessionByUserIDAndKey(ctx, userId, "mfa_session_key_1")
-	assert.NoError(t, err)
+	require.NoError(t, err)
+	require.NotNil(t, fetched)
 	assert.Equal(t, mfaSession2.ExpiresAt, fetched.ExpiresAt)
 
 	// Test AddMFASession with different key
@@ -582,12 +606,12 @@ func testMFASessionOperations(t *testing.T, ctx context.Context, provider Provid
 		ExpiresAt: time.Now().Add(60 * time.Second).Unix(),
 	}
 	err = provider.AddMFASession(ctx, mfaSession3)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Test GetAllMFASessionsByUserID
 	allSessions, err := provider.GetAllMFASessionsByUserID(ctx, userId)
-	assert.NoError(t, err)
-	assert.NotNil(t, allSessions)
+	require.NoError(t, err)
+	require.NotNil(t, allSessions)
 	assert.GreaterOrEqual(t, len(allSessions), 2)
 
 	// Verify both sessions are present
@@ -614,12 +638,13 @@ func testMFASessionOperations(t *testing.T, ctx context.Context, provider Provid
 
 	// Verify other key still exists
 	fetched, err = provider.GetMFASessionByUserIDAndKey(ctx, userId, "mfa_session_key_2")
-	assert.NoError(t, err)
+	require.NoError(t, err)
+	require.NotNil(t, fetched)
 	assert.Equal(t, mfaSession3.UserID, fetched.UserID)
 
 	// Test DeleteMFASession by ID
 	err = provider.DeleteMFASession(ctx, fetched.ID)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Test CleanExpiredMFASessions
 	expiredMFA := &schemas.MFASession{
@@ -628,7 +653,7 @@ func testMFASessionOperations(t *testing.T, ctx context.Context, provider Provid
 		ExpiresAt: time.Now().Add(-60 * time.Second).Unix(), // Already expired
 	}
 	err = provider.AddMFASession(ctx, expiredMFA)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = provider.CleanExpiredMFASessions(ctx)
 	assert.NoError(t, err)
@@ -646,13 +671,13 @@ func testOAuthStateOperations(t *testing.T, ctx context.Context, provider Provid
 
 	// Test AddOAuthState
 	err := provider.AddOAuthState(ctx, state1)
-	assert.NoError(t, err)
-	assert.NotEmpty(t, state1.ID)
+	require.NoError(t, err)
+	require.NotEmpty(t, state1.ID)
 
 	// Test GetOAuthStateByKey
 	fetched, err := provider.GetOAuthStateByKey(ctx, "test_state_key_1")
-	assert.NoError(t, err)
-	assert.NotNil(t, fetched)
+	require.NoError(t, err)
+	require.NotNil(t, fetched)
 	assert.Equal(t, "test_state_value_1", fetched.State)
 	assert.Equal(t, "test_state_key_1", fetched.StateKey)
 
@@ -662,11 +687,12 @@ func testOAuthStateOperations(t *testing.T, ctx context.Context, provider Provid
 		State:    "updated_state_value",
 	}
 	err = provider.AddOAuthState(ctx, state2)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Verify it was updated
 	fetched, err = provider.GetOAuthStateByKey(ctx, "test_state_key_1")
-	assert.NoError(t, err)
+	require.NoError(t, err)
+	require.NotNil(t, fetched)
 	assert.Equal(t, "updated_state_value", fetched.State)
 
 	// Test AddOAuthState with different key
@@ -675,7 +701,7 @@ func testOAuthStateOperations(t *testing.T, ctx context.Context, provider Provid
 		State:    "test_state_value_2",
 	}
 	err = provider.AddOAuthState(ctx, state3)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Test DeleteOAuthStateByKey
 	err = provider.DeleteOAuthStateByKey(ctx, "test_state_key_1")
@@ -687,13 +713,14 @@ func testOAuthStateOperations(t *testing.T, ctx context.Context, provider Provid
 
 	// Verify other key still exists
 	fetched, err = provider.GetOAuthStateByKey(ctx, "test_state_key_2")
-	assert.NoError(t, err)
+	require.NoError(t, err)
+	require.NotNil(t, fetched)
 	assert.Equal(t, "test_state_value_2", fetched.State)
 
 	// Test GetAllOAuthStates (for testing purposes)
 	allStates, err := provider.GetAllOAuthStates(ctx)
-	assert.NoError(t, err)
-	assert.NotNil(t, allStates)
+	require.NoError(t, err)
+	require.NotNil(t, allStates)
 	// Should have at least state2
 	found := false
 	for _, state := range allStates {

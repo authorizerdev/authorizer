@@ -59,6 +59,9 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	db.CreateTable(schemas.Collections.Webhook, schemas.Webhook{}).Wait()
 	db.CreateTable(schemas.Collections.WebhookLog, schemas.WebhookLog{}).Wait()
 	db.CreateTable(schemas.Collections.Authenticators, schemas.Authenticator{}).Wait()
+	db.CreateTable(schemas.Collections.SessionToken, schemas.SessionToken{}).Wait()
+	db.CreateTable(schemas.Collections.MFASession, schemas.MFASession{}).Wait()
+	db.CreateTable(schemas.Collections.OAuthState, schemas.OAuthState{}).Wait()
 	return &provider{
 		db:           db,
 		config:       cfg,

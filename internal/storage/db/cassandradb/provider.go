@@ -287,6 +287,63 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 		return nil, err
 	}
 
+	// SessionToken table and indexes
+	// Note: 'token' is a reserved keyword in CQL, so we use 'token_value' as the column name
+	sessionTokenCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, user_id text, key_name text, token_value text, expires_at bigint, updated_at bigint, created_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.SessionToken)
+	err = session.Query(sessionTokenCollectionQuery).Exec()
+	if err != nil {
+		return nil, err
+	}
+	sessionTokenIndex1 := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_session_token_user_id ON %s.%s (user_id)", KeySpace, schemas.Collections.SessionToken)
+	err = session.Query(sessionTokenIndex1).Exec()
+	if err != nil {
+		return nil, err
+	}
+	sessionTokenIndex1b := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_session_token_key_name ON %s.%s (key_name)", KeySpace, schemas.Collections.SessionToken)
+	err = session.Query(sessionTokenIndex1b).Exec()
+	if err != nil {
+		return nil, err
+	}
+	sessionTokenIndex2 := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_session_token_expires_at ON %s.%s (expires_at)", KeySpace, schemas.Collections.SessionToken)
+	err = session.Query(sessionTokenIndex2).Exec()
+	if err != nil {
+		return nil, err
+	}
+
+	// MFASession table and indexes
+	mfaSessionCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, user_id text, key_name text, expires_at bigint, updated_at bigint, created_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.MFASession)
+	err = session.Query(mfaSessionCollectionQuery).Exec()
+	if err != nil {
+		return nil, err
+	}
+	mfaSessionIndex1 := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_mfa_session_user_id ON %s.%s (user_id)", KeySpace, schemas.Collections.MFASession)
+	err = session.Query(mfaSessionIndex1).Exec()
+	if err != nil {
+		return nil, err
+	}
+	mfaSessionIndex1b := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_mfa_session_key_name ON %s.%s (key_name)", KeySpace, schemas.Collections.MFASession)
+	err = session.Query(mfaSessionIndex1b).Exec()
+	if err != nil {
+		return nil, err
+	}
+	mfaSessionIndex2 := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_mfa_session_expires_at ON %s.%s (expires_at)", KeySpace, schemas.Collections.MFASession)
+	err = session.Query(mfaSessionIndex2).Exec()
+	if err != nil {
+		return nil, err
+	}
+
+	// OAuthState table and indexes
+	oauthStateCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, state_key text, state text, updated_at bigint, created_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.OAuthState)
+	err = session.Query(oauthStateCollectionQuery).Exec()
+	if err != nil {
+		return nil, err
+	}
+	oauthStateIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_oauth_state_key ON %s.%s (state_key)", KeySpace, schemas.Collections.OAuthState)
+	err = session.Query(oauthStateIndex).Exec()
+	if err != nil {
+		return nil, err
+	}
+
 	return &provider{
 		config:       cfg,
 		dependencies: deps,

@@ -189,7 +189,21 @@ func getIndex(scopeName string) map[string][]string {
 
 	// OTP index
 	otpIndex2 := fmt.Sprintf("CREATE INDEX OTPPhoneNumberIndex ON %s.%s(phone_number)", scopeName, schemas.Collections.OTP)
-	indices[schemas.Collections.OTP] = []string{otpIndex2}
+	indices[schemas.Collections.OTP] = []string{otpIndex1, otpIndex2}
+
+	// SessionToken indexes
+	sessionTokenIndex1 := fmt.Sprintf("CREATE INDEX SessionTokenUserIdKeyIndex ON %s.%s(user_id, key_name)", scopeName, schemas.Collections.SessionToken)
+	sessionTokenIndex2 := fmt.Sprintf("CREATE INDEX SessionTokenExpiresAtIndex ON %s.%s(expires_at)", scopeName, schemas.Collections.SessionToken)
+	indices[schemas.Collections.SessionToken] = []string{sessionTokenIndex1, sessionTokenIndex2}
+
+	// MFASession indexes
+	mfaSessionIndex1 := fmt.Sprintf("CREATE INDEX MFASessionUserIdKeyIndex ON %s.%s(user_id, key_name)", scopeName, schemas.Collections.MFASession)
+	mfaSessionIndex2 := fmt.Sprintf("CREATE INDEX MFASessionExpiresAtIndex ON %s.%s(expires_at)", scopeName, schemas.Collections.MFASession)
+	indices[schemas.Collections.MFASession] = []string{mfaSessionIndex1, mfaSessionIndex2}
+
+	// OAuthState index
+	oauthStateIndex1 := fmt.Sprintf("CREATE INDEX OAuthStateKeyIndex ON %s.%s(state_key)", scopeName, schemas.Collections.OAuthState)
+	indices[schemas.Collections.OAuthState] = []string{oauthStateIndex1}
 
 	return indices
 }

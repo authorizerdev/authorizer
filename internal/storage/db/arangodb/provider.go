@@ -256,6 +256,73 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 		Sparse: true,
 	})
 
+	// SessionToken collection and indexes
+	sessionTokenCollectionExists, err := arangodb.CollectionExists(ctx, schemas.Collections.SessionToken)
+	if err != nil {
+		return nil, err
+	}
+	if !sessionTokenCollectionExists {
+		_, err = arangodb.CreateCollection(ctx, schemas.Collections.SessionToken, nil)
+		if err != nil {
+			return nil, err
+		}
+	}
+	sessionTokenCollection, err := arangodb.Collection(ctx, schemas.Collections.SessionToken)
+	if err != nil {
+		return nil, err
+	}
+	sessionTokenCollection.EnsureHashIndex(ctx, []string{"user_id", "key_name"}, &arangoDriver.EnsureHashIndexOptions{
+		Sparse: true,
+	})
+	sessionTokenCollection.EnsurePersistentIndex(ctx, []string{"expires_at"}, &arangoDriver.EnsurePersistentIndexOptions{
+		Sparse: true,
+	})
+
+	// MFASession collection and indexes
+	mfaSessionCollectionExists, err := arangodb.CollectionExists(ctx, schemas.Collections.MFASession)
+	if err != nil {
+		return nil, err
+	}
+	if !mfaSessionCollectionExists {
+		_, err = arangodb.CreateCollection(ctx, schemas.Collections.MFASession, nil)
+		if err != nil {
+			return nil, err
+		}
+	}
+	mfaSessionCollection, err := arangodb.Collection(ctx, schemas.Collections.MFASession)
+	if err != nil {
+		return nil, err
+	}
+	mfaSessionCollection.EnsureHashIndex(ctx, []string{"user_id", "key_name"}, &arangoDriver.EnsureHashIndexOptions{
+		Sparse: true,
+	})
+	mfaSessionCollection.EnsurePersistentIndex(ctx, []string{"expires_at"}, &arangoDriver.EnsurePersistentIndexOptions{
+		Sparse: true,
+	})
+
+	// OAuthState collection and indexes
+	oauthStateCollectionExists, err := arangodb.CollectionExists(ctx, schemas.Collections.OAuthState)
+	if err != nil {
+		return nil, err
+	}
+	if !oauthStateCollectionExists {
+		_, err = arangodb.CreateCollection(ctx, schemas.Collections.OAuthState, nil)
+		if err != nil {
+			return nil, err
+		}
+	}
+	oauthStateCollection, err := arangodb.Collection(ctx, schemas.Collections.OAuthState)
+	if err != nil {
+		return nil, err
+	}
+	oauthStateCollection.EnsureHashIndex(ctx, []string{"state_key"}, &arangoDriver.EnsureHashIndexOptions{
+		Unique: true,
+		Sparse: true,
+	})
+	authenticatorsCollection.EnsureHashIndex(ctx, []string{"user_id"}, &arangoDriver.EnsureHashIndexOptions{
+		Sparse: true,
+	})
+
 	return &provider{
 		config:       cfg,
 		dependencies: deps,
