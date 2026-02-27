@@ -2,100 +2,37 @@ on:
   workflow_dispatch:
     inputs:
       logLevel:
-        description: 'Log level'
+        description: "Log level"
         required: true
-        default: 'warning'
+        default: "warning"
         type: choice
         options:
           - info
           - warning
           - debug
       tags:
-        description: 'Tags'
+        description: "Tags"
         required: false
         type: boolean
   release:
     types: [created]
 
 jobs:
-  releases:
+  release:
     name: Release Authorizer
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
           platforms: linux/amd64,linux/arm64
-      - uses: actions/setup-go@v5
-        with:
-          go-version: '1.24'
-      - name: Install dependencies
-        run: |
-          sudo apt-get install -y build-essential wget zip && \
-          wget --no-check-certificate --progress=dot:mega https://github.com/wangyoucao577/assets-uploader/releases/download/v0.3.0/github-assets-uploader-v0.3.0-linux-amd64.tar.gz -O github-assets-uploader.tar.gz && \
-          tar -zxf github-assets-uploader.tar.gz && \
-          sudo mv github-assets-uploader /usr/sbin/ && \
-          rm -f github-assets-uploader.tar.gz && \
-          github-assets-uploader -version
-      - name: Build web app and dashboard
-        run: |
-          make build-app
-          make build-dashboard
-      - name: Install gox
-        run: go install github.com/mitchellh/gox@latest
-      - name: Set VERSION env
-        run: echo VERSION=$(basename ${GITHUB_REF}) >> ${GITHUB_ENV}
-      - name: Build package
-        run: |
-          make clean
-          make build
-          for arch in darwin-arm64 darwin-amd64 linux-amd64 linux-arm64; do
-            os=$(echo $arch | cut -d- -f1)
-            cpu=$(echo $arch | cut -d- -f2)
-            dir=authorizer-${VERSION}-${arch}
-            mkdir -p $dir/web/app $dir/web/dashboard $dir/web/templates
-            cp build/${os}/${cpu}/authorizer $dir/
-            cp .env.sample $dir/
-            cp -rf web/app/build $dir/web/app/
-            cp -rf web/app/favicon_io $dir/web/app/
-            cp -rf web/dashboard/build $dir/web/dashboard/
-            cp -rf web/dashboard/favicon_io $dir/web/dashboard/
-            cp -rf web/dashboard/public $dir/web/dashboard/ 2>/dev/null || true
-            cp -rf web/templates/* $dir/web/templates/
-            tar cvfz authorizer-${VERSION}-${arch}.tar.gz $dir
-          done
-      - name: Upload assets
-        run: |
-          github-assets-uploader -f authorizer-${VERSION}-darwin-arm64.tar.gz -mediatype application/gzip -repo authorizerdev/authorizer -token ${{secrets.RELEASE_TOKEN}} -tag ${VERSION}
-          github-assets-uploader -f authorizer-${VERSION}-darwin-amd64.tar.gz -mediatype application/gzip -repo authorizerdev/authorizer -token ${{secrets.RELEASE_TOKEN}} -tag ${VERSION}
-          github-assets-uploader -f authorizer-${VERSION}-linux-amd64.tar.gz -mediatype application/gzip -repo authorizerdev/authorizer -token ${{secrets.RELEASE_TOKEN}} -tag ${VERSION}
-          github-assets-uploader -f authorizer-${VERSION}-linux-arm64.tar.gz -mediatype application/gzip -repo authorizerdev/authorizer -token ${{secrets.RELEASE_TOKEN}} -tag ${VERSION}
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: authorizerdev/authorizer
-          tags: |
-            type=ref,event=tag
-            type=ref,event=pr
       - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          platforms: linux/amd64,linux/arm64
-          build-args: |
-            VERSION=${{ env.VERSION }}
+        run: |
+          VERSION=$(basename ${GITHUB_REF})
+          make build-push-image VERSION=${VERSION} DOCKER_IMAGE=lakhansamani/authorizer:${VERSION}

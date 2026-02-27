@@ -24,8 +24,11 @@ build-dashboard:
 	cd web/dashboard && npm ci && npm run build
 build-local-image:
 	docker build --build-arg VERSION=$(VERSION) -t $(DOCKER_IMAGE) .
-build-push-image: build-local-image
-	docker push $(DOCKER_IMAGE)
+build-push-image:
+	docker buildx build --platform linux/amd64,linux/arm64 --push \
+		-t $(DOCKER_IMAGE) \
+		--build-arg VERSION=$(VERSION) \
+		.
 clean:
 	rm -rf build
 dev:
