@@ -21,3 +21,4 @@ certs/
 .idea
 *.iml
 node_modules/*
+*.code-workspace
