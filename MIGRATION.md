@@ -60,10 +60,10 @@ Or: configure via dashboard after first run.
 
 ### v2 (recommended)
 
-Pass all config as **CLI arguments** when starting the server:
+Pass all config as **CLI arguments** when starting the server binary (e.g. the v2 `authorizer` binary):
 
 ```bash
-./build/server \
+./build/authorizer \
   --database-type=sqlite \
   --database-url=data.db \
   --client-id=YOUR_CLIENT_ID \
@@ -89,7 +89,7 @@ The v2 server does **not** read from `.env` or from a fixed set of OS env vars. 
 
 - **Option A:** Set env vars in your platform (e.g. Docker, K8s, Railway) and pass them into the process as arguments, e.g. a wrapper script or `envsubst`:
   ```bash
-  ./build/server \
+  ./build/authorizer \
     --database-type="$DATABASE_TYPE" \
     --database-url="$DATABASE_URL" \
     --client-id="$CLIENT_ID" \
@@ -107,7 +107,7 @@ docker run -p 8080:8080 \
   -e CLIENT_ID=... \
   -e CLIENT_SECRET=... \
   your-authorizer-image \
-  ./build/server \
+  ./authorizer \
     --database-type="$DATABASE_TYPE" \
     --database-url="$DATABASE_URL" \
     --client-id="$CLIENT_ID" \
@@ -138,10 +138,10 @@ You can build the v2 binary (and optional dashboards) directly from source.
 2. **Build the server binary**
 
    ```bash
-   go build -o build/server .
+   go build -o build/authorizer .
    ```
 
-   This produces `build/server`, the same entrypoint used in the Dockerfile.
+   This produces `build/authorizer`, matching the entrypoint name used in the Docker image.
 
 3. **(Optional) Build the web app and dashboard**
 
@@ -154,7 +154,7 @@ You can build the v2 binary (and optional dashboards) directly from source.
 4. **Run the server with CLI args**
 
    ```bash
-   ./build/server \
+   ./build/authorizer \
      --database-type=sqlite \
      --database-url=data.db \
      --client-id=YOUR_CLIENT_ID \
@@ -310,7 +310,7 @@ The following flags are **new in v2** and help harden your deployment:
 To see all flags and defaults:
 
 ```bash
-./build/server --help
+./build/authorizer --help
 ```
 
 ---
@@ -341,7 +341,7 @@ If your app or dashboard calls `_update_env`, `_admin_signup`, or `_generate_jwt
 Example:
 
 ```dockerfile
-ENTRYPOINT [ "./build/server" ]
+ENTRYPOINT [ "./authorizer" ]
 CMD []
 ```
 
@@ -356,7 +356,7 @@ docker run -p 8080:8080 your-image \
   --admin-secret=...
 ```
 
-Or use a script inside the image that maps env to flags and then runs `./build/server ...`.
+Or use a script inside the image that maps env to flags and then runs `./authorizer ...`.
 
 ---
 
@@ -407,7 +407,25 @@ Migration (from [authorizer-react CHANGELOG](https://github.com/authorizerdev/au
 
 ---
 
-## 7. Checklist
+## 7. Makefile commands (v2)
+
+The v2 repo ships with a `Makefile` that wraps the most common development and build workflows.
+
+- **`make`**: runs `build`, `build-app`, and `build-dashboard` (Go binary + both web UIs).
+- **`make bootstrap`**: installs Go cross-compilation helper `gox`.
+- **`make build`**: cross-compiles the `authorizer` binary for multiple OS/architectures into `build/<os>/<arch>/authorizer`.
+- **`make build-app`**: builds the embedded login app in `web/app`.
+- **`make build-dashboard`**: builds the admin dashboard in `web/dashboard`.
+- **`make build-local-image`**: builds the Docker image using the current `VERSION` (`DOCKER_IMAGE` defaults to `authorizerdev/authorizer:$(VERSION)`).
+- **`make build-push-image`**: builds and pushes the Docker image defined by `DOCKER_IMAGE`.
+- **`make dev`**: runs the server locally with a SQLite DB and demo secrets (development only).
+- **`make clean`**: removes the `build` directory.
+- **`make test`**: spins up all supported databases in Docker and runs the full Go test suite, then tears down containers.
+- **`make test-mongodb`**, **`make test-scylladb`**, **`make test-arangodb`**, **`make test-dynamodb`**, **`make test-couchbase`**, **`make test-all-db`**: database-specific (or multi-DB) test runners; they start the corresponding DB(s) in Docker, run integration tests, then clean up containers.
+- **`make generate-graphql`**: regenerates GraphQL code via `gqlgen` and runs `go mod tidy`.
+- **`make generate-db-template`**: scaffolds a new DB provider from `server/db/providers/provider_template` (set `dbname` when invoking).
+
+## 8. Checklist
 
 - [ ] Replace all v1 env / dashboard config with **CLI arguments** at server start.
 - [ ] Set **`--client-id`** and **`--client-secret`** (required).
