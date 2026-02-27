@@ -102,11 +102,12 @@ func (p *provider) DeleteAllSessionTokensByUserID(ctx context.Context, userId st
 // DeleteSessionTokensByNamespace deletes all session tokens for a namespace
 func (p *provider) DeleteSessionTokensByNamespace(ctx context.Context, namespace string) error {
 	prefix := namespace + ":"
-	query := fmt.Sprintf(`SELECT _id FROM %s.%s WHERE STARTS_WITH(user_id, $1)`,
+	// N1QL does not have STARTS_WITH; use LIKE with prefix%
+	query := fmt.Sprintf(`SELECT _id FROM %s.%s WHERE user_id LIKE $1`,
 		p.scopeName, schemas.Collections.SessionToken)
 	q, err := p.db.Query(query, &gocb.QueryOptions{
 		ScanConsistency:      gocb.QueryScanConsistencyRequestPlus,
-		PositionalParameters: []interface{}{prefix},
+		PositionalParameters: []interface{}{prefix + "%"},
 	})
 	if err != nil {
 		return err

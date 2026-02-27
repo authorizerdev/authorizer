@@ -39,8 +39,6 @@ func (g *graphqlProvider) Meta(ctx context.Context) (*model.Meta, error) {
 	robloxClientID := g.Config.RobloxClientID
 	robloxClientSecret := g.Config.RobloxClientSecret
 
-	g.Log.Info().Interface("config", g.Config).Msg("Config")
-
 	isBasicAuthEnabled := g.Config.EnableBasicAuthentication
 	isMobileBasicAuthEnabled := g.Config.EnableMobileBasicAuthentication
 	isMobileVerificationEnabled := g.Config.EnablePhoneVerification

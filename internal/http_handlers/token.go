@@ -195,25 +195,81 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 				})
 				return
 			}
-			userID = claims["sub"].(string)
-			claimLoginMethod := claims["login_method"]
-			rolesInterface := claims["roles"].([]interface{})
-			scopeInterface := claims["scope"].([]interface{})
-			for _, v := range rolesInterface {
-				roles = append(roles, v.(string))
+
+			sub, ok := claims["sub"].(string)
+			if !ok || sub == "" {
+				log.Debug().Msg("Invalid subject in refresh token")
+				gc.JSON(http.StatusUnauthorized, gin.H{
+					"error":             "unauthorized",
+					"error_description": "Invalid refresh token",
+				})
+				return
 			}
-			for _, v := range scopeInterface {
-				scope = append(scope, v.(string))
+			userID = sub
+
+			claimLoginMethod := claims["login_method"]
+			if rolesVal, ok := claims["roles"].([]interface{}); ok {
+				for _, v := range rolesVal {
+					roleStr, ok := v.(string)
+					if !ok || roleStr == "" {
+						log.Debug().Msg("Invalid role claim in refresh token")
+						gc.JSON(http.StatusUnauthorized, gin.H{
+							"error":             "unauthorized",
+							"error_description": "Invalid refresh token",
+						})
+						return
+					}
+					roles = append(roles, roleStr)
+				}
+			} else {
+				log.Debug().Msg("Missing roles claim in refresh token")
+				gc.JSON(http.StatusUnauthorized, gin.H{
+					"error":             "unauthorized",
+					"error_description": "Invalid refresh token",
+				})
+				return
+			}
+
+			if scopeVal, ok := claims["scope"].([]interface{}); ok {
+				for _, v := range scopeVal {
+					scopeStr, ok := v.(string)
+					if !ok || scopeStr == "" {
+						log.Debug().Msg("Invalid scope claim in refresh token")
+						gc.JSON(http.StatusUnauthorized, gin.H{
+							"error":             "unauthorized",
+							"error_description": "Invalid refresh token",
+						})
+						return
+					}
+					scope = append(scope, scopeStr)
+				}
+			} else {
+				log.Debug().Msg("Missing scope claim in refresh token")
+				gc.JSON(http.StatusUnauthorized, gin.H{
+					"error":             "unauthorized",
+					"error_description": "Invalid refresh token",
+				})
+				return
 			}
 
 			sessionKey = userID
-			if claimLoginMethod != nil && claimLoginMethod != "" {
-				sessionKey = claimLoginMethod.(string) + ":" + sessionKey
-				loginMethod = claimLoginMethod.(string)
+			if lm, ok := claimLoginMethod.(string); ok && lm != "" {
+				sessionKey = lm + ":" + sessionKey
+				loginMethod = lm
+			}
+
+			nonce, ok := claims["nonce"].(string)
+			if !ok || nonce == "" {
+				log.Debug().Msg("Invalid nonce in refresh token")
+				gc.JSON(http.StatusUnauthorized, gin.H{
+					"error":             "unauthorized",
+					"error_description": "Invalid refresh token",
+				})
+				return
 			}
 
 			// remove older refresh token and rotate it for security
-			go h.MemoryStoreProvider.DeleteUserSession(sessionKey, claims["nonce"].(string))
+			go h.MemoryStoreProvider.DeleteUserSession(sessionKey, nonce)
 		}
 
 		if sessionKey == "" {

@@ -57,14 +57,33 @@ func (h *httpProvider) RevokeRefreshTokenHandler() gin.HandlerFunc {
 			return
 		}
 
-		userID := claims["sub"].(string)
-		loginMethod := claims["login_method"]
-		sessionToken := userID
-		if loginMethod != nil && loginMethod != "" {
-			sessionToken = loginMethod.(string) + ":" + userID
+		userID, ok := claims["sub"].(string)
+		if !ok || userID == "" {
+			log.Debug().Msg("Invalid subject in refresh token")
+			gc.JSON(http.StatusBadRequest, gin.H{
+				"error":             "invalid_token",
+				"error_description": "Invalid refresh token",
+			})
+			return
 		}
 
-		existingToken, err := h.MemoryStoreProvider.GetUserSession(sessionToken, constants.TokenTypeRefreshToken+"_"+claims["nonce"].(string))
+		loginMethod := claims["login_method"]
+		sessionToken := userID
+		if lm, ok := loginMethod.(string); ok && lm != "" {
+			sessionToken = lm + ":" + userID
+		}
+
+		nonce, ok := claims["nonce"].(string)
+		if !ok || nonce == "" {
+			log.Debug().Msg("Invalid nonce in refresh token")
+			gc.JSON(http.StatusBadRequest, gin.H{
+				"error":             "invalid_token",
+				"error_description": "Invalid refresh token",
+			})
+			return
+		}
+
+		existingToken, err := h.MemoryStoreProvider.GetUserSession(sessionToken, constants.TokenTypeRefreshToken+"_"+nonce)
 		if err != nil {
 			log.Debug().Err(err).Msg("Failed to get refresh token")
 			gc.JSON(http.StatusInternalServerError, gin.H{
@@ -92,7 +111,7 @@ func (h *httpProvider) RevokeRefreshTokenHandler() gin.HandlerFunc {
 			return
 		}
 
-		if err := h.MemoryStoreProvider.DeleteUserSession(sessionToken, claims["nonce"].(string)); err != nil {
+		if err := h.MemoryStoreProvider.DeleteUserSession(sessionToken, nonce); err != nil {
 			log.Debug().Err(err).Msg("failed to delete user session")
 			gc.JSON(http.StatusInternalServerError, gin.H{
 				"error":             "failed_to_delete_user_session",

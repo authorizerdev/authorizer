@@ -1,18 +1,31 @@
+PROJECT := authorizer
 DEFAULT_VERSION=0.1.0-local
 VERSION := $(or $(VERSION),$(DEFAULT_VERSION))
+DOCKER_IMAGE ?= authorizerdev/authorizer:$(VERSION)
 
-cmd:
-	cd server && go build -ldflags "-w -X main.VERSION=$(VERSION)" -o '../build/server'
+.PHONY: all bootstrap build build-app build-dashboard build-local-image build-push-image
+
+all: build build-app build-dashboard
+
+bootstrap:
+	go install github.com/mitchellh/gox@latest
+
 build:
-	cd server && gox \
-		-osarch="linux/amd64 linux/arm64 darwin/arm64 darwin/amd64 windows/amd64" \
-		-ldflags "-w -X main.VERSION=$(VERSION)" \
-		-output="../build/{{.OS}}/{{.Arch}}/server" \
+	CGO_ENABLED=0 gox \
+		-mod=readonly \
+		-osarch="linux/amd64 linux/arm64 darwin/amd64 darwin/arm64" \
+		-ldflags="-w -X main.VERSION=$(VERSION)" \
+		-output="./build/{{.OS}}/{{.Arch}}/$(PROJECT)" \
+		-tags="netgo" \
 		./...
 build-app:
 	cd web/app && npm ci && npm run build
 build-dashboard:
 	cd web/dashboard && npm ci && npm run build
+build-local-image:
+	docker build --build-arg VERSION=$(VERSION) -t $(DOCKER_IMAGE) .
+build-push-image: build-local-image
+	docker push $(DOCKER_IMAGE)
 clean:
 	rm -rf build
 dev:
@@ -27,8 +40,8 @@ test:
 	docker rm -vf authorizer_dynamodb
 	docker rm -vf authorizer_couchbase
 	docker rm -vf authorizer_redis
-	# docker run -d --name authorizer_redis -p 6380:6379 redis
-	docker run --name authorizer_postgres -p 5432:5432 -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=postgres -d postgres
+	docker run -d --name authorizer_redis -p 6380:6379 redis
+	docker run --name authorizer_postgres -p 5434:5432 -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=postgres -d postgres
 	docker run -d --name authorizer_scylla_db -p 9042:9042 scylladb/scylla
 	docker run -d --name authorizer_mongodb_db -p 27017:27017 mongo:4.4.15
 	docker run -d --name authorizer_arangodb -p 8529:8529 -e ARANGO_NO_AUTH=1 arangodb/arangodb:3.10.3
@@ -44,7 +57,7 @@ test:
 	docker rm -vf authorizer_arangodb
 	docker rm -vf authorizer_dynamodb
 	docker rm -vf authorizer_couchbase
-	# docker rm -vf authorizer_redis
+	docker rm -vf authorizer_redis
 test-mongodb:
 	docker run -d --name authorizer_mongodb_db -p 27017:27017 mongo:4.4.15
 	cd server && go clean --testcache && TEST_DBS="mongodb" go test -p 1 -v ./test

@@ -64,7 +64,9 @@ func (h *httpProvider) GraphqlHandler() gin.HandlerFunc {
 
 	srv.SetQueryCache(lru.New[*ast.QueryDocument](1000))
 	srv.AroundFields(h.gqlLoggingMiddleware())
-	srv.Use(extension.Introspection{})
+	if h.Config.EnableGraphQLIntrospection {
+		srv.Use(extension.Introspection{})
+	}
 	srv.Use(extension.AutomaticPersistedQuery{
 		Cache: lru.New[string](100),
 	})

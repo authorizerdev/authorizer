@@ -76,13 +76,28 @@ func (p *provider) ParseJWTToken(token string) (jwt.MapClaims, error) {
 		return claims, err
 	}
 
-	// claim parses exp & iat into float 64 with e^10,
-	// but we expect it to be int64
-	// hence we need to assert interface and convert to int64
-	intExp := int64(claims["exp"].(float64))
-	intIat := int64(claims["iat"].(float64))
-	claims["exp"] = intExp
-	claims["iat"] = intIat
+	// claim parses exp & iat into float64, but we expect int64.
+	// Use safe type assertions to avoid panics on malformed tokens.
+	expVal, ok := claims["exp"]
+	if !ok {
+		return claims, errors.New("missing exp claim")
+	}
+	expFloat, ok := expVal.(float64)
+	if !ok {
+		return claims, errors.New("invalid exp claim")
+	}
+
+	iatVal, ok := claims["iat"]
+	if !ok {
+		return claims, errors.New("missing iat claim")
+	}
+	iatFloat, ok := iatVal.(float64)
+	if !ok {
+		return claims, errors.New("invalid iat claim")
+	}
+
+	claims["exp"] = int64(expFloat)
+	claims["iat"] = int64(iatFloat)
 
 	return claims, nil
 }

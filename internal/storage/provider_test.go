@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"net"
 	"os"
 	"testing"
 	"time"
@@ -20,11 +21,11 @@ import (
 
 var dbTypes = []string{
 	constants.DbTypePostgres,
-	// constants.DbTypeMongoDB,
-	// constants.DbTypeArangoDB,
-	// constants.DbTypeScyllaDB,
-	// constants.DbTypeCouchbaseDB,
-	// constants.DbTypeDynamoDB,
+	constants.DbTypeMongoDB,
+	constants.DbTypeArangoDB,
+	constants.DbTypeScyllaDB,
+	constants.DbTypeCouchbaseDB,
+	constants.DbTypeDynamoDB,
 }
 
 func getTestDBConfig(dbType string) *config.Config {
@@ -37,7 +38,7 @@ func getTestDBConfig(dbType string) *config.Config {
 	// Set specific database URLs based on type
 	switch dbType {
 	case constants.DbTypePostgres:
-		cfg.DatabaseURL = "postgres://postgres:postgres@localhost:5432/postgres"
+		cfg.DatabaseURL = "postgres://postgres:postgres@localhost:5434/postgres"
 	case constants.DbTypeMongoDB:
 		cfg.DatabaseURL = "mongodb://localhost:27017"
 	case constants.DbTypeArangoDB:
@@ -46,6 +47,8 @@ func getTestDBConfig(dbType string) *config.Config {
 		cfg.DatabaseURL = "127.0.0.1:9042"
 	case constants.DbTypeCouchbaseDB:
 		cfg.DatabaseURL = "couchbase://127.0.0.1"
+		// Allow extra time for Couchbase container to become ready in tests
+		cfg.CouchBaseWaitTimeout = 120
 	case constants.DbTypeDynamoDB:
 		cfg.DatabaseURL = "http://0.0.0.0:8000"
 	}
@@ -64,6 +67,14 @@ func TestStorageProvider(t *testing.T) {
 			}
 			cfg := getTestDBConfig(dbType)
 			if dbType == constants.DbTypeCouchbaseDB {
+				// Skip Couchbase tests quickly if the local Couchbase instance is not reachable.
+				// This avoids long WaitUntilReady timeouts when the container is not running.
+				conn, err := net.DialTimeout("tcp", "127.0.0.1:8091", 2*time.Second)
+				if err != nil {
+					t.Skipf("Skipping Couchbase storage tests: Couchbase not reachable on 127.0.0.1:8091: %v", err)
+				}
+				_ = conn.Close()
+
 				cfg.DatabaseUsername = "Administrator"
 				cfg.DatabasePassword = "password"
 			}

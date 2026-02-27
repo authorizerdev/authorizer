@@ -53,7 +53,7 @@ func getTestConfig() *config.Config {
 	cfg := &config.Config{
 		Env:                             constants.TestEnv,
 		DatabaseType:                    constants.DbTypePostgres,
-		DatabaseURL:                     "postgres://postgres:postgres@localhost:5432/postgres",
+		DatabaseURL:                     "postgres://postgres:postgres@localhost:5434/postgres",
 		JWTSecret:                       "test-secret",
 		ClientID:                        "test-client-id",
 		ClientSecret:                    "test-client-secret",

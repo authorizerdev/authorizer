@@ -1,6 +1,7 @@
 package db
 
 import (
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -14,10 +15,10 @@ import (
 // TestDBMemoryStoreProvider tests the database-backed memory store provider
 // This test requires a database to be configured
 func TestDBMemoryStoreProvider(t *testing.T) {
-	// Skip if database is not configured
+	dbFile := filepath.Join(t.TempDir(), "authorizer_test.db")
 	cfg := &config.Config{
 		DatabaseType: "sqlite",
-		DatabaseURL:  "file:test.db?mode=memory&cache=shared",
+		DatabaseURL:  dbFile,
 		Env:          "test",
 	}
 
@@ -61,8 +62,10 @@ func TestDBMemoryStoreProvider(t *testing.T) {
 	assert.Empty(t, key)
 	assert.Error(t, err)
 
-	// Test DeleteUserSession
-	err = p.DeleteUserSession("auth_provider:123", "session_token_key")
+	// Test DeleteUserSession: for DB-backed store, the key argument is the suffix
+	// (e.g. \"key\"), while the stored keys are \"session_token_key\", \"access_token_key\", etc.
+	// This matches the in-memory provider behavior and real usage in the codebase.
+	err = p.DeleteUserSession("auth_provider:123", "key")
 	assert.NoError(t, err)
 
 	key, err = p.GetUserSession("auth_provider:123", "session_token_key")

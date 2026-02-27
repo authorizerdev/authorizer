@@ -36,6 +36,10 @@ func (p *provider) GetAdminAuthToken(gc *gin.Context) (string, error) {
 func (p *provider) IsSuperAdmin(gc *gin.Context) bool {
 	token, err := p.GetAdminAuthToken(gc)
 	if err != nil {
+		if p.config.DisableAdminHeaderAuth {
+			return false
+		}
+
 		secret := gc.Request.Header.Get("x-authorizer-admin-secret")
 		if secret == "" {
 			return false

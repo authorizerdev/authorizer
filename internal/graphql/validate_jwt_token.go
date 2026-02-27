@@ -46,17 +46,27 @@ func (g *graphqlProvider) ValidateJWTToken(ctx context.Context, params *model.Va
 		log.Debug().Err(err).Msg("Failed to parse jwt token")
 		return nil, err
 	}
-	userID = claims["sub"].(string)
+	sub, ok := claims["sub"].(string)
+	if !ok || sub == "" {
+		log.Debug().Msg("Invalid subject in token")
+		return nil, errors.New("invalid token")
+	}
+	userID = sub
 
 	// access_token and refresh_token should be validated from session store as well
 	if tokenType == constants.TokenTypeAccessToken || tokenType == constants.TokenTypeRefreshToken {
-		nonce = claims["nonce"].(string)
+		nonceVal, ok := claims["nonce"].(string)
+		if !ok || nonceVal == "" {
+			log.Debug().Msg("Invalid nonce in token")
+			return nil, errors.New("invalid token")
+		}
+		nonce = nonceVal
 		loginMethod := claims["login_method"]
 		sessionKey := userID
-		if loginMethod != nil && loginMethod != "" {
-			sessionKey = loginMethod.(string) + ":" + userID
+		if lm, ok := loginMethod.(string); ok && lm != "" {
+			sessionKey = lm + ":" + userID
 		}
-		token, err := g.MemoryStoreProvider.GetUserSession(sessionKey, tokenType+"_"+claims["nonce"].(string))
+		token, err := g.MemoryStoreProvider.GetUserSession(sessionKey, tokenType+"_"+nonceVal)
 		if err != nil || token == "" {
 			log.Debug().Err(err).Msg("Failed to get token from session store")
 			return nil, errors.New("invalid token")
@@ -93,7 +103,12 @@ func (g *graphqlProvider) ValidateJWTToken(ctx context.Context, params *model.Va
 	claimRolesInterface := claims[claimKey]
 	roleSlice := utils.ConvertInterfaceToSlice(claimRolesInterface)
 	for _, v := range roleSlice {
-		claimRoles = append(claimRoles, v.(string))
+		roleStr, ok := v.(string)
+		if !ok || roleStr == "" {
+			log.Debug().Msg("Invalid role claim value")
+			return nil, errors.New("invalid claims")
+		}
+		claimRoles = append(claimRoles, roleStr)
 	}
 
 	if len(params.Roles) > 0 {

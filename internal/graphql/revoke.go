@@ -23,14 +23,24 @@ func (g *graphqlProvider) Revoke(ctx context.Context, params *model.OAuthRevokeR
 		return nil, err
 	}
 
-	userID := claims["sub"].(string)
+	userID, ok := claims["sub"].(string)
+	if !ok || userID == "" {
+		log.Debug().Msg("Invalid subject in token")
+		return nil, errors.New("invalid token")
+	}
 	loginMethod := claims["login_method"]
 	sessionToken := userID
-	if loginMethod != nil && loginMethod != "" {
-		sessionToken = loginMethod.(string) + ":" + userID
+	if lm, ok := loginMethod.(string); ok && lm != "" {
+		sessionToken = lm + ":" + userID
 	}
 
-	existingToken, err := g.MemoryStoreProvider.GetUserSession(sessionToken, constants.TokenTypeRefreshToken+"_"+claims["nonce"].(string))
+	nonce, ok := claims["nonce"].(string)
+	if !ok || nonce == "" {
+		log.Debug().Msg("Invalid nonce in token")
+		return nil, errors.New("invalid token")
+	}
+
+	existingToken, err := g.MemoryStoreProvider.GetUserSession(sessionToken, constants.TokenTypeRefreshToken+"_"+nonce)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to get refresh token")
 		return nil, err
@@ -47,7 +57,7 @@ func (g *graphqlProvider) Revoke(ctx context.Context, params *model.OAuthRevokeR
 	}
 
 	// Remove the token from the memory store
-	if err := g.MemoryStoreProvider.DeleteUserSession(sessionToken, claims["nonce"].(string)); err != nil {
+	if err := g.MemoryStoreProvider.DeleteUserSession(sessionToken, nonce); err != nil {
 		log.Debug().Err(err).Msg("failed to delete user session")
 		return nil, err
 	}

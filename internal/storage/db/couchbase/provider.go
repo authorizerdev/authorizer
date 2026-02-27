@@ -42,6 +42,10 @@ func NewProvider(config *config.Config, deps *Dependencies) (*provider, error) {
 	dbURL := config.DatabaseURL
 	userName := config.DatabaseUsername
 	password := config.DatabasePassword
+	waitTimeout := 30 * time.Second
+	if config.CouchBaseWaitTimeout > 0 {
+		waitTimeout = time.Duration(config.CouchBaseWaitTimeout) * time.Second
+	}
 	opts := gocb.ClusterOptions{
 		Username: userName,
 		Password: password,
@@ -56,13 +60,18 @@ func NewProvider(config *config.Config, deps *Dependencies) (*provider, error) {
 	if err != nil {
 		return nil, err
 	}
-	// Wait until the cluster is ready
-	err = cluster.WaitUntilReady(30*time.Second, nil)
+	// Wait until the cluster (including Query service) is ready
+	clusterWaitOpts := &gocb.WaitUntilReadyOptions{
+		ServiceTypes: []gocb.ServiceType{
+			gocb.ServiceTypeQuery,
+		},
+	}
+	err = cluster.WaitUntilReady(waitTimeout, clusterWaitOpts)
 	if err != nil {
 		return nil, err
 	}
 	// To create the bucket and scope if not exist
-	bucket, err := createBucketAndScope(cluster, bucketName, scopeName, ramQuota)
+	bucket, err := createBucketAndScope(cluster, bucketName, scopeName, ramQuota, waitTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +116,7 @@ func NewProvider(config *config.Config, deps *Dependencies) (*provider, error) {
 	}, nil
 }
 
-func createBucketAndScope(cluster *gocb.Cluster, bucketName string, scopeName string, ramQuota string) (*gocb.Bucket, error) {
+func createBucketAndScope(cluster *gocb.Cluster, bucketName string, scopeName string, ramQuota string, waitTimeout time.Duration) (*gocb.Bucket, error) {
 	if ramQuota == "" {
 		ramQuota = "1000"
 	}
@@ -140,8 +149,14 @@ func createBucketAndScope(cluster *gocb.Cluster, bucketName string, scopeName st
 		}
 	}
 	bucket := cluster.Bucket(bucketName)
-	// Wait until bucket is ready
-	err = bucket.WaitUntilReady(30*time.Second, nil)
+	// Wait until bucket (including KV and Query services) is ready
+	bucketWaitOpts := &gocb.WaitUntilReadyOptions{
+		ServiceTypes: []gocb.ServiceType{
+			gocb.ServiceTypeKeyValue,
+			gocb.ServiceTypeQuery,
+		},
+	}
+	err = bucket.WaitUntilReady(waitTimeout, bucketWaitOpts)
 	if err != nil {
 		return nil, err
 	}

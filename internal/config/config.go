@@ -17,6 +17,8 @@ type Config struct {
 	EnableLoginPage bool
 	// EnablePlayground is the flag to enable playground
 	EnablePlayground bool
+	// EnableGraphQLIntrospection is the flag to enable GraphQL introspection
+	EnableGraphQLIntrospection bool
 
 	// Database Configurations
 	// DatabaseType is the type of database to use
@@ -50,6 +52,9 @@ type Config struct {
 	// CouchBaseScope is the scope for the database
 	// Used only for CouchBase database
 	CouchBaseScope string
+	// CouchBaseWaitTimeout is the timeout in seconds for Couchbase WaitUntilReady operations
+	// Used only for CouchBase database
+	CouchBaseWaitTimeout int
 
 	// AWS flags
 	// AWSRegion is the region for the database
@@ -240,4 +245,6 @@ type Config struct {
 	AppCookieSecure bool
 	// IsAdminCookieSecure is the flag to set secure(http only) cookie
 	AdminCookieSecure bool
+	// DisableAdminHeaderAuth is the flag to disable admin authentication via header
+	DisableAdminHeaderAuth bool
 }

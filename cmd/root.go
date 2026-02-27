@@ -54,6 +54,7 @@ func init() {
 	// Http routes
 	f.BoolVar(&rootArgs.config.EnableLoginPage, "enable-login-page", true, "Enable login page")
 	f.BoolVar(&rootArgs.config.EnablePlayground, "enable-playground", true, "Enable playground")
+	f.BoolVar(&rootArgs.config.EnableGraphQLIntrospection, "enable-graphql-introspection", true, "Enable GraphQL introspection for the /graphql endpoint")
 
 	// Organization flags
 	f.StringVar(&rootArgs.config.OrganizationLogo, "organization-logo", "https://authorizer.dev/images/logo.png", "Logo of the organization")
@@ -122,6 +123,7 @@ func init() {
 	// Cookies flags
 	f.BoolVar(&rootArgs.config.AppCookieSecure, "app-cookie-secure", true, "Application secure cookie flag")
 	f.BoolVar(&rootArgs.config.AdminCookieSecure, "admin-cookie-secure", true, "Admin secure cookie flag")
+	f.BoolVar(&rootArgs.config.DisableAdminHeaderAuth, "disable-admin-header-auth", false, "Disable admin authentication via X-Authorizer-Admin-Secret header")
 
 	// JWT flags
 	f.StringVar(&rootArgs.config.JWTType, "jwt-type", "", "Type of JWT to use")

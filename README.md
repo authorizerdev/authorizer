@@ -11,7 +11,8 @@
 
 For more information check:
 
-- [Docs](http://docs.authorizer.dev/)
+- [Docs (v2 – current)](https://github.com/authorizerdev/authorizer/blob/main/MIGRATION.md)
+- [Docs (v1 – legacy)](http://docs.authorizer.dev/)
 - [Discord Community](https://discord.gg/Zv2D5h6kkK)
 - [Contributing Guide](https://github.com/authorizerdev/authorizer/blob/main/.github/CONTRIBUTING.md)
 
