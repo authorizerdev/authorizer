@@ -423,7 +423,7 @@ The v2 repo ships with a `Makefile` that wraps the most common development and b
 - **`make test`**: spins up all supported databases in Docker and runs the full Go test suite, then tears down containers.
 - **`make test-mongodb`**, **`make test-scylladb`**, **`make test-arangodb`**, **`make test-dynamodb`**, **`make test-couchbase`**, **`make test-all-db`**: database-specific (or multi-DB) test runners; they start the corresponding DB(s) in Docker, run integration tests, then clean up containers.
 - **`make generate-graphql`**: regenerates GraphQL code via `gqlgen` and runs `go mod tidy`.
-- **`make generate-db-template`**: scaffolds a new DB provider from `server/db/providers/provider_template` (set `dbname` when invoking).
+- **`make generate-db-template`**: scaffolds a new DB provider from `internal/storage/db/provider_template` (set `dbname` when invoking).
 
 ## 8. Checklist
 

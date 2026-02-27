@@ -19,8 +19,21 @@ type provider struct {
 	db           *gorm.DB
 }
 
-// NewProvider returns a new SQL provider
-// TODO change following provider to new db provider
+// NewProvider returns a new provider for your database type.
+// TODO: change provider struct and NewProvider to use your database client.
+//
+// This provider must implement all methods from storage.Provider, including:
+// - User, VerificationRequest, Session, Webhook, EmailTemplate, OTP, Authenticator
+// - Memory store methods (when Redis is not configured):
+//   - SessionToken: AddSessionToken, GetSessionTokenByUserIDAndKey, DeleteSessionToken,
+//     DeleteSessionTokenByUserIDAndKey, DeleteAllSessionTokensByUserID,
+//     DeleteSessionTokensByNamespace, CleanExpiredSessionTokens, GetAllSessionTokens
+//   - MFASession: AddMFASession, GetMFASessionByUserIDAndKey, DeleteMFASession,
+//     DeleteMFASessionByUserIDAndKey, GetAllMFASessionsByUserID,
+//     CleanExpiredMFASessions, GetAllMFASessions
+//   - OAuthState: AddOAuthState, GetOAuthStateByKey, DeleteOAuthStateByKey, GetAllOAuthStates
+//
+// Use schemas.Collections for table/collection names (e.g., schemas.Collections.SessionToken).
 func NewProvider(
 	config *config.Config,
 	deps *Dependencies,

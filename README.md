@@ -11,10 +11,12 @@
 
 For more information check:
 
-- [Docs (v2 – current)](https://github.com/authorizerdev/authorizer/blob/main/MIGRATION.md)
+- [Migration Guide (v1 → v2)](MIGRATION.md) – configuration changes, CLI flags, deprecated APIs
 - [Docs (v1 – legacy)](http://docs.authorizer.dev/)
 - [Discord Community](https://discord.gg/Zv2D5h6kkK)
-- [Contributing Guide](https://github.com/authorizerdev/authorizer/blob/main/.github/CONTRIBUTING.md)
+- [Contributing Guide](.github/CONTRIBUTING.md)
+
+> **v2 note:** Authorizer v2 uses **CLI arguments** for all configuration. The server does **not** read from `.env` or OS env. Pass config when starting the binary (e.g. `./authorizer --client-id=... --client-secret=...`). See [MIGRATION.md](MIGRATION.md).
 
 # Introduction
 
@@ -78,72 +80,81 @@ Deploy production ready Authorizer instance using one click deployment options a
 
 This guide helps you practice using Authorizer to evaluate it before you use it in a production environment. It includes instructions for installing the Authorizer server in local or standalone mode.
 
-#### Install using source code
-
 #### Prerequisites
 
-- OS: Linux or macOS or windows
-- Go: (Golang)(https://golang.org/dl/) >= v1.15
+- OS: Linux or macOS or Windows
+- [Go](https://golang.org/dl/) >= 1.24 (see `go.mod`)
+- [Node.js](https://nodejs.org/) >= 18 and npm (only if building the web app and dashboard)
 
 #### Project Setup
 
 1. Fork the [authorizer](https://github.com/authorizerdev/authorizer) repository (**Skip this step if you have access to repo**)
 2. Clone repo: `git clone https://github.com/authorizerdev/authorizer.git` or use the forked url from step 1
-3. Change directory to authorizer: `cd authorizer`
-4. Create Env file `cp .env.sample .env`. Check all the supported env [here](https://docs.authorizer.dev/core/env/)
-5. Build Dashboard `make build-dashboard`
-6. Build App `make build-app`
-7. Build Server `make clean && make`
-   > Note: if you don't have [`make`](https://www.ibm.com/docs/en/aix/7.2?topic=concepts-make-command), you can `cd` into `server` dir and build using the `go build` command. In that case you will have to build `dashboard` & `app` manually using `npm run build` on both dirs.
-8. Run binary `./build/server`
+3. Change directory: `cd authorizer`
+4. Build the server binary: `make build` (or `go build -o build/authorizer .`)
+5. (Optional) Build the web app and dashboard: `make build-app` and `make build-dashboard`
+6. Run the server with CLI arguments:
+
+   ```bash
+   make dev
+   ```
+
+   Or run manually with your config:
+
+   ```bash
+   ./build/authorizer \
+     --database-type=sqlite \
+     --database-url=data.db \
+     --client-id=YOUR_CLIENT_ID \
+     --client-secret=YOUR_CLIENT_SECRET \
+     --admin-secret=your-admin-secret \
+     --jwt-type=HS256 \
+     --jwt-secret=your-jwt-secret
+   ```
+
+   > **v2:** The server does **not** read from `.env`. All configuration must be passed as CLI arguments. See [MIGRATION.md](MIGRATION.md) for the full mapping of env vars to flags.
 
 ### Deploy Authorizer using binaries
 
-Deploy / Try Authorizer using binaries. With each [Authorizer Release](https://github.com/authorizerdev/authorizer/releases)
-binaries are baked with required deployment files and bundled. You can download a specific version of it for the following operating systems:
+Deploy / Try Authorizer using binaries. With each [Authorizer Release](https://github.com/authorizerdev/authorizer/releases), binaries are baked with required deployment files and bundled. You can download a specific version for the following operating systems:
 
-- Mac OSX
-- Linux
+- macOS (amd64, arm64)
+- Linux (amd64, arm64)
 
 #### Download and unzip bundle
 
-- Download the Bundle for the specific OS from the [release page](https://github.com/authorizerdev/authorizer/releases)
+- Download the bundle for your OS/arch from the [release page](https://github.com/authorizerdev/authorizer/releases)
 
-> Note: For windows, we recommend running using docker image to run authorizer.
+> Note: For Windows, we recommend running Authorizer via Docker.
 
-- Unzip using following command
-
-  - Mac / Linux
+- Unzip (Mac / Linux):
 
   ```sh
-  tar -zxf AUTHORIZER_VERSION -c authorizer
+  tar -zxf authorizer-VERSION-OS-ARCH.tar.gz
+  cd authorizer-VERSION-OS-ARCH
   ```
 
-- Change directory to `authorizer`
+#### Start Authorizer
+
+- Run the binary with required CLI arguments:
 
   ```sh
-  cd authorizer
+  ./authorizer \
+    --database-type=sqlite \
+    --database-url=data.db \
+    --client-id=YOUR_CLIENT_ID \
+    --client-secret=YOUR_CLIENT_SECRET \
+    --admin-secret=your-admin-secret
   ```
 
-#### Step 3: Start Authorizer
-
-- Run following command to start authorizer
-
-  - For Mac / Linux users
-
-  ```sh
-  ./build/server
-  ```
-
-> Note: For mac users, you might have to give binary the permission to execute. Here is the command you can use to grant permission `xattr -d com.apple.quarantine build/server`
+> **v2:** The binary is named `authorizer` (not `server`). Configuration is passed via CLI arguments; `.env` is not read. On macOS you may need: `xattr -d com.apple.quarantine authorizer`
 
 ## Step 2: Setup Instance
 
-- Open authorizer instance endpoint in browser
-- Sign up as an admin with a secure password
-- Configure environment variables from authorizer dashboard. Check env [docs](/core/env) for more information
+- Open the Authorizer instance endpoint in your browser
+- Sign in as admin using the `--admin-secret` you configured at startup
 
-> Note: `DATABASE_URL`, `DATABASE_TYPE` and `DATABASE_NAME` are only configurable via platform envs
+> **v2:** Environment variables are **not** configurable from the dashboard. All configuration is set at startup via CLI arguments. See [MIGRATION.md](MIGRATION.md) for the full list of flags.
 
 ### Things to consider
 

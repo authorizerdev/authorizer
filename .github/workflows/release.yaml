@@ -22,77 +22,75 @@ jobs:
     name: Release Authorizer
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: '16'
-      - # Add support for more platforms with QEMU (optional)
-        # https://github.com/docker/setup-qemu-action
-        name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+          node-version: '20'
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
         with:
           platforms: linux/amd64,linux/arm64
-      - uses: actions/setup-go@v2
+      - uses: actions/setup-go@v5
         with:
-          go-version: '^1.19.1'
+          go-version: '1.24'
       - name: Install dependencies
         run: |
-          sudo apt-get install build-essential wget zip  libc6-dev-arm64-cross && \
-          echo "/usr/bin/x86_64-w64-mingw32-gcc" >> GITHUB_PATH && \
+          sudo apt-get install -y build-essential wget zip && \
           wget --no-check-certificate --progress=dot:mega https://github.com/wangyoucao577/assets-uploader/releases/download/v0.3.0/github-assets-uploader-v0.3.0-linux-amd64.tar.gz -O github-assets-uploader.tar.gz && \
           tar -zxf github-assets-uploader.tar.gz && \
           sudo mv github-assets-uploader /usr/sbin/ && \
-          sudo rm -f github-assets-uploader.tar.gz && \
-          github-assets-uploader -version && \
-          make build-app && \
+          rm -f github-assets-uploader.tar.gz && \
+          github-assets-uploader -version
+      - name: Build web app and dashboard
+        run: |
+          make build-app
           make build-dashboard
-      - name: Print Go paths
-        run: whereis go
-      - name: Print Go Version
-        run: go version
       - name: Install gox
         run: go install github.com/mitchellh/gox@latest
       - name: Set VERSION env
         run: echo VERSION=$(basename ${GITHUB_REF}) >> ${GITHUB_ENV}
-      - name: Copy .env file
-        run: mv .env.sample .env
       - name: Build package
         run: |
-          make clean && \
-          make build && \
-          mkdir -p authorizer-${VERSION}-darwin-arm64/build authorizer-${VERSION}-darwin-arm64/app authorizer-${VERSION}-darwin-arm64/dashboard && cp build/darwin/arm64/server authorizer-${VERSION}-darwin-arm64/build/ && cp .env authorizer-${VERSION}-darwin-arm64/.env && cp -rf app/build authorizer-${VERSION}-darwin-arm64/app/build && cp -rf templates authorizer-${VERSION}-darwin-arm64/ && cp -rf dashboard/build authorizer-${VERSION}-darwin-arm64/dashboard/build && tar cvfz authorizer-${VERSION}-darwin-arm64.tar.gz authorizer-${VERSION}-darwin-arm64 && \
-          mkdir -p authorizer-${VERSION}-darwin-amd64/build authorizer-${VERSION}-darwin-amd64/app authorizer-${VERSION}-darwin-amd64/dashboard && cp build/darwin/amd64/server authorizer-${VERSION}-darwin-amd64/build/ && cp .env authorizer-${VERSION}-darwin-amd64/.env && cp -rf app/build authorizer-${VERSION}-darwin-amd64/app/build && cp -rf templates authorizer-${VERSION}-darwin-amd64/ && cp -rf dashboard/build authorizer-${VERSION}-darwin-amd64/dashboard/build && tar cvfz authorizer-${VERSION}-darwin-amd64.tar.gz authorizer-${VERSION}-darwin-amd64 && \
-          mkdir -p authorizer-${VERSION}-linux-amd64/build authorizer-${VERSION}-linux-amd64/app authorizer-${VERSION}-linux-amd64/dashboard && cp build/linux/amd64/server authorizer-${VERSION}-linux-amd64/build/ && cp .env authorizer-${VERSION}-linux-amd64/.env && cp -rf app/build authorizer-${VERSION}-linux-amd64/app/build && cp -rf templates authorizer-${VERSION}-linux-amd64/ && cp -rf dashboard/build authorizer-${VERSION}-linux-amd64/dashboard/build && tar cvfz authorizer-${VERSION}-linux-amd64.tar.gz authorizer-${VERSION}-linux-amd64 && \
-          mkdir -p authorizer-${VERSION}-linux-arm64/build authorizer-${VERSION}-linux-arm64/app authorizer-${VERSION}-linux-arm64/dashboard && cp build/linux/arm64/server authorizer-${VERSION}-linux-arm64/build/ && cp .env authorizer-${VERSION}-linux-arm64/.env && cp -rf app/build authorizer-${VERSION}-linux-arm64/app/build && cp -rf templates authorizer-${VERSION}-linux-arm64/ && cp -rf dashboard/build authorizer-${VERSION}-linux-arm64/dashboard/build && tar cvfz authorizer-${VERSION}-linux-arm64.tar.gz authorizer-${VERSION}-linux-arm64 && \
-          mkdir -p authorizer-${VERSION}-windows-amd64/build authorizer-${VERSION}-windows-amd64/app authorizer-${VERSION}-windows-amd64/dashboard && cp build/windows/amd64/server.exe authorizer-${VERSION}-windows-amd64/build/ && cp .env authorizer-${VERSION}-windows-amd64/.env && cp -rf app/build authorizer-${VERSION}-windows-amd64/app/build && cp -rf templates authorizer-${VERSION}-windows-amd64/ && cp -rf dashboard/build authorizer-${VERSION}-windows-amd64/dashboard/build && zip -vr authorizer-${VERSION}-windows-amd64.zip authorizer-${VERSION}-windows-amd64
+          make clean
+          make build
+          for arch in darwin-arm64 darwin-amd64 linux-amd64 linux-arm64; do
+            os=$(echo $arch | cut -d- -f1)
+            cpu=$(echo $arch | cut -d- -f2)
+            dir=authorizer-${VERSION}-${arch}
+            mkdir -p $dir/web/app $dir/web/dashboard $dir/web/templates
+            cp build/${os}/${cpu}/authorizer $dir/
+            cp .env.sample $dir/
+            cp -rf web/app/build $dir/web/app/
+            cp -rf web/app/favicon_io $dir/web/app/
+            cp -rf web/dashboard/build $dir/web/dashboard/
+            cp -rf web/dashboard/favicon_io $dir/web/dashboard/
+            cp -rf web/dashboard/public $dir/web/dashboard/ 2>/dev/null || true
+            cp -rf web/templates/* $dir/web/templates/
+            tar cvfz authorizer-${VERSION}-${arch}.tar.gz $dir
+          done
       - name: Upload assets
         run: |
           github-assets-uploader -f authorizer-${VERSION}-darwin-arm64.tar.gz -mediatype application/gzip -repo authorizerdev/authorizer -token ${{secrets.RELEASE_TOKEN}} -tag ${VERSION}
           github-assets-uploader -f authorizer-${VERSION}-darwin-amd64.tar.gz -mediatype application/gzip -repo authorizerdev/authorizer -token ${{secrets.RELEASE_TOKEN}} -tag ${VERSION}
           github-assets-uploader -f authorizer-${VERSION}-linux-amd64.tar.gz -mediatype application/gzip -repo authorizerdev/authorizer -token ${{secrets.RELEASE_TOKEN}} -tag ${VERSION}
           github-assets-uploader -f authorizer-${VERSION}-linux-arm64.tar.gz -mediatype application/gzip -repo authorizerdev/authorizer -token ${{secrets.RELEASE_TOKEN}} -tag ${VERSION}
-          github-assets-uploader -f authorizer-${VERSION}-windows-amd64.zip -mediatype application/zip -repo authorizerdev/authorizer -token ${{secrets.RELEASE_TOKEN}} -tag ${VERSION}
       - name: Log in to Docker Hub
-        uses: docker/login-action@v1
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@v3
+        uses: docker/metadata-action@v5
         with:
-          images: lakhansamani/authorizer
+          images: authorizerdev/authorizer
           tags: |
-            type=schedule
-            type=ref,event=branch
             type=ref,event=tag
             type=ref,event=pr
-
       - name: Build and push Docker image
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v5
         with:
           context: .
           push: true
@@ -100,4 +98,4 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64,linux/arm64
           build-args: |
-            VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}
+            VERSION=${{ env.VERSION }}

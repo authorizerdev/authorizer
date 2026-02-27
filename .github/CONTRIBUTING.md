@@ -32,68 +32,61 @@ Please ask as many questions as you need, either directly in the issue or on [Di
 
 ### Prerequisites
 
-- OS: Linux or macOS or windows
-- Go: (Golang)(https://golang.org/dl/) >= v1.15
+- OS: Linux or macOS or Windows
+- [Go](https://golang.org/dl/) >= 1.24 (see `go.mod`)
+- [Node.js](https://nodejs.org/) >= 18 and npm (only if building web app or dashboard)
 
 ### Familiarize yourself with Authorizer
 
 1. [Architecture of Authorizer](http://docs.authorizer.dev/)
 2. [GraphQL APIs](https://docs.authorizer.dev/core/graphql-api/)
+3. [Migration Guide (v1 → v2)](../MIGRATION.md) – v2 uses CLI-based configuration
 
 ### Project Setup for Authorizer core
 
 1. Fork the [authorizer](https://github.com/authorizerdev/authorizer) repository (**Skip this step if you have access to repo**)
 2. Clone repo: `git clone https://github.com/authorizerdev/authorizer.git` or use the forked url from step 1
-3. Change directory to authorizer: `cd authorizer`
-4. Create Env file `cp .env.sample .env`. Check all the supported env [here](https://docs.authorizer.dev/core/env/)
-5. Build Dashboard `make build-dashboard`
-6. Build App `make build-app`
-7. Build Server `make clean && make`
-   > Note: if you don't have [`make`](https://www.ibm.com/docs/en/aix/7.2?topic=concepts-make-command), you can `cd` into `server` dir and build using the `go build` command. In that case you will have to build `dashboard` & `app` manually using `npm run build` on both dirs.
-8. Run binary `./build/server`
+3. Change directory: `cd authorizer`
+4. Build the server: `make build` (or `go build -o build/authorizer .`)
+5. (Optional) Build the web app and dashboard: `make build-app` and `make build-dashboard`
+6. Run locally: `make dev` (uses SQLite and demo secrets for development)
+
+> **v2:** The server does **not** read from `.env`. All configuration is passed via CLI arguments. See [MIGRATION.md](../MIGRATION.md).
 
 ### Updating GraphQL schema
 
-- Modify `server/graph/schema.graphqls` file
-- Run `make generate-graphql` this will update the models and required methods
-- If a new mutation or query is added
-  - Write the implementation for the new resolver in `server/resolvers/NEW_RESOLVER.GO`
-  - Update `server/graph/schema.resolvers.go` with the new resolver method
+- Modify `internal/graph/schema.graphqls` (or other files in `internal/graph/`)
+- Run `make generate-graphql` to regenerate models and resolvers
+- If a new mutation or query is added, implement the resolver in `internal/graph/` (resolver layout follows schema)
 
 ### Adding support for new database
 
 - Run `make generate-db-template dbname=NEW_DB_NAME`
-  eg `make generate-db-template dbname=dynamodb`
+  - e.g. `make generate-db-template dbname=dynamodb`
 
-This command will generate a folder in server/db/providers/ with name specified in the above command.
-One will have to implement methods present in that folder.
+This generates a folder in `internal/storage/db/` with the specified name. Implement the methods in that folder.
 
-> Note: Connection for database and schema changes are written in `server/db/providers/DB_NAME/provider.go` > `NewProvider` method is called for any given db based on the env variables present.
+> Note: Database connection and schema changes are in `internal/storage/db/DB_NAME/provider.go`; `NewProvider` is called for the configured database type.
 
 ### Testing
 
-Make sure you test before creating PR.
+Make sure you test before creating a PR.
 
-If you want to test for all the databases that authorizer supports you will have to run `mongodb` & `arangodb` instances locally.
+The main `make test` target spins up Postgres, Redis, ScyllaDB, MongoDB, ArangoDB, DynamoDB, and Couchbase via Docker, runs the Go test suite, then tears down containers.
 
-Setup mongodb & arangodb using Docker
+For local development without full DB matrix:
 
-```
-docker run --name mongodb -d -p 27017:27017 mongo
-
-// -e ARANGO_ROOT_PASSWORD=root
-docker run --name arangodb -d -p 8529:8529 -e ARANGO_NO_AUTH=1 arangodb/arangodb:3.8.4
+```sh
+make dev   # run server for manual testing
+go test -v ./...   # run tests (requires Docker for full suite)
 ```
 
-> Note: If you are not making any changes in db schema / db operations, you can disable those db tests [here](https://github.com/authorizerdev/authorizer/blob/main/server/__test__/resolvers_test.go#L14)
+If you are adding a new resolver:
 
-If you are adding new resolver,
+1. Create a new test file in `internal/integration_tests/` (naming: `resolver_name_test.go`)
+2. Follow the existing pattern using `getTestConfig()` and `initTestSetup()`
 
-1. create new resolver test file [here](https://github.com/authorizerdev/authorizer/tree/main/server/__test__)
-   Naming convention filename: `resolver_name_test.go` function name: `resolverNameTest(t *testing.T, s TestSetup)`
-2. Add your tests [here](https://github.com/authorizerdev/authorizer/blob/main/server/__test__/resolvers_test.go#L38)
-
-**Command to run tests:**
+**Command to run full test suite:**
 
 ```sh
 make test

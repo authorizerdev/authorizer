@@ -1,4 +1,4 @@
-FROM golang:1.25.7-alpine3.23 as go-builder
+FROM golang:1.24-alpine3.23 as go-builder
 WORKDIR /authorizer
 
 ARG TARGETPLATFORM
