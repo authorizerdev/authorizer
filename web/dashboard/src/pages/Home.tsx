@@ -10,8 +10,7 @@ export default function Home() {
 
 			<Text fontSize="xl" color="gray.700">
 				Welcome to Authorizer Administrative Dashboard! <br />
-				Please use this dashboard to configure your environment variables or
-				have look at your users
+				Manage your users, webhooks, and email templates.
 			</Text>
 		</>
 	);

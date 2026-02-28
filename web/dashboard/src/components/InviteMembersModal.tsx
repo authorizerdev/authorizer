@@ -27,7 +27,7 @@ import {
 import { useClient } from 'urql';
 import { FaUserPlus, FaMinusCircle, FaPlus, FaUpload } from 'react-icons/fa';
 import { useDropzone } from 'react-dropzone';
-import { validateEmail, validateURI } from '../utils';
+import { validateEmail, validateURI, getGraphQLErrorMessage } from '../utils';
 import { InviteMembers } from '../graphql/mutation';
 import { ArrayInputOperations } from '../constants';
 import parseCSV from '../utils/parseCSV';
@@ -49,10 +49,8 @@ const initData: stateDataTypes = {
 
 const InviteMembersModal = ({
 	updateUserList,
-	disabled = true,
 }: {
 	updateUserList: Function;
-	disabled: boolean;
 }) => {
 	const client = useClient();
 	const toast = useToast();
@@ -98,8 +96,7 @@ const InviteMembersModal = ({
 					})
 					.toPromise();
 				if (res.error) {
-					throw new Error('Internal server error');
-					return;
+					throw new Error(getGraphQLErrorMessage(res.error, 'Failed to send invites'));
 				}
 				toast({
 					title: 'Invites sent successfully!',
@@ -146,7 +143,7 @@ const InviteMembersModal = ({
 	const changeTabsHandler = (index: number) => {
 		setTabIndex(index);
 	};
-	const onDrop = useCallback(async (acceptedFiles) => {
+	const onDrop = useCallback(async (acceptedFiles: File[]) => {
 		const result = await parseCSV(acceptedFiles[0], ',');
 		setEmails(result);
 		changeTabsHandler(0);
@@ -162,7 +159,7 @@ const InviteMembersModal = ({
 	};
 	const { getRootProps, getInputProps, isDragActive } = useDropzone({
 		onDrop,
-		accept: 'text/csv',
+		accept: { 'text/csv': ['.csv'] },
 	});
 	const closeModalHandler = () => {
 		setRedirectURI({
@@ -184,25 +181,9 @@ const InviteMembersModal = ({
 				colorScheme="blue"
 				variant="solid"
 				onClick={onOpen}
-				isDisabled={disabled}
 				size="sm"
 			>
-				<Center h="100%">
-					{disabled ? (
-						<Tooltip
-							mr={8}
-							mt={1}
-							hasArrow
-							bg="gray.300"
-							color="black"
-							label="Email verification is disabled, refer to 'Features' tab within 'Environment' to enable it."
-						>
-							Invite Members
-						</Tooltip>
-					) : (
-						'Invite Members'
-					)}
-				</Center>{' '}
+				<Center h="100%">Invite Members</Center>{' '}
 			</Button>
 			<Modal isOpen={isOpen} onClose={closeModalHandler} size="xl">
 				<ModalOverlay />

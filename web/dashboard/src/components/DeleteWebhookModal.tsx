@@ -18,7 +18,7 @@ import {
 import { useClient } from 'urql';
 import { FaRegTrashAlt } from 'react-icons/fa';
 import { DeleteWebhook } from '../graphql/mutation';
-import { capitalizeFirstLetter } from '../utils';
+import { capitalizeFirstLetter, getGraphQLErrorMessage } from '../utils';
 
 interface deleteWebhookModalInputPropTypes {
 	webhookId: string;
@@ -41,7 +41,7 @@ const DeleteWebhookModal = ({
 			.toPromise();
 		if (res.error) {
 			toast({
-				title: capitalizeFirstLetter(res.error.message),
+				title: capitalizeFirstLetter(getGraphQLErrorMessage(res.error, 'Failed to delete webhook')),
 				isClosable: true,
 				status: 'error',
 				position: 'top-right',

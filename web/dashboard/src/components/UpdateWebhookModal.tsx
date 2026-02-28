@@ -45,6 +45,7 @@ import {
 import {
 	capitalizeFirstLetter,
 	copyTextToClipboard,
+	getGraphQLErrorMessage,
 	validateURI,
 } from '../utils';
 import { AddWebhook, EditWebhook, TestEndpoint } from '../graphql/mutation';
@@ -295,7 +296,7 @@ const UpdateWebhookModal = ({
 		setLoading(false);
 		if (res.error) {
 			toast({
-				title: capitalizeFirstLetter(res.error.message),
+				title: capitalizeFirstLetter(getGraphQLErrorMessage(res.error, 'Failed to update webhook')),
 				isClosable: true,
 				status: 'error',
 				position: 'top-right',

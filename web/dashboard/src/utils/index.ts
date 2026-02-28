@@ -83,3 +83,28 @@ export const validateURI = (uri: string) => {
 		? true
 		: false;
 };
+
+/**
+ * Extracts a user-facing message from a GraphQL/urql error.
+ * Prefers the first GraphQL error message, then the error's message, then a fallback.
+ */
+export const getGraphQLErrorMessage = (
+	error: unknown,
+	fallback = 'Something went wrong',
+): string => {
+	if (!error || typeof error !== 'object') return fallback;
+	const err = error as {
+		message?: string;
+		graphQLErrors?: Array<{ message?: string }>;
+		networkError?: { message?: string };
+	};
+	if (Array.isArray(err.graphQLErrors) && err.graphQLErrors.length > 0) {
+		const first = err.graphQLErrors[0];
+		if (first?.message && typeof first.message === 'string') {
+			return first.message;
+		}
+	}
+	if (err.message && typeof err.message === 'string') return err.message;
+	if (err.networkError?.message) return err.networkError.message;
+	return fallback;
+};

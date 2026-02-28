@@ -83,7 +83,7 @@ type Config struct {
 	// SMTPLocalName is the local name for the SMTP server
 	SMTPLocalName string
 	// SkipTLSVerification is the flag to skip TLS verification
-	SkipTLSVerification bool
+	SMTPSkipTLSVerification bool
 
 	// Memory Store Configurations
 	// RedisURL is the URL of the redis server

@@ -15,9 +15,10 @@ import {
 	useDisclosure,
 	Text,
 	useToast,
+	Input,
 } from '@chakra-ui/react';
 import { useClient } from 'urql';
-import { FaSave } from 'react-icons/fa';
+import { FaSave, FaPlus } from 'react-icons/fa';
 import InputField from './InputField';
 import {
 	DateInputType,
@@ -25,9 +26,8 @@ import {
 	SelectInputType,
 	TextInputType,
 } from '../constants';
-import { getObjectDiff } from '../utils';
+import { getObjectDiff, getGraphQLErrorMessage } from '../utils';
 import { UpdateUser } from '../graphql/mutation';
-import { GetAvailableRolesQuery } from '../graphql/queries';
 
 const GenderTypes = {
 	Undisclosed: null,
@@ -46,7 +46,7 @@ interface userDataTypes {
 	birthdate: string;
 	phone_number: string;
 	picture: string;
-	roles: [string] | [];
+	roles: string[];
 }
 
 const EditUserModal = ({
@@ -58,7 +58,7 @@ const EditUserModal = ({
 }) => {
 	const client = useClient();
 	const toast = useToast();
-	const [availableRoles, setAvailableRoles] = useState<string[]>([]);
+	const [newRole, setNewRole] = useState('');
 	const { isOpen, onOpen, onClose } = useDisclosure();
 	const [userData, setUserData] = useState<userDataTypes>({
 		id: '',
@@ -73,19 +73,13 @@ const EditUserModal = ({
 		picture: '',
 		roles: [],
 	});
+	// Available roles for multiselect: current user roles (no env query)
+	const availableRoles = Array.from(
+		new Set([...(userData.roles || []), ...(user.roles || [])]),
+	);
 	React.useEffect(() => {
 		setUserData(user);
-		fetchAvailableRoles();
-	}, []);
-	const fetchAvailableRoles = async () => {
-		const res = await client.query(GetAvailableRolesQuery).toPromise();
-		if (res.data?._env?.ROLES && res.data?._env?.PROTECTED_ROLES) {
-			setAvailableRoles([
-				...res.data._env.ROLES,
-				...res.data._env.PROTECTED_ROLES,
-			]);
-		}
-	};
+	}, [user]);
 	const saveHandler = async () => {
 		const diff = getObjectDiff(user, userData);
 		const updatedUserData = diff.reduce(
@@ -101,7 +95,7 @@ const EditUserModal = ({
 			.toPromise();
 		if (res.error) {
 			toast({
-				title: 'User data update failed',
+				title: getGraphQLErrorMessage(res.error, 'User data update failed'),
 				isClosable: true,
 				status: 'error',
 				position: 'top-right',
@@ -229,13 +223,45 @@ const EditUserModal = ({
 								<Flex w="30%" justifyContent="start" alignItems="center">
 									<Text fontSize="sm">Roles:</Text>
 								</Flex>
-								<Center w="70%">
+								<Center w="70%" flexDirection="column" alignItems="stretch">
 									<InputField
 										variables={userData}
 										setVariables={setUserData}
 										availableRoles={availableRoles}
 										inputType={MultiSelectInputType.USER_ROLES}
 									/>
+									<Flex mt={2} gap={2}>
+										<Input
+											size="sm"
+											placeholder="Add role"
+											value={newRole}
+											onChange={(e) => setNewRole(e.target.value)}
+											onKeyDown={(e) => {
+												if (e.key === 'Enter' && newRole.trim()) {
+													setUserData({
+														...userData,
+														roles: [...(userData.roles || []), newRole.trim()],
+													});
+													setNewRole('');
+												}
+											}}
+										/>
+										<Button
+											size="sm"
+											leftIcon={<FaPlus />}
+											onClick={() => {
+												if (newRole.trim()) {
+													setUserData({
+														...userData,
+														roles: [...(userData.roles || []), newRole.trim()],
+													});
+													setNewRole('');
+												}
+											}}
+										>
+											Add
+										</Button>
+									</Flex>
 								</Center>
 							</Flex>
 						</Stack>

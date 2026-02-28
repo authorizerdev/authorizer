@@ -45,7 +45,7 @@ func New(
 	if strings.TrimSpace(config.SMTPLocalName) != "" {
 		mailer.LocalName = config.SMTPLocalName
 	}
-	if config.SkipTLSVerification {
+	if config.SMTPSkipTLSVerification {
 		mailer.TLSConfig = &tls.Config{InsecureSkipVerify: true}
 	}
 	return &provider{

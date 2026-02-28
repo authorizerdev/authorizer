@@ -16,7 +16,7 @@ export const AdminSessionQuery = `
 `;
 
 export const UserDetailsQuery = `
-  query($params: PaginatedInput) {
+  query($params: PaginatedRequest) {
     _users(params: $params) {
       pagination {
         limit
@@ -47,16 +47,8 @@ export const UserDetailsQuery = `
   }
 `;
 
-export const EmailVerificationQuery = `
-  query {
-    _env{
-      DISABLE_EMAIL_VERIFICATION
-    }
-  }
-`;
-
 export const WebhooksDataQuery = `
-  query getWebhooksData($params: PaginatedInput!) {
+  query getWebhooksData($params: PaginatedRequest!) {
     _webhooks(params: $params){
       webhooks{
         id
@@ -77,7 +69,7 @@ export const WebhooksDataQuery = `
 `;
 
 export const EmailTemplatesQuery = `
-  query getEmailTemplates($params: PaginatedInput!) {
+  query getEmailTemplates($params: PaginatedRequest!) {
     _email_templates(params: $params) {
       email_templates {
         id
@@ -113,15 +105,6 @@ export const WebhookLogsQuery = `
         offset
         total
       }
-    }
-  }
-`;
-
-export const GetAvailableRolesQuery = `
-  query {
-    _env {
-      ROLES
-      PROTECTED_ROLES
     }
   }
 `;

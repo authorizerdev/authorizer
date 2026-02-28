@@ -25,10 +25,6 @@ export const AppRoutes = () => {
 								</DashboardLayout>
 							}
 						>
-							{/* <Route path="/" element={<Outlet />}>
-								<Route index element={<Environment />} />
-								<Route path="/:sec" element={<Environment />} />
-							</Route> */}
 							<Route path="/" element={<Users />} />
 							<Route path="webhooks" element={<Webhooks />} />
 							<Route path="email-templates" element={<EmailTemplates />} />
