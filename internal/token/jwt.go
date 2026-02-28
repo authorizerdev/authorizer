@@ -2,6 +2,7 @@ package token
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/golang-jwt/jwt/v4"
 
@@ -113,7 +114,7 @@ func (p *provider) ValidateJWTClaims(claims jwt.MapClaims, authTokenConfig *Auth
 	}
 
 	if claims["iss"] != authTokenConfig.HostName {
-		return false, errors.New("invalid issuer")
+		return false, fmt.Errorf("invalid issuer iss[%s] != hostname[%s]", claims["iss"], authTokenConfig.HostName)
 	}
 
 	if claims["sub"] != authTokenConfig.User.ID && claims["sub"] != refs.StringValue(authTokenConfig.User.Email) {
@@ -130,7 +131,7 @@ func (p *provider) ValidateJWTTokenWithoutNonce(claims jwt.MapClaims, authTokenC
 	}
 
 	if claims["iss"] != authTokenConfig.HostName {
-		return false, errors.New("invalid issuer")
+		return false, fmt.Errorf("invalid issuer iss[%s] != hostname[%s]", claims["iss"], authTokenConfig.HostName)
 	}
 
 	if claims["sub"] != authTokenConfig.User.ID {
