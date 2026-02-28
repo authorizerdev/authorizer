@@ -14,7 +14,7 @@ import { AuthLayout } from '../layouts/AuthLayout';
 import { AdminLogin, AdminSignup } from '../graphql/mutation';
 import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../contexts/AuthContext';
-import { capitalizeFirstLetter, hasAdminSecret } from '../utils';
+import { capitalizeFirstLetter, getGraphQLErrorMessage, hasAdminSecret } from '../utils';
 
 export default function Auth() {
 	const [loginResult, login] = useMutation(AdminLogin);
@@ -51,14 +51,12 @@ export default function Auth() {
 	const errors = isLogin ? loginResult.error : signUpResult.error;
 
 	useEffect(() => {
-		if (errors?.graphQLErrors) {
-			(errors?.graphQLErrors || []).map((error: any) => {
-				toast({
-					title: capitalizeFirstLetter(error.message),
-					isClosable: true,
-					status: 'error',
-					position: 'top-right',
-				});
+		if (errors) {
+			toast({
+				title: capitalizeFirstLetter(getGraphQLErrorMessage(errors, 'Authentication failed')),
+				isClosable: true,
+				status: 'error',
+				position: 'top-right',
 			});
 		}
 	}, [errors]);

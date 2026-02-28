@@ -101,7 +101,7 @@ func init() {
 	f.StringVar(&rootArgs.config.SMTPSenderEmail, "smtp-sender-email", "", "Sender email for the SMTP server")
 	f.StringVar(&rootArgs.config.SMTPSenderName, "smtp-sender-name", "", "Sender name for the SMTP server")
 	f.StringVar(&rootArgs.config.SMTPLocalName, "smtp-local-name", "", "Local name for the SMTP server")
-	f.BoolVar(&rootArgs.config.SkipTLSVerification, "skip-tls-verification", false, "Skip TLS verification for the SMTP server")
+	f.BoolVar(&rootArgs.config.SMTPSkipTLSVerification, "smtp-skip-tls-verification", false, "Skip TLS verification for the SMTP server")
 
 	// Auth flags
 	f.StringSliceVar(&rootArgs.config.DefaultRoles, "default-roles", []string{"user"}, "Default user roles to assign")
@@ -204,6 +204,17 @@ func runRoot(c *cobra.Command, args []string) {
 	log := zerolog.New(os.Stdout).
 		Level(zeroLogLevel).
 		With().Timestamp().Logger()
+
+	// Derive IsEmailServiceEnabled from SMTP config
+	rootArgs.config.IsEmailServiceEnabled = strings.TrimSpace(rootArgs.config.SMTPHost) != "" &&
+		rootArgs.config.SMTPPort > 0 &&
+		strings.TrimSpace(rootArgs.config.SMTPSenderEmail) != ""
+
+	// Derive IsSMSServiceEnabled from Twilio config
+	rootArgs.config.IsSMSServiceEnabled = strings.TrimSpace(rootArgs.config.TwilioAPIKey) != "" &&
+		strings.TrimSpace(rootArgs.config.TwilioAPISecret) != "" &&
+		strings.TrimSpace(rootArgs.config.TwilioAccountSID) != "" &&
+		strings.TrimSpace(rootArgs.config.TwilioSender) != ""
 
 	// Storage provider
 	storageProvider, err := storage.New(&rootArgs.config, &storage.Dependencies{

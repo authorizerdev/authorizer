@@ -23,7 +23,7 @@ export const AdminLogout = `
 `;
 
 export const UpdateUser = `
-  mutation updateUser($params: UpdateUserInput!) {
+  mutation updateUser($params: UpdateUserRequest!) {
     _update_user(params: $params) {
       id
     }
@@ -31,7 +31,7 @@ export const UpdateUser = `
 `;
 
 export const DeleteUser = `
-  mutation deleteUser($params: DeleteUserInput!) {
+  mutation deleteUser($params: DeleteUserRequest!) {
     _delete_user(params: $params) {
       message
     }
@@ -39,7 +39,7 @@ export const DeleteUser = `
 `;
 
 export const InviteMembers = `
-  mutation inviteMembers($params: InviteMemberInput!) {
+  mutation inviteMembers($params: InviteMemberRequest!) {
     _invite_members(params: $params) {
       message
     }
@@ -47,7 +47,7 @@ export const InviteMembers = `
 `;
 
 export const RevokeAccess = `
-  mutation revokeAccess($param: UpdateAccessInput!) {
+  mutation revokeAccess($param: UpdateAccessRequest!) {
     _revoke_access(param: $param) {
       message
     }
@@ -55,7 +55,7 @@ export const RevokeAccess = `
 `;
 
 export const EnableAccess = `
-  mutation revokeAccess($param: UpdateAccessInput!) {
+  mutation revokeAccess($param: UpdateAccessRequest!) {
     _enable_access(param: $param) {
       message
     }
@@ -63,7 +63,7 @@ export const EnableAccess = `
 `;
 
 export const GenerateKeys = `
-  mutation generateKeys($params: GenerateJWTKeysInput!) {
+  mutation generateKeys($params: GenerateJWTKeysRequest!) {
     _generate_jwt_keys(params: $params) {
       secret
       public_key

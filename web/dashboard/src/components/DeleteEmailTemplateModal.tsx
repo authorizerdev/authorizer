@@ -18,7 +18,7 @@ import {
 import { useClient } from 'urql';
 import { FaRegTrashAlt } from 'react-icons/fa';
 import { DeleteEmailTemplate } from '../graphql/mutation';
-import { capitalizeFirstLetter } from '../utils';
+import { capitalizeFirstLetter, getGraphQLErrorMessage } from '../utils';
 
 interface deleteEmailTemplateModalInputPropTypes {
 	emailTemplateId: string;
@@ -41,7 +41,7 @@ const DeleteEmailTemplateModal = ({
 			.toPromise();
 		if (res.error) {
 			toast({
-				title: capitalizeFirstLetter(res.error.message),
+				title: capitalizeFirstLetter(getGraphQLErrorMessage(res.error, 'Failed to delete email template')),
 				isClosable: true,
 				status: 'error',
 				position: 'top-right',

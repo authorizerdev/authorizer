@@ -19,7 +19,7 @@ func TestMagicLinkLogin(t *testing.T) {
 	cfg.SMTPSenderEmail = "test@authorizer.dev"
 	cfg.SMTPSenderName = "Test"
 	cfg.SMTPLocalName = "Test"
-	cfg.SkipTLSVerification = true
+	cfg.SMTPSkipTLSVerification = true
 	cfg.IsEmailServiceEnabled = true
 	cfg.IsSMSServiceEnabled = true
 	cfg.EnableEmailVerification = true

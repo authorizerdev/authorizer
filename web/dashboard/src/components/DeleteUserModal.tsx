@@ -18,7 +18,7 @@ import {
 import { useClient } from 'urql';
 import { FaRegTrashAlt } from 'react-icons/fa';
 import { DeleteUser } from '../graphql/mutation';
-import { capitalizeFirstLetter } from '../utils';
+import { capitalizeFirstLetter, getGraphQLErrorMessage } from '../utils';
 
 interface userDataTypes {
 	id: string;
@@ -48,7 +48,7 @@ const DeleteUserModal = ({
 			.toPromise();
 		if (res.error) {
 			toast({
-				title: capitalizeFirstLetter(res.error.message),
+				title: capitalizeFirstLetter(getGraphQLErrorMessage(res.error, 'Failed to delete user')),
 				isClosable: true,
 				status: 'error',
 				position: 'top-right',

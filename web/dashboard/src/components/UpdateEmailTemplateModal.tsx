@@ -44,7 +44,7 @@ import {
 	emailTemplateVariables,
 	EmailTemplateEditors,
 } from '../constants';
-import { capitalizeFirstLetter } from '../utils';
+import { capitalizeFirstLetter, getGraphQLErrorMessage } from '../utils';
 import { AddEmailTemplate, EditEmailTemplate } from '../graphql/mutation';
 
 interface selectedEmailTemplateDataTypes {
@@ -170,7 +170,7 @@ const UpdateEmailTemplate = ({
 		setLoading(false);
 		if (res.error) {
 			toast({
-				title: capitalizeFirstLetter(res.error.message),
+				title: capitalizeFirstLetter(getGraphQLErrorMessage(res.error, 'Failed to save email template')),
 				isClosable: true,
 				status: 'error',
 				position: 'top-right',

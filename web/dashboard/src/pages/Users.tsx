@@ -39,8 +39,9 @@ import {
 	FaExclamationCircle,
 	FaAngleDown,
 } from 'react-icons/fa';
-import { EmailVerificationQuery, UserDetailsQuery } from '../graphql/queries';
+import { UserDetailsQuery } from '../graphql/queries';
 import { EnableAccess, RevokeAccess, UpdateUser } from '../graphql/mutation';
+import { getGraphQLErrorMessage } from '../utils';
 import EditUserModal from '../components/EditUserModal';
 import DeleteUserModal from '../components/DeleteUserModal';
 import InviteMembersModal from '../components/InviteMembersModal';
@@ -111,8 +112,6 @@ export default function Users() {
 		});
 	const [userList, setUserList] = React.useState<userDataTypes[]>([]);
 	const [loading, setLoading] = React.useState<boolean>(false);
-	const [disableInviteMembers, setDisableInviteMembers] =
-		React.useState<boolean>(true);
 	const updateUserList = async () => {
 		setLoading(true);
 		const { data } = await client
@@ -144,18 +143,8 @@ export default function Users() {
 		}
 		setLoading(false);
 	};
-	const checkEmailVerification = async () => {
-		setLoading(true);
-		const { data } = await client.query(EmailVerificationQuery, {}).toPromise();
-		if (data?._env) {
-			const { DISABLE_EMAIL_VERIFICATION } = data._env;
-			setDisableInviteMembers(DISABLE_EMAIL_VERIFICATION);
-		}
-		setLoading(false);
-	};
 	React.useEffect(() => {
 		updateUserList();
-		checkEmailVerification();
 	}, []);
 	React.useEffect(() => {
 		updateUserList();
@@ -189,7 +178,7 @@ export default function Users() {
 			.toPromise();
 		if (res.error) {
 			toast({
-				title: 'User verification failed',
+				title: getGraphQLErrorMessage(res.error, 'User verification failed'),
 				isClosable: true,
 				status: 'error',
 				position: 'top-right',
@@ -220,7 +209,7 @@ export default function Users() {
 					.toPromise();
 				if (enableAccessRes.error) {
 					toast({
-						title: 'User access enable failed',
+						title: getGraphQLErrorMessage(enableAccessRes.error, 'User access enable failed'),
 						isClosable: true,
 						status: 'error',
 						position: 'top-right',
@@ -245,7 +234,7 @@ export default function Users() {
 					.toPromise();
 				if (revokeAccessRes.error) {
 					toast({
-						title: 'User access revoke failed',
+						title: getGraphQLErrorMessage(revokeAccessRes.error, 'User access revoke failed'),
 						isClosable: true,
 						status: 'error',
 						position: 'top-right',
@@ -285,12 +274,14 @@ export default function Users() {
 			updateUserList();
 			return;
 		}
-		toast({
-			title: 'Multi factor authentication update failed for user',
-			isClosable: true,
-			status: 'error',
-			position: 'top-right',
-		});
+		if (res.error) {
+			toast({
+				title: getGraphQLErrorMessage(res.error, 'Multi factor authentication update failed for user'),
+				isClosable: true,
+				status: 'error',
+				position: 'top-right',
+			});
+		}
 	};
 
 	return (
@@ -299,10 +290,7 @@ export default function Users() {
 				<Text fontSize="md" fontWeight="bold">
 					Users
 				</Text>
-				<InviteMembersModal
-					disabled={disableInviteMembers}
-					updateUserList={updateUserList}
-				/>
+				<InviteMembersModal updateUserList={updateUserList} />
 			</Flex>
 			{!loading ? (
 				userList.length > 0 ? (
