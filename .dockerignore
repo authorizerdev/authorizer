@@ -1,18 +1,46 @@
-server/.env
-server/server
+# Git and IDE
 .git
 .gitignore
+.gitattributes
+.cursor
+.cursorignore
+.vscode
+.idea
+*.swp
+*.swo
+.DS_Store
+
+# Docs and non-build files (smaller context)
 README.md
 ROADMAP.md
+MIGRATION.md
+CHANGELOG.md
+docs
+*.md
+
+# Build outputs and local dev
+server
 build
 .env
+.env.*
 data.db
+data.db-shm
+data.db-wal
+*.log
+certs/
+
+# Node (reinstalled in image)
 web/app/node_modules
 web/app/build
 web/app/.vite
 web/dashboard/node_modules
 web/dashboard/build
 web/dashboard/.vite
-certs/
-*.log
-.DS_Store
+
+# Tests and scripts (not needed in image)
+*_test.go
+**/*_test.go
+scripts
+testdata
+*.test
+coverage.out

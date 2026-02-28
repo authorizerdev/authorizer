@@ -1,11 +1,6 @@
-<p align="center">
-  <a href="https://authorizer.dev">
-    <img alt="Logo" src="https://authorizer.dev/images/logo.png" width="60" />
-  </a>
-</p>
-<h1 align="center">
-  Authorizer
-</h1>
+
+
+# Authorizer
 
 **Authorizer** is an open-source authentication and authorization solution for your applications. Bring your database and have complete control over the user information. You can self-host authorizer instances and connect to any database (Currently supports 11+ databases including [Postgres](https://www.postgresql.org/), [MySQL](https://www.mysql.com/), [SQLite](https://www.sqlite.org/index.html), [SQLServer](https://www.microsoft.com/en-us/sql-server/), [YugaByte](https://www.yugabyte.com/),  [MariaDB](https://mariadb.org/), [PlanetScale](https://planetscale.com/), [CassandraDB](https://cassandra.apache.org/_/index.html), [ScyllaDB](https://www.scylladb.com/), [MongoDB](https://mongodb.com/), [ArangoDB](https://www.arangodb.com/)).
 
@@ -20,7 +15,7 @@ For more information check:
 
 # Introduction
 
-<img src="https://docs.authorizer.dev/images/authorizer-arch.png" style="height:20em"/>
+
 
 #### We offer the following functionality
 
@@ -66,14 +61,15 @@ For more information check:
 
 Deploy production ready Authorizer instance using one click deployment options available below
 
-| **Infra provider** |                                                                                            **One-click link**                                                                                            |               **Additional information**               |
-| :----------------: | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :----------------------------------------------------: |
-|    Railway.app     |                    <a href="https://railway.app/new/template/nwXp1C?referralCode=FEF4uT"><img src="https://railway.app/button.svg" style="height: 44px" alt="Deploy on Railway"></a>                     | [docs](https://docs.authorizer.dev/deployment/railway) |
-|       Heroku       | <a href="https://heroku.com/deploy?template=https://github.com/authorizerdev/authorizer-heroku"><img src="https://www.herokucdn.com/deploy/button.svg" alt="Deploy to Heroku" style="height: 44px;"></a> | [docs](https://docs.authorizer.dev/deployment/heroku)  |
-|       Render       |                     [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/authorizerdev/authorizer-render)                      | [docs](https://docs.authorizer.dev/deployment/render)  |
-|       Koyeb       | <a target="_blank" href="https://app.koyeb.com/deploy?name=authorizer&type=docker&image=docker.io/lakhansamani/authorizer&env[PORT]=8000&env[DATABASE_TYPE]=postgres&env[DATABASE_URL]=CHANGE_ME&ports=8000;http;/"><img alt="Deploy to Koyeb" src="https://www.koyeb.com/static/images/deploy/button.svg" /></a> | [docs](https://docs.authorizer.dev/deployment/koyeb)  |
-|     RepoCloud     | <a href="https://repocloud.io/details/?app_id=174"><img src="https://d16t0pc4846x52.cloudfront.net/deploy.png" alt="Deploy on RepoCloud"></a> | [docs](https://repocloud.io/details/?app_id=174) |
-| Alibaba Cloud| <a target="_blank" href="https://computenest.console.aliyun.com/service/instance/create/default?type=user&ServiceName=Authorizer%E7%A4%BE%E5%8C%BA%E7%89%88"><img src="https://service-info-public.oss-cn-hangzhou.aliyuncs.com/computenest-en.svg" alt="Alibaba Cloud" /></a> | [docs](https://docs.authorizer.dev/deployment/alibaba-cloud) |
+
+| **Infra provider** | **One-click link**                                                                                    | **Additional information**                                   |
+| ------------------ | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| Railway.app        |                                                                                                       | [docs](https://docs.authorizer.dev/deployment/railway)       |
+| Heroku             |                                                                                                       | [docs](https://docs.authorizer.dev/deployment/heroku)        |
+| Render             | [Deploy to Render](https://render.com/deploy?repo=https://github.com/authorizerdev/authorizer-render) | [docs](https://docs.authorizer.dev/deployment/render)        |
+| Koyeb              |                                                                                                       | [docs](https://docs.authorizer.dev/deployment/koyeb)         |
+| RepoCloud          |                                                                                                       | [docs](https://repocloud.io/details/?app_id=174)             |
+| Alibaba Cloud      |                                                                                                       | [docs](https://docs.authorizer.dev/deployment/alibaba-cloud) |
 
 
 ### Deploy Authorizer Using Source Code
@@ -94,25 +90,50 @@ This guide helps you practice using Authorizer to evaluate it before you use it 
 4. Build the server binary: `make build` (or `go build -o build/authorizer .`)
 5. (Optional) Build the web app and dashboard: `make build-app` and `make build-dashboard`
 6. Run the server with CLI arguments:
-
-   ```bash
+  ```bash
    make dev
-   ```
-
+  ```
    Or run manually with your config:
+  > **v2:** The server does **not** read from `.env`. All configuration must be passed as CLI arguments. See [MIGRATION.md](MIGRATION.md) for the full mapping of env vars to flags.
 
-   ```bash
-   ./build/authorizer \
-     --database-type=sqlite \
-     --database-url=data.db \
-     --client-id=YOUR_CLIENT_ID \
-     --client-secret=YOUR_CLIENT_SECRET \
-     --admin-secret=your-admin-secret \
-     --jwt-type=HS256 \
-     --jwt-secret=your-jwt-secret
-   ```
+### Run with Docker
 
-   > **v2:** The server does **not** read from `.env`. All configuration must be passed as CLI arguments. See [MIGRATION.md](MIGRATION.md) for the full mapping of env vars to flags.
+Run Authorizer with SQLite using the official image (replace with your own image if you build from source):
+
+```sh
+docker run -p 8080:8080 \
+  -v authorizer_data:/authorizer/data \
+  lakhansamani/authorizer \
+  --database-type=sqlite \
+  --database-url=/authorizer/data/data.db \
+  --client-id=123456 \
+  --client-secret=secret \
+  --admin-secret=admin \
+  --jwt-type=HS256 \
+  --jwt-secret=test
+```
+
+- Port **8080** serves the app and GraphQL; use `-p 8080:8080` to expose it.
+- Volume `authorizer_data` persists the SQLite DB; use a named volume or a host path (e.g. `-v $(pwd)/data:/authorizer/data`).
+- All config is passed as CLI arguments (the image uses `ENTRYPOINT ["./authorizer"]` so args after the image name go to the binary). See [MIGRATION.md](MIGRATION.md) for the full list of flags.
+
+**Extending the image with env-based config (e.g. Railway):** If you `FROM lakhansamani/authorizer` and use a shell-form `CMD` so that env vars are expanded at runtime, you must override `ENTRYPOINT` in your Dockerfile or the binary will receive `/bin/sh` and `-c` as arguments and fail. Use:
+
+```dockerfile
+FROM lakhansamani/authorizer:2.0.0-rc.1
+# v2 uses CLI arguments only. Railway (etc.) inject env vars; shell form CMD expands them at runtime.
+# Override ENTRYPOINT so CMD is run by a shell; otherwise the base ENTRYPOINT would receive /bin/sh -c "..." as args.
+ENTRYPOINT ["/bin/sh", "-c"]
+CMD ./authorizer \
+  --database-type="$${DATABASE_TYPE:-postgres}" \
+  --database-url="$${DATABASE_URL}" \
+  --client-id="$${CLIENT_ID}" \
+  --client-secret="$${CLIENT_SECRET}" \
+  --admin-secret="$${ADMIN_SECRET}" \
+  ...
+```
+
+Use `$$` in the Dockerfile so Docker does not expand `$VAR` at build time.
 
 ### Deploy Authorizer using binaries
 
@@ -128,7 +149,6 @@ Deploy / Try Authorizer using binaries. With each [Authorizer Release](https://g
 > Note: For Windows, we recommend running Authorizer via Docker.
 
 - Unzip (Mac / Linux):
-
   ```sh
   tar -zxf authorizer-VERSION-OS-ARCH.tar.gz
   cd authorizer-VERSION-OS-ARCH
@@ -137,7 +157,6 @@ Deploy / Try Authorizer using binaries. With each [Authorizer Release](https://g
 #### Start Authorizer
 
 - Run the binary with required CLI arguments:
-
   ```sh
   ./authorizer \
     --database-type=sqlite \
@@ -169,7 +188,7 @@ Deploy / Try Authorizer using binaries. With each [Authorizer Release](https://g
 
 ## Integrating into your website
 
-This example demonstrates how you can use [`@authorizerdev/authorizer-js`](/authorizer-js/getting-started) CDN version and have login ready for your site in few seconds. You can also use the ES module version of [`@authorizerdev/authorizer-js`](/authorizer-js/getting-started) or framework-specific versions like [`@authorizerdev/authorizer-react`](/authorizer-react/getting-started)
+This example demonstrates how you can use `[@authorizerdev/authorizer-js](/authorizer-js/getting-started)` CDN version and have login ready for your site in few seconds. You can also use the ES module version of `[@authorizerdev/authorizer-js](/authorizer-js/getting-started)` or framework-specific versions like `[@authorizerdev/authorizer-react](/authorizer-react/getting-started)`
 
 ### Copy the following code in `html` file
 
@@ -216,4 +235,3 @@ This example demonstrates how you can use [`@authorizerdev/authorizer-js`](/auth
 
 ### Support my work
 
-<a href="https://www.buymeacoffee.com/lakhansamani" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>

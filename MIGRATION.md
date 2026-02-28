@@ -22,7 +22,7 @@ This guide helps you migrate from [Authorizer v1](https://github.com/authorizerd
 In v1, environment and configuration could be:
 
 - Loaded from `.env` or OS environment variables
-- Stored and updated in **cache (e.g. Redis)** or **database** via the dashboard or `_update_env` mutation
+- Stored (in encrypted form) in **cache (e.g. Redis)** or **database** via the dashboard or `_update_env` mutation, to share config across multiple replicas
 
 In v2:
 
@@ -32,13 +32,47 @@ In v2:
 
 ### What you need to do
 
-1. **Stop relying on dashboard or `_update_env` for server configuration.**  
+1. **Copy all env configs set via the v1 dashboard.**  
+   Before migrating, retrieve your current v1 configuration and pass each value as a CLI flag in v2.
+
+   > ⚠️ **Critical — do not skip this step.** You must capture all your v1 env variables before migrating. Missing values will cause the v2 server to fail or behave incorrectly, and you will not be able to recover them after shutting down v1.
+
+   **How to get your current env variables**
+
+   - **Option 1: Using the API**  
+     Query the `_env` GraphQL field with your admin secret:
+
+     ```bash
+     curl --location 'YOUR_AUTHORIZER_URL/graphql' \
+     --header 'x-authorizer-admin-secret: YOUR_ADMIN_SECRET' \
+     --header 'Content-Type: application/json' \
+     --data '{
+         "query": "{\n  _env {\n    CLIENT_ID\n    CLIENT_SECRET\n    GOOGLE_CLIENT_ID\n    GOOGLE_CLIENT_SECRET\n    GITHUB_CLIENT_ID\n    GITHUB_CLIENT_SECRET\n    FACEBOOK_CLIENT_ID\n    FACEBOOK_CLIENT_SECRET\n    LINKEDIN_CLIENT_ID\n    LINKEDIN_CLIENT_SECRET\n    APPLE_CLIENT_ID\n    APPLE_CLIENT_SECRET\n    DISCORD_CLIENT_ID\n    DISCORD_CLIENT_SECRET\n    TWITTER_CLIENT_ID\n    TWITTER_CLIENT_SECRET\n    MICROSOFT_CLIENT_ID\n    MICROSOFT_CLIENT_SECRET\n    MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID\n    TWITCH_CLIENT_ID\n    TWITCH_CLIENT_SECRET\n    ROBLOX_CLIENT_ID\n    ROBLOX_CLIENT_SECRET\n    DEFAULT_ROLES\n    PROTECTED_ROLES\n    ROLES\n    JWT_TYPE\n    JWT_SECRET\n    JWT_ROLE_CLAIM\n    JWT_PRIVATE_KEY\n    JWT_PUBLIC_KEY\n    REDIS_URL\n    SMTP_HOST\n    SMTP_PORT\n    SMTP_USERNAME\n    SMTP_PASSWORD\n    SMTP_LOCAL_NAME\n    SENDER_EMAIL\n    SENDER_NAME\n    ALLOWED_ORIGINS\n    ORGANIZATION_NAME\n    ORGANIZATION_LOGO\n    ADMIN_SECRET\n    APP_COOKIE_SECURE\n    ADMIN_COOKIE_SECURE\n    DISABLE_LOGIN_PAGE\n    DISABLE_MAGIC_LINK_LOGIN\n    DISABLE_EMAIL_VERIFICATION\n    DISABLE_BASIC_AUTHENTICATION\n    DISABLE_MOBILE_BASIC_AUTHENTICATION\n    DISABLE_SIGN_UP\n    DISABLE_STRONG_PASSWORD\n    DISABLE_REDIS_FOR_ENV\n    CUSTOM_ACCESS_TOKEN_SCRIPT\n    DATABASE_NAME\n    DATABASE_TYPE\n    DATABASE_URL\n    ACCESS_TOKEN_EXPIRY_TIME\n    DISABLE_MULTI_FACTOR_AUTHENTICATION\n    ENFORCE_MULTI_FACTOR_AUTHENTICATION\n    DEFAULT_AUTHORIZE_RESPONSE_TYPE\n    DEFAULT_AUTHORIZE_RESPONSE_MODE\n    DISABLE_PLAYGROUND\n    DISABLE_TOTP_LOGIN\n    DISABLE_MAIL_OTP_LOGIN\n    __typename\n  }\n}",
+         "variables": {}
+     }'
+     ```
+
+   - **Option 2: Copy from dashboard**  
+     Go through your v1 dashboard settings and copy every value you configured.
+
+   You will need to pass each as a CLI flag in v2. This includes:
+   - **OAuth / app:** `client_id`, `client_secret`, `admin_secret`
+   - **Social / OAuth providers:** Google, GitHub, Facebook, Microsoft, Apple, LinkedIn, Discord, Twitter, Twitch, Roblox client IDs and secrets
+   - **Roles:** `roles`, `default_roles`, `protected_roles`
+   - **JWT:** `jwt_type`, `jwt_secret` (or `jwt_private_key` / `jwt_public_key`)
+   - **Session / memory store:** `redis_url` (if using Redis)
+   - **Email / SMTP:** `smtp_host`, `smtp_port`, `smtp_username`, `smtp_password`, `smtp_sender_email`, `smtp_sender_name`
+   - **Domain / origins:** `allowed_origins`
+   - **Access token custom scripts:** `custom_access_token_script`  
+   Pass all of these as CLI args at startup for a smooth transition.
+
+2. **Stop relying on dashboard or `_update_env` for server configuration.**  
    In v2, the server does not load or save config from/to DB or cache. Configure everything when starting the server.
 
-2. **Map your current v1 env vars to v2 CLI flags.**  
+3. **Map your current v1 env vars to v2 CLI flags.**  
    Use the [Configuration mapping](#3-configuration-mapping-v1-envv1-behavior--v2-cli-flags) below and pass options when starting the binary (see [Running the server](#2-running-the-server)).
 
-3. **Ensure required flags are set at startup.**  
+4. **Ensure required flags are set at startup.**  
    In v2, `--client-id` and `--client-secret` are **required**; the server will exit if they are missing.
 
 ---
@@ -427,7 +461,7 @@ The v2 repo ships with a `Makefile` that wraps the most common development and b
 
 ## 8. Checklist
 
-- [ ] Replace all v1 env / dashboard config with **CLI arguments** at server start.
+- [ ] Copy all env configs from your v1 dashboard (client_id, client_secret, admin_secret, social provider configs, roles, JWT secrets, session/Redis config, email/SMTP config, allowed_origins, custom_access_token_script) and pass them as CLI args.
 - [ ] Set **`--client-id`** and **`--client-secret`** (required).
 - [ ] Set **`--admin-secret`** and JWT options (**`--jwt-type`** and **`--jwt-secret`** or key pair) at startup.
 - [ ] Stop calling **`_update_env`**, **`_admin_signup`**, and **`_generate_jwt_keys`**; remove or replace with startup config.

@@ -17,9 +17,13 @@ on:
   release:
     types: [created]
 
+env:
+  DOCKER_IMAGE: lakhansamani/authorizer
+  BUILDKIT_INLINE_CACHE: 1
+
 jobs:
-  release:
-    name: Release Authorizer
+  build:
+    name: Build and push Docker image
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -32,7 +36,35 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      - name: Build and push Docker image
+      - name: Build and push
         run: |
           VERSION=$(basename ${GITHUB_REF})
-          make build-push-image VERSION=${VERSION} DOCKER_IMAGE=lakhansamani/authorizer:${VERSION}
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            --push \
+            --build-arg VERSION=${VERSION} \
+            --cache-from type=registry,ref=${DOCKER_IMAGE}:buildcache \
+            --cache-to type=registry,ref=${DOCKER_IMAGE}:buildcache,mode=max \
+            -t ${DOCKER_IMAGE}:${VERSION} \
+            .
+
+  trivy-scan:
+    name: Vulnerability scan (Trivy)
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Run Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.DOCKER_IMAGE }}:${{ github.ref_name }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+      - name: Upload Trivy results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'

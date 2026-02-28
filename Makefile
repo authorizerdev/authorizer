@@ -3,7 +3,7 @@ DEFAULT_VERSION=0.1.0-local
 VERSION := $(or $(VERSION),$(DEFAULT_VERSION))
 DOCKER_IMAGE ?= authorizerdev/authorizer:$(VERSION)
 
-.PHONY: all bootstrap build build-app build-dashboard build-local-image build-push-image
+.PHONY: all bootstrap build build-app build-dashboard build-local-image build-push-image trivy-scan
 
 all: build build-app build-dashboard
 
@@ -29,12 +29,16 @@ build-push-image:
 		-t $(DOCKER_IMAGE) \
 		--build-arg VERSION=$(VERSION) \
 		.
+# Run Trivy vulnerability scan on the Docker image (default: $(DOCKER_IMAGE)). Use IMAGE=myimage:tag to scan another image.
+trivy-scan:
+	docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+		aquasec/trivy:latest image $(or $(IMAGE),$(DOCKER_IMAGE)) \
+		--severity HIGH,CRITICAL --ignore-unfixed --exit-code 1
 clean:
 	rm -rf build
 dev:
 	go run main.go --database-type=sqlite --database-url=test.db --jwt-type=HS256 --jwt-secret=test --admin-secret=admin --client-id=123456 --client-secret=secret
-# test:
-# 	rm -rf server/test/test.db server/test/test.db-shm server/test/test.db-wal && rm -rf test.db test.db-shm test.db-wal && cd server && go clean --testcache && TEST_DBS="sqlite" go test -p 1 -v ./test
+
 test:
 	docker rm -vf authorizer_postgres
 	docker rm -vf authorizer_scylla_db
