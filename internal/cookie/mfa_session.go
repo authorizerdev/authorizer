@@ -10,8 +10,6 @@ import (
 	"github.com/authorizerdev/authorizer/internal/parsers"
 )
 
-// TODO set app cookie as per config
-
 // SetMfaSession sets the mfa session cookie in the response
 func SetMfaSession(gc *gin.Context, sessionID string, appCookieSecure bool) {
 	secure := appCookieSecure
@@ -28,13 +26,13 @@ func SetMfaSession(gc *gin.Context, sessionID string, appCookieSecure bool) {
 	// For more information check:
 	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie/SameSite
 	// https://github.com/gin-gonic/gin/blob/master/context.go#L86
-	// TODO add ability to sameSite = none / strict from dashboard
+	// TODO add ability to configure sameSite (none / lax / strict) via config
 	if !appCookieSecure {
 		gc.SetSameSite(http.SameSiteLaxMode)
 	} else {
 		gc.SetSameSite(http.SameSiteNoneMode)
 	}
-	// TODO allow configuring from dashboard
+	// TODO allow configuring cookie max-age via config
 	age := 60
 
 	gc.SetCookie(constants.MfaCookieName+"_session", sessionID, age, "/", host, secure, httpOnly)

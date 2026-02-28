@@ -26,13 +26,13 @@ func SetSession(gc *gin.Context, sessionID string, appCookieSecure bool) {
 	// For more information check:
 	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie/SameSite
 	// https://github.com/gin-gonic/gin/blob/master/context.go#L86
-	// TODO add ability to sameSite = none / strict from dashboard
+	// TODO add ability to configure sameSite (none / lax / strict) via config
 	if !appCookieSecure {
 		gc.SetSameSite(http.SameSiteLaxMode)
 	} else {
 		gc.SetSameSite(http.SameSiteNoneMode)
 	}
-	// TODO allow configuring from dashboard
+	// TODO allow configuring cookie max-age via config
 	year := 60 * 60 * 24 * 365
 
 	gc.SetCookie(constants.AppCookieName+"_session", sessionID, year, "/", host, secure, httpOnly)

@@ -7,20 +7,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// GetHost returns hostname from request context
-// if EnvKeyAuthorizerURL is set it is given highest priority.
-// if X-Authorizer-URL header is set it is given second highest priority
-// if above 2 are not set the requesting host name is used
+// GetHost returns the authorizer host URL from the request context.
+// Priority: X-Authorizer-URL header, then scheme (X-Forwarded-Proto) + host (X-Forwarded-Host or Request.Host).
 func GetHost(c *gin.Context) string {
-	// TODO see how we can do based on config
-	// authorizerURL, err := memorystore.Provider.GetStringStoreEnvVariable(constants.EnvKeyAuthorizerURL)
-	// if err != nil {
-	// 	authorizerURL = ""
-	// }
-	// if authorizerURL != "" {
-	// 	return strings.TrimSuffix(authorizerURL, "/")
-	// }
-
 	authorizerURL := c.Request.Header.Get("X-Authorizer-URL")
 	if authorizerURL != "" {
 		return strings.TrimSuffix(authorizerURL, "/")
@@ -30,7 +19,10 @@ func GetHost(c *gin.Context) string {
 	if scheme != "https" {
 		scheme = "http"
 	}
-	host := c.Request.Host
+	host := c.Request.Header.Get("X-Forwarded-Host")
+	if host == "" {
+		host = c.Request.Host
+	}
 	return strings.TrimSuffix(scheme+"://"+host, "/")
 }
 
