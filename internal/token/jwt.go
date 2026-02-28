@@ -26,7 +26,7 @@ func (p *provider) SignJWTToken(jwtclaims jwt.MapClaims) (string, error) {
 	case jwt.SigningMethodHS256, jwt.SigningMethodHS384, jwt.SigningMethodHS512:
 		return t.SignedString([]byte(p.config.JWTSecret))
 	case jwt.SigningMethodRS256, jwt.SigningMethodRS384, jwt.SigningMethodRS512:
-		key, err := crypto.ParseRsaPrivateKeyFromPemStr(p.config.JWTPublicKey)
+		key, err := crypto.ParseRsaPrivateKeyFromPemStr(p.config.JWTPrivateKey)
 		if err != nil {
 			return "", err
 		}
