@@ -25,6 +25,31 @@ import (
 	"github.com/authorizerdev/authorizer/internal/token"
 )
 
+// Default values for flags (single source of truth for init and applyFlagDefaults).
+var (
+	defaultHost              = "0.0.0.0"
+	defaultLogLevel          = "debug"
+	defaultHTTPPort          = 8080
+	defaultMetricsPort       = 8081
+	defaultOrganizationLogo  = "https://authorizer.dev/images/logo.png"
+	defaultOrganizationName  = "Authorizer"
+	defaultAdminSecret       = "password"
+	defaultJWTRoleClaim      = "role"
+	defaultMicrosoftTenantID = "common"
+	defaultAllowedOrigins    = []string{"*"}
+	defaultRoles             = []string{"user"}
+	defaultGoogleScopes      = []string{"openid", "profile", "email"}
+	defaultGithubScopes      = []string{"read:user", "user:email"}
+	defaultFacebookScopes    = []string{"public_profile", "email"}
+	defaultMicrosoftScopes   = []string{"openid", "profile", "email"}
+	defaultTwitchScopes      = []string{"openid", "user:read:email"}
+	defaultLinkedinScopes    = []string{"r_liteprofile", "r_emailaddress"}
+	defaultAppleScopes       = []string{"email", "name"}
+	defaultDiscordScopes     = []string{"identify", "email"}
+	defaultTwitterScopes     = []string{"tweet.read", "users.read"}
+	defaultRobloxScopes      = []string{"openid", "profile"}
+)
+
 var (
 	RootCmd = cobra.Command{
 		Use: "authorizer",
@@ -41,12 +66,12 @@ func init() {
 	f := RootCmd.Flags()
 
 	// Server flags
-	f.StringVar(&rootArgs.server.Host, "host", "0.0.0.0", "Host address to listen on")
-	f.IntVar(&rootArgs.server.HTTPPort, "http-port", 8080, "Port to serve HTTP requests on")
-	f.IntVar(&rootArgs.server.MetricsPort, "metrics-port", 8081, "Port to serve metrics requests on")
+	f.StringVar(&rootArgs.server.Host, "host", defaultHost, "Host address to listen on")
+	f.IntVar(&rootArgs.server.HTTPPort, "http-port", defaultHTTPPort, "Port to serve HTTP requests on")
+	f.IntVar(&rootArgs.server.MetricsPort, "metrics-port", defaultMetricsPort, "Port to serve metrics requests on")
 
 	// Logging flags
-	f.StringVar(&rootArgs.logLevel, "log-level", "debug", "Log level to use")
+	f.StringVar(&rootArgs.logLevel, "log-level", defaultLogLevel, "Log level to use")
 
 	// Env
 	f.StringVar(&rootArgs.config.Env, "env", "", "Environment of the authorizer instance")
@@ -57,8 +82,8 @@ func init() {
 	f.BoolVar(&rootArgs.config.EnableGraphQLIntrospection, "enable-graphql-introspection", true, "Enable GraphQL introspection for the /graphql endpoint")
 
 	// Organization flags
-	f.StringVar(&rootArgs.config.OrganizationLogo, "organization-logo", "https://authorizer.dev/images/logo.png", "Logo of the organization")
-	f.StringVar(&rootArgs.config.OrganizationName, "organization-name", "Authorizer", "Name of the organization")
+	f.StringVar(&rootArgs.config.OrganizationLogo, "organization-logo", defaultOrganizationLogo, "Logo of the organization")
+	f.StringVar(&rootArgs.config.OrganizationName, "organization-name", defaultOrganizationName, "Name of the organization")
 
 	// OAuth flags
 	f.StringVar(&rootArgs.config.ClientID, "client-id", "", "Client ID for the OAuth")
@@ -67,10 +92,10 @@ func init() {
 	f.StringVar(&rootArgs.config.DefaultAuthorizeResponseType, "default-authorize-response-type", constants.ResponseTypeToken, "Default response type for the authorize endpoint")
 
 	// Admin flags
-	f.StringVar(&rootArgs.config.AdminSecret, "admin-secret", "password", "Secret for the admin")
+	f.StringVar(&rootArgs.config.AdminSecret, "admin-secret", defaultAdminSecret, "Secret for the admin")
 
 	// Allowed origins
-	f.StringSliceVar(&rootArgs.config.AllowedOrigins, "allowed-origins", []string{"*"}, "Allowed origins")
+	f.StringSliceVar(&rootArgs.config.AllowedOrigins, "allowed-origins", defaultAllowedOrigins, "Allowed origins")
 
 	// Database flags
 	f.StringVar(&rootArgs.config.DatabaseType, "database-type", "", "Type of database to use")
@@ -104,8 +129,8 @@ func init() {
 	f.BoolVar(&rootArgs.config.SMTPSkipTLSVerification, "smtp-skip-tls-verification", false, "Skip TLS verification for the SMTP server")
 
 	// Auth flags
-	f.StringSliceVar(&rootArgs.config.DefaultRoles, "default-roles", []string{"user"}, "Default user roles to assign")
-	f.StringSliceVar(&rootArgs.config.Roles, "roles", []string{"user"}, "Roles to assign")
+	f.StringSliceVar(&rootArgs.config.DefaultRoles, "default-roles", defaultRoles, "Default user roles to assign")
+	f.StringSliceVar(&rootArgs.config.Roles, "roles", defaultRoles, "Roles to assign")
 	f.StringSliceVar(&rootArgs.config.ProtectedRoles, "protected-roles", []string{}, "Roles that cannot be deleted")
 	f.BoolVar(&rootArgs.config.EnableStrongPassword, "enable-strong-password", true, "Enable strong password requirement")
 	f.BoolVar(&rootArgs.config.EnableTOTPLogin, "enable-totp-login", false, "Enable TOTP login")
@@ -130,7 +155,7 @@ func init() {
 	f.StringVar(&rootArgs.config.JWTSecret, "jwt-secret", "", "Secret for the JWT")
 	f.StringVar(&rootArgs.config.JWTPrivateKey, "jwt-private-key", "", "Private key for the JWT")
 	f.StringVar(&rootArgs.config.JWTPublicKey, "jwt-public-key", "", "Public key for the JWT")
-	f.StringVar(&rootArgs.config.JWTRoleClaim, "jwt-role-claim", "role", "Role claim for the JWT")
+	f.StringVar(&rootArgs.config.JWTRoleClaim, "jwt-role-claim", defaultJWTRoleClaim, "Role claim for the JWT")
 	f.StringVar(&rootArgs.config.CustomAccessTokenScript, "custom-access-token-script", "", "Custom access token script")
 
 	// Twilio flags
@@ -142,35 +167,35 @@ func init() {
 	// Oauth provider flags
 	f.StringVar(&rootArgs.config.GoogleClientID, "google-client-id", "", "Client ID for Google")
 	f.StringVar(&rootArgs.config.GoogleClientSecret, "google-client-secret", "", "Client secret for Google")
-	f.StringSliceVar(&rootArgs.config.GoogleScopes, "google-scopes", []string{"openid", "profile", "email"}, "Scopes for Google")
+	f.StringSliceVar(&rootArgs.config.GoogleScopes, "google-scopes", defaultGoogleScopes, "Scopes for Google")
 	f.StringVar(&rootArgs.config.GithubClientID, "github-client-id", "", "Client ID for Github")
 	f.StringVar(&rootArgs.config.GithubClientSecret, "github-client-secret", "", "Client secret for Github")
-	f.StringSliceVar(&rootArgs.config.GithubScopes, "github-scopes", []string{"read:user", "user:email"}, "Scopes for Github")
+	f.StringSliceVar(&rootArgs.config.GithubScopes, "github-scopes", defaultGithubScopes, "Scopes for Github")
 	f.StringVar(&rootArgs.config.FacebookClientID, "facebook-client-id", "", "Client ID for Facebook")
 	f.StringVar(&rootArgs.config.FacebookClientSecret, "facebook-client-secret", "", "Client secret for Facebook")
-	f.StringSliceVar(&rootArgs.config.FacebookScopes, "facebook-scopes", []string{"public_profile", "email"}, "Scopes for Facebook")
+	f.StringSliceVar(&rootArgs.config.FacebookScopes, "facebook-scopes", defaultFacebookScopes, "Scopes for Facebook")
 	f.StringVar(&rootArgs.config.MicrosoftClientID, "microsoft-client-id", "", "Client ID for Microsoft")
 	f.StringVar(&rootArgs.config.MicrosoftClientSecret, "microsoft-client-secret", "", "Client secret for Microsoft")
-	f.StringVar(&rootArgs.config.MicrosoftTenantID, "microsoft-tenant-id", "common", "Tenant ID for Microsoft")
-	f.StringSliceVar(&rootArgs.config.MicrosoftScopes, "microsoft-scopes", []string{"openid", "profile", "email"}, "Scopes for Microsoft")
+	f.StringVar(&rootArgs.config.MicrosoftTenantID, "microsoft-tenant-id", defaultMicrosoftTenantID, "Tenant ID for Microsoft")
+	f.StringSliceVar(&rootArgs.config.MicrosoftScopes, "microsoft-scopes", defaultMicrosoftScopes, "Scopes for Microsoft")
 	f.StringVar(&rootArgs.config.TwitchClientID, "twitch-client-id", "", "Client ID for Twitch")
 	f.StringVar(&rootArgs.config.TwitchClientSecret, "twitch-client-secret", "", "Client secret for Twitch")
-	f.StringSliceVar(&rootArgs.config.TwitchScopes, "twitch-scopes", []string{"openid", "user:read:email"}, "Scopes for Twitch")
+	f.StringSliceVar(&rootArgs.config.TwitchScopes, "twitch-scopes", defaultTwitchScopes, "Scopes for Twitch")
 	f.StringVar(&rootArgs.config.LinkedinClientID, "linkedin-client-id", "", "Client ID for Linkedin")
 	f.StringVar(&rootArgs.config.LinkedinClientSecret, "linkedin-client-secret", "", "Client secret for Linkedin")
-	f.StringSliceVar(&rootArgs.config.LinkedinScopes, "linkedin-scopes", []string{"r_liteprofile", "r_emailaddress"}, "Scopes for Linkedin")
+	f.StringSliceVar(&rootArgs.config.LinkedinScopes, "linkedin-scopes", defaultLinkedinScopes, "Scopes for Linkedin")
 	f.StringVar(&rootArgs.config.AppleClientID, "apple-client-id", "", "Client ID for Apple")
 	f.StringVar(&rootArgs.config.AppleClientSecret, "apple-client-secret", "", "Client secret for Apple")
-	f.StringSliceVar(&rootArgs.config.AppleScopes, "apple-scopes", []string{"email", "name"}, "Scopes for Apple")
+	f.StringSliceVar(&rootArgs.config.AppleScopes, "apple-scopes", defaultAppleScopes, "Scopes for Apple")
 	f.StringVar(&rootArgs.config.DiscordClientID, "discord-client-id", "", "Client ID for Discord")
 	f.StringVar(&rootArgs.config.DiscordClientSecret, "discord-client-secret", "", "Client secret for Discord")
-	f.StringSliceVar(&rootArgs.config.DiscordScopes, "discord-scopes", []string{"identify", "email"}, "Scopes for Discord")
+	f.StringSliceVar(&rootArgs.config.DiscordScopes, "discord-scopes", defaultDiscordScopes, "Scopes for Discord")
 	f.StringVar(&rootArgs.config.TwitterClientID, "twitter-client-id", "", "Client ID for Twitter")
 	f.StringVar(&rootArgs.config.TwitterClientSecret, "twitter-client-secret", "", "Client secret for Twitter")
-	f.StringSliceVar(&rootArgs.config.TwitterScopes, "twitter-scopes", []string{"tweet.read", "users.read"}, "Scopes for Twitter")
+	f.StringSliceVar(&rootArgs.config.TwitterScopes, "twitter-scopes", defaultTwitterScopes, "Scopes for Twitter")
 	f.StringVar(&rootArgs.config.RobloxClientID, "roblox-client-id", "", "Client ID for Roblox")
 	f.StringVar(&rootArgs.config.RobloxClientSecret, "roblox-client-secret", "", "Client secret for Roblox")
-	f.StringSliceVar(&rootArgs.config.RobloxScopes, "roblox-scopes", []string{"openid", "profile"}, "Scopes for Roblox")
+	f.StringSliceVar(&rootArgs.config.RobloxScopes, "roblox-scopes", defaultRobloxScopes, "Scopes for Roblox")
 
 	// URLs
 	f.StringVar(&rootArgs.config.ResetPasswordURL, "reset-password-url", "", "URL for reset password")
@@ -183,8 +208,87 @@ func init() {
 	f.MarkDeprecated("redis_url", "use --redis-url instead")
 }
 
+// applyFlagDefaults sets config and server fields to their flag defaults when the
+// value is empty (e.g. when user passes --host="" we use the default from vars above).
+func applyFlagDefaults() {
+	c := &rootArgs.config
+	s := &rootArgs.server
+
+	if s.HTTPPort == 0 {
+		s.HTTPPort = defaultHTTPPort
+	}
+	if s.MetricsPort == 0 {
+		s.MetricsPort = defaultMetricsPort
+	}
+	if strings.TrimSpace(rootArgs.logLevel) == "" {
+		rootArgs.logLevel = defaultLogLevel
+	}
+	if strings.TrimSpace(c.OrganizationLogo) == "" {
+		c.OrganizationLogo = defaultOrganizationLogo
+	}
+	if strings.TrimSpace(c.OrganizationName) == "" {
+		c.OrganizationName = defaultOrganizationName
+	}
+	if strings.TrimSpace(c.DefaultAuthorizeResponseMode) == "" {
+		c.DefaultAuthorizeResponseMode = constants.ResponseModeQuery
+	}
+	if strings.TrimSpace(c.DefaultAuthorizeResponseType) == "" {
+		c.DefaultAuthorizeResponseType = constants.ResponseTypeToken
+	}
+	if strings.TrimSpace(c.AdminSecret) == "" {
+		c.AdminSecret = defaultAdminSecret
+	}
+	if len(c.AllowedOrigins) == 0 {
+		c.AllowedOrigins = append([]string(nil), defaultAllowedOrigins...)
+	}
+	if len(c.DefaultRoles) == 0 {
+		c.DefaultRoles = append([]string(nil), defaultRoles...)
+	}
+	if len(c.Roles) == 0 {
+		c.Roles = append([]string(nil), defaultRoles...)
+	}
+	if strings.TrimSpace(c.JWTRoleClaim) == "" {
+		c.JWTRoleClaim = defaultJWTRoleClaim
+	}
+	if strings.TrimSpace(c.MicrosoftTenantID) == "" {
+		c.MicrosoftTenantID = defaultMicrosoftTenantID
+	}
+	if len(c.GoogleScopes) == 0 {
+		c.GoogleScopes = append([]string(nil), defaultGoogleScopes...)
+	}
+	if len(c.GithubScopes) == 0 {
+		c.GithubScopes = append([]string(nil), defaultGithubScopes...)
+	}
+	if len(c.FacebookScopes) == 0 {
+		c.FacebookScopes = append([]string(nil), defaultFacebookScopes...)
+	}
+	if len(c.MicrosoftScopes) == 0 {
+		c.MicrosoftScopes = append([]string(nil), defaultMicrosoftScopes...)
+	}
+	if len(c.TwitchScopes) == 0 {
+		c.TwitchScopes = append([]string(nil), defaultTwitchScopes...)
+	}
+	if len(c.LinkedinScopes) == 0 {
+		c.LinkedinScopes = append([]string(nil), defaultLinkedinScopes...)
+	}
+	if len(c.AppleScopes) == 0 {
+		c.AppleScopes = append([]string(nil), defaultAppleScopes...)
+	}
+	if len(c.DiscordScopes) == 0 {
+		c.DiscordScopes = append([]string(nil), defaultDiscordScopes...)
+	}
+	if len(c.TwitterScopes) == 0 {
+		c.TwitterScopes = append([]string(nil), defaultTwitterScopes...)
+	}
+	if len(c.RobloxScopes) == 0 {
+		c.RobloxScopes = append([]string(nil), defaultRobloxScopes...)
+	}
+}
+
 // Run the service
 func runRoot(c *cobra.Command, args []string) {
+	applyFlagDefaults()
+
 	// Prepare logger
 	ctx := context.Background()
 	// Parse the log level
