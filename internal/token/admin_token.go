@@ -1,6 +1,7 @@
 package token
 
 import (
+	"crypto/subtle"
 	"fmt"
 
 	"github.com/authorizerdev/authorizer/internal/cookie"
@@ -44,7 +45,7 @@ func (p *provider) IsSuperAdmin(gc *gin.Context) bool {
 		if secret == "" {
 			return false
 		}
-		return secret == p.config.AdminSecret
+		return subtle.ConstantTimeCompare([]byte(secret), []byte(p.config.AdminSecret)) == 1
 	}
 
 	return token != ""
