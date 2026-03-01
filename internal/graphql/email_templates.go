@@ -29,7 +29,7 @@ func (g *graphqlProvider) EmailTemplates(ctx context.Context, params *model.Pagi
 		log.Debug().Err(err).Msg("Failed to get email templates")
 		return nil, err
 	}
-	resItems := make([]*model.EmailTemplate, len(emailTemplates))
+	resItems := make([]*model.EmailTemplate, 0, len(emailTemplates))
 	for _, emailTemplate := range emailTemplates {
 		resItems = append(resItems, emailTemplate.AsAPIEmailTemplate())
 	}
