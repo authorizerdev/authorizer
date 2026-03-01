@@ -22,3 +22,4 @@ certs/
 *.iml
 node_modules/*
 *.code-workspace
+.claude/worktrees
