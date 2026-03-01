@@ -111,6 +111,23 @@ func TestSignup(t *testing.T) {
 		})
 	})
 
+	t.Run("should fail when signup is disabled", func(t *testing.T) {
+		cfg2 := getTestConfig()
+		cfg2.EnableSignup = false
+		ts2 := initTestSetup(t, cfg2)
+		_, ctx2 := createContext(ts2)
+
+		disabledEmail := "signup_disabled_" + uuid.New().String() + "@authorizer.dev"
+		signupReq := &model.SignUpRequest{
+			Email:           &disabledEmail,
+			Password:        password,
+			ConfirmPassword: password,
+		}
+		res, err := ts2.GraphQLProvider.SignUp(ctx2, signupReq)
+		assert.Error(t, err)
+		assert.Nil(t, res)
+	})
+
 	t.Run("should pass for valid mobile number", func(t *testing.T) {
 		mobileNumber := fmt.Sprintf("%d", time.Now().Unix())
 		signupReq := &model.SignUpRequest{
