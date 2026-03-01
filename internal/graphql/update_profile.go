@@ -151,7 +151,7 @@ func (g *graphqlProvider) UpdateProfile(ctx context.Context, params *model.Updat
 	isMobileBasicAuthEnabled := g.Config.EnableMobileBasicAuthentication
 
 	if params.NewPassword != nil && params.ConfirmNewPassword != nil {
-		if !isBasicAuthEnabled || !isMobileBasicAuthEnabled {
+		if !isBasicAuthEnabled && !isMobileBasicAuthEnabled {
 			log.Debug().Msg("Cannot update password as basic authentication is disabled")
 			return nil, fmt.Errorf(`basic authentication is disabled for this instance`)
 		}
