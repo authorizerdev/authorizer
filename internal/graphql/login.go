@@ -110,13 +110,15 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 					// if verification request exists and not expired then return
 					// if verification request exists and expired then delete it and proceed
 					if vreq.ExpiresAt > time.Now().Unix() {
-						if err := g.StorageProvider.DeleteVerificationRequest(ctx, vreq); err != nil {
-							log.Debug().Msg("Failed to delete verification request")
-							// continue with the flow
-						}
-					} else {
 						log.Debug().Msg("Email verification pending")
 						return nil, fmt.Errorf(`email verification pending`)
+					} else {
+						if err := g.StorageProvider.DeleteVerificationRequest(ctx, vreq); err != nil {
+							log.Debug().Msg("Failed to delete verification request")
+							return nil, err
+						} else {
+							log.Debug().Msg("Verification request deleted")
+						}
 					}
 				}
 				expiresAt := time.Now().Add(1 * time.Minute).Unix()
