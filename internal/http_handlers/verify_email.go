@@ -16,6 +16,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 	"github.com/authorizerdev/authorizer/internal/token"
 	"github.com/authorizerdev/authorizer/internal/utils"
+	"github.com/authorizerdev/authorizer/internal/validators"
 )
 
 // VerifyEmailHandler handles the verify email route.
@@ -99,6 +100,13 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 			roles = strings.Split(user.Roles, ",")
 		} else {
 			roles = strings.Split(rolesString, ",")
+			userRoles := strings.Split(user.Roles, ",")
+			if !validators.IsValidRoles(roles, userRoles) {
+				log.Debug().Msg("Invalid roles requested")
+				errorRes["error"] = "invalid roles"
+				utils.HandleRedirectORJsonResponse(c, http.StatusBadRequest, errorRes, generateRedirectURL(redirectURL, errorRes))
+				return
+			}
 		}
 
 		scopeString := strings.TrimSpace(c.Query("scope"))
