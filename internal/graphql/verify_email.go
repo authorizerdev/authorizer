@@ -62,6 +62,11 @@ func (g *graphqlProvider) VerifyEmail(ctx context.Context, params *model.VerifyE
 		return nil, err
 	}
 
+	if user.RevokedTimestamp != nil {
+		log.Debug().Msg("User access has been revoked")
+		return nil, fmt.Errorf("user access has been revoked")
+	}
+
 	isMFAEnabled := g.Config.EnableMFA
 	isTOTPLoginEnabled := g.Config.EnableTOTPLogin
 
