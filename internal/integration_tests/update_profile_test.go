@@ -145,6 +145,66 @@ func TestUpdateProfile(t *testing.T) {
 		assert.Equal(t, birthdate, *profile.Birthdate)
 	})
 
+	t.Run("should change password with valid old password", func(t *testing.T) {
+		newPassword := "NewPassword@123"
+		updateReq := &model.UpdateProfileRequest{
+			OldPassword:        refs.NewStringRef(password),
+			NewPassword:        refs.NewStringRef(newPassword),
+			ConfirmNewPassword: refs.NewStringRef(newPassword),
+		}
+		updateRes, err := ts.GraphQLProvider.UpdateProfile(ctx, updateReq)
+		assert.NoError(t, err)
+		assert.NotNil(t, updateRes)
+
+		// Verify new password works by logging in
+		loginReq2 := &model.LoginRequest{
+			Email:    &email,
+			Password: newPassword,
+		}
+		loginRes2, err := ts.GraphQLProvider.Login(ctx, loginReq2)
+		assert.NoError(t, err)
+		assert.NotNil(t, loginRes2)
+
+		// Reset password back and refresh token
+		updateReq2 := &model.UpdateProfileRequest{
+			OldPassword:        refs.NewStringRef(newPassword),
+			NewPassword:        refs.NewStringRef(password),
+			ConfirmNewPassword: refs.NewStringRef(password),
+		}
+		ts.GinContext.Request.Header.Set("Authorization", "Bearer "+*loginRes2.AccessToken)
+		_, err = ts.GraphQLProvider.UpdateProfile(ctx, updateReq2)
+		assert.NoError(t, err)
+
+		// Restore original token
+		loginRes, err = ts.GraphQLProvider.Login(ctx, &model.LoginRequest{
+			Email:    &email,
+			Password: password,
+		})
+		assert.NoError(t, err)
+		ts.GinContext.Request.Header.Set("Authorization", "Bearer "+*loginRes.AccessToken)
+	})
+
+	t.Run("should fail password change with wrong old password", func(t *testing.T) {
+		newPassword := "NewPassword@123"
+		updateReq := &model.UpdateProfileRequest{
+			OldPassword:        refs.NewStringRef("WrongOldPassword@123"),
+			NewPassword:        refs.NewStringRef(newPassword),
+			ConfirmNewPassword: refs.NewStringRef(newPassword),
+		}
+		updateRes, err := ts.GraphQLProvider.UpdateProfile(ctx, updateReq)
+		assert.Error(t, err)
+		assert.Nil(t, updateRes)
+	})
+
+	t.Run("should fail password change without confirm password", func(t *testing.T) {
+		updateReq := &model.UpdateProfileRequest{
+			NewPassword: refs.NewStringRef("NewPassword@123"),
+		}
+		updateRes, err := ts.GraphQLProvider.UpdateProfile(ctx, updateReq)
+		assert.Error(t, err)
+		assert.Nil(t, updateRes)
+	})
+
 	t.Run("should update multiple fields at once", func(t *testing.T) {
 		givenName := "Updated"
 		familyName := "User"

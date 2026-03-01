@@ -303,7 +303,7 @@ Use these v2 **CLI flags** instead of v1 env or dashboard config. Flag names use
 | `SMTP_USERNAME`, `SMTP_PASSWORD` | `--smtp-username`, `--smtp-password`        |
 | `SENDER_EMAIL`, `SENDER_NAME`    | `--smtp-sender-email`, `--smtp-sender-name` |
 | `SMTP_LOCAL_NAME`                | `--smtp-local-name`                         |
-| -               | `--skip-tls-verification`                   |
+| -               | `--smtp-skip-tls-verification`                   |
 
 
 ### Twilio (SMS)
@@ -357,21 +357,31 @@ To see all flags and defaults:
 
 ## 4. Deprecated GraphQL API Behavior
 
-These mutations exist for compatibility but **return an error** in v2; configure via CLI instead.
+These mutations and queries exist for compatibility but **return an error** in v2. Replace or remove calls and use the alternatives below.
 
+### Deprecated mutations
 
-| Mutation             | v2 behavior                                                               |
-| -------------------- | ------------------------------------------------------------------------- |
-| `_update_env`        | Returns error: *"deprecated. please configure env via cli args"*          |
-| `_admin_signup`      | Returns error: *"deprecated. please configure admin secret via cli args"* |
-| `_generate_jwt_keys` | Returns error: *"deprecated. please configure jwt keys via cli args"*     |
+| Mutation             | v2 behavior                                                               | Migration |
+| -------------------- | ------------------------------------------------------------------------- | --------- |
+| `_update_env`        | Returns error: *"deprecated. please configure env via cli args"*          | Configure via CLI flags at startup. |
+| `_admin_signup`      | Returns error: *"deprecated. please configure admin secret via cli args"* | Set admin secret with `--admin-secret` at startup. |
+| `_generate_jwt_keys` | Returns error: *"deprecated. please configure jwt keys via cli args"*     | Set JWT with `--jwt-type`, `--jwt-secret`, or `--jwt-private-key` / `--jwt-public-key` at startup. |
+| `mobile_signup`      | Returns error: *"deprecated, use signup with mobile phone_number"*        | Use the `signup` mutation with `phone_number` instead. |
+| `mobile_login`       | Returns error: *"deprecated, use login with mobile phone_number"*         | Use the `login` mutation with `phone_number` instead. |
 
+### Deprecated queries
+
+| Query   | v2 behavior                                              | Migration |
+| ------- | --------------------------------------------------------- | --------- |
+| `_env`  | Returns error: *"deprecated. please configure env via cli args"* | Do not read env via GraphQL; configuration is via CLI at startup. |
+
+### Configuration via CLI
 
 - **Admin secret:** set with `--admin-secret` at startup.
 - **JWT keys/type:** set with `--jwt-type`, `--jwt-secret`, or `--jwt-private-key` / `--jwt-public-key` at startup.
 - **All other env:** use the corresponding CLI flags when starting the server.
 
-If your app or dashboard calls `_update_env`, `_admin_signup`, or `_generate_jwt_keys`, remove or replace those calls and move configuration to startup arguments.
+If your app or dashboard calls any of the deprecated mutations or queries above, remove or replace those calls and use the migration guidance in the tables.
 
 ---
 
