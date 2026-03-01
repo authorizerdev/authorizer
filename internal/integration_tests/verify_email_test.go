@@ -47,6 +47,30 @@ func TestVerifyEmail(t *testing.T) {
 		assert.Nil(t, verificationRes)
 	})
 
+	t.Run("should verify email and use correct login method for basic auth", func(t *testing.T) {
+		basicAuthEmail := "verify_email_basic_" + uuid.New().String() + "@authorizer.dev"
+		_, err := ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
+			Email:           &basicAuthEmail,
+			Password:        password,
+			ConfirmPassword: password,
+		})
+		assert.NoError(t, err)
+
+		vreq, err := ts.StorageProvider.GetVerificationRequestByEmail(ctx, basicAuthEmail, constants.VerificationTypeBasicAuthSignup)
+		assert.NoError(t, err)
+		assert.NotNil(t, vreq)
+		// Identifier should be basic_auth_signup, not magic_link_login
+		assert.Equal(t, constants.VerificationTypeBasicAuthSignup, vreq.Identifier)
+
+		verifyRes, err := ts.GraphQLProvider.VerifyEmail(ctx, &model.VerifyEmailRequest{
+			Token: vreq.Token,
+		})
+		assert.NoError(t, err)
+		assert.NotNil(t, verifyRes)
+		assert.NotEmpty(t, verifyRes.AccessToken)
+		assert.NotNil(t, verifyRes.User)
+		assert.True(t, verifyRes.User.EmailVerified)
+	})
 	t.Run("should fail for revoked user", func(t *testing.T) {
 		revokedEmail := "verify_email_revoked_" + uuid.New().String() + "@authorizer.dev"
 		revokedSignupReq := &model.SignUpRequest{
