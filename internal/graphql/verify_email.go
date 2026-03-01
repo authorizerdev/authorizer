@@ -135,7 +135,7 @@ func (g *graphqlProvider) VerifyEmail(ctx context.Context, params *model.VerifyE
 	}
 
 	loginMethod := constants.AuthRecipeMethodBasicAuth
-	if loginMethod == constants.VerificationTypeMagicLinkLogin {
+	if verificationRequest.Identifier == constants.VerificationTypeMagicLinkLogin {
 		loginMethod = constants.AuthRecipeMethodMagicLinkLogin
 	}
 
