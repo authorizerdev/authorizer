@@ -2,11 +2,13 @@ package integration_tests
 
 import (
 	"testing"
+	"time"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // TestVerifyEmail tests the verify email functionality
@@ -68,6 +70,37 @@ func TestVerifyEmail(t *testing.T) {
 		assert.NotEmpty(t, verifyRes.AccessToken)
 		assert.NotNil(t, verifyRes.User)
 		assert.True(t, verifyRes.User.EmailVerified)
+	})
+	t.Run("should fail for revoked user", func(t *testing.T) {
+		revokedEmail := "verify_email_revoked_" + uuid.New().String() + "@authorizer.dev"
+		revokedSignupReq := &model.SignUpRequest{
+			Email:           &revokedEmail,
+			Password:        password,
+			ConfirmPassword: password,
+		}
+		_, err := ts.GraphQLProvider.SignUp(ctx, revokedSignupReq)
+		require.NoError(t, err)
+
+		// Get verification token
+		vreq, err := ts.StorageProvider.GetVerificationRequestByEmail(ctx, revokedEmail, constants.VerificationTypeBasicAuthSignup)
+		require.NoError(t, err)
+		require.NotNil(t, vreq)
+
+		// Revoke the user
+		user, err := ts.StorageProvider.GetUserByEmail(ctx, revokedEmail)
+		require.NoError(t, err)
+		now := time.Now().Unix()
+		user.RevokedTimestamp = &now
+		_, err = ts.StorageProvider.UpdateUser(ctx, user)
+		require.NoError(t, err)
+
+		// Try to verify email - should fail
+		verificationRes, err := ts.GraphQLProvider.VerifyEmail(ctx, &model.VerifyEmailRequest{
+			Token: vreq.Token,
+		})
+		assert.Error(t, err)
+		assert.Nil(t, verificationRes)
+		assert.Contains(t, err.Error(), "revoked")
 	})
 
 	t.Run("should verify email", func(t *testing.T) {

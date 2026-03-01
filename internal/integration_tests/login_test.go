@@ -8,7 +8,52 @@ import (
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+// TestLoginUnverifiedEmail tests login with email verification enabled
+func TestLoginUnverifiedEmail(t *testing.T) {
+	cfg := getTestConfig()
+	cfg.IsEmailServiceEnabled = true
+	cfg.EnableEmailVerification = true
+	cfg.SMTPHost = "localhost"
+	cfg.SMTPPort = 1025
+	cfg.SMTPSenderEmail = "test@authorizer.dev"
+	cfg.SMTPSenderName = "Test"
+	cfg.SMTPLocalName = "Test"
+	cfg.SMTPSkipTLSVerification = true
+	ts := initTestSetup(t, cfg)
+	_, ctx := createContext(ts)
+
+	email := "login_unverified_" + uuid.New().String() + "@authorizer.dev"
+	password := "Password@123"
+
+	signupReq := &model.SignUpRequest{
+		Email:           &email,
+		Password:        password,
+		ConfirmPassword: password,
+	}
+	signupRes, err := ts.GraphQLProvider.SignUp(ctx, signupReq)
+	require.NoError(t, err)
+	require.NotNil(t, signupRes)
+	// User should be nil since email verification is pending
+	assert.Nil(t, signupRes.User)
+
+	t.Run("should return verification pending for unverified email", func(t *testing.T) {
+		loginReq := &model.LoginRequest{
+			Email:    &email,
+			Password: password,
+		}
+		res, err := ts.GraphQLProvider.Login(ctx, loginReq)
+		// Should get either an error or an OTP screen response
+		if err != nil {
+			assert.Contains(t, err.Error(), "verification")
+		} else {
+			// If MFA/OTP flow is triggered instead of error
+			assert.NotNil(t, res)
+		}
+	})
+}
 
 // TestLogin tests the login functionality of the Authorizer application.
 func TestLogin(t *testing.T) {

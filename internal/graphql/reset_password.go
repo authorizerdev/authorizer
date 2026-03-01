@@ -112,6 +112,10 @@ func (g *graphqlProvider) ResetPassword(ctx context.Context, params *model.Reset
 			log.Debug().Msg("Failed to verify otp request: Incorrect value")
 			return nil, fmt.Errorf(`invalid otp`)
 		}
+		if otpRequest.ExpiresAt < time.Now().Unix() {
+			log.Debug().Msg("OTP has expired")
+			return nil, fmt.Errorf("otp expired")
+		}
 	}
 	if params.Password != params.ConfirmPassword {
 		log.Debug().Msg("Passwords do not match")

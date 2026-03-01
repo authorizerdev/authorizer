@@ -16,6 +16,11 @@ func IsValidPassword(password string, isStrongPasswordDisabled bool) error {
 		return errors.New("password must be of minimum 6 characters and maximum 36 characters")
 	}
 
+	// When strong password is disabled, only check min/max length
+	if isStrongPasswordDisabled {
+		return nil
+	}
+
 	hasUpperCase := false
 	hasLowerCase := false
 	hasDigit := false

@@ -5,10 +5,52 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/refs"
 )
+
+// TestUpdateProfilePasswordWithSingleAuthEnabled tests password change
+// when only one of basic auth / mobile basic auth is enabled.
+// Before the fix, this would fail because the OR condition blocked it.
+func TestUpdateProfilePasswordWithSingleAuthEnabled(t *testing.T) {
+	cfg := getTestConfig()
+	cfg.EnableBasicAuthentication = true
+	cfg.EnableMobileBasicAuthentication = false
+	ts := initTestSetup(t, cfg)
+	_, ctx := createContext(ts)
+
+	email := "update_profile_single_auth_" + uuid.New().String() + "@authorizer.dev"
+	password := "Password@123"
+
+	signupReq := &model.SignUpRequest{
+		Email:           &email,
+		Password:        password,
+		ConfirmPassword: password,
+	}
+	_, err := ts.GraphQLProvider.SignUp(ctx, signupReq)
+	require.NoError(t, err)
+
+	loginRes, err := ts.GraphQLProvider.Login(ctx, &model.LoginRequest{
+		Email:    &email,
+		Password: password,
+	})
+	require.NoError(t, err)
+	ts.GinContext.Request.Header.Set("Authorization", "Bearer "+*loginRes.AccessToken)
+
+	t.Run("should allow password change with only basic auth enabled", func(t *testing.T) {
+		newPassword := "NewPassword@123"
+		updateReq := &model.UpdateProfileRequest{
+			OldPassword:        refs.NewStringRef(password),
+			NewPassword:        refs.NewStringRef(newPassword),
+			ConfirmNewPassword: refs.NewStringRef(newPassword),
+		}
+		res, err := ts.GraphQLProvider.UpdateProfile(ctx, updateReq)
+		assert.NoError(t, err)
+		assert.NotNil(t, res)
+	})
+}
 
 // TestUpdateProfile tests the update profile functionality
 // using the GraphQL API.

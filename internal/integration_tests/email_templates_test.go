@@ -34,4 +34,17 @@ func TestEmailTemplates(t *testing.T) {
 		assert.NotNil(t, res)
 		assert.NotNil(t, res.Pagination)
 	})
+
+	t.Run("should return no nil entries in email templates list", func(t *testing.T) {
+		h, err := crypto.EncryptPassword(cfg.AdminSecret)
+		require.NoError(t, err)
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
+
+		res, err := ts.GraphQLProvider.EmailTemplates(ctx, &model.PaginatedRequest{})
+		require.NoError(t, err)
+		assert.NotNil(t, res)
+		for i, tmpl := range res.EmailTemplates {
+			assert.NotNilf(t, tmpl, "email template at index %d should not be nil", i)
+		}
+	})
 }
