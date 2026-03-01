@@ -60,6 +60,12 @@ func (g *graphqlProvider) VerifyOTP(ctx context.Context, params *model.VerifyOTP
 		log.Debug().Err(err).Msg("User not found")
 		return nil, fmt.Errorf(`user not found`)
 	}
+
+	if user.RevokedTimestamp != nil {
+		log.Debug().Msg("User access has been revoked")
+		return nil, fmt.Errorf("user access has been revoked")
+	}
+
 	// Verify OTP based on TOPT or OTP
 	if refs.BoolValue(params.IsTotp) {
 		status, err := g.AuthenticatorProvider.Validate(ctx, params.Otp, user.ID)
