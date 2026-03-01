@@ -43,6 +43,17 @@ func TestResetPassword(t *testing.T) {
 		assert.Nil(t, forgotPasswordRes)
 	})
 
+	t.Run("should fail for password mismatch", func(t *testing.T) {
+		resetPasswordReq := &model.ResetPasswordRequest{
+			Token:           refs.NewStringRef("test"),
+			Password:        "NewPassword@123",
+			ConfirmPassword: "DifferentPassword@123",
+		}
+		res, err := ts.GraphQLProvider.ResetPassword(ctx, resetPasswordReq)
+		assert.Error(t, err)
+		assert.Nil(t, res)
+	})
+
 	t.Run("should reset password with verification token", func(t *testing.T) {
 		forgotPasswordReq := &model.ForgotPasswordRequest{
 			Email: refs.NewStringRef(email),
