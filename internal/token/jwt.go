@@ -64,7 +64,7 @@ func (p *provider) ParseJWTToken(token string) (jwt.MapClaims, error) {
 		})
 	case jwt.SigningMethodES256, jwt.SigningMethodES384, jwt.SigningMethodES512:
 		_, err = jwt.ParseWithClaims(token, &claims, func(token *jwt.Token) (interface{}, error) {
-			key, err := crypto.ParseEcdsaPublicKeyFromPemStr(p.config.JWTSecret)
+			key, err := crypto.ParseEcdsaPublicKeyFromPemStr(p.config.JWTPublicKey)
 			if err != nil {
 				return nil, err
 			}
