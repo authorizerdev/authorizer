@@ -115,6 +115,9 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 					} else {
 						if err := g.StorageProvider.DeleteVerificationRequest(ctx, vreq); err != nil {
 							log.Debug().Msg("Failed to delete verification request")
+							return nil, err
+						} else {
+							log.Debug().Msg("Verification request deleted")
 						}
 					}
 				}
