@@ -48,9 +48,9 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 		// contains random token, redirect url, role
 		sessionSplit := strings.Split(state, "___")
 
-		if len(sessionSplit) < 3 {
-			log.Debug().Err(err).Msg("Invalid state")
-			ctx.JSON(400, gin.H{"error": "invalid redirect url"})
+		if len(sessionSplit) < 4 {
+			log.Debug().Msg("Invalid state: expected at least 4 segments")
+			ctx.JSON(400, gin.H{"error": "invalid oauth state"})
 			return
 		}
 		// remove state from store
@@ -260,6 +260,7 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 		if err != nil {
 			log.Debug().Err(err).Msg("Failed to create auth token")
 			ctx.JSON(500, gin.H{"error": err.Error()})
+			return
 		}
 
 		// Code challenge could be optional if PKCE flow is not used
@@ -267,6 +268,7 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 			if err := h.MemoryStoreProvider.SetState(code, codeChallenge+"@@"+authToken.FingerPrintHash); err != nil {
 				log.Debug().Err(err).Msg("Failed to set state")
 				ctx.JSON(500, gin.H{"error": err.Error()})
+				return
 			}
 		}
 

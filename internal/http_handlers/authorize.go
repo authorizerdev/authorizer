@@ -96,6 +96,20 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			responseType = h.Config.DefaultAuthorizeResponseType
 		}
 
+		codeChallengeMethod := strings.TrimSpace(gc.Query("code_challenge_method"))
+		// RFC 7636 §4.3: Default to S256 if code_challenge is present but method is not specified
+		// Note: We only support S256 as it is mandatory to implement per RFC 7636
+		if codeChallengeMethod == "" && codeChallenge != "" {
+			codeChallengeMethod = "S256"
+		}
+		if codeChallengeMethod != "" && codeChallengeMethod != "S256" {
+			gc.JSON(http.StatusBadRequest, gin.H{
+				"error":             "invalid_request",
+				"error_description": "Only S256 code_challenge_method is supported",
+			})
+			return
+		}
+
 		if err := h.validateAuthorizeRequest(responseType, responseMode, clientID, state, codeChallenge); err != nil {
 			log.Debug().Err(err).Msg("Invalid request")
 			gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -243,7 +257,8 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			// 	},
 			// })
 
-			params := "code=" + code + "&state=" + state + "&nonce=" + nonce
+			// RFC 6749 §4.1.2: Authorization code response MUST only include code and state
+			params := "code=" + code + "&state=" + state
 			if responseMode == constants.ResponseModeQuery {
 				if strings.Contains(redirectURI, "?") {
 					redirectURI = redirectURI + "&" + params

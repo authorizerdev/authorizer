@@ -6,6 +6,7 @@
 
 For more information check:
 
+- [OAuth 2.0 / OIDC Endpoint Reference](docs/oauth2-oidc-endpoints.md) – standards-compliant endpoint docs with examples
 - [Migration Guide (v1 → v2)](MIGRATION.md) – configuration changes, CLI flags, deprecated APIs
 - [Docs (v1 – legacy)](http://docs.authorizer.dev/)
 - [Discord Community](https://discord.gg/Zv2D5h6kkK)
@@ -93,7 +94,17 @@ This guide helps you practice using Authorizer to evaluate it before you use it 
   ```bash
    make dev
   ```
-   Or run manually with your config:
+   Or run manually with all required flags:
+  ```bash
+  ./build/authorizer \
+    --database-type=sqlite \
+    --database-url=test.db \
+    --jwt-type=HS256 \
+    --jwt-secret=test \
+    --admin-secret=admin \
+    --client-id=123456 \
+    --client-secret=secret
+  ```
   > **v2:** The server does **not** read from `.env`. All configuration must be passed as CLI arguments. See [MIGRATION.md](MIGRATION.md) for the full mapping of env vars to flags.
 
 ### Run with Docker
@@ -160,10 +171,12 @@ Deploy / Try Authorizer using binaries. With each [Authorizer Release](https://g
   ```sh
   ./authorizer \
     --database-type=sqlite \
-    --database-url=data.db \
-    --client-id=YOUR_CLIENT_ID \
-    --client-secret=YOUR_CLIENT_SECRET \
-    --admin-secret=your-admin-secret
+    --database-url=test.db \
+    --jwt-type=HS256 \
+    --jwt-secret=test \
+    --admin-secret=admin \
+    --client-id=123456 \
+    --client-secret=secret
   ```
 
 > **v2:** The binary is named `authorizer` (not `server`). Configuration is passed via CLI arguments; `.env` is not read. On macOS you may need: `xattr -d com.apple.quarantine authorizer`
@@ -201,7 +214,7 @@ This example demonstrates how you can use `[@authorizerdev/authorizer-js](/autho
 	const authorizerRef = new authorizerdev.Authorizer({
 		authorizerURL: `YOUR_AUTHORIZER_INSTANCE_URL`,
 		redirectURL: window.location.origin,
-		clientID: 'YOUR_CLIENT_ID', // obtain your client id from authorizer dashboard
+		clientID: 'YOUR_CLIENT_ID', // value of --client-id flag used to start the server
 	});
 
 	// use the button selector as per your application
