@@ -6,7 +6,11 @@
       "Bash(go build:*)",
       "Bash(docker rm:*)",
       "Bash(docker run:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(docker:*)",
+      "Bash(go version)",
+      "Bash(go mod:*)",
+      "Bash(go clean:*)"
     ]
   }
 }

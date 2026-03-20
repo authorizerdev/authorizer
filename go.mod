@@ -1,6 +1,6 @@
 module github.com/authorizerdev/authorizer
 
-go 1.24.2
+go 1.25.5
 
 require (
 	github.com/99designs/gqlgen v0.17.73
@@ -11,6 +11,7 @@ require (
 	github.com/ekristen/gorm-libsql v0.0.0-20231101204708-6e113112bcc2
 	github.com/gin-gonic/gin v1.9.1
 	github.com/glebarez/sqlite v1.10.0
+	github.com/go-jose/go-jose/v4 v4.1.3
 	github.com/gocql/gocql v1.6.0
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/google/uuid v1.6.0
@@ -28,7 +29,6 @@ require (
 	golang.org/x/oauth2 v0.30.0
 	golang.org/x/sync v0.19.0
 	gopkg.in/mail.v2 v2.3.1
-	gopkg.in/square/go-jose.v2 v2.6.0
 	gorm.io/driver/mysql v1.5.2
 	gorm.io/driver/postgres v1.5.4
 	gorm.io/driver/sqlserver v1.5.2

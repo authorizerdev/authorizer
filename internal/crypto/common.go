@@ -3,8 +3,8 @@ package crypto
 import (
 	"crypto/x509"
 
+	"github.com/go-jose/go-jose/v4"
 	"golang.org/x/crypto/bcrypt"
-	"gopkg.in/square/go-jose.v2"
 )
 
 // GetPubJWK returns JWK for given keys
