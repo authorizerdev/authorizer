@@ -504,8 +504,10 @@ func TestAuthorizeEndpointCompliance(t *testing.T) {
 
 		var body map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &body)
-		assert.Contains(t, body["error"].(string), "S256",
-			"RFC 7636: unsupported code_challenge_method MUST return error")
+		assert.Equal(t, "invalid_request", body["error"],
+			"RFC 7636: unsupported code_challenge_method MUST return 'invalid_request'")
+		assert.Contains(t, body["error_description"].(string), "S256",
+			"RFC 7636: error_description should mention S256")
 	})
 
 	t.Run("RFC6749_invalid_response_mode_returns_error", func(t *testing.T) {
