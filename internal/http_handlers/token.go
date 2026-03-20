@@ -58,9 +58,10 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 		if !isRefreshTokenGrant && !isAuthorizationCodeGrant {
 			log.Debug().Str("grant_type", grantType).Msg("Invalid grant type")
 			gc.JSON(http.StatusBadRequest, gin.H{
-				"error":             "invalid_grant_type",
-				"error_description": "grant_type is invalid",
+				"error":             "unsupported_grant_type",
+				"error_description": "grant_type is not supported",
 			})
+			return
 		}
 
 		// check if clientID & clientSecret are present as part of
@@ -72,18 +73,27 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 		if clientID == "" {
 			log.Debug().Msg("Client ID is missing")
 			gc.JSON(http.StatusBadRequest, gin.H{
-				"error":             "client_id_required",
-				"error_description": "The client id is missing",
+				"error":             "invalid_request",
+				"error_description": "The client_id parameter is required",
 			})
 			return
 		}
 
 		if h.Config.ClientID != clientID {
 			log.Debug().Str("client_id", clientID).Msg("Client ID is invalid")
-			gc.JSON(http.StatusBadRequest, gin.H{
-				"error":             "invalid_client_id",
-				"error_description": "The client id is invalid",
-			})
+			// RFC 6749 §5.2: If client auth fails via HTTP Basic, return 401
+			if _, _, hasBasicAuth := gc.Request.BasicAuth(); hasBasicAuth {
+				gc.Header("WWW-Authenticate", "Basic realm=\"authorizer\"")
+				gc.JSON(http.StatusUnauthorized, gin.H{
+					"error":             "invalid_client",
+					"error_description": "Client authentication failed",
+				})
+			} else {
+				gc.JSON(http.StatusBadRequest, gin.H{
+					"error":             "invalid_client",
+					"error_description": "The client_id is invalid",
+				})
+			}
 			return
 		}
 
@@ -96,16 +106,16 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 			if code == "" {
 				log.Debug().Msg("Code is missing")
 				gc.JSON(http.StatusBadRequest, gin.H{
-					"error":             "invalid_code",
-					"error_description": "The code is required",
+					"error":             "invalid_request",
+					"error_description": "The code parameter is required for authorization_code grant type",
 				})
 				return
 			}
 
 			if codeVerifier == "" && clientSecret == "" {
 				gc.JSON(http.StatusBadRequest, gin.H{
-					"error":             "invalid_data",
-					"error_description": "The code verifier or client secret is required",
+					"error":             "invalid_request",
+					"error_description": "Either code_verifier or client_secret is required",
 				})
 				return
 			}
@@ -114,8 +124,8 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 			if sessionData == "" || err != nil {
 				log.Debug().Err(err).Msg("Error getting session data")
 				gc.JSON(http.StatusBadRequest, gin.H{
-					"error":             "invalid_code",
-					"error_description": "The code is invalid",
+					"error":             "invalid_grant",
+					"error_description": "The authorization code is invalid or has expired",
 				})
 				return
 			}
@@ -124,7 +134,9 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 			// [1] -> session cookie
 			sessionDataSplit := strings.Split(sessionData, "@@")
 
-			go h.MemoryStoreProvider.RemoveState(code)
+			// RFC 6749 §4.1.2: Authorization codes MUST be single-use.
+			// Delete synchronously to prevent race condition allowing code reuse.
+			h.MemoryStoreProvider.RemoveState(code)
 
 			if codeVerifier != "" {
 				hash := sha256.New()
@@ -134,18 +146,18 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 				encryptedCode = strings.ReplaceAll(encryptedCode, "=", "")
 				if encryptedCode != sessionDataSplit[0] {
 					gc.JSON(http.StatusBadRequest, gin.H{
-						"error":             "invalid_code_verifier",
-						"error_description": "The code verifier is invalid",
+						"error":             "invalid_grant",
+						"error_description": "The code_verifier does not match the code_challenge",
 					})
 					return
 				}
 
 			} else {
 				if clientSecret != h.Config.ClientSecret {
-					log.Debug().Err(err).Msg("Error getting client secret")
-					gc.JSON(http.StatusBadRequest, gin.H{
-						"error":             "invalid_client_secret",
-						"error_description": "The client secret is invalid",
+					log.Debug().Msg("Client secret is invalid")
+					gc.JSON(http.StatusUnauthorized, gin.H{
+						"error":             "invalid_client",
+						"error_description": "Client authentication failed",
 					})
 					return
 				}
@@ -180,8 +192,8 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 			if refreshToken == "" {
 				log.Debug().Msg("Refresh token is missing")
 				gc.JSON(http.StatusBadRequest, gin.H{
-					"error":             "invalid_refresh_token",
-					"error_description": "The refresh token is invalid",
+					"error":             "invalid_request",
+					"error_description": "The refresh_token parameter is required for refresh_token grant type",
 				})
 				return
 			}
@@ -320,6 +332,7 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 
 		res := map[string]interface{}{
 			"access_token": authToken.AccessToken.Token,
+			"token_type":   "Bearer",
 			"id_token":     authToken.IDToken.Token,
 			"scope":        strings.Join(scope, " "),
 			"roles":        roles,
