@@ -13,6 +13,8 @@ ENV CGO_ENABLED=0 \
     GOARCH=$TARGETARCH \
     VERSION=$VERSION
 
+RUN apk add --no-cache ca-certificates tzdata
+
 # Dependency cache: only re-run when go.mod/go.sum change
 COPY go.mod go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod \
@@ -52,8 +54,6 @@ ARG TARGETARCH=amd64
 COPY --from=go-builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 # Timezone data
 COPY --from=go-builder /usr/share/zoneinfo /usr/share/zoneinfo
-# passwd entry for non-root user
-COPY --from=go-builder /etc/passwd /etc/passwd
 
 WORKDIR /authorizer
 COPY --from=node-builder /authorizer/web/app/build web/app/build
@@ -63,6 +63,5 @@ COPY --from=node-builder /authorizer/web/dashboard/favicon_io web/dashboard/favi
 COPY --from=go-builder /authorizer/build/linux/${TARGETARCH}/authorizer ./authorizer
 COPY web/templates web/templates
 EXPOSE 8080 8081
-USER 65534
 ENTRYPOINT [ "./authorizer" ]
 CMD []
