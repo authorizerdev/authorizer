@@ -109,24 +109,73 @@ This guide helps you practice using Authorizer to evaluate it before you use it 
 
 ### Run with Docker
 
-Run Authorizer with SQLite using the official image (replace with your own image if you build from source):
+The default image runs as **non-root** (UID `65532`). Writable mounts (SQLite under `/authorizer/data`, etc.) are usually **root-owned**, so pick one of:
 
-```sh
-docker run -p 8080:8080 \
-  -v authorizer_data:/authorizer/data \
-  lakhansamani/authorizer \
-  --database-type=sqlite \
-  --database-url=/authorizer/data/data.db \
-  --client-id=123456 \
-  --client-secret=secret \
-  --admin-secret=admin \
-  --jwt-type=HS256 \
-  --jwt-secret=test
-```
+1. **Run as root for that container** (simplest for local SQLite + volumes):
+
+   ```sh
+   docker run -p 8080:8080 -u root \
+     -v authorizer_data:/authorizer/data \
+     lakhansamani/authorizer \
+     --database-type=sqlite \
+     --database-url=/authorizer/data/data.db \
+     --client-id=123456 \
+     --client-secret=secret \
+     --admin-secret=admin \
+     --jwt-type=HS256 \
+     --jwt-secret=test
+   ```
+
+2. **Keep non-root** and make the mount writable by `65532` (good for production-style bind mounts):
+
+   ```sh
+   mkdir -p ./data && sudo chown -R 65532:65532 ./data
+   docker run -p 8080:8080 \
+     -v "$(pwd)/data:/authorizer/data" \
+     lakhansamani/authorizer \
+     --database-type=sqlite \
+     --database-url=/authorizer/data/data.db \
+     ...
+   ```
+
+3. **Build from source** with the root target (no `-u` at run time):
+
+   ```sh
+   docker build --target final-root -t authorizer:root .
+   docker run -p 8080:8080 -v authorizer_data:/authorizer/data authorizer:root \
+     --database-type=sqlite --database-url=/authorizer/data/data.db ...
+   ```
 
 - Port **8080** serves the app and GraphQL; use `-p 8080:8080` to expose it.
 - Volume `authorizer_data` persists the SQLite DB; use a named volume or a host path (e.g. `-v $(pwd)/data:/authorizer/data`).
 - All config is passed as CLI arguments (the image uses `ENTRYPOINT ["./authorizer"]` so args after the image name go to the binary). See [MIGRATION.md](MIGRATION.md) for the full list of flags.
+
+#### Database on your laptop (Postgres, MySQL, etc.)
+
+Inside a container, **`localhost` / `127.0.0.1` is the container itself**, not your machine. Use a host alias instead:
+
+- **Docker Desktop (macOS / Windows):** use `host.docker.internal` in `--database-url` or `--database-host` (built in).
+
+  ```sh
+  docker run -p 8080:8080 lakhansamani/authorizer \
+    --database-type=postgres \
+    --database-url="postgres://user:pass@host.docker.internal:5432/dbname?sslmode=disable" \
+    ...
+  ```
+
+- **Linux (Docker Engine):** add the same hostname so it resolves to the host:
+
+  ```sh
+  docker run -p 8080:8080 --add-host=host.docker.internal:host-gateway \
+    lakhansamani/authorizer \
+    --database-type=postgres \
+    --database-url="postgres://user:pass@host.docker.internal:5432/dbname?sslmode=disable" \
+    ...
+  ```
+
+- **Alternative on Linux:** use the docker bridge gateway IP (often `172.17.0.1`) if your DB listens on `0.0.0.0`, or run with **`--network host`** so the container shares the host network (then `localhost` works; port mapping `-p` is not used the same way).
+
+Ensure the database accepts **non-localhost** connections (e.g. `listen_addresses` in Postgres, bind address in MySQL) and that your OS firewall allows the Docker subnet.
 
 **Extending the image with env-based config (e.g. Railway):** If you `FROM lakhansamani/authorizer` and use a shell-form `CMD` so that env vars are expanded at runtime, you must override `ENTRYPOINT` in your Dockerfile or the binary will receive `/bin/sh` and `-c` as arguments and fail. Use:
 

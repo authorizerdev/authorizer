@@ -37,15 +37,26 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
       - name: Build and push
+        env:
+          SOURCE_URL: https://github.com/${{ github.repository }}
         run: |
           VERSION=$(basename ${GITHUB_REF})
+          TAG_ARGS=(-t "${DOCKER_IMAGE}:${VERSION}")
+          if [[ "$VERSION" != *"rc"* && "$VERSION" != *"beta"* ]]; then
+            TAG_ARGS+=(-t "${DOCKER_IMAGE}:latest")
+          fi
           docker buildx build \
             --platform linux/amd64,linux/arm64 \
             --push \
-            --build-arg VERSION=${VERSION} \
+            --provenance=true \
+            --sbom=true \
+            --build-arg VERSION="${VERSION}" \
+            --build-arg BUILD_DATE="$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+            --build-arg VCS_REF="${GITHUB_SHA}" \
+            --build-arg SOURCE_URL="${SOURCE_URL}" \
             --cache-from type=registry,ref=${DOCKER_IMAGE}:buildcache \
             --cache-to type=registry,ref=${DOCKER_IMAGE}:buildcache,mode=max \
-            -t ${DOCKER_IMAGE}:${VERSION} \
+            "${TAG_ARGS[@]}" \
             .
 
   trivy-scan:
@@ -60,11 +71,11 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ env.DOCKER_IMAGE }}:${{ github.ref_name }}
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-          severity: 'CRITICAL,HIGH'
+          format: "sarif"
+          output: "trivy-results.sarif"
+          severity: "CRITICAL,HIGH"
       - name: Upload Trivy results
         uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
-          sarif_file: 'trivy-results.sarif'
+          sarif_file: "trivy-results.sarif"

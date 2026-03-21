@@ -46,7 +46,7 @@ COPY web/app web/app
 COPY web/dashboard web/dashboard
 RUN cd web/app && npm run build && cd ../dashboard && npm run build
 
-FROM scratch
+FROM alpine:3.23.3
 
 ARG TARGETARCH=amd64
 
@@ -62,6 +62,13 @@ COPY --from=node-builder /authorizer/web/dashboard/build web/dashboard/build
 COPY --from=node-builder /authorizer/web/dashboard/favicon_io web/dashboard/favicon_io
 COPY --from=go-builder /authorizer/build/linux/${TARGETARCH}/authorizer ./authorizer
 COPY web/templates web/templates
+
+RUN addgroup -g 1000 authorizer && \
+    adduser -D -u 1000 -G authorizer authorizer && \
+    chown -R authorizer:authorizer /authorizer
+
+USER authorizer
+
 EXPOSE 8080 8081
 ENTRYPOINT [ "./authorizer" ]
 CMD []
