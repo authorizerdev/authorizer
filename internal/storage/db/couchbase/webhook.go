@@ -55,7 +55,8 @@ func (p *provider) UpdateWebhook(ctx context.Context, webhook *schemas.Webhook) 
 		return nil, err
 	}
 	updateFields, params := GetSetFields(webhookMap)
-	query := fmt.Sprintf(`UPDATE %s.%s SET %s WHERE _id='%s'`, p.scopeName, schemas.Collections.Webhook, updateFields, webhook.ID)
+	params["_id"] = webhook.ID
+	query := fmt.Sprintf(`UPDATE %s.%s SET %s WHERE _id=$_id`, p.scopeName, schemas.Collections.Webhook, updateFields)
 	_, err = p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
@@ -127,8 +128,8 @@ func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*schem
 // GetWebhookByEventName to get webhook by event_name
 func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) ([]*schemas.Webhook, error) {
 	params := make(map[string]interface{}, 1)
-	// params["event_name"] = eventName + "%"
-	query := fmt.Sprintf(`SELECT _id, event_description, event_name, endpoint, headers, enabled, created_at, updated_at FROM %s.%s WHERE event_name LIKE '%s'`, p.scopeName, schemas.Collections.Webhook, eventName+"%")
+	params["event_name"] = eventName + "%"
+	query := fmt.Sprintf(`SELECT _id, event_description, event_name, endpoint, headers, enabled, created_at, updated_at FROM %s.%s WHERE event_name LIKE $event_name`, p.scopeName, schemas.Collections.Webhook)
 	queryResult, err := p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,

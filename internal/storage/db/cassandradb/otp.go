@@ -48,14 +48,17 @@ func (p *provider) UpsertOTP(ctx context.Context, otpParam *schemas.OTP) (*schem
 	otp.UpdatedAt = time.Now().Unix()
 	query := ""
 	if shouldCreate {
-		query = fmt.Sprintf(`INSERT INTO %s (id, email, phone_number, otp, expires_at, created_at, updated_at) VALUES ('%s', '%s', '%s', '%s', %d, %d, %d)`, KeySpace+"."+schemas.Collections.OTP, otp.ID, otp.Email, otp.PhoneNumber, otp.Otp, otp.ExpiresAt, otp.CreatedAt, otp.UpdatedAt)
+		query = fmt.Sprintf(`INSERT INTO %s (id, email, phone_number, otp, expires_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`, KeySpace+"."+schemas.Collections.OTP)
+		err := p.db.Query(query, otp.ID, otp.Email, otp.PhoneNumber, otp.Otp, otp.ExpiresAt, otp.CreatedAt, otp.UpdatedAt).Exec()
+		if err != nil {
+			return nil, err
+		}
 	} else {
-		query = fmt.Sprintf(`UPDATE %s SET otp = '%s', expires_at = %d, updated_at = %d WHERE id = '%s'`, KeySpace+"."+schemas.Collections.OTP, otp.Otp, otp.ExpiresAt, otp.UpdatedAt, otp.ID)
-	}
-
-	err := p.db.Query(query).Exec()
-	if err != nil {
-		return nil, err
+		query = fmt.Sprintf(`UPDATE %s SET otp = ?, expires_at = ?, updated_at = ? WHERE id = ?`, KeySpace+"."+schemas.Collections.OTP)
+		err := p.db.Query(query, otp.Otp, otp.ExpiresAt, otp.UpdatedAt, otp.ID).Exec()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return otp, nil
@@ -64,8 +67,8 @@ func (p *provider) UpsertOTP(ctx context.Context, otpParam *schemas.OTP) (*schem
 // GetOTPByEmail to get otp for a given email address
 func (p *provider) GetOTPByEmail(ctx context.Context, emailAddress string) (*schemas.OTP, error) {
 	var otp schemas.OTP
-	query := fmt.Sprintf(`SELECT id, email, phone_number, otp, expires_at, created_at, updated_at FROM %s WHERE email = '%s' LIMIT 1 ALLOW FILTERING`, KeySpace+"."+schemas.Collections.OTP, emailAddress)
-	err := p.db.Query(query).Consistency(gocql.One).Scan(&otp.ID, &otp.Email, &otp.PhoneNumber, &otp.Otp, &otp.ExpiresAt, &otp.CreatedAt, &otp.UpdatedAt)
+	query := fmt.Sprintf(`SELECT id, email, phone_number, otp, expires_at, created_at, updated_at FROM %s WHERE email = ? LIMIT 1 ALLOW FILTERING`, KeySpace+"."+schemas.Collections.OTP)
+	err := p.db.Query(query, emailAddress).Consistency(gocql.One).Scan(&otp.ID, &otp.Email, &otp.PhoneNumber, &otp.Otp, &otp.ExpiresAt, &otp.CreatedAt, &otp.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -75,8 +78,8 @@ func (p *provider) GetOTPByEmail(ctx context.Context, emailAddress string) (*sch
 // GetOTPByPhoneNumber to get otp for a given phone number
 func (p *provider) GetOTPByPhoneNumber(ctx context.Context, phoneNumber string) (*schemas.OTP, error) {
 	var otp schemas.OTP
-	query := fmt.Sprintf(`SELECT id, email, phone_number, otp, expires_at, created_at, updated_at FROM %s WHERE phone_number = '%s' LIMIT 1 ALLOW FILTERING`, KeySpace+"."+schemas.Collections.OTP, phoneNumber)
-	err := p.db.Query(query).Consistency(gocql.One).Scan(&otp.ID, &otp.Email, &otp.PhoneNumber, &otp.Otp, &otp.ExpiresAt, &otp.CreatedAt, &otp.UpdatedAt)
+	query := fmt.Sprintf(`SELECT id, email, phone_number, otp, expires_at, created_at, updated_at FROM %s WHERE phone_number = ? LIMIT 1 ALLOW FILTERING`, KeySpace+"."+schemas.Collections.OTP)
+	err := p.db.Query(query, phoneNumber).Consistency(gocql.One).Scan(&otp.ID, &otp.Email, &otp.PhoneNumber, &otp.Otp, &otp.ExpiresAt, &otp.CreatedAt, &otp.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -85,8 +88,8 @@ func (p *provider) GetOTPByPhoneNumber(ctx context.Context, phoneNumber string) 
 
 // DeleteOTP to delete otp
 func (p *provider) DeleteOTP(ctx context.Context, otp *schemas.OTP) error {
-	query := fmt.Sprintf("DELETE FROM %s WHERE id = '%s'", KeySpace+"."+schemas.Collections.OTP, otp.ID)
-	err := p.db.Query(query).Exec()
+	query := fmt.Sprintf("DELETE FROM %s WHERE id = ?", KeySpace+"."+schemas.Collections.OTP)
+	err := p.db.Query(query, otp.ID).Exec()
 	if err != nil {
 		return err
 	}

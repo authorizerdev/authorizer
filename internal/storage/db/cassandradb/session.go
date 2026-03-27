@@ -17,8 +17,8 @@ func (p *provider) AddSession(ctx context.Context, session *schemas.Session) err
 	}
 	session.CreatedAt = time.Now().Unix()
 	session.UpdatedAt = time.Now().Unix()
-	insertSessionQuery := fmt.Sprintf("INSERT INTO %s (id, user_id, user_agent, ip, created_at, updated_at) VALUES ('%s', '%s', '%s', '%s', %d, %d)", KeySpace+"."+schemas.Collections.Session, session.ID, session.UserID, session.UserAgent, session.IP, session.CreatedAt, session.UpdatedAt)
-	err := p.db.Query(insertSessionQuery).Exec()
+	insertSessionQuery := fmt.Sprintf("INSERT INTO %s (id, user_id, user_agent, ip, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)", KeySpace+"."+schemas.Collections.Session)
+	err := p.db.Query(insertSessionQuery, session.ID, session.UserID, session.UserAgent, session.IP, session.CreatedAt, session.UpdatedAt).Exec()
 	if err != nil {
 		return err
 	}

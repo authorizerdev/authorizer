@@ -22,18 +22,17 @@ func (p *provider) AddSessionToken(ctx context.Context, token *schemas.SessionTo
 	if token.UpdatedAt == 0 {
 		token.UpdatedAt = time.Now().Unix()
 	}
-	query := fmt.Sprintf(`INSERT INTO %s (id, user_id, key_name, token_value, expires_at, created_at, updated_at) VALUES ('%s', '%s', '%s', '%s', %d, %d, %d)`,
-		KeySpace+"."+schemas.Collections.SessionToken,
-		token.ID, token.UserID, token.KeyName, token.Token, token.ExpiresAt, token.CreatedAt, token.UpdatedAt)
-	return p.db.Query(query).Exec()
+	query := fmt.Sprintf(`INSERT INTO %s (id, user_id, key_name, token_value, expires_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		KeySpace+"."+schemas.Collections.SessionToken)
+	return p.db.Query(query, token.ID, token.UserID, token.KeyName, token.Token, token.ExpiresAt, token.CreatedAt, token.UpdatedAt).Exec()
 }
 
 // GetSessionTokenByUserIDAndKey retrieves a session token by user ID and key
 func (p *provider) GetSessionTokenByUserIDAndKey(ctx context.Context, userId, key string) (*schemas.SessionToken, error) {
 	var token schemas.SessionToken
-	query := fmt.Sprintf(`SELECT id, user_id, key_name, token_value, expires_at, created_at, updated_at FROM %s WHERE user_id = '%s' AND key_name = '%s' LIMIT 1 ALLOW FILTERING`,
-		KeySpace+"."+schemas.Collections.SessionToken, userId, key)
-	err := p.db.Query(query).Consistency(gocql.One).Scan(&token.ID, &token.UserID, &token.KeyName, &token.Token, &token.ExpiresAt, &token.CreatedAt, &token.UpdatedAt)
+	query := fmt.Sprintf(`SELECT id, user_id, key_name, token_value, expires_at, created_at, updated_at FROM %s WHERE user_id = ? AND key_name = ? LIMIT 1 ALLOW FILTERING`,
+		KeySpace+"."+schemas.Collections.SessionToken)
+	err := p.db.Query(query, userId, key).Consistency(gocql.One).Scan(&token.ID, &token.UserID, &token.KeyName, &token.Token, &token.ExpiresAt, &token.CreatedAt, &token.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -42,17 +41,17 @@ func (p *provider) GetSessionTokenByUserIDAndKey(ctx context.Context, userId, ke
 
 // DeleteSessionToken deletes a session token by ID
 func (p *provider) DeleteSessionToken(ctx context.Context, id string) error {
-	query := fmt.Sprintf("DELETE FROM %s WHERE id = '%s'", KeySpace+"."+schemas.Collections.SessionToken, id)
-	return p.db.Query(query).Exec()
+	query := fmt.Sprintf("DELETE FROM %s WHERE id = ?", KeySpace+"."+schemas.Collections.SessionToken)
+	return p.db.Query(query, id).Exec()
 }
 
 // DeleteSessionTokenByUserIDAndKey deletes a session token by user ID and key
 func (p *provider) DeleteSessionTokenByUserIDAndKey(ctx context.Context, userId, key string) error {
 	// Cassandra doesn't support delete with non-primary key filter directly, so scan first
 	var ids []string
-	query := fmt.Sprintf(`SELECT id FROM %s WHERE user_id = '%s' AND key_name = '%s' ALLOW FILTERING`,
-		KeySpace+"."+schemas.Collections.SessionToken, userId, key)
-	iter := p.db.Query(query).Iter()
+	query := fmt.Sprintf(`SELECT id FROM %s WHERE user_id = ? AND key_name = ? ALLOW FILTERING`,
+		KeySpace+"."+schemas.Collections.SessionToken)
+	iter := p.db.Query(query, userId, key).Iter()
 	var id string
 	for iter.Scan(&id) {
 		ids = append(ids, id)
@@ -61,8 +60,8 @@ func (p *provider) DeleteSessionTokenByUserIDAndKey(ctx context.Context, userId,
 		return err
 	}
 	for _, id := range ids {
-		delQuery := fmt.Sprintf("DELETE FROM %s WHERE id = '%s'", KeySpace+"."+schemas.Collections.SessionToken, id)
-		if err := p.db.Query(delQuery).Exec(); err != nil {
+		delQuery := fmt.Sprintf("DELETE FROM %s WHERE id = ?", KeySpace+"."+schemas.Collections.SessionToken)
+		if err := p.db.Query(delQuery, id).Exec(); err != nil {
 			return err
 		}
 	}
@@ -72,9 +71,10 @@ func (p *provider) DeleteSessionTokenByUserIDAndKey(ctx context.Context, userId,
 // DeleteAllSessionTokensByUserID deletes all session tokens for a user ID
 func (p *provider) DeleteAllSessionTokensByUserID(ctx context.Context, userId string) error {
 	var ids []string
-	query := fmt.Sprintf(`SELECT id FROM %s WHERE user_id LIKE '%%%s%%' ALLOW FILTERING`,
-		KeySpace+"."+schemas.Collections.SessionToken, userId)
-	iter := p.db.Query(query).Iter()
+	likePattern := "%" + userId + "%"
+	query := fmt.Sprintf(`SELECT id FROM %s WHERE user_id LIKE ? ALLOW FILTERING`,
+		KeySpace+"."+schemas.Collections.SessionToken)
+	iter := p.db.Query(query, likePattern).Iter()
 	var id string
 	for iter.Scan(&id) {
 		ids = append(ids, id)
@@ -83,8 +83,8 @@ func (p *provider) DeleteAllSessionTokensByUserID(ctx context.Context, userId st
 		return err
 	}
 	for _, id := range ids {
-		delQuery := fmt.Sprintf("DELETE FROM %s WHERE id = '%s'", KeySpace+"."+schemas.Collections.SessionToken, id)
-		if err := p.db.Query(delQuery).Exec(); err != nil {
+		delQuery := fmt.Sprintf("DELETE FROM %s WHERE id = ?", KeySpace+"."+schemas.Collections.SessionToken)
+		if err := p.db.Query(delQuery, id).Exec(); err != nil {
 			return err
 		}
 	}
@@ -93,11 +93,11 @@ func (p *provider) DeleteAllSessionTokensByUserID(ctx context.Context, userId st
 
 // DeleteSessionTokensByNamespace deletes all session tokens for a namespace
 func (p *provider) DeleteSessionTokensByNamespace(ctx context.Context, namespace string) error {
-	prefix := namespace + ":"
+	likePattern := namespace + ":%"
 	var ids []string
-	query := fmt.Sprintf(`SELECT id FROM %s WHERE user_id LIKE '%s%%' ALLOW FILTERING`,
-		KeySpace+"."+schemas.Collections.SessionToken, prefix)
-	iter := p.db.Query(query).Iter()
+	query := fmt.Sprintf(`SELECT id FROM %s WHERE user_id LIKE ? ALLOW FILTERING`,
+		KeySpace+"."+schemas.Collections.SessionToken)
+	iter := p.db.Query(query, likePattern).Iter()
 	var id string
 	for iter.Scan(&id) {
 		ids = append(ids, id)
@@ -106,8 +106,8 @@ func (p *provider) DeleteSessionTokensByNamespace(ctx context.Context, namespace
 		return err
 	}
 	for _, id := range ids {
-		delQuery := fmt.Sprintf("DELETE FROM %s WHERE id = '%s'", KeySpace+"."+schemas.Collections.SessionToken, id)
-		if err := p.db.Query(delQuery).Exec(); err != nil {
+		delQuery := fmt.Sprintf("DELETE FROM %s WHERE id = ?", KeySpace+"."+schemas.Collections.SessionToken)
+		if err := p.db.Query(delQuery, id).Exec(); err != nil {
 			return err
 		}
 	}
@@ -118,9 +118,9 @@ func (p *provider) DeleteSessionTokensByNamespace(ctx context.Context, namespace
 func (p *provider) CleanExpiredSessionTokens(ctx context.Context) error {
 	currentTime := time.Now().Unix()
 	var ids []string
-	query := fmt.Sprintf(`SELECT id FROM %s WHERE expires_at < %d ALLOW FILTERING`,
-		KeySpace+"."+schemas.Collections.SessionToken, currentTime)
-	iter := p.db.Query(query).Iter()
+	query := fmt.Sprintf(`SELECT id FROM %s WHERE expires_at < ? ALLOW FILTERING`,
+		KeySpace+"."+schemas.Collections.SessionToken)
+	iter := p.db.Query(query, currentTime).Iter()
 	var id string
 	for iter.Scan(&id) {
 		ids = append(ids, id)
@@ -129,8 +129,8 @@ func (p *provider) CleanExpiredSessionTokens(ctx context.Context) error {
 		return err
 	}
 	for _, id := range ids {
-		delQuery := fmt.Sprintf("DELETE FROM %s WHERE id = '%s'", KeySpace+"."+schemas.Collections.SessionToken, id)
-		if err := p.db.Query(delQuery).Exec(); err != nil {
+		delQuery := fmt.Sprintf("DELETE FROM %s WHERE id = ?", KeySpace+"."+schemas.Collections.SessionToken)
+		if err := p.db.Query(delQuery, id).Exec(); err != nil {
 			return err
 		}
 	}
@@ -167,18 +167,17 @@ func (p *provider) AddMFASession(ctx context.Context, session *schemas.MFASessio
 	if session.UpdatedAt == 0 {
 		session.UpdatedAt = time.Now().Unix()
 	}
-	query := fmt.Sprintf(`INSERT INTO %s (id, user_id, key_name, expires_at, created_at, updated_at) VALUES ('%s', '%s', '%s', %d, %d, %d)`,
-		KeySpace+"."+schemas.Collections.MFASession,
-		session.ID, session.UserID, session.KeyName, session.ExpiresAt, session.CreatedAt, session.UpdatedAt)
-	return p.db.Query(query).Exec()
+	query := fmt.Sprintf(`INSERT INTO %s (id, user_id, key_name, expires_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)`,
+		KeySpace+"."+schemas.Collections.MFASession)
+	return p.db.Query(query, session.ID, session.UserID, session.KeyName, session.ExpiresAt, session.CreatedAt, session.UpdatedAt).Exec()
 }
 
 // GetMFASessionByUserIDAndKey retrieves an MFA session by user ID and key
 func (p *provider) GetMFASessionByUserIDAndKey(ctx context.Context, userId, key string) (*schemas.MFASession, error) {
 	var session schemas.MFASession
-	query := fmt.Sprintf(`SELECT id, user_id, key_name, expires_at, created_at, updated_at FROM %s WHERE user_id = '%s' AND key_name = '%s' LIMIT 1 ALLOW FILTERING`,
-		KeySpace+"."+schemas.Collections.MFASession, userId, key)
-	err := p.db.Query(query).Consistency(gocql.One).Scan(&session.ID, &session.UserID, &session.KeyName, &session.ExpiresAt, &session.CreatedAt, &session.UpdatedAt)
+	query := fmt.Sprintf(`SELECT id, user_id, key_name, expires_at, created_at, updated_at FROM %s WHERE user_id = ? AND key_name = ? LIMIT 1 ALLOW FILTERING`,
+		KeySpace+"."+schemas.Collections.MFASession)
+	err := p.db.Query(query, userId, key).Consistency(gocql.One).Scan(&session.ID, &session.UserID, &session.KeyName, &session.ExpiresAt, &session.CreatedAt, &session.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -187,16 +186,16 @@ func (p *provider) GetMFASessionByUserIDAndKey(ctx context.Context, userId, key 
 
 // DeleteMFASession deletes an MFA session by ID
 func (p *provider) DeleteMFASession(ctx context.Context, id string) error {
-	query := fmt.Sprintf("DELETE FROM %s WHERE id = '%s'", KeySpace+"."+schemas.Collections.MFASession, id)
-	return p.db.Query(query).Exec()
+	query := fmt.Sprintf("DELETE FROM %s WHERE id = ?", KeySpace+"."+schemas.Collections.MFASession)
+	return p.db.Query(query, id).Exec()
 }
 
 // DeleteMFASessionByUserIDAndKey deletes an MFA session by user ID and key
 func (p *provider) DeleteMFASessionByUserIDAndKey(ctx context.Context, userId, key string) error {
 	var ids []string
-	query := fmt.Sprintf(`SELECT id FROM %s WHERE user_id = '%s' AND key_name = '%s' ALLOW FILTERING`,
-		KeySpace+"."+schemas.Collections.MFASession, userId, key)
-	iter := p.db.Query(query).Iter()
+	query := fmt.Sprintf(`SELECT id FROM %s WHERE user_id = ? AND key_name = ? ALLOW FILTERING`,
+		KeySpace+"."+schemas.Collections.MFASession)
+	iter := p.db.Query(query, userId, key).Iter()
 	var id string
 	for iter.Scan(&id) {
 		ids = append(ids, id)
@@ -205,8 +204,8 @@ func (p *provider) DeleteMFASessionByUserIDAndKey(ctx context.Context, userId, k
 		return err
 	}
 	for _, id := range ids {
-		delQuery := fmt.Sprintf("DELETE FROM %s WHERE id = '%s'", KeySpace+"."+schemas.Collections.MFASession, id)
-		if err := p.db.Query(delQuery).Exec(); err != nil {
+		delQuery := fmt.Sprintf("DELETE FROM %s WHERE id = ?", KeySpace+"."+schemas.Collections.MFASession)
+		if err := p.db.Query(delQuery, id).Exec(); err != nil {
 			return err
 		}
 	}
@@ -216,9 +215,9 @@ func (p *provider) DeleteMFASessionByUserIDAndKey(ctx context.Context, userId, k
 // GetAllMFASessionsByUserID retrieves all MFA sessions for a user ID
 func (p *provider) GetAllMFASessionsByUserID(ctx context.Context, userId string) ([]*schemas.MFASession, error) {
 	var sessions []*schemas.MFASession
-	query := fmt.Sprintf(`SELECT id, user_id, key_name, expires_at, created_at, updated_at FROM %s WHERE user_id = '%s' ALLOW FILTERING`,
-		KeySpace+"."+schemas.Collections.MFASession, userId)
-	iter := p.db.Query(query).Iter()
+	query := fmt.Sprintf(`SELECT id, user_id, key_name, expires_at, created_at, updated_at FROM %s WHERE user_id = ? ALLOW FILTERING`,
+		KeySpace+"."+schemas.Collections.MFASession)
+	iter := p.db.Query(query, userId).Iter()
 	for {
 		var session schemas.MFASession
 		if !iter.Scan(&session.ID, &session.UserID, &session.KeyName, &session.ExpiresAt, &session.CreatedAt, &session.UpdatedAt) {
@@ -236,9 +235,9 @@ func (p *provider) GetAllMFASessionsByUserID(ctx context.Context, userId string)
 func (p *provider) CleanExpiredMFASessions(ctx context.Context) error {
 	currentTime := time.Now().Unix()
 	var ids []string
-	query := fmt.Sprintf(`SELECT id FROM %s WHERE expires_at < %d ALLOW FILTERING`,
-		KeySpace+"."+schemas.Collections.MFASession, currentTime)
-	iter := p.db.Query(query).Iter()
+	query := fmt.Sprintf(`SELECT id FROM %s WHERE expires_at < ? ALLOW FILTERING`,
+		KeySpace+"."+schemas.Collections.MFASession)
+	iter := p.db.Query(query, currentTime).Iter()
 	var id string
 	for iter.Scan(&id) {
 		ids = append(ids, id)
@@ -247,8 +246,8 @@ func (p *provider) CleanExpiredMFASessions(ctx context.Context) error {
 		return err
 	}
 	for _, id := range ids {
-		delQuery := fmt.Sprintf("DELETE FROM %s WHERE id = '%s'", KeySpace+"."+schemas.Collections.MFASession, id)
-		if err := p.db.Query(delQuery).Exec(); err != nil {
+		delQuery := fmt.Sprintf("DELETE FROM %s WHERE id = ?", KeySpace+"."+schemas.Collections.MFASession)
+		if err := p.db.Query(delQuery, id).Exec(); err != nil {
 			return err
 		}
 	}
@@ -287,29 +286,28 @@ func (p *provider) AddOAuthState(ctx context.Context, state *schemas.OAuthState)
 	}
 	// Delete existing state with same state_key first
 	var existingIDs []string
-	selectQuery := fmt.Sprintf(`SELECT id FROM %s WHERE state_key = '%s' ALLOW FILTERING`,
-		KeySpace+"."+schemas.Collections.OAuthState, state.StateKey)
-	iter := p.db.Query(selectQuery).Iter()
+	selectQuery := fmt.Sprintf(`SELECT id FROM %s WHERE state_key = ? ALLOW FILTERING`,
+		KeySpace+"."+schemas.Collections.OAuthState)
+	iter := p.db.Query(selectQuery, state.StateKey).Iter()
 	var id string
 	for iter.Scan(&id) {
 		existingIDs = append(existingIDs, id)
 	}
 	iter.Close()
 	for _, eid := range existingIDs {
-		p.db.Query(fmt.Sprintf("DELETE FROM %s WHERE id = '%s'", KeySpace+"."+schemas.Collections.OAuthState, eid)).Exec()
+		p.db.Query(fmt.Sprintf("DELETE FROM %s WHERE id = ?", KeySpace+"."+schemas.Collections.OAuthState), eid).Exec()
 	}
-	query := fmt.Sprintf(`INSERT INTO %s (id, state_key, state, created_at, updated_at) VALUES ('%s', '%s', '%s', %d, %d)`,
-		KeySpace+"."+schemas.Collections.OAuthState,
-		state.ID, state.StateKey, state.State, state.CreatedAt, state.UpdatedAt)
-	return p.db.Query(query).Exec()
+	query := fmt.Sprintf(`INSERT INTO %s (id, state_key, state, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`,
+		KeySpace+"."+schemas.Collections.OAuthState)
+	return p.db.Query(query, state.ID, state.StateKey, state.State, state.CreatedAt, state.UpdatedAt).Exec()
 }
 
 // GetOAuthStateByKey retrieves an OAuth state by key
 func (p *provider) GetOAuthStateByKey(ctx context.Context, key string) (*schemas.OAuthState, error) {
 	var state schemas.OAuthState
-	query := fmt.Sprintf(`SELECT id, state_key, state, created_at, updated_at FROM %s WHERE state_key = '%s' LIMIT 1 ALLOW FILTERING`,
-		KeySpace+"."+schemas.Collections.OAuthState, key)
-	err := p.db.Query(query).Consistency(gocql.One).Scan(&state.ID, &state.StateKey, &state.State, &state.CreatedAt, &state.UpdatedAt)
+	query := fmt.Sprintf(`SELECT id, state_key, state, created_at, updated_at FROM %s WHERE state_key = ? LIMIT 1 ALLOW FILTERING`,
+		KeySpace+"."+schemas.Collections.OAuthState)
+	err := p.db.Query(query, key).Consistency(gocql.One).Scan(&state.ID, &state.StateKey, &state.State, &state.CreatedAt, &state.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -319,9 +317,9 @@ func (p *provider) GetOAuthStateByKey(ctx context.Context, key string) (*schemas
 // DeleteOAuthStateByKey deletes an OAuth state by key
 func (p *provider) DeleteOAuthStateByKey(ctx context.Context, key string) error {
 	var ids []string
-	query := fmt.Sprintf(`SELECT id FROM %s WHERE state_key = '%s' ALLOW FILTERING`,
-		KeySpace+"."+schemas.Collections.OAuthState, key)
-	iter := p.db.Query(query).Iter()
+	query := fmt.Sprintf(`SELECT id FROM %s WHERE state_key = ? ALLOW FILTERING`,
+		KeySpace+"."+schemas.Collections.OAuthState)
+	iter := p.db.Query(query, key).Iter()
 	var id string
 	for iter.Scan(&id) {
 		ids = append(ids, id)
@@ -330,8 +328,8 @@ func (p *provider) DeleteOAuthStateByKey(ctx context.Context, key string) error 
 		return err
 	}
 	for _, id := range ids {
-		delQuery := fmt.Sprintf("DELETE FROM %s WHERE id = '%s'", KeySpace+"."+schemas.Collections.OAuthState, id)
-		if err := p.db.Query(delQuery).Exec(); err != nil {
+		delQuery := fmt.Sprintf("DELETE FROM %s WHERE id = ?", KeySpace+"."+schemas.Collections.OAuthState)
+		if err := p.db.Query(delQuery, id).Exec(); err != nil {
 			return err
 		}
 	}

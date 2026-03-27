@@ -22,8 +22,8 @@ func (p *provider) AddWebhookLog(ctx context.Context, webhookLog *schemas.Webhoo
 	webhookLog.CreatedAt = time.Now().Unix()
 	webhookLog.UpdatedAt = time.Now().Unix()
 
-	insertQuery := fmt.Sprintf("INSERT INTO %s (id, http_status, response, request, webhook_id, created_at, updated_at) VALUES ('%s', %d,'%s', '%s', '%s', %d, %d)", KeySpace+"."+schemas.Collections.WebhookLog, webhookLog.ID, webhookLog.HttpStatus, webhookLog.Response, webhookLog.Request, webhookLog.WebhookID, webhookLog.CreatedAt, webhookLog.UpdatedAt)
-	err := p.db.Query(insertQuery).Exec()
+	insertQuery := fmt.Sprintf("INSERT INTO %s (id, http_status, response, request, webhook_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)", KeySpace+"."+schemas.Collections.WebhookLog)
+	err := p.db.Query(insertQuery, webhookLog.ID, webhookLog.HttpStatus, webhookLog.Response, webhookLog.Request, webhookLog.WebhookID, webhookLog.CreatedAt, webhookLog.UpdatedAt).Exec()
 	if err != nil {
 		return nil, err
 	}
@@ -34,33 +34,49 @@ func (p *provider) AddWebhookLog(ctx context.Context, webhookLog *schemas.Webhoo
 func (p *provider) ListWebhookLogs(ctx context.Context, pagination *model.Pagination, webhookID string) ([]*schemas.WebhookLog, *model.Pagination, error) {
 	webhookLogs := []*schemas.WebhookLog{}
 	paginationClone := pagination
-	totalCountQuery := fmt.Sprintf(`SELECT COUNT(*) FROM %s`, KeySpace+"."+schemas.Collections.WebhookLog)
 	// there is no offset in cassandra
 	// so we fetch till limit + offset
 	// and return the results from offset to limit
-	query := fmt.Sprintf("SELECT id, http_status, response, request, webhook_id, created_at, updated_at FROM %s LIMIT %d", KeySpace+"."+schemas.Collections.WebhookLog, pagination.Limit+pagination.Offset)
 	if webhookID != "" {
-		totalCountQuery = fmt.Sprintf(`SELECT COUNT(*) FROM %s WHERE webhook_id='%s' ALLOW FILTERING`, KeySpace+"."+schemas.Collections.WebhookLog, webhookID)
-		query = fmt.Sprintf("SELECT id, http_status, response, request, webhook_id, created_at, updated_at FROM %s WHERE webhook_id = '%s' LIMIT %d ALLOW FILTERING", KeySpace+"."+schemas.Collections.WebhookLog, webhookID, pagination.Limit+pagination.Offset)
-	}
-
-	err := p.db.Query(totalCountQuery).Consistency(gocql.One).Scan(&paginationClone.Total)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	scanner := p.db.Query(query).Iter().Scanner()
-	counter := int64(0)
-	for scanner.Next() {
-		if counter >= pagination.Offset {
-			var webhookLog schemas.WebhookLog
-			err := scanner.Scan(&webhookLog.ID, &webhookLog.HttpStatus, &webhookLog.Response, &webhookLog.Request, &webhookLog.WebhookID, &webhookLog.CreatedAt, &webhookLog.UpdatedAt)
-			if err != nil {
-				return nil, nil, err
-			}
-			webhookLogs = append(webhookLogs, &webhookLog)
+		totalCountQuery := fmt.Sprintf(`SELECT COUNT(*) FROM %s WHERE webhook_id=? ALLOW FILTERING`, KeySpace+"."+schemas.Collections.WebhookLog)
+		err := p.db.Query(totalCountQuery, webhookID).Consistency(gocql.One).Scan(&paginationClone.Total)
+		if err != nil {
+			return nil, nil, err
 		}
-		counter++
+		query := fmt.Sprintf("SELECT id, http_status, response, request, webhook_id, created_at, updated_at FROM %s WHERE webhook_id = ? LIMIT %d ALLOW FILTERING", KeySpace+"."+schemas.Collections.WebhookLog, pagination.Limit+pagination.Offset)
+		scanner := p.db.Query(query, webhookID).Iter().Scanner()
+		counter := int64(0)
+		for scanner.Next() {
+			if counter >= pagination.Offset {
+				var webhookLog schemas.WebhookLog
+				err := scanner.Scan(&webhookLog.ID, &webhookLog.HttpStatus, &webhookLog.Response, &webhookLog.Request, &webhookLog.WebhookID, &webhookLog.CreatedAt, &webhookLog.UpdatedAt)
+				if err != nil {
+					return nil, nil, err
+				}
+				webhookLogs = append(webhookLogs, &webhookLog)
+			}
+			counter++
+		}
+	} else {
+		totalCountQuery := fmt.Sprintf(`SELECT COUNT(*) FROM %s`, KeySpace+"."+schemas.Collections.WebhookLog)
+		err := p.db.Query(totalCountQuery).Consistency(gocql.One).Scan(&paginationClone.Total)
+		if err != nil {
+			return nil, nil, err
+		}
+		query := fmt.Sprintf("SELECT id, http_status, response, request, webhook_id, created_at, updated_at FROM %s LIMIT %d", KeySpace+"."+schemas.Collections.WebhookLog, pagination.Limit+pagination.Offset)
+		scanner := p.db.Query(query).Iter().Scanner()
+		counter := int64(0)
+		for scanner.Next() {
+			if counter >= pagination.Offset {
+				var webhookLog schemas.WebhookLog
+				err := scanner.Scan(&webhookLog.ID, &webhookLog.HttpStatus, &webhookLog.Response, &webhookLog.Request, &webhookLog.WebhookID, &webhookLog.CreatedAt, &webhookLog.UpdatedAt)
+				if err != nil {
+					return nil, nil, err
+				}
+				webhookLogs = append(webhookLogs, &webhookLog)
+			}
+			counter++
+		}
 	}
 
 	return webhookLogs, paginationClone, nil

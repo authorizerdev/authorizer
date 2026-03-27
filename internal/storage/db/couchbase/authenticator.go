@@ -50,7 +50,8 @@ func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators *sche
 		return nil, err
 	}
 	updateFields, params := GetSetFields(authenticator)
-	query := fmt.Sprintf("UPDATE %s.%s SET %s WHERE _id = '%s'", p.scopeName, schemas.Collections.Authenticators, updateFields, authenticators.ID)
+	params["_id"] = authenticators.ID
+	query := fmt.Sprintf("UPDATE %s.%s SET %s WHERE _id = $_id", p.scopeName, schemas.Collections.Authenticators, updateFields)
 	_, err = p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,

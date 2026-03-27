@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"reflect"
 	"strings"
 	"time"
 
@@ -42,7 +41,8 @@ func (p *provider) AddAuthenticator(ctx context.Context, authenticators *schemas
 	}
 
 	fields := "("
-	values := "("
+	placeholders := "("
+	var insertValues []interface{}
 	for key, value := range authenticatorsMap {
 		if value != nil {
 			if key == "_id" {
@@ -50,21 +50,16 @@ func (p *provider) AddAuthenticator(ctx context.Context, authenticators *schemas
 			} else {
 				fields += key + ","
 			}
-
-			valueType := reflect.TypeOf(value)
-			if valueType.Name() == "string" {
-				values += fmt.Sprintf("'%s',", value.(string))
-			} else {
-				values += fmt.Sprintf("%v,", value)
-			}
+			placeholders += "?,"
+			insertValues = append(insertValues, value)
 		}
 	}
 
 	fields = fields[:len(fields)-1] + ")"
-	values = values[:len(values)-1] + ")"
+	placeholders = placeholders[:len(placeholders)-1] + ")"
 
-	query := fmt.Sprintf("INSERT INTO %s %s VALUES %s IF NOT EXISTS", KeySpace+"."+schemas.Collections.Authenticators, fields, values)
-	err = p.db.Query(query).Exec()
+	query := fmt.Sprintf("INSERT INTO %s %s VALUES %s IF NOT EXISTS", KeySpace+"."+schemas.Collections.Authenticators, fields, placeholders)
+	err = p.db.Query(query, insertValues...).Exec()
 	if err != nil {
 		return nil, err
 	}
@@ -89,6 +84,7 @@ func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators *sche
 	}
 
 	updateFields := ""
+	var updateValues []interface{}
 	for key, value := range authenticatorsMap {
 		if key == "_id" {
 			continue
@@ -103,18 +99,15 @@ func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators *sche
 			continue
 		}
 
-		valueType := reflect.TypeOf(value)
-		if valueType.Name() == "string" {
-			updateFields += fmt.Sprintf("%s = '%s', ", key, value.(string))
-		} else {
-			updateFields += fmt.Sprintf("%s = %v, ", key, value)
-		}
+		updateFields += fmt.Sprintf("%s = ?, ", key)
+		updateValues = append(updateValues, value)
 	}
 	updateFields = strings.Trim(updateFields, " ")
 	updateFields = strings.TrimSuffix(updateFields, ",")
 
-	query := fmt.Sprintf("UPDATE %s SET %s WHERE id = '%s'", KeySpace+"."+schemas.Collections.Authenticators, updateFields, authenticators.ID)
-	err = p.db.Query(query).Exec()
+	updateValues = append(updateValues, authenticators.ID)
+	query := fmt.Sprintf("UPDATE %s SET %s WHERE id = ?", KeySpace+"."+schemas.Collections.Authenticators, updateFields)
+	err = p.db.Query(query, updateValues...).Exec()
 	if err != nil {
 		return nil, err
 	}
@@ -124,8 +117,8 @@ func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators *sche
 
 func (p *provider) GetAuthenticatorDetailsByUserId(ctx context.Context, userId string, authenticatorType string) (*schemas.Authenticator, error) {
 	var authenticators schemas.Authenticator
-	query := fmt.Sprintf("SELECT id, user_id, method, secret, recovery_codes, verified_at, created_at, updated_at FROM %s WHERE user_id = '%s' AND method = '%s' LIMIT 1 ALLOW FILTERING", KeySpace+"."+schemas.Collections.Authenticators, userId, authenticatorType)
-	err := p.db.Query(query).Consistency(gocql.One).Scan(&authenticators.ID, &authenticators.UserID, &authenticators.Method, &authenticators.Secret, &authenticators.RecoveryCodes, &authenticators.VerifiedAt, &authenticators.CreatedAt, &authenticators.UpdatedAt)
+	query := fmt.Sprintf("SELECT id, user_id, method, secret, recovery_codes, verified_at, created_at, updated_at FROM %s WHERE user_id = ? AND method = ? LIMIT 1 ALLOW FILTERING", KeySpace+"."+schemas.Collections.Authenticators)
+	err := p.db.Query(query, userId, authenticatorType).Consistency(gocql.One).Scan(&authenticators.ID, &authenticators.UserID, &authenticators.Method, &authenticators.Secret, &authenticators.RecoveryCodes, &authenticators.VerifiedAt, &authenticators.CreatedAt, &authenticators.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}

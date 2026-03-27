@@ -21,8 +21,8 @@ func (p *provider) AddVerificationRequest(ctx context.Context, verificationReque
 	verificationRequest.CreatedAt = time.Now().Unix()
 	verificationRequest.UpdatedAt = time.Now().Unix()
 
-	query := fmt.Sprintf("INSERT INTO %s (id, jwt_token, identifier, expires_at, email, nonce, redirect_uri, created_at, updated_at) VALUES ('%s', '%s', '%s', %d, '%s', '%s', '%s', %d, %d)", KeySpace+"."+schemas.Collections.VerificationRequest, verificationRequest.ID, verificationRequest.Token, verificationRequest.Identifier, verificationRequest.ExpiresAt, verificationRequest.Email, verificationRequest.Nonce, verificationRequest.RedirectURI, verificationRequest.CreatedAt, verificationRequest.UpdatedAt)
-	err := p.db.Query(query).Exec()
+	query := fmt.Sprintf("INSERT INTO %s (id, jwt_token, identifier, expires_at, email, nonce, redirect_uri, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", KeySpace+"."+schemas.Collections.VerificationRequest)
+	err := p.db.Query(query, verificationRequest.ID, verificationRequest.Token, verificationRequest.Identifier, verificationRequest.ExpiresAt, verificationRequest.Email, verificationRequest.Nonce, verificationRequest.RedirectURI, verificationRequest.CreatedAt, verificationRequest.UpdatedAt).Exec()
 	if err != nil {
 		return nil, err
 	}
@@ -32,9 +32,9 @@ func (p *provider) AddVerificationRequest(ctx context.Context, verificationReque
 // GetVerificationRequestByToken to get verification request from database using token
 func (p *provider) GetVerificationRequestByToken(ctx context.Context, token string) (*schemas.VerificationRequest, error) {
 	var verificationRequest schemas.VerificationRequest
-	query := fmt.Sprintf(`SELECT id, jwt_token, identifier, expires_at, email, nonce, redirect_uri, created_at, updated_at FROM %s WHERE jwt_token = '%s' LIMIT 1`, KeySpace+"."+schemas.Collections.VerificationRequest, token)
+	query := fmt.Sprintf(`SELECT id, jwt_token, identifier, expires_at, email, nonce, redirect_uri, created_at, updated_at FROM %s WHERE jwt_token = ? LIMIT 1`, KeySpace+"."+schemas.Collections.VerificationRequest)
 
-	err := p.db.Query(query).Consistency(gocql.One).Scan(&verificationRequest.ID, &verificationRequest.Token, &verificationRequest.Identifier, &verificationRequest.ExpiresAt, &verificationRequest.Email, &verificationRequest.Nonce, &verificationRequest.RedirectURI, &verificationRequest.CreatedAt, &verificationRequest.UpdatedAt)
+	err := p.db.Query(query, token).Consistency(gocql.One).Scan(&verificationRequest.ID, &verificationRequest.Token, &verificationRequest.Identifier, &verificationRequest.ExpiresAt, &verificationRequest.Email, &verificationRequest.Nonce, &verificationRequest.RedirectURI, &verificationRequest.CreatedAt, &verificationRequest.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -44,9 +44,9 @@ func (p *provider) GetVerificationRequestByToken(ctx context.Context, token stri
 // GetVerificationRequestByEmail to get verification request by email from database
 func (p *provider) GetVerificationRequestByEmail(ctx context.Context, email string, identifier string) (*schemas.VerificationRequest, error) {
 	var verificationRequest schemas.VerificationRequest
-	query := fmt.Sprintf(`SELECT id, jwt_token, identifier, expires_at, email, nonce, redirect_uri, created_at, updated_at FROM %s WHERE email = '%s' AND identifier = '%s' LIMIT 1 ALLOW FILTERING`, KeySpace+"."+schemas.Collections.VerificationRequest, email, identifier)
+	query := fmt.Sprintf(`SELECT id, jwt_token, identifier, expires_at, email, nonce, redirect_uri, created_at, updated_at FROM %s WHERE email = ? AND identifier = ? LIMIT 1 ALLOW FILTERING`, KeySpace+"."+schemas.Collections.VerificationRequest)
 
-	err := p.db.Query(query).Consistency(gocql.One).Scan(&verificationRequest.ID, &verificationRequest.Token, &verificationRequest.Identifier, &verificationRequest.ExpiresAt, &verificationRequest.Email, &verificationRequest.Nonce, &verificationRequest.RedirectURI, &verificationRequest.CreatedAt, &verificationRequest.UpdatedAt)
+	err := p.db.Query(query, email, identifier).Consistency(gocql.One).Scan(&verificationRequest.ID, &verificationRequest.Token, &verificationRequest.Identifier, &verificationRequest.ExpiresAt, &verificationRequest.Email, &verificationRequest.Nonce, &verificationRequest.RedirectURI, &verificationRequest.CreatedAt, &verificationRequest.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -87,8 +87,8 @@ func (p *provider) ListVerificationRequests(ctx context.Context, pagination *mod
 
 // DeleteVerificationRequest to delete verification request from database
 func (p *provider) DeleteVerificationRequest(ctx context.Context, verificationRequest *schemas.VerificationRequest) error {
-	query := fmt.Sprintf("DELETE FROM %s WHERE id = '%s'", KeySpace+"."+schemas.Collections.VerificationRequest, verificationRequest.ID)
-	err := p.db.Query(query).Exec()
+	query := fmt.Sprintf("DELETE FROM %s WHERE id = ?", KeySpace+"."+schemas.Collections.VerificationRequest)
+	err := p.db.Query(query, verificationRequest.ID).Exec()
 	if err != nil {
 		return err
 	}
