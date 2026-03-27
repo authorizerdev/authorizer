@@ -51,6 +51,7 @@ func (p *provider) UpdateWebhook(ctx context.Context, webhook *schemas.Webhook) 
 	if err != nil {
 		return nil, err
 	}
+	convertMapValues(webhookMap)
 	updateFields := ""
 	var updateValues []interface{}
 	for key, value := range webhookMap {

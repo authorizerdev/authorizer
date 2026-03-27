@@ -49,6 +49,7 @@ func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate *schem
 	if err != nil {
 		return nil, err
 	}
+	convertMapValues(emailTemplateMap)
 	updateFields := ""
 	var updateValues []interface{}
 	for key, value := range emailTemplateMap {

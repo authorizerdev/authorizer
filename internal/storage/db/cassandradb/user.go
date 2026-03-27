@@ -51,6 +51,7 @@ func (p *provider) AddUser(ctx context.Context, user *schemas.User) (*schemas.Us
 	if err != nil {
 		return nil, err
 	}
+	convertMapValues(userMap)
 
 	fields := "("
 	placeholders := "("
@@ -96,6 +97,7 @@ func (p *provider) UpdateUser(ctx context.Context, user *schemas.User) (*schemas
 	if err != nil {
 		return nil, err
 	}
+	convertMapValues(userMap)
 
 	updateFields := ""
 	var updateValues []interface{}
@@ -225,6 +227,7 @@ func (p *provider) GetUserByID(ctx context.Context, id string) (*schemas.User, e
 func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{}, ids []string) error {
 	// set updated_at time for all users
 	data["updated_at"] = time.Now().Unix()
+	convertMapValues(data)
 
 	updateFields := ""
 	var updateValues []interface{}

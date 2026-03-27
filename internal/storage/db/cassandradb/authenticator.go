@@ -39,6 +39,7 @@ func (p *provider) AddAuthenticator(ctx context.Context, authenticators *schemas
 	if err != nil {
 		return nil, err
 	}
+	convertMapValues(authenticatorsMap)
 
 	fields := "("
 	placeholders := "("
@@ -82,6 +83,7 @@ func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators *sche
 	if err != nil {
 		return nil, err
 	}
+	convertMapValues(authenticatorsMap)
 
 	updateFields := ""
 	var updateValues []interface{}
