@@ -3,6 +3,7 @@ package cassandradb
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -349,4 +350,18 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 		dependencies: deps,
 		db:           session,
 	}, err
+}
+
+// convertMapValues converts json.Number values in a map to native Go types
+// (int64 or float64) so gocql can marshal them into CQL bigint/double columns.
+func convertMapValues(m map[string]interface{}) {
+	for key, value := range m {
+		if num, ok := value.(json.Number); ok {
+			if i, err := num.Int64(); err == nil {
+				m[key] = i
+			} else if f, err := num.Float64(); err == nil {
+				m[key] = f
+			}
+		}
+	}
 }

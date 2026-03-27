@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"reflect"
 	"strings"
 	"time"
 
@@ -25,8 +24,8 @@ func (p *provider) AddWebhook(ctx context.Context, webhook *schemas.Webhook) (*s
 	webhook.UpdatedAt = time.Now().Unix()
 	// Add timestamp to make event name unique for legacy version
 	webhook.EventName = fmt.Sprintf("%s-%d", webhook.EventName, time.Now().Unix())
-	insertQuery := fmt.Sprintf("INSERT INTO %s (id, event_description, event_name, endpoint, headers, enabled,  created_at, updated_at) VALUES ('%s', '%s', '%s', '%s', '%s', %t, %d, %d)", KeySpace+"."+schemas.Collections.Webhook, webhook.ID, webhook.EventDescription, webhook.EventName, webhook.EndPoint, webhook.Headers, webhook.Enabled, webhook.CreatedAt, webhook.UpdatedAt)
-	err := p.db.Query(insertQuery).Exec()
+	insertQuery := fmt.Sprintf("INSERT INTO %s (id, event_description, event_name, endpoint, headers, enabled, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", KeySpace+"."+schemas.Collections.Webhook)
+	err := p.db.Query(insertQuery, webhook.ID, webhook.EventDescription, webhook.EventName, webhook.EndPoint, webhook.Headers, webhook.Enabled, webhook.CreatedAt, webhook.UpdatedAt).Exec()
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +51,9 @@ func (p *provider) UpdateWebhook(ctx context.Context, webhook *schemas.Webhook) 
 	if err != nil {
 		return nil, err
 	}
+	convertMapValues(webhookMap)
 	updateFields := ""
+	var updateValues []interface{}
 	for key, value := range webhookMap {
 		if key == "_id" {
 			continue
@@ -64,17 +65,14 @@ func (p *provider) UpdateWebhook(ctx context.Context, webhook *schemas.Webhook) 
 			updateFields += fmt.Sprintf("%s = null,", key)
 			continue
 		}
-		valueType := reflect.TypeOf(value)
-		if valueType.Name() == "string" {
-			updateFields += fmt.Sprintf("%s = '%s', ", key, value.(string))
-		} else {
-			updateFields += fmt.Sprintf("%s = %v, ", key, value)
-		}
+		updateFields += fmt.Sprintf("%s = ?, ", key)
+		updateValues = append(updateValues, value)
 	}
 	updateFields = strings.Trim(updateFields, " ")
 	updateFields = strings.TrimSuffix(updateFields, ",")
-	query := fmt.Sprintf("UPDATE %s SET %s WHERE id = '%s'", KeySpace+"."+schemas.Collections.Webhook, updateFields, webhook.ID)
-	err = p.db.Query(query).Exec()
+	updateValues = append(updateValues, webhook.ID)
+	query := fmt.Sprintf("UPDATE %s SET %s WHERE id = ?", KeySpace+"."+schemas.Collections.Webhook, updateFields)
+	err = p.db.Query(query, updateValues...).Exec()
 	if err != nil {
 		return nil, err
 	}
@@ -114,8 +112,8 @@ func (p *provider) ListWebhook(ctx context.Context, pagination *model.Pagination
 // GetWebhookByID to get webhook by id
 func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*schemas.Webhook, error) {
 	var webhook schemas.Webhook
-	query := fmt.Sprintf(`SELECT id, event_description, event_name, endpoint, headers, enabled, created_at, updated_at FROM %s WHERE id = '%s' LIMIT 1`, KeySpace+"."+schemas.Collections.Webhook, webhookID)
-	err := p.db.Query(query).Consistency(gocql.One).Scan(&webhook.ID, &webhook.EventDescription, &webhook.EventName, &webhook.EndPoint, &webhook.Headers, &webhook.Enabled, &webhook.CreatedAt, &webhook.UpdatedAt)
+	query := fmt.Sprintf(`SELECT id, event_description, event_name, endpoint, headers, enabled, created_at, updated_at FROM %s WHERE id = ? LIMIT 1`, KeySpace+"."+schemas.Collections.Webhook)
+	err := p.db.Query(query, webhookID).Consistency(gocql.One).Scan(&webhook.ID, &webhook.EventDescription, &webhook.EventName, &webhook.EndPoint, &webhook.Headers, &webhook.Enabled, &webhook.CreatedAt, &webhook.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -124,8 +122,8 @@ func (p *provider) GetWebhookByID(ctx context.Context, webhookID string) (*schem
 
 // GetWebhookByEventName to get webhook by event_name
 func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) ([]*schemas.Webhook, error) {
-	query := fmt.Sprintf(`SELECT id, event_description, event_name, endpoint, headers, enabled, created_at, updated_at FROM %s WHERE event_name LIKE '%s' ALLOW FILTERING`, KeySpace+"."+schemas.Collections.Webhook, eventName+"%")
-	scanner := p.db.Query(query).Iter().Scanner()
+	query := fmt.Sprintf(`SELECT id, event_description, event_name, endpoint, headers, enabled, created_at, updated_at FROM %s WHERE event_name LIKE ? ALLOW FILTERING`, KeySpace+"."+schemas.Collections.Webhook)
+	scanner := p.db.Query(query, eventName+"%").Iter().Scanner()
 	webhooks := []*schemas.Webhook{}
 	for scanner.Next() {
 		var webhook schemas.Webhook
@@ -140,25 +138,35 @@ func (p *provider) GetWebhookByEventName(ctx context.Context, eventName string) 
 
 // DeleteWebhook to delete webhook
 func (p *provider) DeleteWebhook(ctx context.Context, webhook *schemas.Webhook) error {
-	query := fmt.Sprintf("DELETE FROM %s WHERE id = '%s'", KeySpace+"."+schemas.Collections.Webhook, webhook.ID)
-	err := p.db.Query(query).Exec()
+	query := fmt.Sprintf("DELETE FROM %s WHERE id = ?", KeySpace+"."+schemas.Collections.Webhook)
+	err := p.db.Query(query, webhook.ID).Exec()
 	if err != nil {
 		return err
 	}
 
-	getWebhookLogQuery := fmt.Sprintf("SELECT id FROM %s WHERE webhook_id = '%s' ALLOW FILTERING", KeySpace+"."+schemas.Collections.WebhookLog, webhook.ID)
-	scanner := p.db.Query(getWebhookLogQuery).Iter().Scanner()
-	webhookLogIDs := ""
+	getWebhookLogQuery := fmt.Sprintf("SELECT id FROM %s WHERE webhook_id = ? ALLOW FILTERING", KeySpace+"."+schemas.Collections.WebhookLog)
+	scanner := p.db.Query(getWebhookLogQuery, webhook.ID).Iter().Scanner()
+	var webhookLogIDList []string
 	for scanner.Next() {
 		var wlID string
 		err = scanner.Scan(&wlID)
 		if err != nil {
 			return err
 		}
-		webhookLogIDs += fmt.Sprintf("'%s',", wlID)
+		webhookLogIDList = append(webhookLogIDList, wlID)
 	}
-	webhookLogIDs = strings.TrimSuffix(webhookLogIDs, ",")
-	query = fmt.Sprintf("DELETE FROM %s WHERE id IN (%s)", KeySpace+"."+schemas.Collections.WebhookLog, webhookLogIDs)
-	err = p.db.Query(query).Exec()
-	return err
+	if len(webhookLogIDList) > 0 {
+		placeholders := strings.Repeat("?,", len(webhookLogIDList))
+		placeholders = strings.TrimSuffix(placeholders, ",")
+		deleteValues := make([]interface{}, len(webhookLogIDList))
+		for i, id := range webhookLogIDList {
+			deleteValues[i] = id
+		}
+		query = fmt.Sprintf("DELETE FROM %s WHERE id IN (%s)", KeySpace+"."+schemas.Collections.WebhookLog, placeholders)
+		err = p.db.Query(query, deleteValues...).Exec()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"reflect"
 	"strings"
 	"time"
 
@@ -27,8 +26,8 @@ func (p *provider) AddEmailTemplate(ctx context.Context, emailTemplate *schemas.
 	if existingEmailTemplate != nil {
 		return nil, fmt.Errorf("email template with %s event_name already exists", emailTemplate.EventName)
 	}
-	insertQuery := fmt.Sprintf("INSERT INTO %s (id, event_name, subject, design, template,  created_at, updated_at) VALUES ('%s', '%s', '%s','%s','%s', %d, %d)", KeySpace+"."+schemas.Collections.EmailTemplate, emailTemplate.ID, emailTemplate.EventName, emailTemplate.Subject, emailTemplate.Design, emailTemplate.Template, emailTemplate.CreatedAt, emailTemplate.UpdatedAt)
-	err := p.db.Query(insertQuery).Exec()
+	insertQuery := fmt.Sprintf("INSERT INTO %s (id, event_name, subject, design, template, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)", KeySpace+"."+schemas.Collections.EmailTemplate)
+	err := p.db.Query(insertQuery, emailTemplate.ID, emailTemplate.EventName, emailTemplate.Subject, emailTemplate.Design, emailTemplate.Template, emailTemplate.CreatedAt, emailTemplate.UpdatedAt).Exec()
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +49,9 @@ func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate *schem
 	if err != nil {
 		return nil, err
 	}
+	convertMapValues(emailTemplateMap)
 	updateFields := ""
+	var updateValues []interface{}
 	for key, value := range emailTemplateMap {
 		if key == "_id" {
 			continue
@@ -62,18 +63,15 @@ func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate *schem
 			updateFields += fmt.Sprintf("%s = null,", key)
 			continue
 		}
-		valueType := reflect.TypeOf(value)
-		if valueType.Name() == "string" {
-			updateFields += fmt.Sprintf("%s = '%s', ", key, value.(string))
-		} else {
-			updateFields += fmt.Sprintf("%s = %v, ", key, value)
-		}
+		updateFields += fmt.Sprintf("%s = ?, ", key)
+		updateValues = append(updateValues, value)
 	}
 	updateFields = strings.Trim(updateFields, " ")
 	updateFields = strings.TrimSuffix(updateFields, ",")
 
-	query := fmt.Sprintf("UPDATE %s SET %s WHERE id = '%s'", KeySpace+"."+schemas.Collections.EmailTemplate, updateFields, emailTemplate.ID)
-	err = p.db.Query(query).Exec()
+	updateValues = append(updateValues, emailTemplate.ID)
+	query := fmt.Sprintf("UPDATE %s SET %s WHERE id = ?", KeySpace+"."+schemas.Collections.EmailTemplate, updateFields)
+	err = p.db.Query(query, updateValues...).Exec()
 	if err != nil {
 		return nil, err
 	}
@@ -116,8 +114,8 @@ func (p *provider) ListEmailTemplate(ctx context.Context, pagination *model.Pagi
 // GetEmailTemplateByID to get EmailTemplate by id
 func (p *provider) GetEmailTemplateByID(ctx context.Context, emailTemplateID string) (*schemas.EmailTemplate, error) {
 	var emailTemplate schemas.EmailTemplate
-	query := fmt.Sprintf(`SELECT id, event_name, subject, design, template, created_at, updated_at FROM %s WHERE id = '%s' LIMIT 1`, KeySpace+"."+schemas.Collections.EmailTemplate, emailTemplateID)
-	err := p.db.Query(query).Consistency(gocql.One).Scan(&emailTemplate.ID, &emailTemplate.EventName, &emailTemplate.Subject, &emailTemplate.Design, &emailTemplate.Template, &emailTemplate.CreatedAt, &emailTemplate.UpdatedAt)
+	query := fmt.Sprintf(`SELECT id, event_name, subject, design, template, created_at, updated_at FROM %s WHERE id = ? LIMIT 1`, KeySpace+"."+schemas.Collections.EmailTemplate)
+	err := p.db.Query(query, emailTemplateID).Consistency(gocql.One).Scan(&emailTemplate.ID, &emailTemplate.EventName, &emailTemplate.Subject, &emailTemplate.Design, &emailTemplate.Template, &emailTemplate.CreatedAt, &emailTemplate.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -127,8 +125,8 @@ func (p *provider) GetEmailTemplateByID(ctx context.Context, emailTemplateID str
 // GetEmailTemplateByEventName to get EmailTemplate by event_name
 func (p *provider) GetEmailTemplateByEventName(ctx context.Context, eventName string) (*schemas.EmailTemplate, error) {
 	var emailTemplate schemas.EmailTemplate
-	query := fmt.Sprintf(`SELECT id, event_name, subject, design, template, created_at, updated_at FROM %s WHERE event_name = '%s' LIMIT 1 ALLOW FILTERING`, KeySpace+"."+schemas.Collections.EmailTemplate, eventName)
-	err := p.db.Query(query).Consistency(gocql.One).Scan(&emailTemplate.ID, &emailTemplate.EventName, &emailTemplate.Subject, &emailTemplate.Design, &emailTemplate.Template, &emailTemplate.CreatedAt, &emailTemplate.UpdatedAt)
+	query := fmt.Sprintf(`SELECT id, event_name, subject, design, template, created_at, updated_at FROM %s WHERE event_name = ? LIMIT 1 ALLOW FILTERING`, KeySpace+"."+schemas.Collections.EmailTemplate)
+	err := p.db.Query(query, eventName).Consistency(gocql.One).Scan(&emailTemplate.ID, &emailTemplate.EventName, &emailTemplate.Subject, &emailTemplate.Design, &emailTemplate.Template, &emailTemplate.CreatedAt, &emailTemplate.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -137,8 +135,8 @@ func (p *provider) GetEmailTemplateByEventName(ctx context.Context, eventName st
 
 // DeleteEmailTemplate to delete EmailTemplate
 func (p *provider) DeleteEmailTemplate(ctx context.Context, emailTemplate *schemas.EmailTemplate) error {
-	query := fmt.Sprintf("DELETE FROM %s WHERE id = '%s'", KeySpace+"."+schemas.Collections.EmailTemplate, emailTemplate.ID)
-	err := p.db.Query(query).Exec()
+	query := fmt.Sprintf("DELETE FROM %s WHERE id = ?", KeySpace+"."+schemas.Collections.EmailTemplate)
+	err := p.db.Query(query, emailTemplate.ID).Exec()
 	if err != nil {
 		return err
 	}

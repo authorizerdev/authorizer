@@ -18,8 +18,8 @@ func (p *provider) AddEnv(ctx context.Context, env *schemas.Env) (*schemas.Env, 
 	}
 	env.CreatedAt = time.Now().Unix()
 	env.UpdatedAt = time.Now().Unix()
-	insertEnvQuery := fmt.Sprintf("INSERT INTO %s (id, env, hash, created_at, updated_at) VALUES ('%s', '%s', '%s', %d, %d)", KeySpace+"."+schemas.Collections.Env, env.ID, env.EnvData, env.Hash, env.CreatedAt, env.UpdatedAt)
-	err := p.db.Query(insertEnvQuery).Exec()
+	insertEnvQuery := fmt.Sprintf("INSERT INTO %s (id, env, hash, created_at, updated_at) VALUES (?, ?, ?, ?, ?)", KeySpace+"."+schemas.Collections.Env)
+	err := p.db.Query(insertEnvQuery, env.ID, env.EnvData, env.Hash, env.CreatedAt, env.UpdatedAt).Exec()
 	if err != nil {
 		return nil, err
 	}
@@ -30,8 +30,8 @@ func (p *provider) AddEnv(ctx context.Context, env *schemas.Env) (*schemas.Env, 
 // UpdateEnv to update environment information in database
 func (p *provider) UpdateEnv(ctx context.Context, env *schemas.Env) (*schemas.Env, error) {
 	env.UpdatedAt = time.Now().Unix()
-	updateEnvQuery := fmt.Sprintf("UPDATE %s SET env = '%s', updated_at = %d WHERE id = '%s'", KeySpace+"."+schemas.Collections.Env, env.EnvData, env.UpdatedAt, env.ID)
-	err := p.db.Query(updateEnvQuery).Exec()
+	updateEnvQuery := fmt.Sprintf("UPDATE %s SET env = ?, updated_at = ? WHERE id = ?", KeySpace+"."+schemas.Collections.Env)
+	err := p.db.Query(updateEnvQuery, env.EnvData, env.UpdatedAt, env.ID).Exec()
 	if err != nil {
 		return nil, err
 	}
