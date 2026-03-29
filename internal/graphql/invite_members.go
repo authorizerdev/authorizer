@@ -89,6 +89,10 @@ func (g *graphqlProvider) InviteMembers(ctx context.Context, params *model.Invit
 		redirectURL := appURL
 		if params.RedirectURI != nil {
 			redirectURL = *params.RedirectURI
+			if !validators.IsValidOrigin(redirectURL, g.Config.AllowedOrigins) {
+				log.Debug().Msg("Invalid redirect URI")
+				return nil, fmt.Errorf("invalid redirect URI")
+			}
 		}
 
 		_, nonceHash, err := utils.GenerateNonce()

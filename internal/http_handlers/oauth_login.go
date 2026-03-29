@@ -31,6 +31,14 @@ func (h *httpProvider) OAuthLoginHandler() gin.HandlerFunc {
 			return
 		}
 
+		if !validators.IsValidOrigin(redirectURI, h.Config.AllowedOrigins) {
+			log.Debug().Msg("Invalid redirect URI")
+			c.JSON(400, gin.H{
+				"error": "invalid redirect uri",
+			})
+			return
+		}
+
 		if state == "" {
 			log.Debug().Msg("state is missing, creating new state")
 			state = uuid.New().String()

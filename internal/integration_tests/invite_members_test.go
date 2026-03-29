@@ -22,7 +22,7 @@ func TestInviteMembersUser(t *testing.T) {
 	email := "invite_user_test_" + uuid.New().String() + "@authorizer.dev"
 	emailTo := "test_user_invitation_" + uuid.New().String() + "@authorizer.dev"
 	password := "Password@123"
-	url := "https://authorizer.dev/"
+	url := "http://localhost:3000/"
 	// Signup the user
 	signupReq := &model.SignUpRequest{
 		Email:           &email,
