@@ -21,8 +21,7 @@ func TestRedirectURIValidation(t *testing.T) {
 	// Use SQLite so tests can run without Postgres/Docker
 	cfg.DatabaseType = constants.DbTypeSqlite
 	cfg.DatabaseURL = "authorizer_redirect_test.db"
-	// IsValidOrigin compares hostname:port, so AllowedOrigins must not include protocol
-	cfg.AllowedOrigins = []string{"localhost:3000"}
+	cfg.AllowedOrigins = []string{"http://localhost:3000"}
 	cfg.EnableMagicLinkLogin = true
 	cfg.EnableEmailVerification = true
 	cfg.IsEmailServiceEnabled = true
