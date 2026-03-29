@@ -16,6 +16,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 	"github.com/authorizerdev/authorizer/internal/token"
 	"github.com/authorizerdev/authorizer/internal/utils"
+	"github.com/authorizerdev/authorizer/internal/validators"
 )
 
 // ForgotPassword is a  for forgot password mutation
@@ -75,6 +76,10 @@ func (g *graphqlProvider) ForgotPassword(ctx context.Context, params *model.Forg
 		// give higher preference to params redirect uri
 		if strings.TrimSpace(refs.StringValue(params.RedirectURI)) != "" {
 			redirectURI = refs.StringValue(params.RedirectURI)
+			if !validators.IsValidOrigin(redirectURI, g.Config.AllowedOrigins) {
+				log.Debug().Msg("Invalid redirect URI")
+				return nil, fmt.Errorf("invalid redirect URI")
+			}
 		} else {
 			redirectURI = g.Config.ResetPasswordURL
 			if redirectURI == "" {
