@@ -161,66 +161,98 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 			}
 			isSignUp = true
 		} else {
-			user = existingUser
-			if user.RevokedTimestamp != nil {
+			if existingUser.RevokedTimestamp != nil {
 				log.Debug().Msg("User access has been revoked")
 				ctx.JSON(400, gin.H{"error": "user access has been revoked"})
 				return
 			}
 
-			// user exists in db, check if method was google
-			// if not append google to existing signup method and save it
-			signupMethod := existingUser.SignupMethods
-			if !strings.Contains(signupMethod, provider) {
-				signupMethod = signupMethod + "," + provider
-			}
-			user.SignupMethods = signupMethod
-
-			if user.EmailVerifiedAt == nil {
-				now := time.Now().Unix()
-				user.EmailVerifiedAt = &now
-			}
-
-			// There multiple scenarios with roles here in social login
-			// 1. user has access to protected roles + roles and trying to login
-			// 2. user has not signed up for one of the available role but trying to signup.
-			// 		Need to modify roles in this case
-
-			// find the unassigned roles
-			existingRoles := strings.Split(existingUser.Roles, ",")
-			unasignedRoles := []string{}
-			for _, ir := range inputRoles {
-				if !utils.StringSliceContains(existingRoles, ir) {
-					unasignedRoles = append(unasignedRoles, ir)
+			// Prevent account pre-hijacking: if the existing account's email
+			// was never verified, do not link the OAuth identity to it.
+			// Instead, delete the unverified account and treat as a new signup
+			// for the OAuth user who actually controls the email address.
+			if existingUser.EmailVerifiedAt == nil {
+				log.Info().Msg("Removing unverified pre-existing account before OAuth signup")
+				if err := h.StorageProvider.DeleteUser(ctx, existingUser); err != nil {
+					log.Debug().Err(err).Msg("Failed to delete unverified user")
+					ctx.JSON(500, gin.H{"error": "failed to process OAuth login"})
+					return
 				}
-			}
-
-			if len(unasignedRoles) > 0 {
-				// check if it contains protected unassigned role
+				// make sure inputRoles don't include protected roles
 				hasProtectedRole := false
-				for _, ur := range unasignedRoles {
-					protectedRoles := h.Config.ProtectedRoles
-					if utils.StringSliceContains(protectedRoles, ur) {
+				for _, ir := range inputRoles {
+					if utils.StringSliceContains(h.Config.ProtectedRoles, ir) {
 						hasProtectedRole = true
 					}
 				}
-
 				if hasProtectedRole {
-					log.Debug().Err(err).Msg("Invalid role. User is using protected role")
+					log.Debug().Msg("Invalid role. User is using protected role")
 					ctx.JSON(400, gin.H{"error": "invalid role"})
 					return
-				} else {
-					user.Roles = existingUser.Roles + "," + strings.Join(unasignedRoles, ",")
 				}
+				user.SignupMethods = provider
+				user.Roles = strings.Join(inputRoles, ",")
+				now := time.Now().Unix()
+				user.EmailVerifiedAt = &now
+				user, err = h.StorageProvider.AddUser(ctx, user)
+				if err != nil {
+					log.Debug().Err(err).Msg("Failed to add user after removing unverified account")
+					ctx.JSON(500, gin.H{"error": err.Error()})
+					return
+				}
+				isSignUp = true
 			} else {
-				user.Roles = existingUser.Roles
-			}
+				user = existingUser
 
-			user, err = h.StorageProvider.UpdateUser(ctx, user)
-			if err != nil {
-				log.Debug().Err(err).Msg("Failed to update user")
-				ctx.JSON(500, gin.H{"error": err.Error()})
-				return
+				// user exists in db, check if method was google
+				// if not append google to existing signup method and save it
+				signupMethod := existingUser.SignupMethods
+				if !strings.Contains(signupMethod, provider) {
+					signupMethod = signupMethod + "," + provider
+				}
+				user.SignupMethods = signupMethod
+
+				// There multiple scenarios with roles here in social login
+				// 1. user has access to protected roles + roles and trying to login
+				// 2. user has not signed up for one of the available role but trying to signup.
+				// 		Need to modify roles in this case
+
+				// find the unassigned roles
+				existingRoles := strings.Split(existingUser.Roles, ",")
+				unasignedRoles := []string{}
+				for _, ir := range inputRoles {
+					if !utils.StringSliceContains(existingRoles, ir) {
+						unasignedRoles = append(unasignedRoles, ir)
+					}
+				}
+
+				if len(unasignedRoles) > 0 {
+					// check if it contains protected unassigned role
+					hasProtectedRole := false
+					for _, ur := range unasignedRoles {
+						protectedRoles := h.Config.ProtectedRoles
+						if utils.StringSliceContains(protectedRoles, ur) {
+							hasProtectedRole = true
+						}
+					}
+
+					if hasProtectedRole {
+						log.Debug().Err(err).Msg("Invalid role. User is using protected role")
+						ctx.JSON(400, gin.H{"error": "invalid role"})
+						return
+					} else {
+						user.Roles = existingUser.Roles + "," + strings.Join(unasignedRoles, ",")
+					}
+				} else {
+					user.Roles = existingUser.Roles
+				}
+
+				user, err = h.StorageProvider.UpdateUser(ctx, user)
+				if err != nil {
+					log.Debug().Err(err).Msg("Failed to update user")
+					ctx.JSON(500, gin.H{"error": err.Error()})
+					return
+				}
 			}
 		}
 
