@@ -18,9 +18,6 @@ import (
 // validate it against AllowedOrigins to prevent open-redirect token theft.
 func TestRedirectURIValidation(t *testing.T) {
 	cfg := getTestConfig()
-	// Use SQLite so tests can run without Postgres/Docker
-	cfg.DatabaseType = constants.DbTypeSqlite
-	cfg.DatabaseURL = "authorizer_redirect_test.db"
 	cfg.AllowedOrigins = []string{"http://localhost:3000"}
 	cfg.EnableMagicLinkLogin = true
 	cfg.EnableEmailVerification = true
