@@ -13,6 +13,7 @@ var (
 )
 
 const mfaSessionPrefix = "mfa_session_"
+const stateTTL = 10 * time.Minute
 
 // SetUserSession sets the user session for given user identifier in form recipe:user_id
 func (p *provider) SetUserSession(userId, key, token string, expiration int64) error {
@@ -136,7 +137,8 @@ func (p *provider) DeleteMfaSession(userId, key string) error {
 
 // SetState sets the state in redis store.
 func (p *provider) SetState(key, value string) error {
-	err := p.store.Set(p.ctx, stateStorePrefix+key, value, 0).Err()
+	// OAuth state should be short-lived; keeping it forever leaks keys in Redis.
+	err := p.store.Set(p.ctx, stateStorePrefix+key, value, stateTTL).Err()
 	if err != nil {
 		p.dependencies.Log.Debug().Err(err).Msg("Error saving state to redis")
 		return err
@@ -153,7 +155,7 @@ func (p *provider) GetState(key string) (string, error) {
 		return "", err
 	}
 
-	return data, err
+	return data, nil
 }
 
 // RemoveState removes the state from redis store.

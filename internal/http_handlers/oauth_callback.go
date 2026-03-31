@@ -3,6 +3,7 @@ package http_handlers
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	goredis "github.com/redis/go-redis/v9"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
@@ -42,6 +44,16 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 		sessionState, err := h.MemoryStoreProvider.GetState(state)
 		if sessionState == "" || err != nil {
 			log.Debug().Err(err).Msg("Failed to get state from store")
+			ctx.JSON(400, gin.H{"error": "invalid oauth state"})
+			return
+		}
+		// `sessionState` is the oauth provider saved during `/oauth_login/:oauth_provider`.
+		// Ensure the callback route's provider matches what was originally requested.
+		if sessionState != provider {
+			log.Debug().
+				Str("expected_provider", sessionState).
+				Str("callback_provider", provider).
+				Msg("OAuth provider mismatch for state")
 			ctx.JSON(400, gin.H{"error": "invalid oauth state"})
 			return
 		}
@@ -256,25 +268,18 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 			}
 		}
 
-		// TODO
-		// use stateValue to get code / nonce
-		// add code / nonce to id_token
-		code := ""
-		codeChallenge := ""
-		nonce := ""
-		if stateValue != "" {
-			// Get state from store
-			authorizeState, _ := h.MemoryStoreProvider.GetState(stateValue)
-			if authorizeState != "" {
-				authorizeStateSplit := strings.Split(authorizeState, "@@")
-				if len(authorizeStateSplit) > 1 {
-					code = authorizeStateSplit[0]
-					codeChallenge = authorizeStateSplit[1]
-				} else {
-					nonce = authorizeState
-				}
-				go h.MemoryStoreProvider.RemoveState(stateValue)
-			}
+		// OIDC `/authorize` bridge:
+		// If this social-login callback was initiated from the OpenID Connect authorize flow
+		// (`/authorize?...&state=<stateValue>...`), `authorize.go` stores a temporary entry keyed by `stateValue`
+		// containing either:
+		// - `nonce` (implicit/hybrid-style response), OR
+		// - `code@@codeChallenge` (authorization code + PKCE).
+		//
+		// In the standalone social login flow (`/oauth_login/:provider`), this entry will not exist and we
+		// simply generate a nonce and continue.
+		code, codeChallenge, nonce, err := h.consumeAuthorizeState(stateValue)
+		if err != nil && !errors.Is(err, goredis.Nil) {
+			log.Debug().Err(err).Str("state", stateValue).Msg("Failed to get authorize state from store")
 		}
 		if nonce == "" {
 			nonce = uuid.New().String()
@@ -347,7 +352,8 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 		} else {
 			redirectURL = redirectURL + "?" + strings.TrimPrefix(params, "&")
 		}
-
+		// remove state from store
+		go h.MemoryStoreProvider.RemoveState(state)
 		ctx.Redirect(http.StatusFound, redirectURL)
 	}
 }
