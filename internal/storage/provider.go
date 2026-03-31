@@ -168,6 +168,9 @@ type Provider interface {
 	ListAuditLogs(ctx context.Context, pagination *model.Pagination, filter map[string]interface{}) ([]*schemas.AuditLog, *model.Pagination, error)
 	// DeleteAuditLogsBefore removes logs older than a timestamp (retention)
 	DeleteAuditLogsBefore(ctx context.Context, before int64) error
+
+	// HealthCheck verifies that the storage backend is reachable and responsive.
+	HealthCheck(ctx context.Context) error
 }
 
 // New creates a new database provider based on the configuration
