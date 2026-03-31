@@ -160,6 +160,13 @@ type Provider interface {
 	DeleteOAuthStateByKey(ctx context.Context, key string) error
 	// GetAllOAuthStates retrieves all OAuth states (for testing)
 	GetAllOAuthStates(ctx context.Context) ([]*schemas.OAuthState, error)
+
+	// AddLoginAttempt records a login attempt
+	AddLoginAttempt(ctx context.Context, loginAttempt *schemas.LoginAttempt) error
+	// CountFailedLoginAttemptsSince counts failed attempts since a timestamp for an email
+	CountFailedLoginAttemptsSince(ctx context.Context, email string, since int64) (int64, error)
+	// DeleteLoginAttemptsBefore removes login attempts older than a timestamp
+	DeleteLoginAttemptsBefore(ctx context.Context, before int64) error
 }
 
 // New creates a new database provider based on the configuration

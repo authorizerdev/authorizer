@@ -323,6 +323,28 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 		Sparse: true,
 	})
 
+	// LoginAttempt collection and indexes
+	loginAttemptCollectionExists, err := arangodb.CollectionExists(ctx, schemas.Collections.LoginAttempt)
+	if err != nil {
+		return nil, err
+	}
+	if !loginAttemptCollectionExists {
+		_, err = arangodb.CreateCollection(ctx, schemas.Collections.LoginAttempt, nil)
+		if err != nil {
+			return nil, err
+		}
+	}
+	loginAttemptCollection, err := arangodb.Collection(ctx, schemas.Collections.LoginAttempt)
+	if err != nil {
+		return nil, err
+	}
+	loginAttemptCollection.EnsureHashIndex(ctx, []string{"email"}, &arangoDriver.EnsureHashIndexOptions{
+		Sparse: true,
+	})
+	loginAttemptCollection.EnsurePersistentIndex(ctx, []string{"attempted_at"}, &arangoDriver.EnsurePersistentIndexOptions{
+		Sparse: true,
+	})
+
 	return &provider{
 		config:       cfg,
 		dependencies: deps,

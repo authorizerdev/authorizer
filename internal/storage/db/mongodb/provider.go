@@ -178,6 +178,20 @@ func NewProvider(config *config.Config, deps *Dependencies) (*provider, error) {
 		},
 	}, options.CreateIndexes())
 
+	// LoginAttempt collection and indexes
+	mongodb.CreateCollection(ctx, schemas.Collections.LoginAttempt, options.CreateCollection())
+	loginAttemptCollection := mongodb.Collection(schemas.Collections.LoginAttempt, options.Collection())
+	loginAttemptCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{
+			Keys:    bson.M{"email": 1},
+			Options: options.Index().SetSparse(true),
+		},
+		{
+			Keys:    bson.M{"attempted_at": 1},
+			Options: options.Index().SetSparse(true),
+		},
+	}, options.CreateIndexes())
+
 	return &provider{
 		config:       config,
 		dependencies: deps,
