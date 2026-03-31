@@ -323,6 +323,30 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 		Sparse: true,
 	})
 
+	// Application collection and indexes
+	applicationCollectionExists, err := arangodb.CollectionExists(ctx, schemas.Collections.Application)
+	if err != nil {
+		return nil, err
+	}
+	if !applicationCollectionExists {
+		_, err = arangodb.CreateCollection(ctx, schemas.Collections.Application, nil)
+		if err != nil {
+			return nil, err
+		}
+	}
+	applicationCollection, err := arangodb.Collection(ctx, schemas.Collections.Application)
+	if err != nil {
+		return nil, err
+	}
+	applicationCollection.EnsureHashIndex(ctx, []string{"name"}, &arangoDriver.EnsureHashIndexOptions{
+		Unique: true,
+		Sparse: true,
+	})
+	applicationCollection.EnsureHashIndex(ctx, []string{"client_id"}, &arangoDriver.EnsureHashIndexOptions{
+		Unique: true,
+		Sparse: true,
+	})
+
 	return &provider{
 		config:       cfg,
 		dependencies: deps,

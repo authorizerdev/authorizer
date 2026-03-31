@@ -178,6 +178,20 @@ func NewProvider(config *config.Config, deps *Dependencies) (*provider, error) {
 		},
 	}, options.CreateIndexes())
 
+	// Application collection and indexes
+	mongodb.CreateCollection(ctx, schemas.Collections.Application, options.CreateCollection())
+	applicationCollection := mongodb.Collection(schemas.Collections.Application, options.Collection())
+	applicationCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{
+			Keys:    bson.M{"name": 1},
+			Options: options.Index().SetUnique(true).SetSparse(true),
+		},
+		{
+			Keys:    bson.M{"client_id": 1},
+			Options: options.Index().SetUnique(true).SetSparse(true),
+		},
+	}, options.CreateIndexes())
+
 	return &provider{
 		config:       config,
 		dependencies: deps,
