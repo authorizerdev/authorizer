@@ -345,6 +345,23 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 		return nil, err
 	}
 
+	// LoginAttempt table and indexes
+	loginAttemptCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, email text, ip_address text, successful boolean, attempted_at bigint, created_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.LoginAttempt)
+	err = session.Query(loginAttemptCollectionQuery).Exec()
+	if err != nil {
+		return nil, err
+	}
+	loginAttemptEmailIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_login_attempt_email ON %s.%s (email)", KeySpace, schemas.Collections.LoginAttempt)
+	err = session.Query(loginAttemptEmailIndex).Exec()
+	if err != nil {
+		return nil, err
+	}
+	loginAttemptAttemptedAtIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_login_attempt_attempted_at ON %s.%s (attempted_at)", KeySpace, schemas.Collections.LoginAttempt)
+	err = session.Query(loginAttemptAttemptedAtIndex).Exec()
+	if err != nil {
+		return nil, err
+	}
+
 	return &provider{
 		config:       cfg,
 		dependencies: deps,

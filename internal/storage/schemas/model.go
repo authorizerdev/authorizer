@@ -15,6 +15,7 @@ type CollectionList struct {
 	SessionToken           string
 	MFASession             string
 	OAuthState             string
+	LoginAttempt           string
 }
 
 var (
@@ -35,5 +36,6 @@ var (
 		SessionToken:           Prefix + "session_tokens",
 		MFASession:             Prefix + "mfa_sessions",
 		OAuthState:             Prefix + "oauth_states",
+		LoginAttempt:           Prefix + "login_attempts",
 	}
 )

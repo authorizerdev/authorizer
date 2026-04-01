@@ -220,5 +220,10 @@ func getIndex(scopeName string) map[string][]string {
 	oauthStateIndex1 := fmt.Sprintf("CREATE INDEX OAuthStateKeyIndex ON %s.%s(state_key)", scopeName, schemas.Collections.OAuthState)
 	indices[schemas.Collections.OAuthState] = []string{oauthStateIndex1}
 
+	// LoginAttempt indexes
+	loginAttemptIndex1 := fmt.Sprintf("CREATE INDEX LoginAttemptEmailIndex ON %s.%s(email)", scopeName, schemas.Collections.LoginAttempt)
+	loginAttemptIndex2 := fmt.Sprintf("CREATE INDEX LoginAttemptAttemptedAtIndex ON %s.%s(attempted_at)", scopeName, schemas.Collections.LoginAttempt)
+	indices[schemas.Collections.LoginAttempt] = []string{loginAttemptIndex1, loginAttemptIndex2}
+
 	return indices
 }
