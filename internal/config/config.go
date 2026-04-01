@@ -247,4 +247,11 @@ type Config struct {
 	AdminCookieSecure bool
 	// DisableAdminHeaderAuth is the flag to disable admin authentication via header
 	DisableAdminHeaderAuth bool
+
+	// AirbridgeAPIToken is the API token for Airbridge deep linking
+	AirbridgeAPIToken string
+	// AirbridgeChannel is the channel name for Airbridge tracking links
+	AirbridgeChannel string
+	// AirbridgeDeeplinkURL is the URL scheme for Airbridge deep linking (e.g. myapp://reset-password)
+	AirbridgeDeeplinkURL string
 }

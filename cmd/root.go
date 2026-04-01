@@ -200,6 +200,11 @@ func init() {
 	// URLs
 	f.StringVar(&rootArgs.config.ResetPasswordURL, "reset-password-url", "", "URL for reset password")
 
+	// Airbridge deep linking flags
+	f.StringVar(&rootArgs.config.AirbridgeAPIToken, "airbridge-api-token", "", "API token for Airbridge deep linking")
+	f.StringVar(&rootArgs.config.AirbridgeChannel, "airbridge-channel", "email", "Channel name for Airbridge tracking links")
+	f.StringVar(&rootArgs.config.AirbridgeDeeplinkURL, "airbridge-deeplink-url", "", "URL scheme for Airbridge deep linking (e.g. myapp://reset-password)")
+
 	// Deprecated flags
 	f.MarkDeprecated("database_url", "use --database-url instead")
 	f.MarkDeprecated("database_type", "use --database-type instead")

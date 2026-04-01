@@ -111,11 +111,14 @@ func (g *graphqlProvider) ForgotPassword(ctx context.Context, params *model.Forg
 			return nil, err
 		}
 		// execute it as go routine so that we can reduce the api latency
-		go g.EmailProvider.SendEmail([]string{email}, constants.VerificationTypeForgotPassword, map[string]interface{}{
-			"user":             user.ToMap(),
-			"organization":     utils.GetOrganization(g.Config),
-			"verification_url": utils.GetForgotPasswordURL(verificationToken, redirectURI),
-		})
+		go func() {
+			verificationURL := utils.MaybeWrapDynamicLink(g.Config, utils.GetForgotPasswordURL(verificationToken, redirectURI))
+			g.EmailProvider.SendEmail([]string{email}, constants.VerificationTypeForgotPassword, map[string]interface{}{
+				"user":             user.ToMap(),
+				"organization":     utils.GetOrganization(g.Config),
+				"verification_url": verificationURL,
+			})
+		}()
 		return &model.ForgotPasswordResponse{
 			Message: `Please check your inbox! We have sent a password reset link.`,
 		}, nil
