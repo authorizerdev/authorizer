@@ -160,6 +160,19 @@ type Provider interface {
 	DeleteOAuthStateByKey(ctx context.Context, key string) error
 	// GetAllOAuthStates retrieves all OAuth states (for testing)
 	GetAllOAuthStates(ctx context.Context) ([]*schemas.OAuthState, error)
+
+	// CreateApplication creates a new M2M application
+	CreateApplication(ctx context.Context, application *schemas.Application) error
+	// GetApplicationByID retrieves an application by ID
+	GetApplicationByID(ctx context.Context, id string) (*schemas.Application, error)
+	// GetApplicationByClientID retrieves an application by client ID
+	GetApplicationByClientID(ctx context.Context, clientID string) (*schemas.Application, error)
+	// ListApplications lists all applications with pagination
+	ListApplications(ctx context.Context, pagination *model.Pagination) ([]*schemas.Application, *model.Pagination, error)
+	// UpdateApplication updates an application
+	UpdateApplication(ctx context.Context, application *schemas.Application) error
+	// DeleteApplication deletes an application by ID
+	DeleteApplication(ctx context.Context, id string) error
 }
 
 // New creates a new database provider based on the configuration

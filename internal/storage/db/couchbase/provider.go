@@ -220,5 +220,10 @@ func getIndex(scopeName string) map[string][]string {
 	oauthStateIndex1 := fmt.Sprintf("CREATE INDEX OAuthStateKeyIndex ON %s.%s(state_key)", scopeName, schemas.Collections.OAuthState)
 	indices[schemas.Collections.OAuthState] = []string{oauthStateIndex1}
 
+	// Application indexes
+	applicationIndex1 := fmt.Sprintf("CREATE INDEX ApplicationNameIndex ON %s.%s(name)", scopeName, schemas.Collections.Application)
+	applicationIndex2 := fmt.Sprintf("CREATE INDEX ApplicationClientIDIndex ON %s.%s(client_id)", scopeName, schemas.Collections.Application)
+	indices[schemas.Collections.Application] = []string{applicationIndex1, applicationIndex2}
+
 	return indices
 }

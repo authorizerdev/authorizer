@@ -345,6 +345,23 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 		return nil, err
 	}
 
+	// Application table and indexes
+	applicationCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, name text, description text, client_id text, client_secret text, scopes text, roles text, is_active boolean, created_by text, created_at bigint, updated_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.Application)
+	err = session.Query(applicationCollectionQuery).Exec()
+	if err != nil {
+		return nil, err
+	}
+	applicationNameIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_application_name ON %s.%s (name)", KeySpace, schemas.Collections.Application)
+	err = session.Query(applicationNameIndex).Exec()
+	if err != nil {
+		return nil, err
+	}
+	applicationClientIDIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_application_client_id ON %s.%s (client_id)", KeySpace, schemas.Collections.Application)
+	err = session.Query(applicationClientIDIndex).Exec()
+	if err != nil {
+		return nil, err
+	}
+
 	return &provider{
 		config:       cfg,
 		dependencies: deps,
