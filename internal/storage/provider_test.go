@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -19,13 +20,34 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var dbTypes = []string{
+// allDBTypes is the full list of database types supported for storage tests.
+var allDBTypes = []string{
 	constants.DbTypePostgres,
+	constants.DbTypeSqlite,
 	constants.DbTypeMongoDB,
 	constants.DbTypeArangoDB,
 	constants.DbTypeScyllaDB,
 	constants.DbTypeCouchbaseDB,
 	constants.DbTypeDynamoDB,
+}
+
+// getTestDBTypes returns the list of database types to test against.
+// Reads from TEST_DBS env var (comma-separated). Defaults to allDBTypes if not set.
+func getTestDBTypes() []string {
+	testDBsEnv := os.Getenv("TEST_DBS")
+	if testDBsEnv == "" {
+		return allDBTypes
+	}
+
+	parts := strings.Split(testDBsEnv, ",")
+	var result []string
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			result = append(result, p)
+		}
+	}
+	return result
 }
 
 func getTestDBConfig(dbType string) *config.Config {
@@ -39,6 +61,8 @@ func getTestDBConfig(dbType string) *config.Config {
 	switch dbType {
 	case constants.DbTypePostgres:
 		cfg.DatabaseURL = "postgres://postgres:postgres@localhost:5434/postgres"
+	case constants.DbTypeSqlite:
+		cfg.DatabaseURL = "test.db"
 	case constants.DbTypeMongoDB:
 		cfg.DatabaseURL = "mongodb://localhost:27017"
 	case constants.DbTypeArangoDB:
@@ -59,7 +83,7 @@ func getTestDBConfig(dbType string) *config.Config {
 func TestStorageProvider(t *testing.T) {
 	// Initialize logger
 	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
-	for _, dbType := range dbTypes {
+	for _, dbType := range getTestDBTypes() {
 		t.Run("should test storage provider for "+dbType, func(t *testing.T) {
 			if dbType == constants.DbTypeDynamoDB {
 				os.Unsetenv("AWS_ACCESS_KEY_ID")

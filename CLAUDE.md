@@ -1,96 +1,78 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Project instructions for AI coding tools (Claude Code, Cursor, Gemini, Copilot).
+Detailed conventions are in `.claude/rules/` (loaded on-demand per file type) and `.claude/agents/` (role-specific expertise).
 
 ## What is Authorizer
 
 Open-source, self-hosted authentication and authorization server. Supports 13+ databases, OAuth2/OIDC, social logins, MFA, magic links, role-based access, webhooks, and email templating.
 
-**v2 uses CLI arguments for all configuration** — no `.env` or OS env vars. Pass config via flags (e.g. `--client-id=... --client-secret=...`).
+**Stack**: Go 1.24+, Gin, gqlgen, GORM, zerolog, Cobra CLI, JWT, OAuth2/OIDC.
+**v2**: CLI flags for all config — no `.env` or OS env vars.
 
-## Build & Run Commands
+## Quick Commands
 
 ```bash
-# Run locally with SQLite (dev mode)
-make dev
+make dev                  # Run with SQLite (dev mode)
+make build                # Build server binary
+make build-app            # Build login UI (web/app)
+make build-dashboard      # Build admin UI (web/dashboard)
+make generate-graphql     # Regenerate after schema.graphqls change
 
-# Build server binary (cross-platform via gox)
-make build
+# Testing (TEST_DBS env var selects databases, default: postgres)
+make test                 # Docker Postgres (default)
+make test-sqlite          # SQLite in-memory (no Docker)
+make test-mongodb         # Docker MongoDB
+make test-all-db          # ALL 7 databases (postgres,sqlite,mongodb,arangodb,scylladb,dynamodb,couchbase)
 
-# Build frontend apps
-make build-app        # web/app (end-user login UI)
-make build-dashboard  # web/dashboard (admin UI)
-
-# Regenerate GraphQL code after editing internal/graph/schema.graphqls
-make generate-graphql
-
-# Run all tests (requires Docker for DB containers)
-make test
-
-# Run tests for a specific DB only
-make test-mongodb
-make test-arangodb
-make test-scylladb
-make test-dynamodb
-make test-couchbase
-
-# Run a single test
-go clean --testcache && TEST_DBS="sqlite" go test -p 1 -v -run TestSignup ./internal/integration_tests/
-
-# Run tests against specific DBs without Docker setup
-go clean --testcache && TEST_DBS="sqlite,mongodb" go test -p 1 -v ./...
-
-# Generate a new DB provider scaffold
-make generate-db-template dbname=mydb
+# Single test against specific DBs
+go clean --testcache && TEST_DBS="sqlite,postgres" go test -p 1 -v -run TestSignup ./internal/integration_tests/
 ```
 
-## Architecture
+## Architecture (Quick Reference)
 
-### Dependency Injection Pattern
-The codebase uses a consistent pattern: each subsystem defines a `Dependencies` struct and a `New()` constructor returning a `Provider` interface. Subsystems are wired together in `cmd/root.go`.
+**Initialization order** (`cmd/root.go`): Config → Storage → MemoryStore → Token → Email/SMS → OAuth → Events → HTTP/GraphQL → Server
 
-Initialization order in `cmd/root.go`:
-1. Config parsing (CLI flags via Cobra)
-2. Storage provider (database)
-3. Memory store (Redis or in-memory)
-4. Token provider (JWT)
-5. Email/SMS providers
-6. OAuth providers
-7. Event system (webhooks)
-8. HTTP handlers & GraphQL resolvers
-9. Server startup
+**Key paths**:
+- GraphQL schema: `internal/graph/schema.graphqls` | Business logic: `internal/graphql/`
+- Storage interface: `internal/storage/provider.go` | SQL: `internal/storage/db/sql/` | NoSQL: `mongodb/`, `arangodb/`, `cassandradb/`, `dynamodb/`, `couchbase/`
+- OAuth/OIDC endpoints: `internal/http_handlers/`
+- Token management: `internal/token/`
+- Tests: `internal/integration_tests/`
+- Frontend: `web/app/` (user UI) | `web/dashboard/` (admin UI)
 
-### GraphQL
-- Schema: `internal/graph/schema.graphqls`
-- Generated code: `internal/graph/generated/` and `internal/graph/model/`
-- Config: `gqlgen.yml`
-- Resolver implementations: `internal/graph/` (follow-schema layout)
-- Business logic: `internal/graphql/` (mutation/query handler functions called by resolvers)
+**Pattern**: Every subsystem uses `Dependencies` struct + `New()` → `Provider` interface.
 
-### Storage Layer
-- Interface: `internal/storage/provider.go` — all DB providers implement `storage.Provider`
-- Schema structs: `internal/storage/schemas/`
-- SQL databases (Postgres, MySQL, SQLite, SQLServer, MariaDB, YugabyteDB, PlanetScale, CockroachDB, LibSQL) share implementation via GORM in `internal/storage/db/sql/`
-- NoSQL each have their own package: `mongodb/`, `arangodb/`, `cassandradb/`, `dynamodb/`, `couchbase/`
-- Template for new providers: `internal/storage/db/provider_template/`
+## Critical Rules
 
-### Testing
-- Integration tests live in `internal/integration_tests/`
-- Tests use `TEST_DBS` env var to select which database backends to test against
-- Test helper (`test_helper.go`) bootstraps a full test setup with real DB connections, GraphQL provider, HTTP server
-- Default test DB is Postgres on port 5434
+1. **Admin GraphQL ops prefixed with `_`** (e.g., `_users`, `_delete_user`) — not for public use
+2. **Schema changes must update ALL 13+ database providers**
+3. **Run `make generate-graphql`** after editing `schema.graphqls`
+4. **Security**: parameterized queries only, `crypto/rand` for tokens, `crypto/subtle` for comparisons, never log secrets
+5. **Tests**: integration tests with real DBs, table-driven subtests, testify assertions
 
-### Key Internal Packages
-- `internal/config/` — Config struct, all server settings
-- `internal/constants/` — DB types, auth method enums, token types, webhook event names
-- `internal/token/` — JWT generation/validation
-- `internal/oauth/` — Social login provider integrations
-- `internal/memory_store/` — Session/state storage (Redis or DB-backed)
-- `internal/authenticators/` — MFA (TOTP) support
-- `internal/http_handlers/` — REST endpoints (OAuth callbacks, token endpoints, well-known)
-- `internal/events/` — Webhook event system
+## AI Agent Roles
 
-### Frontend Apps
-- `web/app/` — End-user facing React app (login/signup UI), built with Vite
-- `web/dashboard/` — Admin dashboard React app, built with Chakra UI + Vite
-- Both use `npm ci && npm run build`
+Detailed agent files in `.claude/agents/`. Summary:
+
+| Agent | Focus |
+|-------|-------|
+| `golang-engineer` | Go idioms, provider pattern, DI |
+| `security-engineer` | OWASP, OAuth2/OIDC security, vulnerability audit |
+| `code-reviewer` | Structured review (critical/suggestions/nits/good) |
+| `database-engineer` | Multi-DB consistency across 13+ providers |
+| `auth-engineer` | OAuth2/OIDC/JWT/MFA protocol compliance |
+| `qa-engineer` | Integration testing, cross-DB coverage |
+| `git-practices` | Commit conventions, branch strategy, PR standards |
+| `api-conventions` | GraphQL schema + REST/OAuth2 endpoint design |
+| `issue-manager` | GitHub issue triage and templates |
+| `doc-writer` | API docs, guides, migration docs |
+| `code-style` | Go naming, imports, error handling patterns |
+
+## Token Optimization Notes
+
+- Detailed rules load on-demand via `.claude/rules/` (only when matching files are accessed)
+- Agent definitions load only when invoked
+- Go files auto-formatted on save via hook (no formatting discussion needed)
+- Use `Grep`/`Glob` tools before exploring — avoid unnecessary file reads
+- Prefer reading specific line ranges over full files

@@ -39,67 +39,87 @@ clean:
 dev:
 	go run main.go --database-type=sqlite --database-url=test.db --jwt-type=HS256 --jwt-secret=test --admin-secret=admin --client-id=123456 --client-secret=secret
 
-test:
-	docker rm -vf authorizer_postgres
-	docker rm -vf authorizer_scylla_db
-	docker rm -vf authorizer_mongodb_db
-	docker rm -vf authorizer_arangodb
-	docker rm -vf authorizer_dynamodb
-	docker rm -vf authorizer_couchbase
-	docker rm -vf authorizer_redis
-	docker run -d --name authorizer_redis -p 6380:6379 redis
-	docker run --name authorizer_postgres -p 5434:5432 -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=postgres -d postgres
-	docker run -d --name authorizer_scylla_db -p 9042:9042 scylladb/scylla
-	docker run -d --name authorizer_mongodb_db -p 27017:27017 mongo:4.4.15
-	docker run -d --name authorizer_arangodb -p 8529:8529 -e ARANGO_NO_AUTH=1 arangodb/arangodb:3.10.3
-	docker run -d --name authorizer_dynamodb  -p 8000:8000 amazon/dynamodb-local:latest
-	docker run -d --name authorizer_couchbase  -p 8091-8097:8091-8097 -p 11210:11210 -p 11207:11207 -p 18091-18095:18091-18095 -p 18096:18096 -p 18097:18097 couchbase:latest
-	sh scripts/couchbase-test.sh
-	
-	go test -v ./...
+test: test-cleanup test-docker-up
+	go clean --testcache && TEST_DBS="postgres" go test -p 1 -v ./...
+	$(MAKE) test-cleanup
 
+test-postgres: test-cleanup-postgres
+	docker run -d --name authorizer_postgres -p 5434:5432 -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=postgres postgres
+	sleep 3
+	go clean --testcache && TEST_DBS="postgres" go test -p 1 -v ./...
 	docker rm -vf authorizer_postgres
-	docker rm -vf authorizer_scylla_db
-	docker rm -vf authorizer_mongodb_db
-	docker rm -vf authorizer_arangodb
-	docker rm -vf authorizer_dynamodb
-	docker rm -vf authorizer_couchbase
-	docker rm -vf authorizer_redis
-test-mongodb:
+
+test-sqlite:
+	go clean --testcache && TEST_DBS="sqlite" go test -p 1 -v ./...
+
+test-mongodb: test-cleanup-mongodb
 	docker run -d --name authorizer_mongodb_db -p 27017:27017 mongo:4.4.15
+	sleep 3
 	go clean --testcache && TEST_DBS="mongodb" go test -p 1 -v ./...
 	docker rm -vf authorizer_mongodb_db
-test-scylladb:
+
+test-scylladb: test-cleanup-scylladb
 	docker run -d --name authorizer_scylla_db -p 9042:9042 scylladb/scylla
+	sleep 15
 	go clean --testcache && TEST_DBS="scylladb" go test -p 1 -v ./...
 	docker rm -vf authorizer_scylla_db
-test-arangodb:
+
+test-arangodb: test-cleanup-arangodb
 	docker run -d --name authorizer_arangodb -p 8529:8529 -e ARANGO_NO_AUTH=1 arangodb/arangodb:3.10.3
+	sleep 5
 	go clean --testcache && TEST_DBS="arangodb" go test -p 1 -v ./...
 	docker rm -vf authorizer_arangodb
-test-dynamodb:
-	docker run -d --name dynamodb-local-test  -p 8000:8000 amazon/dynamodb-local:latest
+
+test-dynamodb: test-cleanup-dynamodb
+	docker run -d --name authorizer_dynamodb -p 8000:8000 amazon/dynamodb-local:latest
+	sleep 3
 	go clean --testcache && TEST_DBS="dynamodb" go test -p 1 -v ./...
-	docker rm -vf dynamodb-local-test
-test-couchbase:
-	docker run -d --name couchbase-local-test  -p 8091-8097:8091-8097 -p 11210:11210 -p 11207:11207 -p 18091-18095:18091-18095 -p 18096:18096 -p 18097:18097 couchbase:latest
+	docker rm -vf authorizer_dynamodb
+
+test-couchbase: test-cleanup-couchbase
+	docker run -d --name authorizer_couchbase -p 8091-8097:8091-8097 -p 11210:11210 -p 11207:11207 -p 18091-18095:18091-18095 -p 18096:18096 -p 18097:18097 couchbase:latest
 	sh scripts/couchbase-test.sh
 	go clean --testcache && TEST_DBS="couchbase" go test -p 1 -v ./...
-	docker rm -vf couchbase-local-test
-test-all-db:
-	rm -rf test.db test.db-shm test.db-wal
-	docker run -d --name authorizer_scylla_db -p 9042:9042 scylladb/scylla
+	docker rm -vf authorizer_couchbase
+
+test-all-db: test-cleanup test-docker-up
+	go clean --testcache && TEST_DBS="postgres,sqlite,mongodb,arangodb,scylladb,dynamodb,couchbase" go test -p 1 -v ./...
+	$(MAKE) test-cleanup
+
+# Start all test database containers
+test-docker-up:
+	docker run -d --name authorizer_redis -p 6380:6379 redis
+	docker run -d --name authorizer_postgres -p 5434:5432 -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=postgres postgres
 	docker run -d --name authorizer_mongodb_db -p 27017:27017 mongo:4.4.15
+	docker run -d --name authorizer_scylla_db -p 9042:9042 scylladb/scylla
 	docker run -d --name authorizer_arangodb -p 8529:8529 -e ARANGO_NO_AUTH=1 arangodb/arangodb:3.10.3
-	docker run -d --name dynamodb-local-test  -p 8000:8000 amazon/dynamodb-local:latest
-	docker run -d --name couchbase-local-test  -p 8091-8097:8091-8097 -p 11210:11210 -p 11207:11207 -p 18091-18095:18091-18095 -p 18096:18096 -p 18097:18097 couchbase:latest
+	docker run -d --name authorizer_dynamodb -p 8000:8000 amazon/dynamodb-local:latest
+	docker run -d --name authorizer_couchbase -p 8091-8097:8091-8097 -p 11210:11210 -p 11207:11207 -p 18091-18095:18091-18095 -p 18096:18096 -p 18097:18097 couchbase:latest
 	sh scripts/couchbase-test.sh
-	go clean --testcache && TEST_DBS="sqlite,mongodb,arangodb,scylladb,dynamodb,couchbase" go test -p 1 -v ./...
-	docker rm -vf authorizer_scylla_db
-	docker rm -vf authorizer_mongodb_db
-	docker rm -vf authorizer_arangodb
-	docker rm -vf dynamodb-local-test
-	docker rm -vf couchbase-local-test
+	sleep 5
+
+# Remove all test database containers
+test-cleanup:
+	-docker rm -vf authorizer_postgres
+	-docker rm -vf authorizer_scylla_db
+	-docker rm -vf authorizer_mongodb_db
+	-docker rm -vf authorizer_arangodb
+	-docker rm -vf authorizer_dynamodb
+	-docker rm -vf authorizer_couchbase
+	-docker rm -vf authorizer_redis
+
+test-cleanup-postgres:
+	-docker rm -vf authorizer_postgres
+test-cleanup-mongodb:
+	-docker rm -vf authorizer_mongodb_db
+test-cleanup-scylladb:
+	-docker rm -vf authorizer_scylla_db
+test-cleanup-arangodb:
+	-docker rm -vf authorizer_arangodb
+test-cleanup-dynamodb:
+	-docker rm -vf authorizer_dynamodb
+test-cleanup-couchbase:
+	-docker rm -vf authorizer_couchbase
 generate-graphql:
 	go run github.com/99designs/gqlgen --verbose generate && go mod tidy
 generate-db-template:

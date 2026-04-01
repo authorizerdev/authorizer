@@ -10,7 +10,26 @@
       "Bash(docker:*)",
       "Bash(go version)",
       "Bash(go mod:*)",
-      "Bash(go clean:*)"
+      "Bash(go clean:*)",
+      "Bash(git -C /Users/lakhansamani/personal/authorizer/authorizer/.claude/worktrees/agent-aa2ea6cf branch -a)",
+      "Bash(WT=/Users/lakhansamani/personal/authorizer/authorizer/.claude/worktrees/agent-aa2ea6cf ls $WT/internal/storage/db/sql/ $WT/internal/storage/db/mongodb/ $WT/internal/storage/db/arangodb/ $WT/internal/storage/db/cassandradb/ $WT/internal/storage/db/dynamodb/ $WT/internal/storage/db/couchbase/)",
+      "Bash(grep -v \"^$\")",
+      "Bash(git checkout:*)",
+      "Bash(git add:*)",
+      "Bash(cd:*)",
+      "Bash(git worktree:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)",
+      "Bash(git commit:*)",
+      "Bash(grep \"\\\\.go$\")",
+      "Bash(ln:*)",
+      "Bash(chmod:*)",
+      "Bash(grep -n \"DbType\\\\|TEST_DBS\" /Users/lakhansamani/personal/authorizer/authorizer/internal/constants/*.go)",
+      "Bash(grep -l \"getTestConfig\" internal/integration_tests/*.go)",
+      "Bash(grep -c \"getTestConfig\" internal/integration_tests/*.go)",
+      "Bash(TEST_DBS=\"sqlite\" go test -p 1 -v -run TestSignup ./internal/integration_tests/)",
+      "Bash(TEST_DBS=\"sqlite\" go test -p 1 -v -run TestDBSelection ./internal/integration_tests/)",
+      "Bash(TEST_DBS=\"sqlite\" go test -p 1 -v -run TestStorageProvider ./internal/storage/)"
     ]
   }
 }

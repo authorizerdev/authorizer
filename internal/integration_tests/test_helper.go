@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -48,12 +50,84 @@ func createContext(s *testSetup) (*http.Request, context.Context) {
 	return req, ctx
 }
 
+// dbTestConfig holds database-specific test configuration
+type dbTestConfig struct {
+	DbType string
+	DbURL  string
+}
+
+// getTestDBs returns the list of database configurations to test against.
+// It reads the TEST_DBS environment variable (comma-separated list of db types).
+// Defaults to "postgres" if not set.
+func getTestDBs() []dbTestConfig {
+	testDBsEnv := os.Getenv("TEST_DBS")
+	if testDBsEnv == "" {
+		testDBsEnv = "postgres"
+	}
+
+	dbTypes := strings.Split(testDBsEnv, ",")
+	var configs []dbTestConfig
+
+	for _, dbType := range dbTypes {
+		dbType = strings.TrimSpace(dbType)
+		if dbType == "" {
+			continue
+		}
+
+		dbURL := getDBURL(dbType)
+		if dbURL != "" {
+			configs = append(configs, dbTestConfig{
+				DbType: dbType,
+				DbURL:  dbURL,
+			})
+		}
+	}
+
+	return configs
+}
+
+// getDBURL returns the connection URL for a given database type
+func getDBURL(dbType string) string {
+	switch dbType {
+	case constants.DbTypePostgres:
+		return "postgres://postgres:postgres@localhost:5434/postgres"
+	case constants.DbTypeSqlite:
+		return "test.db"
+	case constants.DbTypeLibSQL:
+		return "test.db"
+	case constants.DbTypeMysql:
+		return "root:password@tcp(localhost:3306)/authorizer"
+	case constants.DbTypeMariaDB:
+		return "root:password@tcp(localhost:3307)/authorizer"
+	case constants.DbTypeSqlserver:
+		return "sqlserver://sa:Password123@localhost:1433?database=authorizer"
+	case constants.DbTypeMongoDB:
+		return "mongodb://localhost:27017"
+	case constants.DbTypeArangoDB:
+		return "http://localhost:8529"
+	case constants.DbTypeScyllaDB, constants.DbTypeCassandraDB:
+		return "127.0.0.1:9042"
+	case constants.DbTypeDynamoDB:
+		return "http://localhost:8000"
+	case constants.DbTypeCouchbaseDB:
+		return "couchbase://localhost"
+	default:
+		return ""
+	}
+}
+
+// getTestConfig returns a test config for the default database (postgres).
+// For multi-DB testing, use runForEachDB instead.
 func getTestConfig() *config.Config {
-	// Initialize config with test settings
+	return getTestConfigForDB(constants.DbTypePostgres, "postgres://postgres:postgres@localhost:5434/postgres")
+}
+
+// getTestConfigForDB returns a test config for a specific database type and URL
+func getTestConfigForDB(dbType, dbURL string) *config.Config {
 	cfg := &config.Config{
 		Env:                             constants.TestEnv,
-		DatabaseType:                    constants.DbTypePostgres,
-		DatabaseURL:                     "postgres://postgres:postgres@localhost:5434/postgres",
+		DatabaseType:                    dbType,
+		DatabaseURL:                     dbURL,
 		JWTSecret:                       "test-secret",
 		ClientID:                        "test-client-id",
 		ClientSecret:                    "test-client-secret",
@@ -73,7 +147,43 @@ func getTestConfig() *config.Config {
 		IsSMSServiceEnabled:             true,
 	}
 
+	// Set MongoDB-specific config
+	if dbType == constants.DbTypeMongoDB {
+		cfg.DatabaseName = "authorizer_test"
+	}
+
+	// Set Couchbase-specific config
+	if dbType == constants.DbTypeCouchbaseDB {
+		cfg.DatabaseUsername = "Administrator"
+		cfg.DatabasePassword = "password"
+		cfg.CouchBaseBucket = "authorizer_test"
+	}
+
 	return cfg
+}
+
+// runForEachDB runs the given test function against each database specified in TEST_DBS.
+// This is the primary way to run tests across multiple database providers.
+//
+// Usage:
+//
+//	func TestFeature(t *testing.T) {
+//	    runForEachDB(t, func(t *testing.T, cfg *config.Config) {
+//	        ts := initTestSetup(t, cfg)
+//	        _, ctx := createContext(ts)
+//	        // ... test logic
+//	    })
+//	}
+func runForEachDB(t *testing.T, testFn func(t *testing.T, cfg *config.Config)) {
+	t.Helper()
+	dbConfigs := getTestDBs()
+
+	for _, dbCfg := range dbConfigs {
+		t.Run("db="+dbCfg.DbType, func(t *testing.T) {
+			cfg := getTestConfigForDB(dbCfg.DbType, dbCfg.DbURL)
+			testFn(t, cfg)
+		})
+	}
 }
 
 // initTestSetup initializes the test setup
