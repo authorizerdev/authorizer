@@ -4,7 +4,9 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
+	"github.com/authorizerdev/authorizer/internal/utils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -135,11 +137,14 @@ func (h *httpProvider) RevokeRefreshTokenHandler() gin.HandlerFunc {
 			})
 			return
 		}
-		h.logAuditEvent(gc, constants.AuditTokenRevokedEvent, AuditLogOpts{
+		h.AuditProvider.LogEvent(audit.Event{
+			Action:       constants.AuditTokenRevokedEvent,
 			ActorID:      userID,
 			ActorType:    constants.AuditActorTypeUser,
 			ResourceType: constants.AuditResourceTypeToken,
 			ResourceID:   userID,
+			IPAddress:    utils.GetIP(gc.Request),
+			UserAgent:    utils.GetUserAgent(gc.Request),
 		})
 
 		gc.JSON(http.StatusOK, gin.H{})

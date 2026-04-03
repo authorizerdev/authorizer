@@ -39,6 +39,7 @@ func (h *httpProvider) gqlLoggingMiddleware() gql.FieldMiddleware {
 func (h *httpProvider) GraphqlHandler() gin.HandlerFunc {
 	gqlProvider, err := graphql.New(h.Config, &graphql.Dependencies{
 		Log:                   h.Log,
+		AuditProvider:         h.AuditProvider,
 		AuthenticatorProvider: h.AuthenticatorProvider,
 		EmailProvider:         h.EmailProvider,
 		EventsProvider:        h.EventsProvider,

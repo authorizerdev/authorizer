@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
+	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
@@ -188,12 +189,15 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 	err = bcrypt.CompareHashAndPassword([]byte(*user.Password), []byte(params.Password))
 	if err != nil {
 		log.Debug().Msg("Bad user credentials")
-		g.logAuditEvent(ctx, constants.AuditLoginFailedEvent, AuditLogOpts{
+		g.AuditProvider.LogEvent(audit.Event{
+			Action:       constants.AuditLoginFailedEvent,
 			ActorID:      user.ID,
 			ActorType:    constants.AuditActorTypeUser,
 			ActorEmail:   refs.StringValue(user.Email),
 			ResourceType: constants.AuditResourceTypeUser,
 			ResourceID:   user.ID,
+			IPAddress:    utils.GetIP(gc.Request),
+			UserAgent:    utils.GetUserAgent(gc.Request),
 		})
 		return nil, fmt.Errorf(`bad user credentials`)
 	}
@@ -392,12 +396,15 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 			IP:        utils.GetIP(gc.Request),
 		})
 	}()
-	g.logAuditEvent(ctx, constants.AuditLoginSuccessEvent, AuditLogOpts{
+	g.AuditProvider.LogEvent(audit.Event{
+		Action:       constants.AuditLoginSuccessEvent,
 		ActorID:      user.ID,
 		ActorType:    constants.AuditActorTypeUser,
 		ActorEmail:   refs.StringValue(user.Email),
 		ResourceType: constants.AuditResourceTypeSession,
 		ResourceID:   user.ID,
+		IPAddress:    utils.GetIP(gc.Request),
+		UserAgent:    utils.GetUserAgent(gc.Request),
 	})
 
 	return res, nil

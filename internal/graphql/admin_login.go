@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/crypto"
@@ -23,9 +24,12 @@ func (g *graphqlProvider) AdminLogin(ctx context.Context, params *model.AdminLog
 	}
 	if params.AdminSecret != g.Config.AdminSecret {
 		log.Debug().Msg("Invalid admin secret")
-		g.logAuditEvent(ctx, constants.AuditAdminLoginFailedEvent, AuditLogOpts{
+		g.AuditProvider.LogEvent(audit.Event{
+			Action:       constants.AuditAdminLoginFailedEvent,
 			ActorType:    constants.AuditActorTypeAdmin,
 			ResourceType: constants.AuditResourceTypeAdminSession,
+			IPAddress:    utils.GetIP(gc.Request),
+			UserAgent:    utils.GetUserAgent(gc.Request),
 		})
 		return res, fmt.Errorf(`invalid admin secret`)
 	}
@@ -36,9 +40,12 @@ func (g *graphqlProvider) AdminLogin(ctx context.Context, params *model.AdminLog
 	}
 	cookie.SetAdminCookie(gc, hashedKey, g.Config.AdminCookieSecure)
 
-	g.logAuditEvent(ctx, constants.AuditAdminLoginSuccessEvent, AuditLogOpts{
+	g.AuditProvider.LogEvent(audit.Event{
+		Action:       constants.AuditAdminLoginSuccessEvent,
 		ActorType:    constants.AuditActorTypeAdmin,
 		ResourceType: constants.AuditResourceTypeAdminSession,
+		IPAddress:    utils.GetIP(gc.Request),
+		UserAgent:    utils.GetUserAgent(gc.Request),
 	})
 	res = &model.Response{
 		Message: "admin logged in successfully",

@@ -10,11 +10,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
+	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/token"
+	"github.com/authorizerdev/authorizer/internal/utils"
 )
 
 type RequestBody struct {
@@ -347,13 +349,16 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 		if isRefreshTokenGrant {
 			auditAction = constants.AuditTokenRefreshedEvent
 		}
-		h.logAuditEvent(gc, auditAction, AuditLogOpts{
+		h.AuditProvider.LogEvent(audit.Event{
+			Action:       auditAction,
 			ActorID:      user.ID,
 			ActorType:    constants.AuditActorTypeUser,
 			ActorEmail:   refs.StringValue(user.Email),
 			ResourceType: constants.AuditResourceTypeToken,
 			ResourceID:   user.ID,
 			Metadata:     grantType,
+			IPAddress:    utils.GetIP(gc.Request),
+			UserAgent:    utils.GetUserAgent(gc.Request),
 		})
 		gc.JSON(http.StatusOK, res)
 	}

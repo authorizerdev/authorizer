@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
@@ -207,12 +208,15 @@ func (g *graphqlProvider) VerifyEmail(ctx context.Context, params *model.VerifyE
 			log.Debug().Err(err).Msg("Failed to add session")
 		}
 	}()
-	g.logAuditEvent(ctx, constants.AuditEmailVerifiedEvent, AuditLogOpts{
+	g.AuditProvider.LogEvent(audit.Event{
+		Action:       constants.AuditEmailVerifiedEvent,
 		ActorID:      user.ID,
 		ActorType:    constants.AuditActorTypeUser,
 		ActorEmail:   refs.StringValue(user.Email),
 		ResourceType: constants.AuditResourceTypeUser,
 		ResourceID:   user.ID,
+		IPAddress:    utils.GetIP(gc.Request),
+		UserAgent:    utils.GetUserAgent(gc.Request),
 	})
 	expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
 	if expiresIn <= 0 {

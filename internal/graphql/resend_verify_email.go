@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/parsers"
@@ -90,12 +91,15 @@ func (g *graphqlProvider) ResendVerifyEmail(ctx context.Context, params *model.R
 		"organization":     utils.GetOrganization(g.Config),
 		"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname, verificationRequest.RedirectURI),
 	})
-	g.logAuditEvent(ctx, constants.AuditVerifyEmailResentEvent, AuditLogOpts{
+	g.AuditProvider.LogEvent(audit.Event{
+		Action:       constants.AuditVerifyEmailResentEvent,
 		ActorID:      user.ID,
 		ActorType:    constants.AuditActorTypeUser,
 		ActorEmail:   params.Email,
 		ResourceType: constants.AuditResourceTypeUser,
 		ResourceID:   user.ID,
+		IPAddress:    utils.GetIP(gc.Request),
+		UserAgent:    utils.GetUserAgent(gc.Request),
 	})
 
 	return &model.Response{

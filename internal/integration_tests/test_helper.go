@@ -12,6 +12,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 
+	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/authenticators"
 	"github.com/authorizerdev/authorizer/internal/config"
 	"github.com/authorizerdev/authorizer/internal/constants"
@@ -232,9 +233,16 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 	})
 	require.NoError(t, err)
 
+	// Initialize audit provider
+	auditProvider := audit.New(&audit.Dependencies{
+		Log:             &logger,
+		StorageProvider: storageProvider,
+	})
+
 	// Create dependencies struct
 	gqlDeps := &graphql.Dependencies{
 		Log:                   &logger,
+		AuditProvider:         auditProvider,
 		AuthenticatorProvider: authProvider,
 		EmailProvider:         emailProvider,
 		EventsProvider:        eventsProvider,
@@ -247,6 +255,7 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 	// Create dependencies struct
 	httpDeps := &http_handlers.Dependencies{
 		Log:                   &logger,
+		AuditProvider:         auditProvider,
 		AuthenticatorProvider: authProvider,
 		EmailProvider:         emailProvider,
 		EventsProvider:        eventsProvider,

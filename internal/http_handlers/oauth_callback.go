@@ -17,6 +17,7 @@ import (
 	"github.com/google/uuid"
 	goredis "github.com/redis/go-redis/v9"
 
+	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/parsers"
@@ -354,13 +355,16 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 		}
 		// remove state from store
 		go h.MemoryStoreProvider.RemoveState(state)
-		h.logAuditEvent(ctx, constants.AuditOAuthCallbackSuccessEvent, AuditLogOpts{
+		h.AuditProvider.LogEvent(audit.Event{
+			Action:       constants.AuditOAuthCallbackSuccessEvent,
 			ActorID:      user.ID,
 			ActorType:    constants.AuditActorTypeUser,
 			ActorEmail:   refs.StringValue(user.Email),
 			ResourceType: constants.AuditResourceTypeSession,
 			ResourceID:   user.ID,
 			Metadata:     provider,
+			IPAddress:    utils.GetIP(ctx.Request),
+			UserAgent:    utils.GetUserAgent(ctx.Request),
 		})
 		ctx.Redirect(http.StatusFound, redirectURL)
 	}

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/crypto"
@@ -171,12 +172,15 @@ func (g *graphqlProvider) ResetPassword(ctx context.Context, params *model.Reset
 			return nil, err
 		}
 	}
-	g.logAuditEvent(ctx, constants.AuditPasswordResetEvent, AuditLogOpts{
+	g.AuditProvider.LogEvent(audit.Event{
+		Action:       constants.AuditPasswordResetEvent,
 		ActorID:      user.ID,
 		ActorType:    constants.AuditActorTypeUser,
 		ActorEmail:   refs.StringValue(user.Email),
 		ResourceType: constants.AuditResourceTypeUser,
 		ResourceID:   user.ID,
+		IPAddress:    utils.GetIP(gc.Request),
+		UserAgent:    utils.GetUserAgent(gc.Request),
 	})
 	return &model.Response{
 		Message: `Password updated successfully.`,

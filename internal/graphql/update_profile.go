@@ -10,6 +10,7 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
+	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/crypto"
@@ -256,12 +257,15 @@ func (g *graphqlProvider) UpdateProfile(ctx context.Context, params *model.Updat
 		log.Debug().Err(err).Msg("Failed to update user")
 		return nil, err
 	}
-	g.logAuditEvent(ctx, constants.AuditProfileUpdatedEvent, AuditLogOpts{
+	g.AuditProvider.LogEvent(audit.Event{
+		Action:       constants.AuditProfileUpdatedEvent,
 		ActorID:      user.ID,
 		ActorType:    constants.AuditActorTypeUser,
 		ActorEmail:   refs.StringValue(user.Email),
 		ResourceType: constants.AuditResourceTypeUser,
 		ResourceID:   user.ID,
+		IPAddress:    utils.GetIP(gc.Request),
+		UserAgent:    utils.GetUserAgent(gc.Request),
 	})
 	message := `Profile details updated successfully.`
 	if hasEmailChanged {
