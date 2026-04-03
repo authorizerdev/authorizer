@@ -93,11 +93,10 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 
 		cassandraClient.SslOpts = &cansandraDriver.SslOptions{
 			Config: &tls.Config{
-				Certificates:       []tls.Certificate{cert},
-				RootCAs:            caCertPool,
-				InsecureSkipVerify: true,
+				Certificates: []tls.Certificate{cert},
+				RootCAs:      caCertPool,
 			},
-			EnableHostVerification: false,
+			EnableHostVerification: true,
 		}
 	}
 
@@ -107,7 +106,7 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	cassandraClient.Consistency = cansandraDriver.LocalQuorum
 	cassandraClient.ConnectTimeout = 10 * time.Second
 	cassandraClient.ProtoVersion = 4
-	cassandraClient.Timeout = 30 * time.Minute // for large data
+	cassandraClient.Timeout = 30 * time.Second
 
 	session, err := cassandraClient.CreateSession()
 	if err != nil {
