@@ -48,7 +48,7 @@ func (g *graphqlProvider) AddEmailTemplate(ctx context.Context, params *model.Ad
 		design = ""
 	}
 
-	_, err = g.StorageProvider.AddEmailTemplate(ctx, &schemas.EmailTemplate{
+	emailTemplate, err := g.StorageProvider.AddEmailTemplate(ctx, &schemas.EmailTemplate{
 		EventName: params.EventName,
 		Template:  params.Template,
 		Subject:   params.Subject,
@@ -62,6 +62,7 @@ func (g *graphqlProvider) AddEmailTemplate(ctx context.Context, params *model.Ad
 	g.logAuditEvent(ctx, constants.AuditAdminEmailTemplateCreatedEvent, AuditLogOpts{
 		ActorType:    "admin",
 		ResourceType: "email_template",
+		ResourceID:   emailTemplate.ID,
 	})
 	return &model.Response{
 		Message: `Email template added successfully`,

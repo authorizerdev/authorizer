@@ -93,7 +93,6 @@ func (g *graphqlProvider) DeleteUser(ctx context.Context, params *model.DeleteUs
 		ActorType:    "admin",
 		ResourceType: "user",
 		ResourceID:   user.ID,
-		ActorEmail:   refs.StringValue(user.Email),
 	})
 
 	return res, nil
