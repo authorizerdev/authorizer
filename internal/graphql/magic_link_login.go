@@ -150,7 +150,7 @@ func (g *graphqlProvider) MagicLinkLogin(ctx context.Context, params *model.Magi
 		redirectURL := parsers.GetAppURL(gc)
 		if params.RedirectURI != nil {
 			redirectURL = *params.RedirectURI
-			if !validators.IsValidOrigin(redirectURL, g.Config.AllowedOrigins) {
+			if !validators.IsValidRedirectURI(redirectURL, g.Config.AllowedOrigins, hostname) {
 				log.Debug().Msg("Invalid redirect URI")
 				return nil, fmt.Errorf("invalid redirect URI")
 			}

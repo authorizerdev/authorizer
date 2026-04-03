@@ -11,8 +11,10 @@ import (
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/crypto"
+	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/token"
 	"github.com/authorizerdev/authorizer/internal/utils"
+	"github.com/authorizerdev/authorizer/internal/validators"
 )
 
 // Handler to logout user
@@ -69,6 +71,14 @@ func (h *httpProvider) LogoutHandler() gin.HandlerFunc {
 		})
 
 		if redirectURL != "" {
+			hostname := parsers.GetHost(gc)
+			if !validators.IsValidRedirectURI(redirectURL, h.Config.AllowedOrigins, hostname) {
+				log.Debug().Msg("Invalid redirect URI")
+				gc.JSON(http.StatusBadRequest, gin.H{
+					"error": "invalid redirect uri",
+				})
+				return
+			}
 			gc.Redirect(http.StatusFound, redirectURL)
 		} else {
 			gc.JSON(http.StatusOK, gin.H{

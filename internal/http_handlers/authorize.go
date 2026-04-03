@@ -44,6 +44,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/token"
+	"github.com/authorizerdev/authorizer/internal/validators"
 )
 
 // Check the flow for generating and verifying codes: https://developer.okta.com/blog/2019/08/22/okta-authjs-pkce#:~:text=PKCE%20works%20by%20having%20the,is%20called%20the%20Code%20Challenge.
@@ -90,6 +91,16 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 
 		if redirectURI == "" {
 			redirectURI = "/app"
+		} else {
+			hostname := parsers.GetHost(gc)
+			if !validators.IsValidRedirectURI(redirectURI, h.Config.AllowedOrigins, hostname) {
+				log.Debug().Msg("Invalid redirect URI")
+				gc.JSON(http.StatusBadRequest, gin.H{
+					"error":             "invalid_request",
+					"error_description": "invalid redirect_uri",
+				})
+				return
+			}
 		}
 
 		if responseType == "" {

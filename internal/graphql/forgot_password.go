@@ -77,7 +77,7 @@ func (g *graphqlProvider) ForgotPassword(ctx context.Context, params *model.Forg
 		// give higher preference to params redirect uri
 		if strings.TrimSpace(refs.StringValue(params.RedirectURI)) != "" {
 			redirectURI = refs.StringValue(params.RedirectURI)
-			if !validators.IsValidOrigin(redirectURI, g.Config.AllowedOrigins) {
+			if !validators.IsValidRedirectURI(redirectURI, g.Config.AllowedOrigins, hostname) {
 				log.Debug().Msg("Invalid redirect URI")
 				return nil, fmt.Errorf("invalid redirect URI")
 			}

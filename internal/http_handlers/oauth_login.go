@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
+	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/validators"
 )
 
@@ -31,7 +32,8 @@ func (h *httpProvider) OAuthLoginHandler() gin.HandlerFunc {
 			return
 		}
 
-		if !validators.IsValidOrigin(redirectURI, h.Config.AllowedOrigins) {
+		hostname := parsers.GetHost(c)
+		if !validators.IsValidRedirectURI(redirectURI, h.Config.AllowedOrigins, hostname) {
 			log.Debug().Msg("Invalid redirect URI")
 			c.JSON(400, gin.H{
 				"error": "invalid redirect uri",
