@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/refs"
@@ -89,10 +90,13 @@ func (g *graphqlProvider) DeleteUser(ctx context.Context, params *model.DeleteUs
 		g.MemoryStoreProvider.DeleteAllUserSessions(user.ID)
 		g.EventsProvider.RegisterEvent(ctx, constants.UserDeletedWebhookEvent, "", user)
 	}()
-	g.logAuditEvent(ctx, constants.AuditAdminUserDeletedEvent, AuditLogOpts{
+	g.AuditProvider.LogEvent(audit.Event{
+		Action:       constants.AuditAdminUserDeletedEvent,
 		ActorType:    constants.AuditActorTypeAdmin,
 		ResourceType: constants.AuditResourceTypeUser,
 		ResourceID:   user.ID,
+		IPAddress:    utils.GetIP(gc.Request),
+		UserAgent:    utils.GetUserAgent(gc.Request),
 	})
 
 	return res, nil

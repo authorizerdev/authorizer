@@ -7,10 +7,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/token"
+	"github.com/authorizerdev/authorizer/internal/utils"
 )
 
 // Handler to logout user
@@ -56,11 +58,14 @@ func (h *httpProvider) LogoutHandler() gin.HandlerFunc {
 
 		h.MemoryStoreProvider.DeleteUserSession(sessionToken, sessionData.Nonce)
 		cookie.DeleteSession(gc, h.Config.AppCookieSecure)
-		h.logAuditEvent(gc, constants.AuditSessionTerminatedEvent, AuditLogOpts{
+		h.AuditProvider.LogEvent(audit.Event{
+			Action:       constants.AuditSessionTerminatedEvent,
 			ActorID:      userID,
 			ActorType:    constants.AuditActorTypeUser,
 			ResourceType: constants.AuditResourceTypeSession,
 			ResourceID:   userID,
+			IPAddress:    utils.GetIP(gc.Request),
+			UserAgent:    utils.GetUserAgent(gc.Request),
 		})
 
 		if redirectURL != "" {

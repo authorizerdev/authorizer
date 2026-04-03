@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
@@ -209,20 +210,26 @@ func (g *graphqlProvider) VerifyOTP(ctx context.Context, params *model.VerifyOTP
 		}
 	}()
 	if isEmailVerification {
-		g.logAuditEvent(ctx, constants.AuditEmailVerifiedEvent, AuditLogOpts{
+		g.AuditProvider.LogEvent(audit.Event{
+			Action:       constants.AuditEmailVerifiedEvent,
 			ActorID:      user.ID,
 			ActorType:    constants.AuditActorTypeUser,
 			ActorEmail:   refs.StringValue(user.Email),
 			ResourceType: constants.AuditResourceTypeUser,
 			ResourceID:   user.ID,
+			IPAddress:    utils.GetIP(gc.Request),
+			UserAgent:    utils.GetUserAgent(gc.Request),
 		})
 	} else {
-		g.logAuditEvent(ctx, constants.AuditPhoneVerifiedEvent, AuditLogOpts{
+		g.AuditProvider.LogEvent(audit.Event{
+			Action:       constants.AuditPhoneVerifiedEvent,
 			ActorID:      user.ID,
 			ActorType:    constants.AuditActorTypeUser,
 			ActorEmail:   refs.StringValue(user.Email),
 			ResourceType: constants.AuditResourceTypeUser,
 			ResourceID:   user.ID,
+			IPAddress:    utils.GetIP(gc.Request),
+			UserAgent:    utils.GetUserAgent(gc.Request),
 		})
 	}
 

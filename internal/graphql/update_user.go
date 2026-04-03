@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/parsers"
@@ -252,10 +253,13 @@ func (g *graphqlProvider) UpdateUser(ctx context.Context, params *model.UpdateUs
 		log.Debug().Err(err).Msg("failed UpdateUser")
 		return nil, err
 	}
-	g.logAuditEvent(ctx, constants.AuditAdminUserUpdatedEvent, AuditLogOpts{
+	g.AuditProvider.LogEvent(audit.Event{
+		Action:       constants.AuditAdminUserUpdatedEvent,
 		ActorType:    constants.AuditActorTypeAdmin,
 		ResourceType: constants.AuditResourceTypeUser,
 		ResourceID:   user.ID,
+		IPAddress:    utils.GetIP(gc.Request),
+		UserAgent:    utils.GetUserAgent(gc.Request),
 	})
 
 	return user.AsAPIUser(), nil

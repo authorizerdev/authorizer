@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/authenticators"
 	"github.com/authorizerdev/authorizer/internal/config"
 	"github.com/authorizerdev/authorizer/internal/constants"
@@ -397,8 +398,14 @@ func runRoot(c *cobra.Command, args []string) {
 		log.Fatal().Msg("client secret missing in rootArgs")
 	}
 
+	auditProvider := audit.New(&audit.Dependencies{
+		Log:             &log,
+		StorageProvider: storageProvider,
+	})
+
 	httpProvider, err := http_handlers.New(&rootArgs.config, &http_handlers.Dependencies{
 		Log:                   &log,
+		AuditProvider:         auditProvider,
 		AuthenticatorProvider: authenticatorProvider,
 		EmailProvider:         emailProvider,
 		EventsProvider:        eventsProvider,

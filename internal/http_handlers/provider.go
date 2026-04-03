@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
 
+	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/authenticators"
 	"github.com/authorizerdev/authorizer/internal/config"
 	"github.com/authorizerdev/authorizer/internal/email"
@@ -20,6 +21,8 @@ type Dependencies struct {
 	Log *zerolog.Logger
 
 	// Providers for various services
+	// AuditProvider is used to log audit events
+	AuditProvider audit.Provider
 	// AuthenticatorProvider is used to register authenticators like totp (Google Authenticator)
 	AuthenticatorProvider authenticators.Provider
 	// EmailProvider is used to send emails
