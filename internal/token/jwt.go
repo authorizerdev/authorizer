@@ -51,11 +51,17 @@ func (p *provider) ParseJWTToken(token string) (jwt.MapClaims, error) {
 	var err error
 	switch signingMethod {
 	case jwt.SigningMethodHS256, jwt.SigningMethodHS384, jwt.SigningMethodHS512:
-		_, err = jwt.ParseWithClaims(token, &claims, func(token *jwt.Token) (interface{}, error) {
+		_, err = jwt.ParseWithClaims(token, &claims, func(t *jwt.Token) (interface{}, error) {
+			if t.Method.Alg() != signingMethod.Alg() {
+				return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+			}
 			return []byte(p.config.JWTSecret), nil
 		})
 	case jwt.SigningMethodRS256, jwt.SigningMethodRS384, jwt.SigningMethodRS512:
-		_, err = jwt.ParseWithClaims(token, &claims, func(token *jwt.Token) (interface{}, error) {
+		_, err = jwt.ParseWithClaims(token, &claims, func(t *jwt.Token) (interface{}, error) {
+			if t.Method.Alg() != signingMethod.Alg() {
+				return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+			}
 			key, err := crypto.ParseRsaPublicKeyFromPemStr(p.config.JWTPublicKey)
 			if err != nil {
 				return nil, err
@@ -63,7 +69,10 @@ func (p *provider) ParseJWTToken(token string) (jwt.MapClaims, error) {
 			return key, nil
 		})
 	case jwt.SigningMethodES256, jwt.SigningMethodES384, jwt.SigningMethodES512:
-		_, err = jwt.ParseWithClaims(token, &claims, func(token *jwt.Token) (interface{}, error) {
+		_, err = jwt.ParseWithClaims(token, &claims, func(t *jwt.Token) (interface{}, error) {
+			if t.Method.Alg() != signingMethod.Alg() {
+				return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+			}
 			key, err := crypto.ParseEcdsaPublicKeyFromPemStr(p.config.JWTPublicKey)
 			if err != nil {
 				return nil, err
