@@ -705,20 +705,18 @@ func testMFASessionOperations(t *testing.T, ctx context.Context, provider Provid
 func testAuditLogOperations(t *testing.T, ctx context.Context, provider Provider) {
 	t.Run("add and list", func(t *testing.T) {
 		auditLog := &schemas.AuditLog{
-			ActorID:        uuid.New().String(),
-			ActorType:      "user",
-			ActorEmail:     "test_" + uuid.New().String() + "@example.com",
-			Action:         "login",
-			ResourceType:   "session",
-			ResourceID:     uuid.New().String(),
-			IPAddress:      "127.0.0.1",
-			UserAgent:      "provider-test-agent",
-			OrganizationID: uuid.New().String(),
+			ActorID:      uuid.New().String(),
+			ActorType:    constants.AuditActorTypeUser,
+			ActorEmail:   "test_" + uuid.New().String() + "@example.com",
+			Action:       constants.AuditLoginSuccessEvent,
+			ResourceType: constants.AuditResourceTypeSession,
+			ResourceID:   uuid.New().String(),
+			IPAddress:    "127.0.0.1",
+			UserAgent:    "provider-test-agent",
 		}
 		err := provider.AddAuditLog(ctx, auditLog)
 		require.NoError(t, err)
 		assert.NotEmpty(t, auditLog.ID)
-		assert.NotZero(t, auditLog.Timestamp)
 		assert.NotZero(t, auditLog.CreatedAt)
 
 		pagination := &model.Pagination{Limit: 10, Offset: 0}
@@ -731,10 +729,11 @@ func testAuditLogOperations(t *testing.T, ctx context.Context, provider Provider
 	t.Run("filter by action", func(t *testing.T) {
 		uniqueAction := "provider_test_action_" + uuid.New().String()[:8]
 		auditLog := &schemas.AuditLog{
-			ActorID:    uuid.New().String(),
-			ActorType:  "user",
-			ActorEmail: "filter_" + uuid.New().String() + "@example.com",
-			Action:     uniqueAction,
+			ActorID:      uuid.New().String(),
+			ActorType:    constants.AuditActorTypeUser,
+			ActorEmail:   "filter_" + uuid.New().String() + "@example.com",
+			Action:       uniqueAction,
+			ResourceType: constants.AuditResourceTypeUser,
 		}
 		require.NoError(t, provider.AddAuditLog(ctx, auditLog))
 
@@ -750,10 +749,11 @@ func testAuditLogOperations(t *testing.T, ctx context.Context, provider Provider
 	t.Run("filter by actor_id", func(t *testing.T) {
 		actorID := uuid.New().String()
 		auditLog := &schemas.AuditLog{
-			ActorID:    actorID,
-			ActorType:  "admin",
-			ActorEmail: "admin_" + uuid.New().String() + "@example.com",
-			Action:     "update_env",
+			ActorID:      actorID,
+			ActorType:    constants.AuditActorTypeAdmin,
+			ActorEmail:   "admin_" + uuid.New().String() + "@example.com",
+			Action:       constants.AuditAdminUserUpdatedEvent,
+			ResourceType: constants.AuditResourceTypeUser,
 		}
 		require.NoError(t, provider.AddAuditLog(ctx, auditLog))
 
@@ -773,14 +773,15 @@ func testAuditLogOperations(t *testing.T, ctx context.Context, provider Provider
 		assert.NotSame(t, pagination, returnedPag, "should return a new pagination object")
 	})
 
-	t.Run("delete before timestamp", func(t *testing.T) {
+	t.Run("delete before created_at", func(t *testing.T) {
 		uniqueAction := "provider_cleanup_" + uuid.New().String()[:8]
 		oldLog := &schemas.AuditLog{
-			ActorID:    uuid.New().String(),
-			ActorType:  "system",
-			ActorEmail: "system_" + uuid.New().String() + "@example.com",
-			Action:     uniqueAction,
-			Timestamp:  time.Now().Add(-24 * time.Hour).Unix(),
+			ActorID:      uuid.New().String(),
+			ActorType:    constants.AuditActorTypeUser,
+			ActorEmail:   "system_" + uuid.New().String() + "@example.com",
+			Action:       uniqueAction,
+			ResourceType: constants.AuditResourceTypeUser,
+			CreatedAt:    time.Now().Add(-24 * time.Hour).Unix(),
 		}
 		require.NoError(t, provider.AddAuditLog(ctx, oldLog))
 

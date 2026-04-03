@@ -18,11 +18,9 @@ func (p *provider) AddAuditLog(ctx context.Context, auditLog *schemas.AuditLog) 
 		auditLog.ID = uuid.New().String()
 	}
 	auditLog.Key = auditLog.ID
-	if auditLog.Timestamp == 0 {
-		auditLog.Timestamp = time.Now().Unix()
+	if auditLog.CreatedAt == 0 {
+		auditLog.CreatedAt = time.Now().Unix()
 	}
-	auditLog.CreatedAt = time.Now().Unix()
-	auditLog.UpdatedAt = time.Now().Unix()
 	collection, _ := p.db.Collection(ctx, schemas.Collections.AuditLog)
 	_, err := collection.CreateDocument(ctx, auditLog)
 	if err != nil {
@@ -53,20 +51,16 @@ func (p *provider) ListAuditLogs(ctx context.Context, pagination *model.Paginati
 		filterQuery += " FILTER d.resource_id == @resource_id"
 		bindVariables["resource_id"] = resourceID
 	}
-	if orgID, ok := filter["organization_id"]; ok && orgID != "" {
-		filterQuery += " FILTER d.organization_id == @organization_id"
-		bindVariables["organization_id"] = orgID
-	}
 	if fromTimestamp, ok := filter["from_timestamp"]; ok {
-		filterQuery += " FILTER d.timestamp >= @from_timestamp"
+		filterQuery += " FILTER d.created_at >= @from_timestamp"
 		bindVariables["from_timestamp"] = fromTimestamp
 	}
 	if toTimestamp, ok := filter["to_timestamp"]; ok {
-		filterQuery += " FILTER d.timestamp <= @to_timestamp"
+		filterQuery += " FILTER d.created_at <= @to_timestamp"
 		bindVariables["to_timestamp"] = toTimestamp
 	}
 
-	query := fmt.Sprintf("FOR d in %s%s SORT d.timestamp DESC LIMIT %d, %d RETURN d", schemas.Collections.AuditLog, filterQuery, pagination.Offset, pagination.Limit)
+	query := fmt.Sprintf("FOR d in %s%s SORT d.created_at DESC LIMIT %d, %d RETURN d", schemas.Collections.AuditLog, filterQuery, pagination.Offset, pagination.Limit)
 	sctx := arangoDriver.WithQueryFullCount(ctx)
 	cursor, err := p.db.Query(sctx, query, bindVariables)
 	if err != nil {
@@ -95,7 +89,7 @@ func (p *provider) ListAuditLogs(ctx context.Context, pagination *model.Paginati
 
 // DeleteAuditLogsBefore removes logs older than a timestamp
 func (p *provider) DeleteAuditLogsBefore(ctx context.Context, before int64) error {
-	query := fmt.Sprintf("FOR d in %s FILTER d.timestamp < @before REMOVE d IN %s", schemas.Collections.AuditLog, schemas.Collections.AuditLog)
+	query := fmt.Sprintf("FOR d in %s FILTER d.created_at < @before REMOVE d IN %s", schemas.Collections.AuditLog, schemas.Collections.AuditLog)
 	_, err := p.db.Query(ctx, query, map[string]interface{}{
 		"before": before,
 	})

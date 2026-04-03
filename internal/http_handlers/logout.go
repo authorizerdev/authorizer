@@ -58,8 +58,8 @@ func (h *httpProvider) LogoutHandler() gin.HandlerFunc {
 		cookie.DeleteSession(gc, h.Config.AppCookieSecure)
 		h.logAuditEvent(gc, constants.AuditSessionTerminatedEvent, AuditLogOpts{
 			ActorID:      userID,
-			ActorType:    "user",
-			ResourceType: "session",
+			ActorType:    constants.AuditActorTypeUser,
+			ResourceType: constants.AuditResourceTypeSession,
 			ResourceID:   userID,
 		})
 

@@ -47,20 +47,17 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	AuditLog struct {
-		Action         func(childComplexity int) int
-		ActorEmail     func(childComplexity int) int
-		ActorID        func(childComplexity int) int
-		ActorType      func(childComplexity int) int
-		CreatedAt      func(childComplexity int) int
-		ID             func(childComplexity int) int
-		IPAddress      func(childComplexity int) int
-		Metadata       func(childComplexity int) int
-		OrganizationID func(childComplexity int) int
-		ResourceID     func(childComplexity int) int
-		ResourceType   func(childComplexity int) int
-		Timestamp      func(childComplexity int) int
-		UpdatedAt      func(childComplexity int) int
-		UserAgent      func(childComplexity int) int
+		Action       func(childComplexity int) int
+		ActorEmail   func(childComplexity int) int
+		ActorID      func(childComplexity int) int
+		ActorType    func(childComplexity int) int
+		CreatedAt    func(childComplexity int) int
+		ID           func(childComplexity int) int
+		IPAddress    func(childComplexity int) int
+		Metadata     func(childComplexity int) int
+		ResourceID   func(childComplexity int) int
+		ResourceType func(childComplexity int) int
+		UserAgent    func(childComplexity int) int
 	}
 
 	AuditLogs struct {
@@ -499,13 +496,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.AuditLog.Metadata(childComplexity), true
 
-	case "AuditLog.organization_id":
-		if e.complexity.AuditLog.OrganizationID == nil {
-			break
-		}
-
-		return e.complexity.AuditLog.OrganizationID(childComplexity), true
-
 	case "AuditLog.resource_id":
 		if e.complexity.AuditLog.ResourceID == nil {
 			break
@@ -519,20 +509,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.AuditLog.ResourceType(childComplexity), true
-
-	case "AuditLog.timestamp":
-		if e.complexity.AuditLog.Timestamp == nil {
-			break
-		}
-
-		return e.complexity.AuditLog.Timestamp(childComplexity), true
-
-	case "AuditLog.updated_at":
-		if e.complexity.AuditLog.UpdatedAt == nil {
-			break
-		}
-
-		return e.complexity.AuditLog.UpdatedAt(childComplexity), true
 
 	case "AuditLog.user_agent":
 		if e.complexity.AuditLog.UserAgent == nil {
@@ -2763,7 +2739,6 @@ type WebhookLogs {
 
 type AuditLog {
   id: ID!
-  timestamp: Int64
   actor_id: String
   actor_type: String
   actor_email: String
@@ -2773,9 +2748,7 @@ type AuditLog {
   ip_address: String
   user_agent: String
   metadata: String
-  organization_id: String
   created_at: Int64
-  updated_at: Int64
 }
 
 type AuditLogs {
@@ -3074,7 +3047,6 @@ input ListAuditLogRequest {
   actor_id: String
   resource_type: String
   resource_id: String
-  organization_id: String
   from_timestamp: Int64
   to_timestamp: Int64
 }
@@ -4536,47 +4508,6 @@ func (ec *executionContext) fieldContext_AuditLog_id(_ context.Context, field gr
 	return fc, nil
 }
 
-func (ec *executionContext) _AuditLog_timestamp(ctx context.Context, field graphql.CollectedField, obj *model.AuditLog) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuditLog_timestamp(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Timestamp, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*int64)
-	fc.Result = res
-	return ec.marshalOInt642ᚖint64(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AuditLog_timestamp(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuditLog",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int64 does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _AuditLog_actor_id(ctx context.Context, field graphql.CollectedField, obj *model.AuditLog) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_AuditLog_actor_id(ctx, field)
 	if err != nil {
@@ -4946,47 +4877,6 @@ func (ec *executionContext) fieldContext_AuditLog_metadata(_ context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _AuditLog_organization_id(ctx context.Context, field graphql.CollectedField, obj *model.AuditLog) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuditLog_organization_id(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.OrganizationID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*string)
-	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AuditLog_organization_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuditLog",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _AuditLog_created_at(ctx context.Context, field graphql.CollectedField, obj *model.AuditLog) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_AuditLog_created_at(ctx, field)
 	if err != nil {
@@ -5016,47 +4906,6 @@ func (ec *executionContext) _AuditLog_created_at(ctx context.Context, field grap
 }
 
 func (ec *executionContext) fieldContext_AuditLog_created_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuditLog",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int64 does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AuditLog_updated_at(ctx context.Context, field graphql.CollectedField, obj *model.AuditLog) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuditLog_updated_at(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.UpdatedAt, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*int64)
-	fc.Result = res
-	return ec.marshalOInt642ᚖint64(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AuditLog_updated_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "AuditLog",
 		Field:      field,
@@ -5164,8 +5013,6 @@ func (ec *executionContext) fieldContext_AuditLogs_audit_logs(_ context.Context,
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_AuditLog_id(ctx, field)
-			case "timestamp":
-				return ec.fieldContext_AuditLog_timestamp(ctx, field)
 			case "actor_id":
 				return ec.fieldContext_AuditLog_actor_id(ctx, field)
 			case "actor_type":
@@ -5184,12 +5031,8 @@ func (ec *executionContext) fieldContext_AuditLogs_audit_logs(_ context.Context,
 				return ec.fieldContext_AuditLog_user_agent(ctx, field)
 			case "metadata":
 				return ec.fieldContext_AuditLog_metadata(ctx, field)
-			case "organization_id":
-				return ec.fieldContext_AuditLog_organization_id(ctx, field)
 			case "created_at":
 				return ec.fieldContext_AuditLog_created_at(ctx, field)
-			case "updated_at":
-				return ec.fieldContext_AuditLog_updated_at(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type AuditLog", field.Name)
 		},
@@ -18876,7 +18719,7 @@ func (ec *executionContext) unmarshalInputListAuditLogRequest(ctx context.Contex
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"pagination", "action", "actor_id", "resource_type", "resource_id", "organization_id", "from_timestamp", "to_timestamp"}
+	fieldsInOrder := [...]string{"pagination", "action", "actor_id", "resource_type", "resource_id", "from_timestamp", "to_timestamp"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -18918,13 +18761,6 @@ func (ec *executionContext) unmarshalInputListAuditLogRequest(ctx context.Contex
 				return it, err
 			}
 			it.ResourceID = data
-		case "organization_id":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("organization_id"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.OrganizationID = data
 		case "from_timestamp":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("from_timestamp"))
 			data, err := ec.unmarshalOInt642ᚖint64(ctx, v)
@@ -20792,8 +20628,6 @@ func (ec *executionContext) _AuditLog(ctx context.Context, sel ast.SelectionSet,
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "timestamp":
-			out.Values[i] = ec._AuditLog_timestamp(ctx, field, obj)
 		case "actor_id":
 			out.Values[i] = ec._AuditLog_actor_id(ctx, field, obj)
 		case "actor_type":
@@ -20812,12 +20646,8 @@ func (ec *executionContext) _AuditLog(ctx context.Context, sel ast.SelectionSet,
 			out.Values[i] = ec._AuditLog_user_agent(ctx, field, obj)
 		case "metadata":
 			out.Values[i] = ec._AuditLog_metadata(ctx, field, obj)
-		case "organization_id":
-			out.Values[i] = ec._AuditLog_organization_id(ctx, field, obj)
 		case "created_at":
 			out.Values[i] = ec._AuditLog_created_at(ctx, field, obj)
-		case "updated_at":
-			out.Values[i] = ec._AuditLog_updated_at(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

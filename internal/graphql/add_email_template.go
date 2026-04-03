@@ -60,8 +60,8 @@ func (g *graphqlProvider) AddEmailTemplate(ctx context.Context, params *model.Ad
 	}
 
 	g.logAuditEvent(ctx, constants.AuditAdminEmailTemplateCreatedEvent, AuditLogOpts{
-		ActorType:    "admin",
-		ResourceType: "email_template",
+		ActorType:    constants.AuditActorTypeAdmin,
+		ResourceType: constants.AuditResourceTypeEmailTemplate,
 		ResourceID:   emailTemplate.ID,
 	})
 	return &model.Response{

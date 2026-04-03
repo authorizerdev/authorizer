@@ -18,11 +18,9 @@ func (p *provider) AddAuditLog(ctx context.Context, auditLog *schemas.AuditLog) 
 		auditLog.ID = uuid.New().String()
 	}
 	auditLog.Key = auditLog.ID
-	if auditLog.Timestamp == 0 {
-		auditLog.Timestamp = time.Now().Unix()
+	if auditLog.CreatedAt == 0 {
+		auditLog.CreatedAt = time.Now().Unix()
 	}
-	auditLog.CreatedAt = time.Now().Unix()
-	auditLog.UpdatedAt = time.Now().Unix()
 	insertOpt := gocb.InsertOptions{
 		Context: ctx,
 	}
@@ -76,7 +74,7 @@ func (p *provider) ListAuditLogs(ctx context.Context, pagination *model.Paginati
 	}
 	paginationClone.Total = countRow.Count
 
-	query := fmt.Sprintf("SELECT _id, timestamp, actor_id, actor_type, actor_email, action, resource_type, resource_id, ip_address, user_agent, metadata, organization_id, created_at, updated_at FROM %s.%s%s ORDER BY timestamp DESC OFFSET $offset LIMIT $limit",
+	query := fmt.Sprintf("SELECT _id, actor_id, actor_type, actor_email, action, resource_type, resource_id, ip_address, user_agent, metadata, created_at FROM %s.%s%s ORDER BY created_at DESC OFFSET $offset LIMIT $limit",
 		p.scopeName, schemas.Collections.AuditLog, whereClause)
 
 	queryResult, err := p.db.Query(query, &gocb.QueryOptions{
@@ -105,7 +103,7 @@ func (p *provider) ListAuditLogs(ctx context.Context, pagination *model.Paginati
 func (p *provider) DeleteAuditLogsBefore(ctx context.Context, before int64) error {
 	params := make(map[string]interface{})
 	params["before"] = before
-	query := fmt.Sprintf("DELETE FROM %s.%s WHERE timestamp < $before",
+	query := fmt.Sprintf("DELETE FROM %s.%s WHERE created_at < $before",
 		p.scopeName, schemas.Collections.AuditLog)
 	_, err := p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,

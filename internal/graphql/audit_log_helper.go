@@ -33,16 +33,15 @@ func (g *graphqlProvider) logAuditEvent(ctx context.Context, action string, opts
 
 	go func() {
 		auditLog := &schemas.AuditLog{
-			ActorID:        opts.ActorID,
-			ActorType:      opts.ActorType,
-			ActorEmail:     opts.ActorEmail,
-			Action:         action,
-			ResourceType:   opts.ResourceType,
-			ResourceID:     opts.ResourceID,
-			IPAddress:      ipAddress,
-			UserAgent:      userAgent,
-			Metadata:       opts.Metadata,
-			OrganizationID: g.Config.OrganizationName,
+			ActorID:      opts.ActorID,
+			ActorType:    opts.ActorType,
+			ActorEmail:   opts.ActorEmail,
+			Action:       action,
+			ResourceType: opts.ResourceType,
+			ResourceID:   opts.ResourceID,
+			IPAddress:    ipAddress,
+			UserAgent:    userAgent,
+			Metadata:     opts.Metadata,
 		}
 		if err := g.StorageProvider.AddAuditLog(context.Background(), auditLog); err != nil {
 			log.Debug().Err(err).Str("action", action).Msg("Failed to add audit log")

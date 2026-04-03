@@ -137,8 +137,8 @@ func (h *httpProvider) RevokeRefreshTokenHandler() gin.HandlerFunc {
 		}
 		h.logAuditEvent(gc, constants.AuditTokenRevokedEvent, AuditLogOpts{
 			ActorID:      userID,
-			ActorType:    "user",
-			ResourceType: "token",
+			ActorType:    constants.AuditActorTypeUser,
+			ResourceType: constants.AuditResourceTypeToken,
 			ResourceID:   userID,
 		})
 

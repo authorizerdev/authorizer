@@ -46,8 +46,8 @@ func (g *graphqlProvider) EnableAccess(ctx context.Context, params *model.Update
 	}
 	go g.EventsProvider.RegisterEvent(ctx, constants.UserAccessEnabledWebhookEvent, "", user)
 	g.logAuditEvent(ctx, constants.AuditAdminAccessEnabledEvent, AuditLogOpts{
-		ActorType:    "admin",
-		ResourceType: "user",
+		ActorType:    constants.AuditActorTypeAdmin,
+		ResourceType: constants.AuditResourceTypeUser,
 		ResourceID:   user.ID,
 	})
 

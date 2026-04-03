@@ -45,9 +45,9 @@ func (g *graphqlProvider) DeactivateAccount(ctx context.Context) (*model.Respons
 	}()
 	g.logAuditEvent(ctx, constants.AuditUserDeactivatedEvent, AuditLogOpts{
 		ActorID:      user.ID,
-		ActorType:    "user",
+		ActorType:    constants.AuditActorTypeUser,
 		ActorEmail:   refs.StringValue(user.Email),
-		ResourceType: "user",
+		ResourceType: constants.AuditResourceTypeUser,
 		ResourceID:   user.ID,
 	})
 	res = &model.Response{

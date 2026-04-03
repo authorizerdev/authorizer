@@ -92,9 +92,9 @@ func (g *graphqlProvider) ResendVerifyEmail(ctx context.Context, params *model.R
 	})
 	g.logAuditEvent(ctx, constants.AuditVerifyEmailResentEvent, AuditLogOpts{
 		ActorID:      user.ID,
-		ActorType:    "user",
+		ActorType:    constants.AuditActorTypeUser,
 		ActorEmail:   params.Email,
-		ResourceType: "user",
+		ResourceType: constants.AuditResourceTypeUser,
 		ResourceID:   user.ID,
 	})
 

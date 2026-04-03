@@ -26,8 +26,8 @@ func (g *graphqlProvider) AdminLogout(ctx context.Context) (*model.Response, err
 
 	cookie.DeleteAdminCookie(gc, g.Config.AdminCookieSecure)
 	g.logAuditEvent(ctx, constants.AuditAdminLogoutEvent, AuditLogOpts{
-		ActorType:    "admin",
-		ResourceType: "admin_session",
+		ActorType:    constants.AuditActorTypeAdmin,
+		ResourceType: constants.AuditResourceTypeAdminSession,
 	})
 
 	res := &model.Response{

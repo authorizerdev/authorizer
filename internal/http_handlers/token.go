@@ -349,9 +349,9 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 		}
 		h.logAuditEvent(gc, auditAction, AuditLogOpts{
 			ActorID:      user.ID,
-			ActorType:    "user",
+			ActorType:    constants.AuditActorTypeUser,
 			ActorEmail:   refs.StringValue(user.Email),
-			ResourceType: "token",
+			ResourceType: constants.AuditResourceTypeToken,
 			ResourceID:   user.ID,
 			Metadata:     grantType,
 		})

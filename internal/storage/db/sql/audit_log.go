@@ -17,11 +17,9 @@ func (p *provider) AddAuditLog(ctx context.Context, auditLog *schemas.AuditLog) 
 		auditLog.ID = uuid.New().String()
 	}
 	auditLog.Key = auditLog.ID
-	if auditLog.Timestamp == 0 {
-		auditLog.Timestamp = time.Now().Unix()
+	if auditLog.CreatedAt == 0 {
+		auditLog.CreatedAt = time.Now().Unix()
 	}
-	auditLog.CreatedAt = time.Now().Unix()
-	auditLog.UpdatedAt = time.Now().Unix()
 	res := p.db.Clauses(
 		clause.OnConflict{
 			DoNothing: true,
@@ -52,14 +50,11 @@ func (p *provider) ListAuditLogs(ctx context.Context, pagination *model.Paginati
 	if resourceID, ok := filter["resource_id"]; ok && resourceID != "" {
 		query = query.Where("resource_id = ?", resourceID)
 	}
-	if orgID, ok := filter["organization_id"]; ok && orgID != "" {
-		query = query.Where("organization_id = ?", orgID)
-	}
 	if fromTimestamp, ok := filter["from_timestamp"]; ok {
-		query = query.Where("timestamp >= ?", fromTimestamp)
+		query = query.Where("created_at >= ?", fromTimestamp)
 	}
 	if toTimestamp, ok := filter["to_timestamp"]; ok {
-		query = query.Where("timestamp <= ?", toTimestamp)
+		query = query.Where("created_at <= ?", toTimestamp)
 	}
 
 	// Count total
@@ -69,7 +64,7 @@ func (p *provider) ListAuditLogs(ctx context.Context, pagination *model.Paginati
 	}
 
 	// Fetch results
-	result := query.Limit(int(pagination.Limit)).Offset(int(pagination.Offset)).Order("timestamp DESC").Find(&auditLogs)
+	result := query.Limit(int(pagination.Limit)).Offset(int(pagination.Offset)).Order("created_at DESC").Find(&auditLogs)
 	if result.Error != nil {
 		return nil, nil, result.Error
 	}
@@ -82,7 +77,7 @@ func (p *provider) ListAuditLogs(ctx context.Context, pagination *model.Paginati
 
 // DeleteAuditLogsBefore removes logs older than a timestamp
 func (p *provider) DeleteAuditLogsBefore(ctx context.Context, before int64) error {
-	res := p.db.Where("timestamp < ?", before).Delete(&schemas.AuditLog{})
+	res := p.db.Where("created_at < ?", before).Delete(&schemas.AuditLog{})
 	if res.Error != nil {
 		return res.Error
 	}

@@ -44,8 +44,8 @@ func (g *graphqlProvider) RevokeAccess(ctx context.Context, params *model.Update
 		g.EventsProvider.RegisterEvent(ctx, constants.UserAccessRevokedWebhookEvent, "", user)
 	}()
 	g.logAuditEvent(ctx, constants.AuditAdminAccessRevokedEvent, AuditLogOpts{
-		ActorType:    "admin",
-		ResourceType: "user",
+		ActorType:    constants.AuditActorTypeAdmin,
+		ResourceType: constants.AuditResourceTypeUser,
 		ResourceID:   user.ID,
 	})
 
