@@ -354,6 +354,14 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 		}
 		// remove state from store
 		go h.MemoryStoreProvider.RemoveState(state)
+		h.logAuditEvent(ctx, constants.AuditOAuthCallbackSuccessEvent, AuditLogOpts{
+			ActorID:      user.ID,
+			ActorType:    "user",
+			ActorEmail:   refs.StringValue(user.Email),
+			ResourceType: "session",
+			ResourceID:   user.ID,
+			Metadata:     provider,
+		})
 		ctx.Redirect(http.StatusFound, redirectURL)
 	}
 }
