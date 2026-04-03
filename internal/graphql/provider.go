@@ -169,6 +169,9 @@ type Provider interface {
 	// VerifyOTP is the method to verify OTP.
 	// Permissions: authorized otp request
 	VerifyOTP(ctx context.Context, params *model.VerifyOTPRequest) (*model.AuthResponse, error)
+	// AuditLogs is the method to list audit logs.
+	// Permissions: authorizer:admin
+	AuditLogs(ctx context.Context, params *model.ListAuditLogRequest) (*model.AuditLogs, error)
 	// WebhookLogs is the method to list webhook logs.
 	// Permissions: authorizer:admin
 	WebhookLogs(ctx context.Context, in *model.ListWebhookLogRequest) (*model.WebhookLogs, error)

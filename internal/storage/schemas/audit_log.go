@@ -1,5 +1,12 @@
 package schemas
 
+import (
+	"strings"
+
+	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/refs"
+)
+
 // Note: any change here should be reflected in providers/casandra/provider.go as it does not have model support in collection creation
 
 // AuditLog model for db
@@ -19,4 +26,28 @@ type AuditLog struct {
 	OrganizationID string `gorm:"type:char(36)" json:"organization_id" bson:"organization_id" cql:"organization_id" dynamo:"organization_id"`
 	CreatedAt      int64  `json:"created_at" bson:"created_at" cql:"created_at" dynamo:"created_at"`
 	UpdatedAt      int64  `json:"updated_at" bson:"updated_at" cql:"updated_at" dynamo:"updated_at"`
+}
+
+// AsAPIAuditLog converts the database audit log to a GraphQL response object.
+func (a *AuditLog) AsAPIAuditLog() *model.AuditLog {
+	id := a.ID
+	if strings.Contains(id, Collections.AuditLog+"/") {
+		id = strings.TrimPrefix(id, Collections.AuditLog+"/")
+	}
+	return &model.AuditLog{
+		ID:             id,
+		Timestamp:      refs.NewInt64Ref(a.Timestamp),
+		ActorID:        refs.NewStringRef(a.ActorID),
+		ActorType:      refs.NewStringRef(a.ActorType),
+		ActorEmail:     refs.NewStringRef(a.ActorEmail),
+		Action:         refs.NewStringRef(a.Action),
+		ResourceType:   refs.NewStringRef(a.ResourceType),
+		ResourceID:     refs.NewStringRef(a.ResourceID),
+		IPAddress:      refs.NewStringRef(a.IPAddress),
+		UserAgent:      refs.NewStringRef(a.UserAgent),
+		Metadata:       refs.NewStringRef(a.Metadata),
+		OrganizationID: refs.NewStringRef(a.OrganizationID),
+		CreatedAt:      refs.NewInt64Ref(a.CreatedAt),
+		UpdatedAt:      refs.NewInt64Ref(a.UpdatedAt),
+	}
 }
