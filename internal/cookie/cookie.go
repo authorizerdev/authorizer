@@ -13,7 +13,7 @@ import (
 // SetSession sets the session cookie in the response
 func SetSession(gc *gin.Context, sessionID string, appCookieSecure bool) {
 	secure := appCookieSecure
-	httpOnly := appCookieSecure
+	httpOnly := true
 	hostname := parsers.GetHost(gc)
 	host, _ := parsers.GetHostParts(hostname)
 	domain := parsers.GetDomainName(hostname)
@@ -42,7 +42,7 @@ func SetSession(gc *gin.Context, sessionID string, appCookieSecure bool) {
 // DeleteSession sets session cookies to expire
 func DeleteSession(gc *gin.Context, appCookieSecure bool) {
 	secure := appCookieSecure
-	httpOnly := appCookieSecure
+	httpOnly := true
 	hostname := parsers.GetHost(gc)
 	host, _ := parsers.GetHostParts(hostname)
 	domain := parsers.GetDomainName(hostname)
