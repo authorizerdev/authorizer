@@ -207,6 +207,13 @@ func (g *graphqlProvider) VerifyEmail(ctx context.Context, params *model.VerifyE
 			log.Debug().Err(err).Msg("Failed to add session")
 		}
 	}()
+	g.logAuditEvent(ctx, constants.AuditEmailVerifiedEvent, AuditLogOpts{
+		ActorID:      user.ID,
+		ActorType:    "user",
+		ActorEmail:   refs.StringValue(user.Email),
+		ResourceType: "user",
+		ResourceID:   user.ID,
+	})
 	expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
 	if expiresIn <= 0 {
 		expiresIn = 1

@@ -188,6 +188,13 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 	err = bcrypt.CompareHashAndPassword([]byte(*user.Password), []byte(params.Password))
 	if err != nil {
 		log.Debug().Msg("Bad user credentials")
+		g.logAuditEvent(ctx, constants.AuditLoginFailedEvent, AuditLogOpts{
+			ActorID:      user.ID,
+			ActorType:    "user",
+			ActorEmail:   refs.StringValue(user.Email),
+			ResourceType: "user",
+			ResourceID:   user.ID,
+		})
 		return nil, fmt.Errorf(`bad user credentials`)
 	}
 	roles := g.Config.DefaultRoles
@@ -385,6 +392,13 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 			IP:        utils.GetIP(gc.Request),
 		})
 	}()
+	g.logAuditEvent(ctx, constants.AuditLoginSuccessEvent, AuditLogOpts{
+		ActorID:      user.ID,
+		ActorType:    "user",
+		ActorEmail:   refs.StringValue(user.Email),
+		ResourceType: "session",
+		ResourceID:   user.ID,
+	})
 
 	return res, nil
 }

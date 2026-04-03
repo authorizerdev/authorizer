@@ -171,6 +171,13 @@ func (g *graphqlProvider) ResetPassword(ctx context.Context, params *model.Reset
 			return nil, err
 		}
 	}
+	g.logAuditEvent(ctx, constants.AuditPasswordResetEvent, AuditLogOpts{
+		ActorID:      user.ID,
+		ActorType:    "user",
+		ActorEmail:   refs.StringValue(user.Email),
+		ResourceType: "user",
+		ResourceID:   user.ID,
+	})
 	return &model.Response{
 		Message: `Password updated successfully.`,
 	}, nil

@@ -90,6 +90,13 @@ func (g *graphqlProvider) ResendVerifyEmail(ctx context.Context, params *model.R
 		"organization":     utils.GetOrganization(g.Config),
 		"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname, verificationRequest.RedirectURI),
 	})
+	g.logAuditEvent(ctx, constants.AuditVerifyEmailResentEvent, AuditLogOpts{
+		ActorID:      user.ID,
+		ActorType:    "user",
+		ActorEmail:   params.Email,
+		ResourceType: "user",
+		ResourceID:   user.ID,
+	})
 
 	return &model.Response{
 		Message: `Verification email has been sent. Please check your inbox`,

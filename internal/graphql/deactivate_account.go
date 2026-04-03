@@ -6,6 +6,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
 
@@ -42,6 +43,13 @@ func (g *graphqlProvider) DeactivateAccount(ctx context.Context) (*model.Respons
 		g.MemoryStoreProvider.DeleteAllUserSessions(user.ID)
 		g.EventsProvider.RegisterEvent(ctx, constants.UserDeactivatedWebhookEvent, "", user)
 	}()
+	g.logAuditEvent(ctx, constants.AuditUserDeactivatedEvent, AuditLogOpts{
+		ActorID:      user.ID,
+		ActorType:    "user",
+		ActorEmail:   refs.StringValue(user.Email),
+		ResourceType: "user",
+		ResourceID:   user.ID,
+	})
 	res = &model.Response{
 		Message: `user account deactivated successfully`,
 	}
