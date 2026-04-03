@@ -29,7 +29,15 @@
       "Bash(grep -c \"getTestConfig\" internal/integration_tests/*.go)",
       "Bash(TEST_DBS=\"sqlite\" go test -p 1 -v -run TestSignup ./internal/integration_tests/)",
       "Bash(TEST_DBS=\"sqlite\" go test -p 1 -v -run TestDBSelection ./internal/integration_tests/)",
-      "Bash(TEST_DBS=\"sqlite\" go test -p 1 -v -run TestStorageProvider ./internal/storage/)"
+      "Bash(TEST_DBS=\"sqlite\" go test -p 1 -v -run TestStorageProvider ./internal/storage/)",
+      "Bash(find /Users/lakhansamani/personal/authorizer/authorizer -type f -name *audit*)",
+      "Bash(find /Users/lakhansamani/personal/authorizer/authorizer/internal/graphql -type f -name *.go)",
+      "Bash(find /Users/lakhansamani/personal/authorizer/authorizer/internal/http_handlers -type f -name *.go)",
+      "Bash(for db:*)",
+      "Bash(do echo:*)",
+      "Read(//Users/lakhansamani/personal/authorizer/authorizer/internal/storage/db/**)",
+      "Bash(done)",
+      "Bash(grep:*)"
     ]
   }
 }

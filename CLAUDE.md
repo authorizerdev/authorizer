@@ -57,17 +57,11 @@ Detailed agent files in `.claude/agents/`. Summary:
 
 | Agent | Focus |
 |-------|-------|
-| `golang-engineer` | Go idioms, provider pattern, DI |
-| `security-engineer` | OWASP, OAuth2/OIDC security, vulnerability audit |
-| `code-reviewer` | Structured review (critical/suggestions/nits/good) |
+| `software-engineer` | Full SDLC: Plan → Execute → Test → Review, git practices, code review, issue management |
+| `golang-engineer` | Go idioms, provider pattern, code style, GraphQL + REST API conventions |
+| `security-engineer` | Security + auth protocols: OWASP, OAuth2/OIDC, JWT, MFA, vulnerability audit |
 | `database-engineer` | Multi-DB consistency across 13+ providers |
-| `auth-engineer` | OAuth2/OIDC/JWT/MFA protocol compliance |
-| `qa-engineer` | Integration testing, cross-DB coverage |
-| `git-practices` | Commit conventions, branch strategy, PR standards |
-| `api-conventions` | GraphQL schema + REST/OAuth2 endpoint design |
-| `issue-manager` | GitHub issue triage and templates |
 | `doc-writer` | API docs, guides, migration docs |
-| `code-style` | Go naming, imports, error handling patterns |
 
 ## Token Optimization Notes
 
