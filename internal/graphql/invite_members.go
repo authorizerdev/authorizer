@@ -170,6 +170,11 @@ func (g *graphqlProvider) InviteMembers(ctx context.Context, params *model.Invit
 		})
 	}
 
+	g.logAuditEvent(ctx, constants.AuditAdminInviteSentEvent, AuditLogOpts{
+		ActorType:    "admin",
+		ResourceType: "user",
+	})
+
 	return &model.InviteMembersResponse{
 		Message: fmt.Sprintf("%d user(s) invited successfully.", len(newEmails)),
 		Users:   InvitedUsers,

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
@@ -89,6 +90,11 @@ func (g *graphqlProvider) UpdateWebhook(ctx context.Context, params *model.Updat
 		log.Debug().Err(err).Msg("failed UpdateWebhook")
 		return nil, err
 	}
+	g.logAuditEvent(ctx, constants.AuditAdminWebhookUpdatedEvent, AuditLogOpts{
+		ActorType:    "admin",
+		ResourceType: "webhook",
+		ResourceID:   params.ID,
+	})
 	return &model.Response{
 		Message: `Webhook updated successfully.`,
 	}, nil

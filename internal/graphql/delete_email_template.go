@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
@@ -42,6 +43,11 @@ func (g *graphqlProvider) DeleteEmailTemplate(ctx context.Context, params *model
 		return nil, err
 	}
 
+	g.logAuditEvent(ctx, constants.AuditAdminEmailTemplateDeletedEvent, AuditLogOpts{
+		ActorType:    "admin",
+		ResourceType: "email_template",
+		ResourceID:   params.ID,
+	})
 	return &model.Response{
 		Message: "Email templated deleted successfully",
 	}, nil
