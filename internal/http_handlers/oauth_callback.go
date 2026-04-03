@@ -20,6 +20,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
+	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
@@ -124,6 +125,16 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 
 		if err != nil {
 			log.Debug().Err(err).Msg("Failed to process user info")
+			metrics.RecordAuthEvent(metrics.EventOAuthCallback, metrics.StatusFailure)
+			metrics.RecordSecurityEvent("oauth_callback_failed", provider)
+			h.AuditProvider.LogEvent(audit.Event{
+				Action:       constants.AuditOAuthCallbackFailedEvent,
+				ActorType:    constants.AuditActorTypeUser,
+				ResourceType: constants.AuditResourceTypeSession,
+				Metadata:     provider,
+				IPAddress:    utils.GetIP(ctx.Request),
+				UserAgent:    utils.GetUserAgent(ctx.Request),
+			})
 			ctx.JSON(400, gin.H{"error": err.Error()})
 			return
 		}
@@ -176,6 +187,18 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 		} else {
 			if existingUser.RevokedTimestamp != nil {
 				log.Debug().Msg("User access has been revoked")
+				metrics.RecordAuthEvent(metrics.EventOAuthCallback, metrics.StatusFailure)
+				metrics.RecordSecurityEvent("account_revoked", "oauth_callback")
+				h.AuditProvider.LogEvent(audit.Event{
+					Action:       constants.AuditOAuthCallbackFailedEvent,
+					ActorID:      existingUser.ID,
+					ActorType:    constants.AuditActorTypeUser,
+					ActorEmail:   refs.StringValue(existingUser.Email),
+					ResourceType: constants.AuditResourceTypeSession,
+					Metadata:     provider,
+					IPAddress:    utils.GetIP(ctx.Request),
+					UserAgent:    utils.GetUserAgent(ctx.Request),
+				})
 				ctx.JSON(400, gin.H{"error": "user access has been revoked"})
 				return
 			}
@@ -355,6 +378,8 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 		}
 		// remove state from store
 		go h.MemoryStoreProvider.RemoveState(state)
+		metrics.RecordAuthEvent(metrics.EventOAuthCallback, metrics.StatusSuccess)
+		metrics.ActiveSessions.Inc()
 		h.AuditProvider.LogEvent(audit.Event{
 			Action:       constants.AuditOAuthCallbackSuccessEvent,
 			ActorID:      user.ID,

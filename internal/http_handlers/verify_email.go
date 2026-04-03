@@ -9,8 +9,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
+	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
+	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
@@ -211,6 +213,18 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 			redirectURL = redirectURL + "?" + strings.TrimPrefix(params, "&")
 		}
 
+		metrics.RecordAuthEvent(metrics.EventVerifyEmail, metrics.StatusSuccess)
+		metrics.ActiveSessions.Inc()
+		h.AuditProvider.LogEvent(audit.Event{
+			Action:       constants.AuditEmailVerifiedEvent,
+			ActorID:      user.ID,
+			ActorType:    constants.AuditActorTypeUser,
+			ActorEmail:   refs.StringValue(user.Email),
+			ResourceType: constants.AuditResourceTypeUser,
+			ResourceID:   user.ID,
+			IPAddress:    utils.GetIP(c.Request),
+			UserAgent:    utils.GetUserAgent(c.Request),
+		})
 		go func() {
 			if isSignUp {
 				h.EventsProvider.RegisterEvent(c, constants.UserSignUpWebhookEvent, loginMethod, user)
