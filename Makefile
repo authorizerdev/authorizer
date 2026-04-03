@@ -14,7 +14,7 @@ build:
 	CGO_ENABLED=0 gox \
 		-mod=readonly \
 		-osarch="linux/amd64 linux/arm64 darwin/amd64 darwin/arm64" \
-		-ldflags="-w -X main.VERSION=$(VERSION)" \
+		-ldflags="-w -X github.com/authorizerdev/authorizer/internal/constants.VERSION=$(VERSION)" \
 		-output="./build/{{.OS}}/{{.Arch}}/$(PROJECT)" \
 		-tags="netgo" \
 		./...
