@@ -234,10 +234,32 @@ func TestIsValidRedirectURI(t *testing.T) {
 
 	t.Run("wildcard subdomain origins", func(t *testing.T) {
 		allowed := []string{"*.example.com"}
+		// Valid subdomains
 		assert.True(t, IsValidRedirectURI("https://api.example.com/cb", allowed, hostname))
 		assert.True(t, IsValidRedirectURI("https://auth.example.com/login", allowed, hostname))
+		assert.True(t, IsValidRedirectURI("https://app.staging.example.com/cb", allowed, hostname))
+		// Root domain not matched by wildcard subdomain
 		assert.False(t, IsValidRedirectURI("https://example.com", allowed, hostname))
+		// Attacker domains
 		assert.False(t, IsValidRedirectURI("https://evil.com", allowed, hostname))
+		assert.False(t, IsValidRedirectURI("https://exampleXcom.evil.com", allowed, hostname))
+		assert.False(t, IsValidRedirectURI("https://example.com.attacker.com", allowed, hostname))
+	})
+
+	t.Run("wildcard subdomain with port", func(t *testing.T) {
+		allowed := []string{"*.example.com:8080"}
+		assert.True(t, IsValidRedirectURI("https://api.example.com:8080/cb", allowed, hostname))
+		assert.False(t, IsValidRedirectURI("https://api.example.com/cb", allowed, hostname))
+		assert.False(t, IsValidRedirectURI("https://api.example.com:9090/cb", allowed, hostname))
+	})
+
+	t.Run("multiple origins with wildcard subdomain", func(t *testing.T) {
+		allowed := []string{"*.myapp.com", "http://localhost:3000"}
+		assert.True(t, IsValidRedirectURI("https://auth.myapp.com/cb", allowed, hostname))
+		assert.True(t, IsValidRedirectURI("https://api.myapp.com/cb", allowed, hostname))
+		assert.True(t, IsValidRedirectURI("http://localhost:3000/cb", allowed, hostname))
+		assert.False(t, IsValidRedirectURI("https://attacker.com", allowed, hostname))
+		assert.False(t, IsValidRedirectURI("https://myapp.com", allowed, hostname))
 	})
 
 	t.Run("javascript scheme rejected", func(t *testing.T) {
