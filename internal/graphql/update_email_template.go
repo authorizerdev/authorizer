@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
@@ -77,6 +78,11 @@ func (g *graphqlProvider) UpdateEmailTemplate(ctx context.Context, params *model
 		return nil, err
 	}
 
+	g.logAuditEvent(ctx, constants.AuditAdminEmailTemplateUpdatedEvent, AuditLogOpts{
+		ActorType:    "admin",
+		ResourceType: "email_template",
+		ResourceID:   params.ID,
+	})
 	return &model.Response{
 		Message: `Email template updated successfully.`,
 	}, nil

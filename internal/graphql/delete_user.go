@@ -89,6 +89,11 @@ func (g *graphqlProvider) DeleteUser(ctx context.Context, params *model.DeleteUs
 		g.MemoryStoreProvider.DeleteAllUserSessions(user.ID)
 		g.EventsProvider.RegisterEvent(ctx, constants.UserDeletedWebhookEvent, "", user)
 	}()
+	g.logAuditEvent(ctx, constants.AuditAdminUserDeletedEvent, AuditLogOpts{
+		ActorType:    "admin",
+		ResourceType: "user",
+		ResourceID:   user.ID,
+	})
 
 	return res, nil
 }

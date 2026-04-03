@@ -43,6 +43,11 @@ func (g *graphqlProvider) RevokeAccess(ctx context.Context, params *model.Update
 		g.MemoryStoreProvider.DeleteAllUserSessions(user.ID)
 		g.EventsProvider.RegisterEvent(ctx, constants.UserAccessRevokedWebhookEvent, "", user)
 	}()
+	g.logAuditEvent(ctx, constants.AuditAdminAccessRevokedEvent, AuditLogOpts{
+		ActorType:    "admin",
+		ResourceType: "user",
+		ResourceID:   user.ID,
+	})
 
 	return &model.Response{
 		Message: `user access revoked successfully`,
