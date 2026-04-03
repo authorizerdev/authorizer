@@ -15,6 +15,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
@@ -372,6 +373,8 @@ func (g *graphqlProvider) SignUp(ctx context.Context, params *model.SignUpReques
 			log.Debug().Err(err).Msg("Failed to add session")
 		}
 	}()
+	metrics.RecordAuthEvent(metrics.EventSignup, metrics.StatusSuccess)
+	metrics.ActiveSessions.Inc()
 	g.AuditProvider.LogEvent(audit.Event{
 		Action:       constants.AuditSignupEvent,
 		ActorID:      user.ID,

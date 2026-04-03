@@ -6,6 +6,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
+	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/utils"
 	"github.com/gin-gonic/gin"
 )
@@ -137,6 +138,7 @@ func (h *httpProvider) RevokeRefreshTokenHandler() gin.HandlerFunc {
 			})
 			return
 		}
+		metrics.RecordAuthEvent(metrics.EventTokenRevoke, metrics.StatusSuccess)
 		h.AuditProvider.LogEvent(audit.Event{
 			Action:       constants.AuditTokenRevokedEvent,
 			ActorID:      userID,

@@ -3,6 +3,7 @@ package http_handlers
 import (
 	"context"
 	"net/http"
+	"time"
 
 	gql "github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/handler"
@@ -15,6 +16,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/graph"
 	"github.com/authorizerdev/authorizer/internal/graph/generated"
 	"github.com/authorizerdev/authorizer/internal/graphql"
+	"github.com/authorizerdev/authorizer/internal/metrics"
 )
 
 func (h *httpProvider) gqlLoggingMiddleware() gql.FieldMiddleware {
@@ -32,6 +34,34 @@ func (h *httpProvider) gqlLoggingMiddleware() gql.FieldMiddleware {
 
 		// Call the next resolver
 		return next(ctx)
+	}
+}
+
+// gqlMetricsMiddleware records GraphQL operation duration and errors.
+// It captures errors returned in HTTP 200 responses (GraphQL convention).
+func (h *httpProvider) gqlMetricsMiddleware() gql.OperationMiddleware {
+	return func(ctx context.Context, next gql.OperationHandler) gql.ResponseHandler {
+		oc := gql.GetOperationContext(ctx)
+		operationName := oc.OperationName
+		if operationName == "" {
+			operationName = "anonymous"
+		}
+		start := time.Now()
+
+		responseHandler := next(ctx)
+
+		return func(ctx context.Context) *gql.Response {
+			resp := responseHandler(ctx)
+			if resp != nil {
+				duration := time.Since(start).Seconds()
+				metrics.GraphQLRequestDuration.WithLabelValues(operationName).Observe(duration)
+
+				if len(resp.Errors) > 0 {
+					metrics.RecordGraphQLError(operationName)
+				}
+			}
+			return resp
+		}
 	}
 }
 
@@ -65,6 +95,7 @@ func (h *httpProvider) GraphqlHandler() gin.HandlerFunc {
 
 	srv.SetQueryCache(lru.New[*ast.QueryDocument](1000))
 	srv.AroundFields(h.gqlLoggingMiddleware())
+	srv.AroundOperations(h.gqlMetricsMiddleware())
 	if h.Config.EnableGraphQLIntrospection {
 		srv.Use(extension.Introspection{})
 	}

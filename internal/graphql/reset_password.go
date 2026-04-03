@@ -11,6 +11,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
@@ -182,6 +183,7 @@ func (g *graphqlProvider) ResetPassword(ctx context.Context, params *model.Reset
 		IPAddress:    utils.GetIP(gc.Request),
 		UserAgent:    utils.GetUserAgent(gc.Request),
 	})
+	metrics.RecordAuthEvent(metrics.EventResetPwd, metrics.StatusSuccess)
 	return &model.Response{
 		Message: `Password updated successfully.`,
 	}, nil
