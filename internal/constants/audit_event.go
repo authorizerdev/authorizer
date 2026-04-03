@@ -1,5 +1,29 @@
 package constants
 
+// Audit actor type constants identify who performed an auditable action.
+const (
+	// AuditActorTypeUser identifies a regular user as the audit actor.
+	AuditActorTypeUser = "user"
+	// AuditActorTypeAdmin identifies an admin as the audit actor.
+	AuditActorTypeAdmin = "admin"
+)
+
+// Audit resource type constants identify the type of resource affected by an auditable action.
+const (
+	// AuditResourceTypeUser represents a user entity.
+	AuditResourceTypeUser = "user"
+	// AuditResourceTypeSession represents a user session.
+	AuditResourceTypeSession = "session"
+	// AuditResourceTypeAdminSession represents an admin session.
+	AuditResourceTypeAdminSession = "admin_session"
+	// AuditResourceTypeWebhook represents a webhook entity.
+	AuditResourceTypeWebhook = "webhook"
+	// AuditResourceTypeEmailTemplate represents an email template entity.
+	AuditResourceTypeEmailTemplate = "email_template"
+	// AuditResourceTypeToken represents an auth token.
+	AuditResourceTypeToken = "token"
+)
+
 // Audit event type constants used for structured audit logging.
 // Each constant represents a specific auditable action in the system,
 // organized by domain: user authentication, admin operations, OAuth,

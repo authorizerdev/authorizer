@@ -37,8 +37,8 @@ func (g *graphqlProvider) Logout(ctx context.Context) (*model.Response, error) {
 	cookie.DeleteSession(gc, g.Config.AppCookieSecure)
 	g.logAuditEvent(ctx, constants.AuditLogoutEvent, AuditLogOpts{
 		ActorID:      tokenData.UserID,
-		ActorType:    "user",
-		ResourceType: "session",
+		ActorType:    constants.AuditActorTypeUser,
+		ResourceType: constants.AuditResourceTypeSession,
 		ResourceID:   tokenData.UserID,
 	})
 

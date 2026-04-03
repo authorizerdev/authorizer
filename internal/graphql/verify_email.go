@@ -209,9 +209,9 @@ func (g *graphqlProvider) VerifyEmail(ctx context.Context, params *model.VerifyE
 	}()
 	g.logAuditEvent(ctx, constants.AuditEmailVerifiedEvent, AuditLogOpts{
 		ActorID:      user.ID,
-		ActorType:    "user",
+		ActorType:    constants.AuditActorTypeUser,
 		ActorEmail:   refs.StringValue(user.Email),
-		ResourceType: "user",
+		ResourceType: constants.AuditResourceTypeUser,
 		ResourceID:   user.ID,
 	})
 	expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()

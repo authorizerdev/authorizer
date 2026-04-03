@@ -42,9 +42,6 @@ func (g *graphqlProvider) AuditLogs(ctx context.Context, params *model.ListAudit
 		if refs.StringValue(params.ResourceID) != "" {
 			filter["resource_id"] = refs.StringValue(params.ResourceID)
 		}
-		if refs.StringValue(params.OrganizationID) != "" {
-			filter["organization_id"] = refs.StringValue(params.OrganizationID)
-		}
 		if params.FromTimestamp != nil {
 			filter["from_timestamp"] = *params.FromTimestamp
 		}

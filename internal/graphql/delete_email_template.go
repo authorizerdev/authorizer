@@ -44,8 +44,8 @@ func (g *graphqlProvider) DeleteEmailTemplate(ctx context.Context, params *model
 	}
 
 	g.logAuditEvent(ctx, constants.AuditAdminEmailTemplateDeletedEvent, AuditLogOpts{
-		ActorType:    "admin",
-		ResourceType: "email_template",
+		ActorType:    constants.AuditActorTypeAdmin,
+		ResourceType: constants.AuditResourceTypeEmailTemplate,
 		ResourceID:   params.ID,
 	})
 	return &model.Response{

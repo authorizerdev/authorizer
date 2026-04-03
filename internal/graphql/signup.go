@@ -373,9 +373,9 @@ func (g *graphqlProvider) SignUp(ctx context.Context, params *model.SignUpReques
 	}()
 	g.logAuditEvent(ctx, constants.AuditSignupEvent, AuditLogOpts{
 		ActorID:      user.ID,
-		ActorType:    "user",
+		ActorType:    constants.AuditActorTypeUser,
 		ActorEmail:   refs.StringValue(user.Email),
-		ResourceType: "user",
+		ResourceType: constants.AuditResourceTypeUser,
 		ResourceID:   user.ID,
 	})
 

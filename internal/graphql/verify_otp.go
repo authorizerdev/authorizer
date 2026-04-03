@@ -211,17 +211,17 @@ func (g *graphqlProvider) VerifyOTP(ctx context.Context, params *model.VerifyOTP
 	if isEmailVerification {
 		g.logAuditEvent(ctx, constants.AuditEmailVerifiedEvent, AuditLogOpts{
 			ActorID:      user.ID,
-			ActorType:    "user",
+			ActorType:    constants.AuditActorTypeUser,
 			ActorEmail:   refs.StringValue(user.Email),
-			ResourceType: "user",
+			ResourceType: constants.AuditResourceTypeUser,
 			ResourceID:   user.ID,
 		})
 	} else {
 		g.logAuditEvent(ctx, constants.AuditPhoneVerifiedEvent, AuditLogOpts{
 			ActorID:      user.ID,
-			ActorType:    "user",
+			ActorType:    constants.AuditActorTypeUser,
 			ActorEmail:   refs.StringValue(user.Email),
-			ResourceType: "user",
+			ResourceType: constants.AuditResourceTypeUser,
 			ResourceID:   user.ID,
 		})
 	}

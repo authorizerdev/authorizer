@@ -56,8 +56,8 @@ func (g *graphqlProvider) AddWebhook(ctx context.Context, params *model.AddWebho
 	}
 
 	g.logAuditEvent(ctx, constants.AuditAdminWebhookCreatedEvent, AuditLogOpts{
-		ActorType:    "admin",
-		ResourceType: "webhook",
+		ActorType:    constants.AuditActorTypeAdmin,
+		ResourceType: constants.AuditResourceTypeWebhook,
 		ResourceID:   webhook.ID,
 	})
 	return &model.Response{

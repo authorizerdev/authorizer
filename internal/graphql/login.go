@@ -190,9 +190,9 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 		log.Debug().Msg("Bad user credentials")
 		g.logAuditEvent(ctx, constants.AuditLoginFailedEvent, AuditLogOpts{
 			ActorID:      user.ID,
-			ActorType:    "user",
+			ActorType:    constants.AuditActorTypeUser,
 			ActorEmail:   refs.StringValue(user.Email),
-			ResourceType: "user",
+			ResourceType: constants.AuditResourceTypeUser,
 			ResourceID:   user.ID,
 		})
 		return nil, fmt.Errorf(`bad user credentials`)
@@ -394,9 +394,9 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 	}()
 	g.logAuditEvent(ctx, constants.AuditLoginSuccessEvent, AuditLogOpts{
 		ActorID:      user.ID,
-		ActorType:    "user",
+		ActorType:    constants.AuditActorTypeUser,
 		ActorEmail:   refs.StringValue(user.Email),
-		ResourceType: "session",
+		ResourceType: constants.AuditResourceTypeSession,
 		ResourceID:   user.ID,
 	})
 

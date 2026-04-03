@@ -18,11 +18,9 @@ func (p *provider) AddAuditLog(ctx context.Context, auditLog *schemas.AuditLog) 
 		auditLog.ID = uuid.New().String()
 	}
 	auditLog.Key = auditLog.ID
-	if auditLog.Timestamp == 0 {
-		auditLog.Timestamp = time.Now().Unix()
+	if auditLog.CreatedAt == 0 {
+		auditLog.CreatedAt = time.Now().Unix()
 	}
-	auditLog.CreatedAt = time.Now().Unix()
-	auditLog.UpdatedAt = time.Now().Unix()
 
 	collection := p.db.Collection(schemas.Collections.AuditLog, options.Collection())
 	_, err := collection.InsertOne(ctx, auditLog)
@@ -38,7 +36,7 @@ func (p *provider) ListAuditLogs(ctx context.Context, pagination *model.Paginati
 	opts := options.Find()
 	opts.SetLimit(pagination.Limit)
 	opts.SetSkip(pagination.Offset)
-	opts.SetSort(bson.M{"timestamp": -1})
+	opts.SetSort(bson.M{"created_at": -1})
 
 	query := bson.M{}
 	if actorID, ok := filter["actor_id"]; ok && actorID != "" {
@@ -53,20 +51,17 @@ func (p *provider) ListAuditLogs(ctx context.Context, pagination *model.Paginati
 	if resourceID, ok := filter["resource_id"]; ok && resourceID != "" {
 		query["resource_id"] = resourceID
 	}
-	if orgID, ok := filter["organization_id"]; ok && orgID != "" {
-		query["organization_id"] = orgID
-	}
 	if fromTimestamp, ok := filter["from_timestamp"]; ok {
-		if query["timestamp"] == nil {
-			query["timestamp"] = bson.M{}
+		if query["created_at"] == nil {
+			query["created_at"] = bson.M{}
 		}
-		query["timestamp"].(bson.M)["$gte"] = fromTimestamp
+		query["created_at"].(bson.M)["$gte"] = fromTimestamp
 	}
 	if toTimestamp, ok := filter["to_timestamp"]; ok {
-		if query["timestamp"] == nil {
-			query["timestamp"] = bson.M{}
+		if query["created_at"] == nil {
+			query["created_at"] = bson.M{}
 		}
-		query["timestamp"].(bson.M)["$lte"] = toTimestamp
+		query["created_at"].(bson.M)["$lte"] = toTimestamp
 	}
 
 	paginationClone := *pagination
@@ -99,6 +94,6 @@ func (p *provider) ListAuditLogs(ctx context.Context, pagination *model.Paginati
 // DeleteAuditLogsBefore removes logs older than a timestamp
 func (p *provider) DeleteAuditLogsBefore(ctx context.Context, before int64) error {
 	collection := p.db.Collection(schemas.Collections.AuditLog, options.Collection())
-	_, err := collection.DeleteMany(ctx, bson.M{"timestamp": bson.M{"$lt": before}})
+	_, err := collection.DeleteMany(ctx, bson.M{"created_at": bson.M{"$lt": before}})
 	return err
 }

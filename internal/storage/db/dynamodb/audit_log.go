@@ -18,11 +18,9 @@ func (p *provider) AddAuditLog(ctx context.Context, auditLog *schemas.AuditLog) 
 		auditLog.ID = uuid.New().String()
 	}
 	auditLog.Key = auditLog.ID
-	if auditLog.Timestamp == 0 {
-		auditLog.Timestamp = time.Now().Unix()
+	if auditLog.CreatedAt == 0 {
+		auditLog.CreatedAt = time.Now().Unix()
 	}
-	auditLog.CreatedAt = time.Now().Unix()
-	auditLog.UpdatedAt = time.Now().Unix()
 	err := collection.Put(auditLog).RunWithContext(ctx)
 	if err != nil {
 		return err
@@ -95,7 +93,7 @@ func (p *provider) ListAuditLogs(ctx context.Context, pagination *model.Paginati
 func (p *provider) DeleteAuditLogsBefore(ctx context.Context, before int64) error {
 	collection := p.db.Table(schemas.Collections.AuditLog)
 	var auditLogs []*schemas.AuditLog
-	err := collection.Scan().Filter("'timestamp' < ?", before).AllWithContext(ctx, &auditLogs)
+	err := collection.Scan().Filter("'created_at' < ?", before).AllWithContext(ctx, &auditLogs)
 	if err != nil {
 		return err
 	}

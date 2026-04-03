@@ -248,7 +248,6 @@ type WebhookLogs {
 
 type AuditLog {
   id: ID!
-  timestamp: Int64
   actor_id: String
   actor_type: String
   actor_email: String
@@ -258,9 +257,7 @@ type AuditLog {
   ip_address: String
   user_agent: String
   metadata: String
-  organization_id: String
   created_at: Int64
-  updated_at: Int64
 }
 
 type AuditLogs {
@@ -559,7 +556,6 @@ input ListAuditLogRequest {
   actor_id: String
   resource_type: String
   resource_id: String
-  organization_id: String
   from_timestamp: Int64
   to_timestamp: Int64
 }

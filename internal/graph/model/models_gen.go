@@ -26,20 +26,17 @@ type AdminSignupRequest struct {
 }
 
 type AuditLog struct {
-	ID             string  `json:"id"`
-	Timestamp      *int64  `json:"timestamp,omitempty"`
-	ActorID        *string `json:"actor_id,omitempty"`
-	ActorType      *string `json:"actor_type,omitempty"`
-	ActorEmail     *string `json:"actor_email,omitempty"`
-	Action         *string `json:"action,omitempty"`
-	ResourceType   *string `json:"resource_type,omitempty"`
-	ResourceID     *string `json:"resource_id,omitempty"`
-	IPAddress      *string `json:"ip_address,omitempty"`
-	UserAgent      *string `json:"user_agent,omitempty"`
-	Metadata       *string `json:"metadata,omitempty"`
-	OrganizationID *string `json:"organization_id,omitempty"`
-	CreatedAt      *int64  `json:"created_at,omitempty"`
-	UpdatedAt      *int64  `json:"updated_at,omitempty"`
+	ID           string  `json:"id"`
+	ActorID      *string `json:"actor_id,omitempty"`
+	ActorType    *string `json:"actor_type,omitempty"`
+	ActorEmail   *string `json:"actor_email,omitempty"`
+	Action       *string `json:"action,omitempty"`
+	ResourceType *string `json:"resource_type,omitempty"`
+	ResourceID   *string `json:"resource_id,omitempty"`
+	IPAddress    *string `json:"ip_address,omitempty"`
+	UserAgent    *string `json:"user_agent,omitempty"`
+	Metadata     *string `json:"metadata,omitempty"`
+	CreatedAt    *int64  `json:"created_at,omitempty"`
 }
 
 type AuditLogs struct {
@@ -202,14 +199,13 @@ type InviteMembersResponse struct {
 }
 
 type ListAuditLogRequest struct {
-	Pagination     *PaginationRequest `json:"pagination,omitempty"`
-	Action         *string            `json:"action,omitempty"`
-	ActorID        *string            `json:"actor_id,omitempty"`
-	ResourceType   *string            `json:"resource_type,omitempty"`
-	ResourceID     *string            `json:"resource_id,omitempty"`
-	OrganizationID *string            `json:"organization_id,omitempty"`
-	FromTimestamp  *int64             `json:"from_timestamp,omitempty"`
-	ToTimestamp    *int64             `json:"to_timestamp,omitempty"`
+	Pagination    *PaginationRequest `json:"pagination,omitempty"`
+	Action        *string            `json:"action,omitempty"`
+	ActorID       *string            `json:"actor_id,omitempty"`
+	ResourceType  *string            `json:"resource_type,omitempty"`
+	ResourceID    *string            `json:"resource_id,omitempty"`
+	FromTimestamp *int64             `json:"from_timestamp,omitempty"`
+	ToTimestamp   *int64             `json:"to_timestamp,omitempty"`
 }
 
 type ListWebhookLogRequest struct {

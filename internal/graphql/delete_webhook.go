@@ -44,8 +44,8 @@ func (g *graphqlProvider) DeleteWebhook(ctx context.Context, params *model.Webho
 	}
 
 	g.logAuditEvent(ctx, constants.AuditAdminWebhookDeletedEvent, AuditLogOpts{
-		ActorType:    "admin",
-		ResourceType: "webhook",
+		ActorType:    constants.AuditActorTypeAdmin,
+		ResourceType: constants.AuditResourceTypeWebhook,
 		ResourceID:   params.ID,
 	})
 	return &model.Response{

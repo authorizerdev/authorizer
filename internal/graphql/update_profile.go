@@ -258,9 +258,9 @@ func (g *graphqlProvider) UpdateProfile(ctx context.Context, params *model.Updat
 	}
 	g.logAuditEvent(ctx, constants.AuditProfileUpdatedEvent, AuditLogOpts{
 		ActorID:      user.ID,
-		ActorType:    "user",
+		ActorType:    constants.AuditActorTypeUser,
 		ActorEmail:   refs.StringValue(user.Email),
-		ResourceType: "user",
+		ResourceType: constants.AuditResourceTypeUser,
 		ResourceID:   user.ID,
 	})
 	message := `Profile details updated successfully.`
