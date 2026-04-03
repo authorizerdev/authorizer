@@ -12,6 +12,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
@@ -60,6 +61,7 @@ func (g *graphqlProvider) ForgotPassword(ctx context.Context, params *model.Forg
 		log.Debug().Err(err).Msg("Failed to get user by phone number")
 	}
 	if err != nil {
+		metrics.RecordAuthEvent(metrics.EventForgotPwd, metrics.StatusFailure)
 		return nil, fmt.Errorf(`bad user credentials`)
 	}
 	hostname := parsers.GetHost(gc)
@@ -127,6 +129,7 @@ func (g *graphqlProvider) ForgotPassword(ctx context.Context, params *model.Forg
 			IPAddress:    utils.GetIP(gc.Request),
 			UserAgent:    utils.GetUserAgent(gc.Request),
 		})
+		metrics.RecordAuthEvent(metrics.EventForgotPwd, metrics.StatusSuccess)
 		return &model.ForgotPasswordResponse{
 			Message: `Please check your inbox! We have sent a password reset link.`,
 		}, nil
@@ -168,6 +171,7 @@ func (g *graphqlProvider) ForgotPassword(ctx context.Context, params *model.Forg
 			IPAddress:    utils.GetIP(gc.Request),
 			UserAgent:    utils.GetUserAgent(gc.Request),
 		})
+		metrics.RecordAuthEvent(metrics.EventForgotPwd, metrics.StatusSuccess)
 		return &model.ForgotPasswordResponse{
 			Message:                   "Please enter the OTP sent to your phone number and change your password.",
 			ShouldShowMobileOtpScreen: refs.NewBoolRef(true),

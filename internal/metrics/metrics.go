@@ -1,6 +1,33 @@
 package metrics
 
-import "github.com/prometheus/client_golang/prometheus"
+import (
+	"sync"
+
+	"github.com/prometheus/client_golang/prometheus"
+)
+
+var initOnce sync.Once
+
+// Auth event names used as label values for AuthEventsTotal.
+const (
+	EventLogin         = "login"
+	EventSignup        = "signup"
+	EventLogout        = "logout"
+	EventForgotPwd     = "forgot_password"
+	EventResetPwd      = "reset_password"
+	EventVerifyEmail   = "verify_email"
+	EventVerifyOTP     = "verify_otp"
+	EventMagicLink     = "magic_link_login"
+	EventAdminLogin    = "admin_login"
+	EventAdminLogout   = "admin_logout"
+	EventOAuthLogin    = "oauth_login"
+	EventOAuthCallback = "oauth_callback"
+	EventTokenRefresh  = "token_refresh"
+	EventTokenRevoke   = "token_revoke"
+
+	StatusSuccess = "success"
+	StatusFailure = "failure"
+)
 
 var (
 	// HTTPRequestsTotal is the total number of HTTP requests received.
@@ -38,12 +65,71 @@ var (
 			Help: "Number of active sessions",
 		},
 	)
+
+	// SecurityEventsTotal tracks security-sensitive events for alerting.
+	SecurityEventsTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "authorizer_security_events_total",
+			Help: "Total number of security-relevant events (failed logins, invalid tokens, etc.)",
+		},
+		[]string{"event", "reason"},
+	)
+
+	// GraphQLErrorsTotal tracks GraphQL responses that contain errors (HTTP 200 but with errors).
+	GraphQLErrorsTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "authorizer_graphql_errors_total",
+			Help: "Total number of GraphQL responses containing errors",
+		},
+		[]string{"operation"},
+	)
+
+	// GraphQLRequestDuration tracks GraphQL operation latency.
+	GraphQLRequestDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "authorizer_graphql_request_duration_seconds",
+			Help:    "GraphQL operation duration in seconds",
+			Buckets: prometheus.DefBuckets,
+		},
+		[]string{"operation"},
+	)
+
+	// DBHealthCheckTotal tracks database health check outcomes.
+	DBHealthCheckTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "authorizer_db_health_check_total",
+			Help: "Total number of database health checks by result",
+		},
+		[]string{"status"},
+	)
 )
 
 // Init registers all metrics with the default prometheus registry.
+// It is safe to call multiple times; registration happens only once.
 func Init() {
-	prometheus.MustRegister(HTTPRequestsTotal)
-	prometheus.MustRegister(HTTPRequestDuration)
-	prometheus.MustRegister(AuthEventsTotal)
-	prometheus.MustRegister(ActiveSessions)
+	initOnce.Do(func() {
+		prometheus.MustRegister(HTTPRequestsTotal)
+		prometheus.MustRegister(HTTPRequestDuration)
+		prometheus.MustRegister(AuthEventsTotal)
+		prometheus.MustRegister(ActiveSessions)
+		prometheus.MustRegister(SecurityEventsTotal)
+		prometheus.MustRegister(GraphQLErrorsTotal)
+		prometheus.MustRegister(GraphQLRequestDuration)
+		prometheus.MustRegister(DBHealthCheckTotal)
+	})
+}
+
+// RecordAuthEvent records an authentication event with given status.
+func RecordAuthEvent(event, status string) {
+	AuthEventsTotal.WithLabelValues(event, status).Inc()
+}
+
+// RecordSecurityEvent records a security-relevant event for alerting.
+func RecordSecurityEvent(event, reason string) {
+	SecurityEventsTotal.WithLabelValues(event, reason).Inc()
+}
+
+// RecordGraphQLError records a GraphQL error for the given operation.
+func RecordGraphQLError(operation string) {
+	GraphQLErrorsTotal.WithLabelValues(operation).Inc()
 }
