@@ -160,6 +160,14 @@ type Provider interface {
 	DeleteOAuthStateByKey(ctx context.Context, key string) error
 	// GetAllOAuthStates retrieves all OAuth states (for testing)
 	GetAllOAuthStates(ctx context.Context) ([]*schemas.OAuthState, error)
+
+	// Audit Log methods
+	// AddAuditLog adds an audit log entry
+	AddAuditLog(ctx context.Context, log *schemas.AuditLog) error
+	// ListAuditLogs queries audit logs with filters and pagination
+	ListAuditLogs(ctx context.Context, pagination *model.Pagination, filter map[string]interface{}) ([]*schemas.AuditLog, *model.Pagination, error)
+	// DeleteAuditLogsBefore removes logs older than a timestamp (retention)
+	DeleteAuditLogsBefore(ctx context.Context, before int64) error
 }
 
 // New creates a new database provider based on the configuration

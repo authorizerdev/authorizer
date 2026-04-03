@@ -242,6 +242,11 @@ func (r *queryResolver) EmailTemplates(ctx context.Context, params *model.Pagina
 	return r.GraphQLProvider.EmailTemplates(ctx, params)
 }
 
+// AuditLogs is the resolver for the _audit_logs field.
+func (r *queryResolver) AuditLogs(ctx context.Context, params *model.ListAuditLogRequest) (*model.AuditLogs, error) {
+	return r.GraphQLProvider.AuditLogs(ctx, params)
+}
+
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 

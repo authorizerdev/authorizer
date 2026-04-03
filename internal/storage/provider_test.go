@@ -152,6 +152,10 @@ func TestStorageProvider(t *testing.T) {
 				testOAuthStateOperations(t, ctx, provider)
 			})
 
+			t.Run("Audit Log Operations", func(t *testing.T) {
+				testAuditLogOperations(t, ctx, provider)
+			})
+
 		})
 	}
 }
@@ -696,6 +700,101 @@ func testMFASessionOperations(t *testing.T, ctx context.Context, provider Provid
 	// Verify expired session is cleaned
 	_, err = provider.GetMFASessionByUserIDAndKey(ctx, "auth_provider:expired_user", "expired_session_key")
 	assert.Error(t, err)
+}
+
+func testAuditLogOperations(t *testing.T, ctx context.Context, provider Provider) {
+	t.Run("add and list", func(t *testing.T) {
+		auditLog := &schemas.AuditLog{
+			ActorID:      uuid.New().String(),
+			ActorType:    constants.AuditActorTypeUser,
+			ActorEmail:   "test_" + uuid.New().String() + "@example.com",
+			Action:       constants.AuditLoginSuccessEvent,
+			ResourceType: constants.AuditResourceTypeSession,
+			ResourceID:   uuid.New().String(),
+			IPAddress:    "127.0.0.1",
+			UserAgent:    "provider-test-agent",
+		}
+		err := provider.AddAuditLog(ctx, auditLog)
+		require.NoError(t, err)
+		assert.NotEmpty(t, auditLog.ID)
+		assert.NotZero(t, auditLog.CreatedAt)
+
+		pagination := &model.Pagination{Limit: 10, Offset: 0}
+		logs, pag, err := provider.ListAuditLogs(ctx, pagination, map[string]interface{}{})
+		require.NoError(t, err)
+		require.NotNil(t, pag)
+		assert.GreaterOrEqual(t, len(logs), 1)
+	})
+
+	t.Run("filter by action", func(t *testing.T) {
+		uniqueAction := "provider_test_action_" + uuid.New().String()[:8]
+		auditLog := &schemas.AuditLog{
+			ActorID:      uuid.New().String(),
+			ActorType:    constants.AuditActorTypeUser,
+			ActorEmail:   "filter_" + uuid.New().String() + "@example.com",
+			Action:       uniqueAction,
+			ResourceType: constants.AuditResourceTypeUser,
+		}
+		require.NoError(t, provider.AddAuditLog(ctx, auditLog))
+
+		pagination := &model.Pagination{Limit: 10, Offset: 0}
+		logs, _, err := provider.ListAuditLogs(ctx, pagination, map[string]interface{}{
+			"action": uniqueAction,
+		})
+		require.NoError(t, err)
+		require.Len(t, logs, 1)
+		assert.Equal(t, uniqueAction, logs[0].Action)
+	})
+
+	t.Run("filter by actor_id", func(t *testing.T) {
+		actorID := uuid.New().String()
+		auditLog := &schemas.AuditLog{
+			ActorID:      actorID,
+			ActorType:    constants.AuditActorTypeAdmin,
+			ActorEmail:   "admin_" + uuid.New().String() + "@example.com",
+			Action:       constants.AuditAdminUserUpdatedEvent,
+			ResourceType: constants.AuditResourceTypeUser,
+		}
+		require.NoError(t, provider.AddAuditLog(ctx, auditLog))
+
+		pagination := &model.Pagination{Limit: 10, Offset: 0}
+		logs, _, err := provider.ListAuditLogs(ctx, pagination, map[string]interface{}{
+			"actor_id": actorID,
+		})
+		require.NoError(t, err)
+		require.Len(t, logs, 1)
+		assert.Equal(t, actorID, logs[0].ActorID)
+	})
+
+	t.Run("list does not mutate caller pagination pointer", func(t *testing.T) {
+		pagination := &model.Pagination{Limit: 10, Offset: 0}
+		_, returnedPag, err := provider.ListAuditLogs(ctx, pagination, map[string]interface{}{})
+		require.NoError(t, err)
+		assert.NotSame(t, pagination, returnedPag, "should return a new pagination object")
+	})
+
+	t.Run("delete before created_at", func(t *testing.T) {
+		uniqueAction := "provider_cleanup_" + uuid.New().String()[:8]
+		oldLog := &schemas.AuditLog{
+			ActorID:      uuid.New().String(),
+			ActorType:    constants.AuditActorTypeUser,
+			ActorEmail:   "system_" + uuid.New().String() + "@example.com",
+			Action:       uniqueAction,
+			ResourceType: constants.AuditResourceTypeUser,
+			CreatedAt:    time.Now().Add(-24 * time.Hour).Unix(),
+		}
+		require.NoError(t, provider.AddAuditLog(ctx, oldLog))
+
+		before := time.Now().Add(-1 * time.Hour).Unix()
+		require.NoError(t, provider.DeleteAuditLogsBefore(ctx, before))
+
+		pagination := &model.Pagination{Limit: 10, Offset: 0}
+		logs, _, err := provider.ListAuditLogs(ctx, pagination, map[string]interface{}{
+			"action": uniqueAction,
+		})
+		require.NoError(t, err)
+		assert.Empty(t, logs)
+	})
 }
 
 func testOAuthStateOperations(t *testing.T, ctx context.Context, provider Provider) {

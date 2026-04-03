@@ -116,6 +116,13 @@ func (g *graphqlProvider) ForgotPassword(ctx context.Context, params *model.Forg
 			"organization":     utils.GetOrganization(g.Config),
 			"verification_url": utils.GetForgotPasswordURL(verificationToken, redirectURI),
 		})
+		g.logAuditEvent(ctx, constants.AuditForgotPasswordEvent, AuditLogOpts{
+			ActorID:      user.ID,
+			ActorType:    constants.AuditActorTypeUser,
+			ActorEmail:   email,
+			ResourceType: constants.AuditResourceTypeUser,
+			ResourceID:   user.ID,
+		})
 		return &model.ForgotPasswordResponse{
 			Message: `Please check your inbox! We have sent a password reset link.`,
 		}, nil
@@ -147,6 +154,13 @@ func (g *graphqlProvider) ForgotPassword(ctx context.Context, params *model.Forg
 			log.Debug().Err(err).Msg("Failed to send sms")
 			// continue
 		}
+		g.logAuditEvent(ctx, constants.AuditForgotPasswordEvent, AuditLogOpts{
+			ActorID:      user.ID,
+			ActorType:    constants.AuditActorTypeUser,
+			ActorEmail:   refs.StringValue(user.Email),
+			ResourceType: constants.AuditResourceTypeUser,
+			ResourceID:   user.ID,
+		})
 		return &model.ForgotPasswordResponse{
 			Message:                   "Please enter the OTP sent to your phone number and change your password.",
 			ShouldShowMobileOtpScreen: refs.NewBoolRef(true),

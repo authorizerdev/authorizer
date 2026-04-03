@@ -371,6 +371,13 @@ func (g *graphqlProvider) SignUp(ctx context.Context, params *model.SignUpReques
 			log.Debug().Err(err).Msg("Failed to add session")
 		}
 	}()
+	g.logAuditEvent(ctx, constants.AuditSignupEvent, AuditLogOpts{
+		ActorID:      user.ID,
+		ActorType:    constants.AuditActorTypeUser,
+		ActorEmail:   refs.StringValue(user.Email),
+		ResourceType: constants.AuditResourceTypeUser,
+		ResourceID:   user.ID,
+	})
 
 	return res, nil
 }

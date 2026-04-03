@@ -3,6 +3,7 @@ package graphql
 import (
 	"context"
 
+	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/utils"
@@ -34,6 +35,12 @@ func (g *graphqlProvider) Logout(ctx context.Context) (*model.Response, error) {
 		return nil, err
 	}
 	cookie.DeleteSession(gc, g.Config.AppCookieSecure)
+	g.logAuditEvent(ctx, constants.AuditLogoutEvent, AuditLogOpts{
+		ActorID:      tokenData.UserID,
+		ActorType:    constants.AuditActorTypeUser,
+		ResourceType: constants.AuditResourceTypeSession,
+		ResourceID:   tokenData.UserID,
+	})
 
 	res := &model.Response{
 		Message: "Logged out successfully",

@@ -256,6 +256,13 @@ func (g *graphqlProvider) UpdateProfile(ctx context.Context, params *model.Updat
 		log.Debug().Err(err).Msg("Failed to update user")
 		return nil, err
 	}
+	g.logAuditEvent(ctx, constants.AuditProfileUpdatedEvent, AuditLogOpts{
+		ActorID:      user.ID,
+		ActorType:    constants.AuditActorTypeUser,
+		ActorEmail:   refs.StringValue(user.Email),
+		ResourceType: constants.AuditResourceTypeUser,
+		ResourceID:   user.ID,
+	})
 	message := `Profile details updated successfully.`
 	if hasEmailChanged {
 		message += `For the email change we have sent new verification email, please verify and continue`

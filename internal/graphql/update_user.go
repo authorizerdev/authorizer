@@ -252,6 +252,11 @@ func (g *graphqlProvider) UpdateUser(ctx context.Context, params *model.UpdateUs
 		log.Debug().Err(err).Msg("failed UpdateUser")
 		return nil, err
 	}
+	g.logAuditEvent(ctx, constants.AuditAdminUserUpdatedEvent, AuditLogOpts{
+		ActorType:    constants.AuditActorTypeAdmin,
+		ResourceType: constants.AuditResourceTypeUser,
+		ResourceID:   user.ID,
+	})
 
 	return user.AsAPIUser(), nil
 }

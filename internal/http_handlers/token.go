@@ -13,6 +13,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/parsers"
+	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/token"
 )
 
@@ -342,6 +343,18 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 			res["refresh_token"] = authToken.RefreshToken.Token
 			h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token, authToken.RefreshToken.ExpiresAt)
 		}
+		auditAction := constants.AuditTokenIssuedEvent
+		if isRefreshTokenGrant {
+			auditAction = constants.AuditTokenRefreshedEvent
+		}
+		h.logAuditEvent(gc, auditAction, AuditLogOpts{
+			ActorID:      user.ID,
+			ActorType:    constants.AuditActorTypeUser,
+			ActorEmail:   refs.StringValue(user.Email),
+			ResourceType: constants.AuditResourceTypeToken,
+			ResourceID:   user.ID,
+			Metadata:     grantType,
+		})
 		gc.JSON(http.StatusOK, res)
 	}
 }

@@ -149,6 +149,13 @@ func (g *graphqlProvider) ResendOTP(ctx context.Context, params *model.ResendOTP
 			}
 		}()
 	}
+	g.logAuditEvent(ctx, constants.AuditOTPResentEvent, AuditLogOpts{
+		ActorID:      user.ID,
+		ActorType:    constants.AuditActorTypeUser,
+		ActorEmail:   refs.StringValue(user.Email),
+		ResourceType: constants.AuditResourceTypeUser,
+		ResourceID:   user.ID,
+	})
 	log.Info().Msg("OTP has been sent")
 	return &model.Response{
 		Message: `OTP has been sent. Please check your inbox`,

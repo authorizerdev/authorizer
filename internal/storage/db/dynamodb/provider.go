@@ -62,6 +62,7 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	db.CreateTable(schemas.Collections.SessionToken, schemas.SessionToken{}).Wait()
 	db.CreateTable(schemas.Collections.MFASession, schemas.MFASession{}).Wait()
 	db.CreateTable(schemas.Collections.OAuthState, schemas.OAuthState{}).Wait()
+	db.CreateTable(schemas.Collections.AuditLog, schemas.AuditLog{}).Wait()
 	return &provider{
 		db:           db,
 		config:       cfg,

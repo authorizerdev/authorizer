@@ -46,13 +46,13 @@ func (g *graphqlProvider) MagicLinkLogin(ctx context.Context, params *model.Magi
 	}
 
 	// find user with email
-		existingUser, err := g.StorageProvider.GetUserByEmail(ctx, params.Email)
-		if err != nil {
-			isSignupEnabled := g.Config.EnableSignup
-			if !isSignupEnabled {
-				log.Debug().Msg("Signup is disabled")
-				return nil, fmt.Errorf(`signup is disabled for this instance`)
-			}
+	existingUser, err := g.StorageProvider.GetUserByEmail(ctx, params.Email)
+	if err != nil {
+		isSignupEnabled := g.Config.EnableSignup
+		if !isSignupEnabled {
+			log.Debug().Msg("Signup is disabled")
+			return nil, fmt.Errorf(`signup is disabled for this instance`)
+		}
 
 		user.SignupMethods = constants.AuthRecipeMethodMagicLinkLogin
 		// define roles for new user
@@ -193,6 +193,14 @@ func (g *graphqlProvider) MagicLinkLogin(ctx context.Context, params *model.Magi
 			"verification_url": utils.GetEmailVerificationURL(verificationToken, hostname, redirectURL),
 		})
 	}
+
+	g.logAuditEvent(ctx, constants.AuditMagicLinkRequestedEvent, AuditLogOpts{
+		ActorID:      user.ID,
+		ActorType:    constants.AuditActorTypeUser,
+		ActorEmail:   params.Email,
+		ResourceType: constants.AuditResourceTypeUser,
+		ResourceID:   user.ID,
+	})
 
 	return &model.Response{
 		Message: `Magic Link has been sent to your email. Please check your inbox!`,

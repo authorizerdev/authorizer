@@ -208,6 +208,23 @@ func (g *graphqlProvider) VerifyOTP(ctx context.Context, params *model.VerifyOTP
 			log.Debug().Err(err).Msg("Failed to add session")
 		}
 	}()
+	if isEmailVerification {
+		g.logAuditEvent(ctx, constants.AuditEmailVerifiedEvent, AuditLogOpts{
+			ActorID:      user.ID,
+			ActorType:    constants.AuditActorTypeUser,
+			ActorEmail:   refs.StringValue(user.Email),
+			ResourceType: constants.AuditResourceTypeUser,
+			ResourceID:   user.ID,
+		})
+	} else {
+		g.logAuditEvent(ctx, constants.AuditPhoneVerifiedEvent, AuditLogOpts{
+			ActorID:      user.ID,
+			ActorType:    constants.AuditActorTypeUser,
+			ActorEmail:   refs.StringValue(user.Email),
+			ResourceType: constants.AuditResourceTypeUser,
+			ResourceID:   user.ID,
+		})
+	}
 
 	authTokenExpiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
 	if authTokenExpiresIn <= 0 {

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
@@ -42,7 +43,7 @@ func (g *graphqlProvider) AddWebhook(ctx context.Context, params *model.AddWebho
 	if params.EventDescription == nil {
 		params.EventDescription = refs.NewStringRef(strings.Join(strings.Split(params.EventName, "."), " "))
 	}
-	_, err = g.StorageProvider.AddWebhook(ctx, &schemas.Webhook{
+	webhook, err := g.StorageProvider.AddWebhook(ctx, &schemas.Webhook{
 		EventDescription: refs.StringValue(params.EventDescription),
 		EventName:        params.EventName,
 		EndPoint:         params.Endpoint,
@@ -54,6 +55,11 @@ func (g *graphqlProvider) AddWebhook(ctx context.Context, params *model.AddWebho
 		return nil, err
 	}
 
+	g.logAuditEvent(ctx, constants.AuditAdminWebhookCreatedEvent, AuditLogOpts{
+		ActorType:    constants.AuditActorTypeAdmin,
+		ResourceType: constants.AuditResourceTypeWebhook,
+		ResourceID:   webhook.ID,
+	})
 	return &model.Response{
 		Message: `Webhook added successfully`,
 	}, nil
