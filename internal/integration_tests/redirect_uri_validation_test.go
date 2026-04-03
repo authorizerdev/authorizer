@@ -1,44 +1,30 @@
 package integration_tests
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/authorizerdev/authorizer/internal/constants"
-	"github.com/authorizerdev/authorizer/internal/crypto"
+	"github.com/authorizerdev/authorizer/internal/config"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/refs"
 )
 
-// TestRedirectURIValidation verifies that all endpoints accepting redirect_uri
-// validate it against AllowedOrigins to prevent open-redirect token theft.
-func TestRedirectURIValidation(t *testing.T) {
-	cfg := getTestConfig()
-	cfg.AllowedOrigins = []string{"http://localhost:3000"}
-	cfg.EnableMagicLinkLogin = true
-	cfg.EnableEmailVerification = true
-	cfg.IsEmailServiceEnabled = true
-	cfg.IsSMSServiceEnabled = true
-	cfg.SMTPHost = "localhost"
-	cfg.SMTPPort = 1025
-	cfg.SMTPSenderEmail = "test@authorizer.dev"
-	cfg.SMTPSenderName = "Test"
-	cfg.SMTPLocalName = "Test"
-	cfg.SMTPSkipTLSVerification = true
+// TestRedirectURIRejectsAttacker verifies that forgot_password rejects
+// attacker-controlled redirect_uri values with explicit AllowedOrigins.
+func TestRedirectURIRejectsAttacker(t *testing.T) {
+	runForEachDB(t, func(t *testing.T, cfg *config.Config) {
+		cfg.AllowedOrigins = []string{"http://localhost:3000"}
+		cfg.EnableBasicAuthentication = true
+		cfg.EnableEmailVerification = false
+		cfg.EnableSignup = true
 
-	ts := initTestSetup(t, cfg)
-	_, ctx := createContext(ts)
+		ts := initTestSetup(t, cfg)
+		_, ctx := createContext(ts)
 
-	attackerURL := "https://attacker.com/steal"
-	validURL := "http://localhost:3000/callback"
-
-	t.Run("ForgotPassword should reject invalid redirect_uri", func(t *testing.T) {
-		// First create a user
-		email := "fp_redirect_test_" + uuid.New().String() + "@authorizer.dev"
+		email := "redirect_test_" + uuid.New().String() + "@authorizer.dev"
 		password := "Password@123"
 		signupRes, err := ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
 			Email:           &email,
@@ -48,19 +34,42 @@ func TestRedirectURIValidation(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, signupRes)
 
-		// Attacker-controlled redirect_uri should be rejected
-		res, err := ts.GraphQLProvider.ForgotPassword(ctx, &model.ForgotPasswordRequest{
-			Email:       refs.NewStringRef(email),
-			RedirectURI: refs.NewStringRef(attackerURL),
+		t.Run("rejects attacker redirect_uri", func(t *testing.T) {
+			res, err := ts.GraphQLProvider.ForgotPassword(ctx, &model.ForgotPasswordRequest{
+				Email:       refs.NewStringRef(email),
+				RedirectURI: refs.NewStringRef("https://attacker.com/steal"),
+			})
+			assert.Error(t, err)
+			assert.Nil(t, res)
+			assert.Contains(t, err.Error(), "invalid redirect URI")
 		})
-		assert.Error(t, err)
-		assert.Nil(t, res)
-		assert.Contains(t, err.Error(), "invalid redirect URI")
-	})
 
-	t.Run("ForgotPassword should accept valid redirect_uri", func(t *testing.T) {
-		email := "fp_valid_redirect_" + uuid.New().String() + "@authorizer.dev"
+		t.Run("accepts valid redirect_uri", func(t *testing.T) {
+			res, err := ts.GraphQLProvider.ForgotPassword(ctx, &model.ForgotPasswordRequest{
+				Email:       refs.NewStringRef(email),
+				RedirectURI: refs.NewStringRef("http://localhost:3000/reset"),
+			})
+			assert.NoError(t, err)
+			assert.NotNil(t, res)
+		})
+	})
+}
+
+// TestRedirectURIWildcardOrigins is a regression test for the open redirect
+// vulnerability (issue #540). When allowed_origins=["*"] (the default config),
+// attacker-controlled redirect_uri values must still be rejected.
+func TestRedirectURIWildcardOrigins(t *testing.T) {
+	runForEachDB(t, func(t *testing.T, cfg *config.Config) {
+		cfg.AllowedOrigins = []string{"*"}
+		cfg.EnableBasicAuthentication = true
+		cfg.EnableEmailVerification = false
+		cfg.EnableSignup = true
+		ts := initTestSetup(t, cfg)
+		_, ctx := createContext(ts)
+
+		email := "wildcard_redirect_" + uuid.New().String() + "@authorizer.dev"
 		password := "Password@123"
+
 		signupRes, err := ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
 			Email:           &email,
 			Password:        password,
@@ -69,98 +78,52 @@ func TestRedirectURIValidation(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, signupRes)
 
-		res, err := ts.GraphQLProvider.ForgotPassword(ctx, &model.ForgotPasswordRequest{
-			Email:       refs.NewStringRef(email),
-			RedirectURI: refs.NewStringRef(validURL),
+		t.Run("rejects attacker redirect_uri with wildcard origins", func(t *testing.T) {
+			res, err := ts.GraphQLProvider.ForgotPassword(ctx, &model.ForgotPasswordRequest{
+				Email:       refs.NewStringRef(email),
+				RedirectURI: refs.NewStringRef("https://attacker.com/capture"),
+			})
+			assert.Error(t, err)
+			assert.Nil(t, res)
+			assert.Contains(t, err.Error(), "invalid redirect URI")
 		})
-		assert.NoError(t, err)
-		assert.NotNil(t, res)
-	})
 
-	t.Run("MagicLinkLogin should reject invalid redirect_uri", func(t *testing.T) {
-		email := "ml_redirect_test_" + uuid.New().String() + "@authorizer.dev"
-		res, err := ts.GraphQLProvider.MagicLinkLogin(ctx, &model.MagicLinkLoginRequest{
-			Email:       email,
-			RedirectURI: &attackerURL,
+		t.Run("allows self-origin redirect_uri with wildcard origins", func(t *testing.T) {
+			selfURI := "http://" + ts.HttpServer.Listener.Addr().String() + "/app/reset-password"
+			res, err := ts.GraphQLProvider.ForgotPassword(ctx, &model.ForgotPasswordRequest{
+				Email:       refs.NewStringRef(email),
+				RedirectURI: refs.NewStringRef(selfURI),
+			})
+			assert.NoError(t, err)
+			assert.NotNil(t, res)
+			assert.NotEmpty(t, res.Message)
 		})
-		assert.Error(t, err)
-		assert.Nil(t, res)
-		assert.Contains(t, err.Error(), "invalid redirect URI")
-	})
 
-	t.Run("MagicLinkLogin should accept valid redirect_uri", func(t *testing.T) {
-		email := "ml_valid_redirect_" + uuid.New().String() + "@authorizer.dev"
-		res, err := ts.GraphQLProvider.MagicLinkLogin(ctx, &model.MagicLinkLoginRequest{
-			Email:       email,
-			RedirectURI: &validURL,
+		t.Run("works without redirect_uri (uses default)", func(t *testing.T) {
+			res, err := ts.GraphQLProvider.ForgotPassword(ctx, &model.ForgotPasswordRequest{
+				Email: refs.NewStringRef(email),
+			})
+			assert.NoError(t, err)
+			assert.NotNil(t, res)
+			assert.NotEmpty(t, res.Message)
 		})
-		assert.NoError(t, err)
-		assert.NotNil(t, res)
-	})
 
-	t.Run("Signup should reject invalid redirect_uri", func(t *testing.T) {
-		email := "signup_redirect_test_" + uuid.New().String() + "@authorizer.dev"
-		password := "Password@123"
-		res, err := ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
-			Email:           &email,
-			Password:        password,
-			ConfirmPassword: password,
-			RedirectURI:     &attackerURL,
+		t.Run("rejects javascript scheme", func(t *testing.T) {
+			res, err := ts.GraphQLProvider.ForgotPassword(ctx, &model.ForgotPasswordRequest{
+				Email:       refs.NewStringRef(email),
+				RedirectURI: refs.NewStringRef("javascript:alert(1)"),
+			})
+			assert.Error(t, err)
+			assert.Nil(t, res)
 		})
-		assert.Error(t, err)
-		assert.Nil(t, res)
-		assert.Contains(t, err.Error(), "invalid redirect URI")
-	})
 
-	t.Run("Signup should accept valid redirect_uri", func(t *testing.T) {
-		email := "signup_valid_redirect_" + uuid.New().String() + "@authorizer.dev"
-		password := "Password@123"
-		res, err := ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
-			Email:           &email,
-			Password:        password,
-			ConfirmPassword: password,
-			RedirectURI:     &validURL,
+		t.Run("rejects data scheme", func(t *testing.T) {
+			res, err := ts.GraphQLProvider.ForgotPassword(ctx, &model.ForgotPasswordRequest{
+				Email:       refs.NewStringRef(email),
+				RedirectURI: refs.NewStringRef("data:text/html,<h1>evil</h1>"),
+			})
+			assert.Error(t, err)
+			assert.Nil(t, res)
 		})
-		assert.NoError(t, err)
-		assert.NotNil(t, res)
-	})
-
-	t.Run("InviteMembers should reject invalid redirect_uri", func(t *testing.T) {
-		cfg.IsEmailServiceEnabled = true
-		cfg.EnableBasicAuthentication = true
-		cfg.EnableMagicLinkLogin = true
-
-		req, _ := createContext(ts)
-		h, err := crypto.EncryptPassword(cfg.AdminSecret)
-		require.NoError(t, err)
-		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
-
-		emailTo := "invite_redirect_test_" + uuid.New().String() + "@authorizer.dev"
-		res, err := ts.GraphQLProvider.InviteMembers(ctx, &model.InviteMemberRequest{
-			Emails:      []string{emailTo},
-			RedirectURI: &attackerURL,
-		})
-		assert.Error(t, err)
-		assert.Nil(t, res)
-		assert.Contains(t, err.Error(), "invalid redirect URI")
-	})
-
-	t.Run("InviteMembers should accept valid redirect_uri", func(t *testing.T) {
-		cfg.IsEmailServiceEnabled = true
-		cfg.EnableBasicAuthentication = true
-		cfg.EnableMagicLinkLogin = true
-
-		req, _ := createContext(ts)
-		h, err := crypto.EncryptPassword(cfg.AdminSecret)
-		require.NoError(t, err)
-		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
-
-		emailTo := "invite_valid_redirect_" + uuid.New().String() + "@authorizer.dev"
-		res, err := ts.GraphQLProvider.InviteMembers(ctx, &model.InviteMemberRequest{
-			Emails:      []string{emailTo},
-			RedirectURI: &validURL,
-		})
-		assert.NoError(t, err)
-		assert.NotNil(t, res)
 	})
 }

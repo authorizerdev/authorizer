@@ -24,8 +24,9 @@ import (
 func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 	log := h.Log.With().Str("func", "VerifyEmailHandler").Logger()
 	return func(c *gin.Context) {
+		hostname := parsers.GetHost(c)
 		redirectURL := strings.TrimSpace(c.Query("redirect_uri"))
-		if redirectURL != "" && !validators.IsValidOrigin(redirectURL, h.Config.AllowedOrigins) {
+		if redirectURL != "" && !validators.IsValidRedirectURI(redirectURL, h.Config.AllowedOrigins, hostname) {
 			log.Debug().Msg("Invalid redirect URI")
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid redirect uri"})
 			return
@@ -49,7 +50,6 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 		}
 
 		// verify if token exists in db
-		hostname := parsers.GetHost(c)
 		claim, err := h.TokenProvider.ParseJWTToken(tokenInQuery)
 		if err != nil {
 			log.Debug().Err(err).Msg("Error parsing jwt token")
@@ -199,7 +199,7 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 		if redirectURL == "" {
 			redirectURL = claim["redirect_uri"].(string)
 		}
-		if !validators.IsValidOrigin(redirectURL, h.Config.AllowedOrigins) {
+		if !validators.IsValidRedirectURI(redirectURL, h.Config.AllowedOrigins, hostname) {
 			log.Debug().Msg("Invalid redirect URI in token claim")
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid redirect uri"})
 			return
