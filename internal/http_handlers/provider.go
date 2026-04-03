@@ -103,4 +103,6 @@ type Provider interface {
 	CORSMiddleware() gin.HandlerFunc
 	// LoggerMiddleware is the middleware that logs the request
 	LoggerMiddleware() gin.HandlerFunc
+	// RateLimitMiddleware is the middleware that rate limits requests per IP
+	RateLimitMiddleware() gin.HandlerFunc
 }
