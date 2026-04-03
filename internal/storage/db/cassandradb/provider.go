@@ -345,6 +345,28 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 		return nil, err
 	}
 
+	// AuditLog table and indexes
+	auditLogCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, timestamp bigint, actor_id text, actor_type text, actor_email text, action text, resource_type text, resource_id text, ip_address text, user_agent text, metadata text, organization_id text, created_at bigint, updated_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.AuditLog)
+	err = session.Query(auditLogCollectionQuery).Exec()
+	if err != nil {
+		return nil, err
+	}
+	auditLogActorIdIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_audit_log_actor_id ON %s.%s (actor_id)", KeySpace, schemas.Collections.AuditLog)
+	err = session.Query(auditLogActorIdIndex).Exec()
+	if err != nil {
+		return nil, err
+	}
+	auditLogActionIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_audit_log_action ON %s.%s (action)", KeySpace, schemas.Collections.AuditLog)
+	err = session.Query(auditLogActionIndex).Exec()
+	if err != nil {
+		return nil, err
+	}
+	auditLogTimestampIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_audit_log_timestamp ON %s.%s (timestamp)", KeySpace, schemas.Collections.AuditLog)
+	err = session.Query(auditLogTimestampIndex).Exec()
+	if err != nil {
+		return nil, err
+	}
+
 	return &provider{
 		config:       cfg,
 		dependencies: deps,
