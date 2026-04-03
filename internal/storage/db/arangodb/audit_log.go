@@ -16,7 +16,6 @@ import (
 func (p *provider) AddAuditLog(ctx context.Context, auditLog *schemas.AuditLog) error {
 	if auditLog.ID == "" {
 		auditLog.ID = uuid.New().String()
-		auditLog.Key = auditLog.ID
 	}
 	auditLog.Key = auditLog.ID
 	if auditLog.Timestamp == 0 {
@@ -75,7 +74,7 @@ func (p *provider) ListAuditLogs(ctx context.Context, pagination *model.Paginati
 	}
 	defer cursor.Close()
 
-	paginationClone := pagination
+	paginationClone := *pagination
 	paginationClone.Total = cursor.Statistics().FullCount()
 
 	for {
@@ -91,7 +90,7 @@ func (p *provider) ListAuditLogs(ctx context.Context, pagination *model.Paginati
 		}
 	}
 
-	return auditLogs, paginationClone, nil
+	return auditLogs, &paginationClone, nil
 }
 
 // DeleteAuditLogsBefore removes logs older than a timestamp

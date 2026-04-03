@@ -3,7 +3,6 @@ package couchbase
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/couchbase/gocb/v2"
@@ -37,16 +36,10 @@ func (p *provider) AddAuditLog(ctx context.Context, auditLog *schemas.AuditLog) 
 // ListAuditLogs queries audit logs with filters and pagination
 func (p *provider) ListAuditLogs(ctx context.Context, pagination *model.Pagination, filter map[string]interface{}) ([]*schemas.AuditLog, *model.Pagination, error) {
 	auditLogs := []*schemas.AuditLog{}
-	paginationClone := pagination
+	paginationClone := *pagination
 	params := make(map[string]interface{})
 	params["offset"] = paginationClone.Offset
 	params["limit"] = paginationClone.Limit
-
-	total, err := p.GetTotalDocs(ctx, schemas.Collections.AuditLog)
-	if err != nil {
-		return nil, nil, err
-	}
-	paginationClone.Total = total
 
 	whereClause := ""
 	if action, ok := filter["action"]; ok && action != "" {
@@ -61,6 +54,27 @@ func (p *provider) ListAuditLogs(ctx context.Context, pagination *model.Paginati
 		}
 		params["actorID"] = actorID
 	}
+
+	// Count with filters applied
+	countQuery := fmt.Sprintf("SELECT COUNT(*) as count FROM %s.%s%s",
+		p.scopeName, schemas.Collections.AuditLog, whereClause)
+	countResult, err := p.db.Query(countQuery, &gocb.QueryOptions{
+		Context:         ctx,
+		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
+		NamedParameters: params,
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	var countRow struct {
+		Count int64 `json:"count"`
+	}
+	if countResult.Next() {
+		if err := countResult.Row(&countRow); err != nil {
+			return nil, nil, err
+		}
+	}
+	paginationClone.Total = countRow.Count
 
 	query := fmt.Sprintf("SELECT _id, timestamp, actor_id, actor_type, actor_email, action, resource_type, resource_id, ip_address, user_agent, metadata, organization_id, created_at, updated_at FROM %s.%s%s ORDER BY timestamp DESC OFFSET $offset LIMIT $limit",
 		p.scopeName, schemas.Collections.AuditLog, whereClause)
@@ -77,14 +91,14 @@ func (p *provider) ListAuditLogs(ctx context.Context, pagination *model.Paginati
 		var auditLog schemas.AuditLog
 		err := queryResult.Row(&auditLog)
 		if err != nil {
-			log.Fatal(err)
+			return nil, nil, err
 		}
 		auditLogs = append(auditLogs, &auditLog)
 	}
 	if err := queryResult.Err(); err != nil {
 		return nil, nil, err
 	}
-	return auditLogs, paginationClone, nil
+	return auditLogs, &paginationClone, nil
 }
 
 // DeleteAuditLogsBefore removes logs older than a timestamp

@@ -40,7 +40,7 @@ func (p *provider) AddAuditLog(ctx context.Context, auditLog *schemas.AuditLog) 
 // ListAuditLogs queries audit logs with filters and pagination
 func (p *provider) ListAuditLogs(ctx context.Context, pagination *model.Pagination, filter map[string]interface{}) ([]*schemas.AuditLog, *model.Pagination, error) {
 	auditLogs := []*schemas.AuditLog{}
-	paginationClone := pagination
+	paginationClone := *pagination
 
 	// Build query with filters
 	queryBase := fmt.Sprintf("SELECT id, timestamp, actor_id, actor_type, actor_email, action, resource_type, resource_id, ip_address, user_agent, metadata, organization_id, created_at, updated_at FROM %s", KeySpace+"."+schemas.Collections.AuditLog)
@@ -94,7 +94,7 @@ func (p *provider) ListAuditLogs(ctx context.Context, pagination *model.Paginati
 		counter++
 	}
 
-	return auditLogs, paginationClone, nil
+	return auditLogs, &paginationClone, nil
 }
 
 // DeleteAuditLogsBefore removes logs older than a timestamp

@@ -40,7 +40,7 @@ func (p *provider) ListAuditLogs(ctx context.Context, pagination *model.Paginati
 	var err error
 
 	collection := p.db.Table(schemas.Collections.AuditLog)
-	paginationClone := pagination
+	paginationClone := *pagination
 	scanner := collection.Scan()
 
 	// Apply filters
@@ -69,7 +69,26 @@ func (p *provider) ListAuditLogs(ctx context.Context, pagination *model.Paginati
 		iteration += paginationClone.Limit
 	}
 
-	return auditLogs, paginationClone, nil
+	// Count total matching documents
+	var total int64
+	countScanner := collection.Scan()
+	if action, ok := filter["action"]; ok && action != "" {
+		countScanner = countScanner.Filter("'action' = ?", action)
+	}
+	if actorID, ok := filter["actor_id"]; ok && actorID != "" {
+		countScanner = countScanner.Filter("'actor_id' = ?", actorID)
+	}
+	if resourceType, ok := filter["resource_type"]; ok && resourceType != "" {
+		countScanner = countScanner.Filter("'resource_type' = ?", resourceType)
+	}
+	var countItems []*schemas.AuditLog
+	if err = countScanner.AllWithContext(ctx, &countItems); err != nil {
+		return nil, nil, err
+	}
+	total = int64(len(countItems))
+	paginationClone.Total = total
+
+	return auditLogs, &paginationClone, nil
 }
 
 // DeleteAuditLogsBefore removes logs older than a timestamp

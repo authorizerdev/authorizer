@@ -1,7 +1,6 @@
 package integration_tests
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -16,7 +15,7 @@ import (
 func TestAuditLogs(t *testing.T) {
 	cfg := getTestConfig()
 	ts := initTestSetup(t, cfg)
-	ctx := context.Background()
+	_, ctx := createContext(ts)
 
 	t.Run("should add and list audit logs", func(t *testing.T) {
 		auditLog := &schemas.AuditLog{
@@ -96,13 +95,25 @@ func TestAuditLogs(t *testing.T) {
 		assert.Equal(t, actorID, logs[0].ActorID)
 	})
 
+	t.Run("should not mutate caller pagination", func(t *testing.T) {
+		pagination := &model.Pagination{
+			Limit:  10,
+			Offset: 0,
+		}
+		_, returnedPag, err := ts.StorageProvider.ListAuditLogs(ctx, pagination, map[string]interface{}{})
+		require.NoError(t, err)
+		assert.NotSame(t, pagination, returnedPag, "should return a new pagination object")
+	})
+
 	t.Run("should delete audit logs before timestamp", func(t *testing.T) {
+		uniqueAction := "cleanup_test_" + uuid.New().String()[:8]
+
 		// Add a log with old timestamp
 		oldLog := &schemas.AuditLog{
 			ActorID:    uuid.New().String(),
 			ActorType:  "system",
 			ActorEmail: "system@example.com",
-			Action:     "cleanup_test",
+			Action:     uniqueAction,
 			Timestamp:  time.Now().Add(-24 * time.Hour).Unix(),
 		}
 		err := ts.StorageProvider.AddAuditLog(ctx, oldLog)
@@ -119,7 +130,7 @@ func TestAuditLogs(t *testing.T) {
 			Offset: 0,
 		}
 		logs, _, err := ts.StorageProvider.ListAuditLogs(ctx, pagination, map[string]interface{}{
-			"action": "cleanup_test",
+			"action": uniqueAction,
 		})
 		require.NoError(t, err)
 		assert.Equal(t, 0, len(logs))

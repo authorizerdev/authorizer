@@ -74,10 +74,10 @@ func (p *provider) ListAuditLogs(ctx context.Context, pagination *model.Paginati
 		return nil, nil, result.Error
 	}
 
-	paginationClone := pagination
+	paginationClone := *pagination
 	paginationClone.Total = total
 
-	return auditLogs, paginationClone, nil
+	return auditLogs, &paginationClone, nil
 }
 
 // DeleteAuditLogsBefore removes logs older than a timestamp

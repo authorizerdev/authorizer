@@ -69,7 +69,7 @@ func (p *provider) ListAuditLogs(ctx context.Context, pagination *model.Paginati
 		query["timestamp"].(bson.M)["$lte"] = toTimestamp
 	}
 
-	paginationClone := pagination
+	paginationClone := *pagination
 	collection := p.db.Collection(schemas.Collections.AuditLog, options.Collection())
 
 	count, err := collection.CountDocuments(ctx, query, options.Count())
@@ -93,7 +93,7 @@ func (p *provider) ListAuditLogs(ctx context.Context, pagination *model.Paginati
 		auditLogs = append(auditLogs, auditLog)
 	}
 
-	return auditLogs, paginationClone, nil
+	return auditLogs, &paginationClone, nil
 }
 
 // DeleteAuditLogsBefore removes logs older than a timestamp
