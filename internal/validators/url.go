@@ -59,14 +59,15 @@ func IsValidRedirectURI(redirectURI string, allowedOrigins []string, hostname st
 
 		if strings.Contains(origin, "*") {
 			pattern = strings.ReplaceAll(pattern, ".", "\\.")
-			pattern = strings.ReplaceAll(pattern, "*", ".*")
-
-			if strings.HasPrefix(pattern, ".*") {
-				pattern += "\\b"
-			}
-
-			if strings.HasSuffix(pattern, ".*") {
-				pattern = "\\b" + pattern
+			// Subdomain wildcard: *.example.com must only match
+			// proper subdomains (sub.example.com), not evil-example.com
+			// or the bare domain (example.com).
+			if strings.HasPrefix(pattern, "*\\.") {
+				// Replace leading *\. with one or more dot-terminated DNS labels,
+				// ensuring a proper dot boundary before the base domain.
+				pattern = "([^.]+\\.)+" + pattern[3:]
+			} else {
+				pattern = strings.ReplaceAll(pattern, "*", "[^.]*")
 			}
 		}
 
@@ -97,14 +98,15 @@ func IsValidOrigin(inputURL string, allowedOriginsConfig []string) bool {
 		// if has wildcard domains, convert to regex
 		if strings.Contains(origin, "*") {
 			pattern = strings.ReplaceAll(pattern, ".", "\\.")
-			pattern = strings.ReplaceAll(pattern, "*", ".*")
-
-			if strings.HasPrefix(pattern, ".*") {
-				pattern += "\\b"
-			}
-
-			if strings.HasSuffix(pattern, ".*") {
-				pattern = "\\b" + pattern
+			// Subdomain wildcard: *.example.com must only match
+			// proper subdomains (sub.example.com), not evil-example.com
+			// or the bare domain (example.com).
+			if strings.HasPrefix(pattern, "*\\.") {
+				// Replace leading *\. with one or more dot-terminated DNS labels,
+				// ensuring a proper dot boundary before the base domain.
+				pattern = "([^.]+\\.)+" + pattern[3:]
+			} else {
+				pattern = strings.ReplaceAll(pattern, "*", "[^.]*")
 			}
 		}
 
