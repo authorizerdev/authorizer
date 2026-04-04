@@ -50,6 +50,7 @@ go clean --testcache && TEST_DBS="sqlite,postgres" go test -p 1 -v -run TestSign
 3. **Run `make generate-graphql`** after editing `schema.graphqls`
 4. **Security**: parameterized queries only, `crypto/rand` for tokens, `crypto/subtle` for comparisons, never log secrets
 5. **Tests**: integration tests with real DBs, table-driven subtests, testify assertions
+6. **NEVER commit to main** — always work on a feature branch (`feat/`, `fix/`, `security/`, `chore/`), push to the branch, and create a merge request. Main must stay deployable.
 
 ## AI Agent Roles
 
