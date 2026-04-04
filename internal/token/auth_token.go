@@ -132,7 +132,7 @@ func (p *provider) CreateAuthToken(gc *gin.Context, cfg *AuthTokenConfig) (*Auth
 
 // CreateSessionToken creates a new session token
 func (p *provider) CreateSessionToken(cfg *AuthTokenConfig) (*SessionData, string, int64, error) {
-	expiresAt := time.Now().AddDate(1, 0, 0).Unix()
+	expiresAt := time.Now().Add(24 * time.Hour).Unix()
 	fingerPrintMap := &SessionData{
 		Nonce:       cfg.Nonce,
 		Roles:       cfg.Roles,
@@ -153,8 +153,8 @@ func (p *provider) CreateSessionToken(cfg *AuthTokenConfig) (*SessionData, strin
 
 // CreateRefreshToken util to create JWT token
 func (p *provider) CreateRefreshToken(cfg *AuthTokenConfig) (string, int64, error) {
-	// expires in 1 year
-	expiryBound := time.Hour * 8760
+	// expires in 30 days
+	expiryBound := time.Hour * 24 * 30
 	expiresAt := time.Now().Add(expiryBound).Unix()
 	customClaims := jwt.MapClaims{
 		"iss":           cfg.HostName,
