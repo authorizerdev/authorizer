@@ -33,6 +33,7 @@ type RedisClient interface {
 	Get(ctx context.Context, key string) *redis.StringCmd
 	Scan(ctx context.Context, cursor uint64, match string, count int64) *redis.ScanCmd
 	Keys(ctx context.Context, pattern string) *redis.StringSliceCmd
+	Eval(ctx context.Context, script string, keys []string, args ...interface{}) *redis.Cmd
 }
 
 type provider struct {
@@ -41,6 +42,11 @@ type provider struct {
 
 	ctx   context.Context
 	store RedisClient
+}
+
+// Client returns the underlying Redis client
+func (p *provider) Client() RedisClient {
+	return p.store
 }
 
 // NewRedisProvider returns a new redis provider
