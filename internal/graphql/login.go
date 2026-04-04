@@ -61,11 +61,11 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 		log.Debug().Str("phone_number", phoneNumber).Msg("User found by phone number")
 	}
 	if err != nil {
-		return nil, fmt.Errorf(`user not found`)
+		return nil, fmt.Errorf(`invalid credentials`)
 	}
 	if user.RevokedTimestamp != nil {
 		log.Debug().Msg("User access has been revoked")
-		return nil, fmt.Errorf(`user access has been revoked`)
+		return nil, fmt.Errorf(`invalid credentials`)
 	}
 	isEmailServiceEnabled := g.Config.IsEmailServiceEnabled
 	isSMSServiceEnabled := g.Config.IsSMSServiceEnabled
