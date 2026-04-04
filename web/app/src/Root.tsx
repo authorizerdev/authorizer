@@ -4,6 +4,18 @@ import { useAuthorizer } from '@authorizerdev/authorizer-react';
 import SetupPassword from './pages/setup-password';
 import { hasWindow, createRandomString } from './utils/common';
 
+function isValidRedirectUri(uri: string): boolean {
+	try {
+		const url = new URL(uri, window.location.origin);
+		if (url.origin === window.location.origin) return true;
+		// Only allow http/https protocols to prevent javascript: or data: URIs
+		if (url.protocol !== 'http:' && url.protocol !== 'https:') return false;
+		return false;
+	} catch {
+		return false;
+	}
+}
+
 const ResetPassword = lazy(() => import('./pages/rest-password'));
 const Login = lazy(() => import('./pages/login'));
 const Dashboard = lazy(() => import('./pages/dashboard'));
@@ -31,12 +43,12 @@ export default function Root({
 		scope,
 	};
 
-	const redirectURL =
+	const rawRedirectURL =
 		searchParams.get('redirect_uri') || searchParams.get('redirectURL');
-	if (redirectURL) {
-		urlProps.redirectURL = redirectURL;
+	if (rawRedirectURL && isValidRedirectUri(rawRedirectURL)) {
+		urlProps.redirectURL = rawRedirectURL;
 	} else {
-		urlProps.redirectURL = hasWindow() ? window.location.origin : redirectURL;
+		urlProps.redirectURL = hasWindow() ? window.location.origin : '/app';
 	}
 
 	urlProps.redirect_uri = urlProps.redirectURL;
@@ -68,8 +80,11 @@ export default function Root({
 			}
 
 			if (url.origin !== window.location.origin) {
-				sessionStorage.removeItem('authorizer_state');
-				window.location.replace(redirectURL);
+				// Only allow safe protocols to prevent javascript: or data: URI attacks
+				if (url.protocol === 'http:' || url.protocol === 'https:') {
+					sessionStorage.removeItem('authorizer_state');
+					window.location.replace(redirectURL);
+				}
 			}
 		}
 		return () => {};
