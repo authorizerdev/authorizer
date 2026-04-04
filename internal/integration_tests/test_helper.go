@@ -21,6 +21,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/graphql"
 	"github.com/authorizerdev/authorizer/internal/http_handlers"
 	"github.com/authorizerdev/authorizer/internal/memory_store"
+	"github.com/authorizerdev/authorizer/internal/rate_limit"
 	"github.com/authorizerdev/authorizer/internal/sms"
 	"github.com/authorizerdev/authorizer/internal/storage"
 	"github.com/authorizerdev/authorizer/internal/token"
@@ -233,6 +234,11 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 	})
 	require.NoError(t, err)
 
+	rateLimitProvider, err := rate_limit.New(cfg, &rate_limit.Dependencies{
+		Log: &logger,
+	})
+	require.NoError(t, err)
+
 	// Initialize audit provider
 	auditProvider := audit.New(&audit.Dependencies{
 		Log:             &logger,
@@ -263,6 +269,7 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 		SMSProvider:           smsProvider,
 		StorageProvider:       storageProvider,
 		TokenProvider:         tokenProvider,
+		RateLimitProvider:     rateLimitProvider,
 	}
 
 	// Create GraphQL provider
