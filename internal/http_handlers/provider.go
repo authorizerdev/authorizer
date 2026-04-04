@@ -70,8 +70,10 @@ type Provider interface {
 	DashboardHandler() gin.HandlerFunc
 	// GraphqlHandler is the main handler that handels all the graphql requests
 	GraphqlHandler() gin.HandlerFunc
-	// HealthHandler is the main handler that handels all the health requests
+	// HealthHandler is the handler for the /healthz liveness probe
 	HealthHandler() gin.HandlerFunc
+	// ReadyHandler is the handler for the /readyz readiness probe
+	ReadyHandler() gin.HandlerFunc
 	// JWKsHandler is the main handler that handels all the jwks requests
 	JWKsHandler() gin.HandlerFunc
 	// LogoutHandler is the main handler that handels all the logout requests
@@ -101,6 +103,12 @@ type Provider interface {
 	ContextMiddleware() gin.HandlerFunc
 	// CORSMiddleware is the middleware that adds the cors headers to the response
 	CORSMiddleware() gin.HandlerFunc
+	// CSRFMiddleware protects against CSRF on state-changing requests
+	CSRFMiddleware() gin.HandlerFunc
 	// LoggerMiddleware is the middleware that logs the request
 	LoggerMiddleware() gin.HandlerFunc
+	// MetricsMiddleware records HTTP request count and duration for prometheus.
+	MetricsMiddleware() gin.HandlerFunc
+	// MetricsHandler serves the Prometheus metrics scrape endpoint.
+	MetricsHandler() gin.HandlerFunc
 }

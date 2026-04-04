@@ -13,6 +13,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
@@ -61,10 +62,14 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 		log.Debug().Str("phone_number", phoneNumber).Msg("User found by phone number")
 	}
 	if err != nil {
+		log.Debug().Err(err).Msg("Failed to get user by email or phone number")
+		metrics.RecordAuthEvent(metrics.EventLogin, metrics.StatusFailure)
 		return nil, fmt.Errorf(`invalid credentials`)
 	}
 	if user.RevokedTimestamp != nil {
 		log.Debug().Msg("User access has been revoked")
+		metrics.RecordAuthEvent(metrics.EventLogin, metrics.StatusFailure)
+		metrics.RecordSecurityEvent("account_revoked", "login_attempt")
 		return nil, fmt.Errorf(`invalid credentials`)
 	}
 	isEmailServiceEnabled := g.Config.IsEmailServiceEnabled
@@ -189,6 +194,8 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 	err = bcrypt.CompareHashAndPassword([]byte(*user.Password), []byte(params.Password))
 	if err != nil {
 		log.Debug().Msg("Bad user credentials")
+		metrics.RecordAuthEvent(metrics.EventLogin, metrics.StatusFailure)
+		metrics.RecordSecurityEvent("invalid_credentials", "bad_password")
 		g.AuditProvider.LogEvent(audit.Event{
 			Action:       constants.AuditLoginFailedEvent,
 			ActorID:      user.ID,
@@ -396,6 +403,8 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 			IP:        utils.GetIP(gc.Request),
 		})
 	}()
+	metrics.RecordAuthEvent(metrics.EventLogin, metrics.StatusSuccess)
+	metrics.ActiveSessions.Inc()
 	g.AuditProvider.LogEvent(audit.Event{
 		Action:       constants.AuditLoginSuccessEvent,
 		ActorID:      user.ID,

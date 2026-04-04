@@ -1,7 +1,6 @@
 package http_handlers
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -20,6 +19,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
+	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
@@ -124,6 +124,16 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 
 		if err != nil {
 			log.Debug().Err(err).Msg("Failed to process user info")
+			metrics.RecordAuthEvent(metrics.EventOAuthCallback, metrics.StatusFailure)
+			metrics.RecordSecurityEvent("oauth_callback_failed", provider)
+			h.AuditProvider.LogEvent(audit.Event{
+				Action:       constants.AuditOAuthCallbackFailedEvent,
+				ActorType:    constants.AuditActorTypeUser,
+				ResourceType: constants.AuditResourceTypeSession,
+				Metadata:     provider,
+				IPAddress:    utils.GetIP(ctx.Request),
+				UserAgent:    utils.GetUserAgent(ctx.Request),
+			})
 			ctx.JSON(400, gin.H{"error": err.Error()})
 			return
 		}
@@ -176,6 +186,18 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 		} else {
 			if existingUser.RevokedTimestamp != nil {
 				log.Debug().Msg("User access has been revoked")
+				metrics.RecordAuthEvent(metrics.EventOAuthCallback, metrics.StatusFailure)
+				metrics.RecordSecurityEvent("account_revoked", "oauth_callback")
+				h.AuditProvider.LogEvent(audit.Event{
+					Action:       constants.AuditOAuthCallbackFailedEvent,
+					ActorID:      existingUser.ID,
+					ActorType:    constants.AuditActorTypeUser,
+					ActorEmail:   refs.StringValue(existingUser.Email),
+					ResourceType: constants.AuditResourceTypeSession,
+					Metadata:     provider,
+					IPAddress:    utils.GetIP(ctx.Request),
+					UserAgent:    utils.GetUserAgent(ctx.Request),
+				})
 				ctx.JSON(400, gin.H{"error": "user access has been revoked"})
 				return
 			}
@@ -355,6 +377,8 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 		}
 		// remove state from store
 		go h.MemoryStoreProvider.RemoveState(state)
+		metrics.RecordAuthEvent(metrics.EventOAuthCallback, metrics.StatusSuccess)
+		metrics.ActiveSessions.Inc()
 		h.AuditProvider.LogEvent(audit.Event{
 			Action:       constants.AuditOAuthCallbackSuccessEvent,
 			ActorID:      user.ID,
@@ -460,7 +484,7 @@ func (h *httpProvider) processGithubUserInfo(ctx *gin.Context, code string) (*sc
 		firstName = name[0]
 	}
 	if len(name) > 1 && strings.TrimSpace(name[1]) != "" {
-		lastName = name[0]
+		lastName = name[1]
 	}
 
 	picture := userRawData["avatar_url"]
@@ -690,44 +714,37 @@ func (h *httpProvider) processAppleUserInfo(ctx *gin.Context, code string, user_
 		return user, fmt.Errorf("unable to extract id_token")
 	}
 
-	tokenSplit := strings.Split(rawIDToken, ".")
-	claimsData := tokenSplit[1]
-	decodedClaimsData, err := base64.RawURLEncoding.DecodeString(claimsData)
+	// Verify the Apple ID token signature, issuer, and audience using OIDC discovery
+	oidcProvider, err := oidc.NewProvider(ctx, "https://appleid.apple.com")
 	if err != nil {
-		log.Debug().Err(err).Msg("Failed to decode claims data")
-		return user, fmt.Errorf("failed to decrypt claims data: %s", err.Error())
+		log.Debug().Err(err).Msg("Failed to create Apple OIDC provider")
+		return user, fmt.Errorf("failed to create oidc provider: %s", err.Error())
+	}
+	verifier := oidcProvider.Verifier(&oidc.Config{ClientID: h.AppleClientID})
+	idToken, err := verifier.Verify(ctx, rawIDToken)
+	if err != nil {
+		log.Debug().Err(err).Msg("Failed to verify Apple ID Token")
+		return user, fmt.Errorf("unable to verify id_token: %s", err.Error())
 	}
 
 	claims := make(map[string]interface{})
-	err = json.Unmarshal(decodedClaimsData, &claims)
-	if err != nil {
-		log.Debug().Err(err).Msg("Failed to unmarshal claims data")
-		return user, fmt.Errorf("failed to unmarshal claims data: %s", err.Error())
+	if err := idToken.Claims(&claims); err != nil {
+		log.Debug().Err(err).Msg("Failed to parse Apple ID Token claims")
+		return user, fmt.Errorf("failed to parse claims: %s", err.Error())
 	}
+
 	if val, ok := claims["email"]; !ok || val == nil {
-		log.Debug().Err(err).Msg("Failed to extract email from claims.")
+		log.Debug().Msg("Failed to extract email from claims.")
 		return user, fmt.Errorf("unable to extract email, please check the scopes enabled for your app. It needs `email`, `name` scopes")
 	} else {
-		email := val.(string)
+		email, _ := val.(string)
 		user.Email = &email
 	}
 
-	if val, ok := claims["name"]; ok {
-		nameData := val.(map[string]interface{})
-		if nameVal, ok := nameData["firstName"]; ok {
-			givenName := nameVal.(string)
-			user.GivenName = &givenName
-		}
-
-		if nameVal, ok := nameData["lastName"]; ok {
-			familyName := nameVal.(string)
-			user.FamilyName = &familyName
-		}
-	}
 	user.GivenName = &user_.Name.FirstName
 	user.FamilyName = &user_.Name.LastName
 
-	return user, err
+	return user, nil
 }
 
 func (h *httpProvider) processDiscordUserInfo(ctx *gin.Context, code string) (*schemas.User, error) {

@@ -20,6 +20,23 @@ import (
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
 
+// reservedClaims are security-critical JWT claims that custom scripts must not override.
+var reservedClaims = map[string]bool{
+	"sub":           true,
+	"iss":           true,
+	"aud":           true,
+	"exp":           true,
+	"iat":           true,
+	"token_type":    true,
+	"roles":         true,
+	"allowed_roles": true,
+	"scope":         true,
+	"nonce":         true,
+	"login_method":  true,
+	"at_hash":       true,
+	"c_hash":        true,
+}
+
 // AuthTokenConfig is the configuration for auth token
 type AuthTokenConfig struct {
 	LoginMethod string
@@ -115,7 +132,7 @@ func (p *provider) CreateAuthToken(gc *gin.Context, cfg *AuthTokenConfig) (*Auth
 
 // CreateSessionToken creates a new session token
 func (p *provider) CreateSessionToken(cfg *AuthTokenConfig) (*SessionData, string, int64, error) {
-	expiresAt := time.Now().AddDate(1, 0, 0).Unix()
+	expiresAt := time.Now().Add(24 * time.Hour).Unix()
 	fingerPrintMap := &SessionData{
 		Nonce:       cfg.Nonce,
 		Roles:       cfg.Roles,
@@ -136,8 +153,8 @@ func (p *provider) CreateSessionToken(cfg *AuthTokenConfig) (*SessionData, strin
 
 // CreateRefreshToken util to create JWT token
 func (p *provider) CreateRefreshToken(cfg *AuthTokenConfig) (string, int64, error) {
-	// expires in 1 year
-	expiryBound := time.Hour * 8760
+	// expires in 30 days
+	expiryBound := time.Hour * 24 * 30
 	expiresAt := time.Now().Add(expiryBound).Unix()
 	customClaims := jwt.MapClaims{
 		"iss":           cfg.HostName,
@@ -207,7 +224,9 @@ func (p *provider) CreateAccessToken(cfg *AuthTokenConfig) (string, int64, error
 				p.dependencies.Log.Debug().Err(err).Msg("error converting accessTokenScript response to map")
 			} else {
 				for k, v := range extraPayload {
-					customClaims[k] = v
+					if !reservedClaims[k] {
+						customClaims[k] = v
+					}
 				}
 			}
 		}
@@ -237,8 +256,7 @@ func (p *provider) GetAccessToken(gc *gin.Context) (string, error) {
 		return "", fmt.Errorf(`not a bearer token`)
 	}
 
-	token := strings.TrimPrefix(auth, "Bearer ")
-	return token, nil
+	return authSplit[1], nil
 }
 
 // Function to validate access token for authorizer apis (profile, update_profile)
@@ -254,13 +272,16 @@ func (p *provider) ValidateAccessToken(gc *gin.Context, accessToken string) (map
 		return res, err
 	}
 
-	userID := res["sub"].(string)
-	nonce := res["nonce"].(string)
+	userID, ok := res["sub"].(string)
+	if !ok || userID == "" {
+		return res, fmt.Errorf(`unauthorized: missing sub claim`)
+	}
+	nonce, _ := res["nonce"].(string)
 
-	loginMethod := res["login_method"]
+	loginMethod, _ := res["login_method"].(string)
 	sessionKey := userID
-	if loginMethod != nil && loginMethod != "" {
-		sessionKey = loginMethod.(string) + ":" + userID
+	if loginMethod != "" {
+		sessionKey = loginMethod + ":" + userID
 	}
 
 	token, err := p.dependencies.MemoryStoreProvider.GetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+nonce)
@@ -303,13 +324,16 @@ func (p *provider) ValidateRefreshToken(gc *gin.Context, refreshToken string) (m
 		return res, err
 	}
 
-	userID := res["sub"].(string)
-	nonce := res["nonce"].(string)
+	userID, ok := res["sub"].(string)
+	if !ok || userID == "" {
+		return res, fmt.Errorf(`unauthorized: missing sub claim`)
+	}
+	nonce, _ := res["nonce"].(string)
 
-	loginMethod := res["login_method"]
+	loginMethod, _ := res["login_method"].(string)
 	sessionKey := userID
-	if loginMethod != nil && loginMethod != "" {
-		sessionKey = loginMethod.(string) + ":" + userID
+	if loginMethod != "" {
+		sessionKey = loginMethod + ":" + userID
 	}
 	token, err := p.dependencies.MemoryStoreProvider.GetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+nonce)
 	if nonce == "" || err != nil {
@@ -435,7 +459,9 @@ func (p *provider) CreateIDToken(cfg *AuthTokenConfig) (string, int64, error) {
 				p.dependencies.Log.Debug().Err(err).Msg("error converting accessTokenScript response to map")
 			} else {
 				for k, v := range extraPayload {
-					customClaims[k] = v
+					if !reservedClaims[k] {
+						customClaims[k] = v
+					}
 				}
 			}
 		}
@@ -466,8 +492,7 @@ func (p *provider) GetIDToken(gc *gin.Context) (string, error) {
 		return "", fmt.Errorf(`not a bearer token`)
 	}
 
-	token := strings.TrimPrefix(auth, "Bearer ")
-	return token, nil
+	return authSplit[1], nil
 }
 
 // SessionOrAccessTokenData is a struct to hold session or access token data
@@ -509,9 +534,15 @@ func (p *provider) GetUserIDFromSessionOrAccessToken(gc *gin.Context) (*SessionO
 		p.dependencies.Log.Debug().Err(err).Msg("Failed to validate access token")
 		return nil, fmt.Errorf(`unauthorized`)
 	}
+	userID, ok := claims["sub"].(string)
+	if !ok || userID == "" {
+		return nil, fmt.Errorf(`unauthorized: missing sub claim`)
+	}
+	loginMethod, _ := claims["login_method"].(string)
+	nonce, _ := claims["nonce"].(string)
 	return &SessionOrAccessTokenData{
-		UserID:      claims["sub"].(string),
-		LoginMethod: claims["login_method"].(string),
-		Nonce:       claims["nonce"].(string),
+		UserID:      userID,
+		LoginMethod: loginMethod,
+		Nonce:       nonce,
 	}, nil
 }

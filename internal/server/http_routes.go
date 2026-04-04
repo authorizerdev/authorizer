@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"html/template"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -13,12 +14,17 @@ func (s *server) NewRouter() *gin.Engine {
 	router.Use(gin.Recovery())
 
 	router.Use(s.Dependencies.HTTPProvider.LoggerMiddleware())
+	router.Use(s.Dependencies.HTTPProvider.MetricsMiddleware())
 	router.Use(s.Dependencies.HTTPProvider.ContextMiddleware())
 	router.Use(s.Dependencies.HTTPProvider.CORSMiddleware())
+	router.Use(s.Dependencies.HTTPProvider.CSRFMiddleware())
 	router.Use(s.Dependencies.HTTPProvider.ClientCheckMiddleware())
 
 	router.GET("/", s.Dependencies.HTTPProvider.RootHandler())
 	router.GET("/health", s.Dependencies.HTTPProvider.HealthHandler())
+	router.GET("/healthz", s.Dependencies.HTTPProvider.HealthHandler())
+	router.GET("/readyz", s.Dependencies.HTTPProvider.ReadyHandler())
+	router.GET("/metrics", s.Dependencies.HTTPProvider.MetricsHandler())
 	router.POST("/graphql", s.Dependencies.HTTPProvider.GraphqlHandler())
 	router.GET("/playground", s.Dependencies.HTTPProvider.PlaygroundHandler())
 	router.GET("/oauth_login/:oauth_provider", s.Dependencies.HTTPProvider.OAuthLoginHandler())
@@ -31,14 +37,19 @@ func (s *server) NewRouter() *gin.Engine {
 	router.GET("/authorize", s.Dependencies.HTTPProvider.AuthorizeHandler())
 	router.GET("/userinfo", s.Dependencies.HTTPProvider.UserInfoHandler())
 	router.GET("/logout", s.Dependencies.HTTPProvider.LogoutHandler())
+	router.POST("/logout", s.Dependencies.HTTPProvider.LogoutHandler())
 	router.POST("/oauth/token", s.Dependencies.HTTPProvider.TokenHandler())
 	router.POST("/oauth/revoke", s.Dependencies.HTTPProvider.RevokeRefreshTokenHandler())
 
-	// Set up template functions for JSON encoding
+	// Set up template functions for JSON encoding.
+	// Escape </script> and <!-- to prevent script injection in <script> blocks.
 	router.SetFuncMap(template.FuncMap{
 		"json": func(v interface{}) template.JS {
 			a, _ := json.Marshal(v)
-			return template.JS(a)
+			s := string(a)
+			s = strings.ReplaceAll(s, "</", `<\/`)
+			s = strings.ReplaceAll(s, "<!--", `<\!--`)
+			return template.JS(s)
 		},
 	})
 	router.LoadHTMLGlob("web/templates/*")

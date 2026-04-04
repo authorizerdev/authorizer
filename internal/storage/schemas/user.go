@@ -17,7 +17,7 @@ type User struct {
 
 	Email                    *string `gorm:"index" json:"email" bson:"email" cql:"email" dynamo:"email" index:"email,hash"`
 	EmailVerifiedAt          *int64  `json:"email_verified_at" bson:"email_verified_at" cql:"email_verified_at" dynamo:"email_verified_at"`
-	Password                 *string `json:"password" bson:"password" cql:"password" dynamo:"password"`
+	Password                 *string `json:"-" bson:"password" cql:"password" dynamo:"password"`
 	SignupMethods            string  `json:"signup_methods" bson:"signup_methods" cql:"signup_methods" dynamo:"signup_methods"`
 	GivenName                *string `json:"given_name" bson:"given_name" cql:"given_name" dynamo:"given_name"`
 	FamilyName               *string `json:"family_name" bson:"family_name" cql:"family_name" dynamo:"family_name"`

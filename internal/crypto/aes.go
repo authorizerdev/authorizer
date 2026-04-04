@@ -1,49 +1,68 @@
 package crypto
 
 import (
-	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
 	"errors"
 	"io"
+
+	"golang.org/x/crypto/hkdf"
 )
 
-// var bytes = []byte{35, 46, 57, 24, 85, 35, 24, 74, 87, 35, 88, 98, 66, 32, 14, 0o5}
+// hkdfInfo is the fixed info string used for AES key derivation.
+const hkdfInfo = "authorizer-aes-key"
 
-// const (
-// 	// Static key for encryption
-// 	encryptionKey = "authorizerdev"
-// )
+// deriveAESKey derives a 32-byte AES key from the provided input keying
+// material using HKDF-SHA256 with a fixed info string and no salt.
+func deriveAESKey(ikm string) ([]byte, error) {
+	reader := hkdf.New(sha256.New, []byte(ikm), nil, []byte(hkdfInfo))
+	key := make([]byte, 32)
+	if _, err := io.ReadFull(reader, key); err != nil {
+		return nil, err
+	}
+	return key, nil
+}
 
-// EncryptAES method is to encrypt or hide any classified text
+// EncryptAES encrypts plaintext using AES-256-GCM. The nonce is prepended to
+// the ciphertext and the result is encoded as base64 RawURL.
 func EncryptAES(key, text string) (string, error) {
-	keyBytes := []byte(ensureHashKey(key))
+	keyBytes, err := deriveAESKey(key)
+	if err != nil {
+		return "", err
+	}
+
 	block, err := aes.NewCipher(keyBytes)
 	if err != nil {
 		return "", err
 	}
 
-	// The IV needs to be unique, but not secure. Therefore, it's common to
-	// include it at the beginning of the ciphertext.
-	ciphertext := make([]byte, aes.BlockSize+len(text))
-	iv := ciphertext[:aes.BlockSize]
-	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
 		return "", err
 	}
 
-	stream := cipher.NewCFBEncrypter(block, iv)
-	stream.XORKeyStream(ciphertext[aes.BlockSize:], []byte(text))
+	nonce := make([]byte, gcm.NonceSize())
+	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+		return "", err
+	}
 
-	// Encode the ciphertext to URL-safe base64 without padding
+	// Seal appends the encrypted and authenticated ciphertext to nonce.
+	ciphertext := gcm.Seal(nonce, nonce, []byte(text), nil)
 	return base64.RawURLEncoding.EncodeToString(ciphertext), nil
 }
 
-// DecryptAES method is to extract back the encrypted text
+// DecryptAES decrypts a base64 RawURL-encoded AES-256-GCM ciphertext produced
+// by EncryptAES. Returns an error if authentication fails or input is malformed.
 func DecryptAES(key, encryptedText string) (string, error) {
-	keyBytes := []byte(ensureHashKey(key))
-	ciphertext, err := base64.RawURLEncoding.DecodeString(encryptedText)
+	keyBytes, err := deriveAESKey(key)
+	if err != nil {
+		return "", err
+	}
+
+	data, err := base64.RawURLEncoding.DecodeString(encryptedText)
 	if err != nil {
 		return "", err
 	}
@@ -53,91 +72,21 @@ func DecryptAES(key, encryptedText string) (string, error) {
 		return "", err
 	}
 
-	if len(ciphertext) < aes.BlockSize {
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return "", err
+	}
+
+	nonceSize := gcm.NonceSize()
+	if len(data) < nonceSize {
 		return "", errors.New("ciphertext too short")
 	}
 
-	iv := ciphertext[:aes.BlockSize]
-	ciphertext = ciphertext[aes.BlockSize:]
-
-	stream := cipher.NewCFBDecrypter(block, iv)
-	stream.XORKeyStream(ciphertext, ciphertext)
-
-	return string(ciphertext), nil
-}
-
-// ensureHashKey ensure the key is 32 bytes long
-// if short it will append 0's to the key
-// if long it will truncate the key
-func ensureHashKey(key string) string {
-	if len(key) < 32 {
-		return key + string(bytes.Repeat([]byte{0}, 32-len(key)))
+	nonce, ciphertext := data[:nonceSize], data[nonceSize:]
+	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
+	if err != nil {
+		return "", err
 	}
-	return key[:32]
+
+	return string(plaintext), nil
 }
-
-// EncryptAESEnv encrypts data using AES algorithm
-// kept for the backward compatibility of env data encryption
-// TODO: Check if this is still needed
-// func EncryptAESEnv(text []byte) ([]byte, error) {
-// 	var res []byte
-// 	key := []byte(encryptionKey)
-// 	c, err := aes.NewCipher(key)
-// 	if err != nil {
-// 		return res, err
-// 	}
-
-// 	// gcm or Galois/Counter Mode, is a mode of operation
-// 	// for symmetric key cryptographic block ciphers
-// 	// - https://en.wikipedia.org/wiki/Galois/Counter_Mode
-// 	gcm, err := cipher.NewGCM(c)
-// 	if err != nil {
-// 		return res, err
-// 	}
-
-// 	// creates a new byte array the size of the nonce
-// 	// which must be passed to Seal
-// 	nonce := make([]byte, gcm.NonceSize())
-// 	// populates our nonce with a cryptographically secure
-// 	// random sequence
-// 	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
-// 		return res, err
-// 	}
-
-// 	// here we encrypt our text using the Seal function
-// 	// Seal encrypts and authenticates plaintext, authenticates the
-// 	// additional data and appends the result to dst, returning the updated
-// 	// slice. The nonce must be NonceSize() bytes long and unique for all
-// 	// time, for a given key.
-// 	return gcm.Seal(nonce, nonce, text, nil), nil
-// }
-
-// // DecryptAES decrypts data using AES algorithm
-// // Kept for the backward compatibility of env data decryption
-// // TODO: Check if this is still needed
-// func DecryptAESEnv(ciphertext []byte) ([]byte, error) {
-// 	var res []byte
-// 	key := []byte(encryptionKey)
-// 	c, err := aes.NewCipher(key)
-// 	if err != nil {
-// 		return res, err
-// 	}
-
-// 	gcm, err := cipher.NewGCM(c)
-// 	if err != nil {
-// 		return res, err
-// 	}
-
-// 	nonceSize := gcm.NonceSize()
-// 	if len(ciphertext) < nonceSize {
-// 		return res, err
-// 	}
-
-// 	nonce, ciphertext := ciphertext[:nonceSize], ciphertext[nonceSize:]
-// 	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
-// 	if err != nil {
-// 		return res, err
-// 	}
-
-// 	return plaintext, nil
-// }

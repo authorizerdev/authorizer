@@ -13,6 +13,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
+	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/token"
@@ -84,6 +85,7 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 
 		if h.Config.ClientID != clientID {
 			log.Debug().Str("client_id", clientID).Msg("Client ID is invalid")
+			metrics.RecordSecurityEvent("invalid_client", "token_endpoint")
 			// RFC 6749 §5.2: If client auth fails via HTTP Basic, return 401
 			if _, _, hasBasicAuth := gc.Request.BasicAuth(); hasBasicAuth {
 				gc.Header("WWW-Authenticate", "Basic realm=\"authorizer\"")
@@ -344,6 +346,11 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 		if authToken.RefreshToken != nil {
 			res["refresh_token"] = authToken.RefreshToken.Token
 			h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token, authToken.RefreshToken.ExpiresAt)
+		}
+		if isRefreshTokenGrant {
+			metrics.RecordAuthEvent(metrics.EventTokenRefresh, metrics.StatusSuccess)
+		} else {
+			metrics.RecordAuthEvent(metrics.EventTokenRefresh, metrics.StatusSuccess)
 		}
 		auditAction := constants.AuditTokenIssuedEvent
 		if isRefreshTokenGrant {

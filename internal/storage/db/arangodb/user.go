@@ -2,7 +2,6 @@ package arangodb
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -170,23 +169,17 @@ func (p *provider) GetUserByID(ctx context.Context, id string) (*schemas.User, e
 func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{}, ids []string) error {
 	// set updated_at time for all users
 	data["updated_at"] = time.Now().Unix()
-	userInfoBytes, err := json.Marshal(data)
-	if err != nil {
-		return err
+	bindVars := map[string]interface{}{
+		"data": data,
 	}
 	query := ""
 	if len(ids) > 0 {
-		keysArray := ""
-		for _, id := range ids {
-			keysArray += fmt.Sprintf("'%s', ", id)
-		}
-		keysArray = strings.Trim(keysArray, " ")
-		keysArray = strings.TrimSuffix(keysArray, ",")
-		query = fmt.Sprintf("FOR u IN %s FILTER u._id IN [%s] UPDATE u._key with %s IN %s", schemas.Collections.User, keysArray, string(userInfoBytes), schemas.Collections.User)
+		bindVars["ids"] = ids
+		query = fmt.Sprintf("FOR u IN %s FILTER u._id IN @ids UPDATE u._key WITH @data IN %s", schemas.Collections.User, schemas.Collections.User)
 	} else {
-		query = fmt.Sprintf("FOR u IN %s UPDATE u._key with %s IN %s", schemas.Collections.User, string(userInfoBytes), schemas.Collections.User)
+		query = fmt.Sprintf("FOR u IN %s UPDATE u._key WITH @data IN %s", schemas.Collections.User, schemas.Collections.User)
 	}
-	_, err = p.db.Query(ctx, query, nil)
+	_, err := p.db.Query(ctx, query, bindVars)
 	if err != nil {
 		return err
 	}

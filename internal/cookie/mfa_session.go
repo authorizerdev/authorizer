@@ -13,7 +13,7 @@ import (
 // SetMfaSession sets the mfa session cookie in the response
 func SetMfaSession(gc *gin.Context, sessionID string, appCookieSecure bool) {
 	secure := appCookieSecure
-	httpOnly := appCookieSecure
+	httpOnly := true
 	hostname := parsers.GetHost(gc)
 	host, _ := parsers.GetHostParts(hostname)
 	domain := parsers.GetDomainName(hostname)
@@ -42,7 +42,7 @@ func SetMfaSession(gc *gin.Context, sessionID string, appCookieSecure bool) {
 // DeleteMfaSession deletes the mfa session cookies to expire
 func DeleteMfaSession(gc *gin.Context, appCookieSecure bool) {
 	secure := appCookieSecure
-	httpOnly := appCookieSecure
+	httpOnly := true
 	hostname := parsers.GetHost(gc)
 	host, _ := parsers.GetHostParts(hostname)
 	domain := parsers.GetDomainName(hostname)

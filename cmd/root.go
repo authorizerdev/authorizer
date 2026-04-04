@@ -19,6 +19,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/events"
 	"github.com/authorizerdev/authorizer/internal/http_handlers"
 	"github.com/authorizerdev/authorizer/internal/memory_store"
+	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/oauth"
 	"github.com/authorizerdev/authorizer/internal/server"
 	"github.com/authorizerdev/authorizer/internal/sms"
@@ -309,6 +310,9 @@ func runRoot(c *cobra.Command, args []string) {
 	log := zerolog.New(os.Stdout).
 		Level(zeroLogLevel).
 		With().Timestamp().Logger()
+
+	// Initialize prometheus metrics
+	metrics.Init()
 
 	// Derive IsEmailServiceEnabled from SMTP config
 	rootArgs.config.IsEmailServiceEnabled = strings.TrimSpace(rootArgs.config.SMTPHost) != "" &&
