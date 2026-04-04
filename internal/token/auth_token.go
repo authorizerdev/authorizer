@@ -256,8 +256,7 @@ func (p *provider) GetAccessToken(gc *gin.Context) (string, error) {
 		return "", fmt.Errorf(`not a bearer token`)
 	}
 
-	token := strings.TrimPrefix(auth, "Bearer ")
-	return token, nil
+	return authSplit[1], nil
 }
 
 // Function to validate access token for authorizer apis (profile, update_profile)
@@ -493,8 +492,7 @@ func (p *provider) GetIDToken(gc *gin.Context) (string, error) {
 		return "", fmt.Errorf(`not a bearer token`)
 	}
 
-	token := strings.TrimPrefix(auth, "Bearer ")
-	return token, nil
+	return authSplit[1], nil
 }
 
 // SessionOrAccessTokenData is a struct to hold session or access token data
