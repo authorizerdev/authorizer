@@ -2,6 +2,7 @@ package http_handlers
 
 import (
 	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/base64"
 	"net/http"
 	"strings"
@@ -158,7 +159,7 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 				}
 
 			} else {
-				if clientSecret != h.Config.ClientSecret {
+				if subtle.ConstantTimeCompare([]byte(clientSecret), []byte(h.Config.ClientSecret)) != 1 {
 					log.Debug().Msg("Client secret is invalid")
 					gc.JSON(http.StatusUnauthorized, gin.H{
 						"error":             "invalid_client",

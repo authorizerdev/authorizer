@@ -2,6 +2,7 @@ package graphql
 
 import (
 	"context"
+	"crypto/subtle"
 	"fmt"
 	"strings"
 	"time"
@@ -105,7 +106,7 @@ func (g *graphqlProvider) VerifyOTP(ctx context.Context, params *model.VerifyOTP
 			log.Debug().Msg("OTP not found")
 			return nil, fmt.Errorf(`OTP not found`)
 		}
-		if params.Otp != otp.Otp {
+		if subtle.ConstantTimeCompare([]byte(params.Otp), []byte(otp.Otp)) != 1 {
 			log.Debug().Msg("Failed to verify otp request: OTP mismatch")
 			return nil, fmt.Errorf(`invalid otp`)
 		}
