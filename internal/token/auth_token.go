@@ -273,13 +273,16 @@ func (p *provider) ValidateAccessToken(gc *gin.Context, accessToken string) (map
 		return res, err
 	}
 
-	userID := res["sub"].(string)
-	nonce := res["nonce"].(string)
+	userID, ok := res["sub"].(string)
+	if !ok || userID == "" {
+		return res, fmt.Errorf(`unauthorized: missing sub claim`)
+	}
+	nonce, _ := res["nonce"].(string)
 
-	loginMethod := res["login_method"]
+	loginMethod, _ := res["login_method"].(string)
 	sessionKey := userID
-	if loginMethod != nil && loginMethod != "" {
-		sessionKey = loginMethod.(string) + ":" + userID
+	if loginMethod != "" {
+		sessionKey = loginMethod + ":" + userID
 	}
 
 	token, err := p.dependencies.MemoryStoreProvider.GetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+nonce)
@@ -322,13 +325,16 @@ func (p *provider) ValidateRefreshToken(gc *gin.Context, refreshToken string) (m
 		return res, err
 	}
 
-	userID := res["sub"].(string)
-	nonce := res["nonce"].(string)
+	userID, ok := res["sub"].(string)
+	if !ok || userID == "" {
+		return res, fmt.Errorf(`unauthorized: missing sub claim`)
+	}
+	nonce, _ := res["nonce"].(string)
 
-	loginMethod := res["login_method"]
+	loginMethod, _ := res["login_method"].(string)
 	sessionKey := userID
-	if loginMethod != nil && loginMethod != "" {
-		sessionKey = loginMethod.(string) + ":" + userID
+	if loginMethod != "" {
+		sessionKey = loginMethod + ":" + userID
 	}
 	token, err := p.dependencies.MemoryStoreProvider.GetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+nonce)
 	if nonce == "" || err != nil {
@@ -530,9 +536,15 @@ func (p *provider) GetUserIDFromSessionOrAccessToken(gc *gin.Context) (*SessionO
 		p.dependencies.Log.Debug().Err(err).Msg("Failed to validate access token")
 		return nil, fmt.Errorf(`unauthorized`)
 	}
+	userID, ok := claims["sub"].(string)
+	if !ok || userID == "" {
+		return nil, fmt.Errorf(`unauthorized: missing sub claim`)
+	}
+	loginMethod, _ := claims["login_method"].(string)
+	nonce, _ := claims["nonce"].(string)
 	return &SessionOrAccessTokenData{
-		UserID:      claims["sub"].(string),
-		LoginMethod: claims["login_method"].(string),
-		Nonce:       claims["nonce"].(string),
+		UserID:      userID,
+		LoginMethod: loginMethod,
+		Nonce:       nonce,
 	}, nil
 }
