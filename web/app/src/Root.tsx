@@ -9,6 +9,43 @@ const Login = lazy(() => import('./pages/login'));
 const Dashboard = lazy(() => import('./pages/dashboard'));
 const SignUp = lazy(() => import('./pages/signup'));
 
+/**
+ * Validates a redirect URI to prevent open redirect attacks.
+ * Allows same-origin redirects and cross-origin redirects only for
+ * http/https protocols that match configured redirect URLs.
+ */
+function isValidRedirectUri(
+	uri: string,
+	configuredRedirectURL?: string,
+): boolean {
+	try {
+		const url = new URL(uri, window.location.origin);
+		// Only allow http and https protocols (block javascript:, data:, etc.)
+		if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+			return false;
+		}
+		// Same-origin redirects are always allowed
+		if (url.origin === window.location.origin) {
+			return true;
+		}
+		// Cross-origin: only allow if it matches the configured redirect URL origin
+		if (configuredRedirectURL) {
+			try {
+				const configuredUrl = new URL(configuredRedirectURL);
+				if (url.origin === configuredUrl.origin) {
+					return true;
+				}
+			} catch {
+				// Invalid configured URL, reject cross-origin
+			}
+		}
+		return false;
+	} catch {
+		// If URI can't be parsed, reject it
+		return false;
+	}
+}
+
 export default function Root({
 	globalState,
 }: {
@@ -31,12 +68,12 @@ export default function Root({
 		scope,
 	};
 
-	const redirectURL =
+	const rawRedirectURL =
 		searchParams.get('redirect_uri') || searchParams.get('redirectURL');
-	if (redirectURL) {
-		urlProps.redirectURL = redirectURL;
+	if (rawRedirectURL && isValidRedirectUri(rawRedirectURL, config?.redirectURL)) {
+		urlProps.redirectURL = rawRedirectURL;
 	} else {
-		urlProps.redirectURL = hasWindow() ? window.location.origin : redirectURL;
+		urlProps.redirectURL = hasWindow() ? window.location.origin : '/';
 	}
 
 	urlProps.redirect_uri = urlProps.redirectURL;
