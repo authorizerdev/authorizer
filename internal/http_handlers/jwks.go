@@ -14,16 +14,10 @@ func (h *httpProvider) generateJWKBasedOnEnv() (string, error) {
 	jwk := ""
 	algo := h.JWTType
 	clientID := h.ClientID
-	jwtSecret := h.JWTSecret
 	jwtPublicKey := h.JWTPublicKey
-	var err error
-	// check if jwt secret is provided
-	if crypto.IsHMACA(algo) {
-		jwk, err = crypto.GetPubJWK(algo, clientID, []byte(jwtSecret))
-		if err != nil {
-			return "", err
-		}
-	}
+	// HMAC (symmetric) keys must never be exposed via the public JWKS endpoint.
+	// Publishing the secret would allow anyone to forge tokens.
+	// Only asymmetric public keys (RSA, ECDSA) are included.
 
 	if crypto.IsRSA(algo) {
 		publicKeyInstance, err := crypto.ParseRsaPublicKeyFromPemStr(jwtPublicKey)
@@ -55,7 +49,6 @@ func (h *httpProvider) generateJWKBasedOnEnv() (string, error) {
 func (h *httpProvider) JWKsHandler() gin.HandlerFunc {
 	log := h.Log.With().Str("func", "JWKsHandler").Logger()
 	return func(c *gin.Context) {
-		var data map[string]string
 		jwk, err := h.generateJWKBasedOnEnv()
 		if err != nil {
 			log.Debug().Err(err).Msg("Error generating JWK")
@@ -64,6 +57,15 @@ func (h *httpProvider) JWKsHandler() gin.HandlerFunc {
 			})
 			return
 		}
+		// HMAC-only configurations have no public key to expose;
+		// return an empty key set per RFC 7517.
+		if jwk == "" {
+			c.JSON(200, gin.H{
+				"keys": []map[string]string{},
+			})
+			return
+		}
+		var data map[string]string
 		err = json.Unmarshal([]byte(jwk), &data)
 		if err != nil {
 			log.Debug().Err(err).Msg("Error unmarshalling JWK")
