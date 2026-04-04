@@ -103,6 +103,8 @@ type Provider interface {
 	ContextMiddleware() gin.HandlerFunc
 	// CORSMiddleware is the middleware that adds the cors headers to the response
 	CORSMiddleware() gin.HandlerFunc
+	// CSRFMiddleware protects against CSRF on state-changing requests
+	CSRFMiddleware() gin.HandlerFunc
 	// LoggerMiddleware is the middleware that logs the request
 	LoggerMiddleware() gin.HandlerFunc
 	// MetricsMiddleware records HTTP request count and duration for prometheus.

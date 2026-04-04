@@ -16,6 +16,7 @@ func (s *server) NewRouter() *gin.Engine {
 	router.Use(s.Dependencies.HTTPProvider.MetricsMiddleware())
 	router.Use(s.Dependencies.HTTPProvider.ContextMiddleware())
 	router.Use(s.Dependencies.HTTPProvider.CORSMiddleware())
+	router.Use(s.Dependencies.HTTPProvider.CSRFMiddleware())
 	router.Use(s.Dependencies.HTTPProvider.ClientCheckMiddleware())
 
 	router.GET("/", s.Dependencies.HTTPProvider.RootHandler())
