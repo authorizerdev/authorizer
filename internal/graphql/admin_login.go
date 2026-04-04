@@ -2,6 +2,7 @@ package graphql
 
 import (
 	"context"
+	"crypto/subtle"
 	"fmt"
 
 	"github.com/authorizerdev/authorizer/internal/audit"
@@ -23,7 +24,7 @@ func (g *graphqlProvider) AdminLogin(ctx context.Context, params *model.AdminLog
 		log.Debug().Err(err).Msg("Failed to get GinContext")
 		return res, fmt.Errorf("internal server error")
 	}
-	if params.AdminSecret != g.Config.AdminSecret {
+	if subtle.ConstantTimeCompare([]byte(params.AdminSecret), []byte(g.Config.AdminSecret)) != 1 {
 		log.Debug().Msg("Invalid admin secret")
 		metrics.RecordAuthEvent(metrics.EventAdminLogin, metrics.StatusFailure)
 		metrics.RecordSecurityEvent("invalid_admin_secret", "admin_login")
