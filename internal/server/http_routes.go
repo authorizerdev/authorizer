@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"html/template"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -36,14 +37,19 @@ func (s *server) NewRouter() *gin.Engine {
 	router.GET("/authorize", s.Dependencies.HTTPProvider.AuthorizeHandler())
 	router.GET("/userinfo", s.Dependencies.HTTPProvider.UserInfoHandler())
 	router.GET("/logout", s.Dependencies.HTTPProvider.LogoutHandler())
+	router.POST("/logout", s.Dependencies.HTTPProvider.LogoutHandler())
 	router.POST("/oauth/token", s.Dependencies.HTTPProvider.TokenHandler())
 	router.POST("/oauth/revoke", s.Dependencies.HTTPProvider.RevokeRefreshTokenHandler())
 
-	// Set up template functions for JSON encoding
+	// Set up template functions for JSON encoding.
+	// Escape </script> and <!-- to prevent script injection in <script> blocks.
 	router.SetFuncMap(template.FuncMap{
 		"json": func(v interface{}) template.JS {
 			a, _ := json.Marshal(v)
-			return template.JS(a)
+			s := string(a)
+			s = strings.ReplaceAll(s, "</", `<\/`)
+			s = strings.ReplaceAll(s, "<!--", `<\!--`)
+			return template.JS(s)
 		},
 	})
 	router.LoadHTMLGlob("web/templates/*")
