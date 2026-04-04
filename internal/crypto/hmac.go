@@ -1,13 +1,17 @@
 package crypto
 
 import (
-	"github.com/google/uuid"
+	"crypto/rand"
+	"encoding/hex"
 )
 
-// NewHMAC key returns new key that can be used to ecnrypt data using HMAC algo
-// returns key, string, error
+// NewHMACKey returns a new cryptographically random key for HMAC signing.
 func NewHMACKey(algo, keyID string) (string, string, error) {
-	key := uuid.New().String()
+	keyBytes := make([]byte, 32)
+	if _, err := rand.Read(keyBytes); err != nil {
+		return "", "", err
+	}
+	key := hex.EncodeToString(keyBytes)
 	jwkPublicKey, err := GetPubJWK(algo, keyID, []byte(key))
 	if err != nil {
 		return "", "", err

@@ -46,7 +46,9 @@ func New(
 		mailer.LocalName = config.SMTPLocalName
 	}
 	if config.SMTPSkipTLSVerification {
-		mailer.TLSConfig = &tls.Config{InsecureSkipVerify: true}
+		mailer.TLSConfig = &tls.Config{InsecureSkipVerify: true} //nolint:gosec // explicit opt-in for dev/testing
+	} else {
+		mailer.TLSConfig = &tls.Config{ServerName: config.SMTPHost}
 	}
 	return &provider{
 		config: config,

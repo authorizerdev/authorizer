@@ -484,7 +484,7 @@ func (h *httpProvider) processGithubUserInfo(ctx *gin.Context, code string) (*sc
 		firstName = name[0]
 	}
 	if len(name) > 1 && strings.TrimSpace(name[1]) != "" {
-		lastName = name[0]
+		lastName = name[1]
 	}
 
 	picture := userRawData["avatar_url"]

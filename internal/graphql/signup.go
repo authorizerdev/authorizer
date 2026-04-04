@@ -83,30 +83,18 @@ func (g *graphqlProvider) SignUp(ctx context.Context, params *model.SignUpReques
 		if err != nil {
 			log.Debug().Err(err).Msg("Failed to get user by email")
 		}
-		if existingUser != nil {
-			if existingUser.EmailVerifiedAt != nil {
-				// email is verified
-				log.Debug().Msg("Email is already verified and signed up.")
-				return nil, fmt.Errorf(`%s has already signed up`, email)
-			} else if existingUser.ID != "" && existingUser.EmailVerifiedAt == nil {
-				log.Debug().Msg("Email is already signed up. Verification pending...")
-				return nil, fmt.Errorf("%s has already signed up. please complete the email verification process or reset the password", email)
-			}
+		if existingUser != nil && (existingUser.EmailVerifiedAt != nil || existingUser.ID != "") {
+			log.Debug().Msg("Email is already signed up.")
+			return nil, fmt.Errorf("signup failed. please check your credentials or try a different method")
 		}
 	} else {
 		existingUser, err := g.StorageProvider.GetUserByPhoneNumber(ctx, phoneNumber)
 		if err != nil {
 			log.Debug().Err(err).Msg("Failed to get user by phone number")
 		}
-		if existingUser != nil {
-			if existingUser.PhoneNumberVerifiedAt != nil {
-				// email is verified
-				log.Debug().Msg("Phone number is already verified and signed up.")
-				return nil, fmt.Errorf(`%s has already signed up`, phoneNumber)
-			} else if existingUser.ID != "" && existingUser.PhoneNumberVerifiedAt == nil {
-				log.Debug().Msg("Phone number is already signed up. Verification pending...")
-				return nil, fmt.Errorf("%s has already signed up. please complete the phone number verification process or reset the password", phoneNumber)
-			}
+		if existingUser != nil && (existingUser.PhoneNumberVerifiedAt != nil || existingUser.ID != "") {
+			log.Debug().Msg("Phone number is already signed up.")
+			return nil, fmt.Errorf("signup failed. please check your credentials or try a different method")
 		}
 	}
 

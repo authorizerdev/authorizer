@@ -102,6 +102,8 @@ func (h *httpProvider) GraphqlHandler() gin.HandlerFunc {
 	srv.Use(extension.AutomaticPersistedQuery{
 		Cache: lru.New[string](100),
 	})
+	// Limit query complexity to prevent resource exhaustion
+	srv.Use(extension.FixedComplexityLimit(300))
 
 	return func(c *gin.Context) {
 		// Create a custom handler that ensures gin context is available
