@@ -12,9 +12,12 @@ func (h *httpProvider) CORSMiddleware() gin.HandlerFunc {
 		origin := c.Request.Header.Get("Origin")
 		if validators.IsValidOrigin(origin, h.Config.AllowedOrigins) {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+			// Only set credentials header when a specific validated origin is returned.
+			// Credentials must not be combined with a wildcard or empty origin.
+			if origin != "" && origin != "*" {
+				c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+			}
 		}
-
-		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With,  X-authorizer-url, X-Forwarded-Proto, X-authorizer-client-id")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT")
 

@@ -116,4 +116,6 @@ type Provider interface {
 	MetricsMiddleware() gin.HandlerFunc
 	// MetricsHandler serves the Prometheus metrics scrape endpoint.
 	MetricsHandler() gin.HandlerFunc
+	// SecurityHeadersMiddleware sets standard security headers on every response.
+	SecurityHeadersMiddleware() gin.HandlerFunc
 }

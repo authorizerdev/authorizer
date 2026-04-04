@@ -13,6 +13,7 @@ func (s *server) NewRouter() *gin.Engine {
 	router := gin.New()
 	router.Use(gin.Recovery())
 
+	router.Use(s.Dependencies.HTTPProvider.SecurityHeadersMiddleware())
 	router.Use(s.Dependencies.HTTPProvider.LoggerMiddleware())
 	router.Use(s.Dependencies.HTTPProvider.MetricsMiddleware())
 	router.Use(s.Dependencies.HTTPProvider.ContextMiddleware())
