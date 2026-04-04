@@ -293,12 +293,6 @@ func applyFlagDefaults() {
 	if len(c.RobloxScopes) == 0 {
 		c.RobloxScopes = append([]string(nil), defaultRobloxScopes...)
 	}
-	if c.RateLimitRPS == 0 {
-		c.RateLimitRPS = defaultRateLimitRPS
-	}
-	if c.RateLimitBurst == 0 {
-		c.RateLimitBurst = defaultRateLimitBurst
-	}
 }
 
 // Run the service
@@ -402,6 +396,7 @@ func runRoot(c *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create rate limit provider")
 	}
+	defer rateLimitProvider.Close()
 
 	// SMS provider
 	smsProvider, err := sms.New(&rootArgs.config, &sms.Dependencies{

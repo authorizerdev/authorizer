@@ -10,9 +10,12 @@ import (
 	"github.com/authorizerdev/authorizer/internal/config"
 )
 
+// Compile-time interface guard
+var _ Provider = (*inMemoryProvider)(nil)
+
 type entry struct {
 	limiter  *rate.Limiter
-	lastSeen time.Time
+	lastSeen time.Time // benign data race: only used for cleanup staleness heuristic
 }
 
 type inMemoryProvider struct {
