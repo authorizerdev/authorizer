@@ -31,5 +31,9 @@ func (p *provider) AddSession(ctx context.Context, session *schemas.Session) err
 
 // DeleteSession to delete session information from database
 func (p *provider) DeleteSession(ctx context.Context, userId string) error {
+	res := p.db.Where("user_id = ?", userId).Delete(&schemas.Session{})
+	if res.Error != nil {
+		return res.Error
+	}
 	return nil
 }

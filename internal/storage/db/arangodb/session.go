@@ -2,6 +2,7 @@ package arangodb
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
@@ -23,7 +24,14 @@ func (p *provider) AddSession(ctx context.Context, session *schemas.Session) err
 }
 
 // DeleteSession to delete session information from database
-// TODO: Implement this function
 func (p *provider) DeleteSession(ctx context.Context, userId string) error {
+	query := fmt.Sprintf("FOR s IN %s FILTER s.user_id == @userId REMOVE s IN %s", schemas.Collections.Session, schemas.Collections.Session)
+	bindVars := map[string]interface{}{
+		"userId": userId,
+	}
+	_, err := p.db.Query(ctx, query, bindVars)
+	if err != nil {
+		return err
+	}
 	return nil
 }
