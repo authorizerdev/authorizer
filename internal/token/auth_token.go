@@ -20,6 +20,23 @@ import (
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
 
+// reservedClaims are security-critical JWT claims that custom scripts must not override.
+var reservedClaims = map[string]bool{
+	"sub":           true,
+	"iss":           true,
+	"aud":           true,
+	"exp":           true,
+	"iat":           true,
+	"token_type":    true,
+	"roles":         true,
+	"allowed_roles": true,
+	"scope":         true,
+	"nonce":         true,
+	"login_method":  true,
+	"at_hash":       true,
+	"c_hash":        true,
+}
+
 // AuthTokenConfig is the configuration for auth token
 type AuthTokenConfig struct {
 	LoginMethod string
@@ -207,7 +224,9 @@ func (p *provider) CreateAccessToken(cfg *AuthTokenConfig) (string, int64, error
 				p.dependencies.Log.Debug().Err(err).Msg("error converting accessTokenScript response to map")
 			} else {
 				for k, v := range extraPayload {
-					customClaims[k] = v
+					if !reservedClaims[k] {
+						customClaims[k] = v
+					}
 				}
 			}
 		}
@@ -435,7 +454,9 @@ func (p *provider) CreateIDToken(cfg *AuthTokenConfig) (string, int64, error) {
 				p.dependencies.Log.Debug().Err(err).Msg("error converting accessTokenScript response to map")
 			} else {
 				for k, v := range extraPayload {
-					customClaims[k] = v
+					if !reservedClaims[k] {
+						customClaims[k] = v
+					}
 				}
 			}
 		}
