@@ -50,6 +50,8 @@ var (
 	defaultDiscordScopes     = []string{"identify", "email"}
 	defaultTwitterScopes     = []string{"tweet.read", "users.read"}
 	defaultRobloxScopes      = []string{"openid", "profile"}
+	defaultRateLimitRPS      = float64(10)
+	defaultRateLimitBurst    = 20
 )
 
 var (
@@ -151,6 +153,10 @@ func init() {
 	f.BoolVar(&rootArgs.config.AppCookieSecure, "app-cookie-secure", true, "Application secure cookie flag")
 	f.BoolVar(&rootArgs.config.AdminCookieSecure, "admin-cookie-secure", true, "Admin secure cookie flag")
 	f.BoolVar(&rootArgs.config.DisableAdminHeaderAuth, "disable-admin-header-auth", false, "Disable admin authentication via X-Authorizer-Admin-Secret header")
+
+	// Rate limiting flags
+	f.Float64Var(&rootArgs.config.RateLimitRPS, "rate-limit-rps", defaultRateLimitRPS, "Maximum requests per second per IP for rate limiting")
+	f.IntVar(&rootArgs.config.RateLimitBurst, "rate-limit-burst", defaultRateLimitBurst, "Maximum burst size per IP for rate limiting")
 
 	// JWT flags
 	f.StringVar(&rootArgs.config.JWTType, "jwt-type", "", "Type of JWT to use")
@@ -284,6 +290,12 @@ func applyFlagDefaults() {
 	}
 	if len(c.RobloxScopes) == 0 {
 		c.RobloxScopes = append([]string(nil), defaultRobloxScopes...)
+	}
+	if c.RateLimitRPS == 0 {
+		c.RateLimitRPS = defaultRateLimitRPS
+	}
+	if c.RateLimitBurst == 0 {
+		c.RateLimitBurst = defaultRateLimitBurst
 	}
 }
 
