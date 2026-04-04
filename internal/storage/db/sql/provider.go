@@ -51,7 +51,7 @@ func NewProvider(
 		NamingStrategy: schema.NamingStrategy{
 			TablePrefix: schemas.Prefix,
 		},
-		AllowGlobalUpdate: true,
+		AllowGlobalUpdate: false,
 	}
 
 	dbType := config.DatabaseType
