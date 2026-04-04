@@ -13,7 +13,7 @@ import (
 // NewRSAKey to generate new RSA Key if env is not set
 // returns key instance, private key string, public key string, jwk string, error
 func NewRSAKey(algo, keyID string) (*rsa.PrivateKey, string, string, string, error) {
-	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	key, err := rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
 		return nil, "", "", "", err
 	}
@@ -130,7 +130,10 @@ func EncryptRSA(message string, key rsa.PublicKey) (string, error) {
 }
 
 func DecryptRSA(cipherText string, privateKey rsa.PrivateKey) (string, error) {
-	ct, _ := base64.StdEncoding.DecodeString(cipherText)
+	ct, err := base64.StdEncoding.DecodeString(cipherText)
+	if err != nil {
+		return "", err
+	}
 	label := []byte("OAEP Encrypted")
 	rng := rand.Reader
 	plaintext, err := rsa.DecryptOAEP(sha256.New(), rng, &privateKey, ct, label)
