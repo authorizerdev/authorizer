@@ -243,7 +243,11 @@ func (g *graphqlProvider) SignUp(ctx context.Context, params *model.SignUpReques
 		}, nil
 	} else if isPhoneVerificationEnabled && isMobileSignup {
 		duration, _ := time.ParseDuration("10m")
-		smsCode := utils.GenerateOTP()
+		smsCode, err := utils.GenerateOTP()
+		if err != nil {
+			log.Debug().Err(err).Msg("Failed to generate OTP")
+			return nil, err
+		}
 		smsBody := strings.Builder{}
 		smsBody.WriteString("Your verification code is: ")
 		smsBody.WriteString(smsCode)

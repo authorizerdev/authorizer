@@ -4,18 +4,21 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGenerateOTP(t *testing.T) {
 	t.Run("should return 6-character OTP", func(t *testing.T) {
-		otp := GenerateOTP()
+		otp, err := GenerateOTP()
+		require.NoError(t, err)
 		assert.Len(t, otp, 6)
 	})
 
 	t.Run("should only contain valid charset characters", func(t *testing.T) {
 		charset := "ABCDEFGHJKLMNPQRSTUVWXYZ123456789"
 		for i := 0; i < 50; i++ {
-			otp := GenerateOTP()
+			otp, err := GenerateOTP()
+			require.NoError(t, err)
 			for _, c := range otp {
 				assert.Contains(t, charset, string(c), "OTP contains invalid character: %c", c)
 			}
@@ -26,7 +29,8 @@ func TestGenerateOTP(t *testing.T) {
 		seen := make(map[string]bool)
 		duplicates := 0
 		for i := 0; i < 100; i++ {
-			otp := GenerateOTP()
+			otp, err := GenerateOTP()
+			require.NoError(t, err)
 			if seen[otp] {
 				duplicates++
 			}

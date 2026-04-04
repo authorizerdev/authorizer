@@ -92,8 +92,8 @@ func (g *graphqlProvider) ResetPassword(ctx context.Context, params *model.Reset
 	if isOtpVerification {
 		mfaSession, err := cookie.GetMfaSession(gc)
 		if err != nil {
-			log.Debug().Err(err).Msg("Failed to get otp request by email")
-			return nil, fmt.Errorf(`invalid session: %s`, err.Error())
+			log.Debug().Err(err).Msg("Failed to get mfa session cookie")
+			return nil, fmt.Errorf(`invalid session`)
 		}
 		// Get user by phone number
 		user, err = g.StorageProvider.GetUserByPhoneNumber(ctx, phoneNumber)
@@ -103,7 +103,7 @@ func (g *graphqlProvider) ResetPassword(ctx context.Context, params *model.Reset
 		}
 		if _, err := g.MemoryStoreProvider.GetMfaSession(user.ID, mfaSession); err != nil {
 			log.Debug().Err(err).Msg("Failed to get mfa session")
-			return nil, fmt.Errorf(`invalid session: %s`, err.Error())
+			return nil, fmt.Errorf(`invalid session`)
 		}
 		otpRequest, err = g.StorageProvider.GetOTPByPhoneNumber(ctx, phoneNumber)
 		if err != nil {

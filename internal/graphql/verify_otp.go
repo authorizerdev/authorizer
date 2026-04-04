@@ -32,7 +32,7 @@ func (g *graphqlProvider) VerifyOTP(ctx context.Context, params *model.VerifyOTP
 	mfaSession, err := cookie.GetMfaSession(gc)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to get mfa session")
-		return nil, fmt.Errorf(`invalid session: %s`, err.Error())
+		return nil, fmt.Errorf(`invalid session`)
 	}
 
 	email := strings.TrimSpace(refs.StringValue(params.Email))
@@ -121,7 +121,7 @@ func (g *graphqlProvider) VerifyOTP(ctx context.Context, params *model.VerifyOTP
 
 	if _, err := g.MemoryStoreProvider.GetMfaSession(user.ID, mfaSession); err != nil {
 		log.Debug().Err(err).Msg("Failed to get mfa session")
-		return nil, fmt.Errorf(`invalid session: %s`, err.Error())
+		return nil, fmt.Errorf(`invalid session`)
 	}
 
 	isSignUp := false
