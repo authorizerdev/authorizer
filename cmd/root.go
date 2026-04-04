@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/errgroup"
@@ -21,6 +22,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/memory_store"
 	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/oauth"
+	"github.com/authorizerdev/authorizer/internal/rate_limit"
 	"github.com/authorizerdev/authorizer/internal/server"
 	"github.com/authorizerdev/authorizer/internal/sms"
 	"github.com/authorizerdev/authorizer/internal/storage"
@@ -50,6 +52,8 @@ var (
 	defaultDiscordScopes     = []string{"identify", "email"}
 	defaultTwitterScopes     = []string{"tweet.read", "users.read"}
 	defaultRobloxScopes      = []string{"openid", "profile"}
+	defaultRateLimitRPS      = float64(10)
+	defaultRateLimitBurst    = 20
 )
 
 var (
@@ -151,6 +155,10 @@ func init() {
 	f.BoolVar(&rootArgs.config.AppCookieSecure, "app-cookie-secure", true, "Application secure cookie flag")
 	f.BoolVar(&rootArgs.config.AdminCookieSecure, "admin-cookie-secure", true, "Admin secure cookie flag")
 	f.BoolVar(&rootArgs.config.DisableAdminHeaderAuth, "disable-admin-header-auth", false, "Disable admin authentication via X-Authorizer-Admin-Secret header")
+
+	// Rate limiting flags
+	f.Float64Var(&rootArgs.config.RateLimitRPS, "rate-limit-rps", defaultRateLimitRPS, "Maximum requests per second per IP for rate limiting")
+	f.IntVar(&rootArgs.config.RateLimitBurst, "rate-limit-burst", defaultRateLimitBurst, "Maximum burst size per IP for rate limiting")
 
 	// JWT flags
 	f.StringVar(&rootArgs.config.JWTType, "jwt-type", "", "Type of JWT to use")
@@ -369,6 +377,27 @@ func runRoot(c *cobra.Command, args []string) {
 		log.Fatal().Err(err).Msg("failed to create memory store provider")
 	}
 
+	// Rate limit provider
+	rateLimitDeps := &rate_limit.Dependencies{
+		Log: &log,
+	}
+	// If memory store is Redis-backed, reuse its client for distributed rate limiting
+	type redisClientProvider interface {
+		Client() interface {
+			Eval(ctx context.Context, script string, keys []string, args ...interface{}) *redis.Cmd
+		}
+	}
+	if rcp, ok := memoryStoreProvider.(redisClientProvider); ok {
+		if client, ok := rcp.Client().(rate_limit.RedisClient); ok {
+			rateLimitDeps.RedisStore = client
+		}
+	}
+	rateLimitProvider, err := rate_limit.New(&rootArgs.config, rateLimitDeps)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to create rate limit provider")
+	}
+	defer rateLimitProvider.Close()
+
 	// SMS provider
 	smsProvider, err := sms.New(&rootArgs.config, &sms.Dependencies{
 		Log: &log,
@@ -418,6 +447,7 @@ func runRoot(c *cobra.Command, args []string) {
 		StorageProvider:       storageProvider,
 		TokenProvider:         tokenProvider,
 		OAuthProvider:         oauthProvider,
+		RateLimitProvider:     rateLimitProvider,
 	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create http provider")

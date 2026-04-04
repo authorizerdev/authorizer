@@ -11,6 +11,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/events"
 	"github.com/authorizerdev/authorizer/internal/memory_store"
 	"github.com/authorizerdev/authorizer/internal/oauth"
+	"github.com/authorizerdev/authorizer/internal/rate_limit"
 	"github.com/authorizerdev/authorizer/internal/sms"
 	"github.com/authorizerdev/authorizer/internal/storage"
 	"github.com/authorizerdev/authorizer/internal/token"
@@ -39,6 +40,8 @@ type Dependencies struct {
 	TokenProvider token.Provider
 	// OAuthProvider is used to register oauth providers
 	OAuthProvider oauth.Provider
+	// RateLimitProvider is used for per-IP rate limiting
+	RateLimitProvider rate_limit.Provider
 }
 
 // New constructs a new http provider with given arguments
@@ -107,6 +110,8 @@ type Provider interface {
 	CSRFMiddleware() gin.HandlerFunc
 	// LoggerMiddleware is the middleware that logs the request
 	LoggerMiddleware() gin.HandlerFunc
+	// RateLimitMiddleware is the middleware that rate limits requests per IP
+	RateLimitMiddleware() gin.HandlerFunc
 	// MetricsMiddleware records HTTP request count and duration for prometheus.
 	MetricsMiddleware() gin.HandlerFunc
 	// MetricsHandler serves the Prometheus metrics scrape endpoint.
