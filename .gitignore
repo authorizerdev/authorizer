@@ -23,3 +23,4 @@ certs/
 node_modules/*
 *.code-workspace
 .claude/worktrees
+docs/superpowers

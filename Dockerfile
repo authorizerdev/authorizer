@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.4
 # Use BuildKit for cache mounts (faster CI: DOCKER_BUILDKIT=1)
-FROM golang:1.25-alpine3.22 AS go-builder
+FROM golang:1.25-alpine3.23 AS go-builder
 WORKDIR /authorizer
 
 ARG TARGETPLATFORM
@@ -32,7 +32,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     go build -trimpath -mod=readonly -tags netgo -ldflags "-w -s -X github.com/authorizerdev/authorizer/internal/constants.VERSION=$VERSION" -o build/${GOOS}/${GOARCH}/authorizer . && \
     chmod 755 build/${GOOS}/${GOARCH}/authorizer
 
-FROM alpine:3.22.0 AS node-builder
+FROM alpine:3.23.3 AS node-builder
 WORKDIR /authorizer
 COPY web/app/package*.json web/app/
 COPY web/dashboard/package*.json web/dashboard/
@@ -46,7 +46,7 @@ COPY web/app web/app
 COPY web/dashboard web/dashboard
 RUN cd web/app && npm run build && cd ../dashboard && npm run build
 
-FROM alpine:3.22.0
+FROM alpine:3.23.3
 
 ARG TARGETARCH=amd64
 
