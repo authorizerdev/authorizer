@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/authorizerdev/authorizer/internal/validators"
 )
 
 // CSRFMiddleware protects against CSRF by requiring state-changing requests
@@ -28,6 +30,18 @@ func (h *httpProvider) CSRFMiddleware() gin.HandlerFunc {
 		// Exempt /oauth/token (client credentials flow, no cookies)
 		if c.Request.URL.Path == "/oauth/token" || c.Request.URL.Path == "/oauth/revoke" {
 			c.Next()
+			return
+		}
+
+		// If the Origin header is present, verify it matches allowed origins.
+		// This prevents cross-origin state-changing requests from disallowed domains.
+		origin := c.Request.Header.Get("Origin")
+		if origin != "" && !validators.IsValidOrigin(origin, h.Config.AllowedOrigins) {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error":             "csrf_validation_failed",
+				"error_description": "Origin not allowed",
+			})
+			c.Abort()
 			return
 		}
 

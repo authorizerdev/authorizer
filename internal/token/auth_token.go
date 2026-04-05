@@ -205,31 +205,7 @@ func (p *provider) CreateAccessToken(cfg *AuthTokenConfig) (string, int64, error
 		userBytes, _ := json.Marshal(&resUser)
 		var userMap map[string]interface{}
 		json.Unmarshal(userBytes, &userMap)
-		vm := otto.New()
-		claimBytes, _ := json.Marshal(customClaims)
-		vm.Run(fmt.Sprintf(`
-			var user = %s;
-			var tokenPayload = %s;
-			var customFunction = %s;
-			var functionRes = JSON.stringify(customFunction(user, tokenPayload));
-		`, string(userBytes), string(claimBytes), p.config.CustomAccessTokenScript))
-
-		val, err := vm.Get("functionRes")
-		if err != nil {
-			p.dependencies.Log.Debug().Err(err).Msg("error getting custom access token script")
-		} else {
-			extraPayload := make(map[string]interface{})
-			err = json.Unmarshal([]byte(fmt.Sprintf("%v", val)), &extraPayload)
-			if err != nil {
-				p.dependencies.Log.Debug().Err(err).Msg("error converting accessTokenScript response to map")
-			} else {
-				for k, v := range extraPayload {
-					if !reservedClaims[k] {
-						customClaims[k] = v
-					}
-				}
-			}
-		}
+		p.runCustomAccessTokenScript(userBytes, customClaims)
 	}
 	token, err := p.SignJWTToken(customClaims)
 	if err != nil {
@@ -440,31 +416,7 @@ func (p *provider) CreateIDToken(cfg *AuthTokenConfig) (string, int64, error) {
 	}
 	// check for the extra access token script
 	if p.config.CustomAccessTokenScript != "" {
-		vm := otto.New()
-		claimBytes, _ := json.Marshal(customClaims)
-		vm.Run(fmt.Sprintf(`
-			var user = %s;
-			var tokenPayload = %s;
-			var customFunction = %s;
-			var functionRes = JSON.stringify(customFunction(user, tokenPayload));
-		`, string(userBytes), string(claimBytes), p.config.CustomAccessTokenScript))
-
-		val, err := vm.Get("functionRes")
-		if err != nil {
-			p.dependencies.Log.Debug().Err(err).Msg("error getting custom access token script")
-		} else {
-			extraPayload := make(map[string]interface{})
-			err = json.Unmarshal([]byte(fmt.Sprintf("%v", val)), &extraPayload)
-			if err != nil {
-				p.dependencies.Log.Debug().Err(err).Msg("error converting accessTokenScript response to map")
-			} else {
-				for k, v := range extraPayload {
-					if !reservedClaims[k] {
-						customClaims[k] = v
-					}
-				}
-			}
-		}
+		p.runCustomAccessTokenScript(userBytes, customClaims)
 	}
 
 	token, err := p.SignJWTToken(customClaims)
@@ -545,4 +497,64 @@ func (p *provider) GetUserIDFromSessionOrAccessToken(gc *gin.Context) (*SessionO
 		LoginMethod: loginMethod,
 		Nonce:       nonce,
 	}, nil
+}
+
+const scriptTimeout = 5 * time.Second
+const scriptTimeoutMsg = "script execution timeout: exceeded 5 seconds"
+
+// runCustomAccessTokenScript executes the custom access token script in an Otto JS VM
+// with a 5-second execution timeout to prevent CPU exhaustion from infinite loops.
+func (p *provider) runCustomAccessTokenScript(userBytes []byte, customClaims jwt.MapClaims) {
+	vm := otto.New()
+	vm.Interrupt = make(chan func(), 1)
+
+	// Start a goroutine that will interrupt the VM after the timeout
+	done := make(chan struct{})
+	go func() {
+		select {
+		case <-time.After(scriptTimeout):
+			vm.Interrupt <- func() {
+				panic(scriptTimeoutMsg)
+			}
+		case <-done:
+			// Script finished before timeout; goroutine exits cleanly
+			return
+		}
+	}()
+
+	defer func() {
+		close(done)
+		if caught := recover(); caught != nil {
+			if msg, ok := caught.(string); ok && msg == scriptTimeoutMsg {
+				p.dependencies.Log.Error().Msg("custom access token script timed out after 5 seconds")
+			} else {
+				panic(caught)
+			}
+		}
+	}()
+
+	claimBytes, _ := json.Marshal(customClaims)
+	vm.Run(fmt.Sprintf(`
+		var user = %s;
+		var tokenPayload = %s;
+		var customFunction = %s;
+		var functionRes = JSON.stringify(customFunction(user, tokenPayload));
+	`, string(userBytes), string(claimBytes), p.config.CustomAccessTokenScript))
+
+	val, err := vm.Get("functionRes")
+	if err != nil {
+		p.dependencies.Log.Debug().Err(err).Msg("error getting custom access token script")
+	} else {
+		extraPayload := make(map[string]interface{})
+		err = json.Unmarshal([]byte(fmt.Sprintf("%v", val)), &extraPayload)
+		if err != nil {
+			p.dependencies.Log.Debug().Err(err).Msg("error converting accessTokenScript response to map")
+		} else {
+			for k, v := range extraPayload {
+				if !reservedClaims[k] {
+					customClaims[k] = v
+				}
+			}
+		}
+	}
 }

@@ -5,7 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"strings"
-	"text/template"
+	"html/template"
 
 	"github.com/rs/zerolog"
 	gomail "gopkg.in/mail.v2"

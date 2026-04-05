@@ -33,7 +33,7 @@ func (g *graphqlProvider) VerifyEmail(ctx context.Context, params *model.VerifyE
 	verificationRequest, err := g.StorageProvider.GetVerificationRequestByToken(ctx, params.Token)
 	if err != nil {
 		log.Debug().Err(err).Msg("failed GetVerificationRequestByToken")
-		return nil, fmt.Errorf(`invalid token: %s`, err.Error())
+		return nil, fmt.Errorf(`invalid verification token`)
 	}
 
 	// verify if token exists in db
@@ -41,7 +41,7 @@ func (g *graphqlProvider) VerifyEmail(ctx context.Context, params *model.VerifyE
 	claim, err := g.TokenProvider.ParseJWTToken(params.Token)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to parse jwt token")
-		return nil, fmt.Errorf(`invalid token: %s`, err.Error())
+		return nil, fmt.Errorf(`invalid verification token`)
 	}
 
 	if ok, err := g.TokenProvider.ValidateJWTClaims(claim, &token.AuthTokenConfig{
@@ -52,7 +52,7 @@ func (g *graphqlProvider) VerifyEmail(ctx context.Context, params *model.VerifyE
 		},
 	}); !ok || err != nil {
 		log.Debug().Err(err).Msg("Failed to validate jwt claims")
-		return nil, fmt.Errorf(`invalid token: %s`, err.Error())
+		return nil, fmt.Errorf(`invalid verification token`)
 	}
 
 	email := claim["sub"].(string)

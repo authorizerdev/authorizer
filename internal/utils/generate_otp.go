@@ -2,11 +2,12 @@ package utils
 
 import (
 	"crypto/rand"
+	"fmt"
 	"math/big"
 )
 
 // GenerateOTP to generate random 6 digit otp
-func GenerateOTP() string {
+func GenerateOTP() (string, error) {
 	code := ""
 	codeLength := 6
 	charSet := "ABCDEFGHJKLMNPQRSTUVWXYZ123456789"
@@ -14,10 +15,10 @@ func GenerateOTP() string {
 	for i := 0; i < codeLength; i++ {
 		index, err := rand.Int(rand.Reader, charSetLength)
 		if err != nil {
-			panic("failed to generate secure random number: " + err.Error())
+			return "", fmt.Errorf("failed to generate secure random number: %w", err)
 		}
 		code += string(charSet[index.Int64()])
 	}
 
-	return code
+	return code, nil
 }

@@ -1,6 +1,7 @@
 package cookie
 
 import (
+	"net/http"
 	"net/url"
 
 	"github.com/gin-gonic/gin"
@@ -15,6 +16,7 @@ func SetAdminCookie(gc *gin.Context, token string, adminCookieSecure bool) {
 	httpOnly := true
 	hostname := parsers.GetHost(gc)
 	host, _ := parsers.GetHostParts(hostname)
+	gc.SetSameSite(http.SameSiteStrictMode)
 	gc.SetCookie(constants.AdminCookieName, token, 3600, "/", host, secure, httpOnly)
 }
 
@@ -40,5 +42,6 @@ func DeleteAdminCookie(gc *gin.Context, adminCookieSecure bool) {
 	httpOnly := true
 	hostname := parsers.GetHost(gc)
 	host, _ := parsers.GetHostParts(hostname)
+	gc.SetSameSite(http.SameSiteStrictMode)
 	gc.SetCookie(constants.AdminCookieName, "", -1, "/", host, secure, httpOnly)
 }

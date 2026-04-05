@@ -3,7 +3,11 @@ package events
 import (
 	"bytes"
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"time"
@@ -14,6 +18,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/storage"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
+	"github.com/authorizerdev/authorizer/internal/validators"
 )
 
 // Dependencies for events
@@ -96,6 +101,23 @@ func (p *provider) RegisterEvent(ctx context.Context, eventName string, authReci
 			continue
 		}
 
+		// SSRF protection: validate endpoint URL and resolved IPs
+		if err := validators.ValidateEndpointURL(webhook.EndPoint); err != nil {
+			log.Debug().Err(err).Str("endpoint", webhook.EndPoint).Msg("webhook endpoint rejected by SSRF filter")
+			p.deps.StorageProvider.AddWebhookLog(ctx, &schemas.WebhookLog{
+				HttpStatus: 0,
+				Request:    string(requestBody),
+				Response:   fmt.Sprintf(`{"error": "SSRF validation failed: %s"}`, err.Error()),
+				WebhookID:  webhook.ID,
+			})
+			continue
+		}
+
+		// Compute HMAC-SHA256 signature for payload authenticity
+		mac := hmac.New(sha256.New, []byte(p.config.ClientSecret))
+		mac.Write(requestBody)
+		signature := hex.EncodeToString(mac.Sum(nil))
+
 		requestBytesBuffer := bytes.NewBuffer(requestBody)
 		req, err := http.NewRequest("POST", webhook.EndPoint, requestBytesBuffer)
 		if err != nil {
@@ -103,6 +125,7 @@ func (p *provider) RegisterEvent(ctx context.Context, eventName string, authReci
 			continue
 		}
 		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-Authorizer-Signature", signature)
 		headersMap := make(map[string]interface{})
 		err = json.Unmarshal([]byte(webhook.Headers), &headersMap)
 		if err != nil {
@@ -120,7 +143,7 @@ func (p *provider) RegisterEvent(ctx context.Context, eventName string, authReci
 		}
 		defer resp.Body.Close()
 
-		responseBytes, err := io.ReadAll(resp.Body)
+		responseBytes, err := io.ReadAll(io.LimitReader(resp.Body, 1024*1024))
 		if err != nil {
 			log.Debug().Err(err).Msg("error reading response")
 			continue
