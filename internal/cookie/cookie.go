@@ -33,10 +33,10 @@ func SetSession(gc *gin.Context, sessionID string, appCookieSecure bool) {
 		gc.SetSameSite(http.SameSiteNoneMode)
 	}
 	// TODO allow configuring cookie max-age via config
-	year := 60 * 60 * 24 * 365
+	day := 60 * 60 * 24
 
-	gc.SetCookie(constants.AppCookieName+"_session", sessionID, year, "/", host, secure, httpOnly)
-	gc.SetCookie(constants.AppCookieName+"_session_domain", sessionID, year, "/", domain, secure, httpOnly)
+	gc.SetCookie(constants.AppCookieName+"_session", sessionID, day, "/", host, secure, httpOnly)
+	gc.SetCookie(constants.AppCookieName+"_session_domain", sessionID, day, "/", domain, secure, httpOnly)
 }
 
 // DeleteSession sets session cookies to expire

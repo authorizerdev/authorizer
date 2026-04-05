@@ -136,7 +136,11 @@ func (g *graphqlProvider) ForgotPassword(ctx context.Context, params *model.Forg
 	}
 	if isMobileLogin {
 		expiresAt := time.Now().Add(1 * time.Minute).Unix()
-		otp := utils.GenerateOTP()
+		otp, err := utils.GenerateOTP()
+		if err != nil {
+			log.Debug().Err(err).Msg("Failed to generate OTP")
+			return nil, err
+		}
 		otpData, err := g.StorageProvider.UpsertOTP(ctx, &schemas.OTP{
 			Email:       refs.StringValue(user.Email),
 			PhoneNumber: refs.StringValue(user.PhoneNumber),

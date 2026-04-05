@@ -94,7 +94,11 @@ func (g *graphqlProvider) ResendOTP(ctx context.Context, params *model.ResendOTP
 	}
 	// If multi factor authentication is enabled and we need to generate OTP for mail / sms based MFA
 	generateOTP := func(expiresAt int64) (*schemas.OTP, error) {
-		otp := utils.GenerateOTP()
+		otp, err := utils.GenerateOTP()
+		if err != nil {
+			log.Debug().Err(err).Msg("Failed to generate OTP")
+			return nil, err
+		}
 		otpData, err := g.StorageProvider.UpsertOTP(ctx, &schemas.OTP{
 			Email:       refs.StringValue(user.Email),
 			PhoneNumber: refs.StringValue(user.PhoneNumber),
