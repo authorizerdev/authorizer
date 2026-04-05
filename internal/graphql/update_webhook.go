@@ -69,6 +69,13 @@ func (g *graphqlProvider) UpdateWebhook(ctx context.Context, params *model.Updat
 			log.Debug().Msg("empty endpoint not allowed")
 			return nil, fmt.Errorf("empty endpoint not allowed")
 		}
+		// SSRF protection: validate endpoint URL and resolved IPs (skip in test env)
+		if g.Env != constants.TestEnv {
+			if err := validators.ValidateEndpointURL(refs.StringValue(params.Endpoint)); err != nil {
+				log.Debug().Err(err).Str("endpoint", refs.StringValue(params.Endpoint)).Msg("endpoint URL rejected by SSRF filter")
+				return nil, fmt.Errorf("invalid endpoint: %s", err.Error())
+			}
+		}
 		webhookDetails.EndPoint = refs.StringValue(params.Endpoint)
 	}
 	if params.Enabled != nil && webhookDetails.Enabled != refs.BoolValue(params.Enabled) {

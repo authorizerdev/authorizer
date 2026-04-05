@@ -36,6 +36,13 @@ func (g *graphqlProvider) AddWebhook(ctx context.Context, params *model.AddWebho
 		log.Debug().Msg("endpoint is missing")
 		return nil, fmt.Errorf("empty endpoint not allowed")
 	}
+	// SSRF protection: validate endpoint URL and resolved IPs (skip in test env)
+	if g.Env != constants.TestEnv {
+		if err := validators.ValidateEndpointURL(params.Endpoint); err != nil {
+			log.Debug().Err(err).Str("endpoint", params.Endpoint).Msg("endpoint URL rejected by SSRF filter")
+			return nil, fmt.Errorf("invalid endpoint: %s", err.Error())
+		}
+	}
 	headerBytes, err := json.Marshal(params.Headers)
 	if err != nil {
 		return nil, err
