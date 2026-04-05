@@ -60,7 +60,9 @@ func (p *provider) ListAuditLogs(ctx context.Context, pagination *model.Paginati
 		bindVariables["to_timestamp"] = toTimestamp
 	}
 
-	query := fmt.Sprintf("FOR d in %s%s SORT d.created_at DESC LIMIT %d, %d RETURN d", schemas.Collections.AuditLog, filterQuery, pagination.Offset, pagination.Limit)
+	bindVariables["offset"] = pagination.Offset
+	bindVariables["limit"] = pagination.Limit
+	query := fmt.Sprintf("FOR d in %s%s SORT d.created_at DESC LIMIT @offset, @limit RETURN d", schemas.Collections.AuditLog, filterQuery)
 	sctx := arangoDriver.WithQueryFullCount(ctx)
 	cursor, err := p.db.Query(sctx, query, bindVariables)
 	if err != nil {

@@ -87,8 +87,11 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) 
 	var users []*schemas.User
 	sctx := arangoDriver.WithQueryFullCount(ctx)
 
-	query := fmt.Sprintf("FOR d in %s SORT d.created_at DESC LIMIT %d, %d RETURN d", schemas.Collections.User, pagination.Offset, pagination.Limit)
-	cursor, err := p.db.Query(sctx, query, nil)
+	query := fmt.Sprintf("FOR d in %s SORT d.created_at DESC LIMIT @offset, @limit RETURN d", schemas.Collections.User)
+	cursor, err := p.db.Query(sctx, query, map[string]interface{}{
+		"offset": pagination.Offset,
+		"limit":  pagination.Limit,
+	})
 	if err != nil {
 		return nil, nil, err
 	}

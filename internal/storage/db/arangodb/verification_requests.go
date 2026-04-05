@@ -89,8 +89,11 @@ func (p *provider) GetVerificationRequestByEmail(ctx context.Context, email stri
 func (p *provider) ListVerificationRequests(ctx context.Context, pagination *model.Pagination) ([]*schemas.VerificationRequest, *model.Pagination, error) {
 	var verificationRequests []*schemas.VerificationRequest
 	sctx := arangoDriver.WithQueryFullCount(ctx)
-	query := fmt.Sprintf("FOR d in %s SORT d.created_at DESC LIMIT %d, %d RETURN d", schemas.Collections.VerificationRequest, pagination.Offset, pagination.Limit)
-	cursor, err := p.db.Query(sctx, query, nil)
+	query := fmt.Sprintf("FOR d in %s SORT d.created_at DESC LIMIT @offset, @limit RETURN d", schemas.Collections.VerificationRequest)
+	cursor, err := p.db.Query(sctx, query, map[string]interface{}{
+		"offset": pagination.Offset,
+		"limit":  pagination.Limit,
+	})
 	if err != nil {
 		return nil, nil, err
 	}

@@ -33,12 +33,12 @@ func (p *provider) AddWebhookLog(ctx context.Context, webhookLog *schemas.Webhoo
 func (p *provider) ListWebhookLogs(ctx context.Context, pagination *model.Pagination, webhookID string) ([]*schemas.WebhookLog, *model.Pagination, error) {
 	webhookLogs := []*schemas.WebhookLog{}
 	bindVariables := map[string]interface{}{}
-	query := fmt.Sprintf("FOR d in %s SORT d.created_at DESC LIMIT %d, %d RETURN d", schemas.Collections.WebhookLog, pagination.Offset, pagination.Limit)
+	bindVariables["offset"] = pagination.Offset
+	bindVariables["limit"] = pagination.Limit
+	query := fmt.Sprintf("FOR d in %s SORT d.created_at DESC LIMIT @offset, @limit RETURN d", schemas.Collections.WebhookLog)
 	if webhookID != "" {
-		query = fmt.Sprintf("FOR d in %s FILTER d.webhook_id == @webhook_id SORT d.created_at DESC LIMIT %d, %d RETURN d", schemas.Collections.WebhookLog, pagination.Offset, pagination.Limit)
-		bindVariables = map[string]interface{}{
-			"webhook_id": webhookID,
-		}
+		query = fmt.Sprintf("FOR d in %s FILTER d.webhook_id == @webhook_id SORT d.created_at DESC LIMIT @offset, @limit RETURN d", schemas.Collections.WebhookLog)
+		bindVariables["webhook_id"] = webhookID
 	}
 	sctx := arangoDriver.WithQueryFullCount(ctx)
 	cursor, err := p.db.Query(sctx, query, bindVariables)

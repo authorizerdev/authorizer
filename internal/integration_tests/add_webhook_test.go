@@ -87,9 +87,12 @@ func TestAddWebhookTest(t *testing.T) {
 		h, err := crypto.EncryptPassword(cfg.AdminSecret)
 		assert.Nil(t, err)
 
+		// Use UserDeactivatedWebhookEvent to avoid data leakage from other tests
+		// that create webhooks with more commonly used event names
+		uniqueEventName := constants.UserDeactivatedWebhookEvent
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, h))
 		addedWebhook, err := ts.GraphQLProvider.AddWebhook(ctx, &model.AddWebhookRequest{
-			EventName:        constants.UserCreatedWebhookEvent,
+			EventName:        uniqueEventName,
 			EventDescription: refs.NewStringRef("test"),
 			Endpoint:         "test",
 			Enabled:          false,
@@ -100,7 +103,7 @@ func TestAddWebhookTest(t *testing.T) {
 		require.NoError(t, err)
 		assert.NotNil(t, addedWebhook)
 
-		res, err := ts.StorageProvider.GetWebhookByEventName(ctx, constants.UserCreatedWebhookEvent)
+		res, err := ts.StorageProvider.GetWebhookByEventName(ctx, uniqueEventName)
 		require.NoError(t, err)
 		assert.NotNil(t, res)
 		assert.Equal(t, 1, len(res))

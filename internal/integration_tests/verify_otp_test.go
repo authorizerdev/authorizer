@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
@@ -36,7 +37,7 @@ func TestVerifyOTP(t *testing.T) {
 	req, ctx := createContext(ts)
 
 	// Create a test user
-	mobile := "+14155552671"
+	mobile := fmt.Sprintf("+1%010d", time.Now().UnixNano()%10000000000)
 	password := "Password@123"
 	// Signup the user
 	signupReq := &model.SignUpRequest{
