@@ -73,9 +73,12 @@ func (g *graphqlProvider) TestEndpoint(ctx context.Context, params *model.TestEn
 	}
 
 	// SSRF protection: validate endpoint URL and resolved IPs
-	if err := validators.ValidateEndpointURL(params.Endpoint); err != nil {
-		log.Debug().Err(err).Str("endpoint", params.Endpoint).Msg("endpoint URL rejected by SSRF filter")
-		return nil, fmt.Errorf("invalid endpoint: %s", err.Error())
+	// Skip in test environment to allow localhost test servers
+	if g.Config.Env != constants.TestEnv {
+		if err := validators.ValidateEndpointURL(params.Endpoint); err != nil {
+			log.Debug().Err(err).Str("endpoint", params.Endpoint).Msg("endpoint URL rejected by SSRF filter")
+			return nil, fmt.Errorf("invalid endpoint: %s", err.Error())
+		}
 	}
 
 	req, err := http.NewRequest("POST", params.Endpoint, bytes.NewBuffer(requestBody))

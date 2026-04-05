@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
@@ -37,8 +38,8 @@ func TestResendOTP(t *testing.T) {
 	ts := initTestSetup(t, cfg)
 	req, ctx := createContext(ts)
 
-	// Create a test user
-	mobile := "+14155552672"
+	// Create a test user with a unique phone number to avoid collisions
+	mobile := fmt.Sprintf("+1%010d", time.Now().UnixNano()%10000000000)
 	password := "Password@123"
 	// Signup the user
 	signupReq := &model.SignUpRequest{
@@ -48,8 +49,8 @@ func TestResendOTP(t *testing.T) {
 	}
 
 	signupRes, err := ts.GraphQLProvider.SignUp(ctx, signupReq)
-	assert.NoError(t, err)
-	assert.NotNil(t, signupRes)
+	require.NoError(t, err)
+	require.NotNil(t, signupRes)
 	// Expect the user to be nil, as the email is not verified yet
 	assert.Nil(t, signupRes.User)
 
