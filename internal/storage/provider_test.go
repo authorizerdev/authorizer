@@ -74,7 +74,8 @@ func getTestDBConfig(dbType string) *config.Config {
 		// Allow extra time for Couchbase container to become ready in tests
 		cfg.CouchBaseWaitTimeout = 120
 	case constants.DbTypeDynamoDB:
-		cfg.DatabaseURL = "http://0.0.0.0:8000"
+		// Must be a client-routable host (not bind address 0.0.0.0); matches integration_tests getDBURL.
+		cfg.DatabaseURL = "http://127.0.0.1:8000"
 	}
 
 	return cfg

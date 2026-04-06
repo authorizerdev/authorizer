@@ -1,6 +1,8 @@
 package memory_store
 
 import (
+	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -17,9 +19,13 @@ const (
 	memoryStoreTypeDB       = "db"
 )
 
-var memoryStoreTypes = []string{
-	memoryStoreTypeRedis,
-	memoryStoreTypeInMemory,
+func memoryStoreTypesForTest() []string {
+	var types []string
+	if redisMemoryStoreTestsEnabled() {
+		types = append(types, memoryStoreTypeRedis)
+	}
+	types = append(types, memoryStoreTypeInMemory)
+	return types
 }
 
 func getTestMemoryStorageConfig(storageType string) *config.Config {
@@ -40,9 +46,10 @@ func getTestMemoryStorageConfig(storageType string) *config.Config {
 	return cfg
 }
 
-// TestMemoryStoreProvider tests the memory store provider
+// TestMemoryStoreProvider tests the in-memory provider always; Redis only when TEST_ENABLE_REDIS=1.
+// TEST_DBS does not apply (these are not storage-backend tests).
 func TestMemoryStoreProvider(t *testing.T) {
-	for _, storeType := range memoryStoreTypes {
+	for _, storeType := range memoryStoreTypesForTest() {
 		t.Run("should test memory store provider for "+storeType, func(t *testing.T) {
 			cfg := getTestMemoryStorageConfig(storeType)
 			logger := zerolog.Nop()
@@ -50,7 +57,7 @@ func TestMemoryStoreProvider(t *testing.T) {
 				Log: &logger,
 			})
 			if storeType == memoryStoreTypeRedis && err != nil {
-				t.Skipf("skipping redis memory store test: %v", err)
+				t.Skipf("skipping redis memory store test (is Redis running on localhost:6380?): %v", err)
 			}
 			require.NoError(t, err)
 			require.NotNil(t, p)
@@ -169,4 +176,9 @@ func TestMemoryStoreProvider(t *testing.T) {
 			assert.Empty(t, key)
 		})
 	}
+}
+
+func redisMemoryStoreTestsEnabled() bool {
+	v := strings.TrimSpace(os.Getenv("TEST_ENABLE_REDIS"))
+	return v == "1" || strings.EqualFold(v, "true")
 }

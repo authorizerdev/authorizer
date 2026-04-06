@@ -42,9 +42,9 @@ func newRedisProvider(cfg *config.Config, deps *Dependencies) (*redisProvider, e
 	// Window = burst / rps, minimum 1 second
 	window := 1
 	if cfg.RateLimitRPS > 0 {
-		w := float64(cfg.RateLimitBurst) / cfg.RateLimitRPS
+		w := int(cfg.RateLimitBurst / cfg.RateLimitRPS)
 		if w > 1 {
-			window = int(w)
+			window = w
 		}
 	}
 	return &redisProvider{

@@ -16,132 +16,131 @@ import (
 )
 
 func TestRateLimitMiddleware(t *testing.T) {
-	runForEachDB(t, func(t *testing.T, cfg *config.Config) {
-		// Set low rate limit for testing
-		cfg.RateLimitRPS = 5
-		cfg.RateLimitBurst = 5
+	cfg := getTestConfig()
+	// Set low rate limit for testing
+	cfg.RateLimitRPS = 5
+	cfg.RateLimitBurst = 5
 
-		ts := initTestSetup(t, cfg)
+	ts := initTestSetup(t, cfg)
 
-		t.Run("should_allow_requests_within_limit", func(t *testing.T) {
-			w := httptest.NewRecorder()
-			_, router := gin.CreateTestContext(w)
-			router.Use(ts.HttpProvider.RateLimitMiddleware())
-			router.POST("/graphql", func(c *gin.Context) {
-				c.JSON(http.StatusOK, gin.H{"data": "ok"})
-			})
-
-			// First request should succeed
-			req, err := http.NewRequest(http.MethodPost, "/graphql", nil)
-			require.NoError(t, err)
-			req.RemoteAddr = "192.168.1.1:1234"
-
-			w = httptest.NewRecorder()
-			router.ServeHTTP(w, req)
-			assert.Equal(t, http.StatusOK, w.Code)
+	t.Run("should_allow_requests_within_limit", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		_, router := gin.CreateTestContext(w)
+		router.Use(ts.HttpProvider.RateLimitMiddleware())
+		router.POST("/graphql", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{"data": "ok"})
 		})
 
-		t.Run("should_reject_requests_over_limit", func(t *testing.T) {
-			w := httptest.NewRecorder()
-			_, router := gin.CreateTestContext(w)
-			router.Use(ts.HttpProvider.RateLimitMiddleware())
-			router.POST("/graphql", func(c *gin.Context) {
-				c.JSON(http.StatusOK, gin.H{"data": "ok"})
-			})
+		// First request should succeed
+		req, err := http.NewRequest(http.MethodPost, "/graphql", nil)
+		require.NoError(t, err)
+		req.RemoteAddr = "192.168.1.1:1234"
 
-			// Exhaust the burst
-			for i := 0; i < 5; i++ {
-				req, err := http.NewRequest(http.MethodPost, "/graphql", nil)
-				require.NoError(t, err)
-				req.RemoteAddr = "10.0.0.1:1234"
-				w = httptest.NewRecorder()
-				router.ServeHTTP(w, req)
-				assert.Equal(t, http.StatusOK, w.Code)
-			}
+		w = httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
 
-			// Next request should be rejected
+	t.Run("should_reject_requests_over_limit", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		_, router := gin.CreateTestContext(w)
+		router.Use(ts.HttpProvider.RateLimitMiddleware())
+		router.POST("/graphql", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{"data": "ok"})
+		})
+
+		// Exhaust the burst
+		for i := 0; i < 5; i++ {
 			req, err := http.NewRequest(http.MethodPost, "/graphql", nil)
 			require.NoError(t, err)
 			req.RemoteAddr = "10.0.0.1:1234"
 			w = httptest.NewRecorder()
 			router.ServeHTTP(w, req)
-			assert.Equal(t, http.StatusTooManyRequests, w.Code)
-			assert.Contains(t, w.Header().Get("Retry-After"), "1")
+			assert.Equal(t, http.StatusOK, w.Code)
+		}
+
+		// Next request should be rejected
+		req, err := http.NewRequest(http.MethodPost, "/graphql", nil)
+		require.NoError(t, err)
+		req.RemoteAddr = "10.0.0.1:1234"
+		w = httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusTooManyRequests, w.Code)
+		assert.Contains(t, w.Header().Get("Retry-After"), "1")
+	})
+
+	t.Run("should_not_rate_limit_exempt_paths", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		_, router := gin.CreateTestContext(w)
+		router.Use(ts.HttpProvider.RateLimitMiddleware())
+		router.GET("/health", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{"status": "ok"})
+		})
+		router.GET("/.well-known/openid-configuration", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{"issuer": "test"})
 		})
 
-		t.Run("should_not_rate_limit_exempt_paths", func(t *testing.T) {
-			w := httptest.NewRecorder()
-			_, router := gin.CreateTestContext(w)
-			router.Use(ts.HttpProvider.RateLimitMiddleware())
-			router.GET("/health", func(c *gin.Context) {
-				c.JSON(http.StatusOK, gin.H{"status": "ok"})
-			})
-			router.GET("/.well-known/openid-configuration", func(c *gin.Context) {
-				c.JSON(http.StatusOK, gin.H{"issuer": "test"})
-			})
-
-			exemptPaths := []string{"/health", "/.well-known/openid-configuration"}
-			for _, path := range exemptPaths {
-				// Make many requests - none should be limited
-				for i := 0; i < 10; i++ {
-					req, err := http.NewRequest(http.MethodGet, path, nil)
-					require.NoError(t, err)
-					req.RemoteAddr = "10.0.0.2:1234"
-					w = httptest.NewRecorder()
-					router.ServeHTTP(w, req)
-					assert.Equal(t, http.StatusOK, w.Code, "path %s request %d should not be rate limited", path, i)
-				}
-			}
-		})
-
-		t.Run("should_isolate_rate_limits_per_ip", func(t *testing.T) {
-			w := httptest.NewRecorder()
-			_, router := gin.CreateTestContext(w)
-			router.Use(ts.HttpProvider.RateLimitMiddleware())
-			router.POST("/graphql", func(c *gin.Context) {
-				c.JSON(http.StatusOK, gin.H{"data": "ok"})
-			})
-
-			// Exhaust burst for IP A
-			for i := 0; i < 5; i++ {
-				req, err := http.NewRequest(http.MethodPost, "/graphql", nil)
+		exemptPaths := []string{"/health", "/.well-known/openid-configuration"}
+		for _, path := range exemptPaths {
+			// Make many requests - none should be limited
+			for i := 0; i < 10; i++ {
+				req, err := http.NewRequest(http.MethodGet, path, nil)
 				require.NoError(t, err)
-				req.RemoteAddr = "10.0.0.3:1234"
+				req.RemoteAddr = "10.0.0.2:1234"
 				w = httptest.NewRecorder()
 				router.ServeHTTP(w, req)
+				assert.Equal(t, http.StatusOK, w.Code, "path %s request %d should not be rate limited", path, i)
 			}
+		}
+	})
 
-			// IP B should still be allowed
+	t.Run("should_isolate_rate_limits_per_ip", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		_, router := gin.CreateTestContext(w)
+		router.Use(ts.HttpProvider.RateLimitMiddleware())
+		router.POST("/graphql", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{"data": "ok"})
+		})
+
+		// Exhaust burst for IP A
+		for i := 0; i < 5; i++ {
 			req, err := http.NewRequest(http.MethodPost, "/graphql", nil)
 			require.NoError(t, err)
-			req.RemoteAddr = "10.0.0.4:1234"
+			req.RemoteAddr = "10.0.0.3:1234"
 			w = httptest.NewRecorder()
 			router.ServeHTTP(w, req)
-			assert.Equal(t, http.StatusOK, w.Code)
+		}
+
+		// IP B should still be allowed
+		req, err := http.NewRequest(http.MethodPost, "/graphql", nil)
+		require.NoError(t, err)
+		req.RemoteAddr = "10.0.0.4:1234"
+		w = httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("should_return_correct_error_format", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		_, router := gin.CreateTestContext(w)
+		router.Use(ts.HttpProvider.RateLimitMiddleware())
+		router.POST("/graphql", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{"data": "ok"})
 		})
 
-		t.Run("should_return_correct_error_format", func(t *testing.T) {
-			w := httptest.NewRecorder()
-			_, router := gin.CreateTestContext(w)
-			router.Use(ts.HttpProvider.RateLimitMiddleware())
-			router.POST("/graphql", func(c *gin.Context) {
-				c.JSON(http.StatusOK, gin.H{"data": "ok"})
-			})
+		// Exhaust the burst
+		for i := 0; i < 6; i++ {
+			req, err := http.NewRequest(http.MethodPost, "/graphql", nil)
+			require.NoError(t, err)
+			req.RemoteAddr = "10.0.0.5:1234"
+			w = httptest.NewRecorder()
+			router.ServeHTTP(w, req)
+		}
 
-			// Exhaust the burst
-			for i := 0; i < 6; i++ {
-				req, err := http.NewRequest(http.MethodPost, "/graphql", nil)
-				require.NoError(t, err)
-				req.RemoteAddr = "10.0.0.5:1234"
-				w = httptest.NewRecorder()
-				router.ServeHTTP(w, req)
-			}
-
-			// Check the 429 response body has OAuth2 error format
-			assert.Equal(t, http.StatusTooManyRequests, w.Code)
-			assert.Contains(t, w.Body.String(), "rate_limit_exceeded")
-			assert.Contains(t, w.Body.String(), "error_description")
-		})
+		// Check the 429 response body has OAuth2 error format
+		assert.Equal(t, http.StatusTooManyRequests, w.Code)
+		assert.Contains(t, w.Body.String(), "rate_limit_exceeded")
+		assert.Contains(t, w.Body.String(), "error_description")
 	})
 }
 

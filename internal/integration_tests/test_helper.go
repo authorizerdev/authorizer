@@ -6,7 +6,6 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -58,76 +57,10 @@ func createContext(s *testSetup) (*http.Request, context.Context) {
 	return req, ctx
 }
 
-// dbTestConfig holds database-specific test configuration
-type dbTestConfig struct {
-	DbType string
-	DbURL  string
-}
-
-// getTestDBs returns the list of database configurations to test against.
-// It reads the TEST_DBS environment variable (comma-separated list of db types).
-// Defaults to "postgres" if not set.
-func getTestDBs() []dbTestConfig {
-	testDBsEnv := os.Getenv("TEST_DBS")
-	if testDBsEnv == "" {
-		testDBsEnv = "postgres"
-	}
-
-	dbTypes := strings.Split(testDBsEnv, ",")
-	var configs []dbTestConfig
-
-	for _, dbType := range dbTypes {
-		dbType = strings.TrimSpace(dbType)
-		if dbType == "" {
-			continue
-		}
-
-		dbURL := getDBURL(dbType)
-		if dbURL != "" {
-			configs = append(configs, dbTestConfig{
-				DbType: dbType,
-				DbURL:  dbURL,
-			})
-		}
-	}
-
-	return configs
-}
-
-// getDBURL returns the connection URL for a given database type
-func getDBURL(dbType string) string {
-	switch dbType {
-	case constants.DbTypePostgres:
-		return "postgres://postgres:postgres@localhost:5434/postgres"
-	case constants.DbTypeSqlite:
-		return "test.db"
-	case constants.DbTypeLibSQL:
-		return "test.db"
-	case constants.DbTypeMysql:
-		return "root:password@tcp(localhost:3306)/authorizer"
-	case constants.DbTypeMariaDB:
-		return "root:password@tcp(localhost:3307)/authorizer"
-	case constants.DbTypeSqlserver:
-		return "sqlserver://sa:Password123@localhost:1433?database=authorizer"
-	case constants.DbTypeMongoDB:
-		return "mongodb://localhost:27017"
-	case constants.DbTypeArangoDB:
-		return "http://localhost:8529"
-	case constants.DbTypeScyllaDB, constants.DbTypeCassandraDB:
-		return "127.0.0.1:9042"
-	case constants.DbTypeDynamoDB:
-		return "http://localhost:8000"
-	case constants.DbTypeCouchbaseDB:
-		return "couchbase://localhost"
-	default:
-		return ""
-	}
-}
-
-// getTestConfig returns a test config for the default database (postgres).
-// For multi-DB testing, use runForEachDB instead.
+// getTestConfig returns config for integration tests using SQLite.
+// Integration tests validate business logic, not storage compatibility.
 func getTestConfig() *config.Config {
-	return getTestConfigForDB(constants.DbTypePostgres, "postgres://postgres:postgres@localhost:5434/postgres")
+	return getTestConfigForDB(constants.DbTypeSqlite, "test.db")
 }
 
 // getTestConfigForDB returns a test config for a specific database type and URL
@@ -156,8 +89,9 @@ func getTestConfigForDB(dbType, dbURL string) *config.Config {
 		IsSMSServiceEnabled:             true,
 	}
 
-	// Set MongoDB-specific config
-	if dbType == constants.DbTypeMongoDB {
+	// MongoDB, ArangoDB, Cassandra/Scylla require DatabaseName (keyspace / DB name); see storage New().
+	if dbType == constants.DbTypeMongoDB || dbType == constants.DbTypeArangoDB ||
+		dbType == constants.DbTypeScyllaDB || dbType == constants.DbTypeCassandraDB {
 		cfg.DatabaseName = "authorizer_test"
 	}
 
@@ -168,40 +102,24 @@ func getTestConfigForDB(dbType, dbURL string) *config.Config {
 		cfg.CouchBaseBucket = "authorizer_test"
 	}
 
+	// DynamoDB Local (and AWS) expect a region for signing; avoid picking up real AWS keys in tests.
+	if dbType == constants.DbTypeDynamoDB {
+		cfg.AWSRegion = "us-east-1"
+	}
+
 	return cfg
-}
-
-// runForEachDB runs the given test function against each database specified in TEST_DBS.
-// This is the primary way to run tests across multiple database providers.
-//
-// Usage:
-//
-//	func TestFeature(t *testing.T) {
-//	    runForEachDB(t, func(t *testing.T, cfg *config.Config) {
-//	        ts := initTestSetup(t, cfg)
-//	        _, ctx := createContext(ts)
-//	        // ... test logic
-//	    })
-//	}
-func runForEachDB(t *testing.T, testFn func(t *testing.T, cfg *config.Config)) {
-	t.Helper()
-	dbConfigs := getTestDBs()
-	if len(dbConfigs) == 0 {
-		t.Fatal("TEST_DBS produced no runnable database configurations; check TEST_DBS and that each database type resolves to a non-empty URL")
-	}
-
-	for _, dbCfg := range dbConfigs {
-		t.Run("db="+dbCfg.DbType, func(t *testing.T) {
-			cfg := getTestConfigForDB(dbCfg.DbType, dbCfg.DbURL)
-			testFn(t, cfg)
-		})
-	}
 }
 
 // initTestSetup initializes the test setup
 func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 	// Initialize logger
 	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
+
+	if cfg.DatabaseType == constants.DbTypeDynamoDB {
+		// Match storage tests: use static creds from config instead of ambient AWS_* env.
+		os.Unsetenv("AWS_ACCESS_KEY_ID")
+		os.Unsetenv("AWS_SECRET_ACCESS_KEY")
+	}
 
 	if cfg.DatabaseType == constants.DbTypeSqlite || cfg.DatabaseType == constants.DbTypeLibSQL {
 		cfg.DatabaseURL = filepath.Join(t.TempDir(), "authorizer_integration.db")

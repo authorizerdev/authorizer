@@ -3,6 +3,11 @@ DEFAULT_VERSION=0.1.0-local
 VERSION := $(or $(VERSION),$(DEFAULT_VERSION))
 DOCKER_IMAGE ?= authorizerdev/authorizer:$(VERSION)
 
+# Full module test run. Storage provider tests honour TEST_DBS (defaults to all).
+# Integration tests and memory_store/db tests always use SQLite.
+# Redis memory_store tests run only when TEST_ENABLE_REDIS=1.
+GO_TEST_ALL := go test -p 1 -v ./...
+
 .PHONY: all bootstrap build build-app build-dashboard build-local-image build-push-image trivy-scan
 
 all: build build-app build-dashboard
@@ -39,51 +44,50 @@ clean:
 dev:
 	go run main.go --database-type=sqlite --database-url=test.db --jwt-type=HS256 --jwt-secret=test --admin-secret=admin --client-id=123456 --client-secret=secret
 
-test: test-cleanup test-docker-up
-	go clean --testcache && TEST_DBS="postgres" go test -p 1 -v ./...
-	$(MAKE) test-cleanup
+test:
+	go clean --testcache && TEST_DBS="sqlite" $(GO_TEST_ALL)
 
 test-postgres: test-cleanup-postgres
 	docker run -d --name authorizer_postgres -p 5434:5432 -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=postgres postgres
 	sleep 3
-	go clean --testcache && TEST_DBS="postgres" go test -p 1 -v ./...
+	go clean --testcache && TEST_DBS="postgres" $(GO_TEST_ALL)
 	docker rm -vf authorizer_postgres
 
 test-sqlite:
-	go clean --testcache && TEST_DBS="sqlite" go test -p 1 -v ./...
+	go clean --testcache && TEST_DBS="sqlite" $(GO_TEST_ALL)
 
 test-mongodb: test-cleanup-mongodb
 	docker run -d --name authorizer_mongodb_db -p 27017:27017 mongo:4.4.15
 	sleep 3
-	go clean --testcache && TEST_DBS="mongodb" go test -p 1 -v ./...
+	go clean --testcache && TEST_DBS="mongodb" $(GO_TEST_ALL)
 	docker rm -vf authorizer_mongodb_db
 
 test-scylladb: test-cleanup-scylladb
 	docker run -d --name authorizer_scylla_db -p 9042:9042 scylladb/scylla
 	sleep 15
-	go clean --testcache && TEST_DBS="scylladb" go test -p 1 -v ./...
+	go clean --testcache && TEST_DBS="scylladb" $(GO_TEST_ALL)
 	docker rm -vf authorizer_scylla_db
 
 test-arangodb: test-cleanup-arangodb
 	docker run -d --name authorizer_arangodb -p 8529:8529 -e ARANGO_NO_AUTH=1 arangodb/arangodb:3.10.3
 	sleep 5
-	go clean --testcache && TEST_DBS="arangodb" go test -p 1 -v ./...
+	go clean --testcache && TEST_DBS="arangodb" $(GO_TEST_ALL)
 	docker rm -vf authorizer_arangodb
 
 test-dynamodb: test-cleanup-dynamodb
 	docker run -d --name authorizer_dynamodb -p 8000:8000 amazon/dynamodb-local:latest
 	sleep 3
-	go clean --testcache && TEST_DBS="dynamodb" go test -p 1 -v ./...
+	go clean --testcache && TEST_DBS="dynamodb" $(GO_TEST_ALL)
 	docker rm -vf authorizer_dynamodb
 
 test-couchbase: test-cleanup-couchbase
 	docker run -d --name authorizer_couchbase -p 8091-8097:8091-8097 -p 11210:11210 -p 11207:11207 -p 18091-18095:18091-18095 -p 18096:18096 -p 18097:18097 couchbase:latest
 	sh scripts/couchbase-test.sh
-	go clean --testcache && TEST_DBS="couchbase" go test -p 1 -v ./...
+	go clean --testcache && TEST_DBS="couchbase" $(GO_TEST_ALL)
 	docker rm -vf authorizer_couchbase
 
-test-all-db: test-cleanup test-docker-up
-	go clean --testcache && TEST_DBS="postgres,sqlite,mongodb,arangodb,scylladb,dynamodb,couchbase" go test -p 1 -v ./...
+test-all-db: test-cleanup test-docker-up test-cleanup
+	go clean --testcache && TEST_DBS="postgres,sqlite,mongodb,arangodb,scylladb,dynamodb,couchbase" $(GO_TEST_ALL)
 	$(MAKE) test-cleanup
 
 # Start all test database containers

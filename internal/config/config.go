@@ -254,7 +254,7 @@ type Config struct {
 
 	// Rate Limiting
 	// RateLimitRPS is the maximum requests per second per IP
-	RateLimitRPS float64
+	RateLimitRPS int
 	// RateLimitBurst is the maximum burst size per IP
 	RateLimitBurst int
 	// RateLimitFailClosed rejects requests when the rate limit backend errors (default: fail-open).

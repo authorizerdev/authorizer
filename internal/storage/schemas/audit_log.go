@@ -13,10 +13,10 @@ import (
 type AuditLog struct {
 	Key          string `json:"_key,omitempty" bson:"_key,omitempty" cql:"_key,omitempty" dynamo:"key,omitempty"` // for arangodb
 	ID           string `gorm:"primaryKey;type:char(36)" json:"_id" bson:"_id" cql:"id" dynamo:"id,hash"`
-	ActorID      string `gorm:"type:char(36)" json:"actor_id" bson:"actor_id" cql:"actor_id" dynamo:"actor_id" index:"actor_id,hash"`
+	ActorID      string `gorm:"type:char(36)" json:"actor_id" bson:"actor_id" cql:"actor_id" dynamo:"actor_id,omitempty" index:"actor_id,hash"`
 	ActorType    string `gorm:"type:varchar(30)" json:"actor_type" bson:"actor_type" cql:"actor_type" dynamo:"actor_type"`
 	ActorEmail   string `gorm:"type:varchar(256)" json:"actor_email" bson:"actor_email" cql:"actor_email" dynamo:"actor_email"`
-	Action       string `gorm:"type:varchar(100)" json:"action" bson:"action" cql:"action" dynamo:"action" index:"action,hash"`
+	Action       string `gorm:"type:varchar(100)" json:"action" bson:"action" cql:"action" dynamo:"action,omitempty" index:"action,hash"`
 	ResourceType string `gorm:"type:varchar(50)" json:"resource_type" bson:"resource_type" cql:"resource_type" dynamo:"resource_type"`
 	ResourceID   string `gorm:"type:char(36)" json:"resource_id" bson:"resource_id" cql:"resource_id" dynamo:"resource_id"`
 	IPAddress    string `gorm:"type:varchar(45)" json:"ip_address" bson:"ip_address" cql:"ip_address" dynamo:"ip_address"`

@@ -29,6 +29,10 @@ type Dependencies struct {
 // New creates a new rate limit provider based on available infrastructure.
 // Uses Redis when RedisStore is provided, falls back to in-memory.
 func New(cfg *config.Config, deps *Dependencies) (Provider, error) {
+	deps.Log.Info().
+		Int("rate_limit_rps", cfg.RateLimitRPS).
+		Int("rate_limit_burst", cfg.RateLimitBurst).
+		Msg("Creating rate limit provider")
 	if deps.RedisStore != nil {
 		return newRedisProvider(cfg, deps)
 	}

@@ -7,17 +7,34 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/google/uuid"
-	"github.com/guregu/dynamo"
 
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
 
+// normalizeUserOptionalPtrs clears *int64 fields that round-trip as 0 from DynamoDB where other
+// providers use SQL NULL — tests and handlers treat nil as "unset" for these fields.
+func normalizeUserOptionalPtrs(u *schemas.User) {
+	if u == nil {
+		return
+	}
+	if u.EmailVerifiedAt != nil && *u.EmailVerifiedAt == 0 {
+		u.EmailVerifiedAt = nil
+	}
+	if u.PhoneNumberVerifiedAt != nil && *u.PhoneNumberVerifiedAt == 0 {
+		u.PhoneNumberVerifiedAt = nil
+	}
+	if u.RevokedTimestamp != nil && *u.RevokedTimestamp == 0 {
+		u.RevokedTimestamp = nil
+	}
+}
+
 // AddUser to save user information in database
 func (p *provider) AddUser(ctx context.Context, user *schemas.User) (*schemas.User, error) {
-	collection := p.db.Table(schemas.Collections.User)
 	if user.ID == "" {
 		user.ID = uuid.New().String()
 	}
@@ -35,20 +52,37 @@ func (p *provider) AddUser(ctx context.Context, user *schemas.User) (*schemas.Us
 	}
 	user.CreatedAt = time.Now().Unix()
 	user.UpdatedAt = time.Now().Unix()
-	err := collection.Put(user).RunWithContext(ctx)
-	if err != nil {
+	if err := p.putItem(ctx, schemas.Collections.User, user); err != nil {
 		return nil, err
 	}
 	return user, nil
 }
 
+// userDynamoRemoveAttrsIfNil lists attribute names to REMOVE so that optional nil-pointer fields
+// match SQL NULL semantics (omitting them from SET in DynamoDB would otherwise leave old values).
+func userDynamoRemoveAttrsIfNil(u *schemas.User) []string {
+	if u == nil {
+		return nil
+	}
+	var remove []string
+	if u.EmailVerifiedAt == nil {
+		remove = append(remove, "email_verified_at")
+	}
+	if u.PhoneNumberVerifiedAt == nil {
+		remove = append(remove, "phone_number_verified_at")
+	}
+	if u.RevokedTimestamp == nil {
+		remove = append(remove, "revoked_timestamp")
+	}
+	return remove
+}
+
 // UpdateUser to update user information in database
 func (p *provider) UpdateUser(ctx context.Context, user *schemas.User) (*schemas.User, error) {
-	collection := p.db.Table(schemas.Collections.User)
 	if user.ID != "" {
 		user.UpdatedAt = time.Now().Unix()
-		err := UpdateByHashKey(collection, "id", user.ID, user)
-		if err != nil {
+		remove := userDynamoRemoveAttrsIfNil(user)
+		if err := p.updateByHashKeyWithRemoves(ctx, schemas.Collections.User, "id", user.ID, user, remove); err != nil {
 			return nil, err
 		}
 	}
@@ -57,15 +91,22 @@ func (p *provider) UpdateUser(ctx context.Context, user *schemas.User) (*schemas
 
 // DeleteUser to delete user information from database
 func (p *provider) DeleteUser(ctx context.Context, user *schemas.User) error {
-	collection := p.db.Table(schemas.Collections.User)
-	sessionCollection := p.db.Table(schemas.Collections.Session)
-	if user.ID != "" {
-		err := collection.Delete("id", user.ID).Run()
-		if err != nil {
+	if user.ID == "" {
+		return nil
+	}
+	if err := p.deleteItemByHash(ctx, schemas.Collections.User, "id", user.ID); err != nil {
+		return err
+	}
+	items, err := p.queryEq(ctx, schemas.Collections.Session, "user_id", "user_id", user.ID, nil)
+	if err != nil {
+		return err
+	}
+	for _, it := range items {
+		var s schemas.Session
+		if err := unmarshalItem(it, &s); err != nil {
 			return err
 		}
-		_, err = sessionCollection.Batch("id").Write().Delete(dynamo.Keys{"user_id", user.ID}).RunWithContext(ctx)
-		if err != nil {
+		if err := p.deleteItemByHash(ctx, schemas.Collections.Session, "id", s.ID); err != nil {
 			return err
 		}
 	}
@@ -74,31 +115,36 @@ func (p *provider) DeleteUser(ctx context.Context, user *schemas.User) error {
 
 // ListUsers to get list of users from database
 func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) ([]*schemas.User, *model.Pagination, error) {
-	var user *schemas.User
-	var lastEval dynamo.PagingKey
-	var iter dynamo.PagingIter
-	var iteration int64 = 0
-	collection := p.db.Table(schemas.Collections.User)
-	var users []*schemas.User
+	var lastKey map[string]types.AttributeValue
+	var iteration int64
 	paginationClone := pagination
-	scanner := collection.Scan()
-	count, err := scanner.Count()
+	var users []*schemas.User
+
+	count, err := p.scanCount(ctx, schemas.Collections.User, nil)
 	if err != nil {
 		return nil, nil, err
 	}
+
 	for (paginationClone.Offset + paginationClone.Limit) > iteration {
-		iter = scanner.StartFrom(lastEval).Limit(paginationClone.Limit).Iter()
-		for iter.NextWithContext(ctx, &user) {
+		items, next, err := p.scanPageIter(ctx, schemas.Collections.User, nil, int32(paginationClone.Limit), lastKey)
+		if err != nil {
+			return nil, nil, err
+		}
+		for _, it := range items {
+			var u schemas.User
+			if err := unmarshalItem(it, &u); err != nil {
+				return nil, nil, err
+			}
+			normalizeUserOptionalPtrs(&u)
 			if paginationClone.Offset == iteration {
-				users = append(users, user)
+				users = append(users, &u)
 			}
 		}
-		lastEval = iter.LastEvaluatedKey()
+		lastKey = next
 		iteration += paginationClone.Limit
-	}
-	err = iter.Err()
-	if err != nil {
-		return nil, nil, err
+		if lastKey == nil {
+			break
+		}
 	}
 	paginationClone.Total = count
 	return users, paginationClone, nil
@@ -106,79 +152,77 @@ func (p *provider) ListUsers(ctx context.Context, pagination *model.Pagination) 
 
 // GetUserByEmail to get user information from database using email address
 func (p *provider) GetUserByEmail(ctx context.Context, email string) (*schemas.User, error) {
-	var users []*schemas.User
-	var user *schemas.User
-	collection := p.db.Table(schemas.Collections.User)
-	err := collection.Scan().Index("email").Filter("'email' = ?", email).AllWithContext(ctx, &users)
+	items, err := p.queryEq(ctx, schemas.Collections.User, "email", "email", email, nil)
 	if err != nil {
-		return user, nil
+		return nil, err
 	}
-	if len(users) > 0 {
-		user = users[0]
-		return user, nil
-	} else {
+	if len(items) == 0 {
 		return nil, errors.New("no record found")
 	}
+	var u schemas.User
+	if err := unmarshalItem(items[0], &u); err != nil {
+		return nil, err
+	}
+	normalizeUserOptionalPtrs(&u)
+	return &u, nil
 }
 
 // GetUserByID to get user information from database using user ID
 func (p *provider) GetUserByID(ctx context.Context, id string) (*schemas.User, error) {
-	collection := p.db.Table(schemas.Collections.User)
-	var user *schemas.User
-	err := collection.Get("id", id).OneWithContext(ctx, &user)
+	var user schemas.User
+	err := p.getItemByHash(ctx, schemas.Collections.User, "id", id, &user)
 	if err != nil {
-		if refs.StringValue(user.Email) == "" {
-			return nil, errors.New("no documets found")
-		} else {
-			return user, nil
-		}
+		return nil, errors.New("no documets found")
 	}
-	return user, nil
+	normalizeUserOptionalPtrs(&user)
+	return &user, nil
 }
 
 // UpdateUsers to update multiple users, with parameters of user IDs slice
-// If ids set to nil / empty all the users will be updated
 func (p *provider) UpdateUsers(ctx context.Context, data map[string]interface{}, ids []string) error {
-	// set updated_at time for all users
-	userCollection := p.db.Table(schemas.Collections.User)
-	var allUsers []schemas.User
-	var res int64 = 0
+	var res int64
 	var err error
 	if len(ids) > 0 {
 		for _, v := range ids {
-			err = UpdateByHashKey(userCollection, "id", v, data)
+			err = p.updateByHashKey(ctx, schemas.Collections.User, "id", v, data)
 		}
 	} else {
-		// as there is no facility to update all doc - https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/SQLtoNoSQL.UpdateData.html
-		userCollection.Scan().All(&allUsers)
-		for _, user := range allUsers {
-			err = UpdateByHashKey(userCollection, "id", user.ID, data)
+		items, errScan := p.scanAllRaw(ctx, schemas.Collections.User, nil, nil)
+		if errScan != nil {
+			return errScan
+		}
+		for _, it := range items {
+			var user schemas.User
+			if err := unmarshalItem(it, &user); err != nil {
+				return err
+			}
+			err = p.updateByHashKey(ctx, schemas.Collections.User, "id", user.ID, data)
 			if err == nil {
-				res = res + 1
+				res++
 			}
 		}
 	}
 	if err != nil {
 		return err
-	} else {
-		p.dependencies.Log.Info().Int64("modified_count", res).Msg("users updated")
 	}
+	p.dependencies.Log.Info().Int64("modified_count", res).Msg("users updated")
 	return nil
 }
 
 // GetUserByPhoneNumber to get user information from database using phone number
 func (p *provider) GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (*schemas.User, error) {
-	var users []*schemas.User
-	var user *schemas.User
-	collection := p.db.Table(schemas.Collections.User)
-	err := collection.Scan().Filter("'phone_number' = ?", phoneNumber).AllWithContext(ctx, &users)
+	f := expression.Name("phone_number").Equal(expression.Value(phoneNumber))
+	items, err := p.scanFilteredAll(ctx, schemas.Collections.User, nil, &f)
 	if err != nil {
 		return nil, err
 	}
-	if len(users) > 0 {
-		user = users[0]
-		return user, nil
-	} else {
+	if len(items) == 0 {
 		return nil, errors.New("no record found")
 	}
+	var u schemas.User
+	if err := unmarshalItem(items[0], &u); err != nil {
+		return nil, err
+	}
+	normalizeUserOptionalPtrs(&u)
+	return &u, nil
 }

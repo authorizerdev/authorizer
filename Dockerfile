@@ -1,6 +1,11 @@
 # syntax=docker/dockerfile:1.4
 # Use BuildKit for cache mounts (faster CI: DOCKER_BUILDKIT=1)
+#
+# Alpine v3.23 main still ships busybox 1.37.0-r30 (e.g. CVE-2025-60876); edge/main has r31+.
+# Pin busybox from edge until the stable branch backports it. See alpine/aports work item #17940.
 FROM golang:1.25-alpine3.23 AS go-builder
+ARG ALPINE_EDGE_MAIN=https://dl-cdn.alpinelinux.org/alpine/edge/main
+RUN apk add --no-cache -X "${ALPINE_EDGE_MAIN}" "busybox>=1.37.0-r31"
 WORKDIR /authorizer
 
 ARG TARGETPLATFORM
@@ -33,6 +38,8 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     chmod 755 build/${GOOS}/${GOARCH}/authorizer
 
 FROM alpine:3.23.3 AS node-builder
+ARG ALPINE_EDGE_MAIN=https://dl-cdn.alpinelinux.org/alpine/edge/main
+RUN apk add --no-cache -X "${ALPINE_EDGE_MAIN}" "busybox>=1.37.0-r31"
 WORKDIR /authorizer
 COPY web/app/package*.json web/app/
 COPY web/dashboard/package*.json web/dashboard/
@@ -47,6 +54,8 @@ COPY web/dashboard web/dashboard
 RUN cd web/app && npm run build && cd ../dashboard && npm run build
 
 FROM alpine:3.23.3
+ARG ALPINE_EDGE_MAIN=https://dl-cdn.alpinelinux.org/alpine/edge/main
+RUN apk add --no-cache -X "${ALPINE_EDGE_MAIN}" "busybox>=1.37.0-r31"
 
 ARG TARGETARCH=amd64
 
