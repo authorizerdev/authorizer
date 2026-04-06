@@ -72,12 +72,13 @@ func (g *graphqlProvider) TestEndpoint(ctx context.Context, params *model.TestEn
 		return nil, err
 	}
 
-	// SSRF protection: validate endpoint URL and resolved IPs
-	// Skip in test environment to allow localhost test servers
-	if g.Config.Env != constants.TestEnv {
+	// SSRF protection: validate endpoint URL and resolved IPs. Skipped only when tests
+	// explicitly set SkipTestEndpointSSRFValidation (never enable that flag in production).
+	skipSSRF := g.Config.Env == constants.TestEnv && g.Config.SkipTestEndpointSSRFValidation
+	if !skipSSRF {
 		if err := validators.ValidateEndpointURL(params.Endpoint); err != nil {
 			log.Debug().Err(err).Str("endpoint", params.Endpoint).Msg("endpoint URL rejected by SSRF filter")
-			return nil, fmt.Errorf("invalid endpoint: %s", err.Error())
+			return nil, fmt.Errorf("invalid endpoint: %w", err)
 		}
 	}
 
@@ -110,4 +111,3 @@ func (g *graphqlProvider) TestEndpoint(ctx context.Context, params *model.TestEn
 		Response:   refs.NewStringRef(string(body)),
 	}, nil
 }
-

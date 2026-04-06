@@ -17,7 +17,7 @@ func (h *httpProvider) HealthHandler() gin.HandlerFunc {
 			metrics.DBHealthCheckTotal.WithLabelValues("unhealthy").Inc()
 			c.JSON(http.StatusServiceUnavailable, gin.H{
 				"status": "unhealthy",
-				"error":  err.Error(),
+				"error":  "storage unavailable",
 			})
 			return
 		}
@@ -35,7 +35,7 @@ func (h *httpProvider) ReadyHandler() gin.HandlerFunc {
 			metrics.DBHealthCheckTotal.WithLabelValues("unhealthy").Inc()
 			c.JSON(http.StatusServiceUnavailable, gin.H{
 				"status": "not ready",
-				"error":  err.Error(),
+				"error":  "storage unavailable",
 			})
 			return
 		}

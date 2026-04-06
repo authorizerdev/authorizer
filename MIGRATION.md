@@ -205,7 +205,12 @@ Use these v2 **CLI flags** instead of v1 env or dashboard config. Flag names use
 | `PORT`               | `--http-port` (default: 8080)    |
 | Host                 | `--host` (default: 0.0.0.0)      |
 | Metrics port         | `--metrics-port` (default: 8081) |
+| Metrics bind         | `--metrics-host` (default: `127.0.0.1`) for the dedicated metrics listener only |
 | `LOG_LEVEL`          | `--log-level`                    |
+
+**Metrics:** `GET /metrics` is **always** on a **separate** minimal HTTP server at **`--metrics-host`:`--metrics-port`** (default **`127.0.0.1:8081`**). **`--http-port` and `--metrics-port` must differ**; the main Gin server does not expose `/metrics`. Use `--metrics-host=0.0.0.0` when Prometheus scrapes from another container or pod (keep the metrics port off public load balancers).
+
+**Rate limiting:** `--rate-limit-fail-closed` rejects requests with `503` when the rate-limit backend errors; the default remains fail-open (allow) for availability.
 
 
 ### Database

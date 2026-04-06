@@ -106,7 +106,14 @@ func NewProvider(config *config.Config, deps *Dependencies) (*provider, error) {
 	for i := 0; i < v.NumField(); i++ {
 		field := v.Field(i)
 		for _, indexQuery := range indices[field.String()] {
-			scope.Query(indexQuery, nil)
+			_, qerr := scope.Query(indexQuery, nil)
+			if qerr != nil {
+				msg := qerr.Error()
+				if strings.Contains(msg, "already exists") || (strings.Contains(msg, "Index") && strings.Contains(msg, "already")) {
+					continue
+				}
+				return nil, fmt.Errorf("couchbase secondary index: %s: %w", indexQuery, qerr)
+			}
 		}
 	}
 	return &provider{
@@ -123,7 +130,7 @@ func (p *provider) Close() error {
 	if p.cluster == nil {
 		return nil
 	}
-	return p.cluster.Close(nil)
+	return p.cluster.Close(&gocb.ClusterCloseOptions{})
 }
 
 func createBucketAndScope(cluster *gocb.Cluster, bucketName string, scopeName string, ramQuota string, waitTimeout time.Duration) (*gocb.Bucket, error) {
@@ -202,9 +209,9 @@ func getIndex(scopeName string) map[string][]string {
 
 	// WebhookLog index
 	webhookLogIndex1 := fmt.Sprintf("CREATE INDEX webhookLogIdIndex ON %s.%s(webhook_id)", scopeName, schemas.Collections.WebhookLog)
-	indices[schemas.Collections.Webhook] = []string{webhookLogIndex1}
+	indices[schemas.Collections.WebhookLog] = []string{webhookLogIndex1}
 
-	// WebhookLog index
+	// EmailTemplate index
 	emailTempIndex1 := fmt.Sprintf("CREATE INDEX EmailTemplateEventNameIndex ON %s.%s(event_name)", scopeName, schemas.Collections.EmailTemplate)
 	indices[schemas.Collections.EmailTemplate] = []string{emailTempIndex1}
 

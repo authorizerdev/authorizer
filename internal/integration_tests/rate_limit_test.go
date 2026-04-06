@@ -76,14 +76,11 @@ func TestRateLimitMiddleware(t *testing.T) {
 			router.GET("/health", func(c *gin.Context) {
 				c.JSON(http.StatusOK, gin.H{"status": "ok"})
 			})
-			router.GET("/metrics", func(c *gin.Context) {
-				c.JSON(http.StatusOK, gin.H{"status": "ok"})
-			})
 			router.GET("/.well-known/openid-configuration", func(c *gin.Context) {
 				c.JSON(http.StatusOK, gin.H{"issuer": "test"})
 			})
 
-			exemptPaths := []string{"/health", "/metrics", "/.well-known/openid-configuration"}
+			exemptPaths := []string{"/health", "/.well-known/openid-configuration"}
 			for _, path := range exemptPaths {
 				// Make many requests - none should be limited
 				for i := 0; i < 10; i++ {

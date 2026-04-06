@@ -1,6 +1,10 @@
+// Package metrics defines Prometheus collectors and helpers for Authorizer observability
+// (HTTP traffic, auth events, GraphQL, security signals, and database health).
 package metrics
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"strings"
 	"sync"
 
@@ -80,7 +84,7 @@ var (
 	GraphQLErrorsTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "authorizer_graphql_errors_total",
-			Help: "Total number of GraphQL responses containing errors",
+			Help: "Total number of GraphQL responses containing errors (operation label is bounded: anonymous or op_<hash>)",
 		},
 		[]string{"operation"},
 	)
@@ -89,7 +93,7 @@ var (
 	GraphQLRequestDuration = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name:    "authorizer_graphql_request_duration_seconds",
-			Help:    "GraphQL operation duration in seconds",
+			Help:    "GraphQL operation duration in seconds (operation label is bounded: anonymous or op_<hash>)",
 			Buckets: prometheus.DefBuckets,
 		},
 		[]string{"operation"},
@@ -104,11 +108,11 @@ var (
 		[]string{"status"},
 	)
 
-	// ClientIDNotFoundTotal tracks client ID not found events.
-	ClientIDNotFoundTotal = prometheus.NewCounter(
+	// ClientIDHeaderMissingTotal counts allowed requests with no X-Authorizer-Client-ID header.
+	ClientIDHeaderMissingTotal = prometheus.NewCounter(
 		prometheus.CounterOpts{
-			Name: "authorizer_client_id_not_found_total",
-			Help: "Total number of client ID not found events",
+			Name: "authorizer_client_id_header_missing_total",
+			Help: "Total requests that omitted X-Authorizer-Client-ID (allowed for some routes)",
 		},
 	)
 )
@@ -191,25 +195,38 @@ func Init() {
 		prometheus.MustRegister(GraphQLErrorsTotal)
 		prometheus.MustRegister(GraphQLRequestDuration)
 		prometheus.MustRegister(DBHealthCheckTotal)
+		prometheus.MustRegister(ClientIDHeaderMissingTotal)
 	})
 }
 
+// GraphQLOperationPrometheusLabel maps an operation name to a bounded-cardinality value
+// suitable for Prometheus labels (never use raw client-supplied names as labels).
+func GraphQLOperationPrometheusLabel(operationName string) string {
+	if strings.TrimSpace(operationName) == "" {
+		return "anonymous"
+	}
+	sum := sha256.Sum256([]byte(operationName))
+	return "op_" + hex.EncodeToString(sum[:8])
+}
+
 // RecordAuthEvent records an authentication event with given status.
+// event and status must be low-cardinality values (package constants); do not pass user input.
 func RecordAuthEvent(event, status string) {
 	AuthEventsTotal.WithLabelValues(event, status).Inc()
 }
 
 // RecordSecurityEvent records a security-relevant event for alerting.
+// event and reason must be low-cardinality values; do not pass user-controlled strings.
 func RecordSecurityEvent(event, reason string) {
 	SecurityEventsTotal.WithLabelValues(event, reason).Inc()
 }
 
-// RecordGraphQLError records a GraphQL error for the given operation.
+// RecordGraphQLError records a GraphQL error for the given operation name.
 func RecordGraphQLError(operation string) {
-	GraphQLErrorsTotal.WithLabelValues(operation).Inc()
+	GraphQLErrorsTotal.WithLabelValues(GraphQLOperationPrometheusLabel(operation)).Inc()
 }
 
-// RecordClientIDNotFound records a client ID not found event.
-func RecordClientIDNotFound() {
-	ClientIDNotFoundTotal.Inc()
+// RecordClientIDHeaderMissing records a request that had no client ID header.
+func RecordClientIDHeaderMissing() {
+	ClientIDHeaderMissingTotal.Inc()
 }

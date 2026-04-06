@@ -112,6 +112,11 @@ func TestStorageProvider(t *testing.T) {
 			require.NoError(t, err)
 			require.NotNil(t, provider)
 
+			t.Run("HealthCheck", func(t *testing.T) {
+				err := provider.HealthCheck(ctx)
+				assert.NoError(t, err, "HealthCheck should succeed when the test database is reachable")
+			})
+
 			t.Run("Authenticator Operations", func(t *testing.T) {
 				testAuthenticatorOperations(t, ctx, provider)
 			})

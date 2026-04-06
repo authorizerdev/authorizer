@@ -123,6 +123,9 @@ func NewProvider(
 
 // Close closes the underlying SQL connection pool.
 func (p *provider) Close() error {
+	if p.db == nil {
+		return nil
+	}
 	sqlDB, err := p.db.DB()
 	if err != nil {
 		return err

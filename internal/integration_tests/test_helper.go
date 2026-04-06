@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -21,10 +22,12 @@ import (
 	"github.com/authorizerdev/authorizer/internal/graphql"
 	"github.com/authorizerdev/authorizer/internal/http_handlers"
 	"github.com/authorizerdev/authorizer/internal/memory_store"
+	"github.com/authorizerdev/authorizer/internal/oauth"
 	"github.com/authorizerdev/authorizer/internal/rate_limit"
 	"github.com/authorizerdev/authorizer/internal/sms"
 	"github.com/authorizerdev/authorizer/internal/storage"
 	"github.com/authorizerdev/authorizer/internal/token"
+	"github.com/authorizerdev/authorizer/internal/utils"
 )
 
 // testSetup represents the test setup
@@ -41,13 +44,16 @@ type testSetup struct {
 }
 
 func createContext(s *testSetup) (*http.Request, context.Context) {
-	req, _ := http.NewRequest(
-		"POST",
+	req, err := http.NewRequest(
+		http.MethodPost,
 		"http://"+s.HttpServer.Listener.Addr().String()+"/graphql",
 		nil,
 	)
+	if err != nil {
+		panic("integration_tests.createContext: " + err.Error())
+	}
 
-	ctx := context.WithValue(req.Context(), "GinContextKey", s.GinContext)
+	ctx := utils.ContextWithGin(req.Context(), s.GinContext)
 	s.GinContext.Request = req
 	return req, ctx
 }
@@ -128,6 +134,7 @@ func getTestConfig() *config.Config {
 func getTestConfigForDB(dbType, dbURL string) *config.Config {
 	cfg := &config.Config{
 		Env:                             constants.TestEnv,
+		SkipTestEndpointSSRFValidation:  true,
 		DatabaseType:                    dbType,
 		DatabaseURL:                     dbURL,
 		JWTSecret:                       "test-secret",
@@ -179,6 +186,9 @@ func getTestConfigForDB(dbType, dbURL string) *config.Config {
 func runForEachDB(t *testing.T, testFn func(t *testing.T, cfg *config.Config)) {
 	t.Helper()
 	dbConfigs := getTestDBs()
+	if len(dbConfigs) == 0 {
+		t.Fatal("TEST_DBS produced no runnable database configurations; check TEST_DBS and that each database type resolves to a non-empty URL")
+	}
 
 	for _, dbCfg := range dbConfigs {
 		t.Run("db="+dbCfg.DbType, func(t *testing.T) {
@@ -192,6 +202,10 @@ func runForEachDB(t *testing.T, testFn func(t *testing.T, cfg *config.Config)) {
 func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 	// Initialize logger
 	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
+
+	if cfg.DatabaseType == constants.DbTypeSqlite || cfg.DatabaseType == constants.DbTypeLibSQL {
+		cfg.DatabaseURL = filepath.Join(t.TempDir(), "authorizer_integration.db")
+	}
 
 	// Initialize storage provider first as it's required by other providers
 	storageProvider, err := storage.New(cfg, &storage.Dependencies{
@@ -239,6 +253,11 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 	})
 	require.NoError(t, err)
 
+	oauthProvider, err := oauth.New(cfg, &oauth.Dependencies{
+		Log: &logger,
+	})
+	require.NoError(t, err)
+
 	// Initialize audit provider
 	auditProvider := audit.New(&audit.Dependencies{
 		Log:             &logger,
@@ -270,6 +289,7 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 		StorageProvider:       storageProvider,
 		TokenProvider:         tokenProvider,
 		RateLimitProvider:     rateLimitProvider,
+		OAuthProvider:         oauthProvider,
 	}
 
 	// Create GraphQL provider
@@ -293,7 +313,9 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 	t.Cleanup(func() {
 		server.Close()
 		if storageProvider != nil {
-			_ = storageProvider.Close()
+			if err := storageProvider.Close(); err != nil {
+				t.Errorf("close storage provider: %v", err)
+			}
 		}
 	})
 

@@ -19,6 +19,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/graph/generated"
 	"github.com/authorizerdev/authorizer/internal/graphql"
 	"github.com/authorizerdev/authorizer/internal/metrics"
+	"github.com/authorizerdev/authorizer/internal/utils"
 )
 
 type gqlResolvedFieldsCtxKey struct{}
@@ -68,11 +69,11 @@ func (*httpProvider) gqlCollectResolvedFieldsMiddleware() gql.FieldMiddleware {
 // It captures errors returned in HTTP 200 responses (GraphQL convention).
 func (h *httpProvider) gqlMetricsMiddleware() gql.OperationMiddleware {
 	return func(ctx context.Context, next gql.OperationHandler) gql.ResponseHandler {
-		oc := gql.GetOperationContext(ctx)
-		operationName := oc.OperationName
-		if operationName == "" {
-			operationName = "anonymous"
+		operationName := ""
+		if oc := gql.GetOperationContext(ctx); oc != nil {
+			operationName = oc.OperationName
 		}
+		opMetricLabel := metrics.GraphQLOperationPrometheusLabel(operationName)
 		start := time.Now()
 
 		collector := &resolvedFieldsCollector{}
@@ -82,26 +83,36 @@ func (h *httpProvider) gqlMetricsMiddleware() gql.OperationMiddleware {
 
 		return func(ctx context.Context) *gql.Response {
 			resp := responseHandler(ctx)
-			if resp != nil {
-				duration := time.Since(start).Seconds()
-				metrics.GraphQLRequestDuration.WithLabelValues(operationName).Observe(duration)
-
-				if len(resp.Errors) > 0 {
-					metrics.RecordGraphQLError(operationName)
-				}
-			}
 			fields := collector.sortedUnique()
-			h.Dependencies.Log.Info().
+			if resp == nil {
+				h.Dependencies.Log.Warn().
+					Str("operation", operationName).
+					Str("operation_metric_label", opMetricLabel).
+					Strs("resolved_fields", fields).
+					Msg("GraphQL operation returned no response")
+				return resp
+			}
+			duration := time.Since(start).Seconds()
+			metrics.GraphQLRequestDuration.WithLabelValues(opMetricLabel).Observe(duration)
+
+			if len(resp.Errors) > 0 {
+				metrics.RecordGraphQLError(operationName)
+			}
+			logEvt := h.Dependencies.Log.Info().
+				Str("operation", operationName).
+				Str("operation_metric_label", opMetricLabel).
+				Int("resolved_field_count", len(fields))
+			logEvt.Msg("GraphQL operation completed")
+			h.Dependencies.Log.Debug().
 				Str("operation", operationName).
 				Strs("resolved_fields", fields).
-				Int("resolved_field_count", len(fields)).
-				Msg("GraphQL operation completed")
+				Msg("GraphQL resolved fields")
 			return resp
 		}
 	}
 }
 
-// GraphqlHandler is the main handler that handels all the graphql requests
+// GraphqlHandler is the main handler that handles all GraphQL requests.
 func (h *httpProvider) GraphqlHandler() gin.HandlerFunc {
 	gqlProvider, err := graphql.New(h.Config, &graphql.Dependencies{
 		Log:                   h.Log,
@@ -116,7 +127,12 @@ func (h *httpProvider) GraphqlHandler() gin.HandlerFunc {
 	})
 	if err != nil {
 		h.Log.Error().Err(err).Msg("Failed to create graphql provider")
-		return nil
+		return func(c *gin.Context) {
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"error":             "graphql_unavailable",
+				"error_description": "GraphQL service failed to initialize.",
+			})
+		}
 	}
 
 	// NewExecutableSchema and Config are in the generated.go file
@@ -145,7 +161,7 @@ func (h *httpProvider) GraphqlHandler() gin.HandlerFunc {
 		// Create a custom handler that ensures gin context is available
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Ensure the gin context is available in the request context
-			ctx := context.WithValue(r.Context(), "GinContextKey", c)
+			ctx := utils.ContextWithGin(r.Context(), c)
 			r = r.WithContext(ctx)
 			srv.ServeHTTP(w, r)
 		})

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"strings"
@@ -32,6 +33,7 @@ import (
 // Default values for flags (single source of truth for init and applyFlagDefaults).
 var (
 	defaultHost              = "0.0.0.0"
+	defaultMetricsHost       = "127.0.0.1"
 	defaultLogLevel          = "debug"
 	defaultHTTPPort          = 8080
 	defaultMetricsPort       = 8081
@@ -52,8 +54,9 @@ var (
 	defaultDiscordScopes     = []string{"identify", "email"}
 	defaultTwitterScopes     = []string{"tweet.read", "users.read"}
 	defaultRobloxScopes      = []string{"openid", "profile"}
-	defaultRateLimitRPS      = float64(30)
-	defaultRateLimitBurst    = 20
+	// Default RPS cap per IP; raised from 10 to reduce false positives on busy UIs.
+	defaultRateLimitRPS   = float64(30)
+	defaultRateLimitBurst = 20
 )
 
 var (
@@ -74,7 +77,8 @@ func init() {
 	// Server flags
 	f.StringVar(&rootArgs.server.Host, "host", defaultHost, "Host address to listen on")
 	f.IntVar(&rootArgs.server.HTTPPort, "http-port", defaultHTTPPort, "Port to serve HTTP requests on")
-	f.IntVar(&rootArgs.server.MetricsPort, "metrics-port", defaultMetricsPort, "Port to serve metrics requests on")
+	f.IntVar(&rootArgs.server.MetricsPort, "metrics-port", defaultMetricsPort, "Port for the dedicated /metrics listener (must differ from --http-port)")
+	f.StringVar(&rootArgs.server.MetricsHost, "metrics-host", defaultMetricsHost, "Bind address for the dedicated /metrics listener (default loopback; use 0.0.0.0 when Prometheus scrapes from another host/pod)")
 
 	// Logging flags
 	f.StringVar(&rootArgs.logLevel, "log-level", defaultLogLevel, "Log level to use")
@@ -159,6 +163,7 @@ func init() {
 	// Rate limiting flags
 	f.Float64Var(&rootArgs.config.RateLimitRPS, "rate-limit-rps", defaultRateLimitRPS, "Maximum requests per second per IP for rate limiting")
 	f.IntVar(&rootArgs.config.RateLimitBurst, "rate-limit-burst", defaultRateLimitBurst, "Maximum burst size per IP for rate limiting")
+	f.BoolVar(&rootArgs.config.RateLimitFailClosed, "rate-limit-fail-closed", false, "On rate-limit backend errors, reject with 503 instead of allowing the request")
 
 	// JWT flags
 	f.StringVar(&rootArgs.config.JWTType, "jwt-type", "", "Type of JWT to use")
@@ -230,6 +235,9 @@ func applyFlagDefaults() {
 	if s.MetricsPort == 0 {
 		s.MetricsPort = defaultMetricsPort
 	}
+	if strings.TrimSpace(s.MetricsHost) == "" {
+		s.MetricsHost = defaultMetricsHost
+	}
 	if strings.TrimSpace(rootArgs.logLevel) == "" {
 		rootArgs.logLevel = defaultLogLevel
 	}
@@ -298,6 +306,10 @@ func applyFlagDefaults() {
 // Run the service
 func runRoot(c *cobra.Command, args []string) {
 	applyFlagDefaults()
+	if rootArgs.server.HTTPPort == rootArgs.server.MetricsPort {
+		fmt.Fprintf(os.Stderr, "invalid server ports: --http-port and --metrics-port must differ (metrics are always served on a dedicated listener)\n")
+		os.Exit(1)
+	}
 
 	// Prepare logger
 	ctx := context.Background()
@@ -340,6 +352,11 @@ func runRoot(c *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create storage provider")
 	}
+	defer func() {
+		if err := storageProvider.Close(); err != nil {
+			log.Error().Err(err).Msg("failed to close storage provider")
+		}
+	}()
 
 	// Authenticator provider
 	authenticatorProvider, err := authenticators.New(&rootArgs.config, &authenticators.Dependencies{

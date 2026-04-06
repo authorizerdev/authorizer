@@ -16,7 +16,8 @@ func (h *httpProvider) MetricsMiddleware() gin.HandlerFunc {
 		start := time.Now()
 		path := c.FullPath()
 		if path == "" {
-			path = c.Request.URL.Path
+			// Avoid raw URL paths as Prometheus labels (unbounded cardinality on 404 scans).
+			path = "unmatched"
 		}
 
 		c.Next()

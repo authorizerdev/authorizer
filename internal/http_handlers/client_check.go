@@ -21,14 +21,14 @@ func (h *httpProvider) ClientCheckMiddleware() gin.HandlerFunc {
 			Logger()
 		clientID := c.Request.Header.Get("X-Authorizer-Client-ID")
 		if clientID == "" {
-			log.Info().Msg("request received without client ID header")
-			metrics.RecordClientIDNotFound()
+			log.Debug().Msg("request received without client ID header")
+			metrics.RecordClientIDHeaderMissing()
 			c.Next()
 			return
 		}
 
 		if clientID != h.Config.ClientID {
-			// Record metric for client-id mismatch, but skip dashboard, admin, and app UI routes
+			// Record metric for client-id mismatch, but skip dashboard and app UI routes
 			// as those are internal requests that should not trigger security alerts.
 			path := c.Request.URL.Path
 			if !strings.HasPrefix(path, "/dashboard") && !strings.HasPrefix(path, "/app") {

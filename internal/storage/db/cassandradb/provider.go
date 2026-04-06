@@ -375,6 +375,9 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 
 // Close closes the Cassandra session.
 func (p *provider) Close() error {
+	if p == nil || p.db == nil {
+		return nil
+	}
 	p.db.Close()
 	return nil
 }

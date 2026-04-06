@@ -3,6 +3,7 @@ package integration_tests
 import (
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -245,10 +246,10 @@ func TestClientIDMismatchMetric(t *testing.T) {
 			// Send request with wrong client ID to /graphql (not dashboard/app)
 			body := `{"query":"{ meta { version } }"}`
 			w := sendTestRequest(t, router, "POST", "/graphql", body, map[string]string{
-				"Content-Type":            "application/json",
-				"X-Authorizer-Client-ID":  "wrong-client-id",
-				"X-Authorizer-URL":        "http://localhost:8080",
-				"Origin":                  "http://localhost:3000",
+				"Content-Type":           "application/json",
+				"X-Authorizer-Client-ID": "wrong-client-id",
+				"X-Authorizer-URL":       "http://localhost:8080",
+				"Origin":                 "http://localhost:3000",
 			})
 
 			assert.Equal(t, 400, w.Code)
@@ -262,10 +263,10 @@ func TestClientIDMismatchMetric(t *testing.T) {
 		t.Run("no_metric_for_valid_client_id", func(t *testing.T) {
 			body := `{"query":"{ meta { version } }"}`
 			w := sendTestRequest(t, router, "POST", "/graphql", body, map[string]string{
-				"Content-Type":            "application/json",
-				"X-Authorizer-Client-ID":  cfg.ClientID,
-				"X-Authorizer-URL":        "http://localhost:8080",
-				"Origin":                  "http://localhost:3000",
+				"Content-Type":           "application/json",
+				"X-Authorizer-Client-ID": cfg.ClientID,
+				"X-Authorizer-URL":       "http://localhost:8080",
+				"Origin":                 "http://localhost:3000",
 			})
 
 			// Should not be 400
@@ -273,12 +274,26 @@ func TestClientIDMismatchMetric(t *testing.T) {
 		})
 
 		t.Run("no_metric_for_dashboard_path_mismatch", func(t *testing.T) {
-			// Dashboard path requests should not record the metric even on mismatch
+			mark := `authorizer_security_events_total{event="client_id_mismatch",reason="invalid_client_id"}`
+			before := prometheusCounterSample(t, getMetricsBody(t, router), mark)
 			w := sendTestRequest(t, router, "GET", "/dashboard/", "", map[string]string{
 				"X-Authorizer-Client-ID": "wrong-client-id",
 			})
-			// Will still return 400 but metric should not be recorded for /dashboard paths
 			assert.Equal(t, 400, w.Code)
+			after := prometheusCounterSample(t, getMetricsBody(t, router), mark)
+			assert.Equal(t, before, after, "dashboard path mismatch must not increment client_id_mismatch metric")
+		})
+
+		t.Run("records_client_id_header_missing_metric", func(t *testing.T) {
+			mark := "authorizer_client_id_header_missing_total"
+			before := prometheusCounterSample(t, getMetricsBody(t, router), mark)
+			sendTestRequest(t, router, "POST", "/graphql", `{"query":"{ meta { version } }"}`, map[string]string{
+				"Content-Type":     "application/json",
+				"X-Authorizer-URL": "http://localhost:8080",
+				"Origin":           "http://localhost:3000",
+			})
+			after := prometheusCounterSample(t, getMetricsBody(t, router), mark)
+			assert.Greater(t, after, before)
 		})
 	})
 }
@@ -326,4 +341,25 @@ func getMetricsBody(t *testing.T, router *gin.Engine) string {
 	require.NoError(t, err)
 	router.ServeHTTP(w, req)
 	return w.Body.String()
+}
+
+// prometheusCounterSample parses the numeric value of the first Prometheus text exposition
+// sample line for the given metric name prefix (name plus label set, e.g. "foo" or `bar{a="b"}`).
+func prometheusCounterSample(t *testing.T, body, namePrefix string) float64 {
+	t.Helper()
+	prefix := namePrefix + " "
+	for _, line := range strings.Split(body, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || line[0] == '#' {
+			continue
+		}
+		if !strings.HasPrefix(line, prefix) {
+			continue
+		}
+		valStr := strings.TrimSpace(strings.TrimPrefix(line, prefix))
+		v, err := strconv.ParseFloat(valStr, 64)
+		require.NoError(t, err)
+		return v
+	}
+	return 0
 }

@@ -18,7 +18,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
 
-// Dependencies struct the data store provider
+// Dependencies carries shared resources for constructing a storage Provider.
 type Dependencies struct {
 	Log *zerolog.Logger
 }

@@ -15,13 +15,12 @@ var exemptPrefixes = []string{
 }
 
 // exemptPaths are exact paths that bypass rate limiting.
+// /metrics is not served on this router (dedicated listener). /playground is rate-limited like other API routes.
 var exemptPaths = map[string]bool{
 	"/":                                 true,
 	"/health":                           true,
 	"/healthz":                          true,
 	"/readyz":                           true,
-	"/metrics":                          true,
-	"/playground":                       true,
 	"/.well-known/openid-configuration": true,
 	"/.well-known/jwks.json":            true,
 }
@@ -59,7 +58,16 @@ func (h *httpProvider) RateLimitMiddleware() gin.HandlerFunc {
 		allowed, err := h.Dependencies.RateLimitProvider.Allow(c.Request.Context(), c.ClientIP())
 		if err != nil {
 			log := h.Dependencies.Log.With().Str("func", "RateLimitMiddleware").Logger()
-			log.Error().Err(err).Msg("rate limit check failed, allowing request")
+			log.Error().Err(err).Msg("rate limit check failed")
+			if h.Config.RateLimitFailClosed {
+				c.JSON(http.StatusServiceUnavailable, gin.H{
+					"error":             "rate_limit_unavailable",
+					"error_description": "Rate limiting is temporarily unavailable. Please try again later.",
+				})
+				c.Abort()
+				return
+			}
+			log.Warn().Msg("rate limit fail-open: allowing request after backend error")
 			c.Next()
 			return
 		}

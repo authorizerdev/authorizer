@@ -134,7 +134,10 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 				IPAddress:    utils.GetIP(ctx.Request),
 				UserAgent:    utils.GetUserAgent(ctx.Request),
 			})
-			ctx.JSON(400, gin.H{"error": err.Error()})
+			ctx.JSON(400, gin.H{
+				"error":             "oauth_callback_failed",
+				"error_description": "OAuth callback could not be completed. Please try again.",
+			})
 			return
 		}
 		if user == nil {
