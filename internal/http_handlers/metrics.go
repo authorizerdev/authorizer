@@ -16,13 +16,18 @@ func (h *httpProvider) MetricsMiddleware() gin.HandlerFunc {
 		start := time.Now()
 		path := c.FullPath()
 		if path == "" {
-			path = c.Request.URL.Path
+			// Avoid raw URL paths as Prometheus labels (unbounded cardinality on 404 scans).
+			path = "unmatched"
 		}
 
 		c.Next()
 
 		duration := time.Since(start).Seconds()
 		status := fmt.Sprintf("%d", c.Writer.Status())
+
+		if metrics.SkipHTTPRequestMetrics(path) {
+			return
+		}
 
 		metrics.HTTPRequestsTotal.WithLabelValues(c.Request.Method, path, status).Inc()
 		metrics.HTTPRequestDuration.WithLabelValues(c.Request.Method, path).Observe(duration)

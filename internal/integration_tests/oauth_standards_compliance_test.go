@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 )
 
@@ -522,13 +523,14 @@ func TestAuthorizeEndpointCompliance(t *testing.T) {
 
 // TestJWKSEndpointCompliance verifies /.well-known/jwks.json
 func TestJWKSEndpointCompliance(t *testing.T) {
-	cfg := getTestConfig()
-	ts := initTestSetup(t, cfg)
+	t.Run("JWKS_returns_empty_keys_for_HMAC", func(t *testing.T) {
+		// HMAC (symmetric) keys must NOT be exposed via JWKS.
+		cfg := getTestConfig() // uses HS256
+		ts := initTestSetup(t, cfg)
 
-	router := gin.New()
-	router.GET("/.well-known/jwks.json", ts.HttpProvider.JWKsHandler())
+		router := gin.New()
+		router.GET("/.well-known/jwks.json", ts.HttpProvider.JWKsHandler())
 
-	t.Run("JWKS_returns_valid_keyset", func(t *testing.T) {
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("GET", "/.well-known/jwks.json", nil)
 		router.ServeHTTP(w, req)
@@ -541,7 +543,36 @@ func TestJWKSEndpointCompliance(t *testing.T) {
 
 		keys, ok := body["keys"].([]interface{})
 		require.True(t, ok, "JWKS response MUST contain 'keys' array")
-		require.NotEmpty(t, keys, "JWKS 'keys' array MUST not be empty")
+		assert.Empty(t, keys, "JWKS 'keys' array MUST be empty for HMAC-only config to prevent secret exposure")
+	})
+
+	t.Run("JWKS_returns_valid_keyset_for_RSA", func(t *testing.T) {
+		cfg := getTestConfig()
+		// Generate RSA keys for this test
+		_, privateKey, publicKey, _, err := crypto.NewRSAKey("RS256", cfg.ClientID)
+		require.NoError(t, err)
+		cfg.JWTType = "RS256"
+		cfg.JWTPrivateKey = privateKey
+		cfg.JWTPublicKey = publicKey
+		cfg.JWTSecret = "" // not needed for RSA
+		ts := initTestSetup(t, cfg)
+
+		router := gin.New()
+		router.GET("/.well-known/jwks.json", ts.HttpProvider.JWKsHandler())
+
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", "/.well-known/jwks.json", nil)
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var body map[string]interface{}
+		err = json.Unmarshal(w.Body.Bytes(), &body)
+		require.NoError(t, err)
+
+		keys, ok := body["keys"].([]interface{})
+		require.True(t, ok, "JWKS response MUST contain 'keys' array")
+		require.NotEmpty(t, keys, "JWKS 'keys' array MUST not be empty for RSA config")
 
 		// Each key must have required JWK fields
 		key := keys[0].(map[string]interface{})

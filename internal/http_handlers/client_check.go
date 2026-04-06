@@ -2,8 +2,11 @@ package http_handlers
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/authorizerdev/authorizer/internal/metrics"
 )
 
 // ClientCheckMiddleware is a middleware to verify the client ID
@@ -12,16 +15,25 @@ import (
 // (e.g., OAuth callbacks, JWKS, OpenID configuration, health checks).
 // The middleware only rejects requests with an explicitly wrong client ID.
 func (h *httpProvider) ClientCheckMiddleware() gin.HandlerFunc {
-	log := h.Log.With().Str("func", "ClientCheckMiddleware").Logger()
 	return func(c *gin.Context) {
+		log := h.Log.With().Str("func", "ClientCheckMiddleware").
+			Str("path", c.Request.URL.Path).
+			Logger()
 		clientID := c.Request.Header.Get("X-Authorizer-Client-ID")
 		if clientID == "" {
 			log.Debug().Msg("request received without client ID header")
+			metrics.RecordClientIDHeaderMissing()
 			c.Next()
 			return
 		}
 
 		if clientID != h.Config.ClientID {
+			// Record metric for client-id mismatch, but skip dashboard and app UI routes
+			// as those are internal requests that should not trigger security alerts.
+			path := c.Request.URL.Path
+			if !strings.HasPrefix(path, "/dashboard") && !strings.HasPrefix(path, "/app") {
+				metrics.RecordSecurityEvent("client_id_mismatch", "invalid_client_id")
+			}
 			log.Debug().Str("client_id", clientID).Msg("Client ID is invalid")
 			c.JSON(http.StatusBadRequest, gin.H{
 				"error":             "invalid_client_id",

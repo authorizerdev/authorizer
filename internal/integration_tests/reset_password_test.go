@@ -72,7 +72,7 @@ func TestResetPassword(t *testing.T) {
 		ts2 := initTestSetup(t, cfg2)
 		req2, ctx2 := createContext(ts2)
 
-		mobile := "+14155550199"
+		mobile := fmt.Sprintf("+1%010d", time.Now().UnixNano()%10000000000)
 		signupReq2 := &model.SignUpRequest{
 			PhoneNumber:     &mobile,
 			Password:        password,

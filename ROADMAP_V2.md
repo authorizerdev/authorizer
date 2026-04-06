@@ -97,21 +97,13 @@ These are table-stakes features that every competitor has. Without them, Authori
 
 **Why**: Keycloak has full Prometheus/Grafana support. Essential for production deployments.
 
-- [ ] **`/metrics` endpoint** (OpenMetrics/Prometheus format)
-  - `authorizer_login_total{method,status}` -- login attempts by method and success/failure
-  - `authorizer_signup_total{method,status}` -- signup attempts
-  - `authorizer_token_issued_total{type}` -- tokens issued by type
-  - `authorizer_active_sessions` -- current active sessions gauge
-  - `authorizer_request_duration_seconds{endpoint,method}` -- request latency histogram
-  - `authorizer_db_query_duration_seconds` -- database query latency
-  - `authorizer_failed_login_total` -- failed logins (for alerting)
-  - `authorizer_account_lockouts_total` -- lockout events
-  - Go runtime metrics (goroutines, memory, GC)
+- [x] **`/metrics` endpoint** (OpenMetrics/Prometheus format) — implemented (`authorizer_*` metrics; always on dedicated `--metrics-host`:`--metrics-port`). Further metric parity (below) remains roadmap.
+  - Planned / partial vs Keycloak-style names: `authorizer_login_total{method,status}`, `authorizer_signup_total{method,status}`, `authorizer_token_issued_total{type}`, `authorizer_db_query_duration_seconds`, `authorizer_failed_login_total`, `authorizer_account_lockouts_total`, Go runtime metrics (goroutines, memory, GC)
 - [ ] **Enhanced `/health` endpoint** returning JSON with component status
   ```json
   {"status": "healthy", "db": "ok", "redis": "ok", "uptime": "72h"}
   ```
-- [ ] **Readiness/liveness probes** (`/healthz`, `/readyz`) for Kubernetes
+- [x] **Readiness/liveness probes** (`/healthz`, `/readyz`, `/health`) for Kubernetes
 
 ### 1.5 Session Security Enhancements
 

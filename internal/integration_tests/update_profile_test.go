@@ -1,7 +1,9 @@
 package integration_tests
 
 import (
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -110,7 +112,7 @@ func TestUpdateProfile(t *testing.T) {
 		givenName := "John"
 		familyName := "Doe"
 		nickname := "Johnny"
-		phoneNumber := "+1234567890"
+		phoneNumber := fmt.Sprintf("+1%010d", time.Now().UnixNano()%10000000000)
 
 		updateReq := &model.UpdateProfileRequest{
 			GivenName:   refs.NewStringRef(givenName),

@@ -69,7 +69,18 @@ RUN addgroup -g 1000 authorizer && \
 
 USER authorizer
 
+# Ports (see docs: deployment/docker, deployment/kubernetes)
+# - EXPOSE is documentation only: it does NOT publish ports on the Docker host.
+# - 8080: main HTTP API (OAuth, GraphQL, health on /healthz, etc.). This is what you
+#   typically map with -p 8080:8080 or put behind an Ingress / load balancer.
+# - 8081: dedicated Prometheus /metrics listener. By default the process binds it to
+#   127.0.0.1, so other containers cannot scrape until you pass --metrics-host=0.0.0.0.
+#   Even then: do not map 8081 to the public internet; keep scraping on internal networks
+#   only (Docker internal network, Kubernetes ClusterIP / pod network).
 EXPOSE 8080 8081
-HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD wget -qO- http://localhost:8080/ || exit 1
+
+# Liveness uses the main HTTP server only (metrics may be loopback-only).
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD wget -qO- http://127.0.0.1:8080/healthz || exit 1
+
 ENTRYPOINT [ "./authorizer" ]
 CMD []

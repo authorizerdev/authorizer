@@ -26,7 +26,6 @@ func (s *server) NewRouter() *gin.Engine {
 	router.GET("/health", s.Dependencies.HTTPProvider.HealthHandler())
 	router.GET("/healthz", s.Dependencies.HTTPProvider.HealthHandler())
 	router.GET("/readyz", s.Dependencies.HTTPProvider.ReadyHandler())
-	router.GET("/metrics", s.Dependencies.HTTPProvider.MetricsHandler())
 	router.POST("/graphql", s.Dependencies.HTTPProvider.GraphqlHandler())
 	router.GET("/playground", s.Dependencies.HTTPProvider.PlaygroundHandler())
 	router.GET("/oauth_login/:oauth_provider", s.Dependencies.HTTPProvider.OAuthLoginHandler())

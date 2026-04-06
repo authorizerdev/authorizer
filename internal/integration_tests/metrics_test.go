@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -31,6 +32,7 @@ func TestMetricsEndpoint(t *testing.T) {
 			metrics.RecordAuthEvent("test", "test")
 			metrics.RecordSecurityEvent("test", "test")
 			metrics.RecordGraphQLError("test")
+			metrics.RecordClientIDHeaderMissing()
 			metrics.DBHealthCheckTotal.WithLabelValues("test").Inc()
 
 			w := httptest.NewRecorder()
@@ -48,6 +50,15 @@ func TestMetricsEndpoint(t *testing.T) {
 			assert.Contains(t, body, "authorizer_security_events_total")
 			assert.Contains(t, body, "authorizer_graphql_errors_total")
 			assert.Contains(t, body, "authorizer_db_health_check_total")
+			assert.Contains(t, body, "authorizer_client_id_header_missing_total")
+		})
+
+		t.Run("post_metrics_is_not_get_ok", func(t *testing.T) {
+			w := httptest.NewRecorder()
+			req, err := http.NewRequest(http.MethodPost, "/metrics", nil)
+			require.NoError(t, err)
+			router.ServeHTTP(w, req)
+			assert.NotEqual(t, http.StatusOK, w.Code)
 		})
 	})
 }
@@ -77,6 +88,26 @@ func TestMetricsMiddleware(t *testing.T) {
 
 			body := w2.Body.String()
 			assert.Contains(t, body, `authorizer_http_requests_total{method="GET",path="/healthz",status="200"}`)
+		})
+
+		t.Run("skips_http_metrics_for_excluded_paths", func(t *testing.T) {
+			router.GET("/app/foo", func(c *gin.Context) {
+				c.Status(http.StatusOK)
+			})
+
+			w := httptest.NewRecorder()
+			req, err := http.NewRequest(http.MethodGet, "/app/foo", nil)
+			require.NoError(t, err)
+			router.ServeHTTP(w, req)
+			assert.Equal(t, http.StatusOK, w.Code)
+
+			w2 := httptest.NewRecorder()
+			req2, err := http.NewRequest(http.MethodGet, "/metrics", nil)
+			require.NoError(t, err)
+			router.ServeHTTP(w2, req2)
+
+			body := w2.Body.String()
+			assert.NotContains(t, body, `authorizer_http_requests_total{method="GET",path="/app/foo"`)
 		})
 	})
 }
@@ -125,24 +156,6 @@ func TestAuthEventMetrics(t *testing.T) {
 		email := "metrics_" + uuid.New().String() + "@authorizer.dev"
 		password := "Password@123"
 
-		t.Run("records_login_failure_on_bad_credentials", func(t *testing.T) {
-			loginReq := &model.LoginRequest{
-				Email:    &email,
-				Password: "wrong_password",
-			}
-			_, err := ts.GraphQLProvider.Login(ctx, loginReq)
-			assert.Error(t, err)
-
-			w := httptest.NewRecorder()
-			req, err := http.NewRequest(http.MethodGet, "/metrics", nil)
-			require.NoError(t, err)
-			router.ServeHTTP(w, req)
-
-			body := w.Body.String()
-			assert.Contains(t, body, `authorizer_auth_events_total{event="login",status="failure"}`)
-			assert.Contains(t, body, `authorizer_security_events_total{event="invalid_credentials"`)
-		})
-
 		t.Run("records_signup_and_login_success", func(t *testing.T) {
 			signupReq := &model.SignUpRequest{
 				Email:           &email,
@@ -172,6 +185,24 @@ func TestAuthEventMetrics(t *testing.T) {
 			require.NoError(t, err)
 			router.ServeHTTP(w2, req2)
 			assert.Contains(t, w2.Body.String(), `authorizer_auth_events_total{event="login",status="success"}`)
+		})
+
+		t.Run("records_login_failure_on_bad_credentials", func(t *testing.T) {
+			loginReq := &model.LoginRequest{
+				Email:    &email,
+				Password: "wrong_password",
+			}
+			_, err := ts.GraphQLProvider.Login(ctx, loginReq)
+			assert.Error(t, err)
+
+			w := httptest.NewRecorder()
+			req, err := http.NewRequest(http.MethodGet, "/metrics", nil)
+			require.NoError(t, err)
+			router.ServeHTTP(w, req)
+
+			body := w.Body.String()
+			assert.Contains(t, body, `authorizer_auth_events_total{event="login",status="failure"}`)
+			assert.Contains(t, body, `authorizer_security_events_total{event="invalid_credentials"`)
 		})
 	})
 }
@@ -208,7 +239,53 @@ func TestGraphQLErrorMetrics(t *testing.T) {
 
 			metricsBody := w2.Body.String()
 			assert.Contains(t, metricsBody, "authorizer_graphql_request_duration_seconds")
+			assert.Contains(t, metricsBody, `authorizer_graphql_errors_total{operation="anonymous"}`)
 		})
+
+		t.Run("captures_graphql_errors_with_named_operation", func(t *testing.T) {
+			body := `{"operationName":"LoginOp","query":"mutation LoginOp { login(params: {email: \"nonexistent@test.com\", password: \"wrong\"}) { message } }"}`
+			w := httptest.NewRecorder()
+			req, err := http.NewRequest(http.MethodPost, "/graphql", strings.NewReader(body))
+			require.NoError(t, err)
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("x-authorizer-url", "http://localhost:8080")
+			req.Header.Set("Origin", "http://localhost:3000")
+			router.ServeHTTP(w, req)
+			assert.Equal(t, http.StatusOK, w.Code)
+
+			w2 := httptest.NewRecorder()
+			req2, err := http.NewRequest(http.MethodGet, "/metrics", nil)
+			require.NoError(t, err)
+			router.ServeHTTP(w2, req2)
+			loginOpLabel := metrics.GraphQLOperationPrometheusLabel("LoginOp")
+			assert.Contains(t, w2.Body.String(), `authorizer_graphql_errors_total{operation="`+loginOpLabel+`"}`)
+		})
+	})
+}
+
+// TestClientIDHeaderMissingMiddlewareMetric verifies empty X-Authorizer-Client-ID increments the counter.
+func TestClientIDHeaderMissingMiddlewareMetric(t *testing.T) {
+	runForEachDB(t, func(t *testing.T, cfg *config.Config) {
+		ts := initTestSetup(t, cfg)
+
+		router := gin.New()
+		router.Use(ts.HttpProvider.ClientCheckMiddleware())
+		router.GET("/probe", func(c *gin.Context) {
+			c.Status(http.StatusOK)
+		})
+		router.GET("/metrics", ts.HttpProvider.MetricsHandler())
+
+		w := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodGet, "/probe", nil)
+		require.NoError(t, err)
+		router.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		w2 := httptest.NewRecorder()
+		req2, err := http.NewRequest(http.MethodGet, "/metrics", nil)
+		require.NoError(t, err)
+		router.ServeHTTP(w2, req2)
+		assert.Contains(t, w2.Body.String(), "authorizer_client_id_header_missing_total")
 	})
 }
 
@@ -218,6 +295,15 @@ func TestRecordAuthEventHelpers(t *testing.T) {
 		metrics.RecordAuthEvent(metrics.EventVerifyEmail, metrics.StatusSuccess)
 		metrics.RecordAuthEvent(metrics.EventVerifyOTP, metrics.StatusFailure)
 		metrics.RecordSecurityEvent("brute_force", "rate_limit")
+
+		w := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodGet, "/", nil)
+		require.NoError(t, err)
+		promhttp.Handler().ServeHTTP(w, req)
+		body := w.Body.String()
+		assert.Contains(t, body, `authorizer_auth_events_total{event="verify_email",status="success"}`)
+		assert.Contains(t, body, `authorizer_auth_events_total{event="verify_otp",status="failure"}`)
+		assert.Contains(t, body, `authorizer_security_events_total{event="brute_force",reason="rate_limit"}`)
 	})
 }
 

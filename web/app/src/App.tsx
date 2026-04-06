@@ -32,6 +32,7 @@ export default function App() {
 		...window['__authorizer__'],
 		...urlProps,
 	};
+	console.log(globalState);
 	return (
 		<div
 			style={{
@@ -62,6 +63,7 @@ export default function App() {
 						config={{
 							authorizerURL: window.location.origin,
 							redirectURL: globalState.redirectURL,
+							clientID: globalState.clientId,
 						}}
 					>
 						<Root globalState={globalState} />

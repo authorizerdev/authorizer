@@ -4,6 +4,10 @@ package config
 type Config struct {
 	// Env is the environment of the authorizer instance
 	Env string
+	// SkipTestEndpointSSRFValidation relaxes SSRF checks for the admin TestEndpoint GraphQL
+	// mutation (e.g. to hit localhost in tests). Must remain false in production; integration
+	// tests enable it together with Env=test.
+	SkipTestEndpointSSRFValidation bool
 	// OrganizationLogo is the logo of the organization
 	OrganizationLogo string
 	// OrganizationName is the name of the organization
@@ -253,4 +257,6 @@ type Config struct {
 	RateLimitRPS float64
 	// RateLimitBurst is the maximum burst size per IP
 	RateLimitBurst int
+	// RateLimitFailClosed rejects requests when the rate limit backend errors (default: fail-open).
+	RateLimitFailClosed bool
 }
