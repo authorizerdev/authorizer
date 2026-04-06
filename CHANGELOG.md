@@ -25,6 +25,67 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`authorizer_client_id_not_found_total`**: replaced by **`authorizer_client_id_header_missing_total`**, which matches the actual behavior (header omitted, request still allowed). Update dashboards and alerts accordingly.
 
+## [2.2.1-rc.0] - 2026-04-06
+
+Pre-release. See [2.2.1-rc.0](https://github.com/authorizerdev/authorizer/releases/tag/2.2.1-rc.0) on GitHub.
+
+### Added
+
+- **CSRF protection** (middleware).
+- **Per-IP rate limiting** with Redis and in-memory backends.
+- **GraphQL query complexity limit**.
+- **5-second execution timeout** for custom access token scripts.
+
+### Security
+
+- **Crypto**: AES-GCM with HKDF key derivation (replaces AES-CFB); RSA 4096, improved `DecryptRSA` error handling and base64-related naming; `crypto/rand` for HMAC key generation.
+- **JWT / tokens**: Verify JWT algorithm in parse keyfunc; safe type assertions for claims; bearer extraction case-sensitivity fix; shorter session and refresh token lifetimes; reserved claim blocklist for custom token scripts.
+- **Cookies**: `HttpOnly` on all cookies; reduced cookie max-age; `SameSite` on admin cookie (with broader security-header and CORS credential fixes).
+- **OAuth / redirects**: Apple ID token signature verified via OIDC; `redirect_uri` validation hardened against open redirects and wildcard abuse.
+- **GraphQL**: SSRF protection for `_test_endpoint`; constant-time admin secret comparison; user enumeration mitigated via generic error messages.
+- **HTTP / parsers**: Host header validation to reduce injection risk.
+- **Storage / DB**: Parameterized AQL in ArangoDB `UpdateUsers`; Cassandra client TLS verification enabled; GORM `AllowGlobalUpdate` disabled; `DeleteSession` implemented for SQL and ArangoDB.
+- **Email / templates**: Explicit TLS `ServerName` for SMTP; `html/template` for email rendering (SSTI mitigation); `template.JS` XSS-related fix.
+- **Webhooks**: SSRF protection, HMAC signatures, and response size limits.
+- **Data exposure**: Password hash excluded from JSON serialization; JWKS no longer leaks HMAC keys.
+- **Operational**: Sanitized errors, panics replaced with errors where appropriate; Dockerfiles hardened (defaults, signals, healthcheck); client ID audit logging and CSRF origin validation tightened.
+
+### Fixed
+
+- GitHub OAuth display name handling and **POST logout** behavior.
+- MongoDB driver update and related compilation issues.
+- Tests: custom script timeout coverage, client-ID metric behavior, and ArangoDB-related test hardening.
+
+**Full changelog**: [2.2.0...2.2.1-rc.0](https://github.com/authorizerdev/authorizer/compare/2.2.0...2.2.1-rc.0)
+
+## [2.2.0] - 2026-04-03
+
+See [2.2.0](https://github.com/authorizerdev/authorizer/releases/tag/2.2.0) on GitHub.
+
+### Added
+
+- **Prometheus metrics**, **health** checks, and **readiness** HTTP endpoints ([#528](https://github.com/authorizerdev/authorizer/pull/528)).
+
+**Full changelog**: [2.1.0...2.2.0](https://github.com/authorizerdev/authorizer/compare/2.1.0...2.2.0)
+
+## [2.1.0] - 2026-04-03
+
+See [2.1.0](https://github.com/authorizerdev/authorizer/releases/tag/2.1.0) on GitHub.
+
+### Added
+
+- **Structured audit logging** system.
+
+### Changed
+
+- **Audit logging** consolidated behind an `internal/audit` provider.
+
+### Security
+
+- **Open redirect**: stricter validation for `redirect_uri`.
+
+**Full changelog**: [2.0.1...2.1.0](https://github.com/authorizerdev/authorizer/compare/2.0.1...2.1.0)
+
 ## [2.0.0] - 2025-02-28
 
 ### Added
