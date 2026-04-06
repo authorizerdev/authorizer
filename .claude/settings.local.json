@@ -37,7 +37,10 @@
       "Bash(do echo:*)",
       "Read(//Users/lakhansamani/personal/authorizer/authorizer/internal/storage/db/**)",
       "Bash(done)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(TEST_DBS=\"sqlite\" go test -p 1 -v -count=1 ./internal/integration_tests/)",
+      "Bash(TEST_DBS=\"sqlite\" go test -p 1 -v -count=1 ./internal/memory_store/...)",
+      "Bash(TEST_DBS=\"sqlite\" go test -p 1 -v -count=1 ./internal/storage/)"
     ]
   }
 }

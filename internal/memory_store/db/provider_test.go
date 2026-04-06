@@ -1,7 +1,6 @@
 package db
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -10,16 +9,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/storage"
 )
 
-// TestDBMemoryStoreProvider tests the database-backed memory store against each database in
-// TEST_DBS (same semantics as integration_tests). Redis is irrelevant here.
+// TestDBMemoryStoreProvider tests the database-backed memory store against SQLite.
 func TestDBMemoryStoreProvider(t *testing.T) {
 	entries := storageTestDBEntriesFromEnv()
 	if len(entries) == 0 {
-		t.Fatal("TEST_DBS produced no database configurations")
+		t.Fatal("no database configurations for memory store DB tests")
 	}
 
 	for _, e := range entries {
@@ -27,10 +24,6 @@ func TestDBMemoryStoreProvider(t *testing.T) {
 			tempSQLite := filepath.Join(t.TempDir(), "memory_store_test.db")
 			dbURL := resolveSQLiteTestURL(e.dbType, e.dbURL, tempSQLite)
 			cfg := buildStorageTestConfigForMemoryStore(e.dbType, dbURL)
-			if cfg.DatabaseType == constants.DbTypeDynamoDB {
-				os.Unsetenv("AWS_ACCESS_KEY_ID")
-				os.Unsetenv("AWS_SECRET_ACCESS_KEY")
-			}
 
 			log := zerolog.New(zerolog.NewTestWriter(t))
 			storageProvider, err := storage.New(cfg, &storage.Dependencies{Log: &log})

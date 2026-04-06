@@ -19,15 +19,16 @@ make build-app            # Build login UI (web/app)
 make build-dashboard      # Build admin UI (web/dashboard)
 make generate-graphql     # Regenerate after schema.graphqls change
 
-# Testing (TEST_DBS env var selects databases, default: postgres)
+# Testing
+# Integration tests always use SQLite (no Docker needed).
+# Storage provider tests honour TEST_DBS (default: all 7 DBs, needs Docker).
 # Optional: TEST_ENABLE_REDIS=1 runs Redis memory_store unit tests (Redis on localhost:6380).
-make test                 # Docker Postgres (default)
-make test-sqlite          # SQLite in-memory (no Docker)
-make test-mongodb         # Docker MongoDB
+make test                 # SQLite integration + storage (via TEST_DBS)
+make test-sqlite          # SQLite everywhere (no Docker)
 make test-all-db          # ALL 7 databases (postgres,sqlite,mongodb,arangodb,scylladb,dynamodb,couchbase)
 
-# Single test against specific DBs
-go clean --testcache && TEST_DBS="sqlite,postgres" go test -p 1 -v -run TestSignup ./internal/integration_tests/
+# Single test
+go clean --testcache && TEST_DBS="sqlite" go test -p 1 -v -run TestSignup ./internal/integration_tests/
 ```
 
 ## Architecture (Quick Reference)
@@ -51,7 +52,7 @@ go clean --testcache && TEST_DBS="sqlite,postgres" go test -p 1 -v -run TestSign
 2. **Schema changes must update ALL 13+ database providers**
 3. **Run `make generate-graphql`** after editing `schema.graphqls`
 4. **Security**: parameterized queries only, `crypto/rand` for tokens, `crypto/subtle` for comparisons, never log secrets
-5. **Tests**: integration tests with real DBs, table-driven subtests, testify assertions
+5. **Tests**: integration tests use SQLite via `getTestConfig()` (no `runForEachDB`); storage tests cover all DBs via `TEST_DBS`; testify assertions
 6. **NEVER commit to main** — always work on a feature branch (`feat/`, `fix/`, `security/`, `chore/`), push to the branch, and create a merge request. Main must stay deployable.
 
 ## AI Agent Roles

@@ -3,8 +3,9 @@ DEFAULT_VERSION=0.1.0-local
 VERSION := $(or $(VERSION),$(DEFAULT_VERSION))
 DOCKER_IMAGE ?= authorizerdev/authorizer:$(VERSION)
 
-# Full module test run. TEST_DBS selects storage backends (storage, integration_tests,
-# memory_store/db). Redis memory_store tests run only when TEST_ENABLE_REDIS=1.
+# Full module test run. Storage provider tests honour TEST_DBS (defaults to all).
+# Integration tests and memory_store/db tests always use SQLite.
+# Redis memory_store tests run only when TEST_ENABLE_REDIS=1.
 GO_TEST_ALL := go test -p 1 -v ./...
 
 .PHONY: all bootstrap build build-app build-dashboard build-local-image build-push-image trivy-scan
@@ -43,9 +44,8 @@ clean:
 dev:
 	go run main.go --database-type=sqlite --database-url=test.db --jwt-type=HS256 --jwt-secret=test --admin-secret=admin --client-id=123456 --client-secret=secret
 
-test: test-cleanup test-docker-up
-	go clean --testcache && TEST_DBS="postgres" $(GO_TEST_ALL)
-	$(MAKE) test-cleanup
+test:
+	go clean --testcache && TEST_DBS="sqlite" $(GO_TEST_ALL)
 
 test-postgres: test-cleanup-postgres
 	docker run -d --name authorizer_postgres -p 5434:5432 -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=postgres postgres
@@ -86,7 +86,7 @@ test-couchbase: test-cleanup-couchbase
 	go clean --testcache && TEST_DBS="couchbase" $(GO_TEST_ALL)
 	docker rm -vf authorizer_couchbase
 
-test-all-db: test-cleanup test-docker-up
+test-all-db: test-cleanup test-docker-up test-cleanup
 	go clean --testcache && TEST_DBS="postgres,sqlite,mongodb,arangodb,scylladb,dynamodb,couchbase" $(GO_TEST_ALL)
 	$(MAKE) test-cleanup
 
