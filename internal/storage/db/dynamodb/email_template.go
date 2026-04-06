@@ -5,8 +5,8 @@ import (
 	"errors"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/google/uuid"
-	"github.com/guregu/dynamo"
 
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
@@ -14,29 +14,22 @@ import (
 
 // AddEmailTemplate to add EmailTemplate
 func (p *provider) AddEmailTemplate(ctx context.Context, emailTemplate *schemas.EmailTemplate) (*schemas.EmailTemplate, error) {
-	collection := p.db.Table(schemas.Collections.EmailTemplate)
 	if emailTemplate.ID == "" {
 		emailTemplate.ID = uuid.New().String()
 	}
-
 	emailTemplate.Key = emailTemplate.ID
 	emailTemplate.CreatedAt = time.Now().Unix()
 	emailTemplate.UpdatedAt = time.Now().Unix()
-	err := collection.Put(emailTemplate).RunWithContext(ctx)
-
-	if err != nil {
+	if err := p.putItem(ctx, schemas.Collections.EmailTemplate, emailTemplate); err != nil {
 		return nil, err
 	}
-
 	return emailTemplate, nil
 }
 
 // UpdateEmailTemplate to update EmailTemplate
 func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate *schemas.EmailTemplate) (*schemas.EmailTemplate, error) {
-	collection := p.db.Table(schemas.Collections.EmailTemplate)
 	emailTemplate.UpdatedAt = time.Now().Unix()
-	err := UpdateByHashKey(collection, "id", emailTemplate.ID, emailTemplate)
-	if err != nil {
+	if err := p.updateByHashKey(ctx, schemas.Collections.EmailTemplate, "id", emailTemplate.ID, emailTemplate); err != nil {
 		return nil, err
 	}
 	return emailTemplate, nil
@@ -44,27 +37,35 @@ func (p *provider) UpdateEmailTemplate(ctx context.Context, emailTemplate *schem
 
 // ListEmailTemplates to list EmailTemplate
 func (p *provider) ListEmailTemplate(ctx context.Context, pagination *model.Pagination) ([]*schemas.EmailTemplate, *model.Pagination, error) {
-	var emailTemplate *schemas.EmailTemplate
-	var iter dynamo.PagingIter
-	var lastEval dynamo.PagingKey
-	var iteration int64 = 0
-	collection := p.db.Table(schemas.Collections.EmailTemplate)
-	emailTemplates := []*schemas.EmailTemplate{}
+	var lastKey map[string]types.AttributeValue
+	var iteration int64
 	paginationClone := pagination
-	scanner := collection.Scan()
-	count, err := scanner.Count()
+	var emailTemplates []*schemas.EmailTemplate
+
+	count, err := p.scanCount(ctx, schemas.Collections.EmailTemplate, nil)
 	if err != nil {
 		return nil, nil, err
 	}
+
 	for (paginationClone.Offset + paginationClone.Limit) > iteration {
-		iter = scanner.StartFrom(lastEval).Limit(paginationClone.Limit).Iter()
-		for iter.NextWithContext(ctx, &emailTemplate) {
+		items, next, err := p.scanPageIter(ctx, schemas.Collections.EmailTemplate, nil, int32(paginationClone.Limit), lastKey)
+		if err != nil {
+			return nil, nil, err
+		}
+		for _, it := range items {
+			var e schemas.EmailTemplate
+			if err := unmarshalItem(it, &e); err != nil {
+				return nil, nil, err
+			}
 			if paginationClone.Offset == iteration {
-				emailTemplates = append(emailTemplates, emailTemplate)
+				emailTemplates = append(emailTemplates, &e)
 			}
 		}
-		lastEval = iter.LastEvaluatedKey()
+		lastKey = next
 		iteration += paginationClone.Limit
+		if lastKey == nil {
+			break
+		}
 	}
 	paginationClone.Total = count
 	return emailTemplates, paginationClone, nil
@@ -72,39 +73,34 @@ func (p *provider) ListEmailTemplate(ctx context.Context, pagination *model.Pagi
 
 // GetEmailTemplateByID to get EmailTemplate by id
 func (p *provider) GetEmailTemplateByID(ctx context.Context, emailTemplateID string) (*schemas.EmailTemplate, error) {
-	collection := p.db.Table(schemas.Collections.EmailTemplate)
-	var emailTemplate *schemas.EmailTemplate
-	err := collection.Get("id", emailTemplateID).OneWithContext(ctx, &emailTemplate)
-	if err != nil {
+	var e schemas.EmailTemplate
+	if err := p.getItemByHash(ctx, schemas.Collections.EmailTemplate, "id", emailTemplateID, &e); err != nil {
 		return nil, err
 	}
-	return emailTemplate, nil
+	return &e, nil
 }
 
 // GetEmailTemplateByEventName to get EmailTemplate by event_name
 func (p *provider) GetEmailTemplateByEventName(ctx context.Context, eventName string) (*schemas.EmailTemplate, error) {
-	collection := p.db.Table(schemas.Collections.EmailTemplate)
-	var emailTemplates []*schemas.EmailTemplate
-	var emailTemplate *schemas.EmailTemplate
-	err := collection.Scan().Index("event_name").Filter("'event_name' = ?", eventName).Limit(1).AllWithContext(ctx, &emailTemplates)
+	// Query the event_name GSI — Scan+Limit applies before filters and can return zero matching items.
+	items, err := p.queryEq(ctx, schemas.Collections.EmailTemplate, "event_name", "event_name", eventName, nil)
 	if err != nil {
 		return nil, err
 	}
-	if len(emailTemplates) == 0 {
+	if len(items) == 0 {
 		return nil, errors.New("no record found")
-
 	}
-	emailTemplate = emailTemplates[0]
-	return emailTemplate, nil
+	var e schemas.EmailTemplate
+	if err := unmarshalItem(items[0], &e); err != nil {
+		return nil, err
+	}
+	return &e, nil
 }
 
 // DeleteEmailTemplate to delete EmailTemplate
 func (p *provider) DeleteEmailTemplate(ctx context.Context, emailTemplate *schemas.EmailTemplate) error {
-	collection := p.db.Table(schemas.Collections.EmailTemplate)
-	err := collection.Delete("id", emailTemplate.ID).RunWithContext(ctx)
-	if err != nil {
-		return err
+	if emailTemplate == nil {
+		return nil
 	}
-
-	return nil
+	return p.deleteItemByHash(ctx, schemas.Collections.EmailTemplate, "id", emailTemplate.ID)
 }

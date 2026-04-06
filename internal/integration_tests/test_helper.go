@@ -124,10 +124,17 @@ func getDBURL(dbType string) string {
 	}
 }
 
-// getTestConfig returns a test config for the default database (postgres).
-// For multi-DB testing, use runForEachDB instead.
+// getTestConfig returns config for integration tests that expect a single storage backend.
+// When TEST_DBS is unset, it behaves like "postgres" (one entry). When TEST_DBS lists
+// exactly one database (e.g. make test-dynamodb sets dynamodb), that backend is used.
+// If TEST_DBS lists multiple databases, Postgres is used so legacy tests keep a predictable default;
+// use runForEachDB to exercise more than one DB.
 func getTestConfig() *config.Config {
-	return getTestConfigForDB(constants.DbTypePostgres, "postgres://postgres:postgres@localhost:5434/postgres")
+	dbs := getTestDBs()
+	if len(dbs) == 1 {
+		return getTestConfigForDB(dbs[0].DbType, dbs[0].DbURL)
+	}
+	return getTestConfigForDB(constants.DbTypeSqlite, "test.db")
 }
 
 // getTestConfigForDB returns a test config for a specific database type and URL
@@ -168,6 +175,11 @@ func getTestConfigForDB(dbType, dbURL string) *config.Config {
 		cfg.CouchBaseBucket = "authorizer_test"
 	}
 
+	// DynamoDB Local (and AWS) expect a region for signing; avoid picking up real AWS keys in tests.
+	if dbType == constants.DbTypeDynamoDB {
+		cfg.AWSRegion = "us-east-1"
+	}
+
 	return cfg
 }
 
@@ -202,6 +214,12 @@ func runForEachDB(t *testing.T, testFn func(t *testing.T, cfg *config.Config)) {
 func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 	// Initialize logger
 	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
+
+	if cfg.DatabaseType == constants.DbTypeDynamoDB {
+		// Match storage tests: use static creds from config instead of ambient AWS_* env.
+		os.Unsetenv("AWS_ACCESS_KEY_ID")
+		os.Unsetenv("AWS_SECRET_ACCESS_KEY")
+	}
 
 	if cfg.DatabaseType == constants.DbTypeSqlite || cfg.DatabaseType == constants.DbTypeLibSQL {
 		cfg.DatabaseURL = filepath.Join(t.TempDir(), "authorizer_integration.db")

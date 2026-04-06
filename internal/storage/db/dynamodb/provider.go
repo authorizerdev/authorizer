@@ -5,14 +5,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/guregu/dynamo"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/rs/zerolog"
 
 	"github.com/authorizerdev/authorizer/internal/config"
-	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
 
 // Dependencies struct the dynamodb data store provider
@@ -23,75 +22,75 @@ type Dependencies struct {
 type provider struct {
 	config       *config.Config
 	dependencies *Dependencies
-	db           *dynamo.DB
+	client       *dynamodb.Client
 }
 
-// NewProvider returns a new Dynamo provider
+// NewProvider returns a new Dynamo provider using AWS SDK for Go v2.
 func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	dbURL := cfg.DatabaseURL
 	awsRegion := cfg.AWSRegion
 	awsAccessKeyID := cfg.AWSAccessKeyID
 	awsSecretAccessKey := cfg.AWSSecretAccessKey
 
-	awsCfg := aws.Config{
-		MaxRetries:                    aws.Int(3),
-		CredentialsChainVerboseErrors: aws.Bool(true), // for full error logs
+	region := awsRegion
+	if region == "" {
+		region = "us-east-1"
 	}
 
-	if awsRegion != "" {
-		awsCfg.Region = aws.String(awsRegion)
+	loadOpts := []func(*awsconfig.LoadOptions) error{
+		awsconfig.WithRegion(region),
 	}
-	// custom awsAccessKeyID, awsSecretAccessKey took first priority, if not then fetch config from aws credentials
+
 	if awsAccessKeyID != "" && awsSecretAccessKey != "" {
-		awsCfg.Credentials = credentials.NewStaticCredentials(awsAccessKeyID, awsSecretAccessKey, "")
+		loadOpts = append(loadOpts, awsconfig.WithCredentialsProvider(
+			credentials.NewStaticCredentialsProvider(awsAccessKeyID, awsSecretAccessKey, "")))
 	} else if dbURL != "" {
 		deps.Log.Info().Msg("Using DB URL for dynamodb")
-		// static config in case of testing or local-setup
-		awsCfg.Credentials = credentials.NewStaticCredentials("key", "key", "")
-		awsCfg.Endpoint = aws.String(dbURL)
+		loadOpts = append(loadOpts, awsconfig.WithCredentialsProvider(
+			credentials.NewStaticCredentialsProvider("key", "key", "")))
 	} else {
 		deps.Log.Info().Msg("Using default AWS credentials config from system for dynamodb")
 	}
-	sess, err := session.NewSession(&awsCfg)
-	if err != nil {
-		return nil, fmt.Errorf("dynamodb session: %w", err)
+
+	if dbURL != "" {
+		resolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
+			if service == dynamodb.ServiceID {
+				return aws.Endpoint{
+					URL:               dbURL,
+					HostnameImmutable: true,
+				}, nil
+			}
+			return aws.Endpoint{}, &aws.EndpointNotFoundError{}
+		})
+		loadOpts = append(loadOpts, awsconfig.WithEndpointResolverWithOptions(resolver))
 	}
-	db := dynamo.New(sess)
+
+	awsCfg, err := awsconfig.LoadDefaultConfig(context.Background(), loadOpts...)
+	if err != nil {
+		return nil, fmt.Errorf("aws config: %w", err)
+	}
+
+	client := dynamodb.NewFromConfig(awsCfg, func(o *dynamodb.Options) {
+		o.RetryMaxAttempts = 3
+	})
+
+	p := &provider{
+		client:       client,
+		config:       cfg,
+		dependencies: deps,
+	}
 
 	createCtx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
 
-	tables := []struct {
-		name  string
-		model interface{}
-	}{
-		{schemas.Collections.User, schemas.User{}},
-		{schemas.Collections.Session, schemas.Session{}},
-		{schemas.Collections.EmailTemplate, schemas.EmailTemplate{}},
-		{schemas.Collections.Env, schemas.Env{}},
-		{schemas.Collections.OTP, schemas.OTP{}},
-		{schemas.Collections.VerificationRequest, schemas.VerificationRequest{}},
-		{schemas.Collections.Webhook, schemas.Webhook{}},
-		{schemas.Collections.WebhookLog, schemas.WebhookLog{}},
-		{schemas.Collections.Authenticators, schemas.Authenticator{}},
-		{schemas.Collections.SessionToken, schemas.SessionToken{}},
-		{schemas.Collections.MFASession, schemas.MFASession{}},
-		{schemas.Collections.OAuthState, schemas.OAuthState{}},
-		{schemas.Collections.AuditLog, schemas.AuditLog{}},
+	if err := p.ensureTables(createCtx); err != nil {
+		return nil, err
 	}
-	for _, tbl := range tables {
-		if werr := db.CreateTable(tbl.name, tbl.model).WaitWithContext(createCtx); werr != nil {
-			return nil, fmt.Errorf("dynamodb create/wait table %q: %w", tbl.name, werr)
-		}
-	}
-	return &provider{
-		db:           db,
-		config:       cfg,
-		dependencies: deps,
-	}, nil
+
+	return p, nil
 }
 
-// Close is a no-op; the AWS SDK session needs no explicit shutdown for typical use.
+// Close is a no-op; the AWS SDK v2 client needs no explicit shutdown for typical use.
 func (p *provider) Close() error {
 	return nil
 }

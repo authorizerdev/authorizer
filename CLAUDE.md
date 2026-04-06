@@ -20,6 +20,7 @@ make build-dashboard      # Build admin UI (web/dashboard)
 make generate-graphql     # Regenerate after schema.graphqls change
 
 # Testing (TEST_DBS env var selects databases, default: postgres)
+# Optional: TEST_ENABLE_REDIS=1 runs Redis memory_store unit tests (Redis on localhost:6380).
 make test                 # Docker Postgres (default)
 make test-sqlite          # SQLite in-memory (no Docker)
 make test-mongodb         # Docker MongoDB
@@ -40,6 +41,7 @@ go clean --testcache && TEST_DBS="sqlite,postgres" go test -p 1 -v -run TestSign
 - Token management: `internal/token/`
 - Tests: `internal/integration_tests/`
 - Frontend: `web/app/` (user UI) | `web/dashboard/` (admin UI)
+- Optional NULL semantics across SQL/document DBs and DynamoDB: `docs/storage-optional-null-fields.md`
 
 **Pattern**: Every subsystem uses `Dependencies` struct + `New()` → `Provider` interface.
 

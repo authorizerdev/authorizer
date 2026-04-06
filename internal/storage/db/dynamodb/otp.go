@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
 	"github.com/google/uuid"
 
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
@@ -12,7 +13,6 @@ import (
 
 // UpsertOTP to add or update otp
 func (p *provider) UpsertOTP(ctx context.Context, otpParam *schemas.OTP) (*schemas.OTP, error) {
-	// check if email or phone number is present
 	if otpParam.Email == "" && otpParam.PhoneNumber == "" {
 		return nil, errors.New("email or phone_number is required")
 	}
@@ -43,13 +43,12 @@ func (p *provider) UpsertOTP(ctx context.Context, otpParam *schemas.OTP) (*schem
 		otp.Otp = otpParam.Otp
 		otp.ExpiresAt = otpParam.ExpiresAt
 	}
-	collection := p.db.Table(schemas.Collections.OTP)
 	otp.UpdatedAt = time.Now().Unix()
 	var err error
 	if shouldCreate {
-		err = collection.Put(otp).RunWithContext(ctx)
+		err = p.putItem(ctx, schemas.Collections.OTP, otp)
 	} else {
-		err = UpdateByHashKey(collection, "id", otp.ID, otp)
+		err = p.updateByHashKey(ctx, schemas.Collections.OTP, "id", otp.ID, otp)
 	}
 	if err != nil {
 		return nil, err
@@ -59,44 +58,41 @@ func (p *provider) UpsertOTP(ctx context.Context, otpParam *schemas.OTP) (*schem
 
 // GetOTPByEmail to get otp for a given email address
 func (p *provider) GetOTPByEmail(ctx context.Context, emailAddress string) (*schemas.OTP, error) {
-	var otps []schemas.OTP
-	var otp schemas.OTP
-	collection := p.db.Table(schemas.Collections.OTP)
-	err := collection.Scan().Index("email").Filter("'email' = ?", emailAddress).Limit(1).AllWithContext(ctx, &otps)
+	items, err := p.queryEqLimit(ctx, schemas.Collections.OTP, "email", "email", emailAddress, nil, 1)
 	if err != nil {
 		return nil, err
 	}
-	if len(otps) > 0 {
-		otp = otps[0]
-		return &otp, nil
+	if len(items) == 0 {
+		return nil, errors.New("no docuemnt found")
 	}
-	return nil, errors.New("no docuemnt found")
+	var otp schemas.OTP
+	if err := unmarshalItem(items[0], &otp); err != nil {
+		return nil, err
+	}
+	return &otp, nil
 }
 
 // GetOTPByPhoneNumber to get otp for a given phone number
 func (p *provider) GetOTPByPhoneNumber(ctx context.Context, phoneNumber string) (*schemas.OTP, error) {
-	var otps []schemas.OTP
-	var otp schemas.OTP
-	collection := p.db.Table(schemas.Collections.OTP)
-	err := collection.Scan().Filter("'phone_number' = ?", phoneNumber).Limit(1).AllWithContext(ctx, &otps)
+	f := expression.Name("phone_number").Equal(expression.Value(phoneNumber))
+	items, err := p.scanAllRaw(ctx, schemas.Collections.OTP, nil, &f)
 	if err != nil {
 		return nil, err
 	}
-	if len(otps) > 0 {
-		otp = otps[0]
-		return &otp, nil
+	if len(items) == 0 {
+		return nil, errors.New("no docuemnt found")
 	}
-	return nil, errors.New("no docuemnt found")
+	var otp schemas.OTP
+	if err := unmarshalItem(items[0], &otp); err != nil {
+		return nil, err
+	}
+	return &otp, nil
 }
 
 // DeleteOTP to delete otp
 func (p *provider) DeleteOTP(ctx context.Context, otp *schemas.OTP) error {
-	collection := p.db.Table(schemas.Collections.OTP)
-	if otp.ID != "" {
-		err := collection.Delete("id", otp.ID).RunWithContext(ctx)
-		if err != nil {
-			return err
-		}
+	if otp == nil || otp.ID == "" {
+		return nil
 	}
-	return nil
+	return p.deleteItemByHash(ctx, schemas.Collections.OTP, "id", otp.ID)
 }

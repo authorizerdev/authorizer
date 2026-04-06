@@ -9,6 +9,9 @@ import (
 )
 
 // Note: any change here should be reflected in providers/casandra/provider.go as it does not have model support in collection creation
+//
+// Nullable pointers (*int64, *string, etc.): do not add json/bson omitempty to fields that must
+// clear stored values when nil — see docs/storage-optional-null-fields.md.
 
 // User model for db
 type User struct {

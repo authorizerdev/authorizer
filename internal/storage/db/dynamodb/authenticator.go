@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
 	"github.com/google/uuid"
 
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
@@ -14,44 +15,39 @@ func (p *provider) AddAuthenticator(ctx context.Context, authenticators *schemas
 	if exists != nil {
 		return authenticators, nil
 	}
-
-	collection := p.db.Table(schemas.Collections.Authenticators)
 	if authenticators.ID == "" {
 		authenticators.ID = uuid.New().String()
 	}
-
 	authenticators.CreatedAt = time.Now().Unix()
 	authenticators.UpdatedAt = time.Now().Unix()
-	err := collection.Put(authenticators).RunWithContext(ctx)
-	if err != nil {
+	if err := p.putItem(ctx, schemas.Collections.Authenticators, authenticators); err != nil {
 		return nil, err
 	}
 	return authenticators, nil
 }
 
 func (p *provider) UpdateAuthenticator(ctx context.Context, authenticators *schemas.Authenticator) (*schemas.Authenticator, error) {
-	collection := p.db.Table(schemas.Collections.Authenticators)
 	if authenticators.ID != "" {
 		authenticators.UpdatedAt = time.Now().Unix()
-		err := UpdateByHashKey(collection, "id", authenticators.ID, authenticators)
-		if err != nil {
+		if err := p.updateByHashKey(ctx, schemas.Collections.Authenticators, "id", authenticators.ID, authenticators); err != nil {
 			return nil, err
 		}
 	}
 	return authenticators, nil
-
 }
 
 func (p *provider) GetAuthenticatorDetailsByUserId(ctx context.Context, userId string, authenticatorType string) (*schemas.Authenticator, error) {
-	var authenticators *schemas.Authenticator
-	collection := p.db.Table(schemas.Collections.Authenticators)
-	iter := collection.Scan().Filter("'user_id' = ?", userId).Filter("'method' = ?", authenticatorType).Iter()
-	for iter.NextWithContext(ctx, &authenticators) {
-		return authenticators, nil
-	}
-	err := iter.Err()
+	f := expression.Name("user_id").Equal(expression.Value(userId)).And(expression.Name("method").Equal(expression.Value(authenticatorType)))
+	items, err := p.scanFilteredAll(ctx, schemas.Collections.Authenticators, nil, &f)
 	if err != nil {
 		return nil, err
 	}
-	return authenticators, nil
+	if len(items) == 0 {
+		return nil, nil
+	}
+	var a schemas.Authenticator
+	if err := unmarshalItem(items[0], &a); err != nil {
+		return nil, err
+	}
+	return &a, nil
 }

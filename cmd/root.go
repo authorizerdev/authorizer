@@ -55,7 +55,7 @@ var (
 	defaultTwitterScopes     = []string{"tweet.read", "users.read"}
 	defaultRobloxScopes      = []string{"openid", "profile"}
 	// Default RPS cap per IP; raised from 10 to reduce false positives on busy UIs.
-	defaultRateLimitRPS   = float64(30)
+	defaultRateLimitRPS   = 30
 	defaultRateLimitBurst = 20
 )
 
@@ -161,7 +161,7 @@ func init() {
 	f.BoolVar(&rootArgs.config.DisableAdminHeaderAuth, "disable-admin-header-auth", false, "Disable admin authentication via X-Authorizer-Admin-Secret header")
 
 	// Rate limiting flags
-	f.Float64Var(&rootArgs.config.RateLimitRPS, "rate-limit-rps", defaultRateLimitRPS, "Maximum requests per second per IP for rate limiting")
+	f.IntVar(&rootArgs.config.RateLimitRPS, "rate-limit-rps", defaultRateLimitRPS, "Maximum requests per second per IP for rate limiting")
 	f.IntVar(&rootArgs.config.RateLimitBurst, "rate-limit-burst", defaultRateLimitBurst, "Maximum burst size per IP for rate limiting")
 	f.BoolVar(&rootArgs.config.RateLimitFailClosed, "rate-limit-fail-closed", false, "On rate-limit backend errors, reject with 503 instead of allowing the request")
 
