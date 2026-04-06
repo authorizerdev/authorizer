@@ -290,6 +290,13 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 
 	server := httptest.NewServer(r)
 
+	t.Cleanup(func() {
+		server.Close()
+		if storageProvider != nil {
+			_ = storageProvider.Close()
+		}
+	})
+
 	return &testSetup{
 		GraphQLProvider:     gqlProvider,
 		HttpProvider:        httpProvider,

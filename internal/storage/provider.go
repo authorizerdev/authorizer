@@ -171,6 +171,9 @@ type Provider interface {
 
 	// HealthCheck verifies that the storage backend is reachable and responsive.
 	HealthCheck(ctx context.Context) error
+
+	// Close releases resources held by the provider (e.g. database connection pools).
+	Close() error
 }
 
 // New creates a new database provider based on the configuration

@@ -15,11 +15,14 @@ import (
 // (e.g., OAuth callbacks, JWKS, OpenID configuration, health checks).
 // The middleware only rejects requests with an explicitly wrong client ID.
 func (h *httpProvider) ClientCheckMiddleware() gin.HandlerFunc {
-	log := h.Log.With().Str("func", "ClientCheckMiddleware").Logger()
 	return func(c *gin.Context) {
+		log := h.Log.With().Str("func", "ClientCheckMiddleware").
+			Str("path", c.Request.URL.Path).
+			Logger()
 		clientID := c.Request.Header.Get("X-Authorizer-Client-ID")
 		if clientID == "" {
-			log.Debug().Msg("request received without client ID header")
+			log.Info().Msg("request received without client ID header")
+			metrics.RecordClientIDNotFound()
 			c.Next()
 			return
 		}

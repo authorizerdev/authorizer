@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"strings"
 	"sync"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -102,7 +103,81 @@ var (
 		},
 		[]string{"status"},
 	)
+
+	// ClientIDNotFoundTotal tracks client ID not found events.
+	ClientIDNotFoundTotal = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "authorizer_client_id_not_found_total",
+			Help: "Total number of client ID not found events",
+		},
+	)
 )
+
+// staticAssetPathSuffixes are path suffixes (after lowercasing) treated as static files
+// for HTTP metrics filtering (images, icons, fonts, source maps, PWA manifest).
+var staticAssetPathSuffixes = []string{
+	".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".ico", ".bmp", ".avif", ".jfif",
+	".woff", ".woff2", ".ttf", ".otf", ".eot",
+	".webmanifest",
+	".map",
+}
+
+// SkipHTTPRequestMetrics reports whether a request path should be omitted from
+// HTTP request counters and histograms (UI routes, static assets, favicons, images, fonts).
+func SkipHTTPRequestMetrics(path string) bool {
+	if path == "" {
+		return false
+	}
+	if path == "/app" || strings.HasPrefix(path, "/app/") {
+		return true
+	}
+	if path == "/dashboard" || strings.HasPrefix(path, "/dashboard/") {
+		return true
+	}
+	if path == "/metrics" {
+		return true
+	}
+	for _, seg := range strings.Split(path, "/") {
+		if strings.HasPrefix(seg, "chunk-") {
+			return true
+		}
+	}
+	return skipHTTPRequestMetricsStaticAsset(path)
+}
+
+func skipHTTPRequestMetricsStaticAsset(path string) bool {
+	p := strings.ToLower(path)
+	if i := strings.Index(p, "?"); i >= 0 {
+		p = p[:i]
+	}
+	switch p {
+	case "/robots.txt", "/sitemap.xml", "/humans.txt", "/security.txt":
+		return true
+	}
+	for _, suf := range staticAssetPathSuffixes {
+		if strings.HasSuffix(p, suf) {
+			return true
+		}
+	}
+	file := p
+	if i := strings.LastIndex(p, "/"); i >= 0 {
+		file = p[i+1:]
+	}
+	if file == "" {
+		return false
+	}
+	if strings.HasPrefix(file, "favicon") {
+		return true
+	}
+	// Common browser / PWA icon filenames without matching suffix rules above.
+	if strings.Contains(file, "apple-touch-icon") ||
+		strings.Contains(file, "android-chrome") ||
+		strings.Contains(file, "safari-pinned-tab") ||
+		strings.Contains(file, "mstile-") {
+		return true
+	}
+	return false
+}
 
 // Init registers all metrics with the default prometheus registry.
 // It is safe to call multiple times; registration happens only once.
@@ -132,4 +207,9 @@ func RecordSecurityEvent(event, reason string) {
 // RecordGraphQLError records a GraphQL error for the given operation.
 func RecordGraphQLError(operation string) {
 	GraphQLErrorsTotal.WithLabelValues(operation).Inc()
+}
+
+// RecordClientIDNotFound records a client ID not found event.
+func RecordClientIDNotFound() {
+	ClientIDNotFoundTotal.Inc()
 }

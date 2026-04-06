@@ -202,3 +202,10 @@ func NewProvider(config *config.Config, deps *Dependencies) (*provider, error) {
 		db:           mongodb,
 	}, nil
 }
+
+// Close disconnects the MongoDB client.
+func (p *provider) Close() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	return p.db.Client().Disconnect(ctx)
+}

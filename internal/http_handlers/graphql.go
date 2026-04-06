@@ -3,6 +3,8 @@ package http_handlers
 import (
 	"context"
 	"net/http"
+	"sort"
+	"sync"
 	"time"
 
 	gql "github.com/99designs/gqlgen/graphql"
@@ -19,20 +21,45 @@ import (
 	"github.com/authorizerdev/authorizer/internal/metrics"
 )
 
-func (h *httpProvider) gqlLoggingMiddleware() gql.FieldMiddleware {
-	return func(ctx context.Context, next gql.Resolver) (res interface{}, err error) {
-		// Get details of the current operation
-		oc := gql.GetOperationContext(ctx)
-		field := gql.GetFieldContext(ctx)
+type gqlResolvedFieldsCtxKey struct{}
 
-		// Log operation details
-		h.Dependencies.Log.Info().
-			Str("operation", oc.OperationName).
-			Str("query", field.Field.Name).
-			// Interface("arguments", field.Args). // Enable only for debugging purpose else sensitive data will be logged
-			Msg("GraphQL field resolved")
+// resolvedFieldsCollector gathers unique GraphQL field names for one operation.
+type resolvedFieldsCollector struct {
+	mu     sync.Mutex
+	fields map[string]struct{}
+}
 
-		// Call the next resolver
+func (c *resolvedFieldsCollector) add(name string) {
+	if name == "" {
+		return
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.fields == nil {
+		c.fields = make(map[string]struct{})
+	}
+	c.fields[name] = struct{}{}
+}
+
+func (c *resolvedFieldsCollector) sortedUnique() []string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	out := make([]string, 0, len(c.fields))
+	for f := range c.fields {
+		out = append(out, f)
+	}
+	sort.Strings(out)
+	return out
+}
+
+// gqlCollectResolvedFieldsMiddleware records each resolved field name into the per-operation collector.
+func (*httpProvider) gqlCollectResolvedFieldsMiddleware() gql.FieldMiddleware {
+	return func(ctx context.Context, next gql.Resolver) (interface{}, error) {
+		if col, ok := ctx.Value(gqlResolvedFieldsCtxKey{}).(*resolvedFieldsCollector); ok && col != nil {
+			if fc := gql.GetFieldContext(ctx); fc != nil && fc.Field.Field != nil {
+				col.add(fc.Field.Name)
+			}
+		}
 		return next(ctx)
 	}
 }
@@ -48,6 +75,9 @@ func (h *httpProvider) gqlMetricsMiddleware() gql.OperationMiddleware {
 		}
 		start := time.Now()
 
+		collector := &resolvedFieldsCollector{}
+		ctx = context.WithValue(ctx, gqlResolvedFieldsCtxKey{}, collector)
+
 		responseHandler := next(ctx)
 
 		return func(ctx context.Context) *gql.Response {
@@ -60,6 +90,12 @@ func (h *httpProvider) gqlMetricsMiddleware() gql.OperationMiddleware {
 					metrics.RecordGraphQLError(operationName)
 				}
 			}
+			fields := collector.sortedUnique()
+			h.Dependencies.Log.Info().
+				Str("operation", operationName).
+				Strs("resolved_fields", fields).
+				Int("resolved_field_count", len(fields)).
+				Msg("GraphQL operation completed")
 			return resp
 		}
 	}
@@ -94,7 +130,7 @@ func (h *httpProvider) GraphqlHandler() gin.HandlerFunc {
 	srv.AddTransport(transport.POST{})
 
 	srv.SetQueryCache(lru.New[*ast.QueryDocument](1000))
-	srv.AroundFields(h.gqlLoggingMiddleware())
+	srv.AroundFields(h.gqlCollectResolvedFieldsMiddleware())
 	srv.AroundOperations(h.gqlMetricsMiddleware())
 	if h.Config.EnableGraphQLIntrospection {
 		srv.Use(extension.Introspection{})

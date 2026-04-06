@@ -30,6 +30,7 @@ type provider struct {
 	config       *config.Config
 	dependencies *Dependencies
 
+	cluster   *gocb.Cluster
 	db        *gocb.Scope
 	scopeName string
 }
@@ -111,9 +112,18 @@ func NewProvider(config *config.Config, deps *Dependencies) (*provider, error) {
 	return &provider{
 		config:       config,
 		dependencies: deps,
+		cluster:      cluster,
 		db:           scope,
 		scopeName:    scopeIdentifier,
 	}, nil
+}
+
+// Close shuts down the Couchbase cluster connection.
+func (p *provider) Close() error {
+	if p.cluster == nil {
+		return nil
+	}
+	return p.cluster.Close(nil)
 }
 
 func createBucketAndScope(cluster *gocb.Cluster, bucketName string, scopeName string, ramQuota string, waitTimeout time.Duration) (*gocb.Bucket, error) {

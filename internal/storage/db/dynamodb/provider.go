@@ -69,3 +69,8 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 		dependencies: deps,
 	}, nil
 }
+
+// Close is a no-op; the AWS SDK session needs no explicit shutdown for typical use.
+func (p *provider) Close() error {
+	return nil
+}

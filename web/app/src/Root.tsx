@@ -4,18 +4,6 @@ import { useAuthorizer } from '@authorizerdev/authorizer-react';
 import SetupPassword from './pages/setup-password';
 import { hasWindow, createRandomString } from './utils/common';
 
-function isValidRedirectUri(uri: string): boolean {
-	try {
-		const url = new URL(uri, window.location.origin);
-		if (url.origin === window.location.origin) return true;
-		// Only allow http/https protocols to prevent javascript: or data: URIs
-		if (url.protocol !== 'http:' && url.protocol !== 'https:') return false;
-		return false;
-	} catch {
-		return false;
-	}
-}
-
 const ResetPassword = lazy(() => import('./pages/rest-password'));
 const Login = lazy(() => import('./pages/login'));
 const Dashboard = lazy(() => import('./pages/dashboard'));
@@ -82,7 +70,10 @@ export default function Root({
 
 	const rawRedirectURL =
 		searchParams.get('redirect_uri') || searchParams.get('redirectURL');
-	if (rawRedirectURL && isValidRedirectUri(rawRedirectURL, config?.redirectURL)) {
+	if (
+		rawRedirectURL &&
+		isValidRedirectUri(rawRedirectURL, config?.redirectURL)
+	) {
 		urlProps.redirectURL = rawRedirectURL;
 	} else {
 		urlProps.redirectURL = hasWindow() ? window.location.origin : '/';

@@ -354,3 +354,9 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 		db:           arangodb,
 	}, err
 }
+
+// Close releases ArangoDB driver resources. The HTTP driver does not expose a pool close;
+// connections are reclaimed when the provider is discarded.
+func (p *provider) Close() error {
+	return nil
+}

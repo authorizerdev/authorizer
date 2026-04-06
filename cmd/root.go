@@ -52,7 +52,7 @@ var (
 	defaultDiscordScopes     = []string{"identify", "email"}
 	defaultTwitterScopes     = []string{"tweet.read", "users.read"}
 	defaultRobloxScopes      = []string{"openid", "profile"}
-	defaultRateLimitRPS      = float64(10)
+	defaultRateLimitRPS      = float64(30)
 	defaultRateLimitBurst    = 20
 )
 

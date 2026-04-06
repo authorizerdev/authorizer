@@ -373,6 +373,12 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 	}, err
 }
 
+// Close closes the Cassandra session.
+func (p *provider) Close() error {
+	p.db.Close()
+	return nil
+}
+
 // convertMapValues converts json.Number values in a map to native Go types
 // (int64 or float64) so gocql can marshal them into CQL bigint/double columns.
 func convertMapValues(m map[string]interface{}) {

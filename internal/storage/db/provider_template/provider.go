@@ -46,3 +46,15 @@ func NewProvider(
 		db:           sqlDB,
 	}, nil
 }
+
+// Close closes the underlying database pool when initialized.
+func (p *provider) Close() error {
+	if p.db == nil {
+		return nil
+	}
+	sqlDB, err := p.db.DB()
+	if err != nil {
+		return err
+	}
+	return sqlDB.Close()
+}

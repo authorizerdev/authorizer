@@ -24,6 +24,10 @@ func (h *httpProvider) MetricsMiddleware() gin.HandlerFunc {
 		duration := time.Since(start).Seconds()
 		status := fmt.Sprintf("%d", c.Writer.Status())
 
+		if metrics.SkipHTTPRequestMetrics(path) {
+			return
+		}
+
 		metrics.HTTPRequestsTotal.WithLabelValues(c.Request.Method, path, status).Inc()
 		metrics.HTTPRequestDuration.WithLabelValues(c.Request.Method, path).Observe(duration)
 	}

@@ -68,6 +68,7 @@ func (h *httpProvider) AppHandler() gin.HandlerFunc {
 				"state":            state,
 				"organizationName": orgName,
 				"organizationLogo": orgLogo,
+				"clientId":         h.Config.ClientID,
 			},
 		})
 	}
