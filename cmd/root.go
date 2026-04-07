@@ -90,6 +90,8 @@ func init() {
 	f.BoolVar(&rootArgs.config.EnableLoginPage, "enable-login-page", true, "Enable login page")
 	f.BoolVar(&rootArgs.config.EnablePlayground, "enable-playground", true, "Enable playground")
 	f.BoolVar(&rootArgs.config.EnableGraphQLIntrospection, "enable-graphql-introspection", true, "Enable GraphQL introspection for the /graphql endpoint")
+	f.BoolVar(&rootArgs.config.EnableHSTS, "enable-hsts", false, "Enable Strict-Transport-Security response header (only enable behind TLS)")
+	f.BoolVar(&rootArgs.config.DisableCSP, "disable-csp", false, "Disable the default Content-Security-Policy response header")
 
 	// Organization flags
 	f.StringVar(&rootArgs.config.OrganizationLogo, "organization-logo", defaultOrganizationLogo, "Logo of the organization")

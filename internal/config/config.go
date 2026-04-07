@@ -23,6 +23,14 @@ type Config struct {
 	EnablePlayground bool
 	// EnableGraphQLIntrospection is the flag to enable GraphQL introspection
 	EnableGraphQLIntrospection bool
+	// EnableHSTS opts in to the Strict-Transport-Security response header.
+	// Off by default because operators not behind TLS would lock themselves
+	// out for a year. Enable in production behind TLS.
+	EnableHSTS bool
+	// DisableCSP turns off the default Content-Security-Policy header.
+	// Off by default — CSP is on by default. Provided as an escape hatch
+	// for dashboards that load assets in ways the default policy blocks.
+	DisableCSP bool
 
 	// Database Configurations
 	// DatabaseType is the type of database to use
