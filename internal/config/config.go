@@ -31,6 +31,17 @@ type Config struct {
 	// Off by default — CSP is on by default. Provided as an escape hatch
 	// for dashboards that load assets in ways the default policy blocks.
 	DisableCSP bool
+	// GraphQLMaxComplexity caps the total complexity score of a single GraphQL
+	// operation. Operations exceeding this limit are rejected before execution.
+	GraphQLMaxComplexity int
+	// GraphQLMaxDepth caps the maximum nesting depth of a GraphQL selection set.
+	GraphQLMaxDepth int
+	// GraphQLMaxAliases caps the total number of aliased fields per operation.
+	// Defends against alias-amplification denial-of-service attacks.
+	GraphQLMaxAliases int
+	// GraphQLMaxBodyBytes caps the size of the request body accepted by the
+	// GraphQL endpoint to prevent oversized-payload denial of service.
+	GraphQLMaxBodyBytes int64
 
 	// Database Configurations
 	// DatabaseType is the type of database to use
