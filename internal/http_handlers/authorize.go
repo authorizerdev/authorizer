@@ -32,8 +32,11 @@ jargons
 **/
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -43,6 +46,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
+	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/token"
 	"github.com/authorizerdev/authorizer/internal/validators"
@@ -78,6 +82,41 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 		responseMode := strings.TrimSpace(gc.Query("response_mode"))
 		nonce := strings.TrimSpace(gc.Query("nonce"))
 		screenHint := strings.TrimSpace(gc.Query("screen_hint"))
+
+		// OIDC Core §3.1.2.1 standard authorization request parameters.
+		loginHint := strings.TrimSpace(gc.Query("login_hint"))
+		uiLocales := strings.TrimSpace(gc.Query("ui_locales"))
+		prompt := strings.TrimSpace(gc.Query("prompt"))
+		maxAgeStr := strings.TrimSpace(gc.Query("max_age"))
+		idTokenHint := strings.TrimSpace(gc.Query("id_token_hint"))
+
+		// max_age is advisory. Parse per OIDC Core §3.1.2.1:
+		//   - negative or non-integer → treat as absent (no constraint)
+		//   - max_age=0 → force re-auth (equivalent to prompt=login)
+		//   - positive → compare against session age (handled below)
+		maxAge := -1 // sentinel: "not supplied"
+		maxAgeZero := false
+		if maxAgeStr != "" {
+			if parsed, err := strconv.Atoi(maxAgeStr); err == nil && parsed >= 0 {
+				maxAge = parsed
+				if parsed == 0 {
+					maxAgeZero = true
+				}
+			}
+		}
+
+		// id_token_hint is advisory per OIDC Core §3.1.2.1. Validate
+		// structurally; on failure log at debug and continue.
+		hintedSub := h.parseIDTokenHintSubject(idTokenHint)
+		if idTokenHint != "" && hintedSub == "" {
+			log.Debug().Msg("id_token_hint provided but invalid — ignoring per OIDC Core §3.1.2.1")
+		}
+
+		// prompt=consent / prompt=select_account are accepted but not
+		// implemented in Phase 2.
+		if prompt == "consent" || prompt == "select_account" {
+			log.Debug().Str("prompt", prompt).Msg("prompt value accepted but not implemented in Phase 2 — proceeding normally")
+		}
 
 		var scope []string
 		if scopeString == "" {
@@ -138,6 +177,15 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 		// TODO add state with timeout
 		// used for response mode query or fragment
 		authState := "state=" + state + "&scope=" + scopeString + "&redirect_uri=" + redirectURI
+		// OIDC Core §3.1.2.1: login_hint and ui_locales are forwarded
+		// to the login UI so it can pre-fill the email field and pick
+		// the UI language.
+		if loginHint != "" {
+			authState += "&login_hint=" + url.QueryEscape(loginHint)
+		}
+		if uiLocales != "" {
+			authState += "&ui_locales=" + url.QueryEscape(uiLocales)
+		}
 		if responseType == constants.ResponseTypeCode {
 			authState += "&code=" + code
 			if err := h.MemoryStoreProvider.SetState(state, code+"@@"+codeChallenge); err != nil {
@@ -184,7 +232,87 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				"error_description": "Login is required",
 			},
 		}
+		// OIDC Core §3.1.2.1: prompt=login forces re-authentication even
+		// if a valid session exists. max_age similarly forces re-auth if
+		// the current session is older than the allowed window. We only
+		// apply forceReauth when prompt != "none" — prompt=none wants to
+		// check the existing session, not bypass it.
+		// max_age=0 is equivalent to prompt=login (force re-auth) per
+		// OIDC Core §3.1.2.1.
+		forceReauth := prompt == "login" || maxAgeZero
+
 		sessionToken, err := cookie.GetSession(gc)
+		if err == nil && !forceReauth && maxAge > 0 && prompt != "none" {
+			// Check session age against max_age.
+			if decryptedFingerPrint, decErr := crypto.DecryptAES(h.ClientSecret, sessionToken); decErr == nil {
+				var sd token.SessionData
+				if jsonErr := json.Unmarshal([]byte(decryptedFingerPrint), &sd); jsonErr == nil {
+					if time.Now().Unix()-sd.IssuedAt > int64(maxAge) {
+						log.Debug().Int("max_age", maxAge).Int64("session_age", time.Now().Unix()-sd.IssuedAt).Msg("session exceeds max_age — forcing re-auth")
+						forceReauth = true
+					}
+				}
+			}
+		}
+
+		if forceReauth {
+			err = errors.New("force reauth")
+			sessionToken = ""
+		}
+
+		// promptNoneLoginRequired dispatches the OIDC Core §3.1.2.1
+		// login_required error to the client's redirect_uri via the
+		// configured response_mode. Used whenever prompt=none cannot
+		// complete silently (missing session, expired session, etc).
+		promptNoneLoginRequired := func(reason string) {
+			log.Debug().Str("reason", reason).Msg("prompt=none cannot complete silently — returning login_required")
+			errParams := "error=login_required" +
+				"&error_description=" + url.QueryEscape("prompt=none was requested but the user is not authenticated") +
+				"&state=" + url.QueryEscape(state)
+			errRedirectURI := redirectURI
+			switch responseMode {
+			case constants.ResponseModeFragment:
+				if strings.Contains(errRedirectURI, "#") {
+					errRedirectURI = errRedirectURI + "&" + errParams
+				} else {
+					errRedirectURI = errRedirectURI + "#" + errParams
+				}
+			case constants.ResponseModeQuery:
+				if strings.Contains(errRedirectURI, "?") {
+					errRedirectURI = errRedirectURI + "&" + errParams
+				} else {
+					errRedirectURI = errRedirectURI + "?" + errParams
+				}
+			}
+			errData := map[string]interface{}{
+				"type": "authorization_response",
+				"response": map[string]interface{}{
+					"error":             "login_required",
+					"error_description": "prompt=none was requested but the user is not authenticated",
+					"state":             state,
+				},
+			}
+			switch responseMode {
+			case constants.ResponseModeWebMessage:
+				gc.HTML(http.StatusOK, authorizeWebMessageTemplate, gin.H{
+					"target_origin":          redirectURI,
+					"authorization_response": errData,
+				})
+			case constants.ResponseModeFormPost:
+				gc.HTML(http.StatusOK, authorizeFormPostTemplate, gin.H{
+					"target_origin":          redirectURI,
+					"authorization_response": errData["response"],
+				})
+			default:
+				gc.Redirect(http.StatusFound, errRedirectURI)
+			}
+		}
+
+		if prompt == "none" && (err != nil || sessionToken == "") {
+			promptNoneLoginRequired("no session cookie")
+			return
+		}
+
 		if err != nil {
 			log.Debug().Err(err).Msg("Error getting session token")
 			handleResponse(gc, responseMode, authURL, redirectURI, loginError, http.StatusOK)
@@ -195,6 +323,13 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 		claims, err := h.TokenProvider.ValidateBrowserSession(gc, sessionToken)
 		if err != nil {
 			log.Debug().Err(err).Msg("Error validating session token")
+			// OIDC Core §3.1.2.1: prompt=none with a stale/revoked
+			// session must still return login_required to the client,
+			// not redirect the user-agent to the login UI.
+			if prompt == "none" {
+				promptNoneLoginRequired("session validation failed")
+				return
+			}
 			handleResponse(gc, responseMode, authURL, redirectURI, loginError, http.StatusOK)
 			return
 		}
@@ -415,6 +550,26 @@ func (h *httpProvider) validateAuthorizeRequest(responseType, responseMode, clie
 	}
 
 	return nil
+}
+
+// parseIDTokenHintSubject parses and verifies an id_token_hint JWT
+// against the server's own signing key. Per OIDC Core §3.1.2.1 the hint
+// need not be unexpired — only structurally valid. Returns the subject
+// claim on success so callers can use it for logging / future
+// user-selection enforcement. Returns empty string on any failure.
+func (h *httpProvider) parseIDTokenHintSubject(idTokenHint string) string {
+	if idTokenHint == "" {
+		return ""
+	}
+	claims, err := h.TokenProvider.ParseJWTToken(idTokenHint)
+	if err != nil || claims == nil {
+		return ""
+	}
+	if tt, ok := claims["token_type"].(string); ok && tt != "" && tt != "id_token" {
+		return ""
+	}
+	sub, _ := claims["sub"].(string)
+	return sub
 }
 
 func handleResponse(gc *gin.Context, responseMode, authURI, redirectURI string, data map[string]interface{}, httpStatusCode int) {

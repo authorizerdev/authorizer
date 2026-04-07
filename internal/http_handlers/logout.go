@@ -3,6 +3,7 @@ package http_handlers
 import (
 	"encoding/json"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -56,10 +57,24 @@ func (h *httpProvider) LogoutHandler() gin.HandlerFunc {
 			// Valid id_token_hint — fall through to the normal logout flow.
 		}
 
-		redirectURL := strings.TrimSpace(gc.Query("redirect_uri"))
-		// Allow redirect_uri to come from POST form body too.
+		// OIDC RP-Initiated Logout 1.0 §3 uses post_logout_redirect_uri.
+		// Fall back to the legacy redirect_uri for backward compatibility.
+		redirectURL := strings.TrimSpace(gc.Query("post_logout_redirect_uri"))
+		if redirectURL == "" {
+			redirectURL = strings.TrimSpace(gc.PostForm("post_logout_redirect_uri"))
+		}
+		if redirectURL == "" {
+			redirectURL = strings.TrimSpace(gc.Query("redirect_uri"))
+		}
 		if redirectURL == "" {
 			redirectURL = strings.TrimSpace(gc.PostForm("redirect_uri"))
+		}
+
+		// state, when present, MUST be echoed on the final redirect per
+		// OIDC RP-Initiated Logout §3.
+		state := strings.TrimSpace(gc.Query("state"))
+		if state == "" {
+			state = strings.TrimSpace(gc.PostForm("state"))
 		}
 		// get fingerprint hash
 		fingerprintHash, err := cookie.GetSession(gc)
@@ -120,7 +135,16 @@ func (h *httpProvider) LogoutHandler() gin.HandlerFunc {
 				})
 				return
 			}
-			gc.Redirect(http.StatusFound, redirectURL)
+			// Append state if supplied (OIDC RP-Initiated Logout §3).
+			finalURL := redirectURL
+			if state != "" {
+				if strings.Contains(finalURL, "?") {
+					finalURL = finalURL + "&state=" + url.QueryEscape(state)
+				} else {
+					finalURL = finalURL + "?state=" + url.QueryEscape(state)
+				}
+			}
+			gc.Redirect(http.StatusFound, finalURL)
 		} else {
 			gc.JSON(http.StatusOK, gin.H{
 				"message": "Logged out successfully",
