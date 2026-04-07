@@ -31,14 +31,16 @@ func TestForgotPassword(t *testing.T) {
 	assert.NotNil(t, signupRes)
 	assert.NotNil(t, signupRes.User)
 
-	// Create forgot password request
-	t.Run("should fail for invalid email", func(t *testing.T) {
+	// To prevent user enumeration, ForgotPassword returns the same generic
+	// success response whether or not the account exists. The previous
+	// behaviour of returning an error for unknown emails was a leak.
+	t.Run("should return generic success for unknown email", func(t *testing.T) {
 		forgotPasswordReq := &model.ForgotPasswordRequest{
 			Email: refs.NewStringRef("invalid-email@gmail.com"),
 		}
 		forgotPasswordRes, err := ts.GraphQLProvider.ForgotPassword(ctx, forgotPasswordReq)
-		assert.Error(t, err)
-		assert.Nil(t, forgotPasswordRes)
+		assert.NoError(t, err)
+		assert.NotNil(t, forgotPasswordRes)
 	})
 
 	t.Run("should send forgot password email", func(t *testing.T) {

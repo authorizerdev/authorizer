@@ -357,8 +357,12 @@ func TestForgotPasswordMetrics(t *testing.T) {
 		forgotReq := &model.ForgotPasswordRequest{
 			Email: refs.NewStringRef(nonExistentEmail),
 		}
-		_, err := ts.GraphQLProvider.ForgotPassword(ctx, forgotReq)
-		assert.Error(t, err)
+		// To prevent user enumeration, ForgotPassword now returns the same
+		// generic success response whether or not the account exists. The
+		// failure metric is still recorded internally for ops visibility.
+		res, err := ts.GraphQLProvider.ForgotPassword(ctx, forgotReq)
+		assert.NoError(t, err)
+		assert.NotNil(t, res)
 
 		w := httptest.NewRecorder()
 		req, err := http.NewRequest(http.MethodGet, "/metrics", nil)

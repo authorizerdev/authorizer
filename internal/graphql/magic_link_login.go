@@ -81,8 +81,13 @@ func (g *graphqlProvider) MagicLinkLogin(ctx context.Context, params *model.Magi
 		// 		Need to modify roles in this case
 
 		if user.RevokedTimestamp != nil {
-			log.Debug().Msg("User access has been revoked")
-			return nil, fmt.Errorf(`user access has been revoked`)
+			// Do not reveal that the account exists but is revoked. Return the
+			// same generic "magic link sent" response a successful path would
+			// return; the real reason is recorded at debug level.
+			log.Debug().Str("reason", "account_revoked").Msg("magic link silently dropped")
+			return &model.Response{
+				Message: `If an account exists for this email, a magic link has been sent. Please check your inbox. If you don't receive it within a few minutes, double-check the email address for typos.`,
+			}, nil
 		}
 
 		// find the unassigned roles
@@ -207,6 +212,6 @@ func (g *graphqlProvider) MagicLinkLogin(ctx context.Context, params *model.Magi
 	})
 
 	return &model.Response{
-		Message: `Magic Link has been sent to your email. Please check your inbox!`,
+		Message: `If an account exists for this email, a magic link has been sent. Please check your inbox. If you don't receive it within a few minutes, double-check the email address for typos.`,
 	}, nil
 }

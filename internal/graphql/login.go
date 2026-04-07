@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -21,6 +22,33 @@ import (
 	"github.com/authorizerdev/authorizer/internal/utils"
 	"github.com/authorizerdev/authorizer/internal/validators"
 )
+
+// genericLoginErr is the single error returned for any authentication failure.
+// All distinct failure causes (user not found, wrong password, email not verified,
+// wrong auth method, account revoked) collapse to this message to prevent user
+// enumeration. The real reason is recorded in the debug log for ops visibility.
+const genericLoginErrMsg = "invalid credentials"
+
+// dummyBcryptHash is a precomputed bcrypt hash used to equalise the response
+// time of the user-not-found path with the real password verification path.
+// Without this, an attacker can distinguish "no such user" from "wrong
+// password" by measuring response latency (no bcrypt vs one bcrypt).
+var (
+	dummyBcryptHash []byte
+	dummyBcryptOnce sync.Once
+)
+
+// performDummyPasswordCheck runs a constant-cost bcrypt comparison whose result
+// is intentionally discarded. Call it on the user-not-found / no-password
+// branches so the request still does roughly the same amount of CPU work as a
+// real authentication attempt.
+func performDummyPasswordCheck(password string) {
+	dummyBcryptOnce.Do(func() {
+		// generated lazily so cost depends on bcrypt.DefaultCost at runtime
+		dummyBcryptHash, _ = bcrypt.GenerateFromPassword([]byte("dummy-password-for-timing"), bcrypt.DefaultCost)
+	})
+	_ = bcrypt.CompareHashAndPassword(dummyBcryptHash, []byte(password))
+}
 
 // Login is the method to login a user.
 // User can login with email or phone number, but not both
@@ -62,15 +90,19 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 		log.Debug().Str("phone_number", phoneNumber).Msg("User found by phone number")
 	}
 	if err != nil {
-		log.Debug().Err(err).Msg("Failed to get user by email or phone number")
+		log.Debug().Err(err).Str("reason", "user_not_found").Msg("login failed")
 		metrics.RecordAuthEvent(metrics.EventLogin, metrics.StatusFailure)
-		return nil, fmt.Errorf(`invalid credentials`)
+		// Equalise response timing with the real bcrypt path so an attacker
+		// cannot distinguish "no such user" from "wrong password" by latency.
+		performDummyPasswordCheck(params.Password)
+		return nil, fmt.Errorf(genericLoginErrMsg)
 	}
 	if user.RevokedTimestamp != nil {
-		log.Debug().Msg("User access has been revoked")
+		log.Debug().Str("reason", "account_revoked").Msg("login failed")
 		metrics.RecordAuthEvent(metrics.EventLogin, metrics.StatusFailure)
 		metrics.RecordSecurityEvent("account_revoked", "login_attempt")
-		return nil, fmt.Errorf(`invalid credentials`)
+		performDummyPasswordCheck(params.Password)
+		return nil, fmt.Errorf(genericLoginErrMsg)
 	}
 	isEmailServiceEnabled := g.Config.IsEmailServiceEnabled
 	isSMSServiceEnabled := g.Config.IsSMSServiceEnabled
@@ -105,23 +137,26 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 	}
 	if isEmailLogin {
 		if !strings.Contains(user.SignupMethods, constants.AuthRecipeMethodBasicAuth) {
-			log.Debug().Msg("User signup method is not email basic auth")
-			return nil, fmt.Errorf(`user has not signed up email & password`)
+			log.Debug().Str("reason", "wrong_signup_method").Msg("login failed")
+			performDummyPasswordCheck(params.Password)
+			return nil, fmt.Errorf(genericLoginErrMsg)
 		}
 
 		if user.EmailVerifiedAt == nil {
 			// Check if email service is enabled
 			// Send email verification via otp
 			if !isEmailServiceEnabled {
-				log.Debug().Msg("Email service is not enabled")
-				return nil, fmt.Errorf(`email not verified`)
+				log.Debug().Str("reason", "email_not_verified_no_email_service").Msg("login failed")
+				performDummyPasswordCheck(params.Password)
+				return nil, fmt.Errorf(genericLoginErrMsg)
 			} else {
 				if vreq, err := g.StorageProvider.GetVerificationRequestByEmail(ctx, email, constants.VerificationTypeBasicAuthSignup); err == nil && vreq != nil {
 					// if verification request exists and not expired then return
 					// if verification request exists and expired then delete it and proceed
 					if vreq.ExpiresAt > time.Now().Unix() {
-						log.Debug().Msg("Email verification pending")
-						return nil, fmt.Errorf(`email verification pending`)
+						log.Debug().Str("reason", "email_verification_pending").Msg("login failed")
+						performDummyPasswordCheck(params.Password)
+						return nil, fmt.Errorf(genericLoginErrMsg)
 					} else {
 						if err := g.StorageProvider.DeleteVerificationRequest(ctx, vreq); err != nil {
 							log.Debug().Msg("Failed to delete verification request")
@@ -160,14 +195,16 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 		}
 	} else {
 		if !strings.Contains(user.SignupMethods, constants.AuthRecipeMethodMobileBasicAuth) {
-			log.Debug().Msg("User signup method is not phone number basic auth")
-			return nil, fmt.Errorf(`user has not signed up with phone number & password`)
+			log.Debug().Str("reason", "wrong_signup_method_phone").Msg("login failed")
+			performDummyPasswordCheck(params.Password)
+			return nil, fmt.Errorf(genericLoginErrMsg)
 		}
 
 		if user.PhoneNumberVerifiedAt == nil {
 			if !isSMSServiceEnabled {
-				log.Debug().Msg("SMS service is not enabled")
-				return nil, fmt.Errorf(`phone number is not verified and sms service is not enabled`)
+				log.Debug().Str("reason", "phone_not_verified_no_sms_service").Msg("login failed")
+				performDummyPasswordCheck(params.Password)
+				return nil, fmt.Errorf(genericLoginErrMsg)
 			} else {
 				expiresAt := time.Now().Add(1 * time.Minute).Unix()
 				otpData, err := generateOTP(expiresAt)
@@ -197,7 +234,7 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 	}
 	err = bcrypt.CompareHashAndPassword([]byte(*user.Password), []byte(params.Password))
 	if err != nil {
-		log.Debug().Msg("Bad user credentials")
+		log.Debug().Str("reason", "bad_password").Msg("login failed")
 		metrics.RecordAuthEvent(metrics.EventLogin, metrics.StatusFailure)
 		metrics.RecordSecurityEvent("invalid_credentials", "bad_password")
 		g.AuditProvider.LogEvent(audit.Event{
@@ -210,7 +247,7 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 			IPAddress:    utils.GetIP(gc.Request),
 			UserAgent:    utils.GetUserAgent(gc.Request),
 		})
-		return nil, fmt.Errorf(`bad user credentials`)
+		return nil, fmt.Errorf(genericLoginErrMsg)
 	}
 	roles := g.Config.DefaultRoles
 	currentRoles := strings.Split(user.Roles, ",")
