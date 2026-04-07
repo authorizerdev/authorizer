@@ -67,7 +67,7 @@ func (g *graphqlProvider) ForgotPassword(ctx context.Context, params *model.Forg
 		log.Debug().Err(err).Str("reason", "user_not_found").Msg("forgot password silently dropped")
 		metrics.RecordAuthEvent(metrics.EventForgotPwd, metrics.StatusFailure)
 		return &model.ForgotPasswordResponse{
-			Message: `Please check your inbox! We have sent a password reset link.`,
+			Message: `If an account exists for this email, a password reset link has been sent. Please check your inbox. If you don't receive it within a few minutes, double-check the email address for typos.`,
 		}, nil
 	}
 	hostname := parsers.GetHost(gc)
@@ -80,7 +80,7 @@ func (g *graphqlProvider) ForgotPassword(ctx context.Context, params *model.Forg
 		log.Debug().Str("reason", "account_revoked").Msg("forgot password silently dropped")
 		metrics.RecordAuthEvent(metrics.EventForgotPwd, metrics.StatusFailure)
 		return &model.ForgotPasswordResponse{
-			Message: `Please check your inbox! We have sent a password reset link.`,
+			Message: `If an account exists for this email, a password reset link has been sent. Please check your inbox. If you don't receive it within a few minutes, double-check the email address for typos.`,
 		}, nil
 	}
 	if isEmailLogin {
@@ -140,7 +140,7 @@ func (g *graphqlProvider) ForgotPassword(ctx context.Context, params *model.Forg
 		})
 		metrics.RecordAuthEvent(metrics.EventForgotPwd, metrics.StatusSuccess)
 		return &model.ForgotPasswordResponse{
-			Message: `Please check your inbox! We have sent a password reset link.`,
+			Message: `If an account exists for this email, a password reset link has been sent. Please check your inbox. If you don't receive it within a few minutes, double-check the email address for typos.`,
 		}, nil
 	}
 	if isMobileLogin {

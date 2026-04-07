@@ -86,7 +86,7 @@ func (g *graphqlProvider) MagicLinkLogin(ctx context.Context, params *model.Magi
 			// return; the real reason is recorded at debug level.
 			log.Debug().Str("reason", "account_revoked").Msg("magic link silently dropped")
 			return &model.Response{
-				Message: `Magic Link has been sent to your email. Please check your inbox!`,
+				Message: `If an account exists for this email, a magic link has been sent. Please check your inbox. If you don't receive it within a few minutes, double-check the email address for typos.`,
 			}, nil
 		}
 
@@ -212,6 +212,6 @@ func (g *graphqlProvider) MagicLinkLogin(ctx context.Context, params *model.Magi
 	})
 
 	return &model.Response{
-		Message: `Magic Link has been sent to your email. Please check your inbox!`,
+		Message: `If an account exists for this email, a magic link has been sent. Please check your inbox. If you don't receive it within a few minutes, double-check the email address for typos.`,
 	}, nil
 }

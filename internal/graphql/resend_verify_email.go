@@ -40,10 +40,12 @@ func (g *graphqlProvider) ResendVerifyEmail(ctx context.Context, params *model.R
 	}
 
 	// Do not reveal whether the account or its pending verification exists.
-	// Return the same generic success response in all cases. The real reason
-	// is logged at debug level.
+	// Return the same generic response in every code path — including the
+	// success path further down — so the user cannot tell from the response
+	// alone whether the email matched a real account. The real reason is
+	// logged at debug level.
 	genericResponse := &model.Response{
-		Message: `Verification email has been sent. Please check your inbox`,
+		Message: `If a verification is pending for this email, a new link has been sent. Please check your inbox. If you don't receive it within a few minutes, double-check the email address for typos.`,
 	}
 
 	user, err := g.StorageProvider.GetUserByEmail(ctx, params.Email)
@@ -109,7 +111,5 @@ func (g *graphqlProvider) ResendVerifyEmail(ctx context.Context, params *model.R
 		UserAgent:    utils.GetUserAgent(gc.Request),
 	})
 
-	return &model.Response{
-		Message: `Verification email has been sent. Please check your inbox`,
-	}, nil
+	return genericResponse, nil
 }
