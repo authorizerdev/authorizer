@@ -41,6 +41,7 @@ type testSetup struct {
 	StorageProvider       storage.Provider
 	MemoryStoreProvider   memory_store.Provider
 	AuthenticatorProvider authenticators.Provider
+	TokenProvider         token.Provider
 }
 
 func createContext(s *testSetup) (*http.Request, context.Context) {
@@ -248,5 +249,6 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 		StorageProvider:       storageProvider,
 		MemoryStoreProvider:   memoryStoreProvider,
 		AuthenticatorProvider: authProvider,
+		TokenProvider:         tokenProvider,
 	}
 }

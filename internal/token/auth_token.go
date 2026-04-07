@@ -406,13 +406,22 @@ func (p *provider) CreateIDToken(cfg *AuthTokenConfig) (string, int64, error) {
 		"login_method":        cfg.LoginMethod,
 		p.config.JWTRoleClaim: cfg.Roles,
 	}
-	// split nonce to see if its authorization code grant method
-	if cfg.CodeHash != "" {
+	// OIDC Core §3.1.3.6 / §3.2.2.10:
+	//   at_hash REQUIRED whenever the response includes an access_token
+	//           in the same flow. CreateAuthToken always issues an
+	//           access_token, so cfg.AtHash is always populated.
+	//   c_hash  REQUIRED only in hybrid flows that return both code and
+	//           id_token. Currently never set; reserved for Phase 3.
+	//   nonce   MUST be echoed whenever the auth request supplied one,
+	//           regardless of flow.
+	if cfg.AtHash != "" {
 		customClaims["at_hash"] = cfg.AtHash
+	}
+	if cfg.CodeHash != "" {
 		customClaims["c_hash"] = cfg.CodeHash
-	} else {
+	}
+	if cfg.Nonce != "" {
 		customClaims["nonce"] = cfg.Nonce
-		customClaims["at_hash"] = cfg.Nonce
 	}
 	for k, v := range userMap {
 		if k != "roles" {
