@@ -1,6 +1,7 @@
 package token
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/gin-gonic/gin"
@@ -62,6 +63,10 @@ type Provider interface {
 	ValidateJWTTokenWithoutNonce(claims jwt.MapClaims, authTokenConfig *AuthTokenConfig) (bool, error)
 	// ValidateRefreshToken validates refresh token
 	ValidateRefreshToken(gc *gin.Context, refreshToken string) (map[string]interface{}, error)
+	// NotifyBackchannelLogout signs and POSTs an OIDC Back-Channel Logout
+	// 1.0 logout_token to the supplied URI. Intended to be invoked from a
+	// goroutine; remote HTTP failures are not surfaced beyond the local error.
+	NotifyBackchannelLogout(ctx context.Context, uri string, cfg *BackchannelLogoutConfig) error
 }
 
 // New returns a new token provider
