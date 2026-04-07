@@ -56,16 +56,17 @@ func (q *queryLimits) MutateOperationContext(ctx context.Context, rc *gql.Operat
 	if rc == nil || rc.Operation == nil {
 		return nil
 	}
-	if q.maxDepth > 0 {
-		depth := selectionSetDepth(rc.Operation.SelectionSet)
-		if depth > q.maxDepth {
+	// Single AST walk computes both max depth and total alias count so we
+	// touch each selection-set node exactly once. The earlier two-pass
+	// implementation walked the same tree twice for legitimate traffic;
+	// folding them halves the per-request AST work.
+	if q.maxDepth > 0 || q.maxAliases > 0 {
+		depth, aliases := walkSelectionSet(rc.Operation.SelectionSet)
+		if q.maxDepth > 0 && depth > q.maxDepth {
 			metrics.RecordGraphQLLimitRejection(metrics.GraphQLLimitDepth)
 			return gqlerror.Errorf("query depth %d exceeds maximum allowed depth %d", depth, q.maxDepth)
 		}
-	}
-	if q.maxAliases > 0 {
-		aliases := countAliases(rc.Operation.SelectionSet)
-		if aliases > q.maxAliases {
+		if q.maxAliases > 0 && aliases > q.maxAliases {
 			metrics.RecordGraphQLLimitRejection(metrics.GraphQLLimitAlias)
 			return gqlerror.Errorf("query uses %d aliases, exceeds maximum %d", aliases, q.maxAliases)
 		}
@@ -80,50 +81,39 @@ func (q *queryLimits) MutateOperationContext(ctx context.Context, rc *gql.Operat
 	return nil
 }
 
-func selectionSetDepth(set ast.SelectionSet) int {
-	max := 0
-	for _, sel := range set {
-		switch s := sel.(type) {
-		case *ast.Field:
-			d := 1 + selectionSetDepth(s.SelectionSet)
-			if d > max {
-				max = d
-			}
-		case *ast.InlineFragment:
-			d := selectionSetDepth(s.SelectionSet)
-			if d > max {
-				max = d
-			}
-		case *ast.FragmentSpread:
-			if s.Definition != nil {
-				d := selectionSetDepth(s.Definition.SelectionSet)
-				if d > max {
-					max = d
-				}
-			}
-		}
-	}
-	return max
-}
-
-func countAliases(set ast.SelectionSet) int {
-	n := 0
+// walkSelectionSet returns (max nesting depth, total alias count) for the
+// supplied selection set in a single recursive pass. Inline fragments and
+// fragment spreads do not contribute their own depth level (matching the
+// usual GraphQL convention) but their aliases do count.
+func walkSelectionSet(set ast.SelectionSet) (depth, aliases int) {
 	for _, sel := range set {
 		switch s := sel.(type) {
 		case *ast.Field:
 			if s.Alias != "" && s.Alias != s.Name {
-				n++
+				aliases++
 			}
-			n += countAliases(s.SelectionSet)
+			childDepth, childAliases := walkSelectionSet(s.SelectionSet)
+			aliases += childAliases
+			if d := 1 + childDepth; d > depth {
+				depth = d
+			}
 		case *ast.InlineFragment:
-			n += countAliases(s.SelectionSet)
+			childDepth, childAliases := walkSelectionSet(s.SelectionSet)
+			aliases += childAliases
+			if childDepth > depth {
+				depth = childDepth
+			}
 		case *ast.FragmentSpread:
 			if s.Definition != nil {
-				n += countAliases(s.Definition.SelectionSet)
+				childDepth, childAliases := walkSelectionSet(s.Definition.SelectionSet)
+				aliases += childAliases
+				if childDepth > depth {
+					depth = childDepth
+				}
 			}
 		}
 	}
-	return n
+	return depth, aliases
 }
 
 type gqlResolvedFieldsCtxKey struct{}
