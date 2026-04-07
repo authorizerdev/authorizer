@@ -72,11 +72,16 @@ func (g *graphqlProvider) TestEndpoint(ctx context.Context, params *model.TestEn
 		return nil, err
 	}
 
-	// SSRF protection: validate endpoint URL and resolved IPs. Skipped only when tests
-	// explicitly set SkipTestEndpointSSRFValidation (never enable that flag in production).
+	// SSRF protection: resolve the host once and pin the dialer to the validated
+	// IP so http.Client cannot be tricked into re-resolving (DNS rebinding TOCTOU).
+	// Skipped only when tests explicitly set SkipTestEndpointSSRFValidation.
 	skipSSRF := g.Config.Env == constants.TestEnv && g.Config.SkipTestEndpointSSRFValidation
-	if !skipSSRF {
-		if err := validators.ValidateEndpointURL(params.Endpoint); err != nil {
+	var client *http.Client
+	if skipSSRF {
+		client = &http.Client{Timeout: time.Second * 30}
+	} else {
+		client, err = validators.SafeHTTPClient(ctx, params.Endpoint, time.Second*30)
+		if err != nil {
 			log.Debug().Err(err).Str("endpoint", params.Endpoint).Msg("endpoint URL rejected by SSRF filter")
 			return nil, fmt.Errorf("invalid endpoint: %w", err)
 		}
@@ -91,7 +96,6 @@ func (g *graphqlProvider) TestEndpoint(ctx context.Context, params *model.TestEn
 	for key, val := range params.Headers {
 		req.Header.Set(key, val.(string))
 	}
-	client := &http.Client{Timeout: time.Second * 30}
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Debug().Err(err).Msg("error making request")

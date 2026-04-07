@@ -101,8 +101,11 @@ func (p *provider) RegisterEvent(ctx context.Context, eventName string, authReci
 			continue
 		}
 
-		// SSRF protection: validate endpoint URL and resolved IPs
-		if err := validators.ValidateEndpointURL(webhook.EndPoint); err != nil {
+		// SSRF protection: resolve the host once and pin the dialer to the
+		// validated IP so http.Client cannot be tricked into re-resolving
+		// (DNS rebinding TOCTOU).
+		client, err := validators.SafeHTTPClient(ctx, webhook.EndPoint, time.Second*30)
+		if err != nil {
 			log.Debug().Err(err).Str("endpoint", webhook.EndPoint).Msg("webhook endpoint rejected by SSRF filter")
 			p.deps.StorageProvider.AddWebhookLog(ctx, &schemas.WebhookLog{
 				HttpStatus: 0,
@@ -135,7 +138,6 @@ func (p *provider) RegisterEvent(ctx context.Context, eventName string, authReci
 			req.Header.Set(key, val.(string))
 		}
 
-		client := &http.Client{Timeout: time.Second * 30}
 		resp, err := client.Do(req)
 		if err != nil {
 			log.Debug().Err(err).Msg("error making request")
