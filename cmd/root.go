@@ -184,8 +184,8 @@ func init() {
 	// JWT secondary key flags (for manual key rotation)
 	f.StringVar(&rootArgs.config.JWTSecondaryType, "jwt-secondary-type", "", "Algorithm of the optional secondary JWT key used for manual rotation. When set, JWKS publishes both keys and token validation accepts either. New tokens are always signed with the primary (--jwt-type) key.")
 	f.StringVar(&rootArgs.config.JWTSecondarySecret, "jwt-secondary-secret", "", "Secret for the secondary JWT key (HMAC only; never exposed via JWKS)")
-	f.StringVar(&rootArgs.config.JWTSecondaryPrivateKey, "jwt-secondary-private-key", "", "Private key for the secondary JWT key")
-	f.StringVar(&rootArgs.config.JWTSecondaryPublicKey, "jwt-secondary-public-key", "", "Public key for the secondary JWT key")
+	f.StringVar(&rootArgs.config.JWTSecondaryPrivateKey, "jwt-secondary-private-key", "", "Private key for the secondary JWT key. Currently unused — verification only uses the public key; kept for symmetry with --jwt-private-key and for future primary/secondary swap automation.")
+	f.StringVar(&rootArgs.config.JWTSecondaryPublicKey, "jwt-secondary-public-key", "", "Public key for the secondary JWT key. Used to verify tokens signed with the secondary key during rotation.")
 	f.StringVar(&rootArgs.config.JWTRoleClaim, "jwt-role-claim", defaultJWTRoleClaim, "Role claim for the JWT")
 	f.StringVar(&rootArgs.config.CustomAccessTokenScript, "custom-access-token-script", "", "Custom access token script")
 

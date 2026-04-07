@@ -145,7 +145,12 @@ func (h *httpProvider) IntrospectHandler() gin.HandlerFunc {
 			}
 		}
 		copyIfPresent("scope", "scope")
-		copyIfPresent("aud", "client_id")
+		// RFC 7662 §2.2: client_id MUST be a string — set it directly
+		// from h.Config.ClientID rather than copying from the `aud`
+		// claim, which may be a JSON array for multi-audience tokens.
+		// The audience check above already confirmed h.Config.ClientID
+		// is in the audience set.
+		resp["client_id"] = h.Config.ClientID
 		copyIfPresent("exp", "exp")
 		copyIfPresent("iat", "iat")
 		copyIfPresent("sub", "sub")
