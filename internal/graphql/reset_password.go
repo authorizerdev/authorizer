@@ -111,7 +111,10 @@ func (g *graphqlProvider) ResetPassword(ctx context.Context, params *model.Reset
 			log.Debug().Err(err).Msg("Failed to get otp request by phone number")
 			return nil, fmt.Errorf(`invalid otp`)
 		}
-		if subtle.ConstantTimeCompare([]byte(otpRequest.Otp), []byte(otp)) != 1 {
+		// OTPs are now stored as HMAC-SHA256 digests; the legacy plaintext
+		// fallback handles in-flight rows during a rolling upgrade.
+		if !crypto.VerifyOTPHash(otp, otpRequest.Otp, g.Config.JWTSecret) &&
+			subtle.ConstantTimeCompare([]byte(otpRequest.Otp), []byte(otp)) != 1 {
 			log.Debug().Msg("Failed to verify otp request: Incorrect value")
 			return nil, fmt.Errorf(`invalid otp`)
 		}

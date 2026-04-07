@@ -58,8 +58,15 @@ func (p *provider) Generate(ctx context.Context, id string) (*config.Authenticat
 		return nil, err
 	}
 	recoveryCodesString := string(jsonData)
+	// Encrypt the TOTP shared secret at rest. The plaintext `secret` is
+	// returned to the caller (frontend needs it to display the QR code
+	// for enrollment) but never written to storage in plaintext.
+	encryptedSecret, err := crypto.EncryptTOTPSecret(secret, p.deps.EncryptionKey)
+	if err != nil {
+		return nil, err
+	}
 	totpModel := &schemas.Authenticator{
-		Secret:        secret,
+		Secret:        encryptedSecret,
 		RecoveryCodes: refs.NewStringRef(recoveryCodesString),
 		UserID:        user.ID,
 		Method:        constants.EnvKeyTOTPAuthenticator,
@@ -76,7 +83,7 @@ func (p *provider) Generate(ctx context.Context, id string) (*config.Authenticat
 			return nil, err
 		}
 	} else {
-		authenticator.Secret = secret
+		authenticator.Secret = encryptedSecret
 		authenticator.RecoveryCodes = refs.NewStringRef(recoveryCodesString)
 		// if authenticator is not nil then update authenticator
 		_, err = p.deps.StorageProvider.UpdateAuthenticator(ctx, authenticator)
@@ -99,14 +106,38 @@ func (p *provider) Validate(ctx context.Context, passcode string, userID string)
 	if err != nil {
 		return false, err
 	}
+	// Decrypt the stored secret. DecryptTOTPSecret transparently handles
+	// both new ciphertext rows (enc:v1: prefix) and legacy plaintext rows
+	// from a pre-encryption release, so an upgrade does not break in-flight
+	// users.
+	plainSecret, err := crypto.DecryptTOTPSecret(totpModel.Secret, p.deps.EncryptionKey)
+	if err != nil {
+		return false, err
+	}
 	// validate totp
-	status := totp.Validate(passcode, totpModel.Secret)
+	status := totp.Validate(passcode, plainSecret)
+
+	// Lazy migration: if the stored value is still legacy plaintext and
+	// the user just produced a valid TOTP, re-encrypt and persist before
+	// the next verification. Operators upgrading from a pre-encryption
+	// release have all enrolled secrets converted to enc:v1: form on
+	// first successful login. The auto-migration code is DEPRECATED and
+	// will be removed two minor versions after this lands.
+	needsLazyMigration := status && !crypto.IsEncryptedTOTPSecret(totpModel.Secret)
+
 	// checks if user not signed in for totp and totp code is correct then VerifiedAt will be stored in db
 	if totpModel.VerifiedAt == nil && status {
 		timeNow := time.Now().Unix()
 		totpModel.VerifiedAt = &timeNow
-		_, err = p.deps.StorageProvider.UpdateAuthenticator(ctx, totpModel)
-		if err != nil {
+	}
+	if needsLazyMigration {
+		ct, encErr := crypto.EncryptTOTPSecret(plainSecret, p.deps.EncryptionKey)
+		if encErr == nil {
+			totpModel.Secret = ct
+		}
+	}
+	if needsLazyMigration || (totpModel.VerifiedAt != nil && status) {
+		if _, err = p.deps.StorageProvider.UpdateAuthenticator(ctx, totpModel); err != nil {
 			return false, err
 		}
 	}

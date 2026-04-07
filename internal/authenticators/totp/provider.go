@@ -9,6 +9,9 @@ import (
 type Dependencies struct {
 	Log             *zerolog.Logger
 	StorageProvider storage.Provider
+	// EncryptionKey is the server-side key used to encrypt TOTP shared
+	// secrets at rest. Wired to Config.JWTSecret in cmd/root.go.
+	EncryptionKey string
 }
 
 type provider struct {

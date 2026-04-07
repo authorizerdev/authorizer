@@ -252,9 +252,11 @@ func (g *graphqlProvider) SignUp(ctx context.Context, params *model.SignUpReques
 		smsBody.WriteString("Your verification code is: ")
 		smsBody.WriteString(smsCode)
 		expiresAt := time.Now().Add(duration).Unix()
+		// Store the HMAC digest of the OTP; smsCode (plaintext) is sent
+		// over SMS by the existing smsBody above.
 		_, err = g.StorageProvider.UpsertOTP(ctx, &schemas.OTP{
 			PhoneNumber: phoneNumber,
-			Otp:         smsCode,
+			Otp:         crypto.HashOTP(smsCode, g.Config.JWTSecret),
 			ExpiresAt:   expiresAt,
 		})
 		if err != nil {
