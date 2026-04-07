@@ -92,6 +92,10 @@ func init() {
 	f.BoolVar(&rootArgs.config.EnableGraphQLIntrospection, "enable-graphql-introspection", true, "Enable GraphQL introspection for the /graphql endpoint")
 	f.BoolVar(&rootArgs.config.EnableHSTS, "enable-hsts", false, "Enable Strict-Transport-Security response header (only enable behind TLS)")
 	f.BoolVar(&rootArgs.config.DisableCSP, "disable-csp", false, "Disable the default Content-Security-Policy response header")
+	f.IntVar(&rootArgs.config.GraphQLMaxComplexity, "graphql-max-complexity", 300, "Maximum total complexity score for a single GraphQL operation")
+	f.IntVar(&rootArgs.config.GraphQLMaxDepth, "graphql-max-depth", 15, "Maximum nesting depth of a GraphQL selection set")
+	f.IntVar(&rootArgs.config.GraphQLMaxAliases, "graphql-max-aliases", 30, "Maximum total number of aliased fields per GraphQL operation")
+	f.Int64Var(&rootArgs.config.GraphQLMaxBodyBytes, "graphql-max-body-bytes", 1<<20, "Maximum allowed GraphQL request body size in bytes (default 1MB)")
 
 	// Organization flags
 	f.StringVar(&rootArgs.config.OrganizationLogo, "organization-logo", defaultOrganizationLogo, "Logo of the organization")

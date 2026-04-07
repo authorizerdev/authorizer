@@ -2,11 +2,14 @@ package http_handlers
 
 import (
 	"context"
+	"errors"
+	"io"
 	"net/http"
 	"sort"
 	"sync"
 	"time"
 
+	"github.com/99designs/gqlgen/complexity"
 	gql "github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/handler/extension"
@@ -14,6 +17,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/gin-gonic/gin"
 	"github.com/vektah/gqlparser/v2/ast"
+	"github.com/vektah/gqlparser/v2/gqlerror"
 
 	"github.com/authorizerdev/authorizer/internal/graph"
 	"github.com/authorizerdev/authorizer/internal/graph/generated"
@@ -21,6 +25,106 @@ import (
 	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
+
+// queryLimits is a gqlgen handler extension that enforces depth, alias, and
+// complexity limits on parsed operations. It runs after parsing but before
+// execution so abusive queries are rejected without consuming resolver work.
+//
+// We replace gqlgen's stock extension.FixedComplexityLimit so all three
+// limits go through the same code path and emit the same Prometheus
+// counter (authorizer_graphql_limit_rejections_total) labelled by the
+// specific limit kind. Operators can then alert on a sustained non-zero
+// rate per limit and tune individually.
+type queryLimits struct {
+	maxDepth      int
+	maxAliases    int
+	maxComplexity int
+	schema        gql.ExecutableSchema
+}
+
+var (
+	_ gql.HandlerExtension       = (*queryLimits)(nil)
+	_ gql.OperationContextMutator = (*queryLimits)(nil)
+)
+
+func (*queryLimits) ExtensionName() string { return "QueryLimits" }
+func (q *queryLimits) Validate(schema gql.ExecutableSchema) error {
+	q.schema = schema
+	return nil
+}
+func (q *queryLimits) MutateOperationContext(ctx context.Context, rc *gql.OperationContext) *gqlerror.Error {
+	if rc == nil || rc.Operation == nil {
+		return nil
+	}
+	if q.maxDepth > 0 {
+		depth := selectionSetDepth(rc.Operation.SelectionSet)
+		if depth > q.maxDepth {
+			metrics.RecordGraphQLLimitRejection(metrics.GraphQLLimitDepth)
+			return gqlerror.Errorf("query depth %d exceeds maximum allowed depth %d", depth, q.maxDepth)
+		}
+	}
+	if q.maxAliases > 0 {
+		aliases := countAliases(rc.Operation.SelectionSet)
+		if aliases > q.maxAliases {
+			metrics.RecordGraphQLLimitRejection(metrics.GraphQLLimitAlias)
+			return gqlerror.Errorf("query uses %d aliases, exceeds maximum %d", aliases, q.maxAliases)
+		}
+	}
+	if q.maxComplexity > 0 && q.schema != nil {
+		score := complexity.Calculate(ctx, q.schema, rc.Operation, rc.Variables)
+		if score > q.maxComplexity {
+			metrics.RecordGraphQLLimitRejection(metrics.GraphQLLimitComplexity)
+			return gqlerror.Errorf("operation has complexity %d, which exceeds the limit of %d", score, q.maxComplexity)
+		}
+	}
+	return nil
+}
+
+func selectionSetDepth(set ast.SelectionSet) int {
+	max := 0
+	for _, sel := range set {
+		switch s := sel.(type) {
+		case *ast.Field:
+			d := 1 + selectionSetDepth(s.SelectionSet)
+			if d > max {
+				max = d
+			}
+		case *ast.InlineFragment:
+			d := selectionSetDepth(s.SelectionSet)
+			if d > max {
+				max = d
+			}
+		case *ast.FragmentSpread:
+			if s.Definition != nil {
+				d := selectionSetDepth(s.Definition.SelectionSet)
+				if d > max {
+					max = d
+				}
+			}
+		}
+	}
+	return max
+}
+
+func countAliases(set ast.SelectionSet) int {
+	n := 0
+	for _, sel := range set {
+		switch s := sel.(type) {
+		case *ast.Field:
+			if s.Alias != "" && s.Alias != s.Name {
+				n++
+			}
+			n += countAliases(s.SelectionSet)
+		case *ast.InlineFragment:
+			n += countAliases(s.SelectionSet)
+		case *ast.FragmentSpread:
+			if s.Definition != nil {
+				n += countAliases(s.Definition.SelectionSet)
+			}
+		}
+	}
+	return n
+}
 
 type gqlResolvedFieldsCtxKey struct{}
 
@@ -142,7 +246,9 @@ func (h *httpProvider) GraphqlHandler() gin.HandlerFunc {
 	}}))
 
 	srv.AddTransport(transport.Options{})
-	srv.AddTransport(transport.GET{})
+	// transport.GET is intentionally omitted: GraphQL queries (and especially
+	// mutations) over GET leak into proxy/server logs and browser history.
+	// Clients must POST.
 	srv.AddTransport(transport.POST{})
 
 	srv.SetQueryCache(lru.New[*ast.QueryDocument](1000))
@@ -154,17 +260,79 @@ func (h *httpProvider) GraphqlHandler() gin.HandlerFunc {
 	srv.Use(extension.AutomaticPersistedQuery{
 		Cache: lru.New[string](100),
 	})
-	// Limit query complexity to prevent resource exhaustion
-	srv.Use(extension.FixedComplexityLimit(300))
+
+	// Limit query depth, alias count, AND complexity through a single
+	// extension so all three rejections share one Prometheus counter
+	// (authorizer_graphql_limit_rejections_total). Defaults applied if
+	// config is unset.
+	maxComplexity := h.Config.GraphQLMaxComplexity
+	if maxComplexity <= 0 {
+		maxComplexity = 300
+	}
+	maxDepth := h.Config.GraphQLMaxDepth
+	if maxDepth <= 0 {
+		maxDepth = 15
+	}
+	maxAliases := h.Config.GraphQLMaxAliases
+	if maxAliases <= 0 {
+		maxAliases = 30
+	}
+	srv.Use(&queryLimits{
+		maxDepth:      maxDepth,
+		maxAliases:    maxAliases,
+		maxComplexity: maxComplexity,
+	})
+
+	// Cap the request body size to defend against oversized-payload DoS.
+	maxBody := h.Config.GraphQLMaxBodyBytes
+	if maxBody <= 0 {
+		maxBody = 1 << 20 // 1 MB
+	}
 
 	return func(c *gin.Context) {
 		// Create a custom handler that ensures gin context is available
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Bound the request body so a single client cannot exhaust memory.
+			// http.MaxBytesReader will return an error from r.Body.Read once
+			// the limit is exceeded; gqlgen surfaces that as a parse error.
+			// We wrap the writer in a sniffer so we can detect the error and
+			// emit the body_size limit metric.
+			r.Body = &maxBytesBody{
+				ReadCloser: http.MaxBytesReader(w, r.Body, maxBody),
+			}
 			// Ensure the gin context is available in the request context
 			ctx := utils.ContextWithGin(r.Context(), c)
 			r = r.WithContext(ctx)
 			srv.ServeHTTP(w, r)
+			// If the body reader hit the cap, record the rejection. We do
+			// this once per request after the handler returns so the metric
+			// reflects actual aborts, not just oversized-but-streaming reads.
+			if mb, ok := r.Body.(*maxBytesBody); ok && mb.exceeded {
+				metrics.RecordGraphQLLimitRejection(metrics.GraphQLLimitBodySize)
+			}
 		})
 		handler.ServeHTTP(c.Writer, c.Request)
 	}
+}
+
+// maxBytesBody wraps the io.ReadCloser returned by http.MaxBytesReader so
+// the request handler can tell after the fact whether the body exceeded
+// the configured cap. http.MaxBytesReader signals exhaustion via a
+// *http.MaxBytesError wrapping io.EOF, but the gqlgen handler swallows the
+// error inside its parse step — we need to observe the read directly to
+// emit the body_size limit rejection metric.
+type maxBytesBody struct {
+	io.ReadCloser
+	exceeded bool
+}
+
+func (m *maxBytesBody) Read(p []byte) (int, error) {
+	n, err := m.ReadCloser.Read(p)
+	if err != nil {
+		var mbe *http.MaxBytesError
+		if errors.As(err, &mbe) {
+			m.exceeded = true
+		}
+	}
+	return n, err
 }

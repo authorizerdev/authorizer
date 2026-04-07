@@ -89,6 +89,19 @@ var (
 		[]string{"operation"},
 	)
 
+	// GraphQLLimitRejectionsTotal tracks GraphQL operations rejected because
+	// they exceeded one of the configured query limits (depth, complexity,
+	// alias count, body size). Use this to spot abuse patterns or to tune
+	// the limits — a sustained non-zero rate on the legitimate operation
+	// surface usually means the limit is too tight.
+	GraphQLLimitRejectionsTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "authorizer_graphql_limit_rejections_total",
+			Help: "GraphQL operations rejected for exceeding a configured query limit. limit label is one of: depth, complexity, alias, body_size",
+		},
+		[]string{"limit"},
+	)
+
 	// GraphQLRequestDuration tracks GraphQL operation latency.
 	GraphQLRequestDuration = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
@@ -193,6 +206,7 @@ func Init() {
 		prometheus.MustRegister(ActiveSessions)
 		prometheus.MustRegister(SecurityEventsTotal)
 		prometheus.MustRegister(GraphQLErrorsTotal)
+		prometheus.MustRegister(GraphQLLimitRejectionsTotal)
 		prometheus.MustRegister(GraphQLRequestDuration)
 		prometheus.MustRegister(DBHealthCheckTotal)
 		prometheus.MustRegister(ClientIDHeaderMissingTotal)
@@ -224,6 +238,21 @@ func RecordSecurityEvent(event, reason string) {
 // RecordGraphQLError records a GraphQL error for the given operation name.
 func RecordGraphQLError(operation string) {
 	GraphQLErrorsTotal.WithLabelValues(GraphQLOperationPrometheusLabel(operation)).Inc()
+}
+
+// GraphQL query-limit kind labels (low-cardinality, package-internal).
+const (
+	GraphQLLimitDepth      = "depth"
+	GraphQLLimitComplexity = "complexity"
+	GraphQLLimitAlias      = "alias"
+	GraphQLLimitBodySize   = "body_size"
+)
+
+// RecordGraphQLLimitRejection records a GraphQL operation rejected for
+// exceeding one of the configured query limits. limit must be one of the
+// GraphQLLimit* constants above.
+func RecordGraphQLLimitRejection(limit string) {
+	GraphQLLimitRejectionsTotal.WithLabelValues(limit).Inc()
 }
 
 // RecordClientIDHeaderMissing records a request that had no client ID header.
