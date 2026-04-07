@@ -8,48 +8,46 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// userInfoProfileClaims is the set of claim names that must be returned
-// when the access token includes the "profile" scope per OIDC Core §5.4.
-var userInfoProfileClaims = map[string]struct{}{
-	"name":               {},
-	"family_name":        {},
-	"given_name":         {},
-	"middle_name":        {},
-	"nickname":           {},
-	"preferred_username": {},
-	"profile":            {},
-	"picture":            {},
-	"website":            {},
-	"gender":             {},
-	"birthdate":          {},
-	"zoneinfo":           {},
-	"locale":             {},
-	"updated_at":         {},
-}
-
-// userInfoEmailClaims is the set of claim names that must be returned
-// when the access token includes the "email" scope.
-var userInfoEmailClaims = map[string]struct{}{
-	"email":          {},
-	"email_verified": {},
-}
-
-// userInfoPhoneClaims is the set of claim names that must be returned
-// when the access token includes the "phone" scope.
-var userInfoPhoneClaims = map[string]struct{}{
-	"phone_number":          {},
-	"phone_number_verified": {},
-}
-
-// userInfoAddressClaims is the set of claim names that must be returned
-// when the access token includes the "address" scope.
-var userInfoAddressClaims = map[string]struct{}{
-	"address": {},
-}
+// Claim name lists for each OIDC Core §5.4 scope group. Kept as []string
+// rather than map sets because the only operation performed on them is
+// iteration, and slices are immutable when used this way (no accidental
+// delete/assign during iteration can corrupt the shared state across
+// requests). MUST NOT be mutated at runtime.
+var (
+	userInfoProfileClaims = []string{
+		"name",
+		"family_name",
+		"given_name",
+		"middle_name",
+		"nickname",
+		"preferred_username",
+		"profile",
+		"picture",
+		"website",
+		"gender",
+		"birthdate",
+		"zoneinfo",
+		"locale",
+		"updated_at",
+	}
+	userInfoEmailClaims = []string{
+		"email",
+		"email_verified",
+	}
+	userInfoPhoneClaims = []string{
+		"phone_number",
+		"phone_number_verified",
+	}
+	userInfoAddressClaims = []string{
+		"address",
+	}
+)
 
 // extractScopesFromAccessToken returns the lowercase scope set encoded in
-// the access token. It accepts both the spec form (string-array claim) and
-// the OAuth 2.0 RFC 6749 string form ("openid profile email").
+// the access token. It accepts both the OAuth 2.0 RFC 6749 §3.3 space-
+// delimited string form ("openid profile email") and the JSON array form
+// produced by `jwt.MapClaims` when the token's `scope` claim is a JSON
+// array. It is nil-safe.
 func extractScopesFromAccessToken(claims map[string]interface{}) map[string]struct{} {
 	out := map[string]struct{}{}
 	if claims == nil {
@@ -66,10 +64,6 @@ func extractScopesFromAccessToken(claims map[string]interface{}) map[string]stru
 				out[strings.ToLower(s)] = struct{}{}
 			}
 		}
-	case []string:
-		for _, s := range v {
-			out[strings.ToLower(s)] = struct{}{}
-		}
 	}
 	return out
 }
@@ -82,13 +76,14 @@ func filterUserInfoByScopes(full map[string]interface{}, scopes map[string]struc
 	filtered := map[string]interface{}{
 		"sub": full["sub"],
 	}
-	// allow copies every claim key in the requested group into the filtered
-	// response. Per OIDC Core §5.4 the keys associated with a granted scope
-	// are part of the response shape; if the underlying user object has no
-	// value for a claim we still emit the key with a JSON null so callers
-	// can rely on a stable schema.
-	allow := func(set map[string]struct{}) {
-		for k := range set {
+	// allow copies every claim key from the granted scope group into the
+	// filtered response. Per OIDC Core §5.4 the keys associated with a
+	// granted scope are part of the response shape; if the underlying user
+	// object has no value for a claim we still emit the key with a JSON
+	// null (explicitly permitted by OIDC Core §5.3.2) so callers can rely
+	// on a stable schema.
+	allow := func(group []string) {
+		for _, k := range group {
 			if v, ok := full[k]; ok {
 				filtered[k] = v
 			} else {
