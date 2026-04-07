@@ -61,8 +61,14 @@ func (g *graphqlProvider) ForgotPassword(ctx context.Context, params *model.Forg
 		log.Debug().Err(err).Msg("Failed to get user by phone number")
 	}
 	if err != nil {
+		// Do not reveal whether the account exists. Return the same generic
+		// "we sent the email if it exists" response that a successful path
+		// returns. The real reason is logged at debug level.
+		log.Debug().Err(err).Str("reason", "user_not_found").Msg("forgot password silently dropped")
 		metrics.RecordAuthEvent(metrics.EventForgotPwd, metrics.StatusFailure)
-		return nil, fmt.Errorf(`bad user credentials`)
+		return &model.ForgotPasswordResponse{
+			Message: `Please check your inbox! We have sent a password reset link.`,
+		}, nil
 	}
 	hostname := parsers.GetHost(gc)
 	_, nonceHash, err := utils.GenerateNonce()
@@ -71,8 +77,11 @@ func (g *graphqlProvider) ForgotPassword(ctx context.Context, params *model.Forg
 		return nil, err
 	}
 	if user.RevokedTimestamp != nil {
-		log.Debug().Msg("User access has been revoked")
-		return nil, fmt.Errorf(`user access has been revoked`)
+		log.Debug().Str("reason", "account_revoked").Msg("forgot password silently dropped")
+		metrics.RecordAuthEvent(metrics.EventForgotPwd, metrics.StatusFailure)
+		return &model.ForgotPasswordResponse{
+			Message: `Please check your inbox! We have sent a password reset link.`,
+		}, nil
 	}
 	if isEmailLogin {
 		redirectURI := ""

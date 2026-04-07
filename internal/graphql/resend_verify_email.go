@@ -39,16 +39,23 @@ func (g *graphqlProvider) ResendVerifyEmail(ctx context.Context, params *model.R
 		return nil, fmt.Errorf("invalid identifier")
 	}
 
+	// Do not reveal whether the account or its pending verification exists.
+	// Return the same generic success response in all cases. The real reason
+	// is logged at debug level.
+	genericResponse := &model.Response{
+		Message: `Verification email has been sent. Please check your inbox`,
+	}
+
 	user, err := g.StorageProvider.GetUserByEmail(ctx, params.Email)
 	if err != nil {
-		log.Debug().Err(err).Msg("Failed to get user by email")
-		return nil, fmt.Errorf("invalid user")
+		log.Debug().Err(err).Str("reason", "user_not_found").Msg("resend verify email silently dropped")
+		return genericResponse, nil
 	}
 
 	verificationRequest, err := g.StorageProvider.GetVerificationRequestByEmail(ctx, params.Email, params.Identifier)
 	if err != nil {
-		log.Debug().Err(err).Msg("Failed to get verification request")
-		return nil, fmt.Errorf(`verification request not found`)
+		log.Debug().Err(err).Str("reason", "verification_request_not_found").Msg("resend verify email silently dropped")
+		return genericResponse, nil
 	}
 
 	// delete current verification and create new one

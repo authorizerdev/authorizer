@@ -45,9 +45,11 @@ func TestLoginUnverifiedEmail(t *testing.T) {
 			Password: password,
 		}
 		res, err := ts.GraphQLProvider.Login(ctx, loginReq)
-		// Should get either an error or an OTP screen response
+		// Should get either a generic credentials error (login fails closed)
+		// or an OTP screen response (when email service is enabled and a
+		// verification flow is triggered).
 		if err != nil {
-			assert.Contains(t, err.Error(), "verification")
+			assert.Contains(t, err.Error(), "invalid credentials")
 		} else {
 			// If MFA/OTP flow is triggered instead of error
 			assert.NotNil(t, res)
