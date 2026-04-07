@@ -1,11 +1,9 @@
 package integration_tests
 
 import (
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
-	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -164,12 +162,8 @@ func TestAuthorizePromptLoginBypassesSession(t *testing.T) {
 		"&response_mode=query" +
 		"&prompt=login"
 	w := authorizeRequest(t, ts, qs)
-	assert.NotEqual(t, http.StatusBadRequest, w.Code, "prompt=login MUST be accepted")
-
 	// When there is no session, the handler still flows to login UI.
-	// Response body or Location header should either contain a login
-	// reference or a login_required-shaped response — asserting it is
-	// NOT a 400 is the minimum-viable signal.
-	_ = strings.TrimSpace(w.Body.String())
-	_ = json.NewDecoder(strings.NewReader(w.Body.String()))
+	// Asserting it is NOT a 400 is the minimum-viable signal that
+	// prompt=login was parsed and the force-reauth path was entered.
+	assert.NotEqual(t, http.StatusBadRequest, w.Code, "prompt=login MUST be accepted")
 }

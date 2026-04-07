@@ -90,12 +90,18 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 		maxAgeStr := strings.TrimSpace(gc.Query("max_age"))
 		idTokenHint := strings.TrimSpace(gc.Query("id_token_hint"))
 
-		// max_age is advisory: on parse error or non-positive values,
-		// treat as absent (no constraint).
-		maxAge := 0
+		// max_age is advisory. Parse per OIDC Core §3.1.2.1:
+		//   - negative or non-integer → treat as absent (no constraint)
+		//   - max_age=0 → force re-auth (equivalent to prompt=login)
+		//   - positive → compare against session age (handled below)
+		maxAge := -1 // sentinel: "not supplied"
+		maxAgeZero := false
 		if maxAgeStr != "" {
-			if parsed, err := strconv.Atoi(maxAgeStr); err == nil && parsed > 0 {
+			if parsed, err := strconv.Atoi(maxAgeStr); err == nil && parsed >= 0 {
 				maxAge = parsed
+				if parsed == 0 {
+					maxAgeZero = true
+				}
 			}
 		}
 
@@ -231,7 +237,9 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 		// the current session is older than the allowed window. We only
 		// apply forceReauth when prompt != "none" — prompt=none wants to
 		// check the existing session, not bypass it.
-		forceReauth := prompt == "login"
+		// max_age=0 is equivalent to prompt=login (force re-auth) per
+		// OIDC Core §3.1.2.1.
+		forceReauth := prompt == "login" || maxAgeZero
 
 		sessionToken, err := cookie.GetSession(gc)
 		if err == nil && !forceReauth && maxAge > 0 && prompt != "none" {
@@ -252,12 +260,12 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			sessionToken = ""
 		}
 
-		// OIDC Core §3.1.2.1: prompt=none — if there is no valid
-		// session, return the standard OIDC error login_required to the
-		// client's redirect_uri (NOT the login UI). The error must be
-		// delivered via the configured response_mode.
-		if prompt == "none" && (err != nil || sessionToken == "") {
-			log.Debug().Msg("prompt=none requested but no valid session — returning login_required")
+		// promptNoneLoginRequired dispatches the OIDC Core §3.1.2.1
+		// login_required error to the client's redirect_uri via the
+		// configured response_mode. Used whenever prompt=none cannot
+		// complete silently (missing session, expired session, etc).
+		promptNoneLoginRequired := func(reason string) {
+			log.Debug().Str("reason", reason).Msg("prompt=none cannot complete silently — returning login_required")
 			errParams := "error=login_required" +
 				"&error_description=" + url.QueryEscape("prompt=none was requested but the user is not authenticated") +
 				"&state=" + url.QueryEscape(state)
@@ -285,8 +293,6 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				},
 			}
 			switch responseMode {
-			case constants.ResponseModeQuery, constants.ResponseModeFragment:
-				gc.Redirect(http.StatusFound, errRedirectURI)
 			case constants.ResponseModeWebMessage:
 				gc.HTML(http.StatusOK, authorizeWebMessageTemplate, gin.H{
 					"target_origin":          redirectURI,
@@ -300,6 +306,10 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			default:
 				gc.Redirect(http.StatusFound, errRedirectURI)
 			}
+		}
+
+		if prompt == "none" && (err != nil || sessionToken == "") {
+			promptNoneLoginRequired("no session cookie")
 			return
 		}
 
@@ -313,6 +323,13 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 		claims, err := h.TokenProvider.ValidateBrowserSession(gc, sessionToken)
 		if err != nil {
 			log.Debug().Err(err).Msg("Error validating session token")
+			// OIDC Core §3.1.2.1: prompt=none with a stale/revoked
+			// session must still return login_required to the client,
+			// not redirect the user-agent to the login UI.
+			if prompt == "none" {
+				promptNoneLoginRequired("session validation failed")
+				return
+			}
 			handleResponse(gc, responseMode, authURL, redirectURI, loginError, http.StatusOK)
 			return
 		}
