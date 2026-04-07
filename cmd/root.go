@@ -164,6 +164,7 @@ func init() {
 	f.IntVar(&rootArgs.config.RateLimitRPS, "rate-limit-rps", defaultRateLimitRPS, "Maximum requests per second per IP for rate limiting")
 	f.IntVar(&rootArgs.config.RateLimitBurst, "rate-limit-burst", defaultRateLimitBurst, "Maximum burst size per IP for rate limiting")
 	f.BoolVar(&rootArgs.config.RateLimitFailClosed, "rate-limit-fail-closed", false, "On rate-limit backend errors, reject with 503 instead of allowing the request")
+	f.StringSliceVar(&rootArgs.config.TrustedProxies, "trusted-proxies", nil, "Comma-separated CIDRs of trusted reverse proxies. When set, gin uses X-Forwarded-For from these networks. Empty (default) trusts no proxies and uses RemoteAddr.")
 
 	// JWT flags
 	f.StringVar(&rootArgs.config.JWTType, "jwt-type", "", "Type of JWT to use")
@@ -472,6 +473,7 @@ func runRoot(c *cobra.Command, args []string) {
 	// Prepare server
 	deps := &server.Dependencies{
 		Log:          &log,
+		AppConfig:    &rootArgs.config,
 		HTTPProvider: httpProvider,
 	}
 	// Create the server

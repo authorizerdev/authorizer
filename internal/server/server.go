@@ -10,6 +10,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 
+	"github.com/authorizerdev/authorizer/internal/config"
 	"github.com/authorizerdev/authorizer/internal/graphql"
 	"github.com/authorizerdev/authorizer/internal/http_handlers"
 )
@@ -29,6 +30,7 @@ type Config struct {
 // Dependencies for a server
 type Dependencies struct {
 	Log             *zerolog.Logger
+	AppConfig       *config.Config
 	GraphQLProvider graphql.Provider
 	HTTPProvider    http_handlers.Provider
 }

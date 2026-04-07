@@ -11,6 +11,17 @@ import (
 // NewRouter creates new gin router
 func (s *server) NewRouter() *gin.Engine {
 	router := gin.New()
+	// Restrict the set of proxies whose forwarded headers are honoured.
+	// When TrustedProxies is empty/nil, gin trusts NO proxies and falls back
+	// to RemoteAddr — preventing X-Forwarded-For spoofing for rate limiting,
+	// audit logs, and CSRF same-origin comparisons.
+	var trustedProxies []string
+	if s.Dependencies.AppConfig != nil {
+		trustedProxies = s.Dependencies.AppConfig.TrustedProxies
+	}
+	if err := router.SetTrustedProxies(trustedProxies); err != nil {
+		s.Dependencies.Log.Warn().Err(err).Msg("failed to apply trusted proxies; falling back to gin defaults")
+	}
 	router.Use(gin.Recovery())
 
 	router.Use(s.Dependencies.HTTPProvider.SecurityHeadersMiddleware())
