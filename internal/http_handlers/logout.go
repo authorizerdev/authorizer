@@ -2,7 +2,6 @@ package http_handlers
 
 import (
 	"encoding/json"
-	"html/template"
 	"net/http"
 	"strings"
 
@@ -19,26 +18,11 @@ import (
 	"github.com/authorizerdev/authorizer/internal/validators"
 )
 
-// logoutConfirmTmpl is the OIDC RP-initiated logout confirmation page.
-// Served on GET /logout when no id_token_hint is supplied; clicking the
-// button POSTs back to /logout to actually terminate the session. This
-// defeats the <img src="/logout"> CSRF vector while remaining compliant
-// with the OIDC RP-Initiated Logout 1.0 spec, which requires GET to be
-// supported on the end_session_endpoint.
-var logoutConfirmTmpl = template.Must(template.New("logoutConfirm").Parse(`<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><title>Sign out</title>
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<style>body{font-family:system-ui,sans-serif;max-width:32rem;margin:4rem auto;padding:0 1rem;color:#222}button{font-size:1rem;padding:.6rem 1.2rem;cursor:pointer}</style>
-</head><body>
-<h1>Sign out?</h1>
-<p>Click below to confirm signing out of your account.</p>
-<form method="POST" action="/logout">
-<input type="hidden" name="redirect_uri" value="{{.RedirectURI}}">
-<input type="hidden" name="post_logout_redirect_uri" value="{{.PostLogoutRedirectURI}}">
-<input type="hidden" name="state" value="{{.State}}">
-<button type="submit">Sign out</button>
-</form>
-</body></html>`))
+// logoutConfirmTemplate is the gin template name for the OIDC RP-initiated
+// logout confirmation page. The template lives at
+// web/templates/logout_confirm.tmpl and is loaded by NewRouter() via
+// LoadHTMLGlob, the same way the other authorize_* templates are.
+const logoutConfirmTemplate = "logout_confirm.tmpl"
 
 // Handler to logout user
 func (h *httpProvider) LogoutHandler() gin.HandlerFunc {
@@ -61,13 +45,11 @@ func (h *httpProvider) LogoutHandler() gin.HandlerFunc {
 			idTokenHint := strings.TrimSpace(gc.Query("id_token_hint"))
 			if idTokenHint == "" || !h.isValidIDTokenHint(idTokenHint) {
 				log.Debug().Bool("had_hint", idTokenHint != "").Msg("serving logout confirmation page")
-				gc.Writer.Header().Set("Content-Type", "text/html; charset=utf-8")
-				gc.Writer.Header().Set("Cache-Control", "no-store")
-				gc.Status(http.StatusOK)
-				_ = logoutConfirmTmpl.Execute(gc.Writer, map[string]string{
-					"RedirectURI":           gc.Query("redirect_uri"),
-					"PostLogoutRedirectURI": gc.Query("post_logout_redirect_uri"),
-					"State":                 gc.Query("state"),
+				gc.Header("Cache-Control", "no-store")
+				gc.HTML(http.StatusOK, logoutConfirmTemplate, gin.H{
+					"redirect_uri":             gc.Query("redirect_uri"),
+					"post_logout_redirect_uri": gc.Query("post_logout_redirect_uri"),
+					"state":                    gc.Query("state"),
 				})
 				return
 			}

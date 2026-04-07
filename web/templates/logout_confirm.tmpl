@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width,initial-scale=1" />
+		<title>Sign out</title>
+		<style>
+			body {
+				font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+				max-width: 32rem;
+				margin: 4rem auto;
+				padding: 0 1rem;
+				color: #222;
+				line-height: 1.5;
+			}
+			h1 {
+				font-size: 1.5rem;
+				margin-bottom: 0.5rem;
+			}
+			button {
+				font-size: 1rem;
+				padding: 0.6rem 1.2rem;
+				border: 1px solid #444;
+				background: #222;
+				color: #fff;
+				border-radius: 4px;
+				cursor: pointer;
+			}
+			button:hover {
+				background: #000;
+			}
+		</style>
+	</head>
+	<body>
+		<h1>Sign out?</h1>
+		<p>Click below to confirm signing out of your account.</p>
+		<form method="POST" action="/logout">
+			<input type="hidden" name="redirect_uri" value="{{.redirect_uri}}" />
+			<input type="hidden" name="post_logout_redirect_uri" value="{{.post_logout_redirect_uri}}" />
+			<input type="hidden" name="state" value="{{.state}}" />
+			<button type="submit">Sign out</button>
+		</form>
+	</body>
+</html>
