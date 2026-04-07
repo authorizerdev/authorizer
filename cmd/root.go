@@ -337,6 +337,16 @@ func runRoot(c *cobra.Command, args []string) {
 		Level(zeroLogLevel).
 		With().Timestamp().Logger()
 
+	// Warn if AllowedOrigins is the wildcard ["*"] — this is a development-
+	// friendly default but in production it pairs poorly with credentialed
+	// requests. Operators should set an explicit allowlist before deploying.
+	for _, o := range rootArgs.config.AllowedOrigins {
+		if o == "*" {
+			log.Warn().Msg("AllowedOrigins contains \"*\" — this is unsafe for production. Set --allowed-origins to an explicit list of trusted origins. CSRF middleware will fall back to same-origin enforcement for state-changing requests.")
+			break
+		}
+	}
+
 	// Initialize prometheus metrics
 	metrics.Init()
 
