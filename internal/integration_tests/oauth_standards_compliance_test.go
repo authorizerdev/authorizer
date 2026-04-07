@@ -97,6 +97,48 @@ func TestOpenIDDiscoveryCompliance(t *testing.T) {
 		}
 		assert.True(t, hasCode, "response_types_supported MUST include 'code'")
 	})
+
+	t.Run("OIDC_Discovery_grant_types_supported_includes_implicit", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", "/.well-known/openid-configuration", nil)
+		req.Host = "localhost"
+		router.ServeHTTP(w, req)
+
+		var body map[string]interface{}
+		json.Unmarshal(w.Body.Bytes(), &body)
+
+		grantTypes, ok := body["grant_types_supported"].([]interface{})
+		require.True(t, ok, "grant_types_supported must be an array")
+
+		hasImplicit := false
+		for _, gt := range grantTypes {
+			if gt == "implicit" {
+				hasImplicit = true
+				break
+			}
+		}
+		assert.True(t, hasImplicit,
+			"grant_types_supported MUST include 'implicit' because /authorize accepts response_type=token and response_type=id_token")
+	})
+
+	t.Run("OIDC_Discovery_registration_endpoint_absent", func(t *testing.T) {
+		// We previously advertised registration_endpoint=/app, which is the
+		// signup UI, not an RFC 7591 dynamic client registration endpoint.
+		// Spec-compliant OIDC clients interpret this field as RFC 7591
+		// and will fail when they receive HTML. Until we actually implement
+		// RFC 7591 (Phase 4 roadmap), the field MUST be absent.
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", "/.well-known/openid-configuration", nil)
+		req.Host = "localhost"
+		router.ServeHTTP(w, req)
+
+		var body map[string]interface{}
+		json.Unmarshal(w.Body.Bytes(), &body)
+
+		_, present := body["registration_endpoint"]
+		assert.False(t, present,
+			"registration_endpoint MUST NOT be advertised until RFC 7591 is implemented")
+	})
 }
 
 // TestTokenEndpointCompliance verifies /oauth/token complies with RFC 6749
