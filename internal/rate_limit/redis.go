@@ -39,10 +39,15 @@ type redisProvider struct {
 }
 
 func newRedisProvider(cfg *config.Config, deps *Dependencies) (*redisProvider, error) {
-	// Window = burst / rps, minimum 1 second
+	// Window in seconds = ceil(burst / rps), minimum 1. The previous integer
+	// division silently truncated to 0 when burst < rps and produced
+	// inconsistent enforcement vs the in-memory limiter (which uses the
+	// same effective window via golang.org/x/time/rate). Use ceiling
+	// arithmetic so the redis window is at least as long as the rps period.
 	window := 1
 	if cfg.RateLimitRPS > 0 {
-		w := int(cfg.RateLimitBurst / cfg.RateLimitRPS)
+		// ceil(burst / rps) without floats: (a + b - 1) / b
+		w := (cfg.RateLimitBurst + cfg.RateLimitRPS - 1) / cfg.RateLimitRPS
 		if w > 1 {
 			window = w
 		}
@@ -55,13 +60,21 @@ func newRedisProvider(cfg *config.Config, deps *Dependencies) (*redisProvider, e
 	}, nil
 }
 
-// Allow checks if a request from the given IP is allowed using Redis
+// Allow checks if a request from the given IP is allowed using Redis.
+//
+// Errors are PROPAGATED to the caller (the rate-limit middleware) so that
+// the operator-controlled RateLimitFailClosed config can actually take
+// effect. Previously this returned (true, nil) on any redis error, which
+// meant fail-closed mode was a no-op and a flapping redis silently disabled
+// rate limiting entirely.
 func (p *redisProvider) Allow(ctx context.Context, ip string) (bool, error) {
 	key := "rate_limit:" + ip
 	result, err := p.client.Eval(ctx, rateLimitScript, []string{key}, p.burst, p.window).Int64()
 	if err != nil {
-		p.log.Error().Err(err).Str("ip", ip).Msg("rate limit redis error, failing open")
-		return true, nil
+		p.log.Error().Err(err).Str("ip", ip).Msg("rate limit redis error")
+		// Default to allowing the request, but PROPAGATE the error so the
+		// middleware can fail-closed when configured.
+		return true, err
 	}
 	return result == 1, nil
 }

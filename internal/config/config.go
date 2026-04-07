@@ -281,4 +281,10 @@ type Config struct {
 	RateLimitBurst int
 	// RateLimitFailClosed rejects requests when the rate limit backend errors (default: fail-open).
 	RateLimitFailClosed bool
+	// TrustedProxies is the list of CIDRs allowed to set X-Forwarded-For
+	// and similar proxy headers. Empty (the default) means no proxies are
+	// trusted and gin will use RemoteAddr directly. Operators behind a
+	// reverse proxy MUST set this explicitly or rate limiting and audit
+	// logs will key on the proxy IP, not the real client IP.
+	TrustedProxies []string
 }

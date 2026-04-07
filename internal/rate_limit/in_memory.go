@@ -3,6 +3,7 @@ package rate_limit
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"golang.org/x/time/rate"
@@ -13,9 +14,22 @@ import (
 // Compile-time interface guard
 var _ Provider = (*inMemoryProvider)(nil)
 
+// entry stores a per-IP rate limiter together with the last-seen timestamp
+// used by the cleanup goroutine. lastSeen is accessed concurrently by
+// Allow() and cleanup(), so it MUST be touched only via the atomic helpers
+// below — using a plain time.Time field would trip the race detector and
+// (more importantly) drop updates non-deterministically.
 type entry struct {
 	limiter  *rate.Limiter
-	lastSeen time.Time // benign data race: only used for cleanup staleness heuristic
+	lastSeen atomic.Int64 // unix nanoseconds
+}
+
+func (e *entry) touch() {
+	e.lastSeen.Store(time.Now().UnixNano())
+}
+
+func (e *entry) lastSeenTime() time.Time {
+	return time.Unix(0, e.lastSeen.Load())
 }
 
 type inMemoryProvider struct {
@@ -38,15 +52,11 @@ func newInMemoryProvider(cfg *config.Config, deps *Dependencies) (*inMemoryProvi
 
 // Allow checks if a request from the given IP is allowed
 func (p *inMemoryProvider) Allow(_ context.Context, ip string) (bool, error) {
-	v, loaded := p.visitors.LoadOrStore(ip, &entry{
-		limiter:  rate.NewLimiter(p.rps, p.burst),
-		lastSeen: time.Now(),
-	})
+	newEntry := &entry{limiter: rate.NewLimiter(p.rps, p.burst)}
+	newEntry.touch()
+	v, _ := p.visitors.LoadOrStore(ip, newEntry)
 	e := v.(*entry)
-	e.lastSeen = time.Now()
-	if loaded {
-		p.visitors.Store(ip, e)
-	}
+	e.touch()
 	return e.limiter.Allow(), nil
 }
 
@@ -67,7 +77,7 @@ func (p *inMemoryProvider) cleanup(ctx context.Context) {
 		case <-ticker.C:
 			p.visitors.Range(func(key, value any) bool {
 				e := value.(*entry)
-				if time.Since(e.lastSeen) > 10*time.Minute {
+				if time.Since(e.lastSeenTime()) > 10*time.Minute {
 					p.visitors.Delete(key)
 				}
 				return true
