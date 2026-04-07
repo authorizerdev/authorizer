@@ -35,6 +35,9 @@ var reservedClaims = map[string]bool{
 	"login_method":  true,
 	"at_hash":       true,
 	"c_hash":        true,
+	"auth_time":     true,
+	"amr":           true,
+	"acr":           true,
 }
 
 // AuthTokenConfig is the configuration for auth token
@@ -49,6 +52,35 @@ type AuthTokenConfig struct {
 	HostName    string
 	Roles       []string
 	Scope       []string
+	// AuthTime is the Unix timestamp (seconds) at which the user
+	// authenticated. OIDC Core §2 defines this as the `auth_time` ID
+	// token claim. If zero, CreateIDToken falls back to time.Now() so
+	// existing callers continue to work unchanged (backward compat).
+	AuthTime int64
+}
+
+// loginMethodToAMR maps an internal LoginMethod value to the OIDC Core §2
+// Authentication Methods Reference array. Returns nil (omit the claim)
+// for unknown or empty methods.
+func loginMethodToAMR(method string) []string {
+	switch strings.ToLower(method) {
+	case constants.AuthRecipeMethodBasicAuth, constants.AuthRecipeMethodMobileBasicAuth:
+		return []string{"pwd"}
+	case constants.AuthRecipeMethodMagicLinkLogin, constants.AuthRecipeMethodMobileOTP:
+		return []string{"otp"}
+	case constants.AuthRecipeMethodGoogle,
+		constants.AuthRecipeMethodGithub,
+		constants.AuthRecipeMethodFacebook,
+		constants.AuthRecipeMethodLinkedIn,
+		constants.AuthRecipeMethodApple,
+		constants.AuthRecipeMethodDiscord,
+		constants.AuthRecipeMethodTwitter,
+		constants.AuthRecipeMethodTwitch,
+		constants.AuthRecipeMethodRoblox,
+		constants.AuthRecipeMethodMicrosoft:
+		return []string{"fed"}
+	}
+	return nil
 }
 
 // JWTToken is a struct to hold JWT token and its expiration time
@@ -423,6 +455,26 @@ func (p *provider) CreateIDToken(cfg *AuthTokenConfig) (string, int64, error) {
 	if cfg.Nonce != "" {
 		customClaims["nonce"] = cfg.Nonce
 	}
+	// OIDC Core §2: auth_time — Unix seconds. Default to now if caller
+	// did not supply a session-level auth timestamp (backward compat).
+	authTime := cfg.AuthTime
+	if authTime == 0 {
+		authTime = time.Now().Unix()
+	}
+	customClaims["auth_time"] = authTime
+
+	// OIDC Core §2: amr — Authentication Methods Reference array. Omit
+	// the claim for unknown login methods rather than emit an empty array.
+	if amr := loginMethodToAMR(cfg.LoginMethod); len(amr) > 0 {
+		customClaims["amr"] = amr
+	}
+
+	// OIDC Core §2: acr — Authentication Context Class Reference.
+	// Hardcoded "0" (no-op baseline per OIDC Core §2). Phase 3 will
+	// introduce MFA-aware ACR alongside acr_values request parameter
+	// support; for now returning "0" is safer than omitting the claim
+	// for clients that require its presence.
+	customClaims["acr"] = "0"
 	for k, v := range userMap {
 		if k != "roles" {
 			customClaims[k] = v
