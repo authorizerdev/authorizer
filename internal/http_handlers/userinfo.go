@@ -164,13 +164,9 @@ func (h *httpProvider) UserInfoHandler() gin.HandlerFunc {
 		// OIDC Core §5.3.2: sub claim MUST always be returned.
 		full["sub"] = userID
 
-		if h.Config.OIDCStrictUserInfoScopes {
-			scopes := extractScopesFromAccessToken(claims)
-			gc.JSON(http.StatusOK, filterUserInfoByScopes(full, scopes))
-			return
-		}
-
-		// Backward-compatible lenient mode: return everything we have.
-		gc.JSON(http.StatusOK, full)
+		// OIDC Core §5.4: the returned claims MUST be filtered by the scope
+		// set encoded in the access token. Always strict — no lenient mode.
+		scopes := extractScopesFromAccessToken(claims)
+		gc.JSON(http.StatusOK, filterUserInfoByScopes(full, scopes))
 	}
 }

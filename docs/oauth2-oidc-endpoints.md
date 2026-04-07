@@ -187,36 +187,18 @@ Standard error codes: `invalid_request`, `invalid_client`, `invalid_grant`, `uns
 
 **Endpoint:** `GET /userinfo`
 
-**Specs:** [OIDC Core Section 5.3](https://openid.net/specs/openid-connect-core-1_0.html#UserInfo) | [RFC 6750 (Bearer Token)](https://www.rfc-editor.org/rfc/rfc6750)
+**Specs:** [OIDC Core Section 5.3](https://openid.net/specs/openid-connect-core-1_0.html#UserInfo) | [OIDC Core Section 5.4 (Requesting Claims using Scope Values)](https://openid.net/specs/openid-connect-core-1_0.html#ScopeClaims) | [RFC 6750 (Bearer Token)](https://www.rfc-editor.org/rfc/rfc6750)
 
-Returns claims about the authenticated end-user.
+Returns claims about the authenticated end-user, filtered by the scopes encoded in the access token.
 
 ```bash
 curl -H "Authorization: Bearer ACCESS_TOKEN" \
   https://your-authorizer.example/userinfo
 ```
 
-### Success Response
+### Scope → claim mapping
 
-```json
-{
-  "sub": "user-uuid",
-  "email": "user@example.com",
-  "email_verified": true,
-  "given_name": "Jane",
-  "family_name": "Doe",
-  "picture": "https://example.com/photo.jpg",
-  "roles": "user"
-}
-```
-
-The `sub` claim is always returned per OIDC Core Section 5.3.2.
-
-### Strict scope filtering (`--oidc-strict-userinfo-scopes`)
-
-By default, `/userinfo` returns the full user profile regardless of the scopes encoded in the access token. This preserves backward compatibility for clients that request only `openid` but read claims like `email` or `name` from the response.
-
-To opt in to OIDC Core §5.4-compliant filtering, set `--oidc-strict-userinfo-scopes=true`. In strict mode the response always includes `sub` plus only the claims permitted by the standard scope groups present on the access token:
+Per OIDC Core §5.4, the response always includes `sub` plus only the claims permitted by the standard scope groups present on the access token. Clients must request the scopes they actually consume.
 
 | Scope     | Claims returned in addition to `sub`                                                                                          |
 |-----------|-------------------------------------------------------------------------------------------------------------------------------|
@@ -225,9 +207,53 @@ To opt in to OIDC Core §5.4-compliant filtering, set `--oidc-strict-userinfo-sc
 | `phone`   | `phone_number`, `phone_number_verified`                                                                                       |
 | `address` | `address`                                                                                                                     |
 
-Claim keys belonging to a granted scope group are always present in the response. If the underlying user has no value for a specific claim, the key is emitted with JSON `null` (explicitly permitted by OIDC Core §5.3.2), so callers can rely on a stable response schema.
+Claim keys belonging to a granted scope group are always present in the response. If the underlying user has no value for a specific claim, the key is emitted with JSON `null` — explicitly permitted by OIDC Core §5.3.2 — so callers can rely on a stable response schema.
 
-Audit your clients before flipping this flag — strict mode is a breaking change for any client that requests only `openid` but consumes other claims.
+### Example responses
+
+Requesting `openid email`:
+
+```json
+{
+  "sub": "user-uuid",
+  "email": "user@example.com",
+  "email_verified": true
+}
+```
+
+Requesting `openid profile email`:
+
+```json
+{
+  "sub": "user-uuid",
+  "email": "user@example.com",
+  "email_verified": true,
+  "given_name": "Jane",
+  "family_name": "Doe",
+  "nickname": null,
+  "preferred_username": "user@example.com",
+  "picture": "https://example.com/photo.jpg",
+  "name": null,
+  "middle_name": null,
+  "profile": null,
+  "website": null,
+  "gender": null,
+  "birthdate": null,
+  "zoneinfo": null,
+  "locale": null,
+  "updated_at": 1712486400
+}
+```
+
+Requesting only `openid`:
+
+```json
+{
+  "sub": "user-uuid"
+}
+```
+
+The `sub` claim is always returned per OIDC Core §5.3.2.
 
 ### Error Response (RFC 6750 Section 3)
 

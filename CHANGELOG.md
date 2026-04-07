@@ -12,7 +12,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`--rate-limit-fail-closed`**: when the rate-limit backend returns an error, respond with `503` instead of allowing the request (default remains fail-open).
 - **`--metrics-host`**: bind address for the dedicated `/metrics` listener (default `127.0.0.1`). Use `0.0.0.0` when a scraper on another host/pod must reach the metrics port over the network; keep the metrics port off public ingress.
 - **OIDC Discovery — `grant_types_supported` includes `implicit`**: honestly reflects that `/authorize` accepts `response_type=token` and `response_type=id_token`.
-- **`--oidc-strict-userinfo-scopes`** (default `false`): when enabled, `/userinfo` filters returned claims by the access token's scope set per OIDC Core §5.4. Default is lenient to preserve backward compatibility for clients that request only the `openid` scope but read profile/email claims from `/userinfo`. See `docs/oauth2-oidc-endpoints.md` for the full scope→claim mapping.
 
 ### Changed
 
@@ -22,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Health/readiness JSON**: failure responses return a generic `error` string; details remain in server logs.
 - **OAuth callback JSON**: generic OAuth-style error body on provider processing failure; details remain in logs.
 - **`/playground`** is subject to the same per-IP rate limits as other routes (health and OIDC discovery paths stay exempt). **`/metrics`** is not on the main HTTP router.
+- **BREAKING: `/userinfo` now strictly filters claims by scope per OIDC Core §5.4.** The endpoint returns only `sub` plus the claims permitted by the standard scope groups (`profile`, `email`, `phone`, `address`) encoded in the access token. Previously, `/userinfo` returned the full user object regardless of scopes. Clients that request only the `openid` scope but read profile/email claims from `/userinfo` **must** now request those scopes explicitly. See `docs/oauth2-oidc-endpoints.md` for the full scope→claim mapping.
 
 ### Removed
 

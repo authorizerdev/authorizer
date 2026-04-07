@@ -85,30 +85,12 @@ func signupForUserInfoTests(t *testing.T, ts *testSetup, ctx context.Context) st
 	return email
 }
 
-// TestUserInfoScopeFilteringLenient covers the default (backward-compat)
-// mode where /userinfo returns the full user object regardless of scopes.
-func TestUserInfoScopeFilteringLenient(t *testing.T) {
+// TestUserInfoScopeFiltering covers OIDC Core §5.4 scope-based claim
+// filtering on /userinfo. Filtering is unconditional — there is no opt-in
+// flag. The returned response always contains `sub` plus only the claims
+// permitted by the standard scope groups encoded in the access token.
+func TestUserInfoScopeFiltering(t *testing.T) {
 	cfg := getTestConfig()
-	cfg.OIDCStrictUserInfoScopes = false
-	ts := initTestSetup(t, cfg)
-	_, ctx := createContext(ts)
-
-	email := signupForUserInfoTests(t, ts, ctx)
-	accessToken := issueAccessTokenWithScopes(t, ts, ctx, email, []string{"openid"})
-
-	code, body := callUserInfo(t, ts, accessToken)
-	require.Equal(t, http.StatusOK, code)
-
-	assert.NotEmpty(t, body["sub"], "sub MUST always be present")
-	assert.Equal(t, email, body["email"],
-		"lenient mode: email returned even though only openid scope was requested")
-}
-
-// TestUserInfoScopeFilteringStrict covers OIDC Core §5.4 filtering when
-// the operator opts in.
-func TestUserInfoScopeFilteringStrict(t *testing.T) {
-	cfg := getTestConfig()
-	cfg.OIDCStrictUserInfoScopes = true
 	ts := initTestSetup(t, cfg)
 	_, ctx := createContext(ts)
 
