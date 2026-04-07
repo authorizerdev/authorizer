@@ -36,6 +36,10 @@ type RequestBody struct {
 func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 	log := h.Log.With().Str("func", "TokenHandler").Logger()
 	return func(gc *gin.Context) {
+		// RFC 6749 §5.1: token endpoint responses must not be cached.
+		gc.Writer.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, private")
+		gc.Writer.Header().Set("Pragma", "no-cache")
+
 		var reqBody RequestBody
 		if err := gc.Bind(&reqBody); err != nil {
 			log.Debug().Err(err).Msg("failed to bind json")

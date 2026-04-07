@@ -53,9 +53,23 @@ type server struct {
 func (s *server) Run(ctx context.Context) error {
 	ginRouter := s.NewRouter()
 	httpAddr := net.JoinHostPort(s.Config.Host, strconv.Itoa(s.Config.HTTPPort))
+
+	// Build the main HTTP server explicitly with conservative timeouts to
+	// defend against slowloris and other slow-client DoS. ReadHeaderTimeout
+	// is the most important — it bounds time to receive request headers,
+	// which is what slowloris exploits.
+	httpSrv := &http.Server{
+		Addr:              httpAddr,
+		Handler:           ginRouter,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      60 * time.Second,
+		IdleTimeout:       120 * time.Second,
+		MaxHeaderBytes:    1 << 20, // 1 MB
+	}
 	go func() {
 		s.Dependencies.Log.Info().Str("addr", httpAddr).Msg("Starting HTTP server")
-		if err := ginRouter.Run(httpAddr); err != nil {
+		if err := httpSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			s.Dependencies.Log.Error().Err(err).Msg("HTTP server failed")
 		}
 	}()
@@ -64,8 +78,13 @@ func (s *server) Run(ctx context.Context) error {
 	mux.Handle("/metrics", promhttp.Handler())
 	metricsAddr := net.JoinHostPort(s.Config.MetricsHost, strconv.Itoa(s.Config.MetricsPort))
 	metricsSrv := &http.Server{
-		Addr:    metricsAddr,
-		Handler: mux,
+		Addr:              metricsAddr,
+		Handler:           mux,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      60 * time.Second,
+		IdleTimeout:       120 * time.Second,
+		MaxHeaderBytes:    1 << 20,
 	}
 	go func() {
 		s.Dependencies.Log.Info().Str("addr", metricsAddr).Msg("Starting metrics server")
@@ -73,13 +92,19 @@ func (s *server) Run(ctx context.Context) error {
 			s.Dependencies.Log.Error().Err(err).Msg("Metrics server failed")
 		}
 	}()
-	go func() {
-		<-ctx.Done()
-		shCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		_ = metricsSrv.Shutdown(shCtx)
-	}()
 
+	// Graceful shutdown for BOTH servers (previously only metrics was
+	// shut down gracefully — the main HTTP server was killed mid-flight,
+	// dropping in-progress responses).
 	<-ctx.Done()
+	s.Dependencies.Log.Info().Msg("Shutdown signal received, draining connections")
+	shCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	if err := httpSrv.Shutdown(shCtx); err != nil {
+		s.Dependencies.Log.Error().Err(err).Msg("HTTP server graceful shutdown failed")
+	}
+	if err := metricsSrv.Shutdown(shCtx); err != nil {
+		s.Dependencies.Log.Error().Err(err).Msg("Metrics server graceful shutdown failed")
+	}
 	return nil
 }
