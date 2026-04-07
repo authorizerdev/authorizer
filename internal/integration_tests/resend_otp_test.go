@@ -7,8 +7,10 @@ import (
 	"time"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
+	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/refs"
+	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -54,10 +56,28 @@ func TestResendOTP(t *testing.T) {
 	// Expect the user to be nil, as the email is not verified yet
 	assert.Nil(t, signupRes.User)
 
-	// Get the OTP from db
-	otpData, err := ts.StorageProvider.GetOTPByPhoneNumber(ctx, mobile)
+	// Overwrite the row written by signup with a known plaintext/digest
+	// pair so the test can verify with the plaintext (the integration
+	// suite cannot intercept the outgoing SMS).
+	const initialPlainOTP = "123456"
+	signupOTP, err := ts.StorageProvider.GetOTPByPhoneNumber(ctx, mobile)
 	require.NoError(t, err)
-	assert.NotNil(t, otpData)
+	require.NotNil(t, signupOTP)
+	signupOTP.Otp = crypto.HashOTP(initialPlainOTP, cfg.JWTSecret)
+	signupOTP.ExpiresAt = time.Now().Add(5 * time.Minute).Unix()
+	_, err = ts.StorageProvider.UpsertOTP(ctx, signupOTP)
+	require.NoError(t, err)
+
+	// Sanity check the at-rest hardening: stored value is the digest, not
+	// the plaintext, and the plaintext is recoverable only via VerifyOTPHash.
+	t.Run("OTP at rest is hashed, not plaintext", func(t *testing.T) {
+		row, err := ts.StorageProvider.GetOTPByPhoneNumber(ctx, mobile)
+		require.NoError(t, err)
+		assert.NotEqual(t, initialPlainOTP, row.Otp)
+		assert.Equal(t, crypto.HashOTP(initialPlainOTP, cfg.JWTSecret), row.Otp)
+		assert.True(t, crypto.VerifyOTPHash(initialPlainOTP, row.Otp, cfg.JWTSecret))
+	})
+
 	// User
 	userData, err := ts.StorageProvider.GetUserByPhoneNumber(ctx, mobile)
 	require.NoError(t, err)
@@ -79,16 +99,29 @@ func TestResendOTP(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, resendRes)
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", constants.TestEnv))
-		t.Run("old OTP should be invalidated", func(t *testing.T) {
+		t.Run("old OTP plaintext is invalidated by resend", func(t *testing.T) {
+			// The original OTP we seeded above must no longer verify
+			// because resend wrote a new digest into the same row.
 			verificationReq := &model.VerifyOTPRequest{
 				PhoneNumber: &mobile,
-				Otp:         otpData.Otp,
+				Otp:         initialPlainOTP,
 			}
 			verificationRes, err := ts.GraphQLProvider.VerifyOTP(ctx, verificationReq)
 			assert.Error(t, err)
 			assert.Nil(t, verificationRes)
 		})
-		t.Run("should verify OTP", func(t *testing.T) {
+		t.Run("should verify OTP with the plaintext that was sent", func(t *testing.T) {
+			// Resend wrote a new OTP whose plaintext we can't observe
+			// (it went out via SMS). Overwrite the row again with a
+			// known plaintext/digest pair and verify with the plaintext.
+			const resentPlainOTP = "654321"
+			_, err := ts.StorageProvider.UpsertOTP(ctx, &schemas.OTP{
+				PhoneNumber: mobile,
+				Otp:         crypto.HashOTP(resentPlainOTP, cfg.JWTSecret),
+				ExpiresAt:   time.Now().Add(5 * time.Minute).Unix(),
+			})
+			require.NoError(t, err)
+
 			// Get MFA session cookie
 			allData, err := ts.MemoryStoreProvider.GetAllData()
 			require.NoError(t, err)
@@ -103,12 +136,9 @@ func TestResendOTP(t *testing.T) {
 				}
 			}
 			req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", sessionKey))
-			newOtpData, err := ts.StorageProvider.GetOTPByPhoneNumber(ctx, mobile)
-			require.NoError(t, err)
-			assert.NotNil(t, newOtpData)
 			verificationReq := &model.VerifyOTPRequest{
 				PhoneNumber: &mobile,
-				Otp:         newOtpData.Otp,
+				Otp:         resentPlainOTP,
 			}
 			verificationRes, err := ts.GraphQLProvider.VerifyOTP(ctx, verificationReq)
 			require.NoError(t, err)

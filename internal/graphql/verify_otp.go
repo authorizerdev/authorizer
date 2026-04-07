@@ -2,7 +2,6 @@ package graphql
 
 import (
 	"context"
-	"crypto/subtle"
 	"fmt"
 	"strings"
 	"time"
@@ -12,6 +11,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
+	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/refs"
@@ -106,7 +106,11 @@ func (g *graphqlProvider) VerifyOTP(ctx context.Context, params *model.VerifyOTP
 			log.Debug().Msg("OTP not found")
 			return nil, fmt.Errorf(`OTP not found`)
 		}
-		if subtle.ConstantTimeCompare([]byte(params.Otp), []byte(otp.Otp)) != 1 {
+		// OTPs are stored as HMAC-SHA256 digests so an offline DB dump no
+		// longer reveals usable codes. We deliberately do NOT fall back
+		// to literal equality — accepting the stored value verbatim
+		// would turn the digest itself into a usable credential.
+		if !crypto.VerifyOTPHash(params.Otp, otp.Otp, g.Config.JWTSecret) {
 			log.Debug().Msg("Failed to verify otp request: OTP mismatch")
 			return nil, fmt.Errorf(`invalid otp`)
 		}

@@ -38,8 +38,9 @@ type testSetup struct {
 	Logger          *zerolog.Logger
 	GinContext      *gin.Context
 	// Used for specific tests where we need to access the storage
-	StorageProvider     storage.Provider
-	MemoryStoreProvider memory_store.Provider
+	StorageProvider       storage.Provider
+	MemoryStoreProvider   memory_store.Provider
+	AuthenticatorProvider authenticators.Provider
 }
 
 func createContext(s *testSetup) (*http.Request, context.Context) {
@@ -238,12 +239,14 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 	})
 
 	return &testSetup{
-		GraphQLProvider:     gqlProvider,
-		HttpProvider:        httpProvider,
-		HttpServer:          server,
-		Logger:              &logger,
-		GinContext:          ctx,
-		StorageProvider:     storageProvider,
-		MemoryStoreProvider: memoryStoreProvider,
+		GraphQLProvider:       gqlProvider,
+		HttpProvider:          httpProvider,
+		HttpServer:            server,
+		Config:                cfg,
+		Logger:                &logger,
+		GinContext:            ctx,
+		StorageProvider:       storageProvider,
+		MemoryStoreProvider:   memoryStoreProvider,
+		AuthenticatorProvider: authProvider,
 	}
 }

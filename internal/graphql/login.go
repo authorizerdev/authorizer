@@ -13,6 +13,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
+	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/parsers"
@@ -113,16 +114,23 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 			log.Debug().Err(err).Msg("Failed to generate OTP")
 			return nil, err
 		}
+		// Store the HMAC digest (defence-in-depth: an offline DB dump no
+		// longer reveals usable codes). The plaintext is held in the
+		// returned struct's Otp field for the caller's email/SMS body.
 		otpData, err := g.StorageProvider.UpsertOTP(ctx, &schemas.OTP{
 			Email:       refs.StringValue(user.Email),
 			PhoneNumber: refs.StringValue(user.PhoneNumber),
-			Otp:         otp,
+			Otp:         crypto.HashOTP(otp, g.Config.JWTSecret),
 			ExpiresAt:   expiresAt,
 		})
 		if err != nil {
 			log.Debug().Msg("Failed to upsert otp")
 			return nil, err
 		}
+		// Replace the persisted hash with the plaintext on the returned
+		// struct so the caller can read otpData.Otp for email/SMS without
+		// having to thread two values through the closure.
+		otpData.Otp = otp
 		return otpData, nil
 	}
 	setOTPMFaSession := func(expiresAt int64) error {

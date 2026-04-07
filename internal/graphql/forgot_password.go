@@ -11,6 +11,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
+	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/parsers"
@@ -150,10 +151,11 @@ func (g *graphqlProvider) ForgotPassword(ctx context.Context, params *model.Forg
 			log.Debug().Err(err).Msg("Failed to generate OTP")
 			return nil, err
 		}
-		otpData, err := g.StorageProvider.UpsertOTP(ctx, &schemas.OTP{
+		// Store the HMAC digest; otp (plaintext local) is sent via SMS below.
+		_, err = g.StorageProvider.UpsertOTP(ctx, &schemas.OTP{
 			Email:       refs.StringValue(user.Email),
 			PhoneNumber: refs.StringValue(user.PhoneNumber),
-			Otp:         otp,
+			Otp:         crypto.HashOTP(otp, g.Config.JWTSecret),
 			ExpiresAt:   expiresAt,
 		})
 		if err != nil {
@@ -169,7 +171,7 @@ func (g *graphqlProvider) ForgotPassword(ctx context.Context, params *model.Forg
 		cookie.SetMfaSession(gc, mfaSession, g.Config.AppCookieSecure)
 		smsBody := strings.Builder{}
 		smsBody.WriteString("Your verification code is: ")
-		smsBody.WriteString(otpData.Otp)
+		smsBody.WriteString(otp)
 		if err := g.SMSProvider.SendSMS(phoneNumber, smsBody.String()); err != nil {
 			log.Debug().Err(err).Msg("Failed to send sms")
 			// continue
