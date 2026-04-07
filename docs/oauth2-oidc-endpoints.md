@@ -34,10 +34,12 @@ Returns metadata about the Authorizer instance so clients can auto-configure the
 | `revocation_endpoint` | URL for `/oauth/revoke` |
 | `end_session_endpoint` | URL for `/logout` |
 | `response_types_supported` | `["code", "token", "id_token"]` |
-| `grant_types_supported` | `["authorization_code", "refresh_token"]` |
+| `grant_types_supported` | `["authorization_code", "refresh_token", "implicit"]` |
 | `scopes_supported` | `["openid", "email", "profile", "offline_access"]` |
 | `code_challenge_methods_supported` | `["S256"]` |
 | `token_endpoint_auth_methods_supported` | `["client_secret_basic", "client_secret_post"]` |
+
+> **Phase 1 conformance note:** `grant_types_supported` now includes `implicit` to honestly reflect that `/authorize` accepts `response_type=token` and `response_type=id_token`. The previously advertised `registration_endpoint` field has been removed because it pointed to the signup UI, not an RFC 7591 dynamic client registration endpoint; it will return when RFC 7591 is implemented.
 
 ### Usage
 
@@ -101,6 +103,8 @@ GET /authorize?
 ```
 
 **Success response:** Redirects to `redirect_uri#access_token=...&id_token=...&token_type=Bearer&state=...`
+
+> **Phase 1 conformance note:** ID tokens issued from any flow now compute `at_hash` correctly as `base64url(sha256(access_token)[:16])` per OIDC Core §3.2.2.10, and echo the request's `nonce` (OIDC Core §2) when one was supplied. Previously the implicit/token branch set `at_hash` to the nonce value.
 
 ---
 
@@ -207,6 +211,23 @@ curl -H "Authorization: Bearer ACCESS_TOKEN" \
 ```
 
 The `sub` claim is always returned per OIDC Core Section 5.3.2.
+
+### Strict scope filtering (`--oidc-strict-userinfo-scopes`)
+
+By default, `/userinfo` returns the full user profile regardless of the scopes encoded in the access token. This preserves backward compatibility for clients that request only `openid` but read claims like `email` or `name` from the response.
+
+To opt in to OIDC Core §5.4-compliant filtering, set `--oidc-strict-userinfo-scopes=true`. In strict mode the response always includes `sub` plus only the claims permitted by the standard scope groups present on the access token:
+
+| Scope     | Claims returned in addition to `sub`                                                                                          |
+|-----------|-------------------------------------------------------------------------------------------------------------------------------|
+| `profile` | `name`, `family_name`, `given_name`, `middle_name`, `nickname`, `preferred_username`, `profile`, `picture`, `website`, `gender`, `birthdate`, `zoneinfo`, `locale`, `updated_at` |
+| `email`   | `email`, `email_verified`                                                                                                     |
+| `phone`   | `phone_number`, `phone_number_verified`                                                                                       |
+| `address` | `address`                                                                                                                     |
+
+Claim keys belonging to a granted scope group are always present in the response. If the underlying user has no value for a specific claim, the key is emitted with JSON `null` (explicitly permitted by OIDC Core §5.3.2), so callers can rely on a stable response schema.
+
+Audit your clients before flipping this flag — strict mode is a breaking change for any client that requests only `openid` but consumes other claims.
 
 ### Error Response (RFC 6750 Section 3)
 

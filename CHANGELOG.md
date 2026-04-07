@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`--rate-limit-fail-closed`**: when the rate-limit backend returns an error, respond with `503` instead of allowing the request (default remains fail-open).
 - **`--metrics-host`**: bind address for the dedicated `/metrics` listener (default `127.0.0.1`). Use `0.0.0.0` when a scraper on another host/pod must reach the metrics port over the network; keep the metrics port off public ingress.
+- **OIDC Discovery — `grant_types_supported` includes `implicit`**: honestly reflects that `/authorize` accepts `response_type=token` and `response_type=id_token`.
+- **`--oidc-strict-userinfo-scopes`** (default `false`): when enabled, `/userinfo` filters returned claims by the access token's scope set per OIDC Core §5.4. Default is lenient to preserve backward compatibility for clients that request only the `openid` scope but read profile/email claims from `/userinfo`. See `docs/oauth2-oidc-endpoints.md` for the full scope→claim mapping.
 
 ### Changed
 
@@ -24,6 +26,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 - **`authorizer_client_id_not_found_total`**: replaced by **`authorizer_client_id_header_missing_total`**, which matches the actual behavior (header omitted, request still allowed). Update dashboards and alerts accordingly.
+- **OIDC Discovery — `registration_endpoint`**: previously pointed to the signup UI rather than an RFC 7591 dynamic client registration endpoint. It will return when RFC 7591 is implemented.
+
+### Fixed
+
+- **OIDC ID token `at_hash`**: now correctly set to `base64url(sha256(access_token)[:16])` for all flows. Previously the implicit/token branch incorrectly set `at_hash` to the nonce value (OIDC Core §3.2.2.10).
+- **OIDC ID token `nonce`**: now echoed in the ID token whenever it was supplied in the auth request, regardless of the flow used (OIDC Core §2).
 
 ## [2.2.1-rc.0] - 2026-04-06
 
