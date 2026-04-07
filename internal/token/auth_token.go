@@ -380,10 +380,10 @@ func (p *provider) ValidateBrowserSession(gc *gin.Context, encryptedSession stri
 	return &res, nil
 }
 
-// CreateIDToken util to create JWT token, based on
-// user information, roles config and CUSTOM_ACCESS_TOKEN_SCRIPT
-// For response_type (code) / authorization_code grant nonce should be empty
-// for implicit flow it should be present to verify with actual state
+// CreateIDToken util to create the OIDC ID token JWT, based on user
+// information, roles config and CUSTOM_ACCESS_TOKEN_SCRIPT.
+// See the in-function block comment for the at_hash / c_hash / nonce
+// emission rules per OIDC Core §3.1.3.6 / §3.2.2.10.
 func (p *provider) CreateIDToken(cfg *AuthTokenConfig) (string, int64, error) {
 	expiryBound, err := utils.ParseDurationInSeconds(cfg.ExpireTime)
 	if err != nil {
