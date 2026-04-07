@@ -92,7 +92,7 @@ func TestAuthorizeUILocalesForwarded(t *testing.T) {
 
 // TestAuthorizePromptConsentAndSelectAccountNoOp verifies these prompt
 // values are parsed and accepted (no error), even though they are not
-// implemented in Phase 2.
+// yet implemented.
 func TestAuthorizePromptConsentAndSelectAccountNoOp(t *testing.T) {
 	cfg := getTestConfig()
 	ts := initTestSetup(t, cfg)

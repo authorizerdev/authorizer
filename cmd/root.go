@@ -181,6 +181,11 @@ func init() {
 	f.StringVar(&rootArgs.config.JWTSecret, "jwt-secret", "", "Secret for the JWT")
 	f.StringVar(&rootArgs.config.JWTPrivateKey, "jwt-private-key", "", "Private key for the JWT")
 	f.StringVar(&rootArgs.config.JWTPublicKey, "jwt-public-key", "", "Public key for the JWT")
+	// JWT secondary key flags (for manual key rotation)
+	f.StringVar(&rootArgs.config.JWTSecondaryType, "jwt-secondary-type", "", "Algorithm of the optional secondary JWT key used for manual rotation. When set, JWKS publishes both keys and token validation accepts either. New tokens are always signed with the primary (--jwt-type) key.")
+	f.StringVar(&rootArgs.config.JWTSecondarySecret, "jwt-secondary-secret", "", "Secret for the secondary JWT key (HMAC only; never exposed via JWKS)")
+	f.StringVar(&rootArgs.config.JWTSecondaryPrivateKey, "jwt-secondary-private-key", "", "Private key for the secondary JWT key. Currently unused — verification only uses the public key; kept for symmetry with --jwt-private-key and for future primary/secondary swap automation.")
+	f.StringVar(&rootArgs.config.JWTSecondaryPublicKey, "jwt-secondary-public-key", "", "Public key for the secondary JWT key. Used to verify tokens signed with the secondary key during rotation.")
 	f.StringVar(&rootArgs.config.JWTRoleClaim, "jwt-role-claim", defaultJWTRoleClaim, "Role claim for the JWT")
 	f.StringVar(&rootArgs.config.CustomAccessTokenScript, "custom-access-token-script", "", "Custom access token script")
 
@@ -225,6 +230,9 @@ func init() {
 
 	// URLs
 	f.StringVar(&rootArgs.config.ResetPasswordURL, "reset-password-url", "", "URL for reset password")
+
+	// Back-channel logout (OIDC BCL 1.0)
+	f.StringVar(&rootArgs.config.BackchannelLogoutURI, "backchannel-logout-uri", "", "URL to POST a signed logout_token to when users log out successfully. Leave empty (default) to disable back-channel logout notifications. See OIDC Back-Channel Logout 1.0.")
 
 	// Deprecated flags
 	f.MarkDeprecated("database_url", "use --database-url instead")

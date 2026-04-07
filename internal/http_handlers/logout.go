@@ -1,6 +1,7 @@
 package http_handlers
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/url"
@@ -125,6 +126,23 @@ func (h *httpProvider) LogoutHandler() gin.HandlerFunc {
 			IPAddress:    utils.GetIP(gc.Request),
 			UserAgent:    utils.GetUserAgent(gc.Request),
 		})
+
+		// OIDC Back-Channel Logout 1.0: when configured, fire a signed
+		// logout_token POST to the operator-supplied URI. Done in a
+		// goroutine with a 5-second HTTP timeout so the user-facing
+		// logout response is never blocked by a slow receiver.
+		if strings.TrimSpace(h.Config.BackchannelLogoutURI) != "" {
+			hostname := parsers.GetHost(gc)
+			go func(uri, host, sub, sid string) {
+				if err := h.TokenProvider.NotifyBackchannelLogout(context.Background(), uri, &token.BackchannelLogoutConfig{
+					HostName:  host,
+					Subject:   sub,
+					SessionID: sid,
+				}); err != nil {
+					log.Debug().Err(err).Msg("backchannel logout notification failed")
+				}
+			}(h.Config.BackchannelLogoutURI, hostname, userID, sessionData.Nonce)
+		}
 
 		if redirectURL != "" {
 			hostname := parsers.GetHost(gc)

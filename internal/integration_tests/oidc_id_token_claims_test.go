@@ -12,10 +12,11 @@ import (
 	"github.com/authorizerdev/authorizer/internal/token"
 )
 
-// createAuthTokenForPhase2Test is a tiny local helper that signs up a user
-// and returns a minted AuthToken via CreateAuthToken. It uses only public
-// provider APIs and deliberately avoids touching test_helper.go.
-func createAuthTokenForPhase2Test(t *testing.T, loginMethod string, authTime int64) (*token.AuthToken, *testSetup) {
+// createAuthTokenForIDTokenClaimsTest is a tiny local helper that signs
+// up a user and returns a minted AuthToken via CreateAuthToken. Uses
+// only public provider APIs and deliberately avoids touching
+// test_helper.go to keep the fixture self-contained.
+func createAuthTokenForIDTokenClaimsTest(t *testing.T, loginMethod string, authTime int64) (*token.AuthToken, *testSetup) {
 	t.Helper()
 	cfg := getTestConfig()
 	_, privateKey, publicKey, _, err := crypto.NewRSAKey("RS256", cfg.ClientID)
@@ -27,7 +28,7 @@ func createAuthTokenForPhase2Test(t *testing.T, loginMethod string, authTime int
 	ts := initTestSetup(t, cfg)
 	_, ctx := createContext(ts)
 
-	email := "id_token_phase2_" + uuid.New().String() + "@authorizer.dev"
+	email := "id_token_claims_" + uuid.New().String() + "@authorizer.dev"
 	password := "Password@123"
 	_, err = ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
 		Email:           &email,
@@ -55,7 +56,7 @@ func createAuthTokenForPhase2Test(t *testing.T, loginMethod string, authTime int
 func TestIDTokenAuthTimeClaim(t *testing.T) {
 	t.Run("explicit_auth_time_is_echoed", func(t *testing.T) {
 		expectedAuthTime := int64(1700000000)
-		authToken, ts := createAuthTokenForPhase2Test(t, "basic_auth", expectedAuthTime)
+		authToken, ts := createAuthTokenForIDTokenClaimsTest(t, "basic_auth", expectedAuthTime)
 		claims, err := ts.TokenProvider.ParseJWTToken(authToken.IDToken.Token)
 		require.NoError(t, err)
 
@@ -73,7 +74,7 @@ func TestIDTokenAuthTimeClaim(t *testing.T) {
 	})
 
 	t.Run("zero_auth_time_defaults_to_now", func(t *testing.T) {
-		authToken, ts := createAuthTokenForPhase2Test(t, "basic_auth", 0)
+		authToken, ts := createAuthTokenForIDTokenClaimsTest(t, "basic_auth", 0)
 		claims, err := ts.TokenProvider.ParseJWTToken(authToken.IDToken.Token)
 		require.NoError(t, err)
 		got, ok := claims["auth_time"]
@@ -108,7 +109,7 @@ func TestIDTokenAmrClaim(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			authToken, ts := createAuthTokenForPhase2Test(t, tc.loginMethod, 1700000000)
+			authToken, ts := createAuthTokenForIDTokenClaimsTest(t, tc.loginMethod, 1700000000)
 			claims, err := ts.TokenProvider.ParseJWTToken(authToken.IDToken.Token)
 			require.NoError(t, err)
 			amrRaw, present := claims["amr"]
@@ -129,11 +130,11 @@ func TestIDTokenAmrClaim(t *testing.T) {
 }
 
 func TestIDTokenAcrClaim(t *testing.T) {
-	authToken, ts := createAuthTokenForPhase2Test(t, "basic_auth", 1700000000)
+	authToken, ts := createAuthTokenForIDTokenClaimsTest(t, "basic_auth", 1700000000)
 	claims, err := ts.TokenProvider.ParseJWTToken(authToken.IDToken.Token)
 	require.NoError(t, err)
 	got, ok := claims["acr"].(string)
 	require.True(t, ok, "acr claim MUST be present and a string")
 	assert.Equal(t, "0", got,
-		"acr is hardcoded to \"0\" (minimal assurance) in Phase 2 pending MFA-aware ACR in Phase 3")
+		"acr is hardcoded to \"0\" (minimal assurance) pending MFA-aware ACR support")
 }

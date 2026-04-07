@@ -166,6 +166,25 @@ type Config struct {
 	JWTPublicKey string
 	// JWTPrivateKey is the private key for the JWT
 	JWTPrivateKey string
+	// JWTSecondaryType is the algorithm of an optional secondary JWT
+	// key used for manual key rotation. When set along with the other
+	// JWT secondary fields, the JWKS endpoint will publish both keys
+	// and token validation will accept tokens signed with either key.
+	// New tokens are always signed with the primary key (JWTType).
+	// Leave empty to disable multi-key mode (default).
+	JWTSecondaryType string
+	// JWTSecondarySecret is the secret for the secondary JWT key.
+	// Used only when JWTSecondaryType is an HMAC algorithm. HMAC keys
+	// are never exposed via the JWKS endpoint.
+	JWTSecondarySecret string
+	// JWTSecondaryPublicKey is the public key for the secondary JWT
+	// key. Used when JWTSecondaryType is RSA or ECDSA.
+	JWTSecondaryPublicKey string
+	// JWTSecondaryPrivateKey is the private key for the secondary JWT
+	// key. Currently unused at the signing stage (the primary key is
+	// always used to sign); kept for symmetry and for future
+	// primary/secondary swap automation.
+	JWTSecondaryPrivateKey string
 	// JWTRoleClaim is the role claim for the JWT
 	JWTRoleClaim string
 	// RefreshTokenExpiresIn is the refresh token lifetime in seconds.
@@ -286,4 +305,10 @@ type Config struct {
 	// reverse proxy MUST set this explicitly or rate limiting and audit
 	// logs will key on the proxy IP, not the real client IP.
 	TrustedProxies []string
+
+	// BackchannelLogoutURI is the URL to which the server POSTs a
+	// signed logout_token when a user logs out successfully. When
+	// empty (default), back-channel logout notifications are disabled.
+	// See OIDC Back-Channel Logout 1.0 §2.5 for the protocol.
+	BackchannelLogoutURI string
 }

@@ -77,6 +77,8 @@ type Provider interface {
 	HealthHandler() gin.HandlerFunc
 	// ReadyHandler is the handler for the /readyz readiness probe
 	ReadyHandler() gin.HandlerFunc
+	// IntrospectHandler is the main handler for RFC 7662 Token Introspection
+	IntrospectHandler() gin.HandlerFunc
 	// JWKsHandler is the main handler that handels all the jwks requests
 	JWKsHandler() gin.HandlerFunc
 	// LogoutHandler is the main handler that handels all the logout requests

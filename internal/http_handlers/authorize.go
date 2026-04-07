@@ -37,6 +37,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -80,6 +81,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 		scopeString := strings.TrimSpace(gc.Query("scope"))
 		clientID := strings.TrimSpace(gc.Query("client_id"))
 		responseMode := strings.TrimSpace(gc.Query("response_mode"))
+		rawResponseMode := responseMode
 		nonce := strings.TrimSpace(gc.Query("nonce"))
 		screenHint := strings.TrimSpace(gc.Query("screen_hint"))
 
@@ -112,10 +114,10 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			log.Debug().Msg("id_token_hint provided but invalid — ignoring per OIDC Core §3.1.2.1")
 		}
 
-		// prompt=consent / prompt=select_account are accepted but not
-		// implemented in Phase 2.
+		// prompt=consent / prompt=select_account are accepted but
+		// not yet implemented — proceed normally.
 		if prompt == "consent" || prompt == "select_account" {
-			log.Debug().Str("prompt", prompt).Msg("prompt value accepted but not implemented in Phase 2 — proceeding normally")
+			log.Debug().Str("prompt", prompt).Msg("prompt value accepted but not implemented — proceeding normally")
 		}
 
 		var scope []string
@@ -159,6 +161,38 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				"error_description": "Only S256 code_challenge_method is supported",
 			})
 			return
+		}
+
+		canonical, ok := supportedResponseTypeSet(responseType)
+		if !ok {
+			log.Debug().Str("response_type", responseType).Msg("unsupported response_type")
+			gc.JSON(http.StatusBadRequest, gin.H{
+				"error":             "unsupported_response_type",
+				"error_description": "response_type is not supported",
+			})
+			return
+		}
+		responseType = canonical
+
+		// OIDC Core §3.3 hybrid response_type combinations.
+		isHybrid := responseType == "code id_token" ||
+			responseType == "code token" ||
+			responseType == "code id_token token" ||
+			responseType == "id_token token"
+		if isHybrid {
+			// OIDC Core §3.3.2.5: hybrid flow MUST NOT use query response_mode.
+			if rawResponseMode == constants.ResponseModeQuery {
+				gc.JSON(http.StatusBadRequest, gin.H{
+					"error":             "invalid_request",
+					"error_description": "response_mode=query is not allowed for hybrid response_type",
+				})
+				return
+			}
+			// Default to fragment when the client did not explicitly
+			// specify one (the global default may be query).
+			if rawResponseMode == "" {
+				responseMode = constants.ResponseModeFragment
+			}
 		}
 
 		if err := h.validateAuthorizeRequest(responseType, responseMode, clientID, state, codeChallenge); err != nil {
@@ -355,6 +389,112 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 
 		// rollover the session for security
 		go h.MemoryStoreProvider.DeleteUserSession(sessionKey, claims.Nonce)
+
+		if isHybrid {
+			hostname := parsers.GetHost(gc)
+			// For hybrid flows we mint tokens AND a code. Setting Code
+			// on the AuthTokenConfig causes CreateAuthToken to populate
+			// cfg.CodeHash, which in turn causes CreateIDToken to emit
+			// the c_hash claim per OIDC Core §3.3.2.11.
+			authToken, err := h.TokenProvider.CreateAuthToken(gc, &token.AuthTokenConfig{
+				User:        user,
+				Nonce:       nonce,
+				Code:        code,
+				Roles:       claims.Roles,
+				Scope:       scope,
+				LoginMethod: claims.LoginMethod,
+				HostName:    hostname,
+			})
+			if err != nil {
+				log.Debug().Err(err).Msg("Error creating auth token for hybrid response")
+				handleResponse(gc, responseMode, authURL, redirectURI, loginError, http.StatusOK)
+				return
+			}
+
+			// Stash the code so /oauth/token can later exchange it.
+			if err := h.MemoryStoreProvider.SetState(code, codeChallenge+"@@"+authToken.FingerPrint); err != nil {
+				log.Debug().Err(err).Msg("Error setting temp code for hybrid")
+				handleResponse(gc, responseMode, authURL, redirectURI, loginError, http.StatusOK)
+				return
+			}
+			if err := h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt); err != nil {
+				log.Debug().Err(err).Msg("Error persisting session for hybrid")
+				handleResponse(gc, responseMode, authURL, redirectURI, loginError, http.StatusOK)
+				return
+			}
+			if err := h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt); err != nil {
+				log.Debug().Err(err).Msg("Error persisting access token for hybrid")
+				handleResponse(gc, responseMode, authURL, redirectURI, loginError, http.StatusOK)
+				return
+			}
+			cookie.SetSession(gc, authToken.FingerPrintHash, h.Config.AppCookieSecure)
+			expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
+			if expiresIn <= 0 {
+				expiresIn = 1
+			}
+
+			hasAccessToken := responseType == "code token" ||
+				responseType == "code id_token token" ||
+				responseType == "id_token token"
+			hasIDToken := responseType == "code id_token" ||
+				responseType == "code id_token token" ||
+				responseType == "id_token token"
+
+			// Build the response map. Always include code + state for
+			// hybrid combos containing "code"; include id_token /
+			// access_token based on the requested set.
+			res := map[string]interface{}{
+				"state":      state,
+				"token_type": "Bearer",
+				"scope":      strings.Join(scope, " "),
+				"expires_in": expiresIn,
+			}
+			hasCode := strings.Contains(responseType, "code")
+			if hasCode {
+				res["code"] = code
+			}
+			if hasAccessToken {
+				res["access_token"] = authToken.AccessToken.Token
+			}
+			if hasIDToken {
+				res["id_token"] = authToken.IDToken.Token
+			}
+			if nonce != "" {
+				res["nonce"] = nonce
+			}
+
+			// Build the fragment params string for redirect modes.
+			params := "state=" + state + "&token_type=bearer&expires_in=" + strconv.FormatInt(expiresIn, 10)
+			if hasCode {
+				params += "&code=" + code
+			}
+			if hasAccessToken {
+				params += "&access_token=" + authToken.AccessToken.Token
+			}
+			if hasIDToken {
+				params += "&id_token=" + authToken.IDToken.Token
+			}
+			if nonce != "" {
+				params += "&nonce=" + nonce
+			}
+
+			// Hybrid is fragment-default; the pre-check above ensured
+			// responseMode != "query".
+			if responseMode == constants.ResponseModeFragment {
+				if strings.Contains(redirectURI, "#") {
+					redirectURI = redirectURI + "&" + params
+				} else {
+					redirectURI = redirectURI + "#" + params
+				}
+			}
+
+			handleResponse(gc, responseMode, authURL, redirectURI, map[string]interface{}{
+				"type":     "authorization_response",
+				"response": res,
+			}, http.StatusOK)
+			return
+		}
+
 		if responseType == constants.ResponseTypeCode {
 			newSessionTokenData, newSessionToken, newSessionExpiresAt, err := h.TokenProvider.CreateSessionToken(&token.AuthTokenConfig{
 				User:        user,
@@ -520,12 +660,54 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 	}
 }
 
+// supportedResponseTypeSet normalizes a space-delimited response_type
+// string into a canonical sorted form and returns whether it is one of
+// the supported OIDC Core combinations. Returns the canonical form and
+// true on success; empty string and false on unsupported.
+func supportedResponseTypeSet(raw string) (string, bool) {
+	fields := strings.Fields(raw)
+	if len(fields) == 0 {
+		return "", false
+	}
+	// Dedupe + sort.
+	seen := map[string]bool{}
+	for _, f := range fields {
+		f = strings.ToLower(strings.TrimSpace(f))
+		if f != "" {
+			seen[f] = true
+		}
+	}
+	tokens := make([]string, 0, len(seen))
+	for k := range seen {
+		tokens = append(tokens, k)
+	}
+	sort.Strings(tokens)
+	canonical := strings.Join(tokens, " ")
+
+	switch canonical {
+	// Existing single-value types.
+	case "code", "token", "id_token":
+		return canonical, true
+	// Hybrid combinations (OIDC Core §3.3).
+	case "code id_token":
+		return canonical, true
+	case "code token":
+		return canonical, true
+	case "code id_token token":
+		return canonical, true
+	// Implicit with both.
+	case "id_token token":
+		return canonical, true
+	}
+	return "", false
+}
+
 func (h *httpProvider) validateAuthorizeRequest(responseType, responseMode, clientID, state, codeChallenge string) error {
 	if strings.TrimSpace(state) == "" {
 		return fmt.Errorf("invalid state. state is required to prevent csrf attack")
 	}
-	if responseType != constants.ResponseTypeCode && responseType != constants.ResponseTypeToken && responseType != constants.ResponseTypeIDToken {
-		return fmt.Errorf("invalid response type %s. 'code' & 'token' are valid response_type", responseType)
+	if _, ok := supportedResponseTypeSet(responseType); !ok {
+		return fmt.Errorf("invalid response type %s", responseType)
 	}
 
 	if responseMode != constants.ResponseModeQuery && responseMode != constants.ResponseModeWebMessage && responseMode != constants.ResponseModeFragment && responseMode != constants.ResponseModeFormPost {
