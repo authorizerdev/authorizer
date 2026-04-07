@@ -94,7 +94,7 @@ func (g *graphqlProvider) TestEndpoint(ctx context.Context, params *model.TestEn
 	}
 	req.Header.Set("Content-Type", "application/json")
 	for key, val := range params.Headers {
-		req.Header.Set(key, val.(string))
+		req.Header.Set(key, headerValueString(val))
 	}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -114,4 +114,15 @@ func (g *graphqlProvider) TestEndpoint(ctx context.Context, params *model.TestEn
 		HTTPStatus: &statusCode,
 		Response:   refs.NewStringRef(string(body)),
 	}, nil
+}
+
+// headerValueString coerces GraphQL JSON header values to strings without panicking.
+func headerValueString(v interface{}) string {
+	if s, ok := v.(string); ok {
+		return s
+	}
+	if v == nil {
+		return ""
+	}
+	return fmt.Sprint(v)
 }

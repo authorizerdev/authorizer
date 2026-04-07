@@ -210,8 +210,10 @@ func TestEndpointTest(t *testing.T) {
 	})
 
 	t.Run("should handle endpoint that doesn't exist", func(t *testing.T) {
+		// Use a reserved loopback port that is not listening — avoids flaky DNS
+		// for "non-existent" hostnames that may resolve in some environments.
 		params := &model.TestEndpointRequest{
-			Endpoint:  "http://non-existent-endpoint.example",
+			Endpoint:  "http://127.0.0.1:1",
 			EventName: constants.UserLoginWebhookEvent,
 			Headers:   map[string]interface{}{},
 		}

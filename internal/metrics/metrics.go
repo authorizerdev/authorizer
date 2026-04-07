@@ -27,6 +27,7 @@ const (
 	EventAdminLogout   = "admin_logout"
 	EventOAuthLogin    = "oauth_login"
 	EventOAuthCallback = "oauth_callback"
+	EventTokenIssued   = "token_issued"
 	EventTokenRefresh  = "token_refresh"
 	EventTokenRevoke   = "token_revoke"
 

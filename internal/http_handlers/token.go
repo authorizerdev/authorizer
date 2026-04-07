@@ -331,8 +331,22 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 			return
 		}
 
-		h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt)
-		h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt)
+		if err := h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt); err != nil {
+			log.Debug().Err(err).Msg("Error persisting session token")
+			gc.JSON(http.StatusServiceUnavailable, gin.H{
+				"error":             "temporarily_unavailable",
+				"error_description": "Could not complete token issuance",
+			})
+			return
+		}
+		if err := h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt); err != nil {
+			log.Debug().Err(err).Msg("Error persisting access token")
+			gc.JSON(http.StatusServiceUnavailable, gin.H{
+				"error":             "temporarily_unavailable",
+				"error_description": "Could not complete token issuance",
+			})
+			return
+		}
 		cookie.SetSession(gc, authToken.FingerPrintHash, h.Config.AppCookieSecure)
 
 		expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
@@ -350,12 +364,19 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 		}
 		if authToken.RefreshToken != nil {
 			res["refresh_token"] = authToken.RefreshToken.Token
-			h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token, authToken.RefreshToken.ExpiresAt)
+			if err := h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token, authToken.RefreshToken.ExpiresAt); err != nil {
+				log.Debug().Err(err).Msg("Error persisting refresh token")
+				gc.JSON(http.StatusServiceUnavailable, gin.H{
+					"error":             "temporarily_unavailable",
+					"error_description": "Could not complete token issuance",
+				})
+				return
+			}
 		}
 		if isRefreshTokenGrant {
 			metrics.RecordAuthEvent(metrics.EventTokenRefresh, metrics.StatusSuccess)
 		} else {
-			metrics.RecordAuthEvent(metrics.EventTokenRefresh, metrics.StatusSuccess)
+			metrics.RecordAuthEvent(metrics.EventTokenIssued, metrics.StatusSuccess)
 		}
 		auditAction := constants.AuditTokenIssuedEvent
 		if isRefreshTokenGrant {
