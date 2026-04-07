@@ -39,7 +39,10 @@ var (
 	defaultMetricsPort       = 8081
 	defaultOrganizationLogo  = "https://authorizer.dev/images/logo.png"
 	defaultOrganizationName  = "Authorizer"
-	defaultAdminSecret       = "password"
+	// defaultAdminSecret intentionally REMOVED. Admin secret must be supplied
+	// explicitly via --admin-secret. The startup check in runRoot rejects
+	// only the empty value; the strength of the supplied secret is the
+	// operator's responsibility.
 	defaultJWTRoleClaim      = "role"
 	defaultMicrosoftTenantID = "common"
 	defaultAllowedOrigins    = []string{"*"}
@@ -108,7 +111,8 @@ func init() {
 	f.StringVar(&rootArgs.config.DefaultAuthorizeResponseType, "default-authorize-response-type", constants.ResponseTypeToken, "Default response type for the authorize endpoint")
 
 	// Admin flags
-	f.StringVar(&rootArgs.config.AdminSecret, "admin-secret", defaultAdminSecret, "Secret for the admin")
+	f.StringVar(&rootArgs.config.AdminSecret, "admin-secret", "", "Secret for the admin (REQUIRED, must not be empty)")
+	f.Int64Var(&rootArgs.config.RefreshTokenExpiresIn, "refresh-token-expires-in", 60*60*24*30, "Refresh token lifetime in seconds (default: 30 days = 2592000)")
 
 	// Allowed origins
 	f.StringSliceVar(&rootArgs.config.AllowedOrigins, "allowed-origins", defaultAllowedOrigins, "Allowed origins")
@@ -259,9 +263,9 @@ func applyFlagDefaults() {
 	if strings.TrimSpace(c.DefaultAuthorizeResponseType) == "" {
 		c.DefaultAuthorizeResponseType = constants.ResponseTypeToken
 	}
-	if strings.TrimSpace(c.AdminSecret) == "" {
-		c.AdminSecret = defaultAdminSecret
-	}
+	// AdminSecret deliberately has NO default. The fatal check in runRoot
+	// rejects empty values at startup; secret strength is the operator's
+	// responsibility.
 	if len(c.AllowedOrigins) == 0 {
 		c.AllowedOrigins = append([]string(nil), defaultAllowedOrigins...)
 	}
@@ -314,6 +318,16 @@ func runRoot(c *cobra.Command, args []string) {
 	applyFlagDefaults()
 	if rootArgs.server.HTTPPort == rootArgs.server.MetricsPort {
 		fmt.Fprintf(os.Stderr, "invalid server ports: --http-port and --metrics-port must differ (metrics are always served on a dedicated listener)\n")
+		os.Exit(1)
+	}
+
+	// Refuse to start without an admin secret. The previous default of
+	// "password" was a publicly known credential — operators upgrading from
+	// older versions must now supply --admin-secret explicitly. The strength
+	// of the supplied value is the operator's responsibility; we only
+	// guarantee it is non-empty.
+	if strings.TrimSpace(rootArgs.config.AdminSecret) == "" {
+		fmt.Fprintln(os.Stderr, "FATAL: --admin-secret is required and must not be empty.")
 		os.Exit(1)
 	}
 

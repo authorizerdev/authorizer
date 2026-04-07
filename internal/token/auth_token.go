@@ -153,8 +153,13 @@ func (p *provider) CreateSessionToken(cfg *AuthTokenConfig) (*SessionData, strin
 
 // CreateRefreshToken util to create JWT token
 func (p *provider) CreateRefreshToken(cfg *AuthTokenConfig) (string, int64, error) {
-	// expires in 30 days
-	expiryBound := time.Hour * 24 * 30
+	// Lifetime is configurable via --refresh-token-expires-in (seconds).
+	// Default 30 days when unset or non-positive.
+	expirySeconds := p.config.RefreshTokenExpiresIn
+	if expirySeconds <= 0 {
+		expirySeconds = 60 * 60 * 24 * 30
+	}
+	expiryBound := time.Duration(expirySeconds) * time.Second
 	expiresAt := time.Now().Add(expiryBound).Unix()
 	customClaims := jwt.MapClaims{
 		"iss":           cfg.HostName,
