@@ -34,10 +34,12 @@ Returns metadata about the Authorizer instance so clients can auto-configure the
 | `revocation_endpoint` | URL for `/oauth/revoke` |
 | `end_session_endpoint` | URL for `/logout` |
 | `response_types_supported` | `["code", "token", "id_token"]` |
-| `grant_types_supported` | `["authorization_code", "refresh_token"]` |
+| `grant_types_supported` | `["authorization_code", "refresh_token", "implicit"]` |
 | `scopes_supported` | `["openid", "email", "profile", "offline_access"]` |
 | `code_challenge_methods_supported` | `["S256"]` |
 | `token_endpoint_auth_methods_supported` | `["client_secret_basic", "client_secret_post"]` |
+
+> **Phase 1 conformance note:** `grant_types_supported` now includes `implicit` to honestly reflect that `/authorize` accepts `response_type=token` and `response_type=id_token`. The previously advertised `registration_endpoint` field has been removed because it pointed to the signup UI, not an RFC 7591 dynamic client registration endpoint; it will return when RFC 7591 is implemented.
 
 ### Usage
 
@@ -101,6 +103,8 @@ GET /authorize?
 ```
 
 **Success response:** Redirects to `redirect_uri#access_token=...&id_token=...&token_type=Bearer&state=...`
+
+> **Phase 1 conformance note:** ID tokens issued from any flow now compute `at_hash` correctly as `base64url(sha256(access_token)[:16])` per OIDC Core §3.2.2.10, and echo the request's `nonce` (OIDC Core §2) when one was supplied. Previously the implicit/token branch set `at_hash` to the nonce value.
 
 ---
 
@@ -183,16 +187,41 @@ Standard error codes: `invalid_request`, `invalid_client`, `invalid_grant`, `uns
 
 **Endpoint:** `GET /userinfo`
 
-**Specs:** [OIDC Core Section 5.3](https://openid.net/specs/openid-connect-core-1_0.html#UserInfo) | [RFC 6750 (Bearer Token)](https://www.rfc-editor.org/rfc/rfc6750)
+**Specs:** [OIDC Core Section 5.3](https://openid.net/specs/openid-connect-core-1_0.html#UserInfo) | [OIDC Core Section 5.4 (Requesting Claims using Scope Values)](https://openid.net/specs/openid-connect-core-1_0.html#ScopeClaims) | [RFC 6750 (Bearer Token)](https://www.rfc-editor.org/rfc/rfc6750)
 
-Returns claims about the authenticated end-user.
+Returns claims about the authenticated end-user, filtered by the scopes encoded in the access token.
 
 ```bash
 curl -H "Authorization: Bearer ACCESS_TOKEN" \
   https://your-authorizer.example/userinfo
 ```
 
-### Success Response
+### Scope → claim mapping
+
+Per OIDC Core §5.4, the response always includes `sub` plus only the claims permitted by the standard scope groups present on the access token. Clients must request the scopes they actually consume.
+
+| Scope     | Claims returned in addition to `sub`                                                                                          |
+|-----------|-------------------------------------------------------------------------------------------------------------------------------|
+| `profile` | `name`, `family_name`, `given_name`, `middle_name`, `nickname`, `preferred_username`, `profile`, `picture`, `website`, `gender`, `birthdate`, `zoneinfo`, `locale`, `updated_at` |
+| `email`   | `email`, `email_verified`                                                                                                     |
+| `phone`   | `phone_number`, `phone_number_verified`                                                                                       |
+| `address` | `address`                                                                                                                     |
+
+Claim keys belonging to a granted scope group are always present in the response. If the underlying user has no value for a specific claim, the key is emitted with JSON `null` — explicitly permitted by OIDC Core §5.3.2 — so callers can rely on a stable response schema.
+
+### Example responses
+
+Requesting `openid email`:
+
+```json
+{
+  "sub": "user-uuid",
+  "email": "user@example.com",
+  "email_verified": true
+}
+```
+
+Requesting `openid profile email`:
 
 ```json
 {
@@ -201,12 +230,30 @@ curl -H "Authorization: Bearer ACCESS_TOKEN" \
   "email_verified": true,
   "given_name": "Jane",
   "family_name": "Doe",
+  "nickname": null,
+  "preferred_username": "user@example.com",
   "picture": "https://example.com/photo.jpg",
-  "roles": "user"
+  "name": null,
+  "middle_name": null,
+  "profile": null,
+  "website": null,
+  "gender": null,
+  "birthdate": null,
+  "zoneinfo": null,
+  "locale": null,
+  "updated_at": 1712486400
 }
 ```
 
-The `sub` claim is always returned per OIDC Core Section 5.3.2.
+Requesting only `openid`:
+
+```json
+{
+  "sub": "user-uuid"
+}
+```
+
+The `sub` claim is always returned per OIDC Core §5.3.2.
 
 ### Error Response (RFC 6750 Section 3)
 

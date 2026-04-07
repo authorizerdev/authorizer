@@ -3,9 +3,108 @@ package http_handlers
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
+
+// Claim name lists for each OIDC Core §5.4 scope group. Kept as []string
+// rather than map sets because the only operation performed on them is
+// iteration, and slices are immutable when used this way (no accidental
+// delete/assign during iteration can corrupt the shared state across
+// requests). MUST NOT be mutated at runtime.
+var (
+	userInfoProfileClaims = []string{
+		"name",
+		"family_name",
+		"given_name",
+		"middle_name",
+		"nickname",
+		"preferred_username",
+		"profile",
+		"picture",
+		"website",
+		"gender",
+		"birthdate",
+		"zoneinfo",
+		"locale",
+		"updated_at",
+	}
+	userInfoEmailClaims = []string{
+		"email",
+		"email_verified",
+	}
+	userInfoPhoneClaims = []string{
+		"phone_number",
+		"phone_number_verified",
+	}
+	userInfoAddressClaims = []string{
+		"address",
+	}
+)
+
+// extractScopesFromAccessToken returns the lowercase scope set encoded in
+// the access token. It accepts both the OAuth 2.0 RFC 6749 §3.3 space-
+// delimited string form ("openid profile email") and the JSON array form
+// produced by `jwt.MapClaims` when the token's `scope` claim is a JSON
+// array. It is nil-safe.
+func extractScopesFromAccessToken(claims map[string]interface{}) map[string]struct{} {
+	out := map[string]struct{}{}
+	if claims == nil {
+		return out
+	}
+	switch v := claims["scope"].(type) {
+	case string:
+		for _, s := range strings.Fields(v) {
+			out[strings.ToLower(s)] = struct{}{}
+		}
+	case []interface{}:
+		for _, item := range v {
+			if s, ok := item.(string); ok {
+				out[strings.ToLower(s)] = struct{}{}
+			}
+		}
+	}
+	return out
+}
+
+// filterUserInfoByScopes implements OIDC Core §5.4: only the claims
+// permitted by the requested scope groups are returned. The "sub" claim
+// is always returned. Standard scope groups are profile, email, phone,
+// address. Custom or unknown claims are not returned in strict mode.
+func filterUserInfoByScopes(full map[string]interface{}, scopes map[string]struct{}) map[string]interface{} {
+	filtered := map[string]interface{}{
+		"sub": full["sub"],
+	}
+	// allow copies every claim key from the granted scope group into the
+	// filtered response. Per OIDC Core §5.4 the keys associated with a
+	// granted scope are part of the response shape; if the underlying user
+	// object has no value for a claim we still emit the key with a JSON
+	// null (explicitly permitted by OIDC Core §5.3.2) so callers can rely
+	// on a stable schema.
+	allow := func(group []string) {
+		for _, k := range group {
+			if v, ok := full[k]; ok {
+				filtered[k] = v
+			} else {
+				filtered[k] = nil
+			}
+		}
+	}
+	if _, ok := scopes["profile"]; ok {
+		allow(userInfoProfileClaims)
+	}
+	if _, ok := scopes["email"]; ok {
+		allow(userInfoEmailClaims)
+	}
+	if _, ok := scopes["phone"]; ok {
+		allow(userInfoPhoneClaims)
+	}
+	if _, ok := scopes["address"]; ok {
+		allow(userInfoAddressClaims)
+	}
+	return filtered
+}
 
 func (h *httpProvider) UserInfoHandler() gin.HandlerFunc {
 	log := h.Log.With().Str("func", "UserInfoHandler").Logger()
@@ -32,7 +131,7 @@ func (h *httpProvider) UserInfoHandler() gin.HandlerFunc {
 			})
 			return
 		}
-		userID := claims["sub"].(string)
+		userID, _ := claims["sub"].(string)
 		user, err := h.StorageProvider.GetUserByID(gc, userID)
 		if err != nil {
 			log.Debug().Msg("Error getting user by ID")
@@ -53,9 +152,8 @@ func (h *httpProvider) UserInfoHandler() gin.HandlerFunc {
 			})
 			return
 		}
-		res := map[string]interface{}{}
-		err = json.Unmarshal(userBytes, &res)
-		if err != nil {
+		full := map[string]interface{}{}
+		if err := json.Unmarshal(userBytes, &full); err != nil {
 			log.Debug().Msg("Error unmarshalling user")
 			gc.JSON(http.StatusInternalServerError, gin.H{
 				"error":             "server_error",
@@ -63,8 +161,12 @@ func (h *httpProvider) UserInfoHandler() gin.HandlerFunc {
 			})
 			return
 		}
-		// OIDC Core §5.3.2: sub claim MUST always be returned
-		res["sub"] = userID
-		gc.JSON(http.StatusOK, res)
+		// OIDC Core §5.3.2: sub claim MUST always be returned.
+		full["sub"] = userID
+
+		// OIDC Core §5.4: the returned claims MUST be filtered by the scope
+		// set encoded in the access token. Always strict — no lenient mode.
+		scopes := extractScopesFromAccessToken(claims)
+		gc.JSON(http.StatusOK, filterUserInfoByScopes(full, scopes))
 	}
 }

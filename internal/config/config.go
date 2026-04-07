@@ -273,7 +273,6 @@ type Config struct {
 	AdminCookieSecure bool
 	// DisableAdminHeaderAuth is the flag to disable admin authentication via header
 	DisableAdminHeaderAuth bool
-
 	// Rate Limiting
 	// RateLimitRPS is the maximum requests per second per IP
 	RateLimitRPS int

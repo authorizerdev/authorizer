@@ -85,10 +85,14 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 	var user *schemas.User
 	if isEmailLogin {
 		user, err = g.StorageProvider.GetUserByEmail(ctx, email)
-		log.Debug().Str("email", email).Msg("User found by email")
+		if err == nil {
+			log.Debug().Str("email", email).Msg("User found by email")
+		}
 	} else {
 		user, err = g.StorageProvider.GetUserByPhoneNumber(ctx, phoneNumber)
-		log.Debug().Str("phone_number", phoneNumber).Msg("User found by phone number")
+		if err == nil {
+			log.Debug().Str("phone_number", phoneNumber).Msg("User found by phone number")
+		}
 	}
 	if err != nil {
 		log.Debug().Err(err).Str("reason", "user_not_found").Msg("login failed")
@@ -267,7 +271,7 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 		roles = params.Roles
 	}
 	scope := []string{"openid", "email", "profile"}
-	if params.Scope != nil && len(scope) > 0 {
+	if params.Scope != nil && len(params.Scope) > 0 {
 		scope = params.Scope
 	}
 

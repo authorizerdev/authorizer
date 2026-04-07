@@ -18,6 +18,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/token"
 )
 
 // TestOpenIDDiscoveryCompliance verifies the /.well-known/openid-configuration
@@ -95,6 +96,53 @@ func TestOpenIDDiscoveryCompliance(t *testing.T) {
 			}
 		}
 		assert.True(t, hasCode, "response_types_supported MUST include 'code'")
+	})
+
+	t.Run("OIDC_Discovery_grant_types_supported_includes_implicit", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", "/.well-known/openid-configuration", nil)
+		req.Host = "localhost"
+		router.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusOK, w.Code)
+		var body map[string]interface{}
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body), "discovery response must be valid JSON")
+
+		grantTypes, ok := body["grant_types_supported"].([]interface{})
+		require.True(t, ok, "grant_types_supported must be an array")
+
+		hasImplicit := false
+		for _, gt := range grantTypes {
+			if gt == "implicit" {
+				hasImplicit = true
+				break
+			}
+		}
+		assert.True(t, hasImplicit,
+			"grant_types_supported MUST include 'implicit' because /authorize accepts response_type=token and response_type=id_token")
+	})
+
+	t.Run("OIDC_Discovery_registration_endpoint_absent", func(t *testing.T) {
+		// We previously advertised registration_endpoint=/app, which is the
+		// signup UI, not an RFC 7591 dynamic client registration endpoint.
+		// Spec-compliant OIDC clients interpret this field as RFC 7591
+		// and will fail when they receive HTML. Until we actually implement
+		// RFC 7591, the field MUST be absent.
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", "/.well-known/openid-configuration", nil)
+		req.Host = "localhost"
+		router.ServeHTTP(w, req)
+
+		// Require a 200 JSON response before checking key absence; otherwise
+		// a non-JSON body would yield an empty map and falsely pass the
+		// "absent" assertion.
+		require.Equal(t, http.StatusOK, w.Code)
+		var body map[string]interface{}
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body), "discovery response must be valid JSON")
+
+		_, present := body["registration_endpoint"]
+		assert.False(t, present,
+			"registration_endpoint MUST NOT be advertised until RFC 7591 is implemented")
 	})
 }
 
@@ -579,5 +627,105 @@ func TestJWKSEndpointCompliance(t *testing.T) {
 		assert.NotEmpty(t, key["kty"], "JWK MUST contain 'kty' (key type)")
 		assert.NotEmpty(t, key["alg"], "JWK MUST contain 'alg' (algorithm)")
 		assert.NotEmpty(t, key["kid"], "JWK MUST contain 'kid' (key ID)")
+	})
+}
+
+// TestIDTokenClaimsCompliance verifies ID token claims required by
+// OIDC Core 1.0 §2 and §3.1.3.6:
+//   - at_hash is the SHA-256 left-half of the access_token
+//   - nonce echoed when supplied in the auth request, regardless of flow
+//   - c_hash absent in non-hybrid flows
+func TestIDTokenClaimsCompliance(t *testing.T) {
+	cfg := getTestConfig()
+	// Use RS256 so the signed JWT can be parsed back deterministically.
+	_, privateKey, publicKey, _, err := crypto.NewRSAKey("RS256", cfg.ClientID)
+	require.NoError(t, err)
+	cfg.JWTType = "RS256"
+	cfg.JWTPrivateKey = privateKey
+	cfg.JWTPublicKey = publicKey
+	cfg.JWTSecret = ""
+	ts := initTestSetup(t, cfg)
+	_, ctx := createContext(ts)
+
+	// Create a user we can issue a token for.
+	email := "id_token_claims_" + uuid.New().String() + "@authorizer.dev"
+	password := "Password@123"
+	_, err = ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
+		Email:           &email,
+		Password:        password,
+		ConfirmPassword: password,
+	})
+	require.NoError(t, err)
+
+	user, err := ts.StorageProvider.GetUserByEmail(ctx, email)
+	require.NoError(t, err)
+
+	t.Run("at_hash_is_sha256_left_half_of_access_token", func(t *testing.T) {
+		nonce := "nonce-" + uuid.New().String()
+		authToken, err := ts.TokenProvider.CreateAuthToken(nil, &token.AuthTokenConfig{
+			User:        user,
+			Roles:       []string{"user"},
+			Scope:       []string{"openid", "profile", "email"},
+			LoginMethod: "basic_auth",
+			Nonce:       nonce,
+			HostName:    "http://localhost",
+		})
+		require.NoError(t, err)
+		require.NotNil(t, authToken.IDToken)
+		require.NotNil(t, authToken.AccessToken)
+
+		idClaims, err := ts.TokenProvider.ParseJWTToken(authToken.IDToken.Token)
+		require.NoError(t, err)
+
+		// Compute expected at_hash: sha256(access_token) left half, base64url no pad
+		sum := sha256.Sum256([]byte(authToken.AccessToken.Token))
+		expected := base64.RawURLEncoding.EncodeToString(sum[:len(sum)/2])
+
+		atHash, ok := idClaims["at_hash"].(string)
+		require.True(t, ok, "at_hash claim must be present and a string")
+		assert.Equal(t, expected, atHash,
+			"OIDC Core §3.2.2.10: at_hash MUST be base64url(sha256(access_token)[:16])")
+		assert.NotEqual(t, nonce, atHash,
+			"at_hash MUST NOT be the nonce value (regression check for prior bug)")
+	})
+
+	t.Run("nonce_is_echoed_in_id_token_when_supplied", func(t *testing.T) {
+		nonce := "echo-nonce-" + uuid.New().String()
+		authToken, err := ts.TokenProvider.CreateAuthToken(nil, &token.AuthTokenConfig{
+			User:        user,
+			Roles:       []string{"user"},
+			Scope:       []string{"openid"},
+			LoginMethod: "basic_auth",
+			Nonce:       nonce,
+			HostName:    "http://localhost",
+		})
+		require.NoError(t, err)
+
+		idClaims, err := ts.TokenProvider.ParseJWTToken(authToken.IDToken.Token)
+		require.NoError(t, err)
+
+		got, ok := idClaims["nonce"].(string)
+		require.True(t, ok, "nonce claim must be present and a string")
+		assert.Equal(t, nonce, got,
+			"OIDC Core §2: nonce in the auth request MUST be echoed in the ID token")
+	})
+
+	t.Run("c_hash_absent_in_non_hybrid_flows", func(t *testing.T) {
+		authToken, err := ts.TokenProvider.CreateAuthToken(nil, &token.AuthTokenConfig{
+			User:        user,
+			Roles:       []string{"user"},
+			Scope:       []string{"openid"},
+			LoginMethod: "basic_auth",
+			Nonce:       "n",
+			HostName:    "http://localhost",
+		})
+		require.NoError(t, err)
+
+		idClaims, err := ts.TokenProvider.ParseJWTToken(authToken.IDToken.Token)
+		require.NoError(t, err)
+
+		_, hasCHash := idClaims["c_hash"]
+		assert.False(t, hasCHash,
+			"c_hash MUST NOT be present unless the response includes both code and id_token (hybrid flow)")
 	})
 }

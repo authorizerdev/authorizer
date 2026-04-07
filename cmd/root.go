@@ -32,13 +32,13 @@ import (
 
 // Default values for flags (single source of truth for init and applyFlagDefaults).
 var (
-	defaultHost              = "0.0.0.0"
-	defaultMetricsHost       = "127.0.0.1"
-	defaultLogLevel          = "debug"
-	defaultHTTPPort          = 8080
-	defaultMetricsPort       = 8081
-	defaultOrganizationLogo  = "https://authorizer.dev/images/logo.png"
-	defaultOrganizationName  = "Authorizer"
+	defaultHost             = "0.0.0.0"
+	defaultMetricsHost      = "127.0.0.1"
+	defaultLogLevel         = "debug"
+	defaultHTTPPort         = 8080
+	defaultMetricsPort      = 8081
+	defaultOrganizationLogo = "https://authorizer.dev/images/logo.png"
+	defaultOrganizationName = "Authorizer"
 	// defaultAdminSecret intentionally REMOVED. Admin secret must be supplied
 	// explicitly via --admin-secret. The startup check in runRoot rejects
 	// only the empty value; the strength of the supplied secret is the

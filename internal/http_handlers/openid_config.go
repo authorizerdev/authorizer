@@ -29,21 +29,22 @@ func (h *httpProvider) OpenIDConfigurationHandler() gin.HandlerFunc {
 			"id_token_signing_alg_values_supported": signingAlgs,
 
 			// RECOMMENDED fields
-			"token_endpoint":                          issuer + "/oauth/token",
-			"userinfo_endpoint":                       issuer + "/userinfo",
-			"registration_endpoint":                   issuer + "/app",
-			"scopes_supported":                        []string{"openid", "email", "profile", "offline_access"},
-			"claims_supported":                        []string{"aud", "exp", "iss", "iat", "sub", "given_name", "family_name", "middle_name", "nickname", "preferred_username", "picture", "email", "email_verified", "roles", "role", "gender", "birthdate", "phone_number", "phone_number_verified", "nonce", "updated_at", "created_at"},
-			"response_modes_supported":                []string{"query", "fragment", "form_post", "web_message"},
-			"grant_types_supported":                   []string{"authorization_code", "refresh_token"},
-			"token_endpoint_auth_methods_supported":   []string{"client_secret_basic", "client_secret_post"},
-			"code_challenge_methods_supported":        []string{"S256"},
-			"revocation_endpoint":                     issuer + "/oauth/revoke",
+			"token_endpoint":           issuer + "/oauth/token",
+			"userinfo_endpoint":        issuer + "/userinfo",
+			"scopes_supported":         []string{"openid", "email", "profile", "offline_access"},
+			"claims_supported":         []string{"aud", "exp", "iss", "iat", "sub", "given_name", "family_name", "middle_name", "nickname", "preferred_username", "picture", "email", "email_verified", "roles", "role", "gender", "birthdate", "phone_number", "phone_number_verified", "nonce", "updated_at", "created_at"},
+			"response_modes_supported": []string{"query", "fragment", "form_post", "web_message"},
+			// Must stay consistent with response_types_supported above:
+			// "implicit" corresponds to response_type=token / id_token.
+			"grant_types_supported":                      []string{"authorization_code", "refresh_token", "implicit"},
+			"token_endpoint_auth_methods_supported":      []string{"client_secret_basic", "client_secret_post"},
+			"code_challenge_methods_supported":           []string{"S256"},
+			"revocation_endpoint":                        issuer + "/oauth/revoke",
 			"revocation_endpoint_auth_methods_supported": []string{"client_secret_basic", "client_secret_post"},
-			"end_session_endpoint":                    issuer + "/logout",
-			"claims_parameter_supported":              false,
-			"request_parameter_supported":             false,
-			"request_uri_parameter_supported":         false,
+			"end_session_endpoint":                       issuer + "/logout",
+			"claims_parameter_supported":                 false,
+			"request_parameter_supported":                false,
+			"request_uri_parameter_supported":            false,
 		})
 	}
 }

@@ -36,6 +36,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -326,8 +327,14 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 
 			cookie.SetSession(gc, authToken.FingerPrintHash, h.Config.AppCookieSecure)
 
+			// OAuth 2.0: expires_in is lifetime in seconds (RFC 6749 §4.2.2), not an absolute timestamp.
+			expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
+			if expiresIn <= 0 {
+				expiresIn = 1
+			}
+
 			// used of query mode
-			params := "access_token=" + authToken.AccessToken.Token + "&token_type=bearer&expires_in=" + strconv.FormatInt(authToken.IDToken.ExpiresAt, 10) + "&state=" + state + "&id_token=" + authToken.IDToken.Token
+			params := "access_token=" + authToken.AccessToken.Token + "&token_type=bearer&expires_in=" + strconv.FormatInt(expiresIn, 10) + "&state=" + state + "&id_token=" + authToken.IDToken.Token
 
 			res := map[string]interface{}{
 				"access_token": authToken.AccessToken.Token,
@@ -335,7 +342,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				"state":        state,
 				"scope":        strings.Join(scope, " "),
 				"token_type":   "Bearer",
-				"expires_in":   authToken.AccessToken.ExpiresAt,
+				"expires_in":   expiresIn,
 			}
 
 			if nonce != "" {
@@ -383,7 +390,7 @@ func (h *httpProvider) validateAuthorizeRequest(responseType, responseMode, clie
 		return fmt.Errorf("invalid state. state is required to prevent csrf attack")
 	}
 	if responseType != constants.ResponseTypeCode && responseType != constants.ResponseTypeToken && responseType != constants.ResponseTypeIDToken {
-		return fmt.Errorf("invalid response type %s. 'code' & 'token' are valid response_type", responseMode)
+		return fmt.Errorf("invalid response type %s. 'code' & 'token' are valid response_type", responseType)
 	}
 
 	if responseMode != constants.ResponseModeQuery && responseMode != constants.ResponseModeWebMessage && responseMode != constants.ResponseModeFragment && responseMode != constants.ResponseModeFormPost {
@@ -412,8 +419,10 @@ func (h *httpProvider) validateAuthorizeRequest(responseType, responseMode, clie
 
 func handleResponse(gc *gin.Context, responseMode, authURI, redirectURI string, data map[string]interface{}, httpStatusCode int) {
 	isAuthenticationRequired := false
-	if _, ok := data["response"].(map[string]interface{})["error"]; ok {
-		isAuthenticationRequired = true
+	if resp, ok := data["response"].(map[string]interface{}); ok {
+		if _, hasErr := resp["error"]; hasErr {
+			isAuthenticationRequired = true
+		}
 	}
 
 	if isAuthenticationRequired && responseMode != constants.ResponseModeWebMessage {
