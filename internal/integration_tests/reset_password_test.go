@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
+	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
@@ -88,12 +89,16 @@ func TestResetPassword(t *testing.T) {
 		otpData, err := ts2.StorageProvider.GetOTPByPhoneNumber(ctx2, mobile)
 		require.NoError(t, err)
 
-		// Set OTP to expired
+		// Seed an expired OTP with a known plaintext/digest pair so the
+		// reset call gets past the OTP-match check and trips the expiry
+		// check (the behaviour this subtest exercises). The hardening
+		// stores the digest, never the plaintext.
+		const knownExpiredPlainOTP = "111111"
 		expiredOTP := &schemas.OTP{
 			ID:          otpData.ID,
 			Email:       otpData.Email,
 			PhoneNumber: otpData.PhoneNumber,
-			Otp:         otpData.Otp,
+			Otp:         crypto.HashOTP(knownExpiredPlainOTP, ts2.Config.JWTSecret),
 			ExpiresAt:   time.Now().Add(-10 * time.Minute).Unix(),
 		}
 		_, err = ts2.StorageProvider.UpsertOTP(ctx2, expiredOTP)
@@ -115,7 +120,7 @@ func TestResetPassword(t *testing.T) {
 		req2.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", sessionKey))
 
 		resetReq := &model.ResetPasswordRequest{
-			Otp:             refs.NewStringRef(otpData.Otp),
+			Otp:             refs.NewStringRef(knownExpiredPlainOTP),
 			PhoneNumber:     refs.NewStringRef(mobile),
 			Password:        "NewPassword@123",
 			ConfirmPassword: "NewPassword@123",

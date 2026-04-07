@@ -2,7 +2,6 @@ package graphql
 
 import (
 	"context"
-	"crypto/subtle"
 	"fmt"
 	"strings"
 	"time"
@@ -111,10 +110,10 @@ func (g *graphqlProvider) ResetPassword(ctx context.Context, params *model.Reset
 			log.Debug().Err(err).Msg("Failed to get otp request by phone number")
 			return nil, fmt.Errorf(`invalid otp`)
 		}
-		// OTPs are now stored as HMAC-SHA256 digests; the legacy plaintext
-		// fallback handles in-flight rows during a rolling upgrade.
-		if !crypto.VerifyOTPHash(otp, otpRequest.Otp, g.Config.JWTSecret) &&
-			subtle.ConstantTimeCompare([]byte(otpRequest.Otp), []byte(otp)) != 1 {
+		// OTPs are stored as HMAC-SHA256 digests; we deliberately do NOT
+		// fall back to literal equality so the stored digest cannot be
+		// replayed as a credential by anyone with DB read access.
+		if !crypto.VerifyOTPHash(otp, otpRequest.Otp, g.Config.JWTSecret) {
 			log.Debug().Msg("Failed to verify otp request: Incorrect value")
 			return nil, fmt.Errorf(`invalid otp`)
 		}
