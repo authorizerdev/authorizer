@@ -273,6 +273,14 @@ type Config struct {
 	AdminCookieSecure bool
 	// DisableAdminHeaderAuth is the flag to disable admin authentication via header
 	DisableAdminHeaderAuth bool
+	// OIDCStrictUserinfoScopes enables OIDC Core §5.4 scope-based claim
+	// filtering on the /userinfo endpoint. When false (default), the
+	// endpoint returns the full user object as it always has, preserving
+	// backward compatibility for clients that request only the openid
+	// scope but read profile/email claims from the response. When true,
+	// /userinfo returns only the claims permitted by the access token's
+	// scope set (always including sub).
+	OIDCStrictUserinfoScopes bool
 
 	// Rate Limiting
 	// RateLimitRPS is the maximum requests per second per IP

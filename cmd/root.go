@@ -32,13 +32,13 @@ import (
 
 // Default values for flags (single source of truth for init and applyFlagDefaults).
 var (
-	defaultHost              = "0.0.0.0"
-	defaultMetricsHost       = "127.0.0.1"
-	defaultLogLevel          = "debug"
-	defaultHTTPPort          = 8080
-	defaultMetricsPort       = 8081
-	defaultOrganizationLogo  = "https://authorizer.dev/images/logo.png"
-	defaultOrganizationName  = "Authorizer"
+	defaultHost             = "0.0.0.0"
+	defaultMetricsHost      = "127.0.0.1"
+	defaultLogLevel         = "debug"
+	defaultHTTPPort         = 8080
+	defaultMetricsPort      = 8081
+	defaultOrganizationLogo = "https://authorizer.dev/images/logo.png"
+	defaultOrganizationName = "Authorizer"
 	// defaultAdminSecret intentionally REMOVED. Admin secret must be supplied
 	// explicitly via --admin-secret. The startup check in runRoot rejects
 	// only the empty value; the strength of the supplied secret is the
@@ -169,6 +169,7 @@ func init() {
 	f.BoolVar(&rootArgs.config.AppCookieSecure, "app-cookie-secure", true, "Application secure cookie flag")
 	f.BoolVar(&rootArgs.config.AdminCookieSecure, "admin-cookie-secure", true, "Admin secure cookie flag")
 	f.BoolVar(&rootArgs.config.DisableAdminHeaderAuth, "disable-admin-header-auth", false, "Disable admin authentication via X-Authorizer-Admin-Secret header")
+	f.BoolVar(&rootArgs.config.OIDCStrictUserinfoScopes, "oidc-strict-userinfo-scopes", false, "Enable OIDC Core §5.4 scope-based claim filtering on /userinfo. Default false preserves backward-compatible lenient behavior. Set to true once all clients have been audited to request the scopes they actually consume.")
 
 	// Rate limiting flags
 	f.IntVar(&rootArgs.config.RateLimitRPS, "rate-limit-rps", defaultRateLimitRPS, "Maximum requests per second per IP for rate limiting")
