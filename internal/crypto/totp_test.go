@@ -48,17 +48,20 @@ func TestEncryptTOTPSecret_NonceRandomness(t *testing.T) {
 	assert.Equal(t, plain, pb)
 }
 
-func TestDecryptTOTPSecret_LegacyPlaintextPassthrough(t *testing.T) {
+func TestDecryptTOTPSecret_LegacyRowReturnsSentinelError(t *testing.T) {
 	// A row written by an older release will not have the enc:v1: prefix.
-	// DecryptTOTPSecret must return it unchanged so the read path keeps
-	// working during a rolling upgrade — the lazy migration in the totp
-	// authenticator is then responsible for re-encrypting it on the next
-	// successful Validate.
+	// DecryptTOTPSecret is strict — it must return the sentinel error so
+	// the totp authenticator can detect the legacy form and fall back to
+	// using the raw stored value as a base32 secret (then migrate it on
+	// the next successful Validate). The previous "silent passthrough"
+	// API was a smell because callers couldn't tell the legacy case
+	// apart from a real decryption.
 	const legacyPlain = "JBSWY3DPEHPK3PXP"
 
 	out, err := DecryptTOTPSecret(legacyPlain, "any-key")
-	require.NoError(t, err)
-	assert.Equal(t, legacyPlain, out)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrTOTPSecretNotEncrypted)
+	assert.Equal(t, "", out)
 	assert.False(t, IsEncryptedTOTPSecret(legacyPlain))
 }
 

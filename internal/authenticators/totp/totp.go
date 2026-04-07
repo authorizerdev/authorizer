@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"image/png"
 	"time"
@@ -102,24 +103,33 @@ func (p *provider) Generate(ctx context.Context, id string) (*config.Authenticat
 // Validate validates a Time-Based One-Time Password (TOTP) against the
 // stored TOTP secret for a user.
 //
-// Read path: DecryptTOTPSecret transparently handles both new ciphertext
-// rows (enc:v1: prefix) and legacy plaintext rows from a pre-encryption
-// release. This means a fresh deploy never breaks in-flight users — even
-// in a mixed-version cluster, as long as no replica has rewritten any row.
+// The stored value can be in either of two forms:
 //
-// Write path (lazy migration): when EnableLazyMigration is true AND the
-// row is still legacy plaintext AND the supplied passcode validated, the
-// row is re-encrypted in place. The migration write is best-effort: a
-// failure here does NOT fail the validation, because the credential was
-// correct and we don't want a transient DB hiccup to lock the user out.
-// Operators are warned via the structured log if it happens.
+//  1. enc:v1:<ciphertext> — the at-rest format. Decrypt and use the
+//     plaintext to compute the expected code.
+//  2. <raw base32> — a legacy row written by a pre-encryption release.
+//     Use the stored value directly as the secret. On a successful
+//     validation the row is re-encrypted in place (best-effort) so the
+//     next read takes the encrypted path.
 //
-// Concurrency: two replicas observing the same legacy row may both decrypt,
-// re-encrypt, and write before either commits. The two writes carry the
-// same plaintext under different AES-GCM nonces; whichever lands last
-// wins, the contents are semantically identical, and the row is
-// permanently in the enc:v1: form afterwards. Idempotency is guaranteed
-// by the IsEncryptedTOTPSecret short-circuit on the next Validate.
+// Concurrency: two replicas observing the same legacy row may both
+// decrypt, re-encrypt, and write before either commits. The two writes
+// carry the same plaintext under different AES-GCM nonces; whichever
+// lands last wins, the contents are semantically identical, and the row
+// is permanently in the enc:v1: form afterwards. Subsequent calls take
+// the encrypted-path branch immediately.
+//
+// Rolling-deploy note: a replica still on the pre-encryption release
+// will read a migrated row as if it were a base32 secret and fail. For a
+// rolling rollout across multiple replicas, prefer to complete the
+// rollout before any TOTP user logs in (e.g. with a brief maintenance
+// window) — or use an atomic deploy.
+//
+// Best-effort write: a failure to update the authenticator row after a
+// successful validation never fails the login. The user supplied a valid
+// TOTP code; refusing it because of a transient DB error or migration
+// encrypt failure would be a worse outcome than a delayed VerifiedAt or
+// a delayed migration. Failures are logged with structured fields.
 func (p *provider) Validate(ctx context.Context, passcode string, userID string) (bool, error) {
 	log := p.deps.Log.With().Str("func", "totp.Validate").Str("user_id", userID).Logger()
 
@@ -128,59 +138,74 @@ func (p *provider) Validate(ctx context.Context, passcode string, userID string)
 		return false, err
 	}
 
-	plainSecret, err := crypto.DecryptTOTPSecret(totpModel.Secret, p.deps.EncryptionKey)
-	if err != nil {
-		// Decrypt failure is a fail-closed event. The most likely cause
-		// is a key mismatch (wrong --jwt-secret) which would mean every
-		// TOTP user is locked out — log loudly so operators see it.
-		log.Error().Err(err).Msg("failed to decrypt stored TOTP secret; check that --jwt-secret has not changed since enrollment")
-		return false, err
+	var (
+		plainSecret string
+		// migrate is set when the stored value is legacy plaintext AND
+		// the validation succeeds — at that point we know the raw value
+		// is a real base32 secret worth re-encrypting in place.
+		migrate bool
+	)
+
+	plainSecret, decErr := crypto.DecryptTOTPSecret(totpModel.Secret, p.deps.EncryptionKey)
+	switch {
+	case decErr == nil:
+		// enc:v1: row — use the decrypted plaintext.
+	case errors.Is(decErr, crypto.ErrTOTPSecretNotEncrypted):
+		// Legacy plaintext row from a pre-encryption release. Use the
+		// stored value directly; arrange to migrate it on success.
+		plainSecret = totpModel.Secret
+		migrate = true
+	default:
+		// Decryption was attempted (the row IS prefixed) but failed.
+		// The most likely cause is a key mismatch — operators rotating
+		// --jwt-secret without re-enrolling TOTP users would lock them
+		// out. Fail closed and log loudly.
+		log.Error().Err(decErr).Msg("failed to decrypt stored TOTP secret; check that --jwt-secret has not changed since enrollment")
+		return false, decErr
 	}
 
 	status := totp.Validate(passcode, plainSecret)
+	if !status {
+		// Wrong code. Don't bother with VerifiedAt or migration —
+		// nothing about the row should change on a failed login.
+		return false, nil
+	}
 
-	// Two reasons we may need to write the row back:
-	//   1. First-time-ever validation (verifiedAt was nil) → record VerifiedAt
-	//   2. Lazy migration is enabled and the row is still legacy plaintext
-	verifiedAtUpdate := totpModel.VerifiedAt == nil && status
-	migrationCandidate := p.deps.EnableLazyMigration &&
-		status &&
-		!crypto.IsEncryptedTOTPSecret(totpModel.Secret)
-
-	if verifiedAtUpdate {
+	// Two reasons we may need to write the row back after a successful
+	// validation:
+	//   1. First-time-ever validation → record VerifiedAt
+	//   2. The row is legacy plaintext → re-encrypt in place
+	updateVerifiedAt := totpModel.VerifiedAt == nil
+	if updateVerifiedAt {
 		timeNow := time.Now().Unix()
 		totpModel.VerifiedAt = &timeNow
 	}
 
-	if migrationCandidate {
+	if migrate {
 		ct, encErr := crypto.EncryptTOTPSecret(plainSecret, p.deps.EncryptionKey)
 		if encErr != nil {
-			// Encryption failed — log and skip the migration. Validation
-			// itself succeeded so we still return true; the next call
-			// will retry naturally because the row is still plaintext.
+			// Encryption failed — log and skip the migration. The
+			// validation itself succeeded so we still return true; the
+			// next call retries naturally because the row is unchanged.
 			log.Warn().Err(encErr).Msg("totp lazy migration: encrypt failed, leaving row unchanged")
-			migrationCandidate = false
+			migrate = false
 		} else {
 			totpModel.Secret = ct
 		}
 	}
 
-	if verifiedAtUpdate || migrationCandidate {
+	if updateVerifiedAt || migrate {
 		if _, err = p.deps.StorageProvider.UpdateAuthenticator(ctx, totpModel); err != nil {
-			// Best-effort write. The user has presented a valid TOTP
-			// code; refusing the login because we couldn't update the
-			// row would be a worse outcome than a delayed migration or
-			// a delayed VerifiedAt. Log and continue.
 			log.Warn().Err(err).
-				Bool("verified_at_update", verifiedAtUpdate).
-				Bool("migration_attempt", migrationCandidate).
+				Bool("verified_at_update", updateVerifiedAt).
+				Bool("migration_attempt", migrate).
 				Msg("totp post-validate row update failed; continuing")
-		} else if migrationCandidate {
-			log.Info().Msg("totp lazy migration: row rewritten as enc:v1:")
+		} else if migrate {
+			log.Info().Msg("totp lazy migration: legacy plaintext row rewritten as enc:v1:")
 		}
 	}
 
-	return status, nil
+	return true, nil
 }
 
 // ValidateRecoveryCode validates a Time-Based One-Time Password (TOTP) recovery code against the stored TOTP recovery code for a user.

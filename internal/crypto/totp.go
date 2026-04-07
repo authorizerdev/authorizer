@@ -1,16 +1,22 @@
 package crypto
 
 import (
+	"errors"
 	"strings"
 )
 
 // TOTPCipherPrefix marks AES-GCM ciphertext written by EncryptTOTPSecret.
-// The prefix lets the read path transparently handle both legacy plaintext
-// rows AND prefixed ciphertext, and lets a future migration recognise
-// already-encrypted rows so it never re-encrypts them. The "v1" component
-// reserves room for algorithm rotation later — bump to "enc:v2:" if the
-// underlying cipher or KDF ever changes.
+// The prefix lets the totp authenticator's read path tell new ciphertext
+// rows apart from legacy plaintext rows so the lazy migration only acts
+// on the latter. The "v1" component reserves room for algorithm rotation
+// later — bump to "enc:v2:" if the underlying cipher or KDF ever changes.
 const TOTPCipherPrefix = "enc:v1:"
+
+// ErrTOTPSecretNotEncrypted is returned by DecryptTOTPSecret when the
+// stored value does not carry the TOTPCipherPrefix marker. The totp
+// authenticator catches this and falls back to the raw stored value as
+// a legacy base32 secret (then migrates it on a successful Validate).
+var ErrTOTPSecretNotEncrypted = errors.New("totp: stored secret is not in enc:v1: form")
 
 // EncryptTOTPSecret encrypts the TOTP shared secret with AES-256-GCM
 // (using the existing EncryptAES helper, which derives the key via HKDF)
@@ -31,22 +37,21 @@ func EncryptTOTPSecret(plain, key string) (string, error) {
 }
 
 // DecryptTOTPSecret decrypts a value previously written by
-// EncryptTOTPSecret. Legacy plaintext rows (no prefix) are returned
-// unchanged so the read path keeps working during the rolling upgrade
-// from a pre-encryption release.
+// EncryptTOTPSecret. It is strict: the stored value MUST carry the
+// TOTPCipherPrefix marker. Callers handling a row written by an older
+// release should detect ErrTOTPSecretNotEncrypted and treat the raw
+// stored value as a legacy base32 secret.
 func DecryptTOTPSecret(stored, key string) (string, error) {
 	if !strings.HasPrefix(stored, TOTPCipherPrefix) {
-		// Legacy plaintext row — return as-is. The caller may then
-		// re-encrypt it via the lazy-migration path.
-		return stored, nil
+		return "", ErrTOTPSecretNotEncrypted
 	}
 	return DecryptAES(key, strings.TrimPrefix(stored, TOTPCipherPrefix))
 }
 
-// IsEncryptedTOTPSecret reports whether the stored value already carries
-// the TOTPCipherPrefix marker. Used by lazy migration in the TOTP
-// authenticator to decide whether to re-encrypt a row after a successful
-// validation.
+// IsEncryptedTOTPSecret reports whether the stored value carries the
+// TOTPCipherPrefix marker. Used by the totp authenticator's lazy
+// migration to decide whether a row needs to be rewritten after a
+// successful validation.
 func IsEncryptedTOTPSecret(stored string) bool {
 	return strings.HasPrefix(stored, TOTPCipherPrefix)
 }
