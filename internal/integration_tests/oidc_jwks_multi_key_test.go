@@ -15,8 +15,8 @@ import (
 	"github.com/authorizerdev/authorizer/internal/crypto"
 )
 
-// TestParseJWTTokenFallsBackToSecondaryKey verifies the Phase 3 manual
-// rotation workflow: a token signed by the secondary key must still
+// TestParseJWTTokenFallsBackToSecondaryKey verifies the manual key
+// rotation workflow: a token signed with the secondary key must still
 // validate via ParseJWTToken when the primary key has changed.
 func TestParseJWTTokenFallsBackToSecondaryKey(t *testing.T) {
 	cfg := getTestConfig()

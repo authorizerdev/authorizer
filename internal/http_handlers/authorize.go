@@ -114,10 +114,10 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			log.Debug().Msg("id_token_hint provided but invalid — ignoring per OIDC Core §3.1.2.1")
 		}
 
-		// prompt=consent / prompt=select_account are accepted but not
-		// implemented in Phase 2.
+		// prompt=consent / prompt=select_account are accepted but
+		// not yet implemented — proceed normally.
 		if prompt == "consent" || prompt == "select_account" {
-			log.Debug().Str("prompt", prompt).Msg("prompt value accepted but not implemented in Phase 2 — proceeding normally")
+			log.Debug().Str("prompt", prompt).Msg("prompt value accepted but not implemented — proceeding normally")
 		}
 
 		var scope []string

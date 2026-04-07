@@ -74,7 +74,7 @@ func callUserInfo(t *testing.T, ts *testSetup, accessToken string) (int, map[str
 
 func signupForUserInfoTests(t *testing.T, ts *testSetup, ctx context.Context) string {
 	t.Helper()
-	email := "userinfo_phase1_" + uuid.New().String() + "@authorizer.dev"
+	email := "userinfo_scope_" + uuid.New().String() + "@authorizer.dev"
 	password := "Password@123"
 	_, err := ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
 		Email:           &email,

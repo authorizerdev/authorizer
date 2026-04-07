@@ -92,7 +92,7 @@ func (p *provider) parseJWTWithKey(token, algo, secret, publicKey string) (jwt.M
 
 // ParseJWTToken common util to parse jwt token. On signature failure
 // with the primary key, retries with the optional secondary key if one
-// is configured (Phase 3 manual key rotation support). The signing key
+// is configured — this supports manual key rotation. The signing key
 // for NEW tokens is always the primary; the secondary is only used for
 // verification so outstanding tokens issued with the previous key keep
 // working during a rotation window.

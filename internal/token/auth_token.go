@@ -442,8 +442,9 @@ func (p *provider) CreateIDToken(cfg *AuthTokenConfig) (string, int64, error) {
 	//   at_hash REQUIRED whenever the response includes an access_token
 	//           in the same flow. CreateAuthToken always issues an
 	//           access_token, so cfg.AtHash is always populated.
-	//   c_hash  REQUIRED only in hybrid flows that return both code and
-	//           id_token. Currently never set; reserved for Phase 3.
+	//   c_hash  REQUIRED only in hybrid flows that return both code
+	//           and id_token. Set by the /authorize hybrid dispatch
+	//           when cfg.Code is populated.
 	//   nonce   MUST be echoed whenever the auth request supplied one,
 	//           regardless of flow.
 	if cfg.AtHash != "" {
@@ -470,10 +471,10 @@ func (p *provider) CreateIDToken(cfg *AuthTokenConfig) (string, int64, error) {
 	}
 
 	// OIDC Core §2: acr — Authentication Context Class Reference.
-	// Hardcoded "0" (no-op baseline per OIDC Core §2). Phase 3 will
-	// introduce MFA-aware ACR alongside acr_values request parameter
-	// support; for now returning "0" is safer than omitting the claim
-	// for clients that require its presence.
+	// Hardcoded "0" (no-op baseline per OIDC Core §2). MFA-aware ACR
+	// alongside acr_values request support is a future enhancement;
+	// for now returning "0" is safer than omitting the claim for
+	// clients that require its presence.
 	customClaims["acr"] = "0"
 	for k, v := range userMap {
 		if k != "roles" {
