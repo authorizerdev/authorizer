@@ -154,6 +154,7 @@ func init() {
 	f.StringSliceVar(&rootArgs.config.ProtectedRoles, "protected-roles", []string{}, "Roles that cannot be deleted")
 	f.BoolVar(&rootArgs.config.EnableStrongPassword, "enable-strong-password", true, "Enable strong password requirement")
 	f.BoolVar(&rootArgs.config.EnableTOTPLogin, "enable-totp-login", false, "Enable TOTP login")
+	f.BoolVar(&rootArgs.config.EnableTOTPMigration, "enable-totp-migration", false, "Opt in to lazy migration of legacy plaintext TOTP rows into the enc:v1: ciphertext format. Default OFF — turn on only AFTER every replica is running this release, otherwise older replicas will be unable to read migrated rows. Safe to leave on indefinitely once enabled.")
 	f.BoolVar(&rootArgs.config.EnableBasicAuthentication, "enable-basic-authentication", true, "Enable basic authentication")
 	f.BoolVar(&rootArgs.config.EnableEmailVerification, "enable-email-verification", false, "Enable email verification")
 	f.BoolVar(&rootArgs.config.EnableMobileBasicAuthentication, "enable-mobile-basic-authentication", true, "Enable mobile basic authentication")

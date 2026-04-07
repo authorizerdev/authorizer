@@ -173,6 +173,14 @@ type Config struct {
 	RefreshTokenExpiresIn int64
 	// CustomAccessTokenScript is the custom access token script
 	CustomAccessTokenScript string
+	// EnableTOTPMigration opts in to the lazy migration that rewrites
+	// legacy plaintext TOTP rows into the enc:v1: ciphertext format on
+	// the first successful Validate. Default OFF — operators must turn
+	// this on AFTER every replica is running this release, otherwise
+	// nodes still on the previous version will be unable to read the
+	// migrated rows. See internal/authenticators/totp/provider.go for
+	// the recommended rolling-deploy sequence.
+	EnableTOTPMigration bool
 
 	// OAuth Configurations
 	// ClientID is the client ID for the authorizer

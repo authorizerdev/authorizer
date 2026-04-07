@@ -32,8 +32,9 @@ func New(cfg *config.Config, deps *Dependencies) (Provider, error) {
 		return nil, nil
 	}
 	return totp.NewProvider(&totp.Dependencies{
-		Log:             deps.Log,
-		StorageProvider: deps.StorageProvider,
-		EncryptionKey:   cfg.JWTSecret,
+		Log:                 deps.Log,
+		StorageProvider:     deps.StorageProvider,
+		EncryptionKey:       cfg.JWTSecret,
+		EnableLazyMigration: cfg.EnableTOTPMigration,
 	})
 }
