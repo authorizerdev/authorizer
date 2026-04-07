@@ -104,8 +104,9 @@ func TestOpenIDDiscoveryCompliance(t *testing.T) {
 		req.Host = "localhost"
 		router.ServeHTTP(w, req)
 
+		require.Equal(t, http.StatusOK, w.Code)
 		var body map[string]interface{}
-		json.Unmarshal(w.Body.Bytes(), &body)
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body), "discovery response must be valid JSON")
 
 		grantTypes, ok := body["grant_types_supported"].([]interface{})
 		require.True(t, ok, "grant_types_supported must be an array")
@@ -126,14 +127,18 @@ func TestOpenIDDiscoveryCompliance(t *testing.T) {
 		// signup UI, not an RFC 7591 dynamic client registration endpoint.
 		// Spec-compliant OIDC clients interpret this field as RFC 7591
 		// and will fail when they receive HTML. Until we actually implement
-		// RFC 7591 (Phase 4 roadmap), the field MUST be absent.
+		// RFC 7591, the field MUST be absent.
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("GET", "/.well-known/openid-configuration", nil)
 		req.Host = "localhost"
 		router.ServeHTTP(w, req)
 
+		// Require a 200 JSON response before checking key absence; otherwise
+		// a non-JSON body would yield an empty map and falsely pass the
+		// "absent" assertion.
+		require.Equal(t, http.StatusOK, w.Code)
 		var body map[string]interface{}
-		json.Unmarshal(w.Body.Bytes(), &body)
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body), "discovery response must be valid JSON")
 
 		_, present := body["registration_endpoint"]
 		assert.False(t, present,

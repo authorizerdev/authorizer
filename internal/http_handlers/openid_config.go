@@ -29,11 +29,13 @@ func (h *httpProvider) OpenIDConfigurationHandler() gin.HandlerFunc {
 			"id_token_signing_alg_values_supported": signingAlgs,
 
 			// RECOMMENDED fields
-			"token_endpoint":                             issuer + "/oauth/token",
-			"userinfo_endpoint":                          issuer + "/userinfo",
-			"scopes_supported":                           []string{"openid", "email", "profile", "offline_access"},
-			"claims_supported":                           []string{"aud", "exp", "iss", "iat", "sub", "given_name", "family_name", "middle_name", "nickname", "preferred_username", "picture", "email", "email_verified", "roles", "role", "gender", "birthdate", "phone_number", "phone_number_verified", "nonce", "updated_at", "created_at"},
-			"response_modes_supported":                   []string{"query", "fragment", "form_post", "web_message"},
+			"token_endpoint":           issuer + "/oauth/token",
+			"userinfo_endpoint":        issuer + "/userinfo",
+			"scopes_supported":         []string{"openid", "email", "profile", "offline_access"},
+			"claims_supported":         []string{"aud", "exp", "iss", "iat", "sub", "given_name", "family_name", "middle_name", "nickname", "preferred_username", "picture", "email", "email_verified", "roles", "role", "gender", "birthdate", "phone_number", "phone_number_verified", "nonce", "updated_at", "created_at"},
+			"response_modes_supported": []string{"query", "fragment", "form_post", "web_message"},
+			// Must stay consistent with response_types_supported above:
+			// "implicit" corresponds to response_type=token / id_token.
 			"grant_types_supported":                      []string{"authorization_code", "refresh_token", "implicit"},
 			"token_endpoint_auth_methods_supported":      []string{"client_secret_basic", "client_secret_post"},
 			"code_challenge_methods_supported":           []string{"S256"},
