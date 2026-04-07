@@ -45,7 +45,7 @@ func (h *httpProvider) CSRFMiddleware() gin.HandlerFunc {
 
 		// Exempt /oauth/token and /oauth/revoke (client credentials flow,
 		// authenticated via bearer or client_secret, not cookies)
-		if c.Request.URL.Path == "/oauth/token" || c.Request.URL.Path == "/oauth/revoke" {
+		if c.Request.URL.Path == "/oauth/token" || c.Request.URL.Path == "/oauth/revoke" || c.Request.URL.Path == "/oauth/introspect" {
 			c.Next()
 			return
 		}
