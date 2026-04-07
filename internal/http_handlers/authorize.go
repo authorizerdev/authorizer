@@ -390,6 +390,19 @@ func (h *httpProvider) validateAuthorizeRequest(responseType, responseMode, clie
 		return fmt.Errorf("invalid response mode %s. 'query', 'fragment', 'form_post' and 'web_message' are valid response_mode", responseMode)
 	}
 
+	// OAuth 2.0 Multiple Response Type Encoding Practices §3.0:
+	// response_mode=query MUST NOT be used with response types that issue
+	// tokens directly (implicit and hybrid flows). Tokens in the query
+	// string get logged in proxy access logs, server access logs, and the
+	// browser history bar — a real-world credential leak path.
+	//
+	// Permitted combinations:
+	//   response_type=code              → query, fragment, form_post (any)
+	//   response_type=token / id_token  → fragment (default) or form_post only
+	if responseMode == constants.ResponseModeQuery && responseType != constants.ResponseTypeCode {
+		return fmt.Errorf("response_mode=query is not allowed for response_type=%s; use fragment or form_post", responseType)
+	}
+
 	if h.Config.ClientID != clientID {
 		return fmt.Errorf("invalid client_id %s", clientID)
 	}
