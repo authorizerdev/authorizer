@@ -1,6 +1,7 @@
 package http_handlers
 
 import (
+	"crypto/subtle"
 	"net/http"
 	"strings"
 	"time"
@@ -9,6 +10,13 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/parsers"
 )
+
+// equalConstantTime returns true when a and b are byte-equal in
+// constant time. Used for client_id / client_secret comparison to
+// prevent timing oracles per the project's security rules.
+func equalConstantTime(a, b string) bool {
+	return subtle.ConstantTimeCompare([]byte(a), []byte(b)) == 1
+}
 
 // IntrospectHandler implements RFC 7662 OAuth 2.0 Token Introspection at
 // POST /oauth/introspect. Accepts application/x-www-form-urlencoded bodies
@@ -23,10 +31,11 @@ func (h *httpProvider) IntrospectHandler() gin.HandlerFunc {
 		gc.Writer.Header().Set("Cache-Control", "no-store")
 		gc.Writer.Header().Set("Pragma", "no-cache")
 
-		// Parse form body.
+		// Parse form body. Per RFC 7662 §2.1, the optional
+		// token_type_hint is intentionally ignored: this server validates
+		// any presented JWT against issuer/audience/expiry uniformly, so
+		// the hint provides no useful disambiguation.
 		tokenValue := strings.TrimSpace(gc.PostForm("token"))
-		tokenTypeHint := strings.TrimSpace(gc.PostForm("token_type_hint"))
-		_ = tokenTypeHint // Per RFC 7662 §2.1, unknown hints are ignored.
 
 		clientID := strings.TrimSpace(gc.PostForm("client_id"))
 		clientSecret := strings.TrimSpace(gc.PostForm("client_secret"))
@@ -50,38 +59,36 @@ func (h *httpProvider) IntrospectHandler() gin.HandlerFunc {
 			return
 		}
 
-		// Client authentication: client_id must match, and if a client_secret
-		// was supplied it must match h.Config.ClientSecret.
-		if h.Config.ClientID != clientID {
+		// RFC 7662 §2.1 + RFC 6749 §2.3: client authentication is
+		// MANDATORY on the introspection endpoint. Validate client_id
+		// (constant-time) and, when the server has a client_secret
+		// configured, require a matching client_secret. Empty/missing
+		// client_secret MUST be rejected — otherwise a caller could
+		// authenticate with client_id alone and bypass authentication.
+		clientFailed := false
+		if !equalConstantTime(h.Config.ClientID, clientID) {
 			log.Debug().Str("client_id", clientID).Msg("client_id mismatch on introspect")
-			if hasBasicAuth {
-				gc.Header("WWW-Authenticate", `Basic realm="authorizer"`)
-				gc.JSON(http.StatusUnauthorized, gin.H{
-					"error":             "invalid_client",
-					"error_description": "Client authentication failed",
-				})
-			} else {
-				gc.JSON(http.StatusBadRequest, gin.H{
-					"error":             "invalid_client",
-					"error_description": "The client_id is invalid",
-				})
+			clientFailed = true
+		} else if h.Config.ClientSecret != "" {
+			// A secret is configured: it must be supplied AND match.
+			if clientSecret == "" || !equalConstantTime(h.Config.ClientSecret, clientSecret) {
+				log.Debug().Msg("client_secret missing or mismatched on introspect")
+				clientFailed = true
 			}
-			return
 		}
-		if clientSecret != "" && h.Config.ClientSecret != "" && clientSecret != h.Config.ClientSecret {
-			log.Debug().Msg("client_secret mismatch on introspect")
+		if clientFailed {
+			// RFC 6749 §5.2: client auth failures via Basic return 401
+			// with WWW-Authenticate; failures via form-post return 401
+			// without the challenge header (or 400 if no auth scheme is
+			// indicated). We return 401 in both cases to make the
+			// authentication failure unambiguous.
 			if hasBasicAuth {
-				gc.Header("WWW-Authenticate", `Basic realm="authorizer"`)
-				gc.JSON(http.StatusUnauthorized, gin.H{
-					"error":             "invalid_client",
-					"error_description": "Client authentication failed",
-				})
-			} else {
-				gc.JSON(http.StatusBadRequest, gin.H{
-					"error":             "invalid_client",
-					"error_description": "The client_secret is invalid",
-				})
+				gc.Header("WWW-Authenticate", `Basic realm="introspect"`)
 			}
+			gc.JSON(http.StatusUnauthorized, gin.H{
+				"error":             "invalid_client",
+				"error_description": "Client authentication failed",
+			})
 			return
 		}
 
