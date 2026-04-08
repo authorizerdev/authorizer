@@ -43,6 +43,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
@@ -109,7 +110,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 
 		// id_token_hint is advisory per OIDC Core §3.1.2.1. Validate
 		// structurally; on failure log at debug and continue.
-		hintedSub := h.parseIDTokenHintSubject(idTokenHint)
+		hintedSub := h.parseExpiredOrValidIDTokenHintSubject(idTokenHint)
 		if idTokenHint != "" && hintedSub == "" {
 			log.Debug().Msg("id_token_hint provided but invalid — ignoring per OIDC Core §3.1.2.1")
 		}
@@ -195,46 +196,64 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			}
 		}
 
-		if err := h.validateAuthorizeRequest(responseType, responseMode, clientID, state, codeChallenge); err != nil {
-			log.Debug().Err(err).Msg("Invalid request")
-			gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if errCode, errDesc := h.validateAuthorizeRequest(responseType, responseMode, clientID, state, codeChallenge); errCode != "" {
+			log.Debug().Str("error", errCode).Str("error_description", errDesc).Msg("Invalid request")
+			gc.JSON(http.StatusBadRequest, gin.H{
+				"error":             errCode,
+				"error_description": errDesc,
+			})
 			return
 		}
 
 		code := uuid.New().String()
+		// Track whether the client supplied a nonce. Per OIDC Core
+		// §3.1.2.6, the nonce is only echoed back when the client
+		// originally supplied one. We still need a value internally
+		// for state/session bookkeeping in implicit/hybrid flows, so
+		// auto-generate when absent — but never expose that synthetic
+		// nonce to the relying party (it would break RP-side nonce
+		// validation).
+		nonceFromClient := nonce != ""
 		if nonce == "" {
 			nonce = uuid.New().String()
 		}
 
 		log = log.With().Str("response_type", responseType).Str("response_mode", responseMode).Str("state", state).Str("code_challenge", codeChallenge).Str("scope", scopeString).Str("client_id", clientID).Str("nonce", nonce).Logger()
 
-		// TODO add state with timeout
-		// used for response mode query or fragment
-		authState := "state=" + state + "&scope=" + scopeString + "&redirect_uri=" + redirectURI
+		// Build the auth-state query string used for the login UI
+		// redirect. All values pass through url.Values.Encode() so any
+		// user-controlled input (state, scope, redirect_uri, code,
+		// nonce, login_hint, ui_locales) is properly percent-escaped
+		// and cannot inject extra parameters.
+		authStateValues := url.Values{}
+		authStateValues.Set("state", state)
+		authStateValues.Set("scope", scopeString)
+		authStateValues.Set("redirect_uri", redirectURI)
 		// OIDC Core §3.1.2.1: login_hint and ui_locales are forwarded
 		// to the login UI so it can pre-fill the email field and pick
 		// the UI language.
 		if loginHint != "" {
-			authState += "&login_hint=" + url.QueryEscape(loginHint)
+			authStateValues.Set("login_hint", loginHint)
 		}
 		if uiLocales != "" {
-			authState += "&ui_locales=" + url.QueryEscape(uiLocales)
+			authStateValues.Set("ui_locales", uiLocales)
 		}
 		if responseType == constants.ResponseTypeCode {
-			authState += "&code=" + code
+			authStateValues.Set("code", code)
 			if err := h.MemoryStoreProvider.SetState(state, code+"@@"+codeChallenge); err != nil {
 				log.Debug().Err(err).Msg("Error setting temp code")
 				gc.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 				return
 			}
 		} else {
-			authState += "&nonce=" + nonce
+			authStateValues.Set("nonce", nonce)
 			if err := h.MemoryStoreProvider.SetState(state, nonce); err != nil {
 				log.Debug().Err(err).Msg("Error setting temp nonce")
 				gc.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 				return
 			}
 		}
+		authState := authStateValues.Encode()
 
 		authURL := baseAppPath + "?" + authState
 
@@ -390,6 +409,15 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 		// rollover the session for security
 		go h.MemoryStoreProvider.DeleteUserSession(sessionKey, claims.Nonce)
 
+		// idTokenNonce is the nonce value to embed in the issued ID
+		// token. Per OIDC Core §3.1.2.6 / §3.2.2.11 the `nonce` claim
+		// MUST only be present when the RP supplied a nonce in the
+		// authorization request — never a server-synthesized value.
+		idTokenNonce := ""
+		if nonceFromClient {
+			idTokenNonce = nonce
+		}
+
 		if isHybrid {
 			hostname := parsers.GetHost(gc)
 			// For hybrid flows we mint tokens AND a code. Setting Code
@@ -398,7 +426,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			// the c_hash claim per OIDC Core §3.3.2.11.
 			authToken, err := h.TokenProvider.CreateAuthToken(gc, &token.AuthTokenConfig{
 				User:        user,
-				Nonce:       nonce,
+				Nonce:       idTokenNonce,
 				Code:        code,
 				Roles:       claims.Roles,
 				Scope:       scope,
@@ -430,7 +458,16 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			cookie.SetSession(gc, authToken.FingerPrintHash, h.Config.AppCookieSecure)
 			expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
 			if expiresIn <= 0 {
-				expiresIn = 1
+				// A token issued already-expired indicates a clock or
+				// configuration bug. Surface it as a server_error
+				// instead of papering over it with a 1-second TTL,
+				// which would mask the underlying issue.
+				log.Error().Int64("expires_at", authToken.AccessToken.ExpiresAt).Int64("now", time.Now().Unix()).Msg("hybrid: access token issued already-expired")
+				gc.JSON(http.StatusInternalServerError, gin.H{
+					"error":             "server_error",
+					"error_description": "access token issued already-expired",
+				})
+				return
 			}
 
 			hasAccessToken := responseType == "code token" ||
@@ -459,24 +496,33 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			if hasIDToken {
 				res["id_token"] = authToken.IDToken.Token
 			}
-			if nonce != "" {
+			// OIDC Core §3.1.2.6: nonce is only echoed when the client
+			// supplied one in the authorization request.
+			if nonceFromClient {
 				res["nonce"] = nonce
 			}
 
-			// Build the fragment params string for redirect modes.
-			params := "state=" + state + "&token_type=bearer&expires_in=" + strconv.FormatInt(expiresIn, 10)
+			// Build the fragment params string for redirect modes via
+			// url.Values so user-controlled inputs (state, code,
+			// access_token, id_token, nonce) cannot inject extra
+			// fragment parameters.
+			fragmentValues := url.Values{}
+			fragmentValues.Set("state", state)
+			fragmentValues.Set("token_type", "Bearer")
+			fragmentValues.Set("expires_in", strconv.FormatInt(expiresIn, 10))
 			if hasCode {
-				params += "&code=" + code
+				fragmentValues.Set("code", code)
 			}
 			if hasAccessToken {
-				params += "&access_token=" + authToken.AccessToken.Token
+				fragmentValues.Set("access_token", authToken.AccessToken.Token)
 			}
 			if hasIDToken {
-				params += "&id_token=" + authToken.IDToken.Token
+				fragmentValues.Set("id_token", authToken.IDToken.Token)
 			}
-			if nonce != "" {
-				params += "&nonce=" + nonce
+			if nonceFromClient {
+				fragmentValues.Set("nonce", nonce)
 			}
+			params := fragmentValues.Encode()
 
 			// Hybrid is fragment-default; the pre-check above ensured
 			// responseMode != "query".
@@ -509,14 +555,6 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				return
 			}
 
-			// TODO: add state with timeout
-			// if err := memorystore.Provider.SetState(codeChallenge, code+"@"+newSessionToken); err != nil {
-			// 	log.Debug("SetState failed: ", err)
-			// 	handleResponse(gc, responseMode, authURL, redirectURI, loginError, http.StatusOK)
-			// 	return
-			// }
-
-			// TODO: add state with timeout
 			if err := h.MemoryStoreProvider.SetState(code, codeChallenge+"@@"+newSessionToken); err != nil {
 				log.Debug().Err(err).Msg("Error setting temp code")
 				handleResponse(gc, responseMode, authURL, redirectURI, loginError, http.StatusOK)
@@ -531,21 +569,13 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 
 			cookie.SetSession(gc, newSessionToken, h.Config.AppCookieSecure)
 
-			// in case, response type is code and user is already logged in send the code and state
-			// and cookie session will already be rolled over and set
-			// gc.HTML(http.StatusOK, authorizeWebMessageTemplate, gin.H{
-			// 	"target_origin": redirectURI,
-			// 	"authorization_response": map[string]interface{}{
-			// 		"type": "authorization_response",
-			// 		"response": map[string]string{
-			// 			"code":  code,
-			// 			"state": state,
-			// 		},
-			// 	},
-			// })
-
-			// RFC 6749 §4.1.2: Authorization code response MUST only include code and state
-			params := "code=" + code + "&state=" + state
+			// RFC 6749 §4.1.2: Authorization code response MUST only
+			// include code and state. Both pass through url.Values so
+			// attacker-controlled state cannot inject extra params.
+			codeFlowValues := url.Values{}
+			codeFlowValues.Set("code", code)
+			codeFlowValues.Set("state", state)
+			params := codeFlowValues.Encode()
 			if responseMode == constants.ResponseModeQuery {
 				if strings.Contains(redirectURI, "?") {
 					redirectURI = redirectURI + "&" + params
@@ -576,7 +606,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			// rollover the session for security
 			authToken, err := h.TokenProvider.CreateAuthToken(gc, &token.AuthTokenConfig{
 				User:        user,
-				Nonce:       nonce,
+				Nonce:       idTokenNonce,
 				Roles:       claims.Roles,
 				Scope:       scope,
 				LoginMethod: claims.LoginMethod,
@@ -605,11 +635,26 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			// OAuth 2.0: expires_in is lifetime in seconds (RFC 6749 §4.2.2), not an absolute timestamp.
 			expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
 			if expiresIn <= 0 {
-				expiresIn = 1
+				// Same rationale as the hybrid branch above: a token
+				// issued already-expired is a clock/config bug, not
+				// something to silently clamp.
+				log.Error().Int64("expires_at", authToken.AccessToken.ExpiresAt).Int64("now", time.Now().Unix()).Msg("implicit: access token issued already-expired")
+				gc.JSON(http.StatusInternalServerError, gin.H{
+					"error":             "server_error",
+					"error_description": "access token issued already-expired",
+				})
+				return
 			}
 
-			// used of query mode
-			params := "access_token=" + authToken.AccessToken.Token + "&token_type=bearer&expires_in=" + strconv.FormatInt(expiresIn, 10) + "&state=" + state + "&id_token=" + authToken.IDToken.Token
+			// Build response params via url.Values so user-controlled
+			// inputs (state, tokens, nonce) cannot inject extra
+			// fragment / query parameters.
+			fragmentValues := url.Values{}
+			fragmentValues.Set("access_token", authToken.AccessToken.Token)
+			fragmentValues.Set("token_type", "Bearer")
+			fragmentValues.Set("expires_in", strconv.FormatInt(expiresIn, 10))
+			fragmentValues.Set("state", state)
+			fragmentValues.Set("id_token", authToken.IDToken.Token)
 
 			res := map[string]interface{}{
 				"access_token": authToken.AccessToken.Token,
@@ -620,14 +665,15 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				"expires_in":   expiresIn,
 			}
 
-			if nonce != "" {
-				params += "&nonce=" + nonce
+			// OIDC Core §3.1.2.6: nonce is only echoed when supplied.
+			if nonceFromClient {
+				fragmentValues.Set("nonce", nonce)
 				res["nonce"] = nonce
 			}
 
 			if authToken.RefreshToken != nil {
 				res["refresh_token"] = authToken.RefreshToken.Token
-				params += "&refresh_token=" + authToken.RefreshToken.Token
+				fragmentValues.Set("refresh_token", authToken.RefreshToken.Token)
 				if err := h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token, authToken.RefreshToken.ExpiresAt); err != nil {
 					log.Debug().Err(err).Msg("Error setting refresh token")
 					handleResponse(gc, responseMode, authURL, redirectURI, loginError, http.StatusOK)
@@ -635,13 +681,14 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				}
 			}
 
-			if responseMode == constants.ResponseModeQuery {
-				if strings.Contains(redirectURI, "?") {
-					redirectURI = redirectURI + "&" + params
-				} else {
-					redirectURI = redirectURI + "?" + params
-				}
-			} else if responseMode == constants.ResponseModeFragment {
+			params := fragmentValues.Encode()
+
+			// validateAuthorizeRequest already rejects
+			// response_mode=query for token / id_token flows, so the
+			// only redirect mode that needs param composition here is
+			// fragment. form_post and web_message render via the
+			// response map below.
+			if responseMode == constants.ResponseModeFragment {
 				if strings.Contains(redirectURI, "#") {
 					redirectURI = redirectURI + "&" + params
 				} else {
@@ -702,16 +749,20 @@ func supportedResponseTypeSet(raw string) (string, bool) {
 	return "", false
 }
 
-func (h *httpProvider) validateAuthorizeRequest(responseType, responseMode, clientID, state, codeChallenge string) error {
+// validateAuthorizeRequest validates the structural inputs of an
+// authorization request and returns an OAuth2 / OIDC error code + a
+// human-readable description per RFC 6749 §5.2. Returns ("", "") on
+// success.
+func (h *httpProvider) validateAuthorizeRequest(responseType, responseMode, clientID, state, codeChallenge string) (string, string) {
 	if strings.TrimSpace(state) == "" {
-		return fmt.Errorf("invalid state. state is required to prevent csrf attack")
+		return "invalid_request", "state is required to prevent CSRF attacks"
 	}
 	if _, ok := supportedResponseTypeSet(responseType); !ok {
-		return fmt.Errorf("invalid response type %s", responseType)
+		return "unsupported_response_type", fmt.Sprintf("response_type %q is not supported", responseType)
 	}
 
 	if responseMode != constants.ResponseModeQuery && responseMode != constants.ResponseModeWebMessage && responseMode != constants.ResponseModeFragment && responseMode != constants.ResponseModeFormPost {
-		return fmt.Errorf("invalid response mode %s. 'query', 'fragment', 'form_post' and 'web_message' are valid response_mode", responseMode)
+		return "invalid_request", fmt.Sprintf("invalid response_mode %q; valid values are 'query', 'fragment', 'form_post', 'web_message'", responseMode)
 	}
 
 	// OAuth 2.0 Multiple Response Type Encoding Practices §3.0:
@@ -724,29 +775,60 @@ func (h *httpProvider) validateAuthorizeRequest(responseType, responseMode, clie
 	//   response_type=code              → query, fragment, form_post (any)
 	//   response_type=token / id_token  → fragment (default) or form_post only
 	if responseMode == constants.ResponseModeQuery && responseType != constants.ResponseTypeCode {
-		return fmt.Errorf("response_mode=query is not allowed for response_type=%s; use fragment or form_post", responseType)
+		return "invalid_request", fmt.Sprintf("response_mode=query is not allowed for response_type=%s; use fragment or form_post", responseType)
 	}
 
 	if h.Config.ClientID != clientID {
-		return fmt.Errorf("invalid client_id %s", clientID)
+		return "invalid_client", "client_id does not match the configured client"
 	}
 
-	return nil
+	return "", ""
 }
 
-// parseIDTokenHintSubject parses and verifies an id_token_hint JWT
-// against the server's own signing key. Per OIDC Core §3.1.2.1 the hint
-// need not be unexpired — only structurally valid. Returns the subject
-// claim on success so callers can use it for logging / future
-// user-selection enforcement. Returns empty string on any failure.
-func (h *httpProvider) parseIDTokenHintSubject(idTokenHint string) string {
+// parseExpiredOrValidIDTokenHintSubject parses an id_token_hint JWT
+// and verifies its signature using the configured signing key, but
+// deliberately skips expiry/iat validation. Per OIDC Core §3.1.2.1 the
+// hint MAY be an expired ID token — RPs are encouraged to send the
+// most recent token they have, even after it has expired, so the OP
+// can still recognize the user. Only the signature must be valid.
+//
+// Returns the `sub` claim on success or empty string on any failure
+// (parse error, invalid signature, missing claim, wrong token_type).
+func (h *httpProvider) parseExpiredOrValidIDTokenHintSubject(idTokenHint string) string {
 	if idTokenHint == "" {
 		return ""
 	}
-	claims, err := h.TokenProvider.ParseJWTToken(idTokenHint)
-	if err != nil || claims == nil {
+
+	keyFunc := func(t *jwt.Token) (interface{}, error) {
+		expected := jwt.GetSigningMethod(h.Config.JWTType)
+		if expected == nil {
+			return nil, errors.New("unsupported signing method")
+		}
+		if t.Method.Alg() != expected.Alg() {
+			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+		}
+		switch expected {
+		case jwt.SigningMethodHS256, jwt.SigningMethodHS384, jwt.SigningMethodHS512:
+			return []byte(h.Config.JWTSecret), nil
+		case jwt.SigningMethodRS256, jwt.SigningMethodRS384, jwt.SigningMethodRS512:
+			return crypto.ParseRsaPublicKeyFromPemStr(h.Config.JWTPublicKey)
+		case jwt.SigningMethodES256, jwt.SigningMethodES384, jwt.SigningMethodES512:
+			return crypto.ParseEcdsaPublicKeyFromPemStr(h.Config.JWTPublicKey)
+		default:
+			return nil, errors.New("unsupported signing method")
+		}
+	}
+
+	parser := jwt.NewParser(jwt.WithoutClaimsValidation())
+	var claims jwt.MapClaims
+	if _, err := parser.ParseWithClaims(idTokenHint, &claims, keyFunc); err != nil {
 		return ""
 	}
+	if claims == nil {
+		return ""
+	}
+	// Defensive: ensure the hint is an id_token, not some other JWT
+	// the caller may have sent (access_token, refresh_token).
 	if tt, ok := claims["token_type"].(string); ok && tt != "" && tt != "id_token" {
 		return ""
 	}

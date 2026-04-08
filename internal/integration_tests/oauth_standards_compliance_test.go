@@ -519,8 +519,14 @@ func TestAuthorizeEndpointCompliance(t *testing.T) {
 
 		var body map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &body)
-		assert.Contains(t, body["error"].(string), "state",
-			"RFC 6749: missing state parameter MUST return error")
+		// RFC 6749 §5.2: `error` MUST be a registered error code
+		// (invalid_request here), and the human-readable detail goes
+		// in `error_description`.
+		assert.Equal(t, "invalid_request", body["error"],
+			"RFC 6749 §5.2: missing state MUST return error=invalid_request")
+		desc, _ := body["error_description"].(string)
+		assert.Contains(t, desc, "state",
+			"RFC 6749 §5.2: error_description should mention the missing parameter")
 	})
 
 	t.Run("RFC6749_invalid_response_type_returns_error", func(t *testing.T) {
