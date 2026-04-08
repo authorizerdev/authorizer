@@ -60,14 +60,14 @@ type AuthTokenConfig struct {
 }
 
 // loginMethodToAMR maps an internal LoginMethod value to the OIDC Core §2
-// Authentication Methods Reference array. Returns nil (omit the claim)
-// for unknown or empty methods.
+// Authentication Methods Reference array (RFC 8176 values). Returns nil
+// (omit the claim) for unknown or empty methods.
 func loginMethodToAMR(method string) []string {
 	switch strings.ToLower(method) {
 	case constants.AuthRecipeMethodBasicAuth, constants.AuthRecipeMethodMobileBasicAuth:
-		return []string{"pwd"}
+		return []string{constants.AMRPassword}
 	case constants.AuthRecipeMethodMagicLinkLogin, constants.AuthRecipeMethodMobileOTP:
-		return []string{"otp"}
+		return []string{constants.AMROTP}
 	case constants.AuthRecipeMethodGoogle,
 		constants.AuthRecipeMethodGithub,
 		constants.AuthRecipeMethodFacebook,
@@ -78,7 +78,7 @@ func loginMethodToAMR(method string) []string {
 		constants.AuthRecipeMethodTwitch,
 		constants.AuthRecipeMethodRoblox,
 		constants.AuthRecipeMethodMicrosoft:
-		return []string{"fed"}
+		return []string{constants.AMRFederated}
 	}
 	return nil
 }
@@ -475,7 +475,7 @@ func (p *provider) CreateIDToken(cfg *AuthTokenConfig) (string, int64, error) {
 	// alongside acr_values request support is a future enhancement;
 	// for now returning "0" is safer than omitting the claim for
 	// clients that require its presence.
-	customClaims["acr"] = "0"
+	customClaims["acr"] = constants.ACRBaseline
 	for k, v := range userMap {
 		if k != "roles" {
 			customClaims[k] = v
