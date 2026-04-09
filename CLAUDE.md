@@ -1,7 +1,8 @@
 # CLAUDE.md
 
 Project instructions for AI coding tools (Claude Code, Cursor, Gemini, Copilot).
-Detailed conventions are in `.claude/rules/` (loaded on-demand per file type) and `.claude/agents/` (role-specific expertise).
+
+Detailed conventions live in `.claude/skills/authorizer-*/SKILL.md` and load on demand when matching files are touched. Role-specific expertise lives in `.claude/agents/`.
 
 ## What is Authorizer
 
@@ -19,13 +20,9 @@ make build-app            # Build login UI (web/app)
 make build-dashboard      # Build admin UI (web/dashboard)
 make generate-graphql     # Regenerate after schema.graphqls change
 
-# Testing
-# Integration tests always use SQLite (no Docker needed).
-# Storage provider tests honour TEST_DBS (default: all 7 DBs, needs Docker).
-# Optional: TEST_ENABLE_REDIS=1 runs Redis memory_store unit tests (Redis on localhost:6380).
 make test                 # SQLite integration + storage (via TEST_DBS)
 make test-sqlite          # SQLite everywhere (no Docker)
-make test-all-db          # ALL 7 databases (postgres,sqlite,mongodb,arangodb,scylladb,dynamodb,couchbase)
+make test-all-db          # All 7 databases via Docker
 
 # Single test
 go clean --testcache && TEST_DBS="sqlite" go test -p 1 -v -run TestSignup ./internal/integration_tests/
@@ -42,35 +39,42 @@ go clean --testcache && TEST_DBS="sqlite" go test -p 1 -v -run TestSignup ./inte
 - Token management: `internal/token/`
 - Tests: `internal/integration_tests/`
 - Frontend: `web/app/` (user UI) | `web/dashboard/` (admin UI)
-- Optional NULL semantics across SQL/document DBs and DynamoDB: `docs/storage-optional-null-fields.md`
 
 **Pattern**: Every subsystem uses `Dependencies` struct + `New()` → `Provider` interface.
 
-## Critical Rules
+## Critical Rules (Top of Mind)
 
-1. **Admin GraphQL ops prefixed with `_`** (e.g., `_users`, `_delete_user`) — not for public use
-2. **Schema changes must update ALL 13+ database providers**
-3. **Run `make generate-graphql`** after editing `schema.graphqls`
-4. **Security**: parameterized queries only, `crypto/rand` for tokens, `crypto/subtle` for comparisons, never log secrets
-5. **Tests**: integration tests use SQLite via `getTestConfig()` (no `runForEachDB`); storage tests cover all DBs via `TEST_DBS`; testify assertions
-6. **NEVER commit to main** — always work on a feature branch (`feat/`, `fix/`, `security/`, `chore/`), push to the branch, and create a merge request. Main must stay deployable.
+1. **Admin GraphQL ops prefixed with `_`** — not for public use.
+2. **Schema changes MUST update all 13+ database providers.**
+3. **Run `make generate-graphql`** after editing `schema.graphqls`.
+4. **NEVER commit to main** — always use a feature branch (`feat/`, `fix/`, `security/`, `chore/`), push, open a PR. Main must stay deployable.
 
-## AI Agent Roles
+Detailed rules load via skills (see below) — don't restate them here.
 
-Detailed agent files in `.claude/agents/`. Summary:
+## AI Agents
 
-| Agent | Focus |
-|-------|-------|
-| `software-engineer` | Full SDLC: Plan → Execute → Test → Review, git practices, code review, issue management |
-| `golang-engineer` | Go idioms, provider pattern, code style, GraphQL + REST API conventions |
-| `security-engineer` | Security + auth protocols: OWASP, OAuth2/OIDC, JWT, MFA, vulnerability audit |
-| `database-engineer` | Multi-DB consistency across 13+ providers |
-| `doc-writer` | API docs, guides, migration docs |
+| Agent | Model | Focus |
+|---|---|---|
+| `principal-engineer` | opus | Full SDLC: Plan → Execute → Test → Review across Go, storage, GraphQL, HTTP. Use for any change touching >1 subsystem. |
+| `security-engineer` | opus | OAuth2/OIDC, JWT, MFA, vulnerability audit. Second-pass on auth-sensitive PRs. |
+| `doc-writer` | haiku | API docs, guides, migration docs. |
+
+## Project Skills (auto-load on matching files)
+
+| Skill | Fires when editing |
+|---|---|
+| `authorizer-go-conventions` | any `*.go` file |
+| `authorizer-graphql` | `internal/graph/`, `internal/graphql/`, `schema.graphqls` |
+| `authorizer-storage` | `internal/storage/` (any provider) |
+| `authorizer-http-handlers` | `internal/http_handlers/` |
+| `authorizer-security` | auth-sensitive code or `security/` branches |
+| `authorizer-testing` | any `*_test.go` |
+| `authorizer-frontend` | `web/app/`, `web/dashboard/` |
 
 ## Token Optimization Notes
 
-- Detailed rules load on-demand via `.claude/rules/` (only when matching files are accessed)
-- Agent definitions load only when invoked
-- Go files auto-formatted on save via hook (no formatting discussion needed)
-- Use `Grep`/`Glob` tools before exploring — avoid unnecessary file reads
-- Prefer reading specific line ranges over full files
+- Detailed rules live in skills — they only load when relevant files are touched.
+- Agent definitions only load when invoked via the `Task` tool.
+- Go files auto-formatted on save via hook (no formatting discussion needed).
+- Use `Grep`/`Glob` before exploring — avoid speculative file reads.
+- Prefer reading specific line ranges over full files.
