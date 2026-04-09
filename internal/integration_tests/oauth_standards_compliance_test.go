@@ -447,6 +447,125 @@ func TestRevocationEndpointCompliance(t *testing.T) {
 	})
 }
 
+// TestRefreshTokenNonceNoTrailingSeparator verifies that when grant_type=refresh_token
+// is used (where code is empty), the nonce in the new token does not contain a trailing "@@".
+func TestRefreshTokenNonceNoTrailingSeparator(t *testing.T) {
+	cfg := getTestConfig()
+	ts := initTestSetup(t, cfg)
+	_, ctx := createContext(ts)
+
+	email := "nonce_test_" + uuid.New().String() + "@authorizer.dev"
+	password := "Password@123"
+
+	signupRes, err := ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
+		Email:           &email,
+		Password:        password,
+		ConfirmPassword: password,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, signupRes)
+
+	// Login to get a refresh token (need offline_access scope)
+	loginRes, err := ts.GraphQLProvider.Login(ctx, &model.LoginRequest{
+		Email:    &email,
+		Password: password,
+		Scope:    []string{"openid", "email", "profile", "offline_access"},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, loginRes)
+	require.NotNil(t, loginRes.RefreshToken, "login must return a refresh token with offline_access scope")
+
+	router := gin.New()
+	router.POST("/oauth/token", ts.HttpProvider.TokenHandler())
+
+	t.Run("nonce_must_not_contain_trailing_separator", func(t *testing.T) {
+		form := url.Values{}
+		form.Set("grant_type", "refresh_token")
+		form.Set("refresh_token", *loginRes.RefreshToken)
+		form.Set("client_id", cfg.ClientID)
+
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("POST", "/oauth/token", strings.NewReader(form.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		// Match the issuer the token was created with (test server address)
+		req.Header.Set("X-Authorizer-URL", "http://"+ts.HttpServer.Listener.Addr().String())
+		router.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusOK, w.Code, "refresh_token grant should succeed")
+
+		var body map[string]interface{}
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+
+		accessTokenStr, ok := body["access_token"].(string)
+		require.True(t, ok, "response must contain access_token")
+
+		// Parse the new access token to inspect the nonce claim
+		claims, err := ts.TokenProvider.ParseJWTToken(accessTokenStr)
+		require.NoError(t, err)
+
+		nonce, ok := claims["nonce"].(string)
+		require.True(t, ok, "access token must contain nonce claim")
+		assert.False(t, strings.HasSuffix(nonce, "@@"),
+			"nonce must not contain trailing @@ separator, got: %s", nonce)
+		assert.NotContains(t, nonce, "@@",
+			"nonce for refresh_token grant (no code) must not contain @@ separator")
+	})
+}
+
+// TestRevokeWithWrongTokenValue verifies that revoking with a slightly wrong
+// token value returns 200 per RFC 7009 §2.2 (no error for invalid tokens).
+func TestRevokeWithWrongTokenValue(t *testing.T) {
+	cfg := getTestConfig()
+	ts := initTestSetup(t, cfg)
+	_, ctx := createContext(ts)
+
+	email := "revoke_wrong_" + uuid.New().String() + "@authorizer.dev"
+	password := "Password@123"
+
+	signupRes, err := ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
+		Email:           &email,
+		Password:        password,
+		ConfirmPassword: password,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, signupRes)
+
+	// Login to get a refresh token
+	loginRes, err := ts.GraphQLProvider.Login(ctx, &model.LoginRequest{
+		Email:    &email,
+		Password: password,
+		Scope:    []string{"openid", "email", "profile", "offline_access"},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, loginRes)
+	require.NotNil(t, loginRes.RefreshToken)
+
+	router := gin.New()
+	router.POST("/oauth/revoke", ts.HttpProvider.RevokeRefreshTokenHandler())
+
+	t.Run("wrong_token_value_returns_200", func(t *testing.T) {
+		// Tamper with the last character of the token
+		tampered := *loginRes.RefreshToken
+		if tampered[len(tampered)-1] == 'a' {
+			tampered = tampered[:len(tampered)-1] + "b"
+		} else {
+			tampered = tampered[:len(tampered)-1] + "a"
+		}
+
+		form := url.Values{}
+		form.Set("token", tampered)
+		form.Set("client_id", cfg.ClientID)
+
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("POST", "/oauth/revoke", strings.NewReader(form.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code,
+			"RFC 7009 §2.2: wrong token value must return HTTP 200, not an error")
+	})
+}
+
 // TestUserInfoEndpointCompliance verifies /userinfo complies with OIDC Core §5.3 and RFC 6750
 func TestUserInfoEndpointCompliance(t *testing.T) {
 	cfg := getTestConfig()

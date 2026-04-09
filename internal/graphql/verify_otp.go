@@ -102,7 +102,7 @@ func (g *graphqlProvider) VerifyOTP(ctx context.Context, params *model.VerifyOTP
 				log.Debug().Err(err).Msg("Failed to get otp request for phone number")
 			}
 		}
-		if otp == nil && err != nil {
+		if otp == nil {
 			log.Debug().Msg("OTP not found")
 			return nil, fmt.Errorf(`OTP not found`)
 		}
