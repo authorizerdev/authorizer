@@ -280,7 +280,7 @@ func (g *graphqlProvider) SignUp(ctx context.Context, params *model.SignUpReques
 		}, nil
 	}
 	scope := []string{"openid", "email", "profile"}
-	if params.Scope != nil && len(scope) > 0 {
+	if params.Scope != nil && len(params.Scope) > 0 {
 		scope = params.Scope
 	}
 
