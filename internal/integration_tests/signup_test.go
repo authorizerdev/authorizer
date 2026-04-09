@@ -9,6 +9,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // TestSignup tests the signup functionality of the Authorizer application.
@@ -126,6 +127,36 @@ func TestSignup(t *testing.T) {
 		res, err := ts2.GraphQLProvider.SignUp(ctx2, signupReq)
 		assert.Error(t, err)
 		assert.Nil(t, res)
+	})
+
+	t.Run("should use default scopes when empty scope list is provided", func(t *testing.T) {
+		emptyEmail := "signup_empty_scope_" + uuid.New().String() + "@authorizer.dev"
+		signupReq := &model.SignUpRequest{
+			Email:           &emptyEmail,
+			Password:        password,
+			ConfirmPassword: password,
+			Scope:           []string{},
+		}
+		res, err := ts.GraphQLProvider.SignUp(ctx, signupReq)
+		assert.NoError(t, err)
+		assert.NotNil(t, res)
+		require.NotNil(t, res.AccessToken)
+		assert.NotEmpty(t, *res.AccessToken)
+
+		// Parse access token and verify it contains default scopes
+		claims, err := ts.TokenProvider.ParseJWTToken(*res.AccessToken)
+		assert.NoError(t, err)
+		scopeRaw, ok := claims["scope"]
+		assert.True(t, ok, "access token must contain scope claim")
+		scopeSlice, ok := scopeRaw.([]interface{})
+		assert.True(t, ok, "scope claim must be an array")
+		scopes := make([]string, len(scopeSlice))
+		for i, s := range scopeSlice {
+			scopes[i] = s.(string)
+		}
+		assert.Contains(t, scopes, "openid")
+		assert.Contains(t, scopes, "email")
+		assert.Contains(t, scopes, "profile")
 	})
 
 	t.Run("should pass for valid mobile number", func(t *testing.T) {

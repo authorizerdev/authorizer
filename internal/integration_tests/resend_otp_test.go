@@ -83,6 +83,68 @@ func TestResendOTP(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotNil(t, userData)
 
+	t.Run("should return SMS service error not email service error", func(t *testing.T) {
+		smsCfg := getTestConfig()
+		smsCfg.EnableMFA = true
+		smsCfg.IsSMSServiceEnabled = false
+		smsCfg.IsEmailServiceEnabled = true
+		smsCfg.SMTPHost = "localhost"
+		smsCfg.SMTPPort = 1025
+		smsCfg.SMTPSenderEmail = "test@authorizer.dev"
+		smsCfg.SMTPSenderName = "Test"
+		smsCfg.SMTPLocalName = "Test"
+		smsCfg.SMTPSkipTLSVerification = true
+		smsTs := initTestSetup(t, smsCfg)
+		_, smsCtx := createContext(smsTs)
+		resendReq := &model.ResendOTPRequest{
+			PhoneNumber: refs.NewStringRef("+11234567890"),
+		}
+		resendRes, err := smsTs.GraphQLProvider.ResendOTP(smsCtx, resendReq)
+		assert.Error(t, err)
+		assert.Nil(t, resendRes)
+		assert.Contains(t, err.Error(), "SMS service not enabled")
+	})
+	t.Run("should resend OTP with sanitized email (spaces and mixed case)", func(t *testing.T) {
+		emailCfg := getTestConfig()
+		emailCfg.EnableMFA = true
+		emailCfg.IsEmailServiceEnabled = true
+		emailCfg.EnableEmailOTP = true
+		emailCfg.EnableEmailVerification = true
+		emailCfg.SMTPHost = "localhost"
+		emailCfg.SMTPPort = 1025
+		emailCfg.SMTPSenderEmail = "test@authorizer.dev"
+		emailCfg.SMTPSenderName = "Test"
+		emailCfg.SMTPLocalName = "Test"
+		emailCfg.SMTPSkipTLSVerification = true
+		emailTs := initTestSetup(t, emailCfg)
+		_, emailCtx := createContext(emailTs)
+		// Sign up with a clean email
+		cleanEmail := fmt.Sprintf("resendtest%d@authorizer.dev", time.Now().UnixNano())
+		password := "Password@123"
+		signupRes, err := emailTs.GraphQLProvider.SignUp(emailCtx, &model.SignUpRequest{
+			Email:           refs.NewStringRef(cleanEmail),
+			Password:        password,
+			ConfirmPassword: password,
+		})
+		require.NoError(t, err)
+		require.NotNil(t, signupRes)
+		// Seed a known OTP for this user
+		_, err = emailTs.StorageProvider.UpsertOTP(emailCtx, &schemas.OTP{
+			Email:     cleanEmail,
+			Otp:       crypto.HashOTP("111111", emailCfg.JWTSecret),
+			ExpiresAt: time.Now().Add(5 * time.Minute).Unix(),
+		})
+		require.NoError(t, err)
+		// Resend with unsanitized email (spaces + mixed case)
+		unsanitizedEmail := "  " + strings.ToUpper(cleanEmail) + "  "
+		resendReq := &model.ResendOTPRequest{
+			Email: refs.NewStringRef(unsanitizedEmail),
+		}
+		resendRes, err := emailTs.GraphQLProvider.ResendOTP(emailCtx, resendReq)
+		assert.NoError(t, err)
+		assert.NotNil(t, resendRes)
+		assert.Equal(t, "OTP has been sent. Please check your inbox", resendRes.Message)
+	})
 	t.Run("should fail if request for given email or phone number does not exists", func(t *testing.T) {
 		resendReq := &model.ResendOTPRequest{
 			PhoneNumber: refs.NewStringRef("2131231212"),

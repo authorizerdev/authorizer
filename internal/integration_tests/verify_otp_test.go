@@ -9,7 +9,9 @@ import (
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -153,5 +155,51 @@ func TestVerifyOTP(t *testing.T) {
 		verificationRes, err := ts.GraphQLProvider.VerifyOTP(ctx, verificationReq)
 		require.NoError(t, err)
 		assert.NotNil(t, verificationRes)
+	})
+}
+
+// TestVerifyOTPNoRecord verifies that verifying an OTP for a user with no OTP
+// record returns an error instead of panicking with a nil pointer dereference.
+func TestVerifyOTPNoRecord(t *testing.T) {
+	cfg := getTestConfig()
+	cfg.EnableEmailOTP = true
+	cfg.EnableSMSOTP = true
+	cfg.SMTPHost = "localhost"
+	cfg.SMTPPort = 1025
+	cfg.SMTPSenderEmail = "test@authorizer.dev"
+	cfg.SMTPSenderName = "Test"
+	cfg.SMTPLocalName = "Test"
+	cfg.SMTPSkipTLSVerification = true
+	cfg.IsEmailServiceEnabled = true
+	cfg.IsSMSServiceEnabled = true
+	cfg.EnableEmailVerification = false
+	cfg.EnableMobileBasicAuthentication = true
+	ts := initTestSetup(t, cfg)
+	req, ctx := createContext(ts)
+
+	// Create a user via signup (no email verification so user is created immediately)
+	email := "no_otp_" + uuid.New().String() + "@authorizer.dev"
+	password := "Password@123"
+	signupRes, err := ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
+		Email:           &email,
+		Password:        password,
+		ConfirmPassword: password,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, signupRes)
+	require.NotNil(t, signupRes.User)
+
+	// Set an MFA session cookie so we get past the cookie check
+	req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.MfaCookieName+"_session", "test"))
+
+	t.Run("should return error not panic when no OTP record exists", func(t *testing.T) {
+		verificationReq := &model.VerifyOTPRequest{
+			Email: refs.NewStringRef(email),
+			Otp:   "123456",
+		}
+		verificationRes, err := ts.GraphQLProvider.VerifyOTP(ctx, verificationReq)
+		assert.Error(t, err, "expected error when no OTP record exists")
+		assert.Nil(t, verificationRes)
+		assert.Contains(t, err.Error(), "OTP not found")
 	})
 }

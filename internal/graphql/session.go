@@ -62,7 +62,7 @@ func (g *graphqlProvider) Session(ctx context.Context, params *model.SessionQuer
 	}
 
 	scope := []string{"openid", "email", "profile"}
-	if params != nil && params.Scope != nil && len(scope) > 0 {
+	if params != nil && params.Scope != nil && len(params.Scope) > 0 {
 		scope = params.Scope
 	}
 

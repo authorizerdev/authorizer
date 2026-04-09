@@ -72,15 +72,7 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 		redirectURL := sessionSplit[1]
 		inputRoles := strings.Split(sessionSplit[2], ",")
 		scopeString := sessionSplit[3]
-		scopes := []string{}
-		if scopeString != "" {
-			if strings.Contains(scopeString, ",") {
-				scopes = strings.Split(scopeString, ",")
-			}
-			if strings.Contains(scopeString, " ") {
-				scopes = strings.Split(scopeString, " ")
-			}
-		}
+		scopes := parseScopes(scopeString)
 		var user *schemas.User
 		oauthCode := ctx.Request.FormValue("code")
 		if oauthCode == "" {
@@ -478,7 +470,10 @@ func (h *httpProvider) processGithubUserInfo(ctx *gin.Context, code string) (*sc
 	}
 
 	userRawData := make(map[string]string)
-	json.Unmarshal(body, &userRawData)
+	if err := json.Unmarshal(body, &userRawData); err != nil {
+		log.Debug().Err(err).Msg("Failed to unmarshal github user info")
+		return nil, fmt.Errorf("failed to parse github user info: %s", err.Error())
+	}
 
 	name := strings.Split(userRawData["name"], " ")
 	firstName := ""
@@ -587,15 +582,21 @@ func (h *httpProvider) processFacebookUserInfo(ctx *gin.Context, code string) (*
 		return nil, fmt.Errorf("failed to request facebook user info: %s", string(body))
 	}
 	userRawData := make(map[string]interface{})
-	json.Unmarshal(body, &userRawData)
+	if err := json.Unmarshal(body, &userRawData); err != nil {
+		log.Debug().Err(err).Msg("Failed to unmarshal facebook user info")
+		return nil, fmt.Errorf("failed to parse facebook user info: %s", err.Error())
+	}
 
 	email := fmt.Sprintf("%v", userRawData["email"])
 
-	picObject := userRawData["picture"].(map[string]interface{})["data"]
-	picDataObject := picObject.(map[string]interface{})
+	picture := ""
+	if picObj, ok := userRawData["picture"].(map[string]interface{}); ok {
+		if picData, ok := picObj["data"].(map[string]interface{}); ok {
+			picture = fmt.Sprintf("%v", picData["url"])
+		}
+	}
 	firstName := fmt.Sprintf("%v", userRawData["first_name"])
 	lastName := fmt.Sprintf("%v", userRawData["last_name"])
-	picture := fmt.Sprintf("%v", picDataObject["url"])
 
 	user := &schemas.User{
 		GivenName:  &firstName,
@@ -650,7 +651,10 @@ func (h *httpProvider) processLinkedInUserInfo(ctx *gin.Context, code string) (*
 	}
 
 	userRawData := make(map[string]interface{})
-	json.Unmarshal(body, &userRawData)
+	if err := json.Unmarshal(body, &userRawData); err != nil {
+		log.Debug().Err(err).Msg("Failed to unmarshal linkedin user info")
+		return nil, fmt.Errorf("failed to parse linkedin user info: %s", err.Error())
+	}
 
 	req, err = http.NewRequest("GET", constants.LinkedInEmailURL, nil)
 	if err != nil {
@@ -678,12 +682,42 @@ func (h *httpProvider) processLinkedInUserInfo(ctx *gin.Context, code string) (*
 		return nil, fmt.Errorf("failed to request linkedin user info: %s", string(body))
 	}
 	emailRawData := make(map[string]interface{})
-	json.Unmarshal(body, &emailRawData)
+	if err := json.Unmarshal(body, &emailRawData); err != nil {
+		log.Debug().Err(err).Msg("Failed to unmarshal linkedin email info")
+		return nil, fmt.Errorf("failed to parse linkedin email info: %s", err.Error())
+	}
 
-	firstName := userRawData["localizedFirstName"].(string)
-	lastName := userRawData["localizedLastName"].(string)
-	profilePicture := userRawData["profilePicture"].(map[string]interface{})["displayImage~"].(map[string]interface{})["elements"].([]interface{})[0].(map[string]interface{})["identifiers"].([]interface{})[0].(map[string]interface{})["identifier"].(string)
-	emailAddress := emailRawData["elements"].([]interface{})[0].(map[string]interface{})["handle~"].(map[string]interface{})["emailAddress"].(string)
+	firstName, _ := userRawData["localizedFirstName"].(string)
+	lastName, _ := userRawData["localizedLastName"].(string)
+
+	// Safely extract profile picture from nested LinkedIn structure
+	profilePicture := ""
+	if pp, ok := userRawData["profilePicture"].(map[string]interface{}); ok {
+		if di, ok := pp["displayImage~"].(map[string]interface{}); ok {
+			if elems, ok := di["elements"].([]interface{}); ok && len(elems) > 0 {
+				if elem, ok := elems[0].(map[string]interface{}); ok {
+					if ids, ok := elem["identifiers"].([]interface{}); ok && len(ids) > 0 {
+						if id, ok := ids[0].(map[string]interface{}); ok {
+							profilePicture, _ = id["identifier"].(string)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Safely extract email from nested LinkedIn structure
+	emailAddress := ""
+	if elems, ok := emailRawData["elements"].([]interface{}); ok && len(elems) > 0 {
+		if elem, ok := elems[0].(map[string]interface{}); ok {
+			if handle, ok := elem["handle~"].(map[string]interface{}); ok {
+				emailAddress, _ = handle["emailAddress"].(string)
+			}
+		}
+	}
+	if emailAddress == "" {
+		return nil, fmt.Errorf("failed to extract email from linkedin response")
+	}
 
 	user := &schemas.User{
 		GivenName:  &firstName,
@@ -811,7 +845,9 @@ func (h *httpProvider) processDiscordUserInfo(ctx *gin.Context, code string) (*s
 		log.Debug().Err(err).Msg("Username is not in expected format or missing in user data")
 		return nil, fmt.Errorf("username is not in expected format or missing in user data")
 	}
-	profilePicture := fmt.Sprintf("https://cdn.discordapp.com/avatars/%s/%s.png", userRawData["id"].(string), userRawData["avatar"].(string))
+	discordID, _ := userRawData["id"].(string)
+	avatar, _ := userRawData["avatar"].(string)
+	profilePicture := fmt.Sprintf("https://cdn.discordapp.com/avatars/%s/%s.png", discordID, avatar)
 
 	user := &schemas.User{
 		GivenName: &firstName,
@@ -864,25 +900,32 @@ func (h *httpProvider) processTwitterUserInfo(ctx *gin.Context, code, verifier s
 	}
 
 	responseRawData := make(map[string]interface{})
-	json.Unmarshal(body, &responseRawData)
+	if err := json.Unmarshal(body, &responseRawData); err != nil {
+		log.Debug().Err(err).Msg("Failed to unmarshal twitter user info")
+		return nil, fmt.Errorf("failed to parse twitter user info: %s", err.Error())
+	}
 
-	userRawData := responseRawData["data"].(map[string]interface{})
+	userRawData, ok := responseRawData["data"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("twitter response missing data field")
+	}
 
-	// log.Info(userRawData)
 	// Twitter API does not return E-Mail adresses by default. For that case special privileges have
 	// to be granted on a per-App basis. See https://developer.twitter.com/en/docs/twitter-api/v1/accounts-and-users/manage-account-settings/api-reference/get-account-verify_credentials
 
 	// Currently Twitter API only provides the full name of a user. To fill givenName and familyName
 	// the full name will be split at the first whitespace. This approach will not be valid for all name combinations
-	nameArr := strings.SplitAfterN(userRawData["name"].(string), " ", 2)
-
-	firstName := nameArr[0]
+	firstName := ""
 	lastName := ""
-	if len(nameArr) == 2 {
-		lastName = nameArr[1]
+	if name, ok := userRawData["name"].(string); ok {
+		nameArr := strings.SplitAfterN(name, " ", 2)
+		firstName = nameArr[0]
+		if len(nameArr) == 2 {
+			lastName = nameArr[1]
+		}
 	}
-	nickname := userRawData["username"].(string)
-	profilePicture := userRawData["profile_image_url"].(string)
+	nickname, _ := userRawData["username"].(string)
+	profilePicture, _ := userRawData["profile_image_url"].(string)
 
 	user := &schemas.User{
 		GivenName:  &firstName,
@@ -1024,22 +1067,27 @@ func (h *httpProvider) processRobloxUserInfo(ctx *gin.Context, code, verifier st
 	}
 
 	userRawData := make(map[string]interface{})
-	json.Unmarshal(body, &userRawData)
-
-	// log.Info(userRawData)
-	nameArr := strings.SplitAfterN(userRawData["name"].(string), " ", 2)
-	firstName := nameArr[0]
-	lastName := ""
-	if len(nameArr) == 2 {
-		lastName = nameArr[1]
+	if err := json.Unmarshal(body, &userRawData); err != nil {
+		log.Debug().Err(err).Msg("Failed to unmarshal roblox user info")
+		return nil, fmt.Errorf("failed to parse roblox user info: %s", err.Error())
 	}
-	nickname := userRawData["nickname"].(string)
-	profilePicture := userRawData["picture"].(string)
+
+	firstName := ""
+	lastName := ""
+	if name, ok := userRawData["name"].(string); ok {
+		nameArr := strings.SplitAfterN(name, " ", 2)
+		firstName = nameArr[0]
+		if len(nameArr) == 2 {
+			lastName = nameArr[1]
+		}
+	}
+	nickname, _ := userRawData["nickname"].(string)
+	profilePicture, _ := userRawData["picture"].(string)
 	email := ""
-	if val, ok := userRawData["email"]; ok {
-		email = val.(string)
-	} else {
-		email = userRawData["sub"].(string)
+	if val, ok := userRawData["email"].(string); ok && val != "" {
+		email = val
+	} else if sub, ok := userRawData["sub"].(string); ok {
+		email = sub
 	}
 	user := &schemas.User{
 		GivenName:  &firstName,
@@ -1050,4 +1098,22 @@ func (h *httpProvider) processRobloxUserInfo(ctx *gin.Context, code, verifier st
 	}
 
 	return user, nil
+}
+
+// parseScopes parses a scope string into a slice of individual scope values.
+// Commas take precedence over spaces as delimiter. If neither delimiter is
+// present, the entire string is returned as a single-element slice.
+// RFC 6749 §3.3 defines space as the standard delimiter; commas are accepted
+// as a convenience.
+func parseScopes(scopeString string) []string {
+	if scopeString == "" {
+		return []string{}
+	}
+	if strings.Contains(scopeString, ",") {
+		return strings.Split(scopeString, ",")
+	}
+	if strings.Contains(scopeString, " ") {
+		return strings.Split(scopeString, " ")
+	}
+	return []string{scopeString}
 }

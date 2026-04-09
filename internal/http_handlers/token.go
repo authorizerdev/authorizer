@@ -313,7 +313,10 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 			return
 		}
 		hostname := parsers.GetHost(gc)
-		nonce := uuid.New().String() + "@@" + code
+		nonce := uuid.New().String()
+		if code != "" {
+			nonce = nonce + "@@" + code
+		}
 		authToken, err := h.TokenProvider.CreateAuthToken(gc, &token.AuthTokenConfig{
 			User:        user,
 			Roles:       roles,

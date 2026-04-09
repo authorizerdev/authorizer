@@ -51,7 +51,7 @@ func (g *graphqlProvider) ResendOTP(ctx context.Context, params *model.ResendOTP
 		isSMSServiceEnabled = g.Config.IsSMSServiceEnabled
 		if !isSMSServiceEnabled {
 			log.Debug().Msg("SMS service not enabled")
-			return nil, errors.New("email service not enabled")
+			return nil, errors.New("SMS service not enabled")
 		}
 		user, err = g.StorageProvider.GetUserByPhoneNumber(ctx, phoneNumber)
 		if err != nil {
@@ -64,6 +64,10 @@ func (g *graphqlProvider) ResendOTP(ctx context.Context, params *model.ResendOTP
 		return nil, fmt.Errorf(`user access has been revoked`)
 	}
 
+	// Block OTP resend when MFA is disabled and both email & phone are
+	// already verified — there is no pending verification that needs an OTP.
+	// When MFA IS enabled, or when either email/phone is still unverified,
+	// OTP resend is allowed (for MFA challenges or pending verification).
 	if !refs.BoolValue(user.IsMultiFactorAuthEnabled) && user.EmailVerifiedAt != nil && user.PhoneNumberVerifiedAt != nil {
 		log.Debug().Msg("Multi factor authentication not enabled")
 		return nil, fmt.Errorf(`multi factor authentication not enabled`)
@@ -78,10 +82,10 @@ func (g *graphqlProvider) ResendOTP(ctx context.Context, params *model.ResendOTP
 	// get otp by email or phone number
 	var otpData *schemas.OTP
 	if email != "" {
-		otpData, err = g.StorageProvider.GetOTPByEmail(ctx, refs.StringValue(params.Email))
+		otpData, err = g.StorageProvider.GetOTPByEmail(ctx, email)
 		log.Debug().Msg("Failed to get otp for given email")
 	} else {
-		otpData, err = g.StorageProvider.GetOTPByPhoneNumber(ctx, refs.StringValue(params.PhoneNumber))
+		otpData, err = g.StorageProvider.GetOTPByPhoneNumber(ctx, phoneNumber)
 		log.Debug().Msg("Failed to get otp for given phone number")
 	}
 	if err != nil {
