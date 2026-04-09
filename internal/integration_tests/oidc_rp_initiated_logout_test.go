@@ -46,6 +46,35 @@ func TestLogoutPrefersPostLogoutRedirectURI(t *testing.T) {
 	})
 }
 
+// TestLogoutInvalidRedirectURIIgnored verifies that /logout with an
+// invalid post_logout_redirect_uri does NOT return a JSON error but
+// instead silently ignores the URI per OIDC RP-Initiated Logout §2.
+// Without a valid session cookie the handler returns 401 before reaching
+// the redirect logic, so this test verifies the handler does not return
+// 400 with a JSON "invalid redirect uri" error.
+func TestLogoutInvalidRedirectURIIgnored(t *testing.T) {
+	cfg := getTestConfig()
+	ts := initTestSetup(t, cfg)
+
+	router := gin.New()
+	router.POST("/logout", ts.HttpProvider.LogoutHandler())
+
+	t.Run("invalid redirect_uri must not return JSON 400 error", func(t *testing.T) {
+		form := strings.NewReader("post_logout_redirect_uri=http://evil.example.com/steal")
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("POST", "/logout", form)
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		router.ServeHTTP(w, req)
+		// The handler should NOT return 400 with a JSON error about
+		// invalid redirect uri. It should fall through to the session
+		// check (401 without a cookie) per OIDC spec.
+		assert.NotEqual(t, http.StatusBadRequest, w.Code,
+			"invalid post_logout_redirect_uri must not produce a 400 JSON error")
+		assert.NotContains(t, w.Body.String(), "invalid redirect uri",
+			"response must not contain 'invalid redirect uri' error message")
+	})
+}
+
 // TestLogoutStateEchoAccepted is a compile-time proof that the state
 // echo path is reachable. Without a valid session fingerprint we cannot
 // assert the actual redirect URL, but we can verify the code compiles

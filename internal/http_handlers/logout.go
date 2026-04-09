@@ -147,12 +147,14 @@ func (h *httpProvider) LogoutHandler() gin.HandlerFunc {
 		if redirectURL != "" {
 			hostname := parsers.GetHost(gc)
 			if !validators.IsValidRedirectURI(redirectURL, h.Config.AllowedOrigins, hostname) {
-				log.Debug().Msg("Invalid redirect URI")
-				gc.JSON(http.StatusBadRequest, gin.H{
-					"error": "invalid redirect uri",
-				})
-				return
+				// OIDC RP-Initiated Logout §2: invalid post_logout_redirect_uri
+				// MUST NOT redirect there; silently ignore and use default.
+				// https://openid.net/specs/openid-connect-rpinitiated-1_0.html#RPLogout
+				log.Debug().Msg("Invalid post_logout_redirect_uri, ignoring")
+				redirectURL = ""
 			}
+		}
+		if redirectURL != "" {
 			// Append state if supplied (OIDC RP-Initiated Logout §3).
 			finalURL := redirectURL
 			if state != "" {

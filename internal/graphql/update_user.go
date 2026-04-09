@@ -85,16 +85,6 @@ func (g *graphqlProvider) UpdateUser(ctx context.Context, params *model.UpdateUs
 	if params.Gender != nil && refs.StringValue(user.Gender) != refs.StringValue(params.Gender) {
 		user.Gender = params.Gender
 	}
-	// TODO
-	// if params.PhoneNumber != nil && refs.StringValue(user.PhoneNumber) != refs.StringValue(params.PhoneNumber) {
-	// 	// verify if phone number is unique
-	// 	if _, err := g.StorageProvider.GetUserByPhoneNumber(ctx, strings.TrimSpace(refs.StringValue(params.PhoneNumber))); err == nil {
-	// 		log.Debug().Msg("user with given phone number already exists")
-	// 		return nil, errors.New("user with given phone number already exists")
-	// 	}
-	// 	user.PhoneNumber = params.PhoneNumber
-	// }
-
 	if params.Picture != nil && refs.StringValue(user.Picture) != refs.StringValue(params.Picture) {
 		user.Picture = params.Picture
 	}
