@@ -411,8 +411,10 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				return
 			}
 
-			// Stash the code so /oauth/token can later exchange it.
-			if err := h.MemoryStoreProvider.SetState(code, codeChallenge+"@@"+authToken.FingerPrint); err != nil {
+			// OIDC Core §3.3: hybrid flow codes are exchanged at /oauth/token
+			// which calls ValidateBrowserSession — store AES-encrypted session
+			// (FingerPrintHash), not the raw nonce (FingerPrint).
+			if err := h.MemoryStoreProvider.SetState(code, codeChallenge+"@@"+authToken.FingerPrintHash); err != nil {
 				log.Debug().Err(err).Msg("Error setting temp code for hybrid")
 				handleResponse(gc, responseMode, authURL, redirectURI, loginError, http.StatusOK)
 				return
