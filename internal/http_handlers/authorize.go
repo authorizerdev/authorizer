@@ -256,6 +256,13 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 		if uiLocales != "" {
 			authState += "&ui_locales=" + url.QueryEscape(uiLocales)
 		}
+		// Always forward nonce to the login UI so the React app can send
+		// it back on the second /authorize round-trip. Without this, the
+		// code flow loses the RP-provided nonce and the id_token ends up
+		// with a server-generated nonce that the RP (Auth0/Okta/Keycloak)
+		// rejects as a mismatch.
+		authState += "&nonce=" + url.QueryEscape(nonce)
+
 		if hasCodeFlow {
 			authState += "&code=" + code
 			// Store code_challenge with method so token endpoint can verify.
@@ -270,7 +277,6 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				return
 			}
 		} else {
-			authState += "&nonce=" + nonce
 			if err := h.MemoryStoreProvider.SetState(state, nonce); err != nil {
 				log.Debug().Err(err).Msg("Error setting temp nonce")
 				gc.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
@@ -866,10 +872,6 @@ func (h *httpProvider) validateAuthorizeRequest(responseType, responseMode, clie
 	//   response_type=token / id_token  → fragment (default) or form_post only
 	if responseMode == constants.ResponseModeQuery && responseType != constants.ResponseTypeCode {
 		return "invalid_request", fmt.Sprintf("response_mode=query is not allowed for response_type=%s; use fragment or form_post", responseType)
-	}
-
-	if h.Config.ClientID != clientID {
-		return "unauthorized_client", "client_id is invalid"
 	}
 
 	return "", ""
