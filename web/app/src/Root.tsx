@@ -10,36 +10,27 @@ const Dashboard = lazy(() => import('./pages/dashboard'));
 const SignUp = lazy(() => import('./pages/signup'));
 
 /**
- * Validates a redirect URI to prevent open redirect attacks.
- * Allows same-origin redirects and cross-origin redirects only for
- * http/https protocols that match configured redirect URLs.
+ * Build a normalized parameter map from query + fragment.
+ * We treat both as inputs because `/authorize` may choose fragment
+ * depending on response_mode and our login UI should preserve the
+ * original request context exactly.
  */
-function isValidRedirectUri(
-	uri: string,
-	configuredRedirectURL?: string,
-): boolean {
-	try {
-		const url = new URL(uri, window.location.origin);
-		if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-			return false;
-		}
-		if (url.origin === window.location.origin) {
-			return true;
-		}
-		if (configuredRedirectURL) {
-			try {
-				const configuredUrl = new URL(configuredRedirectURL);
-				if (url.origin === configuredUrl.origin) {
-					return true;
-				}
-			} catch {
-				// Invalid configured URL, reject cross-origin
-			}
-		}
-		return false;
-	} catch {
-		return false;
+function getCombinedParams(): URLSearchParams {
+	const queryParams = new URLSearchParams(
+		hasWindow() ? window.location.search : ``,
+	);
+	const fragmentParams = new URLSearchParams(
+		hasWindow() && window.location.hash
+			? window.location.hash.substring(1)
+			: ``,
+	);
+
+	// Query takes precedence over fragment when both exist.
+	const combined = new URLSearchParams(fragmentParams);
+	for (const [k, v] of queryParams.entries()) {
+		combined.set(k, v);
 	}
+	return combined;
 }
 
 export default function Root({
@@ -49,161 +40,64 @@ export default function Root({
 }) {
 	const { token, loading, config } = useAuthorizer();
 
-	// Read params from both query string and fragment to support all response_modes.
-	const queryParams = new URLSearchParams(
-		hasWindow() ? window.location.search : ``,
-	);
-	const fragmentParams = new URLSearchParams(
-		hasWindow() && window.location.hash
-			? window.location.hash.substring(1)
-			: ``,
-	);
-	const getParam = (key: string): string =>
-		queryParams.get(key) || fragmentParams.get(key) || '';
+	const combinedParams = getCombinedParams();
+	const getParam = (key: string): string => combinedParams.get(key) || '';
 
 	const state = getParam('state') || createRandomString();
 	const scope = getParam('scope')
 		? getParam('scope').split(' ')
 		: ['openid', 'profile', 'email'];
-	const code = getParam('code');
 	const nonce = getParam('nonce');
 	const responseType = getParam('response_type');
 	const responseMode = getParam('response_mode');
-
-	const searchParams = queryParams;
 
 	const urlProps: Record<string, any> = {
 		state,
 		scope,
 	};
 
-	const rawRedirectURL =
-		searchParams.get('redirect_uri') || searchParams.get('redirectURL');
-	if (
-		rawRedirectURL &&
-		isValidRedirectUri(rawRedirectURL, config?.redirectURL)
-	) {
-		urlProps.redirectURL = rawRedirectURL;
-	} else {
-		urlProps.redirectURL = hasWindow() ? window.location.origin : '/app';
-	}
+	const rawRedirectURL = getParam('redirect_uri') || getParam('redirectURL');
+	urlProps.redirectURL = rawRedirectURL || (hasWindow() ? window.location.origin : '/app');
 
 	urlProps.redirect_uri = urlProps.redirectURL;
 
-	// For OIDC flows, prefer the redirect_uri from the URL (RP's callback)
-	const oidcRedirectURI = rawRedirectURL || config.redirectURL || '/app';
+	const isAuthorizeContext =
+		rawRedirectURL !== '' &&
+		(getParam('state') !== '' ||
+			getParam('response_type') !== '' ||
+			getParam('response_mode') !== '' ||
+			getParam('client_id') !== '' ||
+			getParam('scope') !== '');
 
 	useEffect(() => {
 		if (!token) return;
 
-		// OIDC authorize flow: code in URL means we came from /authorize
-		// after a fresh login (login mutation already stored the code state).
-		// When the user was already logged in, the /authorize handler
-		// handles it server-side and never reaches the React app.
-		if (code !== '' && rawRedirectURL) {
-			performRedirect(oidcRedirectURI, token);
-		}
-	}, [token]);
+		// Security + correctness: the server `/authorize` endpoint is the
+		// source of truth for redirect_uri validation and response_mode
+		// (query / fragment / form_post / web_message). The login UI should
+		// only establish a session and then resume the authorization request.
+		if (!isAuthorizeContext) return;
 
-	function performRedirect(
-		baseRedirectURL: string,
-		tokenData: Record<string, any>,
-	) {
-		if (!tokenData) return;
-		let redirectURL = baseRedirectURL;
-
-		let params = '';
-		const isImplicit =
-			responseType === 'token' ||
-			responseType === 'id_token' ||
-			responseType === 'id_token token';
-		const isCodeFlow = responseType === 'code' || responseType === '';
-
-		if (isCodeFlow) {
-			params = `state=${encodeURIComponent(globalState.state)}`;
-			if (code !== '') {
-				params += `&code=${encodeURIComponent(code)}`;
-			}
-		} else if (isImplicit) {
-			params = `state=${encodeURIComponent(globalState.state)}`;
-			if (
-				tokenData.access_token &&
-				(responseType === 'token' || responseType === 'id_token token')
-			) {
-				params += `&access_token=${encodeURIComponent(tokenData.access_token)}`;
-				params += `&token_type=Bearer`;
-				if (tokenData.expires_in) {
-					params += `&expires_in=${tokenData.expires_in}`;
-				}
-			}
-			if (
-				tokenData.id_token &&
-				(responseType === 'id_token' || responseType === 'id_token token')
-			) {
-				params += `&id_token=${encodeURIComponent(tokenData.id_token)}`;
-			}
-			if (nonce !== '') {
-				params += `&nonce=${encodeURIComponent(nonce)}`;
-			}
-		} else if (responseType.includes('code')) {
-			params = `state=${encodeURIComponent(globalState.state)}`;
-			if (code !== '') {
-				params += `&code=${encodeURIComponent(code)}`;
-			}
-			if (
-				tokenData.access_token &&
-				responseType.includes('token') &&
-				!responseType.startsWith('id_token')
-			) {
-				params += `&access_token=${encodeURIComponent(tokenData.access_token)}`;
-				params += `&token_type=Bearer`;
-				if (tokenData.expires_in) {
-					params += `&expires_in=${tokenData.expires_in}`;
-				}
-			}
-			if (tokenData.id_token && responseType.includes('id_token')) {
-				params += `&id_token=${encodeURIComponent(tokenData.id_token)}`;
-			}
-			if (nonce !== '') {
-				params += `&nonce=${encodeURIComponent(nonce)}`;
-			}
-		} else {
-			params = `state=${encodeURIComponent(globalState.state)}`;
-			if (code !== '') {
-				params += `&code=${encodeURIComponent(code)}`;
-			}
+		// Preserve exactly what we received on /app and send it back to
+		// /authorize; the backend will complete the authorization response.
+		const params = new URLSearchParams();
+		for (const [k, v] of combinedParams.entries()) {
+			// Ignore any accidental app-only params.
+			if (k === '') continue;
+			params.set(k, v);
 		}
 
-		const useFragment =
-			responseMode === 'fragment' ||
-			(isImplicit && responseMode !== 'query' && responseMode !== 'form_post');
-
-		try {
-			const url = new URL(redirectURL);
-			if (useFragment) {
-				redirectURL = redirectURL.split('#')[0] + '#' + params;
-			} else {
-				if (redirectURL.includes('?')) {
-					redirectURL = `${redirectURL}&${params}`;
-				} else {
-					redirectURL = `${redirectURL}?${params}`;
-				}
-			}
-
-			if (
-				url.protocol === 'http:' ||
-				url.protocol === 'https:' ||
-				url.origin === window.location.origin
-			) {
-				sessionStorage.removeItem('authorizer_state');
-				window.location.replace(redirectURL);
-			}
-		} catch {
-			if (redirectURL.startsWith('/')) {
-				window.location.replace(redirectURL);
-			}
+		// Ensure state exists; do NOT overwrite if provided.
+		if (!params.get('state')) {
+			params.set('state', state);
 		}
-	}
+		if (scope?.length && !params.get('scope')) {
+			params.set('scope', scope.join(' '));
+		}
+
+		sessionStorage.removeItem('authorizer_state');
+		window.location.replace(`/authorize?${params.toString()}`);
+	}, [token, isAuthorizeContext, state]);
 
 	if (loading) {
 		return <h1>Loading...</h1>;

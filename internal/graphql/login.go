@@ -271,7 +271,7 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 		roles = params.Roles
 	}
 	scope := []string{"openid", "email", "profile"}
-	if params.Scope != nil && len(params.Scope) > 0 {
+	if len(params.Scope) > 0 {
 		scope = params.Scope
 	}
 

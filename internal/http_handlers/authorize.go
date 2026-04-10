@@ -904,23 +904,8 @@ func (h *httpProvider) parseIDTokenHintSubject(idTokenHint string) string {
 }
 
 // setFormPostCSP overrides the Content-Security-Policy header to allow
-// form-action to the redirect_uri origin. The default CSP sets
-// form-action 'self' which blocks cross-origin form POSTs required by
 // OIDC Form Post Response Mode (OAuth 2.0 Form Post Response Mode §1).
 func setFormPostCSP(gc *gin.Context, redirectURI string) {
-	// For form_post response mode the HTML page auto-submits a form to
-	// the RP's redirect_uri. The default CSP sets form-action 'self'
-	// which blocks this cross-origin POST.
-	//
-	// CSP form-action needs both the origin and the path-level URI
-	// (without query string — CSP source expressions don't support
-	// query parameters).
-	formAction := "'self'"
-	if u, err := url.Parse(redirectURI); err == nil && u.Host != "" {
-		origin := u.Scheme + "://" + u.Host
-		pathURI := origin + u.Path // origin + path, no query/fragment
-		formAction = "'self' " + origin + " " + pathURI
-	}
 	gc.Writer.Header().Set("Content-Security-Policy",
 		"default-src 'self'; "+
 			"script-src 'self' 'unsafe-inline'; "+
@@ -929,8 +914,7 @@ func setFormPostCSP(gc *gin.Context, redirectURI string) {
 			"font-src 'self' data:; "+
 			"connect-src 'self'; "+
 			"frame-ancestors 'none'; "+
-			"base-uri 'self'; "+
-			"form-action "+formAction)
+			"base-uri 'self'; ")
 }
 
 // redirectErrorToRP sends an OAuth2/OIDC error to the RP's redirect_uri
