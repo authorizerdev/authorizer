@@ -908,9 +908,18 @@ func (h *httpProvider) parseIDTokenHintSubject(idTokenHint string) string {
 // form-action 'self' which blocks cross-origin form POSTs required by
 // OIDC Form Post Response Mode (OAuth 2.0 Form Post Response Mode §1).
 func setFormPostCSP(gc *gin.Context, redirectURI string) {
-	origin := "'self'"
+	// For form_post response mode the HTML page auto-submits a form to
+	// the RP's redirect_uri. The default CSP sets form-action 'self'
+	// which blocks this cross-origin POST.
+	//
+	// CSP form-action needs both the origin and the path-level URI
+	// (without query string — CSP source expressions don't support
+	// query parameters).
+	formAction := "'self'"
 	if u, err := url.Parse(redirectURI); err == nil && u.Host != "" {
-		origin = "'self' " + u.Scheme + "://" + u.Host
+		origin := u.Scheme + "://" + u.Host
+		pathURI := origin + u.Path // origin + path, no query/fragment
+		formAction = "'self' " + origin + " " + pathURI
 	}
 	gc.Writer.Header().Set("Content-Security-Policy",
 		"default-src 'self'; "+
@@ -921,7 +930,7 @@ func setFormPostCSP(gc *gin.Context, redirectURI string) {
 			"connect-src 'self'; "+
 			"frame-ancestors 'none'; "+
 			"base-uri 'self'; "+
-			"form-action "+origin)
+			"form-action "+formAction)
 }
 
 // redirectErrorToRP sends an OAuth2/OIDC error to the RP's redirect_uri
