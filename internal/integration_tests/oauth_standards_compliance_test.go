@@ -816,15 +816,6 @@ func TestAuthorizeEndpointCompliance(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
 
-	t.Run("RFC6749_invalid_client_id_returns_error", func(t *testing.T) {
-		w := httptest.NewRecorder()
-		req, _ := http.NewRequest("GET",
-			"/authorize?client_id=wrong-id&response_type=code&state=test-state&response_mode=query", nil)
-		router.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusBadRequest, w.Code)
-	})
-
 	t.Run("RFC7636_plain_code_challenge_method_is_accepted", func(t *testing.T) {
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("GET",

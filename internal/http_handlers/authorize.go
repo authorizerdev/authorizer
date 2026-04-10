@@ -205,7 +205,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			}
 		}
 
-		if errCode, errDesc := h.validateAuthorizeRequest(responseType, responseMode, clientID, state); errCode != "" {
+		if errCode, errDesc := h.validateAuthorizeRequest(responseType, responseMode, state); errCode != "" {
 			log.Debug().Str("error", errCode).Str("error_description", errDesc).Msg("Invalid request")
 			gc.JSON(http.StatusBadRequest, gin.H{
 				"error":             errCode,
@@ -858,7 +858,7 @@ func supportedResponseTypeSet(raw string) (string, bool) {
 // validateAuthorizeRequest validates the authorize request parameters and
 // returns RFC 6749 §4.1.2.1 compliant error code and description on failure.
 // Returns empty strings when validation passes.
-func (h *httpProvider) validateAuthorizeRequest(responseType, responseMode, clientID, state string) (string, string) {
+func (h *httpProvider) validateAuthorizeRequest(responseType, responseMode, state string) (string, string) {
 	if strings.TrimSpace(state) == "" {
 		return "invalid_request", "state parameter is required"
 	}
@@ -878,10 +878,6 @@ func (h *httpProvider) validateAuthorizeRequest(responseType, responseMode, clie
 	//   response_type=token / id_token  → fragment (default) or form_post only
 	if responseMode == constants.ResponseModeQuery && responseType != constants.ResponseTypeCode {
 		return "invalid_request", fmt.Sprintf("response_mode=query is not allowed for response_type=%s; use fragment or form_post", responseType)
-	}
-
-	if h.Config.ClientID != clientID {
-		return "unauthorized_client", "client_id is invalid"
 	}
 
 	return "", ""
