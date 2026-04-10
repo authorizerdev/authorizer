@@ -338,17 +338,26 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			}
 		}
 
-		// When prompt=login and a valid session cookie exists, don't discard
-		// it. The normal flow below validates it, performs a session rollover,
-		// stores the authorization code state, and redirects to the RP.
-		// Discarding the session here would send the user to the login UI
-		// where the React SDK auto-detects the still-valid cookie, redirects
-		// immediately, but the authorization code state is never stored
-		// because the login mutation is never called.
-		//
-		// For max_age=0 or max_age-exceeded, we DO discard the session
-		// because the spec requires actual re-authentication based on time.
-		if forceReauth && !(prompt == "login" && err == nil && sessionToken != "") {
+		// OIDC Core §3.1.2.1: prompt=login MUST force the user to
+		// re-authenticate. We must clear the session cookie so the React
+		// login UI doesn't auto-detect an existing session and redirect
+		// back without showing the login form.
+		if forceReauth {
+			if err == nil && sessionToken != "" {
+				// Invalidate the server-side session so the cookie is
+				// truly dead even if the browser re-sends it.
+				if decryptedFP, decErr := crypto.DecryptAES(h.ClientSecret, sessionToken); decErr == nil {
+					var sd token.SessionData
+					if jsonErr := json.Unmarshal([]byte(decryptedFP), &sd); jsonErr == nil {
+						sKey := sd.Subject
+						if sd.LoginMethod != "" {
+							sKey = sd.LoginMethod + ":" + sd.Subject
+						}
+						go h.MemoryStoreProvider.DeleteUserSession(sKey, sd.Nonce)
+					}
+				}
+				cookie.DeleteSession(gc, h.Config.AppCookieSecure)
+			}
 			err = errors.New("force reauth")
 			sessionToken = ""
 		}
