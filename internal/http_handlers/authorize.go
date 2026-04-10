@@ -397,7 +397,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 					"authorization_response": errData,
 				})
 			case constants.ResponseModeFormPost:
-				cspNonce := setFormPostCSP(gc, redirectURI)
+				cspNonce := setFormPostCSP(gc)
 				gc.HTML(http.StatusOK, authorizeFormPostTemplate, gin.H{
 					"target_origin":          redirectURI,
 					"authorization_response": errData["response"],
@@ -914,7 +914,7 @@ func (h *httpProvider) parseIDTokenHintSubject(idTokenHint string) string {
 // setFormPostCSP overrides the Content-Security-Policy header to allow
 // OIDC Form Post Response Mode (OAuth 2.0 Form Post Response Mode §1).
 // Returns a cryptographic nonce for use in script tags.
-func setFormPostCSP(gc *gin.Context, redirectURI string) string {
+func setFormPostCSP(gc *gin.Context) string {
 	// Generate a cryptographic nonce for CSP script-src.
 	nonceBytes := make([]byte, 16)
 	if _, err := rand.Read(nonceBytes); err != nil {
@@ -923,12 +923,6 @@ func setFormPostCSP(gc *gin.Context, redirectURI string) string {
 	}
 	cspNonce := base64.RawURLEncoding.EncodeToString(nonceBytes)
 
-	formAction := "'self'"
-	if u, err := url.Parse(redirectURI); err == nil && u.Host != "" {
-		origin := u.Scheme + "://" + u.Host
-		pathURI := origin + u.Path
-		formAction = "'self' " + origin + " " + pathURI
-	}
 	gc.Writer.Header().Set("Content-Security-Policy",
 		"default-src 'self'; "+
 			"script-src 'self' 'nonce-"+cspNonce+"'; "+
@@ -938,7 +932,7 @@ func setFormPostCSP(gc *gin.Context, redirectURI string) string {
 			"connect-src 'self'; "+
 			"frame-ancestors 'none'; "+
 			"base-uri 'self'; "+
-			"form-action "+formAction)
+			"form-action *;")
 	return cspNonce
 }
 
@@ -979,7 +973,7 @@ func redirectErrorToRP(gc *gin.Context, responseMode, redirectURI, state, errCod
 			"authorization_response": errData,
 		})
 	case constants.ResponseModeFormPost:
-		cspNonce := setFormPostCSP(gc, redirectURI)
+		cspNonce := setFormPostCSP(gc)
 		gc.HTML(http.StatusOK, authorizeFormPostTemplate, gin.H{
 			"target_origin":          redirectURI,
 			"authorization_response": errData["response"],
@@ -1029,7 +1023,7 @@ func handleResponse(gc *gin.Context, responseMode, authURI, redirectURI string, 
 		})
 		return
 	case constants.ResponseModeFormPost:
-		cspNonce := setFormPostCSP(gc, redirectURI)
+		cspNonce := setFormPostCSP(gc)
 		gc.HTML(httpStatusCode, authorizeFormPostTemplate, gin.H{
 			"target_origin":          redirectURI,
 			"authorization_response": data["response"],
