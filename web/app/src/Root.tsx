@@ -1,7 +1,6 @@
-import { useEffect, useRef, lazy, Suspense } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthorizer } from '@authorizerdev/authorizer-react';
-import { Authorizer } from '@authorizerdev/authorizer-js';
 import SetupPassword from './pages/setup-password';
 import { hasWindow, createRandomString } from './utils/common';
 
@@ -86,7 +85,7 @@ export default function Root({
 	) {
 		urlProps.redirectURL = rawRedirectURL;
 	} else {
-		urlProps.redirectURL = hasWindow() ? window.location.origin : '/';
+		urlProps.redirectURL = hasWindow() ? window.location.origin : '/app';
 	}
 
 	urlProps.redirect_uri = urlProps.redirectURL;
@@ -94,52 +93,17 @@ export default function Root({
 	// For OIDC flows, prefer the redirect_uri from the URL (RP's callback)
 	const oidcRedirectURI = rawRedirectURL || config.redirectURL || '/app';
 
-	// Track whether the OIDC code state has been ensured
-	const codeStateEnsured = useRef(false);
-
 	useEffect(() => {
 		if (!token) return;
 
-		// Detect OIDC authorize flow: code and state in URL means we came
-		// from /authorize and need to redirect back to the RP.
-		const isOIDCFlow = code !== '' && getParam('state') !== '';
-
-		if (isOIDCFlow && !codeStateEnsured.current) {
-			codeStateEnsured.current = true;
-
-			// Use authorizer-js client to call session with state parameter.
-			// This ensures the authorization code state is stored in the backend
-			// (needed when the SDK auto-detected an existing session and the
-			// login mutation was never called).
-			const authorizerClient = new Authorizer({
-				authorizerURL: window.location.origin,
-				redirectURL: oidcRedirectURI,
-				clientID: globalState.clientId || config.client_id,
-			});
-
-			authorizerClient
-				.getSession(undefined, { state: getParam('state'), scope } as any)
-				.then((res) => {
-					if (res?.data) {
-						performRedirect(oidcRedirectURI, res.data);
-					} else {
-						// Session call failed, try with existing token
-						performRedirect(oidcRedirectURI, token);
-					}
-				})
-				.catch(() => {
-					performRedirect(oidcRedirectURI, token);
-				});
-			return;
-		}
-
-		// Non-OIDC flow with a redirect target — redirect immediately
-		if (rawRedirectURL && code !== '') {
+		// OIDC authorize flow: code in URL means we came from /authorize
+		// after a fresh login (login mutation already stored the code state).
+		// When the user was already logged in, the /authorize handler
+		// handles it server-side and never reaches the React app.
+		if (code !== '' && rawRedirectURL) {
 			performRedirect(oidcRedirectURI, token);
 		}
-
-		return () => {};
-	}, [token, config]);
+	}, [token]);
 
 	function performRedirect(
 		baseRedirectURL: string,
