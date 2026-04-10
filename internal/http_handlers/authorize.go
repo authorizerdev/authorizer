@@ -152,6 +152,8 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 		codeChallengeMethod := strings.TrimSpace(gc.Query("code_challenge_method"))
 		// RFC 7636 §4.3: Default to S256 if code_challenge is present but method is not specified
 		// Note: We only support S256 as it is mandatory to implement per RFC 7636
+		fmt.Println("==> codeChallengeMethod: ", codeChallengeMethod)
+		fmt.Println("==> codeChallenge: ", codeChallenge)
 		if codeChallengeMethod == "" && codeChallenge != "" {
 			codeChallengeMethod = "S256"
 		}
@@ -246,7 +248,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 
 		// TODO add state with timeout
 		// used for response mode query or fragment
-		authState := "state=" + url.QueryEscape(state) + "&scope=" + url.QueryEscape(scopeString) + "&redirect_uri=" + url.QueryEscape(redirectURI) + "&response_mode=" + url.QueryEscape(responseMode) + "&response_type=" + url.QueryEscape(responseType)
+		authState := "state=" + url.QueryEscape(state) + "&scope=" + url.QueryEscape(scopeString) + "&redirect_uri=" + url.QueryEscape(redirectURI) + "&response_mode=" + url.QueryEscape(responseMode) + "&response_type=" + url.QueryEscape(responseType) + "&client_id=" + url.QueryEscape(clientID)
 		// OIDC Core §3.1.2.1: login_hint and ui_locales are forwarded
 		// to the login UI so it can pre-fill the email field and pick
 		// the UI language.
@@ -256,12 +258,15 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 		if uiLocales != "" {
 			authState += "&ui_locales=" + url.QueryEscape(uiLocales)
 		}
-		// Always forward nonce to the login UI so the React app can send
-		// it back on the second /authorize round-trip. Without this, the
-		// code flow loses the RP-provided nonce and the id_token ends up
-		// with a server-generated nonce that the RP (Auth0/Okta/Keycloak)
-		// rejects as a mismatch.
+		// Forward all RP-provided OIDC parameters through the login UI so
+		// the React app can send them back on the second /authorize
+		// round-trip. Without this, the code flow loses the RP-provided
+		// values and Auth0/Okta/Keycloak reject the resulting tokens.
 		authState += "&nonce=" + url.QueryEscape(nonce)
+		if codeChallenge != "" {
+			authState += "&code_challenge=" + url.QueryEscape(codeChallenge)
+			authState += "&code_challenge_method=" + url.QueryEscape(codeChallengeMethod)
+		}
 
 		if hasCodeFlow {
 			authState += "&code=" + code
