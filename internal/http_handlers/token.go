@@ -279,13 +279,18 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 				oidcNonce = sessionDataSplit[2]
 			}
 
-			// rollover the session for security
 			sessionKey = userID
 			if loginMethod != "" {
 				sessionKey = loginMethod + ":" + userID
 			}
 
-			go h.MemoryStoreProvider.DeleteUserSession(sessionKey, claims.Nonce)
+			// NOTE: Do NOT delete the user's browser session here. The
+			// /authorize endpoint already performed session rollover when it
+			// created the authorization code. The /oauth/token endpoint is
+			// called server-to-server by the RP (Auth0/Okta/Keycloak), not
+			// by the user's browser. Deleting the session here would
+			// invalidate the cookie the user's browser holds, breaking
+			// subsequent session lookups (e.g., GraphQL session query).
 
 		} else {
 			// validate refresh token
@@ -422,14 +427,26 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 			return
 		}
 
-		if err := h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt); err != nil {
-			log.Debug().Err(err).Msg("Error persisting session token")
-			gc.JSON(http.StatusServiceUnavailable, gin.H{
-				"error":             "temporarily_unavailable",
-				"error_description": "Could not complete token issuance",
-			})
-			return
+		// For authorization_code grant the user's browser session was already
+		// created by /authorize. The token endpoint is called server-to-server
+		// by the RP — creating a new browser session here would be orphaned
+		// (the cookie goes to the RP, not the user's browser) and deleting /
+		// replacing the existing one would invalidate the user's cookie.
+		//
+		// For refresh_token grant the caller IS the user's browser (or an app
+		// holding the refresh token), so we do a full session rollover.
+		if isRefreshTokenGrant {
+			if err := h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt); err != nil {
+				log.Debug().Err(err).Msg("Error persisting session token")
+				gc.JSON(http.StatusServiceUnavailable, gin.H{
+					"error":             "temporarily_unavailable",
+					"error_description": "Could not complete token issuance",
+				})
+				return
+			}
+			cookie.SetSession(gc, authToken.FingerPrintHash, h.Config.AppCookieSecure)
 		}
+
 		if err := h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt); err != nil {
 			log.Debug().Err(err).Msg("Error persisting access token")
 			gc.JSON(http.StatusServiceUnavailable, gin.H{
@@ -438,7 +455,6 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 			})
 			return
 		}
-		cookie.SetSession(gc, authToken.FingerPrintHash, h.Config.AppCookieSecure)
 
 		expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
 		if expiresIn <= 0 {
