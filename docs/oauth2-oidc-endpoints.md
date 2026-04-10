@@ -69,8 +69,8 @@ Initiates the OAuth 2.0 authorization flow. Supports Authorization Code (with PK
 | `redirect_uri` | No | Where to redirect after auth (defaults to `/app`) |
 | `scope` | No | Space-separated scopes (default: `openid profile email`) |
 | `response_mode` | No | `query`, `fragment`, `form_post`, or `web_message` |
-| `code_challenge` | Required for `code` | PKCE S256 challenge: `BASE64URL(SHA256(code_verifier))` |
-| `code_challenge_method` | No | Only `S256` is supported (defaults to `S256`) |
+| `code_challenge` | Recommended | PKCE challenge. Required for public clients; confidential clients may use `client_secret` instead |
+| `code_challenge_method` | No | `S256` (default) or `plain` per RFC 7636 |
 | `nonce` | Recommended | Binds ID token to session; REQUIRED for implicit flows per OIDC |
 | `screen_hint` | No | Set to `signup` to show the signup page |
 
@@ -392,7 +392,7 @@ grant_type=authorization_code&code=AUTH_CODE&code_verifier=CODE_VERIFIER&client_
 | Standard | Status | Notes |
 |----------|--------|-------|
 | RFC 6749 (OAuth 2.0) | Implemented | Authorization Code + Refresh Token grants |
-| RFC 7636 (PKCE) | Implemented | S256 method required |
+| RFC 7636 (PKCE) | Implemented | S256 (default) and plain methods; optional for confidential clients |
 | RFC 7009 (Token Revocation) | Implemented | Returns 200 for invalid tokens |
 | RFC 6750 (Bearer Token) | Implemented | WWW-Authenticate on 401 |
 | OIDC Core 1.0 | Implemented | ID tokens, UserInfo, nonce |

@@ -376,6 +376,8 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 	code := ""
 	codeChallenge := ""
 	nonce := ""
+	oidcNonce := ""
+	authorizeRedirectURI := ""
 	if params.State != nil {
 		// Get state from store
 		authorizeState, _ := g.MemoryStoreProvider.GetState(refs.StringValue(params.State))
@@ -384,10 +386,17 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 			if len(authorizeStateSplit) > 1 {
 				code = authorizeStateSplit[0]
 				codeChallenge = authorizeStateSplit[1]
+				if len(authorizeStateSplit) > 2 {
+					oidcNonce = authorizeStateSplit[2]
+				}
+				// RFC 6749 §4.1.3: redirect_uri from /authorize for validation at /oauth/token
+				if len(authorizeStateSplit) > 3 {
+					authorizeRedirectURI = authorizeStateSplit[3]
+				}
 			} else {
 				nonce = authorizeState
 			}
-			go g.MemoryStoreProvider.RemoveState(refs.StringValue(params.State))
+			g.MemoryStoreProvider.RemoveState(refs.StringValue(params.State))
 		}
 	}
 
@@ -395,12 +404,12 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 		nonce = uuid.New().String()
 	}
 	hostname := parsers.GetHost(gc)
-	// gc, user, roles, scope, constants.AuthRecipeMethodBasicAuth, nonce, code
 	authToken, err := g.TokenProvider.CreateAuthToken(gc, &token.AuthTokenConfig{
 		User:        user,
 		Roles:       roles,
 		Scope:       scope,
 		Nonce:       nonce,
+		OIDCNonce:   oidcNonce,
 		Code:        code,
 		LoginMethod: constants.AuthRecipeMethodBasicAuth,
 		HostName:    hostname,
@@ -410,10 +419,9 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 		return nil, err
 	}
 
-	// TODO add to other login options as well
 	// Code challenge could be optional if PKCE flow is not used
 	if code != "" {
-		if err := g.MemoryStoreProvider.SetState(code, codeChallenge+"@@"+authToken.FingerPrintHash); err != nil {
+		if err := g.MemoryStoreProvider.SetState(code, codeChallenge+"@@"+authToken.FingerPrintHash+"@@"+oidcNonce+"@@"+authorizeRedirectURI); err != nil {
 			log.Debug().Msg("Failed to set state")
 			return nil, err
 		}

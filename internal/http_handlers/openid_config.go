@@ -51,7 +51,7 @@ func (h *httpProvider) OpenIDConfigurationHandler() gin.HandlerFunc {
 			"response_modes_supported":                      []string{"query", "fragment", "form_post", "web_message"},
 			"grant_types_supported":                         grantTypes,
 			"token_endpoint_auth_methods_supported":         []string{"client_secret_basic", "client_secret_post"},
-			"code_challenge_methods_supported":              []string{"S256"},
+			"code_challenge_methods_supported":              []string{"S256", "plain"},
 			"revocation_endpoint":                           issuer + "/oauth/revoke",
 			"revocation_endpoint_auth_methods_supported":    []string{"client_secret_basic", "client_secret_post"},
 			"introspection_endpoint":                        issuer + "/oauth/introspect",
