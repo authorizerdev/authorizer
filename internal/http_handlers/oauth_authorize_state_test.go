@@ -225,4 +225,12 @@ func (f *fakeMemoryStore) RemoveState(key string) error {
 	f.removedKeys = append(f.removedKeys, key)
 	return nil
 }
+func (f *fakeMemoryStore) GetAndRemoveState(key string) (string, error) {
+	val, err := f.GetState(key)
+	if err != nil {
+		return "", err
+	}
+	f.removedKeys = append(f.removedKeys, key)
+	return val, nil
+}
 func (f *fakeMemoryStore) GetAllData() (map[string]string, error) { return map[string]string{}, nil }

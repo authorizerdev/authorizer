@@ -169,6 +169,26 @@ func (p *provider) RemoveState(key string) error {
 	return nil
 }
 
+// GetAndRemoveState atomically retrieves and deletes the state from redis.
+// Uses a Lua script to guarantee atomicity across GET and DEL.
+func (p *provider) GetAndRemoveState(key string) (string, error) {
+	fullKey := stateStorePrefix + key
+	// Lua script: atomic GET + DEL. Returns nil if key does not exist.
+	script := `local v = redis.call('GET', KEYS[1])
+if v then redis.call('DEL', KEYS[1]) end
+return v`
+	result, err := p.store.Eval(p.ctx, script, []string{fullKey}).Result()
+	if err != nil {
+		p.dependencies.Log.Debug().Err(err).Msg("Error getting and removing state from redis")
+		return "", err
+	}
+	data, ok := result.(string)
+	if !ok || data == "" {
+		return "", fmt.Errorf("not found")
+	}
+	return data, nil
+}
+
 // GetAllData returns all the data from the session store
 // This is used for testing purposes only
 func (p *provider) GetAllData() (map[string]string, error) {

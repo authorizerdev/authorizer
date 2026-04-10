@@ -63,6 +63,10 @@ type Provider interface {
 	GetState(key string) (string, error)
 	// RemoveState removes the social login state from the session store
 	RemoveState(key string) error
+	// GetAndRemoveState atomically retrieves and deletes the state entry.
+	// Returns the state value and removes it in a single operation to
+	// prevent authorization code replay (RFC 6749 §4.1.2).
+	GetAndRemoveState(key string) (string, error)
 
 	// GetAllData returns all the data from the session store
 	// This is used for testing purposes only

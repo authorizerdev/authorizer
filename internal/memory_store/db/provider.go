@@ -270,6 +270,23 @@ func (p *provider) RemoveState(key string) error {
 	return p.deleteOAuthStateByKey(ctx, key)
 }
 
+// GetAndRemoveState atomically retrieves and deletes the state from the DB.
+// Enforces 10-minute TTL consistent with other providers.
+func (p *provider) GetAndRemoveState(key string) (string, error) {
+	ctx := context.Background()
+	oauthState, err := p.getOAuthStateByKey(ctx, key)
+	if err != nil {
+		return "", fmt.Errorf("not found")
+	}
+	// Always delete regardless of TTL — single-use.
+	p.deleteOAuthStateByKey(ctx, key)
+	// Enforce 10-minute TTL.
+	if oauthState.CreatedAt > 0 && time.Now().Unix()-oauthState.CreatedAt > 600 {
+		return "", fmt.Errorf("state expired")
+	}
+	return oauthState.State, nil
+}
+
 // GetAllData returns all the data from the session store
 // This is used for testing purposes only
 func (p *provider) GetAllData() (map[string]string, error) {

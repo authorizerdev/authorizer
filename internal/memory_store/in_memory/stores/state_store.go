@@ -63,3 +63,20 @@ func (s *StateStore) Remove(key string) {
 
 	delete(s.store, key)
 }
+
+// GetAndRemove atomically retrieves and deletes a state entry.
+// Returns empty string if the key does not exist or has expired.
+func (s *StateStore) GetAndRemove(key string) string {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	entry, ok := s.store[key]
+	if !ok {
+		return ""
+	}
+	if time.Now().After(entry.expiresAt) {
+		delete(s.store, key)
+		return ""
+	}
+	delete(s.store, key)
+	return entry.value
+}

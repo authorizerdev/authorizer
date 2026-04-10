@@ -124,8 +124,10 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 				return
 			}
 
-			// Get state
-			sessionData, err := h.MemoryStoreProvider.GetState(code)
+			// RFC 6749 §4.1.2: Authorization codes MUST be single-use.
+			// GetAndRemoveState atomically retrieves and deletes the code
+			// to prevent replay via TOCTOU race.
+			sessionData, err := h.MemoryStoreProvider.GetAndRemoveState(code)
 			if sessionData == "" || err != nil {
 				log.Debug().Err(err).Msg("Error getting session data")
 				gc.JSON(http.StatusBadRequest, gin.H{
@@ -140,10 +142,6 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 			// [2] -> OIDC nonce from /authorize request (optional)
 			// [3] -> redirect_uri from /authorize request (optional, for RFC 6749 §4.1.3)
 			sessionDataSplit := strings.Split(sessionData, "@@")
-
-			// RFC 6749 §4.1.2: Authorization codes MUST be single-use.
-			// Delete synchronously to prevent race condition allowing code reuse.
-			h.MemoryStoreProvider.RemoveState(code)
 
 			// RFC 6749 §4.1.3: If redirect_uri was included in the authorization
 			// request, the token request MUST include the identical redirect_uri.
@@ -386,7 +384,9 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 			}
 
 			// remove older refresh token and rotate it for security
-			go h.MemoryStoreProvider.DeleteUserSession(sessionKey, nonce)
+			if err := h.MemoryStoreProvider.DeleteUserSession(sessionKey, nonce); err != nil {
+				log.Debug().Err(err).Str("session_key", sessionKey).Msg("Failed to delete old session during token refresh")
+			}
 		}
 
 		if sessionKey == "" {

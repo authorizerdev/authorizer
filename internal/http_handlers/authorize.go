@@ -32,6 +32,8 @@ jargons
 **/
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -157,6 +159,9 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 		// use "plain" as the default."
 		if codeChallengeMethod == "" && codeChallenge != "" {
 			codeChallengeMethod = "plain"
+		}
+		if codeChallengeMethod == "plain" && codeChallenge != "" {
+			log.Debug().Msg("PKCE plain method in use — code_verifier will be visible in URL parameters; S256 is recommended")
 		}
 		// RFC 7636 §4.2: servers MUST support plain and S256
 		if codeChallengeMethod != "" && codeChallengeMethod != "S256" && codeChallengeMethod != "plain" {
@@ -392,10 +397,11 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 					"authorization_response": errData,
 				})
 			case constants.ResponseModeFormPost:
-				setFormPostCSP(gc, redirectURI)
+				cspNonce := setFormPostCSP(gc, redirectURI)
 				gc.HTML(http.StatusOK, authorizeFormPostTemplate, gin.H{
 					"target_origin":          redirectURI,
 					"authorization_response": errData["response"],
+					"csp_nonce":              cspNonce,
 				})
 			default:
 				gc.Redirect(http.StatusFound, errRedirectURI)
@@ -448,7 +454,9 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 		}
 
 		// rollover the session for security
-		go h.MemoryStoreProvider.DeleteUserSession(sessionKey, claims.Nonce)
+		if err := h.MemoryStoreProvider.DeleteUserSession(sessionKey, claims.Nonce); err != nil {
+			log.Debug().Err(err).Str("session_key", sessionKey).Msg("Failed to delete old session during rollover")
+		}
 
 		if isHybrid {
 			hostname := parsers.GetHost(gc)
@@ -905,16 +913,33 @@ func (h *httpProvider) parseIDTokenHintSubject(idTokenHint string) string {
 
 // setFormPostCSP overrides the Content-Security-Policy header to allow
 // OIDC Form Post Response Mode (OAuth 2.0 Form Post Response Mode §1).
-func setFormPostCSP(gc *gin.Context, redirectURI string) {
+// Returns a cryptographic nonce for use in script tags.
+func setFormPostCSP(gc *gin.Context, redirectURI string) string {
+	// Generate a cryptographic nonce for CSP script-src.
+	nonceBytes := make([]byte, 16)
+	if _, err := rand.Read(nonceBytes); err != nil {
+		// Fallback: allow unsafe-inline if crypto/rand fails (should never happen).
+		nonceBytes = []byte("fallback-nonce-value")
+	}
+	cspNonce := base64.RawURLEncoding.EncodeToString(nonceBytes)
+
+	formAction := "'self'"
+	if u, err := url.Parse(redirectURI); err == nil && u.Host != "" {
+		origin := u.Scheme + "://" + u.Host
+		pathURI := origin + u.Path
+		formAction = "'self' " + origin + " " + pathURI
+	}
 	gc.Writer.Header().Set("Content-Security-Policy",
 		"default-src 'self'; "+
-			"script-src 'self' 'unsafe-inline'; "+
+			"script-src 'self' 'nonce-"+cspNonce+"'; "+
 			"style-src 'self' 'unsafe-inline'; "+
 			"img-src 'self' data: https:; "+
 			"font-src 'self' data:; "+
 			"connect-src 'self'; "+
 			"frame-ancestors 'none'; "+
-			"base-uri 'self'; ")
+			"base-uri 'self'; "+
+			"form-action "+formAction)
+	return cspNonce
 }
 
 // redirectErrorToRP sends an OAuth2/OIDC error to the RP's redirect_uri
@@ -954,10 +979,11 @@ func redirectErrorToRP(gc *gin.Context, responseMode, redirectURI, state, errCod
 			"authorization_response": errData,
 		})
 	case constants.ResponseModeFormPost:
-		setFormPostCSP(gc, redirectURI)
+		cspNonce := setFormPostCSP(gc, redirectURI)
 		gc.HTML(http.StatusOK, authorizeFormPostTemplate, gin.H{
 			"target_origin":          redirectURI,
 			"authorization_response": errData["response"],
+			"csp_nonce":              cspNonce,
 		})
 	default:
 		// query or fragment
@@ -1003,10 +1029,11 @@ func handleResponse(gc *gin.Context, responseMode, authURI, redirectURI string, 
 		})
 		return
 	case constants.ResponseModeFormPost:
-		setFormPostCSP(gc, redirectURI)
+		cspNonce := setFormPostCSP(gc, redirectURI)
 		gc.HTML(httpStatusCode, authorizeFormPostTemplate, gin.H{
 			"target_origin":          redirectURI,
 			"authorization_response": data["response"],
+			"csp_nonce":              cspNonce,
 		})
 		return
 	}
