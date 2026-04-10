@@ -506,6 +506,10 @@ input MagicLinkLoginRequest {
 input SessionQueryRequest {
   roles: [String!]
   scope: [String!]
+  # state is used for authorization code grant flow
+  # when a session already exists and the login UI auto-detects it,
+  # passing state ensures the authorization code state is properly stored
+  state: String
 }
 
 input PaginationRequest {

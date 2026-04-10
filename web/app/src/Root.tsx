@@ -1,4 +1,4 @@
-import { useEffect, lazy, Suspense } from 'react';
+import { useEffect, useRef, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthorizer } from '@authorizerdev/authorizer-react';
 import SetupPassword from './pages/setup-password';
@@ -97,11 +97,61 @@ export default function Root({
 
 	urlProps.redirect_uri = urlProps.redirectURL;
 
-	useEffect(() => {
-		if (token) {
-			let redirectURL = config.redirectURL || '/app';
+	// Track whether we've already ensured the code state is stored.
+	const codeStateEnsured = useRef(false);
 
-			// Build response params based on the response_type from the /authorize request.
+	useEffect(() => {
+		if (!token) return;
+
+		// When the SDK auto-detects a session during an OIDC /authorize flow
+		// (code is in URL), the login mutation was never called, so the
+		// authorization code state was never stored. We must call the session
+		// GraphQL query WITH the state parameter so the backend stores the
+		// code state before we redirect to the RP.
+		const isOIDCFlow = code !== '' && getParam('state') !== '';
+		if (isOIDCFlow && !codeStateEnsured.current) {
+			codeStateEnsured.current = true;
+			fetch('/graphql', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				credentials: 'include',
+				body: JSON.stringify({
+					query: `query session($params: SessionQueryRequest) { session(params: $params) { access_token id_token expires_in refresh_token } }`,
+					variables: { params: { state: getParam('state'), scope } },
+					operationName: 'session',
+				}),
+			})
+				.then((res) => res.json())
+				.then((res) => {
+					if (res?.data?.session) {
+						// Use tokens from the session response (has correct c_hash/at_hash)
+						performRedirect(
+							config.redirectURL || '/app',
+							res.data.session,
+						);
+					}
+				})
+				.catch(() => {
+					// Fallback: redirect with existing tokens
+					performRedirect(config.redirectURL || '/app', token);
+				});
+			return;
+		}
+
+		// Non-OIDC flow or code state already ensured — redirect immediately
+		performRedirect(config.redirectURL || '/app', token);
+
+		return () => {};
+	}, [token, config]);
+
+	function performRedirect(
+		baseRedirectURL: string,
+		tokenData: Record<string, any>,
+	) {
+		if (!tokenData) return;
+		let redirectURL = baseRedirectURL;
+
+		// Build response params based on the response_type from the /authorize request.
 			// RFC 6749 / OIDC Core: the redirect must include exactly the params
 			// expected by the RP for the requested flow.
 			let params = '';
@@ -111,104 +161,100 @@ export default function Root({
 				responseType === 'id_token token';
 			const isCodeFlow = responseType === 'code' || responseType === '';
 
-			if (isCodeFlow) {
-				// Authorization Code flow: return code + state only.
-				// Tokens are exchanged at /oauth/token by the RP's backend.
-				params = `state=${encodeURIComponent(globalState.state)}`;
-				if (code !== '') {
-					params += `&code=${encodeURIComponent(code)}`;
+		if (isCodeFlow) {
+			// Authorization Code flow: return code + state only.
+			// Tokens are exchanged at /oauth/token by the RP's backend.
+			params = `state=${encodeURIComponent(globalState.state)}`;
+			if (code !== '') {
+				params += `&code=${encodeURIComponent(code)}`;
+			}
+		} else if (isImplicit) {
+			// Implicit flow: return tokens directly.
+			params = `state=${encodeURIComponent(globalState.state)}`;
+			if (
+				tokenData.access_token &&
+				(responseType === 'token' || responseType === 'id_token token')
+			) {
+				params += `&access_token=${encodeURIComponent(tokenData.access_token)}`;
+				params += `&token_type=Bearer`;
+				if (tokenData.expires_in) {
+					params += `&expires_in=${tokenData.expires_in}`;
 				}
-			} else if (isImplicit) {
-				// Implicit flow: return tokens directly.
-				params = `state=${encodeURIComponent(globalState.state)}`;
-				if (
-					token.access_token &&
-					(responseType === 'token' || responseType === 'id_token token')
-				) {
-					params += `&access_token=${encodeURIComponent(token.access_token)}`;
-					params += `&token_type=Bearer`;
-					if (token.expires_in) {
-						params += `&expires_in=${token.expires_in}`;
-					}
+			}
+			if (
+				tokenData.id_token &&
+				(responseType === 'id_token' || responseType === 'id_token token')
+			) {
+				params += `&id_token=${encodeURIComponent(tokenData.id_token)}`;
+			}
+			if (nonce !== '') {
+				params += `&nonce=${encodeURIComponent(nonce)}`;
+			}
+		} else if (responseType.includes('code')) {
+			// Hybrid flow (code id_token, code token, code id_token token):
+			// return code + relevant tokens.
+			params = `state=${encodeURIComponent(globalState.state)}`;
+			if (code !== '') {
+				params += `&code=${encodeURIComponent(code)}`;
+			}
+			if (
+				tokenData.access_token &&
+				(responseType.includes('token') && !responseType.startsWith('id_token'))
+			) {
+				params += `&access_token=${encodeURIComponent(tokenData.access_token)}`;
+				params += `&token_type=Bearer`;
+				if (tokenData.expires_in) {
+					params += `&expires_in=${tokenData.expires_in}`;
 				}
-				if (
-					token.id_token &&
-					(responseType === 'id_token' || responseType === 'id_token token')
-				) {
-					params += `&id_token=${encodeURIComponent(token.id_token)}`;
-				}
-				if (nonce !== '') {
-					params += `&nonce=${encodeURIComponent(nonce)}`;
-				}
-			} else if (responseType.includes('code')) {
-				// Hybrid flow (code id_token, code token, code id_token token):
-				// return code + relevant tokens.
-				params = `state=${encodeURIComponent(globalState.state)}`;
-				if (code !== '') {
-					params += `&code=${encodeURIComponent(code)}`;
-				}
-				if (
-					token.access_token &&
-					(responseType.includes('token') && !responseType.startsWith('id_token'))
-				) {
-					params += `&access_token=${encodeURIComponent(token.access_token)}`;
-					params += `&token_type=Bearer`;
-					if (token.expires_in) {
-						params += `&expires_in=${token.expires_in}`;
-					}
-				}
-				if (token.id_token && responseType.includes('id_token')) {
-					params += `&id_token=${encodeURIComponent(token.id_token)}`;
-				}
-				if (nonce !== '') {
-					params += `&nonce=${encodeURIComponent(nonce)}`;
-				}
+			}
+			if (tokenData.id_token && responseType.includes('id_token')) {
+				params += `&id_token=${encodeURIComponent(tokenData.id_token)}`;
+			}
+			if (nonce !== '') {
+				params += `&nonce=${encodeURIComponent(nonce)}`;
+			}
+		} else {
+			// Fallback: send state + code (backward compat)
+			params = `state=${encodeURIComponent(globalState.state)}`;
+			if (code !== '') {
+				params += `&code=${encodeURIComponent(code)}`;
+			}
+		}
+
+		// Determine delivery mode per OIDC spec:
+		// - response_mode=query or code flow default → query string (?params)
+		// - response_mode=fragment or implicit/hybrid default → fragment (#params)
+		const useFragment =
+			responseMode === 'fragment' ||
+			(isImplicit && responseMode !== 'query' && responseMode !== 'form_post');
+
+		try {
+			const url = new URL(redirectURL);
+			if (useFragment) {
+				redirectURL = redirectURL.split('#')[0] + '#' + params;
 			} else {
-				// Fallback: send state + code (backward compat)
-				params = `state=${encodeURIComponent(globalState.state)}`;
-				if (code !== '') {
-					params += `&code=${encodeURIComponent(code)}`;
+				if (redirectURL.includes('?')) {
+					redirectURL = `${redirectURL}&${params}`;
+				} else {
+					redirectURL = `${redirectURL}?${params}`;
 				}
 			}
 
-			// Determine delivery mode per OIDC spec:
-			// - response_mode=query or code flow default → query string (?params)
-			// - response_mode=fragment or implicit/hybrid default → fragment (#params)
-			const useFragment =
-				responseMode === 'fragment' ||
-				(isImplicit && responseMode !== 'query' && responseMode !== 'form_post');
-
-			try {
-				const url = new URL(redirectURL);
-				if (useFragment) {
-					redirectURL = redirectURL.split('#')[0] + '#' + params;
-				} else {
-					if (redirectURL.includes('?')) {
-						redirectURL = `${redirectURL}&${params}`;
-					} else {
-						redirectURL = `${redirectURL}?${params}`;
-					}
-				}
-
-				if (url.origin !== window.location.origin) {
-					if (url.protocol === 'http:' || url.protocol === 'https:') {
-						sessionStorage.removeItem('authorizer_state');
-						window.location.replace(redirectURL);
-					}
-				} else {
-					// Same-origin redirect (e.g., redirect_uri is on the same domain)
+			if (url.origin !== window.location.origin) {
+				if (url.protocol === 'http:' || url.protocol === 'https:') {
 					sessionStorage.removeItem('authorizer_state');
 					window.location.replace(redirectURL);
 				}
-			} catch {
-				// If URL parsing fails, fall back to same-origin redirect
-				if (redirectURL.startsWith('/')) {
-					window.location.replace(redirectURL);
-				}
+			} else {
+				sessionStorage.removeItem('authorizer_state');
+				window.location.replace(redirectURL);
+			}
+		} catch {
+			if (redirectURL.startsWith('/')) {
+				window.location.replace(redirectURL);
 			}
 		}
-		return () => {};
-	}, [token, config]);
+	}
 
 	if (loading) {
 		return <h1>Loading...</h1>;
