@@ -190,10 +190,9 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			// Tokens MUST NOT appear in query strings (OAuth 2.0 Multiple
 			// Response Type Encoding Practices §3.0).
 			if rawResponseMode == constants.ResponseModeQuery {
-				gc.JSON(http.StatusBadRequest, gin.H{
-					"error":             "invalid_request",
-					"error_description": "response_mode=query is not allowed for response_type=" + responseType,
-				})
+				// redirect_uri is validated at this point; redirect the
+				// error to the RP per RFC 6749 §4.1.2.1.
+				redirectErrorToRP(gc, constants.ResponseModeFragment, redirectURI, state, "invalid_request", "response_mode=query is not allowed for response_type="+responseType)
 				return
 			}
 			// Default to fragment when the client did not explicitly
@@ -203,9 +202,12 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			}
 		}
 
-		if err := h.validateAuthorizeRequest(responseType, responseMode, clientID, state); err != nil {
-			log.Debug().Err(err).Msg("Invalid request")
-			gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if errCode, errDesc := h.validateAuthorizeRequest(responseType, responseMode, clientID, state); errCode != "" {
+			log.Debug().Str("error", errCode).Str("error_description", errDesc).Msg("Invalid request")
+			gc.JSON(http.StatusBadRequest, gin.H{
+				"error":             errCode,
+				"error_description": errDesc,
+			})
 			return
 		}
 
@@ -214,11 +216,20 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 		// return id_token directly from the authorization endpoint).
 		requiresNonce := strings.Contains(responseType, "id_token")
 		if requiresNonce && nonce == "" {
-			gc.JSON(http.StatusBadRequest, gin.H{
-				"error":             "invalid_request",
-				"error_description": "nonce is required for response_type=" + responseType,
-			})
+			redirectErrorToRP(gc, responseMode, redirectURI, state, "invalid_request", "nonce is required for response_type="+responseType)
 			return
+		}
+
+		// OIDC Core §3.2.2.1: when response_type=token and scope includes
+		// openid, the RP should use id_token or id_token token instead.
+		// We log a warning but don't reject to avoid breaking existing flows.
+		if responseType == "token" {
+			for _, s := range scope {
+				if s == "openid" {
+					log.Debug().Msg("response_type=token with openid scope — consider using id_token or id_token token instead")
+					break
+				}
+			}
 		}
 
 		// Generate code only for flows that include "code" in response_type.
@@ -281,13 +292,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 
 		// Reject if code_challenge_method is set without code_challenge
 		if responseType == constants.ResponseTypeCode && codeChallenge == "" && codeChallengeMethod != "" {
-			handleResponse(gc, responseMode, authURL, redirectURI, map[string]interface{}{
-				"type": "authorization_response",
-				"response": map[string]interface{}{
-					"error":             "invalid_request",
-					"error_description": "code_challenge is required when code_challenge_method is specified",
-				},
-			}, http.StatusOK)
+			redirectErrorToRP(gc, responseMode, redirectURI, state, "invalid_request", "code_challenge is required when code_challenge_method is specified")
 			return
 		}
 
@@ -447,6 +452,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				Scope:       scope,
 				LoginMethod: claims.LoginMethod,
 				HostName:    hostname,
+				AuthTime:    claims.IssuedAt,
 			})
 			if err != nil {
 				log.Debug().Err(err).Msg("Error creating auth token for hybrid response")
@@ -502,7 +508,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			}
 
 			// Build the fragment params string for redirect modes.
-			params := "code=" + code + "&state=" + state + "&token_type=bearer&expires_in=" + strconv.FormatInt(expiresIn, 10)
+			params := "code=" + code + "&state=" + state + "&token_type=Bearer&expires_in=" + strconv.FormatInt(expiresIn, 10)
 			if hasAccessToken {
 				params += "&access_token=" + authToken.AccessToken.Token
 			}
@@ -538,6 +544,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				Scope:       scope,
 				LoginMethod: claims.LoginMethod,
 				HostName:    hostname,
+				AuthTime:    claims.IssuedAt,
 			})
 			if err != nil {
 				log.Debug().Err(err).Msg("Error creating auth token for id_token token response")
@@ -572,7 +579,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 
 			params := "access_token=" + authToken.AccessToken.Token +
 				"&id_token=" + authToken.IDToken.Token +
-				"&token_type=bearer&expires_in=" + strconv.FormatInt(expiresIn, 10) +
+				"&token_type=Bearer&expires_in=" + strconv.FormatInt(expiresIn, 10) +
 				"&state=" + state
 
 			// Fragment-only: tokens MUST NOT appear in query strings.
@@ -598,6 +605,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				Roles:       claims.Roles,
 				Scope:       scope,
 				LoginMethod: claims.LoginMethod,
+				AuthTime:    claims.IssuedAt,
 			})
 			if err != nil {
 				log.Debug().Err(err).Msg("Error creating session token")
@@ -682,6 +690,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				Scope:       scope,
 				LoginMethod: claims.LoginMethod,
 				HostName:    hostname,
+				AuthTime:    claims.IssuedAt,
 			})
 			if err != nil {
 				log.Debug().Err(err).Msg("Error creating auth token")
@@ -733,6 +742,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				Scope:       scope,
 				LoginMethod: claims.LoginMethod,
 				HostName:    hostname,
+				AuthTime:    claims.IssuedAt,
 			})
 			if err != nil {
 				log.Debug().Err(err).Msg("Error creating auth token")
@@ -761,7 +771,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 
 			// RFC 6749 §4.2.2: implicit token response params.
 			params := "access_token=" + authToken.AccessToken.Token +
-				"&token_type=bearer&expires_in=" + strconv.FormatInt(expiresIn, 10) +
+				"&token_type=Bearer&expires_in=" + strconv.FormatInt(expiresIn, 10) +
 				"&state=" + state
 
 			res := map[string]interface{}{
@@ -833,16 +843,16 @@ func supportedResponseTypeSet(raw string) (string, bool) {
 	return "", false
 }
 
-func (h *httpProvider) validateAuthorizeRequest(responseType, responseMode, clientID, state string) error {
+// validateAuthorizeRequest validates the authorize request parameters and
+// returns RFC 6749 §4.1.2.1 compliant error code and description on failure.
+// Returns empty strings when validation passes.
+func (h *httpProvider) validateAuthorizeRequest(responseType, responseMode, clientID, state string) (string, string) {
 	if strings.TrimSpace(state) == "" {
-		return fmt.Errorf("invalid state. state is required to prevent csrf attack")
-	}
-	if _, ok := supportedResponseTypeSet(responseType); !ok {
-		return fmt.Errorf("invalid response type %s", responseType)
+		return "invalid_request", "state parameter is required"
 	}
 
 	if responseMode != constants.ResponseModeQuery && responseMode != constants.ResponseModeWebMessage && responseMode != constants.ResponseModeFragment && responseMode != constants.ResponseModeFormPost {
-		return fmt.Errorf("invalid response mode %s. 'query', 'fragment', 'form_post' and 'web_message' are valid response_mode", responseMode)
+		return "invalid_request", "response_mode must be one of: query, fragment, form_post, web_message"
 	}
 
 	// OAuth 2.0 Multiple Response Type Encoding Practices §3.0:
@@ -855,14 +865,14 @@ func (h *httpProvider) validateAuthorizeRequest(responseType, responseMode, clie
 	//   response_type=code              → query, fragment, form_post (any)
 	//   response_type=token / id_token  → fragment (default) or form_post only
 	if responseMode == constants.ResponseModeQuery && responseType != constants.ResponseTypeCode {
-		return fmt.Errorf("response_mode=query is not allowed for response_type=%s; use fragment or form_post", responseType)
+		return "invalid_request", fmt.Sprintf("response_mode=query is not allowed for response_type=%s; use fragment or form_post", responseType)
 	}
 
 	if h.Config.ClientID != clientID {
-		return fmt.Errorf("invalid client_id %s", clientID)
+		return "unauthorized_client", "client_id is invalid"
 	}
 
-	return nil
+	return "", ""
 }
 
 // parseIDTokenHintSubject parses and verifies an id_token_hint JWT
@@ -904,6 +914,68 @@ func setFormPostCSP(gc *gin.Context, redirectURI string) {
 			"frame-ancestors 'none'; "+
 			"base-uri 'self'; "+
 			"form-action "+origin)
+}
+
+// redirectErrorToRP sends an OAuth2/OIDC error to the RP's redirect_uri
+// using the configured response_mode. Per RFC 6749 §4.1.2.1 this MUST only
+// be called after redirect_uri has been validated. If redirect_uri is the
+// default "/app" fallback (unvalidated), falls back to a JSON error response.
+func redirectErrorToRP(gc *gin.Context, responseMode, redirectURI, state, errCode, errDesc string) {
+	// If redirect_uri is the default "/app" fallback, we have no validated
+	// RP endpoint to redirect to — return JSON error instead.
+	if redirectURI == "/app" {
+		gc.JSON(http.StatusBadRequest, gin.H{
+			"error":             errCode,
+			"error_description": errDesc,
+		})
+		return
+	}
+
+	errParams := "error=" + url.QueryEscape(errCode) +
+		"&error_description=" + url.QueryEscape(errDesc)
+	if state != "" {
+		errParams += "&state=" + url.QueryEscape(state)
+	}
+
+	errData := map[string]interface{}{
+		"type": "authorization_response",
+		"response": map[string]interface{}{
+			"error":             errCode,
+			"error_description": errDesc,
+			"state":             state,
+		},
+	}
+
+	switch responseMode {
+	case constants.ResponseModeWebMessage:
+		gc.HTML(http.StatusOK, authorizeWebMessageTemplate, gin.H{
+			"target_origin":          redirectURI,
+			"authorization_response": errData,
+		})
+	case constants.ResponseModeFormPost:
+		setFormPostCSP(gc, redirectURI)
+		gc.HTML(http.StatusOK, authorizeFormPostTemplate, gin.H{
+			"target_origin":          redirectURI,
+			"authorization_response": errData["response"],
+		})
+	default:
+		// query or fragment
+		errRedirectURI := redirectURI
+		if responseMode == constants.ResponseModeFragment {
+			if strings.Contains(errRedirectURI, "#") {
+				errRedirectURI += "&" + errParams
+			} else {
+				errRedirectURI += "#" + errParams
+			}
+		} else {
+			if strings.Contains(errRedirectURI, "?") {
+				errRedirectURI += "&" + errParams
+			} else {
+				errRedirectURI += "?" + errParams
+			}
+		}
+		gc.Redirect(http.StatusFound, errRedirectURI)
+	}
 }
 
 func handleResponse(gc *gin.Context, responseMode, authURI, redirectURI string, data map[string]interface{}, httpStatusCode int) {

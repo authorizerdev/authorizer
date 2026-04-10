@@ -10,11 +10,17 @@ declare global {
 }
 
 export default function App() {
-	const searchParams = new URLSearchParams(window.location.search);
-	const state = searchParams.get('state') || createRandomString();
-	const scope = searchParams.get('scope')
-		? searchParams.get('scope')?.toString().split(' ')
-		: `openid profile email`;
+	const queryParams = new URLSearchParams(window.location.search);
+	const fragmentParams = new URLSearchParams(
+		window.location.hash ? window.location.hash.substring(1) : ``,
+	);
+	const getParam = (key: string): string =>
+		queryParams.get(key) || fragmentParams.get(key) || '';
+
+	const state = getParam('state') || createRandomString();
+	const scope = getParam('scope')
+		? getParam('scope').toString().split(' ')
+		: ['openid', 'profile', 'email'];
 
 	const urlProps: Record<string, any> = {
 		state,
@@ -22,17 +28,16 @@ export default function App() {
 	};
 
 	const redirectURL =
-		searchParams.get('redirect_uri') || searchParams.get('redirectURL');
+		getParam('redirect_uri') || getParam('redirectURL');
 	if (redirectURL) {
 		urlProps.redirectURL = redirectURL;
 	} else {
-		urlProps.redirectURL = window.location.href;
+		urlProps.redirectURL = window.location.origin;
 	}
 	const globalState: Record<string, string> = {
 		...window['__authorizer__'],
 		...urlProps,
 	};
-	console.log(globalState);
 	return (
 		<div
 			style={{

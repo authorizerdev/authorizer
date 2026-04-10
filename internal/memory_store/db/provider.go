@@ -246,12 +246,20 @@ func (p *provider) SetState(key, state string) error {
 	return nil
 }
 
-// GetState returns the state from the session store
+// GetState returns the state from the session store.
+// RFC 6749 §4.1.2: authorization codes (and associated state) MUST be
+// short-lived. Entries older than 10 minutes are treated as expired.
 func (p *provider) GetState(key string) (string, error) {
 	ctx := context.Background()
 	oauthState, err := p.getOAuthStateByKey(ctx, key)
 	if err != nil {
 		return "", fmt.Errorf("not found")
+	}
+	// Enforce 10-minute TTL consistent with Redis provider.
+	if oauthState.CreatedAt > 0 && time.Now().Unix()-oauthState.CreatedAt > 600 {
+		// Clean up expired entry asynchronously.
+		go p.deleteOAuthStateByKey(context.Background(), key)
+		return "", fmt.Errorf("state expired")
 	}
 	return oauthState.State, nil
 }
