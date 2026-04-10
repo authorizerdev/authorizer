@@ -53,15 +53,31 @@ export default function Root({
 }) {
 	const { token, loading, config } = useAuthorizer();
 
-	const searchParams = new URLSearchParams(
+	// Read params from both query string and fragment to support all response_modes.
+	// The /authorize handler may deliver params via ?query or #fragment depending
+	// on the response_mode requested by the RP.
+	const queryParams = new URLSearchParams(
 		hasWindow() ? window.location.search : ``,
 	);
-	const state = searchParams.get('state') || createRandomString();
-	const scope = searchParams.get('scope')
-		? searchParams.get('scope')?.toString().split(' ')
+	const fragmentParams = new URLSearchParams(
+		hasWindow() && window.location.hash
+			? window.location.hash.substring(1)
+			: ``,
+	);
+	// Prefer query params, fall back to fragment params
+	const getParam = (key: string): string =>
+		queryParams.get(key) || fragmentParams.get(key) || '';
+
+	const state = getParam('state') || createRandomString();
+	const scope = getParam('scope')
+		? getParam('scope').split(' ')
 		: ['openid', 'profile', 'email'];
-	const code = searchParams.get('code') || '';
-	const nonce = searchParams.get('nonce') || '';
+	const code = getParam('code');
+	const nonce = getParam('nonce');
+	const responseType = getParam('response_type');
+	const responseMode = getParam('response_mode');
+
+	const searchParams = queryParams;
 
 	const urlProps: Record<string, any> = {
 		state,
@@ -84,33 +100,109 @@ export default function Root({
 	useEffect(() => {
 		if (token) {
 			let redirectURL = config.redirectURL || '/app';
-			// let params = `access_token=${token.access_token}&id_token=${token.id_token}&expires_in=${token.expires_in}&state=${globalState.state}`;
-			// Note: If OIDC breaks in the future, use the above params
-			let params = `state=${globalState.state}`;
 
-			if (code !== '') {
-				params += `&code=${code}`;
-			}
+			// Build response params based on the response_type from the /authorize request.
+			// RFC 6749 / OIDC Core: the redirect must include exactly the params
+			// expected by the RP for the requested flow.
+			let params = '';
+			const isImplicit =
+				responseType === 'token' ||
+				responseType === 'id_token' ||
+				responseType === 'id_token token';
+			const isCodeFlow = responseType === 'code' || responseType === '';
 
-			if (nonce !== '') {
-				params += `&nonce=${nonce}`;
-			}
-
-			if (token.refresh_token) {
-				params += `&refresh_token=${token.refresh_token}`;
-			}
-
-			const url = new URL(redirectURL);
-			if (redirectURL.includes('?')) {
-				redirectURL = `${redirectURL}&${params}`;
+			if (isCodeFlow) {
+				// Authorization Code flow: return code + state only.
+				// Tokens are exchanged at /oauth/token by the RP's backend.
+				params = `state=${encodeURIComponent(globalState.state)}`;
+				if (code !== '') {
+					params += `&code=${encodeURIComponent(code)}`;
+				}
+			} else if (isImplicit) {
+				// Implicit flow: return tokens directly.
+				params = `state=${encodeURIComponent(globalState.state)}`;
+				if (
+					token.access_token &&
+					(responseType === 'token' || responseType === 'id_token token')
+				) {
+					params += `&access_token=${encodeURIComponent(token.access_token)}`;
+					params += `&token_type=Bearer`;
+					if (token.expires_in) {
+						params += `&expires_in=${token.expires_in}`;
+					}
+				}
+				if (
+					token.id_token &&
+					(responseType === 'id_token' || responseType === 'id_token token')
+				) {
+					params += `&id_token=${encodeURIComponent(token.id_token)}`;
+				}
+				if (nonce !== '') {
+					params += `&nonce=${encodeURIComponent(nonce)}`;
+				}
+			} else if (responseType.includes('code')) {
+				// Hybrid flow (code id_token, code token, code id_token token):
+				// return code + relevant tokens.
+				params = `state=${encodeURIComponent(globalState.state)}`;
+				if (code !== '') {
+					params += `&code=${encodeURIComponent(code)}`;
+				}
+				if (
+					token.access_token &&
+					(responseType.includes('token') && !responseType.startsWith('id_token'))
+				) {
+					params += `&access_token=${encodeURIComponent(token.access_token)}`;
+					params += `&token_type=Bearer`;
+					if (token.expires_in) {
+						params += `&expires_in=${token.expires_in}`;
+					}
+				}
+				if (token.id_token && responseType.includes('id_token')) {
+					params += `&id_token=${encodeURIComponent(token.id_token)}`;
+				}
+				if (nonce !== '') {
+					params += `&nonce=${encodeURIComponent(nonce)}`;
+				}
 			} else {
-				redirectURL = `${redirectURL}?${params}`;
+				// Fallback: send state + code (backward compat)
+				params = `state=${encodeURIComponent(globalState.state)}`;
+				if (code !== '') {
+					params += `&code=${encodeURIComponent(code)}`;
+				}
 			}
 
-			if (url.origin !== window.location.origin) {
-				// Only allow safe protocols to prevent javascript: or data: URI attacks
-				if (url.protocol === 'http:' || url.protocol === 'https:') {
+			// Determine delivery mode per OIDC spec:
+			// - response_mode=query or code flow default → query string (?params)
+			// - response_mode=fragment or implicit/hybrid default → fragment (#params)
+			const useFragment =
+				responseMode === 'fragment' ||
+				(isImplicit && responseMode !== 'query' && responseMode !== 'form_post');
+
+			try {
+				const url = new URL(redirectURL);
+				if (useFragment) {
+					redirectURL = redirectURL.split('#')[0] + '#' + params;
+				} else {
+					if (redirectURL.includes('?')) {
+						redirectURL = `${redirectURL}&${params}`;
+					} else {
+						redirectURL = `${redirectURL}?${params}`;
+					}
+				}
+
+				if (url.origin !== window.location.origin) {
+					if (url.protocol === 'http:' || url.protocol === 'https:') {
+						sessionStorage.removeItem('authorizer_state');
+						window.location.replace(redirectURL);
+					}
+				} else {
+					// Same-origin redirect (e.g., redirect_uri is on the same domain)
 					sessionStorage.removeItem('authorizer_state');
+					window.location.replace(redirectURL);
+				}
+			} catch {
+				// If URL parsing fails, fall back to same-origin redirect
+				if (redirectURL.startsWith('/')) {
 					window.location.replace(redirectURL);
 				}
 			}

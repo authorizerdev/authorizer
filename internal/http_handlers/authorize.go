@@ -235,7 +235,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 
 		// TODO add state with timeout
 		// used for response mode query or fragment
-		authState := "state=" + state + "&scope=" + scopeString + "&redirect_uri=" + redirectURI + "&response_mode=" + responseMode + "&response_type=" + url.QueryEscape(responseType)
+		authState := "state=" + url.QueryEscape(state) + "&scope=" + url.QueryEscape(scopeString) + "&redirect_uri=" + url.QueryEscape(redirectURI) + "&response_mode=" + url.QueryEscape(responseMode) + "&response_type=" + url.QueryEscape(responseType)
 		// OIDC Core §3.1.2.1: login_hint and ui_locales are forwarded
 		// to the login UI so it can pre-fill the email field and pick
 		// the UI language.
