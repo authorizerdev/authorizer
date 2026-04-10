@@ -287,6 +287,8 @@ func (g *graphqlProvider) SignUp(ctx context.Context, params *model.SignUpReques
 	code := ""
 	codeChallenge := ""
 	nonce := ""
+	oidcNonce := ""
+	authorizeRedirectURI := ""
 	if params.State != nil {
 		// Get state from store
 		authorizeState, _ := g.MemoryStoreProvider.GetState(refs.StringValue(params.State))
@@ -295,10 +297,16 @@ func (g *graphqlProvider) SignUp(ctx context.Context, params *model.SignUpReques
 			if len(authorizeStateSplit) > 1 {
 				code = authorizeStateSplit[0]
 				codeChallenge = authorizeStateSplit[1]
+				if len(authorizeStateSplit) > 2 {
+					oidcNonce = authorizeStateSplit[2]
+				}
+				if len(authorizeStateSplit) > 3 {
+					authorizeRedirectURI = authorizeStateSplit[3]
+				}
 			} else {
 				nonce = authorizeState
 			}
-			go g.MemoryStoreProvider.RemoveState(refs.StringValue(params.State))
+			g.MemoryStoreProvider.RemoveState(refs.StringValue(params.State))
 		}
 	}
 
@@ -310,6 +318,7 @@ func (g *graphqlProvider) SignUp(ctx context.Context, params *model.SignUpReques
 		Roles:       roles,
 		Scope:       scope,
 		Nonce:       nonce,
+		OIDCNonce:   oidcNonce,
 		Code:        code,
 		LoginMethod: constants.AuthRecipeMethodBasicAuth,
 		HostName:    hostname,
@@ -321,7 +330,7 @@ func (g *graphqlProvider) SignUp(ctx context.Context, params *model.SignUpReques
 
 	// Code challenge could be optional if PKCE flow is not used
 	if code != "" {
-		if err := g.MemoryStoreProvider.SetState(code, codeChallenge+"@@"+authToken.FingerPrintHash); err != nil {
+		if err := g.MemoryStoreProvider.SetState(code, codeChallenge+"@@"+authToken.FingerPrintHash+"@@"+oidcNonce+"@@"+authorizeRedirectURI); err != nil {
 			log.Debug().Err(err).Msg("SetState failed")
 			return nil, err
 		}

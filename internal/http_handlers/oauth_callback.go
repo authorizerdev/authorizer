@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -67,7 +68,7 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 			return
 		}
 		// remove state from store
-		go h.MemoryStoreProvider.RemoveState(state)
+		h.MemoryStoreProvider.RemoveState(state)
 		stateValue := sessionSplit[0]
 		redirectURL := sessionSplit[1]
 		inputRoles := strings.Split(sessionSplit[2], ",")
@@ -295,7 +296,7 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 		//
 		// In the standalone social login flow (`/oauth_login/:provider`), this entry will not exist and we
 		// simply generate a nonce and continue.
-		code, codeChallenge, nonce, err := h.consumeAuthorizeState(stateValue)
+		code, codeChallenge, nonce, authorizeRedirectURI, err := h.consumeAuthorizeState(stateValue)
 		if err != nil && !errors.Is(err, goredis.Nil) {
 			log.Debug().Err(err).Str("state", stateValue).Msg("Failed to get authorize state from store")
 		}
@@ -320,7 +321,7 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 
 		// Code challenge could be optional if PKCE flow is not used
 		if code != "" {
-			if err := h.MemoryStoreProvider.SetState(code, codeChallenge+"@@"+authToken.FingerPrintHash); err != nil {
+			if err := h.MemoryStoreProvider.SetState(code, codeChallenge+"@@"+authToken.FingerPrintHash+"@@"+nonce+"@@"+url.QueryEscape(authorizeRedirectURI)); err != nil {
 				log.Debug().Err(err).Msg("Failed to set state")
 				ctx.JSON(500, gin.H{"error": err.Error()})
 				return
@@ -371,7 +372,7 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 			redirectURL = redirectURL + "?" + strings.TrimPrefix(params, "&")
 		}
 		// remove state from store
-		go h.MemoryStoreProvider.RemoveState(state)
+		h.MemoryStoreProvider.RemoveState(state)
 		metrics.RecordAuthEvent(metrics.EventOAuthCallback, metrics.StatusSuccess)
 		metrics.ActiveSessions.Inc()
 		h.AuditProvider.LogEvent(audit.Event{

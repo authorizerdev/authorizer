@@ -250,7 +250,7 @@ func TestTokenEndpointCompliance(t *testing.T) {
 
 		// Simulate the state that would be set during /authorize
 		sessionToken := "test-session-token"
-		ts.MemoryStoreProvider.SetState(code, codeChallenge+"@@"+sessionToken)
+		ts.MemoryStoreProvider.SetState(code, codeChallenge+"@@"+sessionToken+"@@test-nonce")
 
 		form := url.Values{}
 		form.Set("grant_type", "authorization_code")
@@ -327,6 +327,167 @@ func TestTokenEndpointCompliance(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 		assert.Equal(t, "invalid_request", body["error"],
 			"Missing refresh_token MUST return 'invalid_request'")
+	})
+
+	t.Run("RFC6749_redirect_uri_mismatch_returns_invalid_grant", func(t *testing.T) {
+		// RFC 6749 §4.1.3: redirect_uri in token request must match authorize request
+		codeVerifier := uuid.New().String() + uuid.New().String()
+		hash := sha256.Sum256([]byte(codeVerifier))
+		codeChallenge := base64.RawURLEncoding.EncodeToString(hash[:])
+		code := uuid.New().String()
+
+		// Simulate state with a redirect_uri stored (4th @@-separated segment)
+		sessionToken := "test-session-token"
+		ts.MemoryStoreProvider.SetState(code, codeChallenge+"@@"+sessionToken+"@@test-nonce@@"+url.QueryEscape("http://localhost:3000/callback"))
+
+		form := url.Values{}
+		form.Set("grant_type", "authorization_code")
+		form.Set("client_id", cfg.ClientID)
+		form.Set("code", code)
+		form.Set("code_verifier", codeVerifier)
+		form.Set("redirect_uri", "http://evil.example.com/callback")
+
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("POST", "/oauth/token", strings.NewReader(form.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		router.ServeHTTP(w, req)
+
+		var body map[string]interface{}
+		json.Unmarshal(w.Body.Bytes(), &body)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Equal(t, "invalid_grant", body["error"],
+			"RFC 6749 §4.1.3: mismatched redirect_uri MUST return 'invalid_grant'")
+	})
+
+	t.Run("RFC6749_redirect_uri_required_when_used_in_authorize", func(t *testing.T) {
+		// RFC 6749 §4.1.3: if redirect_uri was in authorize, it must be in token
+		codeVerifier := uuid.New().String() + uuid.New().String()
+		hash := sha256.Sum256([]byte(codeVerifier))
+		codeChallenge := base64.RawURLEncoding.EncodeToString(hash[:])
+		code := uuid.New().String()
+
+		sessionToken := "test-session-token"
+		ts.MemoryStoreProvider.SetState(code, codeChallenge+"@@"+sessionToken+"@@test-nonce@@"+url.QueryEscape("http://localhost:3000/callback"))
+
+		form := url.Values{}
+		form.Set("grant_type", "authorization_code")
+		form.Set("client_id", cfg.ClientID)
+		form.Set("code", code)
+		form.Set("code_verifier", codeVerifier)
+		// Note: redirect_uri intentionally omitted
+
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("POST", "/oauth/token", strings.NewReader(form.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		router.ServeHTTP(w, req)
+
+		var body map[string]interface{}
+		json.Unmarshal(w.Body.Bytes(), &body)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Equal(t, "invalid_request", body["error"],
+			"RFC 6749 §4.1.3: missing redirect_uri MUST return 'invalid_request' when it was used in authorize")
+	})
+
+	t.Run("RFC6749_confidential_client_secret_validated_with_PKCE", func(t *testing.T) {
+		// Confidential clients must authenticate even when PKCE is used.
+		// Sending a wrong client_secret with a valid code_verifier must fail.
+		codeVerifier := uuid.New().String() + uuid.New().String()
+		hash := sha256.Sum256([]byte(codeVerifier))
+		codeChallenge := base64.RawURLEncoding.EncodeToString(hash[:])
+		code := uuid.New().String()
+
+		sessionToken := "test-session-token"
+		ts.MemoryStoreProvider.SetState(code, codeChallenge+"@@"+sessionToken+"@@test-nonce")
+
+		form := url.Values{}
+		form.Set("grant_type", "authorization_code")
+		form.Set("client_id", cfg.ClientID)
+		form.Set("code", code)
+		form.Set("code_verifier", codeVerifier)
+		form.Set("client_secret", "wrong-secret")
+
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("POST", "/oauth/token", strings.NewReader(form.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		router.ServeHTTP(w, req)
+
+		var body map[string]interface{}
+		json.Unmarshal(w.Body.Bytes(), &body)
+
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
+		assert.Equal(t, "invalid_client", body["error"],
+			"Confidential client with wrong secret must fail even when PKCE code_verifier is valid")
+	})
+
+	t.Run("RFC7636_S256_with_padded_code_challenge", func(t *testing.T) {
+		// Some clients send code_challenge with base64url padding ('=').
+		// RFC 7636 Appendix B says "without padding", but the server should
+		// tolerate padding to interop with clients like Auth0.
+		codeVerifier := uuid.New().String() + uuid.New().String()
+		hash := sha256.Sum256([]byte(codeVerifier))
+		// Use URLEncoding (WITH padding) to simulate a client that includes '='
+		codeChallengeWithPad := base64.URLEncoding.EncodeToString(hash[:])
+		code := uuid.New().String()
+
+		sessionToken := "test-session-token"
+		// Store with padded challenge (as it would come from /authorize query param)
+		ts.MemoryStoreProvider.SetState(code, codeChallengeWithPad+"::S256@@"+sessionToken+"@@test-nonce")
+
+		form := url.Values{}
+		form.Set("grant_type", "authorization_code")
+		form.Set("client_id", cfg.ClientID)
+		form.Set("code", code)
+		form.Set("code_verifier", codeVerifier)
+
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("POST", "/oauth/token", strings.NewReader(form.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		router.ServeHTTP(w, req)
+
+		var body map[string]interface{}
+		json.Unmarshal(w.Body.Bytes(), &body)
+
+		// Session validation will fail (fake token), but PKCE check must pass.
+		// If PKCE failed, we'd get "invalid_grant" with "code_verifier does not match".
+		if body["error"] != nil {
+			assert.NotEqual(t, "The code_verifier does not match the code_challenge",
+				body["error_description"],
+				"S256 PKCE must tolerate padded code_challenge")
+		}
+	})
+
+	t.Run("RFC7636_S256_without_padding_works", func(t *testing.T) {
+		// Standard case: code_challenge without padding
+		codeVerifier := uuid.New().String() + uuid.New().String()
+		hash := sha256.Sum256([]byte(codeVerifier))
+		codeChallengeNoPad := base64.RawURLEncoding.EncodeToString(hash[:])
+		code := uuid.New().String()
+
+		sessionToken := "test-session-token"
+		ts.MemoryStoreProvider.SetState(code, codeChallengeNoPad+"::S256@@"+sessionToken+"@@test-nonce")
+
+		form := url.Values{}
+		form.Set("grant_type", "authorization_code")
+		form.Set("client_id", cfg.ClientID)
+		form.Set("code", code)
+		form.Set("code_verifier", codeVerifier)
+
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("POST", "/oauth/token", strings.NewReader(form.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		router.ServeHTTP(w, req)
+
+		var body map[string]interface{}
+		json.Unmarshal(w.Body.Bytes(), &body)
+
+		// PKCE check must pass; subsequent session validation may fail (fake token)
+		if body["error"] != nil {
+			assert.NotEqual(t, "The code_verifier does not match the code_challenge",
+				body["error_description"],
+				"S256 PKCE must work with unpadded code_challenge")
+		}
 	})
 }
 
@@ -660,12 +821,25 @@ func TestAuthorizeEndpointCompliance(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
 
-	t.Run("RFC7636_unsupported_code_challenge_method_returns_error", func(t *testing.T) {
+	t.Run("RFC7636_plain_code_challenge_method_is_accepted", func(t *testing.T) {
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("GET",
 			"/authorize?client_id="+cfg.ClientID+
 				"&response_type=code&state=test-state&response_mode=query"+
 				"&code_challenge=test-challenge&code_challenge_method=plain", nil)
+		router.ServeHTTP(w, req)
+
+		// plain is accepted per RFC 7636 §4.2 — should not return 400
+		assert.NotEqual(t, http.StatusBadRequest, w.Code,
+			"RFC 7636: plain code_challenge_method MUST be accepted")
+	})
+
+	t.Run("RFC7636_unsupported_code_challenge_method_returns_error", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET",
+			"/authorize?client_id="+cfg.ClientID+
+				"&response_type=code&state=test-state&response_mode=query"+
+				"&code_challenge=test-challenge&code_challenge_method=unsupported", nil)
 		router.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
@@ -674,8 +848,6 @@ func TestAuthorizeEndpointCompliance(t *testing.T) {
 		json.Unmarshal(w.Body.Bytes(), &body)
 		assert.Equal(t, "invalid_request", body["error"],
 			"RFC 7636: unsupported code_challenge_method MUST return 'invalid_request'")
-		assert.Contains(t, body["error_description"].(string), "S256",
-			"RFC 7636: error_description should mention S256")
 	})
 
 	t.Run("RFC6749_invalid_response_mode_returns_error", func(t *testing.T) {
@@ -685,6 +857,126 @@ func TestAuthorizeEndpointCompliance(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("OIDC_nonce_required_for_id_token_response_type", func(t *testing.T) {
+		// OIDC Core §3.2.2.1: nonce is REQUIRED when response_type contains id_token
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET",
+			"/authorize?client_id="+cfg.ClientID+
+				"&response_type=id_token&state=test-state&response_mode=fragment", nil)
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+
+		var body map[string]interface{}
+		json.Unmarshal(w.Body.Bytes(), &body)
+		assert.Equal(t, "invalid_request", body["error"],
+			"OIDC Core: missing nonce for response_type=id_token MUST return invalid_request")
+		assert.Contains(t, body["error_description"], "nonce",
+			"error_description should mention nonce")
+	})
+
+	t.Run("OIDC_nonce_required_for_id_token_token_response_type", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET",
+			"/authorize?client_id="+cfg.ClientID+
+				"&response_type="+url.QueryEscape("id_token token")+
+				"&state=test-state&response_mode=fragment", nil)
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+
+		var body map[string]interface{}
+		json.Unmarshal(w.Body.Bytes(), &body)
+		assert.Equal(t, "invalid_request", body["error"],
+			"OIDC Core: missing nonce for response_type=id_token token MUST return invalid_request")
+	})
+
+	t.Run("OIDC_nonce_required_for_code_id_token_response_type", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET",
+			"/authorize?client_id="+cfg.ClientID+
+				"&response_type="+url.QueryEscape("code id_token")+
+				"&state=test-state&response_mode=fragment", nil)
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+
+		var body map[string]interface{}
+		json.Unmarshal(w.Body.Bytes(), &body)
+		assert.Equal(t, "invalid_request", body["error"],
+			"OIDC Core: missing nonce for response_type=code id_token MUST return invalid_request")
+	})
+
+	t.Run("OIDC_nonce_not_required_for_code_response_type", func(t *testing.T) {
+		// nonce is OPTIONAL for response_type=code — should NOT return 400
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET",
+			"/authorize?client_id="+cfg.ClientID+
+				"&response_type=code&state=test-state&response_mode=query", nil)
+		router.ServeHTTP(w, req)
+
+		// Should NOT be 400 for missing nonce (it will redirect to login)
+		assert.NotEqual(t, http.StatusBadRequest, w.Code,
+			"nonce is optional for response_type=code — should not return 400")
+	})
+
+	t.Run("OIDC_nonce_not_required_for_token_response_type", func(t *testing.T) {
+		// nonce is OPTIONAL for response_type=token (pure OAuth 2.0)
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET",
+			"/authorize?client_id="+cfg.ClientID+
+				"&response_type=token&state=test-state&response_mode=fragment", nil)
+		router.ServeHTTP(w, req)
+
+		assert.NotEqual(t, http.StatusBadRequest, w.Code,
+			"nonce is optional for response_type=token — should not return 400")
+	})
+
+	t.Run("OIDC_query_mode_rejected_for_token_response_type", func(t *testing.T) {
+		// Tokens MUST NOT be encoded in query strings
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET",
+			"/authorize?client_id="+cfg.ClientID+
+				"&response_type=token&state=test-state&response_mode=query", nil)
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+
+		var body map[string]interface{}
+		json.Unmarshal(w.Body.Bytes(), &body)
+		assert.Equal(t, "invalid_request", body["error"],
+			"query response_mode MUST be rejected for response_type=token")
+	})
+
+	t.Run("OIDC_query_mode_rejected_for_id_token_response_type", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET",
+			"/authorize?client_id="+cfg.ClientID+
+				"&response_type=id_token&state=test-state&response_mode=query&nonce=test-nonce", nil)
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+
+		var body map[string]interface{}
+		json.Unmarshal(w.Body.Bytes(), &body)
+		assert.Equal(t, "invalid_request", body["error"],
+			"query response_mode MUST be rejected for response_type=id_token")
+	})
+
+	t.Run("OIDC_query_mode_rejected_for_hybrid_response_types", func(t *testing.T) {
+		for _, rt := range []string{"code id_token", "code token", "code id_token token"} {
+			w := httptest.NewRecorder()
+			req, _ := http.NewRequest("GET",
+				"/authorize?client_id="+cfg.ClientID+
+					"&response_type="+url.QueryEscape(rt)+
+					"&state=test-state&response_mode=query&nonce=test-nonce", nil)
+			router.ServeHTTP(w, req)
+
+			assert.Equal(t, http.StatusBadRequest, w.Code,
+				"query response_mode MUST be rejected for response_type=%s", rt)
+		}
 	})
 }
 

@@ -5,6 +5,7 @@ import (
 	"crypto/subtle"
 	"encoding/base64"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -42,10 +43,10 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 
 		var reqBody RequestBody
 		if err := gc.Bind(&reqBody); err != nil {
-			log.Debug().Err(err).Msg("failed to bind json")
+			log.Debug().Err(err).Msg("failed to bind request body")
 			gc.JSON(http.StatusBadRequest, gin.H{
-				"error":             "error_binding_json",
-				"error_description": err.Error(),
+				"error":             "invalid_request",
+				"error_description": "Failed to parse request body",
 			})
 			return
 		}
@@ -111,6 +112,7 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 		var roles, scope []string
 		loginMethod := ""
 		sessionKey := ""
+		oidcNonce := "" // OIDC nonce from the original /authorize request
 
 		if isAuthorizationCodeGrant {
 			if code == "" {
@@ -122,13 +124,6 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 				return
 			}
 
-			if codeVerifier == "" && clientSecret == "" {
-				gc.JSON(http.StatusBadRequest, gin.H{
-					"error":             "invalid_request",
-					"error_description": "Either code_verifier or client_secret is required",
-				})
-				return
-			}
 			// Get state
 			sessionData, err := h.MemoryStoreProvider.GetState(code)
 			if sessionData == "" || err != nil {
@@ -140,29 +135,119 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 				return
 			}
 
-			// [0] -> code_challenge
+			// [0] -> code_challenge (may contain "::method" suffix) or empty
 			// [1] -> session cookie
+			// [2] -> OIDC nonce from /authorize request (optional)
+			// [3] -> redirect_uri from /authorize request (optional, for RFC 6749 §4.1.3)
 			sessionDataSplit := strings.Split(sessionData, "@@")
 
 			// RFC 6749 §4.1.2: Authorization codes MUST be single-use.
 			// Delete synchronously to prevent race condition allowing code reuse.
 			h.MemoryStoreProvider.RemoveState(code)
 
-			if codeVerifier != "" {
-				hash := sha256.New()
-				hash.Write([]byte(codeVerifier))
-				encryptedCode := strings.ReplaceAll(base64.RawURLEncoding.EncodeToString(hash.Sum(nil)), "+", "-")
-				encryptedCode = strings.ReplaceAll(encryptedCode, "/", "_")
-				encryptedCode = strings.ReplaceAll(encryptedCode, "=", "")
-				if encryptedCode != sessionDataSplit[0] {
+			// RFC 6749 §4.1.3: If redirect_uri was included in the authorization
+			// request, the token request MUST include the identical redirect_uri.
+			storedRedirectURI := ""
+			if len(sessionDataSplit) > 3 {
+				storedRedirectURI, _ = url.QueryUnescape(sessionDataSplit[3])
+			}
+			requestRedirectURI := strings.TrimSpace(reqBody.RedirectURI)
+			if storedRedirectURI != "" {
+				if requestRedirectURI == "" {
 					gc.JSON(http.StatusBadRequest, gin.H{
-						"error":             "invalid_grant",
-						"error_description": "The code_verifier does not match the code_challenge",
+						"error":             "invalid_request",
+						"error_description": "redirect_uri is required when it was included in the authorization request",
 					})
 					return
 				}
+				if subtle.ConstantTimeCompare([]byte(requestRedirectURI), []byte(storedRedirectURI)) != 1 {
+					gc.JSON(http.StatusBadRequest, gin.H{
+						"error":             "invalid_grant",
+						"error_description": "redirect_uri does not match the one used in the authorization request",
+					})
+					return
+				}
+			}
 
-			} else {
+			// Parse code_challenge and method from stored state.
+			// Format: "challenge::method" or just "challenge" (legacy, defaults to S256)
+			// or empty string (no PKCE — confidential client).
+			storedChallenge := sessionDataSplit[0]
+			storedMethod := "S256"
+			if idx := strings.LastIndex(storedChallenge, "::"); idx >= 0 {
+				storedMethod = storedChallenge[idx+2:]
+				storedChallenge = storedChallenge[:idx]
+			}
+
+			// RFC 7636 §4.5: If PKCE was used at /authorize, the token request
+			// MUST include code_verifier. This is orthogonal to client authentication.
+			if storedChallenge != "" && codeVerifier != "" {
+				// PKCE was used — verify code_verifier against stored challenge
+				switch storedMethod {
+				case "S256":
+					hash := sha256.New()
+					hash.Write([]byte(codeVerifier))
+					computed := base64.RawURLEncoding.EncodeToString(hash.Sum(nil))
+					// RFC 7636 Appendix B: code_challenge uses BASE64URL without padding.
+					// Tolerate clients that send padding ('=') by stripping it before comparison.
+					normalizedChallenge := strings.TrimRight(storedChallenge, "=")
+					if subtle.ConstantTimeCompare([]byte(computed), []byte(normalizedChallenge)) != 1 {
+						gc.JSON(http.StatusBadRequest, gin.H{
+							"error":             "invalid_grant",
+							"error_description": "The code_verifier does not match the code_challenge",
+						})
+						return
+					}
+				case "plain":
+					// RFC 7636 §4.6: plain method — code_verifier == code_challenge
+					if subtle.ConstantTimeCompare([]byte(codeVerifier), []byte(storedChallenge)) != 1 {
+						gc.JSON(http.StatusBadRequest, gin.H{
+							"error":             "invalid_grant",
+							"error_description": "The code_verifier does not match the code_challenge",
+						})
+						return
+					}
+				default:
+					gc.JSON(http.StatusBadRequest, gin.H{
+						"error":             "invalid_request",
+						"error_description": "Unsupported code_challenge_method",
+					})
+					return
+				}
+			} else if storedChallenge != "" && codeVerifier == "" {
+				// PKCE was used at /authorize but client didn't send code_verifier
+				gc.JSON(http.StatusBadRequest, gin.H{
+					"error":             "invalid_request",
+					"error_description": "code_verifier is required when code_challenge was used",
+				})
+				return
+			} else if storedChallenge == "" && codeVerifier != "" {
+				// code_verifier sent but no code_challenge was registered at /authorize.
+				// Reject to prevent an attacker from bypassing client_secret by
+				// supplying an arbitrary code_verifier.
+				gc.JSON(http.StatusBadRequest, gin.H{
+					"error":             "invalid_request",
+					"error_description": "code_verifier was provided but no code_challenge was registered",
+				})
+				return
+			}
+
+			// RFC 6749 §4.1.3: Confidential clients MUST authenticate regardless
+			// of whether PKCE was used. PKCE protects against authorization code
+			// interception; client authentication is a separate concern.
+			// When no PKCE was used, client_secret is the sole proof of identity.
+			if storedChallenge == "" && codeVerifier == "" {
+				// No PKCE — client_secret is required
+				if clientSecret == "" {
+					gc.JSON(http.StatusBadRequest, gin.H{
+						"error":             "invalid_request",
+						"error_description": "Either code_verifier or client_secret is required",
+					})
+					return
+				}
+			}
+			// Always validate client_secret when provided (confidential client).
+			if clientSecret != "" {
 				if subtle.ConstantTimeCompare([]byte(clientSecret), []byte(h.Config.ClientSecret)) != 1 {
 					log.Debug().Msg("Client secret is invalid")
 					gc.JSON(http.StatusUnauthorized, gin.H{
@@ -189,6 +274,11 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 			scope = claims.Scope
 			loginMethod = claims.LoginMethod
 
+			// Extract OIDC nonce from stored code data (third @@-separated part).
+			if len(sessionDataSplit) > 2 {
+				oidcNonce = sessionDataSplit[2]
+			}
+
 			// rollover the session for security
 			sessionKey = userID
 			if loginMethod != "" {
@@ -212,8 +302,8 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 			if err != nil {
 				log.Debug().Err(err).Msg("Error validating refresh token")
 				gc.JSON(http.StatusUnauthorized, gin.H{
-					"error":             "unauthorized",
-					"error_description": err.Error(),
+					"error":             "invalid_grant",
+					"error_description": "The refresh token is invalid or has expired",
 				})
 				return
 			}
@@ -314,15 +404,13 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 		}
 		hostname := parsers.GetHost(gc)
 		nonce := uuid.New().String()
-		if code != "" {
-			nonce = nonce + "@@" + code
-		}
 		authToken, err := h.TokenProvider.CreateAuthToken(gc, &token.AuthTokenConfig{
 			User:        user,
 			Roles:       roles,
 			Scope:       scope,
 			LoginMethod: loginMethod,
 			Nonce:       nonce,
+			OIDCNonce:   oidcNonce,
 			HostName:    hostname,
 		})
 		if err != nil {
