@@ -150,12 +150,13 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 		}
 
 		codeChallengeMethod := strings.TrimSpace(gc.Query("code_challenge_method"))
-		// RFC 7636 §4.3: Default to S256 if code_challenge is present but method is not specified
-		// Note: We only support S256 as it is mandatory to implement per RFC 7636
-		fmt.Println("==> codeChallengeMethod: ", codeChallengeMethod)
-		fmt.Println("==> codeChallenge: ", codeChallenge)
+		// RFC 7636 §4.2: "If the client is capable of using
+		// "S256", it MUST use "S256" [...] If the server does not
+		// support the transformation, [...] it MUST return [...].
+		// If no code_challenge_method is present, the server MUST
+		// use "plain" as the default."
 		if codeChallengeMethod == "" && codeChallenge != "" {
-			codeChallengeMethod = "S256"
+			codeChallengeMethod = "plain"
 		}
 		// RFC 7636 §4.2: servers MUST support plain and S256
 		if codeChallengeMethod != "" && codeChallengeMethod != "S256" && codeChallengeMethod != "plain" {

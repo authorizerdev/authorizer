@@ -170,10 +170,10 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 			}
 
 			// Parse code_challenge and method from stored state.
-			// Format: "challenge::method" or just "challenge" (legacy, defaults to S256)
+			// Format: "challenge::method" or just "challenge" (legacy, defaults to plain per RFC 7636 §4.2)
 			// or empty string (no PKCE — confidential client).
 			storedChallenge := sessionDataSplit[0]
-			storedMethod := "S256"
+			storedMethod := "plain"
 			if idx := strings.LastIndex(storedChallenge, "::"); idx >= 0 {
 				storedMethod = storedChallenge[idx+2:]
 				storedChallenge = storedChallenge[:idx]
