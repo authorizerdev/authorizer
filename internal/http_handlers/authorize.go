@@ -880,6 +880,10 @@ func (h *httpProvider) validateAuthorizeRequest(responseType, responseMode, clie
 		return "invalid_request", fmt.Sprintf("response_mode=query is not allowed for response_type=%s; use fragment or form_post", responseType)
 	}
 
+	if h.Config.ClientID != clientID {
+		return "unauthorized_client", "client_id is invalid"
+	}
+
 	return "", ""
 }
 

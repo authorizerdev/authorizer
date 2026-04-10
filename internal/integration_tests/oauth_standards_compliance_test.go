@@ -399,7 +399,9 @@ func TestTokenEndpointCompliance(t *testing.T) {
 		code := uuid.New().String()
 
 		sessionToken := "test-session-token"
-		ts.MemoryStoreProvider.SetState(code, codeChallenge+"@@"+sessionToken+"@@test-nonce")
+		// Format: "challenge::method@@session@@nonce" — S256 must be explicit
+		// since the default is now plain per RFC 7636 §4.2.
+		ts.MemoryStoreProvider.SetState(code, codeChallenge+"::S256@@"+sessionToken+"@@test-nonce")
 
 		form := url.Values{}
 		form.Set("grant_type", "authorization_code")
@@ -799,8 +801,10 @@ func TestAuthorizeEndpointCompliance(t *testing.T) {
 
 		var body map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &body)
-		assert.Contains(t, body["error"].(string), "state",
-			"RFC 6749: missing state parameter MUST return error")
+		assert.Equal(t, "invalid_request", body["error"].(string),
+			"RFC 6749: missing state parameter MUST return invalid_request error code")
+		assert.Contains(t, body["error_description"].(string), "state",
+			"RFC 6749: error_description should mention state")
 	})
 
 	t.Run("RFC6749_invalid_response_type_returns_error", func(t *testing.T) {
