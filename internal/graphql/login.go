@@ -305,7 +305,7 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 		}()
 		return &model.AuthResponse{
 			Message:                  "Please check email inbox for the OTP",
-			ShouldShowEmailOtpScreen: refs.NewBoolRef(isMobileLogin),
+			ShouldShowEmailOtpScreen: refs.NewBoolRef(isEmailLogin),
 		}, nil
 	}
 	// If multi factor authentication is enabled and is sms based login and sms otp is enabled
@@ -440,7 +440,7 @@ func (g *graphqlProvider) Login(ctx context.Context, params *model.LoginRequest)
 		User:        user.AsAPIUser(),
 	}
 
-	cookie.SetSession(gc, authToken.FingerPrintHash, g.Config.AppCookieSecure)
+	cookie.SetSession(gc, authToken.FingerPrintHash, g.Config.AppCookieSecure, cookie.ParseSameSite(g.Config.AppCookieSameSite))
 	sessionStoreKey := constants.AuthRecipeMethodBasicAuth + ":" + user.ID
 	g.MemoryStoreProvider.SetUserSession(sessionStoreKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt)
 	g.MemoryStoreProvider.SetUserSession(sessionStoreKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt)

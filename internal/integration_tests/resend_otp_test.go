@@ -145,13 +145,14 @@ func TestResendOTP(t *testing.T) {
 		assert.NotNil(t, resendRes)
 		assert.Equal(t, "OTP has been sent. Please check your inbox", resendRes.Message)
 	})
-	t.Run("should fail if request for given email or phone number does not exists", func(t *testing.T) {
+	t.Run("should return success even if phone number does not exist (enumeration prevention)", func(t *testing.T) {
 		resendReq := &model.ResendOTPRequest{
 			PhoneNumber: refs.NewStringRef("2131231212"),
 		}
 		resendRes, err := ts.GraphQLProvider.ResendOTP(ctx, resendReq)
-		assert.Error(t, err)
-		assert.Nil(t, resendRes)
+		assert.NoError(t, err)
+		assert.NotNil(t, resendRes)
+		assert.Equal(t, "If an account exists, an OTP has been sent", resendRes.Message)
 	})
 	t.Run("should send resend request{mobile}", func(t *testing.T) {
 		resendReq := &model.ResendOTPRequest{

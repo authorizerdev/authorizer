@@ -203,7 +203,7 @@ func (g *graphqlProvider) UpdateProfile(ctx context.Context, params *model.Updat
 		}
 
 		go g.MemoryStoreProvider.DeleteAllUserSessions(user.ID)
-		go cookie.DeleteSession(gc, g.Config.AppCookieSecure)
+		go cookie.DeleteSession(gc, g.Config.AppCookieSecure, cookie.ParseSameSite(g.Config.AppCookieSameSite))
 
 		user.Email = &newEmail
 		isEmailVerificationEnabled := g.Config.EnableEmailVerification

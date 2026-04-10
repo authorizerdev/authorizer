@@ -69,7 +69,7 @@ func (h *httpProvider) OpenIDConfigurationHandler() gin.HandlerFunc {
 		}
 
 		// Discovery metadata changes infrequently; allow caching.
-		c.Header("Cache-Control", "public, max-age=3600")
+		c.Header("Cache-Control", "public, max-age=300")
 		c.JSON(200, resp)
 	}
 }

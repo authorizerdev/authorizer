@@ -502,7 +502,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				handleResponse(gc, responseMode, authURL, redirectURI, loginError, http.StatusOK)
 				return
 			}
-			cookie.SetSession(gc, authToken.FingerPrintHash, h.Config.AppCookieSecure)
+			cookie.SetSession(gc, authToken.FingerPrintHash, h.Config.AppCookieSecure, cookie.ParseSameSite(h.Config.AppCookieSameSite))
 			expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
 			if expiresIn <= 0 {
 				expiresIn = 1
@@ -582,7 +582,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				handleResponse(gc, responseMode, authURL, redirectURI, loginError, http.StatusOK)
 				return
 			}
-			cookie.SetSession(gc, authToken.FingerPrintHash, h.Config.AppCookieSecure)
+			cookie.SetSession(gc, authToken.FingerPrintHash, h.Config.AppCookieSecure, cookie.ParseSameSite(h.Config.AppCookieSameSite))
 
 			expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
 			if expiresIn <= 0 {
@@ -657,7 +657,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				return
 			}
 
-			cookie.SetSession(gc, newSessionToken, h.Config.AppCookieSecure)
+			cookie.SetSession(gc, newSessionToken, h.Config.AppCookieSecure, cookie.ParseSameSite(h.Config.AppCookieSameSite))
 
 			// in case, response type is code and user is already logged in send the code and state
 			// and cookie session will already be rolled over and set
@@ -724,7 +724,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				return
 			}
 
-			cookie.SetSession(gc, authToken.FingerPrintHash, h.Config.AppCookieSecure)
+			cookie.SetSession(gc, authToken.FingerPrintHash, h.Config.AppCookieSecure, cookie.ParseSameSite(h.Config.AppCookieSameSite))
 
 			// OIDC Core §3.2.2.5: response params are id_token + state only.
 			// The nonce is carried inside the id_token JWT claims (not as a
@@ -782,7 +782,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				return
 			}
 
-			cookie.SetSession(gc, authToken.FingerPrintHash, h.Config.AppCookieSecure)
+			cookie.SetSession(gc, authToken.FingerPrintHash, h.Config.AppCookieSecure, cookie.ParseSameSite(h.Config.AppCookieSameSite))
 
 			expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
 			if expiresIn <= 0 {

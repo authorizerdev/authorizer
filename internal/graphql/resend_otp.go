@@ -45,7 +45,9 @@ func (g *graphqlProvider) ResendOTP(ctx context.Context, params *model.ResendOTP
 		user, err = g.StorageProvider.GetUserByEmail(ctx, email)
 		if err != nil {
 			log.Debug().Err(err).Msg("Failed to get user by email")
-			return nil, fmt.Errorf(`user with this email/phone not found`)
+			return &model.Response{
+				Message: "If an account exists, an OTP has been sent",
+			}, nil
 		}
 	} else {
 		isSMSServiceEnabled = g.Config.IsSMSServiceEnabled
@@ -56,12 +58,16 @@ func (g *graphqlProvider) ResendOTP(ctx context.Context, params *model.ResendOTP
 		user, err = g.StorageProvider.GetUserByPhoneNumber(ctx, phoneNumber)
 		if err != nil {
 			log.Debug().Err(err).Msg("Failed to get user by phone number")
-			return nil, fmt.Errorf(`user with this email/phone not found`)
+			return &model.Response{
+				Message: "If an account exists, an OTP has been sent",
+			}, nil
 		}
 	}
 	if user.RevokedTimestamp != nil {
 		log.Debug().Msg("User access has been revoked")
-		return nil, fmt.Errorf(`user access has been revoked`)
+		return &model.Response{
+			Message: "If an account exists, an OTP has been sent",
+		}, nil
 	}
 
 	// Block OTP resend when MFA is disabled and both email & phone are
@@ -83,10 +89,14 @@ func (g *graphqlProvider) ResendOTP(ctx context.Context, params *model.ResendOTP
 	var otpData *schemas.OTP
 	if email != "" {
 		otpData, err = g.StorageProvider.GetOTPByEmail(ctx, email)
-		log.Debug().Msg("Failed to get otp for given email")
+		if err != nil {
+			log.Debug().Err(err).Msg("Failed to get otp for given email")
+		}
 	} else {
 		otpData, err = g.StorageProvider.GetOTPByPhoneNumber(ctx, phoneNumber)
-		log.Debug().Msg("Failed to get otp for given phone number")
+		if err != nil {
+			log.Debug().Err(err).Msg("Failed to get otp for given phone number")
+		}
 	}
 	if err != nil {
 		return nil, err

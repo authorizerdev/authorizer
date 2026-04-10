@@ -90,7 +90,7 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 		}
 
 		if h.Config.ClientID != clientID {
-			log.Debug().Str("client_id", clientID).Msg("Client ID is invalid")
+			log.Debug().Msg("Client ID is invalid")
 			metrics.RecordSecurityEvent("invalid_client", "token_endpoint")
 			// RFC 6749 §5.2: If client auth fails via HTTP Basic, return 401
 			if _, _, hasBasicAuth := gc.Request.BasicAuth(); hasBasicAuth {
@@ -444,7 +444,7 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 				})
 				return
 			}
-			cookie.SetSession(gc, authToken.FingerPrintHash, h.Config.AppCookieSecure)
+			cookie.SetSession(gc, authToken.FingerPrintHash, h.Config.AppCookieSecure, cookie.ParseSameSite(h.Config.AppCookieSameSite))
 		}
 
 		if err := h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt); err != nil {

@@ -141,7 +141,7 @@ func (g *graphqlProvider) Session(ctx context.Context, params *model.SessionQuer
 		User:        user.AsAPIUser(),
 	}
 
-	cookie.SetSession(gc, authToken.FingerPrintHash, g.Config.AppCookieSecure)
+	cookie.SetSession(gc, authToken.FingerPrintHash, g.Config.AppCookieSecure, cookie.ParseSameSite(g.Config.AppCookieSameSite))
 	g.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt)
 	g.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt)
 

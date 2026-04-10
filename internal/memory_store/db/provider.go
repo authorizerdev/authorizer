@@ -278,8 +278,10 @@ func (p *provider) GetAndRemoveState(key string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("not found")
 	}
-	// Always delete regardless of TTL — single-use.
-	p.deleteOAuthStateByKey(ctx, key)
+	// Delete immediately after retrieval; a concurrent request will fail on getOAuthStateByKey.
+	if err := p.deleteOAuthStateByKey(ctx, key); err != nil {
+		return "", fmt.Errorf("not found")
+	}
 	// Enforce 10-minute TTL.
 	if oauthState.CreatedAt > 0 && time.Now().Unix()-oauthState.CreatedAt > 600 {
 		return "", fmt.Errorf("state expired")

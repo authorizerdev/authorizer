@@ -175,7 +175,9 @@ func TestConsumeAuthorizeState_MissingKey_ReturnsEmpty(t *testing.T) {
 	}
 
 	code, codeChallenge, nonce, redirectURI, err := h.consumeAuthorizeState("does-not-exist")
-	require.NoError(t, err)
+	// GetAndRemoveState returns an error for missing keys; consumeAuthorizeState propagates it.
+	// The caller (oauth_callback) handles this gracefully.
+	require.Error(t, err)
 	require.Empty(t, code)
 	require.Empty(t, codeChallenge)
 	require.Empty(t, nonce)

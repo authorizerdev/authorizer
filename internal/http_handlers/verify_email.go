@@ -189,7 +189,7 @@ func (h *httpProvider) VerifyEmailHandler() gin.HandlerFunc {
 		}
 
 		sessionKey := loginMethod + ":" + user.ID
-		cookie.SetSession(c, authToken.FingerPrintHash, h.Config.AppCookieSecure)
+		cookie.SetSession(c, authToken.FingerPrintHash, h.Config.AppCookieSecure, cookie.ParseSameSite(h.Config.AppCookieSameSite))
 		h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt)
 		h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt)
 

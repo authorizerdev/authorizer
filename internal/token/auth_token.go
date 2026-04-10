@@ -2,6 +2,7 @@ package token
 
 import (
 	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -308,7 +309,7 @@ func (p *provider) ValidateAccessToken(gc *gin.Context, accessToken string) (map
 		return res, fmt.Errorf(`unauthorized`)
 	}
 
-	if token != accessToken {
+	if subtle.ConstantTimeCompare([]byte(token), []byte(accessToken)) != 1 {
 		p.dependencies.Log.Debug().Msgf("invalid access token: %s, key: %s", err, sessionKey+":"+constants.TokenTypeAccessToken+"_"+nonce)
 		return res, fmt.Errorf(`unauthorized`)
 	}
@@ -359,7 +360,7 @@ func (p *provider) ValidateRefreshToken(gc *gin.Context, refreshToken string) (m
 		return res, fmt.Errorf(`unauthorized`)
 	}
 
-	if token != refreshToken {
+	if subtle.ConstantTimeCompare([]byte(token), []byte(refreshToken)) != 1 {
 		p.dependencies.Log.Debug().Msgf("invalid refresh token: %s, key: %s", err, sessionKey+":"+constants.TokenTypeRefreshToken+"_"+nonce)
 		return res, fmt.Errorf(`unauthorized`)
 	}
@@ -406,7 +407,7 @@ func (p *provider) ValidateBrowserSession(gc *gin.Context, encryptedSession stri
 		return nil, fmt.Errorf(`unauthorized`)
 	}
 
-	if encryptedSession != token {
+	if subtle.ConstantTimeCompare([]byte(encryptedSession), []byte(token)) != 1 {
 		return nil, fmt.Errorf(`unauthorized: invalid nonce`)
 	}
 

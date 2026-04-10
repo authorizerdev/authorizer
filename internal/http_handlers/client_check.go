@@ -27,7 +27,11 @@ func (h *httpProvider) ClientCheckMiddleware() gin.HandlerFunc {
 		if clientID == "" {
 			log.Debug().Msg("request received without client ID header")
 			metrics.RecordClientIDHeaderMissing()
-			c.Next()
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":             "invalid_client_id",
+				"error_description": "The X-Authorizer-Client-ID header is required",
+			})
+			c.Abort()
 			return
 		}
 

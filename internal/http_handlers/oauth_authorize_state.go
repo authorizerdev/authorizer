@@ -17,7 +17,7 @@ func (h *httpProvider) consumeAuthorizeState(stateValue string) (code, codeChall
 		return "", "", "", "", nil
 	}
 
-	authorizeState, err := h.MemoryStoreProvider.GetState(stateValue)
+	authorizeState, err := h.MemoryStoreProvider.GetAndRemoveState(stateValue)
 	if err != nil || authorizeState == "" {
 		return "", "", "", "", err
 	}
@@ -40,9 +40,6 @@ func (h *httpProvider) consumeAuthorizeState(stateValue string) (code, codeChall
 	} else {
 		nonce = authorizeState
 	}
-
-	// Consume authorize state; it should be single-use.
-	_ = h.MemoryStoreProvider.RemoveState(stateValue)
 
 	return code, codeChallenge, nonce, redirectURI, nil
 }

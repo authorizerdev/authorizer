@@ -56,17 +56,23 @@ func (p *provider) DeleteUserSession(userId, key string) error {
 
 // DeleteAllUserSessions deletes all the user session from redis
 func (p *provider) DeleteAllUserSessions(userID string) error {
-	res := p.store.Keys(p.ctx, fmt.Sprintf("*%s*", userID))
-	if res.Err() != nil {
-		p.dependencies.Log.Debug().Err(res.Err()).Msg("Error getting all user sessions from redis")
-		return res.Err()
-	}
-	keys := res.Val()
-	for _, key := range keys {
-		err := p.store.Del(p.ctx, key).Err()
+	var cursor uint64
+	pattern := fmt.Sprintf("%s:*", userID)
+	for {
+		keys, nextCursor, err := p.store.Scan(p.ctx, cursor, pattern, 100).Result()
 		if err != nil {
-			p.dependencies.Log.Debug().Err(err).Msg("Error deleting all user sessions from redis")
-			continue
+			p.dependencies.Log.Debug().Err(err).Msg("Error scanning user sessions from redis")
+			return err
+		}
+		for _, key := range keys {
+			if err := p.store.Del(p.ctx, key).Err(); err != nil {
+				p.dependencies.Log.Debug().Err(err).Msg("Error deleting user session from redis")
+				continue
+			}
+		}
+		cursor = nextCursor
+		if cursor == 0 {
+			break
 		}
 	}
 	return nil

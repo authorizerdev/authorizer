@@ -36,7 +36,7 @@ func (g *graphqlProvider) Logout(ctx context.Context) (*model.Response, error) {
 		log.Debug().Err(err).Msg("Failed to delete user session")
 		return nil, err
 	}
-	cookie.DeleteSession(gc, g.Config.AppCookieSecure)
+	cookie.DeleteSession(gc, g.Config.AppCookieSecure, cookie.ParseSameSite(g.Config.AppCookieSameSite))
 	metrics.RecordAuthEvent(metrics.EventLogout, metrics.StatusSuccess)
 	metrics.ActiveSessions.Dec()
 	g.AuditProvider.LogEvent(audit.Event{
