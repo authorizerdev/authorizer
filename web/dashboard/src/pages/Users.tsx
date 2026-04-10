@@ -1,52 +1,49 @@
 import React from 'react';
 import { useClient } from 'urql';
 import dayjs from 'dayjs';
+import { toast } from 'sonner';
 import {
-	Box,
-	Flex,
-	IconButton,
-	NumberDecrementStepper,
-	NumberIncrementStepper,
-	NumberInput,
-	NumberInputField,
-	NumberInputStepper,
-	Select,
-	Table,
-	Tag,
-	Tbody,
-	Td,
-	Text,
-	TableCaption,
-	Th,
-	Thead,
-	Tooltip,
-	Tr,
-	Button,
-	Center,
-	Menu,
-	MenuButton,
-	MenuList,
-	MenuItem,
-	useToast,
-	Spinner,
-	TableContainer,
-} from '@chakra-ui/react';
-import {
-	FaAngleLeft,
-	FaAngleRight,
-	FaAngleDoubleLeft,
-	FaAngleDoubleRight,
-	FaExclamationCircle,
-	FaAngleDown,
-} from 'react-icons/fa';
+	ChevronsLeft,
+	ChevronsRight,
+	ChevronLeft,
+	ChevronRight,
+	ChevronDown,
+	AlertCircle,
+} from 'lucide-react';
 import { UserDetailsQuery } from '../graphql/queries';
 import { EnableAccess, RevokeAccess, UpdateUser } from '../graphql/mutation';
 import { getGraphQLErrorMessage } from '../utils';
 import EditUserModal from '../components/EditUserModal';
 import DeleteUserModal from '../components/DeleteUserModal';
 import InviteMembersModal from '../components/InviteMembersModal';
+import { Button } from '../components/ui/button';
+import { Badge } from '../components/ui/badge';
+import { Input } from '../components/ui/input';
+import { Select } from '../components/ui/select';
+import { Skeleton } from '../components/ui/skeleton';
+import {
+	Tooltip,
+	TooltipTrigger,
+	TooltipContent,
+} from '../components/ui/tooltip';
+import {
+	DropdownMenu,
+	DropdownMenuTrigger,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuSeparator,
+} from '../components/ui/dropdown-menu';
+import {
+	Table,
+	TableHeader,
+	TableBody,
+	TableRow,
+	TableHead,
+	TableCell,
+} from '../components/ui/table';
+import type { User, UsersResponse } from '../types';
 
-interface paginationPropTypes {
+interface PaginationProps {
 	limit: number;
 	page: number;
 	offset: number;
@@ -54,41 +51,22 @@ interface paginationPropTypes {
 	maxPages: number;
 }
 
-interface userDataTypes {
-	id: string;
-	email: string;
-	email_verified: boolean;
-	given_name: string;
-	family_name: string;
-	middle_name: string;
-	nickname: string;
-	gender: string;
-	birthdate: string;
-	phone_number: string;
-	phone_number_verified: boolean;
-	picture: string;
-	signup_methods: string;
-	roles: [string];
-	created_at: number;
-	revoked_timestamp: number;
-	is_multi_factor_auth_enabled?: boolean;
-}
-
-const enum updateAccessActions {
+const enum UpdateAccessActions {
 	REVOKE = 'REVOKE',
 	ENABLE = 'ENABLE',
 }
 
-const getMaxPages = (pagination: paginationPropTypes) => {
+const getMaxPages = (pagination: PaginationProps) => {
 	const { limit, total } = pagination;
 	if (total > 1) {
 		return total % limit === 0
 			? total / limit
-			: parseInt(`${total / limit}`) + 1;
-	} else return 1;
+			: Math.floor(total / limit) + 1;
+	}
+	return 1;
 };
 
-const getLimits = (pagination: paginationPropTypes) => {
+const getLimits = (pagination: PaginationProps) => {
 	const { total } = pagination;
 	const limits = [5];
 	if (total > 10) {
@@ -101,21 +79,21 @@ const getLimits = (pagination: paginationPropTypes) => {
 
 export default function Users() {
 	const client = useClient();
-	const toast = useToast();
 	const [paginationProps, setPaginationProps] =
-		React.useState<paginationPropTypes>({
+		React.useState<PaginationProps>({
 			limit: 5,
 			page: 1,
 			offset: 0,
 			total: 0,
 			maxPages: 1,
 		});
-	const [userList, setUserList] = React.useState<userDataTypes[]>([]);
+	const [userList, setUserList] = React.useState<User[]>([]);
 	const [loading, setLoading] = React.useState<boolean>(false);
+
 	const updateUserList = async () => {
 		setLoading(true);
 		const { data } = await client
-			.query(UserDetailsQuery, {
+			.query<UsersResponse>(UserDetailsQuery, {
 				params: {
 					pagination: {
 						limit: paginationProps.limit,
@@ -126,7 +104,7 @@ export default function Users() {
 			.toPromise();
 		if (data?._users) {
 			const { pagination, users } = data._users;
-			const maxPages = getMaxPages(pagination);
+			const maxPages = getMaxPages(pagination as unknown as PaginationProps);
 			if (users && users.length > 0) {
 				setPaginationProps({ ...paginationProps, ...pagination, maxPages });
 				setUserList(users);
@@ -143,9 +121,11 @@ export default function Users() {
 		}
 		setLoading(false);
 	};
+
 	React.useEffect(() => {
 		updateUserList();
 	}, []);
+
 	React.useEffect(() => {
 		updateUserList();
 	}, [paginationProps.page, paginationProps.limit]);
@@ -154,443 +134,427 @@ export default function Users() {
 		setPaginationProps({ ...paginationProps, ...value });
 	};
 
-	const userVerificationHandler = async (user: userDataTypes) => {
+	const userVerificationHandler = async (user: User) => {
 		const { id, email, phone_number } = user;
-		let params = {};
+		let params: Record<string, unknown> = {};
 		if (email) {
-			params = {
-				id,
-				email,
-				email_verified: true,
-			};
+			params = { id, email, email_verified: true };
 		}
 		if (phone_number) {
-			params = {
-				id,
-				phone_number,
-				phone_number_verified: true,
-			};
+			params = { id, phone_number, phone_number_verified: true };
 		}
 		const res = await client
-			.mutation(UpdateUser, {
-				params,
-			})
+			.mutation(UpdateUser, { params })
 			.toPromise();
 		if (res.error) {
-			toast({
-				title: getGraphQLErrorMessage(res.error, 'User verification failed'),
-				isClosable: true,
-				status: 'error',
-				position: 'top-right',
-			});
+			toast.error(
+				getGraphQLErrorMessage(res.error, 'User verification failed'),
+			);
 		} else if (res.data?._update_user?.id) {
-			toast({
-				title: 'User verification successful',
-				isClosable: true,
-				status: 'success',
-				position: 'top-right',
-			});
+			toast.success('User verification successful');
 		}
 		updateUserList();
 	};
 
 	const updateAccessHandler = async (
 		id: string,
-		action: updateAccessActions,
+		action: UpdateAccessActions,
 	) => {
 		switch (action) {
-			case updateAccessActions.ENABLE:
+			case UpdateAccessActions.ENABLE: {
 				const enableAccessRes = await client
-					.mutation(EnableAccess, {
-						param: {
-							user_id: id,
-						},
-					})
+					.mutation(EnableAccess, { param: { user_id: id } })
 					.toPromise();
 				if (enableAccessRes.error) {
-					toast({
-						title: getGraphQLErrorMessage(enableAccessRes.error, 'User access enable failed'),
-						isClosable: true,
-						status: 'error',
-						position: 'top-right',
-					});
+					toast.error(
+						getGraphQLErrorMessage(
+							enableAccessRes.error,
+							'User access enable failed',
+						),
+					);
 				} else {
-					toast({
-						title: 'User access enabled successfully',
-						isClosable: true,
-						status: 'success',
-						position: 'top-right',
-					});
+					toast.success('User access enabled successfully');
 				}
 				updateUserList();
 				break;
-			case updateAccessActions.REVOKE:
+			}
+			case UpdateAccessActions.REVOKE: {
 				const revokeAccessRes = await client
-					.mutation(RevokeAccess, {
-						param: {
-							user_id: id,
-						},
-					})
+					.mutation(RevokeAccess, { param: { user_id: id } })
 					.toPromise();
 				if (revokeAccessRes.error) {
-					toast({
-						title: getGraphQLErrorMessage(revokeAccessRes.error, 'User access revoke failed'),
-						isClosable: true,
-						status: 'error',
-						position: 'top-right',
-					});
+					toast.error(
+						getGraphQLErrorMessage(
+							revokeAccessRes.error,
+							'User access revoke failed',
+						),
+					);
 				} else {
-					toast({
-						title: 'User access revoked successfully',
-						isClosable: true,
-						status: 'success',
-						position: 'top-right',
-					});
+					toast.success('User access revoked successfully');
 				}
 				updateUserList();
 				break;
+			}
 			default:
 				break;
 		}
 	};
-	const multiFactorAuthUpdateHandler = async (user: userDataTypes) => {
+
+	const multiFactorAuthUpdateHandler = async (user: User) => {
 		const res = await client
 			.mutation(UpdateUser, {
 				params: {
 					id: user.id,
-					is_multi_factor_auth_enabled: !user.is_multi_factor_auth_enabled,
+					is_multi_factor_auth_enabled:
+						!user.is_multi_factor_auth_enabled,
 				},
 			})
 			.toPromise();
 		if (res.data?._update_user?.id) {
-			toast({
-				title: `Multi factor authentication ${
+			toast.success(
+				`Multi factor authentication ${
 					user.is_multi_factor_auth_enabled ? 'disabled' : 'enabled'
 				} for user`,
-				isClosable: true,
-				status: 'success',
-				position: 'top-right',
-			});
+			);
 			updateUserList();
 			return;
 		}
 		if (res.error) {
-			toast({
-				title: getGraphQLErrorMessage(res.error, 'Multi factor authentication update failed for user'),
-				isClosable: true,
-				status: 'error',
-				position: 'top-right',
-			});
+			toast.error(
+				getGraphQLErrorMessage(
+					res.error,
+					'Multi factor authentication update failed for user',
+				),
+			);
 		}
 	};
 
 	return (
-		<Box m="5" py="5" px="10" bg="white" rounded="md">
-			<Flex margin="2% 0" justifyContent="space-between" alignItems="center">
-				<Text fontSize="md" fontWeight="bold">
-					Users
-				</Text>
+		<div className="m-5 rounded-md bg-white py-5 px-10">
+			<div className="flex items-center justify-between my-4">
+				<h2 className="text-base font-bold">Users</h2>
 				<InviteMembersModal updateUserList={updateUserList} />
-			</Flex>
-			{!loading ? (
-				userList.length > 0 ? (
-					<TableContainer>
-						<Table variant="simple">
-							<Thead>
-								<Tr>
-									<Th>Email / Phone</Th>
-									<Th>Created At</Th>
-									<Th>Signup Methods</Th>
-									<Th>Roles</Th>
-									<Th>Verified</Th>
-									<Th>Access</Th>
-									<Th>
-										<Tooltip label="MultiFactor Authentication Enabled / Disabled">
-											MFA
-										</Tooltip>
-									</Th>
-									<Th>Actions</Th>
-								</Tr>
-							</Thead>
-							<Tbody>
-								{userList.map((user: userDataTypes) => {
-									const {
-										email_verified,
-										phone_number_verified,
-										created_at,
-										...rest
-									}: any = user;
-									return (
-										<Tr key={user.id} style={{ fontSize: 14 }}>
-											<Td maxW="300">{user.email || user.phone_number}</Td>
-											<Td>
-												{dayjs(user.created_at * 1000).format('MMM DD, YYYY')}
-											</Td>
-											<Td>{user.signup_methods}</Td>
-											<Td>{user.roles.join(', ')}</Td>
-											<Td>
-												<Tag
-													size="sm"
-													variant="outline"
-													colorScheme={
-														user.email_verified || user.phone_number_verified
-															? 'green'
-															: 'yellow'
-													}
-												>
-													{(
-														user.email_verified || user.phone_number_verified
-													).toString()}
-												</Tag>
-											</Td>
-											<Td>
-												<Tag
-													size="sm"
-													variant="outline"
-													colorScheme={user.revoked_timestamp ? 'red' : 'green'}
-												>
-													{user.revoked_timestamp ? 'Revoked' : 'Enabled'}
-												</Tag>
-											</Td>
-											<Td>
-												<Tag
-													size="sm"
-													variant="outline"
-													colorScheme={
-														user.is_multi_factor_auth_enabled ? 'green' : 'red'
-													}
-												>
-													{user.is_multi_factor_auth_enabled
-														? 'Enabled'
-														: 'Disabled'}
-												</Tag>
-											</Td>
-											<Td>
-												<Menu>
-													<MenuButton as={Button} variant="unstyled" size="sm">
-														<Flex
-															justifyContent="space-between"
-															alignItems="center"
-														>
-															<Text fontSize="sm" fontWeight="light">
-																Menu
-															</Text>
-															<FaAngleDown style={{ marginLeft: 10 }} />
-														</Flex>
-													</MenuButton>
-													<MenuList>
-														{!user.email_verified &&
-															!user.phone_number_verified && (
-																<MenuItem
-																	onClick={() => userVerificationHandler(user)}
-																>
-																	Verify User
-																</MenuItem>
-															)}
-														<EditUserModal
-															user={rest}
-															updateUserList={updateUserList}
-														/>
-														<DeleteUserModal
-															user={rest}
-															updateUserList={updateUserList}
-														/>
-														{user.revoked_timestamp ? (
-															<MenuItem
-																onClick={() =>
-																	updateAccessHandler(
-																		user.id,
-																		updateAccessActions.ENABLE,
-																	)
-																}
-															>
-																Enable Access
-															</MenuItem>
-														) : (
-															<MenuItem
-																onClick={() =>
-																	updateAccessHandler(
-																		user.id,
-																		updateAccessActions.REVOKE,
-																	)
-																}
-															>
-																Revoke Access
-															</MenuItem>
-														)}
-														{user.is_multi_factor_auth_enabled ? (
-															<MenuItem
-																onClick={() =>
-																	multiFactorAuthUpdateHandler(user)
-																}
-															>
-																Disable MultiFactor Authentication
-															</MenuItem>
-														) : (
-															<MenuItem
-																onClick={() =>
-																	multiFactorAuthUpdateHandler(user)
-																}
-															>
-																Enable MultiFactor Authentication
-															</MenuItem>
-														)}
-													</MenuList>
-												</Menu>
-											</Td>
-										</Tr>
-									);
-								})}
-							</Tbody>
-							{(paginationProps.maxPages > 1 || paginationProps.total >= 5) && (
-								<TableCaption>
-									<Flex
-										justifyContent="space-between"
-										alignItems="center"
-										m="2% 0"
-									>
-										<Flex flex="1">
-											<Tooltip label="First Page">
-												<IconButton
-													aria-label="icon button"
-													onClick={() =>
-														paginationHandler({
-															page: 1,
-														})
-													}
-													isDisabled={paginationProps.page <= 1}
-													mr={4}
-													icon={<FaAngleDoubleLeft />}
-												/>
-											</Tooltip>
-											<Tooltip label="Previous Page">
-												<IconButton
-													aria-label="icon button"
-													onClick={() =>
-														paginationHandler({
-															page: paginationProps.page - 1,
-														})
-													}
-													isDisabled={paginationProps.page <= 1}
-													icon={<FaAngleLeft />}
-												/>
-											</Tooltip>
-										</Flex>
-										<Flex
-											flex="8"
-											justifyContent="space-evenly"
-											alignItems="center"
-										>
-											<Text mr={8}>
-												Page{' '}
-												<Text fontWeight="bold" as="span">
-													{paginationProps.page}
-												</Text>{' '}
-												of{' '}
-												<Text fontWeight="bold" as="span">
-													{paginationProps.maxPages}
-												</Text>
-											</Text>
-											<Flex alignItems="center">
-												<Text flexShrink="0">Go to page:</Text>{' '}
-												<NumberInput
-													ml={2}
-													mr={8}
-													w={28}
-													min={1}
-													max={paginationProps.maxPages}
-													onChange={(value) =>
-														paginationHandler({
-															page: parseInt(value),
-														})
-													}
-													value={paginationProps.page}
-												>
-													<NumberInputField />
-													<NumberInputStepper>
-														<NumberIncrementStepper />
-														<NumberDecrementStepper />
-													</NumberInputStepper>
-												</NumberInput>
-											</Flex>
-											<Select
-												w={32}
-												value={paginationProps.limit}
-												onChange={(e) =>
-													paginationHandler({
-														page: 1,
-														limit: parseInt(e.target.value),
-													})
+			</div>
+			{loading ? (
+				<div className="min-h-[25vh] space-y-3">
+					{[1, 2, 3, 4, 5].map((i) => (
+						<Skeleton key={i} className="h-10 w-full" />
+					))}
+				</div>
+			) : userList.length > 0 ? (
+				<>
+					<Table>
+						<TableHeader>
+							<TableRow>
+								<TableHead>Email / Phone</TableHead>
+								<TableHead>Created At</TableHead>
+								<TableHead>Signup Methods</TableHead>
+								<TableHead>Roles</TableHead>
+								<TableHead>Verified</TableHead>
+								<TableHead>Access</TableHead>
+								<TableHead>
+									<Tooltip>
+										<TooltipTrigger>MFA</TooltipTrigger>
+										<TooltipContent>
+											MultiFactor Authentication
+											Enabled/Disabled
+										</TooltipContent>
+									</Tooltip>
+								</TableHead>
+								<TableHead>Actions</TableHead>
+							</TableRow>
+						</TableHeader>
+						<TableBody>
+							{userList.map((user) => {
+								const {
+									email_verified,
+									phone_number_verified,
+									created_at,
+									...rest
+								} = user;
+								return (
+									<TableRow key={user.id}>
+										<TableCell className="max-w-[300px] truncate text-sm">
+											{user.email || user.phone_number}
+										</TableCell>
+										<TableCell className="text-sm">
+											{dayjs(
+												user.created_at * 1000,
+											).format('MMM DD, YYYY')}
+										</TableCell>
+										<TableCell className="text-sm">
+											{user.signup_methods}
+										</TableCell>
+										<TableCell className="text-sm">
+											{user.roles.join(', ')}
+										</TableCell>
+										<TableCell>
+											<Badge
+												variant={
+													user.email_verified ||
+													user.phone_number_verified
+														? 'success'
+														: 'warning'
 												}
 											>
-												{getLimits(paginationProps).map((pageSize) => (
-													<option key={pageSize} value={pageSize}>
-														Show {pageSize}
-													</option>
-												))}
-											</Select>
-										</Flex>
-										<Flex flex="1">
-											<Tooltip label="Next Page">
-												<IconButton
-													aria-label="icon button"
-													onClick={() =>
-														paginationHandler({
-															page: paginationProps.page + 1,
-														})
-													}
-													isDisabled={
-														paginationProps.page >= paginationProps.maxPages
-													}
-													icon={<FaAngleRight />}
-												/>
-											</Tooltip>
-											<Tooltip label="Last Page">
-												<IconButton
-													aria-label="icon button"
-													onClick={() =>
-														paginationHandler({
-															page: paginationProps.maxPages,
-														})
-													}
-													isDisabled={
-														paginationProps.page >= paginationProps.maxPages
-													}
-													ml={4}
-													icon={<FaAngleDoubleRight />}
-												/>
-											</Tooltip>
-										</Flex>
-									</Flex>
-								</TableCaption>
-							)}
-						</Table>
-					</TableContainer>
-				) : (
-					<Flex
-						flexDirection="column"
-						minH="25vh"
-						justifyContent="center"
-						alignItems="center"
-					>
-						<Center w="50px" marginRight="1.5%">
-							<FaExclamationCircle style={{ color: '#f0f0f0', fontSize: 70 }} />
-						</Center>
-						<Text
-							fontSize="2xl"
-							paddingRight="1%"
-							fontWeight="bold"
-							color="#d9d9d9"
-						>
-							No Data
-						</Text>
-					</Flex>
-				)
+												{(
+													user.email_verified ||
+													user.phone_number_verified
+												)?.toString()}
+											</Badge>
+										</TableCell>
+										<TableCell>
+											<Badge
+												variant={
+													user.revoked_timestamp
+														? 'destructive'
+														: 'success'
+												}
+											>
+												{user.revoked_timestamp
+													? 'Revoked'
+													: 'Enabled'}
+											</Badge>
+										</TableCell>
+										<TableCell>
+											<Badge
+												variant={
+													user.is_multi_factor_auth_enabled
+														? 'success'
+														: 'destructive'
+												}
+											>
+												{user.is_multi_factor_auth_enabled
+													? 'Enabled'
+													: 'Disabled'}
+											</Badge>
+										</TableCell>
+										<TableCell>
+											<DropdownMenu>
+												<DropdownMenuTrigger asChild>
+													<Button
+														variant="ghost"
+														size="sm"
+													>
+														<span className="text-sm font-light">
+															Menu
+														</span>
+														<ChevronDown className="ml-2 h-3 w-3" />
+													</Button>
+												</DropdownMenuTrigger>
+												<DropdownMenuContent align="end">
+													{!user.email_verified &&
+														!user.phone_number_verified && (
+															<DropdownMenuItem
+																onClick={() =>
+																	userVerificationHandler(
+																		user,
+																	)
+																}
+															>
+																Verify User
+															</DropdownMenuItem>
+														)}
+													<EditUserModal
+														user={
+															rest as unknown as {
+																id: string;
+																email: string;
+																given_name: string;
+																family_name: string;
+																middle_name: string;
+																nickname: string;
+																gender: string;
+																birthdate: string;
+																phone_number: string;
+																picture: string;
+																roles: string[];
+															}
+														}
+														updateUserList={
+															updateUserList
+														}
+													/>
+													<DeleteUserModal
+														user={rest}
+														updateUserList={
+															updateUserList
+														}
+													/>
+													<DropdownMenuSeparator />
+													{user.revoked_timestamp ? (
+														<DropdownMenuItem
+															onClick={() =>
+																updateAccessHandler(
+																	user.id,
+																	UpdateAccessActions.ENABLE,
+																)
+															}
+														>
+															Enable Access
+														</DropdownMenuItem>
+													) : (
+														<DropdownMenuItem
+															onClick={() =>
+																updateAccessHandler(
+																	user.id,
+																	UpdateAccessActions.REVOKE,
+																)
+															}
+														>
+															Revoke Access
+														</DropdownMenuItem>
+													)}
+													{user.is_multi_factor_auth_enabled ? (
+														<DropdownMenuItem
+															onClick={() =>
+																multiFactorAuthUpdateHandler(
+																	user,
+																)
+															}
+														>
+															Disable MFA
+														</DropdownMenuItem>
+													) : (
+														<DropdownMenuItem
+															onClick={() =>
+																multiFactorAuthUpdateHandler(
+																	user,
+																)
+															}
+														>
+															Enable MFA
+														</DropdownMenuItem>
+													)}
+												</DropdownMenuContent>
+											</DropdownMenu>
+										</TableCell>
+									</TableRow>
+								);
+							})}
+						</TableBody>
+					</Table>
+
+					{/* Pagination */}
+					{(paginationProps.maxPages > 1 ||
+						paginationProps.total >= 5) && (
+						<div className="mt-4 flex items-center justify-between">
+							<div className="flex gap-1">
+								<Button
+									variant="outline"
+									size="icon"
+									onClick={() =>
+										paginationHandler({ page: 1 })
+									}
+									disabled={paginationProps.page <= 1}
+								>
+									<ChevronsLeft className="h-4 w-4" />
+								</Button>
+								<Button
+									variant="outline"
+									size="icon"
+									onClick={() =>
+										paginationHandler({
+											page: paginationProps.page - 1,
+										})
+									}
+									disabled={paginationProps.page <= 1}
+								>
+									<ChevronLeft className="h-4 w-4" />
+								</Button>
+							</div>
+
+							<div className="flex items-center gap-4 text-sm">
+								<span>
+									Page{' '}
+									<strong>{paginationProps.page}</strong> of{' '}
+									<strong>
+										{paginationProps.maxPages}
+									</strong>
+								</span>
+								<div className="flex items-center gap-1">
+									<span className="whitespace-nowrap">
+										Go to:
+									</span>
+									<Input
+										type="number"
+										min={1}
+										max={paginationProps.maxPages}
+										value={paginationProps.page}
+										onChange={(e) =>
+											paginationHandler({
+												page:
+													parseInt(e.target.value) ||
+													1,
+											})
+										}
+										className="h-8 w-16"
+									/>
+								</div>
+								<Select
+									value={paginationProps.limit}
+									onChange={(e) =>
+										paginationHandler({
+											page: 1,
+											limit: parseInt(e.target.value),
+										})
+									}
+									className="h-8 w-28"
+								>
+									{getLimits(paginationProps).map(
+										(pageSize) => (
+											<option
+												key={pageSize}
+												value={pageSize}
+											>
+												Show {pageSize}
+											</option>
+										),
+									)}
+								</Select>
+							</div>
+
+							<div className="flex gap-1">
+								<Button
+									variant="outline"
+									size="icon"
+									onClick={() =>
+										paginationHandler({
+											page: paginationProps.page + 1,
+										})
+									}
+									disabled={
+										paginationProps.page >=
+										paginationProps.maxPages
+									}
+								>
+									<ChevronRight className="h-4 w-4" />
+								</Button>
+								<Button
+									variant="outline"
+									size="icon"
+									onClick={() =>
+										paginationHandler({
+											page: paginationProps.maxPages,
+										})
+									}
+									disabled={
+										paginationProps.page >=
+										paginationProps.maxPages
+									}
+								>
+									<ChevronsRight className="h-4 w-4" />
+								</Button>
+							</div>
+						</div>
+					)}
+				</>
 			) : (
-				<Center minH="25vh">
-					<Spinner />
-				</Center>
+				<div className="flex min-h-[25vh] flex-col items-center justify-center text-gray-300">
+					<AlertCircle className="h-16 w-16 mb-2" />
+					<p className="text-2xl font-bold">No Data</p>
+				</div>
 			)}
-		</Box>
+		</div>
 	);
 }

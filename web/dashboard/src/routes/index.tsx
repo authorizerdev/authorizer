@@ -3,12 +3,12 @@ import { Outlet, Route, Routes } from 'react-router-dom';
 
 import { useAuthContext } from '../contexts/AuthContext';
 import { DashboardLayout } from '../layouts/DashboardLayout';
-import EmailTemplates from '../pages/EmailTemplates';
 
 const Auth = lazy(() => import('../pages/Auth'));
 const Home = lazy(() => import('../pages/Home'));
 const Users = lazy(() => import('../pages/Users'));
 const Webhooks = lazy(() => import('../pages/Webhooks'));
+const EmailTemplates = lazy(() => import('../pages/EmailTemplates'));
 
 export const AppRoutes = () => {
 	const { isLoggedIn } = useAuthContext();

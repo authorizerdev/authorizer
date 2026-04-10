@@ -1,111 +1,75 @@
-import React from 'react';
-import {
-	Button,
-	Center,
-	Flex,
-	MenuItem,
-	Modal,
-	ModalBody,
-	ModalCloseButton,
-	ModalContent,
-	ModalFooter,
-	ModalHeader,
-	ModalOverlay,
-	useDisclosure,
-	Text,
-	useToast,
-} from '@chakra-ui/react';
+import React, { useState } from 'react';
 import { useClient } from 'urql';
-import { FaRegTrashAlt } from 'react-icons/fa';
+import { Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { DeleteUser } from '../graphql/mutation';
 import { capitalizeFirstLetter, getGraphQLErrorMessage } from '../utils';
+import { Button } from './ui/button';
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from './ui/dialog';
 
-interface userDataTypes {
-	id: string;
-	email: string;
+interface DeleteUserModalProps {
+	user: { id: string; email: string };
+	updateUserList: () => void;
 }
 
-const DeleteUserModal = ({
-	user,
-	updateUserList,
-}: {
-	user: userDataTypes;
-	updateUserList: Function;
-}) => {
+const DeleteUserModal = ({ user, updateUserList }: DeleteUserModalProps) => {
 	const client = useClient();
-	const toast = useToast();
-	const { isOpen, onOpen, onClose } = useDisclosure();
-	const [userData, setUserData] = React.useState<userDataTypes>({
-		id: '',
-		email: '',
-	});
-	React.useEffect(() => {
-		setUserData(user);
-	}, []);
+	const [open, setOpen] = useState(false);
+
 	const deleteHandler = async () => {
 		const res = await client
-			.mutation(DeleteUser, { params: { email: userData.email } })
+			.mutation(DeleteUser, { params: { email: user.email } })
 			.toPromise();
 		if (res.error) {
-			toast({
-				title: capitalizeFirstLetter(getGraphQLErrorMessage(res.error, 'Failed to delete user')),
-				isClosable: true,
-				status: 'error',
-				position: 'top-right',
-			});
-
+			toast.error(
+				capitalizeFirstLetter(
+					getGraphQLErrorMessage(res.error, 'Failed to delete user'),
+				),
+			);
 			return;
 		} else if (res.data?._delete_user) {
-			toast({
-				title: capitalizeFirstLetter(res.data?._delete_user.message),
-				isClosable: true,
-				status: 'success',
-				position: 'top-right',
-			});
+			toast.success(
+				capitalizeFirstLetter(res.data._delete_user.message),
+			);
 		}
-		onClose();
+		setOpen(false);
 		updateUserList();
 	};
-	return (
-		<>
-			<MenuItem onClick={onOpen}>Delete User</MenuItem>
-			<Modal isOpen={isOpen} onClose={onClose}>
-				<ModalOverlay />
-				<ModalContent>
-					<ModalHeader>Delete User</ModalHeader>
-					<ModalCloseButton />
-					<ModalBody>
-						<Text fontSize="md">Are you sure?</Text>
-						<Flex
-							padding="5%"
-							marginTop="5%"
-							marginBottom="2%"
-							border="1px solid #ff7875"
-							borderRadius="5px"
-							flexDirection="column"
-						>
-							<Text fontSize="sm">
-								User <b>{user.email}</b> will be deleted permanently!
-							</Text>
-						</Flex>
-					</ModalBody>
 
-					<ModalFooter>
-						<Button
-							leftIcon={<FaRegTrashAlt />}
-							colorScheme="red"
-							variant="solid"
-							onClick={deleteHandler}
-							isDisabled={false}
-						>
-							<Center h="100%" pt="5%">
-								Delete
-							</Center>
-						</Button>
-					</ModalFooter>
-				</ModalContent>
-			</Modal>
-		</>
+	return (
+		<Dialog open={open} onOpenChange={setOpen}>
+			<DialogTrigger asChild>
+				<button className="w-full text-left px-2 py-1.5 text-sm hover:bg-gray-100 rounded-sm">
+					Delete User
+				</button>
+			</DialogTrigger>
+			<DialogContent>
+				<DialogHeader>
+					<DialogTitle>Delete User</DialogTitle>
+					<DialogDescription>Are you sure?</DialogDescription>
+				</DialogHeader>
+				<div className="rounded-md border border-red-300 bg-red-50 p-4">
+					<p className="text-sm">
+						User <strong>{user.email}</strong> will be deleted
+						permanently!
+					</p>
+				</div>
+				<DialogFooter>
+					<Button variant="destructive" onClick={deleteHandler}>
+						<Trash2 className="mr-2 h-4 w-4" />
+						Delete
+					</Button>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
 	);
 };
 

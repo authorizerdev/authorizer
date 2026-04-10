@@ -1,17 +1,14 @@
-import { Text } from '@chakra-ui/react';
 import React from 'react';
 
 export default function Home() {
 	return (
 		<>
-			<Text fontSize="2xl" fontWeight="bold">
-				Hi there 👋 <br />
-			</Text>
-
-			<Text fontSize="xl" color="gray.700">
-				Welcome to Authorizer Administrative Dashboard! <br />
+			<h1 className="text-2xl font-bold">Hi there</h1>
+			<p className="text-xl text-gray-700 mt-2">
+				Welcome to Authorizer Administrative Dashboard!
+				<br />
 				Manage your users, webhooks, and email templates.
-			</Text>
+			</p>
 		</>
 	);
 }

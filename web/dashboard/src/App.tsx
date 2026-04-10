@@ -1,9 +1,9 @@
 import * as React from 'react';
-import { Fragment } from 'react';
-import { ChakraProvider, extendTheme } from '@chakra-ui/react';
 import { BrowserRouter } from 'react-router-dom';
 import { createClient, Provider } from 'urql';
-import { cacheExchange, fetchExchange } from '@urql/core';
+import { cacheExchange, fetchExchange } from 'urql';
+import { Toaster } from 'sonner';
+import { TooltipProvider } from './components/ui/tooltip';
 import { AppRoutes } from './routes';
 import { AuthContextProvider } from './contexts/AuthContext';
 
@@ -21,34 +21,17 @@ const queryClient = createClient({
 	exchanges: [cacheExchange, fetchExchange],
 });
 
-const theme = extendTheme({
-	styles: {
-		global: {
-			'html, body, #root': {
-				height: '100%',
-				outline: 'none',
-			},
-		},
-	},
-	colors: {
-		blue: {
-			500: 'rgb(59,130,246)',
-		},
-	},
-});
-
 export default function App() {
 	return (
-		<Fragment>
-			<ChakraProvider theme={theme}>
-				<Provider value={queryClient}>
-					<BrowserRouter basename="/dashboard">
-						<AuthContextProvider>
-							<AppRoutes />
-						</AuthContextProvider>
-					</BrowserRouter>
-				</Provider>
-			</ChakraProvider>
-		</Fragment>
+		<TooltipProvider>
+			<Provider value={queryClient}>
+				<BrowserRouter basename="/dashboard">
+					<AuthContextProvider>
+						<AppRoutes />
+					</AuthContextProvider>
+				</BrowserRouter>
+			</Provider>
+			<Toaster position="top-right" richColors closeButton />
+		</TooltipProvider>
 	);
 }
