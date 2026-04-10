@@ -100,6 +100,10 @@ export default function Root({
 	// Track whether we've already ensured the code state is stored.
 	const codeStateEnsured = useRef(false);
 
+	// Resolve the RP's redirect_uri: prefer the URL param (from /authorize),
+	// fall back to the SDK config, and finally to '/app' for non-OIDC flows.
+	const oidcRedirectURI = rawRedirectURL || config.redirectURL || '/app';
+
 	useEffect(() => {
 		if (!token) return;
 
@@ -124,22 +128,19 @@ export default function Root({
 				.then((res) => res.json())
 				.then((res) => {
 					if (res?.data?.session) {
-						// Use tokens from the session response (has correct c_hash/at_hash)
-						performRedirect(
-							config.redirectURL || '/app',
-							res.data.session,
-						);
+						performRedirect(oidcRedirectURI, res.data.session);
 					}
 				})
 				.catch(() => {
-					// Fallback: redirect with existing tokens
-					performRedirect(config.redirectURL || '/app', token);
+					performRedirect(oidcRedirectURI, token);
 				});
 			return;
 		}
 
 		// Non-OIDC flow or code state already ensured — redirect immediately
-		performRedirect(config.redirectURL || '/app', token);
+		if (code !== '' || rawRedirectURL) {
+			performRedirect(oidcRedirectURI, token);
+		}
 
 		return () => {};
 	}, [token, config]);
