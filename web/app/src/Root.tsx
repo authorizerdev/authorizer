@@ -1,6 +1,7 @@
 import { useEffect, useRef, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthorizer } from '@authorizerdev/authorizer-react';
+import { Authorizer } from '@authorizerdev/authorizer-js';
 import SetupPassword from './pages/setup-password';
 import { hasWindow, createRandomString } from './utils/common';
 
@@ -20,15 +21,12 @@ function isValidRedirectUri(
 ): boolean {
 	try {
 		const url = new URL(uri, window.location.origin);
-		// Only allow http and https protocols (block javascript:, data:, etc.)
 		if (url.protocol !== 'http:' && url.protocol !== 'https:') {
 			return false;
 		}
-		// Same-origin redirects are always allowed
 		if (url.origin === window.location.origin) {
 			return true;
 		}
-		// Cross-origin: only allow if it matches the configured redirect URL origin
 		if (configuredRedirectURL) {
 			try {
 				const configuredUrl = new URL(configuredRedirectURL);
@@ -41,7 +39,6 @@ function isValidRedirectUri(
 		}
 		return false;
 	} catch {
-		// If URI can't be parsed, reject it
 		return false;
 	}
 }
@@ -54,8 +51,6 @@ export default function Root({
 	const { token, loading, config } = useAuthorizer();
 
 	// Read params from both query string and fragment to support all response_modes.
-	// The /authorize handler may deliver params via ?query or #fragment depending
-	// on the response_mode requested by the RP.
 	const queryParams = new URLSearchParams(
 		hasWindow() ? window.location.search : ``,
 	);
@@ -64,7 +59,6 @@ export default function Root({
 			? window.location.hash.substring(1)
 			: ``,
 	);
-	// Prefer query params, fall back to fragment params
 	const getParam = (key: string): string =>
 		queryParams.get(key) || fragmentParams.get(key) || '';
 
@@ -97,38 +91,40 @@ export default function Root({
 
 	urlProps.redirect_uri = urlProps.redirectURL;
 
-	// Track whether we've already ensured the code state is stored.
-	const codeStateEnsured = useRef(false);
-
-	// Resolve the RP's redirect_uri: prefer the URL param (from /authorize),
-	// fall back to the SDK config, and finally to '/app' for non-OIDC flows.
+	// For OIDC flows, prefer the redirect_uri from the URL (RP's callback)
 	const oidcRedirectURI = rawRedirectURL || config.redirectURL || '/app';
+
+	// Track whether the OIDC code state has been ensured
+	const codeStateEnsured = useRef(false);
 
 	useEffect(() => {
 		if (!token) return;
 
-		// When the SDK auto-detects a session during an OIDC /authorize flow
-		// (code is in URL), the login mutation was never called, so the
-		// authorization code state was never stored. We must call the session
-		// GraphQL query WITH the state parameter so the backend stores the
-		// code state before we redirect to the RP.
+		// Detect OIDC authorize flow: code and state in URL means we came
+		// from /authorize and need to redirect back to the RP.
 		const isOIDCFlow = code !== '' && getParam('state') !== '';
+
 		if (isOIDCFlow && !codeStateEnsured.current) {
 			codeStateEnsured.current = true;
-			fetch('/graphql', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				credentials: 'include',
-				body: JSON.stringify({
-					query: `query session($params: SessionQueryRequest) { session(params: $params) { access_token id_token expires_in refresh_token } }`,
-					variables: { params: { state: getParam('state'), scope } },
-					operationName: 'session',
-				}),
-			})
-				.then((res) => res.json())
+
+			// Use authorizer-js client to call session with state parameter.
+			// This ensures the authorization code state is stored in the backend
+			// (needed when the SDK auto-detected an existing session and the
+			// login mutation was never called).
+			const authorizerClient = new Authorizer({
+				authorizerURL: window.location.origin,
+				redirectURL: oidcRedirectURI,
+				clientID: globalState.clientId || config.client_id,
+			});
+
+			authorizerClient
+				.getSession(undefined, { state: getParam('state'), scope } as any)
 				.then((res) => {
-					if (res?.data?.session) {
-						performRedirect(oidcRedirectURI, res.data.session);
+					if (res?.data) {
+						performRedirect(oidcRedirectURI, res.data);
+					} else {
+						// Session call failed, try with existing token
+						performRedirect(oidcRedirectURI, token);
 					}
 				})
 				.catch(() => {
@@ -137,8 +133,8 @@ export default function Root({
 			return;
 		}
 
-		// Non-OIDC flow or code state already ensured — redirect immediately
-		if (code !== '' || rawRedirectURL) {
+		// Non-OIDC flow with a redirect target — redirect immediately
+		if (rawRedirectURL && code !== '') {
 			performRedirect(oidcRedirectURI, token);
 		}
 
@@ -152,25 +148,19 @@ export default function Root({
 		if (!tokenData) return;
 		let redirectURL = baseRedirectURL;
 
-		// Build response params based on the response_type from the /authorize request.
-			// RFC 6749 / OIDC Core: the redirect must include exactly the params
-			// expected by the RP for the requested flow.
-			let params = '';
-			const isImplicit =
-				responseType === 'token' ||
-				responseType === 'id_token' ||
-				responseType === 'id_token token';
-			const isCodeFlow = responseType === 'code' || responseType === '';
+		let params = '';
+		const isImplicit =
+			responseType === 'token' ||
+			responseType === 'id_token' ||
+			responseType === 'id_token token';
+		const isCodeFlow = responseType === 'code' || responseType === '';
 
 		if (isCodeFlow) {
-			// Authorization Code flow: return code + state only.
-			// Tokens are exchanged at /oauth/token by the RP's backend.
 			params = `state=${encodeURIComponent(globalState.state)}`;
 			if (code !== '') {
 				params += `&code=${encodeURIComponent(code)}`;
 			}
 		} else if (isImplicit) {
-			// Implicit flow: return tokens directly.
 			params = `state=${encodeURIComponent(globalState.state)}`;
 			if (
 				tokenData.access_token &&
@@ -192,15 +182,14 @@ export default function Root({
 				params += `&nonce=${encodeURIComponent(nonce)}`;
 			}
 		} else if (responseType.includes('code')) {
-			// Hybrid flow (code id_token, code token, code id_token token):
-			// return code + relevant tokens.
 			params = `state=${encodeURIComponent(globalState.state)}`;
 			if (code !== '') {
 				params += `&code=${encodeURIComponent(code)}`;
 			}
 			if (
 				tokenData.access_token &&
-				(responseType.includes('token') && !responseType.startsWith('id_token'))
+				responseType.includes('token') &&
+				!responseType.startsWith('id_token')
 			) {
 				params += `&access_token=${encodeURIComponent(tokenData.access_token)}`;
 				params += `&token_type=Bearer`;
@@ -215,16 +204,12 @@ export default function Root({
 				params += `&nonce=${encodeURIComponent(nonce)}`;
 			}
 		} else {
-			// Fallback: send state + code (backward compat)
 			params = `state=${encodeURIComponent(globalState.state)}`;
 			if (code !== '') {
 				params += `&code=${encodeURIComponent(code)}`;
 			}
 		}
 
-		// Determine delivery mode per OIDC spec:
-		// - response_mode=query or code flow default → query string (?params)
-		// - response_mode=fragment or implicit/hybrid default → fragment (#params)
 		const useFragment =
 			responseMode === 'fragment' ||
 			(isImplicit && responseMode !== 'query' && responseMode !== 'form_post');
@@ -241,12 +226,11 @@ export default function Root({
 				}
 			}
 
-			if (url.origin !== window.location.origin) {
-				if (url.protocol === 'http:' || url.protocol === 'https:') {
-					sessionStorage.removeItem('authorizer_state');
-					window.location.replace(redirectURL);
-				}
-			} else {
+			if (
+				url.protocol === 'http:' ||
+				url.protocol === 'https:' ||
+				url.origin === window.location.origin
+			) {
 				sessionStorage.removeItem('authorizer_state');
 				window.location.replace(redirectURL);
 			}
