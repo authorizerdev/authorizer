@@ -321,7 +321,17 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			}
 		}
 
-		if forceReauth {
+		// When prompt=login and a valid session cookie exists, don't discard
+		// it. The normal flow below validates it, performs a session rollover,
+		// stores the authorization code state, and redirects to the RP.
+		// Discarding the session here would send the user to the login UI
+		// where the React SDK auto-detects the still-valid cookie, redirects
+		// immediately, but the authorization code state is never stored
+		// because the login mutation is never called.
+		//
+		// For max_age=0 or max_age-exceeded, we DO discard the session
+		// because the spec requires actual re-authentication based on time.
+		if forceReauth && !(prompt == "login" && err == nil && sessionToken != "") {
 			err = errors.New("force reauth")
 			sessionToken = ""
 		}
