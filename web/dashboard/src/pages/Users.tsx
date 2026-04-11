@@ -9,6 +9,7 @@ import {
 	ChevronRight,
 	ChevronDown,
 	AlertCircle,
+	Search,
 } from 'lucide-react';
 import { UserDetailsQuery } from '../graphql/queries';
 import { EnableAccess, RevokeAccess, UpdateUser } from '../graphql/mutation';
@@ -66,22 +67,13 @@ const getMaxPages = (pagination: PaginationProps) => {
 	return 1;
 };
 
-const getLimits = (pagination: PaginationProps) => {
-	const { total } = pagination;
-	const limits = [5];
-	if (total > 10) {
-		for (let i = 10; i <= total && limits.length <= 10; i += 5) {
-			limits.push(i);
-		}
-	}
-	return limits;
-};
+const PAGE_SIZE_OPTIONS = [10, 25, 50];
 
 export default function Users() {
 	const client = useClient();
 	const [paginationProps, setPaginationProps] =
 		React.useState<PaginationProps>({
-			limit: 5,
+			limit: 10,
 			page: 1,
 			offset: 0,
 			total: 0,
@@ -89,6 +81,7 @@ export default function Users() {
 		});
 	const [userList, setUserList] = React.useState<User[]>([]);
 	const [loading, setLoading] = React.useState<boolean>(false);
+	const [searchQuery, setSearchQuery] = React.useState('');
 
 	const updateUserList = async () => {
 		setLoading(true);
@@ -229,11 +222,33 @@ export default function Users() {
 		}
 	};
 
+	const filteredUsers = userList.filter(
+		(user) =>
+			searchQuery === '' ||
+			(user.email || '').toLowerCase().includes(searchQuery.toLowerCase()),
+	);
+
 	return (
 		<div className="m-5 rounded-md bg-white py-5 px-10">
 			<div className="flex items-center justify-between my-4">
-				<h2 className="text-base font-bold">Users</h2>
+				<div>
+					<h1 className="text-2xl font-semibold text-gray-900">Users</h1>
+					<p className="mt-1 text-sm text-gray-500">
+						Manage users, roles, and access.
+					</p>
+				</div>
 				<InviteMembersModal updateUserList={updateUserList} />
+			</div>
+			<div className="flex items-center gap-2 mb-4">
+				<div className="relative flex-1 max-w-sm">
+					<Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+					<Input
+						placeholder="Search by email..."
+						value={searchQuery}
+						onChange={(e) => setSearchQuery(e.target.value)}
+						className="pl-9"
+					/>
+				</div>
 			</div>
 			{loading ? (
 				<div className="min-h-[25vh] space-y-3">
@@ -241,7 +256,7 @@ export default function Users() {
 						<Skeleton key={i} className="h-10 w-full" />
 					))}
 				</div>
-			) : userList.length > 0 ? (
+			) : filteredUsers.length > 0 ? (
 				<>
 					<Table>
 						<TableHeader>
@@ -265,7 +280,7 @@ export default function Users() {
 							</TableRow>
 						</TableHeader>
 						<TableBody>
-							{userList.map((user) => {
+							{filteredUsers.map((user) => {
 								const {
 									email_verified,
 									phone_number_verified,
@@ -437,7 +452,7 @@ export default function Users() {
 
 					{/* Pagination */}
 					{(paginationProps.maxPages > 1 ||
-						paginationProps.total >= 5) && (
+						paginationProps.total >= 10) && (
 						<div className="mt-4 flex items-center justify-between">
 							<div className="flex gap-1">
 								<Button
@@ -501,16 +516,14 @@ export default function Users() {
 									}
 									className="h-8 w-28"
 								>
-									{getLimits(paginationProps).map(
-										(pageSize) => (
-											<option
-												key={pageSize}
-												value={pageSize}
-											>
-												Show {pageSize}
-											</option>
-										),
-									)}
+									{PAGE_SIZE_OPTIONS.map((pageSize) => (
+										<option
+											key={pageSize}
+											value={pageSize}
+										>
+											Show {pageSize}
+										</option>
+									))}
 								</Select>
 							</div>
 
