@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -25,6 +26,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 	"github.com/authorizerdev/authorizer/internal/token"
 	"github.com/authorizerdev/authorizer/internal/utils"
+	"github.com/authorizerdev/authorizer/internal/validators"
 )
 
 // AppleUserInfo is the struct for apple user info
@@ -67,9 +69,15 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 			return
 		}
 		// remove state from store
-		go h.MemoryStoreProvider.RemoveState(state)
+		h.MemoryStoreProvider.RemoveState(state)
 		stateValue := sessionSplit[0]
 		redirectURL := sessionSplit[1]
+		hostname := parsers.GetHost(ctx)
+		if !validators.IsValidRedirectURI(redirectURL, h.Config.AllowedOrigins, hostname) {
+			log.Debug().Msg("Invalid redirect URI in OAuth state")
+			ctx.JSON(400, gin.H{"error": "invalid redirect uri"})
+			return
+		}
 		inputRoles := strings.Split(sessionSplit[2], ",")
 		scopeString := sessionSplit[3]
 		scopes := parseScopes(scopeString)
@@ -174,7 +182,7 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 			user, err = h.StorageProvider.AddUser(ctx, user)
 			if err != nil {
 				log.Debug().Err(err).Msg("Failed to add user")
-				ctx.JSON(500, gin.H{"error": err.Error()})
+				ctx.JSON(500, gin.H{"error": "failed to process OAuth login"})
 				return
 			}
 			isSignUp = true
@@ -227,7 +235,7 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 				user, err = h.StorageProvider.AddUser(ctx, user)
 				if err != nil {
 					log.Debug().Err(err).Msg("Failed to add user after removing unverified account")
-					ctx.JSON(500, gin.H{"error": err.Error()})
+					ctx.JSON(500, gin.H{"error": "failed to process OAuth login"})
 					return
 				}
 				isSignUp = true
@@ -280,7 +288,7 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 				user, err = h.StorageProvider.UpdateUser(ctx, user)
 				if err != nil {
 					log.Debug().Err(err).Msg("Failed to update user")
-					ctx.JSON(500, gin.H{"error": err.Error()})
+					ctx.JSON(500, gin.H{"error": "failed to process OAuth login"})
 					return
 				}
 			}
@@ -295,14 +303,13 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 		//
 		// In the standalone social login flow (`/oauth_login/:provider`), this entry will not exist and we
 		// simply generate a nonce and continue.
-		code, codeChallenge, nonce, err := h.consumeAuthorizeState(stateValue)
+		code, codeChallenge, nonce, authorizeRedirectURI, err := h.consumeAuthorizeState(stateValue)
 		if err != nil && !errors.Is(err, goredis.Nil) {
 			log.Debug().Err(err).Str("state", stateValue).Msg("Failed to get authorize state from store")
 		}
 		if nonce == "" {
 			nonce = uuid.New().String()
 		}
-		hostname := parsers.GetHost(ctx)
 		//  user, inputRoles, scopes, provider, nonce, code
 		authToken, err := h.TokenProvider.CreateAuthToken(ctx, &token.AuthTokenConfig{
 			User:        user,
@@ -314,15 +321,15 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 		})
 		if err != nil {
 			log.Debug().Err(err).Msg("Failed to create auth token")
-			ctx.JSON(500, gin.H{"error": err.Error()})
+			ctx.JSON(500, gin.H{"error": "failed to process OAuth login"})
 			return
 		}
 
 		// Code challenge could be optional if PKCE flow is not used
 		if code != "" {
-			if err := h.MemoryStoreProvider.SetState(code, codeChallenge+"@@"+authToken.FingerPrintHash); err != nil {
+			if err := h.MemoryStoreProvider.SetState(code, codeChallenge+"@@"+authToken.FingerPrintHash+"@@"+nonce+"@@"+url.QueryEscape(authorizeRedirectURI)); err != nil {
 				log.Debug().Err(err).Msg("Failed to set state")
-				ctx.JSON(500, gin.H{"error": err.Error()})
+				ctx.JSON(500, gin.H{"error": "failed to process OAuth login"})
 				return
 			}
 		}
@@ -340,12 +347,11 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 		}
 
 		sessionKey := provider + ":" + user.ID
-		cookie.SetSession(ctx, authToken.FingerPrintHash, h.Config.AppCookieSecure)
+		cookie.SetSession(ctx, authToken.FingerPrintHash, h.Config.AppCookieSecure, cookie.ParseSameSite(h.Config.AppCookieSameSite))
 		h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt)
 		h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt)
 
 		if authToken.RefreshToken != nil {
-			params += `&refresh_token=` + authToken.RefreshToken.Token
 			h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token, authToken.RefreshToken.ExpiresAt)
 		}
 
@@ -371,7 +377,7 @@ func (h *httpProvider) OAuthCallbackHandler() gin.HandlerFunc {
 			redirectURL = redirectURL + "?" + strings.TrimPrefix(params, "&")
 		}
 		// remove state from store
-		go h.MemoryStoreProvider.RemoveState(state)
+		h.MemoryStoreProvider.RemoveState(state)
 		metrics.RecordAuthEvent(metrics.EventOAuthCallback, metrics.StatusSuccess)
 		metrics.ActiveSessions.Inc()
 		h.AuditProvider.LogEvent(audit.Event{

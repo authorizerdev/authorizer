@@ -2,6 +2,7 @@ package token
 
 import (
 	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -44,14 +45,19 @@ var reservedClaims = map[string]bool{
 type AuthTokenConfig struct {
 	LoginMethod string
 	Nonce       string
-	Code        string
-	AtHash      string
-	CodeHash    string
-	ExpireTime  string
-	User        *schemas.User
-	HostName    string
-	Roles       []string
-	Scope       []string
+	// OIDCNonce is the nonce value from the original OIDC /authorize
+	// request. When set, CreateIDToken uses this for the id_token "nonce"
+	// claim instead of Nonce. This separates the OIDC nonce (client-
+	// provided, echoed back) from the internal session nonce (Nonce).
+	OIDCNonce  string
+	Code       string
+	AtHash     string
+	CodeHash   string
+	ExpireTime string
+	User       *schemas.User
+	HostName   string
+	Roles      []string
+	Scope      []string
 	// AuthTime is the Unix timestamp (seconds) at which the user
 	// authenticated. OIDC Core §2 defines this as the `auth_time` ID
 	// token claim. If zero, CreateIDToken falls back to time.Now() so
@@ -303,7 +309,7 @@ func (p *provider) ValidateAccessToken(gc *gin.Context, accessToken string) (map
 		return res, fmt.Errorf(`unauthorized`)
 	}
 
-	if token != accessToken {
+	if subtle.ConstantTimeCompare([]byte(token), []byte(accessToken)) != 1 {
 		p.dependencies.Log.Debug().Msgf("invalid access token: %s, key: %s", err, sessionKey+":"+constants.TokenTypeAccessToken+"_"+nonce)
 		return res, fmt.Errorf(`unauthorized`)
 	}
@@ -354,7 +360,7 @@ func (p *provider) ValidateRefreshToken(gc *gin.Context, refreshToken string) (m
 		return res, fmt.Errorf(`unauthorized`)
 	}
 
-	if token != refreshToken {
+	if subtle.ConstantTimeCompare([]byte(token), []byte(refreshToken)) != 1 {
 		p.dependencies.Log.Debug().Msgf("invalid refresh token: %s, key: %s", err, sessionKey+":"+constants.TokenTypeRefreshToken+"_"+nonce)
 		return res, fmt.Errorf(`unauthorized`)
 	}
@@ -401,7 +407,7 @@ func (p *provider) ValidateBrowserSession(gc *gin.Context, encryptedSession stri
 		return nil, fmt.Errorf(`unauthorized`)
 	}
 
-	if encryptedSession != token {
+	if subtle.ConstantTimeCompare([]byte(encryptedSession), []byte(token)) != 1 {
 		return nil, fmt.Errorf(`unauthorized: invalid nonce`)
 	}
 
@@ -453,8 +459,16 @@ func (p *provider) CreateIDToken(cfg *AuthTokenConfig) (string, int64, error) {
 	if cfg.CodeHash != "" {
 		customClaims["c_hash"] = cfg.CodeHash
 	}
-	if cfg.Nonce != "" {
-		customClaims["nonce"] = cfg.Nonce
+	// OIDC Core §3.1.3.3: the nonce claim MUST echo the value from the
+	// original authorize request. OIDCNonce carries that value when the
+	// token is issued via the token endpoint (code flow). For implicit
+	// flows the caller sets Nonce directly.
+	idTokenNonce := cfg.OIDCNonce
+	if idTokenNonce == "" {
+		idTokenNonce = cfg.Nonce
+	}
+	if idTokenNonce != "" {
+		customClaims["nonce"] = idTokenNonce
 	}
 	// OIDC Core §2: auth_time — Unix seconds. Default to now if caller
 	// did not supply a session-level auth timestamp (backward compat).

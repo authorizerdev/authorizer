@@ -44,14 +44,18 @@ func (h *httpProvider) OpenIDConfigurationHandler() gin.HandlerFunc {
 			"id_token_signing_alg_values_supported": signingAlgs,
 
 			// RECOMMENDED fields
-			"token_endpoint":                                issuer + "/oauth/token",
-			"userinfo_endpoint":                             issuer + "/userinfo",
-			"scopes_supported":                              []string{"openid", "email", "profile", "offline_access"},
-			"claims_supported":                              []string{"aud", "exp", "iss", "iat", "sub", "given_name", "family_name", "middle_name", "nickname", "preferred_username", "picture", "email", "email_verified", "roles", "role", "gender", "birthdate", "phone_number", "phone_number_verified", "nonce", "updated_at", "created_at", "auth_time", "amr", "acr", "at_hash", "c_hash"},
-			"response_modes_supported":                      []string{"query", "fragment", "form_post", "web_message"},
-			"grant_types_supported":                         grantTypes,
-			"token_endpoint_auth_methods_supported":         []string{"client_secret_basic", "client_secret_post"},
-			"code_challenge_methods_supported":              []string{"S256"},
+			"token_endpoint":           issuer + "/oauth/token",
+			"userinfo_endpoint":        issuer + "/userinfo",
+			"scopes_supported":         []string{"openid", "email", "profile", "offline_access"},
+			"claims_supported":         []string{"aud", "exp", "iss", "iat", "sub", "given_name", "family_name", "middle_name", "nickname", "preferred_username", "picture", "email", "email_verified", "roles", "role", "gender", "birthdate", "phone_number", "phone_number_verified", "nonce", "updated_at", "created_at", "auth_time", "amr", "acr", "at_hash", "c_hash"},
+			"response_modes_supported": []string{"query", "fragment", "form_post", "web_message"},
+			"grant_types_supported":    grantTypes,
+			// "none" is supported for public clients that use PKCE (RFC 7636)
+			// instead of client_secret. The token endpoint requires either
+			// code_verifier (PKCE) or client_secret — "none" without PKCE is
+			// rejected with invalid_request.
+			"token_endpoint_auth_methods_supported":         []string{"client_secret_basic", "client_secret_post", "none"},
+			"code_challenge_methods_supported":              []string{"S256", "plain"},
 			"revocation_endpoint":                           issuer + "/oauth/revoke",
 			"revocation_endpoint_auth_methods_supported":    []string{"client_secret_basic", "client_secret_post"},
 			"introspection_endpoint":                        issuer + "/oauth/introspect",
@@ -64,6 +68,8 @@ func (h *httpProvider) OpenIDConfigurationHandler() gin.HandlerFunc {
 			"request_uri_parameter_supported":               false,
 		}
 
+		// Discovery metadata changes infrequently; allow caching.
+		c.Header("Cache-Control", "public, max-age=300")
 		c.JSON(200, resp)
 	}
 }

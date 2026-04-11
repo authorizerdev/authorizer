@@ -167,6 +167,7 @@ func init() {
 
 	// Cookies flags
 	f.BoolVar(&rootArgs.config.AppCookieSecure, "app-cookie-secure", true, "Application secure cookie flag")
+	f.StringVar(&rootArgs.config.AppCookieSameSite, "app-cookie-same-site", "none", "SameSite attribute for session cookies (lax, strict, none)")
 	f.BoolVar(&rootArgs.config.AdminCookieSecure, "admin-cookie-secure", true, "Admin secure cookie flag")
 	f.BoolVar(&rootArgs.config.DisableAdminHeaderAuth, "disable-admin-header-auth", false, "Disable admin authentication via X-Authorizer-Admin-Secret header")
 

@@ -32,7 +32,6 @@ const FooterContent = styled.div`
 export default function Login({ urlProps }: { urlProps: Record<string, any> }) {
 	const { config } = useAuthorizer();
 	const [view, setView] = useState<VIEW_TYPES>(VIEW_TYPES.LOGIN);
-	const isBasicAuth = config.is_basic_authentication_enabled;
 	return (
 		<Fragment>
 			{view === VIEW_TYPES.LOGIN && (

@@ -246,12 +246,20 @@ func (p *provider) SetState(key, state string) error {
 	return nil
 }
 
-// GetState returns the state from the session store
+// GetState returns the state from the session store.
+// RFC 6749 §4.1.2: authorization codes (and associated state) MUST be
+// short-lived. Entries older than 10 minutes are treated as expired.
 func (p *provider) GetState(key string) (string, error) {
 	ctx := context.Background()
 	oauthState, err := p.getOAuthStateByKey(ctx, key)
 	if err != nil {
 		return "", fmt.Errorf("not found")
+	}
+	// Enforce 10-minute TTL consistent with Redis provider.
+	if oauthState.CreatedAt > 0 && time.Now().Unix()-oauthState.CreatedAt > 600 {
+		// Clean up expired entry asynchronously.
+		go p.deleteOAuthStateByKey(context.Background(), key)
+		return "", fmt.Errorf("state expired")
 	}
 	return oauthState.State, nil
 }
@@ -260,6 +268,25 @@ func (p *provider) GetState(key string) (string, error) {
 func (p *provider) RemoveState(key string) error {
 	ctx := context.Background()
 	return p.deleteOAuthStateByKey(ctx, key)
+}
+
+// GetAndRemoveState atomically retrieves and deletes the state from the DB.
+// Enforces 10-minute TTL consistent with other providers.
+func (p *provider) GetAndRemoveState(key string) (string, error) {
+	ctx := context.Background()
+	oauthState, err := p.getOAuthStateByKey(ctx, key)
+	if err != nil {
+		return "", fmt.Errorf("not found")
+	}
+	// Delete immediately after retrieval; a concurrent request will fail on getOAuthStateByKey.
+	if err := p.deleteOAuthStateByKey(ctx, key); err != nil {
+		return "", fmt.Errorf("not found")
+	}
+	// Enforce 10-minute TTL.
+	if oauthState.CreatedAt > 0 && time.Now().Unix()-oauthState.CreatedAt > 600 {
+		return "", fmt.Errorf("state expired")
+	}
+	return oauthState.State, nil
 }
 
 // GetAllData returns all the data from the session store

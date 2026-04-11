@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -12,6 +13,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/parsers"
+	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/token"
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
@@ -66,12 +68,40 @@ func (g *graphqlProvider) Session(ctx context.Context, params *model.SessionQuer
 		scope = params.Scope
 	}
 
+	// OIDC authorize flow: if state is provided, consume the authorize state
+	// and prepare code/challenge data so the authorization code can be stored
+	// after token creation. This handles the case where the login UI auto-detects
+	// an existing session (e.g., prompt=login forced re-auth at /authorize but
+	// the session cookie is still valid for GraphQL queries).
+	code := ""
+	codeChallenge := ""
+	oidcNonce := ""
+	authorizeRedirectURI := ""
+	if params != nil && params.State != nil {
+		authorizeState, _ := g.MemoryStoreProvider.GetState(refs.StringValue(params.State))
+		if authorizeState != "" {
+			authorizeStateSplit := strings.Split(authorizeState, "@@")
+			if len(authorizeStateSplit) > 1 {
+				code = authorizeStateSplit[0]
+				codeChallenge = authorizeStateSplit[1]
+				if len(authorizeStateSplit) > 2 {
+					oidcNonce = authorizeStateSplit[2]
+				}
+				if len(authorizeStateSplit) > 3 {
+					authorizeRedirectURI = authorizeStateSplit[3]
+				}
+			}
+			g.MemoryStoreProvider.RemoveState(refs.StringValue(params.State))
+		}
+	}
+
 	nonce := uuid.New().String()
 	hostname := parsers.GetHost(gc)
-	//  user, claimRoles, scope, claimg.LoginMethod, nonce, ""
 	authToken, err := g.TokenProvider.CreateAuthToken(gc, &token.AuthTokenConfig{
 		User:        user,
 		Nonce:       nonce,
+		OIDCNonce:   oidcNonce,
+		Code:        code,
 		Roles:       claimRoles,
 		Scope:       scope,
 		LoginMethod: claims.LoginMethod,
@@ -80,6 +110,15 @@ func (g *graphqlProvider) Session(ctx context.Context, params *model.SessionQuer
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to CreateAuthToken")
 		return nil, err
+	}
+
+	// Store the authorization code state so /oauth/token can find it.
+	// The authorizeRedirectURI is already URL-encoded from the authorize state.
+	if code != "" {
+		if err := g.MemoryStoreProvider.SetState(code, codeChallenge+"@@"+authToken.FingerPrintHash+"@@"+oidcNonce+"@@"+authorizeRedirectURI); err != nil {
+			log.Debug().Err(err).Msg("Failed to set code state")
+			return nil, err
+		}
 	}
 
 	// rollover the session for security
@@ -102,7 +141,7 @@ func (g *graphqlProvider) Session(ctx context.Context, params *model.SessionQuer
 		User:        user.AsAPIUser(),
 	}
 
-	cookie.SetSession(gc, authToken.FingerPrintHash, g.Config.AppCookieSecure)
+	cookie.SetSession(gc, authToken.FingerPrintHash, g.Config.AppCookieSecure, cookie.ParseSameSite(g.Config.AppCookieSameSite))
 	g.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt)
 	g.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt)
 
