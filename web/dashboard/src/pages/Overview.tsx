@@ -45,7 +45,7 @@ const Overview = () => {
 				const [usersRes, metaRes, auditRes] = await Promise.all([
 					client
 						.query<UsersResponse>(UserDetailsQuery, {
-							params: { limit: 1, page: 1 },
+							params: { pagination: { limit: 1, page: 1 } },
 						})
 						.toPromise(),
 					client.query<MetaResponse>(MetaQuery, {}).toPromise(),
