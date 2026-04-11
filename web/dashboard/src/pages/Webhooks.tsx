@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import UpdateWebhookModal from '../components/UpdateWebhookModal';
 import {
-	pageLimits,
+	pageLimitsExtended,
 	WebhookInputDataFields,
 	UpdateModalViews,
 } from '../constants';
@@ -55,7 +55,7 @@ const Webhooks = () => {
 	const [loading, setLoading] = useState<boolean>(false);
 	const [webhookData, setWebhookData] = useState<Webhook[]>([]);
 	const [paginationProps, setPaginationProps] = useState<PaginationProps>({
-		limit: 5,
+		limit: 10,
 		page: 1,
 		offset: 0,
 		total: 0,
@@ -121,7 +121,12 @@ const Webhooks = () => {
 	return (
 		<div className="m-5 rounded-md bg-white py-5 px-10">
 			<div className="flex items-center justify-between my-4">
-				<h2 className="text-base font-bold">Webhooks</h2>
+				<div>
+					<h1 className="text-2xl font-semibold text-gray-900">Webhooks</h1>
+					<p className="mt-1 text-sm text-gray-500">
+						Configure webhook endpoints for user events.
+					</p>
+				</div>
 				<UpdateWebhookModal
 					view={UpdateModalViews.ADD}
 					fetchWebookData={fetchWebookData}
@@ -299,7 +304,7 @@ const Webhooks = () => {
 									}
 									className="h-8 w-28"
 								>
-									{pageLimits.map((pageSize) => (
+									{pageLimitsExtended.map((pageSize) => (
 										<option key={pageSize} value={pageSize}>
 											Show {pageSize}
 										</option>
