@@ -108,3 +108,29 @@ export const WebhookLogsQuery = `
     }
   }
 `;
+
+export const AuditLogsQuery = `
+  query getAuditLogs($params: ListAuditLogRequest!) {
+    _audit_logs(params: $params) {
+      audit_logs {
+        id
+        actor_id
+        actor_type
+        actor_email
+        action
+        resource_type
+        resource_id
+        ip_address
+        user_agent
+        metadata
+        created_at
+      }
+      pagination {
+        limit
+        page
+        offset
+        total
+      }
+    }
+  }
+`;
