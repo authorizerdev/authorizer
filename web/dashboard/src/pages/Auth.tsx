@@ -1,42 +1,40 @@
-import {
-	Button,
-	FormControl,
-	FormLabel,
-	Input,
-	useToast,
-	VStack,
-	Text,
-} from '@chakra-ui/react';
 import React, { useEffect } from 'react';
 import { useMutation } from 'urql';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 import { AuthLayout } from '../layouts/AuthLayout';
 import { AdminLogin, AdminSignup } from '../graphql/mutation';
-import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../contexts/AuthContext';
-import { capitalizeFirstLetter, getGraphQLErrorMessage, hasAdminSecret } from '../utils';
+import {
+	capitalizeFirstLetter,
+	getGraphQLErrorMessage,
+	hasAdminSecret,
+} from '../utils';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
 
 export default function Auth() {
 	const [loginResult, login] = useMutation(AdminLogin);
 	const [signUpResult, signup] = useMutation(AdminSignup);
 	const { setIsLoggedIn } = useAuthContext();
 
-	const toast = useToast();
 	const navigate = useNavigate();
 	const isLogin = hasAdminSecret();
 
-	const handleSubmit = (e: any) => {
+	const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
-		const formValues = [...e.target.elements].reduce((agg: any, elem: any) => {
-			if (elem.id) {
-				return {
-					...agg,
-					[elem.id]: elem.value,
-				};
-			}
-
-			return agg;
-		}, {});
+		const formValues = [...(e.target as HTMLFormElement).elements].reduce(
+			(agg: Record<string, string>, elem) => {
+				const el = elem as HTMLInputElement;
+				if (el.id) {
+					return { ...agg, [el.id]: el.value };
+				}
+				return agg;
+			},
+			{},
+		);
 
 		(isLogin ? login : signup)({
 			secret: formValues['admin-secret'],
@@ -52,62 +50,53 @@ export default function Auth() {
 
 	useEffect(() => {
 		if (errors) {
-			toast({
-				title: capitalizeFirstLetter(getGraphQLErrorMessage(errors, 'Authentication failed')),
-				isClosable: true,
-				status: 'error',
-				position: 'top-right',
-			});
+			toast.error(
+				capitalizeFirstLetter(
+					getGraphQLErrorMessage(errors, 'Authentication failed'),
+				),
+			);
 		}
 	}, [errors]);
 
 	return (
 		<AuthLayout>
-			<Text
-				fontSize="large"
-				textAlign="center"
-				color="gray.600"
-				fontWeight="bold"
-				mb="2"
-			>
-				Hello Admin 👋 <br />
-			</Text>
-			<Text fontSize="large" textAlign="center" color="gray.500" mb="8">
-				Welcome to Admin Dashboard
-			</Text>
-			<form onSubmit={handleSubmit}>
-				<VStack spacing="5" justify="space-between">
-					<FormControl isRequired>
-						<FormLabel htmlFor="admin-username">Username</FormLabel>
-						<Input
-							size="lg"
-							id="admin-username"
-							placeholder="Username"
-							disabled
-							value="admin"
-						/>
-					</FormControl>
-					<FormControl isRequired>
-						<FormLabel htmlFor="admin-secret">Password</FormLabel>
-						<Input
-							size="lg"
-							id="admin-secret"
-							placeholder="Admin secret"
-							type="password"
-							minLength={!isLogin ? 6 : 1}
-						/>
-					</FormControl>
-					<Button
-						isLoading={signUpResult.fetching || loginResult.fetching}
-						loadingText="Submitting"
-						colorScheme="blue"
-						size="lg"
-						w="100%"
-						type="submit"
-					>
-						{isLogin ? 'Login' : 'Sign up'}
-					</Button>
-				</VStack>
+			<h1 className="mb-2 text-center text-xl font-semibold text-gray-900">
+				{isLogin ? 'Admin Login' : 'Setup Admin'}
+			</h1>
+			<p className="mb-8 text-center text-sm text-gray-500">
+				{isLogin
+					? 'Sign in to your admin dashboard'
+					: 'Create your admin account to get started'}
+			</p>
+			<form onSubmit={handleSubmit} className="space-y-5">
+				<div className="space-y-2">
+					<Label htmlFor="admin-username">Username</Label>
+					<Input
+						id="admin-username"
+						placeholder="Username"
+						disabled
+						value="admin"
+						className="h-12 border-gray-200"
+					/>
+				</div>
+				<div className="space-y-2">
+					<Label htmlFor="admin-secret">Password</Label>
+					<Input
+						id="admin-secret"
+						placeholder="Admin secret"
+						type="password"
+						minLength={!isLogin ? 6 : 1}
+						required
+						className="h-12 border-gray-200"
+					/>
+				</div>
+				<Button
+					isLoading={signUpResult.fetching || loginResult.fetching}
+					className="w-full h-12 text-base"
+					type="submit"
+				>
+					{isLogin ? 'Login' : 'Sign up'}
+				</Button>
 			</form>
 		</AuthLayout>
 	);

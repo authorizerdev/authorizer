@@ -1,50 +1,42 @@
 import React, { useEffect, useState } from 'react';
 import { useClient } from 'urql';
+import dayjs from 'dayjs';
 import {
-	Box,
-	Button,
-	Center,
-	Flex,
-	IconButton,
-	Menu,
-	MenuButton,
-	MenuList,
-	NumberDecrementStepper,
-	NumberIncrementStepper,
-	NumberInput,
-	NumberInputField,
-	NumberInputStepper,
-	Select,
-	Spinner,
-	Table,
-	TableCaption,
-	Tbody,
-	Td,
-	Text,
-	Th,
-	Thead,
-	Tooltip,
-	Tr,
-} from '@chakra-ui/react';
-import {
-	FaAngleDoubleLeft,
-	FaAngleDoubleRight,
-	FaAngleDown,
-	FaAngleLeft,
-	FaAngleRight,
-	FaExclamationCircle,
-} from 'react-icons/fa';
+	ChevronsLeft,
+	ChevronsRight,
+	ChevronLeft,
+	ChevronRight,
+	ChevronDown,
+	AlertCircle,
+} from 'lucide-react';
 import UpdateEmailTemplateModal from '../components/UpdateEmailTemplateModal';
 import {
-	pageLimits,
+	pageLimitsExtended,
 	UpdateModalViews,
 	EmailTemplateInputDataFields,
 } from '../constants';
 import { EmailTemplatesQuery } from '../graphql/queries';
-import dayjs from 'dayjs';
 import DeleteEmailTemplateModal from '../components/DeleteEmailTemplateModal';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Select } from '../components/ui/select';
+import { Skeleton } from '../components/ui/skeleton';
+import {
+	DropdownMenu,
+	DropdownMenuTrigger,
+	DropdownMenuContent,
+} from '../components/ui/dropdown-menu';
+import {
+	Table,
+	TableHeader,
+	TableBody,
+	TableRow,
+	TableHead,
+	TableCell,
+} from '../components/ui/table';
+import type { EmailTemplate, EmailTemplatesResponse } from '../types';
 
-interface paginationPropTypes {
+interface PaginationProps {
 	limit: number;
 	page: number;
 	offset: number;
@@ -52,40 +44,34 @@ interface paginationPropTypes {
 	maxPages: number;
 }
 
-interface EmailTemplateDataType {
-	[EmailTemplateInputDataFields.ID]: string;
-	[EmailTemplateInputDataFields.EVENT_NAME]: string;
-	[EmailTemplateInputDataFields.SUBJECT]: string;
-	[EmailTemplateInputDataFields.CREATED_AT]: number;
-	[EmailTemplateInputDataFields.TEMPLATE]: string;
-	[EmailTemplateInputDataFields.DESIGN]: string;
-}
-
 const EmailTemplates = () => {
 	const client = useClient();
 	const [loading, setLoading] = useState<boolean>(false);
-	const [emailTemplatesData, setEmailTemplatesData] = useState<
-		EmailTemplateDataType[]
-	>([]);
-	const [paginationProps, setPaginationProps] = useState<paginationPropTypes>({
-		limit: 5,
+	const [emailTemplatesData, setEmailTemplatesData] = useState<EmailTemplate[]>(
+		[],
+	);
+	const [paginationProps, setPaginationProps] = useState<PaginationProps>({
+		limit: 10,
 		page: 1,
 		offset: 0,
 		total: 0,
 		maxPages: 1,
 	});
-	const getMaxPages = (pagination: paginationPropTypes) => {
+
+	const getMaxPages = (pagination: PaginationProps) => {
 		const { limit, total } = pagination;
 		if (total > 1) {
 			return total % limit === 0
 				? total / limit
-				: parseInt(`${total / limit}`) + 1;
-		} else return 1;
+				: Math.floor(total / limit) + 1;
+		}
+		return 1;
 	};
+
 	const fetchEmailTemplatesData = async () => {
 		setLoading(true);
 		const res = await client
-			.query(EmailTemplatesQuery, {
+			.query<EmailTemplatesResponse>(EmailTemplatesQuery, {
 				params: {
 					pagination: {
 						limit: paginationProps.limit,
@@ -96,11 +82,15 @@ const EmailTemplates = () => {
 			.toPromise();
 		if (res.data?._email_templates) {
 			const { pagination, email_templates: emailTemplates } =
-				res.data?._email_templates;
-			const maxPages = getMaxPages(pagination);
+				res.data._email_templates;
+			const maxPages = getMaxPages(pagination as unknown as PaginationProps);
 			if (emailTemplates?.length) {
 				setEmailTemplatesData(emailTemplates);
-				setPaginationProps({ ...paginationProps, ...pagination, maxPages });
+				setPaginationProps({
+					...paginationProps,
+					...pagination,
+					maxPages,
+				});
 			} else {
 				if (paginationProps.page !== 1) {
 					setPaginationProps({
@@ -114,234 +104,189 @@ const EmailTemplates = () => {
 		}
 		setLoading(false);
 	};
+
 	const paginationHandler = (value: Record<string, number>) => {
 		setPaginationProps({ ...paginationProps, ...value });
 	};
+
 	useEffect(() => {
 		fetchEmailTemplatesData();
 	}, [paginationProps.page, paginationProps.limit]);
+
 	return (
-		<Box m="5" py="5" px="10" bg="white" rounded="md">
-			<Flex margin="2% 0" justifyContent="space-between" alignItems="center">
-				<Text fontSize="md" fontWeight="bold">
-					Email Templates
-				</Text>
+		<div className="m-5 rounded-md bg-white py-5 px-10">
+			<div className="flex items-center justify-between my-4">
+				<div>
+					<h1 className="text-2xl font-semibold text-gray-900">
+						Email Templates
+					</h1>
+					<p className="mt-1 text-sm text-gray-500">
+						Customize email templates for authentication events.
+					</p>
+				</div>
 				<UpdateEmailTemplateModal
 					view={UpdateModalViews.ADD}
 					fetchEmailTemplatesData={fetchEmailTemplatesData}
 				/>
-			</Flex>
-			{!loading ? (
-				emailTemplatesData.length ? (
-					<Table variant="simple">
-						<Thead>
-							<Tr>
-								<Th>Event Name</Th>
-								<Th>Subject</Th>
-								<Th>Created At</Th>
-								<Th>Actions</Th>
-							</Tr>
-						</Thead>
-						<Tbody>
-							{emailTemplatesData.map((templateData: EmailTemplateDataType) => (
-								<Tr
-									key={templateData[EmailTemplateInputDataFields.ID]}
-									style={{ fontSize: 14 }}
-								>
-									<Td maxW="300">
-										{templateData[EmailTemplateInputDataFields.EVENT_NAME]}
-									</Td>
-									<Td>{templateData[EmailTemplateInputDataFields.SUBJECT]}</Td>
-									<Td>
+			</div>
+			{loading ? (
+				<div className="min-h-[25vh] space-y-3">
+					{[1, 2, 3].map((i) => (
+						<Skeleton key={i} className="h-10 w-full" />
+					))}
+				</div>
+			) : emailTemplatesData.length ? (
+				<>
+					<Table>
+						<TableHeader>
+							<TableRow>
+								<TableHead>Event Name</TableHead>
+								<TableHead>Subject</TableHead>
+								<TableHead>Created At</TableHead>
+								<TableHead>Actions</TableHead>
+							</TableRow>
+						</TableHeader>
+						<TableBody>
+							{emailTemplatesData.map((templateData) => (
+								<TableRow key={templateData.id}>
+									<TableCell className="max-w-[300px] text-sm">
+										{templateData.event_name}
+									</TableCell>
+									<TableCell className="text-sm">
+										{templateData.subject}
+									</TableCell>
+									<TableCell className="text-sm">
 										{dayjs(templateData.created_at * 1000).format(
 											'MMM DD, YYYY',
 										)}
-									</Td>
-									<Td>
-										<Menu>
-											<MenuButton as={Button} variant="unstyled" size="sm">
-												<Flex
-													justifyContent="space-between"
-													alignItems="center"
-												>
-													<Text fontSize="sm" fontWeight="light">
-														Menu
-													</Text>
-													<FaAngleDown style={{ marginLeft: 10 }} />
-												</Flex>
-											</MenuButton>
-											<MenuList>
+									</TableCell>
+									<TableCell>
+										<DropdownMenu>
+											<DropdownMenuTrigger asChild>
+												<Button variant="ghost" size="sm">
+													<span className="text-sm font-light">Menu</span>
+													<ChevronDown className="ml-2 h-3 w-3" />
+												</Button>
+											</DropdownMenuTrigger>
+											<DropdownMenuContent align="end">
 												<UpdateEmailTemplateModal
 													view={UpdateModalViews.Edit}
 													selectedTemplate={templateData}
 													fetchEmailTemplatesData={fetchEmailTemplatesData}
 												/>
 												<DeleteEmailTemplateModal
-													emailTemplateId={
-														templateData[EmailTemplateInputDataFields.ID]
-													}
-													eventName={
-														templateData[
-															EmailTemplateInputDataFields.EVENT_NAME
-														]
-													}
+													emailTemplateId={templateData.id}
+													eventName={templateData.event_name}
 													fetchEmailTemplatesData={fetchEmailTemplatesData}
 												/>
-											</MenuList>
-										</Menu>
-									</Td>
-								</Tr>
+											</DropdownMenuContent>
+										</DropdownMenu>
+									</TableCell>
+								</TableRow>
 							))}
-						</Tbody>
-						{(paginationProps.maxPages > 1 || paginationProps.total >= 5) && (
-							<TableCaption>
-								<Flex
-									justifyContent="space-between"
-									alignItems="center"
-									m="2% 0"
-								>
-									<Flex flex="1">
-										<Tooltip label="First Page">
-											<IconButton
-												aria-label="icon button"
-												onClick={() =>
-													paginationHandler({
-														page: 1,
-													})
-												}
-												isDisabled={paginationProps.page <= 1}
-												mr={4}
-												icon={<FaAngleDoubleLeft />}
-											/>
-										</Tooltip>
-										<Tooltip label="Previous Page">
-											<IconButton
-												aria-label="icon button"
-												onClick={() =>
-													paginationHandler({
-														page: paginationProps.page - 1,
-													})
-												}
-												isDisabled={paginationProps.page <= 1}
-												icon={<FaAngleLeft />}
-											/>
-										</Tooltip>
-									</Flex>
-									<Flex
-										flex="8"
-										justifyContent="space-evenly"
-										alignItems="center"
-									>
-										<Text mr={8}>
-											Page{' '}
-											<Text fontWeight="bold" as="span">
-												{paginationProps.page}
-											</Text>{' '}
-											of{' '}
-											<Text fontWeight="bold" as="span">
-												{paginationProps.maxPages}
-											</Text>
-										</Text>
-										<Flex alignItems="center">
-											<Text flexShrink="0">Go to page:</Text>{' '}
-											<NumberInput
-												ml={2}
-												mr={8}
-												w={28}
-												min={1}
-												max={paginationProps.maxPages}
-												onChange={(value) =>
-													paginationHandler({
-														page: parseInt(value),
-													})
-												}
-												value={paginationProps.page}
-											>
-												<NumberInputField />
-												<NumberInputStepper>
-													<NumberIncrementStepper />
-													<NumberDecrementStepper />
-												</NumberInputStepper>
-											</NumberInput>
-										</Flex>
-										<Select
-											w={32}
-											value={paginationProps.limit}
-											onChange={(e) =>
-												paginationHandler({
-													page: 1,
-													limit: parseInt(e.target.value),
-												})
-											}
-										>
-											{pageLimits.map((pageSize) => (
-												<option key={pageSize} value={pageSize}>
-													Show {pageSize}
-												</option>
-											))}
-										</Select>
-									</Flex>
-									<Flex flex="1">
-										<Tooltip label="Next Page">
-											<IconButton
-												aria-label="icon button"
-												onClick={() =>
-													paginationHandler({
-														page: paginationProps.page + 1,
-													})
-												}
-												isDisabled={
-													paginationProps.page >= paginationProps.maxPages
-												}
-												icon={<FaAngleRight />}
-											/>
-										</Tooltip>
-										<Tooltip label="Last Page">
-											<IconButton
-												aria-label="icon button"
-												onClick={() =>
-													paginationHandler({
-														page: paginationProps.maxPages,
-													})
-												}
-												isDisabled={
-													paginationProps.page >= paginationProps.maxPages
-												}
-												ml={4}
-												icon={<FaAngleDoubleRight />}
-											/>
-										</Tooltip>
-									</Flex>
-								</Flex>
-							</TableCaption>
-						)}
+						</TableBody>
 					</Table>
-				) : (
-					<Flex
-						flexDirection="column"
-						minH="25vh"
-						justifyContent="center"
-						alignItems="center"
-					>
-						<Center w="50px" marginRight="1.5%">
-							<FaExclamationCircle style={{ color: '#f0f0f0', fontSize: 70 }} />
-						</Center>
-						<Text
-							fontSize="2xl"
-							paddingRight="1%"
-							fontWeight="bold"
-							color="#d9d9d9"
-						>
-							No Data
-						</Text>
-					</Flex>
-				)
+
+					{/* Pagination */}
+					{(paginationProps.maxPages > 1 || paginationProps.total >= 5) && (
+						<div className="mt-4 flex items-center justify-between">
+							<div className="flex gap-1">
+								<Button
+									variant="outline"
+									size="icon"
+									onClick={() => paginationHandler({ page: 1 })}
+									disabled={paginationProps.page <= 1}
+								>
+									<ChevronsLeft className="h-4 w-4" />
+								</Button>
+								<Button
+									variant="outline"
+									size="icon"
+									onClick={() =>
+										paginationHandler({
+											page: paginationProps.page - 1,
+										})
+									}
+									disabled={paginationProps.page <= 1}
+								>
+									<ChevronLeft className="h-4 w-4" />
+								</Button>
+							</div>
+
+							<div className="flex items-center gap-4 text-sm">
+								<span>
+									Page <strong>{paginationProps.page}</strong> of{' '}
+									<strong>{paginationProps.maxPages}</strong>
+								</span>
+								<div className="flex items-center gap-1">
+									<span className="whitespace-nowrap">Go to:</span>
+									<Input
+										type="number"
+										min={1}
+										max={paginationProps.maxPages}
+										value={paginationProps.page}
+										onChange={(e) =>
+											paginationHandler({
+												page: parseInt(e.target.value) || 1,
+											})
+										}
+										className="h-8 w-16"
+									/>
+								</div>
+								<Select
+									value={paginationProps.limit}
+									onChange={(e) =>
+										paginationHandler({
+											page: 1,
+											limit: parseInt(e.target.value),
+										})
+									}
+									className="h-8 w-28"
+								>
+									{pageLimitsExtended.map((pageSize) => (
+										<option key={pageSize} value={pageSize}>
+											Show {pageSize}
+										</option>
+									))}
+								</Select>
+							</div>
+
+							<div className="flex gap-1">
+								<Button
+									variant="outline"
+									size="icon"
+									onClick={() =>
+										paginationHandler({
+											page: paginationProps.page + 1,
+										})
+									}
+									disabled={paginationProps.page >= paginationProps.maxPages}
+								>
+									<ChevronRight className="h-4 w-4" />
+								</Button>
+								<Button
+									variant="outline"
+									size="icon"
+									onClick={() =>
+										paginationHandler({
+											page: paginationProps.maxPages,
+										})
+									}
+									disabled={paginationProps.page >= paginationProps.maxPages}
+								>
+									<ChevronsRight className="h-4 w-4" />
+								</Button>
+							</div>
+						</div>
+					)}
+				</>
 			) : (
-				<Center minH="25vh">
-					<Spinner />
-				</Center>
+				<div className="flex min-h-[25vh] flex-col items-center justify-center text-gray-300">
+					<AlertCircle className="h-16 w-16 mb-2" />
+					<p className="text-2xl font-bold">No Data</p>
+				</div>
 			)}
-		</Box>
+		</div>
 	);
 };
 

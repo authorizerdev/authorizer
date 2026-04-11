@@ -1,105 +1,78 @@
-import React from 'react';
-import {
-	Button,
-	Center,
-	Flex,
-	MenuItem,
-	Modal,
-	ModalBody,
-	ModalCloseButton,
-	ModalContent,
-	ModalFooter,
-	ModalHeader,
-	ModalOverlay,
-	useDisclosure,
-	Text,
-	useToast,
-} from '@chakra-ui/react';
+import React, { useState } from 'react';
 import { useClient } from 'urql';
-import { FaRegTrashAlt } from 'react-icons/fa';
+import { Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { DeleteWebhook } from '../graphql/mutation';
 import { capitalizeFirstLetter, getGraphQLErrorMessage } from '../utils';
+import { Button } from './ui/button';
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from './ui/dialog';
 
-interface deleteWebhookModalInputPropTypes {
+interface DeleteWebhookModalProps {
 	webhookId: string;
 	eventName: string;
-	fetchWebookData: Function;
+	fetchWebookData: () => void;
 }
 
 const DeleteWebhookModal = ({
 	webhookId,
 	eventName,
 	fetchWebookData,
-}: deleteWebhookModalInputPropTypes) => {
+}: DeleteWebhookModalProps) => {
 	const client = useClient();
-	const toast = useToast();
-	const { isOpen, onOpen, onClose } = useDisclosure();
+	const [open, setOpen] = useState(false);
 
 	const deleteHandler = async () => {
 		const res = await client
 			.mutation(DeleteWebhook, { params: { id: webhookId } })
 			.toPromise();
 		if (res.error) {
-			toast({
-				title: capitalizeFirstLetter(getGraphQLErrorMessage(res.error, 'Failed to delete webhook')),
-				isClosable: true,
-				status: 'error',
-				position: 'top-right',
-			});
-
+			toast.error(
+				capitalizeFirstLetter(
+					getGraphQLErrorMessage(res.error, 'Failed to delete webhook'),
+				),
+			);
 			return;
 		} else if (res.data?._delete_webhook) {
-			toast({
-				title: capitalizeFirstLetter(res.data?._delete_webhook.message),
-				isClosable: true,
-				status: 'success',
-				position: 'top-right',
-			});
+			toast.success(capitalizeFirstLetter(res.data._delete_webhook.message));
 		}
-		onClose();
+		setOpen(false);
 		fetchWebookData();
 	};
-	return (
-		<>
-			<MenuItem onClick={onOpen}>Delete</MenuItem>
-			<Modal isOpen={isOpen} onClose={onClose}>
-				<ModalOverlay />
-				<ModalContent>
-					<ModalHeader>Delete Webhook</ModalHeader>
-					<ModalCloseButton />
-					<ModalBody>
-						<Text fontSize="md">Are you sure?</Text>
-						<Flex
-							padding="5%"
-							marginTop="5%"
-							marginBottom="2%"
-							border="1px solid #ff7875"
-							borderRadius="5px"
-							flexDirection="column"
-						>
-							<Text fontSize="sm">
-								Webhook for event <b>{eventName}</b> will be deleted
-								permanently!
-							</Text>
-						</Flex>
-					</ModalBody>
 
-					<ModalFooter>
-						<Button
-							leftIcon={<FaRegTrashAlt />}
-							colorScheme="red"
-							variant="solid"
-							onClick={deleteHandler}
-							isDisabled={false}
-						>
-							<Center h="100%" pt="5%">
-								Delete
-							</Center>
-						</Button>
-					</ModalFooter>
-				</ModalContent>
-			</Modal>
-		</>
+	return (
+		<Dialog open={open} onOpenChange={setOpen}>
+			<DialogTrigger asChild>
+				<button className="w-full text-left px-2 py-1.5 text-sm hover:bg-gray-100 rounded-sm">
+					Delete
+				</button>
+			</DialogTrigger>
+			<DialogContent>
+				<DialogHeader>
+					<DialogTitle>Delete Webhook</DialogTitle>
+					<DialogDescription>Are you sure?</DialogDescription>
+				</DialogHeader>
+				<div className="rounded-md border border-red-300 bg-red-50 p-4">
+					<p className="text-sm">
+						Webhook for event <strong>{eventName}</strong> will be deleted
+						permanently!
+					</p>
+				</div>
+				<DialogFooter>
+					<Button variant="destructive" onClick={deleteHandler}>
+						<Trash2 className="mr-2 h-4 w-4" />
+						Delete
+					</Button>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
 	);
 };
 

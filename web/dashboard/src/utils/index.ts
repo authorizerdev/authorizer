@@ -1,7 +1,16 @@
 import _ from 'lodash';
 
+interface AuthorizerWindow extends Window {
+	__authorizer__: {
+		isOnboardingCompleted: boolean;
+	};
+}
+
 export const hasAdminSecret = () => {
-	return (<any>window)['__authorizer__'].isOnboardingCompleted === true;
+	return (
+		(window as unknown as AuthorizerWindow).__authorizer__
+			.isOnboardingCompleted === true
+	);
 };
 
 export const capitalizeFirstLetter = (data: string): string =>
@@ -20,9 +29,7 @@ const fallbackCopyTextToClipboard = (text: string) => {
 	textArea.select();
 
 	try {
-		const successful = document.execCommand('copy');
-		const msg = successful ? 'successful' : 'unsuccessful';
-		console.log('Fallback: Copying text command was ' + msg);
+		document.execCommand('copy');
 	} catch (err) {
 		console.error('Fallback: Oops, unable to copy', err);
 	}
@@ -35,26 +42,31 @@ export const copyTextToClipboard = async (text: string) => {
 		return;
 	}
 	try {
-		navigator.clipboard.writeText(text);
+		await navigator.clipboard.writeText(text);
 	} catch (err) {
 		throw err;
 	}
 };
 
-export const getObjectDiff = (obj1: any, obj2: any) => {
+export const getObjectDiff = (
+	obj1: Record<string, unknown>,
+	obj2: Record<string, unknown>,
+): string[] => {
 	const diff = Object.keys(obj1).reduce((result, key) => {
-		if (!obj2.hasOwnProperty(key)) {
+		if (!Object.prototype.hasOwnProperty.call(obj2, key)) {
 			result.push(key);
 		} else if (
 			_.isEqual(obj1[key], obj2[key]) ||
 			(obj1[key] === null && obj2[key] === '') ||
 			(obj1[key] &&
 				Array.isArray(obj1[key]) &&
-				obj1[key].length === 0 &&
+				(obj1[key] as unknown[]).length === 0 &&
 				obj2[key] === null)
 		) {
 			const resultKeyIndex = result.indexOf(key);
-			result.splice(resultKeyIndex, 1);
+			if (resultKeyIndex >= 0) {
+				result.splice(resultKeyIndex, 1);
+			}
 		}
 		return result;
 	}, Object.keys(obj2));

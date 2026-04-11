@@ -389,3 +389,59 @@ export const ResponseModes = {
 	fragment: 'fragment',
 	web_message: 'web_message',
 };
+
+export const pageLimitsExtended: number[] = [10, 25, 50];
+
+export const auditActionCategories: Record<string, string[]> = {
+	'User Auth': [
+		'user.login_success',
+		'user.login_failed',
+		'user.signup',
+		'user.logout',
+		'user.password_changed',
+		'user.password_reset',
+		'user.magic_link_requested',
+		'user.email_verified',
+		'user.phone_verified',
+	],
+	'User MFA': ['user.mfa_enabled', 'user.mfa_disabled'],
+	'User Account': [
+		'user.profile_updated',
+		'user.deactivated',
+		'user.otp_resent',
+		'user.verify_email_resent',
+	],
+	Admin: [
+		'admin.login_success',
+		'admin.login_failed',
+		'admin.logout',
+		'admin.user_created',
+		'admin.user_updated',
+		'admin.user_deleted',
+		'admin.access_revoked',
+		'admin.access_enabled',
+		'admin.invite_sent',
+		'admin.config_changed',
+		'admin.webhook_created',
+		'admin.webhook_updated',
+		'admin.webhook_deleted',
+		'admin.email_template_created',
+		'admin.email_template_updated',
+		'admin.email_template_deleted',
+	],
+	OAuth: [
+		'oauth.login_initiated',
+		'oauth.callback_success',
+		'oauth.callback_failed',
+	],
+	Tokens: ['token.issued', 'token.refreshed', 'token.revoked'],
+	Sessions: ['session.created', 'session.terminated'],
+};
+
+export const auditResourceTypes = [
+	'user',
+	'webhook',
+	'email_template',
+	'session',
+	'token',
+];

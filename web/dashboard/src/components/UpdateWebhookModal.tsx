@@ -1,38 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import {
-	Button,
-	Center,
-	Code,
-	Collapse,
-	Flex,
-	Input,
-	InputGroup,
-	InputRightElement,
-	MenuItem,
-	Modal,
-	ModalBody,
-	ModalCloseButton,
-	ModalContent,
-	ModalFooter,
-	ModalHeader,
-	ModalOverlay,
-	Select,
-	Switch,
-	Text,
-	useDisclosure,
-	useToast,
-	Alert,
-	AlertIcon,
-	Divider,
-} from '@chakra-ui/react';
-import {
-	FaAngleDown,
-	FaAngleUp,
-	FaMinusCircle,
-	FaPlus,
-	FaRegClone,
-} from 'react-icons/fa';
+	Plus,
+	MinusCircle,
+	Copy,
+	ChevronDown,
+	ChevronUp,
+	CheckCircle,
+	AlertCircle,
+	AlertTriangle,
+} from 'lucide-react';
 import { useClient } from 'urql';
+import { toast } from 'sonner';
 import {
 	webhookEventNames,
 	ArrayInputOperations,
@@ -49,19 +27,31 @@ import {
 	validateURI,
 } from '../utils';
 import { AddWebhook, EditWebhook, TestEndpoint } from '../graphql/mutation';
-import { BiCheckCircle, BiError, BiErrorCircle } from 'react-icons/bi';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Select } from './ui/select';
+import { Switch } from './ui/switch';
+import { Separator } from './ui/separator';
+import {
+	Sheet,
+	SheetContent,
+	SheetHeader,
+	SheetTitle,
+	SheetDescription,
+	SheetFooter,
+} from './ui/sheet';
 
-interface headersDataType {
+interface HeadersData {
 	[WebhookInputHeaderFields.KEY]: string;
 	[WebhookInputHeaderFields.VALUE]: string;
 }
 
-interface headersValidatorDataType {
+interface HeadersValidatorData {
 	[WebhookInputHeaderFields.KEY]: boolean;
 	[WebhookInputHeaderFields.VALUE]: boolean;
 }
 
-interface selecetdWebhookDataTypes {
+interface SelectedWebhookData {
 	[WebhookInputDataFields.ID]: string;
 	[WebhookInputDataFields.EVENT_NAME]: string;
 	[WebhookInputDataFields.EVENT_DESCRIPTION]?: string;
@@ -70,36 +60,36 @@ interface selecetdWebhookDataTypes {
 	[WebhookInputDataFields.HEADERS]?: Record<string, string>;
 }
 
-interface UpdateWebhookModalInputPropTypes {
+interface UpdateWebhookModalProps {
 	view: UpdateModalViews;
-	selectedWebhook?: selecetdWebhookDataTypes;
-	fetchWebookData: Function;
+	selectedWebhook?: SelectedWebhookData;
+	fetchWebookData: () => void;
 }
 
-const initHeadersData: headersDataType = {
-	[WebhookInputHeaderFields.KEY]: '',
-	[WebhookInputHeaderFields.VALUE]: '',
-};
-
-const initHeadersValidatorData: headersValidatorDataType = {
-	[WebhookInputHeaderFields.KEY]: true,
-	[WebhookInputHeaderFields.VALUE]: true,
-};
-
-interface webhookDataType {
+interface WebhookData {
 	[WebhookInputDataFields.EVENT_NAME]: string;
 	[WebhookInputDataFields.EVENT_DESCRIPTION]?: string;
 	[WebhookInputDataFields.ENDPOINT]: string;
 	[WebhookInputDataFields.ENABLED]: boolean;
-	[WebhookInputDataFields.HEADERS]: headersDataType[];
+	[WebhookInputDataFields.HEADERS]: HeadersData[];
 }
 
-interface validatorDataType {
+interface ValidatorData {
 	[WebhookInputDataFields.ENDPOINT]: boolean;
-	[WebhookInputDataFields.HEADERS]: headersValidatorDataType[];
+	[WebhookInputDataFields.HEADERS]: HeadersValidatorData[];
 }
 
-const initWebhookData: webhookDataType = {
+const initHeadersData: HeadersData = {
+	[WebhookInputHeaderFields.KEY]: '',
+	[WebhookInputHeaderFields.VALUE]: '',
+};
+
+const initHeadersValidatorData: HeadersValidatorData = {
+	[WebhookInputHeaderFields.KEY]: true,
+	[WebhookInputHeaderFields.VALUE]: true,
+};
+
+const initWebhookData: WebhookData = {
 	[WebhookInputDataFields.EVENT_NAME]: webhookEventNames['User login'],
 	[WebhookInputDataFields.EVENT_DESCRIPTION]: '',
 	[WebhookInputDataFields.ENDPOINT]: '',
@@ -107,7 +97,7 @@ const initWebhookData: webhookDataType = {
 	[WebhookInputDataFields.HEADERS]: [{ ...initHeadersData }],
 };
 
-const initWebhookValidatorData: validatorDataType = {
+const initWebhookValidatorData: ValidatorData = {
 	[WebhookInputDataFields.ENDPOINT]: true,
 	[WebhookInputDataFields.HEADERS]: [{ ...initHeadersValidatorData }],
 };
@@ -116,25 +106,25 @@ const UpdateWebhookModal = ({
 	view,
 	selectedWebhook,
 	fetchWebookData,
-}: UpdateWebhookModalInputPropTypes) => {
+}: UpdateWebhookModalProps) => {
 	const client = useClient();
-	const toast = useToast();
-	const { isOpen, onOpen, onClose } = useDisclosure();
+	const [open, setOpen] = useState(false);
 	const [loading, setLoading] = useState<boolean>(false);
 	const [verifyingEndpoint, setVerifyingEndpoint] = useState<boolean>(false);
 	const [isShowingPayload, setIsShowingPayload] = useState<boolean>(false);
-	const [webhook, setWebhook] = useState<webhookDataType>({
+	const [webhook, setWebhook] = useState<WebhookData>({
 		...initWebhookData,
 	});
-	const [validator, setValidator] = useState<validatorDataType>({
+	const [validator, setValidator] = useState<ValidatorData>({
 		...initWebhookValidatorData,
 	});
 	const [verifiedStatus, setVerifiedStatus] = useState<webhookVerifiedStatus>(
 		webhookVerifiedStatus.PENDING,
 	);
+
 	const inputChangehandler = (
 		inputType: string,
-		value: any,
+		value: string | boolean,
 		headerInputType: string = WebhookInputHeaderFields.KEY,
 		headerIndex: number = 0,
 	) => {
@@ -146,39 +136,41 @@ const UpdateWebhookModal = ({
 		}
 		switch (inputType) {
 			case WebhookInputDataFields.EVENT_NAME:
-				setWebhook({ ...webhook, [inputType]: value });
-				break;
 			case WebhookInputDataFields.EVENT_DESCRIPTION:
-				setWebhook({ ...webhook, [inputType]: value });
+				setWebhook({ ...webhook, [inputType]: value as string });
 				break;
 			case WebhookInputDataFields.ENDPOINT:
-				setWebhook({ ...webhook, [inputType]: value });
+				setWebhook({ ...webhook, [inputType]: value as string });
 				setValidator({
 					...validator,
-					[WebhookInputDataFields.ENDPOINT]: validateURI(value),
+					[WebhookInputDataFields.ENDPOINT]: validateURI(value as string),
 				});
 				break;
 			case WebhookInputDataFields.ENABLED:
-				setWebhook({ ...webhook, [inputType]: value });
+				setWebhook({ ...webhook, [inputType]: value as boolean });
 				break;
-			case WebhookInputDataFields.HEADERS:
-				const updatedHeaders: any = [
-					...webhook[WebhookInputDataFields.HEADERS],
-				];
-				const updatedHeadersValidatorData: any = [
+			case WebhookInputDataFields.HEADERS: {
+				const updatedHeaders = [...webhook[WebhookInputDataFields.HEADERS]];
+				const updatedHeadersValidatorData = [
 					...validator[WebhookInputDataFields.HEADERS],
 				];
 				const otherHeaderInputType =
 					headerInputType === WebhookInputHeaderFields.KEY
 						? WebhookInputHeaderFields.VALUE
 						: WebhookInputHeaderFields.KEY;
-				updatedHeaders[headerIndex][headerInputType] = value;
-				updatedHeadersValidatorData[headerIndex][headerInputType] =
-					value.length > 0
+				updatedHeaders[headerIndex][headerInputType as keyof HeadersData] =
+					value as string;
+				const strValue = value as string;
+				updatedHeadersValidatorData[headerIndex][
+					headerInputType as keyof HeadersValidatorData
+				] =
+					strValue.length > 0
 						? updatedHeaders[headerIndex][otherHeaderInputType].length > 0
 						: updatedHeaders[headerIndex][otherHeaderInputType].length === 0;
-				updatedHeadersValidatorData[headerIndex][otherHeaderInputType] =
-					value.length > 0
+				updatedHeadersValidatorData[headerIndex][
+					otherHeaderInputType as keyof HeadersValidatorData
+				] =
+					strValue.length > 0
 						? updatedHeaders[headerIndex][otherHeaderInputType].length > 0
 						: updatedHeaders[headerIndex][otherHeaderInputType].length === 0;
 				setWebhook({ ...webhook, [inputType]: updatedHeaders });
@@ -187,10 +179,12 @@ const UpdateWebhookModal = ({
 					[inputType]: updatedHeadersValidatorData,
 				});
 				break;
+			}
 			default:
 				break;
 		}
 	};
+
 	const updateHeaders = (operation: string, index: number = 0) => {
 		if (verifiedStatus !== webhookVerifiedStatus.PENDING) {
 			setVerifiedStatus(webhookVerifiedStatus.PENDING);
@@ -200,20 +194,20 @@ const UpdateWebhookModal = ({
 				setWebhook({
 					...webhook,
 					[WebhookInputDataFields.HEADERS]: [
-						...(webhook?.[WebhookInputDataFields.HEADERS] || []),
+						...(webhook[WebhookInputDataFields.HEADERS] || []),
 						{ ...initHeadersData },
 					],
 				});
 				setValidator({
 					...validator,
 					[WebhookInputDataFields.HEADERS]: [
-						...(validator?.[WebhookInputDataFields.HEADERS] || []),
+						...(validator[WebhookInputDataFields.HEADERS] || []),
 						{ ...initHeadersValidatorData },
 					],
 				});
 				break;
 			case ArrayInputOperations.REMOVE:
-				if (webhook?.[WebhookInputDataFields.HEADERS]?.length) {
+				if (webhook[WebhookInputDataFields.HEADERS]?.length) {
 					const updatedHeaders = [...webhook[WebhookInputDataFields.HEADERS]];
 					updatedHeaders.splice(index, 1);
 					setWebhook({
@@ -221,7 +215,7 @@ const UpdateWebhookModal = ({
 						[WebhookInputDataFields.HEADERS]: updatedHeaders,
 					});
 				}
-				if (validator?.[WebhookInputDataFields.HEADERS]?.length) {
+				if (validator[WebhookInputDataFields.HEADERS]?.length) {
 					const updatedHeadersData = [
 						...validator[WebhookInputDataFields.HEADERS],
 					];
@@ -236,6 +230,7 @@ const UpdateWebhookModal = ({
 				break;
 		}
 	};
+
 	const validateData = () => {
 		return (
 			!loading &&
@@ -244,13 +239,14 @@ const UpdateWebhookModal = ({
 			webhook[WebhookInputDataFields.ENDPOINT].length > 0 &&
 			validator[WebhookInputDataFields.ENDPOINT] &&
 			!validator[WebhookInputDataFields.HEADERS].some(
-				(headerData: headersValidatorDataType) =>
+				(headerData: HeadersValidatorData) =>
 					!headerData.key || !headerData.value,
 			)
 		);
 	};
+
 	const getParams = () => {
-		let params: any = {
+		const params: Record<string, unknown> = {
 			[WebhookInputDataFields.EVENT_NAME]:
 				webhook[WebhookInputDataFields.EVENT_NAME],
 			[WebhookInputDataFields.EVENT_DESCRIPTION]:
@@ -262,7 +258,7 @@ const UpdateWebhookModal = ({
 		};
 		if (webhook[WebhookInputDataFields.HEADERS].length) {
 			const headers = webhook[WebhookInputDataFields.HEADERS].reduce(
-				(acc, data) => {
+				(acc: Record<string, string>, data) => {
 					return data.key ? { ...acc, [data.key]: data.value } : acc;
 				},
 				{},
@@ -273,11 +269,12 @@ const UpdateWebhookModal = ({
 		}
 		return params;
 	};
+
 	const saveData = async () => {
 		if (!validateData()) return;
 		setLoading(true);
 		const params = getParams();
-		let res: any = {};
+		let res: { error?: unknown; data?: Record<string, { message?: string }> };
 		if (
 			view === UpdateModalViews.Edit &&
 			selectedWebhook?.[WebhookInputDataFields.ID]
@@ -295,21 +292,19 @@ const UpdateWebhookModal = ({
 		}
 		setLoading(false);
 		if (res.error) {
-			toast({
-				title: capitalizeFirstLetter(getGraphQLErrorMessage(res.error, 'Failed to update webhook')),
-				isClosable: true,
-				status: 'error',
-				position: 'top-right',
-			});
-		} else if (res.data?._add_webhook || res.data?._update_webhook) {
-			toast({
-				title: capitalizeFirstLetter(
-					res.data?._add_webhook?.message || res.data?._update_webhook?.message,
+			toast.error(
+				capitalizeFirstLetter(
+					getGraphQLErrorMessage(res.error, 'Failed to update webhook'),
 				),
-				isClosable: true,
-				status: 'success',
-				position: 'top-right',
-			});
+			);
+		} else if (res.data?._add_webhook || res.data?._update_webhook) {
+			toast.success(
+				capitalizeFirstLetter(
+					res.data?._add_webhook?.message ||
+						res.data?._update_webhook?.message ||
+						'Webhook saved',
+				),
+			);
 			setWebhook({
 				...initWebhookData,
 				[WebhookInputDataFields.HEADERS]: [{ ...initHeadersData }],
@@ -317,24 +312,23 @@ const UpdateWebhookModal = ({
 			setValidator({ ...initWebhookValidatorData });
 			fetchWebookData();
 		}
-		view === UpdateModalViews.ADD && onClose();
+		if (view === UpdateModalViews.ADD) setOpen(false);
 	};
+
 	useEffect(() => {
 		if (
-			isOpen &&
+			open &&
 			view === UpdateModalViews.Edit &&
 			selectedWebhook &&
-			Object.keys(selectedWebhook || {}).length
+			Object.keys(selectedWebhook).length
 		) {
 			const { headers, ...rest } = selectedWebhook;
 			const headerItems = Object.entries(headers || {});
 			if (headerItems.length) {
-				let formattedHeadersData = headerItems.map((headerData) => {
-					return {
-						[WebhookInputHeaderFields.KEY]: headerData[0],
-						[WebhookInputHeaderFields.VALUE]: headerData[1],
-					};
-				});
+				const formattedHeadersData = headerItems.map((headerData) => ({
+					[WebhookInputHeaderFields.KEY]: headerData[0],
+					[WebhookInputHeaderFields.VALUE]: headerData[1],
+				}));
 				setWebhook({
 					...rest,
 					[WebhookInputDataFields.HEADERS]: formattedHeadersData,
@@ -354,7 +348,8 @@ const UpdateWebhookModal = ({
 				});
 			}
 		}
-	}, [isOpen]);
+	}, [open]);
+
 	const verifyEndpoint = async () => {
 		if (!validateData()) return;
 		setVerifyingEndpoint(true);
@@ -370,327 +365,244 @@ const UpdateWebhookModal = ({
 		}
 		setVerifyingEndpoint(false);
 	};
+
 	return (
 		<>
 			{view === UpdateModalViews.ADD ? (
-				<Button
-					leftIcon={<FaPlus />}
-					colorScheme="blue"
-					variant="solid"
-					onClick={onOpen}
-					isDisabled={false}
-					size="sm"
-				>
-					<Center h="100%">Add Webhook</Center>{' '}
+				<Button size="sm" onClick={() => setOpen(true)}>
+					<Plus className="mr-2 h-4 w-4" />
+					Add Webhook
 				</Button>
 			) : (
-				<MenuItem onClick={onOpen}>Edit</MenuItem>
+				<button
+					className="w-full text-left px-2 py-1.5 text-sm hover:bg-gray-100 rounded-sm"
+					onClick={() => setOpen(true)}
+				>
+					Edit
+				</button>
 			)}
-			<Modal isOpen={isOpen} onClose={onClose} size="3xl">
-				<ModalOverlay />
-				<ModalContent>
-					<ModalHeader>
-						{view === UpdateModalViews.ADD ? 'Add New Webhook' : 'Edit Webhook'}
-					</ModalHeader>
-					<ModalCloseButton />
-					<ModalBody>
-						<Flex
-							flexDirection="column"
-							border="1px"
-							borderRadius="md"
-							borderColor="gray.200"
-							p="5"
+			<Sheet open={open} onOpenChange={setOpen}>
+				<SheetContent className="overflow-y-auto sm:max-w-2xl">
+					<SheetHeader>
+						<SheetTitle>
+							{view === UpdateModalViews.ADD
+								? 'Add New Webhook'
+								: 'Edit Webhook'}
+						</SheetTitle>
+						<SheetDescription>
+							Configure webhook endpoint and event settings.
+						</SheetDescription>
+					</SheetHeader>
+
+					<div className="mt-6 space-y-5 rounded-md border border-gray-200 p-5">
+						{/* Event Name */}
+						<div className="flex items-center gap-4">
+							<label className="w-32 text-sm font-medium shrink-0">
+								Event Name
+							</label>
+							<Select
+								value={webhook[WebhookInputDataFields.EVENT_NAME].split('-')[0]}
+								onChange={(e) =>
+									inputChangehandler(
+										WebhookInputDataFields.EVENT_NAME,
+										e.currentTarget.value,
+									)
+								}
+							>
+								{Object.entries(webhookEventNames).map(([key, value]) => (
+									<option value={value} key={key}>
+										{key}
+									</option>
+								))}
+							</Select>
+						</div>
+
+						{/* Event Description */}
+						<div className="flex items-center gap-4">
+							<label className="w-32 text-sm font-medium shrink-0">
+								Description
+							</label>
+							<Input
+								placeholder="User event"
+								value={webhook[WebhookInputDataFields.EVENT_DESCRIPTION] || ''}
+								onChange={(e) =>
+									inputChangehandler(
+										WebhookInputDataFields.EVENT_DESCRIPTION,
+										e.currentTarget.value,
+									)
+								}
+							/>
+						</div>
+
+						{/* Endpoint */}
+						<div className="flex items-center gap-4">
+							<label className="w-32 text-sm font-medium shrink-0">
+								Endpoint
+							</label>
+							<Input
+								placeholder="https://domain.com/webhook"
+								value={webhook[WebhookInputDataFields.ENDPOINT]}
+								isInvalid={!validator[WebhookInputDataFields.ENDPOINT]}
+								onChange={(e) =>
+									inputChangehandler(
+										WebhookInputDataFields.ENDPOINT,
+										e.currentTarget.value,
+									)
+								}
+							/>
+						</div>
+
+						{/* Enabled */}
+						<div className="flex items-center gap-4">
+							<label className="w-32 text-sm font-medium shrink-0">
+								Enabled
+							</label>
+							<div className="flex items-center gap-2">
+								<span className="text-sm font-medium">Off</span>
+								<Switch
+									checked={webhook[WebhookInputDataFields.ENABLED]}
+									onCheckedChange={(checked: boolean) =>
+										inputChangehandler(WebhookInputDataFields.ENABLED, checked)
+									}
+								/>
+								<span className="text-sm font-medium">On</span>
+							</div>
+						</div>
+
+						{/* Headers */}
+						<div className="flex items-center justify-between">
+							<span className="text-sm font-medium">Headers</span>
+							<Button
+								variant="ghost"
+								size="sm"
+								onClick={() => updateHeaders(ArrayInputOperations.APPEND)}
+							>
+								<Plus className="mr-1 h-3 w-3" />
+								Add more Headers
+							</Button>
+						</div>
+						<div className="max-h-48 space-y-2 overflow-y-auto">
+							{webhook[WebhookInputDataFields.HEADERS]?.map(
+								(headerData, index) => (
+									<div
+										key={`header-data-${index}`}
+										className="flex items-center gap-2"
+									>
+										<Input
+											placeholder="key"
+											value={headerData[WebhookInputHeaderFields.KEY]}
+											isInvalid={
+												!validator[WebhookInputDataFields.HEADERS][index]?.[
+													WebhookInputHeaderFields.KEY
+												]
+											}
+											onChange={(e) =>
+												inputChangehandler(
+													WebhookInputDataFields.HEADERS,
+													e.target.value,
+													WebhookInputHeaderFields.KEY,
+													index,
+												)
+											}
+											className="w-1/3"
+										/>
+										<span className="font-bold">:</span>
+										<Input
+											placeholder="value"
+											value={headerData[WebhookInputHeaderFields.VALUE]}
+											isInvalid={
+												!validator[WebhookInputDataFields.HEADERS][index]?.[
+													WebhookInputHeaderFields.VALUE
+												]
+											}
+											onChange={(e) =>
+												inputChangehandler(
+													WebhookInputDataFields.HEADERS,
+													e.target.value,
+													WebhookInputHeaderFields.VALUE,
+													index,
+												)
+											}
+											className="flex-1"
+										/>
+										<Button
+											variant="ghost"
+											size="icon"
+											onClick={() =>
+												updateHeaders(ArrayInputOperations.REMOVE, index)
+											}
+										>
+											<MinusCircle className="h-4 w-4" />
+										</Button>
+									</div>
+								),
+							)}
+						</div>
+
+						<Separator />
+
+						{/* Example Payload */}
+						<button
+							type="button"
+							className="flex w-full items-center justify-between rounded-md bg-blue-50 px-4 py-2 text-sm text-blue-800"
+							onClick={() => setIsShowingPayload(!isShowingPayload)}
 						>
-							<Flex
-								width="100%"
-								justifyContent="space-between"
-								alignItems="center"
-								marginBottom="2%"
-							>
-								<Flex flex="1">Event Name</Flex>
-								<Flex flex="3">
-									<Select
-										size="md"
-										value={
-											webhook[WebhookInputDataFields.EVENT_NAME].split('-')[0]
-										}
-										onChange={(e) =>
-											inputChangehandler(
-												WebhookInputDataFields.EVENT_NAME,
-												e.currentTarget.value,
-											)
-										}
-									>
-										{Object.entries(webhookEventNames).map(
-											([key, value]: any) => (
-												<option value={value} key={key}>
-													{key}
-												</option>
-											),
-										)}
-									</Select>
-								</Flex>
-							</Flex>
-							<Flex
-								width="100%"
-								justifyContent="start"
-								alignItems="center"
-								marginBottom="5%"
-							>
-								<Flex flex="1">Event Description</Flex>
-								<Flex flex="3">
-									<InputGroup size="md">
-										<Input
-											pr="4.5rem"
-											type="text"
-											placeholder="User event"
-											value={webhook[WebhookInputDataFields.EVENT_DESCRIPTION]}
-											onChange={(e) =>
-												inputChangehandler(
-													WebhookInputDataFields.EVENT_DESCRIPTION,
-													e.currentTarget.value,
-												)
-											}
-										/>
-									</InputGroup>
-								</Flex>
-							</Flex>
-							<Flex
-								width="100%"
-								justifyContent="start"
-								alignItems="center"
-								marginBottom="5%"
-							>
-								<Flex flex="1">Endpoint</Flex>
-								<Flex flex="3">
-									<InputGroup size="md">
-										<Input
-											pr="4.5rem"
-											type="text"
-											placeholder="https://domain.com/webhook"
-											value={webhook[WebhookInputDataFields.ENDPOINT]}
-											isInvalid={!validator[WebhookInputDataFields.ENDPOINT]}
-											onChange={(e) =>
-												inputChangehandler(
-													WebhookInputDataFields.ENDPOINT,
-													e.currentTarget.value,
-												)
-											}
-										/>
-									</InputGroup>
-								</Flex>
-							</Flex>
-							<Flex
-								width="100%"
-								justifyContent="space-between"
-								alignItems="center"
-								marginBottom="5%"
-							>
-								<Flex flex="1">Enabled</Flex>
-								<Flex w="25%" justifyContent="space-between">
-									<Text h="75%" fontWeight="bold" marginRight="2">
-										Off
-									</Text>
-									<Switch
-										size="md"
-										isChecked={webhook[WebhookInputDataFields.ENABLED]}
-										onChange={() =>
-											inputChangehandler(
-												WebhookInputDataFields.ENABLED,
-												!webhook[WebhookInputDataFields.ENABLED],
-											)
-										}
-									/>
-									<Text h="75%" fontWeight="bold" marginLeft="2">
-										On
-									</Text>
-								</Flex>
-							</Flex>
-
-							<Flex
-								width="100%"
-								justifyContent="space-between"
-								alignItems="center"
-								marginBottom="5%"
-							>
-								<Flex>Headers</Flex>
-								<Flex>
-									<Button
-										leftIcon={<FaPlus />}
-										colorScheme="blue"
-										h="1.75rem"
-										size="sm"
-										variant="ghost"
-										paddingRight="0"
-										onClick={() => updateHeaders(ArrayInputOperations.APPEND)}
-									>
-										Add more Headers
-									</Button>
-								</Flex>
-							</Flex>
-
-							<Flex flexDirection="column" maxH={220} overflowY="auto">
-								{webhook[WebhookInputDataFields.HEADERS]?.map(
-									(headerData, index) => (
-										<Flex
-											key={`header-data-${index}`}
-											justifyContent="center"
-											alignItems="center"
-										>
-											<InputGroup size="md" marginBottom="2.5%">
-												<Input
-													type="text"
-													placeholder="key"
-													value={headerData[WebhookInputHeaderFields.KEY]}
-													isInvalid={
-														!validator[WebhookInputDataFields.HEADERS][index]?.[
-															WebhookInputHeaderFields.KEY
-														]
-													}
-													onChange={(e) =>
-														inputChangehandler(
-															WebhookInputDataFields.HEADERS,
-															e.target.value,
-															WebhookInputHeaderFields.KEY,
-															index,
-														)
-													}
-													width="30%"
-													marginRight="2%"
-												/>
-												<Center marginRight="2%">
-													<Text fontWeight="bold">:</Text>
-												</Center>
-												<Input
-													type="text"
-													placeholder="value"
-													value={headerData[WebhookInputHeaderFields.VALUE]}
-													isInvalid={
-														!validator[WebhookInputDataFields.HEADERS][index]?.[
-															WebhookInputHeaderFields.VALUE
-														]
-													}
-													onChange={(e) =>
-														inputChangehandler(
-															WebhookInputDataFields.HEADERS,
-															e.target.value,
-															WebhookInputHeaderFields.VALUE,
-															index,
-														)
-													}
-													width="65%"
-												/>
-												<InputRightElement width="3rem">
-													<Button
-														width="6rem"
-														colorScheme="blackAlpha"
-														variant="ghost"
-														padding="0"
-														onClick={() =>
-															updateHeaders(ArrayInputOperations.REMOVE, index)
-														}
-													>
-														<FaMinusCircle />
-													</Button>
-												</InputRightElement>
-											</InputGroup>
-										</Flex>
-									),
-								)}
-							</Flex>
-							<Divider marginY={5} />
-
-							<Alert
-								status="info"
-								onClick={() => setIsShowingPayload(!isShowingPayload)}
-								borderRadius="5"
-								cursor="pointer"
-								fontSize="sm"
-							>
-								<AlertIcon />
-								<Flex
-									width="100%"
-									justifyContent="space-between"
-									alignItems="center"
+							<span>Checkout the example payload</span>
+							{isShowingPayload ? (
+								<ChevronUp className="h-4 w-4" />
+							) : (
+								<ChevronDown className="h-4 w-4" />
+							)}
+						</button>
+						{isShowingPayload && (
+							<div className="relative rounded-md bg-gray-100 p-3">
+								<pre className="overflow-auto text-xs">
+									{webhookPayloadExample}
+								</pre>
+								<button
+									type="button"
+									className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+									onClick={() => copyTextToClipboard(webhookPayloadExample)}
 								>
-									Checkout the example payload
-									{isShowingPayload ? <FaAngleUp /> : <FaAngleDown />}
-								</Flex>
-							</Alert>
-							<Collapse
-								style={{
-									marginTop: 10,
-									width: '100%',
-								}}
-								in={isShowingPayload}
-							>
-								<Code
-									width="inherit"
-									borderRadius={5}
-									padding={2}
-									position="relative"
-								>
-									<pre style={{ overflow: 'auto' }}>
-										{webhookPayloadExample}
-									</pre>
-									{isShowingPayload && (
-										<Flex
-											position="absolute"
-											top={4}
-											right={4}
-											cursor="pointer"
-											onClick={() => copyTextToClipboard(webhookPayloadExample)}
-										>
-											<FaRegClone color="#bfbfbf" />
-										</Flex>
-									)}
-								</Code>
-							</Collapse>
-						</Flex>
-					</ModalBody>
-					<ModalFooter>
+									<Copy className="h-4 w-4" />
+								</button>
+							</div>
+						)}
+					</div>
+
+					<SheetFooter className="mt-6">
 						<Button
-							colorScheme={
-								verifiedStatus === webhookVerifiedStatus.VERIFIED
-									? 'green'
-									: verifiedStatus === webhookVerifiedStatus.PENDING
-									? 'yellow'
-									: 'red'
-							}
 							variant="outline"
 							onClick={verifyEndpoint}
 							isLoading={verifyingEndpoint}
-							isDisabled={!validateData()}
-							marginRight="5"
-							leftIcon={
-								verifiedStatus === webhookVerifiedStatus.VERIFIED ? (
-									<BiCheckCircle />
-								) : verifiedStatus === webhookVerifiedStatus.PENDING ? (
-									<BiErrorCircle />
-								) : (
-									<BiError />
-								)
+							disabled={!validateData()}
+							className={
+								verifiedStatus === webhookVerifiedStatus.VERIFIED
+									? 'border-green-500 text-green-700'
+									: verifiedStatus === webhookVerifiedStatus.NOT_VERIFIED
+										? 'border-red-500 text-red-700'
+										: 'border-yellow-500 text-yellow-700'
 							}
 						>
+							{verifiedStatus === webhookVerifiedStatus.VERIFIED ? (
+								<CheckCircle className="mr-2 h-4 w-4" />
+							) : verifiedStatus === webhookVerifiedStatus.PENDING ? (
+								<AlertCircle className="mr-2 h-4 w-4" />
+							) : (
+								<AlertTriangle className="mr-2 h-4 w-4" />
+							)}
 							{verifiedStatus === webhookVerifiedStatus.VERIFIED
 								? 'Endpoint Verified'
 								: verifiedStatus === webhookVerifiedStatus.PENDING
-								? 'Test Endpoint'
-								: 'Endpoint Not Verified'}
+									? 'Test Endpoint'
+									: 'Endpoint Not Verified'}
 						</Button>
-						<Button
-							colorScheme="blue"
-							variant="solid"
-							onClick={saveData}
-							isDisabled={!validateData()}
-						>
-							<Center h="100%" pt="5%">
-								Save
-							</Center>
+						<Button onClick={saveData} disabled={!validateData()}>
+							Save
 						</Button>
-					</ModalFooter>
-				</ModalContent>
-			</Modal>
+					</SheetFooter>
+				</SheetContent>
+			</Sheet>
 		</>
 	);
 };

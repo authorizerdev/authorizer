@@ -1,51 +1,42 @@
 import React, { useEffect, useState } from 'react';
 import dayjs from 'dayjs';
-import {
-	Button,
-	Center,
-	Flex,
-	MenuItem,
-	Modal,
-	ModalBody,
-	ModalCloseButton,
-	ModalContent,
-	ModalFooter,
-	ModalHeader,
-	ModalOverlay,
-	useDisclosure,
-	Text,
-	Spinner,
-	Table,
-	Th,
-	Thead,
-	Tr,
-	Tbody,
-	IconButton,
-	NumberDecrementStepper,
-	NumberIncrementStepper,
-	NumberInput,
-	NumberInputField,
-	NumberInputStepper,
-	Select,
-	TableCaption,
-	Tooltip,
-	Td,
-	Tag,
-} from '@chakra-ui/react';
 import { useClient } from 'urql';
 import {
-	FaAngleDoubleLeft,
-	FaAngleDoubleRight,
-	FaAngleLeft,
-	FaAngleRight,
-	FaExclamationCircle,
-	FaRegClone,
-} from 'react-icons/fa';
+	ChevronsLeft,
+	ChevronsRight,
+	ChevronLeft,
+	ChevronRight,
+	Copy,
+	AlertCircle,
+} from 'lucide-react';
+import { toast } from 'sonner';
 import { copyTextToClipboard } from '../utils';
 import { WebhookLogsQuery } from '../graphql/queries';
 import { pageLimits } from '../constants';
+import { Button } from './ui/button';
+import { Badge } from './ui/badge';
+import { Select } from './ui/select';
+import { Input } from './ui/input';
+import { Skeleton } from './ui/skeleton';
+import { Tooltip, TooltipTrigger, TooltipContent } from './ui/tooltip';
+import {
+	Table,
+	TableHeader,
+	TableBody,
+	TableRow,
+	TableHead,
+	TableCell,
+} from './ui/table';
+import {
+	Dialog,
+	DialogContent,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from './ui/dialog';
 
-interface paginationPropTypes {
+interface PaginationProps {
 	limit: number;
 	page: number;
 	offset: number;
@@ -53,12 +44,7 @@ interface paginationPropTypes {
 	maxPages: number;
 }
 
-interface deleteWebhookModalInputPropTypes {
-	webhookId: string;
-	eventName: string;
-}
-
-interface webhookLogsDataTypes {
+interface WebhookLogData {
 	id: string;
 	http_status: number;
 	request: string;
@@ -66,29 +52,37 @@ interface webhookLogsDataTypes {
 	created_at: number;
 }
 
+interface ViewWebhookLogsModalProps {
+	webhookId: string;
+	eventName: string;
+}
+
 const ViewWebhookLogsModal = ({
 	webhookId,
 	eventName,
-}: deleteWebhookModalInputPropTypes) => {
+}: ViewWebhookLogsModalProps) => {
 	const client = useClient();
-	const { isOpen, onOpen, onClose } = useDisclosure();
+	const [open, setOpen] = useState(false);
 	const [loading, setLoading] = useState<boolean>(false);
-	const [webhookLogs, setWebhookLogs] = useState<webhookLogsDataTypes[]>([]);
-	const [paginationProps, setPaginationProps] = useState<paginationPropTypes>({
+	const [webhookLogs, setWebhookLogs] = useState<WebhookLogData[]>([]);
+	const [paginationProps, setPaginationProps] = useState<PaginationProps>({
 		limit: 5,
 		page: 1,
 		offset: 0,
 		total: 0,
 		maxPages: 1,
 	});
-	const getMaxPages = (pagination: paginationPropTypes) => {
+
+	const getMaxPages = (pagination: PaginationProps) => {
 		const { limit, total } = pagination;
 		if (total > 1) {
 			return total % limit === 0
 				? total / limit
-				: parseInt(`${total / limit}`) + 1;
-		} else return 1;
+				: Math.floor(total / limit) + 1;
+		}
+		return 1;
 	};
+
 	const fetchWebhookLogsData = async () => {
 		setLoading(true);
 		const res = await client
@@ -103,11 +97,15 @@ const ViewWebhookLogsModal = ({
 			})
 			.toPromise();
 		if (res.data?._webhook_logs) {
-			const { pagination, webhook_logs } = res.data?._webhook_logs;
+			const { pagination, webhook_logs } = res.data._webhook_logs;
 			const maxPages = getMaxPages(pagination);
 			if (webhook_logs?.length) {
 				setWebhookLogs(webhook_logs);
-				setPaginationProps({ ...paginationProps, ...pagination, maxPages });
+				setPaginationProps({
+					...paginationProps,
+					...pagination,
+					maxPages,
+				});
 			} else {
 				if (paginationProps.page !== 1) {
 					setPaginationProps({
@@ -121,305 +119,249 @@ const ViewWebhookLogsModal = ({
 		}
 		setLoading(false);
 	};
+
 	const paginationHandler = (value: Record<string, number>) => {
 		setPaginationProps({ ...paginationProps, ...value });
 	};
+
 	useEffect(() => {
-		isOpen && fetchWebhookLogsData();
-	}, [isOpen, paginationProps.page, paginationProps.limit]);
+		if (open) fetchWebhookLogsData();
+	}, [open, paginationProps.page, paginationProps.limit]);
+
 	return (
-		<>
-			<MenuItem onClick={onOpen}>View Logs</MenuItem>
-			<Modal isOpen={isOpen} onClose={onClose} size="4xl">
-				<ModalOverlay />
-				<ModalContent>
-					<ModalHeader>Webhook Logs - {eventName}</ModalHeader>
-					<ModalCloseButton />
-					<ModalBody>
-						<Flex
-							flexDirection="column"
-							border="1px"
-							borderRadius="md"
-							borderColor="gray.200"
-							p="5"
-						>
-							{!loading ? (
-								webhookLogs.length ? (
-									<Table variant="simple">
-										<Thead>
-											<Tr>
-												<Th>ID</Th>
-												<Th>Created At</Th>
-												<Th>Http Status</Th>
-												<Th>Request</Th>
-												<Th>Response</Th>
-											</Tr>
-										</Thead>
-										<Tbody>
-											{webhookLogs.map((logData: webhookLogsDataTypes) => (
-												<Tr key={logData.id} style={{ fontSize: 14 }}>
-													<Td>
-														<Text fontSize="sm">{`${logData.id.substring(
-															0,
-															5,
-														)}***${logData.id.substring(
-															logData.id.length - 5,
-															logData.id.length,
-														)}`}</Text>
-													</Td>
-													<Td>
-														{dayjs(logData.created_at * 1000).format(
-															'MMM DD, YYYY',
-														)}
-													</Td>
-													<Td>
-														<Tag
-															size="sm"
-															variant="outline"
-															colorScheme={
-																logData.http_status >= 400 ? 'red' : 'green'
-															}
-														>
-															{logData.http_status}
-														</Tag>
-													</Td>
-													<Td>
-														<Flex alignItems="center">
-															<Tooltip
-																bg="gray.300"
-																color="black"
-																label={logData.request || 'null'}
-															>
-																<Tag
-																	size="sm"
-																	variant="outline"
-																	colorScheme={
-																		logData.request ? 'gray' : 'yellow'
-																	}
-																>
-																	{logData.request ? 'Payload' : 'No Data'}
-																</Tag>
-															</Tooltip>
-															{logData.request && (
-																<Button
-																	size="xs"
-																	variant="outline"
-																	marginLeft="5px"
-																	h="21px"
-																	onClick={() =>
-																		copyTextToClipboard(logData.request)
-																	}
-																>
-																	<FaRegClone color="#bfbfbf" />
-																</Button>
-															)}
-														</Flex>
-													</Td>
-													<Td>
-														<Flex alignItems="center">
-															<Tooltip
-																bg="gray.300"
-																color="black"
-																label={logData.response || 'null'}
-															>
-																<Tag
-																	size="sm"
-																	variant="outline"
-																	colorScheme={
-																		logData.response ? 'gray' : 'yellow'
-																	}
-																>
-																	{logData.response ? 'Preview' : 'No Data'}
-																</Tag>
-															</Tooltip>
-															{logData.response && (
-																<Button
-																	size="xs"
-																	variant="outline"
-																	marginLeft="5px"
-																	h="21px"
-																	onClick={() =>
-																		copyTextToClipboard(logData.response)
-																	}
-																>
-																	<FaRegClone color="#bfbfbf" />
-																</Button>
-															)}
-														</Flex>
-													</Td>
-												</Tr>
-											))}
-										</Tbody>
-										{(paginationProps.maxPages > 1 ||
-											paginationProps.total >= 5) && (
-											<TableCaption>
-												<Flex
-													justifyContent="space-between"
-													alignItems="center"
-													m="2% 0"
+		<Dialog open={open} onOpenChange={setOpen}>
+			<DialogTrigger asChild>
+				<button className="w-full text-left px-2 py-1.5 text-sm hover:bg-gray-100 rounded-sm">
+					View Logs
+				</button>
+			</DialogTrigger>
+			<DialogContent className="max-w-4xl">
+				<DialogHeader>
+					<DialogTitle>Webhook Logs - {eventName}</DialogTitle>
+				</DialogHeader>
+
+				<div className="rounded-md border border-gray-200 p-4">
+					{loading ? (
+						<div className="space-y-3">
+							{[1, 2, 3].map((i) => (
+								<Skeleton key={i} className="h-10 w-full" />
+							))}
+						</div>
+					) : webhookLogs.length ? (
+						<>
+							<Table>
+								<TableHeader>
+									<TableRow>
+										<TableHead>ID</TableHead>
+										<TableHead>Created At</TableHead>
+										<TableHead>Http Status</TableHead>
+										<TableHead>Request</TableHead>
+										<TableHead>Response</TableHead>
+									</TableRow>
+								</TableHeader>
+								<TableBody>
+									{webhookLogs.map((logData) => (
+										<TableRow key={logData.id}>
+											<TableCell className="text-sm">
+												{`${logData.id.substring(0, 5)}***${logData.id.substring(logData.id.length - 5)}`}
+											</TableCell>
+											<TableCell>
+												{dayjs(logData.created_at * 1000).format(
+													'MMM DD, YYYY',
+												)}
+											</TableCell>
+											<TableCell>
+												<Badge
+													variant={
+														logData.http_status >= 400
+															? 'destructive'
+															: 'success'
+													}
 												>
-													<Flex flex="1">
-														<Tooltip label="First Page">
-															<IconButton
-																aria-label="icon button"
-																onClick={() =>
-																	paginationHandler({
-																		page: 1,
-																	})
+													{logData.http_status}
+												</Badge>
+											</TableCell>
+											<TableCell>
+												<div className="flex items-center gap-1">
+													<Tooltip>
+														<TooltipTrigger>
+															<Badge
+																variant={
+																	logData.request ? 'secondary' : 'warning'
 																}
-																isDisabled={paginationProps.page <= 1}
-																mr={4}
-																icon={<FaAngleDoubleLeft />}
-															/>
-														</Tooltip>
-														<Tooltip label="Previous Page">
-															<IconButton
-																aria-label="icon button"
-																onClick={() =>
-																	paginationHandler({
-																		page: paginationProps.page - 1,
-																	})
-																}
-																isDisabled={paginationProps.page <= 1}
-																icon={<FaAngleLeft />}
-															/>
-														</Tooltip>
-													</Flex>
-													<Flex
-														flex="8"
-														justifyContent="space-evenly"
-														alignItems="center"
-													>
-														<Text mr={8}>
-															Page{' '}
-															<Text fontWeight="bold" as="span">
-																{paginationProps.page}
-															</Text>{' '}
-															of{' '}
-															<Text fontWeight="bold" as="span">
-																{paginationProps.maxPages}
-															</Text>
-														</Text>
-														<Flex alignItems="center">
-															<Text flexShrink="0">Go to page:</Text>{' '}
-															<NumberInput
-																ml={2}
-																mr={8}
-																w={28}
-																min={1}
-																max={paginationProps.maxPages}
-																onChange={(value) =>
-																	paginationHandler({
-																		page: parseInt(value),
-																	})
-																}
-																value={paginationProps.page}
 															>
-																<NumberInputField />
-																<NumberInputStepper>
-																	<NumberIncrementStepper />
-																	<NumberDecrementStepper />
-																</NumberInputStepper>
-															</NumberInput>
-														</Flex>
-														<Select
-															w={32}
-															value={paginationProps.limit}
-															onChange={(e) =>
-																paginationHandler({
-																	page: 1,
-																	limit: parseInt(e.target.value),
-																})
-															}
+																{logData.request ? 'Payload' : 'No Data'}
+															</Badge>
+														</TooltipTrigger>
+														<TooltipContent className="max-w-xs">
+															<p className="break-all text-xs">
+																{logData.request || 'null'}
+															</p>
+														</TooltipContent>
+													</Tooltip>
+													{logData.request && (
+														<Button
+															variant="ghost"
+															size="icon"
+															className="h-6 w-6"
+															onClick={() => {
+																copyTextToClipboard(logData.request);
+																toast.success('Copied to clipboard');
+															}}
 														>
-															{pageLimits.map((pageSize) => (
-																<option key={pageSize} value={pageSize}>
-																	Show {pageSize}
-																</option>
-															))}
-														</Select>
-													</Flex>
-													<Flex flex="1">
-														<Tooltip label="Next Page">
-															<IconButton
-																aria-label="icon button"
-																onClick={() =>
-																	paginationHandler({
-																		page: paginationProps.page + 1,
-																	})
+															<Copy className="h-3 w-3" />
+														</Button>
+													)}
+												</div>
+											</TableCell>
+											<TableCell>
+												<div className="flex items-center gap-1">
+													<Tooltip>
+														<TooltipTrigger>
+															<Badge
+																variant={
+																	logData.response ? 'secondary' : 'warning'
 																}
-																isDisabled={
-																	paginationProps.page >=
-																	paginationProps.maxPages
-																}
-																icon={<FaAngleRight />}
-															/>
-														</Tooltip>
-														<Tooltip label="Last Page">
-															<IconButton
-																aria-label="icon button"
-																onClick={() =>
-																	paginationHandler({
-																		page: paginationProps.maxPages,
-																	})
-																}
-																isDisabled={
-																	paginationProps.page >=
-																	paginationProps.maxPages
-																}
-																ml={4}
-																icon={<FaAngleDoubleRight />}
-															/>
-														</Tooltip>
-													</Flex>
-												</Flex>
-											</TableCaption>
-										)}
-									</Table>
-								) : (
-									<Flex
-										flexDirection="column"
-										minH="25vh"
-										justifyContent="center"
-										alignItems="center"
-									>
-										<Center w="50px" marginRight="1.5%">
-											<FaExclamationCircle
-												style={{ color: '#f0f0f0', fontSize: 70 }}
-											/>
-										</Center>
-										<Text
-											fontSize="2xl"
-											paddingRight="1%"
-											fontWeight="bold"
-											color="#d9d9d9"
+															>
+																{logData.response ? 'Preview' : 'No Data'}
+															</Badge>
+														</TooltipTrigger>
+														<TooltipContent className="max-w-xs">
+															<p className="break-all text-xs">
+																{logData.response || 'null'}
+															</p>
+														</TooltipContent>
+													</Tooltip>
+													{logData.response && (
+														<Button
+															variant="ghost"
+															size="icon"
+															className="h-6 w-6"
+															onClick={() => {
+																copyTextToClipboard(logData.response);
+																toast.success('Copied to clipboard');
+															}}
+														>
+															<Copy className="h-3 w-3" />
+														</Button>
+													)}
+												</div>
+											</TableCell>
+										</TableRow>
+									))}
+								</TableBody>
+							</Table>
+
+							{/* Pagination */}
+							{(paginationProps.maxPages > 1 || paginationProps.total >= 5) && (
+								<div className="mt-4 flex items-center justify-between">
+									<div className="flex gap-1">
+										<Button
+											variant="outline"
+											size="icon"
+											onClick={() => paginationHandler({ page: 1 })}
+											disabled={paginationProps.page <= 1}
 										>
-											No Data
-										</Text>
-									</Flex>
-								)
-							) : (
-								<Center minH="25vh">
-									<Spinner />
-								</Center>
+											<ChevronsLeft className="h-4 w-4" />
+										</Button>
+										<Button
+											variant="outline"
+											size="icon"
+											onClick={() =>
+												paginationHandler({
+													page: paginationProps.page - 1,
+												})
+											}
+											disabled={paginationProps.page <= 1}
+										>
+											<ChevronLeft className="h-4 w-4" />
+										</Button>
+									</div>
+
+									<div className="flex items-center gap-4 text-sm">
+										<span>
+											Page <strong>{paginationProps.page}</strong> of{' '}
+											<strong>{paginationProps.maxPages}</strong>
+										</span>
+										<div className="flex items-center gap-1">
+											<span className="whitespace-nowrap">Go to:</span>
+											<Input
+												type="number"
+												min={1}
+												max={paginationProps.maxPages}
+												value={paginationProps.page}
+												onChange={(e) =>
+													paginationHandler({
+														page: parseInt(e.target.value) || 1,
+													})
+												}
+												className="h-8 w-16"
+											/>
+										</div>
+										<Select
+											value={paginationProps.limit}
+											onChange={(e) =>
+												paginationHandler({
+													page: 1,
+													limit: parseInt(e.target.value),
+												})
+											}
+											className="h-8 w-28"
+										>
+											{pageLimits.map((pageSize) => (
+												<option key={pageSize} value={pageSize}>
+													Show {pageSize}
+												</option>
+											))}
+										</Select>
+									</div>
+
+									<div className="flex gap-1">
+										<Button
+											variant="outline"
+											size="icon"
+											onClick={() =>
+												paginationHandler({
+													page: paginationProps.page + 1,
+												})
+											}
+											disabled={
+												paginationProps.page >= paginationProps.maxPages
+											}
+										>
+											<ChevronRight className="h-4 w-4" />
+										</Button>
+										<Button
+											variant="outline"
+											size="icon"
+											onClick={() =>
+												paginationHandler({
+													page: paginationProps.maxPages,
+												})
+											}
+											disabled={
+												paginationProps.page >= paginationProps.maxPages
+											}
+										>
+											<ChevronsRight className="h-4 w-4" />
+										</Button>
+									</div>
+								</div>
 							)}
-						</Flex>
-					</ModalBody>
-					<ModalFooter>
-						<Button
-							colorScheme="blue"
-							variant="solid"
-							onClick={onClose}
-							isDisabled={false}
-						>
-							<Center h="100%" pt="5%">
-								Close
-							</Center>
-						</Button>
-					</ModalFooter>
-				</ModalContent>
-			</Modal>
-		</>
+						</>
+					) : (
+						<div className="flex min-h-[25vh] flex-col items-center justify-center text-gray-400">
+							<AlertCircle className="h-16 w-16 mb-2" />
+							<p className="text-xl font-bold">No Data</p>
+						</div>
+					)}
+				</div>
+
+				<DialogFooter>
+					<Button onClick={() => setOpen(false)}>Close</Button>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
 	);
 };
 

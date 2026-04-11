@@ -1,58 +1,38 @@
-import {
-	Box,
-	Flex,
-	Image,
-	Text,
-	Spinner,
-	useMediaQuery,
-} from '@chakra-ui/react';
 import React from 'react';
 import { useQuery } from 'urql';
 import { MetaQuery } from '../graphql/queries';
+import { Skeleton } from '../components/ui/skeleton';
+import type { MetaResponse } from '../types';
 
 export function AuthLayout({ children }: { children: React.ReactNode }) {
-	const [{ fetching, data }] = useQuery({ query: MetaQuery });
-	const [isNotSmallerScreen] = useMediaQuery('(min-width:600px)');
+	const [{ fetching, data }] = useQuery<MetaResponse>({ query: MetaQuery });
 	return (
-		<Flex
-			h="100vh"
-			bg="gray.100"
-			alignItems="center"
-			justifyContent="center"
-			direction={['column', 'column']}
-			padding={['2%', '2%', '2%', '2%']}
-		>
-			<Flex alignItems="center" maxW="100%">
-				<Image
+		<div className="flex h-screen flex-col items-center justify-center bg-gray-50 p-4">
+			<div className="flex items-center mb-6">
+				<img
 					src="https://authorizer.dev/images/logo.png"
-					alt="logo"
-					height="50"
+					alt="Authorizer logo"
+					className="h-12"
 				/>
-				<Text fontSize="x-large" ml="3" letterSpacing="3">
+				<span className="ml-3 text-xl tracking-widest font-semibold text-gray-800">
 					AUTHORIZER
-				</Text>
-			</Flex>
+				</span>
+			</div>
 
 			{fetching ? (
-				<Spinner />
+				<div className="w-full max-w-md space-y-4">
+					<Skeleton className="h-48 w-full rounded-lg" />
+				</div>
 			) : (
 				<>
-					<Box
-						p="6"
-						m="5"
-						rounded="5"
-						bg="white"
-						w={isNotSmallerScreen ? '500px' : '450px'}
-						shadow="xl"
-						maxW="100%"
-					>
+					<div className="w-full max-w-md rounded-lg bg-white p-6 shadow-sm border border-gray-200">
 						{children}
-					</Box>
-					<Text color="gray.600" fontSize="sm">
-						Current Version: {data.meta.version}
-					</Text>
+					</div>
+					<p className="mt-4 text-sm text-gray-500">
+						Current Version: {data?.meta?.version}
+					</p>
 				</>
 			)}
-		</Flex>
+		</div>
 	);
 }

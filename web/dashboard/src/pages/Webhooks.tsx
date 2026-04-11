@@ -1,51 +1,48 @@
 import React, { useEffect, useState } from 'react';
 import { useClient } from 'urql';
 import {
-	Box,
-	Button,
-	Center,
-	Flex,
-	IconButton,
-	Menu,
-	MenuButton,
-	MenuList,
-	NumberDecrementStepper,
-	NumberIncrementStepper,
-	NumberInput,
-	NumberInputField,
-	NumberInputStepper,
-	Select,
-	Spinner,
-	Table,
-	TableCaption,
-	Tag,
-	Tbody,
-	Td,
-	Text,
-	Th,
-	Thead,
-	Tooltip,
-	Tr,
-} from '@chakra-ui/react';
-import {
-	FaAngleDoubleLeft,
-	FaAngleDoubleRight,
-	FaAngleDown,
-	FaAngleLeft,
-	FaAngleRight,
-	FaExclamationCircle,
-} from 'react-icons/fa';
+	ChevronsLeft,
+	ChevronsRight,
+	ChevronLeft,
+	ChevronRight,
+	ChevronDown,
+	AlertCircle,
+} from 'lucide-react';
 import UpdateWebhookModal from '../components/UpdateWebhookModal';
 import {
-	pageLimits,
+	pageLimitsExtended,
 	WebhookInputDataFields,
 	UpdateModalViews,
 } from '../constants';
 import { WebhooksDataQuery } from '../graphql/queries';
 import DeleteWebhookModal from '../components/DeleteWebhookModal';
 import ViewWebhookLogsModal from '../components/ViewWebhookLogsModal';
+import { Button } from '../components/ui/button';
+import { Badge } from '../components/ui/badge';
+import { Input } from '../components/ui/input';
+import { Select } from '../components/ui/select';
+import { Skeleton } from '../components/ui/skeleton';
+import {
+	Tooltip,
+	TooltipTrigger,
+	TooltipContent,
+} from '../components/ui/tooltip';
+import {
+	DropdownMenu,
+	DropdownMenuTrigger,
+	DropdownMenuContent,
+} from '../components/ui/dropdown-menu';
+import {
+	Table,
+	TableHeader,
+	TableBody,
+	TableRow,
+	TableHead,
+	TableCell,
+} from '../components/ui/table';
+import type { Webhook, WebhooksResponse } from '../types';
 
-interface paginationPropTypes {
+interface PaginationProps {
 	limit: number;
 	page: number;
 	offset: number;
@@ -53,38 +50,32 @@ interface paginationPropTypes {
 	maxPages: number;
 }
 
-interface webhookDataTypes {
-	[WebhookInputDataFields.ID]: string;
-	[WebhookInputDataFields.EVENT_NAME]: string;
-	[WebhookInputDataFields.EVENT_DESCRIPTION]?: string;
-	[WebhookInputDataFields.ENDPOINT]: string;
-	[WebhookInputDataFields.ENABLED]: boolean;
-	[WebhookInputDataFields.HEADERS]?: Record<string, string>;
-}
-
 const Webhooks = () => {
 	const client = useClient();
 	const [loading, setLoading] = useState<boolean>(false);
-	const [webhookData, setWebhookData] = useState<webhookDataTypes[]>([]);
-	const [paginationProps, setPaginationProps] = useState<paginationPropTypes>({
-		limit: 5,
+	const [webhookData, setWebhookData] = useState<Webhook[]>([]);
+	const [paginationProps, setPaginationProps] = useState<PaginationProps>({
+		limit: 10,
 		page: 1,
 		offset: 0,
 		total: 0,
 		maxPages: 1,
 	});
-	const getMaxPages = (pagination: paginationPropTypes) => {
+
+	const getMaxPages = (pagination: PaginationProps) => {
 		const { limit, total } = pagination;
 		if (total > 1) {
 			return total % limit === 0
 				? total / limit
-				: parseInt(`${total / limit}`) + 1;
-		} else return 1;
+				: Math.floor(total / limit) + 1;
+		}
+		return 1;
 	};
+
 	const fetchWebookData = async () => {
 		setLoading(true);
 		const res = await client
-			.query(WebhooksDataQuery, {
+			.query<WebhooksResponse>(WebhooksDataQuery, {
 				params: {
 					pagination: {
 						limit: paginationProps.limit,
@@ -94,11 +85,15 @@ const Webhooks = () => {
 			})
 			.toPromise();
 		if (res.data?._webhooks) {
-			const { pagination, webhooks } = res.data?._webhooks;
-			const maxPages = getMaxPages(pagination);
+			const { pagination, webhooks } = res.data._webhooks;
+			const maxPages = getMaxPages(pagination as unknown as PaginationProps);
 			if (webhooks?.length) {
 				setWebhookData(webhooks);
-				setPaginationProps({ ...paginationProps, ...pagination, maxPages });
+				setPaginationProps({
+					...paginationProps,
+					...pagination,
+					maxPages,
+				});
 			} else {
 				if (paginationProps.page !== 1) {
 					setPaginationProps({
@@ -112,262 +107,208 @@ const Webhooks = () => {
 		}
 		setLoading(false);
 	};
+
 	const paginationHandler = (value: Record<string, number>) => {
 		setPaginationProps({ ...paginationProps, ...value });
 	};
+
 	useEffect(() => {
 		fetchWebookData();
 	}, [paginationProps.page, paginationProps.limit]);
+
 	return (
-		<Box m="5" py="5" px="10" bg="white" rounded="md">
-			<Flex margin="2% 0" justifyContent="space-between" alignItems="center">
-				<Text fontSize="md" fontWeight="bold">
-					Webhooks
-				</Text>
+		<div className="m-5 rounded-md bg-white py-5 px-10">
+			<div className="flex items-center justify-between my-4">
+				<div>
+					<h1 className="text-2xl font-semibold text-gray-900">Webhooks</h1>
+					<p className="mt-1 text-sm text-gray-500">
+						Configure webhook endpoints for user events.
+					</p>
+				</div>
 				<UpdateWebhookModal
 					view={UpdateModalViews.ADD}
 					fetchWebookData={fetchWebookData}
 				/>
-			</Flex>
-			{!loading ? (
-				webhookData.length ? (
-					<Table variant="simple">
-						<Thead>
-							<Tr>
-								<Th>Event Name</Th>
-								<Th>Event Description</Th>
-								<Th>Endpoint</Th>
-								<Th>Enabled</Th>
-								<Th>Headers</Th>
-								<Th>Actions</Th>
-							</Tr>
-						</Thead>
-						<Tbody>
-							{webhookData.map((webhook: webhookDataTypes) => (
-								<Tr
-									key={webhook[WebhookInputDataFields.ID]}
-									style={{ fontSize: 14 }}
-								>
-									<Td maxW="300">
-										{webhook[WebhookInputDataFields.EVENT_NAME].split('-')[0]}
-									</Td>
-									<Td maxW="300">
-										{webhook[WebhookInputDataFields.EVENT_DESCRIPTION]}
-									</Td>
-									<Td>{webhook[WebhookInputDataFields.ENDPOINT]}</Td>
-									<Td>
-										<Tag
-											size="sm"
-											variant="outline"
-											colorScheme={
-												webhook[WebhookInputDataFields.ENABLED]
-													? 'green'
-													: 'yellow'
-											}
-										>
-											{webhook[WebhookInputDataFields.ENABLED].toString()}
-										</Tag>
-									</Td>
-									<Td>
-										<Tooltip
-											bg="gray.300"
-											color="black"
-											label={JSON.stringify(
-												webhook[WebhookInputDataFields.HEADERS],
-												null,
-												' ',
-											)}
-										>
-											<Tag size="sm" variant="outline" colorScheme="gray">
-												{Object.keys(
-													webhook[WebhookInputDataFields.HEADERS] || {},
-												)?.length.toString()}
-											</Tag>
+			</div>
+			{loading ? (
+				<div className="min-h-[25vh] space-y-3">
+					{[1, 2, 3].map((i) => (
+						<Skeleton key={i} className="h-10 w-full" />
+					))}
+				</div>
+			) : webhookData.length ? (
+				<>
+					<Table>
+						<TableHeader>
+							<TableRow>
+								<TableHead>Event Name</TableHead>
+								<TableHead>Event Description</TableHead>
+								<TableHead>Endpoint</TableHead>
+								<TableHead>Enabled</TableHead>
+								<TableHead>Headers</TableHead>
+								<TableHead>Actions</TableHead>
+							</TableRow>
+						</TableHeader>
+						<TableBody>
+							{webhookData.map((webhook) => (
+								<TableRow key={webhook.id}>
+									<TableCell className="max-w-[300px] text-sm">
+										{webhook.event_name.split('-')[0]}
+									</TableCell>
+									<TableCell className="max-w-[300px] text-sm">
+										{webhook.event_description}
+									</TableCell>
+									<TableCell className="text-sm">{webhook.endpoint}</TableCell>
+									<TableCell>
+										<Badge variant={webhook.enabled ? 'success' : 'warning'}>
+											{webhook.enabled.toString()}
+										</Badge>
+									</TableCell>
+									<TableCell>
+										<Tooltip>
+											<TooltipTrigger>
+												<Badge variant="secondary">
+													{Object.keys(webhook.headers || {}).length.toString()}
+												</Badge>
+											</TooltipTrigger>
+											<TooltipContent>
+												<pre className="text-xs">
+													{JSON.stringify(webhook.headers, null, 2)}
+												</pre>
+											</TooltipContent>
 										</Tooltip>
-									</Td>
-									<Td>
-										<Menu>
-											<MenuButton as={Button} variant="unstyled" size="sm">
-												<Flex
-													justifyContent="space-between"
-													alignItems="center"
-												>
-													<Text fontSize="sm" fontWeight="light">
-														Menu
-													</Text>
-													<FaAngleDown style={{ marginLeft: 10 }} />
-												</Flex>
-											</MenuButton>
-											<MenuList>
+									</TableCell>
+									<TableCell>
+										<DropdownMenu>
+											<DropdownMenuTrigger asChild>
+												<Button variant="ghost" size="sm">
+													<span className="text-sm font-light">Menu</span>
+													<ChevronDown className="ml-2 h-3 w-3" />
+												</Button>
+											</DropdownMenuTrigger>
+											<DropdownMenuContent align="end">
 												<UpdateWebhookModal
 													view={UpdateModalViews.Edit}
 													selectedWebhook={webhook}
 													fetchWebookData={fetchWebookData}
 												/>
 												<DeleteWebhookModal
-													webhookId={webhook[WebhookInputDataFields.ID]}
-													eventName={webhook[WebhookInputDataFields.EVENT_NAME]}
+													webhookId={webhook.id}
+													eventName={webhook.event_name}
 													fetchWebookData={fetchWebookData}
 												/>
 												<ViewWebhookLogsModal
-													webhookId={webhook[WebhookInputDataFields.ID]}
-													eventName={webhook[WebhookInputDataFields.EVENT_NAME]}
+													webhookId={webhook.id}
+													eventName={webhook.event_name}
 												/>
-											</MenuList>
-										</Menu>
-									</Td>
-								</Tr>
+											</DropdownMenuContent>
+										</DropdownMenu>
+									</TableCell>
+								</TableRow>
 							))}
-						</Tbody>
-						{(paginationProps.maxPages > 1 || paginationProps.total >= 5) && (
-							<TableCaption>
-								<Flex
-									justifyContent="space-between"
-									alignItems="center"
-									m="2% 0"
-								>
-									<Flex flex="1">
-										<Tooltip label="First Page">
-											<IconButton
-												aria-label="icon button"
-												onClick={() =>
-													paginationHandler({
-														page: 1,
-													})
-												}
-												isDisabled={paginationProps.page <= 1}
-												mr={4}
-												icon={<FaAngleDoubleLeft />}
-											/>
-										</Tooltip>
-										<Tooltip label="Previous Page">
-											<IconButton
-												aria-label="icon button"
-												onClick={() =>
-													paginationHandler({
-														page: paginationProps.page - 1,
-													})
-												}
-												isDisabled={paginationProps.page <= 1}
-												icon={<FaAngleLeft />}
-											/>
-										</Tooltip>
-									</Flex>
-									<Flex
-										flex="8"
-										justifyContent="space-evenly"
-										alignItems="center"
-									>
-										<Text mr={8}>
-											Page{' '}
-											<Text fontWeight="bold" as="span">
-												{paginationProps.page}
-											</Text>{' '}
-											of{' '}
-											<Text fontWeight="bold" as="span">
-												{paginationProps.maxPages}
-											</Text>
-										</Text>
-										<Flex alignItems="center">
-											<Text>Go to page:</Text>{' '}
-											<NumberInput
-												ml={2}
-												mr={8}
-												w={28}
-												min={1}
-												max={paginationProps.maxPages}
-												onChange={(value) =>
-													paginationHandler({
-														page: parseInt(value),
-													})
-												}
-												value={paginationProps.page}
-											>
-												<NumberInputField />
-												<NumberInputStepper>
-													<NumberIncrementStepper />
-													<NumberDecrementStepper />
-												</NumberInputStepper>
-											</NumberInput>
-										</Flex>
-										<Select
-											w={32}
-											value={paginationProps.limit}
-											onChange={(e) =>
-												paginationHandler({
-													page: 1,
-													limit: parseInt(e.target.value),
-												})
-											}
-										>
-											{pageLimits.map((pageSize) => (
-												<option key={pageSize} value={pageSize}>
-													Show {pageSize}
-												</option>
-											))}
-										</Select>
-									</Flex>
-									<Flex flex="1">
-										<Tooltip label="Next Page">
-											<IconButton
-												aria-label="icon button"
-												onClick={() =>
-													paginationHandler({
-														page: paginationProps.page + 1,
-													})
-												}
-												isDisabled={
-													paginationProps.page >= paginationProps.maxPages
-												}
-												icon={<FaAngleRight />}
-											/>
-										</Tooltip>
-										<Tooltip label="Last Page">
-											<IconButton
-												aria-label="icon button"
-												onClick={() =>
-													paginationHandler({
-														page: paginationProps.maxPages,
-													})
-												}
-												isDisabled={
-													paginationProps.page >= paginationProps.maxPages
-												}
-												ml={4}
-												icon={<FaAngleDoubleRight />}
-											/>
-										</Tooltip>
-									</Flex>
-								</Flex>
-							</TableCaption>
-						)}
+						</TableBody>
 					</Table>
-				) : (
-					<Flex
-						flexDirection="column"
-						minH="25vh"
-						justifyContent="center"
-						alignItems="center"
-					>
-						<Center w="50px" marginRight="1.5%">
-							<FaExclamationCircle style={{ color: '#f0f0f0', fontSize: 70 }} />
-						</Center>
-						<Text
-							fontSize="2xl"
-							paddingRight="1%"
-							fontWeight="bold"
-							color="#d9d9d9"
-						>
-							No Data
-						</Text>
-					</Flex>
-				)
+
+					{/* Pagination */}
+					{(paginationProps.maxPages > 1 || paginationProps.total >= 5) && (
+						<div className="mt-4 flex items-center justify-between">
+							<div className="flex gap-1">
+								<Button
+									variant="outline"
+									size="icon"
+									onClick={() => paginationHandler({ page: 1 })}
+									disabled={paginationProps.page <= 1}
+								>
+									<ChevronsLeft className="h-4 w-4" />
+								</Button>
+								<Button
+									variant="outline"
+									size="icon"
+									onClick={() =>
+										paginationHandler({
+											page: paginationProps.page - 1,
+										})
+									}
+									disabled={paginationProps.page <= 1}
+								>
+									<ChevronLeft className="h-4 w-4" />
+								</Button>
+							</div>
+
+							<div className="flex items-center gap-4 text-sm">
+								<span>
+									Page <strong>{paginationProps.page}</strong> of{' '}
+									<strong>{paginationProps.maxPages}</strong>
+								</span>
+								<div className="flex items-center gap-1">
+									<span>Go to:</span>
+									<Input
+										type="number"
+										min={1}
+										max={paginationProps.maxPages}
+										value={paginationProps.page}
+										onChange={(e) =>
+											paginationHandler({
+												page: parseInt(e.target.value) || 1,
+											})
+										}
+										className="h-8 w-16"
+									/>
+								</div>
+								<Select
+									value={paginationProps.limit}
+									onChange={(e) =>
+										paginationHandler({
+											page: 1,
+											limit: parseInt(e.target.value),
+										})
+									}
+									className="h-8 w-28"
+								>
+									{pageLimitsExtended.map((pageSize) => (
+										<option key={pageSize} value={pageSize}>
+											Show {pageSize}
+										</option>
+									))}
+								</Select>
+							</div>
+
+							<div className="flex gap-1">
+								<Button
+									variant="outline"
+									size="icon"
+									onClick={() =>
+										paginationHandler({
+											page: paginationProps.page + 1,
+										})
+									}
+									disabled={paginationProps.page >= paginationProps.maxPages}
+								>
+									<ChevronRight className="h-4 w-4" />
+								</Button>
+								<Button
+									variant="outline"
+									size="icon"
+									onClick={() =>
+										paginationHandler({
+											page: paginationProps.maxPages,
+										})
+									}
+									disabled={paginationProps.page >= paginationProps.maxPages}
+								>
+									<ChevronsRight className="h-4 w-4" />
+								</Button>
+							</div>
+						</div>
+					)}
+				</>
 			) : (
-				<Center minH="25vh">
-					<Spinner />
-				</Center>
+				<div className="flex min-h-[25vh] flex-col items-center justify-center text-gray-300">
+					<AlertCircle className="h-16 w-16 mb-2" />
+					<p className="text-2xl font-bold">No Data</p>
+				</div>
 			)}
-		</Box>
+		</div>
 	);
 };
 

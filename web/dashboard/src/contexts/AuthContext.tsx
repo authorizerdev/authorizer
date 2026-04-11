@@ -1,23 +1,32 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { Center, Spinner } from '@chakra-ui/react';
 import { useQuery } from 'urql';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { Skeleton } from '../components/ui/skeleton';
 
 import { AdminSessionQuery } from '../graphql/queries';
-import { hasAdminSecret } from '../utils';
+import type { AdminSessionResponse } from '../types';
 
-const AuthContext = createContext({
+interface AuthContextValue {
+	isLoggedIn: boolean;
+	setIsLoggedIn: (data: boolean) => void;
+}
+
+const AuthContext = createContext<AuthContextValue>({
 	isLoggedIn: false,
-	setIsLoggedIn: (data: boolean) => {},
+	setIsLoggedIn: () => {},
 });
 
-export const AuthContextProvider = ({ children }: { children: any }) => {
+export const AuthContextProvider = ({
+	children,
+}: {
+	children: React.ReactNode;
+}) => {
 	const [isLoggedIn, setIsLoggedIn] = useState(false);
 
 	const { pathname } = useLocation();
 	const navigate = useNavigate();
 
-	const [{ fetching, data, error }] = useQuery({
+	const [{ fetching, data, error }] = useQuery<AdminSessionResponse>({
 		query: AdminSessionQuery,
 	});
 
@@ -32,9 +41,13 @@ export const AuthContextProvider = ({ children }: { children: any }) => {
 
 	if (fetching) {
 		return (
-			<Center h="100%">
-				<Spinner />
-			</Center>
+			<div className="flex h-full items-center justify-center">
+				<div className="space-y-4 w-64">
+					<Skeleton className="h-8 w-full" />
+					<Skeleton className="h-4 w-3/4" />
+					<Skeleton className="h-4 w-1/2" />
+				</div>
+			</div>
 		);
 	}
 

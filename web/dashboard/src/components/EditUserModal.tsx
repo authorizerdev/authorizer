@@ -1,24 +1,7 @@
-import React, { useState } from 'react';
-import {
-	Button,
-	Center,
-	Flex,
-	MenuItem,
-	Modal,
-	ModalBody,
-	ModalCloseButton,
-	ModalContent,
-	ModalFooter,
-	ModalHeader,
-	ModalOverlay,
-	Stack,
-	useDisclosure,
-	Text,
-	useToast,
-	Input,
-} from '@chakra-ui/react';
+import React, { useState, useEffect } from 'react';
 import { useClient } from 'urql';
-import { FaSave, FaPlus } from 'react-icons/fa';
+import { Save, Plus } from 'lucide-react';
+import { toast } from 'sonner';
 import InputField from './InputField';
 import {
 	DateInputType,
@@ -28,14 +11,24 @@ import {
 } from '../constants';
 import { getObjectDiff, getGraphQLErrorMessage } from '../utils';
 import { UpdateUser } from '../graphql/mutation';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import {
+	Sheet,
+	SheetContent,
+	SheetHeader,
+	SheetTitle,
+	SheetDescription,
+	SheetFooter,
+} from './ui/sheet';
 
-const GenderTypes = {
+const GenderTypes: Record<string, string | null> = {
 	Undisclosed: null,
 	Male: 'Male',
 	Female: 'Female',
 };
 
-interface userDataTypes {
+interface UserData {
 	id: string;
 	email: string;
 	given_name: string;
@@ -49,18 +42,16 @@ interface userDataTypes {
 	roles: string[];
 }
 
-const EditUserModal = ({
-	user,
-	updateUserList,
-}: {
-	user: userDataTypes;
-	updateUserList: Function;
-}) => {
+interface EditUserModalProps {
+	user: UserData;
+	updateUserList: () => void;
+}
+
+const EditUserModal = ({ user, updateUserList }: EditUserModalProps) => {
 	const client = useClient();
-	const toast = useToast();
 	const [newRole, setNewRole] = useState('');
-	const { isOpen, onOpen, onClose } = useDisclosure();
-	const [userData, setUserData] = useState<userDataTypes>({
+	const [open, setOpen] = useState(false);
+	const [userData, setUserData] = useState<UserData>({
 		id: '',
 		email: '',
 		given_name: '',
@@ -73,215 +64,226 @@ const EditUserModal = ({
 		picture: '',
 		roles: [],
 	});
-	// Available roles for multiselect: current user roles (no env query)
+
 	const availableRoles = Array.from(
 		new Set([...(userData.roles || []), ...(user.roles || [])]),
 	);
-	React.useEffect(() => {
+
+	useEffect(() => {
 		setUserData(user);
 	}, [user]);
+
 	const saveHandler = async () => {
-		const diff = getObjectDiff(user, userData);
+		const diff = getObjectDiff(
+			user as unknown as Record<string, unknown>,
+			userData as unknown as Record<string, unknown>,
+		);
 		const updatedUserData = diff.reduce(
-			(acc: any, property: string) => ({
+			(acc: Record<string, unknown>, property: string) => ({
 				...acc,
-				// @ts-ignore
-				[property]: userData[property],
+				[property]: userData[property as keyof UserData],
 			}),
 			{},
 		);
 		const res = await client
-			.mutation(UpdateUser, { params: { ...updatedUserData, id: userData.id } })
+			.mutation(UpdateUser, {
+				params: { ...updatedUserData, id: userData.id },
+			})
 			.toPromise();
 		if (res.error) {
-			toast({
-				title: getGraphQLErrorMessage(res.error, 'User data update failed'),
-				isClosable: true,
-				status: 'error',
-				position: 'top-right',
-			});
+			toast.error(getGraphQLErrorMessage(res.error, 'User data update failed'));
 		} else if (res.data?._update_user?.id) {
-			toast({
-				title: 'User data update successful',
-				isClosable: true,
-				status: 'success',
-				position: 'top-right',
-			});
+			toast.success('User data update successful');
 		}
-		onClose();
+		setOpen(false);
 		updateUserList();
 	};
+
+	const setUserDataTyped = (
+		vars: Record<string, string | boolean | string[]>,
+	) => {
+		setUserData(vars as unknown as UserData);
+	};
+
 	return (
 		<>
-			<MenuItem onClick={onOpen}>Edit User Details</MenuItem>
-			<Modal isOpen={isOpen} onClose={onClose}>
-				<ModalOverlay />
-				<ModalContent>
-					<ModalHeader>Edit User Details</ModalHeader>
-					<ModalCloseButton />
-					<ModalBody>
-						<Stack>
-							<Flex>
-								<Flex w="30%" justifyContent="start" alignItems="center">
-									<Text fontSize="sm">Given Name:</Text>
-								</Flex>
-								<Center w="70%">
+			<button
+				className="w-full text-left px-2 py-1.5 text-sm hover:bg-gray-100 rounded-sm"
+				onClick={() => setOpen(true)}
+			>
+				Edit User Details
+			</button>
+			<Sheet open={open} onOpenChange={setOpen}>
+				<SheetContent className="overflow-y-auto">
+					<SheetHeader>
+						<SheetTitle>Edit User Details</SheetTitle>
+						<SheetDescription>
+							Update the user profile information below.
+						</SheetDescription>
+					</SheetHeader>
+					<div className="mt-6 space-y-4">
+						{[
+							{ label: 'Given Name', type: TextInputType.GIVEN_NAME },
+							{ label: 'Middle Name', type: TextInputType.MIDDLE_NAME },
+							{ label: 'Family Name', type: TextInputType.FAMILY_NAME },
+						].map(({ label, type }) => (
+							<div key={type} className="flex items-center gap-4">
+								<label className="w-28 text-sm text-gray-600 shrink-0">
+									{label}:
+								</label>
+								<div className="flex-1">
 									<InputField
-										variables={userData}
-										setVariables={setUserData}
-										inputType={TextInputType.GIVEN_NAME}
+										variables={
+											userData as unknown as Record<
+												string,
+												string | boolean | string[]
+											>
+										}
+										setVariables={setUserDataTyped}
+										inputType={type}
 									/>
-								</Center>
-							</Flex>
-							<Flex>
-								<Flex w="30%" justifyContent="start" alignItems="center">
-									<Text fontSize="sm">Middle Name:</Text>
-								</Flex>
-								<Center w="70%">
-									<InputField
-										variables={userData}
-										setVariables={setUserData}
-										inputType={TextInputType.MIDDLE_NAME}
-									/>
-								</Center>
-							</Flex>
-							<Flex>
-								<Flex w="30%" justifyContent="start" alignItems="center">
-									<Text fontSize="sm">Family Name:</Text>
-								</Flex>
-								<Center w="70%">
-									<InputField
-										variables={userData}
-										setVariables={setUserData}
-										inputType={TextInputType.FAMILY_NAME}
-									/>
-								</Center>
-							</Flex>
-							<Flex>
-								<Flex w="30%" justifyContent="start" alignItems="center">
-									<Text fontSize="sm">Birth Date:</Text>
-								</Flex>
-								<Center w="70%">
-									<InputField
-										variables={userData}
-										setVariables={setUserData}
-										inputType={DateInputType.BIRTHDATE}
-									/>
-								</Center>
-							</Flex>
-							<Flex>
-								<Flex w="30%" justifyContent="start" alignItems="center">
-									<Text fontSize="sm">Nickname:</Text>
-								</Flex>
-								<Center w="70%">
-									<InputField
-										variables={userData}
-										setVariables={setUserData}
-										inputType={TextInputType.NICKNAME}
-									/>
-								</Center>
-							</Flex>
-							<Flex>
-								<Flex w="30%" justifyContent="start" alignItems="center">
-									<Text fontSize="sm">Gender:</Text>
-								</Flex>
-								<Center w="70%">
-									<InputField
-										variables={userData}
-										setVariables={setUserData}
-										inputType={SelectInputType.GENDER}
-										value={userData.gender}
-										options={GenderTypes}
-									/>
-								</Center>
-							</Flex>
-							<Flex>
-								<Flex w="30%" justifyContent="start" alignItems="center">
-									<Text fontSize="sm">Phone Number:</Text>
-								</Flex>
-								<Center w="70%">
-									<InputField
-										variables={userData}
-										setVariables={setUserData}
-										inputType={TextInputType.PHONE_NUMBER}
-									/>
-								</Center>
-							</Flex>
-							<Flex>
-								<Flex w="30%" justifyContent="start" alignItems="center">
-									<Text fontSize="sm">Picture:</Text>
-								</Flex>
-								<Center w="70%">
-									<InputField
-										variables={userData}
-										setVariables={setUserData}
-										inputType={TextInputType.PICTURE}
-									/>
-								</Center>
-							</Flex>
-							<Flex>
-								<Flex w="30%" justifyContent="start" alignItems="center">
-									<Text fontSize="sm">Roles:</Text>
-								</Flex>
-								<Center w="70%" flexDirection="column" alignItems="stretch">
-									<InputField
-										variables={userData}
-										setVariables={setUserData}
-										availableRoles={availableRoles}
-										inputType={MultiSelectInputType.USER_ROLES}
-									/>
-									<Flex mt={2} gap={2}>
-										<Input
-											size="sm"
-											placeholder="Add role"
-											value={newRole}
-											onChange={(e) => setNewRole(e.target.value)}
-											onKeyDown={(e) => {
-												if (e.key === 'Enter' && newRole.trim()) {
-													setUserData({
-														...userData,
-														roles: [...(userData.roles || []), newRole.trim()],
-													});
-													setNewRole('');
-												}
-											}}
-										/>
-										<Button
-											size="sm"
-											leftIcon={<FaPlus />}
-											onClick={() => {
-												if (newRole.trim()) {
-													setUserData({
-														...userData,
-														roles: [...(userData.roles || []), newRole.trim()],
-													});
-													setNewRole('');
-												}
-											}}
-										>
-											Add
-										</Button>
-									</Flex>
-								</Center>
-							</Flex>
-						</Stack>
-					</ModalBody>
+								</div>
+							</div>
+						))}
 
-					<ModalFooter>
-						<Button
-							leftIcon={<FaSave />}
-							colorScheme="blue"
-							variant="solid"
-							onClick={saveHandler}
-							isDisabled={false}
-						>
-							<Center h="100%" pt="5%">
-								Save
-							</Center>
+						<div className="flex items-center gap-4">
+							<label className="w-28 text-sm text-gray-600 shrink-0">
+								Birth Date:
+							</label>
+							<div className="flex-1">
+								<InputField
+									variables={
+										userData as unknown as Record<
+											string,
+											string | boolean | string[]
+										>
+									}
+									setVariables={setUserDataTyped}
+									inputType={DateInputType.BIRTHDATE}
+								/>
+							</div>
+						</div>
+
+						<div className="flex items-center gap-4">
+							<label className="w-28 text-sm text-gray-600 shrink-0">
+								Nickname:
+							</label>
+							<div className="flex-1">
+								<InputField
+									variables={
+										userData as unknown as Record<
+											string,
+											string | boolean | string[]
+										>
+									}
+									setVariables={setUserDataTyped}
+									inputType={TextInputType.NICKNAME}
+								/>
+							</div>
+						</div>
+
+						<div className="flex items-center gap-4">
+							<label className="w-28 text-sm text-gray-600 shrink-0">
+								Gender:
+							</label>
+							<div className="flex-1">
+								<InputField
+									variables={
+										userData as unknown as Record<
+											string,
+											string | boolean | string[]
+										>
+									}
+									setVariables={setUserDataTyped}
+									inputType={SelectInputType.GENDER}
+									options={GenderTypes}
+								/>
+							</div>
+						</div>
+
+						{[
+							{ label: 'Phone', type: TextInputType.PHONE_NUMBER },
+							{ label: 'Picture', type: TextInputType.PICTURE },
+						].map(({ label, type }) => (
+							<div key={type} className="flex items-center gap-4">
+								<label className="w-28 text-sm text-gray-600 shrink-0">
+									{label}:
+								</label>
+								<div className="flex-1">
+									<InputField
+										variables={
+											userData as unknown as Record<
+												string,
+												string | boolean | string[]
+											>
+										}
+										setVariables={setUserDataTyped}
+										inputType={type}
+									/>
+								</div>
+							</div>
+						))}
+
+						<div className="flex items-start gap-4">
+							<label className="w-28 text-sm text-gray-600 shrink-0 pt-2">
+								Roles:
+							</label>
+							<div className="flex-1 space-y-2">
+								<InputField
+									variables={
+										userData as unknown as Record<
+											string,
+											string | boolean | string[]
+										>
+									}
+									setVariables={setUserDataTyped}
+									availableRoles={availableRoles}
+									inputType={MultiSelectInputType.USER_ROLES}
+								/>
+								<div className="flex gap-2">
+									<Input
+										className="h-8 text-sm"
+										placeholder="Add role"
+										value={newRole}
+										onChange={(e) => setNewRole(e.target.value)}
+										onKeyDown={(e) => {
+											if (e.key === 'Enter' && newRole.trim()) {
+												setUserData({
+													...userData,
+													roles: [...(userData.roles || []), newRole.trim()],
+												});
+												setNewRole('');
+											}
+										}}
+									/>
+									<Button
+										size="sm"
+										variant="outline"
+										onClick={() => {
+											if (newRole.trim()) {
+												setUserData({
+													...userData,
+													roles: [...(userData.roles || []), newRole.trim()],
+												});
+												setNewRole('');
+											}
+										}}
+									>
+										<Plus className="mr-1 h-3 w-3" />
+										Add
+									</Button>
+								</div>
+							</div>
+						</div>
+					</div>
+					<SheetFooter className="mt-6">
+						<Button onClick={saveHandler}>
+							<Save className="mr-2 h-4 w-4" />
+							Save
 						</Button>
-					</ModalFooter>
-				</ModalContent>
-			</Modal>
+					</SheetFooter>
+				</SheetContent>
+			</Sheet>
 		</>
 	);
 };
