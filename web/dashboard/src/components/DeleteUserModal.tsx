@@ -36,9 +36,7 @@ const DeleteUserModal = ({ user, updateUserList }: DeleteUserModalProps) => {
 			);
 			return;
 		} else if (res.data?._delete_user) {
-			toast.success(
-				capitalizeFirstLetter(res.data._delete_user.message),
-			);
+			toast.success(capitalizeFirstLetter(res.data._delete_user.message));
 		}
 		setOpen(false);
 		updateUserList();
@@ -58,8 +56,7 @@ const DeleteUserModal = ({ user, updateUserList }: DeleteUserModalProps) => {
 				</DialogHeader>
 				<div className="rounded-md border border-red-300 bg-red-50 p-4">
 					<p className="text-sm">
-						User <strong>{user.email}</strong> will be deleted
-						permanently!
+						User <strong>{user.email}</strong> will be deleted permanently!
 					</p>
 				</div>
 				<DialogFooter>

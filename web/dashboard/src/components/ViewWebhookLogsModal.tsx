@@ -18,11 +18,7 @@ import { Badge } from './ui/badge';
 import { Select } from './ui/select';
 import { Input } from './ui/input';
 import { Skeleton } from './ui/skeleton';
-import {
-	Tooltip,
-	TooltipTrigger,
-	TooltipContent,
-} from './ui/tooltip';
+import { Tooltip, TooltipTrigger, TooltipContent } from './ui/tooltip';
 import {
 	Table,
 	TableHeader,
@@ -170,15 +166,14 @@ const ViewWebhookLogsModal = ({
 												{`${logData.id.substring(0, 5)}***${logData.id.substring(logData.id.length - 5)}`}
 											</TableCell>
 											<TableCell>
-												{dayjs(
-													logData.created_at * 1000,
-												).format('MMM DD, YYYY')}
+												{dayjs(logData.created_at * 1000).format(
+													'MMM DD, YYYY',
+												)}
 											</TableCell>
 											<TableCell>
 												<Badge
 													variant={
-														logData.http_status >=
-														400
+														logData.http_status >= 400
 															? 'destructive'
 															: 'success'
 													}
@@ -192,20 +187,15 @@ const ViewWebhookLogsModal = ({
 														<TooltipTrigger>
 															<Badge
 																variant={
-																	logData.request
-																		? 'secondary'
-																		: 'warning'
+																	logData.request ? 'secondary' : 'warning'
 																}
 															>
-																{logData.request
-																	? 'Payload'
-																	: 'No Data'}
+																{logData.request ? 'Payload' : 'No Data'}
 															</Badge>
 														</TooltipTrigger>
 														<TooltipContent className="max-w-xs">
 															<p className="break-all text-xs">
-																{logData.request ||
-																	'null'}
+																{logData.request || 'null'}
 															</p>
 														</TooltipContent>
 													</Tooltip>
@@ -215,12 +205,8 @@ const ViewWebhookLogsModal = ({
 															size="icon"
 															className="h-6 w-6"
 															onClick={() => {
-																copyTextToClipboard(
-																	logData.request,
-																);
-																toast.success(
-																	'Copied to clipboard',
-																);
+																copyTextToClipboard(logData.request);
+																toast.success('Copied to clipboard');
 															}}
 														>
 															<Copy className="h-3 w-3" />
@@ -234,20 +220,15 @@ const ViewWebhookLogsModal = ({
 														<TooltipTrigger>
 															<Badge
 																variant={
-																	logData.response
-																		? 'secondary'
-																		: 'warning'
+																	logData.response ? 'secondary' : 'warning'
 																}
 															>
-																{logData.response
-																	? 'Preview'
-																	: 'No Data'}
+																{logData.response ? 'Preview' : 'No Data'}
 															</Badge>
 														</TooltipTrigger>
 														<TooltipContent className="max-w-xs">
 															<p className="break-all text-xs">
-																{logData.response ||
-																	'null'}
+																{logData.response || 'null'}
 															</p>
 														</TooltipContent>
 													</Tooltip>
@@ -257,12 +238,8 @@ const ViewWebhookLogsModal = ({
 															size="icon"
 															className="h-6 w-6"
 															onClick={() => {
-																copyTextToClipboard(
-																	logData.response,
-																);
-																toast.success(
-																	'Copied to clipboard',
-																);
+																copyTextToClipboard(logData.response);
+																toast.success('Copied to clipboard');
 															}}
 														>
 															<Copy className="h-3 w-3" />
@@ -276,19 +253,14 @@ const ViewWebhookLogsModal = ({
 							</Table>
 
 							{/* Pagination */}
-							{(paginationProps.maxPages > 1 ||
-								paginationProps.total >= 5) && (
+							{(paginationProps.maxPages > 1 || paginationProps.total >= 5) && (
 								<div className="mt-4 flex items-center justify-between">
 									<div className="flex gap-1">
 										<Button
 											variant="outline"
 											size="icon"
-											onClick={() =>
-												paginationHandler({ page: 1 })
-											}
-											disabled={
-												paginationProps.page <= 1
-											}
+											onClick={() => paginationHandler({ page: 1 })}
+											disabled={paginationProps.page <= 1}
 										>
 											<ChevronsLeft className="h-4 w-4" />
 										</Button>
@@ -297,14 +269,10 @@ const ViewWebhookLogsModal = ({
 											size="icon"
 											onClick={() =>
 												paginationHandler({
-													page:
-														paginationProps.page -
-														1,
+													page: paginationProps.page - 1,
 												})
 											}
-											disabled={
-												paginationProps.page <= 1
-											}
+											disabled={paginationProps.page <= 1}
 										>
 											<ChevronLeft className="h-4 w-4" />
 										</Button>
@@ -312,19 +280,11 @@ const ViewWebhookLogsModal = ({
 
 									<div className="flex items-center gap-4 text-sm">
 										<span>
-											Page{' '}
-											<strong>
-												{paginationProps.page}
-											</strong>{' '}
-											of{' '}
-											<strong>
-												{paginationProps.maxPages}
-											</strong>
+											Page <strong>{paginationProps.page}</strong> of{' '}
+											<strong>{paginationProps.maxPages}</strong>
 										</span>
 										<div className="flex items-center gap-1">
-											<span className="whitespace-nowrap">
-												Go to:
-											</span>
+											<span className="whitespace-nowrap">Go to:</span>
 											<Input
 												type="number"
 												min={1}
@@ -332,9 +292,7 @@ const ViewWebhookLogsModal = ({
 												value={paginationProps.page}
 												onChange={(e) =>
 													paginationHandler({
-														page: parseInt(
-															e.target.value,
-														) || 1,
+														page: parseInt(e.target.value) || 1,
 													})
 												}
 												className="h-8 w-16"
@@ -345,18 +303,13 @@ const ViewWebhookLogsModal = ({
 											onChange={(e) =>
 												paginationHandler({
 													page: 1,
-													limit: parseInt(
-														e.target.value,
-													),
+													limit: parseInt(e.target.value),
 												})
 											}
 											className="h-8 w-28"
 										>
 											{pageLimits.map((pageSize) => (
-												<option
-													key={pageSize}
-													value={pageSize}
-												>
+												<option key={pageSize} value={pageSize}>
 													Show {pageSize}
 												</option>
 											))}
@@ -369,14 +322,11 @@ const ViewWebhookLogsModal = ({
 											size="icon"
 											onClick={() =>
 												paginationHandler({
-													page:
-														paginationProps.page +
-														1,
+													page: paginationProps.page + 1,
 												})
 											}
 											disabled={
-												paginationProps.page >=
-												paginationProps.maxPages
+												paginationProps.page >= paginationProps.maxPages
 											}
 										>
 											<ChevronRight className="h-4 w-4" />
@@ -390,8 +340,7 @@ const ViewWebhookLogsModal = ({
 												})
 											}
 											disabled={
-												paginationProps.page >=
-												paginationProps.maxPages
+												paginationProps.page >= paginationProps.maxPages
 											}
 										>
 											<ChevronsRight className="h-4 w-4" />

@@ -1,9 +1,6 @@
 import React, { useState } from 'react';
 import { Sidebar, MobileNav } from '../components/Sidebar';
-import {
-	Sheet,
-	SheetContent,
-} from '../components/ui/sheet';
+import { Sheet, SheetContent } from '../components/ui/sheet';
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
 	const [mobileOpen, setMobileOpen] = useState(false);
@@ -25,9 +22,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 			<MobileNav onOpen={() => setMobileOpen(true)} />
 
 			{/* Main content */}
-			<div className="md:pl-64 p-4 pt-16 md:pt-4">
-				{children}
-			</div>
+			<div className="md:pl-64 p-4 pt-16 md:pt-4">{children}</div>
 		</div>
 	);
 }

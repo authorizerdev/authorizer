@@ -36,18 +36,13 @@ const DeleteEmailTemplateModal = ({
 		if (res.error) {
 			toast.error(
 				capitalizeFirstLetter(
-					getGraphQLErrorMessage(
-						res.error,
-						'Failed to delete email template',
-					),
+					getGraphQLErrorMessage(res.error, 'Failed to delete email template'),
 				),
 			);
 			return;
 		} else if (res.data?._delete_email_template) {
 			toast.success(
-				capitalizeFirstLetter(
-					res.data._delete_email_template.message,
-				),
+				capitalizeFirstLetter(res.data._delete_email_template.message),
 			);
 		}
 		setOpen(false);
@@ -68,8 +63,8 @@ const DeleteEmailTemplateModal = ({
 				</DialogHeader>
 				<div className="rounded-md border border-red-300 bg-red-50 p-4">
 					<p className="text-sm">
-						Email template for event <strong>{eventName}</strong>{' '}
-						will be deleted permanently!
+						Email template for event <strong>{eventName}</strong> will be
+						deleted permanently!
 					</p>
 				</div>
 				<DialogFooter>

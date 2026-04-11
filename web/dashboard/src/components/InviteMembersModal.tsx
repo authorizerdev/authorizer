@@ -94,9 +94,7 @@ const InviteMembersModal = ({ updateUserList }: InviteMembersModalProps) => {
 			}
 		} catch (error: unknown) {
 			const message =
-				error instanceof Error
-					? error.message
-					: 'Error occurred, try again!';
+				error instanceof Error ? error.message : 'Error occurred, try again!';
 			toast.error(message);
 			setLoading(false);
 		}
@@ -199,9 +197,7 @@ const InviteMembersModal = ({ updateUserList }: InviteMembersModalProps) => {
 									placeholder="https://domain.com/sign-up"
 									value={redirectURI.value}
 									isInvalid={redirectURI.isInvalid}
-									onChange={(e) =>
-										setRedirectURIHandler(e.currentTarget.value)
-									}
+									onChange={(e) => setRedirectURIHandler(e.currentTarget.value)}
 								/>
 							</div>
 
@@ -213,9 +209,7 @@ const InviteMembersModal = ({ updateUserList }: InviteMembersModalProps) => {
 									variant="ghost"
 									size="sm"
 									onClick={() =>
-										updateEmailListHandler(
-											ArrayInputOperations.APPEND,
-										)
+										updateEmailListHandler(ArrayInputOperations.APPEND)
 									}
 								>
 									<Plus className="mr-1 h-3 w-3" />
@@ -235,10 +229,7 @@ const InviteMembersModal = ({ updateUserList }: InviteMembersModalProps) => {
 											value={emailData.value}
 											isInvalid={emailData.isInvalid}
 											onChange={(e) =>
-												inputChangeHandler(
-													e.currentTarget.value,
-													index,
-												)
+												inputChangeHandler(e.currentTarget.value, index)
 											}
 										/>
 										<Button
@@ -264,15 +255,12 @@ const InviteMembersModal = ({ updateUserList }: InviteMembersModalProps) => {
 						>
 							<input {...getInputProps()} />
 							{isDragActive ? (
-								<p className="text-sm text-gray-600">
-									Drop the files here...
-								</p>
+								<p className="text-sm text-gray-600">Drop the files here...</p>
 							) : (
 								<>
 									<Upload className="h-10 w-10 text-gray-400 mb-3" />
 									<p className="text-sm text-gray-600">
-										Drag and drop the csv file here, or
-										click to select.
+										Drag and drop the csv file here, or click to select.
 									</p>
 									<p className="text-xs text-gray-500 mt-1">
 										Download{' '}

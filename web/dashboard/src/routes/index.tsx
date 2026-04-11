@@ -12,38 +12,38 @@ const EmailTemplates = lazy(() => import('../pages/EmailTemplates'));
 const AuditLogs = lazy(() => import('../pages/AuditLogs'));
 
 export const AppRoutes = () => {
-  const { isLoggedIn } = useAuthContext();
+	const { isLoggedIn } = useAuthContext();
 
-  if (isLoggedIn) {
-    return (
-      <div>
-        <Suspense fallback={<></>}>
-          <Routes>
-            <Route
-              element={
-                <DashboardLayout>
-                  <Outlet />
-                </DashboardLayout>
-              }
-            >
-              <Route path="/" element={<Overview />} />
-              <Route path="users" element={<Users />} />
-              <Route path="webhooks" element={<Webhooks />} />
-              <Route path="email-templates" element={<EmailTemplates />} />
-              <Route path="audit-logs" element={<AuditLogs />} />
-              <Route path="*" element={<Overview />} />
-            </Route>
-          </Routes>
-        </Suspense>
-      </div>
-    );
-  }
-  return (
-    <Suspense fallback={<></>}>
-      <Routes>
-        <Route path="/" element={<Auth />} />
-        <Route path="*" element={<Auth />} />
-      </Routes>
-    </Suspense>
-  );
+	if (isLoggedIn) {
+		return (
+			<div>
+				<Suspense fallback={<></>}>
+					<Routes>
+						<Route
+							element={
+								<DashboardLayout>
+									<Outlet />
+								</DashboardLayout>
+							}
+						>
+							<Route path="/" element={<Overview />} />
+							<Route path="users" element={<Users />} />
+							<Route path="webhooks" element={<Webhooks />} />
+							<Route path="email-templates" element={<EmailTemplates />} />
+							<Route path="audit-logs" element={<AuditLogs />} />
+							<Route path="*" element={<Overview />} />
+						</Route>
+					</Routes>
+				</Suspense>
+			</div>
+		);
+	}
+	return (
+		<Suspense fallback={<></>}>
+			<Routes>
+				<Route path="/" element={<Auth />} />
+				<Route path="*" element={<Auth />} />
+			</Routes>
+		</Suspense>
+	);
 };

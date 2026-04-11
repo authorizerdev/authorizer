@@ -41,9 +41,7 @@ const DeleteWebhookModal = ({
 			);
 			return;
 		} else if (res.data?._delete_webhook) {
-			toast.success(
-				capitalizeFirstLetter(res.data._delete_webhook.message),
-			);
+			toast.success(capitalizeFirstLetter(res.data._delete_webhook.message));
 		}
 		setOpen(false);
 		fetchWebookData();
@@ -63,8 +61,8 @@ const DeleteWebhookModal = ({
 				</DialogHeader>
 				<div className="rounded-md border border-red-300 bg-red-50 p-4">
 					<p className="text-sm">
-						Webhook for event <strong>{eventName}</strong> will be
-						deleted permanently!
+						Webhook for event <strong>{eventName}</strong> will be deleted
+						permanently!
 					</p>
 				</div>
 				<DialogFooter>

@@ -66,8 +66,7 @@ interface ValidatorData {
 }
 
 const initTemplateData: EmailTemplateData = {
-	[EmailTemplateInputDataFields.EVENT_NAME]:
-		emailTemplateEventNames.Signup,
+	[EmailTemplateInputDataFields.EVENT_NAME]: emailTemplateEventNames.Signup,
 	[EmailTemplateInputDataFields.SUBJECT]: '',
 	[EmailTemplateInputDataFields.TEMPLATE]: '',
 	[EmailTemplateInputDataFields.DESIGN]: '',
@@ -150,18 +149,13 @@ const UpdateEmailTemplate = ({
 				})
 				.toPromise();
 		} else {
-			res = await client
-				.mutation(AddEmailTemplate, { params })
-				.toPromise();
+			res = await client.mutation(AddEmailTemplate, { params }).toPromise();
 		}
 		setLoading(false);
 		if (res.error) {
 			toast.error(
 				capitalizeFirstLetter(
-					getGraphQLErrorMessage(
-						res.error,
-						'Failed to save email template',
-					),
+					getGraphQLErrorMessage(res.error, 'Failed to save email template'),
 				),
 			);
 		} else if (
@@ -203,8 +197,7 @@ const UpdateEmailTemplate = ({
 				params = {
 					...params,
 					[EmailTemplateInputDataFields.TEMPLATE]: html.trim(),
-					[EmailTemplateInputDataFields.DESIGN]:
-						JSON.stringify(design),
+					[EmailTemplateInputDataFields.DESIGN]: JSON.stringify(design),
 				};
 				await updateTemplate(params);
 			});
@@ -276,10 +269,8 @@ const UpdateEmailTemplate = ({
 			if (editor === EmailTemplateEditors.UNLAYER_EDITOR) {
 				setTemplateData({
 					...templateData,
-					[EmailTemplateInputDataFields.TEMPLATE]:
-						selectedTemplate.template,
-					[EmailTemplateInputDataFields.DESIGN]:
-						selectedTemplate.design,
+					[EmailTemplateInputDataFields.TEMPLATE]: selectedTemplate.template,
+					[EmailTemplateInputDataFields.DESIGN]: selectedTemplate.design,
 				});
 			} else {
 				setTemplateData({
@@ -298,8 +289,7 @@ const UpdateEmailTemplate = ({
 			} else {
 				setTemplateData({
 					...templateData,
-					[EmailTemplateInputDataFields.TEMPLATE]:
-						selectedTemplate?.template,
+					[EmailTemplateInputDataFields.TEMPLATE]: selectedTemplate?.template,
 					[EmailTemplateInputDataFields.DESIGN]: '',
 				});
 			}
@@ -346,15 +336,12 @@ const UpdateEmailTemplate = ({
 							type="button"
 							className="flex w-full items-center justify-between rounded-md bg-blue-50 px-4 py-2 text-sm text-blue-800"
 							onClick={() =>
-								setIsDynamicVariableInfoOpen(
-									!isDynamicVariableInfoOpen,
-								)
+								setIsDynamicVariableInfoOpen(!isDynamicVariableInfoOpen)
 							}
 						>
 							<span>
-								<strong>Note:</strong> You can add dynamic
-								variables to subject and email body. Click to
-								see the list.
+								<strong>Note:</strong> You can add dynamic variables to subject
+								and email body. Click to see the list.
 							</span>
 							{isDynamicVariableInfoOpen ? (
 								<ChevronUp className="h-4 w-4" />
@@ -395,11 +382,7 @@ const UpdateEmailTemplate = ({
 								Event Name
 							</label>
 							<Select
-								value={
-									templateData[
-										EmailTemplateInputDataFields.EVENT_NAME
-									]
-								}
+								value={templateData[EmailTemplateInputDataFields.EVENT_NAME]}
 								onChange={(e) =>
 									inputChangehandler(
 										EmailTemplateInputDataFields.EVENT_NAME,
@@ -407,13 +390,11 @@ const UpdateEmailTemplate = ({
 									)
 								}
 							>
-								{Object.entries(emailTemplateEventNames).map(
-									([key, value]) => (
-										<option value={value} key={key}>
-											{key}
-										</option>
-									),
-								)}
+								{Object.entries(emailTemplateEventNames).map(([key, value]) => (
+									<option value={value} key={key}>
+										{key}
+									</option>
+								))}
 							</Select>
 						</div>
 
@@ -424,16 +405,8 @@ const UpdateEmailTemplate = ({
 							</label>
 							<Input
 								placeholder="Subject Line"
-								value={
-									templateData[
-										EmailTemplateInputDataFields.SUBJECT
-									]
-								}
-								isInvalid={
-									!validator[
-										EmailTemplateInputDataFields.SUBJECT
-									]
-								}
+								value={templateData[EmailTemplateInputDataFields.SUBJECT]}
+								isInvalid={!validator[EmailTemplateInputDataFields.SUBJECT]}
 								onChange={(e) =>
 									inputChangehandler(
 										EmailTemplateInputDataFields.SUBJECT,
@@ -453,16 +426,9 @@ const UpdateEmailTemplate = ({
 									<input
 										type="radio"
 										name="editor"
-										value={
-											EmailTemplateEditors.PLAIN_HTML_EDITOR
-										}
-										checked={
-											editor ===
-											EmailTemplateEditors.PLAIN_HTML_EDITOR
-										}
-										onChange={(e) =>
-											setEditor(e.target.value)
-										}
+										value={EmailTemplateEditors.PLAIN_HTML_EDITOR}
+										checked={editor === EmailTemplateEditors.PLAIN_HTML_EDITOR}
+										onChange={(e) => setEditor(e.target.value)}
 									/>
 									Plain HTML
 								</label>
@@ -470,16 +436,9 @@ const UpdateEmailTemplate = ({
 									<input
 										type="radio"
 										name="editor"
-										value={
-											EmailTemplateEditors.UNLAYER_EDITOR
-										}
-										checked={
-											editor ===
-											EmailTemplateEditors.UNLAYER_EDITOR
-										}
-										onChange={(e) =>
-											setEditor(e.target.value)
-										}
+										value={EmailTemplateEditors.UNLAYER_EDITOR}
+										checked={editor === EmailTemplateEditors.UNLAYER_EDITOR}
+										onChange={(e) => setEditor(e.target.value)}
 									/>
 									Unlayer Editor
 								</label>
@@ -488,20 +447,15 @@ const UpdateEmailTemplate = ({
 
 						{/* Editor */}
 						<div className="border border-gray-200 rounded-md overflow-hidden">
-							{editor ===
-							EmailTemplateEditors.UNLAYER_EDITOR ? (
-								<EmailEditor
-									ref={emailEditorRef}
-									onReady={onReady}
-								/>
+							{editor === EmailTemplateEditors.UNLAYER_EDITOR ? (
+								<EmailEditor ref={emailEditorRef} onReady={onReady} />
 							) : (
 								<Textarea
 									value={templateData.template}
 									onChange={(e) => {
 										setTemplateData({
 											...templateData,
-											[EmailTemplateInputDataFields.TEMPLATE]:
-												e.target.value,
+											[EmailTemplateInputDataFields.TEMPLATE]: e.target.value,
 										});
 									}}
 									placeholder="Template HTML"
@@ -512,11 +466,7 @@ const UpdateEmailTemplate = ({
 					</div>
 
 					<SheetFooter className="mt-6">
-						<Button
-							variant="outline"
-							onClick={resetData}
-							disabled={loading}
-						>
+						<Button variant="outline" onClick={resetData} disabled={loading}>
 							Reset
 						</Button>
 						<Button

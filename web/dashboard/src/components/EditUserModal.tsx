@@ -74,7 +74,10 @@ const EditUserModal = ({ user, updateUserList }: EditUserModalProps) => {
 	}, [user]);
 
 	const saveHandler = async () => {
-		const diff = getObjectDiff(user as unknown as Record<string, unknown>, userData as unknown as Record<string, unknown>);
+		const diff = getObjectDiff(
+			user as unknown as Record<string, unknown>,
+			userData as unknown as Record<string, unknown>,
+		);
 		const updatedUserData = diff.reduce(
 			(acc: Record<string, unknown>, property: string) => ({
 				...acc,
@@ -88,9 +91,7 @@ const EditUserModal = ({ user, updateUserList }: EditUserModalProps) => {
 			})
 			.toPromise();
 		if (res.error) {
-			toast.error(
-				getGraphQLErrorMessage(res.error, 'User data update failed'),
-			);
+			toast.error(getGraphQLErrorMessage(res.error, 'User data update failed'));
 		} else if (res.data?._update_user?.id) {
 			toast.success('User data update successful');
 		}
@@ -98,7 +99,9 @@ const EditUserModal = ({ user, updateUserList }: EditUserModalProps) => {
 		updateUserList();
 	};
 
-	const setUserDataTyped = (vars: Record<string, string | boolean | string[]>) => {
+	const setUserDataTyped = (
+		vars: Record<string, string | boolean | string[]>,
+	) => {
 		setUserData(vars as unknown as UserData);
 	};
 
@@ -130,7 +133,12 @@ const EditUserModal = ({ user, updateUserList }: EditUserModalProps) => {
 								</label>
 								<div className="flex-1">
 									<InputField
-										variables={userData as unknown as Record<string, string | boolean | string[]>}
+										variables={
+											userData as unknown as Record<
+												string,
+												string | boolean | string[]
+											>
+										}
 										setVariables={setUserDataTyped}
 										inputType={type}
 									/>
@@ -144,7 +152,12 @@ const EditUserModal = ({ user, updateUserList }: EditUserModalProps) => {
 							</label>
 							<div className="flex-1">
 								<InputField
-									variables={userData as unknown as Record<string, string | boolean | string[]>}
+									variables={
+										userData as unknown as Record<
+											string,
+											string | boolean | string[]
+										>
+									}
 									setVariables={setUserDataTyped}
 									inputType={DateInputType.BIRTHDATE}
 								/>
@@ -157,7 +170,12 @@ const EditUserModal = ({ user, updateUserList }: EditUserModalProps) => {
 							</label>
 							<div className="flex-1">
 								<InputField
-									variables={userData as unknown as Record<string, string | boolean | string[]>}
+									variables={
+										userData as unknown as Record<
+											string,
+											string | boolean | string[]
+										>
+									}
 									setVariables={setUserDataTyped}
 									inputType={TextInputType.NICKNAME}
 								/>
@@ -170,7 +188,12 @@ const EditUserModal = ({ user, updateUserList }: EditUserModalProps) => {
 							</label>
 							<div className="flex-1">
 								<InputField
-									variables={userData as unknown as Record<string, string | boolean | string[]>}
+									variables={
+										userData as unknown as Record<
+											string,
+											string | boolean | string[]
+										>
+									}
 									setVariables={setUserDataTyped}
 									inputType={SelectInputType.GENDER}
 									options={GenderTypes}
@@ -188,7 +211,12 @@ const EditUserModal = ({ user, updateUserList }: EditUserModalProps) => {
 								</label>
 								<div className="flex-1">
 									<InputField
-										variables={userData as unknown as Record<string, string | boolean | string[]>}
+										variables={
+											userData as unknown as Record<
+												string,
+												string | boolean | string[]
+											>
+										}
 										setVariables={setUserDataTyped}
 										inputType={type}
 									/>
@@ -202,7 +230,12 @@ const EditUserModal = ({ user, updateUserList }: EditUserModalProps) => {
 							</label>
 							<div className="flex-1 space-y-2">
 								<InputField
-									variables={userData as unknown as Record<string, string | boolean | string[]>}
+									variables={
+										userData as unknown as Record<
+											string,
+											string | boolean | string[]
+										>
+									}
 									setVariables={setUserDataTyped}
 									availableRoles={availableRoles}
 									inputType={MultiSelectInputType.USER_ROLES}
@@ -217,10 +250,7 @@ const EditUserModal = ({ user, updateUserList }: EditUserModalProps) => {
 											if (e.key === 'Enter' && newRole.trim()) {
 												setUserData({
 													...userData,
-													roles: [
-														...(userData.roles || []),
-														newRole.trim(),
-													],
+													roles: [...(userData.roles || []), newRole.trim()],
 												});
 												setNewRole('');
 											}
@@ -233,10 +263,7 @@ const EditUserModal = ({ user, updateUserList }: EditUserModalProps) => {
 											if (newRole.trim()) {
 												setUserData({
 													...userData,
-													roles: [
-														...(userData.roles || []),
-														newRole.trim(),
-													],
+													roles: [...(userData.roles || []), newRole.trim()],
 												});
 												setNewRole('');
 											}

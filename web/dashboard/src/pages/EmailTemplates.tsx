@@ -47,9 +47,9 @@ interface PaginationProps {
 const EmailTemplates = () => {
 	const client = useClient();
 	const [loading, setLoading] = useState<boolean>(false);
-	const [emailTemplatesData, setEmailTemplatesData] = useState<
-		EmailTemplate[]
-	>([]);
+	const [emailTemplatesData, setEmailTemplatesData] = useState<EmailTemplate[]>(
+		[],
+	);
 	const [paginationProps, setPaginationProps] = useState<PaginationProps>({
 		limit: 10,
 		page: 1,
@@ -83,9 +83,7 @@ const EmailTemplates = () => {
 		if (res.data?._email_templates) {
 			const { pagination, email_templates: emailTemplates } =
 				res.data._email_templates;
-			const maxPages = getMaxPages(
-				pagination as unknown as PaginationProps,
-			);
+			const maxPages = getMaxPages(pagination as unknown as PaginationProps);
 			if (emailTemplates?.length) {
 				setEmailTemplatesData(emailTemplates);
 				setPaginationProps({
@@ -119,7 +117,9 @@ const EmailTemplates = () => {
 		<div className="m-5 rounded-md bg-white py-5 px-10">
 			<div className="flex items-center justify-between my-4">
 				<div>
-					<h1 className="text-2xl font-semibold text-gray-900">Email Templates</h1>
+					<h1 className="text-2xl font-semibold text-gray-900">
+						Email Templates
+					</h1>
 					<p className="mt-1 text-sm text-gray-500">
 						Customize email templates for authentication events.
 					</p>
@@ -156,45 +156,28 @@ const EmailTemplates = () => {
 										{templateData.subject}
 									</TableCell>
 									<TableCell className="text-sm">
-										{dayjs(
-											templateData.created_at * 1000,
-										).format('MMM DD, YYYY')}
+										{dayjs(templateData.created_at * 1000).format(
+											'MMM DD, YYYY',
+										)}
 									</TableCell>
 									<TableCell>
 										<DropdownMenu>
 											<DropdownMenuTrigger asChild>
-												<Button
-													variant="ghost"
-													size="sm"
-												>
-													<span className="text-sm font-light">
-														Menu
-													</span>
+												<Button variant="ghost" size="sm">
+													<span className="text-sm font-light">Menu</span>
 													<ChevronDown className="ml-2 h-3 w-3" />
 												</Button>
 											</DropdownMenuTrigger>
 											<DropdownMenuContent align="end">
 												<UpdateEmailTemplateModal
-													view={
-														UpdateModalViews.Edit
-													}
-													selectedTemplate={
-														templateData
-													}
-													fetchEmailTemplatesData={
-														fetchEmailTemplatesData
-													}
+													view={UpdateModalViews.Edit}
+													selectedTemplate={templateData}
+													fetchEmailTemplatesData={fetchEmailTemplatesData}
 												/>
 												<DeleteEmailTemplateModal
-													emailTemplateId={
-														templateData.id
-													}
-													eventName={
-														templateData.event_name
-													}
-													fetchEmailTemplatesData={
-														fetchEmailTemplatesData
-													}
+													emailTemplateId={templateData.id}
+													eventName={templateData.event_name}
+													fetchEmailTemplatesData={fetchEmailTemplatesData}
 												/>
 											</DropdownMenuContent>
 										</DropdownMenu>
@@ -205,16 +188,13 @@ const EmailTemplates = () => {
 					</Table>
 
 					{/* Pagination */}
-					{(paginationProps.maxPages > 1 ||
-						paginationProps.total >= 5) && (
+					{(paginationProps.maxPages > 1 || paginationProps.total >= 5) && (
 						<div className="mt-4 flex items-center justify-between">
 							<div className="flex gap-1">
 								<Button
 									variant="outline"
 									size="icon"
-									onClick={() =>
-										paginationHandler({ page: 1 })
-									}
+									onClick={() => paginationHandler({ page: 1 })}
 									disabled={paginationProps.page <= 1}
 								>
 									<ChevronsLeft className="h-4 w-4" />
@@ -235,16 +215,11 @@ const EmailTemplates = () => {
 
 							<div className="flex items-center gap-4 text-sm">
 								<span>
-									Page{' '}
-									<strong>{paginationProps.page}</strong> of{' '}
-									<strong>
-										{paginationProps.maxPages}
-									</strong>
+									Page <strong>{paginationProps.page}</strong> of{' '}
+									<strong>{paginationProps.maxPages}</strong>
 								</span>
 								<div className="flex items-center gap-1">
-									<span className="whitespace-nowrap">
-										Go to:
-									</span>
+									<span className="whitespace-nowrap">Go to:</span>
 									<Input
 										type="number"
 										min={1}
@@ -252,9 +227,7 @@ const EmailTemplates = () => {
 										value={paginationProps.page}
 										onChange={(e) =>
 											paginationHandler({
-												page:
-													parseInt(e.target.value) ||
-													1,
+												page: parseInt(e.target.value) || 1,
 											})
 										}
 										className="h-8 w-16"
@@ -287,10 +260,7 @@ const EmailTemplates = () => {
 											page: paginationProps.page + 1,
 										})
 									}
-									disabled={
-										paginationProps.page >=
-										paginationProps.maxPages
-									}
+									disabled={paginationProps.page >= paginationProps.maxPages}
 								>
 									<ChevronRight className="h-4 w-4" />
 								</Button>
@@ -302,10 +272,7 @@ const EmailTemplates = () => {
 											page: paginationProps.maxPages,
 										})
 									}
-									disabled={
-										paginationProps.page >=
-										paginationProps.maxPages
-									}
+									disabled={paginationProps.page >= paginationProps.maxPages}
 								>
 									<ChevronsRight className="h-4 w-4" />
 								</Button>

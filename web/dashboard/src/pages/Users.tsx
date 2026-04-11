@@ -60,9 +60,7 @@ const enum UpdateAccessActions {
 const getMaxPages = (pagination: PaginationProps) => {
 	const { limit, total } = pagination;
 	if (total > 1) {
-		return total % limit === 0
-			? total / limit
-			: Math.floor(total / limit) + 1;
+		return total % limit === 0 ? total / limit : Math.floor(total / limit) + 1;
 	}
 	return 1;
 };
@@ -71,14 +69,15 @@ const PAGE_SIZE_OPTIONS = [10, 25, 50];
 
 export default function Users() {
 	const client = useClient();
-	const [paginationProps, setPaginationProps] =
-		React.useState<PaginationProps>({
+	const [paginationProps, setPaginationProps] = React.useState<PaginationProps>(
+		{
 			limit: 10,
 			page: 1,
 			offset: 0,
 			total: 0,
 			maxPages: 1,
-		});
+		},
+	);
 	const [userList, setUserList] = React.useState<User[]>([]);
 	const [loading, setLoading] = React.useState<boolean>(false);
 	const [searchQuery, setSearchQuery] = React.useState('');
@@ -136,9 +135,7 @@ export default function Users() {
 		if (phone_number) {
 			params = { id, phone_number, phone_number_verified: true };
 		}
-		const res = await client
-			.mutation(UpdateUser, { params })
-			.toPromise();
+		const res = await client.mutation(UpdateUser, { params }).toPromise();
 		if (res.error) {
 			toast.error(
 				getGraphQLErrorMessage(res.error, 'User verification failed'),
@@ -198,8 +195,7 @@ export default function Users() {
 			.mutation(UpdateUser, {
 				params: {
 					id: user.id,
-					is_multi_factor_auth_enabled:
-						!user.is_multi_factor_auth_enabled,
+					is_multi_factor_auth_enabled: !user.is_multi_factor_auth_enabled,
 				},
 			})
 			.toPromise();
@@ -271,8 +267,7 @@ export default function Users() {
 									<Tooltip>
 										<TooltipTrigger>MFA</TooltipTrigger>
 										<TooltipContent>
-											MultiFactor Authentication
-											Enabled/Disabled
+											MultiFactor Authentication Enabled/Disabled
 										</TooltipContent>
 									</Tooltip>
 								</TableHead>
@@ -293,9 +288,7 @@ export default function Users() {
 											{user.email || user.phone_number}
 										</TableCell>
 										<TableCell className="text-sm">
-											{dayjs(
-												user.created_at * 1000,
-											).format('MMM DD, YYYY')}
+											{dayjs(user.created_at * 1000).format('MMM DD, YYYY')}
 										</TableCell>
 										<TableCell className="text-sm">
 											{user.signup_methods}
@@ -306,29 +299,23 @@ export default function Users() {
 										<TableCell>
 											<Badge
 												variant={
-													user.email_verified ||
-													user.phone_number_verified
+													user.email_verified || user.phone_number_verified
 														? 'success'
 														: 'warning'
 												}
 											>
 												{(
-													user.email_verified ||
-													user.phone_number_verified
+													user.email_verified || user.phone_number_verified
 												)?.toString()}
 											</Badge>
 										</TableCell>
 										<TableCell>
 											<Badge
 												variant={
-													user.revoked_timestamp
-														? 'destructive'
-														: 'success'
+													user.revoked_timestamp ? 'destructive' : 'success'
 												}
 											>
-												{user.revoked_timestamp
-													? 'Revoked'
-													: 'Enabled'}
+												{user.revoked_timestamp ? 'Revoked' : 'Enabled'}
 											</Badge>
 										</TableCell>
 										<TableCell>
@@ -347,13 +334,8 @@ export default function Users() {
 										<TableCell>
 											<DropdownMenu>
 												<DropdownMenuTrigger asChild>
-													<Button
-														variant="ghost"
-														size="sm"
-													>
-														<span className="text-sm font-light">
-															Menu
-														</span>
+													<Button variant="ghost" size="sm">
+														<span className="text-sm font-light">Menu</span>
 														<ChevronDown className="ml-2 h-3 w-3" />
 													</Button>
 												</DropdownMenuTrigger>
@@ -361,11 +343,7 @@ export default function Users() {
 													{!user.email_verified &&
 														!user.phone_number_verified && (
 															<DropdownMenuItem
-																onClick={() =>
-																	userVerificationHandler(
-																		user,
-																	)
-																}
+																onClick={() => userVerificationHandler(user)}
 															>
 																Verify User
 															</DropdownMenuItem>
@@ -386,15 +364,11 @@ export default function Users() {
 																roles: string[];
 															}
 														}
-														updateUserList={
-															updateUserList
-														}
+														updateUserList={updateUserList}
 													/>
 													<DeleteUserModal
 														user={rest}
-														updateUserList={
-															updateUserList
-														}
+														updateUserList={updateUserList}
 													/>
 													<DropdownMenuSeparator />
 													{user.revoked_timestamp ? (
@@ -422,21 +396,13 @@ export default function Users() {
 													)}
 													{user.is_multi_factor_auth_enabled ? (
 														<DropdownMenuItem
-															onClick={() =>
-																multiFactorAuthUpdateHandler(
-																	user,
-																)
-															}
+															onClick={() => multiFactorAuthUpdateHandler(user)}
 														>
 															Disable MFA
 														</DropdownMenuItem>
 													) : (
 														<DropdownMenuItem
-															onClick={() =>
-																multiFactorAuthUpdateHandler(
-																	user,
-																)
-															}
+															onClick={() => multiFactorAuthUpdateHandler(user)}
 														>
 															Enable MFA
 														</DropdownMenuItem>
@@ -451,16 +417,13 @@ export default function Users() {
 					</Table>
 
 					{/* Pagination */}
-					{(paginationProps.maxPages > 1 ||
-						paginationProps.total >= 10) && (
+					{(paginationProps.maxPages > 1 || paginationProps.total >= 10) && (
 						<div className="mt-4 flex items-center justify-between">
 							<div className="flex gap-1">
 								<Button
 									variant="outline"
 									size="icon"
-									onClick={() =>
-										paginationHandler({ page: 1 })
-									}
+									onClick={() => paginationHandler({ page: 1 })}
 									disabled={paginationProps.page <= 1}
 								>
 									<ChevronsLeft className="h-4 w-4" />
@@ -481,16 +444,11 @@ export default function Users() {
 
 							<div className="flex items-center gap-4 text-sm">
 								<span>
-									Page{' '}
-									<strong>{paginationProps.page}</strong> of{' '}
-									<strong>
-										{paginationProps.maxPages}
-									</strong>
+									Page <strong>{paginationProps.page}</strong> of{' '}
+									<strong>{paginationProps.maxPages}</strong>
 								</span>
 								<div className="flex items-center gap-1">
-									<span className="whitespace-nowrap">
-										Go to:
-									</span>
+									<span className="whitespace-nowrap">Go to:</span>
 									<Input
 										type="number"
 										min={1}
@@ -498,9 +456,7 @@ export default function Users() {
 										value={paginationProps.page}
 										onChange={(e) =>
 											paginationHandler({
-												page:
-													parseInt(e.target.value) ||
-													1,
+												page: parseInt(e.target.value) || 1,
 											})
 										}
 										className="h-8 w-16"
@@ -517,10 +473,7 @@ export default function Users() {
 									className="h-8 w-28"
 								>
 									{PAGE_SIZE_OPTIONS.map((pageSize) => (
-										<option
-											key={pageSize}
-											value={pageSize}
-										>
+										<option key={pageSize} value={pageSize}>
 											Show {pageSize}
 										</option>
 									))}
@@ -536,10 +489,7 @@ export default function Users() {
 											page: paginationProps.page + 1,
 										})
 									}
-									disabled={
-										paginationProps.page >=
-										paginationProps.maxPages
-									}
+									disabled={paginationProps.page >= paginationProps.maxPages}
 								>
 									<ChevronRight className="h-4 w-4" />
 								</Button>
@@ -551,10 +501,7 @@ export default function Users() {
 											page: paginationProps.maxPages,
 										})
 									}
-									disabled={
-										paginationProps.page >=
-										paginationProps.maxPages
-									}
+									disabled={paginationProps.page >= paginationProps.maxPages}
 								>
 									<ChevronsRight className="h-4 w-4" />
 								</Button>

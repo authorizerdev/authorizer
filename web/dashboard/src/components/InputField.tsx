@@ -122,9 +122,7 @@ const InputField = ({
 						})
 					}
 					type={
-						fieldVisibility && !fieldVisibility[inputType]
-							? 'password'
-							: 'text'
+						fieldVisibility && !fieldVisibility[inputType] ? 'password' : 'text'
 					}
 					className="pr-16 h-8 text-sm"
 				/>
@@ -173,11 +171,7 @@ const InputField = ({
 							type="button"
 							className="hidden group-hover:inline-flex text-gray-400 hover:text-gray-600"
 							onClick={() =>
-								updateInputHandler(
-									inputType,
-									ArrayInputOperations.REMOVE,
-									role,
-								)
+								updateInputHandler(inputType, ArrayInputOperations.REMOVE, role)
 							}
 						>
 							<X className="h-3 w-3" />
@@ -290,9 +284,7 @@ const InputField = ({
 											if (isChecked) {
 												setVariables({
 													...variables,
-													[inputType]: selectedRoles.filter(
-														(r) => r !== role,
-													),
+													[inputType]: selectedRoles.filter((r) => r !== role),
 												});
 											} else {
 												setVariables({

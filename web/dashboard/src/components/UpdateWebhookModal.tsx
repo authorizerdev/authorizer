@@ -150,9 +150,7 @@ const UpdateWebhookModal = ({
 				setWebhook({ ...webhook, [inputType]: value as boolean });
 				break;
 			case WebhookInputDataFields.HEADERS: {
-				const updatedHeaders = [
-					...webhook[WebhookInputDataFields.HEADERS],
-				];
+				const updatedHeaders = [...webhook[WebhookInputDataFields.HEADERS]];
 				const updatedHeadersValidatorData = [
 					...validator[WebhookInputDataFields.HEADERS],
 				];
@@ -160,26 +158,21 @@ const UpdateWebhookModal = ({
 					headerInputType === WebhookInputHeaderFields.KEY
 						? WebhookInputHeaderFields.VALUE
 						: WebhookInputHeaderFields.KEY;
-				updatedHeaders[headerIndex][
-					headerInputType as keyof HeadersData
-				] = value as string;
+				updatedHeaders[headerIndex][headerInputType as keyof HeadersData] =
+					value as string;
 				const strValue = value as string;
 				updatedHeadersValidatorData[headerIndex][
 					headerInputType as keyof HeadersValidatorData
 				] =
 					strValue.length > 0
-						? updatedHeaders[headerIndex][otherHeaderInputType]
-								.length > 0
-						: updatedHeaders[headerIndex][otherHeaderInputType]
-								.length === 0;
+						? updatedHeaders[headerIndex][otherHeaderInputType].length > 0
+						: updatedHeaders[headerIndex][otherHeaderInputType].length === 0;
 				updatedHeadersValidatorData[headerIndex][
 					otherHeaderInputType as keyof HeadersValidatorData
 				] =
 					strValue.length > 0
-						? updatedHeaders[headerIndex][otherHeaderInputType]
-								.length > 0
-						: updatedHeaders[headerIndex][otherHeaderInputType]
-								.length === 0;
+						? updatedHeaders[headerIndex][otherHeaderInputType].length > 0
+						: updatedHeaders[headerIndex][otherHeaderInputType].length === 0;
 				setWebhook({ ...webhook, [inputType]: updatedHeaders });
 				setValidator({
 					...validator,
@@ -215,9 +208,7 @@ const UpdateWebhookModal = ({
 				break;
 			case ArrayInputOperations.REMOVE:
 				if (webhook[WebhookInputDataFields.HEADERS]?.length) {
-					const updatedHeaders = [
-						...webhook[WebhookInputDataFields.HEADERS],
-					];
+					const updatedHeaders = [...webhook[WebhookInputDataFields.HEADERS]];
 					updatedHeaders.splice(index, 1);
 					setWebhook({
 						...webhook,
@@ -262,8 +253,7 @@ const UpdateWebhookModal = ({
 				webhook[WebhookInputDataFields.EVENT_DESCRIPTION],
 			[WebhookInputDataFields.ENDPOINT]:
 				webhook[WebhookInputDataFields.ENDPOINT],
-			[WebhookInputDataFields.ENABLED]:
-				webhook[WebhookInputDataFields.ENABLED],
+			[WebhookInputDataFields.ENABLED]: webhook[WebhookInputDataFields.ENABLED],
 			[WebhookInputDataFields.HEADERS]: {},
 		};
 		if (webhook[WebhookInputDataFields.HEADERS].length) {
@@ -304,10 +294,7 @@ const UpdateWebhookModal = ({
 		if (res.error) {
 			toast.error(
 				capitalizeFirstLetter(
-					getGraphQLErrorMessage(
-						res.error,
-						'Failed to update webhook',
-					),
+					getGraphQLErrorMessage(res.error, 'Failed to update webhook'),
 				),
 			);
 		} else if (res.data?._add_webhook || res.data?._update_webhook) {
@@ -338,12 +325,10 @@ const UpdateWebhookModal = ({
 			const { headers, ...rest } = selectedWebhook;
 			const headerItems = Object.entries(headers || {});
 			if (headerItems.length) {
-				const formattedHeadersData = headerItems.map(
-					(headerData) => ({
-						[WebhookInputHeaderFields.KEY]: headerData[0],
-						[WebhookInputHeaderFields.VALUE]: headerData[1],
-					}),
-				);
+				const formattedHeadersData = headerItems.map((headerData) => ({
+					[WebhookInputHeaderFields.KEY]: headerData[0],
+					[WebhookInputHeaderFields.VALUE]: headerData[1],
+				}));
 				setWebhook({
 					...rest,
 					[WebhookInputDataFields.HEADERS]: formattedHeadersData,
@@ -359,9 +344,7 @@ const UpdateWebhookModal = ({
 			} else {
 				setWebhook({
 					...rest,
-					[WebhookInputDataFields.HEADERS]: [
-						{ ...initHeadersData },
-					],
+					[WebhookInputDataFields.HEADERS]: [{ ...initHeadersData }],
 				});
 			}
 		}
@@ -371,9 +354,7 @@ const UpdateWebhookModal = ({
 		if (!validateData()) return;
 		setVerifyingEndpoint(true);
 		const { [WebhookInputDataFields.ENABLED]: _, ...params } = getParams();
-		const res = await client
-			.mutation(TestEndpoint, { params })
-			.toPromise();
+		const res = await client.mutation(TestEndpoint, { params }).toPromise();
 		if (
 			res.data?._test_endpoint?.http_status >= 200 &&
 			res.data?._test_endpoint?.http_status < 400
@@ -420,11 +401,7 @@ const UpdateWebhookModal = ({
 								Event Name
 							</label>
 							<Select
-								value={
-									webhook[
-										WebhookInputDataFields.EVENT_NAME
-									].split('-')[0]
-								}
+								value={webhook[WebhookInputDataFields.EVENT_NAME].split('-')[0]}
 								onChange={(e) =>
 									inputChangehandler(
 										WebhookInputDataFields.EVENT_NAME,
@@ -432,13 +409,11 @@ const UpdateWebhookModal = ({
 									)
 								}
 							>
-								{Object.entries(webhookEventNames).map(
-									([key, value]) => (
-										<option value={value} key={key}>
-											{key}
-										</option>
-									),
-								)}
+								{Object.entries(webhookEventNames).map(([key, value]) => (
+									<option value={value} key={key}>
+										{key}
+									</option>
+								))}
 							</Select>
 						</div>
 
@@ -449,11 +424,7 @@ const UpdateWebhookModal = ({
 							</label>
 							<Input
 								placeholder="User event"
-								value={
-									webhook[
-										WebhookInputDataFields.EVENT_DESCRIPTION
-									] || ''
-								}
+								value={webhook[WebhookInputDataFields.EVENT_DESCRIPTION] || ''}
 								onChange={(e) =>
 									inputChangehandler(
 										WebhookInputDataFields.EVENT_DESCRIPTION,
@@ -470,12 +441,8 @@ const UpdateWebhookModal = ({
 							</label>
 							<Input
 								placeholder="https://domain.com/webhook"
-								value={
-									webhook[WebhookInputDataFields.ENDPOINT]
-								}
-								isInvalid={
-									!validator[WebhookInputDataFields.ENDPOINT]
-								}
+								value={webhook[WebhookInputDataFields.ENDPOINT]}
+								isInvalid={!validator[WebhookInputDataFields.ENDPOINT]}
 								onChange={(e) =>
 									inputChangehandler(
 										WebhookInputDataFields.ENDPOINT,
@@ -491,20 +458,11 @@ const UpdateWebhookModal = ({
 								Enabled
 							</label>
 							<div className="flex items-center gap-2">
-								<span className="text-sm font-medium">
-									Off
-								</span>
+								<span className="text-sm font-medium">Off</span>
 								<Switch
-									checked={
-										webhook[
-											WebhookInputDataFields.ENABLED
-										]
-									}
+									checked={webhook[WebhookInputDataFields.ENABLED]}
 									onCheckedChange={(checked: boolean) =>
-										inputChangehandler(
-											WebhookInputDataFields.ENABLED,
-											checked,
-										)
+										inputChangehandler(WebhookInputDataFields.ENABLED, checked)
 									}
 								/>
 								<span className="text-sm font-medium">On</span>
@@ -513,15 +471,11 @@ const UpdateWebhookModal = ({
 
 						{/* Headers */}
 						<div className="flex items-center justify-between">
-							<span className="text-sm font-medium">
-								Headers
-							</span>
+							<span className="text-sm font-medium">Headers</span>
 							<Button
 								variant="ghost"
 								size="sm"
-								onClick={() =>
-									updateHeaders(ArrayInputOperations.APPEND)
-								}
+								onClick={() => updateHeaders(ArrayInputOperations.APPEND)}
 							>
 								<Plus className="mr-1 h-3 w-3" />
 								Add more Headers
@@ -536,16 +490,9 @@ const UpdateWebhookModal = ({
 									>
 										<Input
 											placeholder="key"
-											value={
-												headerData[
-													WebhookInputHeaderFields.KEY
-												]
-											}
+											value={headerData[WebhookInputHeaderFields.KEY]}
 											isInvalid={
-												!validator[
-													WebhookInputDataFields
-														.HEADERS
-												][index]?.[
+												!validator[WebhookInputDataFields.HEADERS][index]?.[
 													WebhookInputHeaderFields.KEY
 												]
 											}
@@ -562,19 +509,10 @@ const UpdateWebhookModal = ({
 										<span className="font-bold">:</span>
 										<Input
 											placeholder="value"
-											value={
-												headerData[
-													WebhookInputHeaderFields
-														.VALUE
-												]
-											}
+											value={headerData[WebhookInputHeaderFields.VALUE]}
 											isInvalid={
-												!validator[
-													WebhookInputDataFields
-														.HEADERS
-												][index]?.[
-													WebhookInputHeaderFields
-														.VALUE
+												!validator[WebhookInputDataFields.HEADERS][index]?.[
+													WebhookInputHeaderFields.VALUE
 												]
 											}
 											onChange={(e) =>
@@ -591,10 +529,7 @@ const UpdateWebhookModal = ({
 											variant="ghost"
 											size="icon"
 											onClick={() =>
-												updateHeaders(
-													ArrayInputOperations.REMOVE,
-													index,
-												)
+												updateHeaders(ArrayInputOperations.REMOVE, index)
 											}
 										>
 											<MinusCircle className="h-4 w-4" />
@@ -610,9 +545,7 @@ const UpdateWebhookModal = ({
 						<button
 							type="button"
 							className="flex w-full items-center justify-between rounded-md bg-blue-50 px-4 py-2 text-sm text-blue-800"
-							onClick={() =>
-								setIsShowingPayload(!isShowingPayload)
-							}
+							onClick={() => setIsShowingPayload(!isShowingPayload)}
 						>
 							<span>Checkout the example payload</span>
 							{isShowingPayload ? (
@@ -629,11 +562,7 @@ const UpdateWebhookModal = ({
 								<button
 									type="button"
 									className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
-									onClick={() =>
-										copyTextToClipboard(
-											webhookPayloadExample,
-										)
-									}
+									onClick={() => copyTextToClipboard(webhookPayloadExample)}
 								>
 									<Copy className="h-4 w-4" />
 								</button>
@@ -648,36 +577,27 @@ const UpdateWebhookModal = ({
 							isLoading={verifyingEndpoint}
 							disabled={!validateData()}
 							className={
-								verifiedStatus ===
-								webhookVerifiedStatus.VERIFIED
+								verifiedStatus === webhookVerifiedStatus.VERIFIED
 									? 'border-green-500 text-green-700'
-									: verifiedStatus ===
-									  webhookVerifiedStatus.NOT_VERIFIED
-									? 'border-red-500 text-red-700'
-									: 'border-yellow-500 text-yellow-700'
+									: verifiedStatus === webhookVerifiedStatus.NOT_VERIFIED
+										? 'border-red-500 text-red-700'
+										: 'border-yellow-500 text-yellow-700'
 							}
 						>
-							{verifiedStatus ===
-							webhookVerifiedStatus.VERIFIED ? (
+							{verifiedStatus === webhookVerifiedStatus.VERIFIED ? (
 								<CheckCircle className="mr-2 h-4 w-4" />
-							) : verifiedStatus ===
-							  webhookVerifiedStatus.PENDING ? (
+							) : verifiedStatus === webhookVerifiedStatus.PENDING ? (
 								<AlertCircle className="mr-2 h-4 w-4" />
 							) : (
 								<AlertTriangle className="mr-2 h-4 w-4" />
 							)}
-							{verifiedStatus ===
-							webhookVerifiedStatus.VERIFIED
+							{verifiedStatus === webhookVerifiedStatus.VERIFIED
 								? 'Endpoint Verified'
-								: verifiedStatus ===
-								  webhookVerifiedStatus.PENDING
-								? 'Test Endpoint'
-								: 'Endpoint Not Verified'}
+								: verifiedStatus === webhookVerifiedStatus.PENDING
+									? 'Test Endpoint'
+									: 'Endpoint Not Verified'}
 						</Button>
-						<Button
-							onClick={saveData}
-							disabled={!validateData()}
-						>
+						<Button onClick={saveData} disabled={!validateData()}>
 							Save
 						</Button>
 					</SheetFooter>

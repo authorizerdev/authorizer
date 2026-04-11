@@ -49,17 +49,17 @@ export interface EmailTemplate {
 }
 
 export interface AuditLog {
-  id: string;
-  actor_id: string;
-  actor_type: string;
-  actor_email: string;
-  action: string;
-  resource_type: string;
-  resource_id: string;
-  ip_address: string;
-  user_agent: string;
-  metadata: string;
-  created_at: number;
+	id: string;
+	actor_id: string;
+	actor_type: string;
+	actor_email: string;
+	action: string;
+	resource_type: string;
+	resource_id: string;
+	ip_address: string;
+	user_agent: string;
+	metadata: string;
+	created_at: number;
 }
 
 export interface PaginationInfo {
@@ -102,10 +102,10 @@ export interface WebhookLogsResponse {
 }
 
 export interface AuditLogsResponse {
-  _audit_logs: {
-    pagination: PaginationInfo;
-    audit_logs: AuditLog[];
-  };
+	_audit_logs: {
+		pagination: PaginationInfo;
+		audit_logs: AuditLog[];
+	};
 }
 
 export interface MetaResponse {

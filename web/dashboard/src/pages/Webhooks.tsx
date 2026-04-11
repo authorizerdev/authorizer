@@ -86,9 +86,7 @@ const Webhooks = () => {
 			.toPromise();
 		if (res.data?._webhooks) {
 			const { pagination, webhooks } = res.data._webhooks;
-			const maxPages = getMaxPages(
-				pagination as unknown as PaginationProps,
-			);
+			const maxPages = getMaxPages(pagination as unknown as PaginationProps);
 			if (webhooks?.length) {
 				setWebhookData(webhooks);
 				setPaginationProps({
@@ -160,17 +158,9 @@ const Webhooks = () => {
 									<TableCell className="max-w-[300px] text-sm">
 										{webhook.event_description}
 									</TableCell>
-									<TableCell className="text-sm">
-										{webhook.endpoint}
-									</TableCell>
+									<TableCell className="text-sm">{webhook.endpoint}</TableCell>
 									<TableCell>
-										<Badge
-											variant={
-												webhook.enabled
-													? 'success'
-													: 'warning'
-											}
-										>
+										<Badge variant={webhook.enabled ? 'success' : 'warning'}>
 											{webhook.enabled.toString()}
 										</Badge>
 									</TableCell>
@@ -178,18 +168,12 @@ const Webhooks = () => {
 										<Tooltip>
 											<TooltipTrigger>
 												<Badge variant="secondary">
-													{Object.keys(
-														webhook.headers || {},
-													).length.toString()}
+													{Object.keys(webhook.headers || {}).length.toString()}
 												</Badge>
 											</TooltipTrigger>
 											<TooltipContent>
 												<pre className="text-xs">
-													{JSON.stringify(
-														webhook.headers,
-														null,
-														2,
-													)}
+													{JSON.stringify(webhook.headers, null, 2)}
 												</pre>
 											</TooltipContent>
 										</Tooltip>
@@ -197,40 +181,25 @@ const Webhooks = () => {
 									<TableCell>
 										<DropdownMenu>
 											<DropdownMenuTrigger asChild>
-												<Button
-													variant="ghost"
-													size="sm"
-												>
-													<span className="text-sm font-light">
-														Menu
-													</span>
+												<Button variant="ghost" size="sm">
+													<span className="text-sm font-light">Menu</span>
 													<ChevronDown className="ml-2 h-3 w-3" />
 												</Button>
 											</DropdownMenuTrigger>
 											<DropdownMenuContent align="end">
 												<UpdateWebhookModal
-													view={
-														UpdateModalViews.Edit
-													}
+													view={UpdateModalViews.Edit}
 													selectedWebhook={webhook}
-													fetchWebookData={
-														fetchWebookData
-													}
+													fetchWebookData={fetchWebookData}
 												/>
 												<DeleteWebhookModal
 													webhookId={webhook.id}
-													eventName={
-														webhook.event_name
-													}
-													fetchWebookData={
-														fetchWebookData
-													}
+													eventName={webhook.event_name}
+													fetchWebookData={fetchWebookData}
 												/>
 												<ViewWebhookLogsModal
 													webhookId={webhook.id}
-													eventName={
-														webhook.event_name
-													}
+													eventName={webhook.event_name}
 												/>
 											</DropdownMenuContent>
 										</DropdownMenu>
@@ -241,16 +210,13 @@ const Webhooks = () => {
 					</Table>
 
 					{/* Pagination */}
-					{(paginationProps.maxPages > 1 ||
-						paginationProps.total >= 5) && (
+					{(paginationProps.maxPages > 1 || paginationProps.total >= 5) && (
 						<div className="mt-4 flex items-center justify-between">
 							<div className="flex gap-1">
 								<Button
 									variant="outline"
 									size="icon"
-									onClick={() =>
-										paginationHandler({ page: 1 })
-									}
+									onClick={() => paginationHandler({ page: 1 })}
 									disabled={paginationProps.page <= 1}
 								>
 									<ChevronsLeft className="h-4 w-4" />
@@ -271,11 +237,8 @@ const Webhooks = () => {
 
 							<div className="flex items-center gap-4 text-sm">
 								<span>
-									Page{' '}
-									<strong>{paginationProps.page}</strong> of{' '}
-									<strong>
-										{paginationProps.maxPages}
-									</strong>
+									Page <strong>{paginationProps.page}</strong> of{' '}
+									<strong>{paginationProps.maxPages}</strong>
 								</span>
 								<div className="flex items-center gap-1">
 									<span>Go to:</span>
@@ -286,9 +249,7 @@ const Webhooks = () => {
 										value={paginationProps.page}
 										onChange={(e) =>
 											paginationHandler({
-												page:
-													parseInt(e.target.value) ||
-													1,
+												page: parseInt(e.target.value) || 1,
 											})
 										}
 										className="h-8 w-16"
@@ -321,10 +282,7 @@ const Webhooks = () => {
 											page: paginationProps.page + 1,
 										})
 									}
-									disabled={
-										paginationProps.page >=
-										paginationProps.maxPages
-									}
+									disabled={paginationProps.page >= paginationProps.maxPages}
 								>
 									<ChevronRight className="h-4 w-4" />
 								</Button>
@@ -336,10 +294,7 @@ const Webhooks = () => {
 											page: paginationProps.maxPages,
 										})
 									}
-									disabled={
-										paginationProps.page >=
-										paginationProps.maxPages
-									}
+									disabled={paginationProps.page >= paginationProps.maxPages}
 								>
 									<ChevronsRight className="h-4 w-4" />
 								</Button>

@@ -7,8 +7,10 @@ interface AuthorizerWindow extends Window {
 }
 
 export const hasAdminSecret = () => {
-	return (window as unknown as AuthorizerWindow).__authorizer__
-		.isOnboardingCompleted === true;
+	return (
+		(window as unknown as AuthorizerWindow).__authorizer__
+			.isOnboardingCompleted === true
+	);
 };
 
 export const capitalizeFirstLetter = (data: string): string =>
