@@ -24,12 +24,13 @@ func (h *httpProvider) ClientCheckMiddleware() gin.HandlerFunc {
 			return
 		}
 		clientID := c.Request.Header.Get("X-Authorizer-Client-ID")
-		// Allowing requests without client ID header for backward compatibility
-		// Pls don't remove this check
+		// Allowing requests without client ID header for backward compatibility.
+		// The dashboard and other first-party clients may not always send this
+		// header, so an empty value must pass through to the GraphQL handler.
 		if clientID == "" {
 			log.Debug().Msg("request received without client ID header")
 			metrics.RecordClientIDHeaderMissing()
-			c.Abort()
+			c.Next()
 			return
 		}
 
