@@ -7,7 +7,7 @@ import type { MetaResponse } from '../types';
 export function AuthLayout({ children }: { children: React.ReactNode }) {
 	const [{ fetching, data }] = useQuery<MetaResponse>({ query: MetaQuery });
 	return (
-		<div className="flex h-screen flex-col items-center justify-center bg-gray-100 p-4">
+		<div className="flex h-screen flex-col items-center justify-center bg-gray-50 p-4">
 			<div className="flex items-center mb-6">
 				<img
 					src="https://authorizer.dev/images/logo.png"
@@ -25,7 +25,7 @@ export function AuthLayout({ children }: { children: React.ReactNode }) {
 				</div>
 			) : (
 				<>
-					<div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+					<div className="w-full max-w-md rounded-lg bg-white p-6 shadow-sm border border-gray-200">
 						{children}
 					</div>
 					<p className="mt-4 text-sm text-gray-500">

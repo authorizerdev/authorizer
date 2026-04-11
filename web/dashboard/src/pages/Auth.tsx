@@ -60,11 +60,13 @@ export default function Auth() {
 
 	return (
 		<AuthLayout>
-			<p className="mb-2 text-center text-lg font-bold text-gray-600">
-				Hello Admin
-			</p>
-			<p className="mb-8 text-center text-lg text-gray-500">
-				Welcome to Admin Dashboard
+			<h1 className="mb-2 text-center text-xl font-semibold text-gray-900">
+				{isLogin ? 'Admin Login' : 'Setup Admin'}
+			</h1>
+			<p className="mb-8 text-center text-sm text-gray-500">
+				{isLogin
+					? 'Sign in to your admin dashboard'
+					: 'Create your admin account to get started'}
 			</p>
 			<form onSubmit={handleSubmit} className="space-y-5">
 				<div className="space-y-2">
@@ -74,7 +76,7 @@ export default function Auth() {
 						placeholder="Username"
 						disabled
 						value="admin"
-						className="h-12"
+						className="h-12 border-gray-200"
 					/>
 				</div>
 				<div className="space-y-2">
@@ -85,7 +87,7 @@ export default function Auth() {
 						type="password"
 						minLength={!isLogin ? 6 : 1}
 						required
-						className="h-12"
+						className="h-12 border-gray-200"
 					/>
 				</div>
 				<Button
