@@ -50,7 +50,6 @@ const AuditLogs = () => {
 	const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
 	const [actionFilter, setActionFilter] = useState('');
-	const [actorTypeFilter, setActorTypeFilter] = useState('');
 	const [resourceTypeFilter, setResourceTypeFilter] = useState('');
 	const [fromDate, setFromDate] = useState('');
 	const [toDate, setToDate] = useState('');
@@ -96,22 +95,17 @@ const AuditLogs = () => {
 		fetchLogs(1);
 	}, [fetchLogs]);
 
-	const filteredLogs = actorTypeFilter
-		? logs.filter((log) => log.actor_type === actorTypeFilter)
-		: logs;
-
 	const totalPages = Math.ceil(pagination.total / PAGE_SIZE);
 
 	const handleClearFilters = () => {
 		setActionFilter('');
-		setActorTypeFilter('');
 		setResourceTypeFilter('');
 		setFromDate('');
 		setToDate('');
 	};
 
 	const hasActiveFilters =
-		actionFilter || actorTypeFilter || resourceTypeFilter || fromDate || toDate;
+		actionFilter || resourceTypeFilter || fromDate || toDate;
 
 	const getActionBadgeVariant = (
 		action: string,
@@ -168,7 +162,7 @@ const AuditLogs = () => {
 					</div>
 				</CardHeader>
 				<CardContent>
-					<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+					<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
 						<div>
 							<label className="mb-1 block text-xs font-medium text-gray-500">
 								Action
@@ -190,21 +184,6 @@ const AuditLogs = () => {
 										</optgroup>
 									),
 								)}
-							</select>
-						</div>
-
-						<div>
-							<label className="mb-1 block text-xs font-medium text-gray-500">
-								Actor Type
-							</label>
-							<select
-								value={actorTypeFilter}
-								onChange={(e) => setActorTypeFilter(e.target.value)}
-								className="flex h-9 w-full rounded-md border border-gray-100 bg-white px-3 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
-							>
-								<option value="">All</option>
-								<option value="user">User</option>
-								<option value="admin">Admin</option>
 							</select>
 						</div>
 
@@ -261,7 +240,7 @@ const AuditLogs = () => {
 								<Skeleton key={i} className="h-12 w-full" />
 							))}
 						</div>
-					) : filteredLogs.length === 0 ? (
+					) : logs.length === 0 ? (
 						<div className="flex flex-col items-center justify-center py-16 text-gray-500">
 							<ScrollText className="mb-3 h-10 w-10 text-gray-300" />
 							<p className="text-sm font-medium">No audit logs found</p>
@@ -285,7 +264,7 @@ const AuditLogs = () => {
 									</TableRow>
 								</TableHeader>
 								<TableBody>
-									{filteredLogs.map((log) => (
+									{logs.map((log) => (
 										<React.Fragment key={log.id}>
 											<TableRow
 												className="cursor-pointer hover:bg-gray-50"
@@ -389,7 +368,7 @@ const AuditLogs = () => {
 						</div>
 					)}
 
-					{!loading && filteredLogs.length > 0 && (
+					{!loading && logs.length > 0 && (
 						<div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
 							<p className="text-sm text-gray-500">
 								Showing {(pagination.page - 1) * PAGE_SIZE + 1}–
