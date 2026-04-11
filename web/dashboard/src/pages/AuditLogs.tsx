@@ -180,7 +180,7 @@ const AuditLogs = () => {
 							<select
 								value={actionFilter}
 								onChange={(e) => setActionFilter(e.target.value)}
-								className="flex h-9 w-full rounded-md border border-gray-200 bg-white px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
+								className="flex h-9 w-full rounded-md border border-gray-100 bg-white px-3 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
 							>
 								<option value="">All actions</option>
 								{Object.entries(auditActionCategories).map(
@@ -204,7 +204,7 @@ const AuditLogs = () => {
 							<select
 								value={actorTypeFilter}
 								onChange={(e) => setActorTypeFilter(e.target.value)}
-								className="flex h-9 w-full rounded-md border border-gray-200 bg-white px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
+								className="flex h-9 w-full rounded-md border border-gray-100 bg-white px-3 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
 							>
 								<option value="">All</option>
 								<option value="user">User</option>
@@ -219,7 +219,7 @@ const AuditLogs = () => {
 							<select
 								value={resourceTypeFilter}
 								onChange={(e) => setResourceTypeFilter(e.target.value)}
-								className="flex h-9 w-full rounded-md border border-gray-200 bg-white px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
+								className="flex h-9 w-full rounded-md border border-gray-100 bg-white px-3 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
 							>
 								<option value="">All</option>
 								{auditResourceTypes.map((type) => (
@@ -394,7 +394,7 @@ const AuditLogs = () => {
 					)}
 
 					{!loading && logs.length > 0 && (
-						<div className="flex items-center justify-between border-t border-gray-200 px-4 py-3">
+						<div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
 							<p className="text-sm text-gray-500">
 								Showing {(pagination.page - 1) * PAGE_SIZE + 1}–
 								{Math.min(pagination.page * PAGE_SIZE, pagination.total)} of{' '}
