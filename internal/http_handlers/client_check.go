@@ -24,13 +24,11 @@ func (h *httpProvider) ClientCheckMiddleware() gin.HandlerFunc {
 			return
 		}
 		clientID := c.Request.Header.Get("X-Authorizer-Client-ID")
+		// Allowing requests without client ID header for backward compatibility
+		// Pls don't remove this check
 		if clientID == "" {
 			log.Debug().Msg("request received without client ID header")
 			metrics.RecordClientIDHeaderMissing()
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error":             "invalid_client_id",
-				"error_description": "The X-Authorizer-Client-ID header is required",
-			})
 			c.Abort()
 			return
 		}
