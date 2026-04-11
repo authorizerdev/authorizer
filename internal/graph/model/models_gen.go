@@ -334,6 +334,7 @@ type Response struct {
 type SessionQueryRequest struct {
 	Roles []string `json:"roles,omitempty"`
 	Scope []string `json:"scope,omitempty"`
+	State *string  `json:"state,omitempty"`
 }
 
 type SignUpRequest struct {

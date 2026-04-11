@@ -1,7 +1,7 @@
 PROJECT := authorizer
 DEFAULT_VERSION=0.1.0-local
 VERSION := $(or $(VERSION),$(DEFAULT_VERSION))
-DOCKER_IMAGE ?= authorizerdev/authorizer:$(VERSION)
+DOCKER_IMAGE ?= lakhansamani/authorizer:$(VERSION)
 
 # Full module test run. Storage provider tests honour TEST_DBS (defaults to all).
 # Integration tests and memory_store/db tests always use SQLite.

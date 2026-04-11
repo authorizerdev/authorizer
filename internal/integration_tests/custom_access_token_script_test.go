@@ -273,12 +273,16 @@ func TestClientIDMismatchMetric(t *testing.T) {
 	})
 
 	t.Run("no_metric_for_dashboard_path_mismatch", func(t *testing.T) {
+		// ClientCheckMiddleware only validates client_id on /graphql.
+		// Dashboard paths are skipped entirely (middleware calls c.Next()),
+		// so a wrong client_id on /dashboard/ returns 200 and does NOT
+		// increment the security metric.
 		mark := `authorizer_security_events_total{event="client_id_mismatch",reason="invalid_client_id"}`
 		before := prometheusCounterSample(t, getMetricsBody(t, router), mark)
 		w := sendTestRequest(t, router, "GET", "/dashboard/", "", map[string]string{
 			"X-Authorizer-Client-ID": "wrong-client-id",
 		})
-		assert.Equal(t, 400, w.Code)
+		assert.Equal(t, 200, w.Code, "dashboard path should not be rejected by client_id middleware")
 		after := prometheusCounterSample(t, getMetricsBody(t, router), mark)
 		assert.Equal(t, before, after, "dashboard path mismatch must not increment client_id_mismatch metric")
 	})

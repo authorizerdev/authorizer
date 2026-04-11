@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
 
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
@@ -23,6 +24,11 @@ import (
 	"github.com/authorizerdev/authorizer/internal/utils"
 	"github.com/authorizerdev/authorizer/internal/validators"
 )
+
+// dummyHash is a precomputed bcrypt hash used to equalise the response time
+// of the "user exists" path with the "new signup" path, preventing account
+// enumeration via timing.
+var dummyHash, _ = bcrypt.GenerateFromPassword([]byte("dummy-password-for-timing"), bcrypt.DefaultCost)
 
 // SignUp is the method to singup user
 // Permission: none
@@ -85,6 +91,7 @@ func (g *graphqlProvider) SignUp(ctx context.Context, params *model.SignUpReques
 		}
 		if existingUser != nil && (existingUser.EmailVerifiedAt != nil || existingUser.ID != "") {
 			log.Debug().Msg("Email is already signed up.")
+			bcrypt.CompareHashAndPassword(dummyHash, []byte("timing-equalization"))
 			return nil, fmt.Errorf("signup failed. please check your credentials or try a different method")
 		}
 	} else {
@@ -94,6 +101,7 @@ func (g *graphqlProvider) SignUp(ctx context.Context, params *model.SignUpReques
 		}
 		if existingUser != nil && (existingUser.PhoneNumberVerifiedAt != nil || existingUser.ID != "") {
 			log.Debug().Msg("Phone number is already signed up.")
+			bcrypt.CompareHashAndPassword(dummyHash, []byte("timing-equalization"))
 			return nil, fmt.Errorf("signup failed. please check your credentials or try a different method")
 		}
 	}
@@ -349,7 +357,7 @@ func (g *graphqlProvider) SignUp(ctx context.Context, params *model.SignUpReques
 	}
 
 	sessionKey := constants.AuthRecipeMethodBasicAuth + ":" + user.ID
-	cookie.SetSession(gc, authToken.FingerPrintHash, g.Config.AppCookieSecure)
+	cookie.SetSession(gc, authToken.FingerPrintHash, g.Config.AppCookieSecure, cookie.ParseSameSite(g.Config.AppCookieSameSite))
 	g.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt)
 	g.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt)
 

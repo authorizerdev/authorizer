@@ -82,7 +82,7 @@ func (h *httpProvider) LogoutHandler() gin.HandlerFunc {
 		if err != nil {
 			log.Debug().Err(err).Msg("failed GetSession")
 			gc.JSON(http.StatusUnauthorized, gin.H{
-				"error": err.Error(),
+				"error": "unauthorized",
 			})
 			return
 		}
@@ -91,7 +91,7 @@ func (h *httpProvider) LogoutHandler() gin.HandlerFunc {
 		if err != nil {
 			log.Debug().Err(err).Msg("failed to decrypt fingerprint")
 			gc.JSON(http.StatusUnauthorized, gin.H{
-				"error": err.Error(),
+				"error": "unauthorized",
 			})
 			return
 		}
@@ -101,7 +101,7 @@ func (h *httpProvider) LogoutHandler() gin.HandlerFunc {
 		if err != nil {
 			log.Debug().Err(err).Msg("failed to unmarshal session data")
 			gc.JSON(http.StatusUnauthorized, gin.H{
-				"error": err.Error(),
+				"error": "unauthorized",
 			})
 			return
 		}
@@ -114,7 +114,7 @@ func (h *httpProvider) LogoutHandler() gin.HandlerFunc {
 		}
 
 		h.MemoryStoreProvider.DeleteUserSession(sessionToken, sessionData.Nonce)
-		cookie.DeleteSession(gc, h.Config.AppCookieSecure)
+		cookie.DeleteSession(gc, h.Config.AppCookieSecure, cookie.ParseSameSite(h.Config.AppCookieSameSite))
 		metrics.RecordAuthEvent(metrics.EventLogout, metrics.StatusSuccess)
 		metrics.ActiveSessions.Dec()
 		h.AuditProvider.LogEvent(audit.Event{

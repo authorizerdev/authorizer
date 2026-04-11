@@ -56,17 +56,23 @@ func (p *provider) DeleteUserSession(userId, key string) error {
 
 // DeleteAllUserSessions deletes all the user session from redis
 func (p *provider) DeleteAllUserSessions(userID string) error {
-	res := p.store.Keys(p.ctx, fmt.Sprintf("*%s*", userID))
-	if res.Err() != nil {
-		p.dependencies.Log.Debug().Err(res.Err()).Msg("Error getting all user sessions from redis")
-		return res.Err()
-	}
-	keys := res.Val()
-	for _, key := range keys {
-		err := p.store.Del(p.ctx, key).Err()
+	var cursor uint64
+	pattern := fmt.Sprintf("%s:*", userID)
+	for {
+		keys, nextCursor, err := p.store.Scan(p.ctx, cursor, pattern, 100).Result()
 		if err != nil {
-			p.dependencies.Log.Debug().Err(err).Msg("Error deleting all user sessions from redis")
-			continue
+			p.dependencies.Log.Debug().Err(err).Msg("Error scanning user sessions from redis")
+			return err
+		}
+		for _, key := range keys {
+			if err := p.store.Del(p.ctx, key).Err(); err != nil {
+				p.dependencies.Log.Debug().Err(err).Msg("Error deleting user session from redis")
+				continue
+			}
+		}
+		cursor = nextCursor
+		if cursor == 0 {
+			break
 		}
 	}
 	return nil
@@ -167,6 +173,26 @@ func (p *provider) RemoveState(key string) error {
 	}
 
 	return nil
+}
+
+// GetAndRemoveState atomically retrieves and deletes the state from redis.
+// Uses a Lua script to guarantee atomicity across GET and DEL.
+func (p *provider) GetAndRemoveState(key string) (string, error) {
+	fullKey := stateStorePrefix + key
+	// Lua script: atomic GET + DEL. Returns nil if key does not exist.
+	script := `local v = redis.call('GET', KEYS[1])
+if v then redis.call('DEL', KEYS[1]) end
+return v`
+	result, err := p.store.Eval(p.ctx, script, []string{fullKey}).Result()
+	if err != nil {
+		p.dependencies.Log.Debug().Err(err).Msg("Error getting and removing state from redis")
+		return "", err
+	}
+	data, ok := result.(string)
+	if !ok || data == "" {
+		return "", fmt.Errorf("not found")
+	}
+	return data, nil
 }
 
 // GetAllData returns all the data from the session store

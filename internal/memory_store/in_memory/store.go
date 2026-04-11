@@ -98,6 +98,17 @@ func (c *provider) RemoveState(key string) error {
 	return nil
 }
 
+// GetAndRemoveState atomically retrieves and deletes the state from the in-memory store.
+func (c *provider) GetAndRemoveState(key string) (string, error) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	val := c.stateStore.GetAndRemove(key)
+	if val == "" {
+		return "", fmt.Errorf("not found")
+	}
+	return val, nil
+}
+
 // GetAllData returns all the data from the in-memory store
 // This is used for testing purposes only
 func (c *provider) GetAllData() (map[string]string, error) {

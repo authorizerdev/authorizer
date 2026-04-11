@@ -2997,6 +2997,10 @@ input MagicLinkLoginRequest {
 input SessionQueryRequest {
   roles: [String!]
   scope: [String!]
+  # state is used for authorization code grant flow
+  # when a session already exists and the login UI auto-detects it,
+  # passing state ensures the authorization code state is properly stored
+  state: String
 }
 
 input PaginationRequest {
@@ -19358,7 +19362,7 @@ func (ec *executionContext) unmarshalInputSessionQueryRequest(ctx context.Contex
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"roles", "scope"}
+	fieldsInOrder := [...]string{"roles", "scope", "state"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -19379,6 +19383,13 @@ func (ec *executionContext) unmarshalInputSessionQueryRequest(ctx context.Contex
 				return it, err
 			}
 			it.Scope = data
+		case "state":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.State = data
 		}
 	}
 

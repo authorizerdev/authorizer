@@ -60,12 +60,12 @@ func (g *graphqlProvider) VerifyOTP(ctx context.Context, params *model.VerifyOTP
 	}
 	if user == nil || err != nil {
 		log.Debug().Err(err).Msg("User not found")
-		return nil, fmt.Errorf(`user not found`)
+		return nil, fmt.Errorf("invalid verification request")
 	}
 
 	if user.RevokedTimestamp != nil {
 		log.Debug().Msg("User access has been revoked")
-		return nil, fmt.Errorf("user access has been revoked")
+		return nil, fmt.Errorf("invalid verification request")
 	}
 
 	// Verify OTP based on TOPT or OTP
@@ -260,7 +260,7 @@ func (g *graphqlProvider) VerifyOTP(ctx context.Context, params *model.VerifyOTP
 	}
 
 	sessionKey := loginMethod + ":" + user.ID
-	cookie.SetSession(gc, authToken.FingerPrintHash, g.Config.AppCookieSecure)
+	cookie.SetSession(gc, authToken.FingerPrintHash, g.Config.AppCookieSecure, cookie.ParseSameSite(g.Config.AppCookieSameSite))
 	g.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt)
 	g.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt)
 

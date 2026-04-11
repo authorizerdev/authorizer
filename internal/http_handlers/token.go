@@ -90,7 +90,7 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 		}
 
 		if h.Config.ClientID != clientID {
-			log.Debug().Str("client_id", clientID).Msg("Client ID is invalid")
+			log.Debug().Msg("Client ID is invalid")
 			metrics.RecordSecurityEvent("invalid_client", "token_endpoint")
 			// RFC 6749 §5.2: If client auth fails via HTTP Basic, return 401
 			if _, _, hasBasicAuth := gc.Request.BasicAuth(); hasBasicAuth {
@@ -124,8 +124,10 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 				return
 			}
 
-			// Get state
-			sessionData, err := h.MemoryStoreProvider.GetState(code)
+			// RFC 6749 §4.1.2: Authorization codes MUST be single-use.
+			// GetAndRemoveState atomically retrieves and deletes the code
+			// to prevent replay via TOCTOU race.
+			sessionData, err := h.MemoryStoreProvider.GetAndRemoveState(code)
 			if sessionData == "" || err != nil {
 				log.Debug().Err(err).Msg("Error getting session data")
 				gc.JSON(http.StatusBadRequest, gin.H{
@@ -140,10 +142,6 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 			// [2] -> OIDC nonce from /authorize request (optional)
 			// [3] -> redirect_uri from /authorize request (optional, for RFC 6749 §4.1.3)
 			sessionDataSplit := strings.Split(sessionData, "@@")
-
-			// RFC 6749 §4.1.2: Authorization codes MUST be single-use.
-			// Delete synchronously to prevent race condition allowing code reuse.
-			h.MemoryStoreProvider.RemoveState(code)
 
 			// RFC 6749 §4.1.3: If redirect_uri was included in the authorization
 			// request, the token request MUST include the identical redirect_uri.
@@ -170,10 +168,10 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 			}
 
 			// Parse code_challenge and method from stored state.
-			// Format: "challenge::method" or just "challenge" (legacy, defaults to S256)
+			// Format: "challenge::method" or just "challenge" (legacy, defaults to plain per RFC 7636 §4.2)
 			// or empty string (no PKCE — confidential client).
 			storedChallenge := sessionDataSplit[0]
-			storedMethod := "S256"
+			storedMethod := "plain"
 			if idx := strings.LastIndex(storedChallenge, "::"); idx >= 0 {
 				storedMethod = storedChallenge[idx+2:]
 				storedChallenge = storedChallenge[:idx]
@@ -279,13 +277,18 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 				oidcNonce = sessionDataSplit[2]
 			}
 
-			// rollover the session for security
 			sessionKey = userID
 			if loginMethod != "" {
 				sessionKey = loginMethod + ":" + userID
 			}
 
-			go h.MemoryStoreProvider.DeleteUserSession(sessionKey, claims.Nonce)
+			// NOTE: Do NOT delete the user's browser session here. The
+			// /authorize endpoint already performed session rollover when it
+			// created the authorization code. The /oauth/token endpoint is
+			// called server-to-server by the RP (Auth0/Okta/Keycloak), not
+			// by the user's browser. Deleting the session here would
+			// invalidate the cookie the user's browser holds, breaking
+			// subsequent session lookups (e.g., GraphQL session query).
 
 		} else {
 			// validate refresh token
@@ -381,7 +384,9 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 			}
 
 			// remove older refresh token and rotate it for security
-			go h.MemoryStoreProvider.DeleteUserSession(sessionKey, nonce)
+			if err := h.MemoryStoreProvider.DeleteUserSession(sessionKey, nonce); err != nil {
+				log.Debug().Err(err).Str("session_key", sessionKey).Msg("Failed to delete old session during token refresh")
+			}
 		}
 
 		if sessionKey == "" {
@@ -422,14 +427,26 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 			return
 		}
 
-		if err := h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt); err != nil {
-			log.Debug().Err(err).Msg("Error persisting session token")
-			gc.JSON(http.StatusServiceUnavailable, gin.H{
-				"error":             "temporarily_unavailable",
-				"error_description": "Could not complete token issuance",
-			})
-			return
+		// For authorization_code grant the user's browser session was already
+		// created by /authorize. The token endpoint is called server-to-server
+		// by the RP — creating a new browser session here would be orphaned
+		// (the cookie goes to the RP, not the user's browser) and deleting /
+		// replacing the existing one would invalidate the user's cookie.
+		//
+		// For refresh_token grant the caller IS the user's browser (or an app
+		// holding the refresh token), so we do a full session rollover.
+		if isRefreshTokenGrant {
+			if err := h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt); err != nil {
+				log.Debug().Err(err).Msg("Error persisting session token")
+				gc.JSON(http.StatusServiceUnavailable, gin.H{
+					"error":             "temporarily_unavailable",
+					"error_description": "Could not complete token issuance",
+				})
+				return
+			}
+			cookie.SetSession(gc, authToken.FingerPrintHash, h.Config.AppCookieSecure, cookie.ParseSameSite(h.Config.AppCookieSameSite))
 		}
+
 		if err := h.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt); err != nil {
 			log.Debug().Err(err).Msg("Error persisting access token")
 			gc.JSON(http.StatusServiceUnavailable, gin.H{
@@ -438,7 +455,6 @@ func (h *httpProvider) TokenHandler() gin.HandlerFunc {
 			})
 			return
 		}
-		cookie.SetSession(gc, authToken.FingerPrintHash, h.Config.AppCookieSecure)
 
 		expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
 		if expiresIn <= 0 {

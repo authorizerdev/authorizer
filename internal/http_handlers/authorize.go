@@ -32,6 +32,8 @@ jargons
 **/
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -150,10 +152,16 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 		}
 
 		codeChallengeMethod := strings.TrimSpace(gc.Query("code_challenge_method"))
-		// RFC 7636 §4.3: Default to S256 if code_challenge is present but method is not specified
-		// Note: We only support S256 as it is mandatory to implement per RFC 7636
+		// RFC 7636 §4.2: "If the client is capable of using
+		// "S256", it MUST use "S256" [...] If the server does not
+		// support the transformation, [...] it MUST return [...].
+		// If no code_challenge_method is present, the server MUST
+		// use "plain" as the default."
 		if codeChallengeMethod == "" && codeChallenge != "" {
-			codeChallengeMethod = "S256"
+			codeChallengeMethod = "plain"
+		}
+		if codeChallengeMethod == "plain" && codeChallenge != "" {
+			log.Debug().Msg("PKCE plain method in use — code_verifier will be visible in URL parameters; S256 is recommended")
 		}
 		// RFC 7636 §4.2: servers MUST support plain and S256
 		if codeChallengeMethod != "" && codeChallengeMethod != "S256" && codeChallengeMethod != "plain" {
@@ -190,10 +198,9 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			// Tokens MUST NOT appear in query strings (OAuth 2.0 Multiple
 			// Response Type Encoding Practices §3.0).
 			if rawResponseMode == constants.ResponseModeQuery {
-				gc.JSON(http.StatusBadRequest, gin.H{
-					"error":             "invalid_request",
-					"error_description": "response_mode=query is not allowed for response_type=" + responseType,
-				})
+				// redirect_uri is validated at this point; redirect the
+				// error to the RP per RFC 6749 §4.1.2.1.
+				redirectErrorToRP(gc, constants.ResponseModeFragment, redirectURI, state, "invalid_request", "response_mode=query is not allowed for response_type="+responseType)
 				return
 			}
 			// Default to fragment when the client did not explicitly
@@ -203,9 +210,12 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			}
 		}
 
-		if err := h.validateAuthorizeRequest(responseType, responseMode, clientID, state); err != nil {
-			log.Debug().Err(err).Msg("Invalid request")
-			gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if errCode, errDesc := h.validateAuthorizeRequest(responseType, responseMode, state); errCode != "" {
+			log.Debug().Str("error", errCode).Str("error_description", errDesc).Msg("Invalid request")
+			gc.JSON(http.StatusBadRequest, gin.H{
+				"error":             errCode,
+				"error_description": errDesc,
+			})
 			return
 		}
 
@@ -214,11 +224,20 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 		// return id_token directly from the authorization endpoint).
 		requiresNonce := strings.Contains(responseType, "id_token")
 		if requiresNonce && nonce == "" {
-			gc.JSON(http.StatusBadRequest, gin.H{
-				"error":             "invalid_request",
-				"error_description": "nonce is required for response_type=" + responseType,
-			})
+			redirectErrorToRP(gc, responseMode, redirectURI, state, "invalid_request", "nonce is required for response_type="+responseType)
 			return
+		}
+
+		// OIDC Core §3.2.2.1: when response_type=token and scope includes
+		// openid, the RP should use id_token or id_token token instead.
+		// We log a warning but don't reject to avoid breaking existing flows.
+		if responseType == "token" {
+			for _, s := range scope {
+				if s == "openid" {
+					log.Debug().Msg("response_type=token with openid scope — consider using id_token or id_token token instead")
+					break
+				}
+			}
 		}
 
 		// Generate code only for flows that include "code" in response_type.
@@ -235,7 +254,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 
 		// TODO add state with timeout
 		// used for response mode query or fragment
-		authState := "state=" + state + "&scope=" + scopeString + "&redirect_uri=" + redirectURI + "&response_mode=" + responseMode + "&response_type=" + url.QueryEscape(responseType)
+		authState := "state=" + url.QueryEscape(state) + "&scope=" + url.QueryEscape(scopeString) + "&redirect_uri=" + url.QueryEscape(redirectURI) + "&response_mode=" + url.QueryEscape(responseMode) + "&response_type=" + url.QueryEscape(responseType) + "&client_id=" + url.QueryEscape(clientID)
 		// OIDC Core §3.1.2.1: login_hint and ui_locales are forwarded
 		// to the login UI so it can pre-fill the email field and pick
 		// the UI language.
@@ -245,6 +264,16 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 		if uiLocales != "" {
 			authState += "&ui_locales=" + url.QueryEscape(uiLocales)
 		}
+		// Forward all RP-provided OIDC parameters through the login UI so
+		// the React app can send them back on the second /authorize
+		// round-trip. Without this, the code flow loses the RP-provided
+		// values and Auth0/Okta/Keycloak reject the resulting tokens.
+		authState += "&nonce=" + url.QueryEscape(nonce)
+		if codeChallenge != "" {
+			authState += "&code_challenge=" + url.QueryEscape(codeChallenge)
+			authState += "&code_challenge_method=" + url.QueryEscape(codeChallengeMethod)
+		}
+
 		if hasCodeFlow {
 			authState += "&code=" + code
 			// Store code_challenge with method so token endpoint can verify.
@@ -259,7 +288,6 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				return
 			}
 		} else {
-			authState += "&nonce=" + nonce
 			if err := h.MemoryStoreProvider.SetState(state, nonce); err != nil {
 				log.Debug().Err(err).Msg("Error setting temp nonce")
 				gc.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
@@ -281,13 +309,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 
 		// Reject if code_challenge_method is set without code_challenge
 		if responseType == constants.ResponseTypeCode && codeChallenge == "" && codeChallengeMethod != "" {
-			handleResponse(gc, responseMode, authURL, redirectURI, map[string]interface{}{
-				"type": "authorization_response",
-				"response": map[string]interface{}{
-					"error":             "invalid_request",
-					"error_description": "code_challenge is required when code_challenge_method is specified",
-				},
-			}, http.StatusOK)
+			redirectErrorToRP(gc, responseMode, redirectURI, state, "invalid_request", "code_challenge is required when code_challenge_method is specified")
 			return
 		}
 
@@ -321,7 +343,17 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			}
 		}
 
-		if forceReauth {
+		// When prompt=login and a valid session cookie exists, don't discard
+		// it. The normal flow below validates it, performs a session rollover,
+		// stores the authorization code state, and redirects to the RP.
+		// Discarding the session here would send the user to the login UI
+		// where the React SDK auto-detects the still-valid cookie, redirects
+		// immediately, but the authorization code state is never stored
+		// because the login mutation is never called.
+		//
+		// For max_age=0 or max_age-exceeded, we DO discard the session
+		// because the spec requires actual re-authentication based on time.
+		if forceReauth && !(prompt == "login" && err == nil && sessionToken != "") {
 			err = errors.New("force reauth")
 			sessionToken = ""
 		}
@@ -365,10 +397,11 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 					"authorization_response": errData,
 				})
 			case constants.ResponseModeFormPost:
-				setFormPostCSP(gc, redirectURI)
+				cspNonce := setFormPostCSP(gc)
 				gc.HTML(http.StatusOK, authorizeFormPostTemplate, gin.H{
 					"target_origin":          redirectURI,
 					"authorization_response": errData["response"],
+					"csp_nonce":              cspNonce,
 				})
 			default:
 				gc.Redirect(http.StatusFound, errRedirectURI)
@@ -421,7 +454,9 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 		}
 
 		// rollover the session for security
-		go h.MemoryStoreProvider.DeleteUserSession(sessionKey, claims.Nonce)
+		if err := h.MemoryStoreProvider.DeleteUserSession(sessionKey, claims.Nonce); err != nil {
+			log.Debug().Err(err).Str("session_key", sessionKey).Msg("Failed to delete old session during rollover")
+		}
 
 		if isHybrid {
 			hostname := parsers.GetHost(gc)
@@ -437,6 +472,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				Scope:       scope,
 				LoginMethod: claims.LoginMethod,
 				HostName:    hostname,
+				AuthTime:    claims.IssuedAt,
 			})
 			if err != nil {
 				log.Debug().Err(err).Msg("Error creating auth token for hybrid response")
@@ -466,7 +502,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				handleResponse(gc, responseMode, authURL, redirectURI, loginError, http.StatusOK)
 				return
 			}
-			cookie.SetSession(gc, authToken.FingerPrintHash, h.Config.AppCookieSecure)
+			cookie.SetSession(gc, authToken.FingerPrintHash, h.Config.AppCookieSecure, cookie.ParseSameSite(h.Config.AppCookieSameSite))
 			expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
 			if expiresIn <= 0 {
 				expiresIn = 1
@@ -492,7 +528,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 			}
 
 			// Build the fragment params string for redirect modes.
-			params := "code=" + code + "&state=" + state + "&token_type=bearer&expires_in=" + strconv.FormatInt(expiresIn, 10)
+			params := "code=" + code + "&state=" + state + "&token_type=Bearer&expires_in=" + strconv.FormatInt(expiresIn, 10)
 			if hasAccessToken {
 				params += "&access_token=" + authToken.AccessToken.Token
 			}
@@ -528,6 +564,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				Scope:       scope,
 				LoginMethod: claims.LoginMethod,
 				HostName:    hostname,
+				AuthTime:    claims.IssuedAt,
 			})
 			if err != nil {
 				log.Debug().Err(err).Msg("Error creating auth token for id_token token response")
@@ -545,7 +582,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				handleResponse(gc, responseMode, authURL, redirectURI, loginError, http.StatusOK)
 				return
 			}
-			cookie.SetSession(gc, authToken.FingerPrintHash, h.Config.AppCookieSecure)
+			cookie.SetSession(gc, authToken.FingerPrintHash, h.Config.AppCookieSecure, cookie.ParseSameSite(h.Config.AppCookieSameSite))
 
 			expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
 			if expiresIn <= 0 {
@@ -562,7 +599,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 
 			params := "access_token=" + authToken.AccessToken.Token +
 				"&id_token=" + authToken.IDToken.Token +
-				"&token_type=bearer&expires_in=" + strconv.FormatInt(expiresIn, 10) +
+				"&token_type=Bearer&expires_in=" + strconv.FormatInt(expiresIn, 10) +
 				"&state=" + state
 
 			// Fragment-only: tokens MUST NOT appear in query strings.
@@ -588,6 +625,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				Roles:       claims.Roles,
 				Scope:       scope,
 				LoginMethod: claims.LoginMethod,
+				AuthTime:    claims.IssuedAt,
 			})
 			if err != nil {
 				log.Debug().Err(err).Msg("Error creating session token")
@@ -619,7 +657,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				return
 			}
 
-			cookie.SetSession(gc, newSessionToken, h.Config.AppCookieSecure)
+			cookie.SetSession(gc, newSessionToken, h.Config.AppCookieSecure, cookie.ParseSameSite(h.Config.AppCookieSameSite))
 
 			// in case, response type is code and user is already logged in send the code and state
 			// and cookie session will already be rolled over and set
@@ -672,6 +710,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				Scope:       scope,
 				LoginMethod: claims.LoginMethod,
 				HostName:    hostname,
+				AuthTime:    claims.IssuedAt,
 			})
 			if err != nil {
 				log.Debug().Err(err).Msg("Error creating auth token")
@@ -685,7 +724,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				return
 			}
 
-			cookie.SetSession(gc, authToken.FingerPrintHash, h.Config.AppCookieSecure)
+			cookie.SetSession(gc, authToken.FingerPrintHash, h.Config.AppCookieSecure, cookie.ParseSameSite(h.Config.AppCookieSameSite))
 
 			// OIDC Core §3.2.2.5: response params are id_token + state only.
 			// The nonce is carried inside the id_token JWT claims (not as a
@@ -723,6 +762,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				Scope:       scope,
 				LoginMethod: claims.LoginMethod,
 				HostName:    hostname,
+				AuthTime:    claims.IssuedAt,
 			})
 			if err != nil {
 				log.Debug().Err(err).Msg("Error creating auth token")
@@ -742,7 +782,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 				return
 			}
 
-			cookie.SetSession(gc, authToken.FingerPrintHash, h.Config.AppCookieSecure)
+			cookie.SetSession(gc, authToken.FingerPrintHash, h.Config.AppCookieSecure, cookie.ParseSameSite(h.Config.AppCookieSameSite))
 
 			expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
 			if expiresIn <= 0 {
@@ -751,7 +791,7 @@ func (h *httpProvider) AuthorizeHandler() gin.HandlerFunc {
 
 			// RFC 6749 §4.2.2: implicit token response params.
 			params := "access_token=" + authToken.AccessToken.Token +
-				"&token_type=bearer&expires_in=" + strconv.FormatInt(expiresIn, 10) +
+				"&token_type=Bearer&expires_in=" + strconv.FormatInt(expiresIn, 10) +
 				"&state=" + state
 
 			res := map[string]interface{}{
@@ -823,16 +863,16 @@ func supportedResponseTypeSet(raw string) (string, bool) {
 	return "", false
 }
 
-func (h *httpProvider) validateAuthorizeRequest(responseType, responseMode, clientID, state string) error {
+// validateAuthorizeRequest validates the authorize request parameters and
+// returns RFC 6749 §4.1.2.1 compliant error code and description on failure.
+// Returns empty strings when validation passes.
+func (h *httpProvider) validateAuthorizeRequest(responseType, responseMode, state string) (string, string) {
 	if strings.TrimSpace(state) == "" {
-		return fmt.Errorf("invalid state. state is required to prevent csrf attack")
-	}
-	if _, ok := supportedResponseTypeSet(responseType); !ok {
-		return fmt.Errorf("invalid response type %s", responseType)
+		return "invalid_request", "state parameter is required"
 	}
 
 	if responseMode != constants.ResponseModeQuery && responseMode != constants.ResponseModeWebMessage && responseMode != constants.ResponseModeFragment && responseMode != constants.ResponseModeFormPost {
-		return fmt.Errorf("invalid response mode %s. 'query', 'fragment', 'form_post' and 'web_message' are valid response_mode", responseMode)
+		return "invalid_request", "response_mode must be one of: query, fragment, form_post, web_message"
 	}
 
 	// OAuth 2.0 Multiple Response Type Encoding Practices §3.0:
@@ -845,14 +885,10 @@ func (h *httpProvider) validateAuthorizeRequest(responseType, responseMode, clie
 	//   response_type=code              → query, fragment, form_post (any)
 	//   response_type=token / id_token  → fragment (default) or form_post only
 	if responseMode == constants.ResponseModeQuery && responseType != constants.ResponseTypeCode {
-		return fmt.Errorf("response_mode=query is not allowed for response_type=%s; use fragment or form_post", responseType)
+		return "invalid_request", fmt.Sprintf("response_mode=query is not allowed for response_type=%s; use fragment or form_post", responseType)
 	}
 
-	if h.Config.ClientID != clientID {
-		return fmt.Errorf("invalid client_id %s", clientID)
-	}
-
-	return nil
+	return "", ""
 }
 
 // parseIDTokenHintSubject parses and verifies an id_token_hint JWT
@@ -876,24 +912,91 @@ func (h *httpProvider) parseIDTokenHintSubject(idTokenHint string) string {
 }
 
 // setFormPostCSP overrides the Content-Security-Policy header to allow
-// form-action to the redirect_uri origin. The default CSP sets
-// form-action 'self' which blocks cross-origin form POSTs required by
 // OIDC Form Post Response Mode (OAuth 2.0 Form Post Response Mode §1).
-func setFormPostCSP(gc *gin.Context, redirectURI string) {
-	origin := "'self'"
-	if u, err := url.Parse(redirectURI); err == nil && u.Host != "" {
-		origin = "'self' " + u.Scheme + "://" + u.Host
+// Returns a cryptographic nonce for use in script tags.
+func setFormPostCSP(gc *gin.Context) string {
+	// Generate a cryptographic nonce for CSP script-src.
+	nonceBytes := make([]byte, 16)
+	if _, err := rand.Read(nonceBytes); err != nil {
+		// Fallback: allow unsafe-inline if crypto/rand fails (should never happen).
+		nonceBytes = []byte("fallback-nonce-value")
 	}
+	cspNonce := base64.RawURLEncoding.EncodeToString(nonceBytes)
+
 	gc.Writer.Header().Set("Content-Security-Policy",
 		"default-src 'self'; "+
-			"script-src 'self' 'unsafe-inline'; "+
+			"script-src 'self' 'nonce-"+cspNonce+"'; "+
 			"style-src 'self' 'unsafe-inline'; "+
 			"img-src 'self' data: https:; "+
 			"font-src 'self' data:; "+
 			"connect-src 'self'; "+
 			"frame-ancestors 'none'; "+
 			"base-uri 'self'; "+
-			"form-action "+origin)
+			"form-action *;")
+	return cspNonce
+}
+
+// redirectErrorToRP sends an OAuth2/OIDC error to the RP's redirect_uri
+// using the configured response_mode. Per RFC 6749 §4.1.2.1 this MUST only
+// be called after redirect_uri has been validated. If redirect_uri is the
+// default "/app" fallback (unvalidated), falls back to a JSON error response.
+func redirectErrorToRP(gc *gin.Context, responseMode, redirectURI, state, errCode, errDesc string) {
+	// If redirect_uri is the default "/app" fallback, we have no validated
+	// RP endpoint to redirect to — return JSON error instead.
+	if redirectURI == "/app" {
+		gc.JSON(http.StatusBadRequest, gin.H{
+			"error":             errCode,
+			"error_description": errDesc,
+		})
+		return
+	}
+
+	errParams := "error=" + url.QueryEscape(errCode) +
+		"&error_description=" + url.QueryEscape(errDesc)
+	if state != "" {
+		errParams += "&state=" + url.QueryEscape(state)
+	}
+
+	errData := map[string]interface{}{
+		"type": "authorization_response",
+		"response": map[string]interface{}{
+			"error":             errCode,
+			"error_description": errDesc,
+			"state":             state,
+		},
+	}
+
+	switch responseMode {
+	case constants.ResponseModeWebMessage:
+		gc.HTML(http.StatusOK, authorizeWebMessageTemplate, gin.H{
+			"target_origin":          redirectURI,
+			"authorization_response": errData,
+		})
+	case constants.ResponseModeFormPost:
+		cspNonce := setFormPostCSP(gc)
+		gc.HTML(http.StatusOK, authorizeFormPostTemplate, gin.H{
+			"target_origin":          redirectURI,
+			"authorization_response": errData["response"],
+			"csp_nonce":              cspNonce,
+		})
+	default:
+		// query or fragment
+		errRedirectURI := redirectURI
+		if responseMode == constants.ResponseModeFragment {
+			if strings.Contains(errRedirectURI, "#") {
+				errRedirectURI += "&" + errParams
+			} else {
+				errRedirectURI += "#" + errParams
+			}
+		} else {
+			if strings.Contains(errRedirectURI, "?") {
+				errRedirectURI += "&" + errParams
+			} else {
+				errRedirectURI += "?" + errParams
+			}
+		}
+		gc.Redirect(http.StatusFound, errRedirectURI)
+	}
 }
 
 func handleResponse(gc *gin.Context, responseMode, authURI, redirectURI string, data map[string]interface{}, httpStatusCode int) {
@@ -920,10 +1023,11 @@ func handleResponse(gc *gin.Context, responseMode, authURI, redirectURI string, 
 		})
 		return
 	case constants.ResponseModeFormPost:
-		setFormPostCSP(gc, redirectURI)
+		cspNonce := setFormPostCSP(gc)
 		gc.HTML(httpStatusCode, authorizeFormPostTemplate, gin.H{
 			"target_origin":          redirectURI,
 			"authorization_response": data["response"],
+			"csp_nonce":              cspNonce,
 		})
 		return
 	}

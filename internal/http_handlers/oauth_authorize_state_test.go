@@ -175,7 +175,9 @@ func TestConsumeAuthorizeState_MissingKey_ReturnsEmpty(t *testing.T) {
 	}
 
 	code, codeChallenge, nonce, redirectURI, err := h.consumeAuthorizeState("does-not-exist")
-	require.NoError(t, err)
+	// GetAndRemoveState returns an error for missing keys; consumeAuthorizeState propagates it.
+	// The caller (oauth_callback) handles this gracefully.
+	require.Error(t, err)
 	require.Empty(t, code)
 	require.Empty(t, codeChallenge)
 	require.Empty(t, nonce)
@@ -224,5 +226,13 @@ func (f *fakeMemoryStore) GetState(key string) (string, error)                  
 func (f *fakeMemoryStore) RemoveState(key string) error {
 	f.removedKeys = append(f.removedKeys, key)
 	return nil
+}
+func (f *fakeMemoryStore) GetAndRemoveState(key string) (string, error) {
+	val, err := f.GetState(key)
+	if err != nil {
+		return "", err
+	}
+	f.removedKeys = append(f.removedKeys, key)
+	return val, nil
 }
 func (f *fakeMemoryStore) GetAllData() (map[string]string, error) { return map[string]string{}, nil }
