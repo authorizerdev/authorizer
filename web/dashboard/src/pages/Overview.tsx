@@ -97,7 +97,7 @@ const Overview = () => {
 
 	if (loading) {
 		return (
-			<div className="space-y-6">
+			<div className="m-5 rounded-md bg-white py-5 px-10 space-y-6">
 				<div>
 					<Skeleton className="h-8 w-48" />
 					<Skeleton className="mt-1 h-4 w-72" />
@@ -113,7 +113,7 @@ const Overview = () => {
 	}
 
 	return (
-		<div className="space-y-6">
+		<div className="m-5 rounded-md bg-white py-5 px-10 space-y-6">
 			<div>
 				<h1 className="text-2xl font-semibold text-gray-900">Overview</h1>
 				<p className="mt-1 text-sm text-gray-500">
