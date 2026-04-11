@@ -8,11 +8,12 @@ import (
 // today because the dashboard uses inline styles; tighten as the frontend
 // migrates away from inline. frame-ancestors 'none' replaces X-Frame-Options.
 const defaultCSP = "default-src 'self'; " +
-	"script-src 'self' 'unsafe-inline'; " +
-	"style-src 'self' 'unsafe-inline'; " +
+	"script-src 'self' 'unsafe-inline' https://editor.unlayer.com; " +
+	"style-src 'self' 'unsafe-inline' https://editor.unlayer.com; " +
 	"img-src 'self' data: https:; " +
-	"font-src 'self' data:; " +
-	"connect-src 'self'; " +
+	"font-src 'self' data: https://editor.unlayer.com; " +
+	"connect-src 'self' https://api.unlayer.com; " +
+	"frame-src https://editor.unlayer.com; " +
 	"frame-ancestors 'none'; " +
 	"base-uri 'self'; " +
 	"form-action 'self'"
