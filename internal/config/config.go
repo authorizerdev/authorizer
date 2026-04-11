@@ -289,8 +289,9 @@ type Config struct {
 	// IsAppCookieSecure is the flag to set secure(http only) cookie
 	AppCookieSecure bool
 	// AppCookieSameSite controls the SameSite attribute for session cookies.
-	// Valid values: "lax" (default), "strict", "none".
-	// Use "none" only for cross-domain SDK setups (requires AppCookieSecure=true).
+	// Valid values: "none" (default), "lax", "strict".
+	// "none" preserves backward compatibility for cross-domain SDK setups
+	// (requires AppCookieSecure=true). Use "lax" or "strict" for same-origin deployments.
 	AppCookieSameSite string
 	// IsAdminCookieSecure is the flag to set secure(http only) cookie
 	AdminCookieSecure bool

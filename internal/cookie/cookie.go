@@ -12,7 +12,8 @@ import (
 )
 
 // ParseSameSite converts a string ("lax", "strict", "none") to http.SameSite.
-// Defaults to Lax for unrecognized values.
+// Defaults to Lax for unrecognized values. The CLI flag --app-cookie-same-site
+// defaults to "none" for backward compatibility with cross-domain SDK setups.
 func ParseSameSite(value string) http.SameSite {
 	switch strings.ToLower(strings.TrimSpace(value)) {
 	case "none":
