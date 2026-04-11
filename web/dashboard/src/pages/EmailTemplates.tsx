@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import UpdateEmailTemplateModal from '../components/UpdateEmailTemplateModal';
 import {
-	pageLimits,
+	pageLimitsExtended,
 	UpdateModalViews,
 	EmailTemplateInputDataFields,
 } from '../constants';
@@ -51,7 +51,7 @@ const EmailTemplates = () => {
 		EmailTemplate[]
 	>([]);
 	const [paginationProps, setPaginationProps] = useState<PaginationProps>({
-		limit: 5,
+		limit: 10,
 		page: 1,
 		offset: 0,
 		total: 0,
@@ -118,7 +118,12 @@ const EmailTemplates = () => {
 	return (
 		<div className="m-5 rounded-md bg-white py-5 px-10">
 			<div className="flex items-center justify-between my-4">
-				<h2 className="text-base font-bold">Email Templates</h2>
+				<div>
+					<h1 className="text-2xl font-semibold text-gray-900">Email Templates</h1>
+					<p className="mt-1 text-sm text-gray-500">
+						Customize email templates for authentication events.
+					</p>
+				</div>
 				<UpdateEmailTemplateModal
 					view={UpdateModalViews.ADD}
 					fetchEmailTemplatesData={fetchEmailTemplatesData}
@@ -265,7 +270,7 @@ const EmailTemplates = () => {
 									}
 									className="h-8 w-28"
 								>
-									{pageLimits.map((pageSize) => (
+									{pageLimitsExtended.map((pageSize) => (
 										<option key={pageSize} value={pageSize}>
 											Show {pageSize}
 										</option>
