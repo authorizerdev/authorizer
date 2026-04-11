@@ -67,7 +67,6 @@ const AuditLogs = () => {
 				};
 
 				if (actionFilter) params.action = actionFilter;
-				if (actorTypeFilter) params.actor_type = actorTypeFilter;
 				if (resourceTypeFilter) params.resource_type = resourceTypeFilter;
 				if (fromDate) params.from_timestamp = dayjs(fromDate).unix();
 				if (toDate) params.to_timestamp = dayjs(toDate).endOf('day').unix();
@@ -90,19 +89,16 @@ const AuditLogs = () => {
 				setLoading(false);
 			}
 		},
-		[
-			client,
-			actionFilter,
-			actorTypeFilter,
-			resourceTypeFilter,
-			fromDate,
-			toDate,
-		],
+		[client, actionFilter, resourceTypeFilter, fromDate, toDate],
 	);
 
 	useEffect(() => {
 		fetchLogs(1);
 	}, [fetchLogs]);
+
+	const filteredLogs = actorTypeFilter
+		? logs.filter((log) => log.actor_type === actorTypeFilter)
+		: logs;
 
 	const totalPages = Math.ceil(pagination.total / PAGE_SIZE);
 
@@ -265,7 +261,7 @@ const AuditLogs = () => {
 								<Skeleton key={i} className="h-12 w-full" />
 							))}
 						</div>
-					) : logs.length === 0 ? (
+					) : filteredLogs.length === 0 ? (
 						<div className="flex flex-col items-center justify-center py-16 text-gray-500">
 							<ScrollText className="mb-3 h-10 w-10 text-gray-300" />
 							<p className="text-sm font-medium">No audit logs found</p>
@@ -289,7 +285,7 @@ const AuditLogs = () => {
 									</TableRow>
 								</TableHeader>
 								<TableBody>
-									{logs.map((log) => (
+									{filteredLogs.map((log) => (
 										<React.Fragment key={log.id}>
 											<TableRow
 												className="cursor-pointer hover:bg-gray-50"
@@ -393,7 +389,7 @@ const AuditLogs = () => {
 						</div>
 					)}
 
-					{!loading && logs.length > 0 && (
+					{!loading && filteredLogs.length > 0 && (
 						<div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
 							<p className="text-sm text-gray-500">
 								Showing {(pagination.page - 1) * PAGE_SIZE + 1}–
