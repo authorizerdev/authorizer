@@ -51,7 +51,7 @@ const Overview = () => {
 					client.query<MetaResponse>(MetaQuery, {}).toPromise(),
 					client
 						.query<AuditLogsResponse>(AuditLogsQuery, {
-							params: { limit: 5, page: 1 },
+							params: { pagination: { limit: 5, page: 1 } },
 						})
 						.toPromise(),
 				]);

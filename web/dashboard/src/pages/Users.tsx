@@ -17,6 +17,7 @@ import { getGraphQLErrorMessage } from '../utils';
 import EditUserModal from '../components/EditUserModal';
 import DeleteUserModal from '../components/DeleteUserModal';
 import InviteMembersModal from '../components/InviteMembersModal';
+import ViewUserModal from '../components/ViewUserModal';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
@@ -81,6 +82,7 @@ export default function Users() {
 	const [userList, setUserList] = React.useState<User[]>([]);
 	const [loading, setLoading] = React.useState<boolean>(false);
 	const [searchQuery, setSearchQuery] = React.useState('');
+	const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
 
 	const updateUserList = async () => {
 		setLoading(true);
@@ -283,7 +285,7 @@ export default function Users() {
 									...rest
 								} = user;
 								return (
-									<TableRow key={user.id}>
+									<TableRow key={user.id} className="cursor-pointer hover:bg-gray-50" onClick={() => setSelectedUser(user)}>
 										<TableCell className="max-w-[300px] truncate text-sm">
 											{user.email || user.phone_number}
 										</TableCell>
@@ -331,7 +333,7 @@ export default function Users() {
 													: 'Disabled'}
 											</Badge>
 										</TableCell>
-										<TableCell>
+										<TableCell onClick={(e) => e.stopPropagation()}>
 											<DropdownMenu>
 												<DropdownMenuTrigger asChild>
 													<Button variant="ghost" size="sm">
@@ -515,6 +517,11 @@ export default function Users() {
 					<p className="text-2xl font-bold">No Data</p>
 				</div>
 			)}
+			<ViewUserModal
+				user={selectedUser}
+				open={!!selectedUser}
+				onClose={() => setSelectedUser(null)}
+			/>
 		</div>
 	);
 }

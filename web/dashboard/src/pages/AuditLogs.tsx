@@ -60,8 +60,10 @@ const AuditLogs = () => {
 			setLoading(true);
 			try {
 				const params: Record<string, unknown> = {
-					limit: PAGE_SIZE,
-					page,
+					pagination: {
+						limit: PAGE_SIZE,
+						page,
+					},
 				};
 
 				if (actionFilter) params.action = actionFilter;

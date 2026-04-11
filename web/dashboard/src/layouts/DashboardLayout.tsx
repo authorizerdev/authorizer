@@ -18,11 +18,13 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 				</SheetContent>
 			</Sheet>
 
-			{/* Top nav for mobile */}
-			<MobileNav onOpen={() => setMobileOpen(true)} />
+			{/* Top nav for mobile only */}
+			<div className="md:hidden">
+				<MobileNav onOpen={() => setMobileOpen(true)} />
+			</div>
 
 			{/* Main content */}
-			<div className="md:pl-64 p-4 pt-16 md:pt-4">{children}</div>
+			<div className="md:pl-64 pt-20 md:pt-6 px-4 md:px-8 pb-8">{children}</div>
 		</div>
 	);
 }

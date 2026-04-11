@@ -16,11 +16,14 @@ export default defineConfig({
 				entryFileNames: 'index.js',
 				chunkFileNames: 'chunk-[name]-[hash].js',
 				assetFileNames: (assetInfo) => {
+					if (assetInfo.names?.some((name) => name.endsWith('.css'))) {
+						return '[name][extname]';
+					}
 					return 'assets/[name]-[hash][extname]';
 				},
 			},
 		},
 	},
-	base: '/dashboard/',
+	base: '/dashboard/build/',
 	publicDir: 'public',
 });
