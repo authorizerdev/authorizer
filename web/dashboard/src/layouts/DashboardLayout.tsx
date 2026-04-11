@@ -25,7 +25,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 			<MobileNav onOpen={() => setMobileOpen(true)} />
 
 			{/* Main content */}
-			<div className="md:ml-64 p-4 pt-20 md:pt-4">
+			<div className="md:pl-64 p-4 pt-16 md:pt-4">
 				{children}
 			</div>
 		</div>
