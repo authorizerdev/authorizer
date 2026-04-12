@@ -829,19 +829,6 @@ func TestAuthorizeEndpointCompliance(t *testing.T) {
 			"RFC 7636: plain code_challenge_method MUST be accepted")
 	})
 
-	t.Run("RFC7636_plain_code_challenge_method_is_accepted", func(t *testing.T) {
-		w := httptest.NewRecorder()
-		req, _ := http.NewRequest("GET",
-			"/authorize?client_id="+cfg.ClientID+
-				"&response_type=code&state=test-state&response_mode=query"+
-				"&code_challenge=test-challenge&code_challenge_method=unsupported", nil)
-		router.ServeHTTP(w, req)
-
-		// plain is accepted per RFC 7636 §4.2 — should not return 400
-		assert.NotEqual(t, http.StatusBadRequest, w.Code,
-			"RFC 7636: plain code_challenge_method MUST be accepted")
-	})
-
 	t.Run("RFC7636_unsupported_code_challenge_method_returns_error", func(t *testing.T) {
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("GET",

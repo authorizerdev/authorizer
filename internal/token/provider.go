@@ -12,7 +12,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/memory_store"
 )
 
-// Dependencies struct for twilio provider
+// Dependencies struct for token provider
 type Dependencies struct {
 	Log                 *zerolog.Logger
 	MemoryStoreProvider memory_store.Provider
