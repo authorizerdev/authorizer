@@ -75,7 +75,7 @@ func TestIntrospectActiveAccessToken(t *testing.T) {
 	ts, _, authToken := setupIntrospectTest(t)
 	cfg := ts.Config
 
-	form := "token=" + authToken.AccessToken.Token + "&client_id=" + cfg.ClientID
+	form := "token=" + authToken.AccessToken.Token + "&client_id=" + cfg.ClientID + "&client_secret=" + cfg.ClientSecret
 	w := postIntrospect(t, ts, form)
 	require.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "no-store", w.Header().Get("Cache-Control"))
@@ -94,7 +94,7 @@ func TestIntrospectActiveIDToken(t *testing.T) {
 	ts, _, authToken := setupIntrospectTest(t)
 	cfg := ts.Config
 
-	form := "token=" + authToken.IDToken.Token + "&client_id=" + cfg.ClientID
+	form := "token=" + authToken.IDToken.Token + "&client_id=" + cfg.ClientID + "&client_secret=" + cfg.ClientSecret
 	w := postIntrospect(t, ts, form)
 	require.Equal(t, http.StatusOK, w.Code)
 	var body map[string]interface{}
@@ -106,7 +106,7 @@ func TestIntrospectInactiveReturnsOnlyActiveFalse(t *testing.T) {
 	cfg := getTestConfig()
 	ts := initTestSetup(t, cfg)
 
-	form := "token=this-is-not-a-valid-jwt&client_id=" + cfg.ClientID
+	form := "token=this-is-not-a-valid-jwt&client_id=" + cfg.ClientID + "&client_secret=" + cfg.ClientSecret
 	w := postIntrospect(t, ts, form)
 	require.Equal(t, http.StatusOK, w.Code)
 	var body map[string]interface{}
@@ -124,7 +124,7 @@ func TestIntrospectMissingTokenReturnsInvalidRequest(t *testing.T) {
 	cfg := getTestConfig()
 	ts := initTestSetup(t, cfg)
 
-	form := "client_id=" + cfg.ClientID
+	form := "client_id=" + cfg.ClientID + "&client_secret=" + cfg.ClientSecret
 	w := postIntrospect(t, ts, form)
 	require.Equal(t, http.StatusBadRequest, w.Code)
 	var body map[string]interface{}
@@ -166,10 +166,35 @@ func TestIntrospectInvalidClientIDViaBasicAuthReturns401(t *testing.T) {
 func TestIntrospectCacheControlHeaders(t *testing.T) {
 	cfg := getTestConfig()
 	ts := initTestSetup(t, cfg)
-	form := "token=anything&client_id=" + cfg.ClientID
+	form := "token=anything&client_id=" + cfg.ClientID + "&client_secret=" + cfg.ClientSecret
 	w := postIntrospect(t, ts, form)
 	assert.Equal(t, "no-store", w.Header().Get("Cache-Control"))
 	assert.Equal(t, "no-cache", w.Header().Get("Pragma"))
+}
+
+func TestIntrospectMissingClientSecretRejectsWhenConfigured(t *testing.T) {
+	cfg := getTestConfig()
+	ts := initTestSetup(t, cfg)
+
+	// Server has ClientSecret configured; omitting it must be rejected.
+	form := "token=anything&client_id=" + cfg.ClientID
+	w := postIntrospect(t, ts, form)
+	require.Equal(t, http.StatusBadRequest, w.Code)
+	var body map[string]interface{}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	assert.Equal(t, "invalid_client", body["error"])
+}
+
+func TestIntrospectWrongClientSecretRejects(t *testing.T) {
+	cfg := getTestConfig()
+	ts := initTestSetup(t, cfg)
+
+	form := "token=anything&client_id=" + cfg.ClientID + "&client_secret=wrong-secret"
+	w := postIntrospect(t, ts, form)
+	require.Equal(t, http.StatusBadRequest, w.Code)
+	var body map[string]interface{}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	assert.Equal(t, "invalid_client", body["error"])
 }
 
 func TestIntrospectDiscoveryAdvertises(t *testing.T) {

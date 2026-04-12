@@ -126,7 +126,11 @@ func (g *graphqlProvider) Session(ctx context.Context, params *model.SessionQuer
 	if claims.LoginMethod != "" {
 		sessionKey = claims.LoginMethod + ":" + userID
 	}
-	go g.MemoryStoreProvider.DeleteUserSession(sessionKey, claims.Nonce)
+	go func() {
+		if err := g.MemoryStoreProvider.DeleteUserSession(sessionKey, claims.Nonce); err != nil {
+			g.Log.Warn().Err(err).Str("session_key", sessionKey).Msg("failed to delete old session during rollover")
+		}
+	}()
 
 	expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
 	if expiresIn <= 0 {

@@ -3,11 +3,13 @@ package token
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
 
+	"github.com/authorizerdev/authorizer/internal/validators"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 )
@@ -80,7 +82,10 @@ func (p *provider) NotifyBackchannelLogout(ctx context.Context, uri string, cfg 
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	client := &http.Client{Timeout: backchannelLogoutHTTPTimeout}
+	client, err := validators.SafeHTTPClient(reqCtx, uri, backchannelLogoutHTTPTimeout)
+	if err != nil {
+		return fmt.Errorf("backchannel logout SSRF check: %w", err)
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return err

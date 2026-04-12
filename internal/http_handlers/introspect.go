@@ -1,6 +1,7 @@
 package http_handlers
 
 import (
+	"crypto/subtle"
 	"net/http"
 	"strings"
 	"time"
@@ -50,8 +51,8 @@ func (h *httpProvider) IntrospectHandler() gin.HandlerFunc {
 			return
 		}
 
-		// Client authentication: client_id must match, and if a client_secret
-		// was supplied it must match h.Config.ClientSecret.
+		// Client authentication: client_id must match, and when the server
+		// has a client_secret configured the caller MUST supply it.
 		if h.Config.ClientID != clientID {
 			log.Debug().Str("client_id", clientID).Msg("client_id mismatch on introspect")
 			if hasBasicAuth {
@@ -68,21 +69,26 @@ func (h *httpProvider) IntrospectHandler() gin.HandlerFunc {
 			}
 			return
 		}
-		if clientSecret != "" && h.Config.ClientSecret != "" && clientSecret != h.Config.ClientSecret {
-			log.Debug().Msg("client_secret mismatch on introspect")
-			if hasBasicAuth {
-				gc.Header("WWW-Authenticate", `Basic realm="authorizer"`)
-				gc.JSON(http.StatusUnauthorized, gin.H{
-					"error":             "invalid_client",
-					"error_description": "Client authentication failed",
-				})
-			} else {
-				gc.JSON(http.StatusBadRequest, gin.H{
-					"error":             "invalid_client",
-					"error_description": "The client_secret is invalid",
-				})
+		// When the server has a client_secret, always require it.
+		// Previously the check was `clientSecret != "" && h.Config.ClientSecret != ""`
+		// which allowed callers to skip authentication by omitting the secret.
+		if h.Config.ClientSecret != "" {
+			if clientSecret == "" || subtle.ConstantTimeCompare([]byte(clientSecret), []byte(h.Config.ClientSecret)) != 1 {
+				log.Debug().Msg("client_secret missing or mismatch on introspect")
+				if hasBasicAuth {
+					gc.Header("WWW-Authenticate", `Basic realm="authorizer"`)
+					gc.JSON(http.StatusUnauthorized, gin.H{
+						"error":             "invalid_client",
+						"error_description": "Client authentication failed",
+					})
+				} else {
+					gc.JSON(http.StatusBadRequest, gin.H{
+						"error":             "invalid_client",
+						"error_description": "The client_secret is required",
+					})
+				}
+				return
 			}
-			return
 		}
 
 		if tokenValue == "" {
