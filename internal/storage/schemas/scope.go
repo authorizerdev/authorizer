@@ -1,5 +1,7 @@
 package schemas
 
+import "github.com/authorizerdev/authorizer/internal/graph/model"
+
 // Scope represents an action that can be performed on a resource.
 // Scopes are global verbs (e.g., "read", "write", "delete", "approve").
 // They define WHAT ACTIONS are allowed.
@@ -17,4 +19,15 @@ type Scope struct {
 	CreatedAt int64 `json:"created_at" gorm:"autoCreateTime" bson:"created_at" cql:"created_at" dynamo:"created_at"`
 	// UpdatedAt is the unix timestamp of last update.
 	UpdatedAt int64 `json:"updated_at" gorm:"autoUpdateTime" bson:"updated_at" cql:"updated_at" dynamo:"updated_at"`
+}
+
+// AsAPIScope converts a storage Scope to the GraphQL API model.
+func (s *Scope) AsAPIScope() *model.AuthzScope {
+	return &model.AuthzScope{
+		ID:          s.ID,
+		Name:        s.Name,
+		Description: &s.Description,
+		CreatedAt:   s.CreatedAt,
+		UpdatedAt:   s.UpdatedAt,
+	}
 }

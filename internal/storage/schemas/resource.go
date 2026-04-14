@@ -1,5 +1,7 @@
 package schemas
 
+import "github.com/authorizerdev/authorizer/internal/graph/model"
+
 // Resource represents a protected resource type in the authorization model.
 // Resources are types (e.g., "document", "invoice"), not instances.
 // They define WHAT is being protected.
@@ -17,4 +19,15 @@ type Resource struct {
 	CreatedAt int64 `json:"created_at" gorm:"autoCreateTime" bson:"created_at" cql:"created_at" dynamo:"created_at"`
 	// UpdatedAt is the unix timestamp of last update.
 	UpdatedAt int64 `json:"updated_at" gorm:"autoUpdateTime" bson:"updated_at" cql:"updated_at" dynamo:"updated_at"`
+}
+
+// AsAPIResource converts a storage Resource to the GraphQL API model.
+func (r *Resource) AsAPIResource() *model.AuthzResource {
+	return &model.AuthzResource{
+		ID:          r.ID,
+		Name:        r.Name,
+		Description: &r.Description,
+		CreatedAt:   r.CreatedAt,
+		UpdatedAt:   r.UpdatedAt,
+	}
 }

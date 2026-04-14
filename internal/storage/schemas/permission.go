@@ -1,5 +1,7 @@
 package schemas
 
+import "github.com/authorizerdev/authorizer/internal/graph/model"
+
 // Permission is the binding layer of the authorization model.
 // It connects a Resource to Scopes (via PermissionScope) and Policies (via PermissionPolicy).
 // A permission answers: "WHO can do WHAT on WHICH resource?"
@@ -91,4 +93,20 @@ type PolicyTargetView struct {
 	TargetType string
 	// TargetValue is the role name, user ID, client ID, or agent ID.
 	TargetValue string
+}
+
+// AsAPIPermission converts a storage Permission to the GraphQL API model
+// with its resolved resource, scopes, and policies.
+func (p *Permission) AsAPIPermission(resource *model.AuthzResource, scopes []*model.AuthzScope, policies []*model.AuthzPolicy) *model.AuthzPermission {
+	return &model.AuthzPermission{
+		ID:               p.ID,
+		Name:             p.Name,
+		Description:      &p.Description,
+		Resource:         resource,
+		Scopes:           scopes,
+		Policies:         policies,
+		DecisionStrategy: p.DecisionStrategy,
+		CreatedAt:        p.CreatedAt,
+		UpdatedAt:        p.UpdatedAt,
+	}
 }

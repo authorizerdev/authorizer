@@ -1,5 +1,7 @@
 package schemas
 
+import "github.com/authorizerdev/authorizer/internal/graph/model"
+
 // Policy defines conditions for granting or denying access.
 // Policies are the brain of the authorization model -- they determine WHO gets access.
 // A policy has a Type (role-based, user-based, etc.) and Logic (positive=grant, negative=deny).
@@ -45,4 +47,27 @@ type PolicyTarget struct {
 	TargetValue string `json:"target_value" gorm:"type:varchar(256);uniqueIndex:idx_pt_unique" bson:"target_value" cql:"target_value" dynamo:"target_value"`
 	// CreatedAt is the unix timestamp of creation.
 	CreatedAt int64 `json:"created_at" gorm:"autoCreateTime" bson:"created_at" cql:"created_at" dynamo:"created_at"`
+}
+
+// AsAPIPolicy converts a storage Policy and its targets to the GraphQL API model.
+func (p *Policy) AsAPIPolicy(targets []*PolicyTarget) *model.AuthzPolicy {
+	apiTargets := make([]*model.AuthzPolicyTarget, len(targets))
+	for i, t := range targets {
+		apiTargets[i] = &model.AuthzPolicyTarget{
+			ID:          t.ID,
+			TargetType:  t.TargetType,
+			TargetValue: t.TargetValue,
+		}
+	}
+	return &model.AuthzPolicy{
+		ID:               p.ID,
+		Name:             p.Name,
+		Description:      &p.Description,
+		Type:             p.Type,
+		Logic:            p.Logic,
+		DecisionStrategy: p.DecisionStrategy,
+		Targets:          apiTargets,
+		CreatedAt:        p.CreatedAt,
+		UpdatedAt:        p.UpdatedAt,
+	}
 }
