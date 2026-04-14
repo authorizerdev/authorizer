@@ -7,6 +7,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/authenticators"
+	"github.com/authorizerdev/authorizer/internal/authorization"
 	"github.com/authorizerdev/authorizer/internal/config"
 	"github.com/authorizerdev/authorizer/internal/email"
 	"github.com/authorizerdev/authorizer/internal/events"
@@ -38,6 +39,8 @@ type Dependencies struct {
 	StorageProvider storage.Provider
 	// TokenProvider is used to generate tokens
 	TokenProvider token.Provider
+	// AuthorizationProvider is used for fine-grained authorization checks
+	AuthorizationProvider authorization.Provider
 }
 
 // New constructs a new graphql provider with given arguments
