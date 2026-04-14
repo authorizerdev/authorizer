@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"unicode"
 
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
@@ -39,16 +40,32 @@ func (g *graphqlProvider) UpdatePolicy(ctx context.Context, params *model.Update
 		if name == "" {
 			return nil, fmt.Errorf("policy name cannot be empty")
 		}
+		if len(name) > 100 {
+			return nil, fmt.Errorf("invalid name: must be 100 characters or fewer")
+		}
+		for _, r := range name {
+			if !unicode.IsLetter(r) && !unicode.IsDigit(r) && r != '-' && r != '_' {
+				return nil, fmt.Errorf("invalid name: must contain only letters, digits, hyphens, and underscores")
+			}
+		}
 		policy.Name = name
 	}
 	if params.Description != nil {
 		policy.Description = *params.Description
 	}
 	if params.Logic != nil {
-		policy.Logic = *params.Logic
+		logic := *params.Logic
+		if logic != "positive" && logic != "negative" {
+			return nil, fmt.Errorf("invalid policy logic: must be 'positive' or 'negative'")
+		}
+		policy.Logic = logic
 	}
 	if params.DecisionStrategy != nil {
-		policy.DecisionStrategy = *params.DecisionStrategy
+		ds := *params.DecisionStrategy
+		if ds != "affirmative" && ds != "unanimous" {
+			return nil, fmt.Errorf("invalid decision strategy: must be 'affirmative' or 'unanimous'")
+		}
+		policy.DecisionStrategy = ds
 	}
 
 	policy, err = g.StorageProvider.UpdatePolicy(ctx, policy)
@@ -85,7 +102,7 @@ func (g *graphqlProvider) UpdatePolicy(ctx context.Context, params *model.Update
 		}
 	}
 
-	go g.AuthorizationProvider.InvalidateCache(ctx, "authz:")
+	g.AuthorizationProvider.InvalidateCache(context.Background(), "authz:")
 
 	return policy.AsAPIPolicy(targets), nil
 }

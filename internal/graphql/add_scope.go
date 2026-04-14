@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"unicode"
 
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
@@ -28,6 +29,14 @@ func (g *graphqlProvider) AddScope(ctx context.Context, params *model.AddScopeIn
 	if name == "" {
 		return nil, fmt.Errorf("scope name is required")
 	}
+	if len(name) > 100 {
+		return nil, fmt.Errorf("invalid name: must be 100 characters or fewer")
+	}
+	for _, r := range name {
+		if !unicode.IsLetter(r) && !unicode.IsDigit(r) && r != '-' && r != '_' {
+			return nil, fmt.Errorf("invalid name: must contain only letters, digits, hyphens, and underscores")
+		}
+	}
 
 	description := ""
 	if params.Description != nil {
@@ -43,7 +52,7 @@ func (g *graphqlProvider) AddScope(ctx context.Context, params *model.AddScopeIn
 		return nil, err
 	}
 
-	go g.AuthorizationProvider.InvalidateCache(ctx, "authz:")
+	g.AuthorizationProvider.InvalidateCache(context.Background(), "authz:")
 
 	return scope.AsAPIScope(), nil
 }

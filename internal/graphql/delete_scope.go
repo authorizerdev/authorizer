@@ -33,7 +33,7 @@ func (g *graphqlProvider) DeleteScope(ctx context.Context, id string) (*model.Re
 		return nil, err
 	}
 
-	go g.AuthorizationProvider.InvalidateCache(ctx, "authz:")
+	g.AuthorizationProvider.InvalidateCache(context.Background(), "authz:")
 
 	return &model.Response{
 		Message: "Scope deleted successfully",

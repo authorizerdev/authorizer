@@ -200,15 +200,17 @@ func evaluateRoleTargets(targets []schemas.PolicyTargetView, roles []string, str
 	switch strategy {
 	case constants.DecisionStrategyUnanimous:
 		// All role targets must be present in the principal's roles.
+		evaluated := false
 		for _, t := range targets {
 			if t.TargetType != constants.TargetTypeRole {
 				continue
 			}
+			evaluated = true
 			if _, ok := roleSet[t.TargetValue]; !ok {
 				return false
 			}
 		}
-		return true
+		return evaluated // false if no role targets existed
 	default:
 		// Affirmative (default): any role target match is sufficient.
 		for _, t := range targets {

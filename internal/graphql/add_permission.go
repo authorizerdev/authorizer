@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"unicode"
 
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
@@ -29,6 +30,14 @@ func (g *graphqlProvider) AddPermission(ctx context.Context, params *model.AddPe
 	if name == "" {
 		return nil, fmt.Errorf("permission name is required")
 	}
+	if len(name) > 100 {
+		return nil, fmt.Errorf("invalid name: must be 100 characters or fewer")
+	}
+	for _, r := range name {
+		if !unicode.IsLetter(r) && !unicode.IsDigit(r) && r != '-' && r != '_' {
+			return nil, fmt.Errorf("invalid name: must contain only letters, digits, hyphens, and underscores")
+		}
+	}
 
 	if strings.TrimSpace(params.ResourceID) == "" {
 		return nil, fmt.Errorf("resource_id is required")
@@ -50,6 +59,9 @@ func (g *graphqlProvider) AddPermission(ctx context.Context, params *model.AddPe
 	decisionStrategy := "affirmative"
 	if params.DecisionStrategy != nil {
 		decisionStrategy = *params.DecisionStrategy
+	}
+	if decisionStrategy != "affirmative" && decisionStrategy != "unanimous" {
+		return nil, fmt.Errorf("invalid decision strategy: must be 'affirmative' or 'unanimous'")
 	}
 
 	// Verify resource exists
@@ -113,7 +125,7 @@ func (g *graphqlProvider) AddPermission(ctx context.Context, params *model.AddPe
 		apiPolicies = append(apiPolicies, policy.AsAPIPolicy(targets))
 	}
 
-	go g.AuthorizationProvider.InvalidateCache(ctx, "authz:")
+	g.AuthorizationProvider.InvalidateCache(context.Background(), "authz:")
 
 	return permission.AsAPIPermission(resource.AsAPIResource(), apiScopes, apiPolicies), nil
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"unicode"
 
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
@@ -39,13 +40,25 @@ func (g *graphqlProvider) UpdatePermission(ctx context.Context, params *model.Up
 		if name == "" {
 			return nil, fmt.Errorf("permission name cannot be empty")
 		}
+		if len(name) > 100 {
+			return nil, fmt.Errorf("invalid name: must be 100 characters or fewer")
+		}
+		for _, r := range name {
+			if !unicode.IsLetter(r) && !unicode.IsDigit(r) && r != '-' && r != '_' {
+				return nil, fmt.Errorf("invalid name: must contain only letters, digits, hyphens, and underscores")
+			}
+		}
 		permission.Name = name
 	}
 	if params.Description != nil {
 		permission.Description = *params.Description
 	}
 	if params.DecisionStrategy != nil {
-		permission.DecisionStrategy = *params.DecisionStrategy
+		ds := *params.DecisionStrategy
+		if ds != "affirmative" && ds != "unanimous" {
+			return nil, fmt.Errorf("invalid decision strategy: must be 'affirmative' or 'unanimous'")
+		}
+		permission.DecisionStrategy = ds
 	}
 
 	permission, err = g.StorageProvider.UpdatePermission(ctx, permission)
@@ -111,7 +124,7 @@ func (g *graphqlProvider) UpdatePermission(ctx context.Context, params *model.Up
 		return nil, err
 	}
 
-	go g.AuthorizationProvider.InvalidateCache(ctx, "authz:")
+	g.AuthorizationProvider.InvalidateCache(context.Background(), "authz:")
 
 	return permission.AsAPIPermission(resource.AsAPIResource(), apiScopes, apiPolicies), nil
 }

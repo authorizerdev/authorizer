@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"unicode"
 
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/utils"
@@ -38,6 +39,14 @@ func (g *graphqlProvider) UpdateScope(ctx context.Context, params *model.UpdateS
 		if name == "" {
 			return nil, fmt.Errorf("scope name cannot be empty")
 		}
+		if len(name) > 100 {
+			return nil, fmt.Errorf("invalid name: must be 100 characters or fewer")
+		}
+		for _, r := range name {
+			if !unicode.IsLetter(r) && !unicode.IsDigit(r) && r != '-' && r != '_' {
+				return nil, fmt.Errorf("invalid name: must contain only letters, digits, hyphens, and underscores")
+			}
+		}
 		scope.Name = name
 	}
 	if params.Description != nil {
@@ -50,7 +59,7 @@ func (g *graphqlProvider) UpdateScope(ctx context.Context, params *model.UpdateS
 		return nil, err
 	}
 
-	go g.AuthorizationProvider.InvalidateCache(ctx, "authz:")
+	g.AuthorizationProvider.InvalidateCache(context.Background(), "authz:")
 
 	return scope.AsAPIScope(), nil
 }

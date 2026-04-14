@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"unicode"
 
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
@@ -28,10 +29,22 @@ func (g *graphqlProvider) AddPolicy(ctx context.Context, params *model.AddPolicy
 	if name == "" {
 		return nil, fmt.Errorf("policy name is required")
 	}
+	if len(name) > 100 {
+		return nil, fmt.Errorf("invalid name: must be 100 characters or fewer")
+	}
+	for _, r := range name {
+		if !unicode.IsLetter(r) && !unicode.IsDigit(r) && r != '-' && r != '_' {
+			return nil, fmt.Errorf("invalid name: must contain only letters, digits, hyphens, and underscores")
+		}
+	}
 
 	policyType := strings.TrimSpace(params.Type)
 	if policyType == "" {
 		return nil, fmt.Errorf("policy type is required")
+	}
+	validPolicyTypes := map[string]bool{"role": true, "user": true}
+	if !validPolicyTypes[policyType] {
+		return nil, fmt.Errorf("invalid policy type: must be 'role' or 'user'")
 	}
 
 	description := ""
@@ -43,10 +56,16 @@ func (g *graphqlProvider) AddPolicy(ctx context.Context, params *model.AddPolicy
 	if params.Logic != nil {
 		logic = *params.Logic
 	}
+	if logic != "positive" && logic != "negative" {
+		return nil, fmt.Errorf("invalid policy logic: must be 'positive' or 'negative'")
+	}
 
 	decisionStrategy := "affirmative"
 	if params.DecisionStrategy != nil {
 		decisionStrategy = *params.DecisionStrategy
+	}
+	if decisionStrategy != "affirmative" && decisionStrategy != "unanimous" {
+		return nil, fmt.Errorf("invalid decision strategy: must be 'affirmative' or 'unanimous'")
 	}
 
 	policy, err := g.StorageProvider.AddPolicy(ctx, &schemas.Policy{
@@ -76,7 +95,7 @@ func (g *graphqlProvider) AddPolicy(ctx context.Context, params *model.AddPolicy
 		targets = append(targets, target)
 	}
 
-	go g.AuthorizationProvider.InvalidateCache(ctx, "authz:")
+	g.AuthorizationProvider.InvalidateCache(context.Background(), "authz:")
 
 	return policy.AsAPIPolicy(targets), nil
 }

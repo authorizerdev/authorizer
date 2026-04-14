@@ -33,7 +33,7 @@ func (g *graphqlProvider) DeleteResource(ctx context.Context, id string) (*model
 		return nil, err
 	}
 
-	go g.AuthorizationProvider.InvalidateCache(ctx, "authz:")
+	g.AuthorizationProvider.InvalidateCache(context.Background(), "authz:")
 
 	return &model.Response{
 		Message: "Resource deleted successfully",

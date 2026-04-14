@@ -46,7 +46,7 @@ func (g *graphqlProvider) DeletePermission(ctx context.Context, id string) (*mod
 		return nil, err
 	}
 
-	go g.AuthorizationProvider.InvalidateCache(ctx, "authz:")
+	g.AuthorizationProvider.InvalidateCache(context.Background(), "authz:")
 
 	return &model.Response{
 		Message: "Permission deleted successfully",

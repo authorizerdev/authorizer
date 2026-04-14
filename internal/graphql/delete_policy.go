@@ -27,20 +27,15 @@ func (g *graphqlProvider) DeletePolicy(ctx context.Context, id string) (*model.R
 		return nil, fmt.Errorf("policy ID is required")
 	}
 
-	// Delete targets first
-	err = g.StorageProvider.DeletePolicyTargetsByPolicyID(ctx, id)
-	if err != nil {
-		log.Debug().Err(err).Msg("Failed to delete policy targets")
-		return nil, err
-	}
-
+	// DeletePolicy checks referential integrity (permission_policy refs) and
+	// cascade-deletes policy targets internally.
 	err = g.StorageProvider.DeletePolicy(ctx, id)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to delete policy")
 		return nil, err
 	}
 
-	go g.AuthorizationProvider.InvalidateCache(ctx, "authz:")
+	g.AuthorizationProvider.InvalidateCache(context.Background(), "authz:")
 
 	return &model.Response{
 		Message: "Policy deleted successfully",
