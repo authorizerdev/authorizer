@@ -172,6 +172,66 @@ func (r *mutationResolver) DeleteEmailTemplate(ctx context.Context, params model
 	return r.GraphQLProvider.DeleteEmailTemplate(ctx, &params)
 }
 
+// AddResource is the resolver for the _add_resource field.
+func (r *mutationResolver) AddResource(ctx context.Context, params model.AddResourceInput) (*model.AuthzResource, error) {
+	return nil, fmt.Errorf("not implemented: AddResource")
+}
+
+// UpdateResource is the resolver for the _update_resource field.
+func (r *mutationResolver) UpdateResource(ctx context.Context, params model.UpdateResourceInput) (*model.AuthzResource, error) {
+	return nil, fmt.Errorf("not implemented: UpdateResource")
+}
+
+// DeleteResource is the resolver for the _delete_resource field.
+func (r *mutationResolver) DeleteResource(ctx context.Context, id string) (*model.Response, error) {
+	return nil, fmt.Errorf("not implemented: DeleteResource")
+}
+
+// AddScope is the resolver for the _add_scope field.
+func (r *mutationResolver) AddScope(ctx context.Context, params model.AddScopeInput) (*model.AuthzScope, error) {
+	return nil, fmt.Errorf("not implemented: AddScope")
+}
+
+// UpdateScope is the resolver for the _update_scope field.
+func (r *mutationResolver) UpdateScope(ctx context.Context, params model.UpdateScopeInput) (*model.AuthzScope, error) {
+	return nil, fmt.Errorf("not implemented: UpdateScope")
+}
+
+// DeleteScope is the resolver for the _delete_scope field.
+func (r *mutationResolver) DeleteScope(ctx context.Context, id string) (*model.Response, error) {
+	return nil, fmt.Errorf("not implemented: DeleteScope")
+}
+
+// AddPolicy is the resolver for the _add_policy field.
+func (r *mutationResolver) AddPolicy(ctx context.Context, params model.AddPolicyInput) (*model.AuthzPolicy, error) {
+	return nil, fmt.Errorf("not implemented: AddPolicy")
+}
+
+// UpdatePolicy is the resolver for the _update_policy field.
+func (r *mutationResolver) UpdatePolicy(ctx context.Context, params model.UpdatePolicyInput) (*model.AuthzPolicy, error) {
+	return nil, fmt.Errorf("not implemented: UpdatePolicy")
+}
+
+// DeletePolicy is the resolver for the _delete_policy field.
+func (r *mutationResolver) DeletePolicy(ctx context.Context, id string) (*model.Response, error) {
+	return nil, fmt.Errorf("not implemented: DeletePolicy")
+}
+
+// AddPermission is the resolver for the _add_permission field.
+func (r *mutationResolver) AddPermission(ctx context.Context, params model.AddPermissionInput) (*model.AuthzPermission, error) {
+	return nil, fmt.Errorf("not implemented: AddPermission")
+}
+
+// UpdatePermission is the resolver for the _update_permission field.
+func (r *mutationResolver) UpdatePermission(ctx context.Context, params model.UpdatePermissionInput) (*model.AuthzPermission, error) {
+	return nil, fmt.Errorf("not implemented: UpdatePermission")
+}
+
+// DeletePermission is the resolver for the _delete_permission field.
+func (r *mutationResolver) DeletePermission(ctx context.Context, id string) (*model.Response, error) {
+	return nil, fmt.Errorf("not implemented: DeletePermission")
+}
+
 // Meta is the resolver for the meta field.
 func (r *queryResolver) Meta(ctx context.Context) (*model.Meta, error) {
 	return r.GraphQLProvider.Meta(ctx)
@@ -245,6 +305,36 @@ func (r *queryResolver) EmailTemplates(ctx context.Context, params *model.Pagina
 // AuditLogs is the resolver for the _audit_logs field.
 func (r *queryResolver) AuditLogs(ctx context.Context, params *model.ListAuditLogRequest) (*model.AuditLogs, error) {
 	return r.GraphQLProvider.AuditLogs(ctx, params)
+}
+
+// Resources is the resolver for the _resources field.
+func (r *queryResolver) Resources(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzResources, error) {
+	return nil, fmt.Errorf("not implemented: Resources")
+}
+
+// Scopes is the resolver for the _scopes field.
+func (r *queryResolver) Scopes(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzScopes, error) {
+	return nil, fmt.Errorf("not implemented: Scopes")
+}
+
+// Policies is the resolver for the _policies field.
+func (r *queryResolver) Policies(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzPolicies, error) {
+	return nil, fmt.Errorf("not implemented: Policies")
+}
+
+// Permissions is the resolver for the _permissions field.
+func (r *queryResolver) Permissions(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzPermissions, error) {
+	return nil, fmt.Errorf("not implemented: Permissions")
+}
+
+// CheckPermission is the resolver for the check_permission field.
+func (r *queryResolver) CheckPermission(ctx context.Context, params model.CheckPermissionInput) (*model.CheckPermissionResponse, error) {
+	return nil, fmt.Errorf("not implemented: CheckPermission")
+}
+
+// MyPermissions is the resolver for the my_permissions field.
+func (r *queryResolver) MyPermissions(ctx context.Context) ([]*model.AuthzResourceScope, error) {
+	return nil, fmt.Errorf("not implemented: MyPermissions")
 }
 
 // Mutation returns generated.MutationResolver implementation.

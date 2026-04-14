@@ -641,6 +641,150 @@ input GetUserRequest {
   email: String
 }
 
+type AuthzResource {
+  id: ID!
+  name: String!
+  description: String
+  created_at: Int64!
+  updated_at: Int64!
+}
+
+type AuthzResources {
+  pagination: Pagination!
+  resources: [AuthzResource!]!
+}
+
+type AuthzScope {
+  id: ID!
+  name: String!
+  description: String
+  created_at: Int64!
+  updated_at: Int64!
+}
+
+type AuthzScopes {
+  pagination: Pagination!
+  scopes: [AuthzScope!]!
+}
+
+type AuthzPolicyTarget {
+  id: ID!
+  target_type: String!
+  target_value: String!
+}
+
+type AuthzPolicy {
+  id: ID!
+  name: String!
+  description: String
+  type: String!
+  logic: String!
+  decision_strategy: String!
+  targets: [AuthzPolicyTarget!]!
+  created_at: Int64!
+  updated_at: Int64!
+}
+
+type AuthzPolicies {
+  pagination: Pagination!
+  policies: [AuthzPolicy!]!
+}
+
+type AuthzPermission {
+  id: ID!
+  name: String!
+  description: String
+  resource: AuthzResource!
+  scopes: [AuthzScope!]!
+  policies: [AuthzPolicy!]!
+  decision_strategy: String!
+  created_at: Int64!
+  updated_at: Int64!
+}
+
+type AuthzPermissions {
+  pagination: Pagination!
+  permissions: [AuthzPermission!]!
+}
+
+type CheckPermissionResponse {
+  allowed: Boolean!
+  matched_policy: String
+}
+
+type AuthzResourceScope {
+  resource: String!
+  scope: String!
+}
+
+input AddResourceInput {
+  name: String!
+  description: String
+}
+
+input UpdateResourceInput {
+  id: ID!
+  name: String
+  description: String
+}
+
+input AddScopeInput {
+  name: String!
+  description: String
+}
+
+input UpdateScopeInput {
+  id: ID!
+  name: String
+  description: String
+}
+
+input PolicyTargetInput {
+  target_type: String!
+  target_value: String!
+}
+
+input AddPolicyInput {
+  name: String!
+  description: String
+  type: String!
+  logic: String
+  decision_strategy: String
+  targets: [PolicyTargetInput!]!
+}
+
+input UpdatePolicyInput {
+  id: ID!
+  name: String
+  description: String
+  logic: String
+  decision_strategy: String
+  targets: [PolicyTargetInput!]
+}
+
+input AddPermissionInput {
+  name: String!
+  description: String
+  resource_id: ID!
+  scope_ids: [ID!]!
+  policy_ids: [ID!]!
+  decision_strategy: String
+}
+
+input UpdatePermissionInput {
+  id: ID!
+  name: String
+  description: String
+  scope_ids: [ID!]
+  policy_ids: [ID!]
+  decision_strategy: String
+}
+
+input CheckPermissionInput {
+  resource: String!
+  scope: String!
+}
+
 type Mutation {
   signup(params: SignUpRequest!): AuthResponse!
   # Deprecated from v1.2.0
@@ -680,6 +824,22 @@ type Mutation {
   _add_email_template(params: AddEmailTemplateRequest!): Response!
   _update_email_template(params: UpdateEmailTemplateRequest!): Response!
   _delete_email_template(params: DeleteEmailTemplateRequest!): Response!
+  # Authorization: Resources
+  _add_resource(params: AddResourceInput!): AuthzResource!
+  _update_resource(params: UpdateResourceInput!): AuthzResource!
+  _delete_resource(id: ID!): Response!
+  # Authorization: Scopes
+  _add_scope(params: AddScopeInput!): AuthzScope!
+  _update_scope(params: UpdateScopeInput!): AuthzScope!
+  _delete_scope(id: ID!): Response!
+  # Authorization: Policies
+  _add_policy(params: AddPolicyInput!): AuthzPolicy!
+  _update_policy(params: UpdatePolicyInput!): AuthzPolicy!
+  _delete_policy(id: ID!): Response!
+  # Authorization: Permissions
+  _add_permission(params: AddPermissionInput!): AuthzPermission!
+  _update_permission(params: UpdatePermissionInput!): AuthzPermission!
+  _delete_permission(id: ID!): Response!
 }
 
 type Query {
@@ -700,4 +860,12 @@ type Query {
   _webhook_logs(params: ListWebhookLogRequest): WebhookLogs!
   _email_templates(params: PaginatedRequest): EmailTemplates!
   _audit_logs(params: ListAuditLogRequest): AuditLogs!
+  # Authorization: Admin queries
+  _resources(params: PaginatedRequest): AuthzResources!
+  _scopes(params: PaginatedRequest): AuthzScopes!
+  _policies(params: PaginatedRequest): AuthzPolicies!
+  _permissions(params: PaginatedRequest): AuthzPermissions!
+  # Authorization: User-facing queries
+  check_permission(params: CheckPermissionInput!): CheckPermissionResponse!
+  my_permissions: [AuthzResourceScope!]!
 }
