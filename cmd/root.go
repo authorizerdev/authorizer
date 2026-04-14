@@ -15,6 +15,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/authenticators"
+	"github.com/authorizerdev/authorizer/internal/authorization"
 	"github.com/authorizerdev/authorizer/internal/config"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/email"
@@ -235,6 +236,12 @@ func init() {
 	// Back-channel logout (OIDC BCL 1.0)
 	f.StringVar(&rootArgs.config.BackchannelLogoutURI, "backchannel-logout-uri", "", "URL to POST a signed logout_token to when users log out successfully. Leave empty (default) to disable back-channel logout notifications. See OIDC Back-Channel Logout 1.0.")
 
+	// Fine-grained authorization flags
+	f.StringVar(&rootArgs.config.AuthorizationEnforcement, "authorization-enforcement", "disabled", "Authorization enforcement mode: disabled, permissive, or enforcing")
+	f.Int64Var(&rootArgs.config.AuthorizationCacheTTL, "authorization-cache-ttl", 300, "Cache TTL in seconds for permission checks (0 to disable)")
+	f.BoolVar(&rootArgs.config.IncludePermissionsInToken, "include-permissions-in-token", false, "Include permissions in JWT access tokens")
+	f.BoolVar(&rootArgs.config.AuthorizationLogAllChecks, "authorization-log-all-checks", false, "Audit log all permission checks, not just denials")
+
 	// Deprecated flags
 	f.MarkDeprecated("database_url", "use --database-url instead")
 	f.MarkDeprecated("database_type", "use --database-type instead")
@@ -320,6 +327,9 @@ func applyFlagDefaults() {
 	}
 	if len(c.RobloxScopes) == 0 {
 		c.RobloxScopes = append([]string(nil), defaultRobloxScopes...)
+	}
+	if strings.TrimSpace(c.AuthorizationEnforcement) == "" {
+		c.AuthorizationEnforcement = "disabled"
 	}
 }
 
@@ -455,6 +465,24 @@ func runRoot(c *cobra.Command, args []string) {
 	}
 	defer rateLimitProvider.Close()
 
+	// Authorization provider
+	authorizationProvider, err := authorization.New(
+		&authorization.Config{
+			Enforcement: rootArgs.config.AuthorizationEnforcement,
+			CacheTTL:    rootArgs.config.AuthorizationCacheTTL,
+		},
+		&authorization.Dependencies{
+			Log:             &log,
+			StorageProvider: storageProvider,
+		},
+	)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to create authorization provider")
+	}
+	if rootArgs.config.AuthorizationEnforcement != "disabled" {
+		log.Info().Str("enforcement", rootArgs.config.AuthorizationEnforcement).Msg("authorization enforcement enabled")
+	}
+
 	// SMS provider
 	smsProvider, err := sms.New(&rootArgs.config, &sms.Dependencies{
 		Log: &log,
@@ -505,6 +533,7 @@ func runRoot(c *cobra.Command, args []string) {
 		TokenProvider:         tokenProvider,
 		OAuthProvider:         oauthProvider,
 		RateLimitProvider:     rateLimitProvider,
+		AuthorizationProvider: authorizationProvider,
 	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create http provider")

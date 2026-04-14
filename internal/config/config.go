@@ -316,4 +316,18 @@ type Config struct {
 	// empty (default), back-channel logout notifications are disabled.
 	// See OIDC Back-Channel Logout 1.0 §2.5 for the protocol.
 	BackchannelLogoutURI string
+
+	// Fine-Grained Authorization
+	// AuthorizationEnforcement is the authorization enforcement mode.
+	// Valid values: "disabled" (default), "permissive", "enforcing".
+	AuthorizationEnforcement string
+	// AuthorizationCacheTTL is the cache time-to-live in seconds for permission checks.
+	// Set to 0 to disable caching. Default: 300 (5 minutes).
+	AuthorizationCacheTTL int64
+	// IncludePermissionsInToken controls whether permissions are embedded in JWT access tokens.
+	// When true, the permissions claim is added to access tokens. Default: false.
+	IncludePermissionsInToken bool
+	// AuthorizationLogAllChecks controls whether all permission checks are audit logged.
+	// When false (default), only denied checks are logged. When true, all checks are logged.
+	AuthorizationLogAllChecks bool
 }

@@ -174,6 +174,101 @@ type Provider interface {
 
 	// Close releases resources held by the provider (e.g. database connection pools).
 	Close() error
+
+	// === Authorization: Resources ===
+
+	// AddResource creates a new authorization resource.
+	AddResource(ctx context.Context, resource *schemas.Resource) (*schemas.Resource, error)
+	// UpdateResource updates an existing authorization resource.
+	UpdateResource(ctx context.Context, resource *schemas.Resource) (*schemas.Resource, error)
+	// DeleteResource deletes an authorization resource by ID.
+	// Returns an error if any permission references this resource.
+	DeleteResource(ctx context.Context, id string) error
+	// GetResourceByID returns an authorization resource by its ID.
+	GetResourceByID(ctx context.Context, id string) (*schemas.Resource, error)
+	// GetResourceByName returns an authorization resource by its unique name.
+	GetResourceByName(ctx context.Context, name string) (*schemas.Resource, error)
+	// ListResources returns a paginated list of authorization resources.
+	ListResources(ctx context.Context, pagination *model.Pagination) ([]*schemas.Resource, *model.Pagination, error)
+
+	// === Authorization: Scopes ===
+
+	// AddScope creates a new authorization scope.
+	AddScope(ctx context.Context, scope *schemas.Scope) (*schemas.Scope, error)
+	// UpdateScope updates an existing authorization scope.
+	UpdateScope(ctx context.Context, scope *schemas.Scope) (*schemas.Scope, error)
+	// DeleteScope deletes an authorization scope by ID.
+	// Returns an error if any permission_scope references this scope.
+	DeleteScope(ctx context.Context, id string) error
+	// GetScopeByID returns an authorization scope by its ID.
+	GetScopeByID(ctx context.Context, id string) (*schemas.Scope, error)
+	// GetScopeByName returns an authorization scope by its unique name.
+	GetScopeByName(ctx context.Context, name string) (*schemas.Scope, error)
+	// ListScopes returns a paginated list of authorization scopes.
+	ListScopes(ctx context.Context, pagination *model.Pagination) ([]*schemas.Scope, *model.Pagination, error)
+
+	// === Authorization: Policies ===
+
+	// AddPolicy creates a new authorization policy.
+	AddPolicy(ctx context.Context, policy *schemas.Policy) (*schemas.Policy, error)
+	// UpdatePolicy updates an existing authorization policy.
+	UpdatePolicy(ctx context.Context, policy *schemas.Policy) (*schemas.Policy, error)
+	// DeletePolicy deletes an authorization policy by ID.
+	// Returns an error if any permission_policy references this policy.
+	DeletePolicy(ctx context.Context, id string) error
+	// GetPolicyByID returns an authorization policy by its ID.
+	GetPolicyByID(ctx context.Context, id string) (*schemas.Policy, error)
+	// ListPolicies returns a paginated list of authorization policies.
+	ListPolicies(ctx context.Context, pagination *model.Pagination) ([]*schemas.Policy, *model.Pagination, error)
+
+	// === Authorization: Policy Targets ===
+
+	// AddPolicyTarget adds a target (role name or user ID) to a policy.
+	AddPolicyTarget(ctx context.Context, target *schemas.PolicyTarget) (*schemas.PolicyTarget, error)
+	// DeletePolicyTargetsByPolicyID removes all targets for a policy.
+	// Used during policy update to replace targets atomically.
+	DeletePolicyTargetsByPolicyID(ctx context.Context, policyID string) error
+	// GetPolicyTargets returns all targets for a policy.
+	GetPolicyTargets(ctx context.Context, policyID string) ([]*schemas.PolicyTarget, error)
+
+	// === Authorization: Permissions ===
+
+	// AddPermission creates a new authorization permission.
+	AddPermission(ctx context.Context, permission *schemas.Permission) (*schemas.Permission, error)
+	// UpdatePermission updates an existing authorization permission.
+	UpdatePermission(ctx context.Context, permission *schemas.Permission) (*schemas.Permission, error)
+	// DeletePermission deletes an authorization permission by ID.
+	DeletePermission(ctx context.Context, id string) error
+	// GetPermissionByID returns an authorization permission by its ID.
+	GetPermissionByID(ctx context.Context, id string) (*schemas.Permission, error)
+	// ListPermissions returns a paginated list of authorization permissions.
+	ListPermissions(ctx context.Context, pagination *model.Pagination) ([]*schemas.Permission, *model.Pagination, error)
+
+	// === Authorization: Permission Scopes (join table) ===
+
+	// AddPermissionScope links a scope to a permission.
+	AddPermissionScope(ctx context.Context, ps *schemas.PermissionScope) (*schemas.PermissionScope, error)
+	// DeletePermissionScopesByPermissionID removes all scope links for a permission.
+	DeletePermissionScopesByPermissionID(ctx context.Context, permissionID string) error
+	// GetPermissionScopes returns all scope links for a permission.
+	GetPermissionScopes(ctx context.Context, permissionID string) ([]*schemas.PermissionScope, error)
+
+	// === Authorization: Permission Policies (join table) ===
+
+	// AddPermissionPolicy links a policy to a permission.
+	AddPermissionPolicy(ctx context.Context, pp *schemas.PermissionPolicy) (*schemas.PermissionPolicy, error)
+	// DeletePermissionPoliciesByPermissionID removes all policy links for a permission.
+	DeletePermissionPoliciesByPermissionID(ctx context.Context, permissionID string) error
+	// GetPermissionPolicies returns all policy links for a permission.
+	GetPermissionPolicies(ctx context.Context, permissionID string) ([]*schemas.PermissionPolicy, error)
+
+	// === Authorization: Optimized Evaluation Query ===
+
+	// GetPermissionsForResourceScope returns all permissions (with their policies and targets)
+	// that match a given resource name and scope name. This is the hot-path query used by
+	// the evaluation engine. SQL providers use a single JOIN query. NoSQL providers use
+	// a denormalized lookup collection.
+	GetPermissionsForResourceScope(ctx context.Context, resourceName string, scopeName string) ([]*schemas.PermissionWithPolicies, error)
 }
 
 // New creates a new database provider based on the configuration

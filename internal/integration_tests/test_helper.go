@@ -14,6 +14,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/authenticators"
+	"github.com/authorizerdev/authorizer/internal/authorization"
 	"github.com/authorizerdev/authorizer/internal/config"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/email"
@@ -178,6 +179,16 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 	})
 	require.NoError(t, err)
 
+	// Initialize authorization provider
+	authzProvider, err := authorization.New(&authorization.Config{
+		Enforcement: "enforcing",
+		CacheTTL:    0,
+	}, &authorization.Dependencies{
+		Log:             &logger,
+		StorageProvider: storageProvider,
+	})
+	require.NoError(t, err)
+
 	// Initialize audit provider
 	auditProvider := audit.New(&audit.Dependencies{
 		Log:             &logger,
@@ -189,6 +200,7 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 		Log:                   &logger,
 		AuditProvider:         auditProvider,
 		AuthenticatorProvider: authProvider,
+		AuthorizationProvider: authzProvider,
 		EmailProvider:         emailProvider,
 		EventsProvider:        eventsProvider,
 		MemoryStoreProvider:   memoryStoreProvider,

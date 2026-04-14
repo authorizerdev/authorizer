@@ -53,6 +53,7 @@ func (s *server) NewRouter() *gin.Engine {
 	router.POST("/oauth/token", s.Dependencies.HTTPProvider.TokenHandler())
 	router.POST("/oauth/revoke", s.Dependencies.HTTPProvider.RevokeRefreshTokenHandler())
 	router.POST("/oauth/introspect", s.Dependencies.HTTPProvider.IntrospectHandler())
+	router.POST("/api/v1/check-permission", s.Dependencies.HTTPProvider.CheckPermissionHandler())
 
 	// Set up template functions for JSON encoding.
 	// Escape </script> and <!-- to prevent script injection in <script> blocks.

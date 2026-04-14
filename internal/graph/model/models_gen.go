@@ -9,6 +9,34 @@ type AddEmailTemplateRequest struct {
 	Design    *string `json:"design,omitempty"`
 }
 
+type AddPermissionInput struct {
+	Name             string   `json:"name"`
+	Description      *string  `json:"description,omitempty"`
+	ResourceID       string   `json:"resource_id"`
+	ScopeIds         []string `json:"scope_ids"`
+	PolicyIds        []string `json:"policy_ids"`
+	DecisionStrategy *string  `json:"decision_strategy,omitempty"`
+}
+
+type AddPolicyInput struct {
+	Name             string               `json:"name"`
+	Description      *string              `json:"description,omitempty"`
+	Type             string               `json:"type"`
+	Logic            *string              `json:"logic,omitempty"`
+	DecisionStrategy *string              `json:"decision_strategy,omitempty"`
+	Targets          []*PolicyTargetInput `json:"targets"`
+}
+
+type AddResourceInput struct {
+	Name        string  `json:"name"`
+	Description *string `json:"description,omitempty"`
+}
+
+type AddScopeInput struct {
+	Name        string  `json:"name"`
+	Description *string `json:"description,omitempty"`
+}
+
 type AddWebhookRequest struct {
 	EventName        string         `json:"event_name"`
 	EventDescription *string        `json:"event_description,omitempty"`
@@ -57,6 +85,87 @@ type AuthResponse struct {
 	AuthenticatorScannerImage  *string   `json:"authenticator_scanner_image,omitempty"`
 	AuthenticatorSecret        *string   `json:"authenticator_secret,omitempty"`
 	AuthenticatorRecoveryCodes []*string `json:"authenticator_recovery_codes,omitempty"`
+}
+
+type AuthzPermission struct {
+	ID               string         `json:"id"`
+	Name             string         `json:"name"`
+	Description      *string        `json:"description,omitempty"`
+	Resource         *AuthzResource `json:"resource"`
+	Scopes           []*AuthzScope  `json:"scopes"`
+	Policies         []*AuthzPolicy `json:"policies"`
+	DecisionStrategy string         `json:"decision_strategy"`
+	CreatedAt        int64          `json:"created_at"`
+	UpdatedAt        int64          `json:"updated_at"`
+}
+
+type AuthzPermissions struct {
+	Pagination  *Pagination        `json:"pagination"`
+	Permissions []*AuthzPermission `json:"permissions"`
+}
+
+type AuthzPolicies struct {
+	Pagination *Pagination    `json:"pagination"`
+	Policies   []*AuthzPolicy `json:"policies"`
+}
+
+type AuthzPolicy struct {
+	ID               string               `json:"id"`
+	Name             string               `json:"name"`
+	Description      *string              `json:"description,omitempty"`
+	Type             string               `json:"type"`
+	Logic            string               `json:"logic"`
+	DecisionStrategy string               `json:"decision_strategy"`
+	Targets          []*AuthzPolicyTarget `json:"targets"`
+	CreatedAt        int64                `json:"created_at"`
+	UpdatedAt        int64                `json:"updated_at"`
+}
+
+type AuthzPolicyTarget struct {
+	ID          string `json:"id"`
+	TargetType  string `json:"target_type"`
+	TargetValue string `json:"target_value"`
+}
+
+type AuthzResource struct {
+	ID          string  `json:"id"`
+	Name        string  `json:"name"`
+	Description *string `json:"description,omitempty"`
+	CreatedAt   int64   `json:"created_at"`
+	UpdatedAt   int64   `json:"updated_at"`
+}
+
+type AuthzResourceScope struct {
+	Resource string `json:"resource"`
+	Scope    string `json:"scope"`
+}
+
+type AuthzResources struct {
+	Pagination *Pagination      `json:"pagination"`
+	Resources  []*AuthzResource `json:"resources"`
+}
+
+type AuthzScope struct {
+	ID          string  `json:"id"`
+	Name        string  `json:"name"`
+	Description *string `json:"description,omitempty"`
+	CreatedAt   int64   `json:"created_at"`
+	UpdatedAt   int64   `json:"updated_at"`
+}
+
+type AuthzScopes struct {
+	Pagination *Pagination   `json:"pagination"`
+	Scopes     []*AuthzScope `json:"scopes"`
+}
+
+type CheckPermissionInput struct {
+	Resource string `json:"resource"`
+	Scope    string `json:"scope"`
+}
+
+type CheckPermissionResponse struct {
+	Allowed       bool    `json:"allowed"`
+	MatchedPolicy *string `json:"matched_policy,omitempty"`
 }
 
 type DeleteEmailTemplateRequest struct {
@@ -304,6 +413,11 @@ type PaginationRequest struct {
 	Page  *int64 `json:"page,omitempty"`
 }
 
+type PolicyTargetInput struct {
+	TargetType  string `json:"target_type"`
+	TargetValue string `json:"target_value"`
+}
+
 type Query struct {
 }
 
@@ -446,6 +560,24 @@ type UpdateEnvRequest struct {
 	DisableTotpLogin                 *bool    `json:"DISABLE_TOTP_LOGIN,omitempty"`
 }
 
+type UpdatePermissionInput struct {
+	ID               string   `json:"id"`
+	Name             *string  `json:"name,omitempty"`
+	Description      *string  `json:"description,omitempty"`
+	ScopeIds         []string `json:"scope_ids,omitempty"`
+	PolicyIds        []string `json:"policy_ids,omitempty"`
+	DecisionStrategy *string  `json:"decision_strategy,omitempty"`
+}
+
+type UpdatePolicyInput struct {
+	ID               string               `json:"id"`
+	Name             *string              `json:"name,omitempty"`
+	Description      *string              `json:"description,omitempty"`
+	Logic            *string              `json:"logic,omitempty"`
+	DecisionStrategy *string              `json:"decision_strategy,omitempty"`
+	Targets          []*PolicyTargetInput `json:"targets,omitempty"`
+}
+
 type UpdateProfileRequest struct {
 	OldPassword              *string        `json:"old_password,omitempty"`
 	NewPassword              *string        `json:"new_password,omitempty"`
@@ -461,6 +593,18 @@ type UpdateProfileRequest struct {
 	Picture                  *string        `json:"picture,omitempty"`
 	IsMultiFactorAuthEnabled *bool          `json:"is_multi_factor_auth_enabled,omitempty"`
 	AppData                  map[string]any `json:"app_data,omitempty"`
+}
+
+type UpdateResourceInput struct {
+	ID          string  `json:"id"`
+	Name        *string `json:"name,omitempty"`
+	Description *string `json:"description,omitempty"`
+}
+
+type UpdateScopeInput struct {
+	ID          string  `json:"id"`
+	Name        *string `json:"name,omitempty"`
+	Description *string `json:"description,omitempty"`
 }
 
 type UpdateUserRequest struct {

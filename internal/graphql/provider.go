@@ -7,6 +7,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/authenticators"
+	"github.com/authorizerdev/authorizer/internal/authorization"
 	"github.com/authorizerdev/authorizer/internal/config"
 	"github.com/authorizerdev/authorizer/internal/email"
 	"github.com/authorizerdev/authorizer/internal/events"
@@ -38,6 +39,8 @@ type Dependencies struct {
 	StorageProvider storage.Provider
 	// TokenProvider is used to generate tokens
 	TokenProvider token.Provider
+	// AuthorizationProvider is used for fine-grained authorization checks
+	AuthorizationProvider authorization.Provider
 }
 
 // New constructs a new graphql provider with given arguments
@@ -184,4 +187,65 @@ type Provider interface {
 	// Webhooks is the method to list webhooks.
 	// Permissions: authorizer:admin
 	Webhooks(ctx context.Context, in *model.PaginatedRequest) (*model.Webhooks, error)
+
+	// === Fine-Grained Authorization ===
+
+	// AddResource creates a new authorization resource.
+	// Permissions: authorizer:admin
+	AddResource(ctx context.Context, params *model.AddResourceInput) (*model.AuthzResource, error)
+	// UpdateResource updates an existing authorization resource.
+	// Permissions: authorizer:admin
+	UpdateResource(ctx context.Context, params *model.UpdateResourceInput) (*model.AuthzResource, error)
+	// DeleteResource deletes an authorization resource by ID.
+	// Permissions: authorizer:admin
+	DeleteResource(ctx context.Context, id string) (*model.Response, error)
+	// Resources lists authorization resources with pagination.
+	// Permissions: authorizer:admin
+	Resources(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzResources, error)
+
+	// AddScope creates a new authorization scope.
+	// Permissions: authorizer:admin
+	AddScope(ctx context.Context, params *model.AddScopeInput) (*model.AuthzScope, error)
+	// UpdateScope updates an existing authorization scope.
+	// Permissions: authorizer:admin
+	UpdateScope(ctx context.Context, params *model.UpdateScopeInput) (*model.AuthzScope, error)
+	// DeleteScope deletes an authorization scope by ID.
+	// Permissions: authorizer:admin
+	DeleteScope(ctx context.Context, id string) (*model.Response, error)
+	// Scopes lists authorization scopes with pagination.
+	// Permissions: authorizer:admin
+	Scopes(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzScopes, error)
+
+	// AddPolicy creates a new authorization policy with targets.
+	// Permissions: authorizer:admin
+	AddPolicy(ctx context.Context, params *model.AddPolicyInput) (*model.AuthzPolicy, error)
+	// UpdatePolicy updates an existing authorization policy.
+	// Permissions: authorizer:admin
+	UpdatePolicy(ctx context.Context, params *model.UpdatePolicyInput) (*model.AuthzPolicy, error)
+	// DeletePolicy deletes an authorization policy by ID.
+	// Permissions: authorizer:admin
+	DeletePolicy(ctx context.Context, id string) (*model.Response, error)
+	// Policies lists authorization policies with pagination.
+	// Permissions: authorizer:admin
+	Policies(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzPolicies, error)
+
+	// AddPermission creates a new authorization permission binding a resource to scopes and policies.
+	// Permissions: authorizer:admin
+	AddPermission(ctx context.Context, params *model.AddPermissionInput) (*model.AuthzPermission, error)
+	// UpdatePermission updates an existing authorization permission.
+	// Permissions: authorizer:admin
+	UpdatePermission(ctx context.Context, params *model.UpdatePermissionInput) (*model.AuthzPermission, error)
+	// DeletePermission deletes an authorization permission by ID.
+	// Permissions: authorizer:admin
+	DeletePermission(ctx context.Context, id string) (*model.Response, error)
+	// Permissions lists authorization permissions with pagination.
+	// Permissions: authorizer:admin
+	Permissions(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzPermissions, error)
+
+	// CheckPermission checks if the authenticated user has a specific permission on a resource.
+	// Permissions: authorized user
+	CheckPermission(ctx context.Context, params *model.CheckPermissionInput) (*model.CheckPermissionResponse, error)
+	// MyPermissions returns all resource:scope pairs the authenticated user has access to.
+	// Permissions: authorized user
+	MyPermissions(ctx context.Context) ([]*model.AuthzResourceScope, error)
 }

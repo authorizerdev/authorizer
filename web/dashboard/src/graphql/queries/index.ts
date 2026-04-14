@@ -109,6 +109,127 @@ export const WebhookLogsQuery = `
   }
 `;
 
+// Authorization queries
+export const ResourcesQuery = `
+  query getResources($params: PaginatedRequest) {
+    _resources(params: $params) {
+      resources {
+        id
+        name
+        description
+        created_at
+        updated_at
+      }
+      pagination {
+        limit
+        page
+        offset
+        total
+      }
+    }
+  }
+`;
+
+export const ScopesQuery = `
+  query getScopes($params: PaginatedRequest) {
+    _scopes(params: $params) {
+      scopes {
+        id
+        name
+        description
+        created_at
+        updated_at
+      }
+      pagination {
+        limit
+        page
+        offset
+        total
+      }
+    }
+  }
+`;
+
+export const PoliciesQuery = `
+  query getPolicies($params: PaginatedRequest) {
+    _policies(params: $params) {
+      policies {
+        id
+        name
+        description
+        type
+        logic
+        decision_strategy
+        targets {
+          id
+          target_type
+          target_value
+        }
+        created_at
+        updated_at
+      }
+      pagination {
+        limit
+        page
+        offset
+        total
+      }
+    }
+  }
+`;
+
+export const PermissionsQuery = `
+  query getPermissions($params: PaginatedRequest) {
+    _permissions(params: $params) {
+      permissions {
+        id
+        name
+        description
+        resource {
+          id
+          name
+          description
+        }
+        scopes {
+          id
+          name
+          description
+        }
+        policies {
+          id
+          name
+          type
+          logic
+          decision_strategy
+          targets {
+            id
+            target_type
+            target_value
+          }
+        }
+        decision_strategy
+        created_at
+        updated_at
+      }
+      pagination {
+        limit
+        page
+        offset
+        total
+      }
+    }
+  }
+`;
+
+export const CheckPermissionQuery = `
+  query checkPermission($params: CheckPermissionInput!) {
+    check_permission(params: $params) {
+      allowed
+      matched_policy
+    }
+  }
+`;
+
 export const AuditLogsQuery = `
   query getAuditLogs($params: ListAuditLogRequest!) {
     _audit_logs(params: $params) {

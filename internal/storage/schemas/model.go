@@ -16,6 +16,14 @@ type CollectionList struct {
 	MFASession             string
 	OAuthState             string
 	AuditLog               string
+	// Authorization tables
+	Resource         string
+	Scope            string
+	Policy           string
+	PolicyTarget     string
+	Permission       string
+	PermissionScope  string
+	PermissionPolicy string
 }
 
 var (
@@ -37,5 +45,13 @@ var (
 		MFASession:             Prefix + "mfa_sessions",
 		OAuthState:             Prefix + "oauth_states",
 		AuditLog:               Prefix + "audit_logs",
+		// Authorization collections
+		Resource:         Prefix + "resources",
+		Scope:            Prefix + "scopes",
+		Policy:           Prefix + "policies",
+		PolicyTarget:     Prefix + "policy_targets",
+		Permission:       Prefix + "permissions",
+		PermissionScope:  Prefix + "permission_scopes",
+		PermissionPolicy: Prefix + "permission_policies",
 	}
 )
