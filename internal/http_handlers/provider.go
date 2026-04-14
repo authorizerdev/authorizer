@@ -104,6 +104,8 @@ type Provider interface {
 	UserInfoHandler() gin.HandlerFunc
 	// VerifyEmailHandler is the main handler that handels all the verify email requests
 	VerifyEmailHandler() gin.HandlerFunc
+	// CheckPermissionHandler handles POST /api/v1/check-permission for fine-grained authorization checks
+	CheckPermissionHandler() gin.HandlerFunc
 
 	// ClientCheckMiddleware is the middleware that checks if the client is valid
 	ClientCheckMiddleware() gin.HandlerFunc
