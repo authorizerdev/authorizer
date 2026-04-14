@@ -11,6 +11,7 @@ import {
 	LogOut,
 	Menu,
 	ExternalLink,
+	Shield,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -31,6 +32,7 @@ const navItems: NavItemConfig[] = [
 	{ name: 'Users', icon: Users, route: '/users' },
 	{ name: 'Webhooks', icon: Webhook, route: '/webhooks' },
 	{ name: 'Email Templates', icon: Mail, route: '/email-templates' },
+	{ name: 'Authorization', icon: Shield, route: '/authorization' },
 	{ name: 'Audit Logs', icon: ScrollText, route: '/audit-logs' },
 	{
 		name: 'API Playground',

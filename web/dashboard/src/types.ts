@@ -120,3 +120,86 @@ export interface AdminSessionResponse {
 		message: string;
 	};
 }
+
+// Authorization types
+
+export interface AuthzResource {
+	id: string;
+	name: string;
+	description?: string;
+	created_at: number;
+	updated_at: number;
+}
+
+export interface AuthzScope {
+	id: string;
+	name: string;
+	description?: string;
+	created_at: number;
+	updated_at: number;
+}
+
+export interface AuthzPolicyTarget {
+	id: string;
+	target_type: string;
+	target_value: string;
+}
+
+export interface AuthzPolicy {
+	id: string;
+	name: string;
+	description?: string;
+	type: string;
+	logic: string;
+	decision_strategy: string;
+	targets: AuthzPolicyTarget[];
+	created_at: number;
+	updated_at: number;
+}
+
+export interface AuthzPermission {
+	id: string;
+	name: string;
+	description?: string;
+	resource: AuthzResource;
+	scopes: AuthzScope[];
+	policies: AuthzPolicy[];
+	decision_strategy: string;
+	created_at: number;
+	updated_at: number;
+}
+
+export interface AuthzResourcesResponse {
+	_resources: {
+		pagination: PaginationInfo;
+		resources: AuthzResource[];
+	};
+}
+
+export interface AuthzScopesResponse {
+	_scopes: {
+		pagination: PaginationInfo;
+		scopes: AuthzScope[];
+	};
+}
+
+export interface AuthzPoliciesResponse {
+	_policies: {
+		pagination: PaginationInfo;
+		policies: AuthzPolicy[];
+	};
+}
+
+export interface AuthzPermissionsResponse {
+	_permissions: {
+		pagination: PaginationInfo;
+		permissions: AuthzPermission[];
+	};
+}
+
+export interface CheckPermissionResponse {
+	check_permission: {
+		allowed: boolean;
+		matched_policy?: string;
+	};
+}
