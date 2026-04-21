@@ -394,9 +394,7 @@ func TestAuthorizationCRUD(t *testing.T) {
 // permissive mode allows a check for a (resource, scope) pair that has no
 // matching permission registered.
 func TestCheckPermission_PermissiveDefault_NoPermissions_Allows(t *testing.T) {
-	cfg := getTestConfig()
-	cfg.AuthorizationEnforcement = constants.AuthorizationEnforcementPermissive
-	ts := initTestSetup(t, cfg)
+	ts := testSetupWithAuthzMode(t, constants.AuthorizationEnforcementPermissive)
 	_, ctx := createContext(ts)
 
 	result, err := ts.Authz.CheckPermission(ctx, &authorization.Principal{
@@ -411,9 +409,7 @@ func TestCheckPermission_PermissiveDefault_NoPermissions_Allows(t *testing.T) {
 // TestCheckPermission_Enforcing_NoPermissions_Denies verifies that enforcing
 // mode denies a check for a (resource, scope) pair with no matching permission.
 func TestCheckPermission_Enforcing_NoPermissions_Denies(t *testing.T) {
-	cfg := getTestConfig()
-	cfg.AuthorizationEnforcement = constants.AuthorizationEnforcementEnforcing
-	ts := initTestSetup(t, cfg)
+	ts := testSetupWithAuthzMode(t, constants.AuthorizationEnforcementEnforcing)
 	_, ctx := createContext(ts)
 
 	result, err := ts.Authz.CheckPermission(ctx, &authorization.Principal{
@@ -431,13 +427,11 @@ func TestCheckPermission_Enforcing_NoPermissions_Denies(t *testing.T) {
 // in permissive mode. Permissive only loosens the "no matching permission"
 // path, not evaluated deny decisions.
 func TestCheckPermission_Permissive_WithExplicitDenyPolicy_StillDenies(t *testing.T) {
-	cfg := getTestConfig()
-	cfg.AuthorizationEnforcement = constants.AuthorizationEnforcementPermissive
-	ts := initTestSetup(t, cfg)
+	ts := testSetupWithAuthzMode(t, constants.AuthorizationEnforcementPermissive)
 	req, ctx := createContext(ts)
 
 	// Authenticate as admin for seeding operations.
-	adminHash, err := crypto.EncryptPassword(cfg.AdminSecret)
+	adminHash, err := crypto.EncryptPassword(ts.Config.AdminSecret)
 	require.NoError(t, err)
 	req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, adminHash))
 
@@ -461,9 +455,7 @@ func TestCheckPermission_Permissive_WithExplicitDenyPolicy_StillDenies(t *testin
 // check in permissive mode increments metrics.AuthzUnmatchedTotal by exactly
 // one for the "permissive" label.
 func TestCheckPermission_IncrementsPrometheusCounters(t *testing.T) {
-	cfg := getTestConfig()
-	cfg.AuthorizationEnforcement = constants.AuthorizationEnforcementPermissive
-	ts := initTestSetup(t, cfg)
+	ts := testSetupWithAuthzMode(t, constants.AuthorizationEnforcementPermissive)
 	_, ctx := createContext(ts)
 
 	before := testutil.ToFloat64(metrics.AuthzUnmatchedTotal.WithLabelValues(metrics.AuthzModePermissive))
