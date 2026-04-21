@@ -6,7 +6,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/authorizerdev/authorizer/cmd"
 	"github.com/authorizerdev/authorizer/internal/authorization"
+	"github.com/authorizerdev/authorizer/internal/config"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
@@ -522,4 +524,31 @@ func seedResourceScopePermissionWithDenyPolicy(
 	})
 	require.NoError(t, err)
 	require.NotNil(t, perm)
+}
+
+// TestConfig_LegacyDisabledMigration_NormalizesToPermissive verifies that the
+// legacy "disabled" enforcement value is migrated to "permissive". The actual
+// one-time migration log is emitted by runRoot (see cmd/root.go); here we only
+// assert the canonical value produced by the normalizer.
+func TestConfig_LegacyDisabledMigration_NormalizesToPermissive(t *testing.T) {
+	cfg := &config.Config{AuthorizationEnforcement: "disabled"}
+	migrated := cmd.NormalizeAuthzEnforcement(cfg.AuthorizationEnforcement)
+	require.Equal(t, constants.AuthorizationEnforcementPermissive, migrated)
+}
+
+// TestConfig_EmptyValue_NormalizesToPermissive verifies the empty string (flag
+// unset) maps to the new default.
+func TestConfig_EmptyValue_NormalizesToPermissive(t *testing.T) {
+	require.Equal(t, constants.AuthorizationEnforcementPermissive, cmd.NormalizeAuthzEnforcement(""))
+}
+
+// TestConfig_UnknownValue_NormalizesToPermissive verifies unrecognized input is
+// mapped to the safe default ("permissive") rather than propagated.
+func TestConfig_UnknownValue_NormalizesToPermissive(t *testing.T) {
+	require.Equal(t, constants.AuthorizationEnforcementPermissive, cmd.NormalizeAuthzEnforcement("banana"))
+}
+
+// TestConfig_Enforcing_Preserved verifies "enforcing" passes through unchanged.
+func TestConfig_Enforcing_Preserved(t *testing.T) {
+	require.Equal(t, constants.AuthorizationEnforcementEnforcing, cmd.NormalizeAuthzEnforcement("enforcing"))
 }

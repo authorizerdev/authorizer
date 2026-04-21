@@ -20,6 +20,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/email"
 	"github.com/authorizerdev/authorizer/internal/events"
+	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/http_handlers"
 	"github.com/authorizerdev/authorizer/internal/memory_store"
 	"github.com/authorizerdev/authorizer/internal/metrics"
@@ -74,6 +75,12 @@ var (
 		server   server.Config
 	}
 )
+
+// legacyDisabledObserved is set when the operator passes the now-removed
+// authorization-enforcement=disabled value. runRoot emits a one-time INFO log
+// after the logger is configured. We cannot log from applyFlagDefaults because
+// it runs before the logger is ready.
+var legacyDisabledObserved bool
 
 func init() {
 	f := RootCmd.Flags()
@@ -237,7 +244,7 @@ func init() {
 	f.StringVar(&rootArgs.config.BackchannelLogoutURI, "backchannel-logout-uri", "", "URL to POST a signed logout_token to when users log out successfully. Leave empty (default) to disable back-channel logout notifications. See OIDC Back-Channel Logout 1.0.")
 
 	// Fine-grained authorization flags
-	f.StringVar(&rootArgs.config.AuthorizationEnforcement, "authorization-enforcement", "disabled", "Authorization enforcement mode: disabled, permissive, or enforcing")
+	f.StringVar(&rootArgs.config.AuthorizationEnforcement, "authorization-enforcement", "permissive", "Authorization enforcement mode: permissive (default) or enforcing")
 	f.Int64Var(&rootArgs.config.AuthorizationCacheTTL, "authorization-cache-ttl", 300, "Cache TTL in seconds for permission checks (0 to disable)")
 	f.BoolVar(&rootArgs.config.IncludePermissionsInToken, "include-permissions-in-token", false, "Include permissions in JWT access tokens")
 	f.BoolVar(&rootArgs.config.AuthorizationLogAllChecks, "authorization-log-all-checks", false, "Audit log all permission checks, not just denials")
@@ -328,9 +335,32 @@ func applyFlagDefaults() {
 	if len(c.RobloxScopes) == 0 {
 		c.RobloxScopes = append([]string(nil), defaultRobloxScopes...)
 	}
-	if strings.TrimSpace(c.AuthorizationEnforcement) == "" {
-		c.AuthorizationEnforcement = "disabled"
+	rawEnforcement := c.AuthorizationEnforcement
+	c.AuthorizationEnforcement = NormalizeAuthzEnforcement(rawEnforcement)
+	if strings.TrimSpace(rawEnforcement) == "disabled" {
+		// Remember the legacy input so runRoot can log the one-time migration
+		// notice after the logger is configured. We cannot log here because
+		// applyFlagDefaults runs before the logger is ready.
+		legacyDisabledObserved = true
 	}
+}
+
+// NormalizeAuthzEnforcement returns the canonical enforcement mode for the given input.
+//   - "" (empty) and unknown values map to "permissive" (the new default).
+//   - "disabled" (legacy value) maps to "permissive" and is logged by the caller
+//     as a one-time migration notice.
+//   - "permissive" and "enforcing" pass through unchanged.
+//
+// Callers are responsible for emitting the legacy-migration log when they
+// observe the "disabled" input value.
+func NormalizeAuthzEnforcement(v string) string {
+	switch strings.TrimSpace(v) {
+	case constants.AuthorizationEnforcementEnforcing:
+		return constants.AuthorizationEnforcementEnforcing
+	case constants.AuthorizationEnforcementPermissive, "":
+		return constants.AuthorizationEnforcementPermissive
+	}
+	return constants.AuthorizationEnforcementPermissive
 }
 
 // Run the service
@@ -479,8 +509,22 @@ func runRoot(c *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create authorization provider")
 	}
-	if rootArgs.config.AuthorizationEnforcement != "disabled" {
-		log.Info().Str("enforcement", rootArgs.config.AuthorizationEnforcement).Msg("authorization enforcement enabled")
+	if legacyDisabledObserved {
+		log.Info().Msg("authz: 'disabled' is no longer a supported enforcement mode; migrated to 'permissive'. CheckPermission calls with no matching permission will return ALLOWED and log authz.unmatched=true. Set --authorization-enforcement=enforcing once permissions are seeded.")
+	}
+
+	switch rootArgs.config.AuthorizationEnforcement {
+	case constants.AuthorizationEnforcementEnforcing:
+		// Check once at startup whether any permissions exist. If zero, emit a
+		// loud warn so operators don't lock themselves out in prod.
+		_, pr, lerr := storageProvider.ListPermissions(context.Background(), &model.Pagination{Limit: 1, Page: 1})
+		if lerr == nil && pr != nil && pr.Total == 0 {
+			log.Warn().Msg("authz mode=enforcing but 0 permissions configured — all check_permission calls will DENY. Seed permissions or switch to --authorization-enforcement=permissive.")
+		} else {
+			log.Info().Msg("authz mode=enforcing: unmatched CheckPermission calls will be DENIED.")
+		}
+	default:
+		log.Info().Msg("authz mode=permissive: unmatched CheckPermission calls will be ALLOWED and logged with authz.unmatched=true.")
 	}
 
 	// SMS provider
