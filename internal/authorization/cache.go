@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -14,6 +15,7 @@ type cache struct {
 	ttl       time.Duration
 	data      sync.Map
 	expiryMap sync.Map
+	counters  sync.Map // counter key string -> *int64 (atomic-incremented)
 }
 
 // newCache creates a new local cache. If ttlSeconds is 0, caching is disabled.
@@ -92,4 +94,28 @@ func validResourcesKey() string {
 // validScopesKey returns the cache key for the set of known scope names.
 func validScopesKey() string {
 	return "authz:valid_scopes"
+}
+
+// unmatchedCounterKey builds the map key for a (resource, scope) unmatched event.
+func unmatchedCounterKey(resource, scope string) string {
+	return "authz:unmatched:" + resource + ":" + scope
+}
+
+// bumpUnmatched increments the unmatched-check counter for the given (resource, scope).
+// Counters are in-process only; they are reset on restart. A future dashboard view
+// reads them to surface "uncovered checks" to operators during rollout.
+func (c *cache) bumpUnmatched(resource, scope string) {
+	key := unmatchedCounterKey(resource, scope)
+	v, _ := c.counters.LoadOrStore(key, new(int64))
+	atomic.AddInt64(v.(*int64), 1)
+}
+
+// unmatchedCount returns the current unmatched counter for the given (resource, scope).
+// Returns 0 if the key has never been bumped.
+func (c *cache) unmatchedCount(resource, scope string) int64 {
+	key := unmatchedCounterKey(resource, scope)
+	if v, ok := c.counters.Load(key); ok {
+		return atomic.LoadInt64(v.(*int64))
+	}
+	return 0
 }
