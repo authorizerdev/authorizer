@@ -22,8 +22,11 @@ func TestWarnLimiter_SecondCallSameKeyBlocked(t *testing.T) {
 
 func TestWarnLimiter_DifferentKeysIndependent(t *testing.T) {
 	l := newWarnLimiter(time.Minute)
-	if !l.allow("k1") || !l.allow("k2") {
-		t.Fatal("distinct keys must each be allowed independently")
+	if !l.allow("k1") {
+		t.Fatal("distinct keys: k1 must be allowed")
+	}
+	if !l.allow("k2") {
+		t.Fatal("distinct keys: k2 must be allowed independently of k1")
 	}
 }
 
@@ -38,7 +41,10 @@ func TestWarnLimiter_ExpiryLetsThroughAgain(t *testing.T) {
 
 func TestWarnLimiter_ZeroWindowAlwaysAllows(t *testing.T) {
 	l := newWarnLimiter(0)
-	if !l.allow("k1") || !l.allow("k1") {
-		t.Fatal("zero window means rate-limiting disabled; every call must pass")
+	if !l.allow("k1") {
+		t.Fatal("zero window: first call must be allowed")
+	}
+	if !l.allow("k1") {
+		t.Fatal("zero window: second call must also be allowed (rate-limiting disabled)")
 	}
 }
