@@ -300,6 +300,36 @@ func TestRecordAuthEventHelpers(t *testing.T) {
 	})
 }
 
+// TestMetrics_AuthzCollectorsRegistered verifies the FGA authz collectors
+// (checks total, unmatched total, and check duration histogram) are registered
+// with the default Prometheus registry and appear in the scrape output once
+// incremented. It also asserts the low-cardinality label values are exactly
+// the package constants.
+func TestMetrics_AuthzCollectorsRegistered(t *testing.T) {
+	cfg := getTestConfig()
+	ts := initTestSetup(t, cfg)
+
+	router := gin.New()
+	router.GET("/metrics", ts.HttpProvider.MetricsHandler())
+
+	// Bump each collector once so it appears in scrape output.
+	metrics.RecordAuthzCheck(metrics.AuthzModePermissive, metrics.AuthzResultUnmatchedAllowed)
+	metrics.RecordAuthzUnmatched(metrics.AuthzModePermissive)
+	metrics.AuthzCheckDuration.Observe(0.001)
+
+	w := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodGet, "/metrics", nil)
+	require.NoError(t, err)
+	router.ServeHTTP(w, req)
+
+	body := w.Body.String()
+	require.Contains(t, body, "authorizer_authz_checks_total")
+	require.Contains(t, body, "authorizer_authz_unmatched_total")
+	require.Contains(t, body, "authorizer_authz_check_duration_seconds")
+	require.Contains(t, body, `mode="permissive"`)
+	require.Contains(t, body, `result="unmatched_allowed"`)
+}
+
 // TestAdminLoginMetrics verifies admin login records metrics.
 func TestAdminLoginMetrics(t *testing.T) {
 	cfg := getTestConfig()

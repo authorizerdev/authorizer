@@ -35,6 +35,21 @@ const (
 	StatusFailure = "failure"
 )
 
+// Authorization enforcement modes, used as the `mode` label on authz metrics.
+const (
+	AuthzModePermissive = "permissive"
+	AuthzModeEnforcing  = "enforcing"
+)
+
+// Authorization check result labels.
+const (
+	AuthzResultAllowed          = "allowed"           // matched policy, granted
+	AuthzResultDenied           = "denied"            // matched policy, denied
+	AuthzResultUnmatchedAllowed = "unmatched_allowed" // permissive fallthrough
+	AuthzResultUnmatchedDenied  = "unmatched_denied"  // enforcing fallthrough
+	AuthzResultError            = "error"             // validation / storage error
+)
+
 var (
 	// HTTPRequestsTotal is the total number of HTTP requests received.
 	HTTPRequestsTotal = prometheus.NewCounterVec(
@@ -129,6 +144,33 @@ var (
 			Help: "Total requests that omitted X-Authorizer-Client-ID (allowed for some routes)",
 		},
 	)
+
+	// AuthzChecksTotal counts every CheckPermission call, labelled by mode and result.
+	AuthzChecksTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "authorizer_authz_checks_total",
+			Help: "Total fine-grained authorization checks. mode=permissive|enforcing. result=allowed|denied|unmatched_allowed|unmatched_denied|error",
+		},
+		[]string{"mode", "result"},
+	)
+
+	// AuthzUnmatchedTotal counts checks that found no matching permission. Primary rollout signal.
+	AuthzUnmatchedTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "authorizer_authz_unmatched_total",
+			Help: "Total CheckPermission calls where no permission matched the (resource, scope). Watch this trend to zero before flipping mode to enforcing.",
+		},
+		[]string{"mode"},
+	)
+
+	// AuthzCheckDuration measures end-to-end CheckPermission latency.
+	AuthzCheckDuration = prometheus.NewHistogram(
+		prometheus.HistogramOpts{
+			Name:    "authorizer_authz_check_duration_seconds",
+			Help:    "CheckPermission latency including validation, cache, and storage queries",
+			Buckets: prometheus.DefBuckets,
+		},
+	)
 )
 
 // staticAssetPathSuffixes are path suffixes (after lowercasing) treated as static files
@@ -211,6 +253,9 @@ func Init() {
 		prometheus.MustRegister(GraphQLRequestDuration)
 		prometheus.MustRegister(DBHealthCheckTotal)
 		prometheus.MustRegister(ClientIDHeaderMissingTotal)
+		prometheus.MustRegister(AuthzChecksTotal)
+		prometheus.MustRegister(AuthzUnmatchedTotal)
+		prometheus.MustRegister(AuthzCheckDuration)
 	})
 }
 
@@ -259,4 +304,16 @@ func RecordGraphQLLimitRejection(limit string) {
 // RecordClientIDHeaderMissing records a request that had no client ID header.
 func RecordClientIDHeaderMissing() {
 	ClientIDHeaderMissingTotal.Inc()
+}
+
+// RecordAuthzCheck records a CheckPermission call outcome.
+// mode must be one of AuthzMode* constants; result must be one of AuthzResult* constants.
+func RecordAuthzCheck(mode, result string) {
+	AuthzChecksTotal.WithLabelValues(mode, result).Inc()
+}
+
+// RecordAuthzUnmatched records a CheckPermission call that found no matching permission.
+// mode must be one of AuthzMode* constants.
+func RecordAuthzUnmatched(mode string) {
+	AuthzUnmatchedTotal.WithLabelValues(mode).Inc()
 }
