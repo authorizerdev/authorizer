@@ -1,15 +1,19 @@
 package integration_tests
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"testing"
 
+	"github.com/authorizerdev/authorizer/internal/authorization"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/google/uuid"
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -384,4 +388,146 @@ func TestAuthorizationCRUD(t *testing.T) {
 		require.NoError(t, err)
 		assert.Contains(t, res.Message, "deleted")
 	})
+}
+
+// TestCheckPermission_PermissiveDefault_NoPermissions_Allows verifies that
+// permissive mode allows a check for a (resource, scope) pair that has no
+// matching permission registered.
+func TestCheckPermission_PermissiveDefault_NoPermissions_Allows(t *testing.T) {
+	cfg := getTestConfig()
+	cfg.AuthorizationEnforcement = constants.AuthorizationEnforcementPermissive
+	ts := initTestSetup(t, cfg)
+	_, ctx := createContext(ts)
+
+	result, err := ts.Authz.CheckPermission(ctx, &authorization.Principal{
+		ID:   "user-1",
+		Type: constants.PrincipalTypeUser,
+	}, "orders", "read")
+
+	require.NoError(t, err)
+	require.True(t, result.Allowed, "permissive mode with no permissions must allow")
+}
+
+// TestCheckPermission_Enforcing_NoPermissions_Denies verifies that enforcing
+// mode denies a check for a (resource, scope) pair with no matching permission.
+func TestCheckPermission_Enforcing_NoPermissions_Denies(t *testing.T) {
+	cfg := getTestConfig()
+	cfg.AuthorizationEnforcement = constants.AuthorizationEnforcementEnforcing
+	ts := initTestSetup(t, cfg)
+	_, ctx := createContext(ts)
+
+	result, err := ts.Authz.CheckPermission(ctx, &authorization.Principal{
+		ID:   "user-1",
+		Type: constants.PrincipalTypeUser,
+	}, "orders", "read")
+
+	require.NoError(t, err)
+	require.False(t, result.Allowed, "enforcing mode with no permissions must deny")
+}
+
+// TestCheckPermission_Permissive_WithExplicitDenyPolicy_StillDenies verifies
+// that once a permission exists for the (resource, scope) and attaches a
+// negative-logic policy that matches the principal, the check is denied even
+// in permissive mode. Permissive only loosens the "no matching permission"
+// path, not evaluated deny decisions.
+func TestCheckPermission_Permissive_WithExplicitDenyPolicy_StillDenies(t *testing.T) {
+	cfg := getTestConfig()
+	cfg.AuthorizationEnforcement = constants.AuthorizationEnforcementPermissive
+	ts := initTestSetup(t, cfg)
+	req, ctx := createContext(ts)
+
+	// Authenticate as admin for seeding operations.
+	adminHash, err := crypto.EncryptPassword(cfg.AdminSecret)
+	require.NoError(t, err)
+	req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, adminHash))
+
+	// Seed resource + scope + permission + negative role policy targeting "blocked-role".
+	seedResourceScopePermissionWithDenyPolicy(t, ts, ctx, "orders", "read", "blocked-role")
+
+	// Clear admin cookie — CheckPermission here is a direct provider call; no auth context needed.
+	req.Header.Del("Cookie")
+
+	result, err := ts.Authz.CheckPermission(ctx, &authorization.Principal{
+		ID:    "user-1",
+		Type:  constants.PrincipalTypeUser,
+		Roles: []string{"blocked-role"},
+	}, "orders", "read")
+
+	require.NoError(t, err)
+	require.False(t, result.Allowed, "explicit deny must apply even in permissive mode")
+}
+
+// TestCheckPermission_IncrementsPrometheusCounters verifies that an unmatched
+// check in permissive mode increments metrics.AuthzUnmatchedTotal by exactly
+// one for the "permissive" label.
+func TestCheckPermission_IncrementsPrometheusCounters(t *testing.T) {
+	cfg := getTestConfig()
+	cfg.AuthorizationEnforcement = constants.AuthorizationEnforcementPermissive
+	ts := initTestSetup(t, cfg)
+	_, ctx := createContext(ts)
+
+	before := testutil.ToFloat64(metrics.AuthzUnmatchedTotal.WithLabelValues(metrics.AuthzModePermissive))
+
+	_, err := ts.Authz.CheckPermission(ctx, &authorization.Principal{
+		ID:   "user-1",
+		Type: constants.PrincipalTypeUser,
+	}, "orders", "read")
+	require.NoError(t, err)
+
+	after := testutil.ToFloat64(metrics.AuthzUnmatchedTotal.WithLabelValues(metrics.AuthzModePermissive))
+	require.Equal(t, before+1, after, "unmatched counter must increment once per unmatched check")
+}
+
+// seedResourceScopePermissionWithDenyPolicy seeds a resource, scope, a
+// negative-logic role policy targeting the given role, and a permission that
+// links them. It uses the GraphQL provider (mirroring TestAuthorizationCRUD),
+// so the caller must have already authenticated as admin on the request
+// attached to ts.GinContext.
+func seedResourceScopePermissionWithDenyPolicy(
+	t *testing.T,
+	ts *testSetup,
+	ctx context.Context,
+	resource, scope, role string,
+) {
+	t.Helper()
+
+	res, err := ts.GraphQLProvider.AddResource(ctx, &model.AddResourceInput{
+		Name:        resource,
+		Description: refs.NewStringRef("seed resource"),
+	})
+	require.NoError(t, err)
+	require.NotNil(t, res)
+
+	sc, err := ts.GraphQLProvider.AddScope(ctx, &model.AddScopeInput{
+		Name:        scope,
+		Description: refs.NewStringRef("seed scope"),
+	})
+	require.NoError(t, err)
+	require.NotNil(t, sc)
+
+	negative := constants.PolicyLogicNegative
+	policy, err := ts.GraphQLProvider.AddPolicy(ctx, &model.AddPolicyInput{
+		Name:        "deny-" + role + "-" + uuid.New().String(),
+		Description: refs.NewStringRef("seed deny policy"),
+		Type:        constants.PolicyTypeRole,
+		Logic:       &negative,
+		Targets: []*model.PolicyTargetInput{
+			{
+				TargetType:  constants.TargetTypeRole,
+				TargetValue: role,
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, policy)
+	require.Equal(t, constants.PolicyLogicNegative, policy.Logic, "policy must be stored as negative")
+
+	perm, err := ts.GraphQLProvider.AddPermission(ctx, &model.AddPermissionInput{
+		Name:       resource + "-" + scope,
+		ResourceID: res.ID,
+		ScopeIds:   []string{sc.ID},
+		PolicyIds:  []string{policy.ID},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, perm)
 }

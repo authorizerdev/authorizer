@@ -43,6 +43,9 @@ type testSetup struct {
 	MemoryStoreProvider   memory_store.Provider
 	AuthenticatorProvider authenticators.Provider
 	TokenProvider         token.Provider
+	// Authz is the authorization provider, exposed for tests that exercise
+	// CheckPermission / GetPrincipalPermissions directly (bypassing GraphQL).
+	Authz authorization.Provider
 }
 
 func createContext(s *testSetup) (*http.Request, context.Context) {
@@ -180,8 +183,14 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 	require.NoError(t, err)
 
 	// Initialize authorization provider
+	enforcementMode := cfg.AuthorizationEnforcement
+	if enforcementMode == "" {
+		// Default to "enforcing" for tests that don't explicitly set a mode, to
+		// preserve existing behavior for TestAuthorizationCRUD and friends.
+		enforcementMode = constants.AuthorizationEnforcementEnforcing
+	}
 	authzProvider, err := authorization.New(&authorization.Config{
-		Enforcement: "enforcing",
+		Enforcement: enforcementMode,
 		CacheTTL:    0,
 	}, &authorization.Dependencies{
 		Log:             &logger,
@@ -262,5 +271,16 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 		MemoryStoreProvider:   memoryStoreProvider,
 		AuthenticatorProvider: authProvider,
 		TokenProvider:         tokenProvider,
+		Authz:                 authzProvider,
 	}
+}
+
+// testSetupWithAuthzMode builds a test setup with the authorization provider
+// wired to the given enforcement mode ("permissive" or "enforcing").
+// Mirrors initTestSetup but overrides AuthorizationEnforcement on the config
+// before any providers are constructed.
+func testSetupWithAuthzMode(t *testing.T, mode string) *testSetup {
+	cfg := getTestConfig()
+	cfg.AuthorizationEnforcement = mode
+	return initTestSetup(t, cfg)
 }

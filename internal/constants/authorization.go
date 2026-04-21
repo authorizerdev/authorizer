@@ -18,9 +18,6 @@ const (
 	// DecisionStrategyUnanimous grants only if ALL policies/targets agree (AND logic).
 	DecisionStrategyUnanimous = "unanimous"
 
-	// AuthorizationEnforcementDisabled turns off the authorization engine entirely.
-	// All check_permission calls return true. Default for backward compatibility.
-	AuthorizationEnforcementDisabled = "disabled"
 	// AuthorizationEnforcementPermissive returns true when no matching permission
 	// exists, but logs a warning. Useful for migration/development.
 	AuthorizationEnforcementPermissive = "permissive"

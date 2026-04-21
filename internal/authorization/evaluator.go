@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
 
@@ -18,34 +20,42 @@ type policyResult struct {
 
 // CheckPermission evaluates whether a principal can perform a scope on a resource.
 // It follows this sequence:
-//  1. Check enforcement mode (disabled returns true immediately)
-//  2. Validate inputs
-//  3. Check MaxScopes ceiling
-//  4. Check cache
-//  5. Query storage for matching permissions
-//  6. Evaluate policies using decision strategies
-//  7. Cache and return result
-func (p *provider) CheckPermission(ctx context.Context, principal *Principal, resource string, scope string) (*CheckResult, error) {
-	// Step 1: Enforcement mode check.
-	if p.config.Enforcement == constants.AuthorizationEnforcementDisabled {
-		return &CheckResult{Allowed: true}, nil
-	}
+//  1. Validate inputs
+//  2. Check MaxScopes ceiling
+//  3. Check cache
+//  4. Query storage for matching permissions
+//  5. Evaluate policies using decision strategies
+//  6. Cache and return result
+//
+// Every terminal path records exactly one metrics.RecordAuthzCheck call, and
+// AuthzCheckDuration is observed via defer.
+func (p *provider) CheckPermission(ctx context.Context, principal *Principal, resource string, scope string) (result *CheckResult, err error) {
+	start := time.Now()
+	defer func() {
+		metrics.AuthzCheckDuration.Observe(time.Since(start).Seconds())
+	}()
 
-	// Step 2: Validate inputs.
+	mode := p.config.Enforcement
+
+	// Validate inputs.
 	if principal == nil {
+		metrics.RecordAuthzCheck(mode, metrics.AuthzResultError)
 		return nil, fmt.Errorf("principal is required")
 	}
 	if !isValidIdentifier(principal.ID) {
+		metrics.RecordAuthzCheck(mode, metrics.AuthzResultError)
 		return nil, fmt.Errorf("invalid principal ID: %q", principal.ID)
 	}
 	if !isValidIdentifier(resource) {
+		metrics.RecordAuthzCheck(mode, metrics.AuthzResultError)
 		return nil, fmt.Errorf("invalid resource: %q", resource)
 	}
 	if !isValidIdentifier(scope) {
+		metrics.RecordAuthzCheck(mode, metrics.AuthzResultError)
 		return nil, fmt.Errorf("invalid scope: %q", scope)
 	}
 
-	// Step 3: MaxScopes ceiling.
+	// MaxScopes ceiling.
 	if principal.MaxScopes != nil {
 		scopeStr := resource + ":" + scope
 		found := false
@@ -61,11 +71,12 @@ func (p *provider) CheckPermission(ctx context.Context, principal *Principal, re
 				Str("resource", resource).
 				Str("scope", scope).
 				Msg("denied by MaxScopes ceiling")
+			metrics.RecordAuthzCheck(mode, metrics.AuthzResultDenied)
 			return &CheckResult{Allowed: false}, nil
 		}
 	}
 
-	// Step 4: Check cache.
+	// Cache.
 	cacheKey := evalKey(principal.ID, resource, scope)
 	if cached, ok := p.cache.get(cacheKey); ok {
 		allowed := cached == "true"
@@ -75,28 +86,33 @@ func (p *provider) CheckPermission(ctx context.Context, principal *Principal, re
 			Str("scope", scope).
 			Bool("allowed", allowed).
 			Msg("authorization cache hit")
+		if allowed {
+			metrics.RecordAuthzCheck(mode, metrics.AuthzResultAllowed)
+		} else {
+			metrics.RecordAuthzCheck(mode, metrics.AuthzResultDenied)
+		}
 		return &CheckResult{Allowed: allowed}, nil
 	}
 
-	// Step 5: Check known resources and scopes.
+	// Resource/scope existence.
 	if err := p.validateResourceExists(ctx, resource); err != nil {
-		return p.handleNoPermission(cacheKey, principal, resource, scope), nil
+		return p.handleNoPermission(mode, cacheKey, principal, resource, scope), nil
 	}
 	if err := p.validateScopeExists(ctx, scope); err != nil {
-		return p.handleNoPermission(cacheKey, principal, resource, scope), nil
+		return p.handleNoPermission(mode, cacheKey, principal, resource, scope), nil
 	}
 
-	// Step 6: Query storage for permissions matching this resource+scope.
+	// Permissions.
 	perms, err := p.storageProvider.GetPermissionsForResourceScope(ctx, resource, scope)
 	if err != nil {
+		metrics.RecordAuthzCheck(mode, metrics.AuthzResultError)
 		return nil, fmt.Errorf("failed to query permissions: %w", err)
 	}
-
 	if len(perms) == 0 {
-		return p.handleNoPermission(cacheKey, principal, resource, scope), nil
+		return p.handleNoPermission(mode, cacheKey, principal, resource, scope), nil
 	}
 
-	// Step 7: Evaluate each permission's policies.
+	// Policy evaluation.
 	for _, perm := range perms {
 		allowed, matchedPolicy := p.evaluatePermission(principal, perm)
 		if allowed {
@@ -107,6 +123,7 @@ func (p *provider) CheckPermission(ctx context.Context, principal *Principal, re
 				Str("scope", scope).
 				Str("matched_policy", matchedPolicy).
 				Msg("authorization granted")
+			metrics.RecordAuthzCheck(mode, metrics.AuthzResultAllowed)
 			return &CheckResult{Allowed: true, MatchedPolicy: matchedPolicy}, nil
 		}
 	}
@@ -118,24 +135,36 @@ func (p *provider) CheckPermission(ctx context.Context, principal *Principal, re
 		Str("resource", resource).
 		Str("scope", scope).
 		Msg("authorization denied: no matching policy")
+	metrics.RecordAuthzCheck(mode, metrics.AuthzResultDenied)
 	return &CheckResult{Allowed: false}, nil
 }
 
 // handleNoPermission returns a deny or allow result based on enforcement mode.
-// In permissive mode, it logs a warning and allows. In enforcing mode, it denies.
-// The result is cached (negative caching).
-func (p *provider) handleNoPermission(cacheKey string, principal *Principal, resource, scope string) *CheckResult {
-	if p.config.Enforcement == constants.AuthorizationEnforcementPermissive {
-		p.log.Warn().
-			Str("principal_id", principal.ID).
-			Str("resource", resource).
-			Str("scope", scope).
-			Msg("no matching permission found (permissive mode: allowing)")
+// In permissive mode, it emits a rate-limited warn log (one line per
+// (resource,scope) per window) and allows; in enforcing mode, it denies.
+// The result is cached (negative caching) and the per-mode metrics counters
+// (checks_total + unmatched_total) are bumped.
+func (p *provider) handleNoPermission(mode, cacheKey string, principal *Principal, resource, scope string) *CheckResult {
+	p.cache.bumpUnmatched(resource, scope)
+	metrics.RecordAuthzUnmatched(mode)
+
+	if mode == constants.AuthorizationEnforcementPermissive {
+		if p.warnLimiter.allow(resource + ":" + scope) {
+			p.log.Warn().
+				Bool("authz.unmatched", true).
+				Str("mode", mode).
+				Str("principal_id", principal.ID).
+				Str("resource", resource).
+				Str("scope", scope).
+				Msg("no matching permission (permissive: allowing)")
+		}
 		p.cache.set(cacheKey, "true")
+		metrics.RecordAuthzCheck(mode, metrics.AuthzResultUnmatchedAllowed)
 		return &CheckResult{Allowed: true}
 	}
 
 	p.cache.set(cacheKey, "false")
+	metrics.RecordAuthzCheck(mode, metrics.AuthzResultUnmatchedDenied)
 	return &CheckResult{Allowed: false}
 }
 
@@ -266,10 +295,6 @@ func resolveDecision(results []policyResult, strategy string) (bool, string) {
 // GetPrincipalPermissions returns all granted resource:scope pairs for a principal.
 // It iterates all known resources and scopes, checking each combination.
 func (p *provider) GetPrincipalPermissions(ctx context.Context, principal *Principal) ([]ResourceScope, error) {
-	if p.config.Enforcement == constants.AuthorizationEnforcementDisabled {
-		return nil, nil
-	}
-
 	if principal == nil {
 		return nil, fmt.Errorf("principal is required")
 	}
