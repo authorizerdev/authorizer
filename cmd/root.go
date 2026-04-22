@@ -354,11 +354,8 @@ func applyFlagDefaults() {
 // Callers are responsible for emitting the legacy-migration log when they
 // observe the "disabled" input value.
 func NormalizeAuthzEnforcement(v string) string {
-	switch strings.TrimSpace(v) {
-	case constants.AuthorizationEnforcementEnforcing:
+	if strings.TrimSpace(v) == constants.AuthorizationEnforcementEnforcing {
 		return constants.AuthorizationEnforcementEnforcing
-	case constants.AuthorizationEnforcementPermissive, "":
-		return constants.AuthorizationEnforcementPermissive
 	}
 	return constants.AuthorizationEnforcementPermissive
 }
@@ -518,9 +515,12 @@ func runRoot(c *cobra.Command, args []string) {
 		// Check once at startup whether any permissions exist. If zero, emit a
 		// loud warn so operators don't lock themselves out in prod.
 		_, pr, lerr := storageProvider.ListPermissions(context.Background(), &model.Pagination{Limit: 1, Page: 1})
-		if lerr == nil && pr != nil && pr.Total == 0 {
+		switch {
+		case lerr != nil:
+			log.Warn().Err(lerr).Msg("authz: failed to probe permission count at startup; enforcing mode active")
+		case pr != nil && pr.Total == 0:
 			log.Warn().Msg("authz mode=enforcing but 0 permissions configured — all check_permission calls will DENY. Seed permissions or switch to --authorization-enforcement=permissive.")
-		} else {
+		default:
 			log.Info().Msg("authz mode=enforcing: unmatched CheckPermission calls will be DENIED.")
 		}
 	default:
