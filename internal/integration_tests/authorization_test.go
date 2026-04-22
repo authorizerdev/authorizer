@@ -14,6 +14,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/refs"
+	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/assert"
@@ -455,10 +456,18 @@ func TestCheckPermission_Permissive_WithExplicitDenyPolicy_StillDenies(t *testin
 
 // TestCheckPermission_IncrementsPrometheusCounters verifies that an unmatched
 // check in permissive mode increments metrics.AuthzUnmatchedTotal by exactly
-// one for the "permissive" label.
+// one for the "permissive" label. The (resource, scope) pair MUST be registered
+// first so that the "known but no matching permission" path is exercised —
+// unknown identifiers intentionally no longer bump the counter (DoS guard).
 func TestCheckPermission_IncrementsPrometheusCounters(t *testing.T) {
 	ts := testSetupWithAuthzMode(t, constants.AuthorizationEnforcementPermissive)
 	_, ctx := createContext(ts)
+
+	// Seed resource + scope directly via storage (no permission). This makes
+	// validateResourceExists / validateScopeExists return known=true, so the
+	// subsequent CheckPermission lands on the "known, no permission" path
+	// that DOES bump counters.
+	seedKnownResourceScopeNoPermission(t, ts, ctx, "orders", "read")
 
 	before := testutil.ToFloat64(metrics.AuthzUnmatchedTotal.WithLabelValues(metrics.AuthzModePermissive))
 
@@ -470,6 +479,47 @@ func TestCheckPermission_IncrementsPrometheusCounters(t *testing.T) {
 
 	after := testutil.ToFloat64(metrics.AuthzUnmatchedTotal.WithLabelValues(metrics.AuthzModePermissive))
 	require.Equal(t, before+1, after, "unmatched counter must increment once per unmatched check")
+}
+
+// TestCheckPermission_UnknownResource_PermissiveStillAllows_ButDoesNotBumpUnmatchedCounter
+// verifies the DoS guard: permissive mode still allows the request (so callers
+// aren't broken by a typo/unknown identifier), but the unmatched counter and
+// warn-limiter MUST NOT grow for attacker-controlled input on the public
+// /api/v1/check-permission endpoint. Otherwise a caller could flood the
+// in-process sync.Map with arbitrary (resource, scope) combinations.
+func TestCheckPermission_UnknownResource_PermissiveStillAllows_ButDoesNotBumpUnmatchedCounter(t *testing.T) {
+	ts := testSetupWithAuthzMode(t, constants.AuthorizationEnforcementPermissive)
+	_, ctx := createContext(ts)
+
+	before := testutil.ToFloat64(metrics.AuthzUnmatchedTotal.WithLabelValues(metrics.AuthzModePermissive))
+
+	result, err := ts.Authz.CheckPermission(ctx, &authorization.Principal{
+		ID: "user-1", Type: constants.PrincipalTypeUser,
+	}, "unknown-resource", "unknown-scope")
+
+	require.NoError(t, err)
+	require.True(t, result.Allowed, "permissive still allows unknown resource")
+
+	after := testutil.ToFloat64(metrics.AuthzUnmatchedTotal.WithLabelValues(metrics.AuthzModePermissive))
+	require.Equal(t, before, after, "unknown-resource calls must NOT bump the unmatched counter (DoS guard)")
+}
+
+// seedKnownResourceScopeNoPermission inserts a Resource and Scope row via the
+// storage provider without attaching a Permission. This is the minimal seed
+// needed to exercise the "known (resource, scope), no matching permission"
+// path in CheckPermission after Fix B/C.
+func seedKnownResourceScopeNoPermission(t *testing.T, ts *testSetup, _ context.Context, resource, scope string) {
+	t.Helper()
+	_, err := ts.StorageProvider.AddResource(context.Background(), &schemas.Resource{
+		Name:        resource,
+		Description: "seed (no permission) resource",
+	})
+	require.NoError(t, err)
+	_, err = ts.StorageProvider.AddScope(context.Background(), &schemas.Scope{
+		Name:        scope,
+		Description: "seed (no permission) scope",
+	})
+	require.NoError(t, err)
 }
 
 // seedResourceScopePermissionWithDenyPolicy seeds a resource, scope, a

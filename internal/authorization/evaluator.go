@@ -3,7 +3,6 @@ package authorization
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
@@ -11,6 +10,11 @@ import (
 	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
+
+// MaxPrincipalPermissionEvaluations caps GetPrincipalPermissions at this many
+// resource*scope evaluations per call. Callers hitting the cap receive a sentinel
+// error so they can detect incomplete output.
+const MaxPrincipalPermissionEvaluations = 10000
 
 // policyResult holds the outcome of a single policy evaluation.
 type policyResult struct {
@@ -94,12 +98,28 @@ func (p *provider) CheckPermission(ctx context.Context, principal *Principal, re
 		return &CheckResult{Allowed: allowed}, nil
 	}
 
-	// Resource/scope existence.
-	if err := p.validateResourceExists(ctx, resource); err != nil {
-		return p.handleNoPermission(mode, cacheKey, principal, resource, scope), nil
+	// Resource/scope existence. Fail-closed: if the probe itself errors, surface
+	// the error to the caller rather than falling through to handleNoPermission
+	// (which in permissive mode would incorrectly allow a DB-blip'd request).
+	knownResource, err := p.validateResourceExists(ctx, resource)
+	if err != nil {
+		metrics.RecordAuthzCheck(mode, metrics.AuthzResultError)
+		return nil, err
 	}
-	if err := p.validateScopeExists(ctx, scope); err != nil {
-		return p.handleNoPermission(mode, cacheKey, principal, resource, scope), nil
+	knownScope := true
+	if knownResource {
+		// Only probe scope when resource is valid; avoids a second lookup on
+		// the unknown-resource path.
+		knownScope, err = p.validateScopeExists(ctx, scope)
+		if err != nil {
+			metrics.RecordAuthzCheck(mode, metrics.AuthzResultError)
+			return nil, err
+		}
+	}
+	if !knownResource || !knownScope {
+		// Unknown identifier — skip counter bumps (DoS guard for attacker-
+		// controlled inputs from the public REST endpoint).
+		return p.handleNoPermission(mode, cacheKey, principal, resource, scope, false /* isKnown */), nil
 	}
 
 	// Permissions.
@@ -109,7 +129,9 @@ func (p *provider) CheckPermission(ctx context.Context, principal *Principal, re
 		return nil, fmt.Errorf("failed to query permissions: %w", err)
 	}
 	if len(perms) == 0 {
-		return p.handleNoPermission(mode, cacheKey, principal, resource, scope), nil
+		// Known (resource, scope) but no permission row — this is the signal
+		// we DO want to track for rollout.
+		return p.handleNoPermission(mode, cacheKey, principal, resource, scope, true /* isKnown */), nil
 	}
 
 	// Policy evaluation.
@@ -142,14 +164,23 @@ func (p *provider) CheckPermission(ctx context.Context, principal *Principal, re
 // handleNoPermission returns a deny or allow result based on enforcement mode.
 // In permissive mode, it emits a rate-limited warn log (one line per
 // (resource,scope) per window) and allows; in enforcing mode, it denies.
-// The result is cached (negative caching) and the per-mode metrics counters
-// (checks_total + unmatched_total) are bumped.
-func (p *provider) handleNoPermission(mode, cacheKey string, principal *Principal, resource, scope string) *CheckResult {
-	p.cache.bumpUnmatched(resource, scope)
-	metrics.RecordAuthzUnmatched(mode)
+// The result is cached (negative caching) and the checks_total metric is bumped.
+//
+// The isKnown parameter reports whether (resource, scope) are both registered
+// in the DB. Counters and the warn-limiter are only bumped for known pairs to
+// prevent unbounded growth of cache.counters / warnLimiter.last from attacker-
+// controlled input on the public /api/v1/check-permission REST endpoint.
+func (p *provider) handleNoPermission(mode, cacheKey string, principal *Principal, resource, scope string, isKnown bool) *CheckResult {
+	if isKnown {
+		// Only track rollout signal for registered (resource, scope) pairs.
+		// Unknown identifiers are rejected here to prevent unbounded counter
+		// growth from attacker-controlled input on the public REST endpoint.
+		p.cache.bumpUnmatched(resource, scope)
+		metrics.RecordAuthzUnmatched(mode)
+	}
 
 	if mode == constants.AuthorizationEnforcementPermissive {
-		if p.warnLimiter.allow(resource + ":" + scope) {
+		if isKnown && p.warnLimiter.allow(resource+":"+scope) {
 			p.log.Warn().
 				Bool("authz.unmatched", true).
 				Str("mode", mode).
@@ -314,6 +345,14 @@ func (p *provider) GetPrincipalPermissions(ctx context.Context, principal *Princ
 		return nil, fmt.Errorf("failed to list scopes: %w", err)
 	}
 
+	// Hard ceiling: refuse to enumerate O(R*S) permissions beyond the cap.
+	// A tenant with, e.g., 1000 resources * 100 scopes = 100k CheckPermission
+	// calls per request would otherwise saturate the authz subsystem.
+	if int64(len(resources))*int64(len(scopes)) > int64(MaxPrincipalPermissionEvaluations) {
+		return nil, fmt.Errorf("too many permissions to enumerate: %d resources * %d scopes exceeds cap of %d",
+			len(resources), len(scopes), MaxPrincipalPermissionEvaluations)
+	}
+
 	var granted []ResourceScope
 	for _, res := range resources {
 		for _, sc := range scopes {
@@ -344,58 +383,59 @@ func (p *provider) InvalidateCache(ctx context.Context, prefix string) error {
 	return nil
 }
 
-// validateResourceExists checks that the given resource name is registered in the DB.
-// Results are cached to avoid repeated DB lookups.
-func (p *provider) validateResourceExists(ctx context.Context, resource string) error {
+// validateResourceExists reports whether the given resource is registered.
+// Returns (true, nil) if known; (false, nil) if definitively unknown;
+// (false, err) if the storage probe itself failed.
+//
+// A probe error must NOT be masked as "unknown" — previously this helper
+// returned nil on DB failure, which in permissive mode caused the caller to
+// fall through to allow. We now fail-closed on probe error so a transient DB
+// blip cannot flip a legitimate unknown-resource path to Allowed:true.
+func (p *provider) validateResourceExists(ctx context.Context, resource string) (bool, error) {
 	cacheKey := validResourcesKey()
-	if cached, ok := p.cache.get(cacheKey); ok {
-		if strings.Contains(","+cached+",", ","+resource+",") {
-			return nil
-		}
-		return fmt.Errorf("unknown resource: %s", resource)
+	if set, ok := p.cache.getValidSet(cacheKey); ok {
+		_, found := set[resource]
+		return found, nil
 	}
 
 	names, err := p.fetchAllResources(ctx)
 	if err != nil {
-		// On error, allow the request to proceed (fail open for validation,
-		// the actual permission check will still be default-deny).
-		return nil
+		return false, fmt.Errorf("probe resources: %w", err)
 	}
 
-	p.cache.set(cacheKey, strings.Join(names, ","))
-
+	set := make(map[string]struct{}, len(names))
 	for _, n := range names {
-		if n == resource {
-			return nil
-		}
+		set[n] = struct{}{}
 	}
-	return fmt.Errorf("unknown resource: %s", resource)
+	p.cache.setValidSet(cacheKey, set)
+
+	_, found := set[resource]
+	return found, nil
 }
 
-// validateScopeExists checks that the given scope name is registered in the DB.
-// Results are cached to avoid repeated DB lookups.
-func (p *provider) validateScopeExists(ctx context.Context, scope string) error {
+// validateScopeExists reports whether the given scope is registered.
+// Returns (true, nil) if known; (false, nil) if definitively unknown;
+// (false, err) if the storage probe itself failed.
+func (p *provider) validateScopeExists(ctx context.Context, scope string) (bool, error) {
 	cacheKey := validScopesKey()
-	if cached, ok := p.cache.get(cacheKey); ok {
-		if strings.Contains(","+cached+",", ","+scope+",") {
-			return nil
-		}
-		return fmt.Errorf("unknown scope: %s", scope)
+	if set, ok := p.cache.getValidSet(cacheKey); ok {
+		_, found := set[scope]
+		return found, nil
 	}
 
 	names, err := p.fetchAllScopes(ctx)
 	if err != nil {
-		return nil
+		return false, fmt.Errorf("probe scopes: %w", err)
 	}
 
-	p.cache.set(cacheKey, strings.Join(names, ","))
-
+	set := make(map[string]struct{}, len(names))
 	for _, n := range names {
-		if n == scope {
-			return nil
-		}
+		set[n] = struct{}{}
 	}
-	return fmt.Errorf("unknown scope: %s", scope)
+	p.cache.setValidSet(cacheKey, set)
+
+	_, found := set[scope]
+	return found, nil
 }
 
 // fetchAllResources retrieves all resource names from storage using pagination.
@@ -406,8 +446,9 @@ func (p *provider) fetchAllResources(ctx context.Context) ([]string, error) {
 
 	for {
 		pagination := &model.Pagination{
-			Limit: limit,
-			Page:  page,
+			Limit:  limit,
+			Offset: (page - 1) * limit,
+			Page:   page,
 		}
 		resources, paginationResult, err := p.storageProvider.ListResources(ctx, pagination)
 		if err != nil {
@@ -434,8 +475,9 @@ func (p *provider) fetchAllScopes(ctx context.Context) ([]string, error) {
 
 	for {
 		pagination := &model.Pagination{
-			Limit: limit,
-			Page:  page,
+			Limit:  limit,
+			Offset: (page - 1) * limit,
+			Page:   page,
 		}
 		scopes, paginationResult, err := p.storageProvider.ListScopes(ctx, pagination)
 		if err != nil {

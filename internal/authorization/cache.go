@@ -16,6 +16,11 @@ type cache struct {
 	data      sync.Map
 	expiryMap sync.Map
 	counters  sync.Map // counter key string -> *int64 (atomic-incremented)
+	// validSets holds membership-style caches (known resource names, known scope names).
+	// Stored separately from .data so string-valued entries never collide, and so
+	// the typed map lookup is O(1) without string parsing.
+	// A zero-length set is a valid cached value meaning "DB was reachable and empty".
+	validSets sync.Map // cache key -> map[string]struct{}
 }
 
 // newCache creates a new local cache. If ttlSeconds is 0, caching is disabled.
@@ -70,7 +75,8 @@ func (c *cache) set(key string, value string) {
 
 // deleteByPrefix removes all cached entries whose key starts with the given prefix.
 // Used when admin mutations change resources, scopes, or policies to invalidate
-// all related cached decisions.
+// all related cached decisions. Iterates both the string-valued data map and the
+// typed validSets map so both storage tiers are wiped in lockstep.
 func (c *cache) deleteByPrefix(prefix string) {
 	c.data.Range(func(key, _ any) bool {
 		if strings.HasPrefix(key.(string), prefix) {
@@ -79,6 +85,45 @@ func (c *cache) deleteByPrefix(prefix string) {
 		}
 		return true
 	})
+	c.validSets.Range(func(key, _ any) bool {
+		if strings.HasPrefix(key.(string), prefix) {
+			c.validSets.Delete(key)
+			c.expiryMap.Delete(key)
+		}
+		return true
+	})
+}
+
+// getValidSet returns the cached membership set for the given key.
+// The second return value reports whether the cache had an entry at all.
+// Callers must not mutate the returned map.
+func (c *cache) getValidSet(key string) (map[string]struct{}, bool) {
+	if !c.enabled() {
+		return nil, false
+	}
+	expiry, ok := c.expiryMap.Load(key)
+	if !ok {
+		return nil, false
+	}
+	if time.Now().After(expiry.(time.Time)) {
+		c.validSets.Delete(key)
+		c.expiryMap.Delete(key)
+		return nil, false
+	}
+	v, ok := c.validSets.Load(key)
+	if !ok {
+		return nil, false
+	}
+	return v.(map[string]struct{}), true
+}
+
+// setValidSet stores a membership set under the given key with the configured TTL.
+func (c *cache) setValidSet(key string, set map[string]struct{}) {
+	if !c.enabled() {
+		return
+	}
+	c.validSets.Store(key, set)
+	c.expiryMap.Store(key, time.Now().Add(c.ttl))
 }
 
 // evalKey constructs a cache key for an authorization evaluation result.
