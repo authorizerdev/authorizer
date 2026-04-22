@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/authorizerdev/authorizer/internal/authorization"
+	"github.com/authorizerdev/authorizer/internal/constants"
 )
 
 // checkPermissionRequest is the JSON body for POST /api/v1/check-permission.
@@ -94,7 +95,7 @@ func (h *httpProvider) CheckPermissionHandler() gin.HandlerFunc {
 
 		principal := &authorization.Principal{
 			ID:    userID,
-			Type:  "user",
+			Type:  constants.PrincipalTypeUser,
 			Roles: roles,
 		}
 

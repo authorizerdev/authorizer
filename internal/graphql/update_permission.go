@@ -6,6 +6,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 	"github.com/authorizerdev/authorizer/internal/utils"
@@ -55,8 +56,9 @@ func (g *graphqlProvider) UpdatePermission(ctx context.Context, params *model.Up
 	}
 	if params.DecisionStrategy != nil {
 		ds := *params.DecisionStrategy
-		if ds != "affirmative" && ds != "unanimous" {
-			return nil, fmt.Errorf("invalid decision strategy: must be 'affirmative' or 'unanimous'")
+		if ds != constants.DecisionStrategyAffirmative && ds != constants.DecisionStrategyUnanimous {
+			return nil, fmt.Errorf("invalid decision strategy: must be '%s' or '%s'",
+				constants.DecisionStrategyAffirmative, constants.DecisionStrategyUnanimous)
 		}
 		permission.DecisionStrategy = ds
 	}

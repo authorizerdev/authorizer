@@ -6,6 +6,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 	"github.com/authorizerdev/authorizer/internal/utils"
@@ -55,15 +56,17 @@ func (g *graphqlProvider) UpdatePolicy(ctx context.Context, params *model.Update
 	}
 	if params.Logic != nil {
 		logic := *params.Logic
-		if logic != "positive" && logic != "negative" {
-			return nil, fmt.Errorf("invalid policy logic: must be 'positive' or 'negative'")
+		if logic != constants.PolicyLogicPositive && logic != constants.PolicyLogicNegative {
+			return nil, fmt.Errorf("invalid policy logic: must be '%s' or '%s'",
+				constants.PolicyLogicPositive, constants.PolicyLogicNegative)
 		}
 		policy.Logic = logic
 	}
 	if params.DecisionStrategy != nil {
 		ds := *params.DecisionStrategy
-		if ds != "affirmative" && ds != "unanimous" {
-			return nil, fmt.Errorf("invalid decision strategy: must be 'affirmative' or 'unanimous'")
+		if ds != constants.DecisionStrategyAffirmative && ds != constants.DecisionStrategyUnanimous {
+			return nil, fmt.Errorf("invalid decision strategy: must be '%s' or '%s'",
+				constants.DecisionStrategyAffirmative, constants.DecisionStrategyUnanimous)
 		}
 		policy.DecisionStrategy = ds
 	}

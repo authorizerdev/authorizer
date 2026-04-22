@@ -6,6 +6,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 	"github.com/authorizerdev/authorizer/internal/utils"
@@ -56,12 +57,13 @@ func (g *graphqlProvider) AddPermission(ctx context.Context, params *model.AddPe
 		description = *params.Description
 	}
 
-	decisionStrategy := "affirmative"
+	decisionStrategy := constants.DecisionStrategyAffirmative
 	if params.DecisionStrategy != nil {
 		decisionStrategy = *params.DecisionStrategy
 	}
-	if decisionStrategy != "affirmative" && decisionStrategy != "unanimous" {
-		return nil, fmt.Errorf("invalid decision strategy: must be 'affirmative' or 'unanimous'")
+	if decisionStrategy != constants.DecisionStrategyAffirmative && decisionStrategy != constants.DecisionStrategyUnanimous {
+		return nil, fmt.Errorf("invalid decision strategy: must be '%s' or '%s'",
+			constants.DecisionStrategyAffirmative, constants.DecisionStrategyUnanimous)
 	}
 
 	// Verify resource exists
@@ -82,50 +84,83 @@ func (g *graphqlProvider) AddPermission(ctx context.Context, params *model.AddPe
 		return nil, err
 	}
 
-	// Add permission scopes
-	apiScopes := make([]*model.AuthzScope, 0, len(params.ScopeIds))
-	for _, scopeID := range params.ScopeIds {
-		_, err := g.StorageProvider.AddPermissionScope(ctx, &schemas.PermissionScope{
-			PermissionID: permission.ID,
-			ScopeID:      scopeID,
-		})
-		if err != nil {
-			log.Debug().Err(err).Str("scope_id", scopeID).Msg("Failed to add permission scope")
-			return nil, err
+	// Attach scopes + policies. The storage layer does not expose transactions
+	// across these provider-level calls, so a failure mid-attach would leave
+	// the newly created permission row orphaned (present but with partial or
+	// no scope/policy links). To keep the system consistent we compensate by
+	// deleting the permission when any attach step fails. The delete uses
+	// context.Background() so it survives request cancellation (mirrors the
+	// pattern already used for InvalidateCache below). If the compensation
+	// itself fails, log at ERROR level so operators can manually clean up,
+	// but still return the ORIGINAL error — that is the failure operators
+	// need to see first.
+	apiScopes, apiPolicies, err := g.attachPermissionScopesAndPolicies(ctx, permission.ID, params)
+	if err != nil {
+		if delErr := g.StorageProvider.DeletePermission(context.Background(), permission.ID); delErr != nil {
+			log.Error().
+				Err(delErr).
+				Str("permission_id", permission.ID).
+				Msg("failed to roll back orphaned permission after partial AddPermission failure; manual cleanup required")
 		}
-		scope, err := g.StorageProvider.GetScopeByID(ctx, scopeID)
-		if err != nil {
-			log.Debug().Err(err).Str("scope_id", scopeID).Msg("Failed to get scope by ID")
-			return nil, err
-		}
-		apiScopes = append(apiScopes, scope.AsAPIScope())
-	}
-
-	// Add permission policies
-	apiPolicies := make([]*model.AuthzPolicy, 0, len(params.PolicyIds))
-	for _, policyID := range params.PolicyIds {
-		_, err := g.StorageProvider.AddPermissionPolicy(ctx, &schemas.PermissionPolicy{
-			PermissionID: permission.ID,
-			PolicyID:     policyID,
-		})
-		if err != nil {
-			log.Debug().Err(err).Str("policy_id", policyID).Msg("Failed to add permission policy")
-			return nil, err
-		}
-		policy, err := g.StorageProvider.GetPolicyByID(ctx, policyID)
-		if err != nil {
-			log.Debug().Err(err).Str("policy_id", policyID).Msg("Failed to get policy by ID")
-			return nil, err
-		}
-		targets, err := g.StorageProvider.GetPolicyTargets(ctx, policyID)
-		if err != nil {
-			log.Debug().Err(err).Str("policy_id", policyID).Msg("Failed to get policy targets")
-			return nil, err
-		}
-		apiPolicies = append(apiPolicies, policy.AsAPIPolicy(targets))
+		return nil, err
 	}
 
 	g.AuthorizationProvider.InvalidateCache(context.Background(), "authz:")
 
 	return permission.AsAPIPermission(resource.AsAPIResource(), apiScopes, apiPolicies), nil
+}
+
+// attachPermissionScopesAndPolicies creates PermissionScope and PermissionPolicy
+// link rows for a newly added permission and returns the API-shape scope and
+// policy slices used to build the GraphQL response. It returns the first error
+// encountered so the caller can roll back the permission.
+func (g *graphqlProvider) attachPermissionScopesAndPolicies(
+	ctx context.Context,
+	permissionID string,
+	params *model.AddPermissionInput,
+) ([]*model.AuthzScope, []*model.AuthzPolicy, error) {
+	log := g.Log.With().Str("func", "attachPermissionScopesAndPolicies").Logger()
+
+	apiScopes := make([]*model.AuthzScope, 0, len(params.ScopeIds))
+	for _, scopeID := range params.ScopeIds {
+		_, err := g.StorageProvider.AddPermissionScope(ctx, &schemas.PermissionScope{
+			PermissionID: permissionID,
+			ScopeID:      scopeID,
+		})
+		if err != nil {
+			log.Debug().Err(err).Str("scope_id", scopeID).Msg("Failed to add permission scope")
+			return nil, nil, err
+		}
+		scope, err := g.StorageProvider.GetScopeByID(ctx, scopeID)
+		if err != nil {
+			log.Debug().Err(err).Str("scope_id", scopeID).Msg("Failed to get scope by ID")
+			return nil, nil, err
+		}
+		apiScopes = append(apiScopes, scope.AsAPIScope())
+	}
+
+	apiPolicies := make([]*model.AuthzPolicy, 0, len(params.PolicyIds))
+	for _, policyID := range params.PolicyIds {
+		_, err := g.StorageProvider.AddPermissionPolicy(ctx, &schemas.PermissionPolicy{
+			PermissionID: permissionID,
+			PolicyID:     policyID,
+		})
+		if err != nil {
+			log.Debug().Err(err).Str("policy_id", policyID).Msg("Failed to add permission policy")
+			return nil, nil, err
+		}
+		policy, err := g.StorageProvider.GetPolicyByID(ctx, policyID)
+		if err != nil {
+			log.Debug().Err(err).Str("policy_id", policyID).Msg("Failed to get policy by ID")
+			return nil, nil, err
+		}
+		targets, err := g.StorageProvider.GetPolicyTargets(ctx, policyID)
+		if err != nil {
+			log.Debug().Err(err).Str("policy_id", policyID).Msg("Failed to get policy targets")
+			return nil, nil, err
+		}
+		apiPolicies = append(apiPolicies, policy.AsAPIPolicy(targets))
+	}
+
+	return apiScopes, apiPolicies, nil
 }

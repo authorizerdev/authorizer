@@ -82,6 +82,17 @@ var (
 // it runs before the logger is ready.
 var legacyDisabledObserved bool
 
+// legacyTypoObserved is set when the operator passes an
+// authorization-enforcement value that is neither empty, "permissive",
+// "enforcing" (any case), nor the legacy "disabled". runRoot emits a warning
+// after the logger is configured so operators notice fat-fingered flags
+// instead of being silently demoted to "permissive".
+var legacyTypoObserved bool
+
+// rawAuthzEnforcement preserves the operator-supplied --authorization-enforcement
+// value before normalization, so runRoot can echo it back in the typo warning.
+var rawAuthzEnforcement string
+
 func init() {
 	f := RootCmd.Flags()
 
@@ -336,25 +347,39 @@ func applyFlagDefaults() {
 		c.RobloxScopes = append([]string(nil), defaultRobloxScopes...)
 	}
 	rawEnforcement := c.AuthorizationEnforcement
+	rawAuthzEnforcement = rawEnforcement
 	c.AuthorizationEnforcement = NormalizeAuthzEnforcement(rawEnforcement)
-	if strings.TrimSpace(rawEnforcement) == "disabled" {
+	trimmed := strings.TrimSpace(rawEnforcement)
+	switch {
+	case strings.EqualFold(trimmed, "disabled"):
 		// Remember the legacy input so runRoot can log the one-time migration
 		// notice after the logger is configured. We cannot log here because
 		// applyFlagDefaults runs before the logger is ready.
 		legacyDisabledObserved = true
+	case trimmed == "",
+		strings.EqualFold(trimmed, constants.AuthorizationEnforcementPermissive),
+		strings.EqualFold(trimmed, constants.AuthorizationEnforcementEnforcing):
+		// Canonical input (case-insensitive) or unset; nothing to flag.
+	default:
+		// Anything else is a typo or unknown value. Surface it as a warning
+		// in runRoot so operators see their fat-fingered flag instead of
+		// being silently demoted to permissive.
+		legacyTypoObserved = true
 	}
 }
 
 // NormalizeAuthzEnforcement returns the canonical enforcement mode for the given input.
-//   - "" (empty) and unknown values map to "permissive" (the new default).
-//   - "disabled" (legacy value) maps to "permissive" and is logged by the caller
-//     as a one-time migration notice.
-//   - "permissive" and "enforcing" pass through unchanged.
+//   - "enforcing" (case-insensitive, whitespace-tolerant) maps to "enforcing".
+//   - "" (empty), "permissive" (any case), "disabled" (legacy), and any
+//     unrecognized value map to "permissive" — the new safe default.
 //
-// Callers are responsible for emitting the legacy-migration log when they
-// observe the "disabled" input value.
+// Callers (applyFlagDefaults / runRoot) are responsible for emitting the
+// legacy-migration notice for "disabled" (via legacyDisabledObserved) and a
+// typo warning for unrecognized input (via legacyTypoObserved) after the
+// logger is configured.
 func NormalizeAuthzEnforcement(v string) string {
-	if strings.TrimSpace(v) == constants.AuthorizationEnforcementEnforcing {
+	trimmed := strings.TrimSpace(v)
+	if strings.EqualFold(trimmed, constants.AuthorizationEnforcementEnforcing) {
 		return constants.AuthorizationEnforcementEnforcing
 	}
 	return constants.AuthorizationEnforcementPermissive

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 	"github.com/authorizerdev/authorizer/internal/utils"
@@ -42,9 +43,13 @@ func (g *graphqlProvider) AddPolicy(ctx context.Context, params *model.AddPolicy
 	if policyType == "" {
 		return nil, fmt.Errorf("policy type is required")
 	}
-	validPolicyTypes := map[string]bool{"role": true, "user": true}
+	validPolicyTypes := map[string]bool{
+		constants.PolicyTypeRole: true,
+		constants.PolicyTypeUser: true,
+	}
 	if !validPolicyTypes[policyType] {
-		return nil, fmt.Errorf("invalid policy type: must be 'role' or 'user'")
+		return nil, fmt.Errorf("invalid policy type: must be '%s' or '%s'",
+			constants.PolicyTypeRole, constants.PolicyTypeUser)
 	}
 
 	description := ""
@@ -52,20 +57,22 @@ func (g *graphqlProvider) AddPolicy(ctx context.Context, params *model.AddPolicy
 		description = *params.Description
 	}
 
-	logic := "positive"
+	logic := constants.PolicyLogicPositive
 	if params.Logic != nil {
 		logic = *params.Logic
 	}
-	if logic != "positive" && logic != "negative" {
-		return nil, fmt.Errorf("invalid policy logic: must be 'positive' or 'negative'")
+	if logic != constants.PolicyLogicPositive && logic != constants.PolicyLogicNegative {
+		return nil, fmt.Errorf("invalid policy logic: must be '%s' or '%s'",
+			constants.PolicyLogicPositive, constants.PolicyLogicNegative)
 	}
 
-	decisionStrategy := "affirmative"
+	decisionStrategy := constants.DecisionStrategyAffirmative
 	if params.DecisionStrategy != nil {
 		decisionStrategy = *params.DecisionStrategy
 	}
-	if decisionStrategy != "affirmative" && decisionStrategy != "unanimous" {
-		return nil, fmt.Errorf("invalid decision strategy: must be 'affirmative' or 'unanimous'")
+	if decisionStrategy != constants.DecisionStrategyAffirmative && decisionStrategy != constants.DecisionStrategyUnanimous {
+		return nil, fmt.Errorf("invalid decision strategy: must be '%s' or '%s'",
+			constants.DecisionStrategyAffirmative, constants.DecisionStrategyUnanimous)
 	}
 
 	policy, err := g.StorageProvider.AddPolicy(ctx, &schemas.Policy{

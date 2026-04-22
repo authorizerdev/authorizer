@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/authorizerdev/authorizer/internal/authorization"
+	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
@@ -39,7 +40,7 @@ func (g *graphqlProvider) CheckPermission(ctx context.Context, params *model.Che
 
 	principal := &authorization.Principal{
 		ID:    user.ID,
-		Type:  "user",
+		Type:  constants.PrincipalTypeUser,
 		Roles: roles,
 	}
 

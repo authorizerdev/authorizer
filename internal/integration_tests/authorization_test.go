@@ -3,6 +3,8 @@ package integration_tests
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
@@ -15,6 +17,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/assert"
@@ -601,4 +604,337 @@ func TestConfig_UnknownValue_NormalizesToPermissive(t *testing.T) {
 // TestConfig_Enforcing_Preserved verifies "enforcing" passes through unchanged.
 func TestConfig_Enforcing_Preserved(t *testing.T) {
 	require.Equal(t, constants.AuthorizationEnforcementEnforcing, cmd.NormalizeAuthzEnforcement("enforcing"))
+}
+
+// TestConfig_MixedCaseEnforcing_Preserved verifies the normalizer is tolerant
+// of mixed case, uppercase, and surrounding whitespace on "enforcing". This
+// guards against a silent demotion to permissive when an operator types
+// `--authorization-enforcement Enforcing` or sets `ENFORCING` via CI.
+func TestConfig_MixedCaseEnforcing_Preserved(t *testing.T) {
+	require.Equal(t, constants.AuthorizationEnforcementEnforcing, cmd.NormalizeAuthzEnforcement("Enforcing"))
+	require.Equal(t, constants.AuthorizationEnforcementEnforcing, cmd.NormalizeAuthzEnforcement("ENFORCING"))
+	require.Equal(t, constants.AuthorizationEnforcementEnforcing, cmd.NormalizeAuthzEnforcement("  enforcing  "))
+}
+
+// seedResourceScopePermissionWithRolePolicy seeds a resource, scope, a
+// role policy with the given logic targeting the given role, and a permission
+// that links them. Shared implementation used by the positive- and
+// negative-logic helpers.
+func seedResourceScopePermissionWithRolePolicy(
+	t *testing.T,
+	ts *testSetup,
+	ctx context.Context,
+	resource, scope, role, logic string,
+) {
+	t.Helper()
+
+	res, err := ts.GraphQLProvider.AddResource(ctx, &model.AddResourceInput{
+		Name:        resource,
+		Description: refs.NewStringRef("seed resource"),
+	})
+	require.NoError(t, err)
+	require.NotNil(t, res)
+
+	sc, err := ts.GraphQLProvider.AddScope(ctx, &model.AddScopeInput{
+		Name:        scope,
+		Description: refs.NewStringRef("seed scope"),
+	})
+	require.NoError(t, err)
+	require.NotNil(t, sc)
+
+	logicRef := logic
+	policy, err := ts.GraphQLProvider.AddPolicy(ctx, &model.AddPolicyInput{
+		Name:        logic + "-" + role + "-" + uuid.New().String(),
+		Description: refs.NewStringRef("seed role policy"),
+		Type:        constants.PolicyTypeRole,
+		Logic:       &logicRef,
+		Targets: []*model.PolicyTargetInput{
+			{
+				TargetType:  constants.TargetTypeRole,
+				TargetValue: role,
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, policy)
+	require.Equal(t, logic, policy.Logic, "policy must be stored with requested logic")
+
+	perm, err := ts.GraphQLProvider.AddPermission(ctx, &model.AddPermissionInput{
+		Name:       resource + "-" + scope + "-" + uuid.New().String(),
+		ResourceID: res.ID,
+		ScopeIds:   []string{sc.ID},
+		PolicyIds:  []string{policy.ID},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, perm)
+}
+
+// seedResourceScopePermissionWithPositivePolicy seeds a resource, scope, a
+// positive-logic role policy targeting the given role, and a permission that
+// links them. Mirrors seedResourceScopePermissionWithDenyPolicy but with grant
+// semantics.
+func seedResourceScopePermissionWithPositivePolicy(
+	t *testing.T,
+	ts *testSetup,
+	ctx context.Context,
+	resource, scope, role string,
+) {
+	t.Helper()
+	seedResourceScopePermissionWithRolePolicy(t, ts, ctx, resource, scope, role, constants.PolicyLogicPositive)
+}
+
+// seedResourceScopeWithUnanimousDualRolePolicy seeds a resource, scope, TWO
+// positive-logic role policies (one per role), and a permission that links
+// them with DecisionStrategy=unanimous. This is the minimal setup to exercise
+// the unanimous evaluation path (all attached policies must agree).
+func seedResourceScopeWithUnanimousDualRolePolicy(
+	t *testing.T,
+	ts *testSetup,
+	ctx context.Context,
+	resource, scope, roleA, roleB string,
+) {
+	t.Helper()
+
+	res, err := ts.GraphQLProvider.AddResource(ctx, &model.AddResourceInput{
+		Name:        resource,
+		Description: refs.NewStringRef("seed resource"),
+	})
+	require.NoError(t, err)
+	require.NotNil(t, res)
+
+	sc, err := ts.GraphQLProvider.AddScope(ctx, &model.AddScopeInput{
+		Name:        scope,
+		Description: refs.NewStringRef("seed scope"),
+	})
+	require.NoError(t, err)
+	require.NotNil(t, sc)
+
+	positive := constants.PolicyLogicPositive
+
+	policyA, err := ts.GraphQLProvider.AddPolicy(ctx, &model.AddPolicyInput{
+		Name:        "grant-" + roleA + "-" + uuid.New().String(),
+		Description: refs.NewStringRef("seed positive role policy A"),
+		Type:        constants.PolicyTypeRole,
+		Logic:       &positive,
+		Targets: []*model.PolicyTargetInput{
+			{
+				TargetType:  constants.TargetTypeRole,
+				TargetValue: roleA,
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, policyA)
+
+	policyB, err := ts.GraphQLProvider.AddPolicy(ctx, &model.AddPolicyInput{
+		Name:        "grant-" + roleB + "-" + uuid.New().String(),
+		Description: refs.NewStringRef("seed positive role policy B"),
+		Type:        constants.PolicyTypeRole,
+		Logic:       &positive,
+		Targets: []*model.PolicyTargetInput{
+			{
+				TargetType:  constants.TargetTypeRole,
+				TargetValue: roleB,
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, policyB)
+
+	unanimous := constants.DecisionStrategyUnanimous
+	perm, err := ts.GraphQLProvider.AddPermission(ctx, &model.AddPermissionInput{
+		Name:             resource + "-" + scope + "-" + uuid.New().String(),
+		ResourceID:       res.ID,
+		ScopeIds:         []string{sc.ID},
+		PolicyIds:        []string{policyA.ID, policyB.ID},
+		DecisionStrategy: &unanimous,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, perm)
+	require.Equal(t, constants.DecisionStrategyUnanimous, perm.DecisionStrategy,
+		"permission must be persisted with unanimous strategy")
+}
+
+// seedResourceScopeWithUserPolicyPermission seeds a resource, scope, a
+// positive-logic user policy targeting the given userID, and a permission that
+// links them. Exercises the PolicyTypeUser path: the policy matches on
+// principal.ID, not roles.
+func seedResourceScopeWithUserPolicyPermission(
+	t *testing.T,
+	ts *testSetup,
+	ctx context.Context,
+	resource, scope, userID string,
+) {
+	t.Helper()
+
+	res, err := ts.GraphQLProvider.AddResource(ctx, &model.AddResourceInput{
+		Name:        resource,
+		Description: refs.NewStringRef("seed resource"),
+	})
+	require.NoError(t, err)
+	require.NotNil(t, res)
+
+	sc, err := ts.GraphQLProvider.AddScope(ctx, &model.AddScopeInput{
+		Name:        scope,
+		Description: refs.NewStringRef("seed scope"),
+	})
+	require.NoError(t, err)
+	require.NotNil(t, sc)
+
+	positive := constants.PolicyLogicPositive
+	policy, err := ts.GraphQLProvider.AddPolicy(ctx, &model.AddPolicyInput{
+		Name:        "user-grant-" + uuid.New().String(),
+		Description: refs.NewStringRef("seed user policy"),
+		Type:        constants.PolicyTypeUser,
+		Logic:       &positive,
+		Targets: []*model.PolicyTargetInput{
+			{
+				TargetType:  constants.TargetTypeUser,
+				TargetValue: userID,
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, policy)
+
+	perm, err := ts.GraphQLProvider.AddPermission(ctx, &model.AddPermissionInput{
+		Name:       resource + "-" + scope + "-" + uuid.New().String(),
+		ResourceID: res.ID,
+		ScopeIds:   []string{sc.ID},
+		PolicyIds:  []string{policy.ID},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, perm)
+}
+
+// TestCheckPermission_MaxScopes_InsideCeiling_UsesPolicy verifies that when a
+// principal's delegation ceiling (MaxScopes) explicitly includes the requested
+// resource:scope, the normal policy evaluation proceeds and a matching
+// positive policy still grants access.
+func TestCheckPermission_MaxScopes_InsideCeiling_UsesPolicy(t *testing.T) {
+	ts := testSetupWithAuthzMode(t, constants.AuthorizationEnforcementEnforcing)
+	req, ctx := createContext(ts)
+	adminHash, err := crypto.EncryptPassword(ts.Config.AdminSecret)
+	require.NoError(t, err)
+	req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, adminHash))
+
+	seedResourceScopePermissionWithPositivePolicy(t, ts, ctx, "docs", "read", "viewer")
+
+	result, err := ts.Authz.CheckPermission(ctx, &authorization.Principal{
+		ID:        "user-1",
+		Type:      constants.PrincipalTypeUser,
+		Roles:     []string{"viewer"},
+		MaxScopes: []string{"docs:read"},
+	}, "docs", "read")
+	require.NoError(t, err)
+	require.True(t, result.Allowed)
+}
+
+// TestCheckPermission_MaxScopes_OutsideCeiling_DeniesBeforePolicy verifies that
+// even when a principal's roles/policies would normally grant access, a
+// MaxScopes ceiling that does not include the requested resource:scope MUST
+// deny the check short-circuit — delegation ceilings are evaluated before
+// policy matching.
+func TestCheckPermission_MaxScopes_OutsideCeiling_DeniesBeforePolicy(t *testing.T) {
+	ts := testSetupWithAuthzMode(t, constants.AuthorizationEnforcementEnforcing)
+	req, ctx := createContext(ts)
+	adminHash, err := crypto.EncryptPassword(ts.Config.AdminSecret)
+	require.NoError(t, err)
+	req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, adminHash))
+
+	seedResourceScopePermissionWithPositivePolicy(t, ts, ctx, "docs", "read", "viewer")
+
+	result, err := ts.Authz.CheckPermission(ctx, &authorization.Principal{
+		ID:        "user-1",
+		Type:      constants.PrincipalTypeUser,
+		Roles:     []string{"viewer"},
+		MaxScopes: []string{"docs:write"},
+	}, "docs", "read")
+	require.NoError(t, err)
+	require.False(t, result.Allowed, "MaxScopes ceiling must deny before policy eval")
+}
+
+// TestCheckPermission_UnanimousDecisionStrategy_AllPoliciesMustAgree verifies
+// that a permission with DecisionStrategy=unanimous only grants when every
+// attached policy's target matches the principal. A principal with only one of
+// the two required roles must be denied; a principal with both is allowed.
+func TestCheckPermission_UnanimousDecisionStrategy_AllPoliciesMustAgree(t *testing.T) {
+	ts := testSetupWithAuthzMode(t, constants.AuthorizationEnforcementEnforcing)
+	req, ctx := createContext(ts)
+	adminHash, err := crypto.EncryptPassword(ts.Config.AdminSecret)
+	require.NoError(t, err)
+	req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, adminHash))
+
+	seedResourceScopeWithUnanimousDualRolePolicy(t, ts, ctx, "ledger", "read", "accountant", "auditor")
+
+	res, err := ts.Authz.CheckPermission(ctx, &authorization.Principal{
+		ID:    "user-1",
+		Type:  constants.PrincipalTypeUser,
+		Roles: []string{"accountant"},
+	}, "ledger", "read")
+	require.NoError(t, err)
+	require.False(t, res.Allowed, "unanimous: missing one role")
+
+	res2, err := ts.Authz.CheckPermission(ctx, &authorization.Principal{
+		ID:    "user-2",
+		Type:  constants.PrincipalTypeUser,
+		Roles: []string{"accountant", "auditor"},
+	}, "ledger", "read")
+	require.NoError(t, err)
+	require.True(t, res2.Allowed, "unanimous: all roles present")
+}
+
+// TestCheckPermission_UserTypePolicy_MatchesOnPrincipalID verifies that a
+// PolicyTypeUser policy matches the principal by its ID (not by role). The
+// seeded policy grants access to a specific user; any other user must be
+// denied.
+func TestCheckPermission_UserTypePolicy_MatchesOnPrincipalID(t *testing.T) {
+	ts := testSetupWithAuthzMode(t, constants.AuthorizationEnforcementEnforcing)
+	req, ctx := createContext(ts)
+	adminHash, err := crypto.EncryptPassword(ts.Config.AdminSecret)
+	require.NoError(t, err)
+	req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, adminHash))
+
+	seedResourceScopeWithUserPolicyPermission(t, ts, ctx, "secret", "read", "user-alice")
+
+	res, err := ts.Authz.CheckPermission(ctx, &authorization.Principal{
+		ID:   "user-alice",
+		Type: constants.PrincipalTypeUser,
+	}, "secret", "read")
+	require.NoError(t, err)
+	require.True(t, res.Allowed)
+
+	res2, err := ts.Authz.CheckPermission(ctx, &authorization.Principal{
+		ID:   "user-bob",
+		Type: constants.PrincipalTypeUser,
+	}, "secret", "read")
+	require.NoError(t, err)
+	require.False(t, res2.Allowed)
+}
+
+// TestCheckPermissionREST_NoAuth_ReturnsUnauthorized verifies that POST
+// /api/v1/check-permission rejects requests without a Bearer token with a 401
+// (and a WWW-Authenticate challenge). This is the minimum authentication
+// contract for the REST check-permission endpoint.
+func TestCheckPermissionREST_NoAuth_ReturnsUnauthorized(t *testing.T) {
+	ts := testSetupWithAuthzMode(t, constants.AuthorizationEnforcementPermissive)
+
+	// testSetup doesn't persist a router field, but the CheckPermissionHandler
+	// needs only ContextMiddleware to be wired for gc.Request to be present.
+	// Mirror the pattern metrics_test.go uses for HTTP handler tests.
+	router := gin.New()
+	router.Use(ts.HttpProvider.ContextMiddleware())
+	router.POST("/api/v1/check-permission", ts.HttpProvider.CheckPermissionHandler())
+
+	body := strings.NewReader(`{"resource":"some-res","scope":"some-scope"}`)
+	httpReq := httptest.NewRequest(http.MethodPost, "/api/v1/check-permission", body)
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, httpReq)
+
+	require.Equal(t, http.StatusUnauthorized, rec.Code,
+		"REST /api/v1/check-permission must require Bearer token")
+	require.Contains(t, rec.Header().Get("WWW-Authenticate"), "Bearer",
+		"401 must advertise Bearer auth via WWW-Authenticate challenge")
 }
