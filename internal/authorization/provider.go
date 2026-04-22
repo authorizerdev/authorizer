@@ -52,9 +52,9 @@ type Provider interface {
 	// Used for JWT embedding and dashboard display.
 	GetPrincipalPermissions(ctx context.Context, principal *Principal) ([]ResourceScope, error)
 
-	// InvalidateCache removes cached authorization data.
+	// InvalidateCache removes cached authorization data matching the given prefix.
 	// Called by admin mutations when permissions/policies change.
-	InvalidateCache(ctx context.Context, prefix string) error
+	InvalidateCache(ctx context.Context, prefix string)
 }
 
 // Dependencies carries shared resources for constructing an authorization Provider.

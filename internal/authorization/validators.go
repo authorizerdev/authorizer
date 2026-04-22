@@ -1,12 +1,16 @@
 package authorization
 
-import "unicode"
+import (
+	"unicode"
+
+	"github.com/authorizerdev/authorizer/internal/constants"
+)
 
 // isValidIdentifier checks that a string is safe for use in cache keys
 // and database queries. Allows alphanumeric, hyphens, underscores.
-// Max 100 characters. Empty strings are invalid.
+// Max constants.MaxAuthzIdentifierLength characters. Empty strings are invalid.
 func isValidIdentifier(s string) bool {
-	if len(s) == 0 || len(s) > 100 {
+	if len(s) == 0 || len(s) > constants.MaxAuthzIdentifierLength {
 		return false
 	}
 	for _, r := range s {

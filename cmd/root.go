@@ -538,8 +538,11 @@ func runRoot(c *cobra.Command, args []string) {
 	switch rootArgs.config.AuthorizationEnforcement {
 	case constants.AuthorizationEnforcementEnforcing:
 		// Check once at startup whether any permissions exist. If zero, emit a
-		// loud warn so operators don't lock themselves out in prod.
-		_, pr, lerr := storageProvider.ListPermissions(context.Background(), &model.Pagination{Limit: 1, Page: 1})
+		// loud warn so operators don't lock themselves out in prod. Bounded
+		// context prevents a hung DB at boot from blocking startup indefinitely.
+		probeCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		_, pr, lerr := storageProvider.ListPermissions(probeCtx, &model.Pagination{Limit: 1, Page: 1})
+		cancel()
 		switch {
 		case lerr != nil:
 			log.Warn().Err(lerr).Msg("authz: failed to probe permission count at startup; enforcing mode active")

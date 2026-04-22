@@ -36,4 +36,10 @@ const (
 	TargetTypeRole = "role"
 	// TargetTypeUser is a policy target that matches by user ID.
 	TargetTypeUser = "user"
+
+	// MaxAuthzIdentifierLength is the maximum allowed length for
+	// authorization resource names, scope names, policy names, and other
+	// FGA identifiers. The limit keeps caches bounded and ensures identifiers
+	// fit within reasonable index / column sizes across all storage providers.
+	MaxAuthzIdentifierLength = 100
 )

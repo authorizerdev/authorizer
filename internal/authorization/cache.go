@@ -37,8 +37,9 @@ func (c *cache) enabled() bool {
 
 // get retrieves a cached value by key. Returns the value and whether the key
 // was found and still valid. Expired entries are lazily deleted on access.
-// This returns cached "false" results identically to "true" results,
-// ensuring constant-time behavior for both outcomes.
+// Both positive and negative cached results (authorization "true"/"false")
+// follow the same lookup path, avoiding a cache-stampede on repeated
+// deny evaluations for the same (principal, resource, scope).
 func (c *cache) get(key string) (string, bool) {
 	if !c.enabled() {
 		return "", false

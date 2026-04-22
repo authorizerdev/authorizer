@@ -41,8 +41,8 @@ func (g *graphqlProvider) UpdatePermission(ctx context.Context, params *model.Up
 		if name == "" {
 			return nil, fmt.Errorf("permission name cannot be empty")
 		}
-		if len(name) > 100 {
-			return nil, fmt.Errorf("invalid name: must be 100 characters or fewer")
+		if len(name) > constants.MaxAuthzIdentifierLength {
+			return nil, fmt.Errorf("invalid name: must be %d characters or fewer", constants.MaxAuthzIdentifierLength)
 		}
 		for _, r := range name {
 			if !unicode.IsLetter(r) && !unicode.IsDigit(r) && r != '-' && r != '_' {

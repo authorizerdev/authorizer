@@ -16,6 +16,15 @@ import (
 // error so they can detect incomplete output.
 const MaxPrincipalPermissionEvaluations = 10000
 
+// Boolean-valued cache entries use these sentinel strings. Any other value
+// stored under an evalKey is a bug — the lookup branch below treats it as a
+// cache miss (returns to the full evaluation path) rather than silently
+// coercing to false.
+const (
+	cacheValTrue  = "true"
+	cacheValFalse = "false"
+)
+
 // policyResult holds the outcome of a single policy evaluation.
 type policyResult struct {
 	granted    bool
@@ -83,19 +92,30 @@ func (p *provider) CheckPermission(ctx context.Context, principal *Principal, re
 	// Cache.
 	cacheKey := evalKey(principal.ID, resource, scope)
 	if cached, ok := p.cache.get(cacheKey); ok {
-		allowed := cached == "true"
-		p.log.Debug().
-			Str("principal_id", principal.ID).
-			Str("resource", resource).
-			Str("scope", scope).
-			Bool("allowed", allowed).
-			Msg("authorization cache hit")
-		if allowed {
+		switch cached {
+		case cacheValTrue:
+			p.log.Debug().
+				Str("principal_id", principal.ID).
+				Str("resource", resource).
+				Str("scope", scope).
+				Bool("allowed", true).
+				Msg("authorization cache hit")
 			metrics.RecordAuthzCheck(mode, metrics.AuthzResultAllowed)
-		} else {
+			return &CheckResult{Allowed: true}, nil
+		case cacheValFalse:
+			p.log.Debug().
+				Str("principal_id", principal.ID).
+				Str("resource", resource).
+				Str("scope", scope).
+				Bool("allowed", false).
+				Msg("authorization cache hit")
 			metrics.RecordAuthzCheck(mode, metrics.AuthzResultDenied)
+			return &CheckResult{Allowed: false}, nil
+		default:
+			// Unexpected cache value — treat as a miss and fall through to full eval.
+			p.log.Warn().Str("cache_key", cacheKey).Str("value", cached).
+				Msg("authz: unexpected cached eval value, ignoring")
 		}
-		return &CheckResult{Allowed: allowed}, nil
 	}
 
 	// Resource/scope existence. Fail-closed: if the probe itself errors, surface
@@ -138,7 +158,7 @@ func (p *provider) CheckPermission(ctx context.Context, principal *Principal, re
 	for _, perm := range perms {
 		allowed, matchedPolicy := p.evaluatePermission(principal, perm)
 		if allowed {
-			p.cache.set(cacheKey, "true")
+			p.cache.set(cacheKey, cacheValTrue)
 			p.log.Debug().
 				Str("principal_id", principal.ID).
 				Str("resource", resource).
@@ -151,7 +171,7 @@ func (p *provider) CheckPermission(ctx context.Context, principal *Principal, re
 	}
 
 	// No permission granted access.
-	p.cache.set(cacheKey, "false")
+	p.cache.set(cacheKey, cacheValFalse)
 	p.log.Debug().
 		Str("principal_id", principal.ID).
 		Str("resource", resource).
@@ -189,12 +209,12 @@ func (p *provider) handleNoPermission(mode, cacheKey string, principal *Principa
 				Str("scope", scope).
 				Msg("no matching permission (permissive: allowing)")
 		}
-		p.cache.set(cacheKey, "true")
+		p.cache.set(cacheKey, cacheValTrue)
 		metrics.RecordAuthzCheck(mode, metrics.AuthzResultUnmatchedAllowed)
 		return &CheckResult{Allowed: true}
 	}
 
-	p.cache.set(cacheKey, "false")
+	p.cache.set(cacheKey, cacheValFalse)
 	metrics.RecordAuthzCheck(mode, metrics.AuthzResultUnmatchedDenied)
 	return &CheckResult{Allowed: false}
 }
@@ -377,10 +397,10 @@ func (p *provider) GetPrincipalPermissions(ctx context.Context, principal *Princ
 }
 
 // InvalidateCache removes cached authorization data matching the given prefix.
-func (p *provider) InvalidateCache(ctx context.Context, prefix string) error {
+// Called by admin mutations when permissions/policies change.
+func (p *provider) InvalidateCache(ctx context.Context, prefix string) {
 	p.cache.deleteByPrefix(prefix)
 	p.log.Debug().Str("prefix", prefix).Msg("authorization cache invalidated")
-	return nil
 }
 
 // validateResourceExists reports whether the given resource is registered.
