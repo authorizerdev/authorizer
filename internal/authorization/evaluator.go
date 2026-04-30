@@ -2,7 +2,11 @@ package authorization
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
@@ -27,6 +31,7 @@ const (
 
 // policyResult holds the outcome of a single policy evaluation.
 type policyResult struct {
+	denied     bool
 	granted    bool
 	policyName string
 }
@@ -90,7 +95,7 @@ func (p *provider) CheckPermission(ctx context.Context, principal *Principal, re
 	}
 
 	// Cache.
-	cacheKey := evalKey(principal.ID, resource, scope)
+	cacheKey := evalKey(principal, resource, scope)
 	if cached, ok := p.cache.get(cacheKey); ok {
 		switch cached {
 		case cacheValTrue:
@@ -229,8 +234,9 @@ func (p *provider) evaluatePermission(principal *Principal, perm *schemas.Permis
 	results := make([]policyResult, 0, len(perm.Policies))
 	for i := range perm.Policies {
 		policy := &perm.Policies[i]
-		granted := p.evaluatePolicy(principal, policy)
+		denied, granted := p.evaluatePolicy(principal, policy)
 		results = append(results, policyResult{
+			denied:     denied,
 			granted:    granted,
 			policyName: policy.PolicyName,
 		})
@@ -242,9 +248,9 @@ func (p *provider) evaluatePermission(principal *Principal, perm *schemas.Permis
 // evaluatePolicy evaluates a single policy against the principal.
 // It checks whether the principal matches any of the policy's targets,
 // then applies the policy's logic (positive = grant, negative = deny).
-func (p *provider) evaluatePolicy(principal *Principal, policy *schemas.PolicyWithTargets) bool {
+func (p *provider) evaluatePolicy(principal *Principal, policy *schemas.PolicyWithTargets) (denied bool, granted bool) {
 	if len(policy.Targets) == 0 {
-		return false
+		return false, false
 	}
 
 	var matched bool
@@ -259,14 +265,14 @@ func (p *provider) evaluatePolicy(principal *Principal, policy *schemas.PolicyWi
 			Str("policy_type", policy.Type).
 			Str("policy_name", policy.PolicyName).
 			Msg("unknown policy type, denying")
-		return false
+		return true, false
 	}
 
 	// Apply logic: positive policies grant on match, negative policies deny on match.
 	if policy.Logic == constants.PolicyLogicNegative {
-		return !matched
+		return matched, false
 	}
-	return matched
+	return false, matched
 }
 
 // evaluateRoleTargets checks whether any (affirmative) or all (unanimous) of the
@@ -316,11 +322,17 @@ func evaluateUserTargets(targets []schemas.PolicyTargetView, principalID string)
 }
 
 // resolveDecision combines multiple policy results using the given strategy.
-// Affirmative (default): any grant wins.
-// Unanimous: all must grant.
+// Any explicit deny wins. Otherwise, affirmative grants on any allow, while
+// unanimous requires every policy to grant.
 func resolveDecision(results []policyResult, strategy string) (bool, string) {
 	if len(results) == 0 {
 		return false, ""
+	}
+
+	for _, r := range results {
+		if r.denied {
+			return false, r.policyName
+		}
 	}
 
 	switch strategy {
@@ -341,6 +353,29 @@ func resolveDecision(results []policyResult, strategy string) (bool, string) {
 		}
 		return false, ""
 	}
+}
+
+// evalKey constructs a cache key for an authorization evaluation result. The
+// effective roles and delegation ceiling are part of the key because the same
+// principal ID can legitimately evaluate to different answers across sessions.
+func evalKey(principal *Principal, resource, scope string) string {
+	fp := principalFingerprint(principal)
+	return fmt.Sprintf("authz:eval:%s:%s:%s:%s", principal.ID, fp, resource, scope)
+}
+
+func principalFingerprint(principal *Principal) string {
+	roles := append([]string(nil), principal.Roles...)
+	sort.Strings(roles)
+	maxScopes := append([]string(nil), principal.MaxScopes...)
+	sort.Strings(maxScopes)
+
+	h := sha256.New()
+	_, _ = h.Write([]byte(principal.Type))
+	_, _ = h.Write([]byte{0})
+	_, _ = h.Write([]byte(strings.Join(roles, "\x00")))
+	_, _ = h.Write([]byte{0})
+	_, _ = h.Write([]byte(strings.Join(maxScopes, "\x00")))
+	return hex.EncodeToString(h.Sum(nil))[:16]
 }
 
 // GetPrincipalPermissions returns all granted resource:scope pairs for a principal.

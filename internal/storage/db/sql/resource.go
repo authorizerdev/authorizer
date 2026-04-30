@@ -24,6 +24,9 @@ func (p *provider) AddResource(ctx context.Context, resource *schemas.Resource) 
 	if res.Error != nil {
 		return nil, res.Error
 	}
+	if res.RowsAffected == 0 {
+		return nil, fmt.Errorf("resource already exists: %s", resource.Name)
+	}
 	return resource, nil
 }
 

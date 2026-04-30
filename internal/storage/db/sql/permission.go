@@ -2,6 +2,7 @@ package sql
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -22,6 +23,9 @@ func (p *provider) AddPermission(ctx context.Context, permission *schemas.Permis
 	res := p.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&permission)
 	if res.Error != nil {
 		return nil, res.Error
+	}
+	if res.RowsAffected == 0 {
+		return nil, fmt.Errorf("permission already exists: %s", permission.Name)
 	}
 	return permission, nil
 }

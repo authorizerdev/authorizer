@@ -24,6 +24,9 @@ func (p *provider) AddScope(ctx context.Context, scope *schemas.Scope) (*schemas
 	if res.Error != nil {
 		return nil, res.Error
 	}
+	if res.RowsAffected == 0 {
+		return nil, fmt.Errorf("scope already exists: %s", scope.Name)
+	}
 	return scope, nil
 }
 

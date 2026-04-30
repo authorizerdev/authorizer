@@ -457,6 +457,212 @@ func TestCheckPermission_Permissive_WithExplicitDenyPolicy_StillDenies(t *testin
 	require.False(t, result.Allowed, "explicit deny must apply even in permissive mode")
 }
 
+func TestCheckPermission_ExplicitDenyOverridesAffirmativeGrant(t *testing.T) {
+	ts := testSetupWithAuthzMode(t, constants.AuthorizationEnforcementEnforcing)
+	req, ctx := createContext(ts)
+
+	adminHash, err := crypto.EncryptPassword(ts.Config.AdminSecret)
+	require.NoError(t, err)
+	req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, adminHash))
+
+	res, err := ts.GraphQLProvider.AddResource(ctx, &model.AddResourceInput{Name: "deny-override-docs"})
+	require.NoError(t, err)
+	sc, err := ts.GraphQLProvider.AddScope(ctx, &model.AddScopeInput{Name: "read-deny-override"})
+	require.NoError(t, err)
+
+	positive := constants.PolicyLogicPositive
+	grantPolicy, err := ts.GraphQLProvider.AddPolicy(ctx, &model.AddPolicyInput{
+		Name:  "grant-user-" + uuid.New().String(),
+		Type:  constants.PolicyTypeRole,
+		Logic: &positive,
+		Targets: []*model.PolicyTargetInput{{
+			TargetType:  constants.TargetTypeRole,
+			TargetValue: "user",
+		}},
+	})
+	require.NoError(t, err)
+
+	negative := constants.PolicyLogicNegative
+	denyPolicy, err := ts.GraphQLProvider.AddPolicy(ctx, &model.AddPolicyInput{
+		Name:  "deny-blocked-" + uuid.New().String(),
+		Type:  constants.PolicyTypeRole,
+		Logic: &negative,
+		Targets: []*model.PolicyTargetInput{{
+			TargetType:  constants.TargetTypeRole,
+			TargetValue: "blocked-role",
+		}},
+	})
+	require.NoError(t, err)
+
+	_, err = ts.GraphQLProvider.AddPermission(ctx, &model.AddPermissionInput{
+		Name:       "deny-override-permission-" + uuid.New().String(),
+		ResourceID: res.ID,
+		ScopeIds:   []string{sc.ID},
+		PolicyIds:  []string{grantPolicy.ID, denyPolicy.ID},
+	})
+	require.NoError(t, err)
+
+	result, err := ts.Authz.CheckPermission(ctx, &authorization.Principal{
+		ID:    "user-1",
+		Type:  constants.PrincipalTypeUser,
+		Roles: []string{"user", "blocked-role"},
+	}, "deny-override-docs", "read-deny-override")
+	require.NoError(t, err)
+	require.False(t, result.Allowed, "matching negative policy must override an affirmative grant")
+
+	result, err = ts.Authz.CheckPermission(ctx, &authorization.Principal{
+		ID:    "user-2",
+		Type:  constants.PrincipalTypeUser,
+		Roles: []string{"user"},
+	}, "deny-override-docs", "read-deny-override")
+	require.NoError(t, err)
+	require.True(t, result.Allowed, "non-matching negative policy must not block a positive grant")
+
+	result, err = ts.Authz.CheckPermission(ctx, &authorization.Principal{
+		ID:    "user-3",
+		Type:  constants.PrincipalTypeUser,
+		Roles: []string{"other-role"},
+	}, "deny-override-docs", "read-deny-override")
+	require.NoError(t, err)
+	require.False(t, result.Allowed, "non-matching negative policy must not grant access by itself")
+}
+
+func TestCheckPermission_CacheKeyIncludesRoles(t *testing.T) {
+	ts := testSetupWithAuthzMode(t, constants.AuthorizationEnforcementEnforcing)
+	req, ctx := createContext(ts)
+
+	adminHash, err := crypto.EncryptPassword(ts.Config.AdminSecret)
+	require.NoError(t, err)
+	req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, adminHash))
+
+	seedResourceScopePermissionWithPositivePolicy(t, ts, ctx, "cached-docs", "read", "viewer")
+
+	result, err := ts.Authz.CheckPermission(ctx, &authorization.Principal{
+		ID:    "user-1",
+		Type:  constants.PrincipalTypeUser,
+		Roles: []string{"viewer"},
+	}, "cached-docs", "read")
+	require.NoError(t, err)
+	require.True(t, result.Allowed)
+
+	result, err = ts.Authz.CheckPermission(ctx, &authorization.Principal{
+		ID:   "user-1",
+		Type: constants.PrincipalTypeUser,
+	}, "cached-docs", "read")
+	require.NoError(t, err)
+	require.False(t, result.Allowed, "cached allow for viewer role must not apply to the same user without that role")
+}
+
+func TestUpdatePermission_InvalidScopeDoesNotDropExistingLinks(t *testing.T) {
+	ts := testSetupWithAuthzMode(t, constants.AuthorizationEnforcementEnforcing)
+	req, ctx := createContext(ts)
+
+	adminHash, err := crypto.EncryptPassword(ts.Config.AdminSecret)
+	require.NoError(t, err)
+	req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, adminHash))
+
+	res, err := ts.GraphQLProvider.AddResource(ctx, &model.AddResourceInput{Name: "update-safe-docs"})
+	require.NoError(t, err)
+	sc, err := ts.GraphQLProvider.AddScope(ctx, &model.AddScopeInput{Name: "update-safe-read"})
+	require.NoError(t, err)
+	policy, err := ts.GraphQLProvider.AddPolicy(ctx, &model.AddPolicyInput{
+		Name: "update-safe-policy-" + uuid.New().String(),
+		Type: constants.PolicyTypeRole,
+		Targets: []*model.PolicyTargetInput{{
+			TargetType:  constants.TargetTypeRole,
+			TargetValue: "viewer",
+		}},
+	})
+	require.NoError(t, err)
+	perm, err := ts.GraphQLProvider.AddPermission(ctx, &model.AddPermissionInput{
+		Name:       "update-safe-permission-" + uuid.New().String(),
+		ResourceID: res.ID,
+		ScopeIds:   []string{sc.ID},
+		PolicyIds:  []string{policy.ID},
+	})
+	require.NoError(t, err)
+
+	// Capture pre-failure state. Field-level rollback is part of the contract:
+	// a failed update must leave Name, Description, and DecisionStrategy
+	// untouched on the persisted permission row.
+	origPerm, err := ts.StorageProvider.GetPermissionByID(ctx, perm.ID)
+	require.NoError(t, err)
+	origName := origPerm.Name
+	origDescription := origPerm.Description
+	origDecision := origPerm.DecisionStrategy
+
+	newName := "should-not-be-applied"
+	newDescription := "should-not-be-applied-description"
+	newDecision := constants.DecisionStrategyUnanimous
+	_, err = ts.GraphQLProvider.UpdatePermission(ctx, &model.UpdatePermissionInput{
+		ID:               perm.ID,
+		Name:             &newName,
+		Description:      &newDescription,
+		DecisionStrategy: &newDecision,
+		ScopeIds:         []string{"missing-scope-id"},
+	})
+	require.Error(t, err)
+
+	scopes, err := ts.StorageProvider.GetPermissionScopes(ctx, perm.ID)
+	require.NoError(t, err)
+	require.Len(t, scopes, 1)
+	require.Equal(t, sc.ID, scopes[0].ScopeID)
+
+	// Verify field changes were rolled back. The persisted row must still hold
+	// the original values; the attempted update must have written nothing.
+	after, err := ts.StorageProvider.GetPermissionByID(ctx, perm.ID)
+	require.NoError(t, err)
+	require.Equal(t, origName, after.Name, "name must not change when update fails")
+	require.Equal(t, origDescription, after.Description, "description must not change when update fails")
+	require.Equal(t, origDecision, after.DecisionStrategy, "decision strategy must not change when update fails")
+
+	result, err := ts.Authz.CheckPermission(ctx, &authorization.Principal{
+		ID:    "user-1",
+		Type:  constants.PrincipalTypeUser,
+		Roles: []string{"viewer"},
+	}, "update-safe-docs", "update-safe-read")
+	require.NoError(t, err)
+	require.True(t, result.Allowed, "failed update must not remove existing permission scope")
+}
+
+func TestAddPermission_DuplicateNameReturnsConflict(t *testing.T) {
+	ts := testSetupWithAuthzMode(t, constants.AuthorizationEnforcementEnforcing)
+	req, ctx := createContext(ts)
+
+	adminHash, err := crypto.EncryptPassword(ts.Config.AdminSecret)
+	require.NoError(t, err)
+	req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, adminHash))
+
+	res, err := ts.GraphQLProvider.AddResource(ctx, &model.AddResourceInput{Name: "duplicate-docs"})
+	require.NoError(t, err)
+	sc, err := ts.GraphQLProvider.AddScope(ctx, &model.AddScopeInput{Name: "duplicate-read"})
+	require.NoError(t, err)
+	policy, err := ts.GraphQLProvider.AddPolicy(ctx, &model.AddPolicyInput{
+		Name: "duplicate-policy-" + uuid.New().String(),
+		Type: constants.PolicyTypeRole,
+		Targets: []*model.PolicyTargetInput{{
+			TargetType:  constants.TargetTypeRole,
+			TargetValue: "viewer",
+		}},
+	})
+	require.NoError(t, err)
+
+	input := &model.AddPermissionInput{
+		Name:       "duplicate-permission",
+		ResourceID: res.ID,
+		ScopeIds:   []string{sc.ID},
+		PolicyIds:  []string{policy.ID},
+	}
+	_, err = ts.GraphQLProvider.AddPermission(ctx, input)
+	require.NoError(t, err)
+
+	// The exact error wording is provider-specific (SQL emits "already exists",
+	// while NoSQL backends surface their native duplicate-key errors). Only the
+	// presence of an error is contractual.
+	_, err = ts.GraphQLProvider.AddPermission(ctx, input)
+	require.Error(t, err, "duplicate permission name must surface as an error from any storage backend")
+}
+
 // TestCheckPermission_IncrementsPrometheusCounters verifies that an unmatched
 // check in permissive mode increments metrics.AuthzUnmatchedTotal by exactly
 // one for the "permissive" label. The (resource, scope) pair MUST be registered

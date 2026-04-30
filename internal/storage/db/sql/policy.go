@@ -24,6 +24,9 @@ func (p *provider) AddPolicy(ctx context.Context, policy *schemas.Policy) (*sche
 	if res.Error != nil {
 		return nil, res.Error
 	}
+	if res.RowsAffected == 0 {
+		return nil, fmt.Errorf("policy already exists: %s", policy.Name)
+	}
 	return policy, nil
 }
 

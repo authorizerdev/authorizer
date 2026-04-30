@@ -1,7 +1,6 @@
 package authorization
 
 import (
-	"fmt"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -125,11 +124,6 @@ func (c *cache) setValidSet(key string, set map[string]struct{}) {
 	}
 	c.validSets.Store(key, set)
 	c.expiryMap.Store(key, time.Now().Add(c.ttl))
-}
-
-// evalKey constructs a cache key for an authorization evaluation result.
-func evalKey(principalID, resource, scope string) string {
-	return fmt.Sprintf("authz:eval:%s:%s:%s", principalID, resource, scope)
 }
 
 // validResourcesKey returns the cache key for the set of known resource names.
