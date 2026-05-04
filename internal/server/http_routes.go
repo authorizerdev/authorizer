@@ -3,10 +3,29 @@ package server
 import (
 	"encoding/json"
 	"html/template"
+	"path"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 )
+
+// spaBuildCacheMiddleware sets cache headers for SPA build assets:
+//   - "index.js" / "main.css" (unhashed entry points the shell HTML loads
+//     by name) → no-cache, so browsers always pick up new chunk references
+//     after a deploy.
+//   - everything else (content-hashed chunks, immutable assets) → long-lived
+//     immutable cache, since a content change produces a new filename.
+func spaBuildCacheMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		base := path.Base(c.Request.URL.Path)
+		if base == "index.js" || base == "main.css" {
+			c.Header("Cache-Control", "no-cache, must-revalidate")
+		} else {
+			c.Header("Cache-Control", "public, max-age=31536000, immutable")
+		}
+		c.Next()
+	}
+}
 
 // NewRouter creates new gin router
 func (s *server) NewRouter() *gin.Engine {
@@ -71,7 +90,9 @@ func (s *server) NewRouter() *gin.Engine {
 	app := router.Group("/app")
 	{
 		app.Static("/favicon_io", "web/app/favicon_io")
-		app.Static("/build", "web/app/build")
+		appBuild := app.Group("/build")
+		appBuild.Use(spaBuildCacheMiddleware())
+		appBuild.Static("", "web/app/build")
 		app.GET("/", s.Dependencies.HTTPProvider.AppHandler())
 		app.GET("/:page", s.Dependencies.HTTPProvider.AppHandler())
 	}
@@ -80,10 +101,37 @@ func (s *server) NewRouter() *gin.Engine {
 	dashboard := router.Group("/dashboard")
 	{
 		dashboard.Static("/favicon_io", "web/dashboard/favicon_io")
-		dashboard.Static("/build", "web/dashboard/build")
+		dashboardBuild := dashboard.Group("/build")
+		dashboardBuild.Use(spaBuildCacheMiddleware())
+		dashboardBuild.Static("", "web/dashboard/build")
 		dashboard.Static("/public", "web/dashboard/public")
 		dashboard.GET("/", s.Dependencies.HTTPProvider.DashboardHandler())
 		dashboard.GET("/:page", s.Dependencies.HTTPProvider.DashboardHandler())
 	}
+
+	// SPA fallback: any unmatched GET inside /app/ or /dashboard/ serves the
+	// SPA shell so deep links and browser refresh on multi-segment routes
+	// (e.g. /dashboard/authorization/resources) don't return 404. Static
+	// routes (/build, /favicon_io, /public) and the explicit /, /:page
+	// handlers above take precedence; this only catches the multi-segment
+	// gap. Non-GET methods and other paths fall through to gin's default
+	// 404 handler.
+	dashboardHandler := s.Dependencies.HTTPProvider.DashboardHandler()
+	appHandler := s.Dependencies.HTTPProvider.AppHandler()
+	router.NoRoute(func(c *gin.Context) {
+		if c.Request.Method != "GET" {
+			c.AbortWithStatus(404)
+			return
+		}
+		path := c.Request.URL.Path
+		switch {
+		case strings.HasPrefix(path, "/dashboard/"):
+			dashboardHandler(c)
+		case strings.HasPrefix(path, "/app/"):
+			appHandler(c)
+		default:
+			c.AbortWithStatus(404)
+		}
+	})
 	return router
 }

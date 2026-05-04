@@ -8,12 +8,16 @@ const Policies = lazy(() => import('./authorization/Policies'));
 const Permissions = lazy(() => import('./authorization/Permissions'));
 const Evaluate = lazy(() => import('./authorization/Evaluate'));
 
+// Tab paths are absolute (relative to the BrowserRouter basename "/dashboard").
+// Using relative paths here would resolve against the current URL — clicking
+// "Scopes" while on "/dashboard/authorization/resources" would yield
+// "/dashboard/authorization/resources/scopes" and break the inner <Routes>.
 const tabs = [
-	{ name: 'Resources', path: 'resources' },
-	{ name: 'Scopes', path: 'scopes' },
-	{ name: 'Policies', path: 'policies' },
-	{ name: 'Permissions', path: 'permissions' },
-	{ name: 'Evaluate', path: 'evaluate' },
+	{ name: 'Resources', path: '/authorization/resources' },
+	{ name: 'Scopes', path: '/authorization/scopes' },
+	{ name: 'Policies', path: '/authorization/policies' },
+	{ name: 'Permissions', path: '/authorization/permissions' },
+	{ name: 'Evaluate', path: '/authorization/evaluate' },
 ];
 
 export default function Authorization() {
@@ -59,7 +63,7 @@ export default function Authorization() {
 					<Route path="policies" element={<Policies />} />
 					<Route path="permissions" element={<Permissions />} />
 					<Route path="evaluate" element={<Evaluate />} />
-					<Route path="" element={<Navigate to="resources" replace />} />
+					<Route path="" element={<Navigate to="/authorization/resources" replace />} />
 				</Routes>
 			</Suspense>
 		</div>

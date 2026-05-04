@@ -534,6 +534,11 @@ func runRoot(c *cobra.Command, args []string) {
 	if legacyDisabledObserved {
 		log.Info().Msg("authz: 'disabled' is no longer a supported enforcement mode; migrated to 'permissive'. CheckPermission calls with no matching permission will return ALLOWED and log authz.unmatched=true. Set --authorization-enforcement=enforcing once permissions are seeded.")
 	}
+	if legacyTypoObserved {
+		log.Warn().
+			Str("input", rawAuthzEnforcement).
+			Msg("authz: --authorization-enforcement value is not recognized; defaulted to 'permissive'. Valid values are 'permissive' and 'enforcing'.")
+	}
 
 	switch rootArgs.config.AuthorizationEnforcement {
 	case constants.AuthorizationEnforcementEnforcing:

@@ -159,7 +159,11 @@ func (p *provider) CheckPermission(ctx context.Context, principal *Principal, re
 		return p.handleNoPermission(mode, cacheKey, principal, resource, scope, true /* isKnown */), nil
 	}
 
-	// Policy evaluation.
+	// Policy evaluation. Track the first non-empty deny attribution so we
+	// can surface it on the deny path for audit/debugging — resolveDecision
+	// returns the denying policy name when an explicit deny fires; empty
+	// strings mean "no policy contributed a verdict."
+	var denyMatchedPolicy string
 	for _, perm := range perms {
 		allowed, matchedPolicy := p.evaluatePermission(principal, perm)
 		if allowed {
@@ -173,6 +177,9 @@ func (p *provider) CheckPermission(ctx context.Context, principal *Principal, re
 			metrics.RecordAuthzCheck(mode, metrics.AuthzResultAllowed)
 			return &CheckResult{Allowed: true, MatchedPolicy: matchedPolicy}, nil
 		}
+		if denyMatchedPolicy == "" && matchedPolicy != "" {
+			denyMatchedPolicy = matchedPolicy
+		}
 	}
 
 	// No permission granted access.
@@ -181,9 +188,10 @@ func (p *provider) CheckPermission(ctx context.Context, principal *Principal, re
 		Str("principal_id", principal.ID).
 		Str("resource", resource).
 		Str("scope", scope).
-		Msg("authorization denied: no matching policy")
+		Str("matched_policy", denyMatchedPolicy).
+		Msg("authorization denied")
 	metrics.RecordAuthzCheck(mode, metrics.AuthzResultDenied)
-	return &CheckResult{Allowed: false}, nil
+	return &CheckResult{Allowed: false, MatchedPolicy: denyMatchedPolicy}, nil
 }
 
 // handleNoPermission returns a deny or allow result based on enforcement mode.
