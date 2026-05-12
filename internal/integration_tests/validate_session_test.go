@@ -1,10 +1,8 @@
 package integration_tests
 
 import (
-	"strings"
 	"testing"
 
-	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -62,15 +60,8 @@ func TestValidateSession(t *testing.T) {
 		})
 
 		t.Run("should pass with valid input", func(t *testing.T) {
-			allData, err := ts.MemoryStoreProvider.GetAllData()
-			require.NoError(t, err)
-			sessionToken := ""
-			for k, v := range allData {
-				if strings.Contains(k, constants.TokenTypeSessionToken) {
-					sessionToken = v
-					break
-				}
-			}
+			sessionToken := latestAppSessionCookie(ts)
+			require.NotEmpty(t, sessionToken)
 			res, err := ts.GraphQLProvider.ValidateSession(ctx, &model.ValidateSessionRequest{
 				Cookie: sessionToken,
 			})
