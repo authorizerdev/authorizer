@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/authorizerdev/authorizer/internal/audit"
+	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
@@ -34,6 +36,15 @@ func (g *graphqlProvider) DeleteScope(ctx context.Context, id string) (*model.Re
 	}
 
 	g.AuthorizationProvider.InvalidateCache(context.Background(), "authz:")
+
+	g.AuditProvider.LogEvent(audit.Event{
+		Action:       constants.AuditAdminAuthzScopeDeletedEvent,
+		ActorType:    constants.AuditActorTypeAdmin,
+		ResourceType: constants.AuditResourceTypeAuthzScope,
+		ResourceID:   id,
+		IPAddress:    utils.GetIP(gc.Request),
+		UserAgent:    utils.GetUserAgent(gc.Request),
+	})
 
 	return &model.Response{
 		Message: "Scope deleted successfully",

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
@@ -75,6 +76,10 @@ func (g *graphqlProvider) AddPolicy(ctx context.Context, params *model.AddPolicy
 			constants.DecisionStrategyAffirmative, constants.DecisionStrategyUnanimous)
 	}
 
+	if err := validatePolicyTargets(policyType, params.Targets, g.Config.Roles); err != nil {
+		return nil, err
+	}
+
 	policy, err := g.StorageProvider.AddPolicy(ctx, &schemas.Policy{
 		Name:             name,
 		Description:      description,
@@ -103,6 +108,15 @@ func (g *graphqlProvider) AddPolicy(ctx context.Context, params *model.AddPolicy
 	}
 
 	g.AuthorizationProvider.InvalidateCache(context.Background(), "authz:")
+
+	g.AuditProvider.LogEvent(audit.Event{
+		Action:       constants.AuditAdminAuthzPolicyCreatedEvent,
+		ActorType:    constants.AuditActorTypeAdmin,
+		ResourceType: constants.AuditResourceTypeAuthzPolicy,
+		ResourceID:   policy.ID,
+		IPAddress:    utils.GetIP(gc.Request),
+		UserAgent:    utils.GetUserAgent(gc.Request),
+	})
 
 	return policy.AsAPIPolicy(targets), nil
 }

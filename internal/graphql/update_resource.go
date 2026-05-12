@@ -6,6 +6,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/utils"
@@ -61,6 +62,15 @@ func (g *graphqlProvider) UpdateResource(ctx context.Context, params *model.Upda
 	}
 
 	g.AuthorizationProvider.InvalidateCache(context.Background(), "authz:")
+
+	g.AuditProvider.LogEvent(audit.Event{
+		Action:       constants.AuditAdminAuthzResourceUpdatedEvent,
+		ActorType:    constants.AuditActorTypeAdmin,
+		ResourceType: constants.AuditResourceTypeAuthzResource,
+		ResourceID:   resource.ID,
+		IPAddress:    utils.GetIP(gc.Request),
+		UserAgent:    utils.GetUserAgent(gc.Request),
+	})
 
 	return resource.AsAPIResource(), nil
 }

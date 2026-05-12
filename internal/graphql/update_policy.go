@@ -6,6 +6,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
@@ -80,6 +81,11 @@ func (g *graphqlProvider) UpdatePolicy(ctx context.Context, params *model.Update
 	// Replace targets if provided
 	var targets []*schemas.PolicyTarget
 	if params.Targets != nil {
+		// Validate against the existing policy.Type — Type is immutable on update,
+		// so targets must conform to whatever the policy was created with.
+		if err := validatePolicyTargets(policy.Type, params.Targets, g.Config.Roles); err != nil {
+			return nil, err
+		}
 		err = g.StorageProvider.DeletePolicyTargetsByPolicyID(ctx, policy.ID)
 		if err != nil {
 			log.Debug().Err(err).Msg("Failed to delete existing policy targets")
@@ -106,6 +112,15 @@ func (g *graphqlProvider) UpdatePolicy(ctx context.Context, params *model.Update
 	}
 
 	g.AuthorizationProvider.InvalidateCache(context.Background(), "authz:")
+
+	g.AuditProvider.LogEvent(audit.Event{
+		Action:       constants.AuditAdminAuthzPolicyUpdatedEvent,
+		ActorType:    constants.AuditActorTypeAdmin,
+		ResourceType: constants.AuditResourceTypeAuthzPolicy,
+		ResourceID:   policy.ID,
+		IPAddress:    utils.GetIP(gc.Request),
+		UserAgent:    utils.GetUserAgent(gc.Request),
+	})
 
 	return policy.AsAPIPolicy(targets), nil
 }

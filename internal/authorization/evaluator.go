@@ -143,7 +143,8 @@ func (p *provider) CheckPermission(ctx context.Context, principal *Principal, re
 	}
 	if !knownResource || !knownScope {
 		// Unknown identifier — skip counter bumps (DoS guard for attacker-
-		// controlled inputs from the public REST endpoint).
+		// controlled inputs reaching CheckPermission, e.g. via GraphQL
+		// myPermissions / required_permissions on authenticated endpoints).
 		return p.handleNoPermission(mode, cacheKey, principal, resource, scope, false /* isKnown */), nil
 	}
 
@@ -202,12 +203,15 @@ func (p *provider) CheckPermission(ctx context.Context, principal *Principal, re
 // The isKnown parameter reports whether (resource, scope) are both registered
 // in the DB. Counters and the warn-limiter are only bumped for known pairs to
 // prevent unbounded growth of cache.counters / warnLimiter.last from attacker-
-// controlled input on the public /api/v1/check-permission REST endpoint.
+// controlled input. Authenticated callers can still reach CheckPermission with
+// arbitrary identifiers via GraphQL (e.g. myPermissions / required_permissions),
+// so the guard applies there too — it is not specific to the (removed) public
+// REST endpoint.
 func (p *provider) handleNoPermission(mode, cacheKey string, principal *Principal, resource, scope string, isKnown bool) *CheckResult {
 	if isKnown {
 		// Only track rollout signal for registered (resource, scope) pairs.
 		// Unknown identifiers are rejected here to prevent unbounded counter
-		// growth from attacker-controlled input on the public REST endpoint.
+		// growth from attacker-controlled input reaching CheckPermission.
 		p.cache.bumpUnmatched(resource, scope)
 		metrics.RecordAuthzUnmatched(mode)
 	}

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/authorizerdev/authorizer/internal/audit"
+	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
@@ -47,6 +49,15 @@ func (g *graphqlProvider) DeletePermission(ctx context.Context, id string) (*mod
 	}
 
 	g.AuthorizationProvider.InvalidateCache(context.Background(), "authz:")
+
+	g.AuditProvider.LogEvent(audit.Event{
+		Action:       constants.AuditAdminAuthzPermissionDeletedEvent,
+		ActorType:    constants.AuditActorTypeAdmin,
+		ResourceType: constants.AuditResourceTypeAuthzPermission,
+		ResourceID:   id,
+		IPAddress:    utils.GetIP(gc.Request),
+		UserAgent:    utils.GetUserAgent(gc.Request),
+	})
 
 	return &model.Response{
 		Message: "Permission deleted successfully",

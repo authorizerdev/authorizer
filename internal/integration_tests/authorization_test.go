@@ -3,9 +3,6 @@ package integration_tests
 import (
 	"context"
 	"fmt"
-	"net/http"
-	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/authorizerdev/authorizer/cmd"
@@ -17,7 +14,6 @@ import (
 	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
-	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/assert"
@@ -180,63 +176,20 @@ func TestAuthorizationCRUD(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	// CheckPermission requires an authenticated user, not admin.
-	// Sign up a user, log in, and set the access token.
 	t.Run("should check permission granted by role", func(t *testing.T) {
-		// Clear admin cookie
-		req.Header.Del("Cookie")
-
-		email := "authz_test_" + uuid.New().String() + "@authorizer.dev"
-		password := "Password@123"
-
-		_, err := ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
-			Email:           &email,
-			Password:        password,
-			ConfirmPassword: password,
-		})
-		require.NoError(t, err)
-
-		loginRes, err := ts.GraphQLProvider.Login(ctx, &model.LoginRequest{
-			Email:    &email,
-			Password: password,
-		})
-		require.NoError(t, err)
-		require.NotNil(t, loginRes)
-		require.NotNil(t, loginRes.User)
-
-		// User has "user" role by default (from DefaultRoles in config).
-		// Set access token for the CheckPermission call.
-		allData, err := ts.MemoryStoreProvider.GetAllData()
-		require.NoError(t, err)
-		accessToken := ""
-		for k, v := range allData {
-			if strings.Contains(k, constants.TokenTypeAccessToken) {
-				accessToken = v
-				break
-			}
-		}
-		require.NotEmpty(t, accessToken, "access token must be present in memory store")
-
-		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", accessToken))
-		defer func() {
-			req.Header.Del("Authorization")
-			// Restore admin cookie for subsequent tests
-			req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, adminHash))
-		}()
-
-		res, err := ts.GraphQLProvider.CheckPermission(ctx, &model.CheckPermissionInput{
-			Resource: "documents",
-			Scope:    "read",
-		})
+		res, err := ts.Authz.CheckPermission(ctx, &authorization.Principal{
+			ID:    uuid.New().String(),
+			Type:  constants.PrincipalTypeUser,
+			Roles: []string{"user"},
+		}, "documents", "read")
 		require.NoError(t, err)
 		require.NotNil(t, res)
-		assert.True(t, res.Allowed, "user with 'user' role should have read access to documents")
+		assert.True(t, res.Allowed, "principal with 'user' role should have read access to documents")
 	})
 
 	t.Run("should check permission denied for wrong role", func(t *testing.T) {
-		// Create a second policy that targets "admin" role only
-		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, adminHash))
-
+		// Add an admin-only policy + a "write" scope + a permission requiring
+		// the "admin" role for "write" on documents.
 		adminPolicy, err := ts.GraphQLProvider.AddPolicy(ctx, &model.AddPolicyInput{
 			Name: "admin-only-policy",
 			Type: "role",
@@ -249,13 +202,11 @@ func TestAuthorizationCRUD(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		// Add a "write" scope
 		writeScope, err := ts.GraphQLProvider.AddScope(ctx, &model.AddScopeInput{
 			Name: "write",
 		})
 		require.NoError(t, err)
 
-		// Create a permission that requires "admin" role for "write" on documents
 		_, err = ts.GraphQLProvider.AddPermission(ctx, &model.AddPermissionInput{
 			Name:       "documents-write",
 			ResourceID: resourceID,
@@ -264,50 +215,14 @@ func TestAuthorizationCRUD(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		// Now sign up a regular user and check write permission (should be denied)
-		req.Header.Del("Cookie")
-
-		email2 := "authz_denied_" + uuid.New().String() + "@authorizer.dev"
-		password := "Password@123"
-
-		_, err = ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
-			Email:           &email2,
-			Password:        password,
-			ConfirmPassword: password,
-		})
-		require.NoError(t, err)
-
-		loginRes, err := ts.GraphQLProvider.Login(ctx, &model.LoginRequest{
-			Email:    &email2,
-			Password: password,
-		})
-		require.NoError(t, err)
-		require.NotNil(t, loginRes)
-
-		allData, err := ts.MemoryStoreProvider.GetAllData()
-		require.NoError(t, err)
-		accessToken := ""
-		for k, v := range allData {
-			if strings.Contains(k, constants.TokenTypeAccessToken) {
-				accessToken = v
-				break
-			}
-		}
-		require.NotEmpty(t, accessToken)
-
-		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", accessToken))
-		defer func() {
-			req.Header.Del("Authorization")
-			req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, adminHash))
-		}()
-
-		res, err := ts.GraphQLProvider.CheckPermission(ctx, &model.CheckPermissionInput{
-			Resource: "documents",
-			Scope:    "write",
-		})
+		res, err := ts.Authz.CheckPermission(ctx, &authorization.Principal{
+			ID:    uuid.New().String(),
+			Type:  constants.PrincipalTypeUser,
+			Roles: []string{"user"},
+		}, "documents", "write")
 		require.NoError(t, err)
 		require.NotNil(t, res)
-		assert.False(t, res.Allowed, "user with 'user' role should NOT have write access requiring admin role")
+		assert.False(t, res.Allowed, "principal with 'user' role should NOT have write access requiring 'admin' role")
 	})
 
 	// Re-set admin cookie for remaining admin operations
@@ -693,9 +608,10 @@ func TestCheckPermission_IncrementsPrometheusCounters(t *testing.T) {
 // TestCheckPermission_UnknownResource_PermissiveStillAllows_ButDoesNotBumpUnmatchedCounter
 // verifies the DoS guard: permissive mode still allows the request (so callers
 // aren't broken by a typo/unknown identifier), but the unmatched counter and
-// warn-limiter MUST NOT grow for attacker-controlled input on the public
-// /api/v1/check-permission endpoint. Otherwise a caller could flood the
-// in-process sync.Map with arbitrary (resource, scope) combinations.
+// warn-limiter MUST NOT grow for attacker-controlled input. Authenticated
+// callers can still reach CheckPermission with arbitrary identifiers via
+// GraphQL (myPermissions / required_permissions) — without this guard they
+// could flood the in-process sync.Map with arbitrary (resource, scope) pairs.
 func TestCheckPermission_UnknownResource_PermissiveStillAllows_ButDoesNotBumpUnmatchedCounter(t *testing.T) {
 	ts := testSetupWithAuthzMode(t, constants.AuthorizationEnforcementPermissive)
 	_, ctx := createContext(ts)
@@ -780,6 +696,152 @@ func seedResourceScopePermissionWithDenyPolicy(
 		ResourceID: res.ID,
 		ScopeIds:   []string{sc.ID},
 		PolicyIds:  []string{policy.ID},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, perm)
+}
+
+// TestCheckPermission_ResultLabels_IncrementCorrectCounter covers the four
+// result labels on authorizer_authz_checks_total that the earlier rollout test
+// (TestCheckPermission_IncrementsPrometheusCounters) did not exercise:
+// allowed, denied, unmatched_denied, and error. Each subtest builds the exact
+// shape needed to land on one terminal path in CheckPermission and asserts
+// that exactly one increment is recorded on the matching counter series.
+// Co-located with the authz tests because it shares their fixtures.
+func TestCheckPermission_ResultLabels_IncrementCorrectCounter(t *testing.T) {
+	t.Run("allowed", func(t *testing.T) {
+		ts := testSetupWithAuthzMode(t, constants.AuthorizationEnforcementEnforcing)
+		req, ctx := createContext(ts)
+		adminHash, err := crypto.EncryptPassword(ts.Config.AdminSecret)
+		require.NoError(t, err)
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, adminHash))
+
+		// Seed a granting role policy + permission for (orders, read) and a
+		// user principal with the "user" role so the affirmative grant fires.
+		seedResourceScopePermissionAllowingRole(t, ts, ctx, "orders", "read", "user")
+
+		before := testutil.ToFloat64(metrics.AuthzChecksTotal.WithLabelValues(
+			metrics.AuthzModeEnforcing, metrics.AuthzResultAllowed))
+
+		res, err := ts.Authz.CheckPermission(ctx, &authorization.Principal{
+			ID: "user-allowed", Type: constants.PrincipalTypeUser, Roles: []string{"user"},
+		}, "orders", "read")
+		require.NoError(t, err)
+		require.True(t, res.Allowed)
+
+		after := testutil.ToFloat64(metrics.AuthzChecksTotal.WithLabelValues(
+			metrics.AuthzModeEnforcing, metrics.AuthzResultAllowed))
+		require.Equal(t, before+1, after, "allowed counter must increment once")
+	})
+
+	t.Run("denied", func(t *testing.T) {
+		ts := testSetupWithAuthzMode(t, constants.AuthorizationEnforcementEnforcing)
+		req, ctx := createContext(ts)
+		adminHash, err := crypto.EncryptPassword(ts.Config.AdminSecret)
+		require.NoError(t, err)
+		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, adminHash))
+
+		// Negative-logic policy targeting "user" — any principal with that
+		// role is explicitly denied on (orders, read).
+		seedResourceScopePermissionWithDenyPolicy(t, ts, ctx, "orders", "read", "user")
+
+		before := testutil.ToFloat64(metrics.AuthzChecksTotal.WithLabelValues(
+			metrics.AuthzModeEnforcing, metrics.AuthzResultDenied))
+
+		res, err := ts.Authz.CheckPermission(ctx, &authorization.Principal{
+			ID: "user-denied", Type: constants.PrincipalTypeUser, Roles: []string{"user"},
+		}, "orders", "read")
+		require.NoError(t, err)
+		require.False(t, res.Allowed)
+
+		after := testutil.ToFloat64(metrics.AuthzChecksTotal.WithLabelValues(
+			metrics.AuthzModeEnforcing, metrics.AuthzResultDenied))
+		require.Equal(t, before+1, after, "denied counter must increment once")
+	})
+
+	t.Run("unmatched_denied", func(t *testing.T) {
+		ts := testSetupWithAuthzMode(t, constants.AuthorizationEnforcementEnforcing)
+		_, ctx := createContext(ts)
+
+		// Known (resource, scope) with no permission row in enforcing mode →
+		// the fall-through denies and increments unmatched_denied.
+		seedKnownResourceScopeNoPermission(t, ts, ctx, "orders", "read")
+
+		before := testutil.ToFloat64(metrics.AuthzChecksTotal.WithLabelValues(
+			metrics.AuthzModeEnforcing, metrics.AuthzResultUnmatchedDenied))
+
+		res, err := ts.Authz.CheckPermission(ctx, &authorization.Principal{
+			ID: "user-unmatched", Type: constants.PrincipalTypeUser,
+		}, "orders", "read")
+		require.NoError(t, err)
+		require.False(t, res.Allowed)
+
+		after := testutil.ToFloat64(metrics.AuthzChecksTotal.WithLabelValues(
+			metrics.AuthzModeEnforcing, metrics.AuthzResultUnmatchedDenied))
+		require.Equal(t, before+1, after, "unmatched_denied counter must increment once")
+	})
+
+	t.Run("error", func(t *testing.T) {
+		ts := testSetupWithAuthzMode(t, constants.AuthorizationEnforcementEnforcing)
+		_, ctx := createContext(ts)
+
+		before := testutil.ToFloat64(metrics.AuthzChecksTotal.WithLabelValues(
+			metrics.AuthzModeEnforcing, metrics.AuthzResultError))
+
+		// Invalid identifier — fails the input validation path which records
+		// AuthzResultError before any storage or cache lookup.
+		_, err := ts.Authz.CheckPermission(ctx, &authorization.Principal{
+			ID: "user-error", Type: constants.PrincipalTypeUser,
+		}, "bad resource with spaces", "read")
+		require.Error(t, err)
+
+		after := testutil.ToFloat64(metrics.AuthzChecksTotal.WithLabelValues(
+			metrics.AuthzModeEnforcing, metrics.AuthzResultError))
+		require.Equal(t, before+1, after, "error counter must increment once")
+	})
+}
+
+// seedResourceScopePermissionAllowingRole seeds a resource + scope and an
+// affirmative-logic role policy targeting `role`, then attaches a permission
+// linking them. Mirrors seedResourceScopePermissionWithDenyPolicy but for the
+// grant path.
+func seedResourceScopePermissionAllowingRole(
+	t *testing.T,
+	ts *testSetup,
+	ctx context.Context,
+	resource, scope, role string,
+) {
+	t.Helper()
+
+	res, err := ts.GraphQLProvider.AddResource(ctx, &model.AddResourceInput{
+		Name:        resource,
+		Description: refs.NewStringRef("seed resource"),
+	})
+	require.NoError(t, err)
+
+	sc, err := ts.GraphQLProvider.AddScope(ctx, &model.AddScopeInput{
+		Name:        scope,
+		Description: refs.NewStringRef("seed scope"),
+	})
+	require.NoError(t, err)
+
+	pol, err := ts.GraphQLProvider.AddPolicy(ctx, &model.AddPolicyInput{
+		Name:        "allow-" + role + "-" + uuid.New().String()[:8],
+		Description: refs.NewStringRef("seed allow policy"),
+		Type:        constants.PolicyTypeRole,
+		Logic:       refs.NewStringRef(constants.PolicyLogicPositive),
+		Targets: []*model.PolicyTargetInput{
+			{TargetType: constants.TargetTypeRole, TargetValue: role},
+		},
+	})
+	require.NoError(t, err)
+
+	perm, err := ts.GraphQLProvider.AddPermission(ctx, &model.AddPermissionInput{
+		Name:        "allow-" + resource + "-" + scope + "-" + uuid.New().String()[:8],
+		Description: refs.NewStringRef("seed allow permission"),
+		ResourceID:  res.ID,
+		ScopeIds:    []string{sc.ID},
+		PolicyIds:   []string{pol.ID},
 	})
 	require.NoError(t, err)
 	require.NotNil(t, perm)
@@ -1116,31 +1178,4 @@ func TestCheckPermission_UserTypePolicy_MatchesOnPrincipalID(t *testing.T) {
 	}, "secret", "read")
 	require.NoError(t, err)
 	require.False(t, res2.Allowed)
-}
-
-// TestCheckPermissionREST_NoAuth_ReturnsUnauthorized verifies that POST
-// /api/v1/check-permission rejects requests without a Bearer token with a 401
-// (and a WWW-Authenticate challenge). This is the minimum authentication
-// contract for the REST check-permission endpoint.
-func TestCheckPermissionREST_NoAuth_ReturnsUnauthorized(t *testing.T) {
-	ts := testSetupWithAuthzMode(t, constants.AuthorizationEnforcementPermissive)
-
-	// testSetup doesn't persist a router field, but the CheckPermissionHandler
-	// needs only ContextMiddleware to be wired for gc.Request to be present.
-	// Mirror the pattern metrics_test.go uses for HTTP handler tests.
-	router := gin.New()
-	router.Use(ts.HttpProvider.ContextMiddleware())
-	router.POST("/api/v1/check-permission", ts.HttpProvider.CheckPermissionHandler())
-
-	body := strings.NewReader(`{"resource":"some-res","scope":"some-scope"}`)
-	httpReq := httptest.NewRequest(http.MethodPost, "/api/v1/check-permission", body)
-	httpReq.Header.Set("Content-Type", "application/json")
-
-	rec := httptest.NewRecorder()
-	router.ServeHTTP(rec, httpReq)
-
-	require.Equal(t, http.StatusUnauthorized, rec.Code,
-		"REST /api/v1/check-permission must require Bearer token")
-	require.Contains(t, rec.Header().Get("WWW-Authenticate"), "Bearer",
-		"401 must advertise Bearer auth via WWW-Authenticate challenge")
 }

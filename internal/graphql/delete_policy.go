@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/authorizerdev/authorizer/internal/audit"
+	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
@@ -36,6 +38,15 @@ func (g *graphqlProvider) DeletePolicy(ctx context.Context, id string) (*model.R
 	}
 
 	g.AuthorizationProvider.InvalidateCache(context.Background(), "authz:")
+
+	g.AuditProvider.LogEvent(audit.Event{
+		Action:       constants.AuditAdminAuthzPolicyDeletedEvent,
+		ActorType:    constants.AuditActorTypeAdmin,
+		ResourceType: constants.AuditResourceTypeAuthzPolicy,
+		ResourceID:   id,
+		IPAddress:    utils.GetIP(gc.Request),
+		UserAgent:    utils.GetUserAgent(gc.Request),
+	})
 
 	return &model.Response{
 		Message: "Policy deleted successfully",
