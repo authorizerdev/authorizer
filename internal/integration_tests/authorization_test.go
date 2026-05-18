@@ -311,11 +311,10 @@ func TestAuthorizationCRUD(t *testing.T) {
 	})
 }
 
-// TestCheckPermission_PermissiveDefault_NoPermissions_Allows verifies that
-// permissive mode allows a check for a (resource, scope) pair that has no
-// matching permission registered.
-func TestCheckPermission_PermissiveDefault_NoPermissions_Allows(t *testing.T) {
-	ts := testSetupWithAuthzMode(t, constants.AuthorizationEnforcementPermissive)
+// TestCheckPermission_NoPermissions_Denies verifies that a check for a
+// (resource, scope) pair with no matching permission is denied.
+func TestCheckPermission_NoPermissions_Denies(t *testing.T) {
+	ts := initTestSetup(t, getTestConfig())
 	_, ctx := createContext(ts)
 
 	result, err := ts.Authz.CheckPermission(ctx, &authorization.Principal{
@@ -324,31 +323,14 @@ func TestCheckPermission_PermissiveDefault_NoPermissions_Allows(t *testing.T) {
 	}, "orders", "read")
 
 	require.NoError(t, err)
-	require.True(t, result.Allowed, "permissive mode with no permissions must allow")
+	require.False(t, result.Allowed, "no matching permission must deny")
 }
 
-// TestCheckPermission_Enforcing_NoPermissions_Denies verifies that enforcing
-// mode denies a check for a (resource, scope) pair with no matching permission.
-func TestCheckPermission_Enforcing_NoPermissions_Denies(t *testing.T) {
-	ts := testSetupWithAuthzMode(t, constants.AuthorizationEnforcementEnforcing)
-	_, ctx := createContext(ts)
-
-	result, err := ts.Authz.CheckPermission(ctx, &authorization.Principal{
-		ID:   "user-1",
-		Type: constants.PrincipalTypeUser,
-	}, "orders", "read")
-
-	require.NoError(t, err)
-	require.False(t, result.Allowed, "enforcing mode with no permissions must deny")
-}
-
-// TestCheckPermission_Permissive_WithExplicitDenyPolicy_StillDenies verifies
-// that once a permission exists for the (resource, scope) and attaches a
-// negative-logic policy that matches the principal, the check is denied even
-// in permissive mode. Permissive only loosens the "no matching permission"
-// path, not evaluated deny decisions.
-func TestCheckPermission_Permissive_WithExplicitDenyPolicy_StillDenies(t *testing.T) {
-	ts := testSetupWithAuthzMode(t, constants.AuthorizationEnforcementPermissive)
+// TestCheckPermission_ExplicitDenyPolicy_Denies verifies that once a
+// permission exists for the (resource, scope) and attaches a negative-logic
+// policy that matches the principal, the check is denied.
+func TestCheckPermission_ExplicitDenyPolicy_Denies(t *testing.T) {
+	ts := initTestSetup(t, getTestConfig())
 	req, ctx := createContext(ts)
 
 	// Authenticate as admin for seeding operations.
@@ -373,7 +355,7 @@ func TestCheckPermission_Permissive_WithExplicitDenyPolicy_StillDenies(t *testin
 }
 
 func TestCheckPermission_ExplicitDenyOverridesAffirmativeGrant(t *testing.T) {
-	ts := testSetupWithAuthzMode(t, constants.AuthorizationEnforcementEnforcing)
+	ts := initTestSetup(t, getTestConfig())
 	req, ctx := createContext(ts)
 
 	adminHash, err := crypto.EncryptPassword(ts.Config.AdminSecret)
@@ -443,7 +425,7 @@ func TestCheckPermission_ExplicitDenyOverridesAffirmativeGrant(t *testing.T) {
 }
 
 func TestCheckPermission_CacheKeyIncludesRoles(t *testing.T) {
-	ts := testSetupWithAuthzMode(t, constants.AuthorizationEnforcementEnforcing)
+	ts := initTestSetup(t, getTestConfig())
 	req, ctx := createContext(ts)
 
 	adminHash, err := crypto.EncryptPassword(ts.Config.AdminSecret)
@@ -469,7 +451,7 @@ func TestCheckPermission_CacheKeyIncludesRoles(t *testing.T) {
 }
 
 func TestUpdatePermission_InvalidScopeDoesNotDropExistingLinks(t *testing.T) {
-	ts := testSetupWithAuthzMode(t, constants.AuthorizationEnforcementEnforcing)
+	ts := initTestSetup(t, getTestConfig())
 	req, ctx := createContext(ts)
 
 	adminHash, err := crypto.EncryptPassword(ts.Config.AdminSecret)
@@ -541,7 +523,7 @@ func TestUpdatePermission_InvalidScopeDoesNotDropExistingLinks(t *testing.T) {
 }
 
 func TestAddPermission_DuplicateNameReturnsConflict(t *testing.T) {
-	ts := testSetupWithAuthzMode(t, constants.AuthorizationEnforcementEnforcing)
+	ts := initTestSetup(t, getTestConfig())
 	req, ctx := createContext(ts)
 
 	adminHash, err := crypto.EncryptPassword(ts.Config.AdminSecret)
@@ -1070,7 +1052,7 @@ func seedResourceScopeWithUserPolicyPermission(
 // resource:scope, the normal policy evaluation proceeds and a matching
 // positive policy still grants access.
 func TestCheckPermission_MaxScopes_InsideCeiling_UsesPolicy(t *testing.T) {
-	ts := testSetupWithAuthzMode(t, constants.AuthorizationEnforcementEnforcing)
+	ts := initTestSetup(t, getTestConfig())
 	req, ctx := createContext(ts)
 	adminHash, err := crypto.EncryptPassword(ts.Config.AdminSecret)
 	require.NoError(t, err)
@@ -1094,7 +1076,7 @@ func TestCheckPermission_MaxScopes_InsideCeiling_UsesPolicy(t *testing.T) {
 // deny the check short-circuit — delegation ceilings are evaluated before
 // policy matching.
 func TestCheckPermission_MaxScopes_OutsideCeiling_DeniesBeforePolicy(t *testing.T) {
-	ts := testSetupWithAuthzMode(t, constants.AuthorizationEnforcementEnforcing)
+	ts := initTestSetup(t, getTestConfig())
 	req, ctx := createContext(ts)
 	adminHash, err := crypto.EncryptPassword(ts.Config.AdminSecret)
 	require.NoError(t, err)
@@ -1117,7 +1099,7 @@ func TestCheckPermission_MaxScopes_OutsideCeiling_DeniesBeforePolicy(t *testing.
 // attached policy's target matches the principal. A principal with only one of
 // the two required roles must be denied; a principal with both is allowed.
 func TestCheckPermission_UnanimousDecisionStrategy_AllPoliciesMustAgree(t *testing.T) {
-	ts := testSetupWithAuthzMode(t, constants.AuthorizationEnforcementEnforcing)
+	ts := initTestSetup(t, getTestConfig())
 	req, ctx := createContext(ts)
 	adminHash, err := crypto.EncryptPassword(ts.Config.AdminSecret)
 	require.NoError(t, err)
@@ -1147,7 +1129,7 @@ func TestCheckPermission_UnanimousDecisionStrategy_AllPoliciesMustAgree(t *testi
 // seeded policy grants access to a specific user; any other user must be
 // denied.
 func TestCheckPermission_UserTypePolicy_MatchesOnPrincipalID(t *testing.T) {
-	ts := testSetupWithAuthzMode(t, constants.AuthorizationEnforcementEnforcing)
+	ts := initTestSetup(t, getTestConfig())
 	req, ctx := createContext(ts)
 	adminHash, err := crypto.EncryptPassword(ts.Config.AdminSecret)
 	require.NoError(t, err)

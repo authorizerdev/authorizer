@@ -279,16 +279,6 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 	}
 }
 
-// testSetupWithAuthzMode builds a test setup with the authorization provider
-// wired to the given enforcement mode ("permissive" or "enforcing").
-// Mirrors initTestSetup but overrides AuthorizationEnforcement on the config
-// before any providers are constructed.
-func testSetupWithAuthzMode(t *testing.T, mode string) *testSetup {
-	cfg := getTestConfig()
-	cfg.AuthorizationEnforcement = mode
-	return initTestSetup(t, cfg)
-}
-
 // latestAppSessionCookie returns the most recent value of the
 // AppCookieName+"_session" cookie that has been written to the gin response
 // writer in this test. Session() and Login() both rotate the cookie and the

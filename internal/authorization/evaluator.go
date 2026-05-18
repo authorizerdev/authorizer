@@ -427,10 +427,10 @@ func (p *provider) InvalidateCache(ctx context.Context, prefix string) {
 // Returns (true, nil) if known; (false, nil) if definitively unknown;
 // (false, err) if the storage probe itself failed.
 //
-// A probe error must NOT be masked as "unknown" — previously this helper
-// returned nil on DB failure, which in permissive mode caused the caller to
-// fall through to allow. We now fail-closed on probe error so a transient DB
-// blip cannot flip a legitimate unknown-resource path to Allowed:true.
+// A probe error must NOT be masked as "unknown" — fail-closed on probe
+// error so a transient DB blip surfaces as an error to the caller rather
+// than falling through to handleNoPermission's deny path (which would
+// look indistinguishable from a legitimate unknown resource).
 func (p *provider) validateResourceExists(ctx context.Context, resource string) (bool, error) {
 	cacheKey := validResourcesKey()
 	if set, ok := p.cache.getValidSet(cacheKey); ok {
