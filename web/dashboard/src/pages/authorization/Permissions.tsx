@@ -387,21 +387,28 @@ export default function Permissions() {
 							<Label htmlFor="perm-name">Name</Label>
 							<Input
 								id="perm-name"
-								placeholder="e.g. View Documents"
+								placeholder="e.g. view-documents or documents_read"
 								value={formName}
 								onChange={(e) => setFormName(e.target.value)}
 								className="mt-1"
 							/>
+							<p className="text-xs text-gray-500 mt-1">
+								Letters, digits, hyphens, and underscores only. Max 100
+								characters. No spaces.
+							</p>
 						</div>
 						<div>
 							<Label htmlFor="perm-desc">Description</Label>
 							<Textarea
 								id="perm-desc"
-								placeholder="Optional description"
+								placeholder="Optional human-readable description"
 								value={formDescription}
 								onChange={(e) => setFormDescription(e.target.value)}
 								className="mt-1"
 							/>
+							<p className="text-xs text-gray-500 mt-1">
+								Free-form text shown in the dashboard. Not used for matching.
+							</p>
 						</div>
 
 						{/* Resource */}
@@ -507,6 +514,11 @@ export default function Permissions() {
 								<option value="affirmative">Any match grants</option>
 								<option value="unanimous">All must match</option>
 							</Select>
+							<p className="text-xs text-gray-500 mt-1">
+								Affirmative: any allowed policy grants access (OR). Unanimous:
+								every selected policy must allow (AND). Explicit deny always
+								wins.
+							</p>
 						</div>
 
 						{/* Natural language summary */}

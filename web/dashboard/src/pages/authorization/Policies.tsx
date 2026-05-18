@@ -322,21 +322,28 @@ export default function Policies() {
 							<Label htmlFor="policy-name">Name</Label>
 							<Input
 								id="policy-name"
-								placeholder="e.g. Admin Access, Editor Role"
+								placeholder="e.g. admin-access or editor_role"
 								value={formName}
 								onChange={(e) => setFormName(e.target.value)}
 								className="mt-1"
 							/>
+							<p className="text-xs text-gray-500 mt-1">
+								Letters, digits, hyphens, and underscores only. Max 100
+								characters. No spaces.
+							</p>
 						</div>
 						<div>
 							<Label htmlFor="policy-desc">Description</Label>
 							<Textarea
 								id="policy-desc"
-								placeholder="Optional description"
+								placeholder="Optional human-readable description"
 								value={formDescription}
 								onChange={(e) => setFormDescription(e.target.value)}
 								className="mt-1"
 							/>
+							<p className="text-xs text-gray-500 mt-1">
+								Free-form text shown in the dashboard. Not used for matching.
+							</p>
 						</div>
 
 						{/* Type toggle */}
@@ -361,6 +368,10 @@ export default function Policies() {
 										Specific Users
 									</span>
 								</div>
+								<p className="text-xs text-gray-500 mt-1">
+									Roles: targets match by role name. Specific Users: targets
+									match by user ID. Cannot be changed after creation.
+								</p>
 							</div>
 						)}
 
@@ -376,6 +387,10 @@ export default function Policies() {
 								<option value="positive">Grant when matched</option>
 								<option value="negative">Deny when matched</option>
 							</Select>
+							<p className="text-xs text-gray-500 mt-1">
+								Positive policies grant access on match. Negative policies
+								explicitly deny on match (deny always wins over grant).
+							</p>
 						</div>
 
 						{/* Decision strategy */}
@@ -390,21 +405,30 @@ export default function Policies() {
 								<option value="affirmative">Any match grants</option>
 								<option value="unanimous">All must match</option>
 							</Select>
+							<p className="text-xs text-gray-500 mt-1">
+								Affirmative: any matching target satisfies the policy (OR).
+								Unanimous: every target must match (AND).
+							</p>
 						</div>
 
 						{/* Targets */}
 						<div>
 							<Label>
-								{formType === 'role' ? 'Role Names' : 'User Identifiers'}
+								{formType === 'role' ? 'Role Names' : 'User IDs'}
 							</Label>
+							<p className="text-xs text-gray-500 mt-1 mb-2">
+								{formType === 'role'
+									? 'One role name per row (e.g. admin, editor). Must match a configured role exactly — letters, digits, hyphens, and underscores only.'
+									: 'One user ID (UUID) per row. This is the user\'s internal ID, not their email — copy it from the Users page.'}
+							</p>
 							<div className="space-y-2 mt-1">
 								{formTargets.map((target, index) => (
 									<div key={index} className="flex gap-2">
 										<Input
 											placeholder={
 												formType === 'role'
-													? 'e.g. admin, editor'
-													: 'e.g. user@example.com'
+													? 'e.g. admin'
+													: 'e.g. 6f1a2b3c-4d5e-6f70-8a9b-0c1d2e3f4a5b'
 											}
 											value={target.target_value}
 											onChange={(e) => updateTarget(index, e.target.value)}

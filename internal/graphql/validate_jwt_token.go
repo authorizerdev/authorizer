@@ -99,9 +99,15 @@ func (g *graphqlProvider) ValidateJWTToken(ctx context.Context, params *model.Va
 		}
 	}
 
-	claimKey := g.Config.JWTRoleClaim
-	claimRolesInterface := claims[claimKey]
+	// Read roles from the configured claim key (used for id_token), falling
+	// back to the hardcoded "roles" claim that CreateAccessToken emits. This
+	// avoids a missing-roles principal when JWTRoleClaim is the default
+	// "role" (singular) but the token is an access_token (plural "roles").
+	claimRolesInterface := claims[g.Config.JWTRoleClaim]
 	roleSlice := utils.ConvertInterfaceToSlice(claimRolesInterface)
+	if len(roleSlice) == 0 {
+		roleSlice = utils.ConvertInterfaceToSlice(claims["roles"])
+	}
 	for _, v := range roleSlice {
 		roleStr, ok := v.(string)
 		if !ok || roleStr == "" {
@@ -118,6 +124,9 @@ func (g *graphqlProvider) ValidateJWTToken(ctx context.Context, params *model.Va
 				return nil, fmt.Errorf(`unauthorized`)
 			}
 		}
+	}
+	if err := g.enforceRequiredPermissions(ctx, log, userID, claimRoles, params.RequiredPermissions); err != nil {
+		return nil, err
 	}
 	return &model.ValidateJWTTokenResponse{
 		IsValid: true,

@@ -242,10 +242,7 @@ type Provider interface {
 	// Permissions: authorizer:admin
 	Permissions(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzPermissions, error)
 
-	// CheckPermission checks if the authenticated user has a specific permission on a resource.
-	// Permissions: authorized user
-	CheckPermission(ctx context.Context, params *model.CheckPermissionInput) (*model.CheckPermissionResponse, error)
 	// MyPermissions returns all resource:scope pairs the authenticated user has access to.
 	// Permissions: authorized user
-	MyPermissions(ctx context.Context) ([]*model.AuthzResourceScope, error)
+	MyPermissions(ctx context.Context) ([]*model.Permission, error)
 }

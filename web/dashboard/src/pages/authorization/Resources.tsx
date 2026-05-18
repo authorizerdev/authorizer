@@ -241,21 +241,28 @@ export default function Resources() {
 							<Label htmlFor="resource-name">Name</Label>
 							<Input
 								id="resource-name"
-								placeholder="e.g. documents, projects"
+								placeholder="e.g. documents or user-profile"
 								value={formName}
 								onChange={(e) => setFormName(e.target.value)}
 								className="mt-1"
 							/>
+							<p className="text-xs text-gray-500 mt-1">
+								Letters, digits, hyphens, and underscores only. Max 100
+								characters. No spaces.
+							</p>
 						</div>
 						<div>
 							<Label htmlFor="resource-desc">Description</Label>
 							<Textarea
 								id="resource-desc"
-								placeholder="Optional description"
+								placeholder="Optional human-readable description"
 								value={formDescription}
 								onChange={(e) => setFormDescription(e.target.value)}
 								className="mt-1"
 							/>
+							<p className="text-xs text-gray-500 mt-1">
+								Free-form text shown in the dashboard. Not used for matching.
+							</p>
 						</div>
 					</div>
 					<DialogFooter>

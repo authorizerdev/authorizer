@@ -552,7 +552,7 @@ func runRoot(c *cobra.Command, args []string) {
 		case lerr != nil:
 			log.Warn().Err(lerr).Msg("authz: failed to probe permission count at startup; enforcing mode active")
 		case pr != nil && pr.Total == 0:
-			log.Warn().Msg("authz mode=enforcing but 0 permissions configured — all check_permission calls will DENY. Seed permissions or switch to --authorization-enforcement=permissive.")
+			log.Warn().Msg("authz mode=enforcing but 0 permissions configured — all authorization checks will DENY. Seed permissions or switch to --authorization-enforcement=permissive.")
 		default:
 			log.Info().Msg("authz mode=enforcing: unmatched CheckPermission calls will be DENIED.")
 		}

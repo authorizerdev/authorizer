@@ -197,9 +197,3 @@ export interface AuthzPermissionsResponse {
 	};
 }
 
-export interface CheckPermissionResponse {
-	check_permission: {
-		allowed: boolean;
-		matched_policy?: string;
-	};
-}

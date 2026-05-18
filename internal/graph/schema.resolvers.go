@@ -327,13 +327,8 @@ func (r *queryResolver) Permissions(ctx context.Context, params *model.Paginated
 	return r.GraphQLProvider.Permissions(ctx, params)
 }
 
-// CheckPermission is the resolver for the check_permission field.
-func (r *queryResolver) CheckPermission(ctx context.Context, params model.CheckPermissionInput) (*model.CheckPermissionResponse, error) {
-	return r.GraphQLProvider.CheckPermission(ctx, &params)
-}
-
 // MyPermissions is the resolver for the my_permissions field.
-func (r *queryResolver) MyPermissions(ctx context.Context) ([]*model.AuthzResourceScope, error) {
+func (r *queryResolver) MyPermissions(ctx context.Context) ([]*model.Permission, error) {
 	return r.GraphQLProvider.MyPermissions(ctx)
 }
 

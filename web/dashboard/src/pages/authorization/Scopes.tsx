@@ -235,21 +235,28 @@ export default function Scopes() {
 							<Label htmlFor="scope-name">Name</Label>
 							<Input
 								id="scope-name"
-								placeholder="e.g. read, write, delete"
+								placeholder="e.g. read or write_metadata"
 								value={formName}
 								onChange={(e) => setFormName(e.target.value)}
 								className="mt-1"
 							/>
+							<p className="text-xs text-gray-500 mt-1">
+								Letters, digits, hyphens, and underscores only. Max 100
+								characters. No spaces.
+							</p>
 						</div>
 						<div>
 							<Label htmlFor="scope-desc">Description</Label>
 							<Textarea
 								id="scope-desc"
-								placeholder="Optional description"
+								placeholder="Optional human-readable description"
 								value={formDescription}
 								onChange={(e) => setFormDescription(e.target.value)}
 								className="mt-1"
 							/>
+							<p className="text-xs text-gray-500 mt-1">
+								Free-form text shown in the dashboard. Not used for matching.
+							</p>
 						</div>
 					</div>
 					<DialogFooter>

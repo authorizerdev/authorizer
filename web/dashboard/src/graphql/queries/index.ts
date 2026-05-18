@@ -221,15 +221,6 @@ export const PermissionsQuery = `
   }
 `;
 
-export const CheckPermissionQuery = `
-  query checkPermission($params: CheckPermissionInput!) {
-    check_permission(params: $params) {
-      allowed
-      matched_policy
-    }
-  }
-`;
-
 export const AuditLogsQuery = `
   query getAuditLogs($params: ListAuditLogRequest!) {
     _audit_logs(params: $params) {

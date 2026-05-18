@@ -510,6 +510,10 @@ input SessionQueryRequest {
   # when a session already exists and the login UI auto-detects it,
   # passing state ensures the authorization code state is properly stored
   state: String
+  # required_permissions is an optional list of resource:scope pairs that
+  # must all be granted to the principal. If any is denied the query returns
+  # unauthorized (AND semantics, matching the roles filter).
+  required_permissions: [PermissionInput!]
 }
 
 input PaginationRequest {
@@ -538,11 +542,13 @@ input ValidateJWTTokenRequest {
   token_type: String!
   token: String!
   roles: [String!]
+  required_permissions: [PermissionInput!]
 }
 
 input ValidateSessionRequest {
   cookie: String!
   roles: [String!]
+  required_permissions: [PermissionInput!]
 }
 
 input GenerateJWTKeysRequest {
@@ -707,12 +713,7 @@ type AuthzPermissions {
   permissions: [AuthzPermission!]!
 }
 
-type CheckPermissionResponse {
-  allowed: Boolean!
-  matched_policy: String
-}
-
-type AuthzResourceScope {
+type Permission {
   resource: String!
   scope: String!
 }
@@ -780,7 +781,7 @@ input UpdatePermissionInput {
   decision_strategy: String
 }
 
-input CheckPermissionInput {
+input PermissionInput {
   resource: String!
   scope: String!
 }
@@ -866,6 +867,5 @@ type Query {
   _policies(params: PaginatedRequest): AuthzPolicies!
   _permissions(params: PaginatedRequest): AuthzPermissions!
   # Authorization: User-facing queries
-  check_permission(params: CheckPermissionInput!): CheckPermissionResponse!
-  my_permissions: [AuthzResourceScope!]!
+  my_permissions: [Permission!]!
 }

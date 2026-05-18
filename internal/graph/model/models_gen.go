@@ -135,11 +135,6 @@ type AuthzResource struct {
 	UpdatedAt   int64   `json:"updated_at"`
 }
 
-type AuthzResourceScope struct {
-	Resource string `json:"resource"`
-	Scope    string `json:"scope"`
-}
-
 type AuthzResources struct {
 	Pagination *Pagination      `json:"pagination"`
 	Resources  []*AuthzResource `json:"resources"`
@@ -156,16 +151,6 @@ type AuthzScope struct {
 type AuthzScopes struct {
 	Pagination *Pagination   `json:"pagination"`
 	Scopes     []*AuthzScope `json:"scopes"`
-}
-
-type CheckPermissionInput struct {
-	Resource string `json:"resource"`
-	Scope    string `json:"scope"`
-}
-
-type CheckPermissionResponse struct {
-	Allowed       bool    `json:"allowed"`
-	MatchedPolicy *string `json:"matched_policy,omitempty"`
 }
 
 type DeleteEmailTemplateRequest struct {
@@ -413,6 +398,16 @@ type PaginationRequest struct {
 	Page  *int64 `json:"page,omitempty"`
 }
 
+type Permission struct {
+	Resource string `json:"resource"`
+	Scope    string `json:"scope"`
+}
+
+type PermissionInput struct {
+	Resource string `json:"resource"`
+	Scope    string `json:"scope"`
+}
+
 type PolicyTargetInput struct {
 	TargetType  string `json:"target_type"`
 	TargetValue string `json:"target_value"`
@@ -446,9 +441,10 @@ type Response struct {
 }
 
 type SessionQueryRequest struct {
-	Roles []string `json:"roles,omitempty"`
-	Scope []string `json:"scope,omitempty"`
-	State *string  `json:"state,omitempty"`
+	Roles               []string           `json:"roles,omitempty"`
+	Scope               []string           `json:"scope,omitempty"`
+	State               *string            `json:"state,omitempty"`
+	RequiredPermissions []*PermissionInput `json:"required_permissions,omitempty"`
 }
 
 type SignUpRequest struct {
@@ -663,9 +659,10 @@ type Users struct {
 }
 
 type ValidateJWTTokenRequest struct {
-	TokenType string   `json:"token_type"`
-	Token     string   `json:"token"`
-	Roles     []string `json:"roles,omitempty"`
+	TokenType           string             `json:"token_type"`
+	Token               string             `json:"token"`
+	Roles               []string           `json:"roles,omitempty"`
+	RequiredPermissions []*PermissionInput `json:"required_permissions,omitempty"`
 }
 
 type ValidateJWTTokenResponse struct {
@@ -674,8 +671,9 @@ type ValidateJWTTokenResponse struct {
 }
 
 type ValidateSessionRequest struct {
-	Cookie string   `json:"cookie"`
-	Roles  []string `json:"roles,omitempty"`
+	Cookie              string             `json:"cookie"`
+	Roles               []string           `json:"roles,omitempty"`
+	RequiredPermissions []*PermissionInput `json:"required_permissions,omitempty"`
 }
 
 type ValidateSessionResponse struct {

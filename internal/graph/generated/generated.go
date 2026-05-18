@@ -128,11 +128,6 @@ type ComplexityRoot struct {
 		UpdatedAt   func(childComplexity int) int
 	}
 
-	AuthzResourceScope struct {
-		Resource func(childComplexity int) int
-		Scope    func(childComplexity int) int
-	}
-
 	AuthzResources struct {
 		Pagination func(childComplexity int) int
 		Resources  func(childComplexity int) int
@@ -149,11 +144,6 @@ type ComplexityRoot struct {
 	AuthzScopes struct {
 		Pagination func(childComplexity int) int
 		Scopes     func(childComplexity int) int
-	}
-
-	CheckPermissionResponse struct {
-		Allowed       func(childComplexity int) int
-		MatchedPolicy func(childComplexity int) int
 	}
 
 	EmailTemplate struct {
@@ -343,10 +333,14 @@ type ComplexityRoot struct {
 		Total  func(childComplexity int) int
 	}
 
+	Permission struct {
+		Resource func(childComplexity int) int
+		Scope    func(childComplexity int) int
+	}
+
 	Query struct {
 		AdminSession         func(childComplexity int) int
 		AuditLogs            func(childComplexity int, params *model.ListAuditLogRequest) int
-		CheckPermission      func(childComplexity int, params model.CheckPermissionInput) int
 		EmailTemplates       func(childComplexity int, params *model.PaginatedRequest) int
 		Env                  func(childComplexity int) int
 		Meta                 func(childComplexity int) int
@@ -529,8 +523,7 @@ type QueryResolver interface {
 	Scopes(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzScopes, error)
 	Policies(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzPolicies, error)
 	Permissions(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzPermissions, error)
-	CheckPermission(ctx context.Context, params model.CheckPermissionInput) (*model.CheckPermissionResponse, error)
-	MyPermissions(ctx context.Context) ([]*model.AuthzResourceScope, error)
+	MyPermissions(ctx context.Context) ([]*model.Permission, error)
 }
 
 type executableSchema struct {
@@ -937,20 +930,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.AuthzResource.UpdatedAt(childComplexity), true
 
-	case "AuthzResourceScope.resource":
-		if e.complexity.AuthzResourceScope.Resource == nil {
-			break
-		}
-
-		return e.complexity.AuthzResourceScope.Resource(childComplexity), true
-
-	case "AuthzResourceScope.scope":
-		if e.complexity.AuthzResourceScope.Scope == nil {
-			break
-		}
-
-		return e.complexity.AuthzResourceScope.Scope(childComplexity), true
-
 	case "AuthzResources.pagination":
 		if e.complexity.AuthzResources.Pagination == nil {
 			break
@@ -1013,20 +992,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.AuthzScopes.Scopes(childComplexity), true
-
-	case "CheckPermissionResponse.allowed":
-		if e.complexity.CheckPermissionResponse.Allowed == nil {
-			break
-		}
-
-		return e.complexity.CheckPermissionResponse.Allowed(childComplexity), true
-
-	case "CheckPermissionResponse.matched_policy":
-		if e.complexity.CheckPermissionResponse.MatchedPolicy == nil {
-			break
-		}
-
-		return e.complexity.CheckPermissionResponse.MatchedPolicy(childComplexity), true
 
 	case "EmailTemplate.created_at":
 		if e.complexity.EmailTemplate.CreatedAt == nil {
@@ -2332,6 +2297,20 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Pagination.Total(childComplexity), true
 
+	case "Permission.resource":
+		if e.complexity.Permission.Resource == nil {
+			break
+		}
+
+		return e.complexity.Permission.Resource(childComplexity), true
+
+	case "Permission.scope":
+		if e.complexity.Permission.Scope == nil {
+			break
+		}
+
+		return e.complexity.Permission.Scope(childComplexity), true
+
 	case "Query._admin_session":
 		if e.complexity.Query.AdminSession == nil {
 			break
@@ -2350,18 +2329,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.AuditLogs(childComplexity, args["params"].(*model.ListAuditLogRequest)), true
-
-	case "Query.check_permission":
-		if e.complexity.Query.CheckPermission == nil {
-			break
-		}
-
-		args, err := ec.field_Query_check_permission_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.CheckPermission(childComplexity, args["params"].(model.CheckPermissionInput)), true
 
 	case "Query._email_templates":
 		if e.complexity.Query.EmailTemplates == nil {
@@ -2988,7 +2955,6 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputAddWebhookRequest,
 		ec.unmarshalInputAdminLoginRequest,
 		ec.unmarshalInputAdminSignupRequest,
-		ec.unmarshalInputCheckPermissionInput,
 		ec.unmarshalInputDeleteEmailTemplateRequest,
 		ec.unmarshalInputDeleteUserRequest,
 		ec.unmarshalInputForgotPasswordRequest,
@@ -3004,6 +2970,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputOAuthRevokeRequest,
 		ec.unmarshalInputPaginatedRequest,
 		ec.unmarshalInputPaginationRequest,
+		ec.unmarshalInputPermissionInput,
 		ec.unmarshalInputPolicyTargetInput,
 		ec.unmarshalInputResendOTPRequest,
 		ec.unmarshalInputResendVerifyEmailRequest,
@@ -3635,6 +3602,10 @@ input SessionQueryRequest {
   # when a session already exists and the login UI auto-detects it,
   # passing state ensures the authorization code state is properly stored
   state: String
+  # required_permissions is an optional list of resource:scope pairs that
+  # must all be granted to the principal. If any is denied the query returns
+  # unauthorized (AND semantics, matching the roles filter).
+  required_permissions: [PermissionInput!]
 }
 
 input PaginationRequest {
@@ -3663,11 +3634,13 @@ input ValidateJWTTokenRequest {
   token_type: String!
   token: String!
   roles: [String!]
+  required_permissions: [PermissionInput!]
 }
 
 input ValidateSessionRequest {
   cookie: String!
   roles: [String!]
+  required_permissions: [PermissionInput!]
 }
 
 input GenerateJWTKeysRequest {
@@ -3832,12 +3805,7 @@ type AuthzPermissions {
   permissions: [AuthzPermission!]!
 }
 
-type CheckPermissionResponse {
-  allowed: Boolean!
-  matched_policy: String
-}
-
-type AuthzResourceScope {
+type Permission {
   resource: String!
   scope: String!
 }
@@ -3905,7 +3873,7 @@ input UpdatePermissionInput {
   decision_strategy: String
 }
 
-input CheckPermissionInput {
+input PermissionInput {
   resource: String!
   scope: String!
 }
@@ -3991,8 +3959,7 @@ type Query {
   _policies(params: PaginatedRequest): AuthzPolicies!
   _permissions(params: PaginatedRequest): AuthzPermissions!
   # Authorization: User-facing queries
-  check_permission(params: CheckPermissionInput!): CheckPermissionResponse!
-  my_permissions: [AuthzResourceScope!]!
+  my_permissions: [Permission!]!
 }
 `, BuiltIn: false},
 }
@@ -5511,34 +5478,6 @@ func (ec *executionContext) field_Query__webhooks_argsParams(
 	}
 
 	var zeroVal *model.PaginatedRequest
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Query_check_permission_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := ec.field_Query_check_permission_argsParams(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["params"] = arg0
-	return args, nil
-}
-func (ec *executionContext) field_Query_check_permission_argsParams(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (model.CheckPermissionInput, error) {
-	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal model.CheckPermissionInput
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalNCheckPermissionInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐCheckPermissionInput(ctx, tmp)
-	}
-
-	var zeroVal model.CheckPermissionInput
 	return zeroVal, nil
 }
 
@@ -8282,94 +8221,6 @@ func (ec *executionContext) fieldContext_AuthzResource_updated_at(_ context.Cont
 	return fc, nil
 }
 
-func (ec *executionContext) _AuthzResourceScope_resource(ctx context.Context, field graphql.CollectedField, obj *model.AuthzResourceScope) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthzResourceScope_resource(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Resource, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AuthzResourceScope_resource(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuthzResourceScope",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AuthzResourceScope_scope(ctx context.Context, field graphql.CollectedField, obj *model.AuthzResourceScope) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthzResourceScope_scope(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Scope, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AuthzResourceScope_scope(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuthzResourceScope",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _AuthzResources_pagination(ctx context.Context, field graphql.CollectedField, obj *model.AuthzResources) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_AuthzResources_pagination(ctx, field)
 	if err != nil {
@@ -8802,91 +8653,6 @@ func (ec *executionContext) fieldContext_AuthzScopes_scopes(_ context.Context, f
 				return ec.fieldContext_AuthzScope_updated_at(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type AuthzScope", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _CheckPermissionResponse_allowed(ctx context.Context, field graphql.CollectedField, obj *model.CheckPermissionResponse) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_CheckPermissionResponse_allowed(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Allowed, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(bool)
-	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_CheckPermissionResponse_allowed(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "CheckPermissionResponse",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _CheckPermissionResponse_matched_policy(ctx context.Context, field graphql.CollectedField, obj *model.CheckPermissionResponse) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_CheckPermissionResponse_matched_policy(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.MatchedPolicy, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*string)
-	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_CheckPermissionResponse_matched_policy(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "CheckPermissionResponse",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -16591,6 +16357,94 @@ func (ec *executionContext) fieldContext_Pagination_total(_ context.Context, fie
 	return fc, nil
 }
 
+func (ec *executionContext) _Permission_resource(ctx context.Context, field graphql.CollectedField, obj *model.Permission) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Permission_resource(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Resource, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Permission_resource(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Permission",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Permission_scope(ctx context.Context, field graphql.CollectedField, obj *model.Permission) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Permission_scope(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Scope, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Permission_scope(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Permission",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_meta(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Query_meta(ctx, field)
 	if err != nil {
@@ -17982,67 +17836,6 @@ func (ec *executionContext) fieldContext_Query__permissions(ctx context.Context,
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_check_permission(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Query_check_permission(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().CheckPermission(rctx, fc.Args["params"].(model.CheckPermissionInput))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.CheckPermissionResponse)
-	fc.Result = res
-	return ec.marshalNCheckPermissionResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐCheckPermissionResponse(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Query_check_permission(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Query",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "allowed":
-				return ec.fieldContext_CheckPermissionResponse_allowed(ctx, field)
-			case "matched_policy":
-				return ec.fieldContext_CheckPermissionResponse_matched_policy(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type CheckPermissionResponse", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_check_permission_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _Query_my_permissions(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Query_my_permissions(ctx, field)
 	if err != nil {
@@ -18069,9 +17862,9 @@ func (ec *executionContext) _Query_my_permissions(ctx context.Context, field gra
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.AuthzResourceScope)
+	res := resTmp.([]*model.Permission)
 	fc.Result = res
-	return ec.marshalNAuthzResourceScope2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzResourceScopeᚄ(ctx, field.Selections, res)
+	return ec.marshalNPermission2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPermissionᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_my_permissions(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -18083,11 +17876,11 @@ func (ec *executionContext) fieldContext_Query_my_permissions(_ context.Context,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "resource":
-				return ec.fieldContext_AuthzResourceScope_resource(ctx, field)
+				return ec.fieldContext_Permission_resource(ctx, field)
 			case "scope":
-				return ec.fieldContext_AuthzResourceScope_scope(ctx, field)
+				return ec.fieldContext_Permission_scope(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type AuthzResourceScope", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type Permission", field.Name)
 		},
 	}
 	return fc, nil
@@ -23181,40 +22974,6 @@ func (ec *executionContext) unmarshalInputAdminSignupRequest(ctx context.Context
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputCheckPermissionInput(ctx context.Context, obj any) (model.CheckPermissionInput, error) {
-	var it model.CheckPermissionInput
-	asMap := map[string]any{}
-	for k, v := range obj.(map[string]any) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"resource", "scope"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "resource":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("resource"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Resource = data
-		case "scope":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("scope"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Scope = data
-		}
-	}
-
-	return it, nil
-}
-
 func (ec *executionContext) unmarshalInputDeleteEmailTemplateRequest(ctx context.Context, obj any) (model.DeleteEmailTemplateRequest, error) {
 	var it model.DeleteEmailTemplateRequest
 	asMap := map[string]any{}
@@ -23914,6 +23673,40 @@ func (ec *executionContext) unmarshalInputPaginationRequest(ctx context.Context,
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputPermissionInput(ctx context.Context, obj any) (model.PermissionInput, error) {
+	var it model.PermissionInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"resource", "scope"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "resource":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("resource"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Resource = data
+		case "scope":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("scope"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Scope = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputPolicyTargetInput(ctx context.Context, obj any) (model.PolicyTargetInput, error) {
 	var it model.PolicyTargetInput
 	asMap := map[string]any{}
@@ -24092,7 +23885,7 @@ func (ec *executionContext) unmarshalInputSessionQueryRequest(ctx context.Contex
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"roles", "scope", "state"}
+	fieldsInOrder := [...]string{"roles", "scope", "state", "required_permissions"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -24120,6 +23913,13 @@ func (ec *executionContext) unmarshalInputSessionQueryRequest(ctx context.Contex
 				return it, err
 			}
 			it.State = data
+		case "required_permissions":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("required_permissions"))
+			data, err := ec.unmarshalOPermissionInput2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPermissionInputᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.RequiredPermissions = data
 		}
 	}
 
@@ -25367,7 +25167,7 @@ func (ec *executionContext) unmarshalInputValidateJWTTokenRequest(ctx context.Co
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"token_type", "token", "roles"}
+	fieldsInOrder := [...]string{"token_type", "token", "roles", "required_permissions"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -25395,6 +25195,13 @@ func (ec *executionContext) unmarshalInputValidateJWTTokenRequest(ctx context.Co
 				return it, err
 			}
 			it.Roles = data
+		case "required_permissions":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("required_permissions"))
+			data, err := ec.unmarshalOPermissionInput2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPermissionInputᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.RequiredPermissions = data
 		}
 	}
 
@@ -25408,7 +25215,7 @@ func (ec *executionContext) unmarshalInputValidateSessionRequest(ctx context.Con
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"cookie", "roles"}
+	fieldsInOrder := [...]string{"cookie", "roles", "required_permissions"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -25429,6 +25236,13 @@ func (ec *executionContext) unmarshalInputValidateSessionRequest(ctx context.Con
 				return it, err
 			}
 			it.Roles = data
+		case "required_permissions":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("required_permissions"))
+			data, err := ec.unmarshalOPermissionInput2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPermissionInputᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.RequiredPermissions = data
 		}
 	}
 
@@ -26068,50 +25882,6 @@ func (ec *executionContext) _AuthzResource(ctx context.Context, sel ast.Selectio
 	return out
 }
 
-var authzResourceScopeImplementors = []string{"AuthzResourceScope"}
-
-func (ec *executionContext) _AuthzResourceScope(ctx context.Context, sel ast.SelectionSet, obj *model.AuthzResourceScope) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, authzResourceScopeImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("AuthzResourceScope")
-		case "resource":
-			out.Values[i] = ec._AuthzResourceScope_resource(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "scope":
-			out.Values[i] = ec._AuthzResourceScope_scope(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
 var authzResourcesImplementors = []string{"AuthzResources"}
 
 func (ec *executionContext) _AuthzResources(ctx context.Context, sel ast.SelectionSet, obj *model.AuthzResources) graphql.Marshaler {
@@ -26233,47 +26003,6 @@ func (ec *executionContext) _AuthzScopes(ctx context.Context, sel ast.SelectionS
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var checkPermissionResponseImplementors = []string{"CheckPermissionResponse"}
-
-func (ec *executionContext) _CheckPermissionResponse(ctx context.Context, sel ast.SelectionSet, obj *model.CheckPermissionResponse) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, checkPermissionResponseImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("CheckPermissionResponse")
-		case "allowed":
-			out.Values[i] = ec._CheckPermissionResponse_allowed(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "matched_policy":
-			out.Values[i] = ec._CheckPermissionResponse_matched_policy(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -27338,6 +27067,50 @@ func (ec *executionContext) _Pagination(ctx context.Context, sel ast.SelectionSe
 	return out
 }
 
+var permissionImplementors = []string{"Permission"}
+
+func (ec *executionContext) _Permission(ctx context.Context, sel ast.SelectionSet, obj *model.Permission) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, permissionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Permission")
+		case "resource":
+			out.Values[i] = ec._Permission_resource(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "scope":
+			out.Values[i] = ec._Permission_scope(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var queryImplementors = []string{"Query"}
 
 func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
@@ -27763,28 +27536,6 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query__permissions(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
-			}
-
-			rrm := func(ctx context.Context) graphql.Marshaler {
-				return ec.OperationContext.RootResolverMiddleware(ctx,
-					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "check_permission":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_check_permission(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -29149,60 +28900,6 @@ func (ec *executionContext) marshalNAuthzResource2ᚖgithubᚗcomᚋauthorizerde
 	return ec._AuthzResource(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNAuthzResourceScope2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzResourceScopeᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.AuthzResourceScope) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNAuthzResourceScope2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzResourceScope(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
-		}
-	}
-
-	return ret
-}
-
-func (ec *executionContext) marshalNAuthzResourceScope2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzResourceScope(ctx context.Context, sel ast.SelectionSet, v *model.AuthzResourceScope) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._AuthzResourceScope(ctx, sel, v)
-}
-
 func (ec *executionContext) marshalNAuthzResources2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzResources(ctx context.Context, sel ast.SelectionSet, v model.AuthzResources) graphql.Marshaler {
 	return ec._AuthzResources(ctx, sel, &v)
 }
@@ -29303,25 +29000,6 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 		}
 	}
 	return res
-}
-
-func (ec *executionContext) unmarshalNCheckPermissionInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐCheckPermissionInput(ctx context.Context, v any) (model.CheckPermissionInput, error) {
-	res, err := ec.unmarshalInputCheckPermissionInput(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNCheckPermissionResponse2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐCheckPermissionResponse(ctx context.Context, sel ast.SelectionSet, v model.CheckPermissionResponse) graphql.Marshaler {
-	return ec._CheckPermissionResponse(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNCheckPermissionResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐCheckPermissionResponse(ctx context.Context, sel ast.SelectionSet, v *model.CheckPermissionResponse) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._CheckPermissionResponse(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNDeleteEmailTemplateRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐDeleteEmailTemplateRequest(ctx context.Context, v any) (model.DeleteEmailTemplateRequest, error) {
@@ -29582,6 +29260,65 @@ func (ec *executionContext) marshalNPagination2ᚖgithubᚗcomᚋauthorizerdev�
 		return graphql.Null
 	}
 	return ec._Pagination(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNPermission2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPermissionᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Permission) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNPermission2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPermission(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNPermission2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPermission(ctx context.Context, sel ast.SelectionSet, v *model.Permission) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._Permission(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNPermissionInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPermissionInput(ctx context.Context, v any) (*model.PermissionInput, error) {
+	res, err := ec.unmarshalInputPermissionInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNPolicyTargetInput2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPolicyTargetInputᚄ(ctx context.Context, v any) ([]*model.PolicyTargetInput, error) {
@@ -30492,6 +30229,24 @@ func (ec *executionContext) unmarshalOPaginationRequest2ᚖgithubᚗcomᚋauthor
 	}
 	res, err := ec.unmarshalInputPaginationRequest(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOPermissionInput2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPermissionInputᚄ(ctx context.Context, v any) ([]*model.PermissionInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]*model.PermissionInput, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNPermissionInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPermissionInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
 }
 
 func (ec *executionContext) unmarshalOPolicyTargetInput2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPolicyTargetInputᚄ(ctx context.Context, v any) ([]*model.PolicyTargetInput, error) {

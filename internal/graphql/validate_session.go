@@ -60,6 +60,11 @@ func (g *graphqlProvider) ValidateSession(ctx context.Context, params *model.Val
 			}
 		}
 	}
+	if params != nil {
+		if err := g.enforceRequiredPermissions(ctx, log, user.ID, claimRoles, params.RequiredPermissions); err != nil {
+			return nil, err
+		}
+	}
 	return &model.ValidateSessionResponse{
 		IsValid: true,
 		User:    user.AsAPIUser(),

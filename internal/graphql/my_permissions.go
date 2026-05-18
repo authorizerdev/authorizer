@@ -13,7 +13,7 @@ import (
 
 // MyPermissions is the method to get all permissions for the authenticated user.
 // Permissions: authorized user
-func (g *graphqlProvider) MyPermissions(ctx context.Context) ([]*model.AuthzResourceScope, error) {
+func (g *graphqlProvider) MyPermissions(ctx context.Context) ([]*model.Permission, error) {
 	log := g.Log.With().Str("func", "MyPermissions").Logger()
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
@@ -50,9 +50,9 @@ func (g *graphqlProvider) MyPermissions(ctx context.Context) ([]*model.AuthzReso
 		return nil, err
 	}
 
-	res := make([]*model.AuthzResourceScope, len(resourceScopes))
+	res := make([]*model.Permission, len(resourceScopes))
 	for i, rs := range resourceScopes {
-		res[i] = &model.AuthzResourceScope{
+		res[i] = &model.Permission{
 			Resource: rs.Resource,
 			Scope:    rs.Scope,
 		}
