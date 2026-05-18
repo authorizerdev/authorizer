@@ -520,8 +520,7 @@ func runRoot(c *cobra.Command, args []string) {
 	// Authorization provider
 	authorizationProvider, err := authorization.New(
 		&authorization.Config{
-			Enforcement: rootArgs.config.AuthorizationEnforcement,
-			CacheTTL:    rootArgs.config.AuthorizationCacheTTL,
+			CacheTTL: rootArgs.config.AuthorizationCacheTTL,
 		},
 		&authorization.Dependencies{
 			Log:             &log,

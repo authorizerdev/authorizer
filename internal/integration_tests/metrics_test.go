@@ -313,8 +313,8 @@ func TestMetrics_AuthzCollectorsRegistered(t *testing.T) {
 	router.GET("/metrics", ts.HttpProvider.MetricsHandler())
 
 	// Bump each collector once so it appears in scrape output.
-	metrics.RecordAuthzCheck(metrics.AuthzModePermissive, metrics.AuthzResultUnmatchedAllowed)
-	metrics.RecordAuthzUnmatched(metrics.AuthzModePermissive)
+	metrics.RecordAuthzCheck(metrics.AuthzResultUnmatched)
+	metrics.RecordAuthzUnmatched()
 	metrics.AuthzCheckDuration.Observe(0.001)
 
 	w := httptest.NewRecorder()
@@ -326,8 +326,7 @@ func TestMetrics_AuthzCollectorsRegistered(t *testing.T) {
 	require.Contains(t, body, "authorizer_authz_checks_total")
 	require.Contains(t, body, "authorizer_authz_unmatched_total")
 	require.Contains(t, body, "authorizer_authz_check_duration_seconds")
-	require.Contains(t, body, `mode="permissive"`)
-	require.Contains(t, body, `result="unmatched_allowed"`)
+	require.Contains(t, body, `result="unmatched"`)
 }
 
 // TestAdminLoginMetrics verifies admin login records metrics.

@@ -579,12 +579,12 @@ func TestAddPermission_DuplicateNameReturnsConflict(t *testing.T) {
 }
 
 // TestCheckPermission_IncrementsPrometheusCounters verifies that an unmatched
-// check in permissive mode increments metrics.AuthzUnmatchedTotal by exactly
-// one for the "permissive" label. The (resource, scope) pair MUST be registered
-// first so that the "known but no matching permission" path is exercised —
-// unknown identifiers intentionally no longer bump the counter (DoS guard).
+// check increments metrics.AuthzUnmatchedTotal by exactly one. The
+// (resource, scope) pair MUST be registered first so that the "known but no
+// matching permission" path is exercised — unknown identifiers intentionally
+// do not bump the counter (DoS guard).
 func TestCheckPermission_IncrementsPrometheusCounters(t *testing.T) {
-	ts := testSetupWithAuthzMode(t, constants.AuthorizationEnforcementPermissive)
+	ts := initTestSetup(t, getTestConfig())
 	_, ctx := createContext(ts)
 
 	// Seed resource + scope directly via storage (no permission). This makes
@@ -593,7 +593,7 @@ func TestCheckPermission_IncrementsPrometheusCounters(t *testing.T) {
 	// that DOES bump counters.
 	seedKnownResourceScopeNoPermission(t, ts, ctx, "orders", "read")
 
-	before := testutil.ToFloat64(metrics.AuthzUnmatchedTotal.WithLabelValues(metrics.AuthzModePermissive))
+	before := testutil.ToFloat64(metrics.AuthzUnmatchedTotal)
 
 	_, err := ts.Authz.CheckPermission(ctx, &authorization.Principal{
 		ID:   "user-1",
@@ -601,31 +601,31 @@ func TestCheckPermission_IncrementsPrometheusCounters(t *testing.T) {
 	}, "orders", "read")
 	require.NoError(t, err)
 
-	after := testutil.ToFloat64(metrics.AuthzUnmatchedTotal.WithLabelValues(metrics.AuthzModePermissive))
+	after := testutil.ToFloat64(metrics.AuthzUnmatchedTotal)
 	require.Equal(t, before+1, after, "unmatched counter must increment once per unmatched check")
 }
 
-// TestCheckPermission_UnknownResource_PermissiveStillAllows_ButDoesNotBumpUnmatchedCounter
-// verifies the DoS guard: permissive mode still allows the request (so callers
-// aren't broken by a typo/unknown identifier), but the unmatched counter and
-// warn-limiter MUST NOT grow for attacker-controlled input. Authenticated
-// callers can still reach CheckPermission with arbitrary identifiers via
-// GraphQL (myPermissions / required_permissions) — without this guard they
-// could flood the in-process sync.Map with arbitrary (resource, scope) pairs.
-func TestCheckPermission_UnknownResource_PermissiveStillAllows_ButDoesNotBumpUnmatchedCounter(t *testing.T) {
-	ts := testSetupWithAuthzMode(t, constants.AuthorizationEnforcementPermissive)
+// TestCheckPermission_UnknownResource_DeniesAndDoesNotBumpUnmatchedCounter
+// verifies the DoS guard: unknown (resource, scope) pairs are denied
+// (enforcing is the only mode), and the unmatched counter must NOT grow for
+// attacker-controlled input. Authenticated callers can still reach
+// CheckPermission with arbitrary identifiers via GraphQL (myPermissions /
+// required_permissions) — without this guard they could flood the in-process
+// sync.Map with arbitrary (resource, scope) pairs.
+func TestCheckPermission_UnknownResource_DeniesAndDoesNotBumpUnmatchedCounter(t *testing.T) {
+	ts := initTestSetup(t, getTestConfig())
 	_, ctx := createContext(ts)
 
-	before := testutil.ToFloat64(metrics.AuthzUnmatchedTotal.WithLabelValues(metrics.AuthzModePermissive))
+	before := testutil.ToFloat64(metrics.AuthzUnmatchedTotal)
 
 	result, err := ts.Authz.CheckPermission(ctx, &authorization.Principal{
 		ID: "user-1", Type: constants.PrincipalTypeUser,
 	}, "unknown-resource", "unknown-scope")
 
 	require.NoError(t, err)
-	require.True(t, result.Allowed, "permissive still allows unknown resource")
+	require.False(t, result.Allowed, "unknown resource is always denied (enforcing-only)")
 
-	after := testutil.ToFloat64(metrics.AuthzUnmatchedTotal.WithLabelValues(metrics.AuthzModePermissive))
+	after := testutil.ToFloat64(metrics.AuthzUnmatchedTotal)
 	require.Equal(t, before, after, "unknown-resource calls must NOT bump the unmatched counter (DoS guard)")
 }
 
@@ -701,16 +701,15 @@ func seedResourceScopePermissionWithDenyPolicy(
 	require.NotNil(t, perm)
 }
 
-// TestCheckPermission_ResultLabels_IncrementCorrectCounter covers the four
-// result labels on authorizer_authz_checks_total that the earlier rollout test
-// (TestCheckPermission_IncrementsPrometheusCounters) did not exercise:
-// allowed, denied, unmatched_denied, and error. Each subtest builds the exact
-// shape needed to land on one terminal path in CheckPermission and asserts
-// that exactly one increment is recorded on the matching counter series.
+// TestCheckPermission_ResultLabels_IncrementCorrectCounter covers the result
+// labels on authorizer_authz_checks_total: allowed, denied, unmatched, and
+// error. Each subtest builds the exact shape needed to land on one terminal
+// path in CheckPermission and asserts that exactly one increment is recorded
+// on the matching counter series.
 // Co-located with the authz tests because it shares their fixtures.
 func TestCheckPermission_ResultLabels_IncrementCorrectCounter(t *testing.T) {
 	t.Run("allowed", func(t *testing.T) {
-		ts := testSetupWithAuthzMode(t, constants.AuthorizationEnforcementEnforcing)
+		ts := initTestSetup(t, getTestConfig())
 		req, ctx := createContext(ts)
 		adminHash, err := crypto.EncryptPassword(ts.Config.AdminSecret)
 		require.NoError(t, err)
@@ -720,8 +719,7 @@ func TestCheckPermission_ResultLabels_IncrementCorrectCounter(t *testing.T) {
 		// user principal with the "user" role so the affirmative grant fires.
 		seedResourceScopePermissionAllowingRole(t, ts, ctx, "orders", "read", "user")
 
-		before := testutil.ToFloat64(metrics.AuthzChecksTotal.WithLabelValues(
-			metrics.AuthzModeEnforcing, metrics.AuthzResultAllowed))
+		before := testutil.ToFloat64(metrics.AuthzChecksTotal.WithLabelValues(metrics.AuthzResultAllowed))
 
 		res, err := ts.Authz.CheckPermission(ctx, &authorization.Principal{
 			ID: "user-allowed", Type: constants.PrincipalTypeUser, Roles: []string{"user"},
@@ -729,13 +727,12 @@ func TestCheckPermission_ResultLabels_IncrementCorrectCounter(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, res.Allowed)
 
-		after := testutil.ToFloat64(metrics.AuthzChecksTotal.WithLabelValues(
-			metrics.AuthzModeEnforcing, metrics.AuthzResultAllowed))
+		after := testutil.ToFloat64(metrics.AuthzChecksTotal.WithLabelValues(metrics.AuthzResultAllowed))
 		require.Equal(t, before+1, after, "allowed counter must increment once")
 	})
 
 	t.Run("denied", func(t *testing.T) {
-		ts := testSetupWithAuthzMode(t, constants.AuthorizationEnforcementEnforcing)
+		ts := initTestSetup(t, getTestConfig())
 		req, ctx := createContext(ts)
 		adminHash, err := crypto.EncryptPassword(ts.Config.AdminSecret)
 		require.NoError(t, err)
@@ -745,8 +742,7 @@ func TestCheckPermission_ResultLabels_IncrementCorrectCounter(t *testing.T) {
 		// role is explicitly denied on (orders, read).
 		seedResourceScopePermissionWithDenyPolicy(t, ts, ctx, "orders", "read", "user")
 
-		before := testutil.ToFloat64(metrics.AuthzChecksTotal.WithLabelValues(
-			metrics.AuthzModeEnforcing, metrics.AuthzResultDenied))
+		before := testutil.ToFloat64(metrics.AuthzChecksTotal.WithLabelValues(metrics.AuthzResultDenied))
 
 		res, err := ts.Authz.CheckPermission(ctx, &authorization.Principal{
 			ID: "user-denied", Type: constants.PrincipalTypeUser, Roles: []string{"user"},
@@ -754,21 +750,18 @@ func TestCheckPermission_ResultLabels_IncrementCorrectCounter(t *testing.T) {
 		require.NoError(t, err)
 		require.False(t, res.Allowed)
 
-		after := testutil.ToFloat64(metrics.AuthzChecksTotal.WithLabelValues(
-			metrics.AuthzModeEnforcing, metrics.AuthzResultDenied))
+		after := testutil.ToFloat64(metrics.AuthzChecksTotal.WithLabelValues(metrics.AuthzResultDenied))
 		require.Equal(t, before+1, after, "denied counter must increment once")
 	})
 
-	t.Run("unmatched_denied", func(t *testing.T) {
-		ts := testSetupWithAuthzMode(t, constants.AuthorizationEnforcementEnforcing)
+	t.Run("unmatched", func(t *testing.T) {
+		ts := initTestSetup(t, getTestConfig())
 		_, ctx := createContext(ts)
 
-		// Known (resource, scope) with no permission row in enforcing mode →
-		// the fall-through denies and increments unmatched_denied.
+		// Known (resource, scope) with no permission row → denied, increments unmatched.
 		seedKnownResourceScopeNoPermission(t, ts, ctx, "orders", "read")
 
-		before := testutil.ToFloat64(metrics.AuthzChecksTotal.WithLabelValues(
-			metrics.AuthzModeEnforcing, metrics.AuthzResultUnmatchedDenied))
+		before := testutil.ToFloat64(metrics.AuthzChecksTotal.WithLabelValues(metrics.AuthzResultUnmatched))
 
 		res, err := ts.Authz.CheckPermission(ctx, &authorization.Principal{
 			ID: "user-unmatched", Type: constants.PrincipalTypeUser,
@@ -776,17 +769,15 @@ func TestCheckPermission_ResultLabels_IncrementCorrectCounter(t *testing.T) {
 		require.NoError(t, err)
 		require.False(t, res.Allowed)
 
-		after := testutil.ToFloat64(metrics.AuthzChecksTotal.WithLabelValues(
-			metrics.AuthzModeEnforcing, metrics.AuthzResultUnmatchedDenied))
-		require.Equal(t, before+1, after, "unmatched_denied counter must increment once")
+		after := testutil.ToFloat64(metrics.AuthzChecksTotal.WithLabelValues(metrics.AuthzResultUnmatched))
+		require.Equal(t, before+1, after, "unmatched counter must increment once")
 	})
 
 	t.Run("error", func(t *testing.T) {
-		ts := testSetupWithAuthzMode(t, constants.AuthorizationEnforcementEnforcing)
+		ts := initTestSetup(t, getTestConfig())
 		_, ctx := createContext(ts)
 
-		before := testutil.ToFloat64(metrics.AuthzChecksTotal.WithLabelValues(
-			metrics.AuthzModeEnforcing, metrics.AuthzResultError))
+		before := testutil.ToFloat64(metrics.AuthzChecksTotal.WithLabelValues(metrics.AuthzResultError))
 
 		// Invalid identifier — fails the input validation path which records
 		// AuthzResultError before any storage or cache lookup.
@@ -795,8 +786,7 @@ func TestCheckPermission_ResultLabels_IncrementCorrectCounter(t *testing.T) {
 		}, "bad resource with spaces", "read")
 		require.Error(t, err)
 
-		after := testutil.ToFloat64(metrics.AuthzChecksTotal.WithLabelValues(
-			metrics.AuthzModeEnforcing, metrics.AuthzResultError))
+		after := testutil.ToFloat64(metrics.AuthzChecksTotal.WithLabelValues(metrics.AuthzResultError))
 		require.Equal(t, before+1, after, "error counter must increment once")
 	})
 }

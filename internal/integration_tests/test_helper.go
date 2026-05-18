@@ -188,20 +188,9 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 	})
 	require.NoError(t, err)
 
-	// Initialize authorization provider
-	enforcementMode := cfg.AuthorizationEnforcement
-	if enforcementMode == "" {
-		// Integration tests default to "enforcing" so legacy tests (TestAuthorizationCRUD,
-		// etc.) that seed permissions and expect strict evaluation keep working without
-		// explicit mode setup. Note: production's default is "permissive" after Task 5;
-		// this test-only default intentionally diverges. Tests exercising permissive
-		// semantics MUST set cfg.AuthorizationEnforcement explicitly (or use
-		// testSetupWithAuthzMode).
-		enforcementMode = constants.AuthorizationEnforcementEnforcing
-	}
+	// Initialize authorization provider (always enforcing — the single mode after Task 3).
 	authzProvider, err := authorization.New(&authorization.Config{
-		Enforcement: enforcementMode,
-		CacheTTL:    0,
+		CacheTTL: 0,
 	}, &authorization.Dependencies{
 		Log:             &logger,
 		StorageProvider: storageProvider,

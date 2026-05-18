@@ -35,19 +35,12 @@ const (
 	StatusFailure = "failure"
 )
 
-// Authorization enforcement modes, used as the `mode` label on authz metrics.
-const (
-	AuthzModePermissive = "permissive"
-	AuthzModeEnforcing  = "enforcing"
-)
-
 // Authorization check result labels.
 const (
-	AuthzResultAllowed          = "allowed"           // matched policy, granted
-	AuthzResultDenied           = "denied"            // matched policy, denied
-	AuthzResultUnmatchedAllowed = "unmatched_allowed" // permissive fallthrough
-	AuthzResultUnmatchedDenied  = "unmatched_denied"  // enforcing fallthrough
-	AuthzResultError            = "error"             // validation / storage error
+	AuthzResultAllowed   = "allowed"   // matched policy, granted
+	AuthzResultDenied    = "denied"    // matched policy, denied
+	AuthzResultUnmatched = "unmatched" // no permission row for (resource, scope)
+	AuthzResultError     = "error"     // validation / storage error
 )
 
 // Outcome constants for the required_permissions counter (per-request bucket,
@@ -163,22 +156,21 @@ var (
 		},
 	)
 
-	// AuthzChecksTotal counts every CheckPermission call, labelled by mode and result.
+	// AuthzChecksTotal counts every CheckPermission call, labelled by result.
 	AuthzChecksTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "authorizer_authz_checks_total",
-			Help: "Total fine-grained authorization checks. mode=permissive|enforcing. result=allowed|denied|unmatched_allowed|unmatched_denied|error",
+			Help: "Total fine-grained authorization checks. result=allowed|denied|unmatched|error",
 		},
-		[]string{"mode", "result"},
+		[]string{"result"},
 	)
 
-	// AuthzUnmatchedTotal counts checks that found no matching permission. Primary rollout signal.
-	AuthzUnmatchedTotal = prometheus.NewCounterVec(
+	// AuthzUnmatchedTotal counts checks that found no matching permission.
+	AuthzUnmatchedTotal = prometheus.NewCounter(
 		prometheus.CounterOpts{
 			Name: "authorizer_authz_unmatched_total",
-			Help: "Total CheckPermission calls where no permission matched the (resource, scope). Watch this trend to zero before flipping mode to enforcing.",
+			Help: "Total CheckPermission calls where no permission matched the (resource, scope) pair.",
 		},
-		[]string{"mode"},
 	)
 
 	// AuthzCheckDuration measures end-to-end CheckPermission latency.
@@ -338,15 +330,14 @@ func RecordClientIDHeaderMissing() {
 }
 
 // RecordAuthzCheck records a CheckPermission call outcome.
-// mode must be one of AuthzMode* constants; result must be one of AuthzResult* constants.
-func RecordAuthzCheck(mode, result string) {
-	AuthzChecksTotal.WithLabelValues(mode, result).Inc()
+// result must be one of AuthzResult* constants.
+func RecordAuthzCheck(result string) {
+	AuthzChecksTotal.WithLabelValues(result).Inc()
 }
 
 // RecordAuthzUnmatched records a CheckPermission call that found no matching permission.
-// mode must be one of AuthzMode* constants.
-func RecordAuthzUnmatched(mode string) {
-	AuthzUnmatchedTotal.WithLabelValues(mode).Inc()
+func RecordAuthzUnmatched() {
+	AuthzUnmatchedTotal.Inc()
 }
 
 // RecordRequiredPermissionsCheck records the per-request outcome of
