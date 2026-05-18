@@ -37,7 +37,8 @@ type policyResult struct {
 }
 
 // CheckPermission evaluates whether a principal can perform a scope on a resource.
-// It follows this sequence:
+// It is fail-closed: any missing permission row or unknown (resource, scope) pair
+// results in a deny. It follows this sequence:
 //  1. Validate inputs
 //  2. Check MaxScopes ceiling
 //  3. Check cache
@@ -53,23 +54,21 @@ func (p *provider) CheckPermission(ctx context.Context, principal *Principal, re
 		metrics.AuthzCheckDuration.Observe(time.Since(start).Seconds())
 	}()
 
-	mode := p.config.Enforcement
-
 	// Validate inputs.
 	if principal == nil {
-		metrics.RecordAuthzCheck(mode, metrics.AuthzResultError)
+		metrics.RecordAuthzCheck(metrics.AuthzResultError)
 		return nil, fmt.Errorf("principal is required")
 	}
 	if !isValidIdentifier(principal.ID) {
-		metrics.RecordAuthzCheck(mode, metrics.AuthzResultError)
+		metrics.RecordAuthzCheck(metrics.AuthzResultError)
 		return nil, fmt.Errorf("invalid principal ID: %q", principal.ID)
 	}
 	if !isValidIdentifier(resource) {
-		metrics.RecordAuthzCheck(mode, metrics.AuthzResultError)
+		metrics.RecordAuthzCheck(metrics.AuthzResultError)
 		return nil, fmt.Errorf("invalid resource: %q", resource)
 	}
 	if !isValidIdentifier(scope) {
-		metrics.RecordAuthzCheck(mode, metrics.AuthzResultError)
+		metrics.RecordAuthzCheck(metrics.AuthzResultError)
 		return nil, fmt.Errorf("invalid scope: %q", scope)
 	}
 
@@ -89,7 +88,7 @@ func (p *provider) CheckPermission(ctx context.Context, principal *Principal, re
 				Str("resource", resource).
 				Str("scope", scope).
 				Msg("denied by MaxScopes ceiling")
-			metrics.RecordAuthzCheck(mode, metrics.AuthzResultDenied)
+			metrics.RecordAuthzCheck(metrics.AuthzResultDenied)
 			return &CheckResult{Allowed: false}, nil
 		}
 	}
@@ -105,7 +104,7 @@ func (p *provider) CheckPermission(ctx context.Context, principal *Principal, re
 				Str("scope", scope).
 				Bool("allowed", true).
 				Msg("authorization cache hit")
-			metrics.RecordAuthzCheck(mode, metrics.AuthzResultAllowed)
+			metrics.RecordAuthzCheck(metrics.AuthzResultAllowed)
 			return &CheckResult{Allowed: true}, nil
 		case cacheValFalse:
 			p.log.Debug().
@@ -114,7 +113,7 @@ func (p *provider) CheckPermission(ctx context.Context, principal *Principal, re
 				Str("scope", scope).
 				Bool("allowed", false).
 				Msg("authorization cache hit")
-			metrics.RecordAuthzCheck(mode, metrics.AuthzResultDenied)
+			metrics.RecordAuthzCheck(metrics.AuthzResultDenied)
 			return &CheckResult{Allowed: false}, nil
 		default:
 			// Unexpected cache value — treat as a miss and fall through to full eval.
@@ -123,12 +122,11 @@ func (p *provider) CheckPermission(ctx context.Context, principal *Principal, re
 		}
 	}
 
-	// Resource/scope existence. Fail-closed: if the probe itself errors, surface
-	// the error to the caller rather than falling through to handleNoPermission
-	// (which in permissive mode would incorrectly allow a DB-blip'd request).
+	// Resource/scope existence. Fail-closed: if the probe itself errors, surface the error to
+	// the caller rather than falling through to handleNoPermission.
 	knownResource, err := p.validateResourceExists(ctx, resource)
 	if err != nil {
-		metrics.RecordAuthzCheck(mode, metrics.AuthzResultError)
+		metrics.RecordAuthzCheck(metrics.AuthzResultError)
 		return nil, err
 	}
 	knownScope := true
@@ -137,7 +135,7 @@ func (p *provider) CheckPermission(ctx context.Context, principal *Principal, re
 		// the unknown-resource path.
 		knownScope, err = p.validateScopeExists(ctx, scope)
 		if err != nil {
-			metrics.RecordAuthzCheck(mode, metrics.AuthzResultError)
+			metrics.RecordAuthzCheck(metrics.AuthzResultError)
 			return nil, err
 		}
 	}
@@ -145,19 +143,19 @@ func (p *provider) CheckPermission(ctx context.Context, principal *Principal, re
 		// Unknown identifier — skip counter bumps (DoS guard for attacker-
 		// controlled inputs reaching CheckPermission, e.g. via GraphQL
 		// myPermissions / required_permissions on authenticated endpoints).
-		return p.handleNoPermission(mode, cacheKey, principal, resource, scope, false /* isKnown */), nil
+		return p.handleNoPermission(cacheKey, principal, resource, scope, false /* isKnown */), nil
 	}
 
 	// Permissions.
 	perms, err := p.storageProvider.GetPermissionsForResourceScope(ctx, resource, scope)
 	if err != nil {
-		metrics.RecordAuthzCheck(mode, metrics.AuthzResultError)
+		metrics.RecordAuthzCheck(metrics.AuthzResultError)
 		return nil, fmt.Errorf("failed to query permissions: %w", err)
 	}
 	if len(perms) == 0 {
 		// Known (resource, scope) but no permission row — this is the signal
 		// we DO want to track for rollout.
-		return p.handleNoPermission(mode, cacheKey, principal, resource, scope, true /* isKnown */), nil
+		return p.handleNoPermission(cacheKey, principal, resource, scope, true /* isKnown */), nil
 	}
 
 	// Policy evaluation. Track the first non-empty deny attribution so we
@@ -175,7 +173,7 @@ func (p *provider) CheckPermission(ctx context.Context, principal *Principal, re
 				Str("scope", scope).
 				Str("matched_policy", matchedPolicy).
 				Msg("authorization granted")
-			metrics.RecordAuthzCheck(mode, metrics.AuthzResultAllowed)
+			metrics.RecordAuthzCheck(metrics.AuthzResultAllowed)
 			return &CheckResult{Allowed: true, MatchedPolicy: matchedPolicy}, nil
 		}
 		if denyMatchedPolicy == "" && matchedPolicy != "" {
@@ -191,48 +189,23 @@ func (p *provider) CheckPermission(ctx context.Context, principal *Principal, re
 		Str("scope", scope).
 		Str("matched_policy", denyMatchedPolicy).
 		Msg("authorization denied")
-	metrics.RecordAuthzCheck(mode, metrics.AuthzResultDenied)
+	metrics.RecordAuthzCheck(metrics.AuthzResultDenied)
 	return &CheckResult{Allowed: false, MatchedPolicy: denyMatchedPolicy}, nil
 }
 
-// handleNoPermission returns a deny or allow result based on enforcement mode.
-// In permissive mode, it emits a rate-limited warn log (one line per
-// (resource,scope) per window) and allows; in enforcing mode, it denies.
-// The result is cached (negative caching) and the checks_total metric is bumped.
-//
-// The isKnown parameter reports whether (resource, scope) are both registered
-// in the DB. Counters and the warn-limiter are only bumped for known pairs to
-// prevent unbounded growth of cache.counters / warnLimiter.last from attacker-
-// controlled input. Authenticated callers can still reach CheckPermission with
-// arbitrary identifiers via GraphQL (e.g. myPermissions / required_permissions),
-// so the guard applies there too — it is not specific to the (removed) public
-// REST endpoint.
-func (p *provider) handleNoPermission(mode, cacheKey string, principal *Principal, resource, scope string, isKnown bool) *CheckResult {
+// handleNoPermission returns a deny result for an unmatched (resource, scope)
+// pair. The isKnown parameter reports whether the pair is both registered in
+// the DB — counters are bumped only for known pairs to prevent unbounded
+// growth of cache.counters from attacker-controlled input reaching
+// CheckPermission via authenticated GraphQL (myPermissions /
+// required_permissions).
+func (p *provider) handleNoPermission(cacheKey string, _ *Principal, resource, scope string, isKnown bool) *CheckResult {
 	if isKnown {
-		// Only track rollout signal for registered (resource, scope) pairs.
-		// Unknown identifiers are rejected here to prevent unbounded counter
-		// growth from attacker-controlled input reaching CheckPermission.
 		p.cache.bumpUnmatched(resource, scope)
-		metrics.RecordAuthzUnmatched(mode)
+		metrics.RecordAuthzUnmatched()
 	}
-
-	if mode == constants.AuthorizationEnforcementPermissive {
-		if isKnown && p.warnLimiter.allow(resource+":"+scope) {
-			p.log.Warn().
-				Bool("authz.unmatched", true).
-				Str("mode", mode).
-				Str("principal_id", principal.ID).
-				Str("resource", resource).
-				Str("scope", scope).
-				Msg("no matching permission (permissive: allowing)")
-		}
-		p.cache.set(cacheKey, cacheValTrue)
-		metrics.RecordAuthzCheck(mode, metrics.AuthzResultUnmatchedAllowed)
-		return &CheckResult{Allowed: true}
-	}
-
 	p.cache.set(cacheKey, cacheValFalse)
-	metrics.RecordAuthzCheck(mode, metrics.AuthzResultUnmatchedDenied)
+	metrics.RecordAuthzCheck(metrics.AuthzResultUnmatched)
 	return &CheckResult{Allowed: false}
 }
 

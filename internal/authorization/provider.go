@@ -2,7 +2,6 @@ package authorization
 
 import (
 	"context"
-	"time"
 
 	"github.com/rs/zerolog"
 
@@ -67,11 +66,6 @@ type Dependencies struct {
 // This is separate from the main config to avoid circular imports.
 // The values are passed in from cmd/root.go.
 type Config struct {
-	// Enforcement is the authorization enforcement mode:
-	// "permissive" (default) or "enforcing".
-	// Permissive allows checks with no matching permission and emits a
-	// rate-limited warn log. Enforcing denies checks with no matching permission.
-	Enforcement string
 	// CacheTTL is the cache time-to-live in seconds. 0 disables caching.
 	CacheTTL int64
 }
@@ -82,7 +76,6 @@ type provider struct {
 	log             *zerolog.Logger
 	storageProvider storage.Provider
 	cache           *cache
-	warnLimiter     *warnLimiter
 }
 
 // New creates a new authorization provider.
@@ -92,7 +85,6 @@ func New(cfg *Config, deps *Dependencies) (Provider, error) {
 		log:             deps.Log,
 		storageProvider: deps.StorageProvider,
 		cache:           newCache(cfg.CacheTTL),
-		warnLimiter:     newWarnLimiter(60 * time.Second),
 	}
 	return p, nil
 }
