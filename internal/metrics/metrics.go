@@ -61,7 +61,7 @@ const (
 
 // RequiredPermissionsEndpoint* are the bounded endpoint label values for the
 // required_permissions counter. New endpoints adopting required_permissions
-// MUST add a constant here rather than passing raw strings.
+// must add a constant here rather than passing raw strings.
 const (
 	RequiredPermissionsEndpointSession          = "session"
 	RequiredPermissionsEndpointValidateSession  = "validate_session"
@@ -192,12 +192,12 @@ var (
 
 	// RequiredPermissionsChecksTotal counts each endpoint invocation that the
 	// required_permissions field flows through, labelled by endpoint and the
-	// per-request outcome. This is the FGA *adoption + enforcement* signal;
-	// the per-CheckPermission AuthzChecksTotal is the *evaluator* signal.
+	// per-request outcome. This is the FGA adoption + enforcement signal;
+	// the per-CheckPermission AuthzChecksTotal is the evaluator signal.
 	RequiredPermissionsChecksTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "authorizer_required_permissions_checks_total",
-			Help: "Per-endpoint required_permissions outcome. outcome=granted|denied|not_requested|error. endpoint=session|validate_session|validate_jwt_token.",
+			Help: "Per-endpoint required_permissions outcome. endpoint=session|validate_session|validate_jwt_token. outcome=granted|denied|not_requested|error.",
 		},
 		[]string{"endpoint", "outcome"},
 	)
