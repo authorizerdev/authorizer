@@ -248,7 +248,10 @@ func TestRequiredPermissions(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		// denied
+		// denied — error is intentional; only the counter increment matters.
+		// outcome=error is not exercised here: simulating a CheckPermission
+		// storage fault from an integration test requires fault injection
+		// the provider doesn't currently expose.
 		_, _ = ts.GraphQLProvider.ValidateJWTToken(ctx, &model.ValidateJWTTokenRequest{
 			Token:     freshAccessToken,
 			TokenType: constants.TokenTypeAccessToken,

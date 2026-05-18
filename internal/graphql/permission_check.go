@@ -21,9 +21,14 @@ import (
 // It must be one of metrics.RequiredPermissionsEndpoint* — passing an
 // unbounded string risks Prometheus cardinality explosion.
 //
-// When required is empty (the common case) the metric is incremented with
-// outcome=not_requested and the helper returns nil so existing callers see no
-// behavior change.
+// When required is empty (the common case) callers observe no error,
+// though the metric is still incremented with outcome=not_requested so
+// adoption can be measured per endpoint.
+//
+// Each terminal return below MUST be paired with exactly one
+// RecordRequiredPermissionsCheck call. The loop returns on the first
+// error or deny, so per-iteration emission cannot double-count — preserve
+// that invariant if you refactor.
 func (g *graphqlProvider) enforceRequiredPermissions(
 	ctx context.Context,
 	log zerolog.Logger,
