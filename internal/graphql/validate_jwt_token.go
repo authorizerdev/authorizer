@@ -9,6 +9,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 	"github.com/authorizerdev/authorizer/internal/token"
@@ -125,7 +126,7 @@ func (g *graphqlProvider) ValidateJWTToken(ctx context.Context, params *model.Va
 			}
 		}
 	}
-	if err := g.enforceRequiredPermissions(ctx, log, userID, claimRoles, params.RequiredPermissions); err != nil {
+	if err := g.enforceRequiredPermissions(ctx, log, metrics.RequiredPermissionsEndpointValidateJWTToken, userID, claimRoles, params.RequiredPermissions); err != nil {
 		return nil, err
 	}
 	return &model.ValidateJWTTokenResponse{

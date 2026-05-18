@@ -7,6 +7,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
 
@@ -61,7 +62,7 @@ func (g *graphqlProvider) ValidateSession(ctx context.Context, params *model.Val
 		}
 	}
 	if params != nil {
-		if err := g.enforceRequiredPermissions(ctx, log, user.ID, claimRoles, params.RequiredPermissions); err != nil {
+		if err := g.enforceRequiredPermissions(ctx, log, metrics.RequiredPermissionsEndpointValidateSession, user.ID, claimRoles, params.RequiredPermissions); err != nil {
 			return nil, err
 		}
 	}

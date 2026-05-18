@@ -12,6 +12,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/token"
@@ -64,7 +65,7 @@ func (g *graphqlProvider) Session(ctx context.Context, params *model.SessionQuer
 	}
 
 	if params != nil {
-		if err := g.enforceRequiredPermissions(ctx, log, user.ID, claimRoles, params.RequiredPermissions); err != nil {
+		if err := g.enforceRequiredPermissions(ctx, log, metrics.RequiredPermissionsEndpointSession, user.ID, claimRoles, params.RequiredPermissions); err != nil {
 			return nil, err
 		}
 	}

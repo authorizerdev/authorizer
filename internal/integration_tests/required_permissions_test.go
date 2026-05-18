@@ -8,7 +8,9 @@ import (
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/crypto"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/google/uuid"
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -207,5 +209,59 @@ func TestRequiredPermissions(t *testing.T) {
 			require.Nil(t, res)
 			assert.Contains(t, err.Error(), "unauthorized")
 		})
+	})
+
+	t.Run("metrics counters increment per outcome", func(t *testing.T) {
+		grantedBefore := testutil.ToFloat64(metrics.RequiredPermissionsChecksTotal.WithLabelValues(
+			metrics.RequiredPermissionsEndpointValidateJWTToken,
+			metrics.RequiredPermissionsOutcomeGranted,
+		))
+		deniedBefore := testutil.ToFloat64(metrics.RequiredPermissionsChecksTotal.WithLabelValues(
+			metrics.RequiredPermissionsEndpointValidateJWTToken,
+			metrics.RequiredPermissionsOutcomeDenied,
+		))
+		notReqBefore := testutil.ToFloat64(metrics.RequiredPermissionsChecksTotal.WithLabelValues(
+			metrics.RequiredPermissionsEndpointValidateJWTToken,
+			metrics.RequiredPermissionsOutcomeNotRequested,
+		))
+
+		// not_requested
+		_, err := ts.GraphQLProvider.ValidateJWTToken(ctx, &model.ValidateJWTTokenRequest{
+			Token:     accessToken,
+			TokenType: constants.TokenTypeAccessToken,
+		})
+		require.NoError(t, err)
+
+		// granted
+		_, err = ts.GraphQLProvider.ValidateJWTToken(ctx, &model.ValidateJWTTokenRequest{
+			Token:     accessToken,
+			TokenType: constants.TokenTypeAccessToken,
+			RequiredPermissions: []*model.PermissionInput{
+				{Resource: "docs", Scope: "read"},
+			},
+		})
+		require.NoError(t, err)
+
+		// denied
+		_, _ = ts.GraphQLProvider.ValidateJWTToken(ctx, &model.ValidateJWTTokenRequest{
+			Token:     accessToken,
+			TokenType: constants.TokenTypeAccessToken,
+			RequiredPermissions: []*model.PermissionInput{
+				{Resource: "docs", Scope: "write"},
+			},
+		})
+
+		assert.Equal(t, grantedBefore+1, testutil.ToFloat64(metrics.RequiredPermissionsChecksTotal.WithLabelValues(
+			metrics.RequiredPermissionsEndpointValidateJWTToken,
+			metrics.RequiredPermissionsOutcomeGranted,
+		)))
+		assert.Equal(t, deniedBefore+1, testutil.ToFloat64(metrics.RequiredPermissionsChecksTotal.WithLabelValues(
+			metrics.RequiredPermissionsEndpointValidateJWTToken,
+			metrics.RequiredPermissionsOutcomeDenied,
+		)))
+		assert.Equal(t, notReqBefore+1, testutil.ToFloat64(metrics.RequiredPermissionsChecksTotal.WithLabelValues(
+			metrics.RequiredPermissionsEndpointValidateJWTToken,
+			metrics.RequiredPermissionsOutcomeNotRequested,
+		)))
 	})
 }
