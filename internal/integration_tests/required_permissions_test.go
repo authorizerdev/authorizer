@@ -212,6 +212,12 @@ func TestRequiredPermissions(t *testing.T) {
 	})
 
 	t.Run("metrics counters increment per outcome", func(t *testing.T) {
+		// Re-login to get a fresh access token — the session subtests above each
+		// call login() internally (session rotates on every call), which replaces
+		// the memory-store entries and makes the top-level accessToken stale.
+		login(t)
+		_, freshAccessToken := captureTokens(t, ts)
+
 		grantedBefore := testutil.ToFloat64(metrics.RequiredPermissionsChecksTotal.WithLabelValues(
 			metrics.RequiredPermissionsEndpointValidateJWTToken,
 			metrics.RequiredPermissionsOutcomeGranted,
@@ -227,14 +233,14 @@ func TestRequiredPermissions(t *testing.T) {
 
 		// not_requested
 		_, err := ts.GraphQLProvider.ValidateJWTToken(ctx, &model.ValidateJWTTokenRequest{
-			Token:     accessToken,
+			Token:     freshAccessToken,
 			TokenType: constants.TokenTypeAccessToken,
 		})
 		require.NoError(t, err)
 
 		// granted
 		_, err = ts.GraphQLProvider.ValidateJWTToken(ctx, &model.ValidateJWTTokenRequest{
-			Token:     accessToken,
+			Token:     freshAccessToken,
 			TokenType: constants.TokenTypeAccessToken,
 			RequiredPermissions: []*model.PermissionInput{
 				{Resource: "docs", Scope: "read"},
@@ -244,7 +250,7 @@ func TestRequiredPermissions(t *testing.T) {
 
 		// denied
 		_, _ = ts.GraphQLProvider.ValidateJWTToken(ctx, &model.ValidateJWTTokenRequest{
-			Token:     accessToken,
+			Token:     freshAccessToken,
 			TokenType: constants.TokenTypeAccessToken,
 			RequiredPermissions: []*model.PermissionInput{
 				{Resource: "docs", Scope: "write"},
