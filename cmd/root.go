@@ -76,23 +76,6 @@ var (
 	}
 )
 
-// legacyDisabledObserved is set when the operator passes the now-removed
-// authorization-enforcement=disabled value. runRoot emits a one-time INFO log
-// after the logger is configured. We cannot log from applyFlagDefaults because
-// it runs before the logger is ready.
-var legacyDisabledObserved bool
-
-// legacyTypoObserved is set when the operator passes an
-// authorization-enforcement value that is neither empty, "permissive",
-// "enforcing" (any case), nor the legacy "disabled". runRoot emits a warning
-// after the logger is configured so operators notice fat-fingered flags
-// instead of being silently demoted to "permissive".
-var legacyTypoObserved bool
-
-// rawAuthzEnforcement preserves the operator-supplied --authorization-enforcement
-// value before normalization, so runRoot can echo it back in the typo warning.
-var rawAuthzEnforcement string
-
 func init() {
 	f := RootCmd.Flags()
 
@@ -255,7 +238,13 @@ func init() {
 	f.StringVar(&rootArgs.config.BackchannelLogoutURI, "backchannel-logout-uri", "", "URL to POST a signed logout_token to when users log out successfully. Leave empty (default) to disable back-channel logout notifications. See OIDC Back-Channel Logout 1.0.")
 
 	// Fine-grained authorization flags
-	f.StringVar(&rootArgs.config.AuthorizationEnforcement, "authorization-enforcement", "permissive", "Authorization enforcement mode: permissive (default) or enforcing")
+	// Deprecated: enforcement is always enforcing now. We keep the flag for
+	// one release so existing systemd/Docker configs do not break on parse;
+	// runRoot emits a warning if the operator passes a value.
+	f.String("authorization-enforcement", "", "[DEPRECATED] no-op; authorization is always enforcing. Will be removed in the next minor release.")
+	if err := f.MarkDeprecated("authorization-enforcement", "authorization is always enforcing; remove this flag from your config"); err != nil {
+		panic(err) // only fires on programming error in flag registration
+	}
 	f.Int64Var(&rootArgs.config.AuthorizationCacheTTL, "authorization-cache-ttl", 300, "Cache TTL in seconds for permission checks (0 to disable)")
 	f.BoolVar(&rootArgs.config.IncludePermissionsInToken, "include-permissions-in-token", false, "Include permissions in JWT access tokens")
 	f.BoolVar(&rootArgs.config.AuthorizationLogAllChecks, "authorization-log-all-checks", false, "Audit log all permission checks, not just denials")
@@ -346,43 +335,6 @@ func applyFlagDefaults() {
 	if len(c.RobloxScopes) == 0 {
 		c.RobloxScopes = append([]string(nil), defaultRobloxScopes...)
 	}
-	rawEnforcement := c.AuthorizationEnforcement
-	rawAuthzEnforcement = rawEnforcement
-	c.AuthorizationEnforcement = NormalizeAuthzEnforcement(rawEnforcement)
-	trimmed := strings.TrimSpace(rawEnforcement)
-	switch {
-	case strings.EqualFold(trimmed, "disabled"):
-		// Remember the legacy input so runRoot can log the one-time migration
-		// notice after the logger is configured. We cannot log here because
-		// applyFlagDefaults runs before the logger is ready.
-		legacyDisabledObserved = true
-	case trimmed == "",
-		strings.EqualFold(trimmed, constants.AuthorizationEnforcementPermissive),
-		strings.EqualFold(trimmed, constants.AuthorizationEnforcementEnforcing):
-		// Canonical input (case-insensitive) or unset; nothing to flag.
-	default:
-		// Anything else is a typo or unknown value. Surface it as a warning
-		// in runRoot so operators see their fat-fingered flag instead of
-		// being silently demoted to permissive.
-		legacyTypoObserved = true
-	}
-}
-
-// NormalizeAuthzEnforcement returns the canonical enforcement mode for the given input.
-//   - "enforcing" (case-insensitive, whitespace-tolerant) maps to "enforcing".
-//   - "" (empty), "permissive" (any case), "disabled" (legacy), and any
-//     unrecognized value map to "permissive" — the new safe default.
-//
-// Callers (applyFlagDefaults / runRoot) are responsible for emitting the
-// legacy-migration notice for "disabled" (via legacyDisabledObserved) and a
-// typo warning for unrecognized input (via legacyTypoObserved) after the
-// logger is configured.
-func NormalizeAuthzEnforcement(v string) string {
-	trimmed := strings.TrimSpace(v)
-	if strings.EqualFold(trimmed, constants.AuthorizationEnforcementEnforcing) {
-		return constants.AuthorizationEnforcementEnforcing
-	}
-	return constants.AuthorizationEnforcementPermissive
 }
 
 // Run the service
@@ -530,33 +482,27 @@ func runRoot(c *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create authorization provider")
 	}
-	if legacyDisabledObserved {
-		log.Info().Msg("authz: 'disabled' is no longer a supported enforcement mode; migrated to 'permissive'. CheckPermission calls with no matching permission will return ALLOWED and log authz.unmatched=true. Set --authorization-enforcement=enforcing once permissions are seeded.")
-	}
-	if legacyTypoObserved {
+	if c.Flags().Changed("authorization-enforcement") {
+		val, _ := c.Flags().GetString("authorization-enforcement")
 		log.Warn().
-			Str("input", rawAuthzEnforcement).
-			Msg("authz: --authorization-enforcement value is not recognized; defaulted to 'permissive'. Valid values are 'permissive' and 'enforcing'.")
+			Str("flag", "authorization-enforcement").
+			Str("value", val).
+			Msg("--authorization-enforcement is deprecated and ignored; authorization is always enforcing. Remove the flag from your config to silence this warning.")
 	}
 
-	switch rootArgs.config.AuthorizationEnforcement {
-	case constants.AuthorizationEnforcementEnforcing:
-		// Check once at startup whether any permissions exist. If zero, emit a
-		// loud warn so operators don't lock themselves out in prod. Bounded
-		// context prevents a hung DB at boot from blocking startup indefinitely.
-		probeCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		_, pr, lerr := storageProvider.ListPermissions(probeCtx, &model.Pagination{Limit: 1, Page: 1})
-		cancel()
-		switch {
-		case lerr != nil:
-			log.Warn().Err(lerr).Msg("authz: failed to probe permission count at startup; enforcing mode active")
-		case pr != nil && pr.Total == 0:
-			log.Warn().Msg("authz mode=enforcing but 0 permissions configured — all authorization checks will DENY. Seed permissions or switch to --authorization-enforcement=permissive.")
-		default:
-			log.Info().Msg("authz mode=enforcing: unmatched CheckPermission calls will be DENIED.")
-		}
+	// Check once at startup whether any permissions exist. If zero, emit a
+	// loud warn so operators don't lock themselves out in prod. Bounded
+	// context prevents a hung DB at boot from blocking startup indefinitely.
+	probeCtx, probeCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	_, pr, lerr := storageProvider.ListPermissions(probeCtx, &model.Pagination{Limit: 1, Page: 1})
+	probeCancel()
+	switch {
+	case lerr != nil:
+		log.Warn().Err(lerr).Msg("authz: failed to probe permission count at startup; enforcing mode active")
+	case pr != nil && pr.Total == 0:
+		log.Warn().Msg("authz: 0 permissions configured — all authorization checks will DENY. Seed permissions via the dashboard or admin GraphQL mutations.")
 	default:
-		log.Info().Msg("authz mode=permissive: unmatched CheckPermission calls will be ALLOWED and logged with authz.unmatched=true.")
+		log.Info().Msg("authz: enforcing; unmatched CheckPermission calls will be DENIED.")
 	}
 
 	// SMS provider

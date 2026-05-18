@@ -318,11 +318,6 @@ type Config struct {
 	BackchannelLogoutURI string
 
 	// Fine-Grained Authorization
-	// AuthorizationEnforcement is the authorization enforcement mode.
-	// Valid values: "permissive" (default) or "enforcing".
-	// Legacy value "disabled" is accepted and migrated to "permissive" with a
-	// one-time INFO log emitted at startup.
-	AuthorizationEnforcement string
 	// AuthorizationCacheTTL is the cache time-to-live in seconds for permission checks.
 	// Set to 0 to disable caching. Default: 300 (5 minutes).
 	AuthorizationCacheTTL int64
