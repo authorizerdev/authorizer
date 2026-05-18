@@ -50,6 +50,24 @@ const (
 	AuthzResultError            = "error"             // validation / storage error
 )
 
+// Outcome constants for the required_permissions counter (per-request bucket,
+// distinct from per-CheckPermission AuthzResult* above). Low cardinality.
+const (
+	RequiredPermissionsOutcomeGranted      = "granted"       // all listed permissions allowed
+	RequiredPermissionsOutcomeDenied       = "denied"        // one or more denied by policy
+	RequiredPermissionsOutcomeNotRequested = "not_requested" // caller omitted required_permissions
+	RequiredPermissionsOutcomeError        = "error"         // CheckPermission errored (DB/validation)
+)
+
+// RequiredPermissionsEndpoint* are the bounded endpoint label values for the
+// required_permissions counter. New endpoints adopting required_permissions
+// MUST add a constant here rather than passing raw strings.
+const (
+	RequiredPermissionsEndpointSession          = "session"
+	RequiredPermissionsEndpointValidateSession  = "validate_session"
+	RequiredPermissionsEndpointValidateJWTToken = "validate_jwt_token"
+)
+
 var (
 	// HTTPRequestsTotal is the total number of HTTP requests received.
 	HTTPRequestsTotal = prometheus.NewCounterVec(
@@ -171,6 +189,18 @@ var (
 			Buckets: prometheus.DefBuckets,
 		},
 	)
+
+	// RequiredPermissionsChecksTotal counts each endpoint invocation that the
+	// required_permissions field flows through, labelled by endpoint and the
+	// per-request outcome. This is the FGA *adoption + enforcement* signal;
+	// the per-CheckPermission AuthzChecksTotal is the *evaluator* signal.
+	RequiredPermissionsChecksTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "authorizer_required_permissions_checks_total",
+			Help: "Per-endpoint required_permissions outcome. outcome=granted|denied|not_requested|error. endpoint=session|validate_session|validate_jwt_token.",
+		},
+		[]string{"endpoint", "outcome"},
+	)
 )
 
 // staticAssetPathSuffixes are path suffixes (after lowercasing) treated as static files
@@ -256,6 +286,7 @@ func Init() {
 		prometheus.MustRegister(AuthzChecksTotal)
 		prometheus.MustRegister(AuthzUnmatchedTotal)
 		prometheus.MustRegister(AuthzCheckDuration)
+		prometheus.MustRegister(RequiredPermissionsChecksTotal)
 	})
 }
 
@@ -316,4 +347,11 @@ func RecordAuthzCheck(mode, result string) {
 // mode must be one of AuthzMode* constants.
 func RecordAuthzUnmatched(mode string) {
 	AuthzUnmatchedTotal.WithLabelValues(mode).Inc()
+}
+
+// RecordRequiredPermissionsCheck records the per-request outcome of
+// enforceRequiredPermissions. endpoint must be one of RequiredPermissionsEndpoint*;
+// outcome must be one of RequiredPermissionsOutcome*.
+func RecordRequiredPermissionsCheck(endpoint, outcome string) {
+	RequiredPermissionsChecksTotal.WithLabelValues(endpoint, outcome).Inc()
 }
