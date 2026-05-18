@@ -18,6 +18,19 @@ const defaultCSP = "default-src 'self'; " +
 	"base-uri 'self'; " +
 	"form-action 'self'"
 
+// playgroundCSP relaxes script/style/font sources for the embedded GraphQL
+// playground, which loads React + GraphiQL bundles from jsdelivr at runtime.
+// Scoped to /playground only — the rest of the app keeps defaultCSP.
+const playgroundCSP = "default-src 'self'; " +
+	"script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " +
+	"style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " +
+	"img-src 'self' data: https:; " +
+	"font-src 'self' data: https://cdn.jsdelivr.net; " +
+	"connect-src 'self'; " +
+	"frame-ancestors 'none'; " +
+	"base-uri 'self'; " +
+	"form-action 'self'"
+
 // SecurityHeadersMiddleware sets standard security headers on every response.
 func (h *httpProvider) SecurityHeadersMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -37,7 +50,11 @@ func (h *httpProvider) SecurityHeadersMiddleware() gin.HandlerFunc {
 		// CSP is on by default; disable via --disable-csp if it breaks a
 		// dashboard in the wild while we tighten the policy.
 		if !h.Config.DisableCSP {
-			hdr.Set("Content-Security-Policy", defaultCSP)
+			csp := defaultCSP
+			if c.Request.URL.Path == "/playground" {
+				csp = playgroundCSP
+			}
+			hdr.Set("Content-Security-Policy", csp)
 		}
 
 		c.Next()
