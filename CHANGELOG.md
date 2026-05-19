@@ -7,8 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Breaking changes
+
+- **Authorization is now always enforcing.** The `--authorization-enforcement` flag is deprecated and ignored; passing it logs a startup warning and has no effect. Previously the default (`permissive`) silently allowed `required_permissions` checks for unmatched `(resource, scope)` pairs. Operators relying on that fallthrough must define the missing permissions in the dashboard before upgrading or callers will receive `unauthorized`. See `MIGRATION.md#authorization-enforcement-removal`.
+- **Authz Prometheus labels changed.** The `mode` label was removed from `authorizer_authz_checks_total` and `authorizer_authz_unmatched_total`. The result values `unmatched_allowed` and `unmatched_denied` were collapsed into a single `unmatched`. Dashboards and recording rules that filter on these values need to be updated.
+
 ### Added
 
+- **`authorizer_required_permissions_checks_total{endpoint, outcome}`**: per-endpoint Prometheus counter for FGA adoption + enforcement signal. Outcomes are `granted`, `denied`, `not_requested`, `error`. Endpoints are `session`, `validate_session`, `validate_jwt_token`. Alert on `outcome="error"` rising; it indicates a storage/validation failure preventing checks from completing.
 - **`--rate-limit-fail-closed`**: when the rate-limit backend returns an error, respond with `503` instead of allowing the request (default remains fail-open).
 - **`--metrics-host`**: bind address for the dedicated `/metrics` listener (default `127.0.0.1`). Use `0.0.0.0` when a scraper on another host/pod must reach the metrics port over the network; keep the metrics port off public ingress.
 - **OIDC Discovery — `grant_types_supported` includes `implicit`**: honestly reflects that `/authorize` accepts `response_type=token` and `response_type=id_token`.

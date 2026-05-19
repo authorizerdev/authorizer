@@ -502,3 +502,52 @@ The v2 repo ships with a `Makefile` that wraps the most common development and b
 - **authorizer-react:** [github.com/authorizerdev/authorizer-react](https://github.com/authorizerdev/authorizer-react) (v2.0.0-rc.1, see CHANGELOG.md)
 - **Docs:** [docs.authorizer.dev](https://docs.authorizer.dev/) (to be updated for v2)
 
+---
+
+## Authorization Enforcement Removal
+
+> Applies when upgrading from any earlier v2 build that supported `--authorization-enforcement`. Skip this section if you never used the fine-grained authorization (FGA) feature or never set the flag.
+
+### What changed
+
+`--authorization-enforcement` is deprecated and **ignored**. Authorization is always enforcing. A `required_permissions` check against a `(resource, scope)` pair that has no granting permission row — either because the pair is unregistered or because no policy grants it — now returns `unauthorized`. Previously, the default (`permissive`) silently allowed those calls and emitted a rate-limited warn log.
+
+### Action required
+
+1. **Before upgrading**, audit your current deployment for unmatched checks that would flip from "allowed" to `unauthorized`. Two signals:
+   - Prometheus: `authorizer_authz_unmatched_total` — any non-zero series is a gap.
+   - Logs: lines tagged `authz.unmatched=true`.
+
+   Every `(resource, scope)` pair that flowed through a `required_permissions` call needs an explicit permission row defined via the dashboard (Authorization → Permissions) or the admin GraphQL mutations (`_add_resource`, `_add_scope`, `_add_policy`, `_add_permission`).
+
+2. **Remove `--authorization-enforcement`** from your CLI args, systemd unit, docker-compose file, Helm values, or wrapper script. The flag is currently a no-op that logs a deprecation warning at startup; it will be removed in the release after this one.
+
+3. **Update Prometheus dashboards and recording rules**:
+   - Drop the `mode` label from `authorizer_authz_checks_total` and `authorizer_authz_unmatched_total` queries.
+   - Replace `result="unmatched_allowed"` and `result="unmatched_denied"` filters with `result="unmatched"`.
+
+### New observability
+
+Per-endpoint adoption + denial signal for `required_permissions` calls:
+
+```promql
+sum by (endpoint, outcome) (rate(authorizer_required_permissions_checks_total[5m]))
+```
+
+| `outcome`       | What it means                                                      | Operator action                                                |
+| --------------- | ------------------------------------------------------------------ | -------------------------------------------------------------- |
+| `granted`       | All requested permissions allowed.                                 | Healthy baseline.                                              |
+| `denied`        | One or more requested permissions denied.                          | Investigate policy gap or attacker probe.                      |
+| `not_requested` | Caller omitted `required_permissions` (legacy / not yet adopted).  | Track adoption rate per endpoint.                              |
+| `error`         | `CheckPermission` errored (storage / validation failure).          | **Alert.** Should sit at zero — non-zero means infra problem.  |
+
+### Startup probe
+
+If you upgrade to a deployment with zero permissions configured, the server now emits a single startup warn line:
+
+```
+authz: 0 permissions configured — all authorization checks will DENY. Seed permissions via the dashboard or admin GraphQL mutations.
+```
+
+This replaces the prior mode-aware messages that suggested switching to `--authorization-enforcement=permissive`.
+
