@@ -18,13 +18,6 @@ const (
 	// DecisionStrategyUnanimous grants only if ALL policies/targets agree (AND logic).
 	DecisionStrategyUnanimous = "unanimous"
 
-	// AuthorizationEnforcementPermissive returns true when no matching permission
-	// exists, but logs a warning. Useful for migration/development.
-	AuthorizationEnforcementPermissive = "permissive"
-	// AuthorizationEnforcementEnforcing is default-deny. Returns false when no
-	// matching permission exists.
-	AuthorizationEnforcementEnforcing = "enforcing"
-
 	// PrincipalTypeUser identifies a human user principal (from authorization_code grant).
 	PrincipalTypeUser = "user"
 	// PrincipalTypeClient identifies a service/M2M principal (from client_credentials grant).
