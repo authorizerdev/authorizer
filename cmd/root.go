@@ -238,13 +238,6 @@ func init() {
 	f.StringVar(&rootArgs.config.BackchannelLogoutURI, "backchannel-logout-uri", "", "URL to POST a signed logout_token to when users log out successfully. Leave empty (default) to disable back-channel logout notifications. See OIDC Back-Channel Logout 1.0.")
 
 	// Fine-grained authorization flags
-	// Deprecated: enforcement is always enforcing now. We keep the flag for
-	// one release so existing systemd/Docker configs do not break on parse;
-	// runRoot emits a warning if the operator passes a value.
-	f.String("authorization-enforcement", "", "[DEPRECATED] no-op; authorization is always enforcing. Will be removed in the next minor release.")
-	if err := f.MarkDeprecated("authorization-enforcement", "authorization is always enforcing; remove this flag from your config"); err != nil {
-		panic(err) // only fires on programming error in flag registration
-	}
 	f.Int64Var(&rootArgs.config.AuthorizationCacheTTL, "authorization-cache-ttl", 300, "Cache TTL in seconds for permission checks (0 to disable)")
 	f.BoolVar(&rootArgs.config.IncludePermissionsInToken, "include-permissions-in-token", false, "Include permissions in JWT access tokens")
 	f.BoolVar(&rootArgs.config.AuthorizationLogAllChecks, "authorization-log-all-checks", false, "Audit log all permission checks, not just denials")
@@ -482,13 +475,6 @@ func runRoot(c *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create authorization provider")
 	}
-	if c.Flags().Changed("authorization-enforcement") {
-		val, _ := c.Flags().GetString("authorization-enforcement")
-		log.Warn().
-			Str("flag", "authorization-enforcement").
-			Str("value", val).
-			Msg("--authorization-enforcement is deprecated and ignored; authorization is always enforcing. Remove the flag from your config to silence this warning.")
-	}
 
 	// Check once at startup whether any permissions exist. If zero, emit a
 	// loud warn so operators don't lock themselves out in prod. Bounded
@@ -498,7 +484,7 @@ func runRoot(c *cobra.Command, args []string) {
 	probeCancel()
 	switch {
 	case lerr != nil:
-		log.Warn().Err(lerr).Msg("authz: failed to probe permission count at startup; enforcing mode active")
+		log.Warn().Err(lerr).Msg("authz: failed to probe permission count at startup; authorization is enforcing")
 	case pr != nil && pr.Total == 0:
 		log.Warn().Msg("authz: 0 permissions configured — all authorization checks will DENY. Seed permissions via the dashboard or admin GraphQL mutations.")
 	default:

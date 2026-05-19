@@ -7,10 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Breaking changes
+### Changed
 
-- **Authorization is now always enforcing.** The `--authorization-enforcement` flag is deprecated and ignored; passing it logs a startup warning and has no effect. Previously the default (`permissive`) silently allowed `required_permissions` checks for unmatched `(resource, scope)` pairs. Operators relying on that fallthrough must define the missing permissions in the dashboard before upgrading or callers will receive `unauthorized`. See `MIGRATION.md#authorization-enforcement-removal`.
-- **Authz Prometheus labels changed.** The `mode` label was removed from `authorizer_authz_checks_total` and `authorizer_authz_unmatched_total`. The result values `unmatched_allowed` and `unmatched_denied` were collapsed into a single `unmatched`. Dashboards and recording rules that filter on these values need to be updated.
+- **Fine-grained authorization is always enforcing.** The previously-proposed `--authorization-enforcement` flag and its dual `permissive`/`enforcing` modes were removed before shipping. `required_permissions` checks against an unmatched or denied `(resource, scope)` pair return `unauthorized`. There is no permissive "log but allow" mode.
+- **Authz Prometheus shape**: `authorizer_authz_checks_total` has only a `result` label (`allowed|denied|unmatched|error`); `authorizer_authz_unmatched_total` has no labels.
 
 ### Added
 
