@@ -5,6 +5,7 @@ import (
 
 	"github.com/rs/zerolog"
 
+	"github.com/authorizerdev/authorizer/internal/memory_store"
 	"github.com/authorizerdev/authorizer/internal/storage"
 )
 
@@ -58,8 +59,9 @@ type Provider interface {
 
 // Dependencies carries shared resources for constructing an authorization Provider.
 type Dependencies struct {
-	Log             *zerolog.Logger
-	StorageProvider storage.Provider
+	Log                 *zerolog.Logger
+	StorageProvider     storage.Provider
+	MemoryStoreProvider memory_store.Provider
 }
 
 // Config holds authorization-specific configuration.
@@ -75,6 +77,7 @@ type provider struct {
 	config          *Config
 	log             *zerolog.Logger
 	storageProvider storage.Provider
+	memoryStore     memory_store.Provider
 	cache           *cache
 }
 
@@ -84,6 +87,7 @@ func New(cfg *Config, deps *Dependencies) (Provider, error) {
 		config:          cfg,
 		log:             deps.Log,
 		storageProvider: deps.StorageProvider,
+		memoryStore:     deps.MemoryStoreProvider,
 		cache:           newCache(cfg.CacheTTL),
 	}
 	return p, nil

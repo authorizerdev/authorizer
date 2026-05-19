@@ -192,8 +192,9 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 	authzProvider, err := authorization.New(&authorization.Config{
 		CacheTTL: 0,
 	}, &authorization.Dependencies{
-		Log:             &logger,
-		StorageProvider: storageProvider,
+		Log:                 &logger,
+		StorageProvider:     storageProvider,
+		MemoryStoreProvider: memoryStoreProvider,
 	})
 	require.NoError(t, err)
 

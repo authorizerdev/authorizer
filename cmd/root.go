@@ -468,8 +468,9 @@ func runRoot(c *cobra.Command, args []string) {
 			CacheTTL: rootArgs.config.AuthorizationCacheTTL,
 		},
 		&authorization.Dependencies{
-			Log:             &log,
-			StorageProvider: storageProvider,
+			Log:                 &log,
+			StorageProvider:     storageProvider,
+			MemoryStoreProvider: memoryStoreProvider,
 		},
 	)
 	if err != nil {
