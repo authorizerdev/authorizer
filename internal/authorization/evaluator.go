@@ -24,6 +24,11 @@ const MaxPrincipalPermissionEvaluations = 10000
 // stored under an evalKey is a bug — the lookup branch below treats it as a
 // cache miss (returns to the full evaluation path) rather than silently
 // coercing to false.
+//
+// These values are a stable wire format because the cache is now stored in
+// memory_store (Redis or DB-backed), so values written by one process may be
+// read by another at any time, including across rolling restarts. Changing
+// either literal requires a full cache flush; do not edit without coordination.
 const (
 	cacheValTrue  = "true"
 	cacheValFalse = "false"
@@ -93,39 +98,46 @@ func (p *provider) CheckPermission(ctx context.Context, principal *Principal, re
 		}
 	}
 
-	// Cache lookup. memory_store.GetCache returns ("", nil) on miss; treat any
-	// error as a miss so a transient backend issue doesn't fail the request —
-	// we'll re-evaluate against storage. The same value space ("true"/"false")
-	// is used so a negative cached deny avoids a stampede on repeated probes.
+	// Cache lookup. Skip the memory_store round-trip entirely when caching
+	// is disabled (--authorization-cache-ttl=0) — no entry can exist and
+	// the extra IPC is pure latency waste.
+	//
+	// Otherwise memory_store.GetCache returns ("", nil) on miss; treat any
+	// error as a miss so a transient backend issue doesn't fail the request
+	// — we'll re-evaluate against storage. The same value space
+	// ("true"/"false") is used so a negative cached deny avoids a stampede
+	// on repeated probes.
 	cacheKey := evalKey(principal, resource, scope)
-	cached, cacheErr := p.memoryStore.GetCache(cacheKey)
-	if cacheErr != nil {
-		p.log.Debug().Err(cacheErr).Str("cache_key", cacheKey).
-			Msg("authz: memory_store GetCache failed; treating as miss")
-	}
-	if cached != "" {
-		switch cached {
-		case cacheValTrue:
-			p.log.Debug().
-				Str("principal_id", principal.ID).
-				Str("resource", resource).
-				Str("scope", scope).
-				Bool("allowed", true).
-				Msg("authorization cache hit")
-			metrics.RecordAuthzCheck(metrics.AuthzResultAllowed)
-			return &CheckResult{Allowed: true}, nil
-		case cacheValFalse:
-			p.log.Debug().
-				Str("principal_id", principal.ID).
-				Str("resource", resource).
-				Str("scope", scope).
-				Bool("allowed", false).
-				Msg("authorization cache hit")
-			metrics.RecordAuthzCheck(metrics.AuthzResultDenied)
-			return &CheckResult{Allowed: false}, nil
-		default:
-			p.log.Warn().Str("cache_key", cacheKey).Str("value", cached).
-				Msg("authz: unexpected cached eval value, ignoring")
+	if p.config.CacheTTL > 0 {
+		cached, cacheErr := p.memoryStore.GetCache(cacheKey)
+		if cacheErr != nil {
+			p.log.Debug().Err(cacheErr).Str("cache_key", cacheKey).
+				Msg("authz: memory_store GetCache failed; treating as miss")
+		}
+		if cached != "" {
+			switch cached {
+			case cacheValTrue:
+				p.log.Debug().
+					Str("principal_id", principal.ID).
+					Str("resource", resource).
+					Str("scope", scope).
+					Bool("allowed", true).
+					Msg("authorization cache hit")
+				metrics.RecordAuthzCheck(metrics.AuthzResultAllowed)
+				return &CheckResult{Allowed: true}, nil
+			case cacheValFalse:
+				p.log.Debug().
+					Str("principal_id", principal.ID).
+					Str("resource", resource).
+					Str("scope", scope).
+					Bool("allowed", false).
+					Msg("authorization cache hit")
+				metrics.RecordAuthzCheck(metrics.AuthzResultDenied)
+				return &CheckResult{Allowed: false}, nil
+			default:
+				p.log.Warn().Str("cache_key", cacheKey).Str("value", cached).
+					Msg("authz: unexpected cached eval value, ignoring")
+			}
 		}
 	}
 
@@ -150,7 +162,7 @@ func (p *provider) CheckPermission(ctx context.Context, principal *Principal, re
 		// Unknown identifier — skip counter bumps (DoS guard for attacker-
 		// controlled inputs reaching CheckPermission, e.g. via GraphQL
 		// myPermissions / required_permissions on authenticated endpoints).
-		return p.handleNoPermission(cacheKey, principal, resource, scope, false /* isKnown */), nil
+		return p.handleNoPermission(cacheKey, false /* isKnown */), nil
 	}
 
 	// Permissions.
@@ -162,7 +174,7 @@ func (p *provider) CheckPermission(ctx context.Context, principal *Principal, re
 	if len(perms) == 0 {
 		// Known (resource, scope) but no permission row — this is the signal
 		// we DO want to track for rollout.
-		return p.handleNoPermission(cacheKey, principal, resource, scope, true /* isKnown */), nil
+		return p.handleNoPermission(cacheKey, true /* isKnown */), nil
 	}
 
 	// Policy evaluation. Track the first non-empty deny attribution so we
@@ -201,12 +213,13 @@ func (p *provider) CheckPermission(ctx context.Context, principal *Principal, re
 }
 
 // handleNoPermission returns a deny result for an unmatched (resource, scope)
-// pair. The isKnown parameter reports whether the pair is both registered in
-// the DB — the unmatched metric is recorded only for known pairs to prevent
-// unbounded counter growth from attacker-controlled inputs reaching
+// pair, caches it under cacheKey, and conditionally records the unmatched
+// metric. The isKnown parameter reports whether the pair is registered in the
+// DB — the unmatched metric is recorded only for known pairs to prevent
+// unbounded counter growth from attacker-controlled identifiers reaching
 // CheckPermission via authenticated GraphQL (myPermissions /
 // required_permissions).
-func (p *provider) handleNoPermission(cacheKey string, _ *Principal, _, _ string, isKnown bool) *CheckResult {
+func (p *provider) handleNoPermission(cacheKey string, isKnown bool) *CheckResult {
 	if isKnown {
 		metrics.RecordAuthzUnmatched()
 	}
@@ -425,18 +438,26 @@ func (p *provider) GetPrincipalPermissions(ctx context.Context, principal *Princ
 // InvalidateCache invalidates cached authorization data matching the given prefix.
 // Both the local membership cache (validSets) and the memory_store decision cache
 // are cleared so stale "allowed" results cannot persist after an admin mutation.
+//
+// When caching is disabled (--authorization-cache-ttl=0), the memory_store
+// delete is skipped — nothing was ever written, so the round-trip would be
+// pure waste. The local validSets clear is still cheap and stays unconditional.
 func (p *provider) InvalidateCache(ctx context.Context, prefix string) {
 	p.cache.invalidateValidSets()
-	if err := p.memoryStore.DeleteCacheByPrefix(prefix); err != nil {
-		p.log.Warn().Err(err).Str("prefix", prefix).
-			Msg("authz: memory_store DeleteCacheByPrefix failed; stale allow results may persist until TTL")
+	if p.config.CacheTTL > 0 {
+		if err := p.memoryStore.DeleteCacheByPrefix(prefix); err != nil {
+			p.log.Warn().Err(err).Str("prefix", prefix).
+				Msg("authz: memory_store DeleteCacheByPrefix failed; stale allow results may persist until TTL")
+		}
 	}
 	p.log.Debug().Str("prefix", prefix).Msg("authorization cache invalidated")
 }
 
-// cacheStore writes a decision result to the memory_store cache. It is a no-op
-// when CacheTTL is 0. Errors are logged at debug level and treated as misses —
-// a transient backend issue must not turn a cache-write failure into a hard error.
+// cacheStore writes a decision result to the memory_store cache. No-op when
+// caching is disabled (CacheTTL <= 0). Errors are logged and swallowed — a
+// failed write means the next read will fall through to a full evaluation,
+// which is correct degradation; a write failure must never turn into a hard
+// error on the request path.
 func (p *provider) cacheStore(cacheKey, value string) {
 	if p.config.CacheTTL <= 0 {
 		return

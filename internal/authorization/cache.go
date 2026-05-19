@@ -67,8 +67,12 @@ func (c *cache) setValidSet(key string, set map[string]struct{}) {
 }
 
 // invalidateValidSets evicts all cached validSets entries. Called when an
-// admin mutation may have changed the resource or scope catalog.
+// admin mutation may have changed the resource or scope catalog. No-op when
+// caching is disabled — symmetric with setValidSet/getValidSet.
 func (c *cache) invalidateValidSets() {
+	if !c.enabled() {
+		return
+	}
 	c.validSets.Range(func(key, _ any) bool {
 		c.validSets.Delete(key)
 		c.expiryMap.Delete(key)

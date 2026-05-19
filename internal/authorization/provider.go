@@ -2,6 +2,7 @@ package authorization
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/rs/zerolog"
 
@@ -82,7 +83,14 @@ type provider struct {
 }
 
 // New creates a new authorization provider.
+//
+// MemoryStoreProvider is required: the evaluator's decision cache is
+// delegated to it. Missing it would surface as a nil-pointer panic on the
+// first CheckPermission call; we'd rather fail loudly at construction.
 func New(cfg *Config, deps *Dependencies) (Provider, error) {
+	if deps == nil || deps.MemoryStoreProvider == nil {
+		return nil, fmt.Errorf("authorization.New: MemoryStoreProvider is required")
+	}
 	p := &provider{
 		config:          cfg,
 		log:             deps.Log,
