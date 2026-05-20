@@ -26,7 +26,6 @@ func (p *provider) AddScope(ctx context.Context, scope *schemas.Scope) (*schemas
 		return nil, err
 	}
 	scope.Key = meta.Key
-	scope.ID = meta.ID.String()
 	return scope, nil
 }
 
@@ -39,7 +38,6 @@ func (p *provider) UpdateScope(ctx context.Context, scope *schemas.Scope) (*sche
 		return nil, err
 	}
 	scope.Key = meta.Key
-	scope.ID = meta.ID.String()
 	return scope, nil
 }
 
@@ -78,7 +76,7 @@ func (p *provider) DeleteScope(ctx context.Context, id string) error {
 // GetScopeByID returns an authorization scope by its ID.
 func (p *provider) GetScopeByID(ctx context.Context, id string) (*schemas.Scope, error) {
 	var scope *schemas.Scope
-	query := fmt.Sprintf("FOR d IN %s FILTER d._id == @id RETURN d", schemas.Collections.Scope)
+	query := fmt.Sprintf("FOR d IN %s FILTER d._key == @id RETURN d", schemas.Collections.Scope)
 	bindVars := map[string]interface{}{
 		"id": id,
 	}

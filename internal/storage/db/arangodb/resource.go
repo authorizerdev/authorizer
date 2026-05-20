@@ -26,7 +26,6 @@ func (p *provider) AddResource(ctx context.Context, resource *schemas.Resource) 
 		return nil, err
 	}
 	resource.Key = meta.Key
-	resource.ID = meta.ID.String()
 	return resource, nil
 }
 
@@ -39,7 +38,6 @@ func (p *provider) UpdateResource(ctx context.Context, resource *schemas.Resourc
 		return nil, err
 	}
 	resource.Key = meta.Key
-	resource.ID = meta.ID.String()
 	return resource, nil
 }
 
@@ -78,7 +76,7 @@ func (p *provider) DeleteResource(ctx context.Context, id string) error {
 // GetResourceByID returns an authorization resource by its ID.
 func (p *provider) GetResourceByID(ctx context.Context, id string) (*schemas.Resource, error) {
 	var resource *schemas.Resource
-	query := fmt.Sprintf("FOR d IN %s FILTER d._id == @id RETURN d", schemas.Collections.Resource)
+	query := fmt.Sprintf("FOR d IN %s FILTER d._key == @id RETURN d", schemas.Collections.Resource)
 	bindVars := map[string]interface{}{
 		"id": id,
 	}

@@ -8,8 +8,8 @@ import "github.com/authorizerdev/authorizer/internal/graph/model"
 type Permission struct {
 	// ID is the unique identifier (UUID v4).
 	ID string `json:"id" gorm:"primaryKey;type:char(36)" bson:"_id" cql:"id" dynamo:"id,hash"`
-	// Key is an alias for ID used by some NoSQL providers.
-	Key string `json:"key" gorm:"type:char(36)" bson:"key" cql:"key" dynamo:"key"`
+	// Key is an alias for ID used by some NoSQL providers (json tag is "_key" for arangodb document key).
+	Key string `json:"_key,omitempty" gorm:"type:char(36)" bson:"key" cql:"key" dynamo:"key"`
 	// Name is a unique human-readable identifier (e.g., "edit-documents").
 	Name string `json:"name" gorm:"type:varchar(100);uniqueIndex" bson:"name" cql:"name" dynamo:"name"`
 	// Description provides optional context about this permission.
@@ -30,8 +30,8 @@ type Permission struct {
 type PermissionScope struct {
 	// ID is the unique identifier (UUID v4).
 	ID string `json:"id" gorm:"primaryKey;type:char(36)" bson:"_id" cql:"id" dynamo:"id,hash"`
-	// Key is an alias for ID used by some NoSQL providers.
-	Key string `json:"key" gorm:"type:char(36)" bson:"key" cql:"key" dynamo:"key"`
+	// Key is an alias for ID used by some NoSQL providers (json tag is "_key" for arangodb document key).
+	Key string `json:"_key,omitempty" gorm:"type:char(36)" bson:"key" cql:"key" dynamo:"key"`
 	// PermissionID is the foreign key to the parent Permission.
 	PermissionID string `json:"permission_id" gorm:"type:char(36);index;uniqueIndex:idx_ps_unique" bson:"permission_id" cql:"permission_id" dynamo:"permission_id"`
 	// ScopeID is the foreign key to the Scope.
@@ -45,8 +45,8 @@ type PermissionScope struct {
 type PermissionPolicy struct {
 	// ID is the unique identifier (UUID v4).
 	ID string `json:"id" gorm:"primaryKey;type:char(36)" bson:"_id" cql:"id" dynamo:"id,hash"`
-	// Key is an alias for ID used by some NoSQL providers.
-	Key string `json:"key" gorm:"type:char(36)" bson:"key" cql:"key" dynamo:"key"`
+	// Key is an alias for ID used by some NoSQL providers (json tag is "_key" for arangodb document key).
+	Key string `json:"_key,omitempty" gorm:"type:char(36)" bson:"key" cql:"key" dynamo:"key"`
 	// PermissionID is the foreign key to the parent Permission.
 	PermissionID string `json:"permission_id" gorm:"type:char(36);index;uniqueIndex:idx_pp_unique" bson:"permission_id" cql:"permission_id" dynamo:"permission_id"`
 	// PolicyID is the foreign key to the Policy.

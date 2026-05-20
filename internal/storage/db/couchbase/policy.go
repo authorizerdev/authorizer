@@ -48,8 +48,8 @@ func (p *provider) UpdatePolicy(ctx context.Context, policy *schemas.Policy) (*s
 		return nil, err
 	}
 	updateFields, params := GetSetFields(policyMap)
-	params["_id"] = policy.ID
-	query := fmt.Sprintf(`UPDATE %s.%s SET %s WHERE _id=$_id`, p.scopeName, schemas.Collections.Policy, updateFields)
+	params["id"] = policy.ID
+	query := fmt.Sprintf(`UPDATE %s.%s SET %s WHERE id=$id`, p.scopeName, schemas.Collections.Policy, updateFields)
 	_, err = p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
@@ -109,8 +109,8 @@ func (p *provider) DeletePolicy(ctx context.Context, id string) error {
 func (p *provider) GetPolicyByID(ctx context.Context, id string) (*schemas.Policy, error) {
 	var policy *schemas.Policy
 	params := make(map[string]interface{}, 1)
-	params["_id"] = id
-	query := fmt.Sprintf(`SELECT _id, name, description, type, logic, decision_strategy, created_at, updated_at FROM %s.%s WHERE _id=$_id LIMIT 1`, p.scopeName, schemas.Collections.Policy)
+	params["id"] = id
+	query := fmt.Sprintf(`SELECT id, name, description, type, logic, decision_strategy, created_at, updated_at FROM %s.%s WHERE id=$id LIMIT 1`, p.scopeName, schemas.Collections.Policy)
 	q, err := p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
@@ -138,7 +138,7 @@ func (p *provider) ListPolicies(ctx context.Context, pagination *model.Paginatio
 		return nil, nil, err
 	}
 	paginationClone.Total = total
-	query := fmt.Sprintf("SELECT _id, name, description, type, logic, decision_strategy, created_at, updated_at FROM %s.%s ORDER BY created_at DESC OFFSET $offset LIMIT $limit", p.scopeName, schemas.Collections.Policy)
+	query := fmt.Sprintf("SELECT id, name, description, type, logic, decision_strategy, created_at, updated_at FROM %s.%s ORDER BY created_at DESC OFFSET $offset LIMIT $limit", p.scopeName, schemas.Collections.Policy)
 	queryResult, err := p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
@@ -199,7 +199,7 @@ func (p *provider) GetPolicyTargets(ctx context.Context, policyID string) ([]*sc
 	targets := []*schemas.PolicyTarget{}
 	params := make(map[string]interface{}, 1)
 	params["policy_id"] = policyID
-	query := fmt.Sprintf(`SELECT _id, policy_id, target_type, target_value, created_at FROM %s.%s WHERE policy_id=$policy_id`, p.scopeName, schemas.Collections.PolicyTarget)
+	query := fmt.Sprintf(`SELECT id, policy_id, target_type, target_value, created_at FROM %s.%s WHERE policy_id=$policy_id`, p.scopeName, schemas.Collections.PolicyTarget)
 	queryResult, err := p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,

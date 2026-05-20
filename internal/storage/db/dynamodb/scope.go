@@ -15,7 +15,12 @@ import (
 )
 
 // AddScope creates a new authorization scope.
+// DynamoDB lacks unique secondary-index constraints, so we explicitly
+// check for an existing scope with the same name before inserting.
 func (p *provider) AddScope(ctx context.Context, scope *schemas.Scope) (*schemas.Scope, error) {
+	if existing, err := p.GetScopeByName(ctx, scope.Name); err == nil && existing != nil {
+		return nil, fmt.Errorf("scope with name %q already exists", scope.Name)
+	}
 	if scope.ID == "" {
 		scope.ID = uuid.New().String()
 	}

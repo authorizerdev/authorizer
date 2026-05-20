@@ -48,8 +48,8 @@ func (p *provider) UpdatePermission(ctx context.Context, permission *schemas.Per
 		return nil, err
 	}
 	updateFields, params := GetSetFields(permissionMap)
-	params["_id"] = permission.ID
-	query := fmt.Sprintf(`UPDATE %s.%s SET %s WHERE _id=$_id`, p.scopeName, schemas.Collections.Permission, updateFields)
+	params["id"] = permission.ID
+	query := fmt.Sprintf(`UPDATE %s.%s SET %s WHERE id=$id`, p.scopeName, schemas.Collections.Permission, updateFields)
 	_, err = p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
@@ -100,8 +100,8 @@ func (p *provider) DeletePermission(ctx context.Context, id string) error {
 func (p *provider) GetPermissionByID(ctx context.Context, id string) (*schemas.Permission, error) {
 	var permission *schemas.Permission
 	params := make(map[string]interface{}, 1)
-	params["_id"] = id
-	query := fmt.Sprintf(`SELECT _id, name, description, resource_id, decision_strategy, created_at, updated_at FROM %s.%s WHERE _id=$_id LIMIT 1`, p.scopeName, schemas.Collections.Permission)
+	params["id"] = id
+	query := fmt.Sprintf(`SELECT id, name, description, resource_id, decision_strategy, created_at, updated_at FROM %s.%s WHERE id=$id LIMIT 1`, p.scopeName, schemas.Collections.Permission)
 	q, err := p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
@@ -129,7 +129,7 @@ func (p *provider) ListPermissions(ctx context.Context, pagination *model.Pagina
 		return nil, nil, err
 	}
 	paginationClone.Total = total
-	query := fmt.Sprintf("SELECT _id, name, description, resource_id, decision_strategy, created_at, updated_at FROM %s.%s ORDER BY created_at DESC OFFSET $offset LIMIT $limit", p.scopeName, schemas.Collections.Permission)
+	query := fmt.Sprintf("SELECT id, name, description, resource_id, decision_strategy, created_at, updated_at FROM %s.%s ORDER BY created_at DESC OFFSET $offset LIMIT $limit", p.scopeName, schemas.Collections.Permission)
 	queryResult, err := p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
@@ -190,7 +190,7 @@ func (p *provider) GetPermissionScopes(ctx context.Context, permissionID string)
 	scopes := []*schemas.PermissionScope{}
 	params := make(map[string]interface{}, 1)
 	params["permission_id"] = permissionID
-	query := fmt.Sprintf(`SELECT _id, permission_id, scope_id, created_at FROM %s.%s WHERE permission_id=$permission_id`, p.scopeName, schemas.Collections.PermissionScope)
+	query := fmt.Sprintf(`SELECT id, permission_id, scope_id, created_at FROM %s.%s WHERE permission_id=$permission_id`, p.scopeName, schemas.Collections.PermissionScope)
 	queryResult, err := p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
@@ -251,7 +251,7 @@ func (p *provider) GetPermissionPolicies(ctx context.Context, permissionID strin
 	policies := []*schemas.PermissionPolicy{}
 	params := make(map[string]interface{}, 1)
 	params["permission_id"] = permissionID
-	query := fmt.Sprintf(`SELECT _id, permission_id, policy_id, created_at FROM %s.%s WHERE permission_id=$permission_id`, p.scopeName, schemas.Collections.PermissionPolicy)
+	query := fmt.Sprintf(`SELECT id, permission_id, policy_id, created_at FROM %s.%s WHERE permission_id=$permission_id`, p.scopeName, schemas.Collections.PermissionPolicy)
 	queryResult, err := p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
@@ -293,7 +293,7 @@ func (p *provider) GetPermissionsForResourceScope(ctx context.Context, resourceN
 	// 3. Find permissions for this resource
 	permParams := make(map[string]interface{}, 1)
 	permParams["resource_id"] = resource.ID
-	permQuery := fmt.Sprintf(`SELECT _id, name, description, resource_id, decision_strategy, created_at, updated_at FROM %s.%s WHERE resource_id=$resource_id`, p.scopeName, schemas.Collections.Permission)
+	permQuery := fmt.Sprintf(`SELECT id, name, description, resource_id, decision_strategy, created_at, updated_at FROM %s.%s WHERE resource_id=$resource_id`, p.scopeName, schemas.Collections.Permission)
 	permResult, err := p.db.Query(permQuery, &gocb.QueryOptions{
 		Context:         ctx,
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
@@ -347,7 +347,7 @@ func (p *provider) GetPermissionsForResourceScope(ctx context.Context, resourceN
 		// 5. Find permission_policies for this permission
 		ppParams := make(map[string]interface{}, 1)
 		ppParams["permission_id"] = perm.ID
-		ppQuery := fmt.Sprintf(`SELECT _id, permission_id, policy_id, created_at FROM %s.%s WHERE permission_id=$permission_id`, p.scopeName, schemas.Collections.PermissionPolicy)
+		ppQuery := fmt.Sprintf(`SELECT id, permission_id, policy_id, created_at FROM %s.%s WHERE permission_id=$permission_id`, p.scopeName, schemas.Collections.PermissionPolicy)
 		ppResult, err := p.db.Query(ppQuery, &gocb.QueryOptions{
 			Context:         ctx,
 			ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
@@ -383,7 +383,7 @@ func (p *provider) GetPermissionsForResourceScope(ctx context.Context, resourceN
 			// Get targets for this policy
 			targetParams := make(map[string]interface{}, 1)
 			targetParams["policy_id"] = policy.ID
-			targetQuery := fmt.Sprintf(`SELECT _id, policy_id, target_type, target_value, created_at FROM %s.%s WHERE policy_id=$policy_id`, p.scopeName, schemas.Collections.PolicyTarget)
+			targetQuery := fmt.Sprintf(`SELECT id, policy_id, target_type, target_value, created_at FROM %s.%s WHERE policy_id=$policy_id`, p.scopeName, schemas.Collections.PolicyTarget)
 			targetResult, err := p.db.Query(targetQuery, &gocb.QueryOptions{
 				Context:         ctx,
 				ScanConsistency: gocb.QueryScanConsistencyRequestPlus,

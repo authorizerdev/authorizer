@@ -16,7 +16,12 @@ import (
 )
 
 // AddScope creates a new authorization scope.
+// Couchbase has no per-field unique constraints, so we explicitly
+// reject duplicates on Name before inserting.
 func (p *provider) AddScope(ctx context.Context, scope *schemas.Scope) (*schemas.Scope, error) {
+	if existing, err := p.GetScopeByName(ctx, scope.Name); err == nil && existing != nil {
+		return nil, fmt.Errorf("scope with name %q already exists", scope.Name)
+	}
 	if scope.ID == "" {
 		scope.ID = uuid.New().String()
 	}
@@ -48,8 +53,8 @@ func (p *provider) UpdateScope(ctx context.Context, scope *schemas.Scope) (*sche
 		return nil, err
 	}
 	updateFields, params := GetSetFields(scopeMap)
-	params["_id"] = scope.ID
-	query := fmt.Sprintf(`UPDATE %s.%s SET %s WHERE _id=$_id`, p.scopeName, schemas.Collections.Scope, updateFields)
+	params["id"] = scope.ID
+	query := fmt.Sprintf(`UPDATE %s.%s SET %s WHERE id=$id`, p.scopeName, schemas.Collections.Scope, updateFields)
 	_, err = p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
@@ -98,8 +103,8 @@ func (p *provider) DeleteScope(ctx context.Context, id string) error {
 func (p *provider) GetScopeByID(ctx context.Context, id string) (*schemas.Scope, error) {
 	var scope *schemas.Scope
 	params := make(map[string]interface{}, 1)
-	params["_id"] = id
-	query := fmt.Sprintf(`SELECT _id, name, description, created_at, updated_at FROM %s.%s WHERE _id=$_id LIMIT 1`, p.scopeName, schemas.Collections.Scope)
+	params["id"] = id
+	query := fmt.Sprintf(`SELECT id, name, description, created_at, updated_at FROM %s.%s WHERE id=$id LIMIT 1`, p.scopeName, schemas.Collections.Scope)
 	q, err := p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
@@ -120,7 +125,7 @@ func (p *provider) GetScopeByName(ctx context.Context, name string) (*schemas.Sc
 	var scope *schemas.Scope
 	params := make(map[string]interface{}, 1)
 	params["name"] = name
-	query := fmt.Sprintf(`SELECT _id, name, description, created_at, updated_at FROM %s.%s WHERE name=$name LIMIT 1`, p.scopeName, schemas.Collections.Scope)
+	query := fmt.Sprintf(`SELECT id, name, description, created_at, updated_at FROM %s.%s WHERE name=$name LIMIT 1`, p.scopeName, schemas.Collections.Scope)
 	q, err := p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
@@ -148,7 +153,7 @@ func (p *provider) ListScopes(ctx context.Context, pagination *model.Pagination)
 		return nil, nil, err
 	}
 	paginationClone.Total = total
-	query := fmt.Sprintf("SELECT _id, name, description, created_at, updated_at FROM %s.%s ORDER BY created_at DESC OFFSET $offset LIMIT $limit", p.scopeName, schemas.Collections.Scope)
+	query := fmt.Sprintf("SELECT id, name, description, created_at, updated_at FROM %s.%s ORDER BY created_at DESC OFFSET $offset LIMIT $limit", p.scopeName, schemas.Collections.Scope)
 	queryResult, err := p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,

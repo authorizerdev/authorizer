@@ -15,7 +15,12 @@ import (
 )
 
 // AddResource creates a new authorization resource.
+// DynamoDB lacks unique secondary-index constraints, so we explicitly
+// check for an existing resource with the same name before inserting.
 func (p *provider) AddResource(ctx context.Context, resource *schemas.Resource) (*schemas.Resource, error) {
+	if existing, err := p.GetResourceByName(ctx, resource.Name); err == nil && existing != nil {
+		return nil, fmt.Errorf("resource with name %q already exists", resource.Name)
+	}
 	if resource.ID == "" {
 		resource.ID = uuid.New().String()
 	}

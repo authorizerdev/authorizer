@@ -26,7 +26,6 @@ func (p *provider) AddPermission(ctx context.Context, permission *schemas.Permis
 		return nil, err
 	}
 	permission.Key = meta.Key
-	permission.ID = meta.ID.String()
 	return permission, nil
 }
 
@@ -39,7 +38,6 @@ func (p *provider) UpdatePermission(ctx context.Context, permission *schemas.Per
 		return nil, err
 	}
 	permission.Key = meta.Key
-	permission.ID = meta.ID.String()
 	return permission, nil
 }
 
@@ -79,7 +77,7 @@ func (p *provider) DeletePermission(ctx context.Context, id string) error {
 // GetPermissionByID returns an authorization permission by its ID.
 func (p *provider) GetPermissionByID(ctx context.Context, id string) (*schemas.Permission, error) {
 	var permission *schemas.Permission
-	query := fmt.Sprintf("FOR d IN %s FILTER d._id == @id RETURN d", schemas.Collections.Permission)
+	query := fmt.Sprintf("FOR d IN %s FILTER d._key == @id RETURN d", schemas.Collections.Permission)
 	bindVars := map[string]interface{}{
 		"id": id,
 	}
@@ -143,7 +141,6 @@ func (p *provider) AddPermissionScope(ctx context.Context, ps *schemas.Permissio
 		return nil, err
 	}
 	ps.Key = meta.Key
-	ps.ID = meta.ID.String()
 	return ps, nil
 }
 
@@ -196,7 +193,6 @@ func (p *provider) AddPermissionPolicy(ctx context.Context, pp *schemas.Permissi
 		return nil, err
 	}
 	pp.Key = meta.Key
-	pp.ID = meta.ID.String()
 	return pp, nil
 }
 

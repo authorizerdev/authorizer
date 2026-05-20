@@ -8,8 +8,8 @@ import "github.com/authorizerdev/authorizer/internal/graph/model"
 type Scope struct {
 	// ID is the unique identifier (UUID v4).
 	ID string `json:"id" gorm:"primaryKey;type:char(36)" bson:"_id" cql:"id" dynamo:"id,hash"`
-	// Key is an alias for ID used by some NoSQL providers.
-	Key string `json:"key" gorm:"type:char(36)" bson:"key" cql:"key" dynamo:"key"`
+	// Key is an alias for ID used by some NoSQL providers (json tag is "_key" for arangodb document key).
+	Key string `json:"_key,omitempty" gorm:"type:char(36)" bson:"key" cql:"key" dynamo:"key"`
 	// Name is a unique human-readable identifier (e.g., "read", "write").
 	// Must be alphanumeric with hyphens and underscores, max 100 chars.
 	Name string `json:"name" gorm:"type:varchar(100);uniqueIndex" bson:"name" cql:"name" dynamo:"name"`

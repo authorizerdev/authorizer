@@ -26,7 +26,6 @@ func (p *provider) AddPolicy(ctx context.Context, policy *schemas.Policy) (*sche
 		return nil, err
 	}
 	policy.Key = meta.Key
-	policy.ID = meta.ID.String()
 	return policy, nil
 }
 
@@ -39,7 +38,6 @@ func (p *provider) UpdatePolicy(ctx context.Context, policy *schemas.Policy) (*s
 		return nil, err
 	}
 	policy.Key = meta.Key
-	policy.ID = meta.ID.String()
 	return policy, nil
 }
 
@@ -89,7 +87,7 @@ func (p *provider) DeletePolicy(ctx context.Context, id string) error {
 // GetPolicyByID returns an authorization policy by its ID.
 func (p *provider) GetPolicyByID(ctx context.Context, id string) (*schemas.Policy, error) {
 	var policy *schemas.Policy
-	query := fmt.Sprintf("FOR d IN %s FILTER d._id == @id RETURN d", schemas.Collections.Policy)
+	query := fmt.Sprintf("FOR d IN %s FILTER d._key == @id RETURN d", schemas.Collections.Policy)
 	bindVars := map[string]interface{}{
 		"id": id,
 	}
@@ -153,7 +151,6 @@ func (p *provider) AddPolicyTarget(ctx context.Context, target *schemas.PolicyTa
 		return nil, err
 	}
 	target.Key = meta.Key
-	target.ID = meta.ID.String()
 	return target, nil
 }
 

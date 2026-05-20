@@ -16,7 +16,12 @@ import (
 )
 
 // AddResource creates a new authorization resource.
+// Couchbase has no per-field unique constraints, so we explicitly
+// reject duplicates on Name before inserting.
 func (p *provider) AddResource(ctx context.Context, resource *schemas.Resource) (*schemas.Resource, error) {
+	if existing, err := p.GetResourceByName(ctx, resource.Name); err == nil && existing != nil {
+		return nil, fmt.Errorf("resource with name %q already exists", resource.Name)
+	}
 	if resource.ID == "" {
 		resource.ID = uuid.New().String()
 	}
@@ -48,8 +53,8 @@ func (p *provider) UpdateResource(ctx context.Context, resource *schemas.Resourc
 		return nil, err
 	}
 	updateFields, params := GetSetFields(resourceMap)
-	params["_id"] = resource.ID
-	query := fmt.Sprintf(`UPDATE %s.%s SET %s WHERE _id=$_id`, p.scopeName, schemas.Collections.Resource, updateFields)
+	params["id"] = resource.ID
+	query := fmt.Sprintf(`UPDATE %s.%s SET %s WHERE id=$id`, p.scopeName, schemas.Collections.Resource, updateFields)
 	_, err = p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
@@ -98,8 +103,8 @@ func (p *provider) DeleteResource(ctx context.Context, id string) error {
 func (p *provider) GetResourceByID(ctx context.Context, id string) (*schemas.Resource, error) {
 	var resource *schemas.Resource
 	params := make(map[string]interface{}, 1)
-	params["_id"] = id
-	query := fmt.Sprintf(`SELECT _id, name, description, created_at, updated_at FROM %s.%s WHERE _id=$_id LIMIT 1`, p.scopeName, schemas.Collections.Resource)
+	params["id"] = id
+	query := fmt.Sprintf(`SELECT id, name, description, created_at, updated_at FROM %s.%s WHERE id=$id LIMIT 1`, p.scopeName, schemas.Collections.Resource)
 	q, err := p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
@@ -120,7 +125,7 @@ func (p *provider) GetResourceByName(ctx context.Context, name string) (*schemas
 	var resource *schemas.Resource
 	params := make(map[string]interface{}, 1)
 	params["name"] = name
-	query := fmt.Sprintf(`SELECT _id, name, description, created_at, updated_at FROM %s.%s WHERE name=$name LIMIT 1`, p.scopeName, schemas.Collections.Resource)
+	query := fmt.Sprintf(`SELECT id, name, description, created_at, updated_at FROM %s.%s WHERE name=$name LIMIT 1`, p.scopeName, schemas.Collections.Resource)
 	q, err := p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
@@ -148,7 +153,7 @@ func (p *provider) ListResources(ctx context.Context, pagination *model.Paginati
 		return nil, nil, err
 	}
 	paginationClone.Total = total
-	query := fmt.Sprintf("SELECT _id, name, description, created_at, updated_at FROM %s.%s ORDER BY created_at DESC OFFSET $offset LIMIT $limit", p.scopeName, schemas.Collections.Resource)
+	query := fmt.Sprintf("SELECT id, name, description, created_at, updated_at FROM %s.%s ORDER BY created_at DESC OFFSET $offset LIMIT $limit", p.scopeName, schemas.Collections.Resource)
 	queryResult, err := p.db.Query(query, &gocb.QueryOptions{
 		Context:         ctx,
 		ScanConsistency: gocb.QueryScanConsistencyRequestPlus,
