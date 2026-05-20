@@ -87,8 +87,7 @@ dev:
 		--jwt-public-key="$$PUBLIC_KEY" \
 		--admin-secret=admin \
 		--client-id=kbyuFDidLLm280LIwVFiazOqjO3ty8KH \
-		--client-secret=60Op4HFM0I8ajz0WdiStAbziZ-VFQttXuxixHHs2R7r7-CW8GR79l-mmLqMhc-Sa \
-		--authorization-enforcement=enforcing
+		--client-secret=60Op4HFM0I8ajz0WdiStAbziZ-VFQttXuxixHHs2R7r7-CW8GR79l-mmLqMhc-Sa
 
 test:
 	go clean --testcache && TEST_DBS="sqlite" $(GO_TEST_ALL)
