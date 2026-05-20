@@ -112,7 +112,7 @@ export const WebhookLogsQuery = `
 // Authorization queries
 export const ResourcesQuery = `
   query getResources($params: PaginatedRequest) {
-    _resources(params: $params) {
+    _authz_resources(params: $params) {
       resources {
         id
         name
@@ -132,7 +132,7 @@ export const ResourcesQuery = `
 
 export const ScopesQuery = `
   query getScopes($params: PaginatedRequest) {
-    _scopes(params: $params) {
+    _authz_scopes(params: $params) {
       scopes {
         id
         name
@@ -152,7 +152,7 @@ export const ScopesQuery = `
 
 export const PoliciesQuery = `
   query getPolicies($params: PaginatedRequest) {
-    _policies(params: $params) {
+    _authz_policies(params: $params) {
       policies {
         id
         name
@@ -180,7 +180,7 @@ export const PoliciesQuery = `
 
 export const PermissionsQuery = `
   query getPermissions($params: PaginatedRequest) {
-    _permissions(params: $params) {
+    _authz_permissions(params: $params) {
       permissions {
         id
         name

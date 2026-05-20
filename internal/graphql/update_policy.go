@@ -13,10 +13,10 @@ import (
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
 
-// UpdatePolicy is the method to update an existing authorization policy.
+// AuthzUpdatePolicy is the method to update an existing authorization policy.
 // Permissions: authorizer:admin
-func (g *graphqlProvider) UpdatePolicy(ctx context.Context, params *model.UpdatePolicyInput) (*model.AuthzPolicy, error) {
-	log := g.Log.With().Str("func", "UpdatePolicy").Logger()
+func (g *graphqlProvider) AuthzUpdatePolicy(ctx context.Context, params *model.UpdatePolicyInput) (*model.AuthzPolicy, error) {
+	log := g.Log.With().Str("func", "AuthzUpdatePolicy").Logger()
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to get GinContext")

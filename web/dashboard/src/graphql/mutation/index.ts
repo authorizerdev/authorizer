@@ -124,7 +124,7 @@ export const EditEmailTemplate = `
 // Authorization mutations
 export const AddResource = `
   mutation addResource($params: AddResourceInput!) {
-    _add_resource(params: $params) {
+    _authz_add_resource(params: $params) {
       id
       name
       description
@@ -134,7 +134,7 @@ export const AddResource = `
 
 export const UpdateResource = `
   mutation updateResource($params: UpdateResourceInput!) {
-    _update_resource(params: $params) {
+    _authz_update_resource(params: $params) {
       id
       name
       description
@@ -144,7 +144,7 @@ export const UpdateResource = `
 
 export const DeleteResource = `
   mutation deleteResource($id: ID!) {
-    _delete_resource(id: $id) {
+    _authz_delete_resource(id: $id) {
       message
     }
   }
@@ -152,7 +152,7 @@ export const DeleteResource = `
 
 export const AddScope = `
   mutation addScope($params: AddScopeInput!) {
-    _add_scope(params: $params) {
+    _authz_add_scope(params: $params) {
       id
       name
       description
@@ -162,7 +162,7 @@ export const AddScope = `
 
 export const UpdateScope = `
   mutation updateScope($params: UpdateScopeInput!) {
-    _update_scope(params: $params) {
+    _authz_update_scope(params: $params) {
       id
       name
       description
@@ -172,7 +172,7 @@ export const UpdateScope = `
 
 export const DeleteScope = `
   mutation deleteScope($id: ID!) {
-    _delete_scope(id: $id) {
+    _authz_delete_scope(id: $id) {
       message
     }
   }
@@ -180,7 +180,7 @@ export const DeleteScope = `
 
 export const AddPolicy = `
   mutation addPolicy($params: AddPolicyInput!) {
-    _add_policy(params: $params) {
+    _authz_add_policy(params: $params) {
       id
       name
       description
@@ -198,7 +198,7 @@ export const AddPolicy = `
 
 export const UpdatePolicy = `
   mutation updatePolicy($params: UpdatePolicyInput!) {
-    _update_policy(params: $params) {
+    _authz_update_policy(params: $params) {
       id
       name
       description
@@ -215,7 +215,7 @@ export const UpdatePolicy = `
 
 export const DeletePolicy = `
   mutation deletePolicy($id: ID!) {
-    _delete_policy(id: $id) {
+    _authz_delete_policy(id: $id) {
       message
     }
   }
@@ -223,7 +223,7 @@ export const DeletePolicy = `
 
 export const AddPermission = `
   mutation addPermission($params: AddPermissionInput!) {
-    _add_permission(params: $params) {
+    _authz_add_permission(params: $params) {
       id
       name
       description
@@ -246,7 +246,7 @@ export const AddPermission = `
 
 export const UpdatePermission = `
   mutation updatePermission($params: UpdatePermissionInput!) {
-    _update_permission(params: $params) {
+    _authz_update_permission(params: $params) {
       id
       name
       description
@@ -257,7 +257,7 @@ export const UpdatePermission = `
 
 export const DeletePermission = `
   mutation deletePermission($id: ID!) {
-    _delete_permission(id: $id) {
+    _authz_delete_permission(id: $id) {
       message
     }
   }

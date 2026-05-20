@@ -38,19 +38,19 @@ func TestAuthzListPagination_AdminQueries(t *testing.T) {
 	permissionIDs := make([]string, 0, seedCount)
 
 	for i := 0; i < seedCount; i++ {
-		res, err := ts.GraphQLProvider.AddResource(ctx, &model.AddResourceInput{
+		res, err := ts.GraphQLProvider.AuthzAddResource(ctx, &model.AddResourceInput{
 			Name: fmt.Sprintf("%sresource-%d", prefix, i),
 		})
 		require.NoError(t, err)
 		resourceIDs = append(resourceIDs, res.ID)
 
-		scope, err := ts.GraphQLProvider.AddScope(ctx, &model.AddScopeInput{
+		scope, err := ts.GraphQLProvider.AuthzAddScope(ctx, &model.AddScopeInput{
 			Name: fmt.Sprintf("%sscope-%d", prefix, i),
 		})
 		require.NoError(t, err)
 		scopeIDs = append(scopeIDs, scope.ID)
 
-		pol, err := ts.GraphQLProvider.AddPolicy(ctx, &model.AddPolicyInput{
+		pol, err := ts.GraphQLProvider.AuthzAddPolicy(ctx, &model.AddPolicyInput{
 			Name: fmt.Sprintf("%spolicy-%d", prefix, i),
 			Type: "role",
 			Targets: []*model.PolicyTargetInput{
@@ -60,7 +60,7 @@ func TestAuthzListPagination_AdminQueries(t *testing.T) {
 		require.NoError(t, err)
 		policyIDs = append(policyIDs, pol.ID)
 
-		perm, err := ts.GraphQLProvider.AddPermission(ctx, &model.AddPermissionInput{
+		perm, err := ts.GraphQLProvider.AuthzAddPermission(ctx, &model.AddPermissionInput{
 			Name:       fmt.Sprintf("%spermission-%d", prefix, i),
 			ResourceID: res.ID,
 			ScopeIds:   []string{scope.ID},
@@ -75,7 +75,7 @@ func TestAuthzListPagination_AdminQueries(t *testing.T) {
 	// against a different list endpoint.
 
 	t.Run("resources pagination", func(t *testing.T) {
-		page1, err := ts.GraphQLProvider.Resources(ctx, &model.PaginatedRequest{
+		page1, err := ts.GraphQLProvider.AuthzResources(ctx, &model.PaginatedRequest{
 			Pagination: &model.PaginationRequest{Limit: ptrInt64(2), Page: ptrInt64(1)},
 		})
 		require.NoError(t, err)
@@ -87,7 +87,7 @@ func TestAuthzListPagination_AdminQueries(t *testing.T) {
 		assert.GreaterOrEqual(t, page1.Pagination.Total, int64(seedCount), "total must include all seeded rows")
 		assert.Len(t, page1.Resources, 2, "page 1 returns Limit items")
 
-		page2, err := ts.GraphQLProvider.Resources(ctx, &model.PaginatedRequest{
+		page2, err := ts.GraphQLProvider.AuthzResources(ctx, &model.PaginatedRequest{
 			Pagination: &model.PaginationRequest{Limit: ptrInt64(2), Page: ptrInt64(2)},
 		})
 		require.NoError(t, err)
@@ -97,7 +97,7 @@ func TestAuthzListPagination_AdminQueries(t *testing.T) {
 
 		// Page far past the end returns zero items but the total is still
 		// the full row count.
-		pageEnd, err := ts.GraphQLProvider.Resources(ctx, &model.PaginatedRequest{
+		pageEnd, err := ts.GraphQLProvider.AuthzResources(ctx, &model.PaginatedRequest{
 			Pagination: &model.PaginationRequest{Limit: ptrInt64(2), Page: ptrInt64(100)},
 		})
 		require.NoError(t, err)
@@ -106,7 +106,7 @@ func TestAuthzListPagination_AdminQueries(t *testing.T) {
 	})
 
 	t.Run("scopes pagination", func(t *testing.T) {
-		page1, err := ts.GraphQLProvider.Scopes(ctx, &model.PaginatedRequest{
+		page1, err := ts.GraphQLProvider.AuthzScopes(ctx, &model.PaginatedRequest{
 			Pagination: &model.PaginationRequest{Limit: ptrInt64(2), Page: ptrInt64(1)},
 		})
 		require.NoError(t, err)
@@ -117,7 +117,7 @@ func TestAuthzListPagination_AdminQueries(t *testing.T) {
 		assert.GreaterOrEqual(t, page1.Pagination.Total, int64(seedCount))
 		assert.Len(t, page1.Scopes, 2)
 
-		page2, err := ts.GraphQLProvider.Scopes(ctx, &model.PaginatedRequest{
+		page2, err := ts.GraphQLProvider.AuthzScopes(ctx, &model.PaginatedRequest{
 			Pagination: &model.PaginationRequest{Limit: ptrInt64(2), Page: ptrInt64(2)},
 		})
 		require.NoError(t, err)
@@ -127,7 +127,7 @@ func TestAuthzListPagination_AdminQueries(t *testing.T) {
 	})
 
 	t.Run("policies pagination", func(t *testing.T) {
-		page1, err := ts.GraphQLProvider.Policies(ctx, &model.PaginatedRequest{
+		page1, err := ts.GraphQLProvider.AuthzPolicies(ctx, &model.PaginatedRequest{
 			Pagination: &model.PaginationRequest{Limit: ptrInt64(2), Page: ptrInt64(1)},
 		})
 		require.NoError(t, err)
@@ -136,7 +136,7 @@ func TestAuthzListPagination_AdminQueries(t *testing.T) {
 		assert.GreaterOrEqual(t, page1.Pagination.Total, int64(seedCount))
 		assert.Len(t, page1.Policies, 2)
 
-		page2, err := ts.GraphQLProvider.Policies(ctx, &model.PaginatedRequest{
+		page2, err := ts.GraphQLProvider.AuthzPolicies(ctx, &model.PaginatedRequest{
 			Pagination: &model.PaginationRequest{Limit: ptrInt64(2), Page: ptrInt64(2)},
 		})
 		require.NoError(t, err)
@@ -146,7 +146,7 @@ func TestAuthzListPagination_AdminQueries(t *testing.T) {
 	})
 
 	t.Run("permissions pagination", func(t *testing.T) {
-		page1, err := ts.GraphQLProvider.Permissions(ctx, &model.PaginatedRequest{
+		page1, err := ts.GraphQLProvider.AuthzPermissions(ctx, &model.PaginatedRequest{
 			Pagination: &model.PaginationRequest{Limit: ptrInt64(2), Page: ptrInt64(1)},
 		})
 		require.NoError(t, err)
@@ -155,7 +155,7 @@ func TestAuthzListPagination_AdminQueries(t *testing.T) {
 		assert.GreaterOrEqual(t, page1.Pagination.Total, int64(seedCount))
 		assert.Len(t, page1.Permissions, 2)
 
-		page2, err := ts.GraphQLProvider.Permissions(ctx, &model.PaginatedRequest{
+		page2, err := ts.GraphQLProvider.AuthzPermissions(ctx, &model.PaginatedRequest{
 			Pagination: &model.PaginationRequest{Limit: ptrInt64(2), Page: ptrInt64(2)},
 		})
 		require.NoError(t, err)

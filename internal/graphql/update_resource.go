@@ -12,10 +12,10 @@ import (
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
 
-// UpdateResource is the method to update an existing authorization resource.
+// AuthzUpdateResource is the method to update an existing authorization resource.
 // Permissions: authorizer:admin
-func (g *graphqlProvider) UpdateResource(ctx context.Context, params *model.UpdateResourceInput) (*model.AuthzResource, error) {
-	log := g.Log.With().Str("func", "UpdateResource").Logger()
+func (g *graphqlProvider) AuthzUpdateResource(ctx context.Context, params *model.UpdateResourceInput) (*model.AuthzResource, error) {
+	log := g.Log.With().Str("func", "AuthzUpdateResource").Logger()
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to get GinContext")

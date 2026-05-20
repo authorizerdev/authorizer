@@ -8,10 +8,10 @@ import (
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
 
-// Resources is the method to list authorization resources with pagination.
+// AuthzResources is the method to list authorization resources with pagination.
 // Permissions: authorizer:admin
-func (g *graphqlProvider) Resources(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzResources, error) {
-	log := g.Log.With().Str("func", "Resources").Logger()
+func (g *graphqlProvider) AuthzResources(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzResources, error) {
+	log := g.Log.With().Str("func", "AuthzResources").Logger()
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to get GinContext")

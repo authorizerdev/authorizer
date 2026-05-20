@@ -280,50 +280,50 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		AddEmailTemplate    func(childComplexity int, params model.AddEmailTemplateRequest) int
-		AddPermission       func(childComplexity int, params model.AddPermissionInput) int
-		AddPolicy           func(childComplexity int, params model.AddPolicyInput) int
-		AddResource         func(childComplexity int, params model.AddResourceInput) int
-		AddScope            func(childComplexity int, params model.AddScopeInput) int
-		AddWebhook          func(childComplexity int, params model.AddWebhookRequest) int
-		AdminLogin          func(childComplexity int, params model.AdminLoginRequest) int
-		AdminLogout         func(childComplexity int) int
-		AdminSignup         func(childComplexity int, params model.AdminSignupRequest) int
-		DeactivateAccount   func(childComplexity int) int
-		DeleteEmailTemplate func(childComplexity int, params model.DeleteEmailTemplateRequest) int
-		DeletePermission    func(childComplexity int, id string) int
-		DeletePolicy        func(childComplexity int, id string) int
-		DeleteResource      func(childComplexity int, id string) int
-		DeleteScope         func(childComplexity int, id string) int
-		DeleteUser          func(childComplexity int, params model.DeleteUserRequest) int
-		DeleteWebhook       func(childComplexity int, params model.WebhookRequest) int
-		EnableAccess        func(childComplexity int, param model.UpdateAccessRequest) int
-		ForgotPassword      func(childComplexity int, params model.ForgotPasswordRequest) int
-		GenerateJwtKeys     func(childComplexity int, params model.GenerateJWTKeysRequest) int
-		InviteMembers       func(childComplexity int, params model.InviteMemberRequest) int
-		Login               func(childComplexity int, params model.LoginRequest) int
-		Logout              func(childComplexity int) int
-		MagicLinkLogin      func(childComplexity int, params model.MagicLinkLoginRequest) int
-		MobileLogin         func(childComplexity int, params model.MobileLoginRequest) int
-		MobileSignup        func(childComplexity int, params *model.MobileSignUpRequest) int
-		ResendOtp           func(childComplexity int, params model.ResendOTPRequest) int
-		ResendVerifyEmail   func(childComplexity int, params model.ResendVerifyEmailRequest) int
-		ResetPassword       func(childComplexity int, params model.ResetPasswordRequest) int
-		Revoke              func(childComplexity int, params model.OAuthRevokeRequest) int
-		RevokeAccess        func(childComplexity int, param model.UpdateAccessRequest) int
-		Signup              func(childComplexity int, params model.SignUpRequest) int
-		TestEndpoint        func(childComplexity int, params model.TestEndpointRequest) int
-		UpdateEmailTemplate func(childComplexity int, params model.UpdateEmailTemplateRequest) int
-		UpdateEnv           func(childComplexity int, params model.UpdateEnvRequest) int
-		UpdatePermission    func(childComplexity int, params model.UpdatePermissionInput) int
-		UpdatePolicy        func(childComplexity int, params model.UpdatePolicyInput) int
-		UpdateProfile       func(childComplexity int, params model.UpdateProfileRequest) int
-		UpdateResource      func(childComplexity int, params model.UpdateResourceInput) int
-		UpdateScope         func(childComplexity int, params model.UpdateScopeInput) int
-		UpdateUser          func(childComplexity int, params model.UpdateUserRequest) int
-		UpdateWebhook       func(childComplexity int, params model.UpdateWebhookRequest) int
-		VerifyEmail         func(childComplexity int, params model.VerifyEmailRequest) int
-		VerifyOtp           func(childComplexity int, params model.VerifyOTPRequest) int
+		AddEmailTemplate      func(childComplexity int, params model.AddEmailTemplateRequest) int
+		AddWebhook            func(childComplexity int, params model.AddWebhookRequest) int
+		AdminLogin            func(childComplexity int, params model.AdminLoginRequest) int
+		AdminLogout           func(childComplexity int) int
+		AdminSignup           func(childComplexity int, params model.AdminSignupRequest) int
+		AuthzAddPermission    func(childComplexity int, params model.AddPermissionInput) int
+		AuthzAddPolicy        func(childComplexity int, params model.AddPolicyInput) int
+		AuthzAddResource      func(childComplexity int, params model.AddResourceInput) int
+		AuthzAddScope         func(childComplexity int, params model.AddScopeInput) int
+		AuthzDeletePermission func(childComplexity int, id string) int
+		AuthzDeletePolicy     func(childComplexity int, id string) int
+		AuthzDeleteResource   func(childComplexity int, id string) int
+		AuthzDeleteScope      func(childComplexity int, id string) int
+		AuthzUpdatePermission func(childComplexity int, params model.UpdatePermissionInput) int
+		AuthzUpdatePolicy     func(childComplexity int, params model.UpdatePolicyInput) int
+		AuthzUpdateResource   func(childComplexity int, params model.UpdateResourceInput) int
+		AuthzUpdateScope      func(childComplexity int, params model.UpdateScopeInput) int
+		DeactivateAccount     func(childComplexity int) int
+		DeleteEmailTemplate   func(childComplexity int, params model.DeleteEmailTemplateRequest) int
+		DeleteUser            func(childComplexity int, params model.DeleteUserRequest) int
+		DeleteWebhook         func(childComplexity int, params model.WebhookRequest) int
+		EnableAccess          func(childComplexity int, param model.UpdateAccessRequest) int
+		ForgotPassword        func(childComplexity int, params model.ForgotPasswordRequest) int
+		GenerateJwtKeys       func(childComplexity int, params model.GenerateJWTKeysRequest) int
+		InviteMembers         func(childComplexity int, params model.InviteMemberRequest) int
+		Login                 func(childComplexity int, params model.LoginRequest) int
+		Logout                func(childComplexity int) int
+		MagicLinkLogin        func(childComplexity int, params model.MagicLinkLoginRequest) int
+		MobileLogin           func(childComplexity int, params model.MobileLoginRequest) int
+		MobileSignup          func(childComplexity int, params *model.MobileSignUpRequest) int
+		ResendOtp             func(childComplexity int, params model.ResendOTPRequest) int
+		ResendVerifyEmail     func(childComplexity int, params model.ResendVerifyEmailRequest) int
+		ResetPassword         func(childComplexity int, params model.ResetPasswordRequest) int
+		Revoke                func(childComplexity int, params model.OAuthRevokeRequest) int
+		RevokeAccess          func(childComplexity int, param model.UpdateAccessRequest) int
+		Signup                func(childComplexity int, params model.SignUpRequest) int
+		TestEndpoint          func(childComplexity int, params model.TestEndpointRequest) int
+		UpdateEmailTemplate   func(childComplexity int, params model.UpdateEmailTemplateRequest) int
+		UpdateEnv             func(childComplexity int, params model.UpdateEnvRequest) int
+		UpdateProfile         func(childComplexity int, params model.UpdateProfileRequest) int
+		UpdateUser            func(childComplexity int, params model.UpdateUserRequest) int
+		UpdateWebhook         func(childComplexity int, params model.UpdateWebhookRequest) int
+		VerifyEmail           func(childComplexity int, params model.VerifyEmailRequest) int
+		VerifyOtp             func(childComplexity int, params model.VerifyOTPRequest) int
 	}
 
 	Pagination struct {
@@ -341,15 +341,15 @@ type ComplexityRoot struct {
 	Query struct {
 		AdminSession         func(childComplexity int) int
 		AuditLogs            func(childComplexity int, params *model.ListAuditLogRequest) int
+		AuthzPermissions     func(childComplexity int, params *model.PaginatedRequest) int
+		AuthzPolicies        func(childComplexity int, params *model.PaginatedRequest) int
+		AuthzResources       func(childComplexity int, params *model.PaginatedRequest) int
+		AuthzScopes          func(childComplexity int, params *model.PaginatedRequest) int
 		EmailTemplates       func(childComplexity int, params *model.PaginatedRequest) int
 		Env                  func(childComplexity int) int
 		Meta                 func(childComplexity int) int
-		MyPermissions        func(childComplexity int) int
-		Permissions          func(childComplexity int, params *model.PaginatedRequest) int
-		Policies             func(childComplexity int, params *model.PaginatedRequest) int
+		Permissions          func(childComplexity int) int
 		Profile              func(childComplexity int) int
-		Resources            func(childComplexity int, params *model.PaginatedRequest) int
-		Scopes               func(childComplexity int, params *model.PaginatedRequest) int
 		Session              func(childComplexity int, params *model.SessionQueryRequest) int
 		User                 func(childComplexity int, params model.GetUserRequest) int
 		Users                func(childComplexity int, params *model.PaginatedRequest) int
@@ -490,18 +490,18 @@ type MutationResolver interface {
 	AddEmailTemplate(ctx context.Context, params model.AddEmailTemplateRequest) (*model.Response, error)
 	UpdateEmailTemplate(ctx context.Context, params model.UpdateEmailTemplateRequest) (*model.Response, error)
 	DeleteEmailTemplate(ctx context.Context, params model.DeleteEmailTemplateRequest) (*model.Response, error)
-	AddResource(ctx context.Context, params model.AddResourceInput) (*model.AuthzResource, error)
-	UpdateResource(ctx context.Context, params model.UpdateResourceInput) (*model.AuthzResource, error)
-	DeleteResource(ctx context.Context, id string) (*model.Response, error)
-	AddScope(ctx context.Context, params model.AddScopeInput) (*model.AuthzScope, error)
-	UpdateScope(ctx context.Context, params model.UpdateScopeInput) (*model.AuthzScope, error)
-	DeleteScope(ctx context.Context, id string) (*model.Response, error)
-	AddPolicy(ctx context.Context, params model.AddPolicyInput) (*model.AuthzPolicy, error)
-	UpdatePolicy(ctx context.Context, params model.UpdatePolicyInput) (*model.AuthzPolicy, error)
-	DeletePolicy(ctx context.Context, id string) (*model.Response, error)
-	AddPermission(ctx context.Context, params model.AddPermissionInput) (*model.AuthzPermission, error)
-	UpdatePermission(ctx context.Context, params model.UpdatePermissionInput) (*model.AuthzPermission, error)
-	DeletePermission(ctx context.Context, id string) (*model.Response, error)
+	AuthzAddResource(ctx context.Context, params model.AddResourceInput) (*model.AuthzResource, error)
+	AuthzUpdateResource(ctx context.Context, params model.UpdateResourceInput) (*model.AuthzResource, error)
+	AuthzDeleteResource(ctx context.Context, id string) (*model.Response, error)
+	AuthzAddScope(ctx context.Context, params model.AddScopeInput) (*model.AuthzScope, error)
+	AuthzUpdateScope(ctx context.Context, params model.UpdateScopeInput) (*model.AuthzScope, error)
+	AuthzDeleteScope(ctx context.Context, id string) (*model.Response, error)
+	AuthzAddPolicy(ctx context.Context, params model.AddPolicyInput) (*model.AuthzPolicy, error)
+	AuthzUpdatePolicy(ctx context.Context, params model.UpdatePolicyInput) (*model.AuthzPolicy, error)
+	AuthzDeletePolicy(ctx context.Context, id string) (*model.Response, error)
+	AuthzAddPermission(ctx context.Context, params model.AddPermissionInput) (*model.AuthzPermission, error)
+	AuthzUpdatePermission(ctx context.Context, params model.UpdatePermissionInput) (*model.AuthzPermission, error)
+	AuthzDeletePermission(ctx context.Context, id string) (*model.Response, error)
 }
 type QueryResolver interface {
 	Meta(ctx context.Context) (*model.Meta, error)
@@ -519,11 +519,11 @@ type QueryResolver interface {
 	WebhookLogs(ctx context.Context, params *model.ListWebhookLogRequest) (*model.WebhookLogs, error)
 	EmailTemplates(ctx context.Context, params *model.PaginatedRequest) (*model.EmailTemplates, error)
 	AuditLogs(ctx context.Context, params *model.ListAuditLogRequest) (*model.AuditLogs, error)
-	Resources(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzResources, error)
-	Scopes(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzScopes, error)
-	Policies(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzPolicies, error)
-	Permissions(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzPermissions, error)
-	MyPermissions(ctx context.Context) ([]*model.Permission, error)
+	AuthzResources(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzResources, error)
+	AuthzScopes(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzScopes, error)
+	AuthzPolicies(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzPolicies, error)
+	AuthzPermissions(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzPermissions, error)
+	Permissions(ctx context.Context) ([]*model.Permission, error)
 }
 
 type executableSchema struct {
@@ -1768,54 +1768,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Mutation.AddEmailTemplate(childComplexity, args["params"].(model.AddEmailTemplateRequest)), true
 
-	case "Mutation._add_permission":
-		if e.complexity.Mutation.AddPermission == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation__add_permission_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.AddPermission(childComplexity, args["params"].(model.AddPermissionInput)), true
-
-	case "Mutation._add_policy":
-		if e.complexity.Mutation.AddPolicy == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation__add_policy_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.AddPolicy(childComplexity, args["params"].(model.AddPolicyInput)), true
-
-	case "Mutation._add_resource":
-		if e.complexity.Mutation.AddResource == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation__add_resource_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.AddResource(childComplexity, args["params"].(model.AddResourceInput)), true
-
-	case "Mutation._add_scope":
-		if e.complexity.Mutation.AddScope == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation__add_scope_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.AddScope(childComplexity, args["params"].(model.AddScopeInput)), true
-
 	case "Mutation._add_webhook":
 		if e.complexity.Mutation.AddWebhook == nil {
 			break
@@ -1859,6 +1811,150 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Mutation.AdminSignup(childComplexity, args["params"].(model.AdminSignupRequest)), true
 
+	case "Mutation._authz_add_permission":
+		if e.complexity.Mutation.AuthzAddPermission == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__authz_add_permission_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AuthzAddPermission(childComplexity, args["params"].(model.AddPermissionInput)), true
+
+	case "Mutation._authz_add_policy":
+		if e.complexity.Mutation.AuthzAddPolicy == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__authz_add_policy_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AuthzAddPolicy(childComplexity, args["params"].(model.AddPolicyInput)), true
+
+	case "Mutation._authz_add_resource":
+		if e.complexity.Mutation.AuthzAddResource == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__authz_add_resource_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AuthzAddResource(childComplexity, args["params"].(model.AddResourceInput)), true
+
+	case "Mutation._authz_add_scope":
+		if e.complexity.Mutation.AuthzAddScope == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__authz_add_scope_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AuthzAddScope(childComplexity, args["params"].(model.AddScopeInput)), true
+
+	case "Mutation._authz_delete_permission":
+		if e.complexity.Mutation.AuthzDeletePermission == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__authz_delete_permission_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AuthzDeletePermission(childComplexity, args["id"].(string)), true
+
+	case "Mutation._authz_delete_policy":
+		if e.complexity.Mutation.AuthzDeletePolicy == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__authz_delete_policy_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AuthzDeletePolicy(childComplexity, args["id"].(string)), true
+
+	case "Mutation._authz_delete_resource":
+		if e.complexity.Mutation.AuthzDeleteResource == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__authz_delete_resource_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AuthzDeleteResource(childComplexity, args["id"].(string)), true
+
+	case "Mutation._authz_delete_scope":
+		if e.complexity.Mutation.AuthzDeleteScope == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__authz_delete_scope_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AuthzDeleteScope(childComplexity, args["id"].(string)), true
+
+	case "Mutation._authz_update_permission":
+		if e.complexity.Mutation.AuthzUpdatePermission == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__authz_update_permission_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AuthzUpdatePermission(childComplexity, args["params"].(model.UpdatePermissionInput)), true
+
+	case "Mutation._authz_update_policy":
+		if e.complexity.Mutation.AuthzUpdatePolicy == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__authz_update_policy_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AuthzUpdatePolicy(childComplexity, args["params"].(model.UpdatePolicyInput)), true
+
+	case "Mutation._authz_update_resource":
+		if e.complexity.Mutation.AuthzUpdateResource == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__authz_update_resource_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AuthzUpdateResource(childComplexity, args["params"].(model.UpdateResourceInput)), true
+
+	case "Mutation._authz_update_scope":
+		if e.complexity.Mutation.AuthzUpdateScope == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__authz_update_scope_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AuthzUpdateScope(childComplexity, args["params"].(model.UpdateScopeInput)), true
+
 	case "Mutation.deactivate_account":
 		if e.complexity.Mutation.DeactivateAccount == nil {
 			break
@@ -1877,54 +1973,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.DeleteEmailTemplate(childComplexity, args["params"].(model.DeleteEmailTemplateRequest)), true
-
-	case "Mutation._delete_permission":
-		if e.complexity.Mutation.DeletePermission == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation__delete_permission_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.DeletePermission(childComplexity, args["id"].(string)), true
-
-	case "Mutation._delete_policy":
-		if e.complexity.Mutation.DeletePolicy == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation__delete_policy_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.DeletePolicy(childComplexity, args["id"].(string)), true
-
-	case "Mutation._delete_resource":
-		if e.complexity.Mutation.DeleteResource == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation__delete_resource_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.DeleteResource(childComplexity, args["id"].(string)), true
-
-	case "Mutation._delete_scope":
-		if e.complexity.Mutation.DeleteScope == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation__delete_scope_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.DeleteScope(childComplexity, args["id"].(string)), true
 
 	case "Mutation._delete_user":
 		if e.complexity.Mutation.DeleteUser == nil {
@@ -2161,30 +2209,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Mutation.UpdateEnv(childComplexity, args["params"].(model.UpdateEnvRequest)), true
 
-	case "Mutation._update_permission":
-		if e.complexity.Mutation.UpdatePermission == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation__update_permission_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.UpdatePermission(childComplexity, args["params"].(model.UpdatePermissionInput)), true
-
-	case "Mutation._update_policy":
-		if e.complexity.Mutation.UpdatePolicy == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation__update_policy_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.UpdatePolicy(childComplexity, args["params"].(model.UpdatePolicyInput)), true
-
 	case "Mutation.update_profile":
 		if e.complexity.Mutation.UpdateProfile == nil {
 			break
@@ -2196,30 +2220,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.UpdateProfile(childComplexity, args["params"].(model.UpdateProfileRequest)), true
-
-	case "Mutation._update_resource":
-		if e.complexity.Mutation.UpdateResource == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation__update_resource_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.UpdateResource(childComplexity, args["params"].(model.UpdateResourceInput)), true
-
-	case "Mutation._update_scope":
-		if e.complexity.Mutation.UpdateScope == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation__update_scope_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.UpdateScope(childComplexity, args["params"].(model.UpdateScopeInput)), true
 
 	case "Mutation._update_user":
 		if e.complexity.Mutation.UpdateUser == nil {
@@ -2330,6 +2330,54 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Query.AuditLogs(childComplexity, args["params"].(*model.ListAuditLogRequest)), true
 
+	case "Query._authz_permissions":
+		if e.complexity.Query.AuthzPermissions == nil {
+			break
+		}
+
+		args, err := ec.field_Query__authz_permissions_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.AuthzPermissions(childComplexity, args["params"].(*model.PaginatedRequest)), true
+
+	case "Query._authz_policies":
+		if e.complexity.Query.AuthzPolicies == nil {
+			break
+		}
+
+		args, err := ec.field_Query__authz_policies_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.AuthzPolicies(childComplexity, args["params"].(*model.PaginatedRequest)), true
+
+	case "Query._authz_resources":
+		if e.complexity.Query.AuthzResources == nil {
+			break
+		}
+
+		args, err := ec.field_Query__authz_resources_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.AuthzResources(childComplexity, args["params"].(*model.PaginatedRequest)), true
+
+	case "Query._authz_scopes":
+		if e.complexity.Query.AuthzScopes == nil {
+			break
+		}
+
+		args, err := ec.field_Query__authz_scopes_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.AuthzScopes(childComplexity, args["params"].(*model.PaginatedRequest)), true
+
 	case "Query._email_templates":
 		if e.complexity.Query.EmailTemplates == nil {
 			break
@@ -2356,36 +2404,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Query.Meta(childComplexity), true
 
-	case "Query.my_permissions":
-		if e.complexity.Query.MyPermissions == nil {
-			break
-		}
-
-		return e.complexity.Query.MyPermissions(childComplexity), true
-
-	case "Query._permissions":
+	case "Query.permissions":
 		if e.complexity.Query.Permissions == nil {
 			break
 		}
 
-		args, err := ec.field_Query__permissions_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.Permissions(childComplexity, args["params"].(*model.PaginatedRequest)), true
-
-	case "Query._policies":
-		if e.complexity.Query.Policies == nil {
-			break
-		}
-
-		args, err := ec.field_Query__policies_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.Policies(childComplexity, args["params"].(*model.PaginatedRequest)), true
+		return e.complexity.Query.Permissions(childComplexity), true
 
 	case "Query.profile":
 		if e.complexity.Query.Profile == nil {
@@ -2393,30 +2417,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.Profile(childComplexity), true
-
-	case "Query._resources":
-		if e.complexity.Query.Resources == nil {
-			break
-		}
-
-		args, err := ec.field_Query__resources_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.Resources(childComplexity, args["params"].(*model.PaginatedRequest)), true
-
-	case "Query._scopes":
-		if e.complexity.Query.Scopes == nil {
-			break
-		}
-
-		args, err := ec.field_Query__scopes_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.Scopes(childComplexity, args["params"].(*model.PaginatedRequest)), true
 
 	case "Query.session":
 		if e.complexity.Query.Session == nil {
@@ -3918,21 +3918,21 @@ type Mutation {
   _update_email_template(params: UpdateEmailTemplateRequest!): Response!
   _delete_email_template(params: DeleteEmailTemplateRequest!): Response!
   # Authorization: Resources
-  _add_resource(params: AddResourceInput!): AuthzResource!
-  _update_resource(params: UpdateResourceInput!): AuthzResource!
-  _delete_resource(id: ID!): Response!
+  _authz_add_resource(params: AddResourceInput!): AuthzResource!
+  _authz_update_resource(params: UpdateResourceInput!): AuthzResource!
+  _authz_delete_resource(id: ID!): Response!
   # Authorization: Scopes
-  _add_scope(params: AddScopeInput!): AuthzScope!
-  _update_scope(params: UpdateScopeInput!): AuthzScope!
-  _delete_scope(id: ID!): Response!
+  _authz_add_scope(params: AddScopeInput!): AuthzScope!
+  _authz_update_scope(params: UpdateScopeInput!): AuthzScope!
+  _authz_delete_scope(id: ID!): Response!
   # Authorization: Policies
-  _add_policy(params: AddPolicyInput!): AuthzPolicy!
-  _update_policy(params: UpdatePolicyInput!): AuthzPolicy!
-  _delete_policy(id: ID!): Response!
+  _authz_add_policy(params: AddPolicyInput!): AuthzPolicy!
+  _authz_update_policy(params: UpdatePolicyInput!): AuthzPolicy!
+  _authz_delete_policy(id: ID!): Response!
   # Authorization: Permissions
-  _add_permission(params: AddPermissionInput!): AuthzPermission!
-  _update_permission(params: UpdatePermissionInput!): AuthzPermission!
-  _delete_permission(id: ID!): Response!
+  _authz_add_permission(params: AddPermissionInput!): AuthzPermission!
+  _authz_update_permission(params: UpdatePermissionInput!): AuthzPermission!
+  _authz_delete_permission(id: ID!): Response!
 }
 
 type Query {
@@ -3954,12 +3954,12 @@ type Query {
   _email_templates(params: PaginatedRequest): EmailTemplates!
   _audit_logs(params: ListAuditLogRequest): AuditLogs!
   # Authorization: Admin queries
-  _resources(params: PaginatedRequest): AuthzResources!
-  _scopes(params: PaginatedRequest): AuthzScopes!
-  _policies(params: PaginatedRequest): AuthzPolicies!
-  _permissions(params: PaginatedRequest): AuthzPermissions!
+  _authz_resources(params: PaginatedRequest): AuthzResources!
+  _authz_scopes(params: PaginatedRequest): AuthzScopes!
+  _authz_policies(params: PaginatedRequest): AuthzPolicies!
+  _authz_permissions(params: PaginatedRequest): AuthzPermissions!
   # Authorization: User-facing queries
-  my_permissions: [Permission!]!
+  permissions: [Permission!]!
 }
 `, BuiltIn: false},
 }
@@ -3994,118 +3994,6 @@ func (ec *executionContext) field_Mutation__add_email_template_argsParams(
 	}
 
 	var zeroVal model.AddEmailTemplateRequest
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation__add_permission_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := ec.field_Mutation__add_permission_argsParams(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["params"] = arg0
-	return args, nil
-}
-func (ec *executionContext) field_Mutation__add_permission_argsParams(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (model.AddPermissionInput, error) {
-	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal model.AddPermissionInput
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalNAddPermissionInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAddPermissionInput(ctx, tmp)
-	}
-
-	var zeroVal model.AddPermissionInput
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation__add_policy_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := ec.field_Mutation__add_policy_argsParams(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["params"] = arg0
-	return args, nil
-}
-func (ec *executionContext) field_Mutation__add_policy_argsParams(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (model.AddPolicyInput, error) {
-	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal model.AddPolicyInput
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalNAddPolicyInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAddPolicyInput(ctx, tmp)
-	}
-
-	var zeroVal model.AddPolicyInput
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation__add_resource_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := ec.field_Mutation__add_resource_argsParams(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["params"] = arg0
-	return args, nil
-}
-func (ec *executionContext) field_Mutation__add_resource_argsParams(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (model.AddResourceInput, error) {
-	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal model.AddResourceInput
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalNAddResourceInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAddResourceInput(ctx, tmp)
-	}
-
-	var zeroVal model.AddResourceInput
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation__add_scope_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := ec.field_Mutation__add_scope_argsParams(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["params"] = arg0
-	return args, nil
-}
-func (ec *executionContext) field_Mutation__add_scope_argsParams(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (model.AddScopeInput, error) {
-	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal model.AddScopeInput
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalNAddScopeInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAddScopeInput(ctx, tmp)
-	}
-
-	var zeroVal model.AddScopeInput
 	return zeroVal, nil
 }
 
@@ -4193,6 +4081,342 @@ func (ec *executionContext) field_Mutation__admin_signup_argsParams(
 	return zeroVal, nil
 }
 
+func (ec *executionContext) field_Mutation__authz_add_permission_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation__authz_add_permission_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation__authz_add_permission_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.AddPermissionInput, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.AddPermissionInput
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNAddPermissionInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAddPermissionInput(ctx, tmp)
+	}
+
+	var zeroVal model.AddPermissionInput
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation__authz_add_policy_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation__authz_add_policy_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation__authz_add_policy_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.AddPolicyInput, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.AddPolicyInput
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNAddPolicyInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAddPolicyInput(ctx, tmp)
+	}
+
+	var zeroVal model.AddPolicyInput
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation__authz_add_resource_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation__authz_add_resource_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation__authz_add_resource_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.AddResourceInput, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.AddResourceInput
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNAddResourceInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAddResourceInput(ctx, tmp)
+	}
+
+	var zeroVal model.AddResourceInput
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation__authz_add_scope_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation__authz_add_scope_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation__authz_add_scope_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.AddScopeInput, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.AddScopeInput
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNAddScopeInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAddScopeInput(ctx, tmp)
+	}
+
+	var zeroVal model.AddScopeInput
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation__authz_delete_permission_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation__authz_delete_permission_argsID(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation__authz_delete_permission_argsID(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	if _, ok := rawArgs["id"]; !ok {
+		var zeroVal string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+	if tmp, ok := rawArgs["id"]; ok {
+		return ec.unmarshalNID2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation__authz_delete_policy_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation__authz_delete_policy_argsID(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation__authz_delete_policy_argsID(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	if _, ok := rawArgs["id"]; !ok {
+		var zeroVal string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+	if tmp, ok := rawArgs["id"]; ok {
+		return ec.unmarshalNID2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation__authz_delete_resource_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation__authz_delete_resource_argsID(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation__authz_delete_resource_argsID(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	if _, ok := rawArgs["id"]; !ok {
+		var zeroVal string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+	if tmp, ok := rawArgs["id"]; ok {
+		return ec.unmarshalNID2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation__authz_delete_scope_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation__authz_delete_scope_argsID(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation__authz_delete_scope_argsID(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	if _, ok := rawArgs["id"]; !ok {
+		var zeroVal string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+	if tmp, ok := rawArgs["id"]; ok {
+		return ec.unmarshalNID2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation__authz_update_permission_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation__authz_update_permission_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation__authz_update_permission_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.UpdatePermissionInput, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.UpdatePermissionInput
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNUpdatePermissionInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdatePermissionInput(ctx, tmp)
+	}
+
+	var zeroVal model.UpdatePermissionInput
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation__authz_update_policy_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation__authz_update_policy_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation__authz_update_policy_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.UpdatePolicyInput, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.UpdatePolicyInput
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNUpdatePolicyInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdatePolicyInput(ctx, tmp)
+	}
+
+	var zeroVal model.UpdatePolicyInput
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation__authz_update_resource_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation__authz_update_resource_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation__authz_update_resource_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.UpdateResourceInput, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.UpdateResourceInput
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNUpdateResourceInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateResourceInput(ctx, tmp)
+	}
+
+	var zeroVal model.UpdateResourceInput
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation__authz_update_scope_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation__authz_update_scope_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation__authz_update_scope_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.UpdateScopeInput, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.UpdateScopeInput
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNUpdateScopeInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateScopeInput(ctx, tmp)
+	}
+
+	var zeroVal model.UpdateScopeInput
+	return zeroVal, nil
+}
+
 func (ec *executionContext) field_Mutation__delete_email_template_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -4218,118 +4442,6 @@ func (ec *executionContext) field_Mutation__delete_email_template_argsParams(
 	}
 
 	var zeroVal model.DeleteEmailTemplateRequest
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation__delete_permission_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := ec.field_Mutation__delete_permission_argsID(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["id"] = arg0
-	return args, nil
-}
-func (ec *executionContext) field_Mutation__delete_permission_argsID(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["id"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-	if tmp, ok := rawArgs["id"]; ok {
-		return ec.unmarshalNID2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation__delete_policy_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := ec.field_Mutation__delete_policy_argsID(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["id"] = arg0
-	return args, nil
-}
-func (ec *executionContext) field_Mutation__delete_policy_argsID(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["id"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-	if tmp, ok := rawArgs["id"]; ok {
-		return ec.unmarshalNID2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation__delete_resource_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := ec.field_Mutation__delete_resource_argsID(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["id"] = arg0
-	return args, nil
-}
-func (ec *executionContext) field_Mutation__delete_resource_argsID(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["id"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-	if tmp, ok := rawArgs["id"]; ok {
-		return ec.unmarshalNID2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation__delete_scope_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := ec.field_Mutation__delete_scope_argsID(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["id"] = arg0
-	return args, nil
-}
-func (ec *executionContext) field_Mutation__delete_scope_argsID(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["id"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-	if tmp, ok := rawArgs["id"]; ok {
-		return ec.unmarshalNID2string(ctx, tmp)
-	}
-
-	var zeroVal string
 	return zeroVal, nil
 }
 
@@ -4582,118 +4694,6 @@ func (ec *executionContext) field_Mutation__update_env_argsParams(
 	}
 
 	var zeroVal model.UpdateEnvRequest
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation__update_permission_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := ec.field_Mutation__update_permission_argsParams(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["params"] = arg0
-	return args, nil
-}
-func (ec *executionContext) field_Mutation__update_permission_argsParams(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (model.UpdatePermissionInput, error) {
-	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal model.UpdatePermissionInput
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalNUpdatePermissionInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdatePermissionInput(ctx, tmp)
-	}
-
-	var zeroVal model.UpdatePermissionInput
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation__update_policy_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := ec.field_Mutation__update_policy_argsParams(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["params"] = arg0
-	return args, nil
-}
-func (ec *executionContext) field_Mutation__update_policy_argsParams(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (model.UpdatePolicyInput, error) {
-	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal model.UpdatePolicyInput
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalNUpdatePolicyInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdatePolicyInput(ctx, tmp)
-	}
-
-	var zeroVal model.UpdatePolicyInput
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation__update_resource_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := ec.field_Mutation__update_resource_argsParams(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["params"] = arg0
-	return args, nil
-}
-func (ec *executionContext) field_Mutation__update_resource_argsParams(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (model.UpdateResourceInput, error) {
-	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal model.UpdateResourceInput
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalNUpdateResourceInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateResourceInput(ctx, tmp)
-	}
-
-	var zeroVal model.UpdateResourceInput
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation__update_scope_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := ec.field_Mutation__update_scope_argsParams(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["params"] = arg0
-	return args, nil
-}
-func (ec *executionContext) field_Mutation__update_scope_argsParams(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (model.UpdateScopeInput, error) {
-	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal model.UpdateScopeInput
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalNUpdateScopeInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateScopeInput(ctx, tmp)
-	}
-
-	var zeroVal model.UpdateScopeInput
 	return zeroVal, nil
 }
 
@@ -5173,6 +5173,118 @@ func (ec *executionContext) field_Query__audit_logs_argsParams(
 	return zeroVal, nil
 }
 
+func (ec *executionContext) field_Query__authz_permissions_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query__authz_permissions_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query__authz_permissions_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*model.PaginatedRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal *model.PaginatedRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalOPaginatedRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginatedRequest(ctx, tmp)
+	}
+
+	var zeroVal *model.PaginatedRequest
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query__authz_policies_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query__authz_policies_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query__authz_policies_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*model.PaginatedRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal *model.PaginatedRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalOPaginatedRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginatedRequest(ctx, tmp)
+	}
+
+	var zeroVal *model.PaginatedRequest
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query__authz_resources_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query__authz_resources_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query__authz_resources_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*model.PaginatedRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal *model.PaginatedRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalOPaginatedRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginatedRequest(ctx, tmp)
+	}
+
+	var zeroVal *model.PaginatedRequest
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query__authz_scopes_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query__authz_scopes_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query__authz_scopes_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*model.PaginatedRequest, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal *model.PaginatedRequest
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalOPaginatedRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginatedRequest(ctx, tmp)
+	}
+
+	var zeroVal *model.PaginatedRequest
+	return zeroVal, nil
+}
+
 func (ec *executionContext) field_Query__email_templates_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -5184,118 +5296,6 @@ func (ec *executionContext) field_Query__email_templates_args(ctx context.Contex
 	return args, nil
 }
 func (ec *executionContext) field_Query__email_templates_argsParams(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (*model.PaginatedRequest, error) {
-	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal *model.PaginatedRequest
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalOPaginatedRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginatedRequest(ctx, tmp)
-	}
-
-	var zeroVal *model.PaginatedRequest
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Query__permissions_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := ec.field_Query__permissions_argsParams(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["params"] = arg0
-	return args, nil
-}
-func (ec *executionContext) field_Query__permissions_argsParams(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (*model.PaginatedRequest, error) {
-	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal *model.PaginatedRequest
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalOPaginatedRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginatedRequest(ctx, tmp)
-	}
-
-	var zeroVal *model.PaginatedRequest
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Query__policies_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := ec.field_Query__policies_argsParams(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["params"] = arg0
-	return args, nil
-}
-func (ec *executionContext) field_Query__policies_argsParams(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (*model.PaginatedRequest, error) {
-	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal *model.PaginatedRequest
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalOPaginatedRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginatedRequest(ctx, tmp)
-	}
-
-	var zeroVal *model.PaginatedRequest
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Query__resources_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := ec.field_Query__resources_argsParams(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["params"] = arg0
-	return args, nil
-}
-func (ec *executionContext) field_Query__resources_argsParams(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (*model.PaginatedRequest, error) {
-	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal *model.PaginatedRequest
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalOPaginatedRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginatedRequest(ctx, tmp)
-	}
-
-	var zeroVal *model.PaginatedRequest
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Query__scopes_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := ec.field_Query__scopes_argsParams(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["params"] = arg0
-	return args, nil
-}
-func (ec *executionContext) field_Query__scopes_argsParams(
 	ctx context.Context,
 	rawArgs map[string]any,
 ) (*model.PaginatedRequest, error) {
@@ -15377,8 +15377,8 @@ func (ec *executionContext) fieldContext_Mutation__delete_email_template(ctx con
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation__add_resource(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation__add_resource(ctx, field)
+func (ec *executionContext) _Mutation__authz_add_resource(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation__authz_add_resource(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -15391,7 +15391,7 @@ func (ec *executionContext) _Mutation__add_resource(ctx context.Context, field g
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().AddResource(rctx, fc.Args["params"].(model.AddResourceInput))
+		return ec.resolvers.Mutation().AuthzAddResource(rctx, fc.Args["params"].(model.AddResourceInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -15408,7 +15408,7 @@ func (ec *executionContext) _Mutation__add_resource(ctx context.Context, field g
 	return ec.marshalNAuthzResource2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzResource(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Mutation__add_resource(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation__authz_add_resource(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -15437,15 +15437,15 @@ func (ec *executionContext) fieldContext_Mutation__add_resource(ctx context.Cont
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation__add_resource_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation__authz_add_resource_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation__update_resource(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation__update_resource(ctx, field)
+func (ec *executionContext) _Mutation__authz_update_resource(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation__authz_update_resource(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -15458,7 +15458,7 @@ func (ec *executionContext) _Mutation__update_resource(ctx context.Context, fiel
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpdateResource(rctx, fc.Args["params"].(model.UpdateResourceInput))
+		return ec.resolvers.Mutation().AuthzUpdateResource(rctx, fc.Args["params"].(model.UpdateResourceInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -15475,7 +15475,7 @@ func (ec *executionContext) _Mutation__update_resource(ctx context.Context, fiel
 	return ec.marshalNAuthzResource2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzResource(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Mutation__update_resource(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation__authz_update_resource(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -15504,15 +15504,15 @@ func (ec *executionContext) fieldContext_Mutation__update_resource(ctx context.C
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation__update_resource_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation__authz_update_resource_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation__delete_resource(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation__delete_resource(ctx, field)
+func (ec *executionContext) _Mutation__authz_delete_resource(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation__authz_delete_resource(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -15525,7 +15525,7 @@ func (ec *executionContext) _Mutation__delete_resource(ctx context.Context, fiel
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().DeleteResource(rctx, fc.Args["id"].(string))
+		return ec.resolvers.Mutation().AuthzDeleteResource(rctx, fc.Args["id"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -15542,7 +15542,7 @@ func (ec *executionContext) _Mutation__delete_resource(ctx context.Context, fiel
 	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Mutation__delete_resource(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation__authz_delete_resource(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -15563,15 +15563,15 @@ func (ec *executionContext) fieldContext_Mutation__delete_resource(ctx context.C
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation__delete_resource_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation__authz_delete_resource_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation__add_scope(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation__add_scope(ctx, field)
+func (ec *executionContext) _Mutation__authz_add_scope(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation__authz_add_scope(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -15584,7 +15584,7 @@ func (ec *executionContext) _Mutation__add_scope(ctx context.Context, field grap
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().AddScope(rctx, fc.Args["params"].(model.AddScopeInput))
+		return ec.resolvers.Mutation().AuthzAddScope(rctx, fc.Args["params"].(model.AddScopeInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -15601,7 +15601,7 @@ func (ec *executionContext) _Mutation__add_scope(ctx context.Context, field grap
 	return ec.marshalNAuthzScope2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzScope(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Mutation__add_scope(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation__authz_add_scope(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -15630,15 +15630,15 @@ func (ec *executionContext) fieldContext_Mutation__add_scope(ctx context.Context
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation__add_scope_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation__authz_add_scope_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation__update_scope(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation__update_scope(ctx, field)
+func (ec *executionContext) _Mutation__authz_update_scope(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation__authz_update_scope(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -15651,7 +15651,7 @@ func (ec *executionContext) _Mutation__update_scope(ctx context.Context, field g
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpdateScope(rctx, fc.Args["params"].(model.UpdateScopeInput))
+		return ec.resolvers.Mutation().AuthzUpdateScope(rctx, fc.Args["params"].(model.UpdateScopeInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -15668,7 +15668,7 @@ func (ec *executionContext) _Mutation__update_scope(ctx context.Context, field g
 	return ec.marshalNAuthzScope2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzScope(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Mutation__update_scope(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation__authz_update_scope(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -15697,15 +15697,15 @@ func (ec *executionContext) fieldContext_Mutation__update_scope(ctx context.Cont
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation__update_scope_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation__authz_update_scope_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation__delete_scope(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation__delete_scope(ctx, field)
+func (ec *executionContext) _Mutation__authz_delete_scope(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation__authz_delete_scope(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -15718,7 +15718,7 @@ func (ec *executionContext) _Mutation__delete_scope(ctx context.Context, field g
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().DeleteScope(rctx, fc.Args["id"].(string))
+		return ec.resolvers.Mutation().AuthzDeleteScope(rctx, fc.Args["id"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -15735,7 +15735,7 @@ func (ec *executionContext) _Mutation__delete_scope(ctx context.Context, field g
 	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Mutation__delete_scope(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation__authz_delete_scope(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -15756,15 +15756,15 @@ func (ec *executionContext) fieldContext_Mutation__delete_scope(ctx context.Cont
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation__delete_scope_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation__authz_delete_scope_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation__add_policy(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation__add_policy(ctx, field)
+func (ec *executionContext) _Mutation__authz_add_policy(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation__authz_add_policy(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -15777,7 +15777,7 @@ func (ec *executionContext) _Mutation__add_policy(ctx context.Context, field gra
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().AddPolicy(rctx, fc.Args["params"].(model.AddPolicyInput))
+		return ec.resolvers.Mutation().AuthzAddPolicy(rctx, fc.Args["params"].(model.AddPolicyInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -15794,7 +15794,7 @@ func (ec *executionContext) _Mutation__add_policy(ctx context.Context, field gra
 	return ec.marshalNAuthzPolicy2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzPolicy(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Mutation__add_policy(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation__authz_add_policy(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -15831,15 +15831,15 @@ func (ec *executionContext) fieldContext_Mutation__add_policy(ctx context.Contex
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation__add_policy_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation__authz_add_policy_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation__update_policy(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation__update_policy(ctx, field)
+func (ec *executionContext) _Mutation__authz_update_policy(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation__authz_update_policy(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -15852,7 +15852,7 @@ func (ec *executionContext) _Mutation__update_policy(ctx context.Context, field 
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpdatePolicy(rctx, fc.Args["params"].(model.UpdatePolicyInput))
+		return ec.resolvers.Mutation().AuthzUpdatePolicy(rctx, fc.Args["params"].(model.UpdatePolicyInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -15869,7 +15869,7 @@ func (ec *executionContext) _Mutation__update_policy(ctx context.Context, field 
 	return ec.marshalNAuthzPolicy2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzPolicy(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Mutation__update_policy(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation__authz_update_policy(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -15906,15 +15906,15 @@ func (ec *executionContext) fieldContext_Mutation__update_policy(ctx context.Con
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation__update_policy_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation__authz_update_policy_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation__delete_policy(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation__delete_policy(ctx, field)
+func (ec *executionContext) _Mutation__authz_delete_policy(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation__authz_delete_policy(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -15927,7 +15927,7 @@ func (ec *executionContext) _Mutation__delete_policy(ctx context.Context, field 
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().DeletePolicy(rctx, fc.Args["id"].(string))
+		return ec.resolvers.Mutation().AuthzDeletePolicy(rctx, fc.Args["id"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -15944,7 +15944,7 @@ func (ec *executionContext) _Mutation__delete_policy(ctx context.Context, field 
 	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Mutation__delete_policy(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation__authz_delete_policy(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -15965,15 +15965,15 @@ func (ec *executionContext) fieldContext_Mutation__delete_policy(ctx context.Con
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation__delete_policy_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation__authz_delete_policy_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation__add_permission(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation__add_permission(ctx, field)
+func (ec *executionContext) _Mutation__authz_add_permission(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation__authz_add_permission(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -15986,7 +15986,7 @@ func (ec *executionContext) _Mutation__add_permission(ctx context.Context, field
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().AddPermission(rctx, fc.Args["params"].(model.AddPermissionInput))
+		return ec.resolvers.Mutation().AuthzAddPermission(rctx, fc.Args["params"].(model.AddPermissionInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -16003,7 +16003,7 @@ func (ec *executionContext) _Mutation__add_permission(ctx context.Context, field
 	return ec.marshalNAuthzPermission2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzPermission(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Mutation__add_permission(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation__authz_add_permission(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -16040,15 +16040,15 @@ func (ec *executionContext) fieldContext_Mutation__add_permission(ctx context.Co
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation__add_permission_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation__authz_add_permission_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation__update_permission(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation__update_permission(ctx, field)
+func (ec *executionContext) _Mutation__authz_update_permission(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation__authz_update_permission(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -16061,7 +16061,7 @@ func (ec *executionContext) _Mutation__update_permission(ctx context.Context, fi
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpdatePermission(rctx, fc.Args["params"].(model.UpdatePermissionInput))
+		return ec.resolvers.Mutation().AuthzUpdatePermission(rctx, fc.Args["params"].(model.UpdatePermissionInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -16078,7 +16078,7 @@ func (ec *executionContext) _Mutation__update_permission(ctx context.Context, fi
 	return ec.marshalNAuthzPermission2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzPermission(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Mutation__update_permission(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation__authz_update_permission(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -16115,15 +16115,15 @@ func (ec *executionContext) fieldContext_Mutation__update_permission(ctx context
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation__update_permission_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation__authz_update_permission_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation__delete_permission(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation__delete_permission(ctx, field)
+func (ec *executionContext) _Mutation__authz_delete_permission(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation__authz_delete_permission(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -16136,7 +16136,7 @@ func (ec *executionContext) _Mutation__delete_permission(ctx context.Context, fi
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().DeletePermission(rctx, fc.Args["id"].(string))
+		return ec.resolvers.Mutation().AuthzDeletePermission(rctx, fc.Args["id"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -16153,7 +16153,7 @@ func (ec *executionContext) _Mutation__delete_permission(ctx context.Context, fi
 	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Mutation__delete_permission(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation__authz_delete_permission(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -16174,7 +16174,7 @@ func (ec *executionContext) fieldContext_Mutation__delete_permission(ctx context
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation__delete_permission_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation__authz_delete_permission_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -17592,8 +17592,8 @@ func (ec *executionContext) fieldContext_Query__audit_logs(ctx context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _Query__resources(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Query__resources(ctx, field)
+func (ec *executionContext) _Query__authz_resources(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query__authz_resources(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -17606,7 +17606,7 @@ func (ec *executionContext) _Query__resources(ctx context.Context, field graphql
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Resources(rctx, fc.Args["params"].(*model.PaginatedRequest))
+		return ec.resolvers.Query().AuthzResources(rctx, fc.Args["params"].(*model.PaginatedRequest))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -17623,7 +17623,7 @@ func (ec *executionContext) _Query__resources(ctx context.Context, field graphql
 	return ec.marshalNAuthzResources2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzResources(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Query__resources(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query__authz_resources(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -17646,15 +17646,15 @@ func (ec *executionContext) fieldContext_Query__resources(ctx context.Context, f
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query__resources_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Query__authz_resources_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Query__scopes(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Query__scopes(ctx, field)
+func (ec *executionContext) _Query__authz_scopes(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query__authz_scopes(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -17667,7 +17667,7 @@ func (ec *executionContext) _Query__scopes(ctx context.Context, field graphql.Co
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Scopes(rctx, fc.Args["params"].(*model.PaginatedRequest))
+		return ec.resolvers.Query().AuthzScopes(rctx, fc.Args["params"].(*model.PaginatedRequest))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -17684,7 +17684,7 @@ func (ec *executionContext) _Query__scopes(ctx context.Context, field graphql.Co
 	return ec.marshalNAuthzScopes2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzScopes(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Query__scopes(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query__authz_scopes(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -17707,15 +17707,15 @@ func (ec *executionContext) fieldContext_Query__scopes(ctx context.Context, fiel
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query__scopes_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Query__authz_scopes_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Query__policies(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Query__policies(ctx, field)
+func (ec *executionContext) _Query__authz_policies(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query__authz_policies(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -17728,7 +17728,7 @@ func (ec *executionContext) _Query__policies(ctx context.Context, field graphql.
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Policies(rctx, fc.Args["params"].(*model.PaginatedRequest))
+		return ec.resolvers.Query().AuthzPolicies(rctx, fc.Args["params"].(*model.PaginatedRequest))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -17745,7 +17745,7 @@ func (ec *executionContext) _Query__policies(ctx context.Context, field graphql.
 	return ec.marshalNAuthzPolicies2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzPolicies(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Query__policies(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query__authz_policies(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -17768,15 +17768,15 @@ func (ec *executionContext) fieldContext_Query__policies(ctx context.Context, fi
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query__policies_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Query__authz_policies_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Query__permissions(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Query__permissions(ctx, field)
+func (ec *executionContext) _Query__authz_permissions(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query__authz_permissions(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -17789,7 +17789,7 @@ func (ec *executionContext) _Query__permissions(ctx context.Context, field graph
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Permissions(rctx, fc.Args["params"].(*model.PaginatedRequest))
+		return ec.resolvers.Query().AuthzPermissions(rctx, fc.Args["params"].(*model.PaginatedRequest))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -17806,7 +17806,7 @@ func (ec *executionContext) _Query__permissions(ctx context.Context, field graph
 	return ec.marshalNAuthzPermissions2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzPermissions(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Query__permissions(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query__authz_permissions(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -17829,15 +17829,15 @@ func (ec *executionContext) fieldContext_Query__permissions(ctx context.Context,
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query__permissions_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Query__authz_permissions_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_my_permissions(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Query_my_permissions(ctx, field)
+func (ec *executionContext) _Query_permissions(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_permissions(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -17850,7 +17850,7 @@ func (ec *executionContext) _Query_my_permissions(ctx context.Context, field gra
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().MyPermissions(rctx)
+		return ec.resolvers.Query().Permissions(rctx)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -17867,7 +17867,7 @@ func (ec *executionContext) _Query_my_permissions(ctx context.Context, field gra
 	return ec.marshalNPermission2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPermissionᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Query_my_permissions(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_permissions(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -26906,86 +26906,86 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "_add_resource":
+		case "_authz_add_resource":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation__add_resource(ctx, field)
+				return ec._Mutation__authz_add_resource(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "_update_resource":
+		case "_authz_update_resource":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation__update_resource(ctx, field)
+				return ec._Mutation__authz_update_resource(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "_delete_resource":
+		case "_authz_delete_resource":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation__delete_resource(ctx, field)
+				return ec._Mutation__authz_delete_resource(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "_add_scope":
+		case "_authz_add_scope":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation__add_scope(ctx, field)
+				return ec._Mutation__authz_add_scope(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "_update_scope":
+		case "_authz_update_scope":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation__update_scope(ctx, field)
+				return ec._Mutation__authz_update_scope(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "_delete_scope":
+		case "_authz_delete_scope":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation__delete_scope(ctx, field)
+				return ec._Mutation__authz_delete_scope(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "_add_policy":
+		case "_authz_add_policy":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation__add_policy(ctx, field)
+				return ec._Mutation__authz_add_policy(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "_update_policy":
+		case "_authz_update_policy":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation__update_policy(ctx, field)
+				return ec._Mutation__authz_update_policy(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "_delete_policy":
+		case "_authz_delete_policy":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation__delete_policy(ctx, field)
+				return ec._Mutation__authz_delete_policy(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "_add_permission":
+		case "_authz_add_permission":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation__add_permission(ctx, field)
+				return ec._Mutation__authz_add_permission(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "_update_permission":
+		case "_authz_update_permission":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation__update_permission(ctx, field)
+				return ec._Mutation__authz_update_permission(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "_delete_permission":
+		case "_authz_delete_permission":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation__delete_permission(ctx, field)
+				return ec._Mutation__authz_delete_permission(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -27460,7 +27460,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "_resources":
+		case "_authz_resources":
 			field := field
 
 			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
@@ -27469,7 +27469,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query__resources(ctx, field)
+				res = ec._Query__authz_resources(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -27482,7 +27482,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "_scopes":
+		case "_authz_scopes":
 			field := field
 
 			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
@@ -27491,7 +27491,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query__scopes(ctx, field)
+				res = ec._Query__authz_scopes(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -27504,7 +27504,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "_policies":
+		case "_authz_policies":
 			field := field
 
 			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
@@ -27513,7 +27513,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query__policies(ctx, field)
+				res = ec._Query__authz_policies(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -27526,7 +27526,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "_permissions":
+		case "_authz_permissions":
 			field := field
 
 			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
@@ -27535,7 +27535,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query__permissions(ctx, field)
+				res = ec._Query__authz_permissions(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -27548,7 +27548,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "my_permissions":
+		case "permissions":
 			field := field
 
 			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
@@ -27557,7 +27557,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_my_permissions(ctx, field)
+				res = ec._Query_permissions(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}

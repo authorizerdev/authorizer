@@ -13,11 +13,11 @@ import (
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
 
-// AddPermission is the method to create a new authorization permission
+// AuthzAddPermission is the method to create a new authorization permission
 // binding a resource to scopes and policies.
 // Permissions: authorizer:admin
-func (g *graphqlProvider) AddPermission(ctx context.Context, params *model.AddPermissionInput) (*model.AuthzPermission, error) {
-	log := g.Log.With().Str("func", "AddPermission").Logger()
+func (g *graphqlProvider) AuthzAddPermission(ctx context.Context, params *model.AddPermissionInput) (*model.AuthzPermission, error) {
+	log := g.Log.With().Str("func", "AuthzAddPermission").Logger()
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to get GinContext")

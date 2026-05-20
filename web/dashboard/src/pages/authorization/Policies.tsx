@@ -66,8 +66,8 @@ export default function Policies() {
 				params: { pagination: { limit: 100, page: 1 } },
 			})
 			.toPromise();
-		if (data?._policies) {
-			setPolicies(data._policies.policies);
+		if (data?._authz_policies) {
+			setPolicies(data._authz_policies.policies);
 		}
 		if (error) {
 			toast.error(getGraphQLErrorMessage(error, 'Failed to load policies'));

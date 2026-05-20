@@ -172,64 +172,64 @@ func (r *mutationResolver) DeleteEmailTemplate(ctx context.Context, params model
 	return r.GraphQLProvider.DeleteEmailTemplate(ctx, &params)
 }
 
-// AddResource is the resolver for the _add_resource field.
-func (r *mutationResolver) AddResource(ctx context.Context, params model.AddResourceInput) (*model.AuthzResource, error) {
-	return r.GraphQLProvider.AddResource(ctx, &params)
+// AuthzAddResource is the resolver for the _authz_add_resource field.
+func (r *mutationResolver) AuthzAddResource(ctx context.Context, params model.AddResourceInput) (*model.AuthzResource, error) {
+	return r.GraphQLProvider.AuthzAddResource(ctx, &params)
 }
 
-// UpdateResource is the resolver for the _update_resource field.
-func (r *mutationResolver) UpdateResource(ctx context.Context, params model.UpdateResourceInput) (*model.AuthzResource, error) {
-	return r.GraphQLProvider.UpdateResource(ctx, &params)
+// AuthzUpdateResource is the resolver for the _authz_update_resource field.
+func (r *mutationResolver) AuthzUpdateResource(ctx context.Context, params model.UpdateResourceInput) (*model.AuthzResource, error) {
+	return r.GraphQLProvider.AuthzUpdateResource(ctx, &params)
 }
 
-// DeleteResource is the resolver for the _delete_resource field.
-func (r *mutationResolver) DeleteResource(ctx context.Context, id string) (*model.Response, error) {
-	return r.GraphQLProvider.DeleteResource(ctx, id)
+// AuthzDeleteResource is the resolver for the _authz_delete_resource field.
+func (r *mutationResolver) AuthzDeleteResource(ctx context.Context, id string) (*model.Response, error) {
+	return r.GraphQLProvider.AuthzDeleteResource(ctx, id)
 }
 
-// AddScope is the resolver for the _add_scope field.
-func (r *mutationResolver) AddScope(ctx context.Context, params model.AddScopeInput) (*model.AuthzScope, error) {
-	return r.GraphQLProvider.AddScope(ctx, &params)
+// AuthzAddScope is the resolver for the _authz_add_scope field.
+func (r *mutationResolver) AuthzAddScope(ctx context.Context, params model.AddScopeInput) (*model.AuthzScope, error) {
+	return r.GraphQLProvider.AuthzAddScope(ctx, &params)
 }
 
-// UpdateScope is the resolver for the _update_scope field.
-func (r *mutationResolver) UpdateScope(ctx context.Context, params model.UpdateScopeInput) (*model.AuthzScope, error) {
-	return r.GraphQLProvider.UpdateScope(ctx, &params)
+// AuthzUpdateScope is the resolver for the _authz_update_scope field.
+func (r *mutationResolver) AuthzUpdateScope(ctx context.Context, params model.UpdateScopeInput) (*model.AuthzScope, error) {
+	return r.GraphQLProvider.AuthzUpdateScope(ctx, &params)
 }
 
-// DeleteScope is the resolver for the _delete_scope field.
-func (r *mutationResolver) DeleteScope(ctx context.Context, id string) (*model.Response, error) {
-	return r.GraphQLProvider.DeleteScope(ctx, id)
+// AuthzDeleteScope is the resolver for the _authz_delete_scope field.
+func (r *mutationResolver) AuthzDeleteScope(ctx context.Context, id string) (*model.Response, error) {
+	return r.GraphQLProvider.AuthzDeleteScope(ctx, id)
 }
 
-// AddPolicy is the resolver for the _add_policy field.
-func (r *mutationResolver) AddPolicy(ctx context.Context, params model.AddPolicyInput) (*model.AuthzPolicy, error) {
-	return r.GraphQLProvider.AddPolicy(ctx, &params)
+// AuthzAddPolicy is the resolver for the _authz_add_policy field.
+func (r *mutationResolver) AuthzAddPolicy(ctx context.Context, params model.AddPolicyInput) (*model.AuthzPolicy, error) {
+	return r.GraphQLProvider.AuthzAddPolicy(ctx, &params)
 }
 
-// UpdatePolicy is the resolver for the _update_policy field.
-func (r *mutationResolver) UpdatePolicy(ctx context.Context, params model.UpdatePolicyInput) (*model.AuthzPolicy, error) {
-	return r.GraphQLProvider.UpdatePolicy(ctx, &params)
+// AuthzUpdatePolicy is the resolver for the _authz_update_policy field.
+func (r *mutationResolver) AuthzUpdatePolicy(ctx context.Context, params model.UpdatePolicyInput) (*model.AuthzPolicy, error) {
+	return r.GraphQLProvider.AuthzUpdatePolicy(ctx, &params)
 }
 
-// DeletePolicy is the resolver for the _delete_policy field.
-func (r *mutationResolver) DeletePolicy(ctx context.Context, id string) (*model.Response, error) {
-	return r.GraphQLProvider.DeletePolicy(ctx, id)
+// AuthzDeletePolicy is the resolver for the _authz_delete_policy field.
+func (r *mutationResolver) AuthzDeletePolicy(ctx context.Context, id string) (*model.Response, error) {
+	return r.GraphQLProvider.AuthzDeletePolicy(ctx, id)
 }
 
-// AddPermission is the resolver for the _add_permission field.
-func (r *mutationResolver) AddPermission(ctx context.Context, params model.AddPermissionInput) (*model.AuthzPermission, error) {
-	return r.GraphQLProvider.AddPermission(ctx, &params)
+// AuthzAddPermission is the resolver for the _authz_add_permission field.
+func (r *mutationResolver) AuthzAddPermission(ctx context.Context, params model.AddPermissionInput) (*model.AuthzPermission, error) {
+	return r.GraphQLProvider.AuthzAddPermission(ctx, &params)
 }
 
-// UpdatePermission is the resolver for the _update_permission field.
-func (r *mutationResolver) UpdatePermission(ctx context.Context, params model.UpdatePermissionInput) (*model.AuthzPermission, error) {
-	return r.GraphQLProvider.UpdatePermission(ctx, &params)
+// AuthzUpdatePermission is the resolver for the _authz_update_permission field.
+func (r *mutationResolver) AuthzUpdatePermission(ctx context.Context, params model.UpdatePermissionInput) (*model.AuthzPermission, error) {
+	return r.GraphQLProvider.AuthzUpdatePermission(ctx, &params)
 }
 
-// DeletePermission is the resolver for the _delete_permission field.
-func (r *mutationResolver) DeletePermission(ctx context.Context, id string) (*model.Response, error) {
-	return r.GraphQLProvider.DeletePermission(ctx, id)
+// AuthzDeletePermission is the resolver for the _authz_delete_permission field.
+func (r *mutationResolver) AuthzDeletePermission(ctx context.Context, id string) (*model.Response, error) {
+	return r.GraphQLProvider.AuthzDeletePermission(ctx, id)
 }
 
 // Meta is the resolver for the meta field.
@@ -307,29 +307,29 @@ func (r *queryResolver) AuditLogs(ctx context.Context, params *model.ListAuditLo
 	return r.GraphQLProvider.AuditLogs(ctx, params)
 }
 
-// Resources is the resolver for the _resources field.
-func (r *queryResolver) Resources(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzResources, error) {
-	return r.GraphQLProvider.Resources(ctx, params)
+// AuthzResources is the resolver for the _authz_resources field.
+func (r *queryResolver) AuthzResources(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzResources, error) {
+	panic(fmt.Errorf("not implemented: AuthzResources - _authz_resources"))
 }
 
-// Scopes is the resolver for the _scopes field.
-func (r *queryResolver) Scopes(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzScopes, error) {
-	return r.GraphQLProvider.Scopes(ctx, params)
+// AuthzScopes is the resolver for the _authz_scopes field.
+func (r *queryResolver) AuthzScopes(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzScopes, error) {
+	panic(fmt.Errorf("not implemented: AuthzScopes - _authz_scopes"))
 }
 
-// Policies is the resolver for the _policies field.
-func (r *queryResolver) Policies(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzPolicies, error) {
-	return r.GraphQLProvider.Policies(ctx, params)
+// AuthzPolicies is the resolver for the _authz_policies field.
+func (r *queryResolver) AuthzPolicies(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzPolicies, error) {
+	panic(fmt.Errorf("not implemented: AuthzPolicies - _authz_policies"))
 }
 
-// Permissions is the resolver for the _permissions field.
-func (r *queryResolver) Permissions(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzPermissions, error) {
-	return r.GraphQLProvider.Permissions(ctx, params)
+// AuthzPermissions is the resolver for the _authz_permissions field.
+func (r *queryResolver) AuthzPermissions(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzPermissions, error) {
+	return r.GraphQLProvider.AuthzPermissions(ctx, params)
 }
 
-// MyPermissions is the resolver for the my_permissions field.
-func (r *queryResolver) MyPermissions(ctx context.Context) ([]*model.Permission, error) {
-	return r.GraphQLProvider.MyPermissions(ctx)
+// Permissions is the resolver for the permissions field.
+func (r *queryResolver) Permissions(ctx context.Context) ([]*model.Permission, error) {
+	return r.GraphQLProvider.Permissions(ctx)
 }
 
 // Mutation returns generated.MutationResolver implementation.

@@ -170,28 +170,28 @@ export interface AuthzPermission {
 }
 
 export interface AuthzResourcesResponse {
-	_resources: {
+	_authz_resources: {
 		pagination: PaginationInfo;
 		resources: AuthzResource[];
 	};
 }
 
 export interface AuthzScopesResponse {
-	_scopes: {
+	_authz_scopes: {
 		pagination: PaginationInfo;
 		scopes: AuthzScope[];
 	};
 }
 
 export interface AuthzPoliciesResponse {
-	_policies: {
+	_authz_policies: {
 		pagination: PaginationInfo;
 		policies: AuthzPolicy[];
 	};
 }
 
 export interface AuthzPermissionsResponse {
-	_permissions: {
+	_authz_permissions: {
 		pagination: PaginationInfo;
 		permissions: AuthzPermission[];
 	};

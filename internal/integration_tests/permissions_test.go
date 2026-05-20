@@ -14,12 +14,12 @@ import (
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 )
 
-// TestMyPermissions exercises the my_permissions query end-to-end. It seeds a
+// TestPermissions exercises the permissions query end-to-end. It seeds a
 // policy graph as admin, signs up a regular user, logs them in, and asserts the
-// flat (resource, scope) list returned by my_permissions matches what the
+// flat (resource, scope) list returned by permissions matches what the
 // "user" role is granted via the policy targets — and that scopes attached to
 // roles the principal does not hold are excluded.
-func TestMyPermissions(t *testing.T) {
+func TestPermissions(t *testing.T) {
 	cfg := getTestConfig()
 	ts := initTestSetup(t, cfg)
 	req, ctx := createContext(ts)
@@ -29,17 +29,17 @@ func TestMyPermissions(t *testing.T) {
 	require.NoError(t, err)
 	req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, adminHash))
 
-	docs, err := ts.GraphQLProvider.AddResource(ctx, &model.AddResourceInput{Name: "docs"})
+	docs, err := ts.GraphQLProvider.AuthzAddResource(ctx, &model.AddResourceInput{Name: "docs"})
 	require.NoError(t, err)
-	billing, err := ts.GraphQLProvider.AddResource(ctx, &model.AddResourceInput{Name: "billing"})
-	require.NoError(t, err)
-
-	read, err := ts.GraphQLProvider.AddScope(ctx, &model.AddScopeInput{Name: "read"})
-	require.NoError(t, err)
-	write, err := ts.GraphQLProvider.AddScope(ctx, &model.AddScopeInput{Name: "write"})
+	billing, err := ts.GraphQLProvider.AuthzAddResource(ctx, &model.AddResourceInput{Name: "billing"})
 	require.NoError(t, err)
 
-	userPolicy, err := ts.GraphQLProvider.AddPolicy(ctx, &model.AddPolicyInput{
+	read, err := ts.GraphQLProvider.AuthzAddScope(ctx, &model.AddScopeInput{Name: "read"})
+	require.NoError(t, err)
+	write, err := ts.GraphQLProvider.AuthzAddScope(ctx, &model.AddScopeInput{Name: "write"})
+	require.NoError(t, err)
+
+	userPolicy, err := ts.GraphQLProvider.AuthzAddPolicy(ctx, &model.AddPolicyInput{
 		Name: "my-perms-user-role",
 		Type: "role",
 		Targets: []*model.PolicyTargetInput{
@@ -47,7 +47,7 @@ func TestMyPermissions(t *testing.T) {
 		},
 	})
 	require.NoError(t, err)
-	adminPolicy, err := ts.GraphQLProvider.AddPolicy(ctx, &model.AddPolicyInput{
+	adminPolicy, err := ts.GraphQLProvider.AuthzAddPolicy(ctx, &model.AddPolicyInput{
 		Name: "my-perms-admin-role",
 		Type: "role",
 		Targets: []*model.PolicyTargetInput{
@@ -59,21 +59,21 @@ func TestMyPermissions(t *testing.T) {
 	// user role can read docs and read billing; admin role can write docs.
 	// The signed-up user has role "user" only, so they must see exactly two
 	// (resource, scope) pairs and NOT docs:write.
-	_, err = ts.GraphQLProvider.AddPermission(ctx, &model.AddPermissionInput{
+	_, err = ts.GraphQLProvider.AuthzAddPermission(ctx, &model.AddPermissionInput{
 		Name:       "my-perms-docs-read",
 		ResourceID: docs.ID,
 		ScopeIds:   []string{read.ID},
 		PolicyIds:  []string{userPolicy.ID},
 	})
 	require.NoError(t, err)
-	_, err = ts.GraphQLProvider.AddPermission(ctx, &model.AddPermissionInput{
+	_, err = ts.GraphQLProvider.AuthzAddPermission(ctx, &model.AddPermissionInput{
 		Name:       "my-perms-billing-read",
 		ResourceID: billing.ID,
 		ScopeIds:   []string{read.ID},
 		PolicyIds:  []string{userPolicy.ID},
 	})
 	require.NoError(t, err)
-	_, err = ts.GraphQLProvider.AddPermission(ctx, &model.AddPermissionInput{
+	_, err = ts.GraphQLProvider.AuthzAddPermission(ctx, &model.AddPermissionInput{
 		Name:       "my-perms-docs-write",
 		ResourceID: docs.ID,
 		ScopeIds:   []string{write.ID},
@@ -97,13 +97,13 @@ func TestMyPermissions(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	// Use the freshly minted session cookie so my_permissions resolves the
+	// Use the freshly minted session cookie so permissions resolves the
 	// caller via the standard session-cookie path.
 	sessionToken, _ := captureTokens(t, ts)
 	req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AppCookieName+"_session", sessionToken))
 	t.Cleanup(func() { req.Header.Del("Cookie") })
 
-	perms, err := ts.GraphQLProvider.MyPermissions(ctx)
+	perms, err := ts.GraphQLProvider.Permissions(ctx)
 	require.NoError(t, err)
 	require.NotNil(t, perms)
 
@@ -115,5 +115,5 @@ func TestMyPermissions(t *testing.T) {
 	sort.Strings(got)
 
 	want := []string{"billing:read", "docs:read"}
-	assert.Equal(t, want, got, "my_permissions must return the user-role grants and exclude admin-only docs:write")
+	assert.Equal(t, want, got, "permissions must return the user-role grants and exclude admin-only docs:write")
 }

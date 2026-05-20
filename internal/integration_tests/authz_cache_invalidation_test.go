@@ -32,13 +32,13 @@ func TestAuthzCacheInvalidation_OnAdminMutations(t *testing.T) {
 	req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, adminHash))
 	t.Cleanup(func() { req.Header.Del("Cookie") })
 
-	resource, err := ts.GraphQLProvider.AddResource(ctx, &model.AddResourceInput{Name: "inv-docs"})
+	resource, err := ts.GraphQLProvider.AuthzAddResource(ctx, &model.AddResourceInput{Name: "inv-docs"})
 	require.NoError(t, err)
-	readScope, err := ts.GraphQLProvider.AddScope(ctx, &model.AddScopeInput{Name: "inv-read"})
+	readScope, err := ts.GraphQLProvider.AuthzAddScope(ctx, &model.AddScopeInput{Name: "inv-read"})
 	require.NoError(t, err)
-	writeScope, err := ts.GraphQLProvider.AddScope(ctx, &model.AddScopeInput{Name: "inv-write"})
+	writeScope, err := ts.GraphQLProvider.AuthzAddScope(ctx, &model.AddScopeInput{Name: "inv-write"})
 	require.NoError(t, err)
-	policy, err := ts.GraphQLProvider.AddPolicy(ctx, &model.AddPolicyInput{
+	policy, err := ts.GraphQLProvider.AuthzAddPolicy(ctx, &model.AddPolicyInput{
 		Name: "inv-user-role",
 		Type: "role",
 		Targets: []*model.PolicyTargetInput{
@@ -68,7 +68,7 @@ func TestAuthzCacheInvalidation_OnAdminMutations(t *testing.T) {
 
 		// Mutate: add a permission granting inv-docs:inv-read via the
 		// user-role policy. The graphql layer calls InvalidateCache.
-		perm, err := ts.GraphQLProvider.AddPermission(ctx, &model.AddPermissionInput{
+		perm, err := ts.GraphQLProvider.AuthzAddPermission(ctx, &model.AddPermissionInput{
 			Name:       "inv-docs-read",
 			ResourceID: resource.ID,
 			ScopeIds:   []string{readScope.ID},
@@ -76,7 +76,7 @@ func TestAuthzCacheInvalidation_OnAdminMutations(t *testing.T) {
 		})
 		require.NoError(t, err)
 		t.Cleanup(func() {
-			_, _ = ts.GraphQLProvider.DeletePermission(ctx, perm.ID)
+			_, _ = ts.GraphQLProvider.AuthzDeletePermission(ctx, perm.ID)
 		})
 
 		// Verdict must update — if the cache wasn't invalidated, we'd still
@@ -87,7 +87,7 @@ func TestAuthzCacheInvalidation_OnAdminMutations(t *testing.T) {
 	t.Run("update permission swap-scopes flips verdicts", func(t *testing.T) {
 		// Seed a permission for inv-read, prime cache (allow for inv-read,
 		// deny for inv-write).
-		perm, err := ts.GraphQLProvider.AddPermission(ctx, &model.AddPermissionInput{
+		perm, err := ts.GraphQLProvider.AuthzAddPermission(ctx, &model.AddPermissionInput{
 			Name:       "inv-update-perm",
 			ResourceID: resource.ID,
 			ScopeIds:   []string{readScope.ID},
@@ -95,7 +95,7 @@ func TestAuthzCacheInvalidation_OnAdminMutations(t *testing.T) {
 		})
 		require.NoError(t, err)
 		t.Cleanup(func() {
-			_, _ = ts.GraphQLProvider.DeletePermission(ctx, perm.ID)
+			_, _ = ts.GraphQLProvider.AuthzDeletePermission(ctx, perm.ID)
 		})
 
 		require.True(t, check(t, "inv-read"), "precondition: inv-read allowed via new permission")
@@ -103,7 +103,7 @@ func TestAuthzCacheInvalidation_OnAdminMutations(t *testing.T) {
 
 		// Swap the permission's scope set from read → write. Cache for both
 		// pairs must be invalidated.
-		_, err = ts.GraphQLProvider.UpdatePermission(ctx, &model.UpdatePermissionInput{
+		_, err = ts.GraphQLProvider.AuthzUpdatePermission(ctx, &model.UpdatePermissionInput{
 			ID:       perm.ID,
 			ScopeIds: []string{writeScope.ID},
 		})
@@ -114,7 +114,7 @@ func TestAuthzCacheInvalidation_OnAdminMutations(t *testing.T) {
 	})
 
 	t.Run("delete permission flips cached allow back to deny", func(t *testing.T) {
-		perm, err := ts.GraphQLProvider.AddPermission(ctx, &model.AddPermissionInput{
+		perm, err := ts.GraphQLProvider.AuthzAddPermission(ctx, &model.AddPermissionInput{
 			Name:       "inv-delete-perm",
 			ResourceID: resource.ID,
 			ScopeIds:   []string{readScope.ID},
@@ -123,7 +123,7 @@ func TestAuthzCacheInvalidation_OnAdminMutations(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, check(t, "inv-read"), "precondition: inv-read allowed before delete")
 
-		_, err = ts.GraphQLProvider.DeletePermission(ctx, perm.ID)
+		_, err = ts.GraphQLProvider.AuthzDeletePermission(ctx, perm.ID)
 		require.NoError(t, err)
 
 		assert.False(t, check(t, "inv-read"), "cached allow must be invalidated after permission deletion")
@@ -131,9 +131,9 @@ func TestAuthzCacheInvalidation_OnAdminMutations(t *testing.T) {
 
 	t.Run("delete resource invalidates downstream cache", func(t *testing.T) {
 		// Fresh resource so the deletion doesn't disturb the outer fixtures.
-		tmpResource, err := ts.GraphQLProvider.AddResource(ctx, &model.AddResourceInput{Name: "inv-tmp"})
+		tmpResource, err := ts.GraphQLProvider.AuthzAddResource(ctx, &model.AddResourceInput{Name: "inv-tmp"})
 		require.NoError(t, err)
-		perm, err := ts.GraphQLProvider.AddPermission(ctx, &model.AddPermissionInput{
+		perm, err := ts.GraphQLProvider.AuthzAddPermission(ctx, &model.AddPermissionInput{
 			Name:       "inv-tmp-perm",
 			ResourceID: tmpResource.ID,
 			ScopeIds:   []string{readScope.ID},
@@ -147,9 +147,9 @@ func TestAuthzCacheInvalidation_OnAdminMutations(t *testing.T) {
 
 		// Cascade-delete the permission first (Postgres FK + Mongo lookup
 		// reasons), then drop the resource.
-		_, err = ts.GraphQLProvider.DeletePermission(ctx, perm.ID)
+		_, err = ts.GraphQLProvider.AuthzDeletePermission(ctx, perm.ID)
 		require.NoError(t, err)
-		_, err = ts.GraphQLProvider.DeleteResource(ctx, tmpResource.ID)
+		_, err = ts.GraphQLProvider.AuthzDeleteResource(ctx, tmpResource.ID)
 		require.NoError(t, err)
 
 		// Re-check — the cached allow must be gone (DeletePermission already
