@@ -188,9 +188,12 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 	})
 	require.NoError(t, err)
 
-	// Initialize authorization provider (always enforcing — the single mode after Task 3).
+	// Initialize authorization provider. Tests that need the decision cache
+	// active can set cfg.AuthorizationCacheTTL > 0 in their getTestConfig
+	// equivalent; the default (0) keeps existing tests on the no-cache path
+	// they were written against.
 	authzProvider, err := authorization.New(&authorization.Config{
-		CacheTTL: 0,
+		CacheTTL: cfg.AuthorizationCacheTTL,
 	}, &authorization.Dependencies{
 		Log:                 &logger,
 		StorageProvider:     storageProvider,
