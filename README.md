@@ -10,7 +10,7 @@ For more information check:
 - [Migration Guide (v1 → v2)](MIGRATION.md) – configuration changes, CLI flags, deprecated APIs
 - [Docs (v1 – legacy)](http://docs.authorizer.dev/)
 - [Discord Community](https://discord.gg/Zv2D5h6kkK)
-- [Contributing Guide](.github/CONTRIBUTING.md)
+- [Contributing Guide](CONTRIBUTING.md)
 
 > **v2 note:** Authorizer v2 uses **CLI arguments** for all configuration. The server does **not** read from `.env` or OS env. Pass config when starting the binary (e.g. `./authorizer --client-id=... --client-secret=...`). See [MIGRATION.md](MIGRATION.md).
 
@@ -246,7 +246,7 @@ Deploy / Try Authorizer using binaries. With each [Authorizer Release](https://g
 
 ## Testing
 
-- Check the testing instructions [here](https://github.com/authorizerdev/authorizer/blob/main/.github/CONTRIBUTING.md#testing)
+- Check the testing instructions [here](https://github.com/authorizerdev/authorizer/blob/main/CONTRIBUTING.md#testing)
 
 ## Integrating into your website
 

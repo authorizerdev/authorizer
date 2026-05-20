@@ -16,7 +16,8 @@ We use [GitHub Security Advisories](https://docs.github.com/en/code-security/sec
    - Proof-of-concept or exploit code, if available.
    - Impact assessment (what an attacker can achieve).
 
-If GitHub Security Advisories is unavailable, email **security@authorizer.dev** with the same information.
+<!-- TODO: set up security@authorizer.dev mailbox and update this address. -->
+If GitHub Security Advisories is unavailable, email **lakhan.m.samani@gmail.com** with the same information.
 
 ## Response Process
 
@@ -77,7 +78,8 @@ Authorizer does not currently operate a paid bug bounty program. We are grateful
 
 ## Encryption
 
-If you wish to send encrypted reports, request a PGP key by emailing security@authorizer.dev.
+<!-- TODO: set up security@authorizer.dev mailbox and update this address. -->
+If you wish to send encrypted reports, request a PGP key by emailing lakhan.m.samani@gmail.com.
 
 ---
 
