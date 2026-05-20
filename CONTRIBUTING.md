@@ -5,7 +5,7 @@ We're so excited you're interested in helping with Authorizer! We are happy to h
 ## New to Open Source?
 
 1. Take a look at [How to Contribute to an Open Source Project on GitHub](https://egghead.io/courses/how-to-contribute-to-an-open-source-project-on-github)
-2. Go through the [Authorizer Code of Conduct](https://github.com/authorizerdev/authorizer/blob/main/.github/CODE_OF_CONDUCT.md)
+2. Go through the [Authorizer Code of Conduct](./CODE_OF_CONDUCT.md)
 
 ## Where to ask questions?
 

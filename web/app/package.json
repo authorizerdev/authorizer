@@ -11,7 +11,7 @@
 	},
 	"keywords": [],
 	"author": "Lakhan Samani",
-	"license": "ISC",
+	"license": "Apache-2.0",
 	"dependencies": {
 		"@authorizerdev/authorizer-react": "^2.0.7",
 		"react": "^18.3.1",
