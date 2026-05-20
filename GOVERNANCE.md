@@ -103,7 +103,7 @@ Report violations to **conduct@authorizer.dev**. Reports are reviewed by maintai
 
 ## Intellectual Property
 
-- All contributions are licensed under the project's license at the time of contribution. The project is currently distributed under the MIT License (see [LICENSE](LICENSE)). The project is evaluating a transition to the Apache License 2.0 as part of preparing a CNCF Sandbox application; any license change will follow the **architectural change** decision path described above and will require contributor consent before adoption.
+- The project is distributed under the [Apache License 2.0](LICENSE). All new contributions are accepted under Apache 2.0 unless explicitly stated otherwise. Prior contributions originally submitted under the MIT License remain available under their original MIT grant in addition to the current Apache 2.0 distribution; see [NOTICE](NOTICE) for attribution.
 - The **Authorizer** name and logo are owned by the project. The project is committed to neutral, community-oriented stewardship of these assets.
 - Future ownership of trademark and assets may be transferred to a neutral foundation. Any such transfer will be announced publicly and discussed openly before completion.
 
