@@ -87,7 +87,7 @@ func (p *provider) ListScopes(ctx context.Context, pagination *model.Pagination)
 	if totalRes.Error != nil {
 		return nil, nil, totalRes.Error
 	}
-	paginationClone := pagination
+	paginationClone := *pagination
 	paginationClone.Total = total
-	return scopes, paginationClone, nil
+	return scopes, &paginationClone, nil
 }

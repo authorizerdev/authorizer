@@ -119,7 +119,7 @@ func (p *provider) GetResourceByName(ctx context.Context, name string) (*schemas
 // ListResources returns a paginated list of authorization resources.
 func (p *provider) ListResources(ctx context.Context, pagination *model.Pagination) ([]*schemas.Resource, *model.Pagination, error) {
 	resources := []*schemas.Resource{}
-	paginationClone := pagination
+	paginationClone := *pagination
 	totalCountQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s", KeySpace+"."+schemas.Collections.Resource)
 	err := p.db.Query(totalCountQuery).Consistency(gocql.One).Scan(&paginationClone.Total)
 	if err != nil {
@@ -140,5 +140,5 @@ func (p *provider) ListResources(ctx context.Context, pagination *model.Paginati
 		}
 		counter++
 	}
-	return resources, paginationClone, nil
+	return resources, &paginationClone, nil
 }

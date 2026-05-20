@@ -119,7 +119,7 @@ func (p *provider) GetScopeByName(ctx context.Context, name string) (*schemas.Sc
 // ListScopes returns a paginated list of authorization scopes.
 func (p *provider) ListScopes(ctx context.Context, pagination *model.Pagination) ([]*schemas.Scope, *model.Pagination, error) {
 	scopes := []*schemas.Scope{}
-	paginationClone := pagination
+	paginationClone := *pagination
 	totalCountQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s", KeySpace+"."+schemas.Collections.Scope)
 	err := p.db.Query(totalCountQuery).Consistency(gocql.One).Scan(&paginationClone.Total)
 	if err != nil {
@@ -140,5 +140,5 @@ func (p *provider) ListScopes(ctx context.Context, pagination *model.Pagination)
 		}
 		counter++
 	}
-	return scopes, paginationClone, nil
+	return scopes, &paginationClone, nil
 }

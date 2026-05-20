@@ -88,7 +88,7 @@ func (p *provider) ListResources(ctx context.Context, pagination *model.Paginati
 	opts.SetLimit(pagination.Limit)
 	opts.SetSkip(pagination.Offset)
 	opts.SetSort(bson.M{"created_at": -1})
-	paginationClone := pagination
+	paginationClone := *pagination
 	collection := p.db.Collection(schemas.Collections.Resource, options.Collection())
 	count, err := collection.CountDocuments(ctx, bson.M{}, options.Count())
 	if err != nil {
@@ -108,5 +108,5 @@ func (p *provider) ListResources(ctx context.Context, pagination *model.Paginati
 		}
 		resources = append(resources, resource)
 	}
-	return resources, paginationClone, nil
+	return resources, &paginationClone, nil
 }

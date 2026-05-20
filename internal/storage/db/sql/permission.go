@@ -80,9 +80,9 @@ func (p *provider) ListPermissions(ctx context.Context, pagination *model.Pagina
 	if totalRes.Error != nil {
 		return nil, nil, totalRes.Error
 	}
-	paginationClone := pagination
+	paginationClone := *pagination
 	paginationClone.Total = total
-	return permissions, paginationClone, nil
+	return permissions, &paginationClone, nil
 }
 
 // AddPermissionScope links a scope to a permission.

@@ -139,7 +139,7 @@ func (p *provider) ListResources(ctx context.Context, pagination *model.Paginati
 		return nil, nil, err
 	}
 	defer cursor.Close()
-	paginationClone := pagination
+	paginationClone := *pagination
 	paginationClone.Total = cursor.Statistics().FullCount()
 	for {
 		var resource *schemas.Resource
@@ -153,5 +153,5 @@ func (p *provider) ListResources(ctx context.Context, pagination *model.Paginati
 			resources = append(resources, resource)
 		}
 	}
-	return resources, paginationClone, nil
+	return resources, &paginationClone, nil
 }

@@ -139,7 +139,7 @@ func (p *provider) GetResourceByName(ctx context.Context, name string) (*schemas
 // ListResources returns a paginated list of authorization resources.
 func (p *provider) ListResources(ctx context.Context, pagination *model.Pagination) ([]*schemas.Resource, *model.Pagination, error) {
 	resources := []*schemas.Resource{}
-	paginationClone := pagination
+	paginationClone := *pagination
 	params := make(map[string]interface{}, 1)
 	params["offset"] = paginationClone.Offset
 	params["limit"] = paginationClone.Limit
@@ -168,5 +168,5 @@ func (p *provider) ListResources(ctx context.Context, pagination *model.Paginati
 	if err := queryResult.Err(); err != nil {
 		return nil, nil, err
 	}
-	return resources, paginationClone, nil
+	return resources, &paginationClone, nil
 }

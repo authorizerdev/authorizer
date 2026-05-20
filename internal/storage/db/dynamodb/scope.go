@@ -83,7 +83,7 @@ func (p *provider) GetScopeByName(ctx context.Context, name string) (*schemas.Sc
 func (p *provider) ListScopes(ctx context.Context, pagination *model.Pagination) ([]*schemas.Scope, *model.Pagination, error) {
 	var lastKey map[string]types.AttributeValue
 	var iteration int64
-	paginationClone := pagination
+	paginationClone := *pagination
 	var scopes []*schemas.Scope
 
 	count, err := p.scanCount(ctx, schemas.Collections.Scope, nil)
@@ -112,5 +112,5 @@ func (p *provider) ListScopes(ctx context.Context, pagination *model.Pagination)
 		}
 	}
 	paginationClone.Total = count
-	return scopes, paginationClone, nil
+	return scopes, &paginationClone, nil
 }

@@ -120,7 +120,7 @@ func (p *provider) GetPermissionByID(ctx context.Context, id string) (*schemas.P
 // ListPermissions returns a paginated list of authorization permissions.
 func (p *provider) ListPermissions(ctx context.Context, pagination *model.Pagination) ([]*schemas.Permission, *model.Pagination, error) {
 	permissions := []*schemas.Permission{}
-	paginationClone := pagination
+	paginationClone := *pagination
 	params := make(map[string]interface{}, 1)
 	params["offset"] = paginationClone.Offset
 	params["limit"] = paginationClone.Limit
@@ -149,7 +149,7 @@ func (p *provider) ListPermissions(ctx context.Context, pagination *model.Pagina
 	if err := queryResult.Err(); err != nil {
 		return nil, nil, err
 	}
-	return permissions, paginationClone, nil
+	return permissions, &paginationClone, nil
 }
 
 // AddPermissionScope links a scope to a permission.

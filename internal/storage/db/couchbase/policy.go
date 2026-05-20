@@ -129,7 +129,7 @@ func (p *provider) GetPolicyByID(ctx context.Context, id string) (*schemas.Polic
 // ListPolicies returns a paginated list of authorization policies.
 func (p *provider) ListPolicies(ctx context.Context, pagination *model.Pagination) ([]*schemas.Policy, *model.Pagination, error) {
 	policies := []*schemas.Policy{}
-	paginationClone := pagination
+	paginationClone := *pagination
 	params := make(map[string]interface{}, 1)
 	params["offset"] = paginationClone.Offset
 	params["limit"] = paginationClone.Limit
@@ -158,7 +158,7 @@ func (p *provider) ListPolicies(ctx context.Context, pagination *model.Paginatio
 	if err := queryResult.Err(); err != nil {
 		return nil, nil, err
 	}
-	return policies, paginationClone, nil
+	return policies, &paginationClone, nil
 }
 
 // AddPolicyTarget adds a target (role name or user ID) to a policy.

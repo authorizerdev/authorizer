@@ -73,7 +73,7 @@ func (p *provider) GetPolicyByID(ctx context.Context, id string) (*schemas.Polic
 func (p *provider) ListPolicies(ctx context.Context, pagination *model.Pagination) ([]*schemas.Policy, *model.Pagination, error) {
 	var lastKey map[string]types.AttributeValue
 	var iteration int64
-	paginationClone := pagination
+	paginationClone := *pagination
 	var policies []*schemas.Policy
 
 	count, err := p.scanCount(ctx, schemas.Collections.Policy, nil)
@@ -102,7 +102,7 @@ func (p *provider) ListPolicies(ctx context.Context, pagination *model.Paginatio
 		}
 	}
 	paginationClone.Total = count
-	return policies, paginationClone, nil
+	return policies, &paginationClone, nil
 }
 
 // AddPolicyTarget adds a target (role name or user ID) to a policy.

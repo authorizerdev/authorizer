@@ -148,7 +148,7 @@ func (p *provider) GetPermissionByID(ctx context.Context, id string) (*schemas.P
 // ListPermissions returns a paginated list of authorization permissions.
 func (p *provider) ListPermissions(ctx context.Context, pagination *model.Pagination) ([]*schemas.Permission, *model.Pagination, error) {
 	permissions := []*schemas.Permission{}
-	paginationClone := pagination
+	paginationClone := *pagination
 	totalCountQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s", KeySpace+"."+schemas.Collections.Permission)
 	err := p.db.Query(totalCountQuery).Consistency(gocql.One).Scan(&paginationClone.Total)
 	if err != nil {
@@ -169,7 +169,7 @@ func (p *provider) ListPermissions(ctx context.Context, pagination *model.Pagina
 		}
 		counter++
 	}
-	return permissions, paginationClone, nil
+	return permissions, &paginationClone, nil
 }
 
 // AddPermissionScope links a scope to a permission.

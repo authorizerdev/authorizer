@@ -84,7 +84,7 @@ func (p *provider) GetResourceByName(ctx context.Context, name string) (*schemas
 func (p *provider) ListResources(ctx context.Context, pagination *model.Pagination) ([]*schemas.Resource, *model.Pagination, error) {
 	var lastKey map[string]types.AttributeValue
 	var iteration int64
-	paginationClone := pagination
+	paginationClone := *pagination
 	var resources []*schemas.Resource
 
 	count, err := p.scanCount(ctx, schemas.Collections.Resource, nil)
@@ -113,5 +113,5 @@ func (p *provider) ListResources(ctx context.Context, pagination *model.Paginati
 		}
 	}
 	paginationClone.Total = count
-	return resources, paginationClone, nil
+	return resources, &paginationClone, nil
 }

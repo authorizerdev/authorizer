@@ -83,9 +83,9 @@ func (p *provider) ListPolicies(ctx context.Context, pagination *model.Paginatio
 	if totalRes.Error != nil {
 		return nil, nil, totalRes.Error
 	}
-	paginationClone := pagination
+	paginationClone := *pagination
 	paginationClone.Total = total
-	return policies, paginationClone, nil
+	return policies, &paginationClone, nil
 }
 
 // AddPolicyTarget adds a target (role name or user ID) to a policy.

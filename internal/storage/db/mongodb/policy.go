@@ -84,7 +84,7 @@ func (p *provider) ListPolicies(ctx context.Context, pagination *model.Paginatio
 	opts.SetLimit(pagination.Limit)
 	opts.SetSkip(pagination.Offset)
 	opts.SetSort(bson.M{"created_at": -1})
-	paginationClone := pagination
+	paginationClone := *pagination
 	collection := p.db.Collection(schemas.Collections.Policy, options.Collection())
 	count, err := collection.CountDocuments(ctx, bson.M{}, options.Count())
 	if err != nil {
@@ -104,7 +104,7 @@ func (p *provider) ListPolicies(ctx context.Context, pagination *model.Paginatio
 		}
 		policies = append(policies, policy)
 	}
-	return policies, paginationClone, nil
+	return policies, &paginationClone, nil
 }
 
 // AddPolicyTarget adds a target (role name or user ID) to a policy.

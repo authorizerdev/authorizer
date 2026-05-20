@@ -139,7 +139,7 @@ func (p *provider) ListScopes(ctx context.Context, pagination *model.Pagination)
 		return nil, nil, err
 	}
 	defer cursor.Close()
-	paginationClone := pagination
+	paginationClone := *pagination
 	paginationClone.Total = cursor.Statistics().FullCount()
 	for {
 		var scope *schemas.Scope
@@ -153,5 +153,5 @@ func (p *provider) ListScopes(ctx context.Context, pagination *model.Pagination)
 			scopes = append(scopes, scope)
 		}
 	}
-	return scopes, paginationClone, nil
+	return scopes, &paginationClone, nil
 }

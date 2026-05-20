@@ -139,7 +139,7 @@ func (p *provider) GetScopeByName(ctx context.Context, name string) (*schemas.Sc
 // ListScopes returns a paginated list of authorization scopes.
 func (p *provider) ListScopes(ctx context.Context, pagination *model.Pagination) ([]*schemas.Scope, *model.Pagination, error) {
 	scopes := []*schemas.Scope{}
-	paginationClone := pagination
+	paginationClone := *pagination
 	params := make(map[string]interface{}, 1)
 	params["offset"] = paginationClone.Offset
 	params["limit"] = paginationClone.Limit
@@ -168,5 +168,5 @@ func (p *provider) ListScopes(ctx context.Context, pagination *model.Pagination)
 	if err := queryResult.Err(); err != nil {
 		return nil, nil, err
 	}
-	return scopes, paginationClone, nil
+	return scopes, &paginationClone, nil
 }

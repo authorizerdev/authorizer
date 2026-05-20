@@ -87,7 +87,7 @@ func (p *provider) ListResources(ctx context.Context, pagination *model.Paginati
 	if totalRes.Error != nil {
 		return nil, nil, totalRes.Error
 	}
-	paginationClone := pagination
+	paginationClone := *pagination
 	paginationClone.Total = total
-	return resources, paginationClone, nil
+	return resources, &paginationClone, nil
 }

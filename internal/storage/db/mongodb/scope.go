@@ -88,7 +88,7 @@ func (p *provider) ListScopes(ctx context.Context, pagination *model.Pagination)
 	opts.SetLimit(pagination.Limit)
 	opts.SetSkip(pagination.Offset)
 	opts.SetSort(bson.M{"created_at": -1})
-	paginationClone := pagination
+	paginationClone := *pagination
 	collection := p.db.Collection(schemas.Collections.Scope, options.Collection())
 	count, err := collection.CountDocuments(ctx, bson.M{}, options.Count())
 	if err != nil {
@@ -108,5 +108,5 @@ func (p *provider) ListScopes(ctx context.Context, pagination *model.Pagination)
 		}
 		scopes = append(scopes, scope)
 	}
-	return scopes, paginationClone, nil
+	return scopes, &paginationClone, nil
 }

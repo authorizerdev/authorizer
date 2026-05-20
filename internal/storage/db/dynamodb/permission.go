@@ -64,7 +64,7 @@ func (p *provider) GetPermissionByID(ctx context.Context, id string) (*schemas.P
 func (p *provider) ListPermissions(ctx context.Context, pagination *model.Pagination) ([]*schemas.Permission, *model.Pagination, error) {
 	var lastKey map[string]types.AttributeValue
 	var iteration int64
-	paginationClone := pagination
+	paginationClone := *pagination
 	var permissions []*schemas.Permission
 
 	count, err := p.scanCount(ctx, schemas.Collections.Permission, nil)
@@ -93,7 +93,7 @@ func (p *provider) ListPermissions(ctx context.Context, pagination *model.Pagina
 		}
 	}
 	paginationClone.Total = count
-	return permissions, paginationClone, nil
+	return permissions, &paginationClone, nil
 }
 
 // AddPermissionScope links a scope to a permission.

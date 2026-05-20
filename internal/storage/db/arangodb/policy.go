@@ -123,7 +123,7 @@ func (p *provider) ListPolicies(ctx context.Context, pagination *model.Paginatio
 		return nil, nil, err
 	}
 	defer cursor.Close()
-	paginationClone := pagination
+	paginationClone := *pagination
 	paginationClone.Total = cursor.Statistics().FullCount()
 	for {
 		var policy *schemas.Policy
@@ -137,7 +137,7 @@ func (p *provider) ListPolicies(ctx context.Context, pagination *model.Paginatio
 			policies = append(policies, policy)
 		}
 	}
-	return policies, paginationClone, nil
+	return policies, &paginationClone, nil
 }
 
 // AddPolicyTarget adds a target (role name or user ID) to a policy.

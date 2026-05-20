@@ -78,7 +78,7 @@ func (p *provider) ListPermissions(ctx context.Context, pagination *model.Pagina
 	opts.SetLimit(pagination.Limit)
 	opts.SetSkip(pagination.Offset)
 	opts.SetSort(bson.M{"created_at": -1})
-	paginationClone := pagination
+	paginationClone := *pagination
 	collection := p.db.Collection(schemas.Collections.Permission, options.Collection())
 	count, err := collection.CountDocuments(ctx, bson.M{}, options.Count())
 	if err != nil {
@@ -98,7 +98,7 @@ func (p *provider) ListPermissions(ctx context.Context, pagination *model.Pagina
 		}
 		permissions = append(permissions, permission)
 	}
-	return permissions, paginationClone, nil
+	return permissions, &paginationClone, nil
 }
 
 // AddPermissionScope links a scope to a permission.

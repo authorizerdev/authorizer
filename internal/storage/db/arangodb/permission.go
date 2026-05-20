@@ -113,7 +113,7 @@ func (p *provider) ListPermissions(ctx context.Context, pagination *model.Pagina
 		return nil, nil, err
 	}
 	defer cursor.Close()
-	paginationClone := pagination
+	paginationClone := *pagination
 	paginationClone.Total = cursor.Statistics().FullCount()
 	for {
 		var permission *schemas.Permission
@@ -127,7 +127,7 @@ func (p *provider) ListPermissions(ctx context.Context, pagination *model.Pagina
 			permissions = append(permissions, permission)
 		}
 	}
-	return permissions, paginationClone, nil
+	return permissions, &paginationClone, nil
 }
 
 // AddPermissionScope links a scope to a permission.
