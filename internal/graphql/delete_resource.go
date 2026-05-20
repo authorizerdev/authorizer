@@ -11,10 +11,10 @@ import (
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
 
-// DeleteResource is the method to delete an authorization resource.
+// AuthzDeleteResource is the method to delete an authorization resource.
 // Permissions: authorizer:admin
-func (g *graphqlProvider) DeleteResource(ctx context.Context, id string) (*model.Response, error) {
-	log := g.Log.With().Str("func", "DeleteResource").Logger()
+func (g *graphqlProvider) AuthzDeleteResource(ctx context.Context, id string) (*model.Response, error) {
+	log := g.Log.With().Str("func", "AuthzDeleteResource").Logger()
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to get GinContext")

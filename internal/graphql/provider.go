@@ -190,59 +190,59 @@ type Provider interface {
 
 	// === Fine-Grained Authorization ===
 
-	// AddResource creates a new authorization resource.
+	// AuthzAddResource creates a new authorization resource.
 	// Permissions: authorizer:admin
-	AddResource(ctx context.Context, params *model.AddResourceInput) (*model.AuthzResource, error)
-	// UpdateResource updates an existing authorization resource.
+	AuthzAddResource(ctx context.Context, params *model.AddResourceInput) (*model.AuthzResource, error)
+	// AuthzUpdateResource updates an existing authorization resource.
 	// Permissions: authorizer:admin
-	UpdateResource(ctx context.Context, params *model.UpdateResourceInput) (*model.AuthzResource, error)
-	// DeleteResource deletes an authorization resource by ID.
+	AuthzUpdateResource(ctx context.Context, params *model.UpdateResourceInput) (*model.AuthzResource, error)
+	// AuthzDeleteResource deletes an authorization resource by ID.
 	// Permissions: authorizer:admin
-	DeleteResource(ctx context.Context, id string) (*model.Response, error)
-	// Resources lists authorization resources with pagination.
+	AuthzDeleteResource(ctx context.Context, id string) (*model.Response, error)
+	// AuthzResources lists authorization resources with pagination.
 	// Permissions: authorizer:admin
-	Resources(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzResources, error)
+	AuthzResources(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzResources, error)
 
-	// AddScope creates a new authorization scope.
+	// AuthzAddScope creates a new authorization scope.
 	// Permissions: authorizer:admin
-	AddScope(ctx context.Context, params *model.AddScopeInput) (*model.AuthzScope, error)
-	// UpdateScope updates an existing authorization scope.
+	AuthzAddScope(ctx context.Context, params *model.AddScopeInput) (*model.AuthzScope, error)
+	// AuthzUpdateScope updates an existing authorization scope.
 	// Permissions: authorizer:admin
-	UpdateScope(ctx context.Context, params *model.UpdateScopeInput) (*model.AuthzScope, error)
-	// DeleteScope deletes an authorization scope by ID.
+	AuthzUpdateScope(ctx context.Context, params *model.UpdateScopeInput) (*model.AuthzScope, error)
+	// AuthzDeleteScope deletes an authorization scope by ID.
 	// Permissions: authorizer:admin
-	DeleteScope(ctx context.Context, id string) (*model.Response, error)
-	// Scopes lists authorization scopes with pagination.
+	AuthzDeleteScope(ctx context.Context, id string) (*model.Response, error)
+	// AuthzScopes lists authorization scopes with pagination.
 	// Permissions: authorizer:admin
-	Scopes(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzScopes, error)
+	AuthzScopes(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzScopes, error)
 
-	// AddPolicy creates a new authorization policy with targets.
+	// AuthzAddPolicy creates a new authorization policy with targets.
 	// Permissions: authorizer:admin
-	AddPolicy(ctx context.Context, params *model.AddPolicyInput) (*model.AuthzPolicy, error)
-	// UpdatePolicy updates an existing authorization policy.
+	AuthzAddPolicy(ctx context.Context, params *model.AddPolicyInput) (*model.AuthzPolicy, error)
+	// AuthzUpdatePolicy updates an existing authorization policy.
 	// Permissions: authorizer:admin
-	UpdatePolicy(ctx context.Context, params *model.UpdatePolicyInput) (*model.AuthzPolicy, error)
-	// DeletePolicy deletes an authorization policy by ID.
+	AuthzUpdatePolicy(ctx context.Context, params *model.UpdatePolicyInput) (*model.AuthzPolicy, error)
+	// AuthzDeletePolicy deletes an authorization policy by ID.
 	// Permissions: authorizer:admin
-	DeletePolicy(ctx context.Context, id string) (*model.Response, error)
-	// Policies lists authorization policies with pagination.
+	AuthzDeletePolicy(ctx context.Context, id string) (*model.Response, error)
+	// AuthzPolicies lists authorization policies with pagination.
 	// Permissions: authorizer:admin
-	Policies(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzPolicies, error)
+	AuthzPolicies(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzPolicies, error)
 
-	// AddPermission creates a new authorization permission binding a resource to scopes and policies.
+	// AuthzAddPermission creates a new authorization permission binding a resource to scopes and policies.
 	// Permissions: authorizer:admin
-	AddPermission(ctx context.Context, params *model.AddPermissionInput) (*model.AuthzPermission, error)
-	// UpdatePermission updates an existing authorization permission.
+	AuthzAddPermission(ctx context.Context, params *model.AddPermissionInput) (*model.AuthzPermission, error)
+	// AuthzUpdatePermission updates an existing authorization permission.
 	// Permissions: authorizer:admin
-	UpdatePermission(ctx context.Context, params *model.UpdatePermissionInput) (*model.AuthzPermission, error)
-	// DeletePermission deletes an authorization permission by ID.
+	AuthzUpdatePermission(ctx context.Context, params *model.UpdatePermissionInput) (*model.AuthzPermission, error)
+	// AuthzDeletePermission deletes an authorization permission by ID.
 	// Permissions: authorizer:admin
-	DeletePermission(ctx context.Context, id string) (*model.Response, error)
-	// Permissions lists authorization permissions with pagination.
+	AuthzDeletePermission(ctx context.Context, id string) (*model.Response, error)
+	// AuthzPermissions lists authorization permissions with pagination.
 	// Permissions: authorizer:admin
-	Permissions(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzPermissions, error)
+	AuthzPermissions(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzPermissions, error)
 
-	// MyPermissions returns all resource:scope pairs the authenticated user has access to.
+	// Permissions returns all resource:scope pairs the authenticated user has access to.
 	// Permissions: authorized user
-	MyPermissions(ctx context.Context) ([]*model.Permission, error)
+	Permissions(ctx context.Context) ([]*model.Permission, error)
 }

@@ -11,10 +11,10 @@ import (
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
 
-// DeleteScope is the method to delete an authorization scope.
+// AuthzDeleteScope is the method to delete an authorization scope.
 // Permissions: authorizer:admin
-func (g *graphqlProvider) DeleteScope(ctx context.Context, id string) (*model.Response, error) {
-	log := g.Log.With().Str("func", "DeleteScope").Logger()
+func (g *graphqlProvider) AuthzDeleteScope(ctx context.Context, id string) (*model.Response, error) {
+	log := g.Log.With().Str("func", "AuthzDeleteScope").Logger()
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to get GinContext")

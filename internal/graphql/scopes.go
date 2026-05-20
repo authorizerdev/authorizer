@@ -8,10 +8,10 @@ import (
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
 
-// Scopes is the method to list authorization scopes with pagination.
+// AuthzScopes is the method to list authorization scopes with pagination.
 // Permissions: authorizer:admin
-func (g *graphqlProvider) Scopes(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzScopes, error) {
-	log := g.Log.With().Str("func", "Scopes").Logger()
+func (g *graphqlProvider) AuthzScopes(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzScopes, error) {
+	log := g.Log.With().Str("func", "AuthzScopes").Logger()
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to get GinContext")

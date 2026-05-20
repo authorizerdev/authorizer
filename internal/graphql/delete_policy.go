@@ -11,10 +11,10 @@ import (
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
 
-// DeletePolicy is the method to delete an authorization policy.
+// AuthzDeletePolicy is the method to delete an authorization policy.
 // Permissions: authorizer:admin
-func (g *graphqlProvider) DeletePolicy(ctx context.Context, id string) (*model.Response, error) {
-	log := g.Log.With().Str("func", "DeletePolicy").Logger()
+func (g *graphqlProvider) AuthzDeletePolicy(ctx context.Context, id string) (*model.Response, error) {
+	log := g.Log.With().Str("func", "AuthzDeletePolicy").Logger()
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to get GinContext")

@@ -826,21 +826,21 @@ type Mutation {
   _update_email_template(params: UpdateEmailTemplateRequest!): Response!
   _delete_email_template(params: DeleteEmailTemplateRequest!): Response!
   # Authorization: Resources
-  _add_resource(params: AddResourceInput!): AuthzResource!
-  _update_resource(params: UpdateResourceInput!): AuthzResource!
-  _delete_resource(id: ID!): Response!
+  _authz_add_resource(params: AddResourceInput!): AuthzResource!
+  _authz_update_resource(params: UpdateResourceInput!): AuthzResource!
+  _authz_delete_resource(id: ID!): Response!
   # Authorization: Scopes
-  _add_scope(params: AddScopeInput!): AuthzScope!
-  _update_scope(params: UpdateScopeInput!): AuthzScope!
-  _delete_scope(id: ID!): Response!
+  _authz_add_scope(params: AddScopeInput!): AuthzScope!
+  _authz_update_scope(params: UpdateScopeInput!): AuthzScope!
+  _authz_delete_scope(id: ID!): Response!
   # Authorization: Policies
-  _add_policy(params: AddPolicyInput!): AuthzPolicy!
-  _update_policy(params: UpdatePolicyInput!): AuthzPolicy!
-  _delete_policy(id: ID!): Response!
+  _authz_add_policy(params: AddPolicyInput!): AuthzPolicy!
+  _authz_update_policy(params: UpdatePolicyInput!): AuthzPolicy!
+  _authz_delete_policy(id: ID!): Response!
   # Authorization: Permissions
-  _add_permission(params: AddPermissionInput!): AuthzPermission!
-  _update_permission(params: UpdatePermissionInput!): AuthzPermission!
-  _delete_permission(id: ID!): Response!
+  _authz_add_permission(params: AddPermissionInput!): AuthzPermission!
+  _authz_update_permission(params: UpdatePermissionInput!): AuthzPermission!
+  _authz_delete_permission(id: ID!): Response!
 }
 
 type Query {
@@ -862,10 +862,10 @@ type Query {
   _email_templates(params: PaginatedRequest): EmailTemplates!
   _audit_logs(params: ListAuditLogRequest): AuditLogs!
   # Authorization: Admin queries
-  _resources(params: PaginatedRequest): AuthzResources!
-  _scopes(params: PaginatedRequest): AuthzScopes!
-  _policies(params: PaginatedRequest): AuthzPolicies!
-  _permissions(params: PaginatedRequest): AuthzPermissions!
+  _authz_resources(params: PaginatedRequest): AuthzResources!
+  _authz_scopes(params: PaginatedRequest): AuthzScopes!
+  _authz_policies(params: PaginatedRequest): AuthzPolicies!
+  _authz_permissions(params: PaginatedRequest): AuthzPermissions!
   # Authorization: User-facing queries
-  my_permissions: [Permission!]!
+  permissions: [Permission!]!
 }

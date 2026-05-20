@@ -161,7 +161,7 @@ func (p *provider) CheckPermission(ctx context.Context, principal *Principal, re
 	if !knownResource || !knownScope {
 		// Unknown identifier — skip counter bumps (DoS guard for attacker-
 		// controlled inputs reaching CheckPermission, e.g. via GraphQL
-		// myPermissions / required_permissions on authenticated endpoints).
+		// permissions / required_permissions on authenticated endpoints).
 		return p.handleNoPermission(cacheKey, false /* isKnown */), nil
 	}
 
@@ -217,7 +217,7 @@ func (p *provider) CheckPermission(ctx context.Context, principal *Principal, re
 // metric. The isKnown parameter reports whether the pair is registered in the
 // DB — the unmatched metric is recorded only for known pairs to prevent
 // unbounded counter growth from attacker-controlled identifiers reaching
-// CheckPermission via authenticated GraphQL (myPermissions /
+// CheckPermission via authenticated GraphQL (permissions /
 // required_permissions).
 func (p *provider) handleNoPermission(cacheKey string, isKnown bool) *CheckResult {
 	if isKnown {

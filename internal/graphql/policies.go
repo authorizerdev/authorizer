@@ -8,10 +8,10 @@ import (
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
 
-// Policies is the method to list authorization policies with pagination.
+// AuthzPolicies is the method to list authorization policies with pagination.
 // Permissions: authorizer:admin
-func (g *graphqlProvider) Policies(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzPolicies, error) {
-	log := g.Log.With().Str("func", "Policies").Logger()
+func (g *graphqlProvider) AuthzPolicies(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzPolicies, error) {
+	log := g.Log.With().Str("func", "AuthzPolicies").Logger()
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to get GinContext")

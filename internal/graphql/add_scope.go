@@ -13,10 +13,10 @@ import (
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
 
-// AddScope is the method to create a new authorization scope.
+// AuthzAddScope is the method to create a new authorization scope.
 // Permissions: authorizer:admin
-func (g *graphqlProvider) AddScope(ctx context.Context, params *model.AddScopeInput) (*model.AuthzScope, error) {
-	log := g.Log.With().Str("func", "AddScope").Logger()
+func (g *graphqlProvider) AuthzAddScope(ctx context.Context, params *model.AddScopeInput) (*model.AuthzScope, error) {
+	log := g.Log.With().Str("func", "AuthzAddScope").Logger()
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to get GinContext")

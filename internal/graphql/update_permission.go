@@ -13,10 +13,10 @@ import (
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
 
-// UpdatePermission is the method to update an existing authorization permission.
+// AuthzUpdatePermission is the method to update an existing authorization permission.
 // Permissions: authorizer:admin
-func (g *graphqlProvider) UpdatePermission(ctx context.Context, params *model.UpdatePermissionInput) (*model.AuthzPermission, error) {
-	log := g.Log.With().Str("func", "UpdatePermission").Logger()
+func (g *graphqlProvider) AuthzUpdatePermission(ctx context.Context, params *model.UpdatePermissionInput) (*model.AuthzPermission, error) {
+	log := g.Log.With().Str("func", "AuthzUpdatePermission").Logger()
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to get GinContext")

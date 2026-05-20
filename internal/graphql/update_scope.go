@@ -12,10 +12,10 @@ import (
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
 
-// UpdateScope is the method to update an existing authorization scope.
+// AuthzUpdateScope is the method to update an existing authorization scope.
 // Permissions: authorizer:admin
-func (g *graphqlProvider) UpdateScope(ctx context.Context, params *model.UpdateScopeInput) (*model.AuthzScope, error) {
-	log := g.Log.With().Str("func", "UpdateScope").Logger()
+func (g *graphqlProvider) AuthzUpdateScope(ctx context.Context, params *model.UpdateScopeInput) (*model.AuthzScope, error) {
+	log := g.Log.With().Str("func", "AuthzUpdateScope").Logger()
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to get GinContext")

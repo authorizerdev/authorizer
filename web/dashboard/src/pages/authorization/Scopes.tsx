@@ -52,8 +52,8 @@ export default function Scopes() {
 				params: { pagination: { limit: 100, page: 1 } },
 			})
 			.toPromise();
-		if (data?._scopes) {
-			setScopes(data._scopes.scopes);
+		if (data?._authz_scopes) {
+			setScopes(data._authz_scopes.scopes);
 		}
 		if (error) {
 			toast.error(getGraphQLErrorMessage(error, 'Failed to load scopes'));

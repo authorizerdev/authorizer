@@ -37,7 +37,7 @@ func TestAuthorizationCRUD(t *testing.T) {
 	var permissionID string
 
 	t.Run("should add resource", func(t *testing.T) {
-		res, err := ts.GraphQLProvider.AddResource(ctx, &model.AddResourceInput{
+		res, err := ts.GraphQLProvider.AuthzAddResource(ctx, &model.AddResourceInput{
 			Name:        "documents",
 			Description: refs.NewStringRef("Document resource for testing"),
 		})
@@ -51,7 +51,7 @@ func TestAuthorizationCRUD(t *testing.T) {
 	})
 
 	t.Run("should add scope", func(t *testing.T) {
-		res, err := ts.GraphQLProvider.AddScope(ctx, &model.AddScopeInput{
+		res, err := ts.GraphQLProvider.AuthzAddScope(ctx, &model.AddScopeInput{
 			Name:        "read",
 			Description: refs.NewStringRef("Read access scope"),
 		})
@@ -63,7 +63,7 @@ func TestAuthorizationCRUD(t *testing.T) {
 	})
 
 	t.Run("should add policy", func(t *testing.T) {
-		res, err := ts.GraphQLProvider.AddPolicy(ctx, &model.AddPolicyInput{
+		res, err := ts.GraphQLProvider.AuthzAddPolicy(ctx, &model.AddPolicyInput{
 			Name:        "user-role-policy",
 			Description: refs.NewStringRef("Policy for user role"),
 			Type:        "role",
@@ -92,7 +92,7 @@ func TestAuthorizationCRUD(t *testing.T) {
 		require.NotEmpty(t, scopeID, "scopeID must be set from prior subtest")
 		require.NotEmpty(t, policyID, "policyID must be set from prior subtest")
 
-		res, err := ts.GraphQLProvider.AddPermission(ctx, &model.AddPermissionInput{
+		res, err := ts.GraphQLProvider.AuthzAddPermission(ctx, &model.AddPermissionInput{
 			Name:       "documents-read",
 			ResourceID: resourceID,
 			ScopeIds:   []string{scopeID},
@@ -113,7 +113,7 @@ func TestAuthorizationCRUD(t *testing.T) {
 	})
 
 	t.Run("should list resources", func(t *testing.T) {
-		res, err := ts.GraphQLProvider.Resources(ctx, &model.PaginatedRequest{})
+		res, err := ts.GraphQLProvider.AuthzResources(ctx, &model.PaginatedRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, res)
 		assert.GreaterOrEqual(t, len(res.Resources), 1)
@@ -131,21 +131,21 @@ func TestAuthorizationCRUD(t *testing.T) {
 	})
 
 	t.Run("should list scopes", func(t *testing.T) {
-		res, err := ts.GraphQLProvider.Scopes(ctx, &model.PaginatedRequest{})
+		res, err := ts.GraphQLProvider.AuthzScopes(ctx, &model.PaginatedRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, res)
 		assert.GreaterOrEqual(t, len(res.Scopes), 1)
 	})
 
 	t.Run("should list policies", func(t *testing.T) {
-		res, err := ts.GraphQLProvider.Policies(ctx, &model.PaginatedRequest{})
+		res, err := ts.GraphQLProvider.AuthzPolicies(ctx, &model.PaginatedRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, res)
 		assert.GreaterOrEqual(t, len(res.Policies), 1)
 	})
 
 	t.Run("should list permissions", func(t *testing.T) {
-		res, err := ts.GraphQLProvider.Permissions(ctx, &model.PaginatedRequest{})
+		res, err := ts.GraphQLProvider.AuthzPermissions(ctx, &model.PaginatedRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, res)
 		assert.GreaterOrEqual(t, len(res.Permissions), 1)
@@ -154,7 +154,7 @@ func TestAuthorizationCRUD(t *testing.T) {
 	t.Run("should update resource", func(t *testing.T) {
 		require.NotEmpty(t, resourceID)
 		newName := "documents-updated"
-		res, err := ts.GraphQLProvider.UpdateResource(ctx, &model.UpdateResourceInput{
+		res, err := ts.GraphQLProvider.AuthzUpdateResource(ctx, &model.UpdateResourceInput{
 			ID:          resourceID,
 			Name:        &newName,
 			Description: refs.NewStringRef("Updated description"),
@@ -167,7 +167,7 @@ func TestAuthorizationCRUD(t *testing.T) {
 
 		// Revert name for subsequent tests that reference "documents" by ID
 		origName := "documents"
-		_, err = ts.GraphQLProvider.UpdateResource(ctx, &model.UpdateResourceInput{
+		_, err = ts.GraphQLProvider.AuthzUpdateResource(ctx, &model.UpdateResourceInput{
 			ID:   resourceID,
 			Name: &origName,
 		})
@@ -188,7 +188,7 @@ func TestAuthorizationCRUD(t *testing.T) {
 	t.Run("should check permission denied for wrong role", func(t *testing.T) {
 		// Add an admin-only policy + a "write" scope + a permission requiring
 		// the "admin" role for "write" on documents.
-		adminPolicy, err := ts.GraphQLProvider.AddPolicy(ctx, &model.AddPolicyInput{
+		adminPolicy, err := ts.GraphQLProvider.AuthzAddPolicy(ctx, &model.AddPolicyInput{
 			Name: "admin-only-policy",
 			Type: "role",
 			Targets: []*model.PolicyTargetInput{
@@ -200,12 +200,12 @@ func TestAuthorizationCRUD(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		writeScope, err := ts.GraphQLProvider.AddScope(ctx, &model.AddScopeInput{
+		writeScope, err := ts.GraphQLProvider.AuthzAddScope(ctx, &model.AddScopeInput{
 			Name: "write",
 		})
 		require.NoError(t, err)
 
-		_, err = ts.GraphQLProvider.AddPermission(ctx, &model.AddPermissionInput{
+		_, err = ts.GraphQLProvider.AuthzAddPermission(ctx, &model.AddPermissionInput{
 			Name:       "documents-write",
 			ResourceID: resourceID,
 			ScopeIds:   []string{writeScope.ID},
@@ -228,7 +228,7 @@ func TestAuthorizationCRUD(t *testing.T) {
 		req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, adminHash))
 		require.NotEmpty(t, permissionID)
 
-		res, err := ts.GraphQLProvider.DeletePermission(ctx, permissionID)
+		res, err := ts.GraphQLProvider.AuthzDeletePermission(ctx, permissionID)
 		require.NoError(t, err)
 		require.NotNil(t, res)
 		assert.Contains(t, res.Message, "deleted")
@@ -237,7 +237,7 @@ func TestAuthorizationCRUD(t *testing.T) {
 	t.Run("should delete resource blocked by permission", func(t *testing.T) {
 		// The "documents-write" permission still references this resource,
 		// so delete should fail.
-		_, err := ts.GraphQLProvider.DeleteResource(ctx, resourceID)
+		_, err := ts.GraphQLProvider.AuthzDeleteResource(ctx, resourceID)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "permission")
 	})
@@ -245,7 +245,7 @@ func TestAuthorizationCRUD(t *testing.T) {
 	t.Run("should delete scope blocked by permission", func(t *testing.T) {
 		// The "write" scope is referenced by "documents-write" permission.
 		// Find the write scope ID from the scopes list.
-		scopes, err := ts.GraphQLProvider.Scopes(ctx, &model.PaginatedRequest{})
+		scopes, err := ts.GraphQLProvider.AuthzScopes(ctx, &model.PaginatedRequest{})
 		require.NoError(t, err)
 		var writeScopeID string
 		for _, s := range scopes.Scopes {
@@ -256,14 +256,14 @@ func TestAuthorizationCRUD(t *testing.T) {
 		}
 		require.NotEmpty(t, writeScopeID, "write scope must exist")
 
-		_, err = ts.GraphQLProvider.DeleteScope(ctx, writeScopeID)
+		_, err = ts.GraphQLProvider.AuthzDeleteScope(ctx, writeScopeID)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "permission")
 	})
 
 	t.Run("should delete policy blocked by permission", func(t *testing.T) {
 		// The "admin-only-policy" is referenced by "documents-write" permission.
-		policies, err := ts.GraphQLProvider.Policies(ctx, &model.PaginatedRequest{})
+		policies, err := ts.GraphQLProvider.AuthzPolicies(ctx, &model.PaginatedRequest{})
 		require.NoError(t, err)
 		var adminPolicyID string
 		for _, p := range policies.Policies {
@@ -274,7 +274,7 @@ func TestAuthorizationCRUD(t *testing.T) {
 		}
 		require.NotEmpty(t, adminPolicyID, "admin-only-policy must exist")
 
-		_, err = ts.GraphQLProvider.DeletePolicy(ctx, adminPolicyID)
+		_, err = ts.GraphQLProvider.AuthzDeletePolicy(ctx, adminPolicyID)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "permission")
 	})
@@ -282,12 +282,12 @@ func TestAuthorizationCRUD(t *testing.T) {
 	// Cleanup: delete the remaining permission first, then the rest
 	t.Run("cleanup should delete remaining permission then resources", func(t *testing.T) {
 		// Find and delete the "documents-write" permission
-		perms, err := ts.GraphQLProvider.Permissions(ctx, &model.PaginatedRequest{})
+		perms, err := ts.GraphQLProvider.AuthzPermissions(ctx, &model.PaginatedRequest{})
 		require.NoError(t, err)
 
 		for _, p := range perms.Permissions {
 			if p.Name == "documents-write" {
-				res, err := ts.GraphQLProvider.DeletePermission(ctx, p.ID)
+				res, err := ts.GraphQLProvider.AuthzDeletePermission(ctx, p.ID)
 				require.NoError(t, err)
 				assert.Contains(t, res.Message, "deleted")
 				break
@@ -295,15 +295,15 @@ func TestAuthorizationCRUD(t *testing.T) {
 		}
 
 		// Now resource, scope, and policy should be deletable
-		res, err := ts.GraphQLProvider.DeleteResource(ctx, resourceID)
+		res, err := ts.GraphQLProvider.AuthzDeleteResource(ctx, resourceID)
 		require.NoError(t, err)
 		assert.Contains(t, res.Message, "deleted")
 
-		res, err = ts.GraphQLProvider.DeleteScope(ctx, scopeID)
+		res, err = ts.GraphQLProvider.AuthzDeleteScope(ctx, scopeID)
 		require.NoError(t, err)
 		assert.Contains(t, res.Message, "deleted")
 
-		res, err = ts.GraphQLProvider.DeletePolicy(ctx, policyID)
+		res, err = ts.GraphQLProvider.AuthzDeletePolicy(ctx, policyID)
 		require.NoError(t, err)
 		assert.Contains(t, res.Message, "deleted")
 	})
@@ -360,13 +360,13 @@ func TestCheckPermission_ExplicitDenyOverridesAffirmativeGrant(t *testing.T) {
 	require.NoError(t, err)
 	req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, adminHash))
 
-	res, err := ts.GraphQLProvider.AddResource(ctx, &model.AddResourceInput{Name: "deny-override-docs"})
+	res, err := ts.GraphQLProvider.AuthzAddResource(ctx, &model.AddResourceInput{Name: "deny-override-docs"})
 	require.NoError(t, err)
-	sc, err := ts.GraphQLProvider.AddScope(ctx, &model.AddScopeInput{Name: "read-deny-override"})
+	sc, err := ts.GraphQLProvider.AuthzAddScope(ctx, &model.AddScopeInput{Name: "read-deny-override"})
 	require.NoError(t, err)
 
 	positive := constants.PolicyLogicPositive
-	grantPolicy, err := ts.GraphQLProvider.AddPolicy(ctx, &model.AddPolicyInput{
+	grantPolicy, err := ts.GraphQLProvider.AuthzAddPolicy(ctx, &model.AddPolicyInput{
 		Name:  "grant-user-" + uuid.New().String(),
 		Type:  constants.PolicyTypeRole,
 		Logic: &positive,
@@ -378,7 +378,7 @@ func TestCheckPermission_ExplicitDenyOverridesAffirmativeGrant(t *testing.T) {
 	require.NoError(t, err)
 
 	negative := constants.PolicyLogicNegative
-	denyPolicy, err := ts.GraphQLProvider.AddPolicy(ctx, &model.AddPolicyInput{
+	denyPolicy, err := ts.GraphQLProvider.AuthzAddPolicy(ctx, &model.AddPolicyInput{
 		Name:  "deny-blocked-" + uuid.New().String(),
 		Type:  constants.PolicyTypeRole,
 		Logic: &negative,
@@ -389,7 +389,7 @@ func TestCheckPermission_ExplicitDenyOverridesAffirmativeGrant(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	_, err = ts.GraphQLProvider.AddPermission(ctx, &model.AddPermissionInput{
+	_, err = ts.GraphQLProvider.AuthzAddPermission(ctx, &model.AddPermissionInput{
 		Name:       "deny-override-permission-" + uuid.New().String(),
 		ResourceID: res.ID,
 		ScopeIds:   []string{sc.ID},
@@ -456,11 +456,11 @@ func TestUpdatePermission_InvalidScopeDoesNotDropExistingLinks(t *testing.T) {
 	require.NoError(t, err)
 	req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, adminHash))
 
-	res, err := ts.GraphQLProvider.AddResource(ctx, &model.AddResourceInput{Name: "update-safe-docs"})
+	res, err := ts.GraphQLProvider.AuthzAddResource(ctx, &model.AddResourceInput{Name: "update-safe-docs"})
 	require.NoError(t, err)
-	sc, err := ts.GraphQLProvider.AddScope(ctx, &model.AddScopeInput{Name: "update-safe-read"})
+	sc, err := ts.GraphQLProvider.AuthzAddScope(ctx, &model.AddScopeInput{Name: "update-safe-read"})
 	require.NoError(t, err)
-	policy, err := ts.GraphQLProvider.AddPolicy(ctx, &model.AddPolicyInput{
+	policy, err := ts.GraphQLProvider.AuthzAddPolicy(ctx, &model.AddPolicyInput{
 		Name: "update-safe-policy-" + uuid.New().String(),
 		Type: constants.PolicyTypeRole,
 		Targets: []*model.PolicyTargetInput{{
@@ -469,7 +469,7 @@ func TestUpdatePermission_InvalidScopeDoesNotDropExistingLinks(t *testing.T) {
 		}},
 	})
 	require.NoError(t, err)
-	perm, err := ts.GraphQLProvider.AddPermission(ctx, &model.AddPermissionInput{
+	perm, err := ts.GraphQLProvider.AuthzAddPermission(ctx, &model.AddPermissionInput{
 		Name:       "update-safe-permission-" + uuid.New().String(),
 		ResourceID: res.ID,
 		ScopeIds:   []string{sc.ID},
@@ -489,7 +489,7 @@ func TestUpdatePermission_InvalidScopeDoesNotDropExistingLinks(t *testing.T) {
 	newName := "should-not-be-applied"
 	newDescription := "should-not-be-applied-description"
 	newDecision := constants.DecisionStrategyUnanimous
-	_, err = ts.GraphQLProvider.UpdatePermission(ctx, &model.UpdatePermissionInput{
+	_, err = ts.GraphQLProvider.AuthzUpdatePermission(ctx, &model.UpdatePermissionInput{
 		ID:               perm.ID,
 		Name:             &newName,
 		Description:      &newDescription,
@@ -528,11 +528,11 @@ func TestAddPermission_DuplicateNameReturnsConflict(t *testing.T) {
 	require.NoError(t, err)
 	req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, adminHash))
 
-	res, err := ts.GraphQLProvider.AddResource(ctx, &model.AddResourceInput{Name: "duplicate-docs"})
+	res, err := ts.GraphQLProvider.AuthzAddResource(ctx, &model.AddResourceInput{Name: "duplicate-docs"})
 	require.NoError(t, err)
-	sc, err := ts.GraphQLProvider.AddScope(ctx, &model.AddScopeInput{Name: "duplicate-read"})
+	sc, err := ts.GraphQLProvider.AuthzAddScope(ctx, &model.AddScopeInput{Name: "duplicate-read"})
 	require.NoError(t, err)
-	policy, err := ts.GraphQLProvider.AddPolicy(ctx, &model.AddPolicyInput{
+	policy, err := ts.GraphQLProvider.AuthzAddPolicy(ctx, &model.AddPolicyInput{
 		Name: "duplicate-policy-" + uuid.New().String(),
 		Type: constants.PolicyTypeRole,
 		Targets: []*model.PolicyTargetInput{{
@@ -548,13 +548,13 @@ func TestAddPermission_DuplicateNameReturnsConflict(t *testing.T) {
 		ScopeIds:   []string{sc.ID},
 		PolicyIds:  []string{policy.ID},
 	}
-	_, err = ts.GraphQLProvider.AddPermission(ctx, input)
+	_, err = ts.GraphQLProvider.AuthzAddPermission(ctx, input)
 	require.NoError(t, err)
 
 	// The exact error wording is provider-specific (SQL emits "already exists",
 	// while NoSQL backends surface their native duplicate-key errors). Only the
 	// presence of an error is contractual.
-	_, err = ts.GraphQLProvider.AddPermission(ctx, input)
+	_, err = ts.GraphQLProvider.AuthzAddPermission(ctx, input)
 	require.Error(t, err, "duplicate permission name must surface as an error from any storage backend")
 }
 
@@ -589,7 +589,7 @@ func TestCheckPermission_IncrementsPrometheusCounters(t *testing.T) {
 // verifies the DoS guard: unknown (resource, scope) pairs are denied
 // (enforcing is the only mode), and the unmatched counter must NOT grow for
 // attacker-controlled input. Authenticated callers can still reach
-// CheckPermission with arbitrary identifiers via GraphQL (myPermissions /
+// CheckPermission with arbitrary identifiers via GraphQL (permissions /
 // required_permissions) — without this guard they could flood the in-process
 // sync.Map with arbitrary (resource, scope) pairs.
 func TestCheckPermission_UnknownResource_DeniesAndDoesNotBumpUnmatchedCounter(t *testing.T) {
@@ -640,14 +640,14 @@ func seedResourceScopePermissionWithDenyPolicy(
 ) {
 	t.Helper()
 
-	res, err := ts.GraphQLProvider.AddResource(ctx, &model.AddResourceInput{
+	res, err := ts.GraphQLProvider.AuthzAddResource(ctx, &model.AddResourceInput{
 		Name:        resource,
 		Description: refs.NewStringRef("seed resource"),
 	})
 	require.NoError(t, err)
 	require.NotNil(t, res)
 
-	sc, err := ts.GraphQLProvider.AddScope(ctx, &model.AddScopeInput{
+	sc, err := ts.GraphQLProvider.AuthzAddScope(ctx, &model.AddScopeInput{
 		Name:        scope,
 		Description: refs.NewStringRef("seed scope"),
 	})
@@ -655,7 +655,7 @@ func seedResourceScopePermissionWithDenyPolicy(
 	require.NotNil(t, sc)
 
 	negative := constants.PolicyLogicNegative
-	policy, err := ts.GraphQLProvider.AddPolicy(ctx, &model.AddPolicyInput{
+	policy, err := ts.GraphQLProvider.AuthzAddPolicy(ctx, &model.AddPolicyInput{
 		Name:        "deny-" + role + "-" + uuid.New().String(),
 		Description: refs.NewStringRef("seed deny policy"),
 		Type:        constants.PolicyTypeRole,
@@ -671,7 +671,7 @@ func seedResourceScopePermissionWithDenyPolicy(
 	require.NotNil(t, policy)
 	require.Equal(t, constants.PolicyLogicNegative, policy.Logic, "policy must be stored as negative")
 
-	perm, err := ts.GraphQLProvider.AddPermission(ctx, &model.AddPermissionInput{
+	perm, err := ts.GraphQLProvider.AuthzAddPermission(ctx, &model.AddPermissionInput{
 		Name:       resource + "-" + scope,
 		ResourceID: res.ID,
 		ScopeIds:   []string{sc.ID},
@@ -783,19 +783,19 @@ func seedResourceScopePermissionAllowingRole(
 ) {
 	t.Helper()
 
-	res, err := ts.GraphQLProvider.AddResource(ctx, &model.AddResourceInput{
+	res, err := ts.GraphQLProvider.AuthzAddResource(ctx, &model.AddResourceInput{
 		Name:        resource,
 		Description: refs.NewStringRef("seed resource"),
 	})
 	require.NoError(t, err)
 
-	sc, err := ts.GraphQLProvider.AddScope(ctx, &model.AddScopeInput{
+	sc, err := ts.GraphQLProvider.AuthzAddScope(ctx, &model.AddScopeInput{
 		Name:        scope,
 		Description: refs.NewStringRef("seed scope"),
 	})
 	require.NoError(t, err)
 
-	pol, err := ts.GraphQLProvider.AddPolicy(ctx, &model.AddPolicyInput{
+	pol, err := ts.GraphQLProvider.AuthzAddPolicy(ctx, &model.AddPolicyInput{
 		Name:        "allow-" + role + "-" + uuid.New().String()[:8],
 		Description: refs.NewStringRef("seed allow policy"),
 		Type:        constants.PolicyTypeRole,
@@ -806,7 +806,7 @@ func seedResourceScopePermissionAllowingRole(
 	})
 	require.NoError(t, err)
 
-	perm, err := ts.GraphQLProvider.AddPermission(ctx, &model.AddPermissionInput{
+	perm, err := ts.GraphQLProvider.AuthzAddPermission(ctx, &model.AddPermissionInput{
 		Name:        "allow-" + resource + "-" + scope + "-" + uuid.New().String()[:8],
 		Description: refs.NewStringRef("seed allow permission"),
 		ResourceID:  res.ID,
@@ -829,14 +829,14 @@ func seedResourceScopePermissionWithRolePolicy(
 ) {
 	t.Helper()
 
-	res, err := ts.GraphQLProvider.AddResource(ctx, &model.AddResourceInput{
+	res, err := ts.GraphQLProvider.AuthzAddResource(ctx, &model.AddResourceInput{
 		Name:        resource,
 		Description: refs.NewStringRef("seed resource"),
 	})
 	require.NoError(t, err)
 	require.NotNil(t, res)
 
-	sc, err := ts.GraphQLProvider.AddScope(ctx, &model.AddScopeInput{
+	sc, err := ts.GraphQLProvider.AuthzAddScope(ctx, &model.AddScopeInput{
 		Name:        scope,
 		Description: refs.NewStringRef("seed scope"),
 	})
@@ -844,7 +844,7 @@ func seedResourceScopePermissionWithRolePolicy(
 	require.NotNil(t, sc)
 
 	logicRef := logic
-	policy, err := ts.GraphQLProvider.AddPolicy(ctx, &model.AddPolicyInput{
+	policy, err := ts.GraphQLProvider.AuthzAddPolicy(ctx, &model.AddPolicyInput{
 		Name:        logic + "-" + role + "-" + uuid.New().String(),
 		Description: refs.NewStringRef("seed role policy"),
 		Type:        constants.PolicyTypeRole,
@@ -860,7 +860,7 @@ func seedResourceScopePermissionWithRolePolicy(
 	require.NotNil(t, policy)
 	require.Equal(t, logic, policy.Logic, "policy must be stored with requested logic")
 
-	perm, err := ts.GraphQLProvider.AddPermission(ctx, &model.AddPermissionInput{
+	perm, err := ts.GraphQLProvider.AuthzAddPermission(ctx, &model.AddPermissionInput{
 		Name:       resource + "-" + scope + "-" + uuid.New().String(),
 		ResourceID: res.ID,
 		ScopeIds:   []string{sc.ID},
@@ -896,14 +896,14 @@ func seedResourceScopeWithUnanimousDualRolePolicy(
 ) {
 	t.Helper()
 
-	res, err := ts.GraphQLProvider.AddResource(ctx, &model.AddResourceInput{
+	res, err := ts.GraphQLProvider.AuthzAddResource(ctx, &model.AddResourceInput{
 		Name:        resource,
 		Description: refs.NewStringRef("seed resource"),
 	})
 	require.NoError(t, err)
 	require.NotNil(t, res)
 
-	sc, err := ts.GraphQLProvider.AddScope(ctx, &model.AddScopeInput{
+	sc, err := ts.GraphQLProvider.AuthzAddScope(ctx, &model.AddScopeInput{
 		Name:        scope,
 		Description: refs.NewStringRef("seed scope"),
 	})
@@ -912,7 +912,7 @@ func seedResourceScopeWithUnanimousDualRolePolicy(
 
 	positive := constants.PolicyLogicPositive
 
-	policyA, err := ts.GraphQLProvider.AddPolicy(ctx, &model.AddPolicyInput{
+	policyA, err := ts.GraphQLProvider.AuthzAddPolicy(ctx, &model.AddPolicyInput{
 		Name:        "grant-" + roleA + "-" + uuid.New().String(),
 		Description: refs.NewStringRef("seed positive role policy A"),
 		Type:        constants.PolicyTypeRole,
@@ -927,7 +927,7 @@ func seedResourceScopeWithUnanimousDualRolePolicy(
 	require.NoError(t, err)
 	require.NotNil(t, policyA)
 
-	policyB, err := ts.GraphQLProvider.AddPolicy(ctx, &model.AddPolicyInput{
+	policyB, err := ts.GraphQLProvider.AuthzAddPolicy(ctx, &model.AddPolicyInput{
 		Name:        "grant-" + roleB + "-" + uuid.New().String(),
 		Description: refs.NewStringRef("seed positive role policy B"),
 		Type:        constants.PolicyTypeRole,
@@ -943,7 +943,7 @@ func seedResourceScopeWithUnanimousDualRolePolicy(
 	require.NotNil(t, policyB)
 
 	unanimous := constants.DecisionStrategyUnanimous
-	perm, err := ts.GraphQLProvider.AddPermission(ctx, &model.AddPermissionInput{
+	perm, err := ts.GraphQLProvider.AuthzAddPermission(ctx, &model.AddPermissionInput{
 		Name:             resource + "-" + scope + "-" + uuid.New().String(),
 		ResourceID:       res.ID,
 		ScopeIds:         []string{sc.ID},
@@ -968,14 +968,14 @@ func seedResourceScopeWithUserPolicyPermission(
 ) {
 	t.Helper()
 
-	res, err := ts.GraphQLProvider.AddResource(ctx, &model.AddResourceInput{
+	res, err := ts.GraphQLProvider.AuthzAddResource(ctx, &model.AddResourceInput{
 		Name:        resource,
 		Description: refs.NewStringRef("seed resource"),
 	})
 	require.NoError(t, err)
 	require.NotNil(t, res)
 
-	sc, err := ts.GraphQLProvider.AddScope(ctx, &model.AddScopeInput{
+	sc, err := ts.GraphQLProvider.AuthzAddScope(ctx, &model.AddScopeInput{
 		Name:        scope,
 		Description: refs.NewStringRef("seed scope"),
 	})
@@ -983,7 +983,7 @@ func seedResourceScopeWithUserPolicyPermission(
 	require.NotNil(t, sc)
 
 	positive := constants.PolicyLogicPositive
-	policy, err := ts.GraphQLProvider.AddPolicy(ctx, &model.AddPolicyInput{
+	policy, err := ts.GraphQLProvider.AuthzAddPolicy(ctx, &model.AddPolicyInput{
 		Name:        "user-grant-" + uuid.New().String(),
 		Description: refs.NewStringRef("seed user policy"),
 		Type:        constants.PolicyTypeUser,
@@ -998,7 +998,7 @@ func seedResourceScopeWithUserPolicyPermission(
 	require.NoError(t, err)
 	require.NotNil(t, policy)
 
-	perm, err := ts.GraphQLProvider.AddPermission(ctx, &model.AddPermissionInput{
+	perm, err := ts.GraphQLProvider.AuthzAddPermission(ctx, &model.AddPermissionInput{
 		Name:       resource + "-" + scope + "-" + uuid.New().String(),
 		ResourceID: res.ID,
 		ScopeIds:   []string{sc.ID},

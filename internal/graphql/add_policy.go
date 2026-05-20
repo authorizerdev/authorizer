@@ -13,10 +13,10 @@ import (
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
 
-// AddPolicy is the method to create a new authorization policy with targets.
+// AuthzAddPolicy is the method to create a new authorization policy with targets.
 // Permissions: authorizer:admin
-func (g *graphqlProvider) AddPolicy(ctx context.Context, params *model.AddPolicyInput) (*model.AuthzPolicy, error) {
-	log := g.Log.With().Str("func", "AddPolicy").Logger()
+func (g *graphqlProvider) AuthzAddPolicy(ctx context.Context, params *model.AddPolicyInput) (*model.AuthzPolicy, error) {
+	log := g.Log.With().Str("func", "AuthzAddPolicy").Logger()
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to get GinContext")

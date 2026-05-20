@@ -11,10 +11,10 @@ import (
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
 
-// DeletePermission is the method to delete an authorization permission.
+// AuthzDeletePermission is the method to delete an authorization permission.
 // Permissions: authorizer:admin
-func (g *graphqlProvider) DeletePermission(ctx context.Context, id string) (*model.Response, error) {
-	log := g.Log.With().Str("func", "DeletePermission").Logger()
+func (g *graphqlProvider) AuthzDeletePermission(ctx context.Context, id string) (*model.Response, error) {
+	log := g.Log.With().Str("func", "AuthzDeletePermission").Logger()
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to get GinContext")

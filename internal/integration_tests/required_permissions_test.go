@@ -48,13 +48,13 @@ func TestRequiredPermissions(t *testing.T) {
 	require.NoError(t, err)
 	req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AdminCookieName, adminHash))
 
-	resource, err := ts.GraphQLProvider.AddResource(ctx, &model.AddResourceInput{Name: "docs"})
+	resource, err := ts.GraphQLProvider.AuthzAddResource(ctx, &model.AddResourceInput{Name: "docs"})
 	require.NoError(t, err)
 
-	scope, err := ts.GraphQLProvider.AddScope(ctx, &model.AddScopeInput{Name: "read"})
+	scope, err := ts.GraphQLProvider.AuthzAddScope(ctx, &model.AddScopeInput{Name: "read"})
 	require.NoError(t, err)
 
-	policy, err := ts.GraphQLProvider.AddPolicy(ctx, &model.AddPolicyInput{
+	policy, err := ts.GraphQLProvider.AuthzAddPolicy(ctx, &model.AddPolicyInput{
 		Name: "user-role-can-read",
 		Type: "role",
 		Targets: []*model.PolicyTargetInput{
@@ -63,7 +63,7 @@ func TestRequiredPermissions(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	_, err = ts.GraphQLProvider.AddPermission(ctx, &model.AddPermissionInput{
+	_, err = ts.GraphQLProvider.AuthzAddPermission(ctx, &model.AddPermissionInput{
 		Name:       "docs-read",
 		ResourceID: resource.ID,
 		ScopeIds:   []string{scope.ID},

@@ -78,8 +78,8 @@ export default function Permissions() {
 				params: { pagination: { limit: 100, page: 1 } },
 			})
 			.toPromise();
-		if (data?._permissions) {
-			setPermissions(data._permissions.permissions);
+		if (data?._authz_permissions) {
+			setPermissions(data._authz_permissions.permissions);
 		}
 		if (error) {
 			toast.error(
@@ -107,14 +107,14 @@ export default function Permissions() {
 				})
 				.toPromise(),
 		]);
-		if (resourcesRes.data?._resources) {
-			setAllResources(resourcesRes.data._resources.resources);
+		if (resourcesRes.data?._authz_resources) {
+			setAllResources(resourcesRes.data._authz_resources.resources);
 		}
-		if (scopesRes.data?._scopes) {
-			setAllScopes(scopesRes.data._scopes.scopes);
+		if (scopesRes.data?._authz_scopes) {
+			setAllScopes(scopesRes.data._authz_scopes.scopes);
 		}
-		if (policiesRes.data?._policies) {
-			setAllPolicies(policiesRes.data._policies.policies);
+		if (policiesRes.data?._authz_policies) {
+			setAllPolicies(policiesRes.data._authz_policies.policies);
 		}
 	};
 

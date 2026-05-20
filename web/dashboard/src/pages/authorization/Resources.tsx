@@ -54,8 +54,8 @@ export default function Resources() {
 				params: { pagination: { limit: 100, page: 1 } },
 			})
 			.toPromise();
-		if (data?._resources) {
-			setResources(data._resources.resources);
+		if (data?._authz_resources) {
+			setResources(data._authz_resources.resources);
 		}
 		if (error) {
 			toast.error(getGraphQLErrorMessage(error, 'Failed to load resources'));

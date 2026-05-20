@@ -13,10 +13,10 @@ import (
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
 
-// AddResource is the method to create a new authorization resource.
+// AuthzAddResource is the method to create a new authorization resource.
 // Permissions: authorizer:admin
-func (g *graphqlProvider) AddResource(ctx context.Context, params *model.AddResourceInput) (*model.AuthzResource, error) {
-	log := g.Log.With().Str("func", "AddResource").Logger()
+func (g *graphqlProvider) AuthzAddResource(ctx context.Context, params *model.AddResourceInput) (*model.AuthzResource, error) {
+	log := g.Log.With().Str("func", "AuthzAddResource").Logger()
 	gc, err := utils.GinContextFromContext(ctx)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to get GinContext")
