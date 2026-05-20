@@ -7,8 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Fine-grained authorization is always enforcing.** The previously-proposed `--authorization-enforcement` flag and its dual `permissive`/`enforcing` modes were removed before shipping. `required_permissions` checks against an unmatched or denied `(resource, scope)` pair return `unauthorized`. There is no permissive "log but allow" mode.
+- **Authz Prometheus shape**: `authorizer_authz_checks_total` has only a `result` label (`allowed|denied|unmatched|error`); `authorizer_authz_unmatched_total` has no labels.
+
 ### Added
 
+- **`authorizer_required_permissions_checks_total{endpoint, outcome}`**: per-endpoint Prometheus counter for FGA adoption + enforcement signal. Outcomes are `granted`, `denied`, `not_requested`, `error`. Endpoints are `session`, `validate_session`, `validate_jwt_token`. Alert on `outcome="error"` rising; it indicates a storage/validation failure preventing checks from completing.
 - **`--rate-limit-fail-closed`**: when the rate-limit backend returns an error, respond with `503` instead of allowing the request (default remains fail-open).
 - **`--metrics-host`**: bind address for the dedicated `/metrics` listener (default `127.0.0.1`). Use `0.0.0.0` when a scraper on another host/pod must reach the metrics port over the network; keep the metrics port off public ingress.
 - **OIDC Discovery — `grant_types_supported` includes `implicit`**: honestly reflects that `/authorize` accepts `response_type=token` and `response_type=id_token`.

@@ -68,6 +68,15 @@ type Provider interface {
 	// prevent authorization code replay (RFC 6749 §4.1.2).
 	GetAndRemoveState(key string) (string, error)
 
+	// SetCache stores a key-value pair with a TTL in seconds.
+	// Used by the authorization engine for permission evaluation caching.
+	SetCache(key string, value string, ttlSeconds int64) error
+	// GetCache retrieves a cached value by key. Returns empty string and nil error if not found.
+	GetCache(key string) (string, error)
+	// DeleteCacheByPrefix removes all cache entries whose keys start with the given prefix.
+	// Used for cache invalidation when permissions/policies change.
+	DeleteCacheByPrefix(prefix string) error
+
 	// GetAllData returns all the data from the session store
 	// This is used for testing purposes only
 	GetAllData() (map[string]string, error)

@@ -2,7 +2,6 @@ package integration_tests
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
@@ -55,15 +54,13 @@ func TestSession(t *testing.T) {
 		})
 
 		t.Run("should return new access token with cookie", func(t *testing.T) {
-			allData, err := ts.MemoryStoreProvider.GetAllData()
-			require.NoError(t, err)
-			sessionToken := ""
-			for k, v := range allData {
-				if strings.Contains(k, constants.TokenTypeSessionToken) {
-					sessionToken = v
-					break
-				}
-			}
+			// Use the cookie that Login() just wrote to the response. Reading
+			// from memory store via map iteration is racy: Session()'s async
+			// session rollover leaves the previous token transiently present
+			// in memory, and a random pick can land on a token about to be
+			// deleted by the rollover goroutine.
+			sessionToken := latestAppSessionCookie(ts)
+			require.NotEmpty(t, sessionToken)
 			req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AppCookieName+"_session", sessionToken))
 			res, err := ts.GraphQLProvider.Session(ctx, &model.SessionQueryRequest{})
 			require.NoError(t, err)
@@ -74,15 +71,10 @@ func TestSession(t *testing.T) {
 		})
 
 		t.Run("should use default scopes when empty scope list is provided", func(t *testing.T) {
-			allData, err := ts.MemoryStoreProvider.GetAllData()
-			require.NoError(t, err)
-			sessionToken := ""
-			for k, v := range allData {
-				if strings.Contains(k, constants.TokenTypeSessionToken) {
-					sessionToken = v
-					break
-				}
-			}
+			// Pick up the rotated cookie from the previous Session() call —
+			// same rationale as the subtest above.
+			sessionToken := latestAppSessionCookie(ts)
+			require.NotEmpty(t, sessionToken)
 			req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AppCookieName+"_session", sessionToken))
 			res, err := ts.GraphQLProvider.Session(ctx, &model.SessionQueryRequest{
 				Scope: []string{},

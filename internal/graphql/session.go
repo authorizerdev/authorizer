@@ -12,6 +12,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/token"
@@ -60,6 +61,12 @@ func (g *graphqlProvider) Session(ctx context.Context, params *model.SessionQuer
 				log.Debug().Msg("User does not have required role")
 				return nil, fmt.Errorf(`unauthorized`)
 			}
+		}
+	}
+
+	if params != nil {
+		if err := g.enforceRequiredPermissions(ctx, log, metrics.RequiredPermissionsEndpointSession, user.ID, claimRoles, params.RequiredPermissions); err != nil {
+			return nil, err
 		}
 	}
 
@@ -121,16 +128,10 @@ func (g *graphqlProvider) Session(ctx context.Context, params *model.SessionQuer
 		}
 	}
 
-	// rollover the session for security
 	sessionKey := userID
 	if claims.LoginMethod != "" {
 		sessionKey = claims.LoginMethod + ":" + userID
 	}
-	go func() {
-		if err := g.MemoryStoreProvider.DeleteUserSession(sessionKey, claims.Nonce); err != nil {
-			g.Log.Warn().Err(err).Str("session_key", sessionKey).Msg("failed to delete old session during rollover")
-		}
-	}()
 
 	expiresIn := authToken.AccessToken.ExpiresAt - time.Now().Unix()
 	if expiresIn <= 0 {
@@ -145,6 +146,12 @@ func (g *graphqlProvider) Session(ctx context.Context, params *model.SessionQuer
 		User:        user.AsAPIUser(),
 	}
 
+	// Establish the new session first, then revoke the old one. Doing both
+	// synchronously closes the window where a stolen pre-rotation token
+	// remains valid alongside the rotated one; doing "new then old" avoids
+	// any moment where the user has no valid session token. DeleteUserSession
+	// is in-memory or a single Redis DEL — failure is non-fatal (log and
+	// continue) since the new session is already live.
 	cookie.SetSession(gc, authToken.FingerPrintHash, g.Config.AppCookieSecure, cookie.ParseSameSite(g.Config.AppCookieSameSite))
 	g.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeSessionToken+"_"+authToken.FingerPrint, authToken.FingerPrintHash, authToken.SessionTokenExpiresAt)
 	g.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeAccessToken+"_"+authToken.FingerPrint, authToken.AccessToken.Token, authToken.AccessToken.ExpiresAt)
@@ -152,6 +159,10 @@ func (g *graphqlProvider) Session(ctx context.Context, params *model.SessionQuer
 	if authToken.RefreshToken != nil {
 		res.RefreshToken = &authToken.RefreshToken.Token
 		g.MemoryStoreProvider.SetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+authToken.FingerPrint, authToken.RefreshToken.Token, authToken.RefreshToken.ExpiresAt)
+	}
+
+	if err := g.MemoryStoreProvider.DeleteUserSession(sessionKey, claims.Nonce); err != nil {
+		log.Warn().Err(err).Str("session_key", sessionKey).Msg("failed to delete old session during rollover")
 	}
 	return res, nil
 }

@@ -55,15 +55,8 @@ func TestProfile(t *testing.T) {
 		})
 
 		t.Run("should return profile with browser session", func(t *testing.T) {
-			allData, err := ts.MemoryStoreProvider.GetAllData()
-			require.NoError(t, err)
-			sessionToken := ""
-			for k, v := range allData {
-				if strings.Contains(k, constants.TokenTypeSessionToken) {
-					sessionToken = v
-					break
-				}
-			}
+			sessionToken := latestAppSessionCookie(ts)
+			require.NotEmpty(t, sessionToken)
 			req.Header.Set("Cookie", fmt.Sprintf("%s=%s", constants.AppCookieName+"_session", sessionToken))
 			defer func() {
 				req.Header.Del("Cookie")

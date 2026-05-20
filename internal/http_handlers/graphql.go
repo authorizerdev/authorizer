@@ -43,7 +43,7 @@ type queryLimits struct {
 }
 
 var (
-	_ gql.HandlerExtension       = (*queryLimits)(nil)
+	_ gql.HandlerExtension        = (*queryLimits)(nil)
 	_ gql.OperationContextMutator = (*queryLimits)(nil)
 )
 
@@ -218,6 +218,7 @@ func (h *httpProvider) GraphqlHandler() gin.HandlerFunc {
 		SMSProvider:           h.SMSProvider,
 		StorageProvider:       h.StorageProvider,
 		TokenProvider:         h.TokenProvider,
+		AuthorizationProvider: h.AuthorizationProvider,
 	})
 	if err != nil {
 		h.Log.Error().Err(err).Msg("Failed to create graphql provider")

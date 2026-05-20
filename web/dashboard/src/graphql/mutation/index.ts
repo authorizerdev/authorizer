@@ -121,6 +121,148 @@ export const EditEmailTemplate = `
   }
 `;
 
+// Authorization mutations
+export const AddResource = `
+  mutation addResource($params: AddResourceInput!) {
+    _add_resource(params: $params) {
+      id
+      name
+      description
+    }
+  }
+`;
+
+export const UpdateResource = `
+  mutation updateResource($params: UpdateResourceInput!) {
+    _update_resource(params: $params) {
+      id
+      name
+      description
+    }
+  }
+`;
+
+export const DeleteResource = `
+  mutation deleteResource($id: ID!) {
+    _delete_resource(id: $id) {
+      message
+    }
+  }
+`;
+
+export const AddScope = `
+  mutation addScope($params: AddScopeInput!) {
+    _add_scope(params: $params) {
+      id
+      name
+      description
+    }
+  }
+`;
+
+export const UpdateScope = `
+  mutation updateScope($params: UpdateScopeInput!) {
+    _update_scope(params: $params) {
+      id
+      name
+      description
+    }
+  }
+`;
+
+export const DeleteScope = `
+  mutation deleteScope($id: ID!) {
+    _delete_scope(id: $id) {
+      message
+    }
+  }
+`;
+
+export const AddPolicy = `
+  mutation addPolicy($params: AddPolicyInput!) {
+    _add_policy(params: $params) {
+      id
+      name
+      description
+      type
+      logic
+      decision_strategy
+      targets {
+        id
+        target_type
+        target_value
+      }
+    }
+  }
+`;
+
+export const UpdatePolicy = `
+  mutation updatePolicy($params: UpdatePolicyInput!) {
+    _update_policy(params: $params) {
+      id
+      name
+      description
+      logic
+      decision_strategy
+      targets {
+        id
+        target_type
+        target_value
+      }
+    }
+  }
+`;
+
+export const DeletePolicy = `
+  mutation deletePolicy($id: ID!) {
+    _delete_policy(id: $id) {
+      message
+    }
+  }
+`;
+
+export const AddPermission = `
+  mutation addPermission($params: AddPermissionInput!) {
+    _add_permission(params: $params) {
+      id
+      name
+      description
+      resource {
+        id
+        name
+      }
+      scopes {
+        id
+        name
+      }
+      policies {
+        id
+        name
+      }
+      decision_strategy
+    }
+  }
+`;
+
+export const UpdatePermission = `
+  mutation updatePermission($params: UpdatePermissionInput!) {
+    _update_permission(params: $params) {
+      id
+      name
+      description
+      decision_strategy
+    }
+  }
+`;
+
+export const DeletePermission = `
+  mutation deletePermission($id: ID!) {
+    _delete_permission(id: $id) {
+      message
+    }
+  }
+`;
+
 export const DeleteEmailTemplate = `
   mutation deleteEmailTemplate($params: DeleteEmailTemplateRequest!) {
     _delete_email_template(params: $params) {

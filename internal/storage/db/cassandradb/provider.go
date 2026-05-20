@@ -366,6 +366,110 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 		return nil, err
 	}
 
+	// Resource table
+	resourceCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, name text, description text, created_at bigint, updated_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.Resource)
+	err = session.Query(resourceCollectionQuery).Exec()
+	if err != nil {
+		return nil, err
+	}
+	resourceNameIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_resource_name ON %s.%s (name)", KeySpace, schemas.Collections.Resource)
+	err = session.Query(resourceNameIndex).Exec()
+	if err != nil {
+		return nil, err
+	}
+
+	// Scope table
+	scopeCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, name text, description text, created_at bigint, updated_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.Scope)
+	err = session.Query(scopeCollectionQuery).Exec()
+	if err != nil {
+		return nil, err
+	}
+	scopeNameIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_scope_name ON %s.%s (name)", KeySpace, schemas.Collections.Scope)
+	err = session.Query(scopeNameIndex).Exec()
+	if err != nil {
+		return nil, err
+	}
+
+	// Policy table
+	policyCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, name text, description text, type text, logic text, decision_strategy text, created_at bigint, updated_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.Policy)
+	err = session.Query(policyCollectionQuery).Exec()
+	if err != nil {
+		return nil, err
+	}
+	policyNameIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_policy_name ON %s.%s (name)", KeySpace, schemas.Collections.Policy)
+	err = session.Query(policyNameIndex).Exec()
+	if err != nil {
+		return nil, err
+	}
+	policyTypeIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_policy_type ON %s.%s (type)", KeySpace, schemas.Collections.Policy)
+	err = session.Query(policyTypeIndex).Exec()
+	if err != nil {
+		return nil, err
+	}
+
+	// PolicyTarget table
+	policyTargetCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, policy_id text, target_type text, target_value text, created_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.PolicyTarget)
+	err = session.Query(policyTargetCollectionQuery).Exec()
+	if err != nil {
+		return nil, err
+	}
+	policyTargetPolicyIDIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_policy_target_policy_id ON %s.%s (policy_id)", KeySpace, schemas.Collections.PolicyTarget)
+	err = session.Query(policyTargetPolicyIDIndex).Exec()
+	if err != nil {
+		return nil, err
+	}
+
+	// Permission table
+	permissionCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, name text, description text, resource_id text, decision_strategy text, created_at bigint, updated_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.Permission)
+	err = session.Query(permissionCollectionQuery).Exec()
+	if err != nil {
+		return nil, err
+	}
+	permissionNameIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_permission_name ON %s.%s (name)", KeySpace, schemas.Collections.Permission)
+	err = session.Query(permissionNameIndex).Exec()
+	if err != nil {
+		return nil, err
+	}
+	permissionResourceIDIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_permission_resource_id ON %s.%s (resource_id)", KeySpace, schemas.Collections.Permission)
+	err = session.Query(permissionResourceIDIndex).Exec()
+	if err != nil {
+		return nil, err
+	}
+
+	// PermissionScope join table
+	permissionScopeCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, permission_id text, scope_id text, created_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.PermissionScope)
+	err = session.Query(permissionScopeCollectionQuery).Exec()
+	if err != nil {
+		return nil, err
+	}
+	permissionScopePermIDIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_permission_scope_permission_id ON %s.%s (permission_id)", KeySpace, schemas.Collections.PermissionScope)
+	err = session.Query(permissionScopePermIDIndex).Exec()
+	if err != nil {
+		return nil, err
+	}
+	permissionScopeScopeIDIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_permission_scope_scope_id ON %s.%s (scope_id)", KeySpace, schemas.Collections.PermissionScope)
+	err = session.Query(permissionScopeScopeIDIndex).Exec()
+	if err != nil {
+		return nil, err
+	}
+
+	// PermissionPolicy join table
+	permissionPolicyCollectionQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id text, permission_id text, policy_id text, created_at bigint, PRIMARY KEY (id))", KeySpace, schemas.Collections.PermissionPolicy)
+	err = session.Query(permissionPolicyCollectionQuery).Exec()
+	if err != nil {
+		return nil, err
+	}
+	permissionPolicyPermIDIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_permission_policy_permission_id ON %s.%s (permission_id)", KeySpace, schemas.Collections.PermissionPolicy)
+	err = session.Query(permissionPolicyPermIDIndex).Exec()
+	if err != nil {
+		return nil, err
+	}
+	permissionPolicyPolicyIDIndex := fmt.Sprintf("CREATE INDEX IF NOT EXISTS authorizer_permission_policy_policy_id ON %s.%s (policy_id)", KeySpace, schemas.Collections.PermissionPolicy)
+	err = session.Query(permissionPolicyPolicyIDIndex).Exec()
+	if err != nil {
+		return nil, err
+	}
+
 	return &provider{
 		config:       cfg,
 		dependencies: deps,

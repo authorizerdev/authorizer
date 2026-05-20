@@ -348,6 +348,161 @@ func NewProvider(cfg *config.Config, deps *Dependencies) (*provider, error) {
 		Sparse: true,
 	})
 
+	// Resource collection and indexes
+	resourceCollectionExists, err := arangodb.CollectionExists(ctx, schemas.Collections.Resource)
+	if err != nil {
+		return nil, err
+	}
+	if !resourceCollectionExists {
+		_, err = arangodb.CreateCollection(ctx, schemas.Collections.Resource, nil)
+		if err != nil {
+			return nil, err
+		}
+	}
+	resourceCollection, err := arangodb.Collection(ctx, schemas.Collections.Resource)
+	if err != nil {
+		return nil, err
+	}
+	resourceCollection.EnsureHashIndex(ctx, []string{"name"}, &arangoDriver.EnsureHashIndexOptions{
+		Unique: true,
+		Sparse: true,
+	})
+
+	// Scope collection and indexes
+	scopeCollectionExists, err := arangodb.CollectionExists(ctx, schemas.Collections.Scope)
+	if err != nil {
+		return nil, err
+	}
+	if !scopeCollectionExists {
+		_, err = arangodb.CreateCollection(ctx, schemas.Collections.Scope, nil)
+		if err != nil {
+			return nil, err
+		}
+	}
+	scopeCollection, err := arangodb.Collection(ctx, schemas.Collections.Scope)
+	if err != nil {
+		return nil, err
+	}
+	scopeCollection.EnsureHashIndex(ctx, []string{"name"}, &arangoDriver.EnsureHashIndexOptions{
+		Unique: true,
+		Sparse: true,
+	})
+
+	// Policy collection and indexes
+	policyCollectionExists, err := arangodb.CollectionExists(ctx, schemas.Collections.Policy)
+	if err != nil {
+		return nil, err
+	}
+	if !policyCollectionExists {
+		_, err = arangodb.CreateCollection(ctx, schemas.Collections.Policy, nil)
+		if err != nil {
+			return nil, err
+		}
+	}
+	policyCollection, err := arangodb.Collection(ctx, schemas.Collections.Policy)
+	if err != nil {
+		return nil, err
+	}
+	policyCollection.EnsureHashIndex(ctx, []string{"name"}, &arangoDriver.EnsureHashIndexOptions{
+		Unique: true,
+		Sparse: true,
+	})
+	policyCollection.EnsureHashIndex(ctx, []string{"type"}, &arangoDriver.EnsureHashIndexOptions{
+		Sparse: true,
+	})
+
+	// PolicyTarget collection and indexes
+	policyTargetCollectionExists, err := arangodb.CollectionExists(ctx, schemas.Collections.PolicyTarget)
+	if err != nil {
+		return nil, err
+	}
+	if !policyTargetCollectionExists {
+		_, err = arangodb.CreateCollection(ctx, schemas.Collections.PolicyTarget, nil)
+		if err != nil {
+			return nil, err
+		}
+	}
+	policyTargetCollection, err := arangodb.Collection(ctx, schemas.Collections.PolicyTarget)
+	if err != nil {
+		return nil, err
+	}
+	policyTargetCollection.EnsureHashIndex(ctx, []string{"policy_id"}, &arangoDriver.EnsureHashIndexOptions{
+		Sparse: true,
+	})
+	policyTargetCollection.EnsureHashIndex(ctx, []string{"policy_id", "target_type", "target_value"}, &arangoDriver.EnsureHashIndexOptions{
+		Unique: true,
+		Sparse: true,
+	})
+
+	// Permission collection and indexes
+	permissionCollectionExists, err := arangodb.CollectionExists(ctx, schemas.Collections.Permission)
+	if err != nil {
+		return nil, err
+	}
+	if !permissionCollectionExists {
+		_, err = arangodb.CreateCollection(ctx, schemas.Collections.Permission, nil)
+		if err != nil {
+			return nil, err
+		}
+	}
+	permissionCollection, err := arangodb.Collection(ctx, schemas.Collections.Permission)
+	if err != nil {
+		return nil, err
+	}
+	permissionCollection.EnsureHashIndex(ctx, []string{"name"}, &arangoDriver.EnsureHashIndexOptions{
+		Unique: true,
+		Sparse: true,
+	})
+	permissionCollection.EnsureHashIndex(ctx, []string{"resource_id"}, &arangoDriver.EnsureHashIndexOptions{
+		Sparse: true,
+	})
+
+	// PermissionScope collection and indexes
+	permissionScopeCollectionExists, err := arangodb.CollectionExists(ctx, schemas.Collections.PermissionScope)
+	if err != nil {
+		return nil, err
+	}
+	if !permissionScopeCollectionExists {
+		_, err = arangodb.CreateCollection(ctx, schemas.Collections.PermissionScope, nil)
+		if err != nil {
+			return nil, err
+		}
+	}
+	permissionScopeCollection, err := arangodb.Collection(ctx, schemas.Collections.PermissionScope)
+	if err != nil {
+		return nil, err
+	}
+	permissionScopeCollection.EnsureHashIndex(ctx, []string{"permission_id"}, &arangoDriver.EnsureHashIndexOptions{
+		Sparse: true,
+	})
+	permissionScopeCollection.EnsureHashIndex(ctx, []string{"permission_id", "scope_id"}, &arangoDriver.EnsureHashIndexOptions{
+		Unique: true,
+		Sparse: true,
+	})
+
+	// PermissionPolicy collection and indexes
+	permissionPolicyCollectionExists, err := arangodb.CollectionExists(ctx, schemas.Collections.PermissionPolicy)
+	if err != nil {
+		return nil, err
+	}
+	if !permissionPolicyCollectionExists {
+		_, err = arangodb.CreateCollection(ctx, schemas.Collections.PermissionPolicy, nil)
+		if err != nil {
+			return nil, err
+		}
+	}
+	permissionPolicyCollection, err := arangodb.Collection(ctx, schemas.Collections.PermissionPolicy)
+	if err != nil {
+		return nil, err
+	}
+	permissionPolicyCollection.EnsureHashIndex(ctx, []string{"permission_id"}, &arangoDriver.EnsureHashIndexOptions{
+		Sparse: true,
+	})
+	permissionPolicyCollection.EnsureHashIndex(ctx, []string{"permission_id", "policy_id"}, &arangoDriver.EnsureHashIndexOptions{
+		Unique: true,
+		Sparse: true,
+	})
+
 	return &provider{
 		config:       cfg,
 		dependencies: deps,

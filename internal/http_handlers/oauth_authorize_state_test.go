@@ -236,3 +236,8 @@ func (f *fakeMemoryStore) GetAndRemoveState(key string) (string, error) {
 	return val, nil
 }
 func (f *fakeMemoryStore) GetAllData() (map[string]string, error) { return map[string]string{}, nil }
+func (f *fakeMemoryStore) SetCache(key string, value string, ttlSeconds int64) error {
+	return nil
+}
+func (f *fakeMemoryStore) GetCache(key string) (string, error)     { return "", nil }
+func (f *fakeMemoryStore) DeleteCacheByPrefix(prefix string) error { return nil }

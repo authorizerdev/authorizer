@@ -15,10 +15,12 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/authenticators"
+	"github.com/authorizerdev/authorizer/internal/authorization"
 	"github.com/authorizerdev/authorizer/internal/config"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/email"
 	"github.com/authorizerdev/authorizer/internal/events"
+	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/http_handlers"
 	"github.com/authorizerdev/authorizer/internal/memory_store"
 	"github.com/authorizerdev/authorizer/internal/metrics"
@@ -234,6 +236,11 @@ func init() {
 
 	// Back-channel logout (OIDC BCL 1.0)
 	f.StringVar(&rootArgs.config.BackchannelLogoutURI, "backchannel-logout-uri", "", "URL to POST a signed logout_token to when users log out successfully. Leave empty (default) to disable back-channel logout notifications. See OIDC Back-Channel Logout 1.0.")
+
+	// Fine-grained authorization flags
+	f.Int64Var(&rootArgs.config.AuthorizationCacheTTL, "authorization-cache-ttl", 300, "Cache TTL in seconds for permission checks (0 to disable)")
+	f.BoolVar(&rootArgs.config.IncludePermissionsInToken, "include-permissions-in-token", false, "Include permissions in JWT access tokens")
+	f.BoolVar(&rootArgs.config.AuthorizationLogAllChecks, "authorization-log-all-checks", false, "Audit log all permission checks, not just denials")
 
 	// Deprecated flags
 	f.MarkDeprecated("database_url", "use --database-url instead")
@@ -455,6 +462,36 @@ func runRoot(c *cobra.Command, args []string) {
 	}
 	defer rateLimitProvider.Close()
 
+	// Authorization provider
+	authorizationProvider, err := authorization.New(
+		&authorization.Config{
+			CacheTTL: rootArgs.config.AuthorizationCacheTTL,
+		},
+		&authorization.Dependencies{
+			Log:                 &log,
+			StorageProvider:     storageProvider,
+			MemoryStoreProvider: memoryStoreProvider,
+		},
+	)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to create authorization provider")
+	}
+
+	// Check once at startup whether any permissions exist. If zero, emit a
+	// loud warn so operators don't lock themselves out in prod. Bounded
+	// context prevents a hung DB at boot from blocking startup indefinitely.
+	probeCtx, probeCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	_, pr, lerr := storageProvider.ListPermissions(probeCtx, &model.Pagination{Limit: 1, Page: 1})
+	probeCancel()
+	switch {
+	case lerr != nil:
+		log.Warn().Err(lerr).Msg("authz: failed to probe permission count at startup; authorization is enforcing")
+	case pr != nil && pr.Total == 0:
+		log.Warn().Msg("authz: 0 permissions configured — all authorization checks will DENY. Seed permissions via the dashboard or admin GraphQL mutations.")
+	default:
+		log.Info().Msg("authz: enforcing; unmatched CheckPermission calls will be DENIED.")
+	}
+
 	// SMS provider
 	smsProvider, err := sms.New(&rootArgs.config, &sms.Dependencies{
 		Log: &log,
@@ -505,6 +542,7 @@ func runRoot(c *cobra.Command, args []string) {
 		TokenProvider:         tokenProvider,
 		OAuthProvider:         oauthProvider,
 		RateLimitProvider:     rateLimitProvider,
+		AuthorizationProvider: authorizationProvider,
 	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create http provider")

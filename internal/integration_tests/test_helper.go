@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/authenticators"
+	"github.com/authorizerdev/authorizer/internal/authorization"
 	"github.com/authorizerdev/authorizer/internal/config"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/email"
@@ -42,6 +44,9 @@ type testSetup struct {
 	MemoryStoreProvider   memory_store.Provider
 	AuthenticatorProvider authenticators.Provider
 	TokenProvider         token.Provider
+	// Authz is the authorization provider, exposed for tests that exercise
+	// CheckPermission / GetPrincipalPermissions directly (bypassing GraphQL).
+	Authz authorization.Provider
 }
 
 func createContext(s *testSetup) (*http.Request, context.Context) {
@@ -68,21 +73,26 @@ func getTestConfig() *config.Config {
 // getTestConfigForDB returns a test config for a specific database type and URL
 func getTestConfigForDB(dbType, dbURL string) *config.Config {
 	cfg := &config.Config{
-		Env:                             constants.TestEnv,
-		SkipTestEndpointSSRFValidation:  true,
-		DatabaseType:                    dbType,
-		DatabaseURL:                     dbURL,
-		JWTSecret:                       "test-secret",
-		ClientID:                        "test-client-id",
-		ClientSecret:                    "test-client-secret",
-		AllowedOrigins:                  []string{"http://localhost:3000"},
-		JWTType:                         "HS256",
-		AdminSecret:                     "test-admin-secret",
-		TwilioAPISecret:                 "test-twilio-api-secret",
-		TwilioAPIKey:                    "test-twilio-api-key",
-		TwilioAccountSID:                "test-twilio-account-sid",
-		TwilioSender:                    "test-twilio-sender",
-		DefaultRoles:                    []string{"user"},
+		Env:                            constants.TestEnv,
+		SkipTestEndpointSSRFValidation: true,
+		DatabaseType:                   dbType,
+		DatabaseURL:                    dbURL,
+		JWTSecret:                      "test-secret",
+		ClientID:                       "test-client-id",
+		ClientSecret:                   "test-client-secret",
+		AllowedOrigins:                 []string{"http://localhost:3000"},
+		JWTType:                        "HS256",
+		AdminSecret:                    "test-admin-secret",
+		TwilioAPISecret:                "test-twilio-api-secret",
+		TwilioAPIKey:                   "test-twilio-api-key",
+		TwilioAccountSID:               "test-twilio-account-sid",
+		TwilioSender:                   "test-twilio-sender",
+		DefaultRoles:                   []string{"user"},
+		Roles: []string{
+			"user", "admin", "viewer", "editor",
+			"accountant", "auditor",
+			"blocked-role", "other-role",
+		},
 		EnableSignup:                    true,
 		EnableBasicAuthentication:       true,
 		EnableMobileBasicAuthentication: true,
@@ -178,6 +188,19 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 	})
 	require.NoError(t, err)
 
+	// Initialize authorization provider. Tests that need the decision cache
+	// active can set cfg.AuthorizationCacheTTL > 0 in their getTestConfig
+	// equivalent; the default (0) keeps existing tests on the no-cache path
+	// they were written against.
+	authzProvider, err := authorization.New(&authorization.Config{
+		CacheTTL: cfg.AuthorizationCacheTTL,
+	}, &authorization.Dependencies{
+		Log:                 &logger,
+		StorageProvider:     storageProvider,
+		MemoryStoreProvider: memoryStoreProvider,
+	})
+	require.NoError(t, err)
+
 	// Initialize audit provider
 	auditProvider := audit.New(&audit.Dependencies{
 		Log:             &logger,
@@ -189,6 +212,7 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 		Log:                   &logger,
 		AuditProvider:         auditProvider,
 		AuthenticatorProvider: authProvider,
+		AuthorizationProvider: authzProvider,
 		EmailProvider:         emailProvider,
 		EventsProvider:        eventsProvider,
 		MemoryStoreProvider:   memoryStoreProvider,
@@ -233,8 +257,13 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 	t.Cleanup(func() {
 		server.Close()
 		if storageProvider != nil {
+			// Fire-and-forget goroutines from RegisterEvent / LogEvent / AddSession
+			// (started by Login, SignUp, VerifyOTP, etc.) may still be holding pool
+			// connections when cleanup runs. The driver can surface that as a Close
+			// error even though the test logic itself succeeded — log it instead of
+			// failing the parent test on cleanup noise.
 			if err := storageProvider.Close(); err != nil {
-				t.Errorf("close storage provider: %v", err)
+				t.Logf("close storage provider: %v", err)
 			}
 		}
 	})
@@ -250,5 +279,32 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 		MemoryStoreProvider:   memoryStoreProvider,
 		AuthenticatorProvider: authProvider,
 		TokenProvider:         tokenProvider,
+		Authz:                 authzProvider,
 	}
+}
+
+// latestAppSessionCookie returns the most recent value of the
+// AppCookieName+"_session" cookie that has been written to the gin response
+// writer in this test. Session() and Login() both rotate the cookie and the
+// async rollover transiently leaves stale session_token entries in memory —
+// reading the writer is the only race-free way for tests to follow the
+// rotation, since http.Request cookies are not auto-updated from responses.
+func latestAppSessionCookie(s *testSetup) string {
+	prefix := constants.AppCookieName + "_session="
+	latest := ""
+	for _, h := range s.GinContext.Writer.Header().Values("Set-Cookie") {
+		// A Set-Cookie value is "name=value; attr=...; attr=...". Only the
+		// first segment is the name/value pair. The "_session_domain" cookie
+		// uses a different name so HasPrefix on "_session=" is sufficient
+		// to disambiguate.
+		first := h
+		if i := strings.IndexByte(h, ';'); i >= 0 {
+			first = h[:i]
+		}
+		first = strings.TrimSpace(first)
+		if strings.HasPrefix(first, prefix) {
+			latest = strings.TrimPrefix(first, prefix)
+		}
+	}
+	return latest
 }

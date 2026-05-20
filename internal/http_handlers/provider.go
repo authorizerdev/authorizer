@@ -6,6 +6,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/authenticators"
+	"github.com/authorizerdev/authorizer/internal/authorization"
 	"github.com/authorizerdev/authorizer/internal/config"
 	"github.com/authorizerdev/authorizer/internal/email"
 	"github.com/authorizerdev/authorizer/internal/events"
@@ -42,6 +43,8 @@ type Dependencies struct {
 	OAuthProvider oauth.Provider
 	// RateLimitProvider is used for per-IP rate limiting
 	RateLimitProvider rate_limit.Provider
+	// AuthorizationProvider is used for fine-grained authorization checks
+	AuthorizationProvider authorization.Provider
 }
 
 // New constructs a new http provider with given arguments

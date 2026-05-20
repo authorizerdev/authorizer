@@ -173,6 +173,74 @@ func (p *provider) ensureTables(ctx context.Context) error {
 				gsi("action", "action"),
 			},
 		},
+		// Authorization tables
+		{
+			name: schemas.Collections.Resource,
+			hash: "id",
+			attr: []types.AttributeDefinition{
+				{AttributeName: aws.String("id"), AttributeType: types.ScalarAttributeTypeS},
+				{AttributeName: aws.String("name"), AttributeType: types.ScalarAttributeTypeS},
+			},
+			gsi: []types.GlobalSecondaryIndex{gsi("name", "name")},
+		},
+		{
+			name: schemas.Collections.Scope,
+			hash: "id",
+			attr: []types.AttributeDefinition{
+				{AttributeName: aws.String("id"), AttributeType: types.ScalarAttributeTypeS},
+				{AttributeName: aws.String("name"), AttributeType: types.ScalarAttributeTypeS},
+			},
+			gsi: []types.GlobalSecondaryIndex{gsi("name", "name")},
+		},
+		{
+			name: schemas.Collections.Policy,
+			hash: "id",
+			attr: []types.AttributeDefinition{
+				{AttributeName: aws.String("id"), AttributeType: types.ScalarAttributeTypeS},
+				{AttributeName: aws.String("name"), AttributeType: types.ScalarAttributeTypeS},
+			},
+			gsi: []types.GlobalSecondaryIndex{gsi("name", "name")},
+		},
+		{
+			name: schemas.Collections.PolicyTarget,
+			hash: "id",
+			attr: []types.AttributeDefinition{
+				{AttributeName: aws.String("id"), AttributeType: types.ScalarAttributeTypeS},
+				{AttributeName: aws.String("policy_id"), AttributeType: types.ScalarAttributeTypeS},
+			},
+			gsi: []types.GlobalSecondaryIndex{gsi("policy_id", "policy_id")},
+		},
+		{
+			name: schemas.Collections.Permission,
+			hash: "id",
+			attr: []types.AttributeDefinition{
+				{AttributeName: aws.String("id"), AttributeType: types.ScalarAttributeTypeS},
+				{AttributeName: aws.String("name"), AttributeType: types.ScalarAttributeTypeS},
+				{AttributeName: aws.String("resource_id"), AttributeType: types.ScalarAttributeTypeS},
+			},
+			gsi: []types.GlobalSecondaryIndex{
+				gsi("name", "name"),
+				gsi("resource_id", "resource_id"),
+			},
+		},
+		{
+			name: schemas.Collections.PermissionScope,
+			hash: "id",
+			attr: []types.AttributeDefinition{
+				{AttributeName: aws.String("id"), AttributeType: types.ScalarAttributeTypeS},
+				{AttributeName: aws.String("permission_id"), AttributeType: types.ScalarAttributeTypeS},
+			},
+			gsi: []types.GlobalSecondaryIndex{gsi("permission_id", "permission_id")},
+		},
+		{
+			name: schemas.Collections.PermissionPolicy,
+			hash: "id",
+			attr: []types.AttributeDefinition{
+				{AttributeName: aws.String("id"), AttributeType: types.ScalarAttributeTypeS},
+				{AttributeName: aws.String("permission_id"), AttributeType: types.ScalarAttributeTypeS},
+			},
+			gsi: []types.GlobalSecondaryIndex{gsi("permission_id", "permission_id")},
+		},
 	}
 
 	for _, t := range tables {

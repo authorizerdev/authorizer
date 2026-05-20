@@ -502,3 +502,55 @@ The v2 repo ships with a `Makefile` that wraps the most common development and b
 - **authorizer-react:** [github.com/authorizerdev/authorizer-react](https://github.com/authorizerdev/authorizer-react) (v2.0.0-rc.1, see CHANGELOG.md)
 - **Docs:** [docs.authorizer.dev](https://docs.authorizer.dev/) (to be updated for v2)
 
+---
+
+## Fine-Grained Authorization (FGA) — new in v2
+
+> v1 had no FGA. This section is a quick-start for the new feature, not a migration step. Skip it if you don't plan to use `required_permissions`.
+
+### Model
+
+v2 ships a Keycloak-inspired four-pillar authorization engine:
+
+| Concept    | Purpose                                                                 |
+| ---------- | ----------------------------------------------------------------------- |
+| Resource   | A noun you protect (`docs`, `billing`).                                 |
+| Scope      | An action on a resource (`read`, `write`).                              |
+| Policy     | A principal selector — by role, user ID, or attribute.                  |
+| Permission | Binds `(resource, scopes, policies, decision_strategy)` together.       |
+
+Authorization is **always enforcing**. A `required_permissions` check against an undefined or denied `(resource, scope)` returns `unauthorized` — there is no permissive "log but allow" mode.
+
+### Adoption pattern
+
+Three GraphQL operations accept an optional `required_permissions: [PermissionInput!]` field:
+
+- `session`
+- `validate_session`
+- `validate_jwt_token`
+
+Pre-existing callers that don't pass the field see no behavior change. **Define the policy graph (resources → scopes → policies → permissions) via the dashboard or admin GraphQL mutations before any caller starts sending `required_permissions`.** Otherwise the call returns `unauthorized`.
+
+### Observability
+
+Per-endpoint adoption + denial signal:
+
+```promql
+sum by (endpoint, outcome) (rate(authorizer_required_permissions_checks_total[5m]))
+```
+
+| `outcome`       | What it means                                                      | Operator action                                                |
+| --------------- | ------------------------------------------------------------------ | -------------------------------------------------------------- |
+| `granted`       | All requested permissions allowed.                                 | Healthy baseline.                                              |
+| `denied`        | One or more requested permissions denied.                          | Investigate policy gap or attacker probe.                      |
+| `not_requested` | Caller omitted `required_permissions`.                             | Track adoption rate per endpoint.                              |
+| `error`         | `CheckPermission` errored (storage / validation failure).          | **Alert.** Should sit at zero — non-zero means infra problem.  |
+
+### Startup probe
+
+If the server boots with zero permissions configured, you'll see a single warn line:
+
+```
+authz: 0 permissions configured — all authorization checks will DENY. Seed permissions via the dashboard or admin GraphQL mutations.
+```
+

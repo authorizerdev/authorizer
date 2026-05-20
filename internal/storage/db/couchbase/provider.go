@@ -243,5 +243,37 @@ func getIndex(scopeName string) map[string][]string {
 	auditLogIndex3 := fmt.Sprintf("CREATE INDEX AuditLogTimestampIndex ON %s.%s(timestamp)", scopeName, schemas.Collections.AuditLog)
 	indices[schemas.Collections.AuditLog] = []string{auditLogIndex1, auditLogIndex2, auditLogIndex3}
 
+	// Resource index
+	resourceIndex1 := fmt.Sprintf("CREATE INDEX ResourceNameIndex ON %s.%s(name)", scopeName, schemas.Collections.Resource)
+	indices[schemas.Collections.Resource] = []string{resourceIndex1}
+
+	// Scope index
+	scopeIndex1 := fmt.Sprintf("CREATE INDEX ScopeNameIndex ON %s.%s(name)", scopeName, schemas.Collections.Scope)
+	indices[schemas.Collections.Scope] = []string{scopeIndex1}
+
+	// Policy index
+	policyIndex1 := fmt.Sprintf("CREATE INDEX PolicyNameIndex ON %s.%s(name)", scopeName, schemas.Collections.Policy)
+	policyIndex2 := fmt.Sprintf("CREATE INDEX PolicyTypeIndex ON %s.%s(type)", scopeName, schemas.Collections.Policy)
+	indices[schemas.Collections.Policy] = []string{policyIndex1, policyIndex2}
+
+	// PolicyTarget index
+	policyTargetIndex1 := fmt.Sprintf("CREATE INDEX PolicyTargetPolicyIdIndex ON %s.%s(policy_id)", scopeName, schemas.Collections.PolicyTarget)
+	indices[schemas.Collections.PolicyTarget] = []string{policyTargetIndex1}
+
+	// Permission index
+	permissionIndex1 := fmt.Sprintf("CREATE INDEX PermissionNameIndex ON %s.%s(name)", scopeName, schemas.Collections.Permission)
+	permissionIndex2 := fmt.Sprintf("CREATE INDEX PermissionResourceIdIndex ON %s.%s(resource_id)", scopeName, schemas.Collections.Permission)
+	indices[schemas.Collections.Permission] = []string{permissionIndex1, permissionIndex2}
+
+	// PermissionScope index
+	permissionScopeIndex1 := fmt.Sprintf("CREATE INDEX PermissionScopePermissionIdIndex ON %s.%s(permission_id)", scopeName, schemas.Collections.PermissionScope)
+	permissionScopeIndex2 := fmt.Sprintf("CREATE INDEX PermissionScopeScopeIdIndex ON %s.%s(scope_id)", scopeName, schemas.Collections.PermissionScope)
+	indices[schemas.Collections.PermissionScope] = []string{permissionScopeIndex1, permissionScopeIndex2}
+
+	// PermissionPolicy index
+	permissionPolicyIndex1 := fmt.Sprintf("CREATE INDEX PermissionPolicyPermissionIdIndex ON %s.%s(permission_id)", scopeName, schemas.Collections.PermissionPolicy)
+	permissionPolicyIndex2 := fmt.Sprintf("CREATE INDEX PermissionPolicyPolicyIdIndex ON %s.%s(policy_id)", scopeName, schemas.Collections.PermissionPolicy)
+	indices[schemas.Collections.PermissionPolicy] = []string{permissionPolicyIndex1, permissionPolicyIndex2}
+
 	return indices
 }

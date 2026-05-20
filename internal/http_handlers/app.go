@@ -60,6 +60,9 @@ func (h *httpProvider) AppHandler() gin.HandlerFunc {
 
 		orgName := h.Config.OrganizationName
 		orgLogo := h.Config.OrganizationLogo
+		// Always revalidate the SPA shell so cached pointers to obsolete
+		// content-hashed chunks don't survive a deploy.
+		c.Header("Cache-Control", "no-cache, must-revalidate")
 		c.HTML(http.StatusOK, "app.tmpl", gin.H{
 			"data": map[string]interface{}{
 				"authorizerURL":    hostname,
