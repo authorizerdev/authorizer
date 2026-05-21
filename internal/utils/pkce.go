@@ -1,11 +1,11 @@
 package utils
 
 import (
+	"crypto/rand"
 	"crypto/sha256"
 	b64 "encoding/base64"
-	"math/rand"
+	"fmt"
 	"strings"
-	"time"
 )
 
 const (
@@ -14,19 +14,17 @@ const (
 
 // GenerateCodeChallenge creates PKCE-Code-Challenge
 // and returns the verifier and challenge
-func GenerateCodeChallenge() (string, string) {
-	// Generate Verifier
-	randGenerator := rand.New(rand.NewSource(time.Now().UnixNano()))
+func GenerateCodeChallenge() (verifier string, challenge string, err error) {
 	randomBytes := make([]byte, length)
-	for i := 0; i < length; i++ {
-		randomBytes[i] = byte(randGenerator.Intn(255))
+	if _, err = rand.Read(randomBytes); err != nil {
+		return "", "", fmt.Errorf("failed to generate PKCE verifier: %w", err)
 	}
-	verifier := strings.Trim(b64.URLEncoding.EncodeToString(randomBytes), "=")
+	verifier = strings.Trim(b64.URLEncoding.EncodeToString(randomBytes), "=")
 
 	// Generate Challenge
 	rawChallenge := sha256.New()
 	rawChallenge.Write([]byte(verifier))
-	challenge := strings.Trim(b64.URLEncoding.EncodeToString(rawChallenge.Sum(nil)), "=")
+	challenge = strings.Trim(b64.URLEncoding.EncodeToString(rawChallenge.Sum(nil)), "=")
 
-	return verifier, challenge
+	return verifier, challenge, nil
 }

@@ -1,0 +1,36 @@
+---
+name: govulncheck
+
+on:
+  pull_request:
+    paths:
+      - go.mod
+      - go.sum
+      - "**/*.go"
+      - .github/workflows/govulncheck.yml
+  push:
+    branches: [main]
+  schedule:
+    - cron: "33 2 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  govulncheck:
+    name: Run govulncheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - uses: golang/govulncheck-action@v1
+        with:
+          go-version-file: go.mod
+          package: ./...

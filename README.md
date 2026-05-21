@@ -1,20 +1,54 @@
 
+<p align="center">
+  <img src="https://authorizer.dev/images/logo.png" alt="Authorizer" width="200" />
+</p>
 
-# Authorizer
+<h1 align="center">Authorizer</h1>
 
-**Authorizer** is an open-source authentication and authorization solution for your applications. Bring your database and have complete control over the user information. You can self-host authorizer instances and connect to any database (Currently supports 11+ databases including [Postgres](https://www.postgresql.org/), [MySQL](https://www.mysql.com/), [SQLite](https://www.sqlite.org/index.html), [SQLServer](https://www.microsoft.com/en-us/sql-server/), [YugaByte](https://www.yugabyte.com/),  [MariaDB](https://mariadb.org/), [PlanetScale](https://planetscale.com/), [CassandraDB](https://cassandra.apache.org/_/index.html), [ScyllaDB](https://www.scylladb.com/), [MongoDB](https://mongodb.com/), [ArangoDB](https://www.arangodb.com/)).
+<p align="center">
+  Open-source authentication and authorization for your applications.<br />
+  Bring your own database and stay in control of user data.
+</p>
 
-For more information check:
+<p align="center">
+  <a href="https://docs.authorizer.dev/">Documentation</a> ·
+  <a href="docs/oauth2-oidc-endpoints.md">OAuth 2.0 / OIDC</a> ·
+  <a href="MIGRATION.md">v1 → v2 migration</a> ·
+  <a href="CONTRIBUTING.md">Contributing</a> ·
+  <a href="https://discord.gg/Zv2D5h6kkK">Discord</a>
+</p>
 
-- [OAuth 2.0 / OIDC Endpoint Reference](docs/oauth2-oidc-endpoints.md) – standards-compliant endpoint docs with examples
-- [Migration Guide (v1 → v2)](MIGRATION.md) – configuration changes, CLI flags, deprecated APIs
-- [Docs (v1 – legacy)](http://docs.authorizer.dev/)
-- [Discord Community](https://discord.gg/Zv2D5h6kkK)
-- [Contributing Guide](CONTRIBUTING.md)
+<p align="center">
+  <a href="https://github.com/authorizerdev/authorizer/actions/workflows/ci.yml"><img src="https://github.com/authorizerdev/authorizer/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <a href="https://quay.io/repository/authorizerdev/authorizer"><img src="https://quay.io/repository/authorizerdev/authorizer/status" alt="Docker Repository on Quay" /></a>
+  <a href="https://hub.docker.com/r/lakhansamani/authorizer"><img src="https://img.shields.io/docker/pulls/lakhansamani/authorizer.svg?maxAge=604800" alt="Docker Pulls" /></a>
+  <a href="https://goreportcard.com/report/github.com/authorizerdev/authorizer"><img src="https://goreportcard.com/badge/github.com/authorizerdev/authorizer" alt="Go Report Card" /></a>
+  <a href="https://bestpractices.coreinfrastructure.org/"><img src="https://img.shields.io/badge/CII%20Best%20Practices-enroll-blue" alt="CII Best Practices" /></a>
+  <a href="https://github.com/authorizerdev/authorizer/actions/workflows/govulncheck.yml"><img src="https://github.com/authorizerdev/authorizer/actions/workflows/govulncheck.yml/badge.svg?event=schedule" alt="govulncheck" /></a>
+  <a href="https://securityscorecards.dev/viewer/?uri=github.com/authorizerdev/authorizer"><img src="https://api.securityscorecards.dev/projects/github.com/authorizerdev/authorizer/badge" alt="OpenSSF Scorecard" /></a>
+  <a href="https://clomonitor.io/"><img src="https://img.shields.io/endpoint?url=https://clomonitor.io/api/projects/cncf/authorizer/badge&label=CLOMonitor" alt="CLOMonitor" /></a>
+  <a href="https://bugs.chromium.org/p/oss-fuzz/issues/list?sort=-opened&can=1&q=proj:authorizer"><img src="https://oss-fuzz-build-logs.storage.googleapis.com/badges/authorizer.svg" alt="Fuzzing Status" /></a>
+</p>
 
-> **v2 note:** Authorizer v2 uses **CLI arguments** for all configuration. The server does **not** read from `.env` or OS env. Pass config when starting the binary (e.g. `./authorizer --client-id=... --client-secret=...`). See [MIGRATION.md](MIGRATION.md).
+**Authorizer** is an open-source authentication and authorization server you can self-host. Connect any supported database (13+ backends including [Postgres](https://www.postgresql.org/), [MySQL](https://www.mysql.com/), [SQLite](https://www.sqlite.org/index.html), [SQL Server](https://www.microsoft.com/en-us/sql-server/), [YugaByte](https://www.yugabyte.com/), [MariaDB](https://mariadb.org/), [Cassandra](https://cassandra.apache.org/), [ScyllaDB](https://www.scylladb.com/), [MongoDB](https://mongodb.com/), [ArangoDB](https://www.arangodb.com/), [DynamoDB](https://aws.amazon.com/dynamodb/), and [Couchbase](https://www.couchbase.com/)) and run OAuth2/OIDC, social login, MFA, magic links, RBAC, webhooks, and email templates from one place.
 
-# Introduction
+> **v2 note:** Authorizer v2 uses **CLI arguments** for all configuration. The server does **not** read from `.env` or OS environment variables. Pass config when starting the binary (e.g. `./authorizer --client-id=... --client-secret=...`). See [MIGRATION.md](MIGRATION.md).
+
+## Quick start (local)
+
+Prerequisites: [Go](https://golang.org/dl/) ≥ 1.24 (see `go.mod`).
+
+```bash
+git clone https://github.com/authorizerdev/authorizer.git
+cd authorizer
+make dev
+```
+
+`make dev` runs the server with SQLite and development defaults (RS256 keys, sample client credentials). Open the URL printed in the logs (default port **8080**) and sign in with `--admin-secret` (`admin` in dev).
+
+For production builds, tests, and Docker, see [Getting Started](#getting-started) below.
+
+## Introduction
 
 
 
@@ -85,16 +119,12 @@ This guide helps you practice using Authorizer to evaluate it before you use it 
 
 #### Project Setup
 
-1. Fork the [authorizer](https://github.com/authorizerdev/authorizer) repository (**Skip this step if you have access to repo**)
-2. Clone repo: `git clone https://github.com/authorizerdev/authorizer.git` or use the forked url from step 1
-3. Change directory: `cd authorizer`
-4. Build the server binary: `make build` (or `go build -o build/authorizer .`)
-5. (Optional) Build the web app and dashboard: `make build-app` and `make build-dashboard`
-6. Run the server with CLI arguments:
-  ```bash
-   make dev
-  ```
-   Or run manually with all required flags:
+1. Fork the [authorizer](https://github.com/authorizerdev/authorizer) repository (**skip if you already have access**)
+2. Clone: `git clone https://github.com/authorizerdev/authorizer.git` (or your fork URL)
+3. `cd authorizer`
+4. **Fastest path:** `make dev` — SQLite, RS256 dev keys, sample OAuth client (see [Quick start](#quick-start-local))
+5. **Full build:** `make build` (or `go build -o build/authorizer .`); optionally `make build-app` and `make build-dashboard`
+6. **Custom flags** instead of `make dev`:
   ```bash
   ./build/authorizer \
     --database-type=sqlite \

@@ -1,19 +1,24 @@
 package utils
 
 import (
-	"math/rand"
-	"time"
+	"crypto/rand"
+	"fmt"
+	"math/big"
 )
 
 // GenerateTOTPRecoveryCode generates a random 16-character recovery code.
-func GenerateTOTPRecoveryCode() string {
+func GenerateTOTPRecoveryCode() (string, error) {
 	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	code := make([]byte, 16)
+	charSetLength := big.NewInt(int64(len(charset)))
 
-	rand.Seed(time.Now().UnixNano())
 	for i := range code {
-		code[i] = charset[rand.Intn(len(charset))]
+		index, err := rand.Int(rand.Reader, charSetLength)
+		if err != nil {
+			return "", fmt.Errorf("failed to generate secure recovery code: %w", err)
+		}
+		code[i] = charset[index.Int64()]
 	}
 
-	return string(code)
+	return string(code), nil
 }

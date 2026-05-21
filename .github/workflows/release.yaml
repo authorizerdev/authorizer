@@ -22,9 +22,24 @@ env:
   BUILDKIT_INLINE_CACHE: 1
 
 jobs:
+  test:
+    name: Go tests (SQLite)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Run tests
+        run: make test
+
   build:
     name: Build and push Docker image
     runs-on: ubuntu-latest
+    needs: test
     steps:
       - uses: actions/checkout@v4
       - name: Set up Docker Buildx
@@ -62,7 +77,7 @@ jobs:
   trivy-scan:
     name: Vulnerability scan (Trivy)
     runs-on: ubuntu-latest
-    needs: build
+    needs: [test, build]
     permissions:
       contents: read
       security-events: write

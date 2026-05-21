@@ -1,0 +1,29 @@
+---
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  release:
+    types: [created]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Go tests (SQLite)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run tests
+        run: make test
