@@ -309,17 +309,17 @@ func (r *queryResolver) AuditLogs(ctx context.Context, params *model.ListAuditLo
 
 // AuthzResources is the resolver for the _authz_resources field.
 func (r *queryResolver) AuthzResources(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzResources, error) {
-	panic(fmt.Errorf("not implemented: AuthzResources - _authz_resources"))
+	return r.GraphQLProvider.AuthzResources(ctx, params)
 }
 
 // AuthzScopes is the resolver for the _authz_scopes field.
 func (r *queryResolver) AuthzScopes(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzScopes, error) {
-	panic(fmt.Errorf("not implemented: AuthzScopes - _authz_scopes"))
+	return r.GraphQLProvider.AuthzScopes(ctx, params)
 }
 
 // AuthzPolicies is the resolver for the _authz_policies field.
 func (r *queryResolver) AuthzPolicies(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzPolicies, error) {
-	panic(fmt.Errorf("not implemented: AuthzPolicies - _authz_policies"))
+	return r.GraphQLProvider.AuthzPolicies(ctx, params)
 }
 
 // AuthzPermissions is the resolver for the _authz_permissions field.
