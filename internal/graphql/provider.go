@@ -13,6 +13,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/events"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/memory_store"
+	"github.com/authorizerdev/authorizer/internal/service"
 	"github.com/authorizerdev/authorizer/internal/sms"
 	"github.com/authorizerdev/authorizer/internal/storage"
 	"github.com/authorizerdev/authorizer/internal/token"
@@ -41,6 +42,9 @@ type Dependencies struct {
 	TokenProvider token.Provider
 	// AuthorizationProvider is used for fine-grained authorization checks
 	AuthorizationProvider authorization.Provider
+	// ServiceProvider hosts the transport-agnostic public-API operations.
+	// Resolvers for migrated ops (currently just SignUp) delegate here.
+	ServiceProvider service.Provider
 }
 
 // New constructs a new graphql provider with given arguments

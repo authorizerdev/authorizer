@@ -25,22 +25,46 @@ func ParseSameSite(value string) http.SameSite {
 	}
 }
 
-// SetSession sets the session cookie in the response
+// SetSession sets the session cookie in the response.
 func SetSession(gc *gin.Context, sessionID string, appCookieSecure bool, sameSite http.SameSite) {
-	secure := appCookieSecure
-	httpOnly := true
-	hostname := parsers.GetHost(gc)
+	for _, c := range BuildSessionCookies(parsers.GetHost(gc), sessionID, appCookieSecure, sameSite) {
+		gc.SetSameSite(c.SameSite)
+		gc.SetCookie(c.Name, c.Value, c.MaxAge, c.Path, c.Domain, c.Secure, c.HttpOnly)
+	}
+}
+
+// BuildSessionCookies returns the pair of session cookies (host-scoped and
+// domain-scoped) to set on the response. Transport-agnostic so non-gin
+// callers (the service layer, gRPC handlers) can produce them as side-effects.
+func BuildSessionCookies(hostname, sessionID string, appCookieSecure bool, sameSite http.SameSite) []*http.Cookie {
 	host, _ := parsers.GetHostParts(hostname)
 	domain := parsers.GetDomainName(hostname)
 	if domain != "localhost" {
 		domain = "." + domain
 	}
-
-	gc.SetSameSite(sameSite)
 	day := 60 * 60 * 24
-
-	gc.SetCookie(constants.AppCookieName+"_session", sessionID, day, "/", host, secure, httpOnly)
-	gc.SetCookie(constants.AppCookieName+"_session_domain", sessionID, day, "/", domain, secure, httpOnly)
+	return []*http.Cookie{
+		{
+			Name:     constants.AppCookieName + "_session",
+			Value:    sessionID,
+			MaxAge:   day,
+			Path:     "/",
+			Domain:   host,
+			Secure:   appCookieSecure,
+			HttpOnly: true,
+			SameSite: sameSite,
+		},
+		{
+			Name:     constants.AppCookieName + "_session_domain",
+			Value:    sessionID,
+			MaxAge:   day,
+			Path:     "/",
+			Domain:   domain,
+			Secure:   appCookieSecure,
+			HttpOnly: true,
+			SameSite: sameSite,
+		},
+	}
 }
 
 // DeleteSession sets session cookies to expire

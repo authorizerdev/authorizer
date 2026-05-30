@@ -1,17 +1,26 @@
 package parsers
 
 import (
+	"net/http"
 	"net/url"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 )
 
-// GetHost returns the authorizer host URL from the request context.
-// Priority: X-Authorizer-URL header, then scheme (X-Forwarded-Proto) + host (X-Forwarded-Host or Request.Host).
-// Headers are validated to prevent host header injection attacks.
+// GetHost returns the authorizer host URL from the gin request context.
+// Thin shim over GetHostFromRequest so non-gin transports (gRPC, plain HTTP)
+// can reuse the same host-derivation logic.
 func GetHost(c *gin.Context) string {
-	authorizerURL := strings.TrimSpace(c.Request.Header.Get("X-Authorizer-URL"))
+	return GetHostFromRequest(c.Request)
+}
+
+// GetHostFromRequest returns the authorizer host URL from a raw *http.Request.
+// Priority: X-Authorizer-URL header, then scheme (X-Forwarded-Proto) + host
+// (X-Forwarded-Host or Request.Host). Headers are validated to prevent host
+// header injection attacks.
+func GetHostFromRequest(r *http.Request) string {
+	authorizerURL := strings.TrimSpace(r.Header.Get("X-Authorizer-URL"))
 	if authorizerURL != "" {
 		if sanitized := sanitizeAuthorizerURL(authorizerURL); sanitized != "" {
 			return sanitized
@@ -19,13 +28,13 @@ func GetHost(c *gin.Context) string {
 		// Invalid header value — fall through to standard host detection
 	}
 
-	scheme := c.Request.Header.Get("X-Forwarded-Proto")
+	scheme := r.Header.Get("X-Forwarded-Proto")
 	if scheme != "https" {
 		scheme = "http"
 	}
-	host := sanitizeHost(c.Request.Header.Get("X-Forwarded-Host"))
+	host := sanitizeHost(r.Header.Get("X-Forwarded-Host"))
 	if host == "" {
-		host = sanitizeHost(c.Request.Host)
+		host = sanitizeHost(r.Host)
 	}
 	if host == "" {
 		host = "localhost"
@@ -131,6 +140,10 @@ func GetDomainName(uri string) string {
 
 // GetAppURL to get /app url if not configured by user
 func GetAppURL(gc *gin.Context) string {
-	envAppURL := GetHost(gc) + "/app"
-	return envAppURL
+	return GetAppURLFromRequest(gc.Request)
+}
+
+// GetAppURLFromRequest is the transport-agnostic form of GetAppURL.
+func GetAppURLFromRequest(r *http.Request) string {
+	return GetHostFromRequest(r) + "/app"
 }

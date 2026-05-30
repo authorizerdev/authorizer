@@ -10,33 +10,55 @@ import (
 	"github.com/authorizerdev/authorizer/internal/parsers"
 )
 
-// SetMfaSession sets the mfa session cookie in the response
+// SetMfaSession sets the mfa session cookie in the response.
 func SetMfaSession(gc *gin.Context, sessionID string, appCookieSecure bool) {
-	secure := appCookieSecure
-	httpOnly := true
-	hostname := parsers.GetHost(gc)
+	for _, c := range BuildMfaSessionCookies(parsers.GetHost(gc), sessionID, appCookieSecure) {
+		gc.SetSameSite(c.SameSite)
+		gc.SetCookie(c.Name, c.Value, c.MaxAge, c.Path, c.Domain, c.Secure, c.HttpOnly)
+	}
+}
+
+// BuildMfaSessionCookies returns the MFA session cookies (host-scoped and
+// domain-scoped) to set on the response. Transport-agnostic mirror of
+// SetMfaSession.
+//
+// SameSite policy mirrors the gin path: Lax when insecure (so cross-site UI
+// can still complete the flow), None when secure. See the SetMfaSession
+// comment for the historical reasoning and the configurability TODO.
+func BuildMfaSessionCookies(hostname, sessionID string, appCookieSecure bool) []*http.Cookie {
 	host, _ := parsers.GetHostParts(hostname)
 	domain := parsers.GetDomainName(hostname)
 	if domain != "localhost" {
 		domain = "." + domain
 	}
-
-	// Since app cookie can come from cross site it becomes important to set this in lax mode when insecure.
-	// Example person using custom UI on their app domain and making request to authorizer domain.
-	// For more information check:
-	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie/SameSite
-	// https://github.com/gin-gonic/gin/blob/master/context.go#L86
-	// TODO add ability to configure sameSite (none / lax / strict) via config
+	sameSite := http.SameSiteNoneMode
 	if !appCookieSecure {
-		gc.SetSameSite(http.SameSiteLaxMode)
-	} else {
-		gc.SetSameSite(http.SameSiteNoneMode)
+		sameSite = http.SameSiteLaxMode
 	}
 	// TODO allow configuring cookie max-age via config
 	age := 60
-
-	gc.SetCookie(constants.MfaCookieName+"_session", sessionID, age, "/", host, secure, httpOnly)
-	gc.SetCookie(constants.MfaCookieName+"_session_domain", sessionID, age, "/", domain, secure, httpOnly)
+	return []*http.Cookie{
+		{
+			Name:     constants.MfaCookieName + "_session",
+			Value:    sessionID,
+			MaxAge:   age,
+			Path:     "/",
+			Domain:   host,
+			Secure:   appCookieSecure,
+			HttpOnly: true,
+			SameSite: sameSite,
+		},
+		{
+			Name:     constants.MfaCookieName + "_session_domain",
+			Value:    sessionID,
+			MaxAge:   age,
+			Path:     "/",
+			Domain:   domain,
+			Secure:   appCookieSecure,
+			HttpOnly: true,
+			SameSite: sameSite,
+		},
+	}
 }
 
 // DeleteMfaSession deletes the mfa session cookies to expire

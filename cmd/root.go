@@ -27,6 +27,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/oauth"
 	"github.com/authorizerdev/authorizer/internal/rate_limit"
 	"github.com/authorizerdev/authorizer/internal/server"
+	"github.com/authorizerdev/authorizer/internal/service"
 	"github.com/authorizerdev/authorizer/internal/sms"
 	"github.com/authorizerdev/authorizer/internal/storage"
 	"github.com/authorizerdev/authorizer/internal/token"
@@ -530,6 +531,23 @@ func runRoot(c *cobra.Command, args []string) {
 		StorageProvider: storageProvider,
 	})
 
+	// Transport-agnostic service layer that hosts public-API operations
+	// (currently SignUp; more migrate over in subsequent phases). GraphQL,
+	// gRPC, and REST surfaces all delegate to this.
+	serviceProvider, err := service.New(&rootArgs.config, &service.Dependencies{
+		Log:                 &log,
+		AuditProvider:       auditProvider,
+		EmailProvider:       emailProvider,
+		EventsProvider:      eventsProvider,
+		MemoryStoreProvider: memoryStoreProvider,
+		SMSProvider:         smsProvider,
+		StorageProvider:     storageProvider,
+		TokenProvider:       tokenProvider,
+	})
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to create service provider")
+	}
+
 	httpProvider, err := http_handlers.New(&rootArgs.config, &http_handlers.Dependencies{
 		Log:                   &log,
 		AuditProvider:         auditProvider,
@@ -543,6 +561,7 @@ func runRoot(c *cobra.Command, args []string) {
 		OAuthProvider:         oauthProvider,
 		RateLimitProvider:     rateLimitProvider,
 		AuthorizationProvider: authorizationProvider,
+		ServiceProvider:       serviceProvider,
 	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create http provider")
