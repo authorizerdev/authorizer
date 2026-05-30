@@ -82,28 +82,18 @@ func Scan(srv *grpc.Server) ([]ToolBinding, error) {
 }
 
 // mcpToolFromMethod reads the (authorizer.common.v1.mcp_tool) option off a
-// method descriptor. Returns nil when the option is absent.
+// method descriptor. Returns nil when the option is absent or unset.
 func mcpToolFromMethod(m protoreflect.MethodDescriptor) *commonv1.McpTool {
-	opts, ok := m.Options().(*descriptorOptionsCarrier)
-	_ = opts
-	_ = ok
-	// proto.GetExtension panics if Options is nil; guard explicitly.
-	mo := m.Options()
-	if mo == nil {
+	opts := m.Options()
+	if opts == nil {
 		return nil
 	}
-	v := proto.GetExtension(mo, commonv1.E_McpTool)
-	t, ok := v.(*commonv1.McpTool)
+	t, ok := proto.GetExtension(opts, commonv1.E_McpTool).(*commonv1.McpTool)
 	if !ok || t == nil {
 		return nil
 	}
 	return t
 }
-
-// descriptorOptionsCarrier is a workaround alias so we can take the address
-// of an interface result without violating addressability rules in callers.
-// Kept unexported; only the type identity matters.
-type descriptorOptionsCarrier struct{ proto.Message }
 
 // camelToSnake converts MixedCase / camelCase to snake_case. ASCII only;
 // proto method names never contain non-ASCII.

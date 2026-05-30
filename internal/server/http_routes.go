@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"html/template"
 	"net/http"
-	"os"
 	"path"
 	"strings"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/authorizerdev/authorizer/gen/openapi"
 )
 
 // spaBuildCacheMiddleware sets cache headers for SPA build assets:
@@ -88,16 +89,11 @@ func (s *server) NewRouter() *gin.Engine {
 		router.Any("/v1/*path", gw)
 
 		// OpenAPI spec — generated alongside the gRPC stubs by buf and
-		// served verbatim. Path is intentionally separate from the gateway
-		// mux so it doesn't fight a /v1/openapi.json gateway route (none
-		// exists today, but defending against future collisions is cheap).
+		// embedded into the binary (so it works regardless of cwd: tests,
+		// containers, etc.). Path is intentionally separate from the
+		// gateway mux so it doesn't fight a /v1/openapi.json gateway route.
 		router.GET("/openapi.json", func(c *gin.Context) {
-			data, err := os.ReadFile("gen/openapi/authorizer.swagger.json")
-			if err != nil {
-				c.AbortWithStatus(http.StatusNotFound)
-				return
-			}
-			c.Data(http.StatusOK, "application/json", data)
+			c.Data(http.StatusOK, "application/json", openapi.Spec())
 		})
 	}
 

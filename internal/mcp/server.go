@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/rs/zerolog"
@@ -108,34 +109,59 @@ func registerTool(log *zerolog.Logger, srv *mcp.Server, conn *grpc.ClientConn, b
 	srv.AddTool(tool, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		// Build a dynamic proto.Message for the request, then unmarshal JSON.
 		reqMsg := dynamicpb.NewMessage(b.InputDescriptor)
-		if len(req.Params.Arguments) > 0 && string(req.Params.Arguments) != "null" {
+		if len(req.Params.Arguments) > 0 && !isJSONNull(req.Params.Arguments) {
 			if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(req.Params.Arguments, reqMsg); err != nil {
-				return nil, fmt.Errorf("decode arguments: %w", err)
+				// Argument decode failures surface as tool errors (not
+				// protocol errors) so the LLM gets actionable text.
+				return errorResult("invalid arguments: " + err.Error()), nil
 			}
 		}
 
 		respMsg := dynamicpb.NewMessage(b.OutputDescriptor)
 		if err := conn.Invoke(ctx, b.FullMethod, reqMsg, respMsg); err != nil {
 			log.Debug().Err(err).Str("tool", b.Name).Str("method", b.FullMethod).Msg("MCP tool invocation failed")
-			return nil, err
+			// gRPC errors (Unimplemented, PermissionDenied, NotFound, ...)
+			// become CallToolResult{IsError: true} with the gRPC status
+			// message as the content. The MCP host shows this to the LLM
+			// in a way that lets it react / try a different tool, rather
+			// than a low-level JSON-RPC failure that would just abort.
+			return errorResult(err.Error()), nil
 		}
 
 		respJSON, err := (protojson.MarshalOptions{UseProtoNames: true, EmitUnpopulated: true}).Marshal(respMsg)
 		if err != nil {
-			return nil, fmt.Errorf("encode response: %w", err)
+			return errorResult("encode response: " + err.Error()), nil
 		}
 		// Surface as both Content (text-shaped) and StructuredContent so MCP
 		// clients that prefer either get something they can consume.
 		var structured any
 		_ = json.Unmarshal(respJSON, &structured)
 		return &mcp.CallToolResult{
-			Content: []mcp.Content{&mcp.TextContent{Text: string(respJSON)}},
+			Content:           []mcp.Content{&mcp.TextContent{Text: string(respJSON)}},
 			StructuredContent: structured,
 		}, nil
 	})
 }
 
 func ptrTrue() *bool { v := true; return &v }
+
+// errorResult wraps a message as a CallToolResult with IsError set. This is
+// the MCP-spec way to tell the host that the tool *ran* but produced a
+// recoverable error (vs the JSON-RPC-level error path which signals a
+// protocol/transport failure).
+func errorResult(msg string) *mcp.CallToolResult {
+	return &mcp.CallToolResult{
+		IsError: true,
+		Content: []mcp.Content{&mcp.TextContent{Text: msg}},
+	}
+}
+
+// isJSONNull returns true when the raw JSON encodes a literal `null`, with
+// any surrounding whitespace tolerated.
+func isJSONNull(raw json.RawMessage) bool {
+	s := strings.TrimSpace(string(raw))
+	return s == "null"
+}
 
 // compile-time assertion that ToolBinding messages descriptors implement what we need.
 var _ proto.Message = (*dynamicpb.Message)(nil)
