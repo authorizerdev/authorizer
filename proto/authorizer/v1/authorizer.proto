@@ -20,11 +20,11 @@ syntax = "proto3";
 
 package authorizer.v1;
 
-import "buf/validate/validate.proto";
-import "google/api/annotations.proto";
 import "authorizer/common/v1/annotations.proto";
 import "authorizer/common/v1/types.proto";
 import "authorizer/v1/types.proto";
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
 
 service AuthorizerService {
   // === Identity creation & authentication ===
@@ -38,7 +38,7 @@ service AuthorizerService {
     };
     option (authorizer.common.v1.public) = true;
     option (authorizer.common.v1.audit_log) = true;
-    option (authorizer.common.v1.mcp_tool) = {exposed: false};  // creds
+    option (authorizer.common.v1.mcp_tool) = {exposed: false}; // creds
   }
 
   // Login authenticates with email/phone + password.
@@ -49,7 +49,7 @@ service AuthorizerService {
     };
     option (authorizer.common.v1.public) = true;
     option (authorizer.common.v1.audit_log) = true;
-    option (authorizer.common.v1.mcp_tool) = {exposed: false};  // creds
+    option (authorizer.common.v1.mcp_tool) = {exposed: false}; // creds
   }
 
   // Logout ends the caller's current session.
@@ -220,8 +220,14 @@ service AuthorizerService {
 message SignupRequest {
   string email = 1 [(buf.validate.field).string = {max_len: 320}];
   string phone_number = 2 [(buf.validate.field).string.max_len = 32];
-  string password = 3 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
-  string confirm_password = 4 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
+  string password = 3 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 128
+  }];
+  string confirm_password = 4 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 128
+  }];
   string given_name = 5;
   string family_name = 6;
   string middle_name = 7;
@@ -243,7 +249,10 @@ message SignupResponse {
 message LoginRequest {
   string email = 1 [(buf.validate.field).string.max_len = 320];
   string phone_number = 2 [(buf.validate.field).string.max_len = 32];
-  string password = 3 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
+  string password = 3 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 128
+  }];
   repeated string roles = 4;
   repeated string scope = 5;
   string state = 6;
@@ -289,7 +298,10 @@ message VerifyOtpRequest {
   // Exactly one of email / phone_number is required.
   string email = 1 [(buf.validate.field).string.max_len = 320];
   string phone_number = 2 [(buf.validate.field).string.max_len = 32];
-  string otp = 3 [(buf.validate.field).string = {min_len: 1, max_len: 16}];
+  string otp = 3 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 16
+  }];
   bool is_totp = 4;
   string state = 5;
 }
@@ -323,8 +335,14 @@ message ResetPasswordRequest {
   string token = 1;
   string otp = 2;
   string phone_number = 3 [(buf.validate.field).string.max_len = 32];
-  string password = 4 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
-  string confirm_password = 5 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
+  string password = 4 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 128
+  }];
+  string confirm_password = 5 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 128
+  }];
 }
 message ResetPasswordResponse {
   string message = 1;

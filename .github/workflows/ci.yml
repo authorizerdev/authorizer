@@ -42,7 +42,10 @@ jobs:
         with:
           input: proto
           lint: true
-          format: false
+          # `format: true` makes the action run `buf format -d --exit-code`,
+          # failing the job on any unformatted .proto. Catches drift before
+          # generated code can diverge.
+          format: true
           # Only run breaking on PRs (push to main has nothing to diff against).
           breaking: ${{ github.event_name == 'pull_request' }}
           breaking_against: 'https://github.com/${{ github.repository }}.git#branch=main,subdir=proto'

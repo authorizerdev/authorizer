@@ -16,7 +16,10 @@ message PaginationRequest {
   int64 page = 1 [(buf.validate.field).int64 = {gte: 0}];
 
   // Page size. Server enforces an upper bound (typically 100). Default 10.
-  int64 limit = 2 [(buf.validate.field).int64 = {gte: 0, lte: 1000}];
+  int64 limit = 2 [(buf.validate.field).int64 = {
+    gte: 0
+    lte: 1000
+  }];
 
   // Opaque cursor returned by the previous List call's `next_page_token`.
   // Preferred for new clients (AIP-158). When set, `page` is ignored.
