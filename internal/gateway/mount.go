@@ -20,12 +20,7 @@ import (
 	"google.golang.org/grpc/test/bufconn"
 	"google.golang.org/protobuf/encoding/protojson"
 
-	authzv1 "github.com/authorizerdev/authorizer/gen/go/authorizer/authz/v1"
-	metav1 "github.com/authorizerdev/authorizer/gen/go/authorizer/meta/v1"
-	sessionv1 "github.com/authorizerdev/authorizer/gen/go/authorizer/session/v1"
-	tokenv1 "github.com/authorizerdev/authorizer/gen/go/authorizer/token/v1"
-	userv1 "github.com/authorizerdev/authorizer/gen/go/authorizer/user/v1"
-	verificationv1 "github.com/authorizerdev/authorizer/gen/go/authorizer/verification/v1"
+	authorizerv1 "github.com/authorizerdev/authorizer/gen/go/authorizer/v1"
 )
 
 // bufconn size; large enough that in-process gateway calls never block.
@@ -83,21 +78,7 @@ func Handler(ctx context.Context, grpcSrv *grpc.Server) (http.Handler, func(), e
 }
 
 func registerAll(ctx context.Context, mux *runtime.ServeMux, conn *grpc.ClientConn) error {
-	registrars := []func(context.Context, *runtime.ServeMux, *grpc.ClientConn) error{
-		metav1.RegisterMetaServiceHandler,
-		userv1.RegisterUserServiceHandler,
-		sessionv1.RegisterSessionServiceHandler,
-		sessionv1.RegisterMagicLinkServiceHandler,
-		verificationv1.RegisterEmailVerificationServiceHandler,
-		verificationv1.RegisterPasswordResetServiceHandler,
-		verificationv1.RegisterOtpChallengeServiceHandler,
-		tokenv1.RegisterTokenServiceHandler,
-		authzv1.RegisterAuthzServiceHandler,
-	}
-	for _, fn := range registrars {
-		if err := fn(ctx, mux, conn); err != nil {
-			return err
-		}
-	}
-	return nil
+	// Single Authorizer service. As more services land (admin-side ones
+	// that today stay GraphQL-only), add their registrar here.
+	return authorizerv1.RegisterAuthorizerHandler(ctx, mux, conn)
 }

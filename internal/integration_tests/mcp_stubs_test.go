@@ -44,14 +44,13 @@ func TestMCPStubReturnsError(t *testing.T) {
 	require.NoError(t, err)
 	defer clientSession.Close()
 
-	// list_my_permissions is exposed via the proto annotation but its
-	// AuthzService.ListMyPermissions handler is a stub returning
-	// codes.Unimplemented. The MCP server must surface this as a
-	// CallToolResult{IsError:true} (tool-level error) rather than a
-	// JSON-RPC protocol error — so the LLM gets actionable text and can
-	// react / try a different tool.
+	// permissions is exposed via the proto annotation but its
+	// Authorizer.Permissions handler is a stub returning codes.Unimplemented.
+	// The MCP server must surface this as a CallToolResult{IsError:true}
+	// (tool-level error) rather than a JSON-RPC protocol error — so the
+	// LLM gets actionable text and can react / try a different tool.
 	res, err := clientSession.CallTool(ctx, &mcp.CallToolParams{
-		Name:      "list_my_permissions",
+		Name:      "permissions",
 		Arguments: map[string]any{},
 	})
 	require.NoError(t, err, "tool execution errors must NOT surface as protocol errors")

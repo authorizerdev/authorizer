@@ -14,12 +14,12 @@ import (
 	"github.com/authorizerdev/authorizer/internal/grpcsrv"
 	"github.com/authorizerdev/authorizer/internal/service"
 
-	metav1 "github.com/authorizerdev/authorizer/gen/go/authorizer/meta/v1"
+	authorizerv1 "github.com/authorizerdev/authorizer/gen/go/authorizer/v1"
 )
 
-// TestGRPCMeta exercises MetaService.GetMeta end-to-end over a bufconn
-// in-process gRPC channel. Validates the Phase 2 vertical slice: proto →
-// handler → service.Meta → response projection.
+// TestGRPCMeta exercises Authorizer.Meta end-to-end over a bufconn
+// in-process gRPC channel. Validates the consolidated single-service
+// design: proto → handler → service.Meta → response projection.
 func TestGRPCMeta(t *testing.T) {
 	cfg := getTestConfig()
 	cfg.ClientID = "test-client"
@@ -49,9 +49,10 @@ func TestGRPCMeta(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = conn.Close() })
 
-	client := metav1.NewMetaServiceClient(conn)
-	resp, err := client.GetMeta(context.Background(), &metav1.GetMetaRequest{})
+	client := authorizerv1.NewAuthorizerClient(conn)
+	resp, err := client.Meta(context.Background(), &authorizerv1.MetaRequest{})
 	require.NoError(t, err)
-	require.Equal(t, "test-client", resp.ClientId)
-	require.NotEmpty(t, resp.Version)
+	require.NotNil(t, resp.Meta)
+	require.Equal(t, "test-client", resp.Meta.ClientId)
+	require.NotEmpty(t, resp.Meta.Version)
 }

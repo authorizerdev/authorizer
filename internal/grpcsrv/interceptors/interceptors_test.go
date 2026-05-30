@@ -13,8 +13,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	metav1 "github.com/authorizerdev/authorizer/gen/go/authorizer/meta/v1"
-	userv1 "github.com/authorizerdev/authorizer/gen/go/authorizer/user/v1"
+	authorizerv1 "github.com/authorizerdev/authorizer/gen/go/authorizer/v1"
 )
 
 // info builds a *grpc.UnaryServerInfo for a fake RPC. The full-method name is
@@ -91,15 +90,10 @@ func TestValidate_RejectsBadRequest(t *testing.T) {
 	mw, err := Validate()
 	require.NoError(t, err)
 
-	// CreateUserRequest enforces email format via buf.validate.field on the email
-	// field — sending an invalid email should fail the interceptor before any
-	// handler runs.
-	req := &userv1.CreateUserRequest{
-		Email:           "not-an-email",
-		Password:        "x",
-		ConfirmPassword: "x",
-	}
-	_, err = mw(context.Background(), req, info("/svc/CreateUser"), func(_ context.Context, _ any) (any, error) {
+	// RevokeRequest enforces refresh_token min_len=1 via buf.validate.field
+	// — an empty string should fail the interceptor before any handler runs.
+	req := &authorizerv1.RevokeRequest{RefreshToken: ""}
+	_, err = mw(context.Background(), req, info("/authorizer.v1.Authorizer/Revoke"), func(_ context.Context, _ any) (any, error) {
 		t.Fatal("handler must NOT run for an invalid request")
 		return nil, nil
 	})
@@ -112,9 +106,9 @@ func TestValidate_AllowsValidRequest(t *testing.T) {
 	mw, err := Validate()
 	require.NoError(t, err)
 	called := false
-	_, err = mw(context.Background(), &metav1.GetMetaRequest{}, info("/svc/GetMeta"), func(_ context.Context, _ any) (any, error) {
+	_, err = mw(context.Background(), &authorizerv1.MetaRequest{}, info("/authorizer.v1.Authorizer/Meta"), func(_ context.Context, _ any) (any, error) {
 		called = true
-		return &metav1.GetMetaResponse{}, nil
+		return &authorizerv1.MetaResponse{}, nil
 	})
 	require.NoError(t, err)
 	assert.True(t, called, "valid request must reach the handler")

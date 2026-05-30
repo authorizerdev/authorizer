@@ -19,12 +19,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/grpcsrv/interceptors"
 	"github.com/authorizerdev/authorizer/internal/service"
 
-	authzv1 "github.com/authorizerdev/authorizer/gen/go/authorizer/authz/v1"
-	metav1 "github.com/authorizerdev/authorizer/gen/go/authorizer/meta/v1"
-	sessionv1 "github.com/authorizerdev/authorizer/gen/go/authorizer/session/v1"
-	tokenv1 "github.com/authorizerdev/authorizer/gen/go/authorizer/token/v1"
-	userv1 "github.com/authorizerdev/authorizer/gen/go/authorizer/user/v1"
-	verificationv1 "github.com/authorizerdev/authorizer/gen/go/authorizer/verification/v1"
+	authorizerv1 "github.com/authorizerdev/authorizer/gen/go/authorizer/v1"
 )
 
 // Dependencies is the minimum set the gRPC server needs.
@@ -58,18 +53,11 @@ func New(addr string, deps *Dependencies) (*Server, error) {
 		),
 	)
 
-	// Register every service. Real implementations override the stub's
-	// UnimplementedXServer; stubs return codes.Unimplemented until their
-	// service migrates from internal/graphql in a follow-up PR.
-	metav1.RegisterMetaServiceServer(srv, &handlers.MetaHandler{Service: deps.ServiceProvider})
-	userv1.RegisterUserServiceServer(srv, &handlers.UserHandler{Service: deps.ServiceProvider})
-	sessionv1.RegisterSessionServiceServer(srv, &handlers.SessionHandler{Service: deps.ServiceProvider})
-	sessionv1.RegisterMagicLinkServiceServer(srv, &handlers.MagicLinkHandler{Service: deps.ServiceProvider})
-	verificationv1.RegisterEmailVerificationServiceServer(srv, &handlers.EmailVerificationHandler{Service: deps.ServiceProvider})
-	verificationv1.RegisterPasswordResetServiceServer(srv, &handlers.PasswordResetHandler{Service: deps.ServiceProvider})
-	verificationv1.RegisterOtpChallengeServiceServer(srv, &handlers.OtpChallengeHandler{Service: deps.ServiceProvider})
-	tokenv1.RegisterTokenServiceServer(srv, &handlers.TokenHandler{Service: deps.ServiceProvider})
-	authzv1.RegisterAuthzServiceServer(srv, &handlers.AuthzHandler{Service: deps.ServiceProvider})
+	// Register the single Authorizer service. AuthorizerHandler embeds
+	// UnimplementedAuthorizerServer, so any RPC whose method has not yet
+	// been migrated returns codes.Unimplemented. Migrated methods (today:
+	// Meta) override the unimplemented stubs.
+	authorizerv1.RegisterAuthorizerServer(srv, &handlers.AuthorizerHandler{Service: deps.ServiceProvider})
 
 	// gRPC health checking protocol (used by k8s grpc-probe and similar).
 	hs := health.NewServer()

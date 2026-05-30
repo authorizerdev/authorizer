@@ -6,31 +6,7 @@
   },
   "tags": [
     {
-      "name": "AuthzService"
-    },
-    {
-      "name": "MetaService"
-    },
-    {
-      "name": "MagicLinkService"
-    },
-    {
-      "name": "SessionService"
-    },
-    {
-      "name": "TokenService"
-    },
-    {
-      "name": "UserService"
-    },
-    {
-      "name": "EmailVerificationService"
-    },
-    {
-      "name": "OtpChallengeService"
-    },
-    {
-      "name": "PasswordResetService"
+      "name": "Authorizer"
     }
   ],
   "consumes": [
@@ -40,15 +16,15 @@
     "application/json"
   ],
   "paths": {
-    "/v1/email-verifications": {
+    "/v1/deactivate_account": {
       "post": {
-        "summary": "CreateEmailVerification (re)sends the verification email for an\nunverified address. Returns 201; idempotent within a short window.",
-        "operationId": "EmailVerificationService_CreateEmailVerification",
+        "summary": "DeactivateAccount soft-deletes the caller's account and revokes all\nrefresh tokens as a side effect. OAuth has no concept of account\ndeactivation; this is the typed equivalent of SCIM PATCH active=false.",
+        "operationId": "Authorizer_DeactivateAccount",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1CreateEmailVerificationResponse"
+              "$ref": "#/definitions/v1DeactivateAccountResponse"
             }
           },
           "default": {
@@ -64,24 +40,23 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/v1CreateEmailVerificationRequest"
+              "$ref": "#/definitions/v1DeactivateAccountRequest"
             }
           }
         ],
         "tags": [
-          "EmailVerificationService"
+          "Authorizer"
         ]
       }
     },
-    "/v1/email-verifications/{token}": {
-      "put": {
-        "summary": "ConfirmEmailVerification marks the verification complete. Returns a\nSession when the original signup was a self-sign-up flow (so the user\nis logged in immediately); otherwise returns the empty Session.",
-        "operationId": "EmailVerificationService_ConfirmEmailVerification",
+    "/v1/forgot_password": {
+      "post": {
+        "operationId": "Authorizer_ForgotPassword",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1ConfirmEmailVerificationResponse"
+              "$ref": "#/definitions/v1ForgotPasswordResponse"
             }
           },
           "default": {
@@ -93,34 +68,28 @@
         },
         "parameters": [
           {
-            "name": "token",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          },
-          {
             "name": "body",
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/EmailVerificationServiceConfirmEmailVerificationBody"
+              "$ref": "#/definitions/v1ForgotPasswordRequest"
             }
           }
         ],
         "tags": [
-          "EmailVerificationService"
+          "Authorizer"
         ]
       }
     },
-    "/v1/magic-links": {
+    "/v1/login": {
       "post": {
-        "summary": "CreateMagicLink dispatches a magic-link email. Returns 202: the email\nis sent asynchronously; the link itself drives session creation later.",
-        "operationId": "MagicLinkService_CreateMagicLink",
+        "summary": "Login authenticates with email/phone + password.",
+        "operationId": "Authorizer_Login",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1CreateMagicLinkResponse"
+              "$ref": "#/definitions/v1LoginResponse"
             }
           },
           "default": {
@@ -136,24 +105,80 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/v1CreateMagicLinkRequest"
+              "$ref": "#/definitions/v1LoginRequest"
             }
           }
         ],
         "tags": [
-          "MagicLinkService"
+          "Authorizer"
+        ]
+      }
+    },
+    "/v1/logout": {
+      "get": {
+        "summary": "Logout ends the caller's current session.",
+        "operationId": "Authorizer_Logout",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1LogoutResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "Authorizer"
+        ]
+      }
+    },
+    "/v1/magic_link_login": {
+      "post": {
+        "summary": "MagicLinkLogin dispatches a passwordless email link. The clicked link\nhits the existing /verify_email browser handler.",
+        "operationId": "Authorizer_MagicLinkLogin",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1MagicLinkLoginResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1MagicLinkLoginRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Authorizer"
         ]
       }
     },
     "/v1/meta": {
       "get": {
-        "summary": "GetMeta returns the server's feature-flag and provider configuration.\nUsed by SPAs to decide which login UIs to render.",
-        "operationId": "MetaService_GetMeta",
+        "summary": "Meta returns server feature flags. No auth required.",
+        "operationId": "Authorizer_Meta",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1GetMetaResponse"
+              "$ref": "#/definitions/v1MetaResponse"
             }
           },
           "default": {
@@ -164,278 +189,19 @@
           }
         },
         "tags": [
-          "MetaService"
+          "Authorizer"
         ]
       }
     },
-    "/v1/otp-challenges": {
-      "post": {
-        "summary": "CreateOtpChallenge (re)sends an OTP to the address tied to an\nin-progress login. Returns 201.",
-        "operationId": "OtpChallengeService_CreateOtpChallenge",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/v1CreateOtpChallengeResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/v1CreateOtpChallengeRequest"
-            }
-          }
-        ],
-        "tags": [
-          "OtpChallengeService"
-        ]
-      }
-    },
-    "/v1/otp-challenges/{challenge_id}": {
-      "put": {
-        "summary": "ConfirmOtpChallenge verifies the supplied OTP and, on success, returns\na Session for the user. Browser callers also receive Set-Cookie.",
-        "operationId": "OtpChallengeService_ConfirmOtpChallenge",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/v1ConfirmOtpChallengeResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "challenge_id",
-            "description": "Opaque challenge id (today: the email / phone the OTP was sent to).",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/OtpChallengeServiceConfirmOtpChallengeBody"
-            }
-          }
-        ],
-        "tags": [
-          "OtpChallengeService"
-        ]
-      }
-    },
-    "/v1/password-resets": {
-      "post": {
-        "summary": "CreatePasswordReset dispatches a reset notification. Returns 202.\nAlways returns success even when the address is unknown (prevents\naccount enumeration).",
-        "operationId": "PasswordResetService_CreatePasswordReset",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/v1CreatePasswordResetResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/v1CreatePasswordResetRequest"
-            }
-          }
-        ],
-        "tags": [
-          "PasswordResetService"
-        ]
-      }
-    },
-    "/v1/password-resets/{token}": {
-      "put": {
-        "summary": "ConfirmPasswordReset sets the user's new password using the token from\nthe reset notification.",
-        "operationId": "PasswordResetService_ConfirmPasswordReset",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/v1ConfirmPasswordResetResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "token",
-            "description": "The token from the reset email/SMS; for SMS flows it's the OTP value.",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/PasswordResetServiceConfirmPasswordResetBody"
-            }
-          }
-        ],
-        "tags": [
-          "PasswordResetService"
-        ]
-      }
-    },
-    "/v1/refresh-tokens/{refresh_token}": {
-      "delete": {
-        "summary": "RevokeRefreshToken invalidates a refresh token. Typed mirror of\nRFC 7009 `POST /oauth/revoke`.",
-        "operationId": "TokenService_RevokeRefreshToken",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/v1RevokeRefreshTokenResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "refresh_token",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          }
-        ],
-        "tags": [
-          "TokenService"
-        ]
-      }
-    },
-    "/v1/sessions": {
-      "post": {
-        "summary": "CreateSession authenticates a user and returns a new Session. The\nrequest carries exactly one credential type via `oneof grant`. Browser\ncallers (REST) additionally receive Set-Cookie headers. The OAuth2\ntoken endpoint at POST /oauth/token remains the spec-compliant\nalternative for OAuth clients.",
-        "operationId": "SessionService_CreateSession",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/v1CreateSessionResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/v1CreateSessionRequest"
-            }
-          }
-        ],
-        "tags": [
-          "SessionService"
-        ]
-      }
-    },
-    "/v1/sessions/me": {
+    "/v1/permissions": {
       "get": {
-        "summary": "GetCurrentSession returns the session bound to the caller's cookie or\nbearer token. Returns NOT_FOUND when unauthenticated.",
-        "operationId": "SessionService_GetCurrentSession",
+        "summary": "Permissions returns the caller's effective (resource, scope) pairs.",
+        "operationId": "Authorizer_Permissions",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1GetCurrentSessionResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "roles",
-            "in": "query",
-            "required": false,
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "collectionFormat": "multi"
-          },
-          {
-            "name": "scope",
-            "in": "query",
-            "required": false,
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "collectionFormat": "multi"
-          },
-          {
-            "name": "state",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          }
-        ],
-        "tags": [
-          "SessionService"
-        ]
-      },
-      "delete": {
-        "summary": "DeleteSession ends the caller's current session. Always returns empty\non success, even if no session was active (idempotent).",
-        "operationId": "SessionService_DeleteSession",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/v1DeleteSessionResponse"
+              "$ref": "#/definitions/v1PermissionsResponse"
             }
           },
           "default": {
@@ -446,118 +212,19 @@
           }
         },
         "tags": [
-          "SessionService"
+          "Authorizer"
         ]
       }
     },
-    "/v1/sessions/validations": {
-      "post": {
-        "summary": "CreateSessionValidation validates a cookie/token held by a third party\n— the typed equivalent of \"is this session real?\" used by backend\nservices validating tokens forwarded by an upstream proxy.",
-        "operationId": "SessionService_CreateSessionValidation",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/v1CreateSessionValidationResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/v1CreateSessionValidationRequest"
-            }
-          }
-        ],
-        "tags": [
-          "SessionService"
-        ]
-      }
-    },
-    "/v1/token-validations": {
-      "post": {
-        "summary": "CreateTokenValidation validates a JWT and returns its claims. Equivalent\nto GraphQL validate_jwt_token.",
-        "operationId": "TokenService_CreateTokenValidation",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/v1CreateTokenValidationResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/v1CreateTokenValidationRequest"
-            }
-          }
-        ],
-        "tags": [
-          "TokenService"
-        ]
-      }
-    },
-    "/v1/users": {
-      "post": {
-        "summary": "CreateUser registers a new user account. Public — requires sign-up\nenabled in server config. On success returns tokens and (for browser\ncallers) Set-Cookie headers.",
-        "operationId": "UserService_CreateUser",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/v1CreateUserResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/v1CreateUserRequest"
-            }
-          }
-        ],
-        "tags": [
-          "UserService"
-        ]
-      }
-    },
-    "/v1/users/me": {
+    "/v1/profile": {
       "get": {
-        "summary": "GetUser returns a single user. On this surface, only name=\"users/me\" is\naccepted; admin reads remain on GraphQL.",
-        "operationId": "UserService_GetUser",
+        "summary": "Profile returns the authenticated user.",
+        "operationId": "Authorizer_Profile",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1GetUserResponse"
+              "$ref": "#/definitions/v1ProfileResponse"
             }
           },
           "default": {
@@ -567,110 +234,19 @@
             }
           }
         },
-        "parameters": [
-          {
-            "name": "name",
-            "description": "Must be \"users/me\" on this v1 surface.",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          }
-        ],
         "tags": [
-          "UserService"
-        ]
-      },
-      "delete": {
-        "summary": "DeleteUser deactivates the caller's account (soft delete). All of the\nuser's refresh tokens are revoked as a side effect. OAuth has no\nstandard concept of account deactivation — this method is the typed\nequivalent of SCIM `PATCH /Users/{id} {active:false}`.",
-        "operationId": "UserService_DeleteUser",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/v1DeleteUserResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "name",
-            "description": "Must be \"users/me\" on this v1 surface.",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          }
-        ],
-        "tags": [
-          "UserService"
-        ]
-      },
-      "patch": {
-        "summary": "UpdateUser patches a user. On this surface, only name=\"users/me\" is\naccepted. The optional field_mask controls which fields are updated.",
-        "operationId": "UserService_UpdateUser",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/v1UpdateUserResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "user",
-            "description": "The user to update. user.id should be \"users/me\" or omitted.",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/v1User"
-            }
-          },
-          {
-            "name": "old_password",
-            "description": "Optional credential change. Validated cross-field by the handler.",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          },
-          {
-            "name": "new_password",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          },
-          {
-            "name": "confirm_new_password",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          }
-        ],
-        "tags": [
-          "UserService"
+          "Authorizer"
         ]
       }
     },
-    "/v1/users/me/permissions": {
-      "get": {
-        "summary": "ListMyPermissions returns every (resource, scope) pair the caller is\nallowed to act on, derived from their roles and the policy engine.",
-        "operationId": "AuthzService_ListMyPermissions",
+    "/v1/resend_otp": {
+      "post": {
+        "operationId": "Authorizer_ResendOtp",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1ListMyPermissionsResponse"
+              "$ref": "#/definitions/v1ResendOtpResponse"
             }
           },
           "default": {
@@ -680,480 +256,347 @@
             }
           }
         },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1ResendOtpRequest"
+            }
+          }
+        ],
         "tags": [
-          "AuthzService"
+          "Authorizer"
+        ]
+      }
+    },
+    "/v1/resend_verify_email": {
+      "post": {
+        "operationId": "Authorizer_ResendVerifyEmail",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ResendVerifyEmailResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1ResendVerifyEmailRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Authorizer"
+        ]
+      }
+    },
+    "/v1/reset_password": {
+      "post": {
+        "operationId": "Authorizer_ResetPassword",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ResetPasswordResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1ResetPasswordRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Authorizer"
+        ]
+      }
+    },
+    "/v1/revoke": {
+      "post": {
+        "summary": "Revoke invalidates a refresh token. Typed mirror of RFC 7009.",
+        "operationId": "Authorizer_Revoke",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1RevokeResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1RevokeRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Authorizer"
+        ]
+      }
+    },
+    "/v1/session": {
+      "post": {
+        "summary": "Session returns the AuthResponse bound to the caller's cookie/bearer.",
+        "operationId": "Authorizer_Session",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1SessionResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1SessionRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Authorizer"
+        ]
+      }
+    },
+    "/v1/signup": {
+      "post": {
+        "summary": "Signup registers a new user. Public; requires sign-up enabled in config.\nReturns AuthResponse with tokens + (browser callers) Set-Cookie headers.",
+        "operationId": "Authorizer_Signup",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1SignupResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1SignupRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Authorizer"
+        ]
+      }
+    },
+    "/v1/update_profile": {
+      "post": {
+        "operationId": "Authorizer_UpdateProfile",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1UpdateProfileResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1UpdateProfileRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Authorizer"
+        ]
+      }
+    },
+    "/v1/validate_jwt_token": {
+      "post": {
+        "operationId": "Authorizer_ValidateJwtToken",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ValidateJwtTokenResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1ValidateJwtTokenRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Authorizer"
+        ]
+      }
+    },
+    "/v1/validate_session": {
+      "post": {
+        "operationId": "Authorizer_ValidateSession",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ValidateSessionResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1ValidateSessionRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Authorizer"
+        ]
+      }
+    },
+    "/v1/verify_email": {
+      "post": {
+        "operationId": "Authorizer_VerifyEmail",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1VerifyEmailResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1VerifyEmailRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Authorizer"
+        ]
+      }
+    },
+    "/v1/verify_otp": {
+      "post": {
+        "operationId": "Authorizer_VerifyOtp",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1VerifyOtpResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1VerifyOtpRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Authorizer"
         ]
       }
     }
   },
   "definitions": {
-    "EmailVerificationServiceConfirmEmailVerificationBody": {
-      "type": "object",
-      "properties": {
-        "state": {
-          "type": "string"
-        }
-      }
-    },
-    "OtpChallengeServiceConfirmOtpChallengeBody": {
-      "type": "object",
-      "properties": {
-        "otp": {
-          "type": "string",
-          "description": "The OTP value the user entered."
-        },
-        "email": {
-          "type": "string",
-          "description": "Either email or phone_number identifies the user (mirrors challenge_id\nfor now; reserved for a future opaque challenge-id design)."
-        },
-        "phone_number": {
-          "type": "string"
-        },
-        "is_totp": {
-          "type": "boolean"
-        },
-        "state": {
-          "type": "string"
-        }
-      }
-    },
-    "PasswordResetServiceConfirmPasswordResetBody": {
-      "type": "object",
-      "properties": {
-        "phone_number": {
-          "type": "string",
-          "description": "For SMS flows: the user identifier the OTP was bound to."
-        },
-        "password": {
-          "type": "string"
-        },
-        "confirm_password": {
-          "type": "string"
-        }
-      }
-    },
-    "authorizersessionv1PermissionRef": {
-      "type": "object",
-      "properties": {
-        "resource": {
-          "type": "string"
-        },
-        "scope": {
-          "type": "string"
-        }
-      }
-    },
-    "authorizertokenv1PermissionRef": {
-      "type": "object",
-      "properties": {
-        "resource": {
-          "type": "string"
-        },
-        "scope": {
-          "type": "string"
-        }
-      }
-    },
-    "protobufAny": {
-      "type": "object",
-      "properties": {
-        "@type": {
-          "type": "string"
-        }
-      },
-      "additionalProperties": {}
-    },
-    "protobufNullValue": {
-      "type": "string",
-      "enum": [
-        "NULL_VALUE"
-      ],
-      "default": "NULL_VALUE",
-      "description": "`NullValue` is a singleton enumeration to represent the null value for the\n`Value` type union.\n\nThe JSON representation for `NullValue` is JSON `null`.\n\n - NULL_VALUE: Null value."
-    },
-    "rpcStatus": {
-      "type": "object",
-      "properties": {
-        "code": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "message": {
-          "type": "string"
-        },
-        "details": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/protobufAny"
-          }
-        }
-      }
-    },
-    "v1AppData": {
-      "type": "object",
-      "properties": {
-        "value": {
-          "type": "object"
-        }
-      },
-      "description": "AppData is a free-form key/value bag stored against a user. Mirrors the\nGraphQL `Map` scalar. Values are JSON-typed (string, number, bool, null,\nnested object, nested array) to match what the existing storage layer\naccepts."
-    },
-    "v1ConfirmEmailVerificationResponse": {
-      "type": "object",
-      "properties": {
-        "session": {
-          "$ref": "#/definitions/v1Session"
-        }
-      }
-    },
-    "v1ConfirmOtpChallengeResponse": {
-      "type": "object",
-      "properties": {
-        "session": {
-          "$ref": "#/definitions/v1Session"
-        }
-      }
-    },
-    "v1ConfirmPasswordResetResponse": {
-      "type": "object",
-      "properties": {
-        "message": {
-          "type": "string"
-        }
-      }
-    },
-    "v1CreateEmailVerificationRequest": {
-      "type": "object",
-      "properties": {
-        "email": {
-          "type": "string"
-        },
-        "identifier": {
-          "type": "string",
-          "description": "Verification identifier (typeof verification, e.g. basic-auth-signup)."
-        },
-        "state": {
-          "type": "string"
-        }
-      }
-    },
-    "v1CreateEmailVerificationResponse": {
-      "type": "object",
-      "properties": {
-        "message": {
-          "type": "string"
-        }
-      }
-    },
-    "v1CreateMagicLinkRequest": {
-      "type": "object",
-      "properties": {
-        "email": {
-          "type": "string"
-        },
-        "roles": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "scope": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "state": {
-          "type": "string"
-        },
-        "redirect_uri": {
-          "type": "string"
-        }
-      }
-    },
-    "v1CreateMagicLinkResponse": {
-      "type": "object",
-      "properties": {
-        "message": {
-          "type": "string"
-        }
-      }
-    },
-    "v1CreateOtpChallengeRequest": {
-      "type": "object",
-      "properties": {
-        "email": {
-          "type": "string",
-          "description": "Exactly one of email / phone_number is required."
-        },
-        "phone_number": {
-          "type": "string"
-        },
-        "state": {
-          "type": "string"
-        }
-      }
-    },
-    "v1CreateOtpChallengeResponse": {
-      "type": "object",
-      "properties": {
-        "message": {
-          "type": "string"
-        }
-      }
-    },
-    "v1CreatePasswordResetRequest": {
-      "type": "object",
-      "properties": {
-        "email": {
-          "type": "string",
-          "description": "Exactly one of email / phone_number is required."
-        },
-        "phone_number": {
-          "type": "string"
-        },
-        "state": {
-          "type": "string"
-        },
-        "redirect_uri": {
-          "type": "string"
-        }
-      }
-    },
-    "v1CreatePasswordResetResponse": {
-      "type": "object",
-      "properties": {
-        "message": {
-          "type": "string"
-        },
-        "should_show_mobile_otp_screen": {
-          "type": "boolean",
-          "description": "Mobile callers may need to render an OTP entry screen (when reset is\nSMS-driven). Mirrors GraphQL ForgotPasswordResponse."
-        }
-      }
-    },
-    "v1CreateSessionRequest": {
-      "type": "object",
-      "properties": {
-        "password": {
-          "$ref": "#/definitions/v1PasswordGrant"
-        },
-        "otp": {
-          "$ref": "#/definitions/v1OtpGrant"
-        },
-        "magic_link": {
-          "$ref": "#/definitions/v1MagicLinkGrant"
-        },
-        "refresh_token": {
-          "$ref": "#/definitions/v1RefreshTokenGrant"
-        },
-        "roles": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "scope": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "state": {
-          "type": "string",
-          "description": "OAuth2 authorization-code flow state echoed back via c_hash."
-        }
-      }
-    },
-    "v1CreateSessionResponse": {
-      "type": "object",
-      "properties": {
-        "session": {
-          "$ref": "#/definitions/v1Session"
-        }
-      }
-    },
-    "v1CreateSessionValidationRequest": {
-      "type": "object",
-      "properties": {
-        "cookie": {
-          "type": "string",
-          "description": "Cookie value (typically the fingerprint hash) to validate."
-        },
-        "roles": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "required_permissions": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/authorizersessionv1PermissionRef"
-          }
-        }
-      }
-    },
-    "v1CreateSessionValidationResponse": {
-      "type": "object",
-      "properties": {
-        "result": {
-          "$ref": "#/definitions/v1SessionValidationResult"
-        }
-      }
-    },
-    "v1CreateTokenValidationRequest": {
-      "type": "object",
-      "properties": {
-        "token_type": {
-          "type": "string",
-          "description": "One of: \"access_token\", \"id_token\", \"refresh_token\"."
-        },
-        "token": {
-          "type": "string"
-        },
-        "roles": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "required_permissions": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/authorizertokenv1PermissionRef"
-          }
-        }
-      }
-    },
-    "v1CreateTokenValidationResponse": {
-      "type": "object",
-      "properties": {
-        "is_valid": {
-          "type": "boolean"
-        },
-        "claims": {
-          "type": "object",
-          "description": "Free-form JWT claims; matches GraphQL ValidateJWTTokenResponse.claims."
-        }
-      }
-    },
-    "v1CreateUserRequest": {
-      "type": "object",
-      "properties": {
-        "email": {
-          "type": "string",
-          "description": "Email or phone_number must be set (validated at the handler)."
-        },
-        "phone_number": {
-          "type": "string"
-        },
-        "password": {
-          "type": "string"
-        },
-        "confirm_password": {
-          "type": "string"
-        },
-        "given_name": {
-          "type": "string"
-        },
-        "family_name": {
-          "type": "string"
-        },
-        "middle_name": {
-          "type": "string"
-        },
-        "nickname": {
-          "type": "string"
-        },
-        "gender": {
-          "type": "string"
-        },
-        "birthdate": {
-          "type": "string"
-        },
-        "picture": {
-          "type": "string"
-        },
-        "roles": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "scope": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "redirect_uri": {
-          "type": "string"
-        },
-        "is_multi_factor_auth_enabled": {
-          "type": "boolean"
-        },
-        "state": {
-          "type": "string",
-          "description": "OAuth2 authorization-code flow state echoed back via c_hash."
-        },
-        "app_data": {
-          "$ref": "#/definitions/v1AppData"
-        }
-      }
-    },
-    "v1CreateUserResponse": {
-      "type": "object",
-      "properties": {
-        "message": {
-          "type": "string",
-          "description": "Human-readable message describing the outcome (e.g. \"Verification email\nsent\" vs \"Signed up successfully\")."
-        },
-        "should_show_email_otp_screen": {
-          "type": "boolean"
-        },
-        "should_show_mobile_otp_screen": {
-          "type": "boolean"
-        },
-        "should_show_totp_screen": {
-          "type": "boolean"
-        },
-        "access_token": {
-          "type": "string"
-        },
-        "id_token": {
-          "type": "string"
-        },
-        "refresh_token": {
-          "type": "string"
-        },
-        "expires_in": {
-          "type": "string",
-          "format": "int64"
-        },
-        "user": {
-          "$ref": "#/definitions/v1User"
-        }
-      }
-    },
-    "v1DeleteSessionResponse": {
-      "type": "object"
-    },
-    "v1DeleteUserResponse": {
-      "type": "object"
-    },
-    "v1GetCurrentSessionResponse": {
-      "type": "object",
-      "properties": {
-        "session": {
-          "$ref": "#/definitions/v1Session"
-        }
-      }
-    },
-    "v1GetMetaResponse": {
+    "authorizerv1Meta": {
       "type": "object",
       "properties": {
         "version": {
@@ -1217,92 +660,54 @@
           "type": "boolean"
         }
       },
-      "description": "GetMetaResponse mirrors the GraphQL Meta type 1:1. Field naming uses the\nexisting snake_case names so existing consumers see the same shape over\nREST."
+      "description": "Meta mirrors the GraphQL Meta type — server feature flags + provider\navailability, returned by the Meta query."
     },
-    "v1GetUserResponse": {
+    "protobufAny": {
       "type": "object",
       "properties": {
-        "user": {
-          "$ref": "#/definitions/v1User"
+        "@type": {
+          "type": "string"
         }
-      }
+      },
+      "additionalProperties": {}
     },
-    "v1ListMyPermissionsResponse": {
+    "protobufNullValue": {
+      "type": "string",
+      "enum": [
+        "NULL_VALUE"
+      ],
+      "default": "NULL_VALUE",
+      "description": "`NullValue` is a singleton enumeration to represent the null value for the\n`Value` type union.\n\nThe JSON representation for `NullValue` is JSON `null`.\n\n - NULL_VALUE: Null value."
+    },
+    "rpcStatus": {
       "type": "object",
       "properties": {
-        "permissions": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
           "type": "array",
           "items": {
             "type": "object",
-            "$ref": "#/definitions/v1Permission"
+            "$ref": "#/definitions/protobufAny"
           }
         }
       }
     },
-    "v1MagicLinkGrant": {
+    "v1AppData": {
       "type": "object",
       "properties": {
-        "token": {
-          "type": "string",
-          "description": "The token from the magic-link email URL."
+        "value": {
+          "type": "object"
         }
-      }
+      },
+      "description": "AppData is a free-form key/value bag stored against a user. Mirrors the\nGraphQL `Map` scalar. Values are JSON-typed (string, number, bool, null,\nnested object, nested array) to match what the existing storage layer\naccepts."
     },
-    "v1OtpGrant": {
-      "type": "object",
-      "properties": {
-        "email": {
-          "type": "string"
-        },
-        "phone_number": {
-          "type": "string"
-        },
-        "otp": {
-          "type": "string"
-        },
-        "is_totp": {
-          "type": "boolean"
-        }
-      }
-    },
-    "v1PasswordGrant": {
-      "type": "object",
-      "properties": {
-        "email": {
-          "type": "string",
-          "description": "Exactly one of email / phone_number is required."
-        },
-        "phone_number": {
-          "type": "string"
-        },
-        "password": {
-          "type": "string"
-        }
-      }
-    },
-    "v1Permission": {
-      "type": "object",
-      "properties": {
-        "resource": {
-          "type": "string"
-        },
-        "scope": {
-          "type": "string"
-        }
-      }
-    },
-    "v1RefreshTokenGrant": {
-      "type": "object",
-      "properties": {
-        "refresh_token": {
-          "type": "string"
-        }
-      }
-    },
-    "v1RevokeRefreshTokenResponse": {
-      "type": "object"
-    },
-    "v1Session": {
+    "v1AuthResponse": {
       "type": "object",
       "properties": {
         "message": {
@@ -1335,7 +740,7 @@
         },
         "authenticator_scanner_image": {
           "type": "string",
-          "description": "TOTP enrolment artifacts (set only when CreateSession initiates TOTP setup)."
+          "description": "TOTP enrolment artifacts (populated only when this AuthResponse\ninitiates TOTP setup; one-time, never re-shown)."
         },
         "authenticator_secret": {
           "type": "string"
@@ -1347,25 +752,426 @@
           }
         }
       },
-      "description": "Session is what CreateSession returns: tokens plus enough user context to\navoid a follow-up GetUser. Mirrors the GraphQL AuthResponse type 1:1 in\nfield naming."
+      "description": "AuthResponse mirrors the GraphQL AuthResponse type. Returned (wrapped) by\nevery method that produces a session: Signup, Login, MagicLinkLogin,\nVerifyEmail, VerifyOtp, Session."
     },
-    "v1SessionValidationResult": {
+    "v1DeactivateAccountRequest": {
+      "type": "object"
+    },
+    "v1DeactivateAccountResponse": {
       "type": "object",
       "properties": {
-        "is_valid": {
-          "type": "boolean"
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1ForgotPasswordRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
         },
+        "phone_number": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "redirect_uri": {
+          "type": "string"
+        }
+      }
+    },
+    "v1ForgotPasswordResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        },
+        "should_show_mobile_otp_screen": {
+          "type": "boolean",
+          "description": "For SMS-driven flows the UI may need to render an OTP entry screen."
+        }
+      }
+    },
+    "v1LoginRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "phone_number": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        },
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "scope": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "state": {
+          "type": "string"
+        }
+      }
+    },
+    "v1LoginResponse": {
+      "type": "object",
+      "properties": {
+        "auth": {
+          "$ref": "#/definitions/v1AuthResponse"
+        }
+      }
+    },
+    "v1LogoutResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1MagicLinkLoginRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "scope": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "state": {
+          "type": "string"
+        },
+        "redirect_uri": {
+          "type": "string"
+        }
+      }
+    },
+    "v1MagicLinkLoginResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1MetaResponse": {
+      "type": "object",
+      "properties": {
+        "meta": {
+          "$ref": "#/definitions/authorizerv1Meta"
+        }
+      }
+    },
+    "v1Permission": {
+      "type": "object",
+      "properties": {
+        "resource": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        }
+      },
+      "description": "Permission is one (resource, scope) pair the caller is allowed to act on."
+    },
+    "v1PermissionInput": {
+      "type": "object",
+      "properties": {
+        "resource": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        }
+      },
+      "description": "PermissionInput is the request-side mirror of Permission used by\nmethods that take a list of required permissions."
+    },
+    "v1PermissionsResponse": {
+      "type": "object",
+      "properties": {
+        "permissions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Permission"
+          }
+        }
+      }
+    },
+    "v1ProfileResponse": {
+      "type": "object",
+      "properties": {
         "user": {
           "$ref": "#/definitions/v1User"
         }
-      },
-      "description": "SessionValidationResult is what CreateSessionValidation returns."
+      }
     },
-    "v1UpdateUserResponse": {
+    "v1ResendOtpRequest": {
       "type": "object",
       "properties": {
-        "user": {
-          "$ref": "#/definitions/v1User"
+        "email": {
+          "type": "string"
+        },
+        "phone_number": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        }
+      }
+    },
+    "v1ResendOtpResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1ResendVerifyEmailRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "identifier": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        }
+      }
+    },
+    "v1ResendVerifyEmailResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1ResetPasswordRequest": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string",
+          "description": "For email flows: the token from the reset email. For SMS flows: the OTP."
+        },
+        "otp": {
+          "type": "string"
+        },
+        "phone_number": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        },
+        "confirm_password": {
+          "type": "string"
+        }
+      }
+    },
+    "v1ResetPasswordResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1RevokeRequest": {
+      "type": "object",
+      "properties": {
+        "refresh_token": {
+          "type": "string"
+        }
+      }
+    },
+    "v1RevokeResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1SessionRequest": {
+      "type": "object",
+      "properties": {
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "scope": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "state": {
+          "type": "string"
+        },
+        "required_permissions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1PermissionInput"
+          },
+          "description": "Optional AND-combined permission filter; deny if any is missing."
+        }
+      }
+    },
+    "v1SessionResponse": {
+      "type": "object",
+      "properties": {
+        "auth": {
+          "$ref": "#/definitions/v1AuthResponse"
+        }
+      }
+    },
+    "v1SignupRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "phone_number": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        },
+        "confirm_password": {
+          "type": "string"
+        },
+        "given_name": {
+          "type": "string"
+        },
+        "family_name": {
+          "type": "string"
+        },
+        "middle_name": {
+          "type": "string"
+        },
+        "nickname": {
+          "type": "string"
+        },
+        "gender": {
+          "type": "string"
+        },
+        "birthdate": {
+          "type": "string"
+        },
+        "picture": {
+          "type": "string"
+        },
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "scope": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "redirect_uri": {
+          "type": "string"
+        },
+        "is_multi_factor_auth_enabled": {
+          "type": "boolean"
+        },
+        "state": {
+          "type": "string"
+        },
+        "app_data": {
+          "$ref": "#/definitions/v1AppData"
+        }
+      }
+    },
+    "v1SignupResponse": {
+      "type": "object",
+      "properties": {
+        "auth": {
+          "$ref": "#/definitions/v1AuthResponse"
+        }
+      }
+    },
+    "v1UpdateProfileRequest": {
+      "type": "object",
+      "properties": {
+        "old_password": {
+          "type": "string"
+        },
+        "new_password": {
+          "type": "string"
+        },
+        "confirm_new_password": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "given_name": {
+          "type": "string"
+        },
+        "family_name": {
+          "type": "string"
+        },
+        "middle_name": {
+          "type": "string"
+        },
+        "nickname": {
+          "type": "string"
+        },
+        "gender": {
+          "type": "string"
+        },
+        "birthdate": {
+          "type": "string"
+        },
+        "phone_number": {
+          "type": "string"
+        },
+        "picture": {
+          "type": "string"
+        },
+        "is_multi_factor_auth_enabled": {
+          "type": "boolean"
+        },
+        "app_data": {
+          "$ref": "#/definitions/v1AppData"
+        }
+      }
+    },
+    "v1UpdateProfileResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
         }
       }
     },
@@ -1442,7 +1248,123 @@
           "description": "Free-form key/value bag — same as GraphQL `app_data: Map`."
         }
       },
-      "description": "User mirrors the GraphQL User type. Field names match the existing\nJSON/GraphQL surface so REST callers see the same shape.\n\nThe canonical resource name is either \"users/me\" (the caller) or\n\"users/{id}\". Other RPCs accept this string form via the `name` field on\ntheir requests."
+      "description": "User mirrors the GraphQL User type. Returned by Profile and embedded in\nAuthResponse."
+    },
+    "v1ValidateJwtTokenRequest": {
+      "type": "object",
+      "properties": {
+        "token_type": {
+          "type": "string"
+        },
+        "token": {
+          "type": "string"
+        },
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "required_permissions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1PermissionInput"
+          }
+        }
+      }
+    },
+    "v1ValidateJwtTokenResponse": {
+      "type": "object",
+      "properties": {
+        "is_valid": {
+          "type": "boolean"
+        },
+        "claims": {
+          "$ref": "#/definitions/v1AppData",
+          "description": "Free-form JWT claims (matches GraphQL ValidateJWTTokenResponse.claims)."
+        }
+      }
+    },
+    "v1ValidateSessionRequest": {
+      "type": "object",
+      "properties": {
+        "cookie": {
+          "type": "string"
+        },
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "required_permissions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1PermissionInput"
+          }
+        }
+      }
+    },
+    "v1ValidateSessionResponse": {
+      "type": "object",
+      "properties": {
+        "is_valid": {
+          "type": "boolean"
+        },
+        "user": {
+          "$ref": "#/definitions/v1User"
+        }
+      }
+    },
+    "v1VerifyEmailRequest": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        }
+      }
+    },
+    "v1VerifyEmailResponse": {
+      "type": "object",
+      "properties": {
+        "auth": {
+          "$ref": "#/definitions/v1AuthResponse"
+        }
+      }
+    },
+    "v1VerifyOtpRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "description": "Exactly one of email / phone_number is required."
+        },
+        "phone_number": {
+          "type": "string"
+        },
+        "otp": {
+          "type": "string"
+        },
+        "is_totp": {
+          "type": "boolean"
+        },
+        "state": {
+          "type": "string"
+        }
+      }
+    },
+    "v1VerifyOtpResponse": {
+      "type": "object",
+      "properties": {
+        "auth": {
+          "$ref": "#/definitions/v1AuthResponse"
+        }
+      }
     }
   }
 }

@@ -10,6 +10,11 @@ lint:
     - STANDARD
   except:
     - PACKAGE_VERSION_SUFFIX
+    # The single public service is intentionally named "Authorizer" rather
+    # than "AuthorizerService" — it's THE authorizer, not "one of many
+    # services." Matches the project name; users see a single typed client
+    # in every SDK (authorizerv1.AuthorizerClient).
+    - SERVICE_SUFFIX
   ignore: []
 breaking:
   use:

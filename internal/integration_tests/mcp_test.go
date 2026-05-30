@@ -14,11 +14,11 @@ import (
 	"github.com/authorizerdev/authorizer/internal/service"
 )
 
-// TestMCPListAndCallGetMeta exercises the Phase 4 vertical slice end-to-end:
-// boot a gRPC server, wrap it in the MCP server (which auto-discovers tools
-// from proto annotations), connect a client via in-memory transports, then
-// list_tools + call get_meta.
-func TestMCPListAndCallGetMeta(t *testing.T) {
+// TestMCPListAndCallMeta exercises the vertical slice end-to-end on the
+// consolidated single-service design: boot a gRPC server, wrap it in the
+// MCP server (which auto-discovers tools from proto annotations), connect a
+// client via in-memory transports, then list_tools + call meta.
+func TestMCPListAndCallMeta(t *testing.T) {
 	cfg := getTestConfig()
 	cfg.ClientID = "test-client"
 
@@ -50,22 +50,22 @@ func TestMCPListAndCallGetMeta(t *testing.T) {
 	require.NoError(t, err)
 	defer clientSession.Close()
 
-	// tools/list — should include get_meta (the only proto-annotated MCP tool today).
+	// tools/list — should include the four proto-annotated MCP tools:
+	// meta, profile, session, permissions.
 	list, err := clientSession.ListTools(ctx, nil)
 	require.NoError(t, err)
-	require.NotEmpty(t, list.Tools, "expected at least one MCP-exposed tool")
-	var found bool
+	gotNames := map[string]bool{}
 	for _, tool := range list.Tools {
-		if tool.Name == "get_meta" {
-			found = true
-			break
-		}
+		gotNames[tool.Name] = true
 	}
-	require.True(t, found, "expected get_meta tool to be exposed")
+	for _, want := range []string{"meta", "profile", "session", "permissions"} {
+		require.True(t, gotNames[want], "expected MCP tool %q to be exposed; got %v", want, gotNames)
+	}
 
-	// tools/call get_meta — should invoke MetaService.GetMeta and return JSON.
+	// tools/call meta — should invoke Authorizer.Meta and return JSON wrapped
+	// in the per-RPC MetaResponse shape.
 	call, err := clientSession.CallTool(ctx, &mcp.CallToolParams{
-		Name:      "get_meta",
+		Name:      "meta",
 		Arguments: map[string]any{},
 	})
 	require.NoError(t, err)
@@ -74,10 +74,12 @@ func TestMCPListAndCallGetMeta(t *testing.T) {
 	body, err := json.Marshal(call.StructuredContent)
 	require.NoError(t, err)
 	var got struct {
-		ClientID string `json:"client_id"`
-		Version  string `json:"version"`
+		Meta struct {
+			ClientID string `json:"client_id"`
+			Version  string `json:"version"`
+		} `json:"meta"`
 	}
 	require.NoError(t, json.Unmarshal(body, &got))
-	require.Equal(t, "test-client", got.ClientID)
-	require.NotEmpty(t, got.Version)
+	require.Equal(t, "test-client", got.Meta.ClientID)
+	require.NotEmpty(t, got.Meta.Version)
 }

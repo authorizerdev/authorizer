@@ -18,11 +18,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/grpcsrv"
 	"github.com/authorizerdev/authorizer/internal/service"
 
-	authzv1 "github.com/authorizerdev/authorizer/gen/go/authorizer/authz/v1"
-	sessionv1 "github.com/authorizerdev/authorizer/gen/go/authorizer/session/v1"
-	tokenv1 "github.com/authorizerdev/authorizer/gen/go/authorizer/token/v1"
-	userv1 "github.com/authorizerdev/authorizer/gen/go/authorizer/user/v1"
-	verificationv1 "github.com/authorizerdev/authorizer/gen/go/authorizer/verification/v1"
+	authorizerv1 "github.com/authorizerdev/authorizer/gen/go/authorizer/v1"
 )
 
 // bootGRPCBufconn builds a gRPC server identical to the production one,
@@ -54,95 +50,89 @@ func bootGRPCBufconn(t *testing.T) *grpc.ClientConn {
 	return conn
 }
 
-// TestGRPCStubsReturnUnimplemented locks down the Phase 2 contract: every
-// service is registered (so reflection sees it) but the non-migrated ones
-// return codes.Unimplemented until their handlers replace the stubs in
-// follow-up PRs. A regression — e.g. accidentally returning OK or panicking
-// — would silently change client behaviour.
-func TestGRPCStubsReturnUnimplemented(t *testing.T) {
+// TestAuthorizerStubsReturnUnimplemented locks down the contract for every
+// not-yet-migrated method on the consolidated Authorizer service. Today
+// Meta is the only real implementation; the remaining 18 methods return
+// codes.Unimplemented. As each one gets migrated out of internal/graphql
+// into internal/service, the corresponding sub-test here will start
+// returning OK and the case can be moved to a happy-path test.
+func TestAuthorizerStubsReturnUnimplemented(t *testing.T) {
 	conn := bootGRPCBufconn(t)
 	ctx := context.Background()
+	c := authorizerv1.NewAuthorizerClient(conn)
 
 	type call func(context.Context) error
 	cases := map[string]call{
-		"UserService.CreateUser": func(c context.Context) error {
-			_, err := userv1.NewUserServiceClient(conn).CreateUser(c, &userv1.CreateUserRequest{
-				Email: "x@example.com", Password: "p", ConfirmPassword: "p",
-			})
+		"Signup": func(c0 context.Context) error {
+			_, err := c.Signup(c0, &authorizerv1.SignupRequest{Password: "p", ConfirmPassword: "p"})
 			return err
 		},
-		"UserService.GetUser": func(c context.Context) error {
-			_, err := userv1.NewUserServiceClient(conn).GetUser(c, &userv1.GetUserRequest{Name: "users/me"})
+		"Login": func(c0 context.Context) error {
+			_, err := c.Login(c0, &authorizerv1.LoginRequest{Password: "p"})
 			return err
 		},
-		"UserService.UpdateUser": func(c context.Context) error {
-			_, err := userv1.NewUserServiceClient(conn).UpdateUser(c, &userv1.UpdateUserRequest{User: &userv1.User{Id: "users/me"}})
+		"Logout": func(c0 context.Context) error {
+			_, err := c.Logout(c0, &authorizerv1.LogoutRequest{})
 			return err
 		},
-		"UserService.DeleteUser": func(c context.Context) error {
-			_, err := userv1.NewUserServiceClient(conn).DeleteUser(c, &userv1.DeleteUserRequest{Name: "users/me"})
+		"MagicLinkLogin": func(c0 context.Context) error {
+			_, err := c.MagicLinkLogin(c0, &authorizerv1.MagicLinkLoginRequest{Email: "x@example.com"})
 			return err
 		},
-		"SessionService.CreateSession": func(c context.Context) error {
-			_, err := sessionv1.NewSessionServiceClient(conn).CreateSession(c, &sessionv1.CreateSessionRequest{
-				Grant: &sessionv1.CreateSessionRequest_Password{
-					Password: &sessionv1.PasswordGrant{Email: "x@example.com", Password: "p"},
-				},
-			})
+		"VerifyEmail": func(c0 context.Context) error {
+			_, err := c.VerifyEmail(c0, &authorizerv1.VerifyEmailRequest{Token: "t"})
 			return err
 		},
-		"SessionService.GetCurrentSession": func(c context.Context) error {
-			_, err := sessionv1.NewSessionServiceClient(conn).GetCurrentSession(c, &sessionv1.GetCurrentSessionRequest{})
+		"ResendVerifyEmail": func(c0 context.Context) error {
+			_, err := c.ResendVerifyEmail(c0, &authorizerv1.ResendVerifyEmailRequest{Email: "x@example.com", Identifier: "id"})
 			return err
 		},
-		"SessionService.DeleteSession": func(c context.Context) error {
-			_, err := sessionv1.NewSessionServiceClient(conn).DeleteSession(c, &sessionv1.DeleteSessionRequest{})
+		"VerifyOtp": func(c0 context.Context) error {
+			_, err := c.VerifyOtp(c0, &authorizerv1.VerifyOtpRequest{Email: "x@example.com", Otp: "1"})
 			return err
 		},
-		"SessionService.CreateSessionValidation": func(c context.Context) error {
-			_, err := sessionv1.NewSessionServiceClient(conn).CreateSessionValidation(c, &sessionv1.CreateSessionValidationRequest{Cookie: "x"})
+		"ResendOtp": func(c0 context.Context) error {
+			_, err := c.ResendOtp(c0, &authorizerv1.ResendOtpRequest{Email: "x@example.com"})
 			return err
 		},
-		"MagicLinkService.CreateMagicLink": func(c context.Context) error {
-			_, err := sessionv1.NewMagicLinkServiceClient(conn).CreateMagicLink(c, &sessionv1.CreateMagicLinkRequest{Email: "x@example.com"})
+		"ForgotPassword": func(c0 context.Context) error {
+			_, err := c.ForgotPassword(c0, &authorizerv1.ForgotPasswordRequest{Email: "x@example.com"})
 			return err
 		},
-		"EmailVerification.Create": func(c context.Context) error {
-			_, err := verificationv1.NewEmailVerificationServiceClient(conn).CreateEmailVerification(c, &verificationv1.CreateEmailVerificationRequest{
-				Email: "x@example.com", Identifier: "id",
-			})
+		"ResetPassword": func(c0 context.Context) error {
+			_, err := c.ResetPassword(c0, &authorizerv1.ResetPasswordRequest{Token: "t", Password: "p", ConfirmPassword: "p"})
 			return err
 		},
-		"EmailVerification.Confirm": func(c context.Context) error {
-			_, err := verificationv1.NewEmailVerificationServiceClient(conn).ConfirmEmailVerification(c, &verificationv1.ConfirmEmailVerificationRequest{Token: "t"})
+		"Profile": func(c0 context.Context) error {
+			_, err := c.Profile(c0, &authorizerv1.ProfileRequest{})
 			return err
 		},
-		"PasswordReset.Create": func(c context.Context) error {
-			_, err := verificationv1.NewPasswordResetServiceClient(conn).CreatePasswordReset(c, &verificationv1.CreatePasswordResetRequest{Email: "x@example.com"})
+		"UpdateProfile": func(c0 context.Context) error {
+			_, err := c.UpdateProfile(c0, &authorizerv1.UpdateProfileRequest{})
 			return err
 		},
-		"PasswordReset.Confirm": func(c context.Context) error {
-			_, err := verificationv1.NewPasswordResetServiceClient(conn).ConfirmPasswordReset(c, &verificationv1.ConfirmPasswordResetRequest{Token: "t", Password: "p", ConfirmPassword: "p"})
+		"DeactivateAccount": func(c0 context.Context) error {
+			_, err := c.DeactivateAccount(c0, &authorizerv1.DeactivateAccountRequest{})
 			return err
 		},
-		"OtpChallenge.Create": func(c context.Context) error {
-			_, err := verificationv1.NewOtpChallengeServiceClient(conn).CreateOtpChallenge(c, &verificationv1.CreateOtpChallengeRequest{Email: "x@example.com"})
+		"Revoke": func(c0 context.Context) error {
+			_, err := c.Revoke(c0, &authorizerv1.RevokeRequest{RefreshToken: "t"})
 			return err
 		},
-		"OtpChallenge.Confirm": func(c context.Context) error {
-			_, err := verificationv1.NewOtpChallengeServiceClient(conn).ConfirmOtpChallenge(c, &verificationv1.ConfirmOtpChallengeRequest{ChallengeId: "id", Otp: "1"})
+		"Session": func(c0 context.Context) error {
+			_, err := c.Session(c0, &authorizerv1.SessionRequest{})
 			return err
 		},
-		"TokenService.CreateTokenValidation": func(c context.Context) error {
-			_, err := tokenv1.NewTokenServiceClient(conn).CreateTokenValidation(c, &tokenv1.CreateTokenValidationRequest{TokenType: "access_token", Token: "t"})
+		"ValidateJwtToken": func(c0 context.Context) error {
+			_, err := c.ValidateJwtToken(c0, &authorizerv1.ValidateJwtTokenRequest{TokenType: "access_token", Token: "t"})
 			return err
 		},
-		"TokenService.RevokeRefreshToken": func(c context.Context) error {
-			_, err := tokenv1.NewTokenServiceClient(conn).RevokeRefreshToken(c, &tokenv1.RevokeRefreshTokenRequest{RefreshToken: "t"})
+		"ValidateSession": func(c0 context.Context) error {
+			_, err := c.ValidateSession(c0, &authorizerv1.ValidateSessionRequest{Cookie: "c"})
 			return err
 		},
-		"AuthzService.ListMyPermissions": func(c context.Context) error {
-			_, err := authzv1.NewAuthzServiceClient(conn).ListMyPermissions(c, &authzv1.ListMyPermissionsRequest{})
+		"Permissions": func(c0 context.Context) error {
+			_, err := c.Permissions(c0, &authorizerv1.PermissionsRequest{})
 			return err
 		},
 	}
@@ -154,7 +144,7 @@ func TestGRPCStubsReturnUnimplemented(t *testing.T) {
 			st, ok := status.FromError(err)
 			require.True(t, ok)
 			assert.Equal(t, codes.Unimplemented, st.Code(),
-				"stub for %s should return Unimplemented until its handler is wired", name)
+				"stub for Authorizer.%s should return Unimplemented until its handler is wired", name)
 		})
 	}
 }
