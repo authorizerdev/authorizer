@@ -11,7 +11,9 @@ import (
 	"github.com/rs/zerolog"
 
 	"github.com/authorizerdev/authorizer/internal/config"
+	"github.com/authorizerdev/authorizer/internal/gateway"
 	"github.com/authorizerdev/authorizer/internal/graphql"
+	"github.com/authorizerdev/authorizer/internal/grpcsrv"
 	"github.com/authorizerdev/authorizer/internal/http_handlers"
 )
 
@@ -25,6 +27,8 @@ type Config struct {
 	MetricsPort int
 	// MetricsHost is the bind address for the dedicated /metrics listener.
 	MetricsHost string
+	// GRPCPort is the port the gRPC server listens on.
+	GRPCPort int
 }
 
 // Dependencies for a server
@@ -33,6 +37,12 @@ type Dependencies struct {
 	AppConfig       *config.Config
 	GraphQLProvider graphql.Provider
 	HTTPProvider    http_handlers.Provider
+	// GRPCServer is the configured (but not yet listening) gRPC server.
+	// nil disables both the gRPC listener and the REST `/v1/*` gateway.
+	GRPCServer *grpcsrv.Server
+	// gatewayHandler / gatewayCleanup are built lazily inside Run when
+	// GRPCServer is non-nil. Stored on the struct only to satisfy the
+	// existing pattern of cleanup at Shutdown time.
 }
 
 // New constructs a new server with given arguments
@@ -46,13 +56,29 @@ func New(cfg *Config, deps *Dependencies) (*server, error) {
 
 // Network server
 type server struct {
-	Config       *Config
-	Dependencies *Dependencies
+	Config         *Config
+	Dependencies   *Dependencies
+	gatewayHandler http.Handler
 }
 
 // Run the server until the given context is canceled.
-// The main HTTP server (Gin) and the Prometheus /metrics server always run as separate listeners.
+// The main HTTP server (Gin), the Prometheus /metrics server, and the gRPC
+// server (when configured) all run as separate listeners.
 func (s *server) Run(ctx context.Context) error {
+	// Build the REST gateway BEFORE the router so it can be mounted at
+	// /v1/*. The gateway dials the gRPC server in-process via bufconn —
+	// no extra port hop, no TLS plumbing.
+	var gatewayCleanup func()
+	if s.Dependencies.GRPCServer != nil {
+		h, cleanup, err := gateway.Handler(ctx, s.Dependencies.GRPCServer.GRPCServer())
+		if err != nil {
+			return err
+		}
+		s.gatewayHandler = h
+		gatewayCleanup = cleanup
+		defer gatewayCleanup()
+	}
+
 	ginRouter := s.NewRouter()
 	httpAddr := net.JoinHostPort(s.Config.Host, strconv.Itoa(s.Config.HTTPPort))
 
@@ -95,6 +121,17 @@ func (s *server) Run(ctx context.Context) error {
 		}
 	}()
 
+	// gRPC listener — runs alongside HTTP and metrics. Cancelled context
+	// triggers graceful shutdown.
+	if s.Dependencies.GRPCServer != nil {
+		grpcAddr := net.JoinHostPort(s.Config.Host, strconv.Itoa(s.Config.GRPCPort))
+		go func() {
+			if err := s.startGRPC(ctx, grpcAddr); err != nil {
+				s.Dependencies.Log.Error().Err(err).Msg("gRPC server failed")
+			}
+		}()
+	}
+
 	// Graceful shutdown for BOTH servers (previously only metrics was
 	// shut down gracefully — the main HTTP server was killed mid-flight,
 	// dropping in-progress responses).
@@ -109,4 +146,14 @@ func (s *server) Run(ctx context.Context) error {
 		s.Dependencies.Log.Error().Err(err).Msg("Metrics server graceful shutdown failed")
 	}
 	return nil
+}
+
+// startGRPC runs the gRPC server until ctx is cancelled. Delegates the TCP
+// listen + graceful-stop dance to grpcsrv.Server.Run; this wrapper exists
+// only to keep all listener startup colocated in server.Run.
+func (s *server) startGRPC(ctx context.Context, addr string) error {
+	// grpcsrv.Server was constructed with its own addr; honour that.
+	// (When we add CLI-driven addr override, this is the place.)
+	_ = addr
+	return s.Dependencies.GRPCServer.Run(ctx)
 }

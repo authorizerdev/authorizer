@@ -219,6 +219,7 @@ func (h *httpProvider) GraphqlHandler() gin.HandlerFunc {
 		StorageProvider:       h.StorageProvider,
 		TokenProvider:         h.TokenProvider,
 		AuthorizationProvider: h.AuthorizationProvider,
+		ServiceProvider:       h.ServiceProvider,
 	})
 	if err != nil {
 		h.Log.Error().Err(err).Msg("Failed to create graphql provider")
