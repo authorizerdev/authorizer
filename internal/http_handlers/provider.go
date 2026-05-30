@@ -13,6 +13,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/memory_store"
 	"github.com/authorizerdev/authorizer/internal/oauth"
 	"github.com/authorizerdev/authorizer/internal/rate_limit"
+	"github.com/authorizerdev/authorizer/internal/service"
 	"github.com/authorizerdev/authorizer/internal/sms"
 	"github.com/authorizerdev/authorizer/internal/storage"
 	"github.com/authorizerdev/authorizer/internal/token"
@@ -45,6 +46,9 @@ type Dependencies struct {
 	RateLimitProvider rate_limit.Provider
 	// AuthorizationProvider is used for fine-grained authorization checks
 	AuthorizationProvider authorization.Provider
+	// ServiceProvider hosts the transport-agnostic public-API operations.
+	// Migrated GraphQL resolvers (currently SignUp) delegate here.
+	ServiceProvider service.Provider
 }
 
 // New constructs a new http provider with given arguments

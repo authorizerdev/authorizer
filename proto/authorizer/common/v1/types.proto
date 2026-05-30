@@ -1,0 +1,18 @@
+// Shared scalar-ish types used across Authorizer services.
+//
+// Kept intentionally tiny: only types that don't naturally belong to a single
+// resource service live here. Add a new entry only when at least two services
+// share it.
+syntax = "proto3";
+
+package authorizer.common.v1;
+
+import "google/protobuf/struct.proto";
+
+// AppData is a free-form key/value bag stored against a user. Mirrors the
+// GraphQL `Map` scalar. Values are JSON-typed (string, number, bool, null,
+// nested object, nested array) to match what the existing storage layer
+// accepts.
+message AppData {
+  google.protobuf.Struct value = 1;
+}

@@ -3,8 +3,10 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"time"
 
@@ -25,8 +27,10 @@ import (
 	"github.com/authorizerdev/authorizer/internal/memory_store"
 	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/oauth"
+	"github.com/authorizerdev/authorizer/internal/grpcsrv"
 	"github.com/authorizerdev/authorizer/internal/rate_limit"
 	"github.com/authorizerdev/authorizer/internal/server"
+	"github.com/authorizerdev/authorizer/internal/service"
 	"github.com/authorizerdev/authorizer/internal/sms"
 	"github.com/authorizerdev/authorizer/internal/storage"
 	"github.com/authorizerdev/authorizer/internal/token"
@@ -101,6 +105,14 @@ func init() {
 	f.IntVar(&rootArgs.config.GraphQLMaxDepth, "graphql-max-depth", 15, "Maximum nesting depth of a GraphQL selection set")
 	f.IntVar(&rootArgs.config.GraphQLMaxAliases, "graphql-max-aliases", 30, "Maximum total number of aliased fields per GraphQL operation")
 	f.Int64Var(&rootArgs.config.GraphQLMaxBodyBytes, "graphql-max-body-bytes", 1<<20, "Maximum allowed GraphQL request body size in bytes (default 1MB)")
+
+	// gRPC server flags. Port 9091 avoids collision with the metrics
+	// listener which defaults to 8081 (and with the HTTP listener on 8080).
+	f.IntVar(&rootArgs.config.GRPCPort, "grpc-port", 9091, "Port the gRPC server listens on")
+	f.BoolVar(&rootArgs.config.EnableGRPCReflection, "enable-grpc-reflection", true, "Enable the gRPC server-reflection service")
+	f.StringVar(&rootArgs.config.GRPCTLSCert, "grpc-tls-cert", "", "Path to the TLS certificate for the gRPC server")
+	f.StringVar(&rootArgs.config.GRPCTLSKey, "grpc-tls-key", "", "Path to the TLS private key for the gRPC server")
+	f.BoolVar(&rootArgs.config.GRPCInsecure, "grpc-insecure", false, "Allow the gRPC server to run without TLS (dev only)")
 
 	// Organization flags
 	f.StringVar(&rootArgs.config.OrganizationLogo, "organization-logo", defaultOrganizationLogo, "Logo of the organization")
@@ -333,9 +345,20 @@ func applyFlagDefaults() {
 // Run the service
 func runRoot(c *cobra.Command, args []string) {
 	applyFlagDefaults()
-	if rootArgs.server.HTTPPort == rootArgs.server.MetricsPort {
-		fmt.Fprintf(os.Stderr, "invalid server ports: --http-port and --metrics-port must differ (metrics are always served on a dedicated listener)\n")
-		os.Exit(1)
+	// All three listeners (HTTP, metrics, gRPC) bind concurrently; any
+	// collision is unrecoverable at runtime, so we fail fast at startup.
+	ports := map[string]int{
+		"--http-port":    rootArgs.server.HTTPPort,
+		"--metrics-port": rootArgs.server.MetricsPort,
+		"--grpc-port":    rootArgs.config.GRPCPort,
+	}
+	for nameA, a := range ports {
+		for nameB, b := range ports {
+			if nameA < nameB && a == b {
+				fmt.Fprintf(os.Stderr, "invalid server ports: %s (%d) and %s (%d) must differ — each listener binds independently\n", nameA, a, nameB, b)
+				os.Exit(1)
+			}
+		}
 	}
 
 	// Refuse to start without an admin secret. The previous default of
@@ -530,6 +553,23 @@ func runRoot(c *cobra.Command, args []string) {
 		StorageProvider: storageProvider,
 	})
 
+	// Transport-agnostic service layer that hosts public-API operations
+	// (currently SignUp; more migrate over in subsequent phases). GraphQL,
+	// gRPC, and REST surfaces all delegate to this.
+	serviceProvider, err := service.New(&rootArgs.config, &service.Dependencies{
+		Log:                 &log,
+		AuditProvider:       auditProvider,
+		EmailProvider:       emailProvider,
+		EventsProvider:      eventsProvider,
+		MemoryStoreProvider: memoryStoreProvider,
+		SMSProvider:         smsProvider,
+		StorageProvider:     storageProvider,
+		TokenProvider:       tokenProvider,
+	})
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to create service provider")
+	}
+
 	httpProvider, err := http_handlers.New(&rootArgs.config, &http_handlers.Dependencies{
 		Log:                   &log,
 		AuditProvider:         auditProvider,
@@ -543,15 +583,32 @@ func runRoot(c *cobra.Command, args []string) {
 		OAuthProvider:         oauthProvider,
 		RateLimitProvider:     rateLimitProvider,
 		AuthorizationProvider: authorizationProvider,
+		ServiceProvider:       serviceProvider,
 	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create http provider")
 	}
+
+	// gRPC server — listens on --grpc-port. The REST gateway built by
+	// server.Run wraps this same gRPC server in-process so /v1/* REST
+	// calls translate to local gRPC method invocations (no network hop).
+	grpcAddr := net.JoinHostPort(rootArgs.server.Host, strconv.Itoa(rootArgs.config.GRPCPort))
+	grpcSrv, err := grpcsrv.New(grpcAddr, &grpcsrv.Dependencies{
+		Log:             &log,
+		Config:          &rootArgs.config,
+		ServiceProvider: serviceProvider,
+	})
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to create grpc server")
+	}
+	rootArgs.server.GRPCPort = rootArgs.config.GRPCPort
+
 	// Prepare server
 	deps := &server.Dependencies{
 		Log:          &log,
 		AppConfig:    &rootArgs.config,
 		HTTPProvider: httpProvider,
+		GRPCServer:   grpcSrv,
 	}
 	// Create the server
 	svr, err := server.New(&rootArgs.server, deps)

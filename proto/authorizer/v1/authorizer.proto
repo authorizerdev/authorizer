@@ -1,0 +1,429 @@
+// AuthorizerService is the single gRPC service that exposes Authorizer's
+// public API. Method names match the GraphQL operation names 1:1
+// (snake_case in GraphQL → PascalCase in proto): Signup, Login,
+// MagicLinkLogin, VerifyEmail, ResendVerifyEmail, ForgotPassword,
+// ResetPassword, VerifyOtp, ResendOtp, UpdateProfile, DeactivateAccount,
+// Revoke, Meta, Session, Profile, ValidateJwtToken, ValidateSession,
+// Permissions, Logout.
+//
+// Why one service: clients consume a single typed client per language,
+// discovery is trivial, and the surface mirrors the GraphQL one users
+// already know. The trade-off is that we lose resource-oriented evolution
+// (no `List/Get/Create` symmetry per resource) — acceptable for an auth
+// surface where most operations are stateless verbs anyway.
+//
+// REST mapping follows a simple rule:
+//   - GET /v1/{method} when the request body is empty (Meta, Profile,
+//     Permissions, Logout)
+//   - POST /v1/{method} otherwise
+syntax = "proto3";
+
+package authorizer.v1;
+
+import "authorizer/common/v1/annotations.proto";
+import "authorizer/common/v1/types.proto";
+import "authorizer/v1/types.proto";
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+
+service AuthorizerService {
+  // === Identity creation & authentication ===
+
+  // Signup registers a new user. Public; requires sign-up enabled in config.
+  // Returns AuthResponse with tokens + (browser callers) Set-Cookie headers.
+  rpc Signup(SignupRequest) returns (SignupResponse) {
+    option (google.api.http) = {
+      post: "/v1/signup"
+      body: "*"
+    };
+    option (authorizer.common.v1.public) = true;
+    option (authorizer.common.v1.audit_log) = true;
+    option (authorizer.common.v1.mcp_tool) = {exposed: false}; // creds
+  }
+
+  // Login authenticates with email/phone + password.
+  rpc Login(LoginRequest) returns (LoginResponse) {
+    option (google.api.http) = {
+      post: "/v1/login"
+      body: "*"
+    };
+    option (authorizer.common.v1.public) = true;
+    option (authorizer.common.v1.audit_log) = true;
+    option (authorizer.common.v1.mcp_tool) = {exposed: false}; // creds
+  }
+
+  // Logout ends the caller's current session.
+  rpc Logout(LogoutRequest) returns (LogoutResponse) {
+    option (google.api.http) = {get: "/v1/logout"};
+    option (authorizer.common.v1.audit_log) = true;
+  }
+
+  // MagicLinkLogin dispatches a passwordless email link. The clicked link
+  // hits the existing /verify_email browser handler.
+  rpc MagicLinkLogin(MagicLinkLoginRequest) returns (MagicLinkLoginResponse) {
+    option (google.api.http) = {
+      post: "/v1/magic_link_login"
+      body: "*"
+    };
+    option (authorizer.common.v1.public) = true;
+    option (authorizer.common.v1.audit_log) = true;
+  }
+
+  // === Email + OTP verification ===
+
+  rpc VerifyEmail(VerifyEmailRequest) returns (VerifyEmailResponse) {
+    option (google.api.http) = {
+      post: "/v1/verify_email"
+      body: "*"
+    };
+    option (authorizer.common.v1.public) = true;
+    option (authorizer.common.v1.audit_log) = true;
+  }
+
+  rpc ResendVerifyEmail(ResendVerifyEmailRequest) returns (ResendVerifyEmailResponse) {
+    option (google.api.http) = {
+      post: "/v1/resend_verify_email"
+      body: "*"
+    };
+    option (authorizer.common.v1.public) = true;
+  }
+
+  rpc VerifyOtp(VerifyOtpRequest) returns (VerifyOtpResponse) {
+    option (google.api.http) = {
+      post: "/v1/verify_otp"
+      body: "*"
+    };
+    option (authorizer.common.v1.public) = true;
+    option (authorizer.common.v1.audit_log) = true;
+  }
+
+  rpc ResendOtp(ResendOtpRequest) returns (ResendOtpResponse) {
+    option (google.api.http) = {
+      post: "/v1/resend_otp"
+      body: "*"
+    };
+    option (authorizer.common.v1.public) = true;
+  }
+
+  // === Password lifecycle ===
+
+  rpc ForgotPassword(ForgotPasswordRequest) returns (ForgotPasswordResponse) {
+    option (google.api.http) = {
+      post: "/v1/forgot_password"
+      body: "*"
+    };
+    option (authorizer.common.v1.public) = true;
+  }
+
+  rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse) {
+    option (google.api.http) = {
+      post: "/v1/reset_password"
+      body: "*"
+    };
+    option (authorizer.common.v1.public) = true;
+    option (authorizer.common.v1.audit_log) = true;
+  }
+
+  // === Profile + account ===
+
+  // Profile returns the authenticated user.
+  rpc Profile(ProfileRequest) returns (ProfileResponse) {
+    option (google.api.http) = {get: "/v1/profile"};
+    option (authorizer.common.v1.mcp_tool) = {exposed: true};
+  }
+
+  rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse) {
+    option (google.api.http) = {
+      post: "/v1/update_profile"
+      body: "*"
+    };
+    option (authorizer.common.v1.audit_log) = true;
+  }
+
+  // DeactivateAccount soft-deletes the caller's account and revokes all
+  // refresh tokens as a side effect. OAuth has no concept of account
+  // deactivation; this is the typed equivalent of SCIM PATCH active=false.
+  rpc DeactivateAccount(DeactivateAccountRequest) returns (DeactivateAccountResponse) {
+    option (google.api.http) = {
+      post: "/v1/deactivate_account"
+      body: "*"
+    };
+    option (authorizer.common.v1.audit_log) = true;
+    option (authorizer.common.v1.mcp_tool) = {
+      exposed: false
+      destructive: true
+    };
+  }
+
+  // === Token + session ===
+
+  // Revoke invalidates a refresh token. Typed mirror of RFC 7009.
+  rpc Revoke(RevokeRequest) returns (RevokeResponse) {
+    option (google.api.http) = {
+      post: "/v1/revoke"
+      body: "*"
+    };
+    option (authorizer.common.v1.audit_log) = true;
+  }
+
+  // Session returns the AuthResponse bound to the caller's cookie/bearer.
+  rpc Session(SessionRequest) returns (SessionResponse) {
+    option (google.api.http) = {
+      post: "/v1/session"
+      body: "*"
+    };
+    option (authorizer.common.v1.mcp_tool) = {exposed: true};
+  }
+
+  rpc ValidateJwtToken(ValidateJwtTokenRequest) returns (ValidateJwtTokenResponse) {
+    option (google.api.http) = {
+      post: "/v1/validate_jwt_token"
+      body: "*"
+    };
+    option (authorizer.common.v1.public) = true;
+  }
+
+  rpc ValidateSession(ValidateSessionRequest) returns (ValidateSessionResponse) {
+    option (google.api.http) = {
+      post: "/v1/validate_session"
+      body: "*"
+    };
+    option (authorizer.common.v1.public) = true;
+  }
+
+  // === Server discovery + caller authz ===
+
+  // Meta returns server feature flags. No auth required.
+  rpc Meta(MetaRequest) returns (MetaResponse) {
+    option (google.api.http) = {get: "/v1/meta"};
+    option (authorizer.common.v1.public) = true;
+    option (authorizer.common.v1.mcp_tool) = {exposed: true};
+  }
+
+  // Permissions returns the caller's effective (resource, scope) pairs.
+  rpc Permissions(PermissionsRequest) returns (PermissionsResponse) {
+    option (google.api.http) = {get: "/v1/permissions"};
+    option (authorizer.common.v1.mcp_tool) = {exposed: true};
+  }
+}
+
+// ============================================================================
+// Per-RPC request + response messages.
+//
+// Buf STANDARD lint requires unique req/resp types per RPC. Many of our
+// responses naturally share the same inner shape (AuthResponse, User, etc.),
+// so the wrappers below are thin: one field, the typed inner payload. This
+// gives forward evolution room (we can add fields per-RPC without disturbing
+// the others) at the cost of one extra accessor level on the client side.
+// ============================================================================
+
+message SignupRequest {
+  string email = 1 [(buf.validate.field).string = {max_len: 320}];
+  string phone_number = 2 [(buf.validate.field).string.max_len = 32];
+  string password = 3 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 128
+  }];
+  string confirm_password = 4 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 128
+  }];
+  string given_name = 5;
+  string family_name = 6;
+  string middle_name = 7;
+  string nickname = 8;
+  string gender = 9;
+  string birthdate = 10;
+  string picture = 11;
+  repeated string roles = 12;
+  repeated string scope = 13;
+  string redirect_uri = 14;
+  bool is_multi_factor_auth_enabled = 15;
+  string state = 16;
+  authorizer.common.v1.AppData app_data = 17;
+}
+message SignupResponse {
+  AuthResponse auth = 1;
+}
+
+message LoginRequest {
+  string email = 1 [(buf.validate.field).string.max_len = 320];
+  string phone_number = 2 [(buf.validate.field).string.max_len = 32];
+  string password = 3 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 128
+  }];
+  repeated string roles = 4;
+  repeated string scope = 5;
+  string state = 6;
+}
+message LoginResponse {
+  AuthResponse auth = 1;
+}
+
+message LogoutRequest {}
+message LogoutResponse {
+  string message = 1;
+}
+
+message MagicLinkLoginRequest {
+  string email = 1 [(buf.validate.field).string = {max_len: 320}];
+  repeated string roles = 2;
+  repeated string scope = 3;
+  string state = 4;
+  string redirect_uri = 5;
+}
+message MagicLinkLoginResponse {
+  string message = 1;
+}
+
+message VerifyEmailRequest {
+  string token = 1 [(buf.validate.field).string.min_len = 1];
+  string state = 2;
+}
+message VerifyEmailResponse {
+  AuthResponse auth = 1;
+}
+
+message ResendVerifyEmailRequest {
+  string email = 1 [(buf.validate.field).string = {max_len: 320}];
+  string identifier = 2 [(buf.validate.field).string.min_len = 1];
+  string state = 3;
+}
+message ResendVerifyEmailResponse {
+  string message = 1;
+}
+
+message VerifyOtpRequest {
+  // Exactly one of email / phone_number is required.
+  string email = 1 [(buf.validate.field).string.max_len = 320];
+  string phone_number = 2 [(buf.validate.field).string.max_len = 32];
+  string otp = 3 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 16
+  }];
+  bool is_totp = 4;
+  string state = 5;
+}
+message VerifyOtpResponse {
+  AuthResponse auth = 1;
+}
+
+message ResendOtpRequest {
+  string email = 1 [(buf.validate.field).string.max_len = 320];
+  string phone_number = 2 [(buf.validate.field).string.max_len = 32];
+  string state = 3;
+}
+message ResendOtpResponse {
+  string message = 1;
+}
+
+message ForgotPasswordRequest {
+  string email = 1 [(buf.validate.field).string.max_len = 320];
+  string phone_number = 2 [(buf.validate.field).string.max_len = 32];
+  string state = 3;
+  string redirect_uri = 4;
+}
+message ForgotPasswordResponse {
+  string message = 1;
+  // For SMS-driven flows the UI may need to render an OTP entry screen.
+  bool should_show_mobile_otp_screen = 2;
+}
+
+message ResetPasswordRequest {
+  // For email flows: the token from the reset email. For SMS flows: the OTP.
+  string token = 1;
+  string otp = 2;
+  string phone_number = 3 [(buf.validate.field).string.max_len = 32];
+  string password = 4 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 128
+  }];
+  string confirm_password = 5 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 128
+  }];
+}
+message ResetPasswordResponse {
+  string message = 1;
+}
+
+message ProfileRequest {}
+message ProfileResponse {
+  User user = 1;
+}
+
+message UpdateProfileRequest {
+  string old_password = 1;
+  string new_password = 2 [(buf.validate.field).string.max_len = 128];
+  string confirm_new_password = 3 [(buf.validate.field).string.max_len = 128];
+  string email = 4 [(buf.validate.field).string.max_len = 320];
+  string given_name = 5;
+  string family_name = 6;
+  string middle_name = 7;
+  string nickname = 8;
+  string gender = 9;
+  string birthdate = 10;
+  string phone_number = 11 [(buf.validate.field).string.max_len = 32];
+  string picture = 12;
+  bool is_multi_factor_auth_enabled = 13;
+  authorizer.common.v1.AppData app_data = 14;
+}
+message UpdateProfileResponse {
+  string message = 1;
+}
+
+message DeactivateAccountRequest {}
+message DeactivateAccountResponse {
+  string message = 1;
+}
+
+message RevokeRequest {
+  string refresh_token = 1 [(buf.validate.field).string.min_len = 1];
+}
+message RevokeResponse {
+  string message = 1;
+}
+
+message SessionRequest {
+  repeated string roles = 1;
+  repeated string scope = 2;
+  string state = 3;
+  // Optional AND-combined permission filter; deny if any is missing.
+  repeated PermissionInput required_permissions = 4;
+}
+message SessionResponse {
+  AuthResponse auth = 1;
+}
+
+message ValidateJwtTokenRequest {
+  string token_type = 1 [(buf.validate.field).string.min_len = 1];
+  string token = 2 [(buf.validate.field).string.min_len = 1];
+  repeated string roles = 3;
+  repeated PermissionInput required_permissions = 4;
+}
+message ValidateJwtTokenResponse {
+  bool is_valid = 1;
+  // Free-form JWT claims (matches GraphQL ValidateJWTTokenResponse.claims).
+  authorizer.common.v1.AppData claims = 2;
+}
+
+message ValidateSessionRequest {
+  string cookie = 1 [(buf.validate.field).string.min_len = 1];
+  repeated string roles = 2;
+  repeated PermissionInput required_permissions = 3;
+}
+message ValidateSessionResponse {
+  bool is_valid = 1;
+  User user = 2;
+}
+
+message MetaRequest {}
+message MetaResponse {
+  Meta meta = 1;
+}
+
+message PermissionsRequest {}
+message PermissionsResponse {
+  repeated Permission permissions = 1;
+}

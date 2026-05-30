@@ -3,10 +3,13 @@ package server
 import (
 	"encoding/json"
 	"html/template"
+	"net/http"
 	"path"
 	"strings"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/authorizerdev/authorizer/gen/openapi"
 )
 
 // spaBuildCacheMiddleware sets cache headers for SPA build assets:
@@ -72,6 +75,27 @@ func (s *server) NewRouter() *gin.Engine {
 	router.POST("/oauth/token", s.Dependencies.HTTPProvider.TokenHandler())
 	router.POST("/oauth/revoke", s.Dependencies.HTTPProvider.RevokeRefreshTokenHandler())
 	router.POST("/oauth/introspect", s.Dependencies.HTTPProvider.IntrospectHandler())
+
+	// gRPC-gateway REST surface at /v1/*. Mounted only when the gRPC
+	// server is configured. Shares all gin middleware (CORS, security
+	// headers, rate limit, logging) automatically since the route group
+	// inherits them from `router.Use(...)` above.
+	if s.gatewayHandler != nil {
+		// The gateway's routes are registered with their full /v1/... path
+		// (driven by google.api.http annotations). Mount it as a catch-all
+		// under /v1 so gin matches the prefix and hands the full request
+		// path to grpc-gateway untouched.
+		gw := gin.WrapH(s.gatewayHandler)
+		router.Any("/v1/*path", gw)
+
+		// OpenAPI spec — generated alongside the gRPC stubs by buf and
+		// embedded into the binary (so it works regardless of cwd: tests,
+		// containers, etc.). Path is intentionally separate from the
+		// gateway mux so it doesn't fight a /v1/openapi.json gateway route.
+		router.GET("/openapi.json", func(c *gin.Context) {
+			c.Data(http.StatusOK, "application/json", openapi.Spec())
+		})
+	}
 
 	// Set up template functions for JSON encoding.
 	// Escape </script> and <!-- to prevent script injection in <script> blocks.

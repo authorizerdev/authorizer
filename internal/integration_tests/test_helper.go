@@ -25,6 +25,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/memory_store"
 	"github.com/authorizerdev/authorizer/internal/oauth"
 	"github.com/authorizerdev/authorizer/internal/rate_limit"
+	"github.com/authorizerdev/authorizer/internal/service"
 	"github.com/authorizerdev/authorizer/internal/sms"
 	"github.com/authorizerdev/authorizer/internal/storage"
 	"github.com/authorizerdev/authorizer/internal/token"
@@ -207,6 +208,19 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 		StorageProvider: storageProvider,
 	})
 
+	// Transport-agnostic service layer for migrated public ops (SignUp etc.).
+	serviceProvider, err := service.New(cfg, &service.Dependencies{
+		Log:                 &logger,
+		AuditProvider:       auditProvider,
+		EmailProvider:       emailProvider,
+		EventsProvider:      eventsProvider,
+		MemoryStoreProvider: memoryStoreProvider,
+		SMSProvider:         smsProvider,
+		StorageProvider:     storageProvider,
+		TokenProvider:       tokenProvider,
+	})
+	require.NoError(t, err)
+
 	// Create dependencies struct
 	gqlDeps := &graphql.Dependencies{
 		Log:                   &logger,
@@ -219,6 +233,7 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 		SMSProvider:           smsProvider,
 		StorageProvider:       storageProvider,
 		TokenProvider:         tokenProvider,
+		ServiceProvider:       serviceProvider,
 	}
 
 	// Create dependencies struct
@@ -234,6 +249,7 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 		TokenProvider:         tokenProvider,
 		RateLimitProvider:     rateLimitProvider,
 		OAuthProvider:         oauthProvider,
+		ServiceProvider:       serviceProvider,
 	}
 
 	// Create GraphQL provider
