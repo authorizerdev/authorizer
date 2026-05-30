@@ -89,6 +89,9 @@ type AuthorizerServiceClient interface {
 	// Revoke invalidates a refresh token. Typed mirror of RFC 7009.
 	Revoke(ctx context.Context, in *RevokeRequest, opts ...grpc.CallOption) (*RevokeResponse, error)
 	// Session returns the AuthResponse bound to the caller's cookie/bearer.
+	// NOT exposed as an MCP tool — SessionResponse carries access_token,
+	// refresh_token, id_token, authenticator_secret, and recovery codes,
+	// none of which should land in an LLM transcript. (Security audit C1.)
 	Session(ctx context.Context, in *SessionRequest, opts ...grpc.CallOption) (*SessionResponse, error)
 	ValidateJwtToken(ctx context.Context, in *ValidateJwtTokenRequest, opts ...grpc.CallOption) (*ValidateJwtTokenResponse, error)
 	ValidateSession(ctx context.Context, in *ValidateSessionRequest, opts ...grpc.CallOption) (*ValidateSessionResponse, error)
@@ -326,6 +329,9 @@ type AuthorizerServiceServer interface {
 	// Revoke invalidates a refresh token. Typed mirror of RFC 7009.
 	Revoke(context.Context, *RevokeRequest) (*RevokeResponse, error)
 	// Session returns the AuthResponse bound to the caller's cookie/bearer.
+	// NOT exposed as an MCP tool — SessionResponse carries access_token,
+	// refresh_token, id_token, authenticator_secret, and recovery codes,
+	// none of which should land in an LLM transcript. (Security audit C1.)
 	Session(context.Context, *SessionRequest) (*SessionResponse, error)
 	ValidateJwtToken(context.Context, *ValidateJwtTokenRequest) (*ValidateJwtTokenResponse, error)
 	ValidateSession(context.Context, *ValidateSessionRequest) (*ValidateSessionResponse, error)

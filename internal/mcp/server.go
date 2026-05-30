@@ -1,3 +1,6 @@
+// Package mcp serves a curated subset of Authorizer's gRPC methods to
+// LLM clients via the Model Context Protocol. Stdio is the ONLY supported
+// transport — see the deliberate design note on Server below.
 package mcp
 
 import (
@@ -11,6 +14,7 @@ import (
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/test/bufconn"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -19,15 +23,44 @@ import (
 
 const bufSize = 1 << 20
 
-// Server wraps an MCP server that bridges to an in-process gRPC server. The
-// gRPC server is the source of truth for which tools exist (via the
-// `mcp_tool` proto annotation); we never hand-register tools here.
+// Server wraps an MCP server that bridges to an in-process gRPC server.
+//
+// Design constraint: stdio is the ONLY supported transport. The MCP server
+// has no auth/rate-limit/audit interceptors of its own — it relies entirely
+// on the OS-level trust boundary of the subprocess (Claude Code spawns
+// `authorizer mcp` as a child; only that process can write to its stdin).
+// Exposing the MCP server over TCP / HTTP / SSE would invalidate that
+// assumption and is intentionally NOT implementable: there is no RunHTTP /
+// RunTCP / RunSSE method, and adding one without first implementing an
+// auth layer is a security regression. The stdio-only contract is also
+// enforced by TestServer_StdioOnly.
 type Server struct {
 	log     *zerolog.Logger
 	mcpSrv  *mcp.Server
 	gwConn  *grpc.ClientConn
 	lis     *bufconn.Listener
 	grpcSrv *grpc.Server
+
+	// bearer is the value of the Authorization header stamped on every
+	// outgoing gRPC call. Set via Options.Bearer at construction time
+	// (the cmd/mcp.go subcommand exposes --mcp-bearer). When empty, calls
+	// flow without auth — fine for public methods like Meta, but anything
+	// requiring identity (Profile, Permissions, ...) will see an empty
+	// caller and return whatever its handler does in that case.
+	bearer string
+}
+
+// Options configures the MCP server.
+type Options struct {
+	// Name is the MCP server's reported implementation name.
+	Name string
+	// Version is the MCP server's reported implementation version.
+	Version string
+	// Bearer, when set, is propagated as `Authorization: Bearer <value>`
+	// metadata on every gRPC dispatch. This is how MCP-side identity
+	// reaches the gRPC handlers (security audit H1). The bearer should be
+	// a token issued for the user the MCP host is acting on behalf of.
+	Bearer string
 }
 
 // New builds an MCP server that exposes every gRPC method on `grpcSrv`
@@ -35,12 +68,15 @@ type Server struct {
 // The gRPC server is served over an in-process bufconn — same pattern as
 // the REST gateway — so MCP tool invocations become local method calls with
 // no extra network hop.
-func New(log *zerolog.Logger, grpcSrv *grpc.Server, name, version string) (*Server, error) {
+func New(log *zerolog.Logger, grpcSrv *grpc.Server, opts Options) (*Server, error) {
 	bindings, err := Scan(grpcSrv)
 	if err != nil {
 		return nil, fmt.Errorf("mcp: scan tools: %w", err)
 	}
-	log.Info().Int("tools", len(bindings)).Msg("MCP: discovered tools from proto annotations")
+	log.Info().
+		Int("tools", len(bindings)).
+		Bool("authenticated", opts.Bearer != "").
+		Msg("MCP: discovered tools from proto annotations")
 
 	// Same bufconn dance as the REST gateway.
 	lis := bufconn.Listen(bufSize)
@@ -56,21 +92,22 @@ func New(log *zerolog.Logger, grpcSrv *grpc.Server, name, version string) (*Serv
 	}
 
 	mcpSrv := mcp.NewServer(&mcp.Implementation{
-		Name:    name,
-		Version: version,
+		Name:    opts.Name,
+		Version: opts.Version,
 	}, nil)
 
-	for _, b := range bindings {
-		registerTool(log, mcpSrv, conn, b)
-	}
-
-	return &Server{
+	s := &Server{
 		log:     log,
 		mcpSrv:  mcpSrv,
 		gwConn:  conn,
 		lis:     lis,
 		grpcSrv: grpcSrv,
-	}, nil
+		bearer:  opts.Bearer,
+	}
+	for _, b := range bindings {
+		s.registerTool(b)
+	}
+	return s, nil
 }
 
 // MCPServer exposes the underlying *mcp.Server. Used by tests to drive the
@@ -79,6 +116,9 @@ func (s *Server) MCPServer() *mcp.Server { return s.mcpSrv }
 
 // RunStdio serves MCP over stdio (the default Claude Code transport). Blocks
 // until ctx is cancelled or the client disconnects.
+//
+// This is the only `Run*` method on the Server. See the type comment for why
+// adding a non-stdio transport is intentionally a code-level non-feature.
 func (s *Server) RunStdio(ctx context.Context) error {
 	defer s.cleanup()
 	return s.mcpSrv.Run(ctx, &mcp.StdioTransport{})
@@ -89,12 +129,22 @@ func (s *Server) cleanup() {
 	_ = s.lis.Close()
 }
 
+// stampAuth attaches the configured bearer to the outgoing gRPC call. A
+// no-op when the bearer is unset. This is the bridge that lets gRPC handlers
+// see "who is calling" when invoked from MCP (security audit H1).
+func (s *Server) stampAuth(ctx context.Context) context.Context {
+	if s.bearer == "" {
+		return ctx
+	}
+	return metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+s.bearer)
+}
+
 // registerTool wires one ToolBinding into the MCP server. The handler:
-//   1. Constructs a fresh proto.Message of the right type via dynamicpb
-//   2. Unmarshals JSON args into it
-//   3. Invokes the gRPC method via grpc.ClientConn.Invoke
-//   4. Marshals the response back to JSON for the MCP client
-func registerTool(log *zerolog.Logger, srv *mcp.Server, conn *grpc.ClientConn, b ToolBinding) {
+//  1. Constructs a fresh proto.Message of the right type via dynamicpb
+//  2. Unmarshals JSON args into it
+//  3. Invokes the gRPC method via grpc.ClientConn.Invoke (with bearer)
+//  4. Marshals the response back to JSON for the MCP client
+func (s *Server) registerTool(b ToolBinding) {
 	schema := schemaForMessage(b.InputDescriptor)
 	tool := &mcp.Tool{
 		Name:        b.Name,
@@ -106,7 +156,7 @@ func registerTool(log *zerolog.Logger, srv *mcp.Server, conn *grpc.ClientConn, b
 		tool.Annotations = &mcp.ToolAnnotations{DestructiveHint: ptrTrue()}
 	}
 
-	srv.AddTool(tool, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	s.mcpSrv.AddTool(tool, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		// Build a dynamic proto.Message for the request, then unmarshal JSON.
 		reqMsg := dynamicpb.NewMessage(b.InputDescriptor)
 		if len(req.Params.Arguments) > 0 && !isJSONNull(req.Params.Arguments) {
@@ -118,8 +168,8 @@ func registerTool(log *zerolog.Logger, srv *mcp.Server, conn *grpc.ClientConn, b
 		}
 
 		respMsg := dynamicpb.NewMessage(b.OutputDescriptor)
-		if err := conn.Invoke(ctx, b.FullMethod, reqMsg, respMsg); err != nil {
-			log.Debug().Err(err).Str("tool", b.Name).Str("method", b.FullMethod).Msg("MCP tool invocation failed")
+		if err := s.gwConn.Invoke(s.stampAuth(ctx), b.FullMethod, reqMsg, respMsg); err != nil {
+			s.log.Debug().Err(err).Str("tool", b.Name).Str("method", b.FullMethod).Msg("MCP tool invocation failed")
 			// gRPC errors (Unimplemented, PermissionDenied, NotFound, ...)
 			// become CallToolResult{IsError: true} with the gRPC status
 			// message as the content. The MCP host shows this to the LLM
