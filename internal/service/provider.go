@@ -42,6 +42,11 @@ type Provider interface {
 	// SignUp registers a new user. Public — no authentication required.
 	// Permissions: none.
 	SignUp(ctx context.Context, meta RequestMetadata, params *model.SignUpRequest) (*model.AuthResponse, *ResponseSideEffects, error)
+
+	// Meta returns server discovery information (feature flags + provider
+	// availability). Public — no authentication required.
+	// Permissions: none.
+	Meta(ctx context.Context, meta RequestMetadata) (*model.Meta, *ResponseSideEffects, error)
 }
 
 // New constructs a new service provider.

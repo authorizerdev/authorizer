@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package authorizer.user.v1;
+
+import "authorizer/common/v1/types.proto";
+
+// User mirrors the GraphQL User type. Field names match the existing
+// JSON/GraphQL surface so REST callers see the same shape.
+//
+// The canonical resource name is either "users/me" (the caller) or
+// "users/{id}". Other RPCs accept this string form via the `name` field on
+// their requests.
+message User {
+  string id = 1;
+  // Either email or phone_number is always present.
+  string email = 2;
+  bool email_verified = 3;
+  string signup_methods = 4;
+  string given_name = 5;
+  string family_name = 6;
+  string middle_name = 7;
+  string nickname = 8;
+  // Defaults to email when unset.
+  string preferred_username = 9;
+  string gender = 10;
+  string birthdate = 11;
+  string phone_number = 12;
+  bool phone_number_verified = 13;
+  string picture = 14;
+  repeated string roles = 15;
+  int64 created_at = 16;
+  int64 updated_at = 17;
+  int64 revoked_timestamp = 18;
+  bool is_multi_factor_auth_enabled = 19;
+  // Free-form key/value bag — same as GraphQL `app_data: Map`.
+  authorizer.common.v1.AppData app_data = 20;
+}

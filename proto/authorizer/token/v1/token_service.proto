@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package authorizer.token.v1;
+
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "google/protobuf/struct.proto";
+import "authorizer/common/v1/annotations.proto";
+
+// TokenService operates on existing tokens — distinct from SessionService
+// (which *issues* tokens via login). RFC 7009 token revocation and RFC 7662
+// introspection remain at their standards-mandated /oauth/* HTTP paths for
+// OAuth-spec compatibility; this service offers typed mirrors for
+// first-party SDK use.
+service TokenService {
+  // CreateTokenValidation validates a JWT and returns its claims. Equivalent
+  // to GraphQL validate_jwt_token.
+  rpc CreateTokenValidation(CreateTokenValidationRequest) returns (CreateTokenValidationResponse) {
+    option (google.api.http) = {
+      post: "/v1/token-validations"
+      body: "*"
+    };
+    option (authorizer.common.v1.public) = true;
+  }
+
+  // RevokeRefreshToken invalidates a refresh token. Typed mirror of
+  // RFC 7009 `POST /oauth/revoke`.
+  rpc RevokeRefreshToken(RevokeRefreshTokenRequest) returns (RevokeRefreshTokenResponse) {
+    option (google.api.http) = {delete: "/v1/refresh-tokens/{refresh_token}"};
+    option (authorizer.common.v1.audit_log) = true;
+  }
+}
+
+message CreateTokenValidationRequest {
+  // One of: "access_token", "id_token", "refresh_token".
+  string token_type = 1 [(buf.validate.field).string.min_len = 1];
+  string token = 2 [(buf.validate.field).string.min_len = 1];
+  repeated string roles = 3;
+  repeated PermissionRef required_permissions = 4;
+}
+
+message PermissionRef {
+  string resource = 1 [(buf.validate.field).string.min_len = 1];
+  string scope = 2 [(buf.validate.field).string.min_len = 1];
+}
+
+message CreateTokenValidationResponse {
+  bool is_valid = 1;
+  // Free-form JWT claims; matches GraphQL ValidateJWTTokenResponse.claims.
+  google.protobuf.Struct claims = 2;
+}
+
+message RevokeRefreshTokenRequest {
+  string refresh_token = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+message RevokeRefreshTokenResponse {}

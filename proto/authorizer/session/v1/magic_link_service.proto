@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package authorizer.session.v1;
+
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "authorizer/common/v1/annotations.proto";
+
+// MagicLinkService models passwordless email-link login as the "magic link"
+// resource. CreateMagicLink dispatches an email; the user clicks the link
+// (handled by the existing /verify_email browser route), which results in a
+// new Session via CreateSession with grant.magic_link.
+service MagicLinkService {
+  // CreateMagicLink dispatches a magic-link email. Returns 202: the email
+  // is sent asynchronously; the link itself drives session creation later.
+  rpc CreateMagicLink(CreateMagicLinkRequest) returns (CreateMagicLinkResponse) {
+    option (google.api.http) = {
+      post: "/v1/magic-links"
+      body: "*"
+    };
+    option (authorizer.common.v1.public) = true;
+    option (authorizer.common.v1.audit_log) = true;
+  }
+}
+
+message CreateMagicLinkRequest {
+  string email = 1 [(buf.validate.field).string = {email: true, max_len: 320}];
+  repeated string roles = 2;
+  repeated string scope = 3;
+  string state = 4;
+  string redirect_uri = 5;
+}
+
+message CreateMagicLinkResponse {
+  string message = 1;
+}

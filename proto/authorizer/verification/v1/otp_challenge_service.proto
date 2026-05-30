@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package authorizer.verification.v1;
+
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "authorizer/common/v1/annotations.proto";
+import "authorizer/session/v1/session.proto";
+
+// OtpChallengeService models the OTP step (email or SMS or TOTP) as a
+// challenge resource. Create requests a fresh OTP; Confirm verifies it and
+// — if successful — issues a Session (since OTP is the second factor of an
+// in-progress login).
+service OtpChallengeService {
+  // CreateOtpChallenge (re)sends an OTP to the address tied to an
+  // in-progress login. Returns 201.
+  rpc CreateOtpChallenge(CreateOtpChallengeRequest) returns (CreateOtpChallengeResponse) {
+    option (google.api.http) = {
+      post: "/v1/otp-challenges"
+      body: "*"
+    };
+    option (authorizer.common.v1.public) = true;
+  }
+
+  // ConfirmOtpChallenge verifies the supplied OTP and, on success, returns
+  // a Session for the user. Browser callers also receive Set-Cookie.
+  rpc ConfirmOtpChallenge(ConfirmOtpChallengeRequest) returns (ConfirmOtpChallengeResponse) {
+    option (google.api.http) = {
+      put: "/v1/otp-challenges/{challenge_id}"
+      body: "*"
+    };
+    option (authorizer.common.v1.public) = true;
+    option (authorizer.common.v1.audit_log) = true;
+  }
+}
+
+message CreateOtpChallengeRequest {
+  // Exactly one of email / phone_number is required.
+  string email = 1 [(buf.validate.field).string.max_len = 320];
+  string phone_number = 2 [(buf.validate.field).string.max_len = 32];
+  string state = 3;
+}
+
+message CreateOtpChallengeResponse {
+  string message = 1;
+}
+
+message ConfirmOtpChallengeRequest {
+  // Opaque challenge id (today: the email / phone the OTP was sent to).
+  string challenge_id = 1 [(buf.validate.field).string.min_len = 1];
+  // The OTP value the user entered.
+  string otp = 2 [(buf.validate.field).string = {min_len: 1, max_len: 16}];
+  // Either email or phone_number identifies the user (mirrors challenge_id
+  // for now; reserved for a future opaque challenge-id design).
+  string email = 3 [(buf.validate.field).string.max_len = 320];
+  string phone_number = 4 [(buf.validate.field).string.max_len = 32];
+  bool is_totp = 5;
+  string state = 6;
+}
+
+message ConfirmOtpChallengeResponse {
+  authorizer.session.v1.Session session = 1;
+}

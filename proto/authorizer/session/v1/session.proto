@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package authorizer.session.v1;
+
+import "authorizer/user/v1/user.proto";
+
+// Session is what CreateSession returns: tokens plus enough user context to
+// avoid a follow-up GetUser. Mirrors the GraphQL AuthResponse type 1:1 in
+// field naming.
+message Session {
+  string message = 1;
+  bool should_show_email_otp_screen = 2;
+  bool should_show_mobile_otp_screen = 3;
+  bool should_show_totp_screen = 4;
+  string access_token = 5;
+  string id_token = 6;
+  string refresh_token = 7;
+  int64 expires_in = 8;
+  authorizer.user.v1.User user = 9;
+  // TOTP enrolment artifacts (set only when CreateSession initiates TOTP setup).
+  string authenticator_scanner_image = 10;
+  string authenticator_secret = 11;
+  repeated string authenticator_recovery_codes = 12;
+}
+
+// SessionValidationResult is what CreateSessionValidation returns.
+message SessionValidationResult {
+  bool is_valid = 1;
+  authorizer.user.v1.User user = 2;
+}

@@ -3,8 +3,10 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"time"
 
@@ -25,6 +27,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/memory_store"
 	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/oauth"
+	"github.com/authorizerdev/authorizer/internal/grpcsrv"
 	"github.com/authorizerdev/authorizer/internal/rate_limit"
 	"github.com/authorizerdev/authorizer/internal/server"
 	"github.com/authorizerdev/authorizer/internal/service"
@@ -102,6 +105,13 @@ func init() {
 	f.IntVar(&rootArgs.config.GraphQLMaxDepth, "graphql-max-depth", 15, "Maximum nesting depth of a GraphQL selection set")
 	f.IntVar(&rootArgs.config.GraphQLMaxAliases, "graphql-max-aliases", 30, "Maximum total number of aliased fields per GraphQL operation")
 	f.Int64Var(&rootArgs.config.GraphQLMaxBodyBytes, "graphql-max-body-bytes", 1<<20, "Maximum allowed GraphQL request body size in bytes (default 1MB)")
+
+	// gRPC server flags
+	f.IntVar(&rootArgs.config.GRPCPort, "grpc-port", 8081, "Port the gRPC server listens on")
+	f.BoolVar(&rootArgs.config.EnableGRPCReflection, "enable-grpc-reflection", true, "Enable the gRPC server-reflection service")
+	f.StringVar(&rootArgs.config.GRPCTLSCert, "grpc-tls-cert", "", "Path to the TLS certificate for the gRPC server")
+	f.StringVar(&rootArgs.config.GRPCTLSKey, "grpc-tls-key", "", "Path to the TLS private key for the gRPC server")
+	f.BoolVar(&rootArgs.config.GRPCInsecure, "grpc-insecure", false, "Allow the gRPC server to run without TLS (dev only)")
 
 	// Organization flags
 	f.StringVar(&rootArgs.config.OrganizationLogo, "organization-logo", defaultOrganizationLogo, "Logo of the organization")
@@ -566,11 +576,27 @@ func runRoot(c *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create http provider")
 	}
+
+	// gRPC server — listens on --grpc-port. The REST gateway built by
+	// server.Run wraps this same gRPC server in-process so /v1/* REST
+	// calls translate to local gRPC method invocations (no network hop).
+	grpcAddr := net.JoinHostPort(rootArgs.server.Host, strconv.Itoa(rootArgs.config.GRPCPort))
+	grpcSrv, err := grpcsrv.New(grpcAddr, &grpcsrv.Dependencies{
+		Log:             &log,
+		Config:          &rootArgs.config,
+		ServiceProvider: serviceProvider,
+	})
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to create grpc server")
+	}
+	rootArgs.server.GRPCPort = rootArgs.config.GRPCPort
+
 	// Prepare server
 	deps := &server.Dependencies{
 		Log:          &log,
 		AppConfig:    &rootArgs.config,
 		HTTPProvider: httpProvider,
+		GRPCServer:   grpcSrv,
 	}
 	// Create the server
 	svr, err := server.New(&rootArgs.server, deps)
