@@ -35,9 +35,31 @@ func TestRecovery_TurnsPanicIntoInternal(t *testing.T) {
 	require.True(t, ok, "expected a gRPC status error")
 	assert.Equal(t, codes.Internal, st.Code())
 	assert.Equal(t, "internal server error", st.Message(), "panic detail must not leak to clients")
-	// The stack stays server-side.
-	assert.Contains(t, buf.String(), "panicked")
-	assert.Contains(t, buf.String(), "kaboom")
+	out := buf.String()
+	// The stack + type get logged. The recovered VALUE does NOT — security
+	// audit H2: panic values can carry credentials (Password / RefreshToken
+	// / OTP / AdminSecret) that must not reach the log stream.
+	assert.Contains(t, out, "panicked")
+	assert.Contains(t, out, `"panic_type":"string"`)
+	assert.NotContains(t, out, "kaboom",
+		"the panic VALUE must not appear in logs; only its type — see H2")
+}
+
+// TestRecovery_DoesNotLogCredentialBearingPanicValue is the regression test
+// for security audit H2: a handler that panics with a value containing
+// credentials must NOT have those credentials written to the log stream.
+func TestRecovery_DoesNotLogCredentialBearingPanicValue(t *testing.T) {
+	var buf bytes.Buffer
+	log := zerolog.New(&buf)
+	r := Recovery(&log)
+	_, _ = r(context.Background(), nil, info("/svc/X"), func(_ context.Context, _ any) (any, error) {
+		// Simulate a handler panicking with a credential-bearing value.
+		panic("password=hunter2 token=secretXYZ")
+	})
+	out := buf.String()
+	assert.NotContains(t, out, "hunter2", "panic value must not reach logs")
+	assert.NotContains(t, out, "secretXYZ", "panic value must not reach logs")
+	assert.Contains(t, out, `"panic_type":"string"`, "type should still be logged for triage")
 }
 
 func TestRecovery_PassesNormalErrorsThrough(t *testing.T) {

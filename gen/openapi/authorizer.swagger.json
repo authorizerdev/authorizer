@@ -370,7 +370,7 @@
     },
     "/v1/session": {
       "post": {
-        "summary": "Session returns the AuthResponse bound to the caller's cookie/bearer.",
+        "summary": "Session returns the AuthResponse bound to the caller's cookie/bearer.\nNOT exposed as an MCP tool — SessionResponse carries access_token,\nrefresh_token, id_token, authenticator_secret, and recovery codes,\nnone of which should land in an LLM transcript. (Security audit C1.)",
         "operationId": "AuthorizerService_Session",
         "responses": {
           "200": {

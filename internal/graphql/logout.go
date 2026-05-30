@@ -3,55 +3,19 @@ package graphql
 import (
 	"context"
 
-	"github.com/authorizerdev/authorizer/internal/audit"
-	"github.com/authorizerdev/authorizer/internal/constants"
-	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
-	"github.com/authorizerdev/authorizer/internal/metrics"
+	"github.com/authorizerdev/authorizer/internal/service"
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
 
-// Logout is the method to logout a user.
-// Permissions: authenticated:*
+// Logout delegates to the transport-agnostic service layer.
+// Permissions: authenticated user.
 func (g *graphqlProvider) Logout(ctx context.Context) (*model.Response, error) {
-	log := g.Log.With().Str("func", "Logout").Logger()
-	gc, err := utils.GinContextFromContext(ctx)
+	gc, _ := utils.GinContextFromContext(ctx)
+	res, side, err := g.ServiceProvider.Logout(ctx, service.MetaFromGin(gc))
 	if err != nil {
-		log.Debug().Err(err).Msg("Failed to get GinContext")
 		return nil, err
 	}
-
-	tokenData, err := g.TokenProvider.GetUserIDFromSessionOrAccessToken(gc)
-	if err != nil {
-		log.Debug().Err(err).Msg("Failed to get user id from session or access token")
-		return nil, err
-	}
-
-	sessionKey := tokenData.UserID
-	if tokenData.LoginMethod != "" {
-		sessionKey = tokenData.LoginMethod + ":" + tokenData.UserID
-	}
-
-	if err = g.MemoryStoreProvider.DeleteUserSession(sessionKey, tokenData.Nonce); err != nil {
-		log.Debug().Err(err).Msg("Failed to delete user session")
-		return nil, err
-	}
-	cookie.DeleteSession(gc, g.Config.AppCookieSecure, cookie.ParseSameSite(g.Config.AppCookieSameSite))
-	metrics.RecordAuthEvent(metrics.EventLogout, metrics.StatusSuccess)
-	metrics.ActiveSessions.Dec()
-	g.AuditProvider.LogEvent(audit.Event{
-		Action:       constants.AuditLogoutEvent,
-		ActorID:      tokenData.UserID,
-		ActorType:    constants.AuditActorTypeUser,
-		ResourceType: constants.AuditResourceTypeSession,
-		ResourceID:   tokenData.UserID,
-		IPAddress:    utils.GetIP(gc.Request),
-		UserAgent:    utils.GetUserAgent(gc.Request),
-	})
-
-	res := &model.Response{
-		Message: "Logged out successfully",
-	}
-
+	service.ApplyToGin(gc, side)
 	return res, nil
 }

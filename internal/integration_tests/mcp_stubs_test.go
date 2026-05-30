@@ -14,13 +14,19 @@ import (
 	"github.com/authorizerdev/authorizer/internal/service"
 )
 
-// TestMCPStubReturnsError exercises the "MCP tool exposed in proto but its
-// underlying gRPC handler is still a stub" path. This is the current state
-// of get_user, get_current_session, and list_my_permissions: they appear in
-// tools/list (proven by TestMCPListAndCallGetMeta) and a call must surface
-// the underlying codes.Unimplemented as a tool error rather than silently
-// succeeding or panicking.
-func TestMCPStubReturnsError(t *testing.T) {
+// TestMCPToolErrorSurfacesAsIsErrorResult verifies that when the underlying
+// gRPC handler returns a non-OK status, the MCP server surfaces it as a
+// CallToolResult{IsError:true} (tool-level error) rather than as a
+// JSON-RPC protocol error. This is the MCP-spec way to give the LLM
+// actionable text it can react to (vs aborting the whole exchange).
+//
+// We exercise this by calling `permissions` without a bearer token; the
+// underlying Permissions handler returns "unauthorized" from
+// TokenProvider.GetUserIDFromSessionOrAccessToken. This is also a check
+// that the MCP-side auth gating works (security audit H1): calling an
+// identity-bearing tool with no Authorization metadata produces a clean,
+// auditable error.
+func TestMCPToolErrorSurfacesAsIsErrorResult(t *testing.T) {
 	cfg := getTestConfig()
 	cfg.ClientID = "test-client"
 	log := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
@@ -29,7 +35,9 @@ func TestMCPStubReturnsError(t *testing.T) {
 	require.NoError(t, err)
 	grpcSrv, err := grpcsrv.New(":0", &grpcsrv.Dependencies{Log: &log, Config: cfg, ServiceProvider: svc})
 	require.NoError(t, err)
-	mcpSrv, err := authmcp.New(&log, grpcSrv.GRPCServer(), "authorizer-test", "v0")
+	// Note: opts.Bearer deliberately empty — the server runs anonymously,
+	// so identity-bearing tools must fail with a clean tool error.
+	mcpSrv, err := authmcp.New(&log, grpcSrv.GRPCServer(), authmcp.Options{Name: "authorizer-test", Version: "v0"})
 	require.NoError(t, err)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -44,21 +52,14 @@ func TestMCPStubReturnsError(t *testing.T) {
 	require.NoError(t, err)
 	defer clientSession.Close()
 
-	// permissions is exposed via the proto annotation but its
-	// AuthorizerService.Permissions handler is a stub returning codes.Unimplemented.
-	// The MCP server must surface this as a CallToolResult{IsError:true}
-	// (tool-level error) rather than a JSON-RPC protocol error — so the
-	// LLM gets actionable text and can react / try a different tool.
 	res, err := clientSession.CallTool(ctx, &mcp.CallToolParams{
 		Name:      "permissions",
 		Arguments: map[string]any{},
 	})
 	require.NoError(t, err, "tool execution errors must NOT surface as protocol errors")
 	require.NotNil(t, res)
-	assert.True(t, res.IsError, "stubbed tool must return IsError=true")
+	assert.True(t, res.IsError, "anonymous call to identity-bearing tool must return IsError=true")
 	require.NotEmpty(t, res.Content)
-	text, ok := res.Content[0].(*mcp.TextContent)
+	_, ok := res.Content[0].(*mcp.TextContent)
 	require.True(t, ok, "error content should be text")
-	assert.Contains(t, text.Text, "Unimplemented",
-		"the underlying gRPC Unimplemented code should be reflected in the MCP error text")
 }

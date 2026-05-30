@@ -208,16 +208,17 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 		StorageProvider: storageProvider,
 	})
 
-	// Transport-agnostic service layer for migrated public ops (SignUp etc.).
+	// Transport-agnostic service layer for migrated public ops.
 	serviceProvider, err := service.New(cfg, &service.Dependencies{
-		Log:                 &logger,
-		AuditProvider:       auditProvider,
-		EmailProvider:       emailProvider,
-		EventsProvider:      eventsProvider,
-		MemoryStoreProvider: memoryStoreProvider,
-		SMSProvider:         smsProvider,
-		StorageProvider:     storageProvider,
-		TokenProvider:       tokenProvider,
+		Log:                   &logger,
+		AuditProvider:         auditProvider,
+		AuthorizationProvider: authzProvider,
+		EmailProvider:         emailProvider,
+		EventsProvider:        eventsProvider,
+		MemoryStoreProvider:   memoryStoreProvider,
+		SMSProvider:           smsProvider,
+		StorageProvider:       storageProvider,
+		TokenProvider:         tokenProvider,
 	})
 	require.NoError(t, err)
 
