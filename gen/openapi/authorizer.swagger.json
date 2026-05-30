@@ -6,7 +6,7 @@
   },
   "tags": [
     {
-      "name": "Authorizer"
+      "name": "AuthorizerService"
     }
   ],
   "consumes": [
@@ -19,7 +19,7 @@
     "/v1/deactivate_account": {
       "post": {
         "summary": "DeactivateAccount soft-deletes the caller's account and revokes all\nrefresh tokens as a side effect. OAuth has no concept of account\ndeactivation; this is the typed equivalent of SCIM PATCH active=false.",
-        "operationId": "Authorizer_DeactivateAccount",
+        "operationId": "AuthorizerService_DeactivateAccount",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -45,13 +45,13 @@
           }
         ],
         "tags": [
-          "Authorizer"
+          "AuthorizerService"
         ]
       }
     },
     "/v1/forgot_password": {
       "post": {
-        "operationId": "Authorizer_ForgotPassword",
+        "operationId": "AuthorizerService_ForgotPassword",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -77,14 +77,14 @@
           }
         ],
         "tags": [
-          "Authorizer"
+          "AuthorizerService"
         ]
       }
     },
     "/v1/login": {
       "post": {
         "summary": "Login authenticates with email/phone + password.",
-        "operationId": "Authorizer_Login",
+        "operationId": "AuthorizerService_Login",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -110,14 +110,14 @@
           }
         ],
         "tags": [
-          "Authorizer"
+          "AuthorizerService"
         ]
       }
     },
     "/v1/logout": {
       "get": {
         "summary": "Logout ends the caller's current session.",
-        "operationId": "Authorizer_Logout",
+        "operationId": "AuthorizerService_Logout",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -133,14 +133,14 @@
           }
         },
         "tags": [
-          "Authorizer"
+          "AuthorizerService"
         ]
       }
     },
     "/v1/magic_link_login": {
       "post": {
         "summary": "MagicLinkLogin dispatches a passwordless email link. The clicked link\nhits the existing /verify_email browser handler.",
-        "operationId": "Authorizer_MagicLinkLogin",
+        "operationId": "AuthorizerService_MagicLinkLogin",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -166,14 +166,14 @@
           }
         ],
         "tags": [
-          "Authorizer"
+          "AuthorizerService"
         ]
       }
     },
     "/v1/meta": {
       "get": {
         "summary": "Meta returns server feature flags. No auth required.",
-        "operationId": "Authorizer_Meta",
+        "operationId": "AuthorizerService_Meta",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -189,14 +189,14 @@
           }
         },
         "tags": [
-          "Authorizer"
+          "AuthorizerService"
         ]
       }
     },
     "/v1/permissions": {
       "get": {
         "summary": "Permissions returns the caller's effective (resource, scope) pairs.",
-        "operationId": "Authorizer_Permissions",
+        "operationId": "AuthorizerService_Permissions",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -212,14 +212,14 @@
           }
         },
         "tags": [
-          "Authorizer"
+          "AuthorizerService"
         ]
       }
     },
     "/v1/profile": {
       "get": {
         "summary": "Profile returns the authenticated user.",
-        "operationId": "Authorizer_Profile",
+        "operationId": "AuthorizerService_Profile",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -235,13 +235,13 @@
           }
         },
         "tags": [
-          "Authorizer"
+          "AuthorizerService"
         ]
       }
     },
     "/v1/resend_otp": {
       "post": {
-        "operationId": "Authorizer_ResendOtp",
+        "operationId": "AuthorizerService_ResendOtp",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -267,13 +267,13 @@
           }
         ],
         "tags": [
-          "Authorizer"
+          "AuthorizerService"
         ]
       }
     },
     "/v1/resend_verify_email": {
       "post": {
-        "operationId": "Authorizer_ResendVerifyEmail",
+        "operationId": "AuthorizerService_ResendVerifyEmail",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -299,13 +299,13 @@
           }
         ],
         "tags": [
-          "Authorizer"
+          "AuthorizerService"
         ]
       }
     },
     "/v1/reset_password": {
       "post": {
-        "operationId": "Authorizer_ResetPassword",
+        "operationId": "AuthorizerService_ResetPassword",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -331,14 +331,14 @@
           }
         ],
         "tags": [
-          "Authorizer"
+          "AuthorizerService"
         ]
       }
     },
     "/v1/revoke": {
       "post": {
         "summary": "Revoke invalidates a refresh token. Typed mirror of RFC 7009.",
-        "operationId": "Authorizer_Revoke",
+        "operationId": "AuthorizerService_Revoke",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -364,14 +364,14 @@
           }
         ],
         "tags": [
-          "Authorizer"
+          "AuthorizerService"
         ]
       }
     },
     "/v1/session": {
       "post": {
         "summary": "Session returns the AuthResponse bound to the caller's cookie/bearer.",
-        "operationId": "Authorizer_Session",
+        "operationId": "AuthorizerService_Session",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -397,14 +397,14 @@
           }
         ],
         "tags": [
-          "Authorizer"
+          "AuthorizerService"
         ]
       }
     },
     "/v1/signup": {
       "post": {
         "summary": "Signup registers a new user. Public; requires sign-up enabled in config.\nReturns AuthResponse with tokens + (browser callers) Set-Cookie headers.",
-        "operationId": "Authorizer_Signup",
+        "operationId": "AuthorizerService_Signup",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -430,13 +430,13 @@
           }
         ],
         "tags": [
-          "Authorizer"
+          "AuthorizerService"
         ]
       }
     },
     "/v1/update_profile": {
       "post": {
-        "operationId": "Authorizer_UpdateProfile",
+        "operationId": "AuthorizerService_UpdateProfile",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -462,13 +462,13 @@
           }
         ],
         "tags": [
-          "Authorizer"
+          "AuthorizerService"
         ]
       }
     },
     "/v1/validate_jwt_token": {
       "post": {
-        "operationId": "Authorizer_ValidateJwtToken",
+        "operationId": "AuthorizerService_ValidateJwtToken",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -494,13 +494,13 @@
           }
         ],
         "tags": [
-          "Authorizer"
+          "AuthorizerService"
         ]
       }
     },
     "/v1/validate_session": {
       "post": {
-        "operationId": "Authorizer_ValidateSession",
+        "operationId": "AuthorizerService_ValidateSession",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -526,13 +526,13 @@
           }
         ],
         "tags": [
-          "Authorizer"
+          "AuthorizerService"
         ]
       }
     },
     "/v1/verify_email": {
       "post": {
-        "operationId": "Authorizer_VerifyEmail",
+        "operationId": "AuthorizerService_VerifyEmail",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -558,13 +558,13 @@
           }
         ],
         "tags": [
-          "Authorizer"
+          "AuthorizerService"
         ]
       }
     },
     "/v1/verify_otp": {
       "post": {
-        "operationId": "Authorizer_VerifyOtp",
+        "operationId": "AuthorizerService_VerifyOtp",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -590,7 +590,7 @@
           }
         ],
         "tags": [
-          "Authorizer"
+          "AuthorizerService"
         ]
       }
     }

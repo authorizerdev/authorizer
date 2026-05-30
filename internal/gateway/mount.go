@@ -78,7 +78,7 @@ func Handler(ctx context.Context, grpcSrv *grpc.Server) (http.Handler, func(), e
 }
 
 func registerAll(ctx context.Context, mux *runtime.ServeMux, conn *grpc.ClientConn) error {
-	// Single Authorizer service. As more services land (admin-side ones
+	// Single AuthorizerService. As more services land (admin-side ones
 	// that today stay GraphQL-only), add their registrar here.
-	return authorizerv1.RegisterAuthorizerHandler(ctx, mux, conn)
+	return authorizerv1.RegisterAuthorizerServiceHandler(ctx, mux, conn)
 }

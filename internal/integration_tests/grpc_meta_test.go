@@ -17,7 +17,7 @@ import (
 	authorizerv1 "github.com/authorizerdev/authorizer/gen/go/authorizer/v1"
 )
 
-// TestGRPCMeta exercises Authorizer.Meta end-to-end over a bufconn
+// TestGRPCMeta exercises AuthorizerService.Meta end-to-end over a bufconn
 // in-process gRPC channel. Validates the consolidated single-service
 // design: proto → handler → service.Meta → response projection.
 func TestGRPCMeta(t *testing.T) {
@@ -49,7 +49,7 @@ func TestGRPCMeta(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = conn.Close() })
 
-	client := authorizerv1.NewAuthorizerClient(conn)
+	client := authorizerv1.NewAuthorizerServiceClient(conn)
 	resp, err := client.Meta(context.Background(), &authorizerv1.MetaRequest{})
 	require.NoError(t, err)
 	require.NotNil(t, resp.Meta)

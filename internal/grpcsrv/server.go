@@ -53,11 +53,11 @@ func New(addr string, deps *Dependencies) (*Server, error) {
 		),
 	)
 
-	// Register the single Authorizer service. AuthorizerHandler embeds
-	// UnimplementedAuthorizerServer, so any RPC whose method has not yet
-	// been migrated returns codes.Unimplemented. Migrated methods (today:
-	// Meta) override the unimplemented stubs.
-	authorizerv1.RegisterAuthorizerServer(srv, &handlers.AuthorizerHandler{Service: deps.ServiceProvider})
+	// Register the single AuthorizerService. AuthorizerHandler embeds
+	// UnimplementedAuthorizerServiceServer, so any RPC whose method has
+	// not yet been migrated returns codes.Unimplemented. Migrated methods
+	// (today: Meta) override the unimplemented stubs.
+	authorizerv1.RegisterAuthorizerServiceServer(srv, &handlers.AuthorizerHandler{Service: deps.ServiceProvider})
 
 	// gRPC health checking protocol (used by k8s grpc-probe and similar).
 	hs := health.NewServer()

@@ -1,9 +1,10 @@
-// Authorizer is the single gRPC service that exposes Authorizer's public
-// API. Method names match the GraphQL operation names 1:1 (snake_case in
-// GraphQL → PascalCase in proto): Signup, Login, MagicLinkLogin, VerifyEmail,
-// ResendVerifyEmail, ForgotPassword, ResetPassword, VerifyOtp, ResendOtp,
-// UpdateProfile, DeactivateAccount, Revoke, Meta, Session, Profile,
-// ValidateJwtToken, ValidateSession, Permissions, Logout.
+// AuthorizerService is the single gRPC service that exposes Authorizer's
+// public API. Method names match the GraphQL operation names 1:1
+// (snake_case in GraphQL → PascalCase in proto): Signup, Login,
+// MagicLinkLogin, VerifyEmail, ResendVerifyEmail, ForgotPassword,
+// ResetPassword, VerifyOtp, ResendOtp, UpdateProfile, DeactivateAccount,
+// Revoke, Meta, Session, Profile, ValidateJwtToken, ValidateSession,
+// Permissions, Logout.
 //
 // Why one service: clients consume a single typed client per language,
 // discovery is trivial, and the surface mirrors the GraphQL one users
@@ -37,31 +38,31 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Authorizer_Signup_FullMethodName            = "/authorizer.v1.Authorizer/Signup"
-	Authorizer_Login_FullMethodName             = "/authorizer.v1.Authorizer/Login"
-	Authorizer_Logout_FullMethodName            = "/authorizer.v1.Authorizer/Logout"
-	Authorizer_MagicLinkLogin_FullMethodName    = "/authorizer.v1.Authorizer/MagicLinkLogin"
-	Authorizer_VerifyEmail_FullMethodName       = "/authorizer.v1.Authorizer/VerifyEmail"
-	Authorizer_ResendVerifyEmail_FullMethodName = "/authorizer.v1.Authorizer/ResendVerifyEmail"
-	Authorizer_VerifyOtp_FullMethodName         = "/authorizer.v1.Authorizer/VerifyOtp"
-	Authorizer_ResendOtp_FullMethodName         = "/authorizer.v1.Authorizer/ResendOtp"
-	Authorizer_ForgotPassword_FullMethodName    = "/authorizer.v1.Authorizer/ForgotPassword"
-	Authorizer_ResetPassword_FullMethodName     = "/authorizer.v1.Authorizer/ResetPassword"
-	Authorizer_Profile_FullMethodName           = "/authorizer.v1.Authorizer/Profile"
-	Authorizer_UpdateProfile_FullMethodName     = "/authorizer.v1.Authorizer/UpdateProfile"
-	Authorizer_DeactivateAccount_FullMethodName = "/authorizer.v1.Authorizer/DeactivateAccount"
-	Authorizer_Revoke_FullMethodName            = "/authorizer.v1.Authorizer/Revoke"
-	Authorizer_Session_FullMethodName           = "/authorizer.v1.Authorizer/Session"
-	Authorizer_ValidateJwtToken_FullMethodName  = "/authorizer.v1.Authorizer/ValidateJwtToken"
-	Authorizer_ValidateSession_FullMethodName   = "/authorizer.v1.Authorizer/ValidateSession"
-	Authorizer_Meta_FullMethodName              = "/authorizer.v1.Authorizer/Meta"
-	Authorizer_Permissions_FullMethodName       = "/authorizer.v1.Authorizer/Permissions"
+	AuthorizerService_Signup_FullMethodName            = "/authorizer.v1.AuthorizerService/Signup"
+	AuthorizerService_Login_FullMethodName             = "/authorizer.v1.AuthorizerService/Login"
+	AuthorizerService_Logout_FullMethodName            = "/authorizer.v1.AuthorizerService/Logout"
+	AuthorizerService_MagicLinkLogin_FullMethodName    = "/authorizer.v1.AuthorizerService/MagicLinkLogin"
+	AuthorizerService_VerifyEmail_FullMethodName       = "/authorizer.v1.AuthorizerService/VerifyEmail"
+	AuthorizerService_ResendVerifyEmail_FullMethodName = "/authorizer.v1.AuthorizerService/ResendVerifyEmail"
+	AuthorizerService_VerifyOtp_FullMethodName         = "/authorizer.v1.AuthorizerService/VerifyOtp"
+	AuthorizerService_ResendOtp_FullMethodName         = "/authorizer.v1.AuthorizerService/ResendOtp"
+	AuthorizerService_ForgotPassword_FullMethodName    = "/authorizer.v1.AuthorizerService/ForgotPassword"
+	AuthorizerService_ResetPassword_FullMethodName     = "/authorizer.v1.AuthorizerService/ResetPassword"
+	AuthorizerService_Profile_FullMethodName           = "/authorizer.v1.AuthorizerService/Profile"
+	AuthorizerService_UpdateProfile_FullMethodName     = "/authorizer.v1.AuthorizerService/UpdateProfile"
+	AuthorizerService_DeactivateAccount_FullMethodName = "/authorizer.v1.AuthorizerService/DeactivateAccount"
+	AuthorizerService_Revoke_FullMethodName            = "/authorizer.v1.AuthorizerService/Revoke"
+	AuthorizerService_Session_FullMethodName           = "/authorizer.v1.AuthorizerService/Session"
+	AuthorizerService_ValidateJwtToken_FullMethodName  = "/authorizer.v1.AuthorizerService/ValidateJwtToken"
+	AuthorizerService_ValidateSession_FullMethodName   = "/authorizer.v1.AuthorizerService/ValidateSession"
+	AuthorizerService_Meta_FullMethodName              = "/authorizer.v1.AuthorizerService/Meta"
+	AuthorizerService_Permissions_FullMethodName       = "/authorizer.v1.AuthorizerService/Permissions"
 )
 
-// AuthorizerClient is the client API for Authorizer service.
+// AuthorizerServiceClient is the client API for AuthorizerService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type AuthorizerClient interface {
+type AuthorizerServiceClient interface {
 	// Signup registers a new user. Public; requires sign-up enabled in config.
 	// Returns AuthResponse with tokens + (browser callers) Set-Cookie headers.
 	Signup(ctx context.Context, in *SignupRequest, opts ...grpc.CallOption) (*SignupResponse, error)
@@ -97,208 +98,208 @@ type AuthorizerClient interface {
 	Permissions(ctx context.Context, in *PermissionsRequest, opts ...grpc.CallOption) (*PermissionsResponse, error)
 }
 
-type authorizerClient struct {
+type authorizerServiceClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewAuthorizerClient(cc grpc.ClientConnInterface) AuthorizerClient {
-	return &authorizerClient{cc}
+func NewAuthorizerServiceClient(cc grpc.ClientConnInterface) AuthorizerServiceClient {
+	return &authorizerServiceClient{cc}
 }
 
-func (c *authorizerClient) Signup(ctx context.Context, in *SignupRequest, opts ...grpc.CallOption) (*SignupResponse, error) {
+func (c *authorizerServiceClient) Signup(ctx context.Context, in *SignupRequest, opts ...grpc.CallOption) (*SignupResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(SignupResponse)
-	err := c.cc.Invoke(ctx, Authorizer_Signup_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, AuthorizerService_Signup_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *authorizerClient) Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error) {
+func (c *authorizerServiceClient) Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(LoginResponse)
-	err := c.cc.Invoke(ctx, Authorizer_Login_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, AuthorizerService_Login_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *authorizerClient) Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*LogoutResponse, error) {
+func (c *authorizerServiceClient) Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*LogoutResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(LogoutResponse)
-	err := c.cc.Invoke(ctx, Authorizer_Logout_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, AuthorizerService_Logout_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *authorizerClient) MagicLinkLogin(ctx context.Context, in *MagicLinkLoginRequest, opts ...grpc.CallOption) (*MagicLinkLoginResponse, error) {
+func (c *authorizerServiceClient) MagicLinkLogin(ctx context.Context, in *MagicLinkLoginRequest, opts ...grpc.CallOption) (*MagicLinkLoginResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(MagicLinkLoginResponse)
-	err := c.cc.Invoke(ctx, Authorizer_MagicLinkLogin_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, AuthorizerService_MagicLinkLogin_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *authorizerClient) VerifyEmail(ctx context.Context, in *VerifyEmailRequest, opts ...grpc.CallOption) (*VerifyEmailResponse, error) {
+func (c *authorizerServiceClient) VerifyEmail(ctx context.Context, in *VerifyEmailRequest, opts ...grpc.CallOption) (*VerifyEmailResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(VerifyEmailResponse)
-	err := c.cc.Invoke(ctx, Authorizer_VerifyEmail_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, AuthorizerService_VerifyEmail_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *authorizerClient) ResendVerifyEmail(ctx context.Context, in *ResendVerifyEmailRequest, opts ...grpc.CallOption) (*ResendVerifyEmailResponse, error) {
+func (c *authorizerServiceClient) ResendVerifyEmail(ctx context.Context, in *ResendVerifyEmailRequest, opts ...grpc.CallOption) (*ResendVerifyEmailResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ResendVerifyEmailResponse)
-	err := c.cc.Invoke(ctx, Authorizer_ResendVerifyEmail_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, AuthorizerService_ResendVerifyEmail_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *authorizerClient) VerifyOtp(ctx context.Context, in *VerifyOtpRequest, opts ...grpc.CallOption) (*VerifyOtpResponse, error) {
+func (c *authorizerServiceClient) VerifyOtp(ctx context.Context, in *VerifyOtpRequest, opts ...grpc.CallOption) (*VerifyOtpResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(VerifyOtpResponse)
-	err := c.cc.Invoke(ctx, Authorizer_VerifyOtp_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, AuthorizerService_VerifyOtp_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *authorizerClient) ResendOtp(ctx context.Context, in *ResendOtpRequest, opts ...grpc.CallOption) (*ResendOtpResponse, error) {
+func (c *authorizerServiceClient) ResendOtp(ctx context.Context, in *ResendOtpRequest, opts ...grpc.CallOption) (*ResendOtpResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ResendOtpResponse)
-	err := c.cc.Invoke(ctx, Authorizer_ResendOtp_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, AuthorizerService_ResendOtp_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *authorizerClient) ForgotPassword(ctx context.Context, in *ForgotPasswordRequest, opts ...grpc.CallOption) (*ForgotPasswordResponse, error) {
+func (c *authorizerServiceClient) ForgotPassword(ctx context.Context, in *ForgotPasswordRequest, opts ...grpc.CallOption) (*ForgotPasswordResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ForgotPasswordResponse)
-	err := c.cc.Invoke(ctx, Authorizer_ForgotPassword_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, AuthorizerService_ForgotPassword_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *authorizerClient) ResetPassword(ctx context.Context, in *ResetPasswordRequest, opts ...grpc.CallOption) (*ResetPasswordResponse, error) {
+func (c *authorizerServiceClient) ResetPassword(ctx context.Context, in *ResetPasswordRequest, opts ...grpc.CallOption) (*ResetPasswordResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ResetPasswordResponse)
-	err := c.cc.Invoke(ctx, Authorizer_ResetPassword_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, AuthorizerService_ResetPassword_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *authorizerClient) Profile(ctx context.Context, in *ProfileRequest, opts ...grpc.CallOption) (*ProfileResponse, error) {
+func (c *authorizerServiceClient) Profile(ctx context.Context, in *ProfileRequest, opts ...grpc.CallOption) (*ProfileResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ProfileResponse)
-	err := c.cc.Invoke(ctx, Authorizer_Profile_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, AuthorizerService_Profile_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *authorizerClient) UpdateProfile(ctx context.Context, in *UpdateProfileRequest, opts ...grpc.CallOption) (*UpdateProfileResponse, error) {
+func (c *authorizerServiceClient) UpdateProfile(ctx context.Context, in *UpdateProfileRequest, opts ...grpc.CallOption) (*UpdateProfileResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(UpdateProfileResponse)
-	err := c.cc.Invoke(ctx, Authorizer_UpdateProfile_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, AuthorizerService_UpdateProfile_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *authorizerClient) DeactivateAccount(ctx context.Context, in *DeactivateAccountRequest, opts ...grpc.CallOption) (*DeactivateAccountResponse, error) {
+func (c *authorizerServiceClient) DeactivateAccount(ctx context.Context, in *DeactivateAccountRequest, opts ...grpc.CallOption) (*DeactivateAccountResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(DeactivateAccountResponse)
-	err := c.cc.Invoke(ctx, Authorizer_DeactivateAccount_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, AuthorizerService_DeactivateAccount_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *authorizerClient) Revoke(ctx context.Context, in *RevokeRequest, opts ...grpc.CallOption) (*RevokeResponse, error) {
+func (c *authorizerServiceClient) Revoke(ctx context.Context, in *RevokeRequest, opts ...grpc.CallOption) (*RevokeResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(RevokeResponse)
-	err := c.cc.Invoke(ctx, Authorizer_Revoke_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, AuthorizerService_Revoke_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *authorizerClient) Session(ctx context.Context, in *SessionRequest, opts ...grpc.CallOption) (*SessionResponse, error) {
+func (c *authorizerServiceClient) Session(ctx context.Context, in *SessionRequest, opts ...grpc.CallOption) (*SessionResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(SessionResponse)
-	err := c.cc.Invoke(ctx, Authorizer_Session_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, AuthorizerService_Session_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *authorizerClient) ValidateJwtToken(ctx context.Context, in *ValidateJwtTokenRequest, opts ...grpc.CallOption) (*ValidateJwtTokenResponse, error) {
+func (c *authorizerServiceClient) ValidateJwtToken(ctx context.Context, in *ValidateJwtTokenRequest, opts ...grpc.CallOption) (*ValidateJwtTokenResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ValidateJwtTokenResponse)
-	err := c.cc.Invoke(ctx, Authorizer_ValidateJwtToken_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, AuthorizerService_ValidateJwtToken_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *authorizerClient) ValidateSession(ctx context.Context, in *ValidateSessionRequest, opts ...grpc.CallOption) (*ValidateSessionResponse, error) {
+func (c *authorizerServiceClient) ValidateSession(ctx context.Context, in *ValidateSessionRequest, opts ...grpc.CallOption) (*ValidateSessionResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ValidateSessionResponse)
-	err := c.cc.Invoke(ctx, Authorizer_ValidateSession_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, AuthorizerService_ValidateSession_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *authorizerClient) Meta(ctx context.Context, in *MetaRequest, opts ...grpc.CallOption) (*MetaResponse, error) {
+func (c *authorizerServiceClient) Meta(ctx context.Context, in *MetaRequest, opts ...grpc.CallOption) (*MetaResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(MetaResponse)
-	err := c.cc.Invoke(ctx, Authorizer_Meta_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, AuthorizerService_Meta_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *authorizerClient) Permissions(ctx context.Context, in *PermissionsRequest, opts ...grpc.CallOption) (*PermissionsResponse, error) {
+func (c *authorizerServiceClient) Permissions(ctx context.Context, in *PermissionsRequest, opts ...grpc.CallOption) (*PermissionsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(PermissionsResponse)
-	err := c.cc.Invoke(ctx, Authorizer_Permissions_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, AuthorizerService_Permissions_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// AuthorizerServer is the server API for Authorizer service.
-// All implementations should embed UnimplementedAuthorizerServer
+// AuthorizerServiceServer is the server API for AuthorizerService service.
+// All implementations should embed UnimplementedAuthorizerServiceServer
 // for forward compatibility.
-type AuthorizerServer interface {
+type AuthorizerServiceServer interface {
 	// Signup registers a new user. Public; requires sign-up enabled in config.
 	// Returns AuthResponse with tokens + (browser callers) Set-Cookie headers.
 	Signup(context.Context, *SignupRequest) (*SignupResponse, error)
@@ -334,514 +335,514 @@ type AuthorizerServer interface {
 	Permissions(context.Context, *PermissionsRequest) (*PermissionsResponse, error)
 }
 
-// UnimplementedAuthorizerServer should be embedded to have
+// UnimplementedAuthorizerServiceServer should be embedded to have
 // forward compatible implementations.
 //
 // NOTE: this should be embedded by value instead of pointer to avoid a nil
 // pointer dereference when methods are called.
-type UnimplementedAuthorizerServer struct{}
+type UnimplementedAuthorizerServiceServer struct{}
 
-func (UnimplementedAuthorizerServer) Signup(context.Context, *SignupRequest) (*SignupResponse, error) {
+func (UnimplementedAuthorizerServiceServer) Signup(context.Context, *SignupRequest) (*SignupResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Signup not implemented")
 }
-func (UnimplementedAuthorizerServer) Login(context.Context, *LoginRequest) (*LoginResponse, error) {
+func (UnimplementedAuthorizerServiceServer) Login(context.Context, *LoginRequest) (*LoginResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Login not implemented")
 }
-func (UnimplementedAuthorizerServer) Logout(context.Context, *LogoutRequest) (*LogoutResponse, error) {
+func (UnimplementedAuthorizerServiceServer) Logout(context.Context, *LogoutRequest) (*LogoutResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Logout not implemented")
 }
-func (UnimplementedAuthorizerServer) MagicLinkLogin(context.Context, *MagicLinkLoginRequest) (*MagicLinkLoginResponse, error) {
+func (UnimplementedAuthorizerServiceServer) MagicLinkLogin(context.Context, *MagicLinkLoginRequest) (*MagicLinkLoginResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method MagicLinkLogin not implemented")
 }
-func (UnimplementedAuthorizerServer) VerifyEmail(context.Context, *VerifyEmailRequest) (*VerifyEmailResponse, error) {
+func (UnimplementedAuthorizerServiceServer) VerifyEmail(context.Context, *VerifyEmailRequest) (*VerifyEmailResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method VerifyEmail not implemented")
 }
-func (UnimplementedAuthorizerServer) ResendVerifyEmail(context.Context, *ResendVerifyEmailRequest) (*ResendVerifyEmailResponse, error) {
+func (UnimplementedAuthorizerServiceServer) ResendVerifyEmail(context.Context, *ResendVerifyEmailRequest) (*ResendVerifyEmailResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ResendVerifyEmail not implemented")
 }
-func (UnimplementedAuthorizerServer) VerifyOtp(context.Context, *VerifyOtpRequest) (*VerifyOtpResponse, error) {
+func (UnimplementedAuthorizerServiceServer) VerifyOtp(context.Context, *VerifyOtpRequest) (*VerifyOtpResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method VerifyOtp not implemented")
 }
-func (UnimplementedAuthorizerServer) ResendOtp(context.Context, *ResendOtpRequest) (*ResendOtpResponse, error) {
+func (UnimplementedAuthorizerServiceServer) ResendOtp(context.Context, *ResendOtpRequest) (*ResendOtpResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ResendOtp not implemented")
 }
-func (UnimplementedAuthorizerServer) ForgotPassword(context.Context, *ForgotPasswordRequest) (*ForgotPasswordResponse, error) {
+func (UnimplementedAuthorizerServiceServer) ForgotPassword(context.Context, *ForgotPasswordRequest) (*ForgotPasswordResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ForgotPassword not implemented")
 }
-func (UnimplementedAuthorizerServer) ResetPassword(context.Context, *ResetPasswordRequest) (*ResetPasswordResponse, error) {
+func (UnimplementedAuthorizerServiceServer) ResetPassword(context.Context, *ResetPasswordRequest) (*ResetPasswordResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ResetPassword not implemented")
 }
-func (UnimplementedAuthorizerServer) Profile(context.Context, *ProfileRequest) (*ProfileResponse, error) {
+func (UnimplementedAuthorizerServiceServer) Profile(context.Context, *ProfileRequest) (*ProfileResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Profile not implemented")
 }
-func (UnimplementedAuthorizerServer) UpdateProfile(context.Context, *UpdateProfileRequest) (*UpdateProfileResponse, error) {
+func (UnimplementedAuthorizerServiceServer) UpdateProfile(context.Context, *UpdateProfileRequest) (*UpdateProfileResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateProfile not implemented")
 }
-func (UnimplementedAuthorizerServer) DeactivateAccount(context.Context, *DeactivateAccountRequest) (*DeactivateAccountResponse, error) {
+func (UnimplementedAuthorizerServiceServer) DeactivateAccount(context.Context, *DeactivateAccountRequest) (*DeactivateAccountResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeactivateAccount not implemented")
 }
-func (UnimplementedAuthorizerServer) Revoke(context.Context, *RevokeRequest) (*RevokeResponse, error) {
+func (UnimplementedAuthorizerServiceServer) Revoke(context.Context, *RevokeRequest) (*RevokeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Revoke not implemented")
 }
-func (UnimplementedAuthorizerServer) Session(context.Context, *SessionRequest) (*SessionResponse, error) {
+func (UnimplementedAuthorizerServiceServer) Session(context.Context, *SessionRequest) (*SessionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Session not implemented")
 }
-func (UnimplementedAuthorizerServer) ValidateJwtToken(context.Context, *ValidateJwtTokenRequest) (*ValidateJwtTokenResponse, error) {
+func (UnimplementedAuthorizerServiceServer) ValidateJwtToken(context.Context, *ValidateJwtTokenRequest) (*ValidateJwtTokenResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ValidateJwtToken not implemented")
 }
-func (UnimplementedAuthorizerServer) ValidateSession(context.Context, *ValidateSessionRequest) (*ValidateSessionResponse, error) {
+func (UnimplementedAuthorizerServiceServer) ValidateSession(context.Context, *ValidateSessionRequest) (*ValidateSessionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ValidateSession not implemented")
 }
-func (UnimplementedAuthorizerServer) Meta(context.Context, *MetaRequest) (*MetaResponse, error) {
+func (UnimplementedAuthorizerServiceServer) Meta(context.Context, *MetaRequest) (*MetaResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Meta not implemented")
 }
-func (UnimplementedAuthorizerServer) Permissions(context.Context, *PermissionsRequest) (*PermissionsResponse, error) {
+func (UnimplementedAuthorizerServiceServer) Permissions(context.Context, *PermissionsRequest) (*PermissionsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Permissions not implemented")
 }
-func (UnimplementedAuthorizerServer) testEmbeddedByValue() {}
+func (UnimplementedAuthorizerServiceServer) testEmbeddedByValue() {}
 
-// UnsafeAuthorizerServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to AuthorizerServer will
+// UnsafeAuthorizerServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to AuthorizerServiceServer will
 // result in compilation errors.
-type UnsafeAuthorizerServer interface {
-	mustEmbedUnimplementedAuthorizerServer()
+type UnsafeAuthorizerServiceServer interface {
+	mustEmbedUnimplementedAuthorizerServiceServer()
 }
 
-func RegisterAuthorizerServer(s grpc.ServiceRegistrar, srv AuthorizerServer) {
-	// If the following call pancis, it indicates UnimplementedAuthorizerServer was
+func RegisterAuthorizerServiceServer(s grpc.ServiceRegistrar, srv AuthorizerServiceServer) {
+	// If the following call pancis, it indicates UnimplementedAuthorizerServiceServer was
 	// embedded by pointer and is nil.  This will cause panics if an
 	// unimplemented method is ever invoked, so we test this at initialization
 	// time to prevent it from happening at runtime later due to I/O.
 	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
 		t.testEmbeddedByValue()
 	}
-	s.RegisterService(&Authorizer_ServiceDesc, srv)
+	s.RegisterService(&AuthorizerService_ServiceDesc, srv)
 }
 
-func _Authorizer_Signup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _AuthorizerService_Signup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SignupRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthorizerServer).Signup(ctx, in)
+		return srv.(AuthorizerServiceServer).Signup(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Authorizer_Signup_FullMethodName,
+		FullMethod: AuthorizerService_Signup_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthorizerServer).Signup(ctx, req.(*SignupRequest))
+		return srv.(AuthorizerServiceServer).Signup(ctx, req.(*SignupRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Authorizer_Login_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _AuthorizerService_Login_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(LoginRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthorizerServer).Login(ctx, in)
+		return srv.(AuthorizerServiceServer).Login(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Authorizer_Login_FullMethodName,
+		FullMethod: AuthorizerService_Login_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthorizerServer).Login(ctx, req.(*LoginRequest))
+		return srv.(AuthorizerServiceServer).Login(ctx, req.(*LoginRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Authorizer_Logout_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _AuthorizerService_Logout_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(LogoutRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthorizerServer).Logout(ctx, in)
+		return srv.(AuthorizerServiceServer).Logout(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Authorizer_Logout_FullMethodName,
+		FullMethod: AuthorizerService_Logout_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthorizerServer).Logout(ctx, req.(*LogoutRequest))
+		return srv.(AuthorizerServiceServer).Logout(ctx, req.(*LogoutRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Authorizer_MagicLinkLogin_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _AuthorizerService_MagicLinkLogin_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(MagicLinkLoginRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthorizerServer).MagicLinkLogin(ctx, in)
+		return srv.(AuthorizerServiceServer).MagicLinkLogin(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Authorizer_MagicLinkLogin_FullMethodName,
+		FullMethod: AuthorizerService_MagicLinkLogin_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthorizerServer).MagicLinkLogin(ctx, req.(*MagicLinkLoginRequest))
+		return srv.(AuthorizerServiceServer).MagicLinkLogin(ctx, req.(*MagicLinkLoginRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Authorizer_VerifyEmail_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _AuthorizerService_VerifyEmail_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(VerifyEmailRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthorizerServer).VerifyEmail(ctx, in)
+		return srv.(AuthorizerServiceServer).VerifyEmail(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Authorizer_VerifyEmail_FullMethodName,
+		FullMethod: AuthorizerService_VerifyEmail_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthorizerServer).VerifyEmail(ctx, req.(*VerifyEmailRequest))
+		return srv.(AuthorizerServiceServer).VerifyEmail(ctx, req.(*VerifyEmailRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Authorizer_ResendVerifyEmail_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _AuthorizerService_ResendVerifyEmail_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ResendVerifyEmailRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthorizerServer).ResendVerifyEmail(ctx, in)
+		return srv.(AuthorizerServiceServer).ResendVerifyEmail(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Authorizer_ResendVerifyEmail_FullMethodName,
+		FullMethod: AuthorizerService_ResendVerifyEmail_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthorizerServer).ResendVerifyEmail(ctx, req.(*ResendVerifyEmailRequest))
+		return srv.(AuthorizerServiceServer).ResendVerifyEmail(ctx, req.(*ResendVerifyEmailRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Authorizer_VerifyOtp_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _AuthorizerService_VerifyOtp_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(VerifyOtpRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthorizerServer).VerifyOtp(ctx, in)
+		return srv.(AuthorizerServiceServer).VerifyOtp(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Authorizer_VerifyOtp_FullMethodName,
+		FullMethod: AuthorizerService_VerifyOtp_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthorizerServer).VerifyOtp(ctx, req.(*VerifyOtpRequest))
+		return srv.(AuthorizerServiceServer).VerifyOtp(ctx, req.(*VerifyOtpRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Authorizer_ResendOtp_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _AuthorizerService_ResendOtp_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ResendOtpRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthorizerServer).ResendOtp(ctx, in)
+		return srv.(AuthorizerServiceServer).ResendOtp(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Authorizer_ResendOtp_FullMethodName,
+		FullMethod: AuthorizerService_ResendOtp_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthorizerServer).ResendOtp(ctx, req.(*ResendOtpRequest))
+		return srv.(AuthorizerServiceServer).ResendOtp(ctx, req.(*ResendOtpRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Authorizer_ForgotPassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _AuthorizerService_ForgotPassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ForgotPasswordRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthorizerServer).ForgotPassword(ctx, in)
+		return srv.(AuthorizerServiceServer).ForgotPassword(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Authorizer_ForgotPassword_FullMethodName,
+		FullMethod: AuthorizerService_ForgotPassword_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthorizerServer).ForgotPassword(ctx, req.(*ForgotPasswordRequest))
+		return srv.(AuthorizerServiceServer).ForgotPassword(ctx, req.(*ForgotPasswordRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Authorizer_ResetPassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _AuthorizerService_ResetPassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ResetPasswordRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthorizerServer).ResetPassword(ctx, in)
+		return srv.(AuthorizerServiceServer).ResetPassword(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Authorizer_ResetPassword_FullMethodName,
+		FullMethod: AuthorizerService_ResetPassword_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthorizerServer).ResetPassword(ctx, req.(*ResetPasswordRequest))
+		return srv.(AuthorizerServiceServer).ResetPassword(ctx, req.(*ResetPasswordRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Authorizer_Profile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _AuthorizerService_Profile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ProfileRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthorizerServer).Profile(ctx, in)
+		return srv.(AuthorizerServiceServer).Profile(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Authorizer_Profile_FullMethodName,
+		FullMethod: AuthorizerService_Profile_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthorizerServer).Profile(ctx, req.(*ProfileRequest))
+		return srv.(AuthorizerServiceServer).Profile(ctx, req.(*ProfileRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Authorizer_UpdateProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _AuthorizerService_UpdateProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(UpdateProfileRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthorizerServer).UpdateProfile(ctx, in)
+		return srv.(AuthorizerServiceServer).UpdateProfile(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Authorizer_UpdateProfile_FullMethodName,
+		FullMethod: AuthorizerService_UpdateProfile_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthorizerServer).UpdateProfile(ctx, req.(*UpdateProfileRequest))
+		return srv.(AuthorizerServiceServer).UpdateProfile(ctx, req.(*UpdateProfileRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Authorizer_DeactivateAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _AuthorizerService_DeactivateAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DeactivateAccountRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthorizerServer).DeactivateAccount(ctx, in)
+		return srv.(AuthorizerServiceServer).DeactivateAccount(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Authorizer_DeactivateAccount_FullMethodName,
+		FullMethod: AuthorizerService_DeactivateAccount_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthorizerServer).DeactivateAccount(ctx, req.(*DeactivateAccountRequest))
+		return srv.(AuthorizerServiceServer).DeactivateAccount(ctx, req.(*DeactivateAccountRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Authorizer_Revoke_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _AuthorizerService_Revoke_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(RevokeRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthorizerServer).Revoke(ctx, in)
+		return srv.(AuthorizerServiceServer).Revoke(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Authorizer_Revoke_FullMethodName,
+		FullMethod: AuthorizerService_Revoke_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthorizerServer).Revoke(ctx, req.(*RevokeRequest))
+		return srv.(AuthorizerServiceServer).Revoke(ctx, req.(*RevokeRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Authorizer_Session_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _AuthorizerService_Session_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SessionRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthorizerServer).Session(ctx, in)
+		return srv.(AuthorizerServiceServer).Session(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Authorizer_Session_FullMethodName,
+		FullMethod: AuthorizerService_Session_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthorizerServer).Session(ctx, req.(*SessionRequest))
+		return srv.(AuthorizerServiceServer).Session(ctx, req.(*SessionRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Authorizer_ValidateJwtToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _AuthorizerService_ValidateJwtToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ValidateJwtTokenRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthorizerServer).ValidateJwtToken(ctx, in)
+		return srv.(AuthorizerServiceServer).ValidateJwtToken(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Authorizer_ValidateJwtToken_FullMethodName,
+		FullMethod: AuthorizerService_ValidateJwtToken_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthorizerServer).ValidateJwtToken(ctx, req.(*ValidateJwtTokenRequest))
+		return srv.(AuthorizerServiceServer).ValidateJwtToken(ctx, req.(*ValidateJwtTokenRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Authorizer_ValidateSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _AuthorizerService_ValidateSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ValidateSessionRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthorizerServer).ValidateSession(ctx, in)
+		return srv.(AuthorizerServiceServer).ValidateSession(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Authorizer_ValidateSession_FullMethodName,
+		FullMethod: AuthorizerService_ValidateSession_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthorizerServer).ValidateSession(ctx, req.(*ValidateSessionRequest))
+		return srv.(AuthorizerServiceServer).ValidateSession(ctx, req.(*ValidateSessionRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Authorizer_Meta_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _AuthorizerService_Meta_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(MetaRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthorizerServer).Meta(ctx, in)
+		return srv.(AuthorizerServiceServer).Meta(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Authorizer_Meta_FullMethodName,
+		FullMethod: AuthorizerService_Meta_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthorizerServer).Meta(ctx, req.(*MetaRequest))
+		return srv.(AuthorizerServiceServer).Meta(ctx, req.(*MetaRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Authorizer_Permissions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _AuthorizerService_Permissions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(PermissionsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthorizerServer).Permissions(ctx, in)
+		return srv.(AuthorizerServiceServer).Permissions(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Authorizer_Permissions_FullMethodName,
+		FullMethod: AuthorizerService_Permissions_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthorizerServer).Permissions(ctx, req.(*PermissionsRequest))
+		return srv.(AuthorizerServiceServer).Permissions(ctx, req.(*PermissionsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// Authorizer_ServiceDesc is the grpc.ServiceDesc for Authorizer service.
+// AuthorizerService_ServiceDesc is the grpc.ServiceDesc for AuthorizerService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var Authorizer_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "authorizer.v1.Authorizer",
-	HandlerType: (*AuthorizerServer)(nil),
+var AuthorizerService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "authorizer.v1.AuthorizerService",
+	HandlerType: (*AuthorizerServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "Signup",
-			Handler:    _Authorizer_Signup_Handler,
+			Handler:    _AuthorizerService_Signup_Handler,
 		},
 		{
 			MethodName: "Login",
-			Handler:    _Authorizer_Login_Handler,
+			Handler:    _AuthorizerService_Login_Handler,
 		},
 		{
 			MethodName: "Logout",
-			Handler:    _Authorizer_Logout_Handler,
+			Handler:    _AuthorizerService_Logout_Handler,
 		},
 		{
 			MethodName: "MagicLinkLogin",
-			Handler:    _Authorizer_MagicLinkLogin_Handler,
+			Handler:    _AuthorizerService_MagicLinkLogin_Handler,
 		},
 		{
 			MethodName: "VerifyEmail",
-			Handler:    _Authorizer_VerifyEmail_Handler,
+			Handler:    _AuthorizerService_VerifyEmail_Handler,
 		},
 		{
 			MethodName: "ResendVerifyEmail",
-			Handler:    _Authorizer_ResendVerifyEmail_Handler,
+			Handler:    _AuthorizerService_ResendVerifyEmail_Handler,
 		},
 		{
 			MethodName: "VerifyOtp",
-			Handler:    _Authorizer_VerifyOtp_Handler,
+			Handler:    _AuthorizerService_VerifyOtp_Handler,
 		},
 		{
 			MethodName: "ResendOtp",
-			Handler:    _Authorizer_ResendOtp_Handler,
+			Handler:    _AuthorizerService_ResendOtp_Handler,
 		},
 		{
 			MethodName: "ForgotPassword",
-			Handler:    _Authorizer_ForgotPassword_Handler,
+			Handler:    _AuthorizerService_ForgotPassword_Handler,
 		},
 		{
 			MethodName: "ResetPassword",
-			Handler:    _Authorizer_ResetPassword_Handler,
+			Handler:    _AuthorizerService_ResetPassword_Handler,
 		},
 		{
 			MethodName: "Profile",
-			Handler:    _Authorizer_Profile_Handler,
+			Handler:    _AuthorizerService_Profile_Handler,
 		},
 		{
 			MethodName: "UpdateProfile",
-			Handler:    _Authorizer_UpdateProfile_Handler,
+			Handler:    _AuthorizerService_UpdateProfile_Handler,
 		},
 		{
 			MethodName: "DeactivateAccount",
-			Handler:    _Authorizer_DeactivateAccount_Handler,
+			Handler:    _AuthorizerService_DeactivateAccount_Handler,
 		},
 		{
 			MethodName: "Revoke",
-			Handler:    _Authorizer_Revoke_Handler,
+			Handler:    _AuthorizerService_Revoke_Handler,
 		},
 		{
 			MethodName: "Session",
-			Handler:    _Authorizer_Session_Handler,
+			Handler:    _AuthorizerService_Session_Handler,
 		},
 		{
 			MethodName: "ValidateJwtToken",
-			Handler:    _Authorizer_ValidateJwtToken_Handler,
+			Handler:    _AuthorizerService_ValidateJwtToken_Handler,
 		},
 		{
 			MethodName: "ValidateSession",
-			Handler:    _Authorizer_ValidateSession_Handler,
+			Handler:    _AuthorizerService_ValidateSession_Handler,
 		},
 		{
 			MethodName: "Meta",
-			Handler:    _Authorizer_Meta_Handler,
+			Handler:    _AuthorizerService_Meta_Handler,
 		},
 		{
 			MethodName: "Permissions",
-			Handler:    _Authorizer_Permissions_Handler,
+			Handler:    _AuthorizerService_Permissions_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

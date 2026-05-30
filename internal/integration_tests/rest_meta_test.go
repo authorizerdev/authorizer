@@ -19,10 +19,10 @@ import (
 
 // TestRESTMeta exercises GET /v1/meta through the grpc-gateway. Validates
 // that the gateway translates the REST call into an in-process gRPC
-// invocation against Authorizer.Meta, then renders the response as JSON.
-// The wrapped response shape (`{"meta": {...}}`) is intentional: every
-// Authorizer RPC's response is a thin wrapper around the inner type so
-// buf STANDARD's RPC_REQUEST_RESPONSE_UNIQUE lint is satisfied.
+// invocation against AuthorizerService.Meta, then renders the response as
+// JSON. The wrapped response shape (`{"meta": {...}}`) is intentional:
+// every AuthorizerService RPC's response is a thin wrapper around the
+// inner type so buf STANDARD's RPC_REQUEST_RESPONSE_UNIQUE lint is satisfied.
 func TestRESTMeta(t *testing.T) {
 	cfg := getTestConfig()
 	cfg.ClientID = "test-client"

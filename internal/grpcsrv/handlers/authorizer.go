@@ -19,10 +19,12 @@ import (
 	authorizerv1 "github.com/authorizerdev/authorizer/gen/go/authorizer/v1"
 )
 
-// AuthorizerHandler implements authorizer.v1.Authorizer. The single struct
-// satisfies the entire service interface; methods become real one at a time.
+// AuthorizerHandler implements authorizer.v1.AuthorizerService. The single
+// struct satisfies the entire service interface; methods become real one at
+// a time. The Go type name stays "AuthorizerHandler" (not "...ServiceHandler")
+// because in Go we don't repeat the "Service" suffix at the call site.
 type AuthorizerHandler struct {
-	authorizerv1.UnimplementedAuthorizerServer
+	authorizerv1.UnimplementedAuthorizerServiceServer
 	Service service.Provider
 }
 

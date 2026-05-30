@@ -62,8 +62,8 @@ func TestMCPListAndCallMeta(t *testing.T) {
 		require.True(t, gotNames[want], "expected MCP tool %q to be exposed; got %v", want, gotNames)
 	}
 
-	// tools/call meta — should invoke Authorizer.Meta and return JSON wrapped
-	// in the per-RPC MetaResponse shape.
+	// tools/call meta — should invoke AuthorizerService.Meta and return JSON
+	// wrapped in the per-RPC MetaResponse shape.
 	call, err := clientSession.CallTool(ctx, &mcp.CallToolParams{
 		Name:      "meta",
 		Arguments: map[string]any{},

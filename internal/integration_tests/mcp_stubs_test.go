@@ -45,7 +45,7 @@ func TestMCPStubReturnsError(t *testing.T) {
 	defer clientSession.Close()
 
 	// permissions is exposed via the proto annotation but its
-	// Authorizer.Permissions handler is a stub returning codes.Unimplemented.
+	// AuthorizerService.Permissions handler is a stub returning codes.Unimplemented.
 	// The MCP server must surface this as a CallToolResult{IsError:true}
 	// (tool-level error) rather than a JSON-RPC protocol error — so the
 	// LLM gets actionable text and can react / try a different tool.

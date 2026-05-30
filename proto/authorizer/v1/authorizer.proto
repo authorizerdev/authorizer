@@ -1,9 +1,10 @@
-// Authorizer is the single gRPC service that exposes Authorizer's public
-// API. Method names match the GraphQL operation names 1:1 (snake_case in
-// GraphQL → PascalCase in proto): Signup, Login, MagicLinkLogin, VerifyEmail,
-// ResendVerifyEmail, ForgotPassword, ResetPassword, VerifyOtp, ResendOtp,
-// UpdateProfile, DeactivateAccount, Revoke, Meta, Session, Profile,
-// ValidateJwtToken, ValidateSession, Permissions, Logout.
+// AuthorizerService is the single gRPC service that exposes Authorizer's
+// public API. Method names match the GraphQL operation names 1:1
+// (snake_case in GraphQL → PascalCase in proto): Signup, Login,
+// MagicLinkLogin, VerifyEmail, ResendVerifyEmail, ForgotPassword,
+// ResetPassword, VerifyOtp, ResendOtp, UpdateProfile, DeactivateAccount,
+// Revoke, Meta, Session, Profile, ValidateJwtToken, ValidateSession,
+// Permissions, Logout.
 //
 // Why one service: clients consume a single typed client per language,
 // discovery is trivial, and the surface mirrors the GraphQL one users
@@ -25,7 +26,7 @@ import "authorizer/common/v1/annotations.proto";
 import "authorizer/common/v1/types.proto";
 import "authorizer/v1/types.proto";
 
-service Authorizer {
+service AuthorizerService {
   // === Identity creation & authentication ===
 
   // Signup registers a new user. Public; requires sign-up enabled in config.

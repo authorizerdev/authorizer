@@ -50,16 +50,16 @@ func bootGRPCBufconn(t *testing.T) *grpc.ClientConn {
 	return conn
 }
 
-// TestAuthorizerStubsReturnUnimplemented locks down the contract for every
-// not-yet-migrated method on the consolidated Authorizer service. Today
-// Meta is the only real implementation; the remaining 18 methods return
-// codes.Unimplemented. As each one gets migrated out of internal/graphql
-// into internal/service, the corresponding sub-test here will start
-// returning OK and the case can be moved to a happy-path test.
-func TestAuthorizerStubsReturnUnimplemented(t *testing.T) {
+// TestAuthorizerServiceStubsReturnUnimplemented locks down the contract for
+// every not-yet-migrated method on the consolidated AuthorizerService.
+// Today Meta is the only real implementation; the remaining 18 methods
+// return codes.Unimplemented. As each one gets migrated out of
+// internal/graphql into internal/service, the corresponding sub-test here
+// will start returning OK and the case can be moved to a happy-path test.
+func TestAuthorizerServiceStubsReturnUnimplemented(t *testing.T) {
 	conn := bootGRPCBufconn(t)
 	ctx := context.Background()
-	c := authorizerv1.NewAuthorizerClient(conn)
+	c := authorizerv1.NewAuthorizerServiceClient(conn)
 
 	type call func(context.Context) error
 	cases := map[string]call{
@@ -144,7 +144,7 @@ func TestAuthorizerStubsReturnUnimplemented(t *testing.T) {
 			st, ok := status.FromError(err)
 			require.True(t, ok)
 			assert.Equal(t, codes.Unimplemented, st.Code(),
-				"stub for Authorizer.%s should return Unimplemented until its handler is wired", name)
+				"stub for AuthorizerService.%s should return Unimplemented until its handler is wired", name)
 		})
 	}
 }
