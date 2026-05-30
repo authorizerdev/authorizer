@@ -174,3 +174,30 @@ generate-graphql:
 generate-db-template:
 	cp -rf internal/storage/db/provider_template internal/storage/db/${dbname}
 	find internal/storage/db/${dbname} -type f -exec sed -i -e 's/provider_template/${dbname}/g' {} \;
+
+# ----------------------------------------------------------------------------
+# Protobuf (Phase 0+): public-API source of truth under ./proto.
+# `buf` is installed on demand into $(GOBIN) if missing.
+# ----------------------------------------------------------------------------
+BUF ?= $(shell command -v buf 2>/dev/null)
+BUF_VERSION ?= v1.47.2
+
+.PHONY: proto-tools proto-lint proto-breaking proto-gen
+
+proto-tools:
+	@if [ -z "$(BUF)" ]; then \
+		echo "Installing buf $(BUF_VERSION) via go install"; \
+		go install github.com/bufbuild/buf/cmd/buf@$(BUF_VERSION); \
+	fi
+
+proto-lint: proto-tools
+	cd proto && buf lint
+
+# Compare the working tree's proto against origin/main; fails on breaking changes.
+# Override BUF_BREAKING_AGAINST for local runs (e.g. "main" or a SHA).
+BUF_BREAKING_AGAINST ?= .git#branch=origin/main,subdir=proto
+proto-breaking: proto-tools
+	cd proto && buf breaking --against '../$(BUF_BREAKING_AGAINST)'
+
+proto-gen: proto-tools
+	cd proto && buf dep update && buf generate

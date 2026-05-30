@@ -1,0 +1,33 @@
+// Pagination types shared across List RPCs.
+//
+// The Authorizer GraphQL surface uses page+limit (offset-based) pagination.
+// To keep the proto surface familiar for current users *and* compatible with
+// AIP-158 (page_token-based) clients, both shapes are accepted on
+// PaginationRequest; the server picks page_token when set, else falls back to
+// page+limit.
+syntax = "proto3";
+
+package authorizer.common.v1;
+
+import "buf/validate/validate.proto";
+
+message PaginationRequest {
+  // 1-based page number. Ignored when page_token is set. Default 1.
+  int64 page = 1 [(buf.validate.field).int64 = {gte: 0}];
+
+  // Page size. Server enforces an upper bound (typically 100). Default 10.
+  int64 limit = 2 [(buf.validate.field).int64 = {gte: 0, lte: 1000}];
+
+  // Opaque cursor returned by the previous List call's `next_page_token`.
+  // Preferred for new clients (AIP-158). When set, `page` is ignored.
+  string page_token = 3;
+}
+
+message Pagination {
+  int64 limit = 1;
+  int64 page = 2;
+  int64 offset = 3;
+  int64 total = 4;
+  // Opaque cursor for the next page; empty when no more pages.
+  string next_page_token = 5;
+}

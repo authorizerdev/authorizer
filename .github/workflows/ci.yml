@@ -27,3 +27,22 @@ jobs:
 
       - name: Run tests
         run: make test
+
+  proto:
+    name: Proto lint + breaking
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          # buf breaking needs main's history to diff against.
+          fetch-depth: 0
+
+      - uses: bufbuild/buf-action@v1
+        with:
+          input: proto
+          lint: true
+          format: false
+          # Only run breaking on PRs (push to main has nothing to diff against).
+          breaking: ${{ github.event_name == 'pull_request' }}
+          breaking_against: 'https://github.com/${{ github.repository }}.git#branch=main,subdir=proto'

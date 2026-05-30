@@ -1,0 +1,18 @@
+version: v2
+modules:
+  - path: .
+    name: buf.build/authorizerdev/authorizer
+deps:
+  - buf.build/bufbuild/protovalidate
+  # google/api/annotations (gRPC-Gateway HTTP bindings) gets added in Phase 2
+  # when the first service definition lands; declaring it now triggers a
+  # noisy "unused dep" warning on every `buf` invocation.
+lint:
+  use:
+    - STANDARD
+  except:
+    - PACKAGE_VERSION_SUFFIX
+  ignore: []
+breaking:
+  use:
+    - FILE
