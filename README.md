@@ -25,8 +25,6 @@
   <a href="https://bestpractices.coreinfrastructure.org/"><img src="https://img.shields.io/badge/CII%20Best%20Practices-enroll-blue" alt="CII Best Practices" /></a>
   <a href="https://github.com/authorizerdev/authorizer/actions/workflows/govulncheck.yml"><img src="https://github.com/authorizerdev/authorizer/actions/workflows/govulncheck.yml/badge.svg?event=schedule" alt="govulncheck" /></a>
   <a href="https://securityscorecards.dev/viewer/?uri=github.com/authorizerdev/authorizer"><img src="https://api.securityscorecards.dev/projects/github.com/authorizerdev/authorizer/badge" alt="OpenSSF Scorecard" /></a>
-  <a href="https://clomonitor.io/"><img src="https://img.shields.io/endpoint?url=https://clomonitor.io/api/projects/cncf/authorizer/badge&label=CLOMonitor" alt="CLOMonitor" /></a>
-  <a href="https://bugs.chromium.org/p/oss-fuzz/issues/list?sort=-opened&can=1&q=proj:authorizer"><img src="https://oss-fuzz-build-logs.storage.googleapis.com/badges/authorizer.svg" alt="Fuzzing Status" /></a>
 </p>
 
 **Authorizer** is an open-source authentication and authorization server you can self-host. Connect any supported database (13+ backends including [Postgres](https://www.postgresql.org/), [MySQL](https://www.mysql.com/), [SQLite](https://www.sqlite.org/index.html), [SQL Server](https://www.microsoft.com/en-us/sql-server/), [YugaByte](https://www.yugabyte.com/), [MariaDB](https://mariadb.org/), [Cassandra](https://cassandra.apache.org/), [ScyllaDB](https://www.scylladb.com/), [MongoDB](https://mongodb.com/), [ArangoDB](https://www.arangodb.com/), [DynamoDB](https://aws.amazon.com/dynamodb/), and [Couchbase](https://www.couchbase.com/)) and run OAuth2/OIDC, social login, MFA, magic links, RBAC, webhooks, and email templates from one place.
