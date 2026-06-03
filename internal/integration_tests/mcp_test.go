@@ -34,7 +34,7 @@ func TestMCPListAndCallMeta(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	mcpSrv, err := authmcp.New(&log, grpcSrv.GRPCServer(), "authorizer-test", "v0")
+	mcpSrv, err := authmcp.New(&log, grpcSrv.GRPCServer(), authmcp.Options{Name: "authorizer-test", Version: "v0"})
 	require.NoError(t, err)
 
 	// Wire client ↔ server via in-memory transports (no stdio).
@@ -50,17 +50,21 @@ func TestMCPListAndCallMeta(t *testing.T) {
 	require.NoError(t, err)
 	defer clientSession.Close()
 
-	// tools/list — should include the four proto-annotated MCP tools:
-	// meta, profile, session, permissions.
+	// tools/list — should include the three proto-annotated MCP tools:
+	// meta, profile, permissions. (Session was DROPPED from MCP exposure
+	// in the security pass; its response carries credentials that
+	// shouldn't land in an LLM transcript — audit finding C1.)
 	list, err := clientSession.ListTools(ctx, nil)
 	require.NoError(t, err)
 	gotNames := map[string]bool{}
 	for _, tool := range list.Tools {
 		gotNames[tool.Name] = true
 	}
-	for _, want := range []string{"meta", "profile", "session", "permissions"} {
+	for _, want := range []string{"meta", "profile", "permissions"} {
 		require.True(t, gotNames[want], "expected MCP tool %q to be exposed; got %v", want, gotNames)
 	}
+	require.False(t, gotNames["session"],
+		"session tool MUST NOT be exposed via MCP (carries access_token/refresh_token/etc.)")
 
 	// tools/call meta — should invoke AuthorizerService.Meta and return JSON
 	// wrapped in the per-RPC MetaResponse shape.

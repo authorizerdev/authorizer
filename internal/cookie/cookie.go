@@ -67,20 +67,45 @@ func BuildSessionCookies(hostname, sessionID string, appCookieSecure bool, sameS
 	}
 }
 
-// DeleteSession sets session cookies to expire
+// DeleteSession sets session cookies to expire.
 func DeleteSession(gc *gin.Context, appCookieSecure bool, sameSite http.SameSite) {
-	secure := appCookieSecure
-	httpOnly := true
-	hostname := parsers.GetHost(gc)
+	for _, c := range BuildDeleteSessionCookies(parsers.GetHost(gc), appCookieSecure, sameSite) {
+		gc.SetSameSite(c.SameSite)
+		gc.SetCookie(c.Name, c.Value, c.MaxAge, c.Path, c.Domain, c.Secure, c.HttpOnly)
+	}
+}
+
+// BuildDeleteSessionCookies returns the pair of zero-value, expired session
+// cookies that cause browsers to delete the host-scoped and domain-scoped
+// session cookies. Transport-agnostic mirror of DeleteSession.
+func BuildDeleteSessionCookies(hostname string, appCookieSecure bool, sameSite http.SameSite) []*http.Cookie {
 	host, _ := parsers.GetHostParts(hostname)
 	domain := parsers.GetDomainName(hostname)
 	if domain != "localhost" {
 		domain = "." + domain
 	}
-
-	gc.SetSameSite(sameSite)
-	gc.SetCookie(constants.AppCookieName+"_session", "", -1, "/", host, secure, httpOnly)
-	gc.SetCookie(constants.AppCookieName+"_session_domain", "", -1, "/", domain, secure, httpOnly)
+	return []*http.Cookie{
+		{
+			Name:     constants.AppCookieName + "_session",
+			Value:    "",
+			MaxAge:   -1,
+			Path:     "/",
+			Domain:   host,
+			Secure:   appCookieSecure,
+			HttpOnly: true,
+			SameSite: sameSite,
+		},
+		{
+			Name:     constants.AppCookieName + "_session_domain",
+			Value:    "",
+			MaxAge:   -1,
+			Path:     "/",
+			Domain:   domain,
+			Secure:   appCookieSecure,
+			HttpOnly: true,
+			SameSite: sameSite,
+		},
+	}
 }
 
 // GetSession gets the session cookie from context

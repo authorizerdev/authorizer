@@ -13,10 +13,11 @@ package handlers
 import (
 	"context"
 
-	"github.com/authorizerdev/authorizer/internal/grpcsrv/transport"
-	"github.com/authorizerdev/authorizer/internal/service"
-
 	authorizerv1 "github.com/authorizerdev/authorizer/gen/go/authorizer/v1"
+	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/grpcsrv/transport"
+	"github.com/authorizerdev/authorizer/internal/refs"
+	"github.com/authorizerdev/authorizer/internal/service"
 )
 
 // AuthorizerHandler implements authorizer.v1.AuthorizerService. The single
@@ -26,6 +27,106 @@ import (
 type AuthorizerHandler struct {
 	authorizerv1.UnimplementedAuthorizerServiceServer
 	Service service.Provider
+}
+
+// Revoke delegates to service.Revoke and projects the result.
+func (h *AuthorizerHandler) Revoke(ctx context.Context, req *authorizerv1.RevokeRequest) (*authorizerv1.RevokeResponse, error) {
+	res, _, err := h.Service.Revoke(ctx, transport.MetaFromGRPC(ctx), &model.OAuthRevokeRequest{RefreshToken: req.RefreshToken})
+	if err != nil {
+		return nil, err
+	}
+	return &authorizerv1.RevokeResponse{Message: res.Message}, nil
+}
+
+// ValidateJwtToken delegates to service.ValidateJwtToken. The JWT claims
+// map (free-form) is projected to AppData (which wraps Struct) to preserve
+// the existing GraphQL semantics.
+func (h *AuthorizerHandler) ValidateJwtToken(ctx context.Context, req *authorizerv1.ValidateJwtTokenRequest) (*authorizerv1.ValidateJwtTokenResponse, error) {
+	res, _, err := h.Service.ValidateJwtToken(ctx, transport.MetaFromGRPC(ctx), &model.ValidateJWTTokenRequest{
+		TokenType:           req.TokenType,
+		Token:               req.Token,
+		Roles:               req.Roles,
+		RequiredPermissions: protoToModelPermissions(req.RequiredPermissions),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &authorizerv1.ValidateJwtTokenResponse{
+		IsValid: res.IsValid,
+		Claims:  claimsToAppData(res.Claims),
+	}, nil
+}
+
+// ValidateSession delegates to service.ValidateSession.
+func (h *AuthorizerHandler) ValidateSession(ctx context.Context, req *authorizerv1.ValidateSessionRequest) (*authorizerv1.ValidateSessionResponse, error) {
+	res, _, err := h.Service.ValidateSession(ctx, transport.MetaFromGRPC(ctx), &model.ValidateSessionRequest{
+		Cookie:              req.Cookie,
+		Roles:               req.Roles,
+		RequiredPermissions: protoToModelPermissions(req.RequiredPermissions),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &authorizerv1.ValidateSessionResponse{
+		IsValid: res.IsValid,
+		User:    projectUser(res.User),
+	}, nil
+}
+
+// Session delegates to service.Session, applies the rotated session cookie
+// to the outgoing stream, and projects the AuthResponse. SessionResponse
+// carries credentials and is intentionally NOT MCP-exposed (audit C1).
+func (h *AuthorizerHandler) Session(ctx context.Context, req *authorizerv1.SessionRequest) (*authorizerv1.SessionResponse, error) {
+	res, side, err := h.Service.Session(ctx, transport.MetaFromGRPC(ctx), &model.SessionQueryRequest{
+		Roles:               req.Roles,
+		Scope:               req.Scope,
+		State:               refs.NewStringRef(req.State),
+		RequiredPermissions: protoToModelPermissions(req.RequiredPermissions),
+	})
+	if err != nil {
+		return nil, err
+	}
+	_ = transport.ApplyToGRPC(ctx, side)
+	return &authorizerv1.SessionResponse{Auth: projectAuthResponse(res)}, nil
+}
+
+// Profile delegates to service.Profile and projects the result into the
+// proto ProfileResponse. Requires session/bearer auth (handled inside the
+// service via TokenProvider.GetUserIDFromSessionOrAccessToken).
+func (h *AuthorizerHandler) Profile(ctx context.Context, _ *authorizerv1.ProfileRequest) (*authorizerv1.ProfileResponse, error) {
+	u, _, err := h.Service.Profile(ctx, transport.MetaFromGRPC(ctx))
+	if err != nil {
+		return nil, err
+	}
+	return &authorizerv1.ProfileResponse{User: projectUser(u)}, nil
+}
+
+// Permissions delegates to service.Permissions and projects the result into
+// the proto PermissionsResponse.
+func (h *AuthorizerHandler) Permissions(ctx context.Context, _ *authorizerv1.PermissionsRequest) (*authorizerv1.PermissionsResponse, error) {
+	perms, _, err := h.Service.Permissions(ctx, transport.MetaFromGRPC(ctx))
+	if err != nil {
+		return nil, err
+	}
+	out := make([]*authorizerv1.Permission, len(perms))
+	for i, p := range perms {
+		out[i] = &authorizerv1.Permission{Resource: p.Resource, Scope: p.Scope}
+	}
+	return &authorizerv1.PermissionsResponse{Permissions: out}, nil
+}
+
+// Logout delegates to service.Logout, applies any cookie side-effects to
+// the outgoing gRPC stream (grpc-gateway lifts them to Set-Cookie when
+// the call came in via REST), then returns the typed response.
+func (h *AuthorizerHandler) Logout(ctx context.Context, _ *authorizerv1.LogoutRequest) (*authorizerv1.LogoutResponse, error) {
+	res, side, err := h.Service.Logout(ctx, transport.MetaFromGRPC(ctx))
+	if err != nil {
+		return nil, err
+	}
+	// Best-effort: cookie application is out-of-band; a SendHeader failure
+	// degrades to "user has to re-auth" rather than failing the request.
+	_ = transport.ApplyToGRPC(ctx, side)
+	return &authorizerv1.LogoutResponse{Message: res.Message}, nil
 }
 
 // Meta delegates to service.Meta and projects the GraphQL Meta model into

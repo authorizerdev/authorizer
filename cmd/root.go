@@ -553,18 +553,18 @@ func runRoot(c *cobra.Command, args []string) {
 		StorageProvider: storageProvider,
 	})
 
-	// Transport-agnostic service layer that hosts public-API operations
-	// (currently SignUp; more migrate over in subsequent phases). GraphQL,
-	// gRPC, and REST surfaces all delegate to this.
+	// Transport-agnostic service layer that hosts public-API operations.
+	// GraphQL, gRPC, and REST surfaces all delegate to this.
 	serviceProvider, err := service.New(&rootArgs.config, &service.Dependencies{
-		Log:                 &log,
-		AuditProvider:       auditProvider,
-		EmailProvider:       emailProvider,
-		EventsProvider:      eventsProvider,
-		MemoryStoreProvider: memoryStoreProvider,
-		SMSProvider:         smsProvider,
-		StorageProvider:     storageProvider,
-		TokenProvider:       tokenProvider,
+		Log:                   &log,
+		AuditProvider:         auditProvider,
+		AuthorizationProvider: authorizationProvider,
+		EmailProvider:         emailProvider,
+		EventsProvider:        eventsProvider,
+		MemoryStoreProvider:   memoryStoreProvider,
+		SMSProvider:           smsProvider,
+		StorageProvider:       storageProvider,
+		TokenProvider:         tokenProvider,
 	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create service provider")

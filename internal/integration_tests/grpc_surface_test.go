@@ -52,10 +52,9 @@ func bootGRPCBufconn(t *testing.T) *grpc.ClientConn {
 
 // TestAuthorizerServiceStubsReturnUnimplemented locks down the contract for
 // every not-yet-migrated method on the consolidated AuthorizerService.
-// Today Meta is the only real implementation; the remaining 18 methods
-// return codes.Unimplemented. As each one gets migrated out of
-// internal/graphql into internal/service, the corresponding sub-test here
-// will start returning OK and the case can be moved to a happy-path test.
+// Real today: Meta, Profile, Permissions, Logout, Revoke, Session,
+// ValidateJwtToken, ValidateSession (covered elsewhere). As each remaining
+// method's handler is wired up, drop its entry below.
 func TestAuthorizerServiceStubsReturnUnimplemented(t *testing.T) {
 	conn := bootGRPCBufconn(t)
 	ctx := context.Background()
@@ -69,10 +68,6 @@ func TestAuthorizerServiceStubsReturnUnimplemented(t *testing.T) {
 		},
 		"Login": func(c0 context.Context) error {
 			_, err := c.Login(c0, &authorizerv1.LoginRequest{Password: "p"})
-			return err
-		},
-		"Logout": func(c0 context.Context) error {
-			_, err := c.Logout(c0, &authorizerv1.LogoutRequest{})
 			return err
 		},
 		"MagicLinkLogin": func(c0 context.Context) error {
@@ -103,36 +98,12 @@ func TestAuthorizerServiceStubsReturnUnimplemented(t *testing.T) {
 			_, err := c.ResetPassword(c0, &authorizerv1.ResetPasswordRequest{Token: "t", Password: "p", ConfirmPassword: "p"})
 			return err
 		},
-		"Profile": func(c0 context.Context) error {
-			_, err := c.Profile(c0, &authorizerv1.ProfileRequest{})
-			return err
-		},
 		"UpdateProfile": func(c0 context.Context) error {
 			_, err := c.UpdateProfile(c0, &authorizerv1.UpdateProfileRequest{})
 			return err
 		},
 		"DeactivateAccount": func(c0 context.Context) error {
 			_, err := c.DeactivateAccount(c0, &authorizerv1.DeactivateAccountRequest{})
-			return err
-		},
-		"Revoke": func(c0 context.Context) error {
-			_, err := c.Revoke(c0, &authorizerv1.RevokeRequest{RefreshToken: "t"})
-			return err
-		},
-		"Session": func(c0 context.Context) error {
-			_, err := c.Session(c0, &authorizerv1.SessionRequest{})
-			return err
-		},
-		"ValidateJwtToken": func(c0 context.Context) error {
-			_, err := c.ValidateJwtToken(c0, &authorizerv1.ValidateJwtTokenRequest{TokenType: "access_token", Token: "t"})
-			return err
-		},
-		"ValidateSession": func(c0 context.Context) error {
-			_, err := c.ValidateSession(c0, &authorizerv1.ValidateSessionRequest{Cookie: "c"})
-			return err
-		},
-		"Permissions": func(c0 context.Context) error {
-			_, err := c.Permissions(c0, &authorizerv1.PermissionsRequest{})
 			return err
 		},
 	}
