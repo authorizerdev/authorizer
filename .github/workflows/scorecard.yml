@@ -10,9 +10,17 @@
 
 name: Scorecard supply-chain security
 
+# Scorecard only supports the repository's default branch. Release/tag events
+# check out a tag ref and fail with "only default branch is supported", so we
+# trigger on the OSSF-recommended events instead: pushes to the default branch,
+# a weekly schedule, and branch-protection-rule changes.
 on:
-  release:
-    types: [created]
+  push:
+    branches: [main]
+  schedule:
+    # Weekly, Mondays at 07:20 UTC.
+    - cron: '20 7 * * 1'
+  branch_protection_rule:
 
 # Top-level read-all permissions; jobs override what they need.
 permissions: read-all

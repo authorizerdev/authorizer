@@ -20,14 +20,11 @@
 
 <p align="center">
   <a href="https://github.com/authorizerdev/authorizer/actions/workflows/ci.yml"><img src="https://github.com/authorizerdev/authorizer/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
-  <a href="https://quay.io/repository/authorizerdev/authorizer"><img src="https://quay.io/repository/authorizerdev/authorizer/status" alt="Docker Repository on Quay" /></a>
-  <a href="https://hub.docker.com/r/lakhansamani/authorizer"><img src="https://img.shields.io/docker/pulls/lakhansamani/authorizer.svg?maxAge=604800" alt="Docker Pulls" /></a>
+  <a href="https://quay.io/repository/authorizer/authorizer"><img src="https://quay.io/repository/authorizer/authorizer/status" alt="Docker Repository on Quay" /></a>
   <a href="https://goreportcard.com/report/github.com/authorizerdev/authorizer"><img src="https://goreportcard.com/badge/github.com/authorizerdev/authorizer" alt="Go Report Card" /></a>
   <a href="https://bestpractices.coreinfrastructure.org/"><img src="https://img.shields.io/badge/CII%20Best%20Practices-enroll-blue" alt="CII Best Practices" /></a>
   <a href="https://github.com/authorizerdev/authorizer/actions/workflows/govulncheck.yml"><img src="https://github.com/authorizerdev/authorizer/actions/workflows/govulncheck.yml/badge.svg?event=schedule" alt="govulncheck" /></a>
   <a href="https://securityscorecards.dev/viewer/?uri=github.com/authorizerdev/authorizer"><img src="https://api.securityscorecards.dev/projects/github.com/authorizerdev/authorizer/badge" alt="OpenSSF Scorecard" /></a>
-  <a href="https://clomonitor.io/"><img src="https://img.shields.io/endpoint?url=https://clomonitor.io/api/projects/cncf/authorizer/badge&label=CLOMonitor" alt="CLOMonitor" /></a>
-  <a href="https://bugs.chromium.org/p/oss-fuzz/issues/list?sort=-opened&can=1&q=proj:authorizer"><img src="https://oss-fuzz-build-logs.storage.googleapis.com/badges/authorizer.svg" alt="Fuzzing Status" /></a>
 </p>
 
 **Authorizer** is an open-source authentication and authorization server you can self-host. Connect any supported database (13+ backends including [Postgres](https://www.postgresql.org/), [MySQL](https://www.mysql.com/), [SQLite](https://www.sqlite.org/index.html), [SQL Server](https://www.microsoft.com/en-us/sql-server/), [YugaByte](https://www.yugabyte.com/), [MariaDB](https://mariadb.org/), [Cassandra](https://cassandra.apache.org/), [ScyllaDB](https://www.scylladb.com/), [MongoDB](https://mongodb.com/), [ArangoDB](https://www.arangodb.com/), [DynamoDB](https://aws.amazon.com/dynamodb/), and [Couchbase](https://www.couchbase.com/)) and run OAuth2/OIDC, social login, MFA, magic links, RBAC, webhooks, and email templates from one place.
@@ -102,7 +99,7 @@ Deploy production ready Authorizer instance using one click deployment options a
 |    Railway.app     |                    [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/nwXp1C?referralCode=FEF4uT&utm_medium=integration&utm_source=template&utm_campaign=generic)                     | [docs](https://docs.authorizer.dev/deployment/railway) |
 |       Heroku       | <a href="https://heroku.com/deploy?template=https://github.com/authorizerdev/authorizer-heroku"><img src="https://www.herokucdn.com/deploy/button.svg" alt="Deploy to Heroku" style="height: 44px;"></a> | [docs](https://docs.authorizer.dev/deployment/heroku)  |
 |       Render       |                     [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/authorizerdev/authorizer-render)                      | [docs](https://docs.authorizer.dev/deployment/render)  |
-|       Koyeb       | <a target="_blank" href="https://app.koyeb.com/deploy?name=authorizer&type=docker&image=docker.io/lakhansamani/authorizer&env[PORT]=8000&env[DATABASE_TYPE]=postgres&env[DATABASE_URL]=CHANGE_ME&ports=8000;http;/"><img alt="Deploy to Koyeb" src="https://www.koyeb.com/static/images/deploy/button.svg" /></a> | [docs](https://docs.authorizer.dev/deployment/koyeb)  |
+|       Koyeb       | <a target="_blank" href="https://app.koyeb.com/deploy?name=authorizer&type=docker&image=quay.io/authorizer/authorizer&env[PORT]=8000&env[DATABASE_TYPE]=postgres&env[DATABASE_URL]=CHANGE_ME&ports=8000;http;/"><img alt="Deploy to Koyeb" src="https://www.koyeb.com/static/images/deploy/button.svg" /></a> | [docs](https://docs.authorizer.dev/deployment/koyeb)  |
 |     RepoCloud     | <a href="https://repocloud.io/details/?app_id=174"><img src="https://d16t0pc4846x52.cloudfront.net/deploy.png" alt="Deploy on RepoCloud"></a> | [docs](https://repocloud.io/details/?app_id=174) |
 | Alibaba Cloud| <a target="_blank" href="https://computenest.console.aliyun.com/service/instance/create/default?type=user&ServiceName=Authorizer%E7%A4%BE%E5%8C%BA%E7%89%88"><img src="https://service-info-public.oss-cn-hangzhou.aliyuncs.com/computenest-en.svg" alt="Alibaba Cloud" /></a> | [docs](https://docs.authorizer.dev/deployment/alibaba-cloud) |
 
@@ -146,7 +143,7 @@ The default image runs as **non-root** (UID `65532`). Writable mounts (SQLite un
    ```sh
    docker run -p 8080:8080 -u root \
      -v authorizer_data:/authorizer/data \
-     lakhansamani/authorizer \
+     quay.io/authorizer/authorizer \
      --database-type=sqlite \
      --database-url=/authorizer/data/data.db \
      --client-id=123456 \
@@ -162,7 +159,7 @@ The default image runs as **non-root** (UID `65532`). Writable mounts (SQLite un
    mkdir -p ./data && sudo chown -R 65532:65532 ./data
    docker run -p 8080:8080 \
      -v "$(pwd)/data:/authorizer/data" \
-     lakhansamani/authorizer \
+     quay.io/authorizer/authorizer \
      --database-type=sqlite \
      --database-url=/authorizer/data/data.db \
      ...
@@ -187,7 +184,7 @@ Inside a container, **`localhost` / `127.0.0.1` is the container itself**, not y
 - **Docker Desktop (macOS / Windows):** use `host.docker.internal` in `--database-url` or `--database-host` (built in).
 
   ```sh
-  docker run -p 8080:8080 lakhansamani/authorizer \
+  docker run -p 8080:8080 quay.io/authorizer/authorizer \
     --database-type=postgres \
     --database-url="postgres://user:pass@host.docker.internal:5432/dbname?sslmode=disable" \
     ...
@@ -197,7 +194,7 @@ Inside a container, **`localhost` / `127.0.0.1` is the container itself**, not y
 
   ```sh
   docker run -p 8080:8080 --add-host=host.docker.internal:host-gateway \
-    lakhansamani/authorizer \
+    quay.io/authorizer/authorizer \
     --database-type=postgres \
     --database-url="postgres://user:pass@host.docker.internal:5432/dbname?sslmode=disable" \
     ...
@@ -207,10 +204,10 @@ Inside a container, **`localhost` / `127.0.0.1` is the container itself**, not y
 
 Ensure the database accepts **non-localhost** connections (e.g. `listen_addresses` in Postgres, bind address in MySQL) and that your OS firewall allows the Docker subnet.
 
-**Extending the image with env-based config (e.g. Railway):** If you `FROM lakhansamani/authorizer` and use a shell-form `CMD` so that env vars are expanded at runtime, you must override `ENTRYPOINT` in your Dockerfile or the binary will receive `/bin/sh` and `-c` as arguments and fail. Use:
+**Extending the image with env-based config (e.g. Railway):** If you `FROM quay.io/authorizer/authorizer` and use a shell-form `CMD` so that env vars are expanded at runtime, you must override `ENTRYPOINT` in your Dockerfile or the binary will receive `/bin/sh` and `-c` as arguments and fail. Use:
 
 ```dockerfile
-FROM lakhansamani/authorizer:2.0.0-rc.1
+FROM quay.io/authorizer/authorizer:2.0.0-rc.1
 # v2 uses CLI arguments only. Railway (etc.) inject env vars; shell form CMD expands them at runtime.
 # Override ENTRYPOINT so CMD is run by a shell; otherwise the base ENTRYPOINT would receive /bin/sh -c "..." as args.
 ENTRYPOINT ["/bin/sh", "-c"]
