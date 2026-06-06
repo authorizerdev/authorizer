@@ -50,6 +50,10 @@ func New(addr string, deps *Dependencies) (*Server, error) {
 			interceptors.Recovery(deps.Log),
 			interceptors.Logging(deps.Log),
 			validate,
+			// Innermost: wraps the handler directly so it can translate typed
+			// service.Error values into proper gRPC status codes. Must stay
+			// last — see interceptors.ErrorMap docs.
+			interceptors.ErrorMap(),
 		),
 	)
 

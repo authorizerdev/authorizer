@@ -16,9 +16,9 @@ import (
 // TestOpenAPIEndpointServesValidJSON verifies the /openapi.json route
 // returns the embedded swagger spec, with a body that parses as JSON and
 // declares the v1 services. Guards against two regressions:
-//   1. Path-based reads of the spec file would fail when cwd is not the
-//      repo root (Docker, tests). The embed should make this path-free.
-//   2. The merged swagger is non-empty and includes recognisable v1 routes.
+//  1. Path-based reads of the spec file would fail when cwd is not the
+//     repo root (Docker, tests). The embed should make this path-free.
+//  2. The merged swagger is non-empty and includes recognisable v1 routes.
 func TestOpenAPIEndpointServesValidJSON(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()

@@ -68,7 +68,9 @@ type AuthorizerServiceClient interface {
 	Signup(ctx context.Context, in *SignupRequest, opts ...grpc.CallOption) (*SignupResponse, error)
 	// Login authenticates with email/phone + password.
 	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
-	// Logout ends the caller's current session.
+	// Logout ends the caller's current session. POST, not GET: logout mutates
+	// server state (clears the session) and is audit-logged, so it must not be
+	// a "safe" method per RFC 9110 §9.2.1 — GET would also expose it to CSRF.
 	Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*LogoutResponse, error)
 	// MagicLinkLogin dispatches a passwordless email link. The clicked link
 	// hits the existing /verify_email browser handler.
@@ -308,7 +310,9 @@ type AuthorizerServiceServer interface {
 	Signup(context.Context, *SignupRequest) (*SignupResponse, error)
 	// Login authenticates with email/phone + password.
 	Login(context.Context, *LoginRequest) (*LoginResponse, error)
-	// Logout ends the caller's current session.
+	// Logout ends the caller's current session. POST, not GET: logout mutates
+	// server state (clears the session) and is audit-logged, so it must not be
+	// a "safe" method per RFC 9110 §9.2.1 — GET would also expose it to CSRF.
 	Logout(context.Context, *LogoutRequest) (*LogoutResponse, error)
 	// MagicLinkLogin dispatches a passwordless email link. The clicked link
 	// hits the existing /verify_email browser handler.

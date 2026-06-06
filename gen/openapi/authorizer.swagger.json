@@ -115,8 +115,8 @@
       }
     },
     "/v1/logout": {
-      "get": {
-        "summary": "Logout ends the caller's current session.",
+      "post": {
+        "summary": "Logout ends the caller's current session. POST, not GET: logout mutates\nserver state (clears the session) and is audit-logged, so it must not be\na \"safe\" method per RFC 9110 §9.2.1 — GET would also expose it to CSRF.",
         "operationId": "AuthorizerService_Logout",
         "responses": {
           "200": {

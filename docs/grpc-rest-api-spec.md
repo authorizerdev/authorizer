@@ -12,7 +12,48 @@ Authorizer uses a single-source-of-truth Protobuf definition to generate:
 ### Package & Versioning
 - **Package**: `authorizer.v1`
 - **Directory Structure**: `proto/authorizer/v1/`
-- **API Versioning**: Hardcoded in HTTP paths as `/api/v1/...` and tracked via Protobuf package versioning.
+- **API Versioning**: Hardcoded in HTTP paths as `/v1/...` and tracked via Protobuf package versioning.
+
+### REST Naming Conventions (Stripe-aligned)
+
+Authorizer's REST surface follows the **Stripe "gold standard" REST conventions**. Stripe is widely regarded as the benchmark for developer-facing REST API design, and aligning with it keeps the surface consistent and unsurprising:
+
+1. **`snake_case` everywhere — paths, query parameters, and JSON bodies.**
+   Multi-word path segments use underscores, e.g. `/v1/magic_link_login`,
+   `/v1/verify_email`, `/v1/validate_jwt_token`. This mirrors Stripe's own
+   paths (`/v1/payment_intents`, `/v1/setup_intents`) and, critically, keeps a
+   **single** naming style across the entire product: the path segment, the
+   gRPC method identifier, the GraphQL operation name, and every JSON field are
+   all `snake_case`. (The gateway sets `UseProtoNames=true` so response bodies
+   stay `snake_case` rather than protobuf-default `camelCase`.)
+
+   > We deliberately do **not** use `kebab-case` paths. While some guides
+   > (Microsoft, Google AIP) and Keycloak prefer hyphens, mixing hyphenated
+   > paths with `snake_case` bodies/operations would introduce a second naming
+   > convention. Internal consistency wins; Stripe and Auth0
+   > (`/dbconnections/change_password`) set the precedent.
+
+2. **HTTP method reflects effect.** `GET` is reserved for safe, side-effect-free
+   reads (`meta`, `profile`, `permissions`). Anything that mutates server state
+   — including `logout` (it clears the session and is audit-logged) — uses
+   `POST`. A mutating `GET` would violate RFC 9110 §9.2.1 and expose the
+   endpoint to CSRF.
+
+3. **Path prefix `/v1`** (not `/api/v1`) — the version is the first segment,
+   matching Stripe's `/v1/...`.
+
+4. **Stable, snake_case error envelope** on every `/v1` endpoint:
+
+   ```json
+   { "code": "invalid_argument", "message": "email or phone number is required" }
+   ```
+
+   The HTTP status is derived from the gRPC status code
+   (`invalid_argument`→400, `unauthenticated`→401, `permission_denied`→403,
+   `not_found`→404, `failed_precondition`→400, `internal`→500). The service
+   layer classifies each error with a transport-neutral `ErrorKind`
+   (`internal/service/errors.go`); the gRPC `ErrorMap` interceptor turns that
+   into a status code, and grpc-gateway maps the code to the HTTP status.
 
 ### Ecosystem Tooling
 - **`buf`**: Managed build system for Protobuf.
@@ -29,26 +70,30 @@ All public GraphQL queries and mutations are mapped to RPC methods. Terminologie
 
 ### 2.1. Authentication Service (`authorizer.v1.AuthorizerService`)
 
+Paths are `snake_case` under `/v1` (see "REST Naming Conventions" above). The
+gRPC method name is the `PascalCase` form of the same identifier.
+
 | RPC Method | GraphQL Equivalent | HTTP Path | Permissions |
 | :--- | :--- | :--- | :--- |
-| `Signup` | `signup` | `POST /api/v1/signup` | Public |
-| `Login` | `login` | `POST /api/v1/login` | Public |
-| `MagicLinkLogin` | `magic_link_login` | `POST /api/v1/magic-link-login` | Public |
-| `Logout` | `logout` | `POST /api/v1/logout` | Authenticated |
-| `VerifyEmail` | `verify_email` | `POST /api/v1/verify-email` | Public |
-| `ResendVerifyEmail` | `resend_verify_email` | `POST /api/v1/resend-verify-email` | Public |
-| `ForgotPassword` | `forgot_password` | `POST /api/v1/forgot-password` | Public |
-| `ResetPassword` | `reset_password` | `POST /api/v1/reset-password` | Public |
-| `VerifyOtp` | `verify_otp` | `POST /api/v1/verify-otp` | Public |
-| `ResendOtp` | `resend_otp` | `POST /api/v1/resend-otp` | Public |
-| `Revoke` | `revoke` | `POST /api/v1/revoke` | Authenticated |
-| `DeactivateAccount` | `deactivate_account` | `DELETE /api/v1/account` | Authenticated |
-| `GetMeta` | `meta` | `GET /api/v1/meta` | Public |
-| `GetSession` | `session` | `POST /api/v1/session` | Authenticated |
-| `GetProfile` | `profile` | `GET /api/v1/profile` | Authenticated |
-| `ValidateJwtToken` | `validate_jwt_token` | `POST /api/v1/validate-jwt` | Public/Service |
-| `ValidateSession` | `validate_session` | `POST /api/v1/validate-session` | Public/Service |
-| `GetPermissions` | `permissions` | `GET /api/v1/permissions` | Authenticated |
+| `Signup` | `signup` | `POST /v1/signup` | Public |
+| `Login` | `login` | `POST /v1/login` | Public |
+| `MagicLinkLogin` | `magic_link_login` | `POST /v1/magic_link_login` | Public |
+| `Logout` | `logout` | `POST /v1/logout` | Authenticated |
+| `VerifyEmail` | `verify_email` | `POST /v1/verify_email` | Public |
+| `ResendVerifyEmail` | `resend_verify_email` | `POST /v1/resend_verify_email` | Public |
+| `ForgotPassword` | `forgot_password` | `POST /v1/forgot_password` | Public |
+| `ResetPassword` | `reset_password` | `POST /v1/reset_password` | Public |
+| `VerifyOtp` | `verify_otp` | `POST /v1/verify_otp` | Public |
+| `ResendOtp` | `resend_otp` | `POST /v1/resend_otp` | Public |
+| `Revoke` | `revoke` | `POST /v1/revoke` | Authenticated |
+| `UpdateProfile` | `update_profile` | `POST /v1/update_profile` | Authenticated |
+| `DeactivateAccount` | `deactivate_account` | `POST /v1/deactivate_account` | Authenticated |
+| `Meta` | `meta` | `GET /v1/meta` | Public |
+| `Session` | `session` | `POST /v1/session` | Authenticated |
+| `Profile` | `profile` | `GET /v1/profile` | Authenticated |
+| `ValidateJwtToken` | `validate_jwt_token` | `POST /v1/validate_jwt_token` | Public/Service |
+| `ValidateSession` | `validate_session` | `POST /v1/validate_session` | Public/Service |
+| `Permissions` | `permissions` | `GET /v1/permissions` | Authenticated |
 
 ### 2.2. OIDC & OAuth2 REST Endpoints
 The following endpoints remain as pure HTTP handlers to comply with strict OIDC/OAuth2 protocol requirements (redirects, form-encoding):
@@ -248,6 +293,11 @@ func (s *Server) Signup(ctx context.Context, req *pb.SignUpRequest) (*pb.AuthRes
 ---
 
 ## 6. Detailed Mapping Table
+
+> **Note:** The table in §2.1 is the authoritative, as-implemented mapping
+> (`snake_case` paths under `/v1`). The table below is the original design
+> sketch retained for historical context; where it differs (hyphenated paths,
+> `/api/v1` prefix, `Get*`/`DELETE`/`PUT` shapes), §2.1 wins.
 
 | gRPC Method | GraphQL Field | REST Gateway Path | Perms | Logic Method |
 | :--- | :--- | :--- | :--- | :--- |

@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
 	"strings"
 
 	"github.com/authorizerdev/authorizer/internal/constants"
@@ -16,7 +15,7 @@ func (p *provider) Revoke(ctx context.Context, meta RequestMetadata, params *mod
 	tok := strings.TrimSpace(params.RefreshToken)
 	if tok == "" {
 		log.Error().Msg("Refresh token is empty")
-		return nil, nil, errors.New("missing refresh token")
+		return nil, nil, InvalidArgument("missing refresh token")
 	}
 	claims, err := p.TokenProvider.ParseJWTToken(tok)
 	if err != nil {
@@ -27,7 +26,7 @@ func (p *provider) Revoke(ctx context.Context, meta RequestMetadata, params *mod
 	userID, ok := claims["sub"].(string)
 	if !ok || userID == "" {
 		log.Debug().Msg("Invalid subject in token")
-		return nil, nil, errors.New("invalid token")
+		return nil, nil, InvalidArgument("invalid token")
 	}
 	loginMethod := claims["login_method"]
 	sessionKey := userID
@@ -38,7 +37,7 @@ func (p *provider) Revoke(ctx context.Context, meta RequestMetadata, params *mod
 	nonce, ok := claims["nonce"].(string)
 	if !ok || nonce == "" {
 		log.Debug().Msg("Invalid nonce in token")
-		return nil, nil, errors.New("invalid token")
+		return nil, nil, InvalidArgument("invalid token")
 	}
 
 	existing, err := p.MemoryStoreProvider.GetUserSession(sessionKey, constants.TokenTypeRefreshToken+"_"+nonce)
@@ -48,11 +47,11 @@ func (p *provider) Revoke(ctx context.Context, meta RequestMetadata, params *mod
 	}
 	if existing == "" {
 		log.Debug().Msg("Token not found")
-		return nil, nil, errors.New("token not found")
+		return nil, nil, NotFound("token not found")
 	}
 	if existing != tok {
 		log.Debug().Msg("Token does not match")
-		return nil, nil, errors.New("token does not match")
+		return nil, nil, InvalidArgument("token does not match")
 	}
 
 	if err := p.MemoryStoreProvider.DeleteUserSession(sessionKey, nonce); err != nil {

@@ -44,7 +44,37 @@ func TestMetaFromGRPC_FallsBackToAuthority(t *testing.T) {
 
 func TestMetaFromGRPC_NoMetadata(t *testing.T) {
 	meta := MetaFromGRPC(context.Background())
-	assert.Equal(t, service.RequestMetadata{}, meta)
+	// All transport-derived signals are empty with no metadata...
+	assert.Empty(t, meta.HostURL)
+	assert.Empty(t, meta.IPAddress)
+	assert.Empty(t, meta.UserAgent)
+	assert.Empty(t, meta.AuthorizationHeader)
+	assert.Empty(t, meta.Cookies)
+	// ...but Request is always synthesized (non-nil) so the gin-shim helpers
+	// in the migrated service methods never dereference a nil *http.Request.
+	require.NotNil(t, meta.Request)
+	assert.Empty(t, meta.Request.Header.Get("Authorization"))
+}
+
+func TestMetaFromGRPC_SynthesizesRequestFromSignals(t *testing.T) {
+	md := metadata.New(map[string]string{
+		"grpcgateway-x-authorizer-url": "https://auth.example.com",
+		"grpcgateway-x-forwarded-for":  "10.1.2.3",
+		"grpcgateway-user-agent":       "browser/1.0",
+		"grpcgateway-authorization":    "Bearer abc",
+		"grpcgateway-cookie":           "authorizer_session=abc",
+	})
+	meta := MetaFromGRPC(metadata.NewIncomingContext(context.Background(), md))
+	require.NotNil(t, meta.Request)
+	// The synthesized request must carry the bearer + cookie so legacy
+	// TokenProvider helpers (which read Request.Header / Request.Cookies())
+	// behave identically over gRPC/REST and direct HTTP.
+	assert.Equal(t, "Bearer abc", meta.Request.Header.Get("Authorization"))
+	assert.Equal(t, "browser/1.0", meta.Request.Header.Get("User-Agent"))
+	assert.Equal(t, "auth.example.com", meta.Request.Host)
+	c, err := meta.Request.Cookie("authorizer_session")
+	require.NoError(t, err)
+	assert.Equal(t, "abc", c.Value)
 }
 
 func TestCookiesFromMetadata_MultipleHeaders(t *testing.T) {

@@ -2,8 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
-	"fmt"
 
 	"github.com/gin-gonic/gin"
 
@@ -35,18 +33,18 @@ func (p *provider) ValidateSession(ctx context.Context, meta RequestMetadata, pa
 		sessionToken, err = cookie.GetSession(gc)
 		if err != nil {
 			log.Debug().Err(err).Msg("Failed to get session token")
-			return nil, nil, errors.New("unauthorized")
+			return nil, nil, Unauthenticated("unauthorized")
 		}
 	}
 	if sessionToken == "" {
 		log.Debug().Msg("Empty session token")
-		return nil, nil, errors.New("unauthorized")
+		return nil, nil, Unauthenticated("unauthorized")
 	}
 
 	claims, err := p.TokenProvider.ValidateBrowserSession(gc, sessionToken)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to validate session")
-		return nil, nil, errors.New("unauthorized")
+		return nil, nil, Unauthenticated("unauthorized")
 	}
 	userID := claims.Subject
 	log.Debug().Str("userID", userID).Msg("Validated session")
@@ -61,7 +59,7 @@ func (p *provider) ValidateSession(ctx context.Context, meta RequestMetadata, pa
 		for _, v := range params.Roles {
 			if !utils.StringSliceContains(claimRoles, v) {
 				log.Debug().Str("role", v).Msg("Role not found in claims")
-				return nil, nil, fmt.Errorf(`unauthorized`)
+				return nil, nil, Unauthenticated("unauthorized")
 			}
 		}
 	}

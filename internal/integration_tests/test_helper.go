@@ -48,6 +48,10 @@ type testSetup struct {
 	// Authz is the authorization provider, exposed for tests that exercise
 	// CheckPermission / GetPrincipalPermissions directly (bypassing GraphQL).
 	Authz authorization.Provider
+	// ServiceProvider is the transport-agnostic service layer, exposed so the
+	// gRPC/REST transport tests can mount the same fully-wired service the
+	// GraphQL path uses.
+	ServiceProvider service.Provider
 }
 
 func createContext(s *testSetup) (*http.Request, context.Context) {
@@ -297,6 +301,7 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 		AuthenticatorProvider: authProvider,
 		TokenProvider:         tokenProvider,
 		Authz:                 authzProvider,
+		ServiceProvider:       serviceProvider,
 	}
 }
 

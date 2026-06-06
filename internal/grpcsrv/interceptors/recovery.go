@@ -1,7 +1,7 @@
 // Package interceptors contains the gRPC server interceptors shared across
 // Authorizer services. They run in this order (outermost first):
 //
-//   recovery → logging → validate → ... (auth, permission, audit — added per service in later PRs)
+//	recovery → logging → validate → ... (auth, permission, audit — added per service in later PRs)
 //
 // Recovery is outermost so it catches panics raised by anything later, and
 // converts them to a clean codes.Internal status instead of crashing the

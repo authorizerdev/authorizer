@@ -52,9 +52,11 @@ service AuthorizerService {
     option (authorizer.common.v1.mcp_tool) = {exposed: false}; // creds
   }
 
-  // Logout ends the caller's current session.
+  // Logout ends the caller's current session. POST, not GET: logout mutates
+  // server state (clears the session) and is audit-logged, so it must not be
+  // a "safe" method per RFC 9110 §9.2.1 — GET would also expose it to CSRF.
   rpc Logout(LogoutRequest) returns (LogoutResponse) {
-    option (google.api.http) = {get: "/v1/logout"};
+    option (google.api.http) = {post: "/v1/logout"};
     option (authorizer.common.v1.audit_log) = true;
   }
 

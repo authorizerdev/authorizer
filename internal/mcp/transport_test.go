@@ -18,8 +18,8 @@ import (
 // interceptor for MCP first, then update this test's allow-list.
 func TestServer_StdioOnly(t *testing.T) {
 	allowed := map[string]struct{}{
-		"RunStdio":    {},
-		"MCPServer":   {}, // test accessor — not a transport
+		"RunStdio":  {},
+		"MCPServer": {}, // test accessor — not a transport
 	}
 	t.Logf("MCP Server exported methods allow-list: %v (anything outside this set indicates a new transport)", allowed)
 

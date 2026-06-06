@@ -1,6 +1,6 @@
-// Package-internal projection helpers: convert the GraphQL/storage model
-// types returned by service.* into the proto wire types. Centralised here
-// so each handler can stay focused on its delegation pattern.
+// Package handlers — projection helpers in this file convert the
+// GraphQL/storage model types returned by service.* into the proto wire types.
+// Centralised here so each handler can stay focused on its delegation pattern.
 package handlers
 
 import (
@@ -24,28 +24,28 @@ func projectUser(u *model.User) *authorizerv1.User {
 		return nil
 	}
 	out := &authorizerv1.User{
-		Id:                  u.ID,
-		Email:               refs.StringValue(u.Email),
-		EmailVerified:       u.EmailVerified,
-		SignupMethods:       u.SignupMethods,
-		GivenName:           refs.StringValue(u.GivenName),
-		FamilyName:          refs.StringValue(u.FamilyName),
-		MiddleName:          refs.StringValue(u.MiddleName),
-		Nickname:            refs.StringValue(u.Nickname),
-		PreferredUsername:   refs.StringValue(u.PreferredUsername),
-		Gender:              refs.StringValue(u.Gender),
-		Birthdate:           refs.StringValue(u.Birthdate),
-		PhoneNumber:         refs.StringValue(u.PhoneNumber),
-		PhoneNumberVerified: u.PhoneNumberVerified,
-		Picture:             refs.StringValue(u.Picture),
-		Roles:               u.Roles,
-		CreatedAt:           refs.Int64Value(u.CreatedAt),
-		UpdatedAt:           refs.Int64Value(u.UpdatedAt),
-		RevokedTimestamp:    refs.Int64Value(u.RevokedTimestamp),
+		Id:                       u.ID,
+		Email:                    refs.StringValue(u.Email),
+		EmailVerified:            u.EmailVerified,
+		SignupMethods:            u.SignupMethods,
+		GivenName:                refs.StringValue(u.GivenName),
+		FamilyName:               refs.StringValue(u.FamilyName),
+		MiddleName:               refs.StringValue(u.MiddleName),
+		Nickname:                 refs.StringValue(u.Nickname),
+		PreferredUsername:        refs.StringValue(u.PreferredUsername),
+		Gender:                   refs.StringValue(u.Gender),
+		Birthdate:                refs.StringValue(u.Birthdate),
+		PhoneNumber:              refs.StringValue(u.PhoneNumber),
+		PhoneNumberVerified:      u.PhoneNumberVerified,
+		Picture:                  refs.StringValue(u.Picture),
+		Roles:                    u.Roles,
+		CreatedAt:                refs.Int64Value(u.CreatedAt),
+		UpdatedAt:                refs.Int64Value(u.UpdatedAt),
+		RevokedTimestamp:         refs.Int64Value(u.RevokedTimestamp),
 		IsMultiFactorAuthEnabled: refs.BoolValue(u.IsMultiFactorAuthEnabled),
 	}
 	if u.AppData != nil {
-		out.AppData = projectAppData(u.AppData)
+		out.AppData = mapToAppData(u.AppData)
 	}
 	return out
 }
@@ -75,10 +75,19 @@ func projectAuthResponse(a *model.AuthResponse) *authorizerv1.AuthResponse {
 	}
 }
 
-// projectAppData converts the free-form GraphQL Map into the proto AppData
-// (which wraps a google.protobuf.Struct). The conversion uses JSON as the
-// lingua franca, matching how AppData is persisted today.
-func projectAppData(m map[string]any) *commonv1.AppData {
+// mapToAppData converts a free-form map (GraphQL's `Map` for user app_data, or
+// a JWT claims bag) into the proto AppData wrapper around
+// google.protobuf.Struct. JSON is the lingua franca — it matches how AppData is
+// persisted today and tolerates anything the JWT library or storage layer
+// produces.
+//
+// A conversion failure (unmarshalable value, or a value Struct cannot
+// represent) collapses to nil rather than failing the whole response: app_data
+// is advisory metadata and must never take down an otherwise-valid User or
+// claims payload. The inputs are produced by our own storage/JWT layers, so a
+// failure here indicates corrupt data worth surfacing out-of-band, not a
+// client error.
+func mapToAppData(m map[string]any) *commonv1.AppData {
 	if len(m) == 0 {
 		return nil
 	}
@@ -97,6 +106,26 @@ func projectAppData(m map[string]any) *commonv1.AppData {
 		return nil
 	}
 	return &commonv1.AppData{Value: s}
+}
+
+// appDataToMap is the inverse of mapToAppData: it unwraps the proto AppData
+// (google.protobuf.Struct) back into a free-form map for the model layer.
+// Returns nil for an absent/empty AppData so optional semantics are preserved.
+func appDataToMap(in *commonv1.AppData) map[string]any {
+	if in == nil || in.GetValue() == nil {
+		return nil
+	}
+	return in.GetValue().AsMap()
+}
+
+// optionalString maps a proto3 scalar string onto the model layer's nullable
+// *string: an empty wire value means "unset" and collapses to nil, matching
+// how GraphQL omits an absent optional input field.
+func optionalString(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
 }
 
 // derefStringSlice converts []*string (GraphQL's nullable string list shape)
@@ -131,27 +160,4 @@ func protoToModelPermissions(in []*authorizerv1.PermissionInput) []*model.Permis
 		})
 	}
 	return out
-}
-
-// claimsToAppData converts a free-form JWT claims map (interface{}-valued)
-// into the proto AppData wrapper around google.protobuf.Struct. JSON is the
-// lingua franca — matches projectAppData's strategy and tolerates anything
-// the underlying JWT library produces.
-func claimsToAppData(claims map[string]any) *commonv1.AppData {
-	if len(claims) == 0 {
-		return nil
-	}
-	b, err := json.Marshal(claims)
-	if err != nil {
-		return nil
-	}
-	var generic map[string]any
-	if err := json.Unmarshal(b, &generic); err != nil {
-		return nil
-	}
-	s, err := structpb.NewStruct(generic)
-	if err != nil {
-		return nil
-	}
-	return &commonv1.AppData{Value: s}
 }

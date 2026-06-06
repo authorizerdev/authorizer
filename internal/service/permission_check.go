@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
 
 	"github.com/rs/zerolog"
 
@@ -47,12 +46,12 @@ func (p *provider) enforceRequiredPermissions(
 		if err != nil {
 			log.Debug().Err(err).Str("resource", pi.Resource).Str("scope", pi.Scope).Msg("required permission check errored")
 			metrics.RecordRequiredPermissionsCheck(endpoint, metrics.RequiredPermissionsOutcomeError)
-			return errors.New("unauthorized")
+			return PermissionDenied("unauthorized")
 		}
 		if res == nil || !res.Allowed {
 			log.Debug().Str("resource", pi.Resource).Str("scope", pi.Scope).Msg("required permission denied")
 			metrics.RecordRequiredPermissionsCheck(endpoint, metrics.RequiredPermissionsOutcomeDenied)
-			return errors.New("unauthorized")
+			return PermissionDenied("unauthorized")
 		}
 	}
 	metrics.RecordRequiredPermissionsCheck(endpoint, metrics.RequiredPermissionsOutcomeGranted)

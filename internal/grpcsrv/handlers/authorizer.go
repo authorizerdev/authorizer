@@ -29,6 +29,39 @@ type AuthorizerHandler struct {
 	Service service.Provider
 }
 
+// Signup delegates to service.SignUp, applies session/MFA cookie side-effects
+// to the outgoing stream (grpc-gateway lifts them to Set-Cookie for REST
+// callers), and projects the AuthResponse. Proto3 scalars carry no presence,
+// so optional string inputs collapse empty -> nil via optionalString to match
+// the GraphQL "field omitted" semantics. Signup is intentionally NOT MCP-
+// exposed (it returns credentials).
+func (h *AuthorizerHandler) Signup(ctx context.Context, req *authorizerv1.SignupRequest) (*authorizerv1.SignupResponse, error) {
+	res, side, err := h.Service.SignUp(ctx, transport.MetaFromGRPC(ctx), &model.SignUpRequest{
+		Email:                    optionalString(req.Email),
+		PhoneNumber:              optionalString(req.PhoneNumber),
+		Password:                 req.Password,
+		ConfirmPassword:          req.ConfirmPassword,
+		GivenName:                optionalString(req.GivenName),
+		FamilyName:               optionalString(req.FamilyName),
+		MiddleName:               optionalString(req.MiddleName),
+		Nickname:                 optionalString(req.Nickname),
+		Gender:                   optionalString(req.Gender),
+		Birthdate:                optionalString(req.Birthdate),
+		Picture:                  optionalString(req.Picture),
+		Roles:                    req.Roles,
+		Scope:                    req.Scope,
+		RedirectURI:              optionalString(req.RedirectUri),
+		IsMultiFactorAuthEnabled: &req.IsMultiFactorAuthEnabled,
+		State:                    optionalString(req.State),
+		AppData:                  appDataToMap(req.AppData),
+	})
+	if err != nil {
+		return nil, err
+	}
+	_ = transport.ApplyToGRPC(ctx, side)
+	return &authorizerv1.SignupResponse{Auth: projectAuthResponse(res)}, nil
+}
+
 // Revoke delegates to service.Revoke and projects the result.
 func (h *AuthorizerHandler) Revoke(ctx context.Context, req *authorizerv1.RevokeRequest) (*authorizerv1.RevokeResponse, error) {
 	res, _, err := h.Service.Revoke(ctx, transport.MetaFromGRPC(ctx), &model.OAuthRevokeRequest{RefreshToken: req.RefreshToken})
@@ -53,7 +86,7 @@ func (h *AuthorizerHandler) ValidateJwtToken(ctx context.Context, req *authorize
 	}
 	return &authorizerv1.ValidateJwtTokenResponse{
 		IsValid: res.IsValid,
-		Claims:  claimsToAppData(res.Claims),
+		Claims:  mapToAppData(res.Claims),
 	}, nil
 }
 

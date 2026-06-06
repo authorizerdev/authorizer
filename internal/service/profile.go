@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/gin-gonic/gin"
 
@@ -25,7 +24,7 @@ func (p *provider) Profile(ctx context.Context, meta RequestMetadata) (*model.Us
 	tokenData, err := p.TokenProvider.GetUserIDFromSessionOrAccessToken(gc)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to get user id from session or access token")
-		return nil, nil, fmt.Errorf("unauthorized")
+		return nil, nil, Unauthenticated("unauthorized")
 	}
 	user, err := p.StorageProvider.GetUserByID(ctx, tokenData.UserID)
 	if err != nil {

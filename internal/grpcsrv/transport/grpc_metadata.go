@@ -11,6 +11,7 @@ package transport
 import (
 	"context"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"google.golang.org/grpc"
@@ -40,7 +41,47 @@ func MetaFromGRPC(ctx context.Context) service.RequestMetadata {
 			meta.HostURL = "http://" + authority
 		}
 	}
+
+	// Synthesize an *http.Request mirroring the extracted metadata. Several
+	// migrated service methods (Profile, Permissions, Logout, Session,
+	// ValidateSession) still hand a gin.Context shim to TokenProvider helpers
+	// that read Request.Header / Request.Cookies(). Without a non-nil Request
+	// those helpers dereference nil and panic. Building the request here keeps
+	// the gRPC/REST path behaving exactly like the gin path.
+	meta.Request = synthRequest(meta)
 	return meta
+}
+
+// synthRequest reconstructs a minimal *http.Request from the transport-neutral
+// RequestMetadata so the legacy gin-shim helpers (which read Header, Cookies,
+// Host, and RemoteAddr) work identically over gRPC/REST and direct HTTP.
+func synthRequest(meta service.RequestMetadata) *http.Request {
+	req := &http.Request{
+		Header: http.Header{},
+		URL:    &url.URL{},
+	}
+	if meta.AuthorizationHeader != "" {
+		req.Header.Set("Authorization", meta.AuthorizationHeader)
+	}
+	if meta.UserAgent != "" {
+		req.Header.Set("User-Agent", meta.UserAgent)
+	}
+	if meta.IPAddress != "" {
+		req.Header.Set("X-Forwarded-For", meta.IPAddress)
+		req.RemoteAddr = meta.IPAddress
+	}
+	if meta.HostURL != "" {
+		req.Header.Set("X-Authorizer-URL", meta.HostURL)
+		if u, err := url.Parse(meta.HostURL); err == nil && u.Host != "" {
+			req.Host = u.Host
+		}
+	}
+	for _, c := range meta.Cookies {
+		if c != nil {
+			req.AddCookie(c)
+		}
+	}
+	return req
 }
 
 // ApplyToGRPC writes the response side-effects to the outgoing gRPC stream.

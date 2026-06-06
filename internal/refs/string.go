@@ -15,5 +15,3 @@ func StringValue(r *string, defaultValue ...string) string {
 	}
 	return ""
 }
-
-

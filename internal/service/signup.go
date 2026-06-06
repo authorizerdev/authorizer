@@ -3,8 +3,6 @@ package service
 import (
 	"context"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"strings"
 	"time"
 
@@ -43,24 +41,24 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 	phoneNumber := strings.TrimSpace(refs.StringValue(params.PhoneNumber))
 	if email == "" && phoneNumber == "" {
 		log.Debug().Msg("Email or phone number is required")
-		return nil, nil, fmt.Errorf(`email or phone number is required`)
+		return nil, nil, InvalidArgument("email or phone number is required")
 	}
 
 	isSignupEnabled := p.Config.EnableSignup
 	if !isSignupEnabled {
 		log.Debug().Msg("Signup is disabled")
-		return nil, nil, fmt.Errorf(`signup is disabled for this instance`)
+		return nil, nil, FailedPrecondition("signup is disabled for this instance")
 	}
 
 	isBasicAuthEnabled := p.Config.EnableBasicAuthentication
 	isMobileBasicAuthEnabled := p.Config.EnableMobileBasicAuthentication
 	if params.ConfirmPassword != params.Password {
 		log.Debug().Msg("Passwords do not match")
-		return nil, nil, fmt.Errorf(`password and confirm password does not match`)
+		return nil, nil, InvalidArgument("password and confirm password does not match")
 	}
 	if err := validators.IsValidPassword(params.Password, !p.Config.EnableStrongPassword); err != nil {
 		log.Debug().Msg("Invalid password")
-		return nil, nil, err
+		return nil, nil, InvalidArgument(err.Error())
 	}
 
 	log = log.With().Str("email", email).Str("phone_number", phoneNumber).Logger()
@@ -68,19 +66,19 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 	isMobileSignup := phoneNumber != ""
 	if !isBasicAuthEnabled && isEmailSignup {
 		log.Debug().Msg("Basic authentication is disabled")
-		return nil, nil, fmt.Errorf(`basic authentication is disabled for this instance`)
+		return nil, nil, FailedPrecondition("basic authentication is disabled for this instance")
 	}
 	if !isMobileBasicAuthEnabled && isMobileSignup {
 		log.Debug().Msg("Mobile basic authentication is disabled")
-		return nil, nil, fmt.Errorf(`mobile basic authentication is disabled for this instance`)
+		return nil, nil, FailedPrecondition("mobile basic authentication is disabled for this instance")
 	}
 	if isEmailSignup && !validators.IsValidEmail(email) {
 		log.Debug().Msg("Invalid email")
-		return nil, nil, fmt.Errorf(`invalid email address`)
+		return nil, nil, InvalidArgument("invalid email address")
 	}
 	if isMobileSignup && (phoneNumber == "" || len(phoneNumber) < 10) {
 		log.Debug().Msg("Invalid phone number")
-		return nil, nil, fmt.Errorf(`invalid phone number`)
+		return nil, nil, InvalidArgument("invalid phone number")
 	}
 	// find user with email / phone number
 	if isEmailSignup {
@@ -91,7 +89,7 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 		if existingUser != nil && (existingUser.EmailVerifiedAt != nil || existingUser.ID != "") {
 			log.Debug().Msg("Email is already signed up.")
 			bcrypt.CompareHashAndPassword(dummyHash, []byte("timing-equalization"))
-			return nil, nil, fmt.Errorf("signup failed. please check your credentials or try a different method")
+			return nil, nil, InvalidArgument("signup failed. please check your credentials or try a different method")
 		}
 	} else {
 		existingUser, err := p.StorageProvider.GetUserByPhoneNumber(ctx, phoneNumber)
@@ -101,7 +99,7 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 		if existingUser != nil && (existingUser.PhoneNumberVerifiedAt != nil || existingUser.ID != "") {
 			log.Debug().Msg("Phone number is already signed up.")
 			bcrypt.CompareHashAndPassword(dummyHash, []byte("timing-equalization"))
-			return nil, nil, fmt.Errorf("signup failed. please check your credentials or try a different method")
+			return nil, nil, InvalidArgument("signup failed. please check your credentials or try a different method")
 		}
 	}
 
@@ -111,7 +109,7 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 		roles := p.Config.Roles
 		if !validators.IsValidRoles(inputRoles, roles) {
 			log.Debug().Strs("roles", params.Roles).Msg("Invalid roles")
-			return nil, nil, fmt.Errorf(`invalid roles`)
+			return nil, nil, InvalidArgument("invalid roles")
 		}
 	} else {
 		inputRoles = p.Config.DefaultRoles
@@ -171,7 +169,7 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 		appDataBytes, err := json.Marshal(params.AppData)
 		if err != nil {
 			log.Debug().Msg("failed to marshall source app_data")
-			return nil, nil, errors.New("malformed app_data")
+			return nil, nil, InvalidArgument("malformed app_data")
 		}
 		appDataString = string(appDataBytes)
 		user.AppData = &appDataString
@@ -209,7 +207,7 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 			redirectURL = *params.RedirectURI
 			if !validators.IsValidRedirectURI(redirectURL, p.Config.AllowedOrigins, hostname) {
 				log.Debug().Msg("Invalid redirect URI")
-				return nil, nil, fmt.Errorf("invalid redirect URI")
+				return nil, nil, InvalidArgument("invalid redirect URI")
 			}
 		}
 		verificationToken, err := p.TokenProvider.CreateVerificationToken(&token.AuthTokenConfig{
@@ -288,7 +286,7 @@ func (p *provider) SignUp(ctx context.Context, meta RequestMetadata, params *mod
 		}, side, nil
 	}
 	scope := []string{"openid", "email", "profile"}
-	if params.Scope != nil && len(params.Scope) > 0 {
+	if len(params.Scope) > 0 {
 		scope = params.Scope
 	}
 

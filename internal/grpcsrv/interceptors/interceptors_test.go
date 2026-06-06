@@ -3,7 +3,6 @@ package interceptors
 import (
 	"bytes"
 	"context"
-	"strings"
 	"testing"
 
 	"github.com/rs/zerolog"
@@ -156,6 +155,3 @@ func TestValidate_BuildsCleanly(t *testing.T) {
 	// Sanity check: the returned interceptor type is what gRPC expects.
 	_ = grpc.UnaryServerInterceptor(mw)
 }
-
-// helper used by some of the future interceptor tests
-func _ignoreUnused() { _ = strings.Builder{} }

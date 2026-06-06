@@ -201,3 +201,44 @@ proto-breaking: proto-tools
 
 proto-gen: proto-tools
 	cd proto && buf dep update && buf generate
+
+# ----------------------------------------------------------------------------
+# Formatting & linting (Go + TypeScript). `make fmt` before committing,
+# `make lint` in CI. golangci-lint is installed on demand if missing.
+# ----------------------------------------------------------------------------
+GOLANGCI_LINT ?= $(shell command -v golangci-lint 2>/dev/null)
+GOLANGCI_LINT_VERSION ?= v2.11.4
+
+.PHONY: fmt fmt-go fmt-ts lint lint-go lint-ts lint-tools
+
+# Format everything.
+fmt: fmt-go fmt-ts
+
+# gofmt -s over all hand-written Go sources (generated protobuf output under
+# gen/ is excluded — it is owned by buf).
+fmt-go:
+	@gofmt -s -w $(shell find . -type f -name '*.go' -not -path './gen/*')
+
+# Prettier over both web apps via their configured format scripts.
+fmt-ts:
+	cd web/app && npm run format
+	cd web/dashboard && npm run format
+
+# Lint everything.
+lint: lint-go lint-ts
+
+lint-tools:
+	@if [ -z "$(GOLANGCI_LINT)" ]; then \
+		echo "Installing golangci-lint $(GOLANGCI_LINT_VERSION)"; \
+		go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION); \
+	fi
+
+# golangci-lint over the module. Generated code under gen/ is excluded via
+# .golangci.yml.
+lint-go: lint-tools
+	golangci-lint run ./...
+
+# Prettier in --check mode: fails (non-zero) if any web source is unformatted.
+lint-ts:
+	cd web/app && npx prettier --check 'src/**/*.(ts|tsx|js|jsx)'
+	cd web/dashboard && npx prettier --check 'src/**/*.(ts|tsx|js|jsx)'

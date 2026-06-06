@@ -2,8 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"strings"
 	"time"
 
@@ -35,13 +33,13 @@ func (p *provider) Session(ctx context.Context, meta RequestMetadata, params *mo
 	sessionToken, err := cookie.GetSession(gc)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to get session token")
-		return nil, nil, errors.New("unauthorized")
+		return nil, nil, Unauthenticated("unauthorized")
 	}
 
 	claims, err := p.TokenProvider.ValidateBrowserSession(gc, sessionToken)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to validate session token")
-		return nil, nil, errors.New("unauthorized")
+		return nil, nil, Unauthenticated("unauthorized")
 	}
 	userID := claims.Subject
 	log = log.With().Str("user_id", userID).Logger()
@@ -56,7 +54,7 @@ func (p *provider) Session(ctx context.Context, meta RequestMetadata, params *mo
 		for _, v := range params.Roles {
 			if !utils.StringSliceContains(claimRoles, v) {
 				log.Debug().Msg("User does not have required role")
-				return nil, nil, fmt.Errorf(`unauthorized`)
+				return nil, nil, Unauthenticated("unauthorized")
 			}
 		}
 	}

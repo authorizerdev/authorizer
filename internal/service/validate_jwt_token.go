@@ -2,8 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
-	"fmt"
 
 	"github.com/golang-jwt/jwt/v4"
 
@@ -24,7 +22,7 @@ func (p *provider) ValidateJwtToken(ctx context.Context, meta RequestMetadata, p
 	tokenType := params.TokenType
 	if tokenType != constants.TokenTypeAccessToken && tokenType != constants.TokenTypeRefreshToken && tokenType != constants.TokenTypeIdentityToken {
 		log.Debug().Str("token_type", tokenType).Msg("Invalid token type")
-		return nil, nil, errors.New("invalid token type")
+		return nil, nil, InvalidArgument("invalid token type")
 	}
 
 	var claimRoles []string
@@ -40,7 +38,7 @@ func (p *provider) ValidateJwtToken(ctx context.Context, meta RequestMetadata, p
 	sub, ok := claims["sub"].(string)
 	if !ok || sub == "" {
 		log.Debug().Msg("Invalid subject in token")
-		return nil, nil, errors.New("invalid token")
+		return nil, nil, Unauthenticated("invalid token")
 	}
 	userID = sub
 
@@ -48,7 +46,7 @@ func (p *provider) ValidateJwtToken(ctx context.Context, meta RequestMetadata, p
 		nonceVal, ok := claims["nonce"].(string)
 		if !ok || nonceVal == "" {
 			log.Debug().Msg("Invalid nonce in token")
-			return nil, nil, errors.New("invalid token")
+			return nil, nil, Unauthenticated("invalid token")
 		}
 		nonce = nonceVal
 		loginMethod := claims["login_method"]
@@ -59,7 +57,7 @@ func (p *provider) ValidateJwtToken(ctx context.Context, meta RequestMetadata, p
 		tok, err := p.MemoryStoreProvider.GetUserSession(sessionKey, tokenType+"_"+nonceVal)
 		if err != nil || tok == "" {
 			log.Debug().Err(err).Msg("Failed to get token from session store")
-			return nil, nil, errors.New("invalid token")
+			return nil, nil, Unauthenticated("invalid token")
 		}
 	}
 
@@ -71,7 +69,7 @@ func (p *provider) ValidateJwtToken(ctx context.Context, meta RequestMetadata, p
 			User:     &schemas.User{ID: userID},
 		}); !ok || err != nil {
 			log.Debug().Err(err).Msg("Failed to validate jwt claims")
-			return nil, nil, errors.New("invalid claims")
+			return nil, nil, Unauthenticated("invalid claims")
 		}
 	} else {
 		if ok, err := p.TokenProvider.ValidateJWTTokenWithoutNonce(claims, &token.AuthTokenConfig{
@@ -79,7 +77,7 @@ func (p *provider) ValidateJwtToken(ctx context.Context, meta RequestMetadata, p
 			User:     &schemas.User{ID: userID},
 		}); !ok || err != nil {
 			log.Debug().Err(err).Msg("Failed to validate jwt claims")
-			return nil, nil, errors.New("invalid claims")
+			return nil, nil, Unauthenticated("invalid claims")
 		}
 	}
 
@@ -94,7 +92,7 @@ func (p *provider) ValidateJwtToken(ctx context.Context, meta RequestMetadata, p
 		roleStr, ok := v.(string)
 		if !ok || roleStr == "" {
 			log.Debug().Msg("Invalid role claim value")
-			return nil, nil, errors.New("invalid claims")
+			return nil, nil, Unauthenticated("invalid claims")
 		}
 		claimRoles = append(claimRoles, roleStr)
 	}
@@ -103,7 +101,7 @@ func (p *provider) ValidateJwtToken(ctx context.Context, meta RequestMetadata, p
 		for _, v := range params.Roles {
 			if !utils.StringSliceContains(claimRoles, v) {
 				log.Debug().Str("role", v).Msg("Role not found in claims")
-				return nil, nil, fmt.Errorf(`unauthorized`)
+				return nil, nil, Unauthenticated("unauthorized")
 			}
 		}
 	}

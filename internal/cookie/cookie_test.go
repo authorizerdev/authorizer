@@ -79,7 +79,7 @@ func TestParseSameSite(t *testing.T) {
 		{"NONE", http.SameSiteNoneMode},
 		{"strict", http.SameSiteStrictMode},
 		{"lax", http.SameSiteLaxMode},
-		{"", http.SameSiteLaxMode},      // unknown defaults to Lax
+		{"", http.SameSiteLaxMode}, // unknown defaults to Lax
 		{"garbage", http.SameSiteLaxMode},
 		{"  none  ", http.SameSiteNoneMode},
 	}

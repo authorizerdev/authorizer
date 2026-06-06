@@ -1,0 +1,32 @@
+# golangci-lint v2 configuration.
+# Run via `make lint-go` (or `golangci-lint run ./...`).
+version: "2"
+
+run:
+  # Build tags used by the test/storage matrix so all files type-check.
+  tests: true
+
+linters:
+  # Default linter set (errcheck, govet, ineffassign, staticcheck, unused).
+  default: standard
+  settings:
+    staticcheck:
+      checks:
+        - all
+        # QF1008 wants embedded-field selectors collapsed (p.Config.X -> p.X);
+        # the codebase deliberately keeps the explicit p.Config.X form.
+        - -QF1008
+  exclusions:
+    # Generated protobuf/gateway/openapi code is owned by buf, not us.
+    generated: lax
+    paths:
+      - gen/
+      - ".*\\.pb\\.go$"
+      - ".*\\.pb\\.gw\\.go$"
+
+formatters:
+  enable:
+    - gofmt
+  exclusions:
+    paths:
+      - gen/

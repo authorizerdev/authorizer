@@ -25,7 +25,9 @@ func (p *provider) Logout(ctx context.Context, meta RequestMetadata) (*model.Res
 	tokenData, err := p.TokenProvider.GetUserIDFromSessionOrAccessToken(gc)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to get user id from session or access token")
-		return nil, nil, err
+		// No valid session/bearer -> 401, not 500. Preserve the underlying
+		// message while classifying the failure as an auth error.
+		return nil, nil, Unauthenticated(err.Error())
 	}
 
 	sessionKey := tokenData.UserID

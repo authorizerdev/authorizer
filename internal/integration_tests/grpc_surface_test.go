@@ -52,7 +52,7 @@ func bootGRPCBufconn(t *testing.T) *grpc.ClientConn {
 
 // TestAuthorizerServiceStubsReturnUnimplemented locks down the contract for
 // every not-yet-migrated method on the consolidated AuthorizerService.
-// Real today: Meta, Profile, Permissions, Logout, Revoke, Session,
+// Real today: Signup, Meta, Profile, Permissions, Logout, Revoke, Session,
 // ValidateJwtToken, ValidateSession (covered elsewhere). As each remaining
 // method's handler is wired up, drop its entry below.
 func TestAuthorizerServiceStubsReturnUnimplemented(t *testing.T) {
@@ -62,10 +62,6 @@ func TestAuthorizerServiceStubsReturnUnimplemented(t *testing.T) {
 
 	type call func(context.Context) error
 	cases := map[string]call{
-		"Signup": func(c0 context.Context) error {
-			_, err := c.Signup(c0, &authorizerv1.SignupRequest{Password: "p", ConfirmPassword: "p"})
-			return err
-		},
 		"Login": func(c0 context.Context) error {
 			_, err := c.Login(c0, &authorizerv1.LoginRequest{Password: "p"})
 			return err
