@@ -154,8 +154,10 @@ export const Sidebar = ({ onClose }: SidebarProps) => {
 								}
 								aria-expanded={isOpen}
 								className={cn(
-									'flex w-full items-center gap-3 rounded-md px-3 py-2 text-xs font-semibold uppercase tracking-wider transition-colors hover:bg-gray-100',
-									isGroupActive ? 'text-blue-600' : 'text-gray-400',
+									'flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+									isGroupActive
+										? 'bg-blue-50 text-blue-600'
+										: 'text-gray-700 hover:bg-gray-100 hover:text-gray-900',
 								)}
 							>
 								<group.icon className="h-4 w-4" />
