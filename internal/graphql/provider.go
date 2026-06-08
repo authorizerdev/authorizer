@@ -201,6 +201,10 @@ type Provider interface {
 	// FgaDeleteTuples deletes fine-grained authorization tuples.
 	// Permissions: authorizer:admin
 	FgaDeleteTuples(ctx context.Context, params *model.FgaWriteTuplesInput) (*model.Response, error)
+	// FgaReset deletes the entire authorization store (model, all versions and
+	// tuples) and starts fresh. Refused while tuples still exist.
+	// Permissions: authorizer:admin
+	FgaReset(ctx context.Context) (*model.Response, error)
 	// FgaReadTuples reads a page of fine-grained authorization tuples.
 	// Permissions: authorizer:admin
 	FgaReadTuples(ctx context.Context, params *model.FgaReadTuplesInput) (*model.FgaTuples, error)

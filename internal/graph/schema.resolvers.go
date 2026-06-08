@@ -187,6 +187,11 @@ func (r *mutationResolver) FgaDeleteTuples(ctx context.Context, params model.Fga
 	return r.GraphQLProvider.FgaDeleteTuples(ctx, &params)
 }
 
+// FgaReset is the resolver for the _fga_reset field.
+func (r *mutationResolver) FgaReset(ctx context.Context) (*model.Response, error) {
+	return r.GraphQLProvider.FgaReset(ctx)
+}
+
 // Meta is the resolver for the meta field.
 func (r *queryResolver) Meta(ctx context.Context) (*model.Meta, error) {
 	return r.GraphQLProvider.Meta(ctx)

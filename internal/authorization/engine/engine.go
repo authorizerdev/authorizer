@@ -153,4 +153,10 @@ type AuthorizationEngine interface {
 	// ReadModel returns the currently active authorization model: its
 	// backend-assigned id and its DSL rendering.
 	ReadModel(ctx context.Context) (id string, dsl string, err error)
+
+	// Reset deletes the entire authorization store (the model, all its versions,
+	// and all tuples) and starts a fresh, empty store. It is destructive and must
+	// be admin-gated by callers; OpenFGA has no per-version delete, so this is the
+	// only way to remove a model.
+	Reset(ctx context.Context) error
 }

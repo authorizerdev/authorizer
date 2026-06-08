@@ -153,3 +153,11 @@ export const FgaDeleteTuples = `
     }
   }
 `;
+
+export const FgaReset = `
+  mutation fgaReset {
+    _fga_reset {
+      message
+    }
+  }
+`;

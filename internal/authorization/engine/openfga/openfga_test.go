@@ -156,6 +156,36 @@ func TestOpenFGAEngine_ReadModelRoundtrip(t *testing.T) {
 	assert.Contains(t, dsl, "can_view")
 }
 
+func TestOpenFGAEngine_Reset(t *testing.T) {
+	ctx := context.Background()
+	eng, impl := newTestEngine(t)
+
+	_, err := eng.WriteModel(ctx, testModel)
+	require.NoError(t, err)
+	require.NoError(t, eng.WriteTuples(ctx, []engine.TupleKey{
+		{User: "user:alice", Relation: "viewer", Object: "document:1"},
+	}))
+
+	storeBefore := impl.StoreID()
+	require.NotEmpty(t, storeBefore)
+
+	// Reset wipes the store: a fresh store ID, no active model, no tuples.
+	require.NoError(t, eng.Reset(ctx))
+	assert.NotEqual(t, storeBefore, impl.StoreID(), "Reset must create a new store")
+	assert.Empty(t, impl.ModelID(), "Reset must clear the active model")
+
+	// No model after reset → reads fail closed and checks error.
+	_, _, err = eng.ReadModel(ctx)
+	assert.Error(t, err, "ReadModel must error when no model exists after reset")
+
+	// The engine is reusable: a new model and tuples can be written.
+	_, err = eng.WriteModel(ctx, testModel)
+	require.NoError(t, err)
+	res, err := eng.ReadTuples(ctx, engine.ReadTuplesFilter{})
+	require.NoError(t, err)
+	assert.Empty(t, res.Tuples, "tuples from before the reset must be gone")
+}
+
 func TestOpenFGAEngine_CheckBeforeModelFailsClosed(t *testing.T) {
 	ctx := context.Background()
 	eng, _ := newTestEngine(t)

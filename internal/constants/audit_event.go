@@ -104,6 +104,9 @@ const (
 	AuditAdminFgaTuplesWrittenEvent = "admin.fga_tuples_written"
 	// AuditAdminFgaTuplesDeletedEvent is logged when an admin deletes fine-grained authorization tuples.
 	AuditAdminFgaTuplesDeletedEvent = "admin.fga_tuples_deleted"
+	// AuditAdminFgaResetEvent is logged when an admin resets the fine-grained authorization store
+	// (deletes the model, all its versions, and all tuples).
+	AuditAdminFgaResetEvent = "admin.fga_reset"
 
 	// AuditOAuthLoginInitiatedEvent is logged when an OAuth login flow is started.
 	AuditOAuthLoginInitiatedEvent = "oauth.login_initiated"

@@ -838,6 +838,7 @@ type Mutation {
   _fga_write_model(params: FgaWriteModelInput!): FgaModel!
   _fga_write_tuples(params: FgaWriteTuplesInput!): Response!
   _fga_delete_tuples(params: FgaWriteTuplesInput!): Response!
+  _fga_reset: Response!
 }
 
 type Query {

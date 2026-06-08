@@ -165,6 +165,12 @@ export interface FgaDeleteTuplesResponse {
 	};
 }
 
+export interface FgaResetResponse {
+	_fga_reset: {
+		message: string;
+	};
+}
+
 export interface FgaCheckResponse {
 	fga_check: {
 		allowed: boolean;

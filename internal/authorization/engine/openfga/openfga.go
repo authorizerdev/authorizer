@@ -70,12 +70,13 @@ type Dependencies struct {
 // server. storeID and modelID are mutated under mu when a store/model is
 // bootstrapped at runtime (memory store / first boot).
 type engineImpl struct {
-	log     *zerolog.Logger
-	srv     *server.Server
-	ds      storage.OpenFGADatastore
-	mu      sync.RWMutex
-	storeID string
-	modelID string
+	log       *zerolog.Logger
+	srv       *server.Server
+	ds        storage.OpenFGADatastore
+	mu        sync.RWMutex
+	storeID   string
+	modelID   string
+	storeName string
 }
 
 // Compile-time interface verification.
@@ -112,11 +113,12 @@ func New(cfg *Config, deps *Dependencies) (engine.AuthorizationEngine, error) {
 	}
 
 	e := &engineImpl{
-		log:     &log,
-		srv:     srv,
-		ds:      ds,
-		storeID: cfg.StoreID,
-		modelID: cfg.ModelID,
+		log:       &log,
+		srv:       srv,
+		ds:        ds,
+		storeID:   cfg.StoreID,
+		modelID:   cfg.ModelID,
+		storeName: cfg.StoreName,
 	}
 
 	// Bootstrap a store if none was provided. The store ID is exposed via
@@ -135,6 +137,29 @@ func New(cfg *Config, deps *Dependencies) (engine.AuthorizationEngine, error) {
 	}
 
 	return e, nil
+}
+
+// Reset deletes the current store (model + all versions + tuples) and creates a
+// fresh empty store. The new store has no model — callers must WriteModel again
+// before checks. Destructive; admin-gated by callers.
+func (e *engineImpl) Reset(ctx context.Context) error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	if e.storeID != "" {
+		if _, err := e.srv.DeleteStore(ctx, &openfgav1.DeleteStoreRequest{StoreId: e.storeID}); err != nil {
+			return fmt.Errorf("openfga.Reset: DeleteStore: %w", err)
+		}
+	}
+	store, err := e.srv.CreateStore(ctx, &openfgav1.CreateStoreRequest{
+		Name: storeNameOrDefault(e.storeName),
+	})
+	if err != nil {
+		return fmt.Errorf("openfga.Reset: CreateStore: %w", err)
+	}
+	e.storeID = store.GetId()
+	e.modelID = ""
+	e.log.Info().Str("store_id", e.storeID).Msg("FGA store reset; new empty store created")
+	return nil
 }
 
 // newDatastore opens the configured datastore.

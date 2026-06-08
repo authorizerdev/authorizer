@@ -1,13 +1,24 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useClient } from 'urql';
 import { toast } from 'sonner';
-import { AlertCircle, Save, Info } from 'lucide-react';
-import { FgaGetModelQuery, AdminRolesQuery } from '../../graphql/queries';
-import { FgaWriteModel } from '../../graphql/mutation';
+import { AlertCircle, Save, Info, RotateCcw, AlertTriangle } from 'lucide-react';
+import { FgaGetModelQuery, AdminRolesQuery, FgaReadTuplesQuery } from '../../graphql/queries';
+import { FgaWriteModel, FgaReset } from '../../graphql/mutation';
 import { Button } from '../../components/ui/button';
 import { Textarea } from '../../components/ui/textarea';
 import { Skeleton } from '../../components/ui/skeleton';
 import { Badge } from '../../components/ui/badge';
+import {
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+	DialogDescription,
+	DialogFooter,
+	DialogClose,
+} from '../../components/ui/dialog';
+import { Input } from '../../components/ui/input';
 import FgaNotEnabled from '../../components/FgaNotEnabled';
 import AuthSteps, { Example, NextStep } from './AuthSteps';
 import DocsLinks from './DocsLinks';
@@ -16,6 +27,8 @@ import { isFgaNotEnabledError } from '../../lib/utils';
 import type {
 	FgaGetModelResponse,
 	FgaWriteModelResponse,
+	FgaReadTuplesResponse,
+	FgaResetResponse,
 	AdminRolesResponse,
 } from '../../types';
 
@@ -39,6 +52,27 @@ const Model = () => {
 	const [modelId, setModelId] = useState('');
 	const [validationError, setValidationError] = useState('');
 	const [roles, setRoles] = useState<string[]>([]);
+	// Reset is destructive and guarded: it is only allowed when no relationship
+	// tuples exist (the backend enforces this too). tuplesExist gates the action.
+	const [tuplesExist, setTuplesExist] = useState(false);
+	const [resetOpen, setResetOpen] = useState(false);
+	const [resetting, setResetting] = useState(false);
+	const [confirmText, setConfirmText] = useState('');
+
+	const checkTuples = useCallback(async () => {
+		try {
+			const res = await client
+				.query<FgaReadTuplesResponse>(
+					FgaReadTuplesQuery,
+					{ params: { page_size: 1 } },
+					{ requestPolicy: 'network-only' },
+				)
+				.toPromise();
+			setTuplesExist((res.data?._fga_read_tuples?.tuples?.length ?? 0) > 0);
+		} catch {
+			// Best-effort; leave the gate closed-safe (assume tuples may exist).
+		}
+	}, [client]);
 
 	const fetchModel = useCallback(async () => {
 		setLoading(true);
@@ -65,7 +99,8 @@ const Model = () => {
 
 	useEffect(() => {
 		fetchModel();
-	}, [fetchModel]);
+		checkTuples();
+	}, [fetchModel, checkTuples]);
 
 	// Configured roles → a "your roles" example.
 	useEffect(() => {
@@ -122,6 +157,29 @@ const Model = () => {
 			toast.error('Failed to save authorization model');
 		} finally {
 			setSaving(false);
+		}
+	};
+
+	const handleReset = async () => {
+		setResetting(true);
+		try {
+			const res = await client.mutation<FgaResetResponse>(FgaReset, {}).toPromise();
+			if (res.error) {
+				toast.error(res.error.message.replace('[GraphQL] ', ''));
+				return;
+			}
+			// Store wiped: clear the editor and local state, then re-check.
+			setDsl('');
+			setModelId('');
+			setValidationError('');
+			setResetOpen(false);
+			setConfirmText('');
+			await checkTuples();
+			toast.success('Authorization model reset — start fresh from an example');
+		} catch {
+			toast.error('Failed to reset authorization model');
+		} finally {
+			setResetting(false);
 		}
 	};
 
@@ -259,12 +317,102 @@ const Model = () => {
 
 					<DocsLinks />
 
+					{modelId && (
+						<div className="rounded-lg border border-red-200 bg-red-50/40 p-4">
+							<div className="flex items-start gap-2">
+								<AlertTriangle
+									className="mt-0.5 h-4 w-4 shrink-0 text-red-500"
+									aria-hidden="true"
+								/>
+								<div className="flex-1">
+									<p className="text-sm font-medium text-red-800">Danger zone · Reset model</p>
+									<p className="mt-1 text-xs leading-relaxed text-red-700/80">
+										OpenFGA models are append-only — individual versions can&rsquo;t be deleted.
+										Resetting is the only way to remove the model and <strong>all its past
+										versions</strong> and start over. This cannot be undone.
+									</p>
+									{tuplesExist ? (
+										<p className="mt-2 flex flex-wrap items-center gap-1 text-xs text-red-700/80">
+											<span>
+												Reset is blocked while relationship tuples exist, so live grants are
+												never dropped silently.
+											</span>
+											<Link
+												to="/authorization/tuples"
+												className="font-medium text-red-700 underline underline-offset-2 hover:text-red-800"
+											>
+												Remove all tuples first
+											</Link>
+										</p>
+									) : (
+										<div className="mt-3">
+											<Button
+												variant="destructive"
+												size="sm"
+												onClick={() => {
+													setConfirmText('');
+													setResetOpen(true);
+												}}
+											>
+												<RotateCcw className="mr-2 h-4 w-4" />
+												Reset model
+											</Button>
+										</div>
+									)}
+								</div>
+							</div>
+						</div>
+					)}
+
 					<div className="flex items-center justify-between border-t border-gray-100 pt-4 text-sm text-gray-500">
 						<span>Save the model, then grant access with relationship tuples.</span>
 						<NextStep to="/authorization/tuples" label="Next: grant access" />
 					</div>
 				</div>
 			)}
+
+			<Dialog open={resetOpen} onOpenChange={(open) => !resetting && setResetOpen(open)}>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle className="flex items-center gap-2 text-red-700">
+							<AlertTriangle className="h-5 w-5" aria-hidden="true" />
+							Reset authorization model
+						</DialogTitle>
+						<DialogDescription>
+							This permanently deletes the active model and every past version, then starts a
+							fresh, empty store. You&rsquo;ll need to define a new model before access checks
+							work again. This action cannot be undone.
+						</DialogDescription>
+					</DialogHeader>
+					<div className="space-y-2">
+						<label htmlFor="reset-confirm" className="text-sm font-medium text-gray-700">
+							Type <span className="font-mono font-semibold text-red-700">RESET</span> to confirm
+						</label>
+						<Input
+							id="reset-confirm"
+							value={confirmText}
+							onChange={(e) => setConfirmText(e.target.value)}
+							placeholder="RESET"
+							autoComplete="off"
+							spellCheck={false}
+						/>
+					</div>
+					<DialogFooter>
+						<DialogClose asChild>
+							<Button variant="outline" disabled={resetting}>
+								Cancel
+							</Button>
+						</DialogClose>
+						<Button
+							variant="destructive"
+							onClick={handleReset}
+							disabled={resetting || confirmText.trim() !== 'RESET'}
+						>
+							{resetting ? 'Resetting…' : 'Reset model'}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 		</div>
 	);
 };

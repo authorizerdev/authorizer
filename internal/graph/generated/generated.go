@@ -261,6 +261,7 @@ type ComplexityRoot struct {
 		DeleteWebhook       func(childComplexity int, params model.WebhookRequest) int
 		EnableAccess        func(childComplexity int, param model.UpdateAccessRequest) int
 		FgaDeleteTuples     func(childComplexity int, params model.FgaWriteTuplesInput) int
+		FgaReset            func(childComplexity int) int
 		FgaWriteModel       func(childComplexity int, params model.FgaWriteModelInput) int
 		FgaWriteTuples      func(childComplexity int, params model.FgaWriteTuplesInput) int
 		ForgotPassword      func(childComplexity int, params model.ForgotPasswordRequest) int
@@ -451,6 +452,7 @@ type MutationResolver interface {
 	FgaWriteModel(ctx context.Context, params model.FgaWriteModelInput) (*model.FgaModel, error)
 	FgaWriteTuples(ctx context.Context, params model.FgaWriteTuplesInput) (*model.Response, error)
 	FgaDeleteTuples(ctx context.Context, params model.FgaWriteTuplesInput) (*model.Response, error)
+	FgaReset(ctx context.Context) (*model.Response, error)
 }
 type QueryResolver interface {
 	Meta(ctx context.Context) (*model.Meta, error)
@@ -1639,6 +1641,13 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.FgaDeleteTuples(childComplexity, args["params"].(model.FgaWriteTuplesInput)), true
+
+	case "Mutation._fga_reset":
+		if e.complexity.Mutation.FgaReset == nil {
+			break
+		}
+
+		return e.complexity.Mutation.FgaReset(childComplexity), true
 
 	case "Mutation._fga_write_model":
 		if e.complexity.Mutation.FgaWriteModel == nil {
@@ -3595,6 +3604,7 @@ type Mutation {
   _fga_write_model(params: FgaWriteModelInput!): FgaModel!
   _fga_write_tuples(params: FgaWriteTuplesInput!): Response!
   _fga_delete_tuples(params: FgaWriteTuplesInput!): Response!
+  _fga_reset: Response!
 }
 
 type Query {
@@ -13697,6 +13707,54 @@ func (ec *executionContext) fieldContext_Mutation__fga_delete_tuples(ctx context
 	if fc.Args, err = ec.field_Mutation__fga_delete_tuples_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation__fga_reset(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation__fga_reset(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().FgaReset(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Response)
+	fc.Result = res
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation__fga_reset(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "message":
+				return ec.fieldContext_Response_message(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Response", field.Name)
+		},
 	}
 	return fc, nil
 }
@@ -24264,6 +24322,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "_fga_delete_tuples":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation__fga_delete_tuples(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "_fga_reset":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation__fga_reset(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
