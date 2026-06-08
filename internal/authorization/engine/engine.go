@@ -2,14 +2,14 @@
 // relationship-based access control (ReBAC) backend used by Authorizer's
 // fine-grained authorization (FGA) subsystem.
 //
-// The interface is deliberately backend-agnostic. The Phase 1 implementation
-// (internal/authorization/engine/openfga) embeds OpenFGA in-process, but the
-// same contract is intended to also front an external OpenFGA service. The
-// engine speaks the OpenFGA tuple vocabulary: a tuple relates a user (subject)
-// to an object via a relation, e.g. (user:alice, viewer, document:1).
+// The interface is deliberately backend-agnostic. The current implementation
+// (internal/authorization/engine/openfga) embeds OpenFGA in-process — Authorizer
+// IS the engine — and the same contract could front an external OpenFGA service
+// in future without touching callers. The engine speaks the OpenFGA tuple
+// vocabulary: a tuple relates a user (subject) to an object via a relation,
+// e.g. (user:alice, viewer, document:1).
 //
-// FGA is enabled by configuring a store (--fga-store for embedded mode, or
-// --fga-external-url for an external OpenFGA service); when neither is set the
+// FGA is enabled by configuring a store (--fga-store); when it is empty the
 // engine is not constructed and the fga_* resolvers fail closed.
 package engine
 

@@ -37,7 +37,7 @@ How a small fleet of specialized agents carries the OpenFGA migration and agenti
 - → **Verify:** every claim feeding a design decision is cited and adversarially checked. Spike code compiles & runs.
 
 ### Wave 1 — Decision core *(fga-engineer → security-engineer)*
-Follows `FGA_OPENFGA_MIGRATION_PLAN.md` Phases 1→7. The old engine was removed outright (never rolled out); FGA is enabled by configuring a store (`--fga-store` for embedded, `--fga-external-url` for external) — no separate engine-selector flag.
+Follows `FGA_OPENFGA_MIGRATION_PLAN.md` Phases 1→7. The old engine was removed outright (never rolled out). Authorizer embeds OpenFGA in-process — it IS the engine; FGA is enabled by configuring a store (`--fga-store`). No engine-selector or external-service flags.
 - → **Verify per phase:** the phase's own Verify gate + `go build ./...` + `make test-all-db` (proves no DB-impl dangling refs) + security-engineer review.
 
 ### Wave 2 — Delegation core *(delegation-engineer → security-engineer)*

@@ -40,7 +40,7 @@ type Dependencies struct {
 	// TokenProvider is used to generate tokens
 	TokenProvider token.Provider
 	// AuthzEngine is the fine-grained authorization (FGA) engine.
-	// It is nil unless an FGA store is configured (--fga-store / --fga-external-url);
+	// It is nil unless an FGA store is configured (--fga-store);
 	// resolvers MUST fail closed (return an error) when it is nil.
 	AuthzEngine engine.AuthorizationEngine
 }

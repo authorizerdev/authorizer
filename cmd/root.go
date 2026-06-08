@@ -237,17 +237,10 @@ func init() {
 	// Back-channel logout (OIDC BCL 1.0)
 	f.StringVar(&rootArgs.config.BackchannelLogoutURI, "backchannel-logout-uri", "", "URL to POST a signed logout_token to when users log out successfully. Leave empty (default) to disable back-channel logout notifications. See OIDC Back-Channel Logout 1.0.")
 
-	// Fine-grained authorization flags
-	f.Int64Var(&rootArgs.config.AuthorizationCacheTTL, "authorization-cache-ttl", 300, "Cache TTL in seconds for permission checks (0 to disable)")
-	f.BoolVar(&rootArgs.config.IncludePermissionsInToken, "include-permissions-in-token", false, "Include permissions in JWT access tokens")
-	f.BoolVar(&rootArgs.config.AuthorizationLogAllChecks, "authorization-log-all-checks", false, "Audit log all permission checks, not just denials")
-
-	// OpenFGA / FGA engine flags (Phase 1 — additive; the FGA engine is
-	// selectable but not yet the default)
-	f.StringVar(&rootArgs.config.FGAMode, "fga-mode", "embedded", "OpenFGA run mode: 'embedded' (in-process, default) or 'external' (standalone OpenFGA service)")
-	f.StringVar(&rootArgs.config.FGAStore, "fga-store", "", "OpenFGA datastore for embedded mode — set to enable fine-grained authorization: 'memory' (dev/tests), 'sqlite' (single-node), 'postgres' or 'mysql' (HA). Empty = FGA disabled")
+	// OpenFGA fine-grained authorization. Authorizer embeds the OpenFGA engine
+	// in-process; set --fga-store to enable it.
+	f.StringVar(&rootArgs.config.FGAStore, "fga-store", "", "OpenFGA datastore — set to enable fine-grained authorization: 'memory' (dev/tests), 'sqlite' (single-node), 'postgres' or 'mysql' (HA). Empty = FGA disabled")
 	f.StringVar(&rootArgs.config.FGAStoreURL, "fga-store-url", "", "OpenFGA datastore connection URI (file: URI for sqlite, DSN for postgres/mysql)")
-	f.StringVar(&rootArgs.config.FGAExternalURL, "fga-external-url", "", "gRPC URL of an external OpenFGA service (used when --fga-mode=external)")
 
 	// Deprecated flags
 	f.MarkDeprecated("database_url", "use --database-url instead")
@@ -469,58 +462,40 @@ func runRoot(c *cobra.Command, args []string) {
 	}
 	defer rateLimitProvider.Close()
 
-	// OpenFGA authorization engine.
+	// OpenFGA fine-grained authorization engine (embedded, in-process).
 	//
-	// Constructed only when an FGA store is configured (--fga-store for embedded,
-	// --fga-external-url for external); otherwise it stays nil and the fga_*
-	// resolvers fail closed. It is routed into GraphQL and session/validate below.
+	// Authorizer embeds OpenFGA — it IS the engine. The engine is constructed
+	// only when an FGA store is configured (--fga-store); otherwise it stays nil
+	// and the fga_* resolvers fail closed ("fine-grained authorization is not
+	// enabled"). Routed into GraphQL and session/validate below.
 	//
-	// Embedded mode runs the OpenFGA server in-process. For single-node/dev
-	// (memory or sqlite) migrations may run on boot; HA/serverless must run
-	// migrations as a separate init job (see FGA_OPENFGA_MIGRATION_PLAN.md §2.1)
-	// and must use an external SQL store.
-	// Fine-grained authorization is enabled by configuring a store: --fga-store
-	// for embedded mode, or --fga-external-url for an external OpenFGA service.
-	// With neither set the engine stays nil and the fga_* resolvers fail closed
-	// ("fine-grained authorization is not enabled").
+	// For single-node/dev (memory or sqlite) migrations may run on boot; HA and
+	// serverless must use an external SQL store (postgres/mysql) and run
+	// migrations as a separate init job (see FGA_OPENFGA_MIGRATION_PLAN.md §2.1).
 	var authzEngine engine.AuthorizationEngine
-	switch strings.ToLower(strings.TrimSpace(rootArgs.config.FGAMode)) {
-	case "", "embedded":
-		if rootArgs.config.FGAStore != "" {
-			// Run migrations on boot only for single-node embedded SQL stores.
-			// memory needs none; postgres/mysql (HA) must migrate out-of-band.
-			runMigrations := strings.EqualFold(rootArgs.config.FGAStore, fgaengine.StoreSQLite)
-			fgaEngine, ferr := fgaengine.New(
-				&fgaengine.Config{
-					Store:         rootArgs.config.FGAStore,
-					StoreURL:      rootArgs.config.FGAStoreURL,
-					StoreName:     rootArgs.config.OrganizationName,
-					RunMigrations: runMigrations,
-				},
-				&fgaengine.Dependencies{Log: &log},
-			)
-			if ferr != nil {
-				log.Fatal().Err(ferr).Msg("failed to create OpenFGA authorization engine")
-			}
-			if closer, ok := fgaEngine.(interface{ Close() }); ok {
-				defer closer.Close()
-			}
-			authzEngine = fgaEngine
-			log.Info().
-				Str("fga_mode", "embedded").
-				Str("fga_store", rootArgs.config.FGAStore).
-				Msg("OpenFGA authorization engine initialized (embedded); routed into GraphQL + session/validate")
+	if rootArgs.config.FGAStore != "" {
+		// Run migrations on boot only for single-node embedded SQLite stores.
+		// memory needs none; postgres/mysql (HA) must migrate out-of-band.
+		runMigrations := strings.EqualFold(rootArgs.config.FGAStore, fgaengine.StoreSQLite)
+		fgaEngine, ferr := fgaengine.New(
+			&fgaengine.Config{
+				Store:         rootArgs.config.FGAStore,
+				StoreURL:      rootArgs.config.FGAStoreURL,
+				StoreName:     rootArgs.config.OrganizationName,
+				RunMigrations: runMigrations,
+			},
+			&fgaengine.Dependencies{Log: &log},
+		)
+		if ferr != nil {
+			log.Fatal().Err(ferr).Msg("failed to create OpenFGA authorization engine")
 		}
-	case "external":
-		if rootArgs.config.FGAExternalURL != "" {
-			// External-mode wiring (gRPC client to a standalone OpenFGA
-			// service) lands in a later phase; the seam and flags exist now.
-			log.Warn().
-				Str("fga_external_url", rootArgs.config.FGAExternalURL).
-				Msg("OpenFGA external mode selected but the external client is not yet wired (Phase 1 implements the embedded engine); no FGA engine started")
+		if closer, ok := fgaEngine.(interface{ Close() }); ok {
+			defer closer.Close()
 		}
-	default:
-		log.Fatal().Str("fga_mode", rootArgs.config.FGAMode).Msg("invalid --fga-mode (want 'embedded' or 'external')")
+		authzEngine = fgaEngine
+		log.Info().
+			Str("fga_store", rootArgs.config.FGAStore).
+			Msg("OpenFGA authorization engine initialized (embedded); routed into GraphQL + session/validate")
 	}
 
 	// SMS provider

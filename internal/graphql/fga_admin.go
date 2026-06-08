@@ -15,7 +15,7 @@ import (
 )
 
 // errFgaNotEnabled is returned by every FGA resolver when no authorization
-// engine is configured (no --fga-store / --fga-external-url). Fail-closed.
+// engine is configured (no --fga-store). Fail-closed.
 var errFgaNotEnabled = errors.New("fine-grained authorization is not enabled")
 
 // maxFgaTuplesPerWrite caps the number of tuples accepted in a single write or
