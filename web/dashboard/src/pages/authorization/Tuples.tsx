@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useClient } from 'urql';
 import { toast } from 'sonner';
-import { AlertCircle, Plus, Trash2, ChevronRight, RotateCcw } from 'lucide-react';
+import { Link2, Plus, Trash2, ChevronRight, RotateCcw } from 'lucide-react';
 import { FgaReadTuplesQuery } from '../../graphql/queries';
 import { FgaWriteTuples, FgaDeleteTuples } from '../../graphql/mutation';
 import { Button } from '../../components/ui/button';
@@ -305,9 +305,22 @@ const Tuples = () => {
 					</div>
 				</>
 			) : (
-				<div className="flex min-h-[25vh] flex-col items-center justify-center text-gray-300">
-					<AlertCircle className="mb-2 h-16 w-16" />
-					<p className="text-2xl font-bold">No Tuples</p>
+				<div className="flex min-h-[30vh] flex-col items-center justify-center px-4 text-center">
+					<div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50">
+						<Link2 className="h-6 w-6 text-blue-600" aria-hidden="true" />
+					</div>
+					<p className="text-base font-semibold text-gray-900">
+						No relationship tuples yet
+					</p>
+					<p className="mt-1 max-w-sm text-sm leading-relaxed text-gray-500">
+						Tuples grant access &mdash; e.g.{' '}
+						<code className="rounded bg-gray-100 px-1 py-0.5 text-xs text-gray-700">user:alice</code>{' '}
+						is{' '}
+						<code className="rounded bg-gray-100 px-1 py-0.5 text-xs text-gray-700">viewer</code>{' '}
+						of{' '}
+						<code className="rounded bg-gray-100 px-1 py-0.5 text-xs text-gray-700">document:1</code>.
+						Add one above to grant your first permission.
+					</p>
 				</div>
 			)}
 		</div>

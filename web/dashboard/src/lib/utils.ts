@@ -6,7 +6,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 // isFgaNotEnabledError detects the backend error returned by every FGA
-// resolver when the server is not running with --authorization-engine=fga.
+// resolver when the server is started without an FGA store (--fga-store).
 // The backend message is "fine-grained authorization is not enabled".
 export function isFgaNotEnabledError(error?: { message?: string } | null) {
 	if (!error?.message) {
