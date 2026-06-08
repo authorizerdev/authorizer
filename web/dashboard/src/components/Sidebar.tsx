@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useMutation, useQuery } from 'urql';
 import {
@@ -15,6 +15,7 @@ import {
 	FileCode,
 	Network,
 	SearchCheck,
+	ChevronDown,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -89,6 +90,7 @@ export const Sidebar = ({ onClose }: SidebarProps) => {
 	const [, logout] = useMutation(AdminLogout);
 	const { setIsLoggedIn } = useAuthContext();
 	const navigate = useNavigate();
+	const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
 	const handleLogout = async () => {
 		await logout({});
@@ -138,41 +140,56 @@ export const Sidebar = ({ onClose }: SidebarProps) => {
 					);
 				})}
 
-				{/* Grouped navigation */}
+				{/* Grouped navigation (collapsible) */}
 				{navGroups.map((group) => {
 					const isGroupActive = pathname.startsWith(group.basePath);
+					// Default-open when the user is on one of the group's routes.
+					const isOpen = openGroups[group.name] ?? isGroupActive;
 					return (
 						<div key={group.name} className="pt-2">
-							<div
+							<button
+								type="button"
+								onClick={() =>
+									setOpenGroups((prev) => ({ ...prev, [group.name]: !isOpen }))
+								}
+								aria-expanded={isOpen}
 								className={cn(
-									'flex items-center gap-3 px-3 py-2 text-xs font-semibold uppercase tracking-wider',
+									'flex w-full items-center gap-3 rounded-md px-3 py-2 text-xs font-semibold uppercase tracking-wider transition-colors hover:bg-gray-100',
 									isGroupActive ? 'text-blue-600' : 'text-gray-400',
 								)}
 							>
 								<group.icon className="h-4 w-4" />
 								{group.name}
-							</div>
-							<div className="space-y-1">
-								{group.items.map((item) => {
-									const isActive = pathname.startsWith(item.route);
-									return (
-										<NavLink
-											key={item.name}
-											to={item.route}
-											onClick={onClose}
-											className={cn(
-												'flex items-center gap-3 rounded-md py-2 pl-9 pr-3 text-sm font-medium transition-colors',
-												isActive
-													? 'bg-blue-50 text-blue-600'
-													: 'text-gray-700 hover:bg-gray-100 hover:text-gray-900',
-											)}
-										>
-											<item.icon className="h-4 w-4" />
-											{item.name}
-										</NavLink>
-									);
-								})}
-							</div>
+								<ChevronDown
+									className={cn(
+										'ml-auto h-4 w-4 transition-transform duration-200',
+										isOpen ? '' : '-rotate-90',
+									)}
+								/>
+							</button>
+							{isOpen && (
+								<div className="mt-1 space-y-1">
+									{group.items.map((item) => {
+										const isActive = pathname.startsWith(item.route);
+										return (
+											<NavLink
+												key={item.name}
+												to={item.route}
+												onClick={onClose}
+												className={cn(
+													'flex items-center gap-3 rounded-md py-2 pl-9 pr-3 text-sm font-medium transition-colors',
+													isActive
+														? 'bg-blue-50 text-blue-600'
+														: 'text-gray-700 hover:bg-gray-100 hover:text-gray-900',
+												)}
+											>
+												<item.icon className="h-4 w-4" />
+												{item.name}
+											</NavLink>
+										);
+									})}
+								</div>
+							)}
 						</div>
 					);
 				})}

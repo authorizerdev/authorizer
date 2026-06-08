@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useClient } from 'urql';
 import { toast } from 'sonner';
 import { AlertCircle, Save, LayoutGrid, Code2, Info } from 'lucide-react';
-import { FgaGetModelQuery } from '../../graphql/queries';
+import { FgaGetModelQuery, AdminRolesQuery } from '../../graphql/queries';
 import { FgaWriteModel } from '../../graphql/mutation';
 import { Button } from '../../components/ui/button';
 import { Textarea } from '../../components/ui/textarea';
@@ -10,16 +10,22 @@ import { Skeleton } from '../../components/ui/skeleton';
 import { Badge } from '../../components/ui/badge';
 import FgaNotEnabled from '../../components/FgaNotEnabled';
 import ModelBuilder from './ModelBuilder';
+import AuthSteps, { Example, NextStep } from './AuthSteps';
 import {
 	generateDsl,
 	parseDsl,
 	validateModel,
 	summarize,
+	rolesTemplate,
 	TEMPLATES,
 	type ModelDraft,
 } from './modelDsl';
 import { isFgaNotEnabledError } from '../../lib/utils';
-import type { FgaGetModelResponse, FgaWriteModelResponse } from '../../types';
+import type {
+	FgaGetModelResponse,
+	FgaWriteModelResponse,
+	AdminRolesResponse,
+} from '../../types';
 
 type Mode = 'builder' | 'dsl';
 
@@ -58,6 +64,22 @@ const Model = () => {
 	const [dsl, setDsl] = useState('');
 	const [modelId, setModelId] = useState('');
 	const [validationError, setValidationError] = useState('');
+	const [roles, setRoles] = useState<string[]>([]);
+
+	// Fetch the instance's configured roles (admin _env) so the builder can offer
+	// a template built from the real roles. Best-effort: ignore failures.
+	useEffect(() => {
+		client
+			.query<AdminRolesResponse>(AdminRolesQuery, {})
+			.toPromise()
+			.then((res) => {
+				const r = res.data?._env?.ROLES;
+				if (Array.isArray(r)) setRoles(r.filter(Boolean));
+			})
+			.catch(() => {
+				/* roles template just won't be offered */
+			});
+	}, [client]);
 
 	const fetchModel = useCallback(async () => {
 		setLoading(true);
@@ -166,16 +188,31 @@ const Model = () => {
 
 	const summary = mode === 'builder' ? summarize(builderModel) : [];
 
+	// Offer a template built from the instance's configured roles first.
+	const roleModel = rolesTemplate(roles);
+	const templates = [
+		...(roleModel
+			? [
+					{
+						name: 'RBAC — your roles',
+						description: `Your configured roles (${roles.join(', ')}) as relations on a resource.`,
+						model: roleModel,
+					},
+			  ]
+			: []),
+		...TEMPLATES,
+	];
+
 	return (
 		<div className="m-5 rounded-md bg-white py-5 px-10">
+			<AuthSteps current={1} />
 			<div className="my-4 flex items-start justify-between gap-4">
 				<div>
-					<h1 className="text-2xl font-semibold text-gray-900">Authorization Model</h1>
+					<h1 className="text-2xl font-semibold text-gray-900">Step 1 · Define the model</h1>
 					<p className="mt-1 max-w-2xl text-sm text-gray-500">
-						The model is your permission rulebook: the object <strong>types</strong> you
-						protect, the <strong>relations</strong> on them (owner, editor, viewer…), and how
-						permissions are computed. Define it visually below, or switch to DSL for advanced
-						rules. Then grant access on the <strong>Relationship Tuples</strong> page.
+						The model is your permission <strong>rulebook</strong>: the object{' '}
+						<strong>types</strong> you protect, the <strong>relations</strong> on them (owner,
+						editor, viewer…), and how permissions are computed. You write it once.
 					</p>
 				</div>
 				{!fgaDisabled && !loading && (
@@ -185,6 +222,17 @@ const Model = () => {
 					</Button>
 				)}
 			</div>
+			{!fgaDisabled && !loading && (
+				<div className="mb-4">
+					<Example>
+						<strong>Example:</strong> a <code className="rounded bg-white px-1 py-0.5 text-xs">document</code> has{' '}
+						<code className="rounded bg-white px-1 py-0.5 text-xs">viewer</code> and{' '}
+						<code className="rounded bg-white px-1 py-0.5 text-xs">editor</code> relations, and{' '}
+						<code className="rounded bg-white px-1 py-0.5 text-xs">can_view = viewer or editor</code>. Pick a
+						template below to start, then customize.
+					</Example>
+				</div>
+			)}
 
 			{loading ? (
 				<div className="space-y-3">
@@ -226,7 +274,7 @@ const Model = () => {
 					{mode === 'builder' && (
 						<div className="flex flex-wrap items-center gap-2 rounded-lg border border-dashed border-gray-200 p-2">
 							<span className="px-1 text-xs font-medium text-gray-500">Start from a template:</span>
-							{TEMPLATES.map((tpl) => (
+							{templates.map((tpl) => (
 								<button
 									key={tpl.name}
 									type="button"
@@ -283,6 +331,11 @@ const Model = () => {
 							<span className="whitespace-pre-wrap break-words">{validationError}</span>
 						</div>
 					)}
+
+					<div className="flex items-center justify-between border-t border-gray-100 pt-4 text-sm text-gray-500">
+						<span>Save the model, then grant access with relationship tuples.</span>
+						<NextStep to="/authorization/tuples" label="Next: grant access" />
+					</div>
 				</div>
 			)}
 		</div>

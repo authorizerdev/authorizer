@@ -17,6 +17,7 @@ import {
 	TableCell,
 } from '../../components/ui/table';
 import FgaNotEnabled from '../../components/FgaNotEnabled';
+import AuthSteps, { Example, NextStep } from './AuthSteps';
 import { isFgaNotEnabledError } from '../../lib/utils';
 import type {
 	FgaTuple,
@@ -177,10 +178,9 @@ const Tuples = () => {
 	if (fgaDisabled) {
 		return (
 			<div className="m-5 rounded-md bg-white py-5 px-10">
+				<AuthSteps current={2} />
 				<div className="my-4">
-					<h1 className="text-2xl font-semibold text-gray-900">
-						Relationship Tuples
-					</h1>
+					<h1 className="text-2xl font-semibold text-gray-900">Step 2 · Grant access</h1>
 				</div>
 				<FgaNotEnabled />
 			</div>
@@ -189,14 +189,24 @@ const Tuples = () => {
 
 	return (
 		<div className="m-5 rounded-md bg-white py-5 px-10">
+			<AuthSteps current={2} />
 			<div className="my-4">
-				<h1 className="text-2xl font-semibold text-gray-900">
-					Relationship Tuples
-				</h1>
-				<p className="mt-1 text-sm text-gray-500">
-					Manage relationship tuples (user, relation, object) stored in the FGA
-					store.
+				<h1 className="text-2xl font-semibold text-gray-900">Step 2 · Grant access</h1>
+				<p className="mt-1 max-w-2xl text-sm text-gray-500">
+					Grant access by adding a <strong>relationship tuple</strong> — it links a{' '}
+					<strong>user</strong> to an <strong>object</strong> via a <strong>relation</strong>{' '}
+					from your model. Add or remove tuples any time to change who has access.
 				</p>
+			</div>
+
+			<div className="mb-4">
+				<Example>
+					<strong>Example:</strong> give{' '}
+					<code className="rounded bg-white px-1 py-0.5 text-xs">user:alice</code> the{' '}
+					<code className="rounded bg-white px-1 py-0.5 text-xs">viewer</code> relation on{' '}
+					<code className="rounded bg-white px-1 py-0.5 text-xs">document:1</code> — now Alice can
+					view that document.
+				</Example>
 			</div>
 
 			{/* Add tuple form */}
@@ -323,6 +333,11 @@ const Tuples = () => {
 					</p>
 				</div>
 			)}
+
+			<div className="mt-6 flex items-center justify-between border-t border-gray-100 pt-4 text-sm text-gray-500">
+				<span>Granted some access? Verify it works.</span>
+				<NextStep to="/authorization/tester" label="Next: test access" />
+			</div>
 		</div>
 	);
 };

@@ -164,6 +164,41 @@ export function summarize(model: ModelDraft): string[] {
 	return out;
 }
 
+// sanitizeRelationName makes an Authorizer role usable as an OpenFGA relation
+// name (alphanumeric/underscore). e.g. "org-admin" -> "org_admin".
+export function sanitizeRelationName(role: string): string {
+	return role.trim().replace(/[^a-zA-Z0-9_]/g, '_').replace(/^_+|_+$/g, '');
+}
+
+// rolesTemplate builds a starter model from the instance's configured roles:
+// each role becomes a directly-assignable relation on a `resource`, plus a
+// `can_access` permission that any of those roles satisfies. A concrete,
+// builder-friendly starting point the admin can then refine.
+export function rolesTemplate(roles: string[]): ModelDraft | null {
+	const seen = new Set<string>();
+	const roleRelations: RelationDef[] = [];
+	for (const raw of roles) {
+		const name = sanitizeRelationName(raw);
+		if (!name || seen.has(name)) continue;
+		seen.add(name);
+		roleRelations.push({ name, directTypes: ['user'], computed: [] });
+	}
+	if (!roleRelations.length) return null;
+
+	roleRelations.push({
+		name: 'can_access',
+		directTypes: [],
+		computed: roleRelations.map((r) => ({ relation: r.name })),
+	});
+
+	return {
+		types: [
+			{ name: 'user', relations: [] },
+			{ name: 'resource', relations: roleRelations },
+		],
+	};
+}
+
 // TEMPLATES are builder-representable starter models.
 export const TEMPLATES: { name: string; description: string; model: ModelDraft }[] = [
 	{

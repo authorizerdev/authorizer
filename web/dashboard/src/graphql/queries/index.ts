@@ -164,3 +164,13 @@ export const FgaCheckQuery = `
     }
   }
 `;
+
+// AdminRolesQuery fetches the instance's configured roles (admin-only _env) so
+// the authorization-model builder can offer a template using the real roles.
+export const AdminRolesQuery = `
+  query adminRoles {
+    _env {
+      ROLES
+    }
+  }
+`;

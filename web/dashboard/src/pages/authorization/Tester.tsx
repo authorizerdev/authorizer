@@ -8,6 +8,7 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Badge } from '../../components/ui/badge';
 import FgaNotEnabled from '../../components/FgaNotEnabled';
+import AuthSteps, { Example } from './AuthSteps';
 import { isFgaNotEnabledError } from '../../lib/utils';
 import type { FgaTuple, FgaCheckResponse } from '../../types';
 
@@ -101,10 +102,9 @@ const Tester = () => {
 	if (fgaDisabled) {
 		return (
 			<div className="m-5 rounded-md bg-white py-5 px-10">
+				<AuthSteps current={3} />
 				<div className="my-4">
-					<h1 className="text-2xl font-semibold text-gray-900">
-						Access Tester
-					</h1>
+					<h1 className="text-2xl font-semibold text-gray-900">Step 3 · Test access</h1>
 				</div>
 				<FgaNotEnabled />
 			</div>
@@ -113,13 +113,24 @@ const Tester = () => {
 
 	return (
 		<div className="m-5 rounded-md bg-white py-5 px-10">
+			<AuthSteps current={3} />
 			<div className="my-4">
-				<h1 className="text-2xl font-semibold text-gray-900">Access Tester</h1>
-				<p className="mt-1 text-sm text-gray-500">
-					Run a relationship check. The check is evaluated for{' '}
-					<strong>the currently logged-in admin</strong> &mdash; the principal
-					is pinned to your token by the server and cannot be changed here.
+				<h1 className="text-2xl font-semibold text-gray-900">Step 3 · Test access</h1>
+				<p className="mt-1 max-w-2xl text-sm text-gray-500">
+					Verify your rules and grants. The check runs for{' '}
+					<strong>the currently logged-in admin</strong> &mdash; the principal is pinned to your
+					token by the server and cannot be changed here.
 				</p>
+			</div>
+
+			<div className="mb-5">
+				<Example>
+					<strong>Example:</strong> ask &ldquo;can I{' '}
+					<code className="rounded bg-white px-1 py-0.5 text-xs">can_view</code>{' '}
+					<code className="rounded bg-white px-1 py-0.5 text-xs">document:1</code>?&rdquo; &mdash; if
+					you granted yourself <code className="rounded bg-white px-1 py-0.5 text-xs">viewer</code>{' '}
+					on it in step 2, the result is <strong>Allowed</strong>.
+				</Example>
 			</div>
 
 			<form onSubmit={handleCheck} className="max-w-2xl space-y-5">
