@@ -18,10 +18,10 @@
 | 13+ Database backends | Done | Unique differentiator |
 | Rate Limiting / Brute Force | Missing | No protection at all |
 | M2M / Client Credentials | Missing | No service accounts or API keys |
-| Fine-Grained Permissions | Missing | Roles only, no resource-level control |
+| Fine-Grained Permissions | In progress (pre-stable) | RBAC/ABAC Resource/Scope/Policy/Permission engine exists; migrating to OpenFGA ReBAC — see FGA_OPENFGA_MIGRATION_PLAN.md |
 | SAML | Missing | Zero support |
 | SCIM / Directory Sync | Missing | No provisioning |
-| Audit Logs | Missing | Webhooks only, no queryable audit trail |
+| Audit Logs | Partial | Structured AuditLog + audit provider exist (single actor); needs delegation-chain fields for agents — see AGENTIC_DELEGATION_DESIGN.md |
 | Bot Detection | Missing | No CAPTCHA, no fingerprinting |
 | Monitoring / Metrics | Missing | Health check only, no Prometheus |
 | MCP Auth | Missing | No OAuth 2.1 AS capabilities |
@@ -325,6 +325,40 @@ These are table-stakes features that every competitor has. Without them, Authori
 - [ ] **Scope downscoping** -- agent token permissions are intersection of user's permissions and requested scopes
 - [ ] **Revocation** -- user can revoke agent access at any time via dashboard
 - [ ] **Active agent sessions** -- users see which agents have active tokens in their account settings
+
+---
+
+## Agentic Authorization Track (cross-phase sequencing)
+
+> A re-sequencing lens over the items above, ordered by dependency for enterprise + agentic auth. Authorization for agents is a **pipeline**, not one feature; each wave builds on the last. ReBAC is necessary but not sufficient. Design detail: `FGA_OPENFGA_MIGRATION_PLAN.md`, `AGENTIC_DELEGATION_DESIGN.md`.
+
+**The pipeline (evaluated per request):** Identity → Authentication → Token/Delegation → Authorization (scope → RBAC → ReBAC → ABAC → list_objects) → Human-in-the-loop → Governance.
+
+### Wave 1 — Decision core *(now; replaces 2.1)*
+Object-level authorization + the RAG primitive.
+- [ ] **OpenFGA ReBAC engine** (replaces Resource/Scope/Policy/Permission) — `Check`, `list_objects`, `batch_check`, Conditions (ABAC). SQL-backed FGA store (embedded default / external optional).
+- [ ] **Keep & integrate** OAuth scopes (coarse gate), RBAC roles (optionally mirrored as tuples), custom-token-script hook (may call FGA).
+- [ ] **FGA-for-RAG** SDK helpers (`list_objects` pre-filter) in authorizer-go / authorizer-js.
+- *Unlocks:* document sharing, hierarchical/B2B authz, secure RAG retrieval.
+
+### Wave 2 — Delegation core *(next; folds in 2.2, 4.2, 4.3, 5.5)*
+Who is asking, with whose borrowed authority, constrained to what.
+- [ ] **Agent identity** — agents as first-class service-account principals (4.2).
+- [ ] **RFC 8693 token exchange** + **`act` delegation claim** (5.5 / 4.2) — see design doc.
+- [ ] **Attenuation / least-privilege** — exchanged-token scope = `subject ∩ requested ∩ agent ceiling` (reuses `Principal.MaxScopes`) (4.3).
+- [ ] **Audit delegation chain** — `on_behalf_of` + `act` chain on AuditLog (all DBs).
+- *Unlocks:* "agent acting for user, least-privilege, fully audited."
+
+### Wave 3 — Async + credential custody
+Human approval and safe third-party access.
+- [ ] **CIBA + Rich Authorization Requests (RAR)** — out-of-band human approval for sensitive agent actions.
+- [ ] **Token Vault** — encrypted per-user third-party token custody; agent never sees raw credentials.
+- *Unlocks:* human-in-the-loop, agents calling Google/Slack/etc. on a user's behalf.
+
+### Wave 4 — Enterprise hardening
+- [ ] **MCP authorization** (OAuth 2.1 + RFC 9728 + RFC 8707) (4.1) and **ID-JAG / Cross-App Access** for enterprise-managed MCP.
+- [ ] **JIT / time-bound grants** (TTL tuples), **per-agent guardrails** (spend/rate limits), **consent management**.
+- *Unlocks:* enterprise-managed agent deployments at scale.
 
 ---
 

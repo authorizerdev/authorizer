@@ -58,6 +58,9 @@ Detailed rules load via skills (see below) — don't restate them here.
 | `principal-engineer` | opus | Full SDLC: Plan → Execute → Test → Review across Go, storage, GraphQL, HTTP. Use for any change touching >1 subsystem. |
 | `security-engineer` | opus | OAuth2/OIDC, JWT, MFA, vulnerability audit. Second-pass on auth-sensitive PRs. |
 | `doc-writer` | haiku | API docs, guides, migration docs. |
+| `authz-researcher` | opus | Deep, adversarially-verified research on authz standards (OpenFGA, RFC 8693/8707/9728, MCP, CIBA, AuthZEN). Run before designing/building any authz capability. |
+| `fga-engineer` | opus | Implements the OpenFGA migration (Wave 1) per FGA_OPENFGA_MIGRATION_PLAN.md. |
+| `delegation-engineer` | opus | Implements the agentic delegation chain (Wave 2) per AGENTIC_DELEGATION_DESIGN.md. Security-critical. |
 
 ## Project Skills (auto-load on matching files)
 
@@ -70,6 +73,8 @@ Detailed rules load via skills (see below) — don't restate them here.
 | `authorizer-security` | auth-sensitive code or `security/` branches |
 | `authorizer-testing` | any `*_test.go` |
 | `authorizer-frontend` | `web/app/`, `web/dashboard/` |
+| `openfga-modeling` | FGA engine (`internal/authorization/`), authz models/tuples, `_fga_*`/`fga_*` GraphQL |
+| `agentic-auth-standards` | token exchange, delegation, MCP, agent-identity (`internal/token/`, `internal/http_handlers/`) |
 
 ## Token Optimization Notes
 
