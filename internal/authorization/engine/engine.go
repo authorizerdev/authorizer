@@ -150,7 +150,7 @@ type AuthorizationEngine interface {
 	// staged by callers.
 	WriteModel(ctx context.Context, dsl string) (string, error)
 
-	// ReadModel returns the currently active authorization model rendered as
-	// DSL.
-	ReadModel(ctx context.Context) (string, error)
+	// ReadModel returns the currently active authorization model: its
+	// backend-assigned id and its DSL rendering.
+	ReadModel(ctx context.Context) (id string, dsl string, err error)
 }

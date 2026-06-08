@@ -78,12 +78,12 @@ func (g *graphqlProvider) FgaGetModel(ctx context.Context) (*model.FgaModel, err
 	if g.AuthzEngine == nil {
 		return nil, errFgaNotEnabled
 	}
-	dsl, err := g.AuthzEngine.ReadModel(ctx)
+	id, dsl, err := g.AuthzEngine.ReadModel(ctx)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to read authorization model")
 		return nil, err
 	}
-	return &model.FgaModel{Dsl: dsl}, nil
+	return &model.FgaModel{ID: id, Dsl: dsl}, nil
 }
 
 // FgaWriteTuples persists the given relationship tuples.

@@ -289,18 +289,18 @@ func (e *engineImpl) WriteModel(ctx context.Context, dsl string) (string, error)
 	return modelID, nil
 }
 
-// ReadModel returns the active authorization model rendered as DSL.
-func (e *engineImpl) ReadModel(ctx context.Context) (string, error) {
+// ReadModel returns the active authorization model: its id and DSL rendering.
+func (e *engineImpl) ReadModel(ctx context.Context) (string, string, error) {
 	storeID, modelID := e.ids()
 	if modelID == "" {
-		return "", fmt.Errorf("openfga.ReadModel: no authorization model written yet")
+		return "", "", fmt.Errorf("openfga.ReadModel: no authorization model written yet")
 	}
 	res, err := e.srv.ReadAuthorizationModel(ctx, &openfgav1.ReadAuthorizationModelRequest{
 		StoreId: storeID,
 		Id:      modelID,
 	})
 	if err != nil {
-		return "", fmt.Errorf("openfga.ReadModel: %w", err)
+		return "", "", fmt.Errorf("openfga.ReadModel: %w", err)
 	}
 	// Render via the JSON-string transformer rather than the proto-direct
 	// TransformJSONProtoToDSL: the latter (language v0.2.1) errors on relations
@@ -309,14 +309,14 @@ func (e *engineImpl) ReadModel(ctx context.Context) (string, error) {
 	// same model correctly.
 	jsonBytes, err := protojson.Marshal(res.GetAuthorizationModel())
 	if err != nil {
-		return "", fmt.Errorf("openfga.ReadModel: marshal model: %w", err)
+		return "", "", fmt.Errorf("openfga.ReadModel: marshal model: %w", err)
 	}
 	dsl, err := language.TransformJSONStringToDSL(string(jsonBytes))
 	if err != nil {
-		return "", fmt.Errorf("openfga.ReadModel: render DSL: %w", err)
+		return "", "", fmt.Errorf("openfga.ReadModel: render DSL: %w", err)
 	}
 	if dsl == nil {
-		return "", fmt.Errorf("openfga.ReadModel: render DSL returned nil")
+		return "", "", fmt.Errorf("openfga.ReadModel: render DSL returned nil")
 	}
-	return *dsl, nil
+	return modelID, *dsl, nil
 }

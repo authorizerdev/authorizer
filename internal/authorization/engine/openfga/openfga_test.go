@@ -149,8 +149,9 @@ func TestOpenFGAEngine_ReadModelRoundtrip(t *testing.T) {
 	_, err := eng.WriteModel(ctx, testModel)
 	require.NoError(t, err)
 
-	dsl, err := eng.ReadModel(ctx)
+	id, dsl, err := eng.ReadModel(ctx)
 	require.NoError(t, err)
+	assert.NotEmpty(t, id, "ReadModel must return the active model id")
 	assert.Contains(t, dsl, "type document")
 	assert.Contains(t, dsl, "can_view")
 }

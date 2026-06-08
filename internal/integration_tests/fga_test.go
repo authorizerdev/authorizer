@@ -432,6 +432,7 @@ func TestFGA(t *testing.T) {
 		res, err = ts.GraphQLProvider.FgaGetModel(ctx)
 		require.NoError(t, err)
 		require.NotNil(t, res)
+		assert.NotEmpty(t, res.ID, "_fga_get_model must return the active model id")
 		assert.Contains(t, res.Dsl, "document")
 	})
 
@@ -475,6 +476,38 @@ func TestFGA(t *testing.T) {
 			RequiredRelations: []*model.FgaRelationInput{{Relation: "can_view", Object: "document:2"}},
 		})
 		assert.Error(t, err, "session must fail when a required relation is unsatisfied")
+	})
+
+	// ---- Phase 4: validate_jwt_token honors required_relations (third entry
+	// point wiring the same enforceRequiredRelations helper). ----
+	t.Run("validate_jwt_token honors required_relations", func(t *testing.T) {
+		// Re-login for a current access token: earlier subtests perform session
+		// operations that rotate/invalidate the original token (access tokens are
+		// bound to the session).
+		fresh, err := ts.GraphQLProvider.Login(ctx, &model.LoginRequest{Email: &email, Password: password})
+		require.NoError(t, err)
+		require.NotNil(t, fresh.AccessToken, "login must return an access token")
+		accessToken := *fresh.AccessToken
+
+		res, err := ts.GraphQLProvider.ValidateJWTToken(ctx, &model.ValidateJWTTokenRequest{
+			TokenType: constants.TokenTypeAccessToken,
+			Token:     accessToken,
+			RequiredRelations: []*model.FgaRelationInput{
+				{Relation: "can_view", Object: "document:1"},
+			},
+		})
+		require.NoError(t, err)
+		require.NotNil(t, res)
+		assert.True(t, res.IsValid)
+
+		_, err = ts.GraphQLProvider.ValidateJWTToken(ctx, &model.ValidateJWTTokenRequest{
+			TokenType: constants.TokenTypeAccessToken,
+			Token:     accessToken,
+			RequiredRelations: []*model.FgaRelationInput{
+				{Relation: "can_view", Object: "document:2"},
+			},
+		})
+		assert.Error(t, err, "validate_jwt_token must fail when a required relation is unsatisfied")
 	})
 
 	_ = req
