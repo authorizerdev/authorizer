@@ -318,15 +318,19 @@ type Config struct {
 	BackchannelLogoutURI string
 
 	// OpenFGA / Fine-Grained Authorization engine. Authorizer embeds OpenFGA
-	// in-process — it IS the engine. FGA is enabled by configuring a store
-	// (FGAStore); with it empty the engine is not constructed and the fga_*
-	// resolvers fail closed ("fine-grained authorization is not enabled").
+	// in-process — it IS the engine. By default FGA reuses the main database
+	// when it is OpenFGA-compatible (sqlite/postgres/mysql/mariadb); see
+	// FGAStoreConfig. Fields below override that. When neither the main DB is
+	// compatible nor FGAStore is set, the engine is not constructed and the
+	// fga_* resolvers fail closed ("fine-grained authorization is not enabled").
 
-	// FGAStore selects the OpenFGA datastore kind and, when non-empty, enables
-	// FGA: "memory" (dev/tests), "sqlite" (single-node), "postgres" or "mysql"
-	// (HA). Empty disables FGA.
+	// FGAStore overrides the OpenFGA datastore kind: "sqlite", "postgres",
+	// "mysql", or "memory" (dev/tests). Empty = reuse the main database when it
+	// is SQL-compatible; required only for unsupported main DBs (mongodb,
+	// dynamodb, …) or to use a dedicated FGA store.
 	FGAStore string
-	// FGAStoreURL is the OpenFGA datastore connection URI: a file: URI for
-	// sqlite, or a DSN for postgres/mysql. Ignored for the memory store.
+	// FGAStoreURL is the connection URI for an overridden FGAStore: a file: URI
+	// for sqlite, or a DSN for postgres/mysql. Ignored when FGA reuses the main
+	// database or for the memory store.
 	FGAStoreURL string
 }

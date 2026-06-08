@@ -237,10 +237,12 @@ func init() {
 	// Back-channel logout (OIDC BCL 1.0)
 	f.StringVar(&rootArgs.config.BackchannelLogoutURI, "backchannel-logout-uri", "", "URL to POST a signed logout_token to when users log out successfully. Leave empty (default) to disable back-channel logout notifications. See OIDC Back-Channel Logout 1.0.")
 
-	// OpenFGA fine-grained authorization. Authorizer embeds the OpenFGA engine
-	// in-process; set --fga-store to enable it.
-	f.StringVar(&rootArgs.config.FGAStore, "fga-store", "", "OpenFGA datastore — set to enable fine-grained authorization: 'memory' (dev/tests), 'sqlite' (single-node), 'postgres' or 'mysql' (HA). Empty = FGA disabled")
-	f.StringVar(&rootArgs.config.FGAStoreURL, "fga-store-url", "", "OpenFGA datastore connection URI (file: URI for sqlite, DSN for postgres/mysql)")
+	// OpenFGA fine-grained authorization. By default FGA reuses the main database
+	// when it is sqlite/postgres/mysql/mariadb (no extra config needed). These
+	// flags override that — required only when the main DB is unsupported
+	// (mongodb, dynamodb, …) or to use a dedicated FGA store.
+	f.StringVar(&rootArgs.config.FGAStore, "fga-store", "", "Override the OpenFGA datastore: 'sqlite', 'postgres', 'mysql', or 'memory' (dev). Default: reuse the main database when it is SQL-compatible; required only for unsupported main DBs (mongodb, dynamodb, …)")
+	f.StringVar(&rootArgs.config.FGAStoreURL, "fga-store-url", "", "Connection URI for an overridden --fga-store (file: URI for sqlite, DSN for postgres/mysql). Ignored when FGA reuses the main database")
 
 	// Deprecated flags
 	f.MarkDeprecated("database_url", "use --database-url instead")
@@ -469,18 +471,18 @@ func runRoot(c *cobra.Command, args []string) {
 	// and the fga_* resolvers fail closed ("fine-grained authorization is not
 	// enabled"). Routed into GraphQL and session/validate below.
 	//
-	// For single-node/dev (memory or sqlite) migrations may run on boot; HA and
-	// serverless must use an external SQL store (postgres/mysql) and run
-	// migrations as a separate init job (see FGA_OPENFGA_MIGRATION_PLAN.md §2.1).
+	// By default FGA reuses the main database (sqlite/postgres/mysql/mariadb);
+	// --fga-store is only needed when the main DB is unsupported (mongodb,
+	// dynamodb, etc.) or to point at a dedicated store. FGAStoreConfig() resolves
+	// this. OpenFGA migrations run on boot for SQL stores (idempotent + goose-
+	// locked, so HA-safe); memory needs none.
 	var authzEngine engine.AuthorizationEngine
-	if rootArgs.config.FGAStore != "" {
-		// Run migrations on boot only for single-node embedded SQLite stores.
-		// memory needs none; postgres/mysql (HA) must migrate out-of-band.
-		runMigrations := strings.EqualFold(rootArgs.config.FGAStore, fgaengine.StoreSQLite)
+	if fgaStore, fgaStoreURL, fgaEnabled := rootArgs.config.FGAStoreConfig(); fgaEnabled {
+		runMigrations := !strings.EqualFold(fgaStore, fgaengine.StoreMemory)
 		fgaEngine, ferr := fgaengine.New(
 			&fgaengine.Config{
-				Store:         rootArgs.config.FGAStore,
-				StoreURL:      rootArgs.config.FGAStoreURL,
+				Store:         fgaStore,
+				StoreURL:      fgaStoreURL,
 				StoreName:     rootArgs.config.OrganizationName,
 				RunMigrations: runMigrations,
 			},
@@ -494,7 +496,8 @@ func runRoot(c *cobra.Command, args []string) {
 		}
 		authzEngine = fgaEngine
 		log.Info().
-			Str("fga_store", rootArgs.config.FGAStore).
+			Str("fga_store", fgaStore).
+			Bool("reused_main_db", strings.TrimSpace(rootArgs.config.FGAStore) == "").
 			Msg("OpenFGA authorization engine initialized (embedded); routed into GraphQL + session/validate")
 	}
 

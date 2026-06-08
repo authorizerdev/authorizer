@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { ShieldCheck, Copy, Check, ExternalLink, Database } from 'lucide-react';
 
 // FgaNotEnabled renders a helpful empty state shown when the backend reports
-// that fine-grained authorization is not enabled. FGA is enabled by starting
-// Authorizer with an OpenFGA datastore configured via --fga-store.
-const ENABLE_CMD = '--fga-store=sqlite --fga-store-url=file:fga.db';
+// that fine-grained authorization is not enabled. FGA reuses the main database
+// automatically when it is SQLite/Postgres/MySQL; this screen typically means
+// the main database is not OpenFGA-compatible (e.g. MongoDB, DynamoDB), so a
+// SQL store must be pointed to explicitly via --fga-store.
+const ENABLE_CMD = '--fga-store=postgres --fga-store-url=postgres://user:pass@host:5432/db';
 
 const StoreChip = ({ label }: { label: string }) => (
 	<code className="rounded bg-gray-200/70 px-1 py-0.5 text-[11px] font-medium text-gray-700">
@@ -36,15 +38,16 @@ const FgaNotEnabled = () => {
 					Fine-Grained Authorization isn&rsquo;t enabled yet
 				</h2>
 				<p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-gray-500">
-					Turn it on to define an authorization model, grant or revoke access
-					with relationship tuples, and run live access checks &mdash; all from
-					this dashboard.
+					FGA turns on automatically when Authorizer runs on{' '}
+					<span className="font-medium text-gray-700">SQLite, Postgres or MySQL</span>{' '}
+					&mdash; it reuses your database. Your current database isn&rsquo;t
+					supported by OpenFGA, so point FGA at a SQL store to enable it.
 				</p>
 
 				<div className="mt-6 rounded-xl border border-gray-100 bg-gray-50 p-4 text-left">
 					<div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-gray-500">
 						<Database className="h-3.5 w-3.5" aria-hidden="true" />
-						Enable it &mdash; start Authorizer with a store
+						Point FGA at a SQL store
 					</div>
 					<div className="flex items-center justify-between gap-3 rounded-lg bg-gray-900 px-3 py-2.5">
 						<code className="overflow-x-auto whitespace-nowrap text-xs text-gray-100">
@@ -70,10 +73,10 @@ const FgaNotEnabled = () => {
 						</button>
 					</div>
 					<p className="mt-2 text-xs leading-relaxed text-gray-500">
-						Use <StoreChip label="memory" /> for local dev,{' '}
-						<StoreChip label="sqlite" /> for a single node, or{' '}
-						<StoreChip label="postgres" /> / <StoreChip label="mysql" /> for HA.
-						Then reload this page.
+						<StoreChip label="--fga-store" /> accepts{' '}
+						<StoreChip label="sqlite" />, <StoreChip label="postgres" /> or{' '}
+						<StoreChip label="mysql" /> (or <StoreChip label="memory" /> for
+						dev). Then reload this page.
 					</p>
 				</div>
 
