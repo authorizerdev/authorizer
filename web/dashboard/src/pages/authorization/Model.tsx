@@ -10,6 +10,7 @@ import { Skeleton } from '../../components/ui/skeleton';
 import { Badge } from '../../components/ui/badge';
 import FgaNotEnabled from '../../components/FgaNotEnabled';
 import AuthSteps, { Example, NextStep } from './AuthSteps';
+import DocsLinks from './DocsLinks';
 import { generateDsl, parseDsl, summarize, rolesTemplate, MODEL_EXAMPLES } from './modelDsl';
 import { isFgaNotEnabledError } from '../../lib/utils';
 import type {
@@ -78,9 +79,19 @@ const Model = () => {
 			.catch(() => {});
 	}, [client]);
 
-	const applyExample = (exampleDsl: string) => {
+	const applyExample = (name: string, exampleDsl: string) => {
+		if (
+			dsl.trim() &&
+			dsl.trim() !== exampleDsl.trim() &&
+			!window.confirm(
+				`Replace the editor with the "${name}" example? Unsaved changes will be lost.`,
+			)
+		) {
+			return;
+		}
 		setDsl(exampleDsl);
 		setValidationError('');
+		toast.success(`Loaded the "${name}" example`);
 	};
 
 	const handleSave = async () => {
@@ -179,7 +190,7 @@ const Model = () => {
 								<button
 									key={ex.name}
 									type="button"
-									onClick={() => applyExample(ex.dsl)}
+									onClick={() => applyExample(ex.name, ex.dsl)}
 									className="rounded-xl border border-gray-200 bg-white p-3 text-left transition-colors hover:border-blue-300 hover:bg-blue-50"
 								>
 									<span className="block text-sm font-medium text-gray-800">{ex.name}</span>
@@ -199,11 +210,15 @@ const Model = () => {
 							</label>
 							{modelId && (
 								<span className="flex items-center gap-1.5 text-xs text-gray-400">
-									saved
+									active version
 									<Badge variant="secondary">{modelId.slice(0, 12)}…</Badge>
 								</span>
 							)}
 						</div>
+						<p className="mb-1.5 text-xs text-gray-400">
+							There is one active model. Saving creates a new immutable version and makes it the
+							active one (previous versions are kept for in-flight checks).
+						</p>
 						<Textarea
 							id="model-dsl"
 							value={dsl}
@@ -233,6 +248,8 @@ const Model = () => {
 							<span className="whitespace-pre-wrap break-words">{validationError}</span>
 						</div>
 					)}
+
+					<DocsLinks />
 
 					<div className="flex items-center justify-between border-t border-gray-100 pt-4 text-sm text-gray-500">
 						<span>Save the model, then grant access with relationship tuples.</span>

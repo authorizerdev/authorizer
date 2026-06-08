@@ -18,6 +18,7 @@ import {
 } from '../../components/ui/table';
 import FgaNotEnabled from '../../components/FgaNotEnabled';
 import AuthSteps, { Example, NextStep } from './AuthSteps';
+import DocsLinks from './DocsLinks';
 import { isFgaNotEnabledError } from '../../lib/utils';
 import type {
 	FgaTuple,
@@ -29,6 +30,41 @@ import type {
 const PAGE_SIZE = 25;
 
 const emptyForm = { user: '', relation: '', object: '' };
+
+// Common grant patterns. Clicking one fills the form so you can see the shape.
+// (Each requires the model to support it — e.g. role usersets, user:* wildcard,
+// or a parent relation.)
+const GRANT_PATTERNS: {
+	name: string;
+	desc: string;
+	tuple: typeof emptyForm;
+}[] = [
+	{
+		name: 'Direct grant',
+		desc: 'One user → one object.',
+		tuple: { user: 'user:alice', relation: 'viewer', object: 'document:1' },
+	},
+	{
+		name: 'Assign a role',
+		desc: 'Put a user into a role.',
+		tuple: { user: 'user:alice', relation: 'assignee', object: 'role:editor' },
+	},
+	{
+		name: 'Grant a whole role',
+		desc: 'Everyone in role:editor becomes editor of the object.',
+		tuple: { user: 'role:editor#assignee', relation: 'editor', object: 'document:1' },
+	},
+	{
+		name: 'Public — all users',
+		desc: 'Anyone can access this object (needs user:* in the model).',
+		tuple: { user: 'user:*', relation: 'viewer', object: 'document:1' },
+	},
+	{
+		name: 'All resources in a folder',
+		desc: 'Grant on the folder once; every document under it inherits.',
+		tuple: { user: 'user:alice', relation: 'viewer', object: 'folder:root' },
+	},
+];
 
 const Tuples = () => {
 	const client = useClient();
@@ -207,6 +243,38 @@ const Tuples = () => {
 					<code className="rounded bg-white px-1 py-0.5 text-xs">document:1</code> — now Alice can
 					view that document.
 				</Example>
+			</div>
+
+			{/* Common grant patterns — click to prefill the form */}
+			<div className="mb-4">
+				<p className="mb-2 text-sm font-medium text-gray-700">Common grant patterns</p>
+				<div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+					{GRANT_PATTERNS.map((p) => (
+						<button
+							key={p.name}
+							type="button"
+							onClick={() => setForm(p.tuple)}
+							title="Click to fill the form below"
+							className="rounded-xl border border-gray-200 bg-white p-3 text-left transition-colors hover:border-blue-300 hover:bg-blue-50"
+						>
+							<span className="block text-sm font-medium text-gray-800">{p.name}</span>
+							<span className="mt-0.5 block text-xs leading-relaxed text-gray-500">{p.desc}</span>
+							<span className="mt-1.5 block truncate font-mono text-[11px] text-blue-600">
+								{p.tuple.user} · {p.tuple.relation} · {p.tuple.object}
+							</span>
+						</button>
+					))}
+				</div>
+				<p className="mt-2 text-xs text-gray-400">
+					<strong className="text-gray-500">Tip:</strong> to avoid a tuple per object id, grant on a{' '}
+					<code className="rounded bg-gray-100 px-1 py-0.5">folder</code>/
+					<code className="rounded bg-gray-100 px-1 py-0.5">organization</code> and let resources inherit,
+					or use <code className="rounded bg-gray-100 px-1 py-0.5">user:*</code> for public access.
+				</p>
+			</div>
+
+			<div className="mb-4">
+				<DocsLinks />
 			</div>
 
 			{/* Add tuple form */}

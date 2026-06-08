@@ -1,6 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useClient } from 'urql';
 import { Check, ArrowRight, Lightbulb } from 'lucide-react';
+import { FgaGetModelQuery, FgaReadTuplesQuery } from '../../graphql/queries';
+import type { FgaGetModelResponse, FgaReadTuplesResponse } from '../../types';
 
 // The three FGA pages are a sequential workflow: define the model, grant access,
 // then verify. AuthSteps renders that as a clickable stepper shown on each page,
@@ -13,11 +16,40 @@ export const STEPS = [
 
 const AuthSteps = ({ current }: { current: 1 | 2 | 3 }) => {
 	const navigate = useNavigate();
+	const client = useClient();
+	// A step shows a check only when it's actually complete: step 1 when a model
+	// is saved, step 2 when at least one tuple exists. Best-effort; ignore errors.
+	const [modelDone, setModelDone] = useState(false);
+	const [tuplesDone, setTuplesDone] = useState(false);
+
+	useEffect(() => {
+		let active = true;
+		client
+			.query<FgaGetModelResponse>(FgaGetModelQuery, {}, { requestPolicy: 'network-only' })
+			.toPromise()
+			.then((r) => active && setModelDone(!!r.data?._fga_get_model?.dsl))
+			.catch(() => {});
+		client
+			.query<FgaReadTuplesResponse>(
+				FgaReadTuplesQuery,
+				{ params: { page_size: 1 } },
+				{ requestPolicy: 'network-only' },
+			)
+			.toPromise()
+			.then((r) => active && setTuplesDone((r.data?._fga_read_tuples?.tuples?.length ?? 0) > 0))
+			.catch(() => {});
+		return () => {
+			active = false;
+		};
+	}, [client]);
+
+	const isDone = (n: number) => (n === 1 ? modelDone : n === 2 ? tuplesDone : false);
+
 	return (
 		<nav aria-label="Fine-grained authorization setup" className="mb-5">
 			<ol className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
 				{STEPS.map((s) => {
-					const state = s.n < current ? 'done' : s.n === current ? 'current' : 'upcoming';
+					const state = s.n === current ? 'current' : isDone(s.n) ? 'done' : 'upcoming';
 					return (
 						<li key={s.n} className="flex-1">
 							<button
