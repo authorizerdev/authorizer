@@ -394,6 +394,89 @@ func TestFGA(t *testing.T) {
 		assert.Nil(t, res)
 	})
 
+	// ---- Admin: _fga_delete_tuples removes a tuple (and is admin-gated). ----
+	t.Run("_fga_delete_tuples removes a tuple; non-admin rejected", func(t *testing.T) {
+		setAdminCookie(t, ts)
+		writeDel := &model.FgaWriteTuplesInput{Tuples: []*model.FgaTupleInput{
+			{User: "user:" + userID, Relation: "viewer", Object: "document:deletable"},
+		}}
+		_, err := ts.GraphQLProvider.FgaWriteTuples(ctx, writeDel)
+		require.NoError(t, err)
+
+		// Non-admin must NOT be able to delete tuples.
+		clearCookies(ts)
+		ts.GinContext.Request.Header.Set("Cookie", fmt.Sprintf("%s_session=%s", constants.AppCookieName, sessionToken))
+		_, err = ts.GraphQLProvider.FgaDeleteTuples(ctx, writeDel)
+		assert.Error(t, err, "non-admin must not delete tuples")
+
+		// Admin deletes, then the tuple is gone.
+		setAdminCookie(t, ts)
+		_, err = ts.GraphQLProvider.FgaDeleteTuples(ctx, writeDel)
+		require.NoError(t, err)
+		tuplesRes, err := ts.GraphQLProvider.FgaReadTuples(ctx, &model.FgaReadTuplesInput{})
+		require.NoError(t, err)
+		for _, tup := range tuplesRes.Tuples {
+			assert.NotEqual(t, "document:deletable", tup.Object, "deleted tuple must not remain")
+		}
+	})
+
+	// ---- Admin: _fga_get_model returns the active model (admin-gated). ----
+	t.Run("_fga_get_model returns active model; non-admin rejected", func(t *testing.T) {
+		clearCookies(ts)
+		ts.GinContext.Request.Header.Set("Cookie", fmt.Sprintf("%s_session=%s", constants.AppCookieName, sessionToken))
+		res, err := ts.GraphQLProvider.FgaGetModel(ctx)
+		assert.Error(t, err, "non-admin must be rejected")
+		assert.Nil(t, res)
+
+		setAdminCookie(t, ts)
+		res, err = ts.GraphQLProvider.FgaGetModel(ctx)
+		require.NoError(t, err)
+		require.NotNil(t, res)
+		assert.Contains(t, res.Dsl, "document")
+	})
+
+	// ---- Trust gate is enforced per decision op, not only on fga_check. ----
+	t.Run("fga_list_objects rejects ordinary user supplying another subject", func(t *testing.T) {
+		clearCookies(ts)
+		ts.GinContext.Request.Header.Set("Cookie", fmt.Sprintf("%s_session=%s", constants.AppCookieName, sessionToken))
+		other := "user:someone-else"
+		res, err := ts.GraphQLProvider.FgaListObjects(ctx, &model.FgaListObjectsInput{
+			Relation: "can_view", ObjectType: "document", User: &other,
+		})
+		assert.Error(t, err, "end user must not list another subject's objects")
+		assert.Nil(t, res)
+	})
+
+	t.Run("fga_batch_check rejects ordinary user supplying another subject", func(t *testing.T) {
+		clearCookies(ts)
+		ts.GinContext.Request.Header.Set("Cookie", fmt.Sprintf("%s_session=%s", constants.AppCookieName, sessionToken))
+		other := "user:someone-else"
+		res, err := ts.GraphQLProvider.FgaBatchCheck(ctx, &model.FgaBatchCheckInput{
+			Checks: []*model.FgaCheckPairInput{
+				{Relation: "can_view", Object: "document:3", User: &other},
+			},
+		})
+		assert.Error(t, err, "end user must not batch-check another subject")
+		assert.Nil(t, res)
+	})
+
+	// ---- Phase 4: the session query honors required_relations too (separate
+	// wiring of the same enforceRequiredRelations helper as validate_session). ----
+	t.Run("session query honors required_relations", func(t *testing.T) {
+		clearCookies(ts)
+		ts.GinContext.Request.Header.Set("Cookie", fmt.Sprintf("%s_session=%s", constants.AppCookieName, sessionToken))
+		res, err := ts.GraphQLProvider.Session(ctx, &model.SessionQueryRequest{
+			RequiredRelations: []*model.FgaRelationInput{{Relation: "can_view", Object: "document:1"}},
+		})
+		require.NoError(t, err)
+		require.NotNil(t, res)
+
+		_, err = ts.GraphQLProvider.Session(ctx, &model.SessionQueryRequest{
+			RequiredRelations: []*model.FgaRelationInput{{Relation: "can_view", Object: "document:2"}},
+		})
+		assert.Error(t, err, "session must fail when a required relation is unsatisfied")
+	})
+
 	_ = req
 	_ = eng
 }
