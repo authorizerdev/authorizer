@@ -1,70 +1,52 @@
-// modelDsl.ts — pure helpers to convert between a visual ModelDraft and OpenFGA
-// authorization-model DSL. The builder covers the common subset (types, direct
-// assignment, unions via `or`, and inheritance via `X from Y`). Advanced
-// constructs (`and`, `but not`, conditions `with`, grouping) are not represented
-// in the builder — parseDsl reports supported=false for those so the UI can keep
-// the user in raw-DSL mode.
+// modelDsl.ts — helpers for the authorization-model editor: a plain-English
+// summary of a (simple) model, a roles-derived example, and a catalog of
+// ready-to-use OpenFGA model examples (raw DSL, so they can use the full
+// language — usersets, exclusions, conditions).
 
-// ComputedTerm is one OR-ed term of a computed relation: either another relation
-// on the same type ({relation}) or an inherited one ({relation, from}).
 export interface ComputedTerm {
 	relation: string;
 	from?: string;
 }
-
-// RelationDef is a single `define <name>: ...`. The effective rule is the union
-// (OR) of directTypes (the `[...]` assignable part) and the computed terms.
 export interface RelationDef {
 	name: string;
-	directTypes: string[]; // e.g. ["user"], ["user", "team#member"], ["folder"]
-	computed: ComputedTerm[]; // OR-ed with directTypes
+	directTypes: string[];
+	computed: ComputedTerm[];
 }
-
 export interface TypeDef {
 	name: string;
 	relations: RelationDef[];
 }
-
 export interface ModelDraft {
 	types: TypeDef[];
 }
 
 const IDENT = /^[a-zA-Z0-9_]+$/;
 
-// relationExpr renders the right-hand side of a `define`.
 function relationExpr(r: RelationDef): string {
 	const parts: string[] = [];
-	if (r.directTypes.length) {
-		parts.push(`[${r.directTypes.join(', ')}]`);
-	}
-	for (const c of r.computed) {
-		parts.push(c.from ? `${c.relation} from ${c.from}` : c.relation);
-	}
+	if (r.directTypes.length) parts.push(`[${r.directTypes.join(', ')}]`);
+	for (const c of r.computed) parts.push(c.from ? `${c.relation} from ${c.from}` : c.relation);
 	return parts.join(' or ');
 }
 
-// generateDsl renders a ModelDraft to OpenFGA DSL.
 export function generateDsl(model: ModelDraft): string {
 	const lines: string[] = ['model', '  schema 1.1', ''];
 	for (const t of model.types) {
 		lines.push(`type ${t.name}`);
 		if (t.relations.length) {
 			lines.push('  relations');
-			for (const r of t.relations) {
-				lines.push(`    define ${r.name}: ${relationExpr(r)}`);
-			}
+			for (const r of t.relations) lines.push(`    define ${r.name}: ${relationExpr(r)}`);
 		}
 	}
 	return lines.join('\n') + '\n';
 }
 
-// parseDsl best-effort parses DSL into a ModelDraft. supported=false means the
-// model uses constructs the visual builder can't represent — the caller should
-// stay in DSL mode.
+// parseDsl best-effort parses the simple subset (direct + union + inheritance)
+// so we can render a plain-English summary. Models with advanced constructs
+// return supported=false (no summary shown).
 export function parseDsl(dsl: string): { model: ModelDraft | null; supported: boolean } {
 	const types: TypeDef[] = [];
 	let current: TypeDef | null = null;
-
 	for (const raw of dsl.split('\n')) {
 		const trimmed = raw.trim();
 		if (
@@ -76,34 +58,23 @@ export function parseDsl(dsl: string): { model: ModelDraft | null; supported: bo
 		) {
 			continue;
 		}
-
 		if (trimmed.startsWith('type ')) {
 			current = { name: trimmed.slice(5).trim(), relations: [] };
 			types.push(current);
 			continue;
 		}
-
 		if (trimmed.startsWith('define ')) {
 			if (!current) return { model: null, supported: false };
 			const m = trimmed.match(/^define\s+([a-zA-Z0-9_]+)\s*:\s*(.+)$/);
 			if (!m) return { model: null, supported: false };
 			const expr = m[2].trim();
-			// Constructs the builder cannot represent.
-			if (/\bbut\s+not\b|\band\b|[()]|\bwith\b/.test(expr)) {
-				return { model: null, supported: false };
-			}
+			if (/\bbut\s+not\b|\band\b|[()]|\bwith\b/.test(expr)) return { model: null, supported: false };
 			const rel: RelationDef = { name: m[1], directTypes: [], computed: [] };
 			for (const partRaw of expr.split(/\s+or\s+/)) {
 				const part = partRaw.trim();
 				if (!part) continue;
 				if (part.startsWith('[') && part.endsWith(']')) {
-					rel.directTypes.push(
-						...part
-							.slice(1, -1)
-							.split(',')
-							.map((s) => s.trim())
-							.filter(Boolean),
-					);
+					rel.directTypes.push(...part.slice(1, -1).split(',').map((s) => s.trim()).filter(Boolean));
 				} else if (/\sfrom\s/.test(part)) {
 					const fm = part.match(/^([a-zA-Z0-9_]+)\s+from\s+([a-zA-Z0-9_]+)$/);
 					if (!fm) return { model: null, supported: false };
@@ -111,238 +82,232 @@ export function parseDsl(dsl: string): { model: ModelDraft | null; supported: bo
 				} else if (IDENT.test(part)) {
 					rel.computed.push({ relation: part });
 				} else {
-					// e.g. a computed userset like team#member — not builder-representable.
 					return { model: null, supported: false };
 				}
 			}
 			current.relations.push(rel);
 			continue;
 		}
-
-		// Unknown non-empty line — be conservative.
 		return { model: null, supported: false };
 	}
-
 	if (!types.length) return { model: null, supported: false };
 	return { model: { types }, supported: true };
 }
 
-// validateModel returns a human-readable error for an unsaveable model, or "".
-export function validateModel(model: ModelDraft): string {
-	if (!model.types.length) return 'Add at least one type.';
-	const names = new Set<string>();
-	for (const t of model.types) {
-		if (!IDENT.test(t.name)) return `Type name "${t.name}" must be alphanumeric/underscore.`;
-		if (names.has(t.name)) return `Duplicate type "${t.name}".`;
-		names.add(t.name);
-		const relNames = new Set<string>();
-		for (const r of t.relations) {
-			if (!IDENT.test(r.name)) return `Relation "${r.name}" on ${t.name} is not a valid name.`;
-			if (relNames.has(r.name)) return `Duplicate relation "${r.name}" on ${t.name}.`;
-			relNames.add(r.name);
-			if (!r.directTypes.length && !r.computed.length) {
-				return `Relation "${r.name}" on ${t.name} needs at least one assignable type or computed relation.`;
-			}
-		}
-	}
-	return '';
-}
-
-// summarize returns plain-English lines describing the model.
 export function summarize(model: ModelDraft): string[] {
 	const out: string[] = [];
 	for (const t of model.types) {
 		for (const r of t.relations) {
 			const bits: string[] = [];
 			if (r.directTypes.length) bits.push(`assigned (${r.directTypes.join(', ')})`);
-			for (const c of r.computed) {
-				bits.push(c.from ? `${c.relation} of its ${c.from}` : `a ${c.relation}`);
-			}
+			for (const c of r.computed) bits.push(c.from ? `${c.relation} of its ${c.from}` : `a ${c.relation}`);
 			out.push(`A user who is ${bits.join(' OR ')} is "${r.name}" of a ${t.name}.`);
 		}
 	}
 	return out;
 }
 
-// ── Pure model mutations (kept pure + index-based so they're unit-testable;
-//    the tree editor calls these and never mutates state in place). ───────────
-
-const mapType = (m: ModelDraft, ti: number, fn: (t: TypeDef) => TypeDef): ModelDraft => ({
-	...m,
-	types: m.types.map((t, i) => (i === ti ? fn(t) : t)),
-});
-
-const mapRelation = (
-	m: ModelDraft,
-	ti: number,
-	ri: number,
-	fn: (r: RelationDef) => RelationDef,
-): ModelDraft => mapType(m, ti, (t) => ({ ...t, relations: t.relations.map((r, i) => (i === ri ? fn(r) : r)) }));
-
-export const addType = (m: ModelDraft): ModelDraft => ({
-	...m,
-	types: [...m.types, { name: '', relations: [] }],
-});
-
-export const deleteType = (m: ModelDraft, ti: number): ModelDraft => ({
-	...m,
-	types: m.types.filter((_, i) => i !== ti),
-});
-
-export const renameType = (m: ModelDraft, ti: number, name: string): ModelDraft =>
-	mapType(m, ti, (t) => ({ ...t, name }));
-
-export const addRelation = (m: ModelDraft, ti: number): ModelDraft =>
-	mapType(m, ti, (t) => ({ ...t, relations: [...t.relations, { name: '', directTypes: [], computed: [] }] }));
-
-export const deleteRelation = (m: ModelDraft, ti: number, ri: number): ModelDraft =>
-	mapType(m, ti, (t) => ({ ...t, relations: t.relations.filter((_, i) => i !== ri) }));
-
-export const renameRelation = (m: ModelDraft, ti: number, ri: number, name: string): ModelDraft =>
-	mapRelation(m, ti, ri, (r) => ({ ...r, name }));
-
-export const addAssignable = (m: ModelDraft, ti: number, ri: number, dt: string): ModelDraft =>
-	mapRelation(m, ti, ri, (r) =>
-		r.directTypes.includes(dt) ? r : { ...r, directTypes: [...r.directTypes, dt] },
-	);
-
-export const removeAssignable = (m: ModelDraft, ti: number, ri: number, idx: number): ModelDraft =>
-	mapRelation(m, ti, ri, (r) => ({ ...r, directTypes: r.directTypes.filter((_, i) => i !== idx) }));
-
-export const addComputed = (m: ModelDraft, ti: number, ri: number, term: ComputedTerm): ModelDraft =>
-	mapRelation(m, ti, ri, (r) => ({ ...r, computed: [...r.computed, term] }));
-
-export const removeComputed = (m: ModelDraft, ti: number, ri: number, idx: number): ModelDraft =>
-	mapRelation(m, ti, ri, (r) => ({ ...r, computed: r.computed.filter((_, i) => i !== idx) }));
-
-// relationExprText renders a relation's definition for compact display.
-export function relationExprText(r: RelationDef): string {
-	const parts: string[] = [];
-	if (r.directTypes.length) parts.push(`[${r.directTypes.join(', ')}]`);
-	for (const c of r.computed) parts.push(c.from ? `${c.relation} from ${c.from}` : c.relation);
-	return parts.join(' or ') || '(empty)';
-}
-
-// sanitizeRelationName makes an Authorizer role usable as an OpenFGA relation
-// name (alphanumeric/underscore). e.g. "org-admin" -> "org_admin".
 export function sanitizeRelationName(role: string): string {
 	return role.trim().replace(/[^a-zA-Z0-9_]/g, '_').replace(/^_+|_+$/g, '');
 }
 
-// rolesTemplate builds a starter model from the instance's configured roles:
-// each role becomes a directly-assignable relation on a `resource`, plus a
-// `can_access` permission that any of those roles satisfies. A concrete,
-// builder-friendly starting point the admin can then refine.
+// rolesTemplate builds a model from the instance's configured roles: each role
+// is a relation on a `resource`, plus a `can_access` permission.
 export function rolesTemplate(roles: string[]): ModelDraft | null {
 	const seen = new Set<string>();
-	const roleRelations: RelationDef[] = [];
+	const rel: RelationDef[] = [];
 	for (const raw of roles) {
 		const name = sanitizeRelationName(raw);
 		if (!name || seen.has(name)) continue;
 		seen.add(name);
-		roleRelations.push({ name, directTypes: ['user'], computed: [] });
+		rel.push({ name, directTypes: ['user'], computed: [] });
 	}
-	if (!roleRelations.length) return null;
-
-	roleRelations.push({
-		name: 'can_access',
-		directTypes: [],
-		computed: roleRelations.map((r) => ({ relation: r.name })),
-	});
-
-	return {
-		types: [
-			{ name: 'user', relations: [] },
-			{ name: 'resource', relations: roleRelations },
-		],
-	};
+	if (!rel.length) return null;
+	rel.push({ name: 'can_access', directTypes: [], computed: rel.map((r) => ({ relation: r.name })) });
+	return { types: [{ name: 'user', relations: [] }, { name: 'resource', relations: rel }] };
 }
 
-// TEMPLATES are builder-representable starter models.
-export const TEMPLATES: { name: string; description: string; model: ModelDraft }[] = [
+// MODEL_EXAMPLES is a catalog of common authorization patterns as raw DSL.
+export interface ModelExample {
+	name: string;
+	description: string;
+	dsl: string;
+}
+
+export const MODEL_EXAMPLES: ModelExample[] = [
 	{
 		name: 'Document sharing',
-		description: 'Owner / editor / viewer with cascading permissions.',
-		model: {
-			types: [
-				{ name: 'user', relations: [] },
-				{
-					name: 'document',
-					relations: [
-						{ name: 'owner', directTypes: ['user'], computed: [] },
-						{ name: 'editor', directTypes: ['user'], computed: [{ relation: 'owner' }] },
-						{ name: 'viewer', directTypes: ['user'], computed: [{ relation: 'editor' }] },
-						{ name: 'can_view', directTypes: [], computed: [{ relation: 'viewer' }] },
-						{ name: 'can_edit', directTypes: [], computed: [{ relation: 'editor' }] },
-						{ name: 'can_delete', directTypes: [], computed: [{ relation: 'owner' }] },
-					],
-				},
-			],
-		},
+		description: 'Owner → editor → viewer, with cascading permissions.',
+		dsl: `model
+  schema 1.1
+
+type user
+
+type document
+  relations
+    define owner: [user]
+    define editor: [user] or owner
+    define viewer: [user] or editor
+    define can_view: viewer
+    define can_edit: editor
+    define can_delete: owner`,
 	},
 	{
-		name: 'Folders with inheritance',
+		name: 'Folder hierarchy',
 		description: 'Documents inherit viewers from their parent folder.',
-		model: {
-			types: [
-				{ name: 'user', relations: [] },
-				{
-					name: 'folder',
-					relations: [
-						{ name: 'owner', directTypes: ['user'], computed: [] },
-						{ name: 'viewer', directTypes: ['user'], computed: [{ relation: 'owner' }] },
-					],
-				},
-				{
-					name: 'document',
-					relations: [
-						{ name: 'parent', directTypes: ['folder'], computed: [] },
-						{ name: 'owner', directTypes: ['user'], computed: [] },
-						{
-							name: 'viewer',
-							directTypes: ['user'],
-							computed: [{ relation: 'owner' }, { relation: 'viewer', from: 'parent' }],
-						},
-						{ name: 'can_view', directTypes: [], computed: [{ relation: 'viewer' }] },
-					],
-				},
-			],
-		},
+		dsl: `model
+  schema 1.1
+
+type user
+
+type folder
+  relations
+    define owner: [user]
+    define viewer: [user] or owner
+
+type document
+  relations
+    define parent: [folder]
+    define owner: [user]
+    define viewer: [user] or owner or viewer from parent
+    define can_view: viewer
+    define can_edit: owner`,
 	},
 	{
-		name: 'Org / Team / Project',
-		description: 'Project access flows from team and organization membership.',
-		model: {
-			types: [
-				{ name: 'user', relations: [] },
-				{
-					name: 'organization',
-					relations: [{ name: 'member', directTypes: ['user'], computed: [] }],
-				},
-				{
-					name: 'team',
-					relations: [
-						{ name: 'org', directTypes: ['organization'], computed: [] },
-						{
-							name: 'member',
-							directTypes: ['user'],
-							computed: [{ relation: 'member', from: 'org' }],
-						},
-					],
-				},
-				{
-					name: 'project',
-					relations: [
-						{ name: 'team', directTypes: ['team'], computed: [] },
-						{
-							name: 'viewer',
-							directTypes: ['user'],
-							computed: [{ relation: 'member', from: 'team' }],
-						},
-						{ name: 'can_view', directTypes: [], computed: [{ relation: 'viewer' }] },
-					],
-				},
-			],
-		},
+		name: 'Organizations & teams',
+		description: 'Team membership flows from organization membership.',
+		dsl: `model
+  schema 1.1
+
+type user
+
+type organization
+  relations
+    define admin: [user]
+    define member: [user] or admin
+
+type team
+  relations
+    define org: [organization]
+    define member: [user] or member from org`,
+	},
+	{
+		name: 'RBAC roles',
+		description: 'Global roles assigned to users, referenced by resources.',
+		dsl: `model
+  schema 1.1
+
+type user
+
+type role
+  relations
+    define assignee: [user]
+
+type resource
+  relations
+    define admin: [role#assignee]
+    define editor: [user, role#assignee] or admin
+    define viewer: [user, role#assignee] or editor
+    define can_view: viewer
+    define can_edit: editor
+    define can_admin: admin`,
+	},
+	{
+		name: 'Groups',
+		description: 'Nestable user groups; grant access to a whole group.',
+		dsl: `model
+  schema 1.1
+
+type user
+
+type group
+  relations
+    define member: [user, group#member]
+
+type document
+  relations
+    define viewer: [user, group#member]
+    define can_view: viewer`,
+	},
+	{
+		name: 'Block list (exclusion)',
+		description: 'Everyone with viewer access, except blocked users.',
+		dsl: `model
+  schema 1.1
+
+type user
+
+type document
+  relations
+    define viewer: [user]
+    define blocked: [user]
+    define can_view: viewer but not blocked`,
+	},
+	{
+		name: 'Multi-tenant SaaS',
+		description: 'Organization → workspace → resource access flow.',
+		dsl: `model
+  schema 1.1
+
+type user
+
+type organization
+  relations
+    define member: [user]
+
+type workspace
+  relations
+    define org: [organization]
+    define admin: [user]
+    define member: [user] or admin or member from org
+
+type resource
+  relations
+    define workspace: [workspace]
+    define editor: [user] or admin from workspace
+    define viewer: [user] or editor or member from workspace
+    define can_view: viewer
+    define can_edit: editor`,
+	},
+	{
+		name: 'GitHub-style repos',
+		description: 'Org → repo with admin / maintainer / writer / reader.',
+		dsl: `model
+  schema 1.1
+
+type user
+
+type organization
+  relations
+    define owner: [user]
+    define member: [user] or owner
+
+type repository
+  relations
+    define org: [organization]
+    define admin: [user] or owner from org
+    define maintainer: [user] or admin
+    define writer: [user] or maintainer
+    define reader: [user] or writer or member from org
+    define can_read: reader
+    define can_push: writer
+    define can_admin: admin`,
+	},
+	{
+		name: 'Time-bound access (conditions)',
+		description: 'ABAC: a grant that is only valid until it expires.',
+		dsl: `model
+  schema 1.1
+
+type user
+
+type document
+  relations
+    define viewer: [user with non_expired_grant]
+    define can_view: viewer
+
+condition non_expired_grant(current_time: timestamp, grant_time: timestamp, grant_duration: duration) {
+  current_time < grant_time + grant_duration
+}`,
 	},
 ];

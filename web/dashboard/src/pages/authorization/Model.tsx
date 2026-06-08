@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useClient } from 'urql';
 import { toast } from 'sonner';
-import { AlertCircle, Save, LayoutGrid, Code2 } from 'lucide-react';
+import { AlertCircle, Save } from 'lucide-react';
 import { FgaGetModelQuery, AdminRolesQuery } from '../../graphql/queries';
 import { FgaWriteModel } from '../../graphql/mutation';
 import { Button } from '../../components/ui/button';
@@ -9,16 +9,8 @@ import { Textarea } from '../../components/ui/textarea';
 import { Skeleton } from '../../components/ui/skeleton';
 import { Badge } from '../../components/ui/badge';
 import FgaNotEnabled from '../../components/FgaNotEnabled';
-import ModelTree from './ModelTree';
 import AuthSteps, { Example, NextStep } from './AuthSteps';
-import {
-	generateDsl,
-	parseDsl,
-	validateModel,
-	rolesTemplate,
-	TEMPLATES,
-	type ModelDraft,
-} from './modelDsl';
+import { generateDsl, parseDsl, summarize, rolesTemplate, MODEL_EXAMPLES } from './modelDsl';
 import { isFgaNotEnabledError } from '../../lib/utils';
 import type {
 	FgaGetModelResponse,
@@ -26,59 +18,26 @@ import type {
 	AdminRolesResponse,
 } from '../../types';
 
-type Mode = 'builder' | 'dsl';
+const PLACEHOLDER = `model
+  schema 1.1
 
-const STARTER: ModelDraft = { types: [{ name: 'user', relations: [] }] };
+type user
 
-const TabButton = ({
-	active,
-	onClick,
-	icon,
-	children,
-}: {
-	active: boolean;
-	onClick: () => void;
-	icon: React.ReactNode;
-	children: React.ReactNode;
-}) => (
-	<button
-		type="button"
-		onClick={onClick}
-		className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-			active ? 'bg-blue-50 text-blue-600' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
-		}`}
-	>
-		{icon}
-		{children}
-	</button>
-);
+type document
+  relations
+    define viewer: [user]
+    define editor: [user]
+    define can_view: viewer or editor`;
 
 const Model = () => {
 	const client = useClient();
 	const [loading, setLoading] = useState(true);
 	const [saving, setSaving] = useState(false);
 	const [fgaDisabled, setFgaDisabled] = useState(false);
-	const [mode, setMode] = useState<Mode>('builder');
-	const [builderModel, setBuilderModel] = useState<ModelDraft>(STARTER);
 	const [dsl, setDsl] = useState('');
 	const [modelId, setModelId] = useState('');
 	const [validationError, setValidationError] = useState('');
 	const [roles, setRoles] = useState<string[]>([]);
-
-	// Fetch the instance's configured roles (admin _env) so the builder can offer
-	// a template built from the real roles. Best-effort: ignore failures.
-	useEffect(() => {
-		client
-			.query<AdminRolesResponse>(AdminRolesQuery, {})
-			.toPromise()
-			.then((res) => {
-				const r = res.data?._env?.ROLES;
-				if (Array.isArray(r)) setRoles(r.filter(Boolean));
-			})
-			.catch(() => {
-				/* roles template just won't be offered */
-			});
-	}, [client]);
 
 	const fetchModel = useCallback(async () => {
 		setLoading(true);
@@ -86,29 +45,15 @@ const Model = () => {
 			const res = await client
 				.query<FgaGetModelResponse>(FgaGetModelQuery, {}, { requestPolicy: 'network-only' })
 				.toPromise();
-
 			if (res.error) {
 				if (isFgaNotEnabledError(res.error)) setFgaDisabled(true);
 				else toast.error('Failed to load authorization model');
 				return;
 			}
-
 			const current = res.data?._fga_get_model;
 			if (current?.dsl) {
 				setDsl(current.dsl);
 				setModelId(current.id || '');
-				const parsed = parseDsl(current.dsl);
-				if (parsed.supported && parsed.model) {
-					setBuilderModel(parsed.model);
-					setMode('builder');
-				} else {
-					// Model uses constructs the builder can't represent — edit in DSL.
-					setMode('dsl');
-				}
-			} else {
-				// No model yet — start in the builder with a base `user` type.
-				setBuilderModel(STARTER);
-				setMode('builder');
 			}
 		} catch {
 			toast.error('Failed to load authorization model');
@@ -121,61 +66,45 @@ const Model = () => {
 		fetchModel();
 	}, [fetchModel]);
 
-	const switchToDsl = () => {
-		setDsl(generateDsl(builderModel));
-		setValidationError('');
-		setMode('dsl');
-	};
+	// Configured roles → a "your roles" example.
+	useEffect(() => {
+		client
+			.query<AdminRolesResponse>(AdminRolesQuery, {})
+			.toPromise()
+			.then((res) => {
+				const r = res.data?._env?.ROLES;
+				if (Array.isArray(r)) setRoles(r.filter(Boolean));
+			})
+			.catch(() => {});
+	}, [client]);
 
-	const switchToBuilder = () => {
-		const parsed = parseDsl(dsl);
-		if (parsed.supported && parsed.model) {
-			setBuilderModel(parsed.model);
-			setValidationError('');
-			setMode('builder');
-		} else {
-			toast.error('This model uses advanced constructs — keep editing in DSL');
-		}
-	};
-
-	const applyTemplate = (model: ModelDraft) => {
-		setBuilderModel(model);
-		setMode('builder');
+	const applyExample = (exampleDsl: string) => {
+		setDsl(exampleDsl);
 		setValidationError('');
 	};
 
 	const handleSave = async () => {
-		let dslToSave = dsl;
-		if (mode === 'builder') {
-			const err = validateModel(builderModel);
-			if (err) {
-				setValidationError(err);
-				return;
-			}
-			dslToSave = generateDsl(builderModel);
-		} else if (!dsl.trim()) {
-			setValidationError('Model DSL cannot be empty.');
+		if (!dsl.trim()) {
+			setValidationError('The model cannot be empty. Pick an example to start.');
 			return;
 		}
 		setValidationError('');
 		setSaving(true);
 		try {
 			const res = await client
-				.mutation<FgaWriteModelResponse>(FgaWriteModel, { params: { dsl: dslToSave } })
+				.mutation<FgaWriteModelResponse>(FgaWriteModel, { params: { dsl } })
 				.toPromise();
-
 			if (res.error) {
 				if (isFgaNotEnabledError(res.error)) setFgaDisabled(true);
 				else {
 					setValidationError(res.error.message.replace('[GraphQL] ', ''));
-					toast.error('Failed to save authorization model');
+					toast.error('Could not save — check the model syntax');
 				}
 				return;
 			}
-
 			if (res.data?._fga_write_model) {
 				setModelId(res.data._fga_write_model.id);
-				setDsl(res.data._fga_write_model.dsl || dslToSave);
+				setDsl(res.data._fga_write_model.dsl || dsl);
 				toast.success('Authorization model saved');
 			}
 		} catch {
@@ -185,31 +114,35 @@ const Model = () => {
 		}
 	};
 
-	// Offer a template built from the instance's configured roles first.
 	const roleModel = rolesTemplate(roles);
-	const templates = [
+	const examples = [
 		...(roleModel
 			? [
 					{
-						name: 'RBAC — your roles',
-						description: `Your configured roles (${roles.join(', ')}) as relations on a resource.`,
-						model: roleModel,
+						name: 'Your roles',
+						description: `Your configured roles (${roles.join(', ')}) as a starting point.`,
+						dsl: generateDsl(roleModel).trimEnd(),
 					},
 			  ]
 			: []),
-		...TEMPLATES,
+		...MODEL_EXAMPLES,
 	];
+
+	const parsed = parseDsl(dsl);
+	const summary = parsed.supported && parsed.model ? summarize(parsed.model) : [];
 
 	return (
 		<div className="m-5 rounded-md bg-white py-5 px-10">
 			<AuthSteps current={1} />
+
 			<div className="my-4 flex items-start justify-between gap-4">
 				<div>
 					<h1 className="text-2xl font-semibold text-gray-900">Step 1 · Define the model</h1>
 					<p className="mt-1 max-w-2xl text-sm text-gray-500">
 						The model is your permission <strong>rulebook</strong>: the object{' '}
-						<strong>types</strong> you protect, the <strong>relations</strong> on them (owner,
-						editor, viewer…), and how permissions are computed. You write it once.
+						<strong>types</strong> you protect (document, folder…), their{' '}
+						<strong>relations</strong> (owner, editor, viewer…), and how permissions are
+						computed. You write it once.
 					</p>
 				</div>
 				{!fgaDisabled && !loading && (
@@ -219,84 +152,79 @@ const Model = () => {
 					</Button>
 				)}
 			</div>
-			{!fgaDisabled && !loading && (
-				<div className="mb-4">
-					<Example>
-						<strong>Example:</strong> a <code className="rounded bg-white px-1 py-0.5 text-xs">document</code> has{' '}
-						<code className="rounded bg-white px-1 py-0.5 text-xs">viewer</code> and{' '}
-						<code className="rounded bg-white px-1 py-0.5 text-xs">editor</code> relations, and{' '}
-						<code className="rounded bg-white px-1 py-0.5 text-xs">can_view = viewer or editor</code>. Pick a
-						template below to start, then customize.
-					</Example>
-				</div>
-			)}
 
 			{loading ? (
 				<div className="space-y-3">
 					<Skeleton className="h-9 w-64" />
-					<Skeleton className="h-64 w-full" />
+					<Skeleton className="h-72 w-full" />
 				</div>
 			) : fgaDisabled ? (
 				<FgaNotEnabled />
 			) : (
-				<div className="space-y-4">
-					<div className="flex flex-wrap items-center justify-between gap-3">
-						<div className="inline-flex items-center gap-1 rounded-lg bg-gray-50 p-1">
-							<TabButton
-								active={mode === 'builder'}
-								onClick={() => mode !== 'builder' && switchToBuilder()}
-								icon={<LayoutGrid className="h-4 w-4" />}
-							>
-								Builder
-							</TabButton>
-							<TabButton
-								active={mode === 'dsl'}
-								onClick={() => mode !== 'dsl' && switchToDsl()}
-								icon={<Code2 className="h-4 w-4" />}
-							>
-								DSL (advanced)
-							</TabButton>
-						</div>
+				<div className="space-y-5">
+					<Example>
+						<strong>Example:</strong> a{' '}
+						<code className="rounded bg-white px-1 py-0.5 text-xs">document</code> has{' '}
+						<code className="rounded bg-white px-1 py-0.5 text-xs">viewer</code> and{' '}
+						<code className="rounded bg-white px-1 py-0.5 text-xs">editor</code> relations, and{' '}
+						<code className="rounded bg-white px-1 py-0.5 text-xs">can_view = viewer or editor</code>.
+						Start from an example below and edit it.
+					</Example>
 
-						<div className="flex items-center gap-3">
+					{/* Example templates with descriptions */}
+					<div>
+						<p className="mb-2 text-sm font-medium text-gray-700">Start from an example</p>
+						<div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+							{examples.map((ex) => (
+								<button
+									key={ex.name}
+									type="button"
+									onClick={() => applyExample(ex.dsl)}
+									className="rounded-xl border border-gray-200 bg-white p-3 text-left transition-colors hover:border-blue-300 hover:bg-blue-50"
+								>
+									<span className="block text-sm font-medium text-gray-800">{ex.name}</span>
+									<span className="mt-0.5 block text-xs leading-relaxed text-gray-500">
+										{ex.description}
+									</span>
+								</button>
+							))}
+						</div>
+					</div>
+
+					{/* The model */}
+					<div>
+						<div className="mb-1.5 flex items-center justify-between">
+							<label htmlFor="model-dsl" className="text-sm font-medium text-gray-700">
+								Model
+							</label>
 							{modelId && (
-								<span className="flex items-center gap-1.5 text-xs text-gray-500">
-									active model
+								<span className="flex items-center gap-1.5 text-xs text-gray-400">
+									saved
 									<Badge variant="secondary">{modelId.slice(0, 12)}…</Badge>
 								</span>
 							)}
 						</div>
-					</div>
-
-					{mode === 'builder' && (
-						<div className="flex flex-wrap items-center gap-2 rounded-lg border border-dashed border-gray-200 p-2">
-							<span className="px-1 text-xs font-medium text-gray-500">Start from a template:</span>
-							{templates.map((tpl) => (
-								<button
-									key={tpl.name}
-									type="button"
-									onClick={() => applyTemplate(tpl.model)}
-									title={tpl.description}
-									className="rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-700 transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700"
-								>
-									{tpl.name}
-								</button>
-							))}
-						</div>
-					)}
-
-					{mode === 'builder' ? (
-						<ModelTree model={builderModel} onChange={setBuilderModel} />
-					) : (
 						<Textarea
+							id="model-dsl"
 							value={dsl}
 							onChange={(e) => setDsl(e.target.value)}
 							spellCheck={false}
-							className="min-h-[420px] font-mono text-xs leading-relaxed"
-							placeholder={
-								'model\n  schema 1.1\n\ntype user\n\ntype document\n  relations\n    define viewer: [user]\n    define editor: [user]\n    define can_view: viewer or editor'
-							}
+							className="min-h-[360px] font-mono text-xs leading-relaxed"
+							placeholder={PLACEHOLDER}
 						/>
+					</div>
+
+					{summary.length > 0 && (
+						<div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
+							<p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-gray-500">
+								In plain English
+							</p>
+							<ul className="space-y-1 text-xs leading-relaxed text-gray-600">
+								{summary.map((s, i) => (
+									<li key={i}>• {s}</li>
+								))}
+							</ul>
+						</div>
 					)}
 
 					{validationError && (
