@@ -3,11 +3,9 @@
 // datastore (dev/tests) and persistent SQL datastores (SQLite single-node,
 // Postgres/MySQL for HA) per the migration plan's deployment modes (§2.1).
 //
-// This package is additive (Phase 1). It does not replace the existing
-// resource/scope/policy engine; both are selectable behind
-// --authorization-engine. The principal-pinning, admin-gating, audit, and
-// caching policy described in the plan live in the callers of this engine —
-// this package is the thin, fail-closed adapter over OpenFGA.
+// The principal-pinning, admin-gating, audit, and caching policy described in
+// the plan live in the callers of this engine — this package is the thin,
+// fail-closed adapter over OpenFGA.
 package openfga
 
 import (

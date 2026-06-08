@@ -244,9 +244,8 @@ func init() {
 
 	// OpenFGA / FGA engine flags (Phase 1 — additive; the FGA engine is
 	// selectable but not yet the default)
-	f.StringVar(&rootArgs.config.AuthorizationEngine, "authorization-engine", "policy", "Authorization backend: 'policy' (existing resource/scope/policy engine, default) or 'fga' (OpenFGA ReBAC engine)")
 	f.StringVar(&rootArgs.config.FGAMode, "fga-mode", "embedded", "OpenFGA run mode: 'embedded' (in-process, default) or 'external' (standalone OpenFGA service)")
-	f.StringVar(&rootArgs.config.FGAStore, "fga-store", "memory", "OpenFGA datastore: 'memory' (dev/tests, default), 'sqlite' (single-node), 'postgres' or 'mysql' (HA)")
+	f.StringVar(&rootArgs.config.FGAStore, "fga-store", "", "OpenFGA datastore for embedded mode — set to enable fine-grained authorization: 'memory' (dev/tests), 'sqlite' (single-node), 'postgres' or 'mysql' (HA). Empty = FGA disabled")
 	f.StringVar(&rootArgs.config.FGAStoreURL, "fga-store-url", "", "OpenFGA datastore connection URI (file: URI for sqlite, DSN for postgres/mysql)")
 	f.StringVar(&rootArgs.config.FGAExternalURL, "fga-external-url", "", "gRPC URL of an external OpenFGA service (used when --fga-mode=external)")
 
@@ -470,23 +469,24 @@ func runRoot(c *cobra.Command, args []string) {
 	}
 	defer rateLimitProvider.Close()
 
-	// OpenFGA authorization engine (Phase 1 — additive).
+	// OpenFGA authorization engine.
 	//
-	// This is constructed only when --authorization-engine=fga. The FGA engine
-	// is selectable but is not yet routed into the request path — later phases
-	// wire it into GraphQL and session/validate.
+	// Constructed only when an FGA store is configured (--fga-store for embedded,
+	// --fga-external-url for external); otherwise it stays nil and the fga_*
+	// resolvers fail closed. It is routed into GraphQL and session/validate below.
 	//
 	// Embedded mode runs the OpenFGA server in-process. For single-node/dev
 	// (memory or sqlite) migrations may run on boot; HA/serverless must run
 	// migrations as a separate init job (see FGA_OPENFGA_MIGRATION_PLAN.md §2.1)
 	// and must use an external SQL store.
-	// authzEngine is threaded into the HTTP/GraphQL providers below. It stays nil
-	// unless --authorization-engine=fga (and embedded mode initializes cleanly).
-	// Resolvers fail closed when it is nil.
+	// Fine-grained authorization is enabled by configuring a store: --fga-store
+	// for embedded mode, or --fga-external-url for an external OpenFGA service.
+	// With neither set the engine stays nil and the fga_* resolvers fail closed
+	// ("fine-grained authorization is not enabled").
 	var authzEngine engine.AuthorizationEngine
-	if strings.EqualFold(rootArgs.config.AuthorizationEngine, "fga") {
-		switch strings.ToLower(strings.TrimSpace(rootArgs.config.FGAMode)) {
-		case "", "embedded":
+	switch strings.ToLower(strings.TrimSpace(rootArgs.config.FGAMode)) {
+	case "", "embedded":
+		if rootArgs.config.FGAStore != "" {
 			// Run migrations on boot only for single-node embedded SQL stores.
 			// memory needs none; postgres/mysql (HA) must migrate out-of-band.
 			runMigrations := strings.EqualFold(rootArgs.config.FGAStore, fgaengine.StoreSQLite)
@@ -510,15 +510,17 @@ func runRoot(c *cobra.Command, args []string) {
 				Str("fga_mode", "embedded").
 				Str("fga_store", rootArgs.config.FGAStore).
 				Msg("OpenFGA authorization engine initialized (embedded); routed into GraphQL + session/validate")
-		case "external":
+		}
+	case "external":
+		if rootArgs.config.FGAExternalURL != "" {
 			// External-mode wiring (gRPC client to a standalone OpenFGA
 			// service) lands in a later phase; the seam and flags exist now.
 			log.Warn().
 				Str("fga_external_url", rootArgs.config.FGAExternalURL).
 				Msg("OpenFGA external mode selected but the external client is not yet wired (Phase 1 implements the embedded engine); no FGA engine started")
-		default:
-			log.Fatal().Str("fga_mode", rootArgs.config.FGAMode).Msg("invalid --fga-mode (want 'embedded' or 'external')")
 		}
+	default:
+		log.Fatal().Str("fga_mode", rootArgs.config.FGAMode).Msg("invalid --fga-mode (want 'embedded' or 'external')")
 	}
 
 	// SMS provider

@@ -8,9 +8,9 @@
 // engine speaks the OpenFGA tuple vocabulary: a tuple relates a user (subject)
 // to an object via a relation, e.g. (user:alice, viewer, document:1).
 //
-// This package is additive (Phase 1 of the OpenFGA migration). It does not
-// replace the existing authorization.Provider (resource/scope/policy engine);
-// both coexist behind the --authorization-engine flag.
+// FGA is enabled by configuring a store (--fga-store for embedded mode, or
+// --fga-external-url for an external OpenFGA service); when neither is set the
+// engine is not constructed and the fga_* resolvers fail closed.
 package engine
 
 import "context"

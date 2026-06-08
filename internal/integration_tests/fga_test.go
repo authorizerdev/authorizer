@@ -155,7 +155,6 @@ func clearCookies(ts *testSetup) {
 
 func TestFGA(t *testing.T) {
 	cfg := getTestConfig()
-	cfg.AuthorizationEngine = "fga"
 	ts, eng := initFGATestSetup(t, cfg)
 	req, ctx := createContext(ts)
 

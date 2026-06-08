@@ -44,10 +44,7 @@ type Dependencies struct {
 	// RateLimitProvider is used for per-IP rate limiting
 	RateLimitProvider rate_limit.Provider
 	// AuthzEngine is the fine-grained authorization (FGA) engine.
-	// It is nil unless --authorization-engine=fga.
-	//
-	// Named AuthzEngine (not AuthorizationEngine) to avoid an ambiguous-selector
-	// clash with config.Config.AuthorizationEngine, which httpProvider embeds.
+	// It is nil unless an FGA store is configured (--fga-store / --fga-external-url).
 	AuthzEngine engine.AuthorizationEngine
 }
 

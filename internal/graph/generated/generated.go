@@ -3319,7 +3319,7 @@ input SessionQueryRequest {
   state: String
   # required_relations gates the session on fine-grained authorization.
   # Each (relation, object) is checked against the authenticated caller with
-  # AND semantics, fail-closed. Requires --authorization-engine=fga.
+  # AND semantics, fail-closed. Requires fine-grained authorization enabled (--fga-store / --fga-external-url).
   required_relations: [FgaRelationInput!]
 }
 
@@ -3350,7 +3350,7 @@ input ValidateJWTTokenRequest {
   token: String!
   roles: [String!]
   # required_relations gates validation on fine-grained authorization.
-  # AND semantics, fail-closed. Requires --authorization-engine=fga.
+  # AND semantics, fail-closed. Requires fine-grained authorization enabled (--fga-store / --fga-external-url).
   required_relations: [FgaRelationInput!]
 }
 
@@ -3358,7 +3358,7 @@ input ValidateSessionRequest {
   cookie: String!
   roles: [String!]
   # required_relations gates validation on fine-grained authorization.
-  # AND semantics, fail-closed. Requires --authorization-engine=fga.
+  # AND semantics, fail-closed. Requires fine-grained authorization enabled (--fga-store / --fga-external-url).
   required_relations: [FgaRelationInput!]
 }
 
