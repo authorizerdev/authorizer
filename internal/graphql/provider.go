@@ -208,6 +208,13 @@ type Provider interface {
 	// FgaReadTuples reads a page of fine-grained authorization tuples.
 	// Permissions: authorizer:admin
 	FgaReadTuples(ctx context.Context, params *model.FgaReadTuplesInput) (*model.FgaTuples, error)
+	// FgaListUsers lists the users that have a relation on an object (reveals the
+	// access graph).
+	// Permissions: authorizer:admin
+	FgaListUsers(ctx context.Context, params *model.FgaListUsersInput) (*model.FgaListUsersResponse, error)
+	// FgaExpand returns the relationship/userset tree for a (relation, object).
+	// Permissions: authorizer:admin
+	FgaExpand(ctx context.Context, params *model.FgaExpandInput) (*model.FgaExpandResponse, error)
 	// FgaCheck checks a relation for the authenticated caller (principal pinned).
 	// Permissions: authorized user
 	FgaCheck(ctx context.Context, params *model.FgaCheckInput) (*model.FgaCheckResponse, error)

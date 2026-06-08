@@ -119,6 +119,19 @@ type AuthorizationEngine interface {
 	// rate-limit. Returned IDs are fully qualified ("document:1").
 	ListObjects(ctx context.Context, user, relation, objType string) ([]string, error)
 
+	// ListUsers returns the fully qualified user IDs (e.g. "user:alice") of type
+	// userType that have relation on object. It is the inverse of ListObjects:
+	// "who can access this object?". This is a powerful enumeration surface that
+	// reveals the access graph — callers must admin-gate, cap and audit. Returned
+	// users are fully qualified ("user:alice").
+	ListUsers(ctx context.Context, object, relation, userType string) ([]string, error)
+
+	// Expand returns the OpenFGA relationship/userset tree for (relation, object)
+	// rendered as a JSON string. This is the explainability/"why" primitive: it
+	// shows how a relation resolves (direct assignments, usersets, computed
+	// relations). It reveals the access graph and must be admin-gated.
+	Expand(ctx context.Context, relation, object string) (string, error)
+
 	// WriteTuples persists the given relationship tuples. It is additive;
 	// duplicate writes may error depending on the backend.
 	WriteTuples(ctx context.Context, tuples []TupleKey) error

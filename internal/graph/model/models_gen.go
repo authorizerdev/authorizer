@@ -173,25 +173,47 @@ type FgaCheckInput struct {
 	Relation         string           `json:"relation"`
 	Object           string           `json:"object"`
 	ContextualTuples []*FgaTupleInput `json:"contextual_tuples,omitempty"`
+	User             *string          `json:"user,omitempty"`
 }
 
 type FgaCheckPairInput struct {
 	Relation         string           `json:"relation"`
 	Object           string           `json:"object"`
 	ContextualTuples []*FgaTupleInput `json:"contextual_tuples,omitempty"`
+	User             *string          `json:"user,omitempty"`
 }
 
 type FgaCheckResponse struct {
 	Allowed bool `json:"allowed"`
 }
 
+type FgaExpandInput struct {
+	Relation string `json:"relation"`
+	Object   string `json:"object"`
+}
+
+type FgaExpandResponse struct {
+	Tree string `json:"tree"`
+}
+
 type FgaListObjectsInput struct {
-	Relation   string `json:"relation"`
-	ObjectType string `json:"object_type"`
+	Relation   string  `json:"relation"`
+	ObjectType string  `json:"object_type"`
+	User       *string `json:"user,omitempty"`
 }
 
 type FgaListObjectsResponse struct {
 	Objects []string `json:"objects"`
+}
+
+type FgaListUsersInput struct {
+	Object   string `json:"object"`
+	Relation string `json:"relation"`
+	UserType string `json:"user_type"`
+}
+
+type FgaListUsersResponse struct {
+	Users []string `json:"users"`
 }
 
 type FgaModel struct {

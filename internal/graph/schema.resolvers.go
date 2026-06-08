@@ -272,6 +272,16 @@ func (r *queryResolver) FgaReadTuples(ctx context.Context, params model.FgaReadT
 	return r.GraphQLProvider.FgaReadTuples(ctx, &params)
 }
 
+// FgaListUsers is the resolver for the _fga_list_users field.
+func (r *queryResolver) FgaListUsers(ctx context.Context, params model.FgaListUsersInput) (*model.FgaListUsersResponse, error) {
+	return r.GraphQLProvider.FgaListUsers(ctx, &params)
+}
+
+// FgaExpand is the resolver for the _fga_expand field.
+func (r *queryResolver) FgaExpand(ctx context.Context, params model.FgaExpandInput) (*model.FgaExpandResponse, error) {
+	return r.GraphQLProvider.FgaExpand(ctx, &params)
+}
+
 // FgaCheck is the resolver for the fga_check field.
 func (r *queryResolver) FgaCheck(ctx context.Context, params model.FgaCheckInput) (*model.FgaCheckResponse, error) {
 	return r.GraphQLProvider.FgaCheck(ctx, &params)

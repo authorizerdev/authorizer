@@ -182,8 +182,16 @@ type ComplexityRoot struct {
 		Allowed func(childComplexity int) int
 	}
 
+	FgaExpandResponse struct {
+		Tree func(childComplexity int) int
+	}
+
 	FgaListObjectsResponse struct {
 		Objects func(childComplexity int) int
+	}
+
+	FgaListUsersResponse struct {
+		Users func(childComplexity int) int
 	}
 
 	FgaModel struct {
@@ -293,8 +301,10 @@ type ComplexityRoot struct {
 		Env                  func(childComplexity int) int
 		FgaBatchCheck        func(childComplexity int, params model.FgaBatchCheckInput) int
 		FgaCheck             func(childComplexity int, params model.FgaCheckInput) int
+		FgaExpand            func(childComplexity int, params model.FgaExpandInput) int
 		FgaGetModel          func(childComplexity int) int
 		FgaListObjects       func(childComplexity int, params model.FgaListObjectsInput) int
+		FgaListUsers         func(childComplexity int, params model.FgaListUsersInput) int
 		FgaReadTuples        func(childComplexity int, params model.FgaReadTuplesInput) int
 		Meta                 func(childComplexity int) int
 		Profile              func(childComplexity int) int
@@ -460,6 +470,8 @@ type QueryResolver interface {
 	AuditLogs(ctx context.Context, params *model.ListAuditLogRequest) (*model.AuditLogs, error)
 	FgaGetModel(ctx context.Context) (*model.FgaModel, error)
 	FgaReadTuples(ctx context.Context, params model.FgaReadTuplesInput) (*model.FgaTuples, error)
+	FgaListUsers(ctx context.Context, params model.FgaListUsersInput) (*model.FgaListUsersResponse, error)
+	FgaExpand(ctx context.Context, params model.FgaExpandInput) (*model.FgaExpandResponse, error)
 	FgaCheck(ctx context.Context, params model.FgaCheckInput) (*model.FgaCheckResponse, error)
 	FgaBatchCheck(ctx context.Context, params model.FgaBatchCheckInput) (*model.FgaBatchCheckResponse, error)
 	FgaListObjects(ctx context.Context, params model.FgaListObjectsInput) (*model.FgaListObjectsResponse, error)
@@ -1247,12 +1259,26 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.FgaCheckResponse.Allowed(childComplexity), true
 
+	case "FgaExpandResponse.tree":
+		if e.complexity.FgaExpandResponse.Tree == nil {
+			break
+		}
+
+		return e.complexity.FgaExpandResponse.Tree(childComplexity), true
+
 	case "FgaListObjectsResponse.objects":
 		if e.complexity.FgaListObjectsResponse.Objects == nil {
 			break
 		}
 
 		return e.complexity.FgaListObjectsResponse.Objects(childComplexity), true
+
+	case "FgaListUsersResponse.users":
+		if e.complexity.FgaListUsersResponse.Users == nil {
+			break
+		}
+
+		return e.complexity.FgaListUsersResponse.Users(childComplexity), true
 
 	case "FgaModel.dsl":
 		if e.complexity.FgaModel.Dsl == nil {
@@ -1987,6 +2013,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Query.FgaCheck(childComplexity, args["params"].(model.FgaCheckInput)), true
 
+	case "Query._fga_expand":
+		if e.complexity.Query.FgaExpand == nil {
+			break
+		}
+
+		args, err := ec.field_Query__fga_expand_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.FgaExpand(childComplexity, args["params"].(model.FgaExpandInput)), true
+
 	case "Query._fga_get_model":
 		if e.complexity.Query.FgaGetModel == nil {
 			break
@@ -2005,6 +2043,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.FgaListObjects(childComplexity, args["params"].(model.FgaListObjectsInput)), true
+
+	case "Query._fga_list_users":
+		if e.complexity.Query.FgaListUsers == nil {
+			break
+		}
+
+		args, err := ec.field_Query__fga_list_users_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.FgaListUsers(childComplexity, args["params"].(model.FgaListUsersInput)), true
 
 	case "Query._fga_read_tuples":
 		if e.complexity.Query.FgaReadTuples == nil {
@@ -2570,7 +2620,9 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputFgaBatchCheckInput,
 		ec.unmarshalInputFgaCheckInput,
 		ec.unmarshalInputFgaCheckPairInput,
+		ec.unmarshalInputFgaExpandInput,
 		ec.unmarshalInputFgaListObjectsInput,
+		ec.unmarshalInputFgaListUsersInput,
 		ec.unmarshalInputFgaReadTuplesInput,
 		ec.unmarshalInputFgaRelationInput,
 		ec.unmarshalInputFgaTupleInput,
@@ -2851,6 +2903,18 @@ type FgaBatchCheckResponse {
 # FgaListObjectsResponse lists fully-qualified object ids the caller relates to.
 type FgaListObjectsResponse {
   objects: [String!]!
+}
+
+# FgaListUsersResponse lists fully-qualified user ids (e.g. "user:alice") that
+# have the queried relation on an object. Admin-only (reveals the access graph).
+type FgaListUsersResponse {
+  users: [String!]!
+}
+
+# FgaExpandResponse is the OpenFGA relationship/userset tree for a (relation,
+# object), serialized as a JSON string. Admin-only (reveals the access graph).
+type FgaExpandResponse {
+  tree: String!
 }
 
 type ForgotPasswordResponse {
@@ -3424,14 +3488,19 @@ input FgaReadTuplesInput {
   continuation_token: String
 }
 
-# FgaCheckInput asks "is the authenticated caller related to object via
-# relation?". The caller (user) is pinned server-side from the auth token and is
-# NEVER taken from client input. Only relation, object and optional contextual
-# tuples are accepted from the client.
+# FgaCheckInput asks "is <user> related to object via relation?". The subject
+# (user) defaults to the authenticated caller and is pinned server-side from the
+# auth token. The optional ` + "`" + `user` + "`" + ` field lets a TRUSTED caller (super-admin) check
+# on behalf of another subject; a non-trusted caller supplying ` + "`" + `user` + "`" + ` is rejected
+# (no silent self-fallback). Only relation, object, optional ` + "`" + `user` + "`" + ` and optional
+# contextual tuples are accepted from the client.
 input FgaCheckInput {
   relation: String!
   object: String!
   contextual_tuples: [FgaTupleInput!]
+  # Optional subject override ("type:id" or bare id → "user:id"). Honored only
+  # for super-admin callers; rejected otherwise.
+  user: String
 }
 
 # FgaBatchCheckInput evaluates multiple relation/object pairs for the
@@ -3445,13 +3514,35 @@ input FgaCheckPairInput {
   relation: String!
   object: String!
   contextual_tuples: [FgaTupleInput!]
+  # Optional subject override ("type:id" or bare id → "user:id"). Honored only
+  # for super-admin callers; rejected otherwise.
+  user: String
 }
 
-# FgaListObjectsInput enumerates objects of type object_type the authenticated
-# caller relates to via relation (principal pinned server-side).
+# FgaListObjectsInput enumerates objects of type object_type that <user> relates
+# to via relation. The subject defaults to the authenticated caller; the optional
+# ` + "`" + `user` + "`" + ` override is honored only for super-admin callers (rejected otherwise).
 input FgaListObjectsInput {
   relation: String!
   object_type: String!
+  # Optional subject override ("type:id" or bare id → "user:id"). Honored only
+  # for super-admin callers; rejected otherwise.
+  user: String
+}
+
+# FgaListUsersInput asks "which users of user_type have relation on object?".
+# Admin-only (reveals the access graph).
+input FgaListUsersInput {
+  object: String!
+  relation: String!
+  user_type: String!
+}
+
+# FgaExpandInput asks for the relationship/userset tree of (relation, object).
+# Admin-only (reveals the access graph).
+input FgaExpandInput {
+  relation: String!
+  object: String!
 }
 
 # FgaRelationInput is a (relation, object) requirement evaluated against the
@@ -3527,6 +3618,8 @@ type Query {
   # FGA admin queries (super-admin only)
   _fga_get_model: FgaModel!
   _fga_read_tuples(params: FgaReadTuplesInput!): FgaTuples!
+  _fga_list_users(params: FgaListUsersInput!): FgaListUsersResponse!
+  _fga_expand(params: FgaExpandInput!): FgaExpandResponse!
   # FGA runtime queries (authenticated caller; principal pinned server-side)
   fga_check(params: FgaCheckInput!): FgaCheckResponse!
   fga_batch_check(params: FgaBatchCheckInput!): FgaBatchCheckResponse!
@@ -4517,6 +4610,62 @@ func (ec *executionContext) field_Query__email_templates_argsParams(
 	}
 
 	var zeroVal *model.PaginatedRequest
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query__fga_expand_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query__fga_expand_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query__fga_expand_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.FgaExpandInput, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.FgaExpandInput
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNFgaExpandInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaExpandInput(ctx, tmp)
+	}
+
+	var zeroVal model.FgaExpandInput
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query__fga_list_users_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query__fga_list_users_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query__fga_list_users_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.FgaListUsersInput, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.FgaListUsersInput
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNFgaListUsersInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaListUsersInput(ctx, tmp)
+	}
+
+	var zeroVal model.FgaListUsersInput
 	return zeroVal, nil
 }
 
@@ -9675,6 +9824,50 @@ func (ec *executionContext) fieldContext_FgaCheckResponse_allowed(_ context.Cont
 	return fc, nil
 }
 
+func (ec *executionContext) _FgaExpandResponse_tree(ctx context.Context, field graphql.CollectedField, obj *model.FgaExpandResponse) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FgaExpandResponse_tree(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Tree, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FgaExpandResponse_tree(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FgaExpandResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _FgaListObjectsResponse_objects(ctx context.Context, field graphql.CollectedField, obj *model.FgaListObjectsResponse) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_FgaListObjectsResponse_objects(ctx, field)
 	if err != nil {
@@ -9709,6 +9902,50 @@ func (ec *executionContext) _FgaListObjectsResponse_objects(ctx context.Context,
 func (ec *executionContext) fieldContext_FgaListObjectsResponse_objects(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "FgaListObjectsResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FgaListUsersResponse_users(ctx context.Context, field graphql.CollectedField, obj *model.FgaListUsersResponse) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FgaListUsersResponse_users(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Users, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FgaListUsersResponse_users(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FgaListUsersResponse",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -14898,6 +15135,124 @@ func (ec *executionContext) fieldContext_Query__fga_read_tuples(ctx context.Cont
 	return fc, nil
 }
 
+func (ec *executionContext) _Query__fga_list_users(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query__fga_list_users(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().FgaListUsers(rctx, fc.Args["params"].(model.FgaListUsersInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.FgaListUsersResponse)
+	fc.Result = res
+	return ec.marshalNFgaListUsersResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaListUsersResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query__fga_list_users(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "users":
+				return ec.fieldContext_FgaListUsersResponse_users(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FgaListUsersResponse", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query__fga_list_users_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query__fga_expand(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query__fga_expand(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().FgaExpand(rctx, fc.Args["params"].(model.FgaExpandInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.FgaExpandResponse)
+	fc.Result = res
+	return ec.marshalNFgaExpandResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaExpandResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query__fga_expand(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "tree":
+				return ec.fieldContext_FgaExpandResponse_tree(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FgaExpandResponse", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query__fga_expand_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_fga_check(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Query_fga_check(ctx, field)
 	if err != nil {
@@ -20059,7 +20414,7 @@ func (ec *executionContext) unmarshalInputFgaCheckInput(ctx context.Context, obj
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"relation", "object", "contextual_tuples"}
+	fieldsInOrder := [...]string{"relation", "object", "contextual_tuples", "user"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -20087,6 +20442,13 @@ func (ec *executionContext) unmarshalInputFgaCheckInput(ctx context.Context, obj
 				return it, err
 			}
 			it.ContextualTuples = data
+		case "user":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("user"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.User = data
 		}
 	}
 
@@ -20100,7 +20462,7 @@ func (ec *executionContext) unmarshalInputFgaCheckPairInput(ctx context.Context,
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"relation", "object", "contextual_tuples"}
+	fieldsInOrder := [...]string{"relation", "object", "contextual_tuples", "user"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -20128,6 +20490,47 @@ func (ec *executionContext) unmarshalInputFgaCheckPairInput(ctx context.Context,
 				return it, err
 			}
 			it.ContextualTuples = data
+		case "user":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("user"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.User = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputFgaExpandInput(ctx context.Context, obj any) (model.FgaExpandInput, error) {
+	var it model.FgaExpandInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"relation", "object"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "relation":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("relation"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Relation = data
+		case "object":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("object"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Object = data
 		}
 	}
 
@@ -20141,7 +20544,7 @@ func (ec *executionContext) unmarshalInputFgaListObjectsInput(ctx context.Contex
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"relation", "object_type"}
+	fieldsInOrder := [...]string{"relation", "object_type", "user"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -20162,6 +20565,54 @@ func (ec *executionContext) unmarshalInputFgaListObjectsInput(ctx context.Contex
 				return it, err
 			}
 			it.ObjectType = data
+		case "user":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("user"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.User = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputFgaListUsersInput(ctx context.Context, obj any) (model.FgaListUsersInput, error) {
+	var it model.FgaListUsersInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"object", "relation", "user_type"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "object":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("object"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Object = data
+		case "relation":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("relation"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Relation = data
+		case "user_type":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("user_type"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.UserType = data
 		}
 	}
 
@@ -23043,6 +23494,45 @@ func (ec *executionContext) _FgaCheckResponse(ctx context.Context, sel ast.Selec
 	return out
 }
 
+var fgaExpandResponseImplementors = []string{"FgaExpandResponse"}
+
+func (ec *executionContext) _FgaExpandResponse(ctx context.Context, sel ast.SelectionSet, obj *model.FgaExpandResponse) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, fgaExpandResponseImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("FgaExpandResponse")
+		case "tree":
+			out.Values[i] = ec._FgaExpandResponse_tree(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var fgaListObjectsResponseImplementors = []string{"FgaListObjectsResponse"}
 
 func (ec *executionContext) _FgaListObjectsResponse(ctx context.Context, sel ast.SelectionSet, obj *model.FgaListObjectsResponse) graphql.Marshaler {
@@ -23056,6 +23546,45 @@ func (ec *executionContext) _FgaListObjectsResponse(ctx context.Context, sel ast
 			out.Values[i] = graphql.MarshalString("FgaListObjectsResponse")
 		case "objects":
 			out.Values[i] = ec._FgaListObjectsResponse_objects(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var fgaListUsersResponseImplementors = []string{"FgaListUsersResponse"}
+
+func (ec *executionContext) _FgaListUsersResponse(ctx context.Context, sel ast.SelectionSet, obj *model.FgaListUsersResponse) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, fgaListUsersResponseImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("FgaListUsersResponse")
+		case "users":
+			out.Values[i] = ec._FgaListUsersResponse_users(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -24197,6 +24726,50 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query__fga_read_tuples(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "_fga_list_users":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query__fga_list_users(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "_fga_expand":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query__fga_expand(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -25539,6 +26112,25 @@ func (ec *executionContext) marshalNFgaCheckResponse2ᚖgithubᚗcomᚋauthorize
 	return ec._FgaCheckResponse(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNFgaExpandInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaExpandInput(ctx context.Context, v any) (model.FgaExpandInput, error) {
+	res, err := ec.unmarshalInputFgaExpandInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNFgaExpandResponse2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaExpandResponse(ctx context.Context, sel ast.SelectionSet, v model.FgaExpandResponse) graphql.Marshaler {
+	return ec._FgaExpandResponse(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNFgaExpandResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaExpandResponse(ctx context.Context, sel ast.SelectionSet, v *model.FgaExpandResponse) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._FgaExpandResponse(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNFgaListObjectsInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaListObjectsInput(ctx context.Context, v any) (model.FgaListObjectsInput, error) {
 	res, err := ec.unmarshalInputFgaListObjectsInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -25556,6 +26148,25 @@ func (ec *executionContext) marshalNFgaListObjectsResponse2ᚖgithubᚗcomᚋaut
 		return graphql.Null
 	}
 	return ec._FgaListObjectsResponse(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNFgaListUsersInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaListUsersInput(ctx context.Context, v any) (model.FgaListUsersInput, error) {
+	res, err := ec.unmarshalInputFgaListUsersInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNFgaListUsersResponse2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaListUsersResponse(ctx context.Context, sel ast.SelectionSet, v model.FgaListUsersResponse) graphql.Marshaler {
+	return ec._FgaListUsersResponse(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNFgaListUsersResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaListUsersResponse(ctx context.Context, sel ast.SelectionSet, v *model.FgaListUsersResponse) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._FgaListUsersResponse(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNFgaModel2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaModel(ctx context.Context, sel ast.SelectionSet, v model.FgaModel) graphql.Marshaler {

@@ -3,9 +3,11 @@ package openfga
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"
 	language "github.com/openfga/language/pkg/go/transformer"
+	"github.com/openfga/openfga/pkg/tuple"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
@@ -105,6 +107,63 @@ func (e *engineImpl) ListObjects(ctx context.Context, user, relation, objType st
 		return nil, fmt.Errorf("openfga.ListObjects: %w", err)
 	}
 	return res.GetObjects(), nil
+}
+
+// ListUsers returns the fully qualified user IDs (e.g. "user:alice") of type
+// userType that have relation on object. It is the inverse of ListObjects
+// ("who can access this object?") and an expensive enumeration surface that
+// reveals the access graph — callers must admin-gate, cap and audit.
+func (e *engineImpl) ListUsers(ctx context.Context, object, relation, userType string) ([]string, error) {
+	storeID, modelID := e.ids()
+	if modelID == "" {
+		return nil, fmt.Errorf("openfga.ListUsers: no authorization model written yet")
+	}
+	objType, objID, found := strings.Cut(object, ":")
+	if !found || objType == "" || objID == "" {
+		return nil, fmt.Errorf("openfga.ListUsers: object must be in type:id form, got %q", object)
+	}
+	res, err := e.srv.ListUsers(ctx, &openfgav1.ListUsersRequest{
+		StoreId:              storeID,
+		AuthorizationModelId: modelID,
+		Object:               &openfgav1.Object{Type: objType, Id: objID},
+		Relation:             relation,
+		UserFilters:          []*openfgav1.UserTypeFilter{{Type: userType}},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("openfga.ListUsers: %w", err)
+	}
+	users := make([]string, 0, len(res.GetUsers()))
+	for _, u := range res.GetUsers() {
+		users = append(users, string(tuple.UserProtoToString(u)))
+	}
+	return users, nil
+}
+
+// Expand returns the OpenFGA relationship/userset tree for (relation, object)
+// rendered as a JSON string (the explainability/"why" primitive). The tree is
+// marshaled via protojson so it is a stable, machine-readable representation of
+// how the relation resolves.
+func (e *engineImpl) Expand(ctx context.Context, relation, object string) (string, error) {
+	storeID, modelID := e.ids()
+	if modelID == "" {
+		return "", fmt.Errorf("openfga.Expand: no authorization model written yet")
+	}
+	res, err := e.srv.Expand(ctx, &openfgav1.ExpandRequest{
+		StoreId:              storeID,
+		AuthorizationModelId: modelID,
+		TupleKey: &openfgav1.ExpandRequestTupleKey{
+			Relation: relation,
+			Object:   object,
+		},
+	})
+	if err != nil {
+		return "", fmt.Errorf("openfga.Expand: %w", err)
+	}
+	jsonBytes, err := protojson.Marshal(res.GetTree())
+	if err != nil {
+		return "", fmt.Errorf("openfga.Expand: marshal tree: %w", err)
+	}
+	return string(jsonBytes), nil
 }
 
 // WriteTuples persists the given relationship tuples.

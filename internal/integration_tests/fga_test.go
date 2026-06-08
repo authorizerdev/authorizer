@@ -283,6 +283,93 @@ func TestFGA(t *testing.T) {
 		assert.False(t, res.Results[1].Allowed)
 	})
 
+	// ---- Admin introspection: _fga_list_users ("who can access this object?"). ----
+	t.Run("_fga_list_users returns expected users; non-admin rejected", func(t *testing.T) {
+		// Non-admin caller (user session, no admin cookie) must be rejected.
+		clearCookies(ts)
+		ts.GinContext.Request.Header.Set("Cookie", fmt.Sprintf("%s_session=%s", constants.AppCookieName, sessionToken))
+		res, err := ts.GraphQLProvider.FgaListUsers(ctx, &model.FgaListUsersInput{
+			Object: "document:1", Relation: "viewer", UserType: "user",
+		})
+		assert.Error(t, err, "non-admin must be rejected")
+		assert.Nil(t, res)
+
+		// Super-admin caller gets the access graph.
+		setAdminCookie(t, ts)
+		res, err = ts.GraphQLProvider.FgaListUsers(ctx, &model.FgaListUsersInput{
+			Object: "document:1", Relation: "viewer", UserType: "user",
+		})
+		require.NoError(t, err)
+		require.NotNil(t, res)
+		assert.Contains(t, res.Users, "user:"+userID)
+	})
+
+	// ---- Admin introspection: _fga_expand (the "why" tree). ----
+	t.Run("_fga_expand returns non-empty tree; non-admin rejected", func(t *testing.T) {
+		// Non-admin caller must be rejected.
+		clearCookies(ts)
+		ts.GinContext.Request.Header.Set("Cookie", fmt.Sprintf("%s_session=%s", constants.AppCookieName, sessionToken))
+		res, err := ts.GraphQLProvider.FgaExpand(ctx, &model.FgaExpandInput{
+			Relation: "viewer", Object: "document:1",
+		})
+		assert.Error(t, err, "non-admin must be rejected")
+		assert.Nil(t, res)
+
+		// Super-admin caller gets a non-empty tree.
+		setAdminCookie(t, ts)
+		res, err = ts.GraphQLProvider.FgaExpand(ctx, &model.FgaExpandInput{
+			Relation: "viewer", Object: "document:1",
+		})
+		require.NoError(t, err)
+		require.NotNil(t, res)
+		assert.NotEmpty(t, res.Tree)
+		assert.Contains(t, res.Tree, "user:"+userID)
+	})
+
+	// ---- Trust gate: explicit `user` override on the decision ops. ----
+	t.Run("fga_check super-admin may check another subject via explicit user", func(t *testing.T) {
+		setAdminCookie(t, ts)
+		otherUser := "user:someone-else" // granted viewer on document:3 above
+		res, err := ts.GraphQLProvider.FgaCheck(ctx, &model.FgaCheckInput{
+			Relation: "can_view", Object: "document:3", User: &otherUser,
+		})
+		require.NoError(t, err)
+		require.NotNil(t, res)
+		assert.True(t, res.Allowed, "super-admin override must evaluate the supplied subject")
+
+		// Same admin, but checking the caller's own (admin) subject on document:3 → deny.
+		adminSelf := "user:does-not-have-access"
+		res, err = ts.GraphQLProvider.FgaCheck(ctx, &model.FgaCheckInput{
+			Relation: "can_view", Object: "document:3", User: &adminSelf,
+		})
+		require.NoError(t, err)
+		require.NotNil(t, res)
+		assert.False(t, res.Allowed)
+	})
+
+	t.Run("fga_check ordinary user supplying another subject is REJECTED", func(t *testing.T) {
+		clearCookies(ts)
+		ts.GinContext.Request.Header.Set("Cookie", fmt.Sprintf("%s_session=%s", constants.AppCookieName, sessionToken))
+		otherUser := "user:someone-else"
+		res, err := ts.GraphQLProvider.FgaCheck(ctx, &model.FgaCheckInput{
+			Relation: "can_view", Object: "document:3", User: &otherUser,
+		})
+		assert.Error(t, err, "end user must not query another subject")
+		assert.Nil(t, res)
+		assert.Contains(t, err.Error(), "not authorized to query authorization for another subject")
+	})
+
+	t.Run("fga_check ordinary user with no user still self-checks", func(t *testing.T) {
+		clearCookies(ts)
+		ts.GinContext.Request.Header.Set("Cookie", fmt.Sprintf("%s_session=%s", constants.AppCookieName, sessionToken))
+		res, err := ts.GraphQLProvider.FgaCheck(ctx, &model.FgaCheckInput{
+			Relation: "can_view", Object: "document:1",
+		})
+		require.NoError(t, err)
+		require.NotNil(t, res)
+		assert.True(t, res.Allowed, "self-check on a granted object must still succeed")
+	})
+
 	// ---- Phase 4: validate_session honors required_relations. ----
 	t.Run("validate_session passes when required relation is satisfied", func(t *testing.T) {
 		res, err := ts.GraphQLProvider.ValidateSession(ctx, &model.ValidateSessionRequest{

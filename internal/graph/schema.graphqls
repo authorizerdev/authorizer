@@ -148,6 +148,18 @@ type FgaListObjectsResponse {
   objects: [String!]!
 }
 
+# FgaListUsersResponse lists fully-qualified user ids (e.g. "user:alice") that
+# have the queried relation on an object. Admin-only (reveals the access graph).
+type FgaListUsersResponse {
+  users: [String!]!
+}
+
+# FgaExpandResponse is the OpenFGA relationship/userset tree for a (relation,
+# object), serialized as a JSON string. Admin-only (reveals the access graph).
+type FgaExpandResponse {
+  tree: String!
+}
+
 type ForgotPasswordResponse {
   message: String!
   should_show_mobile_otp_screen: Boolean
@@ -719,14 +731,19 @@ input FgaReadTuplesInput {
   continuation_token: String
 }
 
-# FgaCheckInput asks "is the authenticated caller related to object via
-# relation?". The caller (user) is pinned server-side from the auth token and is
-# NEVER taken from client input. Only relation, object and optional contextual
-# tuples are accepted from the client.
+# FgaCheckInput asks "is <user> related to object via relation?". The subject
+# (user) defaults to the authenticated caller and is pinned server-side from the
+# auth token. The optional `user` field lets a TRUSTED caller (super-admin) check
+# on behalf of another subject; a non-trusted caller supplying `user` is rejected
+# (no silent self-fallback). Only relation, object, optional `user` and optional
+# contextual tuples are accepted from the client.
 input FgaCheckInput {
   relation: String!
   object: String!
   contextual_tuples: [FgaTupleInput!]
+  # Optional subject override ("type:id" or bare id → "user:id"). Honored only
+  # for super-admin callers; rejected otherwise.
+  user: String
 }
 
 # FgaBatchCheckInput evaluates multiple relation/object pairs for the
@@ -740,13 +757,35 @@ input FgaCheckPairInput {
   relation: String!
   object: String!
   contextual_tuples: [FgaTupleInput!]
+  # Optional subject override ("type:id" or bare id → "user:id"). Honored only
+  # for super-admin callers; rejected otherwise.
+  user: String
 }
 
-# FgaListObjectsInput enumerates objects of type object_type the authenticated
-# caller relates to via relation (principal pinned server-side).
+# FgaListObjectsInput enumerates objects of type object_type that <user> relates
+# to via relation. The subject defaults to the authenticated caller; the optional
+# `user` override is honored only for super-admin callers (rejected otherwise).
 input FgaListObjectsInput {
   relation: String!
   object_type: String!
+  # Optional subject override ("type:id" or bare id → "user:id"). Honored only
+  # for super-admin callers; rejected otherwise.
+  user: String
+}
+
+# FgaListUsersInput asks "which users of user_type have relation on object?".
+# Admin-only (reveals the access graph).
+input FgaListUsersInput {
+  object: String!
+  relation: String!
+  user_type: String!
+}
+
+# FgaExpandInput asks for the relationship/userset tree of (relation, object).
+# Admin-only (reveals the access graph).
+input FgaExpandInput {
+  relation: String!
+  object: String!
 }
 
 # FgaRelationInput is a (relation, object) requirement evaluated against the
@@ -822,6 +861,8 @@ type Query {
   # FGA admin queries (super-admin only)
   _fga_get_model: FgaModel!
   _fga_read_tuples(params: FgaReadTuplesInput!): FgaTuples!
+  _fga_list_users(params: FgaListUsersInput!): FgaListUsersResponse!
+  _fga_expand(params: FgaExpandInput!): FgaExpandResponse!
   # FGA runtime queries (authenticated caller; principal pinned server-side)
   fga_check(params: FgaCheckInput!): FgaCheckResponse!
   fga_batch_check(params: FgaBatchCheckInput!): FgaBatchCheckResponse!
