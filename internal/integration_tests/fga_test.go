@@ -549,4 +549,28 @@ func TestFGADisabled(t *testing.T) {
 		assert.Error(t, err)
 		assert.Nil(t, res)
 	})
+
+	// The instance works normally without FGA: a session validated without any
+	// required_relations succeeds even though no FGA engine is configured. This
+	// is the common case for a non-OpenFGA-compatible database (mongodb,
+	// dynamodb, …) started without --fga-store.
+	t.Run("works without FGA: validate_session without required_relations succeeds", func(t *testing.T) {
+		email := "fga_off_ok_" + uuid.New().String() + "@authorizer.dev"
+		password := "Password@123"
+		_, err := ts.GraphQLProvider.SignUp(ctx, &model.SignUpRequest{
+			Email: &email, Password: password, ConfirmPassword: password,
+		})
+		require.NoError(t, err)
+		_, err = ts.GraphQLProvider.Login(ctx, &model.LoginRequest{Email: &email, Password: password})
+		require.NoError(t, err)
+		sessionToken := latestAppSessionCookie(ts)
+		require.NotEmpty(t, sessionToken)
+
+		res, err := ts.GraphQLProvider.ValidateSession(ctx, &model.ValidateSessionRequest{
+			Cookie: sessionToken,
+		})
+		require.NoError(t, err, "session validation must work when FGA is disabled")
+		require.NotNil(t, res)
+		assert.True(t, res.IsValid)
+	})
 }

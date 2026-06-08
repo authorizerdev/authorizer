@@ -1,6 +1,52 @@
 package config
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/authorizerdev/authorizer/internal/constants"
+)
+
+// TestFGADisabledForUnsupportedDatabasesWithoutOverride verifies that for every
+// database OpenFGA cannot use, FGA is DISABLED when neither --fga-store nor
+// --fga-store-url is set — so the instance runs normally, just without FGA.
+// An explicit --fga-store override still turns it on for those databases.
+func TestFGADisabledForUnsupportedDatabasesWithoutOverride(t *testing.T) {
+	unsupported := []string{
+		constants.DbTypeMongoDB,
+		constants.DbTypeDynamoDB,
+		constants.DbTypeCassandraDB,
+		constants.DbTypeScyllaDB,
+		constants.DbTypeCouchbaseDB,
+		constants.DbTypeArangoDB,
+		constants.DbTypeSqlserver,
+		constants.DbTypeLibSQL,
+		constants.DbTypeCockroachDB,
+		constants.DbTypeYugabyte,
+		constants.DbTypePlanetScaleDB,
+	}
+
+	for _, dbType := range unsupported {
+		t.Run(dbType+" without store => FGA off", func(t *testing.T) {
+			cfg := Config{DatabaseType: dbType, DatabaseURL: "scheme://host/db"}
+			store, url, enabled := cfg.FGAStoreConfig()
+			if enabled {
+				t.Fatalf("FGA must be disabled for %q without --fga-store (got store=%q url=%q)", dbType, store, url)
+			}
+		})
+
+		t.Run(dbType+" with explicit store => FGA on", func(t *testing.T) {
+			cfg := Config{
+				DatabaseType: dbType,
+				DatabaseURL:  "scheme://host/db",
+				FGAStore:     "postgres",
+				FGAStoreURL:  "postgres://u:p@h:5432/fga",
+			}
+			if _, _, enabled := cfg.FGAStoreConfig(); !enabled {
+				t.Fatalf("explicit --fga-store must enable FGA for %q", dbType)
+			}
+		})
+	}
+}
 
 func TestFGAStoreConfig(t *testing.T) {
 	cases := []struct {
