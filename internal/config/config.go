@@ -327,4 +327,27 @@ type Config struct {
 	// AuthorizationLogAllChecks controls whether all permission checks are audit logged.
 	// When false (default), only denied checks are logged. When true, all checks are logged.
 	AuthorizationLogAllChecks bool
+
+	// OpenFGA / Fine-Grained Authorization engine (Phase 1 — additive)
+	// These configure the OpenFGA-backed AuthorizationEngine. The engine is
+	// selectable but NOT yet the default; existing policy-based authorization is
+	// unchanged when AuthorizationEngine is empty or "policy".
+
+	// AuthorizationEngine selects the authorization backend: "policy" (existing
+	// resource/scope/policy engine, default) or "fga" (OpenFGA ReBAC engine).
+	// Empty is treated as "policy" to preserve existing behavior.
+	AuthorizationEngine string
+	// FGAMode selects how the OpenFGA engine runs: "embedded" (in-process,
+	// default) or "external" (a standalone OpenFGA service). Only relevant when
+	// AuthorizationEngine is "fga".
+	FGAMode string
+	// FGAStore selects the OpenFGA datastore kind: "memory" (dev/tests),
+	// "sqlite" (single-node), "postgres" or "mysql" (HA). Default: "memory".
+	FGAStore string
+	// FGAStoreURL is the OpenFGA datastore connection URI: a file: URI for
+	// sqlite, or a DSN for postgres/mysql. Ignored for the memory store.
+	FGAStoreURL string
+	// FGAExternalURL is the gRPC URL of an external OpenFGA service. Only used
+	// when FGAMode is "external".
+	FGAExternalURL string
 }

@@ -7,7 +7,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/authenticators"
-	"github.com/authorizerdev/authorizer/internal/authorization"
+	"github.com/authorizerdev/authorizer/internal/authorization/engine"
 	"github.com/authorizerdev/authorizer/internal/config"
 	"github.com/authorizerdev/authorizer/internal/email"
 	"github.com/authorizerdev/authorizer/internal/events"
@@ -39,8 +39,14 @@ type Dependencies struct {
 	StorageProvider storage.Provider
 	// TokenProvider is used to generate tokens
 	TokenProvider token.Provider
-	// AuthorizationProvider is used for fine-grained authorization checks
-	AuthorizationProvider authorization.Provider
+	// AuthzEngine is the fine-grained authorization (FGA) engine.
+	// It is nil unless --authorization-engine=fga; resolvers MUST fail closed
+	// (return an error) when it is nil.
+	//
+	// Named AuthzEngine (not AuthorizationEngine) to avoid an ambiguous-selector
+	// clash with config.Config.AuthorizationEngine, which graphqlProvider also
+	// embeds.
+	AuthzEngine engine.AuthorizationEngine
 }
 
 // New constructs a new graphql provider with given arguments
@@ -187,62 +193,28 @@ type Provider interface {
 	// Webhooks is the method to list webhooks.
 	// Permissions: authorizer:admin
 	Webhooks(ctx context.Context, in *model.PaginatedRequest) (*model.Webhooks, error)
-
-	// === Fine-Grained Authorization ===
-
-	// AuthzAddResource creates a new authorization resource.
+	// FgaWriteModel installs a new fine-grained authorization model.
 	// Permissions: authorizer:admin
-	AuthzAddResource(ctx context.Context, params *model.AddResourceInput) (*model.AuthzResource, error)
-	// AuthzUpdateResource updates an existing authorization resource.
+	FgaWriteModel(ctx context.Context, params *model.FgaWriteModelInput) (*model.FgaModel, error)
+	// FgaGetModel returns the active fine-grained authorization model.
 	// Permissions: authorizer:admin
-	AuthzUpdateResource(ctx context.Context, params *model.UpdateResourceInput) (*model.AuthzResource, error)
-	// AuthzDeleteResource deletes an authorization resource by ID.
+	FgaGetModel(ctx context.Context) (*model.FgaModel, error)
+	// FgaWriteTuples writes fine-grained authorization tuples.
 	// Permissions: authorizer:admin
-	AuthzDeleteResource(ctx context.Context, id string) (*model.Response, error)
-	// AuthzResources lists authorization resources with pagination.
+	FgaWriteTuples(ctx context.Context, params *model.FgaWriteTuplesInput) (*model.Response, error)
+	// FgaDeleteTuples deletes fine-grained authorization tuples.
 	// Permissions: authorizer:admin
-	AuthzResources(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzResources, error)
-
-	// AuthzAddScope creates a new authorization scope.
+	FgaDeleteTuples(ctx context.Context, params *model.FgaWriteTuplesInput) (*model.Response, error)
+	// FgaReadTuples reads a page of fine-grained authorization tuples.
 	// Permissions: authorizer:admin
-	AuthzAddScope(ctx context.Context, params *model.AddScopeInput) (*model.AuthzScope, error)
-	// AuthzUpdateScope updates an existing authorization scope.
-	// Permissions: authorizer:admin
-	AuthzUpdateScope(ctx context.Context, params *model.UpdateScopeInput) (*model.AuthzScope, error)
-	// AuthzDeleteScope deletes an authorization scope by ID.
-	// Permissions: authorizer:admin
-	AuthzDeleteScope(ctx context.Context, id string) (*model.Response, error)
-	// AuthzScopes lists authorization scopes with pagination.
-	// Permissions: authorizer:admin
-	AuthzScopes(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzScopes, error)
-
-	// AuthzAddPolicy creates a new authorization policy with targets.
-	// Permissions: authorizer:admin
-	AuthzAddPolicy(ctx context.Context, params *model.AddPolicyInput) (*model.AuthzPolicy, error)
-	// AuthzUpdatePolicy updates an existing authorization policy.
-	// Permissions: authorizer:admin
-	AuthzUpdatePolicy(ctx context.Context, params *model.UpdatePolicyInput) (*model.AuthzPolicy, error)
-	// AuthzDeletePolicy deletes an authorization policy by ID.
-	// Permissions: authorizer:admin
-	AuthzDeletePolicy(ctx context.Context, id string) (*model.Response, error)
-	// AuthzPolicies lists authorization policies with pagination.
-	// Permissions: authorizer:admin
-	AuthzPolicies(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzPolicies, error)
-
-	// AuthzAddPermission creates a new authorization permission binding a resource to scopes and policies.
-	// Permissions: authorizer:admin
-	AuthzAddPermission(ctx context.Context, params *model.AddPermissionInput) (*model.AuthzPermission, error)
-	// AuthzUpdatePermission updates an existing authorization permission.
-	// Permissions: authorizer:admin
-	AuthzUpdatePermission(ctx context.Context, params *model.UpdatePermissionInput) (*model.AuthzPermission, error)
-	// AuthzDeletePermission deletes an authorization permission by ID.
-	// Permissions: authorizer:admin
-	AuthzDeletePermission(ctx context.Context, id string) (*model.Response, error)
-	// AuthzPermissions lists authorization permissions with pagination.
-	// Permissions: authorizer:admin
-	AuthzPermissions(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzPermissions, error)
-
-	// Permissions returns all resource:scope pairs the authenticated user has access to.
+	FgaReadTuples(ctx context.Context, params *model.FgaReadTuplesInput) (*model.FgaTuples, error)
+	// FgaCheck checks a relation for the authenticated caller (principal pinned).
 	// Permissions: authorized user
-	Permissions(ctx context.Context) ([]*model.Permission, error)
+	FgaCheck(ctx context.Context, params *model.FgaCheckInput) (*model.FgaCheckResponse, error)
+	// FgaBatchCheck checks multiple relations for the authenticated caller.
+	// Permissions: authorized user
+	FgaBatchCheck(ctx context.Context, params *model.FgaBatchCheckInput) (*model.FgaBatchCheckResponse, error)
+	// FgaListObjects lists objects the authenticated caller relates to.
+	// Permissions: authorized user
+	FgaListObjects(ctx context.Context, params *model.FgaListObjectsInput) (*model.FgaListObjectsResponse, error)
 }

@@ -1,0 +1,317 @@
+import React, { useCallback, useEffect, useState } from 'react';
+import { useClient } from 'urql';
+import { toast } from 'sonner';
+import { AlertCircle, Plus, Trash2, ChevronRight, RotateCcw } from 'lucide-react';
+import { FgaReadTuplesQuery } from '../../graphql/queries';
+import { FgaWriteTuples, FgaDeleteTuples } from '../../graphql/mutation';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Skeleton } from '../../components/ui/skeleton';
+import {
+	Table,
+	TableHeader,
+	TableBody,
+	TableRow,
+	TableHead,
+	TableCell,
+} from '../../components/ui/table';
+import FgaNotEnabled from '../../components/FgaNotEnabled';
+import { isFgaNotEnabledError } from '../../lib/utils';
+import type {
+	FgaTuple,
+	FgaReadTuplesResponse,
+	FgaWriteTuplesResponse,
+	FgaDeleteTuplesResponse,
+} from '../../types';
+
+const PAGE_SIZE = 25;
+
+const emptyForm = { user: '', relation: '', object: '' };
+
+const Tuples = () => {
+	const client = useClient();
+	const [loading, setLoading] = useState<boolean>(true);
+	const [fgaDisabled, setFgaDisabled] = useState<boolean>(false);
+	const [tuples, setTuples] = useState<FgaTuple[]>([]);
+	// continuation token of the page currently displayed.
+	const [currentToken, setCurrentToken] = useState<string>('');
+	// continuation token to load the next page (empty when exhausted).
+	const [nextToken, setNextToken] = useState<string>('');
+	// stack of tokens for previous pages so we can page backwards.
+	const [tokenStack, setTokenStack] = useState<string[]>([]);
+	const [form, setForm] = useState<typeof emptyForm>(emptyForm);
+	const [submitting, setSubmitting] = useState<boolean>(false);
+
+	const fetchTuples = useCallback(
+		async (continuationToken: string) => {
+			setLoading(true);
+			try {
+				const res = await client
+					.query<FgaReadTuplesResponse>(
+						FgaReadTuplesQuery,
+						{
+							params: {
+								page_size: PAGE_SIZE,
+								continuation_token: continuationToken || undefined,
+							},
+						},
+						{ requestPolicy: 'network-only' },
+					)
+					.toPromise();
+
+				if (res.error) {
+					if (isFgaNotEnabledError(res.error)) {
+						setFgaDisabled(true);
+					} else {
+						toast.error('Failed to load relationship tuples');
+					}
+					return;
+				}
+
+				if (res.data?._fga_read_tuples) {
+					setTuples(res.data._fga_read_tuples.tuples || []);
+					setNextToken(res.data._fga_read_tuples.continuation_token || '');
+				}
+			} catch {
+				toast.error('Failed to load relationship tuples');
+			} finally {
+				setLoading(false);
+			}
+		},
+		[client],
+	);
+
+	useEffect(() => {
+		fetchTuples('');
+	}, [fetchTuples]);
+
+	const goNext = () => {
+		if (!nextToken) {
+			return;
+		}
+		setTokenStack((prev) => [...prev, currentToken]);
+		setCurrentToken(nextToken);
+		fetchTuples(nextToken);
+	};
+
+	const goReset = () => {
+		setTokenStack([]);
+		setCurrentToken('');
+		fetchTuples('');
+	};
+
+	const handleAdd = async (e: React.FormEvent) => {
+		e.preventDefault();
+		if (!form.user.trim() || !form.relation.trim() || !form.object.trim()) {
+			toast.error('user, relation and object are all required');
+			return;
+		}
+		setSubmitting(true);
+		try {
+			const res = await client
+				.mutation<FgaWriteTuplesResponse>(FgaWriteTuples, {
+					params: {
+						tuples: [
+							{
+								user: form.user.trim(),
+								relation: form.relation.trim(),
+								object: form.object.trim(),
+							},
+						],
+					},
+				})
+				.toPromise();
+
+			if (res.error) {
+				if (isFgaNotEnabledError(res.error)) {
+					setFgaDisabled(true);
+				} else {
+					toast.error(res.error.message.replace('[GraphQL] ', ''));
+				}
+				return;
+			}
+
+			toast.success('Tuple added');
+			setForm(emptyForm);
+			goReset();
+		} catch {
+			toast.error('Failed to add tuple');
+		} finally {
+			setSubmitting(false);
+		}
+	};
+
+	const handleDelete = async (tuple: FgaTuple) => {
+		try {
+			const res = await client
+				.mutation<FgaDeleteTuplesResponse>(FgaDeleteTuples, {
+					params: {
+						tuples: [
+							{
+								user: tuple.user,
+								relation: tuple.relation,
+								object: tuple.object,
+							},
+						],
+					},
+				})
+				.toPromise();
+
+			if (res.error) {
+				if (isFgaNotEnabledError(res.error)) {
+					setFgaDisabled(true);
+				} else {
+					toast.error(res.error.message.replace('[GraphQL] ', ''));
+				}
+				return;
+			}
+
+			toast.success('Tuple deleted');
+			fetchTuples(currentToken);
+		} catch {
+			toast.error('Failed to delete tuple');
+		}
+	};
+
+	if (fgaDisabled) {
+		return (
+			<div className="m-5 rounded-md bg-white py-5 px-10">
+				<div className="my-4">
+					<h1 className="text-2xl font-semibold text-gray-900">
+						Relationship Tuples
+					</h1>
+				</div>
+				<FgaNotEnabled />
+			</div>
+		);
+	}
+
+	return (
+		<div className="m-5 rounded-md bg-white py-5 px-10">
+			<div className="my-4">
+				<h1 className="text-2xl font-semibold text-gray-900">
+					Relationship Tuples
+				</h1>
+				<p className="mt-1 text-sm text-gray-500">
+					Manage relationship tuples (user, relation, object) stored in the FGA
+					store.
+				</p>
+			</div>
+
+			{/* Add tuple form */}
+			<form
+				onSubmit={handleAdd}
+				className="mb-6 grid grid-cols-1 gap-3 rounded-md border border-gray-100 bg-gray-50 p-4 md:grid-cols-[1fr_1fr_1fr_auto] md:items-end"
+			>
+				<div className="space-y-1">
+					<Label htmlFor="tuple-user">User</Label>
+					<Input
+						id="tuple-user"
+						placeholder="user:alice"
+						value={form.user}
+						onChange={(e) => setForm({ ...form, user: e.target.value })}
+					/>
+				</div>
+				<div className="space-y-1">
+					<Label htmlFor="tuple-relation">Relation</Label>
+					<Input
+						id="tuple-relation"
+						placeholder="viewer"
+						value={form.relation}
+						onChange={(e) => setForm({ ...form, relation: e.target.value })}
+					/>
+				</div>
+				<div className="space-y-1">
+					<Label htmlFor="tuple-object">Object</Label>
+					<Input
+						id="tuple-object"
+						placeholder="document:1"
+						value={form.object}
+						onChange={(e) => setForm({ ...form, object: e.target.value })}
+					/>
+				</div>
+				<Button type="submit" disabled={submitting}>
+					<Plus className="mr-2 h-4 w-4" />
+					{submitting ? 'Adding...' : 'Add'}
+				</Button>
+			</form>
+
+			{loading ? (
+				<div className="space-y-3">
+					{[1, 2, 3].map((i) => (
+						<Skeleton key={i} className="h-10 w-full" />
+					))}
+				</div>
+			) : tuples.length ? (
+				<>
+					<Table>
+						<TableHeader>
+							<TableRow>
+								<TableHead>User</TableHead>
+								<TableHead>Relation</TableHead>
+								<TableHead>Object</TableHead>
+								<TableHead className="text-right">Actions</TableHead>
+							</TableRow>
+						</TableHeader>
+						<TableBody>
+							{tuples.map((tuple) => (
+								<TableRow
+									key={`${tuple.user}|${tuple.relation}|${tuple.object}`}
+								>
+									<TableCell className="font-mono text-sm">
+										{tuple.user}
+									</TableCell>
+									<TableCell className="font-mono text-sm">
+										{tuple.relation}
+									</TableCell>
+									<TableCell className="font-mono text-sm">
+										{tuple.object}
+									</TableCell>
+									<TableCell className="text-right">
+										<Button
+											variant="ghost"
+											size="sm"
+											onClick={() => handleDelete(tuple)}
+										>
+											<Trash2 className="h-4 w-4 text-red-500" />
+										</Button>
+									</TableCell>
+								</TableRow>
+							))}
+						</TableBody>
+					</Table>
+
+					{/* Continuation-token pagination */}
+					<div className="mt-4 flex items-center justify-between">
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={goReset}
+							disabled={tokenStack.length === 0 && !currentToken}
+						>
+							<RotateCcw className="mr-2 h-4 w-4" />
+							First page
+						</Button>
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={goNext}
+							disabled={!nextToken}
+						>
+							Next page
+							<ChevronRight className="ml-2 h-4 w-4" />
+						</Button>
+					</div>
+				</>
+			) : (
+				<div className="flex min-h-[25vh] flex-col items-center justify-center text-gray-300">
+					<AlertCircle className="mb-2 h-16 w-16" />
+					<p className="text-2xl font-bold">No Tuples</p>
+				</div>
+			)}
+		</div>
+	);
+};
+
+export default Tuples;

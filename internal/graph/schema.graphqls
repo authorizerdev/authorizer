@@ -110,6 +110,44 @@ type Response {
   message: String!
 }
 
+# ---- Fine-grained authorization (FGA) types ----
+
+# FgaTuple is a single relationship: user is related to object via relation.
+# Identifiers follow OpenFGA conventions: user "user:alice" (or userset
+# "role:admin#assignee"), object "document:1".
+type FgaTuple {
+  user: String!
+  relation: String!
+  object: String!
+}
+
+# FgaModel describes an authorization model (id + DSL form).
+type FgaModel {
+  id: String!
+  dsl: String!
+}
+
+# FgaTuples is a page of tuples plus a continuation token (empty when exhausted).
+type FgaTuples {
+  tuples: [FgaTuple!]!
+  continuation_token: String
+}
+
+# FgaCheckResponse is the result of a single relationship check.
+type FgaCheckResponse {
+  allowed: Boolean!
+}
+
+# FgaBatchCheckResponse is the positionally-aligned result of a batch check.
+type FgaBatchCheckResponse {
+  results: [FgaCheckResponse!]!
+}
+
+# FgaListObjectsResponse lists fully-qualified object ids the caller relates to.
+type FgaListObjectsResponse {
+  objects: [String!]!
+}
+
 type ForgotPasswordResponse {
   message: String!
   should_show_mobile_otp_screen: Boolean
@@ -510,10 +548,10 @@ input SessionQueryRequest {
   # when a session already exists and the login UI auto-detects it,
   # passing state ensures the authorization code state is properly stored
   state: String
-  # required_permissions is an optional list of resource:scope pairs that
-  # must all be granted to the principal. If any is denied the query returns
-  # unauthorized (AND semantics, matching the roles filter).
-  required_permissions: [PermissionInput!]
+  # required_relations gates the session on fine-grained authorization.
+  # Each (relation, object) is checked against the authenticated caller with
+  # AND semantics, fail-closed. Requires --authorization-engine=fga.
+  required_relations: [FgaRelationInput!]
 }
 
 input PaginationRequest {
@@ -542,13 +580,17 @@ input ValidateJWTTokenRequest {
   token_type: String!
   token: String!
   roles: [String!]
-  required_permissions: [PermissionInput!]
+  # required_relations gates validation on fine-grained authorization.
+  # AND semantics, fail-closed. Requires --authorization-engine=fga.
+  required_relations: [FgaRelationInput!]
 }
 
 input ValidateSessionRequest {
   cookie: String!
   roles: [String!]
-  required_permissions: [PermissionInput!]
+  # required_relations gates validation on fine-grained authorization.
+  # AND semantics, fail-closed. Requires --authorization-engine=fga.
+  required_relations: [FgaRelationInput!]
 }
 
 input GenerateJWTKeysRequest {
@@ -647,143 +689,71 @@ input GetUserRequest {
   email: String
 }
 
-type AuthzResource {
-  id: ID!
-  name: String!
-  description: String
-  created_at: Int64!
-  updated_at: Int64!
+# ---- Fine-grained authorization (FGA) inputs ----
+
+# FgaTupleInput is a single relationship tuple supplied by an admin for write /
+# delete / read operations.
+input FgaTupleInput {
+  user: String!
+  relation: String!
+  object: String!
 }
 
-type AuthzResources {
-  pagination: Pagination!
-  resources: [AuthzResource!]!
+# FgaWriteModelInput installs a new authorization model from its DSL form.
+input FgaWriteModelInput {
+  dsl: String!
 }
 
-type AuthzScope {
-  id: ID!
-  name: String!
-  description: String
-  created_at: Int64!
-  updated_at: Int64!
+# FgaWriteTuplesInput is used for both writing and deleting tuples.
+input FgaWriteTuplesInput {
+  tuples: [FgaTupleInput!]!
 }
 
-type AuthzScopes {
-  pagination: Pagination!
-  scopes: [AuthzScope!]!
+# FgaReadTuplesInput is a paginated, optionally-filtered tuple read. Any empty
+# field acts as a wildcard for that position.
+input FgaReadTuplesInput {
+  user: String
+  relation: String
+  object: String
+  page_size: Int64
+  continuation_token: String
 }
 
-type AuthzPolicyTarget {
-  id: ID!
-  target_type: String!
-  target_value: String!
+# FgaCheckInput asks "is the authenticated caller related to object via
+# relation?". The caller (user) is pinned server-side from the auth token and is
+# NEVER taken from client input. Only relation, object and optional contextual
+# tuples are accepted from the client.
+input FgaCheckInput {
+  relation: String!
+  object: String!
+  contextual_tuples: [FgaTupleInput!]
 }
 
-type AuthzPolicy {
-  id: ID!
-  name: String!
-  description: String
-  type: String!
-  logic: String!
-  decision_strategy: String!
-  targets: [AuthzPolicyTarget!]!
-  created_at: Int64!
-  updated_at: Int64!
+# FgaBatchCheckInput evaluates multiple relation/object pairs for the
+# authenticated caller (principal pinned server-side).
+input FgaBatchCheckInput {
+  checks: [FgaCheckPairInput!]!
 }
 
-type AuthzPolicies {
-  pagination: Pagination!
-  policies: [AuthzPolicy!]!
+# FgaCheckPairInput is one relation/object pair within a batch check.
+input FgaCheckPairInput {
+  relation: String!
+  object: String!
+  contextual_tuples: [FgaTupleInput!]
 }
 
-type AuthzPermission {
-  id: ID!
-  name: String!
-  description: String
-  resource: AuthzResource!
-  scopes: [AuthzScope!]!
-  policies: [AuthzPolicy!]!
-  decision_strategy: String!
-  created_at: Int64!
-  updated_at: Int64!
+# FgaListObjectsInput enumerates objects of type object_type the authenticated
+# caller relates to via relation (principal pinned server-side).
+input FgaListObjectsInput {
+  relation: String!
+  object_type: String!
 }
 
-type AuthzPermissions {
-  pagination: Pagination!
-  permissions: [AuthzPermission!]!
-}
-
-type Permission {
-  resource: String!
-  scope: String!
-}
-
-input AddResourceInput {
-  name: String!
-  description: String
-}
-
-input UpdateResourceInput {
-  id: ID!
-  name: String
-  description: String
-}
-
-input AddScopeInput {
-  name: String!
-  description: String
-}
-
-input UpdateScopeInput {
-  id: ID!
-  name: String
-  description: String
-}
-
-input PolicyTargetInput {
-  target_type: String!
-  target_value: String!
-}
-
-input AddPolicyInput {
-  name: String!
-  description: String
-  type: String!
-  logic: String
-  decision_strategy: String
-  targets: [PolicyTargetInput!]!
-}
-
-input UpdatePolicyInput {
-  id: ID!
-  name: String
-  description: String
-  logic: String
-  decision_strategy: String
-  targets: [PolicyTargetInput!]
-}
-
-input AddPermissionInput {
-  name: String!
-  description: String
-  resource_id: ID!
-  scope_ids: [ID!]!
-  policy_ids: [ID!]!
-  decision_strategy: String
-}
-
-input UpdatePermissionInput {
-  id: ID!
-  name: String
-  description: String
-  scope_ids: [ID!]
-  policy_ids: [ID!]
-  decision_strategy: String
-}
-
-input PermissionInput {
-  resource: String!
-  scope: String!
+# FgaRelationInput is a (relation, object) requirement evaluated against the
+# authenticated caller during session/validate. AND semantics, fail-closed.
+input FgaRelationInput {
+  relation: String!
+  object: String!
 }
 
 type Mutation {
@@ -825,22 +795,10 @@ type Mutation {
   _add_email_template(params: AddEmailTemplateRequest!): Response!
   _update_email_template(params: UpdateEmailTemplateRequest!): Response!
   _delete_email_template(params: DeleteEmailTemplateRequest!): Response!
-  # Authorization: Resources
-  _authz_add_resource(params: AddResourceInput!): AuthzResource!
-  _authz_update_resource(params: UpdateResourceInput!): AuthzResource!
-  _authz_delete_resource(id: ID!): Response!
-  # Authorization: Scopes
-  _authz_add_scope(params: AddScopeInput!): AuthzScope!
-  _authz_update_scope(params: UpdateScopeInput!): AuthzScope!
-  _authz_delete_scope(id: ID!): Response!
-  # Authorization: Policies
-  _authz_add_policy(params: AddPolicyInput!): AuthzPolicy!
-  _authz_update_policy(params: UpdatePolicyInput!): AuthzPolicy!
-  _authz_delete_policy(id: ID!): Response!
-  # Authorization: Permissions
-  _authz_add_permission(params: AddPermissionInput!): AuthzPermission!
-  _authz_update_permission(params: UpdatePermissionInput!): AuthzPermission!
-  _authz_delete_permission(id: ID!): Response!
+  # FGA admin mutations (super-admin only)
+  _fga_write_model(params: FgaWriteModelInput!): FgaModel!
+  _fga_write_tuples(params: FgaWriteTuplesInput!): Response!
+  _fga_delete_tuples(params: FgaWriteTuplesInput!): Response!
 }
 
 type Query {
@@ -861,11 +819,11 @@ type Query {
   _webhook_logs(params: ListWebhookLogRequest): WebhookLogs!
   _email_templates(params: PaginatedRequest): EmailTemplates!
   _audit_logs(params: ListAuditLogRequest): AuditLogs!
-  # Authorization: Admin queries
-  _authz_resources(params: PaginatedRequest): AuthzResources!
-  _authz_scopes(params: PaginatedRequest): AuthzScopes!
-  _authz_policies(params: PaginatedRequest): AuthzPolicies!
-  _authz_permissions(params: PaginatedRequest): AuthzPermissions!
-  # Authorization: User-facing queries
-  permissions: [Permission!]!
+  # FGA admin queries (super-admin only)
+  _fga_get_model: FgaModel!
+  _fga_read_tuples(params: FgaReadTuplesInput!): FgaTuples!
+  # FGA runtime queries (authenticated caller; principal pinned server-side)
+  fga_check(params: FgaCheckInput!): FgaCheckResponse!
+  fga_batch_check(params: FgaBatchCheckInput!): FgaBatchCheckResponse!
+  fga_list_objects(params: FgaListObjectsInput!): FgaListObjectsResponse!
 }

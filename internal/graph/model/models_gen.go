@@ -9,34 +9,6 @@ type AddEmailTemplateRequest struct {
 	Design    *string `json:"design,omitempty"`
 }
 
-type AddPermissionInput struct {
-	Name             string   `json:"name"`
-	Description      *string  `json:"description,omitempty"`
-	ResourceID       string   `json:"resource_id"`
-	ScopeIds         []string `json:"scope_ids"`
-	PolicyIds        []string `json:"policy_ids"`
-	DecisionStrategy *string  `json:"decision_strategy,omitempty"`
-}
-
-type AddPolicyInput struct {
-	Name             string               `json:"name"`
-	Description      *string              `json:"description,omitempty"`
-	Type             string               `json:"type"`
-	Logic            *string              `json:"logic,omitempty"`
-	DecisionStrategy *string              `json:"decision_strategy,omitempty"`
-	Targets          []*PolicyTargetInput `json:"targets"`
-}
-
-type AddResourceInput struct {
-	Name        string  `json:"name"`
-	Description *string `json:"description,omitempty"`
-}
-
-type AddScopeInput struct {
-	Name        string  `json:"name"`
-	Description *string `json:"description,omitempty"`
-}
-
 type AddWebhookRequest struct {
 	EventName        string         `json:"event_name"`
 	EventDescription *string        `json:"event_description,omitempty"`
@@ -85,72 +57,6 @@ type AuthResponse struct {
 	AuthenticatorScannerImage  *string   `json:"authenticator_scanner_image,omitempty"`
 	AuthenticatorSecret        *string   `json:"authenticator_secret,omitempty"`
 	AuthenticatorRecoveryCodes []*string `json:"authenticator_recovery_codes,omitempty"`
-}
-
-type AuthzPermission struct {
-	ID               string         `json:"id"`
-	Name             string         `json:"name"`
-	Description      *string        `json:"description,omitempty"`
-	Resource         *AuthzResource `json:"resource"`
-	Scopes           []*AuthzScope  `json:"scopes"`
-	Policies         []*AuthzPolicy `json:"policies"`
-	DecisionStrategy string         `json:"decision_strategy"`
-	CreatedAt        int64          `json:"created_at"`
-	UpdatedAt        int64          `json:"updated_at"`
-}
-
-type AuthzPermissions struct {
-	Pagination  *Pagination        `json:"pagination"`
-	Permissions []*AuthzPermission `json:"permissions"`
-}
-
-type AuthzPolicies struct {
-	Pagination *Pagination    `json:"pagination"`
-	Policies   []*AuthzPolicy `json:"policies"`
-}
-
-type AuthzPolicy struct {
-	ID               string               `json:"id"`
-	Name             string               `json:"name"`
-	Description      *string              `json:"description,omitempty"`
-	Type             string               `json:"type"`
-	Logic            string               `json:"logic"`
-	DecisionStrategy string               `json:"decision_strategy"`
-	Targets          []*AuthzPolicyTarget `json:"targets"`
-	CreatedAt        int64                `json:"created_at"`
-	UpdatedAt        int64                `json:"updated_at"`
-}
-
-type AuthzPolicyTarget struct {
-	ID          string `json:"id"`
-	TargetType  string `json:"target_type"`
-	TargetValue string `json:"target_value"`
-}
-
-type AuthzResource struct {
-	ID          string  `json:"id"`
-	Name        string  `json:"name"`
-	Description *string `json:"description,omitempty"`
-	CreatedAt   int64   `json:"created_at"`
-	UpdatedAt   int64   `json:"updated_at"`
-}
-
-type AuthzResources struct {
-	Pagination *Pagination      `json:"pagination"`
-	Resources  []*AuthzResource `json:"resources"`
-}
-
-type AuthzScope struct {
-	ID          string  `json:"id"`
-	Name        string  `json:"name"`
-	Description *string `json:"description,omitempty"`
-	CreatedAt   int64   `json:"created_at"`
-	UpdatedAt   int64   `json:"updated_at"`
-}
-
-type AuthzScopes struct {
-	Pagination *Pagination   `json:"pagination"`
-	Scopes     []*AuthzScope `json:"scopes"`
 }
 
 type DeleteEmailTemplateRequest struct {
@@ -253,6 +159,82 @@ type Env struct {
 type Error struct {
 	Message string `json:"message"`
 	Reason  string `json:"reason"`
+}
+
+type FgaBatchCheckInput struct {
+	Checks []*FgaCheckPairInput `json:"checks"`
+}
+
+type FgaBatchCheckResponse struct {
+	Results []*FgaCheckResponse `json:"results"`
+}
+
+type FgaCheckInput struct {
+	Relation         string           `json:"relation"`
+	Object           string           `json:"object"`
+	ContextualTuples []*FgaTupleInput `json:"contextual_tuples,omitempty"`
+}
+
+type FgaCheckPairInput struct {
+	Relation         string           `json:"relation"`
+	Object           string           `json:"object"`
+	ContextualTuples []*FgaTupleInput `json:"contextual_tuples,omitempty"`
+}
+
+type FgaCheckResponse struct {
+	Allowed bool `json:"allowed"`
+}
+
+type FgaListObjectsInput struct {
+	Relation   string `json:"relation"`
+	ObjectType string `json:"object_type"`
+}
+
+type FgaListObjectsResponse struct {
+	Objects []string `json:"objects"`
+}
+
+type FgaModel struct {
+	ID  string `json:"id"`
+	Dsl string `json:"dsl"`
+}
+
+type FgaReadTuplesInput struct {
+	User              *string `json:"user,omitempty"`
+	Relation          *string `json:"relation,omitempty"`
+	Object            *string `json:"object,omitempty"`
+	PageSize          *int64  `json:"page_size,omitempty"`
+	ContinuationToken *string `json:"continuation_token,omitempty"`
+}
+
+type FgaRelationInput struct {
+	Relation string `json:"relation"`
+	Object   string `json:"object"`
+}
+
+type FgaTuple struct {
+	User     string `json:"user"`
+	Relation string `json:"relation"`
+	Object   string `json:"object"`
+}
+
+type FgaTupleInput struct {
+	User     string `json:"user"`
+	Relation string `json:"relation"`
+	Object   string `json:"object"`
+}
+
+type FgaTuples struct {
+	Tuples            []*FgaTuple `json:"tuples"`
+	ContinuationToken *string     `json:"continuation_token,omitempty"`
+}
+
+type FgaWriteModelInput struct {
+	Dsl string `json:"dsl"`
+}
+
+type FgaWriteTuplesInput struct {
+	Tuples []*FgaTupleInput `json:"tuples"`
 }
 
 type ForgotPasswordRequest struct {
@@ -398,21 +380,6 @@ type PaginationRequest struct {
 	Page  *int64 `json:"page,omitempty"`
 }
 
-type Permission struct {
-	Resource string `json:"resource"`
-	Scope    string `json:"scope"`
-}
-
-type PermissionInput struct {
-	Resource string `json:"resource"`
-	Scope    string `json:"scope"`
-}
-
-type PolicyTargetInput struct {
-	TargetType  string `json:"target_type"`
-	TargetValue string `json:"target_value"`
-}
-
 type Query struct {
 }
 
@@ -441,10 +408,10 @@ type Response struct {
 }
 
 type SessionQueryRequest struct {
-	Roles               []string           `json:"roles,omitempty"`
-	Scope               []string           `json:"scope,omitempty"`
-	State               *string            `json:"state,omitempty"`
-	RequiredPermissions []*PermissionInput `json:"required_permissions,omitempty"`
+	Roles             []string            `json:"roles,omitempty"`
+	Scope             []string            `json:"scope,omitempty"`
+	State             *string             `json:"state,omitempty"`
+	RequiredRelations []*FgaRelationInput `json:"required_relations,omitempty"`
 }
 
 type SignUpRequest struct {
@@ -556,24 +523,6 @@ type UpdateEnvRequest struct {
 	DisableTotpLogin                 *bool    `json:"DISABLE_TOTP_LOGIN,omitempty"`
 }
 
-type UpdatePermissionInput struct {
-	ID               string   `json:"id"`
-	Name             *string  `json:"name,omitempty"`
-	Description      *string  `json:"description,omitempty"`
-	ScopeIds         []string `json:"scope_ids,omitempty"`
-	PolicyIds        []string `json:"policy_ids,omitempty"`
-	DecisionStrategy *string  `json:"decision_strategy,omitempty"`
-}
-
-type UpdatePolicyInput struct {
-	ID               string               `json:"id"`
-	Name             *string              `json:"name,omitempty"`
-	Description      *string              `json:"description,omitempty"`
-	Logic            *string              `json:"logic,omitempty"`
-	DecisionStrategy *string              `json:"decision_strategy,omitempty"`
-	Targets          []*PolicyTargetInput `json:"targets,omitempty"`
-}
-
 type UpdateProfileRequest struct {
 	OldPassword              *string        `json:"old_password,omitempty"`
 	NewPassword              *string        `json:"new_password,omitempty"`
@@ -589,18 +538,6 @@ type UpdateProfileRequest struct {
 	Picture                  *string        `json:"picture,omitempty"`
 	IsMultiFactorAuthEnabled *bool          `json:"is_multi_factor_auth_enabled,omitempty"`
 	AppData                  map[string]any `json:"app_data,omitempty"`
-}
-
-type UpdateResourceInput struct {
-	ID          string  `json:"id"`
-	Name        *string `json:"name,omitempty"`
-	Description *string `json:"description,omitempty"`
-}
-
-type UpdateScopeInput struct {
-	ID          string  `json:"id"`
-	Name        *string `json:"name,omitempty"`
-	Description *string `json:"description,omitempty"`
 }
 
 type UpdateUserRequest struct {
@@ -659,10 +596,10 @@ type Users struct {
 }
 
 type ValidateJWTTokenRequest struct {
-	TokenType           string             `json:"token_type"`
-	Token               string             `json:"token"`
-	Roles               []string           `json:"roles,omitempty"`
-	RequiredPermissions []*PermissionInput `json:"required_permissions,omitempty"`
+	TokenType         string              `json:"token_type"`
+	Token             string              `json:"token"`
+	Roles             []string            `json:"roles,omitempty"`
+	RequiredRelations []*FgaRelationInput `json:"required_relations,omitempty"`
 }
 
 type ValidateJWTTokenResponse struct {
@@ -671,9 +608,9 @@ type ValidateJWTTokenResponse struct {
 }
 
 type ValidateSessionRequest struct {
-	Cookie              string             `json:"cookie"`
-	Roles               []string           `json:"roles,omitempty"`
-	RequiredPermissions []*PermissionInput `json:"required_permissions,omitempty"`
+	Cookie            string              `json:"cookie"`
+	Roles             []string            `json:"roles,omitempty"`
+	RequiredRelations []*FgaRelationInput `json:"required_relations,omitempty"`
 }
 
 type ValidateSessionResponse struct {

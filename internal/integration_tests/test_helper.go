@@ -15,7 +15,6 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/authenticators"
-	"github.com/authorizerdev/authorizer/internal/authorization"
 	"github.com/authorizerdev/authorizer/internal/config"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/email"
@@ -44,9 +43,6 @@ type testSetup struct {
 	MemoryStoreProvider   memory_store.Provider
 	AuthenticatorProvider authenticators.Provider
 	TokenProvider         token.Provider
-	// Authz is the authorization provider, exposed for tests that exercise
-	// CheckPermission / GetPrincipalPermissions directly (bypassing GraphQL).
-	Authz authorization.Provider
 }
 
 func createContext(s *testSetup) (*http.Request, context.Context) {
@@ -188,19 +184,6 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 	})
 	require.NoError(t, err)
 
-	// Initialize authorization provider. Tests that need the decision cache
-	// active can set cfg.AuthorizationCacheTTL > 0 in their getTestConfig
-	// equivalent; the default (0) keeps existing tests on the no-cache path
-	// they were written against.
-	authzProvider, err := authorization.New(&authorization.Config{
-		CacheTTL: cfg.AuthorizationCacheTTL,
-	}, &authorization.Dependencies{
-		Log:                 &logger,
-		StorageProvider:     storageProvider,
-		MemoryStoreProvider: memoryStoreProvider,
-	})
-	require.NoError(t, err)
-
 	// Initialize audit provider
 	auditProvider := audit.New(&audit.Dependencies{
 		Log:             &logger,
@@ -212,7 +195,6 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 		Log:                   &logger,
 		AuditProvider:         auditProvider,
 		AuthenticatorProvider: authProvider,
-		AuthorizationProvider: authzProvider,
 		EmailProvider:         emailProvider,
 		EventsProvider:        eventsProvider,
 		MemoryStoreProvider:   memoryStoreProvider,
@@ -279,7 +261,6 @@ func initTestSetup(t *testing.T, cfg *config.Config) *testSetup {
 		MemoryStoreProvider:   memoryStoreProvider,
 		AuthenticatorProvider: authProvider,
 		TokenProvider:         tokenProvider,
-		Authz:                 authzProvider,
 	}
 }
 

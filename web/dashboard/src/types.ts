@@ -121,79 +121,47 @@ export interface AdminSessionResponse {
 	};
 }
 
-// Authorization types
-
-export interface AuthzResource {
+export interface FgaModel {
 	id: string;
-	name: string;
-	description?: string;
-	created_at: number;
-	updated_at: number;
+	dsl: string;
 }
 
-export interface AuthzScope {
-	id: string;
-	name: string;
-	description?: string;
-	created_at: number;
-	updated_at: number;
+export interface FgaTuple {
+	user: string;
+	relation: string;
+	object: string;
 }
 
-export interface AuthzPolicyTarget {
-	id: string;
-	target_type: string;
-	target_value: string;
+export interface FgaGetModelResponse {
+	_fga_get_model: FgaModel;
 }
 
-export interface AuthzPolicy {
-	id: string;
-	name: string;
-	description?: string;
-	type: string;
-	logic: string;
-	decision_strategy: string;
-	targets: AuthzPolicyTarget[];
-	created_at: number;
-	updated_at: number;
+export interface FgaWriteModelResponse {
+	_fga_write_model: FgaModel;
 }
 
-export interface AuthzPermission {
-	id: string;
-	name: string;
-	description?: string;
-	resource: AuthzResource;
-	scopes: AuthzScope[];
-	policies: AuthzPolicy[];
-	decision_strategy: string;
-	created_at: number;
-	updated_at: number;
-}
-
-export interface AuthzResourcesResponse {
-	_authz_resources: {
-		pagination: PaginationInfo;
-		resources: AuthzResource[];
+export interface FgaReadTuplesResponse {
+	_fga_read_tuples: {
+		tuples: FgaTuple[];
+		continuation_token?: string | null;
 	};
 }
 
-export interface AuthzScopesResponse {
-	_authz_scopes: {
-		pagination: PaginationInfo;
-		scopes: AuthzScope[];
+export interface FgaWriteTuplesResponse {
+	_fga_write_tuples: {
+		message: string;
 	};
 }
 
-export interface AuthzPoliciesResponse {
-	_authz_policies: {
-		pagination: PaginationInfo;
-		policies: AuthzPolicy[];
+export interface FgaDeleteTuplesResponse {
+	_fga_delete_tuples: {
+		message: string;
 	};
 }
 
-export interface AuthzPermissionsResponse {
-	_authz_permissions: {
-		pagination: PaginationInfo;
-		permissions: AuthzPermission[];
+export interface FgaCheckResponse {
+	fga_check: {
+		allowed: boolean;
 	};
 }
 

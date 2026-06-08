@@ -121,151 +121,34 @@ export const EditEmailTemplate = `
   }
 `;
 
-// Authorization mutations
-export const AddResource = `
-  mutation addResource($params: AddResourceInput!) {
-    _authz_add_resource(params: $params) {
-      id
-      name
-      description
-    }
-  }
-`;
-
-export const UpdateResource = `
-  mutation updateResource($params: UpdateResourceInput!) {
-    _authz_update_resource(params: $params) {
-      id
-      name
-      description
-    }
-  }
-`;
-
-export const DeleteResource = `
-  mutation deleteResource($id: ID!) {
-    _authz_delete_resource(id: $id) {
-      message
-    }
-  }
-`;
-
-export const AddScope = `
-  mutation addScope($params: AddScopeInput!) {
-    _authz_add_scope(params: $params) {
-      id
-      name
-      description
-    }
-  }
-`;
-
-export const UpdateScope = `
-  mutation updateScope($params: UpdateScopeInput!) {
-    _authz_update_scope(params: $params) {
-      id
-      name
-      description
-    }
-  }
-`;
-
-export const DeleteScope = `
-  mutation deleteScope($id: ID!) {
-    _authz_delete_scope(id: $id) {
-      message
-    }
-  }
-`;
-
-export const AddPolicy = `
-  mutation addPolicy($params: AddPolicyInput!) {
-    _authz_add_policy(params: $params) {
-      id
-      name
-      description
-      type
-      logic
-      decision_strategy
-      targets {
-        id
-        target_type
-        target_value
-      }
-    }
-  }
-`;
-
-export const UpdatePolicy = `
-  mutation updatePolicy($params: UpdatePolicyInput!) {
-    _authz_update_policy(params: $params) {
-      id
-      name
-      description
-      logic
-      decision_strategy
-      targets {
-        id
-        target_type
-        target_value
-      }
-    }
-  }
-`;
-
-export const DeletePolicy = `
-  mutation deletePolicy($id: ID!) {
-    _authz_delete_policy(id: $id) {
-      message
-    }
-  }
-`;
-
-export const AddPermission = `
-  mutation addPermission($params: AddPermissionInput!) {
-    _authz_add_permission(params: $params) {
-      id
-      name
-      description
-      resource {
-        id
-        name
-      }
-      scopes {
-        id
-        name
-      }
-      policies {
-        id
-        name
-      }
-      decision_strategy
-    }
-  }
-`;
-
-export const UpdatePermission = `
-  mutation updatePermission($params: UpdatePermissionInput!) {
-    _authz_update_permission(params: $params) {
-      id
-      name
-      description
-      decision_strategy
-    }
-  }
-`;
-
-export const DeletePermission = `
-  mutation deletePermission($id: ID!) {
-    _authz_delete_permission(id: $id) {
-      message
-    }
-  }
-`;
-
 export const DeleteEmailTemplate = `
   mutation deleteEmailTemplate($params: DeleteEmailTemplateRequest!) {
     _delete_email_template(params: $params) {
+      message
+    }
+  }
+`;
+
+export const FgaWriteModel = `
+  mutation fgaWriteModel($params: FgaWriteModelInput!) {
+    _fga_write_model(params: $params) {
+      id
+      dsl
+    }
+  }
+`;
+
+export const FgaWriteTuples = `
+  mutation fgaWriteTuples($params: FgaWriteTuplesInput!) {
+    _fga_write_tuples(params: $params) {
+      message
+    }
+  }
+`;
+
+export const FgaDeleteTuples = `
+  mutation fgaDeleteTuples($params: FgaWriteTuplesInput!) {
+    _fga_delete_tuples(params: $params) {
       message
     }
   }

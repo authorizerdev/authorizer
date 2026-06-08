@@ -10,7 +10,9 @@ const Users = lazy(() => import('../pages/Users'));
 const Webhooks = lazy(() => import('../pages/Webhooks'));
 const EmailTemplates = lazy(() => import('../pages/EmailTemplates'));
 const AuditLogs = lazy(() => import('../pages/AuditLogs'));
-const Authorization = lazy(() => import('../pages/Authorization'));
+const AuthorizationModel = lazy(() => import('../pages/authorization/Model'));
+const AuthorizationTuples = lazy(() => import('../pages/authorization/Tuples'));
+const AuthorizationTester = lazy(() => import('../pages/authorization/Tester'));
 
 export const AppRoutes = () => {
 	const { isLoggedIn } = useAuthContext();
@@ -32,7 +34,18 @@ export const AppRoutes = () => {
 							<Route path="webhooks" element={<Webhooks />} />
 							<Route path="email-templates" element={<EmailTemplates />} />
 							<Route path="audit-logs" element={<AuditLogs />} />
-							<Route path="authorization/*" element={<Authorization />} />
+							<Route
+								path="authorization/model"
+								element={<AuthorizationModel />}
+							/>
+							<Route
+								path="authorization/tuples"
+								element={<AuthorizationTuples />}
+							/>
+							<Route
+								path="authorization/tester"
+								element={<AuthorizationTester />}
+							/>
 							<Route path="*" element={<Overview />} />
 						</Route>
 					</Routes>

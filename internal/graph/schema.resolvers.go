@@ -172,64 +172,19 @@ func (r *mutationResolver) DeleteEmailTemplate(ctx context.Context, params model
 	return r.GraphQLProvider.DeleteEmailTemplate(ctx, &params)
 }
 
-// AuthzAddResource is the resolver for the _authz_add_resource field.
-func (r *mutationResolver) AuthzAddResource(ctx context.Context, params model.AddResourceInput) (*model.AuthzResource, error) {
-	return r.GraphQLProvider.AuthzAddResource(ctx, &params)
+// FgaWriteModel is the resolver for the _fga_write_model field.
+func (r *mutationResolver) FgaWriteModel(ctx context.Context, params model.FgaWriteModelInput) (*model.FgaModel, error) {
+	return r.GraphQLProvider.FgaWriteModel(ctx, &params)
 }
 
-// AuthzUpdateResource is the resolver for the _authz_update_resource field.
-func (r *mutationResolver) AuthzUpdateResource(ctx context.Context, params model.UpdateResourceInput) (*model.AuthzResource, error) {
-	return r.GraphQLProvider.AuthzUpdateResource(ctx, &params)
+// FgaWriteTuples is the resolver for the _fga_write_tuples field.
+func (r *mutationResolver) FgaWriteTuples(ctx context.Context, params model.FgaWriteTuplesInput) (*model.Response, error) {
+	return r.GraphQLProvider.FgaWriteTuples(ctx, &params)
 }
 
-// AuthzDeleteResource is the resolver for the _authz_delete_resource field.
-func (r *mutationResolver) AuthzDeleteResource(ctx context.Context, id string) (*model.Response, error) {
-	return r.GraphQLProvider.AuthzDeleteResource(ctx, id)
-}
-
-// AuthzAddScope is the resolver for the _authz_add_scope field.
-func (r *mutationResolver) AuthzAddScope(ctx context.Context, params model.AddScopeInput) (*model.AuthzScope, error) {
-	return r.GraphQLProvider.AuthzAddScope(ctx, &params)
-}
-
-// AuthzUpdateScope is the resolver for the _authz_update_scope field.
-func (r *mutationResolver) AuthzUpdateScope(ctx context.Context, params model.UpdateScopeInput) (*model.AuthzScope, error) {
-	return r.GraphQLProvider.AuthzUpdateScope(ctx, &params)
-}
-
-// AuthzDeleteScope is the resolver for the _authz_delete_scope field.
-func (r *mutationResolver) AuthzDeleteScope(ctx context.Context, id string) (*model.Response, error) {
-	return r.GraphQLProvider.AuthzDeleteScope(ctx, id)
-}
-
-// AuthzAddPolicy is the resolver for the _authz_add_policy field.
-func (r *mutationResolver) AuthzAddPolicy(ctx context.Context, params model.AddPolicyInput) (*model.AuthzPolicy, error) {
-	return r.GraphQLProvider.AuthzAddPolicy(ctx, &params)
-}
-
-// AuthzUpdatePolicy is the resolver for the _authz_update_policy field.
-func (r *mutationResolver) AuthzUpdatePolicy(ctx context.Context, params model.UpdatePolicyInput) (*model.AuthzPolicy, error) {
-	return r.GraphQLProvider.AuthzUpdatePolicy(ctx, &params)
-}
-
-// AuthzDeletePolicy is the resolver for the _authz_delete_policy field.
-func (r *mutationResolver) AuthzDeletePolicy(ctx context.Context, id string) (*model.Response, error) {
-	return r.GraphQLProvider.AuthzDeletePolicy(ctx, id)
-}
-
-// AuthzAddPermission is the resolver for the _authz_add_permission field.
-func (r *mutationResolver) AuthzAddPermission(ctx context.Context, params model.AddPermissionInput) (*model.AuthzPermission, error) {
-	return r.GraphQLProvider.AuthzAddPermission(ctx, &params)
-}
-
-// AuthzUpdatePermission is the resolver for the _authz_update_permission field.
-func (r *mutationResolver) AuthzUpdatePermission(ctx context.Context, params model.UpdatePermissionInput) (*model.AuthzPermission, error) {
-	return r.GraphQLProvider.AuthzUpdatePermission(ctx, &params)
-}
-
-// AuthzDeletePermission is the resolver for the _authz_delete_permission field.
-func (r *mutationResolver) AuthzDeletePermission(ctx context.Context, id string) (*model.Response, error) {
-	return r.GraphQLProvider.AuthzDeletePermission(ctx, id)
+// FgaDeleteTuples is the resolver for the _fga_delete_tuples field.
+func (r *mutationResolver) FgaDeleteTuples(ctx context.Context, params model.FgaWriteTuplesInput) (*model.Response, error) {
+	return r.GraphQLProvider.FgaDeleteTuples(ctx, &params)
 }
 
 // Meta is the resolver for the meta field.
@@ -307,29 +262,29 @@ func (r *queryResolver) AuditLogs(ctx context.Context, params *model.ListAuditLo
 	return r.GraphQLProvider.AuditLogs(ctx, params)
 }
 
-// AuthzResources is the resolver for the _authz_resources field.
-func (r *queryResolver) AuthzResources(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzResources, error) {
-	return r.GraphQLProvider.AuthzResources(ctx, params)
+// FgaGetModel is the resolver for the _fga_get_model field.
+func (r *queryResolver) FgaGetModel(ctx context.Context) (*model.FgaModel, error) {
+	return r.GraphQLProvider.FgaGetModel(ctx)
 }
 
-// AuthzScopes is the resolver for the _authz_scopes field.
-func (r *queryResolver) AuthzScopes(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzScopes, error) {
-	return r.GraphQLProvider.AuthzScopes(ctx, params)
+// FgaReadTuples is the resolver for the _fga_read_tuples field.
+func (r *queryResolver) FgaReadTuples(ctx context.Context, params model.FgaReadTuplesInput) (*model.FgaTuples, error) {
+	return r.GraphQLProvider.FgaReadTuples(ctx, &params)
 }
 
-// AuthzPolicies is the resolver for the _authz_policies field.
-func (r *queryResolver) AuthzPolicies(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzPolicies, error) {
-	return r.GraphQLProvider.AuthzPolicies(ctx, params)
+// FgaCheck is the resolver for the fga_check field.
+func (r *queryResolver) FgaCheck(ctx context.Context, params model.FgaCheckInput) (*model.FgaCheckResponse, error) {
+	return r.GraphQLProvider.FgaCheck(ctx, &params)
 }
 
-// AuthzPermissions is the resolver for the _authz_permissions field.
-func (r *queryResolver) AuthzPermissions(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzPermissions, error) {
-	return r.GraphQLProvider.AuthzPermissions(ctx, params)
+// FgaBatchCheck is the resolver for the fga_batch_check field.
+func (r *queryResolver) FgaBatchCheck(ctx context.Context, params model.FgaBatchCheckInput) (*model.FgaBatchCheckResponse, error) {
+	return r.GraphQLProvider.FgaBatchCheck(ctx, &params)
 }
 
-// Permissions is the resolver for the permissions field.
-func (r *queryResolver) Permissions(ctx context.Context) ([]*model.Permission, error) {
-	return r.GraphQLProvider.Permissions(ctx)
+// FgaListObjects is the resolver for the fga_list_objects field.
+func (r *queryResolver) FgaListObjects(ctx context.Context, params model.FgaListObjectsInput) (*model.FgaListObjectsResponse, error) {
+	return r.GraphQLProvider.FgaListObjects(ctx, &params)
 }
 
 // Mutation returns generated.MutationResolver implementation.

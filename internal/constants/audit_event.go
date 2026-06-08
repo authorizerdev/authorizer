@@ -22,14 +22,10 @@ const (
 	AuditResourceTypeEmailTemplate = "email_template"
 	// AuditResourceTypeToken represents an auth token.
 	AuditResourceTypeToken = "token"
-	// AuditResourceTypeAuthzPermission represents a fine-grained-authorization permission entity.
-	AuditResourceTypeAuthzPermission = "authz_permission"
-	// AuditResourceTypeAuthzPolicy represents a fine-grained-authorization policy entity.
-	AuditResourceTypeAuthzPolicy = "authz_policy"
-	// AuditResourceTypeAuthzResource represents a fine-grained-authorization resource entity.
-	AuditResourceTypeAuthzResource = "authz_resource"
-	// AuditResourceTypeAuthzScope represents a fine-grained-authorization scope entity.
-	AuditResourceTypeAuthzScope = "authz_scope"
+	// AuditResourceTypeFgaModel represents a fine-grained authorization model.
+	AuditResourceTypeFgaModel = "fga_model"
+	// AuditResourceTypeFgaTuple represents a fine-grained authorization tuple.
+	AuditResourceTypeFgaTuple = "fga_tuple"
 )
 
 // Audit event type constants used for structured audit logging.
@@ -102,31 +98,12 @@ const (
 	AuditAdminEmailTemplateUpdatedEvent = "admin.email_template_updated"
 	// AuditAdminEmailTemplateDeletedEvent is logged when an admin deletes an email template.
 	AuditAdminEmailTemplateDeletedEvent = "admin.email_template_deleted"
-
-	// AuditAdminAuthzPermissionCreatedEvent is logged when an admin creates an authz permission.
-	AuditAdminAuthzPermissionCreatedEvent = "admin.authz_permission_created"
-	// AuditAdminAuthzPermissionUpdatedEvent is logged when an admin updates an authz permission.
-	AuditAdminAuthzPermissionUpdatedEvent = "admin.authz_permission_updated"
-	// AuditAdminAuthzPermissionDeletedEvent is logged when an admin deletes an authz permission.
-	AuditAdminAuthzPermissionDeletedEvent = "admin.authz_permission_deleted"
-	// AuditAdminAuthzPolicyCreatedEvent is logged when an admin creates an authz policy.
-	AuditAdminAuthzPolicyCreatedEvent = "admin.authz_policy_created"
-	// AuditAdminAuthzPolicyUpdatedEvent is logged when an admin updates an authz policy.
-	AuditAdminAuthzPolicyUpdatedEvent = "admin.authz_policy_updated"
-	// AuditAdminAuthzPolicyDeletedEvent is logged when an admin deletes an authz policy.
-	AuditAdminAuthzPolicyDeletedEvent = "admin.authz_policy_deleted"
-	// AuditAdminAuthzResourceCreatedEvent is logged when an admin creates an authz resource.
-	AuditAdminAuthzResourceCreatedEvent = "admin.authz_resource_created"
-	// AuditAdminAuthzResourceUpdatedEvent is logged when an admin updates an authz resource.
-	AuditAdminAuthzResourceUpdatedEvent = "admin.authz_resource_updated"
-	// AuditAdminAuthzResourceDeletedEvent is logged when an admin deletes an authz resource.
-	AuditAdminAuthzResourceDeletedEvent = "admin.authz_resource_deleted"
-	// AuditAdminAuthzScopeCreatedEvent is logged when an admin creates an authz scope.
-	AuditAdminAuthzScopeCreatedEvent = "admin.authz_scope_created"
-	// AuditAdminAuthzScopeUpdatedEvent is logged when an admin updates an authz scope.
-	AuditAdminAuthzScopeUpdatedEvent = "admin.authz_scope_updated"
-	// AuditAdminAuthzScopeDeletedEvent is logged when an admin deletes an authz scope.
-	AuditAdminAuthzScopeDeletedEvent = "admin.authz_scope_deleted"
+	// AuditAdminFgaModelWrittenEvent is logged when an admin writes a fine-grained authorization model.
+	AuditAdminFgaModelWrittenEvent = "admin.fga_model_written"
+	// AuditAdminFgaTuplesWrittenEvent is logged when an admin writes fine-grained authorization tuples.
+	AuditAdminFgaTuplesWrittenEvent = "admin.fga_tuples_written"
+	// AuditAdminFgaTuplesDeletedEvent is logged when an admin deletes fine-grained authorization tuples.
+	AuditAdminFgaTuplesDeletedEvent = "admin.fga_tuples_deleted"
 
 	// AuditOAuthLoginInitiatedEvent is logged when an OAuth login flow is started.
 	AuditOAuthLoginInitiatedEvent = "oauth.login_initiated"

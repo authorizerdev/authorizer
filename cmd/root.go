@@ -15,12 +15,12 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/authenticators"
-	"github.com/authorizerdev/authorizer/internal/authorization"
+	"github.com/authorizerdev/authorizer/internal/authorization/engine"
+	fgaengine "github.com/authorizerdev/authorizer/internal/authorization/engine/openfga"
 	"github.com/authorizerdev/authorizer/internal/config"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/email"
 	"github.com/authorizerdev/authorizer/internal/events"
-	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/http_handlers"
 	"github.com/authorizerdev/authorizer/internal/memory_store"
 	"github.com/authorizerdev/authorizer/internal/metrics"
@@ -242,6 +242,14 @@ func init() {
 	f.BoolVar(&rootArgs.config.IncludePermissionsInToken, "include-permissions-in-token", false, "Include permissions in JWT access tokens")
 	f.BoolVar(&rootArgs.config.AuthorizationLogAllChecks, "authorization-log-all-checks", false, "Audit log all permission checks, not just denials")
 
+	// OpenFGA / FGA engine flags (Phase 1 — additive; the FGA engine is
+	// selectable but not yet the default)
+	f.StringVar(&rootArgs.config.AuthorizationEngine, "authorization-engine", "policy", "Authorization backend: 'policy' (existing resource/scope/policy engine, default) or 'fga' (OpenFGA ReBAC engine)")
+	f.StringVar(&rootArgs.config.FGAMode, "fga-mode", "embedded", "OpenFGA run mode: 'embedded' (in-process, default) or 'external' (standalone OpenFGA service)")
+	f.StringVar(&rootArgs.config.FGAStore, "fga-store", "memory", "OpenFGA datastore: 'memory' (dev/tests, default), 'sqlite' (single-node), 'postgres' or 'mysql' (HA)")
+	f.StringVar(&rootArgs.config.FGAStoreURL, "fga-store-url", "", "OpenFGA datastore connection URI (file: URI for sqlite, DSN for postgres/mysql)")
+	f.StringVar(&rootArgs.config.FGAExternalURL, "fga-external-url", "", "gRPC URL of an external OpenFGA service (used when --fga-mode=external)")
+
 	// Deprecated flags
 	f.MarkDeprecated("database_url", "use --database-url instead")
 	f.MarkDeprecated("database_type", "use --database-type instead")
@@ -462,34 +470,55 @@ func runRoot(c *cobra.Command, args []string) {
 	}
 	defer rateLimitProvider.Close()
 
-	// Authorization provider
-	authorizationProvider, err := authorization.New(
-		&authorization.Config{
-			CacheTTL: rootArgs.config.AuthorizationCacheTTL,
-		},
-		&authorization.Dependencies{
-			Log:                 &log,
-			StorageProvider:     storageProvider,
-			MemoryStoreProvider: memoryStoreProvider,
-		},
-	)
-	if err != nil {
-		log.Fatal().Err(err).Msg("failed to create authorization provider")
-	}
-
-	// Check once at startup whether any permissions exist. If zero, emit a
-	// loud warn so operators don't lock themselves out in prod. Bounded
-	// context prevents a hung DB at boot from blocking startup indefinitely.
-	probeCtx, probeCancel := context.WithTimeout(context.Background(), 5*time.Second)
-	_, pr, lerr := storageProvider.ListPermissions(probeCtx, &model.Pagination{Limit: 1, Page: 1})
-	probeCancel()
-	switch {
-	case lerr != nil:
-		log.Warn().Err(lerr).Msg("authz: failed to probe permission count at startup; authorization is enforcing")
-	case pr != nil && pr.Total == 0:
-		log.Warn().Msg("authz: 0 permissions configured — all authorization checks will DENY. Seed permissions via the dashboard or admin GraphQL mutations.")
-	default:
-		log.Info().Msg("authz: enforcing; unmatched CheckPermission calls will be DENIED.")
+	// OpenFGA authorization engine (Phase 1 — additive).
+	//
+	// This is constructed only when --authorization-engine=fga. The FGA engine
+	// is selectable but is not yet routed into the request path — later phases
+	// wire it into GraphQL and session/validate.
+	//
+	// Embedded mode runs the OpenFGA server in-process. For single-node/dev
+	// (memory or sqlite) migrations may run on boot; HA/serverless must run
+	// migrations as a separate init job (see FGA_OPENFGA_MIGRATION_PLAN.md §2.1)
+	// and must use an external SQL store.
+	// authzEngine is threaded into the HTTP/GraphQL providers below. It stays nil
+	// unless --authorization-engine=fga (and embedded mode initializes cleanly).
+	// Resolvers fail closed when it is nil.
+	var authzEngine engine.AuthorizationEngine
+	if strings.EqualFold(rootArgs.config.AuthorizationEngine, "fga") {
+		switch strings.ToLower(strings.TrimSpace(rootArgs.config.FGAMode)) {
+		case "", "embedded":
+			// Run migrations on boot only for single-node embedded SQL stores.
+			// memory needs none; postgres/mysql (HA) must migrate out-of-band.
+			runMigrations := strings.EqualFold(rootArgs.config.FGAStore, fgaengine.StoreSQLite)
+			fgaEngine, ferr := fgaengine.New(
+				&fgaengine.Config{
+					Store:         rootArgs.config.FGAStore,
+					StoreURL:      rootArgs.config.FGAStoreURL,
+					StoreName:     rootArgs.config.OrganizationName,
+					RunMigrations: runMigrations,
+				},
+				&fgaengine.Dependencies{Log: &log},
+			)
+			if ferr != nil {
+				log.Fatal().Err(ferr).Msg("failed to create OpenFGA authorization engine")
+			}
+			if closer, ok := fgaEngine.(interface{ Close() }); ok {
+				defer closer.Close()
+			}
+			authzEngine = fgaEngine
+			log.Info().
+				Str("fga_mode", "embedded").
+				Str("fga_store", rootArgs.config.FGAStore).
+				Msg("OpenFGA authorization engine initialized (embedded); routed into GraphQL + session/validate")
+		case "external":
+			// External-mode wiring (gRPC client to a standalone OpenFGA
+			// service) lands in a later phase; the seam and flags exist now.
+			log.Warn().
+				Str("fga_external_url", rootArgs.config.FGAExternalURL).
+				Msg("OpenFGA external mode selected but the external client is not yet wired (Phase 1 implements the embedded engine); no FGA engine started")
+		default:
+			log.Fatal().Str("fga_mode", rootArgs.config.FGAMode).Msg("invalid --fga-mode (want 'embedded' or 'external')")
+		}
 	}
 
 	// SMS provider
@@ -542,7 +571,7 @@ func runRoot(c *cobra.Command, args []string) {
 		TokenProvider:         tokenProvider,
 		OAuthProvider:         oauthProvider,
 		RateLimitProvider:     rateLimitProvider,
-		AuthorizationProvider: authorizationProvider,
+		AuthzEngine:           authzEngine,
 	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create http provider")

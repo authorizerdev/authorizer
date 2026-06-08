@@ -35,32 +35,6 @@ const (
 	StatusFailure = "failure"
 )
 
-// Authorization check result labels.
-const (
-	AuthzResultAllowed   = "allowed"   // matched policy, granted
-	AuthzResultDenied    = "denied"    // matched policy, denied
-	AuthzResultUnmatched = "unmatched" // no permission row for (resource, scope)
-	AuthzResultError     = "error"     // validation / storage error
-)
-
-// Outcome constants for the required_permissions counter (per-request bucket,
-// distinct from per-CheckPermission AuthzResult* above). Low cardinality.
-const (
-	RequiredPermissionsOutcomeGranted      = "granted"       // all listed permissions allowed
-	RequiredPermissionsOutcomeDenied       = "denied"        // one or more denied by policy
-	RequiredPermissionsOutcomeNotRequested = "not_requested" // caller omitted required_permissions
-	RequiredPermissionsOutcomeError        = "error"         // CheckPermission errored (DB/validation)
-)
-
-// RequiredPermissionsEndpoint* are the bounded endpoint label values for the
-// required_permissions counter. New endpoints adopting required_permissions
-// must add a constant here rather than passing raw strings.
-const (
-	RequiredPermissionsEndpointSession          = "session"
-	RequiredPermissionsEndpointValidateSession  = "validate_session"
-	RequiredPermissionsEndpointValidateJWTToken = "validate_jwt_token"
-)
-
 var (
 	// HTTPRequestsTotal is the total number of HTTP requests received.
 	HTTPRequestsTotal = prometheus.NewCounterVec(
@@ -155,44 +129,6 @@ var (
 			Help: "Total requests that omitted X-Authorizer-Client-ID (allowed for some routes)",
 		},
 	)
-
-	// AuthzChecksTotal counts every CheckPermission call, labelled by result.
-	AuthzChecksTotal = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "authorizer_authz_checks_total",
-			Help: "Total fine-grained authorization checks. result=allowed|denied|unmatched|error",
-		},
-		[]string{"result"},
-	)
-
-	// AuthzUnmatchedTotal counts checks that found no matching permission.
-	AuthzUnmatchedTotal = prometheus.NewCounter(
-		prometheus.CounterOpts{
-			Name: "authorizer_authz_unmatched_total",
-			Help: "Total CheckPermission calls where no permission matched the (resource, scope) pair.",
-		},
-	)
-
-	// AuthzCheckDuration measures end-to-end CheckPermission latency.
-	AuthzCheckDuration = prometheus.NewHistogram(
-		prometheus.HistogramOpts{
-			Name:    "authorizer_authz_check_duration_seconds",
-			Help:    "CheckPermission latency including validation, cache, and storage queries",
-			Buckets: prometheus.DefBuckets,
-		},
-	)
-
-	// RequiredPermissionsChecksTotal counts each endpoint invocation that the
-	// required_permissions field flows through, labelled by endpoint and the
-	// per-request outcome. This is the FGA adoption + enforcement signal;
-	// the per-CheckPermission AuthzChecksTotal is the evaluator signal.
-	RequiredPermissionsChecksTotal = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "authorizer_required_permissions_checks_total",
-			Help: "Per-endpoint required_permissions outcome. endpoint=session|validate_session|validate_jwt_token. outcome=granted|denied|not_requested|error.",
-		},
-		[]string{"endpoint", "outcome"},
-	)
 )
 
 // staticAssetPathSuffixes are path suffixes (after lowercasing) treated as static files
@@ -275,10 +211,6 @@ func Init() {
 		prometheus.MustRegister(GraphQLRequestDuration)
 		prometheus.MustRegister(DBHealthCheckTotal)
 		prometheus.MustRegister(ClientIDHeaderMissingTotal)
-		prometheus.MustRegister(AuthzChecksTotal)
-		prometheus.MustRegister(AuthzUnmatchedTotal)
-		prometheus.MustRegister(AuthzCheckDuration)
-		prometheus.MustRegister(RequiredPermissionsChecksTotal)
 	})
 }
 
@@ -327,22 +259,4 @@ func RecordGraphQLLimitRejection(limit string) {
 // RecordClientIDHeaderMissing records a request that had no client ID header.
 func RecordClientIDHeaderMissing() {
 	ClientIDHeaderMissingTotal.Inc()
-}
-
-// RecordAuthzCheck records a CheckPermission call outcome.
-// result must be one of AuthzResult* constants.
-func RecordAuthzCheck(result string) {
-	AuthzChecksTotal.WithLabelValues(result).Inc()
-}
-
-// RecordAuthzUnmatched records a CheckPermission call that found no matching permission.
-func RecordAuthzUnmatched() {
-	AuthzUnmatchedTotal.Inc()
-}
-
-// RecordRequiredPermissionsCheck records the per-request outcome of
-// enforceRequiredPermissions. endpoint must be one of RequiredPermissionsEndpoint*;
-// outcome must be one of RequiredPermissionsOutcome*.
-func RecordRequiredPermissionsCheck(endpoint, outcome string) {
-	RequiredPermissionsChecksTotal.WithLabelValues(endpoint, outcome).Inc()
 }

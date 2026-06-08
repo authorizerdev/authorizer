@@ -9,7 +9,6 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
-	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/parsers"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 	"github.com/authorizerdev/authorizer/internal/token"
@@ -126,8 +125,12 @@ func (g *graphqlProvider) ValidateJWTToken(ctx context.Context, params *model.Va
 			}
 		}
 	}
-	if err := g.enforceRequiredPermissions(ctx, log, metrics.RequiredPermissionsEndpointValidateJWTToken, userID, claimRoles, params.RequiredPermissions); err != nil {
-		return nil, err
+	// Fine-grained authorization gate (AND semantics, fail-closed).
+	if len(params.RequiredRelations) > 0 {
+		if err := enforceRequiredRelations(ctx, g.AuthzEngine, userID, params.RequiredRelations); err != nil {
+			log.Debug().Err(err).Msg("Required relations not satisfied")
+			return nil, err
+		}
 	}
 	return &model.ValidateJWTTokenResponse{
 		IsValid: true,

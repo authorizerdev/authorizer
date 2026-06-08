@@ -109,118 +109,6 @@ export const WebhookLogsQuery = `
   }
 `;
 
-// Authorization queries
-export const ResourcesQuery = `
-  query getResources($params: PaginatedRequest) {
-    _authz_resources(params: $params) {
-      resources {
-        id
-        name
-        description
-        created_at
-        updated_at
-      }
-      pagination {
-        limit
-        page
-        offset
-        total
-      }
-    }
-  }
-`;
-
-export const ScopesQuery = `
-  query getScopes($params: PaginatedRequest) {
-    _authz_scopes(params: $params) {
-      scopes {
-        id
-        name
-        description
-        created_at
-        updated_at
-      }
-      pagination {
-        limit
-        page
-        offset
-        total
-      }
-    }
-  }
-`;
-
-export const PoliciesQuery = `
-  query getPolicies($params: PaginatedRequest) {
-    _authz_policies(params: $params) {
-      policies {
-        id
-        name
-        description
-        type
-        logic
-        decision_strategy
-        targets {
-          id
-          target_type
-          target_value
-        }
-        created_at
-        updated_at
-      }
-      pagination {
-        limit
-        page
-        offset
-        total
-      }
-    }
-  }
-`;
-
-export const PermissionsQuery = `
-  query getPermissions($params: PaginatedRequest) {
-    _authz_permissions(params: $params) {
-      permissions {
-        id
-        name
-        description
-        resource {
-          id
-          name
-          description
-        }
-        scopes {
-          id
-          name
-          description
-        }
-        policies {
-          id
-          name
-          type
-          logic
-          decision_strategy
-          targets {
-            id
-            target_type
-            target_value
-          }
-        }
-        decision_strategy
-        created_at
-        updated_at
-      }
-      pagination {
-        limit
-        page
-        offset
-        total
-      }
-    }
-  }
-`;
-
 export const AuditLogsQuery = `
   query getAuditLogs($params: ListAuditLogRequest!) {
     _audit_logs(params: $params) {
@@ -243,6 +131,36 @@ export const AuditLogsQuery = `
         offset
         total
       }
+    }
+  }
+`;
+
+export const FgaGetModelQuery = `
+  query fgaGetModel {
+    _fga_get_model {
+      id
+      dsl
+    }
+  }
+`;
+
+export const FgaReadTuplesQuery = `
+  query fgaReadTuples($params: FgaReadTuplesInput!) {
+    _fga_read_tuples(params: $params) {
+      tuples {
+        user
+        relation
+        object
+      }
+      continuation_token
+    }
+  }
+`;
+
+export const FgaCheckQuery = `
+  query fgaCheck($params: FgaCheckInput!) {
+    fga_check(params: $params) {
+      allowed
     }
   }
 `;

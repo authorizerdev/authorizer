@@ -1,0 +1,226 @@
+package graphql
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"strings"
+
+	"github.com/authorizerdev/authorizer/internal/audit"
+	"github.com/authorizerdev/authorizer/internal/authorization/engine"
+	"github.com/authorizerdev/authorizer/internal/constants"
+	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/refs"
+	"github.com/authorizerdev/authorizer/internal/utils"
+)
+
+// errFgaNotEnabled is returned by every FGA resolver when no authorization
+// engine is configured (i.e. --authorization-engine != fga). Fail-closed.
+var errFgaNotEnabled = errors.New("fine-grained authorization is not enabled")
+
+// maxFgaTuplesPerWrite caps the number of tuples accepted in a single write or
+// delete to bound the work an admin call performs.
+const maxFgaTuplesPerWrite = 100
+
+// maxFgaReadPageSize caps the page size for tuple reads. OpenFGA's ReadRequest
+// enforces a [1, 100] range, so this is both a safety cap and a hard backend
+// limit.
+const maxFgaReadPageSize = 100
+
+// FgaWriteModel installs a new fine-grained authorization model from its DSL.
+// Permission: authorizer:admin. Audited.
+func (g *graphqlProvider) FgaWriteModel(ctx context.Context, params *model.FgaWriteModelInput) (*model.FgaModel, error) {
+	log := g.Log.With().Str("func", "FgaWriteModel").Logger()
+	gc, err := utils.GinContextFromContext(ctx)
+	if err != nil {
+		log.Debug().Err(err).Msg("Failed to get GinContext")
+		return nil, err
+	}
+	if !g.TokenProvider.IsSuperAdmin(gc) {
+		log.Debug().Msg("Not logged in as super admin")
+		return nil, fmt.Errorf("unauthorized")
+	}
+	if g.AuthzEngine == nil {
+		return nil, errFgaNotEnabled
+	}
+	if params == nil || strings.TrimSpace(params.Dsl) == "" {
+		return nil, fmt.Errorf("dsl is required")
+	}
+	modelID, err := g.AuthzEngine.WriteModel(ctx, params.Dsl)
+	if err != nil {
+		log.Debug().Err(err).Msg("Failed to write authorization model")
+		return nil, err
+	}
+	g.AuditProvider.LogEvent(audit.Event{
+		Action:       constants.AuditAdminFgaModelWrittenEvent,
+		ActorType:    constants.AuditActorTypeAdmin,
+		ResourceType: constants.AuditResourceTypeFgaModel,
+		ResourceID:   modelID,
+		IPAddress:    utils.GetIP(gc.Request),
+		UserAgent:    utils.GetUserAgent(gc.Request),
+	})
+	return &model.FgaModel{ID: modelID, Dsl: params.Dsl}, nil
+}
+
+// FgaGetModel returns the active fine-grained authorization model as DSL.
+// Permission: authorizer:admin.
+func (g *graphqlProvider) FgaGetModel(ctx context.Context) (*model.FgaModel, error) {
+	log := g.Log.With().Str("func", "FgaGetModel").Logger()
+	gc, err := utils.GinContextFromContext(ctx)
+	if err != nil {
+		log.Debug().Err(err).Msg("Failed to get GinContext")
+		return nil, err
+	}
+	if !g.TokenProvider.IsSuperAdmin(gc) {
+		log.Debug().Msg("Not logged in as super admin")
+		return nil, fmt.Errorf("unauthorized")
+	}
+	if g.AuthzEngine == nil {
+		return nil, errFgaNotEnabled
+	}
+	dsl, err := g.AuthzEngine.ReadModel(ctx)
+	if err != nil {
+		log.Debug().Err(err).Msg("Failed to read authorization model")
+		return nil, err
+	}
+	return &model.FgaModel{Dsl: dsl}, nil
+}
+
+// FgaWriteTuples persists the given relationship tuples.
+// Permission: authorizer:admin. Audited.
+func (g *graphqlProvider) FgaWriteTuples(ctx context.Context, params *model.FgaWriteTuplesInput) (*model.Response, error) {
+	log := g.Log.With().Str("func", "FgaWriteTuples").Logger()
+	gc, err := utils.GinContextFromContext(ctx)
+	if err != nil {
+		log.Debug().Err(err).Msg("Failed to get GinContext")
+		return nil, err
+	}
+	if !g.TokenProvider.IsSuperAdmin(gc) {
+		log.Debug().Msg("Not logged in as super admin")
+		return nil, fmt.Errorf("unauthorized")
+	}
+	if g.AuthzEngine == nil {
+		return nil, errFgaNotEnabled
+	}
+	tuples, err := toEngineTuples(params)
+	if err != nil {
+		return nil, err
+	}
+	if err := g.AuthzEngine.WriteTuples(ctx, tuples); err != nil {
+		log.Debug().Err(err).Msg("Failed to write tuples")
+		return nil, err
+	}
+	g.AuditProvider.LogEvent(audit.Event{
+		Action:       constants.AuditAdminFgaTuplesWrittenEvent,
+		ActorType:    constants.AuditActorTypeAdmin,
+		ResourceType: constants.AuditResourceTypeFgaTuple,
+		IPAddress:    utils.GetIP(gc.Request),
+		UserAgent:    utils.GetUserAgent(gc.Request),
+		Metadata:     fmt.Sprintf("count=%d", len(tuples)),
+	})
+	return &model.Response{Message: "Tuples written successfully"}, nil
+}
+
+// FgaDeleteTuples removes the given relationship tuples.
+// Permission: authorizer:admin. Audited.
+func (g *graphqlProvider) FgaDeleteTuples(ctx context.Context, params *model.FgaWriteTuplesInput) (*model.Response, error) {
+	log := g.Log.With().Str("func", "FgaDeleteTuples").Logger()
+	gc, err := utils.GinContextFromContext(ctx)
+	if err != nil {
+		log.Debug().Err(err).Msg("Failed to get GinContext")
+		return nil, err
+	}
+	if !g.TokenProvider.IsSuperAdmin(gc) {
+		log.Debug().Msg("Not logged in as super admin")
+		return nil, fmt.Errorf("unauthorized")
+	}
+	if g.AuthzEngine == nil {
+		return nil, errFgaNotEnabled
+	}
+	tuples, err := toEngineTuples(params)
+	if err != nil {
+		return nil, err
+	}
+	if err := g.AuthzEngine.DeleteTuples(ctx, tuples); err != nil {
+		log.Debug().Err(err).Msg("Failed to delete tuples")
+		return nil, err
+	}
+	g.AuditProvider.LogEvent(audit.Event{
+		Action:       constants.AuditAdminFgaTuplesDeletedEvent,
+		ActorType:    constants.AuditActorTypeAdmin,
+		ResourceType: constants.AuditResourceTypeFgaTuple,
+		IPAddress:    utils.GetIP(gc.Request),
+		UserAgent:    utils.GetUserAgent(gc.Request),
+		Metadata:     fmt.Sprintf("count=%d", len(tuples)),
+	})
+	return &model.Response{Message: "Tuples deleted successfully"}, nil
+}
+
+// FgaReadTuples returns a page of persisted tuples matching the filter.
+// Permission: authorizer:admin.
+func (g *graphqlProvider) FgaReadTuples(ctx context.Context, params *model.FgaReadTuplesInput) (*model.FgaTuples, error) {
+	log := g.Log.With().Str("func", "FgaReadTuples").Logger()
+	gc, err := utils.GinContextFromContext(ctx)
+	if err != nil {
+		log.Debug().Err(err).Msg("Failed to get GinContext")
+		return nil, err
+	}
+	if !g.TokenProvider.IsSuperAdmin(gc) {
+		log.Debug().Msg("Not logged in as super admin")
+		return nil, fmt.Errorf("unauthorized")
+	}
+	if g.AuthzEngine == nil {
+		return nil, errFgaNotEnabled
+	}
+	filter := engine.ReadTuplesFilter{}
+	if params != nil {
+		filter.User = refs.StringValue(params.User)
+		filter.Relation = refs.StringValue(params.Relation)
+		filter.Object = refs.StringValue(params.Object)
+		filter.ContinuationToken = refs.StringValue(params.ContinuationToken)
+		if params.PageSize != nil {
+			ps := *params.PageSize
+			// Cap page size; it is an enumeration surface and the backend
+			// enforces a [1, 100] range.
+			if ps <= 0 || ps > maxFgaReadPageSize {
+				ps = maxFgaReadPageSize
+			}
+			filter.PageSize = int32(ps)
+		}
+	}
+	if filter.PageSize == 0 {
+		filter.PageSize = maxFgaReadPageSize
+	}
+	res, err := g.AuthzEngine.ReadTuples(ctx, filter)
+	if err != nil {
+		log.Debug().Err(err).Msg("Failed to read tuples")
+		return nil, err
+	}
+	out := &model.FgaTuples{Tuples: make([]*model.FgaTuple, 0, len(res.Tuples))}
+	for _, t := range res.Tuples {
+		out.Tuples = append(out.Tuples, &model.FgaTuple{User: t.User, Relation: t.Relation, Object: t.Object})
+	}
+	if res.ContinuationToken != "" {
+		out.ContinuationToken = refs.NewStringRef(res.ContinuationToken)
+	}
+	return out, nil
+}
+
+// toEngineTuples validates and converts admin-supplied tuple inputs into engine
+// tuples. It enforces a per-call cap and rejects empty fields.
+func toEngineTuples(params *model.FgaWriteTuplesInput) ([]engine.TupleKey, error) {
+	if params == nil || len(params.Tuples) == 0 {
+		return nil, fmt.Errorf("at least one tuple is required")
+	}
+	if len(params.Tuples) > maxFgaTuplesPerWrite {
+		return nil, fmt.Errorf("too many tuples: max %d per request", maxFgaTuplesPerWrite)
+	}
+	tuples := make([]engine.TupleKey, 0, len(params.Tuples))
+	for _, t := range params.Tuples {
+		if t == nil || strings.TrimSpace(t.User) == "" || strings.TrimSpace(t.Relation) == "" || strings.TrimSpace(t.Object) == "" {
+			return nil, fmt.Errorf("each tuple requires user, relation and object")
+		}
+		tuples = append(tuples, engine.TupleKey{User: t.User, Relation: t.Relation, Object: t.Object})
+	}
+	return tuples, nil
+}
