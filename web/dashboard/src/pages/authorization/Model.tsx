@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useClient } from 'urql';
 import { toast } from 'sonner';
-import { AlertCircle, Save } from 'lucide-react';
+import { AlertCircle, Save, LayoutGrid, Code2, Info } from 'lucide-react';
 import { FgaGetModelQuery } from '../../graphql/queries';
 import { FgaWriteModel } from '../../graphql/mutation';
 import { Button } from '../../components/ui/button';
@@ -9,44 +9,85 @@ import { Textarea } from '../../components/ui/textarea';
 import { Skeleton } from '../../components/ui/skeleton';
 import { Badge } from '../../components/ui/badge';
 import FgaNotEnabled from '../../components/FgaNotEnabled';
+import ModelBuilder from './ModelBuilder';
+import {
+	generateDsl,
+	parseDsl,
+	validateModel,
+	summarize,
+	TEMPLATES,
+	type ModelDraft,
+} from './modelDsl';
 import { isFgaNotEnabledError } from '../../lib/utils';
-import type {
-	FgaGetModelResponse,
-	FgaWriteModelResponse,
-} from '../../types';
+import type { FgaGetModelResponse, FgaWriteModelResponse } from '../../types';
+
+type Mode = 'builder' | 'dsl';
+
+const STARTER: ModelDraft = { types: [{ name: 'user', relations: [] }] };
+
+const TabButton = ({
+	active,
+	onClick,
+	icon,
+	children,
+}: {
+	active: boolean;
+	onClick: () => void;
+	icon: React.ReactNode;
+	children: React.ReactNode;
+}) => (
+	<button
+		type="button"
+		onClick={onClick}
+		className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+			active ? 'bg-blue-50 text-blue-600' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
+		}`}
+	>
+		{icon}
+		{children}
+	</button>
+);
 
 const Model = () => {
 	const client = useClient();
-	const [loading, setLoading] = useState<boolean>(true);
-	const [saving, setSaving] = useState<boolean>(false);
-	const [fgaDisabled, setFgaDisabled] = useState<boolean>(false);
-	const [dsl, setDsl] = useState<string>('');
-	const [modelId, setModelId] = useState<string>('');
-	const [validationError, setValidationError] = useState<string>('');
+	const [loading, setLoading] = useState(true);
+	const [saving, setSaving] = useState(false);
+	const [fgaDisabled, setFgaDisabled] = useState(false);
+	const [mode, setMode] = useState<Mode>('builder');
+	const [builderModel, setBuilderModel] = useState<ModelDraft>(STARTER);
+	const [dsl, setDsl] = useState('');
+	const [modelId, setModelId] = useState('');
+	const [validationError, setValidationError] = useState('');
 
 	const fetchModel = useCallback(async () => {
 		setLoading(true);
 		try {
 			const res = await client
-				.query<FgaGetModelResponse>(
-					FgaGetModelQuery,
-					{},
-					{ requestPolicy: 'network-only' },
-				)
+				.query<FgaGetModelResponse>(FgaGetModelQuery, {}, { requestPolicy: 'network-only' })
 				.toPromise();
 
 			if (res.error) {
-				if (isFgaNotEnabledError(res.error)) {
-					setFgaDisabled(true);
-				} else {
-					toast.error('Failed to load authorization model');
-				}
+				if (isFgaNotEnabledError(res.error)) setFgaDisabled(true);
+				else toast.error('Failed to load authorization model');
 				return;
 			}
 
-			if (res.data?._fga_get_model) {
-				setDsl(res.data._fga_get_model.dsl || '');
-				setModelId(res.data._fga_get_model.id || '');
+			const current = res.data?._fga_get_model;
+			if (current?.dsl) {
+				setDsl(current.dsl);
+				setModelId(current.id || '');
+				const parsed = parseDsl(current.dsl);
+				if (parsed.supported && parsed.model) {
+					setBuilderModel(parsed.model);
+					setMode('builder');
+				} else {
+					// Model uses constructs the builder can't represent — edit in DSL.
+					setMode('dsl');
+				}
+			} else {
+				// No model yet — start in the builder with a base `user` type.
+				setBuilderModel(STARTER);
+				setMode('builder');
 			}
 		} catch {
 			toast.error('Failed to load authorization model');
@@ -59,8 +100,39 @@ const Model = () => {
 		fetchModel();
 	}, [fetchModel]);
 
+	const switchToDsl = () => {
+		setDsl(generateDsl(builderModel));
+		setValidationError('');
+		setMode('dsl');
+	};
+
+	const switchToBuilder = () => {
+		const parsed = parseDsl(dsl);
+		if (parsed.supported && parsed.model) {
+			setBuilderModel(parsed.model);
+			setValidationError('');
+			setMode('builder');
+		} else {
+			toast.error('This model uses advanced constructs — keep editing in DSL');
+		}
+	};
+
+	const applyTemplate = (model: ModelDraft) => {
+		setBuilderModel(model);
+		setMode('builder');
+		setValidationError('');
+	};
+
 	const handleSave = async () => {
-		if (!dsl.trim()) {
+		let dslToSave = dsl;
+		if (mode === 'builder') {
+			const err = validateModel(builderModel);
+			if (err) {
+				setValidationError(err);
+				return;
+			}
+			dslToSave = generateDsl(builderModel);
+		} else if (!dsl.trim()) {
 			setValidationError('Model DSL cannot be empty.');
 			return;
 		}
@@ -68,15 +140,12 @@ const Model = () => {
 		setSaving(true);
 		try {
 			const res = await client
-				.mutation<FgaWriteModelResponse>(FgaWriteModel, {
-					params: { dsl },
-				})
+				.mutation<FgaWriteModelResponse>(FgaWriteModel, { params: { dsl: dslToSave } })
 				.toPromise();
 
 			if (res.error) {
-				if (isFgaNotEnabledError(res.error)) {
-					setFgaDisabled(true);
-				} else {
+				if (isFgaNotEnabledError(res.error)) setFgaDisabled(true);
+				else {
 					setValidationError(res.error.message.replace('[GraphQL] ', ''));
 					toast.error('Failed to save authorization model');
 				}
@@ -85,7 +154,7 @@ const Model = () => {
 
 			if (res.data?._fga_write_model) {
 				setModelId(res.data._fga_write_model.id);
-				setDsl(res.data._fga_write_model.dsl || dsl);
+				setDsl(res.data._fga_write_model.dsl || dslToSave);
 				toast.success('Authorization model saved');
 			}
 		} catch {
@@ -95,57 +164,123 @@ const Model = () => {
 		}
 	};
 
+	const summary = mode === 'builder' ? summarize(builderModel) : [];
+
 	return (
 		<div className="m-5 rounded-md bg-white py-5 px-10">
-			<div className="my-4 flex items-center justify-between">
+			<div className="my-4 flex items-start justify-between gap-4">
 				<div>
-					<h1 className="text-2xl font-semibold text-gray-900">
-						Authorization Model
-					</h1>
-					<p className="mt-1 text-sm text-gray-500">
-						Define the OpenFGA authorization model in DSL form.
+					<h1 className="text-2xl font-semibold text-gray-900">Authorization Model</h1>
+					<p className="mt-1 max-w-2xl text-sm text-gray-500">
+						The model is your permission rulebook: the object <strong>types</strong> you
+						protect, the <strong>relations</strong> on them (owner, editor, viewer…), and how
+						permissions are computed. Define it visually below, or switch to DSL for advanced
+						rules. Then grant access on the <strong>Relationship Tuples</strong> page.
 					</p>
 				</div>
-				{!fgaDisabled && (
-					<Button onClick={handleSave} disabled={saving || loading}>
+				{!fgaDisabled && !loading && (
+					<Button onClick={handleSave} disabled={saving}>
 						<Save className="mr-2 h-4 w-4" />
-						{saving ? 'Saving...' : 'Save Model'}
+						{saving ? 'Saving…' : 'Save model'}
 					</Button>
 				)}
 			</div>
 
 			{loading ? (
 				<div className="space-y-3">
-					<Skeleton className="h-10 w-1/3" />
+					<Skeleton className="h-9 w-64" />
 					<Skeleton className="h-64 w-full" />
 				</div>
 			) : fgaDisabled ? (
 				<FgaNotEnabled />
 			) : (
 				<div className="space-y-4">
-					{modelId && (
-						<div className="flex items-center gap-2 text-sm text-gray-600">
-							<span>Current model id:</span>
-							<Badge variant="secondary">{modelId}</Badge>
+					<div className="flex flex-wrap items-center justify-between gap-3">
+						<div className="inline-flex items-center gap-1 rounded-lg bg-gray-50 p-1">
+							<TabButton
+								active={mode === 'builder'}
+								onClick={() => mode !== 'builder' && switchToBuilder()}
+								icon={<LayoutGrid className="h-4 w-4" />}
+							>
+								Builder
+							</TabButton>
+							<TabButton
+								active={mode === 'dsl'}
+								onClick={() => mode !== 'dsl' && switchToDsl()}
+								icon={<Code2 className="h-4 w-4" />}
+							>
+								DSL (advanced)
+							</TabButton>
+						</div>
+
+						<div className="flex items-center gap-3">
+							{modelId && (
+								<span className="flex items-center gap-1.5 text-xs text-gray-500">
+									active model
+									<Badge variant="secondary">{modelId.slice(0, 12)}…</Badge>
+								</span>
+							)}
+						</div>
+					</div>
+
+					{mode === 'builder' && (
+						<div className="flex flex-wrap items-center gap-2 rounded-lg border border-dashed border-gray-200 p-2">
+							<span className="px-1 text-xs font-medium text-gray-500">Start from a template:</span>
+							{TEMPLATES.map((tpl) => (
+								<button
+									key={tpl.name}
+									type="button"
+									onClick={() => applyTemplate(tpl.model)}
+									title={tpl.description}
+									className="rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-700 transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700"
+								>
+									{tpl.name}
+								</button>
+							))}
 						</div>
 					)}
 
-					<Textarea
-						value={dsl}
-						onChange={(e) => setDsl(e.target.value)}
-						spellCheck={false}
-						className="min-h-[420px] font-mono text-xs leading-relaxed"
-						placeholder={
-							'model\n  schema 1.1\n\ntype user\n\ntype document\n  relations\n    define viewer: [user]\n    define editor: [user]'
-						}
-					/>
+					{mode === 'builder' ? (
+						<div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+							<div className="lg:col-span-2">
+								<ModelBuilder model={builderModel} onChange={setBuilderModel} />
+							</div>
+							<aside className="lg:col-span-1">
+								<div className="sticky top-4 rounded-xl border border-gray-100 bg-gray-50 p-4">
+									<div className="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-gray-500">
+										<Info className="h-3.5 w-3.5" />
+										What this model means
+									</div>
+									{summary.length ? (
+										<ul className="space-y-1.5 text-xs leading-relaxed text-gray-600">
+											{summary.map((s, i) => (
+												<li key={i}>• {s}</li>
+											))}
+										</ul>
+									) : (
+										<p className="text-xs text-gray-400">
+											Add a type with a relation to see a plain-English summary.
+										</p>
+									)}
+								</div>
+							</aside>
+						</div>
+					) : (
+						<Textarea
+							value={dsl}
+							onChange={(e) => setDsl(e.target.value)}
+							spellCheck={false}
+							className="min-h-[420px] font-mono text-xs leading-relaxed"
+							placeholder={
+								'model\n  schema 1.1\n\ntype user\n\ntype document\n  relations\n    define viewer: [user]\n    define editor: [user]\n    define can_view: viewer or editor'
+							}
+						/>
+					)}
 
 					{validationError && (
 						<div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
 							<AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-							<span className="whitespace-pre-wrap break-words">
-								{validationError}
-							</span>
+							<span className="whitespace-pre-wrap break-words">{validationError}</span>
 						</div>
 					)}
 				</div>
