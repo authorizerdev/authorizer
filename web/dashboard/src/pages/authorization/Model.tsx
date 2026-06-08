@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useClient } from 'urql';
 import { toast } from 'sonner';
-import { AlertCircle, Save } from 'lucide-react';
+import { AlertCircle, Save, Info } from 'lucide-react';
 import { FgaGetModelQuery, AdminRolesQuery } from '../../graphql/queries';
 import { FgaWriteModel } from '../../graphql/mutation';
 import { Button } from '../../components/ui/button';
@@ -215,10 +215,18 @@ const Model = () => {
 								</span>
 							)}
 						</div>
-						<p className="mb-1.5 text-xs text-gray-400">
-							There is one active model. Saving creates a new immutable version and makes it the
-							active one (previous versions are kept for in-flight checks).
-						</p>
+						<div className="mb-2 flex items-start gap-2 rounded-lg border border-gray-100 bg-gray-50 p-3 text-xs leading-relaxed text-gray-600">
+							<Info className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" aria-hidden="true" />
+							<div>
+								<strong className="text-gray-700">About model versions.</strong> There is always
+								exactly one <em>active</em> model. Saving creates a new <strong>immutable
+								version</strong> and makes it active; earlier versions are retained so requests
+								already in flight stay valid. OpenFGA models are <strong>append-only</strong> — an
+								individual version cannot be deleted. To change the rules, save a new version; to
+								remove everything, reset the store (deletes the model and all tuples). Separate
+								models require separate stores, which aren&rsquo;t exposed here.
+							</div>
+						</div>
 						<Textarea
 							id="model-dsl"
 							value={dsl}
