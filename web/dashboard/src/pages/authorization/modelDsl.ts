@@ -164,6 +164,65 @@ export function summarize(model: ModelDraft): string[] {
 	return out;
 }
 
+// ── Pure model mutations (kept pure + index-based so they're unit-testable;
+//    the tree editor calls these and never mutates state in place). ───────────
+
+const mapType = (m: ModelDraft, ti: number, fn: (t: TypeDef) => TypeDef): ModelDraft => ({
+	...m,
+	types: m.types.map((t, i) => (i === ti ? fn(t) : t)),
+});
+
+const mapRelation = (
+	m: ModelDraft,
+	ti: number,
+	ri: number,
+	fn: (r: RelationDef) => RelationDef,
+): ModelDraft => mapType(m, ti, (t) => ({ ...t, relations: t.relations.map((r, i) => (i === ri ? fn(r) : r)) }));
+
+export const addType = (m: ModelDraft): ModelDraft => ({
+	...m,
+	types: [...m.types, { name: '', relations: [] }],
+});
+
+export const deleteType = (m: ModelDraft, ti: number): ModelDraft => ({
+	...m,
+	types: m.types.filter((_, i) => i !== ti),
+});
+
+export const renameType = (m: ModelDraft, ti: number, name: string): ModelDraft =>
+	mapType(m, ti, (t) => ({ ...t, name }));
+
+export const addRelation = (m: ModelDraft, ti: number): ModelDraft =>
+	mapType(m, ti, (t) => ({ ...t, relations: [...t.relations, { name: '', directTypes: [], computed: [] }] }));
+
+export const deleteRelation = (m: ModelDraft, ti: number, ri: number): ModelDraft =>
+	mapType(m, ti, (t) => ({ ...t, relations: t.relations.filter((_, i) => i !== ri) }));
+
+export const renameRelation = (m: ModelDraft, ti: number, ri: number, name: string): ModelDraft =>
+	mapRelation(m, ti, ri, (r) => ({ ...r, name }));
+
+export const addAssignable = (m: ModelDraft, ti: number, ri: number, dt: string): ModelDraft =>
+	mapRelation(m, ti, ri, (r) =>
+		r.directTypes.includes(dt) ? r : { ...r, directTypes: [...r.directTypes, dt] },
+	);
+
+export const removeAssignable = (m: ModelDraft, ti: number, ri: number, idx: number): ModelDraft =>
+	mapRelation(m, ti, ri, (r) => ({ ...r, directTypes: r.directTypes.filter((_, i) => i !== idx) }));
+
+export const addComputed = (m: ModelDraft, ti: number, ri: number, term: ComputedTerm): ModelDraft =>
+	mapRelation(m, ti, ri, (r) => ({ ...r, computed: [...r.computed, term] }));
+
+export const removeComputed = (m: ModelDraft, ti: number, ri: number, idx: number): ModelDraft =>
+	mapRelation(m, ti, ri, (r) => ({ ...r, computed: r.computed.filter((_, i) => i !== idx) }));
+
+// relationExprText renders a relation's definition for compact display.
+export function relationExprText(r: RelationDef): string {
+	const parts: string[] = [];
+	if (r.directTypes.length) parts.push(`[${r.directTypes.join(', ')}]`);
+	for (const c of r.computed) parts.push(c.from ? `${c.relation} from ${c.from}` : c.relation);
+	return parts.join(' or ') || '(empty)';
+}
+
 // sanitizeRelationName makes an Authorizer role usable as an OpenFGA relation
 // name (alphanumeric/underscore). e.g. "org-admin" -> "org_admin".
 export function sanitizeRelationName(role: string): string {

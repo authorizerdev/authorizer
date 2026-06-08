@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useClient } from 'urql';
 import { toast } from 'sonner';
-import { AlertCircle, Save, LayoutGrid, Code2, Info } from 'lucide-react';
+import { AlertCircle, Save, LayoutGrid, Code2 } from 'lucide-react';
 import { FgaGetModelQuery, AdminRolesQuery } from '../../graphql/queries';
 import { FgaWriteModel } from '../../graphql/mutation';
 import { Button } from '../../components/ui/button';
@@ -9,13 +9,12 @@ import { Textarea } from '../../components/ui/textarea';
 import { Skeleton } from '../../components/ui/skeleton';
 import { Badge } from '../../components/ui/badge';
 import FgaNotEnabled from '../../components/FgaNotEnabled';
-import ModelBuilder from './ModelBuilder';
+import ModelTree from './ModelTree';
 import AuthSteps, { Example, NextStep } from './AuthSteps';
 import {
 	generateDsl,
 	parseDsl,
 	validateModel,
-	summarize,
 	rolesTemplate,
 	TEMPLATES,
 	type ModelDraft,
@@ -186,8 +185,6 @@ const Model = () => {
 		}
 	};
 
-	const summary = mode === 'builder' ? summarize(builderModel) : [];
-
 	// Offer a template built from the instance's configured roles first.
 	const roleModel = rolesTemplate(roles);
 	const templates = [
@@ -289,30 +286,7 @@ const Model = () => {
 					)}
 
 					{mode === 'builder' ? (
-						<div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-							<div className="lg:col-span-2">
-								<ModelBuilder model={builderModel} onChange={setBuilderModel} />
-							</div>
-							<aside className="lg:col-span-1">
-								<div className="sticky top-4 rounded-xl border border-gray-100 bg-gray-50 p-4">
-									<div className="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-gray-500">
-										<Info className="h-3.5 w-3.5" />
-										What this model means
-									</div>
-									{summary.length ? (
-										<ul className="space-y-1.5 text-xs leading-relaxed text-gray-600">
-											{summary.map((s, i) => (
-												<li key={i}>• {s}</li>
-											))}
-										</ul>
-									) : (
-										<p className="text-xs text-gray-400">
-											Add a type with a relation to see a plain-English summary.
-										</p>
-									)}
-								</div>
-							</aside>
-						</div>
+						<ModelTree model={builderModel} onChange={setBuilderModel} />
 					) : (
 						<Textarea
 							value={dsl}
