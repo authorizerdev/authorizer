@@ -132,12 +132,6 @@ export interface FgaTuple {
 	object: string;
 }
 
-export interface AdminRolesResponse {
-	_env: {
-		ROLES?: string[] | null;
-	} | null;
-}
-
 export interface FgaGetModelResponse {
 	_fga_get_model: FgaModel;
 }
@@ -176,4 +170,3 @@ export interface FgaCheckResponse {
 		allowed: boolean;
 	};
 }
-

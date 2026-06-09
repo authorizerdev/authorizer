@@ -17,11 +17,17 @@ const emptyTuple: FgaTuple = { user: '', relation: '', object: '' };
 const Tester = () => {
 	const client = useClient();
 	const [fgaDisabled, setFgaDisabled] = useState<boolean>(false);
+	// The subject to check. As a super-admin (the dashboard caller) you may check
+	// any subject; leaving it blank checks your own token, which only resolves
+	// when you signed in with a user account (not the admin secret).
+	const [user, setUser] = useState<string>('');
 	const [relation, setRelation] = useState<string>('');
 	const [object, setObject] = useState<string>('');
 	const [contextualTuples, setContextualTuples] = useState<FgaTuple[]>([]);
 	const [running, setRunning] = useState<boolean>(false);
 	const [result, setResult] = useState<boolean | null>(null);
+	// The subject the last result is for, captured at submit time for the message.
+	const [checkedUser, setCheckedUser] = useState<string>('');
 
 	const addContextualTuple = () => {
 		setContextualTuples((prev) => [...prev, { ...emptyTuple }]);
@@ -51,9 +57,7 @@ const Tester = () => {
 		setResult(null);
 		try {
 			const validContextual = contextualTuples
-				.filter(
-					(t) => t.user.trim() && t.relation.trim() && t.object.trim(),
-				)
+				.filter((t) => t.user.trim() && t.relation.trim() && t.object.trim())
 				.map((t) => ({
 					user: t.user.trim(),
 					relation: t.relation.trim(),
@@ -63,14 +67,19 @@ const Tester = () => {
 			const params: {
 				relation: string;
 				object: string;
+				user?: string;
 				contextual_tuples?: FgaTuple[];
 			} = {
 				relation: relation.trim(),
 				object: object.trim(),
 			};
+			if (user.trim()) {
+				params.user = user.trim();
+			}
 			if (validContextual.length) {
 				params.contextual_tuples = validContextual;
 			}
+			setCheckedUser(user.trim());
 
 			const res = await client
 				.query<FgaCheckResponse>(
@@ -104,7 +113,9 @@ const Tester = () => {
 			<div className="m-5 rounded-md bg-white py-5 px-10">
 				<AuthSteps current={3} />
 				<div className="my-4">
-					<h1 className="text-2xl font-semibold text-gray-900">Step 3 · Test access</h1>
+					<h1 className="text-2xl font-semibold text-gray-900">
+						Step 3 · Test access
+					</h1>
 				</div>
 				<FgaNotEnabled />
 			</div>
@@ -115,31 +126,59 @@ const Tester = () => {
 		<div className="m-5 rounded-md bg-white py-5 px-10">
 			<AuthSteps current={3} />
 			<div className="my-4">
-				<h1 className="text-2xl font-semibold text-gray-900">Step 3 · Test access</h1>
+				<h1 className="text-2xl font-semibold text-gray-900">
+					Step 3 · Test access
+				</h1>
 				<p className="mt-1 max-w-2xl text-sm text-gray-500">
-					Verify your rules and grants. The check runs for{' '}
-					<strong>the currently logged-in admin</strong> &mdash; the principal is pinned to your
-					token by the server and cannot be changed here.
+					Ask the engine &ldquo;can <strong>this user</strong> do{' '}
+					<strong>this relation</strong> on <strong>this object</strong>
+					?&rdquo;. As a super-admin you can check <strong>any subject</strong>.
+					Leave <strong>User</strong> blank to check yourself &mdash; that only
+					resolves when you signed in with a user account, not the admin secret.
 				</p>
 			</div>
 
 			<div className="mb-5">
 				<Example>
-					<strong>Example:</strong> ask &ldquo;can I{' '}
+					<strong>Example:</strong> ask &ldquo;can{' '}
+					<code className="rounded bg-white px-1 py-0.5 text-xs">
+						user:alice
+					</code>{' '}
 					<code className="rounded bg-white px-1 py-0.5 text-xs">can_view</code>{' '}
-					<code className="rounded bg-white px-1 py-0.5 text-xs">document:1</code>?&rdquo; &mdash; if
-					you granted yourself <code className="rounded bg-white px-1 py-0.5 text-xs">viewer</code>{' '}
-					on it in step 2, the result is <strong>Allowed</strong>.
+					<code className="rounded bg-white px-1 py-0.5 text-xs">
+						document:1
+					</code>
+					?&rdquo; &mdash; if you granted{' '}
+					<code className="rounded bg-white px-1 py-0.5 text-xs">
+						user:alice
+					</code>{' '}
+					the{' '}
+					<code className="rounded bg-white px-1 py-0.5 text-xs">viewer</code>{' '}
+					relation in step 2, the result is <strong>Allowed</strong>.
 				</Example>
 			</div>
 
 			<form onSubmit={handleCheck} className="max-w-2xl space-y-5">
+				<div className="space-y-1">
+					<Label htmlFor="check-user">User (subject)</Label>
+					<Input
+						id="check-user"
+						placeholder="user:alice — blank checks yourself"
+						value={user}
+						onChange={(e) => setUser(e.target.value)}
+						spellCheck={false}
+					/>
+					<p className="text-xs text-gray-400">
+						The subject to check, e.g. <code>user:alice</code>. A bare id is
+						treated as <code>user:&lt;id&gt;</code>.
+					</p>
+				</div>
 				<div className="grid grid-cols-1 gap-3 md:grid-cols-2">
 					<div className="space-y-1">
 						<Label htmlFor="check-relation">Relation</Label>
 						<Input
 							id="check-relation"
-							placeholder="viewer"
+							placeholder="can_view"
 							value={relation}
 							onChange={(e) => setRelation(e.target.value)}
 						/>
@@ -228,8 +267,9 @@ const Tester = () => {
 							<div>
 								<Badge variant="success">Allowed</Badge>
 								<p className="mt-1 text-sm text-gray-600">
-									You have <strong>{relation}</strong> access to{' '}
-									<strong>{object}</strong>.
+									<strong>{checkedUser || 'You'}</strong>{' '}
+									{checkedUser ? 'has' : 'have'} <strong>{relation}</strong>{' '}
+									access to <strong>{object}</strong>.
 								</p>
 							</div>
 						</div>
@@ -239,7 +279,9 @@ const Tester = () => {
 							<div>
 								<Badge variant="destructive">Denied</Badge>
 								<p className="mt-1 text-sm text-gray-600">
-									You do not have <strong>{relation}</strong> access to{' '}
+									<strong>{checkedUser || 'You'}</strong>{' '}
+									{checkedUser ? 'does' : 'do'} not have{' '}
+									<strong>{relation}</strong> access to{' '}
 									<strong>{object}</strong>.
 								</p>
 							</div>

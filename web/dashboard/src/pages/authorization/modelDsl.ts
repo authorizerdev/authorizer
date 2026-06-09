@@ -25,7 +25,8 @@ const IDENT = /^[a-zA-Z0-9_]+$/;
 function relationExpr(r: RelationDef): string {
 	const parts: string[] = [];
 	if (r.directTypes.length) parts.push(`[${r.directTypes.join(', ')}]`);
-	for (const c of r.computed) parts.push(c.from ? `${c.relation} from ${c.from}` : c.relation);
+	for (const c of r.computed)
+		parts.push(c.from ? `${c.relation} from ${c.from}` : c.relation);
 	return parts.join(' or ');
 }
 
@@ -35,7 +36,8 @@ export function generateDsl(model: ModelDraft): string {
 		lines.push(`type ${t.name}`);
 		if (t.relations.length) {
 			lines.push('  relations');
-			for (const r of t.relations) lines.push(`    define ${r.name}: ${relationExpr(r)}`);
+			for (const r of t.relations)
+				lines.push(`    define ${r.name}: ${relationExpr(r)}`);
 		}
 	}
 	return lines.join('\n') + '\n';
@@ -44,7 +46,10 @@ export function generateDsl(model: ModelDraft): string {
 // parseDsl best-effort parses the simple subset (direct + union + inheritance)
 // so we can render a plain-English summary. Models with advanced constructs
 // return supported=false (no summary shown).
-export function parseDsl(dsl: string): { model: ModelDraft | null; supported: boolean } {
+export function parseDsl(dsl: string): {
+	model: ModelDraft | null;
+	supported: boolean;
+} {
 	const types: TypeDef[] = [];
 	let current: TypeDef | null = null;
 	for (const raw of dsl.split('\n')) {
@@ -68,13 +73,20 @@ export function parseDsl(dsl: string): { model: ModelDraft | null; supported: bo
 			const m = trimmed.match(/^define\s+([a-zA-Z0-9_]+)\s*:\s*(.+)$/);
 			if (!m) return { model: null, supported: false };
 			const expr = m[2].trim();
-			if (/\bbut\s+not\b|\band\b|[()]|\bwith\b/.test(expr)) return { model: null, supported: false };
+			if (/\bbut\s+not\b|\band\b|[()]|\bwith\b/.test(expr))
+				return { model: null, supported: false };
 			const rel: RelationDef = { name: m[1], directTypes: [], computed: [] };
 			for (const partRaw of expr.split(/\s+or\s+/)) {
 				const part = partRaw.trim();
 				if (!part) continue;
 				if (part.startsWith('[') && part.endsWith(']')) {
-					rel.directTypes.push(...part.slice(1, -1).split(',').map((s) => s.trim()).filter(Boolean));
+					rel.directTypes.push(
+						...part
+							.slice(1, -1)
+							.split(',')
+							.map((s) => s.trim())
+							.filter(Boolean),
+					);
 				} else if (/\sfrom\s/.test(part)) {
 					const fm = part.match(/^([a-zA-Z0-9_]+)\s+from\s+([a-zA-Z0-9_]+)$/);
 					if (!fm) return { model: null, supported: false };
@@ -99,16 +111,25 @@ export function summarize(model: ModelDraft): string[] {
 	for (const t of model.types) {
 		for (const r of t.relations) {
 			const bits: string[] = [];
-			if (r.directTypes.length) bits.push(`assigned (${r.directTypes.join(', ')})`);
-			for (const c of r.computed) bits.push(c.from ? `${c.relation} of its ${c.from}` : `a ${c.relation}`);
-			out.push(`A user who is ${bits.join(' OR ')} is "${r.name}" of a ${t.name}.`);
+			if (r.directTypes.length)
+				bits.push(`assigned (${r.directTypes.join(', ')})`);
+			for (const c of r.computed)
+				bits.push(
+					c.from ? `${c.relation} of its ${c.from}` : `a ${c.relation}`,
+				);
+			out.push(
+				`A user who is ${bits.join(' OR ')} is "${r.name}" of a ${t.name}.`,
+			);
 		}
 	}
 	return out;
 }
 
 export function sanitizeRelationName(role: string): string {
-	return role.trim().replace(/[^a-zA-Z0-9_]/g, '_').replace(/^_+|_+$/g, '');
+	return role
+		.trim()
+		.replace(/[^a-zA-Z0-9_]/g, '_')
+		.replace(/^_+|_+$/g, '');
 }
 
 // rolesTemplate builds a model from the instance's configured roles: each role
@@ -123,8 +144,120 @@ export function rolesTemplate(roles: string[]): ModelDraft | null {
 		rel.push({ name, directTypes: ['user'], computed: [] });
 	}
 	if (!rel.length) return null;
-	rel.push({ name: 'can_access', directTypes: [], computed: rel.map((r) => ({ relation: r.name })) });
-	return { types: [{ name: 'user', relations: [] }, { name: 'resource', relations: rel }] };
+	rel.push({
+		name: 'can_access',
+		directTypes: [],
+		computed: rel.map((r) => ({ relation: r.name })),
+	});
+	return {
+		types: [
+			{ name: 'user', relations: [] },
+			{ name: 'resource', relations: rel },
+		],
+	};
+}
+
+// dedupeNames sanitizes a list of role/permission names and drops blanks and
+// duplicates while preserving order.
+function dedupeNames(names: string[]): string[] {
+	const seen = new Set<string>();
+	const out: string[] = [];
+	for (const raw of names) {
+		const name = sanitizeRelationName(raw);
+		if (!name || seen.has(name)) continue;
+		seen.add(name);
+		out.push(name);
+	}
+	return out;
+}
+
+// RbacConfig describes a roles × permissions matrix applied to one or more
+// resource types: a set of roles, a set of actions, and which roles are granted
+// which actions. Every listed resource type shares the same matrix.
+export interface RbacConfig {
+	// The object types being protected (e.g. ["document", "project"]). Each
+	// becomes its own type with the same role/permission relations.
+	resourceTypes: string[];
+	roles: string[];
+	permissions: string[];
+	// grant[role] = list of permission names that role is allowed.
+	grant: Record<string, string[]>;
+}
+
+// RESERVED_TYPES are the type names the RBAC builder always emits; a resource
+// type may not reuse them.
+export const RESERVED_TYPES = ['user', 'role'];
+
+// rbacModel turns a roles × permissions matrix into a standard OpenFGA RBAC
+// model with one type per protected resource:
+//
+//   type user
+//   type role
+//     relations
+//       define assignee: [user]
+//   type <resource>            (one per resourceTypes entry)
+//     relations
+//       define <role>: [user, role#assignee]   (one per role)
+//       define can_<perm>: <roles-with-perm>    (one per granted action)
+//
+// Each role relation accepts a direct user OR a whole role userset, so admins
+// can grant a single user or an entire role on an object. Returns null when the
+// matrix is empty (no valid resource, no role, or no granted permission).
+export function rbacModel(config: RbacConfig): ModelDraft | null {
+	const resources = dedupeNames(config.resourceTypes).filter(
+		(r) => !RESERVED_TYPES.includes(r),
+	);
+	if (!resources.length) return null;
+
+	const roles = dedupeNames(config.roles);
+	const perms = dedupeNames(config.permissions);
+	if (!roles.length) return null;
+
+	const relations: RelationDef[] = [];
+	for (const role of roles) {
+		relations.push({
+			name: role,
+			directTypes: ['user', 'role#assignee'],
+			computed: [],
+		});
+	}
+
+	let grantedAny = false;
+	for (const perm of perms) {
+		const rolesWithPerm = roles.filter((r) =>
+			(config.grant[r] || []).map(sanitizeRelationName).includes(perm),
+		);
+		if (!rolesWithPerm.length) continue;
+		grantedAny = true;
+		relations.push({
+			name: `can_${perm}`,
+			directTypes: [],
+			computed: rolesWithPerm.map((r) => ({ relation: r })),
+		});
+	}
+	if (!grantedAny) return null;
+
+	// Each resource gets its own copy of the relation set (cloned so the
+	// generated types never share mutable references).
+	const resourceTypes: TypeDef[] = resources.map((name) => ({
+		name,
+		relations: relations.map((r) => ({
+			name: r.name,
+			directTypes: [...r.directTypes],
+			computed: r.computed.map((c) => ({ ...c })),
+		})),
+	}));
+
+	return {
+		types: [
+			{ name: 'user', relations: [] },
+			{
+				name: 'role',
+				relations: [{ name: 'assignee', directTypes: ['user'], computed: [] }],
+			},
+			...resourceTypes,
+		],
+	};
 }
 
 // MODEL_EXAMPLES is a catalog of common authorization patterns as raw DSL.
