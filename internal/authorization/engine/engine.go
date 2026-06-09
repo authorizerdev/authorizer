@@ -13,7 +13,16 @@
 // engine is not constructed and the fga_* resolvers fail closed.
 package engine
 
-import "context"
+import (
+	"context"
+	"errors"
+)
+
+// ErrNoModel is returned (wrapped) by ReadModel when no authorization model has
+// been written to the store yet. Callers can use errors.Is to treat this as an
+// empty state ("no model yet") rather than a failure — e.g. a fresh store the
+// admin has not configured. Distinct from a genuine read failure.
+var ErrNoModel = errors.New("no authorization model written yet")
 
 // TupleKey identifies a single relationship: the subject (User) is related to
 // the Object via the Relation. Identifiers are expected to be fully qualified

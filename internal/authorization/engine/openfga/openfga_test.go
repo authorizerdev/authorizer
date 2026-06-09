@@ -146,7 +146,12 @@ func TestOpenFGAEngine_ReadModelRoundtrip(t *testing.T) {
 	ctx := context.Background()
 	eng, _ := newTestEngine(t)
 
-	_, err := eng.WriteModel(ctx, testModel)
+	// A fresh store has no model yet: ReadModel must report the typed sentinel
+	// so callers can treat it as an empty state, not a failure.
+	_, _, err := eng.ReadModel(ctx)
+	assert.ErrorIs(t, err, engine.ErrNoModel, "ReadModel on a fresh store must return ErrNoModel")
+
+	_, err = eng.WriteModel(ctx, testModel)
 	require.NoError(t, err)
 
 	id, dsl, err := eng.ReadModel(ctx)
@@ -174,9 +179,9 @@ func TestOpenFGAEngine_Reset(t *testing.T) {
 	assert.NotEqual(t, storeBefore, impl.StoreID(), "Reset must create a new store")
 	assert.Empty(t, impl.ModelID(), "Reset must clear the active model")
 
-	// No model after reset → reads fail closed and checks error.
+	// No model after reset → ReadModel reports the no-model sentinel.
 	_, _, err = eng.ReadModel(ctx)
-	assert.Error(t, err, "ReadModel must error when no model exists after reset")
+	assert.ErrorIs(t, err, engine.ErrNoModel, "ReadModel after reset must return ErrNoModel")
 
 	// The engine is reusable: a new model and tuples can be written.
 	_, err = eng.WriteModel(ctx, testModel)

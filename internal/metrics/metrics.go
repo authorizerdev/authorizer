@@ -129,6 +129,43 @@ var (
 			Help: "Total requests that omitted X-Authorizer-Client-ID (allowed for some routes)",
 		},
 	)
+
+	// FgaChecksTotal is the headline fine-grained-authorization access-decision
+	// counter: every fga_check / fga_batch_check decision by outcome. Use it for
+	// FGA adoption tracking and denial/error alerting.
+	// operation: check | batch_check. result: allowed | denied | error.
+	FgaChecksTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "authorizer_fga_checks_total",
+			Help: "Total fine-grained authorization access decisions. operation=check|batch_check, result=allowed|denied|error",
+		},
+		[]string{"operation", "result"},
+	)
+
+	// FgaCheckDuration tracks the latency of the client-facing FGA read
+	// operations (the OpenFGA engine call), in seconds.
+	// operation: check | batch_check | list_objects.
+	FgaCheckDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "authorizer_fga_check_duration_seconds",
+			Help:    "Fine-grained authorization engine call duration in seconds. operation=check|batch_check|list_objects",
+			Buckets: prometheus.DefBuckets,
+		},
+		[]string{"operation"},
+	)
+
+	// FgaOperationsTotal counts non-decision FGA operations (model/tuple
+	// management, enumeration, reset) by outcome — useful for auditing admin
+	// authorization changes and alerting on failures.
+	// operation: get_model|write_model|read_tuples|write_tuples|delete_tuples|list_users|expand|list_objects|reset.
+	// result: success | error.
+	FgaOperationsTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "authorizer_fga_operations_total",
+			Help: "Total non-decision fine-grained authorization operations by outcome. result=success|error",
+		},
+		[]string{"operation", "result"},
+	)
 )
 
 // staticAssetPathSuffixes are path suffixes (after lowercasing) treated as static files
@@ -211,6 +248,9 @@ func Init() {
 		prometheus.MustRegister(GraphQLRequestDuration)
 		prometheus.MustRegister(DBHealthCheckTotal)
 		prometheus.MustRegister(ClientIDHeaderMissingTotal)
+		prometheus.MustRegister(FgaChecksTotal)
+		prometheus.MustRegister(FgaCheckDuration)
+		prometheus.MustRegister(FgaOperationsTotal)
 	})
 }
 
@@ -259,4 +299,58 @@ func RecordGraphQLLimitRejection(limit string) {
 // RecordClientIDHeaderMissing records a request that had no client ID header.
 func RecordClientIDHeaderMissing() {
 	ClientIDHeaderMissingTotal.Inc()
+}
+
+// FGA operation labels (low-cardinality, package constants). Never pass
+// user-controlled strings as label values.
+const (
+	FgaOpCheck        = "check"
+	FgaOpBatchCheck   = "batch_check"
+	FgaOpListObjects  = "list_objects"
+	FgaOpGetModel     = "get_model"
+	FgaOpWriteModel   = "write_model"
+	FgaOpReadTuples   = "read_tuples"
+	FgaOpWriteTuples  = "write_tuples"
+	FgaOpDeleteTuples = "delete_tuples"
+	FgaOpListUsers    = "list_users"
+	FgaOpExpand       = "expand"
+	FgaOpReset        = "reset"
+)
+
+// FGA result labels.
+const (
+	FgaResultAllowed = "allowed"
+	FgaResultDenied  = "denied"
+	FgaResultError   = "error"
+	FgaResultSuccess = "success"
+)
+
+// RecordFgaCheck records a single FGA access decision.
+// operation must be FgaOpCheck or FgaOpBatchCheck; result must be one of
+// FgaResultAllowed / FgaResultDenied / FgaResultError.
+func RecordFgaCheck(operation, result string) {
+	FgaChecksTotal.WithLabelValues(operation, result).Inc()
+}
+
+// RecordFgaCheckResult is a convenience wrapper that maps a boolean decision to
+// the allowed/denied result label.
+func RecordFgaCheckResult(operation string, allowed bool) {
+	if allowed {
+		RecordFgaCheck(operation, FgaResultAllowed)
+		return
+	}
+	RecordFgaCheck(operation, FgaResultDenied)
+}
+
+// ObserveFgaCheckDuration records the latency of an FGA engine call in seconds.
+// operation must be one of the FgaOp* constants for client-facing reads.
+func ObserveFgaCheckDuration(operation string, seconds float64) {
+	FgaCheckDuration.WithLabelValues(operation).Observe(seconds)
+}
+
+// RecordFgaOperation records a non-decision FGA operation outcome.
+// operation must be an FgaOp* constant; result must be FgaResultSuccess or
+// FgaResultError.
+func RecordFgaOperation(operation, result string) {
+	FgaOperationsTotal.WithLabelValues(operation, result).Inc()
 }

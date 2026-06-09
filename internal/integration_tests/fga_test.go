@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -24,6 +25,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/graphql"
 	"github.com/authorizerdev/authorizer/internal/http_handlers"
 	"github.com/authorizerdev/authorizer/internal/memory_store"
+	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/oauth"
 	"github.com/authorizerdev/authorizer/internal/rate_limit"
 	"github.com/authorizerdev/authorizer/internal/sms"
@@ -181,6 +183,16 @@ func TestFGA(t *testing.T) {
 	})
 
 	setAdminCookie(t, ts)
+
+	// ---- Admin: a fresh store (no model yet) is an empty state, NOT an error. ----
+	t.Run("_fga_get_model returns empty model on a fresh store", func(t *testing.T) {
+		res, err := ts.GraphQLProvider.FgaGetModel(ctx)
+		require.NoError(t, err, "no model yet must be an empty state, not an error")
+		require.NotNil(t, res)
+		assert.Empty(t, res.ID)
+		assert.Empty(t, res.Dsl)
+	})
+
 	modelRes, err := ts.GraphQLProvider.FgaWriteModel(ctx, &model.FgaWriteModelInput{Dsl: fgaTestModel})
 	require.NoError(t, err)
 	require.NotNil(t, modelRes)
@@ -507,6 +519,48 @@ func TestFGA(t *testing.T) {
 			},
 		})
 		assert.Error(t, err, "validate_jwt_token must fail when a required relation is unsatisfied")
+	})
+
+	// ---- Observability: the FGA resolvers feed Prometheus metrics. ----
+	t.Run("fga resolvers record decision, duration and operation metrics", func(t *testing.T) {
+		// Earlier subtests rotate/invalidate the original session, so re-login for
+		// a fresh one and pin to it for the decision checks.
+		clearCookies(ts)
+		fresh, err := ts.GraphQLProvider.Login(ctx, &model.LoginRequest{Email: &email, Password: password})
+		require.NoError(t, err)
+		require.NotNil(t, fresh)
+		freshSession := latestAppSessionCookie(ts)
+		require.NotEmpty(t, freshSession)
+		clearCookies(ts)
+		ts.GinContext.Request.Header.Set("Cookie", fmt.Sprintf("%s_session=%s", constants.AppCookieName, freshSession))
+
+		allowBefore := testutil.ToFloat64(metrics.FgaChecksTotal.WithLabelValues(metrics.FgaOpCheck, metrics.FgaResultAllowed))
+		denyBefore := testutil.ToFloat64(metrics.FgaChecksTotal.WithLabelValues(metrics.FgaOpCheck, metrics.FgaResultDenied))
+
+		// document:1 is granted to the caller (allowed); document:2 is not (denied).
+		_, err = ts.GraphQLProvider.FgaCheck(ctx, &model.FgaCheckInput{Relation: "can_view", Object: "document:1"})
+		require.NoError(t, err)
+		_, err = ts.GraphQLProvider.FgaCheck(ctx, &model.FgaCheckInput{Relation: "can_view", Object: "document:2"})
+		require.NoError(t, err)
+
+		assert.Equal(t, allowBefore+1,
+			testutil.ToFloat64(metrics.FgaChecksTotal.WithLabelValues(metrics.FgaOpCheck, metrics.FgaResultAllowed)),
+			"an allowed check must increment the allowed counter")
+		assert.Equal(t, denyBefore+1,
+			testutil.ToFloat64(metrics.FgaChecksTotal.WithLabelValues(metrics.FgaOpCheck, metrics.FgaResultDenied)),
+			"a denied check must increment the denied counter")
+		// The duration histogram has at least the 'check' series populated.
+		assert.GreaterOrEqual(t, testutil.CollectAndCount(metrics.FgaCheckDuration), 1,
+			"fga check duration histogram must have observations")
+
+		// An admin operation increments the operations counter.
+		setAdminCookie(t, ts)
+		opBefore := testutil.ToFloat64(metrics.FgaOperationsTotal.WithLabelValues(metrics.FgaOpReadTuples, metrics.FgaResultSuccess))
+		_, err = ts.GraphQLProvider.FgaReadTuples(ctx, &model.FgaReadTuplesInput{})
+		require.NoError(t, err)
+		assert.Equal(t, opBefore+1,
+			testutil.ToFloat64(metrics.FgaOperationsTotal.WithLabelValues(metrics.FgaOpReadTuples, metrics.FgaResultSuccess)),
+			"a successful admin op must increment the operations counter")
 	})
 
 	_ = req

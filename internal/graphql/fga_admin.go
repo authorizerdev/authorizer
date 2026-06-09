@@ -10,6 +10,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/authorization/engine"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
@@ -48,9 +49,11 @@ func (g *graphqlProvider) FgaWriteModel(ctx context.Context, params *model.FgaWr
 	}
 	modelID, err := g.AuthzEngine.WriteModel(ctx, params.Dsl)
 	if err != nil {
+		metrics.RecordFgaOperation(metrics.FgaOpWriteModel, metrics.FgaResultError)
 		log.Debug().Err(err).Msg("Failed to write authorization model")
 		return nil, err
 	}
+	metrics.RecordFgaOperation(metrics.FgaOpWriteModel, metrics.FgaResultSuccess)
 	g.AuditProvider.LogEvent(audit.Event{
 		Action:       constants.AuditAdminFgaModelWrittenEvent,
 		ActorType:    constants.AuditActorTypeAdmin,
@@ -80,9 +83,18 @@ func (g *graphqlProvider) FgaGetModel(ctx context.Context) (*model.FgaModel, err
 	}
 	id, dsl, err := g.AuthzEngine.ReadModel(ctx)
 	if err != nil {
+		// A store with no model yet is a normal empty state, not a failure:
+		// return an empty model so the dashboard shows its "define a model"
+		// starting point instead of an error.
+		if errors.Is(err, engine.ErrNoModel) {
+			metrics.RecordFgaOperation(metrics.FgaOpGetModel, metrics.FgaResultSuccess)
+			return &model.FgaModel{ID: "", Dsl: ""}, nil
+		}
+		metrics.RecordFgaOperation(metrics.FgaOpGetModel, metrics.FgaResultError)
 		log.Debug().Err(err).Msg("Failed to read authorization model")
 		return nil, err
 	}
+	metrics.RecordFgaOperation(metrics.FgaOpGetModel, metrics.FgaResultSuccess)
 	return &model.FgaModel{ID: id, Dsl: dsl}, nil
 }
 
@@ -107,9 +119,11 @@ func (g *graphqlProvider) FgaWriteTuples(ctx context.Context, params *model.FgaW
 		return nil, err
 	}
 	if err := g.AuthzEngine.WriteTuples(ctx, tuples); err != nil {
+		metrics.RecordFgaOperation(metrics.FgaOpWriteTuples, metrics.FgaResultError)
 		log.Debug().Err(err).Msg("Failed to write tuples")
 		return nil, err
 	}
+	metrics.RecordFgaOperation(metrics.FgaOpWriteTuples, metrics.FgaResultSuccess)
 	g.AuditProvider.LogEvent(audit.Event{
 		Action:       constants.AuditAdminFgaTuplesWrittenEvent,
 		ActorType:    constants.AuditActorTypeAdmin,
@@ -142,9 +156,11 @@ func (g *graphqlProvider) FgaDeleteTuples(ctx context.Context, params *model.Fga
 		return nil, err
 	}
 	if err := g.AuthzEngine.DeleteTuples(ctx, tuples); err != nil {
+		metrics.RecordFgaOperation(metrics.FgaOpDeleteTuples, metrics.FgaResultError)
 		log.Debug().Err(err).Msg("Failed to delete tuples")
 		return nil, err
 	}
+	metrics.RecordFgaOperation(metrics.FgaOpDeleteTuples, metrics.FgaResultSuccess)
 	g.AuditProvider.LogEvent(audit.Event{
 		Action:       constants.AuditAdminFgaTuplesDeletedEvent,
 		ActorType:    constants.AuditActorTypeAdmin,
@@ -193,9 +209,11 @@ func (g *graphqlProvider) FgaReadTuples(ctx context.Context, params *model.FgaRe
 	}
 	res, err := g.AuthzEngine.ReadTuples(ctx, filter)
 	if err != nil {
+		metrics.RecordFgaOperation(metrics.FgaOpReadTuples, metrics.FgaResultError)
 		log.Debug().Err(err).Msg("Failed to read tuples")
 		return nil, err
 	}
+	metrics.RecordFgaOperation(metrics.FgaOpReadTuples, metrics.FgaResultSuccess)
 	out := &model.FgaTuples{Tuples: make([]*model.FgaTuple, 0, len(res.Tuples))}
 	for _, t := range res.Tuples {
 		out.Tuples = append(out.Tuples, &model.FgaTuple{User: t.User, Relation: t.Relation, Object: t.Object})
@@ -230,9 +248,11 @@ func (g *graphqlProvider) FgaListUsers(ctx context.Context, params *model.FgaLis
 	}
 	users, err := g.AuthzEngine.ListUsers(ctx, params.Object, params.Relation, params.UserType)
 	if err != nil {
+		metrics.RecordFgaOperation(metrics.FgaOpListUsers, metrics.FgaResultError)
 		log.Debug().Err(err).Msg("Failed to list users")
 		return nil, err
 	}
+	metrics.RecordFgaOperation(metrics.FgaOpListUsers, metrics.FgaResultSuccess)
 	// Cap the result set; ListUsers is an expensive enumeration surface.
 	if len(users) > maxFgaListResults {
 		users = users[:maxFgaListResults]
@@ -264,9 +284,11 @@ func (g *graphqlProvider) FgaExpand(ctx context.Context, params *model.FgaExpand
 	}
 	tree, err := g.AuthzEngine.Expand(ctx, params.Relation, params.Object)
 	if err != nil {
+		metrics.RecordFgaOperation(metrics.FgaOpExpand, metrics.FgaResultError)
 		log.Debug().Err(err).Msg("Failed to expand")
 		return nil, err
 	}
+	metrics.RecordFgaOperation(metrics.FgaOpExpand, metrics.FgaResultSuccess)
 	return &model.FgaExpandResponse{Tree: tree}, nil
 }
 
@@ -303,9 +325,11 @@ func (g *graphqlProvider) FgaReset(ctx context.Context) (*model.Response, error)
 		return nil, fmt.Errorf("remove all relationship tuples before resetting the authorization model")
 	}
 	if err := g.AuthzEngine.Reset(ctx); err != nil {
+		metrics.RecordFgaOperation(metrics.FgaOpReset, metrics.FgaResultError)
 		log.Debug().Err(err).Msg("Failed to reset authorization store")
 		return nil, err
 	}
+	metrics.RecordFgaOperation(metrics.FgaOpReset, metrics.FgaResultSuccess)
 	g.AuditProvider.LogEvent(audit.Event{
 		Action:       constants.AuditAdminFgaResetEvent,
 		ActorType:    constants.AuditActorTypeAdmin,

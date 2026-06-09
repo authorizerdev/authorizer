@@ -293,7 +293,7 @@ func (e *engineImpl) WriteModel(ctx context.Context, dsl string) (string, error)
 func (e *engineImpl) ReadModel(ctx context.Context) (string, string, error) {
 	storeID, modelID := e.ids()
 	if modelID == "" {
-		return "", "", fmt.Errorf("openfga.ReadModel: no authorization model written yet")
+		return "", "", fmt.Errorf("openfga.ReadModel: %w", engine.ErrNoModel)
 	}
 	res, err := e.srv.ReadAuthorizationModel(ctx, &openfgav1.ReadAuthorizationModelRequest{
 		StoreId: storeID,

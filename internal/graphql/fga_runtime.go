@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/authorizerdev/authorizer/internal/authorization/engine"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
+	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/utils"
 )
@@ -127,12 +129,16 @@ func (g *graphqlProvider) FgaCheck(ctx context.Context, params *model.FgaCheckIn
 	if err != nil {
 		return nil, err
 	}
+	start := time.Now()
 	allowed, err := g.AuthzEngine.Check(ctx, principal, params.Relation, params.Object, ctxTuples...)
+	metrics.ObserveFgaCheckDuration(metrics.FgaOpCheck, time.Since(start).Seconds())
 	if err != nil {
 		// Fail closed: treat engine error as deny.
+		metrics.RecordFgaCheck(metrics.FgaOpCheck, metrics.FgaResultError)
 		log.Debug().Err(err).Msg("Check failed; denying")
 		return nil, fmt.Errorf("authorization check failed")
 	}
+	metrics.RecordFgaCheckResult(metrics.FgaOpCheck, allowed)
 	return &model.FgaCheckResponse{Allowed: allowed}, nil
 }
 
@@ -173,14 +179,19 @@ func (g *graphqlProvider) FgaBatchCheck(ctx context.Context, params *model.FgaBa
 			ContextualTuples: ctxTuples,
 		})
 	}
+	start := time.Now()
 	results, err := g.AuthzEngine.BatchCheck(ctx, requests)
+	metrics.ObserveFgaCheckDuration(metrics.FgaOpBatchCheck, time.Since(start).Seconds())
 	if err != nil {
 		// Fail closed for the whole batch.
+		metrics.RecordFgaCheck(metrics.FgaOpBatchCheck, metrics.FgaResultError)
 		log.Debug().Err(err).Msg("BatchCheck failed; denying")
 		return nil, fmt.Errorf("authorization check failed")
 	}
 	out := &model.FgaBatchCheckResponse{Results: make([]*model.FgaCheckResponse, 0, len(results))}
 	for _, r := range results {
+		// Record each sub-decision so adoption/denial rates reflect every pair.
+		metrics.RecordFgaCheckResult(metrics.FgaOpBatchCheck, r.Allowed)
 		out.Results = append(out.Results, &model.FgaCheckResponse{Allowed: r.Allowed})
 	}
 	return out, nil
@@ -205,11 +216,15 @@ func (g *graphqlProvider) FgaListObjects(ctx context.Context, params *model.FgaL
 		log.Debug().Err(err).Msg("Failed to resolve subject")
 		return nil, err
 	}
+	start := time.Now()
 	objects, err := g.AuthzEngine.ListObjects(ctx, principal, params.Relation, params.ObjectType)
+	metrics.ObserveFgaCheckDuration(metrics.FgaOpListObjects, time.Since(start).Seconds())
 	if err != nil {
+		metrics.RecordFgaOperation(metrics.FgaOpListObjects, metrics.FgaResultError)
 		log.Debug().Err(err).Msg("ListObjects failed; denying")
 		return nil, fmt.Errorf("authorization list failed")
 	}
+	metrics.RecordFgaOperation(metrics.FgaOpListObjects, metrics.FgaResultSuccess)
 	// Cap the result set; ListObjects is an expensive enumeration surface.
 	if len(objects) > maxFgaListResults {
 		objects = objects[:maxFgaListResults]
