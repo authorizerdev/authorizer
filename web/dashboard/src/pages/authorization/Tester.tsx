@@ -142,17 +142,13 @@ const Tester = () => {
 				<Example>
 					<strong>Example:</strong> ask &ldquo;can{' '}
 					<code className="rounded bg-white px-1 py-0.5 text-xs">
-						user:alice
+						user:&lt;id&gt;
 					</code>{' '}
 					<code className="rounded bg-white px-1 py-0.5 text-xs">can_view</code>{' '}
 					<code className="rounded bg-white px-1 py-0.5 text-xs">
 						document:1
 					</code>
-					?&rdquo; &mdash; if you granted{' '}
-					<code className="rounded bg-white px-1 py-0.5 text-xs">
-						user:alice
-					</code>{' '}
-					the{' '}
+					?&rdquo; &mdash; if you granted that user the{' '}
 					<code className="rounded bg-white px-1 py-0.5 text-xs">viewer</code>{' '}
 					relation in step 2, the result is <strong>Allowed</strong>.
 				</Example>
@@ -163,14 +159,15 @@ const Tester = () => {
 					<Label htmlFor="check-user">User (subject)</Label>
 					<Input
 						id="check-user"
-						placeholder="user:alice — blank checks yourself"
+						placeholder="user:<id> — blank checks yourself"
 						value={user}
 						onChange={(e) => setUser(e.target.value)}
 						spellCheck={false}
 					/>
 					<p className="text-xs text-gray-400">
-						The subject to check, e.g. <code>user:alice</code>. A bare id is
-						treated as <code>user:&lt;id&gt;</code>.
+						The subject&rsquo;s <strong>user id</strong> (from the Users page),
+						e.g. <code>user:&lt;id&gt;</code> — not a name or email. A bare id
+						is treated as <code>user:&lt;id&gt;</code>.
 					</p>
 				</div>
 				<div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -220,7 +217,7 @@ const Tester = () => {
 								className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_1fr_1fr_auto] md:items-center"
 							>
 								<Input
-									placeholder="user:alice"
+									placeholder="user:<id>"
 									value={tuple.user}
 									onChange={(e) =>
 										updateContextualTuple(index, 'user', e.target.value)

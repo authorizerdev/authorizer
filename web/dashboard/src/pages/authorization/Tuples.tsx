@@ -65,12 +65,16 @@ const GRANT_PATTERNS: {
 	{
 		name: 'Direct grant',
 		desc: 'One user → one object.',
-		tuple: { user: 'user:alice', relation: 'viewer', object: 'document:1' },
+		tuple: { user: 'user:<user-id>', relation: 'viewer', object: 'document:1' },
 	},
 	{
 		name: 'Assign a role',
 		desc: 'Put a user into a role.',
-		tuple: { user: 'user:alice', relation: 'assignee', object: 'role:editor' },
+		tuple: {
+			user: 'user:<user-id>',
+			relation: 'assignee',
+			object: 'role:editor',
+		},
 	},
 	{
 		name: 'Grant a whole role',
@@ -89,7 +93,11 @@ const GRANT_PATTERNS: {
 	{
 		name: 'All resources in a folder',
 		desc: 'Grant on the folder once; every document under it inherits.',
-		tuple: { user: 'user:alice', relation: 'viewer', object: 'folder:root' },
+		tuple: {
+			user: 'user:<user-id>',
+			relation: 'viewer',
+			object: 'folder:root',
+		},
 	},
 ];
 
@@ -332,7 +340,7 @@ const Tuples = () => {
 				<Example>
 					<strong>Example:</strong> give{' '}
 					<code className="rounded bg-white px-1 py-0.5 text-xs">
-						user:alice
+						user:&lt;id&gt;
 					</code>{' '}
 					the{' '}
 					<code className="rounded bg-white px-1 py-0.5 text-xs">viewer</code>{' '}
@@ -340,7 +348,7 @@ const Tuples = () => {
 					<code className="rounded bg-white px-1 py-0.5 text-xs">
 						document:1
 					</code>{' '}
-					— now Alice can view that document.
+					— that user can now view the document.
 				</Example>
 			</div>
 
@@ -424,10 +432,6 @@ const Tuples = () => {
 						value={form.user}
 						onChange={(e) => setForm({ ...form, user: e.target.value })}
 					/>
-					<p className="text-xs text-gray-400">
-						Use the user&rsquo;s id (<code>user:&lt;id&gt;</code>), not a name —
-						ids are stable and unique.
-					</p>
 				</div>
 				<div className="space-y-1">
 					<Label htmlFor="tuple-relation">Relation</Label>
@@ -451,6 +455,11 @@ const Tuples = () => {
 					<Plus className="mr-2 h-4 w-4" />
 					{submitting ? 'Adding...' : 'Add'}
 				</Button>
+				{/* Full-width hint row so the input columns above stay aligned. */}
+				<p className="text-xs text-gray-400 md:col-span-4">
+					Use the user&rsquo;s id (<code>user:&lt;id&gt;</code>, from the{' '}
+					<strong>Users</strong> page), not a name — ids are stable and unique.
+				</p>
 			</form>
 
 			{loading ? (
@@ -531,7 +540,7 @@ const Tuples = () => {
 					<p className="mt-1 max-w-sm text-sm leading-relaxed text-gray-500">
 						Tuples grant access &mdash; e.g.{' '}
 						<code className="rounded bg-gray-100 px-1 py-0.5 text-xs text-gray-700">
-							user:alice
+							user:&lt;id&gt;
 						</code>{' '}
 						is{' '}
 						<code className="rounded bg-gray-100 px-1 py-0.5 text-xs text-gray-700">
