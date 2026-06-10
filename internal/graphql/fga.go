@@ -80,7 +80,9 @@ func (g *graphqlProvider) resolveFgaSubject(ctx context.Context, explicitUser st
 	}
 	// Self-specification is always allowed: it is exactly what the token
 	// already proves. This keeps client code symmetric (it may always send
-	// `user`) while the server stays strict.
+	// `user`) while the server stays strict. The comparison is exact-string
+	// after outer TrimSpace + normalization — no inner-whitespace or case
+	// tolerance; a near-miss falls through and is rejected (fail-closed).
 	if subject == ownSubject {
 		return subject, nil
 	}
