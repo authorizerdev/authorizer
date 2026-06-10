@@ -67,20 +67,20 @@ func TestSkipHTTPRequestMetrics_chunkSegment(t *testing.T) {
 
 func TestRecordFgaCheck(t *testing.T) {
 	// RecordFgaCheckResult maps the boolean decision to the right label.
-	allowBefore := testutil.ToFloat64(FgaChecksTotal.WithLabelValues(FgaOpCheck, FgaResultAllowed))
-	RecordFgaCheckResult(FgaOpCheck, true)
+	allowBefore := testutil.ToFloat64(FgaChecksTotal.WithLabelValues(FgaOpCheckPermissions, FgaResultAllowed))
+	RecordFgaCheckResult(FgaOpCheckPermissions, true)
 	assert.Equal(t, allowBefore+1,
-		testutil.ToFloat64(FgaChecksTotal.WithLabelValues(FgaOpCheck, FgaResultAllowed)))
+		testutil.ToFloat64(FgaChecksTotal.WithLabelValues(FgaOpCheckPermissions, FgaResultAllowed)))
 
-	denyBefore := testutil.ToFloat64(FgaChecksTotal.WithLabelValues(FgaOpBatchCheck, FgaResultDenied))
-	RecordFgaCheckResult(FgaOpBatchCheck, false)
+	denyBefore := testutil.ToFloat64(FgaChecksTotal.WithLabelValues(FgaOpCheckPermissions, FgaResultDenied))
+	RecordFgaCheckResult(FgaOpCheckPermissions, false)
 	assert.Equal(t, denyBefore+1,
-		testutil.ToFloat64(FgaChecksTotal.WithLabelValues(FgaOpBatchCheck, FgaResultDenied)))
+		testutil.ToFloat64(FgaChecksTotal.WithLabelValues(FgaOpCheckPermissions, FgaResultDenied)))
 
-	errBefore := testutil.ToFloat64(FgaChecksTotal.WithLabelValues(FgaOpCheck, FgaResultError))
-	RecordFgaCheck(FgaOpCheck, FgaResultError)
+	errBefore := testutil.ToFloat64(FgaChecksTotal.WithLabelValues(FgaOpCheckPermissions, FgaResultError))
+	RecordFgaCheck(FgaOpCheckPermissions, FgaResultError)
 	assert.Equal(t, errBefore+1,
-		testutil.ToFloat64(FgaChecksTotal.WithLabelValues(FgaOpCheck, FgaResultError)))
+		testutil.ToFloat64(FgaChecksTotal.WithLabelValues(FgaOpCheckPermissions, FgaResultError)))
 }
 
 func TestRecordFgaOperation(t *testing.T) {
@@ -96,8 +96,8 @@ func TestRecordFgaOperation(t *testing.T) {
 }
 
 func TestObserveFgaCheckDuration(t *testing.T) {
-	ObserveFgaCheckDuration(FgaOpListObjects, 0.01)
-	ObserveFgaCheckDuration(FgaOpCheck, 0.02)
+	ObserveFgaCheckDuration(FgaOpListPermissions, 0.01)
+	ObserveFgaCheckDuration(FgaOpCheckPermissions, 0.02)
 	// At least the two observed series are present in the histogram vec.
 	assert.GreaterOrEqual(t, testutil.CollectAndCount(FgaCheckDuration), 1)
 }

@@ -142,18 +142,22 @@ type FgaTuples {
   continuation_token: String
 }
 
-# FgaCheckResponse is the result of a single relationship check.
-type FgaCheckResponse {
+# PermissionCheckResult is the outcome of one permission check, echoing the
+# checked pair so batch results are self-describing (and positionally aligned).
+type PermissionCheckResult {
+  relation: String!
+  object: String!
   allowed: Boolean!
 }
 
-# FgaBatchCheckResponse is the positionally-aligned result of a batch check.
-type FgaBatchCheckResponse {
-  results: [FgaCheckResponse!]!
+# CheckPermissionsResponse carries one result per supplied check, in order.
+type CheckPermissionsResponse {
+  results: [PermissionCheckResult!]!
 }
 
-# FgaListObjectsResponse lists fully-qualified object ids the caller relates to.
-type FgaListObjectsResponse {
+# ListPermissionsResponse lists the fully-qualified object ids the subject
+# holds the queried permission on.
+type ListPermissionsResponse {
   objects: [String!]!
 }
 
@@ -740,45 +744,32 @@ input FgaReadTuplesInput {
   continuation_token: String
 }
 
-# FgaCheckInput asks "is <user> related to object via relation?". The subject
-# (user) defaults to the authenticated caller and is pinned server-side from the
-# auth token. The optional `user` field lets a TRUSTED caller (super-admin) check
-# on behalf of another subject; a non-trusted caller supplying `user` is rejected
-# (no silent self-fallback). Only relation, object, optional `user` and optional
-# contextual tuples are accepted from the client.
-input FgaCheckInput {
+# PermissionCheckInput is one permission to evaluate: "does the subject have
+# <relation> on <object>?". Contextual tuples are evaluated for this check only
+# and never persisted.
+input PermissionCheckInput {
   relation: String!
   object: String!
   contextual_tuples: [FgaTupleInput!]
-  # Optional subject override ("type:id" or bare id → "user:id"). Honored only
-  # for super-admin callers; rejected otherwise.
+}
+
+# CheckPermissionsInput evaluates one or more permission checks in a single
+# call. The subject defaults to the authenticated caller (JWT / session
+# cookie). The optional `user` ("type:id", or a bare id treated as
+# "user:<id>") is honored only when the caller is a super-admin OR it equals
+# the caller's own token subject; anything else is rejected — never silently
+# ignored.
+input CheckPermissionsInput {
+  checks: [PermissionCheckInput!]!
   user: String
 }
 
-# FgaBatchCheckInput evaluates multiple relation/object pairs for the
-# authenticated caller (principal pinned server-side).
-input FgaBatchCheckInput {
-  checks: [FgaCheckPairInput!]!
-}
-
-# FgaCheckPairInput is one relation/object pair within a batch check.
-input FgaCheckPairInput {
-  relation: String!
-  object: String!
-  contextual_tuples: [FgaTupleInput!]
-  # Optional subject override ("type:id" or bare id → "user:id"). Honored only
-  # for super-admin callers; rejected otherwise.
-  user: String
-}
-
-# FgaListObjectsInput enumerates objects of type object_type that <user> relates
-# to via relation. The subject defaults to the authenticated caller; the optional
-# `user` override is honored only for super-admin callers (rejected otherwise).
-input FgaListObjectsInput {
+# ListPermissionsInput enumerates the objects of `object_type` the subject
+# holds `relation` on. Subject resolution follows the same rules as
+# CheckPermissionsInput.user.
+input ListPermissionsInput {
   relation: String!
   object_type: String!
-  # Optional subject override ("type:id" or bare id → "user:id"). Honored only
-  # for super-admin callers; rejected otherwise.
   user: String
 }
 
@@ -877,7 +868,6 @@ type Query {
   _fga_list_users(params: FgaListUsersInput!): FgaListUsersResponse!
   _fga_expand(params: FgaExpandInput!): FgaExpandResponse!
   # FGA runtime queries (authenticated caller; principal pinned server-side)
-  fga_check(params: FgaCheckInput!): FgaCheckResponse!
-  fga_batch_check(params: FgaBatchCheckInput!): FgaBatchCheckResponse!
-  fga_list_objects(params: FgaListObjectsInput!): FgaListObjectsResponse!
+  check_permissions(params: CheckPermissionsInput!): CheckPermissionsResponse!
+  list_permissions(params: ListPermissionsInput!): ListPermissionsResponse!
 }

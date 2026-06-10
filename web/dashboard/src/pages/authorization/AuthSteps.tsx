@@ -5,16 +5,25 @@ import { Check, ArrowRight, Lightbulb } from 'lucide-react';
 import { FgaGetModelQuery, FgaReadTuplesQuery } from '../../graphql/queries';
 import type { FgaGetModelResponse, FgaReadTuplesResponse } from '../../types';
 
-// The three FGA pages are a sequential workflow: define the model, grant access,
-// then verify. AuthSteps renders that as a clickable stepper shown on each page,
-// so the flow is always visible but any step is reachable directly.
+// The FGA pages are a sequential workflow: define the model, then grant
+// access. AuthSteps renders that as a clickable stepper shown on each page.
+// (Per-user verification lives in the Users table → "View permissions".)
 export const STEPS = [
-	{ n: 1, label: 'Define model', desc: 'Set the rules', route: '/authorization/model' },
-	{ n: 2, label: 'Grant access', desc: 'Who can do what', route: '/authorization/tuples' },
-	{ n: 3, label: 'Test access', desc: 'Verify it works', route: '/authorization/tester' },
+	{
+		n: 1,
+		label: 'Define model',
+		desc: 'Set the rules',
+		route: '/authorization/model',
+	},
+	{
+		n: 2,
+		label: 'Grant access',
+		desc: 'Who can do what',
+		route: '/authorization/tuples',
+	},
 ] as const;
 
-const AuthSteps = ({ current }: { current: 1 | 2 | 3 }) => {
+const AuthSteps = ({ current }: { current: 1 | 2 }) => {
 	const navigate = useNavigate();
 	const client = useClient();
 	// A step shows a check only when it's actually complete: step 1 when a model
@@ -25,7 +34,11 @@ const AuthSteps = ({ current }: { current: 1 | 2 | 3 }) => {
 	useEffect(() => {
 		let active = true;
 		client
-			.query<FgaGetModelResponse>(FgaGetModelQuery, {}, { requestPolicy: 'network-only' })
+			.query<FgaGetModelResponse>(
+				FgaGetModelQuery,
+				{},
+				{ requestPolicy: 'network-only' },
+			)
 			.toPromise()
 			.then((r) => active && setModelDone(!!r.data?._fga_get_model?.dsl))
 			.catch(() => {});
@@ -36,20 +49,26 @@ const AuthSteps = ({ current }: { current: 1 | 2 | 3 }) => {
 				{ requestPolicy: 'network-only' },
 			)
 			.toPromise()
-			.then((r) => active && setTuplesDone((r.data?._fga_read_tuples?.tuples?.length ?? 0) > 0))
+			.then(
+				(r) =>
+					active &&
+					setTuplesDone((r.data?._fga_read_tuples?.tuples?.length ?? 0) > 0),
+			)
 			.catch(() => {});
 		return () => {
 			active = false;
 		};
 	}, [client]);
 
-	const isDone = (n: number) => (n === 1 ? modelDone : n === 2 ? tuplesDone : false);
+	const isDone = (n: number) =>
+		n === 1 ? modelDone : n === 2 ? tuplesDone : false;
 
 	return (
 		<nav aria-label="Fine-grained authorization setup" className="mb-5">
 			<ol className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
 				{STEPS.map((s) => {
-					const state = s.n === current ? 'current' : isDone(s.n) ? 'done' : 'upcoming';
+					const state =
+						s.n === current ? 'current' : isDone(s.n) ? 'done' : 'upcoming';
 					return (
 						<li key={s.n} className="flex-1">
 							<button
@@ -71,7 +90,11 @@ const AuthSteps = ({ current }: { current: 1 | 2 | 3 }) => {
 												: 'bg-gray-100 text-gray-500'
 									}`}
 								>
-									{state === 'done' ? <Check className="h-4 w-4" aria-hidden="true" /> : s.n}
+									{state === 'done' ? (
+										<Check className="h-4 w-4" aria-hidden="true" />
+									) : (
+										s.n
+									)}
 								</span>
 								<span className="min-w-0">
 									<span
@@ -81,7 +104,9 @@ const AuthSteps = ({ current }: { current: 1 | 2 | 3 }) => {
 									>
 										{s.label}
 									</span>
-									<span className="block truncate text-xs text-gray-400">{s.desc}</span>
+									<span className="block truncate text-xs text-gray-400">
+										{s.desc}
+									</span>
 								</span>
 							</button>
 						</li>
@@ -96,7 +121,10 @@ const AuthSteps = ({ current }: { current: 1 | 2 | 3 }) => {
 // real entry looks like.
 export const Example = ({ children }: { children: React.ReactNode }) => (
 	<div className="flex items-start gap-2.5 rounded-lg border border-blue-100 bg-blue-50/60 px-3.5 py-2.5 text-sm text-gray-600">
-		<Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" aria-hidden="true" />
+		<Lightbulb
+			className="mt-0.5 h-4 w-4 shrink-0 text-blue-500"
+			aria-hidden="true"
+		/>
 		<div className="leading-relaxed">{children}</div>
 	</div>
 );

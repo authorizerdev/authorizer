@@ -65,6 +65,15 @@ type AuthResponse struct {
 	AuthenticatorRecoveryCodes []*string `json:"authenticator_recovery_codes,omitempty"`
 }
 
+type CheckPermissionsInput struct {
+	Checks []*PermissionCheckInput `json:"checks"`
+	User   *string                 `json:"user,omitempty"`
+}
+
+type CheckPermissionsResponse struct {
+	Results []*PermissionCheckResult `json:"results"`
+}
+
 type DeleteEmailTemplateRequest struct {
 	ID string `json:"id"`
 }
@@ -167,32 +176,6 @@ type Error struct {
 	Reason  string `json:"reason"`
 }
 
-type FgaBatchCheckInput struct {
-	Checks []*FgaCheckPairInput `json:"checks"`
-}
-
-type FgaBatchCheckResponse struct {
-	Results []*FgaCheckResponse `json:"results"`
-}
-
-type FgaCheckInput struct {
-	Relation         string           `json:"relation"`
-	Object           string           `json:"object"`
-	ContextualTuples []*FgaTupleInput `json:"contextual_tuples,omitempty"`
-	User             *string          `json:"user,omitempty"`
-}
-
-type FgaCheckPairInput struct {
-	Relation         string           `json:"relation"`
-	Object           string           `json:"object"`
-	ContextualTuples []*FgaTupleInput `json:"contextual_tuples,omitempty"`
-	User             *string          `json:"user,omitempty"`
-}
-
-type FgaCheckResponse struct {
-	Allowed bool `json:"allowed"`
-}
-
 type FgaExpandInput struct {
 	Relation string `json:"relation"`
 	Object   string `json:"object"`
@@ -200,16 +183,6 @@ type FgaExpandInput struct {
 
 type FgaExpandResponse struct {
 	Tree string `json:"tree"`
-}
-
-type FgaListObjectsInput struct {
-	Relation   string  `json:"relation"`
-	ObjectType string  `json:"object_type"`
-	User       *string `json:"user,omitempty"`
-}
-
-type FgaListObjectsResponse struct {
-	Objects []string `json:"objects"`
 }
 
 type FgaListUsersInput struct {
@@ -312,6 +285,16 @@ type ListAuditLogRequest struct {
 	ToTimestamp   *int64             `json:"to_timestamp,omitempty"`
 }
 
+type ListPermissionsInput struct {
+	Relation   string  `json:"relation"`
+	ObjectType string  `json:"object_type"`
+	User       *string `json:"user,omitempty"`
+}
+
+type ListPermissionsResponse struct {
+	Objects []string `json:"objects"`
+}
+
 type ListWebhookLogRequest struct {
 	Pagination *PaginationRequest `json:"pagination,omitempty"`
 	WebhookID  *string            `json:"webhook_id,omitempty"`
@@ -406,6 +389,18 @@ type Pagination struct {
 type PaginationRequest struct {
 	Limit *int64 `json:"limit,omitempty"`
 	Page  *int64 `json:"page,omitempty"`
+}
+
+type PermissionCheckInput struct {
+	Relation         string           `json:"relation"`
+	Object           string           `json:"object"`
+	ContextualTuples []*FgaTupleInput `json:"contextual_tuples,omitempty"`
+}
+
+type PermissionCheckResult struct {
+	Relation string `json:"relation"`
+	Object   string `json:"object"`
+	Allowed  bool   `json:"allowed"`
 }
 
 type Query struct {

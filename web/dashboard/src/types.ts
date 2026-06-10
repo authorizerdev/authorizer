@@ -165,9 +165,9 @@ export interface FgaResetResponse {
 	};
 }
 
-export interface FgaCheckResponse {
-	fga_check: {
-		allowed: boolean;
+export interface ListPermissionsResponse {
+	list_permissions: {
+		objects: string[];
 	};
 }
 

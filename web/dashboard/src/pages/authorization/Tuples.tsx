@@ -556,8 +556,8 @@ const Tuples = () => {
 			)}
 
 			<div className="mt-6 flex items-center justify-between border-t border-gray-100 pt-4 text-sm text-gray-500">
-				<span>Granted some access? Verify it works.</span>
-				<NextStep to="/authorization/tester" label="Next: test access" />
+				<span>Granted some access? Verify it per user.</span>
+				<NextStep to="/users" label="View permissions in Users" />
 			</div>
 		</div>
 	);

@@ -157,10 +157,12 @@ export const FgaReadTuplesQuery = `
   }
 `;
 
-export const FgaCheckQuery = `
-  query fgaCheck($params: FgaCheckInput!) {
-    fga_check(params: $params) {
-      allowed
+// ListPermissionsQuery enumerates the objects a subject holds a permission on.
+// The optional user param is honored for the super-admin dashboard session.
+export const ListPermissionsQuery = `
+  query listPermissions($params: ListPermissionsInput!) {
+    list_permissions(params: $params) {
+      objects
     }
   }
 `;

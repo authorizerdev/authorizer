@@ -292,19 +292,14 @@ func (r *queryResolver) FgaExpand(ctx context.Context, params model.FgaExpandInp
 	return r.GraphQLProvider.FgaExpand(ctx, &params)
 }
 
-// FgaCheck is the resolver for the fga_check field.
-func (r *queryResolver) FgaCheck(ctx context.Context, params model.FgaCheckInput) (*model.FgaCheckResponse, error) {
-	return r.GraphQLProvider.FgaCheck(ctx, &params)
+// CheckPermissions is the resolver for the check_permissions field.
+func (r *queryResolver) CheckPermissions(ctx context.Context, params model.CheckPermissionsInput) (*model.CheckPermissionsResponse, error) {
+	return r.GraphQLProvider.CheckPermissions(ctx, &params)
 }
 
-// FgaBatchCheck is the resolver for the fga_batch_check field.
-func (r *queryResolver) FgaBatchCheck(ctx context.Context, params model.FgaBatchCheckInput) (*model.FgaBatchCheckResponse, error) {
-	return r.GraphQLProvider.FgaBatchCheck(ctx, &params)
-}
-
-// FgaListObjects is the resolver for the fga_list_objects field.
-func (r *queryResolver) FgaListObjects(ctx context.Context, params model.FgaListObjectsInput) (*model.FgaListObjectsResponse, error) {
-	return r.GraphQLProvider.FgaListObjects(ctx, &params)
+// ListPermissions is the resolver for the list_permissions field.
+func (r *queryResolver) ListPermissions(ctx context.Context, params model.ListPermissionsInput) (*model.ListPermissionsResponse, error) {
+	return r.GraphQLProvider.ListPermissions(ctx, &params)
 }
 
 // Mutation returns generated.MutationResolver implementation.

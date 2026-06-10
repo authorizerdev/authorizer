@@ -18,6 +18,7 @@ import EditUserModal from '../components/EditUserModal';
 import DeleteUserModal from '../components/DeleteUserModal';
 import InviteMembersModal from '../components/InviteMembersModal';
 import ViewUserModal from '../components/ViewUserModal';
+import UserPermissionsModal from '../components/UserPermissionsModal';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
@@ -83,6 +84,10 @@ export default function Users() {
 	const [loading, setLoading] = React.useState<boolean>(false);
 	const [searchQuery, setSearchQuery] = React.useState('');
 	const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
+	// User whose FGA permissions are being inspected (Users table → dropdown).
+	const [permissionsUser, setPermissionsUser] = React.useState<User | null>(
+		null,
+	);
 
 	const updateUserList = async () => {
 		setLoading(true);
@@ -285,7 +290,11 @@ export default function Users() {
 									...rest
 								} = user;
 								return (
-									<TableRow key={user.id} className="cursor-pointer hover:bg-gray-50" onClick={() => setSelectedUser(user)}>
+									<TableRow
+										key={user.id}
+										className="cursor-pointer hover:bg-gray-50"
+										onClick={() => setSelectedUser(user)}
+									>
 										<TableCell className="max-w-[300px] truncate text-sm">
 											{user.email || user.phone_number}
 										</TableCell>
@@ -396,6 +405,11 @@ export default function Users() {
 															Revoke Access
 														</DropdownMenuItem>
 													)}
+													<DropdownMenuItem
+														onClick={() => setPermissionsUser(user)}
+													>
+														View Permissions
+													</DropdownMenuItem>
 													{user.is_multi_factor_auth_enabled ? (
 														<DropdownMenuItem
 															onClick={() => multiFactorAuthUpdateHandler(user)}
@@ -517,6 +531,11 @@ export default function Users() {
 					<p className="text-2xl font-bold">No Data</p>
 				</div>
 			)}
+			<UserPermissionsModal
+				user={permissionsUser}
+				open={!!permissionsUser}
+				onClose={() => setPermissionsUser(null)}
+			/>
 			<ViewUserModal
 				user={selectedUser}
 				open={!!selectedUser}

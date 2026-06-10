@@ -131,24 +131,24 @@ var (
 	)
 
 	// FgaChecksTotal is the headline fine-grained-authorization access-decision
-	// counter: every fga_check / fga_batch_check decision by outcome. Use it for
-	// FGA adoption tracking and denial/error alerting.
-	// operation: check | batch_check. result: allowed | denied | error.
+	// counter: every check_permissions decision by outcome. Use it for FGA
+	// adoption tracking and denial/error alerting.
+	// operation: check_permissions. result: allowed | denied | error.
 	FgaChecksTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "authorizer_fga_checks_total",
-			Help: "Total fine-grained authorization access decisions. operation=check|batch_check, result=allowed|denied|error",
+			Help: "Total fine-grained authorization access decisions. operation=check_permissions, result=allowed|denied|error",
 		},
 		[]string{"operation", "result"},
 	)
 
 	// FgaCheckDuration tracks the latency of the client-facing FGA read
 	// operations (the OpenFGA engine call), in seconds.
-	// operation: check | batch_check | list_objects.
+	// operation: check_permissions | list_permissions.
 	FgaCheckDuration = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name:    "authorizer_fga_check_duration_seconds",
-			Help:    "Fine-grained authorization engine call duration in seconds. operation=check|batch_check|list_objects",
+			Help:    "Fine-grained authorization engine call duration in seconds. operation=check_permissions|list_permissions",
 			Buckets: prometheus.DefBuckets,
 		},
 		[]string{"operation"},
@@ -157,7 +157,7 @@ var (
 	// FgaOperationsTotal counts non-decision FGA operations (model/tuple
 	// management, enumeration, reset) by outcome — useful for auditing admin
 	// authorization changes and alerting on failures.
-	// operation: get_model|write_model|read_tuples|write_tuples|delete_tuples|list_users|expand|list_objects|reset.
+	// operation: get_model|write_model|read_tuples|write_tuples|delete_tuples|list_users|expand|list_permissions|reset.
 	// result: success | error.
 	FgaOperationsTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -304,17 +304,16 @@ func RecordClientIDHeaderMissing() {
 // FGA operation labels (low-cardinality, package constants). Never pass
 // user-controlled strings as label values.
 const (
-	FgaOpCheck        = "check"
-	FgaOpBatchCheck   = "batch_check"
-	FgaOpListObjects  = "list_objects"
-	FgaOpGetModel     = "get_model"
-	FgaOpWriteModel   = "write_model"
-	FgaOpReadTuples   = "read_tuples"
-	FgaOpWriteTuples  = "write_tuples"
-	FgaOpDeleteTuples = "delete_tuples"
-	FgaOpListUsers    = "list_users"
-	FgaOpExpand       = "expand"
-	FgaOpReset        = "reset"
+	FgaOpCheckPermissions = "check_permissions"
+	FgaOpListPermissions  = "list_permissions"
+	FgaOpGetModel         = "get_model"
+	FgaOpWriteModel       = "write_model"
+	FgaOpReadTuples       = "read_tuples"
+	FgaOpWriteTuples      = "write_tuples"
+	FgaOpDeleteTuples     = "delete_tuples"
+	FgaOpListUsers        = "list_users"
+	FgaOpExpand           = "expand"
+	FgaOpReset            = "reset"
 )
 
 // FGA result labels.
@@ -326,7 +325,7 @@ const (
 )
 
 // RecordFgaCheck records a single FGA access decision.
-// operation must be FgaOpCheck or FgaOpBatchCheck; result must be one of
+// operation must be FgaOpCheckPermissions; result must be one of
 // FgaResultAllowed / FgaResultDenied / FgaResultError.
 func RecordFgaCheck(operation, result string) {
 	FgaChecksTotal.WithLabelValues(operation, result).Inc()

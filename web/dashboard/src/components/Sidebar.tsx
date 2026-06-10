@@ -62,11 +62,6 @@ const navGroups: NavGroupConfig[] = [
 				icon: Network,
 				route: '/authorization/tuples',
 			},
-			{
-				name: 'Access Tester',
-				icon: SearchCheck,
-				route: '/authorization/tester',
-			},
 		],
 	},
 ];

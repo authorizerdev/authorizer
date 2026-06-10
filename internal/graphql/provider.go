@@ -220,13 +220,11 @@ type Provider interface {
 	// FgaExpand returns the relationship/userset tree for a (relation, object).
 	// Permissions: authorizer:admin
 	FgaExpand(ctx context.Context, params *model.FgaExpandInput) (*model.FgaExpandResponse, error)
-	// FgaCheck checks a relation for the authenticated caller (principal pinned).
+	// CheckPermissions evaluates one or more permission checks for the subject
+	// (token-resolved by default; explicit user for super-admins or self).
 	// Permissions: authorized user
-	FgaCheck(ctx context.Context, params *model.FgaCheckInput) (*model.FgaCheckResponse, error)
-	// FgaBatchCheck checks multiple relations for the authenticated caller.
+	CheckPermissions(ctx context.Context, params *model.CheckPermissionsInput) (*model.CheckPermissionsResponse, error)
+	// ListPermissions enumerates the objects the subject holds a permission on.
 	// Permissions: authorized user
-	FgaBatchCheck(ctx context.Context, params *model.FgaBatchCheckInput) (*model.FgaBatchCheckResponse, error)
-	// FgaListObjects lists objects the authenticated caller relates to.
-	// Permissions: authorized user
-	FgaListObjects(ctx context.Context, params *model.FgaListObjectsInput) (*model.FgaListObjectsResponse, error)
+	ListPermissions(ctx context.Context, params *model.ListPermissionsInput) (*model.ListPermissionsResponse, error)
 }

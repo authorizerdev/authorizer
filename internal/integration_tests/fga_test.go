@@ -226,28 +226,24 @@ func TestFGA(t *testing.T) {
 	clearCookies(ts)
 	ts.GinContext.Request.Header.Set("Cookie", fmt.Sprintf("%s_session=%s", constants.AppCookieName, sessionToken))
 
-	// ---- Runtime: fga_check allow (principal pinned to the caller). ----
-	t.Run("fga_check allows owner on granted object", func(t *testing.T) {
-		res, err := ts.GraphQLProvider.FgaCheck(ctx, &model.FgaCheckInput{
-			Relation: "can_view", Object: "document:1",
-		})
+	// ---- Runtime: check_permissions allow (principal pinned to the caller). ----
+	t.Run("check_permissions allows owner on granted object", func(t *testing.T) {
+		res, err := ts.GraphQLProvider.CheckPermissions(ctx, &model.CheckPermissionsInput{Checks: []*model.PermissionCheckInput{{Relation: "can_view", Object: "document:1"}}})
 		require.NoError(t, err)
 		require.NotNil(t, res)
-		assert.True(t, res.Allowed)
+		assert.True(t, res.Results[0].Allowed)
 	})
 
-	// ---- Runtime: fga_check deny on a non-granted object. ----
-	t.Run("fga_check denies on ungranted object", func(t *testing.T) {
-		res, err := ts.GraphQLProvider.FgaCheck(ctx, &model.FgaCheckInput{
-			Relation: "can_view", Object: "document:2",
-		})
+	// ---- Runtime: check_permissions deny on a non-granted object. ----
+	t.Run("check_permissions denies on ungranted object", func(t *testing.T) {
+		res, err := ts.GraphQLProvider.CheckPermissions(ctx, &model.CheckPermissionsInput{Checks: []*model.PermissionCheckInput{{Relation: "can_view", Object: "document:2"}}})
 		require.NoError(t, err)
 		require.NotNil(t, res)
-		assert.False(t, res.Allowed)
+		assert.False(t, res.Results[0].Allowed)
 	})
 
 	// ---- Runtime: PRINCIPAL PINNING — client cannot ask about another user. ----
-	t.Run("fga_check pins principal to caller (no impersonation)", func(t *testing.T) {
+	t.Run("check_permissions pins principal to caller (no impersonation)", func(t *testing.T) {
 		// Grant a DIFFERENT user viewer on document:3.
 		setAdminCookie(t, ts)
 		_, err := ts.GraphQLProvider.FgaWriteTuples(ctx, &model.FgaWriteTuplesInput{
@@ -261,17 +257,15 @@ func TestFGA(t *testing.T) {
 
 		// The caller (who is NOT someone-else) must be denied on document:3.
 		// There is no client-supplied "user" field, so impersonation is impossible.
-		res, err := ts.GraphQLProvider.FgaCheck(ctx, &model.FgaCheckInput{
-			Relation: "can_view", Object: "document:3",
-		})
+		res, err := ts.GraphQLProvider.CheckPermissions(ctx, &model.CheckPermissionsInput{Checks: []*model.PermissionCheckInput{{Relation: "can_view", Object: "document:3"}}})
 		require.NoError(t, err)
 		require.NotNil(t, res)
-		assert.False(t, res.Allowed, "caller must not inherit another user's grant")
+		assert.False(t, res.Results[0].Allowed, "caller must not inherit another user's grant")
 	})
 
-	// ---- Runtime: fga_list_objects returns only the caller's objects. ----
-	t.Run("fga_list_objects returns granted objects for caller", func(t *testing.T) {
-		res, err := ts.GraphQLProvider.FgaListObjects(ctx, &model.FgaListObjectsInput{
+	// ---- Runtime: list_permissions returns only the caller's objects. ----
+	t.Run("list_permissions returns granted objects for caller", func(t *testing.T) {
+		res, err := ts.GraphQLProvider.ListPermissions(ctx, &model.ListPermissionsInput{
 			Relation: "can_view", ObjectType: "document",
 		})
 		require.NoError(t, err)
@@ -280,10 +274,10 @@ func TestFGA(t *testing.T) {
 		assert.NotContains(t, res.Objects, "document:3")
 	})
 
-	// ---- Runtime: fga_batch_check. ----
-	t.Run("fga_batch_check positional allow/deny", func(t *testing.T) {
-		res, err := ts.GraphQLProvider.FgaBatchCheck(ctx, &model.FgaBatchCheckInput{
-			Checks: []*model.FgaCheckPairInput{
+	// ---- Runtime: check_permissions (batch). ----
+	t.Run("check_permissions (batch) positional allow/deny", func(t *testing.T) {
+		res, err := ts.GraphQLProvider.CheckPermissions(ctx, &model.CheckPermissionsInput{
+			Checks: []*model.PermissionCheckInput{
 				{Relation: "can_view", Object: "document:1"},
 				{Relation: "can_view", Object: "document:2"},
 			},
@@ -338,47 +332,63 @@ func TestFGA(t *testing.T) {
 	})
 
 	// ---- Trust gate: explicit `user` override on the decision ops. ----
-	t.Run("fga_check super-admin may check another subject via explicit user", func(t *testing.T) {
+	t.Run("check_permissions super-admin may check another subject via explicit user", func(t *testing.T) {
 		setAdminCookie(t, ts)
 		otherUser := "user:someone-else" // granted viewer on document:3 above
-		res, err := ts.GraphQLProvider.FgaCheck(ctx, &model.FgaCheckInput{
-			Relation: "can_view", Object: "document:3", User: &otherUser,
+		res, err := ts.GraphQLProvider.CheckPermissions(ctx, &model.CheckPermissionsInput{
+			Checks: []*model.PermissionCheckInput{{Relation: "can_view", Object: "document:3"}},
+			User:   &otherUser,
 		})
 		require.NoError(t, err)
 		require.NotNil(t, res)
-		assert.True(t, res.Allowed, "super-admin override must evaluate the supplied subject")
+		assert.True(t, res.Results[0].Allowed, "super-admin override must evaluate the supplied subject")
 
 		// Same admin, but checking the caller's own (admin) subject on document:3 → deny.
 		adminSelf := "user:does-not-have-access"
-		res, err = ts.GraphQLProvider.FgaCheck(ctx, &model.FgaCheckInput{
-			Relation: "can_view", Object: "document:3", User: &adminSelf,
+		res, err = ts.GraphQLProvider.CheckPermissions(ctx, &model.CheckPermissionsInput{
+			Checks: []*model.PermissionCheckInput{{Relation: "can_view", Object: "document:3"}},
+			User:   &adminSelf,
 		})
 		require.NoError(t, err)
 		require.NotNil(t, res)
-		assert.False(t, res.Allowed)
+		assert.False(t, res.Results[0].Allowed)
 	})
 
-	t.Run("fga_check ordinary user supplying another subject is REJECTED", func(t *testing.T) {
+	t.Run("check_permissions ordinary user supplying another subject is REJECTED", func(t *testing.T) {
 		clearCookies(ts)
 		ts.GinContext.Request.Header.Set("Cookie", fmt.Sprintf("%s_session=%s", constants.AppCookieName, sessionToken))
 		otherUser := "user:someone-else"
-		res, err := ts.GraphQLProvider.FgaCheck(ctx, &model.FgaCheckInput{
-			Relation: "can_view", Object: "document:3", User: &otherUser,
+		res, err := ts.GraphQLProvider.CheckPermissions(ctx, &model.CheckPermissionsInput{
+			Checks: []*model.PermissionCheckInput{{Relation: "can_view", Object: "document:3"}},
+			User:   &otherUser,
 		})
 		assert.Error(t, err, "end user must not query another subject")
 		assert.Nil(t, res)
 		assert.Contains(t, err.Error(), "not authorized to query authorization for another subject")
 	})
 
-	t.Run("fga_check ordinary user with no user still self-checks", func(t *testing.T) {
+	t.Run("check_permissions ordinary user may pass their OWN subject explicitly", func(t *testing.T) {
 		clearCookies(ts)
 		ts.GinContext.Request.Header.Set("Cookie", fmt.Sprintf("%s_session=%s", constants.AppCookieName, sessionToken))
-		res, err := ts.GraphQLProvider.FgaCheck(ctx, &model.FgaCheckInput{
-			Relation: "can_view", Object: "document:1",
+		// Self-specification equals the token subject, so it is honored even for
+		// non-admin callers — explicit and strict.
+		self := "user:" + userID
+		res, err := ts.GraphQLProvider.CheckPermissions(ctx, &model.CheckPermissionsInput{
+			Checks: []*model.PermissionCheckInput{{Relation: "can_view", Object: "document:1"}},
+			User:   &self,
 		})
+		require.NoError(t, err, "self-specification must be allowed")
+		require.NotNil(t, res)
+		assert.True(t, res.Results[0].Allowed)
+	})
+
+	t.Run("check_permissions ordinary user with no user still self-checks", func(t *testing.T) {
+		clearCookies(ts)
+		ts.GinContext.Request.Header.Set("Cookie", fmt.Sprintf("%s_session=%s", constants.AppCookieName, sessionToken))
+		res, err := ts.GraphQLProvider.CheckPermissions(ctx, &model.CheckPermissionsInput{Checks: []*model.PermissionCheckInput{{Relation: "can_view", Object: "document:1"}}})
 		require.NoError(t, err)
 		require.NotNil(t, res)
-		assert.True(t, res.Allowed, "self-check on a granted object must still succeed")
+		assert.True(t, res.Results[0].Allowed, "self-check on a granted object must still succeed")
 	})
 
 	// ---- Phase 4: validate_session honors required_relations. ----
@@ -447,28 +457,29 @@ func TestFGA(t *testing.T) {
 		assert.Contains(t, res.Dsl, "document")
 	})
 
-	// ---- Trust gate is enforced per decision op, not only on fga_check. ----
-	t.Run("fga_list_objects rejects ordinary user supplying another subject", func(t *testing.T) {
+	// ---- Trust gate is enforced per decision op, not only on check_permissions. ----
+	t.Run("list_permissions rejects ordinary user supplying another subject", func(t *testing.T) {
 		clearCookies(ts)
 		ts.GinContext.Request.Header.Set("Cookie", fmt.Sprintf("%s_session=%s", constants.AppCookieName, sessionToken))
 		other := "user:someone-else"
-		res, err := ts.GraphQLProvider.FgaListObjects(ctx, &model.FgaListObjectsInput{
+		res, err := ts.GraphQLProvider.ListPermissions(ctx, &model.ListPermissionsInput{
 			Relation: "can_view", ObjectType: "document", User: &other,
 		})
 		assert.Error(t, err, "end user must not list another subject's objects")
 		assert.Nil(t, res)
 	})
 
-	t.Run("fga_batch_check rejects ordinary user supplying another subject", func(t *testing.T) {
+	t.Run("check_permissions (batch) rejects ordinary user supplying another subject", func(t *testing.T) {
 		clearCookies(ts)
 		ts.GinContext.Request.Header.Set("Cookie", fmt.Sprintf("%s_session=%s", constants.AppCookieName, sessionToken))
 		other := "user:someone-else"
-		res, err := ts.GraphQLProvider.FgaBatchCheck(ctx, &model.FgaBatchCheckInput{
-			Checks: []*model.FgaCheckPairInput{
-				{Relation: "can_view", Object: "document:3", User: &other},
+		res, err := ts.GraphQLProvider.CheckPermissions(ctx, &model.CheckPermissionsInput{
+			Checks: []*model.PermissionCheckInput{
+				{Relation: "can_view", Object: "document:3"},
 			},
+			User: &other,
 		})
-		assert.Error(t, err, "end user must not batch-check another subject")
+		assert.Error(t, err, "end user must not check another subject")
 		assert.Nil(t, res)
 	})
 
@@ -534,20 +545,20 @@ func TestFGA(t *testing.T) {
 		clearCookies(ts)
 		ts.GinContext.Request.Header.Set("Cookie", fmt.Sprintf("%s_session=%s", constants.AppCookieName, freshSession))
 
-		allowBefore := testutil.ToFloat64(metrics.FgaChecksTotal.WithLabelValues(metrics.FgaOpCheck, metrics.FgaResultAllowed))
-		denyBefore := testutil.ToFloat64(metrics.FgaChecksTotal.WithLabelValues(metrics.FgaOpCheck, metrics.FgaResultDenied))
+		allowBefore := testutil.ToFloat64(metrics.FgaChecksTotal.WithLabelValues(metrics.FgaOpCheckPermissions, metrics.FgaResultAllowed))
+		denyBefore := testutil.ToFloat64(metrics.FgaChecksTotal.WithLabelValues(metrics.FgaOpCheckPermissions, metrics.FgaResultDenied))
 
 		// document:1 is granted to the caller (allowed); document:2 is not (denied).
-		_, err = ts.GraphQLProvider.FgaCheck(ctx, &model.FgaCheckInput{Relation: "can_view", Object: "document:1"})
+		_, err = ts.GraphQLProvider.CheckPermissions(ctx, &model.CheckPermissionsInput{Checks: []*model.PermissionCheckInput{{Relation: "can_view", Object: "document:1"}}})
 		require.NoError(t, err)
-		_, err = ts.GraphQLProvider.FgaCheck(ctx, &model.FgaCheckInput{Relation: "can_view", Object: "document:2"})
+		_, err = ts.GraphQLProvider.CheckPermissions(ctx, &model.CheckPermissionsInput{Checks: []*model.PermissionCheckInput{{Relation: "can_view", Object: "document:2"}}})
 		require.NoError(t, err)
 
 		assert.Equal(t, allowBefore+1,
-			testutil.ToFloat64(metrics.FgaChecksTotal.WithLabelValues(metrics.FgaOpCheck, metrics.FgaResultAllowed)),
+			testutil.ToFloat64(metrics.FgaChecksTotal.WithLabelValues(metrics.FgaOpCheckPermissions, metrics.FgaResultAllowed)),
 			"an allowed check must increment the allowed counter")
 		assert.Equal(t, denyBefore+1,
-			testutil.ToFloat64(metrics.FgaChecksTotal.WithLabelValues(metrics.FgaOpCheck, metrics.FgaResultDenied)),
+			testutil.ToFloat64(metrics.FgaChecksTotal.WithLabelValues(metrics.FgaOpCheckPermissions, metrics.FgaResultDenied)),
 			"a denied check must increment the denied counter")
 		// The duration histogram has at least the 'check' series populated.
 		assert.GreaterOrEqual(t, testutil.CollectAndCount(metrics.FgaCheckDuration), 1,
@@ -573,10 +584,8 @@ func TestFGADisabled(t *testing.T) {
 	ts := initTestSetup(t, cfg) // no AuthzEngine wired
 	_, ctx := createContext(ts)
 
-	t.Run("fga_check errors when engine not enabled", func(t *testing.T) {
-		res, err := ts.GraphQLProvider.FgaCheck(ctx, &model.FgaCheckInput{
-			Relation: "can_view", Object: "document:1",
-		})
+	t.Run("check_permissions errors when engine not enabled", func(t *testing.T) {
+		res, err := ts.GraphQLProvider.CheckPermissions(ctx, &model.CheckPermissionsInput{Checks: []*model.PermissionCheckInput{{Relation: "can_view", Object: "document:1"}}})
 		assert.Error(t, err)
 		assert.Nil(t, res)
 		assert.Contains(t, err.Error(), "fine-grained authorization is not enabled")
