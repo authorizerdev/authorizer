@@ -325,6 +325,39 @@ type team
     define member: [user] or member from org`,
 	},
 	{
+		name: 'Org → project → resource',
+		description:
+			'Grant once on the org; every project and resource under it inherits. Add a direct grant for a single resource exception.',
+		dsl: `model
+  schema 1.1
+
+type user
+
+type organization
+  relations
+    define admin: [user]
+    define editor: [user] or admin
+    define viewer: [user] or editor
+    define can_view: viewer
+    define can_edit: editor
+
+type project
+  relations
+    define org: [organization]
+    define editor: [user] or editor from org
+    define viewer: [user] or editor or viewer from org
+    define can_view: viewer
+    define can_edit: editor
+
+type resource
+  relations
+    define project: [project]
+    define editor: [user] or editor from project
+    define viewer: [user] or editor or viewer from project
+    define can_view: viewer
+    define can_edit: editor`,
+	},
+	{
 		name: 'RBAC roles',
 		description: 'Global roles assigned to users, referenced by resources.',
 		dsl: `model
@@ -344,6 +377,29 @@ type resource
     define can_view: viewer
     define can_edit: editor
     define can_admin: admin`,
+	},
+	{
+		name: 'Company roles (RBAC)',
+		description:
+			'Job roles — labour, manager, executive — with escalating permissions on a record.',
+		dsl: `model
+  schema 1.1
+
+type user
+
+type role
+  relations
+    define assignee: [user]
+
+type record
+  relations
+    define labour: [user, role#assignee]
+    define manager: [user, role#assignee]
+    define executive: [user, role#assignee]
+    define can_delete: executive
+    define can_approve: executive
+    define can_edit: manager or can_delete
+    define can_view: labour or can_edit`,
 	},
 	{
 		name: 'Groups',

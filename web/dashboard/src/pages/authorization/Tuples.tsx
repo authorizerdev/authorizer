@@ -420,10 +420,14 @@ const Tuples = () => {
 					<Label htmlFor="tuple-user">User</Label>
 					<Input
 						id="tuple-user"
-						placeholder="user:alice"
+						placeholder="user:<id>"
 						value={form.user}
 						onChange={(e) => setForm({ ...form, user: e.target.value })}
 					/>
+					<p className="text-xs text-gray-400">
+						Use the user&rsquo;s id (<code>user:&lt;id&gt;</code>), not a name —
+						ids are stable and unique.
+					</p>
 				</div>
 				<div className="space-y-1">
 					<Label htmlFor="tuple-relation">Relation</Label>

@@ -282,6 +282,36 @@ describe('MODEL_EXAMPLES catalog', () => {
 			expect(ex.name).toBeTruthy();
 			expect(ex.description).toBeTruthy();
 			expect(ex.dsl.trim().startsWith('model')).toBe(true);
+			// parseDsl must never throw on a shipped example (advanced ones may be
+			// flagged unsupported, but they must still parse cleanly).
+			expect(() => parseDsl(ex.dsl)).not.toThrow();
 		}
+	});
+
+	it('includes a relatable company-roles RBAC example that summarizes', () => {
+		const ex = MODEL_EXAMPLES.find((e) => e.name === 'Company roles (RBAC)');
+		expect(ex).toBeDefined();
+		const parsed = parseDsl(ex!.dsl);
+		expect(parsed.supported).toBe(true);
+		const lines = summarize(parsed.model!);
+		// labour / manager / executive all appear as record relations.
+		expect(lines.join(' ')).toContain('labour');
+		expect(lines.join(' ')).toContain('executive');
+	});
+
+	it('includes an org → project → resource hierarchy example with inheritance', () => {
+		const ex = MODEL_EXAMPLES.find(
+			(e) => e.name === 'Org → project → resource',
+		);
+		expect(ex).toBeDefined();
+		const parsed = parseDsl(ex!.dsl);
+		expect(parsed.supported).toBe(true);
+		// resource.viewer inherits from project (the grant-once-inherit chain).
+		const resource = parsed.model!.types.find((t) => t.name === 'resource');
+		const viewer = resource?.relations.find((r) => r.name === 'viewer');
+		expect(viewer?.computed).toContainEqual({
+			relation: 'viewer',
+			from: 'project',
+		});
 	});
 });
