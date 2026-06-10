@@ -11,7 +11,7 @@ you are dealing with, and how to identify subjects.
 | | Authorizer (app) roles | FGA roles |
 |---|---|---|
 | What | Configured via `--roles`; carried in the JWT `roles` claim. Read in the dashboard via the admin-only `_admin_meta` query. | Relations in the model (`editor`) and `role:` objects (`role:editor`). |
-| Scope | Global, coarse, identity-level — "is this principal an admin at all". | Fine-grained, object-scoped — "editor **of** `resource:doc1`". |
+| Scope | Global, coarse, identity-level — "is this principal an admin at all". | Fine-grained, object-scoped — "editor **of** `resource:301`". |
 | Lives in | The token. | The authorization graph (model + tuples). |
 
 They are **decoupled by design**. FGA roles are usually more granular than app
@@ -32,11 +32,14 @@ user:alice                                  ❌ names aren't unique and change
 ```
 
 Display names and emails are not unique and can change; the user id is stable
-for the lifetime of the account. Worked examples in the dashboard use
-`user:alice` for readability only — in real tuples, use the id.
+for the lifetime of the account. The dashboard and docs use `user:<id>`
+placeholders (or short ids like `user:1b9d…`); in real tuples, use the full id.
+The same applies to objects: identify orgs, projects and resources by their ids
+(`organization:101`), never by name. The one exception is `role:` objects,
+which are keyed by the role name by design (`role:editor#assignee`).
 
-(The engine does not hard-enforce a UUID format, because a subject can also be a
-wildcard `user:*` or a userset like `group:eng#member` / `role:editor#assignee`.
+(The engine does not hard-enforce an id format, because a subject can also be a
+wildcard `user:*` or a userset like `group:9#member` / `role:editor#assignee`.
 The id convention is a guideline, not a validation.)
 
 ## 3. Hierarchy: grant once, inherit everywhere
@@ -81,34 +84,34 @@ builder (Step 1 → Advanced → Browse examples).
 ### Wire up the structure once
 
 ```
-organization:acme  org      project:webapp     # project belongs to org
-project:webapp     project  resource:doc1      # resource belongs to project
-project:webapp     project  resource:doc2
+organization:101  org      project:201     # project belongs to org
+project:201     project  resource:301      # resource belongs to project
+project:201     project  resource:302
 ```
 
 ### Grant once, high in the tree
 
 ```
-user:1b9d…  viewer  organization:acme          # one tuple
+user:1b9d…  viewer  organization:101          # one tuple
 ```
 
 Now every check below inherits — **no per-resource tuples needed**:
 
 ```
-Check(user:1b9d…, can_view, organization:acme) → allowed
-Check(user:1b9d…, can_view, project:webapp)    → allowed   (viewer from org)
-Check(user:1b9d…, can_view, resource:doc1)     → allowed   (viewer from project ← from org)
-Check(user:1b9d…, can_view, resource:doc2)     → allowed
+Check(user:1b9d…, can_view, organization:101) → allowed
+Check(user:1b9d…, can_view, project:201)    → allowed   (viewer from org)
+Check(user:1b9d…, can_view, resource:301)     → allowed   (viewer from project ← from org)
+Check(user:1b9d…, can_view, resource:302)     → allowed
 ```
 
 A viewer does **not** inherit edit:
 
 ```
-Check(user:1b9d…, can_edit, resource:doc1)     → denied
+Check(user:1b9d…, can_edit, resource:301)     → denied
 ```
 
 `ListObjects(user:1b9d…, can_view, "resource")` returns
-`["resource:doc1", "resource:doc2"]` — the whole subtree, from one grant.
+`["resource:301", "resource:302"]` — the whole subtree, from one grant.
 
 ## 4. Fine-grained grants coexist with the hierarchy
 
@@ -116,14 +119,14 @@ Inheritance does not stop you from granting a single object directly. A direct
 grant stays **scoped to that object**:
 
 ```
-user:2c8e…  editor  resource:doc1              # one resource only
+user:2c8e…  editor  resource:301              # one resource only
 ```
 
 ```
-Check(user:2c8e…, can_edit, resource:doc1)     → allowed   (direct grant)
-Check(user:2c8e…, can_view, resource:doc1)     → allowed   (concentric: editor ⊃ viewer)
-Check(user:2c8e…, can_edit, resource:doc2)     → denied    (does NOT leak to siblings)
-Check(user:2c8e…, can_view, resource:doc2)     → denied
+Check(user:2c8e…, can_edit, resource:301)     → allowed   (direct grant)
+Check(user:2c8e…, can_view, resource:301)     → allowed   (concentric: editor ⊃ viewer)
+Check(user:2c8e…, can_edit, resource:302)     → denied    (does NOT leak to siblings)
+Check(user:2c8e…, can_view, resource:302)     → denied
 ```
 
 So you compose **broad inherited access** (grant on the org/project) with
@@ -140,8 +143,9 @@ So you compose **broad inherited access** (grant on the org/project) with
   **not** validate `role:<x>` ids or `user:<id>` against any external list.
 
 Both surfaces are super-admin gated and audited. The dashboard model builder
-seeds its roles from `_admin_meta` as a convenience, but FGA roles are free to
-diverge from app roles (see §1).
+starts from a standard `admin / editor / viewer` set and offers the instance's
+configured roles (read via `_admin_meta`) as optional one-click additions — FGA
+roles are free to diverge from app roles (see §1).
 
 ## Where this lives in the code
 

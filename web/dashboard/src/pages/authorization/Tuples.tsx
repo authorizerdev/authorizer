@@ -96,7 +96,7 @@ const GRANT_PATTERNS: {
 		tuple: {
 			user: 'user:<user-id>',
 			relation: 'viewer',
-			object: 'folder:root',
+			object: 'folder:<folder-id>',
 		},
 	},
 ];

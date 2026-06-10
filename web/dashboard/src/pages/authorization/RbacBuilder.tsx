@@ -110,19 +110,22 @@ const TokenList = ({
 	);
 };
 
+// SEED_ROLES is the default matrix: a standard RBAC starting point with
+// sensible grants. Instance roles are offered as suggestions, not forced in —
+// app roles (like "user") often make poor object-scoped FGA roles.
+const SEED_ROLES = ['admin', 'editor', 'viewer'];
+
 const RbacBuilder = ({
-	initialRoles,
+	suggestedRoles = [],
 	onApply,
 }: {
-	// Roles configured on the instance (used to seed the matrix). Falls back to a
-	// generic admin/editor/viewer set when none are configured.
-	initialRoles: string[];
+	// Roles configured on the instance, offered as one-click additions to the
+	// matrix (a fallback source of role names — never the default seed).
+	suggestedRoles?: string[];
 	// Called with the generated DSL when the admin is happy with the matrix.
 	onApply: (dsl: string) => void;
 }) => {
-	const seedRoles = initialRoles.length
-		? initialRoles
-		: ['admin', 'editor', 'viewer'];
+	const seedRoles = SEED_ROLES;
 	// One or more object types to protect. All share the same roles × permissions
 	// matrix; for resources that need different shapes, use Advanced (DSL).
 	const [resourceTypes, setResourceTypes] = useState<string[]>(['document']);
@@ -234,14 +237,41 @@ const RbacBuilder = ({
 				)}
 			</div>
 
-			<TokenList
-				label="Roles"
-				help="Named sets of access you assign to people — e.g. admin, editor, viewer."
-				items={roles}
-				onAdd={addRole}
-				onRemove={removeRole}
-				placeholder="role name"
-			/>
+			<div>
+				<TokenList
+					label="Roles"
+					help="Named sets of access you assign to people — e.g. admin, editor, viewer."
+					items={roles}
+					onAdd={addRole}
+					onRemove={removeRole}
+					placeholder="role name"
+				/>
+				{/* Instance roles as optional one-click additions (never forced). */}
+				{(() => {
+					const suggestions = suggestedRoles
+						.map(sanitizeRelationName)
+						.filter((r) => r && !roles.includes(r));
+					if (!suggestions.length) return null;
+					return (
+						<div className="mt-2 flex flex-wrap items-center gap-1.5">
+							<span className="text-xs text-gray-400">
+								From your instance config:
+							</span>
+							{suggestions.map((r) => (
+								<button
+									key={r}
+									type="button"
+									onClick={() => addRole(r)}
+									className="inline-flex items-center gap-1 rounded-full border border-dashed border-gray-300 px-2.5 py-0.5 font-mono text-xs text-gray-500 transition-colors hover:border-blue-300 hover:text-blue-600"
+								>
+									<Plus className="h-3 w-3" aria-hidden="true" />
+									{r}
+								</button>
+							))}
+						</div>
+					);
+				})()}
+			</div>
 
 			<TokenList
 				label="Permissions"
