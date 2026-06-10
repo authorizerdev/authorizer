@@ -34,7 +34,7 @@ func (g *graphqlProvider) FgaDeleteTuples(ctx context.Context, params *model.Fga
 	if err := g.AuthzEngine.DeleteTuples(ctx, tuples); err != nil {
 		metrics.RecordFgaOperation(metrics.FgaOpDeleteTuples, metrics.FgaResultError)
 		log.Debug().Err(err).Msg("Failed to delete tuples")
-		return nil, err
+		return nil, friendlyTupleError(err)
 	}
 	metrics.RecordFgaOperation(metrics.FgaOpDeleteTuples, metrics.FgaResultSuccess)
 	g.AuditProvider.LogEvent(audit.Event{

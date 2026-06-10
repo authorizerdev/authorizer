@@ -92,7 +92,7 @@ const GRANT_PATTERNS: {
 	},
 	{
 		name: 'All resources in a folder',
-		desc: 'Grant on the folder once; every document under it inherits.',
+		desc: 'Grant on the folder once; every document under it inherits (needs a folder type in the model).',
 		tuple: {
 			user: 'user:<user-id>',
 			relation: 'viewer',
@@ -375,7 +375,9 @@ const Tuples = () => {
 						<DialogTitle>Common grant patterns</DialogTitle>
 						<DialogDescription>
 							Pick a pattern to fill the form below. Nothing is granted until
-							you click <strong>Add</strong>.
+							you click <strong>Add</strong>. A tuple is accepted only when its
+							relation and object type exist in <strong>your</strong> model
+							(Step 1).
 						</DialogDescription>
 					</DialogHeader>
 					<div className="grid max-h-[60vh] grid-cols-1 gap-2 overflow-y-auto sm:grid-cols-2">

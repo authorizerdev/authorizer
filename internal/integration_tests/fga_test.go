@@ -206,6 +206,22 @@ func TestFGA(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	// ---- Admin: a tuple that doesn't match the model gets a friendly error. ----
+	t.Run("_fga_write_tuples maps model-validation errors to an actionable message", func(t *testing.T) {
+		_, err := ts.GraphQLProvider.FgaWriteTuples(ctx, &model.FgaWriteTuplesInput{
+			Tuples: []*model.FgaTupleInput{
+				{User: "user:" + userID, Relation: "owner", Object: "document:1"},
+			},
+		})
+		require.Error(t, err, "a relation not in the model must be rejected")
+		assert.Contains(t, err.Error(), "relation 'document#owner' not found",
+			"the OpenFGA reason must be surfaced")
+		assert.Contains(t, err.Error(), "must be defined in the active authorization model",
+			"the error must tell the admin where to fix it")
+		assert.NotContains(t, err.Error(), "rpc error",
+			"raw gRPC internals must not leak to the client")
+	})
+
 	// ---- Admin: read tuples back. ----
 	t.Run("_fga_read_tuples returns written tuple", func(t *testing.T) {
 		tuplesRes, err := ts.GraphQLProvider.FgaReadTuples(ctx, &model.FgaReadTuplesInput{})

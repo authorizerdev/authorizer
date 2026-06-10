@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/authorizerdev/authorizer/internal/authorization/engine"
@@ -150,4 +151,21 @@ func toEngineTuples(params *model.FgaWriteTuplesInput) ([]engine.TupleKey, error
 		tuples = append(tuples, engine.TupleKey{User: t.User, Relation: t.Relation, Object: t.Object})
 	}
 	return tuples, nil
+}
+
+// tupleValidationRe extracts the useful part of OpenFGA's tuple-validation
+// error (e.g. `Invalid tuple 'document:9#owner@user:abc'. Reason: relation
+// 'document#owner' not found`) from the raw gRPC error string.
+var tupleValidationRe = regexp.MustCompile(`Invalid tuple '([^']+)'\. Reason: (.+)$`)
+
+// friendlyTupleError turns OpenFGA's raw tuple-validation gRPC error into an
+// actionable message ("relation X not found — define it in the model first").
+// Non-validation errors pass through unchanged; the raw error stays in the
+// debug log at the call site.
+func friendlyTupleError(err error) error {
+	m := tupleValidationRe.FindStringSubmatch(err.Error())
+	if m == nil {
+		return err
+	}
+	return fmt.Errorf("invalid tuple %q: %s — the relation and object type must be defined in the active authorization model (Step 1)", m[1], m[2])
 }

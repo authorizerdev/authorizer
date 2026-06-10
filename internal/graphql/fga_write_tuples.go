@@ -34,7 +34,7 @@ func (g *graphqlProvider) FgaWriteTuples(ctx context.Context, params *model.FgaW
 	if err := g.AuthzEngine.WriteTuples(ctx, tuples); err != nil {
 		metrics.RecordFgaOperation(metrics.FgaOpWriteTuples, metrics.FgaResultError)
 		log.Debug().Err(err).Msg("Failed to write tuples")
-		return nil, err
+		return nil, friendlyTupleError(err)
 	}
 	metrics.RecordFgaOperation(metrics.FgaOpWriteTuples, metrics.FgaResultSuccess)
 	g.AuditProvider.LogEvent(audit.Event{
