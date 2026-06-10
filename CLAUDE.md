@@ -73,7 +73,7 @@ Detailed rules load via skills (see below) — don't restate them here.
 | `authorizer-security` | auth-sensitive code or `security/` branches |
 | `authorizer-testing` | any `*_test.go` |
 | `authorizer-frontend` | `web/app/`, `web/dashboard/` |
-| `openfga-modeling` | FGA engine (`internal/authorization/`), authz models/tuples, `_fga_*`/`fga_*` GraphQL |
+| `openfga-modeling` | FGA engine (`internal/authorization/`), authz models/tuples, `check_permissions`/`list_permissions`/`_fga_*` GraphQL |
 | `agentic-auth-standards` | token exchange, delegation, MCP, agent-identity (`internal/token/`, `internal/http_handlers/`) |
 
 ## Token Optimization Notes
