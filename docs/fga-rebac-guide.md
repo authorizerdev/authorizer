@@ -150,6 +150,10 @@ diverge from app roles (see §1).
   `internal/authorization/engine/engine.go`.
 - Hierarchy + fine-grained behaviour is covered by
   `internal/authorization/engine/openfga/hierarchy_test.go`.
+- Every shipped model (dashboard example catalog, editor placeholder, and the
+  DSL in this guide) is validated against the real embedded engine by
+  `internal/authorization/engine/openfga/examples_validation_test.go` — the
+  in-repo equivalent of `fga model validate`.
 - Dashboard examples: `web/dashboard/src/pages/authorization/modelDsl.ts`
   (`MODEL_EXAMPLES`), tested in `modelDsl.test.ts`.
 - `_admin_meta` query: `internal/graphql/admin_meta.go` (super-admin gated),

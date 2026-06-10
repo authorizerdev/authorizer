@@ -297,12 +297,13 @@ type folder
   relations
     define owner: [user]
     define viewer: [user] or owner
+    define can_view: viewer
 
 type document
   relations
-    define parent: [folder]
-    define owner: [user]
-    define viewer: [user] or owner or viewer from parent
+    define parent_folder: [folder]
+    define owner: [user] or owner from parent_folder
+    define viewer: [user] or owner or viewer from parent_folder
     define can_view: viewer
     define can_edit: owner`,
 	},
@@ -322,7 +323,8 @@ type organization
 type team
   relations
     define org: [organization]
-    define member: [user] or member from org`,
+    define member: [user] or member from org
+    define can_view: member`,
 	},
 	{
 		name: 'Org → project → resource',

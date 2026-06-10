@@ -51,9 +51,10 @@ type user
 
 type document
   relations
-    define viewer: [user]
     define editor: [user]
-    define can_view: viewer or editor`;
+    define viewer: [user] or editor
+    define can_view: viewer
+    define can_edit: editor`;
 
 const Model = () => {
 	const client = useClient();
