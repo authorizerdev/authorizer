@@ -35,6 +35,15 @@ type Meta {
   is_phone_verification_enabled: Boolean!
 }
 
+# AdminMeta is admin-only configuration metadata exposed via the _admin_meta
+# query — the non-deprecated way for the dashboard to read configured roles
+# (the deprecated _env used to carry these).
+type AdminMeta {
+  roles: [String!]!
+  default_roles: [String!]!
+  protected_roles: [String!]!
+}
+
 type User {
   id: ID!
   # email or phone_number is always present
@@ -852,6 +861,9 @@ type Query {
   _user(params: GetUserRequest!): User!
   _verification_requests(params: PaginatedRequest): VerificationRequests!
   _admin_session: Response!
+  # Admin-only configuration metadata (e.g. configured roles). Non-deprecated
+  # replacement for the bits of _env the dashboard needs.
+  _admin_meta: AdminMeta!
   # Deprecated from v2.0.0
   _env: Env!
   _webhook(params: WebhookRequest!): Webhook!

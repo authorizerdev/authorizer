@@ -46,6 +46,12 @@ type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
+	AdminMeta struct {
+		DefaultRoles   func(childComplexity int) int
+		ProtectedRoles func(childComplexity int) int
+		Roles          func(childComplexity int) int
+	}
+
 	AuditLog struct {
 		Action       func(childComplexity int) int
 		ActorEmail   func(childComplexity int) int
@@ -296,6 +302,7 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
+		AdminMeta            func(childComplexity int) int
 		AdminSession         func(childComplexity int) int
 		AuditLogs            func(childComplexity int, params *model.ListAuditLogRequest) int
 		EmailTemplates       func(childComplexity int, params *model.PaginatedRequest) int
@@ -464,6 +471,7 @@ type QueryResolver interface {
 	User(ctx context.Context, params model.GetUserRequest) (*model.User, error)
 	VerificationRequests(ctx context.Context, params *model.PaginatedRequest) (*model.VerificationRequests, error)
 	AdminSession(ctx context.Context) (*model.Response, error)
+	AdminMeta(ctx context.Context) (*model.AdminMeta, error)
 	Env(ctx context.Context) (*model.Env, error)
 	Webhook(ctx context.Context, params model.WebhookRequest) (*model.Webhook, error)
 	Webhooks(ctx context.Context, params *model.PaginatedRequest) (*model.Webhooks, error)
@@ -497,6 +505,27 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 	ec := executionContext{nil, e, 0, 0, nil}
 	_ = ec
 	switch typeName + "." + field {
+
+	case "AdminMeta.default_roles":
+		if e.complexity.AdminMeta.DefaultRoles == nil {
+			break
+		}
+
+		return e.complexity.AdminMeta.DefaultRoles(childComplexity), true
+
+	case "AdminMeta.protected_roles":
+		if e.complexity.AdminMeta.ProtectedRoles == nil {
+			break
+		}
+
+		return e.complexity.AdminMeta.ProtectedRoles(childComplexity), true
+
+	case "AdminMeta.roles":
+		if e.complexity.AdminMeta.Roles == nil {
+			break
+		}
+
+		return e.complexity.AdminMeta.Roles(childComplexity), true
 
 	case "AuditLog.action":
 		if e.complexity.AuditLog.Action == nil {
@@ -1960,6 +1989,13 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Pagination.Total(childComplexity), true
 
+	case "Query._admin_meta":
+		if e.complexity.Query.AdminMeta == nil {
+			break
+		}
+
+		return e.complexity.Query.AdminMeta(childComplexity), true
+
 	case "Query._admin_session":
 		if e.complexity.Query.AdminSession == nil {
 			break
@@ -2801,6 +2837,15 @@ type Meta {
   is_phone_verification_enabled: Boolean!
 }
 
+# AdminMeta is admin-only configuration metadata exposed via the _admin_meta
+# query — the non-deprecated way for the dashboard to read configured roles
+# (the deprecated _env used to carry these).
+type AdminMeta {
+  roles: [String!]!
+  default_roles: [String!]!
+  protected_roles: [String!]!
+}
+
 type User {
   id: ID!
   # email or phone_number is always present
@@ -3618,6 +3663,9 @@ type Query {
   _user(params: GetUserRequest!): User!
   _verification_requests(params: PaginatedRequest): VerificationRequests!
   _admin_session: Response!
+  # Admin-only configuration metadata (e.g. configured roles). Non-deprecated
+  # replacement for the bits of _env the dashboard needs.
+  _admin_meta: AdminMeta!
   # Deprecated from v2.0.0
   _env: Env!
   _webhook(params: WebhookRequest!): Webhook!
@@ -5162,6 +5210,138 @@ func (ec *executionContext) field___Type_fields_argsIncludeDeprecated(
 // endregion ************************** directives.gotpl **************************
 
 // region    **************************** field.gotpl *****************************
+
+func (ec *executionContext) _AdminMeta_roles(ctx context.Context, field graphql.CollectedField, obj *model.AdminMeta) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AdminMeta_roles(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Roles, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AdminMeta_roles(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AdminMeta",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AdminMeta_default_roles(ctx context.Context, field graphql.CollectedField, obj *model.AdminMeta) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AdminMeta_default_roles(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DefaultRoles, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AdminMeta_default_roles(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AdminMeta",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AdminMeta_protected_roles(ctx context.Context, field graphql.CollectedField, obj *model.AdminMeta) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AdminMeta_protected_roles(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ProtectedRoles, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AdminMeta_protected_roles(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AdminMeta",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
 
 func (ec *executionContext) _AuditLog_id(ctx context.Context, field graphql.CollectedField, obj *model.AuditLog) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_AuditLog_id(ctx, field)
@@ -14577,6 +14757,58 @@ func (ec *executionContext) fieldContext_Query__admin_session(_ context.Context,
 	return fc, nil
 }
 
+func (ec *executionContext) _Query__admin_meta(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query__admin_meta(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().AdminMeta(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.AdminMeta)
+	fc.Result = res
+	return ec.marshalNAdminMeta2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAdminMeta(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query__admin_meta(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "roles":
+				return ec.fieldContext_AdminMeta_roles(ctx, field)
+			case "default_roles":
+				return ec.fieldContext_AdminMeta_default_roles(ctx, field)
+			case "protected_roles":
+				return ec.fieldContext_AdminMeta_protected_roles(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type AdminMeta", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query__env(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Query__env(ctx, field)
 	if err != nil {
@@ -22932,6 +23164,55 @@ func (ec *executionContext) unmarshalInputWebhookRequest(ctx context.Context, ob
 
 // region    **************************** object.gotpl ****************************
 
+var adminMetaImplementors = []string{"AdminMeta"}
+
+func (ec *executionContext) _AdminMeta(ctx context.Context, sel ast.SelectionSet, obj *model.AdminMeta) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, adminMetaImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("AdminMeta")
+		case "roles":
+			out.Values[i] = ec._AdminMeta_roles(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "default_roles":
+			out.Values[i] = ec._AdminMeta_default_roles(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "protected_roles":
+			out.Values[i] = ec._AdminMeta_protected_roles(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var auditLogImplementors = []string{"AuditLog"}
 
 func (ec *executionContext) _AuditLog(ctx context.Context, sel ast.SelectionSet, obj *model.AuditLog) graphql.Marshaler {
@@ -24627,6 +24908,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "_admin_meta":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query__admin_meta(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "_env":
 			field := field
 
@@ -25878,6 +26181,20 @@ func (ec *executionContext) unmarshalNAddWebhookRequest2githubᚗcomᚋauthorize
 func (ec *executionContext) unmarshalNAdminLoginRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAdminLoginRequest(ctx context.Context, v any) (model.AdminLoginRequest, error) {
 	res, err := ec.unmarshalInputAdminLoginRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNAdminMeta2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAdminMeta(ctx context.Context, sel ast.SelectionSet, v model.AdminMeta) graphql.Marshaler {
+	return ec._AdminMeta(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNAdminMeta2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAdminMeta(ctx context.Context, sel ast.SelectionSet, v *model.AdminMeta) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._AdminMeta(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNAdminSignupRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAdminSignupRequest(ctx context.Context, v any) (model.AdminSignupRequest, error) {

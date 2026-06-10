@@ -164,3 +164,15 @@ export const FgaCheckQuery = `
     }
   }
 `;
+
+// AdminRolesQuery fetches the instance's configured roles via the admin-only
+// _admin_meta query so the FGA model builder can seed its matrix with the real
+// roles, and the dashboard can flag FGA role references that aren't configured
+// roles. (_env, the old source, is deprecated in v2.)
+export const AdminRolesQuery = `
+  query adminMeta {
+    _admin_meta {
+      roles
+    }
+  }
+`;

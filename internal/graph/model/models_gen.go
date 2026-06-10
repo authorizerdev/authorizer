@@ -21,6 +21,12 @@ type AdminLoginRequest struct {
 	AdminSecret string `json:"admin_secret"`
 }
 
+type AdminMeta struct {
+	Roles          []string `json:"roles"`
+	DefaultRoles   []string `json:"default_roles"`
+	ProtectedRoles []string `json:"protected_roles"`
+}
+
 type AdminSignupRequest struct {
 	AdminSecret string `json:"admin_secret"`
 }

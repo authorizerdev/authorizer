@@ -237,6 +237,11 @@ func (r *queryResolver) AdminSession(ctx context.Context) (*model.Response, erro
 	return r.GraphQLProvider.AdminSession(ctx)
 }
 
+// AdminMeta is the resolver for the _admin_meta field.
+func (r *queryResolver) AdminMeta(ctx context.Context) (*model.AdminMeta, error) {
+	return r.GraphQLProvider.AdminMeta(ctx)
+}
+
 // Env is the resolver for the _env field.
 func (r *queryResolver) Env(ctx context.Context) (*model.Env, error) {
 	return nil, fmt.Errorf("deprecated. please configure env via cli args")

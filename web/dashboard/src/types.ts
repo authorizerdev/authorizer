@@ -170,3 +170,9 @@ export interface FgaCheckResponse {
 		allowed: boolean;
 	};
 }
+
+export interface AdminRolesResponse {
+	_admin_meta: {
+		roles?: string[] | null;
+	} | null;
+}

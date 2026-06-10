@@ -117,6 +117,11 @@ type Provider interface {
 	// Meta is the method to get meta.
 	// Permissions: none
 	Meta(ctx context.Context) (*model.Meta, error)
+	// AdminMeta returns admin-only configuration metadata (e.g. the configured
+	// roles), the non-deprecated replacement for the bits of _env the dashboard
+	// needs.
+	// Permissions: authorizer:admin
+	AdminMeta(ctx context.Context) (*model.AdminMeta, error)
 	// Profile is the method to get profile.
 	// Permissions: authorized user
 	Profile(ctx context.Context) (*model.User, error)

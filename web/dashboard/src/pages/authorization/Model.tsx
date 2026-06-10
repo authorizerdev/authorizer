@@ -10,7 +10,11 @@ import {
 	AlertTriangle,
 	LayoutTemplate,
 } from 'lucide-react';
-import { FgaGetModelQuery, FgaReadTuplesQuery } from '../../graphql/queries';
+import {
+	FgaGetModelQuery,
+	FgaReadTuplesQuery,
+	AdminRolesQuery,
+} from '../../graphql/queries';
 import { FgaWriteModel, FgaReset } from '../../graphql/mutation';
 import { Button } from '../../components/ui/button';
 import { Textarea } from '../../components/ui/textarea';
@@ -37,6 +41,7 @@ import type {
 	FgaWriteModelResponse,
 	FgaReadTuplesResponse,
 	FgaResetResponse,
+	AdminRolesResponse,
 } from '../../types';
 
 const PLACEHOLDER = `model
@@ -70,6 +75,13 @@ const Model = () => {
 	const [confirmText, setConfirmText] = useState('');
 	// The example catalog lives in a modal so the editor stays the focus.
 	const [exampleOpen, setExampleOpen] = useState(false);
+	// The instance's configured roles. Used to seed the builder's matrix and to
+	// flag FGA role references that aren't configured roles (advisory only).
+	const [roles, setRoles] = useState<string[]>([]);
+	// The builder seeds its matrix from `roles` in a one-time initializer, so we
+	// must not mount it until the roles fetch has settled — otherwise it locks in
+	// the generic fallback before the real roles arrive.
+	const [rolesLoaded, setRolesLoaded] = useState(false);
 
 	const checkTuples = useCallback(async () => {
 		try {
@@ -123,6 +135,21 @@ const Model = () => {
 		fetchModel();
 		checkTuples();
 	}, [fetchModel, checkTuples]);
+
+	// Load the instance's configured roles (best-effort) to seed the builder and
+	// power the advisory "not a configured role" hints. Failure is non-fatal —
+	// with no roles list the hints simply never fire.
+	useEffect(() => {
+		client
+			.query<AdminRolesResponse>(AdminRolesQuery, {})
+			.toPromise()
+			.then((res) => {
+				const r = res.data?._admin_meta?.roles;
+				if (Array.isArray(r)) setRoles(r.filter(Boolean));
+			})
+			.catch(() => {})
+			.finally(() => setRolesLoaded(true));
+	}, [client]);
 
 	const applyExample = (name: string, exampleDsl: string) => {
 		if (
@@ -282,19 +309,26 @@ const Model = () => {
 								Need hierarchies, groups or conditions? Switch to{' '}
 								<strong>Advanced (DSL)</strong>.
 							</Example>
-							<RbacBuilder
-								initialRoles={[]}
-								onApply={(generatedDsl) => {
-									// Populate the editor and switch to Advanced for review.
-									// Saving (a new immutable model version) stays an explicit
-									// click on "Save model", so the user controls when a
-									// version is created — no churn from repeated clicks.
-									setDsl(generatedDsl);
-									setValidationError('');
-									setMode('advanced');
-									toast.success('Model ready — review it below, then Save');
-								}}
-							/>
+							{rolesLoaded ? (
+								<RbacBuilder
+									initialRoles={roles}
+									onApply={(generatedDsl) => {
+										// Populate the editor and switch to Advanced for review.
+										// Saving (a new immutable model version) stays an explicit
+										// click on "Save model", so the user controls when a
+										// version is created — no churn from repeated clicks.
+										setDsl(generatedDsl);
+										setValidationError('');
+										setMode('advanced');
+										toast.success('Model ready — review it below, then Save');
+									}}
+								/>
+							) : (
+								<div className="space-y-3">
+									<Skeleton className="h-8 w-72" />
+									<Skeleton className="h-40 w-full" />
+								</div>
+							)}
 						</>
 					) : (
 						<>
