@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useClient } from 'urql';
-import { Search, ShieldCheck } from 'lucide-react';
+import { Search, ShieldCheck, TriangleAlert } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -13,7 +13,7 @@ import {
 } from './ui/dialog';
 import { ListPermissionsQuery } from '../graphql/queries';
 import { isFgaNotEnabledError } from '../lib/utils';
-import type { ListPermissionsResponse, User } from '../types';
+import type { ListPermissionsResponse, Permission, User } from '../types';
 
 interface UserPermissionsModalProps {
 	user: User | null;
@@ -21,10 +21,11 @@ interface UserPermissionsModalProps {
 	onClose: () => void;
 }
 
-// UserPermissionsModal lets an admin answer "which objects does this user hold
-// a permission on?" straight from the Users table. It calls the public
-// list_permissions API with an explicit subject — honored because the
-// dashboard session is super-admin.
+// UserPermissionsModal lets an admin answer "what can this user access?"
+// straight from the Users table. It calls the public list_permissions API with
+// an explicit subject — honored because the dashboard session is super-admin.
+// Both filters are optional: leaving them empty lists EVERY permission the
+// user holds across the authorization model.
 const UserPermissionsModal = ({
 	user,
 	open,
@@ -33,7 +34,8 @@ const UserPermissionsModal = ({
 	const client = useClient();
 	const [relation, setRelation] = useState('');
 	const [objectType, setObjectType] = useState('');
-	const [objects, setObjects] = useState<string[] | null>(null);
+	const [permissions, setPermissions] = useState<Permission[] | null>(null);
+	const [truncated, setTruncated] = useState(false);
 	const [error, setError] = useState('');
 	const [running, setRunning] = useState(false);
 
@@ -41,24 +43,20 @@ const UserPermissionsModal = ({
 
 	const handleList = async (e: React.FormEvent) => {
 		e.preventDefault();
-		if (!relation.trim() || !objectType.trim()) {
-			setError('relation and object type are both required');
-			return;
-		}
 		setRunning(true);
 		setError('');
-		setObjects(null);
+		setPermissions(null);
+		setTruncated(false);
 		try {
+			// Omit empty filters so the server enumerates every matching
+			// (type, relation) pair of the model.
+			const params: Record<string, string> = { user: `user:${user.id}` };
+			if (relation.trim()) params.relation = relation.trim();
+			if (objectType.trim()) params.object_type = objectType.trim();
 			const res = await client
 				.query<ListPermissionsResponse>(
 					ListPermissionsQuery,
-					{
-						params: {
-							relation: relation.trim(),
-							object_type: objectType.trim(),
-							user: `user:${user.id}`,
-						},
-					},
+					{ params },
 					{ requestPolicy: 'network-only' },
 				)
 				.toPromise();
@@ -70,7 +68,8 @@ const UserPermissionsModal = ({
 				);
 				return;
 			}
-			setObjects(res.data?.list_permissions?.objects ?? []);
+			setPermissions(res.data?.list_permissions?.permissions ?? []);
+			setTruncated(res.data?.list_permissions?.truncated ?? false);
 		} catch {
 			setError('Failed to list permissions');
 		} finally {
@@ -79,10 +78,13 @@ const UserPermissionsModal = ({
 	};
 
 	const close = () => {
-		setObjects(null);
+		setPermissions(null);
+		setTruncated(false);
 		setError('');
 		onClose();
 	};
+
+	const hasFilters = Boolean(relation.trim() || objectType.trim());
 
 	return (
 		<Dialog open={open} onOpenChange={(o) => !o && close()}>
@@ -93,18 +95,19 @@ const UserPermissionsModal = ({
 						Permissions · {user.email || user.phone_number || user.id}
 					</DialogTitle>
 					<DialogDescription>
-						List the objects{' '}
+						List what{' '}
 						<code className="rounded bg-gray-100 px-1 py-0.5 text-xs">
 							user:{user.id}
 						</code>{' '}
-						holds a permission on. Pick the permission (relation) and object
-						type from your authorization model.
+						can access. Leave both fields empty to list everything, or narrow
+						by permission (relation) and/or object type from your authorization
+						model.
 					</DialogDescription>
 				</DialogHeader>
 				<form onSubmit={handleList} className="space-y-3">
 					<div className="grid grid-cols-1 gap-3 md:grid-cols-2">
 						<div className="space-y-1">
-							<Label htmlFor="perm-relation">Permission (relation)</Label>
+							<Label htmlFor="perm-relation">Permission (optional)</Label>
 							<Input
 								id="perm-relation"
 								placeholder="can_view"
@@ -114,7 +117,7 @@ const UserPermissionsModal = ({
 							/>
 						</div>
 						<div className="space-y-1">
-							<Label htmlFor="perm-object-type">Object type</Label>
+							<Label htmlFor="perm-object-type">Object type (optional)</Label>
 							<Input
 								id="perm-object-type"
 								placeholder="document"
@@ -126,7 +129,11 @@ const UserPermissionsModal = ({
 					</div>
 					<Button type="submit" disabled={running}>
 						<Search className="mr-2 h-4 w-4" aria-hidden="true" />
-						{running ? 'Listing…' : 'List permissions'}
+						{running
+							? 'Listing…'
+							: hasFilters
+								? 'List matching permissions'
+								: 'List all permissions'}
 					</Button>
 				</form>
 				{error && (
@@ -134,25 +141,58 @@ const UserPermissionsModal = ({
 						{error}
 					</p>
 				)}
-				{objects !== null &&
-					(objects.length ? (
+				{truncated && (
+					<p className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
+						<TriangleAlert className="h-4 w-4 shrink-0" aria-hidden="true" />
+						Showing the first 1000 permissions — more exist. Narrow by
+						permission or object type to see the rest.
+					</p>
+				)}
+				{permissions !== null &&
+					(permissions.length ? (
 						<div className="max-h-64 overflow-y-auto rounded-lg border border-gray-200">
-							<ul className="divide-y divide-gray-100">
-								{objects.map((o) => (
-									<li
-										key={o}
-										className="px-3 py-2 font-mono text-xs text-gray-800"
-									>
-										{o}
-									</li>
-								))}
-							</ul>
+							<table className="w-full text-left">
+								<thead className="sticky top-0 bg-gray-50">
+									<tr className="text-xs font-medium text-gray-500">
+										<th className="px-3 py-2">Object</th>
+										<th className="px-3 py-2">Permission</th>
+									</tr>
+								</thead>
+								<tbody className="divide-y divide-gray-100">
+									{permissions.map((p) => (
+										<tr key={`${p.object}#${p.relation}`}>
+											<td className="px-3 py-2 font-mono text-xs text-gray-800">
+												{p.object}
+											</td>
+											<td className="px-3 py-2">
+												<span className="rounded bg-blue-50 px-1.5 py-0.5 font-mono text-xs text-blue-700">
+													{p.relation}
+												</span>
+											</td>
+										</tr>
+									))}
+								</tbody>
+							</table>
 						</div>
 					) : (
 						<p className="rounded-lg border border-dashed border-gray-200 p-3 text-sm text-gray-500">
-							No <code className="font-mono text-xs">{objectType}</code> objects
-							with <code className="font-mono text-xs">{relation}</code> for
-							this user.
+							{hasFilters ? (
+								<>
+									No permissions matching{' '}
+									{relation.trim() && (
+										<code className="font-mono text-xs">{relation.trim()}</code>
+									)}
+									{relation.trim() && objectType.trim() && ' on '}
+									{objectType.trim() && (
+										<code className="font-mono text-xs">
+											{objectType.trim()}
+										</code>
+									)}{' '}
+									for this user.
+								</>
+							) : (
+								<>This user holds no permissions in the authorization model.</>
+							)}
 						</p>
 					))}
 			</DialogContent>

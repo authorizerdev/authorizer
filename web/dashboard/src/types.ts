@@ -165,9 +165,18 @@ export interface FgaResetResponse {
 	};
 }
 
+// Permission is one (object, relation) pair a subject holds.
+export interface Permission {
+	object: string;
+	relation: string;
+}
+
 export interface ListPermissionsResponse {
 	list_permissions: {
 		objects: string[];
+		permissions: Permission[];
+		// True when the server capped the result set and more permissions exist.
+		truncated: boolean;
 	};
 }
 

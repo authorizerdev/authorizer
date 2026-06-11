@@ -157,12 +157,19 @@ export const FgaReadTuplesQuery = `
   }
 `;
 
-// ListPermissionsQuery enumerates the objects a subject holds a permission on.
-// The optional user param is honored for the super-admin dashboard session.
+// ListPermissionsQuery enumerates what a subject can access. relation and
+// object_type are optional — omitting them lists ALL permissions the subject
+// holds across the model. The optional user param is honored for the
+// super-admin dashboard session.
 export const ListPermissionsQuery = `
   query listPermissions($params: ListPermissionsInput!) {
     list_permissions(params: $params) {
       objects
+      permissions {
+        object
+        relation
+      }
+      truncated
     }
   }
 `;
