@@ -34,6 +34,12 @@ const maxFgaListResults = 1000
 // check_permissions call.
 const maxPermissionChecks = 100
 
+// maxContextualTuplesPerCheck caps client-supplied contextual tuples on a
+// single check. OpenFGA enforces its own per-request limit (default 100), but
+// the boundary must not depend on the embedded engine's configuration —
+// contextual tuples are accepted from any authenticated caller.
+const maxContextualTuplesPerCheck = 100
+
 // resolveFgaSubject is the single, centralized trust gate for the public
 // permission APIs (check_permissions, list_permissions). It decides which
 // OpenFGA subject ("type:id") a decision is evaluated for, given the optional
@@ -123,6 +129,9 @@ func validateFgaSubject(user string) error {
 func toContextualTuples(in []*model.FgaTupleInput) ([]engine.ContextualTuple, error) {
 	if len(in) == 0 {
 		return nil, nil
+	}
+	if len(in) > maxContextualTuplesPerCheck {
+		return nil, fmt.Errorf("too many contextual tuples: max %d per check", maxContextualTuplesPerCheck)
 	}
 	out := make([]engine.ContextualTuple, 0, len(in))
 	for _, t := range in {
