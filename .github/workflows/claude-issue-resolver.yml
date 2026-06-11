@@ -1,0 +1,65 @@
+# Claude Issue Resolver — remote, phone-friendly issue fixing.
+#
+# Trigger from any device:
+#   1. Comment "@claude <instructions>" on an issue or PR, or
+#   2. Add the "claude-fix" label to an issue.
+#
+# Only OWNER/MEMBER/COLLABORATOR can trigger (this is a public repo — without
+# this gate any drive-by commenter could spend CI minutes and API credits).
+#
+# Setup (one-time): add ANTHROPIC_API_KEY to the repository's Actions secrets,
+# or install the Claude GitHub App and follow its OIDC setup instead.
+name: Claude Issue Resolver
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  issues:
+    types: [labeled]
+
+jobs:
+  claude:
+    if: >
+      (github.event_name == 'issue_comment' &&
+       contains(github.event.comment.body, '@claude') &&
+       contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)) ||
+      (github.event_name == 'pull_request_review_comment' &&
+       contains(github.event.comment.body, '@claude') &&
+       contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)) ||
+      (github.event_name == 'issues' &&
+       github.event.label.name == 'claude-fix' &&
+       contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.issue.author_association))
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+      actions: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Set up Node (dashboard/app builds)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run Claude
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: |
+            --model claude-opus-4-8
+            --append-system-prompt "You are the autonomous issue resolver for Authorizer (see CLAUDE.md for project rules). Work spec-first and plan-first: restate the problem, write acceptance criteria into the PR description, plan ordered testable tasks, then implement. Reproduce bugs with a failing test before fixing. NEVER commit to main — branch (feat/, fix/, security/, chore/), push, open a PR with 'Fixes #N', test evidence, and a breaking-change callout. Test gates before declaring done: go build ./..., go vet ./..., make test-sqlite; storage/provider changes additionally require updating ALL 13+ database providers; frontend changes require make build-app / make build-dashboard and 'cd web/dashboard && npx vitest run'. Security rules: admin GraphQL ops are _-prefixed and enforce admin auth in the resolver; fail closed when a subsystem is disabled; never log or return tokens, secrets, or hashes; error messages to non-admins must not leak internals. Maintainer rules: conventional commits, doc comments on all exported symbols, constants for repeated domain strings, config via CLI flags only (no env vars), backward compatible by default, update docs for behavior changes, no AI attribution or Co-Authored-By anywhere. Design docs/specs belong in the authorizer-docs repo, never in this repo. There is no human in the loop: make conservative choices and document them in the PR; if the issue is too ambiguous, post one comment listing the decisions needed and stop cleanly."

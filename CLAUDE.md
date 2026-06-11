@@ -58,6 +58,7 @@ Detailed rules load via skills (see below) — don't restate them here.
 | `principal-engineer` | opus | Full SDLC: Plan → Execute → Test → Review across Go, storage, GraphQL, HTTP. Use for any change touching >1 subsystem. |
 | `security-engineer` | opus | OAuth2/OIDC, JWT, MFA, vulnerability audit. Second-pass on auth-sensitive PRs. |
 | `doc-writer` | haiku | API docs, guides, migration docs. |
+| `issue-resolver` | opus | Autonomous Issue → Spec → Plan → Implement → Test → PR → Review loop. Triggered locally ("fix issue #N") or remotely via `@claude` / `claude-fix` label (`.github/workflows/claude-issue-resolver.yml`). Routes planning/research to opus, mechanical implementation to sonnet, docs to haiku. |
 
 ## Project Skills (auto-load on matching files)
 
