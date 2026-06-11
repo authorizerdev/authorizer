@@ -9,11 +9,12 @@ import {
 	ChevronRight,
 	ChevronDown,
 	AlertCircle,
+	Copy,
 	Search,
 } from 'lucide-react';
 import { UserDetailsQuery } from '../graphql/queries';
 import { EnableAccess, RevokeAccess, UpdateUser } from '../graphql/mutation';
-import { getGraphQLErrorMessage } from '../utils';
+import { copyTextToClipboard, getGraphQLErrorMessage } from '../utils';
 import EditUserModal from '../components/EditUserModal';
 import DeleteUserModal from '../components/DeleteUserModal';
 import InviteMembersModal from '../components/InviteMembersModal';
@@ -295,8 +296,35 @@ export default function Users() {
 										className="cursor-pointer hover:bg-gray-50"
 										onClick={() => setSelectedUser(user)}
 									>
-										<TableCell className="max-w-[300px] truncate text-sm">
-											{user.email || user.phone_number}
+										<TableCell className="max-w-[300px] text-sm">
+											<div className="truncate">
+												{user.email || user.phone_number}
+											</div>
+											<div className="mt-0.5 flex items-center gap-1 text-xs text-gray-400">
+												<span className="truncate font-mono" title={user.id}>
+													{user.id}
+												</span>
+												<Tooltip>
+													<TooltipTrigger asChild>
+														<Button
+															variant="ghost"
+															size="icon"
+															className="h-5 w-5 shrink-0 text-gray-400 hover:text-gray-700"
+															aria-label="Copy user ID"
+															onClick={(e) => {
+																// The row itself opens the user detail view —
+																// copying must not.
+																e.stopPropagation();
+																copyTextToClipboard(user.id);
+																toast.success('User ID copied');
+															}}
+														>
+															<Copy className="h-3 w-3" aria-hidden="true" />
+														</Button>
+													</TooltipTrigger>
+													<TooltipContent>Copy user ID</TooltipContent>
+												</Tooltip>
+											</div>
 										</TableCell>
 										<TableCell className="text-sm">
 											{dayjs(user.created_at * 1000).format('MMM DD, YYYY')}
