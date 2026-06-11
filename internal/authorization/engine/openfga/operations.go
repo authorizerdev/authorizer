@@ -3,6 +3,7 @@ package openfga
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"
@@ -60,7 +61,7 @@ func (e *engineImpl) BatchCheck(ctx context.Context, requests []engine.CheckRequ
 				Object:   r.Object,
 			},
 			ContextualTuples: toProtoContextual(r.ContextualTuples),
-			CorrelationId:    strconvItoa(i),
+			CorrelationId:    strconv.Itoa(i),
 		})
 	}
 
@@ -76,7 +77,7 @@ func (e *engineImpl) BatchCheck(ctx context.Context, requests []engine.CheckRequ
 	results := make([]engine.CheckResult, len(requests))
 	resultMap := res.GetResult()
 	for i := range requests {
-		single, ok := resultMap[strconvItoa(i)]
+		single, ok := resultMap[strconv.Itoa(i)]
 		if !ok {
 			return nil, fmt.Errorf("openfga.BatchCheck: missing result for check %d", i)
 		}

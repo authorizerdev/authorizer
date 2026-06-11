@@ -11,7 +11,6 @@ package openfga
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"sync"
 
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"
@@ -19,6 +18,7 @@ import (
 	"github.com/openfga/openfga/pkg/storage"
 	"github.com/openfga/openfga/pkg/storage/memory"
 	"github.com/rs/zerolog"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/authorizerdev/authorizer/internal/authorization/engine"
 )
@@ -37,11 +37,12 @@ const (
 
 // Config holds the parameters needed to construct the embedded OpenFGA engine.
 //
-// StoreID and ModelID are the OpenFGA-assigned ULIDs that Authorizer MUST
-// persist itself (config or main DB) and pass back on every call — OpenFGA does
-// not look stores/models up by name across restarts. When they are empty (e.g.
-// memory store on first boot), the caller is expected to bootstrap via
-// CreateStore + WriteModel and then persist the returned IDs.
+// StoreID and ModelID are the OpenFGA-assigned ULIDs. They normally stay
+// empty: on boot the engine recovers the existing store by name (StoreName)
+// and adopts the latest written authorization model, so persistent datastores
+// survive restarts without the caller persisting any IDs. Set them only to
+// pin a specific store/model explicitly. Note: the store is found by exact
+// name, so changing StoreName (organization name) starts a fresh store.
 type Config struct {
 	// Store selects the datastore kind: memory|sqlite|postgres|mysql.
 	Store string
@@ -89,9 +90,10 @@ var _ engine.AuthorizationEngine = &engineImpl{}
 // must run migrate.RunMigrations as a separate init job and leave
 // RunMigrations=false so engine boot assumes the schema already exists (§2.1).
 //
-// If cfg.StoreID is empty a new store is created and its ID exposed via
-// StoreID(); callers should persist it. If cfg.ModelID is empty, callers must
-// call WriteModel before issuing checks.
+// If cfg.StoreID is empty the engine binds to the existing store matching
+// cfg.StoreName (restart continuity) or creates one when none exists. If
+// cfg.ModelID is empty the latest written model in the store is adopted;
+// when the store has no model yet, callers must WriteModel before checks.
 func New(cfg *Config, deps *Dependencies) (engine.AuthorizationEngine, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("openfga.New: config is required")
@@ -121,22 +123,93 @@ func New(cfg *Config, deps *Dependencies) (engine.AuthorizationEngine, error) {
 		storeName: cfg.StoreName,
 	}
 
-	// Bootstrap a store if none was provided. The store ID is exposed via
-	// StoreID() so the caller can persist it for subsequent boots.
+	// Bind to a store. An explicit cfg.StoreID wins; otherwise reuse the
+	// existing store with this name — OpenFGA assigns store ULIDs and has no
+	// name lookup of its own, so without this scan every boot would create a
+	// fresh store and orphan the previous model and tuples on persistent
+	// datastores. Only when no store with the name exists is one created.
 	if e.storeID == "" {
-		store, cErr := srv.CreateStore(context.Background(), &openfgav1.CreateStoreRequest{
-			Name: storeNameOrDefault(cfg.StoreName),
-		})
-		if cErr != nil {
+		name := storeNameOrDefault(cfg.StoreName)
+		existing, fErr := findStoreByName(srv, name)
+		if fErr != nil {
 			srv.Close()
 			ds.Close()
-			return nil, fmt.Errorf("openfga.New: CreateStore: %w", cErr)
+			return nil, fmt.Errorf("openfga.New: ListStores: %w", fErr)
 		}
-		e.storeID = store.GetId()
-		log.Info().Str("store_id", e.storeID).Msg("created new OpenFGA store; persist this ID")
+		if existing != "" {
+			e.storeID = existing
+			log.Info().Str("store_id", e.storeID).Str("store_name", name).Msg("reusing existing OpenFGA store")
+		} else {
+			store, cErr := srv.CreateStore(context.Background(), &openfgav1.CreateStoreRequest{Name: name})
+			if cErr != nil {
+				srv.Close()
+				ds.Close()
+				return nil, fmt.Errorf("openfga.New: CreateStore: %w", cErr)
+			}
+			e.storeID = store.GetId()
+			log.Info().Str("store_id", e.storeID).Str("store_name", name).Msg("created new OpenFGA store")
+		}
+	}
+
+	// Adopt the latest written model so checks keep working after a restart
+	// without the caller persisting the model ID.
+	if e.modelID == "" {
+		mID, mErr := latestModelID(srv, e.storeID)
+		if mErr != nil {
+			srv.Close()
+			ds.Close()
+			return nil, fmt.Errorf("openfga.New: ReadAuthorizationModels: %w", mErr)
+		}
+		if mID != "" {
+			e.modelID = mID
+			log.Info().Str("model_id", mID).Msg("adopted latest authorization model from store")
+		}
 	}
 
 	return e, nil
+}
+
+// findStoreByName pages through ListStores and returns the ID of the store
+// with the exact given name, or empty when none exists. OpenFGA has no
+// lookup-by-name API, so restart continuity depends on this scan.
+func findStoreByName(srv *server.Server, name string) (string, error) {
+	token := ""
+	for {
+		res, err := srv.ListStores(context.Background(), &openfgav1.ListStoresRequest{
+			PageSize:          wrapperspb.Int32(100),
+			ContinuationToken: token,
+		})
+		if err != nil {
+			return "", err
+		}
+		for _, s := range res.GetStores() {
+			if s.GetName() == name {
+				return s.GetId(), nil
+			}
+		}
+		token = res.GetContinuationToken()
+		if token == "" {
+			return "", nil
+		}
+	}
+}
+
+// latestModelID returns the most recent authorization model ID in the store,
+// or empty when no model has been written yet. ReadAuthorizationModels
+// returns models newest-first.
+func latestModelID(srv *server.Server, storeID string) (string, error) {
+	res, err := srv.ReadAuthorizationModels(context.Background(), &openfgav1.ReadAuthorizationModelsRequest{
+		StoreId:  storeID,
+		PageSize: wrapperspb.Int32(1),
+	})
+	if err != nil {
+		return "", err
+	}
+	models := res.GetAuthorizationModels()
+	if len(models) == 0 {
+		return "", nil
+	}
+	return models[0].GetId(), nil
 }
 
 // Reset deletes the current store (model + all versions + tuples) and creates a
@@ -192,8 +265,8 @@ func storeNameOrDefault(name string) string {
 	return name
 }
 
-// StoreID returns the OpenFGA store ID this engine is bound to. Callers should
-// persist it (config/main DB) so subsequent boots target the same store.
+// StoreID returns the OpenFGA store ID this engine is bound to. Subsequent
+// boots recover the same store by name, so persisting this is optional.
 func (e *engineImpl) StoreID() string {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
@@ -201,7 +274,7 @@ func (e *engineImpl) StoreID() string {
 }
 
 // ModelID returns the currently active authorization model ID, or empty if no
-// model has been written yet. Callers should persist it alongside the store ID.
+// model has been written yet. Boots adopt the store's latest model automatically.
 func (e *engineImpl) ModelID() string {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
@@ -225,9 +298,6 @@ func (e *engineImpl) ids() (storeID, modelID string) {
 	defer e.mu.RUnlock()
 	return e.storeID, e.modelID
 }
-
-// strconvItoa is a tiny helper to build correlation IDs for BatchCheck.
-func strconvItoa(i int) string { return strconv.Itoa(i) }
 
 // toProtoContextual converts engine contextual tuples to the OpenFGA wire type.
 func toProtoContextual(ctxTuples []engine.ContextualTuple) *openfgav1.ContextualTupleKeys {

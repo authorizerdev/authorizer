@@ -474,8 +474,15 @@ func runRoot(c *cobra.Command, args []string) {
 	// By default FGA reuses the main database (sqlite/postgres/mysql/mariadb);
 	// --fga-store is only needed when the main DB is unsupported (mongodb,
 	// dynamodb, etc.) or to point at a dedicated store. FGAStoreConfig() resolves
-	// this. OpenFGA migrations run on boot for SQL stores (idempotent + goose-
-	// locked, so HA-safe); memory needs none.
+	// this. OpenFGA migrations run on boot for SQL stores (idempotent); memory
+	// needs none. NOTE: multi-replica deployments should prefer running
+	// migrations once via an init job — concurrent on-boot migrations rely on
+	// the migration tool's own locking and add cold-start latency.
+	//
+	// Engine-init failure is deliberately NON-fatal: FGA is an optional
+	// subsystem, so a failure here (e.g. the DB user lacks DDL rights for the
+	// OpenFGA tables) logs loudly and leaves authzEngine nil — fga_* and the
+	// permission APIs fail closed while core authentication keeps serving.
 	var authzEngine engine.AuthorizationEngine
 	if fgaStore, fgaStoreURL, fgaEnabled := rootArgs.config.FGAStoreConfig(); fgaEnabled {
 		runMigrations := !strings.EqualFold(fgaStore, fgaengine.StoreMemory)
@@ -489,16 +496,19 @@ func runRoot(c *cobra.Command, args []string) {
 			&fgaengine.Dependencies{Log: &log},
 		)
 		if ferr != nil {
-			log.Fatal().Err(ferr).Msg("failed to create OpenFGA authorization engine")
+			log.Error().Err(ferr).
+				Str("fga_store", fgaStore).
+				Msg("failed to initialize OpenFGA authorization engine; fine-grained authorization is DISABLED (fail-closed) — core auth continues")
+		} else {
+			if closer, ok := fgaEngine.(interface{ Close() }); ok {
+				defer closer.Close()
+			}
+			authzEngine = fgaEngine
+			log.Info().
+				Str("fga_store", fgaStore).
+				Bool("reused_main_db", strings.TrimSpace(rootArgs.config.FGAStore) == "").
+				Msg("OpenFGA authorization engine initialized (embedded); routed into GraphQL + session/validate")
 		}
-		if closer, ok := fgaEngine.(interface{ Close() }); ok {
-			defer closer.Close()
-		}
-		authzEngine = fgaEngine
-		log.Info().
-			Str("fga_store", fgaStore).
-			Bool("reused_main_db", strings.TrimSpace(rootArgs.config.FGAStore) == "").
-			Msg("OpenFGA authorization engine initialized (embedded); routed into GraphQL + session/validate")
 	}
 
 	// SMS provider

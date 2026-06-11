@@ -93,3 +93,58 @@ func TestOpenFGAEngine_SQLiteStore_EndToEnd(t *testing.T) {
 	require.NoError(t, statErr, "OpenFGA SQLite db file must exist on disk")
 	assert.Positive(t, info.Size(), "OpenFGA SQLite db file must be non-empty")
 }
+
+// TestOpenFGAEngine_SQLiteStore_RestartContinuity proves the application-level
+// restart story, not just datastore durability: a second engine constructed
+// against the same SQLite file (a simulated process restart) must recover the
+// SAME store by name and adopt the latest written model, so checks keep
+// returning the original decisions without the operator re-writing the model
+// or re-creating tuples.
+func TestOpenFGAEngine_SQLiteStore_RestartContinuity(t *testing.T) {
+	ctx := context.Background()
+	log := zerolog.New(os.Stderr)
+
+	dir := t.TempDir()
+	fgaURI := fmt.Sprintf("file:%s", filepath.Join(dir, "openfga.db"))
+	cfg := &Config{
+		Store:         StoreSQLite,
+		StoreURL:      fgaURI,
+		StoreName:     "restart-continuity",
+		RunMigrations: true,
+	}
+
+	// Boot #1: bootstrap store, write model + tuple, then shut down.
+	eng1, err := New(cfg, &Dependencies{Log: &log})
+	require.NoError(t, err)
+	impl1 := eng1.(*engineImpl)
+	storeID1 := impl1.StoreID()
+	require.NotEmpty(t, storeID1)
+
+	modelID1, err := eng1.WriteModel(ctx, testModel)
+	require.NoError(t, err)
+	require.NoError(t, eng1.WriteTuples(ctx, []engine.TupleKey{
+		{User: "user:alice", Relation: "viewer", Object: "document:1"},
+	}))
+	allowed, err := eng1.Check(ctx, "user:alice", "can_view", "document:1")
+	require.NoError(t, err)
+	require.True(t, allowed)
+	impl1.Close()
+
+	// Boot #2: a fresh engine on the same file must bind to the same store and
+	// adopt the latest model — no CreateStore, no WriteModel.
+	eng2, err := New(cfg, &Dependencies{Log: &log})
+	require.NoError(t, err, "second boot against the same datastore must construct")
+	impl2 := eng2.(*engineImpl)
+	t.Cleanup(impl2.Close)
+
+	assert.Equal(t, storeID1, impl2.StoreID(), "restart must reuse the existing store, not orphan it")
+	assert.Equal(t, modelID1, impl2.ModelID(), "restart must adopt the latest written model")
+
+	allowed, err = eng2.Check(ctx, "user:alice", "can_view", "document:1")
+	require.NoError(t, err)
+	assert.True(t, allowed, "grants written before restart must still hold after restart")
+
+	allowed, err = eng2.Check(ctx, "user:bob", "can_view", "document:1")
+	require.NoError(t, err)
+	assert.False(t, allowed, "non-grants must still be denied after restart")
+}
