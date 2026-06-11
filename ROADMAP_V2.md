@@ -18,10 +18,10 @@
 | 13+ Database backends | Done | Unique differentiator |
 | Rate Limiting / Brute Force | Missing | No protection at all |
 | M2M / Client Credentials | Missing | No service accounts or API keys |
-| Fine-Grained Permissions | In progress (pre-stable) | RBAC/ABAC Resource/Scope/Policy/Permission engine exists; migrating to OpenFGA ReBAC — see FGA_OPENFGA_MIGRATION_PLAN.md |
+| Fine-Grained Permissions | In progress (pre-stable) | RBAC/ABAC Resource/Scope/Policy/Permission engine exists; migrating to OpenFGA ReBAC — see specs/FGA_OPENFGA_MIGRATION_PLAN.md (authorizer-docs repo) |
 | SAML | Missing | Zero support |
 | SCIM / Directory Sync | Missing | No provisioning |
-| Audit Logs | Partial | Structured AuditLog + audit provider exist (single actor); needs delegation-chain fields for agents — see AGENTIC_DELEGATION_DESIGN.md |
+| Audit Logs | Partial | Structured AuditLog + audit provider exist (single actor); needs delegation-chain fields for agents — see specs/AGENTIC_DELEGATION_DESIGN.md (authorizer-docs repo) |
 | Bot Detection | Missing | No CAPTCHA, no fingerprinting |
 | Monitoring / Metrics | Missing | Health check only, no Prometheus |
 | MCP Auth | Missing | No OAuth 2.1 AS capabilities |
@@ -330,7 +330,7 @@ These are table-stakes features that every competitor has. Without them, Authori
 
 ## Agentic Authorization Track (cross-phase sequencing)
 
-> A re-sequencing lens over the items above, ordered by dependency for enterprise + agentic auth. Authorization for agents is a **pipeline**, not one feature; each wave builds on the last. ReBAC is necessary but not sufficient. Design detail: `FGA_OPENFGA_MIGRATION_PLAN.md`, `AGENTIC_DELEGATION_DESIGN.md`.
+> A re-sequencing lens over the items above, ordered by dependency for enterprise + agentic auth. Authorization for agents is a **pipeline**, not one feature; each wave builds on the last. ReBAC is necessary but not sufficient. Design detail: `../authorizer-docs/specs/FGA_OPENFGA_MIGRATION_PLAN.md`, `../authorizer-docs/specs/AGENTIC_DELEGATION_DESIGN.md`.
 
 **The pipeline (evaluated per request):** Identity → Authentication → Token/Delegation → Authorization (scope → RBAC → ReBAC → ABAC → list_objects) → Human-in-the-loop → Governance.
 

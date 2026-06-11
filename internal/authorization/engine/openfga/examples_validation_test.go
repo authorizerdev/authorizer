@@ -12,17 +12,14 @@ import (
 
 // These tests are the in-repo equivalent of `fga model validate` (the
 // openfga/agent-skills "always validate models" workflow step): every DSL we
-// ship — the dashboard example catalog, the model-editor placeholder, and the
-// docs guide — is run through the real embedded engine, so a malformed example
-// can never reach users.
+// ship — the dashboard example catalog and the model-editor placeholder — is
+// run through the real embedded engine, so a malformed example can never
+// reach users.
 
 // tsDslRe matches TypeScript template literals holding an OpenFGA model. The
 // DSL never contains a backtick, so a lazy match to the closing backtick is
 // safe.
 var tsDslRe = regexp.MustCompile("(?s)`model\n  schema 1\\.1.*?`")
-
-// mdDslRe matches fenced code blocks in markdown holding an OpenFGA model.
-var mdDslRe = regexp.MustCompile("(?s)```[a-z.]*\n(model\n  schema 1\\.1.*?)```")
 
 // validateAll writes each extracted DSL to a fresh embedded engine and fails
 // with the engine's own error message on the first invalid one.
@@ -66,19 +63,4 @@ func TestModelEditorPlaceholderIsValidOpenFGADSL(t *testing.T) {
 		dsls = append(dsls, m[1:len(m)-1])
 	}
 	validateAll(t, "Model.tsx", dsls)
-}
-
-func TestRebacGuideModelsAreValidOpenFGADSL(t *testing.T) {
-	const path = "../../../../docs/fga-rebac-guide.md"
-	content, err := os.ReadFile(path)
-	require.NoError(t, err)
-
-	groups := mdDslRe.FindAllStringSubmatch(string(content), -1)
-	require.NotEmpty(t, groups, "expected at least one model block in %s", path)
-
-	dsls := make([]string, 0, len(groups))
-	for _, g := range groups {
-		dsls = append(dsls, g[1])
-	}
-	validateAll(t, "fga-rebac-guide.md", dsls)
 }

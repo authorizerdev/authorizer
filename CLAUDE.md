@@ -59,8 +59,8 @@ Detailed rules load via skills (see below) — don't restate them here.
 | `security-engineer` | opus | OAuth2/OIDC, JWT, MFA, vulnerability audit. Second-pass on auth-sensitive PRs. |
 | `doc-writer` | haiku | API docs, guides, migration docs. |
 | `authz-researcher` | opus | Deep, adversarially-verified research on authz standards (OpenFGA, RFC 8693/8707/9728, MCP, CIBA, AuthZEN). Run before designing/building any authz capability. |
-| `fga-engineer` | opus | Implements the OpenFGA migration (Wave 1) per FGA_OPENFGA_MIGRATION_PLAN.md. |
-| `delegation-engineer` | opus | Implements the agentic delegation chain (Wave 2) per AGENTIC_DELEGATION_DESIGN.md. Security-critical. |
+| `fga-engineer` | opus | Implements the OpenFGA migration (Wave 1) per specs/FGA_OPENFGA_MIGRATION_PLAN.md (authorizer-docs repo). |
+| `delegation-engineer` | opus | Implements the agentic delegation chain (Wave 2) per specs/AGENTIC_DELEGATION_DESIGN.md (authorizer-docs repo). Security-critical. |
 
 ## Project Skills (auto-load on matching files)
 
