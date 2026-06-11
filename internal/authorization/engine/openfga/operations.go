@@ -3,6 +3,7 @@ package openfga
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -288,6 +289,37 @@ func (e *engineImpl) WriteModel(ctx context.Context, dsl string) (string, error)
 
 	e.log.Info().Str("model_id", modelID).Msg("wrote OpenFGA authorization model; persist this ID")
 	return modelID, nil
+}
+
+// TypeRelations returns the relation names defined on each object type in the
+// active model, sorted for deterministic output. Types without relations are
+// omitted — they cannot be the object of any permission.
+func (e *engineImpl) TypeRelations(ctx context.Context) (map[string][]string, error) {
+	storeID, modelID := e.ids()
+	if modelID == "" {
+		return nil, fmt.Errorf("openfga.TypeRelations: %w", engine.ErrNoModel)
+	}
+	res, err := e.srv.ReadAuthorizationModel(ctx, &openfgav1.ReadAuthorizationModelRequest{
+		StoreId: storeID,
+		Id:      modelID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("openfga.TypeRelations: %w", err)
+	}
+	out := make(map[string][]string)
+	for _, td := range res.GetAuthorizationModel().GetTypeDefinitions() {
+		rels := td.GetRelations()
+		if len(rels) == 0 {
+			continue
+		}
+		names := make([]string, 0, len(rels))
+		for name := range rels {
+			names = append(names, name)
+		}
+		sort.Strings(names)
+		out[td.GetType()] = names
+	}
+	return out, nil
 }
 
 // ReadModel returns the active authorization model: its id and DSL rendering.

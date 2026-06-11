@@ -225,7 +225,9 @@ type ComplexityRoot struct {
 	}
 
 	ListPermissionsResponse struct {
-		Objects func(childComplexity int) int
+		Objects     func(childComplexity int) int
+		Permissions func(childComplexity int) int
+		Truncated   func(childComplexity int) int
 	}
 
 	Meta struct {
@@ -295,6 +297,11 @@ type ComplexityRoot struct {
 		Offset func(childComplexity int) int
 		Page   func(childComplexity int) int
 		Total  func(childComplexity int) int
+	}
+
+	Permission struct {
+		Object   func(childComplexity int) int
+		Relation func(childComplexity int) int
 	}
 
 	PermissionCheckResult struct {
@@ -1402,6 +1409,20 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.ListPermissionsResponse.Objects(childComplexity), true
 
+	case "ListPermissionsResponse.permissions":
+		if e.complexity.ListPermissionsResponse.Permissions == nil {
+			break
+		}
+
+		return e.complexity.ListPermissionsResponse.Permissions(childComplexity), true
+
+	case "ListPermissionsResponse.truncated":
+		if e.complexity.ListPermissionsResponse.Truncated == nil {
+			break
+		}
+
+		return e.complexity.ListPermissionsResponse.Truncated(childComplexity), true
+
 	case "Meta.client_id":
 		if e.complexity.Meta.ClientID == nil {
 			break
@@ -1981,6 +2002,20 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Pagination.Total(childComplexity), true
+
+	case "Permission.object":
+		if e.complexity.Permission.Object == nil {
+			break
+		}
+
+		return e.complexity.Permission.Object(childComplexity), true
+
+	case "Permission.relation":
+		if e.complexity.Permission.Relation == nil {
+			break
+		}
+
+		return e.complexity.Permission.Relation(childComplexity), true
 
 	case "PermissionCheckResult.allowed":
 		if e.complexity.PermissionCheckResult.Allowed == nil {
@@ -2958,10 +2993,21 @@ type CheckPermissionsResponse {
   results: [PermissionCheckResult!]!
 }
 
-# ListPermissionsResponse lists the fully-qualified object ids the subject
-# holds the queried permission on.
+# Permission is one (object, relation) pair the subject holds: "subject has
+# ` + "`" + `relation` + "`" + ` on ` + "`" + `object` + "`" + `".
+type Permission {
+  object: String!
+  relation: String!
+}
+
+# ListPermissionsResponse lists what the subject can access. ` + "`" + `objects` + "`" + ` is the
+# distinct fully-qualified object ids; ` + "`" + `permissions` + "`" + ` carries the (object,
+# relation) detail — relevant when no relation filter was supplied. ` + "`" + `truncated` + "`" + `
+# is true when the result was capped (1000 entries) and more permissions exist.
 type ListPermissionsResponse {
   objects: [String!]!
+  permissions: [Permission!]!
+  truncated: Boolean!
 }
 
 # FgaListUsersResponse lists fully-qualified user ids (e.g. "user:alice") that
@@ -3567,12 +3613,15 @@ input CheckPermissionsInput {
   user: String
 }
 
-# ListPermissionsInput enumerates the objects of ` + "`" + `object_type` + "`" + ` the subject
-# holds ` + "`" + `relation` + "`" + ` on. Subject resolution follows the same rules as
-# CheckPermissionsInput.user.
+# ListPermissionsInput enumerates what the subject can access. With both
+# ` + "`" + `relation` + "`" + ` and ` + "`" + `object_type` + "`" + ` set it answers "which <object_type>s can I
+# <relation>?". Either or both filters may be omitted: every matching
+# (type, relation) pair of the active model is then enumerated, so an empty
+# input returns ALL permissions the subject holds. Subject resolution follows
+# the same rules as CheckPermissionsInput.user.
 input ListPermissionsInput {
-  relation: String!
-  object_type: String!
+  relation: String
+  object_type: String
   user: String
 }
 
@@ -10720,6 +10769,100 @@ func (ec *executionContext) fieldContext_ListPermissionsResponse_objects(_ conte
 	return fc, nil
 }
 
+func (ec *executionContext) _ListPermissionsResponse_permissions(ctx context.Context, field graphql.CollectedField, obj *model.ListPermissionsResponse) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ListPermissionsResponse_permissions(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Permissions, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Permission)
+	fc.Result = res
+	return ec.marshalNPermission2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPermissionᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ListPermissionsResponse_permissions(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ListPermissionsResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "object":
+				return ec.fieldContext_Permission_object(ctx, field)
+			case "relation":
+				return ec.fieldContext_Permission_relation(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Permission", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ListPermissionsResponse_truncated(ctx context.Context, field graphql.CollectedField, obj *model.ListPermissionsResponse) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ListPermissionsResponse_truncated(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Truncated, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ListPermissionsResponse_truncated(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ListPermissionsResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Meta_version(ctx context.Context, field graphql.CollectedField, obj *model.Meta) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Meta_version(ctx, field)
 	if err != nil {
@@ -14038,6 +14181,94 @@ func (ec *executionContext) fieldContext_Pagination_total(_ context.Context, fie
 	return fc, nil
 }
 
+func (ec *executionContext) _Permission_object(ctx context.Context, field graphql.CollectedField, obj *model.Permission) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Permission_object(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Object, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Permission_object(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Permission",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Permission_relation(ctx context.Context, field graphql.CollectedField, obj *model.Permission) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Permission_relation(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Relation, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Permission_relation(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Permission",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _PermissionCheckResult_relation(ctx context.Context, field graphql.CollectedField, obj *model.PermissionCheckResult) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_PermissionCheckResult_relation(ctx, field)
 	if err != nil {
@@ -15698,6 +15929,10 @@ func (ec *executionContext) fieldContext_Query_list_permissions(ctx context.Cont
 			switch field.Name {
 			case "objects":
 				return ec.fieldContext_ListPermissionsResponse_objects(ctx, field)
+			case "permissions":
+				return ec.fieldContext_ListPermissionsResponse_permissions(ctx, field)
+			case "truncated":
+				return ec.fieldContext_ListPermissionsResponse_truncated(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ListPermissionsResponse", field.Name)
 		},
@@ -21187,14 +21422,14 @@ func (ec *executionContext) unmarshalInputListPermissionsInput(ctx context.Conte
 		switch k {
 		case "relation":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("relation"))
-			data, err := ec.unmarshalNString2string(ctx, v)
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
 			it.Relation = data
 		case "object_type":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("object_type"))
-			data, err := ec.unmarshalNString2string(ctx, v)
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -24095,6 +24330,16 @@ func (ec *executionContext) _ListPermissionsResponse(ctx context.Context, sel as
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "permissions":
+			out.Values[i] = ec._ListPermissionsResponse_permissions(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "truncated":
+			out.Values[i] = ec._ListPermissionsResponse_truncated(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -24574,6 +24819,50 @@ func (ec *executionContext) _Pagination(ctx context.Context, sel ast.SelectionSe
 			}
 		case "total":
 			out.Values[i] = ec._Pagination_total(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var permissionImplementors = []string{"Permission"}
+
+func (ec *executionContext) _Permission(ctx context.Context, sel ast.SelectionSet, obj *model.Permission) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, permissionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Permission")
+		case "object":
+			out.Values[i] = ec._Permission_object(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "relation":
+			out.Values[i] = ec._Permission_relation(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -26662,6 +26951,60 @@ func (ec *executionContext) marshalNPagination2ᚖgithubᚗcomᚋauthorizerdev�
 		return graphql.Null
 	}
 	return ec._Pagination(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNPermission2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPermissionᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Permission) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNPermission2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPermission(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNPermission2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPermission(ctx context.Context, sel ast.SelectionSet, v *model.Permission) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._Permission(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNPermissionCheckInput2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPermissionCheckInputᚄ(ctx context.Context, v any) ([]*model.PermissionCheckInput, error) {

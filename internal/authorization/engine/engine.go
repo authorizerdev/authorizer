@@ -163,6 +163,13 @@ type AuthorizationEngine interface {
 	// backend-assigned id and its DSL rendering.
 	ReadModel(ctx context.Context) (id string, dsl string, err error)
 
+	// TypeRelations returns, for every object type in the active model, the
+	// relation names defined on it (type -> sorted relation names). Types with
+	// no relations are omitted. It powers "list everything this subject can
+	// access" enumeration. Returns ErrNoModel (wrapped) when no model has been
+	// written yet.
+	TypeRelations(ctx context.Context) (map[string][]string, error)
+
 	// Reset deletes the entire authorization store (the model, all its versions,
 	// and all tuples) and starts a fresh, empty store. It is destructive and must
 	// be admin-gated by callers; OpenFGA has no per-version delete, so this is the

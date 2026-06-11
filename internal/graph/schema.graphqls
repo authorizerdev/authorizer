@@ -155,10 +155,21 @@ type CheckPermissionsResponse {
   results: [PermissionCheckResult!]!
 }
 
-# ListPermissionsResponse lists the fully-qualified object ids the subject
-# holds the queried permission on.
+# Permission is one (object, relation) pair the subject holds: "subject has
+# `relation` on `object`".
+type Permission {
+  object: String!
+  relation: String!
+}
+
+# ListPermissionsResponse lists what the subject can access. `objects` is the
+# distinct fully-qualified object ids; `permissions` carries the (object,
+# relation) detail — relevant when no relation filter was supplied. `truncated`
+# is true when the result was capped (1000 entries) and more permissions exist.
 type ListPermissionsResponse {
   objects: [String!]!
+  permissions: [Permission!]!
+  truncated: Boolean!
 }
 
 # FgaListUsersResponse lists fully-qualified user ids (e.g. "user:alice") that
@@ -764,12 +775,15 @@ input CheckPermissionsInput {
   user: String
 }
 
-# ListPermissionsInput enumerates the objects of `object_type` the subject
-# holds `relation` on. Subject resolution follows the same rules as
-# CheckPermissionsInput.user.
+# ListPermissionsInput enumerates what the subject can access. With both
+# `relation` and `object_type` set it answers "which <object_type>s can I
+# <relation>?". Either or both filters may be omitted: every matching
+# (type, relation) pair of the active model is then enumerated, so an empty
+# input returns ALL permissions the subject holds. Subject resolution follows
+# the same rules as CheckPermissionsInput.user.
 input ListPermissionsInput {
-  relation: String!
-  object_type: String!
+  relation: String
+  object_type: String
   user: String
 }
 

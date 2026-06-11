@@ -286,13 +286,15 @@ type ListAuditLogRequest struct {
 }
 
 type ListPermissionsInput struct {
-	Relation   string  `json:"relation"`
-	ObjectType string  `json:"object_type"`
+	Relation   *string `json:"relation,omitempty"`
+	ObjectType *string `json:"object_type,omitempty"`
 	User       *string `json:"user,omitempty"`
 }
 
 type ListPermissionsResponse struct {
-	Objects []string `json:"objects"`
+	Objects     []string      `json:"objects"`
+	Permissions []*Permission `json:"permissions"`
+	Truncated   bool          `json:"truncated"`
 }
 
 type ListWebhookLogRequest struct {
@@ -389,6 +391,11 @@ type Pagination struct {
 type PaginationRequest struct {
 	Limit *int64 `json:"limit,omitempty"`
 	Page  *int64 `json:"page,omitempty"`
+}
+
+type Permission struct {
+	Object   string `json:"object"`
+	Relation string `json:"relation"`
 }
 
 type PermissionCheckInput struct {

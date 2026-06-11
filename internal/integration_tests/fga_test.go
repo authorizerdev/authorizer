@@ -28,6 +28,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/oauth"
 	"github.com/authorizerdev/authorizer/internal/rate_limit"
+	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/sms"
 	"github.com/authorizerdev/authorizer/internal/storage"
 	"github.com/authorizerdev/authorizer/internal/token"
@@ -282,12 +283,49 @@ func TestFGA(t *testing.T) {
 	// ---- Runtime: list_permissions returns only the caller's objects. ----
 	t.Run("list_permissions returns granted objects for caller", func(t *testing.T) {
 		res, err := ts.GraphQLProvider.ListPermissions(ctx, &model.ListPermissionsInput{
-			Relation: "can_view", ObjectType: "document",
+			Relation: refs.NewStringRef("can_view"), ObjectType: refs.NewStringRef("document"),
 		})
 		require.NoError(t, err)
 		require.NotNil(t, res)
 		assert.Contains(t, res.Objects, "document:1")
 		assert.NotContains(t, res.Objects, "document:3")
+		assert.False(t, res.Truncated)
+		require.NotEmpty(t, res.Permissions)
+		assert.Equal(t, "can_view", res.Permissions[0].Relation)
+	})
+
+	// ---- Runtime: list_permissions with NO filters returns every permission
+	// the caller holds across all (type, relation) pairs of the model. ----
+	t.Run("list_permissions without filters returns all caller permissions", func(t *testing.T) {
+		res, err := ts.GraphQLProvider.ListPermissions(ctx, &model.ListPermissionsInput{})
+		require.NoError(t, err)
+		require.NotNil(t, res)
+		assert.Contains(t, res.Objects, "document:1")
+		assert.NotContains(t, res.Objects, "document:3", "another user's grant must not appear")
+		assert.False(t, res.Truncated)
+		// The (object, relation) detail must include both the direct tuple
+		// (viewer) and the computed permission (can_view) on document:1.
+		rels := make([]string, 0)
+		for _, p := range res.Permissions {
+			if p.Object == "document:1" {
+				rels = append(rels, p.Relation)
+			}
+		}
+		assert.Contains(t, rels, "viewer")
+		assert.Contains(t, rels, "can_view")
+	})
+
+	// ---- Runtime: list_permissions with a relation-only filter. ----
+	t.Run("list_permissions with relation-only filter spans object types", func(t *testing.T) {
+		res, err := ts.GraphQLProvider.ListPermissions(ctx, &model.ListPermissionsInput{
+			Relation: refs.NewStringRef("viewer"),
+		})
+		require.NoError(t, err)
+		require.NotNil(t, res)
+		assert.Contains(t, res.Objects, "document:1")
+		for _, p := range res.Permissions {
+			assert.Equal(t, "viewer", p.Relation, "relation filter must apply to every entry")
+		}
 	})
 
 	// ---- Runtime: check_permissions (batch). ----
@@ -479,7 +517,7 @@ func TestFGA(t *testing.T) {
 		ts.GinContext.Request.Header.Set("Cookie", fmt.Sprintf("%s_session=%s", constants.AppCookieName, sessionToken))
 		other := "user:someone-else"
 		res, err := ts.GraphQLProvider.ListPermissions(ctx, &model.ListPermissionsInput{
-			Relation: "can_view", ObjectType: "document", User: &other,
+			Relation: refs.NewStringRef("can_view"), ObjectType: refs.NewStringRef("document"), User: &other,
 		})
 		assert.Error(t, err, "end user must not list another subject's objects")
 		assert.Nil(t, res)
