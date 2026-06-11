@@ -1,8 +1,10 @@
 package integration_tests
 
 import (
+	"context"
 	"fmt"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -690,4 +692,124 @@ func TestFGADisabled(t *testing.T) {
 		require.NotNil(t, res)
 		assert.True(t, res.IsValid)
 	})
+
+	// ---- No FGA records can be created or read via the API when no engine is
+	// configured (unsupported main DB without --fga-store). Every admin op —
+	// including all WRITE paths — must return the not-enabled error even for a
+	// super admin, which is also what makes the dashboard's Authorization tab
+	// render its FgaNotEnabled state. ----
+	t.Run("all admin FGA ops fail closed when engine not enabled", func(t *testing.T) {
+		setAdminCookie(t, ts)
+		defer clearCookies(ts)
+
+		const notEnabled = "fine-grained authorization is not enabled"
+		tuples := &model.FgaWriteTuplesInput{Tuples: []*model.FgaTupleInput{
+			{User: "user:alice", Relation: "viewer", Object: "document:1"},
+		}}
+
+		ops := []struct {
+			name string
+			call func() error
+		}{
+			{"_fga_write_model", func() error {
+				_, err := ts.GraphQLProvider.FgaWriteModel(ctx, &model.FgaWriteModelInput{Dsl: fgaTestModel})
+				return err
+			}},
+			{"_fga_write_tuples", func() error {
+				_, err := ts.GraphQLProvider.FgaWriteTuples(ctx, tuples)
+				return err
+			}},
+			{"_fga_delete_tuples", func() error {
+				_, err := ts.GraphQLProvider.FgaDeleteTuples(ctx, tuples)
+				return err
+			}},
+			{"_fga_reset", func() error {
+				_, err := ts.GraphQLProvider.FgaReset(ctx)
+				return err
+			}},
+			{"_fga_get_model", func() error {
+				_, err := ts.GraphQLProvider.FgaGetModel(ctx)
+				return err
+			}},
+			{"_fga_read_tuples", func() error {
+				_, err := ts.GraphQLProvider.FgaReadTuples(ctx, &model.FgaReadTuplesInput{})
+				return err
+			}},
+			{"_fga_list_users", func() error {
+				_, err := ts.GraphQLProvider.FgaListUsers(ctx, &model.FgaListUsersInput{
+					Object: "document:1", Relation: "viewer", UserType: "user",
+				})
+				return err
+			}},
+			{"_fga_expand", func() error {
+				_, err := ts.GraphQLProvider.FgaExpand(ctx, &model.FgaExpandInput{
+					Relation: "viewer", Object: "document:1",
+				})
+				return err
+			}},
+		}
+		for _, op := range ops {
+			t.Run(op.name, func(t *testing.T) {
+				err := op.call()
+				require.Error(t, err, "%s must fail when FGA is not enabled", op.name)
+				assert.Contains(t, err.Error(), notEnabled)
+			})
+		}
+	})
+
+	t.Run("list_permissions errors when engine not enabled", func(t *testing.T) {
+		res, err := ts.GraphQLProvider.ListPermissions(ctx, &model.ListPermissionsInput{})
+		assert.Error(t, err)
+		assert.Nil(t, res)
+		assert.Contains(t, err.Error(), "fine-grained authorization is not enabled")
+	})
+}
+
+// TestFGAExplicitStoreOverrideForUnsupportedDB proves the --fga-store override
+// end-to-end at the config→engine seam: a main database OpenFGA cannot use
+// (mongodb) combined with explicit --fga-store/--fga-store-url flags must
+// resolve to an ENABLED FGA config, and an engine built from that resolved
+// config — wired exactly the way cmd/root.go does it — must serve model
+// writes, tuple writes, and checks. This is what makes the dashboard's
+// Authorization tab fully functional on unsupported databases.
+func TestFGAExplicitStoreOverrideForUnsupportedDB(t *testing.T) {
+	ctx := context.Background()
+	logger := zerolog.New(zerolog.NewTestWriter(t))
+
+	cfg := getTestConfigForDB(constants.DbTypeMongoDB, "mongodb://unused-host/db")
+	cfg.FGAStore = "sqlite"
+	cfg.FGAStoreURL = t.TempDir() + "/fga-override.db"
+
+	store, storeURL, enabled := cfg.FGAStoreConfig()
+	require.True(t, enabled, "--fga-store must enable FGA on an unsupported main DB")
+	require.Equal(t, "sqlite", store)
+	require.Equal(t, "file:"+cfg.FGAStoreURL, storeURL)
+
+	// Mirror cmd/root.go's wiring of the resolved store config.
+	eng, err := fgaengine.New(&fgaengine.Config{
+		Store:         store,
+		StoreURL:      storeURL,
+		StoreName:     "override-test",
+		RunMigrations: !strings.EqualFold(store, fgaengine.StoreMemory),
+	}, &fgaengine.Dependencies{Log: &logger})
+	require.NoError(t, err, "engine must construct from the override store")
+	t.Cleanup(func() {
+		if closer, ok := eng.(interface{ Close() }); ok {
+			closer.Close()
+		}
+	})
+
+	_, err = eng.WriteModel(ctx, fgaTestModel)
+	require.NoError(t, err)
+	require.NoError(t, eng.WriteTuples(ctx, []engine.TupleKey{
+		{User: "user:alice", Relation: "viewer", Object: "document:1"},
+	}))
+
+	allowed, err := eng.Check(ctx, "user:alice", "can_view", "document:1")
+	require.NoError(t, err)
+	assert.True(t, allowed, "FGA must be fully functional via the explicit store override")
+
+	allowed, err = eng.Check(ctx, "user:bob", "can_view", "document:1")
+	require.NoError(t, err)
+	assert.False(t, allowed)
 }
