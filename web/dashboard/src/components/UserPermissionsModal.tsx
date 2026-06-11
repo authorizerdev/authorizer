@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useClient } from 'urql';
-import { Search, ShieldCheck, TriangleAlert } from 'lucide-react';
+import { RefreshCw, Search, ShieldCheck, TriangleAlert } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
+import { Skeleton } from './ui/skeleton';
 import {
 	Dialog,
 	DialogContent,
@@ -24,8 +25,9 @@ interface UserPermissionsModalProps {
 // UserPermissionsModal lets an admin answer "what can this user access?"
 // straight from the Users table. It calls the public list_permissions API with
 // an explicit subject — honored because the dashboard session is super-admin.
-// Both filters are optional: leaving them empty lists EVERY permission the
-// user holds across the authorization model.
+// The COMPLETE permission list loads automatically when the modal opens; the
+// form only narrows it (relation and/or object type), and all state resets on
+// close.
 const UserPermissionsModal = ({
 	user,
 	open,
@@ -39,45 +41,66 @@ const UserPermissionsModal = ({
 	const [error, setError] = useState('');
 	const [running, setRunning] = useState(false);
 
+	const userId = user?.id ?? '';
+
+	const fetchPermissions = useCallback(
+		async (relationFilter: string, typeFilter: string) => {
+			if (!userId) return;
+			setRunning(true);
+			setError('');
+			setPermissions(null);
+			setTruncated(false);
+			try {
+				// Omit empty filters so the server enumerates every matching
+				// (type, relation) pair of the model.
+				const params: Record<string, string> = { user: `user:${userId}` };
+				if (relationFilter) params.relation = relationFilter;
+				if (typeFilter) params.object_type = typeFilter;
+				const res = await client
+					.query<ListPermissionsResponse>(
+						ListPermissionsQuery,
+						{ params },
+						{ requestPolicy: 'network-only' },
+					)
+					.toPromise();
+				if (res.error) {
+					setError(
+						isFgaNotEnabledError(res.error)
+							? 'Fine-grained authorization is not enabled on this instance.'
+							: res.error.message.replace('[GraphQL] ', ''),
+					);
+					return;
+				}
+				setPermissions(res.data?.list_permissions?.permissions ?? []);
+				setTruncated(res.data?.list_permissions?.truncated ?? false);
+			} catch {
+				setError('Failed to list permissions');
+			} finally {
+				setRunning(false);
+			}
+		},
+		[client, userId],
+	);
+
+	// Load the complete list as soon as the modal opens — no filter or click
+	// needed to see what the user can access.
+	useEffect(() => {
+		if (open && userId) {
+			void fetchPermissions('', '');
+		}
+	}, [open, userId, fetchPermissions]);
+
 	if (!user) return null;
 
-	const handleList = async (e: React.FormEvent) => {
+	const handleFilter = async (e: React.FormEvent) => {
 		e.preventDefault();
-		setRunning(true);
-		setError('');
-		setPermissions(null);
-		setTruncated(false);
-		try {
-			// Omit empty filters so the server enumerates every matching
-			// (type, relation) pair of the model.
-			const params: Record<string, string> = { user: `user:${user.id}` };
-			if (relation.trim()) params.relation = relation.trim();
-			if (objectType.trim()) params.object_type = objectType.trim();
-			const res = await client
-				.query<ListPermissionsResponse>(
-					ListPermissionsQuery,
-					{ params },
-					{ requestPolicy: 'network-only' },
-				)
-				.toPromise();
-			if (res.error) {
-				setError(
-					isFgaNotEnabledError(res.error)
-						? 'Fine-grained authorization is not enabled on this instance.'
-						: res.error.message.replace('[GraphQL] ', ''),
-				);
-				return;
-			}
-			setPermissions(res.data?.list_permissions?.permissions ?? []);
-			setTruncated(res.data?.list_permissions?.truncated ?? false);
-		} catch {
-			setError('Failed to list permissions');
-		} finally {
-			setRunning(false);
-		}
+		await fetchPermissions(relation.trim(), objectType.trim());
 	};
 
 	const close = () => {
+		// Reset everything so the next open starts fresh for any user.
+		setRelation('');
+		setObjectType('');
 		setPermissions(null);
 		setTruncated(false);
 		setError('');
@@ -95,16 +118,15 @@ const UserPermissionsModal = ({
 						Permissions · {user.email || user.phone_number || user.id}
 					</DialogTitle>
 					<DialogDescription>
-						List what{' '}
+						Everything{' '}
 						<code className="rounded bg-gray-100 px-1 py-0.5 text-xs">
 							user:{user.id}
 						</code>{' '}
-						can access. Leave both fields empty to list everything, or narrow
-						by permission (relation) and/or object type from your authorization
-						model.
+						can access. Narrow by permission (relation) and/or object type if
+						the list is long.
 					</DialogDescription>
 				</DialogHeader>
-				<form onSubmit={handleList} className="space-y-3">
+				<form onSubmit={handleFilter} className="space-y-3">
 					<div className="grid grid-cols-1 gap-3 md:grid-cols-2">
 						<div className="space-y-1">
 							<Label htmlFor="perm-relation">Permission (optional)</Label>
@@ -127,13 +149,13 @@ const UserPermissionsModal = ({
 							/>
 						</div>
 					</div>
-					<Button type="submit" disabled={running}>
-						<Search className="mr-2 h-4 w-4" aria-hidden="true" />
-						{running
-							? 'Listing…'
-							: hasFilters
-								? 'List matching permissions'
-								: 'List all permissions'}
+					<Button type="submit" variant="outline" disabled={running}>
+						{hasFilters ? (
+							<Search className="mr-2 h-4 w-4" aria-hidden="true" />
+						) : (
+							<RefreshCw className="mr-2 h-4 w-4" aria-hidden="true" />
+						)}
+						{running ? 'Listing…' : hasFilters ? 'Apply filters' : 'Refresh'}
 					</Button>
 				</form>
 				{error && (
@@ -147,6 +169,13 @@ const UserPermissionsModal = ({
 						Showing the first 1000 permissions — more exist. Narrow by
 						permission or object type to see the rest.
 					</p>
+				)}
+				{running && permissions === null && !error && (
+					<div className="space-y-2" aria-label="Loading permissions">
+						<Skeleton className="h-8 w-full" />
+						<Skeleton className="h-8 w-full" />
+						<Skeleton className="h-8 w-2/3" />
+					</div>
 				)}
 				{permissions !== null &&
 					(permissions.length ? (
