@@ -38,6 +38,18 @@ jobs:
           # buf breaking needs main's history to diff against.
           fetch-depth: 0
 
+      # buf breaking can only diff against main once main actually carries
+      # the proto module; before this PR series merges, main has no proto/
+      # and `buf breaking` fails with "had no .proto files".
+      - name: Check base branch has protos
+        id: base
+        run: |
+          if git ls-tree -d origin/main proto | grep -q proto; then
+            echo "has_proto=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_proto=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: bufbuild/buf-action@v1
         with:
           input: proto
@@ -46,6 +58,11 @@ jobs:
           # failing the job on any unformatted .proto. Catches drift before
           # generated code can diverge.
           format: true
-          # Only run breaking on PRs (push to main has nothing to diff against).
-          breaking: ${{ github.event_name == 'pull_request' }}
+          # Only run breaking on PRs (push to main has nothing to diff
+          # against) and only once main carries the proto module.
+          breaking: ${{ github.event_name == 'pull_request' && steps.base.outputs.has_proto == 'true' }}
           breaking_against: 'https://github.com/${{ github.repository }}.git#branch=main,subdir=proto'
+          # The action's PR comment needs permissions the default
+          # GITHUB_TOKEN of this job lacks ("Resource not accessible by
+          # integration"); skip it.
+          pr_comment: false
