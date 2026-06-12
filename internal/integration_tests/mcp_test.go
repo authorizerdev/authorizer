@@ -50,19 +50,25 @@ func TestMCPListAndCallMeta(t *testing.T) {
 	require.NoError(t, err)
 	defer clientSession.Close()
 
-	// tools/list — should include the three proto-annotated MCP tools:
-	// meta, profile, permissions. (Session was DROPPED from MCP exposure
-	// in the security pass; its response carries credentials that
-	// shouldn't land in an LLM transcript — audit finding C1.)
+	// tools/list — should include the proto-annotated MCP tools:
+	// meta, profile, check_permissions, list_permissions. The single
+	// `permissions` tool was replaced by the OpenFGA dual-API
+	// (CheckPermissions/ListPermissions) — tool names are
+	// snake_case(method), so "check_permissions"/"list_permissions".
+	// (Session was DROPPED from MCP exposure in the security pass; its
+	// response carries credentials that shouldn't land in an LLM
+	// transcript — audit finding C1.)
 	list, err := clientSession.ListTools(ctx, nil)
 	require.NoError(t, err)
 	gotNames := map[string]bool{}
 	for _, tool := range list.Tools {
 		gotNames[tool.Name] = true
 	}
-	for _, want := range []string{"meta", "profile", "permissions"} {
+	for _, want := range []string{"meta", "profile", "check_permissions", "list_permissions"} {
 		require.True(t, gotNames[want], "expected MCP tool %q to be exposed; got %v", want, gotNames)
 	}
+	require.False(t, gotNames["permissions"],
+		"legacy `permissions` tool MUST NOT be exposed; it was replaced by check_permissions/list_permissions")
 	require.False(t, gotNames["session"],
 		"session tool MUST NOT be exposed via MCP (carries access_token/refresh_token/etc.)")
 

@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -15,8 +14,9 @@ import (
 
 // ErrFgaNotEnabled is returned by every fine-grained-authorization (FGA)
 // operation when no authorization engine is configured (no --fga-store).
-// Fail-closed.
-var ErrFgaNotEnabled = errors.New("fine-grained authorization is not enabled")
+// Fail-closed. Typed FailedPrecondition so gRPC/REST callers get
+// codes.FailedPrecondition / HTTP 400 instead of an internal error.
+var ErrFgaNotEnabled = FailedPrecondition("fine-grained authorization is not enabled")
 
 // maxFgaListResults caps the number of permissions returned by
 // ListPermissions. Listing is an expensive enumeration surface, so the

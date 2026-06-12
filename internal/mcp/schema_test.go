@@ -70,3 +70,43 @@ func TestSchemaForMessage_AllScalarKinds(t *testing.T) {
 	assert.Equal(t, "string", s.Properties["token"].Type)
 	assert.Equal(t, "array", s.Properties["roles"].Type)
 }
+
+// TestSchemaForMessage_CheckPermissionsNesting proves the generator handles
+// the two-level nesting introduced by the OpenFGA dual-API:
+// CheckPermissionsRequest.checks[] is a repeated PermissionCheckInput, and
+// each PermissionCheckInput.contextual_tuples[] is a repeated FgaTupleInput.
+// We assert the schema walks array → object → array → object down to the
+// leaf scalars, so an MCP host sees the full input shape (not an opaque
+// object) for a batch permission check with contextual tuples.
+func TestSchemaForMessage_CheckPermissionsNesting(t *testing.T) {
+	md := (&authorizerv1.CheckPermissionsRequest{}).ProtoReflect().Descriptor()
+	s := schemaForMessage(md)
+
+	assert.Equal(t, "object", s.Type)
+	require.NotNil(t, s.Properties)
+
+	// Optional explicit subject — a plain scalar alongside the nested list.
+	assert.Equal(t, "string", s.Properties["user"].Type)
+
+	// checks → array of PermissionCheckInput objects.
+	checks := s.Properties["checks"]
+	require.Equal(t, "array", checks.Type)
+	require.NotNil(t, checks.Items, "checks must describe its element schema")
+	assert.Equal(t, "object", checks.Items.Type)
+
+	// PermissionCheckInput scalar fields.
+	assert.Equal(t, "string", checks.Items.Properties["relation"].Type)
+	assert.Equal(t, "string", checks.Items.Properties["object"].Type)
+
+	// contextual_tuples → array of FgaTupleInput objects (the second level
+	// of nesting; this is what regressed without proper recursion).
+	tuples := checks.Items.Properties["contextual_tuples"]
+	require.Equal(t, "array", tuples.Type)
+	require.NotNil(t, tuples.Items, "contextual_tuples must describe its element schema")
+	assert.Equal(t, "object", tuples.Items.Type)
+
+	// FgaTupleInput leaf scalars — proves we reached the bottom of the tree.
+	assert.Equal(t, "string", tuples.Items.Properties["user"].Type)
+	assert.Equal(t, "string", tuples.Items.Properties["relation"].Type)
+	assert.Equal(t, "string", tuples.Items.Properties["object"].Type)
+}

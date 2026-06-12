@@ -52,9 +52,14 @@ func bootGRPCBufconn(t *testing.T) *grpc.ClientConn {
 
 // TestAuthorizerServiceStubsReturnUnimplemented locks down the contract for
 // every not-yet-migrated method on the consolidated AuthorizerService.
-// Real today: Signup, Meta, Profile, Permissions, Logout, Revoke, Session,
-// ValidateJwtToken, ValidateSession (covered elsewhere). As each remaining
-// method's handler is wired up, drop its entry below.
+//
+// The service exposes 20 RPCs. Real today (10): Signup, Meta, Profile, Logout,
+// Revoke, Session, ValidateJwtToken, ValidateSession, CheckPermissions,
+// ListPermissions (the last two cover the former single Permissions RPC and are
+// exercised in grpc_permissions_test.go / rest_permissions_test.go). The
+// remaining 10 are still stubs and MUST return codes.Unimplemented — that
+// invariant is what this test guards. As each handler is wired up, drop its
+// entry below.
 func TestAuthorizerServiceStubsReturnUnimplemented(t *testing.T) {
 	conn := bootGRPCBufconn(t)
 	ctx := context.Background()
@@ -112,6 +117,42 @@ func TestAuthorizerServiceStubsReturnUnimplemented(t *testing.T) {
 			require.True(t, ok)
 			assert.Equal(t, codes.Unimplemented, st.Code(),
 				"stub for AuthorizerService.%s should return Unimplemented until its handler is wired", name)
+		})
+	}
+}
+
+// TestAuthorizerServicePermissionRPCsAreImplemented is the positive counterpart
+// to the stub contract: CheckPermissions and ListPermissions replaced the old
+// Permissions RPC and are wired to the service layer. They MUST NOT report
+// Unimplemented. With no FGA engine configured (the default test setup) they
+// fail closed — but with a real status code, never codes.Unimplemented.
+func TestAuthorizerServicePermissionRPCsAreImplemented(t *testing.T) {
+	conn := bootGRPCBufconn(t)
+	ctx := context.Background()
+	c := authorizerv1.NewAuthorizerServiceClient(conn)
+
+	type call func(context.Context) error
+	cases := map[string]call{
+		"CheckPermissions": func(c0 context.Context) error {
+			_, err := c.CheckPermissions(c0, &authorizerv1.CheckPermissionsRequest{
+				Checks: []*authorizerv1.PermissionCheckInput{{Relation: "can_view", Object: "document:1"}},
+			})
+			return err
+		},
+		"ListPermissions": func(c0 context.Context) error {
+			_, err := c.ListPermissions(c0, &authorizerv1.ListPermissionsRequest{})
+			return err
+		},
+	}
+
+	for name, fn := range cases {
+		t.Run(name, func(t *testing.T) {
+			err := fn(ctx)
+			require.Error(t, err, "permission RPC should fail closed without an FGA engine")
+			st, ok := status.FromError(err)
+			require.True(t, ok)
+			assert.NotEqual(t, codes.Unimplemented, st.Code(),
+				"AuthorizerService.%s is implemented and must not return Unimplemented", name)
 		})
 	}
 }
