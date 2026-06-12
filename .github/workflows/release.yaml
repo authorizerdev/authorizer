@@ -36,10 +36,26 @@ jobs:
       - name: Run tests
         run: make test
 
+  smoke:
+    name: Release smoke (GraphQL + REST + gRPC + MCP)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      # Black-box end-to-end pass over every public API surface against the
+      # freshly built binary (see internal/e2e/smoke_test.go).
+      - name: Run smoke tests
+        run: make smoke
+
   build:
     name: Build and push Docker image
     runs-on: ubuntu-latest
-    needs: test
+    needs: [test, smoke]
     steps:
       - uses: actions/checkout@v4
       - name: Set up Docker Buildx

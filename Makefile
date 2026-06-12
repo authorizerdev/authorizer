@@ -92,6 +92,14 @@ dev:
 test:
 	go clean --testcache && TEST_DBS="sqlite" $(GO_TEST_ALL)
 
+# Release smoke tests: build the real binary and exercise every public API
+# surface (GraphQL, REST, gRPC, MCP) end to end, including an authenticated
+# FGA decision on each. Gated behind the `smoke` build tag so regular test
+# runs skip them. CI runs this on every release.
+.PHONY: smoke
+smoke:
+	go test -tags smoke -count=1 -v -timeout 5m ./internal/e2e/
+
 test-postgres: test-cleanup-postgres
 	docker run -d --name authorizer_postgres -p 5434:5432 -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=postgres postgres
 	sleep 3
