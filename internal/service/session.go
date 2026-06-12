@@ -11,7 +11,6 @@ import (
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/cookie"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
-	"github.com/authorizerdev/authorizer/internal/metrics"
 	"github.com/authorizerdev/authorizer/internal/refs"
 	"github.com/authorizerdev/authorizer/internal/token"
 	"github.com/authorizerdev/authorizer/internal/utils"
@@ -59,8 +58,10 @@ func (p *provider) Session(ctx context.Context, meta RequestMetadata, params *mo
 		}
 	}
 
-	if params != nil {
-		if err := p.enforceRequiredPermissions(ctx, log, metrics.RequiredPermissionsEndpointSession, user.ID, claimRoles, params.RequiredPermissions); err != nil {
+	// Fine-grained authorization gate (AND semantics, fail-closed).
+	if params != nil && len(params.RequiredRelations) > 0 {
+		if err := p.enforceRequiredRelations(ctx, log, user.ID, params.RequiredRelations); err != nil {
+			log.Debug().Err(err).Msg("Required relations not satisfied")
 			return nil, nil, err
 		}
 	}

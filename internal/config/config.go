@@ -331,14 +331,20 @@ type Config struct {
 	// See OIDC Back-Channel Logout 1.0 §2.5 for the protocol.
 	BackchannelLogoutURI string
 
-	// Fine-Grained Authorization
-	// AuthorizationCacheTTL is the cache time-to-live in seconds for permission checks.
-	// Set to 0 to disable caching. Default: 300 (5 minutes).
-	AuthorizationCacheTTL int64
-	// IncludePermissionsInToken controls whether permissions are embedded in JWT access tokens.
-	// When true, the permissions claim is added to access tokens. Default: false.
-	IncludePermissionsInToken bool
-	// AuthorizationLogAllChecks controls whether all permission checks are audit logged.
-	// When false (default), only denied checks are logged. When true, all checks are logged.
-	AuthorizationLogAllChecks bool
+	// OpenFGA / Fine-Grained Authorization engine. Authorizer embeds OpenFGA
+	// in-process — it IS the engine. By default FGA reuses the main database
+	// when it is OpenFGA-compatible (sqlite/postgres/mysql/mariadb); see
+	// FGAStoreConfig. Fields below override that. When neither the main DB is
+	// compatible nor FGAStore is set, the engine is not constructed and the
+	// fga_* resolvers fail closed ("fine-grained authorization is not enabled").
+
+	// FGAStore overrides the OpenFGA datastore kind: "sqlite", "postgres",
+	// "mysql", or "memory" (dev/tests). Empty = reuse the main database when it
+	// is SQL-compatible; required only for unsupported main DBs (mongodb,
+	// dynamodb, …) or to use a dedicated FGA store.
+	FGAStore string
+	// FGAStoreURL is the connection URI for an overridden FGAStore: a file: URI
+	// for sqlite, or a DSN for postgres/mysql. Ignored when FGA reuses the main
+	// database or for the memory store.
+	FGAStoreURL string
 }

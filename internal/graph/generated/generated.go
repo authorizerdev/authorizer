@@ -46,6 +46,12 @@ type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
+	AdminMeta struct {
+		DefaultRoles   func(childComplexity int) int
+		ProtectedRoles func(childComplexity int) int
+		Roles          func(childComplexity int) int
+	}
+
 	AuditLog struct {
 		Action       func(childComplexity int) int
 		ActorEmail   func(childComplexity int) int
@@ -80,70 +86,8 @@ type ComplexityRoot struct {
 		User                       func(childComplexity int) int
 	}
 
-	AuthzPermission struct {
-		CreatedAt        func(childComplexity int) int
-		DecisionStrategy func(childComplexity int) int
-		Description      func(childComplexity int) int
-		ID               func(childComplexity int) int
-		Name             func(childComplexity int) int
-		Policies         func(childComplexity int) int
-		Resource         func(childComplexity int) int
-		Scopes           func(childComplexity int) int
-		UpdatedAt        func(childComplexity int) int
-	}
-
-	AuthzPermissions struct {
-		Pagination  func(childComplexity int) int
-		Permissions func(childComplexity int) int
-	}
-
-	AuthzPolicies struct {
-		Pagination func(childComplexity int) int
-		Policies   func(childComplexity int) int
-	}
-
-	AuthzPolicy struct {
-		CreatedAt        func(childComplexity int) int
-		DecisionStrategy func(childComplexity int) int
-		Description      func(childComplexity int) int
-		ID               func(childComplexity int) int
-		Logic            func(childComplexity int) int
-		Name             func(childComplexity int) int
-		Targets          func(childComplexity int) int
-		Type             func(childComplexity int) int
-		UpdatedAt        func(childComplexity int) int
-	}
-
-	AuthzPolicyTarget struct {
-		ID          func(childComplexity int) int
-		TargetType  func(childComplexity int) int
-		TargetValue func(childComplexity int) int
-	}
-
-	AuthzResource struct {
-		CreatedAt   func(childComplexity int) int
-		Description func(childComplexity int) int
-		ID          func(childComplexity int) int
-		Name        func(childComplexity int) int
-		UpdatedAt   func(childComplexity int) int
-	}
-
-	AuthzResources struct {
-		Pagination func(childComplexity int) int
-		Resources  func(childComplexity int) int
-	}
-
-	AuthzScope struct {
-		CreatedAt   func(childComplexity int) int
-		Description func(childComplexity int) int
-		ID          func(childComplexity int) int
-		Name        func(childComplexity int) int
-		UpdatedAt   func(childComplexity int) int
-	}
-
-	AuthzScopes struct {
-		Pagination func(childComplexity int) int
-		Scopes     func(childComplexity int) int
+	CheckPermissionsResponse struct {
+		Results func(childComplexity int) int
 	}
 
 	EmailTemplate struct {
@@ -240,6 +184,30 @@ type ComplexityRoot struct {
 		Reason  func(childComplexity int) int
 	}
 
+	FgaExpandResponse struct {
+		Tree func(childComplexity int) int
+	}
+
+	FgaListUsersResponse struct {
+		Users func(childComplexity int) int
+	}
+
+	FgaModel struct {
+		Dsl func(childComplexity int) int
+		ID  func(childComplexity int) int
+	}
+
+	FgaTuple struct {
+		Object   func(childComplexity int) int
+		Relation func(childComplexity int) int
+		User     func(childComplexity int) int
+	}
+
+	FgaTuples struct {
+		ContinuationToken func(childComplexity int) int
+		Tuples            func(childComplexity int) int
+	}
+
 	ForgotPasswordResponse struct {
 		Message                   func(childComplexity int) int
 		ShouldShowMobileOtpScreen func(childComplexity int) int
@@ -254,6 +222,12 @@ type ComplexityRoot struct {
 	InviteMembersResponse struct {
 		Message func(childComplexity int) int
 		Users   func(childComplexity int) int
+	}
+
+	ListPermissionsResponse struct {
+		Objects     func(childComplexity int) int
+		Permissions func(childComplexity int) int
+		Truncated   func(childComplexity int) int
 	}
 
 	Meta struct {
@@ -280,50 +254,42 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		AddEmailTemplate      func(childComplexity int, params model.AddEmailTemplateRequest) int
-		AddWebhook            func(childComplexity int, params model.AddWebhookRequest) int
-		AdminLogin            func(childComplexity int, params model.AdminLoginRequest) int
-		AdminLogout           func(childComplexity int) int
-		AdminSignup           func(childComplexity int, params model.AdminSignupRequest) int
-		AuthzAddPermission    func(childComplexity int, params model.AddPermissionInput) int
-		AuthzAddPolicy        func(childComplexity int, params model.AddPolicyInput) int
-		AuthzAddResource      func(childComplexity int, params model.AddResourceInput) int
-		AuthzAddScope         func(childComplexity int, params model.AddScopeInput) int
-		AuthzDeletePermission func(childComplexity int, id string) int
-		AuthzDeletePolicy     func(childComplexity int, id string) int
-		AuthzDeleteResource   func(childComplexity int, id string) int
-		AuthzDeleteScope      func(childComplexity int, id string) int
-		AuthzUpdatePermission func(childComplexity int, params model.UpdatePermissionInput) int
-		AuthzUpdatePolicy     func(childComplexity int, params model.UpdatePolicyInput) int
-		AuthzUpdateResource   func(childComplexity int, params model.UpdateResourceInput) int
-		AuthzUpdateScope      func(childComplexity int, params model.UpdateScopeInput) int
-		DeactivateAccount     func(childComplexity int) int
-		DeleteEmailTemplate   func(childComplexity int, params model.DeleteEmailTemplateRequest) int
-		DeleteUser            func(childComplexity int, params model.DeleteUserRequest) int
-		DeleteWebhook         func(childComplexity int, params model.WebhookRequest) int
-		EnableAccess          func(childComplexity int, param model.UpdateAccessRequest) int
-		ForgotPassword        func(childComplexity int, params model.ForgotPasswordRequest) int
-		GenerateJwtKeys       func(childComplexity int, params model.GenerateJWTKeysRequest) int
-		InviteMembers         func(childComplexity int, params model.InviteMemberRequest) int
-		Login                 func(childComplexity int, params model.LoginRequest) int
-		Logout                func(childComplexity int) int
-		MagicLinkLogin        func(childComplexity int, params model.MagicLinkLoginRequest) int
-		MobileLogin           func(childComplexity int, params model.MobileLoginRequest) int
-		MobileSignup          func(childComplexity int, params *model.MobileSignUpRequest) int
-		ResendOtp             func(childComplexity int, params model.ResendOTPRequest) int
-		ResendVerifyEmail     func(childComplexity int, params model.ResendVerifyEmailRequest) int
-		ResetPassword         func(childComplexity int, params model.ResetPasswordRequest) int
-		Revoke                func(childComplexity int, params model.OAuthRevokeRequest) int
-		RevokeAccess          func(childComplexity int, param model.UpdateAccessRequest) int
-		Signup                func(childComplexity int, params model.SignUpRequest) int
-		TestEndpoint          func(childComplexity int, params model.TestEndpointRequest) int
-		UpdateEmailTemplate   func(childComplexity int, params model.UpdateEmailTemplateRequest) int
-		UpdateEnv             func(childComplexity int, params model.UpdateEnvRequest) int
-		UpdateProfile         func(childComplexity int, params model.UpdateProfileRequest) int
-		UpdateUser            func(childComplexity int, params model.UpdateUserRequest) int
-		UpdateWebhook         func(childComplexity int, params model.UpdateWebhookRequest) int
-		VerifyEmail           func(childComplexity int, params model.VerifyEmailRequest) int
-		VerifyOtp             func(childComplexity int, params model.VerifyOTPRequest) int
+		AddEmailTemplate    func(childComplexity int, params model.AddEmailTemplateRequest) int
+		AddWebhook          func(childComplexity int, params model.AddWebhookRequest) int
+		AdminLogin          func(childComplexity int, params model.AdminLoginRequest) int
+		AdminLogout         func(childComplexity int) int
+		AdminSignup         func(childComplexity int, params model.AdminSignupRequest) int
+		DeactivateAccount   func(childComplexity int) int
+		DeleteEmailTemplate func(childComplexity int, params model.DeleteEmailTemplateRequest) int
+		DeleteUser          func(childComplexity int, params model.DeleteUserRequest) int
+		DeleteWebhook       func(childComplexity int, params model.WebhookRequest) int
+		EnableAccess        func(childComplexity int, param model.UpdateAccessRequest) int
+		FgaDeleteTuples     func(childComplexity int, params model.FgaWriteTuplesInput) int
+		FgaReset            func(childComplexity int) int
+		FgaWriteModel       func(childComplexity int, params model.FgaWriteModelInput) int
+		FgaWriteTuples      func(childComplexity int, params model.FgaWriteTuplesInput) int
+		ForgotPassword      func(childComplexity int, params model.ForgotPasswordRequest) int
+		GenerateJwtKeys     func(childComplexity int, params model.GenerateJWTKeysRequest) int
+		InviteMembers       func(childComplexity int, params model.InviteMemberRequest) int
+		Login               func(childComplexity int, params model.LoginRequest) int
+		Logout              func(childComplexity int) int
+		MagicLinkLogin      func(childComplexity int, params model.MagicLinkLoginRequest) int
+		MobileLogin         func(childComplexity int, params model.MobileLoginRequest) int
+		MobileSignup        func(childComplexity int, params *model.MobileSignUpRequest) int
+		ResendOtp           func(childComplexity int, params model.ResendOTPRequest) int
+		ResendVerifyEmail   func(childComplexity int, params model.ResendVerifyEmailRequest) int
+		ResetPassword       func(childComplexity int, params model.ResetPasswordRequest) int
+		Revoke              func(childComplexity int, params model.OAuthRevokeRequest) int
+		RevokeAccess        func(childComplexity int, param model.UpdateAccessRequest) int
+		Signup              func(childComplexity int, params model.SignUpRequest) int
+		TestEndpoint        func(childComplexity int, params model.TestEndpointRequest) int
+		UpdateEmailTemplate func(childComplexity int, params model.UpdateEmailTemplateRequest) int
+		UpdateEnv           func(childComplexity int, params model.UpdateEnvRequest) int
+		UpdateProfile       func(childComplexity int, params model.UpdateProfileRequest) int
+		UpdateUser          func(childComplexity int, params model.UpdateUserRequest) int
+		UpdateWebhook       func(childComplexity int, params model.UpdateWebhookRequest) int
+		VerifyEmail         func(childComplexity int, params model.VerifyEmailRequest) int
+		VerifyOtp           func(childComplexity int, params model.VerifyOTPRequest) int
 	}
 
 	Pagination struct {
@@ -334,21 +300,29 @@ type ComplexityRoot struct {
 	}
 
 	Permission struct {
-		Resource func(childComplexity int) int
-		Scope    func(childComplexity int) int
+		Object   func(childComplexity int) int
+		Relation func(childComplexity int) int
+	}
+
+	PermissionCheckResult struct {
+		Allowed  func(childComplexity int) int
+		Object   func(childComplexity int) int
+		Relation func(childComplexity int) int
 	}
 
 	Query struct {
+		AdminMeta            func(childComplexity int) int
 		AdminSession         func(childComplexity int) int
 		AuditLogs            func(childComplexity int, params *model.ListAuditLogRequest) int
-		AuthzPermissions     func(childComplexity int, params *model.PaginatedRequest) int
-		AuthzPolicies        func(childComplexity int, params *model.PaginatedRequest) int
-		AuthzResources       func(childComplexity int, params *model.PaginatedRequest) int
-		AuthzScopes          func(childComplexity int, params *model.PaginatedRequest) int
+		CheckPermissions     func(childComplexity int, params model.CheckPermissionsInput) int
 		EmailTemplates       func(childComplexity int, params *model.PaginatedRequest) int
 		Env                  func(childComplexity int) int
+		FgaExpand            func(childComplexity int, params model.FgaExpandInput) int
+		FgaGetModel          func(childComplexity int) int
+		FgaListUsers         func(childComplexity int, params model.FgaListUsersInput) int
+		FgaReadTuples        func(childComplexity int, params model.FgaReadTuplesInput) int
+		ListPermissions      func(childComplexity int, params model.ListPermissionsInput) int
 		Meta                 func(childComplexity int) int
-		Permissions          func(childComplexity int) int
 		Profile              func(childComplexity int) int
 		Session              func(childComplexity int, params *model.SessionQueryRequest) int
 		User                 func(childComplexity int, params model.GetUserRequest) int
@@ -490,18 +464,10 @@ type MutationResolver interface {
 	AddEmailTemplate(ctx context.Context, params model.AddEmailTemplateRequest) (*model.Response, error)
 	UpdateEmailTemplate(ctx context.Context, params model.UpdateEmailTemplateRequest) (*model.Response, error)
 	DeleteEmailTemplate(ctx context.Context, params model.DeleteEmailTemplateRequest) (*model.Response, error)
-	AuthzAddResource(ctx context.Context, params model.AddResourceInput) (*model.AuthzResource, error)
-	AuthzUpdateResource(ctx context.Context, params model.UpdateResourceInput) (*model.AuthzResource, error)
-	AuthzDeleteResource(ctx context.Context, id string) (*model.Response, error)
-	AuthzAddScope(ctx context.Context, params model.AddScopeInput) (*model.AuthzScope, error)
-	AuthzUpdateScope(ctx context.Context, params model.UpdateScopeInput) (*model.AuthzScope, error)
-	AuthzDeleteScope(ctx context.Context, id string) (*model.Response, error)
-	AuthzAddPolicy(ctx context.Context, params model.AddPolicyInput) (*model.AuthzPolicy, error)
-	AuthzUpdatePolicy(ctx context.Context, params model.UpdatePolicyInput) (*model.AuthzPolicy, error)
-	AuthzDeletePolicy(ctx context.Context, id string) (*model.Response, error)
-	AuthzAddPermission(ctx context.Context, params model.AddPermissionInput) (*model.AuthzPermission, error)
-	AuthzUpdatePermission(ctx context.Context, params model.UpdatePermissionInput) (*model.AuthzPermission, error)
-	AuthzDeletePermission(ctx context.Context, id string) (*model.Response, error)
+	FgaWriteModel(ctx context.Context, params model.FgaWriteModelInput) (*model.FgaModel, error)
+	FgaWriteTuples(ctx context.Context, params model.FgaWriteTuplesInput) (*model.Response, error)
+	FgaDeleteTuples(ctx context.Context, params model.FgaWriteTuplesInput) (*model.Response, error)
+	FgaReset(ctx context.Context) (*model.Response, error)
 }
 type QueryResolver interface {
 	Meta(ctx context.Context) (*model.Meta, error)
@@ -513,17 +479,19 @@ type QueryResolver interface {
 	User(ctx context.Context, params model.GetUserRequest) (*model.User, error)
 	VerificationRequests(ctx context.Context, params *model.PaginatedRequest) (*model.VerificationRequests, error)
 	AdminSession(ctx context.Context) (*model.Response, error)
+	AdminMeta(ctx context.Context) (*model.AdminMeta, error)
 	Env(ctx context.Context) (*model.Env, error)
 	Webhook(ctx context.Context, params model.WebhookRequest) (*model.Webhook, error)
 	Webhooks(ctx context.Context, params *model.PaginatedRequest) (*model.Webhooks, error)
 	WebhookLogs(ctx context.Context, params *model.ListWebhookLogRequest) (*model.WebhookLogs, error)
 	EmailTemplates(ctx context.Context, params *model.PaginatedRequest) (*model.EmailTemplates, error)
 	AuditLogs(ctx context.Context, params *model.ListAuditLogRequest) (*model.AuditLogs, error)
-	AuthzResources(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzResources, error)
-	AuthzScopes(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzScopes, error)
-	AuthzPolicies(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzPolicies, error)
-	AuthzPermissions(ctx context.Context, params *model.PaginatedRequest) (*model.AuthzPermissions, error)
-	Permissions(ctx context.Context) ([]*model.Permission, error)
+	FgaGetModel(ctx context.Context) (*model.FgaModel, error)
+	FgaReadTuples(ctx context.Context, params model.FgaReadTuplesInput) (*model.FgaTuples, error)
+	FgaListUsers(ctx context.Context, params model.FgaListUsersInput) (*model.FgaListUsersResponse, error)
+	FgaExpand(ctx context.Context, params model.FgaExpandInput) (*model.FgaExpandResponse, error)
+	CheckPermissions(ctx context.Context, params model.CheckPermissionsInput) (*model.CheckPermissionsResponse, error)
+	ListPermissions(ctx context.Context, params model.ListPermissionsInput) (*model.ListPermissionsResponse, error)
 }
 
 type executableSchema struct {
@@ -544,6 +512,27 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 	ec := executionContext{nil, e, 0, 0, nil}
 	_ = ec
 	switch typeName + "." + field {
+
+	case "AdminMeta.default_roles":
+		if e.complexity.AdminMeta.DefaultRoles == nil {
+			break
+		}
+
+		return e.complexity.AdminMeta.DefaultRoles(childComplexity), true
+
+	case "AdminMeta.protected_roles":
+		if e.complexity.AdminMeta.ProtectedRoles == nil {
+			break
+		}
+
+		return e.complexity.AdminMeta.ProtectedRoles(childComplexity), true
+
+	case "AdminMeta.roles":
+		if e.complexity.AdminMeta.Roles == nil {
+			break
+		}
+
+		return e.complexity.AdminMeta.Roles(childComplexity), true
 
 	case "AuditLog.action":
 		if e.complexity.AuditLog.Action == nil {
@@ -720,278 +709,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.AuthResponse.User(childComplexity), true
 
-	case "AuthzPermission.created_at":
-		if e.complexity.AuthzPermission.CreatedAt == nil {
+	case "CheckPermissionsResponse.results":
+		if e.complexity.CheckPermissionsResponse.Results == nil {
 			break
 		}
 
-		return e.complexity.AuthzPermission.CreatedAt(childComplexity), true
-
-	case "AuthzPermission.decision_strategy":
-		if e.complexity.AuthzPermission.DecisionStrategy == nil {
-			break
-		}
-
-		return e.complexity.AuthzPermission.DecisionStrategy(childComplexity), true
-
-	case "AuthzPermission.description":
-		if e.complexity.AuthzPermission.Description == nil {
-			break
-		}
-
-		return e.complexity.AuthzPermission.Description(childComplexity), true
-
-	case "AuthzPermission.id":
-		if e.complexity.AuthzPermission.ID == nil {
-			break
-		}
-
-		return e.complexity.AuthzPermission.ID(childComplexity), true
-
-	case "AuthzPermission.name":
-		if e.complexity.AuthzPermission.Name == nil {
-			break
-		}
-
-		return e.complexity.AuthzPermission.Name(childComplexity), true
-
-	case "AuthzPermission.policies":
-		if e.complexity.AuthzPermission.Policies == nil {
-			break
-		}
-
-		return e.complexity.AuthzPermission.Policies(childComplexity), true
-
-	case "AuthzPermission.resource":
-		if e.complexity.AuthzPermission.Resource == nil {
-			break
-		}
-
-		return e.complexity.AuthzPermission.Resource(childComplexity), true
-
-	case "AuthzPermission.scopes":
-		if e.complexity.AuthzPermission.Scopes == nil {
-			break
-		}
-
-		return e.complexity.AuthzPermission.Scopes(childComplexity), true
-
-	case "AuthzPermission.updated_at":
-		if e.complexity.AuthzPermission.UpdatedAt == nil {
-			break
-		}
-
-		return e.complexity.AuthzPermission.UpdatedAt(childComplexity), true
-
-	case "AuthzPermissions.pagination":
-		if e.complexity.AuthzPermissions.Pagination == nil {
-			break
-		}
-
-		return e.complexity.AuthzPermissions.Pagination(childComplexity), true
-
-	case "AuthzPermissions.permissions":
-		if e.complexity.AuthzPermissions.Permissions == nil {
-			break
-		}
-
-		return e.complexity.AuthzPermissions.Permissions(childComplexity), true
-
-	case "AuthzPolicies.pagination":
-		if e.complexity.AuthzPolicies.Pagination == nil {
-			break
-		}
-
-		return e.complexity.AuthzPolicies.Pagination(childComplexity), true
-
-	case "AuthzPolicies.policies":
-		if e.complexity.AuthzPolicies.Policies == nil {
-			break
-		}
-
-		return e.complexity.AuthzPolicies.Policies(childComplexity), true
-
-	case "AuthzPolicy.created_at":
-		if e.complexity.AuthzPolicy.CreatedAt == nil {
-			break
-		}
-
-		return e.complexity.AuthzPolicy.CreatedAt(childComplexity), true
-
-	case "AuthzPolicy.decision_strategy":
-		if e.complexity.AuthzPolicy.DecisionStrategy == nil {
-			break
-		}
-
-		return e.complexity.AuthzPolicy.DecisionStrategy(childComplexity), true
-
-	case "AuthzPolicy.description":
-		if e.complexity.AuthzPolicy.Description == nil {
-			break
-		}
-
-		return e.complexity.AuthzPolicy.Description(childComplexity), true
-
-	case "AuthzPolicy.id":
-		if e.complexity.AuthzPolicy.ID == nil {
-			break
-		}
-
-		return e.complexity.AuthzPolicy.ID(childComplexity), true
-
-	case "AuthzPolicy.logic":
-		if e.complexity.AuthzPolicy.Logic == nil {
-			break
-		}
-
-		return e.complexity.AuthzPolicy.Logic(childComplexity), true
-
-	case "AuthzPolicy.name":
-		if e.complexity.AuthzPolicy.Name == nil {
-			break
-		}
-
-		return e.complexity.AuthzPolicy.Name(childComplexity), true
-
-	case "AuthzPolicy.targets":
-		if e.complexity.AuthzPolicy.Targets == nil {
-			break
-		}
-
-		return e.complexity.AuthzPolicy.Targets(childComplexity), true
-
-	case "AuthzPolicy.type":
-		if e.complexity.AuthzPolicy.Type == nil {
-			break
-		}
-
-		return e.complexity.AuthzPolicy.Type(childComplexity), true
-
-	case "AuthzPolicy.updated_at":
-		if e.complexity.AuthzPolicy.UpdatedAt == nil {
-			break
-		}
-
-		return e.complexity.AuthzPolicy.UpdatedAt(childComplexity), true
-
-	case "AuthzPolicyTarget.id":
-		if e.complexity.AuthzPolicyTarget.ID == nil {
-			break
-		}
-
-		return e.complexity.AuthzPolicyTarget.ID(childComplexity), true
-
-	case "AuthzPolicyTarget.target_type":
-		if e.complexity.AuthzPolicyTarget.TargetType == nil {
-			break
-		}
-
-		return e.complexity.AuthzPolicyTarget.TargetType(childComplexity), true
-
-	case "AuthzPolicyTarget.target_value":
-		if e.complexity.AuthzPolicyTarget.TargetValue == nil {
-			break
-		}
-
-		return e.complexity.AuthzPolicyTarget.TargetValue(childComplexity), true
-
-	case "AuthzResource.created_at":
-		if e.complexity.AuthzResource.CreatedAt == nil {
-			break
-		}
-
-		return e.complexity.AuthzResource.CreatedAt(childComplexity), true
-
-	case "AuthzResource.description":
-		if e.complexity.AuthzResource.Description == nil {
-			break
-		}
-
-		return e.complexity.AuthzResource.Description(childComplexity), true
-
-	case "AuthzResource.id":
-		if e.complexity.AuthzResource.ID == nil {
-			break
-		}
-
-		return e.complexity.AuthzResource.ID(childComplexity), true
-
-	case "AuthzResource.name":
-		if e.complexity.AuthzResource.Name == nil {
-			break
-		}
-
-		return e.complexity.AuthzResource.Name(childComplexity), true
-
-	case "AuthzResource.updated_at":
-		if e.complexity.AuthzResource.UpdatedAt == nil {
-			break
-		}
-
-		return e.complexity.AuthzResource.UpdatedAt(childComplexity), true
-
-	case "AuthzResources.pagination":
-		if e.complexity.AuthzResources.Pagination == nil {
-			break
-		}
-
-		return e.complexity.AuthzResources.Pagination(childComplexity), true
-
-	case "AuthzResources.resources":
-		if e.complexity.AuthzResources.Resources == nil {
-			break
-		}
-
-		return e.complexity.AuthzResources.Resources(childComplexity), true
-
-	case "AuthzScope.created_at":
-		if e.complexity.AuthzScope.CreatedAt == nil {
-			break
-		}
-
-		return e.complexity.AuthzScope.CreatedAt(childComplexity), true
-
-	case "AuthzScope.description":
-		if e.complexity.AuthzScope.Description == nil {
-			break
-		}
-
-		return e.complexity.AuthzScope.Description(childComplexity), true
-
-	case "AuthzScope.id":
-		if e.complexity.AuthzScope.ID == nil {
-			break
-		}
-
-		return e.complexity.AuthzScope.ID(childComplexity), true
-
-	case "AuthzScope.name":
-		if e.complexity.AuthzScope.Name == nil {
-			break
-		}
-
-		return e.complexity.AuthzScope.Name(childComplexity), true
-
-	case "AuthzScope.updated_at":
-		if e.complexity.AuthzScope.UpdatedAt == nil {
-			break
-		}
-
-		return e.complexity.AuthzScope.UpdatedAt(childComplexity), true
-
-	case "AuthzScopes.pagination":
-		if e.complexity.AuthzScopes.Pagination == nil {
-			break
-		}
-
-		return e.complexity.AuthzScopes.Pagination(childComplexity), true
-
-	case "AuthzScopes.scopes":
-		if e.complexity.AuthzScopes.Scopes == nil {
-			break
-		}
-
-		return e.complexity.AuthzScopes.Scopes(childComplexity), true
+		return e.complexity.CheckPermissionsResponse.Results(childComplexity), true
 
 	case "EmailTemplate.created_at":
 		if e.complexity.EmailTemplate.CreatedAt == nil {
@@ -1567,6 +1290,69 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Error.Reason(childComplexity), true
 
+	case "FgaExpandResponse.tree":
+		if e.complexity.FgaExpandResponse.Tree == nil {
+			break
+		}
+
+		return e.complexity.FgaExpandResponse.Tree(childComplexity), true
+
+	case "FgaListUsersResponse.users":
+		if e.complexity.FgaListUsersResponse.Users == nil {
+			break
+		}
+
+		return e.complexity.FgaListUsersResponse.Users(childComplexity), true
+
+	case "FgaModel.dsl":
+		if e.complexity.FgaModel.Dsl == nil {
+			break
+		}
+
+		return e.complexity.FgaModel.Dsl(childComplexity), true
+
+	case "FgaModel.id":
+		if e.complexity.FgaModel.ID == nil {
+			break
+		}
+
+		return e.complexity.FgaModel.ID(childComplexity), true
+
+	case "FgaTuple.object":
+		if e.complexity.FgaTuple.Object == nil {
+			break
+		}
+
+		return e.complexity.FgaTuple.Object(childComplexity), true
+
+	case "FgaTuple.relation":
+		if e.complexity.FgaTuple.Relation == nil {
+			break
+		}
+
+		return e.complexity.FgaTuple.Relation(childComplexity), true
+
+	case "FgaTuple.user":
+		if e.complexity.FgaTuple.User == nil {
+			break
+		}
+
+		return e.complexity.FgaTuple.User(childComplexity), true
+
+	case "FgaTuples.continuation_token":
+		if e.complexity.FgaTuples.ContinuationToken == nil {
+			break
+		}
+
+		return e.complexity.FgaTuples.ContinuationToken(childComplexity), true
+
+	case "FgaTuples.tuples":
+		if e.complexity.FgaTuples.Tuples == nil {
+			break
+		}
+
+		return e.complexity.FgaTuples.Tuples(childComplexity), true
+
 	case "ForgotPasswordResponse.message":
 		if e.complexity.ForgotPasswordResponse.Message == nil {
 			break
@@ -1615,6 +1401,27 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.InviteMembersResponse.Users(childComplexity), true
+
+	case "ListPermissionsResponse.objects":
+		if e.complexity.ListPermissionsResponse.Objects == nil {
+			break
+		}
+
+		return e.complexity.ListPermissionsResponse.Objects(childComplexity), true
+
+	case "ListPermissionsResponse.permissions":
+		if e.complexity.ListPermissionsResponse.Permissions == nil {
+			break
+		}
+
+		return e.complexity.ListPermissionsResponse.Permissions(childComplexity), true
+
+	case "ListPermissionsResponse.truncated":
+		if e.complexity.ListPermissionsResponse.Truncated == nil {
+			break
+		}
+
+		return e.complexity.ListPermissionsResponse.Truncated(childComplexity), true
 
 	case "Meta.client_id":
 		if e.complexity.Meta.ClientID == nil {
@@ -1811,150 +1618,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Mutation.AdminSignup(childComplexity, args["params"].(model.AdminSignupRequest)), true
 
-	case "Mutation._authz_add_permission":
-		if e.complexity.Mutation.AuthzAddPermission == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation__authz_add_permission_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.AuthzAddPermission(childComplexity, args["params"].(model.AddPermissionInput)), true
-
-	case "Mutation._authz_add_policy":
-		if e.complexity.Mutation.AuthzAddPolicy == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation__authz_add_policy_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.AuthzAddPolicy(childComplexity, args["params"].(model.AddPolicyInput)), true
-
-	case "Mutation._authz_add_resource":
-		if e.complexity.Mutation.AuthzAddResource == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation__authz_add_resource_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.AuthzAddResource(childComplexity, args["params"].(model.AddResourceInput)), true
-
-	case "Mutation._authz_add_scope":
-		if e.complexity.Mutation.AuthzAddScope == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation__authz_add_scope_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.AuthzAddScope(childComplexity, args["params"].(model.AddScopeInput)), true
-
-	case "Mutation._authz_delete_permission":
-		if e.complexity.Mutation.AuthzDeletePermission == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation__authz_delete_permission_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.AuthzDeletePermission(childComplexity, args["id"].(string)), true
-
-	case "Mutation._authz_delete_policy":
-		if e.complexity.Mutation.AuthzDeletePolicy == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation__authz_delete_policy_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.AuthzDeletePolicy(childComplexity, args["id"].(string)), true
-
-	case "Mutation._authz_delete_resource":
-		if e.complexity.Mutation.AuthzDeleteResource == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation__authz_delete_resource_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.AuthzDeleteResource(childComplexity, args["id"].(string)), true
-
-	case "Mutation._authz_delete_scope":
-		if e.complexity.Mutation.AuthzDeleteScope == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation__authz_delete_scope_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.AuthzDeleteScope(childComplexity, args["id"].(string)), true
-
-	case "Mutation._authz_update_permission":
-		if e.complexity.Mutation.AuthzUpdatePermission == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation__authz_update_permission_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.AuthzUpdatePermission(childComplexity, args["params"].(model.UpdatePermissionInput)), true
-
-	case "Mutation._authz_update_policy":
-		if e.complexity.Mutation.AuthzUpdatePolicy == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation__authz_update_policy_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.AuthzUpdatePolicy(childComplexity, args["params"].(model.UpdatePolicyInput)), true
-
-	case "Mutation._authz_update_resource":
-		if e.complexity.Mutation.AuthzUpdateResource == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation__authz_update_resource_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.AuthzUpdateResource(childComplexity, args["params"].(model.UpdateResourceInput)), true
-
-	case "Mutation._authz_update_scope":
-		if e.complexity.Mutation.AuthzUpdateScope == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation__authz_update_scope_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.AuthzUpdateScope(childComplexity, args["params"].(model.UpdateScopeInput)), true
-
 	case "Mutation.deactivate_account":
 		if e.complexity.Mutation.DeactivateAccount == nil {
 			break
@@ -2009,6 +1672,49 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.EnableAccess(childComplexity, args["param"].(model.UpdateAccessRequest)), true
+
+	case "Mutation._fga_delete_tuples":
+		if e.complexity.Mutation.FgaDeleteTuples == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__fga_delete_tuples_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.FgaDeleteTuples(childComplexity, args["params"].(model.FgaWriteTuplesInput)), true
+
+	case "Mutation._fga_reset":
+		if e.complexity.Mutation.FgaReset == nil {
+			break
+		}
+
+		return e.complexity.Mutation.FgaReset(childComplexity), true
+
+	case "Mutation._fga_write_model":
+		if e.complexity.Mutation.FgaWriteModel == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__fga_write_model_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.FgaWriteModel(childComplexity, args["params"].(model.FgaWriteModelInput)), true
+
+	case "Mutation._fga_write_tuples":
+		if e.complexity.Mutation.FgaWriteTuples == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation__fga_write_tuples_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.FgaWriteTuples(childComplexity, args["params"].(model.FgaWriteTuplesInput)), true
 
 	case "Mutation.forgot_password":
 		if e.complexity.Mutation.ForgotPassword == nil {
@@ -2297,19 +2003,47 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Pagination.Total(childComplexity), true
 
-	case "Permission.resource":
-		if e.complexity.Permission.Resource == nil {
+	case "Permission.object":
+		if e.complexity.Permission.Object == nil {
 			break
 		}
 
-		return e.complexity.Permission.Resource(childComplexity), true
+		return e.complexity.Permission.Object(childComplexity), true
 
-	case "Permission.scope":
-		if e.complexity.Permission.Scope == nil {
+	case "Permission.relation":
+		if e.complexity.Permission.Relation == nil {
 			break
 		}
 
-		return e.complexity.Permission.Scope(childComplexity), true
+		return e.complexity.Permission.Relation(childComplexity), true
+
+	case "PermissionCheckResult.allowed":
+		if e.complexity.PermissionCheckResult.Allowed == nil {
+			break
+		}
+
+		return e.complexity.PermissionCheckResult.Allowed(childComplexity), true
+
+	case "PermissionCheckResult.object":
+		if e.complexity.PermissionCheckResult.Object == nil {
+			break
+		}
+
+		return e.complexity.PermissionCheckResult.Object(childComplexity), true
+
+	case "PermissionCheckResult.relation":
+		if e.complexity.PermissionCheckResult.Relation == nil {
+			break
+		}
+
+		return e.complexity.PermissionCheckResult.Relation(childComplexity), true
+
+	case "Query._admin_meta":
+		if e.complexity.Query.AdminMeta == nil {
+			break
+		}
+
+		return e.complexity.Query.AdminMeta(childComplexity), true
 
 	case "Query._admin_session":
 		if e.complexity.Query.AdminSession == nil {
@@ -2330,53 +2064,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Query.AuditLogs(childComplexity, args["params"].(*model.ListAuditLogRequest)), true
 
-	case "Query._authz_permissions":
-		if e.complexity.Query.AuthzPermissions == nil {
+	case "Query.check_permissions":
+		if e.complexity.Query.CheckPermissions == nil {
 			break
 		}
 
-		args, err := ec.field_Query__authz_permissions_args(ctx, rawArgs)
+		args, err := ec.field_Query_check_permissions_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Query.AuthzPermissions(childComplexity, args["params"].(*model.PaginatedRequest)), true
-
-	case "Query._authz_policies":
-		if e.complexity.Query.AuthzPolicies == nil {
-			break
-		}
-
-		args, err := ec.field_Query__authz_policies_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.AuthzPolicies(childComplexity, args["params"].(*model.PaginatedRequest)), true
-
-	case "Query._authz_resources":
-		if e.complexity.Query.AuthzResources == nil {
-			break
-		}
-
-		args, err := ec.field_Query__authz_resources_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.AuthzResources(childComplexity, args["params"].(*model.PaginatedRequest)), true
-
-	case "Query._authz_scopes":
-		if e.complexity.Query.AuthzScopes == nil {
-			break
-		}
-
-		args, err := ec.field_Query__authz_scopes_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.AuthzScopes(childComplexity, args["params"].(*model.PaginatedRequest)), true
+		return e.complexity.Query.CheckPermissions(childComplexity, args["params"].(model.CheckPermissionsInput)), true
 
 	case "Query._email_templates":
 		if e.complexity.Query.EmailTemplates == nil {
@@ -2397,19 +2095,67 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Query.Env(childComplexity), true
 
+	case "Query._fga_expand":
+		if e.complexity.Query.FgaExpand == nil {
+			break
+		}
+
+		args, err := ec.field_Query__fga_expand_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.FgaExpand(childComplexity, args["params"].(model.FgaExpandInput)), true
+
+	case "Query._fga_get_model":
+		if e.complexity.Query.FgaGetModel == nil {
+			break
+		}
+
+		return e.complexity.Query.FgaGetModel(childComplexity), true
+
+	case "Query._fga_list_users":
+		if e.complexity.Query.FgaListUsers == nil {
+			break
+		}
+
+		args, err := ec.field_Query__fga_list_users_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.FgaListUsers(childComplexity, args["params"].(model.FgaListUsersInput)), true
+
+	case "Query._fga_read_tuples":
+		if e.complexity.Query.FgaReadTuples == nil {
+			break
+		}
+
+		args, err := ec.field_Query__fga_read_tuples_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.FgaReadTuples(childComplexity, args["params"].(model.FgaReadTuplesInput)), true
+
+	case "Query.list_permissions":
+		if e.complexity.Query.ListPermissions == nil {
+			break
+		}
+
+		args, err := ec.field_Query_list_permissions_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.ListPermissions(childComplexity, args["params"].(model.ListPermissionsInput)), true
+
 	case "Query.meta":
 		if e.complexity.Query.Meta == nil {
 			break
 		}
 
 		return e.complexity.Query.Meta(childComplexity), true
-
-	case "Query.permissions":
-		if e.complexity.Query.Permissions == nil {
-			break
-		}
-
-		return e.complexity.Query.Permissions(childComplexity), true
 
 	case "Query.profile":
 		if e.complexity.Query.Profile == nil {
@@ -2948,20 +2694,25 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	ec := executionContext{opCtx, e, 0, 0, make(chan graphql.DeferredResult)}
 	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
 		ec.unmarshalInputAddEmailTemplateRequest,
-		ec.unmarshalInputAddPermissionInput,
-		ec.unmarshalInputAddPolicyInput,
-		ec.unmarshalInputAddResourceInput,
-		ec.unmarshalInputAddScopeInput,
 		ec.unmarshalInputAddWebhookRequest,
 		ec.unmarshalInputAdminLoginRequest,
 		ec.unmarshalInputAdminSignupRequest,
+		ec.unmarshalInputCheckPermissionsInput,
 		ec.unmarshalInputDeleteEmailTemplateRequest,
 		ec.unmarshalInputDeleteUserRequest,
+		ec.unmarshalInputFgaExpandInput,
+		ec.unmarshalInputFgaListUsersInput,
+		ec.unmarshalInputFgaReadTuplesInput,
+		ec.unmarshalInputFgaRelationInput,
+		ec.unmarshalInputFgaTupleInput,
+		ec.unmarshalInputFgaWriteModelInput,
+		ec.unmarshalInputFgaWriteTuplesInput,
 		ec.unmarshalInputForgotPasswordRequest,
 		ec.unmarshalInputGenerateJWTKeysRequest,
 		ec.unmarshalInputGetUserRequest,
 		ec.unmarshalInputInviteMemberRequest,
 		ec.unmarshalInputListAuditLogRequest,
+		ec.unmarshalInputListPermissionsInput,
 		ec.unmarshalInputListWebhookLogRequest,
 		ec.unmarshalInputLoginRequest,
 		ec.unmarshalInputMagicLinkLoginRequest,
@@ -2970,8 +2721,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputOAuthRevokeRequest,
 		ec.unmarshalInputPaginatedRequest,
 		ec.unmarshalInputPaginationRequest,
-		ec.unmarshalInputPermissionInput,
-		ec.unmarshalInputPolicyTargetInput,
+		ec.unmarshalInputPermissionCheckInput,
 		ec.unmarshalInputResendOTPRequest,
 		ec.unmarshalInputResendVerifyEmailRequest,
 		ec.unmarshalInputResetPasswordRequest,
@@ -2981,11 +2731,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputUpdateAccessRequest,
 		ec.unmarshalInputUpdateEmailTemplateRequest,
 		ec.unmarshalInputUpdateEnvRequest,
-		ec.unmarshalInputUpdatePermissionInput,
-		ec.unmarshalInputUpdatePolicyInput,
 		ec.unmarshalInputUpdateProfileRequest,
-		ec.unmarshalInputUpdateResourceInput,
-		ec.unmarshalInputUpdateScopeInput,
 		ec.unmarshalInputUpdateUserRequest,
 		ec.unmarshalInputUpdateWebhookRequest,
 		ec.unmarshalInputValidateJWTTokenRequest,
@@ -3127,6 +2873,15 @@ type Meta {
   is_phone_verification_enabled: Boolean!
 }
 
+# AdminMeta is admin-only configuration metadata exposed via the _admin_meta
+# query — the non-deprecated way for the dashboard to read configured roles
+# (the deprecated _env used to carry these).
+type AdminMeta {
+  roles: [String!]!
+  default_roles: [String!]!
+  protected_roles: [String!]!
+}
+
 type User {
   id: ID!
   # email or phone_number is always present
@@ -3200,6 +2955,71 @@ type AuthResponse {
 
 type Response {
   message: String!
+}
+
+# ---- Fine-grained authorization (FGA) types ----
+
+# FgaTuple is a single relationship: user is related to object via relation.
+# Identifiers follow OpenFGA conventions: user "user:alice" (or userset
+# "role:admin#assignee"), object "document:1".
+type FgaTuple {
+  user: String!
+  relation: String!
+  object: String!
+}
+
+# FgaModel describes an authorization model (id + DSL form).
+type FgaModel {
+  id: String!
+  dsl: String!
+}
+
+# FgaTuples is a page of tuples plus a continuation token (empty when exhausted).
+type FgaTuples {
+  tuples: [FgaTuple!]!
+  continuation_token: String
+}
+
+# PermissionCheckResult is the outcome of one permission check, echoing the
+# checked pair so batch results are self-describing (and positionally aligned).
+type PermissionCheckResult {
+  relation: String!
+  object: String!
+  allowed: Boolean!
+}
+
+# CheckPermissionsResponse carries one result per supplied check, in order.
+type CheckPermissionsResponse {
+  results: [PermissionCheckResult!]!
+}
+
+# Permission is one (object, relation) pair the subject holds: "subject has
+# ` + "`" + `relation` + "`" + ` on ` + "`" + `object` + "`" + `".
+type Permission {
+  object: String!
+  relation: String!
+}
+
+# ListPermissionsResponse lists what the subject can access. ` + "`" + `objects` + "`" + ` is the
+# distinct fully-qualified object ids; ` + "`" + `permissions` + "`" + ` carries the (object,
+# relation) detail — relevant when no relation filter was supplied. ` + "`" + `truncated` + "`" + `
+# is true when the result was capped (1000 entries) and more permissions exist.
+type ListPermissionsResponse {
+  objects: [String!]!
+  permissions: [Permission!]!
+  truncated: Boolean!
+}
+
+# FgaListUsersResponse lists fully-qualified user ids (e.g. "user:alice") that
+# have the queried relation on an object. Admin-only (reveals the access graph).
+type FgaListUsersResponse {
+  users: [String!]!
+}
+
+# FgaExpandResponse is the OpenFGA relationship/userset tree for a (relation,
+# object), serialized as a JSON string. Admin-only (reveals the access graph).
+type FgaExpandResponse {
+  tree: String!
 }
 
 type ForgotPasswordResponse {
@@ -3602,10 +3422,10 @@ input SessionQueryRequest {
   # when a session already exists and the login UI auto-detects it,
   # passing state ensures the authorization code state is properly stored
   state: String
-  # required_permissions is an optional list of resource:scope pairs that
-  # must all be granted to the principal. If any is denied the query returns
-  # unauthorized (AND semantics, matching the roles filter).
-  required_permissions: [PermissionInput!]
+  # required_relations gates the session on fine-grained authorization.
+  # Each (relation, object) is checked against the authenticated caller with
+  # AND semantics, fail-closed. Requires fine-grained authorization enabled (--fga-store).
+  required_relations: [FgaRelationInput!]
 }
 
 input PaginationRequest {
@@ -3634,13 +3454,17 @@ input ValidateJWTTokenRequest {
   token_type: String!
   token: String!
   roles: [String!]
-  required_permissions: [PermissionInput!]
+  # required_relations gates validation on fine-grained authorization.
+  # AND semantics, fail-closed. Requires fine-grained authorization enabled (--fga-store).
+  required_relations: [FgaRelationInput!]
 }
 
 input ValidateSessionRequest {
   cookie: String!
   roles: [String!]
-  required_permissions: [PermissionInput!]
+  # required_relations gates validation on fine-grained authorization.
+  # AND semantics, fail-closed. Requires fine-grained authorization enabled (--fga-store).
+  required_relations: [FgaRelationInput!]
 }
 
 input GenerateJWTKeysRequest {
@@ -3739,143 +3563,88 @@ input GetUserRequest {
   email: String
 }
 
-type AuthzResource {
-  id: ID!
-  name: String!
-  description: String
-  created_at: Int64!
-  updated_at: Int64!
+# ---- Fine-grained authorization (FGA) inputs ----
+
+# FgaTupleInput is a single relationship tuple supplied by an admin for write /
+# delete / read operations.
+input FgaTupleInput {
+  user: String!
+  relation: String!
+  object: String!
 }
 
-type AuthzResources {
-  pagination: Pagination!
-  resources: [AuthzResource!]!
+# FgaWriteModelInput installs a new authorization model from its DSL form.
+input FgaWriteModelInput {
+  dsl: String!
 }
 
-type AuthzScope {
-  id: ID!
-  name: String!
-  description: String
-  created_at: Int64!
-  updated_at: Int64!
+# FgaWriteTuplesInput is used for both writing and deleting tuples.
+input FgaWriteTuplesInput {
+  tuples: [FgaTupleInput!]!
 }
 
-type AuthzScopes {
-  pagination: Pagination!
-  scopes: [AuthzScope!]!
+# FgaReadTuplesInput is a paginated, optionally-filtered tuple read. Any empty
+# field acts as a wildcard for that position.
+input FgaReadTuplesInput {
+  user: String
+  relation: String
+  object: String
+  page_size: Int64
+  continuation_token: String
 }
 
-type AuthzPolicyTarget {
-  id: ID!
-  target_type: String!
-  target_value: String!
+# PermissionCheckInput is one permission to evaluate: "does the subject have
+# <relation> on <object>?". Contextual tuples are evaluated for this check only
+# and never persisted.
+input PermissionCheckInput {
+  relation: String!
+  object: String!
+  contextual_tuples: [FgaTupleInput!]
 }
 
-type AuthzPolicy {
-  id: ID!
-  name: String!
-  description: String
-  type: String!
-  logic: String!
-  decision_strategy: String!
-  targets: [AuthzPolicyTarget!]!
-  created_at: Int64!
-  updated_at: Int64!
+# CheckPermissionsInput evaluates one or more permission checks in a single
+# call. The subject defaults to the authenticated caller (JWT / session
+# cookie). The optional ` + "`" + `user` + "`" + ` ("type:id", or a bare id treated as
+# "user:<id>") is honored only when the caller is a super-admin OR it equals
+# the caller's own token subject; anything else is rejected — never silently
+# ignored.
+input CheckPermissionsInput {
+  checks: [PermissionCheckInput!]!
+  user: String
 }
 
-type AuthzPolicies {
-  pagination: Pagination!
-  policies: [AuthzPolicy!]!
+# ListPermissionsInput enumerates what the subject can access. With both
+# ` + "`" + `relation` + "`" + ` and ` + "`" + `object_type` + "`" + ` set it answers "which <object_type>s can I
+# <relation>?". Either or both filters may be omitted: every matching
+# (type, relation) pair of the active model is then enumerated, so an empty
+# input returns ALL permissions the subject holds. Subject resolution follows
+# the same rules as CheckPermissionsInput.user.
+input ListPermissionsInput {
+  relation: String
+  object_type: String
+  user: String
 }
 
-type AuthzPermission {
-  id: ID!
-  name: String!
-  description: String
-  resource: AuthzResource!
-  scopes: [AuthzScope!]!
-  policies: [AuthzPolicy!]!
-  decision_strategy: String!
-  created_at: Int64!
-  updated_at: Int64!
+# FgaListUsersInput asks "which users of user_type have relation on object?".
+# Admin-only (reveals the access graph).
+input FgaListUsersInput {
+  object: String!
+  relation: String!
+  user_type: String!
 }
 
-type AuthzPermissions {
-  pagination: Pagination!
-  permissions: [AuthzPermission!]!
+# FgaExpandInput asks for the relationship/userset tree of (relation, object).
+# Admin-only (reveals the access graph).
+input FgaExpandInput {
+  relation: String!
+  object: String!
 }
 
-type Permission {
-  resource: String!
-  scope: String!
-}
-
-input AddResourceInput {
-  name: String!
-  description: String
-}
-
-input UpdateResourceInput {
-  id: ID!
-  name: String
-  description: String
-}
-
-input AddScopeInput {
-  name: String!
-  description: String
-}
-
-input UpdateScopeInput {
-  id: ID!
-  name: String
-  description: String
-}
-
-input PolicyTargetInput {
-  target_type: String!
-  target_value: String!
-}
-
-input AddPolicyInput {
-  name: String!
-  description: String
-  type: String!
-  logic: String
-  decision_strategy: String
-  targets: [PolicyTargetInput!]!
-}
-
-input UpdatePolicyInput {
-  id: ID!
-  name: String
-  description: String
-  logic: String
-  decision_strategy: String
-  targets: [PolicyTargetInput!]
-}
-
-input AddPermissionInput {
-  name: String!
-  description: String
-  resource_id: ID!
-  scope_ids: [ID!]!
-  policy_ids: [ID!]!
-  decision_strategy: String
-}
-
-input UpdatePermissionInput {
-  id: ID!
-  name: String
-  description: String
-  scope_ids: [ID!]
-  policy_ids: [ID!]
-  decision_strategy: String
-}
-
-input PermissionInput {
-  resource: String!
-  scope: String!
+# FgaRelationInput is a (relation, object) requirement evaluated against the
+# authenticated caller during session/validate. AND semantics, fail-closed.
+input FgaRelationInput {
+  relation: String!
+  object: String!
 }
 
 type Mutation {
@@ -3917,22 +3686,11 @@ type Mutation {
   _add_email_template(params: AddEmailTemplateRequest!): Response!
   _update_email_template(params: UpdateEmailTemplateRequest!): Response!
   _delete_email_template(params: DeleteEmailTemplateRequest!): Response!
-  # Authorization: Resources
-  _authz_add_resource(params: AddResourceInput!): AuthzResource!
-  _authz_update_resource(params: UpdateResourceInput!): AuthzResource!
-  _authz_delete_resource(id: ID!): Response!
-  # Authorization: Scopes
-  _authz_add_scope(params: AddScopeInput!): AuthzScope!
-  _authz_update_scope(params: UpdateScopeInput!): AuthzScope!
-  _authz_delete_scope(id: ID!): Response!
-  # Authorization: Policies
-  _authz_add_policy(params: AddPolicyInput!): AuthzPolicy!
-  _authz_update_policy(params: UpdatePolicyInput!): AuthzPolicy!
-  _authz_delete_policy(id: ID!): Response!
-  # Authorization: Permissions
-  _authz_add_permission(params: AddPermissionInput!): AuthzPermission!
-  _authz_update_permission(params: UpdatePermissionInput!): AuthzPermission!
-  _authz_delete_permission(id: ID!): Response!
+  # FGA admin mutations (super-admin only)
+  _fga_write_model(params: FgaWriteModelInput!): FgaModel!
+  _fga_write_tuples(params: FgaWriteTuplesInput!): Response!
+  _fga_delete_tuples(params: FgaWriteTuplesInput!): Response!
+  _fga_reset: Response!
 }
 
 type Query {
@@ -3946,6 +3704,9 @@ type Query {
   _user(params: GetUserRequest!): User!
   _verification_requests(params: PaginatedRequest): VerificationRequests!
   _admin_session: Response!
+  # Admin-only configuration metadata (e.g. configured roles). Non-deprecated
+  # replacement for the bits of _env the dashboard needs.
+  _admin_meta: AdminMeta!
   # Deprecated from v2.0.0
   _env: Env!
   _webhook(params: WebhookRequest!): Webhook!
@@ -3953,13 +3714,14 @@ type Query {
   _webhook_logs(params: ListWebhookLogRequest): WebhookLogs!
   _email_templates(params: PaginatedRequest): EmailTemplates!
   _audit_logs(params: ListAuditLogRequest): AuditLogs!
-  # Authorization: Admin queries
-  _authz_resources(params: PaginatedRequest): AuthzResources!
-  _authz_scopes(params: PaginatedRequest): AuthzScopes!
-  _authz_policies(params: PaginatedRequest): AuthzPolicies!
-  _authz_permissions(params: PaginatedRequest): AuthzPermissions!
-  # Authorization: User-facing queries
-  permissions: [Permission!]!
+  # FGA admin queries (super-admin only)
+  _fga_get_model: FgaModel!
+  _fga_read_tuples(params: FgaReadTuplesInput!): FgaTuples!
+  _fga_list_users(params: FgaListUsersInput!): FgaListUsersResponse!
+  _fga_expand(params: FgaExpandInput!): FgaExpandResponse!
+  # FGA runtime queries (authenticated caller; principal pinned server-side)
+  check_permissions(params: CheckPermissionsInput!): CheckPermissionsResponse!
+  list_permissions(params: ListPermissionsInput!): ListPermissionsResponse!
 }
 `, BuiltIn: false},
 }
@@ -4081,342 +3843,6 @@ func (ec *executionContext) field_Mutation__admin_signup_argsParams(
 	return zeroVal, nil
 }
 
-func (ec *executionContext) field_Mutation__authz_add_permission_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := ec.field_Mutation__authz_add_permission_argsParams(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["params"] = arg0
-	return args, nil
-}
-func (ec *executionContext) field_Mutation__authz_add_permission_argsParams(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (model.AddPermissionInput, error) {
-	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal model.AddPermissionInput
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalNAddPermissionInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAddPermissionInput(ctx, tmp)
-	}
-
-	var zeroVal model.AddPermissionInput
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation__authz_add_policy_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := ec.field_Mutation__authz_add_policy_argsParams(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["params"] = arg0
-	return args, nil
-}
-func (ec *executionContext) field_Mutation__authz_add_policy_argsParams(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (model.AddPolicyInput, error) {
-	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal model.AddPolicyInput
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalNAddPolicyInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAddPolicyInput(ctx, tmp)
-	}
-
-	var zeroVal model.AddPolicyInput
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation__authz_add_resource_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := ec.field_Mutation__authz_add_resource_argsParams(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["params"] = arg0
-	return args, nil
-}
-func (ec *executionContext) field_Mutation__authz_add_resource_argsParams(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (model.AddResourceInput, error) {
-	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal model.AddResourceInput
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalNAddResourceInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAddResourceInput(ctx, tmp)
-	}
-
-	var zeroVal model.AddResourceInput
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation__authz_add_scope_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := ec.field_Mutation__authz_add_scope_argsParams(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["params"] = arg0
-	return args, nil
-}
-func (ec *executionContext) field_Mutation__authz_add_scope_argsParams(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (model.AddScopeInput, error) {
-	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal model.AddScopeInput
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalNAddScopeInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAddScopeInput(ctx, tmp)
-	}
-
-	var zeroVal model.AddScopeInput
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation__authz_delete_permission_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := ec.field_Mutation__authz_delete_permission_argsID(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["id"] = arg0
-	return args, nil
-}
-func (ec *executionContext) field_Mutation__authz_delete_permission_argsID(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["id"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-	if tmp, ok := rawArgs["id"]; ok {
-		return ec.unmarshalNID2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation__authz_delete_policy_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := ec.field_Mutation__authz_delete_policy_argsID(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["id"] = arg0
-	return args, nil
-}
-func (ec *executionContext) field_Mutation__authz_delete_policy_argsID(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["id"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-	if tmp, ok := rawArgs["id"]; ok {
-		return ec.unmarshalNID2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation__authz_delete_resource_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := ec.field_Mutation__authz_delete_resource_argsID(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["id"] = arg0
-	return args, nil
-}
-func (ec *executionContext) field_Mutation__authz_delete_resource_argsID(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["id"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-	if tmp, ok := rawArgs["id"]; ok {
-		return ec.unmarshalNID2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation__authz_delete_scope_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := ec.field_Mutation__authz_delete_scope_argsID(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["id"] = arg0
-	return args, nil
-}
-func (ec *executionContext) field_Mutation__authz_delete_scope_argsID(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	if _, ok := rawArgs["id"]; !ok {
-		var zeroVal string
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-	if tmp, ok := rawArgs["id"]; ok {
-		return ec.unmarshalNID2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation__authz_update_permission_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := ec.field_Mutation__authz_update_permission_argsParams(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["params"] = arg0
-	return args, nil
-}
-func (ec *executionContext) field_Mutation__authz_update_permission_argsParams(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (model.UpdatePermissionInput, error) {
-	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal model.UpdatePermissionInput
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalNUpdatePermissionInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdatePermissionInput(ctx, tmp)
-	}
-
-	var zeroVal model.UpdatePermissionInput
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation__authz_update_policy_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := ec.field_Mutation__authz_update_policy_argsParams(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["params"] = arg0
-	return args, nil
-}
-func (ec *executionContext) field_Mutation__authz_update_policy_argsParams(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (model.UpdatePolicyInput, error) {
-	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal model.UpdatePolicyInput
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalNUpdatePolicyInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdatePolicyInput(ctx, tmp)
-	}
-
-	var zeroVal model.UpdatePolicyInput
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation__authz_update_resource_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := ec.field_Mutation__authz_update_resource_argsParams(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["params"] = arg0
-	return args, nil
-}
-func (ec *executionContext) field_Mutation__authz_update_resource_argsParams(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (model.UpdateResourceInput, error) {
-	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal model.UpdateResourceInput
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalNUpdateResourceInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateResourceInput(ctx, tmp)
-	}
-
-	var zeroVal model.UpdateResourceInput
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation__authz_update_scope_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := ec.field_Mutation__authz_update_scope_argsParams(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["params"] = arg0
-	return args, nil
-}
-func (ec *executionContext) field_Mutation__authz_update_scope_argsParams(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (model.UpdateScopeInput, error) {
-	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal model.UpdateScopeInput
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalNUpdateScopeInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateScopeInput(ctx, tmp)
-	}
-
-	var zeroVal model.UpdateScopeInput
-	return zeroVal, nil
-}
-
 func (ec *executionContext) field_Mutation__delete_email_template_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -4526,6 +3952,90 @@ func (ec *executionContext) field_Mutation__enable_access_argsParam(
 	}
 
 	var zeroVal model.UpdateAccessRequest
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation__fga_delete_tuples_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation__fga_delete_tuples_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation__fga_delete_tuples_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.FgaWriteTuplesInput, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.FgaWriteTuplesInput
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNFgaWriteTuplesInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaWriteTuplesInput(ctx, tmp)
+	}
+
+	var zeroVal model.FgaWriteTuplesInput
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation__fga_write_model_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation__fga_write_model_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation__fga_write_model_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.FgaWriteModelInput, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.FgaWriteModelInput
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNFgaWriteModelInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaWriteModelInput(ctx, tmp)
+	}
+
+	var zeroVal model.FgaWriteModelInput
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation__fga_write_tuples_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation__fga_write_tuples_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation__fga_write_tuples_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.FgaWriteTuplesInput, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.FgaWriteTuplesInput
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNFgaWriteTuplesInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaWriteTuplesInput(ctx, tmp)
+	}
+
+	var zeroVal model.FgaWriteTuplesInput
 	return zeroVal, nil
 }
 
@@ -5173,118 +4683,6 @@ func (ec *executionContext) field_Query__audit_logs_argsParams(
 	return zeroVal, nil
 }
 
-func (ec *executionContext) field_Query__authz_permissions_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := ec.field_Query__authz_permissions_argsParams(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["params"] = arg0
-	return args, nil
-}
-func (ec *executionContext) field_Query__authz_permissions_argsParams(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (*model.PaginatedRequest, error) {
-	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal *model.PaginatedRequest
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalOPaginatedRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginatedRequest(ctx, tmp)
-	}
-
-	var zeroVal *model.PaginatedRequest
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Query__authz_policies_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := ec.field_Query__authz_policies_argsParams(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["params"] = arg0
-	return args, nil
-}
-func (ec *executionContext) field_Query__authz_policies_argsParams(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (*model.PaginatedRequest, error) {
-	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal *model.PaginatedRequest
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalOPaginatedRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginatedRequest(ctx, tmp)
-	}
-
-	var zeroVal *model.PaginatedRequest
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Query__authz_resources_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := ec.field_Query__authz_resources_argsParams(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["params"] = arg0
-	return args, nil
-}
-func (ec *executionContext) field_Query__authz_resources_argsParams(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (*model.PaginatedRequest, error) {
-	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal *model.PaginatedRequest
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalOPaginatedRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginatedRequest(ctx, tmp)
-	}
-
-	var zeroVal *model.PaginatedRequest
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Query__authz_scopes_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := ec.field_Query__authz_scopes_argsParams(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["params"] = arg0
-	return args, nil
-}
-func (ec *executionContext) field_Query__authz_scopes_argsParams(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (*model.PaginatedRequest, error) {
-	if _, ok := rawArgs["params"]; !ok {
-		var zeroVal *model.PaginatedRequest
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-	if tmp, ok := rawArgs["params"]; ok {
-		return ec.unmarshalOPaginatedRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPaginatedRequest(ctx, tmp)
-	}
-
-	var zeroVal *model.PaginatedRequest
-	return zeroVal, nil
-}
-
 func (ec *executionContext) field_Query__email_templates_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -5310,6 +4708,90 @@ func (ec *executionContext) field_Query__email_templates_argsParams(
 	}
 
 	var zeroVal *model.PaginatedRequest
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query__fga_expand_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query__fga_expand_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query__fga_expand_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.FgaExpandInput, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.FgaExpandInput
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNFgaExpandInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaExpandInput(ctx, tmp)
+	}
+
+	var zeroVal model.FgaExpandInput
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query__fga_list_users_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query__fga_list_users_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query__fga_list_users_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.FgaListUsersInput, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.FgaListUsersInput
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNFgaListUsersInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaListUsersInput(ctx, tmp)
+	}
+
+	var zeroVal model.FgaListUsersInput
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query__fga_read_tuples_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query__fga_read_tuples_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query__fga_read_tuples_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.FgaReadTuplesInput, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.FgaReadTuplesInput
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNFgaReadTuplesInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaReadTuplesInput(ctx, tmp)
+	}
+
+	var zeroVal model.FgaReadTuplesInput
 	return zeroVal, nil
 }
 
@@ -5478,6 +4960,62 @@ func (ec *executionContext) field_Query__webhooks_argsParams(
 	}
 
 	var zeroVal *model.PaginatedRequest
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_check_permissions_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query_check_permissions_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query_check_permissions_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.CheckPermissionsInput, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.CheckPermissionsInput
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNCheckPermissionsInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐCheckPermissionsInput(ctx, tmp)
+	}
+
+	var zeroVal model.CheckPermissionsInput
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_list_permissions_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query_list_permissions_argsParams(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["params"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query_list_permissions_argsParams(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.ListPermissionsInput, error) {
+	if _, ok := rawArgs["params"]; !ok {
+		var zeroVal model.ListPermissionsInput
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
+	if tmp, ok := rawArgs["params"]; ok {
+		return ec.unmarshalNListPermissionsInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐListPermissionsInput(ctx, tmp)
+	}
+
+	var zeroVal model.ListPermissionsInput
 	return zeroVal, nil
 }
 
@@ -5684,6 +5222,138 @@ func (ec *executionContext) field___Type_fields_argsIncludeDeprecated(
 // endregion ************************** directives.gotpl **************************
 
 // region    **************************** field.gotpl *****************************
+
+func (ec *executionContext) _AdminMeta_roles(ctx context.Context, field graphql.CollectedField, obj *model.AdminMeta) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AdminMeta_roles(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Roles, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AdminMeta_roles(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AdminMeta",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AdminMeta_default_roles(ctx context.Context, field graphql.CollectedField, obj *model.AdminMeta) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AdminMeta_default_roles(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DefaultRoles, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AdminMeta_default_roles(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AdminMeta",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AdminMeta_protected_roles(ctx context.Context, field graphql.CollectedField, obj *model.AdminMeta) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AdminMeta_protected_roles(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ProtectedRoles, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AdminMeta_protected_roles(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AdminMeta",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
 
 func (ec *executionContext) _AuditLog_id(ctx context.Context, field graphql.CollectedField, obj *model.AuditLog) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_AuditLog_id(ctx, field)
@@ -6798,8 +6468,8 @@ func (ec *executionContext) fieldContext_AuthResponse_authenticator_recovery_cod
 	return fc, nil
 }
 
-func (ec *executionContext) _AuthzPermission_id(ctx context.Context, field graphql.CollectedField, obj *model.AuthzPermission) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthzPermission_id(ctx, field)
+func (ec *executionContext) _CheckPermissionsResponse_results(ctx context.Context, field graphql.CollectedField, obj *model.CheckPermissionsResponse) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_CheckPermissionsResponse_results(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -6812,7 +6482,7 @@ func (ec *executionContext) _AuthzPermission_id(ctx context.Context, field graph
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.ID, nil
+		return obj.Results, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -6824,1835 +6494,27 @@ func (ec *executionContext) _AuthzPermission_id(ctx context.Context, field graph
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.([]*model.PermissionCheckResult)
 	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
+	return ec.marshalNPermissionCheckResult2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPermissionCheckResultᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_AuthzPermission_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_CheckPermissionsResponse_results(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "AuthzPermission",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AuthzPermission_name(ctx context.Context, field graphql.CollectedField, obj *model.AuthzPermission) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthzPermission_name(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Name, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AuthzPermission_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuthzPermission",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AuthzPermission_description(ctx context.Context, field graphql.CollectedField, obj *model.AuthzPermission) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthzPermission_description(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Description, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*string)
-	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AuthzPermission_description(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuthzPermission",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AuthzPermission_resource(ctx context.Context, field graphql.CollectedField, obj *model.AuthzPermission) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthzPermission_resource(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Resource, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.AuthzResource)
-	fc.Result = res
-	return ec.marshalNAuthzResource2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzResource(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AuthzPermission_resource(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuthzPermission",
+		Object:     "CheckPermissionsResponse",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "id":
-				return ec.fieldContext_AuthzResource_id(ctx, field)
-			case "name":
-				return ec.fieldContext_AuthzResource_name(ctx, field)
-			case "description":
-				return ec.fieldContext_AuthzResource_description(ctx, field)
-			case "created_at":
-				return ec.fieldContext_AuthzResource_created_at(ctx, field)
-			case "updated_at":
-				return ec.fieldContext_AuthzResource_updated_at(ctx, field)
+			case "relation":
+				return ec.fieldContext_PermissionCheckResult_relation(ctx, field)
+			case "object":
+				return ec.fieldContext_PermissionCheckResult_object(ctx, field)
+			case "allowed":
+				return ec.fieldContext_PermissionCheckResult_allowed(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type AuthzResource", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AuthzPermission_scopes(ctx context.Context, field graphql.CollectedField, obj *model.AuthzPermission) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthzPermission_scopes(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Scopes, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]*model.AuthzScope)
-	fc.Result = res
-	return ec.marshalNAuthzScope2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzScopeᚄ(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AuthzPermission_scopes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuthzPermission",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_AuthzScope_id(ctx, field)
-			case "name":
-				return ec.fieldContext_AuthzScope_name(ctx, field)
-			case "description":
-				return ec.fieldContext_AuthzScope_description(ctx, field)
-			case "created_at":
-				return ec.fieldContext_AuthzScope_created_at(ctx, field)
-			case "updated_at":
-				return ec.fieldContext_AuthzScope_updated_at(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type AuthzScope", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AuthzPermission_policies(ctx context.Context, field graphql.CollectedField, obj *model.AuthzPermission) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthzPermission_policies(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Policies, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]*model.AuthzPolicy)
-	fc.Result = res
-	return ec.marshalNAuthzPolicy2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzPolicyᚄ(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AuthzPermission_policies(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuthzPermission",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_AuthzPolicy_id(ctx, field)
-			case "name":
-				return ec.fieldContext_AuthzPolicy_name(ctx, field)
-			case "description":
-				return ec.fieldContext_AuthzPolicy_description(ctx, field)
-			case "type":
-				return ec.fieldContext_AuthzPolicy_type(ctx, field)
-			case "logic":
-				return ec.fieldContext_AuthzPolicy_logic(ctx, field)
-			case "decision_strategy":
-				return ec.fieldContext_AuthzPolicy_decision_strategy(ctx, field)
-			case "targets":
-				return ec.fieldContext_AuthzPolicy_targets(ctx, field)
-			case "created_at":
-				return ec.fieldContext_AuthzPolicy_created_at(ctx, field)
-			case "updated_at":
-				return ec.fieldContext_AuthzPolicy_updated_at(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type AuthzPolicy", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AuthzPermission_decision_strategy(ctx context.Context, field graphql.CollectedField, obj *model.AuthzPermission) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthzPermission_decision_strategy(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.DecisionStrategy, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AuthzPermission_decision_strategy(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuthzPermission",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AuthzPermission_created_at(ctx context.Context, field graphql.CollectedField, obj *model.AuthzPermission) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthzPermission_created_at(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.CreatedAt, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(int64)
-	fc.Result = res
-	return ec.marshalNInt642int64(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AuthzPermission_created_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuthzPermission",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int64 does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AuthzPermission_updated_at(ctx context.Context, field graphql.CollectedField, obj *model.AuthzPermission) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthzPermission_updated_at(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.UpdatedAt, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(int64)
-	fc.Result = res
-	return ec.marshalNInt642int64(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AuthzPermission_updated_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuthzPermission",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int64 does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AuthzPermissions_pagination(ctx context.Context, field graphql.CollectedField, obj *model.AuthzPermissions) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthzPermissions_pagination(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Pagination, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.Pagination)
-	fc.Result = res
-	return ec.marshalNPagination2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPagination(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AuthzPermissions_pagination(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuthzPermissions",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "limit":
-				return ec.fieldContext_Pagination_limit(ctx, field)
-			case "page":
-				return ec.fieldContext_Pagination_page(ctx, field)
-			case "offset":
-				return ec.fieldContext_Pagination_offset(ctx, field)
-			case "total":
-				return ec.fieldContext_Pagination_total(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Pagination", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AuthzPermissions_permissions(ctx context.Context, field graphql.CollectedField, obj *model.AuthzPermissions) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthzPermissions_permissions(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Permissions, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]*model.AuthzPermission)
-	fc.Result = res
-	return ec.marshalNAuthzPermission2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzPermissionᚄ(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AuthzPermissions_permissions(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuthzPermissions",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_AuthzPermission_id(ctx, field)
-			case "name":
-				return ec.fieldContext_AuthzPermission_name(ctx, field)
-			case "description":
-				return ec.fieldContext_AuthzPermission_description(ctx, field)
-			case "resource":
-				return ec.fieldContext_AuthzPermission_resource(ctx, field)
-			case "scopes":
-				return ec.fieldContext_AuthzPermission_scopes(ctx, field)
-			case "policies":
-				return ec.fieldContext_AuthzPermission_policies(ctx, field)
-			case "decision_strategy":
-				return ec.fieldContext_AuthzPermission_decision_strategy(ctx, field)
-			case "created_at":
-				return ec.fieldContext_AuthzPermission_created_at(ctx, field)
-			case "updated_at":
-				return ec.fieldContext_AuthzPermission_updated_at(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type AuthzPermission", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AuthzPolicies_pagination(ctx context.Context, field graphql.CollectedField, obj *model.AuthzPolicies) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthzPolicies_pagination(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Pagination, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.Pagination)
-	fc.Result = res
-	return ec.marshalNPagination2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPagination(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AuthzPolicies_pagination(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuthzPolicies",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "limit":
-				return ec.fieldContext_Pagination_limit(ctx, field)
-			case "page":
-				return ec.fieldContext_Pagination_page(ctx, field)
-			case "offset":
-				return ec.fieldContext_Pagination_offset(ctx, field)
-			case "total":
-				return ec.fieldContext_Pagination_total(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Pagination", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AuthzPolicies_policies(ctx context.Context, field graphql.CollectedField, obj *model.AuthzPolicies) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthzPolicies_policies(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Policies, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]*model.AuthzPolicy)
-	fc.Result = res
-	return ec.marshalNAuthzPolicy2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzPolicyᚄ(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AuthzPolicies_policies(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuthzPolicies",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_AuthzPolicy_id(ctx, field)
-			case "name":
-				return ec.fieldContext_AuthzPolicy_name(ctx, field)
-			case "description":
-				return ec.fieldContext_AuthzPolicy_description(ctx, field)
-			case "type":
-				return ec.fieldContext_AuthzPolicy_type(ctx, field)
-			case "logic":
-				return ec.fieldContext_AuthzPolicy_logic(ctx, field)
-			case "decision_strategy":
-				return ec.fieldContext_AuthzPolicy_decision_strategy(ctx, field)
-			case "targets":
-				return ec.fieldContext_AuthzPolicy_targets(ctx, field)
-			case "created_at":
-				return ec.fieldContext_AuthzPolicy_created_at(ctx, field)
-			case "updated_at":
-				return ec.fieldContext_AuthzPolicy_updated_at(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type AuthzPolicy", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AuthzPolicy_id(ctx context.Context, field graphql.CollectedField, obj *model.AuthzPolicy) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthzPolicy_id(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AuthzPolicy_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuthzPolicy",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AuthzPolicy_name(ctx context.Context, field graphql.CollectedField, obj *model.AuthzPolicy) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthzPolicy_name(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Name, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AuthzPolicy_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuthzPolicy",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AuthzPolicy_description(ctx context.Context, field graphql.CollectedField, obj *model.AuthzPolicy) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthzPolicy_description(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Description, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*string)
-	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AuthzPolicy_description(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuthzPolicy",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AuthzPolicy_type(ctx context.Context, field graphql.CollectedField, obj *model.AuthzPolicy) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthzPolicy_type(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Type, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AuthzPolicy_type(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuthzPolicy",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AuthzPolicy_logic(ctx context.Context, field graphql.CollectedField, obj *model.AuthzPolicy) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthzPolicy_logic(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Logic, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AuthzPolicy_logic(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuthzPolicy",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AuthzPolicy_decision_strategy(ctx context.Context, field graphql.CollectedField, obj *model.AuthzPolicy) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthzPolicy_decision_strategy(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.DecisionStrategy, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AuthzPolicy_decision_strategy(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuthzPolicy",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AuthzPolicy_targets(ctx context.Context, field graphql.CollectedField, obj *model.AuthzPolicy) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthzPolicy_targets(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Targets, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]*model.AuthzPolicyTarget)
-	fc.Result = res
-	return ec.marshalNAuthzPolicyTarget2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzPolicyTargetᚄ(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AuthzPolicy_targets(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuthzPolicy",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_AuthzPolicyTarget_id(ctx, field)
-			case "target_type":
-				return ec.fieldContext_AuthzPolicyTarget_target_type(ctx, field)
-			case "target_value":
-				return ec.fieldContext_AuthzPolicyTarget_target_value(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type AuthzPolicyTarget", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AuthzPolicy_created_at(ctx context.Context, field graphql.CollectedField, obj *model.AuthzPolicy) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthzPolicy_created_at(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.CreatedAt, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(int64)
-	fc.Result = res
-	return ec.marshalNInt642int64(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AuthzPolicy_created_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuthzPolicy",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int64 does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AuthzPolicy_updated_at(ctx context.Context, field graphql.CollectedField, obj *model.AuthzPolicy) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthzPolicy_updated_at(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.UpdatedAt, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(int64)
-	fc.Result = res
-	return ec.marshalNInt642int64(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AuthzPolicy_updated_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuthzPolicy",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int64 does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AuthzPolicyTarget_id(ctx context.Context, field graphql.CollectedField, obj *model.AuthzPolicyTarget) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthzPolicyTarget_id(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AuthzPolicyTarget_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuthzPolicyTarget",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AuthzPolicyTarget_target_type(ctx context.Context, field graphql.CollectedField, obj *model.AuthzPolicyTarget) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthzPolicyTarget_target_type(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.TargetType, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AuthzPolicyTarget_target_type(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuthzPolicyTarget",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AuthzPolicyTarget_target_value(ctx context.Context, field graphql.CollectedField, obj *model.AuthzPolicyTarget) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthzPolicyTarget_target_value(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.TargetValue, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AuthzPolicyTarget_target_value(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuthzPolicyTarget",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AuthzResource_id(ctx context.Context, field graphql.CollectedField, obj *model.AuthzResource) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthzResource_id(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AuthzResource_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuthzResource",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AuthzResource_name(ctx context.Context, field graphql.CollectedField, obj *model.AuthzResource) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthzResource_name(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Name, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AuthzResource_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuthzResource",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AuthzResource_description(ctx context.Context, field graphql.CollectedField, obj *model.AuthzResource) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthzResource_description(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Description, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*string)
-	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AuthzResource_description(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuthzResource",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AuthzResource_created_at(ctx context.Context, field graphql.CollectedField, obj *model.AuthzResource) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthzResource_created_at(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.CreatedAt, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(int64)
-	fc.Result = res
-	return ec.marshalNInt642int64(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AuthzResource_created_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuthzResource",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int64 does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AuthzResource_updated_at(ctx context.Context, field graphql.CollectedField, obj *model.AuthzResource) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthzResource_updated_at(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.UpdatedAt, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(int64)
-	fc.Result = res
-	return ec.marshalNInt642int64(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AuthzResource_updated_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuthzResource",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int64 does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AuthzResources_pagination(ctx context.Context, field graphql.CollectedField, obj *model.AuthzResources) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthzResources_pagination(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Pagination, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.Pagination)
-	fc.Result = res
-	return ec.marshalNPagination2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPagination(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AuthzResources_pagination(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuthzResources",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "limit":
-				return ec.fieldContext_Pagination_limit(ctx, field)
-			case "page":
-				return ec.fieldContext_Pagination_page(ctx, field)
-			case "offset":
-				return ec.fieldContext_Pagination_offset(ctx, field)
-			case "total":
-				return ec.fieldContext_Pagination_total(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Pagination", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AuthzResources_resources(ctx context.Context, field graphql.CollectedField, obj *model.AuthzResources) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthzResources_resources(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Resources, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]*model.AuthzResource)
-	fc.Result = res
-	return ec.marshalNAuthzResource2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzResourceᚄ(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AuthzResources_resources(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuthzResources",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_AuthzResource_id(ctx, field)
-			case "name":
-				return ec.fieldContext_AuthzResource_name(ctx, field)
-			case "description":
-				return ec.fieldContext_AuthzResource_description(ctx, field)
-			case "created_at":
-				return ec.fieldContext_AuthzResource_created_at(ctx, field)
-			case "updated_at":
-				return ec.fieldContext_AuthzResource_updated_at(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type AuthzResource", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AuthzScope_id(ctx context.Context, field graphql.CollectedField, obj *model.AuthzScope) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthzScope_id(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AuthzScope_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuthzScope",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AuthzScope_name(ctx context.Context, field graphql.CollectedField, obj *model.AuthzScope) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthzScope_name(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Name, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AuthzScope_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuthzScope",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AuthzScope_description(ctx context.Context, field graphql.CollectedField, obj *model.AuthzScope) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthzScope_description(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Description, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*string)
-	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AuthzScope_description(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuthzScope",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AuthzScope_created_at(ctx context.Context, field graphql.CollectedField, obj *model.AuthzScope) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthzScope_created_at(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.CreatedAt, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(int64)
-	fc.Result = res
-	return ec.marshalNInt642int64(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AuthzScope_created_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuthzScope",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int64 does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AuthzScope_updated_at(ctx context.Context, field graphql.CollectedField, obj *model.AuthzScope) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthzScope_updated_at(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.UpdatedAt, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(int64)
-	fc.Result = res
-	return ec.marshalNInt642int64(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AuthzScope_updated_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuthzScope",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int64 does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AuthzScopes_pagination(ctx context.Context, field graphql.CollectedField, obj *model.AuthzScopes) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthzScopes_pagination(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Pagination, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.Pagination)
-	fc.Result = res
-	return ec.marshalNPagination2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPagination(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AuthzScopes_pagination(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuthzScopes",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "limit":
-				return ec.fieldContext_Pagination_limit(ctx, field)
-			case "page":
-				return ec.fieldContext_Pagination_page(ctx, field)
-			case "offset":
-				return ec.fieldContext_Pagination_offset(ctx, field)
-			case "total":
-				return ec.fieldContext_Pagination_total(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Pagination", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AuthzScopes_scopes(ctx context.Context, field graphql.CollectedField, obj *model.AuthzScopes) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthzScopes_scopes(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Scopes, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]*model.AuthzScope)
-	fc.Result = res
-	return ec.marshalNAuthzScope2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzScopeᚄ(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AuthzScopes_scopes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuthzScopes",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_AuthzScope_id(ctx, field)
-			case "name":
-				return ec.fieldContext_AuthzScope_name(ctx, field)
-			case "description":
-				return ec.fieldContext_AuthzScope_description(ctx, field)
-			case "created_at":
-				return ec.fieldContext_AuthzScope_created_at(ctx, field)
-			case "updated_at":
-				return ec.fieldContext_AuthzScope_updated_at(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type AuthzScope", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type PermissionCheckResult", field.Name)
 		},
 	}
 	return fc, nil
@@ -12124,6 +9986,407 @@ func (ec *executionContext) fieldContext_Error_reason(_ context.Context, field g
 	return fc, nil
 }
 
+func (ec *executionContext) _FgaExpandResponse_tree(ctx context.Context, field graphql.CollectedField, obj *model.FgaExpandResponse) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FgaExpandResponse_tree(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Tree, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FgaExpandResponse_tree(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FgaExpandResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FgaListUsersResponse_users(ctx context.Context, field graphql.CollectedField, obj *model.FgaListUsersResponse) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FgaListUsersResponse_users(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Users, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FgaListUsersResponse_users(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FgaListUsersResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FgaModel_id(ctx context.Context, field graphql.CollectedField, obj *model.FgaModel) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FgaModel_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FgaModel_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FgaModel",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FgaModel_dsl(ctx context.Context, field graphql.CollectedField, obj *model.FgaModel) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FgaModel_dsl(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Dsl, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FgaModel_dsl(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FgaModel",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FgaTuple_user(ctx context.Context, field graphql.CollectedField, obj *model.FgaTuple) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FgaTuple_user(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.User, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FgaTuple_user(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FgaTuple",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FgaTuple_relation(ctx context.Context, field graphql.CollectedField, obj *model.FgaTuple) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FgaTuple_relation(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Relation, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FgaTuple_relation(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FgaTuple",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FgaTuple_object(ctx context.Context, field graphql.CollectedField, obj *model.FgaTuple) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FgaTuple_object(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Object, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FgaTuple_object(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FgaTuple",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FgaTuples_tuples(ctx context.Context, field graphql.CollectedField, obj *model.FgaTuples) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FgaTuples_tuples(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Tuples, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.FgaTuple)
+	fc.Result = res
+	return ec.marshalNFgaTuple2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaTupleᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FgaTuples_tuples(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FgaTuples",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "user":
+				return ec.fieldContext_FgaTuple_user(ctx, field)
+			case "relation":
+				return ec.fieldContext_FgaTuple_relation(ctx, field)
+			case "object":
+				return ec.fieldContext_FgaTuple_object(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FgaTuple", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FgaTuples_continuation_token(ctx context.Context, field graphql.CollectedField, obj *model.FgaTuples) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FgaTuples_continuation_token(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ContinuationToken, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FgaTuples_continuation_token(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FgaTuples",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _ForgotPasswordResponse_message(ctx context.Context, field graphql.CollectedField, obj *model.ForgotPasswordResponse) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_ForgotPasswordResponse_message(ctx, field)
 	if err != nil {
@@ -12457,6 +10720,144 @@ func (ec *executionContext) fieldContext_InviteMembersResponse_Users(_ context.C
 				return ec.fieldContext_User_app_data(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ListPermissionsResponse_objects(ctx context.Context, field graphql.CollectedField, obj *model.ListPermissionsResponse) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ListPermissionsResponse_objects(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Objects, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ListPermissionsResponse_objects(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ListPermissionsResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ListPermissionsResponse_permissions(ctx context.Context, field graphql.CollectedField, obj *model.ListPermissionsResponse) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ListPermissionsResponse_permissions(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Permissions, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Permission)
+	fc.Result = res
+	return ec.marshalNPermission2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPermissionᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ListPermissionsResponse_permissions(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ListPermissionsResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "object":
+				return ec.fieldContext_Permission_object(ctx, field)
+			case "relation":
+				return ec.fieldContext_Permission_relation(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Permission", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ListPermissionsResponse_truncated(ctx context.Context, field graphql.CollectedField, obj *model.ListPermissionsResponse) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ListPermissionsResponse_truncated(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Truncated, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ListPermissionsResponse_truncated(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ListPermissionsResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
 		},
 	}
 	return fc, nil
@@ -15377,8 +13778,8 @@ func (ec *executionContext) fieldContext_Mutation__delete_email_template(ctx con
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation__authz_add_resource(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation__authz_add_resource(ctx, field)
+func (ec *executionContext) _Mutation__fga_write_model(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation__fga_write_model(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -15391,7 +13792,7 @@ func (ec *executionContext) _Mutation__authz_add_resource(ctx context.Context, f
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().AuthzAddResource(rctx, fc.Args["params"].(model.AddResourceInput))
+		return ec.resolvers.Mutation().FgaWriteModel(rctx, fc.Args["params"].(model.FgaWriteModelInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -15403,12 +13804,12 @@ func (ec *executionContext) _Mutation__authz_add_resource(ctx context.Context, f
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.AuthzResource)
+	res := resTmp.(*model.FgaModel)
 	fc.Result = res
-	return ec.marshalNAuthzResource2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzResource(ctx, field.Selections, res)
+	return ec.marshalNFgaModel2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaModel(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Mutation__authz_add_resource(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation__fga_write_model(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -15417,17 +13818,11 @@ func (ec *executionContext) fieldContext_Mutation__authz_add_resource(ctx contex
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "id":
-				return ec.fieldContext_AuthzResource_id(ctx, field)
-			case "name":
-				return ec.fieldContext_AuthzResource_name(ctx, field)
-			case "description":
-				return ec.fieldContext_AuthzResource_description(ctx, field)
-			case "created_at":
-				return ec.fieldContext_AuthzResource_created_at(ctx, field)
-			case "updated_at":
-				return ec.fieldContext_AuthzResource_updated_at(ctx, field)
+				return ec.fieldContext_FgaModel_id(ctx, field)
+			case "dsl":
+				return ec.fieldContext_FgaModel_dsl(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type AuthzResource", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type FgaModel", field.Name)
 		},
 	}
 	defer func() {
@@ -15437,15 +13832,15 @@ func (ec *executionContext) fieldContext_Mutation__authz_add_resource(ctx contex
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation__authz_add_resource_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation__fga_write_model_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation__authz_update_resource(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation__authz_update_resource(ctx, field)
+func (ec *executionContext) _Mutation__fga_write_tuples(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation__fga_write_tuples(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -15458,74 +13853,7 @@ func (ec *executionContext) _Mutation__authz_update_resource(ctx context.Context
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().AuthzUpdateResource(rctx, fc.Args["params"].(model.UpdateResourceInput))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.AuthzResource)
-	fc.Result = res
-	return ec.marshalNAuthzResource2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzResource(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Mutation__authz_update_resource(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_AuthzResource_id(ctx, field)
-			case "name":
-				return ec.fieldContext_AuthzResource_name(ctx, field)
-			case "description":
-				return ec.fieldContext_AuthzResource_description(ctx, field)
-			case "created_at":
-				return ec.fieldContext_AuthzResource_created_at(ctx, field)
-			case "updated_at":
-				return ec.fieldContext_AuthzResource_updated_at(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type AuthzResource", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation__authz_update_resource_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation__authz_delete_resource(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation__authz_delete_resource(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().AuthzDeleteResource(rctx, fc.Args["id"].(string))
+		return ec.resolvers.Mutation().FgaWriteTuples(rctx, fc.Args["params"].(model.FgaWriteTuplesInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -15542,7 +13870,7 @@ func (ec *executionContext) _Mutation__authz_delete_resource(ctx context.Context
 	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Mutation__authz_delete_resource(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation__fga_write_tuples(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -15563,15 +13891,15 @@ func (ec *executionContext) fieldContext_Mutation__authz_delete_resource(ctx con
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation__authz_delete_resource_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation__fga_write_tuples_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation__authz_add_scope(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation__authz_add_scope(ctx, field)
+func (ec *executionContext) _Mutation__fga_delete_tuples(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation__fga_delete_tuples(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -15584,141 +13912,7 @@ func (ec *executionContext) _Mutation__authz_add_scope(ctx context.Context, fiel
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().AuthzAddScope(rctx, fc.Args["params"].(model.AddScopeInput))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.AuthzScope)
-	fc.Result = res
-	return ec.marshalNAuthzScope2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzScope(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Mutation__authz_add_scope(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_AuthzScope_id(ctx, field)
-			case "name":
-				return ec.fieldContext_AuthzScope_name(ctx, field)
-			case "description":
-				return ec.fieldContext_AuthzScope_description(ctx, field)
-			case "created_at":
-				return ec.fieldContext_AuthzScope_created_at(ctx, field)
-			case "updated_at":
-				return ec.fieldContext_AuthzScope_updated_at(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type AuthzScope", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation__authz_add_scope_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation__authz_update_scope(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation__authz_update_scope(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().AuthzUpdateScope(rctx, fc.Args["params"].(model.UpdateScopeInput))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.AuthzScope)
-	fc.Result = res
-	return ec.marshalNAuthzScope2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzScope(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Mutation__authz_update_scope(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_AuthzScope_id(ctx, field)
-			case "name":
-				return ec.fieldContext_AuthzScope_name(ctx, field)
-			case "description":
-				return ec.fieldContext_AuthzScope_description(ctx, field)
-			case "created_at":
-				return ec.fieldContext_AuthzScope_created_at(ctx, field)
-			case "updated_at":
-				return ec.fieldContext_AuthzScope_updated_at(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type AuthzScope", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation__authz_update_scope_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation__authz_delete_scope(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation__authz_delete_scope(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().AuthzDeleteScope(rctx, fc.Args["id"].(string))
+		return ec.resolvers.Mutation().FgaDeleteTuples(rctx, fc.Args["params"].(model.FgaWriteTuplesInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -15735,7 +13929,7 @@ func (ec *executionContext) _Mutation__authz_delete_scope(ctx context.Context, f
 	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Mutation__authz_delete_scope(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation__fga_delete_tuples(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -15756,15 +13950,15 @@ func (ec *executionContext) fieldContext_Mutation__authz_delete_scope(ctx contex
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation__authz_delete_scope_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation__fga_delete_tuples_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation__authz_add_policy(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation__authz_add_policy(ctx, field)
+func (ec *executionContext) _Mutation__fga_reset(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation__fga_reset(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -15777,157 +13971,7 @@ func (ec *executionContext) _Mutation__authz_add_policy(ctx context.Context, fie
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().AuthzAddPolicy(rctx, fc.Args["params"].(model.AddPolicyInput))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.AuthzPolicy)
-	fc.Result = res
-	return ec.marshalNAuthzPolicy2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzPolicy(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Mutation__authz_add_policy(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_AuthzPolicy_id(ctx, field)
-			case "name":
-				return ec.fieldContext_AuthzPolicy_name(ctx, field)
-			case "description":
-				return ec.fieldContext_AuthzPolicy_description(ctx, field)
-			case "type":
-				return ec.fieldContext_AuthzPolicy_type(ctx, field)
-			case "logic":
-				return ec.fieldContext_AuthzPolicy_logic(ctx, field)
-			case "decision_strategy":
-				return ec.fieldContext_AuthzPolicy_decision_strategy(ctx, field)
-			case "targets":
-				return ec.fieldContext_AuthzPolicy_targets(ctx, field)
-			case "created_at":
-				return ec.fieldContext_AuthzPolicy_created_at(ctx, field)
-			case "updated_at":
-				return ec.fieldContext_AuthzPolicy_updated_at(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type AuthzPolicy", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation__authz_add_policy_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation__authz_update_policy(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation__authz_update_policy(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().AuthzUpdatePolicy(rctx, fc.Args["params"].(model.UpdatePolicyInput))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.AuthzPolicy)
-	fc.Result = res
-	return ec.marshalNAuthzPolicy2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzPolicy(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Mutation__authz_update_policy(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_AuthzPolicy_id(ctx, field)
-			case "name":
-				return ec.fieldContext_AuthzPolicy_name(ctx, field)
-			case "description":
-				return ec.fieldContext_AuthzPolicy_description(ctx, field)
-			case "type":
-				return ec.fieldContext_AuthzPolicy_type(ctx, field)
-			case "logic":
-				return ec.fieldContext_AuthzPolicy_logic(ctx, field)
-			case "decision_strategy":
-				return ec.fieldContext_AuthzPolicy_decision_strategy(ctx, field)
-			case "targets":
-				return ec.fieldContext_AuthzPolicy_targets(ctx, field)
-			case "created_at":
-				return ec.fieldContext_AuthzPolicy_created_at(ctx, field)
-			case "updated_at":
-				return ec.fieldContext_AuthzPolicy_updated_at(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type AuthzPolicy", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation__authz_update_policy_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation__authz_delete_policy(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation__authz_delete_policy(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().AuthzDeletePolicy(rctx, fc.Args["id"].(string))
+		return ec.resolvers.Mutation().FgaReset(rctx)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -15944,7 +13988,7 @@ func (ec *executionContext) _Mutation__authz_delete_policy(ctx context.Context, 
 	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Mutation__authz_delete_policy(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation__fga_reset(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -15957,226 +14001,6 @@ func (ec *executionContext) fieldContext_Mutation__authz_delete_policy(ctx conte
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Response", field.Name)
 		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation__authz_delete_policy_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation__authz_add_permission(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation__authz_add_permission(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().AuthzAddPermission(rctx, fc.Args["params"].(model.AddPermissionInput))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.AuthzPermission)
-	fc.Result = res
-	return ec.marshalNAuthzPermission2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzPermission(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Mutation__authz_add_permission(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_AuthzPermission_id(ctx, field)
-			case "name":
-				return ec.fieldContext_AuthzPermission_name(ctx, field)
-			case "description":
-				return ec.fieldContext_AuthzPermission_description(ctx, field)
-			case "resource":
-				return ec.fieldContext_AuthzPermission_resource(ctx, field)
-			case "scopes":
-				return ec.fieldContext_AuthzPermission_scopes(ctx, field)
-			case "policies":
-				return ec.fieldContext_AuthzPermission_policies(ctx, field)
-			case "decision_strategy":
-				return ec.fieldContext_AuthzPermission_decision_strategy(ctx, field)
-			case "created_at":
-				return ec.fieldContext_AuthzPermission_created_at(ctx, field)
-			case "updated_at":
-				return ec.fieldContext_AuthzPermission_updated_at(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type AuthzPermission", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation__authz_add_permission_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation__authz_update_permission(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation__authz_update_permission(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().AuthzUpdatePermission(rctx, fc.Args["params"].(model.UpdatePermissionInput))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.AuthzPermission)
-	fc.Result = res
-	return ec.marshalNAuthzPermission2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzPermission(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Mutation__authz_update_permission(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_AuthzPermission_id(ctx, field)
-			case "name":
-				return ec.fieldContext_AuthzPermission_name(ctx, field)
-			case "description":
-				return ec.fieldContext_AuthzPermission_description(ctx, field)
-			case "resource":
-				return ec.fieldContext_AuthzPermission_resource(ctx, field)
-			case "scopes":
-				return ec.fieldContext_AuthzPermission_scopes(ctx, field)
-			case "policies":
-				return ec.fieldContext_AuthzPermission_policies(ctx, field)
-			case "decision_strategy":
-				return ec.fieldContext_AuthzPermission_decision_strategy(ctx, field)
-			case "created_at":
-				return ec.fieldContext_AuthzPermission_created_at(ctx, field)
-			case "updated_at":
-				return ec.fieldContext_AuthzPermission_updated_at(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type AuthzPermission", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation__authz_update_permission_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation__authz_delete_permission(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation__authz_delete_permission(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().AuthzDeletePermission(rctx, fc.Args["id"].(string))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.Response)
-	fc.Result = res
-	return ec.marshalNResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Mutation__authz_delete_permission(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "message":
-				return ec.fieldContext_Response_message(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Response", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation__authz_delete_permission_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
 	}
 	return fc, nil
 }
@@ -16357,8 +14181,8 @@ func (ec *executionContext) fieldContext_Pagination_total(_ context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _Permission_resource(ctx context.Context, field graphql.CollectedField, obj *model.Permission) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Permission_resource(ctx, field)
+func (ec *executionContext) _Permission_object(ctx context.Context, field graphql.CollectedField, obj *model.Permission) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Permission_object(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -16371,7 +14195,7 @@ func (ec *executionContext) _Permission_resource(ctx context.Context, field grap
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Resource, nil
+		return obj.Object, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -16388,7 +14212,7 @@ func (ec *executionContext) _Permission_resource(ctx context.Context, field grap
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Permission_resource(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Permission_object(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Permission",
 		Field:      field,
@@ -16401,8 +14225,8 @@ func (ec *executionContext) fieldContext_Permission_resource(_ context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _Permission_scope(ctx context.Context, field graphql.CollectedField, obj *model.Permission) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Permission_scope(ctx, field)
+func (ec *executionContext) _Permission_relation(ctx context.Context, field graphql.CollectedField, obj *model.Permission) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Permission_relation(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -16415,7 +14239,7 @@ func (ec *executionContext) _Permission_scope(ctx context.Context, field graphql
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Scope, nil
+		return obj.Relation, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -16432,7 +14256,7 @@ func (ec *executionContext) _Permission_scope(ctx context.Context, field graphql
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Permission_scope(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Permission_relation(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Permission",
 		Field:      field,
@@ -16440,6 +14264,138 @@ func (ec *executionContext) fieldContext_Permission_scope(_ context.Context, fie
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PermissionCheckResult_relation(ctx context.Context, field graphql.CollectedField, obj *model.PermissionCheckResult) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_PermissionCheckResult_relation(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Relation, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_PermissionCheckResult_relation(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PermissionCheckResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PermissionCheckResult_object(ctx context.Context, field graphql.CollectedField, obj *model.PermissionCheckResult) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_PermissionCheckResult_object(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Object, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_PermissionCheckResult_object(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PermissionCheckResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PermissionCheckResult_allowed(ctx context.Context, field graphql.CollectedField, obj *model.PermissionCheckResult) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_PermissionCheckResult_allowed(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Allowed, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_PermissionCheckResult_allowed(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PermissionCheckResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
 		},
 	}
 	return fc, nil
@@ -17087,6 +15043,58 @@ func (ec *executionContext) fieldContext_Query__admin_session(_ context.Context,
 	return fc, nil
 }
 
+func (ec *executionContext) _Query__admin_meta(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query__admin_meta(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().AdminMeta(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.AdminMeta)
+	fc.Result = res
+	return ec.marshalNAdminMeta2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAdminMeta(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query__admin_meta(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "roles":
+				return ec.fieldContext_AdminMeta_roles(ctx, field)
+			case "default_roles":
+				return ec.fieldContext_AdminMeta_default_roles(ctx, field)
+			case "protected_roles":
+				return ec.fieldContext_AdminMeta_protected_roles(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type AdminMeta", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query__env(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Query__env(ctx, field)
 	if err != nil {
@@ -17592,8 +15600,8 @@ func (ec *executionContext) fieldContext_Query__audit_logs(ctx context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _Query__authz_resources(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Query__authz_resources(ctx, field)
+func (ec *executionContext) _Query__fga_get_model(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query__fga_get_model(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -17606,7 +15614,7 @@ func (ec *executionContext) _Query__authz_resources(ctx context.Context, field g
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().AuthzResources(rctx, fc.Args["params"].(*model.PaginatedRequest))
+		return ec.resolvers.Query().FgaGetModel(rctx)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -17618,12 +15626,12 @@ func (ec *executionContext) _Query__authz_resources(ctx context.Context, field g
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.AuthzResources)
+	res := resTmp.(*model.FgaModel)
 	fc.Result = res
-	return ec.marshalNAuthzResources2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzResources(ctx, field.Selections, res)
+	return ec.marshalNFgaModel2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaModel(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Query__authz_resources(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query__fga_get_model(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -17631,12 +15639,62 @@ func (ec *executionContext) fieldContext_Query__authz_resources(ctx context.Cont
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "pagination":
-				return ec.fieldContext_AuthzResources_pagination(ctx, field)
-			case "resources":
-				return ec.fieldContext_AuthzResources_resources(ctx, field)
+			case "id":
+				return ec.fieldContext_FgaModel_id(ctx, field)
+			case "dsl":
+				return ec.fieldContext_FgaModel_dsl(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type AuthzResources", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type FgaModel", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query__fga_read_tuples(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query__fga_read_tuples(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().FgaReadTuples(rctx, fc.Args["params"].(model.FgaReadTuplesInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.FgaTuples)
+	fc.Result = res
+	return ec.marshalNFgaTuples2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaTuples(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query__fga_read_tuples(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "tuples":
+				return ec.fieldContext_FgaTuples_tuples(ctx, field)
+			case "continuation_token":
+				return ec.fieldContext_FgaTuples_continuation_token(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FgaTuples", field.Name)
 		},
 	}
 	defer func() {
@@ -17646,15 +15704,15 @@ func (ec *executionContext) fieldContext_Query__authz_resources(ctx context.Cont
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query__authz_resources_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Query__fga_read_tuples_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Query__authz_scopes(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Query__authz_scopes(ctx, field)
+func (ec *executionContext) _Query__fga_list_users(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query__fga_list_users(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -17667,7 +15725,7 @@ func (ec *executionContext) _Query__authz_scopes(ctx context.Context, field grap
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().AuthzScopes(rctx, fc.Args["params"].(*model.PaginatedRequest))
+		return ec.resolvers.Query().FgaListUsers(rctx, fc.Args["params"].(model.FgaListUsersInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -17679,12 +15737,12 @@ func (ec *executionContext) _Query__authz_scopes(ctx context.Context, field grap
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.AuthzScopes)
+	res := resTmp.(*model.FgaListUsersResponse)
 	fc.Result = res
-	return ec.marshalNAuthzScopes2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzScopes(ctx, field.Selections, res)
+	return ec.marshalNFgaListUsersResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaListUsersResponse(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Query__authz_scopes(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query__fga_list_users(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -17692,12 +15750,10 @@ func (ec *executionContext) fieldContext_Query__authz_scopes(ctx context.Context
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "pagination":
-				return ec.fieldContext_AuthzScopes_pagination(ctx, field)
-			case "scopes":
-				return ec.fieldContext_AuthzScopes_scopes(ctx, field)
+			case "users":
+				return ec.fieldContext_FgaListUsersResponse_users(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type AuthzScopes", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type FgaListUsersResponse", field.Name)
 		},
 	}
 	defer func() {
@@ -17707,15 +15763,15 @@ func (ec *executionContext) fieldContext_Query__authz_scopes(ctx context.Context
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query__authz_scopes_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Query__fga_list_users_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Query__authz_policies(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Query__authz_policies(ctx, field)
+func (ec *executionContext) _Query__fga_expand(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query__fga_expand(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -17728,7 +15784,7 @@ func (ec *executionContext) _Query__authz_policies(ctx context.Context, field gr
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().AuthzPolicies(rctx, fc.Args["params"].(*model.PaginatedRequest))
+		return ec.resolvers.Query().FgaExpand(rctx, fc.Args["params"].(model.FgaExpandInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -17740,12 +15796,12 @@ func (ec *executionContext) _Query__authz_policies(ctx context.Context, field gr
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.AuthzPolicies)
+	res := resTmp.(*model.FgaExpandResponse)
 	fc.Result = res
-	return ec.marshalNAuthzPolicies2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzPolicies(ctx, field.Selections, res)
+	return ec.marshalNFgaExpandResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaExpandResponse(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Query__authz_policies(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query__fga_expand(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -17753,12 +15809,10 @@ func (ec *executionContext) fieldContext_Query__authz_policies(ctx context.Conte
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "pagination":
-				return ec.fieldContext_AuthzPolicies_pagination(ctx, field)
-			case "policies":
-				return ec.fieldContext_AuthzPolicies_policies(ctx, field)
+			case "tree":
+				return ec.fieldContext_FgaExpandResponse_tree(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type AuthzPolicies", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type FgaExpandResponse", field.Name)
 		},
 	}
 	defer func() {
@@ -17768,15 +15822,15 @@ func (ec *executionContext) fieldContext_Query__authz_policies(ctx context.Conte
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query__authz_policies_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Query__fga_expand_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Query__authz_permissions(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Query__authz_permissions(ctx, field)
+func (ec *executionContext) _Query_check_permissions(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_check_permissions(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -17789,7 +15843,7 @@ func (ec *executionContext) _Query__authz_permissions(ctx context.Context, field
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().AuthzPermissions(rctx, fc.Args["params"].(*model.PaginatedRequest))
+		return ec.resolvers.Query().CheckPermissions(rctx, fc.Args["params"].(model.CheckPermissionsInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -17801,12 +15855,12 @@ func (ec *executionContext) _Query__authz_permissions(ctx context.Context, field
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.AuthzPermissions)
+	res := resTmp.(*model.CheckPermissionsResponse)
 	fc.Result = res
-	return ec.marshalNAuthzPermissions2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzPermissions(ctx, field.Selections, res)
+	return ec.marshalNCheckPermissionsResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐCheckPermissionsResponse(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Query__authz_permissions(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_check_permissions(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -17814,12 +15868,73 @@ func (ec *executionContext) fieldContext_Query__authz_permissions(ctx context.Co
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "pagination":
-				return ec.fieldContext_AuthzPermissions_pagination(ctx, field)
+			case "results":
+				return ec.fieldContext_CheckPermissionsResponse_results(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type CheckPermissionsResponse", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_check_permissions_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_list_permissions(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_list_permissions(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().ListPermissions(rctx, fc.Args["params"].(model.ListPermissionsInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.ListPermissionsResponse)
+	fc.Result = res
+	return ec.marshalNListPermissionsResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐListPermissionsResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_list_permissions(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "objects":
+				return ec.fieldContext_ListPermissionsResponse_objects(ctx, field)
 			case "permissions":
-				return ec.fieldContext_AuthzPermissions_permissions(ctx, field)
+				return ec.fieldContext_ListPermissionsResponse_permissions(ctx, field)
+			case "truncated":
+				return ec.fieldContext_ListPermissionsResponse_truncated(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type AuthzPermissions", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type ListPermissionsResponse", field.Name)
 		},
 	}
 	defer func() {
@@ -17829,59 +15944,9 @@ func (ec *executionContext) fieldContext_Query__authz_permissions(ctx context.Co
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query__authz_permissions_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Query_list_permissions_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Query_permissions(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Query_permissions(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Permissions(rctx)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]*model.Permission)
-	fc.Result = res
-	return ec.marshalNPermission2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPermissionᚄ(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Query_permissions(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Query",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "resource":
-				return ec.fieldContext_Permission_resource(ctx, field)
-			case "scope":
-				return ec.fieldContext_Permission_scope(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Permission", field.Name)
-		},
 	}
 	return fc, nil
 }
@@ -22673,198 +20738,6 @@ func (ec *executionContext) unmarshalInputAddEmailTemplateRequest(ctx context.Co
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputAddPermissionInput(ctx context.Context, obj any) (model.AddPermissionInput, error) {
-	var it model.AddPermissionInput
-	asMap := map[string]any{}
-	for k, v := range obj.(map[string]any) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"name", "description", "resource_id", "scope_ids", "policy_ids", "decision_strategy"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "name":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Name = data
-		case "description":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Description = data
-		case "resource_id":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("resource_id"))
-			data, err := ec.unmarshalNID2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.ResourceID = data
-		case "scope_ids":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("scope_ids"))
-			data, err := ec.unmarshalNID2ᚕstringᚄ(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.ScopeIds = data
-		case "policy_ids":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("policy_ids"))
-			data, err := ec.unmarshalNID2ᚕstringᚄ(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.PolicyIds = data
-		case "decision_strategy":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("decision_strategy"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.DecisionStrategy = data
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputAddPolicyInput(ctx context.Context, obj any) (model.AddPolicyInput, error) {
-	var it model.AddPolicyInput
-	asMap := map[string]any{}
-	for k, v := range obj.(map[string]any) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"name", "description", "type", "logic", "decision_strategy", "targets"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "name":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Name = data
-		case "description":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Description = data
-		case "type":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("type"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Type = data
-		case "logic":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("logic"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Logic = data
-		case "decision_strategy":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("decision_strategy"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.DecisionStrategy = data
-		case "targets":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("targets"))
-			data, err := ec.unmarshalNPolicyTargetInput2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPolicyTargetInputᚄ(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Targets = data
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputAddResourceInput(ctx context.Context, obj any) (model.AddResourceInput, error) {
-	var it model.AddResourceInput
-	asMap := map[string]any{}
-	for k, v := range obj.(map[string]any) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"name", "description"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "name":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Name = data
-		case "description":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Description = data
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputAddScopeInput(ctx context.Context, obj any) (model.AddScopeInput, error) {
-	var it model.AddScopeInput
-	asMap := map[string]any{}
-	for k, v := range obj.(map[string]any) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"name", "description"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "name":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Name = data
-		case "description":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Description = data
-		}
-	}
-
-	return it, nil
-}
-
 func (ec *executionContext) unmarshalInputAddWebhookRequest(ctx context.Context, obj any) (model.AddWebhookRequest, error) {
 	var it model.AddWebhookRequest
 	asMap := map[string]any{}
@@ -22974,6 +20847,40 @@ func (ec *executionContext) unmarshalInputAdminSignupRequest(ctx context.Context
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputCheckPermissionsInput(ctx context.Context, obj any) (model.CheckPermissionsInput, error) {
+	var it model.CheckPermissionsInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"checks", "user"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "checks":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("checks"))
+			data, err := ec.unmarshalNPermissionCheckInput2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPermissionCheckInputᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Checks = data
+		case "user":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("user"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.User = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputDeleteEmailTemplateRequest(ctx context.Context, obj any) (model.DeleteEmailTemplateRequest, error) {
 	var it model.DeleteEmailTemplateRequest
 	asMap := map[string]any{}
@@ -23022,6 +20929,265 @@ func (ec *executionContext) unmarshalInputDeleteUserRequest(ctx context.Context,
 				return it, err
 			}
 			it.Email = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputFgaExpandInput(ctx context.Context, obj any) (model.FgaExpandInput, error) {
+	var it model.FgaExpandInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"relation", "object"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "relation":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("relation"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Relation = data
+		case "object":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("object"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Object = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputFgaListUsersInput(ctx context.Context, obj any) (model.FgaListUsersInput, error) {
+	var it model.FgaListUsersInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"object", "relation", "user_type"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "object":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("object"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Object = data
+		case "relation":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("relation"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Relation = data
+		case "user_type":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("user_type"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.UserType = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputFgaReadTuplesInput(ctx context.Context, obj any) (model.FgaReadTuplesInput, error) {
+	var it model.FgaReadTuplesInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"user", "relation", "object", "page_size", "continuation_token"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "user":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("user"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.User = data
+		case "relation":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("relation"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Relation = data
+		case "object":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("object"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Object = data
+		case "page_size":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("page_size"))
+			data, err := ec.unmarshalOInt642ᚖint64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PageSize = data
+		case "continuation_token":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("continuation_token"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ContinuationToken = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputFgaRelationInput(ctx context.Context, obj any) (model.FgaRelationInput, error) {
+	var it model.FgaRelationInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"relation", "object"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "relation":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("relation"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Relation = data
+		case "object":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("object"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Object = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputFgaTupleInput(ctx context.Context, obj any) (model.FgaTupleInput, error) {
+	var it model.FgaTupleInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"user", "relation", "object"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "user":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("user"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.User = data
+		case "relation":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("relation"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Relation = data
+		case "object":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("object"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Object = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputFgaWriteModelInput(ctx context.Context, obj any) (model.FgaWriteModelInput, error) {
+	var it model.FgaWriteModelInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"dsl"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "dsl":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("dsl"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Dsl = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputFgaWriteTuplesInput(ctx context.Context, obj any) (model.FgaWriteTuplesInput, error) {
+	var it model.FgaWriteTuplesInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"tuples"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "tuples":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("tuples"))
+			data, err := ec.unmarshalNFgaTupleInput2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaTupleInputᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Tuples = data
 		}
 	}
 
@@ -23234,6 +21400,47 @@ func (ec *executionContext) unmarshalInputListAuditLogRequest(ctx context.Contex
 				return it, err
 			}
 			it.ToTimestamp = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputListPermissionsInput(ctx context.Context, obj any) (model.ListPermissionsInput, error) {
+	var it model.ListPermissionsInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"relation", "object_type", "user"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "relation":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("relation"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Relation = data
+		case "object_type":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("object_type"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ObjectType = data
+		case "user":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("user"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.User = data
 		}
 	}
 
@@ -23673,68 +21880,41 @@ func (ec *executionContext) unmarshalInputPaginationRequest(ctx context.Context,
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputPermissionInput(ctx context.Context, obj any) (model.PermissionInput, error) {
-	var it model.PermissionInput
+func (ec *executionContext) unmarshalInputPermissionCheckInput(ctx context.Context, obj any) (model.PermissionCheckInput, error) {
+	var it model.PermissionCheckInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"resource", "scope"}
+	fieldsInOrder := [...]string{"relation", "object", "contextual_tuples"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
 			continue
 		}
 		switch k {
-		case "resource":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("resource"))
+		case "relation":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("relation"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.Resource = data
-		case "scope":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("scope"))
+			it.Relation = data
+		case "object":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("object"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.Scope = data
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputPolicyTargetInput(ctx context.Context, obj any) (model.PolicyTargetInput, error) {
-	var it model.PolicyTargetInput
-	asMap := map[string]any{}
-	for k, v := range obj.(map[string]any) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"target_type", "target_value"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "target_type":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("target_type"))
-			data, err := ec.unmarshalNString2string(ctx, v)
+			it.Object = data
+		case "contextual_tuples":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("contextual_tuples"))
+			data, err := ec.unmarshalOFgaTupleInput2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaTupleInputᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.TargetType = data
-		case "target_value":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("target_value"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.TargetValue = data
+			it.ContextualTuples = data
 		}
 	}
 
@@ -23885,7 +22065,7 @@ func (ec *executionContext) unmarshalInputSessionQueryRequest(ctx context.Contex
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"roles", "scope", "state", "required_permissions"}
+	fieldsInOrder := [...]string{"roles", "scope", "state", "required_relations"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -23913,13 +22093,13 @@ func (ec *executionContext) unmarshalInputSessionQueryRequest(ctx context.Contex
 				return it, err
 			}
 			it.State = data
-		case "required_permissions":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("required_permissions"))
-			data, err := ec.unmarshalOPermissionInput2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPermissionInputᚄ(ctx, v)
+		case "required_relations":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("required_relations"))
+			data, err := ec.unmarshalOFgaRelationInput2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaRelationInputᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.RequiredPermissions = data
+			it.RequiredRelations = data
 		}
 	}
 
@@ -24649,130 +22829,6 @@ func (ec *executionContext) unmarshalInputUpdateEnvRequest(ctx context.Context, 
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputUpdatePermissionInput(ctx context.Context, obj any) (model.UpdatePermissionInput, error) {
-	var it model.UpdatePermissionInput
-	asMap := map[string]any{}
-	for k, v := range obj.(map[string]any) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"id", "name", "description", "scope_ids", "policy_ids", "decision_strategy"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "id":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-			data, err := ec.unmarshalNID2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.ID = data
-		case "name":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Name = data
-		case "description":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Description = data
-		case "scope_ids":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("scope_ids"))
-			data, err := ec.unmarshalOID2ᚕstringᚄ(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.ScopeIds = data
-		case "policy_ids":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("policy_ids"))
-			data, err := ec.unmarshalOID2ᚕstringᚄ(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.PolicyIds = data
-		case "decision_strategy":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("decision_strategy"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.DecisionStrategy = data
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputUpdatePolicyInput(ctx context.Context, obj any) (model.UpdatePolicyInput, error) {
-	var it model.UpdatePolicyInput
-	asMap := map[string]any{}
-	for k, v := range obj.(map[string]any) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"id", "name", "description", "logic", "decision_strategy", "targets"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "id":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-			data, err := ec.unmarshalNID2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.ID = data
-		case "name":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Name = data
-		case "description":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Description = data
-		case "logic":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("logic"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Logic = data
-		case "decision_strategy":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("decision_strategy"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.DecisionStrategy = data
-		case "targets":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("targets"))
-			data, err := ec.unmarshalOPolicyTargetInput2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPolicyTargetInputᚄ(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Targets = data
-		}
-	}
-
-	return it, nil
-}
-
 func (ec *executionContext) unmarshalInputUpdateProfileRequest(ctx context.Context, obj any) (model.UpdateProfileRequest, error) {
 	var it model.UpdateProfileRequest
 	asMap := map[string]any{}
@@ -24885,88 +22941,6 @@ func (ec *executionContext) unmarshalInputUpdateProfileRequest(ctx context.Conte
 				return it, err
 			}
 			it.AppData = data
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputUpdateResourceInput(ctx context.Context, obj any) (model.UpdateResourceInput, error) {
-	var it model.UpdateResourceInput
-	asMap := map[string]any{}
-	for k, v := range obj.(map[string]any) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"id", "name", "description"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "id":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-			data, err := ec.unmarshalNID2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.ID = data
-		case "name":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Name = data
-		case "description":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Description = data
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputUpdateScopeInput(ctx context.Context, obj any) (model.UpdateScopeInput, error) {
-	var it model.UpdateScopeInput
-	asMap := map[string]any{}
-	for k, v := range obj.(map[string]any) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"id", "name", "description"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "id":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-			data, err := ec.unmarshalNID2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.ID = data
-		case "name":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Name = data
-		case "description":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Description = data
 		}
 	}
 
@@ -25167,7 +23141,7 @@ func (ec *executionContext) unmarshalInputValidateJWTTokenRequest(ctx context.Co
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"token_type", "token", "roles", "required_permissions"}
+	fieldsInOrder := [...]string{"token_type", "token", "roles", "required_relations"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -25195,13 +23169,13 @@ func (ec *executionContext) unmarshalInputValidateJWTTokenRequest(ctx context.Co
 				return it, err
 			}
 			it.Roles = data
-		case "required_permissions":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("required_permissions"))
-			data, err := ec.unmarshalOPermissionInput2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPermissionInputᚄ(ctx, v)
+		case "required_relations":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("required_relations"))
+			data, err := ec.unmarshalOFgaRelationInput2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaRelationInputᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.RequiredPermissions = data
+			it.RequiredRelations = data
 		}
 	}
 
@@ -25215,7 +23189,7 @@ func (ec *executionContext) unmarshalInputValidateSessionRequest(ctx context.Con
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"cookie", "roles", "required_permissions"}
+	fieldsInOrder := [...]string{"cookie", "roles", "required_relations"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -25236,13 +23210,13 @@ func (ec *executionContext) unmarshalInputValidateSessionRequest(ctx context.Con
 				return it, err
 			}
 			it.Roles = data
-		case "required_permissions":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("required_permissions"))
-			data, err := ec.unmarshalOPermissionInput2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPermissionInputᚄ(ctx, v)
+		case "required_relations":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("required_relations"))
+			data, err := ec.unmarshalOFgaRelationInput2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaRelationInputᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.RequiredPermissions = data
+			it.RequiredRelations = data
 		}
 	}
 
@@ -25372,6 +23346,55 @@ func (ec *executionContext) unmarshalInputWebhookRequest(ctx context.Context, ob
 // endregion ************************** interface.gotpl ***************************
 
 // region    **************************** object.gotpl ****************************
+
+var adminMetaImplementors = []string{"AdminMeta"}
+
+func (ec *executionContext) _AdminMeta(ctx context.Context, sel ast.SelectionSet, obj *model.AdminMeta) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, adminMetaImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("AdminMeta")
+		case "roles":
+			out.Values[i] = ec._AdminMeta_roles(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "default_roles":
+			out.Values[i] = ec._AdminMeta_default_roles(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "protected_roles":
+			out.Values[i] = ec._AdminMeta_protected_roles(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
 
 var auditLogImplementors = []string{"AuditLog"}
 
@@ -25537,469 +23560,19 @@ func (ec *executionContext) _AuthResponse(ctx context.Context, sel ast.Selection
 	return out
 }
 
-var authzPermissionImplementors = []string{"AuthzPermission"}
+var checkPermissionsResponseImplementors = []string{"CheckPermissionsResponse"}
 
-func (ec *executionContext) _AuthzPermission(ctx context.Context, sel ast.SelectionSet, obj *model.AuthzPermission) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, authzPermissionImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("AuthzPermission")
-		case "id":
-			out.Values[i] = ec._AuthzPermission_id(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "name":
-			out.Values[i] = ec._AuthzPermission_name(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "description":
-			out.Values[i] = ec._AuthzPermission_description(ctx, field, obj)
-		case "resource":
-			out.Values[i] = ec._AuthzPermission_resource(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "scopes":
-			out.Values[i] = ec._AuthzPermission_scopes(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "policies":
-			out.Values[i] = ec._AuthzPermission_policies(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "decision_strategy":
-			out.Values[i] = ec._AuthzPermission_decision_strategy(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "created_at":
-			out.Values[i] = ec._AuthzPermission_created_at(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "updated_at":
-			out.Values[i] = ec._AuthzPermission_updated_at(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var authzPermissionsImplementors = []string{"AuthzPermissions"}
-
-func (ec *executionContext) _AuthzPermissions(ctx context.Context, sel ast.SelectionSet, obj *model.AuthzPermissions) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, authzPermissionsImplementors)
+func (ec *executionContext) _CheckPermissionsResponse(ctx context.Context, sel ast.SelectionSet, obj *model.CheckPermissionsResponse) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, checkPermissionsResponseImplementors)
 
 	out := graphql.NewFieldSet(fields)
 	deferred := make(map[string]*graphql.FieldSet)
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
-			out.Values[i] = graphql.MarshalString("AuthzPermissions")
-		case "pagination":
-			out.Values[i] = ec._AuthzPermissions_pagination(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "permissions":
-			out.Values[i] = ec._AuthzPermissions_permissions(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var authzPoliciesImplementors = []string{"AuthzPolicies"}
-
-func (ec *executionContext) _AuthzPolicies(ctx context.Context, sel ast.SelectionSet, obj *model.AuthzPolicies) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, authzPoliciesImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("AuthzPolicies")
-		case "pagination":
-			out.Values[i] = ec._AuthzPolicies_pagination(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "policies":
-			out.Values[i] = ec._AuthzPolicies_policies(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var authzPolicyImplementors = []string{"AuthzPolicy"}
-
-func (ec *executionContext) _AuthzPolicy(ctx context.Context, sel ast.SelectionSet, obj *model.AuthzPolicy) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, authzPolicyImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("AuthzPolicy")
-		case "id":
-			out.Values[i] = ec._AuthzPolicy_id(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "name":
-			out.Values[i] = ec._AuthzPolicy_name(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "description":
-			out.Values[i] = ec._AuthzPolicy_description(ctx, field, obj)
-		case "type":
-			out.Values[i] = ec._AuthzPolicy_type(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "logic":
-			out.Values[i] = ec._AuthzPolicy_logic(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "decision_strategy":
-			out.Values[i] = ec._AuthzPolicy_decision_strategy(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "targets":
-			out.Values[i] = ec._AuthzPolicy_targets(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "created_at":
-			out.Values[i] = ec._AuthzPolicy_created_at(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "updated_at":
-			out.Values[i] = ec._AuthzPolicy_updated_at(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var authzPolicyTargetImplementors = []string{"AuthzPolicyTarget"}
-
-func (ec *executionContext) _AuthzPolicyTarget(ctx context.Context, sel ast.SelectionSet, obj *model.AuthzPolicyTarget) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, authzPolicyTargetImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("AuthzPolicyTarget")
-		case "id":
-			out.Values[i] = ec._AuthzPolicyTarget_id(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "target_type":
-			out.Values[i] = ec._AuthzPolicyTarget_target_type(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "target_value":
-			out.Values[i] = ec._AuthzPolicyTarget_target_value(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var authzResourceImplementors = []string{"AuthzResource"}
-
-func (ec *executionContext) _AuthzResource(ctx context.Context, sel ast.SelectionSet, obj *model.AuthzResource) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, authzResourceImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("AuthzResource")
-		case "id":
-			out.Values[i] = ec._AuthzResource_id(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "name":
-			out.Values[i] = ec._AuthzResource_name(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "description":
-			out.Values[i] = ec._AuthzResource_description(ctx, field, obj)
-		case "created_at":
-			out.Values[i] = ec._AuthzResource_created_at(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "updated_at":
-			out.Values[i] = ec._AuthzResource_updated_at(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var authzResourcesImplementors = []string{"AuthzResources"}
-
-func (ec *executionContext) _AuthzResources(ctx context.Context, sel ast.SelectionSet, obj *model.AuthzResources) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, authzResourcesImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("AuthzResources")
-		case "pagination":
-			out.Values[i] = ec._AuthzResources_pagination(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "resources":
-			out.Values[i] = ec._AuthzResources_resources(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var authzScopeImplementors = []string{"AuthzScope"}
-
-func (ec *executionContext) _AuthzScope(ctx context.Context, sel ast.SelectionSet, obj *model.AuthzScope) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, authzScopeImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("AuthzScope")
-		case "id":
-			out.Values[i] = ec._AuthzScope_id(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "name":
-			out.Values[i] = ec._AuthzScope_name(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "description":
-			out.Values[i] = ec._AuthzScope_description(ctx, field, obj)
-		case "created_at":
-			out.Values[i] = ec._AuthzScope_created_at(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "updated_at":
-			out.Values[i] = ec._AuthzScope_updated_at(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var authzScopesImplementors = []string{"AuthzScopes"}
-
-func (ec *executionContext) _AuthzScopes(ctx context.Context, sel ast.SelectionSet, obj *model.AuthzScopes) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, authzScopesImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("AuthzScopes")
-		case "pagination":
-			out.Values[i] = ec._AuthzScopes_pagination(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "scopes":
-			out.Values[i] = ec._AuthzScopes_scopes(ctx, field, obj)
+			out.Values[i] = graphql.MarshalString("CheckPermissionsResponse")
+		case "results":
+			out.Values[i] = ec._CheckPermissionsResponse_results(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -26404,6 +23977,218 @@ func (ec *executionContext) _Error(ctx context.Context, sel ast.SelectionSet, ob
 	return out
 }
 
+var fgaExpandResponseImplementors = []string{"FgaExpandResponse"}
+
+func (ec *executionContext) _FgaExpandResponse(ctx context.Context, sel ast.SelectionSet, obj *model.FgaExpandResponse) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, fgaExpandResponseImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("FgaExpandResponse")
+		case "tree":
+			out.Values[i] = ec._FgaExpandResponse_tree(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var fgaListUsersResponseImplementors = []string{"FgaListUsersResponse"}
+
+func (ec *executionContext) _FgaListUsersResponse(ctx context.Context, sel ast.SelectionSet, obj *model.FgaListUsersResponse) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, fgaListUsersResponseImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("FgaListUsersResponse")
+		case "users":
+			out.Values[i] = ec._FgaListUsersResponse_users(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var fgaModelImplementors = []string{"FgaModel"}
+
+func (ec *executionContext) _FgaModel(ctx context.Context, sel ast.SelectionSet, obj *model.FgaModel) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, fgaModelImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("FgaModel")
+		case "id":
+			out.Values[i] = ec._FgaModel_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "dsl":
+			out.Values[i] = ec._FgaModel_dsl(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var fgaTupleImplementors = []string{"FgaTuple"}
+
+func (ec *executionContext) _FgaTuple(ctx context.Context, sel ast.SelectionSet, obj *model.FgaTuple) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, fgaTupleImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("FgaTuple")
+		case "user":
+			out.Values[i] = ec._FgaTuple_user(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "relation":
+			out.Values[i] = ec._FgaTuple_relation(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "object":
+			out.Values[i] = ec._FgaTuple_object(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var fgaTuplesImplementors = []string{"FgaTuples"}
+
+func (ec *executionContext) _FgaTuples(ctx context.Context, sel ast.SelectionSet, obj *model.FgaTuples) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, fgaTuplesImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("FgaTuples")
+		case "tuples":
+			out.Values[i] = ec._FgaTuples_tuples(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "continuation_token":
+			out.Values[i] = ec._FgaTuples_continuation_token(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var forgotPasswordResponseImplementors = []string{"ForgotPasswordResponse"}
 
 func (ec *executionContext) _ForgotPasswordResponse(ctx context.Context, sel ast.SelectionSet, obj *model.ForgotPasswordResponse) graphql.Marshaler {
@@ -26503,6 +24288,55 @@ func (ec *executionContext) _InviteMembersResponse(ctx context.Context, sel ast.
 			}
 		case "Users":
 			out.Values[i] = ec._InviteMembersResponse_Users(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var listPermissionsResponseImplementors = []string{"ListPermissionsResponse"}
+
+func (ec *executionContext) _ListPermissionsResponse(ctx context.Context, sel ast.SelectionSet, obj *model.ListPermissionsResponse) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, listPermissionsResponseImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ListPermissionsResponse")
+		case "objects":
+			out.Values[i] = ec._ListPermissionsResponse_objects(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "permissions":
+			out.Values[i] = ec._ListPermissionsResponse_permissions(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "truncated":
+			out.Values[i] = ec._ListPermissionsResponse_truncated(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -26906,86 +24740,30 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "_authz_add_resource":
+		case "_fga_write_model":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation__authz_add_resource(ctx, field)
+				return ec._Mutation__fga_write_model(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "_authz_update_resource":
+		case "_fga_write_tuples":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation__authz_update_resource(ctx, field)
+				return ec._Mutation__fga_write_tuples(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "_authz_delete_resource":
+		case "_fga_delete_tuples":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation__authz_delete_resource(ctx, field)
+				return ec._Mutation__fga_delete_tuples(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "_authz_add_scope":
+		case "_fga_reset":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation__authz_add_scope(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "_authz_update_scope":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation__authz_update_scope(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "_authz_delete_scope":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation__authz_delete_scope(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "_authz_add_policy":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation__authz_add_policy(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "_authz_update_policy":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation__authz_update_policy(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "_authz_delete_policy":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation__authz_delete_policy(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "_authz_add_permission":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation__authz_add_permission(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "_authz_update_permission":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation__authz_update_permission(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "_authz_delete_permission":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation__authz_delete_permission(ctx, field)
+				return ec._Mutation__fga_reset(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -27078,13 +24856,62 @@ func (ec *executionContext) _Permission(ctx context.Context, sel ast.SelectionSe
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Permission")
-		case "resource":
-			out.Values[i] = ec._Permission_resource(ctx, field, obj)
+		case "object":
+			out.Values[i] = ec._Permission_object(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "scope":
-			out.Values[i] = ec._Permission_scope(ctx, field, obj)
+		case "relation":
+			out.Values[i] = ec._Permission_relation(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var permissionCheckResultImplementors = []string{"PermissionCheckResult"}
+
+func (ec *executionContext) _PermissionCheckResult(ctx context.Context, sel ast.SelectionSet, obj *model.PermissionCheckResult) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, permissionCheckResultImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("PermissionCheckResult")
+		case "relation":
+			out.Values[i] = ec._PermissionCheckResult_relation(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "object":
+			out.Values[i] = ec._PermissionCheckResult_object(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "allowed":
+			out.Values[i] = ec._PermissionCheckResult_allowed(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -27328,6 +25155,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "_admin_meta":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query__admin_meta(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "_env":
 			field := field
 
@@ -27460,7 +25309,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "_authz_resources":
+		case "_fga_get_model":
 			field := field
 
 			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
@@ -27469,7 +25318,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query__authz_resources(ctx, field)
+				res = ec._Query__fga_get_model(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -27482,7 +25331,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "_authz_scopes":
+		case "_fga_read_tuples":
 			field := field
 
 			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
@@ -27491,7 +25340,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query__authz_scopes(ctx, field)
+				res = ec._Query__fga_read_tuples(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -27504,7 +25353,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "_authz_policies":
+		case "_fga_list_users":
 			field := field
 
 			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
@@ -27513,7 +25362,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query__authz_policies(ctx, field)
+				res = ec._Query__fga_list_users(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -27526,7 +25375,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "_authz_permissions":
+		case "_fga_expand":
 			field := field
 
 			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
@@ -27535,7 +25384,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query__authz_permissions(ctx, field)
+				res = ec._Query__fga_expand(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -27548,7 +25397,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "permissions":
+		case "check_permissions":
 			field := field
 
 			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
@@ -27557,7 +25406,29 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_permissions(ctx, field)
+				res = ec._Query_check_permissions(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "list_permissions":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_list_permissions(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -28527,26 +26398,6 @@ func (ec *executionContext) unmarshalNAddEmailTemplateRequest2githubᚗcomᚋaut
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNAddPermissionInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAddPermissionInput(ctx context.Context, v any) (model.AddPermissionInput, error) {
-	res, err := ec.unmarshalInputAddPermissionInput(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) unmarshalNAddPolicyInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAddPolicyInput(ctx context.Context, v any) (model.AddPolicyInput, error) {
-	res, err := ec.unmarshalInputAddPolicyInput(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) unmarshalNAddResourceInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAddResourceInput(ctx context.Context, v any) (model.AddResourceInput, error) {
-	res, err := ec.unmarshalInputAddResourceInput(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) unmarshalNAddScopeInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAddScopeInput(ctx context.Context, v any) (model.AddScopeInput, error) {
-	res, err := ec.unmarshalInputAddScopeInput(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
 func (ec *executionContext) unmarshalNAddWebhookRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAddWebhookRequest(ctx context.Context, v any) (model.AddWebhookRequest, error) {
 	res, err := ec.unmarshalInputAddWebhookRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -28555,6 +26406,20 @@ func (ec *executionContext) unmarshalNAddWebhookRequest2githubᚗcomᚋauthorize
 func (ec *executionContext) unmarshalNAdminLoginRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAdminLoginRequest(ctx context.Context, v any) (model.AdminLoginRequest, error) {
 	res, err := ec.unmarshalInputAdminLoginRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNAdminMeta2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAdminMeta(ctx context.Context, sel ast.SelectionSet, v model.AdminMeta) graphql.Marshaler {
+	return ec._AdminMeta(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNAdminMeta2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAdminMeta(ctx context.Context, sel ast.SelectionSet, v *model.AdminMeta) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._AdminMeta(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNAdminSignupRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAdminSignupRequest(ctx context.Context, v any) (model.AdminSignupRequest, error) {
@@ -28644,348 +26509,6 @@ func (ec *executionContext) marshalNAuthResponse2ᚖgithubᚗcomᚋauthorizerdev
 	return ec._AuthResponse(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNAuthzPermission2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzPermission(ctx context.Context, sel ast.SelectionSet, v model.AuthzPermission) graphql.Marshaler {
-	return ec._AuthzPermission(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNAuthzPermission2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzPermissionᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.AuthzPermission) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNAuthzPermission2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzPermission(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
-		}
-	}
-
-	return ret
-}
-
-func (ec *executionContext) marshalNAuthzPermission2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzPermission(ctx context.Context, sel ast.SelectionSet, v *model.AuthzPermission) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._AuthzPermission(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNAuthzPermissions2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzPermissions(ctx context.Context, sel ast.SelectionSet, v model.AuthzPermissions) graphql.Marshaler {
-	return ec._AuthzPermissions(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNAuthzPermissions2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzPermissions(ctx context.Context, sel ast.SelectionSet, v *model.AuthzPermissions) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._AuthzPermissions(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNAuthzPolicies2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzPolicies(ctx context.Context, sel ast.SelectionSet, v model.AuthzPolicies) graphql.Marshaler {
-	return ec._AuthzPolicies(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNAuthzPolicies2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzPolicies(ctx context.Context, sel ast.SelectionSet, v *model.AuthzPolicies) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._AuthzPolicies(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNAuthzPolicy2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzPolicy(ctx context.Context, sel ast.SelectionSet, v model.AuthzPolicy) graphql.Marshaler {
-	return ec._AuthzPolicy(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNAuthzPolicy2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzPolicyᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.AuthzPolicy) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNAuthzPolicy2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzPolicy(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
-		}
-	}
-
-	return ret
-}
-
-func (ec *executionContext) marshalNAuthzPolicy2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzPolicy(ctx context.Context, sel ast.SelectionSet, v *model.AuthzPolicy) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._AuthzPolicy(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNAuthzPolicyTarget2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzPolicyTargetᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.AuthzPolicyTarget) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNAuthzPolicyTarget2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzPolicyTarget(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
-		}
-	}
-
-	return ret
-}
-
-func (ec *executionContext) marshalNAuthzPolicyTarget2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzPolicyTarget(ctx context.Context, sel ast.SelectionSet, v *model.AuthzPolicyTarget) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._AuthzPolicyTarget(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNAuthzResource2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzResource(ctx context.Context, sel ast.SelectionSet, v model.AuthzResource) graphql.Marshaler {
-	return ec._AuthzResource(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNAuthzResource2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzResourceᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.AuthzResource) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNAuthzResource2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzResource(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
-		}
-	}
-
-	return ret
-}
-
-func (ec *executionContext) marshalNAuthzResource2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzResource(ctx context.Context, sel ast.SelectionSet, v *model.AuthzResource) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._AuthzResource(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNAuthzResources2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzResources(ctx context.Context, sel ast.SelectionSet, v model.AuthzResources) graphql.Marshaler {
-	return ec._AuthzResources(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNAuthzResources2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzResources(ctx context.Context, sel ast.SelectionSet, v *model.AuthzResources) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._AuthzResources(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNAuthzScope2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzScope(ctx context.Context, sel ast.SelectionSet, v model.AuthzScope) graphql.Marshaler {
-	return ec._AuthzScope(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNAuthzScope2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzScopeᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.AuthzScope) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNAuthzScope2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzScope(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
-		}
-	}
-
-	return ret
-}
-
-func (ec *executionContext) marshalNAuthzScope2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzScope(ctx context.Context, sel ast.SelectionSet, v *model.AuthzScope) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._AuthzScope(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNAuthzScopes2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzScopes(ctx context.Context, sel ast.SelectionSet, v model.AuthzScopes) graphql.Marshaler {
-	return ec._AuthzScopes(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNAuthzScopes2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐAuthzScopes(ctx context.Context, sel ast.SelectionSet, v *model.AuthzScopes) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._AuthzScopes(ctx, sel, v)
-}
-
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v any) (bool, error) {
 	res, err := graphql.UnmarshalBoolean(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -29000,6 +26523,25 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNCheckPermissionsInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐCheckPermissionsInput(ctx context.Context, v any) (model.CheckPermissionsInput, error) {
+	res, err := ec.unmarshalInputCheckPermissionsInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNCheckPermissionsResponse2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐCheckPermissionsResponse(ctx context.Context, sel ast.SelectionSet, v model.CheckPermissionsResponse) graphql.Marshaler {
+	return ec._CheckPermissionsResponse(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNCheckPermissionsResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐCheckPermissionsResponse(ctx context.Context, sel ast.SelectionSet, v *model.CheckPermissionsResponse) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._CheckPermissionsResponse(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNDeleteEmailTemplateRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐDeleteEmailTemplateRequest(ctx context.Context, v any) (model.DeleteEmailTemplateRequest, error) {
@@ -29094,6 +26636,166 @@ func (ec *executionContext) marshalNEnv2ᚖgithubᚗcomᚋauthorizerdevᚋauthor
 	return ec._Env(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNFgaExpandInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaExpandInput(ctx context.Context, v any) (model.FgaExpandInput, error) {
+	res, err := ec.unmarshalInputFgaExpandInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNFgaExpandResponse2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaExpandResponse(ctx context.Context, sel ast.SelectionSet, v model.FgaExpandResponse) graphql.Marshaler {
+	return ec._FgaExpandResponse(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNFgaExpandResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaExpandResponse(ctx context.Context, sel ast.SelectionSet, v *model.FgaExpandResponse) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._FgaExpandResponse(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNFgaListUsersInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaListUsersInput(ctx context.Context, v any) (model.FgaListUsersInput, error) {
+	res, err := ec.unmarshalInputFgaListUsersInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNFgaListUsersResponse2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaListUsersResponse(ctx context.Context, sel ast.SelectionSet, v model.FgaListUsersResponse) graphql.Marshaler {
+	return ec._FgaListUsersResponse(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNFgaListUsersResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaListUsersResponse(ctx context.Context, sel ast.SelectionSet, v *model.FgaListUsersResponse) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._FgaListUsersResponse(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNFgaModel2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaModel(ctx context.Context, sel ast.SelectionSet, v model.FgaModel) graphql.Marshaler {
+	return ec._FgaModel(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNFgaModel2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaModel(ctx context.Context, sel ast.SelectionSet, v *model.FgaModel) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._FgaModel(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNFgaReadTuplesInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaReadTuplesInput(ctx context.Context, v any) (model.FgaReadTuplesInput, error) {
+	res, err := ec.unmarshalInputFgaReadTuplesInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNFgaRelationInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaRelationInput(ctx context.Context, v any) (*model.FgaRelationInput, error) {
+	res, err := ec.unmarshalInputFgaRelationInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNFgaTuple2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaTupleᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.FgaTuple) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNFgaTuple2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaTuple(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNFgaTuple2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaTuple(ctx context.Context, sel ast.SelectionSet, v *model.FgaTuple) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._FgaTuple(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNFgaTupleInput2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaTupleInputᚄ(ctx context.Context, v any) ([]*model.FgaTupleInput, error) {
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]*model.FgaTupleInput, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNFgaTupleInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaTupleInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) unmarshalNFgaTupleInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaTupleInput(ctx context.Context, v any) (*model.FgaTupleInput, error) {
+	res, err := ec.unmarshalInputFgaTupleInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNFgaTuples2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaTuples(ctx context.Context, sel ast.SelectionSet, v model.FgaTuples) graphql.Marshaler {
+	return ec._FgaTuples(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNFgaTuples2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaTuples(ctx context.Context, sel ast.SelectionSet, v *model.FgaTuples) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._FgaTuples(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNFgaWriteModelInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaWriteModelInput(ctx context.Context, v any) (model.FgaWriteModelInput, error) {
+	res, err := ec.unmarshalInputFgaWriteModelInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNFgaWriteTuplesInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaWriteTuplesInput(ctx context.Context, v any) (model.FgaWriteTuplesInput, error) {
+	res, err := ec.unmarshalInputFgaWriteTuplesInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNForgotPasswordRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐForgotPasswordRequest(ctx context.Context, v any) (model.ForgotPasswordRequest, error) {
 	res, err := ec.unmarshalInputForgotPasswordRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -29153,36 +26855,6 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 	return res
 }
 
-func (ec *executionContext) unmarshalNID2ᚕstringᚄ(ctx context.Context, v any) ([]string, error) {
-	var vSlice []any
-	vSlice = graphql.CoerceList(v)
-	var err error
-	res := make([]string, len(vSlice))
-	for i := range vSlice {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalNID2string(ctx, vSlice[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-	return res, nil
-}
-
-func (ec *executionContext) marshalNID2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	for i := range v {
-		ret[i] = ec.marshalNID2string(ctx, sel, v[i])
-	}
-
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
-		}
-	}
-
-	return ret
-}
-
 func (ec *executionContext) unmarshalNInt642int64(ctx context.Context, v any) (int64, error) {
 	res, err := graphql.UnmarshalInt64(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -29216,6 +26888,25 @@ func (ec *executionContext) marshalNInviteMembersResponse2ᚖgithubᚗcomᚋauth
 		return graphql.Null
 	}
 	return ec._InviteMembersResponse(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNListPermissionsInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐListPermissionsInput(ctx context.Context, v any) (model.ListPermissionsInput, error) {
+	res, err := ec.unmarshalInputListPermissionsInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNListPermissionsResponse2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐListPermissionsResponse(ctx context.Context, sel ast.SelectionSet, v model.ListPermissionsResponse) graphql.Marshaler {
+	return ec._ListPermissionsResponse(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNListPermissionsResponse2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐListPermissionsResponse(ctx context.Context, sel ast.SelectionSet, v *model.ListPermissionsResponse) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._ListPermissionsResponse(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNLoginRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐLoginRequest(ctx context.Context, v any) (model.LoginRequest, error) {
@@ -29316,19 +27007,14 @@ func (ec *executionContext) marshalNPermission2ᚖgithubᚗcomᚋauthorizerdev�
 	return ec._Permission(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNPermissionInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPermissionInput(ctx context.Context, v any) (*model.PermissionInput, error) {
-	res, err := ec.unmarshalInputPermissionInput(ctx, v)
-	return &res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) unmarshalNPolicyTargetInput2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPolicyTargetInputᚄ(ctx context.Context, v any) ([]*model.PolicyTargetInput, error) {
+func (ec *executionContext) unmarshalNPermissionCheckInput2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPermissionCheckInputᚄ(ctx context.Context, v any) ([]*model.PermissionCheckInput, error) {
 	var vSlice []any
 	vSlice = graphql.CoerceList(v)
 	var err error
-	res := make([]*model.PolicyTargetInput, len(vSlice))
+	res := make([]*model.PermissionCheckInput, len(vSlice))
 	for i := range vSlice {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalNPolicyTargetInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPolicyTargetInput(ctx, vSlice[i])
+		res[i], err = ec.unmarshalNPermissionCheckInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPermissionCheckInput(ctx, vSlice[i])
 		if err != nil {
 			return nil, err
 		}
@@ -29336,9 +27022,63 @@ func (ec *executionContext) unmarshalNPolicyTargetInput2ᚕᚖgithubᚗcomᚋaut
 	return res, nil
 }
 
-func (ec *executionContext) unmarshalNPolicyTargetInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPolicyTargetInput(ctx context.Context, v any) (*model.PolicyTargetInput, error) {
-	res, err := ec.unmarshalInputPolicyTargetInput(ctx, v)
+func (ec *executionContext) unmarshalNPermissionCheckInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPermissionCheckInput(ctx context.Context, v any) (*model.PermissionCheckInput, error) {
+	res, err := ec.unmarshalInputPermissionCheckInput(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNPermissionCheckResult2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPermissionCheckResultᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.PermissionCheckResult) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNPermissionCheckResult2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPermissionCheckResult(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNPermissionCheckResult2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPermissionCheckResult(ctx context.Context, sel ast.SelectionSet, v *model.PermissionCheckResult) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._PermissionCheckResult(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNResendOTPRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐResendOTPRequest(ctx context.Context, v any) (model.ResendOTPRequest, error) {
@@ -29455,28 +27195,8 @@ func (ec *executionContext) unmarshalNUpdateEnvRequest2githubᚗcomᚋauthorizer
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNUpdatePermissionInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdatePermissionInput(ctx context.Context, v any) (model.UpdatePermissionInput, error) {
-	res, err := ec.unmarshalInputUpdatePermissionInput(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) unmarshalNUpdatePolicyInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdatePolicyInput(ctx context.Context, v any) (model.UpdatePolicyInput, error) {
-	res, err := ec.unmarshalInputUpdatePolicyInput(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
 func (ec *executionContext) unmarshalNUpdateProfileRequest2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateProfileRequest(ctx context.Context, v any) (model.UpdateProfileRequest, error) {
 	res, err := ec.unmarshalInputUpdateProfileRequest(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) unmarshalNUpdateResourceInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateResourceInput(ctx context.Context, v any) (model.UpdateResourceInput, error) {
-	res, err := ec.unmarshalInputUpdateResourceInput(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) unmarshalNUpdateScopeInput2githubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐUpdateScopeInput(ctx context.Context, v any) (model.UpdateScopeInput, error) {
-	res, err := ec.unmarshalInputUpdateScopeInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
@@ -30101,17 +27821,17 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return res
 }
 
-func (ec *executionContext) unmarshalOID2ᚕstringᚄ(ctx context.Context, v any) ([]string, error) {
+func (ec *executionContext) unmarshalOFgaRelationInput2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaRelationInputᚄ(ctx context.Context, v any) ([]*model.FgaRelationInput, error) {
 	if v == nil {
 		return nil, nil
 	}
 	var vSlice []any
 	vSlice = graphql.CoerceList(v)
 	var err error
-	res := make([]string, len(vSlice))
+	res := make([]*model.FgaRelationInput, len(vSlice))
 	for i := range vSlice {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalNID2string(ctx, vSlice[i])
+		res[i], err = ec.unmarshalNFgaRelationInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaRelationInput(ctx, vSlice[i])
 		if err != nil {
 			return nil, err
 		}
@@ -30119,22 +27839,22 @@ func (ec *executionContext) unmarshalOID2ᚕstringᚄ(ctx context.Context, v any
 	return res, nil
 }
 
-func (ec *executionContext) marshalOID2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+func (ec *executionContext) unmarshalOFgaTupleInput2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaTupleInputᚄ(ctx context.Context, v any) ([]*model.FgaTupleInput, error) {
 	if v == nil {
-		return graphql.Null
+		return nil, nil
 	}
-	ret := make(graphql.Array, len(v))
-	for i := range v {
-		ret[i] = ec.marshalNID2string(ctx, sel, v[i])
-	}
-
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]*model.FgaTupleInput, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNFgaTupleInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐFgaTupleInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
 		}
 	}
-
-	return ret
+	return res, nil
 }
 
 func (ec *executionContext) unmarshalOID2ᚖstring(ctx context.Context, v any) (*string, error) {
@@ -30229,42 +27949,6 @@ func (ec *executionContext) unmarshalOPaginationRequest2ᚖgithubᚗcomᚋauthor
 	}
 	res, err := ec.unmarshalInputPaginationRequest(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) unmarshalOPermissionInput2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPermissionInputᚄ(ctx context.Context, v any) ([]*model.PermissionInput, error) {
-	if v == nil {
-		return nil, nil
-	}
-	var vSlice []any
-	vSlice = graphql.CoerceList(v)
-	var err error
-	res := make([]*model.PermissionInput, len(vSlice))
-	for i := range vSlice {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalNPermissionInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPermissionInput(ctx, vSlice[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-	return res, nil
-}
-
-func (ec *executionContext) unmarshalOPolicyTargetInput2ᚕᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPolicyTargetInputᚄ(ctx context.Context, v any) ([]*model.PolicyTargetInput, error) {
-	if v == nil {
-		return nil, nil
-	}
-	var vSlice []any
-	vSlice = graphql.CoerceList(v)
-	var err error
-	res := make([]*model.PolicyTargetInput, len(vSlice))
-	for i := range vSlice {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalNPolicyTargetInput2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐPolicyTargetInput(ctx, vSlice[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-	return res, nil
 }
 
 func (ec *executionContext) unmarshalOSessionQueryRequest2ᚖgithubᚗcomᚋauthorizerdevᚋauthorizerᚋinternalᚋgraphᚋmodelᚐSessionQueryRequest(ctx context.Context, v any) (*model.SessionQueryRequest, error) {

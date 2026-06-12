@@ -4,13 +4,15 @@ import (
 	"context"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 
 	"github.com/authorizerdev/authorizer/internal/audit"
-	"github.com/authorizerdev/authorizer/internal/authorization"
+	"github.com/authorizerdev/authorizer/internal/authorization/engine"
+	fgaengine "github.com/authorizerdev/authorizer/internal/authorization/engine/openfga"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/email"
 	"github.com/authorizerdev/authorizer/internal/events"
@@ -116,28 +118,43 @@ func runMCP(_ *cobra.Command, _ []string) {
 		log.Fatal().Err(err).Msg("failed to create events provider")
 	}
 
-	authorizationProvider, err := authorization.New(
-		&authorization.Config{CacheTTL: 0},
-		&authorization.Dependencies{
-			Log:                 &log,
-			StorageProvider:     storageProvider,
-			MemoryStoreProvider: memoryStoreProvider,
-		},
-	)
-	if err != nil {
-		log.Fatal().Err(err).Msg("failed to create authorization provider")
+	// Embedded OpenFGA engine, mirroring the wiring in root.go. Init failure
+	// is non-fatal: FGA is optional, so the engine stays nil and the
+	// permission tools fail closed while the rest of the MCP surface serves.
+	var authzEngine engine.AuthorizationEngine
+	if fgaStore, fgaStoreURL, fgaEnabled := rootArgs.config.FGAStoreConfig(); fgaEnabled {
+		runMigrations := !strings.EqualFold(fgaStore, fgaengine.StoreMemory)
+		fgaEngine, ferr := fgaengine.New(
+			&fgaengine.Config{
+				Store:         fgaStore,
+				StoreURL:      fgaStoreURL,
+				StoreName:     rootArgs.config.OrganizationName,
+				RunMigrations: runMigrations,
+			},
+			&fgaengine.Dependencies{Log: &log},
+		)
+		if ferr != nil {
+			log.Error().Err(ferr).
+				Str("fga_store", fgaStore).
+				Msg("failed to initialize OpenFGA authorization engine; fine-grained authorization is DISABLED (fail-closed)")
+		} else {
+			if closer, ok := fgaEngine.(interface{ Close() }); ok {
+				defer closer.Close()
+			}
+			authzEngine = fgaEngine
+		}
 	}
 
 	svc, err := service.New(&rootArgs.config, &service.Dependencies{
-		Log:                   &log,
-		AuditProvider:         auditProvider,
-		AuthorizationProvider: authorizationProvider,
-		EmailProvider:         emailProvider,
-		EventsProvider:        eventsProvider,
-		MemoryStoreProvider:   memoryStoreProvider,
-		SMSProvider:           smsProvider,
-		StorageProvider:       storageProvider,
-		TokenProvider:         tokenProvider,
+		Log:                 &log,
+		AuditProvider:       auditProvider,
+		AuthzEngine:         authzEngine,
+		EmailProvider:       emailProvider,
+		EventsProvider:      eventsProvider,
+		MemoryStoreProvider: memoryStoreProvider,
+		SMSProvider:         smsProvider,
+		StorageProvider:     storageProvider,
+		TokenProvider:       tokenProvider,
 	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create service provider")

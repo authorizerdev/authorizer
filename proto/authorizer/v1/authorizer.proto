@@ -4,7 +4,7 @@
 // MagicLinkLogin, VerifyEmail, ResendVerifyEmail, ForgotPassword,
 // ResetPassword, VerifyOtp, ResendOtp, UpdateProfile, DeactivateAccount,
 // Revoke, Meta, Session, Profile, ValidateJwtToken, ValidateSession,
-// Permissions, Logout.
+// CheckPermissions, ListPermissions, Logout.
 //
 // Why one service: clients consume a single typed client per language,
 // discovery is trivial, and the surface mirrors the GraphQL one users
@@ -14,7 +14,7 @@
 //
 // REST mapping follows a simple rule:
 //   - GET /v1/{method} when the request body is empty (Meta, Profile,
-//     Permissions, Logout)
+//     Logout)
 //   - POST /v1/{method} otherwise
 syntax = "proto3";
 
@@ -204,9 +204,30 @@ service AuthorizerService {
     option (authorizer.common.v1.mcp_tool) = {exposed: true};
   }
 
-  // Permissions returns the caller's effective (resource, scope) pairs.
-  rpc Permissions(PermissionsRequest) returns (PermissionsResponse) {
-    option (google.api.http) = {get: "/v1/permissions"};
+  // CheckPermissions evaluates one or more fine-grained permission checks
+  // ("does the subject have <relation> on <object>?") in a single call and
+  // returns one result per check, in order. The subject defaults to the
+  // authenticated caller; an explicit `user` is honored only for super-admins
+  // or when it equals the caller's own subject. Fail-closed.
+  rpc CheckPermissions(CheckPermissionsRequest) returns (CheckPermissionsResponse) {
+    option (google.api.http) = {
+      post: "/v1/check_permissions"
+      body: "*"
+    };
+    option (authorizer.common.v1.mcp_tool) = {exposed: true};
+  }
+
+  // ListPermissions enumerates what the subject can access. With both
+  // `relation` and `object_type` set it answers "which <object_type>s can I
+  // <relation>?"; either or both filters may be omitted to enumerate every
+  // matching (type, relation) pair of the active model. Results are capped;
+  // `truncated` reports when more permissions exist. Subject resolution
+  // follows the same rules as CheckPermissions.
+  rpc ListPermissions(ListPermissionsRequest) returns (ListPermissionsResponse) {
+    option (google.api.http) = {
+      post: "/v1/list_permissions"
+      body: "*"
+    };
     option (authorizer.common.v1.mcp_tool) = {exposed: true};
   }
 }
@@ -393,8 +414,10 @@ message SessionRequest {
   repeated string roles = 1;
   repeated string scope = 2;
   string state = 3;
-  // Optional AND-combined permission filter; deny if any is missing.
-  repeated PermissionInput required_permissions = 4;
+  // Optional fine-grained authorization gate: each (relation, object) is
+  // checked against the authenticated caller with AND semantics, fail-closed.
+  // Requires fine-grained authorization enabled (--fga-store).
+  repeated FgaRelationInput required_relations = 4;
 }
 message SessionResponse {
   AuthResponse auth = 1;
@@ -404,7 +427,8 @@ message ValidateJwtTokenRequest {
   string token_type = 1 [(buf.validate.field).string.min_len = 1];
   string token = 2 [(buf.validate.field).string.min_len = 1];
   repeated string roles = 3;
-  repeated PermissionInput required_permissions = 4;
+  // Optional fine-grained authorization gate (AND semantics, fail-closed).
+  repeated FgaRelationInput required_relations = 4;
 }
 message ValidateJwtTokenResponse {
   bool is_valid = 1;
@@ -415,7 +439,8 @@ message ValidateJwtTokenResponse {
 message ValidateSessionRequest {
   string cookie = 1 [(buf.validate.field).string.min_len = 1];
   repeated string roles = 2;
-  repeated PermissionInput required_permissions = 3;
+  // Optional fine-grained authorization gate (AND semantics, fail-closed).
+  repeated FgaRelationInput required_relations = 3;
 }
 message ValidateSessionResponse {
   bool is_valid = 1;
@@ -427,7 +452,37 @@ message MetaResponse {
   Meta meta = 1;
 }
 
-message PermissionsRequest {}
-message PermissionsResponse {
-  repeated Permission permissions = 1;
+message CheckPermissionsRequest {
+  // The checks to evaluate; at least one, at most 100.
+  repeated PermissionCheckInput checks = 1 [(buf.validate.field).repeated = {
+    min_items: 1
+    max_items: 100
+  }];
+  // Optional explicit subject ("type:id", or a bare id treated as
+  // "user:<id>"). Honored only for super-admins or when it equals the
+  // caller's own token subject; anything else is rejected.
+  string user = 2;
+}
+message CheckPermissionsResponse {
+  // One result per supplied check, in order.
+  repeated PermissionCheckResult results = 1;
+}
+
+message ListPermissionsRequest {
+  // Optional relation filter (e.g. "can_view").
+  string relation = 1;
+  // Optional object-type filter (e.g. "document").
+  string object_type = 2;
+  // Optional explicit subject; same trust rules as CheckPermissionsRequest.
+  string user = 3;
+}
+message ListPermissionsResponse {
+  // Distinct fully-qualified object ids the subject can access.
+  repeated string objects = 1;
+  // The (object, relation) detail — relevant when no relation filter was
+  // supplied.
+  repeated Permission permissions = 2;
+  // True when the result was capped (1000 entries) and more permissions
+  // exist.
+  bool truncated = 3;
 }

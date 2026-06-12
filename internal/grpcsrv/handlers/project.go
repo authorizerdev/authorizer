@@ -143,21 +143,52 @@ func derefStringSlice(in []*string) []string {
 	return out
 }
 
-// protoToModelPermissions converts the proto PermissionInput repeated field
-// into the GraphQL model.PermissionInput slice used by service methods.
-func protoToModelPermissions(in []*authorizerv1.PermissionInput) []*model.PermissionInput {
+// protoToModelRequiredRelations converts the proto FgaRelationInput repeated
+// field into the GraphQL model.FgaRelationInput slice used by service methods.
+func protoToModelRequiredRelations(in []*authorizerv1.FgaRelationInput) []*model.FgaRelationInput {
 	if len(in) == 0 {
 		return nil
 	}
-	out := make([]*model.PermissionInput, 0, len(in))
-	for _, p := range in {
-		if p == nil {
+	out := make([]*model.FgaRelationInput, 0, len(in))
+	for _, r := range in {
+		if r == nil {
 			continue
 		}
-		out = append(out, &model.PermissionInput{
-			Resource: p.Resource,
-			Scope:    p.Scope,
+		out = append(out, &model.FgaRelationInput{
+			Relation: r.Relation,
+			Object:   r.Object,
 		})
+	}
+	return out
+}
+
+// protoToModelPermissionChecks converts the proto PermissionCheckInput
+// repeated field (including request-scoped contextual tuples) into the
+// GraphQL model slice used by service.CheckPermissions.
+func protoToModelPermissionChecks(in []*authorizerv1.PermissionCheckInput) []*model.PermissionCheckInput {
+	if len(in) == 0 {
+		return nil
+	}
+	out := make([]*model.PermissionCheckInput, 0, len(in))
+	for _, c := range in {
+		if c == nil {
+			continue
+		}
+		check := &model.PermissionCheckInput{
+			Relation: c.Relation,
+			Object:   c.Object,
+		}
+		for _, t := range c.ContextualTuples {
+			if t == nil {
+				continue
+			}
+			check.ContextualTuples = append(check.ContextualTuples, &model.FgaTupleInput{
+				User:     t.User,
+				Relation: t.Relation,
+				Object:   t.Object,
+			})
+		}
+		out = append(out, check)
 	}
 	return out
 }

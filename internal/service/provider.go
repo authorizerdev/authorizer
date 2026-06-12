@@ -6,7 +6,7 @@ import (
 	"github.com/rs/zerolog"
 
 	"github.com/authorizerdev/authorizer/internal/audit"
-	"github.com/authorizerdev/authorizer/internal/authorization"
+	"github.com/authorizerdev/authorizer/internal/authorization/engine"
 	"github.com/authorizerdev/authorizer/internal/config"
 	"github.com/authorizerdev/authorizer/internal/email"
 	"github.com/authorizerdev/authorizer/internal/events"
@@ -22,14 +22,17 @@ import (
 type Dependencies struct {
 	Log *zerolog.Logger
 
-	AuditProvider         audit.Provider
-	AuthorizationProvider authorization.Provider
-	EmailProvider         email.Provider
-	EventsProvider        events.Provider
-	MemoryStoreProvider   memory_store.Provider
-	SMSProvider           sms.Provider
-	StorageProvider       storage.Provider
-	TokenProvider         token.Provider
+	AuditProvider audit.Provider
+	// AuthzEngine is the fine-grained authorization (FGA) engine.
+	// It is nil unless an FGA store is configured (--fga-store);
+	// FGA-gated operations MUST fail closed (return an error) when it is nil.
+	AuthzEngine         engine.AuthorizationEngine
+	EmailProvider       email.Provider
+	EventsProvider      events.Provider
+	MemoryStoreProvider memory_store.Provider
+	SMSProvider         sms.Provider
+	StorageProvider     storage.Provider
+	TokenProvider       token.Provider
 }
 
 // Provider is the transport-agnostic API for Authorizer public operations.
@@ -51,9 +54,15 @@ type Provider interface {
 	// Profile returns the authenticated user. Requires session/bearer auth.
 	Profile(ctx context.Context, meta RequestMetadata) (*model.User, *ResponseSideEffects, error)
 
-	// Permissions returns (resource, scope) pairs the caller is allowed to
-	// act on. Requires session/bearer auth.
-	Permissions(ctx context.Context, meta RequestMetadata) ([]*model.Permission, *ResponseSideEffects, error)
+	// CheckPermissions evaluates one or more fine-grained permission checks
+	// for the caller (or, for super-admins, an explicit subject). Requires
+	// session/bearer auth and a configured FGA engine (fail-closed).
+	CheckPermissions(ctx context.Context, meta RequestMetadata, params *model.CheckPermissionsInput) (*model.CheckPermissionsResponse, *ResponseSideEffects, error)
+
+	// ListPermissions enumerates what the caller (or, for super-admins, an
+	// explicit subject) can access. Requires session/bearer auth and a
+	// configured FGA engine (fail-closed).
+	ListPermissions(ctx context.Context, meta RequestMetadata, params *model.ListPermissionsInput) (*model.ListPermissionsResponse, *ResponseSideEffects, error)
 
 	// Logout ends the caller's current session. Browser callers get
 	// expired Set-Cookie headers via side-effects. Requires auth.

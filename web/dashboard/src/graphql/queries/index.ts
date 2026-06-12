@@ -109,118 +109,6 @@ export const WebhookLogsQuery = `
   }
 `;
 
-// Authorization queries
-export const ResourcesQuery = `
-  query getResources($params: PaginatedRequest) {
-    _authz_resources(params: $params) {
-      resources {
-        id
-        name
-        description
-        created_at
-        updated_at
-      }
-      pagination {
-        limit
-        page
-        offset
-        total
-      }
-    }
-  }
-`;
-
-export const ScopesQuery = `
-  query getScopes($params: PaginatedRequest) {
-    _authz_scopes(params: $params) {
-      scopes {
-        id
-        name
-        description
-        created_at
-        updated_at
-      }
-      pagination {
-        limit
-        page
-        offset
-        total
-      }
-    }
-  }
-`;
-
-export const PoliciesQuery = `
-  query getPolicies($params: PaginatedRequest) {
-    _authz_policies(params: $params) {
-      policies {
-        id
-        name
-        description
-        type
-        logic
-        decision_strategy
-        targets {
-          id
-          target_type
-          target_value
-        }
-        created_at
-        updated_at
-      }
-      pagination {
-        limit
-        page
-        offset
-        total
-      }
-    }
-  }
-`;
-
-export const PermissionsQuery = `
-  query getPermissions($params: PaginatedRequest) {
-    _authz_permissions(params: $params) {
-      permissions {
-        id
-        name
-        description
-        resource {
-          id
-          name
-          description
-        }
-        scopes {
-          id
-          name
-          description
-        }
-        policies {
-          id
-          name
-          type
-          logic
-          decision_strategy
-          targets {
-            id
-            target_type
-            target_value
-          }
-        }
-        decision_strategy
-        created_at
-        updated_at
-      }
-      pagination {
-        limit
-        page
-        offset
-        total
-      }
-    }
-  }
-`;
-
 export const AuditLogsQuery = `
   query getAuditLogs($params: ListAuditLogRequest!) {
     _audit_logs(params: $params) {
@@ -243,6 +131,57 @@ export const AuditLogsQuery = `
         offset
         total
       }
+    }
+  }
+`;
+
+export const FgaGetModelQuery = `
+  query fgaGetModel {
+    _fga_get_model {
+      id
+      dsl
+    }
+  }
+`;
+
+export const FgaReadTuplesQuery = `
+  query fgaReadTuples($params: FgaReadTuplesInput!) {
+    _fga_read_tuples(params: $params) {
+      tuples {
+        user
+        relation
+        object
+      }
+      continuation_token
+    }
+  }
+`;
+
+// ListPermissionsQuery enumerates what a subject can access. relation and
+// object_type are optional — omitting them lists ALL permissions the subject
+// holds across the model. The optional user param is honored for the
+// super-admin dashboard session.
+export const ListPermissionsQuery = `
+  query listPermissions($params: ListPermissionsInput!) {
+    list_permissions(params: $params) {
+      objects
+      permissions {
+        object
+        relation
+      }
+      truncated
+    }
+  }
+`;
+
+// AdminRolesQuery fetches the instance's configured roles via the admin-only
+// _admin_meta query so the FGA model builder can seed its matrix with the real
+// roles, and the dashboard can flag FGA role references that aren't configured
+// roles. (_env, the old source, is deprecated in v2.)
+export const AdminRolesQuery = `
+  query adminMeta {
+    _admin_meta {
+      roles
     }
   }
 `;

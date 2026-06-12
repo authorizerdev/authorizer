@@ -76,10 +76,10 @@ func (h *AuthorizerHandler) Revoke(ctx context.Context, req *authorizerv1.Revoke
 // the existing GraphQL semantics.
 func (h *AuthorizerHandler) ValidateJwtToken(ctx context.Context, req *authorizerv1.ValidateJwtTokenRequest) (*authorizerv1.ValidateJwtTokenResponse, error) {
 	res, _, err := h.Service.ValidateJwtToken(ctx, transport.MetaFromGRPC(ctx), &model.ValidateJWTTokenRequest{
-		TokenType:           req.TokenType,
-		Token:               req.Token,
-		Roles:               req.Roles,
-		RequiredPermissions: protoToModelPermissions(req.RequiredPermissions),
+		TokenType:         req.TokenType,
+		Token:             req.Token,
+		Roles:             req.Roles,
+		RequiredRelations: protoToModelRequiredRelations(req.RequiredRelations),
 	})
 	if err != nil {
 		return nil, err
@@ -93,9 +93,9 @@ func (h *AuthorizerHandler) ValidateJwtToken(ctx context.Context, req *authorize
 // ValidateSession delegates to service.ValidateSession.
 func (h *AuthorizerHandler) ValidateSession(ctx context.Context, req *authorizerv1.ValidateSessionRequest) (*authorizerv1.ValidateSessionResponse, error) {
 	res, _, err := h.Service.ValidateSession(ctx, transport.MetaFromGRPC(ctx), &model.ValidateSessionRequest{
-		Cookie:              req.Cookie,
-		Roles:               req.Roles,
-		RequiredPermissions: protoToModelPermissions(req.RequiredPermissions),
+		Cookie:            req.Cookie,
+		Roles:             req.Roles,
+		RequiredRelations: protoToModelRequiredRelations(req.RequiredRelations),
 	})
 	if err != nil {
 		return nil, err
@@ -111,10 +111,10 @@ func (h *AuthorizerHandler) ValidateSession(ctx context.Context, req *authorizer
 // carries credentials and is intentionally NOT MCP-exposed (audit C1).
 func (h *AuthorizerHandler) Session(ctx context.Context, req *authorizerv1.SessionRequest) (*authorizerv1.SessionResponse, error) {
 	res, side, err := h.Service.Session(ctx, transport.MetaFromGRPC(ctx), &model.SessionQueryRequest{
-		Roles:               req.Roles,
-		Scope:               req.Scope,
-		State:               refs.NewStringRef(req.State),
-		RequiredPermissions: protoToModelPermissions(req.RequiredPermissions),
+		Roles:             req.Roles,
+		Scope:             req.Scope,
+		State:             refs.NewStringRef(req.State),
+		RequiredRelations: protoToModelRequiredRelations(req.RequiredRelations),
 	})
 	if err != nil {
 		return nil, err
@@ -134,18 +134,57 @@ func (h *AuthorizerHandler) Profile(ctx context.Context, _ *authorizerv1.Profile
 	return &authorizerv1.ProfileResponse{User: projectUser(u)}, nil
 }
 
-// Permissions delegates to service.Permissions and projects the result into
-// the proto PermissionsResponse.
-func (h *AuthorizerHandler) Permissions(ctx context.Context, _ *authorizerv1.PermissionsRequest) (*authorizerv1.PermissionsResponse, error) {
-	perms, _, err := h.Service.Permissions(ctx, transport.MetaFromGRPC(ctx))
+// CheckPermissions delegates to service.CheckPermissions and projects the
+// per-check results. The subject trust gate and fail-closed semantics live
+// in the service layer.
+func (h *AuthorizerHandler) CheckPermissions(ctx context.Context, req *authorizerv1.CheckPermissionsRequest) (*authorizerv1.CheckPermissionsResponse, error) {
+	params := &model.CheckPermissionsInput{
+		Checks: protoToModelPermissionChecks(req.Checks),
+	}
+	if req.User != "" {
+		params.User = refs.NewStringRef(req.User)
+	}
+	res, _, err := h.Service.CheckPermissions(ctx, transport.MetaFromGRPC(ctx), params)
 	if err != nil {
 		return nil, err
 	}
-	out := make([]*authorizerv1.Permission, len(perms))
-	for i, p := range perms {
-		out[i] = &authorizerv1.Permission{Resource: p.Resource, Scope: p.Scope}
+	out := make([]*authorizerv1.PermissionCheckResult, 0, len(res.Results))
+	for _, r := range res.Results {
+		out = append(out, &authorizerv1.PermissionCheckResult{
+			Relation: r.Relation,
+			Object:   r.Object,
+			Allowed:  r.Allowed,
+		})
 	}
-	return &authorizerv1.PermissionsResponse{Permissions: out}, nil
+	return &authorizerv1.CheckPermissionsResponse{Results: out}, nil
+}
+
+// ListPermissions delegates to service.ListPermissions and projects the
+// (object, relation) pairs plus the distinct object list.
+func (h *AuthorizerHandler) ListPermissions(ctx context.Context, req *authorizerv1.ListPermissionsRequest) (*authorizerv1.ListPermissionsResponse, error) {
+	params := &model.ListPermissionsInput{}
+	if req.Relation != "" {
+		params.Relation = refs.NewStringRef(req.Relation)
+	}
+	if req.ObjectType != "" {
+		params.ObjectType = refs.NewStringRef(req.ObjectType)
+	}
+	if req.User != "" {
+		params.User = refs.NewStringRef(req.User)
+	}
+	res, _, err := h.Service.ListPermissions(ctx, transport.MetaFromGRPC(ctx), params)
+	if err != nil {
+		return nil, err
+	}
+	perms := make([]*authorizerv1.Permission, 0, len(res.Permissions))
+	for _, p := range res.Permissions {
+		perms = append(perms, &authorizerv1.Permission{Object: p.Object, Relation: p.Relation})
+	}
+	return &authorizerv1.ListPermissionsResponse{
+		Objects:     res.Objects,
+		Permissions: perms,
+		Truncated:   res.Truncated,
+	}, nil
 }
 
 // Logout delegates to service.Logout, applies any cookie side-effects to

@@ -16,6 +16,39 @@
     "application/json"
   ],
   "paths": {
+    "/v1/check_permissions": {
+      "post": {
+        "summary": "CheckPermissions evaluates one or more fine-grained permission checks\n(\"does the subject have \u003crelation\u003e on \u003cobject\u003e?\") in a single call and\nreturns one result per check, in order. The subject defaults to the\nauthenticated caller; an explicit `user` is honored only for super-admins\nor when it equals the caller's own subject. Fail-closed.",
+        "operationId": "AuthorizerService_CheckPermissions",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1CheckPermissionsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CheckPermissionsRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerService"
+        ]
+      }
+    },
     "/v1/deactivate_account": {
       "post": {
         "summary": "DeactivateAccount soft-deletes the caller's account and revokes all\nrefresh tokens as a side effect. OAuth has no concept of account\ndeactivation; this is the typed equivalent of SCIM PATCH active=false.",
@@ -73,6 +106,39 @@
             "required": true,
             "schema": {
               "$ref": "#/definitions/v1ForgotPasswordRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerService"
+        ]
+      }
+    },
+    "/v1/list_permissions": {
+      "post": {
+        "summary": "ListPermissions enumerates what the subject can access. With both\n`relation` and `object_type` set it answers \"which \u003cobject_type\u003es can I\n\u003crelation\u003e?\"; either or both filters may be omitted to enumerate every\nmatching (type, relation) pair of the active model. Results are capped;\n`truncated` reports when more permissions exist. Subject resolution\nfollows the same rules as CheckPermissions.",
+        "operationId": "AuthorizerService_ListPermissions",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ListPermissionsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1ListPermissionsRequest"
             }
           }
         ],
@@ -179,29 +245,6 @@
             "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/v1MetaResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "tags": [
-          "AuthorizerService"
-        ]
-      }
-    },
-    "/v1/permissions": {
-      "get": {
-        "summary": "Permissions returns the caller's effective (resource, scope) pairs.",
-        "operationId": "AuthorizerService_Permissions",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/v1PermissionsResponse"
             }
           },
           "default": {
@@ -754,6 +797,36 @@
       },
       "description": "AuthResponse mirrors the GraphQL AuthResponse type. Returned (wrapped) by\nevery method that produces a session: Signup, Login, MagicLinkLogin,\nVerifyEmail, VerifyOtp, Session."
     },
+    "v1CheckPermissionsRequest": {
+      "type": "object",
+      "properties": {
+        "checks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1PermissionCheckInput"
+          },
+          "description": "The checks to evaluate; at least one, at most 100."
+        },
+        "user": {
+          "type": "string",
+          "description": "Optional explicit subject (\"type:id\", or a bare id treated as\n\"user:\u003cid\u003e\"). Honored only for super-admins or when it equals the\ncaller's own token subject; anything else is rejected."
+        }
+      }
+    },
+    "v1CheckPermissionsResponse": {
+      "type": "object",
+      "properties": {
+        "results": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1PermissionCheckResult"
+          },
+          "description": "One result per supplied check, in order."
+        }
+      }
+    },
     "v1DeactivateAccountRequest": {
       "type": "object"
     },
@@ -764,6 +837,33 @@
           "type": "string"
         }
       }
+    },
+    "v1FgaRelationInput": {
+      "type": "object",
+      "properties": {
+        "relation": {
+          "type": "string"
+        },
+        "object": {
+          "type": "string"
+        }
+      },
+      "description": "FgaRelationInput is a (relation, object) requirement evaluated against the\nauthenticated caller during Session / ValidateJwtToken / ValidateSession.\nAND semantics, fail-closed. Mirrors the GraphQL FgaRelationInput type."
+    },
+    "v1FgaTupleInput": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "type": "string"
+        },
+        "relation": {
+          "type": "string"
+        },
+        "object": {
+          "type": "string"
+        }
+      },
+      "description": "FgaTupleInput is one relationship tuple supplied as request-scoped context\nfor a permission check; contextual tuples are never persisted. Mirrors the\nGraphQL FgaTupleInput type."
     },
     "v1ForgotPasswordRequest": {
       "type": "object",
@@ -791,6 +891,47 @@
         "should_show_mobile_otp_screen": {
           "type": "boolean",
           "description": "For SMS-driven flows the UI may need to render an OTP entry screen."
+        }
+      }
+    },
+    "v1ListPermissionsRequest": {
+      "type": "object",
+      "properties": {
+        "relation": {
+          "type": "string",
+          "description": "Optional relation filter (e.g. \"can_view\")."
+        },
+        "object_type": {
+          "type": "string",
+          "description": "Optional object-type filter (e.g. \"document\")."
+        },
+        "user": {
+          "type": "string",
+          "description": "Optional explicit subject; same trust rules as CheckPermissionsRequest."
+        }
+      }
+    },
+    "v1ListPermissionsResponse": {
+      "type": "object",
+      "properties": {
+        "objects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Distinct fully-qualified object ids the subject can access."
+        },
+        "permissions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Permission"
+          },
+          "description": "The (object, relation) detail — relevant when no relation filter was\nsupplied."
+        },
+        "truncated": {
+          "type": "boolean",
+          "description": "True when the result was capped (1000 entries) and more permissions\nexist."
         }
       }
     },
@@ -884,38 +1025,48 @@
     "v1Permission": {
       "type": "object",
       "properties": {
-        "resource": {
+        "object": {
           "type": "string"
         },
-        "scope": {
+        "relation": {
           "type": "string"
         }
       },
-      "description": "Permission is one (resource, scope) pair the caller is allowed to act on."
+      "description": "Permission is one (object, relation) pair the subject holds: \"subject has\n`relation` on `object`\". Mirrors the GraphQL Permission type."
     },
-    "v1PermissionInput": {
+    "v1PermissionCheckInput": {
       "type": "object",
       "properties": {
-        "resource": {
+        "relation": {
           "type": "string"
         },
-        "scope": {
+        "object": {
           "type": "string"
-        }
-      },
-      "description": "PermissionInput is the request-side mirror of Permission used by\nmethods that take a list of required permissions."
-    },
-    "v1PermissionsResponse": {
-      "type": "object",
-      "properties": {
-        "permissions": {
+        },
+        "contextual_tuples": {
           "type": "array",
           "items": {
             "type": "object",
-            "$ref": "#/definitions/v1Permission"
+            "$ref": "#/definitions/v1FgaTupleInput"
           }
         }
-      }
+      },
+      "description": "PermissionCheckInput is one permission to evaluate: \"does the subject have\n\u003crelation\u003e on \u003cobject\u003e?\". Mirrors the GraphQL PermissionCheckInput type."
+    },
+    "v1PermissionCheckResult": {
+      "type": "object",
+      "properties": {
+        "relation": {
+          "type": "string"
+        },
+        "object": {
+          "type": "string"
+        },
+        "allowed": {
+          "type": "boolean"
+        }
+      },
+      "description": "PermissionCheckResult is the outcome of one permission check, echoing the\nchecked pair so batch results are self-describing (and positionally\naligned). Mirrors the GraphQL PermissionCheckResult type."
     },
     "v1ProfileResponse": {
       "type": "object",
@@ -1032,13 +1183,13 @@
         "state": {
           "type": "string"
         },
-        "required_permissions": {
+        "required_relations": {
           "type": "array",
           "items": {
             "type": "object",
-            "$ref": "#/definitions/v1PermissionInput"
+            "$ref": "#/definitions/v1FgaRelationInput"
           },
-          "description": "Optional AND-combined permission filter; deny if any is missing."
+          "title": "Optional fine-grained authorization gate: each (relation, object) is\nchecked against the authenticated caller with AND semantics, fail-closed.\nRequires fine-grained authorization enabled"
         }
       }
     },
@@ -1265,12 +1416,13 @@
             "type": "string"
           }
         },
-        "required_permissions": {
+        "required_relations": {
           "type": "array",
           "items": {
             "type": "object",
-            "$ref": "#/definitions/v1PermissionInput"
-          }
+            "$ref": "#/definitions/v1FgaRelationInput"
+          },
+          "description": "Optional fine-grained authorization gate (AND semantics, fail-closed)."
         }
       }
     },
@@ -1298,12 +1450,13 @@
             "type": "string"
           }
         },
-        "required_permissions": {
+        "required_relations": {
           "type": "array",
           "items": {
             "type": "object",
-            "$ref": "#/definitions/v1PermissionInput"
-          }
+            "$ref": "#/definitions/v1FgaRelationInput"
+          },
+          "description": "Optional fine-grained authorization gate (AND semantics, fail-closed)."
         }
       }
     },
