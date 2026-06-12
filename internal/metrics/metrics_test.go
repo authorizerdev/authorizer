@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -62,4 +63,41 @@ func TestSkipHTTPRequestMetrics_chunkSegment(t *testing.T) {
 	// Path segment must be prefixed with "chunk-", not merely contain it.
 	assert.False(t, SkipHTTPRequestMetrics("/foo/mychunk-file.js"))
 	assert.True(t, SkipHTTPRequestMetrics("/chunk-xyz"))
+}
+
+func TestRecordFgaCheck(t *testing.T) {
+	// RecordFgaCheckResult maps the boolean decision to the right label.
+	allowBefore := testutil.ToFloat64(FgaChecksTotal.WithLabelValues(FgaOpCheckPermissions, FgaResultAllowed))
+	RecordFgaCheckResult(FgaOpCheckPermissions, true)
+	assert.Equal(t, allowBefore+1,
+		testutil.ToFloat64(FgaChecksTotal.WithLabelValues(FgaOpCheckPermissions, FgaResultAllowed)))
+
+	denyBefore := testutil.ToFloat64(FgaChecksTotal.WithLabelValues(FgaOpCheckPermissions, FgaResultDenied))
+	RecordFgaCheckResult(FgaOpCheckPermissions, false)
+	assert.Equal(t, denyBefore+1,
+		testutil.ToFloat64(FgaChecksTotal.WithLabelValues(FgaOpCheckPermissions, FgaResultDenied)))
+
+	errBefore := testutil.ToFloat64(FgaChecksTotal.WithLabelValues(FgaOpCheckPermissions, FgaResultError))
+	RecordFgaCheck(FgaOpCheckPermissions, FgaResultError)
+	assert.Equal(t, errBefore+1,
+		testutil.ToFloat64(FgaChecksTotal.WithLabelValues(FgaOpCheckPermissions, FgaResultError)))
+}
+
+func TestRecordFgaOperation(t *testing.T) {
+	before := testutil.ToFloat64(FgaOperationsTotal.WithLabelValues(FgaOpWriteModel, FgaResultSuccess))
+	RecordFgaOperation(FgaOpWriteModel, FgaResultSuccess)
+	assert.Equal(t, before+1,
+		testutil.ToFloat64(FgaOperationsTotal.WithLabelValues(FgaOpWriteModel, FgaResultSuccess)))
+
+	errBefore := testutil.ToFloat64(FgaOperationsTotal.WithLabelValues(FgaOpReset, FgaResultError))
+	RecordFgaOperation(FgaOpReset, FgaResultError)
+	assert.Equal(t, errBefore+1,
+		testutil.ToFloat64(FgaOperationsTotal.WithLabelValues(FgaOpReset, FgaResultError)))
+}
+
+func TestObserveFgaCheckDuration(t *testing.T) {
+	ObserveFgaCheckDuration(FgaOpListPermissions, 0.01)
+	ObserveFgaCheckDuration(FgaOpCheckPermissions, 0.02)
+	// At least the two observed series are present in the histogram vec.
+	assert.GreaterOrEqual(t, testutil.CollectAndCount(FgaCheckDuration), 1)
 }

@@ -2,7 +2,6 @@ package sql
 
 import (
 	libsql "github.com/ekristen/gorm-libsql"
-	"github.com/glebarez/sqlite"
 	"github.com/rs/zerolog"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/config"
 	"github.com/authorizerdev/authorizer/internal/constants"
+	sqlite "github.com/authorizerdev/authorizer/internal/storage/db/sql/sqlitedialect"
 	"github.com/authorizerdev/authorizer/internal/storage/schemas"
 )
 
@@ -83,7 +83,7 @@ func NewProvider(
 		}
 	}
 
-	err = sqlDB.AutoMigrate(&schemas.User{}, &schemas.VerificationRequest{}, &schemas.Session{}, &schemas.Env{}, &schemas.Webhook{}, &schemas.WebhookLog{}, &schemas.EmailTemplate{}, &schemas.OTP{}, &schemas.Authenticator{}, &schemas.SessionToken{}, &schemas.MFASession{}, &schemas.OAuthState{}, &schemas.AuditLog{}, &schemas.Resource{}, &schemas.Scope{}, &schemas.Policy{}, &schemas.PolicyTarget{}, &schemas.Permission{}, &schemas.PermissionScope{}, &schemas.PermissionPolicy{})
+	err = sqlDB.AutoMigrate(&schemas.User{}, &schemas.VerificationRequest{}, &schemas.Session{}, &schemas.Env{}, &schemas.Webhook{}, &schemas.WebhookLog{}, &schemas.EmailTemplate{}, &schemas.OTP{}, &schemas.Authenticator{}, &schemas.SessionToken{}, &schemas.MFASession{}, &schemas.OAuthState{}, &schemas.AuditLog{})
 	if err != nil {
 		return nil, err
 	}

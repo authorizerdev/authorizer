@@ -35,6 +35,15 @@ type Meta {
   is_phone_verification_enabled: Boolean!
 }
 
+# AdminMeta is admin-only configuration metadata exposed via the _admin_meta
+# query — the non-deprecated way for the dashboard to read configured roles
+# (the deprecated _env used to carry these).
+type AdminMeta {
+  roles: [String!]!
+  default_roles: [String!]!
+  protected_roles: [String!]!
+}
+
 type User {
   id: ID!
   # email or phone_number is always present
@@ -108,6 +117,71 @@ type AuthResponse {
 
 type Response {
   message: String!
+}
+
+# ---- Fine-grained authorization (FGA) types ----
+
+# FgaTuple is a single relationship: user is related to object via relation.
+# Identifiers follow OpenFGA conventions: user "user:alice" (or userset
+# "role:admin#assignee"), object "document:1".
+type FgaTuple {
+  user: String!
+  relation: String!
+  object: String!
+}
+
+# FgaModel describes an authorization model (id + DSL form).
+type FgaModel {
+  id: String!
+  dsl: String!
+}
+
+# FgaTuples is a page of tuples plus a continuation token (empty when exhausted).
+type FgaTuples {
+  tuples: [FgaTuple!]!
+  continuation_token: String
+}
+
+# PermissionCheckResult is the outcome of one permission check, echoing the
+# checked pair so batch results are self-describing (and positionally aligned).
+type PermissionCheckResult {
+  relation: String!
+  object: String!
+  allowed: Boolean!
+}
+
+# CheckPermissionsResponse carries one result per supplied check, in order.
+type CheckPermissionsResponse {
+  results: [PermissionCheckResult!]!
+}
+
+# Permission is one (object, relation) pair the subject holds: "subject has
+# `relation` on `object`".
+type Permission {
+  object: String!
+  relation: String!
+}
+
+# ListPermissionsResponse lists what the subject can access. `objects` is the
+# distinct fully-qualified object ids; `permissions` carries the (object,
+# relation) detail — relevant when no relation filter was supplied. `truncated`
+# is true when the result was capped (1000 entries) and more permissions exist.
+type ListPermissionsResponse {
+  objects: [String!]!
+  permissions: [Permission!]!
+  truncated: Boolean!
+}
+
+# FgaListUsersResponse lists fully-qualified user ids (e.g. "user:alice") that
+# have the queried relation on an object. Admin-only (reveals the access graph).
+type FgaListUsersResponse {
+  users: [String!]!
+}
+
+# FgaExpandResponse is the OpenFGA relationship/userset tree for a (relation,
+# object), serialized as a JSON string. Admin-only (reveals the access graph).
+type FgaExpandResponse {
+  tree: String!
 }
 
 type ForgotPasswordResponse {
@@ -510,10 +584,10 @@ input SessionQueryRequest {
   # when a session already exists and the login UI auto-detects it,
   # passing state ensures the authorization code state is properly stored
   state: String
-  # required_permissions is an optional list of resource:scope pairs that
-  # must all be granted to the principal. If any is denied the query returns
-  # unauthorized (AND semantics, matching the roles filter).
-  required_permissions: [PermissionInput!]
+  # required_relations gates the session on fine-grained authorization.
+  # Each (relation, object) is checked against the authenticated caller with
+  # AND semantics, fail-closed. Requires fine-grained authorization enabled (--fga-store).
+  required_relations: [FgaRelationInput!]
 }
 
 input PaginationRequest {
@@ -542,13 +616,17 @@ input ValidateJWTTokenRequest {
   token_type: String!
   token: String!
   roles: [String!]
-  required_permissions: [PermissionInput!]
+  # required_relations gates validation on fine-grained authorization.
+  # AND semantics, fail-closed. Requires fine-grained authorization enabled (--fga-store).
+  required_relations: [FgaRelationInput!]
 }
 
 input ValidateSessionRequest {
   cookie: String!
   roles: [String!]
-  required_permissions: [PermissionInput!]
+  # required_relations gates validation on fine-grained authorization.
+  # AND semantics, fail-closed. Requires fine-grained authorization enabled (--fga-store).
+  required_relations: [FgaRelationInput!]
 }
 
 input GenerateJWTKeysRequest {
@@ -647,143 +725,88 @@ input GetUserRequest {
   email: String
 }
 
-type AuthzResource {
-  id: ID!
-  name: String!
-  description: String
-  created_at: Int64!
-  updated_at: Int64!
+# ---- Fine-grained authorization (FGA) inputs ----
+
+# FgaTupleInput is a single relationship tuple supplied by an admin for write /
+# delete / read operations.
+input FgaTupleInput {
+  user: String!
+  relation: String!
+  object: String!
 }
 
-type AuthzResources {
-  pagination: Pagination!
-  resources: [AuthzResource!]!
+# FgaWriteModelInput installs a new authorization model from its DSL form.
+input FgaWriteModelInput {
+  dsl: String!
 }
 
-type AuthzScope {
-  id: ID!
-  name: String!
-  description: String
-  created_at: Int64!
-  updated_at: Int64!
+# FgaWriteTuplesInput is used for both writing and deleting tuples.
+input FgaWriteTuplesInput {
+  tuples: [FgaTupleInput!]!
 }
 
-type AuthzScopes {
-  pagination: Pagination!
-  scopes: [AuthzScope!]!
+# FgaReadTuplesInput is a paginated, optionally-filtered tuple read. Any empty
+# field acts as a wildcard for that position.
+input FgaReadTuplesInput {
+  user: String
+  relation: String
+  object: String
+  page_size: Int64
+  continuation_token: String
 }
 
-type AuthzPolicyTarget {
-  id: ID!
-  target_type: String!
-  target_value: String!
+# PermissionCheckInput is one permission to evaluate: "does the subject have
+# <relation> on <object>?". Contextual tuples are evaluated for this check only
+# and never persisted.
+input PermissionCheckInput {
+  relation: String!
+  object: String!
+  contextual_tuples: [FgaTupleInput!]
 }
 
-type AuthzPolicy {
-  id: ID!
-  name: String!
-  description: String
-  type: String!
-  logic: String!
-  decision_strategy: String!
-  targets: [AuthzPolicyTarget!]!
-  created_at: Int64!
-  updated_at: Int64!
+# CheckPermissionsInput evaluates one or more permission checks in a single
+# call. The subject defaults to the authenticated caller (JWT / session
+# cookie). The optional `user` ("type:id", or a bare id treated as
+# "user:<id>") is honored only when the caller is a super-admin OR it equals
+# the caller's own token subject; anything else is rejected — never silently
+# ignored.
+input CheckPermissionsInput {
+  checks: [PermissionCheckInput!]!
+  user: String
 }
 
-type AuthzPolicies {
-  pagination: Pagination!
-  policies: [AuthzPolicy!]!
+# ListPermissionsInput enumerates what the subject can access. With both
+# `relation` and `object_type` set it answers "which <object_type>s can I
+# <relation>?". Either or both filters may be omitted: every matching
+# (type, relation) pair of the active model is then enumerated, so an empty
+# input returns ALL permissions the subject holds. Subject resolution follows
+# the same rules as CheckPermissionsInput.user.
+input ListPermissionsInput {
+  relation: String
+  object_type: String
+  user: String
 }
 
-type AuthzPermission {
-  id: ID!
-  name: String!
-  description: String
-  resource: AuthzResource!
-  scopes: [AuthzScope!]!
-  policies: [AuthzPolicy!]!
-  decision_strategy: String!
-  created_at: Int64!
-  updated_at: Int64!
+# FgaListUsersInput asks "which users of user_type have relation on object?".
+# Admin-only (reveals the access graph).
+input FgaListUsersInput {
+  object: String!
+  relation: String!
+  user_type: String!
 }
 
-type AuthzPermissions {
-  pagination: Pagination!
-  permissions: [AuthzPermission!]!
+# FgaExpandInput asks for the relationship/userset tree of (relation, object).
+# Admin-only (reveals the access graph).
+input FgaExpandInput {
+  relation: String!
+  object: String!
 }
 
-type Permission {
-  resource: String!
-  scope: String!
-}
-
-input AddResourceInput {
-  name: String!
-  description: String
-}
-
-input UpdateResourceInput {
-  id: ID!
-  name: String
-  description: String
-}
-
-input AddScopeInput {
-  name: String!
-  description: String
-}
-
-input UpdateScopeInput {
-  id: ID!
-  name: String
-  description: String
-}
-
-input PolicyTargetInput {
-  target_type: String!
-  target_value: String!
-}
-
-input AddPolicyInput {
-  name: String!
-  description: String
-  type: String!
-  logic: String
-  decision_strategy: String
-  targets: [PolicyTargetInput!]!
-}
-
-input UpdatePolicyInput {
-  id: ID!
-  name: String
-  description: String
-  logic: String
-  decision_strategy: String
-  targets: [PolicyTargetInput!]
-}
-
-input AddPermissionInput {
-  name: String!
-  description: String
-  resource_id: ID!
-  scope_ids: [ID!]!
-  policy_ids: [ID!]!
-  decision_strategy: String
-}
-
-input UpdatePermissionInput {
-  id: ID!
-  name: String
-  description: String
-  scope_ids: [ID!]
-  policy_ids: [ID!]
-  decision_strategy: String
-}
-
-input PermissionInput {
-  resource: String!
-  scope: String!
+# FgaRelationInput is a (relation, object) requirement evaluated against the
+# authenticated caller during session/validate. AND semantics, fail-closed.
+input FgaRelationInput {
+  relation: String!
+  object: String!
 }
 
 type Mutation {
@@ -825,22 +848,11 @@ type Mutation {
   _add_email_template(params: AddEmailTemplateRequest!): Response!
   _update_email_template(params: UpdateEmailTemplateRequest!): Response!
   _delete_email_template(params: DeleteEmailTemplateRequest!): Response!
-  # Authorization: Resources
-  _authz_add_resource(params: AddResourceInput!): AuthzResource!
-  _authz_update_resource(params: UpdateResourceInput!): AuthzResource!
-  _authz_delete_resource(id: ID!): Response!
-  # Authorization: Scopes
-  _authz_add_scope(params: AddScopeInput!): AuthzScope!
-  _authz_update_scope(params: UpdateScopeInput!): AuthzScope!
-  _authz_delete_scope(id: ID!): Response!
-  # Authorization: Policies
-  _authz_add_policy(params: AddPolicyInput!): AuthzPolicy!
-  _authz_update_policy(params: UpdatePolicyInput!): AuthzPolicy!
-  _authz_delete_policy(id: ID!): Response!
-  # Authorization: Permissions
-  _authz_add_permission(params: AddPermissionInput!): AuthzPermission!
-  _authz_update_permission(params: UpdatePermissionInput!): AuthzPermission!
-  _authz_delete_permission(id: ID!): Response!
+  # FGA admin mutations (super-admin only)
+  _fga_write_model(params: FgaWriteModelInput!): FgaModel!
+  _fga_write_tuples(params: FgaWriteTuplesInput!): Response!
+  _fga_delete_tuples(params: FgaWriteTuplesInput!): Response!
+  _fga_reset: Response!
 }
 
 type Query {
@@ -854,6 +866,9 @@ type Query {
   _user(params: GetUserRequest!): User!
   _verification_requests(params: PaginatedRequest): VerificationRequests!
   _admin_session: Response!
+  # Admin-only configuration metadata (e.g. configured roles). Non-deprecated
+  # replacement for the bits of _env the dashboard needs.
+  _admin_meta: AdminMeta!
   # Deprecated from v2.0.0
   _env: Env!
   _webhook(params: WebhookRequest!): Webhook!
@@ -861,11 +876,12 @@ type Query {
   _webhook_logs(params: ListWebhookLogRequest): WebhookLogs!
   _email_templates(params: PaginatedRequest): EmailTemplates!
   _audit_logs(params: ListAuditLogRequest): AuditLogs!
-  # Authorization: Admin queries
-  _authz_resources(params: PaginatedRequest): AuthzResources!
-  _authz_scopes(params: PaginatedRequest): AuthzScopes!
-  _authz_policies(params: PaginatedRequest): AuthzPolicies!
-  _authz_permissions(params: PaginatedRequest): AuthzPermissions!
-  # Authorization: User-facing queries
-  permissions: [Permission!]!
+  # FGA admin queries (super-admin only)
+  _fga_get_model: FgaModel!
+  _fga_read_tuples(params: FgaReadTuplesInput!): FgaTuples!
+  _fga_list_users(params: FgaListUsersInput!): FgaListUsersResponse!
+  _fga_expand(params: FgaExpandInput!): FgaExpandResponse!
+  # FGA runtime queries (authenticated caller; principal pinned server-side)
+  check_permissions(params: CheckPermissionsInput!): CheckPermissionsResponse!
+  list_permissions(params: ListPermissionsInput!): ListPermissionsResponse!
 }

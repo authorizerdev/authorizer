@@ -35,32 +35,6 @@ const (
 	StatusFailure = "failure"
 )
 
-// Authorization check result labels.
-const (
-	AuthzResultAllowed   = "allowed"   // matched policy, granted
-	AuthzResultDenied    = "denied"    // matched policy, denied
-	AuthzResultUnmatched = "unmatched" // no permission row for (resource, scope)
-	AuthzResultError     = "error"     // validation / storage error
-)
-
-// Outcome constants for the required_permissions counter (per-request bucket,
-// distinct from per-CheckPermission AuthzResult* above). Low cardinality.
-const (
-	RequiredPermissionsOutcomeGranted      = "granted"       // all listed permissions allowed
-	RequiredPermissionsOutcomeDenied       = "denied"        // one or more denied by policy
-	RequiredPermissionsOutcomeNotRequested = "not_requested" // caller omitted required_permissions
-	RequiredPermissionsOutcomeError        = "error"         // CheckPermission errored (DB/validation)
-)
-
-// RequiredPermissionsEndpoint* are the bounded endpoint label values for the
-// required_permissions counter. New endpoints adopting required_permissions
-// must add a constant here rather than passing raw strings.
-const (
-	RequiredPermissionsEndpointSession          = "session"
-	RequiredPermissionsEndpointValidateSession  = "validate_session"
-	RequiredPermissionsEndpointValidateJWTToken = "validate_jwt_token"
-)
-
 var (
 	// HTTPRequestsTotal is the total number of HTTP requests received.
 	HTTPRequestsTotal = prometheus.NewCounterVec(
@@ -156,42 +130,41 @@ var (
 		},
 	)
 
-	// AuthzChecksTotal counts every CheckPermission call, labelled by result.
-	AuthzChecksTotal = prometheus.NewCounterVec(
+	// FgaChecksTotal is the headline fine-grained-authorization access-decision
+	// counter: every check_permissions decision by outcome. Use it for FGA
+	// adoption tracking and denial/error alerting.
+	// operation: check_permissions. result: allowed | denied | error.
+	FgaChecksTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "authorizer_authz_checks_total",
-			Help: "Total fine-grained authorization checks. result=allowed|denied|unmatched|error",
+			Name: "authorizer_fga_checks_total",
+			Help: "Total fine-grained authorization access decisions. operation=check_permissions, result=allowed|denied|error",
 		},
-		[]string{"result"},
+		[]string{"operation", "result"},
 	)
 
-	// AuthzUnmatchedTotal counts checks that found no matching permission.
-	AuthzUnmatchedTotal = prometheus.NewCounter(
-		prometheus.CounterOpts{
-			Name: "authorizer_authz_unmatched_total",
-			Help: "Total CheckPermission calls where no permission matched the (resource, scope) pair.",
-		},
-	)
-
-	// AuthzCheckDuration measures end-to-end CheckPermission latency.
-	AuthzCheckDuration = prometheus.NewHistogram(
+	// FgaCheckDuration tracks the latency of the client-facing FGA read
+	// operations (the OpenFGA engine call), in seconds.
+	// operation: check_permissions | list_permissions.
+	FgaCheckDuration = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Name:    "authorizer_authz_check_duration_seconds",
-			Help:    "CheckPermission latency including validation, cache, and storage queries",
+			Name:    "authorizer_fga_check_duration_seconds",
+			Help:    "Fine-grained authorization engine call duration in seconds. operation=check_permissions|list_permissions",
 			Buckets: prometheus.DefBuckets,
 		},
+		[]string{"operation"},
 	)
 
-	// RequiredPermissionsChecksTotal counts each endpoint invocation that the
-	// required_permissions field flows through, labelled by endpoint and the
-	// per-request outcome. This is the FGA adoption + enforcement signal;
-	// the per-CheckPermission AuthzChecksTotal is the evaluator signal.
-	RequiredPermissionsChecksTotal = prometheus.NewCounterVec(
+	// FgaOperationsTotal counts non-decision FGA operations (model/tuple
+	// management, enumeration, reset) by outcome — useful for auditing admin
+	// authorization changes and alerting on failures.
+	// operation: get_model|write_model|read_tuples|write_tuples|delete_tuples|list_users|expand|list_permissions|reset.
+	// result: success | error.
+	FgaOperationsTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "authorizer_required_permissions_checks_total",
-			Help: "Per-endpoint required_permissions outcome. endpoint=session|validate_session|validate_jwt_token. outcome=granted|denied|not_requested|error.",
+			Name: "authorizer_fga_operations_total",
+			Help: "Total non-decision fine-grained authorization operations by outcome. result=success|error",
 		},
-		[]string{"endpoint", "outcome"},
+		[]string{"operation", "result"},
 	)
 )
 
@@ -275,10 +248,9 @@ func Init() {
 		prometheus.MustRegister(GraphQLRequestDuration)
 		prometheus.MustRegister(DBHealthCheckTotal)
 		prometheus.MustRegister(ClientIDHeaderMissingTotal)
-		prometheus.MustRegister(AuthzChecksTotal)
-		prometheus.MustRegister(AuthzUnmatchedTotal)
-		prometheus.MustRegister(AuthzCheckDuration)
-		prometheus.MustRegister(RequiredPermissionsChecksTotal)
+		prometheus.MustRegister(FgaChecksTotal)
+		prometheus.MustRegister(FgaCheckDuration)
+		prometheus.MustRegister(FgaOperationsTotal)
 	})
 }
 
@@ -329,20 +301,55 @@ func RecordClientIDHeaderMissing() {
 	ClientIDHeaderMissingTotal.Inc()
 }
 
-// RecordAuthzCheck records a CheckPermission call outcome.
-// result must be one of AuthzResult* constants.
-func RecordAuthzCheck(result string) {
-	AuthzChecksTotal.WithLabelValues(result).Inc()
+// FGA operation labels (low-cardinality, package constants). Never pass
+// user-controlled strings as label values.
+const (
+	FgaOpCheckPermissions = "check_permissions"
+	FgaOpListPermissions  = "list_permissions"
+	FgaOpGetModel         = "get_model"
+	FgaOpWriteModel       = "write_model"
+	FgaOpReadTuples       = "read_tuples"
+	FgaOpWriteTuples      = "write_tuples"
+	FgaOpDeleteTuples     = "delete_tuples"
+	FgaOpListUsers        = "list_users"
+	FgaOpExpand           = "expand"
+	FgaOpReset            = "reset"
+)
+
+// FGA result labels.
+const (
+	FgaResultAllowed = "allowed"
+	FgaResultDenied  = "denied"
+	FgaResultError   = "error"
+	FgaResultSuccess = "success"
+)
+
+// RecordFgaCheck records a single FGA access decision.
+// operation must be FgaOpCheckPermissions; result must be one of
+// FgaResultAllowed / FgaResultDenied / FgaResultError.
+func RecordFgaCheck(operation, result string) {
+	FgaChecksTotal.WithLabelValues(operation, result).Inc()
 }
 
-// RecordAuthzUnmatched records a CheckPermission call that found no matching permission.
-func RecordAuthzUnmatched() {
-	AuthzUnmatchedTotal.Inc()
+// RecordFgaCheckResult is a convenience wrapper that maps a boolean decision to
+// the allowed/denied result label.
+func RecordFgaCheckResult(operation string, allowed bool) {
+	if allowed {
+		RecordFgaCheck(operation, FgaResultAllowed)
+		return
+	}
+	RecordFgaCheck(operation, FgaResultDenied)
 }
 
-// RecordRequiredPermissionsCheck records the per-request outcome of
-// enforceRequiredPermissions. endpoint must be one of RequiredPermissionsEndpoint*;
-// outcome must be one of RequiredPermissionsOutcome*.
-func RecordRequiredPermissionsCheck(endpoint, outcome string) {
-	RequiredPermissionsChecksTotal.WithLabelValues(endpoint, outcome).Inc()
+// ObserveFgaCheckDuration records the latency of an FGA engine call in seconds.
+// operation must be one of the FgaOp* constants for client-facing reads.
+func ObserveFgaCheckDuration(operation string, seconds float64) {
+	FgaCheckDuration.WithLabelValues(operation).Observe(seconds)
+}
+
+// RecordFgaOperation records a non-decision FGA operation outcome.
+// operation must be an FgaOp* constant; result must be FgaResultSuccess or
+// FgaResultError.
+func RecordFgaOperation(operation, result string) {
+	FgaOperationsTotal.WithLabelValues(operation, result).Inc()
 }
