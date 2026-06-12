@@ -79,7 +79,10 @@ var (
 )
 
 func init() {
-	f := RootCmd.Flags()
+	// Persistent so subcommands (`authorizer mcp`) inherit the full server
+	// flag surface (--database-type, --client-id, --fga-store, ...) and
+	// share the same rootArgs storage.
+	f := RootCmd.PersistentFlags()
 
 	// Server flags
 	f.StringVar(&rootArgs.server.Host, "host", defaultHost, "Host address to listen on")
