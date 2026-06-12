@@ -50,21 +50,29 @@ jobs:
             echo "has_proto=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - uses: bufbuild/buf-action@v1
-        env:
-          BUF_TOKEN: ${{ secrets.BUF_TOKEN }}        
+      - name: Setup Buf CLI
+        uses: bufbuild/buf-setup-action@v1
         with:
-          input: proto
-          lint: true
-          # `format: true` makes the action run `buf format -d --exit-code`,
-          # failing the job on any unformatted .proto. Catches drift before
-          # generated code can diverge.
-          format: true
-          # Only run breaking on PRs (push to main has nothing to diff
-          # against) and only once main carries the proto module.
-          breaking: ${{ github.event_name == 'pull_request' && steps.base.outputs.has_proto == 'true' }}
-          breaking_against: 'https://github.com/${{ github.repository }}.git#branch=main,subdir=proto'
-          # The action's PR comment needs permissions the default
-          # GITHUB_TOKEN of this job lacks ("Resource not accessible by
-          # integration"); skip it.
-          pr_comment: false
+          # Pin to the version you prefer
+          version: "1.70.0"
+
+      - name: Authenticate with Buf Registry
+        run: echo "${{ secrets.BUF_TOKEN }}" | buf registry login --token-stdin
+
+      - name: Buf Build & Lint
+        run: |
+          buf build proto
+          buf lint proto
+
+      - name: Buf Format Check
+        run: buf format --diff --exit-code proto
+
+      - name: Buf Breaking Change Check
+        # Replicates your exact conditional check
+        if: ${{ github.event_name == 'pull_request' && steps.base.outputs.has_proto == 'true' }}
+        run: |
+          buf breaking proto --against "https://github.com/${{ github.repository }}.git#branch=main,subdir=proto"
+
+      - name: Buf Push (On Main Branch)
+        if: ${{ github.ref == 'refs/heads/main' }}
+        run: buf push proto
