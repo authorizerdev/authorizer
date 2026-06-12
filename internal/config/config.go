@@ -43,6 +43,20 @@ type Config struct {
 	// GraphQL endpoint to prevent oversized-payload denial of service.
 	GraphQLMaxBodyBytes int64
 
+	// gRPC server configuration
+	// GRPCPort is the port the gRPC server listens on.
+	GRPCPort int
+	// EnableGRPCReflection toggles the gRPC server-reflection service.
+	// Default: on (matches the playground). Disable in locked-down prod.
+	EnableGRPCReflection bool
+	// GRPCTLSCert / GRPCTLSKey set the TLS material for the gRPC listener.
+	// When unset and GRPCInsecure is false, the server refuses to start.
+	GRPCTLSCert string
+	GRPCTLSKey  string
+	// GRPCInsecure permits cleartext gRPC. For local dev only; production
+	// should always set TLS material.
+	GRPCInsecure bool
+
 	// Database Configurations
 	// DatabaseType is the type of database to use
 	DatabaseType string

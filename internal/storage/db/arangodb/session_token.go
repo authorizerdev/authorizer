@@ -374,4 +374,3 @@ func (p *provider) GetAllOAuthStates(ctx context.Context) ([]*schemas.OAuthState
 	}
 	return states, nil
 }
-

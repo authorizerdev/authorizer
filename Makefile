@@ -92,6 +92,14 @@ dev:
 test:
 	go clean --testcache && TEST_DBS="sqlite" $(GO_TEST_ALL)
 
+# Release smoke tests: build the real binary and exercise every public API
+# surface (GraphQL, REST, gRPC, MCP) end to end, including an authenticated
+# FGA decision on each. Gated behind the `smoke` build tag so regular test
+# runs skip them. CI runs this on every release.
+.PHONY: smoke
+smoke:
+	go test -tags smoke -count=1 -v -timeout 5m ./internal/e2e/
+
 test-postgres: test-cleanup-postgres
 	docker run -d --name authorizer_postgres -p 5434:5432 -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=postgres postgres
 	sleep 3
@@ -174,3 +182,71 @@ generate-graphql:
 generate-db-template:
 	cp -rf internal/storage/db/provider_template internal/storage/db/${dbname}
 	find internal/storage/db/${dbname} -type f -exec sed -i -e 's/provider_template/${dbname}/g' {} \;
+
+# ----------------------------------------------------------------------------
+# Protobuf (Phase 0+): public-API source of truth under ./proto.
+# `buf` is installed on demand into $(GOBIN) if missing.
+# ----------------------------------------------------------------------------
+BUF ?= $(shell command -v buf 2>/dev/null)
+BUF_VERSION ?= v1.47.2
+
+.PHONY: proto-tools proto-lint proto-breaking proto-gen
+
+proto-tools:
+	@if [ -z "$(BUF)" ]; then \
+		echo "Installing buf $(BUF_VERSION) via go install"; \
+		go install github.com/bufbuild/buf/cmd/buf@$(BUF_VERSION); \
+	fi
+
+proto-lint: proto-tools
+	cd proto && buf lint
+
+# Compare the working tree's proto against origin/main; fails on breaking changes.
+# Override BUF_BREAKING_AGAINST for local runs (e.g. "main" or a SHA).
+BUF_BREAKING_AGAINST ?= .git#branch=origin/main,subdir=proto
+proto-breaking: proto-tools
+	cd proto && buf breaking --against '../$(BUF_BREAKING_AGAINST)'
+
+proto-gen: proto-tools
+	cd proto && buf dep update && buf generate
+
+# ----------------------------------------------------------------------------
+# Formatting & linting (Go + TypeScript). `make fmt` before committing,
+# `make lint` in CI. golangci-lint is installed on demand if missing.
+# ----------------------------------------------------------------------------
+GOLANGCI_LINT ?= $(shell command -v golangci-lint 2>/dev/null)
+GOLANGCI_LINT_VERSION ?= v2.11.4
+
+.PHONY: fmt fmt-go fmt-ts lint lint-go lint-ts lint-tools
+
+# Format everything.
+fmt: fmt-go fmt-ts
+
+# gofmt -s over all hand-written Go sources (generated protobuf output under
+# gen/ is excluded — it is owned by buf).
+fmt-go:
+	@gofmt -s -w $(shell find . -type f -name '*.go' -not -path './gen/*')
+
+# Prettier over both web apps via their configured format scripts.
+fmt-ts:
+	cd web/app && npm run format
+	cd web/dashboard && npm run format
+
+# Lint everything.
+lint: lint-go lint-ts
+
+lint-tools:
+	@if [ -z "$(GOLANGCI_LINT)" ]; then \
+		echo "Installing golangci-lint $(GOLANGCI_LINT_VERSION)"; \
+		go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION); \
+	fi
+
+# golangci-lint over the module. Generated code under gen/ is excluded via
+# .golangci.yml.
+lint-go: lint-tools
+	golangci-lint run ./...
+
+# Prettier in --check mode: fails (non-zero) if any web source is unformatted.
+lint-ts:
+	cd web/app && npx prettier --check 'src/**/*.(ts|tsx|js|jsx)'
+	cd web/dashboard && npx prettier --check 'src/**/*.(ts|tsx|js|jsx)'

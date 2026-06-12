@@ -1,0 +1,16 @@
+version: v2
+modules:
+  - path: .
+    name: buf.build/authorizerdev/authorizer
+deps:
+  - buf.build/bufbuild/protovalidate
+  - buf.build/googleapis/googleapis
+lint:
+  use:
+    - STANDARD
+  except:
+    - PACKAGE_VERSION_SUFFIX
+  ignore: []
+breaking:
+  use:
+    - FILE

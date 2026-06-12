@@ -13,6 +13,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/memory_store"
 	"github.com/authorizerdev/authorizer/internal/oauth"
 	"github.com/authorizerdev/authorizer/internal/rate_limit"
+	"github.com/authorizerdev/authorizer/internal/service"
 	"github.com/authorizerdev/authorizer/internal/sms"
 	"github.com/authorizerdev/authorizer/internal/storage"
 	"github.com/authorizerdev/authorizer/internal/token"
@@ -43,6 +44,9 @@ type Dependencies struct {
 	OAuthProvider oauth.Provider
 	// RateLimitProvider is used for per-IP rate limiting
 	RateLimitProvider rate_limit.Provider
+	// ServiceProvider hosts the transport-agnostic public-API operations.
+	// Migrated GraphQL resolvers delegate here.
+	ServiceProvider service.Provider
 	// AuthzEngine is the fine-grained authorization (FGA) engine.
 	// It is nil unless an FGA store is configured (--fga-store).
 	AuthzEngine engine.AuthorizationEngine

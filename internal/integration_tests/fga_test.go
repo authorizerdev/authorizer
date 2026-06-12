@@ -31,6 +31,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/oauth"
 	"github.com/authorizerdev/authorizer/internal/rate_limit"
 	"github.com/authorizerdev/authorizer/internal/refs"
+	"github.com/authorizerdev/authorizer/internal/service"
 	"github.com/authorizerdev/authorizer/internal/sms"
 	"github.com/authorizerdev/authorizer/internal/storage"
 	"github.com/authorizerdev/authorizer/internal/token"
@@ -82,6 +83,22 @@ func initFGATestSetup(t *testing.T, cfg *config.Config) (*testSetup, engine.Auth
 	)
 	require.NoError(t, err)
 
+	// Transport-agnostic service layer for migrated public ops. The FGA-gated
+	// ops (session/validate_*/check_permissions/list_permissions) now live here,
+	// so the engine MUST be injected or those resolvers nil-pointer panic.
+	serviceProvider, err := service.New(cfg, &service.Dependencies{
+		Log:                 &logger,
+		AuditProvider:       auditProvider,
+		EmailProvider:       emailProvider,
+		EventsProvider:      eventsProvider,
+		MemoryStoreProvider: memoryStoreProvider,
+		SMSProvider:         smsProvider,
+		StorageProvider:     storageProvider,
+		TokenProvider:       tokenProvider,
+		AuthzEngine:         fgaEngine,
+	})
+	require.NoError(t, err)
+
 	gqlProvider, err := graphql.New(cfg, &graphql.Dependencies{
 		Log:                   &logger,
 		AuditProvider:         auditProvider,
@@ -93,6 +110,7 @@ func initFGATestSetup(t *testing.T, cfg *config.Config) (*testSetup, engine.Auth
 		StorageProvider:       storageProvider,
 		TokenProvider:         tokenProvider,
 		AuthzEngine:           fgaEngine,
+		ServiceProvider:       serviceProvider,
 	})
 	require.NoError(t, err)
 
@@ -109,6 +127,7 @@ func initFGATestSetup(t *testing.T, cfg *config.Config) (*testSetup, engine.Auth
 		RateLimitProvider:     rateLimitProvider,
 		OAuthProvider:         oauthProvider,
 		AuthzEngine:           fgaEngine,
+		ServiceProvider:       serviceProvider,
 	})
 	require.NoError(t, err)
 
@@ -143,6 +162,7 @@ func initFGATestSetup(t *testing.T, cfg *config.Config) (*testSetup, engine.Auth
 		MemoryStoreProvider:   memoryStoreProvider,
 		AuthenticatorProvider: authProvider,
 		TokenProvider:         tokenProvider,
+		ServiceProvider:       serviceProvider,
 	}, fgaEngine
 }
 

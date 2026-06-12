@@ -1,0 +1,1523 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "authorizer/common/v1/annotations.proto",
+    "version": "version not set"
+  },
+  "tags": [
+    {
+      "name": "AuthorizerService"
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/v1/check_permissions": {
+      "post": {
+        "summary": "CheckPermissions evaluates one or more fine-grained permission checks\n(\"does the subject have \u003crelation\u003e on \u003cobject\u003e?\") in a single call and\nreturns one result per check, in order. The subject defaults to the\nauthenticated caller; an explicit `user` is honored only for super-admins\nor when it equals the caller's own subject. Fail-closed.",
+        "operationId": "AuthorizerService_CheckPermissions",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1CheckPermissionsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CheckPermissionsRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerService"
+        ]
+      }
+    },
+    "/v1/deactivate_account": {
+      "post": {
+        "summary": "DeactivateAccount soft-deletes the caller's account and revokes all\nrefresh tokens as a side effect. OAuth has no concept of account\ndeactivation; this is the typed equivalent of SCIM PATCH active=false.",
+        "operationId": "AuthorizerService_DeactivateAccount",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1DeactivateAccountResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1DeactivateAccountRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerService"
+        ]
+      }
+    },
+    "/v1/forgot_password": {
+      "post": {
+        "operationId": "AuthorizerService_ForgotPassword",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ForgotPasswordResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1ForgotPasswordRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerService"
+        ]
+      }
+    },
+    "/v1/list_permissions": {
+      "post": {
+        "summary": "ListPermissions enumerates what the subject can access. With both\n`relation` and `object_type` set it answers \"which \u003cobject_type\u003es can I\n\u003crelation\u003e?\"; either or both filters may be omitted to enumerate every\nmatching (type, relation) pair of the active model. Results are capped;\n`truncated` reports when more permissions exist. Subject resolution\nfollows the same rules as CheckPermissions.",
+        "operationId": "AuthorizerService_ListPermissions",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ListPermissionsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1ListPermissionsRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerService"
+        ]
+      }
+    },
+    "/v1/login": {
+      "post": {
+        "summary": "Login authenticates with email/phone + password.",
+        "operationId": "AuthorizerService_Login",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1LoginResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1LoginRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerService"
+        ]
+      }
+    },
+    "/v1/logout": {
+      "post": {
+        "summary": "Logout ends the caller's current session. POST, not GET: logout mutates\nserver state (clears the session) and is audit-logged, so it must not be\na \"safe\" method per RFC 9110 §9.2.1 — GET would also expose it to CSRF.",
+        "operationId": "AuthorizerService_Logout",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1LogoutResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "AuthorizerService"
+        ]
+      }
+    },
+    "/v1/magic_link_login": {
+      "post": {
+        "summary": "MagicLinkLogin dispatches a passwordless email link. The clicked link\nhits the existing /verify_email browser handler.",
+        "operationId": "AuthorizerService_MagicLinkLogin",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1MagicLinkLoginResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1MagicLinkLoginRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerService"
+        ]
+      }
+    },
+    "/v1/meta": {
+      "get": {
+        "summary": "Meta returns server feature flags. No auth required.",
+        "operationId": "AuthorizerService_Meta",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1MetaResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "AuthorizerService"
+        ]
+      }
+    },
+    "/v1/profile": {
+      "get": {
+        "summary": "Profile returns the authenticated user.",
+        "operationId": "AuthorizerService_Profile",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ProfileResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "AuthorizerService"
+        ]
+      }
+    },
+    "/v1/resend_otp": {
+      "post": {
+        "operationId": "AuthorizerService_ResendOtp",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ResendOtpResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1ResendOtpRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerService"
+        ]
+      }
+    },
+    "/v1/resend_verify_email": {
+      "post": {
+        "operationId": "AuthorizerService_ResendVerifyEmail",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ResendVerifyEmailResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1ResendVerifyEmailRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerService"
+        ]
+      }
+    },
+    "/v1/reset_password": {
+      "post": {
+        "operationId": "AuthorizerService_ResetPassword",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ResetPasswordResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1ResetPasswordRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerService"
+        ]
+      }
+    },
+    "/v1/revoke": {
+      "post": {
+        "summary": "Revoke invalidates a refresh token. Typed mirror of RFC 7009.",
+        "operationId": "AuthorizerService_Revoke",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1RevokeResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1RevokeRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerService"
+        ]
+      }
+    },
+    "/v1/session": {
+      "post": {
+        "summary": "Session returns the AuthResponse bound to the caller's cookie/bearer.\nNOT exposed as an MCP tool — SessionResponse carries access_token,\nrefresh_token, id_token, authenticator_secret, and recovery codes,\nnone of which should land in an LLM transcript. (Security audit C1.)",
+        "operationId": "AuthorizerService_Session",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1SessionResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1SessionRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerService"
+        ]
+      }
+    },
+    "/v1/signup": {
+      "post": {
+        "summary": "Signup registers a new user. Public; requires sign-up enabled in config.\nReturns AuthResponse with tokens + (browser callers) Set-Cookie headers.",
+        "operationId": "AuthorizerService_Signup",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1SignupResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1SignupRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerService"
+        ]
+      }
+    },
+    "/v1/update_profile": {
+      "post": {
+        "operationId": "AuthorizerService_UpdateProfile",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1UpdateProfileResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1UpdateProfileRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerService"
+        ]
+      }
+    },
+    "/v1/validate_jwt_token": {
+      "post": {
+        "operationId": "AuthorizerService_ValidateJwtToken",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ValidateJwtTokenResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1ValidateJwtTokenRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerService"
+        ]
+      }
+    },
+    "/v1/validate_session": {
+      "post": {
+        "operationId": "AuthorizerService_ValidateSession",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ValidateSessionResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1ValidateSessionRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerService"
+        ]
+      }
+    },
+    "/v1/verify_email": {
+      "post": {
+        "operationId": "AuthorizerService_VerifyEmail",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1VerifyEmailResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1VerifyEmailRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerService"
+        ]
+      }
+    },
+    "/v1/verify_otp": {
+      "post": {
+        "operationId": "AuthorizerService_VerifyOtp",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1VerifyOtpResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1VerifyOtpRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerService"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "authorizerv1Meta": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string"
+        },
+        "client_id": {
+          "type": "string"
+        },
+        "is_google_login_enabled": {
+          "type": "boolean"
+        },
+        "is_facebook_login_enabled": {
+          "type": "boolean"
+        },
+        "is_github_login_enabled": {
+          "type": "boolean"
+        },
+        "is_linkedin_login_enabled": {
+          "type": "boolean"
+        },
+        "is_apple_login_enabled": {
+          "type": "boolean"
+        },
+        "is_discord_login_enabled": {
+          "type": "boolean"
+        },
+        "is_twitter_login_enabled": {
+          "type": "boolean"
+        },
+        "is_microsoft_login_enabled": {
+          "type": "boolean"
+        },
+        "is_twitch_login_enabled": {
+          "type": "boolean"
+        },
+        "is_roblox_login_enabled": {
+          "type": "boolean"
+        },
+        "is_email_verification_enabled": {
+          "type": "boolean"
+        },
+        "is_basic_authentication_enabled": {
+          "type": "boolean"
+        },
+        "is_magic_link_login_enabled": {
+          "type": "boolean"
+        },
+        "is_sign_up_enabled": {
+          "type": "boolean"
+        },
+        "is_strong_password_enabled": {
+          "type": "boolean"
+        },
+        "is_multi_factor_auth_enabled": {
+          "type": "boolean"
+        },
+        "is_mobile_basic_authentication_enabled": {
+          "type": "boolean"
+        },
+        "is_phone_verification_enabled": {
+          "type": "boolean"
+        }
+      },
+      "description": "Meta mirrors the GraphQL Meta type — server feature flags + provider\navailability, returned by the Meta query."
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {}
+    },
+    "protobufNullValue": {
+      "type": "string",
+      "enum": [
+        "NULL_VALUE"
+      ],
+      "default": "NULL_VALUE",
+      "description": "`NullValue` is a singleton enumeration to represent the null value for the\n`Value` type union.\n\nThe JSON representation for `NullValue` is JSON `null`.\n\n - NULL_VALUE: Null value."
+    },
+    "rpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
+    "v1AppData": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "object"
+        }
+      },
+      "description": "AppData is a free-form key/value bag stored against a user. Mirrors the\nGraphQL `Map` scalar. Values are JSON-typed (string, number, bool, null,\nnested object, nested array) to match what the existing storage layer\naccepts."
+    },
+    "v1AuthResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        },
+        "should_show_email_otp_screen": {
+          "type": "boolean"
+        },
+        "should_show_mobile_otp_screen": {
+          "type": "boolean"
+        },
+        "should_show_totp_screen": {
+          "type": "boolean"
+        },
+        "access_token": {
+          "type": "string"
+        },
+        "id_token": {
+          "type": "string"
+        },
+        "refresh_token": {
+          "type": "string"
+        },
+        "expires_in": {
+          "type": "string",
+          "format": "int64"
+        },
+        "user": {
+          "$ref": "#/definitions/v1User"
+        },
+        "authenticator_scanner_image": {
+          "type": "string",
+          "description": "TOTP enrolment artifacts (populated only when this AuthResponse\ninitiates TOTP setup; one-time, never re-shown)."
+        },
+        "authenticator_secret": {
+          "type": "string"
+        },
+        "authenticator_recovery_codes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "AuthResponse mirrors the GraphQL AuthResponse type. Returned (wrapped) by\nevery method that produces a session: Signup, Login, MagicLinkLogin,\nVerifyEmail, VerifyOtp, Session."
+    },
+    "v1CheckPermissionsRequest": {
+      "type": "object",
+      "properties": {
+        "checks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1PermissionCheckInput"
+          },
+          "description": "The checks to evaluate; at least one, at most 100."
+        },
+        "user": {
+          "type": "string",
+          "description": "Optional explicit subject (\"type:id\", or a bare id treated as\n\"user:\u003cid\u003e\"). Honored only for super-admins or when it equals the\ncaller's own token subject; anything else is rejected."
+        }
+      }
+    },
+    "v1CheckPermissionsResponse": {
+      "type": "object",
+      "properties": {
+        "results": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1PermissionCheckResult"
+          },
+          "description": "One result per supplied check, in order."
+        }
+      }
+    },
+    "v1DeactivateAccountRequest": {
+      "type": "object"
+    },
+    "v1DeactivateAccountResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1FgaRelationInput": {
+      "type": "object",
+      "properties": {
+        "relation": {
+          "type": "string"
+        },
+        "object": {
+          "type": "string"
+        }
+      },
+      "description": "FgaRelationInput is a (relation, object) requirement evaluated against the\nauthenticated caller during Session / ValidateJwtToken / ValidateSession.\nAND semantics, fail-closed. Mirrors the GraphQL FgaRelationInput type."
+    },
+    "v1FgaTupleInput": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "type": "string"
+        },
+        "relation": {
+          "type": "string"
+        },
+        "object": {
+          "type": "string"
+        }
+      },
+      "description": "FgaTupleInput is one relationship tuple supplied as request-scoped context\nfor a permission check; contextual tuples are never persisted. Mirrors the\nGraphQL FgaTupleInput type."
+    },
+    "v1ForgotPasswordRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "phone_number": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "redirect_uri": {
+          "type": "string"
+        }
+      }
+    },
+    "v1ForgotPasswordResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        },
+        "should_show_mobile_otp_screen": {
+          "type": "boolean",
+          "description": "For SMS-driven flows the UI may need to render an OTP entry screen."
+        }
+      }
+    },
+    "v1ListPermissionsRequest": {
+      "type": "object",
+      "properties": {
+        "relation": {
+          "type": "string",
+          "description": "Optional relation filter (e.g. \"can_view\")."
+        },
+        "object_type": {
+          "type": "string",
+          "description": "Optional object-type filter (e.g. \"document\")."
+        },
+        "user": {
+          "type": "string",
+          "description": "Optional explicit subject; same trust rules as CheckPermissionsRequest."
+        }
+      }
+    },
+    "v1ListPermissionsResponse": {
+      "type": "object",
+      "properties": {
+        "objects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Distinct fully-qualified object ids the subject can access."
+        },
+        "permissions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Permission"
+          },
+          "description": "The (object, relation) detail — relevant when no relation filter was\nsupplied."
+        },
+        "truncated": {
+          "type": "boolean",
+          "description": "True when the result was capped (1000 entries) and more permissions\nexist."
+        }
+      }
+    },
+    "v1LoginRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "phone_number": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        },
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "scope": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "state": {
+          "type": "string"
+        }
+      }
+    },
+    "v1LoginResponse": {
+      "type": "object",
+      "properties": {
+        "auth": {
+          "$ref": "#/definitions/v1AuthResponse"
+        }
+      }
+    },
+    "v1LogoutResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1MagicLinkLoginRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "scope": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "state": {
+          "type": "string"
+        },
+        "redirect_uri": {
+          "type": "string"
+        }
+      }
+    },
+    "v1MagicLinkLoginResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1MetaResponse": {
+      "type": "object",
+      "properties": {
+        "meta": {
+          "$ref": "#/definitions/authorizerv1Meta"
+        }
+      }
+    },
+    "v1Permission": {
+      "type": "object",
+      "properties": {
+        "object": {
+          "type": "string"
+        },
+        "relation": {
+          "type": "string"
+        }
+      },
+      "description": "Permission is one (object, relation) pair the subject holds: \"subject has\n`relation` on `object`\". Mirrors the GraphQL Permission type."
+    },
+    "v1PermissionCheckInput": {
+      "type": "object",
+      "properties": {
+        "relation": {
+          "type": "string"
+        },
+        "object": {
+          "type": "string"
+        },
+        "contextual_tuples": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1FgaTupleInput"
+          }
+        }
+      },
+      "description": "PermissionCheckInput is one permission to evaluate: \"does the subject have\n\u003crelation\u003e on \u003cobject\u003e?\". Mirrors the GraphQL PermissionCheckInput type."
+    },
+    "v1PermissionCheckResult": {
+      "type": "object",
+      "properties": {
+        "relation": {
+          "type": "string"
+        },
+        "object": {
+          "type": "string"
+        },
+        "allowed": {
+          "type": "boolean"
+        }
+      },
+      "description": "PermissionCheckResult is the outcome of one permission check, echoing the\nchecked pair so batch results are self-describing (and positionally\naligned). Mirrors the GraphQL PermissionCheckResult type."
+    },
+    "v1ProfileResponse": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "$ref": "#/definitions/v1User"
+        }
+      }
+    },
+    "v1ResendOtpRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "phone_number": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        }
+      }
+    },
+    "v1ResendOtpResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1ResendVerifyEmailRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "identifier": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        }
+      }
+    },
+    "v1ResendVerifyEmailResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1ResetPasswordRequest": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string",
+          "description": "For email flows: the token from the reset email. For SMS flows: the OTP."
+        },
+        "otp": {
+          "type": "string"
+        },
+        "phone_number": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        },
+        "confirm_password": {
+          "type": "string"
+        }
+      }
+    },
+    "v1ResetPasswordResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1RevokeRequest": {
+      "type": "object",
+      "properties": {
+        "refresh_token": {
+          "type": "string"
+        }
+      }
+    },
+    "v1RevokeResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1SessionRequest": {
+      "type": "object",
+      "properties": {
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "scope": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "state": {
+          "type": "string"
+        },
+        "required_relations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1FgaRelationInput"
+          },
+          "title": "Optional fine-grained authorization gate: each (relation, object) is\nchecked against the authenticated caller with AND semantics, fail-closed.\nRequires fine-grained authorization enabled"
+        }
+      }
+    },
+    "v1SessionResponse": {
+      "type": "object",
+      "properties": {
+        "auth": {
+          "$ref": "#/definitions/v1AuthResponse"
+        }
+      }
+    },
+    "v1SignupRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "phone_number": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        },
+        "confirm_password": {
+          "type": "string"
+        },
+        "given_name": {
+          "type": "string"
+        },
+        "family_name": {
+          "type": "string"
+        },
+        "middle_name": {
+          "type": "string"
+        },
+        "nickname": {
+          "type": "string"
+        },
+        "gender": {
+          "type": "string"
+        },
+        "birthdate": {
+          "type": "string"
+        },
+        "picture": {
+          "type": "string"
+        },
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "scope": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "redirect_uri": {
+          "type": "string"
+        },
+        "is_multi_factor_auth_enabled": {
+          "type": "boolean"
+        },
+        "state": {
+          "type": "string"
+        },
+        "app_data": {
+          "$ref": "#/definitions/v1AppData"
+        }
+      }
+    },
+    "v1SignupResponse": {
+      "type": "object",
+      "properties": {
+        "auth": {
+          "$ref": "#/definitions/v1AuthResponse"
+        }
+      }
+    },
+    "v1UpdateProfileRequest": {
+      "type": "object",
+      "properties": {
+        "old_password": {
+          "type": "string"
+        },
+        "new_password": {
+          "type": "string"
+        },
+        "confirm_new_password": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "given_name": {
+          "type": "string"
+        },
+        "family_name": {
+          "type": "string"
+        },
+        "middle_name": {
+          "type": "string"
+        },
+        "nickname": {
+          "type": "string"
+        },
+        "gender": {
+          "type": "string"
+        },
+        "birthdate": {
+          "type": "string"
+        },
+        "phone_number": {
+          "type": "string"
+        },
+        "picture": {
+          "type": "string"
+        },
+        "is_multi_factor_auth_enabled": {
+          "type": "boolean"
+        },
+        "app_data": {
+          "$ref": "#/definitions/v1AppData"
+        }
+      }
+    },
+    "v1UpdateProfileResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1User": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string",
+          "description": "Either email or phone_number is always present."
+        },
+        "email_verified": {
+          "type": "boolean"
+        },
+        "signup_methods": {
+          "type": "string"
+        },
+        "given_name": {
+          "type": "string"
+        },
+        "family_name": {
+          "type": "string"
+        },
+        "middle_name": {
+          "type": "string"
+        },
+        "nickname": {
+          "type": "string"
+        },
+        "preferred_username": {
+          "type": "string",
+          "description": "Defaults to email when unset."
+        },
+        "gender": {
+          "type": "string"
+        },
+        "birthdate": {
+          "type": "string"
+        },
+        "phone_number": {
+          "type": "string"
+        },
+        "phone_number_verified": {
+          "type": "boolean"
+        },
+        "picture": {
+          "type": "string"
+        },
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "created_at": {
+          "type": "string",
+          "format": "int64"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "int64"
+        },
+        "revoked_timestamp": {
+          "type": "string",
+          "format": "int64"
+        },
+        "is_multi_factor_auth_enabled": {
+          "type": "boolean"
+        },
+        "app_data": {
+          "$ref": "#/definitions/v1AppData",
+          "description": "Free-form key/value bag — same as GraphQL `app_data: Map`."
+        }
+      },
+      "description": "User mirrors the GraphQL User type. Returned by Profile and embedded in\nAuthResponse."
+    },
+    "v1ValidateJwtTokenRequest": {
+      "type": "object",
+      "properties": {
+        "token_type": {
+          "type": "string"
+        },
+        "token": {
+          "type": "string"
+        },
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "required_relations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1FgaRelationInput"
+          },
+          "description": "Optional fine-grained authorization gate (AND semantics, fail-closed)."
+        }
+      }
+    },
+    "v1ValidateJwtTokenResponse": {
+      "type": "object",
+      "properties": {
+        "is_valid": {
+          "type": "boolean"
+        },
+        "claims": {
+          "$ref": "#/definitions/v1AppData",
+          "description": "Free-form JWT claims (matches GraphQL ValidateJWTTokenResponse.claims)."
+        }
+      }
+    },
+    "v1ValidateSessionRequest": {
+      "type": "object",
+      "properties": {
+        "cookie": {
+          "type": "string"
+        },
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "required_relations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1FgaRelationInput"
+          },
+          "description": "Optional fine-grained authorization gate (AND semantics, fail-closed)."
+        }
+      }
+    },
+    "v1ValidateSessionResponse": {
+      "type": "object",
+      "properties": {
+        "is_valid": {
+          "type": "boolean"
+        },
+        "user": {
+          "$ref": "#/definitions/v1User"
+        }
+      }
+    },
+    "v1VerifyEmailRequest": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        }
+      }
+    },
+    "v1VerifyEmailResponse": {
+      "type": "object",
+      "properties": {
+        "auth": {
+          "$ref": "#/definitions/v1AuthResponse"
+        }
+      }
+    },
+    "v1VerifyOtpRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "description": "Exactly one of email / phone_number is required."
+        },
+        "phone_number": {
+          "type": "string"
+        },
+        "otp": {
+          "type": "string"
+        },
+        "is_totp": {
+          "type": "boolean"
+        },
+        "state": {
+          "type": "string"
+        }
+      }
+    },
+    "v1VerifyOtpResponse": {
+      "type": "object",
+      "properties": {
+        "auth": {
+          "$ref": "#/definitions/v1AuthResponse"
+        }
+      }
+    }
+  }
+}

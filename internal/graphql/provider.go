@@ -13,6 +13,7 @@ import (
 	"github.com/authorizerdev/authorizer/internal/events"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
 	"github.com/authorizerdev/authorizer/internal/memory_store"
+	"github.com/authorizerdev/authorizer/internal/service"
 	"github.com/authorizerdev/authorizer/internal/sms"
 	"github.com/authorizerdev/authorizer/internal/storage"
 	"github.com/authorizerdev/authorizer/internal/token"
@@ -39,6 +40,9 @@ type Dependencies struct {
 	StorageProvider storage.Provider
 	// TokenProvider is used to generate tokens
 	TokenProvider token.Provider
+	// ServiceProvider hosts the transport-agnostic public-API operations.
+	// Resolvers for migrated ops delegate here.
+	ServiceProvider service.Provider
 	// AuthzEngine is the fine-grained authorization (FGA) engine.
 	// It is nil unless an FGA store is configured (--fga-store);
 	// resolvers MUST fail closed (return an error) when it is nil.

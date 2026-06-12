@@ -218,6 +218,7 @@ func (h *httpProvider) GraphqlHandler() gin.HandlerFunc {
 		SMSProvider:           h.SMSProvider,
 		StorageProvider:       h.StorageProvider,
 		TokenProvider:         h.TokenProvider,
+		ServiceProvider:       h.ServiceProvider,
 		AuthzEngine:           h.AuthzEngine,
 	})
 	if err != nil {
