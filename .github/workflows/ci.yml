@@ -51,6 +51,8 @@ jobs:
           fi
 
       - uses: bufbuild/buf-action@v1
+        env:
+          BUF_TOKEN: ${{ secrets.BUF_TOKEN }}        
         with:
           input: proto
           lint: true
