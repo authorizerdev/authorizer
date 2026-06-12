@@ -45,9 +45,16 @@ type Server struct {
 	// outgoing gRPC call. Set via Options.Bearer at construction time
 	// (the cmd/mcp.go subcommand exposes --mcp-bearer). When empty, calls
 	// flow without auth — fine for public methods like Meta, but anything
-	// requiring identity (Profile, Permissions, ...) will see an empty
+	// requiring identity (Profile, CheckPermissions, ...) will see an empty
 	// caller and return whatever its handler does in that case.
 	bearer string
+	// authorizerURL is stamped as `x-authorizer-url` metadata on every
+	// outgoing gRPC call. JWT issuer validation compares a token's `iss`
+	// against the resolved host; the in-process bufconn call would resolve
+	// to "http://bufconn", so without this every bearer token minted by the
+	// real server would be rejected. Set it to the public URL of the
+	// Authorizer instance that issued the bearer token.
+	authorizerURL string
 }
 
 // Options configures the MCP server.
@@ -61,6 +68,11 @@ type Options struct {
 	// reaches the gRPC handlers (security audit H1). The bearer should be
 	// a token issued for the user the MCP host is acting on behalf of.
 	Bearer string
+	// AuthorizerURL, when set, is propagated as `x-authorizer-url` metadata
+	// on every gRPC dispatch so JWT issuer validation resolves the host the
+	// bearer token was minted by (not the in-process "bufconn" authority).
+	// Required for identity-bearing tools when Bearer is set.
+	AuthorizerURL string
 }
 
 // New builds an MCP server that exposes every gRPC method on `grpcSrv`
@@ -98,11 +110,12 @@ func New(log *zerolog.Logger, grpcSrv *grpc.Server, opts Options) (*Server, erro
 
 	s := &Server{
 		log:     log,
-		mcpSrv:  mcpSrv,
-		gwConn:  conn,
-		lis:     lis,
-		grpcSrv: grpcSrv,
-		bearer:  opts.Bearer,
+		mcpSrv:        mcpSrv,
+		gwConn:        conn,
+		lis:           lis,
+		grpcSrv:       grpcSrv,
+		bearer:        opts.Bearer,
+		authorizerURL: opts.AuthorizerURL,
 	}
 	for _, b := range bindings {
 		s.registerTool(b)
@@ -129,14 +142,18 @@ func (s *Server) cleanup() {
 	_ = s.lis.Close()
 }
 
-// stampAuth attaches the configured bearer to the outgoing gRPC call. A
-// no-op when the bearer is unset. This is the bridge that lets gRPC handlers
-// see "who is calling" when invoked from MCP (security audit H1).
+// stampAuth attaches the configured bearer and authorizer URL to the
+// outgoing gRPC call. A no-op when neither is set. This is the bridge that
+// lets gRPC handlers see "who is calling" (security audit H1) and which
+// host minted the token (issuer validation) when invoked from MCP.
 func (s *Server) stampAuth(ctx context.Context) context.Context {
-	if s.bearer == "" {
-		return ctx
+	if s.bearer != "" {
+		ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+s.bearer)
 	}
-	return metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+s.bearer)
+	if s.authorizerURL != "" {
+		ctx = metadata.AppendToOutgoingContext(ctx, "x-authorizer-url", s.authorizerURL)
+	}
+	return ctx
 }
 
 // registerTool wires one ToolBinding into the MCP server. The handler:

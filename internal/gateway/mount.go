@@ -19,11 +19,13 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/bufconn"
 	"google.golang.org/protobuf/encoding/protojson"
 
 	authorizerv1 "github.com/authorizerdev/authorizer/gen/go/authorizer/v1"
+	"github.com/authorizerdev/authorizer/internal/parsers"
 )
 
 // bufconn size; large enough that in-process gateway calls never block.
@@ -53,6 +55,16 @@ func Handler(ctx context.Context, grpcSrv *grpc.Server) (http.Handler, func(), e
 	}
 
 	mux := runtime.NewServeMux(
+		// Forward the original request's authorizer host URL to the gRPC
+		// layer. The in-process bufconn call carries `:authority=bufconn`,
+		// so without this the service layer would resolve the host as
+		// "http://bufconn" and JWT issuer validation would reject every
+		// token minted via the HTTP surface. parsers.GetHostFromRequest is
+		// the same spoof-hardened resolution the gin path uses;
+		// transport.MetaFromGRPC reads `x-authorizer-url` first.
+		runtime.WithMetadata(func(_ context.Context, r *http.Request) metadata.MD {
+			return metadata.Pairs("x-authorizer-url", parsers.GetHostFromRequest(r))
+		}),
 		// Consistent error envelope across the REST surface (see errorHandler).
 		runtime.WithErrorHandler(errorHandler),
 		// Preserve true HTTP routing statuses (e.g. 405 for a method mismatch

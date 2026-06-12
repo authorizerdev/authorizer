@@ -1,6 +1,8 @@
 package integration_tests
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"net/http"
 	"strings"
 	"testing"
@@ -77,4 +79,66 @@ func TestRESTPermissionsAreNotGet(t *testing.T) {
 		require.Equal(t, http.StatusMethodNotAllowed, resp.StatusCode, "GET %s should be 405", path)
 		_ = resp.Body.Close()
 	}
+}
+
+// TestRESTGatewayForwardsAuthorizerHost is the regression test for the
+// gateway's WithMetadata annotator. The in-process bufconn call carries
+// ":authority=bufconn"; without forwarding the original request's resolved
+// host as `x-authorizer-url` metadata, tokens minted over REST would carry
+// iss=http://bufconn and JWT issuer validation would reject every token on
+// any surface. The test signs up over REST with an explicit X-Authorizer-URL,
+// asserts the minted access token's iss claim echoes it, then proves the
+// token round-trips: GET /v1/profile with the same host header returns the
+// authenticated user.
+func TestRESTGatewayForwardsAuthorizerHost(t *testing.T) {
+	base := bootRESTGateway(t)
+	const hostURL = "http://auth.test.example"
+
+	body := strings.NewReader(`{"email":"rest-host@test.dev","password":"Rest-Host-123!","confirm_password":"Rest-Host-123!"}`)
+	req, err := http.NewRequest(http.MethodPost, base+"/v1/signup", body)
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Authorizer-URL", hostURL)
+	resp, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var signup struct {
+		Auth struct {
+			AccessToken string `json:"access_token"`
+		} `json:"auth"`
+	}
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&signup))
+	require.NotEmpty(t, signup.Auth.AccessToken)
+
+	// The iss claim must be the host the gateway forwarded — not the
+	// in-process bufconn authority.
+	parts := strings.Split(signup.Auth.AccessToken, ".")
+	require.Len(t, parts, 3)
+	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
+	require.NoError(t, err)
+	var claims struct {
+		Iss string `json:"iss"`
+	}
+	require.NoError(t, json.Unmarshal(payload, &claims))
+	require.Equal(t, hostURL, claims.Iss,
+		"gateway must forward the resolved authorizer host; got iss=%q", claims.Iss)
+
+	// Round-trip: the REST-minted token authenticates a REST identity call.
+	preq, err := http.NewRequest(http.MethodGet, base+"/v1/profile", nil)
+	require.NoError(t, err)
+	preq.Header.Set("Authorization", "Bearer "+signup.Auth.AccessToken)
+	preq.Header.Set("X-Authorizer-URL", hostURL)
+	presp, err := http.DefaultClient.Do(preq)
+	require.NoError(t, err)
+	defer presp.Body.Close()
+	require.Equal(t, http.StatusOK, presp.StatusCode)
+	var profile struct {
+		User struct {
+			Email string `json:"email"`
+		} `json:"user"`
+	}
+	require.NoError(t, json.NewDecoder(presp.Body).Decode(&profile))
+	require.Equal(t, "rest-host@test.dev", profile.User.Email)
 }

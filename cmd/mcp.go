@@ -29,8 +29,13 @@ var mcpArgs struct {
 	// bearer is propagated as `Authorization: Bearer <bearer>` on every
 	// outgoing gRPC call. Without it the MCP server runs anonymously —
 	// fine for the `meta` tool (public) but identity-bearing tools
-	// (`profile`, `permissions`) won't have a caller to attribute to.
+	// (`profile`, `check_permissions`, `list_permissions`) won't have a
+	// caller to attribute to.
 	bearer string
+	// authorizerURL is the public URL of the Authorizer instance that
+	// minted the bearer token; stamped as `x-authorizer-url` so JWT issuer
+	// validation passes for identity-bearing tools.
+	authorizerURL string
 }
 
 // mcpCmd serves Authorizer's MCP surface over stdio. Designed to be wired
@@ -62,6 +67,11 @@ func init() {
 			"user identity for tools like Profile / Permissions / Session). "+
 			"When unset the MCP server runs anonymously; public tools (Meta) "+
 			"still work but identity-bearing tools will fail authn.")
+	mcpCmd.Flags().StringVar(&mcpArgs.authorizerURL, "mcp-authorizer-url", "",
+		"Public URL of the Authorizer instance that issued --mcp-bearer "+
+			"(e.g. https://auth.example.com). Required with --mcp-bearer: "+
+			"JWT issuer validation compares the token's iss claim against "+
+			"this value.")
 	RootCmd.AddCommand(mcpCmd)
 }
 
@@ -146,9 +156,10 @@ func runMCP(_ *cobra.Command, _ []string) {
 	}
 
 	mcpSrv, err := mcp.New(&log, grpcSrv.GRPCServer(), mcp.Options{
-		Name:    "authorizer",
-		Version: constants.VERSION,
-		Bearer:  mcpArgs.bearer,
+		Name:          "authorizer",
+		Version:       constants.VERSION,
+		Bearer:        mcpArgs.bearer,
+		AuthorizerURL: mcpArgs.authorizerURL,
 	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create mcp server")
