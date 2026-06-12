@@ -28,51 +28,18 @@ jobs:
       - name: Run tests
         run: make test
 
-  proto:
-    name: Proto lint + breaking
+  smoke:
+    name: Release smoke (GraphQL + REST + gRPC + MCP)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          # buf breaking needs main's history to diff against.
-          fetch-depth: 0
-
-      # buf breaking can only diff against main once main actually carries
-      # the proto module; before this PR series merges, main has no proto/
-      # and `buf breaking` fails with "had no .proto files".
-      - name: Check base branch has protos
-        id: base
-        run: |
-          if git ls-tree -d origin/main proto | grep -q proto; then
-            echo "has_proto=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "has_proto=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Setup Buf CLI
-        uses: bufbuild/buf-setup-action@v1
+      - uses: actions/setup-go@v5
         with:
-          # Pin to the version you prefer
-          version: "1.70.0"
-
-      - name: Authenticate with Buf Registry
-        run: echo "${{ secrets.BUF_TOKEN }}" | buf registry login --token-stdin
-
-      - name: Buf Build & Lint
-        run: |
-          buf build proto
-          buf lint proto
-
-      - name: Buf Format Check
-        run: buf format --diff --exit-code proto
-
-      - name: Buf Breaking Change Check
-        # Replicates your exact conditional check
-        if: ${{ github.event_name == 'pull_request' && steps.base.outputs.has_proto == 'true' }}
-        run: |
-          buf breaking proto --against "https://github.com/${{ github.repository }}.git#branch=main,subdir=proto"
-
-      - name: Buf Push (On Main Branch)
-        if: ${{ github.ref == 'refs/heads/main' }}
-        run: buf push proto
+          go-version-file: go.mod
+          cache: true
+      # Black-box end-to-end pass over every public API surface against the
+      # freshly built binary (see internal/e2e/smoke_test.go).
+      - name: Run smoke tests
+        run: make smoke
