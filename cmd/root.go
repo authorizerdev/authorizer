@@ -17,8 +17,6 @@ import (
 
 	"github.com/authorizerdev/authorizer/internal/audit"
 	"github.com/authorizerdev/authorizer/internal/authenticators"
-	"github.com/authorizerdev/authorizer/internal/authorization/engine"
-	fgaengine "github.com/authorizerdev/authorizer/internal/authorization/engine/openfga"
 	"github.com/authorizerdev/authorizer/internal/config"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/email"
@@ -487,52 +485,12 @@ func runRoot(c *cobra.Command, args []string) {
 	}
 	defer rateLimitProvider.Close()
 
-	// OpenFGA fine-grained authorization engine (embedded, in-process).
-	//
-	// Authorizer embeds OpenFGA — it IS the engine. The engine is constructed
-	// only when an FGA store is configured (--fga-store); otherwise it stays nil
-	// and the fga_* resolvers fail closed ("fine-grained authorization is not
-	// enabled"). Routed into GraphQL and session/validate below.
-	//
-	// By default FGA reuses the main database (sqlite/postgres/mysql/mariadb);
-	// --fga-store is only needed when the main DB is unsupported (mongodb,
-	// dynamodb, etc.) or to point at a dedicated store. FGAStoreConfig() resolves
-	// this. OpenFGA migrations run on boot for SQL stores (idempotent); memory
-	// needs none. NOTE: multi-replica deployments should prefer running
-	// migrations once via an init job — concurrent on-boot migrations rely on
-	// the migration tool's own locking and add cold-start latency.
-	//
-	// Engine-init failure is deliberately NON-fatal: FGA is an optional
-	// subsystem, so a failure here (e.g. the DB user lacks DDL rights for the
-	// OpenFGA tables) logs loudly and leaves authzEngine nil — fga_* and the
-	// permission APIs fail closed while core authentication keeps serving.
-	var authzEngine engine.AuthorizationEngine
-	if fgaStore, fgaStoreURL, fgaEnabled := rootArgs.config.FGAStoreConfig(); fgaEnabled {
-		runMigrations := !strings.EqualFold(fgaStore, fgaengine.StoreMemory)
-		fgaEngine, ferr := fgaengine.New(
-			&fgaengine.Config{
-				Store:         fgaStore,
-				StoreURL:      fgaStoreURL,
-				StoreName:     rootArgs.config.OrganizationName,
-				RunMigrations: runMigrations,
-			},
-			&fgaengine.Dependencies{Log: &log},
-		)
-		if ferr != nil {
-			log.Error().Err(ferr).
-				Str("fga_store", fgaStore).
-				Msg("failed to initialize OpenFGA authorization engine; fine-grained authorization is DISABLED (fail-closed) — core auth continues")
-		} else {
-			if closer, ok := fgaEngine.(interface{ Close() }); ok {
-				defer closer.Close()
-			}
-			authzEngine = fgaEngine
-			log.Info().
-				Str("fga_store", fgaStore).
-				Bool("reused_main_db", strings.TrimSpace(rootArgs.config.FGAStore) == "").
-				Msg("OpenFGA authorization engine initialized (embedded); routed into GraphQL + session/validate")
-		}
-	}
+	// Embedded OpenFGA authorization engine (optional; nil when --fga-store
+	// is not configured). NOTE: multi-replica deployments should prefer
+	// running migrations once via an init job — concurrent on-boot migrations
+	// rely on the migration tool's own locking and add cold-start latency.
+	authzEngine, closeAuthzEngine := initAuthzEngine(&rootArgs.config, &log)
+	defer closeAuthzEngine()
 
 	// SMS provider
 	smsProvider, err := sms.New(&rootArgs.config, &sms.Dependencies{

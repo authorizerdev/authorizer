@@ -64,7 +64,7 @@ func (p *provider) ValidateSession(ctx context.Context, meta RequestMetadata, pa
 	}
 	// Fine-grained authorization gate (AND semantics, fail-closed).
 	if params != nil && len(params.RequiredRelations) > 0 {
-		if err := p.enforceRequiredRelations(ctx, log, user.ID, params.RequiredRelations); err != nil {
+		if err := p.enforceRequiredRelations(ctx, log, userID, params.RequiredRelations); err != nil {
 			log.Debug().Err(err).Msg("Required relations not satisfied")
 			return nil, nil, err
 		}

@@ -4,15 +4,12 @@ import (
 	"context"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 
 	"github.com/authorizerdev/authorizer/internal/audit"
-	"github.com/authorizerdev/authorizer/internal/authorization/engine"
-	fgaengine "github.com/authorizerdev/authorizer/internal/authorization/engine/openfga"
 	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/email"
 	"github.com/authorizerdev/authorizer/internal/events"
@@ -118,32 +115,11 @@ func runMCP(_ *cobra.Command, _ []string) {
 		log.Fatal().Err(err).Msg("failed to create events provider")
 	}
 
-	// Embedded OpenFGA engine, mirroring the wiring in root.go. Init failure
-	// is non-fatal: FGA is optional, so the engine stays nil and the
-	// permission tools fail closed while the rest of the MCP surface serves.
-	var authzEngine engine.AuthorizationEngine
-	if fgaStore, fgaStoreURL, fgaEnabled := rootArgs.config.FGAStoreConfig(); fgaEnabled {
-		runMigrations := !strings.EqualFold(fgaStore, fgaengine.StoreMemory)
-		fgaEngine, ferr := fgaengine.New(
-			&fgaengine.Config{
-				Store:         fgaStore,
-				StoreURL:      fgaStoreURL,
-				StoreName:     rootArgs.config.OrganizationName,
-				RunMigrations: runMigrations,
-			},
-			&fgaengine.Dependencies{Log: &log},
-		)
-		if ferr != nil {
-			log.Error().Err(ferr).
-				Str("fga_store", fgaStore).
-				Msg("failed to initialize OpenFGA authorization engine; fine-grained authorization is DISABLED (fail-closed)")
-		} else {
-			if closer, ok := fgaEngine.(interface{ Close() }); ok {
-				defer closer.Close()
-			}
-			authzEngine = fgaEngine
-		}
-	}
+	// Embedded OpenFGA engine, shared init with root.go. Nil (fail-closed)
+	// when FGA is not configured or init fails — the permission tools fail
+	// closed while the rest of the MCP surface serves.
+	authzEngine, closeAuthzEngine := initAuthzEngine(&rootArgs.config, &log)
+	defer closeAuthzEngine()
 
 	svc, err := service.New(&rootArgs.config, &service.Dependencies{
 		Log:                 &log,
