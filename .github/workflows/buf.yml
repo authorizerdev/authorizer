@@ -1,8 +1,11 @@
 ---
 name: Buf
 
-# Proto schema CI for the `proto/` module (buf.build/authorizerdev/authorizer):
-# lint + breaking-change detection on PRs, publish to the BSR on push to main.
+# Proto schema CI for the `proto/` module (buf.build/authorizerdev/authorizer).
+# Responsibilities are split by event so nothing runs twice across a PR and its
+# merge commit:
+#   - pull_request -> validate (lint + breaking-change check)
+#   - push to main -> publish (buf push)
 on:
   pull_request:
     paths:
@@ -17,33 +20,46 @@ on:
 permissions:
   contents: read
 
+# Cancel superseded runs on the same ref (e.g. rapid pushes to a PR).
+concurrency:
+  group: buf-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  buf:
-    name: Lint, breaking & push
+  validate:
+    name: Lint & breaking
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-
       - uses: bufbuild/buf-setup-action@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Lint
         run: buf lint proto
-
-      # Compare the proposed schema against the published module so a PR that
-      # would break wire/source compatibility fails before it lands.
+      # Compare against the published module so a PR that would break
+      # wire/source compatibility fails before it lands.
       - name: Breaking-change check
         run: buf breaking proto --against buf.build/authorizerdev/authorizer
         env:
           BUF_TOKEN: ${{ secrets.BUF_TOKEN }}
 
-      # Publish only from main. buf de-dupes identical schemas, so commits that
-      # don't touch protos are no-ops.
+  publish:
+    name: Push to BSR
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+      # buf de-dupes identical schemas, so commits that don't touch protos
+      # are no-ops.
       - name: Push to BSR
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: buf push proto
         env:
           BUF_TOKEN: ${{ secrets.BUF_TOKEN }}
