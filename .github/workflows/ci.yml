@@ -4,7 +4,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main, ci/buf-push]
+    branches: [main]
   release:
     types: [created]
 
@@ -43,20 +43,3 @@ jobs:
       # freshly built binary (see internal/e2e/smoke_test.go).
       - name: Run smoke tests
         run: make smoke
-
-  buf-push:
-    name: Publish proto to BSR
-    runs-on: ubuntu-latest
-    # Only publish on real pushes (main), never on PRs.
-    if: github.event_name == 'push'
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-      - uses: bufbuild/buf-setup-action@v1
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-      - name: buf push
-        env:
-          BUF_TOKEN: ${{ secrets.BUF_TOKEN }}
-        run: buf push proto --create --create-visibility public
