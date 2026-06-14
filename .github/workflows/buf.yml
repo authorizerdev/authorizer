@@ -1,0 +1,49 @@
+---
+name: Buf
+
+# Proto schema CI for the `proto/` module (buf.build/authorizerdev/authorizer):
+# lint + breaking-change detection on PRs, publish to the BSR on push to main.
+on:
+  pull_request:
+    paths:
+      - "proto/**"
+      - ".github/workflows/buf.yml"
+  push:
+    branches: [main]
+    paths:
+      - "proto/**"
+      - ".github/workflows/buf.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  buf:
+    name: Lint, breaking & push
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Lint
+        run: buf lint proto
+
+      # Compare the proposed schema against the published module so a PR that
+      # would break wire/source compatibility fails before it lands.
+      - name: Breaking-change check
+        run: buf breaking proto --against buf.build/authorizerdev/authorizer
+        env:
+          BUF_TOKEN: ${{ secrets.BUF_TOKEN }}
+
+      # Publish only from main. buf de-dupes identical schemas, so commits that
+      # don't touch protos are no-ops.
+      - name: Push to BSR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: buf push proto
+        env:
+          BUF_TOKEN: ${{ secrets.BUF_TOKEN }}
