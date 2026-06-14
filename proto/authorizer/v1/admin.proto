@@ -1,0 +1,21 @@
+// proto/authorizer/v1/admin.proto
+//
+// AuthorizerAdminService exposes Authorizer's super-admin-only operations
+// (the `_`-prefixed GraphQL queries/mutations). It is registered on the SAME
+// grpc.Server and gateway mux as AuthorizerService. Every RPC requires
+// super-admin auth (admin session cookie or x-authorizer-admin-secret header)
+// except AdminLogin, which establishes it. Admin operations are intentionally
+// NOT exposed over MCP.
+syntax = "proto3";
+
+package authorizer.v1;
+
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "authorizer/common/v1/pagination.proto";
+import "authorizer/v1/types.proto";
+
+// AuthorizerAdminService is the single gRPC service for Authorizer's admin
+// (super-admin-only) API surface. RPCs are added one domain group at a time;
+// see specs/2026-06-15-authorizer-admin-service-plan.md.
+service AuthorizerAdminService {}
