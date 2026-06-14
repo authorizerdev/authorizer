@@ -63,6 +63,15 @@ func New(addr string, deps *Dependencies) (*Server, error) {
 	// (today: Meta) override the unimplemented stubs.
 	authorizerv1.RegisterAuthorizerServiceServer(srv, &handlers.AuthorizerHandler{Service: deps.ServiceProvider})
 
+	// Register the AuthorizerAdminService on the SAME server (one gRPC port
+	// serves the public + admin surfaces). AdminHandler embeds
+	// UnimplementedAuthorizerAdminServiceServer, so any not-yet-migrated RPC
+	// returns codes.Unimplemented. The concrete service.Provider value also
+	// implements service.AdminProvider; the assertion is non-nil once every
+	// admin domain group has been migrated.
+	adminSvc, _ := deps.ServiceProvider.(service.AdminProvider)
+	authorizerv1.RegisterAuthorizerAdminServiceServer(srv, &handlers.AdminHandler{Service: adminSvc})
+
 	// gRPC health checking protocol (used by k8s grpc-probe and similar).
 	hs := health.NewServer()
 	hs.SetServingStatus("", healthv1.HealthCheckResponse_SERVING)
