@@ -30,6 +30,9 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 COPY main.go ./
 COPY cmd/ ./cmd/
 COPY internal/ ./internal/
+# Generated gRPC/REST/OpenAPI packages are part of this module and imported by
+# internal/grpcsrv and internal/server; they must be present for -mod=readonly.
+COPY gen/ ./gen/
 COPY gqlgen.yml ./
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \

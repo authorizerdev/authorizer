@@ -74,7 +74,9 @@ jobs:
         run: |
           VERSION=$(basename ${GITHUB_REF})
           TAG_ARGS=(-t "${DOCKER_IMAGE}:${VERSION}")
-          if [[ "$VERSION" != *"rc"* && "$VERSION" != *"beta"* ]]; then
+          # Only a final release moves :latest. Match strict semver with no
+          # pre-release suffix (vX.Y.Z / X.Y.Z) so rc/beta/alpha/pre never win.
+          if [[ "$VERSION" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             TAG_ARGS+=(-t "${DOCKER_IMAGE}:latest")
           fi
           docker buildx build \
