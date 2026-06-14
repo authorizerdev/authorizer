@@ -49,6 +49,15 @@ func MetaFromGRPC(ctx context.Context) service.RequestMetadata {
 	// those helpers dereference nil and panic. Building the request here keeps
 	// the gRPC/REST path behaving exactly like the gin path.
 	meta.Request = synthRequest(meta)
+
+	// Carry the custom admin-secret header onto the synthesized request so the
+	// admin-auth check (TokenProvider.IsSuperAdmin, reached via the gin shim in
+	// service.requireSuperAdmin) sees it identically over pure gRPC and over
+	// REST. The REST gateway forwards it after gateway.WithIncomingHeaderMatcher
+	// allows it; pure-gRPC callers set it as metadata directly.
+	if adminSecret := firstHeader(md, "x-authorizer-admin-secret", "grpcgateway-x-authorizer-admin-secret"); adminSecret != "" {
+		meta.Request.Header.Set("x-authorizer-admin-secret", adminSecret)
+	}
 	return meta
 }
 
