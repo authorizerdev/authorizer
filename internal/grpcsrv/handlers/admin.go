@@ -68,3 +68,74 @@ func (h *AdminHandler) AdminMeta(ctx context.Context, _ *authorizerv1.AdminMetaR
 	}
 	return &authorizerv1.AdminMetaResponse{AdminMeta: projectAdminMeta(res)}, nil
 }
+
+// Users delegates to service.Users and projects the paginated result. Requires
+// super-admin auth.
+func (h *AdminHandler) Users(ctx context.Context, req *authorizerv1.UsersRequest) (*authorizerv1.UsersResponse, error) {
+	res, _, err := h.Service.Users(ctx, transport.MetaFromGRPC(ctx), modelPaginatedRequest(req.GetPagination()))
+	if err != nil {
+		return nil, err
+	}
+	return projectUsers(res), nil
+}
+
+// User delegates to service.User, resolving by id or email. Requires
+// super-admin auth.
+func (h *AdminHandler) User(ctx context.Context, req *authorizerv1.UserRequest) (*authorizerv1.UserResponse, error) {
+	res, _, err := h.Service.User(ctx, transport.MetaFromGRPC(ctx), &model.GetUserRequest{
+		ID:    optionalString(req.GetId()),
+		Email: optionalString(req.GetEmail()),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &authorizerv1.UserResponse{User: projectUser(res)}, nil
+}
+
+// UpdateUser delegates to service.UpdateUser and projects the updated user.
+// Optional proto fields map 1:1 onto the model's nullable pointers. Requires
+// super-admin auth.
+func (h *AdminHandler) UpdateUser(ctx context.Context, req *authorizerv1.UpdateUserRequest) (*authorizerv1.UpdateUserResponse, error) {
+	res, _, err := h.Service.UpdateUser(ctx, transport.MetaFromGRPC(ctx), &model.UpdateUserRequest{
+		ID:                       req.GetId(),
+		Email:                    req.Email,
+		EmailVerified:            req.EmailVerified,
+		GivenName:                req.GivenName,
+		FamilyName:               req.FamilyName,
+		MiddleName:               req.MiddleName,
+		Nickname:                 req.Nickname,
+		Gender:                   req.Gender,
+		Birthdate:                req.Birthdate,
+		PhoneNumber:              req.PhoneNumber,
+		PhoneNumberVerified:      req.PhoneNumberVerified,
+		Picture:                  req.Picture,
+		Roles:                    protoToModelStringSlice(req.GetRoles()),
+		IsMultiFactorAuthEnabled: req.IsMultiFactorAuthEnabled,
+		AppData:                  appDataToMap(req.GetAppData()),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &authorizerv1.UpdateUserResponse{User: projectUser(res)}, nil
+}
+
+// DeleteUser delegates to service.DeleteUser. Requires super-admin auth.
+func (h *AdminHandler) DeleteUser(ctx context.Context, req *authorizerv1.DeleteUserRequest) (*authorizerv1.DeleteUserResponse, error) {
+	res, _, err := h.Service.DeleteUser(ctx, transport.MetaFromGRPC(ctx), &model.DeleteUserRequest{
+		Email: req.GetEmail(),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &authorizerv1.DeleteUserResponse{Message: res.Message}, nil
+}
+
+// VerificationRequests delegates to service.VerificationRequests and projects
+// the paginated result. Requires super-admin auth.
+func (h *AdminHandler) VerificationRequests(ctx context.Context, req *authorizerv1.VerificationRequestsRequest) (*authorizerv1.VerificationRequestsResponse, error) {
+	res, _, err := h.Service.VerificationRequests(ctx, transport.MetaFromGRPC(ctx), modelPaginatedRequest(req.GetPagination()))
+	if err != nil {
+		return nil, err
+	}
+	return projectVerificationRequests(res), nil
+}

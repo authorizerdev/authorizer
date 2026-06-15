@@ -10,6 +10,9 @@ syntax = "proto3";
 
 package authorizer.v1;
 
+import "authorizer/common/v1/pagination.proto";
+import "authorizer/common/v1/types.proto";
+import "authorizer/v1/types.proto";
 import "buf/validate/validate.proto";
 import "google/api/annotations.proto";
 
@@ -43,6 +46,51 @@ service AuthorizerAdminService {
   // default roles, protected roles). Requires super-admin auth.
   rpc AdminMeta(AdminMetaRequest) returns (AdminMetaResponse) {
     option (google.api.http) = {get: "/v1/admin/meta"};
+  }
+
+  // === Users ===
+
+  // Users returns a paginated list of all users. Requires super-admin auth.
+  rpc Users(UsersRequest) returns (UsersResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/users"
+      body: "*"
+    };
+  }
+
+  // User returns a single user by id or email. Requires super-admin auth.
+  rpc User(UserRequest) returns (UserResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/user"
+      body: "*"
+    };
+  }
+
+  // UpdateUser updates a user's profile, roles, MFA, or verification state and
+  // returns the updated user. Requires super-admin auth.
+  rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/update_user"
+      body: "*"
+    };
+  }
+
+  // DeleteUser deletes a user (and associated OTP/verification data) by email.
+  // Requires super-admin auth.
+  rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/delete_user"
+      body: "*"
+    };
+  }
+
+  // VerificationRequests returns a paginated list of pending verification
+  // requests. Requires super-admin auth.
+  rpc VerificationRequests(VerificationRequestsRequest) returns (VerificationRequestsResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/verification_requests"
+      body: "*"
+    };
   }
 }
 
@@ -80,4 +128,76 @@ message AdminMeta {
   repeated string roles = 1;
   repeated string default_roles = 2;
   repeated string protected_roles = 3;
+}
+
+// === Users ===
+
+message UsersRequest {
+  authorizer.common.v1.PaginationRequest pagination = 1;
+}
+message UsersResponse {
+  repeated User users = 1;
+  authorizer.common.v1.Pagination pagination = 2;
+}
+
+// UserRequest fetches a single user by id or email; at least one must be set.
+message UserRequest {
+  string id = 1;
+  string email = 2;
+}
+message UserResponse {
+  User user = 1;
+}
+
+// UpdateUserRequest mirrors model.UpdateUserRequest. Nullable GraphQL inputs use
+// proto3 `optional` so an unset field is distinguishable from an empty value
+// (e.g. clearing a name vs leaving it untouched, or email_verified=false).
+message UpdateUserRequest {
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+  optional string email = 2;
+  optional bool email_verified = 3;
+  optional string given_name = 4;
+  optional string family_name = 5;
+  optional string middle_name = 6;
+  optional string nickname = 7;
+  optional string gender = 8;
+  optional string birthdate = 9;
+  optional string phone_number = 10;
+  optional bool phone_number_verified = 11;
+  optional string picture = 12;
+  repeated string roles = 13;
+  optional bool is_multi_factor_auth_enabled = 14;
+  authorizer.common.v1.AppData app_data = 15;
+}
+message UpdateUserResponse {
+  User user = 1;
+}
+
+// DeleteUserRequest mirrors model.DeleteUserRequest.
+message DeleteUserRequest {
+  string email = 1 [(buf.validate.field).string.min_len = 1];
+}
+message DeleteUserResponse {
+  string message = 1;
+}
+
+message VerificationRequestsRequest {
+  authorizer.common.v1.PaginationRequest pagination = 1;
+}
+message VerificationRequestsResponse {
+  repeated VerificationRequest verification_requests = 1;
+  authorizer.common.v1.Pagination pagination = 2;
+}
+
+// VerificationRequest mirrors model.VerificationRequest field-for-field.
+message VerificationRequest {
+  string id = 1;
+  string identifier = 2;
+  string token = 3;
+  string email = 4;
+  int64 expires = 5;
+  int64 created_at = 6;
+  int64 updated_at = 7;
+  string nonce = 8;
+  string redirect_uri = 9;
 }

@@ -28,10 +28,15 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AuthorizerAdminService_AdminLogin_FullMethodName   = "/authorizer.v1.AuthorizerAdminService/AdminLogin"
-	AuthorizerAdminService_AdminLogout_FullMethodName  = "/authorizer.v1.AuthorizerAdminService/AdminLogout"
-	AuthorizerAdminService_AdminSession_FullMethodName = "/authorizer.v1.AuthorizerAdminService/AdminSession"
-	AuthorizerAdminService_AdminMeta_FullMethodName    = "/authorizer.v1.AuthorizerAdminService/AdminMeta"
+	AuthorizerAdminService_AdminLogin_FullMethodName           = "/authorizer.v1.AuthorizerAdminService/AdminLogin"
+	AuthorizerAdminService_AdminLogout_FullMethodName          = "/authorizer.v1.AuthorizerAdminService/AdminLogout"
+	AuthorizerAdminService_AdminSession_FullMethodName         = "/authorizer.v1.AuthorizerAdminService/AdminSession"
+	AuthorizerAdminService_AdminMeta_FullMethodName            = "/authorizer.v1.AuthorizerAdminService/AdminMeta"
+	AuthorizerAdminService_Users_FullMethodName                = "/authorizer.v1.AuthorizerAdminService/Users"
+	AuthorizerAdminService_User_FullMethodName                 = "/authorizer.v1.AuthorizerAdminService/User"
+	AuthorizerAdminService_UpdateUser_FullMethodName           = "/authorizer.v1.AuthorizerAdminService/UpdateUser"
+	AuthorizerAdminService_DeleteUser_FullMethodName           = "/authorizer.v1.AuthorizerAdminService/DeleteUser"
+	AuthorizerAdminService_VerificationRequests_FullMethodName = "/authorizer.v1.AuthorizerAdminService/VerificationRequests"
 )
 
 // AuthorizerAdminServiceClient is the client API for AuthorizerAdminService service.
@@ -53,6 +58,19 @@ type AuthorizerAdminServiceClient interface {
 	// AdminMeta returns admin-only configuration metadata (configured roles,
 	// default roles, protected roles). Requires super-admin auth.
 	AdminMeta(ctx context.Context, in *AdminMetaRequest, opts ...grpc.CallOption) (*AdminMetaResponse, error)
+	// Users returns a paginated list of all users. Requires super-admin auth.
+	Users(ctx context.Context, in *UsersRequest, opts ...grpc.CallOption) (*UsersResponse, error)
+	// User returns a single user by id or email. Requires super-admin auth.
+	User(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (*UserResponse, error)
+	// UpdateUser updates a user's profile, roles, MFA, or verification state and
+	// returns the updated user. Requires super-admin auth.
+	UpdateUser(ctx context.Context, in *UpdateUserRequest, opts ...grpc.CallOption) (*UpdateUserResponse, error)
+	// DeleteUser deletes a user (and associated OTP/verification data) by email.
+	// Requires super-admin auth.
+	DeleteUser(ctx context.Context, in *DeleteUserRequest, opts ...grpc.CallOption) (*DeleteUserResponse, error)
+	// VerificationRequests returns a paginated list of pending verification
+	// requests. Requires super-admin auth.
+	VerificationRequests(ctx context.Context, in *VerificationRequestsRequest, opts ...grpc.CallOption) (*VerificationRequestsResponse, error)
 }
 
 type authorizerAdminServiceClient struct {
@@ -103,6 +121,56 @@ func (c *authorizerAdminServiceClient) AdminMeta(ctx context.Context, in *AdminM
 	return out, nil
 }
 
+func (c *authorizerAdminServiceClient) Users(ctx context.Context, in *UsersRequest, opts ...grpc.CallOption) (*UsersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UsersResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_Users_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) User(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (*UserResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UserResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_User_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) UpdateUser(ctx context.Context, in *UpdateUserRequest, opts ...grpc.CallOption) (*UpdateUserResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateUserResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_UpdateUser_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) DeleteUser(ctx context.Context, in *DeleteUserRequest, opts ...grpc.CallOption) (*DeleteUserResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteUserResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_DeleteUser_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) VerificationRequests(ctx context.Context, in *VerificationRequestsRequest, opts ...grpc.CallOption) (*VerificationRequestsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(VerificationRequestsResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_VerificationRequests_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthorizerAdminServiceServer is the server API for AuthorizerAdminService service.
 // All implementations should embed UnimplementedAuthorizerAdminServiceServer
 // for forward compatibility.
@@ -122,6 +190,19 @@ type AuthorizerAdminServiceServer interface {
 	// AdminMeta returns admin-only configuration metadata (configured roles,
 	// default roles, protected roles). Requires super-admin auth.
 	AdminMeta(context.Context, *AdminMetaRequest) (*AdminMetaResponse, error)
+	// Users returns a paginated list of all users. Requires super-admin auth.
+	Users(context.Context, *UsersRequest) (*UsersResponse, error)
+	// User returns a single user by id or email. Requires super-admin auth.
+	User(context.Context, *UserRequest) (*UserResponse, error)
+	// UpdateUser updates a user's profile, roles, MFA, or verification state and
+	// returns the updated user. Requires super-admin auth.
+	UpdateUser(context.Context, *UpdateUserRequest) (*UpdateUserResponse, error)
+	// DeleteUser deletes a user (and associated OTP/verification data) by email.
+	// Requires super-admin auth.
+	DeleteUser(context.Context, *DeleteUserRequest) (*DeleteUserResponse, error)
+	// VerificationRequests returns a paginated list of pending verification
+	// requests. Requires super-admin auth.
+	VerificationRequests(context.Context, *VerificationRequestsRequest) (*VerificationRequestsResponse, error)
 }
 
 // UnimplementedAuthorizerAdminServiceServer should be embedded to have
@@ -142,6 +223,21 @@ func (UnimplementedAuthorizerAdminServiceServer) AdminSession(context.Context, *
 }
 func (UnimplementedAuthorizerAdminServiceServer) AdminMeta(context.Context, *AdminMetaRequest) (*AdminMetaResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AdminMeta not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) Users(context.Context, *UsersRequest) (*UsersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Users not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) User(context.Context, *UserRequest) (*UserResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method User not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) UpdateUser(context.Context, *UpdateUserRequest) (*UpdateUserResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateUser not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) DeleteUser(context.Context, *DeleteUserRequest) (*DeleteUserResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteUser not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) VerificationRequests(context.Context, *VerificationRequestsRequest) (*VerificationRequestsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method VerificationRequests not implemented")
 }
 func (UnimplementedAuthorizerAdminServiceServer) testEmbeddedByValue() {}
 
@@ -235,6 +331,96 @@ func _AuthorizerAdminService_AdminMeta_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthorizerAdminService_Users_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UsersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).Users(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_Users_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).Users(ctx, req.(*UsersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_User_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UserRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).User(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_User_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).User(ctx, req.(*UserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_UpdateUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateUserRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).UpdateUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_UpdateUser_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).UpdateUser(ctx, req.(*UpdateUserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_DeleteUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteUserRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).DeleteUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_DeleteUser_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).DeleteUser(ctx, req.(*DeleteUserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_VerificationRequests_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(VerificationRequestsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).VerificationRequests(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_VerificationRequests_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).VerificationRequests(ctx, req.(*VerificationRequestsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthorizerAdminService_ServiceDesc is the grpc.ServiceDesc for AuthorizerAdminService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -257,6 +443,26 @@ var AuthorizerAdminService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AdminMeta",
 			Handler:    _AuthorizerAdminService_AdminMeta_Handler,
+		},
+		{
+			MethodName: "Users",
+			Handler:    _AuthorizerAdminService_Users_Handler,
+		},
+		{
+			MethodName: "User",
+			Handler:    _AuthorizerAdminService_User_Handler,
+		},
+		{
+			MethodName: "UpdateUser",
+			Handler:    _AuthorizerAdminService_UpdateUser_Handler,
+		},
+		{
+			MethodName: "DeleteUser",
+			Handler:    _AuthorizerAdminService_DeleteUser_Handler,
+		},
+		{
+			MethodName: "VerificationRequests",
+			Handler:    _AuthorizerAdminService_VerificationRequests_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

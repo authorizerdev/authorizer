@@ -19,6 +19,40 @@
     "application/json"
   ],
   "paths": {
+    "/v1/admin/delete_user": {
+      "post": {
+        "summary": "DeleteUser deletes a user (and associated OTP/verification data) by email.\nRequires super-admin auth.",
+        "operationId": "AuthorizerAdminService_DeleteUser",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1DeleteUserResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "DeleteUserRequest mirrors model.DeleteUserRequest.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1DeleteUserRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
     "/v1/admin/login": {
       "post": {
         "summary": "AdminLogin validates the admin secret and establishes an admin session\n(Set-Cookie for browser callers). Public entry point — the ONLY admin RPC\nthat does not require an existing super-admin session.",
@@ -116,6 +150,140 @@
             }
           }
         },
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/update_user": {
+      "post": {
+        "summary": "UpdateUser updates a user's profile, roles, MFA, or verification state and\nreturns the updated user. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_UpdateUser",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1UpdateUserResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "UpdateUserRequest mirrors model.UpdateUserRequest. Nullable GraphQL inputs use\nproto3 `optional` so an unset field is distinguishable from an empty value\n(e.g. clearing a name vs leaving it untouched, or email_verified=false).",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1UpdateUserRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/user": {
+      "post": {
+        "summary": "User returns a single user by id or email. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_User",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1UserResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "UserRequest fetches a single user by id or email; at least one must be set.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1UserRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/users": {
+      "post": {
+        "summary": "Users returns a paginated list of all users. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_Users",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1UsersResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1UsersRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/verification_requests": {
+      "post": {
+        "summary": "VerificationRequests returns a paginated list of pending verification\nrequests. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_VerificationRequests",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1VerificationRequestsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1VerificationRequestsRequest"
+            }
+          }
+        ],
         "tags": [
           "AuthorizerAdminService"
         ]
@@ -834,6 +1002,81 @@
       },
       "description": "Meta mirrors the GraphQL Meta type — server feature flags + provider\navailability, returned by the Meta query."
     },
+    "authorizerv1User": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string",
+          "description": "Either email or phone_number is always present."
+        },
+        "email_verified": {
+          "type": "boolean"
+        },
+        "signup_methods": {
+          "type": "string"
+        },
+        "given_name": {
+          "type": "string"
+        },
+        "family_name": {
+          "type": "string"
+        },
+        "middle_name": {
+          "type": "string"
+        },
+        "nickname": {
+          "type": "string"
+        },
+        "preferred_username": {
+          "type": "string",
+          "description": "Defaults to email when unset."
+        },
+        "gender": {
+          "type": "string"
+        },
+        "birthdate": {
+          "type": "string"
+        },
+        "phone_number": {
+          "type": "string"
+        },
+        "phone_number_verified": {
+          "type": "boolean"
+        },
+        "picture": {
+          "type": "string"
+        },
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "created_at": {
+          "type": "string",
+          "format": "int64"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "int64"
+        },
+        "revoked_timestamp": {
+          "type": "string",
+          "format": "int64"
+        },
+        "is_multi_factor_auth_enabled": {
+          "type": "boolean"
+        },
+        "app_data": {
+          "$ref": "#/definitions/v1AppData",
+          "description": "Free-form key/value bag — same as GraphQL `app_data: Map`."
+        }
+      },
+      "description": "User mirrors the GraphQL User type. Returned by Profile and embedded in\nAuthResponse."
+    },
     "protobufAny": {
       "type": "object",
       "properties": {
@@ -948,7 +1191,7 @@
           "format": "int64"
         },
         "user": {
-          "$ref": "#/definitions/v1User"
+          "$ref": "#/definitions/authorizerv1User"
         },
         "authenticator_scanner_image": {
           "type": "string",
@@ -1000,6 +1243,23 @@
       "type": "object"
     },
     "v1DeactivateAccountResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1DeleteUserRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        }
+      },
+      "description": "DeleteUserRequest mirrors model.DeleteUserRequest."
+    },
+    "v1DeleteUserResponse": {
       "type": "object",
       "properties": {
         "message": {
@@ -1191,6 +1451,50 @@
         }
       }
     },
+    "v1Pagination": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "string",
+          "format": "int64"
+        },
+        "page": {
+          "type": "string",
+          "format": "int64"
+        },
+        "offset": {
+          "type": "string",
+          "format": "int64"
+        },
+        "total": {
+          "type": "string",
+          "format": "int64"
+        },
+        "next_page_token": {
+          "type": "string",
+          "description": "Opaque cursor for the next page; empty when no more pages."
+        }
+      }
+    },
+    "v1PaginationRequest": {
+      "type": "object",
+      "properties": {
+        "page": {
+          "type": "string",
+          "format": "int64",
+          "description": "1-based page number. Ignored when page_token is set. Default 1."
+        },
+        "limit": {
+          "type": "string",
+          "format": "int64",
+          "description": "Page size. Server enforces an upper bound (typically 100). Default 10."
+        },
+        "page_token": {
+          "type": "string",
+          "description": "Opaque cursor returned by the previous List call's `next_page_token`.\nPreferred for new clients (AIP-158). When set, `page` is ignored."
+        }
+      }
+    },
     "v1Permission": {
       "type": "object",
       "properties": {
@@ -1241,7 +1545,7 @@
       "type": "object",
       "properties": {
         "user": {
-          "$ref": "#/definitions/v1User"
+          "$ref": "#/definitions/authorizerv1User"
         }
       }
     },
@@ -1495,21 +1799,17 @@
         }
       }
     },
-    "v1User": {
+    "v1UpdateUserRequest": {
       "type": "object",
       "properties": {
         "id": {
           "type": "string"
         },
         "email": {
-          "type": "string",
-          "description": "Either email or phone_number is always present."
+          "type": "string"
         },
         "email_verified": {
           "type": "boolean"
-        },
-        "signup_methods": {
-          "type": "string"
         },
         "given_name": {
           "type": "string"
@@ -1522,10 +1822,6 @@
         },
         "nickname": {
           "type": "string"
-        },
-        "preferred_username": {
-          "type": "string",
-          "description": "Defaults to email when unset."
         },
         "gender": {
           "type": "string"
@@ -1548,27 +1844,65 @@
             "type": "string"
           }
         },
-        "created_at": {
-          "type": "string",
-          "format": "int64"
-        },
-        "updated_at": {
-          "type": "string",
-          "format": "int64"
-        },
-        "revoked_timestamp": {
-          "type": "string",
-          "format": "int64"
-        },
         "is_multi_factor_auth_enabled": {
           "type": "boolean"
         },
         "app_data": {
-          "$ref": "#/definitions/v1AppData",
-          "description": "Free-form key/value bag — same as GraphQL `app_data: Map`."
+          "$ref": "#/definitions/v1AppData"
         }
       },
-      "description": "User mirrors the GraphQL User type. Returned by Profile and embedded in\nAuthResponse."
+      "description": "UpdateUserRequest mirrors model.UpdateUserRequest. Nullable GraphQL inputs use\nproto3 `optional` so an unset field is distinguishable from an empty value\n(e.g. clearing a name vs leaving it untouched, or email_verified=false)."
+    },
+    "v1UpdateUserResponse": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "$ref": "#/definitions/authorizerv1User"
+        }
+      }
+    },
+    "v1UserRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        }
+      },
+      "description": "UserRequest fetches a single user by id or email; at least one must be set."
+    },
+    "v1UserResponse": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "$ref": "#/definitions/authorizerv1User"
+        }
+      }
+    },
+    "v1UsersRequest": {
+      "type": "object",
+      "properties": {
+        "pagination": {
+          "$ref": "#/definitions/v1PaginationRequest"
+        }
+      }
+    },
+    "v1UsersResponse": {
+      "type": "object",
+      "properties": {
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/authorizerv1User"
+          }
+        },
+        "pagination": {
+          "$ref": "#/definitions/v1Pagination"
+        }
+      }
     },
     "v1ValidateJwtTokenRequest": {
       "type": "object",
@@ -1636,7 +1970,66 @@
           "type": "boolean"
         },
         "user": {
-          "$ref": "#/definitions/v1User"
+          "$ref": "#/definitions/authorizerv1User"
+        }
+      }
+    },
+    "v1VerificationRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "identifier": {
+          "type": "string"
+        },
+        "token": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "expires": {
+          "type": "string",
+          "format": "int64"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "int64"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "int64"
+        },
+        "nonce": {
+          "type": "string"
+        },
+        "redirect_uri": {
+          "type": "string"
+        }
+      },
+      "description": "VerificationRequest mirrors model.VerificationRequest field-for-field."
+    },
+    "v1VerificationRequestsRequest": {
+      "type": "object",
+      "properties": {
+        "pagination": {
+          "$ref": "#/definitions/v1PaginationRequest"
+        }
+      }
+    },
+    "v1VerificationRequestsResponse": {
+      "type": "object",
+      "properties": {
+        "verification_requests": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1VerificationRequest"
+          }
+        },
+        "pagination": {
+          "$ref": "#/definitions/v1Pagination"
         }
       }
     },

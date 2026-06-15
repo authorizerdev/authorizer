@@ -20,28 +20,6 @@ func adminNotImplemented() error {
 	return &Error{Kind: KindInternal, msg: "admin operation not yet implemented"}
 }
 
-// --- Users (Phase 2) ---
-
-func (p *provider) Users(ctx context.Context, meta RequestMetadata, params *model.PaginatedRequest) (*model.Users, *ResponseSideEffects, error) {
-	return nil, nil, adminNotImplemented()
-}
-
-func (p *provider) User(ctx context.Context, meta RequestMetadata, params *model.GetUserRequest) (*model.User, *ResponseSideEffects, error) {
-	return nil, nil, adminNotImplemented()
-}
-
-func (p *provider) UpdateUser(ctx context.Context, meta RequestMetadata, params *model.UpdateUserRequest) (*model.User, *ResponseSideEffects, error) {
-	return nil, nil, adminNotImplemented()
-}
-
-func (p *provider) DeleteUser(ctx context.Context, meta RequestMetadata, params *model.DeleteUserRequest) (*model.Response, *ResponseSideEffects, error) {
-	return nil, nil, adminNotImplemented()
-}
-
-func (p *provider) VerificationRequests(ctx context.Context, meta RequestMetadata, params *model.PaginatedRequest) (*model.VerificationRequests, *ResponseSideEffects, error) {
-	return nil, nil, adminNotImplemented()
-}
-
 // --- Access (Phase 3) ---
 
 func (p *provider) RevokeAccess(ctx context.Context, meta RequestMetadata, params *model.UpdateAccessRequest) (*model.Response, *ResponseSideEffects, error) {
