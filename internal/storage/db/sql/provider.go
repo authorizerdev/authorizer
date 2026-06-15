@@ -7,6 +7,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlserver"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
 
 	"github.com/authorizerdev/authorizer/internal/config"
@@ -147,6 +148,13 @@ func (p *provider) Close() error {
 // installs, and catalogs without information_schema (sqlite), simply find
 // nothing to drop.
 func clearLegacyColumnUniqueness(db *gorm.DB, log *zerolog.Logger) {
+	// Run through a discarding GORM logger. The information_schema probe below
+	// intentionally errors on databases without that catalog (sqlite); GORM's
+	// default logger writes such errors to os.Stdout, which corrupts the MCP
+	// server's stdio JSON-RPC stream. We already surface anything actionable via
+	// the zerolog `log` (stderr), so GORM's own logging here is redundant.
+	db = db.Session(&gorm.Session{Logger: logger.Discard})
+
 	targets := map[string]bool{"email": true, "phone_number": true}
 	tables := []struct {
 		model any
