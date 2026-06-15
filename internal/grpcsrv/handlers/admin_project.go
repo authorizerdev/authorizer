@@ -126,3 +126,20 @@ func projectVerificationRequests(v *model.VerificationRequests) *authorizerv1.Ve
 		Pagination:           projectPagination(v.Pagination),
 	}
 }
+
+// projectInviteMembers converts the GraphQL InviteMembersResponse model (a
+// status message plus the list of newly invited users) into the proto response,
+// reusing projectUser for each invited user.
+func projectInviteMembers(r *model.InviteMembersResponse) *authorizerv1.InviteMembersResponse {
+	if r == nil {
+		return &authorizerv1.InviteMembersResponse{}
+	}
+	users := make([]*authorizerv1.User, 0, len(r.Users))
+	for _, item := range r.Users {
+		users = append(users, projectUser(item))
+	}
+	return &authorizerv1.InviteMembersResponse{
+		Message: r.Message,
+		Users:   users,
+	}
+}

@@ -139,3 +139,38 @@ func (h *AdminHandler) VerificationRequests(ctx context.Context, req *authorizer
 	}
 	return projectVerificationRequests(res), nil
 }
+
+// RevokeAccess delegates to service.RevokeAccess. Requires super-admin auth.
+func (h *AdminHandler) RevokeAccess(ctx context.Context, req *authorizerv1.RevokeAccessRequest) (*authorizerv1.RevokeAccessResponse, error) {
+	res, _, err := h.Service.RevokeAccess(ctx, transport.MetaFromGRPC(ctx), &model.UpdateAccessRequest{
+		UserID: req.GetUserId(),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &authorizerv1.RevokeAccessResponse{Message: res.Message}, nil
+}
+
+// EnableAccess delegates to service.EnableAccess. Requires super-admin auth.
+func (h *AdminHandler) EnableAccess(ctx context.Context, req *authorizerv1.EnableAccessRequest) (*authorizerv1.EnableAccessResponse, error) {
+	res, _, err := h.Service.EnableAccess(ctx, transport.MetaFromGRPC(ctx), &model.UpdateAccessRequest{
+		UserID: req.GetUserId(),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &authorizerv1.EnableAccessResponse{Message: res.Message}, nil
+}
+
+// InviteMembers delegates to service.InviteMembers and projects the invited
+// users. Requires super-admin auth.
+func (h *AdminHandler) InviteMembers(ctx context.Context, req *authorizerv1.InviteMembersRequest) (*authorizerv1.InviteMembersResponse, error) {
+	res, _, err := h.Service.InviteMembers(ctx, transport.MetaFromGRPC(ctx), &model.InviteMemberRequest{
+		Emails:      req.GetEmails(),
+		RedirectURI: req.RedirectUri,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return projectInviteMembers(res), nil
+}

@@ -20,20 +20,6 @@ func adminNotImplemented() error {
 	return &Error{Kind: KindInternal, msg: "admin operation not yet implemented"}
 }
 
-// --- Access (Phase 3) ---
-
-func (p *provider) RevokeAccess(ctx context.Context, meta RequestMetadata, params *model.UpdateAccessRequest) (*model.Response, *ResponseSideEffects, error) {
-	return nil, nil, adminNotImplemented()
-}
-
-func (p *provider) EnableAccess(ctx context.Context, meta RequestMetadata, params *model.UpdateAccessRequest) (*model.Response, *ResponseSideEffects, error) {
-	return nil, nil, adminNotImplemented()
-}
-
-func (p *provider) InviteMembers(ctx context.Context, meta RequestMetadata, params *model.InviteMemberRequest) (*model.InviteMembersResponse, *ResponseSideEffects, error) {
-	return nil, nil, adminNotImplemented()
-}
-
 // --- Webhooks (Phase 4) ---
 
 func (p *provider) AddWebhook(ctx context.Context, meta RequestMetadata, params *model.AddWebhookRequest) (*model.Response, *ResponseSideEffects, error) {

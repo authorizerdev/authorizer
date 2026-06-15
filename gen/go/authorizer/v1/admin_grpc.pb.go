@@ -37,6 +37,9 @@ const (
 	AuthorizerAdminService_UpdateUser_FullMethodName           = "/authorizer.v1.AuthorizerAdminService/UpdateUser"
 	AuthorizerAdminService_DeleteUser_FullMethodName           = "/authorizer.v1.AuthorizerAdminService/DeleteUser"
 	AuthorizerAdminService_VerificationRequests_FullMethodName = "/authorizer.v1.AuthorizerAdminService/VerificationRequests"
+	AuthorizerAdminService_RevokeAccess_FullMethodName         = "/authorizer.v1.AuthorizerAdminService/RevokeAccess"
+	AuthorizerAdminService_EnableAccess_FullMethodName         = "/authorizer.v1.AuthorizerAdminService/EnableAccess"
+	AuthorizerAdminService_InviteMembers_FullMethodName        = "/authorizer.v1.AuthorizerAdminService/InviteMembers"
 )
 
 // AuthorizerAdminServiceClient is the client API for AuthorizerAdminService service.
@@ -71,6 +74,16 @@ type AuthorizerAdminServiceClient interface {
 	// VerificationRequests returns a paginated list of pending verification
 	// requests. Requires super-admin auth.
 	VerificationRequests(ctx context.Context, in *VerificationRequestsRequest, opts ...grpc.CallOption) (*VerificationRequestsResponse, error)
+	// RevokeAccess revokes a user's access (sets the revoked timestamp), kills
+	// their sessions, and fires the access-revoked webhook. Requires super-admin
+	// auth.
+	RevokeAccess(ctx context.Context, in *RevokeAccessRequest, opts ...grpc.CallOption) (*RevokeAccessResponse, error)
+	// EnableAccess re-enables a previously revoked user (clears the revoked
+	// timestamp) and fires the access-enabled webhook. Requires super-admin auth.
+	EnableAccess(ctx context.Context, in *EnableAccessRequest, opts ...grpc.CallOption) (*EnableAccessResponse, error)
+	// InviteMembers creates accounts for new emails and sends invite emails.
+	// Requires super-admin auth and a configured email service.
+	InviteMembers(ctx context.Context, in *InviteMembersRequest, opts ...grpc.CallOption) (*InviteMembersResponse, error)
 }
 
 type authorizerAdminServiceClient struct {
@@ -171,6 +184,36 @@ func (c *authorizerAdminServiceClient) VerificationRequests(ctx context.Context,
 	return out, nil
 }
 
+func (c *authorizerAdminServiceClient) RevokeAccess(ctx context.Context, in *RevokeAccessRequest, opts ...grpc.CallOption) (*RevokeAccessResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RevokeAccessResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_RevokeAccess_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) EnableAccess(ctx context.Context, in *EnableAccessRequest, opts ...grpc.CallOption) (*EnableAccessResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EnableAccessResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_EnableAccess_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) InviteMembers(ctx context.Context, in *InviteMembersRequest, opts ...grpc.CallOption) (*InviteMembersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(InviteMembersResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_InviteMembers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthorizerAdminServiceServer is the server API for AuthorizerAdminService service.
 // All implementations should embed UnimplementedAuthorizerAdminServiceServer
 // for forward compatibility.
@@ -203,6 +246,16 @@ type AuthorizerAdminServiceServer interface {
 	// VerificationRequests returns a paginated list of pending verification
 	// requests. Requires super-admin auth.
 	VerificationRequests(context.Context, *VerificationRequestsRequest) (*VerificationRequestsResponse, error)
+	// RevokeAccess revokes a user's access (sets the revoked timestamp), kills
+	// their sessions, and fires the access-revoked webhook. Requires super-admin
+	// auth.
+	RevokeAccess(context.Context, *RevokeAccessRequest) (*RevokeAccessResponse, error)
+	// EnableAccess re-enables a previously revoked user (clears the revoked
+	// timestamp) and fires the access-enabled webhook. Requires super-admin auth.
+	EnableAccess(context.Context, *EnableAccessRequest) (*EnableAccessResponse, error)
+	// InviteMembers creates accounts for new emails and sends invite emails.
+	// Requires super-admin auth and a configured email service.
+	InviteMembers(context.Context, *InviteMembersRequest) (*InviteMembersResponse, error)
 }
 
 // UnimplementedAuthorizerAdminServiceServer should be embedded to have
@@ -238,6 +291,15 @@ func (UnimplementedAuthorizerAdminServiceServer) DeleteUser(context.Context, *De
 }
 func (UnimplementedAuthorizerAdminServiceServer) VerificationRequests(context.Context, *VerificationRequestsRequest) (*VerificationRequestsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method VerificationRequests not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) RevokeAccess(context.Context, *RevokeAccessRequest) (*RevokeAccessResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RevokeAccess not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) EnableAccess(context.Context, *EnableAccessRequest) (*EnableAccessResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method EnableAccess not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) InviteMembers(context.Context, *InviteMembersRequest) (*InviteMembersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method InviteMembers not implemented")
 }
 func (UnimplementedAuthorizerAdminServiceServer) testEmbeddedByValue() {}
 
@@ -421,6 +483,60 @@ func _AuthorizerAdminService_VerificationRequests_Handler(srv interface{}, ctx c
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthorizerAdminService_RevokeAccess_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RevokeAccessRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).RevokeAccess(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_RevokeAccess_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).RevokeAccess(ctx, req.(*RevokeAccessRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_EnableAccess_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EnableAccessRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).EnableAccess(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_EnableAccess_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).EnableAccess(ctx, req.(*EnableAccessRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_InviteMembers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(InviteMembersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).InviteMembers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_InviteMembers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).InviteMembers(ctx, req.(*InviteMembersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthorizerAdminService_ServiceDesc is the grpc.ServiceDesc for AuthorizerAdminService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -463,6 +579,18 @@ var AuthorizerAdminService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "VerificationRequests",
 			Handler:    _AuthorizerAdminService_VerificationRequests_Handler,
+		},
+		{
+			MethodName: "RevokeAccess",
+			Handler:    _AuthorizerAdminService_RevokeAccess_Handler,
+		},
+		{
+			MethodName: "EnableAccess",
+			Handler:    _AuthorizerAdminService_EnableAccess_Handler,
+		},
+		{
+			MethodName: "InviteMembers",
+			Handler:    _AuthorizerAdminService_InviteMembers_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

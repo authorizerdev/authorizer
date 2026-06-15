@@ -92,6 +92,36 @@ service AuthorizerAdminService {
       body: "*"
     };
   }
+
+  // === Access ===
+
+  // RevokeAccess revokes a user's access (sets the revoked timestamp), kills
+  // their sessions, and fires the access-revoked webhook. Requires super-admin
+  // auth.
+  rpc RevokeAccess(RevokeAccessRequest) returns (RevokeAccessResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/revoke_access"
+      body: "*"
+    };
+  }
+
+  // EnableAccess re-enables a previously revoked user (clears the revoked
+  // timestamp) and fires the access-enabled webhook. Requires super-admin auth.
+  rpc EnableAccess(EnableAccessRequest) returns (EnableAccessResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/enable_access"
+      body: "*"
+    };
+  }
+
+  // InviteMembers creates accounts for new emails and sends invite emails.
+  // Requires super-admin auth and a configured email service.
+  rpc InviteMembers(InviteMembersRequest) returns (InviteMembersResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/invite_members"
+      body: "*"
+    };
+  }
 }
 
 // ============================================================================
@@ -200,4 +230,37 @@ message VerificationRequest {
   int64 updated_at = 7;
   string nonce = 8;
   string redirect_uri = 9;
+}
+
+// === Access ===
+
+// RevokeAccessRequest mirrors model.UpdateAccessRequest (a single user id). It
+// is kept distinct from EnableAccessRequest per buf's one-message-per-RPC rule.
+message RevokeAccessRequest {
+  string user_id = 1 [(buf.validate.field).string.min_len = 1];
+}
+message RevokeAccessResponse {
+  string message = 1;
+}
+
+// EnableAccessRequest mirrors model.UpdateAccessRequest (a single user id). It
+// is kept distinct from RevokeAccessRequest per buf's one-message-per-RPC rule.
+message EnableAccessRequest {
+  string user_id = 1 [(buf.validate.field).string.min_len = 1];
+}
+message EnableAccessResponse {
+  string message = 1;
+}
+
+// InviteMembersRequest mirrors model.InviteMemberRequest. redirect_uri is
+// optional; when unset the configured app URL is used.
+message InviteMembersRequest {
+  repeated string emails = 1;
+  optional string redirect_uri = 2;
+}
+// InviteMembersResponse mirrors model.InviteMembersResponse (a message plus the
+// list of newly invited users).
+message InviteMembersResponse {
+  string message = 1;
+  repeated User users = 2;
 }

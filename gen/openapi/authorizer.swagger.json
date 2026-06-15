@@ -53,6 +53,74 @@
         ]
       }
     },
+    "/v1/admin/enable_access": {
+      "post": {
+        "summary": "EnableAccess re-enables a previously revoked user (clears the revoked\ntimestamp) and fires the access-enabled webhook. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_EnableAccess",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1EnableAccessResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "EnableAccessRequest mirrors model.UpdateAccessRequest (a single user id). It\nis kept distinct from RevokeAccessRequest per buf's one-message-per-RPC rule.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1EnableAccessRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/invite_members": {
+      "post": {
+        "summary": "InviteMembers creates accounts for new emails and sends invite emails.\nRequires super-admin auth and a configured email service.",
+        "operationId": "AuthorizerAdminService_InviteMembers",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1InviteMembersResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "InviteMembersRequest mirrors model.InviteMemberRequest. redirect_uri is\noptional; when unset the configured app URL is used.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1InviteMembersRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
     "/v1/admin/login": {
       "post": {
         "summary": "AdminLogin validates the admin secret and establishes an admin session\n(Set-Cookie for browser callers). Public entry point — the ONLY admin RPC\nthat does not require an existing super-admin session.",
@@ -127,6 +195,40 @@
             }
           }
         },
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/revoke_access": {
+      "post": {
+        "summary": "RevokeAccess revokes a user's access (sets the revoked timestamp), kills\ntheir sessions, and fires the access-revoked webhook. Requires super-admin\nauth.",
+        "operationId": "AuthorizerAdminService_RevokeAccess",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1RevokeAccessResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "RevokeAccessRequest mirrors model.UpdateAccessRequest (a single user id). It\nis kept distinct from EnableAccessRequest per buf's one-message-per-RPC rule.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1RevokeAccessRequest"
+            }
+          }
+        ],
         "tags": [
           "AuthorizerAdminService"
         ]
@@ -1267,6 +1369,23 @@
         }
       }
     },
+    "v1EnableAccessRequest": {
+      "type": "object",
+      "properties": {
+        "user_id": {
+          "type": "string"
+        }
+      },
+      "description": "EnableAccessRequest mirrors model.UpdateAccessRequest (a single user id). It\nis kept distinct from RevokeAccessRequest per buf's one-message-per-RPC rule."
+    },
+    "v1EnableAccessResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
     "v1FgaRelationInput": {
       "type": "object",
       "properties": {
@@ -1322,6 +1441,37 @@
           "description": "For SMS-driven flows the UI may need to render an OTP entry screen."
         }
       }
+    },
+    "v1InviteMembersRequest": {
+      "type": "object",
+      "properties": {
+        "emails": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "redirect_uri": {
+          "type": "string"
+        }
+      },
+      "description": "InviteMembersRequest mirrors model.InviteMemberRequest. redirect_uri is\noptional; when unset the configured app URL is used."
+    },
+    "v1InviteMembersResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        },
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/authorizerv1User"
+          }
+        }
+      },
+      "description": "InviteMembersResponse mirrors model.InviteMembersResponse (a message plus the\nlist of newly invited users)."
     },
     "v1ListPermissionsRequest": {
       "type": "object",
@@ -1615,6 +1765,23 @@
       }
     },
     "v1ResetPasswordResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1RevokeAccessRequest": {
+      "type": "object",
+      "properties": {
+        "user_id": {
+          "type": "string"
+        }
+      },
+      "description": "RevokeAccessRequest mirrors model.UpdateAccessRequest (a single user id). It\nis kept distinct from EnableAccessRequest per buf's one-message-per-RPC rule."
+    },
+    "v1RevokeAccessResponse": {
       "type": "object",
       "properties": {
         "message": {
