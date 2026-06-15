@@ -2,14 +2,19 @@
 name: CI
 
 on:
+  # Validate on PRs and on releases. Changes only reach main via PRs (which
+  # already ran this), so a post-merge `push: main` run would just duplicate it.
   pull_request:
-  push:
-    branches: [main]
   release:
     types: [created]
 
 permissions:
   contents: read
+
+# Cancel superseded runs on the same ref (e.g. rapid pushes to a PR).
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
