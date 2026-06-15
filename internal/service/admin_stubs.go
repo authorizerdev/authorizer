@@ -20,12 +20,6 @@ func adminNotImplemented() error {
 	return &Error{Kind: KindInternal, msg: "admin operation not yet implemented"}
 }
 
-// --- Audit (Phase 6) ---
-
-func (p *provider) AuditLogs(ctx context.Context, meta RequestMetadata, params *model.ListAuditLogRequest) (*model.AuditLogs, *ResponseSideEffects, error) {
-	return nil, nil, adminNotImplemented()
-}
-
 // --- FGA admin (Phase 7) ---
 
 func (p *provider) FgaWriteModel(ctx context.Context, meta RequestMetadata, params *model.FgaWriteModelInput) (*model.FgaModel, *ResponseSideEffects, error) {
