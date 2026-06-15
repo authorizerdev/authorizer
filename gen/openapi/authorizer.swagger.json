@@ -19,6 +19,40 @@
     "application/json"
   ],
   "paths": {
+    "/v1/admin/add_webhook": {
+      "post": {
+        "summary": "AddWebhook registers a new webhook for an event. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_AddWebhook",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1AddWebhookResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "AddWebhookRequest mirrors model.AddWebhookRequest. event_description is\noptional; when unset it defaults to the event name with dots replaced by\nspaces.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1AddWebhookRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
     "/v1/admin/delete_user": {
       "post": {
         "summary": "DeleteUser deletes a user (and associated OTP/verification data) by email.\nRequires super-admin auth.",
@@ -45,6 +79,40 @@
             "required": true,
             "schema": {
               "$ref": "#/definitions/v1DeleteUserRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/delete_webhook": {
+      "post": {
+        "summary": "DeleteWebhook deletes a webhook by id. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_DeleteWebhook",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1DeleteWebhookResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "DeleteWebhookRequest mirrors model.WebhookRequest (a single webhook id). It is\nkept distinct from GetWebhookRequest per buf's one-message-per-RPC rule.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1DeleteWebhookRequest"
             }
           }
         ],
@@ -257,6 +325,40 @@
         ]
       }
     },
+    "/v1/admin/test_endpoint": {
+      "post": {
+        "summary": "TestEndpoint sends a synthetic event payload to a webhook endpoint and\nreturns the HTTP status and response body. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_TestEndpoint",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1TestEndpointResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "TestEndpointRequest mirrors model.TestEndpointRequest. event_description is\noptional and unused by the test payload but accepted for parity.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1TestEndpointRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
     "/v1/admin/update_user": {
       "post": {
         "summary": "UpdateUser updates a user's profile, roles, MFA, or verification state and\nreturns the updated user. Requires super-admin auth.",
@@ -283,6 +385,40 @@
             "required": true,
             "schema": {
               "$ref": "#/definitions/v1UpdateUserRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/update_webhook": {
+      "post": {
+        "summary": "UpdateWebhook updates an existing webhook's event, endpoint, headers, or\nenabled state. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_UpdateWebhook",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1UpdateWebhookResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "UpdateWebhookRequest mirrors model.UpdateWebhookRequest. Nullable GraphQL\ninputs use proto3 `optional` so an unset field is distinguishable from an\nempty value.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1UpdateWebhookRequest"
             }
           }
         ],
@@ -383,6 +519,107 @@
             "required": true,
             "schema": {
               "$ref": "#/definitions/v1VerificationRequestsRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/webhook": {
+      "post": {
+        "summary": "GetWebhook returns a single webhook by id. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_GetWebhook",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetWebhookResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "GetWebhookRequest mirrors model.WebhookRequest (a single webhook id). It is\nkept distinct from DeleteWebhookRequest per buf's one-message-per-RPC rule.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1GetWebhookRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/webhook_logs": {
+      "post": {
+        "summary": "WebhookLogs returns a paginated list of webhook delivery logs, optionally\nfiltered by webhook id. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_WebhookLogs",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1WebhookLogsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "WebhookLogsRequest mirrors model.ListWebhookLogRequest. webhook_id is\noptional; when unset logs for all webhooks are returned.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1WebhookLogsRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/webhooks": {
+      "post": {
+        "summary": "Webhooks returns a paginated list of webhooks. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_Webhooks",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1WebhooksResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1WebhooksRequest"
             }
           }
         ],
@@ -1215,6 +1452,35 @@
         }
       }
     },
+    "v1AddWebhookRequest": {
+      "type": "object",
+      "properties": {
+        "event_name": {
+          "type": "string"
+        },
+        "event_description": {
+          "type": "string"
+        },
+        "endpoint": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "headers": {
+          "$ref": "#/definitions/v1AppData"
+        }
+      },
+      "description": "AddWebhookRequest mirrors model.AddWebhookRequest. event_description is\noptional; when unset it defaults to the event name with dots replaced by\nspaces."
+    },
+    "v1AddWebhookResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
     "v1AdminLoginRequest": {
       "type": "object",
       "properties": {
@@ -1369,6 +1635,23 @@
         }
       }
     },
+    "v1DeleteWebhookRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "description": "DeleteWebhookRequest mirrors model.WebhookRequest (a single webhook id). It is\nkept distinct from GetWebhookRequest per buf's one-message-per-RPC rule."
+    },
+    "v1DeleteWebhookResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
     "v1EnableAccessRequest": {
       "type": "object",
       "properties": {
@@ -1439,6 +1722,23 @@
         "should_show_mobile_otp_screen": {
           "type": "boolean",
           "description": "For SMS-driven flows the UI may need to render an OTP entry screen."
+        }
+      }
+    },
+    "v1GetWebhookRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "description": "GetWebhookRequest mirrors model.WebhookRequest (a single webhook id). It is\nkept distinct from DeleteWebhookRequest per buf's one-message-per-RPC rule."
+    },
+    "v1GetWebhookResponse": {
+      "type": "object",
+      "properties": {
+        "webhook": {
+          "$ref": "#/definitions/v1Webhook"
         }
       }
     },
@@ -1911,6 +2211,37 @@
         }
       }
     },
+    "v1TestEndpointRequest": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string"
+        },
+        "event_name": {
+          "type": "string"
+        },
+        "event_description": {
+          "type": "string"
+        },
+        "headers": {
+          "$ref": "#/definitions/v1AppData"
+        }
+      },
+      "description": "TestEndpointRequest mirrors model.TestEndpointRequest. event_description is\noptional and unused by the test payload but accepted for parity."
+    },
+    "v1TestEndpointResponse": {
+      "type": "object",
+      "properties": {
+        "http_status": {
+          "type": "string",
+          "format": "int64"
+        },
+        "response": {
+          "type": "string"
+        }
+      },
+      "description": "TestEndpointResponse mirrors model.TestEndpointResponse."
+    },
     "v1UpdateProfileRequest": {
       "type": "object",
       "properties": {
@@ -2025,6 +2356,38 @@
       "properties": {
         "user": {
           "$ref": "#/definitions/authorizerv1User"
+        }
+      }
+    },
+    "v1UpdateWebhookRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "event_name": {
+          "type": "string"
+        },
+        "event_description": {
+          "type": "string"
+        },
+        "endpoint": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "headers": {
+          "$ref": "#/definitions/v1AppData"
+        }
+      },
+      "description": "UpdateWebhookRequest mirrors model.UpdateWebhookRequest. Nullable GraphQL\ninputs use proto3 `optional` so an unset field is distinguishable from an\nempty value."
+    },
+    "v1UpdateWebhookResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
         }
       }
     },
@@ -2245,6 +2608,118 @@
       "properties": {
         "auth": {
           "$ref": "#/definitions/v1AuthResponse"
+        }
+      }
+    },
+    "v1Webhook": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "event_name": {
+          "type": "string"
+        },
+        "event_description": {
+          "type": "string"
+        },
+        "endpoint": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "headers": {
+          "$ref": "#/definitions/v1AppData"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "int64"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "int64"
+        }
+      },
+      "description": "Webhook mirrors model.Webhook field-for-field. headers is a free-form JSON\nobject (reusing the shared AppData wrapper around google.protobuf.Struct)."
+    },
+    "v1WebhookLog": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "http_status": {
+          "type": "string",
+          "format": "int64"
+        },
+        "response": {
+          "type": "string"
+        },
+        "request": {
+          "type": "string"
+        },
+        "webhook_id": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "int64"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "int64"
+        }
+      },
+      "description": "WebhookLog mirrors model.WebhookLog field-for-field."
+    },
+    "v1WebhookLogsRequest": {
+      "type": "object",
+      "properties": {
+        "pagination": {
+          "$ref": "#/definitions/v1PaginationRequest"
+        },
+        "webhook_id": {
+          "type": "string"
+        }
+      },
+      "description": "WebhookLogsRequest mirrors model.ListWebhookLogRequest. webhook_id is\noptional; when unset logs for all webhooks are returned."
+    },
+    "v1WebhookLogsResponse": {
+      "type": "object",
+      "properties": {
+        "webhook_logs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1WebhookLog"
+          }
+        },
+        "pagination": {
+          "$ref": "#/definitions/v1Pagination"
+        }
+      }
+    },
+    "v1WebhooksRequest": {
+      "type": "object",
+      "properties": {
+        "pagination": {
+          "$ref": "#/definitions/v1PaginationRequest"
+        }
+      }
+    },
+    "v1WebhooksResponse": {
+      "type": "object",
+      "properties": {
+        "webhooks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Webhook"
+          }
+        },
+        "pagination": {
+          "$ref": "#/definitions/v1Pagination"
         }
       }
     }

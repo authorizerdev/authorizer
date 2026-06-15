@@ -20,36 +20,6 @@ func adminNotImplemented() error {
 	return &Error{Kind: KindInternal, msg: "admin operation not yet implemented"}
 }
 
-// --- Webhooks (Phase 4) ---
-
-func (p *provider) AddWebhook(ctx context.Context, meta RequestMetadata, params *model.AddWebhookRequest) (*model.Response, *ResponseSideEffects, error) {
-	return nil, nil, adminNotImplemented()
-}
-
-func (p *provider) UpdateWebhook(ctx context.Context, meta RequestMetadata, params *model.UpdateWebhookRequest) (*model.Response, *ResponseSideEffects, error) {
-	return nil, nil, adminNotImplemented()
-}
-
-func (p *provider) DeleteWebhook(ctx context.Context, meta RequestMetadata, params *model.WebhookRequest) (*model.Response, *ResponseSideEffects, error) {
-	return nil, nil, adminNotImplemented()
-}
-
-func (p *provider) Webhook(ctx context.Context, meta RequestMetadata, params *model.WebhookRequest) (*model.Webhook, *ResponseSideEffects, error) {
-	return nil, nil, adminNotImplemented()
-}
-
-func (p *provider) Webhooks(ctx context.Context, meta RequestMetadata, params *model.PaginatedRequest) (*model.Webhooks, *ResponseSideEffects, error) {
-	return nil, nil, adminNotImplemented()
-}
-
-func (p *provider) WebhookLogs(ctx context.Context, meta RequestMetadata, params *model.ListWebhookLogRequest) (*model.WebhookLogs, *ResponseSideEffects, error) {
-	return nil, nil, adminNotImplemented()
-}
-
-func (p *provider) TestEndpoint(ctx context.Context, meta RequestMetadata, params *model.TestEndpointRequest) (*model.TestEndpointResponse, *ResponseSideEffects, error) {
-	return nil, nil, adminNotImplemented()
-}
-
 // --- Email templates (Phase 5) ---
 
 func (p *provider) AddEmailTemplate(ctx context.Context, meta RequestMetadata, params *model.AddEmailTemplateRequest) (*model.Response, *ResponseSideEffects, error) {

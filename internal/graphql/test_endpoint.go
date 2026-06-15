@@ -1,128 +1,19 @@
 package graphql
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
-	"fmt"
-	"io"
-	"net/http"
-	"time"
 
-	"github.com/authorizerdev/authorizer/internal/constants"
 	"github.com/authorizerdev/authorizer/internal/graph/model"
-	"github.com/authorizerdev/authorizer/internal/refs"
+	"github.com/authorizerdev/authorizer/internal/service"
 	"github.com/authorizerdev/authorizer/internal/utils"
-	"github.com/authorizerdev/authorizer/internal/validators"
-	"github.com/google/uuid"
 )
 
-// TestEndpoint is a service to test a webhook endpoint
+// TestEndpoint delegates to the transport-agnostic service layer. Resolver is a
+// thin transport adapter.
+//
 // Permission: authorizer:admin
 func (g *graphqlProvider) TestEndpoint(ctx context.Context, params *model.TestEndpointRequest) (*model.TestEndpointResponse, error) {
-	log := g.Log.With().Str("func", "TestEndpoint").Logger()
-	gc, err := utils.GinContextFromContext(ctx)
-	if err != nil {
-		log.Debug().Err(err).Msg("Failed to get GinContext")
-		return nil, err
-	}
-	if !g.TokenProvider.IsSuperAdmin(gc) {
-		log.Debug().Msg("Not logged in as super admin")
-		return nil, fmt.Errorf("unauthorized")
-	}
-
-	if !validators.IsValidWebhookEventName(params.EventName) {
-		log.Debug().Str("event_name", params.EventName).Msg("Invalid event name")
-		return nil, fmt.Errorf("invalid event_name %s", params.EventName)
-	}
-
-	user := model.User{
-		ID:            uuid.NewString(),
-		Email:         refs.NewStringRef("test_endpoint@authorizer.dev"),
-		EmailVerified: true,
-		SignupMethods: constants.AuthRecipeMethodMagicLinkLogin,
-		GivenName:     refs.NewStringRef("Foo"),
-		FamilyName:    refs.NewStringRef("Bar"),
-	}
-
-	userBytes, err := json.Marshal(user)
-	if err != nil {
-		log.Debug().Err(err).Msg("error marshalling user obj")
-		return nil, err
-	}
-	userMap := map[string]interface{}{}
-	err = json.Unmarshal(userBytes, &userMap)
-	if err != nil {
-		log.Debug().Err(err).Msg("error un-marshalling user obj")
-		return nil, err
-	}
-
-	reqBody := map[string]interface{}{
-		"event_name": constants.UserLoginWebhookEvent,
-		"user":       userMap,
-	}
-
-	if params.EventName == constants.UserLoginWebhookEvent {
-		reqBody["auth_recipe"] = constants.AuthRecipeMethodMagicLinkLogin
-	}
-
-	requestBody, err := json.Marshal(reqBody)
-	if err != nil {
-		log.Debug().Err(err).Msg("error marshalling requestBody obj")
-		return nil, err
-	}
-
-	// SSRF protection: resolve the host once and pin the dialer to the validated
-	// IP so http.Client cannot be tricked into re-resolving (DNS rebinding TOCTOU).
-	// Skipped only when tests explicitly set SkipTestEndpointSSRFValidation.
-	skipSSRF := g.Config.Env == constants.TestEnv && g.Config.SkipTestEndpointSSRFValidation
-	var client *http.Client
-	if skipSSRF {
-		client = &http.Client{Timeout: time.Second * 30}
-	} else {
-		client, err = validators.SafeHTTPClient(ctx, params.Endpoint, time.Second*30)
-		if err != nil {
-			log.Debug().Err(err).Str("endpoint", params.Endpoint).Msg("endpoint URL rejected by SSRF filter")
-			return nil, fmt.Errorf("invalid endpoint: %w", err)
-		}
-	}
-
-	req, err := http.NewRequest("POST", params.Endpoint, bytes.NewBuffer(requestBody))
-	if err != nil {
-		log.Debug().Err(err).Msg("error creating post request")
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	for key, val := range params.Headers {
-		req.Header.Set(key, headerValueString(val))
-	}
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Debug().Err(err).Msg("error making request")
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Debug().Err(err).Msg("error reading response")
-		return nil, err
-	}
-
-	statusCode := int64(resp.StatusCode)
-	return &model.TestEndpointResponse{
-		HTTPStatus: &statusCode,
-		Response:   refs.NewStringRef(string(body)),
-	}, nil
-}
-
-// headerValueString coerces GraphQL JSON header values to strings without panicking.
-func headerValueString(v interface{}) string {
-	if s, ok := v.(string); ok {
-		return s
-	}
-	if v == nil {
-		return ""
-	}
-	return fmt.Sprint(v)
+	gc, _ := utils.GinContextFromContext(ctx)
+	res, _, err := g.adminService().TestEndpoint(ctx, service.MetaFromGin(gc), params)
+	return res, err
 }

@@ -122,6 +122,67 @@ service AuthorizerAdminService {
       body: "*"
     };
   }
+
+  // === Webhooks ===
+
+  // AddWebhook registers a new webhook for an event. Requires super-admin auth.
+  rpc AddWebhook(AddWebhookRequest) returns (AddWebhookResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/add_webhook"
+      body: "*"
+    };
+  }
+
+  // UpdateWebhook updates an existing webhook's event, endpoint, headers, or
+  // enabled state. Requires super-admin auth.
+  rpc UpdateWebhook(UpdateWebhookRequest) returns (UpdateWebhookResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/update_webhook"
+      body: "*"
+    };
+  }
+
+  // DeleteWebhook deletes a webhook by id. Requires super-admin auth.
+  rpc DeleteWebhook(DeleteWebhookRequest) returns (DeleteWebhookResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/delete_webhook"
+      body: "*"
+    };
+  }
+
+  // GetWebhook returns a single webhook by id. Requires super-admin auth.
+  rpc GetWebhook(GetWebhookRequest) returns (GetWebhookResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/webhook"
+      body: "*"
+    };
+  }
+
+  // Webhooks returns a paginated list of webhooks. Requires super-admin auth.
+  rpc Webhooks(WebhooksRequest) returns (WebhooksResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/webhooks"
+      body: "*"
+    };
+  }
+
+  // WebhookLogs returns a paginated list of webhook delivery logs, optionally
+  // filtered by webhook id. Requires super-admin auth.
+  rpc WebhookLogs(WebhookLogsRequest) returns (WebhookLogsResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/webhook_logs"
+      body: "*"
+    };
+  }
+
+  // TestEndpoint sends a synthetic event payload to a webhook endpoint and
+  // returns the HTTP status and response body. Requires super-admin auth.
+  rpc TestEndpoint(TestEndpointRequest) returns (TestEndpointResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/test_endpoint"
+      body: "*"
+    };
+  }
 }
 
 // ============================================================================
@@ -263,4 +324,110 @@ message InviteMembersRequest {
 message InviteMembersResponse {
   string message = 1;
   repeated User users = 2;
+}
+
+// === Webhooks ===
+
+// Webhook mirrors model.Webhook field-for-field. headers is a free-form JSON
+// object (reusing the shared AppData wrapper around google.protobuf.Struct).
+message Webhook {
+  string id = 1;
+  string event_name = 2;
+  string event_description = 3;
+  string endpoint = 4;
+  bool enabled = 5;
+  authorizer.common.v1.AppData headers = 6;
+  int64 created_at = 7;
+  int64 updated_at = 8;
+}
+
+// WebhookLog mirrors model.WebhookLog field-for-field.
+message WebhookLog {
+  string id = 1;
+  int64 http_status = 2;
+  string response = 3;
+  string request = 4;
+  string webhook_id = 5;
+  int64 created_at = 6;
+  int64 updated_at = 7;
+}
+
+// AddWebhookRequest mirrors model.AddWebhookRequest. event_description is
+// optional; when unset it defaults to the event name with dots replaced by
+// spaces.
+message AddWebhookRequest {
+  string event_name = 1 [(buf.validate.field).string.min_len = 1];
+  optional string event_description = 2;
+  string endpoint = 3 [(buf.validate.field).string.min_len = 1];
+  bool enabled = 4;
+  authorizer.common.v1.AppData headers = 5;
+}
+message AddWebhookResponse {
+  string message = 1;
+}
+
+// UpdateWebhookRequest mirrors model.UpdateWebhookRequest. Nullable GraphQL
+// inputs use proto3 `optional` so an unset field is distinguishable from an
+// empty value.
+message UpdateWebhookRequest {
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+  optional string event_name = 2;
+  optional string event_description = 3;
+  optional string endpoint = 4;
+  optional bool enabled = 5;
+  authorizer.common.v1.AppData headers = 6;
+}
+message UpdateWebhookResponse {
+  string message = 1;
+}
+
+// DeleteWebhookRequest mirrors model.WebhookRequest (a single webhook id). It is
+// kept distinct from GetWebhookRequest per buf's one-message-per-RPC rule.
+message DeleteWebhookRequest {
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+}
+message DeleteWebhookResponse {
+  string message = 1;
+}
+
+// GetWebhookRequest mirrors model.WebhookRequest (a single webhook id). It is
+// kept distinct from DeleteWebhookRequest per buf's one-message-per-RPC rule.
+message GetWebhookRequest {
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+}
+message GetWebhookResponse {
+  Webhook webhook = 1;
+}
+
+message WebhooksRequest {
+  authorizer.common.v1.PaginationRequest pagination = 1;
+}
+message WebhooksResponse {
+  repeated Webhook webhooks = 1;
+  authorizer.common.v1.Pagination pagination = 2;
+}
+
+// WebhookLogsRequest mirrors model.ListWebhookLogRequest. webhook_id is
+// optional; when unset logs for all webhooks are returned.
+message WebhookLogsRequest {
+  authorizer.common.v1.PaginationRequest pagination = 1;
+  optional string webhook_id = 2;
+}
+message WebhookLogsResponse {
+  repeated WebhookLog webhook_logs = 1;
+  authorizer.common.v1.Pagination pagination = 2;
+}
+
+// TestEndpointRequest mirrors model.TestEndpointRequest. event_description is
+// optional and unused by the test payload but accepted for parity.
+message TestEndpointRequest {
+  string endpoint = 1 [(buf.validate.field).string.min_len = 1];
+  string event_name = 2 [(buf.validate.field).string.min_len = 1];
+  optional string event_description = 3;
+  authorizer.common.v1.AppData headers = 4;
+}
+// TestEndpointResponse mirrors model.TestEndpointResponse.
+message TestEndpointResponse {
+  int64 http_status = 1;
+  string response = 2;
 }

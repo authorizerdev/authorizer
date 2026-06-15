@@ -40,6 +40,13 @@ const (
 	AuthorizerAdminService_RevokeAccess_FullMethodName         = "/authorizer.v1.AuthorizerAdminService/RevokeAccess"
 	AuthorizerAdminService_EnableAccess_FullMethodName         = "/authorizer.v1.AuthorizerAdminService/EnableAccess"
 	AuthorizerAdminService_InviteMembers_FullMethodName        = "/authorizer.v1.AuthorizerAdminService/InviteMembers"
+	AuthorizerAdminService_AddWebhook_FullMethodName           = "/authorizer.v1.AuthorizerAdminService/AddWebhook"
+	AuthorizerAdminService_UpdateWebhook_FullMethodName        = "/authorizer.v1.AuthorizerAdminService/UpdateWebhook"
+	AuthorizerAdminService_DeleteWebhook_FullMethodName        = "/authorizer.v1.AuthorizerAdminService/DeleteWebhook"
+	AuthorizerAdminService_GetWebhook_FullMethodName           = "/authorizer.v1.AuthorizerAdminService/GetWebhook"
+	AuthorizerAdminService_Webhooks_FullMethodName             = "/authorizer.v1.AuthorizerAdminService/Webhooks"
+	AuthorizerAdminService_WebhookLogs_FullMethodName          = "/authorizer.v1.AuthorizerAdminService/WebhookLogs"
+	AuthorizerAdminService_TestEndpoint_FullMethodName         = "/authorizer.v1.AuthorizerAdminService/TestEndpoint"
 )
 
 // AuthorizerAdminServiceClient is the client API for AuthorizerAdminService service.
@@ -84,6 +91,23 @@ type AuthorizerAdminServiceClient interface {
 	// InviteMembers creates accounts for new emails and sends invite emails.
 	// Requires super-admin auth and a configured email service.
 	InviteMembers(ctx context.Context, in *InviteMembersRequest, opts ...grpc.CallOption) (*InviteMembersResponse, error)
+	// AddWebhook registers a new webhook for an event. Requires super-admin auth.
+	AddWebhook(ctx context.Context, in *AddWebhookRequest, opts ...grpc.CallOption) (*AddWebhookResponse, error)
+	// UpdateWebhook updates an existing webhook's event, endpoint, headers, or
+	// enabled state. Requires super-admin auth.
+	UpdateWebhook(ctx context.Context, in *UpdateWebhookRequest, opts ...grpc.CallOption) (*UpdateWebhookResponse, error)
+	// DeleteWebhook deletes a webhook by id. Requires super-admin auth.
+	DeleteWebhook(ctx context.Context, in *DeleteWebhookRequest, opts ...grpc.CallOption) (*DeleteWebhookResponse, error)
+	// GetWebhook returns a single webhook by id. Requires super-admin auth.
+	GetWebhook(ctx context.Context, in *GetWebhookRequest, opts ...grpc.CallOption) (*GetWebhookResponse, error)
+	// Webhooks returns a paginated list of webhooks. Requires super-admin auth.
+	Webhooks(ctx context.Context, in *WebhooksRequest, opts ...grpc.CallOption) (*WebhooksResponse, error)
+	// WebhookLogs returns a paginated list of webhook delivery logs, optionally
+	// filtered by webhook id. Requires super-admin auth.
+	WebhookLogs(ctx context.Context, in *WebhookLogsRequest, opts ...grpc.CallOption) (*WebhookLogsResponse, error)
+	// TestEndpoint sends a synthetic event payload to a webhook endpoint and
+	// returns the HTTP status and response body. Requires super-admin auth.
+	TestEndpoint(ctx context.Context, in *TestEndpointRequest, opts ...grpc.CallOption) (*TestEndpointResponse, error)
 }
 
 type authorizerAdminServiceClient struct {
@@ -214,6 +238,76 @@ func (c *authorizerAdminServiceClient) InviteMembers(ctx context.Context, in *In
 	return out, nil
 }
 
+func (c *authorizerAdminServiceClient) AddWebhook(ctx context.Context, in *AddWebhookRequest, opts ...grpc.CallOption) (*AddWebhookResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AddWebhookResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_AddWebhook_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) UpdateWebhook(ctx context.Context, in *UpdateWebhookRequest, opts ...grpc.CallOption) (*UpdateWebhookResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateWebhookResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_UpdateWebhook_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) DeleteWebhook(ctx context.Context, in *DeleteWebhookRequest, opts ...grpc.CallOption) (*DeleteWebhookResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteWebhookResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_DeleteWebhook_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) GetWebhook(ctx context.Context, in *GetWebhookRequest, opts ...grpc.CallOption) (*GetWebhookResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetWebhookResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_GetWebhook_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) Webhooks(ctx context.Context, in *WebhooksRequest, opts ...grpc.CallOption) (*WebhooksResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WebhooksResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_Webhooks_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) WebhookLogs(ctx context.Context, in *WebhookLogsRequest, opts ...grpc.CallOption) (*WebhookLogsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WebhookLogsResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_WebhookLogs_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) TestEndpoint(ctx context.Context, in *TestEndpointRequest, opts ...grpc.CallOption) (*TestEndpointResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TestEndpointResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_TestEndpoint_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthorizerAdminServiceServer is the server API for AuthorizerAdminService service.
 // All implementations should embed UnimplementedAuthorizerAdminServiceServer
 // for forward compatibility.
@@ -256,6 +350,23 @@ type AuthorizerAdminServiceServer interface {
 	// InviteMembers creates accounts for new emails and sends invite emails.
 	// Requires super-admin auth and a configured email service.
 	InviteMembers(context.Context, *InviteMembersRequest) (*InviteMembersResponse, error)
+	// AddWebhook registers a new webhook for an event. Requires super-admin auth.
+	AddWebhook(context.Context, *AddWebhookRequest) (*AddWebhookResponse, error)
+	// UpdateWebhook updates an existing webhook's event, endpoint, headers, or
+	// enabled state. Requires super-admin auth.
+	UpdateWebhook(context.Context, *UpdateWebhookRequest) (*UpdateWebhookResponse, error)
+	// DeleteWebhook deletes a webhook by id. Requires super-admin auth.
+	DeleteWebhook(context.Context, *DeleteWebhookRequest) (*DeleteWebhookResponse, error)
+	// GetWebhook returns a single webhook by id. Requires super-admin auth.
+	GetWebhook(context.Context, *GetWebhookRequest) (*GetWebhookResponse, error)
+	// Webhooks returns a paginated list of webhooks. Requires super-admin auth.
+	Webhooks(context.Context, *WebhooksRequest) (*WebhooksResponse, error)
+	// WebhookLogs returns a paginated list of webhook delivery logs, optionally
+	// filtered by webhook id. Requires super-admin auth.
+	WebhookLogs(context.Context, *WebhookLogsRequest) (*WebhookLogsResponse, error)
+	// TestEndpoint sends a synthetic event payload to a webhook endpoint and
+	// returns the HTTP status and response body. Requires super-admin auth.
+	TestEndpoint(context.Context, *TestEndpointRequest) (*TestEndpointResponse, error)
 }
 
 // UnimplementedAuthorizerAdminServiceServer should be embedded to have
@@ -300,6 +411,27 @@ func (UnimplementedAuthorizerAdminServiceServer) EnableAccess(context.Context, *
 }
 func (UnimplementedAuthorizerAdminServiceServer) InviteMembers(context.Context, *InviteMembersRequest) (*InviteMembersResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method InviteMembers not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) AddWebhook(context.Context, *AddWebhookRequest) (*AddWebhookResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddWebhook not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) UpdateWebhook(context.Context, *UpdateWebhookRequest) (*UpdateWebhookResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateWebhook not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) DeleteWebhook(context.Context, *DeleteWebhookRequest) (*DeleteWebhookResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteWebhook not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) GetWebhook(context.Context, *GetWebhookRequest) (*GetWebhookResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetWebhook not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) Webhooks(context.Context, *WebhooksRequest) (*WebhooksResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Webhooks not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) WebhookLogs(context.Context, *WebhookLogsRequest) (*WebhookLogsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method WebhookLogs not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) TestEndpoint(context.Context, *TestEndpointRequest) (*TestEndpointResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method TestEndpoint not implemented")
 }
 func (UnimplementedAuthorizerAdminServiceServer) testEmbeddedByValue() {}
 
@@ -537,6 +669,132 @@ func _AuthorizerAdminService_InviteMembers_Handler(srv interface{}, ctx context.
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthorizerAdminService_AddWebhook_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddWebhookRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).AddWebhook(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_AddWebhook_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).AddWebhook(ctx, req.(*AddWebhookRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_UpdateWebhook_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateWebhookRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).UpdateWebhook(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_UpdateWebhook_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).UpdateWebhook(ctx, req.(*UpdateWebhookRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_DeleteWebhook_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteWebhookRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).DeleteWebhook(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_DeleteWebhook_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).DeleteWebhook(ctx, req.(*DeleteWebhookRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_GetWebhook_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetWebhookRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).GetWebhook(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_GetWebhook_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).GetWebhook(ctx, req.(*GetWebhookRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_Webhooks_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WebhooksRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).Webhooks(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_Webhooks_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).Webhooks(ctx, req.(*WebhooksRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_WebhookLogs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WebhookLogsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).WebhookLogs(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_WebhookLogs_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).WebhookLogs(ctx, req.(*WebhookLogsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_TestEndpoint_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TestEndpointRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).TestEndpoint(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_TestEndpoint_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).TestEndpoint(ctx, req.(*TestEndpointRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthorizerAdminService_ServiceDesc is the grpc.ServiceDesc for AuthorizerAdminService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -591,6 +849,34 @@ var AuthorizerAdminService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "InviteMembers",
 			Handler:    _AuthorizerAdminService_InviteMembers_Handler,
+		},
+		{
+			MethodName: "AddWebhook",
+			Handler:    _AuthorizerAdminService_AddWebhook_Handler,
+		},
+		{
+			MethodName: "UpdateWebhook",
+			Handler:    _AuthorizerAdminService_UpdateWebhook_Handler,
+		},
+		{
+			MethodName: "DeleteWebhook",
+			Handler:    _AuthorizerAdminService_DeleteWebhook_Handler,
+		},
+		{
+			MethodName: "GetWebhook",
+			Handler:    _AuthorizerAdminService_GetWebhook_Handler,
+		},
+		{
+			MethodName: "Webhooks",
+			Handler:    _AuthorizerAdminService_Webhooks_Handler,
+		},
+		{
+			MethodName: "WebhookLogs",
+			Handler:    _AuthorizerAdminService_WebhookLogs_Handler,
+		},
+		{
+			MethodName: "TestEndpoint",
+			Handler:    _AuthorizerAdminService_TestEndpoint_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

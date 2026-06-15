@@ -46,6 +46,26 @@ func modelPaginatedRequest(in *commonv1.PaginationRequest) *model.PaginatedReque
 	return out
 }
 
+// modelPaginationRequest converts the proto PaginationRequest into the GraphQL
+// model.PaginationRequest (the inner pagination shape carried by
+// ListWebhookLogRequest, as opposed to the PaginatedRequest wrapper). A nil
+// proto pagination yields nil so service.GetPagination applies its defaults.
+func modelPaginationRequest(in *commonv1.PaginationRequest) *model.PaginationRequest {
+	if in == nil {
+		return nil
+	}
+	out := &model.PaginationRequest{}
+	if in.Page != 0 {
+		page := in.Page
+		out.Page = &page
+	}
+	if in.Limit != 0 {
+		limit := in.Limit
+		out.Limit = &limit
+	}
+	return out
+}
+
 // protoToModelStringSlice converts a proto repeated string field into the
 // GraphQL model's []*string shape (used by UpdateUserRequest.Roles). A nil/empty
 // input yields nil so "roles unset" is distinguishable from "roles cleared".
@@ -141,5 +161,86 @@ func projectInviteMembers(r *model.InviteMembersResponse) *authorizerv1.InviteMe
 	return &authorizerv1.InviteMembersResponse{
 		Message: r.Message,
 		Users:   users,
+	}
+}
+
+// projectWebhook converts a single GraphQL Webhook model into the proto message.
+// Optional pointer fields collapse to zero values; headers reuse the shared
+// AppData wrapper. EmitUnpopulated keeps zero fields visible to REST clients.
+func projectWebhook(w *model.Webhook) *authorizerv1.Webhook {
+	if w == nil {
+		return nil
+	}
+	return &authorizerv1.Webhook{
+		Id:               w.ID,
+		EventName:        refs.StringValue(w.EventName),
+		EventDescription: refs.StringValue(w.EventDescription),
+		Endpoint:         refs.StringValue(w.Endpoint),
+		Enabled:          refs.BoolValue(w.Enabled),
+		Headers:          mapToAppData(w.Headers),
+		CreatedAt:        refs.Int64Value(w.CreatedAt),
+		UpdatedAt:        refs.Int64Value(w.UpdatedAt),
+	}
+}
+
+// projectWebhooks converts the GraphQL Webhooks model (a page plus its
+// pagination cursor) into the proto response.
+func projectWebhooks(w *model.Webhooks) *authorizerv1.WebhooksResponse {
+	if w == nil {
+		return &authorizerv1.WebhooksResponse{}
+	}
+	webhooks := make([]*authorizerv1.Webhook, 0, len(w.Webhooks))
+	for _, item := range w.Webhooks {
+		webhooks = append(webhooks, projectWebhook(item))
+	}
+	return &authorizerv1.WebhooksResponse{
+		Webhooks:   webhooks,
+		Pagination: projectPagination(w.Pagination),
+	}
+}
+
+// projectWebhookLog converts a single GraphQL WebhookLog model into the proto
+// message. Optional pointer fields collapse to zero values.
+func projectWebhookLog(l *model.WebhookLog) *authorizerv1.WebhookLog {
+	if l == nil {
+		return nil
+	}
+	return &authorizerv1.WebhookLog{
+		Id:         l.ID,
+		HttpStatus: refs.Int64Value(l.HTTPStatus),
+		Response:   refs.StringValue(l.Response),
+		Request:    refs.StringValue(l.Request),
+		WebhookId:  refs.StringValue(l.WebhookID),
+		CreatedAt:  refs.Int64Value(l.CreatedAt),
+		UpdatedAt:  refs.Int64Value(l.UpdatedAt),
+	}
+}
+
+// projectWebhookLogs converts the GraphQL WebhookLogs model (a page plus its
+// pagination cursor) into the proto response.
+func projectWebhookLogs(l *model.WebhookLogs) *authorizerv1.WebhookLogsResponse {
+	if l == nil {
+		return &authorizerv1.WebhookLogsResponse{}
+	}
+	logs := make([]*authorizerv1.WebhookLog, 0, len(l.WebhookLogs))
+	for _, item := range l.WebhookLogs {
+		logs = append(logs, projectWebhookLog(item))
+	}
+	return &authorizerv1.WebhookLogsResponse{
+		WebhookLogs: logs,
+		Pagination:  projectPagination(l.Pagination),
+	}
+}
+
+// projectTestEndpointResponse converts the GraphQL TestEndpointResponse model
+// (the HTTP status and response body of a webhook test call) into the proto
+// response. Optional pointer fields collapse to zero values.
+func projectTestEndpointResponse(r *model.TestEndpointResponse) *authorizerv1.TestEndpointResponse {
+	if r == nil {
+		return &authorizerv1.TestEndpointResponse{}
+	}
+	return &authorizerv1.TestEndpointResponse{
+		HttpStatus: refs.Int64Value(r.HTTPStatus),
+		Response:   refs.StringValue(r.Response),
 	}
 }

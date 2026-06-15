@@ -174,3 +174,97 @@ func (h *AdminHandler) InviteMembers(ctx context.Context, req *authorizerv1.Invi
 	}
 	return projectInviteMembers(res), nil
 }
+
+// AddWebhook delegates to service.AddWebhook. Headers arrive as the shared
+// AppData struct and unwrap to a free-form map. Requires super-admin auth.
+func (h *AdminHandler) AddWebhook(ctx context.Context, req *authorizerv1.AddWebhookRequest) (*authorizerv1.AddWebhookResponse, error) {
+	res, _, err := h.Service.AddWebhook(ctx, transport.MetaFromGRPC(ctx), &model.AddWebhookRequest{
+		EventName:        req.GetEventName(),
+		EventDescription: req.EventDescription,
+		Endpoint:         req.GetEndpoint(),
+		Enabled:          req.GetEnabled(),
+		Headers:          appDataToMap(req.GetHeaders()),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &authorizerv1.AddWebhookResponse{Message: res.Message}, nil
+}
+
+// UpdateWebhook delegates to service.UpdateWebhook. Optional proto fields map
+// 1:1 onto the model's nullable pointers. Requires super-admin auth.
+func (h *AdminHandler) UpdateWebhook(ctx context.Context, req *authorizerv1.UpdateWebhookRequest) (*authorizerv1.UpdateWebhookResponse, error) {
+	res, _, err := h.Service.UpdateWebhook(ctx, transport.MetaFromGRPC(ctx), &model.UpdateWebhookRequest{
+		ID:               req.GetId(),
+		EventName:        req.EventName,
+		EventDescription: req.EventDescription,
+		Endpoint:         req.Endpoint,
+		Enabled:          req.Enabled,
+		Headers:          appDataToMap(req.GetHeaders()),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &authorizerv1.UpdateWebhookResponse{Message: res.Message}, nil
+}
+
+// DeleteWebhook delegates to service.DeleteWebhook. Requires super-admin auth.
+func (h *AdminHandler) DeleteWebhook(ctx context.Context, req *authorizerv1.DeleteWebhookRequest) (*authorizerv1.DeleteWebhookResponse, error) {
+	res, _, err := h.Service.DeleteWebhook(ctx, transport.MetaFromGRPC(ctx), &model.WebhookRequest{
+		ID: req.GetId(),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &authorizerv1.DeleteWebhookResponse{Message: res.Message}, nil
+}
+
+// GetWebhook delegates to service.Webhook and projects the result. Requires
+// super-admin auth.
+func (h *AdminHandler) GetWebhook(ctx context.Context, req *authorizerv1.GetWebhookRequest) (*authorizerv1.GetWebhookResponse, error) {
+	res, _, err := h.Service.Webhook(ctx, transport.MetaFromGRPC(ctx), &model.WebhookRequest{
+		ID: req.GetId(),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &authorizerv1.GetWebhookResponse{Webhook: projectWebhook(res)}, nil
+}
+
+// Webhooks delegates to service.Webhooks and projects the paginated result.
+// Requires super-admin auth.
+func (h *AdminHandler) Webhooks(ctx context.Context, req *authorizerv1.WebhooksRequest) (*authorizerv1.WebhooksResponse, error) {
+	res, _, err := h.Service.Webhooks(ctx, transport.MetaFromGRPC(ctx), modelPaginatedRequest(req.GetPagination()))
+	if err != nil {
+		return nil, err
+	}
+	return projectWebhooks(res), nil
+}
+
+// WebhookLogs delegates to service.WebhookLogs and projects the paginated
+// result. webhook_id is optional. Requires super-admin auth.
+func (h *AdminHandler) WebhookLogs(ctx context.Context, req *authorizerv1.WebhookLogsRequest) (*authorizerv1.WebhookLogsResponse, error) {
+	res, _, err := h.Service.WebhookLogs(ctx, transport.MetaFromGRPC(ctx), &model.ListWebhookLogRequest{
+		Pagination: modelPaginationRequest(req.GetPagination()),
+		WebhookID:  req.WebhookId,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return projectWebhookLogs(res), nil
+}
+
+// TestEndpoint delegates to service.TestEndpoint and projects the result. Makes
+// an outbound HTTP call to the supplied endpoint. Requires super-admin auth.
+func (h *AdminHandler) TestEndpoint(ctx context.Context, req *authorizerv1.TestEndpointRequest) (*authorizerv1.TestEndpointResponse, error) {
+	res, _, err := h.Service.TestEndpoint(ctx, transport.MetaFromGRPC(ctx), &model.TestEndpointRequest{
+		Endpoint:         req.GetEndpoint(),
+		EventName:        req.GetEventName(),
+		EventDescription: req.EventDescription,
+		Headers:          appDataToMap(req.GetHeaders()),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return projectTestEndpointResponse(res), nil
+}
