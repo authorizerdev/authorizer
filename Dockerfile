@@ -89,7 +89,10 @@ USER authorizer
 #   127.0.0.1, so other containers cannot scrape until you pass --metrics-host=0.0.0.0.
 #   Even then: do not map 8081 to the public internet; keep scraping on internal networks
 #   only (Docker internal network, Kubernetes ClusterIP / pod network).
-EXPOSE 8080 8081
+# - 9091: gRPC API (AuthorizerService + AuthorizerAdminService). Binds to --host
+#   (0.0.0.0 by default), so it is reachable once published with -p 9091:9091. Served
+#   as plaintext h2c — terminate TLS at an ingress/proxy before exposing it publicly.
+EXPOSE 8080 8081 9091
 
 # Liveness uses the main HTTP server only (metrics may be loopback-only).
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD wget -qO- http://127.0.0.1:8080/healthz || exit 1
