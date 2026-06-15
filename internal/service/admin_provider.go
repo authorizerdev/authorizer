@@ -67,6 +67,11 @@ type AdminProvider interface {
 	FgaExpand(ctx context.Context, meta RequestMetadata, params *model.FgaExpandInput) (*model.FgaExpandResponse, *ResponseSideEffects, error)
 }
 
+// Compile-time guarantee that the concrete provider implements the full admin
+// surface. Backed by real implementations plus transient stubs in
+// admin_stubs.go during the staged migration.
+var _ AdminProvider = (*provider)(nil)
+
 // requireSuperAdmin enforces super-admin auth in the transport-agnostic layer.
 // It reuses the gin-shim pattern (meta.Request carries the headers + cookies
 // of the real request for the GraphQL/REST gin path, and a synthesized request

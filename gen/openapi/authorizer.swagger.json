@@ -6,6 +6,9 @@
   },
   "tags": [
     {
+      "name": "AuthorizerAdminService"
+    },
+    {
       "name": "AuthorizerService"
     }
   ],
@@ -16,6 +19,108 @@
     "application/json"
   ],
   "paths": {
+    "/v1/admin/login": {
+      "post": {
+        "summary": "AdminLogin validates the admin secret and establishes an admin session\n(Set-Cookie for browser callers). Public entry point — the ONLY admin RPC\nthat does not require an existing super-admin session.",
+        "operationId": "AuthorizerAdminService_AdminLogin",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1AdminLoginResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1AdminLoginRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/logout": {
+      "post": {
+        "summary": "AdminLogout clears the admin session cookie. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_AdminLogout",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1AdminLogoutResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/meta": {
+      "get": {
+        "summary": "AdminMeta returns admin-only configuration metadata (configured roles,\ndefault roles, protected roles). Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_AdminMeta",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1AdminMetaResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/session": {
+      "get": {
+        "summary": "AdminSession refreshes the admin session cookie. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_AdminSession",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1AdminSessionResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
     "/v1/check_permissions": {
       "post": {
         "summary": "CheckPermissions evaluates one or more fine-grained permission checks\n(\"does the subject have \u003crelation\u003e on \u003cobject\u003e?\") in a single call and\nreturns one result per check, in order. The subject defaults to the\nauthenticated caller; an explicit `user` is honored only for super-admins\nor when it equals the caller's own subject. Fail-closed.",
@@ -639,6 +744,30 @@
     }
   },
   "definitions": {
+    "authorizerv1AdminMeta": {
+      "type": "object",
+      "properties": {
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "default_roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "protected_roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "AdminMeta mirrors model.AdminMeta exactly (no version field)."
+    },
     "authorizerv1Meta": {
       "type": "object",
       "properties": {
@@ -738,6 +867,46 @@
             "type": "object",
             "$ref": "#/definitions/protobufAny"
           }
+        }
+      }
+    },
+    "v1AdminLoginRequest": {
+      "type": "object",
+      "properties": {
+        "admin_secret": {
+          "type": "string"
+        }
+      }
+    },
+    "v1AdminLoginResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1AdminLogoutResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1AdminMetaResponse": {
+      "type": "object",
+      "properties": {
+        "admin_meta": {
+          "$ref": "#/definitions/authorizerv1AdminMeta"
+        }
+      }
+    },
+    "v1AdminSessionResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
         }
       }
     },

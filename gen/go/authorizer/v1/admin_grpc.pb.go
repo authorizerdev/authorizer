@@ -16,13 +16,23 @@
 package authorizerv1
 
 import (
+	context "context"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 )
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the grpc package it is being compiled against.
 // Requires gRPC-Go v1.64.0 or later.
 const _ = grpc.SupportPackageIsVersion9
+
+const (
+	AuthorizerAdminService_AdminLogin_FullMethodName   = "/authorizer.v1.AuthorizerAdminService/AdminLogin"
+	AuthorizerAdminService_AdminLogout_FullMethodName  = "/authorizer.v1.AuthorizerAdminService/AdminLogout"
+	AuthorizerAdminService_AdminSession_FullMethodName = "/authorizer.v1.AuthorizerAdminService/AdminSession"
+	AuthorizerAdminService_AdminMeta_FullMethodName    = "/authorizer.v1.AuthorizerAdminService/AdminMeta"
+)
 
 // AuthorizerAdminServiceClient is the client API for AuthorizerAdminService service.
 //
@@ -32,6 +42,17 @@ const _ = grpc.SupportPackageIsVersion9
 // (super-admin-only) API surface. RPCs are added one domain group at a time;
 // see specs/2026-06-15-authorizer-admin-service-plan.md.
 type AuthorizerAdminServiceClient interface {
+	// AdminLogin validates the admin secret and establishes an admin session
+	// (Set-Cookie for browser callers). Public entry point — the ONLY admin RPC
+	// that does not require an existing super-admin session.
+	AdminLogin(ctx context.Context, in *AdminLoginRequest, opts ...grpc.CallOption) (*AdminLoginResponse, error)
+	// AdminLogout clears the admin session cookie. Requires super-admin auth.
+	AdminLogout(ctx context.Context, in *AdminLogoutRequest, opts ...grpc.CallOption) (*AdminLogoutResponse, error)
+	// AdminSession refreshes the admin session cookie. Requires super-admin auth.
+	AdminSession(ctx context.Context, in *AdminSessionRequest, opts ...grpc.CallOption) (*AdminSessionResponse, error)
+	// AdminMeta returns admin-only configuration metadata (configured roles,
+	// default roles, protected roles). Requires super-admin auth.
+	AdminMeta(ctx context.Context, in *AdminMetaRequest, opts ...grpc.CallOption) (*AdminMetaResponse, error)
 }
 
 type authorizerAdminServiceClient struct {
@@ -42,6 +63,46 @@ func NewAuthorizerAdminServiceClient(cc grpc.ClientConnInterface) AuthorizerAdmi
 	return &authorizerAdminServiceClient{cc}
 }
 
+func (c *authorizerAdminServiceClient) AdminLogin(ctx context.Context, in *AdminLoginRequest, opts ...grpc.CallOption) (*AdminLoginResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AdminLoginResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_AdminLogin_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) AdminLogout(ctx context.Context, in *AdminLogoutRequest, opts ...grpc.CallOption) (*AdminLogoutResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AdminLogoutResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_AdminLogout_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) AdminSession(ctx context.Context, in *AdminSessionRequest, opts ...grpc.CallOption) (*AdminSessionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AdminSessionResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_AdminSession_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) AdminMeta(ctx context.Context, in *AdminMetaRequest, opts ...grpc.CallOption) (*AdminMetaResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AdminMetaResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_AdminMeta_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthorizerAdminServiceServer is the server API for AuthorizerAdminService service.
 // All implementations should embed UnimplementedAuthorizerAdminServiceServer
 // for forward compatibility.
@@ -50,6 +111,17 @@ func NewAuthorizerAdminServiceClient(cc grpc.ClientConnInterface) AuthorizerAdmi
 // (super-admin-only) API surface. RPCs are added one domain group at a time;
 // see specs/2026-06-15-authorizer-admin-service-plan.md.
 type AuthorizerAdminServiceServer interface {
+	// AdminLogin validates the admin secret and establishes an admin session
+	// (Set-Cookie for browser callers). Public entry point — the ONLY admin RPC
+	// that does not require an existing super-admin session.
+	AdminLogin(context.Context, *AdminLoginRequest) (*AdminLoginResponse, error)
+	// AdminLogout clears the admin session cookie. Requires super-admin auth.
+	AdminLogout(context.Context, *AdminLogoutRequest) (*AdminLogoutResponse, error)
+	// AdminSession refreshes the admin session cookie. Requires super-admin auth.
+	AdminSession(context.Context, *AdminSessionRequest) (*AdminSessionResponse, error)
+	// AdminMeta returns admin-only configuration metadata (configured roles,
+	// default roles, protected roles). Requires super-admin auth.
+	AdminMeta(context.Context, *AdminMetaRequest) (*AdminMetaResponse, error)
 }
 
 // UnimplementedAuthorizerAdminServiceServer should be embedded to have
@@ -59,6 +131,18 @@ type AuthorizerAdminServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedAuthorizerAdminServiceServer struct{}
 
+func (UnimplementedAuthorizerAdminServiceServer) AdminLogin(context.Context, *AdminLoginRequest) (*AdminLoginResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AdminLogin not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) AdminLogout(context.Context, *AdminLogoutRequest) (*AdminLogoutResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AdminLogout not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) AdminSession(context.Context, *AdminSessionRequest) (*AdminSessionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AdminSession not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) AdminMeta(context.Context, *AdminMetaRequest) (*AdminMetaResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AdminMeta not implemented")
+}
 func (UnimplementedAuthorizerAdminServiceServer) testEmbeddedByValue() {}
 
 // UnsafeAuthorizerAdminServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -79,13 +163,102 @@ func RegisterAuthorizerAdminServiceServer(s grpc.ServiceRegistrar, srv Authorize
 	s.RegisterService(&AuthorizerAdminService_ServiceDesc, srv)
 }
 
+func _AuthorizerAdminService_AdminLogin_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AdminLoginRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).AdminLogin(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_AdminLogin_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).AdminLogin(ctx, req.(*AdminLoginRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_AdminLogout_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AdminLogoutRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).AdminLogout(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_AdminLogout_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).AdminLogout(ctx, req.(*AdminLogoutRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_AdminSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AdminSessionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).AdminSession(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_AdminSession_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).AdminSession(ctx, req.(*AdminSessionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_AdminMeta_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AdminMetaRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).AdminMeta(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_AdminMeta_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).AdminMeta(ctx, req.(*AdminMetaRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthorizerAdminService_ServiceDesc is the grpc.ServiceDesc for AuthorizerAdminService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var AuthorizerAdminService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "authorizer.v1.AuthorizerAdminService",
 	HandlerType: (*AuthorizerAdminServiceServer)(nil),
-	Methods:     []grpc.MethodDesc{},
-	Streams:     []grpc.StreamDesc{},
-	Metadata:    "authorizer/v1/admin.proto",
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "AdminLogin",
+			Handler:    _AuthorizerAdminService_AdminLogin_Handler,
+		},
+		{
+			MethodName: "AdminLogout",
+			Handler:    _AuthorizerAdminService_AdminLogout_Handler,
+		},
+		{
+			MethodName: "AdminSession",
+			Handler:    _AuthorizerAdminService_AdminSession_Handler,
+		},
+		{
+			MethodName: "AdminMeta",
+			Handler:    _AuthorizerAdminService_AdminMeta_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "authorizer/v1/admin.proto",
 }

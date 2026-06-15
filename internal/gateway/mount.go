@@ -189,9 +189,9 @@ func codeName(c codes.Code) string {
 
 func registerAll(ctx context.Context, mux *runtime.ServeMux, conn *grpc.ClientConn) error {
 	// Public + admin surfaces share this gateway mux (one REST port serves
-	// both). Both dial the same in-process gRPC server over the bufconn. The
-	// admin registrar (RegisterAuthorizerAdminServiceHandler) is added in
-	// Phase 1 once AuthorizerAdminService has its first HTTP-annotated RPC —
-	// grpc-gateway only generates the registrar for services with annotations.
-	return authorizerv1.RegisterAuthorizerServiceHandler(ctx, mux, conn)
+	// both). Both dial the same in-process gRPC server over the bufconn.
+	if err := authorizerv1.RegisterAuthorizerServiceHandler(ctx, mux, conn); err != nil {
+		return err
+	}
+	return authorizerv1.RegisterAuthorizerAdminServiceHandler(ctx, mux, conn)
 }

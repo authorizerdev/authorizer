@@ -12,10 +12,72 @@ package authorizer.v1;
 
 import "buf/validate/validate.proto";
 import "google/api/annotations.proto";
-import "authorizer/common/v1/pagination.proto";
-import "authorizer/v1/types.proto";
 
 // AuthorizerAdminService is the single gRPC service for Authorizer's admin
 // (super-admin-only) API surface. RPCs are added one domain group at a time;
 // see specs/2026-06-15-authorizer-admin-service-plan.md.
-service AuthorizerAdminService {}
+service AuthorizerAdminService {
+  // === Admin auth + meta ===
+
+  // AdminLogin validates the admin secret and establishes an admin session
+  // (Set-Cookie for browser callers). Public entry point — the ONLY admin RPC
+  // that does not require an existing super-admin session.
+  rpc AdminLogin(AdminLoginRequest) returns (AdminLoginResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/login"
+      body: "*"
+    };
+  }
+
+  // AdminLogout clears the admin session cookie. Requires super-admin auth.
+  rpc AdminLogout(AdminLogoutRequest) returns (AdminLogoutResponse) {
+    option (google.api.http) = {post: "/v1/admin/logout"};
+  }
+
+  // AdminSession refreshes the admin session cookie. Requires super-admin auth.
+  rpc AdminSession(AdminSessionRequest) returns (AdminSessionResponse) {
+    option (google.api.http) = {get: "/v1/admin/session"};
+  }
+
+  // AdminMeta returns admin-only configuration metadata (configured roles,
+  // default roles, protected roles). Requires super-admin auth.
+  rpc AdminMeta(AdminMetaRequest) returns (AdminMetaResponse) {
+    option (google.api.http) = {get: "/v1/admin/meta"};
+  }
+}
+
+// ============================================================================
+// Per-RPC request + response messages.
+//
+// Ops that return model.Response use an inline `string message = 1;` (no shared
+// Response message), matching the public AuthorizerService convention.
+// ============================================================================
+
+message AdminLoginRequest {
+  string admin_secret = 1 [(buf.validate.field).string.min_len = 1];
+}
+message AdminLoginResponse {
+  string message = 1;
+}
+
+message AdminLogoutRequest {}
+message AdminLogoutResponse {
+  string message = 1;
+}
+
+message AdminSessionRequest {}
+message AdminSessionResponse {
+  string message = 1;
+}
+
+message AdminMetaRequest {}
+message AdminMetaResponse {
+  AdminMeta admin_meta = 1;
+}
+
+// AdminMeta mirrors model.AdminMeta exactly (no version field).
+message AdminMeta {
+  repeated string roles = 1;
+  repeated string default_roles = 2;
+  repeated string protected_roles = 3;
+}
