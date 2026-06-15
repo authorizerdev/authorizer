@@ -244,3 +244,75 @@ func projectTestEndpointResponse(r *model.TestEndpointResponse) *authorizerv1.Te
 		Response:   refs.StringValue(r.Response),
 	}
 }
+
+// projectEmailTemplate converts a single GraphQL EmailTemplate model into the
+// proto message. Optional pointer fields collapse to zero values;
+// EmitUnpopulated keeps zero fields visible to REST clients.
+func projectEmailTemplate(e *model.EmailTemplate) *authorizerv1.EmailTemplate {
+	if e == nil {
+		return nil
+	}
+	return &authorizerv1.EmailTemplate{
+		Id:        e.ID,
+		EventName: e.EventName,
+		Template:  e.Template,
+		Design:    e.Design,
+		Subject:   e.Subject,
+		CreatedAt: refs.Int64Value(e.CreatedAt),
+		UpdatedAt: refs.Int64Value(e.UpdatedAt),
+	}
+}
+
+// projectEmailTemplates converts the GraphQL EmailTemplates model (a page plus
+// its pagination cursor) into the proto response.
+func projectEmailTemplates(e *model.EmailTemplates) *authorizerv1.EmailTemplatesResponse {
+	if e == nil {
+		return &authorizerv1.EmailTemplatesResponse{}
+	}
+	templates := make([]*authorizerv1.EmailTemplate, 0, len(e.EmailTemplates))
+	for _, item := range e.EmailTemplates {
+		templates = append(templates, projectEmailTemplate(item))
+	}
+	return &authorizerv1.EmailTemplatesResponse{
+		EmailTemplates: templates,
+		Pagination:     projectPagination(e.Pagination),
+	}
+}
+
+// projectAuditLog converts a single GraphQL AuditLog model into the proto
+// message. Optional pointer fields collapse to zero values; EmitUnpopulated
+// keeps zero fields visible to REST clients.
+func projectAuditLog(a *model.AuditLog) *authorizerv1.AuditLog {
+	if a == nil {
+		return nil
+	}
+	return &authorizerv1.AuditLog{
+		Id:           a.ID,
+		ActorId:      refs.StringValue(a.ActorID),
+		ActorType:    refs.StringValue(a.ActorType),
+		ActorEmail:   refs.StringValue(a.ActorEmail),
+		Action:       refs.StringValue(a.Action),
+		ResourceType: refs.StringValue(a.ResourceType),
+		ResourceId:   refs.StringValue(a.ResourceID),
+		IpAddress:    refs.StringValue(a.IPAddress),
+		UserAgent:    refs.StringValue(a.UserAgent),
+		Metadata:     refs.StringValue(a.Metadata),
+		CreatedAt:    refs.Int64Value(a.CreatedAt),
+	}
+}
+
+// projectAuditLogs converts the GraphQL AuditLogs model (a page plus its
+// pagination cursor) into the proto response.
+func projectAuditLogs(a *model.AuditLogs) *authorizerv1.AuditLogsResponse {
+	if a == nil {
+		return &authorizerv1.AuditLogsResponse{}
+	}
+	logs := make([]*authorizerv1.AuditLog, 0, len(a.AuditLogs))
+	for _, item := range a.AuditLogs {
+		logs = append(logs, projectAuditLog(item))
+	}
+	return &authorizerv1.AuditLogsResponse{
+		AuditLogs:  logs,
+		Pagination: projectPagination(a.Pagination),
+	}
+}

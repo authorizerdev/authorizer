@@ -19,6 +19,40 @@
     "application/json"
   ],
   "paths": {
+    "/v1/admin/add_email_template": {
+      "post": {
+        "summary": "AddEmailTemplate creates a new email template for an event. Requires\nsuper-admin auth.",
+        "operationId": "AuthorizerAdminService_AddEmailTemplate",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1AddEmailTemplateResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "AddEmailTemplateRequest mirrors model.AddEmailTemplateRequest. design is\noptional.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1AddEmailTemplateRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
     "/v1/admin/add_webhook": {
       "post": {
         "summary": "AddWebhook registers a new webhook for an event. Requires super-admin auth.",
@@ -45,6 +79,74 @@
             "required": true,
             "schema": {
               "$ref": "#/definitions/v1AddWebhookRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/audit_logs": {
+      "post": {
+        "summary": "AuditLogs returns a paginated, optionally-filtered list of audit log\nentries. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_AuditLogs",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1AuditLogsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "AuditLogsRequest mirrors model.ListAuditLogRequest. All filter fields are\noptional; when unset no filtering is applied for that field.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1AuditLogsRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/delete_email_template": {
+      "post": {
+        "summary": "DeleteEmailTemplate deletes an email template by id. Requires super-admin\nauth.",
+        "operationId": "AuthorizerAdminService_DeleteEmailTemplate",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1DeleteEmailTemplateResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "DeleteEmailTemplateRequest mirrors model.DeleteEmailTemplateRequest (a single\nemail template id).",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1DeleteEmailTemplateRequest"
             }
           }
         ],
@@ -113,6 +215,39 @@
             "required": true,
             "schema": {
               "$ref": "#/definitions/v1DeleteWebhookRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/email_templates": {
+      "post": {
+        "summary": "EmailTemplates returns a paginated list of email templates. Requires\nsuper-admin auth.",
+        "operationId": "AuthorizerAdminService_EmailTemplates",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1EmailTemplatesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1EmailTemplatesRequest"
             }
           }
         ],
@@ -351,6 +486,40 @@
             "required": true,
             "schema": {
               "$ref": "#/definitions/v1TestEndpointRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthorizerAdminService"
+        ]
+      }
+    },
+    "/v1/admin/update_email_template": {
+      "post": {
+        "summary": "UpdateEmailTemplate updates an existing email template's event, subject,\nbody, or design. Requires super-admin auth.",
+        "operationId": "AuthorizerAdminService_UpdateEmailTemplate",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1UpdateEmailTemplateResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "UpdateEmailTemplateRequest mirrors model.UpdateEmailTemplateRequest. Nullable\nGraphQL inputs use proto3 `optional` so an unset field is distinguishable from\nan empty value.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1UpdateEmailTemplateRequest"
             }
           }
         ],
@@ -1452,6 +1621,32 @@
         }
       }
     },
+    "v1AddEmailTemplateRequest": {
+      "type": "object",
+      "properties": {
+        "event_name": {
+          "type": "string"
+        },
+        "subject": {
+          "type": "string"
+        },
+        "template": {
+          "type": "string"
+        },
+        "design": {
+          "type": "string"
+        }
+      },
+      "description": "AddEmailTemplateRequest mirrors model.AddEmailTemplateRequest. design is\noptional."
+    },
+    "v1AddEmailTemplateResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
     "v1AddWebhookRequest": {
       "type": "object",
       "properties": {
@@ -1529,6 +1724,90 @@
         }
       },
       "description": "AppData is a free-form key/value bag stored against a user. Mirrors the\nGraphQL `Map` scalar. Values are JSON-typed (string, number, bool, null,\nnested object, nested array) to match what the existing storage layer\naccepts."
+    },
+    "v1AuditLog": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "actor_id": {
+          "type": "string"
+        },
+        "actor_type": {
+          "type": "string"
+        },
+        "actor_email": {
+          "type": "string"
+        },
+        "action": {
+          "type": "string"
+        },
+        "resource_type": {
+          "type": "string"
+        },
+        "resource_id": {
+          "type": "string"
+        },
+        "ip_address": {
+          "type": "string"
+        },
+        "user_agent": {
+          "type": "string"
+        },
+        "metadata": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "int64"
+        }
+      },
+      "description": "AuditLog mirrors model.AuditLog field-for-field."
+    },
+    "v1AuditLogsRequest": {
+      "type": "object",
+      "properties": {
+        "pagination": {
+          "$ref": "#/definitions/v1PaginationRequest"
+        },
+        "action": {
+          "type": "string"
+        },
+        "actor_id": {
+          "type": "string"
+        },
+        "resource_type": {
+          "type": "string"
+        },
+        "resource_id": {
+          "type": "string"
+        },
+        "from_timestamp": {
+          "type": "string",
+          "format": "int64"
+        },
+        "to_timestamp": {
+          "type": "string",
+          "format": "int64"
+        }
+      },
+      "description": "AuditLogsRequest mirrors model.ListAuditLogRequest. All filter fields are\noptional; when unset no filtering is applied for that field."
+    },
+    "v1AuditLogsResponse": {
+      "type": "object",
+      "properties": {
+        "audit_logs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1AuditLog"
+          }
+        },
+        "pagination": {
+          "$ref": "#/definitions/v1Pagination"
+        }
+      }
     },
     "v1AuthResponse": {
       "type": "object",
@@ -1618,6 +1897,23 @@
         }
       }
     },
+    "v1DeleteEmailTemplateRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "description": "DeleteEmailTemplateRequest mirrors model.DeleteEmailTemplateRequest (a single\nemail template id)."
+    },
+    "v1DeleteEmailTemplateResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
     "v1DeleteUserRequest": {
       "type": "object",
       "properties": {
@@ -1649,6 +1945,58 @@
       "properties": {
         "message": {
           "type": "string"
+        }
+      }
+    },
+    "v1EmailTemplate": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "event_name": {
+          "type": "string"
+        },
+        "template": {
+          "type": "string"
+        },
+        "design": {
+          "type": "string"
+        },
+        "subject": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "int64"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "int64"
+        }
+      },
+      "description": "EmailTemplate mirrors model.EmailTemplate field-for-field."
+    },
+    "v1EmailTemplatesRequest": {
+      "type": "object",
+      "properties": {
+        "pagination": {
+          "$ref": "#/definitions/v1PaginationRequest"
+        }
+      }
+    },
+    "v1EmailTemplatesResponse": {
+      "type": "object",
+      "properties": {
+        "email_templates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1EmailTemplate"
+          }
+        },
+        "pagination": {
+          "$ref": "#/definitions/v1Pagination"
         }
       }
     },
@@ -2241,6 +2589,35 @@
         }
       },
       "description": "TestEndpointResponse mirrors model.TestEndpointResponse."
+    },
+    "v1UpdateEmailTemplateRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "event_name": {
+          "type": "string"
+        },
+        "template": {
+          "type": "string"
+        },
+        "subject": {
+          "type": "string"
+        },
+        "design": {
+          "type": "string"
+        }
+      },
+      "description": "UpdateEmailTemplateRequest mirrors model.UpdateEmailTemplateRequest. Nullable\nGraphQL inputs use proto3 `optional` so an unset field is distinguishable from\nan empty value."
+    },
+    "v1UpdateEmailTemplateResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
     },
     "v1UpdateProfileRequest": {
       "type": "object",

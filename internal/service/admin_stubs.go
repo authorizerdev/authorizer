@@ -20,24 +20,6 @@ func adminNotImplemented() error {
 	return &Error{Kind: KindInternal, msg: "admin operation not yet implemented"}
 }
 
-// --- Email templates (Phase 5) ---
-
-func (p *provider) AddEmailTemplate(ctx context.Context, meta RequestMetadata, params *model.AddEmailTemplateRequest) (*model.Response, *ResponseSideEffects, error) {
-	return nil, nil, adminNotImplemented()
-}
-
-func (p *provider) UpdateEmailTemplate(ctx context.Context, meta RequestMetadata, params *model.UpdateEmailTemplateRequest) (*model.Response, *ResponseSideEffects, error) {
-	return nil, nil, adminNotImplemented()
-}
-
-func (p *provider) DeleteEmailTemplate(ctx context.Context, meta RequestMetadata, params *model.DeleteEmailTemplateRequest) (*model.Response, *ResponseSideEffects, error) {
-	return nil, nil, adminNotImplemented()
-}
-
-func (p *provider) EmailTemplates(ctx context.Context, meta RequestMetadata, params *model.PaginatedRequest) (*model.EmailTemplates, *ResponseSideEffects, error) {
-	return nil, nil, adminNotImplemented()
-}
-
 // --- Audit (Phase 6) ---
 
 func (p *provider) AuditLogs(ctx context.Context, meta RequestMetadata, params *model.ListAuditLogRequest) (*model.AuditLogs, *ResponseSideEffects, error) {

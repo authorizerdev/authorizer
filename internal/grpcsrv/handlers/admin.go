@@ -268,3 +268,74 @@ func (h *AdminHandler) TestEndpoint(ctx context.Context, req *authorizerv1.TestE
 	}
 	return projectTestEndpointResponse(res), nil
 }
+
+// AddEmailTemplate delegates to service.AddEmailTemplate. design is optional.
+// Requires super-admin auth.
+func (h *AdminHandler) AddEmailTemplate(ctx context.Context, req *authorizerv1.AddEmailTemplateRequest) (*authorizerv1.AddEmailTemplateResponse, error) {
+	res, _, err := h.Service.AddEmailTemplate(ctx, transport.MetaFromGRPC(ctx), &model.AddEmailTemplateRequest{
+		EventName: req.GetEventName(),
+		Subject:   req.GetSubject(),
+		Template:  req.GetTemplate(),
+		Design:    req.Design,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &authorizerv1.AddEmailTemplateResponse{Message: res.Message}, nil
+}
+
+// UpdateEmailTemplate delegates to service.UpdateEmailTemplate. Optional proto
+// fields map 1:1 onto the model's nullable pointers. Requires super-admin auth.
+func (h *AdminHandler) UpdateEmailTemplate(ctx context.Context, req *authorizerv1.UpdateEmailTemplateRequest) (*authorizerv1.UpdateEmailTemplateResponse, error) {
+	res, _, err := h.Service.UpdateEmailTemplate(ctx, transport.MetaFromGRPC(ctx), &model.UpdateEmailTemplateRequest{
+		ID:        req.GetId(),
+		EventName: req.EventName,
+		Template:  req.Template,
+		Subject:   req.Subject,
+		Design:    req.Design,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &authorizerv1.UpdateEmailTemplateResponse{Message: res.Message}, nil
+}
+
+// DeleteEmailTemplate delegates to service.DeleteEmailTemplate. Requires
+// super-admin auth.
+func (h *AdminHandler) DeleteEmailTemplate(ctx context.Context, req *authorizerv1.DeleteEmailTemplateRequest) (*authorizerv1.DeleteEmailTemplateResponse, error) {
+	res, _, err := h.Service.DeleteEmailTemplate(ctx, transport.MetaFromGRPC(ctx), &model.DeleteEmailTemplateRequest{
+		ID: req.GetId(),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &authorizerv1.DeleteEmailTemplateResponse{Message: res.Message}, nil
+}
+
+// EmailTemplates delegates to service.EmailTemplates and projects the paginated
+// result. Requires super-admin auth.
+func (h *AdminHandler) EmailTemplates(ctx context.Context, req *authorizerv1.EmailTemplatesRequest) (*authorizerv1.EmailTemplatesResponse, error) {
+	res, _, err := h.Service.EmailTemplates(ctx, transport.MetaFromGRPC(ctx), modelPaginatedRequest(req.GetPagination()))
+	if err != nil {
+		return nil, err
+	}
+	return projectEmailTemplates(res), nil
+}
+
+// AuditLogs delegates to service.AuditLogs and projects the paginated result.
+// All filter fields are optional. Requires super-admin auth.
+func (h *AdminHandler) AuditLogs(ctx context.Context, req *authorizerv1.AuditLogsRequest) (*authorizerv1.AuditLogsResponse, error) {
+	res, _, err := h.Service.AuditLogs(ctx, transport.MetaFromGRPC(ctx), &model.ListAuditLogRequest{
+		Pagination:    modelPaginationRequest(req.GetPagination()),
+		Action:        req.Action,
+		ActorID:       req.ActorId,
+		ResourceType:  req.ResourceType,
+		ResourceID:    req.ResourceId,
+		FromTimestamp: req.FromTimestamp,
+		ToTimestamp:   req.ToTimestamp,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return projectAuditLogs(res), nil
+}

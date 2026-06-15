@@ -47,6 +47,11 @@ const (
 	AuthorizerAdminService_Webhooks_FullMethodName             = "/authorizer.v1.AuthorizerAdminService/Webhooks"
 	AuthorizerAdminService_WebhookLogs_FullMethodName          = "/authorizer.v1.AuthorizerAdminService/WebhookLogs"
 	AuthorizerAdminService_TestEndpoint_FullMethodName         = "/authorizer.v1.AuthorizerAdminService/TestEndpoint"
+	AuthorizerAdminService_AddEmailTemplate_FullMethodName     = "/authorizer.v1.AuthorizerAdminService/AddEmailTemplate"
+	AuthorizerAdminService_UpdateEmailTemplate_FullMethodName  = "/authorizer.v1.AuthorizerAdminService/UpdateEmailTemplate"
+	AuthorizerAdminService_DeleteEmailTemplate_FullMethodName  = "/authorizer.v1.AuthorizerAdminService/DeleteEmailTemplate"
+	AuthorizerAdminService_EmailTemplates_FullMethodName       = "/authorizer.v1.AuthorizerAdminService/EmailTemplates"
+	AuthorizerAdminService_AuditLogs_FullMethodName            = "/authorizer.v1.AuthorizerAdminService/AuditLogs"
 )
 
 // AuthorizerAdminServiceClient is the client API for AuthorizerAdminService service.
@@ -108,6 +113,21 @@ type AuthorizerAdminServiceClient interface {
 	// TestEndpoint sends a synthetic event payload to a webhook endpoint and
 	// returns the HTTP status and response body. Requires super-admin auth.
 	TestEndpoint(ctx context.Context, in *TestEndpointRequest, opts ...grpc.CallOption) (*TestEndpointResponse, error)
+	// AddEmailTemplate creates a new email template for an event. Requires
+	// super-admin auth.
+	AddEmailTemplate(ctx context.Context, in *AddEmailTemplateRequest, opts ...grpc.CallOption) (*AddEmailTemplateResponse, error)
+	// UpdateEmailTemplate updates an existing email template's event, subject,
+	// body, or design. Requires super-admin auth.
+	UpdateEmailTemplate(ctx context.Context, in *UpdateEmailTemplateRequest, opts ...grpc.CallOption) (*UpdateEmailTemplateResponse, error)
+	// DeleteEmailTemplate deletes an email template by id. Requires super-admin
+	// auth.
+	DeleteEmailTemplate(ctx context.Context, in *DeleteEmailTemplateRequest, opts ...grpc.CallOption) (*DeleteEmailTemplateResponse, error)
+	// EmailTemplates returns a paginated list of email templates. Requires
+	// super-admin auth.
+	EmailTemplates(ctx context.Context, in *EmailTemplatesRequest, opts ...grpc.CallOption) (*EmailTemplatesResponse, error)
+	// AuditLogs returns a paginated, optionally-filtered list of audit log
+	// entries. Requires super-admin auth.
+	AuditLogs(ctx context.Context, in *AuditLogsRequest, opts ...grpc.CallOption) (*AuditLogsResponse, error)
 }
 
 type authorizerAdminServiceClient struct {
@@ -308,6 +328,56 @@ func (c *authorizerAdminServiceClient) TestEndpoint(ctx context.Context, in *Tes
 	return out, nil
 }
 
+func (c *authorizerAdminServiceClient) AddEmailTemplate(ctx context.Context, in *AddEmailTemplateRequest, opts ...grpc.CallOption) (*AddEmailTemplateResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AddEmailTemplateResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_AddEmailTemplate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) UpdateEmailTemplate(ctx context.Context, in *UpdateEmailTemplateRequest, opts ...grpc.CallOption) (*UpdateEmailTemplateResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateEmailTemplateResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_UpdateEmailTemplate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) DeleteEmailTemplate(ctx context.Context, in *DeleteEmailTemplateRequest, opts ...grpc.CallOption) (*DeleteEmailTemplateResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteEmailTemplateResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_DeleteEmailTemplate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) EmailTemplates(ctx context.Context, in *EmailTemplatesRequest, opts ...grpc.CallOption) (*EmailTemplatesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EmailTemplatesResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_EmailTemplates_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizerAdminServiceClient) AuditLogs(ctx context.Context, in *AuditLogsRequest, opts ...grpc.CallOption) (*AuditLogsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AuditLogsResponse)
+	err := c.cc.Invoke(ctx, AuthorizerAdminService_AuditLogs_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthorizerAdminServiceServer is the server API for AuthorizerAdminService service.
 // All implementations should embed UnimplementedAuthorizerAdminServiceServer
 // for forward compatibility.
@@ -367,6 +437,21 @@ type AuthorizerAdminServiceServer interface {
 	// TestEndpoint sends a synthetic event payload to a webhook endpoint and
 	// returns the HTTP status and response body. Requires super-admin auth.
 	TestEndpoint(context.Context, *TestEndpointRequest) (*TestEndpointResponse, error)
+	// AddEmailTemplate creates a new email template for an event. Requires
+	// super-admin auth.
+	AddEmailTemplate(context.Context, *AddEmailTemplateRequest) (*AddEmailTemplateResponse, error)
+	// UpdateEmailTemplate updates an existing email template's event, subject,
+	// body, or design. Requires super-admin auth.
+	UpdateEmailTemplate(context.Context, *UpdateEmailTemplateRequest) (*UpdateEmailTemplateResponse, error)
+	// DeleteEmailTemplate deletes an email template by id. Requires super-admin
+	// auth.
+	DeleteEmailTemplate(context.Context, *DeleteEmailTemplateRequest) (*DeleteEmailTemplateResponse, error)
+	// EmailTemplates returns a paginated list of email templates. Requires
+	// super-admin auth.
+	EmailTemplates(context.Context, *EmailTemplatesRequest) (*EmailTemplatesResponse, error)
+	// AuditLogs returns a paginated, optionally-filtered list of audit log
+	// entries. Requires super-admin auth.
+	AuditLogs(context.Context, *AuditLogsRequest) (*AuditLogsResponse, error)
 }
 
 // UnimplementedAuthorizerAdminServiceServer should be embedded to have
@@ -432,6 +517,21 @@ func (UnimplementedAuthorizerAdminServiceServer) WebhookLogs(context.Context, *W
 }
 func (UnimplementedAuthorizerAdminServiceServer) TestEndpoint(context.Context, *TestEndpointRequest) (*TestEndpointResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method TestEndpoint not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) AddEmailTemplate(context.Context, *AddEmailTemplateRequest) (*AddEmailTemplateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddEmailTemplate not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) UpdateEmailTemplate(context.Context, *UpdateEmailTemplateRequest) (*UpdateEmailTemplateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateEmailTemplate not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) DeleteEmailTemplate(context.Context, *DeleteEmailTemplateRequest) (*DeleteEmailTemplateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteEmailTemplate not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) EmailTemplates(context.Context, *EmailTemplatesRequest) (*EmailTemplatesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method EmailTemplates not implemented")
+}
+func (UnimplementedAuthorizerAdminServiceServer) AuditLogs(context.Context, *AuditLogsRequest) (*AuditLogsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AuditLogs not implemented")
 }
 func (UnimplementedAuthorizerAdminServiceServer) testEmbeddedByValue() {}
 
@@ -795,6 +895,96 @@ func _AuthorizerAdminService_TestEndpoint_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthorizerAdminService_AddEmailTemplate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddEmailTemplateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).AddEmailTemplate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_AddEmailTemplate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).AddEmailTemplate(ctx, req.(*AddEmailTemplateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_UpdateEmailTemplate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateEmailTemplateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).UpdateEmailTemplate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_UpdateEmailTemplate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).UpdateEmailTemplate(ctx, req.(*UpdateEmailTemplateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_DeleteEmailTemplate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteEmailTemplateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).DeleteEmailTemplate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_DeleteEmailTemplate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).DeleteEmailTemplate(ctx, req.(*DeleteEmailTemplateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_EmailTemplates_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EmailTemplatesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).EmailTemplates(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_EmailTemplates_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).EmailTemplates(ctx, req.(*EmailTemplatesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizerAdminService_AuditLogs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AuditLogsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizerAdminServiceServer).AuditLogs(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizerAdminService_AuditLogs_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizerAdminServiceServer).AuditLogs(ctx, req.(*AuditLogsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthorizerAdminService_ServiceDesc is the grpc.ServiceDesc for AuthorizerAdminService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -877,6 +1067,26 @@ var AuthorizerAdminService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "TestEndpoint",
 			Handler:    _AuthorizerAdminService_TestEndpoint_Handler,
+		},
+		{
+			MethodName: "AddEmailTemplate",
+			Handler:    _AuthorizerAdminService_AddEmailTemplate_Handler,
+		},
+		{
+			MethodName: "UpdateEmailTemplate",
+			Handler:    _AuthorizerAdminService_UpdateEmailTemplate_Handler,
+		},
+		{
+			MethodName: "DeleteEmailTemplate",
+			Handler:    _AuthorizerAdminService_DeleteEmailTemplate_Handler,
+		},
+		{
+			MethodName: "EmailTemplates",
+			Handler:    _AuthorizerAdminService_EmailTemplates_Handler,
+		},
+		{
+			MethodName: "AuditLogs",
+			Handler:    _AuthorizerAdminService_AuditLogs_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

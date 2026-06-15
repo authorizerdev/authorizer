@@ -183,6 +183,55 @@ service AuthorizerAdminService {
       body: "*"
     };
   }
+
+  // === Email templates ===
+
+  // AddEmailTemplate creates a new email template for an event. Requires
+  // super-admin auth.
+  rpc AddEmailTemplate(AddEmailTemplateRequest) returns (AddEmailTemplateResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/add_email_template"
+      body: "*"
+    };
+  }
+
+  // UpdateEmailTemplate updates an existing email template's event, subject,
+  // body, or design. Requires super-admin auth.
+  rpc UpdateEmailTemplate(UpdateEmailTemplateRequest) returns (UpdateEmailTemplateResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/update_email_template"
+      body: "*"
+    };
+  }
+
+  // DeleteEmailTemplate deletes an email template by id. Requires super-admin
+  // auth.
+  rpc DeleteEmailTemplate(DeleteEmailTemplateRequest) returns (DeleteEmailTemplateResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/delete_email_template"
+      body: "*"
+    };
+  }
+
+  // EmailTemplates returns a paginated list of email templates. Requires
+  // super-admin auth.
+  rpc EmailTemplates(EmailTemplatesRequest) returns (EmailTemplatesResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/email_templates"
+      body: "*"
+    };
+  }
+
+  // === Audit ===
+
+  // AuditLogs returns a paginated, optionally-filtered list of audit log
+  // entries. Requires super-admin auth.
+  rpc AuditLogs(AuditLogsRequest) returns (AuditLogsResponse) {
+    option (google.api.http) = {
+      post: "/v1/admin/audit_logs"
+      body: "*"
+    };
+  }
 }
 
 // ============================================================================
@@ -430,4 +479,93 @@ message TestEndpointRequest {
 message TestEndpointResponse {
   int64 http_status = 1;
   string response = 2;
+}
+
+// === Email templates ===
+
+// EmailTemplate mirrors model.EmailTemplate field-for-field.
+message EmailTemplate {
+  string id = 1;
+  string event_name = 2;
+  string template = 3;
+  string design = 4;
+  string subject = 5;
+  int64 created_at = 6;
+  int64 updated_at = 7;
+}
+
+// AddEmailTemplateRequest mirrors model.AddEmailTemplateRequest. design is
+// optional.
+message AddEmailTemplateRequest {
+  string event_name = 1 [(buf.validate.field).string.min_len = 1];
+  string subject = 2 [(buf.validate.field).string.min_len = 1];
+  string template = 3 [(buf.validate.field).string.min_len = 1];
+  optional string design = 4;
+}
+message AddEmailTemplateResponse {
+  string message = 1;
+}
+
+// UpdateEmailTemplateRequest mirrors model.UpdateEmailTemplateRequest. Nullable
+// GraphQL inputs use proto3 `optional` so an unset field is distinguishable from
+// an empty value.
+message UpdateEmailTemplateRequest {
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+  optional string event_name = 2;
+  optional string template = 3;
+  optional string subject = 4;
+  optional string design = 5;
+}
+message UpdateEmailTemplateResponse {
+  string message = 1;
+}
+
+// DeleteEmailTemplateRequest mirrors model.DeleteEmailTemplateRequest (a single
+// email template id).
+message DeleteEmailTemplateRequest {
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+}
+message DeleteEmailTemplateResponse {
+  string message = 1;
+}
+
+message EmailTemplatesRequest {
+  authorizer.common.v1.PaginationRequest pagination = 1;
+}
+message EmailTemplatesResponse {
+  repeated EmailTemplate email_templates = 1;
+  authorizer.common.v1.Pagination pagination = 2;
+}
+
+// === Audit ===
+
+// AuditLog mirrors model.AuditLog field-for-field.
+message AuditLog {
+  string id = 1;
+  string actor_id = 2;
+  string actor_type = 3;
+  string actor_email = 4;
+  string action = 5;
+  string resource_type = 6;
+  string resource_id = 7;
+  string ip_address = 8;
+  string user_agent = 9;
+  string metadata = 10;
+  int64 created_at = 11;
+}
+
+// AuditLogsRequest mirrors model.ListAuditLogRequest. All filter fields are
+// optional; when unset no filtering is applied for that field.
+message AuditLogsRequest {
+  authorizer.common.v1.PaginationRequest pagination = 1;
+  optional string action = 2;
+  optional string actor_id = 3;
+  optional string resource_type = 4;
+  optional string resource_id = 5;
+  optional int64 from_timestamp = 6;
+  optional int64 to_timestamp = 7;
+}
+message AuditLogsResponse {
+  repeated AuditLog audit_logs = 1;
+  authorizer.common.v1.Pagination pagination = 2;
 }
