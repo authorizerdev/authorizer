@@ -17,6 +17,24 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  lint:
+    name: Lint (golangci-lint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      # Installs the pinned golangci-lint on demand (see Makefile lint-tools)
+      # and runs it over the module. Config lives in .golangci.yml.
+      - name: Run golangci-lint
+        run: make lint-go
+
   test:
     name: Go tests (SQLite)
     runs-on: ubuntu-latest
